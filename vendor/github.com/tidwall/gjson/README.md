@@ -3,12 +3,9 @@
     src="logo.png" 
     width="240" height="78" border="0" alt="GJSON">
 <br>
-<a href="https://travis-ci.org/tidwall/gjson"><img src="https://img.shields.io/travis/tidwall/gjson.svg?style=flat-square" alt="Build Status"></a>
 <a href="https://godoc.org/github.com/tidwall/gjson"><img src="https://img.shields.io/badge/api-reference-blue.svg?style=flat-square" alt="GoDoc"></a>
 <a href="http://tidwall.com/gjson-play"><img src="https://img.shields.io/badge/%F0%9F%8F%90-playground-9900cc.svg?style=flat-square" alt="GJSON Playground"></a>
 </p>
-
-
 
 <p align="center">get json values quickly</a></p>
 
@@ -16,6 +13,8 @@ GJSON is a Go package that provides a [fast](#performance) and [simple](#get-a-v
 It has features such as [one line retrieval](#get-a-value), [dot notation paths](#path-syntax), [iteration](#iterate-through-an-object-or-array), and [parsing json lines](#json-lines).
 
 Also check out [SJSON](https://github.com/tidwall/sjson) for modifying json, and the [JJ](https://github.com/tidwall/jj) command line tool.
+
+For the Rust version go to [gjson.rs](https://github.com/tidwall/gjson.rs).
 
 Getting Started
 ===============
@@ -71,9 +70,9 @@ The dot and wildcard characters can be escaped with '\\'.
   "children": ["Sara","Alex","Jack"],
   "fav.movie": "Deer Hunter",
   "friends": [
-    {"first": "Dale", "last": "Murphy", "age": 44},
-    {"first": "Roger", "last": "Craig", "age": 68},
-    {"first": "Jane", "last": "Murphy", "age": 47}
+    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
   ]
 }
 ```
@@ -90,16 +89,24 @@ The dot and wildcard characters can be escaped with '\\'.
 "friends.1.last"     >> "Craig"
 ```
 
-You can also query an array for the first match by using `#[...]`, or find all matches with `#[...]#`. 
-Queries support the `==`, `!=`, `<`, `<=`, `>`, `>=` comparison operators and the simple pattern matching `%` (like) and `!%` (not like) operators.
+You can also query an array for the first match by using `#(...)`, or find all 
+matches with `#(...)#`. Queries support the `==`, `!=`, `<`, `<=`, `>`, `>=` 
+comparison operators and the simple pattern matching `%` (like) and `!%` 
+(not like) operators.
 
 ```
-friends.#[last=="Murphy"].first    >> "Dale"
-friends.#[last=="Murphy"]#.first   >> ["Dale","Jane"]
-friends.#[age>45]#.last            >> ["Craig","Murphy"]
-friends.#[first%"D*"].last         >> "Murphy"
-friends.#[first!%"D*"].last        >> "Craig"
+friends.#(last=="Murphy").first    >> "Dale"
+friends.#(last=="Murphy")#.first   >> ["Dale","Jane"]
+friends.#(age>45)#.last            >> ["Craig","Murphy"]
+friends.#(first%"D*").last         >> "Murphy"
+friends.#(first!%"D*").last        >> "Craig"
+friends.#(nets.#(=="fb"))#.first   >> ["Dale","Roger"]
 ```
+
+*Please note that prior to v1.3.0, queries used the `#[...]` brackets. This was
+changed in v1.3.0 as to avoid confusion with the new
+[multipath](SYNTAX.md#multipaths) syntax. For backwards compatibility, 
+`#[...]` will continue to work until the next major release.*
 
 ## Result Type
 
@@ -185,11 +192,15 @@ we'll get `children` array and reverse the order:
 "children|@reverse|0"         >> "Jack"
 ```
 
-There are currently three built-in modifiers:
+There are currently the following built-in modifiers:
 
 - `@reverse`: Reverse an array or the members of an object.
 - `@ugly`: Remove all whitespace from a json document.
 - `@pretty`: Make the json document more human readable.
+- `@this`: Returns the current element. It can be used to retrieve the root element.
+- `@valid`: Ensure the json document is valid.
+- `@flatten`: Flattens an array.
+- `@join`: Joins multiple objects into a single object.
 
 ### Modifier arguments
 
@@ -263,7 +274,7 @@ For example:
 ..1                   >> {"name": "Alexa", "age": 34}
 ..3                   >> {"name": "Deloise", "age": 44}
 ..#.name              >> ["Gilbert","Alexa","May","Deloise"]
-..#[name="May"].age   >> 57
+..#(name="May").age   >> 57
 ```
 
 The `ForEachLines` function will iterate through JSON lines.
@@ -308,7 +319,7 @@ for _, name := range result.Array() {
 You can also query an object inside an array:
 
 ```go
-name := gjson.Get(json, `programmers.#[lastName="Hunter"].firstName`)
+name := gjson.Get(json, `programmers.#(lastName="Hunter").firstName`)
 println(name.String())  // prints "Elliotte"
 ```
 
@@ -464,7 +475,7 @@ JSON document used:
 }    
 ```
 
-Each operation was rotated though one of the following search paths:
+Each operation was rotated through one of the following search paths:
 
 ```
 widget.window.name
@@ -472,12 +483,4 @@ widget.image.hOffset
 widget.text.onMouseUp
 ```
 
-*These benchmarks were run on a MacBook Pro 15" 2.8 GHz Intel Core i7 using Go 1.8 and can be be found [here](https://github.com/tidwall/gjson-benchmarks).*
-
-
-## Contact
-Josh Baker [@tidwall](http://twitter.com/tidwall)
-
-## License
-
-GJSON source code is available under the MIT [License](/LICENSE).
+*These benchmarks were run on a MacBook Pro 15" 2.8 GHz Intel Core i7 using Go 1.8 and can be found [here](https://github.com/tidwall/gjson-benchmarks).*
