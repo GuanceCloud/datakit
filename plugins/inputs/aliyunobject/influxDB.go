@@ -1,7 +1,7 @@
 package aliyunobject
 
 import (
-	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -9,36 +9,57 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/tidwall/gjson"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
 	influxDBSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.influxdb]
-
-# ## @param - custom tags - [list of influxdb instanceid] - optional
-#instanceids = []
-
-# ## @param - custom tags - [list of excluded influxdb instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.influxdb.tags]
-# key1 = 'val1'
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_influxdb.p"
+	
+	# ##(optional) list of influxdb instanceid
+	#instanceids = []
+	
+	# ##(optional) list of excluded influxdb instanceid
+	#exclude_instanceids = []
+`
+	influxDBPipelineConfig = `
+json(_, InstanceId)
+json(_, RegionId)
+json(_, NetworkType)
+json(_, InstanceClass)
+json(_, ChargeType)
+    
 `
 )
 
 type InfluxDB struct {
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
+}
+
+func (e *InfluxDB) disabled() bool {
+	return e.Disable
 }
 
 func (e *InfluxDB) run(ag *objectAgent) {
 	var cli *sdk.Client
 	var err error
-
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] influxdb new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -52,7 +73,7 @@ func (e *InfluxDB) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 	for {
 
@@ -84,7 +105,7 @@ func (e *InfluxDB) run(ag *objectAgent) {
 			}
 			pageNum++
 		}
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -101,75 +122,12 @@ func DescribeHiTSDBInstanceList(client sdk.Client, pageSize int, pageNumber int)
 }
 
 func (e *InfluxDB) handleResponse(resp string, ag *objectAgent) {
-	var objs []map[string]interface{}
 	for _, inst := range gjson.Get(resp, "InstanceList").Array() {
-
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == inst.Get("InstanceId").String() {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
+		name := inst.Get("InstanceAlias").String()
+		id := inst.Get("InstanceId").String()
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", name, id),
 		}
-		if len(e.InstancesIDs) > 0 {
-			contain := false
-			for _, v := range e.InstancesIDs {
-				if v == inst.Get("InstanceId").String() {
-					contain = true
-					break
-				}
-			}
-			if !contain {
-				continue
-			}
-		}
-
-		obj := map[string]interface{}{
-			`__name`: inst.Get("InstanceAlias").String(),
-			`GmtCreated`: inst.Get("GmtCreated").String(),
-			`GmtExpire`: inst.Get("GmtExpire").String(),
-			`InstanceStorage`: inst.Get("InstanceStorage").String(),
-			`UserId`: inst.Get("UserId").String(),
-		}
-
-		tags := map[string]interface{}{
-			`__class`:    `aliyun_influxdb`,
-			`provider`:   `aliyun`,
-			`InstanceId`: inst.Get("InstanceId").String(),
-			`ZoneId`: inst.Get("ZoneId").String(),
-			`ChargeType`: inst.Get("ChargeType").String(),
-			`InstanceStatus`: inst.Get("InstanceStatus").String(),
-			`NetworkType`: inst.Get("NetworkType").String(),
-			`RegionId`: inst.Get("RegionId").String(),
-			`EngineType`: inst.Get("EngineType").String(),
-			`InstanceClass`: inst.Get("InstanceClass").String(),
-
-		}
-
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
-	}
-	if len(objs) <= 0 {
-		return
-	}
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
+		ag.parseObject(inst.String(), "aliyun_influxdb", id, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 }
