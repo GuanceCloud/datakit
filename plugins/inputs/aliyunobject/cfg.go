@@ -2,6 +2,7 @@ package aliyunobject
 
 import (
 	"context"
+	"reflect"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -18,33 +19,27 @@ const (
 # ## @param - collection interval - string - optional - default: 5m
 # interval = '5m'
 
-# ## @param - custom tags - [list of key:value element] - optional
-#[inputs.aliyunobject.tags]
-# key1 = 'val1'
-
 `
 )
 
 type objectAgent struct {
-	RegionID        string            `toml:"region_id"`
-	AccessKeyID     string            `toml:"access_key_id"`
-	AccessKeySecret string            `toml:"access_key_secret"`
-	Interval        datakit.Duration  `toml:"interval"`
-	Tags            map[string]string `toml:"tags,omitempty"`
+	RegionID        string           `toml:"region_id"`
+	AccessKeyID     string           `toml:"access_key_id"`
+	AccessKeySecret string           `toml:"access_key_secret"`
+	Interval        datakit.Duration `toml:"interval"`
 
-	Ecs    *Ecs    `toml:"ecs,omitempty"`
-	Slb    *Slb    `toml:"slb,omitempty"`
-	Oss    *Oss    `toml:"oss,omitempty"`
-	Rds    *Rds    `toml:"rds,omitempty"`
-	Ons    *Ons    `toml:"ons,omitempty"`
-	Domain *Domain `toml:"domain,omitempty"`
-	Dds    *Dds    `toml:"dds,omitempty"`
-	Redis *Redis `toml:"redis,omitempty"`
-	Cdn *Cdn `toml:"cdn,omitempty"`
-	Waf *Waf `toml:"waf,omitempty"`
-	Es *Elasticsearch `toml:"elasticsearch,omitempty"`
-	InfluxDB *InfluxDB `toml:"influxdb,omitempty"`
-
+	Ecs      *Ecs           `toml:"ecs,omitempty"`
+	Slb      *Slb           `toml:"slb,omitempty"`
+	Oss      *Oss           `toml:"oss,omitempty"`
+	Rds      *Rds           `toml:"rds,omitempty"`
+	Ons      *Ons           `toml:"rocketmq,omitempty"`
+	Domain   *Domain        `toml:"domain,omitempty"`
+	Dds      *Dds           `toml:"mongodb,omitempty"`
+	Redis    *Redis         `toml:"redis,omitempty"`
+	Cdn      *Cdn           `toml:"cdn,omitempty"`
+	Waf      *Waf           `toml:"waf,omitempty"`
+	Es       *Elasticsearch `toml:"elasticsearch,omitempty"`
+	InfluxDB *InfluxDB      `toml:"influxdb,omitempty"`
 
 	ctx       context.Context
 	cancelFun context.CancelFunc
@@ -52,8 +47,30 @@ type objectAgent struct {
 	wg sync.WaitGroup
 
 	subModules []subModule
+
+	mode string
+
+	testError error
 }
 
 func (ag *objectAgent) addModule(m subModule) {
+	if m == nil {
+		return
+	}
+	v := reflect.ValueOf(m)
+	if v.IsNil() {
+		return
+	}
+	if m.disabled() {
+		return
+	}
 	ag.subModules = append(ag.subModules, m)
+}
+
+func (ag *objectAgent) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *objectAgent) isDebug() bool {
+	return ag.mode == "debug"
 }
