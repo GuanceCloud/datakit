@@ -112,6 +112,9 @@ func ConvertGlobalVariables(key string, value sql.RawBytes) (interface{}, error)
 }
 
 func atof(str string) float64 {
+
+	l.Debugf("atof: `%s'", str)
+
 	str = strings.Replace(str, ",", "", -1)
 	str = strings.Replace(str, ";", "", -1)
 	str = strings.Replace(str, "/s", "", -1)
