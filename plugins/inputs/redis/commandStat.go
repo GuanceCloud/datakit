@@ -61,12 +61,11 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 func (i *Input) getCommandData() error {
 	list, err := i.client.Info("commandstats").Result()
 	if err != nil {
+		l.Error(err)
 		return err
 	}
 
-	i.parseCommandData(list)
-
-	return nil
+	return i.parseCommandData(list)
 }
 
 // 解析返回结果
