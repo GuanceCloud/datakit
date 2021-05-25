@@ -56,9 +56,10 @@ var (
   ## In addition, "device" is reserved specifically to indicate the device name.
   # name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME", "$device:$ID_FS_TYPE"]
   #
-  [inputs.diskio.tags]
-    # tag1 = "a"
-`
+
+[inputs.diskio.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"`
 )
 
 type diskioMeasurement measurement
