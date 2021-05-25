@@ -1,6 +1,7 @@
 package baiduIndex
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -92,6 +93,7 @@ func (b *BaiduIndex) command() {
 }
 
 func (b *BaiduIndex) getSearchIndex() {
+	var lines [][]byte
 	var keywords = [][]*searchWord{}
 	var et = time.Now()
 	var st = et.Add(-time.Duration(24 * time.Hour))
@@ -150,7 +152,7 @@ func (b *BaiduIndex) getSearchIndex() {
 			l.Errorf("make metric point error %s", err)
 		}
 
-		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+		err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
@@ -181,7 +183,7 @@ func (b *BaiduIndex) getSearchIndex() {
 			l.Errorf("make metric point error %s", err)
 		}
 
-		err = io.NamedFeed([]byte(pt2), io.Metric, inputName)
+		err = io.NamedFeed([]byte(pt2), datakit.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
@@ -212,11 +214,15 @@ func (b *BaiduIndex) getSearchIndex() {
 			l.Errorf("make metric point error %s", err)
 		}
 
-		err = io.NamedFeed([]byte(pt3), io.Metric, inputName)
+		lines = append(lines, pt)
+
+		err = io.NamedFeed([]byte(pt3), datakit.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
 	}
+
+	b.resData = bytes.Join(lines, []byte("\n"))
 }
 
 func (b *BaiduIndex) getExtendedIndex(tt string) {
@@ -277,7 +283,7 @@ func (b *BaiduIndex) getExtendedIndex(tt string) {
 			l.Errorf("make metric point error %s", err)
 		}
 
-		err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+		err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 		if err != nil {
 			l.Errorf("push metric point error %s", err)
 		}
