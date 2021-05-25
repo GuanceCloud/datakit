@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Pallinder/go-randomdata"
@@ -8,7 +9,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -19,15 +19,17 @@ var (
 	inputName = "mock"
 
 	sampleCfg = `
-# [inputs.mock]
-# interval = '3s'
-# metric = 'mock-testing'
+[inputs.mock]
+interval = '3s'
+metric = 'mock-testing'
+mock_panic = false
 	`
 )
 
 type Mock struct {
-	Interval string `toml:"interval"`
-	Metric   string `toml:"metric"`
+	Interval  string `toml:"interval"`
+	Metric    string `toml:"metric"`
+	MockPanic bool   `toml:"mock_panic"`
 }
 
 func (m *Mock) SampleConfig() string {
@@ -55,9 +57,14 @@ func (m *Mock) Run() {
 	for {
 		select {
 		case <-tick.C:
+
+			if m.MockPanic {
+				panic(fmt.Errorf("panic mocking"))
+			}
+
 			pt, err := influxdb.NewPoint(m.Metric,
 				map[string]string{
-					"from": config.Cfg.MainCfg.Hostname,
+					"from": datakit.Cfg.Hostname,
 				},
 				map[string]interface{}{
 					"f1": randomdata.Number(0, 100),
@@ -71,7 +78,7 @@ func (m *Mock) Run() {
 			}
 
 			data := []byte(pt.String())
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 				l.Error(err)
 			} else {
 				l.Debugf("feed %d bytes to io ok", len(data))

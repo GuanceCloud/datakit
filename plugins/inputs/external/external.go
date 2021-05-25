@@ -1,9 +1,7 @@
 package external
 
 import (
-	"fmt"
 	"os/exec"
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -21,16 +19,16 @@ const (
 	# 是否以后台方式运行外部采集器
 	daemon = false
 
-	# 如果以非 daemon 方式运行外部采集器，则以该间隔多次运行外部采集器。否则该配置无效
+	# 如果以非 daemon 方式运行外部采集器，则以该间隔多次运行外部采集器
 	#interval = '10s'
 
 	# 运行外部采集器所需的环境变量
 	#envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
 
-	# 外部采集器运行命令（任何命令均可，不可使用组合命令，如 'ps -ef && echo ok | print'）
-	cmd = "python your-python-script.py -cfg your-config.conf" # required
+	# 外部采集器可执行程序路径(尽可能写绝对路径)
+	cmd = "python" # required
 
-	# 本采集器不支持自定义 tag，所有自定义 tag 追加应该在外部采集器中自行追加
+	args = []
 	`
 )
 
@@ -39,39 +37,27 @@ var (
 	l         = logger.DefaultSLogger(inputName)
 )
 
-type externalInput struct {
+type ExernalInput struct {
 	Name     string   `toml:"name"`
 	Daemon   bool     `toml:"daemon"`
 	Interval string   `toml:"interval"`
 	Envs     []string `toml:"envs"`
 	Cmd      string   `toml:"cmd"`
+	Args     []string `toml:"args"`
 
 	cmd      *exec.Cmd     `toml:"-"`
-	bin      string        `toml:"-"`
-	args     []string      `toml:"-"`
 	duration time.Duration `toml:"-"`
 }
 
-func (_ *externalInput) Catalog() string {
+func (_ *ExernalInput) Catalog() string {
 	return "external"
 }
 
-func (_ *externalInput) SampleConfig() string {
+func (_ *ExernalInput) SampleConfig() string {
 	return configSample
 }
 
-func (ex *externalInput) precheck() error {
-	elems := strings.Split(ex.Cmd, " ")
-	if len(elems) == 0 {
-		l.Errorf("external input %s: empty Cmd", ex.Name)
-		return fmt.Errorf("invalid cmd")
-	}
-
-	ex.bin = elems[0]
-
-	if len(elems) > 1 {
-		ex.args = elems[1:]
-	}
+func (ex *ExernalInput) precheck() error {
 
 	ex.duration = time.Second * 10
 	if ex.Interval != "" {
@@ -84,13 +70,18 @@ func (ex *externalInput) precheck() error {
 		ex.duration = du
 	}
 
+	// TODO: check ex.Cmd is ok
+
 	return nil
 }
 
-func (ex *externalInput) start() error {
-	ex.cmd = exec.Command(ex.bin, ex.args...)
-	ex.cmd.Env = ex.Envs
+func (ex *ExernalInput) start() error {
+	ex.cmd = exec.Command(ex.Cmd, ex.Args...)
+	if ex.Envs != nil {
+		ex.cmd.Env = ex.Envs
+	}
 
+	l.Debugf("starting cmd %s, envs: %+#v", ex.cmd.String(), ex.cmd.Env)
 	if err := ex.cmd.Start(); err != nil {
 		l.Errorf("start external input %s failed: %s", ex.Name, err.Error())
 		return err
@@ -99,7 +90,7 @@ func (ex *externalInput) start() error {
 	return nil
 }
 
-func (ex *externalInput) Run() {
+func (ex *ExernalInput) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("starting external input %s...", ex.Name)
@@ -141,6 +132,6 @@ func (ex *externalInput) Run() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &externalInput{}
+		return &ExernalInput{}
 	})
 }

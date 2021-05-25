@@ -21,7 +21,7 @@ type historyInfo struct {
 	key string
 }
 
-func SetAliyunCostHistory(key string, info *historyInfo) error {
+func setAliyunCostHistory(key string, info *historyInfo) error {
 	if data, err := json.Marshal(info); err != nil {
 		return err
 	} else {
@@ -30,12 +30,12 @@ func SetAliyunCostHistory(key string, info *historyInfo) error {
 	}
 }
 
-func DelAliyunCostHistory(key string) {
+func delAliyunCostHistory(key string) {
 	path := filepath.Join(historyCacheDir, key)
 	os.Remove(path)
 }
 
-func GetAliyunCostHistory(key string) (*historyInfo, error) {
+func getAliyunCostHistory(key string) (*historyInfo, error) {
 	path := filepath.Join(historyCacheDir, key)
 	if _, err := os.Stat(path); err != nil {
 		return nil, err

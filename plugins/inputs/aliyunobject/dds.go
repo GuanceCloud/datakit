@@ -1,42 +1,61 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dds"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
 	ddsSampleConfig = `
-#[inputs.aliyunobject.dds]
-
-# ## @param - custom tags for dds object - [list of key:value element] - optional
-#[inputs.aliyunobject.dds.tags]
-# key1 = 'val1'
-
-# ## @param - custom tags - [list of dds instanceid] - optional
-#db_instanceids = []
-
-# ## @param - custom tags - [list of excluded dds instanceid] - optional
-#exclude_db_instanceids = []
+# ##(optional)
+#[inputs.aliyunobject.mongodb]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_mongodb.p"
+	
+	# ##(optional) list of mongodb instanceid
+	#db_instanceids = []
+	
+	# ##(optional) list of excluded mongodb instanceid
+	#exclude_db_instanceids = []
+`
+	ddsPipelineConfig = `
+json(_, DBInstanceId)
+json(_, ChargeType)
+json(_, RegionId)
+json(_, DBInstanceType)
+json(_, DBInstanceClass)
 `
 )
 
 type Dds struct {
-	Tags                 map[string]string `toml:"tags,omitempty"`
-	DBInstancesIDs       []string          `toml:"db_instanceids,omitempty"`
-	ExcludeDBInstanceIDs []string          `toml:"exclude_db_instanceids,omitempty"`
+	Disable              bool     `toml:"disable"`
+	DBInstancesIDs       []string `toml:"db_instanceids,omitempty"`
+	ExcludeDBInstanceIDs []string `toml:"exclude_db_instanceids,omitempty"`
+	PipelinePath         string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
+}
+
+func (r *Dds) disabled() bool {
+	return r.Disable
 }
 
 func (r *Dds) run(ag *objectAgent) {
 	var cli *dds.Client
 	var err error
-
+	p, err := newPipeline(r.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] mongodb new pipeline err:%s", err.Error())
+		return
+	}
+	r.p = p
 	for {
 
 		select {
@@ -50,7 +69,7 @@ func (r *Dds) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -64,10 +83,10 @@ func (r *Dds) run(ag *objectAgent) {
 		pageNum := 1
 		pageSize := 100
 		req := dds.CreateDescribeDBInstancesRequest()
-		req.Scheme = "https"
+		req.Scheme = "https" //nolint:goconst
 
 		for {
-			moduleLogger.Infof("pageNume %v, pagesize %v", pageNum, pageSize)
+			moduleLogger.Debugf("pageNume %v, pagesize %v", pageNum, pageSize)
 			if len(r.DBInstancesIDs) > 0 {
 				if pageNum <= len(r.DBInstancesIDs) {
 					req.DBInstanceId = r.DBInstancesIDs[pageNum-1]
@@ -97,17 +116,17 @@ func (r *Dds) run(ag *objectAgent) {
 				break
 			}
 
-			if len(r.DBInstancesIDs) <= 0 && resp.TotalCount < resp.PageNumber*pageSize {
+			if len(r.DBInstancesIDs) == 0 && resp.TotalCount < resp.PageNumber*pageSize {
 				break
 			}
 
 			pageNum++
-			if len(r.DBInstancesIDs) <= 0 {
+			if len(r.DBInstancesIDs) == 0 {
 				req.PageNumber = requests.NewInteger(pageNum)
 			}
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
@@ -115,93 +134,11 @@ func (r *Dds) handleResponse(resp *dds.DescribeDBInstancesResponse, ag *objectAg
 
 	moduleLogger.Debugf("TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
 
-	var objs []*map[string]interface{}
-
 	for _, db := range resp.DBInstances.DBInstance {
-		//moduleLogger.Debugf("dbinstanceInfo %+#v", db)
-
-		exclude := false
-		for _, dbIsId := range ag.Dds.ExcludeDBInstanceIDs {
-			if db.DBInstanceId == dbIsId {
-				exclude = true
-				break
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf("%s_%s", db.DBInstanceDescription, db.DBInstanceId),
 		}
-
-		if exclude {
-			continue
-		}
-
-		tags := map[string]interface{}{
-			"__class":            "aliyun_dds",
-			"__provider":         "aliyun",
-			"DBInstanceId":       db.DBInstanceId,
-			"DBInstanceType":     db.DBInstanceType,
-			"RegionId":           db.RegionId,
-			"DBInstanceStatus":   db.DBInstanceStatus,
-			"Engine":             db.Engine,
-			"NetworkType":        db.NetworkType,
-			"LockMode":           db.LockMode,
-			"DBInstanceClass":    db.DBInstanceClass,
-			"EngineVersion":      db.EngineVersion,
-			"ResourceGroupId":    db.ResourceGroupId,
-			"VSwitchId":          db.VSwitchId,
-			"VpcCloudInstanceId": db.VPCCloudInstanceIds,
-			"VPCId":              db.VPCId,
-			"ZoneId":             db.ZoneId,
-		}
-
-		for _, t := range db.Tags.Tag {
-			tags[t.Key] = t.Value
-		}
-
-		//add dds object custom tags
-		for k, v := range r.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj := &map[string]interface{}{
-			"__name":                fmt.Sprintf(`%s_%s`, db.DBInstanceDescription, db.DBInstanceId),
-			"__tags":                tags,
-			"ExpireTime":            db.ExpireTime,
-			"DestroyTime":           db.DestroyTime,
-			"CreationTime":          db.CreationTime,
-			"DBInstanceDescription": db.DBInstanceDescription,
-			"MaintainStartTime":     db.MaintainStartTime,
-			"MaxIOPS":               db.MaxIOPS,
-			"MaintainEndTime":       db.MaintainEndTime,
-			"LastDowngradeTime":     db.LastDowngradeTime,
-			"ChargeType":            db.ChargeType,
-			"ReadonlyReplicas":      db.ReadonlyReplicas,
-			"VpcAuthMode":           db.VpcAuthMode,
-			"MaxConnections":        db.MaxConnections,
-			"ReplicationFactor":     db.ReplicationFactor,
-			"CurrentKernelVersion":  db.CurrentKernelVersion,
-			"ConfigserverList":      db.ConfigserverList,
-			"ShardList":             db.ShardList,
-			"ReplicaSets":           db.ReplicaSets,
-			"MongosList":            db.MongosList,
-			"DBInstanceStorage":     db.DBInstanceStorage,
-		}
-
-		objs = append(objs, obj)
+		ag.parseObject(db, "aliyun_mongodb", db.DBInstanceId, r.p, r.ExcludeDBInstanceIDs, r.DBInstancesIDs, tags)
 	}
 
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
-	}
 }

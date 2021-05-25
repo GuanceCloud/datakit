@@ -1,43 +1,58 @@
 package aliyunobject
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
 	ossSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.oss]
-
-# ## @param - custom tags - [list of oss buckets] - optional
-#buckets = []
-
-# ## @param - custom tags - [list of excluded oss instanceid] - optional
-
-#exclude_buckets = []
-
-# ## @param - custom tags for ecs object - [list of key:value element] - optional
-#[inputs.aliyunobject.oss.tags]
-# key1 = 'val1'
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_oss.p"
+	# ##(optional) list of oss buckets
+	#buckets = []
+	
+	# ##(optional) list of excluded oss instanceid
+	#exclude_buckets = []
+`
+	ossPipelineConfig = `
+json(_, Location)
+json(_, StorageClass)
+json(_, CreationDate)
 
 `
 )
 
 type Oss struct {
-	Tags           map[string]string `toml:"tags,omitempty"`
-	Buckets        []string          `toml:"buckets,omitempty"`
-	ExcludeBuckets []string          `toml:"exclude_buckets,omitempty"`
+	Disable        bool     `toml:"disable"`
+	Buckets        []string `toml:"buckets,omitempty"`
+	ExcludeBuckets []string `toml:"exclude_buckets,omitempty"`
+	PipelinePath   string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
+}
+
+func (o *Oss) disabled() bool {
+	return o.Disable
 }
 
 func (o *Oss) run(ag *objectAgent) {
 	var cli *oss.Client
 	var err error
-
+	p, err := newPipeline(o.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] oss new pipeline err:%s", err.Error())
+		return
+	}
+	o.p = p
 	for {
 
 		select {
@@ -97,78 +112,10 @@ func (o *Oss) run(ag *objectAgent) {
 
 func (o *Oss) handleResponse(lsRes *oss.ListBucketsResult, ag *objectAgent) {
 
-	var objs []map[string]interface{}
 	for _, bucket := range lsRes.Buckets {
-
-		if len(o.ExcludeBuckets) > 0 {
-			exclude := false
-			for _, v := range o.ExcludeBuckets {
-				if v == bucket.Name {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf(`OSS_%s`, bucket.Name),
 		}
-
-		if len(o.Buckets) > 0 {
-			include := false
-			for _, v := range o.Buckets {
-				if v == bucket.Name {
-					include = true
-					break
-				}
-			}
-
-			if !include {
-				continue
-			}
-		}
-
-		name := bucket.Name
-		obj := map[string]interface{}{
-			"__name":       fmt.Sprintf(`OSS_%s`, name), // 目前displayName与ID一样
-			"CreationDate": bucket.CreationDate,
-			"XMLName":      bucket.XMLName,
-			"Ower.XMLName": lsRes.Owner.XMLName,
-		}
-
-		tags := map[string]interface{}{
-			"__class":           "aliyun_oss",
-			"provider":          "aliyun",
-			"Location":          bucket.Location,
-			"Owner.ID":          lsRes.Owner.ID,
-			"Owner.DisplayName": lsRes.Owner.DisplayName,
-			"StorageClass":      bucket.StorageClass,
-		}
-
-		//add oss object custom tags
-		for k, v := range o.Tags {
-			tags[k] = v
-		}
-
-		//add global tags
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj[`__tags`] = tags
-
-		objs = append(objs, obj)
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
+		ag.parseObject(bucket, "aliyun_oss", bucket.Name, o.p, o.Buckets, o.ExcludeBuckets, tags)
 	}
 }

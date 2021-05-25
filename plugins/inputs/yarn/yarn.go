@@ -121,13 +121,11 @@ type YarnParam struct {
 const (
 	yarnConfigSample = `### You need to configure an [[inputs.yarn]] for each yarn to be monitored.
 ### interval: monitor interval, the default value is "60s".
-### active: whether to monitor yarn.
 ### host: yarn service WebUI host, such as http://ip:port.
 ### metricsName: the name of metric, default is "yarn"
 
 #[[inputs.yarn]]
 #	interval    = "60s"
-#	active      = true
 #	host        = "http://127.0.0.1:8088"
 #	metricsName = "yarn"
 #	[inputs.yarn.tags]
@@ -137,7 +135,6 @@ const (
 
 #[[inputs.yarn]]
 #	interval    = "60s"
-#	active      = true
 #	host        = "http://127.0.0.1:8088"
 #	metricsName = "yarn"
 #	[inputs.yarn.tags]
@@ -165,6 +162,9 @@ const (
 	INT VAL_TYPE = iota
 	FLOAT
 	STRING
+
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 1 * time.Second
 )
 
 func (y *Yarn) Catalog() string {
@@ -176,10 +176,16 @@ func (y *Yarn) SampleConfig() string {
 }
 
 func (y *Yarn) Run() {
-	if !y.Active || y.Host == "" {
+	if y.Host == "" {
 		return
 	}
 
+	p := y.genParam()
+	p.log.Infof("yarn input started...")
+	p.gather()
+}
+
+func (y *Yarn) genParam() *YarnParam {
 	if y.MetricsName != "" {
 		y.MetricsName = defaultMetricName
 	}
@@ -192,8 +198,7 @@ func (y *Yarn) Run() {
 	input := YarnInput{*y}
 	output := YarnOutput{io.NamedFeed}
 	p := &YarnParam{input, output, logger.SLogger("yarn")}
-	p.log.Infof("yarn input started...")
-	p.gather()
+	return p
 }
 
 func (p *YarnParam) gather() {
@@ -214,13 +219,15 @@ func (p *YarnParam) gather() {
 		return
 	}
 
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
-			err = p.getMetrics()
+			_, err = p.getMetrics(false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.log.Errorf("%s", err.Error())
 			}
 		case <-datakit.Exit.Wait():
@@ -230,32 +237,32 @@ func (p *YarnParam) gather() {
 	}
 }
 
-func (p *YarnParam) getMetrics() error {
+func (p *YarnParam) getMetrics(isTest bool) ([]byte, error) {
 	var err error
-	err = p.gatherMainSection()
-	if err != nil {
-		return err
+	pt, err := p.gatherMainSection(isTest)
+	if isTest || err != nil {
+		return pt, err
 	}
 
 	err = p.gatherAppSection()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = p.gatherNodeSection()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = p.gatherQueueSection()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return nil, nil
 }
 
-func (p *YarnParam) gatherMainSection() (err error) {
+func (p *YarnParam) gatherMainSection(isTest bool) ([]byte, error) {
 	var metric Metrcis
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
@@ -271,13 +278,15 @@ func (p *YarnParam) gatherMainSection() (err error) {
 	if err != nil || resp.StatusCode != 200 {
 		fields[canConect] = false
 		pt, _ := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
-		p.output.IoFeed(pt, io.Metric, inputName)
-		return
+		if !isTest {
+			p.output.IoFeed(pt, datakit.Metric, inputName)
+		}
+		return pt, err
 	}
 	defer resp.Body.Close()
 
 	if err := json.NewDecoder(resp.Body).Decode(&metric); err != nil {
-		return err
+		return nil, err
 	}
 	fields["apps_submitted"] = metric.ClusterMetrics.AppsSubmitted
 	fields["apps_completed"] = metric.ClusterMetrics.AppsCompleted
@@ -310,11 +319,13 @@ func (p *YarnParam) gatherMainSection() (err error) {
 
 	pt, err := io.MakeMetric(p.input.MetricsName, tags, fields, time.Now())
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	err = p.output.IoFeed(pt, io.Metric, inputName)
-	return
+	if !isTest {
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
+	}
+	return pt, err
 }
 
 func (p *YarnParam) gatherAppSection() error {
@@ -355,7 +366,7 @@ func (p *YarnParam) gatherAppSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 		if err != nil {
 			return err
 		}
@@ -400,7 +411,7 @@ func (p *YarnParam) gatherNodeSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 		if err != nil {
 			return err
 		}
@@ -543,7 +554,7 @@ func (p *YarnParam) gatherQueueSection() error {
 		if err != nil {
 			return err
 		}
-		err = p.output.IoFeed(pt, io.Metric, inputName)
+		err = p.output.IoFeed(pt, datakit.Metric, inputName)
 		if err != nil {
 			return err
 		}
