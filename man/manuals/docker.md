@@ -95,13 +95,10 @@
 
 重启该 Docker 服务后，便可以监听 `2375` 端口。详情见[官方配置文档](https://docs.docker.com/config/daemon/#configure-the-docker-daemon)。
 
-远程主机 Docker 服务开启端口监听后，需要在 DataKit 配置文件中指定 `inputs.docker.endpoint` 为该 `tcp://ip:port`。
-
-例如该主机 IP 是 `192.168.0.11`，则配置参数如下：
+远程采集 Docker 需要修改 `inputs.docker.endpoint` 配置，示例如下：
 
 ```
-[inputs.docker]
-	endpoint = "tcp://192.168.0.11:2375"
+endpoint = "tcp://remote-docker-ip:port"
 ```
 
 此外，建议在 `[inputs.docker.tag]` 中添加目标 Docker 的信息，用以辨识远程 Docker 服务：
@@ -116,6 +113,8 @@
 ### 关联 Kubernetes 服务
 
 如果主机上装有 Kubernetes，则 DataKit 会尝试连接 Kubernetes 服务，进行容器和 Kubernetes 关联，可以得到该容器在 Kubernetes 服务中的 pod 相关信息。
+
+例如该容器由 Kubernetes 创建，可以得到 `pod_name` 和 `pod_namespace` 两个指标数据。
 
 注意，DataKit 只会关联本机的 Kubernetes 服务，不会关键远程 Kubernetes 服务。即尝试连接 Kubernetes 服务的地址是 `127.0.0.1:10255`。
 
