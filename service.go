@@ -2,6 +2,7 @@ package datakit
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/kardianos/service"
 )
@@ -13,11 +14,11 @@ var (
 	ServiceExecutable  string
 	ServiceArguments   []string
 
-	Entry func() error
+	Entry func()
 
 	StopCh     = make(chan interface{})
 	waitstopCh = make(chan interface{})
-	logger     service.Logger
+	slogger    service.Logger
 )
 
 type program struct{}
@@ -26,13 +27,19 @@ func NewService() (service.Service, error) {
 
 	prog := &program{}
 
-	svc, err := service.New(prog, &service.Config{
+	scfg := &service.Config{
 		Name:        ServiceName,
 		DisplayName: ServiceName,
 		Description: ServiceDescription,
 		Executable:  ServiceExecutable,
 		Arguments:   ServiceArguments,
-	})
+	}
+
+	if runtime.GOOS == "darwin" {
+		scfg.Name = "cn.dataflux.datakit"
+	}
+
+	svc, err := service.New(prog, scfg)
 
 	if err != nil {
 		return nil, err
@@ -48,19 +55,27 @@ func StartService() error {
 		return err
 	}
 
-	errch := make(chan error, 5)
-	logger, err = svc.Logger(errch)
+	errch := make(chan error, CommonChanCap)
+	slogger, err = svc.Logger(errch)
 	if err != nil {
 		return err
 	}
 
-	logger.Info("datakit set service logger ok, starting...")
-
-	if err := svc.Run(); err != nil {
-		logger.Errorf("start service failed: %s", err.Error())
+	if err := slogger.Info("datakit set service logger ok, starting..."); err != nil {
+		return err
 	}
 
-	logger.Info("datakit service exited")
+	if err := svc.Run(); err != nil {
+		if serr := slogger.Errorf("start service failed: %s", err.Error()); serr != nil {
+			return serr
+		}
+		return err
+	}
+
+	if err := slogger.Info("datakit service exited"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -82,10 +97,4 @@ func (p *program) Stop(s service.Service) error {
 	// exit unexpected
 	<-waitstopCh
 	return nil
-}
-
-func Quit() {
-	Exit.Close()
-	WG.Wait()
-	close(waitstopCh)
 }
