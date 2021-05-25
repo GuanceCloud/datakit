@@ -104,7 +104,9 @@ func (h *HarborMonitor) command() {
 		l.Errorf("make metric point error %v", err)
 	}
 
-	err = io.NamedFeed([]byte(pt), io.Metric, inputName)
+	h.resData = pt
+
+	err = io.NamedFeed([]byte(pt), datakit.Metric, inputName)
 	if err != nil {
 		l.Errorf("push metric point error %v", err)
 	}
