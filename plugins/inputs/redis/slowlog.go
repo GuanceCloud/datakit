@@ -42,41 +42,23 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func CollectSlowlogMeasurement(input *Input) *slowlogMeasurement {
-	m := &slowlogMeasurement{
-		client:            input.client,
-		tags:              make(map[string]string),
-		fields:            make(map[string]interface{}),
-		lastTimestampSeen: make(map[string]int64),
-		slowlogMaxLen:     input.SlowlogMaxLen,
-	}
-
-	m.name = "redis_slowlog"
-	m.tags = input.Tags
-	m.getData()
-
-	return m
-}
-
 // 数据源获取数据
-func (m *slowlogMeasurement) getData() error {
+func (m *slowlogMeasurement) getData() ([]inputs.Measurement, error) {
 	var maxSlowEntries int
-
 	maxSlowEntries = m.slowlogMaxLen
 
 	slowlogs, err := m.client.Do("SLOWLOG", "GET", maxSlowEntries).Result()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var maxTs int64
 	for _, slowlog := range slowlogs.([]interface{}) {
 		if entry, ok := slowlog.([]interface{}); ok {
 			if entry == nil || len(entry) != 4 {
-				return errors.New("slowlog get protocol error")
+				return nil, errors.New("slowlog get protocol error")
 			}
 
-			// id := entry[0].(int64)
 			startTime := entry[1].(int64)
 			if startTime <= m.lastTimestampSeen["server"] {
 				continue
@@ -97,7 +79,9 @@ func (m *slowlogMeasurement) getData() error {
 			m.fields["slowlog_micros"] = duration
 		}
 	}
+
 	addr := m.tags["server"]
 	m.lastTimestampSeen[addr] = maxTs
-	return nil
+
+	return []inputs.Measurement{m}, nil
 }
