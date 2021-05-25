@@ -5,7 +5,6 @@ package nfsstat
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -25,27 +24,27 @@ const (
 
 	sampleCfg = `
 [inputs.nfsstat]
-	# nfsstat file location. default "/proc/net/rpc/nfsd"
-	location = "/proc/net/rpc/nfsd"
+    # nfsstat file location. default "/proc/net/rpc/nfsd"
+    # required
+    location = "/proc/net/rpc/nfsd"
 
-	# valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	interval = "10s"
+    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    # required
+    interval = "10s"
 
-	# [inputs.nfsstat.tags]
-	# tags1 = "value1"
+    # [inputs.nfsstat.tags]
+    # tags1 = "value1"
 `
-	nfsStatFileLocation = "/proc/net/rpc/nfsd"
 )
 
-var (
-	l *logger.Logger
-
-	testAssert bool
-)
+var l = logger.DefaultSLogger(inputName)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &NFSstat{}
+		return &NFSstat{
+			Interval: datakit.Cfg.Interval,
+			Tags:     make(map[string]string),
+		}
 	})
 }
 
@@ -56,18 +55,18 @@ type NFSstat struct {
 	duration time.Duration
 }
 
-func (_ *NFSstat) SampleConfig() string {
+func (*NFSstat) SampleConfig() string {
 	return sampleCfg
 }
 
-func (_ *NFSstat) Catalog() string {
+func (*NFSstat) Catalog() string {
 	return inputName
 }
 
 func (n *NFSstat) Run() {
 	l = logger.SLogger(inputName)
 
-	if n.loadcfg() {
+	if n.initCfg() {
 		return
 	}
 
@@ -78,7 +77,6 @@ func (n *NFSstat) Run() {
 
 	for {
 		select {
-
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return
@@ -89,11 +87,7 @@ func (n *NFSstat) Run() {
 				l.Error(err)
 				continue
 			}
-			if testAssert {
-				fmt.Printf("data: %s\n", string(data))
-				continue
-			}
-			if err := io.NamedFeed(data, io.Metric, inputName); err != nil {
+			if err := io.NamedFeed(data, datakit.Metric, inputName); err != nil {
 				l.Error(err)
 				continue
 			}
@@ -102,13 +96,7 @@ func (n *NFSstat) Run() {
 	}
 }
 
-func (n *NFSstat) loadcfg() bool {
-
-	if n.Location == "" {
-		n.Location = nfsStatFileLocation
-		l.Infof("location is empty, use default location %s", nfsStatFileLocation)
-	}
-
+func (n *NFSstat) initCfg() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -118,45 +106,50 @@ func (n *NFSstat) loadcfg() bool {
 			// nil
 		}
 
-		d, err := time.ParseDuration(n.Interval)
-		if err != nil || d <= 0 {
-			l.Errorf("invalid interval")
-			time.Sleep(time.Second)
-			continue
-		}
-		n.duration = d
-
-		if _, err := os.Stat(n.Location); err != nil {
+		if err := n.loadCfg(); err != nil {
 			l.Error(err)
 			time.Sleep(time.Second)
-			continue
+		} else {
+			break
 		}
-
-		break
-	}
-
-	if n.Tags == nil {
-		n.Tags = make(map[string]string)
-	}
-	if _, ok := n.Tags["location"]; !ok {
-		n.Tags["location"] = n.Location
 	}
 
 	return false
 }
 
+func (n *NFSstat) loadCfg() (err error) {
+	if n.Location == "" {
+		err = fmt.Errorf("location cannot be empty")
+		return
+	}
+
+	n.duration, err = time.ParseDuration(n.Interval)
+	if err != nil {
+		err = fmt.Errorf("invalid interval, %s", err.Error())
+		return
+	} else if n.duration <= 0 {
+		err = fmt.Errorf("invalid interval, cannot be less than zero")
+		return
+	}
+
+	if _, ok := n.Tags["location"]; !ok {
+		n.Tags["location"] = n.Location
+	}
+
+	return
+}
+
 func buildPoint(fn string, tags map[string]string) ([]byte, error) {
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
-		return nil, fmt.Errorf("Could not open %s.", fn)
+		return nil, fmt.Errorf("could not open %s", fn)
 	}
 
 	if len(data) == 0 {
-		return nil, fmt.Errorf("File is empty.")
+		return nil, fmt.Errorf("file is empty")
 	}
 
-	nfsStats := fmt.Sprintf("%s", string(data))
-	stats, err := nfs.ParseServerRPCStats(strings.NewReader(nfsStats))
+	stats, err := nfs.ParseServerRPCStats(strings.NewReader(string(data)))
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +167,7 @@ func deepHit(data interface{}, prefix string, m map[string]interface{}) {
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).CanInterface() {
 			key := strings.ToLower(t.Field(i).Name)
-
 			switch v.Field(i).Kind() {
-
 			case reflect.Struct:
 				deepHit(v.Field(i).Interface(), prefix+key+"_", m)
 

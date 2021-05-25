@@ -2,6 +2,8 @@ package aliyunlog
 
 import (
 	"encoding/json"
+	"fmt"
+	sysio "io"
 	"math"
 	"strconv"
 	"strings"
@@ -10,13 +12,16 @@ import (
 
 	"github.com/gofrs/uuid"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
-	consumerLibrary "github.com/aliyun/aliyun-log-go-sdk/consumer"
+	consumerLibrary "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunlog/consumer"
 )
 
 var (
@@ -54,10 +59,6 @@ func (_ *ConsumerInstance) SampleConfig() string {
 	return aliyunlogConfigSample
 }
 
-// func (_ *AliyunLog) Description() string {
-// 	return "Collect logs from aliyun SLS"
-// }
-
 func (al *ConsumerInstance) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
@@ -85,6 +86,14 @@ func (r *runningProject) run() {
 	for _, c := range r.cfg.Stores {
 		r.wg.Add(1)
 
+		if c.ConsumerGroupName == "" {
+			c.ConsumerGroupName = "datakit-" + datakit.Cfg.UUID
+		}
+
+		if c.ConsumerName == "" {
+			c.ConsumerName = "datakit-" + datakit.Cfg.UUID
+		}
+
 		go func(ls *LogStoreCfg) {
 			defer r.wg.Done()
 
@@ -105,6 +114,28 @@ func (r *runningProject) run() {
 	}
 
 	r.wg.Wait()
+}
+
+type adapterLogWriter struct {
+	sysio.Writer
+}
+
+func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
+	moduleLogger.Debugf("%s", string(p))
+	return len(p), nil
+}
+
+func sdkLogger() log.Logger {
+	var logger log.Logger
+	logger = log.NewLogfmtLogger(log.NewSyncWriter(&adapterLogWriter{}))
+	switch datakit.Cfg.LogLevel {
+	case "debug":
+		logger = level.NewFilter(logger, level.AllowDebug())
+	default:
+		logger = level.NewFilter(logger, level.AllowInfo())
+	}
+	logger = log.With(logger, "time", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
+	return logger
 }
 
 func (r *runningStore) run() error {
@@ -156,12 +187,10 @@ func (r *runningStore) run() error {
 		Logstore:          r.cfg.Name,
 		ConsumerGroupName: r.cfg.ConsumerGroupName,
 		ConsumerName:      r.cfg.ConsumerName,
-		// This options is used for initialization, will be ignored once consumer group is created and each shard has been started to be consumed.
-		// Could be "begin", "end", "specific time format in time stamp", it's log receiving time.
-		CursorPosition: consumerLibrary.BEGIN_CURSOR,
+		CursorPosition:    consumerLibrary.END_CURSOR,
 	}
 
-	consumerWorker := consumerLibrary.InitConsumerWorker(option, r.logProcess)
+	consumerWorker := consumerLibrary.InitConsumerWorker(option, sdkLogger(), r.logProcess)
 	consumerWorker.Start()
 
 	<-datakit.Exit.Wait()
@@ -199,6 +228,7 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 			tags["store"] = r.cfg.Name
 			tags["project"] = r.proj.cfg.Name
 			tags["__topic__"] = lg.GetTopic()
+			tags["*source"] = r.cfg.Name
 
 			for _, lt := range lg.GetLogTags() {
 				k := lt.GetKey()
@@ -216,17 +246,17 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 				}
 			}
 
-			if lg.GetSource() != "" {
-				tagInfo := r.checkAsTag("__source__")
-				if tagInfo != nil {
-					tags[tagInfo.name] = lg.GetSource()
-					if !tagInfo.onlyAsTag {
-						fields["__source__"] = lg.GetSource()
-					}
-				} else {
-					fields["__source__"] = lg.GetSource()
-				}
-			}
+			// if lg.GetSource() != "" {
+			// 	tagInfo := r.checkAsTag("__source__")
+			// 	if tagInfo != nil {
+			// 		tags[tagInfo.name] = lg.GetSource()
+			// 		if !tagInfo.onlyAsTag {
+			// 			fields["__source__"] = lg.GetSource()
+			// 		}
+			// 	} else {
+			// 		fields["__source__"] = lg.GetSource()
+			// 	}
+			// }
 
 			// if lg.GetCategory() != "" {
 			// 	tags["__category__"] = lg.GetCategory()
@@ -261,7 +291,9 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 							if fval, err := strconv.ParseFloat(strval, 64); err == nil {
 								nval = int64(math.Floor(fval))
 							} else {
-								//r.logger.Warnf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								if strval != "-" {
+									moduleLogger.Debugf("you specify '%s' as int, but fail to convert '%s' to int", k, strval)
+								}
 							}
 						} else {
 							fields[k] = nval
@@ -269,13 +301,13 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 					case "float":
 						fval, err := strconv.ParseFloat(strval, 64)
 						if err != nil {
-							//r.logger.Warnf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							if strval != "-" {
+								moduleLogger.Debugf("you specify '%s' as float, but fail to convert '%s' to float", k, strval)
+							}
 						} else {
 							fields[k] = fval
 						}
 					}
-				} else {
-					fields[k] = strval
 				}
 			}
 
@@ -293,13 +325,20 @@ func (r *runningStore) logProcess(shardId int, logGroupList *sls.LogGroupList) s
 
 			contentStr, err := json.Marshal(&contentMap)
 			if err == nil {
-				fields["__content"] = string(contentStr)
+				fields["message"] = string(contentStr)
 			} else {
-				moduleLogger.Warnf("fail to marshal content, %s", err)
+				moduleLogger.Debugf("fail to marshal content, %s", err)
 			}
 
 			tm := time.Unix(int64(l.GetTime()), 0)
-			io.NamedFeedEx(inputName, io.Logging, r.metricName, tags, fields, tm)
+
+			if r.proj.inst.mode == "debug" {
+				mdata, _ := io.MakeMetric(r.metricName, tags, fields, tm)
+				fmt.Printf("%s\n", string(mdata))
+			} else {
+				io.NamedFeedEx(inputName, datakit.Logging, r.metricName, tags, fields, tm)
+			}
+
 		}
 	}
 	return ""
