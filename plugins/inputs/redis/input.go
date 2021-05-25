@@ -40,16 +40,15 @@ type Input struct {
 	SlowlogMaxLen     int                  `toml:"slowlog-max-len"`
 	Tags              map[string]string    `toml:"tags"`
 	client            *redis.Client        `toml:"-"`
-	collectCache      []inputs.Measurement `toml:"-"`
 	Addr              string               `toml:"-"`
 	Log               *inputs.TailerOption `toml:"log"`
 	tailer            *inputs.Tailer       `toml:"-"`
-	resKeys           []string             `toml:"-"`
-	err               error
+	start             time.Time            `toml:"-"`
 }
 
-func (i *Input) initCfg() {
+func (i *Input) initCfg() error {
 	i.Addr = fmt.Sprintf("%s:%d", i.Host, i.Port)
+
 	client := redis.NewClient(&redis.Options{
 		Addr:     i.Addr,
 		Password: i.Password, // no password set
@@ -58,12 +57,17 @@ func (i *Input) initCfg() {
 
 	i.client = client
 
-	i.globalTag()
-}
+	// ping (todo)
+	_, err := client.Ping().Result()
 
-func (i *Input) globalTag() {
+	if err != nil {
+		return err
+	}
+
 	i.Tags["server"] = i.Addr
 	i.Tags["service_name"] = i.Service
+
+	return nil
 }
 
 func (i *Input) PipelineConfig() map[string]string {
@@ -73,80 +77,152 @@ func (i *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-func (i *Input) Collect() error {
-	i.collectCache = []inputs.Measurement{}
-
-	i.collectInfoMeasurement()
+func (i *Input) Collect() {
+	// redis info metric
+	if ms, err := i.collectInfoMeasurement(); err != nil {
+		io.FeedLastError(inputName, err.Error())
+	} else {
+		if len(ms) > 0 {
+			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
+				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+				io.FeedLastError(inputName, err.Error())
+			}
+		}
+	}
 
 	// 获取客户端信息
-	i.collectClientMeasurement()
+	if ms, err := i.collectClientMeasurement(); err != nil {
+		io.FeedLastError(inputName, err.Error())
+	} else {
+		if len(ms) > 0 {
+			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
+				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+				io.FeedLastError(inputName, err.Error())
+			}
+		}
+	}
 
 	// db command
-	if i.CommandStats {
-		i.collectCommandMeasurement()
+	if ms, err := i.collectCommandMeasurement(); err != nil {
+		io.FeedLastError(inputName, err.Error())
+	} else {
+		if len(ms) > 0 {
+			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
+				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+				io.FeedLastError(inputName, err.Error())
+			}
+		}
 	}
 
 	// slowlog
 	if i.Slowlog {
-		slowlogMeasurement := CollectSlowlogMeasurement(i)
-		if len(slowlogMeasurement.fields) > 0 {
-			i.collectCache = append(i.collectCache, slowlogMeasurement)
+		if ms, err := i.collectSlowlogMeasurement(); err != nil {
+			io.FeedLastError(inputName, err.Error())
+		} else {
+			if len(ms) > 0 {
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
+					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+					io.FeedLastError(inputName, err.Error())
+				}
+			}
 		}
 	}
 
 	// bigkey
 	if len(i.Keys) > 0 {
-		i.collectBigKeyMeasurement()
+		if ms, err := i.collectBigKeyMeasurement(); err != nil {
+			io.FeedLastError(inputName, err.Error())
+		} else {
+			if len(ms) > 0 {
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, ms,
+					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+					io.FeedLastError(inputName, err.Error())
+				}
+			}
+		}
 	}
-
-	if i.err != nil {
-		return i.err
-	}
-
-	return nil
 }
 
-func (i *Input) collectInfoMeasurement() {
+func (i *Input) collectInfoMeasurement() ([]inputs.Measurement, error) {
+	var collectCache []inputs.Measurement
+
 	m := &infoMeasurement{
-		i:       i,
+		cli:     i.client,
 		resData: make(map[string]interface{}),
 		tags:    make(map[string]string),
 		fields:  make(map[string]interface{}),
 	}
 
 	m.name = "redis_info"
+
 	for key, value := range i.Tags {
 		m.tags[key] = value
 	}
 
+    // get data
 	if err := m.getData(); err != nil {
-		i.err = err
+		return nil, err
 	}
 
+	// build line data
 	if err := m.submit(); err != nil {
-		i.err = err
-	} else {
-		if len(m.fields) > 0 {
-			i.collectCache = append(i.collectCache, m)
-		}
+		return nil, err
 	}
+
+	if len(m.fields) > 0 {
+		collectCache = append(collectCache, m)
+	}
+
+	return collectCache, nil
 }
 
-func (i *Input) collectClientMeasurement() {
-	if err := i.getClientData(); err != nil {
-		i.err = err
+func (i *Input) collectBigKeyMeasurement() ([]inputs.Measurement, error) {
+	keys, err := i.getKeys()
+	if err != nil {
+		return nil, err
 	}
+
+	return i.getData(keys)
 }
 
-func (i *Input) collectBigKeyMeasurement() {
-	i.getKeys()
-	i.getData()
+// 数据源获取数据
+func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
+	list, err := i.client.ClientList().Result()
+	if err != nil {
+		l.Error("client list get error,", err)
+		return nil, err
+	}
+
+	return i.parseClientData(list)
 }
 
-func (i *Input) collectCommandMeasurement() {
-	if err := i.getCommandData(); err != nil {
-		i.err = err
+// 数据源获取数据
+func (i *Input) collectCommandMeasurement() ([]inputs.Measurement, error) {
+	list, err := i.client.Info("commandstats").Result()
+	if err != nil {
+		l.Error("command stats error,", err)
+		return nil, err
 	}
+
+	return i.parseCommandData(list)
+}
+
+func (i *Input) collectSlowlogMeasurement() ([]inputs.Measurement, error) {
+	m := &slowlogMeasurement{
+		client:            i.client,
+		tags:              make(map[string]string),
+		fields:            make(map[string]interface{}),
+		lastTimestampSeen: make(map[string]int64),
+		slowlogMaxLen:     i.SlowlogMaxLen,
+	}
+
+	m.name = "redis_slowlog"
+
+	for k, v := range i.Tags {
+		m.tags[k] = v
+	}
+
+	return m.getData()
 }
 
 func (i *Input) runLog(defaultPile string) error {
@@ -188,10 +264,17 @@ func (i *Input) Run() {
 
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
-	i.initCfg()
+	for {
+		if err := i.initCfg(); err != nil {
+			io.FeedLastError(inputName, err.Error())
+			time.Sleep(5*time.Second)
+		} else {
+		    break
+		}
+	}
 
 	if err := i.runLog("redis.p"); err != nil {
-		i.err = err
+
 	}
 
 	tick := time.NewTicker(i.Interval.Duration)
@@ -203,22 +286,9 @@ func (i *Input) Run() {
 		n++
 		select {
 		case <-tick.C:
-
 			l.Debugf("redis input gathering...")
-			start := time.Now()
-			if err := i.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
-			}
-
-			// 可能会采集到一点数据
-			if len(i.collectCache) > 0 {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
-					io.FeedLastError(inputName, err.Error())
-				}
-			}
-
-			i.reset()
+			i.start = time.Now()
+			i.Collect()
 
 		case <-datakit.Exit.Wait():
 			if i.tailer != nil {
@@ -229,12 +299,6 @@ func (i *Input) Run() {
 			return
 		}
 	}
-}
-
-func (i *Input) reset() {
-	i.resKeys = i.resKeys[:0]
-	i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
-	i.err = nil
 }
 
 func (i *Input) Catalog() string { return catalogName }
