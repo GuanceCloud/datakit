@@ -3,126 +3,68 @@
 package oraclemonitor
 
 import (
-	"database/sql"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
 
 const (
 	configSample = `
-[[inputs.oraclemonitor]]
-  ## 采集的频度，最小粒度5m
-  interval = '10s'
-  libPath = ''
-  ## 指标集名称，默认值oracle_monitor
-  metricName = ''
-  ## 实例ID(非必要属性)
-  instanceId = ''
-  ## # 实例描述(非必要属性)
-  instanceDesc = ''
-  ## oracle实例地址(ip)
-  host = ''
-  ## oracle监听端口
-  port = ''
-  ## 帐号
-  username = ''
-  ## 密码
-  password = ''
-  ## oracle的服务名
-  server = ''
-  ## 实例类型 例如 单实例、DG、RAC 等，非必要属性
-  type= 'singleInstance'
+[[inputs.external]]
+	daemon = true
+	name = 'oraclemonitor'
+	cmd  = "/usr/local/datakit/externals/oraclemonitor"
+	args = [
+		'-data-type'      , '<metric/logging>'          ,
+		'-instance-id'    , '<your-instance-id>'        ,
+		'-metric-name'    , 'oracle_monitor'            ,
+		'-interval'       , '1m'                        ,
+		'-instance-desc'  , '<your-oracle-description>' ,
+		'-host'           , '<your-oracle-host>'        ,
+		'-port'           , '1521'                      ,
+		'-username'       , '<oracle-user-name>'        ,
+		'-password'       , '<oracle-password>'         ,
+		'-service-name'   , '<oracle-service-name>'     ,
+		'-cluster-type'   , 'single'                    ,
+		'-oracle-version' , '11g'                       ,
+	]
+	envs = [
+		'LD_LIBRARY_PATH=/opt/oracle/instantclient_19_8:$LD_LIBRARY_PATH',
+	]
+
+	#############################
+	# 参数说明(标 * 为必选项)
+	#############################
+	# *-interval       : 采集的频度，最小粒度5m
+	#  -data-type      : 数据类型，默认值metric
+	#  -metric-name    : 指标集名称，默认值oracle_monitor
+	#  -instance-id    : 实例ID
+	#  -instance-desc  : 实例描述
+	# *-host           : oracle实例地址(ip)
+	#  -port           : oracle监听端口
+	# *-username       : oracle 用户名
+	# *-password       : oracle 密码
+	# *-service-name   : oracle的服务名
+	# *-cluster-type   : 实例类型(例如 single/dg/rac)
+	# *-oracle-version : 采集的oracle版本(支持10g, 11g, 12c)
 `
 )
 
 var (
 	inputName = "oraclemonitor"
-	l         = logger.DefaultSLogger(inputName)
 )
 
 type OracleMonitor struct {
-	LibPath  string `json:"libPath" toml:"libPath"`
-	Metric   string `json:"metricName" toml:"metricName"`
-	Interval string `json:"interval" toml:"interval"`
-
-	InstanceId string `json:"instanceId" toml:"instanceId"`
-	User       string `json:"username" toml:"username"`
-	Password   string `json:"password" toml:"password"`
-	Desc       string `json:"instanceDesc" toml:"instanceDesc"`
-	Host       string `json:"host" toml:"host"`
-	Port       string `json:"port" toml:"port"`
-	Server     string `json:"server" toml:"server"`
-	Type       string `json:"type" toml:"type"`
-
-	Tags map[string]string `json:"tags" toml:"tags"`
-
-	DB               *sql.DB       `json:"-" json:"-"`
-	IntervalDuration time.Duration `json:"-" json:"-"`
+	external.ExernalInput
 }
 
-func (_ *OracleMonitor) Catalog() string {
-	return "oracle"
-}
+func (_ *OracleMonitor) Catalog() string { return "db" }
 
-func (_ *OracleMonitor) SampleConfig() string {
-	return configSample
-}
+func (_ *OracleMonitor) SampleConfig() string { return configSample }
 
 func (o *OracleMonitor) Run() {
-	l = logger.SLogger(inputName)
-
-	l.Info("starting external oraclemonitor...")
-
-	bin := filepath.Join(datakit.InstallDir, "externals", "oraclemonitor")
-	if runtime.GOOS == "windows" {
-		bin += ".exe"
-	}
-
-	if _, err := os.Stat(bin); err != nil {
-		l.Error("check %s failed: %s", bin, err.Error())
-		return
-	}
-
-	cfg, err := json.Marshal(o)
-	if err != nil {
-		l.Errorf("toml marshal failed: %v", err)
-		return
-	}
-
-	b64cfg := base64.StdEncoding.EncodeToString(cfg)
-
-	args := []string{
-		"-cfg", b64cfg,
-		"-rpc-server", "unix://" + datakit.GRPCDomainSock,
-		"-desc", o.Desc,
-		"-log", filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log"),
-		"-log-level", config.Cfg.MainCfg.LogLevel,
-	}
-
-	cmd := exec.Command(bin, args...)
-	cmd.Env = []string{ // we need oracle instantclient_xx_xx lib
-		fmt.Sprintf("LD_LIBRARY_PATH=%s:$LD_LIBRARY_PATH", o.LibPath),
-	}
-
-	l.Infof("starting process %+#v", cmd)
-	if err := cmd.Start(); err != nil {
-		l.Error(err)
-		return
-	}
-
-	l.Infof("oraclemonitor PID: %d", cmd.Process.Pid)
-	datakit.MonitProc(cmd.Process, inputName) // blocking
+	// FIXME: 如果改成松散配置读取方式（只要是 .conf，直接读取并启动之）
+	// 这里得到 .Run() 方法要去掉。
+	o.ExernalInput.Run()
 }
 
 func init() {
