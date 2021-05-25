@@ -2,10 +2,14 @@ package cmds
 
 import (
 	"fmt"
+	nhttp "net/http"
+
 	"github.com/c-bata/go-prompt"
 	"github.com/kardianos/service"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	nhttp "net/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
 var (
@@ -105,4 +109,49 @@ func ReloadDatakit(port int) error {
 	}
 
 	return err
+}
+
+func DatakitStatus() (string, error) {
+
+	svc, err := datakit.NewService()
+	if err != nil {
+		return "", err
+	}
+
+	status, err := svc.Status()
+	if err != nil {
+		return "", err
+	}
+	switch status {
+	case service.StatusUnknown:
+		return "unknown", nil
+	case service.StatusRunning:
+		return "running", nil
+	case service.StatusStopped:
+		return "stopped", nil
+	default:
+		return "", fmt.Errorf("should not been here")
+	}
+}
+
+func IPInfo(ip string) (map[string]string, error) {
+	if err := geo.LoadIPLib(); err != nil {
+		return nil, err
+	}
+	if err := ip2isp.Init(); err != nil {
+		return nil, err
+	}
+
+	x, err := geo.Geo(ip)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"city":     x.City,
+		"province": x.Region,
+		"country":  x.Country_short,
+		"isp":      ip2isp.SearchIsp(ip),
+		"ip":       ip,
+	}, nil
 }
