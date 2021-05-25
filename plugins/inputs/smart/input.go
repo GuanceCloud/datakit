@@ -4,14 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"os/exec"
-	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -52,12 +50,9 @@ var (
   ## without a password.
   # use_sudo = false
 
-  ## Skip checking disks in this power mode. Defaults to
-  ## "standby" to not wake up disks that have stopped rotating.
+  ## Skip checking disks in this power mode. Defaults to "standby" to not wake up disks that have stopped rotating.
   ## See --nocheck in the man pages for smartctl.
-  ## smartctl version 5.41 and 5.42 have faulty detection of
-  ## power mode and might require changing this value to
-  ## "never" depending on your disks.
+  ## smartctl version 5.41 and 5.42 have faulty detection of power mode and might require changing this value to "never" depending on your disks.
   # nocheck = "standby"
 
   ## Gather all returned S.M.A.R.T. attribute metrics and the detailed
@@ -67,8 +62,7 @@ var (
   ## Optionally specify devices to exclude from reporting if disks auto-discovery is performed.
   # excludes = [ "/dev/pass6" ]
 
-  ## Optionally specify devices and device type, if unset
-  ## a scan (smartctl --scan and smartctl --scan -d nvme) for S.M.A.R.T. devices will be done
+  ## Optionally specify devices and device type, if unset a scan (smartctl --scan and smartctl --scan -d nvme) for S.M.A.R.T. devices will be done
   ## and all found will be included except for the excluded in excludes.
   # devices = [ "/dev/ada0 -d atacam", "/dev/nvme0"]
 `
@@ -83,10 +77,16 @@ type nvmeDevice struct {
 }
 
 type Input struct {
-	SmartCtlPath string
-	NvmePath     string
-	Interval     datakit.Duration
-	Timeout      datakit.Duration
+	SmartCtlPath     string           `toml:"smartctl_path"`
+	NvmePath         string           `toml:"nvme_path"`
+	Interval         datakit.Duration `toml:"interval"`
+	Timeout          datakit.Duration `toml:"timeout"`
+	EnableExtensions []string         `toml:"enable_extensions"`
+	UseSudo          bool             `toml:"use_sudo"`
+	NoCheck          bool             `toml:"nocheck"`
+	Attributes       bool             `toml:"attributes"`
+	Excludes         []string         `toml:"excludes"`
+	Devices          []string         `toml:"devices"`
 }
 
 func (*Input) Catalog() string {
@@ -145,26 +145,26 @@ func (s *Input) gather() error {
 	var scannedNVMeDevices []string
 	var scannedNonNVMeDevices []string
 
-	devicesFromConfig := m.Devices
-	isNVMe := len(m.PathNVMe) != 0
-	isVendorExtension := len(m.EnableExtensions) != 0
+	devicesFromConfig := s.Devices
+	isNVMe := len(s.NvmePath) != 0
+	isVendorExtension := len(s.EnableExtensions) != 0
 
-	if len(m.Devices) != 0 {
-		m.getAttributes(acc, devicesFromConfig)
-
+	if len(s.Devices) != 0 {
+		s.getAttributes(devicesFromConfig)
 		// if nvme-cli is present, vendor specific attributes can be gathered
 		if isVendorExtension && isNVMe {
-			scannedNVMeDevices, _, err = m.scanAllDevices(true)
+			scannedNVMeDevices, _, err = s.scanAllDevices(true)
 			if err != nil {
 				return err
 			}
 			NVMeDevices := distinguishNVMeDevices(devicesFromConfig, scannedNVMeDevices)
-
-			m.getVendorNVMeAttributes(acc, NVMeDevices)
+			s.getVendorNVMeAttributes(NVMeDevices)
 		}
+
 		return nil
 	}
-	scannedNVMeDevices, scannedNonNVMeDevices, err = m.scanAllDevices(false)
+
+	scannedNVMeDevices, scannedNonNVMeDevices, err = s.scanAllDevices(false)
 	if err != nil {
 		return err
 	}
@@ -172,18 +172,19 @@ func (s *Input) gather() error {
 	devicesFromScan = append(devicesFromScan, scannedNVMeDevices...)
 	devicesFromScan = append(devicesFromScan, scannedNonNVMeDevices...)
 
-	m.getAttributes(acc, devicesFromScan)
+	s.getAttributes(devicesFromScan)
 	if isVendorExtension && isNVMe {
-		m.getVendorNVMeAttributes(acc, scannedNVMeDevices)
+		s.getVendorNVMeAttributes(scannedNVMeDevices)
 	}
+
 	return nil
 }
 
 // Scan for S.M.A.R.T. devices from smartctl
 func (s *Input) scanDevices(ignoreExcludes bool, scanArgs ...string) ([]string, error) {
-	out, err := runCmd(m.Timeout, m.UseSudo, m.PathSmartctl, scanArgs...)
+	out, err := runCmd(s.Timeout, s.UseSudo, s.PathSmartctl, scanArgs...)
 	if err != nil {
-		return []string{}, fmt.Errorf("failed to run command '%s %s': %s - %s", m.PathSmartctl, scanArgs, err, string(out))
+		return []string{}, fmt.Errorf("failed to run command '%s %s': %s - %s", s.PathSmartctl, scanArgs, err, string(out))
 	}
 	var devices []string
 	for _, line := range strings.Split(string(out), "\n") {
@@ -192,62 +193,61 @@ func (s *Input) scanDevices(ignoreExcludes bool, scanArgs ...string) ([]string, 
 			continue
 		}
 		if !ignoreExcludes {
-			if !excludedDev(m.Excludes, strings.TrimSpace(dev[0])) {
+			if !excludedDev(s.Excludes, strings.TrimSpace(dev[0])) {
 				devices = append(devices, strings.TrimSpace(dev[0]))
 			}
 		} else {
 			devices = append(devices, strings.TrimSpace(dev[0]))
 		}
 	}
+
 	return devices, nil
 }
 
 func (s *Input) scanAllDevices(ignoreExcludes bool) ([]string, []string, error) {
 	// this will return all devices (including NVMe devices) for smartctl version >= 7.0
 	// for older versions this will return non NVMe devices
-	devices, err := m.scanDevices(ignoreExcludes, "--scan")
+	devices, err := s.scanDevices(ignoreExcludes, "--scan")
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// this will return only NVMe devices
-	NVMeDevices, err := m.scanDevices(ignoreExcludes, "--scan", "--device=nvme")
+	NVMeDevices, err := s.scanDevices(ignoreExcludes, "--scan", "--device=nvme")
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// to handle all versions of smartctl this will return only non NVMe devices
 	nonNVMeDevices := difference(devices, NVMeDevices)
+
 	return NVMeDevices, nonNVMeDevices, nil
 }
 
 // Get info and attributes for each S.M.A.R.T. device
-func (s *Input) getAttributes(acc telegraf.Accumulator, devices []string) {
+func (s *Input) getAttributes(devices []string) {
 	var wg sync.WaitGroup
 	wg.Add(len(devices))
-
 	for _, device := range devices {
-		go gatherDisk(acc, m.Timeout, m.UseSudo, m.Attributes, m.PathSmartctl, m.Nocheck, device, &wg)
+		go gatherDisk(s.Timeout, s.UseSudo, s.Attributes, s.PathSmartctl, s.Nocheck, device, &wg)
 	}
-
 	wg.Wait()
 }
 
-func (s *Input) getVendorNVMeAttributes(acc telegraf.Accumulator, devices []string) {
-	NVMeDevices := getDeviceInfoForNVMeDisks(acc, devices, m.PathNVMe, m.Timeout, m.UseSudo)
+func (s *Input) getVendorNVMeAttributes(devices []string) {
+	NVMeDevices := getDeviceInfoForNVMeDisks(acc, devices, s.PathNVMe, s.Timeout, s.UseSudo)
 
 	var wg sync.WaitGroup
-
 	for _, device := range NVMeDevices {
-		if contains(m.EnableExtensions, "auto-on") {
+		if contains(s.EnableExtensions, "auto-on") {
 			switch device.vendorID {
 			case intelVID:
 				wg.Add(1)
-				go gatherIntelNVMeDisk(acc, m.Timeout, m.UseSudo, m.PathNVMe, device, &wg)
+				go gatherIntelNVMeDisk(acc, s.Timeout, s.UseSudo, s.PathNVMe, device, &wg)
 			}
-		} else if contains(m.EnableExtensions, "Intel") && device.vendorID == intelVID {
+		} else if contains(s.EnableExtensions, "Intel") && device.vendorID == intelVID {
 			wg.Add(1)
-			go gatherIntelNVMeDisk(acc, m.Timeout, m.UseSudo, m.PathNVMe, device, &wg)
+			go gatherIntelNVMeDisk(acc, s.Timeout, s.UseSudo, s.PathNVMe, device, &wg)
 		}
 	}
 	wg.Wait()
@@ -264,16 +264,8 @@ func distinguishNVMeDevices(userDevices []string, availableNVMeDevices []string)
 			}
 		}
 	}
-	return NVMeDevices
-}
 
-// Wrap with sudo
-var runCmd = func(timeout config.Duration, sudo bool, command string, args ...string) ([]byte, error) {
-	cmd := exec.Command(command, args...)
-	if sudo {
-		cmd = exec.Command("sudo", append([]string{"-n", command}, args...)...)
-	}
-	return internal.CombinedOutputTimeout(cmd, time.Duration(timeout))
+	return NVMeDevices
 }
 
 func excludedDev(excludes []string, deviceLine string) bool {
@@ -285,10 +277,11 @@ func excludedDev(excludes []string, deviceLine string) bool {
 			}
 		}
 	}
+
 	return false
 }
 
-func getDeviceInfoForNVMeDisks(acc telegraf.Accumulator, devices []string, nvme string, timeout config.Duration, useSudo bool) []nvmeDevice {
+func getDeviceInfoForNVMeDisks(devices []string, nvme string, timeout config.Duration, useSudo bool) []nvmeDevice {
 	var NVMeDevices []nvmeDevice
 
 	for _, device := range devices {
@@ -305,6 +298,7 @@ func getDeviceInfoForNVMeDisks(acc telegraf.Accumulator, devices []string, nvme 
 		}
 		NVMeDevices = append(NVMeDevices, newDevice)
 	}
+
 	return NVMeDevices
 }
 
@@ -345,10 +339,11 @@ func findNVMeDeviceInfo(output string) (string, string, string, error) {
 			}
 		}
 	}
+
 	return vid, sn, mn, nil
 }
 
-func gatherIntelNVMeDisk(acc telegraf.Accumulator, timeout config.Duration, usesudo bool, nvme string, device nvmeDevice, wg *sync.WaitGroup) {
+func gatherIntelNVMeDisk(timeout config.Duration, usesudo bool, nvme string, device nvmeDevice, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	args := []string{"intel", "smart-log-add"}
@@ -395,7 +390,7 @@ func gatherIntelNVMeDisk(acc telegraf.Accumulator, timeout config.Duration, uses
 	}
 }
 
-func gatherDisk(acc telegraf.Accumulator, timeout config.Duration, usesudo, collectAttributes bool, smartctl, nocheck, device string, wg *sync.WaitGroup) {
+func gatherDisk(timeout config.Duration, usesudo, collectAttributes bool, smartctl, nocheck, device string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	// smartctl 5.41 & 5.42 have are broken regarding handling of --nocheck/-n
 	args := []string{"--info", "--health", "--attributes", "--tolerance=verypermissive", "-n", nocheck, "--format=brief"}
