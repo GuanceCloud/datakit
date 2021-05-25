@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2019-06-01/insights"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"golang.org/x/time/rate"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -19,7 +20,7 @@ const (
 # subscription_id = ''
 
 # ##(optional) default is for china
-# end_point = 'https://management.chinacloudapi.cn'
+# end_point = 'https://management.chinacloudapi.cn/'
 
 # ##(required)
 #[[inputs.azure_monitor.resource]]
@@ -61,6 +62,10 @@ type (
 		cancelFun context.CancelFunc
 
 		rateLimiter *rate.Limiter
+
+		mode string
+
+		testError error
 	}
 
 	metricMeta struct {
@@ -88,6 +93,14 @@ type (
 		lastFetchTime time.Time
 	}
 )
+
+func (a *azureInstance) isTest() bool {
+	return a.mode == "test"
+}
+
+func (a *azureInstance) isDebug() bool {
+	return a.mode == "debug"
+}
 
 func (a *azureInstance) genQueryInfo() []*queryListInfo {
 
