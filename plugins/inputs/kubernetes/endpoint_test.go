@@ -2,21 +2,23 @@ package kubernetes
 
 import (
 	"testing"
+	"context"
 )
 
-func TestMain(t *testing.T) {
+func TestCollectEndpoints(t *testing.T) {
 	i := &Input{
 		Tags: make(map[string]string),
 		KubeConfigPath: "/Users/liushaobo/.kube/config",
 	}
 
-	err := i.initCfg()
+	i.lastErr = i.initCfg()
+	ctx := context.Background()
+	err := i.collectEndpoints(ctx)
+
 	t.Log("error ---->", err)
 
-	i.Collect()
-
-	for _, obj := range i.collectCache {
-		point, err := obj.LineProto()
+	for _, m := range i.collectCache {
+		point, err := m.LineProto()
 		if err != nil {
 			t.Log("error ->", err)
 		} else {
@@ -24,3 +26,5 @@ func TestMain(t *testing.T) {
 		}
 	}
 }
+
+
