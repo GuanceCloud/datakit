@@ -39,6 +39,8 @@ type httpPing struct {
 	kAlive        bool
 	compress      bool
 	tlsSkipVerify bool
+	httpStat      *Httpstat
+	resData       []byte
 }
 
 // Result holds Ping result
@@ -226,7 +228,9 @@ func (h *httpPing) uploadData(resData Result) {
 
 	pt, _ := influxdb.NewPoint(h.metricName, tags, fields, time.Now())
 
-	io.NamedFeed([]byte(pt.String()), io.Metric, inputName)
+	h.resData = []byte(pt.String())
+
+	io.NamedFeed([]byte(pt.String()), datakit.Metric, inputName)
 }
 
 func tracer(r *Result) *httptrace.ClientTrace {
