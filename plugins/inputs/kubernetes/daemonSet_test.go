@@ -14,6 +14,7 @@ func TestCollectDaemonSets(t *testing.T) {
 	i.lastErr = i.initCfg()
 	ctx := context.Background()
 	err := i.collectDaemonSets(ctx)
+
 	t.Log("error ---->", err)
 
 	for _, m := range i.collectCache {
