@@ -2,39 +2,61 @@ package aliyunobject
 
 import (
 	"encoding/json"
+	"fmt"
+	"time"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	redis "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"time"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
 	redisSampleConfig = `
+# ##(optional)
 #[inputs.aliyunobject.redis]
-
-# ## @param - custom tags - [list of redis instanceid] - optional
-#instanceids = []
-
-# ## @param - custom tags - [list of excluded redis instanceid] - optional
-#exclude_instanceids = []
-
-# ## @param - custom tags for redis object - [list of key:value element] - optional
-#[inputs.aliyunobject.redis.tags]
-# key1 = 'val1'
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_redis.p"
+	# ##(optional) list of redis instanceid
+	#instanceids = []
+	# ##(optional) list of excluded redis instanceid
+	#exclude_instanceids = []
+	# ## @param - custom tags for redis object - [list of key:value element] - optional
+	
+`
+	redisPipelineConifg = `
+json(_, RegionId)
+json(_, InstanceStatus)
+json(_, InstanceId)
+json(_, NetworkType)
+json(_, ChargeType)
 `
 )
 
 type Redis struct {
-	Tags               map[string]string `toml:"tags,omitempty"`
-	InstancesIDs       []string          `toml:"instanceids,omitempty"`
-	ExcludeInstanceIDs []string          `toml:"exclude_instanceids,omitempty"`
+	Disable            bool     `toml:"disable"`
+	InstancesIDs       []string `toml:"instanceids,omitempty"`
+	ExcludeInstanceIDs []string `toml:"exclude_instanceids,omitempty"`
+	PipelinePath       string   `toml:"pipeline,omitempty"`
+
+	p *pipeline.Pipeline
+}
+
+func (e *Redis) disabled() bool {
+	return e.Disable
 }
 
 func (e *Redis) run(ag *objectAgent) {
 	var cli *redis.Client
 	var err error
-
+	p, err := newPipeline(e.PipelinePath)
+	if err != nil {
+		moduleLogger.Errorf("[error] redis new pipeline err:%s", err.Error())
+		return
+	}
+	e.p = p
 	for {
 
 		select {
@@ -48,7 +70,7 @@ func (e *Redis) run(ag *objectAgent) {
 			break
 		}
 		moduleLogger.Errorf("%s", err)
-		internal.SleepContext(ag.ctx, time.Second*3)
+		datakit.SleepContext(ag.ctx, time.Second*3)
 	}
 
 	for {
@@ -94,104 +116,16 @@ func (e *Redis) run(ag *objectAgent) {
 			req.PageNumber = requests.NewInteger(pageNum)
 		}
 
-		internal.SleepContext(ag.ctx, ag.Interval.Duration)
+		datakit.SleepContext(ag.ctx, ag.Interval.Duration)
 	}
 }
 
 func (e *Redis) handleResponse(resp *redis.DescribeInstancesResponse, ag *objectAgent) {
-
 	moduleLogger.Debugf("redis TotalCount=%d, PageSize=%v, PageNumber=%v", resp.TotalCount, resp.PageSize, resp.PageNumber)
-
-	var objs []map[string]interface{}
-
 	for _, inst := range resp.Instances.KVStoreInstance {
-		if len(e.ExcludeInstanceIDs) > 0 {
-			exclude := false
-			for _, v := range e.ExcludeInstanceIDs {
-				if v == inst.InstanceId {
-					exclude = true
-					break
-				}
-			}
-			if exclude {
-				continue
-			}
+		tags := map[string]string{
+			"name": fmt.Sprintf(`%s_%s`, inst.InstanceName, inst.InstanceId),
 		}
-
-		tags := map[string]interface{}{
-			"__class":             "aliyun_redis",
-			"__provider":          "aliyun",
-			"RegionId":            inst.RegionId,
-			"ArchitectureType":    inst.ArchitectureType,
-			"ChargeType":          inst.ChargeType,
-			"EngineVersion":       inst.EngineVersion,
-			"ResourceGroupId":     inst.ResourceGroupId,
-			"VSwitchId":           inst.VSwitchId,
-			"VpcId":               inst.VpcId,
-			"ZoneId":              inst.ZoneId,
-			"ConnectionMode":      inst.ConnectionMode,
-			"InstanceId":          inst.InstanceId,
-			"InstanceStatus":      inst.InstanceStatus,
-			"InstanceType":        inst.InstanceType,
-			"NetworkType":         inst.NetworkType,
-			"NodeType":            inst.NodeType,
-			"PackageType":         inst.PackageType,
-			"ReplacateId":         inst.ReplacateId,
-			"SearchKey":           inst.SearchKey,
-			"InstanceClass":    inst.InstanceClass,
-			"PrivateIp":        inst.PrivateIp,
-
-
-		}
-
-		obj := map[string]interface{}{
-			"__name":           inst.InstanceName,
-			"DestroyTime":      inst.DestroyTime,
-			"CreateTime":       inst.CreateTime,
-			"Bandwidth":        inst.Bandwidth,
-			"Capacity":         inst.Capacity,
-			"Config":           inst.Config,
-			"ConnectionDomain": inst.ConnectionDomain,
-			"Connections":      inst.Connections,
-			"EndTime":          inst.EndTime,
-			"Port":             inst.Port,
-			"QPS":              inst.QPS,
-			"HasRenewChangeOrder": inst.HasRenewChangeOrder,
-			"IsRds":               inst.IsRds,
-			"UserName":            inst.UserName,
-		}
-
-		for _, t := range inst.Tags.Tag {
-			if _, have := tags[t.Key]; !have {
-				tags[t.Key] = t.Value
-			} else {
-				tags[`custom_`+t.Key] = t.Value
-			}
-		}
-
-		for k, v := range e.Tags {
-			tags[k] = v
-		}
-
-		for k, v := range ag.Tags {
-			if _, have := tags[k]; !have {
-				tags[k] = v
-			}
-		}
-
-		obj["__tags"] = tags
-
-		objs = append(objs, obj)
-	}
-
-	if len(objs) <= 0 {
-		return
-	}
-
-	data, err := json.Marshal(&objs)
-	if err == nil {
-		io.NamedFeed(data, io.Object, inputName)
-	} else {
-		moduleLogger.Errorf("%s", err)
+		ag.parseObject(inst, "aliyun_redis", inst.InstanceId, e.p, e.ExcludeInstanceIDs, e.InstancesIDs, tags)
 	}
 }
