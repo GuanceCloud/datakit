@@ -42,6 +42,10 @@ type (
 		client     *monitor.Client
 
 		periodsInfos map[string]MetricsPeriodInfo
+
+		mode string
+
+		testError error
 	}
 
 	MetricsRequest struct {
@@ -74,7 +78,7 @@ const (
 #		"CPUUsage",
 #	]
 
-#     ## dimensions can be used to query the specified resource, which is a collection of key-value forms. 
+#     ## dimensions can be used to query the specified resource, which is a collection of key-value forms.
 #     ## each metric may have its own dimensions, See: https://cloud.tencent.com/document/api/248/30384
 #     ## name is metric name, value is json
 #	[[inputs.tencentcms.namespace.metrics.dimensions]]
@@ -89,6 +93,14 @@ const (
 #		]'''
 `
 )
+
+func (ag *CMS) isTest() bool {
+	return ag.mode == "test"
+}
+
+func (ag *CMS) isDebug() bool {
+	return ag.mode == "debug"
+}
 
 func (p *Namespace) MakeDimension(mestric string) ([]*monitor.Instance, error) {
 

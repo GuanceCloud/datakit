@@ -4,13 +4,9 @@ import (
 	"context"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
 var (
@@ -96,66 +92,60 @@ var (
 		"regionName",
 		"SubscriptionName",
 	}
+
+	valueKeys = []string{
+		"Average",
+		"Minimum",
+		"Maximum",
+		"Value",
+		"Sum",
+		"SumPerMinute",
+	}
 )
 
 var moduleLogger *logger.Logger
-
-type (
-	runningInstance struct {
-		cfg *CMS
-
-		cmsClient *cms.Client
-
-		reqs []*MetricsRequest
-
-		limiter *rate.Limiter
-	}
-)
 
 func (_ *CMS) SampleConfig() string {
 	return aliyuncmsConfigSample
 }
 
-// func (_ *CmsAgent) Description() string {
-// 	return `Collect metrics from alibaba Cloud Monitor Service.`
-// }
-
 func (_ *CMS) Catalog() string {
 	return `aliyun`
 }
 
-func (ac *CMS) Run() {
+func (c *CMS) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
+	c.apiCallInfo = &CloudApiCallInfo{
+		details: map[string][]uint64{},
+	}
+
 	go func() {
 		<-datakit.Exit.Wait()
-		ac.cancelFun()
+		c.cancelFun()
 	}()
 
-	if ac.Delay.Duration == 0 {
-		ac.Delay.Duration = time.Minute * 5
+	if c.Delay.Duration == 0 {
+		c.Delay.Duration = time.Minute * 5
 	}
 
-	if ac.Interval.Duration == 0 {
-		ac.Interval.Duration = time.Minute * 5
+	if c.Interval.Duration == 0 {
+		c.Interval.Duration = time.Minute * 5
 	}
 
-	rc := &runningInstance{
-		cfg: ac,
-	}
-
-	rc.run(ac.ctx)
+	c.run(c.ctx)
 }
 
-func NewAgent() *CMS {
+func NewAgent(mode string) *CMS {
 	ac := &CMS{}
+	ac.mode = mode
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 	return ac
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return NewAgent()
+		return NewAgent("")
 	})
 }

@@ -6,7 +6,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	//"github.com/Azure/go-autorest/tracing"
 )
 
 var (
@@ -21,10 +20,6 @@ func (_ *azureInstance) Catalog() string {
 func (_ *azureInstance) SampleConfig() string {
 	return sampleConfig
 }
-
-// func (_ *azureMonitorAgent) Description() string {
-// 	return ""
-// }
 
 func (ag *azureInstance) Run() {
 

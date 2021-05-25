@@ -25,6 +25,8 @@ type Httpstat struct {
 	Actions          []*Action `toml:"action"`
 	httpPing         []*httpPing
 	IntervalDuration time.Duration `json:"-" toml:"-"`
+	test             bool          `toml:"-"`
+	resData          []byte        `toml:"-"`
 }
 
 type Action struct {
@@ -32,6 +34,6 @@ type Action struct {
 	Method        string `toml:"method"`
 	Playload      string `toml:"playload"`
 	KAlive        bool   `toml:"kAlive"`
-	TLSSkipVerify bool   `toml:"tlsSkipVerify`
-	Compress      bool   `toml:"compress`
+	TLSSkipVerify bool   `toml:"tlsSkipVerify"`
+	Compress      bool   `toml:"compress"`
 }

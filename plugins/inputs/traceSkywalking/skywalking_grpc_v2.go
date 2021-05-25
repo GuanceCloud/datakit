@@ -1,27 +1,42 @@
 package traceSkywalking
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"sync"
-	"context"
-	"encoding/json"
 
 	"google.golang.org/grpc"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking/v2/common"
 	swV2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking/v2/language-agent-v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceSkywalking/v2/register"
 )
 
-type SkywalkingServerV2         struct {}
-type SkywalkingRegisterServerV2 struct {}
-type SkywalkingPingServerV2     struct {}
+type SkywalkingServerV2 struct{}
+type SkywalkingRegisterServerV2 struct{}
+type SkywalkingPingServerV2 struct{}
+type SkywalkingJVMMetricServerV2 struct{}
 
-var NetAddrIdGen  = GenGlobalId(10000)
+var (
+	NetAddrIdGen   = GenGlobalId(10000)
+	ServiceIdGen   = GenGlobalId(20000)
+	InstanceIdGen  = GenGlobalId(30000)
+	EndpointIdGen  = GenGlobalId(40000)
+	SerialNumIdGen = GenGlobalId(50000)
+
+	RegService     = &sync.Map{} //key: id,           value: serviceName
+	RegServiceRev  = &sync.Map{} //key: serviceName,  value: id
+	RegInstance    = &sync.Map{} //key: id,           value: instanceUUID
+	RegInstanceRev = &sync.Map{} //key: instanceUUID, value: id
+	RegEndpoint    = &sync.Map{} //key: id,           value: endpointName
+	RegEndpointRev = &sync.Map{} //key: endpointName, value: id
+)
 
 func SkyWalkingServerRunV2(addr string) {
 	log.Infof("skywalking V2 gRPC starting...")
@@ -36,8 +51,10 @@ func SkyWalkingServerRunV2(addr string) {
 
 	rpcServer := grpc.NewServer()
 	swV2.RegisterTraceSegmentReportServiceServer(rpcServer, &SkywalkingServerV2{})
+	swV2.RegisterJVMMetricReportServiceServer(rpcServer, &SkywalkingJVMMetricServerV2{})
 	register.RegisterRegisterServer(rpcServer, &SkywalkingRegisterServerV2{})
 	register.RegisterServiceInstancePingServer(rpcServer, &SkywalkingPingServerV2{})
+
 	go func() {
 		if err := rpcServer.Serve(rpcListener); err != nil {
 			log.Error(err)
@@ -57,20 +74,21 @@ func (s *SkywalkingServerV2) Collect(tsc swV2.TraceSegmentReportService_CollectS
 	for {
 		sgo, err := tsc.Recv()
 		if err == io.EOF {
-			//return tsc.SendAndClose(&common.Commands{})
 			return tsc.SendAndClose(cmd)
 		}
+
 		if err != nil {
 			return err
 		}
+
 		b, _ := json.Marshal(sgo)
 		log.Debugf("%#v\n", string(b))
 
 		if err := skywalkGrpcV2ToLineProto(sgo); err != nil {
+			dkio.FeedLastError(inputName, err.Error())
 			log.Error(err)
 		}
 	}
-	return nil
 }
 
 func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
@@ -96,20 +114,19 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 		t := &trace.TraceAdapter{}
 
 		t.Source = "skywalking"
-		t.Duration = (span.EndTime -span.StartTime)*1000
-		t.TimestampUs = span.StartTime * 1000
-		js ,err := json.Marshal(span)
+		t.Duration = (span.EndTime - span.StartTime) * 1000000
+		t.Start = span.StartTime * 1000000
+		js, err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
 		t.Content = string(js)
-		t.Class         = "tracing"
-		t.ServiceName   = service
+		t.ServiceName = service
 		t.OperationName = span.OperationName
 		if t.OperationName == "" {
 			on, ok := RegEndpoint.Load(span.OperationNameId)
 			if !ok {
-				return fmt.Errorf("operation name null", sid)
+				return fmt.Errorf("operation name %s null", t.OperationName)
 			}
 			switch on.(type) {
 			case string:
@@ -125,20 +142,21 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 			t.ParentID = fmt.Sprintf("%v%v", sgid, span.ParentSpanId)
 		}
 
-		t.TraceID       = fmt.Sprintf("%d", traceId)
-		t.SpanID        = fmt.Sprintf("%v%v", sgid, span.SpanId)
+		t.TraceID = fmt.Sprintf("%d", traceId)
+		t.SpanID = fmt.Sprintf("%v%v", sgid, span.SpanId)
+		t.Status = trace.STATUS_OK
 		if span.IsError {
-			t.IsError   = "true"
+			t.Status = trace.STATUS_ERR
 		}
 		if span.SpanType == common.SpanType_Entry {
-			t.SpanType  = trace.SPAN_TYPE_ENTRY
+			t.SpanType = trace.SPAN_TYPE_ENTRY
 		} else if span.SpanType == common.SpanType_Local {
-			t.SpanType  = trace.SPAN_TYPE_LOCAL
+			t.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
-			t.SpanType  = trace.SPAN_TYPE_EXIT
+			t.SpanType = trace.SPAN_TYPE_EXIT
 		}
-		t.EndPoint      = span.Peer
-		t.Tags = SkywalkingTagsV3
+		t.EndPoint = span.Peer
+		t.Tags = SkywalkingTagsV2
 
 		adapterGroup = append(adapterGroup, t)
 	}
@@ -151,16 +169,11 @@ func (s *SkywalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *r
 	var sid interface{}
 	var serviceID int32
 	var ok bool
-	var err error
 	serMap := register.ServiceRegisterMapping{}
-	for _, s := range r.Services{
+	for _, s := range r.Services {
 		service := s.ServiceName
-		if sid, ok = RegServiceRev.Load(service); !ok{
-			sid, err = SaveRegInfo(ServiceBucket, service)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
+		if sid, ok = RegServiceRev.Load(service); !ok {
+			sid = ServiceIdGen()
 			RegService.Store(sid, service)
 			RegServiceRev.Store(service, sid)
 		}
@@ -171,7 +184,7 @@ func (s *SkywalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *r
 			log.Errorf("serviceID wrong type")
 		}
 		log.Infof("DoServiceRegister service: %v serviceID: %d\n", service, serviceID)
-		kp := &common.KeyIntValuePair{Key:service, Value:serviceID}
+		kp := &common.KeyIntValuePair{Key: service, Value: serviceID}
 		serMap.Services = append(serMap.Services, kp)
 	}
 	return &serMap, nil
@@ -180,22 +193,17 @@ func (s *SkywalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *r
 func (s *SkywalkingRegisterServerV2) DoServiceInstanceRegister(ctx context.Context, r *register.ServiceInstances) (*register.ServiceInstanceRegisterMapping, error) {
 	var ok bool
 	var serInstanceID int32
-	var err error
 	regMap := register.ServiceInstanceRegisterMapping{}
 
 	for _, sin := range r.Instances {
 		uuid := sin.InstanceUUID
-		sid  := sin.ServiceId
-		if _, ok = RegInstanceRev.Load(uuid); !ok{
-			serInstanceID, err = SaveRegInfo(InstanceBucket, uuid)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
+		sid := sin.ServiceId
+		if _, ok = RegInstanceRev.Load(uuid); !ok {
+			serInstanceID = InstanceIdGen()
 			RegInstance.Store(serInstanceID, uuid)
 			RegInstanceRev.Store(uuid, serInstanceID)
 		}
-		kp := &common.KeyIntValuePair{Key:uuid, Value:serInstanceID}
+		kp := &common.KeyIntValuePair{Key: uuid, Value: serInstanceID}
 		regMap.ServiceInstances = append(regMap.ServiceInstances, kp)
 		log.Infof("DoServiceInstanceRegister serviceID: %v uuid: %v instanceID: %v\n", sid, uuid, serInstanceID)
 	}
@@ -206,21 +214,16 @@ func (s *SkywalkingRegisterServerV2) DoEndpointRegister(ctx context.Context, r *
 	var epid interface{}
 	var ok bool
 	var endpointID int32
-	var err error
 
 	reg := register.EndpointMapping{}
 	for _, v := range r.Endpoints {
 		r := register.EndpointMappingElement{}
-		sid   := v.ServiceId
+		sid := v.ServiceId
 		eName := v.EndpointName
-		from  := v.From
+		from := v.From
 
-		if epid, ok = RegEndpointRev.Load(eName); !ok{
-			epid, err = SaveRegInfo(EndpointBucket, eName)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
+		if epid, ok = RegEndpointRev.Load(eName); !ok {
+			epid = EndpointIdGen()
 			RegEndpoint.Store(epid, eName)
 			RegEndpointRev.Store(eName, epid)
 		}
@@ -243,46 +246,55 @@ func (s *SkywalkingRegisterServerV2) DoEndpointRegister(ctx context.Context, r *
 	return &reg, nil
 }
 
-func (s *SkywalkingRegisterServerV2)DoNetworkAddressRegister(ctx context.Context, r *register.NetAddresses) (*register.NetAddressMapping, error) {
+func (s *SkywalkingRegisterServerV2) DoNetworkAddressRegister(ctx context.Context, r *register.NetAddresses) (*register.NetAddressMapping, error) {
 	reg := register.NetAddressMapping{}
 	for _, addr := range r.Addresses {
 		kp := common.KeyIntValuePair{}
-		kp.Key   = addr
+		kp.Key = addr
 		kp.Value = NetAddrIdGen()
 		reg.AddressIds = append(reg.AddressIds, &kp)
 		log.Infof("DoNetworkAddressRegister addr: %v id: %v", addr, kp.Value)
 	}
 	return &reg, nil
 }
-func (s *SkywalkingRegisterServerV2)DoServiceAndNetworkAddressMappingRegister(ctx context.Context, r *register.ServiceAndNetworkAddressMappings) (*common.Commands, error) {
+
+func (s *SkywalkingRegisterServerV2) DoServiceAndNetworkAddressMappingRegister(ctx context.Context, r *register.ServiceAndNetworkAddressMappings) (*common.Commands, error) {
 	return new(common.Commands), nil
 }
 
 func (s *SkywalkingPingServerV2) DoPing(ctx context.Context, r *register.ServiceInstancePingPkg) (*common.Commands, error) {
 	cmds := &common.Commands{}
 	if _, ok := RegInstanceRev.Load(r.ServiceInstanceUUID); !ok {
-		cmd := &common.Command{Command:"ServiceMetadataReset"}
-		kv  := &common.KeyStringValuePair{
-			Key:"SerialNumber",
-			Value:r.ServiceInstanceUUID,
+		cmd := &common.Command{Command: "ServiceMetadataReset"}
+		kv := &common.KeyStringValuePair{
+			Key:   "SerialNumber",
+			Value: fmt.Sprintf("%v", SerialNumIdGen()),
 		}
-		cmd.Args      = append(cmd.Args, kv)
+		cmd.Args = append(cmd.Args, kv)
 		cmds.Commands = append(cmds.Commands, cmd)
 		log.Errorf("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
 	} else {
-		log.Infof("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
+		log.Debugf("Ping %v, %v, %v", r.ServiceInstanceId, r.ServiceInstanceUUID, r.Time)
 	}
-	return  cmds, nil
+	return cmds, nil
 }
 
-func GenGlobalId(startCnt int32) func () int32 {
+func (s *SkywalkingJVMMetricServerV2) Collect(ctx context.Context, jvm *swV2.JVMMetricCollection) (*common.Commands, error) {
+	cmds := &common.Commands{}
+	log.Debugf("JVMMetricReportService %v", jvm.ServiceInstanceId)
+	return cmds, nil
+}
+
+func GenGlobalId(startCnt int32) func() int32 {
 	var id int32 = startCnt
 	var mutex sync.Mutex
 
-	return func () int32 {
+	return func() int32 {
+		var rtnId int32
 		mutex.Lock()
 		id += 1
+		rtnId = id
 		mutex.Unlock()
-		return id
+		return rtnId
 	}
 }

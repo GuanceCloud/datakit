@@ -4,7 +4,8 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -17,250 +18,116 @@ import (
 )
 
 var (
+	inputName    = `aliyuncost`
 	moduleLogger *logger.Logger
 
-	historyCacheDir = `/etc/datakit/aliyuncost`
-
-	inputName = `aliyuncost`
+	historyCacheDir = ""
 )
 
-type (
-	runningInstance struct {
-		cfg *CostCfg
-
-		wg sync.WaitGroup
-
-		client *bssopenapi.Client
-
-		modules []costModule
-
-		wgSuspend sync.WaitGroup
-		mutex     sync.Mutex
-
-		rateLimiter *rate.Limiter
-
-		ctx context.Context
-
-		accountName string
-		accountID   string
-	}
-
-	costModule interface {
-		getInterval() time.Duration
-		getName() string
-		run(context.Context) error
-	}
-)
-
-func (_ *CostCfg) Catalog() string {
+func (*agent) Catalog() string {
 	return "aliyun"
 }
 
-func (_ *CostCfg) SampleConfig() string {
-	return aliyuncostConfigSample
+func (*agent) SampleConfig() string {
+	return sampleConfig
 }
 
-func (ac *CostCfg) Run() {
+func (ag *agent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
 		<-datakit.Exit.Wait()
-		ac.cancelFun()
+		ag.cancelFun()
 	}()
 
-	if ac.AccountInterval.Duration == 0 {
-		ac.AccountInterval.Duration = 24 * time.Hour
-	}
-
-	if ac.BiilInterval.Duration == 0 {
-		ac.BiilInterval.Duration = time.Hour
-	}
-
-	if ac.OrdertInterval.Duration == 0 {
-		ac.OrdertInterval.Duration = time.Hour
-	}
-
-	ri := &runningInstance{
-		cfg: ac,
-		ctx: ac.ctx,
+	if !ag.isDebug() && !ag.isTest() {
+		historyCacheDir = filepath.Join(datakit.DataDir, inputName)
+		os.MkdirAll(historyCacheDir, 0775)
 	}
 
 	limit := rate.Every(60 * time.Millisecond)
-	ri.rateLimiter = rate.NewLimiter(limit, 1)
+	ag.rateLimiter = rate.NewLimiter(limit, 1)
 
-	if ac.AccountInterval.Duration > 0 {
-		ri.modules = append(ri.modules, NewCostAccount(ac, ri))
+	if ag.AccountInterval.Duration > 0 {
+		if ag.AccountInterval.Duration < time.Minute {
+			ag.AccountInterval.Duration = time.Minute
+		}
+		ag.subModules = append(ag.subModules, newCostAccount(ag))
 	}
 
-	if ac.BiilInterval.Duration > 0 {
-		ri.modules = append(ri.modules, NewCostBill(ac, ri))
+	if ag.BiilInterval.Duration > 0 {
+		if ag.BiilInterval.Duration < time.Minute {
+			ag.BiilInterval.Duration = time.Minute
+		}
+		if ag.ByInstance {
+			ag.subModules = append(ag.subModules, newCostInstanceBill(ag))
+		} else {
+			ag.subModules = append(ag.subModules, newCostBill(ag))
+		}
 	}
 
-	if ac.OrdertInterval.Duration > 0 {
-		ri.modules = append(ri.modules, NewCostOrder(ac, ri))
+	if ag.OrdertInterval.Duration > 0 {
+		if ag.OrdertInterval.Duration < time.Minute {
+			ag.OrdertInterval.Duration = time.Minute
+		}
+		ag.subModules = append(ag.subModules, newCostOrder(ag))
 	}
-
-	if ac.OrdertInterval.Duration > 0 {
-		ri.modules = append(ri.modules, NewCostOrder(ac, ri))
-	}
-
-	ri.run()
-}
-
-func (s *runningInstance) suspendHistoryFetch() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.wgSuspend.Add(1)
-}
-
-func (s *runningInstance) resumeHistoryFetch() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.wgSuspend.Done()
-}
-
-func (s *runningInstance) wait() {
-	s.wgSuspend.Wait()
-}
-
-func (s *runningInstance) cacheFileKey(subname string) string {
-	m := md5.New()
-	m.Write([]byte(s.cfg.AccessKeyID))
-	m.Write([]byte(s.cfg.AccessKeySecret))
-	m.Write([]byte(s.cfg.RegionID))
-	m.Write([]byte(subname))
-	return hex.EncodeToString(m.Sum(nil))
-}
-
-func (s *runningInstance) getAccountInfo() {
-	req := bssopenapi.CreateQueryBillOverviewRequest()
-	req.BillingCycle = fmt.Sprintf("%d-%d", time.Now().Year(), 1)
-
-	resp, err := s.client.QueryBillOverview(req)
-	if err != nil {
-		moduleLogger.Errorf("fail to get account info, %s", err)
-		return
-	}
-
-	s.accountName = resp.Data.AccountName
-	s.accountID = resp.Data.AccountID
-}
-
-func (s *runningInstance) run() error {
-
-	var err error
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			return nil
+			return
 		default:
 		}
 
-		s.client, err = bssopenapi.NewClientWithAccessKey(s.cfg.RegionID, s.cfg.AccessKeyID, s.cfg.AccessKeySecret)
+		var err error
+		ag.client, err = bssopenapi.NewClientWithAccessKey(ag.RegionID, ag.AccessKeyID, ag.AccessKeySecret)
 		if err != nil {
 			moduleLogger.Errorf("%s", err)
+			if ag.isTest() {
+				ag.testError = err
+				return
+			}
 			time.Sleep(time.Second)
 		} else {
 			break
 		}
 	}
 
-	select {
-	case <-s.ctx.Done():
-		return context.Canceled
-	default:
-	}
-
 	//先获取account name
-	s.getAccountInfo()
+	ag.queryBillOverview(ag.ctx)
 
-	for _, boaModule := range s.modules {
-		s.wg.Add(1)
-		go func(m costModule, ctx context.Context) {
-			defer s.wg.Done()
-
-			m.run(ctx)
-
-		}(boaModule, s.ctx)
-
+	var wg sync.WaitGroup
+	for _, m := range ag.subModules {
+		wg.Add(1)
+		go func(m subModule) {
+			defer wg.Done()
+			m.run(ag.ctx)
+		}(m)
 	}
 
-	s.wg.Wait()
-
-	return nil
+	wg.Wait()
 }
 
-func (r *runningInstance) QueryAccountTransactionsWrap(ctx context.Context, request *bssopenapi.QueryAccountTransactionsRequest) (response *bssopenapi.QueryAccountTransactionsResponse, err error) {
-	for i := 0; i < 5; i++ {
-		r.rateLimiter.Wait(ctx)
-		response, err = r.client.QueryAccountTransactions(request)
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
+func (ag *agent) cacheFileKey(subname string) string {
+	m := md5.New()
+	m.Write([]byte(ag.AccessKeyID))
+	m.Write([]byte(ag.AccessKeySecret))
+	m.Write([]byte(ag.RegionID))
+	m.Write([]byte(subname))
+	return hex.EncodeToString(m.Sum(nil))
 }
 
-func (r *runningInstance) QueryAccountBalanceWrap(ctx context.Context, request *bssopenapi.QueryAccountBalanceRequest) (response *bssopenapi.QueryAccountBalanceResponse, err error) {
-	for i := 0; i < 5; i++ {
-		r.rateLimiter.Wait(ctx)
-		response, err = r.client.QueryAccountBalance(request)
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
-}
-
-func (r *runningInstance) QueryBillWrap(ctx context.Context, request *bssopenapi.QueryBillRequest) (response *bssopenapi.QueryBillResponse, err error) {
-	for i := 0; i < 5; i++ {
-		r.rateLimiter.Wait(ctx)
-		response, err = r.client.QueryBill(request)
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
-}
-
-func (r *runningInstance) QueryInstanceBillWrap(ctx context.Context, request *bssopenapi.QueryInstanceBillRequest) (response *bssopenapi.QueryInstanceBillResponse, err error) {
-	for i := 0; i < 5; i++ {
-		r.rateLimiter.Wait(ctx)
-		response, err = r.client.QueryInstanceBill(request)
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
-}
-
-func (r *runningInstance) QueryOrdersWrap(ctx context.Context, request *bssopenapi.QueryOrdersRequest) (response *bssopenapi.QueryOrdersResponse, err error) {
-	for i := 0; i < 5; i++ {
-		r.rateLimiter.Wait(ctx)
-		response, err = r.client.QueryOrders(request)
-		if err == nil {
-			return
-		}
-		datakit.SleepContext(ctx, time.Millisecond*200)
-	}
-
-	return
+func newAgent(mode string) *agent {
+	ag := &agent{}
+	ag.mode = mode
+	ag.ctx, ag.cancelFun = context.WithCancel(context.Background())
+	return ag
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		ac := &CostCfg{}
-		ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
-		return ac
+		return newAgent("")
 	})
 }
