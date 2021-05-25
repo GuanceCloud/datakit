@@ -40,20 +40,19 @@ type TzParams struct {
 const (
 	defaultMetricName = "timezone"
 	defaultInterval   = "60s"
+	MaxGatherInterval = 30 * time.Minute
+	MinGatherInterval = 1 * time.Second
 )
 
 var (
 	inputName = "timezone"
-	Sample    = `### active     : whether to monitor timezone changes.
-### interval   : monitor interval, the default value is "60s".
+	Sample    = `### interval   : monitor interval, the default value is "60s".
 ### metricsName: the name of metric, default is "timezone"
 
 [inputs.timezone]
-  active      = true
   interval    = "60s"
   metricsName = "timezone"
   [inputs.timezone.tags]
-		host = '{{.Hostname}}'
 #    tag1 = "tag1"
 #    tag2 = "tag2"
 #    tagn = "tagn"`
@@ -68,10 +67,12 @@ func (t *Timezone) Catalog() string {
 }
 
 func (t *Timezone) Run() {
-	if t.Active == false {
-		return
-	}
+	p := t.genParams()
+	p.log.Info("timezone input started...")
+	p.gather()
+}
 
+func (t *Timezone) genParams() *TzParams {
 	if t.Interval == nil {
 		t.Interval = defaultInterval
 	}
@@ -82,10 +83,8 @@ func (t *Timezone) Run() {
 
 	input := TzInput{*t}
 	output := TzOutput{io.NamedFeed}
-	p := TzParams{input, output, logger.SLogger("timezone")}
-
-	p.log.Info("timezone input started...")
-	p.gather()
+	p := &TzParams{input, output, logger.SLogger("timezone")}
+	return p
 }
 
 func (p *TzParams) gather() {
@@ -106,14 +105,16 @@ func (p *TzParams) gather() {
 		return
 	}
 
+	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 
 	for {
 		select {
 		case <-tick.C:
-			err = p.getMetrics()
+			_, err = p.getMetrics(false)
 			if err != nil {
+				io.FeedLastError(inputName, err.Error())
 				p.log.Errorf("getMetrics err: %s", err.Error())
 			}
 
@@ -124,25 +125,28 @@ func (p *TzParams) gather() {
 	}
 }
 
-func (p *TzParams) getMetrics() error {
+func (p *TzParams) getMetrics(isTest bool) ([]byte, error) {
 	fields := make(map[string]interface{})
 
 	timezone, err := getOsTimezone()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fields["tz"] = timezone
 
 	pt, err := io.MakeMetric(p.input.MetricsName, p.input.Tags, fields, time.Now())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := p.output.ioFeed(pt, io.Metric, inputName); err != nil {
-		return err
+	if !isTest {
+		if err := p.output.ioFeed(pt, datakit.Metric, inputName); err != nil {
+			return pt, err
+		}
 	}
-	return nil
+
+	return pt, nil
 }
 
 func getOsTimezone() (string, error) {
