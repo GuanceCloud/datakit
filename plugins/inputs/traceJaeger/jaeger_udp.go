@@ -1,12 +1,14 @@
 package traceJaeger
 
 import (
+	"context"
 	"net"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/agent"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func StartUdpAgent(addr string) error {
@@ -22,23 +24,29 @@ func StartUdpAgent(addr string) error {
 	}
 
 	log.Infof("jaeger udp agent %v start", addr)
-	defer udpConn.Close()
 
 	// 循环读取消息
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			udpConn.Close()
 			log.Infof("jaeger udp agent closed")
 			return nil
-		default:
 
+		default:
 		}
+
+		err := udpConn.SetDeadline(time.Now().Add(time.Second))
+		if err != nil {
+			log.Errorf("SetDeadline failed: %v", err)
+			continue
+		}
+
 		n, addr, err := udpConn.ReadFromUDP(data[:])
 		if err != nil {
-			log.Error(err)
 			continue
 		} else {
-			log.Infof("Read from udp server:%s %d bytes", addr, n)
+			log.Debugf("Read from udp server:%s %d bytes", addr, n)
 		}
 
 		if n <= 0 {
@@ -51,28 +59,28 @@ func StartUdpAgent(addr string) error {
 			continue
 		}
 
-		protocolFactory := thrift.NewTCompactProtocolFactory()
+		protocolFactory := thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
 		thriftProtocol := protocolFactory.GetProtocol(thriftBuffer)
-		_, _, _, err = thriftProtocol.ReadMessageBegin()
+		_, _, _, err = thriftProtocol.ReadMessageBegin(context.TODO())
 		if err != nil {
 			log.Error("read message begin failed :%v,", err)
 			continue
 		}
 
 		batch := agent.AgentEmitBatchArgs{}
-		err = batch.Read(thriftProtocol)
+		err = batch.Read(context.TODO(), thriftProtocol)
 		if err != nil {
 			log.Error("read batch failed :%v,", err)
 			continue
 		}
 
-		processBatch(batch.Batch)
+		err = processBatch(batch.Batch)
 		if err != nil {
 			log.Error("process batch failed :%v,", err)
 			continue
 		}
 
-		err = thriftProtocol.ReadMessageEnd()
+		err = thriftProtocol.ReadMessageEnd(context.TODO())
 		if err != nil {
 			log.Error("read message end failed :%v,", err)
 			continue
