@@ -1,3 +1,0 @@
-[submodule "telegraf"]
-	path = telegraf
-	url = https://github.com/influxdata/telegraf.git
