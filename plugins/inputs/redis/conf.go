@@ -9,7 +9,7 @@ const (
     db = 0
     # password = "<PASSWORD>"
 
-	## @param service - string - optional
+    ## @param service - string - optional
     # service = "<SERVICE>"
 
     ## @param interval - number - optional - default: 15
@@ -38,25 +38,22 @@ const (
     # command_stats = false
 
     [inputs.redis.log]
-    # required, glob logfiles
-    files = ["/var/log/redis/*.log"]
+    ## required, glob logfiles
+    #files = ["/var/log/redis/*.log"]
 
-    # glob filteer
-    ignore = [""]
+    ## glob filteer
+    #ignore = [""]
 
-    # grok pipeline script path
-    pipeline = "redis.p"
+    ## grok pipeline script path
+    #pipeline = "redis.p"
 
-    # optional encodings:
-    #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-    character_encoding = ""
+    ## optional encodings:
+    ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    #character_encoding = ""
 
-    # The pattern should be a regexp. Note the use of '''this regexp'''
-    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-    match = '''^\S.*'''
-
-    [inputs.tailf.tags]
-    # tags1 = "value1"
+    ## The pattern should be a regexp. Note the use of '''this regexp'''
+    ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+    #match = '''^\S.*'''
 
     [inputs.redis.tags]
     # tag1 = val1

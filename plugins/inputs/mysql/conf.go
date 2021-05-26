@@ -22,22 +22,22 @@ const (
     innodb = true
 
     [inputs.mysql.log]
-    # required, glob logfiles
-    files = ["/var/log/mysql/*.log"]
+    ## required, glob logfiles
+    #files = ["/var/log/mysql/*.log"]
 
-    # glob filteer
-    ignore = [""]
+    ## glob filteer
+    #ignore = [""]
 
-    # optional encodings:
-    #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-    character_encoding = ""
+    ## optional encodings:
+    ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    #character_encoding = ""
 
-    # The pattern should be a regexp. Note the use of '''this regexp'''
-    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-    match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
+    ## The pattern should be a regexp. Note the use of '''this regexp'''
+    ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+    #match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
 
-    # grok pipeline script path
-    pipeline = "mysql.p"
+    ## grok pipeline script path
+    #pipeline = "mysql.p"
 
     # [[inputs.mysql.custom_queries]]
     #     sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
