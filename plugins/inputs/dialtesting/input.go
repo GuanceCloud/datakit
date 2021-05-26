@@ -168,14 +168,14 @@ func (d *Input) doLocalTask(path string) {
 	<-datakit.Exit.Wait()
 }
 
-func (d *Input) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
+func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
-	dialer, err := newDialer(&t, d.Tags)
+	dialer, err := newDialer(t, d.Tags)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -249,9 +249,9 @@ func (d *Input) dispatchTasks(j []byte) error {
 
 		switch k {
 
-		case dt.ClassHTTP:
+		case dt.ClassHTTP, dt.ClassHeadless:
 			for _, j := range arr.([]interface{}) {
-				var t dt.HTTPTask
+				var t dt.Task
 				if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
 					l.Errorf(`%s`, err.Error())
 					return err
@@ -273,7 +273,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 						continue
 					}
 
-					if err := dialer.updateTask(&t); err != nil {
+					if err := dialer.updateTask(t); err != nil {
 						l.Warnf(`%s,ignore`, err.Error())
 					}
 
@@ -284,7 +284,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 				} else { // create new task
 
 					l.Debugf(`create new task %+#v`, t)
-					dialer, err := d.newHttpTaskRun(t)
+					dialer, err := d.newTaskRun(t)
 					if err != nil {
 						l.Errorf(`%s, ignore`, err.Error())
 					} else {
@@ -301,7 +301,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 		case dt.ClassOther:
 			// TODO
 
-		case dt.ClassHeadless:
+		//case dt.ClassHeadless:
 
 		default:
 			return fmt.Errorf("unknown task type: %s", k)
