@@ -572,6 +572,7 @@ func (m *baseMeasurement) getLogStats() error {
 		var val *sql.RawBytes = new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
+			l.Warnf("rows.Scan(): %s, ignored", err.Error())
 			continue
 		}
 
