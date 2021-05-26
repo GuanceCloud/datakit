@@ -3,6 +3,7 @@ package mysql
 import (
 	"fmt"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 // func TestGetDsnString(t *testing.T) {
@@ -135,15 +136,6 @@ func TestCollect(t *testing.T) {
 	input.initCfg()
 
 	input.Collect()
-
-	for _, obj := range input.collectCache {
-		point, err := obj.LineProto()
-		if err != nil {
-			fmt.Println("error =======>", err)
-		} else {
-			fmt.Println("point line =====>", point.String())
-		}
-	}
 }
 
 func TestInnodbCollect(t *testing.T) {
@@ -167,4 +159,93 @@ func TestInnodbCollect(t *testing.T) {
 	input.initCfg()
 
 	input.collectInnodbMeasurement()
+}
+
+func TestBaseCollect(t *testing.T) {
+	t.Run("bin log off", func(t *testing.T){
+		input := &Input{
+			Host: "127.0.0.1",
+			Port: 3306,
+			User: "root",
+			Pass: "test",
+			Tags: make(map[string]string),
+		}
+
+		err := input.initCfg()
+		if err != nil {
+			assert.Error(t, err, "collect data err")
+		}
+
+		resData, err := input.collectBaseMeasurement()
+		if err != nil {
+			assert.Error(t, err, "collect data err")
+		}
+
+		for _, pt := range resData {
+			point, err := pt.LineProto()
+			if err != nil {
+				fmt.Println("error =======>", err)
+			} else {
+				fmt.Println("point line =====>", point.String())
+			}
+		}
+	})
+
+	t.Run("bin log on", func(t *testing.T){
+		input := &Input{
+			Host: "rm-bp15268nefz6870hg.mysql.rds.aliyuncs.com",
+			Port: 3306,
+			User: "cc_monitor",
+			Pass: "Zyadmin123",
+			Tags: make(map[string]string),
+		}
+
+		err := input.initCfg()
+		if err != nil {
+			assert.Error(t, err, "collect data err")
+		}
+
+		resData, err := input.collectBaseMeasurement()
+		if err != nil {
+			assert.Error(t, err, "collect data err")
+		}
+
+		for _, pt := range resData {
+			point, err := pt.LineProto()
+			if err != nil {
+				fmt.Println("error =======>", err)
+			} else {
+				fmt.Println("point line =====>", point.String())
+			}
+		}
+	})
+}
+
+func TestSchemaCollect(t *testing.T) {
+	input := &Input{
+		Host: "127.0.0.1",
+		Port: 3306,
+		User: "root",
+		Pass: "test",
+		Tags: make(map[string]string),
+	}
+
+	err := input.initCfg()
+	if err != nil {
+		assert.Error(t, err, "collect data err")
+	}
+
+	resData, err := input.collectSchemaMeasurement()
+	if err != nil {
+		assert.Error(t, err, "collect data err")
+	}
+
+	for _, pt := range resData {
+		point, err := pt.LineProto()
+		if err != nil {
+			fmt.Println("error =======>", err)
+		} else {
+			fmt.Println("point line =====>", point.String())
+		}
+	}
 }
