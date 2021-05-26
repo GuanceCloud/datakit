@@ -7,15 +7,15 @@
 
 本文档是 DataKit 以及 DataFlux 所采集到的各种数据类型的描述，主要涉及如下几类：
 
-- Metric（TODO）
-- Object（TODO）
-- RUM（TODO）
+- Metric
+- Object
 - Logging
-- Security（TODO）
-- Event（TOO）
-- Tracing
 
-## Logging 行协议文档
+## 指标类型（metric）
+
+TODO
+
+## 日志类型（logging）
 
 ### measurement
 
@@ -55,40 +55,7 @@
 
 如果使用 pipeline 对日志文本进行切割，且切割后的 `time` 字段符合转换规则，会将 `time` 字段转换为标准时间应用在此。
 
-## Tracing 行协议文档
 
-### measurement
+## 对象类型（object）
 
-根据 Tracing 数据来源决定，目前支持 `jeager/zipkin/skywalking/ddtrace` 这几种。
-
-### 标签（tag）
-
-| 指标               | 描述            | 可选值                    |
-| :--                | ---             | ---                       |
-| `project`          | 项目名          | -                         |
-| `operation`        | span 名         | -                         |
-| `service`          | 服务名          | -                         |
-| `parent_id`        | 父 span 编号    | -                         |
-| `trace_id`         | 链路编号        | -                         |
-| `span_id`          | span 编号       | -                         |
-| `version`          | 版本号          | -                         |
-| `http_method`      | HTTP 请求方法   | -                         |
-| `http_status_code` | HTTP 请求状态码 | -                         |
-| `type`             | span 请求类型   | `app/db/web/cache/custom` |
-| `status`           | span 状态       | `ok/error`                |
-| `span_type`        | span 类型       | `entry/local/exit`        |
-| `container_host`   | 容器内部主机名   | -                         |
-
-
-### 指标（field)
-
-| 指标       | 描述           | 数据类型 | 单位 |
-| :--        | ---            | ---      | ---  |
-| `duration` | span持续时间   | int      | usec |
-| `start`    | span开始时间戳 | int      | usec |
-| `message`  | span原始数据   | string   | -    |
-| `resource` | 资源名         | string   | -    |
-
-### time
-
-使用 trace 原始数据中时间戳。
+TODO
