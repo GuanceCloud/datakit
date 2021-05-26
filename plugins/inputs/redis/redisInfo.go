@@ -2,9 +2,10 @@ package redis
 
 import (
 	"bufio"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"strings"
 	"time"
+	"context"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -335,7 +336,9 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 // 数据源获取数据
 func (m *infoMeasurement) getData() error {
 	start := time.Now()
-	info, err := m.cli.Info("ALL").Result()
+	ctx := context.Background()
+
+	info, err := m.cli.Info(ctx, "ALL").Result()
 	if err != nil {
 		l.Error("redis exec command `All`, happen error,", err)
 		return err
