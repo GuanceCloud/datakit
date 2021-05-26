@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"context"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -29,22 +30,17 @@ func (m *replicaMeasurement) LineProto() (*io.Point, error) {
 
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_client",
+		Name: "redis_replica",
 		Fields: map[string]interface{}{
-			"calls": &inputs.FieldInfo{
+			"repl_delay": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "replica delay",
 			},
-			"usec": &inputs.FieldInfo{
+			"master_link_down_since_seconds": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
-			},
-			"usec_per_call": &inputs.FieldInfo{
-				DataType: inputs.Float,
-				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "Number of seconds since the link is down",
 			},
 		},
 	}
@@ -58,6 +54,8 @@ func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 		fields:  make(map[string]interface{}),
 	}
 
+	m.name = "redis_replica"
+
 	if err := m.getData(); err != nil {
 		return nil, err
 	}
@@ -69,8 +67,10 @@ func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 
 // 数据源获取数据
 func (m *replicaMeasurement) getData() error {
-	list, err := m.client.Info("commandstats").Result()
+	ctx := context.Background()
+	list, err := m.client.Info(ctx, "commandstats").Result()
 	if err != nil {
+		l.Error("redis exec `commandstats`, happen error,", err)
 		return err
 	}
 
@@ -145,7 +145,11 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 		}
 
 		delay := masterOffset - slaveOffset
-		m.tags["slave_addr"] = fmt.Sprintf("%s:%s", ip, port)
+		addr := fmt.Sprintf("%s:%s", ip, port)
+		if addr != ":" {
+			m.tags["slave_addr"] = fmt.Sprintf("%s:%s", ip, port)
+		}
+
 		m.tags["slave_id"] = slaveID
 
 		if delay >= 0 {
