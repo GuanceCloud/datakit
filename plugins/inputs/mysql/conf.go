@@ -46,9 +46,9 @@ const (
     #     fieldKeys = ["column3", "column1"]
 
     [inputs.mysql.tags]
-		# service = "MySQL"
-		# some_tag = "some_value"
-    # more_tag = "some_other_value"
+        # service = "MySQL"
+        # some_tag = "some_value"
+        # more_tag = "some_other_value"
 `
 
 	rdsPipelineCfg = `
