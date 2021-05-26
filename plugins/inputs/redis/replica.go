@@ -2,13 +2,14 @@ package redis
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -29,53 +30,56 @@ func (m *replicaMeasurement) LineProto() (*io.Point, error) {
 
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_client",
+		Name: "redis_replica",
 		Fields: map[string]interface{}{
-			"calls": &inputs.FieldInfo{
+			"repl_delay": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "replica delay",
 			},
-			"usec": &inputs.FieldInfo{
+			"master_link_down_since_seconds": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
-			},
-			"usec_per_call": &inputs.FieldInfo{
-				DataType: inputs.Float,
-				Type:     inputs.Gauge,
-				Desc:     "this is CPU usage",
+				Desc:     "Number of seconds since the link is down",
 			},
 		},
 	}
 }
 
-func CollectReplicaMeasurement(cli *redis.Client) *replicaMeasurement {
+func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 	m := &replicaMeasurement{
-		client:  cli,
+		client:  i.client,
 		resData: make(map[string]interface{}),
 		tags:    make(map[string]string),
 		fields:  make(map[string]interface{}),
 	}
 
-	m.getData()
+	m.name = "redis_replica"
+
+	if err := m.getData(); err != nil {
+		return nil, err
+	}
+
 	m.submit()
 
-	return m
+	return []inputs.Measurement{m}, nil
 }
 
 // 数据源获取数据
 func (m *replicaMeasurement) getData() error {
-	list, err := m.client.Info("commandstats").Result()
+	ctx := context.Background()
+	list, err := m.client.Info(ctx, "commandstats").Result()
 	if err != nil {
+		l.Error("redis exec `commandstats`, happen error,", err)
 		return err
 	}
+
 	m.parseInfoData(list)
 
 	return nil
 }
 
-// 解析返回结果
+// 解析返回
 func (m *replicaMeasurement) parseInfoData(list string) error {
 	var masterDownSeconds, masterOffset, slaveOffset float64
 	var masterStatus, slaveID, ip, port string
@@ -83,6 +87,7 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 
 	rdr := strings.NewReader(list)
 	scanner := bufio.NewScanner(rdr)
+
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -140,7 +145,11 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 		}
 
 		delay := masterOffset - slaveOffset
-		m.tags["slave_addr"] = fmt.Sprintf("%s:%s", ip, port)
+		addr := fmt.Sprintf("%s:%s", ip, port)
+		if addr != ":" {
+			m.tags["slave_addr"] = fmt.Sprintf("%s:%s", ip, port)
+		}
+
 		m.tags["slave_id"] = slaveID
 
 		if delay >= 0 {
@@ -163,6 +172,7 @@ func (m *replicaMeasurement) submit() error {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
+				return err
 			} else {
 				m.fields[key] = val
 			}
