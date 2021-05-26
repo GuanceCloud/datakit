@@ -301,6 +301,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 		case dt.ClassOther:
 			// TODO
 
+		case dt.ClassHeadless:
+
 		default:
 			return fmt.Errorf("unknown task type: %s", k)
 		}
