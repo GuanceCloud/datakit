@@ -53,7 +53,7 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // 数据源获取数据
-func (i *Input) getSchemaSize() error {
+func (i *Input) getSchemaSize() ([]inputs.Measurement, error) {
 	querySizePerschemaSql := `
 		SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb
 		FROM     information_schema.tables
@@ -61,9 +61,12 @@ func (i *Input) getSchemaSize() error {
 	`
 	rows, err := i.db.Query(querySizePerschemaSql)
 	if err != nil {
-		return err
+		l.Error(err)
+		return nil, err
 	}
 	defer rows.Close()
+
+	ms := []inputs.Measurement{}
 
 	for rows.Next() {
 		m := &schemaMeasurement{
@@ -80,7 +83,8 @@ func (i *Input) getSchemaSize() error {
 		var val *sql.RawBytes = new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
-			continue
+			l.Error(err)
+			return nil, err
 		}
 
 		size := cast.ToFloat64(string(*val))
@@ -90,14 +94,14 @@ func (i *Input) getSchemaSize() error {
 		m.ts = time.Now()
 
 		if len(m.fields) > 0 {
-			i.collectCache = append(i.collectCache, m)
+			ms = append(ms, m)
 		}
 	}
 
-	return nil
+	return ms, nil
 }
 
-func (i *Input) getQueryExecTimePerSchema() error {
+func (i *Input) getQueryExecTimePerSchema() ([]inputs.Measurement, error) {
 	queryExecPerTimeSql := `
 	SELECT schema_name, ROUND((SUM(sum_timer_wait) / SUM(count_star)) / 1000000) AS avg_us
 	FROM performance_schema.events_statements_summary_by_digest
@@ -106,9 +110,12 @@ func (i *Input) getQueryExecTimePerSchema() error {
 	`
 	rows, err := i.db.Query(queryExecPerTimeSql)
 	if err != nil {
-		return err
+		l.Error(err)
+		return nil, err
 	}
 	defer rows.Close()
+
+	ms := []inputs.Measurement{}
 
 	for rows.Next() {
 		m := &schemaMeasurement{
@@ -125,7 +132,8 @@ func (i *Input) getQueryExecTimePerSchema() error {
 		var val *sql.RawBytes = new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
-			continue
+			l.Error(err)
+			return nil, err
 		}
 
 		size := cast.ToInt64(string(*val))
@@ -135,9 +143,9 @@ func (i *Input) getQueryExecTimePerSchema() error {
 		m.ts = time.Now()
 
 		if len(m.fields) > 0 {
-			i.collectCache = append(i.collectCache, m)
+			ms = append(ms, m)
 		}
 	}
 
-	return nil
+	return ms, nil
 }
