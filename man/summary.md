@@ -15,7 +15,7 @@
 - [DataKit API](apis)
 - [DataKit 整体架构简介](datakit-arch)
 - [文本数据处理（Pipeline）](pipeline)
-- [DataKit 支持的数据类型](datatypes)
+<!-- - [DataKit 支持的数据类型](datatypes) -->
 <!-- - [DataWay](dataway) -->
 - [采集器]()
 	- [主机](hostobject)
