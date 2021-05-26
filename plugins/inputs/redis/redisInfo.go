@@ -2,6 +2,8 @@ package redis
 
 import (
 	"bufio"
+	"context"
+	"github.com/go-redis/redis/v8"
 	"strings"
 	"time"
 
@@ -10,7 +12,7 @@ import (
 )
 
 type infoMeasurement struct {
-	i       *Input
+	cli     *redis.Client
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
@@ -334,8 +336,11 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 // 数据源获取数据
 func (m *infoMeasurement) getData() error {
 	start := time.Now()
-	info, err := m.i.client.Info("ALL").Result()
+	ctx := context.Background()
+
+	info, err := m.cli.Info(ctx, "ALL").Result()
 	if err != nil {
+		l.Error("redis exec command `All`, happen error,", err)
 		return err
 	}
 	elapsed := time.Since(start)
@@ -344,7 +349,8 @@ func (m *infoMeasurement) getData() error {
 
 	m.resData["info_latency_ms"] = latencyMs
 	if err := m.parseInfoData(info); err != nil {
-		return nil
+		l.Error("redis exec command `All` result data, parse error,", err)
+		return err
 	}
 
 	return nil
@@ -383,7 +389,6 @@ func (m *infoMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
-				m.i.err = err
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
 				return err
 			} else {
