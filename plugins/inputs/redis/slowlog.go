@@ -3,15 +3,13 @@ package redis
 import (
 	"errors"
 	"time"
-
-	"github.com/go-redis/redis"
+    "context"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type slowlogMeasurement struct {
-	client            *redis.Client
 	name              string
 	tags              map[string]string
 	fields            map[string]interface{}
@@ -43,45 +41,65 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 // 数据源获取数据
-func (m *slowlogMeasurement) getData() ([]inputs.Measurement, error) {
+func (i *Input) getSlowData() ([]inputs.Measurement, error) {
+	var collectCache []inputs.Measurement
 	var maxSlowEntries int
-	maxSlowEntries = m.slowlogMaxLen
+	maxSlowEntries = i.SlowlogMaxLen
 
-	slowlogs, err := m.client.Do("SLOWLOG", "GET", maxSlowEntries).Result()
+	ctx := context.Background()
+	slowlogs, err := i.client.Do(ctx, "SLOWLOG", "GET", maxSlowEntries).Result()
 	if err != nil {
+		l.Error("redis exec SLOWLOG `get`, happen error,", err)
 		return nil, err
 	}
 
 	var maxTs int64
 	for _, slowlog := range slowlogs.([]interface{}) {
 		if entry, ok := slowlog.([]interface{}); ok {
-			if entry == nil || len(entry) != 4 {
+			if entry == nil || len(entry) != 6 {
 				return nil, errors.New("slowlog get protocol error")
+			}
+
+			m := &slowlogMeasurement{
+				tags:              make(map[string]string),
+				fields:            make(map[string]interface{}),
+				lastTimestampSeen: make(map[string]int64),
+				slowlogMaxLen:     i.SlowlogMaxLen,
+			}
+
+			m.name = "redis_slowlog"
+
+			for k, v := range i.Tags {
+				m.tags[k] = v
 			}
 
 			startTime := entry[1].(int64)
 			if startTime <= m.lastTimestampSeen["server"] {
 				continue
 			}
+
 			if startTime > maxTs {
 				maxTs = startTime
 			}
 			duration := entry[2].(int64)
 
-			var command []string
+			var command string
 			if obj, ok := entry[3].([]interface{}); ok {
 				for _, arg := range obj {
-					command = append(command, string(arg.([]uint8)))
+					command += arg.(string) + " "
 				}
 			}
 
-			m.fields["command"] = command[0]
+			m.ts = time.Unix(startTime, 0)
+
+			m.fields["command"] = command
 			m.fields["slowlog_micros"] = duration
+
+			collectCache = append(collectCache, m)
+
+			addr := m.tags["server"]
+			m.lastTimestampSeen[addr] = maxTs
 		}
 	}
-
-	addr := m.tags["server"]
-	m.lastTimestampSeen[addr] = maxTs
-
-	return []inputs.Measurement{m}, nil
+	return collectCache, nil
 }
