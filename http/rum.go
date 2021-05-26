@@ -32,7 +32,7 @@ func geoTags(srcip string) (tags map[string]string) {
 
 	ipInfo, err := geo.Geo(srcip)
 
-	l.Debugf("ipinfo: %+#v", ipInfo)
+	l.Debugf("ip(%s): %+#v", srcip, ipInfo)
 
 	if err != nil {
 		l.Errorf("geo failed: %s, ignored", err)
