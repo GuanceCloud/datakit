@@ -2,7 +2,8 @@ package redis
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
+	"context"
+	"github.com/go-redis/redis/v8"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"time"
@@ -51,7 +52,9 @@ func (i *Input) getKeys() ([]string, error) {
 		for {
 			var keys []string
 			var err error
-			keys, cursor, err = i.client.Scan(cursor, pattern, 10).Result()
+			ctx := context.Background()
+
+			keys, cursor, err = i.client.Scan(ctx, cursor, pattern, 10).Result()
 			if err != nil {
 				l.Errorf("redis pattern key %s scan fail error %v", pattern, err)
 				return nil, err
@@ -86,7 +89,7 @@ func (i *Input) getData(resKeys []string) ([]inputs.Measurement, error) {
 
 		m.tags["db_name"] = fmt.Sprintf("%d", i.DB)
 		m.tags["key"] = key
-
+		ctx := context.Background()
 		for _, op := range []string{
 			"HLEN",
 			"LLEN",
@@ -95,7 +98,7 @@ func (i *Input) getData(resKeys []string) ([]inputs.Measurement, error) {
 			"PFCOUNT",
 			"STRLEN",
 		} {
-			if val, err := i.client.Do(op, key).Result(); err == nil && val != nil {
+			if val, err := i.client.Do(ctx, op, key).Result(); err == nil && val != nil {
 				found = true
 				m.fields["value_length"] = val
 				break
