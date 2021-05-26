@@ -112,15 +112,14 @@ func (s *Input) Run() {
 
 			return
 		}
-		l.Info("Command fallback to %q due to invalide path provided in 'smart' input", s.SmartCtlPath)
+		l.Infof("Command fallback to %q due to invalide path provided in 'smart' input", s.SmartCtlPath)
 	}
 	if s.NvmePath == "" || !ipath.IsFileExists(s.NvmePath) {
 		if s.NvmePath, err = exec.LookPath(defNvmeCmd); err != nil {
-			l.Errorf("Can not find executable sensor command, install 'nvme-cli' first.")
-
-			return
+			l.Debug("Can not find executable sensor command, install 'nvme-cli' first.")
+		} else {
+			l.Infof("Command fallback to %q due to invalide path provided in 'smart' input", s.NvmePath)
 		}
-		l.Info("Command fallback to %q due to invalide path provided in 'smart' input", s.NvmePath)
 	}
 
 	tick := time.NewTicker(s.Interval.Duration)
