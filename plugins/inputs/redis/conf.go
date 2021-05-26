@@ -6,7 +6,7 @@ const (
     host = "localhost"
     port = 6379
     # unix_socket_path = "/var/run/redis/redis.sock"
-    # db = 0
+    db = 0
     # password = "<PASSWORD>"
 
 	## @param service - string - optional
@@ -16,7 +16,6 @@ const (
     interval = "15s"
 
     ## @param keys - list of strings - optional
-    ## Enter the list of keys to collect the lengths from.
     ## The length is 1 for strings.
     ## The length is zero for keys that have a type other than list, set, hash, or sorted set.
     #
@@ -29,7 +28,7 @@ const (
     # warn_on_missing_keys = true
 
     ## @param slow_log - boolean - optional - default: false
-    # slow_log = false
+    slow_log = true
 
     ## @param slowlog-max-len - integer - optional - default: 128
     slowlog-max-len = 128
