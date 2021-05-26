@@ -218,7 +218,7 @@ $ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python 
 
 #### 环境变量设置
 
-通过环境变量 `DD_TRACE_SAMPLE_RATE=0.05` 设置
+例如：通过环境变量 `DD_TRACE_SAMPLE_RATE=0.05` 设置采用率为5%
 
 #### 应用初始化时设置
 
@@ -228,7 +228,7 @@ $ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python 
 tracer.configure(
     hostname="127.0.0.1",
     port="9529",
-    sampler= sampler.RateSampler(0.05)
+    sampler= sampler.RateSampler(0.05)   #设置采用率为5%
 )
 ```
 
