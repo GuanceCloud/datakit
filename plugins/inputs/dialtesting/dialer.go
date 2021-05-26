@@ -98,6 +98,43 @@ func (d *dialer) run() error {
 }
 
 func (d *dialer) feedIo() error {
+
+	// 考虑到推送至不同的dataway地址
+	u, err := url.Parse(d.task.PostURLStr())
+	if err != nil {
+		l.Warn("get invalid url, ignored")
+		return err
+	}
+
+	u.Path = u.Path + "v1/write/" + datakit.Logging // `/v1/write/logging`
+
+	urlStr := u.String()
+	switch d.task.Class() {
+	case dt.ClassHTTP:
+		return d.pointsFeed(urlStr)
+	case dt.ClassHeadless:
+		return d.linedataFeed(urlStr)
+	//TODO other class
+	default:
+	}
+
+	return nil
+}
+
+func (d *dialer) linedataFeed(urlStr string) error {
+	data := d.task.GetLineData()
+	if len(data) == 0 {
+		l.Warnf("no any data for task %s", d.task.ID())
+		return nil
+	}
+
+	return LineDataFeed(data, inputName, datakit.Logging, &io.Option{
+		HTTPHost: urlStr,
+	})
+
+}
+
+func (d *dialer) pointsFeed(urlStr string) error {
 	// 获取此次任务执行的基本信息
 	tags := map[string]string{}
 	fields := map[string]interface{}{}
@@ -113,20 +150,11 @@ func (d *dialer) feedIo() error {
 		return err
 	}
 
-	// 考虑到推送至不同的dataway地址
-	u, err := url.Parse(d.task.PostURLStr())
-	if err != nil {
-		l.Warn("get invalid url, ignored")
-		return err
-	}
-
-	u.Path = u.Path + "v1/write/" + datakit.Logging // `/v1/write/logging`
-
 	err = Feed(inputName, datakit.Logging, data, &io.Option{
-		HTTPHost: u.String(),
+		HTTPHost: urlStr,
 	})
 
-	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, u.String(), tags, fields)
+	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, urlStr, tags, fields)
 
 	return err
 }
