@@ -2,8 +2,8 @@ package redis
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"github.com/go-redis/redismock/v8"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -157,9 +157,9 @@ func TestGetInfo(t *testing.T) {
 	mock.Regexp().ExpectInfo(redisInfo)
 
 	input := &Input{
-		Service:  "dev-test",
-		Tags:     make(map[string]string),
-		client:   db,
+		Service: "dev-test",
+		Tags:    make(map[string]string),
+		client:  db,
 	}
 
 	resData, err := input.collectInfoMeasurement()
@@ -391,8 +391,8 @@ func TestCollect(t *testing.T) {
 		input.Collect()
 	})
 
-    t.Run("error", func(t *testing.T) {
-    	input := &Input{
+	t.Run("error", func(t *testing.T) {
+		input := &Input{
 			Host:     "127.0.0.1",
 			Port:     6379,
 			Password: "test",
