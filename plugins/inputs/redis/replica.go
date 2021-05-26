@@ -2,12 +2,12 @@ package redis
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	"context"
 
 	"github.com/go-redis/redis/v8"
 
