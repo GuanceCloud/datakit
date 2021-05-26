@@ -42,9 +42,8 @@ const (
     ## param type: boolean - optional: Use TLS but skip chain & host verification
     # insecure_skip_verify = false
 
-    # Logging filter(if collect_logging enabled)
-    [[inputs.docker.logfilter]]
-
+    ## Logging filter(if collect_logging enabled)
+    #[[inputs.docker.logfilter]]
         # filter_message = [
         #   '''<this-is-message-regexp''',
         #   '''<this-is-another-message-regexp''',
