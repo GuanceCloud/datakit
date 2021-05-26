@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"strings"
 	"time"
+	"context"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -60,6 +61,8 @@ func (i *Input) collectDBMeasurement() ([]inputs.Measurement, error) {
 		fields:  make(map[string]interface{}),
 	}
 
+	m.name = "redis_db"
+
 	if err := m.getData(); err != nil {
 		return nil, err
 	}
@@ -71,7 +74,8 @@ func (i *Input) collectDBMeasurement() ([]inputs.Measurement, error) {
 
 // 数据源获取数据
 func (m *dbMeasurement) getData() error {
-	list, err := m.client.Info("Keyspace").Result()
+	ctx := context.Background()
+	list, err := m.client.Info(ctx, "Keyspace").Result()
 	if err != nil {
 		return err
 	}
