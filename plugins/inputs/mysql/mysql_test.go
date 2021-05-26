@@ -34,17 +34,17 @@ func TestCollect(t *testing.T) {
 	})
 }
 
-// func TestGetDsnString(t *testing.T) {
-// 	m := MysqlMonitor{}
-// 	m.Host = "127.0.0.1"
-// 	m.Port = 3306
-// 	m.User = "root"
-// 	m.Pass = "test"
+func TestGetDsnString(t *testing.T) {
+	m := MysqlMonitor{}
+	m.Host = "127.0.0.1"
+	m.Port = 3306
+	m.User = "root"
+	m.Pass = "test"
 
-// 	expected := "root:test@tcp(127.0.0.1:3306)/"
-// 	actual := m.getDsnString()
-// 	assert.Equal(t, expected, actual)
-// }
+	expected := "root:test@tcp(127.0.0.1:3306)/"
+	actual := m.getDsnString()
+	assert.Equal(t, expected, actual)
+}
 
 func TestRun(t *testing.T) {
 	input := &Input{
