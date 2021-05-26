@@ -1,9 +1,9 @@
 package redis
 
 import (
+	"context"
 	"errors"
 	"time"
-    "context"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
