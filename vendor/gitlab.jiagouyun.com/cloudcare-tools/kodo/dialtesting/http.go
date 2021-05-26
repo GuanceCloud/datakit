@@ -113,6 +113,10 @@ func (t *HTTPTask) GetFrequency() string {
 	return t.Frequency
 }
 
+func (t *HTTPTask) GetLineData() string {
+	return ""
+}
+
 func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":   t.Name,
