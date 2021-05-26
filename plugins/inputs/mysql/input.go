@@ -110,11 +110,6 @@ func (i *Input) getDsnString() string {
 		cfg.Params["charset"] = i.Charset
 	}
 
-	// ssl
-	if i.Tls != nil {
-
-	}
-
 	// tls (todo)
 	return cfg.FormatDSN()
 }
@@ -193,7 +188,9 @@ func (i *Input) collectBaseMeasurement() ([]inputs.Measurement, error) {
 	// 如果没有打开 bin-log，这里可能报错：Error 1381: You are not using binary logging
 	// 不过忽略这一错误
 	// TODO: if-bin-log-enabled
-	_ = m.getLogStats()
+	if m.resData["log_bin"] == "ON" || m.resData["log_bin"] == "on" {
+		_ = m.getLogStats()
+	}
 
 	if err := m.submit(); err == nil {
 		if len(m.fields) > 0 {
