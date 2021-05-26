@@ -58,7 +58,7 @@ var (
 
   ## Gather all returned S.M.A.R.T. attribute metrics and the detailed
   ## information from each drive into the 'smart_attribute' measurement.
-  # attributes = false
+  # attributes = true
 
   ## Optionally specify devices to exclude from reporting if disks auto-discovery is performed.
   # excludes = [ "/dev/pass6" ]
@@ -108,7 +108,7 @@ func (s *Input) Run() {
 	var err error
 	if s.SmartCtlPath == "" || !ipath.IsFileExists(s.SmartCtlPath) {
 		if s.SmartCtlPath, err = exec.LookPath(defSmartCmd); err != nil {
-			l.Errorf("Can not find executable sensor command, install 'smartmontools' first.")
+			l.Error("Can not find executable sensor command, install 'smartmontools' first.")
 
 			return
 		}
@@ -247,9 +247,11 @@ func (s *Input) getAttributes(devices []string) {
 	for _, device := range devices {
 		go func() {
 			if cache, err := gatherDisk(s.Timeout.Duration, s.UseSudo, s.Attributes, s.SmartCtlPath, s.NoCheck, device); err != nil {
+				l.Error(err.Error())
 				io.FeedLastError(inputName, err.Error())
 			} else {
 				if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+					l.Error(err.Error())
 					io.FeedLastError(inputName, err.Error())
 				}
 			}
@@ -271,9 +273,11 @@ func (s *Input) getVendorNVMeAttributes(devices []string) {
 				wg.Add(1)
 				go func() {
 					if cache, err := gatherIntelNVMeDisk(s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
+						l.Error(err.Error())
 						io.FeedLastError(inputName, err.Error())
 					} else {
 						if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+							l.Error(err.Error())
 							io.FeedLastError(inputName, err.Error())
 						}
 					}
@@ -284,9 +288,11 @@ func (s *Input) getVendorNVMeAttributes(devices []string) {
 			wg.Add(1)
 			go func() {
 				if cache, err := gatherIntelNVMeDisk(s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
+					l.Error(err.Error())
 					io.FeedLastError(inputName, err.Error())
 				} else {
 					if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+						l.Error(err.Error())
 						io.FeedLastError(inputName, err.Error())
 					}
 				}
@@ -571,6 +577,8 @@ func init() {
 			NvmePath:     defNvmePath,
 			Interval:     defInterval,
 			Timeout:      defTimeout,
+			NoCheck:      "standby",
+			Attributes:   true,
 		}
 	})
 }
