@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
+	"context"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -56,10 +57,15 @@ func (i *Input) initCfg() error {
 		DB:       i.DB,       // use default DB
 	})
 
+	if i.SlowlogMaxLen == 0 {
+		i.SlowlogMaxLen = 128
+	}
+
 	i.client = client
 
 	// ping (todo)
-	_, err := client.Ping().Result()
+	ctx := context.Background()
+	_, err := client.Ping(ctx).Result()
 
 	if err != nil {
 		return err
@@ -141,7 +147,8 @@ func (i *Input) collectBigKeyMeasurement() ([]inputs.Measurement, error) {
 
 // 数据源获取数据
 func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
-	list, err := i.client.ClientList().Result()
+	ctx := context.Background()
+	list, err := i.client.ClientList(ctx).Result()
 	if err != nil {
 		l.Error("client list get error,", err)
 		return nil, err
@@ -152,7 +159,8 @@ func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
 
 // 数据源获取数据
 func (i *Input) collectCommandMeasurement() ([]inputs.Measurement, error) {
-	list, err := i.client.Info("commandstats").Result()
+	ctx := context.Background()
+	list, err := i.client.Info(ctx, "commandstats").Result()
 	if err != nil {
 		l.Error("command stats error,", err)
 		return nil, err
@@ -162,21 +170,7 @@ func (i *Input) collectCommandMeasurement() ([]inputs.Measurement, error) {
 }
 
 func (i *Input) collectSlowlogMeasurement() ([]inputs.Measurement, error) {
-	m := &slowlogMeasurement{
-		client:            i.client,
-		tags:              make(map[string]string),
-		fields:            make(map[string]interface{}),
-		lastTimestampSeen: make(map[string]int64),
-		slowlogMaxLen:     i.SlowlogMaxLen,
-	}
-
-	m.name = "redis_slowlog"
-
-	for k, v := range i.Tags {
-		m.tags[k] = v
-	}
-
-	return m.getData()
+	return i.getSlowData()
 }
 
 func (i *Input) runLog(defaultPile string) error {
@@ -238,14 +232,11 @@ func (i *Input) Run() {
 		i.collectClientMeasurement,
 		i.collectCommandMeasurement,
 		i.collectDBMeasurement,
+		i.collectSlowlogMeasurement,
 	}
 
 	if len(i.Keys) > 0 {
 		i.collectors = append(i.collectors, i.collectBigKeyMeasurement)
-	}
-
-	if i.Slowlog {
-		i.collectors = append(i.collectors, i.collectSlowlogMeasurement)
 	}
 
 	for {
