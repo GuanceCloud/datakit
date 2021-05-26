@@ -110,11 +110,6 @@ func (i *Input) getDsnString() string {
 		cfg.Params["charset"] = i.Charset
 	}
 
-	// ssl
-	if i.Tls != nil {
-
-	}
-
 	// tls (todo)
 	return cfg.FormatDSN()
 }
@@ -129,7 +124,7 @@ func (i *Input) PipelineConfig() map[string]string {
 
 func (i *Input) initCfg() error {
 	dsnStr := i.getDsnString()
-	l.Infof("db build dsn connect str %s", dsnStr)
+	l.Debugf("db build dsn connect str %s", dsnStr)
 
 	db, err := sql.Open("mysql", dsnStr)
 	if err != nil {
@@ -149,7 +144,6 @@ func (i *Input) globalTag() {
 }
 
 func (i *Input) Collect() error {
-
 	for _, f := range i.collectors {
 		if ms, err := f(); err != nil {
 			io.FeedLastError(inputName, err.Error())
@@ -193,7 +187,9 @@ func (i *Input) collectBaseMeasurement() ([]inputs.Measurement, error) {
 	// 如果没有打开 bin-log，这里可能报错：Error 1381: You are not using binary logging
 	// 不过忽略这一错误
 	// TODO: if-bin-log-enabled
-	_ = m.getLogStats()
+	if m.resData["log_bin"] == "ON" || m.resData["log_bin"] == "on" {
+		_ = m.getLogStats()
+	}
 
 	if err := m.submit(); err == nil {
 		if len(m.fields) > 0 {
@@ -206,32 +202,7 @@ func (i *Input) collectBaseMeasurement() ([]inputs.Measurement, error) {
 
 // 获取innodb指标
 func (i *Input) collectInnodbMeasurement() ([]inputs.Measurement, error) {
-	m := &innodbMeasurement{
-		i:       i,
-		resData: make(map[string]interface{}),
-		tags:    make(map[string]string),
-		fields:  make(map[string]interface{}),
-	}
-
-	m.name = "mysql_innodb"
-	for key, value := range i.Tags {
-		m.tags[key] = value
-	}
-
-	if err := m.getInnodb(); err != nil {
-		return nil, err
-	}
-
-	if err := m.submit(); err != nil {
-		l.Error(err)
-		return nil, err
-	}
-
-	if len(m.fields) > 0 {
-		return []inputs.Measurement{m}, nil
-	}
-
-	return nil, nil
+	return i.getInnodb()
 }
 
 // 获取schema指标
