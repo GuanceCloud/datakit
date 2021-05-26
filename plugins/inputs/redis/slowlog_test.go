@@ -2,8 +2,8 @@ package redis
 
 import (
 	"fmt"
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestGetSlowlog(t *testing.T) {
