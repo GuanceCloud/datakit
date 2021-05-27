@@ -84,6 +84,26 @@ func (t *HTTPTask) GetOwnerExternalID() string {
 	return t.OwnerExternalID
 }
 
+func (t *HTTPTask) SetOwnerExternalID(exid string) {
+	t.OwnerExternalID = exid
+}
+
+func (t *HTTPTask) SetRegionId(regionId string) {
+	t.Region = regionId
+}
+
+func (t *HTTPTask) SetAk(ak string) {
+	t.AK = ak
+}
+
+func (t *HTTPTask) SetStatus(status string) {
+	t.CurStatus = status
+}
+
+func (t *HTTPTask) SetUpdateTime(ts int64) {
+	t.UpdateTime = ts
+}
+
 func (t *HTTPTask) Stop() error {
 	t.cli.CloseIdleConnections()
 	return nil
