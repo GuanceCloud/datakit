@@ -22,39 +22,37 @@ const (
 
 	sampleCfg = `
 [inputs.docker]
-    ## param type: string - default: unix:///var/run/docker.sock
-    ## To use TCP, set endpoint = "tcp://[ip]:[port]"
+    # Docker server host
+    # To use TCP, set endpoint = "tcp://[ip]:[port]"
     endpoint = "unix:///var/run/docker.sock"
-    
-    ## param type: boolean
-    collect_metric = false
-    collect_object = true
-    collect_logging = true
-    
-    ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
+
+    collect_metric = false  # enable metric collect
+    collect_object = true   # enable object collect
+    collect_logging = true  # enable logging collect
+
     collect_metric_interval = "10s"
-    
-    ## param type: boolean - default: false
-    ## Is all containers, Return all containers. By default, only running containers are shown.
+
+    # If enabled, collect exited container info
     include_exited = false
-    
+
     ## param type: string - optional: TLS Config
     # tls_ca = "/path/to/ca.pem"
     # tls_cert = "/path/to/cert.pem"
     # tls_key = "/path/to/key.pem"
     ## param type: boolean - optional: Use TLS but skip chain & host verification
     # insecure_skip_verify = false
-    
-    ## param type: logfilter object
-    # [[inputs.docker.logfilter]]
-        ## param type: string array
-        # filter_message = ['''<this-is-message-regexp''']
 
-        ## param type: string
-        # source = "<your-source>"
-        # service = "<your-service>"
-        # pipeline = "<this-is-pipeline>"
-    
+    ## Logging filter(if collect_logging enabled)
+    #[[inputs.docker.logfilter]]
+        # filter_message = [
+        #   '''<this-is-message-regexp''',
+        #   '''<this-is-another-message-regexp''',
+        # ]
+
+        # source = "<your-source-name>"
+        # service = "<your-service-name>"
+        # pipeline = "<pipeline.p>"
+
     [inputs.docker.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
