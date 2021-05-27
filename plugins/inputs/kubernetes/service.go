@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var serviceMeasurement = "kube_deployment"
