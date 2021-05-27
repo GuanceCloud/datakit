@@ -53,10 +53,16 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	return processBatch(batch)
+	groups, err := processBatch(batch)
+	if err != nil {
+		return err
+	}
+
+	trace.MkLineProto(groups, inputName)
+	return nil
 }
 
-func processBatch(batch *j.Batch) error {
+func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 	adapterGroup := []*trace.TraceAdapter{}
 
 	project, ver, env := getExpandInfo(batch)
@@ -83,7 +89,7 @@ func processBatch(batch *j.Batch) error {
 		tAdpter.Start = s.StartTime * 1000
 		sJson, err := json.Marshal(s)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		tAdpter.Content = string(sJson)
 
@@ -108,8 +114,8 @@ func processBatch(batch *j.Batch) error {
 		adapterGroup = append(adapterGroup, tAdpter)
 	}
 
-	trace.MkLineProto(adapterGroup, inputName)
-	return nil
+
+	return adapterGroup, nil
 }
 
 func getExpandInfo(batch *j.Batch) (project, ver, env string) {
