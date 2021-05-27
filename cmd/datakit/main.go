@@ -46,9 +46,8 @@ var (
 	// Commands
 	////////////////////////////////////////////////////////////
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
 	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-
-	flagGrokq = flag.Bool("grokq", false, "query groks interactively")
 
 	// manuals related
 	flagMan               = flag.Bool("man", false, "read manuals of inputs")
@@ -56,6 +55,7 @@ var (
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
 	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
+	flagTODO              = flag.String("TODO", "TODO", "set TODO")
 
 	flagCheckUpdate         = flag.Bool("check-update", false, "check if new verison available")
 	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
@@ -95,11 +95,14 @@ const (
 )
 
 func main() {
-	flag.CommandLine.MarkHidden("cmd") // deprecated
-
-	// un-documented options
-	flag.CommandLine.MarkHidden("addr")
-	flag.CommandLine.MarkHidden("show-testing-version")
+	flag.CommandLine.MarkHidden("cmd")                  // deprecated
+	flag.CommandLine.MarkHidden("TODO")                 // internal using
+	flag.CommandLine.MarkHidden("check-update")         // internal using
+	flag.CommandLine.MarkHidden("man-version")          // internal using
+	flag.CommandLine.MarkHidden("export-integration")   // internal using
+	flag.CommandLine.MarkHidden("addr")                 // internal uing
+	flag.CommandLine.MarkHidden("show-testing-version") // internal uing
+	flag.CommandLine.MarkHidden("update-log")           // internal uing
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -187,6 +190,8 @@ ReleasedInputs: %s
 
 		os.Exit(0)
 	}
+
+	inputs.TODO = *flagTODO
 
 	if *flagShowCloudInfo != "" {
 		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
