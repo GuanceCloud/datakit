@@ -251,16 +251,14 @@ func createSymlinks() error {
 }
 
 func symlink(src, dst string) error {
-	sBin := filepath.Join(datakit.InstallDir, "datakit")
-	dBin := "/usr/local/bin/datakit"
 
 	l.Debugf("remove link %s...", dst)
 	if err := os.Remove(dst); err != nil {
 		l.Warnf("%s, ignored", err)
 	}
 
-	if err := os.Symlink(sBin, dBin); err != nil {
-		l.Errorf("create datakit soft link: %s -> %s: %s", dBin, sBin, err.Error())
+	if err := os.Symlink(src, dst); err != nil {
+		l.Errorf("create datakit soft link: %s -> %s: %s", dst, src, err.Error())
 		return err
 	}
 	return nil
