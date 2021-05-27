@@ -3,9 +3,6 @@ package kubernetes
 const (
 	configSample = `
 [[inputs.kubernetes]]
-    ## kubeConfig path
-    kube_config_path = ""
-
     # required
     interval = "10s"
 
@@ -23,6 +20,9 @@ const (
     # tls_ca = "/path/to/cafile"
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
+
+    [inputs.kubernetes.apiservice]
+    #  url = ""
 
     [inputs.kubernetes.tags]
     # tag1 = val1
