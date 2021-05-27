@@ -67,6 +67,7 @@ DataKit 安装完成后，默认会开启一批采集器，这些采集器一般
 | `net`          | 采集主机网络流量情况                           |
 | `host_process` | 采集主机上常驻（存活 10min 以上）进程列表      |
 | `hostobject`   | 采集主机基础信息（如操作系统信息、硬件信息等） |
+| `docker`       | 采集主机上可能的容器对象以及容器日志           |
 
 ### 配置文件格式
 
@@ -198,8 +199,7 @@ DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为
 几个注意点：
 
 - 我们将 MySQL 的日志采集和指标采集放在一起，主要是便于大家使用，无需单独用额外的采集器配置来收集日志
-- 对于额外追加标签，有一些特殊情况：因为 DataKit 会默认给采集的所有数据追加标签 `host=<DataKit所在主机名>`（除非采集的数据中，已经自带了这个 `host` 标签），但如果 MySQL 不在 DataKit 所在机器，肯定希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名，此时可以在 `[inputs.mysql.tags]` 中手动增加 `host = "your-mysql-real-name"`，以此来屏蔽 DataKit 默认追加的 `host` 标签
-- 我们可以在所有采集器的配置中，使用环境变量。假定该 MySQL 运行在容器中，但其主机名实际上并不可提前预知，此时可以追加额外标签 `host = $HOSTNAME`。需注意的是，指定的环境变量必须真实有效，如果 DataKit 运行时获取不到该环境变量，那么会直接使用字符串 `no-value` 作为该字段的值
+- 在采集器的配置中，我们可以使用形如 `$XXXXX` 这样的环境变量（注意，DataKit 主配置中不支持这种）。例如，假定该 MySQL 运行在容器中，但其主机名实际上并不可提前预知，此时可以追加额外标签 `host = $HOSTNAME`。需注意的是，指定的环境变量必须真实有效，如果 DataKit 运行时获取不到该环境变量，那么会直接使用字符串 `no-value` 作为该字段的值。
 - 如果要配置多个不同 MySQL 采集，可单独再复制一份出来，如下 `mysql.conf` 所示：
 
 ```toml
@@ -239,6 +239,10 @@ DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为
 [[inputs.mysql]]
 	...
 ```
+
+#### 全局 host 标签问题
+
+因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰，比如 MySQL 不在 DataKit 所在机器，肯定希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名。此时可在 `[inputs.mysql.tags]` 中手动增加 `host = "<your-mysql-real-hostname>"`，以此来屏蔽 DataKit 默认追加的 `host` 标签。在 DataKit 看来，如果采集到的数据中就带有 `host` 标签，那么就不再追加 DataKit 所在主机的 host 信息了。
 
 ## DataKit 各种工具使用
 
