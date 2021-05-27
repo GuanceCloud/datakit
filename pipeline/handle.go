@@ -136,6 +136,11 @@ var datePattern = []struct {
 		pattern: `\d{4}/\d{2}/\d{2} - \d{2}:\d{2}:\d{2}`,
 		goFmt:   "2006/01/02 - 15:04:05",
 	},
+	{
+		desc:    "apache,  Tue May 18 06:25:05.176170 2021",
+		pattern: `\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}.\d{6} \d{4}`,
+		goFmt:   "Mon Jan 2 15:04:05.000000 2006",
+	},
 }
 
 func TimestampHandle(value, tz string) (int64, error) {

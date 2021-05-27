@@ -83,11 +83,11 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 func (i *Input) getClientData() error {
 	list, err := i.client.ClientList().Result()
 	if err != nil {
+		l.Error(err)
 		return err
 	}
-	i.parseClientData(list)
 
-	return nil
+	return i.parseClientData(list)
 }
 
 // 解析返回结果
