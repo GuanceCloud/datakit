@@ -94,6 +94,8 @@ Allow from your_ip
 |  status   | error     | 日志等级 |
 |  pid   | 9802   | 进程 id |
 |  type   | access_compat   | 日志类型 |
+|  time   | 1621391985000000000     | 纳秒时间戳（作为行协议时间）|
+
 
 原始日志为 `127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917`
 
@@ -107,3 +109,5 @@ Allow from your_ip
 |  http_method   | GET   | http 请求类型 |
 |  http_url   | /   | http 请求url |
 |  http_version   | 1.1   | http version |
+|  time   | 1621205469000000000     | 纳秒时间戳（作为行协议时间）|
+
