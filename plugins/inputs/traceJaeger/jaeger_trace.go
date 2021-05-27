@@ -114,7 +114,6 @@ func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 		adapterGroup = append(adapterGroup, tAdpter)
 	}
 
-
 	return adapterGroup, nil
 }
 
