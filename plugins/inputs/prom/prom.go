@@ -37,8 +37,9 @@ const (
     # required
     source = ""
 
-    # [inputs.prom.tags]
-    # tags1 = "value1"
+    [inputs.prom.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
