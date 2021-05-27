@@ -9,6 +9,7 @@ import (
 	"github.com/uber/jaeger-client-go/thrift-gen/agent"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 func StartUdpAgent(addr string) error {
@@ -53,37 +54,47 @@ func StartUdpAgent(addr string) error {
 			continue
 		}
 
-		thriftBuffer := thrift.NewTMemoryBufferLen(n)
-		if _, err = thriftBuffer.Write(data[:n]); err != nil {
-			log.Error("buffer write failed :%v,", err)
-			continue
-		}
-
-		protocolFactory := thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
-		thriftProtocol := protocolFactory.GetProtocol(thriftBuffer)
-		_, _, _, err = thriftProtocol.ReadMessageBegin(context.TODO())
+		groups, err := parseJaegerUdp(data[:n])
 		if err != nil {
-			log.Error("read message begin failed :%v,", err)
 			continue
 		}
-
-		batch := agent.AgentEmitBatchArgs{}
-		err = batch.Read(context.TODO(), thriftProtocol)
-		if err != nil {
-			log.Error("read batch failed :%v,", err)
-			continue
-		}
-
-		err = processBatch(batch.Batch)
-		if err != nil {
-			log.Error("process batch failed :%v,", err)
-			continue
-		}
-
-		err = thriftProtocol.ReadMessageEnd(context.TODO())
-		if err != nil {
-			log.Error("read message end failed :%v,", err)
-			continue
-		}
+		trace.MkLineProto(groups, inputName)
 	}
+}
+
+func parseJaegerUdp(data []byte) ([]*trace.TraceAdapter, error) {
+	thriftBuffer := thrift.NewTMemoryBufferLen(len(data))
+	if _, err := thriftBuffer.Write(data[:len(data)]); err != nil {
+		log.Error("buffer write failed :%v,", err)
+		return nil, err
+	}
+
+	protocolFactory := thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
+	thriftProtocol := protocolFactory.GetProtocol(thriftBuffer)
+	_, _, _, err := thriftProtocol.ReadMessageBegin(context.TODO())
+	if err != nil {
+		log.Error("read message begin failed :%v,", err)
+		return nil, err
+	}
+
+	batch := agent.AgentEmitBatchArgs{}
+	err = batch.Read(context.TODO(), thriftProtocol)
+	if err != nil {
+		log.Error("read batch failed :%v,", err)
+		return nil, err
+	}
+
+	groups, err := processBatch(batch.Batch)
+	if err != nil {
+		log.Error("process batch failed :%v,", err)
+		return nil, err
+	}
+
+	err = thriftProtocol.ReadMessageEnd(context.TODO())
+	if err != nil {
+		log.Error("read message end failed :%v,", err)
+		return nil, err
+	}
+
+	return groups, nil
 }
