@@ -211,6 +211,27 @@ $ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app
 $ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python your_app.py
 ```
 
+### 设置 trace 数据采样率
+
+默认每次调用都会产生 trace 数据，若不加以限制，会导致采集到数据量大，占用过多的存储，网络带宽等系统资源，可以通过设置采样率解决这一问题，
+有如下两种方式设置采样率
+
+#### 环境变量设置
+
+例如：通过环境变量 `DD_TRACE_SAMPLE_RATE=0.05` 设置采用率为5%
+
+#### 应用初始化时设置
+
+以 `Python` 应用为例
+
+```python
+tracer.configure(
+    hostname="127.0.0.1",
+    port="9529",
+    sampler= sampler.RateSampler(0.05)   #设置采用率为5%
+)
+```
+
 ## 指标集
 
 以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
