@@ -1,13 +1,13 @@
 package kubernetes
 
 import (
-	"testing"
 	"context"
+	"testing"
 )
 
 func TestCollectPersistentVolumes(t *testing.T) {
 	i := &Input{
-		Tags: make(map[string]string),
+		Tags:           make(map[string]string),
 		KubeConfigPath: "/Users/liushaobo/.kube/config",
 	}
 
@@ -29,7 +29,7 @@ func TestCollectPersistentVolumes(t *testing.T) {
 
 func TestCollectPersistentVolumeClaims(t *testing.T) {
 	i := &Input{
-		Tags: make(map[string]string),
+		Tags:           make(map[string]string),
 		KubeConfigPath: "/Users/liushaobo/.kube/config",
 	}
 
@@ -51,7 +51,7 @@ func TestCollectPersistentVolumeClaims(t *testing.T) {
 
 func TestCollectServices(t *testing.T) {
 	i := &Input{
-		Tags: make(map[string]string),
+		Tags:           make(map[string]string),
 		KubeConfigPath: "/Users/liushaobo/.kube/config",
 	}
 
@@ -73,7 +73,7 @@ func TestCollectServices(t *testing.T) {
 
 func TestCollectStatefulSets(t *testing.T) {
 	i := &Input{
-		Tags: make(map[string]string),
+		Tags:           make(map[string]string),
 		KubeConfigPath: "/Users/liushaobo/.kube/config",
 	}
 
@@ -92,4 +92,3 @@ func TestCollectStatefulSets(t *testing.T) {
 		}
 	}
 }
-
