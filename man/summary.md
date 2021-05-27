@@ -30,21 +30,27 @@
 
 	- [MySQL](mysql)
 	- [Oracle](oracle)
-	- [Redis](redis)
+	- [Solr](solr)
+	- [Mongodb](mongodb)
 
-	<!-- - [Memcached](memcached) -->
-	<!-- - [Solr](solr) -->
-	<!-- - [Mongodb](mongodb) -->
-	<!-- - [Gitlab](gitlab) -->
+	- [Redis](redis)
+	- [Memcached](memcached)
+
+	- [Jenkins](jenkins)
+	- [SSH](ssh)
+	- [Gitlab](gitlab)
 
 	- [ElasticSearch](elasticsearch)
 	- [Kafka](kafka)
 	- [RabbitMQ](rabbitmq)
 
-	- [APM（DDTrace）](ddtrace)
-	- [网络拨测](dialtesting)
 	- [Docker](docker)
 	- [JVM](jvm)
+	- [Tomcat](tomcat)
 	- [日志](logging)
 	- [Nginx](nginx)
+	- [Apache](apache)
+
+	- [APM（DDTrace）](ddtrace)
 	- [RUM](rum)
+	- [网络拨测](dialtesting)
