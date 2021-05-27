@@ -1,4 +1,4 @@
-package mongodb
+package net
 
 import (
 	"crypto/tls"
@@ -16,8 +16,7 @@ type TlsClientConfig struct {
 	ServerName         string   `json:"server_name" toml:"server_name"`
 }
 
-// TLSConfig returns a tls.Config, may be nil without error if TLS is not
-// configured.
+// TLSConfig returns a tls.Config, may be nil without error if TLS is not configured.
 func (this *TlsClientConfig) TlsConfig() (*tls.Config, error) {
 	// This check returns a nil (aka, "use the default")
 	// tls.Config if no field is set that would have an effect on
@@ -49,22 +48,9 @@ func (this *TlsClientConfig) TlsConfig() (*tls.Config, error) {
 		}
 	}
 
-	if this.ServerName != "" {
-		tlsConfig.ServerName = this.ServerName
-	}
+	tlsConfig.ServerName = this.ServerName
 
 	return tlsConfig, nil
-}
-
-func loadCertificate(config *tls.Config, certFile, keyFile string) error {
-	if cert, err := tls.LoadX509KeyPair(certFile, keyFile); err != nil {
-		return fmt.Errorf("could not load keypair %s:%s: %v\n", certFile, keyFile, err)
-	} else {
-		config.Certificates = []tls.Certificate{cert}
-		config.BuildNameToCertificate()
-
-		return nil
-	}
 }
 
 func makeCertPool(certFiles []string) (*x509.CertPool, error) {
@@ -80,4 +66,15 @@ func makeCertPool(certFiles []string) (*x509.CertPool, error) {
 	}
 
 	return pool, nil
+}
+
+func loadCertificate(config *tls.Config, certFile, keyFile string) error {
+	if cert, err := tls.LoadX509KeyPair(certFile, keyFile); err != nil {
+		return fmt.Errorf("could not load keypair %s:%s: %v\n", certFile, keyFile, err)
+	} else {
+		config.Certificates = []tls.Certificate{cert}
+		config.BuildNameToCertificate()
+
+		return nil
+	}
 }
