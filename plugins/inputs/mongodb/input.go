@@ -19,64 +19,85 @@ var (
 	inputName    = "mongodb"
 	sampleConfig = `
 [[inputs.mongodb]]
-	## gather interval
-	interval = "10s"
-	## An array of URLs of the form:
-	##   "mongodb://" [user ":" pass "@"] host [ ":" port]
-	## For example:
-	##   mongodb://user:auth_key@10.10.3.30:27017,
-	##   mongodb://10.10.3.33:18832,
-	servers = ["mongodb://127.0.0.1:27017"]
-	## When true, collect replica set stats
-	gather_replica_set_stats = false
-	## When true, collect cluster stats
-	## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
-	gather_cluster_stats = false
-	## When true, collect per database stats
-	gather_per_db_stats = true
-	## When true, collect per collection stats
-	gather_per_col_stats = true
-	## List of db where collections stats are collected, If empty, all db are concerned
-	col_stats_dbs = ["local"]
-	## When true, collect top stats
-	gather_top_stat = true
-	## Optional TLS Config, enabled if true
-	enable_tls = false
-	[inputs.mongodb.tlsconf]
-		# ca_certs = ["/etc/datakit/ca.pem"]
-		# cert = "/etc/datakit/cert.pem"
-		# cert_key = "/etc/datakit/key.pem"
-		## Use TLS but skip chain & host verification
-		# insecure_skip_verify = false
-		# server_name = ""
+  ## Gathering interval
+  interval = "10s"
+
+  ## An array of URLs of the form:
+  ##   "mongodb://" [user ":" pass "@"] host [ ":" port]
+  ## For example:
+  ##   mongodb://user:auth_key@10.10.3.30:27017,
+  ##   mongodb://10.10.3.33:18832,
+  servers = ["mongodb://127.0.0.1:27017"]
+
+  ## When true, collect replica set stats
+  gather_replica_set_stats = false
+
+  ## When true, collect cluster stats
+  ## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
+  gather_cluster_stats = false
+
+  ## When true, collect per database stats
+  gather_per_db_stats = true
+
+  ## When true, collect per collection stats
+  gather_per_col_stats = true
+
+  ## List of db where collections stats are collected, If empty, all db are concerned.
+  col_stats_dbs = ["local"]
+
+  ## When true, collect top command stats.
+  gather_top_stat = true
+
+  ## Optional TLS Config, enabled if true.
+  enable_tls = false
+
+  ## TLS connection config
+  [inputs.mongodb.tlsconf]
+    # ca_certs = ["/etc/datakit/ca.pem"]
+    # cert = "/etc/datakit/cert.pem"
+    # cert_key = "/etc/datakit/key.pem"
+    ## Use TLS but skip chain & host verification
+    # insecure_skip_verify = false
+    # server_name = ""
+
+  ## Customer tags, if set will be seen with every metric.
+  [inputs.mongodb.tags]
+    # "key1" = "value1"
+    # "key2" = "value2"
 `
 	localhost = &url.URL{Host: "mongodb://127.0.0.1:27017"}
+	defTags   map[string]string
 	l         = logger.SLogger(inputName)
 )
 
 type Input struct {
-	Interval              datakit.Duration `toml:"interval"`
-	Servers               []string         `toml:"servers"`
-	GatherReplicaSetStats bool             `toml:"gather_replica_set_stats"`
-	GatherClusterStats    bool             `toml:"gather_cluster_stats"`
-	GatherPerDbStats      bool             `toml:"gather_per_db_stats"`
-	GatherPerColStats     bool             `toml:"gather_per_col_stats"`
-	ColStatsDbs           []string         `toml:"col_stats_dbs"`
-	GatherTopStat         bool             `toml:"gather_top_stat"`
-	EnableTls             bool             `toml:"enable_tls"`
-	TlsConf               *TlsClientConfig `toml:"tlsconf"`
+	Interval              datakit.Duration  `toml:"interval"`
+	Servers               []string          `toml:"servers"`
+	GatherReplicaSetStats bool              `toml:"gather_replica_set_stats"`
+	GatherClusterStats    bool              `toml:"gather_cluster_stats"`
+	GatherPerDbStats      bool              `toml:"gather_per_db_stats"`
+	GatherPerColStats     bool              `toml:"gather_per_col_stats"`
+	ColStatsDbs           []string          `toml:"col_stats_dbs"`
+	GatherTopStat         bool              `toml:"gather_top_stat"`
+	EnableTls             bool              `toml:"enable_tls"`
+	TlsConf               *TlsClientConfig  `toml:"tlsconf"`
+	Tags                  map[string]string `toml:"tags"`
 	mongos                map[string]*Server
 }
 
-func (m *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (m *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (m *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&mongodbMeasurement{},
 		&mongodbDbMeasurement{},
@@ -86,21 +107,17 @@ func (m *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (m *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
-
 func (m *Input) Run() {
 	l.Info("mongodb input started")
+
+	defTags = m.Tags
 
 	tick := time.NewTicker(m.Interval.Duration)
 	for {
 		select {
 		case <-tick.C:
-			// var lastErr error
-			if err := m.Gather(); err != nil {
-				// lastErr = err
-				l.Errorf(err.Error())
+			if err := m.gather(); err != nil {
+				l.Error(err.Error())
 				continue
 			}
 		case <-datakit.Exit.Wait():
@@ -121,7 +138,7 @@ func (m *Input) getMongoServer(url *url.URL) *Server {
 
 // Reads stats from all configured servers accumulates stats.
 // Returns one of the errors encountered while gather stats (if any).
-func (m *Input) Gather() error {
+func (m *Input) gather() error {
 	if len(m.Servers) == 0 {
 		m.gatherServer(m.getMongoServer(localhost))
 
