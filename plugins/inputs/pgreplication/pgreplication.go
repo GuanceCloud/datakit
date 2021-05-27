@@ -28,41 +28,42 @@ const (
 
 	sampleCfg = `
 [[inputs.postgresql_replication]]
-    # required
+    ## required
     host="127.0.0.1"
 
-    # required
+    ## required
     port=25432
 
-    # postgres user (need replication privilege)
-    # required
+    ## postgres user (need replication privilege)
+    ## required
     user="<your-user>"
 
-    # required
+    ## required
     password="<your-password>"
 
-    # required
+    ## required
     database="<your-database>"
 
-    # if table is empty, default collect all table.
+    ## if table is empty, default collect all table.
     table="<your-table>"
 
-    # category only accept "metric" and "logging"
-    # if category is invalid, default use "metric"
+    ## category only accept "metric" and "logging"
+    ## if category is invalid, default use "metric"
     category = "metric"
 
-    # there are 3 events: "INSERT","UPDATE","DELETE"
-    # required
+    ## there are 3 events: "INSERT","UPDATE","DELETE"
+    ## required
     events=["INSERT"]
 
-    # tags
+    ## tags
     tag_colunms=[]
 
-    # fields. required
+    ## fields. required
     field_colunms=["fieldName"]
 
-    # [inputs.postgresql_replication.tags]
-    # tags1 = "value1"
+    [inputs.postgresql_replication.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
