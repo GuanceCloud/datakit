@@ -89,7 +89,9 @@ func (i *Input) Collect() error {
 	// slowlog
 	if i.Slowlog {
 		slowlogMeasurement := CollectSlowlogMeasurement(i)
-		i.collectCache = append(i.collectCache, slowlogMeasurement)
+		if len(slowlogMeasurement.fields) > 0 {
+			i.collectCache = append(i.collectCache, slowlogMeasurement)
+		}
 	}
 
 	// bigkey
@@ -98,8 +100,7 @@ func (i *Input) Collect() error {
 	}
 
 	if i.err != nil {
-		io.FeedLastError(inputName, i.err.Error())
-		i.err = nil
+		return i.err
 	}
 
 	return nil
@@ -119,10 +120,12 @@ func (i *Input) collectInfoMeasurement() {
 	}
 
 	if err := m.getData(); err != nil {
-		m.i.err = err
+		i.err = err
 	}
 
-	if err := m.submit(); err == nil {
+	if err := m.submit(); err != nil {
+		i.err = err
+	} else {
 		if len(m.fields) > 0 {
 			i.collectCache = append(i.collectCache, m)
 		}
@@ -146,32 +149,38 @@ func (i *Input) collectCommandMeasurement() {
 	}
 }
 
-func (i *Input) runLog(defaultPile string) {
-	if i.Log != nil {
-		go func() {
-			pfile := defaultPile
-			if i.Log.Pipeline != "" {
-				pfile = i.Log.Pipeline
-			}
+func (i *Input) runLog(defaultPile string) error {
 
-			i.Log.Service = i.Service
-			i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
-
-			i.Log.Source = inputName
-			i.Log.Tags = make(map[string]string)
-			for k, v := range i.Tags {
-				i.Log.Tags[k] = v
-			}
-			tailer, err := inputs.NewTailer(i.Log)
-			if err != nil {
-				i.err = err
-				l.Errorf("init tailf err:%s", err.Error())
-				return
-			}
-			i.tailer = tailer
-			tailer.Run()
-		}()
+	if len(i.Log.Files) == 0 {
+		return nil
 	}
+
+	if i.Log != nil {
+		pfile := defaultPile
+		if i.Log.Pipeline != "" {
+			pfile = i.Log.Pipeline
+		}
+
+		i.Log.Service = i.Service
+		i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
+
+		i.Log.Source = inputName
+		i.Log.Tags = make(map[string]string)
+		for k, v := range i.Tags {
+			i.Log.Tags[k] = v
+		}
+		tailer, err := inputs.NewTailer(i.Log)
+		if err != nil {
+			l.Errorf("init tailf err:%s", err.Error())
+			return err
+		}
+
+		i.tailer = tailer
+
+		go tailer.Run()
+	}
+
+	return nil
 }
 
 func (i *Input) Run() {
@@ -181,7 +190,9 @@ func (i *Input) Run() {
 
 	i.initCfg()
 
-	i.runLog("redis.p")
+	if err := i.runLog("redis.p"); err != nil {
+		i.err = err
+	}
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
@@ -192,18 +203,22 @@ func (i *Input) Run() {
 		n++
 		select {
 		case <-tick.C:
+
 			l.Debugf("redis input gathering...")
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
-			} else {
+			}
+
+			// 可能会采集到一点数据
+			if len(i.collectCache) > 0 {
 				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
 					io.FeedLastError(inputName, err.Error())
 				}
-
-				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
 			}
+
+			i.reset()
 
 		case <-datakit.Exit.Wait():
 			if i.tailer != nil {
@@ -214,6 +229,12 @@ func (i *Input) Run() {
 			return
 		}
 	}
+}
+
+func (i *Input) reset() {
+	i.resKeys = i.resKeys[:0]
+	i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
+	i.err = nil
 }
 
 func (i *Input) Catalog() string { return catalogName }
