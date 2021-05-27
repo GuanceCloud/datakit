@@ -6,7 +6,10 @@ import (
 
 	"github.com/c-bata/go-prompt"
 	"github.com/kardianos/service"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
 var (
@@ -95,15 +98,60 @@ func RestartDatakit() error {
 
 func ReloadDatakit(port int) error {
 	// FIXME: 如果没有绑定在 localhost 怎么办? 此处需解析 datakit 所用的 conf
-	resp, err := nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
-	if err != nil {
-		return err
+	client := &nhttp.Client{
+		CheckRedirect: func(req *nhttp.Request, via []*nhttp.Request) error {
+			return nhttp.ErrUseLastResponse
+		},
+	}
+	_, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
+	if err == nhttp.ErrUseLastResponse {
+		return nil
 	}
 
-	if resp.StatusCode == 200 {
-		l.Info("datakit reload successful")
-		return nil
-	} else {
-		return fmt.Errorf("datakit reload failed: %d", resp.StatusCode)
+	return err
+}
+
+func DatakitStatus() (string, error) {
+
+	svc, err := datakit.NewService()
+	if err != nil {
+		return "", err
 	}
+
+	status, err := svc.Status()
+	if err != nil {
+		return "", err
+	}
+	switch status {
+	case service.StatusUnknown:
+		return "unknown", nil
+	case service.StatusRunning:
+		return "running", nil
+	case service.StatusStopped:
+		return "stopped", nil
+	default:
+		return "", fmt.Errorf("should not been here")
+	}
+}
+
+func IPInfo(ip string) (map[string]string, error) {
+	if err := geo.LoadIPLib(); err != nil {
+		return nil, err
+	}
+	if err := ip2isp.Init(); err != nil {
+		return nil, err
+	}
+
+	x, err := geo.Geo(ip)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"city":     x.City,
+		"province": x.Region,
+		"country":  x.Country_short,
+		"isp":      ip2isp.SearchIsp(ip),
+		"ip":       ip,
+	}, nil
 }
