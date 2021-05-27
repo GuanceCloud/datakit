@@ -7,15 +7,31 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type Db interface {
+	SetMaxOpenConns(int)
+	SetMaxIdleConns(int)
+	SetConnMaxLifetime(time.Duration)
+	Close() error
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+}
+
 type SqlService struct {
 	Address     string
 	MaxIdle     int
 	MaxOpen     int
 	MaxLifetime time.Duration
-	DB          *sql.DB
+	DB          Db
+	Open        func(string, string) (Db, error)
 }
 
 func (p *SqlService) Start() (err error) {
+	open := p.Open
+	if open == nil {
+		open = func(dbType, connStr string) (Db, error) {
+			db, err := sql.Open(dbType, connStr)
+			return db, err
+		}
+	}
 	const localhost = "host=localhost sslmode=disable"
 
 	if p.Address == "" || p.Address == "localhost" {
@@ -24,7 +40,7 @@ func (p *SqlService) Start() (err error) {
 
 	connectionString := p.Address
 
-	if p.DB, err = sql.Open("postgres", connectionString); err != nil {
+	if p.DB, err = open("postgres", connectionString); err != nil {
 		l.Error("connect error: ", connectionString)
 		return err
 	}
@@ -36,10 +52,11 @@ func (p *SqlService) Start() (err error) {
 	return nil
 }
 
-func (p *SqlService) Stop() {
+func (p *SqlService) Stop() error {
 	if p.DB != nil {
 		p.DB.Close()
 	}
+	return nil
 }
 
 func (p *SqlService) Query(query string) (Rows, error) {
