@@ -20,7 +20,7 @@ func TestGatherServerStats(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -59,7 +59,7 @@ func TestGatherCluster(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -98,7 +98,7 @@ func TestGatherPerDbStats(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -141,7 +141,7 @@ func TestGatherCollection(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -180,7 +180,7 @@ func TestGatherTop(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -227,7 +227,7 @@ func TestTlsConnectCollect(t *testing.T) {
 		},
 		mongos: make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
