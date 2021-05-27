@@ -7,12 +7,13 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dk "gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	dkInputs "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -55,9 +56,24 @@ interval = "10s"
 `
 
 const pipelineCfg = `
-add_pattern("log_date", "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}%{SPACE}%{HOUR}:%{MINUTE}:%{SECOND}%{SPACE}CST")
+add_pattern("log_date", "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}%{SPACE}%{HOUR}:%{MINUTE}:%{SECOND}%{SPACE}(?:CST|UTC)")
 add_pattern("log_level", "(LOG|ERROR|FATAL|PANIC|WARNING|NOTICE|INFO)")
-grok(_, "%{log_date:time}%{SPACE}\\[%{INT:process_id}\\]%{SPACE}%{log_level:log_level}%{SPACE}%{GREEDYDATA:msg}")
+add_pattern("session_id", "([.0-9a-z]*)")
+add_pattern("application_name", "(\\[%{GREEDYDATA:application_name}?\\])")
+add_pattern("remote_host", "(\\[\\[?%{HOST:remote_host}?\\]?\\])")
+grok(_, "%{log_date:time}%{SPACE}\\[%{INT:process_id}\\]%{SPACE}(%{WORD:db_name}?%{SPACE}%{application_name}%{SPACE}%{USER:user}?%{SPACE}%{remote_host}%{SPACE})?%{session_id:session_id}%{SPACE}(%{log_level:log_level}:)?")
+
+# default
+grok(_, "%{log_date:time}%{SPACE}\\[%{INT:process_id}\\]%{SPACE}%{log_level:log_level}")
+
+nullif(remote_host, "")
+nullif(session_id, "")
+nullif(application_name, "")
+nullif(user, "")
+nullif(db_name, "")
+
+group_in(log_level, [""], "INFO")
+
 default_time(time)
 `
 
@@ -70,7 +86,7 @@ type Rows interface {
 
 type Service interface {
 	Start() error
-	Stop()
+	Stop() error
 	Query(string) (Rows, error)
 	SetAddress(string)
 	GetColumnMap(scanner, []string) (map[string]*interface{}, error)
@@ -81,18 +97,18 @@ type scanner interface {
 }
 
 type Input struct {
-	Address          string               `toml:"address"`
-	Outputaddress    string               `toml:"outputaddress"`
-	IgnoredDatabases []string             `toml:"ignored_databases"`
-	Databases        []string             `toml:"databases"`
-	Interval         string               `toml:"interval"`
-	Tags             map[string]string    `toml:"tags"`
-	Log              *inputs.TailerOption `toml:"log"`
+	Address          string                 `toml:"address"`
+	Outputaddress    string                 `toml:"outputaddress"`
+	IgnoredDatabases []string               `toml:"ignored_databases"`
+	Databases        []string               `toml:"databases"`
+	Interval         string                 `toml:"interval"`
+	Tags             map[string]string      `toml:"tags"`
+	Log              *dkInputs.TailerOption `toml:"log"`
 
 	service      Service
-	tail         *inputs.Tailer
+	tail         Tailer
 	duration     time.Duration
-	collectCache []inputs.Measurement
+	collectCache []dkInputs.Measurement
 }
 
 type inputMeasurement struct {
@@ -106,13 +122,13 @@ func (m inputMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-func (m inputMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
+func (m inputMeasurement) Info() *dkInputs.MeasurementInfo {
+	return &dkInputs.MeasurementInfo{
 		Name:   inputName,
 		Fields: postgreFields,
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The server address"),
-			"db":     inputs.NewTagInfo("The database name"),
+			"server": dkInputs.NewTagInfo("The server address"),
+			"db":     dkInputs.NewTagInfo("The database name"),
 		},
 	}
 }
@@ -126,11 +142,11 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+	return dk.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
+func (i *Input) SampleMeasurement() []dkInputs.Measurement {
+	return []dkInputs.Measurement{
 		&inputMeasurement{},
 	}
 }
@@ -245,22 +261,37 @@ func (i *Input) Collect() error {
 		return err
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(3)
 	// collect db metrics
-	if err = i.getDbMetrics(); err != nil {
-		return err
-	}
+	go func() {
+		defer wg.Done()
+		if e := i.getDbMetrics(); e != nil {
+			l.Error(e.Error())
+			err = e
+		}
+	}()
 
 	// collect bgwriter
-	if err = i.getBgwMetrics(); err != nil {
-		return err
-	}
+	go func() {
+		defer wg.Done()
+		if e := i.getBgwMetrics(); e != nil {
+			l.Error(e.Error())
+			err = e
+		}
+	}()
 
 	// connection
-	if err = i.getConnectionMetrics(); err != nil {
-		return err
-	}
+	go func() {
+		defer wg.Done()
+		if e := i.getConnectionMetrics(); e != nil {
+			l.Error(e.Error())
+			err = e
+		}
+	}()
 
-	return nil
+	wg.Wait()
+	return err
 }
 
 func (i *Input) accRow(columnMap map[string]*interface{}) error {
@@ -280,8 +311,10 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 
 	fields := make(map[string]interface{})
 	for col, val := range columnMap {
-		if _, isValidCol := postgreFields[col]; !isValidCol {
-			continue
+		if col != "datname" {
+			if _, isValidCol := postgreFields[col]; !isValidCol {
+				continue
+			}
 		}
 
 		if *val != nil {
@@ -291,7 +324,7 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 				if col == "datname" {
 					tags["db"] = string(trueVal)
 				} else {
-					fields[col] = trueVal
+					fields[col] = string(trueVal)
 				}
 			default:
 				fields[col] = trueVal
@@ -316,7 +349,7 @@ const (
 	minInterval = 1 * time.Second
 )
 
-func (i *Input) Run() {
+func (i *Input) runService(inputs Inputs, datakit Datakit) {
 	if i.Log != nil {
 		go func() {
 			inputs.JoinPipelinePath(i.Log, "postgresql.p")
@@ -348,7 +381,7 @@ func (i *Input) Run() {
 
 	for {
 		select {
-		case <-datakit.Exit.Wait():
+		case <-datakit.Exit():
 			l.Infof("%s exit", inputName)
 			return
 		case <-tick.C:
@@ -368,6 +401,58 @@ func (i *Input) Run() {
 			}
 		}
 	}
+}
+
+type Datakit struct {
+	ch                chan interface{}
+	Metric            string
+	ProtectedInterval func(min, max, cur time.Duration) time.Duration
+	Exit              func() <-chan interface{}
+}
+
+func (d Datakit) Close() {
+	close(d.ch)
+}
+
+type Tailer interface {
+	Run()
+}
+
+type Inputs interface {
+	JoinPipelinePath(interface{}, string)
+	NewTailer(interface{}) (Tailer, error)
+	FeedMeasurement(string, string, interface{}, interface{}) error
+}
+
+type DkInputs struct{}
+
+func (DkInputs) FeedMeasurement(name, category string, measurements interface{}, opt interface{}) error {
+	return dkInputs.FeedMeasurement(name, category, measurements.([]dkInputs.Measurement), opt.(*io.Option))
+}
+
+func (DkInputs) NewTailer(opt interface{}) (Tailer, error) {
+	tailer, error := dkInputs.NewTailer(opt.(*dkInputs.TailerOption))
+	return tailer, error
+}
+
+func (DkInputs) JoinPipelinePath(op interface{}, defaultPipeline string) {
+	dkInputs.JoinPipelinePath(op.(*dkInputs.TailerOption), defaultPipeline)
+}
+
+func (i *Input) Run() {
+	inputs := DkInputs{}
+	datakit := Datakit{
+		ch:     make(chan interface{}),
+		Metric: dk.Metric,
+	}
+	datakit.ProtectedInterval = func(min, max, cur time.Duration) time.Duration {
+		return dk.ProtectedInterval(min, max, cur)
+	}
+	datakit.Exit = func() <-chan interface{} {
+		return dk.Exit.Wait()
+	}
+
+	i.runService(inputs, datakit)
 }
 
 func parseURL(uri string) (string, error) {
@@ -416,16 +501,22 @@ func parseURL(uri string) (string, error) {
 	return strings.Join(kvs, " "), nil
 }
 
+func NewInput(service Service) *Input {
+	input := &Input{
+		Interval: "10s",
+	}
+	input.service = service
+	return input
+}
+
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
+	dkInputs.Add(inputName, func() dkInputs.Input {
 		service := &SqlService{
 			MaxIdle:     1,
 			MaxOpen:     1,
 			MaxLifetime: time.Duration(0),
 		}
-		input := &Input{}
-		input.service = service
-
+		input := NewInput(service)
 		return input
 	})
 }
