@@ -22,9 +22,9 @@ const (
     ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
     interval = "10s"
 
-    ## param type: map object, string to string
     [inputs.gitlab.tags]
-    #tag1 = "value1"
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
