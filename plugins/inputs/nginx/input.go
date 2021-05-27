@@ -35,7 +35,9 @@ var (
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
 	[inputs.nginx.tags]
-	# a = "b"`
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	# ...`
 
 	pipelineCfg = `
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
