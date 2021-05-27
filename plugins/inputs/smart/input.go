@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/charset"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
 	ipath "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -66,6 +67,11 @@ var (
   ## Optionally specify devices and device type, if unset a scan (smartctl --scan and smartctl --scan -d nvme) for S.M.A.R.T. devices will be done
   ## and all found will be included except for the excluded in excludes.
   # devices = [ "/dev/ada0 -d atacam", "/dev/nvme0"]
+
+	## Customer tags, if set will be seen with every metric.
+	[inputs.sensors.tags]
+		# "key1" = "value1"
+		# "key2" = "value2"
 `
 	l = logger.SLogger(inputName)
 )
@@ -78,16 +84,17 @@ type nvmeDevice struct {
 }
 
 type Input struct {
-	SmartCtlPath     string           `toml:"smartctl_path"`
-	NvmePath         string           `toml:"nvme_path"`
-	Interval         datakit.Duration `toml:"interval"`
-	Timeout          datakit.Duration `toml:"timeout"`
-	EnableExtensions []string         `toml:"enable_extensions"`
-	UseSudo          bool             `toml:"use_sudo"`
-	NoCheck          string           `toml:"no_check"`
-	Attributes       bool             `toml:"attributes"`
-	Excludes         []string         `toml:"excludes"`
-	Devices          []string         `toml:"devices"`
+	SmartCtlPath     string            `toml:"smartctl_path"`
+	NvmePath         string            `toml:"nvme_path"`
+	Interval         datakit.Duration  `toml:"interval"`
+	Timeout          datakit.Duration  `toml:"timeout"`
+	EnableExtensions []string          `toml:"enable_extensions"`
+	UseSudo          bool              `toml:"use_sudo"`
+	NoCheck          string            `toml:"no_check"`
+	Attributes       bool              `toml:"attributes"`
+	Excludes         []string          `toml:"excludes"`
+	Devices          []string          `toml:"devices"`
+	Tags             map[string]string `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
@@ -118,6 +125,7 @@ func (s *Input) Run() {
 		if s.NvmePath, err = exec.LookPath(defNvmeCmd); err != nil {
 			l.Debug("Can not find executable sensor command, install 'nvme-cli' first.")
 		} else {
+			s.NvmePath = ""
 			l.Infof("Command fallback to %q due to invalide path provided in 'smart' input", s.NvmePath)
 		}
 	}
@@ -145,39 +153,48 @@ func (s *Input) gather() error {
 	var scannedNVMeDevices []string
 	var scannedNonNVMeDevices []string
 
-	devicesFromConfig := s.Devices
 	isNVMe := len(s.NvmePath) != 0
 	isVendorExtension := len(s.EnableExtensions) != 0
-
 	if len(s.Devices) != 0 {
-		s.getAttributes(devicesFromConfig)
+		s.getAttributes(s.Devices)
+
 		// if nvme-cli is present, vendor specific attributes can be gathered
 		if isVendorExtension && isNVMe {
-			scannedNVMeDevices, _, err = s.scanAllDevices(true)
-			if err != nil {
+			if scannedNVMeDevices, _, err = s.scanAllDevices(true); err != nil {
 				return err
 			}
-			nvmeDevices := distinguishNVMeDevices(devicesFromConfig, scannedNVMeDevices)
-			s.getVendorNVMeAttributes(nvmeDevices)
+			s.getVendorNVMeAttributes(distinguishNVMeDevices(s.Devices, scannedNVMeDevices))
+		}
+	} else {
+		if scannedNVMeDevices, scannedNonNVMeDevices, err = s.scanAllDevices(false); err != nil {
+			return err
 		}
 
-		return nil
-	}
+		var devicesFromScan []string
+		devicesFromScan = append(devicesFromScan, scannedNVMeDevices...)
+		devicesFromScan = append(devicesFromScan, scannedNonNVMeDevices...)
+		s.getAttributes(devicesFromScan)
 
-	scannedNVMeDevices, scannedNonNVMeDevices, err = s.scanAllDevices(false)
-	if err != nil {
-		return err
-	}
-	var devicesFromScan []string
-	devicesFromScan = append(devicesFromScan, scannedNVMeDevices...)
-	devicesFromScan = append(devicesFromScan, scannedNonNVMeDevices...)
-
-	s.getAttributes(devicesFromScan)
-	if isVendorExtension && isNVMe {
-		s.getVendorNVMeAttributes(scannedNVMeDevices)
+		if isVendorExtension && isNVMe {
+			s.getVendorNVMeAttributes(scannedNVMeDevices)
+		}
 	}
 
 	return nil
+}
+
+func distinguishNVMeDevices(userDevices []string, availableNVMeDevices []string) []string {
+	var nvmeDevices []string
+	for _, userDevice := range userDevices {
+		for _, NVMeDevice := range availableNVMeDevices {
+			// double check. E.g. in case when nvme0 is equal nvme0n1, will check if "nvme0" part is present.
+			if strings.Contains(NVMeDevice, userDevice) || strings.Contains(userDevice, NVMeDevice) {
+				nvmeDevices = append(nvmeDevices, userDevice)
+			}
+		}
+	}
+
+	return nvmeDevices
 }
 
 func excludedDevice(excludes []string, deviceLine string) bool {
@@ -233,7 +250,7 @@ func (s *Input) scanAllDevices(ignoreExcludes bool) ([]string, []string, error) 
 	}
 
 	// to handle all versions of smartctl this will return only non NVMe devices
-	nonNVMeDevices := difference(devices, nvmeDevices)
+	nonNVMeDevices := charset.Differ(devices, nvmeDevices)
 
 	return nvmeDevices, nonNVMeDevices, nil
 }
@@ -267,7 +284,7 @@ func (s *Input) getVendorNVMeAttributes(devices []string) {
 
 	var wg sync.WaitGroup
 	for _, device := range nvmeDevices {
-		if contains(s.EnableExtensions, "auto-on") {
+		if charset.Contains(s.EnableExtensions, "auto-on") {
 			switch device.vendorID {
 			case intelVID:
 				wg.Add(1)
@@ -284,7 +301,7 @@ func (s *Input) getVendorNVMeAttributes(devices []string) {
 					wg.Done()
 				}()
 			}
-		} else if contains(s.EnableExtensions, "Intel") && device.vendorID == intelVID {
+		} else if charset.Contains(s.EnableExtensions, "Intel") && device.vendorID == intelVID {
 			wg.Add(1)
 			go func() {
 				if cache, err := gatherIntelNVMeDisk(s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
@@ -303,18 +320,14 @@ func (s *Input) getVendorNVMeAttributes(devices []string) {
 	wg.Wait()
 }
 
-func distinguishNVMeDevices(userDevices []string, availableNVMeDevices []string) []string {
-	var nvmeDevices []string
-	for _, userDevice := range userDevices {
-		for _, NVMeDevice := range availableNVMeDevices {
-			// double check. E.g. in case when nvme0 is equal nvme0n1, will check if "nvme0" part is present.
-			if strings.Contains(NVMeDevice, userDevice) || strings.Contains(userDevice, NVMeDevice) {
-				nvmeDevices = append(nvmeDevices, userDevice)
-			}
-		}
+func gatherNVMeDeviceInfo(nvme, device string, timeout time.Duration, useSudo bool) (string, string, string, error) {
+	args := append([]string{"id-ctrl"}, strings.Split(device, " ")...)
+	output, err := cmd.RunWithTimeout(timeout, useSudo, nvme, args...)
+	if err != nil {
+		return "", "", "", err
 	}
 
-	return nvmeDevices
+	return findNVMeDeviceInfo(string(output))
 }
 
 func getDeviceInfoForNVMeDisks(devices []string, nvme string, timeout time.Duration, useSudo bool) []nvmeDevice {
@@ -335,16 +348,6 @@ func getDeviceInfoForNVMeDisks(devices []string, nvme string, timeout time.Durat
 	}
 
 	return nvmeDevices
-}
-
-func gatherNVMeDeviceInfo(nvme, device string, timeout time.Duration, useSudo bool) (string, string, string, error) {
-	args := append([]string{"id-ctrl"}, strings.Split(device, " ")...)
-	output, err := cmd.RunWithTimeout(timeout, useSudo, nvme, args...)
-	if err != nil {
-		return "", "", "", err
-	}
-
-	return findNVMeDeviceInfo(string(output))
 }
 
 func findNVMeDeviceInfo(output string) (string, string, string, error) {
@@ -546,39 +549,16 @@ func gatherDisk(timeout time.Duration, sudo, collectAttributes bool, smartctl, n
 	return cache, nil
 }
 
-func contains(args []string, element string) bool {
-	for _, arg := range args {
-		if arg == element {
-			return true
-		}
-	}
-	return false
-}
-
-func difference(a, b []string) []string {
-	mb := make(map[string]struct{}, len(b))
-	for _, x := range b {
-		mb[x] = struct{}{}
-	}
-	var diff []string
-	for _, x := range a {
-		if _, found := mb[x]; !found {
-			diff = append(diff, x)
-		}
-	}
-
-	return diff
-}
-
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			SmartCtlPath: defSmartCtlPath,
-			NvmePath:     defNvmePath,
-			Interval:     defInterval,
-			Timeout:      defTimeout,
-			NoCheck:      "standby",
-			Attributes:   true,
+			SmartCtlPath:     defSmartCtlPath,
+			NvmePath:         defNvmePath,
+			Interval:         defInterval,
+			Timeout:          defTimeout,
+			EnableExtensions: []string{"auto-on"},
+			NoCheck:          "standby",
+			Attributes:       true,
 		}
 	})
 }
