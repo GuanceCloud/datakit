@@ -5,8 +5,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/influxdata/telegraf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const intelVID = "0x8086"
@@ -204,7 +205,7 @@ var (
 	intelAttributes = map[string]struct {
 		ID    string
 		Name  string
-		Parse func(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error
+		Parse func(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error
 	}{
 		"program_fail_count": {
 			Name: "Program_Fail_Count",
@@ -235,8 +236,8 @@ var (
 		},
 		"timed_workload_timer": {
 			Name: "Timed_Workload_Timer",
-			Parse: func(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
-				return parseCommaSeparatedIntWithAccumulator(acc, fields, tags, strings.TrimSuffix(str, " min"))
+			Parse: func(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
+				return parseCommaSeparatedIntWithCache(cache, fields, tags, strings.TrimSuffix(str, " min"))
 			},
 		},
 		"thermal_throttle_status": {
@@ -291,37 +292,7 @@ func parseRawValue(rawVal string) (int64, error) {
 	return duration, nil
 }
 
-func parseBytesWritten(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
-	var value int64
-
-	if _, err := fmt.Sscanf(str, "sectors: %d", &value); err != nil {
-		return err
-	}
-	fields["raw_value"] = value
-	acc.AddFields("smart_attribute", fields, tags)
-	return nil
-}
-
-func parseThermalThrottle(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
-	var percentage float64
-	var count int64
-
-	if _, err := fmt.Sscanf(str, "%f%%, cnt: %d", &percentage, &count); err != nil {
-		return err
-	}
-
-	fields["raw_value"] = percentage
-	tags["name"] = "Thermal_Throttle_Status_Prc"
-	acc.AddFields("smart_attribute", fields, tags)
-
-	fields["raw_value"] = count
-	tags["name"] = "Thermal_Throttle_Status_Cnt"
-	acc.AddFields("smart_attribute", fields, tags)
-
-	return nil
-}
-
-func parseWearLeveling(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+func parseWearLeveling(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
 	var min, max, avg int64
 
 	if _, err := fmt.Sscanf(str, "min: %d, max: %d, avg: %d", &min, &max, &avg); err != nil {
@@ -331,20 +302,52 @@ func parseWearLeveling(acc telegraf.Accumulator, fields map[string]interface{}, 
 	for i, submetricName := range []string{"Min", "Max", "Avg"} {
 		fields["raw_value"] = values[i]
 		tags["name"] = fmt.Sprintf("Wear_Leveling_%s", submetricName)
-		acc.AddFields("smart_attribute", fields, tags)
+		*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
 	}
 
 	return nil
 }
 
-func parseTimedWorkload(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+func parseTimedWorkload(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
 	var value float64
 
 	if _, err := fmt.Sscanf(str, "%f", &value); err != nil {
 		return err
 	}
 	fields["raw_value"] = value
-	acc.AddFields("smart_attribute", fields, tags)
+	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
+
+	return nil
+}
+
+func parseThermalThrottle(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
+	var percentage float64
+	var count int64
+
+	if _, err := fmt.Sscanf(str, "%f%%, cnt: %d", &percentage, &count); err != nil {
+		return err
+	}
+
+	fields["raw_value"] = percentage
+	tags["name"] = "Thermal_Throttle_Status_Prc"
+	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
+
+	fields["raw_value"] = count
+	tags["name"] = "Thermal_Throttle_Status_Cnt"
+	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
+
+	return nil
+}
+
+func parseBytesWritten(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
+	var value int64
+
+	if _, err := fmt.Sscanf(str, "sectors: %d", &value); err != nil {
+		return err
+	}
+	fields["raw_value"] = value
+	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
+
 	return nil
 }
 
@@ -373,17 +376,19 @@ func parsePercentageInt(fields, deviceFields map[string]interface{}, str string)
 
 func parseDataUnits(fields, deviceFields map[string]interface{}, str string) error {
 	units := strings.Fields(str)[0]
+
 	return parseCommaSeparatedInt(fields, deviceFields, units)
 }
 
-func parseCommaSeparatedIntWithAccumulator(acc telegraf.Accumulator, fields map[string]interface{}, tags map[string]string, str string) error {
+func parseCommaSeparatedIntWithCache(cache *[]inputs.Measurement, fields map[string]interface{}, tags map[string]string, str string) error {
 	i, err := strconv.ParseInt(strings.Replace(str, ",", "", -1), 10, 64)
 	if err != nil {
 		return err
 	}
 
 	fields["raw_value"] = i
-	acc.AddFields("smart_attribute", fields, tags)
+	*cache = append(*cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
+
 	return nil
 }
 
