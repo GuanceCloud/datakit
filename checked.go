@@ -115,6 +115,8 @@ var (
 		"redislog":               true,
 		"scanport":               true,
 		"self":                   true,
+		"sensors":                true,
+		"smart":                  true,
 		"solr":                   true,
 		"squid":                  true,
 		"ssh":                    true,
