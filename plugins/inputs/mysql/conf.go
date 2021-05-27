@@ -46,8 +46,8 @@ const (
     #     fieldKeys = ["column3", "column1"]
 
     [inputs.mysql.tags]
-    # tag1 = val1
-    # tag2 = val2
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 
 	pipelineCfg = `
@@ -58,11 +58,11 @@ add_pattern("date2", "%{YEAR}%{MONTHNUM2}%{MONTHDAY} %{TIME}")
 grok(_, "%{date2:time} \\s+(InnoDB:|\\[%{NOTSPACE:status}\\])\\s+%{GREEDYDATA:msg}")
 
 add_pattern("timeline", "# Time: %{TIMESTAMP_ISO8601:time}")
-add_pattern("userline", "# User@Host: %{GREEDYDATA}\\[(%{NOTSPACE:db_ip})?\\]%{GREEDYDATA}")
+add_pattern("userline", "# User@Host: %{NOTSPACE:db_user}\\s+@\\s(%{NOTSPACE:db_host})?(\\s+)?\\[(%{NOTSPACE:db_ip})?\\](\\s+Id:\\s+%{INT:query_id})?")
 add_pattern("kvline01", "# Query_time: %{NUMBER:query_time}\\s+Lock_time: %{NUMBER:lock_time}\\s+Rows_sent: %{INT:rows_sent}\\s+Rows_examined: %{INT:rows_examined}")
 
-add_pattern("kvline02", "# Thread_id: %{GREEDYDATA}")
-add_pattern("kvline03", "# Bytes_sent: %{GREEDYDATA}")
+add_pattern("kvline02", "# Thread_id: %{INT:thread_id}\\s+Killed: %{INT:killed}\\s+Errno: %{INT:errno}")
+add_pattern("kvline03", "# Bytes_sent: %{INT:bytes_sent}\\s+Bytes_received: %{INT:bytes_received}")
 
 # multi-line SQLs
 add_pattern("sqls", "(?s)(.*)")
