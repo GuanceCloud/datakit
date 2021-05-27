@@ -1,11 +1,11 @@
 package kubernetes
 
 import (
-	"time"
 	"context"
-	v1 "k8s.io/api/apps/v1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	v1 "k8s.io/api/apps/v1"
+	"time"
 )
 
 var statefulSetMeasurement = "kube_daemonset"

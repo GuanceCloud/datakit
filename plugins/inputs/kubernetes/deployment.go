@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	v1 "k8s.io/api/apps/v1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	v1 "k8s.io/api/apps/v1"
 )
 
 var deploymentMeasurement = "kube_deployment"
@@ -111,7 +111,7 @@ func (i *Input) gatherDeployment(d v1.Deployment) {
 		fields["created"] = d.GetCreationTimestamp().UnixNano()
 	}
 
-    m := &deployment{
+	m := &deployment{
 		name:   deploymentMeasurement,
 		tags:   tags,
 		fields: fields,
