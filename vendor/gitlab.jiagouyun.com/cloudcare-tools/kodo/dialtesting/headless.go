@@ -54,7 +54,7 @@ type HeadlessTask struct {
 	Steps           []*RecordedSteps       `json:"recorded_steps"`
 	Tags            map[string]string      `json:"tags,omitempty"`
 	Labels          []string               `json:"labels,omitempty"`
-	AdvanceOptions  *HeadlessAdvanceOption `json:"advance_options,omitempty"`
+	AdvanceOptions  *HeadlessAdvanceOption `json:"advance_options_headless,omitempty"`
 	UpdateTime      int64                  `json:"update_time,omitempty"`
 
 	ticker *time.Ticker
@@ -79,6 +79,26 @@ func (t *HeadlessTask) ID() string {
 
 func (t *HeadlessTask) GetOwnerExternalID() string {
 	return t.OwnerExternalID
+}
+
+func (t *HeadlessTask) SetOwnerExternalID(exid string) {
+	t.OwnerExternalID = exid
+}
+
+func (t *HeadlessTask) SetRegionId(regionId string) {
+	t.Region = regionId
+}
+
+func (t *HeadlessTask) SetAk(ak string) {
+	t.AK = ak
+}
+
+func (t *HeadlessTask) SetStatus(status string) {
+	t.CurStatus = status
+}
+
+func (t *HeadlessTask) SetUpdateTime(ts int64) {
+	t.UpdateTime = ts
 }
 
 func (t *HeadlessTask) Stop() error {
