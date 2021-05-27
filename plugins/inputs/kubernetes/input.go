@@ -25,8 +25,6 @@ var (
 	l           = logger.DefaultSLogger("kubernetes")
 )
 
-
-
 type Input struct {
 	Service                string `toml:"service"`
 	Interval               datakit.Duration
