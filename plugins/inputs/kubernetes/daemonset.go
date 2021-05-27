@@ -1,11 +1,11 @@
 package kubernetes
 
 import (
-	"time"
 	"context"
-	v1 "k8s.io/api/apps/v1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	v1 "k8s.io/api/apps/v1"
+	"time"
 )
 
 var daemonSetMeasurement = "kube_daemonset"
@@ -116,7 +116,7 @@ func (i *Input) gatherDaemonSet(d v1.DaemonSet) {
 		fields["created"] = d.GetCreationTimestamp().UnixNano()
 	}
 
-    m := &daemonSet{
+	m := &daemonSet{
 		name:   daemonSetMeasurement,
 		tags:   tags,
 		fields: fields,
