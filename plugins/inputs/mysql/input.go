@@ -113,8 +113,7 @@ func (i *Input) getDsnString() string {
 
 func (i *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"mysql":     pipelineCfg,
-		"mysql_rds": rdsPipelineCfg,
+		"mysql": pipelineCfg,
 	}
 	return pipelineMap
 }
