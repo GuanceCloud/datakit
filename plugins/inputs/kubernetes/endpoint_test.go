@@ -1,13 +1,13 @@
 package kubernetes
 
 import (
-	"testing"
 	"context"
+	"testing"
 )
 
 func TestCollectEndpoints(t *testing.T) {
 	i := &Input{
-		Tags: make(map[string]string),
+		Tags:           make(map[string]string),
 		KubeConfigPath: "/Users/liushaobo/.kube/config",
 	}
 
@@ -26,5 +26,3 @@ func TestCollectEndpoints(t *testing.T) {
 		}
 	}
 }
-
-
