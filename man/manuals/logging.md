@@ -14,39 +14,41 @@
 
 ``` toml
 [[inputs.logging]]
-    # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
-    # 推荐使用绝对路径
-    logfiles = ["/var/log/syslog"]
-    
-    # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
-    ignore = [""]
-    
-    # 数据来源，如果为空，则默认使用 'default'
-    source = ""
-
-    # 新增标记tag，如果为空，则默认使用 $source
-    service = ""
-
-    # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
-    pipeline = ""
-
-    # 过滤对应 status:
-    #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
-    ignore_status = []
-
-    # 选择编码，如果编码有误会导致数据无法查看。默认为空即可:
-    #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
-    character_encoding = ""
-
-    ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
-    ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
-    ## 使用3个单引号 '''this-regexp''' 避免转义
-    ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-    match = '''^\S'''
-    
-    # 自定义 tags
-    [inputs.logging.tags]
-      # tags1 = "value1"
+  # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
+  # 推荐使用绝对路径
+  logfiles = ["/var/log/syslog"]
+  
+  # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
+  ignore = [""]
+  
+  # 数据来源，如果为空，则默认使用 'default'
+  source = ""
+  
+  # 新增标记tag，如果为空，则默认使用 $source
+  service = ""
+  
+  # pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline
+  pipeline = ""
+  
+  # 过滤对应 status:
+  #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
+  ignore_status = []
+  
+  # 选择编码，如果编码有误会导致数据无法查看。默认为空即可:
+  #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
+  character_encoding = ""
+  
+  ## 设置正则表达式，例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
+  ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
+  ## 使用3个单引号 '''this-regexp''' 避免转义
+  ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+  match = '''^\S'''
+  
+  # 自定义 tags
+  [inputs.logging.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
 ```
 
 ### match 使用说明
@@ -82,7 +84,7 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 
 ### pipeline 配置和使用
 
-[Pipeline](/man/pipeline) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
+[Pipeline](pipeline) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
 对日志数据而言，主要提取两个字段：
 
@@ -155,7 +157,14 @@ Pipeline 的几个注意事项：
 
 ## 指标集
 
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
+以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+
+``` toml
+ [inputs.{{.InputName}}.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
 
 {{ range $i, $m := .Measurements }}
 
