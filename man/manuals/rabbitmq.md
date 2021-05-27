@@ -101,3 +101,4 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 | ---    | ---     | --- |
 | status    | warning     | 日志等级 |
 | msg    | <0.12897.46>...replacement options     | 日志等级 |
+|  time   | 1622010006000000000     | 纳秒时间戳（作为行协议时间）|
