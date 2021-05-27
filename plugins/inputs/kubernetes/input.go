@@ -97,10 +97,10 @@ func (i *Input) globalTag() {
 }
 
 func (i *Input) Collect() error {
-	var availableCollectors = map[string]func(ctx context.Context) error {
-		"daemonsets":             i.collectDaemonSets,
-		"deployments":            i.collectDeployments,
-		"endpoints":              i.collectEndpoints,
+	var availableCollectors = map[string]func(ctx context.Context) error{
+		"daemonsets":  i.collectDaemonSets,
+		"deployments": i.collectDeployments,
+		"endpoints":   i.collectEndpoints,
 		// "ingress":                collectIngress,
 		"services":               i.collectServices,
 		"statefulsets":           i.collectStatefulSets,
@@ -124,9 +124,7 @@ func (i *Input) Collect() error {
 
 	for collector, f := range availableCollectors {
 		if resourceFilter.Match(collector) {
-			func(f func(ctx context.Context) error) {
-				f(ctx)
-			}(f)
+			f(ctx)
 		}
 	}
 
@@ -151,25 +149,7 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
-	objectTick := time.NewTicker(i.ObjectIntervalDuration)
-	defer objectTick.Stop()
-
-	go func() {
-		start := time.Now()
-		if err := i.CollectObject(); err != nil {
-			io.FeedLastError(inputName, err.Error())
-		} else {
-			if err := inputs.FeedMeasurement(inputName, datakit.Object, i.collectObjectCache,
-				&io.Option{CollectCost: time.Since(start)}); err != nil {
-				io.FeedLastError(inputName, err.Error())
-			}
-			i.collectObjectCache = i.collectObjectCache[:0]
-		}
-	}()
-
-	n := 0
 	for {
-		n++
 		select {
 		case <-tick.C:
 			l.Debugf("kubernetes metric input gathering...")
@@ -178,23 +158,11 @@ func (i *Input) Run() {
 				io.FeedLastError(inputName, err.Error())
 			} else {
 				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
 					io.FeedLastError(inputName, err.Error())
 				}
 
 				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
-			}
-		case <-objectTick.C:
-			l.Debugf("kubernetes object input gathering...")
-			start := time.Now()
-			if err := i.CollectObject(); err != nil {
-				io.FeedLastError(inputName, err.Error())
-			} else {
-				if err := inputs.FeedMeasurement(inputName, datakit.Object, i.collectObjectCache,
-					&io.Option{CollectCost: time.Since(start)}); err != nil {
-					io.FeedLastError(inputName, err.Error())
-				}
-				i.collectObjectCache = i.collectObjectCache[:0]
 			}
 		case <-datakit.Exit.Wait():
 			l.Info("kubernetes exit")
