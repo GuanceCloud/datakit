@@ -1474,10 +1474,10 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210507123935-c71b6181f6de h1:
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210507123935-c71b6181f6de/go.mod h1:gz11AzDo78QUdS0CX9gcXTo+n5TY4WwCmHzRzpH/aMc=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210510100713-19044d8620fd h1:6GViyGN98qDOyVpEJBD+4FmUZ04ALi0d7KoYYNn9ugY=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210510100713-19044d8620fd/go.mod h1:gz11AzDo78QUdS0CX9gcXTo+n5TY4WwCmHzRzpH/aMc=
-gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210518080501-4a4d76e11d89 h1:GZVLLqifA0eiXZeYnm6f4dgt2VlT8AZaNrdEG4yEnwI=
-gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210518080501-4a4d76e11d89/go.mod h1:gz11AzDo78QUdS0CX9gcXTo+n5TY4WwCmHzRzpH/aMc=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210514061839-1891261c7ed2 h1:c9x6ouamy27VfyL26GFmSwBQBPXReawj1Hln95o6SGs=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210514061839-1891261c7ed2/go.mod h1:gz11AzDo78QUdS0CX9gcXTo+n5TY4WwCmHzRzpH/aMc=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210518080501-4a4d76e11d89 h1:GZVLLqifA0eiXZeYnm6f4dgt2VlT8AZaNrdEG4yEnwI=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210518080501-4a4d76e11d89/go.mod h1:gz11AzDo78QUdS0CX9gcXTo+n5TY4WwCmHzRzpH/aMc=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
@@ -1995,6 +1995,7 @@ k8s.io/apimachinery v0.0.0-20190809020650-423f5d784010/go.mod h1:Waf/xTS2FGRrgXC
 k8s.io/apimachinery v0.17.1/go.mod h1:b9qmWdKlLuU9EBh+06BtLcSf/Mu89rWL33naRxs1uZg=
 k8s.io/apimachinery v0.20.4 h1:vhxQ0PPUUU2Ns1b9r4/UFp13UPs8cw2iOoTjnY9faa0=
 k8s.io/apimachinery v0.20.4/go.mod h1:WlLqWAHZGg07AeltaI0MV5uk1Omp8xaN0JGLY6gkRpU=
+k8s.io/client-go v1.5.2 h1:JOxmv4FxrCIOS54kAABbN8/hA9jqGpns+Zc6soNgd8U=
 k8s.io/client-go v12.0.0+incompatible h1:YlJxncpeVUC98/WMZKC3JZGk/OXQWCZjAB4Xr3B17RY=
 k8s.io/client-go v12.0.0+incompatible/go.mod h1:E95RaSlHr79aHaX0aGSwcPNfygDiPKOVXdmivCIZT0k=
 k8s.io/cri-api v0.17.3/go.mod h1:X1sbHmuXhwaHs9xxYffLqJogVsnI+f6cPRcgPel7ywM=
