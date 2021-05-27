@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gopkg.in/mgo.v2"
 )
@@ -71,17 +72,17 @@ var (
 )
 
 type Input struct {
-	Interval              datakit.Duration  `toml:"interval"`
-	Servers               []string          `toml:"servers"`
-	GatherReplicaSetStats bool              `toml:"gather_replica_set_stats"`
-	GatherClusterStats    bool              `toml:"gather_cluster_stats"`
-	GatherPerDbStats      bool              `toml:"gather_per_db_stats"`
-	GatherPerColStats     bool              `toml:"gather_per_col_stats"`
-	ColStatsDbs           []string          `toml:"col_stats_dbs"`
-	GatherTopStat         bool              `toml:"gather_top_stat"`
-	EnableTls             bool              `toml:"enable_tls"`
-	TlsConf               *TlsClientConfig  `toml:"tlsconf"`
-	Tags                  map[string]string `toml:"tags"`
+	Interval              datakit.Duration       `toml:"interval"`
+	Servers               []string               `toml:"servers"`
+	GatherReplicaSetStats bool                   `toml:"gather_replica_set_stats"`
+	GatherClusterStats    bool                   `toml:"gather_cluster_stats"`
+	GatherPerDbStats      bool                   `toml:"gather_per_db_stats"`
+	GatherPerColStats     bool                   `toml:"gather_per_col_stats"`
+	ColStatsDbs           []string               `toml:"col_stats_dbs"`
+	GatherTopStat         bool                   `toml:"gather_top_stat"`
+	EnableTls             bool                   `toml:"enable_tls"`
+	TlsConf               *dknet.TlsClientConfig `toml:"tlsconf"`
+	Tags                  map[string]string      `toml:"tags"`
 	mongos                map[string]*Server
 }
 
