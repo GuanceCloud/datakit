@@ -22,6 +22,9 @@ type Server struct {
 func (s *Server) getDefaultTags() map[string]string {
 	tags := make(map[string]string)
 	tags["hostname"] = s.URL.Host
+	for k, v := range defTags {
+		tags[k] = v
+	}
 
 	return tags
 }
