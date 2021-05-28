@@ -1444,6 +1444,8 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210519105539-c994e3887777
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210519105539-c994e3887777/go.mod h1:lUkihh8t0WmSjE2ZFs5OaA9bQ6hXNbkKc1DiSEmEiGM=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210525115521-176ad74603ff h1:y2oivD9VwtMaZhdu2gmmlCdogCdZcF7h6KjcKlMPVAM=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210525115521-176ad74603ff/go.mod h1:lUkihh8t0WmSjE2ZFs5OaA9bQ6hXNbkKc1DiSEmEiGM=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210528040150-d44a55a4a70a h1:y7UZASDomSJNA8Ejf/XM+MSYA1EVFAqv+xOttqCiUQc=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210528040150-d44a55a4a70a/go.mod h1:lUkihh8t0WmSjE2ZFs5OaA9bQ6hXNbkKc1DiSEmEiGM=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210419084725-f27a03525a8d h1:5/Z+/Z8muiSNxMf1RJuqvRvbhj0lDOXKgb6Gs5Q3lLg=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210419084725-f27a03525a8d/go.mod h1:6Z1C51vMi1WsQKWnm6mO12i+32QGVoiN9K9DQUblC/s=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210507123935-c71b6181f6de h1:4s1muSLXbvsc1rN9KBij8Q9Dn4CRQojzu26uEWOc4ZA=
@@ -1458,6 +1460,8 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210527052529-9f7487144874 h1:
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210527052529-9f7487144874/go.mod h1:KmcMYbZfSXRDgfggkKRlpMJ7gVLidjmwNyKDP7zV4X8=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210528030630-837a724f80fa h1:qmtTsfsAVgeEBKPSh+Q4egOHkQ6vtCfyWyScNIxUko4=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210528030630-837a724f80fa/go.mod h1:KmcMYbZfSXRDgfggkKRlpMJ7gVLidjmwNyKDP7zV4X8=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210528035306-3880254316e8 h1:Mx7pRY4rlal0b0pXUD4BMhp69soL/+BcMMsI0LUZros=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210528035306-3880254316e8/go.mod h1:KmcMYbZfSXRDgfggkKRlpMJ7gVLidjmwNyKDP7zV4X8=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
