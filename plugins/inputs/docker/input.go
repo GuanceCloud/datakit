@@ -111,10 +111,7 @@ func (this *Input) initCfg() bool {
 	// 此行为是为了应对 default_enabled_inputs 行为，避免在没有安装 docker 的主机上开启 docker，然后无限 error
 	if this.Endpoint == defaultEndpoint {
 		if _, err := os.Stat(defaultEndpointPath); os.IsNotExist(err) {
-			msg := fmt.Sprintf("check defaultEndpoint: %s is not exist, exit", this.Endpoint)
-			l.Errorf(msg)
-			io.FeedLastError(inputName, msg)
-
+			l.Infof("check defaultEndpoint: %s is not exist, maybe docker.service is not installed, exit", this.Endpoint)
 			// 预料之中的退出
 			return true
 		}
