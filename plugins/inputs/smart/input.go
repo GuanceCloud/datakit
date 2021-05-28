@@ -68,7 +68,7 @@ var (
   # devices = [ "/dev/ada0 -d atacam", "/dev/nvme0"]
 
 	## Customer tags, if set will be seen with every metric.
-	[inputs.sensors.tags]
+	[inputs.smart.tags]
 		# "key1" = "value1"
 		# "key2" = "value2"
 `
