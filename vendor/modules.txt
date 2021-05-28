@@ -268,6 +268,8 @@ github.com/cznic/mathutil
 github.com/danwakefield/fnmatch
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/denisbrodbeck/machineid v1.0.1
+github.com/denisbrodbeck/machineid
 # github.com/denisenkom/go-mssqldb v0.0.0-20200910202707-1e08a3fab204
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
@@ -1026,7 +1028,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210421221651-33663a62ff08
+# golang.org/x/sys v0.0.0-20210525143221-35b2ab0089ea
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
