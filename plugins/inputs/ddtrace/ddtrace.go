@@ -20,7 +20,7 @@ var (
 		# tag2 = "tag2"
 		# tag3 = "tag3"
 `
-	log *logger.Logger
+	log = logger.DefaultSLogger(inputName)
 )
 
 const (
@@ -47,7 +47,6 @@ func (_ *Ddtrace) SampleConfig() string {
 }
 
 func (d *Ddtrace) Run() {
-	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
 	if d != nil {
