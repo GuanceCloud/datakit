@@ -50,8 +50,8 @@ type HeadlessTask struct {
 	CurStatus       string                 `json:"status"`
 	Frequency       string                 `json:"frequency"`
 	Region          string                 `json:"region"` // 冗余进来，便于调试
-	OwnerExternalID string                 `json:"owner_external_id"`
-	Steps           []*RecordedSteps       `json:"recorded_steps"`
+	OwnerExternalID string                 `json:"owner_external_id,omitempty"`
+	Steps           []*RecordedSteps       `json:"recorded_steps,omitempty"`
 	Tags            map[string]string      `json:"tags,omitempty"`
 	Labels          []string               `json:"labels,omitempty"`
 	AdvanceOptions  *HeadlessAdvanceOption `json:"advance_options_headless,omitempty"`
@@ -134,6 +134,10 @@ func (t *HeadlessTask) GetLineData() string {
 }
 
 func (t *HeadlessTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
+	tags = map[string]string{
+		"name": t.Name,
+		"url":  t.URL,
+	}
 
 	return
 }
