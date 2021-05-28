@@ -112,11 +112,12 @@ func (s *Input) gather() error {
 }
 
 func (s *Input) getCustomerTags() map[string]string {
-	if len(s.Tags) != 0 {
-		return s.Tags
-	} else {
-		return make(map[string]string)
+	tags := make(map[string]string)
+	for k, v := range s.Tags {
+		tags[k] = v
 	}
+
+	return tags
 }
 
 func (s *Input) parse(output string) ([]inputs.Measurement, error) {
