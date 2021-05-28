@@ -157,7 +157,19 @@ func (t *HeadlessTask) Check() error {
 		return fmt.Errorf("external ID missing")
 	}
 
-	return t.Init()
+	// advance options
+	opt := t.AdvanceOptions
+
+	// proxy options
+	if opt != nil && opt.RequestOptions != nil && opt.RequestOptions.Proxy != "" { // see https://stackoverflow.com/a/14663620/342348
+		_, err := url.Parse(opt.RequestOptions.Proxy)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (t *HeadlessTask) Run() error {
@@ -334,18 +346,6 @@ func (t *HeadlessTask) Init() error {
 
 	if strings.ToLower(t.CurStatus) == StatusStop {
 		return nil
-	}
-
-	// advance options
-	opt := t.AdvanceOptions
-
-	// proxy options
-	if opt != nil && opt.RequestOptions != nil && opt.RequestOptions.Proxy != "" { // see https://stackoverflow.com/a/14663620/342348
-		_, err := url.Parse(opt.RequestOptions.Proxy)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
 	}
 
 	//当前headless主要做browse rum 性能指标采集
