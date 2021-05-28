@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 func TestGatherServerStats(t *testing.T) {
@@ -218,7 +219,7 @@ func TestTlsConnectCollect(t *testing.T) {
 		ColStatsDbs:           []string{"admin"},
 		GatherTopStat:         false,
 		EnableTls:             true,
-		TlsConf: &TlsClientConfig{
+		TlsConf: &net.TlsClientConfig{
 			CaCerts:            []string{},
 			Cert:               "",
 			CertKey:            "",
