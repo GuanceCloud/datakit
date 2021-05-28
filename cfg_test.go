@@ -12,6 +12,10 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 )
 
+func TestGenerateDatakitID(t *testing.T) {
+	t.Logf("%s", generateDatakitID())
+}
+
 func TestDefaultToml(t *testing.T) {
 	c := DefaultConfig()
 
