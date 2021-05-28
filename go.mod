@@ -127,7 +127,7 @@ require (
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210525115521-176ad74603ff
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210527052529-9f7487144874
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210528030630-837a724f80fa
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2 // indirect
