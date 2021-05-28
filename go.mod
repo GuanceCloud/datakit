@@ -114,14 +114,14 @@ require (
 	github.com/tidwall/gjson v1.7.4
 	github.com/trivago/tgo v1.0.7 // indirect
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
-	github.com/uber/jaeger-client-go v2.22.1+incompatible
+	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/ugorji/go/codec v1.2.4
 	github.com/urfave/negroni v1.0.0 // indirect
 	github.com/vinllen/mgo v0.0.0-20190830033324-520f0e6e34b8
 	github.com/vjeantet/grok v1.0.0
-	github.com/xanzy/go-gitlab v0.31.0
+	github.com/xanzy/go-gitlab v0.31.0 // indirect
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210521112347-971d12bff4ab
