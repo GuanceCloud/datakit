@@ -54,6 +54,7 @@ func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
 		tags:     ts,
+		class:    t.Class(),
 	}, nil
 }
 
@@ -76,8 +77,12 @@ func (d *dialer) run() error {
 			d.testCnt++
 			//dialtesting start
 			//无论成功或失败，都要记录测试结果
-			d.task.Run()
-			err := d.feedIo()
+			err := d.task.Run()
+			if err != nil {
+				l.Errorf("task %s failed, %s", d.task.ID(), err.Error())
+			}
+
+			err = d.feedIo()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
