@@ -4,7 +4,7 @@
 .orig
 proxy_config.yaml
 pub
-a.out
+*.out
 test.go
 dist/
 *.ak
