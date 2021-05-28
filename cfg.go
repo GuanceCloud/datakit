@@ -2,6 +2,7 @@ package datakit
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
+	"github.com/denisbrodbeck/machineid"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
@@ -355,9 +358,9 @@ func (c *Config) LoadEnvs(mcp string) error {
 	}
 
 	dwURL := os.Getenv("ENV_DATAWAY")
-	if dwURL != "" {
-		dwURLs := []string{dwURL}
-		dw, err := ParseDataway(dwURLs)
+	if dwURL != "" { // 多个 dataway 支持 ',' 分割
+		elems := strings.Split(dwURL, ",")
+		dw, err := ParseDataway(elems)
 		if err != nil {
 			return err
 		}
@@ -367,7 +370,7 @@ func (c *Config) LoadEnvs(mcp string) error {
 		}
 
 		c.DataWay = dw
-		c.DataWay.Urls = dwURLs
+		c.DataWay.Urls = elems
 	}
 
 	dkhost := os.Getenv("ENV_HOSTNAME")
@@ -411,6 +414,18 @@ func (c *Config) LoadEnvs(mcp string) error {
 	}
 
 	return nil
+}
+
+func generateDatakitID() string {
+	id, err := machineid.ID()
+	if err != nil {
+		xid := cliutils.XID("dkid_")
+		l.Warnf("failed to get machineid: %s, use XID(%s) instead", err.Error(), xid)
+		return xid
+	}
+
+	l.Infof("machine ID: %s", id)
+	return "dkid_" + fmt.Sprintf("%x", sha1.Sum([]byte(id)))
 }
 
 func ParseGlobalTags(s string) map[string]string {
