@@ -16,7 +16,6 @@ func (i *Input) collectEvents() error {
 	}
 
 	for event := range watchers.ResultChan() {
-
 		svc := event.Object.(*corev1.Service)
 
 		switch event.Type {
