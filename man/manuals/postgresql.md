@@ -10,7 +10,7 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 
 ## 前置条件
 
-暂无
+- Postgresql 版本 >= 9.0
 
 ## 配置
 
@@ -47,7 +47,21 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 files = ["/tmp/pgsql/postgresql.log"]
 ```
 开启日志采集后，默认会产生日志来源(`source`)为`postgresql`的日志。
-### 注意
+
+**字段说明**
+
+| 字段名 | 字段值 | 说明 |
+|---|---|---|
+|application_name|应用名称|连接当前数据库的应用的名称|
+|db_name|数据库名称|访问的数据库|
+|process_id|进程ID|当前连接的客户端进程ID|
+|remote_host|远程主机|客户端的地址|
+|session_id|会话ID|当前会话的ID|
+|user|用户|当前访问用户名|
+|log_level|日志级别|当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO)|
+|time|时间|日志产生时间|
+
+**注意**
 - 日志采集仅支持已安装 DataKit 主机上的日志。
 - Postgresql 日志默认是输出至`stderr`，如需开启文件日志，可在配置文件进行配置:
 
