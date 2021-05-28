@@ -19,21 +19,16 @@
 
 package thrift
 
-// Factory class used to create wrapped instance of Transports.
-// This is used primarily in servers, which get Transports from
-// a ServerTransport and then may want to mutate them (i.e. create
-// a BufferedTransport from the underlying base transport)
-type TTransportFactory interface {
-	GetTransport(trans TTransport) (TTransport, error)
-}
+// Server transport. Object which provides client transports.
+type TServerTransport interface {
+	Listen() error
+	Accept() (TTransport, error)
+	Close() error
 
-type tTransportFactory struct{}
-
-// Return a wrapped instance of the base Transport.
-func (p *tTransportFactory) GetTransport(trans TTransport) (TTransport, error) {
-	return trans, nil
-}
-
-func NewTTransportFactory() TTransportFactory {
-	return &tTransportFactory{}
+	// Optional method implementation. This signals to the server transport
+	// that it should break out of any accept() or listen() that it is currently
+	// blocked on. This method, if implemented, MUST be thread safe, as it may
+	// be called from a different thread context than the other TServerTransport
+	// methods.
+	Interrupt() error
 }
