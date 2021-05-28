@@ -447,10 +447,6 @@ github.com/google/gopacket/pcap
 github.com/google/uuid
 # github.com/gorilla/mux v1.8.0
 github.com/gorilla/mux
-# github.com/hashicorp/go-cleanhttp v0.5.1
-github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-retryablehttp v0.6.4
-github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-uuid v1.0.1
 github.com/hashicorp/go-uuid
 # github.com/hpcloud/tail v1.0.0
@@ -851,9 +847,11 @@ github.com/trivago/tgo/tcontainer
 github.com/trivago/tgo/treflect
 # github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
 github.com/tweekmonster/luser
-# github.com/uber/jaeger-client-go v2.22.1+incompatible
+# github.com/uber/jaeger-client-go v2.29.1+incompatible
 github.com/uber/jaeger-client-go/thrift
+github.com/uber/jaeger-client-go/thrift-gen/agent
 github.com/uber/jaeger-client-go/thrift-gen/jaeger
+github.com/uber/jaeger-client-go/thrift-gen/zipkincore
 # github.com/ucloud/ucloud-sdk-go v0.14.0
 github.com/ucloud/ucloud-sdk-go/private/protocol/http
 github.com/ucloud/ucloud-sdk-go/private/utils
@@ -892,8 +890,6 @@ github.com/vmware/govmomi/vim25/progress
 github.com/vmware/govmomi/vim25/soap
 github.com/vmware/govmomi/vim25/types
 github.com/vmware/govmomi/vim25/xml
-# github.com/xanzy/go-gitlab v0.31.0
-github.com/xanzy/go-gitlab
 # github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
 github.com/xdg/scram
 # github.com/xdg/stringprep v1.0.0
@@ -915,7 +911,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210519105539-c994e3887777
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210521112347-971d12bff4ab
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
@@ -967,7 +963,7 @@ go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
 # go.uber.org/atomic v1.7.0
 go.uber.org/atomic
-# go.uber.org/multierr v1.6.0
+# go.uber.org/multierr v1.7.0
 go.uber.org/multierr
 # go.uber.org/zap v1.16.0
 go.uber.org/zap
@@ -1211,5 +1207,5 @@ gopkg.in/natefinch/lumberjack.v2
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
-# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
