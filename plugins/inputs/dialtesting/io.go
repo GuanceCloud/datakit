@@ -15,10 +15,15 @@ func (d *dialer) linedataFeed(urlStr string, precision string) error {
 		return nil
 	}
 
+	tags, _ := d.task.GetResults()
+	for k, v := range d.tags {
+		tags[k] = v
+	}
+
 	pts, err := lp.ParsePoints([]byte(data), &lp.Option{
 		Time:      time.Now(),
 		Precision: precision,
-		ExtraTags: d.tags,
+		ExtraTags: tags,
 		Strict:    true,
 	})
 	if err != nil {
