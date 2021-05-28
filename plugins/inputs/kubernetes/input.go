@@ -5,6 +5,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sync"
 	"time"
+	"fmt"
 
 	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
@@ -35,7 +36,6 @@ type Input struct {
 	collectObjectCache     []inputs.Measurement `toml:"-"`
 	lastErr                error
 
-	StateUrl          string `toml:"kube_state_metric"`
 	KubeConfigPath    string `toml:"kube_config_path"`
 	URL               string `toml:"url"`
 	BearerToken       string `toml:"bearer_token"`
@@ -61,6 +61,10 @@ func (i *Input) initCfg() error {
 		TimeoutDuration = 5 * time.Second
 	}
 
+	fmt.Println("url -->", i.URL)
+	fmt.Println("token -->", i.BearerTokenString)
+	fmt.Println("ca -->", i.TLSCA)
+	fmt.Println("skipVerity -->", i.InsecureSkipVerify)
 	var (
 		config *rest.Config
 	)
@@ -74,6 +78,9 @@ func (i *Input) initCfg() error {
 		}
 	} else if i.URL != "" {
 		config, err = createConfigByToken(i.URL, i.BearerTokenString, i.TLSCA, i.InsecureSkipVerify)
+		if err != nil {
+			return err
+		}
 	}
 
 	i.client, err = newClient(config, 5*time.Second)
@@ -138,11 +145,10 @@ func (i *Input) Run() {
 	i.ObjectIntervalDuration = 5 * time.Minute
 	i.ObjectIntervalDuration, _ = time.ParseDuration(i.ObjectInterval)
 
-	i.lastErr = i.initCfg()
-
-	if i.lastErr != nil {
-		io.FeedLastError(inputName, i.lastErr.Error())
-		i.lastErr = nil
+	err := i.initCfg()
+	if err != nil {
+		l.Errorf("init config error %v", err)
+		io.FeedLastError(inputName, err.Error())
 		return
 	}
 
@@ -181,7 +187,6 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&podObject{},
 	}
 }
 
