@@ -59,7 +59,8 @@ type HeadlessTask struct {
 
 	ticker *time.Ticker
 
-	linedatas string
+	hasAddSpecialSteps bool
+	linedatas          string
 }
 
 func (t *HeadlessTask) UpdateTimeUs() int64 {
@@ -311,6 +312,8 @@ func (t *HeadlessTask) rumSpecialSteps() {
 		ActionName:    `evaluate`,
 		ActionContent: getdata,
 	})
+
+	t.hasAddSpecialSteps = true
 }
 
 func (t *HeadlessTask) CheckResult() (reasons []string) {
@@ -346,7 +349,9 @@ func (t *HeadlessTask) Init() error {
 	}
 
 	//当前headless主要做browse rum 性能指标采集
-	t.rumSpecialSteps()
+	if !t.hasAddSpecialSteps {
+		t.rumSpecialSteps()
+	}
 
 	// TODO: more checking on task validity
 
