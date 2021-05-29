@@ -2,6 +2,7 @@ package datakit
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -10,10 +11,12 @@ import (
 	//"github.com/kardianos/service"
 
 	bstoml "github.com/BurntSushi/toml"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestGenerateDatakitID(t *testing.T) {
-	t.Logf("%s", generateDatakitID())
+	t.Logf("%s", GenerateDatakitID())
 }
 
 func TestDefaultToml(t *testing.T) {
@@ -27,27 +30,73 @@ func TestDefaultToml(t *testing.T) {
 	t.Logf("%s", string(buf.Bytes()))
 }
 
+func TestLoadEnv(t *testing.T) {
+
+	cases := []struct {
+		envs   map[string]string
+		expect *Config
+	}{
+		{
+			envs: map[string]string{
+				"ENV_GLOBAL_TAGS":            "a=b,c=d",
+				"ENV_LOG_LEVEL":              "debug",
+				"ENV_DATAWAY":                "http://host1.org,http://host2.com",
+				"ENV_HOSTNAME":               "1024.coding",
+				"ENV_NAME":                   "testing-datakit",
+				"ENV_HTTP_LISTEN":            "localhost:9559",
+				"ENV_RUM_ORIGIN_IP_HEADER":   "not-set",
+				"ENV_ENABLE_PPROF":           "true",
+				"ENV_DISABLE_PROTECT_MODE":   "true",
+				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
+				"ENV_ENABLE_ELECTION":        "1",
+			},
+			expect: &Config{
+				Name:                 "testing-datakit",
+				DataWay:              &DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}},
+				HTTPListen:           "localhost:9559",
+				HTTPAPI:              &apiConfig{RUMOriginIPHeader: "not-set"},
+				LogLevel:             "debug",
+				EnablePProf:          true,
+				Hostname:             "1024.coding",
+				ProtectMode:          false,
+				DefaultEnabledInputs: []string{"cpu", "mem", "disk"},
+				EnableElection:       true,
+				GlobalTags: map[string]string{
+					"a": "b", "c": "d",
+				},
+			},
+		},
+	}
+
+	Docker = true
+
+	for _, tc := range cases {
+		c := &Config{}
+		os.Clearenv()
+		for k, v := range tc.envs {
+			os.Setenv(k, v)
+		}
+		c.LoadEnvs()
+		tu.Equals(t, tc.expect.String(), c.String())
+	}
+}
+
 func TestUnmarshalCfg(t *testing.T) {
 
-	var cfg = `
-	name = ""
-#http_server_addr = "0.0.0.0:9529"
+	var raw = `
+	name = "not-set"
 http_listen="0.0.0.0:9529"
-https_port = 443
-inner_grpc_port = 0
-interval_duration = 0
-log = "/usr/local/cloudcare/dataflux/datakit/log"
+log = "log"
 log_level = "debug"
-log_rotate = 32
-gin_log = "/usr/local/cloudcare/dataflux/datakit/gin.log"
+gin_log = "gin.log"
 interval = "10s"
-#output_file = "/usr/local/cloudcare/dataflux/datakit/mmm34.log"
-hostname = "iZbp152ke14timzud0du15Z"
+output_file = "out.data"
+hostname = "iZb.1024"
 default_enabled_inputs = ["cpu", "disk", "diskio", "mem", "swap", "system", "net", "hostobject"]
 install_date = 2021-03-25T11:00:19Z
 
 [dataway]
-  url = "http://testing-openway.cloudcare.cn/v1/write/metrics?token=tkn_2dc438b6693711eb8ff97aeee04b54af"
+  urls = ["http://testing-openway.cloudcare.cn?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
   timeout = "30s"
 
 [global_tags]
@@ -58,25 +107,6 @@ install_date = 2021-03-25T11:00:19Z
   site = ""
   lg= "tl"
 
-[agent]
-  interval = "10s"
-  round_interval = true
-  precision = "ns"
-  collection_jitter = "0s"
-  flush_interval = "10s"
-  flush_jitter = "0s"
-  metric_batch_size = 1000
-  metric_buffer_limit = 100000
-  utc = false
-  debug = false
-  quiet = false
-  logtarget = "file"
-  logfile = "/usr/local/cloudcare/dataflux/datakit/embed/agent.log"
-  logfile_rotation_interval = ""
-  logfile_rotation_max_size = "32MB"
-  logfile_rotation_max_archives = 5
-  omit_hostname = true
-
 [[black_lists]]
   hosts = []
   inputs = []
@@ -86,29 +116,45 @@ install_date = 2021-03-25T11:00:19Z
   inputs = []
 	`
 
-	Cfg.DoLoadMainConfig([]byte(cfg))
+	id := "dkid_for_testing"
 
-	t.Log(Cfg.DataWay.Urls)
-}
+	if err := ioutil.WriteFile(".main.toml", []byte(raw), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
 
-func TestLoadEnv(t *testing.T) {
-	os.Setenv("ENV_ENABLE_INPUTS", "a,b,c,d")
-	os.Setenv("ENV_GLOBAL_TAGS", "a=b,c=d")
-	os.Setenv("ENV_LOG_LEVEL", "debug")
-	os.Setenv("ENV_LOG_LEVEL", "debug")
-	os.Setenv("ENV_UUID", "dkid_12345")
-	os.Setenv("ENV_DATAWAY", "https://openway.dataflux.cn?token=tkn_mocked")
+	if err := ioutil.WriteFile(".id", []byte(id), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
 
-	Docker = true
-	UUIDFile = ".dk.id"
-	mcp := "mcp.conf"
-
-	os.Remove(UUIDFile)
-	os.Remove(mcp)
+	defer func() {
+		os.Remove(".id")
+		os.Remove(".main.toml")
+	}()
 
 	c := DefaultConfig()
-
-	if err := c.LoadEnvs(mcp); err != nil {
+	if err := c.LoadMainTOML(".main.toml", ".id"); err != nil {
 		t.Error(err)
 	}
 }
+
+//func TestLoadEnv(t *testing.T) {
+//	os.Setenv("ENV_ENABLE_INPUTS", "a,b,c,d")
+//	os.Setenv("ENV_GLOBAL_TAGS", "a=b,c=d")
+//	os.Setenv("ENV_LOG_LEVEL", "debug")
+//	os.Setenv("ENV_LOG_LEVEL", "debug")
+//	os.Setenv("ENV_UUID", "dkid_12345")
+//	os.Setenv("ENV_DATAWAY", "https://openway.dataflux.cn?token=tkn_mocked")
+//
+//	Docker = true
+//	UUIDFile = ".dk.id"
+//	mcp := "mcp.conf"
+//
+//	os.Remove(UUIDFile)
+//	os.Remove(mcp)
+//
+//	c := DefaultConfig()
+//
+//	if err := c.LoadEnvs(mcp); err != nil {
+//		t.Error(err)
+//	}
+//}
