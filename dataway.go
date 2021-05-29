@@ -27,7 +27,7 @@ const (
 
 type DataWayCfg struct {
 	DeprecatedURL    string   `toml:"url,omitempty"`
-	Urls             []string `toml:"urls"`
+	URLs             []string `toml:"urls"`
 	Proxy            bool     `toml:"proxy,omitempty"`
 	DeprecatedHost   string   `toml:"host,omitempty"`
 	DeprecatedScheme string   `toml:"scheme,omitempty"`
