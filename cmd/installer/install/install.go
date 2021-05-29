@@ -12,7 +12,6 @@ import (
 
 	"github.com/kardianos/service"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
@@ -64,8 +63,8 @@ func getDataWayCfg() *datakit.DataWayCfg {
 		}
 	} else {
 		dwUrls := []string{DataWayHTTP}
-		datakit.Cfg.DataWay.Urls = dwUrls
-		dc, err = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
+		datakit.Cfg.DataWay.URLs = dwUrls
+		dc, err = datakit.ParseDataway(datakit.Cfg.DataWay.URLs)
 		if err != nil {
 			l.Fatal(err)
 		}
@@ -97,9 +96,9 @@ func InstallNewDatakit(svc service.Service) {
 		mc.Name = DatakitName
 	}
 
-	// XXX: load old datakit UUID file: reuse datakit UUID installed before
+	// NOTE: load old datakit UUID file: reuse datakit UUID installed before
 	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
-		mc.UUID = cliutils.XID("dkid_")
+		mc.UUID = datakit.GenerateDatakitID()
 		if err := datakit.CreateUUIDFile(datakit.UUIDFile, mc.UUID); err != nil {
 			l.Fatalf("create datakit id failed: %s", err.Error())
 		}
@@ -164,7 +163,7 @@ func UpgradeDatakit(svc service.Service) error {
 	}
 
 	mc := datakit.Cfg
-	if err := mc.LoadMainConfig(datakit.MainConfPath); err == nil {
+	if err := mc.LoadMainTOML(datakit.MainConfPath, datakit.UUIDFile); err == nil {
 		mc, _ = upgradeMainConfig(mc)
 		writeDefInputToMainCfg(mc)
 	} else {
