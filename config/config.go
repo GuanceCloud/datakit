@@ -31,12 +31,26 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 
 	datakit.InitDirs()
 
-	if err := c.LoadEnvs(mcp); err != nil {
-		return err
+	if !datakit.Docker { // only accept configs from ENV within docker
+		if err := c.LoadEnvs(); err != nil {
+			return err
+		}
+
+		// .id file not exists or empty
+		if fi, err := os.Stat(datakit.UUIDFile); err != nil || fi.Size() == 0 {
+			c.UUID = datakit.GenerateDatakitID()
+			if err := datakit.CreateUUIDFile(datakit.UUIDFile, c.UUID); err != nil {
+				l.Errorf("create id file failed: %s", err.Error())
+				return err
+			}
+		}
+	} else {
+		if err := c.LoadMainTOML(mcp, datakit.UUIDFile); err != nil {
+			return err
+		}
 	}
 
-	if err := c.LoadMainConfig(mcp); err != nil {
-		return err
+	if err := c.ApplyMainConfig(); err != nil {
 	}
 
 	l = logger.SLogger("config")
