@@ -183,6 +183,7 @@ func (t *HeadlessTask) Run() error {
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("disable-web-security", disableCors),
+		chromedp.Flag("disable-gpu", true),
 	)
 
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
