@@ -16,6 +16,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -195,18 +196,26 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
-func (c *Config) ApplyMainConfig() error {
-
-	if c.EnableUncheckedInputs {
-		EnableUncheckInputs = true
+func (c *Config) setupDataway() error {
+	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
+	// 避免俩边配置了同样的 dataway, 造成数据混乱
+	if c.DataWay.DeprecatedURL != "" && len(c.DataWay.URLs) == 0 {
+		c.DataWay.URLs = []string{c.DataWay.DeprecatedURL}
 	}
 
-	if c.OutputFile != "" {
-		OutputFile = c.OutputFile
+	if len(c.DataWay.URLs) == 0 {
+		return fmt.Errorf("dataway not set")
 	}
 
-	c.setHostname()
+	ExtraHeaders = map[string]string{
+		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, git.Version),
+	}
 
+	// setup dataway
+	return c.DataWay.Apply()
+}
+
+func (c *Config) setupGlobalTags() error {
 	if c.GlobalTags == nil {
 		c.GlobalTags = map[string]string{}
 	}
@@ -216,38 +225,7 @@ func (c *Config) ApplyMainConfig() error {
 		c.GlobalTags["host"] = c.Hostname
 	}
 
-	if c.DataWay.DeprecatedURL != "" {
-		c.DataWay.URLs = append(c.DataWay.URLs, c.DataWay.DeprecatedURL)
-	}
-
-	if len(c.DataWay.URLs) == 0 {
-		l.Fatal("dataway URL not set")
-	}
-
-	// set global log root
-	l.Infof("set log to %s", c.Log)
-	logger.MaxSize = c.LogRotate
-	logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT)
-
-	l = logger.SLogger("datakit")
-
-	dw, err := ParseDataway(c.DataWay.URLs)
-	if err != nil {
-		return err
-	}
-
-	c.DataWay = dw
-
-	if c.IntervalDeprecated != "" {
-		du, err := time.ParseDuration(c.IntervalDeprecated)
-		if err != nil {
-			l.Warnf("parse %s failed: %s, set default to 10s", c.IntervalDeprecated)
-			du = time.Second * 10
-		}
-		IntervalDuration = du
-	}
-
-	// reset global tags
+	// setup global tags
 	for k, v := range c.GlobalTags {
 
 		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
@@ -268,7 +246,7 @@ func (c *Config) ApplyMainConfig() error {
 			if ipaddr, err := LocalIP(); err != nil {
 				l.Errorf("get local ip failed: %s", err.Error())
 			} else {
-				l.Debugf("set global tag %s: %s", k, ipaddr)
+				l.Infof("set global tag %s: %s", k, ipaddr)
 				c.GlobalTags[k] = ipaddr
 			}
 
@@ -279,6 +257,47 @@ func (c *Config) ApplyMainConfig() error {
 		default:
 			// pass
 		}
+	}
+
+	return nil
+}
+
+func (c *Config) ApplyMainConfig() error {
+
+	// set global log root
+	l.Infof("set log to %s", c.Log)
+	logger.MaxSize = c.LogRotate
+	logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT)
+
+	l = logger.SLogger("datakit")
+
+	if c.EnableUncheckedInputs {
+		EnableUncheckInputs = true
+	}
+
+	if c.OutputFile != "" {
+		OutputFile = c.OutputFile
+	}
+
+	if err := c.setHostname(); err != nil {
+		return err
+	}
+
+	if err := c.setupDataway(); err != nil {
+		return err
+	}
+
+	if err := c.setupGlobalTags(); err != nil {
+		return err
+	}
+
+	if c.IntervalDeprecated != "" {
+		du, err := time.ParseDuration(c.IntervalDeprecated)
+		if err != nil {
+			l.Warnf("parse %s failed: %s, set default to 10s", c.IntervalDeprecated)
+			du = time.Second * 10
+		}
+		IntervalDuration = du
 	}
 
 	// remove deprecated UUID field in main configure
@@ -362,19 +381,6 @@ func (c *Config) LoadEnvs() error {
 			c.DataWay = &DataWayCfg{}
 		}
 		c.DataWay.URLs = strings.Split(v, ",")
-
-		//dw, err := ParseDataway(elems)
-		//if err != nil {
-		//	return err
-		//}
-
-		//// FIXME: should we test these dataway now?
-		//if err := dw.Test(); err != nil {
-		//	l.Warn("test dataway %s failed: %s, ignored")
-		//}
-
-		//c.DataWay = dw
-		//c.DataWay.URLs = elems
 	}
 
 	if v := getEnv("ENV_HOSTNAME"); v != "" {
