@@ -31,7 +31,7 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 
 	datakit.InitDirs()
 
-	if !datakit.Docker { // only accept configs from ENV within docker
+	if !datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
 		if err := c.LoadEnvs(); err != nil {
 			return err
 		}
@@ -51,6 +51,7 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 	}
 
 	if err := c.ApplyMainConfig(); err != nil {
+		return err
 	}
 
 	l = logger.SLogger("config")
