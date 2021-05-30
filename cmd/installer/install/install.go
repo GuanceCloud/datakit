@@ -43,34 +43,30 @@ func readInput(prompt string) string {
 }
 
 func getDataWayCfg() *datakit.DataWayCfg {
-	var dc *datakit.DataWayCfg
-	var err error
+	dw := &datakit.DataWayCfg{}
 
 	if DataWayHTTP == "" {
+
 		for {
 			dwhttp := readInput("Please set DataWay HTTP URL(http[s]://host:port?token=xxx) > ")
-			dwUrls := []string{dwhttp}
-			dc, err = datakit.ParseDataway(dwUrls)
-			if err != nil {
+
+			dwurls := strings.Split(dwhttp, ",")
+			dw.URLs = dwurls
+			if err := dw.Apply(); err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
 			}
-			if err := dc.Test(); err != nil {
-				fmt.Printf("%s\n", err.Error())
-				continue
-			}
+
 			break
 		}
 	} else {
-		dwUrls := []string{DataWayHTTP}
-		datakit.Cfg.DataWay.URLs = dwUrls
-		dc, err = datakit.ParseDataway(datakit.Cfg.DataWay.URLs)
-		if err != nil {
+		dw.URLs = strings.Split(DataWayHTTP, ",")
+		if err := dw.Apply(); err != nil {
 			l.Fatal(err)
 		}
 	}
 
-	return dc
+	return dw
 }
 
 func InstallNewDatakit(svc service.Service) {
