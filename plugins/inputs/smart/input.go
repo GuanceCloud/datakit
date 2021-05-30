@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,6 +20,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+const intelVID = "0x8086"
+
 var (
 	defSmartCmd     = "smartctl"
 	defSmartCtlPath = "/usr/bin/smartctl"
@@ -27,7 +30,7 @@ var (
 	defInterval     = datakit.Duration{Duration: 10 * time.Second}
 	defTimeout      = datakit.Duration{Duration: 3 * time.Second}
 	inputName       = "smart"
-	SampleConfig    = `
+	sampleConfig    = `
 [[inputs.smart]]
 	## The path to the smartctl executable
   # path_smartctl = "/usr/bin/smartctl"
@@ -57,10 +60,6 @@ var (
   ## smartctl version 5.41 and 5.42 have faulty detection of power mode and might require changing this value to "never" depending on your disks.
   # no_check = "standby"
 
-  ## Gather all returned S.M.A.R.T. attribute metrics and the detailed
-  ## information from each drive into the 'smart_attribute' measurement.
-  # attributes = true
-
   ## Optionally specify devices to exclude from reporting if disks auto-discovery is performed.
   # excludes = [ "/dev/pass6" ]
 
@@ -69,7 +68,7 @@ var (
   # devices = [ "/dev/ada0 -d atacam", "/dev/nvme0"]
 
 	## Customer tags, if set will be seen with every metric.
-	[inputs.sensors.tags]
+	[inputs.smart.tags]
 		# "key1" = "value1"
 		# "key2" = "value2"
 `
@@ -91,7 +90,6 @@ type Input struct {
 	EnableExtensions []string          `toml:"enable_extensions"`
 	UseSudo          bool              `toml:"use_sudo"`
 	NoCheck          string            `toml:"no_check"`
-	Attributes       bool              `toml:"attributes"`
 	Excludes         []string          `toml:"excludes"`
 	Devices          []string          `toml:"devices"`
 	Tags             map[string]string `toml:"tags"`
@@ -102,7 +100,7 @@ func (*Input) Catalog() string {
 }
 
 func (*Input) SampleConfig() string {
-	return SampleConfig
+	return sampleConfig
 }
 
 func (*Input) AvailabelArch() []string {
@@ -123,9 +121,9 @@ func (s *Input) Run() {
 	}
 	if s.NvmePath == "" || !ipath.IsFileExists(s.NvmePath) {
 		if s.NvmePath, err = exec.LookPath(defNvmeCmd); err != nil {
+			s.NvmePath = ""
 			l.Debug("Can not find executable sensor command, install 'nvme-cli' first.")
 		} else {
-			s.NvmePath = ""
 			l.Infof("Command fallback to %q due to invalide path provided in 'smart' input", s.NvmePath)
 		}
 	}
@@ -149,12 +147,13 @@ func (s *Input) Run() {
 
 // Gather takes in an accumulator and adds the metrics that the SMART tools gather.
 func (s *Input) gather() error {
-	var err error
-	var scannedNVMeDevices []string
-	var scannedNonNVMeDevices []string
-
-	isNVMe := len(s.NvmePath) != 0
-	isVendorExtension := len(s.EnableExtensions) != 0
+	var (
+		err                   error
+		scannedNVMeDevices    []string
+		scannedNonNVMeDevices []string
+		isNVMe                = len(s.NvmePath) != 0
+		isVendorExtension     = len(s.EnableExtensions) != 0
+	)
 	if len(s.Devices) != 0 {
 		s.getAttributes(s.Devices)
 
@@ -181,33 +180,6 @@ func (s *Input) gather() error {
 	}
 
 	return nil
-}
-
-func distinguishNVMeDevices(userDevices []string, availableNVMeDevices []string) []string {
-	var nvmeDevices []string
-	for _, userDevice := range userDevices {
-		for _, NVMeDevice := range availableNVMeDevices {
-			// double check. E.g. in case when nvme0 is equal nvme0n1, will check if "nvme0" part is present.
-			if strings.Contains(NVMeDevice, userDevice) || strings.Contains(userDevice, NVMeDevice) {
-				nvmeDevices = append(nvmeDevices, userDevice)
-			}
-		}
-	}
-
-	return nvmeDevices
-}
-
-func excludedDevice(excludes []string, deviceLine string) bool {
-	device := strings.Split(deviceLine, " ")
-	if len(device) != 0 {
-		for _, exclude := range excludes {
-			if device[0] == exclude {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 // Scan for S.M.A.R.T. devices from smartctl
@@ -262,18 +234,18 @@ func (s *Input) getAttributes(devices []string) {
 	var wg sync.WaitGroup
 	wg.Add(len(devices))
 	for _, device := range devices {
-		go func() {
-			if cache, err := gatherDisk(s.Timeout.Duration, s.UseSudo, s.Attributes, s.SmartCtlPath, s.NoCheck, device); err != nil {
+		go func(device string) {
+			if sm, err := gatherDisk(s.getCustomerTags(), s.Timeout.Duration, s.UseSudo, s.SmartCtlPath, s.NoCheck, device); err != nil {
 				l.Error(err.Error())
 				io.FeedLastError(inputName, err.Error())
 			} else {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, []inputs.Measurement{sm}, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
 					l.Error(err.Error())
 					io.FeedLastError(inputName, err.Error())
 				}
 			}
 			wg.Done()
-		}()
+		}(device)
 	}
 	wg.Wait()
 }
@@ -288,36 +260,72 @@ func (s *Input) getVendorNVMeAttributes(devices []string) {
 			switch device.vendorID {
 			case intelVID:
 				wg.Add(1)
-				go func() {
-					if cache, err := gatherIntelNVMeDisk(s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
+				go func(device nvmeDevice) {
+					if sm, err := gatherIntelNVMeDisk(s.getCustomerTags(), s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
 						l.Error(err.Error())
 						io.FeedLastError(inputName, err.Error())
 					} else {
-						if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+						if err := inputs.FeedMeasurement(inputName, datakit.Metric, []inputs.Measurement{sm}, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
 							l.Error(err.Error())
 							io.FeedLastError(inputName, err.Error())
 						}
 					}
 					wg.Done()
-				}()
+				}(device)
 			}
 		} else if charset.Contains(s.EnableExtensions, "Intel") && device.vendorID == intelVID {
 			wg.Add(1)
-			go func() {
-				if cache, err := gatherIntelNVMeDisk(s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
+			go func(device nvmeDevice) {
+				if sm, err := gatherIntelNVMeDisk(s.getCustomerTags(), s.Timeout.Duration, s.UseSudo, s.NvmePath, device); err != nil {
 					l.Error(err.Error())
 					io.FeedLastError(inputName, err.Error())
 				} else {
-					if err := inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
+					if err := inputs.FeedMeasurement(inputName, datakit.Metric, []inputs.Measurement{sm}, &io.Option{CollectCost: time.Now().Sub(start)}); err != nil {
 						l.Error(err.Error())
 						io.FeedLastError(inputName, err.Error())
 					}
 				}
 				wg.Done()
-			}()
+			}(device)
 		}
 	}
 	wg.Wait()
+}
+
+func (s *Input) getCustomerTags() map[string]string {
+	tags := make(map[string]string)
+	for k, v := range s.Tags {
+		tags[k] = v
+	}
+
+	return tags
+}
+
+func distinguishNVMeDevices(userDevices []string, availableNVMeDevices []string) []string {
+	var nvmeDevices []string
+	for _, userDevice := range userDevices {
+		for _, NVMeDevice := range availableNVMeDevices {
+			// double check. E.g. in case when nvme0 is equal nvme0n1, will check if "nvme0" part is present.
+			if strings.Contains(NVMeDevice, userDevice) || strings.Contains(userDevice, NVMeDevice) {
+				nvmeDevices = append(nvmeDevices, userDevice)
+			}
+		}
+	}
+
+	return nvmeDevices
+}
+
+func excludedDevice(excludes []string, deviceLine string) bool {
+	device := strings.Split(deviceLine, " ")
+	if len(device) != 0 {
+		for _, exclude := range excludes {
+			if device[0] == exclude {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func gatherNVMeDeviceInfo(nvme, device string, timeout time.Duration, useSudo bool) (string, string, string, error) {
@@ -377,51 +385,87 @@ func findNVMeDeviceInfo(output string) (string, string, string, error) {
 	return vid, sn, mn, nil
 }
 
-func gatherIntelNVMeDisk(timeout time.Duration, useSudo bool, nvme string, device nvmeDevice) ([]inputs.Measurement, error) {
+func gatherIntelNVMeDisk(tags map[string]string, timeout time.Duration, useSudo bool, nvme string, device nvmeDevice) (*smartMeasurement, error) {
 	args := append([]string{"intel", "smart-log-add"}, strings.Split(device.name, " ")...)
 	output, err := cmd.RunWithTimeout(timeout, useSudo, nvme, args...)
 	if _, err = cmd.ExitStatus(err); err != nil {
 		return nil, fmt.Errorf("failed to run command '%s %s': %s - %s", nvme, strings.Join(args, " "), err, string(output))
 	}
 
-	var (
-		cache   []inputs.Measurement
-		scanner = bufio.NewScanner(strings.NewReader(string(output)))
-	)
+	if len(tags) == 0 {
+		tags = make(map[string]string)
+	}
+	tags["device"] = path.Base(device.name)
+	tags["model"] = device.model
+	tags["serial_no"] = device.serialNumber
+	fields := make(map[string]interface{})
+
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	for scanner.Scan() {
 		line := scanner.Text()
-		tags := map[string]string{}
-		fields := make(map[string]interface{})
-
-		tags["device"] = path.Base(device.name)
-		tags["model"] = device.model
-		tags["serial_no"] = device.serialNumber
 
 		if matches := intelExpressionPattern.FindStringSubmatch(line); len(matches) > 3 {
 			matches[1] = strings.TrimSpace(matches[1])
 			matches[3] = strings.TrimSpace(matches[3])
 			if attr, ok := intelAttributes[matches[1]]; ok {
-				tags["name"] = attr.Name
-				if attr.ID != "" {
-					tags["id"] = attr.ID
-				}
-
 				parse := parseCommaSeparatedIntWithCache
 				if attr.Parse != nil {
 					parse = attr.Parse
 				}
 
-				if err := parse(&cache, fields, tags, matches[3]); err != nil {
+				if err := parse(attr.Name, fields, matches[3]); err != nil {
 					continue
 				}
 			}
 		}
 	}
 
-	return cache, nil
+	return &smartMeasurement{name: "smart", tags: tags, fields: fields, ts: time.Now()}, nil
 }
 
-func gatherDisk(timeout time.Duration, sudo, collectAttributes bool, smartctl, nocheck, device string) ([]inputs.Measurement, error) {
+func parseInt(str string) int64 {
+	if i, err := strconv.ParseInt(str, 10, 64); err == nil {
+		return i
+	}
+
+	return 0
+}
+
+func parseRawValue(rawVal string) (int64, error) {
+	// Integer
+	if i, err := strconv.ParseInt(rawVal, 10, 64); err == nil {
+		return i, nil
+	}
+
+	// Duration: 65h+33m+09.259s
+	unit := regexp.MustCompile("^(.*)([hms])$")
+	parts := strings.Split(rawVal, "+")
+	if len(parts) == 0 {
+		return 0, fmt.Errorf("couldn't parse RAW_VALUE '%s'", rawVal)
+	}
+
+	duration := int64(0)
+	for _, part := range parts {
+		timePart := unit.FindStringSubmatch(part)
+		if len(timePart) == 0 {
+			continue
+		}
+		switch timePart[2] {
+		case "h":
+			duration += parseInt(timePart[1]) * int64(3600)
+		case "m":
+			duration += parseInt(timePart[1]) * int64(60)
+		case "s":
+			// drop fractions of seconds
+			duration += parseInt(strings.Split(timePart[1], ".")[0])
+		default:
+			// Unknown, ignore
+		}
+	}
+	return duration, nil
+}
+
+func gatherDisk(tags map[string]string, timeout time.Duration, sudo bool, smartctl, nocheck, device string) (*smartMeasurement, error) {
 	// smartctl 5.41 & 5.42 have are broken regarding handling of --nocheck/-n
 	args := append([]string{"--info", "--health", "--attributes", "--tolerance=verypermissive", "-n", nocheck, "--format=brief"}, strings.Split(device, " ")...)
 	output, err := cmd.RunWithTimeout(timeout, sudo, smartctl, args...)
@@ -431,122 +475,92 @@ func gatherDisk(timeout time.Duration, sudo, collectAttributes bool, smartctl, n
 		return nil, err
 	}
 
-	deviceTags := map[string]string{}
-	deviceNode := strings.Split(device, " ")[0]
-	deviceTags["device"] = path.Base(deviceNode)
-	deviceFields := make(map[string]interface{})
-	deviceFields["exit_status"] = exitStatus
+	if len(tags) == 0 {
+		tags = make(map[string]string)
+	}
+	tags["device"] = path.Base(strings.Split(device, " ")[0])
+	fields := make(map[string]interface{})
+	fields["exit_status"] = exitStatus
 
-	var (
-		cache   []inputs.Measurement
-		scanner = bufio.NewScanner(strings.NewReader(string(output)))
-	)
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		model := modelInfo.FindStringSubmatch(line)
 		if len(model) > 2 {
-			deviceTags["model"] = model[2]
+			tags["model"] = model[2]
 		}
 
 		serial := serialInfo.FindStringSubmatch(line)
 		if len(serial) > 1 {
-			deviceTags["serial_no"] = serial[1]
+			tags["serial_no"] = serial[1]
 		}
 
 		wwn := wwnInfo.FindStringSubmatch(line)
 		if len(wwn) > 1 {
-			deviceTags["wwn"] = strings.Replace(wwn[1], " ", "", -1)
+			tags["wwn"] = strings.Replace(wwn[1], " ", "", -1)
 		}
 
 		capacity := userCapacityInfo.FindStringSubmatch(line)
 		if len(capacity) > 1 {
-			deviceTags["capacity"] = strings.Replace(capacity[1], ",", "", -1)
+			tags["capacity"] = strings.Replace(capacity[1], ",", "", -1)
 		}
 
 		enabled := smartEnabledInfo.FindStringSubmatch(line)
 		if len(enabled) > 1 {
-			deviceTags["enabled"] = enabled[1]
+			tags["enabled"] = enabled[1]
 		}
 
 		health := smartOverallHealth.FindStringSubmatch(line)
 		if len(health) > 2 {
-			deviceFields["health_ok"] = health[2] == "PASSED" || health[2] == "OK"
-		}
-
-		tags := map[string]string{}
-		fields := make(map[string]interface{})
-
-		if collectAttributes {
-			for _, key := range [...]string{"device", "model", "serial_no", "wwn", "capacity", "enabled"} {
-				if value, ok := deviceTags[key]; ok {
-					tags[key] = value
-				}
-			}
+			fields["health_ok"] = (health[2] == "PASSED" || health[2] == "OK")
 		}
 
 		attr := attribute.FindStringSubmatch(line)
 		if len(attr) > 1 {
-			// attribute has been found, add it only if collectAttributes is true
-			if collectAttributes {
-				tags["id"] = attr[1]
-				tags["name"] = attr[2]
-				tags["flags"] = attr[3]
+			// attribute has been found
+			name := strings.ToLower(attr[2])
+			tags["flags"] = attr[3]
 
-				fields["exit_status"] = exitStatus
-				if i, err := strconv.ParseInt(attr[4], 10, 64); err == nil {
-					fields["value"] = i
-				}
-				if i, err := strconv.ParseInt(attr[5], 10, 64); err == nil {
-					fields["worst"] = i
-				}
-				if i, err := strconv.ParseInt(attr[6], 10, 64); err == nil {
-					fields["threshold"] = i
-				}
-
-				tags["fail"] = attr[7]
-				if val, err := parseRawValue(attr[8]); err == nil {
-					fields["raw_value"] = val
-				}
-
-				cache = append(cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
+			fields["exit_status"] = exitStatus
+			if i, err := strconv.ParseInt(attr[4], 10, 64); err == nil {
+				fields[name+"_value"] = i
+			}
+			if i, err := strconv.ParseInt(attr[5], 10, 64); err == nil {
+				fields[name+"_worst"] = i
+			}
+			if i, err := strconv.ParseInt(attr[6], 10, 64); err == nil {
+				fields[name+"_threshold"] = i
 			}
 
-			// If the attribute matches on the one in deviceFieldIds
-			// save the raw value to a field.
+			tags["fail"] = attr[7]
+			if val, err := parseRawValue(attr[8]); err == nil {
+				fields[name+"_raw_value"] = val
+			}
+
+			// If the attribute matches on the one in deviceFieldIds save the raw value to a field.
 			if field, ok := deviceFieldIds[attr[1]]; ok {
 				if val, err := parseRawValue(attr[8]); err == nil {
-					deviceFields[field] = val
+					fields[field] = val
 				}
 			}
 		} else {
 			// what was found is not a vendor attribute
 			if matches := sasNvmeAttr.FindStringSubmatch(line); len(matches) > 2 {
 				if attr, ok := sasNvmeAttributes[matches[1]]; ok {
-					tags["name"] = attr.Name
-					if attr.ID != "" {
-						tags["id"] = attr.ID
-					}
-
 					parse := parseCommaSeparatedInt
 					if attr.Parse != nil {
 						parse = attr.Parse
 					}
-
-					if err := parse(fields, deviceFields, matches[2]); err != nil {
+					if err := parse(attr.Name, fields, matches[2]); err != nil {
 						continue
-					}
-					// if the field is classified as an attribute, only add it if collectAttributes is true
-					if collectAttributes {
-						cache = append(cache, &smartMeasurement{name: "smart_attribute", tags: tags, fields: fields, ts: time.Now()})
 					}
 				}
 			}
 		}
 	}
-	cache = append(cache, &smartMeasurement{name: "smart_device", tags: deviceTags, fields: deviceFields, ts: time.Now()})
 
-	return cache, nil
+	return &smartMeasurement{name: "smart", tags: tags, fields: fields, ts: time.Now()}, nil
 }
 
 func init() {
@@ -558,7 +572,6 @@ func init() {
 			Timeout:          defTimeout,
 			EnableExtensions: []string{"auto-on"},
 			NoCheck:          "standby",
-			Attributes:       true,
 		}
 	})
 }
