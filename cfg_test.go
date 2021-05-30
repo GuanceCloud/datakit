@@ -5,15 +5,144 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	// "github.com/influxdata/toml"
-	//"github.com/kardianos/service"
+	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
+
+func TestInitCfg(t *testing.T) {
+	c := DefaultConfig()
+
+	tomlfile := ".main.toml"
+	defer os.Remove(tomlfile)
+	tu.Equals(t, nil, c.InitCfg(tomlfile))
+}
+
+func TestEnableDefaultsInputs(t *testing.T) {
+	cases := []struct {
+		list   string
+		expect []string
+	}{
+		{
+			list:   "a,a,b,c,d",
+			expect: []string{"a", "b", "c", "d"},
+		},
+
+		{
+			list:   "a,b,c,d",
+			expect: []string{"a", "b", "c", "d"},
+		},
+	}
+
+	c := DefaultConfig()
+	for _, tc := range cases {
+		c.EnableDefaultsInputs(tc.list)
+		tu.Equals(t, len(c.DefaultEnabledInputs), len(tc.expect))
+	}
+}
+
+func TestSetupGlobalTags(t *testing.T) {
+	cases := []struct {
+		tags   map[string]string
+		expect map[string]string
+		fail   bool
+	}{
+		{
+			tags: map[string]string{
+				"host": "__datakit_hostname",
+				"ip":   "__datakit_ip",
+				"id":   "__datakit_id",
+				"uuid": "__datakit_uuid",
+			},
+		},
+
+		{
+			tags: map[string]string{
+				"host": "$datakit_hostname",
+				"ip":   "$datakit_ip",
+				"id":   "$datakit_id",
+				"uuid": "$datakit_uuid",
+			},
+		},
+
+		{
+			tags: map[string]string{
+				"uuid": "some-uuid",
+				"host": "some-host",
+			},
+			expect: map[string]string{},
+		},
+	}
+
+	for _, tc := range cases {
+		c := DefaultConfig()
+		for k, v := range tc.tags {
+			c.GlobalTags[k] = v
+		}
+
+		err := c.setupGlobalTags()
+		if tc.fail {
+			tu.NotOk(t, err, "")
+		} else {
+			tu.Ok(t, err)
+		}
+
+		for k, v := range tc.tags {
+			if tc.expect == nil {
+				tu.Assert(t, v != c.GlobalTags[k], "`%s' != `%s'", v, c.GlobalTags[k])
+			} else {
+				tu.Assert(t, v == c.GlobalTags[k], "`%s' != `%s'", v, c.GlobalTags[k])
+			}
+		}
+	}
+}
+
+func TestProtectedInterval(t *testing.T) {
+	cases := []struct {
+		enabled              bool
+		min, max, in, expect time.Duration
+	}{
+		{
+			enabled: true,
+			min:     time.Minute,
+			max:     5 * time.Minute,
+			in:      time.Second,
+			expect:  time.Minute,
+		},
+
+		{
+			enabled: true,
+			min:     time.Minute,
+			max:     5 * time.Minute,
+			in:      10 * time.Minute,
+			expect:  5 * time.Minute,
+		},
+
+		{
+			enabled: false,
+			min:     time.Minute,
+			max:     5 * time.Minute,
+			in:      time.Second,
+			expect:  time.Second,
+		},
+
+		{
+			enabled: false,
+			min:     time.Minute,
+			max:     5 * time.Minute,
+			in:      10 * time.Minute,
+			expect:  10 * time.Minute,
+		},
+	}
+
+	for _, tc := range cases {
+		Cfg.ProtectMode = tc.enabled
+		x := ProtectedInterval(tc.min, tc.max, tc.in)
+		tu.Equals(t, x, tc.expect)
+	}
+}
 
 func TestGenerateDatakitID(t *testing.T) {
 	t.Logf("%s", GenerateDatakitID())
@@ -66,9 +195,24 @@ func TestLoadEnv(t *testing.T) {
 				},
 			},
 		},
-	}
+		{
+			envs: map[string]string{
+				"ENV_ENABLE_INPUTS": "cpu,mem,disk",
+			},
+			expect: &Config{
+				DefaultEnabledInputs: []string{"cpu", "mem", "disk"},
+			},
+		},
 
-	Docker = true
+		{
+			envs: map[string]string{
+				"ENV_GLOBAL_TAGS": "cpu,mem,disk=sda",
+			},
+			expect: &Config{
+				GlobalTags: map[string]string{"disk": "sda"},
+			},
+		},
+	}
 
 	for _, tc := range cases {
 		c := &Config{}
@@ -83,7 +227,14 @@ func TestLoadEnv(t *testing.T) {
 
 func TestUnmarshalCfg(t *testing.T) {
 
-	var raw = `
+	id := "dkid_for_testing"
+	cases := []struct {
+		raw  string
+		id   string
+		fail bool
+	}{
+		{
+			raw: `
 	name = "not-set"
 http_listen="0.0.0.0:9529"
 log = "log"
@@ -114,47 +265,63 @@ install_date = 2021-03-25T11:00:19Z
 [[white_lists]]
   hosts = []
   inputs = []
-	`
+	`,
+			id: id,
+		},
 
-	id := "dkid_for_testing"
+		{
+			raw:  `abc = def`, // invalid toml
+			fail: true,
+		},
 
-	if err := ioutil.WriteFile(".main.toml", []byte(raw), os.ModePerm); err != nil {
-		t.Fatal(err)
+		{
+			raw: `
+name = "not-set"
+http_listen=123  # invalid type
+log = "log"`,
+			fail: true,
+		},
+
+		{
+			raw: `
+name = "not-set"
+log = "log"`,
+			id:   "", // id not set
+			fail: true,
+		},
 	}
 
-	if err := ioutil.WriteFile(".id", []byte(id), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	idfile := ".id"
+	tomlfile := ".main.toml"
 
 	defer func() {
-		os.Remove(".id")
-		os.Remove(".main.toml")
+		os.Remove(idfile)
+		os.Remove(tomlfile)
 	}()
 
-	c := DefaultConfig()
-	if err := c.LoadMainTOML(".main.toml", ".id"); err != nil {
-		t.Error(err)
+	for _, tc := range cases {
+
+		c := DefaultConfig()
+
+		if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+
+		if tc.id != "" {
+			if err := ioutil.WriteFile(".id", []byte(id), os.ModePerm); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		err := c.LoadMainTOML(tomlfile, idfile)
+		if tc.fail {
+			tu.NotOk(t, err, "")
+			continue
+		} else {
+			tu.Ok(t, err)
+		}
+
+		os.Remove(idfile)
+		os.Remove(tomlfile)
 	}
 }
-
-//func TestLoadEnv(t *testing.T) {
-//	os.Setenv("ENV_ENABLE_INPUTS", "a,b,c,d")
-//	os.Setenv("ENV_GLOBAL_TAGS", "a=b,c=d")
-//	os.Setenv("ENV_LOG_LEVEL", "debug")
-//	os.Setenv("ENV_LOG_LEVEL", "debug")
-//	os.Setenv("ENV_UUID", "dkid_12345")
-//	os.Setenv("ENV_DATAWAY", "https://openway.dataflux.cn?token=tkn_mocked")
-//
-//	Docker = true
-//	UUIDFile = ".dk.id"
-//	mcp := "mcp.conf"
-//
-//	os.Remove(UUIDFile)
-//	os.Remove(mcp)
-//
-//	c := DefaultConfig()
-//
-//	if err := c.LoadEnvs(mcp); err != nil {
-//		t.Error(err)
-//	}
-//}
