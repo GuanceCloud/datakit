@@ -100,9 +100,9 @@ func main() {
 	flag.CommandLine.MarkHidden("check-update")         // internal using
 	flag.CommandLine.MarkHidden("man-version")          // internal using
 	flag.CommandLine.MarkHidden("export-integration")   // internal using
-	flag.CommandLine.MarkHidden("addr")                 // internal uing
-	flag.CommandLine.MarkHidden("show-testing-version") // internal uing
-	flag.CommandLine.MarkHidden("update-log")           // internal uing
+	flag.CommandLine.MarkHidden("addr")                 // internal using
+	flag.CommandLine.MarkHidden("show-testing-version") // internal using
+	flag.CommandLine.MarkHidden("update-log")           // internal using
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
