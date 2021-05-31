@@ -10,7 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var pvMeasurement = "kube_daemonset"
+var pvMeasurement = "kube_pv"
 
 type pvM struct {
 	name   string
@@ -25,55 +25,19 @@ func (m *pvM) LineProto() (*io.Point, error) {
 
 func (m *pvM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: daemonSetMeasurement,
-		Desc: "kubernet daemonSet 对象",
+		Name: pvMeasurement,
+		Desc: "kubernet pv 对象",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "pod name"},
-			"namespace": &inputs.TagInfo{Desc: "namespace"},
-			"nodeName":  &inputs.TagInfo{Desc: "node name"},
+			"pv_name":      &inputs.TagInfo{Desc: "pv name"},
+			"phase":        &inputs.TagInfo{Desc: "Phase indicates if a volume is available, bound to a claim, or released by a claim"},
+			"storageclass": &inputs.TagInfo{Desc: "Name of StorageClass to which this persistent volume belongs. Empty value means that this volume does not belong to any StorageClass"},
 		},
 		Fields: map[string]interface{}{
-			"ready": &inputs.FieldInfo{
+			"phase_type": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "容器ready数/总数",
-			},
-			"status": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 状态",
-			},
-			"restarts": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "重启次数",
-			},
-			"age": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod存活时长",
-			},
-			"podIp": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod ip",
-			},
-			"createTime": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 创建时间",
-			},
-			"label_xxx": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod lable",
+				Desc:     "phase type, bound:0, failed:1, pending:2, released:3, available:4, unknown: 5",
 			},
 		},
 	}
@@ -115,7 +79,7 @@ func (i *Input) gatherPersistentVolume(pv corev1.PersistentVolume) {
 	}
 
 	m := &pvM{
-		name:   daemonSetMeasurement,
+		name:   pvMeasurement,
 		tags:   tags,
 		fields: fields,
 		ts:     time.Now(),
