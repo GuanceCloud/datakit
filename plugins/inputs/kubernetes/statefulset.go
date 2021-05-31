@@ -2,13 +2,14 @@ package kubernetes
 
 import (
 	"context"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
-	"time"
 )
 
-var statefulSetMeasurement = "kube_daemonset"
+var statefulSetMeasurement = "kube_statefulSet"
 
 type statefulSet struct {
 	name   string
@@ -23,55 +24,60 @@ func (m *statefulSet) LineProto() (*io.Point, error) {
 
 func (m *statefulSet) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: daemonSetMeasurement,
-		Desc: "kubernet daemonSet 对象",
+		Name: statefulSetMeasurement,
+		Desc: "kubernetes statefulSet 对象",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "pod name"},
-			"namespace": &inputs.TagInfo{Desc: "namespace"},
-			"nodeName":  &inputs.TagInfo{Desc: "node name"},
+			"statefulset_name": &inputs.TagInfo{Desc: "statefulset name"},
+			"namespace":        &inputs.TagInfo{Desc: "namespace"},
 		},
 		Fields: map[string]interface{}{
-			"ready": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "容器ready数/总数",
-			},
-			"status": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 状态",
-			},
-			"restarts": &inputs.FieldInfo{
+			"created": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "重启次数",
+				Desc:     "created time",
 			},
-			"age": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"generation": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod存活时长",
+				Desc:     "A sequence number representing a specific generation of the desired state",
 			},
-			"podIp": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"replicas": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod ip",
+				Desc:     "replicas is the number of Pods created by the StatefulSet controller",
 			},
-			"createTime": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"replicas_current": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 创建时间",
+				Desc:     "currentReplicas is the number of Pods created by the StatefulSet controller from the StatefulSet version indicated by currentRevision",
 			},
-			"label_xxx": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"replicas_ready": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod lable",
+				Desc:     "readyReplicas is the number of Pods created by the StatefulSet controller that have a Ready Condition",
+			},
+			"replicas_updated": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "updatedReplicas is the number of Pods created by the StatefulSet controller from the StatefulSet version",
+			},
+			"spec_replicas": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "replicas is the desired number of replicas of the given Template",
+			},
+			"observed_generation": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "observedGeneration is the most recent generation observed for this StatefulSet. It corresponds to the StatefulSet's generation, which is updated on mutation by the API Server",
 			},
 		},
 	}
@@ -112,7 +118,7 @@ func (i *Input) gatherStatefulSet(s v1.StatefulSet) {
 	// }
 
 	m := &statefulSet{
-		name:   deploymentMeasurement,
+		name:   statefulSetMeasurement,
 		tags:   tags,
 		fields: fields,
 		ts:     time.Now(),
