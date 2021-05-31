@@ -39,33 +39,48 @@ var (
 	flagVersion = flag.BoolP("version", "v", false, `show version info`)
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
+	// deprecated
 	flagCmdDeprecated = flag.Bool("cmd", false, "run datakit under command line mode")
-	flagPipeline      = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagText          = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
 
-	flagGrokq = flag.Bool("grokq", false, "query groks interactively")
-	flagMan   = flag.Bool("man", false, "read manuals of inputs")
+	////////////////////////////////////////////////////////////
+	// Commands
+	////////////////////////////////////////////////////////////
+	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
+	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
+	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
 
-	flagCheckUpdate     = flag.Bool("check-update", false, "check if new verison available")
-	flagAcceptRCVersion = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
-	flagUpdateLogFile   = flag.String("update-log", "", "update history log file")
-
-	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
-
-	flagInstallExternal   = flag.String("install", "", "install external tool/software")
-	flagStart             = flag.Bool("start", false, "start datakit")
-	flagStop              = flag.Bool("stop", false, "stop datakit")
-	flagRestart           = flag.Bool("restart", false, "restart datakit")
-	flagReload            = flag.Bool("reload", false, "reload datakit")
-	flagReloadPort        = flag.Int("reload-port", 9529, "datakit http server port")
+	// manuals related
+	flagMan               = flag.Bool("man", false, "read manuals of inputs")
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
-	flagUpdateIPDb        = flag.Bool("update-ip-db", false, "update ip db")
-	flagAddr              = flag.String("addr", "", "url path")
 	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
+	flagTODO              = flag.String("TODO", "TODO", "set TODO")
 
+	flagCheckUpdate         = flag.Bool("check-update", false, "check if new verison available")
+	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
+	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
+
+	flagUpdateLogFile = flag.String("update-log", "", "update history log file")
+
+	// install 3rd-party kit
+	flagInstallExternal = flag.String("install", "", "install external tool/software")
+
+	// managing service
+	flagStart      = flag.Bool("start", false, "start datakit")
+	flagStop       = flag.Bool("stop", false, "stop datakit")
+	flagRestart    = flag.Bool("restart", false, "restart datakit")
+	flagReload     = flag.Bool("reload", false, "reload datakit")
+	flagStatus     = flag.Bool("status", false, "show datakit service status")
+	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
+
+	// partially update
+	flagUpdateIPDb = flag.Bool("update-ip-db", false, "update ip db")
+	flagAddr       = flag.String("addr", "", "url path")
+
+	// utils
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
 )
 
 var (
@@ -80,11 +95,14 @@ const (
 )
 
 func main() {
-	flag.CommandLine.MarkHidden("cmd") // deprecated
-
-	// un-documented options
-	flag.CommandLine.MarkHidden("addr")
-	flag.CommandLine.MarkHidden("show-testing-version")
+	flag.CommandLine.MarkHidden("cmd")                  // deprecated
+	flag.CommandLine.MarkHidden("TODO")                 // internal using
+	flag.CommandLine.MarkHidden("check-update")         // internal using
+	flag.CommandLine.MarkHidden("man-version")          // internal using
+	flag.CommandLine.MarkHidden("export-integration")   // internal using
+	flag.CommandLine.MarkHidden("addr")                 // internal uing
+	flag.CommandLine.MarkHidden("show-testing-version") // internal uing
+	flag.CommandLine.MarkHidden("update-log")           // internal uing
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -173,6 +191,8 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
+	inputs.TODO = *flagTODO
+
 	if *flagShowCloudInfo != "" {
 		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
 		if err != nil {
@@ -188,6 +208,19 @@ ReleasedInputs: %s
 		sort.Strings(keys)
 		for _, k := range keys {
 			fmt.Printf("\t% 24s: %v\n", k, info[k])
+		}
+
+		os.Exit(0)
+	}
+
+	if *flagIPInfo != "" {
+		x, err := cmds.IPInfo(*flagIPInfo)
+		if err != nil {
+			fmt.Printf("\t%v\n", err)
+		} else {
+			for k, v := range x {
+				fmt.Printf("\t% 8s: %s\n", k, v)
+			}
 		}
 
 		os.Exit(0)
@@ -443,6 +476,16 @@ func runDatakitWithCmd() {
 		}
 
 		fmt.Println("Reload DataKit OK")
+		os.Exit(0)
+	}
+
+	if *flagStatus {
+		x, err := cmds.DatakitStatus()
+		if err != nil {
+			fmt.Println("Get DataKit status failed: %s\n", err)
+			os.Exit(-1)
+		}
+		fmt.Println(x)
 		os.Exit(0)
 	}
 
