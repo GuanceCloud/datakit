@@ -53,7 +53,6 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
-	UUIDFile = filepath.Join(InstallDir, ".id")
 	DataDir  = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
 
