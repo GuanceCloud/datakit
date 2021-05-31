@@ -6,17 +6,17 @@
 
 # 简介
 
-MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采集。
+计算机硬盘运行状态数据采集
 
 ## 前置条件
 
-- 编写配置文件在对应目录下然后启动 DataKit 即可完成配置。
-- 使用 TLS 进行安全连接需要先将配置文件中`enable_tls = true`值置 true，然后配置`inputs.mongodb.tlsconf`中指定的证书文件路径。
-- 如果 MongoDb 启动了访问控制那么需要配置必须的用户权限用于建立授权连接。例如：
+安装 smartmontools
+Linux: `sudo apt install smartmontools -y`
+MacOS: `brew install smartmontools -y`
+WinOS: `https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage`
 
-```command
-> db.grantRolesToUser("user", [{role: "read", actions: "find", db: "local"}])
-```
+安装 nvme-cli（仅支持 Linux）
+`sudo apt install nvme-cli -y`
 
 ## 配置
 
