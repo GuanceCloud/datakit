@@ -2,10 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"k8s.io/client-go/rest"
 	"sync"
 	"time"
-	"fmt"
 
 	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
@@ -187,6 +187,13 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
+		&daemonSet{},
+		&deployment{},
+		&endpointM{},
+		&pvM{},
+		&pvcM{},
+		&serviceM{},
+		&statefulSet{},
 	}
 }
 
