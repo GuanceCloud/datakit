@@ -34,7 +34,7 @@ func (m *pvcM) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"phase_type": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "phase type, bound:0, lost:1, pending:2, unknown:3",
