@@ -2,7 +2,6 @@ package datakit
 
 import (
 	"bytes"
-	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,9 +11,7 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-	"github.com/denisbrodbeck/machineid"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
@@ -88,7 +85,7 @@ type Config struct {
 	GlobalTags map[string]string `toml:"global_tags"`
 
 	EnablePProf bool `toml:"enable_pprof,omitempty"`
-	ProtectMode bool `toml:"protect_mode,omitempty"`
+	ProtectMode bool `toml:"protect_mode"`
 
 	IntervalDeprecated string `toml:"interval,omitempty"`
 
@@ -115,7 +112,22 @@ func (c *Config) String() string {
 	return buf.String()
 }
 
-func (c *Config) LoadMainTOML(p, idFile string) error {
+func (c *Config) SetUUID() error {
+	if c.Hostname == "" {
+		hn, err := os.Hostname()
+		if err != nil {
+			l.Errorf("get hostname failed: %s", err.Error())
+			return err
+		}
+
+		c.UUID = hn
+	} else {
+		c.UUID = c.Hostname
+	}
+	return nil
+}
+
+func (c *Config) LoadMainTOML(p string) error {
 	cfgdata, err := ioutil.ReadFile(p)
 	if err != nil {
 		l.Errorf("read main cfg %s failed: %s", p, err.Error())
@@ -128,13 +140,8 @@ func (c *Config) LoadMainTOML(p, idFile string) error {
 		return err
 	}
 
-	// .id 文件此时应该已经存在。安装阶段已将 .id 文件创建好
-	dkid, err := LoadUUID(idFile)
-	if err != nil {
-		l.Errorf("load id failed: %s", err.Error())
-		return err
-	}
-	c.UUID = dkid
+	// 由于 datakit UUID 不再重要, 出错也不管了
+	_ = c.SetUUID()
 
 	return nil
 }
@@ -279,8 +286,10 @@ func (c *Config) ApplyMainConfig() error {
 		OutputFile = c.OutputFile
 	}
 
-	if err := c.setHostname(); err != nil {
-		return err
+	if c.Hostname == "" {
+		if err := c.setHostname(); err != nil {
+			return err
+		}
 	}
 
 	if err := c.setupDataway(); err != nil {
@@ -472,16 +481,4 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 	}
 
 	return cur
-}
-
-func GenerateDatakitID() string {
-	id, err := machineid.ID()
-	if err != nil {
-		xid := cliutils.XID("dkid_")
-		l.Warnf("failed to get machineid: %s, use XID(%s) instead", err.Error(), xid)
-		return xid
-	}
-
-	l.Infof("machine ID: %s", id)
-	return "dkid_" + fmt.Sprintf("%x", sha1.Sum([]byte(id)))
 }
