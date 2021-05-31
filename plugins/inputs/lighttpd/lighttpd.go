@@ -17,21 +17,22 @@ const (
 
 	sampleCfg = `
 [[inputs.lighttpd]]
-    # lighttpd status url
-    # required
+    ## lighttpd status url
+    ## required
     url = "http://127.0.0.1:8080/server-status"
 
-    # lighttpd version is "v1" or "v2"
-    # required
+    ## lighttpd version is "v1" or "v2"
+    ## required
     version = "v1"
 
-    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-    # required, cannot be less than zero
+    ## valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    ## required, cannot be less than zero
     interval = "10s"
 
-    # [inputs.lighttpd.tags]
+    [inputs.lighttpd.tags]
     # from = "127.0.0.1:8080"
-    # tags1 = "value1"
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
