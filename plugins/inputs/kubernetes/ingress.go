@@ -2,9 +2,13 @@ package kubernetes
 
 import (
 	// "context"
+	"context"
+	"strconv"
+	"strings"
 	"time"
 
-	// netv1 "k8s.io/api/networking/v1"
+	v1beta1 "k8s.io/api/extensions/v1beta1"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -27,107 +31,102 @@ func (m *ingressM) Info() *inputs.MeasurementInfo {
 		Name: ingressMeasurement,
 		Desc: "kubernet daemonSet 对象",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "pod name"},
-			"namespace": &inputs.TagInfo{Desc: "namespace"},
-			"nodeName":  &inputs.TagInfo{Desc: "node name"},
+			"ingress_name": &inputs.TagInfo{Desc: "pod name"},
+			"namespace":    &inputs.TagInfo{Desc: "namespace"},
 		},
 		Fields: map[string]interface{}{
-			"ready": &inputs.FieldInfo{
+			"created": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "容器ready数/总数",
+				Desc:     "created time",
 			},
-			"status": &inputs.FieldInfo{
+			"generation": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 状态",
+				Desc:     "A sequence number representing a specific generation of the desired state",
 			},
-			"restarts": &inputs.FieldInfo{
+			"ingress_hosts": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "重启次数",
+				Desc:     "A list of host rules used to configure the Ingress",
 			},
-			"age": &inputs.FieldInfo{
+			"ingress_address": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod存活时长",
+				Desc:     "LoadBalancerStatus represents the status of a load-balancer",
 			},
-			"podIp": &inputs.FieldInfo{
+			"service_Ports": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod ip",
-			},
-			"createTime": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 创建时间",
-			},
-			"label_xxx": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod lable",
+				Desc:     "Specifies the port of the referenced service",
 			},
 		},
 	}
 }
 
-// func (i *Input) collectIngress(ctx context.Context) error {
-// 	list, err := i.client.getIngress(ctx)
-// 	if err != nil {
-// 		return err
-// 	}
+func (i *Input) collectIngress(ctx context.Context) error {
+	list, err := i.client.getIngress(ctx)
+	if err != nil {
+		return err
+	}
 
-// 	for _, i := range list.Items {
-// 		i.gatherIngress(i)
-// 	}
+	for _, item := range list.Items {
+		i.gatherIngress(item)
+	}
 
-// 	return err
-// }
+	return err
+}
 
-// func (i *Input) gatherIngress(in netv1.Ingress) {
-// 	if in.GetCreationTimestamp().Second() == 0 && in.GetCreationTimestamp().Nanosecond() == 0 {
-// 		return
-// 	}
+func (i *Input) gatherIngress(in v1beta1.Ingress) {
+	if in.GetCreationTimestamp().Second() == 0 && in.GetCreationTimestamp().Nanosecond() == 0 {
+		return
+	}
 
-// 	fields := map[string]interface{}{
-// 		"created":    in.GetCreationTimestamp().UnixNano(),
-// 		"generation": in.Generation,
-// 	}
+	ingressHosts := make([]string, 0, len(in.Spec.Rules))
+	for _, rule := range in.Spec.Rules {
+		ingressHosts = append(ingressHosts, rule.Host)
+	}
+	// 获取 Address
+	ingressAddress := make([]string, 0, len(in.Status.LoadBalancer.Ingress))
+	for _, ingStatus := range in.Status.LoadBalancer.Ingress {
+		ingressAddress = append(ingressAddress, ingStatus.IP)
+	}
+	// 获取 Service 的端口
+	servicePortsSet := make(map[int]struct{})
+	for _, rule := range in.Spec.Rules {
+		for _, path := range rule.IngressRuleValue.HTTP.Paths {
+			servicePortsSet[path.Backend.ServicePort.IntValue()] = struct{}{}
+		}
+	}
+	servicePorts := make([]string, 0, len(servicePortsSet))
+	for port := range servicePortsSet {
+		servicePorts = append(servicePorts, strconv.Itoa(port))
+	}
 
-// 	tags := map[string]string{
-// 		"ingress_name": in.Name,
-// 		"namespace":    in.Namespace,
-// 	}
+	fields := map[string]interface{}{
+		"created":         in.GetCreationTimestamp().UnixNano(),
+		"generation":      in.Generation,
+		"ingress_hosts":   strings.Join(ingressHosts, ","),
+		"ingress_address": strings.Join(ingressAddress, ","),
+		"service_Ports":   strings.Join(servicePorts, ","),
+	}
 
-// 	for _, ingress := range in.Status.LoadBalancer.Ingress {
-// 		tags["hostname"] = ingress.Hostname
-// 		tags["ip"] = ingress.IP
+	tags := map[string]string{
+		"ingress_name": in.Name,
+		"namespace":    in.Namespace,
+	}
 
-// 		for _, rule := range in.Spec.Rules {
-// 			for _, path := range rule.IngressRuleValue.HTTP.Paths {
-// 				fields["backend_service_port"] = path.Backend.Service.Port.Number
-// 				fields["tls"] = in.Spec.TLS != nil
+	m := &ingressM{
+		name:   ingressMeasurement,
+		tags:   tags,
+		fields: fields,
+		ts:     time.Now(),
+	}
 
-// 				tags["backend_service_name"] = path.Backend.Service.Name
-// 				tags["path"] = path.Path
-// 				tags["host"] = rule.Host
-
-// 				m := &ingressM{
-// 					name:   ingressMeasurement,
-// 					tags:   tags,
-// 					fields: fields,
-// 					ts:     time.Now(),
-// 				}
-
-// 				i.collectCache = append(i.collectCache, m)
-// 			}
-// 		}
-// 	}
-// }
+	i.collectCache = append(i.collectCache, m)
+}
