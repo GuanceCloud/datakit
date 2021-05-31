@@ -5,6 +5,7 @@
 	},
 
 	"jolokia": {
-		"version": "1.6.2"
+		"jvm-agent-version": "1.6.2",
+		"war-version": "1.6.2"
 	}
 }
