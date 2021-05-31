@@ -56,8 +56,8 @@ const (
     #match = '''^\S.*'''
 
     [inputs.redis.tags]
-    # tag1 = val1
-    # tag2 = val2
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 
 	pipelineCfg = `
