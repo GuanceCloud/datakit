@@ -78,6 +78,14 @@ func buildMonitor() *monitor {
 		serviceName: opt.ServiceName,
 	}
 
+	items := strings.Split(opt.Tags, ";")
+	for _, item := range items {
+		tagArr := strings.Split(item, "=")
+		tagKey := strings.Trim(tagArr[0], " ")
+		tagVal := strings.Trim(tagArr[1], " ")
+		m.tags[tagKey] = tagVal
+	}
+
 	if m.interval != "" {
 		du, err := time.ParseDuration(m.interval)
 		if err != nil {
@@ -139,8 +147,7 @@ func main() {
 }
 
 func (m *monitor) run() {
-
-	l.Info("start oraclemonitor...")
+	l.Info("start oracle...")
 
 	tick := time.NewTicker(m.intervalDuration)
 	defer tick.Stop()
