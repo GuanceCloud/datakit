@@ -27,6 +27,8 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/c-bata/go-prompt v0.2.5
+	github.com/chromedp/cdproto v0.0.0-20210526005521-9e51b9051fd0 // indirect
+	github.com/chromedp/chromedp v0.7.2 // indirect
 	github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327 // indirect
 	github.com/containerd/containerd v1.4.1
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
@@ -116,7 +118,7 @@ require (
 	github.com/tidwall/gjson v1.7.4
 	github.com/trivago/tgo v1.0.7 // indirect
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
-	github.com/uber/jaeger-client-go v2.22.1+incompatible
+	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/ucloud/ucloud-sdk-go v0.14.0
 	github.com/ugorji/go/codec v1.2.4
@@ -126,13 +128,14 @@ require (
 	github.com/xanzy/go-gitlab v0.31.0 // indirect
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210519105539-c994e3887777
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210514061839-1891261c7ed2
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210528040150-d44a55a4a70a
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210528095351-3cdfe746446f
+	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210421221651-33663a62ff08
+	golang.org/x/sys v0.0.0-20210507161434-a76c4d0a0096
 	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed // indirect
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
