@@ -14,12 +14,25 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
+type singleQuery struct {
+	Query                string              `json:"query"`
+	TimeRange            []int64             `json:"time_range"`
+	Conditions           string              `json:"conditions"`
+	MaxPoint             int64               `json:"max_point"`
+	MaxDuration          string              `json:"max_duration"`
+	OrderBy              []map[string]string `json:"orderby"`
+	Limit                int64               `json:"limit"`
+	Offset               int64               `json:"offset"`
+	DisableSlimit        bool                `json:"disable_slimit"`
+	DisableMultipleField bool                `json:"disable_multiple_field"`
+	SearchAfter          []interface{}       `json:"search_after"`
+	Highlight            bool                `json:"highlight"`
+}
+
 type QueryRaw struct {
-	Token   string `json:"token"`
-	Queries []struct {
-		Query string `json:"query"`
-	} `json:"queries"`
-	EchoExplain bool `json:"echo_explain"`
+	Token       string         `json:"token"`
+	Queries     []*singleQuery `json:"queries"`
+	EchoExplain bool           `json:"echo_explain"`
 }
 
 func (q *QueryRaw) String() (str string) {
@@ -72,7 +85,7 @@ func apiQueryRaw(c *gin.Context) {
 		return
 	}
 
-	l.Debugf("query row: %s", q)
+	l.Debugf("query row: %s", q.String())
 
 	resp, err := q.PostQuery()
 	if err != nil {

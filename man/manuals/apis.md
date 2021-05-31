@@ -85,20 +85,24 @@ HTTP/1.1 200 OK
 
 ### 示例
 
-```http
+```
 POST /v1/query/raw HTTP/1.1
 Content-Type: application/json
 
 {
     "queries":[
         {
-            "query": "cpu:(cpu_usage_idle) LIMIT 1"  # dql查询语句（必填）
-        },
-        {
-            "query": "mem:(mem_usage_percent) LIMIT 1"
+            "query": "cpu:(usage_idle) LIMIT 1",  # dql查询语句（必填）
+            "conditions": "",                     # 追加dql查询条件
+            "max_duration": "1d",                 # 最大时间范围
+            "max_point": 0,                       # 最大点数
+            "time_range": [],                     # 时间范围，采用时间戳格式，单位为毫秒，数组大小为2的int，如果只有一个元素则认为是起始时间
+            "orderby: [],                         # 指定orderby参数，内容格式为map[string]string的数组
+            "disable_slimit": true,               # 禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20
+            "disable_multiple_field": true        # 禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段）
         }
     ],
-    "echo_explain": false
+    "echo_explain":true
 }
 
 HTTP/1.1 200 OK
@@ -112,7 +116,7 @@ Content-Type: application/json
                     "name": "cpu",
                     "columns": [
                         "time",
-                        "cpu_usage_idle"
+                        "usage_idle"
                     ],
                     "values": [
                         [
@@ -123,24 +127,8 @@ Content-Type: application/json
                 }
             ],
             "cost": "25.093363ms",
-        },
-        {
-            "series": [
-                {
-                    "name": "mem",
-                    "columns": [
-                        "time",
-                        "mem_usage_percent"
-                    ],
-                    "values": [
-                        [
-                            1608612960000,
-                            99.59595959596913
-                        ]
-                    ]
-                }
-            ],
-            "cost": "32.093363ms",
+            "raw_query": "SELECT \"usage_idle\" FROM \"cpu\" LIMIT 1",
+        }
     ]
 }
 ```
