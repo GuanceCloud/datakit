@@ -38,12 +38,13 @@ var (
 )
 
 type ExernalInput struct {
-	Name     string   `toml:"name"`
-	Daemon   bool     `toml:"daemon"`
-	Interval string   `toml:"interval"`
-	Envs     []string `toml:"envs"`
-	Cmd      string   `toml:"cmd"`
-	Args     []string `toml:"args"`
+	Name     string            `toml:"name"`
+	Daemon   bool              `toml:"daemon"`
+	Interval string            `toml:"interval"`
+	Envs     []string          `toml:"envs"`
+	Cmd      string            `toml:"cmd"`
+	Args     []string          `toml:"args"`
+	Tags     map[string]string `toml:"tags"`
 
 	cmd      *exec.Cmd     `toml:"-"`
 	duration time.Duration `toml:"-"`
