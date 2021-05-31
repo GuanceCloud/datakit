@@ -1,6 +1,7 @@
 package traceJaeger
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -42,17 +43,27 @@ func handleJaegerTrace(w http.ResponseWriter, r *http.Request) error {
 }
 
 func parseJaegerThrift(octets []byte) error {
-	adapterGroup := []*trace.TraceAdapter{}
-
 	buffer := thrift.NewTMemoryBuffer()
 	if _, err := buffer.Write(octets); err != nil {
 		return err
 	}
-	transport := thrift.NewTBinaryProtocolTransport(buffer)
+	transport := thrift.NewTBinaryProtocolConf(buffer, &thrift.TConfiguration{})
 	batch := &j.Batch{}
-	if err := batch.Read(transport); err != nil {
+	if err := batch.Read(context.TODO(), transport); err != nil {
 		return err
 	}
+
+	groups, err := processBatch(batch)
+	if err != nil {
+		return err
+	}
+
+	trace.MkLineProto(groups, inputName)
+	return nil
+}
+
+func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
+	adapterGroup := []*trace.TraceAdapter{}
 
 	project, ver, env := getExpandInfo(batch)
 	if project == "" {
@@ -78,7 +89,7 @@ func parseJaegerThrift(octets []byte) error {
 		tAdpter.Start = s.StartTime * 1000
 		sJson, err := json.Marshal(s)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		tAdpter.Content = string(sJson)
 
@@ -103,8 +114,7 @@ func parseJaegerThrift(octets []byte) error {
 		adapterGroup = append(adapterGroup, tAdpter)
 	}
 
-	trace.MkLineProto(adapterGroup, inputName)
-	return nil
+	return adapterGroup, nil
 }
 
 func getExpandInfo(batch *j.Batch) (project, ver, env string) {
