@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 func TestGatherServerStats(t *testing.T) {
@@ -20,7 +21,7 @@ func TestGatherServerStats(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -59,7 +60,7 @@ func TestGatherCluster(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -98,7 +99,7 @@ func TestGatherPerDbStats(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -141,7 +142,7 @@ func TestGatherCollection(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -180,7 +181,7 @@ func TestGatherTop(t *testing.T) {
 		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
@@ -218,7 +219,7 @@ func TestTlsConnectCollect(t *testing.T) {
 		ColStatsDbs:           []string{"admin"},
 		GatherTopStat:         false,
 		EnableTls:             true,
-		TlsConf: &TlsClientConfig{
+		TlsConf: &net.TlsClientConfig{
 			CaCerts:            []string{},
 			Cert:               "",
 			CertKey:            "",
@@ -227,7 +228,7 @@ func TestTlsConnectCollect(t *testing.T) {
 		},
 		mongos: make(map[string]*Server),
 	}
-	err := input.Gather()
+	err := input.gather()
 	if err != nil {
 		l.Panic(err.Error())
 	}
