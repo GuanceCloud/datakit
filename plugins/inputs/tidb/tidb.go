@@ -28,8 +28,9 @@ const (
     # required
     interval = "10s"
 
-    # [inputs.tidb.tags]
-    # tags1 = "value1"
+    [inputs.tidb.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
