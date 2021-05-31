@@ -20,11 +20,12 @@ const (
 
 	sampleCfg = `
 [[inputs.flink]]
-    # require
+    ## require
     db = "flink"
 
-    # [inputs.flink.tags]
-    # tags1 = "value1"
+    [inputs.flink.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
