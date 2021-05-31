@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"k8s.io/client-go/rest"
 	"sync"
 	"time"
@@ -61,10 +60,6 @@ func (i *Input) initCfg() error {
 		TimeoutDuration = 5 * time.Second
 	}
 
-	fmt.Println("url -->", i.URL)
-	fmt.Println("token -->", i.BearerTokenString)
-	fmt.Println("ca -->", i.TLSCA)
-	fmt.Println("skipVerity -->", i.InsecureSkipVerify)
 	var (
 		config *rest.Config
 	)
