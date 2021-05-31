@@ -24,55 +24,20 @@ func (m *pvcM) LineProto() (*io.Point, error) {
 
 func (m *pvcM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: deploymentMeasurement,
-		Desc: "kubernet daemonSet 对象",
+		Name: pvcMeasurement,
+		Desc: "kubernetes pvc 对象",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "pod name"},
-			"namespace": &inputs.TagInfo{Desc: "namespace"},
-			"nodeName":  &inputs.TagInfo{Desc: "node name"},
+			"pvc_name":     &inputs.TagInfo{Desc: "pvc name"},
+			"namespace":    &inputs.TagInfo{Desc: "namespace"},
+			"phase":        &inputs.TagInfo{Desc: "phase"},
+			"storageclass": &inputs.TagInfo{Desc: "storage class"},
 		},
 		Fields: map[string]interface{}{
-			"ready": &inputs.FieldInfo{
+			"phase_type": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "容器ready数/总数",
-			},
-			"status": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 状态",
-			},
-			"restarts": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "重启次数",
-			},
-			"age": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod存活时长",
-			},
-			"podIp": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod ip",
-			},
-			"createTime": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 创建时间",
-			},
-			"label_xxx": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod lable",
+				Desc:     "phase type, bound:0, lost:1, pending:2, unknown:3",
 			},
 		},
 	}
@@ -117,7 +82,7 @@ func (i *Input) gatherPersistentVolumeClaim(pvc corev1.PersistentVolumeClaim) {
 	// }
 
 	m := &pvcM{
-		name:   daemonSetMeasurement,
+		name:   pvcMeasurement,
 		tags:   tags,
 		fields: fields,
 		ts:     time.Now(),
