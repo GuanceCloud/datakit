@@ -6,17 +6,11 @@
 
 # 简介
 
-MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采集。
+计算机芯片温度数据采集（目前仅支持 `Linux` 操作系统）
 
 ## 前置条件
 
-- 编写配置文件在对应目录下然后启动 DataKit 即可完成配置。
-- 使用 TLS 进行安全连接需要先将配置文件中`enable_tls = true`值置 true，然后配置`inputs.mongodb.tlsconf`中指定的证书文件路径。
-- 如果 MongoDb 启动了访问控制那么需要配置必须的用户权限用于建立授权连接。例如：
-
-```command
-> db.grantRolesToUser("user", [{role: "read", actions: "find", db: "local"}])
-```
+`sudo apt install lm-sensors -y`
 
 ## 配置
 
