@@ -14,26 +14,31 @@ const (
 
 	sampleConfig = `
 [[inputs.host_processes]]
- ## process name support regexp
- # process_name = [".*datakit.*"]
- ## process min run time default 10m,Collection  the process of running more than ten minutes
- min_run_time     = "10m"
- ## open collection metric
- open_metric = false
- ## pipeline path
- # pipeline = ""
+  ## process name support regexp
+  # process_name = [".*datakit.*"]
+  ## process min run time default 10m,Collection  the process of running more than ten minutes
+  min_run_time     = "10m"
+  ## open collection metric
+  open_metric = false
+  ## pipeline path
+  # pipeline = ""
+  [inputs.host_processes.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
 `
 
 	pipelineSample = ``
 )
 
 type Input struct {
-	ProcessName    []string         `toml:"process_name,omitempty"`
-	ObjectInterval datakit.Duration `toml:"object_interval,omitempty"`
-	RunTime        datakit.Duration `toml:"min_run_time,omitempty"`
-	OpenMetric     bool             `toml:"open_metric,omitempty"`
-	MetricInterval datakit.Duration `toml:"metric_interval,omitempty"`
-	Pipeline       string           `toml:"pipeline,omitempty"`
+	ProcessName    []string          `toml:"process_name,omitempty"`
+	ObjectInterval datakit.Duration  `toml:"object_interval,omitempty"`
+	RunTime        datakit.Duration  `toml:"min_run_time,omitempty"`
+	OpenMetric     bool              `toml:"open_metric,omitempty"`
+	MetricInterval datakit.Duration  `toml:"metric_interval,omitempty"`
+	Pipeline       string            `toml:"pipeline,omitempty"`
+	Tags           map[string]string `toml:"tags"`
 
 	lastErr error
 	re      string
@@ -58,7 +63,7 @@ func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeIByte, "Resident Set Size （常驻内存大小）"),
-			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100）"),
+			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100），进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 top 的瞬时百分比不同）"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "mem使用占比（%*100）"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "open_files 个数(仅支持linux)"),
 		},
@@ -91,7 +96,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"start_time":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "进程启动时间"),
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeIByte, "Resident Set Size （常驻内存大小）"),
-			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100）"),
+			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100），进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 top 的瞬时百分比不同）"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "mem使用占比（%*100）"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "open_files 个数(仅支持linux)"),
 			"work_directory":   newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "工作目录(仅支持linux)"),
