@@ -35,13 +35,13 @@ func (m *serviceM) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"created": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "created time",
 			},
 			"generation": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "A sequence number representing a specific generation of the desired state",
@@ -53,13 +53,13 @@ func (m *serviceM) Info() *inputs.MeasurementInfo {
 				Desc:     "clusterIP is the IP address of the service",
 			},
 			"external_ip": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "externalIPs is a list of IP addresses for which nodes in the cluster",
 			},
 			"ports": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The list of ports that are exposed by this service",
