@@ -221,10 +221,10 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 	}
 
 	if c.DataWay.DeprecatedURL != "" {
-		c.DataWay.Urls = append(c.DataWay.Urls, c.DataWay.DeprecatedURL)
+		c.DataWay.URLs = append(c.DataWay.URLs, c.DataWay.DeprecatedURL)
 	}
 
-	if len(c.DataWay.Urls) == 0 {
+	if len(c.DataWay.URLs) == 0 {
 		l.Fatal("dataway URL not set")
 	}
 
@@ -235,7 +235,7 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 
 	l = logger.SLogger("datakit")
 
-	dw, err := ParseDataway(c.DataWay.Urls)
+	dw, err := ParseDataway(c.DataWay.URLs)
 	if err != nil {
 		return err
 	}
@@ -367,7 +367,7 @@ func (c *Config) LoadEnvs(mcp string) error {
 		}
 
 		c.DataWay = dw
-		c.DataWay.Urls = dwURLs
+		c.DataWay.URLs = dwURLs
 	}
 
 	dkhost := os.Getenv("ENV_HOSTNAME")
