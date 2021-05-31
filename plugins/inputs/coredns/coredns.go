@@ -12,18 +12,17 @@ const (
 
 	sampleCfg = `
 [[inputs.prom]]
-    # coredns metrics from http://HOST:PORT/metrics
-    # usually modify host and port
-    # required
+    ## coredns metrics from http://HOST:PORT/metrics
+    ## usually modify host and port
     url = "http://127.0.0.1:9153/metrics"
     
-    # valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-    # required
+    ## valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
     interval = "10s"
     
-    # [inputs.prom.tags]
+    [inputs.prom.tags]
     # from = "127.0.0.1:9153"
-    # tags1 = "value1"
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
