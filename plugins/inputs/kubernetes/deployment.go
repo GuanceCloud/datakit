@@ -25,54 +25,29 @@ func (m *deployment) LineProto() (*io.Point, error) {
 func (m *deployment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: deploymentMeasurement,
-		Desc: "kubernet daemonSet 对象",
+		Desc: "kubernet deployment 对象",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "pod name"},
-			"namespace": &inputs.TagInfo{Desc: "namespace"},
-			"nodeName":  &inputs.TagInfo{Desc: "node name"},
+			"deployment_name": &inputs.TagInfo{Desc: "deployment name"},
+			"namespace":       &inputs.TagInfo{Desc: "namespace"},
 		},
 		Fields: map[string]interface{}{
-			"ready": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "容器ready数/总数",
-			},
-			"status": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 状态",
-			},
-			"restarts": &inputs.FieldInfo{
+			"replicas_available": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "重启次数",
+				Desc:     "Total number of available pods (ready for at least minReadySeconds) targeted by this deployment",
 			},
-			"age": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"replicas_unavailable": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod存活时长",
+				Desc:     "Total number of unavailable pods targeted by this deployment",
 			},
-			"podIp": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"created": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod ip",
-			},
-			"createTime": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 创建时间",
-			},
-			"label_xxx": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod lable",
+				Desc:     "create time",
 			},
 		},
 	}
@@ -119,5 +94,4 @@ func (i *Input) gatherDeployment(d v1.Deployment) {
 	}
 
 	i.collectCache = append(i.collectCache, m)
-
 }

@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -9,7 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var serviceMeasurement = "kube_deployment"
+var serviceMeasurement = "kube_service"
 
 type serviceM struct {
 	name   string
@@ -25,54 +27,42 @@ func (m *serviceM) LineProto() (*io.Point, error) {
 func (m *serviceM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: deploymentMeasurement,
-		Desc: "kubernet daemonSet 对象",
+		Desc: "kubernetes service 对象",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "pod name"},
-			"namespace": &inputs.TagInfo{Desc: "namespace"},
-			"nodeName":  &inputs.TagInfo{Desc: "node name"},
+			"service_name": &inputs.TagInfo{Desc: "service name"},
+			"namespace":    &inputs.TagInfo{Desc: "namespace"},
+			"type":         &inputs.TagInfo{Desc: "service type"},
 		},
 		Fields: map[string]interface{}{
-			"ready": &inputs.FieldInfo{
+			"created": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "容器ready数/总数",
+				Desc:     "created time",
 			},
-			"status": &inputs.FieldInfo{
+			"generation": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 状态",
+				Desc:     "A sequence number representing a specific generation of the desired state",
 			},
-			"restarts": &inputs.FieldInfo{
+			"cluster_ip": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "重启次数",
+				Desc:     "clusterIP is the IP address of the service",
 			},
-			"age": &inputs.FieldInfo{
+			"external_ip": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod存活时长",
+				Desc:     "externalIPs is a list of IP addresses for which nodes in the cluster",
 			},
-			"podIp": &inputs.FieldInfo{
+			"ports": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod ip",
-			},
-			"createTime": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 创建时间",
-			},
-			"label_xxx": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod lable",
+				Desc:     "The list of ports that are exposed by this service",
 			},
 		},
 	}
@@ -95,54 +85,44 @@ func (i *Input) gatherService(s corev1.Service) {
 		return
 	}
 
+	servicePorts := make([]string, 0, len(s.Spec.Ports))
+	for _, p := range s.Spec.Ports {
+		servicePorts = append(servicePorts, fmt.Sprintf("%d:%d/%s", p.Port, p.NodePort, p.Protocol))
+	}
+
+	externalIPs := make([]string, 0, len(s.Spec.ExternalIPs))
+	for _, ip := range s.Spec.ExternalIPs {
+		externalIPs = append(externalIPs, ip)
+	}
+	var externalIPsStr = "<none>"
+	if len(externalIPs) > 0 {
+		externalIPsStr = strings.Join(externalIPs, ",")
+	}
+
 	fields := map[string]interface{}{
-		"created":    s.GetCreationTimestamp().UnixNano(),
-		"generation": s.Generation,
+		"created":     s.GetCreationTimestamp().UnixNano(),
+		"generation":  s.Generation,
+		"cluster_ip":  s.Spec.ClusterIP,
+		"external_ip": externalIPsStr,
+		"ports":       strings.Join(servicePorts, ","),
 	}
 
 	tags := map[string]string{
 		"service_name": s.Name,
 		"namespace":    s.Namespace,
+		"type":         string(s.Spec.Type),
 	}
 
-	// for key, val := range s.Spec.Selector {
-	// 	if i.selectorFilter.Match(key) {
-	// 		tags["selector_"+key] = val
-	// 	}
-	// }
-
-	var getPorts = func() {
-		for _, port := range s.Spec.Ports {
-			fields["port"] = port.Port
-			fields["target_port"] = port.TargetPort.IntVal
-
-			tags["port_name"] = port.Name
-			tags["port_protocol"] = string(port.Protocol)
-
-			if s.Spec.Type == "ExternalName" {
-				tags["external_name"] = s.Spec.ExternalName
-			} else {
-				tags["cluster_ip"] = s.Spec.ClusterIP
-			}
-
-			m := &serviceM{
-				name:   deploymentMeasurement,
-				tags:   tags,
-				fields: fields,
-				ts:     time.Now(),
-			}
-
-			i.collectCache = append(i.collectCache, m)
-		}
+	for key, val := range s.Spec.Selector {
+		tags["selector_"+key] = val
 	}
 
-	if externIPs := s.Spec.ExternalIPs; externIPs != nil {
-		for _, ip := range externIPs {
-			tags["ip"] = ip
-
-			getPorts()
-		}
-	} else {
-		getPorts()
+	m := &serviceM{
+		name:   serviceMeasurement,
+		tags:   tags,
+		fields: fields,
+		ts:     time.Now(),
 	}
+
+	i.collectCache = append(i.collectCache, m)
 }
