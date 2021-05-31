@@ -3,7 +3,6 @@ package install
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -92,16 +91,6 @@ func InstallNewDatakit(svc service.Service) {
 		mc.Name = DatakitName
 	}
 
-	// NOTE: load old datakit UUID file: reuse datakit UUID installed before
-	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
-		mc.UUID = datakit.GenerateDatakitID()
-		if err := datakit.CreateUUIDFile(datakit.UUIDFile, mc.UUID); err != nil {
-			l.Fatalf("create datakit id failed: %s", err.Error())
-		}
-	} else {
-		mc.UUID = string(data)
-	}
-
 	writeDefInputToMainCfg(mc)
 
 	l.Infof("installing service %s...", datakit.ServiceName)
@@ -159,7 +148,7 @@ func UpgradeDatakit(svc service.Service) error {
 	}
 
 	mc := datakit.Cfg
-	if err := mc.LoadMainTOML(datakit.MainConfPath, datakit.UUIDFile); err == nil {
+	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
 		mc, _ = upgradeMainConfig(mc)
 		writeDefInputToMainCfg(mc)
 	} else {
