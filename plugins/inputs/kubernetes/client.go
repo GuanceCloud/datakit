@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1beta1 "k8s.io/api/extensions/v1beta1"
 	"net"
 	"net/http"
 	"os"
@@ -181,4 +182,10 @@ func (c *client) getStatefulSets(ctx context.Context) (*appsv1.StatefulSetList, 
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 	return c.AppsV1().StatefulSets(c.namespace).List(metav1.ListOptions{})
+}
+
+func (c *client) getIngress(ctx context.Context) (*v1beta1.IngressList, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+	return c.ExtensionsV1beta1().Ingresses(c.namespace).List(metav1.ListOptions{})
 }
