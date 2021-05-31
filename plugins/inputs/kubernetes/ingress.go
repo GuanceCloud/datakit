@@ -36,13 +36,13 @@ func (m *ingressM) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"created": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "created time",
 			},
 			"generation": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "A sequence number representing a specific generation of the desired state",
@@ -54,13 +54,13 @@ func (m *ingressM) Info() *inputs.MeasurementInfo {
 				Desc:     "A list of host rules used to configure the Ingress",
 			},
 			"ingress_address": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "LoadBalancerStatus represents the status of a load-balancer",
 			},
 			"service_Ports": &inputs.FieldInfo{
-				DataType: inputs.String,
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "Specifies the port of the referenced service",
