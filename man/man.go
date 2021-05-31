@@ -112,6 +112,8 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 			}
 
 		default:
+			l.Warnf("incomplete input: %s", name)
+
 			return nil, nil
 		}
 	}
