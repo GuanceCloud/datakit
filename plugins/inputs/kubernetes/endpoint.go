@@ -26,21 +26,21 @@ func (m *endpointM) LineProto() (*io.Point, error) {
 func (m *endpointM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: endpointMeasurement,
-		Desc: "kubernet daemonSet 对象",
+		Desc: "kubernet endpoint 对象",
 		Tags: map[string]interface{}{
 			"name":      &inputs.TagInfo{Desc: "pod name"},
 			"namespace": &inputs.TagInfo{Desc: "namespace"},
 			"nodeName":  &inputs.TagInfo{Desc: "node name"},
 		},
 		Fields: map[string]interface{}{
-			"ready": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"created": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "容器ready数/总数",
+				Desc:     "",
 			},
-			"status": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"generation": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "pod 状态",
@@ -150,7 +150,7 @@ func (i *Input) gatherEndpoint(e corev1.Endpoints) {
 				tags["port_protocol"] = string(port.Protocol)
 
 				m := &endpointM{
-					name:   deploymentMeasurement,
+					name:   endpointMeasurement,
 					tags:   tags,
 					fields: fields,
 					ts:     time.Now(),
