@@ -2,10 +2,11 @@ package kubernetes
 
 import (
 	"context"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	v1 "k8s.io/api/apps/v1"
-	"time"
 )
 
 var daemonSetMeasurement = "kube_daemonset"
@@ -26,52 +27,57 @@ func (m *daemonSet) Info() *inputs.MeasurementInfo {
 		Name: daemonSetMeasurement,
 		Desc: "kubernet daemonSet 对象",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "pod name"},
-			"namespace": &inputs.TagInfo{Desc: "namespace"},
-			"nodeName":  &inputs.TagInfo{Desc: "node name"},
+			"daemonset_name": &inputs.TagInfo{Desc: "pod name"},
+			"namespace":      &inputs.TagInfo{Desc: "namespace"},
 		},
 		Fields: map[string]interface{}{
-			"ready": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "容器ready数/总数",
-			},
-			"status": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 状态",
-			},
-			"restarts": &inputs.FieldInfo{
+			"generation": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "重启次数",
+				Desc:     "A sequence number representing a specific generation of the desired state",
 			},
-			"age": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"current_number_scheduled": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod存活时长",
+				Desc:     "The number of nodes running at least one daemon pod and are supposed to",
 			},
-			"podIp": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"desired_number_scheduled": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod ip",
+				Desc:     "The number of nodes that should be running the daemon pod",
 			},
-			"createTime": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"number_available": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod 创建时间",
+				Desc:     "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and available",
 			},
-			"label_xxx": &inputs.FieldInfo{
-				DataType: inputs.String,
+			"number_misscheduled": &inputs.FieldInfo{
+				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "pod lable",
+				Desc:     "The number of nodes running a daemon pod but are not supposed to",
+			},
+			"number_ready": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready",
+			},
+			"number_unavailable": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The number of nodes that should be running the daemon pod and have none of the daemon pod running and available",
+			},
+			"updated_number_scheduled": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "The total number of nodes that are running updated daemon pod",
 			},
 		},
 	}
