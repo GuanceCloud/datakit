@@ -103,8 +103,12 @@ func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (*Input) AvailabelArch() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{&smartMeasurement{}}
 }
 
 func (s *Input) Run() {
@@ -227,6 +231,15 @@ func (s *Input) scanAllDevices(ignoreExcludes bool) ([]string, []string, error) 
 	return nvmeDevices, nonNVMeDevices, nil
 }
 
+func (s *Input) getCustomerTags() map[string]string {
+	tags := make(map[string]string)
+	for k, v := range s.Tags {
+		tags[k] = v
+	}
+
+	return tags
+}
+
 // Get info and attributes for each S.M.A.R.T. device
 func (s *Input) getAttributes(devices []string) {
 	start := time.Now()
@@ -290,15 +303,6 @@ func (s *Input) getVendorNVMeAttributes(devices []string) {
 		}
 	}
 	wg.Wait()
-}
-
-func (s *Input) getCustomerTags() map[string]string {
-	tags := make(map[string]string)
-	for k, v := range s.Tags {
-		tags[k] = v
-	}
-
-	return tags
 }
 
 func distinguishNVMeDevices(userDevices []string, availableNVMeDevices []string) []string {
@@ -392,9 +396,6 @@ func gatherIntelNVMeDisk(tags map[string]string, timeout time.Duration, useSudo 
 		return nil, fmt.Errorf("failed to run command '%s %s': %s - %s", nvme, strings.Join(args, " "), err, string(output))
 	}
 
-	if len(tags) == 0 {
-		tags = make(map[string]string)
-	}
 	tags["device"] = path.Base(device.name)
 	tags["model"] = device.model
 	tags["serial_no"] = device.serialNumber
@@ -475,12 +476,13 @@ func gatherDisk(tags map[string]string, timeout time.Duration, sudo bool, smartc
 		return nil, err
 	}
 
-	if len(tags) == 0 {
-		tags = make(map[string]string)
-	}
 	tags["device"] = path.Base(strings.Split(device, " ")[0])
+	if exitStatus == 0 {
+		tags["exit_status"] = "success"
+	} else {
+		tags["exit_status"] = "failed"
+	}
 	fields := make(map[string]interface{})
-	fields["exit_status"] = exitStatus
 
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	for scanner.Scan() {
@@ -504,6 +506,10 @@ func gatherDisk(tags map[string]string, timeout time.Duration, sudo bool, smartc
 		capacity := userCapacityInfo.FindStringSubmatch(line)
 		if len(capacity) > 1 {
 			tags["capacity"] = strings.Replace(capacity[1], ",", "", -1)
+			if cap, err := strconv.Atoi(tags["capacity"]); err == nil {
+				cap = cap / 1000000000
+				tags["capacity"] = fmt.Sprintf("%dGB", cap)
+			}
 		}
 
 		enabled := smartEnabledInfo.FindStringSubmatch(line)
@@ -513,16 +519,14 @@ func gatherDisk(tags map[string]string, timeout time.Duration, sudo bool, smartc
 
 		health := smartOverallHealth.FindStringSubmatch(line)
 		if len(health) > 2 {
-			fields["health_ok"] = (health[2] == "PASSED" || health[2] == "OK")
+			tags["health_ok"] = health[2]
 		}
 
 		attr := attribute.FindStringSubmatch(line)
 		if len(attr) > 1 {
 			// attribute has been found
 			name := strings.ToLower(attr[2])
-			tags["flags"] = attr[3]
-
-			fields["exit_status"] = exitStatus
+			fields["flags"] = attr[3]
 			if i, err := strconv.ParseInt(attr[4], 10, 64); err == nil {
 				fields[name+"_value"] = i
 			}
@@ -532,8 +536,7 @@ func gatherDisk(tags map[string]string, timeout time.Duration, sudo bool, smartc
 			if i, err := strconv.ParseInt(attr[6], 10, 64); err == nil {
 				fields[name+"_threshold"] = i
 			}
-
-			tags["fail"] = attr[7]
+			fields["fail"] = !(attr[7] == "-")
 			if val, err := parseRawValue(attr[8]); err == nil {
 				fields[name+"_raw_value"] = val
 			}
