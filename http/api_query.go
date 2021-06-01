@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 type QueryRaw struct {
@@ -36,11 +36,11 @@ func (q *QueryRaw) JSON() ([]byte, error) {
 
 // PostQuery 将 QueryRaw 序列化成JSON，发送到第一个 DataWay（DataWay 可能有多个）
 func (q *QueryRaw) PostQuery() (*http.Response, error) {
-	if len(datakit.Cfg.DataWay.QueryRawURL()) == 0 {
+	if len(config.Cfg.DataWay.QueryRawURL()) == 0 {
 		return nil, fmt.Errorf("invalid queryRawURL, is empty")
 	}
 
-	queryRawURL := datakit.Cfg.DataWay.QueryRawURL()[0]
+	queryRawURL := config.Cfg.DataWay.QueryRawURL()[0]
 
 	u, err := url.Parse(queryRawURL)
 	if err != nil {
