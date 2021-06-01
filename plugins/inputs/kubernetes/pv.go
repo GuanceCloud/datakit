@@ -26,7 +26,7 @@ func (m *pvM) LineProto() (*io.Point, error) {
 func (m *pvM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: pvMeasurement,
-		Desc: "kubernet pv 对象",
+		Desc: "kubernet pv",
 		Tags: map[string]interface{}{
 			"pv_name":      &inputs.TagInfo{Desc: "pv name"},
 			"phase":        &inputs.TagInfo{Desc: "Phase indicates if a volume is available, bound to a claim, or released by a claim"},
