@@ -54,6 +54,7 @@ func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
 		tags:     ts,
+		class:    t.Class(),
 	}, nil
 }
 
@@ -76,8 +77,12 @@ func (d *dialer) run() error {
 			d.testCnt++
 			//dialtesting start
 			//无论成功或失败，都要记录测试结果
-			d.task.Run()
-			err := d.feedIo()
+			err := d.task.Run()
+			if err != nil {
+				l.Errorf("task %s failed, %s", d.task.ID(), err.Error())
+			}
+
+			err = d.feedIo()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
@@ -98,20 +103,6 @@ func (d *dialer) run() error {
 }
 
 func (d *dialer) feedIo() error {
-	// 获取此次任务执行的基本信息
-	tags := map[string]string{}
-	fields := map[string]interface{}{}
-	tags, fields = d.task.GetResults()
-
-	for k, v := range d.tags {
-		tags[k] = v
-	}
-
-	data, err := io.MakePoint(d.task.MetricName(), tags, fields, time.Now())
-	if err != nil {
-		l.Warnf("make metric failed: %s", err.Error)
-		return err
-	}
 
 	// 考虑到推送至不同的dataway地址
 	u, err := url.Parse(d.task.PostURLStr())
@@ -122,13 +113,17 @@ func (d *dialer) feedIo() error {
 
 	u.Path = u.Path + "v1/write/" + datakit.Logging // `/v1/write/logging`
 
-	err = Feed(inputName, datakit.Logging, data, &io.Option{
-		HTTPHost: u.String(),
-	})
+	urlStr := u.String()
+	switch d.task.Class() {
+	case dt.ClassHTTP:
+		return d.pointsFeed(urlStr)
+	case dt.ClassHeadless:
+		return d.linedataFeed(urlStr, `ms`)
+	//TODO other class
+	default:
+	}
 
-	l.Debugf(`url:%s, tags: %+#v, fs: %+#v`, u.String(), tags, fields)
-
-	return err
+	return nil
 }
 
 func (d *dialer) doUpdateTask(t dt.Task) {
