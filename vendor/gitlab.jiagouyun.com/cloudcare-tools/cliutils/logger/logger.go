@@ -49,8 +49,8 @@ var (
 	defaultRootLogger *zap.Logger
 	stdoutRootLogger  *zap.Logger
 
-	ll                  *zap.SugaredLogger
-	reservedSLoggerName string = "__reserved__"
+	ll                  *zap.SugaredLogger // logger's logging
+	reservedSLoggerName string             = "__reserved__"
 	slogs               *sync.Map
 
 	mtx = &sync.Mutex{}
@@ -58,6 +58,8 @@ var (
 	MaxSize    = 32 // megabytes
 	MaxBackups = 5
 	MaxAge     = 28 // day
+
+	EnvRootLoggerPath = "ROOT_LOGGER_PATH"
 
 	defaultOption = &Option{
 		Level: DEBUG,
@@ -106,8 +108,7 @@ func InitRoot(opt *Option) error {
 	}
 
 	if opt.Env != "" {
-		SetEnvRootLogger(opt.Env, opt.Level, opt.Flags)
-		return nil
+		return SetEnvRootLogger(opt.Env, opt.Level, opt.Flags)
 	}
 
 	if opt.Path == "" {
@@ -121,14 +122,13 @@ func InitRoot(opt *Option) error {
 	return nil
 }
 
-func SetEnvRootLogger(env, level string, options int) {
+func SetEnvRootLogger(env, level string, options int) error {
 	fpath, ok := os.LookupEnv(env)
 	if !ok {
-		SetStdoutRootLogger(level, options)
-		return
+		return fmt.Errorf("ENV `%s' not set", env)
 	}
 
-	SetGlobalRootLogger(fpath, level, options)
+	return SetGlobalRootLogger(fpath, level, options)
 }
 
 func SetStdoutRootLogger(level string, options int) {
@@ -147,7 +147,7 @@ func SetStdoutRootLogger(level string, options int) {
 	}
 }
 
-func SetGlobalRootLogger(fpath, level string, options int) {
+func SetGlobalRootLogger(fpath, level string, options int) error {
 	mtx.Lock()
 	defer mtx.Unlock()
 
@@ -156,13 +156,13 @@ func SetGlobalRootLogger(fpath, level string, options int) {
 			ll.Warnf("global root logger has been initialized %+#v", defaultRootLogger)
 		}
 
-		return
+		return nil
 	}
 
 	var err error
 	defaultRootLogger, err = newRootLogger(fpath, level, options)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	slogs = &sync.Map{}
@@ -173,15 +173,12 @@ func SetGlobalRootLogger(fpath, level string, options int) {
 
 		ll.Info("root logger init ok")
 	}
+	return nil
 }
-
-const (
-	rootNotInitialized = "you should init a root logger via SetGlobalRootLogger or SetStdoutRootLogger"
-)
 
 func SLogger(name string) *Logger {
 	if defaultRootLogger == nil && stdoutRootLogger == nil {
-		panic(rootNotInitialized)
+		panic("root logger not set")
 	}
 
 	return &Logger{SugaredLogger: slogger(name)}
@@ -198,12 +195,17 @@ func slogger(name string) *zap.SugaredLogger {
 	}
 
 	if root == nil {
-		if runtime.GOOS != "windows" {
-			SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT|OPT_COLOR)
+		// try set root-logger via env
+		if err := SetEnvRootLogger(EnvRootLoggerPath, DEBUG, OPT_DEFAULT); err == nil {
+			root = defaultRootLogger
 		} else {
-			SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
+			if runtime.GOOS != "windows" {
+				SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT|OPT_COLOR)
+			} else {
+				SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
+			}
+			root = stdoutRootLogger
 		}
-		root = stdoutRootLogger
 	}
 
 	newlog := getSugarLogger(root, name)
