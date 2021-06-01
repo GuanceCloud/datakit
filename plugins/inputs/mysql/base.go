@@ -505,13 +505,14 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 // 数据源获取数据
 func (m *baseMeasurement) getStatus() error {
 	if err := m.i.db.Ping(); err != nil {
-		l.Errorf("db connect error %v", err)
+		l.Errorf("connect error %v", err)
 		return err
 	}
 
 	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
 	rows, err := m.i.db.Query(globalStatusSql)
 	if err != nil {
+		l.Errorf("query error %v", err)
 		return err
 	}
 
@@ -537,6 +538,7 @@ func (m *baseMeasurement) getVariables() error {
 	variablesSql := "SHOW GLOBAL VARIABLES;"
 	rows, err := m.i.db.Query(variablesSql)
 	if err != nil {
+		l.Error(err)
 		return err
 	}
 	defer rows.Close()
@@ -559,6 +561,7 @@ func (m *baseMeasurement) getLogStats() error {
 	logSql := "SHOW BINARY LOGS;"
 	rows, err := m.i.db.Query(logSql)
 	if err != nil {
+		l.Error(err)
 		return err
 	}
 	defer rows.Close()
@@ -569,6 +572,7 @@ func (m *baseMeasurement) getLogStats() error {
 		var val *sql.RawBytes = new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
+			l.Warnf("rows.Scan(): %s, ignored", err.Error())
 			continue
 		}
 
