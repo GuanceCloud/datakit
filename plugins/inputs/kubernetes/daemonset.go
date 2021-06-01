@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -84,8 +83,8 @@ func (m *daemonSet) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectDaemonSets(ctx context.Context) error {
-	list, err := i.client.getDaemonSets(ctx)
+func (i *Input) collectDaemonSets() error {
+	list, err := i.client.getDaemonSets()
 	if err != nil {
 		return err
 	}
