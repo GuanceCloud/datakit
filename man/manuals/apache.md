@@ -87,7 +87,12 @@ Allow from your_ip
 
 ## 日志 pipeline 功能切割字段说明
 
-原始日志为 `[Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status`
+- Apache 错误日志切割 
+
+错误日志文本示例：
+```
+[Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status
+```
 
 切割后的字段列表如下：
 
@@ -98,8 +103,12 @@ Allow from your_ip
 |  type   | access_compat   | 日志类型 |
 |  time   | 1621391985000000000     | 纳秒时间戳（作为行协议时间）|
 
+- Apache 访问日志切割
 
-原始日志为 `127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917`
+访问日志文本示例:
+``` 
+127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917
+```
 
 切割后的字段列表如下：
 
