@@ -8,13 +8,15 @@
 
 Kubernetes 集群指标采集，收集以下数据：
 
-- 各种资源对象指标
-- 接入 kubernetes event 数据，通过 [kube-eventer](https://github.com/AliyunContainerService/kube-eventer) 配置
-- 接入 kubernetes 的 Prometheus exporter数据源 (todo)
+- 各种资源指标
+- 接入 kubernetes event 数据，通过 [kube-eventer](https://github.com/AliyunContainerService/kube-eventer) (todo)
+- 接入 kubernetes 的 Prometheus exporter 指标数据 (todo)
 
 ## 前置条件
 
-- 创建监控的 serviceAccount 账号（该账户只读权限）
+### 创建监控的 ServiceAccount 账号（该账户拥有只读权限）
+
+- 创建 `account.yaml` 编排文件, 文件内容如下:
 
 ```yaml
 # create namespace
@@ -40,9 +42,44 @@ kind: ClusterRole
 metadata:
   name: datakit-monitor
 rules:
-- apiGroups: [""]
-  resources: ["nodes", "services", "endpoints", "pods", "daemonsets", "deployments", "statefulsets", "persistentvolumes", "persistentvolumeclaims"]
-  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - namespaces
+  - pods
+  - services
+  - endpoints
+  - persistentvolumes
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - statefulsets
+  - replicasets
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - "extensions"
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
 ---
 # ClusterRoleBinding
 kind: ClusterRoleBinding
@@ -59,8 +96,38 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
+- 由集群管理员执行以下命令创建监控只读权限的账户
+
+```sh
+## 执行编排yaml
+$kubectl apply -f account.yaml
+
+## 确认创建成功
+$kubectl get sa -n datakit-monitor
+NAME              SECRETS   AGE
+datakit-monitor   1         3d13h
+default           1         3d13h
+```
+
 - 获取认证 token 和证书
 
+```sh
+## 获取token
+$kubectl get secrets -n datakit-monitor -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit-monitor')].data.token}"| base64 --decode > token
+
+## 获取CA证书
+$kubectl get secrets -n datakit-monitor -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit-monitor')].data.ca\\.crt}" | base64 --decode > ca_crt.pem
+
+## 确认结果
+$ls -l 
+-rw-r--r--  1 liushaobo  staff   1066  6  1 15:48 ca.crt
+-rw-r--r--  1 liushaobo  staff    953  6  1 15:48 token
+```
+
+注意：以上得到的结果文件将用于下文的采集器配置中
+
+- 获取服务
+todo
 
 ## 配置
 

@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"strings"
 	"time"
 
@@ -43,8 +42,8 @@ func (m *pvM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectPersistentVolumes(ctx context.Context) error {
-	list, err := i.client.getPersistentVolumes(ctx)
+func (i *Input) collectPersistentVolumes() error {
+	list, err := i.client.getPersistentVolumes()
 	if err != nil {
 		return err
 	}
