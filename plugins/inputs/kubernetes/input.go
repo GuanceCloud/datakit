@@ -1,10 +1,10 @@
 package kubernetes
 
 import (
-	"context"
 	"k8s.io/client-go/rest"
 	"sync"
 	"time"
+	"io/ioutil"
 
 	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
@@ -72,6 +72,13 @@ func (i *Input) initCfg() error {
 			return err
 		}
 	} else if i.URL != "" {
+		token, err := ioutil.ReadFile(i.BearerToken)
+		if err != nil {
+			return err
+		}
+
+		i.BearerTokenString = string(token)
+
 		config, err = createConfigByToken(i.URL, i.BearerTokenString, i.TLSCA, i.InsecureSkipVerify)
 		if err != nil {
 			return err
@@ -99,7 +106,7 @@ func (i *Input) globalTag() {
 }
 
 func (i *Input) Collect() error {
-	var availableCollectors = map[string]func(ctx context.Context) error{
+	var availableCollectors = map[string]func() error{
 		"daemonsets":  i.collectDaemonSets,
 		"deployments": i.collectDeployments,
 		"endpoints":   i.collectEndpoints,
@@ -111,8 +118,6 @@ func (i *Input) Collect() error {
 	}
 
 	i.collectCache = []inputs.Measurement{}
-
-	ctx := context.Background()
 
 	resourceFilter, err := filter.NewIncludeExcludeFilter(i.ResourceInclude, i.ResourceExclude)
 	if err != nil {
@@ -126,7 +131,8 @@ func (i *Input) Collect() error {
 
 	for collector, f := range availableCollectors {
 		if resourceFilter.Match(collector) {
-			f(ctx)
+			err := f()
+			l.Errorf("%s exec %v", collector, err)
 		}
 	}
 
