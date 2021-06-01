@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dk "gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkInputs "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -213,10 +215,10 @@ func (i *Input) executeQuery(query string) error {
 
 func (i *Input) getDbMetrics() error {
 	query := `
-	SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size 
-	FROM pg_stat_database psd 
-	JOIN pg_database pd ON psd.datname = pd.datname 
-	WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'   
+	SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size
+	FROM pg_stat_database psd
+	JOIN pg_database pd ON psd.datname = pd.datname
+	WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
 	AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
 	`
 	if len(i.IgnoredDatabases) != 0 {
@@ -240,7 +242,7 @@ func (i *Input) getBgwMetrics() error {
 
 func (i *Input) getConnectionMetrics() error {
 	query := `
-		WITH max_con AS (SELECT setting::float FROM pg_settings WHERE name = 'max_connections') 
+		WITH max_con AS (SELECT setting::float FROM pg_settings WHERE name = 'max_connections')
 		SELECT MAX(setting) AS max_connections, SUM(numbackends)/MAX(setting) AS percent_usage_connections
 		FROM pg_stat_database, max_con
 	`
@@ -375,7 +377,7 @@ func (i *Input) runService(inputs Inputs, datakit Datakit) {
 		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
 	}
 
-	i.duration = datakit.ProtectedInterval(minInterval, maxInterval, duration)
+	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(i.duration)
 
@@ -441,18 +443,18 @@ func (DkInputs) JoinPipelinePath(op interface{}, defaultPipeline string) {
 
 func (i *Input) Run() {
 	inputs := DkInputs{}
-	datakit := Datakit{
+	dk := Datakit{
 		ch:     make(chan interface{}),
 		Metric: dk.Metric,
 	}
-	datakit.ProtectedInterval = func(min, max, cur time.Duration) time.Duration {
+	dk.ProtectedInterval = func(min, max, cur time.Duration) time.Duration {
 		return dk.ProtectedInterval(min, max, cur)
 	}
-	datakit.Exit = func() <-chan interface{} {
-		return dk.Exit.Wait()
+	dk.Exit = func() <-chan interface{} {
+		return datakit.Exit.Wait()
 	}
 
-	i.runService(inputs, datakit)
+	i.runService(inputs, dk)
 }
 
 func parseURL(uri string) (string, error) {
