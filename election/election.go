@@ -43,6 +43,10 @@ var (
 func InitGlobalConsensusModule() error {
 	l = logger.SLogger("dk-election")
 
+	if len(datakit.Cfg.DataWay.ElectionURL()) == 0 || len(datakit.Cfg.DataWay.ElectionHeartBeatURL()) == 0 {
+		return fmt.Errorf("invalid electionURL or electionHeartbeatURL, is empty")
+	}
+
 	electionURL, err := setURLQueryParam(
 		datakit.Cfg.DataWay.ElectionURL()[0],
 		"id",

@@ -168,14 +168,14 @@ func (d *Input) doLocalTask(path string) {
 	<-datakit.Exit.Wait()
 }
 
-func (d *Input) newHttpTaskRun(t dt.HTTPTask) (*dialer, error) {
+func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
-	dialer, err := newDialer(&t, d.Tags)
+	dialer, err := newDialer(t, d.Tags)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -247,63 +247,67 @@ func (d *Input) dispatchTasks(j []byte) error {
 
 	for k, arr := range resp.Content {
 
+		var t dt.Task
+
 		switch k {
-
 		case dt.ClassHTTP:
-			for _, j := range arr.([]interface{}) {
-				var t dt.HTTPTask
-				if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
-					l.Errorf(`%s`, err.Error())
-					return err
-				}
-
-				// update dialer pos
-				ts := t.UpdateTimeUs()
-				if d.pos < ts {
-					d.pos = ts
-				}
-
-				l.Debugf(`%+#v`, d.curTasks[t.ID()])
-
-				if dialer, ok := d.curTasks[t.ID()]; ok { // update task
-
-					if dialer.failCnt >= MaxFails {
-						l.Warnf(`failed %d times,ignore`, dialer.failCnt)
-						delete(d.curTasks, t.ID())
-						continue
-					}
-
-					if err := dialer.updateTask(&t); err != nil {
-						l.Warnf(`%s,ignore`, err.Error())
-					}
-
-					if strings.ToLower(t.Status()) == dt.StatusStop {
-						delete(d.curTasks, t.ID())
-					}
-
-				} else { // create new task
-
-					l.Debugf(`create new task %+#v`, t)
-					dialer, err := d.newHttpTaskRun(t)
-					if err != nil {
-						l.Errorf(`%s, ignore`, err.Error())
-					} else {
-						d.curTasks[t.ID()] = dialer
-					}
-
-				}
-			}
-
+			t = &dt.HTTPTask{}
+		case dt.ClassHeadless:
+			t = &dt.HeadlessTask{}
 		case dt.ClassDNS:
 			// TODO
 		case dt.ClassTCP:
 			// TODO
 		case dt.ClassOther:
 			// TODO
-
 		default:
 			return fmt.Errorf("unknown task type: %s", k)
 		}
+
+		for _, j := range arr.([]interface{}) {
+			if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
+				l.Errorf(`%s`, err.Error())
+				return err
+			}
+
+			// update dialer pos
+			ts := t.UpdateTimeUs()
+			if d.pos < ts {
+				d.pos = ts
+			}
+
+			l.Debugf(`%+#v`, d.curTasks[t.ID()])
+
+			if dialer, ok := d.curTasks[t.ID()]; ok { // update task
+
+				if dialer.failCnt >= MaxFails {
+					l.Warnf(`failed %d times,ignore`, dialer.failCnt)
+					delete(d.curTasks, t.ID())
+					continue
+				}
+
+				if err := dialer.updateTask(t); err != nil {
+					l.Warnf(`%s,ignore`, err.Error())
+				}
+
+				if strings.ToLower(t.Status()) == dt.StatusStop {
+					delete(d.curTasks, t.ID())
+				}
+
+			} else { // create new task
+
+				l.Debugf(`create new task %+#v`, t)
+				dialer, err := d.newTaskRun(t)
+				if err != nil {
+					l.Errorf(`%s, ignore`, err.Error())
+				} else {
+					d.curTasks[t.ID()] = dialer
+				}
+
+			}
+		}
+
+		//case dt.ClassHeadless:
 	}
 	return nil
 }
