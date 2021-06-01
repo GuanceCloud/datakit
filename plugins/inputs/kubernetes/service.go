@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -68,8 +67,8 @@ func (m *serviceM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectServices(ctx context.Context) error {
-	list, err := i.client.getServices(ctx)
+func (i *Input) collectServices() error {
+	list, err := i.client.getServices()
 	if err != nil {
 		return err
 	}
