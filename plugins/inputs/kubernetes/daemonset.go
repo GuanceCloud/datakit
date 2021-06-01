@@ -25,10 +25,11 @@ func (m *daemonSet) LineProto() (*io.Point, error) {
 func (m *daemonSet) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: daemonSetMeasurement,
-		Desc: "kubernet daemonSet 对象",
+		Desc: "kubernet daemonSet",
 		Tags: map[string]interface{}{
 			"daemonset_name": &inputs.TagInfo{Desc: "pod name"},
 			"namespace":      &inputs.TagInfo{Desc: "namespace"},
+			"selector_*":     &inputs.TagInfo{Desc: "lab"},
 		},
 		Fields: map[string]interface{}{
 			"generation": &inputs.FieldInfo{
@@ -112,11 +113,10 @@ func (i *Input) gatherDaemonSet(d v1.DaemonSet) {
 		"daemonset_name": d.Name,
 		"namespace":      d.Namespace,
 	}
-	// for key, val := range d.Spec.Selector.MatchLabels {
-	// 	if i.selectorFilter.Match(key) {
-	// 		tags["selector_"+key] = val
-	// 	}
-	// }
+
+	for key, val := range d.Spec.Selector.MatchLabels {
+		tags["selector_"+key] = val
+	}
 
 	if d.GetCreationTimestamp().Second() != 0 {
 		fields["created"] = d.GetCreationTimestamp().UnixNano()
