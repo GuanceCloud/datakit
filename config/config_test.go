@@ -185,8 +185,8 @@ func TestBuildInputCfg(t *testing.T) {
 	[inputs.diskio.tags]
 	host = '{{.Hostname}}'`
 
-	datakit.Cfg.Hostname = "this-is-the-test-host-name"
-	sample, err := BuildInputCfg([]byte(data), datakit.Cfg)
+	config.Cfg.Hostname = "this-is-the-test-host-name"
+	sample, err := BuildInputCfg([]byte(data), config.Cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestBuildInputCfg(t *testing.T) {
 
 //func TestLoadMainCfg(t *testing.T) {
 //
-//	c := datakit.Cfg
+//	c := config.Cfg
 //	if err := c.LoadMainConfig(); err != nil {
 //		t.Errorf("%s", err)
 //	}

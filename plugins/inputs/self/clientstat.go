@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -28,7 +28,7 @@ type ClientStat struct {
 }
 
 func (s *ClientStat) Update() {
-	s.HostName = datakit.Cfg.Hostname
+	s.HostName = config.Cfg.Hostname
 
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
@@ -46,7 +46,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 	measurement := "datakit"
 
 	tags := map[string]string{
-		"uuid":    datakit.Cfg.UUID,
+		"uuid":    config.Cfg.UUID,
 		"vserion": git.Version,
 		"os":      s.OS,
 		"arch":    s.Arch,
