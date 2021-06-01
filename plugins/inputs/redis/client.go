@@ -79,19 +79,9 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
-func (i *Input) getClientData() error {
-	list, err := i.client.ClientList().Result()
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-
-	return i.parseClientData(list)
-}
-
 // 解析返回结果
-func (i *Input) parseClientData(list string) error {
+func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
+	var collectCache []inputs.Measurement
 	rdr := strings.NewReader(list)
 
 	scanner := bufio.NewScanner(rdr)
@@ -135,16 +125,18 @@ func (i *Input) parseClientData(list string) error {
 				m.resData[key] = val
 			}
 		}
-
 		m.ts = time.Now()
-		if err := m.submit(); err == nil {
-			if len(m.fields) > 0 {
-				i.collectCache = append(i.collectCache, m)
-			}
+
+		if err := m.submit(); err != nil {
+			return nil, err
+		}
+
+		if len(m.fields) > 0 {
+			collectCache = append(collectCache, m)
 		}
 	}
 
-	return nil
+	return collectCache, nil
 }
 
 // 提交数据
@@ -154,7 +146,6 @@ func (m *clientMeasurement) submit() error {
 		if value, ok := m.resData[key]; ok {
 			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
 			if err != nil {
-				m.i.err = err
 				l.Errorf("infoMeasurement metric %v value %v parse error %v", key, value, err)
 				return err
 			} else {
