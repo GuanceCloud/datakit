@@ -13,6 +13,9 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
@@ -41,8 +44,8 @@ func readInput(prompt string) string {
 	return strings.TrimSpace(txt)
 }
 
-func getDataWayCfg() *datakit.DataWayCfg {
-	dw := &datakit.DataWayCfg{}
+func getDataWayCfg() *dataway.DataWayCfg {
+	dw := &dataway.DataWayCfg{}
 
 	if DataWayHTTP == "" {
 
@@ -74,14 +77,14 @@ func InstallNewDatakit(svc service.Service) {
 		l.Warnf("uninstall service: %s, ignored", err.Error())
 	}
 
-	mc := datakit.Cfg
+	mc := config.Cfg
 
 	// prepare dataway info
 	mc.DataWay = getDataWayCfg()
 
 	// accept any install options
 	if GlobalTags != "" {
-		mc.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
+		mc.GlobalTags = config.ParseGlobalTags(GlobalTags)
 	}
 
 	mc.HTTPListen = fmt.Sprintf("localhost:%d", Port)
@@ -93,13 +96,13 @@ func InstallNewDatakit(svc service.Service) {
 
 	writeDefInputToMainCfg(mc)
 
-	l.Infof("installing service %s...", datakit.ServiceName)
+	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("install service: %s, ignored", err.Error())
 	}
 }
 
-func writeDefInputToMainCfg(mc *datakit.Config) {
+func writeDefInputToMainCfg(mc *config.Config) {
 
 	var hostInputs = DefaultHostInputs
 	if runtime.GOOS == datakit.OSLinux {
@@ -120,7 +123,7 @@ func writeDefInputToMainCfg(mc *datakit.Config) {
 	}
 }
 
-func upgradeMainConfig(c *datakit.Config) (*datakit.Config, error) {
+func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 
 	if c.DataWay != nil {
 		c.DataWay.DeprecatedURL = ""
@@ -147,7 +150,7 @@ func UpgradeDatakit(svc service.Service) error {
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
 
-	mc := datakit.Cfg
+	mc := config.Cfg
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
 		mc, _ = upgradeMainConfig(mc)
 		writeDefInputToMainCfg(mc)
