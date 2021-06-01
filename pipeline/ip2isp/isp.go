@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/csv"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 const (
@@ -347,9 +347,8 @@ func SearchIsp(ip string) string {
 	return "unknown"
 }
 
-func Init() error {
+func Init(f string) error {
 	m := make(map[string]string)
-	f := filepath.Join(datakit.InstallDir, "data", "ip2isp.txt")
 
 	if !datakit.FileExist(f) {
 		l.Warnf("%v not found", f)
