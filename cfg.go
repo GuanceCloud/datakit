@@ -90,7 +90,8 @@ type Config struct {
 	IntervalDeprecated string `toml:"interval,omitempty"`
 
 	OutputFile string `toml:"output_file"`
-	Hostname   string `toml:"hostname,omitempty"`
+	//Hostname   string `toml:"hostname,omitempty"`
+	Hostname string `toml:"-"`
 
 	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
 	InstallDate          time.Time `toml:"install_date,omitempty"`
