@@ -57,6 +57,7 @@ type JolokiaAgent struct {
 func (j *JolokiaAgent) Collect() {
 	j.l = logger.DefaultSLogger(j.PluginName)
 	j.l.Infof("%s input started...", j.PluginName)
+	j = j.Adaptor()
 
 	duration, err := time.ParseDuration(j.Interval)
 	if err != nil {
@@ -140,6 +141,29 @@ func (ja *JolokiaAgent) createClient(url string) (*Client, error) {
 		ResponseTimeout: ja.ResponseTimeout,
 		ClientConfig:    ja.ClientConfig,
 	})
+}
+
+func (j *JolokiaAgent) Adaptor() *JolokiaAgent {
+	for i, m := range j.Metrics {
+		var t string
+		if m.FieldPrefix != nil {
+			t = strings.ReplaceAll(*m.FieldPrefix, "#", "$")
+			m.FieldPrefix = &t
+		}
+
+		if m.FieldSeparator != nil {
+			t = strings.ReplaceAll(*m.FieldSeparator, "#", "$")
+			m.FieldSeparator = &t
+		}
+
+		if m.FieldName != nil {
+			t = strings.ReplaceAll(*m.FieldName, "#", "$")
+			m.FieldName = &t
+		}
+
+		j.Metrics[i] = m
+	}
+	return j
 }
 
 // ----------------------- gatherer --------------------------------
