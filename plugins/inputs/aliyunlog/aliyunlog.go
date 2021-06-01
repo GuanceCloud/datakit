@@ -17,6 +17,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -87,11 +88,11 @@ func (r *runningProject) run() {
 		r.wg.Add(1)
 
 		if c.ConsumerGroupName == "" {
-			c.ConsumerGroupName = "datakit-" + datakit.Cfg.UUID
+			c.ConsumerGroupName = "datakit-" + config.Cfg.UUID
 		}
 
 		if c.ConsumerName == "" {
-			c.ConsumerName = "datakit-" + datakit.Cfg.UUID
+			c.ConsumerName = "datakit-" + config.Cfg.UUID
 		}
 
 		go func(ls *LogStoreCfg) {
@@ -128,7 +129,7 @@ func (al *adapterLogWriter) Write(p []byte) (n int, err error) {
 func sdkLogger() log.Logger {
 	var logger log.Logger
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(&adapterLogWriter{}))
-	switch datakit.Cfg.LogLevel {
+	switch config.Cfg.LogLevel {
 	case "debug":
 		logger = level.NewFilter(logger, level.AllowDebug())
 	default:
