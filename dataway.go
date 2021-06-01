@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	baseUrl          = "/v1/write"
+	baseURL          = "/v1/write"
 	MetricDeprecated = "metrics"
 	Metric           = "metric"
 	KeyEvent         = "keyevent"
@@ -27,7 +27,7 @@ const (
 
 type DataWayCfg struct {
 	DeprecatedURL    string   `toml:"url,omitempty"`
-	Urls             []string `toml:"urls"`
+	URLs             []string `toml:"urls"`
 	Proxy            bool     `toml:"proxy,omitempty"`
 	DeprecatedHost   string   `toml:"host,omitempty"`
 	DeprecatedScheme string   `toml:"scheme,omitempty"`
@@ -44,13 +44,13 @@ type dataWayClient struct {
 	host        string
 	scheme      string
 	urlValues   url.Values
-	categoryUrl map[string]string
+	categoryURL map[string]string
 	httpCli     *http.Client
 }
 
 // 发送数据
 func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz bool) error {
-	url, ok := dc.categoryUrl[category]
+	url, ok := dc.categoryURL[category]
 	if !ok {
 		url = category
 		// err := fmt.Errorf("category %s not exist", category)
@@ -108,7 +108,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 }
 
 func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
-	req, err := http.NewRequest("POST", dc.categoryUrl[HeartBeat], bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", dc.categoryURL[HeartBeat], bytes.NewBuffer(data))
 
 	dc.httpCli = cli
 
@@ -171,24 +171,34 @@ func (dw *DataWayCfg) HeartBeat() error {
 	return nil
 }
 
-func (dw *DataWayCfg) ElectionURL() []string {
-	var resUrl []string
+func (dw *DataWayCfg) QueryRawURL() []string {
+	var resURL []string
 	for _, dc := range dw.dataWayClients {
-		electionUrl := dc.categoryUrl["electionUrl"]
-		resUrl = append(resUrl, electionUrl)
+		queryRawURL := dc.categoryURL["queryRawURL"]
+		resURL = append(resURL, queryRawURL)
 	}
 
-	return resUrl
+	return resURL
+}
+
+func (dw *DataWayCfg) ElectionURL() []string {
+	var resURL []string
+	for _, dc := range dw.dataWayClients {
+		electionURL := dc.categoryURL["electionURL"]
+		resURL = append(resURL, electionURL)
+	}
+
+	return resURL
 }
 
 func (dw *DataWayCfg) ElectionHeartBeatURL() []string {
-	var resUrl []string
+	var resURL []string
 	for _, dc := range dw.dataWayClients {
-		electionBeatUrl := dc.categoryUrl["electionBeatUrl"]
-		resUrl = append(resUrl, electionBeatUrl)
+		electionBeatURL := dc.categoryURL["electionBeatURL"]
+		resURL = append(resURL, electionBeatURL)
 	}
 
-	return resUrl
+	return resURL
 }
 
 func (dw *DataWayCfg) tcpaddr(scheme, addr string) (string, error) {
@@ -273,18 +283,22 @@ func ParseDataway(httpurls []string) (*DataWayCfg, error) {
 			dataWayCli.scheme = u.Scheme
 			dataWayCli.urlValues = u.Query()
 			dataWayCli.host = u.Host
-			dataWayCli.categoryUrl = make(map[string]string)
+			dataWayCli.categoryURL = make(map[string]string)
 
 			for _, category := range categorys {
-				categoryUrl := fmt.Sprintf("%s/%s", baseUrl, category)
-				dataWayCli.categoryUrl[category] = fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, categoryUrl, dataWayCli.urlValues.Encode())
+				categoryURL := fmt.Sprintf("%s/%s", baseURL, category)
+				dataWayCli.categoryURL[category] = fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, categoryURL, dataWayCli.urlValues.Encode())
 			}
 
+			// queryRaw
+			queryRawURL := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/query/raw", dataWayCli.urlValues.Encode())
+			dataWayCli.categoryURL["queryRawURL"] = queryRawURL
+
 			// election
-			electionUrl := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/election", dataWayCli.urlValues.Encode())
-			electionBeatUrl := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/election/heartbeat", dataWayCli.urlValues.Encode())
-			dataWayCli.categoryUrl["electionUrl"] = electionUrl
-			dataWayCli.categoryUrl["electionBeatUrl"] = electionBeatUrl
+			electionURL := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/election", dataWayCli.urlValues.Encode())
+			electionBeatURL := fmt.Sprintf("%s://%s%s?%s", dataWayCli.scheme, dataWayCli.host, "/v1/election/heartbeat", dataWayCli.urlValues.Encode())
+			dataWayCli.categoryURL["electionURL"] = electionURL
+			dataWayCli.categoryURL["electionBeatURL"] = electionBeatURL
 
 			dw.dataWayClients = append(dw.dataWayClients, dataWayCli)
 		} else {
