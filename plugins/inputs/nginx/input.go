@@ -31,7 +31,7 @@ var (
 	response_timeout = "20s"
 
 	[inputs.nginx.log]
-	#	files = []
+	#	files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
 	[inputs.nginx.tags]
