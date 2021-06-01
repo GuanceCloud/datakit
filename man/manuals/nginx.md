@@ -88,7 +88,7 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
     [[inputs.nginx]]
       ...
       [inputs.nginx.log]
-		files = ["/usr/local/var/log/nginx/error.log","/usr/local/var/log/nginx/access.log"]
+		files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
 ```
 
 
