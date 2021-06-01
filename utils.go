@@ -7,7 +7,6 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	bstoml "github.com/BurntSushi/toml"
 	"io"
 	"net"
 	"os"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	bstoml "github.com/BurntSushi/toml"
 )
 
 func TrimSuffixAll(s, sfx string) string {
