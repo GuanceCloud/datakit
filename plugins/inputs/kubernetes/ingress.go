@@ -29,7 +29,7 @@ func (m *ingressM) LineProto() (*io.Point, error) {
 func (m *ingressM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: ingressMeasurement,
-		Desc: "kubernet daemonSet 对象",
+		Desc: "kubernet ingress",
 		Tags: map[string]interface{}{
 			"ingress_name": &inputs.TagInfo{Desc: "pod name"},
 			"namespace":    &inputs.TagInfo{Desc: "namespace"},

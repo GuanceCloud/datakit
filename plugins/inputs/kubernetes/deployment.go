@@ -25,10 +25,11 @@ func (m *deployment) LineProto() (*io.Point, error) {
 func (m *deployment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: deploymentMeasurement,
-		Desc: "kubernet deployment 对象",
+		Desc: "kubernet deployment",
 		Tags: map[string]interface{}{
 			"deployment_name": &inputs.TagInfo{Desc: "deployment name"},
 			"namespace":       &inputs.TagInfo{Desc: "namespace"},
+			"selector_*":      &inputs.TagInfo{Desc: "lab"},
 		},
 		Fields: map[string]interface{}{
 			"replicas_available": &inputs.FieldInfo{
@@ -76,11 +77,9 @@ func (i *Input) gatherDeployment(d v1.Deployment) {
 		"namespace":       d.Namespace,
 	}
 
-	// for key, val := range d.Spec.Selector.MatchLabels {
-	// 	if ki.selectorFilter.Match(key) {
-	// 		tags["selector_"+key] = val
-	// 	}
-	// }
+	for key, val := range d.Spec.Selector.MatchLabels {
+		tags["selector_"+key] = val
+	}
 
 	if d.GetCreationTimestamp().Second() != 0 {
 		fields["created"] = d.GetCreationTimestamp().UnixNano()
