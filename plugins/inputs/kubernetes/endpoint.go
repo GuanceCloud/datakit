@@ -26,18 +26,37 @@ func (m *endpointM) LineProto() (*io.Point, error) {
 func (m *endpointM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: endpointMeasurement,
-		Desc: "kubernet endpoint 对象",
+		Desc: "kubernet endpoint",
 		Tags: map[string]interface{}{
-			"name":      &inputs.TagInfo{Desc: "pod name"},
-			"namespace": &inputs.TagInfo{Desc: "namespace"},
-			"nodeName":  &inputs.TagInfo{Desc: "node name"},
+			"endpoint_name": &inputs.TagInfo{Desc: "endpoint name"},
+			"namespace":     &inputs.TagInfo{Desc: "namespace"},
+			"port_name":     &inputs.TagInfo{Desc: "The name of this port "},
+			"port_protocol": &inputs.TagInfo{Desc: "The IP protocol for this port"},
 		},
 		Fields: map[string]interface{}{
 			"created": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
+				Desc:     "created time",
+			},
+			"generation": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "A sequence number representing a specific generation of the desired state",
+			},
+			"port": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
 				Desc:     "",
+			},
+			"ready": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "ready or not ready",
 			},
 		},
 	}
@@ -61,21 +80,21 @@ func (i *Input) gatherEndpoint(e corev1.Endpoints) {
 		return
 	}
 
-	fields := map[string]interface{}{
-		"created":    e.GetCreationTimestamp().UnixNano(),
-		"generation": e.Generation,
-	}
-
-	tags := map[string]string{
-		"endpoint_name": e.Name,
-		"namespace":     e.Namespace,
-	}
-
 	for _, endpoint := range e.Subsets {
 		for _, readyAddr := range endpoint.Addresses {
-			fields["ready"] = true
+			tags := map[string]string{
+				"endpoint_name": e.Name,
+				"namespace":     e.Namespace,
+				"hostname":      readyAddr.Hostname,
+				// "node_name":     *readyAddr.NodeName,
+			}
 
-			tags["hostname"] = readyAddr.Hostname
+			fields := map[string]interface{}{
+				"created":    e.GetCreationTimestamp().UnixNano(),
+				"generation": e.Generation,
+				"ready":      1,
+			}
+
 			if readyAddr.TargetRef != nil {
 				tags[strings.ToLower(readyAddr.TargetRef.Kind)] = readyAddr.TargetRef.Name
 			}
@@ -87,7 +106,7 @@ func (i *Input) gatherEndpoint(e corev1.Endpoints) {
 				tags["port_protocol"] = string(port.Protocol)
 
 				m := &endpointM{
-					name:   deploymentMeasurement,
+					name:   endpointMeasurement,
 					tags:   tags,
 					fields: fields,
 					ts:     time.Now(),
@@ -96,12 +115,20 @@ func (i *Input) gatherEndpoint(e corev1.Endpoints) {
 				i.collectCache = append(i.collectCache, m)
 			}
 		}
-
 		for _, notReadyAddr := range endpoint.NotReadyAddresses {
-			fields["ready"] = false
+			tags := map[string]string{
+				"endpoint_name": e.Name,
+				"namespace":     e.Namespace,
+				"hostname":      notReadyAddr.Hostname,
+				// "node_name":     *notReadyAddr.NodeName,
+			}
 
-			tags["hostname"] = notReadyAddr.Hostname
-			tags["node_name"] = *notReadyAddr.NodeName
+			fields := map[string]interface{}{
+				"created":    e.GetCreationTimestamp().UnixNano(),
+				"generation": e.Generation,
+				"ready":      0,
+			}
+
 			if notReadyAddr.TargetRef != nil {
 				tags[strings.ToLower(notReadyAddr.TargetRef.Kind)] = notReadyAddr.TargetRef.Name
 			}
