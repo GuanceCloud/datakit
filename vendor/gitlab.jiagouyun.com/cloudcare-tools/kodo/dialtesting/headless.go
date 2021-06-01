@@ -115,7 +115,8 @@ func (t *HeadlessTask) Ticker() *time.Ticker {
 }
 
 func (t *HeadlessTask) Class() string {
-	return "HEADLESS"
+	return ClassHeadless
+
 }
 
 func (t *HeadlessTask) MetricName() string {
