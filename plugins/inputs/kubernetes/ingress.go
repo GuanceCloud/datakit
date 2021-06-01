@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	// "context"
-	"context"
 	"strconv"
 	"strings"
 	"time"
@@ -69,8 +68,8 @@ func (m *ingressM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectIngress(ctx context.Context) error {
-	list, err := i.client.getIngress(ctx)
+func (i *Input) collectIngress() error {
+	list, err := i.client.getIngress()
 	if err != nil {
 		return err
 	}
