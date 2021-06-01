@@ -1,6 +1,8 @@
 package container
 
 import (
+	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -96,7 +98,7 @@ func (this *Input) loadCfg() (err error) {
 	// 始终认为，docker和k8s在同一台主机上
 	// 避免进行冗杂的k8s连接配置
 	var k8sURL = fmt.Sprintf(defaultKubernetesURL, "127.0.0.1")
-	if this.Endpoint != defaultEndpoint {
+	if this.Endpoint != dockerEndpoint {
 		if u, err := url.Parse(this.Endpoint); err == nil {
 			k8sURL = fmt.Sprintf(defaultKubernetesURL, u.Hostname())
 		}
@@ -114,23 +116,5 @@ func (this *Input) loadCfg() (err error) {
 		return &k
 	}()
 
-	if this.CollectMetric {
-		var dur time.Duration
-		dur, err = time.ParseDuration(this.CollectMetricInterval)
-		if err != nil {
-			return
-		}
-		this.metricDuration = datakit.ProtectedInterval(minCollectMetricDuration, maxCollectMetricDuration, dur)
-		l.Debugf("collect metrics interval %s", this.metricDuration)
-	}
-
-	if err = this.initLoggingConf(); err != nil {
-		return
-	}
-
 	return
-}
-
-func (this *Input) initLoggingConf() error {
-	return nil
 }
