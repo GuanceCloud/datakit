@@ -14,7 +14,7 @@ import (
 	memutil "github.com/shirou/gopsutil/mem"
 	netutil "github.com/shirou/gopsutil/net"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -104,8 +104,8 @@ func getHostMeta() *HostMetaInfo {
 	return &HostMetaInfo{
 		//HostName:        info.Hostname,
 		// 此处用户可能自定义 Hostname，如果用户不
-		// 定义 Hostname，那么 datakit.Cfg.Hostname == info.Hostname
-		HostName:        datakit.Cfg.Hostname,
+		// 定义 Hostname，那么 config.Cfg.Hostname == info.Hostname
+		HostName:        config.Cfg.Hostname,
 		OS:              info.OS,
 		BootTime:        info.BootTime,
 		Platform:        info.Platform,
