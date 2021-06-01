@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"strings"
 	"time"
 
@@ -62,8 +61,8 @@ func (m *endpointM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectEndpoints(ctx context.Context) error {
-	list, err := i.client.getEndpoints(ctx)
+func (i *Input) collectEndpoints() error {
+	list, err := i.client.getEndpoints()
 	if err != nil {
 		return err
 	}

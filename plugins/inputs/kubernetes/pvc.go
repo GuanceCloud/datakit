@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	corev1 "k8s.io/api/core/v1"
@@ -44,8 +43,8 @@ func (m *pvcM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectPersistentVolumeClaims(ctx context.Context) error {
-	list, err := i.client.getPersistentVolumeClaims(ctx)
+func (i *Input) collectPersistentVolumeClaims() error {
+	list, err := i.client.getPersistentVolumeClaims()
 	if err != nil {
 		return err
 	}
@@ -76,9 +75,9 @@ func (i *Input) gatherPersistentVolumeClaim(pvc corev1.PersistentVolumeClaim) {
 		"storageclass": *pvc.Spec.StorageClassName,
 	}
 
-	for key, val := range pvc.Spec.Selector.MatchLabels {
-		tags["selector_"+key] = val
-	}
+	// for key, val := range pvc.Spec.Selector.MatchLabels {
+	// 	tags["selector_"+key] = val
+	// }
 
 	m := &pvcM{
 		name:   pvcMeasurement,
