@@ -26,8 +26,8 @@ func (m *serviceM) LineProto() (*io.Point, error) {
 
 func (m *serviceM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: deploymentMeasurement,
-		Desc: "kubernetes service 对象",
+		Name: serviceMeasurement,
+		Desc: "kubernetes service",
 		Tags: map[string]interface{}{
 			"service_name": &inputs.TagInfo{Desc: "service name"},
 			"namespace":    &inputs.TagInfo{Desc: "namespace"},
@@ -47,19 +47,19 @@ func (m *serviceM) Info() *inputs.MeasurementInfo {
 				Desc:     "A sequence number representing a specific generation of the desired state",
 			},
 			"cluster_ip": &inputs.FieldInfo{
-				DataType: inputs.Int,
+				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "clusterIP is the IP address of the service",
 			},
 			"external_ip": &inputs.FieldInfo{
-				DataType: inputs.Int,
+				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "externalIPs is a list of IP addresses for which nodes in the cluster",
 			},
 			"ports": &inputs.FieldInfo{
-				DataType: inputs.Int,
+				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "The list of ports that are exposed by this service",
