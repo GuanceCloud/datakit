@@ -6,6 +6,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -48,7 +49,7 @@ type Input struct {
 func newInput() *Input {
 	return &Input{
 		Tags:     make(map[string]string),
-		duration: datakit.IntervalDuration,
+		duration: config.IntervalDuration,
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
@@ -88,7 +89,7 @@ func (this *Input) Run() {
 func (this *Input) loadCfg() {
 	dur, err := time.ParseDuration(this.Interval)
 	if err != nil {
-		l.Warnf("parse interval error (use default %s): %s", datakit.IntervalDuration, err)
+		l.Warnf("parse interval error (use default %s): %s", config.IntervalDuration, err)
 		return
 	}
 	this.duration = dur
