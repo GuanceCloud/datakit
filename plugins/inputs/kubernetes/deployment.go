@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -54,8 +53,8 @@ func (m *deployment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectDeployments(ctx context.Context) error {
-	list, err := i.client.getDeployments(ctx)
+func (i *Input) collectDeployments() error {
+	list, err := i.client.getDeployments()
 	if err != nil {
 		return err
 	}
