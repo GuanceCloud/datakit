@@ -8,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -48,7 +49,7 @@ var l = logger.DefaultSLogger(inputName)
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Containerd{
-			Interval: datakit.Cfg.IntervalDeprecated,
+			Interval: config.Cfg.IntervalDeprecated,
 			Tags:     make(map[string]string),
 			ids:      make(map[string]interface{}),
 		}
