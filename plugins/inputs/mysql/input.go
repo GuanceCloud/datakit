@@ -123,7 +123,6 @@ func (i *Input) PipelineConfig() map[string]string {
 
 func (i *Input) initCfg() error {
 	dsnStr := i.getDsnString()
-	l.Debugf("db build dsn connect str %s", dsnStr)
 
 	db, err := sql.Open("mysql", dsnStr)
 	if err != nil {
@@ -287,9 +286,7 @@ func (i *Input) Run() {
 		case <-tick.C:
 			l.Debugf("mysql input gathering...")
 			i.start = time.Now()
-
 			i.Collect()
-
 		case <-datakit.Exit.Wait():
 			if i.tailer != nil {
 				i.tailer.Close()
