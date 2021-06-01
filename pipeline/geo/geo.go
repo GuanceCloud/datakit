@@ -2,7 +2,6 @@ package geo
 
 import (
 	"fmt"
-	"path/filepath"
 
 	ipL "github.com/ip2location/ip2location-go"
 
@@ -11,9 +10,8 @@ import (
 )
 
 var (
-	Db           = &ipL.DB{}
-	Ip2LocDbPath = filepath.Join(datakit.InstallDir, "data", "iploc.bin")
-	l            = logger.DefaultSLogger("geo")
+	Db = &ipL.DB{}
+	l  = logger.DefaultSLogger("geo")
 )
 
 func Geo(ip string) (*ipL.IP2Locationrecord, error) {
@@ -41,13 +39,13 @@ func Geo(ip string) (*ipL.IP2Locationrecord, error) {
 	return &record, nil
 }
 
-func LoadIPLib() error {
+func LoadIPLib(f string) error {
 	var err error
-	if !datakit.FileExist(Ip2LocDbPath) {
-		l.Warnf("%v not found", Ip2LocDbPath)
+	if !datakit.FileExist(f) {
+		l.Warnf("%v not found", f)
 		return nil
 	}
 
-	Db, err = ipL.OpenDB(Ip2LocDbPath)
+	Db, err = ipL.OpenDB(f)
 	return err
 }

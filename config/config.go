@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	l = logger.DefaultSLogger("config")
 
 	// envVarRe is a regex to find environment variables in the config file
 	envVarRe      = regexp.MustCompile(`\$\{(\w+)\}|\$(\w+)`)
@@ -28,11 +27,11 @@ var (
 	)
 )
 
-func LoadCfg(c *datakit.Config, mcp string) error {
+func LoadCfg(c *Config, mcp string) error {
 
-	datakit.InitDirs()
+	InitDirs()
 
-	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
+	if Docker { // only accept configs from ENV under docker(or daemon-set) mode
 
 		if runtime.GOOS != "linux" {
 			return fmt.Errorf("docker mode not supported under %s", runtime.GOOS)
@@ -47,7 +46,7 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 		// 由于 datakit UUID 不再重要, 出错也不管了
 		_ = c.SetUUID()
 
-		_ = datakit.CreateSymlinks()
+		_ = CreateSymlinks()
 
 	} else {
 		if err := c.LoadMainTOML(mcp); err != nil {
