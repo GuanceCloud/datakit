@@ -61,13 +61,11 @@ require (
 	github.com/go-openapi/strfmt v0.19.2 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/go-redis/redis/v8 v8.8.0
 	github.com/go-redis/redismock/v8 v8.0.6
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/packr/v2 v2.8.1
 	github.com/gobwas/glob v0.2.3
-	github.com/gobwas/httphead v0.0.0-20200921212729-da3d93bc3c58 // indirect
 	github.com/godror/godror v0.17.0
 	github.com/gofrs/flock v0.8.0
 	github.com/gofrs/uuid v3.2.0+incompatible
@@ -178,13 +176,10 @@ require (
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/zmb3/gogetdoc v0.0.0-20190228002656-b37376c5da6a // indirect
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210519105539-c994e3887777
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210518080501-4a4d76e11d89
-	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.16.0 // indirect
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210528040150-d44a55a4a70a
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210528095351-3cdfe746446f
 	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/mod v0.4.2 // indirect
