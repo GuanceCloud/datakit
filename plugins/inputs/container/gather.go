@@ -26,12 +26,14 @@ func (this *Input) gather(category category) ([]*io.Point, error) {
 
 	cList, err := this.client.ContainerList(ctx, types.ContainerListOptions{})
 	if err != nil {
-		l.Error(err)
 		return nil, err
 	}
 
-	var pts []*io.Point
 	var wg sync.WaitGroup
+	var result struct {
+		pts []*io.Point
+		mt  sync.Mutex
+	}
 
 	for _, container := range cList {
 		wg.Add(1)
@@ -39,39 +41,39 @@ func (this *Input) gather(category category) ([]*io.Point, error) {
 		go func(c types.Container) {
 			defer wg.Done()
 
-			tags := this.gatherContainerInfo(c)
-			fields, err := this.gatherStats(c)
-			if err != nil {
-				l.Error(err)
-				return
-			}
+			var pt *io.Point
+			var err error
 
 			switch category {
 			case metricCategory:
-				// nil
+				pt, err = this.gatherMetric(c)
+				if err != nil {
+					l.Errorf("metric gather failed: %s", err)
+					return
+				}
+
 			case objectCategory:
-
-			}
-
-			pt, err := io.MakePoint(dockerContainersName, tags, fields, time.Now())
-			if err != nil {
-				l.Error(err)
+				pt, err = this.gatherObject(c)
+				if err != nil {
+					l.Errorf("object gather failed: %s", err)
+					return
+				}
+			default:
+				// unreacheable
 				return
 			}
-			pts = append(pts, pt)
+			result.mt.Lock()
+			result.pts = append(result.pts, pt)
+			result.mt.Unlock()
 		}(container)
 	}
 
 	wg.Wait()
 
-	return pts, nil
+	return result.pts, nil
 }
 
-func (this *Input) gatherK8sPodInfo(id string) (map[string]string, error) {
-	return this.kubernetes.GatherPodInfo(id)
-}
-
-func (this *Input) gatherMetrics(container types.Container) (*io.Point, error) {
+func (this *Input) gatherMetric(container types.Container) (*io.Point, error) {
 	tags := this.gatherContainerInfo(container)
 	fields, err := this.gatherStats(container)
 	if err != nil {
@@ -80,7 +82,7 @@ func (this *Input) gatherMetrics(container types.Container) (*io.Point, error) {
 	return io.MakePoint(dockerContainersName, tags, fields, time.Now())
 }
 
-func (this *Input) gatherObject(containerID string) ([]*io.Point, error) {
+func (this *Input) gatherObject(container types.Container) (*io.Point, error) {
 	tags := this.gatherContainerInfo(container)
 	fields, err := this.gatherStats(container)
 	if err != nil {
@@ -88,17 +90,19 @@ func (this *Input) gatherObject(containerID string) ([]*io.Point, error) {
 	}
 
 	// 对象数据需要有 name 和 container_host 标签
-	tags["name"] = c.ID
-	containerJson, err := this.client.ContainerInspect(context.Background(), c.ID)
+	tags["name"] = container.ID
+	containerJson, err := this.client.ContainerInspect(context.Background(), container.ID)
 	if err != nil {
 		l.Warnf("gather container inspect error: %s", err)
+		// not have tags["container_host"]
 	} else {
 		tags["container_host"] = containerJson.Config.Hostname
 	}
 
 	// 对象数据包含 message 字段，其值为 tags 和 fields 所有 Key/Value 的 JSON Marshal
-	// 将 tags 和 fields 降维到一层 K/V，避免观看混乱（另外一种方式是 struct{ Tags map[string]string, Fields map[string]interface{} } { // XX }
+	// 将 tags 和 fields 降到一层 K/V（可能会因为字段名相同而冲突，此处不考虑这种情况，因为字段名相同的问题在存储时也会遇到）
 	// 需要额外的时空间开销，但 object 采集频率不高，可以接受
+	// 另外一种方式是 struct{ Tags map[string]string, Fields map[string]interface{} } { // XX }
 	message, err := json.Marshal(func() map[string]interface{} {
 		var result = make(map[string]interface{}, len(tags)+len(fields))
 		for k, v := range tags {
@@ -109,13 +113,18 @@ func (this *Input) gatherObject(containerID string) ([]*io.Point, error) {
 		}
 		return result
 	}())
+
 	if err != nil {
-		l.Error(err)
-		return
+		l.Warnf("json marshal failed: %s", err)
+	} else {
+		fields["message"] = string(message)
 	}
-	fields["message"] = string(message)
 
 	return io.MakePoint(dockerContainersName, tags, fields, time.Now())
+}
+
+func (this *Input) gatherK8sPodInfo(id string) (map[string]string, error) {
+	return this.kubernetes.GatherPodInfo(id)
 }
 
 func (this *Input) gatherContainerInfo(container types.Container) map[string]string {
