@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -39,7 +40,7 @@ func (p *StatsdParams) gather() {
 		return
 	}
 
-	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
+	d = config.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 
