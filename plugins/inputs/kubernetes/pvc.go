@@ -25,12 +25,13 @@ func (m *pvcM) LineProto() (*io.Point, error) {
 func (m *pvcM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: pvcMeasurement,
-		Desc: "kubernetes pvc 对象",
+		Desc: "kubernetes pvc",
 		Tags: map[string]interface{}{
 			"pvc_name":     &inputs.TagInfo{Desc: "pvc name"},
 			"namespace":    &inputs.TagInfo{Desc: "namespace"},
 			"phase":        &inputs.TagInfo{Desc: "phase"},
 			"storageclass": &inputs.TagInfo{Desc: "storage class"},
+			"selector_*":   &inputs.TagInfo{Desc: "lab"},
 		},
 		Fields: map[string]interface{}{
 			"phase_type": &inputs.FieldInfo{
@@ -75,11 +76,9 @@ func (i *Input) gatherPersistentVolumeClaim(pvc corev1.PersistentVolumeClaim) {
 		"storageclass": *pvc.Spec.StorageClassName,
 	}
 
-	// for key, val := range pvc.Spec.Selector.MatchLabels {
-	// 	if i.selectorFilter.Match(key) {
-	// 		tags["selector_"+key] = val
-	// 	}
-	// }
+	for key, val := range pvc.Spec.Selector.MatchLabels {
+		tags["selector_"+key] = val
+	}
 
 	m := &pvcM{
 		name:   pvcMeasurement,
