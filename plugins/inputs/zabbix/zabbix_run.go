@@ -1,10 +1,12 @@
 package zabbix
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"strconv"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -49,7 +51,7 @@ func (z *ZabbixParam) gather() {
 		return
 	}
 
-	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
+	d = config.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	ticker := time.NewTicker(d)
 	defer ticker.Stop()
 
