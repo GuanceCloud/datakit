@@ -6,6 +6,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -62,7 +63,7 @@ func (c *Input) Run() {
 
 	l = logger.SLogger(InputName)
 
-	c.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, c.Interval.Duration)
+	c.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, c.Interval.Duration)
 	c.p = c.getPipeline()
 	tick := time.NewTicker(c.Interval.Duration)
 	n := 0

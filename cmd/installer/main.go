@@ -14,7 +14,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
@@ -99,12 +101,12 @@ func main() {
 
 	l = logger.SLogger("installer")
 
-	datakit.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
+	dkservice.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
-		datakit.ServiceExecutable += ".exe"
+		dkservice.ServiceExecutable += ".exe"
 	}
 
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
 		return
@@ -118,7 +120,7 @@ func main() {
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)
 
-	datakit.InitDirs()
+	config.InitDirs()
 	applyFlags()
 
 	// create install dir if not exists
@@ -156,13 +158,13 @@ func main() {
 	}
 
 	if !*flagInstallOnly {
-		l.Infof("starting service %s...", datakit.ServiceName)
+		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
 			l.Warnf("star service: %s, ignored", err.Error())
 		}
 	}
 
-	datakit.CreateSymlinks()
+	config.CreateSymlinks()
 
 	if *flagUpgrade { // upgrade new version
 		l.Info(":) Upgrade Success!")

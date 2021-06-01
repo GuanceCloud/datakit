@@ -8,6 +8,7 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
@@ -91,7 +92,7 @@ func handleRUMBody(body []byte, precision, srcip string) (rumpts []*influxdb.Poi
 
 func handleRUM(c *gin.Context, precision, input string, body []byte) {
 
-	srcip := c.Request.Header.Get(datakit.Cfg.HTTPAPI.RUMOriginIPHeader)
+	srcip := c.Request.Header.Get(config.Cfg.HTTPAPI.RUMOriginIPHeader)
 	if srcip != "" {
 		parts := strings.Split(srcip, ",")
 		if len(parts) > 0 {
