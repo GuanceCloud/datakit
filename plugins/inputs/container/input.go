@@ -85,16 +85,16 @@ func (this *Input) Run() {
 
 	objectFunc := func() {
 		startTime := time.Now()
-		pts, err := this.gather(&gatherOption{IsObjectCategory: true})
+		pts, err := this.gather(objectCategory)
 		if err != nil {
 			l.Error(err)
-			io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
+			io.FeedLastError(inputName, fmt.Sprintf("object gather failed: %s", err.Error()))
 			return
 		}
 		cost := time.Since(startTime)
 		if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
 			l.Error(err)
-			io.FeedLastError(inputName, fmt.Sprintf("gather object: %s", err.Error()))
+			io.FeedLastError(inputName, fmt.Sprintf("object gather failed: %s", err.Error()))
 		}
 	}
 
@@ -112,16 +112,16 @@ func (this *Input) Run() {
 		case <-tick.C:
 			if this.EnableMetric {
 				startTime := time.Now()
-				pts, err := this.gather()
+				pts, err := this.gather(metricCategory)
 				if err != nil {
 					l.Error(err)
-					io.FeedLastError(inputName, fmt.Sprintf("gather metric: %s", err.Error()))
+					io.FeedLastError(inputName, fmt.Sprintf("metric gather failed: %s", err.Error()))
 					continue
 				}
 				cost := time.Since(startTime)
 				if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
 					l.Error(err)
-					io.FeedLastError(inputName, fmt.Sprintf("gather metric: %s", err.Error()))
+					io.FeedLastError(inputName, fmt.Sprintf("metric gather failed: %s", err.Error()))
 				}
 			}
 
