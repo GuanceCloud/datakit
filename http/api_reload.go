@@ -55,7 +55,7 @@ func ReloadDatakit(ro *reloadOption) error {
 	// reload configs
 	if ro.ReloadMainCfg {
 		l.Info("reloading configs...")
-		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
+		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
 			return err
 		}
