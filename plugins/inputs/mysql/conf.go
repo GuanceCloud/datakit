@@ -13,31 +13,31 @@ const (
     ## @param connect_timeout - number - optional - default: 10
     # connect_timeout = 10
 
-    ## @param service - string - optional
+    ## Deprecated
     # service = "<SERVICE>"
 
     interval = "10s"
 
     ## @param inno_db
-    innodb = false
+    innodb = true
 
     [inputs.mysql.log]
-    # required, glob logfiles
-    files = ["/var/log/mysql/*.log"]
+    ## required, glob logfiles
+    #files = ["/var/log/mysql/*.log"]
 
-    # glob filteer
-    ignore = [""]
+    ## glob filteer
+    #ignore = [""]
 
-    # optional encodings:
-    #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-    character_encoding = ""
+    ## optional encodings:
+    ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    #character_encoding = ""
 
-    # The pattern should be a regexp. Note the use of '''this regexp'''
-    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-    match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
+    ## The pattern should be a regexp. Note the use of '''this regexp'''
+    ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+    #match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
 
-    # grok pipeline script path
-    pipeline = "mysql.p"
+    ## grok pipeline script path
+    #pipeline = "mysql.p"
 
     # [[inputs.mysql.custom_queries]]
     #     sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
@@ -46,9 +46,9 @@ const (
     #     fieldKeys = ["column3", "column1"]
 
     [inputs.mysql.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
-`
+        # service = "MySQL"
+        # some_tag = "some_value"
+        # more_tag = "some_other_value"`
 
 	pipelineCfg = `
 grok(_, "%{TIMESTAMP_ISO8601:time}\\s+%{INT:thread_id}\\s+%{WORD:operation}\\s+%{GREEDYDATA:raw_query}")
