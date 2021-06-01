@@ -109,6 +109,7 @@ import (
 
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/memcached"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/postgresql"
 
 	// removed
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
