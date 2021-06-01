@@ -33,6 +33,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
@@ -126,8 +127,8 @@ func main() {
 	if *flagDocker {
 		run()
 	} else {
-		datakit.Entry = run
-		if err := datakit.StartService(); err != nil {
+		service.Entry = run
+		if err := service.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
 			return
 		}
@@ -272,7 +273,7 @@ ReleasedInputs: %s
 	runDatakitWithCmd()
 
 	if *flagDocker {
-		datakit.Docker = true
+		config.Docker = true
 	}
 }
 
@@ -317,7 +318,7 @@ func run() {
 			datakit.Quit()
 		}
 
-	case <-datakit.StopCh:
+	case <-service.StopCh:
 		l.Infof("service stopping")
 		http.HttpStop()
 		datakit.Quit()
@@ -327,10 +328,10 @@ func run() {
 }
 
 func tryLoadConfig() {
-	datakit.MoveDeprecatedCfg()
+	config.MoveDeprecatedCfg()
 
 	for {
-		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
+		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
 			time.Sleep(time.Second)
 		} else {
@@ -351,10 +352,10 @@ func runDatakitWithHTTPServer() error {
 	}
 
 	http.Start(&http.Option{
-		Bind:           datakit.Cfg.HTTPListen,
-		GinLog:         datakit.Cfg.GinLog,
-		GinReleaseMode: strings.ToLower(datakit.Cfg.LogLevel) != "debug",
-		PProf:          datakit.Cfg.EnablePProf,
+		Bind:           config.Cfg.HTTPListen,
+		GinLog:         config.Cfg.GinLog,
+		GinReleaseMode: strings.ToLower(config.Cfg.LogLevel) != "debug",
+		PProf:          config.Cfg.EnablePProf,
 	})
 
 	return nil

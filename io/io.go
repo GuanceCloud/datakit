@@ -9,6 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 var (
@@ -42,7 +43,7 @@ type IO struct {
 	OutputFile         string
 	FlushInterval      time.Duration
 
-	dw *datakit.DataWayCfg
+	dw *dataway.DataWayCfg
 
 	in        chan *iodata
 	in2       chan *iodata // high-freq chan
@@ -74,7 +75,6 @@ func NewIO(maxCacheCnt int64) *IO {
 
 		cache:        map[string][]*Point{},
 		dynamicCache: map[string][]*Point{},
-		dw:           datakit.Cfg.DataWay,
 	}
 
 	io.MaxCacheCnt = maxCacheCnt
@@ -251,7 +251,7 @@ func (x *IO) cleanHighFreqIOData() {
 
 func (x *IO) init() error {
 	if x.OutputFile != "" {
-		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
 			l.Error(err)
 			return err
@@ -313,7 +313,7 @@ func (x *IO) StartIO(recoverable bool) {
 				x.cleanHighFreqIOData()
 
 			case <-heartBeatTick.C:
-				x.dw.HeartBeat(datakit.Cfg.UUID, datakit.Cfg.Hostname)
+				x.dw.HeartBeat()
 
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
