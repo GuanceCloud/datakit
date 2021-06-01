@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 var cfg = `
@@ -120,17 +121,17 @@ func TestFlush(t *testing.T) {
 }
 
 func TestUnmarshalMainCfg(t *testing.T) {
-	datakit.Cfg.DoLoadMainConfig([]byte(cfg))
+	config.Cfg.DoLoadMainConfig([]byte(cfg))
 
-	t.Log(datakit.Cfg.DataWay.HttpProxy)
+	t.Log(config.Cfg.DataWay.HttpProxy)
 }
 
 func TestPushData(t *testing.T) {
-	datakit.Cfg.DoLoadMainConfig([]byte(cfg))
+	config.Cfg.DoLoadMainConfig([]byte(cfg))
 
 	defaultMaxCacheCnt = int64(1024)
 	x = NewIO(defaultMaxCacheCnt)
-	x.dw, _ = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
+	x.dw, _ = datakit.ParseDataway(config.Cfg.DataWay.Urls)
 	x.FlushInterval = 1 * time.Second
 
 	StartCollect()
