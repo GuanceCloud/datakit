@@ -6,17 +6,16 @@ const (
     host = "localhost"
     port = 6379
     # unix_socket_path = "/var/run/redis/redis.sock"
-    # db = 0
+    db = 0
     # password = "<PASSWORD>"
 
-  ## @param service - string - optional
+    ## @param service - string - optional
     # service = "<SERVICE>"
 
     ## @param interval - number - optional - default: 15
     interval = "15s"
 
     ## @param keys - list of strings - optional
-    ## Enter the list of keys to collect the lengths from.
     ## The length is 1 for strings.
     ## The length is zero for keys that have a type other than list, set, hash, or sorted set.
     #
@@ -29,7 +28,7 @@ const (
     # warn_on_missing_keys = true
 
     ## @param slow_log - boolean - optional - default: false
-    # slow_log = false
+    slow_log = true
 
     ## @param slowlog-max-len - integer - optional - default: 128
     slowlog-max-len = 128
@@ -39,22 +38,22 @@ const (
     # command_stats = false
 
     [inputs.redis.log]
-    # required, glob logfiles
-    files = ["/var/log/redis/*.log"]
+    ## required, glob logfiles
+    #files = ["/var/log/redis/*.log"]
 
-    # glob filteer
-    ignore = [""]
+    ## glob filteer
+    #ignore = [""]
 
-    # grok pipeline script path
-    pipeline = "redis.p"
+    ## grok pipeline script path
+    #pipeline = "redis.p"
 
-    # optional encodings:
-    #    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-    character_encoding = ""
+    ## optional encodings:
+    ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+    #character_encoding = ""
 
-    # The pattern should be a regexp. Note the use of '''this regexp'''
-    # regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-    match = '''^\S.*'''
+    ## The pattern should be a regexp. Note the use of '''this regexp'''
+    ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+    #match = '''^\S.*'''
 
     [inputs.redis.tags]
     # some_tag = "some_value"
