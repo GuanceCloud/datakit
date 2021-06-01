@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -57,21 +57,11 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
-func (i *Input) getCommandData() error {
-	list, err := i.client.Info("commandstats").Result()
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-
-	return i.parseCommandData(list)
-}
-
 // 解析返回结果
-func (i *Input) parseCommandData(list string) error {
-	rdr := strings.NewReader(list)
+func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
+	var collectCache []inputs.Measurement
 
+	rdr := strings.NewReader(list)
 	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -110,15 +100,17 @@ func (i *Input) parseCommandData(list string) error {
 			m.resData[key] = val
 		}
 
-		if err := m.submit(); err == nil {
-			if len(m.fields) > 0 {
-				m.ts = time.Now()
-				i.collectCache = append(i.collectCache, m)
-			}
+		if err := m.submit(); err != nil {
+			return nil, err
+		}
+
+		if len(m.fields) > 0 {
+			m.ts = time.Now()
+			collectCache = append(collectCache, m)
 		}
 	}
 
-	return nil
+	return collectCache, nil
 }
 
 // 提交数据
