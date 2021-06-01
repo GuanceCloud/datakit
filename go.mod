@@ -27,6 +27,8 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/c-bata/go-prompt v0.2.5
+	github.com/chromedp/cdproto v0.0.0-20210526005521-9e51b9051fd0 // indirect
+	github.com/chromedp/chromedp v0.7.2 // indirect
 	github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327 // indirect
 	github.com/containerd/containerd v1.4.1
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
@@ -127,8 +129,8 @@ require (
 	github.com/xanzy/go-gitlab v0.31.0 // indirect
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210521112347-971d12bff4ab
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210514061839-1891261c7ed2
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210528040150-d44a55a4a70a
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210528095351-3cdfe746446f
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2 // indirect
