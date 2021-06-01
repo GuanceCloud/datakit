@@ -2,14 +2,16 @@ package cloudprober
 
 import (
 	"fmt"
-	"github.com/prometheus/common/expfmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/prometheus/common/expfmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func (_ *Input) SampleConfig() string {
@@ -23,7 +25,7 @@ func (_ *Input) Catalog() string {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("cloudprober start")
-	n.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	client, err := n.createHttpClient()
 	if err != nil {
