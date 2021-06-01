@@ -79,6 +79,72 @@ HTTP/1.1 200 OK
 }
 ```
 
+## `/v1/query/raw`
+
+使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据）
+
+### 示例
+
+```http
+POST /v1/query/raw HTTP/1.1
+Content-Type: application/json
+
+{
+    "queries":[
+        {
+            "query": "cpu:(cpu_usage_idle) LIMIT 1"  # dql查询语句（必填）
+        },
+        {
+            "query": "mem:(mem_usage_percent) LIMIT 1"
+        }
+    ],
+    "echo_explain": false
+}
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "content": [
+        {
+            "series": [
+                {
+                    "name": "cpu",
+                    "columns": [
+                        "time",
+                        "cpu_usage_idle"
+                    ],
+                    "values": [
+                        [
+                            1608612960000,
+                            99.59595959596913
+                        ]
+                    ]
+                }
+            ],
+            "cost": "25.093363ms",
+        },
+        {
+            "series": [
+                {
+                    "name": "mem",
+                    "columns": [
+                        "time",
+                        "mem_usage_percent"
+                    ],
+                    "values": [
+                        [
+                            1608612960000,
+                            99.59595959596913
+                        ]
+                    ]
+                }
+            ],
+            "cost": "32.093363ms",
+    ]
+}
+```
+
 ## `/v1/host/meta`
 
 待补充
