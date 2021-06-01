@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -83,8 +82,8 @@ func (m *statefulSet) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectStatefulSets(ctx context.Context) error {
-	list, err := i.client.getStatefulSets(ctx)
+func (i *Input) collectStatefulSets() error {
+	list, err := i.client.getStatefulSets()
 	if err != nil {
 		return err
 	}
