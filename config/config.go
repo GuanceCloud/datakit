@@ -13,7 +13,6 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
@@ -39,15 +38,6 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 			return fmt.Errorf("docker mode not supported under %s", runtime.GOOS)
 		}
 
-		// under docker, the /etc/machine-id is empty
-		if fi, err := os.Stat("/etc/machine-id"); err != nil || fi.Size() == 0 {
-			id := cliutils.XID("")
-			if err := ioutil.WriteFile("/etc/machine-id", []byte(id), os.ModePerm); err != nil {
-				l.Errorf("craete machine ID failed: %s", err.Error())
-				return err
-			}
-		}
-
 		if err := c.LoadEnvs(); err != nil {
 			return err
 		}
@@ -56,6 +46,9 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 		// 中心最终将通过统计主机个数作为 datakit 数量来收费.
 		// 由于 datakit UUID 不再重要, 出错也不管了
 		_ = c.SetUUID()
+
+		_ = datakit.CreateSymlinks()
+
 	} else {
 		if err := c.LoadMainTOML(mcp); err != nil {
 			return err
