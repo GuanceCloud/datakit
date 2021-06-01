@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -25,8 +24,8 @@ type Pod struct {
 	Labels     map[string]string `json:"labels,omitempty"`
 }
 
-func (i *Input) collectPodsObject(ctx context.Context) error {
-	list, err := i.client.getPods(ctx)
+func (i *Input) collectPodsObject() error {
+	list, err := i.client.getPods()
 	if err != nil {
 		i.lastErr = err
 		return err
@@ -169,8 +168,7 @@ func (i *Input) gatherPod(p *corev1.PodList) {
 }
 
 func (i *Input) CollectObject() error {
-	ctx := context.Background()
-	if err := i.collectPodsObject(ctx); err != nil {
+	if err := i.collectPodsObject(); err != nil {
 		return err
 	}
 	return nil
