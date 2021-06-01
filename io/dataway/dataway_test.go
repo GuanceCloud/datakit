@@ -1,4 +1,4 @@
-package datakit
+package dataway
 
 import (
 	"testing"
