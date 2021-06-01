@@ -1,4 +1,4 @@
-package datakit
+package config
 
 import (
 	"bytes"

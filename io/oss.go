@@ -2,9 +2,10 @@ package io
 
 import (
 	"fmt"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"io"
 	"net/http"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
 
 type OSSClient struct {

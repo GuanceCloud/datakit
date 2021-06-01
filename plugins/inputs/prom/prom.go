@@ -11,6 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -76,7 +77,7 @@ func NewProm(inputName, catalogStr, sampleCfg string, ignoreFunc func(*ifxcli.Po
 		InputName:      inputName,
 		CatalogStr:     inputName,
 		SampleCfg:      sampleCfg,
-		Interval:       datakit.Cfg.IntervalDeprecated,
+		Interval:       config.Cfg.IntervalDeprecated,
 		Tags:           make(map[string]string),
 		IgnoreFunc:     ignoreFunc,
 		PromToNameFunc: nil,
@@ -221,7 +222,7 @@ func (p *Prom) getMetrics() ([]byte, error) {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Prom{
-			Interval:       datakit.Cfg.IntervalDeprecated,
+			Interval:       config.Cfg.IntervalDeprecated,
 			InputName:      inputName,
 			SampleCfg:      sampleCfg,
 			Tags:           make(map[string]string),
