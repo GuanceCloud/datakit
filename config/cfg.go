@@ -1,4 +1,4 @@
-package datakit
+package config
 
 import (
 	"bytes"
@@ -13,13 +13,22 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 var (
 	IntervalDuration = 10 * time.Second
 
 	Cfg = DefaultConfig()
+)
+
+var (
+	Docker = false
+
+	l = logger.DefaultSLogger("config")
 )
 
 func DefaultConfig() *Config {
@@ -30,7 +39,7 @@ func DefaultConfig() *Config {
 			"site":    "",
 		},
 
-		DataWay: &DataWayCfg{},
+		DataWay: &dataway.DataWayCfg{},
 
 		ProtectMode: true,
 
@@ -53,9 +62,9 @@ func DefaultConfig() *Config {
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
-	if runtime.GOOS == OSWindows {
-		c.Log = filepath.Join(InstallDir, "log")
-		c.GinLog = filepath.Join(InstallDir, "gin.log")
+	if runtime.GOOS == "windows" {
+		c.Log = filepath.Join(datakit.InstallDir, "log")
+		c.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	}
 
 	return c
@@ -69,8 +78,8 @@ type Config struct {
 	UUID           string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
 
-	Name    string      `toml:"name,omitempty"`
-	DataWay *DataWayCfg `toml:"dataway,omitempty"`
+	Name    string              `toml:"name,omitempty"`
+	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
 
 	HTTPBindDeprecated string `toml:"http_server_addr,omitempty"`
 	HTTPListen         string `toml:"http_listen,omitempty"`
@@ -174,10 +183,10 @@ func (i *InputHostList) MatchInput(input string) bool {
 
 func InitDirs() {
 	for _, dir := range []string{
-		DataDir,
-		ConfdDir,
-		PipelineDir,
-		PipelinePatternDir} {
+		datakit.DataDir,
+		datakit.ConfdDir,
+		datakit.PipelineDir,
+		datakit.PipelinePatternDir} {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
@@ -190,7 +199,7 @@ func (c *Config) InitCfg(p string) error {
 		c.setHostname()
 	}
 
-	if mcdata, err := TomlMarshal(c); err != nil {
+	if mcdata, err := datakit.TomlMarshal(c); err != nil {
 		l.Errorf("TomlMarshal(): %s", err.Error())
 		return err
 	} else {
@@ -215,9 +224,11 @@ func (c *Config) setupDataway() error {
 		return fmt.Errorf("dataway not set")
 	}
 
-	ExtraHeaders = map[string]string{
+	dataway.ExtraHeaders = map[string]string{
 		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, git.Version),
 	}
+
+	c.DataWay.Hostname = c.Hostname
 
 	// setup dataway
 	return c.DataWay.Apply()
@@ -251,7 +262,7 @@ func (c *Config) setupGlobalTags() error {
 		case `__datakit_ip`, `$datakit_ip`:
 			c.GlobalTags[k] = "unavailable"
 
-			if ipaddr, err := LocalIP(); err != nil {
+			if ipaddr, err := datakit.LocalIP(); err != nil {
 				l.Errorf("get local ip failed: %s", err.Error())
 			} else {
 				l.Infof("set global tag %s: %s", k, ipaddr)
@@ -280,11 +291,11 @@ func (c *Config) ApplyMainConfig() error {
 	l = logger.SLogger("datakit")
 
 	if c.EnableUncheckedInputs {
-		EnableUncheckInputs = true
+		datakit.EnableUncheckInputs = true
 	}
 
 	if c.OutputFile != "" {
-		OutputFile = c.OutputFile
+		io.SetOutputFile(c.OutputFile)
 	}
 
 	if c.Hostname == "" {
@@ -297,9 +308,12 @@ func (c *Config) ApplyMainConfig() error {
 		return err
 	}
 
+	io.SetDataWay(c.DataWay)
+
 	if err := c.setupGlobalTags(); err != nil {
 		return err
 	}
+	io.SetExtraTags(c.GlobalTags)
 
 	if c.IntervalDeprecated != "" {
 		du, err := time.ParseDuration(c.IntervalDeprecated)
@@ -317,7 +331,7 @@ func (c *Config) ApplyMainConfig() error {
 		if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
 			l.Fatalf("encode main configure failed: %s", err.Error())
 		}
-		if err := ioutil.WriteFile(MainConfPath, buf.Bytes(), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(datakit.MainConfPath, buf.Bytes(), os.ModePerm); err != nil {
 			l.Fatalf("refresh main configure failed: %s", err.Error())
 		}
 
@@ -388,7 +402,7 @@ func (c *Config) LoadEnvs() error {
 	if v := getEnv("ENV_DATAWAY"); v != "" {
 
 		if c.DataWay == nil {
-			c.DataWay = &DataWayCfg{}
+			c.DataWay = &dataway.DataWayCfg{}
 		}
 		c.DataWay.URLs = strings.Split(v, ",")
 	}
@@ -462,11 +476,11 @@ func LoadUUID(f string) (string, error) {
 }
 
 func MoveDeprecatedCfg() {
-	if _, err := os.Stat(MainConfPathDeprecated); err == nil {
-		if err := os.Rename(MainConfPathDeprecated, MainConfPath); err != nil {
+	if _, err := os.Stat(datakit.MainConfPathDeprecated); err == nil {
+		if err := os.Rename(datakit.MainConfPathDeprecated, datakit.MainConfPath); err != nil {
 			l.Fatal("move deprecated main configure failed: %s", err.Error())
 		}
-		l.Infof("move %s to %s", MainConfPathDeprecated, MainConfPath)
+		l.Infof("move %s to %s", datakit.MainConfPathDeprecated, datakit.MainConfPath)
 	}
 }
 
@@ -482,4 +496,47 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 	}
 
 	return cur
+}
+
+func CreateSymlinks() error {
+
+	x := [][2]string{}
+
+	if runtime.GOOS == "windows" {
+		x = [][2]string{
+			[2]string{
+				filepath.Join(datakit.InstallDir, "datakit.exe"),
+				`C:\WINDOWS\system32\datakit.exe`,
+			},
+		}
+	} else {
+		x = [][2]string{
+			[2]string{
+				filepath.Join(datakit.InstallDir, "datakit"),
+				"/usr/local/bin/datakit",
+			},
+		}
+	}
+
+	for _, item := range x {
+		if err := symlink(item[0], item[1]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func symlink(src, dst string) error {
+
+	l.Debugf("remove link %s...", dst)
+	if err := os.Remove(dst); err != nil {
+		l.Warnf("%s, ignored", err)
+	}
+
+	if err := os.Symlink(src, dst); err != nil {
+		l.Errorf("create datakit soft link: %s -> %s: %s", dst, src, err.Error())
+		return err
+	}
+	return nil
 }

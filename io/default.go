@@ -8,22 +8,36 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 var (
 	defaultMaxCacheCnt = int64(1024)
 
-	defaultIO = NewIO(defaultMaxCacheCnt)
+	defaultIO     = NewIO(defaultMaxCacheCnt)
+	outputFile    = ""
+	flushInterval = 10 * time.Second
+	extraTags     = map[string]string{}
 )
+
+func SetOutputFile(f string) {
+	defaultIO.OutputFile = f
+}
+
+func SetFlushInterval(x time.Duration) {
+	defaultIO.FlushInterval = x
+}
+
+func SetDataWay(dw *dataway.DataWayCfg) {
+	defaultIO.dw = dw
+}
+
+func SetExtraTags(x map[string]string) {
+	extraTags = x
+}
 
 func Start() error {
 	l = logger.SLogger("io")
-
-	if datakit.OutputFile != "" {
-		defaultIO.OutputFile = datakit.OutputFile
-	}
-
-	defaultIO.FlushInterval = datakit.IntervalDuration
 
 	datakit.WG.Add(1)
 	go func() {
@@ -109,7 +123,7 @@ func MakePoint(name string,
 
 	p, err := lp.MakeLineProtoPoint(name, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.GlobalTags,
+			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
@@ -163,7 +177,7 @@ func HighFreqFeedEx(name, category, metric string,
 
 	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.GlobalTags,
+			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
@@ -189,7 +203,7 @@ func NamedFeedEx(name, category, metric string,
 
 	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.GlobalTags,
+			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})

@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -210,7 +211,7 @@ func (this *Input) loadCfg() (err error) {
 		if err != nil {
 			return
 		}
-		this.metricDuration = datakit.ProtectedInterval(minCollectMetricDuration, maxCollectMetricDuration, dur)
+		this.metricDuration = config.ProtectedInterval(minCollectMetricDuration, maxCollectMetricDuration, dur)
 		l.Debugf("collect metrics interval %s", this.metricDuration)
 	}
 
