@@ -68,6 +68,61 @@ files = ["/path/to/your/file.log"]
 
 开启日志采集以后，默认会产生日志来源（`source`）为 `elasticsearch` 的日志。
 
+- ElasticSearch 通用日志切割
+  
+  通用日志文本示例：
+  
+  ```
+  [2021-06-01T11:45:15,927][WARN ][o.e.c.r.a.DiskThresholdMonitor] [master] high disk watermark [90%] exceeded on [A2kEFgMLQ1-vhMdZMJV3Iw][master][/tmp/elasticsearch-cluster/nodes/0] free: 17.1gb[7.3%], shards will be relocated away from this node; currently relocating away shards totalling [0] bytes; the node is expected to continue to exceed the high disk watermark when these relocations are complete
+  ```
+
+  切割后的字段列表如下：
+
+|字段名|字段值|说明|
+|---|---|---|
+|time|时间|日志产生时间|
+|name|组件名称|组件名称|
+|status|状态|日志等级|
+|nodeId|节点名称|节点名称|
+
+- ElastiSearch 搜索慢日志切割
+  
+  搜索慢日志文本示例：
+
+  ```
+  [2021-06-01T11:56:06,712][WARN ][i.s.s.query              ] [master] [shopping][0] took[36.3ms], took_millis[36], total_hits[5 hits], types[], stats[], search_type[QUERY_THEN_FETCH], total_shards[1], source[{"query":{"match":{"name":{"query":"Nariko","operator":"OR","prefix_length":0,"max_expansions":50,"fuzzy_transpositions":true,"lenient":false,"zero_terms_query":"NONE","auto_generate_synonyms_phrase_query":true,"boost":1.0}}},"sort":[{"price":{"order":"desc"}}]}], id[], 
+  ```
+
+  切割后的字段列表如下：
+
+|字段名|字段值|说明|
+|---|---|---|
+|time|时间|日志产生时间|
+|name|组件名称|组件名称|
+|status|状态|日志等级|
+|nodeId|节点名称|节点名称|
+|index|索引名称|索引名称|
+|duration|耗时|请求耗时，单位ns|
+
+- ElasticSearch 索引慢日志切割
+
+  索引慢日志文本示例：
+
+  ```
+  [2021-06-01T11:56:19,084][WARN ][i.i.s.index              ] [master] [shopping/X17jbNZ4SoS65zKTU9ZAJg] took[34.1ms], took_millis[34], type[_doc], id[LgC3xXkBLT9WrDT1Dovp], routing[], source[{"price":222,"name":"hello"}]
+  ```
+  
+  切割后的字段列表如下：
+
+|字段名|字段值|说明|
+|---|---|---|
+|time|时间|日志产生时间|
+|name|组件名称|组件名称|
+|status|状态|日志等级|
+|nodeId|节点名称|节点名称|
+|index|索引名称|索引名称|
+|duration|耗时|请求耗时，单位ns|
+
 **注意**
 
 - 日志采集仅支持采集已安装 DataKit 主机上的日志
