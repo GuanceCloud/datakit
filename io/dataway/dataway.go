@@ -1,4 +1,4 @@
-package datakit
+package dataway
 
 import (
 	"bytes"
@@ -9,24 +9,28 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
-	ExtraHeaders = map[string]string{}
-
 	apis = []string{
-		MetricDeprecated,
-		Metric,
-		KeyEvent,
-		Object,
-		Logging,
-		Tracing,
-		Rum,
-		Security,
-		HeartBeat,
-		Election,
-		ElectionHeartbeat,
+		datakit.MetricDeprecated,
+		datakit.Metric,
+		datakit.KeyEvent,
+		datakit.Object,
+		datakit.Logging,
+		datakit.Tracing,
+		datakit.Rum,
+		datakit.Security,
+		datakit.HeartBeat,
+		datakit.Election,
+		datakit.ElectionHeartbeat,
 	}
+
+	ExtraHeaders = map[string]string{}
+	l            = logger.DefaultSLogger("dataway")
 )
 
 type DataWayCfg struct {
@@ -45,7 +49,10 @@ type DataWayCfg struct {
 
 	dataWayClients []*dataWayClient
 	httpCli        *http.Client
-	ontest         bool
+
+	Hostname string `toml:"-"`
+
+	ontest bool
 }
 
 type dataWayClient struct {
@@ -139,7 +146,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 }
 
 func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
-	requrl, ok := dc.categoryURL[HeartBeat]
+	requrl, ok := dc.categoryURL[datakit.HeartBeat]
 	if !ok {
 		return fmt.Errorf("HeartBeat API missing, should not been here")
 	}
@@ -185,15 +192,15 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 	return nil
 }
 
-func (dw *DataWayCfg) HeartBeat(id, host string) error {
+func (dw *DataWayCfg) HeartBeat() error {
 	if dw.httpCli != nil {
 		defer dw.httpCli.CloseIdleConnections()
 	}
 
 	body := map[string]interface{}{
-		"dk_uuid":   id,
+		"dk_uuid":   dw.Hostname, // 暂用 hostname 代之, 后将弃用该字段
 		"heartbeat": time.Now().Unix(),
-		"host":      host,
+		"host":      dw.Hostname,
 	}
 
 	if dw.httpCli == nil {
@@ -230,7 +237,7 @@ func (dw *DataWayCfg) QueryRawURL() []string {
 func (dw *DataWayCfg) ElectionURL() []string {
 	var resURL []string
 	for _, dc := range dw.dataWayClients {
-		electionUrl := dc.categoryURL[Election]
+		electionUrl := dc.categoryURL[datakit.Election]
 		resURL = append(resURL, electionUrl)
 	}
 
@@ -240,7 +247,7 @@ func (dw *DataWayCfg) ElectionURL() []string {
 func (dw *DataWayCfg) ElectionHeartBeatURL() []string {
 	var resURL []string
 	for _, dc := range dw.dataWayClients {
-		electionBeatUrl := dc.categoryURL[ElectionHeartbeat]
+		electionBeatUrl := dc.categoryURL[datakit.ElectionHeartbeat]
 		resURL = append(resURL, electionBeatUrl)
 	}
 
@@ -262,6 +269,7 @@ func (dw *DataWayCfg) GetToken() []string {
 }
 
 func (dw *DataWayCfg) Apply() error {
+	l = logger.SLogger("dataway")
 
 	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
 	// 避免俩边配置了同样的 dataway, 造成数据混乱
