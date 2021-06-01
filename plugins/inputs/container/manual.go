@@ -8,24 +8,24 @@ import (
 )
 
 const (
-	dockerContainersName = "docker_containers"
+	containerName = "container"
 )
 
-type dockerContainersMeasurement struct {
+type containersMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
 }
 
-func (this *dockerContainersMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(this.name, this.tags, this.fields, this.ts)
+func (c *containersMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(c.name, c.tags, c.fields, c.ts)
 }
 
-func (this *dockerContainersMeasurement) Info() *inputs.MeasurementInfo {
+func (c *containersMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: dockerContainersName,
-		Desc: "Docker 容器相关",
+		Name: containerName,
+		Desc: "容器指标或对象数据",
 		Tags: map[string]interface{}{
 			"container_id":   inputs.NewTagInfo(`容器 ID`),
 			"container_name": inputs.NewTagInfo(`容器名称`),
@@ -62,20 +62,20 @@ func (this *dockerContainersMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type dockerContainersLogMeasurement struct {
+type containersLogMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
 }
 
-func (this *dockerContainersLogMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(this.name, this.tags, this.fields, this.ts)
+func (c *containersLogMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(c.name, c.tags, c.fields, c.ts)
 }
 
-func (this *dockerContainersLogMeasurement) Info() *inputs.MeasurementInfo {
+func (c *containersLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "日志指标",
+		Name: "日志数据",
 		Desc: "默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
