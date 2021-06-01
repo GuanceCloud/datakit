@@ -281,6 +281,11 @@ name = "not-set"
 log = "log"`,
 			fail: false,
 		},
+
+		{
+			raw: `
+hostname = "should-not-set"`,
+		},
 	}
 
 	tomlfile := ".main.toml"
@@ -297,7 +302,6 @@ log = "log"`,
 			t.Fatal(err)
 		}
 
-
 		err := c.LoadMainTOML(tomlfile)
 		if tc.fail {
 			tu.NotOk(t, err, "")
@@ -305,6 +309,8 @@ log = "log"`,
 		} else {
 			tu.Ok(t, err)
 		}
+
+		t.Logf("hostname: %s", c.Hostname)
 
 		os.Remove(tomlfile)
 	}
