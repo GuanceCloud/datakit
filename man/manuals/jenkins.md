@@ -73,7 +73,12 @@ Jenkins 采集器是通过插件 `Metrics` 采集数据监控 Jenkins，包括�
 
 ## 日志 pipeline 功能切割字段说明
 
-原始日志为 `2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins`
+- JenKins 通用日志切割
+
+通用日志文本示例:
+```
+2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins
+```
 
 切割后的字段列表如下：
 
