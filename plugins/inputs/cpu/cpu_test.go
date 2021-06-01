@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/cpu"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 func TestCpuActiveTotalTime(t *testing.T) {
@@ -174,8 +174,8 @@ func TestCollect(t *testing.T) {
 	if tags["cpu"] != "cpu-total" {
 		t.Errorf("cpu:%s expected: cpu-total", tags["cpu"])
 	}
-	if tags["host"] != datakit.Cfg.Hostname {
-		t.Errorf("host name:%s expected: %s", tags["cpu"], datakit.Cfg.Hostname)
+	if tags["host"] != config.Cfg.Hostname {
+		t.Errorf("host name:%s expected: %s", tags["cpu"], config.Cfg.Hostname)
 	}
 
 	// fields
