@@ -20,7 +20,7 @@ func PipelineDebugger(plname, txt string) {
 		l.Fatal("-txt required")
 	}
 
-	if err := pipeline.Init(); err != nil {
+	if err := pipeline.Init(datakit.DataDir); err != nil {
 		l.Fatalf("pipeline init failed: %s", err.Error())
 	}
 
