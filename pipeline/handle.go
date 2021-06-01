@@ -141,12 +141,49 @@ var datePattern = []struct {
 		pattern: `\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}.\d{6} \d{4}`,
 		goFmt:   "Mon Jan 2 15:04:05.000000 2006",
 	},
+	{
+		desc:    "postgresql, 2021-05-27 06:54:14.760 UTC",
+		pattern: `\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC`,
+		goFmt:   "2006-01-02 15:04:05.000 UTC",
+	},
+}
+
+func parseDatePattern(value string) (int64, error) {
+	for _, p := range datePattern {
+		if match, err := regexp.MatchString(p.pattern, value); err != nil {
+			l.Errorf("regexp.MatchString: %s", err)
+			return 0, err
+		} else if match {
+			if p.defaultYear {
+				ty := time.Now()
+				year := ty.Year()
+				value = fmt.Sprintf("%s %d", value, year)
+			}
+
+			if tm, err := time.Parse(p.goFmt, value); err != nil {
+				l.Errorf("time.Parse(): %s", err)
+				return 0, err
+			} else {
+				unix_time := tm.UnixNano()
+				l.Debugf("parse `%s` -> %v(nano: %d)", value, tm, tm.UnixNano())
+				return unix_time, nil
+			}
+		}
+	}
+
+	return 0, nil
 }
 
 func TimestampHandle(value, tz string) (int64, error) {
 	var t time.Time
 	var err error
 	var timezone = time.Local
+
+	// pattern match first
+	unix_time, err := parseDatePattern(value)
+	if unix_time > 0 && err == nil {
+		return unix_time, err
+	}
 
 	if tz != "" {
 		timezone, err = time.LoadLocation(tz)
@@ -157,31 +194,12 @@ func TimestampHandle(value, tz string) (int64, error) {
 	}
 
 	if err != nil {
-		for _, p := range datePattern {
-			if match, err := regexp.MatchString(p.pattern, value); err != nil {
-				l.Errorf("regexp.MatchString: %s", err)
-				return 0, err
-			} else if match {
-				if p.defaultYear {
-					ty := time.Now()
-					year := ty.Year()
-					value = fmt.Sprintf("%s %d", value, year)
-				}
-
-				if tm, err := time.Parse(p.goFmt, value); err != nil {
-					l.Errorf("time.Parse(): %s", err)
-					return 0, err
-				} else {
-					unix_time := tm.UnixNano()
-					return unix_time, nil
-				}
-			}
-		}
+		return 0, err
 	} else {
 		l.Debugf("parse `%s' -> %v(nano: %d)", value, t, t.UnixNano())
 	}
 
-	unix_time := t.UnixNano()
+	unix_time = t.UnixNano()
 	return unix_time, nil
 }
 
