@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
@@ -17,35 +16,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	defCommand   = "sensors"
-	defPath      = "/usr/bin/sensors"
-	defInterval  = datakit.Duration{Duration: 10 * time.Second}
-	defTimeout   = datakit.Duration{Duration: 3 * time.Second}
-	inputName    = "sensors"
-	sampleConfig = `
-[[inputs.sensors]]
-	## Command path of 'senssor' usually under /usr/bin/sensors
-	# path = "/usr/bin/senssors"
-
-	## Gathering interval
-	# interval = "10s"
-
-	## Command timeout
-	# timeout = "3s"
-
-	## Customer tags, if set will be seen with every metric.
-	[inputs.sensors.tags]
-		# "key1" = "value1"
-		# "key2" = "value2"
-`
-	l = logger.SLogger(inputName)
-)
-
 type Input struct {
 	Path     string            `toml:"path"`
 	Interval datakit.Duration  `toml:"interval"`
-	Timeout  datakit.Duration  `toml:timeout`
+	Timeout  datakit.Duration  `toml:"timeout"`
 	Tags     map[string]string `toml:"tags"`
 }
 
@@ -62,7 +36,7 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{}
+	return []inputs.Measurement{&sensorsMeasurement{}}
 }
 
 func (s *Input) Run() {
@@ -112,11 +86,12 @@ func (s *Input) gather() error {
 }
 
 func (s *Input) getCustomerTags() map[string]string {
-	if len(s.Tags) != 0 {
-		return s.Tags
-	} else {
-		return make(map[string]string)
+	tags := make(map[string]string)
+	for k, v := range s.Tags {
+		tags[k] = v
 	}
+
+	return tags
 }
 
 func (s *Input) parse(output string) ([]inputs.Measurement, error) {
