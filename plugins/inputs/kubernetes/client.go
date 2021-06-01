@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -130,62 +129,42 @@ func (c *client) promMetrics(url string) (*http.Response, error) {
 	return resp, nil
 }
 
-func (c *client) getDaemonSets(ctx context.Context) (*appsv1.DaemonSetList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getDaemonSets() (*appsv1.DaemonSetList, error) {
 	return c.AppsV1().DaemonSets(c.namespace).List(metav1.ListOptions{})
 }
 
-func (c *client) getDeployments(ctx context.Context) (*appsv1.DeploymentList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getDeployments() (*appsv1.DeploymentList, error) {
 	return c.AppsV1().Deployments(c.namespace).List(metav1.ListOptions{})
 }
 
-func (c *client) getEndpoints(ctx context.Context) (*corev1.EndpointsList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getEndpoints() (*corev1.EndpointsList, error) {
 	return c.CoreV1().Endpoints(c.namespace).List(metav1.ListOptions{})
 }
 
-func (c *client) getNodes(ctx context.Context) (*corev1.NodeList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getNodes() (*corev1.NodeList, error) {
 	return c.CoreV1().Nodes().List(metav1.ListOptions{})
 }
 
-func (c *client) getPersistentVolumes(ctx context.Context) (*corev1.PersistentVolumeList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getPersistentVolumes() (*corev1.PersistentVolumeList, error) {
 	return c.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
 }
 
-func (c *client) getPersistentVolumeClaims(ctx context.Context) (*corev1.PersistentVolumeClaimList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getPersistentVolumeClaims() (*corev1.PersistentVolumeClaimList, error) {
 	return c.CoreV1().PersistentVolumeClaims(c.namespace).List(metav1.ListOptions{})
 }
 
-func (c *client) getPods(ctx context.Context) (*corev1.PodList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getPods() (*corev1.PodList, error) {
 	return c.CoreV1().Pods(c.namespace).List(metav1.ListOptions{})
 }
 
-func (c *client) getServices(ctx context.Context) (*corev1.ServiceList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getServices() (*corev1.ServiceList, error) {
 	return c.CoreV1().Services(c.namespace).List(metav1.ListOptions{})
 }
 
-func (c *client) getStatefulSets(ctx context.Context) (*appsv1.StatefulSetList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getStatefulSets() (*appsv1.StatefulSetList, error) {
 	return c.AppsV1().StatefulSets(c.namespace).List(metav1.ListOptions{})
 }
 
-func (c *client) getIngress(ctx context.Context) (*v1beta1.IngressList, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+func (c *client) getIngress() (*v1beta1.IngressList, error) {
 	return c.ExtensionsV1beta1().Ingresses(c.namespace).List(metav1.ListOptions{})
 }
