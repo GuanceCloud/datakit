@@ -18,6 +18,7 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
@@ -169,7 +170,7 @@ func getStats() (*datakitStats, error) {
 		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		ReloadCnt:    reloadCnt,
 		ReloadInfo:   "0",
-		WithinDocker: datakit.Docker,
+		WithinDocker: config.Docker,
 		IOChanStat:   io.ChanStat(),
 	}
 
