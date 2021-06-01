@@ -14,6 +14,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -65,7 +66,7 @@ func (p *Input) Run() {
 		}
 		p.re = re
 	}
-	p.ObjectInterval.Duration = datakit.ProtectedInterval(minObjectInterval, maxObjectInterval, p.ObjectInterval.Duration)
+	p.ObjectInterval.Duration = config.ProtectedInterval(minObjectInterval, maxObjectInterval, p.ObjectInterval.Duration)
 
 	if p.RunTime.Duration < 10*time.Minute {
 		p.RunTime.Duration = 10 * time.Minute
@@ -74,7 +75,7 @@ func (p *Input) Run() {
 	defer tick.Stop()
 	if p.OpenMetric {
 		go func() {
-			p.MetricInterval.Duration = datakit.ProtectedInterval(minMetricInterval, maxMetricInterval, p.MetricInterval.Duration)
+			p.MetricInterval.Duration = config.ProtectedInterval(minMetricInterval, maxMetricInterval, p.MetricInterval.Duration)
 
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
@@ -228,7 +229,7 @@ func (p *Input) WriteObject() {
 		tags := map[string]string{
 			"username":     username,
 			"state":        state,
-			"name":         fmt.Sprintf("%s_%d", datakit.Cfg.Hostname, ps.Pid),
+			"name":         fmt.Sprintf("%s_%d", config.Cfg.Hostname, ps.Pid),
 			"process_name": name,
 		}
 		for k, v := range p.Tags {

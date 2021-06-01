@@ -1,13 +1,12 @@
 package datakit
 
 import (
-	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 const (
@@ -43,16 +42,23 @@ var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
 
-	Docker  = false
+	InstallDir         = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+	optionalInstallDir = map[string]string{
+		OSArchWinAmd64: `C:\Program Files\datakit`,
+		OSArchWin386:   `C:\Program Files (x86)\datakit`,
+
+		OSArchLinuxArm:    `/usr/local/datakit`,
+		OSArchLinuxArm64:  `/usr/local/datakit`,
+		OSArchLinuxAmd64:  `/usr/local/datakit`,
+		OSArchLinux386:    `/usr/local/datakit`,
+		OSArchDarwinAmd64: `/usr/local/datakit`,
+	}
+
 	AllOS   = []string{OSWindows, OSLinux, OSDarwin}
 	AllArch = []string{OSArchWinAmd64, OSArchWin386, OSArchLinuxArm, OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64}
 
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}
-
-	OutputFile = ""
-
-	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
 	DataDir  = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
@@ -60,69 +66,14 @@ var (
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
 
-	l                  = logger.DefaultSLogger("datakit")
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
-
-	optionalInstallDir = map[string]string{
-		OSArchWinAmd64: filepath.Join(`C:\Program Files`, ServiceName),
-		OSArchWin386:   filepath.Join(`C:\Program Files (x86)`, ServiceName),
-
-		OSArchLinuxArm:    filepath.Join(`/usr/local/`, ServiceName),
-		OSArchLinuxArm64:  filepath.Join(`/usr/local/`, ServiceName),
-		OSArchLinuxAmd64:  filepath.Join(`/usr/local/`, ServiceName),
-		OSArchLinux386:    filepath.Join(`/usr/local/`, ServiceName),
-		OSArchDarwinAmd64: filepath.Join(`/usr/local/`, ServiceName),
-	}
 )
 
 func Quit() {
 	Exit.Close()
 	WG.Wait()
-	close(waitstopCh)
-}
-
-func CreateSymlinks() error {
-
-	x := [][2]string{}
-
-	if runtime.GOOS == OSWindows {
-		x = [][2]string{
-			[2]string{
-				filepath.Join(InstallDir, "datakit.exe"),
-				`C:\WINDOWS\system32\datakit.exe`,
-			},
-		}
-	} else {
-		x = [][2]string{
-			[2]string{
-				filepath.Join(InstallDir, "datakit"),
-				"/usr/local/bin/datakit",
-			},
-		}
-	}
-
-	for _, item := range x {
-		if err := symlink(item[0], item[1]); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func symlink(src, dst string) error {
-
-	l.Debugf("remove link %s...", dst)
-	if err := os.Remove(dst); err != nil {
-		l.Warnf("%s, ignored", err)
-	}
-
-	if err := os.Symlink(src, dst); err != nil {
-		l.Errorf("create datakit soft link: %s -> %s: %s", dst, src, err.Error())
-		return err
-	}
-	return nil
+	service.Stop()
 }
