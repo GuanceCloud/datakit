@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 /*
@@ -43,23 +44,23 @@ var (
 func InitGlobalConsensusModule() error {
 	l = logger.SLogger("dk-election")
 
-	if len(datakit.Cfg.DataWay.ElectionURL()) == 0 || len(datakit.Cfg.DataWay.ElectionHeartBeatURL()) == 0 {
+	if len(config.Cfg.DataWay.ElectionURL()) == 0 || len(config.Cfg.DataWay.ElectionHeartBeatURL()) == 0 {
 		return fmt.Errorf("invalid electionURL or electionHeartbeatURL, is empty")
 	}
 
 	electionURL, err := setURLQueryParam(
-		datakit.Cfg.DataWay.ElectionURL()[0],
+		config.Cfg.DataWay.ElectionURL()[0],
 		"id",
-		datakit.Cfg.UUID,
+		config.Cfg.UUID,
 	)
 	if err != nil {
 		return err
 	}
 
 	heartbeatURL, err := setURLQueryParam(
-		datakit.Cfg.DataWay.ElectionHeartBeatURL()[0],
+		config.Cfg.DataWay.ElectionHeartBeatURL()[0],
 		"id",
-		datakit.Cfg.UUID,
+		config.Cfg.UUID,
 	)
 	if err != nil {
 		return err

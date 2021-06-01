@@ -12,6 +12,7 @@ import (
 	"github.com/araddon/dateparse"
 	"github.com/stretchr/testify/assert"
 	dk "gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkInputs "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -272,7 +273,7 @@ func TestRun(t *testing.T) {
 	datakit := Datakit{
 		ch: make(chan interface{}),
 	}
-	datakit.ProtectedInterval = func(min, max, cur time.Duration) time.Duration {
+	config.ProtectedInterval = func(min, max, cur time.Duration) time.Duration {
 		return min
 	}
 	datakit.Exit = func() <-chan interface{} {
