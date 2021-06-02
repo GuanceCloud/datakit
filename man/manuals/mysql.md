@@ -10,12 +10,15 @@ MySQL 指标采集，收集以下数据：
 
 - mysql global status 基础数据采集
 - scheam 相关数据
-- innodb 相关指标
+- innodb 相关指标 
+- 主从模式 
 - 支持自定义查询数据采集
 
 >  主从模式相关的 MySQL 指标采集尚未支持（Comming Soon...）
 
 ## 前置条件
+
+- MySQL 版本 5.7+
 
 - 创建监控账号（一般情况，需用 MySQL `root` 账号登陆才能创建 MySQL 用户）
 
