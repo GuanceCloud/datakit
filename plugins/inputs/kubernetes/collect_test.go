@@ -7,10 +7,10 @@ import (
 
 // test config by kubeconfig
 func TestCollect(t *testing.T) {
-	var testCase = []struct{
-		desc   string
-		input  *Input
-		fail   bool
+	var testCase = []struct {
+		desc  string
+		input *Input
+		fail  bool
 	}{
 		{
 			desc: "auth by kubeconfig",
@@ -34,12 +34,12 @@ func TestCollect(t *testing.T) {
 		},
 	}
 
-	for _, tc :=range testCase {
-		var testFuncs = map[string]func() error {
+	for _, tc := range testCase {
+		var testFuncs = map[string]func() error{
 			// "daemonsets":             tc.input.collectDaemonSets,
 			// "deployments":            tc.input.collectDeployments,
 			// "endpoints":              tc.input.collectEndpoints,
-			"ingress":                tc.input.collectIngress,
+			"ingress": tc.input.collectIngress,
 			// "services":               tc.input.collectServices,
 			// "statefulsets":           tc.input.collectStatefulSets,
 			// "persistentvolumes":      tc.input.collectPersistentVolumes,
@@ -69,4 +69,3 @@ func TestCollect(t *testing.T) {
 		}
 	}
 }
-
