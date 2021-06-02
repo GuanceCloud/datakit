@@ -79,7 +79,7 @@ func (this *Input) gatherMetric(container types.Container) (*io.Point, error) {
 	if err != nil {
 		return nil, err
 	}
-	return io.MakePoint(dockerContainersName, tags, fields, time.Now())
+	return io.MakePoint(containerName, tags, fields, time.Now())
 }
 
 func (this *Input) gatherObject(container types.Container) (*io.Point, error) {
@@ -120,7 +120,7 @@ func (this *Input) gatherObject(container types.Container) (*io.Point, error) {
 		fields["message"] = string(message)
 	}
 
-	return io.MakePoint(dockerContainersName, tags, fields, time.Now())
+	return io.MakePoint(containerName, tags, fields, time.Now())
 }
 
 func (this *Input) gatherK8sPodInfo(id string) (map[string]string, error) {
