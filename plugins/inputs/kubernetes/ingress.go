@@ -68,20 +68,20 @@ func (m *ingressM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectIngress() error {
+func (i *Input) collectIngress(collector string) error {
 	list, err := i.client.getIngress()
 	if err != nil {
 		return err
 	}
 
 	for _, item := range list.Items {
-		i.gatherIngress(item)
+		i.gatherIngress(collector, item)
 	}
 
 	return err
 }
 
-func (i *Input) gatherIngress(in v1beta1.Ingress) {
+func (i *Input) gatherIngress(collector string, in v1beta1.Ingress) {
 	if in.GetCreationTimestamp().Second() == 0 && in.GetCreationTimestamp().Nanosecond() == 0 {
 		return
 	}
@@ -127,5 +127,5 @@ func (i *Input) gatherIngress(in v1beta1.Ingress) {
 		ts:     time.Now(),
 	}
 
-	i.collectCache = append(i.collectCache, m)
+	i.collectCache[collector] = append(i.collectCache[collector], m)
 }
