@@ -20,7 +20,10 @@ func TestInitCfg(t *testing.T) {
 	}
 
 	err := i.initCfg()
-	t.Log("error ---->", err)
+	if err != nil {
+		t.Log("error ---->", err)
+		return
+	}
 
 	// 通过 ServerVersion 方法来获取版本号
 	versionInfo, err := i.client.ServerVersion()
@@ -67,14 +70,15 @@ func TestRun(t *testing.T) {
 	err = kube.Collect()
 	t.Log("collect data error ---->", err)
 
-	t.Log("======>", kube.collectCache)
-
-	for _, obj := range kube.collectCache {
-		point, err := obj.LineProto()
-		if err != nil {
-			t.Log("error ->", err)
-		} else {
-			t.Log("point ->", point.String())
+	for k, ms := range kube.collectCache {
+		t.Log("collect resource type", k)
+		for _, m := range ms {
+			point, err := m.LineProto()
+			if err != nil {
+				t.Log("error ->", err)
+			} else {
+				t.Log("point ->", point.String())
+			}
 		}
 	}
 }
