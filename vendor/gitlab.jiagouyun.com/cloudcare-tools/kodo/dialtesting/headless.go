@@ -116,7 +116,6 @@ func (t *HeadlessTask) Ticker() *time.Ticker {
 
 func (t *HeadlessTask) Class() string {
 	return ClassHeadless
-
 }
 
 func (t *HeadlessTask) MetricName() string {
@@ -173,6 +172,18 @@ func (t *HeadlessTask) Check() error {
 	return nil
 }
 
+var allowHeaders = []string{
+	"Content-Type",
+	"Content-Length",
+	"Accept-Encoding",
+	"X-CSRF-Token",
+	"Authorization",
+	"accept",
+	"origin",
+	"Cache-Control",
+	"X-Requested-With",
+}
+
 func (t *HeadlessTask) Run() error {
 
 	t.Clear()
@@ -187,6 +198,10 @@ func (t *HeadlessTask) Run() error {
 		chromedp.Flag("disable-gpu", true),
 	)
 
+	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil && t.AdvanceOptions.RequestOptions.Proxy != `` {
+		opts = append(opts, chromedp.ProxyServer(t.AdvanceOptions.RequestOptions.Proxy))
+	}
+
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	defer cancel()
 
@@ -194,14 +209,11 @@ func (t *HeadlessTask) Run() error {
 	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
 	defer cancel()
 
-	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil && t.AdvanceOptions.RequestOptions.Proxy != `` {
-		chromedp.ProxyServer(t.AdvanceOptions.RequestOptions.Proxy)
-	}
-
 	header := map[string]interface{}{}
 	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil {
 		for k, v := range t.AdvanceOptions.RequestOptions.Headers {
 			header[k] = v
+			allowHeaders = append(allowHeaders, k)
 		}
 	}
 
