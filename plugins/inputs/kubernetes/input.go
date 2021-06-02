@@ -1,10 +1,10 @@
 package kubernetes
 
 import (
+	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"sync"
 	"time"
-	"io/ioutil"
 
 	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
