@@ -26,6 +26,7 @@ type Input struct {
 	EnableObject   bool              `toml:"enable_object"`
 	EnableLogging  bool              `toml:"enable_logging"`
 	MetricInterval string            `toml:"metric_interval"`
+	KubernetesURL  string            `toml:"kubernetes_url"`
 	ClientConfig                     // tls config
 	LogFilters     LogFilters        `toml:"logfilter"`
 	Tags           map[string]string `toml:"tags"`
@@ -66,8 +67,8 @@ func (*Input) PipelineConfig() map[string]string {
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&dockerContainersMeasurement{},
-		&dockerContainersLogMeasurement{},
+		&containersMeasurement{},
+		&containersLogMeasurement{},
 	}
 }
 
@@ -83,23 +84,8 @@ func (this *Input) Run() {
 	}
 	l.Info("container input start")
 
-	objectFunc := func() {
-		startTime := time.Now()
-		pts, err := this.gather(objectCategory)
-		if err != nil {
-			l.Error(err)
-			io.FeedLastError(inputName, fmt.Sprintf("object gather failed: %s", err.Error()))
-			return
-		}
-		cost := time.Since(startTime)
-		if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
-			l.Error(err)
-			io.FeedLastError(inputName, fmt.Sprintf("object gather failed: %s", err.Error()))
-		}
-	}
-
 	if this.EnableObject {
-		objectFunc()
+		this.tickObject()
 	}
 
 	tick := time.NewTicker(this.metricDuration)
@@ -107,27 +93,43 @@ func (this *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			l.Info("docker exit success")
 			return
 
 		case <-tick.C:
+			if this.kubernetes != nil {
+				startTime := time.Now()
+				pts, err := this.kubernetes.GatherPodMetrics()
+				if err != nil {
+					l.Error(err)
+					io.FeedLastError(inputName, fmt.Sprintf("k8s pod metrics gather failed: %s", err.Error()))
+					return
+				}
+				cost := time.Since(startTime)
+				if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
+					l.Error(err)
+					io.FeedLastError(inputName, fmt.Sprintf("k8s pod metrics gather failed: %s", err.Error()))
+				}
+
+			}
 			if this.EnableMetric {
 				startTime := time.Now()
 				pts, err := this.gather(metricCategory)
 				if err != nil {
 					l.Error(err)
-					io.FeedLastError(inputName, fmt.Sprintf("metric gather failed: %s", err.Error()))
+					io.FeedLastError(inputName, fmt.Sprintf("metrics gather failed: %s", err.Error()))
 					continue
 				}
 				cost := time.Since(startTime)
 				if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
 					l.Error(err)
-					io.FeedLastError(inputName, fmt.Sprintf("metric gather failed: %s", err.Error()))
+					io.FeedLastError(inputName, fmt.Sprintf("metrics gather failed: %s", err.Error()))
 				}
 			}
 
 		case <-time.After(objectDuration):
 			if this.EnableObject {
-				objectFunc()
+				this.tickObject()
 			}
 
 		case <-time.After(loggingHitDuration):
@@ -136,8 +138,36 @@ func (this *Input) Run() {
 			}
 		}
 	}
+}
 
-	l.Info("docker exit success")
+func (this *Input) tickObject() {
+	if this.kubernetes != nil {
+		startTime := time.Now()
+		pts, err := this.kubernetes.GatherPodMetrics()
+		if err != nil {
+			l.Error(err)
+			io.FeedLastError(inputName, fmt.Sprintf("k8s pod object gather failed: %s", err.Error()))
+			return
+		}
+		cost := time.Since(startTime)
+		if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
+			l.Error(err)
+			io.FeedLastError(inputName, fmt.Sprintf("k8s pod object gather failed: %s", err.Error()))
+		}
+	}
+
+	startTime := time.Now()
+	pts, err := this.gather(objectCategory)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, fmt.Sprintf("object gather failed: %s", err.Error()))
+		return
+	}
+	cost := time.Since(startTime)
+	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, fmt.Sprintf("object gather failed: %s", err.Error()))
+	}
 }
 
 func (this *Input) initCfg() bool {

@@ -1,5 +1,15 @@
 package container
 
+import (
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"sync"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+)
+
 type LogFilters []*LogFilter
 
 type LogFilter struct {
