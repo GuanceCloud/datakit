@@ -25,7 +25,7 @@ func TestHeartBeat(t *testing.T) {
 		err := dw.Apply()
 		tu.Equals(t, nil, err)
 
-		err = dw.HeartBeat("id-not-set", "host-not-set")
+		err = dw.HeartBeat()
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
