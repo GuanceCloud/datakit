@@ -108,19 +108,18 @@ Content-Type: application/json
 
 参数说明：
 
-| 名称                     | 说明                                                                                                                                       |
-| :---                     | ---                                                                                                                                        |
-| `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                   |
-| `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                |
-| `query`                  | DQL查询语句（DQL [文档]()）                                                                                                                |
-| `conditions`             | 额外添加条件表达式，使用 DQL 语法，与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                            |
-| `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为2的int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间             |
-| `max_duration`           | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是3天，`2w` 是2周，`1y` 是1年。默认是1年，此参数同样会限制 `time_range` 参数 |
-| `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 的数组，例如 `"asc":"name"` 或 `"desc":"age"`，此条会替换原查询语句中的 `order by`      |
-| `max_point`              | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换        |
-| `disable_slimit`         | 是否禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20，默认为 `false`                                              |
-| `disable_multiple_field` | 是否禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段），默认为 `false`                                                       |
-
+| 名称                     | 说明                                                                                                                                                                                                                       |
+| :---                     | ---                                                                                                                                                                                                                        |
+| `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
+| `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                |
+| `query`                  | DQL查询语句（DQL [文档](https://www.yuque.com/dataflux/doc/fsnd2r)）                                                                                                                                                       |
+| `conditions`             | 额外添加条件表达式，使用 DQL 语法，例如`hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                         |
+| `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为2的int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                             |
+| `max_duration`           | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是3天，`2w` 是2周，`1y` 是1年。默认是1年，此参数同样会限制 `time_range` 参数                                                                                 |
+| `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
+| `max_point`              | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换                                                                                        |
+| `disable_slimit`         | 是否禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20，默认为 `false`                                                                                                                              |
+| `disable_multiple_field` | 是否禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段），默认为 `false`                                                                                                                                       |
 
 返回数据：
 
