@@ -10,6 +10,7 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 func TestInitCfg(t *testing.T) {
@@ -177,7 +178,7 @@ func TestLoadEnv(t *testing.T) {
 			},
 			expect: &Config{
 				Name:                 "testing-datakit",
-				DataWay:              &DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}},
+				DataWay:              &dataway.DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}},
 				HTTPListen:           "localhost:9559",
 				HTTPAPI:              &apiConfig{RUMOriginIPHeader: "not-set"},
 				LogLevel:             "debug",
