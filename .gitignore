@@ -54,7 +54,7 @@ test.output
 .docs/
 demo/
 liu_script.sh
-input/kubernetes/*.out
-input/kubernetes/pki/*
-input/kubernetes/cfg.conf
+plugins/input/kubernetes/*.out
+plugins/input/kubernetes/pki/*
+plugins/input/kubernetes/cfg.conf
 
