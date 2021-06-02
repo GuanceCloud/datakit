@@ -110,7 +110,7 @@ func newClient(config *rest.Config, timeout time.Duration) (*client, error) {
 	}
 
 	cli.restClient = &http.Client{
-		Timeout: 1 * time.Second,
+		Timeout: 3 * time.Second,
 	}
 
 	return cli, nil
