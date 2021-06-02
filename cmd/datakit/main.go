@@ -19,7 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/blang/semver/v4"
 	pr "github.com/shirou/gopsutil/v3/process"
 	flag "github.com/spf13/pflag"
 
@@ -30,6 +29,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
@@ -174,16 +174,16 @@ ReleasedInputs: %s
 
 		for k, v := range vers {
 
-			if isNewVersion(v, curver, true) { // show version info, also show RC verison info
+			if version.IsNewVersion(v, curver, true) { // show version info, also show RC verison info
 				fmt.Println("---------------------------------------------------")
 				fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
-					k, v.version, v.Commit, v.ReleaseDate)
+					k, v.VersionString, v.Commit, v.ReleaseDate)
 				switch runtime.GOOS {
 				case "windows":
-					cmdWin := fmt.Sprintf(winUpgradeCmd, v.downloadURL)
+					cmdWin := fmt.Sprintf(winUpgradeCmd, v.DownloadURL)
 					fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
 				default:
-					cmd := fmt.Sprintf(unixUpgradeCmd, v.downloadURL)
+					cmd := fmt.Sprintf(unixUpgradeCmd, v.DownloadURL)
 					fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
 				}
 			}
@@ -253,9 +253,9 @@ ReleasedInputs: %s
 
 		l.Debugf("online version: %v, local version: %v", ver, curver)
 
-		if ver != nil && isNewVersion(ver, curver, *flagAcceptRCVersion) {
+		if ver != nil && version.IsNewVersion(ver, curver, *flagAcceptRCVersion) {
 			l.Infof("New online version available: %s, commit %s (release at %s)",
-				ver.version, ver.Commit, ver.ReleaseDate)
+				ver.VersionString, ver.Commit, ver.ReleaseDate)
 			os.Exit(42)
 		} else {
 			if *flagAcceptRCVersion {
@@ -512,104 +512,6 @@ func runDatakitWithCmd() {
 	}
 }
 
-type datakitVerInfo struct {
-	VersionString string `json:"version"`
-	Commit        string `json:"commit"`
-	ReleaseDate   string `json:"date_utc"`
-
-	downloadURL        string `json:"-"`
-	downloadURLTesting string `json:"-"`
-
-	version *semver.Version
-}
-
-func (vi *datakitVerInfo) String() string {
-	return fmt.Sprintf("datakit %s/%s", vi.VersionString, vi.Commit)
-}
-
-func (vi *datakitVerInfo) parse() error {
-	verstr := strings.TrimPrefix(vi.VersionString, "v") // older version has prefix `v', this crash semver.Parse()
-	v, err := semver.Parse(verstr)
-	if err != nil {
-		return err
-	}
-	vi.version = &v
-	return nil
-}
-
-func getVersion(addr string) (*datakitVerInfo, error) {
-	resp, err := nhttp.Get("http://" + path.Join(addr, "version"))
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	infobody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var ver datakitVerInfo
-	if err = json.Unmarshal(infobody, &ver); err != nil {
-		return nil, err
-	}
-
-	if err := ver.parse(); err != nil {
-		return nil, err
-	}
-	ver.downloadURL = fmt.Sprintf("https://%s/installer-%s-%s",
-		addr, runtime.GOOS, runtime.GOARCH)
-	if runtime.GOOS == "windows" {
-		ver.downloadURL += ".exe"
-	}
-	return &ver, nil
-}
-
-func getOnlineVersions() (res map[string]*datakitVerInfo, err error) {
-
-	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	res = map[string]*datakitVerInfo{}
-
-	onlineVer, err := getVersion("static.dataflux.cn/datakit")
-	if err != nil {
-		return nil, err
-	}
-	res["Online"] = onlineVer
-
-	if *flagShowTestingVersions {
-		testVer, err := getVersion("zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit")
-		if err != nil {
-			return nil, err
-		}
-		res["Testing"] = testVer
-	}
-
-	return
-}
-
-func getLocalVersion() (*datakitVerInfo, error) {
-	v := &datakitVerInfo{VersionString: strings.TrimPrefix(ReleaseVersion, "v"), Commit: git.Commit, ReleaseDate: git.BuildAt}
-	if err := v.parse(); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-func isNewVersion(newVer, curver *datakitVerInfo, acceptRC bool) bool {
-
-	if newVer.version.Compare(*curver.version) > 0 { // new version
-		if len(newVer.version.Pre) == 0 {
-			return true
-		}
-
-		if acceptRC {
-			return true
-		}
-	}
-
-	return false
-}
-
 func checkIsRuning() bool {
 	var oidPid int64
 	var name string
@@ -666,4 +568,65 @@ func rmPidFile() {
 	if err != nil {
 		l.Errorf("remove %s %v", pidFile, err)
 	}
+}
+
+func getOnlineVersions() (res map[string]*version.VerInfo, err error) {
+
+	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	res = map[string]*version.VerInfo{}
+
+	onlineVer, err := getVersion("static.dataflux.cn/datakit")
+	if err != nil {
+		return nil, err
+	}
+	res["Online"] = onlineVer
+
+	if *flagShowTestingVersions {
+		testVer, err := getVersion("zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit")
+		if err != nil {
+			return nil, err
+		}
+		res["Testing"] = testVer
+	}
+
+	return
+}
+
+func getLocalVersion() (*version.VerInfo, error) {
+	v := &version.VerInfo{
+		VersionString: strings.TrimPrefix(ReleaseVersion, "v"),
+		Commit:        git.Commit,
+		ReleaseDate:   git.BuildAt}
+	if err := v.Parse(); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func getVersion(addr string) (*version.VerInfo, error) {
+	resp, err := nhttp.Get("http://" + path.Join(addr, "version"))
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	infobody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var ver version.VerInfo
+	if err = json.Unmarshal(infobody, &ver); err != nil {
+		return nil, err
+	}
+
+	if err := ver.Parse(); err != nil {
+		return nil, err
+	}
+	ver.DownloadURL = fmt.Sprintf("https://%s/installer-%s-%s",
+		addr, runtime.GOOS, runtime.GOARCH)
+	if runtime.GOOS == "windows" {
+		ver.DownloadURL += ".exe"
+	}
+	return &ver, nil
 }
