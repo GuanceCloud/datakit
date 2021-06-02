@@ -53,19 +53,19 @@ func (m *deployment) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectDeployments() error {
+func (i *Input) collectDeployments(collector string) error {
 	list, err := i.client.getDeployments()
 	if err != nil {
 		return err
 	}
 	for _, d := range list.Items {
-		i.gatherDeployment(d)
+		i.gatherDeployment(collector, d)
 	}
 
 	return nil
 }
 
-func (i *Input) gatherDeployment(d v1.Deployment) {
+func (i *Input) gatherDeployment(collector string, d v1.Deployment) {
 	fields := map[string]interface{}{
 		"replicas_available":   d.Status.AvailableReplicas,
 		"replicas_unavailable": d.Status.UnavailableReplicas,
@@ -91,5 +91,5 @@ func (i *Input) gatherDeployment(d v1.Deployment) {
 		ts:     time.Now(),
 	}
 
-	i.collectCache = append(i.collectCache, m)
+	i.collectCache[collector] = append(i.collectCache[collector], m)
 }
