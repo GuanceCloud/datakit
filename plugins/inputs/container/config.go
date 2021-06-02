@@ -1,8 +1,6 @@
 package container
 
 import (
-	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -31,6 +29,9 @@ const (
     # tls_key = "/path/to/key.pem"
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
+
+
+    kubernetes_url = "http://127.0.0.1:10255"
 
     #[[inputs.container.logfilter]]
         # filter_message = [
@@ -95,19 +96,10 @@ func (this *Input) loadCfg() (err error) {
 		return
 	}
 
-	// 始终认为，docker和k8s在同一台主机上
-	// 避免进行冗杂的k8s连接配置
-	var k8sURL = fmt.Sprintf(defaultKubernetesURL, "127.0.0.1")
-	if this.Endpoint != dockerEndpoint {
-		if u, err := url.Parse(this.Endpoint); err == nil {
-			k8sURL = fmt.Sprintf(defaultKubernetesURL, u.Hostname())
-		}
-	}
-
-	l.Debugf("use k8sURL %s", k8sURL)
+	l.Debugf("use k8sURL %s", this.KubernetesURL)
 
 	this.kubernetes = func() *Kubernetes {
-		k := Kubernetes{URL: k8sURL}
+		k := Kubernetes{URL: this.KubernetesURL}
 		if err := k.Init(); err != nil {
 			l.Debugf("read k8s token error (use empty tokne): %s", err)
 			// use empty token
@@ -117,4 +109,13 @@ func (this *Input) loadCfg() (err error) {
 	}()
 
 	return
+}
+
+func (this *Input) initLoggingConf() error {
+	for _, lf := range this.LogFilters {
+		if err := lf.Init(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
