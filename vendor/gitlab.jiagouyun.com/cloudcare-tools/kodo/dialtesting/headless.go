@@ -201,7 +201,6 @@ func (t *HeadlessTask) Run() error {
 	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil {
 		for k, v := range t.AdvanceOptions.RequestOptions.Headers {
 			header[k] = v
-			allowHeaders = append(allowHeaders, k)
 		}
 	}
 
