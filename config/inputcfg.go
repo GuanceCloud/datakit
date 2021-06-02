@@ -141,7 +141,7 @@ func searchDatakitInputCfg(c *Config,
 	}
 }
 
-func isDisabled(wlists, blists []*InputHostList, hostname, name string) bool {
+func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
 
 	for _, bl := range blists {
 		if bl.MatchHost(hostname) && bl.MatchInput(name) {
