@@ -22,10 +22,7 @@ import (
 var (
 	IntervalDuration = 10 * time.Second
 
-	Cfg = DefaultConfig()
-)
-
-var (
+	Cfg    = DefaultConfig()
 	Docker = false
 
 	l = logger.DefaultSLogger("config")
@@ -53,11 +50,11 @@ func DefaultConfig() *Config {
 		Log:       filepath.Join("/var/log/datakit", "log"),
 		GinLog:    filepath.Join("/var/log/datakit", "gin.log"),
 
-		BlackList: []*InputHostList{
-			&InputHostList{Hosts: []string{}, Inputs: []string{}},
+		BlackList: []*inputHostList{
+			&inputHostList{Hosts: []string{}, Inputs: []string{}},
 		},
-		WhiteList: []*InputHostList{
-			&InputHostList{Hosts: []string{}, Inputs: []string{}},
+		WhiteList: []*inputHostList{
+			&inputHostList{Hosts: []string{}, Inputs: []string{}},
 		},
 	}
 
@@ -105,8 +102,8 @@ type Config struct {
 	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
 	InstallDate          time.Time `toml:"install_date,omitempty"`
 
-	BlackList []*InputHostList `toml:"black_lists,omitempty"`
-	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
+	BlackList []*inputHostList `toml:"black_lists,omitempty"`
+	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 
 	EnableElection bool `toml:"enable_election"`
 
@@ -156,12 +153,12 @@ func (c *Config) LoadMainTOML(p string) error {
 	return nil
 }
 
-type InputHostList struct {
+type inputHostList struct {
 	Hosts  []string `toml:"hosts"`
 	Inputs []string `toml:"inputs"`
 }
 
-func (i *InputHostList) MatchHost(host string) bool {
+func (i *inputHostList) MatchHost(host string) bool {
 	for _, hostname := range i.Hosts {
 		if hostname == host {
 			return true
@@ -171,7 +168,7 @@ func (i *InputHostList) MatchHost(host string) bool {
 	return false
 }
 
-func (i *InputHostList) MatchInput(input string) bool {
+func (i *inputHostList) MatchInput(input string) bool {
 	for _, name := range i.Inputs {
 		if name == input {
 			return true
