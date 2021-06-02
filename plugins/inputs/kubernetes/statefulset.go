@@ -82,19 +82,19 @@ func (m *statefulSet) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectStatefulSets() error {
+func (i *Input) collectStatefulSets(collector string) error {
 	list, err := i.client.getStatefulSets()
 	if err != nil {
 		return err
 	}
 	for _, s := range list.Items {
-		i.gatherStatefulSet(s)
+		i.gatherStatefulSet(collector, s)
 	}
 
 	return nil
 }
 
-func (i *Input) gatherStatefulSet(s v1.StatefulSet) {
+func (i *Input) gatherStatefulSet(collector string, s v1.StatefulSet) {
 	status := s.Status
 	fields := map[string]interface{}{
 		"created":             s.GetCreationTimestamp().UnixNano(),
@@ -123,5 +123,5 @@ func (i *Input) gatherStatefulSet(s v1.StatefulSet) {
 		ts:     time.Now(),
 	}
 
-	i.collectCache = append(i.collectCache, m)
+	i.collectCache[collector] = append(i.collectCache[collector], m)
 }
