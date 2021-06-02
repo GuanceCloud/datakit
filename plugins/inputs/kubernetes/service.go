@@ -67,19 +67,19 @@ func (m *serviceM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectServices() error {
+func (i *Input) collectServices(collector string) error {
 	list, err := i.client.getServices()
 	if err != nil {
 		return err
 	}
 	for _, item := range list.Items {
-		i.gatherService(item)
+		i.gatherService(collector, item)
 	}
 
 	return nil
 }
 
-func (i *Input) gatherService(s corev1.Service) {
+func (i *Input) gatherService(collector string, s corev1.Service) {
 	if s.GetCreationTimestamp().Second() == 0 && s.GetCreationTimestamp().Nanosecond() == 0 {
 		return
 	}
@@ -123,5 +123,5 @@ func (i *Input) gatherService(s corev1.Service) {
 		ts:     time.Now(),
 	}
 
-	i.collectCache = append(i.collectCache, m)
+	i.collectCache[collector] = append(i.collectCache[collector], m)
 }
