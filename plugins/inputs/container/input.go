@@ -106,7 +106,7 @@ func (this *Input) Run() {
 					return
 				}
 				cost := time.Since(startTime)
-				if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
+				if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
 					l.Error(err)
 					io.FeedLastError(inputName, fmt.Sprintf("k8s pod metrics gather failed: %s", err.Error()))
 				}
