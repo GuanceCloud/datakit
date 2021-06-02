@@ -135,12 +135,3 @@ func parseCfgFile(f string) (*ast.Table, error) {
 
 	return tbl, nil
 }
-
-func sliceContains(name string, list []string) bool {
-	for _, b := range list {
-		if b == name {
-			return true
-		}
-	}
-	return false
-}
