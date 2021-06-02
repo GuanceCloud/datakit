@@ -8,17 +8,17 @@ import (
 
 // test config by kubeconfig
 func TestCollect(t *testing.T) {
-	var testCase = []struct{
-		desc   string
-		input  *Input
-		fail   bool
+	var testCase = []struct {
+		desc  string
+		input *Input
+		fail  bool
 	}{
 		{
 			desc: "auth by kubeconfig",
 			input: &Input{
 				Tags:           make(map[string]string),
 				KubeConfigPath: "/Users/liushaobo/.kube/config",
-				collectCache: make(map[string][]inputs.Measurement),
+				collectCache:   make(map[string][]inputs.Measurement),
 			},
 			fail: false,
 		},
@@ -35,9 +35,22 @@ func TestCollect(t *testing.T) {
 			},
 			fail: false,
 		},
+		{
+			desc: "auth by token",
+			input: &Input{
+				Tags:        make(map[string]string),
+				URL:         "https://127.0.0.0:6443",
+				BearerToken: "/Users/liushaobo/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes/pki/token",
+				ClientConfig: tls.ClientConfig{
+					TLSCA: "/Users/liushaobo/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes/pki/ca_crt.pem",
+				},
+				collectCache: make(map[string][]inputs.Measurement),
+			},
+			fail: true,
+		},
 	}
 
-	for _, tc :=range testCase {
+	for _, tc := range testCase {
 		err := tc.input.initCfg()
 		if err != nil {
 			t.Log("init config err ---->", err)
@@ -75,4 +88,3 @@ func TestCollect(t *testing.T) {
 		}
 	}
 }
-
