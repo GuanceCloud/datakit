@@ -54,3 +54,4 @@ test.output
 .docs/
 demo/
 liu_script.sh
+input/kubernetes/pki/*
