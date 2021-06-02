@@ -29,7 +29,7 @@ func (i *Input) Run() {
 		i.Interval = defaultInterval
 	}
 
-	l = logger.DefaultSLogger(inputName)
+	l = logger.SLogger(inputName)
 
 	i.PluginName = inputName
 	i.JolokiaAgent.Tags = i.Tags
