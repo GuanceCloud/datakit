@@ -172,18 +172,6 @@ func (t *HeadlessTask) Check() error {
 	return nil
 }
 
-var allowHeaders = []string{
-	"Content-Type",
-	"Content-Length",
-	"Accept-Encoding",
-	"X-CSRF-Token",
-	"Authorization",
-	"accept",
-	"origin",
-	"Cache-Control",
-	"X-Requested-With",
-}
-
 func (t *HeadlessTask) Run() error {
 
 	t.Clear()
