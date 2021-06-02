@@ -167,7 +167,7 @@ func (i *Input) gatherPod(p *corev1.PodList) {
 	}
 }
 
-func (i *Input) CollectObject() error {
+func (i *Input) collectPodObject(collector string) error {
 	if err := i.collectPodsObject(); err != nil {
 		return err
 	}
