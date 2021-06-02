@@ -11,8 +11,8 @@ import (
 
 func TestInitCfg(t *testing.T) {
 	i := &Input{
-		Tags:       make(map[string]string),
-		URL:        "https://172.16.2.41:6443",
+		Tags:        make(map[string]string),
+		URL:         "https://172.16.2.41:6443",
 		BearerToken: "/Users/liushaobo/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes/pki/token",
 		ClientConfig: tls.ClientConfig{
 			TLSCA: "/Users/liushaobo/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes/pki/ca_crt.pem",
