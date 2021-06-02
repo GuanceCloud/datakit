@@ -150,8 +150,6 @@ func (i *Input) Collect() error {
 					}
 				}
 			}
-
-			// i.collectCache[collector] = i.collectCache[collector][:0]
 		}
 	}
 
