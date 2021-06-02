@@ -21,26 +21,26 @@ func buildNodeMetrics(summaryApi *SummaryMetrics) (*io.Point, error) {
 		"node_name": summaryApi.Node.NodeName,
 	}
 	fields := make(map[string]interface{})
-	fields["cpu_usage_nanocores"] = summaryApi.Node.CPU.UsageNanoCores
-	fields["cpu_usage_core_nanoseconds"] = summaryApi.Node.CPU.UsageCoreNanoSeconds
-	fields["memory_available_bytes"] = summaryApi.Node.Memory.AvailableBytes
-	fields["memory_usage_bytes"] = summaryApi.Node.Memory.UsageBytes
-	fields["memory_working_set_bytes"] = summaryApi.Node.Memory.WorkingSetBytes
-	fields["memory_rss_bytes"] = summaryApi.Node.Memory.RSSBytes
-	fields["memory_page_faults"] = summaryApi.Node.Memory.PageFaults
-	fields["memory_major_page_faults"] = summaryApi.Node.Memory.MajorPageFaults
-	fields["network_rx_bytes"] = summaryApi.Node.Network.RXBytes()
-	fields["network_rx_errors"] = summaryApi.Node.Network.RXErrors()
-	fields["network_tx_bytes"] = summaryApi.Node.Network.TXBytes()
-	fields["network_tx_errors"] = summaryApi.Node.Network.TXErrors()
-	fields["fs_available_bytes"] = summaryApi.Node.FileSystem.AvailableBytes
-	fields["fs_capacity_bytes"] = summaryApi.Node.FileSystem.CapacityBytes
-	fields["fs_used_bytes"] = summaryApi.Node.FileSystem.UsedBytes
-	fields["runtime_image_fs_available_bytes"] = summaryApi.Node.Runtime.ImageFileSystem.AvailableBytes
-	fields["runtime_image_fs_capacity_bytes"] = summaryApi.Node.Runtime.ImageFileSystem.CapacityBytes
-	fields["runtime_image_fs_used_bytes"] = summaryApi.Node.Runtime.ImageFileSystem.UsedBytes
+	fields["cpu_usage_nanocores"] = float64(summaryApi.Node.CPU.UsageNanoCores)
+	fields["cpu_usage_core_nanoseconds"] = float64(summaryApi.Node.CPU.UsageCoreNanoSeconds)
+	fields["memory_available_bytes"] = float64(summaryApi.Node.Memory.AvailableBytes)
+	fields["memory_usage_bytes"] = float64(summaryApi.Node.Memory.UsageBytes)
+	fields["memory_working_set_bytes"] = float64(summaryApi.Node.Memory.WorkingSetBytes)
+	fields["memory_rss_bytes"] = float64(summaryApi.Node.Memory.RSSBytes)
+	fields["memory_page_faults"] = float64(summaryApi.Node.Memory.PageFaults)
+	fields["memory_major_page_faults"] = float64(summaryApi.Node.Memory.MajorPageFaults)
+	fields["network_rx_bytes"] = float64(summaryApi.Node.Network.RXBytes())
+	fields["network_rx_errors"] = float64(summaryApi.Node.Network.RXErrors())
+	fields["network_tx_bytes"] = float64(summaryApi.Node.Network.TXBytes())
+	fields["network_tx_errors"] = float64(summaryApi.Node.Network.TXErrors())
+	fields["fs_available_bytes"] = float64(summaryApi.Node.FileSystem.AvailableBytes)
+	fields["fs_capacity_bytes"] = float64(summaryApi.Node.FileSystem.CapacityBytes)
+	fields["fs_used_bytes"] = float64(summaryApi.Node.FileSystem.UsedBytes)
+	fields["runtime_image_fs_available_bytes"] = float64(summaryApi.Node.Runtime.ImageFileSystem.AvailableBytes)
+	fields["runtime_image_fs_capacity_bytes"] = float64(summaryApi.Node.Runtime.ImageFileSystem.CapacityBytes)
+	fields["runtime_image_fs_used_bytes"] = float64(summaryApi.Node.Runtime.ImageFileSystem.UsedBytes)
 
-	return io.MakePoint("kubernetes", tags, fields, time.Now())
+	return io.MakePoint("kubelet", tags, fields, time.Now())
 }
 
 func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
@@ -52,7 +52,7 @@ func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
 		}
 		tags := map[string]string{
 			"node_name": summaryApi.Node.NodeName,
-			"pod_name":  pod.PodRef.Name,
+			"name":      pod.PodRef.Name,
 			"namespace": pod.PodRef.Namespace,
 			"uid":       pod.PodRef.UID,
 		}
