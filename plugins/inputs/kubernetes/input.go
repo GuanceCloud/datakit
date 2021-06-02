@@ -1,10 +1,10 @@
 package kubernetes
 
 import (
+	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"sync"
 	"time"
-	"io/ioutil"
 
 	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
@@ -28,11 +28,11 @@ var (
 type Input struct {
 	Service                string `toml:"service"`
 	Interval               datakit.Duration
-	ObjectInterval         string               `toml:"object_Interval"`
-	ObjectIntervalDuration time.Duration        `toml:"_"`
-	Tags                   map[string]string    `toml:"tags"`
+	ObjectInterval         string                          `toml:"object_Interval"`
+	ObjectIntervalDuration time.Duration                   `toml:"_"`
+	Tags                   map[string]string               `toml:"tags"`
 	collectCache           map[string][]inputs.Measurement `toml:"-"`
-	collectObjectCache     []inputs.Measurement `toml:"-"`
+	collectObjectCache     []inputs.Measurement            `toml:"-"`
 	lastErr                error
 
 	KubeConfigPath    string `toml:"kube_config_path"`
@@ -109,14 +109,15 @@ func (i *Input) globalTag() {
 
 func (i *Input) Collect() error {
 	i.collectors = map[string]func(collector string) error{
-		"daemonsets":  i.collectDaemonSets,
-		"deployments": i.collectDeployments,
-		"endpoints":   i.collectEndpoints,
+		"daemonsets":             i.collectDaemonSets,
+		"deployments":            i.collectDeployments,
+		"endpoints":              i.collectEndpoints,
 		"ingress":                i.collectIngress,
 		"services":               i.collectServices,
 		"statefulsets":           i.collectStatefulSets,
 		"persistentvolumes":      i.collectPersistentVolumes,
 		"persistentvolumeclaims": i.collectPersistentVolumeClaims,
+		"objectPod":              i.collectPodObject,
 	}
 
 	i.collectCache = make(map[string][]inputs.Measurement)
@@ -137,10 +138,10 @@ func (i *Input) Collect() error {
 			err := f(collector)
 			if err != nil {
 				l.Errorf("%s exec %v", collector, err)
-			    io.FeedLastError(inputName, err.Error())
-		    } else {
-		    	resData := i.collectCache[collector]
-		    	if len(resData) > 0 {
+				io.FeedLastError(inputName, err.Error())
+			} else {
+				resData := i.collectCache[collector]
+				if len(resData) > 0 {
 					if err := inputs.FeedMeasurement(inputName,
 						datakit.Metric,
 						resData,
@@ -148,7 +149,7 @@ func (i *Input) Collect() error {
 						l.Error(err)
 					}
 				}
-		    }
+			}
 
 			// i.collectCache[collector] = i.collectCache[collector][:0]
 		}
@@ -180,7 +181,7 @@ func (i *Input) Run() {
 			l.Debugf("kubernetes metric input gathering...")
 			i.start = time.Now()
 			i.Collect()
-			// 清理cache
+			// clear cache
 			i.clear()
 		case <-datakit.Exit.Wait():
 			l.Info("kubernetes exit")
@@ -190,7 +191,7 @@ func (i *Input) Run() {
 }
 
 func (i *Input) clear() {
-	for	cate, _ := range i.collectors {
+	for cate, _ := range i.collectors {
 		i.collectCache[cate] = i.collectCache[cate][:0]
 	}
 }
