@@ -32,7 +32,6 @@ const (
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
   
-  
   [inputs.container.kubelet]
     kubelet_url = "http://127.0.0.1:10255"
 
