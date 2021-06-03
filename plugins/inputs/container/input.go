@@ -88,15 +88,17 @@ func (this *Input) Run() {
 		this.tickObject()
 	}
 
-	tick := time.NewTicker(this.metricDuration)
-	defer tick.Stop()
+	metricsTick := time.NewTicker(this.metricDuration)
+	defer metricsTick.Stop()
+	loggingTick := time.NewTicker(loggingHitDuration)
+	defer loggingTick.Stop()
 	for {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("docker exit success")
 			return
 
-		case <-tick.C:
+		case <-metricsTick.C:
 			if this.kubernetes != nil {
 				startTime := time.Now()
 				pts, err := this.kubernetes.GatherPodMetrics()
@@ -132,7 +134,7 @@ func (this *Input) Run() {
 				this.tickObject()
 			}
 
-		case <-time.After(loggingHitDuration):
+		case <-loggingTick.C:
 			if this.EnableLogging {
 				this.gatherLog()
 			}
