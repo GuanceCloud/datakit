@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/charset"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -21,7 +22,7 @@ type Server struct {
 
 func (s *Server) getDefaultTags() map[string]string {
 	tags := make(map[string]string)
-	tags["hostname"] = s.URL.Host
+	tags["mongo_host"] = s.URL.Host
 	for k, v := range defTags {
 		tags[k] = v
 	}
@@ -155,36 +156,35 @@ func (s *Server) gatherCollectionStats(colStatsDbs []string) (*ColStats, error) 
 		return nil, err
 	}
 
+	dbNames = charset.Intersect(dbNames, colStatsDbs)
 	results := &ColStats{}
 	for _, dbName := range dbNames {
-		if stringInSlice(dbName, colStatsDbs) || len(colStatsDbs) == 0 {
-			var colls []string
-			colls, err = s.Session.DB(dbName).CollectionNames()
+		var colls []string
+		colls, err = s.Session.DB(dbName).CollectionNames()
+		if err != nil {
+			l.Errorf("Error getting collection names: %q", err.Error())
+			continue
+		}
+
+		for _, colName := range colls {
+			colStatLine := &ColStatsData{}
+			err = s.Session.DB(dbName).Run(bson.D{
+				{
+					Name:  "collStats",
+					Value: colName,
+				},
+			}, colStatLine)
 			if err != nil {
-				l.Errorf("Error getting collection names: %q", err.Error())
+				s.authLog(fmt.Errorf("error getting col stats from %q: %v", colName, err))
 				continue
 			}
 
-			for _, colName := range colls {
-				colStatLine := &ColStatsData{}
-				err = s.Session.DB(dbName).Run(bson.D{
-					{
-						Name:  "collStats",
-						Value: colName,
-					},
-				}, colStatLine)
-				if err != nil {
-					s.authLog(fmt.Errorf("error getting col stats from %q: %v", colName, err))
-					continue
-				}
-
-				collection := &Collection{
-					Name:         colName,
-					DbName:       dbName,
-					ColStatsData: colStatLine,
-				}
-				results.Collections = append(results.Collections, *collection)
+			collection := &Collection{
+				Name:         colName,
+				DbName:       dbName,
+				ColStatsData: colStatLine,
 			}
+			results.Collections = append(results.Collections, *collection)
 		}
 	}
 
@@ -320,14 +320,4 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 	s.lastResult = result
 
 	return nil
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-
-	return false
 }
