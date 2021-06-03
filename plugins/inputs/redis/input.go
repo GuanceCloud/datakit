@@ -212,6 +212,13 @@ func (i *Input) Run() {
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	for {
+
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+		}
+
 		if err := i.initCfg(); err != nil {
 			io.FeedLastError(inputName, err.Error())
 			time.Sleep(5 * time.Second)
