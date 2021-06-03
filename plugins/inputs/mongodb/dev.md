@@ -319,12 +319,12 @@ drop_key(id)
 | host     | host name                  |
 | service  | service name: mongod_log   |
 
-| 字段名       | 字段值 | 说明                                                                   |
-| ------------ | ------ | ---------------------------------------------------------------------- |
-| attr.message | string | attribute structure include client info, it's content varies by client |
-| command      | string | The full component string of the log message                           |
-| context      | string | The name of the thread issuing the log statement                       |
-| msg          | string | The raw log output message as passed from the server or driver         |
-| severity     | string | The short severity code of the log message                             |
-| status       | string | Log level                                                              |
-| date         | string | Timestamp                                                              |
+| 字段名    | 字段值 | 说明                                                           |
+| --------- | ------ | -------------------------------------------------------------- |
+| message   | string | Log raw data .                                                 |
+| component | string | The full component string of the log message                   |
+| context   | string | The name of the thread issuing the log statement               |
+| msg       | string | The raw log output message as passed from the server or driver |
+| severity  | string | The short severity code of the log message                     |
+| status    | string | Log level                                                      |
+| time      | string | Timestamp                                                      |
