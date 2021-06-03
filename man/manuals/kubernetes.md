@@ -6,15 +6,11 @@
 
 # {{.InputName}}
 
-Kubernetes 集群指标采集，收集以下数据：
-
-- 各种资源指标
-- 接入 kubernetes event 数据，通过 [kube-eventer](https://github.com/AliyunContainerService/kube-eventer) (todo)
-- 接入 kubernetes 的 Prometheus exporter 指标数据 (todo)
+Kubernetes 集群指标采集，主要用于收集各种资源指标
 
 ## 前置条件
 
-注意：以下操作及使用是 datakit 部署运行在 k8s 集群外
+注意：以下使用是 datakit 部署运行在 k8s 集群外
 
 ### 创建监控的 ServiceAccount 账号（该账户拥有只读权限）
 
