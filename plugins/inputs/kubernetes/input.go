@@ -118,7 +118,7 @@ func (i *Input) Collect() error {
 		"statefulsets":           i.collectStatefulSets,
 		"persistentvolumes":      i.collectPersistentVolumes,
 		"persistentvolumeclaims": i.collectPersistentVolumeClaims,
-		"objectPod":              i.collectPodObject,
+		// "objectPod":              i.collectPodObject,
 	}
 
 	i.collectCache = make(map[string][]inputs.Measurement)
