@@ -57,7 +57,7 @@ const (
 	apiTimeoutDuration = time.Second * 5
 
 	// 最小指标采集间隔
-	minMetricDuration = time.Second * 5
+	minMetricDuration = time.Second * 10
 
 	// 最大指标采集间隔
 	maxMetricDuration = time.Second * 60
@@ -93,6 +93,10 @@ func (this *Input) loadCfg() (err error) {
 
 	this.client, err = this.newClient(this.Endpoint, tlsConfig)
 	if err != nil {
+		return
+	}
+
+	if err = this.initLoggingConf(); err != nil {
 		return
 	}
 
