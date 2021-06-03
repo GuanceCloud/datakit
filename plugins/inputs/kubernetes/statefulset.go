@@ -28,6 +28,7 @@ func (m *statefulSet) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"statefulset_name": &inputs.TagInfo{Desc: "statefulset name"},
 			"namespace":        &inputs.TagInfo{Desc: "namespace"},
+			"selector_*":       &inputs.TagInfo{Desc: "label"},
 		},
 		Fields: map[string]interface{}{
 			"created": &inputs.FieldInfo{
