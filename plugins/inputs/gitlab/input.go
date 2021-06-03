@@ -1,13 +1,13 @@
 package gitlab
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -44,6 +44,9 @@ type Input struct {
 
 	httpClient *http.Client
 	duration   time.Duration
+
+	paused     bool
+	electionCh chan interface{}
 }
 
 func newInput() *Input {
@@ -53,6 +56,7 @@ func newInput() *Input {
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
+		electionCh: make(chan interface{}),
 	}
 }
 
@@ -72,17 +76,55 @@ func (this *Input) Run() {
 	ticker := time.NewTicker(this.duration)
 	defer ticker.Stop()
 
+	defer close(this.electionCh)
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return
 
+		case x := <-this.electionCh:
+			if x == PAUSE {
+				this.paused = true
+			} else {
+				this.paused = false
+			}
+
 		case <-ticker.C:
-			if election.CurrentStats().IsLeader() {
+			if !this.paused {
 				this.gather()
 			}
 		}
+	}
+}
+
+const (
+	PAUSE  = 0
+	RESUME = 1
+)
+
+func (this *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 3)
+	defer tick.Stop()
+
+	select {
+	case this.electionCh <- PAUSE:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (this *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 3)
+	defer tick.Stop()
+
+	select {
+	case this.electionCh <- RESUME:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
