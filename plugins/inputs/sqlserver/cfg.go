@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"sync"
 	"time"
 )
 
@@ -39,9 +38,8 @@ default_time(time)
 	catalogName  = "db"
 	l            = logger.DefaultSLogger(inputName)
 	collectCache []*io.Point
-	minInterval  = time.Second
+	minInterval  = time.Second * 5
 	maxInterval  = time.Second * 30
-	lock         sync.Mutex
 	query        = []string{
 		sqlServerPerformanceCounters,
 		sqlServerWaitStatsCategorized,
@@ -64,13 +62,6 @@ type Input struct {
 	tail    *inputs.Tailer
 	start   time.Time
 	db      *sql.DB
-	wg      sync.WaitGroup
-}
-
-func metricAppend(point *io.Point) {
-	lock.Lock()
-	collectCache = append(collectCache, point)
-	lock.Unlock()
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {
