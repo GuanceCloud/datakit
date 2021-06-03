@@ -86,8 +86,13 @@ func (this *Input) Run() {
 	l.Info("container input start")
 
 	if this.EnableObject {
-		this.tickObject()
+		if this.Kubernetes != nil {
+			do(this.Kubernetes.GatherPodMetrics, datakit.Object, "k8s pod object gather failed")
+		}
+
+		do(func() ([]*io.Point, error) { return this.gather(objectCategory) }, datakit.Object, "container object gather failed")
 	}
+
 	if this.EnableLogging {
 		this.gatherLog()
 	}
@@ -109,38 +114,20 @@ func (this *Input) Run() {
 
 		case <-metricsTick.C:
 			if this.Kubernetes != nil {
-				startTime := time.Now()
-				pts, err := this.Kubernetes.GatherPodMetrics()
-				if err != nil {
-					l.Error(err)
-					io.FeedLastError(inputName, fmt.Sprintf("k8s pod metrics gather failed: %s", err.Error()))
-					return
-				}
-				cost := time.Since(startTime)
-				if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
-					l.Error(err)
-					io.FeedLastError(inputName, fmt.Sprintf("k8s pod metrics gather failed: %s", err.Error()))
-				}
-
+				do(this.Kubernetes.GatherNodeMetrics, datakit.Metric, "k8s pod metrics gather failed")
+				do(this.Kubernetes.GatherPodMetrics, datakit.Metric, "k8s pod metrics gather failed")
 			}
 			if this.EnableMetric {
-				startTime := time.Now()
-				pts, err := this.gather(metricCategory)
-				if err != nil {
-					l.Error(err)
-					io.FeedLastError(inputName, fmt.Sprintf("metrics gather failed: %s", err.Error()))
-					continue
-				}
-				cost := time.Since(startTime)
-				if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
-					l.Error(err)
-					io.FeedLastError(inputName, fmt.Sprintf("metrics gather failed: %s", err.Error()))
-				}
+				do(func() ([]*io.Point, error) { return this.gather(metricCategory) }, datakit.Metric, "container metrics gather failed")
 			}
 
 		case <-objectTick.C:
 			if this.EnableObject {
-				this.tickObject()
+				if this.Kubernetes != nil {
+					do(this.Kubernetes.GatherPodMetrics, datakit.Object, "k8s pod object gather failed")
+				}
+
+				do(func() ([]*io.Point, error) { return this.gather(objectCategory) }, datakit.Object, "container object gather failed")
 			}
 
 		case <-loggingTick.C:
@@ -148,39 +135,6 @@ func (this *Input) Run() {
 				this.gatherLog()
 			}
 		}
-	}
-}
-
-func (this *Input) tickObject() {
-	// TODO:
-	// cost 必须优化，太冗余
-
-	if this.Kubernetes != nil {
-		startTime := time.Now()
-		pts, err := this.Kubernetes.GatherPodMetrics()
-		if err != nil {
-			l.Error(err)
-			io.FeedLastError(inputName, fmt.Sprintf("k8s pod object gather failed: %s", err.Error()))
-			return
-		}
-		cost := time.Since(startTime)
-		if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
-			l.Error(err)
-			io.FeedLastError(inputName, fmt.Sprintf("k8s pod object gather failed: %s", err.Error()))
-		}
-	}
-
-	startTime := time.Now()
-	pts, err := this.gather(objectCategory)
-	if err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, fmt.Sprintf("object gather failed: %s", err.Error()))
-		return
-	}
-	cost := time.Since(startTime)
-	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: cost}); err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, fmt.Sprintf("object gather failed: %s", err.Error()))
 	}
 }
 
@@ -213,4 +167,20 @@ func (this *Input) initCfg() bool {
 		}
 	}
 	return false
+}
+
+func do(gatherFn func() ([]*io.Point, error), category, prefixlog string) {
+	startTime := time.Now()
+	pts, err := gatherFn()
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, fmt.Sprintf("%s: %s", prefixlog, err))
+		return
+	}
+	cost := time.Since(startTime)
+	if err := io.Feed(inputName, category, pts, &io.Option{CollectCost: cost}); err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, fmt.Sprintf("%s: %s", prefixlog, err))
+	}
+
 }
