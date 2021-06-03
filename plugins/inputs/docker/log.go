@@ -2,7 +2,6 @@ package docker
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
