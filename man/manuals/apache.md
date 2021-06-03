@@ -10,6 +10,8 @@ Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并�
 
 ## 前置条件
 
+- Apache 版本 >= 2.4.46 (Unix)
+
 - 一般发行版 Linux 会自带 Apache,如需下载[参见](https://httpd.apache.org/download.cgi)
 
 - 默认配置路径: `/etc/apache2/apache2.conf`,`/etc/apache2/httpd.conf`
@@ -82,3 +84,32 @@ Allow from your_ip
 开启日志采集以后，默认会产生日志来源（`source`）为 `apache` 的日志。
 
 >注意：必须将 DataKit 安装在 Apache 所在主机才能采集 Apache 日志
+
+## 日志 pipeline 功能切割字段说明
+
+原始日志为 `[Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status`
+
+切割后的字段列表如下：
+
+| 字段名  |  字段值  | 说明 |
+| ---    | ---     | --- |
+|  status   | error     | 日志等级 |
+|  pid   | 9802   | 进程 id |
+|  type   | access_compat   | 日志类型 |
+|  time   | 1621391985000000000     | 纳秒时间戳（作为行协议时间）|
+
+
+原始日志为 `127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917`
+
+切割后的字段列表如下：
+
+| 字段名  |  字段值  | 说明 |
+| ---    | ---     | --- |
+|  status   | info     | 日志等级 |
+|  ip_or_host   | 127.0.0.1   | 请求方ip或者host |
+|  http_code   | 200   | http status code |
+|  http_method   | GET   | http 请求类型 |
+|  http_url   | /   | http 请求url |
+|  http_version   | 1.1   | http version |
+|  time   | 1621205469000000000     | 纳秒时间戳（作为行协议时间）|
+

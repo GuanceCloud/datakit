@@ -17,6 +17,8 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 
 ## 前置条件
 
+- RabbitMQ 版本 >= 3.8.14
+
 - 安装 `rabbitmq` 以 `Ubuntu` 为例
 
     ```shell
@@ -89,6 +91,16 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
   
 开启日志采集以后，默认会产生日志来源（`source`）为 `rabbitmq` 的日志。
 
-**注意**
+>注意：必须将 DataKit 安装在 RabbitMQ 所在主机才能采集 RabbitMQ 日志
 
-- 日志采集仅支持采集已安装 DataKit 主机上的日志
+## 日志 pipeline 功能切割字段说明
+
+原始日志为 `2021-05-26 14:20:06.105 [warning] <0.12897.46> rabbitmqctl node_health_check and its HTTP API counterpart are DEPRECATED. See https://www.rabbitmq.com/monitoring.html#health-checks for replacement options.`
+
+切割后的字段列表如下：
+
+| 字段名  |  字段值  | 说明 |
+| ---    | ---     | --- |
+| status    | warning     | 日志等级 |
+| msg    | <0.12897.46>...replacement options     | 日志等级 |
+|  time   | 1622010006000000000     | 纳秒时间戳（作为行协议时间）|
