@@ -144,10 +144,6 @@ func TestProtectedInterval(t *testing.T) {
 	}
 }
 
-func TestGenerateDatakitID(t *testing.T) {
-	t.Logf("%s", GenerateDatakitID())
-}
-
 func TestDefaultToml(t *testing.T) {
 	c := DefaultConfig()
 
@@ -227,10 +223,8 @@ func TestLoadEnv(t *testing.T) {
 
 func TestUnmarshalCfg(t *testing.T) {
 
-	id := "dkid_for_testing"
 	cases := []struct {
 		raw  string
-		id   string
 		fail bool
 	}{
 		{
@@ -266,7 +260,6 @@ install_date = 2021-03-25T11:00:19Z
   hosts = []
   inputs = []
 	`,
-			id: id,
 		},
 
 		{
@@ -286,16 +279,18 @@ log = "log"`,
 			raw: `
 name = "not-set"
 log = "log"`,
-			id:   "", // id not set
-			fail: true,
+			fail: false,
+		},
+
+		{
+			raw: `
+hostname = "should-not-set"`,
 		},
 	}
 
-	idfile := ".id"
 	tomlfile := ".main.toml"
 
 	defer func() {
-		os.Remove(idfile)
 		os.Remove(tomlfile)
 	}()
 
@@ -307,13 +302,7 @@ log = "log"`,
 			t.Fatal(err)
 		}
 
-		if tc.id != "" {
-			if err := ioutil.WriteFile(".id", []byte(id), os.ModePerm); err != nil {
-				t.Fatal(err)
-			}
-		}
-
-		err := c.LoadMainTOML(tomlfile, idfile)
+		err := c.LoadMainTOML(tomlfile)
 		if tc.fail {
 			tu.NotOk(t, err, "")
 			continue
@@ -321,7 +310,8 @@ log = "log"`,
 			tu.Ok(t, err)
 		}
 
-		os.Remove(idfile)
+		t.Logf("hostname: %s", c.Hostname)
+
 		os.Remove(tomlfile)
 	}
 }
