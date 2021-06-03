@@ -1,9 +1,10 @@
 package kubernetes
 
 import (
+	"testing"
+
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"testing"
 )
 
 // test config by kubeconfig
