@@ -6,16 +6,17 @@ const (
     # required
     interval = "10s"
 
-    ## URL for the Kubernetes API
+    ## URL for the Kubernetes API (required)
     # url = "https://$HOSTIP:6443"
 
-    ## Use bearer token for authorization.
+    ## Use bearer token for authorization.(absolute path) (required)
     # bearer_token = "/path/to/token"
-    ## CA file
+
+    ## CA file (absolute path) (required)
     # tls_ca = "/path/to/ca_crt.pem"
 
-    ## Set http timeout (default 5 seconds)
-    # timeout = "5s"
+    ## Set http timeout (default 3 seconds)
+    timeout = "3s"
 
     [inputs.kubernetes.tags]
     # tag1 = val1
