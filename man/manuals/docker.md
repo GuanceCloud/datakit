@@ -10,7 +10,7 @@
 
 ## 前置条件
 
-- 已安装 Docker(v1.24+)，参考 [Docker 安装官方链接](https://www.docker.com/get-started)
+- Docker 版本 >= 1.24
 
 ## 配置
 
