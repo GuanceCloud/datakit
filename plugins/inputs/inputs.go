@@ -22,6 +22,19 @@ var (
 	mtx         = sync.RWMutex{}
 )
 
+func GetElectionInputs() []ElectionInput {
+	res := []ElectionInput{}
+	for _, arr := range InputsInfo {
+		for _, x := range arr {
+			switch y := x.input.(type) {
+			case ElectionInput:
+				res = append(res, y)
+			}
+		}
+	}
+	return res
+}
+
 type Input interface {
 	Catalog() string
 	Run()
@@ -44,6 +57,12 @@ type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement
 	AvailableArchs() []string
+}
+
+type ElectionInput interface {
+	InputV2
+	Pause() error
+	Resume() error
 }
 
 type Creator func() Input
