@@ -112,7 +112,7 @@ func (i *Input) gatherIngress(collector string, in v1beta1.Ingress) {
 		"generation":      in.Generation,
 		"ingress_hosts":   strings.Join(ingressHosts, ","),
 		"ingress_address": strings.Join(ingressAddress, ","),
-		"service_Ports":   strings.Join(servicePorts, ","),
+		"service_ports":   strings.Join(servicePorts, ","),
 	}
 
 	tags := map[string]string{
