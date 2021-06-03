@@ -122,16 +122,21 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 
 	var source string
 	if contianerIsFromKubernetes(getContainerName(container.Names)) {
-		uid, err := this.kubernetes.GatherPodUID(container.ID)
-		if err != nil {
-			l.Debugf("gather k8s podUID error: %s", err)
-		} else {
-			name, err := this.kubernetes.GatherWorkName(uid)
-			if err != nil {
-				l.Debugf("gather k8s workname error: %s", err)
-			} else {
+		if this.Kubernetes != nil {
+			func() {
+				uid, err := this.Kubernetes.GatherPodUID(container.ID)
+				if err != nil {
+					l.Debugf("gather k8s podUID error: %s", err)
+					return
+				}
+
+				name, err := this.Kubernetes.GatherWorkName(uid)
+				if err != nil {
+					l.Debugf("gather k8s workname error: %s", err)
+					return
+				}
 				source = name
-			}
+			}()
 		}
 	}
 
@@ -184,7 +189,7 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 			continue
 		}
 
-		message := strings.Trim(string(line), " ")
+		message := strings.TrimSpace(string(line))
 
 		containerName := getContainerName(container.Names)
 		// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试获取它的 work name（work-load）
