@@ -68,8 +68,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&containersMeasurement{},
 		&containersLogMeasurement{},
-		&kubeletNodeMeasurement{},
 		&kubeletPodMeasurement{},
+		// &kubeletNodeMeasurement{},
 	}
 }
 
