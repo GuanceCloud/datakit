@@ -61,20 +61,20 @@ func (m *endpointM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectEndpoints() error {
+func (i *Input) collectEndpoints(collector string) error {
 	list, err := i.client.getEndpoints()
 	if err != nil {
 		return err
 	}
 
 	for _, item := range list.Items {
-		i.gatherEndpoint(item)
+		i.gatherEndpoint(collector, item)
 	}
 
 	return nil
 }
 
-func (i *Input) gatherEndpoint(e corev1.Endpoints) {
+func (i *Input) gatherEndpoint(collector string, e corev1.Endpoints) {
 	if e.GetCreationTimestamp().Second() == 0 && e.GetCreationTimestamp().Nanosecond() == 0 {
 		return
 	}
@@ -111,7 +111,7 @@ func (i *Input) gatherEndpoint(e corev1.Endpoints) {
 					ts:     time.Now(),
 				}
 
-				i.collectCache = append(i.collectCache, m)
+				i.collectCache[collector] = append(i.collectCache[collector], m)
 			}
 		}
 		for _, notReadyAddr := range endpoint.NotReadyAddresses {
@@ -145,7 +145,7 @@ func (i *Input) gatherEndpoint(e corev1.Endpoints) {
 					ts:     time.Now(),
 				}
 
-				i.collectCache = append(i.collectCache, m)
+				i.collectCache[collector] = append(i.collectCache[collector], m)
 			}
 		}
 	}
