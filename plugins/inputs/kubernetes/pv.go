@@ -42,19 +42,19 @@ func (m *pvM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectPersistentVolumes() error {
+func (i *Input) collectPersistentVolumes(collector string) error {
 	list, err := i.client.getPersistentVolumes()
 	if err != nil {
 		return err
 	}
 	for _, pv := range list.Items {
-		i.gatherPersistentVolume(pv)
+		i.gatherPersistentVolume(collector, pv)
 	}
 
 	return nil
 }
 
-func (i *Input) gatherPersistentVolume(pv corev1.PersistentVolume) {
+func (i *Input) gatherPersistentVolume(collector string, pv corev1.PersistentVolume) {
 	phaseType := 5
 	switch strings.ToLower(string(pv.Status.Phase)) {
 	case "bound":
@@ -84,5 +84,5 @@ func (i *Input) gatherPersistentVolume(pv corev1.PersistentVolume) {
 		ts:     time.Now(),
 	}
 
-	i.collectCache = append(i.collectCache, m)
+	i.collectCache[collector] = append(i.collectCache[collector], m)
 }
