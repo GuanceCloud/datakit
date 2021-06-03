@@ -3,15 +3,15 @@ package election
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"sync"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 /*
@@ -31,7 +31,9 @@ import (
  */
 
 var (
-	defaultConsensusModule *ConsensusModule
+	defaultCandidate = &candidate{
+		status: statusFail,
+	}
 
 	l = logger.DefaultSLogger("dk-election")
 
@@ -41,239 +43,150 @@ var (
 	electionInterval = time.Second * 3
 )
 
-func InitGlobalConsensusModule() error {
-	l = logger.SLogger("dk-election")
-
-	if len(config.Cfg.DataWay.ElectionURL()) == 0 || len(config.Cfg.DataWay.ElectionHeartBeatURL()) == 0 {
-		return fmt.Errorf("invalid electionURL or electionHeartbeatURL, is empty")
-	}
-
-	electionURL, err := setURLQueryParam(
-		config.Cfg.DataWay.ElectionURL()[0],
-		"id",
-		config.Cfg.UUID,
-	)
-	if err != nil {
-		return err
-	}
-
-	heartbeatURL, err := setURLQueryParam(
-		config.Cfg.DataWay.ElectionHeartBeatURL()[0],
-		"id",
-		config.Cfg.UUID,
-	)
-	if err != nil {
-		return err
-	}
-
-	l.Debugf("election URL: %s", electionURL)
-	l.Debugf("election heartbeat URL: %s", heartbeatURL)
-	defaultConsensusModule = NewConsensusModule(electionURL, heartbeatURL)
-	return nil
-}
-
-func StartElection() {
-	defaultConsensusModule.StartElection()
-}
-
-func SetCandidate() {
-	defaultConsensusModule.SetCandidate()
-}
-
-func SetLeader() {
-	defaultConsensusModule.SetLeader()
-}
-
-func CurrentStats() ConsensusState {
-	return defaultConsensusModule.CurrentStats()
-}
-
-type ConsensusState int
-
-const (
-	Candidate ConsensusState = iota + 1
-	Leader
-	Dead
-)
-
-func (s ConsensusState) String() string {
-	switch s {
-	case Candidate:
-		return "Candidate"
-	case Leader:
-		return "Leader"
-	case Dead:
-		return "Dead"
-	default:
-		return "unreachable"
-	}
-}
-
-func (s ConsensusState) IsCandidate() bool {
-	return s == Candidate
-}
-
-func (s ConsensusState) IsLeader() bool {
-	return s == Leader
-}
-
-func (s ConsensusState) IsDead() bool {
-	return s == Dead
-}
-
-type ConsensusModule struct {
-	state                ConsensusState
-	electionURL          string
-	electionHeartbeatURL string
-
-	httpCli *http.Client
-	mu      sync.Mutex
-}
-
-// NewCNewConsensusModule 两个参数是配置文件项，为了方便测试将其改为传参方式
-func NewConsensusModule(electionURL, heartbeatURL string) *ConsensusModule {
-	return &ConsensusModule{
-		state:                Dead,
-		electionURL:          electionURL,
-		electionHeartbeatURL: heartbeatURL,
-		httpCli: &http.Client{
-			Timeout: HTTPTimeout,
-		},
-	}
-}
-
-func (cm *ConsensusModule) SetCandidate() {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-	cm.state = Candidate
-}
-
-func (cm *ConsensusModule) SetLeader() {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-	cm.state = Leader
-}
-
-func (cm *ConsensusModule) SetDead() {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-	cm.state = Dead
-}
-
-func (cm *ConsensusModule) CurrentStats() ConsensusState {
-	return cm.state
-}
-
-func (cm *ConsensusModule) StartElection() {
-	tick := time.NewTicker(electionInterval)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			return
-
-		case <-tick.C:
-			res, err := cm.postRequest(cm.electionURL)
-			if err != nil {
-				cm.SetCandidate()
-				l.Error(err)
-				continue
-			}
-
-			if res.Content.Stauts == statusSuccess {
-				cm.SetLeader()
-				// 阻塞在此，成为 leader 之后将不再进行进行选举，而是持续发送心跳
-				cm.SendHeartbeat()
-			}
-		}
-	}
-}
-
-func (cm *ConsensusModule) SendHeartbeat() {
-	defer cm.SetCandidate()
-
-	tick := time.NewTicker(electionInterval)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			return
-
-		case <-tick.C:
-			if !cm.state.IsLeader() {
-				return
-			}
-			res, err := cm.postRequest(cm.electionHeartbeatURL)
-			if err != nil {
-				l.Error(err)
-				return
-			}
-			if res.Content.ErrorMsg != "" {
-				l.Debug(res.Content.ErrorMsg)
-			}
-			if res.Content.Stauts != statusSuccess {
-				cm.SetCandidate()
-				return
-			}
-		}
-	}
-}
-
-type electionResult struct {
-	Content struct {
-		Stauts   string `json:"status"`
-		ErrorMsg string `json:"error_msg"`
-	} `json:"content"`
-}
-
 const (
 	statusSuccess = "success"
 	statusFail    = "fail"
 )
 
-func (cm *ConsensusModule) postRequest(url string) (*electionResult, error) {
-	l.Debugf("election POST URL: %s", url)
-	// datakit 数据发送到 dataway，不需要添加一堆 header
-	// 简洁发送
-	resp, err := cm.httpCli.Post(url, "", nil)
-	if err != nil {
-		l.Error(err)
-		return nil, err
-	}
+type candidate struct {
+	status  string
+	id      string
+	dw      *dataway.DataWayCfg
+	plugins []inputs.ElectionInput
 
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		l.Errorf("request url %s failed: %s", url, err)
-		return nil, err
-	}
-
-	// ok
-	if resp.StatusCode/100 == 2 {
-		var e = electionResult{}
-		if err := json.Unmarshal(body, &e); err != nil {
-			l.Error(err)
-			return nil, err
-		}
-		return &e, nil
-	}
-
-	// bad
-	return nil, fmt.Errorf("%s", body)
+	nElected, nHeartbeat, nOffline int
 }
 
-func setURLQueryParam(urlStr, paramKey, paramValue string) (string, error) {
-	u, err := url.Parse(urlStr)
-	if err != nil {
-		return "", err
+// NewCNewConsensusModule 两个参数是配置文件项，为了方便测试将其改为传参方式
+func Setup(id string, dw *dataway.DataWayCfg) {
+	l = logger.SLogger("dk-election")
+	defaultCandidate.setup(id, dw)
+}
+
+func (x *candidate) setup(id string, dw *dataway.DataWayCfg) {
+	x.id = id
+	x.dw = dw
+	x.plugins = inputs.GetElectionInputs()
+
+	x.startElection()
+}
+
+func (x *candidate) startElection() {
+
+	var f rtpanic.RecoverCallback
+	crashTime := []string{}
+	f = func(trace []byte, err error) {
+
+		defer rtpanic.Recover(f, nil)
+		if trace != nil {
+			l.Warnf("election panic:\n%s", string(trace))
+			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
+			if len(crashTime) > 6 {
+				io.FeedLastError("Election", fmt.Sprintf("election crashed %d times, exited", len(crashTime)))
+				l.Errorf("election crashed %d times(at %s), exit now", len(crashTime), strings.Join(crashTime, "\n"))
+				return
+			}
+		}
+
+		tick := time.NewTicker(electionInterval)
+		defer tick.Stop()
+
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				return
+
+			case <-tick.C:
+				x.runOnce()
+			}
+		}
 	}
 
-	q := u.Query()
-	q.Set(paramKey, paramValue)
+	// 先暂停采集，待选举成功再恢复运行
+	x.pausePlugins()
+	f(nil, nil)
+}
 
-	u.RawQuery = q.Encode()
-	return u.String(), nil
+func (x *candidate) runOnce() {
+	switch x.status {
+	case statusSuccess:
+		x.keepalive()
+	default:
+		x.tryElection()
+	}
+}
+
+func (x *candidate) pausePlugins() {
+	for _, p := range x.plugins {
+		if err := p.Pause(); err != nil {
+			l.Warn(err)
+		}
+	}
+}
+
+func (x *candidate) resumePlugins() {
+	for _, p := range x.plugins {
+		if err := p.Resume(); err != nil {
+			l.Warn(err)
+		}
+	}
+}
+
+func (x *candidate) keepalive() {
+	body, err := x.dw.ElectionHeartbeat(x.id)
+	if err != nil {
+		l.Error(err)
+		return
+	}
+
+	var e = electionResult{}
+	if err := json.Unmarshal(body, &e); err != nil {
+		l.Error(err)
+		return
+	}
+
+	switch e.Content.Status {
+	case statusFail:
+		x.status = statusFail
+		x.nOffline++
+		l.Debugf("%s offline", x.id)
+	case statusSuccess:
+		x.nHeartbeat++
+	default:
+		l.Warnf("unknown election status: %s", e.Content.Status)
+	}
+	return
+}
+
+type electionResult struct {
+	Content struct {
+		Status   string `json:"status"`
+		ErrorMsg string `json:"error_msg"`
+	} `json:"content"`
+}
+
+func (x *candidate) tryElection() error {
+
+	body, err := x.dw.Election(x.id)
+	if err != nil {
+		l.Error(err)
+		return err
+	}
+
+	var e = electionResult{}
+	if err := json.Unmarshal(body, &e); err != nil {
+		l.Error(err)
+		return nil
+	}
+
+	switch e.Content.Status {
+	case statusFail:
+		x.status = e.Content.Status
+	case statusSuccess:
+		x.status = e.Content.Status
+		x.nElected++
+	default:
+		l.Warnf("unknown election status: %s", e.Content.Status)
+	}
+	return nil
 }
