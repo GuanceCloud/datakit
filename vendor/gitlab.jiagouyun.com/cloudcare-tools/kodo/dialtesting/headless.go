@@ -116,7 +116,6 @@ func (t *HeadlessTask) Ticker() *time.Ticker {
 
 func (t *HeadlessTask) Class() string {
 	return ClassHeadless
-
 }
 
 func (t *HeadlessTask) MetricName() string {
@@ -183,9 +182,13 @@ func (t *HeadlessTask) Run() error {
 	}
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("disable-web-security", disableCors),
+		chromedp.Flag("disable-web-security", !disableCors),
 		chromedp.Flag("disable-gpu", true),
 	)
+
+	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil && t.AdvanceOptions.RequestOptions.Proxy != `` {
+		opts = append(opts, chromedp.ProxyServer(t.AdvanceOptions.RequestOptions.Proxy))
+	}
 
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	defer cancel()
@@ -193,10 +196,6 @@ func (t *HeadlessTask) Run() error {
 	// create context
 	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
 	defer cancel()
-
-	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil && t.AdvanceOptions.RequestOptions.Proxy != `` {
-		chromedp.ProxyServer(t.AdvanceOptions.RequestOptions.Proxy)
-	}
 
 	header := map[string]interface{}{}
 	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil {
