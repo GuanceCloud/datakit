@@ -31,6 +31,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
@@ -345,6 +346,14 @@ func tryLoadConfig() {
 func runDatakitWithHTTPServer() error {
 
 	io.Start()
+
+	if config.Cfg.EnableElection {
+		datakit.WG.Add(1)
+		go func() {
+			defer datakit.WG.Done()
+			election.Setup(config.Cfg.UUID, config.Cfg.DataWay)
+		}()
+	}
 
 	if err := inputs.RunInputs(); err != nil {
 		l.Error("error running inputs: %v", err)
