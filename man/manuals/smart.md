@@ -11,9 +11,12 @@
 ## 前置条件
 
 安装 smartmontools
-Linux: `sudo apt install smartmontools -y`
-MacOS: `brew install smartmontools -y`
-WinOS: `https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage`
+
+Linux:`sudo apt install smartmontools -y`
+
+MacOS:`brew install smartmontools -y`
+
+WinOS:`https://www.smartmontools.org/wiki/Download#InstalltheWindowspackage`
 
 安装 nvme-cli（仅支持 Linux）
 `sudo apt install nvme-cli -y`
