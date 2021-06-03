@@ -120,6 +120,7 @@ var (
 		"smart":                  true,
 		"solr":                   true,
 		"squid":                  true,
+		"sqlserver":              true,
 		"ssh":                    true,
 		"statsd":                 true,
 		"swap":                   true,
