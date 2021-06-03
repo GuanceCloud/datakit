@@ -1,139 +1,222 @@
 package kubernetes
 
 import (
-	"net/http"
+	"io/ioutil"
+	"k8s.io/client-go/rest"
+	"sync"
 	"time"
 
+	"github.com/influxdata/telegraf/filter"
+	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
-	inputName = "kubernetes"
-
-	sampleCfg = `
-[inputs.kubernetes]
-  # URL for the Kubernetes API, tls 6443 or proxy 8080
-  kube_apiserver_url = "http://127.0.0.1:8080/metrics"
-
-  ## Optional TLS Config
-  # tls_ca = "/path/to/ca.pem"
-  # tls_cert = "/path/to/cert.pem"
-  # tls_key = "/path/to/key.pem"
-  ## Use TLS but skip chain & host verification
-
-  [inputs.kubernetes.tags]
-    # tags1 = "value1"
-`
+	maxInterval = 30 * time.Minute
+	minInterval = 15 * time.Second
 )
 
-var l = logger.DefaultSLogger(inputName)
-
-func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return newInput()
-	})
-}
+var (
+	inputName   = "kubernetes"
+	catalogName = "kubernetes"
+	l           = logger.DefaultSLogger("kubernetes")
+)
 
 type Input struct {
-	KubeAPIServerURL string            `toml:"kube_apiserver_url"`
-	Tags             map[string]string `toml:"tags"`
-	ClientConfig                       // tls config
-	httpCli          *http.Client
+	Service                string `toml:"service"`
+	Interval               datakit.Duration
+	ObjectInterval         string                          `toml:"object_Interval"`
+	ObjectIntervalDuration time.Duration                   `toml:"_"`
+	Tags                   map[string]string               `toml:"tags"`
+	collectCache           map[string][]inputs.Measurement `toml:"-"`
+	collectObjectCache     []inputs.Measurement            `toml:"-"`
+	lastErr                error
+
+	KubeConfigPath    string `toml:"kube_config_path"`
+	URL               string `toml:"url"`
+	BearerToken       string `toml:"bearer_token"`
+	BearerTokenString string `toml:"bearer_token_string"`
+	Namespace         string `toml:"namespace"`
+	Timeout           string `toml:"timeout"`
+	TimeoutDuration   time.Duration
+	ResourceExclude   []string `toml:"resource_exclude"`
+	ResourceInclude   []string `toml:"resource_include"`
+
+	SelectorInclude []string `toml:"selector_include"`
+	SelectorExclude []string `toml:"selector_exclude"`
+
+	tls.ClientConfig
+	start          time.Time
+	client         *client
+	mu             sync.Mutex
+	selectorFilter filter.Filter
+	collectors     map[string]func(collector string) error
 }
 
-func newInput() *Input {
-	return &Input{
-		Tags: make(map[string]string),
-		httpCli: &http.Client{
-			Timeout: 5 * time.Second,
-		},
-	}
-}
-
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
-
-func (*Input) Catalog() string {
-	return "kubernetes"
-}
-
-func (*Input) PipelineConfig() map[string]string {
-	return nil
-}
-
-/*
-func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLinux}
-} */
-
-func (n *Input) SampleMeasurement() []inputs.Measurement {
-	return nil
-}
-
-func (this *Input) Run() {
-	// FIXME
-	// 现在如果配置 tls 错误，将不使用 tls，而不是持续报错
-	// 这是不严谨的
-
-	tlsconfig, err := this.TLSConfig()
+func (i *Input) initCfg() error {
+	TimeoutDuration, err := time.ParseDuration(i.Timeout)
 	if err != nil {
-		l.Warn(err)
+		TimeoutDuration = 5 * time.Second
 	}
 
-	if tlsconfig != nil {
-		this.httpCli.Transport = &http.Transport{
-			TLSClientConfig: tlsconfig,
+	var (
+		config *rest.Config
+	)
+
+	i.TimeoutDuration = TimeoutDuration
+
+	if i.KubeConfigPath != "" {
+		config, err = createConfigByKubePath(i.KubeConfigPath)
+		if err != nil {
+			return err
+		}
+	} else if i.URL != "" {
+		token, err := ioutil.ReadFile(i.BearerToken)
+		if err != nil {
+			return err
+		}
+
+		i.BearerTokenString = string(token)
+
+		config, err = createConfigByToken(i.URL, i.BearerTokenString, i.TLSCA, i.InsecureSkipVerify)
+		if err != nil {
+			return err
 		}
 	}
 
-	tick := time.NewTicker(time.Second * 5)
+	i.client, err = newClient(config, 5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	i.globalTag()
+
+	return nil
+}
+
+func (i *Input) globalTag() {
+	if i.URL != "" {
+		i.Tags["url"] = i.URL
+	}
+
+	if i.Service != "" {
+		i.Tags["service_name"] = i.Service
+	}
+}
+
+func (i *Input) Collect() error {
+	i.collectors = map[string]func(collector string) error{
+		"daemonsets":             i.collectDaemonSets,
+		"deployments":            i.collectDeployments,
+		"endpoints":              i.collectEndpoints,
+		"ingress":                i.collectIngress,
+		"services":               i.collectServices,
+		"statefulsets":           i.collectStatefulSets,
+		"persistentvolumes":      i.collectPersistentVolumes,
+		"persistentvolumeclaims": i.collectPersistentVolumeClaims,
+		"objectPod":              i.collectPodObject,
+	}
+
+	i.collectCache = make(map[string][]inputs.Measurement)
+
+	resourceFilter, err := filter.NewIncludeExcludeFilter(i.ResourceInclude, i.ResourceExclude)
+	if err != nil {
+		return err
+	}
+
+	i.selectorFilter, err = filter.NewIncludeExcludeFilter(i.SelectorInclude, i.SelectorExclude)
+	if err != nil {
+		return err
+	}
+
+	for collector, f := range i.collectors {
+		if resourceFilter.Match(collector) {
+			i.collectCache[collector] = make([]inputs.Measurement, 0)
+			err := f(collector)
+			if err != nil {
+				l.Errorf("%s exec %v", collector, err)
+				io.FeedLastError(inputName, err.Error())
+			} else {
+				resData := i.collectCache[collector]
+				if len(resData) > 0 {
+					if err := inputs.FeedMeasurement(inputName,
+						datakit.Metric,
+						resData,
+						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+						l.Error(err)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (i *Input) Run() {
+	l = logger.SLogger("kubernetes")
+	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+
+	i.ObjectIntervalDuration = 5 * time.Minute
+	i.ObjectIntervalDuration, _ = time.ParseDuration(i.ObjectInterval)
+
+	err := i.initCfg()
+	if err != nil {
+		l.Errorf("init config error %v", err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
+	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
 	for {
 		select {
-		case <-datakit.Exit.Wait():
-			return
-
 		case <-tick.C:
-			if election.CurrentStats().IsLeader() {
-				this.gather()
-			}
+			l.Debugf("kubernetes metric input gathering...")
+			i.start = time.Now()
+			i.Collect()
+			// clear cache
+			i.clear()
+		case <-datakit.Exit.Wait():
+			l.Info("kubernetes exit")
+			return
 		}
 	}
 }
 
-func (this *Input) gather() {
-	startTime := time.Now()
-
-	pt, err := this.gatherMetrics()
-	if err != nil {
-		l.Error(err)
-		return
-	}
-
-	cost := time.Since(startTime)
-
-	if err := io.Feed(inputName, datakit.Metric, []*io.Point{pt}, &io.Option{CollectCost: cost}); err != nil {
-		l.Error(err)
+func (i *Input) clear() {
+	for cate, _ := range i.collectors {
+		i.collectCache[cate] = i.collectCache[cate][:0]
 	}
 }
 
-func (this *Input) gatherMetrics() (*io.Point, error) {
-	resp, err := http.Get(this.KubeAPIServerURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+func (i *Input) Catalog() string { return catalogName }
 
-	fields, err := promTextToMetrics(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+func (i *Input) SampleConfig() string { return configSample }
 
-	return io.MakePoint(inputName, this.Tags, fields, time.Now())
+func (i *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (i *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&daemonSet{},
+		&deployment{},
+		&endpointM{},
+		&pvM{},
+		&pvcM{},
+		&serviceM{},
+		&statefulSet{},
+		&ingressM{},
+	}
+}
+
+func init() {
+	inputs.Add(inputName, func() inputs.Input {
+		return &Input{}
+	})
 }
