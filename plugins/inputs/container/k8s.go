@@ -40,7 +40,7 @@ func buildNodeMetrics(summaryApi *SummaryMetrics) (*io.Point, error) {
 	fields["runtime_image_fs_capacity_bytes"] = float64(summaryApi.Node.Runtime.ImageFileSystem.CapacityBytes)
 	fields["runtime_image_fs_used_bytes"] = float64(summaryApi.Node.Runtime.ImageFileSystem.UsedBytes)
 
-	return io.MakePoint("kubelet", tags, fields, time.Now())
+	return io.MakePoint("kubelet_node", tags, fields, time.Now())
 }
 
 func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
@@ -52,9 +52,9 @@ func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
 		}
 		tags := map[string]string{
 			"node_name": summaryApi.Node.NodeName,
-			"name":      pod.PodRef.Name,
+			"pod_name":  pod.PodRef.Name,
 			"namespace": pod.PodRef.Namespace,
-			"uid":       pod.PodRef.UID,
+			"name":      pod.PodRef.UID,
 		}
 
 		fields := make(map[string]interface{})
@@ -70,7 +70,7 @@ func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
 		fields["network_tx_bytes"] = pod.Network.TXBytes()
 		fields["network_tx_errors"] = pod.Network.TXErrors()
 
-		pt, err := io.MakePoint("kubernetes_pod", tags, fields, time.Now())
+		pt, err := io.MakePoint("kubelet_pod", tags, fields, time.Now())
 		if err != nil {
 			return nil, err
 		}
