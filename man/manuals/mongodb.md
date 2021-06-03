@@ -6,7 +6,7 @@
 
 # 简介
 
-MongoDb collector
+MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采集。
 
 ## 前置条件
 
@@ -32,7 +32,7 @@ MongoDb collector
 
 以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
-``` toml
+```toml
  [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -52,3 +52,26 @@ MongoDb collector
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## mongod log 采集
+
+### 基本配置
+
+去注释配置文件中 `# enable_mongod_log = false` 然后将 `false` 改为 `true`，其他关于 mongod log 配置选项在 `[inputs.mongodb.log]` 中，注释掉的配置极为默认配置，如果路径对应正确将无需任何配置启动 Datakit 后将会看到指标名为 `mongod_log` 的采集指标集。
+
+### 日志原始数据 sample
+
+```
+{"t":{"$date":"2021-06-03T09:12:19.977+00:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"WTCheckpointThread","msg":"WiredTiger message","attr":{"message":"[1622711539:977142][1:0x7f1b9f159700], WT_SESSION.checkpoint: [WT_VERB_CHECKPOINT_PROGRESS] saving checkpoint snapshot min: 653, snapshot max: 653 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0)"}}
+```
+
+### 日志切割字段
+
+| 字段名    | 字段值                        | 说明                                                           |
+| --------- | ----------------------------- | -------------------------------------------------------------- |
+| message   |                               | Log raw data                                                   |
+| component | STORAGE                       | The full component string of the log message                   |
+| context   | WTCheckpointThread            | The name of the thread issuing the log statement               |
+| msg       | WiredTiger message            | The raw log output message as passed from the server or driver |
+| status    | I                             | The short severity code of the log message                     |
+| time      | 2021-06-03T09:12:19.977+00:00 | Timestamp                                                      |
