@@ -216,7 +216,6 @@ const (
 )
 
 func (i *Input) Run() {
-
 	l = logger.SLogger(inputName)
 
 	duration, err := time.ParseDuration(i.Interval)
