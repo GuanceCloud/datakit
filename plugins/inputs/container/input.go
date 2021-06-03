@@ -109,7 +109,11 @@ func (this *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("docker exit success")
+			// clean logging
+			this.cancelTails()
+			this.wg.Wait()
+
+			l.Info("container exit success")
 			return
 
 		case <-metricsTick.C:
