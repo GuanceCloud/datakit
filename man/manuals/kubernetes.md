@@ -14,6 +14,8 @@ Kubernetes 集群指标采集，收集以下数据：
 
 ## 前置条件
 
+注意：以下操作及使用是 datakit 部署运行在 k8s 集群外
+
 ### 创建监控的 ServiceAccount 账号（该账户拥有只读权限）
 
 - 创建 `account.yaml` 编排文件, 文件内容如下:
@@ -109,6 +111,14 @@ datakit-monitor   1         3d13h
 default           1         3d13h
 ```
 
+- 获取服务地址
+
+```sh
+$kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{.name}{"\t"}{.cluster.server}{"\n"}{end}'
+```
+
+注意：以上得到的集群服务地址，将用于 kubernetes 采集器的 `url` 配置项中
+
 - 获取认证 token 和证书
 
 ```sh
@@ -124,10 +134,7 @@ $ls -l
 -rw-r--r--  1 liushaobo  staff    953  6  1 15:48 token
 ```
 
-注意：以上得到的结果文件将用于下文的采集器配置中
-
-- 获取服务
-todo
+注意：以上得到的结果文件将分别用于 kubernetes 采集器 `bearer_token` 和 `tls_ca`配置项中
 
 ## 配置
 
