@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-采集 container 指标数据、对象数据和容器日志，以及当前主机上的 kubelet Node 指标、Pod 指标和对象，上报到 DataFlux 中。
+采集 container 指标数据、对象数据和容器日志，以及当前主机上的 kubelet Pod 指标和对象，上报到 DataFlux 中。
 
 ## 前置条件
 
@@ -82,7 +82,7 @@
 
 ### kubelet 相关采集
 
-在配置文件中打开 `inputs.container.kubelet` 项，填写对应的 `kubelet_url`（默认为 `127.0.0.1:10255`）可以采集 kubelet Node 和 Pod 相关数据。
+在配置文件中打开 `inputs.container.kubelet` 项，填写对应的 `kubelet_url`（默认为 `127.0.0.1:10255`）可以采集 kubelet Pod 相关数据。
 
 kubelet 该端口默认关闭，开启方式请查看[官方文档](https://kubernetes.io/zh/docs/reference/command-line-tools-reference/kubelet/)搜索 `--read-only-port`。
 
