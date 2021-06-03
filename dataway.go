@@ -53,7 +53,7 @@ type dataWayClient struct {
 	host        string
 	scheme      string
 	urlValues   url.Values
-	categoryUrl map[string]string
+	categoryURL map[string]string
 	ontest      bool
 }
 
@@ -62,7 +62,7 @@ func (dw *DataWayCfg) String() string {
 
 	for _, x := range dw.dataWayClients {
 		arr = append(arr, "---------------------------------")
-		for k, v := range x.categoryUrl {
+		for k, v := range x.categoryURL {
 			arr = append(arr, fmt.Sprintf("% 24s: %s", k, v))
 		}
 	}
@@ -71,7 +71,7 @@ func (dw *DataWayCfg) String() string {
 }
 
 func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz bool) error {
-	requrl, ok := dc.categoryUrl[category]
+	requrl, ok := dc.categoryURL[category]
 	if !ok {
 		// for dialtesting, there are user-defined url to post
 		if x, err := url.ParseRequestURI(category); err != nil {
@@ -139,7 +139,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 }
 
 func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
-	requrl, ok := dc.categoryUrl[HeartBeat]
+	requrl, ok := dc.categoryURL[HeartBeat]
 	if !ok {
 		return fmt.Errorf("HeartBeat API missing, should not been here")
 	}
@@ -218,24 +218,34 @@ func (dw *DataWayCfg) HeartBeat(id, host string) error {
 	return nil
 }
 
-func (dw *DataWayCfg) ElectionURL() []string {
-	var resUrl []string
+func (dw *DataWayCfg) QueryRawURL() []string {
+	var resURL []string
 	for _, dc := range dw.dataWayClients {
-		electionUrl := dc.categoryUrl[Election]
-		resUrl = append(resUrl, electionUrl)
+		queryRawURL := dc.categoryURL["queryRawURL"]
+		resURL = append(resURL, queryRawURL)
 	}
 
-	return resUrl
+	return resURL
+}
+
+func (dw *DataWayCfg) ElectionURL() []string {
+	var resURL []string
+	for _, dc := range dw.dataWayClients {
+		electionUrl := dc.categoryURL[Election]
+		resURL = append(resURL, electionUrl)
+	}
+
+	return resURL
 }
 
 func (dw *DataWayCfg) ElectionHeartBeatURL() []string {
-	var resUrl []string
+	var resURL []string
 	for _, dc := range dw.dataWayClients {
-		electionBeatUrl := dc.categoryUrl[ElectionHeartbeat]
-		resUrl = append(resUrl, electionBeatUrl)
+		electionBeatUrl := dc.categoryURL[ElectionHeartbeat]
+		resURL = append(resURL, electionBeatUrl)
 	}
 
-	return resUrl
+	return resURL
 }
 
 func (dw *DataWayCfg) GetToken() []string {
@@ -291,19 +301,19 @@ func (dw *DataWayCfg) Apply() error {
 			scheme:      u.Scheme,
 			urlValues:   u.Query(),
 			host:        u.Host,
-			categoryUrl: map[string]string{},
+			categoryURL: map[string]string{},
 			ontest:      dw.ontest,
 		}
 
 		for _, api := range apis {
 			if cli.urlValues.Encode() != "" {
-				cli.categoryUrl[api] = fmt.Sprintf("%s://%s%s?%s",
+				cli.categoryURL[api] = fmt.Sprintf("%s://%s%s?%s",
 					cli.scheme,
 					cli.host,
 					api,
 					cli.urlValues.Encode())
 			} else {
-				cli.categoryUrl[api] = fmt.Sprintf("%s://%s%s",
+				cli.categoryURL[api] = fmt.Sprintf("%s://%s%s",
 					cli.scheme,
 					cli.host,
 					api)
