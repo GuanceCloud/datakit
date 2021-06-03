@@ -181,6 +181,8 @@ func HttpStart() {
 
 	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
 
+	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
+
 	srv := &http.Server{
 		Addr:    httpBind,
 		Handler: router,
