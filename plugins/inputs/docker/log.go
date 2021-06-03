@@ -2,7 +2,6 @@ package docker
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -186,13 +184,7 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 			continue
 		}
 
-		// 第一个参数为 docker 返回的该条日志的产生时间，此处弃用
-		// 使用 pipeline 切割所得时间
-		_, message, err := parseLine(line)
-		if err != nil {
-			l.Error(err)
-			continue
-		}
+		message := strings.TrimSpace(string(line))
 
 		containerName := getContainerName(container.Names)
 		// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试获取它的 work name（work-load）
@@ -289,30 +281,6 @@ func tailMultiplexed(src io.ReadCloser, container types.Container, lf LogFilters
 	src.Close()
 	wg.Wait()
 	return err
-}
-
-func parseLine(line []byte) (time.Time, string, error) {
-	parts := bytes.SplitN(line, []byte(" "), 2)
-
-	switch len(parts) {
-	case 1:
-		parts = append(parts, []byte(""))
-	}
-
-	tsString := string(parts[0])
-
-	// Keep any leading space, but remove whitespace from end of line.
-	// This preserves space in, for example, stacktraces, while removing
-	// annoying end of line characters and is similar to how other logging
-	// plugins such as syslog behave.
-	message := bytes.TrimRightFunc(parts[1], unicode.IsSpace)
-
-	ts, err := time.Parse(time.RFC3339Nano, tsString)
-	if err != nil {
-		return time.Time{}, "", fmt.Errorf("error parsing timestamp %q: %v", tsString, err)
-	}
-
-	return ts, string(message), nil
 }
 
 // Adapts some of the logic from the actual Docker library's image parsing
