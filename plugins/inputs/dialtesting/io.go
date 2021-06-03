@@ -15,6 +15,8 @@ func (d *dialer) linedataFeed(urlStr string, precision string) error {
 		return nil
 	}
 
+	l.Debugf(`task %s, `, d.task.ID())
+
 	tags, _ := d.task.GetResults()
 	for k, v := range d.tags {
 		tags[k] = v
