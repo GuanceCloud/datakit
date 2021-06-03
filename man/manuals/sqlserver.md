@@ -7,7 +7,7 @@
 
 # {{.InputName}}
 
-SQL Server 采集器采集 SQL Server `waitstats` `database_io` 等相关指标
+SQL Server 采集器采集 SQL Server `waitstats`、`database_io` 等相关指标
 
 ## 前置条件
 
@@ -106,4 +106,5 @@ GO
 |  msg   | spid...   | 日志内容 |
 |  time   | 1622169967780000000     | 纳秒时间戳（作为行协议时间）|
 |  origin   | spid10s     | 源 |
+|  status   | info     | 由于日志没有明确字段说明日志等级，默认为info |
 
