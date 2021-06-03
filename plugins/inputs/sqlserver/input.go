@@ -56,6 +56,7 @@ func (n *Input) Run() {
 			tail, err := inputs.NewTailer(n.Log)
 			if err != nil {
 				l.Errorf("init tailf err:%s", err.Error())
+				n.lastErr = err
 				return
 			}
 			n.tail = tail
@@ -68,7 +69,7 @@ func (n *Input) Run() {
 		io.FeedLastError(inputName, n.lastErr.Error())
 		return
 	}
-
+	defer n.db.Close()
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
@@ -103,33 +104,29 @@ func (n *Input) Run() {
 func (n *Input) getMetric() {
 	start := time.Now()
 	n.start = start
-	n.wg.Add(len(query))
 	for _, v := range query {
-		go func(q string, ts time.Time) {
-			defer n.wg.Done()
-			n.handRow(q, ts)
-		}(v, start)
+		n.handRow(v, start)
 	}
-	n.wg.Wait()
 }
 
 func (n *Input) handRow(query string, ts time.Time) {
 	rows, err := n.db.Query(query)
 	if err != nil {
-		fmt.Println(err.Error())
+		l.Error(err.Error())
+		n.lastErr = err
 		return
 	}
+	defer rows.Close()
 	OrderedColumns, err := rows.Columns()
 	if err != nil {
-		fmt.Println(err.Error())
-
+		l.Error(err.Error())
+		n.lastErr = err
 		return
 	}
 
 	for rows.Next() {
 		var columnVars []interface{}
 		//var fields = make(map[string]interface{})
-
 		// store the column name with its *interface{}
 		columnMap := make(map[string]*interface{})
 
@@ -144,6 +141,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 		err := rows.Scan(columnVars...)
 		if err != nil {
 			l.Error(err.Error())
+			n.lastErr = err
 			return
 		}
 		measurement := ""
@@ -173,17 +171,17 @@ func (n *Input) handRow(query string, ts time.Time) {
 			n.lastErr = err
 			continue
 		}
-		metricAppend(point)
+		collectCache = append(collectCache, point)
 	}
-	defer rows.Close()
+
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
+		&ServerProperties{},
 		&Performance{},
 		&WaitStatsCategorized{},
 		&DatabaseIO{},
-		&ServerProperties{},
 		&Schedulers{},
 	}
 }
