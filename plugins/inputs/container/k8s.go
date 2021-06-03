@@ -12,15 +12,25 @@ import (
 )
 
 const (
-	defaultKubernetesURL      = "http://%s:10255"
 	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 )
+
+// getUsagePercent 通过 callback 得到使用率，如果计算错误（比如除数为0）将返回 nil
+func getUsagePercent(fn func() (float64, error)) interface{} {
+	f, err := fn()
+	if err != nil {
+		return nil
+	}
+	return f
+}
 
 func buildNodeMetrics(summaryApi *SummaryMetrics) (*io.Point, error) {
 	tags := map[string]string{
 		"node_name": summaryApi.Node.NodeName,
 	}
 	fields := make(map[string]interface{})
+	fields["cpu_usage"] = getUsagePercent(summaryApi.Node.CPU.Percent)
+	fields["mem_usage_percent"] = getUsagePercent(summaryApi.Node.Memory.Percent)
 	fields["cpu_usage_nanocores"] = float64(summaryApi.Node.CPU.UsageNanoCores)
 	fields["cpu_usage_core_nanoseconds"] = float64(summaryApi.Node.CPU.UsageCoreNanoSeconds)
 	fields["memory_available_bytes"] = float64(summaryApi.Node.Memory.AvailableBytes)
@@ -36,11 +46,8 @@ func buildNodeMetrics(summaryApi *SummaryMetrics) (*io.Point, error) {
 	fields["fs_available_bytes"] = float64(summaryApi.Node.FileSystem.AvailableBytes)
 	fields["fs_capacity_bytes"] = float64(summaryApi.Node.FileSystem.CapacityBytes)
 	fields["fs_used_bytes"] = float64(summaryApi.Node.FileSystem.UsedBytes)
-	fields["runtime_image_fs_available_bytes"] = float64(summaryApi.Node.Runtime.ImageFileSystem.AvailableBytes)
-	fields["runtime_image_fs_capacity_bytes"] = float64(summaryApi.Node.Runtime.ImageFileSystem.CapacityBytes)
-	fields["runtime_image_fs_used_bytes"] = float64(summaryApi.Node.Runtime.ImageFileSystem.UsedBytes)
 
-	return io.MakePoint("kubelet_node", tags, fields, time.Now())
+	return io.MakePoint(kubeletNodeName, tags, fields, time.Now())
 }
 
 func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
@@ -58,19 +65,21 @@ func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
 		}
 
 		fields := make(map[string]interface{})
-		fields["cpu_usage_nanocores"] = pod.CPU.UsageNanoCores
-		fields["cpu_usage_core_nanoseconds"] = pod.CPU.UsageCoreNanoSeconds
-		fields["memory_usage_bytes"] = pod.Memory.UsageBytes
-		fields["memory_working_set_bytes"] = pod.Memory.WorkingSetBytes
-		fields["memory_rss_bytes"] = pod.Memory.RSSBytes
-		fields["memory_page_faults"] = pod.Memory.PageFaults
-		fields["memory_major_page_faults"] = pod.Memory.MajorPageFaults
-		fields["network_rx_bytes"] = pod.Network.RXBytes()
-		fields["network_rx_errors"] = pod.Network.RXErrors()
-		fields["network_tx_bytes"] = pod.Network.TXBytes()
-		fields["network_tx_errors"] = pod.Network.TXErrors()
+		fields["cpu_usage"] = getUsagePercent(pod.CPU.Percent)
+		fields["mem_usage_percent"] = getUsagePercent(pod.Memory.Percent)
+		fields["cpu_usage_nanocores"] = float64(pod.CPU.UsageNanoCores)
+		fields["cpu_usage_core_nanoseconds"] = float64(pod.CPU.UsageCoreNanoSeconds)
+		fields["memory_usage_bytes"] = float64(pod.Memory.UsageBytes)
+		fields["memory_working_set_bytes"] = float64(pod.Memory.WorkingSetBytes)
+		fields["memory_rss_bytes"] = float64(pod.Memory.RSSBytes)
+		fields["memory_page_faults"] = float64(pod.Memory.PageFaults)
+		fields["memory_major_page_faults"] = float64(pod.Memory.MajorPageFaults)
+		fields["network_rx_bytes"] = float64(pod.Network.RXBytes())
+		fields["network_rx_errors"] = float64(pod.Network.RXErrors())
+		fields["network_tx_bytes"] = float64(pod.Network.TXBytes())
+		fields["network_tx_errors"] = float64(pod.Network.TXErrors())
 
-		pt, err := io.MakePoint("kubelet_pod", tags, fields, time.Now())
+		pt, err := io.MakePoint(kubeletPodName, tags, fields, time.Now())
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +91,7 @@ func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
 
 // Kubernetes represents the config object for the plugin
 type Kubernetes struct {
-	URL string
+	URL string `toml:"kubelet_url"`
 	// Bearer Token authorization file path
 	BearerToken       string `toml:"bearer_token"`
 	BearerTokenString string `toml:"bearer_token_string"`
@@ -307,6 +316,16 @@ type CPUMetrics struct {
 	UsageCoreNanoSeconds int64     `json:"usageCoreNanoSeconds"`
 }
 
+func (c *CPUMetrics) Percent() (float64, error) {
+	if c.UsageNanoCores == 0 {
+		return -1, fmt.Errorf("cpu usageNanoCores cannot be zero")
+
+	}
+	// source link: https://github.com/kubernetes/heapster/issues/650#issuecomment-147795824
+	// cpu_usage_core_nanoseconds / (cpu_usage_nanocores * 1000000000) * 100
+	return float64(c.UsageCoreNanoSeconds) / float64(c.UsageNanoCores*1000000000) * 100, nil
+}
+
 type PodMetrics struct {
 	PodRef     PodReference       `json:"podRef"`
 	StartTime  *time.Time         `json:"startTime"`
@@ -332,6 +351,14 @@ type MemoryMetrics struct {
 	MajorPageFaults int64     `json:"majorPageFaults"`
 }
 
+func (m *MemoryMetrics) Percent() (float64, error) {
+	if m.AvailableBytes+m.UsageBytes == 0 {
+		return -1, fmt.Errorf("memory total cannot be zero")
+	}
+	// mem_usage_percent = memory_usage_bytes / (memory_usage_bytes + memory_available_bytes)
+	return float64(m.UsageBytes) / float64(m.UsageBytes+m.AvailableBytes), nil
+}
+
 type FileSystemMetrics struct {
 	AvailableBytes int64 `json:"availableBytes"`
 	CapacityBytes  int64 `json:"capacityBytes"`
@@ -341,10 +368,11 @@ type FileSystemMetrics struct {
 type NetworkMetrics struct {
 	Time       time.Time `json:"time"`
 	Interfaces []struct {
-		RXBytes  int64 `json:"rxBytes"`
-		RXErrors int64 `json:"rxErrors"`
-		TXBytes  int64 `json:"txBytes"`
-		TXErrors int64 `json:"txErrors"`
+		Name     string `json:"name"`
+		RXBytes  int64  `json:"rxBytes"`
+		RXErrors int64  `json:"rxErrors"`
+		TXBytes  int64  `json:"txBytes"`
+		TXErrors int64  `json:"txErrors"`
 	} `json:"interfaces"`
 }
 
