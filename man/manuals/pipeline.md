@@ -593,7 +593,7 @@ expr(a.second*10+(2+3)*5, bb)
 函数参数
 
 - `key`: 已提取的某字段
-- `type`：转换的目标类型，支持 `str,float,int,bool` 这几种
+- `type`：转换的目标类型，支持 `"str", "float", "int", "bool"` 这几种，目标类型需要用英文状态双引号括起来
 
 示例:
 
@@ -602,7 +602,7 @@ expr(a.second*10+(2+3)*5, bb)
 data = `{"first": 1,"second":2,"thrid":"aBC","forth":true}`
 
 # 处理脚本
-script = `json(_, first) cast(first, str)`
+script = `json(_, first) cast(first, "str")`
 
 # 处理结果
 {
