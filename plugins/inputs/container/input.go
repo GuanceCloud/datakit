@@ -26,7 +26,7 @@ type Input struct {
 	EnableObject   bool              `toml:"enable_object"`
 	EnableLogging  bool              `toml:"enable_logging"`
 	MetricInterval string            `toml:"metric_interval"`
-	KubernetesURL  string            `toml:"kubernetes_url"`
+	Kubernetes     *Kubernetes       `toml:"kubelet"`
 	ClientConfig                     // tls config
 	LogFilters     LogFilters        `toml:"logfilter"`
 	Tags           map[string]string `toml:"tags"`
@@ -36,8 +36,7 @@ type Input struct {
 	metricDuration   time.Duration
 	containerLogList map[string]context.CancelFunc
 
-	client     Client
-	kubernetes *Kubernetes
+	client Client
 
 	wg sync.WaitGroup
 	mu sync.Mutex
@@ -69,6 +68,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&containersMeasurement{},
 		&containersLogMeasurement{},
+		&kubeletNodeMeasurement{},
+		&kubeletPodMeasurement{},
 	}
 }
 
@@ -87,11 +88,19 @@ func (this *Input) Run() {
 	if this.EnableObject {
 		this.tickObject()
 	}
+	if this.EnableLogging {
+		this.gatherLog()
+	}
 
 	metricsTick := time.NewTicker(this.metricDuration)
 	defer metricsTick.Stop()
+
+	objectTick := time.NewTicker(objectDuration)
+	defer objectTick.Stop()
+
 	loggingTick := time.NewTicker(loggingHitDuration)
 	defer loggingTick.Stop()
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -99,9 +108,9 @@ func (this *Input) Run() {
 			return
 
 		case <-metricsTick.C:
-			if this.kubernetes != nil {
+			if this.Kubernetes != nil {
 				startTime := time.Now()
-				pts, err := this.kubernetes.GatherPodMetrics()
+				pts, err := this.Kubernetes.GatherPodMetrics()
 				if err != nil {
 					l.Error(err)
 					io.FeedLastError(inputName, fmt.Sprintf("k8s pod metrics gather failed: %s", err.Error()))
@@ -129,7 +138,7 @@ func (this *Input) Run() {
 				}
 			}
 
-		case <-time.After(objectDuration):
+		case <-objectTick.C:
 			if this.EnableObject {
 				this.tickObject()
 			}
@@ -143,9 +152,12 @@ func (this *Input) Run() {
 }
 
 func (this *Input) tickObject() {
-	if this.kubernetes != nil {
+	// TODO:
+	// cost 必须优化，太冗余
+
+	if this.Kubernetes != nil {
 		startTime := time.Now()
-		pts, err := this.kubernetes.GatherPodMetrics()
+		pts, err := this.Kubernetes.GatherPodMetrics()
 		if err != nil {
 			l.Error(err)
 			io.FeedLastError(inputName, fmt.Sprintf("k8s pod object gather failed: %s", err.Error()))
