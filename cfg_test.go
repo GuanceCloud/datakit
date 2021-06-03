@@ -84,7 +84,7 @@ install_date = 2021-03-25T11:00:19Z
 
 	Cfg.DoLoadMainConfig([]byte(cfg))
 
-	t.Log(Cfg.DataWay.Urls)
+	// t.Log(Cfg.DataWay.Urls)
 }
 
 func TestLoadEnv(t *testing.T) {
