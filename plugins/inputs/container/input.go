@@ -114,7 +114,7 @@ func (this *Input) Run() {
 
 		case <-metricsTick.C:
 			if this.Kubernetes != nil {
-				do(this.Kubernetes.GatherNodeMetrics, datakit.Metric, "k8s pod metrics gather failed")
+				// do(this.Kubernetes.GatherNodeMetrics, datakit.Metric, "k8s Node metrics gather failed")
 				do(this.Kubernetes.GatherPodMetrics, datakit.Metric, "k8s pod metrics gather failed")
 			}
 			if this.EnableMetric {
