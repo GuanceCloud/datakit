@@ -85,6 +85,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/sensors"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/smart"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/solr"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/sqlserver"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
