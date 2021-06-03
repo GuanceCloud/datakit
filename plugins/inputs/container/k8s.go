@@ -66,7 +66,6 @@ func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
 
 		fields := make(map[string]interface{})
 		fields["cpu_usage"] = getUsagePercent(pod.CPU.Percent)
-		fields["mem_usage_percent"] = getUsagePercent(pod.Memory.Percent)
 		fields["cpu_usage_nanocores"] = float64(pod.CPU.UsageNanoCores)
 		fields["cpu_usage_core_nanoseconds"] = float64(pod.CPU.UsageCoreNanoSeconds)
 		fields["memory_usage_bytes"] = float64(pod.Memory.UsageBytes)
