@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jinzhu/copier"
+	//	"github.com/jinzhu/copier"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -172,26 +172,13 @@ func (d *Input) doLocalTask(path string) {
 
 func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
-	var newt dt.Task
-	switch t.(type) {
-	case *dt.HTTPTask:
-		newt = &dt.HTTPTask{}
-	case *dt.HeadlessTask:
-		newt = &dt.HeadlessTask{}
-	default:
-	}
-
-	if err := copier.Copy(newt, t); err != nil {
-		l.Error(err)
-		return nil, err
-	}
-
-	if err := newt.Init(); err != nil {
+	//
+	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
-	dialer, err := newDialer(newt, d.Tags)
+	dialer, err := newDialer(t, d.Tags)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -265,28 +252,31 @@ func (d *Input) dispatchTasks(j []byte) error {
 
 		l.Debugf(`class: %s`, k)
 
-		var t dt.Task
-
-		switch k {
-		case dt.ClassHTTP:
-			t = &dt.HTTPTask{}
-		case dt.ClassHeadless:
-			t = &dt.HeadlessTask{}
-		case dt.ClassDNS:
-			// TODO
-		case dt.ClassTCP:
-			// TODO
-		case dt.ClassOther:
-			// TODO
-		case RegionInfo:
-			continue
-			//no need dealwith
-		default:
-			l.Errorf("unknown task type: %s", k)
+		if k == RegionInfo {
 			continue
 		}
 
 		for _, j := range arr.([]interface{}) {
+			var t dt.Task
+
+			switch k {
+			case dt.ClassHTTP:
+				t = &dt.HTTPTask{}
+			case dt.ClassHeadless:
+				t = &dt.HeadlessTask{}
+			case dt.ClassDNS:
+				// TODO
+			case dt.ClassTCP:
+				// TODO
+			case dt.ClassOther:
+				// TODO
+			case RegionInfo:
+				break
+				//no need dealwith
+			default:
+				l.Errorf("unknown task type: %s", k)
+				break
+			}
 			if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
 				l.Errorf(`%s`, err.Error())
 				return err
