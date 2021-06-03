@@ -117,12 +117,16 @@ func (k *Kubernetes) Init() error {
 	return nil
 }
 
-func (k *Kubernetes) GatherNodeMetrics() (*io.Point, error) {
+func (k *Kubernetes) GatherNodeMetrics() ([]*io.Point, error) {
 	summaryApi, err := k.GetSummaryMetrics()
 	if err != nil {
 		return nil, err
 	}
-	return buildNodeMetrics(summaryApi)
+	pt, err := buildNodeMetrics(summaryApi)
+	if err != nil {
+		return nil, err
+	}
+	return []*io.Point{pt}, nil
 }
 
 func (k *Kubernetes) GatherPodMetrics() ([]*io.Point, error) {
