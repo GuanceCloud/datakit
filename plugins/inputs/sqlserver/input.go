@@ -49,7 +49,6 @@ func (n *Input) Run() {
 			inputs.JoinPipelinePath(n.Log, "sqlserver.p")
 			n.Log.Source = inputName
 			n.Log.Match = `^\d{4}-\d{2}-\d{2}`
-			n.Log.FromBeginning = true
 			n.Log.Tags = map[string]string{}
 			for k, v := range n.Tags {
 				n.Log.Tags[k] = v
