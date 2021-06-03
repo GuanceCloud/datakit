@@ -27,6 +27,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/c-bata/go-prompt v0.2.5
+	github.com/chromedp/cdproto v0.0.0-20210526005521-9e51b9051fd0 // indirect
 	github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327 // indirect
 	github.com/containerd/containerd v1.4.1
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
@@ -44,6 +45,11 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-kit/kit v0.10.0
 	github.com/go-ole/go-ole v1.2.4
+	github.com/go-openapi/analysis v0.19.4 // indirect
+	github.com/go-openapi/runtime v0.19.3 // indirect
+	github.com/go-openapi/strfmt v0.19.2 // indirect
+	github.com/go-playground/validator/v10 v10.4.1 // indirect
+	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/go-redis/redis/v8 v8.8.0
 	github.com/go-redis/redismock/v8 v8.0.6
 	github.com/go-sql-driver/mysql v1.5.0
@@ -70,6 +76,7 @@ require (
 	github.com/jackc/pgx v3.6.0+incompatible
 	github.com/jdcloud-api/jdcloud-sdk-go v1.43.0
 	github.com/jessevdk/go-flags v1.4.0
+	github.com/jinzhu/copier v0.3.2
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/karrick/godirwalk v1.16.1 // indirect
@@ -93,7 +100,7 @@ require (
 	github.com/pingcap/tidb v0.0.0-20200225134007-18ce601629fd
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.25.0
+	github.com/prometheus/common v0.26.0
 	github.com/prometheus/procfs v0.1.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -125,7 +132,7 @@ require (
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210528040150-d44a55a4a70a
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210602132627-8797c1bb76ba
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210603111111-890a3501d71c
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2 // indirect
