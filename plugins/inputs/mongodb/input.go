@@ -89,12 +89,12 @@ var (
     # "key2" = "value2"
 `
 	piplelineConfig = `
-	json_all()
-	rename("component", c)
-	rename("severity", s)
-	rename("context", ctx)
-	rename("date", ` + "`t.$date`)" + `
-	drop_key(id)
+	json(_, ` + "`t.$date`" + `, "time")
+	json(_, s, "status")
+	json(_, c, "component")
+	json(_, msg, "msg")
+	json(_, ctx, "context")
+	default_time(time)
 `
 	l = logger.SLogger(inputName)
 )
@@ -151,7 +151,7 @@ func (m *Input) Run() {
 
 		go func() {
 			inputs.JoinPipelinePath(m.Log, m.Log.Pipeline)
-			m.Log.Source = "mongod_log"
+			m.Log.Source = "mongodb"
 			m.Log.Tags = make(map[string]string)
 			for k, v := range m.Tags {
 				m.Log.Tags[k] = v
