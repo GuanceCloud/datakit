@@ -28,11 +28,11 @@ var (
 type Input struct {
 	Service                string `toml:"service"`
 	Interval               datakit.Duration
-	ObjectInterval         string               `toml:"object_Interval"`
-	ObjectIntervalDuration time.Duration        `toml:"_"`
-	Tags                   map[string]string    `toml:"tags"`
-	collectCache           []inputs.Measurement `toml:"-"`
-	collectObjectCache     []inputs.Measurement `toml:"-"`
+	ObjectInterval         string                          `toml:"object_Interval"`
+	ObjectIntervalDuration time.Duration                   `toml:"_"`
+	Tags                   map[string]string               `toml:"tags"`
+	collectCache           map[string][]inputs.Measurement `toml:"-"`
+	collectObjectCache     []inputs.Measurement            `toml:"-"`
 	lastErr                error
 
 	KubeConfigPath    string `toml:"kube_config_path"`
@@ -49,9 +49,11 @@ type Input struct {
 	SelectorExclude []string `toml:"selector_exclude"`
 
 	tls.ClientConfig
+	start          time.Time
 	client         *client
 	mu             sync.Mutex
 	selectorFilter filter.Filter
+	collectors     map[string]func(collector string) error
 }
 
 func (i *Input) initCfg() error {
@@ -106,18 +108,19 @@ func (i *Input) globalTag() {
 }
 
 func (i *Input) Collect() error {
-	var availableCollectors = map[string]func() error{
-		"daemonsets":  i.collectDaemonSets,
-		"deployments": i.collectDeployments,
-		"endpoints":   i.collectEndpoints,
-		// "ingress":                collectIngress,
+	i.collectors = map[string]func(collector string) error{
+		"daemonsets":             i.collectDaemonSets,
+		"deployments":            i.collectDeployments,
+		"endpoints":              i.collectEndpoints,
+		"ingress":                i.collectIngress,
 		"services":               i.collectServices,
 		"statefulsets":           i.collectStatefulSets,
 		"persistentvolumes":      i.collectPersistentVolumes,
 		"persistentvolumeclaims": i.collectPersistentVolumeClaims,
+		"objectPod":              i.collectPodObject,
 	}
 
-	i.collectCache = []inputs.Measurement{}
+	i.collectCache = make(map[string][]inputs.Measurement)
 
 	resourceFilter, err := filter.NewIncludeExcludeFilter(i.ResourceInclude, i.ResourceExclude)
 	if err != nil {
@@ -129,10 +132,24 @@ func (i *Input) Collect() error {
 		return err
 	}
 
-	for collector, f := range availableCollectors {
+	for collector, f := range i.collectors {
 		if resourceFilter.Match(collector) {
-			err := f()
-			l.Errorf("%s exec %v", collector, err)
+			i.collectCache[collector] = make([]inputs.Measurement, 0)
+			err := f(collector)
+			if err != nil {
+				l.Errorf("%s exec %v", collector, err)
+				io.FeedLastError(inputName, err.Error())
+			} else {
+				resData := i.collectCache[collector]
+				if len(resData) > 0 {
+					if err := inputs.FeedMeasurement(inputName,
+						datakit.Metric,
+						resData,
+						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+						l.Error(err)
+					}
+				}
+			}
 		}
 	}
 
@@ -160,21 +177,20 @@ func (i *Input) Run() {
 		select {
 		case <-tick.C:
 			l.Debugf("kubernetes metric input gathering...")
-			start := time.Now()
-			if err := i.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
-			} else {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); err != nil {
-					io.FeedLastError(inputName, err.Error())
-				}
-
-				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
-			}
+			i.start = time.Now()
+			i.Collect()
+			// clear cache
+			i.clear()
 		case <-datakit.Exit.Wait():
 			l.Info("kubernetes exit")
 			return
 		}
+	}
+}
+
+func (i *Input) clear() {
+	for cate, _ := range i.collectors {
+		i.collectCache[cate] = i.collectCache[cate][:0]
 	}
 }
 
@@ -195,6 +211,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&pvcM{},
 		&serviceM{},
 		&statefulSet{},
+		&ingressM{},
 	}
 }
 
