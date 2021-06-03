@@ -29,8 +29,11 @@ var (
 	defNvmePath     = "/usr/bin/nvme"
 	defInterval     = datakit.Duration{Duration: 10 * time.Second}
 	defTimeout      = datakit.Duration{Duration: 3 * time.Second}
-	inputName       = "smart"
-	sampleConfig    = `
+)
+
+var (
+	inputName    = "smart"
+	sampleConfig = `
 [[inputs.smart]]
 	## The path to the smartctl executable
   # path_smartctl = "/usr/bin/smartctl"
