@@ -6,7 +6,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -100,9 +99,7 @@ func (this *Input) Run() {
 			return
 
 		case <-tick.C:
-			if election.CurrentStats().IsLeader() {
-				this.gather()
-			}
+			this.gather()
 		}
 	}
 }
