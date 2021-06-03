@@ -211,6 +211,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&pvcM{},
 		&serviceM{},
 		&statefulSet{},
+		&ingressM{},
 	}
 }
 
