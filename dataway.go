@@ -146,7 +146,6 @@ func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
 
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
 
-	l.Debugf("request %s", requrl)
 	if dc.ontest {
 		return nil
 	}
