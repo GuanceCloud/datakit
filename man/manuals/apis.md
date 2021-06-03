@@ -79,6 +79,79 @@ HTTP/1.1 200 OK
 }
 ```
 
+## `/v1/query/raw`
+
+使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据）
+
+### 示例
+
+```
+POST /v1/query/raw HTTP/1.1
+Content-Type: application/json
+
+{
+    "queries":[
+        {
+            "query": "cpu:(usage_idle) LIMIT 1",  # dql查询语句（必填）
+            "conditions": "",                     # 追加dql查询条件
+            "max_duration": "1d",                 # 最大时间范围
+            "max_point": 0,                       # 最大点数
+            "time_range": [],                     # 
+            "orderby: [],                         # 
+            "disable_slimit": true,               # 禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20
+            "disable_multiple_field": true        # 禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段）
+        }
+    ],
+    "echo_explain":true
+}
+```
+
+参数说明：
+
+| 名称                     | 说明                                                                                                                                                                                                                       |
+| :---                     | ---                                                                                                                                                                                                                        |
+| `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
+| `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                |
+| `query`                  | DQL查询语句（DQL [文档](https://www.yuque.com/dataflux/doc/fsnd2r)）                                                                                                                                                       |
+| `conditions`             | 额外添加条件表达式，使用 DQL 语法，例如`hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                         |
+| `time_range`             | 限制时间范围，采用时间戳格式，单位为毫秒，数组大小为2的int，如果只有一个元素则认为是起始时间，会覆盖原查询语句中的查询时间区间                                                                                             |
+| `max_duration`           | 限制最大查询时间，支持单位 `ns/us/ms/s/m/h/d/w/y` ，例如 `3d` 是3天，`2w` 是2周，`1y` 是1年。默认是1年，此参数同样会限制 `time_range` 参数                                                                                 |
+| `orderby`                | 指定`order by`参数，内容格式为 `map[string]string` 数组，`key` 为要排序的字段名，`value` 只能是排序方式即 `asc` 和 `desc`，例如 `[ { "column01" : "asc" }, { "column02" : "desc" } ]`。此条会替换原查询语句中的 `order by` |
+| `max_point`              | 限制聚合最大点数。在使用聚合函数时，如果聚合密度过小导致点数太多，则会以 `(end_time-start_time)/max_point` 得到新的聚合间隔将其替换                                                                                        |
+| `disable_slimit`         | 是否禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20，默认为 `false`                                                                                                                              |
+| `disable_multiple_field` | 是否禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段），默认为 `false`                                                                                                                                       |
+
+返回数据：
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "content": [
+        {
+            "series": [
+                {
+                    "name": "cpu",
+                    "columns": [
+                        "time",
+                        "usage_idle"
+                    ],
+                    "values": [
+                        [
+                            1608612960000,
+                            99.59595959596913
+                        ]
+                    ]
+                }
+            ],
+            "cost": "25.093363ms",
+            "raw_query": "SELECT \"usage_idle\" FROM \"cpu\" LIMIT 1",
+        }
+    ]
+}
+```
+
 ## `/v1/host/meta`
 
 待补充
