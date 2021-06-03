@@ -103,3 +103,53 @@ set global log_queries_not_using_indexes = 'ON';
 ```
 
 > 注意：在使用日志采集时，需要将 DataKit 安装在 MySQL 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器
+
+## 日志 pipeline 功能切割字段说明
+
+- Mysql 日志
+
+**日志原文**
+
+```
+2017-12-29T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%';
+```
+
+切割后的字段列表如下：
+
+| 字段名  |  字段值  | 说明 |
+| ---    | ---     | --- |
+|  status   | Warning     | 日志级别 |
+|  msg   | System table 'plugin' is expected to be transactional.   | 日志内容 |
+|  time   | 1514520249954078000     | 纳秒时间戳（作为行协议时间）|
+
+- 慢查询日志
+
+**日志原文**
+
+```
+# Time: 2019-11-27T10:43:13.460744Z
+# User@Host: root[root] @ localhost [1.2.3.4]  Id:    35
+# Query_time: 0.214922  Lock_time: 0.000184 Rows_sent: 248832  Rows_examined: 72
+# Thread_id: 55   Killed: 0  Errno: 0
+# Bytes_sent: 123456   Bytes_received: 0
+SET timestamp=1574851393;
+SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
+```
+
+切割后的字段列表如下：
+
+| 字段名  |  字段值  | 说明 |
+| ---    | ---     | --- |
+|  bytes_sent   | 123456     | 发送字节数 |
+|  db_host   | localhost     | hostname |
+|  db_ip   | 1.2.3.4     | ip |
+|  db_slow_statement   | SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5     | 慢查询sql |
+|  db_user   | root[root]     | 用户 |
+|  lock_time   | 0.000184     | 锁时间 |
+|  query_id   | 35  | 查询id |
+|  query_time   | 0.214922     | SQL执行所消耗的时间 |
+|  rows_examined   | 72     | 为了返回查询的数据所读取的行数 |
+|  rows_sent   | 248832     | 查询返回的行数 |
+|  thread_id   | 55     | 线程id |
+|  time   | 1514520249954078000     | 纳秒时间戳（作为行协议时间）|
+
