@@ -108,7 +108,7 @@ func (k *kubeletPodMeasurement) LineProto() (*io.Point, error) {
 func (k *kubeletPodMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubeletPodName,
-		Desc: "kubelet pod 指标数据和对象数据（只采集正在运行的 Runing 状态的 Pod）",
+		Desc: "kubelet pod 指标数据和对象数据（只采集正在运行的 Running 状态的 Pod）",
 		Tags: map[string]interface{}{
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
 			"pod_name":  inputs.NewTagInfo(`pod 名字`),
