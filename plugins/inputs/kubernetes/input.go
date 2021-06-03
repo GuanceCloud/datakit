@@ -10,6 +10,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -176,6 +177,10 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-tick.C:
+			if !election.CurrentStats().IsLeader() {
+				l.Debugf("kubernetes input not leader, skip doing gather")
+				continue
+			}
 			l.Debugf("kubernetes metric input gathering...")
 			i.start = time.Now()
 			i.Collect()
