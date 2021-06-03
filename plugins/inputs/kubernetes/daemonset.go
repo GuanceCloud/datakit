@@ -83,20 +83,20 @@ func (m *daemonSet) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectDaemonSets() error {
+func (i *Input) collectDaemonSets(collector string) error {
 	list, err := i.client.getDaemonSets()
 	if err != nil {
 		return err
 	}
 
 	for _, d := range list.Items {
-		i.gatherDaemonSet(d)
+		i.gatherDaemonSet(collector, d)
 	}
 
 	return nil
 }
 
-func (i *Input) gatherDaemonSet(d v1.DaemonSet) {
+func (i *Input) gatherDaemonSet(collector string, d v1.DaemonSet) {
 	fields := map[string]interface{}{
 		"generation":               d.Generation,
 		"current_number_scheduled": d.Status.CurrentNumberScheduled,
@@ -128,5 +128,5 @@ func (i *Input) gatherDaemonSet(d v1.DaemonSet) {
 		ts:     time.Now(),
 	}
 
-	i.collectCache = append(i.collectCache, m)
+	i.collectCache[collector] = append(i.collectCache[collector], m)
 }
