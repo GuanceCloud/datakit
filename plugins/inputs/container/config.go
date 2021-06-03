@@ -1,7 +1,6 @@
 package container
 
 import (
-	"fmt"
 	"net"
 	"net/url"
 	"time"
@@ -118,7 +117,7 @@ func (this *Input) loadCfg() (err error) {
 	}
 
 	if this.Kubernetes != nil {
-		l.Debugf("use kubelet_url %s", this.Kubernetes)
+		l.Debugf("use kubelet_url %s", this.Kubernetes.URL)
 
 		u, err := url.Parse(this.Kubernetes.URL)
 		if err != nil {
@@ -128,7 +127,7 @@ func (this *Input) loadCfg() (err error) {
 		func() {
 			// kubelet API 没有提供 ping 功能
 			// 此处手动检查该端口是否可以连接
-			if err = rawConnect(u.Host, u.Port()); err != nil {
+			if err = rawConnect(u.Hostname(), u.Port()); err != nil {
 				l.Errorf("kubelet_url connecting error(not collect kubelet): %s", err)
 				// 如果检测到该端口尚未监听，或无法连接，则将 this.Kubernetes 置为 空指针
 				// 后续将不再采用 kubelet 相关数据
