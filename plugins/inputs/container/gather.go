@@ -123,10 +123,6 @@ func (this *Input) gatherObject(container types.Container) (*io.Point, error) {
 	return io.MakePoint(containerName, tags, fields, time.Now())
 }
 
-func (this *Input) gatherK8sPodInfo(id string) (map[string]string, error) {
-	return this.kubernetes.GatherPodInfo(id)
-}
-
 func (this *Input) gatherContainerInfo(container types.Container) map[string]string {
 	tags := map[string]string{
 		"container_id":   container.ID,
@@ -142,13 +138,14 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 		}
 	}
 
-	podInfo, err := this.gatherK8sPodInfo(container.ID)
-	if err != nil {
-		l.Debugf("gather k8s pod error, %s", err)
-	}
-
-	for k, v := range podInfo {
-		tags[k] = v
+	if this.Kubernetes != nil {
+		podInfo, err := this.Kubernetes.GatherPodInfo(container.ID)
+		if err != nil {
+			l.Debugf("gather k8s pod error, %s", err)
+		}
+		for k, v := range podInfo {
+			tags[k] = v
+		}
 	}
 
 	return tags
