@@ -1,4 +1,4 @@
-package docker
+package container
 
 import (
 	"bufio"
@@ -63,10 +63,10 @@ func (this *Input) cancelTails() error {
 
 func (this *Input) gatherLog() {
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, this.apiTimeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, apiTimeoutDuration)
 	defer cancel()
 
-	cList, err := this.client.ContainerList(ctx, this.opts)
+	cList, err := this.client.ContainerList(ctx, containerListOptions)
 	if err != nil {
 		l.Error(err)
 		iod.FeedLastError(inputName, fmt.Sprintf("gather logging: %s", err.Error()))
@@ -115,23 +115,28 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 		return err
 	}
 
-	logReader, err := this.client.ContainerLogs(ctx, container.ID, this.containerLogsOptions)
+	logReader, err := this.client.ContainerLogs(ctx, container.ID, containerLogsOptions)
 	if err != nil {
 		return err
 	}
 
 	var source string
 	if contianerIsFromKubernetes(getContainerName(container.Names)) {
-		uid, err := this.kubernetes.GatherPodUID(container.ID)
-		if err != nil {
-			l.Debugf("gather k8s podUID error: %s", err)
-		} else {
-			name, err := this.kubernetes.GatherWorkName(uid)
-			if err != nil {
-				l.Debugf("gather k8s workname error: %s", err)
-			} else {
+		if this.Kubernetes != nil {
+			func() {
+				uid, err := this.Kubernetes.GatherPodUID(container.ID)
+				if err != nil {
+					l.Debugf("gather k8s podUID error: %s", err)
+					return
+				}
+
+				name, err := this.Kubernetes.GatherWorkName(uid)
+				if err != nil {
+					l.Debugf("gather k8s workname error: %s", err)
+					return
+				}
 				source = name
-			}
+			}()
 		}
 	}
 
@@ -151,7 +156,7 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 }
 
 func (this *Input) hasTTY(ctx context.Context, container types.Container) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, this.apiTimeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, apiTimeoutDuration)
 	defer cancel()
 	c, err := this.client.ContainerInspect(ctx, container.ID)
 	if err != nil {
@@ -246,7 +251,7 @@ func tailStream(reader io.ReadCloser, stream string, container types.Container, 
 			l.Error(err)
 		} else {
 			if err := iod.Feed(inputName, datakit.Logging, []*iod.Point{pt}, &iod.Option{HighFreq: useIOHighFreq}); err != nil {
-				l.Error(err)
+				l.Error("logging gather failed, container_id: %s, container_name:%s, err: %s", err.Error())
 			}
 		}
 	}
