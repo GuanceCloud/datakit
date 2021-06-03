@@ -8,10 +8,13 @@ import (
 )
 
 var (
-	defCommand   = "sensors"
-	defPath      = "/usr/bin/sensors"
-	defInterval  = datakit.Duration{Duration: 10 * time.Second}
-	defTimeout   = datakit.Duration{Duration: 3 * time.Second}
+	defCommand  = "sensors"
+	defPath     = "/usr/bin/sensors"
+	defInterval = datakit.Duration{Duration: 10 * time.Second}
+	defTimeout  = datakit.Duration{Duration: 3 * time.Second}
+)
+
+var (
 	inputName    = "sensors"
 	sampleConfig = `
 [[inputs.sensors]]
