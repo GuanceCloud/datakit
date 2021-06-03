@@ -49,8 +49,7 @@ func (d *dialer) stop() {
 func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
 
 	return &dialer{
-		task: t,
-
+		task:     t,
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
 		tags:     ts,
@@ -74,6 +73,7 @@ func (d *dialer) run() error {
 
 		case <-d.ticker.C:
 
+			l.Debugf(`dialer run %+#v`, d)
 			d.testCnt++
 			//dialtesting start
 			//无论成功或失败，都要记录测试结果
