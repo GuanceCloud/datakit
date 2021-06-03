@@ -44,6 +44,7 @@ var (
 		"cloudflare":             true,
 		"cloudprober":            true,
 		"confluence":             true,
+		"container":              true,
 		"containerd":             true,
 		"coredns":                true,
 		"cpu":                    true,
