@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jinzhu/copier"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -170,12 +172,26 @@ func (d *Input) doLocalTask(path string) {
 
 func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
-	if err := t.Init(); err != nil {
+	var newt dt.Task
+	switch t.(type) {
+	case *dt.HTTPTask:
+		newt = &dt.HTTPTask{}
+	case *dt.HeadlessTask:
+		newt = &dt.HeadlessTask{}
+	default:
+	}
+
+	if err := copier.Copy(newt, t); err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	if err := newt.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
-	dialer, err := newDialer(t, d.Tags)
+	dialer, err := newDialer(newt, d.Tags)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -247,6 +263,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 
 	for k, arr := range resp.Content {
 
+		l.Debugf(`class: %s`, k)
+
 		var t dt.Task
 
 		switch k {
@@ -260,8 +278,12 @@ func (d *Input) dispatchTasks(j []byte) error {
 			// TODO
 		case dt.ClassOther:
 			// TODO
+		case RegionInfo:
+			continue
+			//no need dealwith
 		default:
-			return fmt.Errorf("unknown task type: %s", k)
+			l.Errorf("unknown task type: %s", k)
+			continue
 		}
 
 		for _, j := range arr.([]interface{}) {
@@ -276,7 +298,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 				d.pos = ts
 			}
 
-			l.Debugf(`%+#v`, d.curTasks[t.ID()])
+			l.Debugf(`%+#v id: %s`, d.curTasks[t.ID()], t.ID())
 
 			if dialer, ok := d.curTasks[t.ID()]; ok { // update task
 
@@ -295,6 +317,11 @@ func (d *Input) dispatchTasks(j []byte) error {
 				}
 
 			} else { // create new task
+
+				if strings.ToLower(t.Status()) == dt.StatusStop {
+					l.Warnf(`%s status is stop, exit ignore`, t.ID())
+					continue
+				}
 
 				l.Debugf(`create new task %+#v`, t)
 				dialer, err := d.newTaskRun(t)
