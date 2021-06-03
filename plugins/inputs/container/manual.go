@@ -8,7 +8,9 @@ import (
 )
 
 const (
-	containerName = "container"
+	containerName   = "container"
+	kubeletNodeName = "kubelet_node"
+	kubeletPodName  = "kubelet_pod"
 )
 
 type containersMeasurement struct {
@@ -88,6 +90,86 @@ func (c *containersLogMeasurement) Info() *inputs.MeasurementInfo {
 			"service":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "服务名称"},
 			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK"},
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
+		},
+	}
+}
+
+type kubeletNodeMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (k *kubeletNodeMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(k.name, k.tags, k.fields, k.ts)
+}
+
+func (k *kubeletNodeMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: kubeletNodeName,
+		Desc: "kubelet node 指标数据",
+		Tags: map[string]interface{}{
+			"node_name": inputs.NewTagInfo(`kubelet node 名字`),
+		},
+		Fields: map[string]interface{}{
+			"cpu_usage":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
+			"mem_usage_percent":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory used"},
+			"cpu_usage_nanocores":        &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of cpu usage nanocores"},
+			"cpu_usage_core_nanoseconds": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of cpu usage core nanoseconds"},
+			"memory_available_bytes":     &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory available in bytes"},
+			"memory_usage_bytes":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
+			"memory_working_set_bytes":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "Current working set in bytes "},
+			"memory_rss_bytes":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "Size of RSS in bytes"},
+			"memory_page_faults":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The count of memory page faults"},
+			"memory_major_page_faults":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The count of memory major page faults"},
+			"network_rx_bytes":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of bytes per second received"},
+			"network_rx_errors":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of rx errors per second"},
+			"network_tx_bytes":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of bytes per second transmitted"},
+			"network_tx_errors":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of tx errors per second"},
+			"fs_available_bytes":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "The number of disk available in bytes"},
+			"fs_capacity_bytes":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "The number of disk capacity in bytes"},
+			"fs_used_bytes":              &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.NCount, Desc: "The number of disk used in bytes"},
+		},
+	}
+}
+
+type kubeletPodMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (k *kubeletPodMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(k.name, k.tags, k.fields, k.ts)
+}
+
+func (k *kubeletPodMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: kubeletPodName,
+		Desc: "kubelet pod 指标数据和对象数据",
+		Tags: map[string]interface{}{
+			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
+			"pod_name":  inputs.NewTagInfo(`pod 名字`),
+			"namespace": inputs.NewTagInfo(`所属命名空间`),
+			"name":      inputs.NewTagInfo(`pod UID`),
+		},
+		Fields: map[string]interface{}{
+			"cpu_usage":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
+			"mem_usage_percent":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory used"},
+			"cpu_usage_nanocores":        &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of cpu usage nanocores"},
+			"cpu_usage_core_nanoseconds": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of cpu usage core nanoseconds"},
+			"memory_available_bytes":     &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory available in bytes"},
+			"memory_usage_bytes":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of memory used in bytes"},
+			"memory_working_set_bytes":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "Current working set in bytes "},
+			"memory_rss_bytes":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "Size of RSS in bytes"},
+			"memory_page_faults":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The count of memory page faults"},
+			"memory_major_page_faults":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The count of memory major page faults"},
+			"network_rx_bytes":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of bytes per second received"},
+			"network_rx_errors":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of rx errors per second"},
+			"network_tx_bytes":           &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "The number of bytes per second transmitted"},
+			"network_tx_errors":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of tx errors per second"},
 		},
 	}
 }
