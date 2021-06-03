@@ -91,10 +91,7 @@ func (d *dialer) run() error {
 			d.doUpdateTask(t)
 
 			if strings.ToLower(d.task.Status()) == dt.StatusStop {
-				if err := t.Stop(); err != nil {
-					l.Warnf("stop task failed: %s", err.Error())
-				}
-
+				d.stop()
 				l.Info("task %s stopped", d.task.ID())
 				return nil
 			}
