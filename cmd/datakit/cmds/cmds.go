@@ -111,6 +111,16 @@ func ReloadDatakit(port int) error {
 	return err
 }
 
+func UninstallDatakit() error {
+	svc, err := datakit.NewService()
+	if err != nil {
+		return err
+	}
+
+	l.Info("uninstall datakit...")
+	return service.Control(svc, "uninstall")
+}
+
 func DatakitStatus() (string, error) {
 
 	svc, err := datakit.NewService()
