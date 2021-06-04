@@ -10,8 +10,8 @@ const (
     # sock = "<SOCK>"
     # charset = "utf8"
 
-    ## @param connect_timeout - number - optional - default: 10
-    # connect_timeout = 10
+    ## @param connect_timeout - number - optional - default: 10s
+    # connect_timeout = "10s"
 
     ## Deprecated
     # service = "<SERVICE>"
