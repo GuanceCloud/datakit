@@ -3,6 +3,8 @@
 package sensors
 
 import (
+	"runtime"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -27,11 +29,9 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (s *Input) Run() {
-	l.Errorf("Can not run %s on this system.", inputName)
+	l.Errorf("Can not run input %q on %s-%s.", inputName, runtime.GOOS, runtime.GOARCH)
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
-	})
+	inputs.Add(inputName, func() inputs.Input { return &Input{} })
 }
