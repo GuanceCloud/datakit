@@ -49,7 +49,7 @@ func (m *endpointM) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "",
+				Desc:     "The port number of the endpoint",
 			},
 			"ready": &inputs.FieldInfo{
 				DataType: inputs.Int,
