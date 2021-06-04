@@ -75,6 +75,8 @@ func apiWrite(c *gin.Context) {
 		return
 	}
 
+	l.Debugf("body: %s", string(body))
+
 	if category == datakit.Rum { // RUM 数据单独处理
 		handleRUM(c, precision, input, body)
 		return
