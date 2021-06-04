@@ -11,7 +11,7 @@ func TestCollectObject(t *testing.T) {
 	}
 
 	i.lastErr = i.initCfg()
-	i.CollectObject()
+	i.collectPodObject("podObject")
 
 	for _, obj := range i.collectObjectCache {
 		point, err := obj.LineProto()
