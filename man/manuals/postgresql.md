@@ -58,7 +58,7 @@ files = ["/tmp/pgsql/postgresql.log"]
 |remote_host|远程主机|客户端的地址|
 |session_id|会话ID|当前会话的ID|
 |user|用户|当前访问用户名|
-|log_level|日志级别|当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO)|
+|status|日志级别|当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO)|
 |time|时间|日志产生时间|
 
 **注意**
