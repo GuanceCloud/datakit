@@ -1,10 +1,13 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 type innodbMeasurement struct {
@@ -427,9 +430,13 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 
 // 数据源获取数据
 func (i *Input) getInnodb() ([]inputs.Measurement, error) {
-	if err := i.db.Ping(); err != nil {
+
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	defer cancel()
+
+	if err := i.db.PingContext(ctx); err != nil {
 		l.Errorf("db connect error %v", err)
-		return nil, err
+		return nil, fmt.Errorf("db connect error %v", err)
 	}
 
 	var collectCache []inputs.Measurement
