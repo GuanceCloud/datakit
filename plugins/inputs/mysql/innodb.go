@@ -1,9 +1,7 @@
 package mysql
 
 import (
-	"context"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -430,15 +428,6 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 
 // 数据源获取数据
 func (i *Input) getInnodb() ([]inputs.Measurement, error) {
-
-	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
-	defer cancel()
-
-	if err := i.db.PingContext(ctx); err != nil {
-		l.Errorf("db connect error %v", err)
-		return nil, fmt.Errorf("db connect error %v", err)
-	}
-
 	var collectCache []inputs.Measurement
 
 	var globalInnodbSql = `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
