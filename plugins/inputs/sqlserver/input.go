@@ -31,10 +31,14 @@ func (_ *Input) PipelineConfig() map[string]string {
 }
 
 func (n *Input) initDb() error {
-	db, err := sql.Open("sqlserver", fmt.Sprintf("sqlserver://%s:%s@%s", n.User, n.Password, n.Host))
+	db, err := sql.Open("sqlserver", fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", n.User, n.Password, n.Host))
 	if err != nil {
 		return err
 	}
+	if err := db.Ping(); err != nil {
+		return err
+	}
+
 	n.db = db
 	return nil
 }
@@ -162,7 +166,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 			}
 		}
 		if len(fields) == 0 {
-			return
+			continue
 		}
 
 		point, err := io.MakePoint(measurement, tags, fields, ts)
