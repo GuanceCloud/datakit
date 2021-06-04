@@ -11,8 +11,9 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
@@ -31,9 +32,7 @@ func DefaultConfig() *Config {
 
 		DataWay: &DataWayCfg{},
 
-		flushInterval: Duration{Duration: time.Second * 10},
-		Interval:      "10s",
-		ProtectMode:   true,
+		ProtectMode: true,
 
 		HTTPListen: "localhost:9529",
 		HTTPAPI: &apiConfig{
@@ -86,12 +85,14 @@ type Config struct {
 	GlobalTags map[string]string `toml:"global_tags"`
 
 	EnablePProf bool `toml:"enable_pprof,omitempty"`
-	ProtectMode bool `toml:"protect_mode,omitempty"`
+	ProtectMode bool `toml:"protect_mode"`
 
-	Interval             string `toml:"interval"`
-	flushInterval        Duration
-	OutputFile           string    `toml:"output_file"`
-	Hostname             string    `toml:"hostname,omitempty"`
+	IntervalDeprecated string `toml:"interval,omitempty"`
+
+	OutputFile string `toml:"output_file"`
+	//Hostname   string `toml:"hostname,omitempty"`
+	Hostname string `toml:"-"`
+
 	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
 	InstallDate          time.Time `toml:"install_date,omitempty"`
 
@@ -110,6 +111,40 @@ func (c *Config) String() string {
 	}
 
 	return buf.String()
+}
+
+func (c *Config) SetUUID() error {
+	if c.Hostname == "" {
+		hn, err := os.Hostname()
+		if err != nil {
+			l.Errorf("get hostname failed: %s", err.Error())
+			return err
+		}
+
+		c.UUID = hn
+	} else {
+		c.UUID = c.Hostname
+	}
+	return nil
+}
+
+func (c *Config) LoadMainTOML(p string) error {
+	cfgdata, err := ioutil.ReadFile(p)
+	if err != nil {
+		l.Errorf("read main cfg %s failed: %s", p, err.Error())
+		return err
+	}
+
+	_, err = bstoml.Decode(string(cfgdata), c)
+	if err != nil {
+		l.Errorf("unmarshal main cfg failed %s", err.Error())
+		return err
+	}
+
+	// 由于 datakit UUID 不再重要, 出错也不管了
+	_ = c.SetUUID()
+
+	return nil
 }
 
 type InputHostList struct {
@@ -149,16 +184,6 @@ func InitDirs() {
 	}
 }
 
-func (c *Config) LoadMainConfig(p string) error {
-	cfgdata, err := ioutil.ReadFile(p)
-	if err != nil {
-		l.Errorf("read main cfg %s failed: %s", p, err.Error())
-		return err
-	}
-
-	return c.DoLoadMainConfig(cfgdata)
-}
-
 func (c *Config) InitCfg(p string) error {
 
 	if c.Hostname == "" {
@@ -179,38 +204,26 @@ func (c *Config) InitCfg(p string) error {
 	return nil
 }
 
-func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
-	_, err := bstoml.Decode(string(cfgdata), c)
-	if err != nil {
-		l.Errorf("unmarshal main cfg failed %s", err.Error())
-		return err
+func (c *Config) setupDataway() error {
+	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
+	// 避免俩边配置了同样的 dataway, 造成数据混乱
+	if c.DataWay.DeprecatedURL != "" && len(c.DataWay.URLs) == 0 {
+		c.DataWay.URLs = []string{c.DataWay.DeprecatedURL}
 	}
 
-	if c.EnableUncheckedInputs {
-		EnableUncheckInputs = true
+	if len(c.DataWay.URLs) == 0 {
+		return fmt.Errorf("dataway not set")
 	}
 
-	// load datakit UUID
-	if c.UUIDDeprecated != "" {
-		// dump UUIDDeprecated to .id file
-		if err := CreateUUIDFile(UUIDFile, Cfg.UUIDDeprecated); err != nil {
-			l.Fatalf("create datakit id failed: %s", err.Error())
-		}
-		c.UUID = c.UUIDDeprecated
-	} else {
-		c.UUID, err = LoadUUID()
-		if err != nil {
-			l.Fatalf("load datakit id failed: %s", err.Error())
-		}
+	ExtraHeaders = map[string]string{
+		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, git.Version),
 	}
 
-	if c.OutputFile != "" {
-		OutputFile = c.OutputFile
-	}
+	// setup dataway
+	return c.DataWay.Apply()
+}
 
-	if c.Hostname == "" {
-		c.setHostname()
-	}
+func (c *Config) setupGlobalTags() error {
 	if c.GlobalTags == nil {
 		c.GlobalTags = map[string]string{}
 	}
@@ -220,38 +233,7 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 		c.GlobalTags["host"] = c.Hostname
 	}
 
-	if c.DataWay.DeprecatedURL != "" {
-		c.DataWay.URLs = append(c.DataWay.URLs, c.DataWay.DeprecatedURL)
-	}
-
-	if len(c.DataWay.URLs) == 0 {
-		l.Fatal("dataway URL not set")
-	}
-
-	// set global log root
-	l.Infof("set log to %s", c.Log)
-	logger.MaxSize = c.LogRotate
-	logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT)
-
-	l = logger.SLogger("datakit")
-
-	dw, err := ParseDataway(c.DataWay.URLs)
-	if err != nil {
-		return err
-	}
-
-	c.DataWay = dw
-
-	if c.Interval != "" {
-		du, err := time.ParseDuration(c.Interval)
-		if err != nil {
-			l.Warnf("parse %s failed: %s, set default to 10s", c.Interval)
-			du = time.Second * 10
-		}
-		IntervalDuration = du
-	}
-
-	// reset global tags
+	// setup global tags
 	for k, v := range c.GlobalTags {
 
 		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
@@ -272,7 +254,7 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 			if ipaddr, err := LocalIP(); err != nil {
 				l.Errorf("get local ip failed: %s", err.Error())
 			} else {
-				l.Debugf("set global tag %s: %s", k, ipaddr)
+				l.Infof("set global tag %s: %s", k, ipaddr)
 				c.GlobalTags[k] = ipaddr
 			}
 
@@ -283,6 +265,49 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 		default:
 			// pass
 		}
+	}
+
+	return nil
+}
+
+func (c *Config) ApplyMainConfig() error {
+
+	// set global log root
+	l.Infof("set log to %s", c.Log)
+	logger.MaxSize = c.LogRotate
+	logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT)
+
+	l = logger.SLogger("datakit")
+
+	if c.EnableUncheckedInputs {
+		EnableUncheckInputs = true
+	}
+
+	if c.OutputFile != "" {
+		OutputFile = c.OutputFile
+	}
+
+	if c.Hostname == "" {
+		if err := c.setHostname(); err != nil {
+			return err
+		}
+	}
+
+	if err := c.setupDataway(); err != nil {
+		return err
+	}
+
+	if err := c.setupGlobalTags(); err != nil {
+		return err
+	}
+
+	if c.IntervalDeprecated != "" {
+		du, err := time.ParseDuration(c.IntervalDeprecated)
+		if err != nil {
+			l.Warnf("parse %s failed: %s, set default to 10s", c.IntervalDeprecated)
+			du = time.Second * 10
+		}
+		IntervalDuration = du
 	}
 
 	// remove deprecated UUID field in main configure
@@ -302,14 +327,16 @@ func (c *Config) DoLoadMainConfig(cfgdata []byte) error {
 	return nil
 }
 
-func (c *Config) setHostname() {
+func (c *Config) setHostname() error {
 	hn, err := os.Hostname()
 	if err != nil {
 		l.Errorf("get hostname failed: %s", err.Error())
-	} else {
-		c.Hostname = hn
-		l.Infof("set hostname to %s", hn)
+		return err
 	}
+
+	c.Hostname = hn
+	l.Infof("set hostname to %s", hn)
+	return nil
 }
 
 func (c *Config) EnableDefaultsInputs(inputlist string) {
@@ -334,80 +361,72 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	c.DefaultEnabledInputs = inputs
 }
 
-func (c *Config) LoadEnvs(mcp string) error {
-	if !Docker { // only accept configs from ENV within docker
-		return nil
-	}
-
-	enableInputs := os.Getenv("ENV_ENABLE_INPUTS")
-	if enableInputs != "" {
-		c.EnableDefaultsInputs(enableInputs)
-	}
-
-	globalTags := os.Getenv("ENV_GLOBAL_TAGS")
-	if globalTags != "" {
-		c.GlobalTags = ParseGlobalTags(globalTags)
-	}
-
-	loglvl := os.Getenv("ENV_LOG_LEVEL")
-	if loglvl != "" {
-		c.LogLevel = loglvl
-	}
-
-	dwURL := os.Getenv("ENV_DATAWAY")
-	if dwURL != "" {
-		dwURLs := []string{dwURL}
-		dw, err := ParseDataway(dwURLs)
-		if err != nil {
-			return err
+func getEnv(env string) string {
+	if v, ok := os.LookupEnv(env); ok {
+		if v != "" {
+			l.Infof("get env %s ok: %s", env, v)
+			return v
+		} else {
+			l.Infof("ignore empty env %s", env)
+			return v
 		}
+	}
+	return ""
+}
 
-		if err := dw.Test(); err != nil {
-			return err
-		}
+func (c *Config) LoadEnvs() error {
 
-		c.DataWay = dw
-		c.DataWay.URLs = dwURLs
+	if v := getEnv("ENV_GLOBAL_TAGS"); v != "" {
+		c.GlobalTags = ParseGlobalTags(v)
 	}
 
-	dkhost := os.Getenv("ENV_HOSTNAME")
-	if dkhost != "" {
-		l.Debugf("set hostname to %s from ENV", dkhost)
-		c.Hostname = dkhost
+	if v := getEnv("ENV_LOG_LEVEL"); v != "" {
+		c.LogLevel = v
+	}
+
+	// 多个 dataway 支持 ',' 分割
+	if v := getEnv("ENV_DATAWAY"); v != "" {
+
+		if c.DataWay == nil {
+			c.DataWay = &DataWayCfg{}
+		}
+		c.DataWay.URLs = strings.Split(v, ",")
+	}
+
+	if v := getEnv("ENV_HOSTNAME"); v != "" {
+		c.Hostname = v
+	}
+
+	if v := getEnv("ENV_NAME"); v != "" {
+		c.Name = v
+	}
+
+	if v := getEnv("ENV_HTTP_LISTEN"); v != "" {
+		c.HTTPListen = v
+	}
+
+	if v := getEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {
+		c.HTTPAPI = &apiConfig{RUMOriginIPHeader: v}
+	}
+
+	if v := getEnv("ENV_ENABLE_PPROF"); v != "" {
+		c.EnablePProf = true
+	}
+
+	if v := getEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
+		c.ProtectMode = false
+	}
+
+	if v := os.Getenv("ENV_DEFAULT_ENABLED_INPUTS"); v != "" {
+		c.DefaultEnabledInputs = strings.Split(v, ",")
 	} else {
-		c.setHostname()
-	}
-
-	c.Name = os.Getenv("ENV_NAME")
-
-	if fi, err := os.Stat(mcp); err != nil || fi.Size() == 0 { // create the main config
-		if c.UUID == "" { // datakit.conf not exit: we have to create new datakit with new UUID
-			c.UUID = cliutils.XID("dkid_")
-		}
-
-		c.InstallDate = time.Now()
-
-		cfgdata, err := TomlMarshal(c)
-		if err != nil {
-			l.Errorf("failed to build main cfg %s", err)
-			return err
-		}
-
-		l.Debugf("generating datakit.conf...")
-		if err := ioutil.WriteFile(mcp, cfgdata, os.ModePerm); err != nil {
-			l.Error(err)
-			return err
+		if v := os.Getenv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
+			c.DefaultEnabledInputs = strings.Split(v, ",")
 		}
 	}
 
-	dkid := os.Getenv("ENV_UUID")
-	if dkid == "" {
-		return fmt.Errorf("ENV_UUID not set")
-	}
-
-	if err := CreateUUIDFile(UUIDFile, dkid); err != nil {
-		l.Errorf("create id file: %s", err.Error())
-		return err
+	if v := getEnv("ENV_ENABLE_ELECTION"); v != "" {
+		c.EnableElection = true
 	}
 
 	return nil
@@ -434,8 +453,8 @@ func CreateUUIDFile(f, uuid string) error {
 	return ioutil.WriteFile(f, []byte(uuid), os.ModePerm)
 }
 
-func LoadUUID() (string, error) {
-	if data, err := ioutil.ReadFile(UUIDFile); err != nil {
+func LoadUUID(f string) (string, error) {
+	if data, err := ioutil.ReadFile(f); err != nil {
 		return "", err
 	} else {
 		return string(data), nil
