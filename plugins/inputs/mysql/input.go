@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"path/filepath"
@@ -122,6 +123,12 @@ func (i *Input) PipelineConfig() map[string]string {
 }
 
 func (i *Input) initCfg() error {
+	var err error
+	i.timeoutDuration, err = time.ParseDuration(i.Timeout)
+	if err != nil {
+		i.timeoutDuration = 10 * time.Second
+	}
+
 	dsnStr := i.getDsnString()
 
 	db, err := sql.Open("mysql", dsnStr)
@@ -130,6 +137,14 @@ func (i *Input) initCfg() error {
 		return err
 	} else {
 		i.db = db
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	defer cancel()
+
+	if err := i.db.PingContext(ctx); err != nil {
+		l.Errorf("init config connect error %v", err)
+		return err
 	}
 
 	i.globalTag()
@@ -142,7 +157,18 @@ func (i *Input) globalTag() {
 }
 
 func (i *Input) Collect() error {
-	for _, f := range i.collectors {
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	defer cancel()
+
+	if err := i.db.PingContext(ctx); err != nil {
+		l.Errorf("connect error %v", err)
+		io.FeedLastError(inputName, err.Error())
+		return err
+	}
+
+	for idx, f := range i.collectors {
+		l.Debugf("collecting %d(%v)...", idx, f)
+
 		if ms, err := f(); err != nil {
 			io.FeedLastError(inputName, err.Error())
 		} else {
@@ -256,6 +282,13 @@ func (i *Input) Run() {
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	for { // try until init OK
+
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+		}
+
 		if err := i.initCfg(); err != nil {
 			io.FeedLastError(inputName, err.Error())
 			time.Sleep(time.Second)
@@ -270,6 +303,8 @@ func (i *Input) Run() {
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
+
+	l.Infof("collecting each %v", i.Interval.Duration)
 
 	i.collectors = []func() ([]inputs.Measurement, error){
 		i.collectBaseMeasurement,
@@ -316,6 +351,6 @@ func (i *Input) AvailableArchs() []string {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{Timeout: "10s"}
 	})
 }
