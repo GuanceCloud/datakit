@@ -57,14 +57,14 @@ interval = "10s"
 
 const pipelineCfg = `
 add_pattern("log_date", "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}%{SPACE}%{HOUR}:%{MINUTE}:%{SECOND}%{SPACE}(?:CST|UTC)")
-add_pattern("log_level", "(LOG|ERROR|FATAL|PANIC|WARNING|NOTICE|INFO)")
+add_pattern("status", "(LOG|ERROR|FATAL|PANIC|WARNING|NOTICE|INFO)")
 add_pattern("session_id", "([.0-9a-z]*)")
 add_pattern("application_name", "(\\[%{GREEDYDATA:application_name}?\\])")
 add_pattern("remote_host", "(\\[\\[?%{HOST:remote_host}?\\]?\\])")
-grok(_, "%{log_date:time}%{SPACE}\\[%{INT:process_id}\\]%{SPACE}(%{WORD:db_name}?%{SPACE}%{application_name}%{SPACE}%{USER:user}?%{SPACE}%{remote_host}%{SPACE})?%{session_id:session_id}%{SPACE}(%{log_level:log_level}:)?")
+grok(_, "%{log_date:time}%{SPACE}\\[%{INT:process_id}\\]%{SPACE}(%{WORD:db_name}?%{SPACE}%{application_name}%{SPACE}%{USER:user}?%{SPACE}%{remote_host}%{SPACE})?%{session_id:session_id}%{SPACE}(%{status:status}:)?")
 
 # default
-grok(_, "%{log_date:time}%{SPACE}\\[%{INT:process_id}\\]%{SPACE}%{log_level:log_level}")
+grok(_, "%{log_date:time}%{SPACE}\\[%{INT:process_id}\\]%{SPACE}%{status:status}")
 
 nullif(remote_host, "")
 nullif(session_id, "")
@@ -72,7 +72,7 @@ nullif(application_name, "")
 nullif(user, "")
 nullif(db_name, "")
 
-group_in(log_level, [""], "INFO")
+group_in(status, [""], "INFO")
 
 default_time(time)
 `
@@ -440,6 +440,7 @@ func (DkInputs) JoinPipelinePath(op interface{}, defaultPipeline string) {
 }
 
 func (i *Input) Run() {
+	l = logger.SLogger(inputName)
 	inputs := DkInputs{}
 	datakit := Datakit{
 		ch:     make(chan interface{}),
