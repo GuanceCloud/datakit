@@ -26,13 +26,15 @@ var (
 )
 
 type Input struct {
-	Host              string `toml:"host"`
-	Port              int    `toml:"port"`
-	UnixSocketPath    string `toml:"unix_socket_path"`
-	DB                int    `toml:"db"`
-	Password          string `toml:"password"`
-	Service           string `toml:"service"`
-	SocketTimeout     int    `toml:"socket_timeout"`
+	Host              string        `toml:"host"`
+	Port              int           `toml:"port"`
+	UnixSocketPath    string        `toml:"unix_socket_path"`
+	DB                int           `toml:"db"`
+	Password          string        `toml:"password"`
+	Timeout           string        `toml:"connect_timeout"`
+	timeoutDuration   time.Duration `toml:"-"`
+	Service           string        `toml:"service"`
+	SocketTimeout     int           `toml:"socket_timeout"`
 	Interval          datakit.Duration
 	Keys              []string                               `toml:"keys"`
 	WarnOnMissingKeys bool                                   `toml:"warn_on_missing_keys"`
@@ -49,6 +51,12 @@ type Input struct {
 }
 
 func (i *Input) initCfg() error {
+	var err error
+	i.timeoutDuration, err = time.ParseDuration(i.Timeout)
+	if err != nil {
+		i.timeoutDuration = 10 * time.Second
+	}
+
 	i.Addr = fmt.Sprintf("%s:%d", i.Host, i.Port)
 
 	client := redis.NewClient(&redis.Options{
@@ -64,8 +72,10 @@ func (i *Input) initCfg() error {
 	i.client = client
 
 	// ping (todo)
-	ctx := context.Background()
-	_, err := client.Ping(ctx).Result()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err = client.Ping(ctx).Result()
 
 	if err != nil {
 		return err
@@ -212,6 +222,12 @@ func (i *Input) Run() {
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+		}
+
 		if err := i.initCfg(); err != nil {
 			io.FeedLastError(inputName, err.Error())
 			time.Sleep(5 * time.Second)
@@ -277,6 +293,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{Timeout: "10s"}
 	})
 }
