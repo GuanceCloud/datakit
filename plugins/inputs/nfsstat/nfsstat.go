@@ -42,7 +42,7 @@ var l = logger.DefaultSLogger(inputName)
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &NFSstat{
-			Interval: datakit.Cfg.Interval,
+			Interval: datakit.Cfg.IntervalDeprecated,
 			Tags:     make(map[string]string),
 		}
 	})
