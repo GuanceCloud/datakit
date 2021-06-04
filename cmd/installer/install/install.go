@@ -19,7 +19,7 @@ var (
 	l = logger.DefaultSLogger("install")
 
 	DefaultHostInputs          = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"}
-	DefaultHostInputsWithLinux = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "docker"}
+	DefaultHostInputsWithLinux = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "container"}
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
