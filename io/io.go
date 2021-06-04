@@ -313,7 +313,7 @@ func (x *IO) StartIO(recoverable bool) {
 				x.cleanHighFreqIOData()
 
 			case <-heartBeatTick.C:
-				x.dw.HeartBeat()
+				x.dw.HeartBeat(datakit.Cfg.UUID, datakit.Cfg.Hostname)
 
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
