@@ -2,9 +2,10 @@ package mysql
 
 import (
 	"database/sql"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 type innodbMeasurement struct {
@@ -427,11 +428,6 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 
 // 数据源获取数据
 func (i *Input) getInnodb() ([]inputs.Measurement, error) {
-	if err := i.db.Ping(); err != nil {
-		l.Errorf("db connect error %v", err)
-		return nil, err
-	}
-
 	var collectCache []inputs.Measurement
 
 	var globalInnodbSql = `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
