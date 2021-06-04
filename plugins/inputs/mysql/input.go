@@ -142,7 +142,10 @@ func (i *Input) globalTag() {
 }
 
 func (i *Input) Collect() error {
-	for _, f := range i.collectors {
+	for idx, f := range i.collectors {
+
+		l.Debugf("collecting %d(%v)...", idx, f)
+
 		if ms, err := f(); err != nil {
 			io.FeedLastError(inputName, err.Error())
 		} else {
@@ -278,6 +281,8 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
+	l.Infof("collecting each %v", i.Interval.Duration)
+
 	i.collectors = []func() ([]inputs.Measurement, error){
 		i.collectBaseMeasurement,
 		i.collectSchemaMeasurement,
@@ -323,6 +328,6 @@ func (i *Input) AvailableArchs() []string {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{Timeout: "10s"}
 	})
 }
