@@ -72,6 +72,7 @@ var (
 	flagRestart    = flag.Bool("restart", false, "restart datakit")
 	flagReload     = flag.Bool("reload", false, "reload datakit")
 	flagStatus     = flag.Bool("status", false, "show datakit service status")
+	flagUninstall  = flag.Bool("uninstall", false, "uninstall datakit service")
 	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
 
 	// partially update
@@ -100,9 +101,9 @@ func main() {
 	flag.CommandLine.MarkHidden("check-update")         // internal using
 	flag.CommandLine.MarkHidden("man-version")          // internal using
 	flag.CommandLine.MarkHidden("export-integration")   // internal using
-	flag.CommandLine.MarkHidden("addr")                 // internal uing
-	flag.CommandLine.MarkHidden("show-testing-version") // internal uing
-	flag.CommandLine.MarkHidden("update-log")           // internal uing
+	flag.CommandLine.MarkHidden("addr")                 // internal using
+	flag.CommandLine.MarkHidden("show-testing-version") // internal using
+	flag.CommandLine.MarkHidden("update-log")           // internal using
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -486,6 +487,14 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 		fmt.Println(x)
+		os.Exit(0)
+	}
+
+	if *flagUninstall {
+		if err := cmds.UninstallDatakit(); err != nil {
+			fmt.Println("Get DataKit status failed: %s\n", err)
+			os.Exit(-1)
+		}
 		os.Exit(0)
 	}
 
