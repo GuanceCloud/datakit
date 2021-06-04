@@ -9,6 +9,9 @@ const (
     db = 0
     # password = "<PASSWORD>"
 
+    ## @param connect_timeout - number - optional - default: 10s
+    # connect_timeout = "10s"
+
     ## @param service - string - optional
     # service = "<SERVICE>"
 
