@@ -379,6 +379,7 @@ const (
 )
 
 func (i *Input) Run() {
+	l = logger.SLogger(inputName)
 	// collect logs
 	if i.Log != nil {
 		go func() {
