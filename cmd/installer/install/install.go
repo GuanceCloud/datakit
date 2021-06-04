@@ -3,7 +3,6 @@ package install
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/kardianos/service"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
@@ -44,34 +42,30 @@ func readInput(prompt string) string {
 }
 
 func getDataWayCfg() *datakit.DataWayCfg {
-	var dc *datakit.DataWayCfg
-	var err error
+	dw := &datakit.DataWayCfg{}
 
 	if DataWayHTTP == "" {
+
 		for {
 			dwhttp := readInput("Please set DataWay HTTP URL(http[s]://host:port?token=xxx) > ")
-			dwUrls := []string{dwhttp}
-			dc, err = datakit.ParseDataway(dwUrls)
-			if err != nil {
+
+			dwurls := strings.Split(dwhttp, ",")
+			dw.URLs = dwurls
+			if err := dw.Apply(); err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
 			}
-			if err := dc.Test(); err != nil {
-				fmt.Printf("%s\n", err.Error())
-				continue
-			}
+
 			break
 		}
 	} else {
-		dwUrls := []string{DataWayHTTP}
-		datakit.Cfg.DataWay.URLs = dwUrls
-		dc, err = datakit.ParseDataway(datakit.Cfg.DataWay.URLs)
-		if err != nil {
+		dw.URLs = strings.Split(DataWayHTTP, ",")
+		if err := dw.Apply(); err != nil {
 			l.Fatal(err)
 		}
 	}
 
-	return dc
+	return dw
 }
 
 func InstallNewDatakit(svc service.Service) {
@@ -95,16 +89,6 @@ func InstallNewDatakit(svc service.Service) {
 
 	if DatakitName != "" {
 		mc.Name = DatakitName
-	}
-
-	// XXX: load old datakit UUID file: reuse datakit UUID installed before
-	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
-		mc.UUID = cliutils.XID("dkid_")
-		if err := datakit.CreateUUIDFile(datakit.UUIDFile, mc.UUID); err != nil {
-			l.Fatalf("create datakit id failed: %s", err.Error())
-		}
-	} else {
-		mc.UUID = string(data)
 	}
 
 	writeDefInputToMainCfg(mc)
@@ -164,7 +148,7 @@ func UpgradeDatakit(svc service.Service) error {
 	}
 
 	mc := datakit.Cfg
-	if err := mc.LoadMainConfig(datakit.MainConfPath); err == nil {
+	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
 		mc, _ = upgradeMainConfig(mc)
 		writeDefInputToMainCfg(mc)
 	} else {
