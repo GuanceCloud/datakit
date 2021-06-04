@@ -1,7 +1,9 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/spf13/cast"
@@ -504,9 +506,13 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 
 // 数据源获取数据
 func (m *baseMeasurement) getStatus() error {
-	if err := m.i.db.Ping(); err != nil {
+
+	ctx, cancel := context.WithTimeout(context.Background(), m.i.timeoutDuration)
+	defer cancel()
+
+	if err := m.i.db.PingContext(ctx); err != nil {
 		l.Errorf("connect error %v", err)
-		return err
+		return fmt.Errorf("connect error %v", err)
 	}
 
 	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
