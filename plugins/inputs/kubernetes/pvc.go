@@ -30,7 +30,7 @@ func (m *pvcM) Info() *inputs.MeasurementInfo {
 			"namespace":    &inputs.TagInfo{Desc: "namespace"},
 			"phase":        &inputs.TagInfo{Desc: "phase"},
 			"storageclass": &inputs.TagInfo{Desc: "storage class"},
-			"selector_*":   &inputs.TagInfo{Desc: "lab"},
+			"selector_*":   &inputs.TagInfo{Desc: "label"},
 		},
 		Fields: map[string]interface{}{
 			"phase_type": &inputs.FieldInfo{
