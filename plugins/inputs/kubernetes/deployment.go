@@ -28,7 +28,7 @@ func (m *deployment) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"deployment_name": &inputs.TagInfo{Desc: "deployment name"},
 			"namespace":       &inputs.TagInfo{Desc: "namespace"},
-			"selector_*":      &inputs.TagInfo{Desc: "lab"},
+			"selector_*":      &inputs.TagInfo{Desc: "label"},
 		},
 		Fields: map[string]interface{}{
 			"replicas_available": &inputs.FieldInfo{
