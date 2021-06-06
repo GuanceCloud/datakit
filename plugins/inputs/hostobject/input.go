@@ -58,6 +58,10 @@ const (
 	hostObjMeasurementName = "HOST"
 )
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (c *Input) Run() {
 
 	l = logger.SLogger(InputName)
