@@ -24,6 +24,10 @@ type Input struct {
 	Tags map[string]string    `toml:"tags"`
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) Run() {
 	if i.Interval == "" {
 		i.Interval = defaultInterval
