@@ -1,131 +1,49 @@
 package statsd
 
 import (
-	"bytes"
 	"errors"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 )
 
-type job struct {
-	*bytes.Buffer
-	time.Time
-	Addr string
-}
-
-type metric struct {
-	name, field, bucket, hash, mtype string
-
-	fields map[string]interface{}
-
-	additive   bool
-	samplerate float64
-
-	intval   int64
-	floatval float64
-	strval   string
-	ts       time.Time
-
-	tags map[string]string
-}
-
-func (m *metric) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name:   "以 statsd 中实际数据而定",
-		Fields: map[string]interface{}{},
-		Tags:   map[string]interface{}{},
-	}
-}
-
-func (m *metric) getVal() interface{} {
-
-	switch m.mtype {
-	case "g", "ms", "h", "d":
-		return m.floatval
-	case "c":
-		return m.intval
-	case "s":
-		return m.strval
-	default:
-		return nil
-	}
-}
-
-func (m *metric) LineProto() (*io.Point, error) {
-	if m.fields == nil {
-		m.fields = map[string]interface{}{
-			m.field: m.getVal(),
-		}
-	} else {
-		// TODO: merge m.fields & m.filed
-	}
-
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
-}
-
-type parser struct {
-	ref   *input
-	cache []*metric
-}
-
-func (x *input) run(idx int) {
-
-	p := &parser{
-		ref: x,
-	}
-
+// parser monitors the s.in channel, if there is a packet ready, it parses the
+// packet into statsd strings and then calls parseStatsdLine, which parses a
+// single statsd metric into a struct.
+func (s *input) parser(idx int) error {
 	for {
 		select {
-		case <-datakit.Exit.Wait():
-			l.Infof("statsd parser worker %d exit.", idx)
-			return
-		case j := <-x.in:
-			_ = p.doParse(j)
-			p.feedIO()
-			p.reset()
-		}
-	}
-}
+		case <-s.done:
+			return nil
 
-func (p *parser) feedIO() {
-	// TODO
-}
+		case in := <-s.in:
 
-func (p *parser) reset() {
-	// TODO
-}
+			lines := strings.Split(in.Buffer.String(), "\n")
+			s.bufPool.Put(in.Buffer)
+			for _, line := range lines {
 
-func (p *parser) doParse(j *job) error {
-	lines := strings.Split(j.Buffer.String(), "\n")
-	p.ref.bufpool.Put(j.Buffer)
-	for _, ln := range lines {
-		ln = strings.TrimSpace(ln)
-		switch {
-		case ln == "":
-		case strings.HasPrefix(ln, "_e"):
-			if err := p.parseEventMsg(j.Time, ln, j.Addr); err != nil {
-				return err
-			}
+				line = strings.TrimSpace(line)
+				l.Debugf("statsd line: %s", line)
 
-		default:
-			if err := p.parseStatsdLine(ln); err != nil {
-				return err
+				switch {
+				case line == "":
+				case s.DataDogExtensions && strings.HasPrefix(line, "_e"):
+					_ = s.parseEventMessage(in.Time, line, in.Addr)
+				default:
+					_ = s.parseStatsdLine(line)
+				}
 			}
 		}
 	}
-	return nil
 }
 
-func (p *parser) parseStatsdLine(line string) error {
-	var lineTags map[string]string
-
-	if p.ref.DataDogExtensions {
+// parseStatsdLine will parse the given statsd line, validating it as it goes.
+// If the line is valid, it will be cached for the next call to Gather()
+func (s *input) parseStatsdLine(line string) error {
+	lineTags := make(map[string]string)
+	if s.DataDogExtensions {
 		recombinedSegments := make([]string, 0)
 		// datadog tags look like this:
 		// users.online:1|c|@0.5|#country:china,environment:production
@@ -147,8 +65,8 @@ func (p *parser) parseStatsdLine(line string) error {
 	// Validate splitting the line on ":"
 	bits := strings.Split(line, ":")
 	if len(bits) < 2 {
-		l.Errorf("Splitting ':', unable to parse metric: %s", line)
-		return errors.New("error Parsing statsd line")
+		l.Warnf("Splitting ':', unable to parse metric: %s", line)
+		return errors.New("error parsing statsd line")
 	}
 
 	// Extract bucket name from individual metric bits
@@ -156,9 +74,9 @@ func (p *parser) parseStatsdLine(line string) error {
 
 	// Add a metric for each bit available
 	for _, bit := range bits {
-		m := metric{
-			bucket: bucketName,
-		}
+		m := metric{}
+
+		m.bucket = bucketName
 
 		// Validate splitting the bit on "|"
 		pipesplit := strings.Split(bit, "|")
@@ -207,7 +125,7 @@ func (p *parser) parseStatsdLine(line string) error {
 				l.Errorf("Parsing value to float64, unable to parse metric: %s", line)
 				return errors.New("error parsing statsd line")
 			}
-			m.floatval = v
+			m.floatvalue = v
 		case "c":
 			var v int64
 			v, err := strconv.ParseInt(pipesplit[0], 10, 64)
@@ -223,13 +141,13 @@ func (p *parser) parseStatsdLine(line string) error {
 			if m.samplerate != 0 && m.mtype == "c" {
 				v = int64(float64(v) / m.samplerate)
 			}
-			m.intval = v
+			m.intvalue = v
 		case "s":
-			m.strval = pipesplit[0]
+			m.strvalue = pipesplit[0]
 		}
 
 		// Parse the name & tags from bucket
-		m.name, m.field, m.tags = p.parseName(m.bucket)
+		m.name, m.field, m.tags = s.parseName(m.bucket)
 		switch m.mtype {
 		case "c":
 			m.tags["metric_type"] = "counter"
@@ -259,16 +177,23 @@ func (p *parser) parseStatsdLine(line string) error {
 		tg = append(tg, m.name)
 		m.hash = strings.Join(tg, "")
 
-		p.aggregate(&m)
+		s.aggregate(m)
 	}
 
 	return nil
 }
 
-func (p *parser) parseName(bucket string) (string, string, map[string]string) {
+// parseName parses the given bucket name with the list of bucket maps in the
+// config file. If there is a match, it will parse the name of the metric and
+// map of tags.
+// Return values are (<name>, <field>, <tags>)
+func (s *input) parseName(bucket string) (string, string, map[string]string) {
+	s.Lock()
+	defer s.Unlock()
 	tags := make(map[string]string)
 
 	bucketparts := strings.Split(bucket, ",")
+	// Parse out any tags in the bucket
 	if len(bucketparts) > 1 {
 		for _, btag := range bucketparts[1:] {
 			k, v := parseKeyValue(btag)
@@ -281,17 +206,17 @@ func (p *parser) parseName(bucket string) (string, string, map[string]string) {
 	var field string
 	name := bucketparts[0]
 
-	gp := s.graphiteParser
+	p := s.graphiteParser
 	var err error
 
-	if gp == nil || p.ref.graphiteParser.Separator != p.ref.MetricSeparator {
-		gp, err = graphite.NewGraphiteParser(p.ref.MetricSeparator, p.ref.Templates, nil)
-		p.ref.graphiteParser = gp
+	if p == nil || s.graphiteParser.Separator != s.MetricSeparator {
+		p, err = graphite.NewGraphiteParser(s.MetricSeparator, s.Templates, nil)
+		s.graphiteParser = p
 	}
 
 	if err == nil {
-		p.ref.DefaultTags = tags
-		name, tags, field, _ = p.ref.ApplyTemplate(name)
+		p.DefaultTags = tags
+		name, tags, field, _ = p.ApplyTemplate(name)
 	}
 
 	if s.ConvertNames {
@@ -305,10 +230,7 @@ func (p *parser) parseName(bucket string) (string, string, map[string]string) {
 	return name, field, tags
 }
 
-func (p *parser) aggregate(m *metric) {
-	// TODO
-}
-
+// Parse the key,value out of a string that looks like "key=value"
 func parseKeyValue(keyvalue string) (string, string) {
 	var key, val string
 
