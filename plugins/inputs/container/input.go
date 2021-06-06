@@ -77,6 +77,10 @@ func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLinux}
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (this *Input) Run() {
 	l = logger.SLogger(inputName)
 
