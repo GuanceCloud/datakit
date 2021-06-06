@@ -2,6 +2,22 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc2(2021/06/07)
+
+### 发布说明
+
+- 新增[k8s 采集器](kubernetes)
+- 新增[SQL Server 采集器](sqlserver)
+- 新增[PostgreSQL 采集器](postgresql)
+- 新增[statsd 采集器](statsd)
+- [JVM 采集器](jvm) 优先采用 ddtrace + statsd 采集
+- 新增[容器采集器](container)，以替代原有 [docker 采集器](docker) 采集器
+- [拨测采集器](dialtesting)支持 Headleass 模式
+- [Mongodb 采集器](mongodb) 支持采集 Mongodb 自身日志
+- DataKit 新增 DQL HTTP [API 接口](apis)
+
+----
+
 ## 1.1.7-rc1(2021/05/26)
 
 ### 发布说明
