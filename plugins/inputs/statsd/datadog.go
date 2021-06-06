@@ -1,5 +1,8 @@
 package statsd
 
+// this is adapted from datadog's apache licensed version at
+// https://github.com/DataDog/datadog-agent/blob/fcfc74f106ab1bd6991dfc6a7061c558d934158a/pkg/dogstatsd/parser.go#L173
+
 import (
 	"errors"
 	"fmt"
@@ -9,20 +12,18 @@ import (
 )
 
 const (
+	priorityNormal = "normal"
+	priorityLow    = "low"
+
 	eventInfo    = "info"
 	eventWarning = "warning"
 	eventError   = "error"
 	eventSuccess = "success"
-
-	priorityLow    = "low"
-	priorityNormal = "normal"
 )
 
-var (
-	uncommenter = strings.NewReplacer("\\n", "\n")
-)
+var uncommenter = strings.NewReplacer("\\n", "\n")
 
-func (p *parser) parseEventMsg(now time.Time, message, host string) error {
+func (s *input) parseEventMessage(now time.Time, message string, defaultHostname string) error {
 	// _e{title.length,text.length}:title|text
 	//  [
 	//   |d:date_happened
@@ -37,6 +38,7 @@ func (p *parser) parseEventMsg(now time.Time, message, host string) error {
 	// tag is key:value
 	messageRaw := strings.SplitN(message, ":", 2)
 	if len(messageRaw) < 2 || len(messageRaw[0]) < 7 || len(messageRaw[1]) < 3 {
+		l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format")
 	}
 	header := messageRaw[0]
@@ -44,21 +46,26 @@ func (p *parser) parseEventMsg(now time.Time, message, host string) error {
 
 	rawLen := strings.SplitN(header[3:], ",", 2)
 	if len(rawLen) != 2 {
+		l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format")
 	}
 
 	titleLen, err := strconv.ParseInt(rawLen[0], 10, 64)
 	if err != nil {
+		l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse title.length: '%s'", rawLen[0])
 	}
 	if len(rawLen[1]) < 1 {
+		l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse text.length: '%s'", rawLen[0])
 	}
 	textLen, err := strconv.ParseInt(rawLen[1][:len(rawLen[1])-1], 10, 64)
 	if err != nil {
+		l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse text.length: '%s'", rawLen[0])
 	}
 	if titleLen+textLen+1 > int64(len(message)) {
+		l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, title.length and text.length exceed total message length")
 	}
 
@@ -67,32 +74,29 @@ func (p *parser) parseEventMsg(now time.Time, message, host string) error {
 	message = message[titleLen+1+textLen:]
 
 	if len(rawTitle) == 0 || len(rawText) == 0 {
+		l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid event message format: empty 'title' or 'text' field")
 	}
 
-	m := &metric{
-		name: rawTitle,
-		fields: map[string]interface{}{
-			"alert_type": eventInfo, // default event type
-			"text":       uncommenter.Replace(rawText),
-			"priority":   priorityNormal,
-			"ts":         now,
-		},
-		tags: map[string]string{},
+	name := rawTitle
+	tags := make(map[string]string, strings.Count(message, ",")+2) // allocate for the approximate number of tags
+	fields := make(map[string]interface{}, 9)
+	fields["alert_type"] = eventInfo // default event type
+	fields["text"] = uncommenter.Replace(rawText)
+	if defaultHostname != "" {
+		tags["source"] = defaultHostname
 	}
-
-	if host != "" {
-		m.tags["source"] = host
-	}
-
+	fields["priority"] = priorityNormal
+	ts := now
 	if len(message) < 2 {
-		p.cache = append(p.cache, m)
+		s.acc.addFields(name, fields, tags, ts)
 		return nil
 	}
 
 	rawMetadataFields := strings.Split(message[1:], "|")
 	for i := range rawMetadataFields {
 		if len(rawMetadataFields[i]) < 2 {
+			l.Warnf("invalid message format: %s", message)
 			return errors.New("too short metadata field")
 		}
 		switch rawMetadataFields[i][:2] {
@@ -101,45 +105,44 @@ func (p *parser) parseEventMsg(now time.Time, message, host string) error {
 			if err != nil {
 				continue
 			}
-			m.fields["ts"] = ts
+			fields["ts"] = ts
 		case "p:":
 			switch rawMetadataFields[i][2:] {
 			case priorityLow:
-				m.fields["priority"] = priorityLow
+				fields["priority"] = priorityLow
 			case priorityNormal: // we already used this as a default
 			default:
 				continue
 			}
 		case "h:":
-			m.tags["source"] = rawMetadataFields[i][2:]
+			tags["source"] = rawMetadataFields[i][2:]
 		case "t:":
 			switch rawMetadataFields[i][2:] {
 			case eventError, eventWarning, eventSuccess, eventInfo:
-				m.fields["alert_type"] = rawMetadataFields[i][2:] // already set for info
+				fields["alert_type"] = rawMetadataFields[i][2:] // already set for info
 			default:
 				continue
 			}
 		case "k:":
-			m.tags["aggregation_key"] = rawMetadataFields[i][2:]
+			tags["aggregation_key"] = rawMetadataFields[i][2:]
 		case "s:":
-			m.fields["source_type_name"] = rawMetadataFields[i][2:]
+			fields["source_type_name"] = rawMetadataFields[i][2:]
 		default:
 			if rawMetadataFields[i][0] == '#' {
-				parseDataDogTags(m.tags, rawMetadataFields[i][1:])
+				parseDataDogTags(tags, rawMetadataFields[i][1:])
 			} else {
+				l.Warnf("invalid message format: %s", message)
 				return fmt.Errorf("unknown metadata type: '%s'", rawMetadataFields[i])
 			}
 		}
 	}
 	// Use source tag because host is reserved tag key in Telegraf.
 	// In datadog the host tag and `h:` are interchangable, so we have to chech for the host tag.
-	if host, ok := m.tags["host"]; ok {
-		delete(m.tags, "host")
-		m.tags["source"] = host
+	if host, ok := tags["host"]; ok {
+		delete(tags, "host")
+		tags["source"] = host
 	}
-
-	p.cache = append(p.cache, m)
-
+	s.acc.addFields(name, fields, tags, ts)
 	return nil
 }
 
@@ -183,6 +186,4 @@ func parseDataDogTags(tags map[string]string, message string) {
 		}
 		tags[k] = "true"
 	}
-
-	return
 }
