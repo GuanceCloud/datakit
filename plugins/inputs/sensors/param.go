@@ -18,19 +18,19 @@ var (
 	inputName    = "sensors"
 	sampleConfig = `
 [[inputs.sensors]]
-	## Command path of 'senssor' usually under /usr/bin/sensors
-	# path = "/usr/bin/senssors"
+  ## Command path of 'senssor' usually under /usr/bin/sensors
+  # path = "/usr/bin/senssors"
 
-	## Gathering interval
-	# interval = "10s"
+  ## Gathering interval
+  # interval = "10s"
 
-	## Command timeout
-	# timeout = "3s"
+  ## Command timeout
+  # timeout = "3s"
 
-	## Customer tags, if set will be seen with every metric.
-	[inputs.sensors.tags]
-		# "key1" = "value1"
-		# "key2" = "value2"
+  ## Customer tags, if set will be seen with every metric.
+  [inputs.sensors.tags]
+    # "key1" = "value1"
+    # "key2" = "value2"
 `
 	l = logger.SLogger(inputName)
 )
