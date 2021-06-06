@@ -6,73 +6,79 @@ import (
 	"net"
 	"strings"
 	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func (x *input) setupUDPServer() error {
-	addr, err := net.ResolveUDPAddr("udp", x.Bind)
+func (s *input) setupUDPServer() {
+	address, err := net.ResolveUDPAddr(s.Protocol, s.ServiceAddress)
 	if err != nil {
 		l.Error(err)
-		return err
+		return
 	}
 
-	conn, err := net.ListenUDP("udp", addr)
+	conn, err := net.ListenUDP(s.Protocol, address)
 	if err != nil {
 		l.Error(err)
-		return err
+		return
 	}
 
-	x.udpListener = conn
-	x.wg.Add(1)
+	l.Infof("UDP listening on %q", conn.LocalAddr().String())
+	s.UDPlistener = conn
 
+	s.wg.Add(1)
 	go func() {
-		defer x.wg.Done()
-		if err := x.udpWait(); err != nil {
-			l.Error(err)
+		defer s.wg.Done()
+		if err := s.udpListen(conn); err != nil {
+			l.Errorf("udpListen: %s", err.Error())
 		}
 	}()
-
-	return nil
+	return
 }
 
-func (x *input) udpWait() error {
-	buf := make([]byte, udpMaxPktSize)
+// udpListen starts listening for udp packets on the configured port.
+func (s *input) udpListen(conn *net.UDPConn) error {
+	if s.ReadBufferSize > 0 {
+		if err := s.UDPlistener.SetReadBuffer(s.ReadBufferSize); err != nil {
+			return err
+		}
+	}
+
+	buf := make([]byte, UDPMaxPacketSize)
 	for {
 		select {
-		case <-datakit.Exit.Wait():
-			l.Info("statsd udpListen exit.")
+		case <-s.done:
 			return nil
-
 		default:
-			n, addr, err := x.udpListener.ReadFromUDP(buf)
+			n, addr, err := conn.ReadFromUDP(buf)
 			if err != nil {
 				if !strings.Contains(err.Error(), "closed network") {
-					l.Error("error reading: %s", err.Error())
+					l.Errorf("Error reading: %s", err.Error())
 					continue
 				}
 				return err
 			}
 
-			b, ok := x.bufpool.Get().(*bytes.Buffer)
-			if !ok {
-				return fmt.Errorf("unexpected bufpool")
-			}
+			l.Debugf("UDP: read %d bytes from %s", n, addr.IP.String())
 
+			b, ok := s.bufPool.Get().(*bytes.Buffer)
+			if !ok {
+				return fmt.Errorf("bufPool is not a bytes buffer")
+			}
 			b.Reset()
 			if _, err := b.Write(buf[:n]); err != nil {
-				l.Error(err)
 				return err
 			}
-
 			select {
-			case x.in <- &job{
+			case s.in <- job{
 				Buffer: b,
 				Time:   time.Now(),
 				Addr:   addr.IP.String()}:
 			default:
-				x.drops++
-				l.Warnf("dropped %d messages", x.drops)
+				s.drops++
+				if s.drops == 1 || s.AllowedPendingMessages == 0 || s.drops%s.AllowedPendingMessages == 0 {
+					l.Errorf("Statsd message queue full. "+
+						"We have dropped %d messages so far. "+
+						"You may want to increase allowed_pending_messages in the config", s.drops)
+				}
 			}
 		}
 	}
