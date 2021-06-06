@@ -213,10 +213,10 @@ func (i *Input) executeQuery(query string) error {
 
 func (i *Input) getDbMetrics() error {
 	query := `
-	SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size 
-	FROM pg_stat_database psd 
-	JOIN pg_database pd ON psd.datname = pd.datname 
-	WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'   
+	SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size
+	FROM pg_stat_database psd
+	JOIN pg_database pd ON psd.datname = pd.datname
+	WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
 	AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
 	`
 	if len(i.IgnoredDatabases) != 0 {
@@ -240,7 +240,7 @@ func (i *Input) getBgwMetrics() error {
 
 func (i *Input) getConnectionMetrics() error {
 	query := `
-		WITH max_con AS (SELECT setting::float FROM pg_settings WHERE name = 'max_connections') 
+		WITH max_con AS (SELECT setting::float FROM pg_settings WHERE name = 'max_connections')
 		SELECT MAX(setting) AS max_connections, SUM(numbackends)/MAX(setting) AS percent_usage_connections
 		FROM pg_stat_database, max_con
 	`
@@ -437,6 +437,10 @@ func (DkInputs) NewTailer(opt interface{}) (Tailer, error) {
 
 func (DkInputs) JoinPipelinePath(op interface{}, defaultPipeline string) {
 	dkInputs.JoinPipelinePath(op.(*dkInputs.TailerOption), defaultPipeline)
+}
+
+// TODO
+func (*Input) RunPipeline() {
 }
 
 func (i *Input) Run() {
