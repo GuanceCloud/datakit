@@ -3,12 +3,13 @@ package sqlserver
 import (
 	"database/sql"
 	"fmt"
+	"strings"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"strings"
-	"time"
 )
 
 func (_ *Input) SampleConfig() string {
@@ -41,6 +42,10 @@ func (n *Input) initDb() error {
 
 	n.db = db
 	return nil
+}
+
+// TODO
+func (*Input) RunPipeline() {
 }
 
 func (n *Input) Run() {
