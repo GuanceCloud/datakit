@@ -95,7 +95,7 @@ func (this *Input) Run() {
 	if this.EnableObject {
 		if this.Kubernetes != nil {
 			do(func() ([]*io.Point, error) {
-				return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite)
+				return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "object")
 			}, datakit.Object, "k8s pod object gather failed")
 		}
 
@@ -128,7 +128,7 @@ func (this *Input) Run() {
 		case <-metricsTick.C:
 			if this.Kubernetes != nil {
 				do(func() ([]*io.Point, error) {
-					return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite)
+					return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "metric")
 				}, datakit.Metric, "k8s pod metrics gather failed")
 			}
 			if this.EnableMetric {
@@ -139,7 +139,7 @@ func (this *Input) Run() {
 			if this.EnableObject {
 				if this.Kubernetes != nil {
 					do(func() ([]*io.Point, error) {
-						return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite)
+						return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "object")
 					}, datakit.Object, "k8s pod object gather failed")
 				}
 
