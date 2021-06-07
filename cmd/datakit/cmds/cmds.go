@@ -16,6 +16,7 @@ var (
 	suggestions = []prompt.Suggest{
 		{Text: "exit", Description: "exit cmd"},
 		{Text: "Q", Description: "exit cmd"},
+		{Text: "flushall", Description: "k8s interactive command to generate deploy file"},
 	}
 )
 
