@@ -155,6 +155,9 @@ func (n *Input) handRow(query string, ts time.Time) {
 		}
 		measurement := ""
 		var tags = make(map[string]string)
+		for k, v := range n.Tags {
+			tags[k] = v
+		}
 		var fields = make(map[string]interface{})
 		for header, val := range columnMap {
 			if str, ok := (*val).(string); ok {
