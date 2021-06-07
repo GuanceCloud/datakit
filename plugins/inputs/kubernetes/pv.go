@@ -77,6 +77,10 @@ func (i *Input) gatherPersistentVolume(collector string, pv corev1.PersistentVol
 		"storageclass": pv.Spec.StorageClassName,
 	}
 
+	for key, value := range i.Tags {
+		tags[key] = value
+	}
+
 	m := &pvM{
 		name:   pvMeasurement,
 		tags:   tags,
