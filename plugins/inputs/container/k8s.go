@@ -15,15 +15,6 @@ const (
 	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
-// getUsagePercent 通过 callback 得到使用率，如果计算错误（比如除数为0）将返回 nil
-func getUsagePercent(fn func() (float64, error)) interface{} {
-	f, err := fn()
-	if err != nil {
-		return nil
-	}
-	return f
-}
-
 func buildPodMetrics(summaryApi *SummaryMetrics, dropTags []string, podNameRewrite []string) ([]*io.Point, error) {
 	var pts []*io.Point
 
@@ -51,7 +42,6 @@ func buildPodMetrics(summaryApi *SummaryMetrics, dropTags []string, podNameRewri
 		}
 
 		fields := make(map[string]interface{})
-		fields["cpu_usage"] = getUsagePercent(pod.CPU.Percent)
 		fields["cpu_usage_nanocores"] = float64(pod.CPU.UsageNanoCores)
 		fields["cpu_usage_core_nanoseconds"] = float64(pod.CPU.UsageCoreNanoSeconds)
 		fields["memory_usage_bytes"] = float64(pod.Memory.UsageBytes)
@@ -63,6 +53,10 @@ func buildPodMetrics(summaryApi *SummaryMetrics, dropTags []string, podNameRewri
 		fields["network_rx_errors"] = float64(pod.Network.RXErrors())
 		fields["network_tx_bytes"] = float64(pod.Network.TXBytes())
 		fields["network_tx_errors"] = float64(pod.Network.TXErrors())
+
+		if cpuPrecent, err := pod.CPU.Percent(); err != nil {
+			fields["cpu_usage"] = cpuPrecent
+		}
 
 		pt, err := io.MakePoint(kubeletPodName, tags, fields, time.Now())
 		if err != nil {
