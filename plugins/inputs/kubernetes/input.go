@@ -1,13 +1,15 @@
 package kubernetes
 
 import (
+	"fmt"
 	"io/ioutil"
-	"k8s.io/client-go/rest"
 	"sync"
 	"time"
-	"fmt"
+
 	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
+	"k8s.io/client-go/rest"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
