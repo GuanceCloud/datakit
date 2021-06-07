@@ -38,6 +38,8 @@ kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{
           url = "<your-k8s-api-server>"
 ```
 
+详情参见 [Kubernetes 采集配置](kubernetes)
+
 #### container 配置
 
 默认情况下，container 采集器没有开启指标采集，如需开启指标采集，修改 `datakit-default.yaml` 中如下配置：
@@ -49,6 +51,8 @@ kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{
         enable_metric = true # 将此处设置成 true
         enable_object = true
 ```
+
+详情参见 [容器采集配置](container)
 
 ### 安装 yaml
 
