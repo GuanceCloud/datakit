@@ -74,19 +74,30 @@ log_file_mode = 0644
 
 开启日志采集后，默认会产生日志来源(`source`)为`postgresql`的日志。
 
-**字段说明**
-
-| 字段名 | 字段值 | 说明 |
-|---|---|---|
-|application_name|应用名称|连接当前数据库的应用的名称|
-|db_name|数据库名称|访问的数据库|
-|process_id|进程ID|当前连接的客户端进程ID|
-|remote_host|远程主机|客户端的地址|
-|session_id|会话ID|当前会话的ID|
-|user|用户|当前访问用户名|
-|status|日志级别|当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO)|
-|time|时间|日志产生时间|
-
 **注意**
 
 - 日志采集仅支持已安装 DataKit 主机上的日志。
+
+## 日志 pipeline 功能切割字段说明
+
+原始日志为
+`2021-05-31 15:23:45.110 CST [74305] test [pgAdmin 4 - DB:postgres] postgres [127.0.0.1] 60b48f01.12241 LOG:  statement: 
+		SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size 
+		FROM pg_stat_database psd 
+		JOIN pg_database pd ON psd.datname = pd.datname 
+		WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'   
+		AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'`
+
+切割后的字段说明：
+
+| 字段名 | 字段值 | 说明 |
+|---|---|---|
+|application_name|pgAdmin 4 - DB:postgres|连接当前数据库的应用的名称|
+|db_name|test|访问的数据库|
+|process_id|74305|当前连接的客户端进程ID|
+|remote_host|127.0.0.1|客户端的地址|
+|session_id|60b48f01.12241|当前会话的ID|
+|user|postgres|当前访问用户名|
+|status|LOG|当前日志的级别(LOG,ERROR,FATAL,PANIC,WARNING,NOTICE,INFO)|
+|time|1622445825110000000|日志产生时间|
+
