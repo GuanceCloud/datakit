@@ -47,6 +47,11 @@
 
 {{ end }} 
 
+### 标签定制和删除
+
+- `drop_tags`：对于某些 Tag，收集的意义不大，但会导致时间线暴涨。目前将 `contaienr_id` 这个 tag 移除掉了。
+- `pod_name_rewrite`：在 kubernetes 中，Pod 名称具有相似性，但一般会默认追加一串随机串，如 `kube-proxy-678b9fd78b`，一旦将 "kube-proxy" 配置进去之后，会剪掉尾部的 `-678b9fd78b`
+
 ### 容器日志采集
 
 对于容器日志采集，有着更细致的配置，主要解决了区分日志 `source` 和使用 pipeline 的问题。
