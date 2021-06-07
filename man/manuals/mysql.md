@@ -116,11 +116,11 @@ set global log_queries_not_using_indexes = 'ON';
 
 切割后的字段列表如下：
 
-| 字段名  | 字段值                                                   | 说明                         |
-| ---     | ---                                                      | ---                          |
-| `status | `Warning`                                                | 日志级别                     |
-| `msg`   | `System table 'plugin' is expected to be transactional.` | 日志内容                     |
-| `time`  | `1514520249954078000`                                    | 纳秒时间戳（作为行协议时间） |
+| 字段名   | 字段值                                                   | 说明                         |
+| ---      | ---                                                      | ---                          |
+| `status` | `Warning`                                                | 日志级别                     |
+| `msg`    | `System table 'plugin' is expected to be transactional.` | 日志内容                     |
+| `time`   | `1514520249954078000`                                    | 纳秒时间戳（作为行协议时间） |
 
 - 慢查询日志
 
