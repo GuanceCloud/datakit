@@ -20,6 +20,8 @@
 {{.InputSample}} 
 ```
 
+注意，默认不开启指标采集。如有需要，请将 `enable_metric` 改为 `true` 并重启 DataKit。
+
 ## 指标集
 
 以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
