@@ -5,7 +5,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sync"
 	"time"
-
+	"fmt"
 	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -90,6 +90,17 @@ func (i *Input) initCfg() error {
 
 	i.client, err = newClient(config, 5*time.Second)
 	if err != nil {
+		return err
+	}
+
+	if i.client.Clientset == nil {
+		return fmt.Errorf("config error init client fail")
+	}
+
+	// 通过 ServerVersion 方法来获取版本号
+	_, err = i.client.ServerVersion()
+	if err != nil {
+		l.Errorf("get k8s version error %v", err)
 		return err
 	}
 
