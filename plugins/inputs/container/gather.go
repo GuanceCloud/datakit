@@ -142,6 +142,12 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 		"docker_image":   container.ImageID,
 		"images_name":    container.Image,
 		"state":          container.State,
+		"container_type": func() string {
+			if contianerIsFromKubernetes(getContainerName(container.Names)) {
+				return "kubernetes"
+			}
+			return "docker"
+		}(),
 	}
 
 	for k, v := range this.Tags {
@@ -196,7 +202,6 @@ func (this *Input) gatherStats(container types.Container) (map[string]interface{
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
 
 	return map[string]interface{}{
-		"from_kubernetes":    contianerIsFromKubernetes(getContainerName(container.Names)),
 		"cpu_usage":          calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
 		"cpu_delta":          calculateCPUDelta(v),
 		"cpu_system_delta":   calculateCPUSystemDelta(v),
