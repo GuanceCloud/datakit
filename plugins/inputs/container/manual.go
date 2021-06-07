@@ -114,7 +114,7 @@ func (k *kubeletPodMeasurement) Info() *inputs.MeasurementInfo {
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
 			"pod_name":  inputs.NewTagInfo(`pod 名字`),
 			"namespace": inputs.NewTagInfo(`所属命名空间`),
-			"name":      inputs.NewTagInfo(`pod UID`),
+			"name":      inputs.NewTagInfo(`pod UID，（仅在对象数据中存在）`),
 		},
 		Fields: map[string]interface{}{
 			"cpu_usage":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
