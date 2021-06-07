@@ -76,7 +76,7 @@ MySQL 指标采集，收集以下数据：
 
 ## Binlog 开启
 
-在采集 MySQL binlog 相关指标中，需要开启 MySQL 对应 binlog 功能：
+默认情况下，MySQL binlog 是不开启的。如果要统计 binlog 大小，需要开启 MySQL 对应 binlog 功能：
 
 ```sql
 -- ON:开启, OFF:关闭
