@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -83,7 +84,10 @@ func (s *input) gather() {
 
 	l.Debugf("feed %d points...", len(s.acc.points))
 	if len(s.acc.points) > 0 {
-		if err := inputs.FeedMeasurement(inputName, datakit.Metric, s.acc.points, nil); err != nil {
+		if err := inputs.FeedMeasurement(inputName,
+			datakit.Metric,
+			s.acc.points,
+			&io.Option{CollectCost: time.Since(now)}); err != nil {
 			l.Error(err)
 		} else {
 			s.acc.points = s.acc.points[:0]
