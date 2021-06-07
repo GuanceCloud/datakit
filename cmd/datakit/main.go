@@ -51,7 +51,7 @@ var (
 
 	// manuals related
 	flagMan               = flag.Bool("man", false, "read manuals of inputs")
-	flagK8sCfg            = flag.Bool("generate-k8s-cfg", false, "generate k8s deploy config")
+	flagK8sCfgPath        = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
@@ -393,8 +393,13 @@ func runDatakitWithCmd() {
 		os.Exit(0)
 	}
 
-	if *flagK8sCfg {
-		cmds.BuildK8sConfig("datakit-k8s.yaml", *flagInteractive)
+	if *flagK8sCfgPath != "" {
+		if err := os.MkdirAll(*flagK8sCfgPath, os.ModePerm); err != nil {
+			l.Errorf("invalid path %s", err.Error())
+			os.Exit(-1)
+		}
+
+		cmds.BuildK8sConfig("datakit-k8s-deploy", *flagK8sCfgPath, *flagInteractive)
 		os.Exit(0)
 	}
 

@@ -1,49 +1,47 @@
 package cmds
 
 import (
-	"testing"
 	"bytes"
 	"fmt"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/redis"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysql"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodb"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	"testing"
 )
 
 var expects = []string{
-		"redis",
-		"mysql",
-		"mongodb",
-	}
+	"redis",
+	"mysql",
+	"mongodb",
+}
 
 func TestBuildK8sConfig(t *testing.T) {
-	BuildK8sConfig("datakit-k8s", true)
+	BuildK8sConfig("datakit-k8s-deploy", "/Users/liushaobo/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds", true)
 }
 
 func TestRunBuild(t *testing.T) {
 	k := &KubeDeploy{
 		DeployName: "deploy.yaml",
-		Inputs: make(map[string]string),
+		Inputs:     make(map[string]string),
 	}
 
-	var testCases = []struct{
-        in string
-        expect string
-        fail bool
+	var testCases = []struct {
+		in     string
+		expect string
+		fail   bool
 	}{
 		{
-			in: "Q",
+			in:     "Q",
 			expect: "Bye!",
 		},
 		{
-			in: "q",
+			in:     "q",
 			expect: "Bye!",
 		},
 		{
-			in: "exit",
+			in:     "exit",
 			expect: "Bye!",
 		},
 		{
-			in: "render",
+			in:     "render",
 			expect: "start render kubernetes deploy config...",
 		},
 	}
@@ -55,15 +53,15 @@ func TestRunBuild(t *testing.T) {
 		got := buf.String()
 
 		if got != item.expect {
-	        t.Errorf("got '%s' want '%s'", got, item.expect)
-	    }
+			t.Errorf("got '%s' want '%s'", got, item.expect)
+		}
 	}
 }
 
 func TestBuildConfig(t *testing.T) {
 	k := &KubeDeploy{
 		DeployName: "deploy.yaml",
-		Inputs: make(map[string]string),
+		Inputs:     make(map[string]string),
 	}
 
 	for _, expect := range expects {
@@ -83,7 +81,7 @@ func TestBuildConfig(t *testing.T) {
 func TestRender(t *testing.T) {
 	k := &KubeDeploy{
 		DeployName: "deploy",
-		Inputs: make(map[string]string),
+		Inputs:     make(map[string]string),
 	}
 
 	for _, expect := range expects {
