@@ -87,29 +87,35 @@ Allow from your_ip
 
 ## 日志 pipeline 功能切割字段说明
 
-原始日志为 `[Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status`
+原始日志为 
+
+```
+[Tue May 19 18:39:45.272121 2021] [access_compat:error] [pid 9802] [client ::1:50547] AH01797: client denied by server configuration: /Library/WebServer/Documents/server-status
+```
 
 切割后的字段列表如下：
 
-| 字段名  |  字段值  | 说明 |
-| ---    | ---     | --- |
-|  status   | error     | 日志等级 |
-|  pid   | 9802   | 进程 id |
-|  type   | access_compat   | 日志类型 |
-|  time   | 1621391985000000000     | 纳秒时间戳（作为行协议时间）|
+| 字段名   | 字段值              | 说明                         |
+| ---      | ---                 | ---                          |
+| `status` | error               | 日志等级                     |
+| `pid`    | 9802                | 进程 id                      |
+| `type`   | access_compat       | 日志类型                     |
+| `time`   | 1621391985000000000 | 纳秒时间戳（作为行协议时间） |
 
+原始日志为
 
-原始日志为 `127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917`
+```
+127.0.0.1 - - [17/May/2021:14:51:09 +0800] "GET /server-status?auto HTTP/1.1" 200 917
+```
 
 切割后的字段列表如下：
 
-| 字段名  |  字段值  | 说明 |
-| ---    | ---     | --- |
-|  status   | info     | 日志等级 |
-|  ip_or_host   | 127.0.0.1   | 请求方ip或者host |
-|  http_code   | 200   | http status code |
-|  http_method   | GET   | http 请求类型 |
-|  http_url   | /   | http 请求url |
-|  http_version   | 1.1   | http version |
-|  time   | 1621205469000000000     | 纳秒时间戳（作为行协议时间）|
-
+| 字段名         | 字段值              | 说明                         |
+| ---            | ---                 | ---                          |
+| `status`       | info                | 日志等级                     |
+| `ip_or_host`   | 127.0.0.1           | 请求方ip或者host             |
+| `http_code`    | 200                 | http status code             |
+| `http_method`  | GET                 | http 请求类型                |
+| `http_url`     | /                   | http 请求url                 |
+| `http_version` | 1.1                 | http version                 |
+| `time`         | 1621205469000000000 | 纳秒时间戳（作为行协议时间） |
