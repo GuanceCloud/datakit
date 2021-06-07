@@ -99,7 +99,12 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 
 ## 日志 pipeline 功能切割字段说明
 
-原始日志为 `2021/04/21 09:24:04 [alert] 7#7: *168 write() to "/var/log/nginx/access.log" failed (28: No space left on device) while logging request, client: 120.204.196.129, server: localhost, request: "GET / HTTP/1.1", host: "47.98.103.73"`
+- NGINX 错误日志切割
+
+错误日志文本示例：
+```
+2021/04/21 09:24:04 [alert] 7#7: *168 write() to "/var/log/nginx/access.log" failed (28: No space left on device) while logging request, client: 120.204.196.129, server: localhost, request: "GET / HTTP/1.1", host: "47.98.103.73"
+```
 
 切割后的字段列表如下：
 
@@ -115,8 +120,11 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 |  msg   | 7#7: *168 write()...host: \"47.98.103.73     | 日志内容 |
 |  time   | 1618968244000000000     | 纳秒时间戳（作为行协议时间）|
 
+错误日志文本示例：
 
-原始日志为 `2021/04/29 16:24:38 [emerg] 50102#0: unexpected ";" in /usr/local/etc/nginx/nginx.conf:23`
+```
+2021/04/29 16:24:38 [emerg] 50102#0: unexpected ";" in /usr/local/etc/nginx/nginx.conf:23
+```
 
 切割后的字段列表如下：
 
@@ -126,8 +134,12 @@ NGINX 采集器可以从 NGINX 实例中采取很多指标，比如请求总数�
 |  msg   | 50102#0: unexpected \";\" in /usr/local/etc/nginx/nginx.conf:23    | 日志内容 |
 |  time   | 1619684678000000000     | 纳秒时间戳（作为行协议时间）|
 
+- NGINX 访问日志切割
 
-原始日志为 `127.0.0.1 - - [24/Mar/2021:13:54:19 +0800] "GET /basic_status HTTP/1.1" 200 97 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36"`
+访问日志文本示例:
+```
+127.0.0.1 - - [24/Mar/2021:13:54:19 +0800] "GET /basic_status HTTP/1.1" 200 97 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36"
+```
 
 切割后的字段列表如下：
 
