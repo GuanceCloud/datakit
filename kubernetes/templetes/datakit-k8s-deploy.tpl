@@ -190,5 +190,5 @@ data:
   {{ range $inputName, $cfg := .Inputs }}
     #### {{$inputName}}
     {{$inputName}}.conf: |-
-        {{$cfg | indent 8}}
+        {{$cfg}}
     {{ end }}
