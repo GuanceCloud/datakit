@@ -6,11 +6,13 @@
 
 # 简介
 
-计算机芯片温度数据采集（目前仅支持 `Linux` 操作系统）
+计算机芯片温度数据采集，使用 `lm-sensors` 命令（目前仅支持 `Linux` 操作系统）
 
 ## 前置条件
 
-`sudo apt install lm-sensors -y`
+- 运行安装命令 `apt install lm-sensors -y`
+- 运行扫描命令 `sudo sensors-detect` 输入 `Yes` 给每一个问题。
+- 运行扫描结束后会看到 'service kmod start' 用来加载扫描到的 sensors，这条命令可能会因为您的操作系统不同而不同。
 
 ## 配置
 
