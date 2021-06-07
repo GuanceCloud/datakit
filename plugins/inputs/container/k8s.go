@@ -24,33 +24,7 @@ func getUsagePercent(fn func() (float64, error)) interface{} {
 	return f
 }
 
-func buildNodeMetrics(summaryApi *SummaryMetrics) (*io.Point, error) {
-	tags := map[string]string{
-		"node_name": summaryApi.Node.NodeName,
-	}
-	fields := make(map[string]interface{})
-	fields["cpu_usage"] = getUsagePercent(summaryApi.Node.CPU.Percent)
-	fields["mem_usage_percent"] = getUsagePercent(summaryApi.Node.Memory.Percent)
-	fields["cpu_usage_nanocores"] = float64(summaryApi.Node.CPU.UsageNanoCores)
-	fields["cpu_usage_core_nanoseconds"] = float64(summaryApi.Node.CPU.UsageCoreNanoSeconds)
-	fields["memory_available_bytes"] = float64(summaryApi.Node.Memory.AvailableBytes)
-	fields["memory_usage_bytes"] = float64(summaryApi.Node.Memory.UsageBytes)
-	fields["memory_working_set_bytes"] = float64(summaryApi.Node.Memory.WorkingSetBytes)
-	fields["memory_rss_bytes"] = float64(summaryApi.Node.Memory.RSSBytes)
-	fields["memory_page_faults"] = float64(summaryApi.Node.Memory.PageFaults)
-	fields["memory_major_page_faults"] = float64(summaryApi.Node.Memory.MajorPageFaults)
-	fields["network_rx_bytes"] = float64(summaryApi.Node.Network.RXBytes())
-	fields["network_rx_errors"] = float64(summaryApi.Node.Network.RXErrors())
-	fields["network_tx_bytes"] = float64(summaryApi.Node.Network.TXBytes())
-	fields["network_tx_errors"] = float64(summaryApi.Node.Network.TXErrors())
-	fields["fs_available_bytes"] = float64(summaryApi.Node.FileSystem.AvailableBytes)
-	fields["fs_capacity_bytes"] = float64(summaryApi.Node.FileSystem.CapacityBytes)
-	fields["fs_used_bytes"] = float64(summaryApi.Node.FileSystem.UsedBytes)
-
-	return io.MakePoint(kubeletNodeName, tags, fields, time.Now())
-}
-
-func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
+func buildPodMetrics(summaryApi *SummaryMetrics, dropTags []string, podNameRewrite []string) ([]*io.Point, error) {
 	var pts []*io.Point
 
 	for _, pod := range summaryApi.Pods {
@@ -59,9 +33,21 @@ func buildPodMetrics(summaryApi *SummaryMetrics) ([]*io.Point, error) {
 		}
 		tags := map[string]string{
 			"node_name": summaryApi.Node.NodeName,
-			"pod_name":  pod.PodRef.Name,
+			"pod_name": func() string {
+				for _, name := range podNameRewrite {
+					if strings.HasPrefix(pod.PodRef.Name, name) {
+						return name
+					}
+				}
+				return pod.PodRef.Name
+			}(),
 			"namespace": pod.PodRef.Namespace,
 			"name":      pod.PodRef.UID,
+		}
+		for _, key := range dropTags {
+			if _, ok := tags[key]; ok {
+				delete(tags, key)
+			}
 		}
 
 		fields := make(map[string]interface{})
@@ -116,24 +102,12 @@ func (k *Kubernetes) Init() error {
 	return nil
 }
 
-func (k *Kubernetes) GatherNodeMetrics() ([]*io.Point, error) {
+func (k *Kubernetes) GatherPodMetrics(dropTags, podNameRewrite []string) ([]*io.Point, error) {
 	summaryApi, err := k.GetSummaryMetrics()
 	if err != nil {
 		return nil, err
 	}
-	pt, err := buildNodeMetrics(summaryApi)
-	if err != nil {
-		return nil, err
-	}
-	return []*io.Point{pt}, nil
-}
-
-func (k *Kubernetes) GatherPodMetrics() ([]*io.Point, error) {
-	summaryApi, err := k.GetSummaryMetrics()
-	if err != nil {
-		return nil, err
-	}
-	return buildPodMetrics(summaryApi)
+	return buildPodMetrics(summaryApi, dropTags, podNameRewrite)
 }
 
 func (k *Kubernetes) GatherPodInfo(containerID string) (map[string]string, error) {
