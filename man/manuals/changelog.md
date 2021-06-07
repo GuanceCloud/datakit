@@ -6,15 +6,15 @@
 
 ### 发布说明
 
-- 新增[k8s 采集器](kubernetes)
-- 新增[SQL Server 采集器](sqlserver)
-- 新增[PostgreSQL 采集器](postgresql)
-- 新增[statsd 采集器](statsd)
+- 新增 [Kubernetes 采集器](kubernetes)
+- 新增 [SQL Server 采集器](sqlserver)
+- 新增 [PostgreSQL 采集器](postgresql)
+- 新增 [statsd 采集器](statsd)，以支持采集从网络上发送过来的 statsd 数据
 - [JVM 采集器](jvm) 优先采用 ddtrace + statsd 采集
-- 新增[容器采集器](container)，以替代原有 [docker 采集器](docker) 采集器
+- 新增[容器采集器](container)，增强对 k8s 节点（Node）采集，以替代原有 [docker 采集器](docker) 采集器（原 docker 采集器仍可用）
 - [拨测采集器](dialtesting)支持 Headleass 模式
 - [Mongodb 采集器](mongodb) 支持采集 Mongodb 自身日志
-- DataKit 新增 DQL HTTP [API 接口](apis)
+- DataKit 新增 DQL HTTP [API 接口](apis) `/v1/query/raw`
 
 ----
 
