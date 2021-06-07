@@ -1,23 +1,22 @@
 package cmds
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/c-bata/go-prompt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/kubernetes"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"io"
 	"io/ioutil"
 	"os"
-	"bytes"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"text/template"
-	"github.com/c-bata/go-prompt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/kubernetes"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func BuildK8sConfig(name string, interactive bool) {
+func BuildK8sConfig(name string, deployPath string, interactive bool) {
 	switch runtime.GOOS {
 	case "windows":
 		fmt.Println("\n[E] --man do not support Windows")
@@ -31,7 +30,8 @@ func BuildK8sConfig(name string, interactive bool) {
 
 	k := &KubeDeploy{
 		DeployName: name,
-		Inputs: make(map[string]string),
+		DeployPath: deployPath,
+		Inputs:     make(map[string]string),
 	}
 
 	if interactive {
@@ -45,21 +45,26 @@ func BuildK8sConfig(name string, interactive bool) {
 
 		p.Run()
 	} else {
-        // generate all
-        for item, _ := range inputs.Inputs {
-        	err := k.buildConfig(item, &Option{})
+		// generate all
+		for item, _ := range inputs.Inputs {
+			err := k.buildConfig(item, &Option{})
 			if err != nil {
 				fmt.Printf("[E] %s\n", err.Error())
 			}
+		}
+
+		if err := k.render(); err != nil {
+			fmt.Printf("[E] generate k8s config error %s\n", err.Error())
 		}
 	}
 }
 
 type KubeDeploy struct {
-	DeployName   string
-	Inputs       map[string]string
-	Version      string
-	ReleaseDate  string
+	DeployName  string
+	Inputs      map[string]string
+	Version     string
+	ReleaseDate string
+	DeployPath  string
 }
 
 func (k *KubeDeploy) run(txt string) {
@@ -77,7 +82,7 @@ func (k *KubeDeploy) runCmd(writer io.Writer, txt string) {
 		fmt.Fprint(writer, "Bye!")
 		os.Exit(0)
 		return
-	case "render":
+	case "flushall":
 		fmt.Fprint(writer, "start render kubernetes deploy config...")
 		if err := k.render(); err != nil {
 			fmt.Printf("[E] generate k8s config error %s\n", err.Error())
@@ -88,12 +93,14 @@ func (k *KubeDeploy) runCmd(writer io.Writer, txt string) {
 		err := k.buildConfig(s, &Option{})
 		if err != nil {
 			fmt.Fprintf(writer, "[E] %s\n", err.Error())
+		} else {
+			fmt.Println("k8s >", "successful!")
 		}
 	}
 }
 
 type Option struct {
-	IgnoreMissing    bool
+	IgnoreMissing bool
 }
 
 func (k *KubeDeploy) buildConfig(name string, opt *Option) error {
@@ -114,16 +121,11 @@ func (k *KubeDeploy) buildConfig(name string, opt *Option) error {
 		l.Warnf("incomplete input: %s", name)
 		return nil
 	}
-    return nil
+	return nil
 }
 
 func (k *KubeDeploy) render() error {
-	K8sDeployDir := filepath.Join(datakit.InstallDir, "deploy")
-	filename     := filepath.Join(K8sDeployDir, k.DeployName + ".yaml")
-
-	if err := os.MkdirAll(K8sDeployDir, os.ModePerm); err != nil {
-		return err
-	}
+	filename := filepath.Join(k.DeployPath, k.DeployName+".yaml")
 
 	md, err := kubernetes.Get(k.DeployName)
 	if err != nil {
@@ -148,4 +150,3 @@ func (k *KubeDeploy) render() error {
 
 	return nil
 }
-
