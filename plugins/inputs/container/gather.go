@@ -75,6 +75,12 @@ func (this *Input) gather(category category) ([]*io.Point, error) {
 
 func (this *Input) gatherMetric(container types.Container) (*io.Point, error) {
 	tags := this.gatherContainerInfo(container)
+	for _, key := range this.DropTags {
+		if _, ok := tags[key]; ok {
+			delete(tags, key)
+		}
+	}
+
 	fields, err := this.gatherStats(container)
 	if err != nil {
 		return nil, err
@@ -84,6 +90,12 @@ func (this *Input) gatherMetric(container types.Container) (*io.Point, error) {
 
 func (this *Input) gatherObject(container types.Container) (*io.Point, error) {
 	tags := this.gatherContainerInfo(container)
+	for _, key := range this.DropTags {
+		if _, ok := tags[key]; ok {
+			delete(tags, key)
+		}
+	}
+
 	fields, err := this.gatherStats(container)
 	if err != nil {
 		return nil, err
@@ -144,7 +156,12 @@ func (this *Input) gatherContainerInfo(container types.Container) map[string]str
 			l.Debugf("gather k8s pod error, %s", err)
 		}
 		for k, v := range podInfo {
-			tags[k] = v
+			switch k {
+			case "pod_name":
+				tags["pod_name"] = TrimPodName(this.PodNameRewrite, v)
+			default:
+				tags[k] = v
+			}
 		}
 	}
 
