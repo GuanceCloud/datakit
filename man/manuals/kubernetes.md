@@ -12,7 +12,9 @@ Kubernetes 集群指标采集，主要用于收集各种资源指标
 
 注意：以下使用是 datakit 部署运行在 k8s 集群外
 
-### 创建监控的 ServiceAccount 账号（该账户拥有只读权限）
+### 创建监控的 ServiceAccount 账号
+
+> 注意：该账户拥有只读权限
 
 - 创建 `account.yaml` 编排文件, 文件内容如下:
 
@@ -130,7 +132,12 @@ $ls -l
 -rw-r--r--  1 liushaobo  staff    953  6  1 15:48 token
 ```
 
-注意：以上得到的结果文件将分别用于 kubernetes 采集器 `bearer_token` 和 `tls_ca`配置项中
+注意：以上得到的结果文件路径，将分别用于 kubernetes 采集器 `bearer_token` 和 `tls_ca`配置项中：
+
+```
+bearer_token = "/path/to/your/token"
+tls_ca = "/path/to/your/ca_crt.pem"
+```
 
 ## 配置
 
@@ -141,6 +148,16 @@ $ls -l
 ```
 
 配置好后，重启 DataKit 即可。
+
+### 开启 DataKit 选举
+
+关于 Kubernetes 数据采集，我们建议开启选举来加以保护，编辑 datakit.conf，将如下配置开启即可：
+
+```
+enable_election = true
+```
+
+关于 DataKit 选举，参见[这里](election)。
 
 ## 指标集
 
@@ -159,4 +176,3 @@ $ls -l
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
