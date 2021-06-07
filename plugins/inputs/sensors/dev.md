@@ -4,7 +4,10 @@
 
 # prerequisite
 
-`apt install lm-sensors -y`
+- Run install command `apt install lm-sensors -y`
+- Run sudo sensors-detect and choose YES to all YES/no questions.
+- At the end of sensors-detect, a list of modules that needs to be loaded will displayed. Type yes.
+- Monitoring programs won't work until the needed modules are loaded. You may want to run 'service kmod start' to load them. This command may vary depends on your system.
 
 # raw data sample
 
