@@ -6,6 +6,7 @@
 - [Cloudprober 接入](cloudprober)
 - [DataKit 安装](datakit-install)
 - [Datakit 批量部署](datakit-batch-deploy)
+- [Datakit DaemonSet 安装](datakit-daemonset-deploy)
 <!-- - [DataKit Docker 安装](datakit-docker-install) -->
 - [Datakit 离线部署](datakit-offline-install)
 - [Datakit 自动更新](datakit-update-crontab)
