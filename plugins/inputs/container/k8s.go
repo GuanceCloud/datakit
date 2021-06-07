@@ -54,7 +54,7 @@ func buildPodMetrics(summaryApi *SummaryMetrics, dropTags []string, podNameRewri
 		fields["network_tx_bytes"] = float64(pod.Network.TXBytes())
 		fields["network_tx_errors"] = float64(pod.Network.TXErrors())
 
-		if cpuPrecent, err := pod.CPU.Percent(); err != nil {
+		if cpuPrecent, err := pod.CPU.Percent(); err == nil {
 			fields["cpu_usage"] = cpuPrecent
 		}
 
