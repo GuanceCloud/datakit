@@ -26,7 +26,7 @@ const (
   metric_interval = "10s"
 
   drop_tags = ["contaienr_id"]
-  pod_name_rewrite = ["kube-proxy"]
+  pod_name_rewrite = []
   
   ## TLS Config
   # tls_ca = "/path/to/ca.pem"
