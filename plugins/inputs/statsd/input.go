@@ -363,7 +363,6 @@ func (s *input) Run() {
 		case <-tick.C:
 			l.Debugf("try gathering...")
 			s.gather()
-			// TODO: feedIO
 		}
 	}
 }
