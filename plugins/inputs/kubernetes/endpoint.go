@@ -88,6 +88,10 @@ func (i *Input) gatherEndpoint(collector string, e corev1.Endpoints) {
 				// "node_name":     *readyAddr.NodeName,
 			}
 
+			for key, value := range i.Tags {
+				tags[key] = value
+			}
+
 			fields := map[string]interface{}{
 				"created":    e.GetCreationTimestamp().UnixNano(),
 				"generation": e.Generation,
@@ -120,6 +124,10 @@ func (i *Input) gatherEndpoint(collector string, e corev1.Endpoints) {
 				"namespace":     e.Namespace,
 				"hostname":      notReadyAddr.Hostname,
 				// "node_name":     *notReadyAddr.NodeName,
+			}
+
+			for key, value := range i.Tags {
+				tags[key] = value
 			}
 
 			fields := map[string]interface{}{
