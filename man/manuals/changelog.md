@@ -15,6 +15,7 @@
 - [拨测采集器](dialtesting)支持 Headleass 模式
 - [Mongodb 采集器](mongodb) 支持采集 Mongodb 自身日志
 - DataKit 新增 DQL HTTP [API 接口](apis) `/v1/query/raw`
+- 完善部分采集器文档，增加中间件（如 MySQL/Redis/ES 等）日志采集相关文档
 
 ----
 
