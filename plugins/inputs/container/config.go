@@ -24,6 +24,9 @@ const (
   enable_logging = true  
   
   metric_interval = "10s"
+
+  drop_tags = ["contaienr_id"]
+  pod_name_rewrite = ["kube-proxy"]
   
   ## TLS Config
   # tls_ca = "/path/to/ca.pem"
