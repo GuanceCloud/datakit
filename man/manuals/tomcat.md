@@ -85,9 +85,37 @@ $ ./$tomcat_dir/bin/startup.sh
 
 ``` toml
   [inputs.tomcat.log]
-    files = []
+    files = ["/path_to_tomcat/logs/*"]
 ```
 
 开启日志采集以后，默认会产生日志来源（`source`）为 `tomcat` 的日志。
 
->注意：必须将 DataKit 安装在 NGINX 所在主机才能采集 Tomcat 日志
+**字段说明**
+
+* Access Log
+
+|字段名|字段值|说明|
+|---|---|---|
+|time|time|日志产生的时间|
+|status|status|日志等级|
+|client_ip|ip or host|客户端 ip|
+|http_auth|http auth|通过 HTTP Basic 认证的授权用户|
+|http_method|http method|HTTP 方法|
+|http_url|http url|客户端请求地址|
+|http_version|http version|HTTP 协议版本|
+|status_code|http status code|HTTP 状态码|
+|bytes|bytes|HTTP 响应 body 的字节数|
+
+* Cataline / Host-manager / Localhost / Manager Log
+
+|字段名|字段值|说明|
+|---|---|---|
+|time|time|日志产生的时间|
+|status|status|日志等级|
+|thread_name|thread name|线程名|
+|report_source|report source|ClassName.MethodName|
+|msg|msg|消息|
+
+**注意**
+
+- 日志采集仅支持采集已安装 DataKit 主机上的日志
