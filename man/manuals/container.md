@@ -49,12 +49,8 @@
 
 ### 标签定制和删除
 
-提供标签（tag）的定制和删除功能，更细致的控制输出。
-
-- `drop_tags`：删除此列表包含的所有的标签。如果认为某个标签（tag）暂时用不到，可以将其添加到此配置列表中
-
-- `pod_name_rewrite`：对 `pod_name` 标签进行定制，避免冗杂。 `pod_name` 原值会与此列表项逐个比对，如果该项能匹配到 `pod_name` 原值的首部，则会删除原值以 `-` 中横线分割后的最后一个字段（分割数量需大于2）。例如 `pod_name_rewrite` 为 `["kube-proxy"]`，`pod_name` 原值为 `kube-proxy-123-456`，则会匹配 `kube-proxy` 是否在 `kube-proxy-123-456` 左起首部，当匹配成功时，会将 `kube-proxy-123-456` 以中横线分割并删除最后一个子项得到 `kube-proxy-123`。如果分割数量不大于2，或没有匹配成功，则使用原值。
-
+- `drop_tags`：对于某些 Tag，收集的意义不大，但会导致时间线暴涨。目前将 `contaienr_id` 这个 tag 移除掉了。
+- `pod_name_rewrite`：在 kubernetes 中，Pod 名称具有相似性，但一般会默认追加一串随机串，如 `kube-proxy-678b9fd78b`，一旦将 "kube-proxy" 配置进去之后，会剪掉尾部的 `-678b9fd78b`
 
 ### 容器日志采集
 
