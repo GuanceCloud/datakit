@@ -41,11 +41,37 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 {{ end }}
 
 ## 日志采集
-如需采集 Postgresql 的日志，可在{{.InputName}}.conf 中 将 `files` 打开，并写入 Postgresql 日志文件的绝对路径。比如:
+
+- Postgresql 日志默认是输出至`stderr`，如需开启文件日志，可在 Postgresql 的配置文件 `/etc/postgresql/<VERSION>/main/postgresql.conf` ， 进行如下配置:
+
 ```
-[inputs.postgresql.log]
-files = ["/tmp/pgsql/postgresql.log"]
+logging_collector = on    # 开启日志写入文件功能
+                          
+log_directory = 'pg_log'  # 设置文件存放目录，绝对路径或相对路径(相对PGDATA)
+
+log_filename = 'pg.log'   # 日志文件名称
+log_statement = 'all'     # 记录所有查询
+
+#log_duration = on
+log_line_prefix= '%m [%p] %d [%a] %u [%h] %c ' # 日志行前缀
+log_file_mode = 0644
+## For Windows
+#log_destination = 'eventlog'
 ```
+
+更多配置，请参考[官方文档](https://www.postgresql.org/docs/11/runtime-config-logging.html)。
+
+- Postgresql 采集器默认是未开启日志采集功能，可在 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 中 将 `files` 打开，并写入 Postgresql 日志文件的绝对路径。比如:
+
+```
+[[inputs.postgresql]]
+  
+  ...
+
+  [inputs.postgresql.log]
+  files = ["/tmp/pgsql/postgresql.log"]
+```
+
 开启日志采集后，默认会产生日志来源(`source`)为`postgresql`的日志。
 
 **字段说明**
@@ -62,21 +88,5 @@ files = ["/tmp/pgsql/postgresql.log"]
 |time|时间|日志产生时间|
 
 **注意**
+
 - 日志采集仅支持已安装 DataKit 主机上的日志。
-- Postgresql 日志默认是输出至`stderr`，如需开启文件日志，可在配置文件进行配置:
-
-```
-logging_collector = on    # 开启日志写入文件功能
-                          
-log_directory = 'pg_log'  # 设置文件存放目录，绝对路径或相对路径(相对PGDATA)
-
-log_filename = 'pg.log'   # 日志文件名称
-log_statement = 'all'     # 记录所有查询
-
-#log_duration = on
-log_line_prefix= '%m [%p] %d [%a] %u [%h] %c ' # 日志行前缀
-log_file_mode = 0644
-## For Windows
-#log_destination = 'eventlog'
-```
-更多配置，请参考[官方文档](https://www.postgresql.org/docs/11/runtime-config-logging.html)。
