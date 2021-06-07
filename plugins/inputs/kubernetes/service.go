@@ -112,6 +112,10 @@ func (i *Input) gatherService(collector string, s corev1.Service) {
 		"type":         string(s.Spec.Type),
 	}
 
+	for key, value := range i.Tags {
+		tags[key] = value
+	}
+
 	for key, val := range s.Spec.Selector {
 		tags["selector_"+key] = val
 	}
