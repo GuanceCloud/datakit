@@ -8,6 +8,10 @@
 
 MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采集。
 
+## 开发使用 MongoDB 版本
+
+4.4.5
+
 ## 前置条件
 
 - 编写配置文件在对应目录下然后启动 DataKit 即可完成配置。
@@ -27,6 +31,105 @@ MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采�
 ```
 
 配置好后，重启 DataKit 即可。
+
+## TLS config (self-signed)
+
+使用 _openssl_ 生成证书文件用于 _MongoDB TLS_ 配置，用于开启服务端加密和客户端认证。
+
+### 预配置
+
+安装 _openssl_ run command:
+
+```
+sudo apt install openssl -y
+```
+
+### 配置 MongoDB 服务端加密
+
+使用 _openssl_ 生成证书级密钥文件，run command
+
+```
+sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongod.key.pem> -out <mongod.cert.pem> -nodes -subj '/CN=<mongod_url>'
+```
+
+- bits: rsa 密钥位数，例如 2048
+- days: expired 日期
+- mongod.key.pem: 密钥文件
+- mongod.cert.pem: CA 证书文件
+- mongod_url: MongoDB server url
+
+运行上面的命令后生成 _cert.pem_ 文件和 _key.pem_ 文件，我们需要合并两个文件内的 _block_ run command
+
+```
+sudo bash -c "cat mongod.cert.pem mongod.key.pem >>mongod.pem"
+```
+
+合并后配置 _/etc/mongod.config_ 文件中的 TLS 子项
+
+```
+# TLS config
+net:
+  tls:
+    mode: requireTLS
+    certificateKeyFile: /etc/ssl/mongod.pem
+```
+
+使用新的配置启动启动 _MongoDB_ run command
+
+```
+sudo mongod --config /etc/mongod.conf
+```
+
+复制 _mongod.cert.pem_ 文件到 _MongoDB_ 客户端测试使用 TLS 连接服务端
+
+```
+mongo --tls --host <mongod_url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem
+```
+
+### 配置 MongoDB 客户端认证
+
+使用 _openssl_ 生成证书级密钥文件，run command
+
+```
+sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongo.key.pem> -out <mongo.cert.pem> -nodes
+```
+
+- bits: rsa 密钥位数，例如 2048
+- days: expired 日期
+- mongo.key.pem: 密钥文件
+- mongo.cert.pem: CA 证书文件
+
+复制 _mongo.cert.pem_ 文件到 _MongoDB_ 服务端然后配置 _/etc/mongod.config_ 文件中的 TLS 子项
+
+```
+# Tls config
+net:
+  tls:
+    mode: requireTLS
+    certificateKeyFile: /etc/ssl/mongod.pem
+    CAFile: /etc/ssl/mongo.cert.pem
+```
+
+启动 _MongoDB_ run command
+
+```
+sudo mongod --config /etc/mongod.conf
+```
+
+合并 _mongo.cert.pem_ 和 _mongo.key.pem_ 文件中的 _block_ run command
+
+```
+sudo bash -c "cat mongo.cert.pem mongo.key.pem >>mongo.pem"
+```
+
+启动 _MongoDB_ 客户端并使用 TLS 客户端认证 run command
+
+```
+mongo --tls --host <mongod_url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem --tlsCertificateKeyFile /etc/ssl/certs/mongo.pem
+```
+
+!!!important
+使用自签名证书时 _/your/home/path/datakit/conf.d/mongodb_ 中的配置项 _\[inputs.mongodb.tlsconf\]_ 中 _insecure_skip_verify_ 必须是 _true_
 
 ## 指标集
 
