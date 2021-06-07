@@ -10,27 +10,50 @@ kind: ClusterRole
 metadata:
   name: datakit-monitor
 rules:
-- apiGroups: [""]
+- apiGroups:
+  - ""
   resources:
   - nodes
   - nodes/proxy
+  - namespaces
+  - pods
   - services
   - endpoints
-  - pods
   - persistentvolumes
   - persistentvolumeclaims
   - ingresses
-  verbs: ["get", "list"]
+  verbs:
+  - get
+  - list
 - apiGroups:
   - apps
-  - extensions
   resources:
   - deployments
   - daemonsets
-  - replicasets
   - statefulsets
+  - replicasets
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - "extensions"
+  resources:
   - ingresses
-  verbs: ["get", "list"]
+  - deployments
+  - daemonsets
+  - statefulsets
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 
@@ -95,7 +118,7 @@ spec:
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS
-          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,docker
+          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
         - name: TZ
           value: Asia/Shanghai
         image: pubrepo.jiagouyun.com/datakit/datakit:1.1.7-rc0
