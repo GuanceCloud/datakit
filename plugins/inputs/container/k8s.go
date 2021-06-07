@@ -15,7 +15,7 @@ const (
 	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
-func buildPodMetrics(summaryApi *SummaryMetrics, dropTags []string, podNameRewrite []string) ([]*io.Point, error) {
+func buildPodMetrics(summaryApi *SummaryMetrics, dropTags, podNameRewrite []string, category string) ([]*io.Point, error) {
 	var pts []*io.Point
 
 	for _, pod := range summaryApi.Pods {
@@ -33,7 +33,9 @@ func buildPodMetrics(summaryApi *SummaryMetrics, dropTags []string, podNameRewri
 				return pod.PodRef.Name
 			}(),
 			"namespace": pod.PodRef.Namespace,
-			"name":      pod.PodRef.UID,
+		}
+		if category == "object" {
+			tags["name"] = pod.PodRef.UID
 		}
 		for _, key := range dropTags {
 			if _, ok := tags[key]; ok {
@@ -96,12 +98,12 @@ func (k *Kubernetes) Init() error {
 	return nil
 }
 
-func (k *Kubernetes) GatherPodMetrics(dropTags, podNameRewrite []string) ([]*io.Point, error) {
+func (k *Kubernetes) GatherPodMetrics(dropTags, podNameRewrite []string, category string) ([]*io.Point, error) {
 	summaryApi, err := k.GetSummaryMetrics()
 	if err != nil {
 		return nil, err
 	}
-	return buildPodMetrics(summaryApi, dropTags, podNameRewrite)
+	return buildPodMetrics(summaryApi, dropTags, podNameRewrite, category)
 }
 
 func (k *Kubernetes) GatherPodInfo(containerID string) (map[string]string, error) {
