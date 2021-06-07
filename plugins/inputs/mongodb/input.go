@@ -20,13 +20,13 @@ import (
 var (
 	defInterval      = datakit.Duration{Duration: 10 * time.Second}
 	defMongoUrl      = "mongodb://127.0.0.1:27017"
-	defTlsCaCert     = datakit.InstallDir + "/conf.d/mongodb/ssh/ca.pem"
-	defTlsCert       = datakit.InstallDir + "/conf.d/mongodb/ssh/cert.pem"
-	defTlsCertKey    = datakit.InstallDir + "/conf.d/mongodb/ssh/key.pem"
+	defTlsCaCert     = "/etc/ssl/certs/mongod.cert.pem"
+	defTlsCert       = "/etc/ssl/certs/mongo.cert.pem"
+	defTlsCertKey    = "/etc/ssl/certs/mongo.key.pem"
 	defMongodLogPath = "/var/log/mongodb/mongod.log"
 	defPipeline      = "mongod.p"
 	defTags          map[string]string
-	defGatherTimeout = time.Second
+	defGatherTimeout = 3 * time.Second
 )
 
 var (
@@ -74,7 +74,7 @@ var (
     # cert = "` + defTlsCert + `"
     # cert_key = "` + defTlsCertKey + `"
     ## Use TLS but skip chain & host verification
-    # insecure_skip_verify = false
+    # insecure_skip_verify = true
     # server_name = ""
 
   ## Mongod log
@@ -167,26 +167,6 @@ func (m *Input) RunPipeline() {
 
 func (m *Input) Run() {
 	l.Info("mongodb input started")
-
-	// if m.EnableMongodLog && m.Log != nil && len(m.Log.Files) != 0 {
-	// 	l.Info("mongod_log input started")
-
-	// 	go func() {
-	// 		inputs.JoinPipelinePath(m.Log, m.Log.Pipeline)
-	// 		m.Log.Source = inputName
-	// 		m.Log.Tags = make(map[string]string)
-	// 		for k, v := range m.Tags {
-	// 			m.Log.Tags[k] = v
-	// 		}
-
-	// 		var err error
-	// 		if m.tailer, err = inputs.NewTailer(m.Log); err != nil {
-	// 			l.Errorf("init tailf err:%s", err.Error())
-	// 		} else {
-	// 			m.tailer.Run()
-	// 		}
-	// 	}()
-	// }
 
 	defTags = m.Tags
 
@@ -318,9 +298,15 @@ func init() {
 			ColStatsDbs:           []string{},
 			GatherTopStat:         true,
 			EnableTls:             false,
-			EnableMongodLog:       false,
-			Log:                   &inputs.TailerOption{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
-			mongos:                make(map[string]*Server),
+			TlsConf: &dknet.TlsClientConfig{
+				CaCerts:            []string{defTlsCaCert},
+				Cert:               defTlsCert,
+				CertKey:            defTlsCertKey,
+				InsecureSkipVerify: true,
+			},
+			EnableMongodLog: false,
+			Log:             &inputs.TailerOption{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
+			mongos:          make(map[string]*Server),
 		}
 	})
 }
