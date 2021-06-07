@@ -112,6 +112,10 @@ func (i *Input) gatherStatefulSet(collector string, s v1.StatefulSet) {
 		"namespace":        s.Namespace,
 	}
 
+	for key, value := range i.Tags {
+		tags[key] = value
+	}
+
 	for key, val := range s.Spec.Selector.MatchLabels {
 		tags["selector_"+key] = val
 	}

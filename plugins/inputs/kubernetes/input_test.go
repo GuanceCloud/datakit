@@ -34,6 +34,31 @@ func TestInitCfg(t *testing.T) {
 	t.Log("version ==>", versionInfo.String())
 }
 
+func TestInitCfgErr(t *testing.T) {
+	i := &Input{
+		Tags:        make(map[string]string),
+		URL:         "",
+		BearerToken: "/Users/liushaobo/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes/pki/token",
+		ClientConfig: tls.ClientConfig{
+			TLSCA: "/Users/liushaobo/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes/pki/ca_crt.pem",
+		},
+	}
+
+	err := i.initCfg()
+	if err != nil {
+		t.Log("error ---->", err)
+		return
+	}
+
+	// 通过 ServerVersion 方法来获取版本号
+	versionInfo, err := i.client.ServerVersion()
+	if err != nil {
+		assert.Error(t, err, "")
+	}
+
+	t.Log("version ==>", versionInfo.String())
+}
+
 func TestLoadCfg(t *testing.T) {
 	arr, err := config.LoadInputConfigFile("./cfg.conf", func() inputs.Input {
 		return &Input{}
