@@ -1,5 +1,6 @@
 package container
 
+/*
 import (
 	"fmt"
 	"testing"
@@ -37,3 +38,4 @@ func TestK8s(t *testing.T) {
 		fmt.Printf("%s\n\n", pt.String())
 	}
 }
+*/
