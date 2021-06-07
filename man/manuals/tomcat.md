@@ -10,7 +10,7 @@
 
 ## 前置条件
 
-安装或下载 [Jolokia](http://repo1.maven.org/maven2/org/jolokia/jolokia-war/1.2.3/jolokia-war-1.2.3.war), 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。
+下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war), 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。也可从Datakit 的安装目录下的 data 目录下获取 jolokia war 包。
 编辑 tomcat 的 conf 目录下的 tomcat-users.xml，增加 role 为 jolokia 的用户。
 
 以 apache-tomcat-9.0.45 为例（示例中的 jolokia user 的 username 和 password 请务必修改！！！）:
@@ -20,10 +20,10 @@ $ cd apache-tomcat-9.0.45/
 
 $ export tomcat_dir=`pwd`
 
-$ wget http://repo1.maven.org/maven2/org/jolokia/jolokia-war/1.2.3/jolokia-war-1.2.3.war \
--O ./$tomcat_dir/webapps/jolokia.war
+$ wget https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war \
+-O $tomcat_dir/webapps/jolokia.war
 
-$ vim conf/tomcat-users.xml
+$ vim $tomcat_dir/conf/tomcat-users.xml
 
  37 <!--
  38   <role rolename="tomcat"/>
@@ -38,7 +38,7 @@ $ vim conf/tomcat-users.xml
  47 </tomcat-users>
 
 
-$ ./$tomcat_dir/bin/startup.sh 
+$ $tomcat_dir/bin/startup.sh 
 
  ...
  Tomcat started.
