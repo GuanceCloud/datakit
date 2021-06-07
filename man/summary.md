@@ -6,7 +6,7 @@
 - [Cloudprober 接入](cloudprober)
 - [DataKit 安装](datakit-install)
 - [Datakit 批量部署](datakit-batch-deploy)
-- [DataKit Docker 安装](datakit-docker-install)
+<!-- - [DataKit Docker 安装](datakit-docker-install) -->
 - [Datakit 离线部署](datakit-offline-install)
 - [Datakit 自动更新](datakit-update-crontab)
 <!-- - [Datakit 公网部署](datakit-on-public) -->
@@ -15,7 +15,7 @@
 - [DataKit API](apis)
 - [DataKit 整体架构简介](datakit-arch)
 - [文本数据处理（Pipeline）](pipeline)
-- [DataKit 支持的数据类型](datatypes)
+<!-- - [DataKit 支持的数据类型](datatypes) -->
 <!-- - [DataWay](dataway) -->
 - [采集器]()
 
