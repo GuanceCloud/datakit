@@ -1,13 +1,15 @@
 package kubernetes
 
 import (
+	"fmt"
 	"io/ioutil"
-	"k8s.io/client-go/rest"
 	"sync"
 	"time"
 
 	"github.com/influxdata/telegraf/filter"
 	"github.com/influxdata/telegraf/plugins/common/tls"
+	"k8s.io/client-go/rest"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
@@ -90,6 +92,17 @@ func (i *Input) initCfg() error {
 
 	i.client, err = newClient(config, 5*time.Second)
 	if err != nil {
+		return err
+	}
+
+	if i.client.Clientset == nil {
+		return fmt.Errorf("config error init client fail")
+	}
+
+	// 通过 ServerVersion 方法来获取版本号
+	_, err = i.client.ServerVersion()
+	if err != nil {
+		l.Errorf("get k8s version error %v", err)
 		return err
 	}
 
