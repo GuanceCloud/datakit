@@ -75,6 +75,10 @@ func (i *Input) gatherPersistentVolumeClaim(collector string, pvc corev1.Persist
 		"storageclass": *pvc.Spec.StorageClassName,
 	}
 
+	for key, value := range i.Tags {
+		tags[key] = value
+	}
+
 	// for key, val := range pvc.Spec.Selector.MatchLabels {
 	// 	tags["selector_"+key] = val
 	// }
