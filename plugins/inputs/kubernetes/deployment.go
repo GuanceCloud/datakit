@@ -76,6 +76,10 @@ func (i *Input) gatherDeployment(collector string, d v1.Deployment) {
 		"namespace":       d.Namespace,
 	}
 
+	for key, value := range i.Tags {
+		tags[key] = value
+	}
+
 	for key, val := range d.Spec.Selector.MatchLabels {
 		tags["selector_"+key] = val
 	}
