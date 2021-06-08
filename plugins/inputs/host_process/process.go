@@ -52,6 +52,10 @@ func (_ *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (p *Input) Run() {
 	l = logger.SLogger(inputName)
 
