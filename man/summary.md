@@ -38,7 +38,7 @@
   - [Memcached](memcached)
   - [Mongodb](mongodb)
   - [SQLServer](sqlserver)
-  - [PostgreSQL](PostgreSQL)
+  - [PostgreSQL](postgresql)
 
   - [Jenkins](jenkins)
   - [SSH](ssh)
@@ -50,7 +50,7 @@
 
   - [Docker](docker)
   - [容器](container)
-  - [Kubernates](kubernates)
+  - [Kubernetes](kubernetes)
 
   - [JVM](jvm)
 	- [Statsd](statsd)
