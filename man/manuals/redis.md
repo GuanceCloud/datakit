@@ -67,15 +67,19 @@ Redis 指标采集器，采集以下数据：
 
 ## 日志 pipeline 功能切割字段说明
 
-原始日志为 `122:M 14 May 2019 19:11:40.164 * Background saving terminated with success`
+原始日志为
+
+```
+122:M 14 May 2019 19:11:40.164 * Background saving terminated with success
+```
 
 切割后的字段列表如下：
 
-| 字段名  |  字段值  | 说明 |
-| ---    | ---     | --- |
-|  pid   | 122     | 进程id |
-|  role  | "M"    | 角色 |
-|  serverity   | "*"     | 服务  |
-|  status   | notice     | 日志级别 |
-|  msg   | Background saving terminated with success   | 日志内容 |
-|  time   | 1557861100164000000     | 纳秒时间戳（作为行协议时间）|
+| 字段名      | 字段值                                      | 说明                         |
+| ---         | ---                                         | ---                          |
+| `pid`       | `122`                                       | 进程id                       |
+| `role`      | `M`                                         | 角色                         |
+| `serverity` | `*`                                         | 服务                         |
+| `statu`     | `notice`                                    | 日志级别                     |
+| `msg`       | `Background saving terminated with success` | 日志内容                     |
+| `time`      | `1557861100164000000`                       | 纳秒时间戳（作为行协议时间） |

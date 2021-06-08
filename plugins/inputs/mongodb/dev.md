@@ -80,6 +80,87 @@ rename("context", ctx)
 drop_key(id)
 ```
 
+# tls config
+
+config mongodb to enable connect to mongod instance using encryption and client side identification.
+
+## prerequisite
+
+run `openssl version` if nothing output run `sudo apt install openssl -y` to install openssl lib.
+
+## encryption with tls option
+
+use openssl to generate .pem file for mongod server tls encryption, run command
+
+```
+sudo openssl req -x509 -newkey rsa:2048 -days 365 -keyout mongod.key.pem -out mongod.cert.pem -nodes -subj '/CN=\<mongod server you want to connect to\>'
+```
+
+after run this command above you will find mongod certificate file `mongod.cert.pem` and mongod certificate key file `mongod.key.pem` under path, we need to merge these two files, run command
+
+```
+sudo bash -c "cat mongod.cert.pem mongod.key.pem >>mongod.pem"
+```
+
+after merge add this config into your mongod config file `/etc/mongod.conf`
+
+```
+# TLS config
+net:
+  tls:
+    mode: requireTLS
+    certificateKeyFile: /etc/ssl/mongod.pem
+```
+
+start mongod
+
+```
+sudo mongod --config /etc/mongod.conf
+```
+
+copy `mongod.cert.pem` file into your client side and test connect with tls, run command
+
+```
+mongo --tls --host <your mongod url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem
+```
+
+## client identification with tls option
+
+use openssl to generate .pem file for mongo client side identification using tls, run command
+
+```
+sudo openssl req -x509 -newkey rsa:2048 -days 365 -keyout mongo.key.pem -out mongo.cert.pem -nodes
+```
+
+after run this command above you will find mongo certificate file `mongo.cert.pem` and mongo certificate key file `mongo.key.pem` under path, we need to copy `mongo.cert.pem` file into your mongodb server, and config `/etc/mongod.config` file
+
+```
+# Tls config
+net:
+  tls:
+    mode: requireTLS
+    certificateKeyFile: /etc/ssl/mongod.pem
+    CAFile: /etc/ssl/mongo.cert.pem
+```
+
+start mongod server, run command
+
+```
+sudo mongod --config /etc/mongod.conf
+```
+
+on your client side, merge `mongo.cert.pem` and `mongo.key.pem` into `mongo.pem`, run command
+
+```
+sudo bash -c "cat mongo.cert.pem mongo.key.pem >>mongo.pem"
+```
+
+connect to mongod server with tls, run command
+
+```
+mongo --tls --host <your mongod url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem --tlsCertificateKeyFile /etc/ssl/certs/mongo.pem
+```
+
 # metrics
 
 ## mongodb
