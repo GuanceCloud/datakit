@@ -3,12 +3,13 @@ package sqlserver
 import (
 	"database/sql"
 	"fmt"
+	"strings"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"strings"
-	"time"
 )
 
 func (_ *Input) SampleConfig() string {
@@ -31,12 +32,20 @@ func (_ *Input) PipelineConfig() map[string]string {
 }
 
 func (n *Input) initDb() error {
-	db, err := sql.Open("sqlserver", fmt.Sprintf("sqlserver://%s:%s@%s", n.User, n.Password, n.Host))
+	db, err := sql.Open("sqlserver", fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", n.User, n.Password, n.Host))
 	if err != nil {
 		return err
 	}
+	if err := db.Ping(); err != nil {
+		return err
+	}
+
 	n.db = db
 	return nil
+}
+
+// TODO
+func (*Input) RunPipeline() {
 }
 
 func (n *Input) Run() {
@@ -146,6 +155,9 @@ func (n *Input) handRow(query string, ts time.Time) {
 		}
 		measurement := ""
 		var tags = make(map[string]string)
+		for k, v := range n.Tags {
+			tags[k] = v
+		}
 		var fields = make(map[string]interface{})
 		for header, val := range columnMap {
 			if str, ok := (*val).(string); ok {
@@ -162,7 +174,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 			}
 		}
 		if len(fields) == 0 {
-			return
+			continue
 		}
 
 		point, err := io.MakePoint(measurement, tags, fields, ts)
