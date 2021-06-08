@@ -115,6 +115,7 @@ java -javaagent:dd-java-agent.jar \
 	- `-Ddd.jmxfetch.check-period` 表示采集频率，单位为毫秒
 	- `-Ddd.jmxfetch.statsd.host=127.0.0.1` 表示 DataKit 上 statsd 采集器的连接地址
 	- `-Ddd.jmxfetch.statsd.port=8125` 表示 DataKit 上 statsd 采集器的 UDP 连接端口，默认为 8125
+	- `-Ddd.trace.health.xxx` ddtrace 自身指标数据采集和发送设置
   - 如果要开启链路追踪（APM）可追加如下两个参数（DataKit HTTP 地址）
 		- `-Ddd.agent.host=localhost`
 		- `-Ddd.agent.port=9529`
