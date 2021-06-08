@@ -120,6 +120,10 @@ func (i *Input) gatherIngress(collector string, in v1beta1.Ingress) {
 		"namespace":    in.Namespace,
 	}
 
+	for key, value := range i.Tags {
+		tags[key] = value
+	}
+
 	m := &ingressM{
 		name:   ingressMeasurement,
 		tags:   tags,

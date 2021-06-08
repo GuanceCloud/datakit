@@ -35,6 +35,7 @@ func (c *containersMeasurement) Info() *inputs.MeasurementInfo {
 			"docker_image":   inputs.NewTagInfo(`镜像名称+版本号`),
 			"name":           inputs.NewTagInfo(`对象数据的指定 ID，（仅在对象数据中存在）`),
 			"container_host": inputs.NewTagInfo(`容器内部的主机名（仅在对象数据中存在）`),
+			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"host":           inputs.NewTagInfo(`容器宿主机的主机名`),
 			"state":          inputs.NewTagInfo(`运行状态，running/exited/removed`),
 			"pod_name":       inputs.NewTagInfo(`pod名称`),
@@ -46,7 +47,6 @@ func (c *containersMeasurement) Info() *inputs.MeasurementInfo {
 			// "kube_ownerref_kind":  inputs.NewTagInfo(`TODO`),
 		},
 		Fields: map[string]interface{}{
-			"from_kubernetes":    &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建"},
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
 			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "容器 CPU 增量"},
 			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "系统 CPU 增量"},
@@ -84,6 +84,7 @@ func (c *containersLogMeasurement) Info() *inputs.MeasurementInfo {
 			"container_id":   inputs.NewTagInfo(`容器ID`),
 			"image_name":     inputs.NewTagInfo(`容器镜像名称`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
+			"namespace":      inputs.NewTagInfo(`所属 Kubernetes 命名空间`),
 		},
 		Fields: map[string]interface{}{
 			"from_kubernetes": &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建"},
@@ -113,7 +114,7 @@ func (k *kubeletPodMeasurement) Info() *inputs.MeasurementInfo {
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
 			"pod_name":  inputs.NewTagInfo(`pod 名字`),
 			"namespace": inputs.NewTagInfo(`所属命名空间`),
-			"name":      inputs.NewTagInfo(`pod UID`),
+			"name":      inputs.NewTagInfo(`pod UID，（仅在对象数据中存在）`),
 		},
 		Fields: map[string]interface{}{
 			"cpu_usage":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
