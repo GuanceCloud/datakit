@@ -106,6 +106,17 @@ func (this *Input) tailContainerLogs(ctx context.Context, container types.Contai
 		"container_id":   container.ID,
 		"image_name":     imageName,
 	}
+
+	if this.Kubernetes != nil {
+		podInfo, err := this.Kubernetes.GatherPodInfo(container.ID)
+		if err != nil {
+			l.Debugf("gather k8s pod error, %s", err)
+		}
+		if namespace := podInfo["pod_namespace"]; namespace != "" {
+			tags["namespace"] = namespace
+		}
+	}
+
 	for k, v := range this.Tags {
 		tags[k] = v
 	}
