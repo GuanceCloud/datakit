@@ -213,3 +213,4 @@ data:
     {{- $inputName -}}.conf: |-
         {{- $cfg | indent 6 -}}
   {{- end -}}
+
