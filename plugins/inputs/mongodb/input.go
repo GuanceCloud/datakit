@@ -20,12 +20,13 @@ import (
 var (
 	defInterval      = datakit.Duration{Duration: 10 * time.Second}
 	defMongoUrl      = "mongodb://127.0.0.1:27017"
-	defTlsCaCert     = datakit.InstallDir + "/conf.d/mongodb/ssh/ca.pem"
-	defTlsCert       = datakit.InstallDir + "/conf.d/mongodb/ssh/cert.pem"
-	defTlsCertKey    = datakit.InstallDir + "/conf.d/mongodb/ssh/key.pem"
+	defTlsCaCert     = "/etc/ssl/certs/mongod.cert.pem"
+	defTlsCert       = "/etc/ssl/certs/mongo.cert.pem"
+	defTlsCertKey    = "/etc/ssl/certs/mongo.key.pem"
 	defMongodLogPath = "/var/log/mongodb/mongod.log"
 	defPipeline      = "mongod.p"
 	defTags          map[string]string
+	defGatherTimeout = 3 * time.Second
 )
 
 var (
@@ -64,8 +65,8 @@ var (
   ## Optional TLS Config, enabled if true.
   # enable_tls = false
 
-	## Optional local Mongod log input config, enabled if true.
-	# enable_mongod_log = false
+  ## Optional local Mongod log input config, enabled if true.
+  # enable_mongod_log = false
 
   ## TLS connection config
   [inputs.mongodb.tlsconf]
@@ -73,28 +74,28 @@ var (
     # cert = "` + defTlsCert + `"
     # cert_key = "` + defTlsCertKey + `"
     ## Use TLS but skip chain & host verification
-    # insecure_skip_verify = false
+    # insecure_skip_verify = true
     # server_name = ""
 
-	## MongoD log
-	[inputs.mongodb.log]
-		## Log file path check your mongodb config path usually under '/var/log/mongodb/mongod.log'.
-		# files = ["` + defMongodLogPath + `"]
-		## Grok pipeline script file.
-		# pipeline = "` + defPipeline + `"
+  ## Mongod log
+  [inputs.mongodb.log]
+    ## Log file path check your mongodb config path usually under '/var/log/mongodb/mongod.log'.
+    # files = ["` + defMongodLogPath + `"]
+    ## Grok pipeline script file.
+    # pipeline = "` + defPipeline + `"
 
   ## Customer tags, if set will be seen with every metric.
   [inputs.mongodb.tags]
     # "key1" = "value1"
     # "key2" = "value2"
 `
-	piplelineConfig = `
-	json(_, ` + "`t.$date`" + `, "time")
-	json(_, s, "status")
-	json(_, c, "component")
-	json(_, msg, "msg")
-	json(_, ctx, "context")
-	default_time(time)
+	pipelineConfig = `
+  json(_, ` + "`t.$date`" + `, "time")
+  json(_, s, "status")
+  json(_, c, "component")
+  json(_, msg, "msg")
+  json(_, ctx, "context")
+  default_time(time)
 `
 	l = logger.SLogger(inputName)
 )
@@ -126,7 +127,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) PipelineConfig() map[string]string {
-	return map[string]string{"mongod": piplelineConfig}
+	return map[string]string{"mongod": pipelineConfig}
 }
 
 func (*Input) AvailableArchs() []string {
@@ -143,28 +144,29 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (m *Input) RunPipeline() {
+	if m.EnableMongodLog && m.Log != nil && len(m.Log.Files) != 0 {
+		inputs.JoinPipelinePath(m.Log, m.Log.Pipeline)
+		m.Log.Source = inputName
+		m.Log.Tags = make(map[string]string)
+		for k, v := range m.Tags {
+			m.Log.Tags[k] = v
+		}
+
+		var err error
+		if m.tailer, err = inputs.NewTailer(m.Log); err != nil {
+			l.Errorf("init tailf err:%s", err.Error())
+		} else {
+			l.Infof("pipeline %s input started", inputName)
+			go m.tailer.Run()
+		}
+	} else {
+		l.Infof("pipeline %s not enabled", inputName)
+	}
+}
+
 func (m *Input) Run() {
 	l.Info("mongodb input started")
-
-	if m.EnableMongodLog && m.Log != nil && len(m.Log.Files) != 0 {
-		l.Info("mongod_log input started")
-
-		go func() {
-			inputs.JoinPipelinePath(m.Log, m.Log.Pipeline)
-			m.Log.Source = "mongodb"
-			m.Log.Tags = make(map[string]string)
-			for k, v := range m.Tags {
-				m.Log.Tags[k] = v
-			}
-
-			var err error
-			if m.tailer, err = inputs.NewTailer(m.Log); err != nil {
-				l.Errorf("init tailf err:%s", err.Error())
-			} else {
-				m.tailer.Run()
-			}
-		}()
-	}
 
 	defTags = m.Tags
 
@@ -185,53 +187,66 @@ func (m *Input) Run() {
 	}
 }
 
-// Reads stats from all configured servers accumulates stats.
-// Returns one of the errors encountered while gather stats (if any).
-func (m *Input) gather() error {
-	if len(m.Servers) == 0 {
-		m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoUrl}))
-
-		return nil
-	}
-
-	var wg sync.WaitGroup
-	for i, serv := range m.Servers {
-		if !strings.HasPrefix(serv, "mongodb://") {
-			serv = "mongodb://" + serv
-			l.Warnf("Using %q as connection URL; please update your configuration to use an URL", serv)
-			m.Servers[i] = serv
-		}
-
-		u, err := url.Parse(serv)
-		if err != nil {
-			l.Errorf("Unable to parse address %q: %s", serv, err.Error())
-			continue
-		}
-		if u.Host == "" {
-			l.Errorf("Unable to parse address %q", serv)
-			continue
-		}
-
-		wg.Add(1)
-		go func(srv *Server) {
-			defer wg.Done()
-
-			if err := m.gatherServer(srv); err != nil {
-				l.Errorf("Error in plugin: %s,%v", srv.URL.String(), err)
-			}
-		}(m.getMongoServer(u))
-	}
-	wg.Wait()
-
-	return nil
-}
-
 func (m *Input) getMongoServer(url *url.URL) *Server {
 	if _, ok := m.mongos[url.Host]; !ok {
 		m.mongos[url.Host] = &Server{URL: url}
 	}
 
 	return m.mongos[url.Host]
+}
+
+// Reads stats from all configured servers.
+// Returns one of the errors encountered while gather stats (if any).
+func (m *Input) gather() error {
+	errc := make(chan error)
+	go func() {
+		if len(m.Servers) == 0 {
+			errc <- m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoUrl}))
+
+			return
+		}
+
+		var wg sync.WaitGroup
+		for i, serv := range m.Servers {
+			if !strings.HasPrefix(serv, "mongodb://") {
+				serv = "mongodb://" + serv
+				l.Warnf("using %q as connection URL; please update your configuration to use an URL", serv)
+				m.Servers[i] = serv
+			}
+
+			u, err := url.Parse(serv)
+			if err != nil {
+				l.Errorf("unable to parse address %q: %s", serv, err.Error())
+				continue
+			}
+			if u.Host == "" {
+				l.Errorf("unable to parse address %q", serv)
+				continue
+			}
+
+			wg.Add(1)
+			go func(srv *Server) {
+				defer wg.Done()
+
+				if err := m.gatherServer(srv); err != nil {
+					l.Errorf("error in plugin: %s,%v", srv.URL.String(), err)
+					errc <- err
+				}
+			}(m.getMongoServer(u))
+		}
+		wg.Wait()
+
+		errc <- nil
+	}()
+
+	tmr := time.NewTimer(defGatherTimeout)
+	defer tmr.Stop()
+	select {
+	case <-tmr.C:
+		return fmt.Errorf("gathering %q process overtime.", inputName)
+	case err := <-errc:
+		return err
+	}
 }
 
 func (m *Input) gatherServer(server *Server) error {
@@ -283,9 +298,15 @@ func init() {
 			ColStatsDbs:           []string{},
 			GatherTopStat:         true,
 			EnableTls:             false,
-			EnableMongodLog:       false,
-			Log:                   &inputs.TailerOption{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
-			mongos:                make(map[string]*Server),
+			TlsConf: &dknet.TlsClientConfig{
+				CaCerts:            []string{defTlsCaCert},
+				Cert:               defTlsCert,
+				CertKey:            defTlsCertKey,
+				InsecureSkipVerify: true,
+			},
+			EnableMongodLog: false,
+			Log:             &inputs.TailerOption{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
+			mongos:          make(map[string]*Server),
 		}
 	})
 }
