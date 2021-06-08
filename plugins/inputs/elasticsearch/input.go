@@ -378,6 +378,10 @@ const (
 	minInterval = 1 * time.Second
 )
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	// collect logs
