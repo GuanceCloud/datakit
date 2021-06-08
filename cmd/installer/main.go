@@ -199,13 +199,13 @@ Golang Version: %s
 
 		if err := install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, false); err != nil {
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, true); err != nil {
 			return
 		}
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
-		if err := install.Download(dataUrl, "data.tar.gz", true, false); err != nil {
+		if err := install.Download(dataUrl, "data.tar.gz", true, true); err != nil {
 			return
 		}
 
