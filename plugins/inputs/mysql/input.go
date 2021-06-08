@@ -277,6 +277,10 @@ func (i *Input) runLog(defaultPile string) error {
 	return nil
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) Run() {
 	l = logger.SLogger("mysql")
 	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
