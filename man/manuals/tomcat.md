@@ -10,7 +10,7 @@
 
 ## 前置条件
 
-安装或下载 [Jolokia](http://repo1.maven.org/maven2/org/jolokia/jolokia-war/1.2.3/jolokia-war-1.2.3.war), 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。
+下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war), 重命名为 jolokia.war, 并放置于 tomcat 的 webapps 目录下。也可从Datakit 的安装目录下的 data 目录下获取 jolokia war 包。
 编辑 tomcat 的 conf 目录下的 tomcat-users.xml，增加 role 为 jolokia 的用户。
 
 以 apache-tomcat-9.0.45 为例（示例中的 jolokia user 的 username 和 password 请务必修改！！！）:
@@ -20,10 +20,10 @@ $ cd apache-tomcat-9.0.45/
 
 $ export tomcat_dir=`pwd`
 
-$ wget http://repo1.maven.org/maven2/org/jolokia/jolokia-war/1.2.3/jolokia-war-1.2.3.war \
--O ./$tomcat_dir/webapps/jolokia.war
+$ wget https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-war/1.6.2/jolokia-war-1.6.2.war \
+-O $tomcat_dir/webapps/jolokia.war
 
-$ vim conf/tomcat-users.xml
+$ vim $tomcat_dir/conf/tomcat-users.xml
 
  37 <!--
  38   <role rolename="tomcat"/>
@@ -38,7 +38,7 @@ $ vim conf/tomcat-users.xml
  47 </tomcat-users>
 
 
-$ ./$tomcat_dir/bin/startup.sh 
+$ $tomcat_dir/bin/startup.sh 
 
  ...
  Tomcat started.
@@ -85,9 +85,37 @@ $ ./$tomcat_dir/bin/startup.sh
 
 ``` toml
   [inputs.tomcat.log]
-    files = []
+    files = ["/path_to_tomcat/logs/*"]
 ```
 
 开启日志采集以后，默认会产生日志来源（`source`）为 `tomcat` 的日志。
 
->注意：必须将 DataKit 安装在 NGINX 所在主机才能采集 Tomcat 日志
+**字段说明**
+
+* Access Log
+
+|字段名|字段值|说明|
+|---|---|---|
+|time|time|日志产生的时间|
+|status|status|日志等级|
+|client_ip|ip or host|客户端 ip|
+|http_auth|http auth|通过 HTTP Basic 认证的授权用户|
+|http_method|http method|HTTP 方法|
+|http_url|http url|客户端请求地址|
+|http_version|http version|HTTP 协议版本|
+|status_code|http status code|HTTP 状态码|
+|bytes|bytes|HTTP 响应 body 的字节数|
+
+* Cataline / Host-manager / Localhost / Manager Log
+
+|字段名|字段值|说明|
+|---|---|---|
+|time|time|日志产生的时间|
+|status|status|日志等级|
+|thread_name|thread name|线程名|
+|report_source|report source|ClassName.MethodName|
+|msg|msg|消息|
+
+**注意**
+
+- 日志采集仅支持采集已安装 DataKit 主机上的日志

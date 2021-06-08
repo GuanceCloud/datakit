@@ -82,7 +82,7 @@ func (d *dialer) run() error {
 				l.Errorf("task %s failed, %s", d.task.ID(), err.Error())
 			}
 
-			err = d.feedIo()
+			err = d.feedIO()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
@@ -99,7 +99,7 @@ func (d *dialer) run() error {
 	}
 }
 
-func (d *dialer) feedIo() error {
+func (d *dialer) feedIO() error {
 
 	// 考虑到推送至不同的dataway地址
 	u, err := url.Parse(d.task.PostURLStr())
@@ -108,7 +108,7 @@ func (d *dialer) feedIo() error {
 		return err
 	}
 
-	u.Path = u.Path + "v1/write/" + datakit.Logging // `/v1/write/logging`
+	u.Path = u.Path + datakit.Logging // `/v1/write/logging`
 
 	urlStr := u.String()
 	switch d.task.Class() {
