@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,6 +31,8 @@ type Input struct {
 	ClientConfig                     // tls config
 	LogFilters     LogFilters        `toml:"logfilter"`
 	Tags           map[string]string `toml:"tags"`
+	DropTags       []string          `toml:"drop_tags"`
+	PodNameRewrite []string          `toml:"pod_name_rewrite"`
 
 	newClient func(string, *tls.Config) (Client, error)
 
@@ -77,6 +80,10 @@ func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLinux}
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (this *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -87,7 +94,9 @@ func (this *Input) Run() {
 
 	if this.EnableObject {
 		if this.Kubernetes != nil {
-			do(this.Kubernetes.GatherPodMetrics, datakit.Object, "k8s pod object gather failed")
+			do(func() ([]*io.Point, error) {
+				return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "object")
+			}, datakit.Object, "k8s pod object gather failed")
 		}
 
 		do(func() ([]*io.Point, error) { return this.gather(objectCategory) }, datakit.Object, "container object gather failed")
@@ -118,8 +127,9 @@ func (this *Input) Run() {
 
 		case <-metricsTick.C:
 			if this.Kubernetes != nil {
-				// do(this.Kubernetes.GatherNodeMetrics, datakit.Metric, "k8s Node metrics gather failed")
-				do(this.Kubernetes.GatherPodMetrics, datakit.Metric, "k8s pod metrics gather failed")
+				do(func() ([]*io.Point, error) {
+					return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "metric")
+				}, datakit.Metric, "k8s pod metrics gather failed")
 			}
 			if this.EnableMetric {
 				do(func() ([]*io.Point, error) { return this.gather(metricCategory) }, datakit.Metric, "container metrics gather failed")
@@ -128,7 +138,9 @@ func (this *Input) Run() {
 		case <-objectTick.C:
 			if this.EnableObject {
 				if this.Kubernetes != nil {
-					do(this.Kubernetes.GatherPodMetrics, datakit.Object, "k8s pod object gather failed")
+					do(func() ([]*io.Point, error) {
+						return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "object")
+					}, datakit.Object, "k8s pod object gather failed")
 				}
 
 				do(func() ([]*io.Point, error) { return this.gather(objectCategory) }, datakit.Object, "container object gather failed")
@@ -187,4 +199,19 @@ func do(gatherFn func() ([]*io.Point, error), category, prefixlog string) {
 		io.FeedLastError(inputName, fmt.Sprintf("%s: %s", prefixlog, err))
 	}
 
+}
+
+func TrimPodName(podname []string, name string) string {
+	for _, n := range podname {
+		if !strings.HasPrefix(name, n) {
+			continue
+		}
+
+		parts := strings.Split(name, "-")
+		if len(parts) < 3 {
+			continue
+		}
+		return strings.Join(parts[:len(parts)-1], "-")
+	}
+	return name
 }
