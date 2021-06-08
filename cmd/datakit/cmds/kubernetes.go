@@ -3,6 +3,7 @@ package cmds
 import (
 	"bytes"
 	"fmt"
+	"github.com/Masterminds/sprig"
 	"github.com/c-bata/go-prompt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/kubernetes"
@@ -132,7 +133,8 @@ func (k *KubeDeploy) render() error {
 		return err
 	}
 
-	temp, err := template.New(k.DeployName).Parse(md)
+	fmap := sprig.TxtFuncMap()
+	temp, err := template.New(k.DeployName).Funcs(fmap).Parse(md)
 	if err != nil {
 		fmt.Printf("[E] template new error %v \n", err)
 		return err
