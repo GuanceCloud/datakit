@@ -97,7 +97,7 @@ func TestBaseCollect(t *testing.T) {
 	t.Run("bin log off", func(t *testing.T) {
 		input := &Input{
 			Host: "127.0.0.1",
-			Port: 3306,
+			Port: 3307,
 			User: "root",
 			Pass: "test",
 			Tags: make(map[string]string),
