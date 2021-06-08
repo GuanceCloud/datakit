@@ -71,6 +71,10 @@ type Input struct {
 
 var l = logger.DefaultSLogger(inputName)
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (this *Input) Run() {
 	l = logger.SLogger(inputName)
 
