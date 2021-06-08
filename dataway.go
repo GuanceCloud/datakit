@@ -175,8 +175,8 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 
 	defer dw.httpCli.CloseIdleConnections()
 
-	for _, dc := range dw.dataWayClients {
-
+	for idx, dc := range dw.dataWayClients {
+		l.Debugf("post to %d dataway...", idx)
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
 			return err
 		}
