@@ -8,7 +8,7 @@ import (
 
 func TestCon(t *testing.T) {
 	n := Input{
-		Host:     "10.100.64.133:1433",
+		Host:     "10.100.64.109:1433",
 		User:     "_",
 		Password: "_",
 	}
