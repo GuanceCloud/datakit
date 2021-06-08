@@ -58,22 +58,25 @@ type Input struct {
 	pos      int64 // current largest-task-update-time
 }
 
-const sample = `[[inputs.dialtesting]]
-	#  中心任务存储的服务地址，或本地json 文件全路径
-	server = "files:///your/dir/json-file-name"
+const sample = `
+[[inputs.dialtesting]]
+  # 中心任务存储的服务地址，或本地json 文件全路径
+  #server = "files:///your/dir/json-file-name"
+  #server = "https://dflux-dial.dataflux.cn"
 
-	# require，节点惟一标识ID
-	region_id = "default"
+  # require，节点惟一标识ID
+  region_id = "default"
 
-	# 若server配为中心任务服务地址时，需要配置相应的ak或者sk
-	ak = ""
-	sk = ""
+  # 若server配为中心任务服务地址时，需要配置相应的ak或者sk
+  ak = ""
+  sk = ""
 
-	pull_interval = "1m"
+  pull_interval = "1m"
 
-	[inputs.dialtesting.tags]
-	# 各种可能的 tag
-	`
+  [inputs.dialtesting.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...`
 
 func (dt *Input) SampleConfig() string {
 	return sample
@@ -91,7 +94,7 @@ func (dt *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return datakit.AllArch
 }
 
 func (d *Input) Run() {
