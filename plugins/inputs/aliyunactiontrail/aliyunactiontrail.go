@@ -37,6 +37,11 @@ func (a *AliyunActiontrail) PipelineConfig() map[string]string {
 		inputName: pipelineSample,
 	}
 }
+
+// TODO
+func (*AliyunActiontrail) RunPipeline() {
+}
+
 func (a *AliyunActiontrail) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
