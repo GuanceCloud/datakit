@@ -35,14 +35,14 @@ var (
 	inputName    = "smart"
 	sampleConfig = `
 [[inputs.smart]]
-	## The path to the smartctl executable
+  ## The path to the smartctl executable
   # path_smartctl = "/usr/bin/smartctl"
 
   ## The path to the nvme-cli executable
   # path_nvme = "/usr/bin/nvme"
 
-	## Gathering interval
-	# interval = "10s"
+  ## Gathering interval
+  # interval = "10s"
 
   ## Timeout for the cli command to complete.
   # timeout = "30s"
@@ -70,10 +70,10 @@ var (
   ## and all found will be included except for the excluded in excludes.
   # devices = [ "/dev/ada0 -d atacam", "/dev/nvme0"]
 
-	## Customer tags, if set will be seen with every metric.
-	[inputs.smart.tags]
-		# "key1" = "value1"
-		# "key2" = "value2"
+  ## Customer tags, if set will be seen with every metric.
+  [inputs.smart.tags]
+    # "key1" = "value1"
+    # "key2" = "value2"
 `
 	l = logger.SLogger(inputName)
 )
