@@ -111,8 +111,6 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: spec.nodeName
-        - name: ENV_UUID
-          value: dkit_oX1qnIiXNPft2ebsAchOYXucuIB
         - name: ENV_DATAWAY
           value: <dataway_url>
         - name: ENV_GLOBAL_TAGS
@@ -141,11 +139,11 @@ spec:
         - name: tz-config
           mountPath: /etc/localtime
           readOnly: true
-        {{ range $inputName, $cfg := .Inputs }}
+        {{- range $inputName, $cfg := .Inputs }}
         #- mountPath: /usr/local/datakit/conf.d/{{$inputName}}.conf
         #  name: datakit-monitor-conf
         #  subPath: {{$inputName}}.conf
-        {{ end }}
+        {{- end }}
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -175,10 +173,10 @@ spec:
       - configMap:
           name: datakit-monitor-conf
           items:
-      {{ range $inputName, $cfg := .Inputs }}
+      {{- range $inputName, $cfg := .Inputs }}
           - key: {{$inputName}}.conf
             path: {{$inputName}}.conf
-      {{ end }}
+      {{- end }}
         name: datakit-monitor-conf
       - hostPath:
           path: /var/run/docker.sock
@@ -210,8 +208,8 @@ metadata:
   name: datakit-monitor-conf
   namespace: datakit-monitor
 data:
-  {{ range $inputName, $cfg := .Inputs }}
+  {{- range $inputName, $cfg := .Inputs }}
     #### {{$inputName}}
-    {{$inputName}}.conf: |-
-        {{$cfg}}
-    {{ end }}
+    {{- $inputName -}}.conf: |-
+        {{- $cfg | indent 6 -}}
+  {{- end -}}
