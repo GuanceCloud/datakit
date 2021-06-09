@@ -70,7 +70,7 @@ scp dk-installer datakit-linux-amd64-<some-version>.tar.gz data.tar.gz user@your
 
 ```shell
 # Windows（需以 administrator 权限运行 Powershell 执行）
-.\dk-installer.exe -offline -dataway "https://openway.dataflux.cn?token=<your-token>" -srcs datakit-windows-amd64-<some-version>.tar.gz,data.tar.gz
+.\dk-installer.exe -offline -dataway "https://openway.dataflux.cn?token=<your-token>" -srcs .\datakit-windows-amd64-<some-version>.tar.gz,.\data.tar.gz
 
 # Linux（需以 root 权限运行）
 ./dk-installer -offline -dataway "https://openway.dataflux.cn?token=<your-token>" -srcs datakit-linux-amd64-<some-version>.tar.gz,data.tar.gz
