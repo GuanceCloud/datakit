@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	batchbetav1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	v1beta1 "k8s.io/api/extensions/v1beta1"
 	"net"
@@ -141,6 +143,10 @@ func (c *client) getEndpoints() (*corev1.EndpointsList, error) {
 	return c.CoreV1().Endpoints(c.namespace).List(metav1.ListOptions{})
 }
 
+func (c *client) getNamespaces() (*corev1.NamespaceList, error) {
+	return c.CoreV1().Namespaces().List(metav1.ListOptions{})
+}
+
 func (c *client) getNodes() (*corev1.NodeList, error) {
 	return c.CoreV1().Nodes().List(metav1.ListOptions{})
 }
@@ -163,6 +169,14 @@ func (c *client) getServices() (*corev1.ServiceList, error) {
 
 func (c *client) getStatefulSets() (*appsv1.StatefulSetList, error) {
 	return c.AppsV1().StatefulSets(c.namespace).List(metav1.ListOptions{})
+}
+
+func (c *client) getJobs() (*batchv1.JobList, error) {
+	return c.BatchV1().Jobs(c.namespace).List(metav1.ListOptions{})
+}
+
+func (c *client) getCronJobs() (*batchbetav1.CronJobList, error) {
+	return c.BatchV1beta1().CronJobs(c.namespace).List(metav1.ListOptions{})
 }
 
 func (c *client) getIngress() (*v1beta1.IngressList, error) {
