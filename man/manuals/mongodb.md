@@ -8,12 +8,9 @@
 
 MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采集。
 
-## 开发使用 MongoDB 版本
-
-4.4.5
-
 ## 前置条件
 
+- 开发使用 _MongoDB_ 版本 4.4.5
 - 编写配置文件在对应目录下然后启动 DataKit 即可完成配置。
 - 使用 TLS 进行安全连接需要先将配置文件中`enable_tls = true`值置 true，然后配置`inputs.mongodb.tlsconf`中指定的证书文件路径。
 - 如果 MongoDb 启动了访问控制那么需要配置必须的用户权限用于建立授权连接。例如：
@@ -38,17 +35,17 @@ MongoDb 数据库，Collection， MongoDb 数据库集群运行状态数据采�
 
 ### 预配置
 
-安装 _openssl_ run command:
+安装 _openssl_ 运行以下命令:
 
-```
+```command
 sudo apt install openssl -y
 ```
 
 ### 配置 MongoDB 服务端加密
 
-使用 _openssl_ 生成证书级密钥文件，run command
+使用 _openssl_ 生成证书级密钥文件，运行以下命令:
 
-```
+```command
 sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongod.key.pem> -out <mongod.cert.pem> -nodes -subj '/CN=<mongod_url>'
 ```
 
@@ -58,15 +55,15 @@ sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongod.key.pem> 
 - mongod.cert.pem: CA 证书文件
 - mongod_url: MongoDB server url
 
-运行上面的命令后生成 _cert.pem_ 文件和 _key.pem_ 文件，我们需要合并两个文件内的 _block_ run command
+运行上面的命令后生成 _cert.pem_ 文件和 _key.pem_ 文件，我们需要合并两个文件内的 _block_ 运行以下命令:
 
-```
+```command
 sudo bash -c "cat mongod.cert.pem mongod.key.pem >>mongod.pem"
 ```
 
 合并后配置 _/etc/mongod.config_ 文件中的 TLS 子项
 
-```
+```config
 # TLS config
 net:
   tls:
@@ -74,23 +71,23 @@ net:
     certificateKeyFile: /etc/ssl/mongod.pem
 ```
 
-使用新的配置启动启动 _MongoDB_ run command
+使用新的配置启动启动 _MongoDB_ 运行以下命令:
 
-```
+```command
 sudo mongod --config /etc/mongod.conf
 ```
 
-复制 _mongod.cert.pem_ 文件到 _MongoDB_ 客户端测试使用 TLS 连接服务端
+复制 _mongod.cert.pem_ 文件到 _MongoDB_ 客户端测试使用 TLS 连接服务端 运行以下命令:
 
-```
+```command
 mongo --tls --host <mongod_url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem
 ```
 
 ### 配置 MongoDB 客户端认证
 
-使用 _openssl_ 生成证书级密钥文件，run command
+使用 _openssl_ 生成证书级密钥文件，运行以下命令:
 
-```
+```command
 sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongo.key.pem> -out <mongo.cert.pem> -nodes
 ```
 
@@ -101,7 +98,7 @@ sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongo.key.pem> -
 
 复制 _mongo.cert.pem_ 文件到 _MongoDB_ 服务端然后配置 _/etc/mongod.config_ 文件中的 TLS 子项
 
-```
+```config
 # Tls config
 net:
   tls:
@@ -110,21 +107,21 @@ net:
     CAFile: /etc/ssl/mongo.cert.pem
 ```
 
-启动 _MongoDB_ run command
+启动 _MongoDB_ 运行以下命令:
 
-```
+```command
 sudo mongod --config /etc/mongod.conf
 ```
 
-合并 _mongo.cert.pem_ 和 _mongo.key.pem_ 文件中的 _block_ run command
+合并 _mongo.cert.pem_ 和 _mongo.key.pem_ 文件中的 _block_ 运行以下命令:
 
-```
+```command
 sudo bash -c "cat mongo.cert.pem mongo.key.pem >>mongo.pem"
 ```
 
-启动 _MongoDB_ 客户端并使用 TLS 客户端认证 run command
+启动 _MongoDB_ 客户端并使用 TLS 客户端认证 运行以下命令:
 
-```
+```command
 mongo --tls --host <mongod_url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem --tlsCertificateKeyFile /etc/ssl/certs/mongo.pem
 ```
 
