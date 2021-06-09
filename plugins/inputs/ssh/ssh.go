@@ -176,7 +176,9 @@ func (i *Input) gather() {
 			if err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Errorf("getMetrics err: %s", err.Error())
-			} else {
+			}
+
+			if len(collectCache) != 0 {
 				inputs.FeedMeasurement(inputName, datakit.Metric, collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: false})
 			}
