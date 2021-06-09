@@ -45,6 +45,56 @@ func TestTomlSerialization(t *testing.T) {
 	}
 }
 
+func TestTomlParse2(t *testing.T) {
+	cases := []struct {
+		s    string
+		fail bool
+	}{
+		{
+			s: `abc = [
+				"1", "2", "3",
+				# some comment
+			]`,
+			fail: false,
+		},
+
+		{
+			s:    `abc = []`,
+			fail: false,
+		},
+
+		{
+			s: `abc = [
+				#"1", "2", "3",
+				# some comment
+			]`,
+			fail: true,
+		},
+	}
+
+	for _, tc := range cases {
+		_, err := toml.Parse([]byte(tc.s))
+		if tc.fail {
+			tu.NotOk(t, err, "")
+			t.Log(err)
+			continue
+		} else {
+			tu.Ok(t, err)
+		}
+	}
+
+	//for _, tc := range cases {
+	//	var x interface{}
+	//	_, err := bstoml.Decode(tc.s, &x)
+	//	if tc.fail {
+	//		tu.NotOk(t, err, "")
+	//		continue
+	//	} else {
+	//		tu.Ok(t, err)
+	//	}
+	//}
+}
+
 func TestTomlParse(t *testing.T) {
 
 	tomlParseCases := []struct {
