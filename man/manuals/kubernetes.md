@@ -76,7 +76,8 @@ rules:
 - apiGroups:
   - batch
   resources:
-  - jobs
+  - jobs 
+  - cronjobs
   verbs:
   - get
   - list
