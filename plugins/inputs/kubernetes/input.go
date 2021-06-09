@@ -123,15 +123,16 @@ func (i *Input) globalTag() {
 
 func (i *Input) Collect() error {
 	i.collectors = map[string]func(collector string) error{
-		"daemonsets":             i.collectDaemonSets,
-		"deployments":            i.collectDeployments,
-		"endpoints":              i.collectEndpoints,
-		"ingress":                i.collectIngress,
-		"services":               i.collectServices,
-		"statefulsets":           i.collectStatefulSets,
-		"persistentvolumes":      i.collectPersistentVolumes,
-		"persistentvolumeclaims": i.collectPersistentVolumeClaims,
+		// "daemonsets":             i.collectDaemonSets,
+		// "deployments":            i.collectDeployments,
+		// "endpoints":              i.collectEndpoints,
+		// "ingress":                i.collectIngress,
+		// "services":               i.collectServices,
+		// "statefulsets":           i.collectStatefulSets,
+		// "persistentvolumes":      i.collectPersistentVolumes,
+		// "persistentvolumeclaims": i.collectPersistentVolumeClaims,
 		// "objectPod":              i.collectPodObject,
+		"kubernetes": i.collectKubernetes,
 	}
 
 	i.collectCache = make(map[string][]inputs.Measurement)
@@ -146,6 +147,7 @@ func (i *Input) Collect() error {
 		return err
 	}
 
+	// collect kubernetes
 	for collector, f := range i.collectors {
 		if resourceFilter.Match(collector) {
 			i.collectCache[collector] = make([]inputs.Measurement, 0)
@@ -222,14 +224,15 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&daemonSet{},
-		&deployment{},
-		&endpointM{},
-		&pvM{},
-		&pvcM{},
-		&serviceM{},
-		&statefulSet{},
-		&ingressM{},
+		// &daemonSet{},
+		// &deployment{},
+		// &endpointM{},
+		// &pvM{},
+		// &pvcM{},
+		// &serviceM{},
+		// &statefulSet{},
+		// &ingressM{},
+		&kubernetesMetric{},
 	}
 }
 
