@@ -22,7 +22,7 @@ func (m *kubernetesMetric) LineProto() (*io.Point, error) {
 
 func (m *kubernetesMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: daemonSetMeasurement,
+		Name: k8sMeasurement,
 		Desc: "kubernetes metric",
 		Tags: map[string]interface{}{
 			"namespace": &inputs.TagInfo{Desc: "namespace"},
