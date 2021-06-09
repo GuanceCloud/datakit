@@ -224,20 +224,16 @@ const sampleConfig = `
   ## https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition
   datadog_distributions = true
 
-  drop_tags = [
-	## Examples:
-	## we do not need following tags(they may create tremendous of time-series under influxdb's logic)
+	## We do not need following tags(they may create tremendous of time-series under influxdb's logic)
+	# Examples:
 	# "runtime-id", "metric-type"
-	]
+  drop_tags = [ ]
 
-  metric_mapping = [
-	  # Examples:
-    # all metric-name prefixed with 'jvm_' are set to influxdb's measurement 'jvm'
-    # "jvm_:jvm",
-
-    # all metric-name prefixed with 'stats_' are set to influxdb's measurement 'stats'
-    # "stats_:stats",
-  ]
+  # All metric-name prefixed with 'jvm_' are set to influxdb's measurement 'jvm'
+  # All metric-name prefixed with 'stats_' are set to influxdb's measurement 'stats'
+  # Examples:
+  # "stats_:stats", "jvm_:jvm"
+	metric_mapping = [ ]
 
   ## Number of UDP messages allowed to queue up, once filled,
   ## the statsd server will start dropping packets
