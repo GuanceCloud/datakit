@@ -10,11 +10,10 @@ import (
 
 var (
 	MonofontOnTagFieldName = true
+	TODO                   = "TODO" // global todo string
 )
 
 const (
-	TODO = "TODO" // global todo string
-
 	Int    = "int"
 	Float  = "float"
 	String = "string"
