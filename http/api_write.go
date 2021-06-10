@@ -19,30 +19,21 @@ func apiWrite(c *gin.Context) {
 
 	input := DEFAULT_INPUT
 
-	category := ""
+	category := c.Request.URL.Path
 
-	if x := c.Param(CATEGORY); x != "" {
-		switch x {
-		case datakit.Metric,
-			datakit.Logging,
-			datakit.Object,
-			datakit.Tracing,
-			datakit.KeyEvent:
+	switch category {
+	case datakit.Metric,
+		datakit.Logging,
+		datakit.Object,
+		datakit.Tracing,
+		datakit.KeyEvent:
 
-			category = x
-		case datakit.Rum:
-			category = x
-			input = "rum"
-		case datakit.Security:
-			category = x
-			input = "sechecker"
-		default:
-			l.Debugf("invalid category: %s", x)
-			uhttp.HttpErr(c, ErrInvalidCategory)
-			return
-		}
-	} else {
-		l.Debug("empty category")
+	case datakit.Rum:
+		input = "rum"
+	case datakit.Security:
+		input = "sechecker"
+	default:
+		l.Debugf("invalid category: %s", category)
 		uhttp.HttpErr(c, ErrInvalidCategory)
 		return
 	}
@@ -74,6 +65,8 @@ func apiWrite(c *gin.Context) {
 		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
 		return
 	}
+
+	l.Debugf("body: %s", string(body))
 
 	if category == datakit.Rum { // RUM 数据单独处理
 		handleRUM(c, precision, input, body)
