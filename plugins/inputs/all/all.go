@@ -23,6 +23,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cloudflare"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cloudprober"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/confluence"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/container"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/containerd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cpu"
@@ -82,7 +83,10 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/redis"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/scanport"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/secureexec"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/sensors"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/smart"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/solr"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/sqlserver"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/squid"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ssh"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/statsd"
@@ -107,6 +111,7 @@ import (
 
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/memcached"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/postgresql"
 
 	// removed
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
