@@ -19,7 +19,7 @@ var (
 #		tag2 = "val2"
 #		tag3 = "val3"
 `
-	log *logger.Logger
+	log = logger.DefaultSLogger(inputName)
 )
 
 var JaegerTags map[string]string
