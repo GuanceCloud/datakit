@@ -19,7 +19,7 @@ var (
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...`
-	log *logger.Logger
+	log = logger.DefaultSLogger(inputName)
 )
 
 const (
@@ -46,12 +46,8 @@ func (d *Input) Run() {
 	log.Infof("%s input started...", inputName)
 
 	if d != nil {
-		DdtraceTags = d.Tags
-	}
-
 	<-datakit.Exit.Wait()
 	log.Infof("%s input exit", inputName)
-}
 
 func (d *Input) RegHttpHandler() {
 	if d.Path == "" {
