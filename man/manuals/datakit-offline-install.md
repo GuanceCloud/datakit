@@ -10,7 +10,7 @@
 
 ## 下载安装包
 
-建议在平台匹配的情况下下载安装包，即用 Linux X86 机器下载 Linux X86 平台的 DataKit的安装程序。在 Linux X86 机器上无法下载 Windows 平台的安装程序。以此类推（TODO: 优化下载方式，便于全平台下载）。
+建议在平台匹配的情况下下载安装包，即用 Linux X86 机器下载 Linux X86 平台的 DataKit的安装程序。在 Linux X86 机器上无法下载 Windows 平台的安装程序。以此类推。
 
 ### Windows x86 64 位
 
