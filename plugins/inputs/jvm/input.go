@@ -22,7 +22,7 @@ const (
   # default_tag_prefix      = ""
   # default_field_prefix    = ""
   # default_field_separator = "."
- 
+
   # username = ""
   # password = ""
   # response_timeout = "5s"
@@ -71,7 +71,11 @@ const (
     mbean    = "java.lang:name=*,type=MemoryPool"
     paths    = ["Usage", "PeakUsage", "CollectionUsage"]
     tag_keys = ["name"]
-`
+
+  [inputs.jvm.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...`
 )
 
 var JvmTypeMap = map[string]string{
