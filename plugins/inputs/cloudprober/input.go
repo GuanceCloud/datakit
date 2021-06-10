@@ -59,7 +59,7 @@ func (n *Input) getMetric() {
 	}
 	defer resp.Body.Close()
 
-	collector, err := parse(resp.Body)
+	collector, err := n.parse(resp.Body)
 	if err != nil {
 		n.lastErr = err
 		l.Error(err.Error())
@@ -72,7 +72,7 @@ func (n *Input) getMetric() {
 
 }
 
-func parse(reader io.Reader) ([]inputs.Measurement, error) {
+func (n *Input) parse(reader io.Reader) ([]inputs.Measurement, error) {
 	var (
 		parse     expfmt.TextParser
 		collector []inputs.Measurement
@@ -88,7 +88,9 @@ func parse(reader io.Reader) ([]inputs.Measurement, error) {
 				fields: map[string]interface{}{},
 				ts:     datakit.TimestampMsToTime(metric.GetTimestampMs()),
 			}
-
+			for k, v := range n.Tags {
+				measurement.tags[k] = v
+			}
 			for _, label := range metric.Label {
 				if label.GetName() == "ptype" {
 					measurement.name = fmt.Sprintf("probe_%s", label.GetValue())
