@@ -47,6 +47,10 @@ func (i *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) Run() {
 	if d, err := time.ParseDuration(i.Interval); err != nil {
 		i.Interval = (time.Second * 10).String()
