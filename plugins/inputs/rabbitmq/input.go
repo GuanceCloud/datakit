@@ -28,6 +28,10 @@ func (_ *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
