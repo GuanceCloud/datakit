@@ -58,6 +58,10 @@ const (
 	hostObjMeasurementName = "HOST"
 )
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (c *Input) Run() {
 
 	l = logger.SLogger(InputName)
@@ -227,7 +231,16 @@ func init() {
 			Interval:                 datakit.Duration{Duration: 5 * time.Minute},
 			IgnoreInputsErrorsBefore: datakit.Duration{Duration: 30 * time.Minute},
 			IOTimeout:                datakit.Duration{Duration: 10 * time.Second},
-			IgnoreFS:                 []string{"autofs", "tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"},
+			IgnoreFS: []string{
+				"autofs",
+				"tmpfs",
+				"devtmpfs",
+				"devfs",
+				"iso9660",
+				"overlay",
+				"aufs",
+				"squashfs",
+			},
 		}
 	})
 }
