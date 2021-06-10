@@ -18,8 +18,10 @@ const (
 
 
 [inputs.hostobject.tags] # (optional) custom tags
-#  cloud_provider = "aliyun" # aliyun/tencent/aws
-#  tag2 = "value2"
+# cloud_provider = "aliyun" # aliyun/tencent/aws
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...
 `
 	pipelineSample = ``
 )
