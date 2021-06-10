@@ -5,21 +5,23 @@ const (
 [[inputs.kubernetes]]
     # required
     interval = "10s"
+    ## URL for the Kubernetes API
+    url = "https://kubernetes.default:443"
+    ## Use bearer token for authorization. ('bearer_token' takes priority)
+    ## at: /run/secrets/kubernetes.io/serviceaccount/token
+    bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
 
-    ## URL for the Kubernetes API (required)
-    # url = "https://$HOSTIP:6443"
+    ## Set http timeout (default 5 seconds)
+    timeout = "5s"
 
-    ## Use bearer token for authorization.(absolute path) (required)
-    # bearer_token = "/path/to/token"
+     ## Optional TLS Config
+    tls_ca = "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 
-    ## CA file (absolute path) (required)
-    # tls_ca = "/path/to/ca_crt.pem"
-
-    ## Set http timeout (default 3 seconds)
-    timeout = "3s"
+    ## Use TLS but skip chain & host verification
+    insecure_skip_verify = false
 
     [inputs.kubernetes.tags]
-    # tag1 = val1
-    # tag2 = val2
+    # tag1 = "val1"
+    # tag2 = "val2"
 `
 )
