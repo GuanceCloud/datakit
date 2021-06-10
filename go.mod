@@ -11,6 +11,9 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/BurntSushi/toml v0.3.1
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/Microsoft/hcsshim/test v0.0.0-20201218223536-d3e5debf77da // indirect
@@ -36,7 +39,7 @@ require (
 	github.com/containerd/typeurl v1.0.1
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.1.0
-	github.com/denisbrodbeck/machineid v1.0.1
+	github.com/denisbrodbeck/machineid v1.0.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/dustin/go-humanize v1.0.0
@@ -67,6 +70,7 @@ require (
 	github.com/google/pprof v0.0.0-20200229191704-1ebb73c60ed3 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/hpcloud/tail v1.0.0
+	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.0.30-rc.1
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
@@ -88,6 +92,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
 	github.com/mattn/go-zglob v0.0.3
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mssola/user_agent v0.5.2
 	github.com/naoina/toml v0.1.1
