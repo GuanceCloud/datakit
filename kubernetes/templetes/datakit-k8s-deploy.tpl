@@ -13,6 +13,7 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - events
   - nodes
   - nodes/proxy
   - namespaces
@@ -25,6 +26,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - apps
   resources:
