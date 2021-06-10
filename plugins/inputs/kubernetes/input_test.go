@@ -93,7 +93,9 @@ func TestRun(t *testing.T) {
 	}
 
 	err = kube.Collect()
-	t.Log("collect data error ---->", err)
+	if err != nil {
+		t.Log("collect data error ---->", err)
+	}
 
 	for k, ms := range kube.collectCache {
 		t.Log("collect resource type", k)
