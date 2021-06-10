@@ -80,6 +80,9 @@ vet:
 test:
 	@GO111MODULE=off go test ./...
 
+mklogfilter:
+	cd io/logfilter/parser && make
+
 local: man gofmt
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 

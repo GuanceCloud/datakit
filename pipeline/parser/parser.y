@@ -42,12 +42,12 @@ AND OR NIL NULL RE JP
 ////////////////////////////////////////////////////
 // grammar rules
 ////////////////////////////////////////////////////
-%type <item> 
+%type <item>
 	unary_op
 	function_name
 	identifier
 
-%type<nodes> function_args 
+%type<nodes> function_args
 
 %type <node>
 	array_elem
@@ -72,7 +72,7 @@ AND OR NIL NULL RE JP
 // operator listed with increasing precedence
 %left OR
 %left AND
-%left GTE GT NEQ EQ LTE LT 
+%left GTE GT NEQ EQ LTE LT
 %left ADD SUB
 %left MUL DIV MOD
 %right POW
@@ -205,13 +205,13 @@ binary_expr: expr ADD expr
 					 {
 					   $$ = yylex.(*parser).newBinExpr($1, $3, $2)
 					 }
-					 | expr GTE expr 
+					 | expr GTE expr
 					 {
 						 bexpr := yylex.(*parser).newBinExpr($1, $3, $2)
 						 bexpr.ReturnBool = true
 						 $$ = bexpr
 					 }
-					 | expr GT expr 
+					 | expr GT expr
 					 {
 						 bexpr := yylex.(*parser).newBinExpr($1, $3, $2)
 						 bexpr.ReturnBool = true
