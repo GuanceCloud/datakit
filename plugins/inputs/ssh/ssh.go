@@ -66,6 +66,7 @@ var (
 )
 
 func (i *Input) Run() {
+	l = logger.SLogger(inputName)
 	if i.Host == "" {
 		l.Errorf("host configuration missed")
 		return
