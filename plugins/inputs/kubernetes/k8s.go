@@ -148,7 +148,7 @@ func (i *Input) collectKubernetes(collector string) error {
 		}
 
 		// statefulSets
-		if list, err := i.client.getServices(); err != nil {
+		if list, err := i.client.getStatefulSets(); err != nil {
 			l.Error(err)
 		} else {
 			fields["statefulSets"] = len(list.Items)
