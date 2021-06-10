@@ -11,12 +11,13 @@ var (
 	inputName = "traceJaeger"
 
 	traceJaegerConfigSample = `
-#[inputs.traceJaeger]
+[inputs.traceJaeger]
 #	path = "/api/traces"
-#	[inputs.traceJaeger.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
+#	udp_agent = "127.0.0.1:6832"
+	[inputs.traceJaeger.tags]
+#		tag1 = "val1"
+#		tag2 = "val2"
+#		tag3 = "val3"
 `
 	log *logger.Logger
 )
@@ -28,8 +29,9 @@ const (
 )
 
 type JaegerTrace struct {
-	Path string
-	Tags map[string]string
+	Path     string
+	UdpAgent string `toml:"udp_agent"`
+	Tags     map[string]string
 }
 
 func (_ *JaegerTrace) Catalog() string {
@@ -48,6 +50,9 @@ func (t *JaegerTrace) Run() {
 		JaegerTags = t.Tags
 	}
 
+	if t.UdpAgent != "" {
+		StartUdpAgent(t.UdpAgent)
+	}
 	<-datakit.Exit.Wait()
 	log.Infof("%s input exit", inputName)
 }
