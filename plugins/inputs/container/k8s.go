@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -15,7 +16,7 @@ const (
 	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
-func buildPodMetrics(summaryApi *SummaryMetrics, dropTags, podNameRewrite []string, category string) ([]*io.Point, error) {
+func buildPodMetrics(summaryApi *SummaryMetrics, dropTags []string, ignorePodNameRegexps []*regexp.Regexp, category string) ([]*io.Point, error) {
 	var pts []*io.Point
 
 	for _, pod := range summaryApi.Pods {
@@ -24,15 +25,10 @@ func buildPodMetrics(summaryApi *SummaryMetrics, dropTags, podNameRewrite []stri
 		}
 		tags := map[string]string{
 			"node_name": summaryApi.Node.NodeName,
-			"pod_name": func() string {
-				for _, name := range podNameRewrite {
-					if strings.HasPrefix(pod.PodRef.Name, name) {
-						return name
-					}
-				}
-				return pod.PodRef.Name
-			}(),
 			"namespace": pod.PodRef.Namespace,
+		}
+		if !RegexpMatchString(ignorePodNameRegexps, pod.PodRef.Name) {
+			tags["pod_name"] = pod.PodRef.Name
 		}
 		if category == "object" {
 			tags["name"] = pod.PodRef.UID
@@ -60,6 +56,24 @@ func buildPodMetrics(summaryApi *SummaryMetrics, dropTags, podNameRewrite []stri
 			fields["cpu_usage"] = cpuPrecent
 		}
 
+		if category == "object" {
+			message, err := json.Marshal(func() map[string]interface{} {
+				var result = make(map[string]interface{}, len(tags)+len(fields))
+				for k, v := range tags {
+					result[k] = v
+				}
+				for k, v := range fields {
+					result[k] = v
+				}
+				return result
+			}())
+			if err != nil {
+				l.Warnf("json marshal failed: %s", err)
+			} else {
+				fields["message"] = string(message)
+			}
+		}
+
 		pt, err := io.MakePoint(kubeletPodName, tags, fields, time.Now())
 		if err != nil {
 			return nil, err
@@ -74,11 +88,13 @@ func buildPodMetrics(summaryApi *SummaryMetrics, dropTags, podNameRewrite []stri
 type Kubernetes struct {
 	URL string `toml:"kubelet_url"`
 	// Bearer Token authorization file path
-	BearerToken       string `toml:"bearer_token"`
-	BearerTokenString string `toml:"bearer_token_string"`
+	BearerToken       string   `toml:"bearer_token"`
+	BearerTokenString string   `toml:"bearer_token_string"`
+	IgnorePodName     []string `toml:"ignore_pod_name"`
 	ClientConfig
 
-	roundTripper http.RoundTripper
+	ignorePodNameRegexps []*regexp.Regexp
+	roundTripper         http.RoundTripper
 }
 
 func (k *Kubernetes) Init() error {
@@ -95,15 +111,26 @@ func (k *Kubernetes) Init() error {
 		k.BearerTokenString = strings.TrimSpace(string(token))
 	}
 
+	// reset
+	k.ignorePodNameRegexps = k.ignorePodNameRegexps[:0]
+
+	for _, n := range k.IgnorePodName {
+		re, err := regexp.Compile(n)
+		if err != nil {
+			return err
+		}
+		k.ignorePodNameRegexps = append(k.ignorePodNameRegexps, re)
+	}
+
 	return nil
 }
 
-func (k *Kubernetes) GatherPodMetrics(dropTags, podNameRewrite []string, category string) ([]*io.Point, error) {
+func (k *Kubernetes) GatherPodMetrics(dropTags []string, category string) ([]*io.Point, error) {
 	summaryApi, err := k.GetSummaryMetrics()
 	if err != nil {
 		return nil, err
 	}
-	return buildPodMetrics(summaryApi, dropTags, podNameRewrite, category)
+	return buildPodMetrics(summaryApi, dropTags, k.ignorePodNameRegexps, category)
 }
 
 func (k *Kubernetes) GatherPodInfo(containerID string) (map[string]string, error) {
@@ -244,9 +271,10 @@ type PodItem struct {
 }
 
 type PodItemMetadata struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	UID       string `json:"uid"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	UID       string            `json:"uid"`
+	Labels    map[string]string `json:"labels"`
 }
 
 type PodItemStatus struct {
