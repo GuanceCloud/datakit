@@ -76,7 +76,6 @@ require (
 	github.com/klauspost/cpuid v1.2.0 // indirect
 	github.com/lib/pq v1.8.0
 	github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f
-	github.com/luci/go-render v0.0.0-20160219211803-9a04cc21af0f
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
@@ -85,7 +84,6 @@ require (
 	github.com/mssola/user_agent v0.5.2
 	github.com/naoina/toml v0.1.1
 	github.com/nickelser/parselogical v0.0.0-20171014195826-b07373e53c91
-	github.com/olivere/elastic/v7 v7.0.22
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.5.1 // indirect
@@ -102,7 +100,6 @@ require (
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/xid v1.3.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
-	github.com/sgreben/piecewiselinear v1.1.1
 	github.com/shirou/gopsutil v3.20.12+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
