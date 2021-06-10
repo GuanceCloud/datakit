@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -109,8 +108,7 @@ const (
 )
 
 var (
-	log  *logger.Logger
-	once sync.Once
+	log = logger.DefaultSLogger("trace")
 )
 
 func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
@@ -166,7 +164,7 @@ func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 
 	pt, err := dkio.MakePoint(tAdpt.Source, tags, fields, ts)
 	if err != nil {
-		GetInstance().Errorf("build metric err: %s", err)
+		log.Errorf("build metric err: %s", err)
 		return nil, err
 	}
 
@@ -185,7 +183,7 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 	}
 
 	if err := dkio.Feed(pluginName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
-		GetInstance().Errorf("io feed err: %s", err)
+		log.Errorf("io feed err: %s", err)
 	}
 }
 
@@ -238,14 +236,6 @@ func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
 	}
 
 	return data, nil
-}
-
-//GetInstance 用于获取单例模式对象
-func GetInstance() *logger.Logger {
-	once.Do(func() {
-		log = logger.SLogger("trace")
-	})
-	return log
 }
 
 func GetFromPluginTag(tags map[string]string, tagName string) string {
