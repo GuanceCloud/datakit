@@ -186,7 +186,7 @@ func (i *Input) collectSlowlogMeasurement() ([]inputs.Measurement, error) {
 func (i *Input) runLog(defaultPile string) error {
 	if i.Log != nil {
 		if len(i.Log.Files) == 0 {
-		  return nil
+			return nil
 		}
 
 		pfile := defaultPile
