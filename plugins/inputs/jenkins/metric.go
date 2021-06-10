@@ -48,6 +48,9 @@ func getPluginMetric(n *Input) {
 		"metric_plugin_version": metric.Version,
 		"url":                   n.Url,
 	}
+	for k, v := range n.Tags {
+		tags[k] = v
+	}
 	fields := map[string]interface{}{}
 	for k, v := range metric.Gauges {
 		if fieldKey, ok := fieldMap[k]; ok {

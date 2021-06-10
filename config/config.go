@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/influxdata/toml"
@@ -31,11 +32,34 @@ func LoadCfg(c *datakit.Config, mcp string) error {
 
 	datakit.InitDirs()
 
-	if err := c.LoadEnvs(mcp); err != nil {
+	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
+
+		if runtime.GOOS != "linux" {
+			return fmt.Errorf("docker mode not supported under %s", runtime.GOOS)
+		}
+
+		if err := c.LoadEnvs(); err != nil {
+			return err
+		}
+
+		// 这里暂时用 hostname 当做 datakit ID, 后续肯定会移除掉, 即 datakit ID 基本已经废弃不用了,
+		// 中心最终将通过统计主机个数作为 datakit 数量来收费.
+		// 由于 datakit UUID 不再重要, 出错也不管了
+		_ = c.SetUUID()
+
+		_ = datakit.CreateSymlinks()
+
+	} else {
+		if err := c.LoadMainTOML(mcp); err != nil {
+			return err
+		}
+	}
+
+	if err := c.ApplyMainConfig(); err != nil {
 		return err
 	}
 
-	if err := c.LoadMainConfig(mcp); err != nil {
+	if err := c.InitCfg(datakit.MainConfPath); err != nil {
 		return err
 	}
 
