@@ -48,7 +48,7 @@ var (
 	flagInstallLog   = flag.String("install-log", "", "install log")
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
-	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
+	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
 )
 
 const (
@@ -199,13 +199,13 @@ Golang Version: %s
 
 		if err := install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, false); err != nil {
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, true); err != nil {
 			return
 		}
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
-		if err := install.Download(dataUrl, "data.tar.gz", true, false); err != nil {
+		if err := install.Download(dataUrl, "data.tar.gz", true, true); err != nil {
 			return
 		}
 
