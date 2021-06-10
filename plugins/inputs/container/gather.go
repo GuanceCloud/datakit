@@ -202,6 +202,7 @@ func (this *Input) gatherStats(container types.Container) (map[string]interface{
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
 
 	return map[string]interface{}{
+		"from_kubernetes":    contianerIsFromKubernetes(getContainerName(container.Names)),
 		"cpu_usage":          calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
 		"cpu_delta":          calculateCPUDelta(v),
 		"cpu_system_delta":   calculateCPUSystemDelta(v),
