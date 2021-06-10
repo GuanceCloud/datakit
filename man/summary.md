@@ -62,6 +62,8 @@
   - [硬件温度 Sensors](sensors)
   - [磁盘 S.M.A.R.T](smart)
 
+	- [Prometheus 数据接入](prom)
+
   - [APM（DDTrace）](ddtrace)
   - [RUM](rum)
   - [网络拨测](dialtesting)
