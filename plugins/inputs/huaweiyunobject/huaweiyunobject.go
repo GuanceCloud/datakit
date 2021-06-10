@@ -43,6 +43,10 @@ func (_ *agent) Catalog() string {
 	return `huaweiyun`
 }
 
+// TODO
+func (*agent) RunPipeline() {
+}
+
 func (ag *agent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
