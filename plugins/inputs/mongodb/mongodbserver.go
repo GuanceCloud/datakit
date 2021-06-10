@@ -207,6 +207,8 @@ func (s *Server) gatherTopStatData() (*TopStats, error) {
 }
 
 func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool, gatherPerDbStats bool, gatherPerColStats bool, colStatsDbs []string, gatherTopStat bool) error {
+	start := time.Now()
+
 	s.Session.SetMode(mgo.Eventual, true)
 	s.Session.SetSocketTimeout(0)
 
@@ -307,14 +309,14 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 			durationInSeconds = 1
 		}
 
-		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags(), duration)
+		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags())
 		data.AddDefaultStats()
 		data.AddShardHostStats()
 		data.AddDbStats()
 		data.AddColStats()
 		data.AddTopStats()
 		data.append()
-		data.flush()
+		data.flush(time.Now().Sub(start))
 	}
 
 	s.lastResult = result
