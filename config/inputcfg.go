@@ -347,6 +347,7 @@ var electionInputs = map[string]interface{}{
 	"kubernetes": nil,
 	"gitlab":     nil,
 	"demo":       nil,
+	"prom":       nil,
 }
 
 func tryStartElection(tbl *ast.Table, entries map[string]interface{}) {
