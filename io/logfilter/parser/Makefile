@@ -1,4 +1,2 @@
-default: yacc
-
-yacc:
+all:
 	@goyacc -o parser.y.go -p cond parser.y
