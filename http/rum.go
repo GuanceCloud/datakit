@@ -32,7 +32,7 @@ func geoTags(srcip string) (tags map[string]string) {
 
 	ipInfo, err := geo.Geo(srcip)
 
-	l.Debugf("ip(%s): %+#v", srcip, ipInfo)
+	l.Debugf("ipinfo(%s): %+#v", ipInfo, srcip)
 
 	if err != nil {
 		l.Errorf("geo failed: %s, ignored", err)
@@ -108,6 +108,16 @@ func handleRUM(c *gin.Context, precision, input string, body []byte) {
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
+	}
+
+	for _, pt := range rumpts {
+		x := pt.String()
+		l.Debugf("%s", x)
+		if err := lp.ParseLineProto([]byte(x), "n"); err != nil {
+			l.Errorf("parse failed: %s", err.Error())
+		} else {
+			l.Debug("parse ok")
+		}
 	}
 
 	if len(rumpts) > 0 {
