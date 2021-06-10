@@ -21,13 +21,14 @@ const (
 	defaultMeasurement = "druid"
 
 	sampleCfg = `
-[[inputs.druid]]
-    # http server route path
-    # required
+[inputs.druid]
+    ## http server route path
+    ## required
     path = "/druid"
 
-    # [inputs.druid.tags]
-    # tags1 = "value1"
+    [inputs.druid.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
