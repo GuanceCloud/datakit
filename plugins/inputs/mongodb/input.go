@@ -26,7 +26,6 @@ var (
 	defMongodLogPath = "/var/log/mongodb/mongod.log"
 	defPipeline      = "mongod.p"
 	defTags          map[string]string
-	defGatherTimeout = 3 * time.Second
 )
 
 var (
@@ -97,7 +96,7 @@ var (
   json(_, ctx, "context")
   default_time(time)
 `
-	l = logger.SLogger(inputName)
+	l = logger.DefaultSLogger(inputName)
 )
 
 type Input struct {
@@ -166,6 +165,7 @@ func (m *Input) RunPipeline() {
 }
 
 func (m *Input) Run() {
+	l = logger.SLogger(inputName)
 	l.Info("mongodb input started")
 
 	defTags = m.Tags
@@ -198,55 +198,40 @@ func (m *Input) getMongoServer(url *url.URL) *Server {
 // Reads stats from all configured servers.
 // Returns one of the errors encountered while gather stats (if any).
 func (m *Input) gather() error {
-	errc := make(chan error)
-	go func() {
-		if len(m.Servers) == 0 {
-			errc <- m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoUrl}))
-
-			return
-		}
-
-		var wg sync.WaitGroup
-		for i, serv := range m.Servers {
-			if !strings.HasPrefix(serv, "mongodb://") {
-				serv = "mongodb://" + serv
-				l.Warnf("using %q as connection URL; please update your configuration to use an URL", serv)
-				m.Servers[i] = serv
-			}
-
-			u, err := url.Parse(serv)
-			if err != nil {
-				l.Errorf("unable to parse address %q: %s", serv, err.Error())
-				continue
-			}
-			if u.Host == "" {
-				l.Errorf("unable to parse address %q", serv)
-				continue
-			}
-
-			wg.Add(1)
-			go func(srv *Server) {
-				defer wg.Done()
-
-				if err := m.gatherServer(srv); err != nil {
-					l.Errorf("error in plugin: %s,%v", srv.URL.String(), err)
-					errc <- err
-				}
-			}(m.getMongoServer(u))
-		}
-		wg.Wait()
-
-		errc <- nil
-	}()
-
-	tmr := time.NewTimer(defGatherTimeout)
-	defer tmr.Stop()
-	select {
-	case <-tmr.C:
-		return fmt.Errorf("gathering %q process overtime.", inputName)
-	case err := <-errc:
-		return err
+	if len(m.Servers) == 0 {
+		return m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoUrl}))
 	}
+
+	var wg sync.WaitGroup
+	for i, serv := range m.Servers {
+		if !strings.HasPrefix(serv, "mongodb://") {
+			serv = "mongodb://" + serv
+			l.Warnf("using %q as connection URL; please update your configuration to use an URL", serv)
+			m.Servers[i] = serv
+		}
+
+		u, err := url.Parse(serv)
+		if err != nil {
+			l.Errorf("unable to parse address %q: %s", serv, err.Error())
+			continue
+		}
+		if u.Host == "" {
+			l.Errorf("unable to parse address %q", serv)
+			continue
+		}
+
+		wg.Add(1)
+		go func(srv *Server) {
+			defer wg.Done()
+
+			if err := m.gatherServer(srv); err != nil {
+				l.Errorf("error in plugin: %s,%v", srv.URL.String(), err)
+			}
+		}(m.getMongoServer(u))
+	}
+	wg.Wait()
+
+	return nil
 }
 
 func (m *Input) gatherServer(server *Server) error {
