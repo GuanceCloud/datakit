@@ -28,8 +28,9 @@ const (
     # required
     interval = "10s"
 
-    # [inputs.tidb.tags]
-    # tags1 = "value1"
+    [inputs.tidb.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
@@ -41,7 +42,7 @@ var l = logger.DefaultSLogger(inputName)
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &TiDB{
-			Interval: datakit.Cfg.Interval,
+			Interval: datakit.Cfg.IntervalDeprecated,
 			Tags:     make(map[string]string),
 		}
 	})
