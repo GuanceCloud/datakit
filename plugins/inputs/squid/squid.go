@@ -59,6 +59,7 @@ var (
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 `
+	l = logger.DefaultSLogger(inputName)
 )
 
 func (s *Squid) Catalog() string {
@@ -74,6 +75,7 @@ func (s *Squid) Description() string {
 }
 
 func (s *Squid) Run() {
+	l = logger.SLogger(inputName)
 	p := s.genParam()
 	p.log.Info("squid input started...")
 	p.gather()
@@ -92,7 +94,7 @@ func (s *Squid) genParam() *SquidParam {
 
 	input := SquidInput{*s}
 	output := SquidOutput{io.NamedFeed}
-	p := &SquidParam{input, output, logger.SLogger("squid")}
+	p := &SquidParam{input, output, l}
 	return p
 }
 
