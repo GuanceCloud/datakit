@@ -76,7 +76,7 @@ func (m *kubernetesMetric) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "cronjob count",
 			},
-			"ob": &inputs.FieldInfo{
+			"job": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Count,
 				Unit:     inputs.UnknownUnit,
