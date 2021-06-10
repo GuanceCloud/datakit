@@ -12,13 +12,13 @@
 
 准备对应语言的 ddtrace 配置：
 
-- Python: https://github.com/DataDog/dd-trace-py
-- Golang: https://github.com/DataDog/dd-trace-go
-- NodeJS: https://github.com/DataDog/dd-trace-js
-- PHP: https://github.com/DataDog/dd-trace-php
-- Ruby: https://github.com/DataDog/dd-trace-rb
-- C#: https://github.com/DataDog/dd-trace-dotnet
-- C++: https://github.com/opentracing/opentracing-cpp
+- [Python](https://github.com/DataDog/dd-trace-py)
+- [Golang](https://github.com/DataDog/dd-trace-go)
+- [NodeJS](https://github.com/DataDog/dd-trace-js)
+- [PHP](https://github.com/DataDog/dd-trace-php)
+- [Ruby](https://github.com/DataDog/dd-trace-rb)
+- [C#](https://github.com/DataDog/dd-trace-dotnet)
+- [C++](https://github.com/opentracing/opentracing-cpp)
 - Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`。也可以直接去 [Maven 下载](https://repo1.maven.org/maven2/com/datadoghq/dd-java-agent/)
 
 ## 配置
@@ -136,15 +136,15 @@ if __name__ == '__main__':
 
 ```shell
 # 分别后台启动两个服务：
-$ (ddtrace-run python3 service_a.py &> a.log &)
-$ (ddtrace-run python3 service_b.py &> b.log &)
+(ddtrace-run python3 service_a.py &> a.log &)
+(ddtrace-run python3 service_b.py &> b.log &)
 
 # 调用 A 服务，促使其调用 B 服务，这样就能产生对应 trace 数据（此处可多次执行触发）
-$ curl http://localhost:54321/a
+curl http://localhost:54321/a
 
 # 分别停止两个服务
-$ curl http://localhost:54321/stop
-$ curl http://localhost:54322/stop
+curl http://localhost:54321/stop
+curl http://localhost:54322/stop
 ```
 
 可以通过 [DQL](https://www.yuque.com/dataflux/doc/fsnd2r) 验证上报的数据：
