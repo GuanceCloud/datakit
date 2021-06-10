@@ -43,6 +43,12 @@ var (
 		"rum":            "RUM",
 		"dataway":        "DataWay",
 		"proxy":          "DataKit代理",
+		"mongodb":        "MongoDB",
+		"kubernetes":     "Kubernetes",
+		"sqlserver":      "SQLServer",
+		"postgresql":     "PostgreSQL",
+		"statsd":         "Statsd",
+		"container":      "容器",
 	}
 )
 
