@@ -19,7 +19,7 @@ var (
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...`
-	log *logger.Logger
+	log = logger.DefaultSLogger(inputName)
 )
 
 const (
