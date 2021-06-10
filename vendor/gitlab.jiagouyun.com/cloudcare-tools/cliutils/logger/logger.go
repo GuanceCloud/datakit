@@ -15,26 +15,42 @@ import (
 )
 
 const (
-	// non-json
+	// 禁用 JSON 形式输出
 	OPT_ENC_CONSOLE = 1 //nolint:golint,stylecheck
 
-	OPT_SHORT_CALLER    = 2                                               //nolint:stylecheck,golint
-	OPT_STDOUT          = 4                                               //nolint:stylecheck,golint
-	OPT_COLOR           = 8                                               //nolint:stylecheck,golint
-	OPT_RESERVED_LOGGER = 16                                              //nolint:stylecheck,golint
-	OPT_ROTATE          = 32                                              //nolint:stylecheck,golint
-	OPT_DEFAULT         = OPT_ENC_CONSOLE | OPT_SHORT_CALLER | OPT_ROTATE //nolint:stylecheck,golint
+	// 显示代码路径时，不显示全路径
+	OPT_SHORT_CALLER = 2 //nolint:stylecheck,golint
 
-	DEBUG = "debug"
-	INFO  = "info"
+	// 日志写到 stdout
+	OPT_STDOUT = 4 //nolint:stylecheck,golint
+
+	// 日志内容中追加颜色
+	OPT_COLOR = 8 //nolint:stylecheck,golint
+
+	// 开启 logger 模块自用 SugaredLogger
+	OPT_RESERVED_LOGGER = 16 //nolint:stylecheck,golint
+
+	// 日志自动切割
+	OPT_ROTATE = 32 //nolint:stylecheck,golint
+
+	// 默认日志 flags
+	OPT_DEFAULT = OPT_ENC_CONSOLE | OPT_SHORT_CALLER | OPT_ROTATE //nolint:stylecheck,golint
+
+	DEBUG  = "debug"
+	INFO   = "info"
+	WARN   = "warn"
+	ERROR  = "error"
+	PANIC  = "panic"
+	DPANIC = "dpanic"
+	FATAL  = "fatal"
 )
 
 var (
 	defaultRootLogger *zap.Logger
 	stdoutRootLogger  *zap.Logger
 
-	ll                  *zap.SugaredLogger
-	reservedSLoggerName string = "__reserved__"
+	ll                  *zap.SugaredLogger // logger's logging
+	reservedSLoggerName string             = "__reserved__"
 	slogs               *sync.Map
 
 	mtx = &sync.Mutex{}
@@ -42,28 +58,96 @@ var (
 	MaxSize    = 32 // megabytes
 	MaxBackups = 5
 	MaxAge     = 28 // day
+
+	EnvRootLoggerPath = "ROOT_LOGGER_PATH"
+
+	defaultOption = &Option{
+		Level: DEBUG,
+		Flags: OPT_DEFAULT,
+	}
 )
 
 type Logger struct {
 	*zap.SugaredLogger
 }
 
+type Option struct {
+	Env   string
+	Path  string
+	Level string
+
+	Flags int
+}
+
+func Reset() {
+
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	defaultRootLogger = nil
+	stdoutRootLogger = nil
+}
+
+func InitRoot(opt *Option) error {
+
+	if opt == nil {
+		opt = defaultOption
+	}
+
+	switch opt.Level {
+	case DEBUG, INFO, WARN, ERROR, PANIC, FATAL, DPANIC:
+	case "": // 默认使用 DEBUG
+		opt.Level = DEBUG
+
+	default:
+		return fmt.Errorf("invalid log level `%s'", opt.Level)
+	}
+
+	if opt.Flags == 0 {
+		opt.Flags = OPT_DEFAULT
+	}
+
+	if opt.Env != "" {
+		return SetEnvRootLogger(opt.Env, opt.Level, opt.Flags)
+	}
+
+	if opt.Path == "" {
+		SetStdoutRootLogger(opt.Level, opt.Flags)
+		return nil
+	} else {
+		SetGlobalRootLogger(opt.Path, opt.Level, opt.Flags)
+		return nil
+	}
+
+	return nil
+}
+
+func SetEnvRootLogger(env, level string, options int) error {
+	fpath, ok := os.LookupEnv(env)
+	if !ok {
+		return fmt.Errorf("ENV `%s' not set", env)
+	}
+
+	return SetGlobalRootLogger(fpath, level, options)
+}
+
 func SetStdoutRootLogger(level string, options int) {
 	mtx.Lock()
 	defer mtx.Unlock()
 
+	opt := options | OPT_STDOUT
 	if stdoutRootLogger != nil {
 		return
 	}
 
 	var err error
-	stdoutRootLogger, err = newRootLogger("", level, options)
+	stdoutRootLogger, err = newRootLogger("", level, opt)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func SetGlobalRootLogger(fpath, level string, options int) {
+func SetGlobalRootLogger(fpath, level string, options int) error {
 	mtx.Lock()
 	defer mtx.Unlock()
 
@@ -72,13 +156,13 @@ func SetGlobalRootLogger(fpath, level string, options int) {
 			ll.Warnf("global root logger has been initialized %+#v", defaultRootLogger)
 		}
 
-		return
+		return nil
 	}
 
 	var err error
 	defaultRootLogger, err = newRootLogger(fpath, level, options)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	slogs = &sync.Map{}
@@ -89,15 +173,12 @@ func SetGlobalRootLogger(fpath, level string, options int) {
 
 		ll.Info("root logger init ok")
 	}
+	return nil
 }
-
-const (
-	rootNotInitialized = "you should init a root logger via SetGlobalRootLogger or SetStdoutRootLogger"
-)
 
 func SLogger(name string) *Logger {
 	if defaultRootLogger == nil && stdoutRootLogger == nil {
-		panic(rootNotInitialized)
+		panic("root logger not set")
 	}
 
 	return &Logger{SugaredLogger: slogger(name)}
@@ -114,12 +195,17 @@ func slogger(name string) *zap.SugaredLogger {
 	}
 
 	if root == nil {
-		if runtime.GOOS != "windows" {
-			SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT|OPT_COLOR)
+		// try set root-logger via env
+		if err := SetEnvRootLogger(EnvRootLoggerPath, DEBUG, OPT_DEFAULT); err == nil {
+			root = defaultRootLogger
 		} else {
-			SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
+			if runtime.GOOS != "windows" {
+				SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT|OPT_COLOR)
+			} else {
+				SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
+			}
+			root = stdoutRootLogger
 		}
-		root = stdoutRootLogger
 	}
 
 	newlog := getSugarLogger(root, name)
@@ -250,6 +336,16 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 		cfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	case INFO:
 		cfg.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	case WARN:
+		cfg.Level = zap.NewAtomicLevelAt(zapcore.WarnLevel)
+	case ERROR:
+		cfg.Level = zap.NewAtomicLevelAt(zapcore.ErrorLevel)
+	case PANIC:
+		cfg.Level = zap.NewAtomicLevelAt(zapcore.PanicLevel)
+	case DPANIC:
+		cfg.Level = zap.NewAtomicLevelAt(zapcore.DPanicLevel)
+	case FATAL:
+		cfg.Level = zap.NewAtomicLevelAt(zapcore.FatalLevel)
 	default:
 		cfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	}

@@ -20,7 +20,7 @@ RUM 采集默认已经支持，无需开启额外的采集器。
 
 RUM 采集器默认会采集如下几个指标集：
 
-- `errors`
+- `error`
 - `view`
 - `resource`
 - `long_task`
