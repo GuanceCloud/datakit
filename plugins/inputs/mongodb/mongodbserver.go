@@ -22,7 +22,7 @@ type Server struct {
 
 func (s *Server) getDefaultTags() map[string]string {
 	tags := make(map[string]string)
-	tags["mongo_host"] = s.URL.Host
+	tags["mongod_host"] = s.URL.Host
 	for k, v := range defTags {
 		tags[k] = v
 	}
