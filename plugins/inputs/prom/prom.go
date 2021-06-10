@@ -37,8 +37,9 @@ const (
     # required
     source = ""
 
-    # [inputs.prom.tags]
-    # tags1 = "value1"
+    [inputs.prom.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 )
 
@@ -75,7 +76,7 @@ func NewProm(inputName, catalogStr, sampleCfg string, ignoreFunc func(*ifxcli.Po
 		InputName:      inputName,
 		CatalogStr:     inputName,
 		SampleCfg:      sampleCfg,
-		Interval:       datakit.Cfg.Interval,
+		Interval:       datakit.Cfg.IntervalDeprecated,
 		Tags:           make(map[string]string),
 		IgnoreFunc:     ignoreFunc,
 		PromToNameFunc: nil,
@@ -220,7 +221,7 @@ func (p *Prom) getMetrics() ([]byte, error) {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Prom{
-			Interval:       datakit.Cfg.Interval,
+			Interval:       datakit.Cfg.IntervalDeprecated,
 			InputName:      inputName,
 			SampleCfg:      sampleCfg,
 			Tags:           make(map[string]string),

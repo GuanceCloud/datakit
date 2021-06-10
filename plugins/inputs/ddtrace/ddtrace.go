@@ -12,15 +12,14 @@ var (
 
 	traceDdtraceConfigSample = `
 [inputs.ddtrace]
-	# 此路由建议不要修改，以免跟其它路由冲突
-	path = "/v0.4/traces"
+  # 此路由建议不要修改，以免跟其它路由冲突
+  path = "/v0.4/traces"
 
-	[inputs.ddtrace.tags]
-		# tag1 = "tag1"
-		# tag2 = "tag2"
-		# tag3 = "tag3"
-`
-	log = logger.DefaultSLogger(inputName)
+  [inputs.ddtrace.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...`
+	log *logger.Logger
 )
 
 const (
@@ -29,46 +28,39 @@ const (
 
 var DdtraceTags map[string]string
 
-type Zipkin struct {
-	Tags map[string]string
-}
-
-type Ddtrace struct {
+type Input struct {
 	Path string
 	Tags map[string]string
 }
 
-func (_ *Ddtrace) Catalog() string {
+func (_ *Input) Catalog() string {
 	return inputName
 }
 
-func (_ *Ddtrace) SampleConfig() string {
+func (_ *Input) SampleConfig() string {
 	return traceDdtraceConfigSample
 }
 
-func (d *Ddtrace) Run() {
+func (d *Input) Run() {
+	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
 	if d != nil {
-		DdtraceTags = d.Tags
-	}
-
 	<-datakit.Exit.Wait()
 	log.Infof("%s input exit", inputName)
-}
 
-func (d *Ddtrace) RegHttpHandler() {
+func (d *Input) RegHttpHandler() {
 	if d.Path == "" {
 		d.Path = defaultDdtracePath
 	}
 	http.RegHttpHandler("POST", d.Path, DdtraceTraceHandle)
 	http.RegHttpHandler("PUT", d.Path, DdtraceTraceHandle)
 }
-func (i *Ddtrace) AvailableArchs() []string {
+func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Ddtrace) SampleMeasurement() []inputs.Measurement {
+func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&DdtraceMeasurement{},
 	}
@@ -76,7 +68,7 @@ func (i *Ddtrace) SampleMeasurement() []inputs.Measurement {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		d := &Ddtrace{}
+		d := &Input{}
 		return d
 	})
 }

@@ -17,16 +17,18 @@ import (
 
 const sampleConfig = `
 [[inputs.memcached]]
-	## 服务器地址，可支持多个
-	servers = ["localhost:11211"]
-	# unix_sockets = ["/var/run/memcached.sock"]
+  ## 服务器地址，可支持多个
+  servers = ["localhost:11211"]
+  # unix_sockets = ["/var/run/memcached.sock"]
 
-	## 采集间隔
-	# 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	interval = "10s"
+  ## 采集间隔
+  # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  interval = "10s"
 
-	[inputs.memcached.tags]
-	# a = "b"
+[inputs.memcached.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
 `
 
 var (
@@ -170,6 +172,12 @@ func (i *Input) gatherServer(address string, unix bool) error {
 		}
 	}
 
+	if i.Tags != nil {
+		for k, v := range i.Tags {
+			tags[k] = v
+		}
+	}
+
 	i.collectCache = append(i.collectCache, &inputMeasurement{
 		name:   "memcached",
 		fields: fields,
@@ -208,7 +216,6 @@ const (
 )
 
 func (i *Input) Run() {
-
 	l = logger.SLogger(inputName)
 
 	duration, err := time.ParseDuration(i.Interval)

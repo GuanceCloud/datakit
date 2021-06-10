@@ -31,11 +31,13 @@ var (
 	response_timeout = "20s"
 
 	[inputs.nginx.log]
-	#	files = []
+	#	files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
 	[inputs.nginx.tags]
-	# a = "b"`
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	# ...`
 
 	pipelineCfg = `
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
@@ -85,6 +87,10 @@ func (_ *Input) PipelineConfig() map[string]string {
 		"nginx": pipelineCfg,
 	}
 	return pipelineMap
+}
+
+// TODO
+func (*Input) RunPipeline() {
 }
 
 func (n *Input) Run() {
