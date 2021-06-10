@@ -21,14 +21,3 @@ Prom 采集器可以获取各种Prometheus Exporters的监控数据，用户只�
 ```
 
 配置好后，重启 DataKit 即可。
-
-## 指标集
-
-根据配置文件，生成指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
-
-``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
