@@ -59,6 +59,9 @@
   - [Nginx](nginx)
   - [Apache](apache)
 
+  - [硬件温度 Sensors](sensors)
+  - [磁盘 S.M.A.R.T](smart)
+
   - [APM（DDTrace）](ddtrace)
   - [RUM](rum)
   - [网络拨测](dialtesting)
