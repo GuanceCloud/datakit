@@ -7,7 +7,6 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	bstoml "github.com/BurntSushi/toml"
 	"io"
 	"net"
 	"os"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	bstoml "github.com/BurntSushi/toml"
 )
 
 func TrimSuffixAll(s, sfx string) string {
@@ -150,6 +151,26 @@ func (d *Duration) UnmarshalTOML(b []byte) error {
 	}
 
 	return nil
+}
+
+func (d *Duration) UnitString(unit time.Duration) string {
+	ts := fmt.Sprintf("%d", d.Duration/unit)
+	switch unit {
+	case time.Second:
+		return ts + "s"
+	case time.Millisecond:
+		return ts + "ms"
+	case time.Microsecond:
+		return ts + "mics"
+	case time.Minute:
+		return ts + "m"
+	case time.Hour:
+		return ts + "h"
+	case time.Nanosecond:
+		return ts + "ns"
+	default:
+		return ts + "unknow"
+	}
 }
 
 // Size just wraps an int64

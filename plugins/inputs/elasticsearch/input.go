@@ -133,21 +133,23 @@ const sampleConfig = `
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
-[inputs.elasticsearch.log]
+# [inputs.elasticsearch.log]
   #	files = []
   ## grok pipeline script path
-  #	pipeline = "elasticsearch.p"
-	
-  [inputs.elasticsearch.tags]
-   # a = "b"
+  #  pipeline = "elasticsearch.p"
+
+[inputs.elasticsearch.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
 `
 
 const pipelineCfg = `
 # Elasticsearch_search_query
-grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[index.search.slowlog.%{WORD:operator}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\]\\[%{INT:shard}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
+grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[i.s.s.(query|fetch)%{SPACE}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\]\\[%{INT}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
 
 # Elasticsearch_slow_indexing
-grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[index.search.slowlog.%{WORD:operator}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
+grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[i.i.s.index%{SPACE}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}/%{NOTSPACE}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
 
 # Elasticsearch_default
 grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[%{NOTSPACE:name}%{SPACE}\\]%{SPACE}(\\[%{HOSTNAME:nodeId}\\])?.*")
@@ -155,7 +157,6 @@ grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[%{NO
 cast(shard, "int")
 cast(duration, "int")
 
-# why duration * 1000000
 expr(duration*1000000, duration)
 
 nullif(nodeId, "")
@@ -377,7 +378,12 @@ const (
 	minInterval = 1 * time.Second
 )
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) Run() {
+	l = logger.SLogger(inputName)
 	// collect logs
 	if i.Log != nil {
 		go func() {
@@ -465,20 +471,20 @@ func (i *Input) gatherIndicesStats(url string) error {
 	// Total Shards Stats
 	// shardsStats := map[string]interface{}{}
 	// for k, v := range indicesStats.Shards {
-	// 	shardsStats[k] = v
+	//   shardsStats[k] = v
 	// }
 
 	// metric := &indicesStatsShardsTotalMeasurement{
-	// 	elasticsearchMeasurement: elasticsearchMeasurement{
-	// 		name:   "elasticsearch_indices_stats_shards_total",
-	// 		tags:   map[string]string{},
-	// 		fields: shardsStats,
-	// 		ts:     now,
-	// 	},
+	//   elasticsearchMeasurement: elasticsearchMeasurement{
+	//     name:   "elasticsearch_indices_stats_shards_total",
+	//     tags:   map[string]string{},
+	//     fields: shardsStats,
+	//     ts:     now,
+	//   },
 	// }
 
 	// if len(metric.fields) > 0 {
-	// 	i.collectCache = append(i.collectCache, metric)
+	//   i.collectCache = append(i.collectCache, metric)
 	// }
 
 	// All Stats
@@ -555,58 +561,58 @@ func (i *Input) gatherIndicesStats(url string) error {
 
 		// disable now
 		// if false && i.IndicesLevel == "shards" {
-		// 	for shardNumber, shards := range index.Shards {
-		// 		for _, shard := range shards {
+		//   for shardNumber, shards := range index.Shards {
+		//     for _, shard := range shards {
 
-		// 			// Get Shard Stats
-		// 			flattened := JSONFlattener{}
-		// 			err := flattened.FullFlattenJSON("", shard, true, true)
-		// 			if err != nil {
-		// 				return err
-		// 			}
+		//       // Get Shard Stats
+		//       flattened := JSONFlattener{}
+		//       err := flattened.FullFlattenJSON("", shard, true, true)
+		//       if err != nil {
+		//         return err
+		//       }
 
-		// 			// determine shard tag and primary/replica designation
-		// 			shardType := "replica"
-		// 			if flattened.Fields["routing_primary"] == true {
-		// 				shardType = "primary"
-		// 			}
-		// 			delete(flattened.Fields, "routing_primary")
+		//       // determine shard tag and primary/replica designation
+		//       shardType := "replica"
+		//       if flattened.Fields["routing_primary"] == true {
+		//         shardType = "primary"
+		//       }
+		//       delete(flattened.Fields, "routing_primary")
 
-		// 			routingState, ok := flattened.Fields["routing_state"].(string)
-		// 			if ok {
-		// 				flattened.Fields["routing_state"] = mapShardStatusToCode(routingState)
-		// 			}
+		//       routingState, ok := flattened.Fields["routing_state"].(string)
+		//       if ok {
+		//         flattened.Fields["routing_state"] = mapShardStatusToCode(routingState)
+		//       }
 
-		// 			routingNode, _ := flattened.Fields["routing_node"].(string)
-		// 			shardTags := map[string]string{
-		// 				"index_name": id,
-		// 				"node_id":    routingNode,
-		// 				"shard_name": string(shardNumber),
-		// 				"type":       shardType,
-		// 			}
+		//       routingNode, _ := flattened.Fields["routing_node"].(string)
+		//       shardTags := map[string]string{
+		//         "index_name": id,
+		//         "node_id":    routingNode,
+		//         "shard_name": string(shardNumber),
+		//         "type":       shardType,
+		//       }
 
-		// 			for key, field := range flattened.Fields {
-		// 				switch field.(type) {
-		// 				case string, bool:
-		// 					delete(flattened.Fields, key)
-		// 				}
-		// 			}
+		//       for key, field := range flattened.Fields {
+		//         switch field.(type) {
+		//         case string, bool:
+		//           delete(flattened.Fields, key)
+		//         }
+		//       }
 
-		// 			i.extendSelfTag(shardTags)
-		// 			metric := &indicesStatsShardsMeasurement{
-		// 				elasticsearchMeasurement: elasticsearchMeasurement{
-		// 					name:   "elasticsearch_indices_stats_shards",
-		// 					tags:   shardTags,
-		// 					fields: flattened.Fields,
-		// 					ts:     now,
-		// 				},
-		// 			}
+		//       i.extendSelfTag(shardTags)
+		//       metric := &indicesStatsShardsMeasurement{
+		//         elasticsearchMeasurement: elasticsearchMeasurement{
+		//           name:   "elasticsearch_indices_stats_shards",
+		//           tags:   shardTags,
+		//           fields: flattened.Fields,
+		//           ts:     now,
+		//         },
+		//       }
 
-		// 			if len(metric.fields) > 0 {
-		// 				i.collectCache = append(i.collectCache, metric)
-		// 			}
-		// 		}
-		// 	}
+		//       if len(metric.fields) > 0 {
+		//         i.collectCache = append(i.collectCache, metric)
+		//       }
+		//     }
+		//   }
 		// }
 	}
 
@@ -788,30 +794,30 @@ func (i *Input) gatherClusterHealth(url string) error {
 
 	// disable
 	// for name, health := range healthStats.Indices {
-	// 	indexFields := map[string]interface{}{
-	// 		"active_primary_shards": health.ActivePrimaryShards,
-	// 		"active_shards":         health.ActiveShards,
-	// 		"initializing_shards":   health.InitializingShards,
-	// 		"number_of_replicas":    health.NumberOfReplicas,
-	// 		"number_of_shards":      health.NumberOfShards,
-	// 		"relocating_shards":     health.RelocatingShards,
-	// 		"status":                health.Status,
-	// 		"status_code":           mapHealthStatusToCode(health.Status),
-	// 		"unassigned_shards":     health.UnassignedShards,
-	// 	}
+	//   indexFields := map[string]interface{}{
+	//     "active_primary_shards": health.ActivePrimaryShards,
+	//     "active_shards":         health.ActiveShards,
+	//     "initializing_shards":   health.InitializingShards,
+	//     "number_of_replicas":    health.NumberOfReplicas,
+	//     "number_of_shards":      health.NumberOfShards,
+	//     "relocating_shards":     health.RelocatingShards,
+	//     "status":                health.Status,
+	//     "status_code":           mapHealthStatusToCode(health.Status),
+	//     "unassigned_shards":     health.UnassignedShards,
+	//   }
 
-	// 	metric := &clusterHealthIndicesMeasurement{
-	// 		elasticsearchMeasurement: elasticsearchMeasurement{
-	// 			name:   "elasticsearch_cluster_health_indices",
-	// 			tags:   map[string]string{"index": name, "name": healthStats.ClusterName},
-	// 			fields: indexFields,
-	// 			ts:     now,
-	// 		},
-	// 	}
+	//   metric := &clusterHealthIndicesMeasurement{
+	//     elasticsearchMeasurement: elasticsearchMeasurement{
+	//       name:   "elasticsearch_cluster_health_indices",
+	//       tags:   map[string]string{"index": name, "name": healthStats.ClusterName},
+	//       fields: indexFields,
+	//       ts:     now,
+	//     },
+	//   }
 
-	// 	if len(metric.fields) > 0 {
-	// 		i.collectCache = append(i.collectCache, metric)
-	// 	}
+	//   if len(metric.fields) > 0 {
+	//     i.collectCache = append(i.collectCache, metric)
+	//   }
 	// }
 
 	return nil
