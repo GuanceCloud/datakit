@@ -27,6 +27,7 @@ func (m *schemaMeasurement) LineProto() (*io.Point, error) {
 func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_schema",
+		Desc: "具体字段，以实际采集上来的数据为准，部分字段，会因 MySQL 配置、已有数据等原因，采集不到",
 		Fields: map[string]interface{}{
 			"schema_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
