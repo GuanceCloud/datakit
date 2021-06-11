@@ -98,7 +98,7 @@ func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
 		}
 
 		m := &clientMeasurement{
-			name:    "redis_client_list",
+			name:    "redis_client",
 			tags:    make(map[string]string),
 			fields:  make(map[string]interface{}),
 			resData: make(map[string]interface{}),
