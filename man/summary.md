@@ -5,11 +5,11 @@
 - [Security Checker 接入](sec-checker)
 - [Cloudprober 接入](cloudprober)
 - [DataKit 安装](datakit-install)
-- [Datakit 批量部署](datakit-batch-deploy)
-- [Datakit DaemonSet 安装](datakit-daemonset-deploy)
+- [DataKit 批量部署](datakit-batch-deploy)
+- [DataKit DaemonSet 安装](datakit-daemonset-deploy)
 <!-- - [DataKit Docker 安装](datakit-docker-install) -->
-- [Datakit 离线部署](datakit-offline-install)
-- [Datakit 自动更新](datakit-update-crontab)
+- [DataKit 离线部署](datakit-offline-install)
+- [DataKit 自动更新](datakit-update-crontab)
 <!-- - [Datakit 公网部署](datakit-on-public) -->
 - [DataKit 代理](proxy)
 - [DataKit 选举支持](election)
@@ -36,6 +36,9 @@
 
   - [Redis](redis)
   - [Memcached](memcached)
+  - [Mongodb](mongodb)
+  - [SQLServer](sqlserver)
+  - [PostgreSQL](postgresql)
 
   - [Jenkins](jenkins)
   - [SSH](ssh)
@@ -46,11 +49,20 @@
   - [RabbitMQ](rabbitmq)
 
   - [Docker](docker)
+  - [容器](container)
+  - [Kubernetes](kubernetes)
+
   - [JVM](jvm)
+	- [Statsd](statsd)
   - [Tomcat](tomcat)
   - [日志](logging)
   - [Nginx](nginx)
   - [Apache](apache)
+
+  - [硬件温度 Sensors](sensors)
+  - [磁盘 S.M.A.R.T](smart)
+
+	- [Prometheus 数据接入](prom)
 
   - [APM（DDTrace）](ddtrace)
   - [RUM](rum)
