@@ -114,7 +114,6 @@ datakit --prom-conf prom.conf
 Total time series: 58
 Total line protocol points: 261
 Total measurements: 3 (prom_node, prom_go, prom_promhttp)
-
 ```
 
 输出说明：
