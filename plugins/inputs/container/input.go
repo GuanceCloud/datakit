@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
-	"strings"
+	"regexp"
 	"sync"
 	"time"
 
@@ -31,13 +31,18 @@ type Input struct {
 	ClientConfig                     // tls config
 	LogFilters     LogFilters        `toml:"logfilter"`
 	Tags           map[string]string `toml:"tags"`
-	DropTags       []string          `toml:"drop_tags"`
-	PodNameRewrite []string          `toml:"pod_name_rewrite"`
+
+	DropTags            []string `toml:"drop_tags"`
+	IgnoreImageName     []string `toml:"ignore_image_name"`
+	IgnoreContainerName []string `toml:"ignore_container_name"`
 
 	newClient func(string, *tls.Config) (Client, error)
 
 	metricDuration   time.Duration
 	containerLogList map[string]context.CancelFunc
+
+	ignoreImageNameRegexps     []*regexp.Regexp
+	ignoreContainerNameRegexps []*regexp.Regexp
 
 	client Client
 
@@ -95,7 +100,7 @@ func (this *Input) Run() {
 	if this.EnableObject {
 		if this.Kubernetes != nil {
 			do(func() ([]*io.Point, error) {
-				return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "object")
+				return this.Kubernetes.GatherPodMetrics(this.DropTags, "object")
 			}, datakit.Object, "k8s pod object gather failed")
 		}
 
@@ -128,7 +133,7 @@ func (this *Input) Run() {
 		case <-metricsTick.C:
 			if this.Kubernetes != nil {
 				do(func() ([]*io.Point, error) {
-					return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "metric")
+					return this.Kubernetes.GatherPodMetrics(this.DropTags, "metric")
 				}, datakit.Metric, "k8s pod metrics gather failed")
 			}
 			if this.EnableMetric {
@@ -139,7 +144,7 @@ func (this *Input) Run() {
 			if this.EnableObject {
 				if this.Kubernetes != nil {
 					do(func() ([]*io.Point, error) {
-						return this.Kubernetes.GatherPodMetrics(this.DropTags, this.PodNameRewrite, "object")
+						return this.Kubernetes.GatherPodMetrics(this.DropTags, "object")
 					}, datakit.Object, "k8s pod object gather failed")
 				}
 
@@ -199,19 +204,4 @@ func do(gatherFn func() ([]*io.Point, error), category, prefixlog string) {
 		io.FeedLastError(inputName, fmt.Sprintf("%s: %s", prefixlog, err))
 	}
 
-}
-
-func TrimPodName(podname []string, name string) string {
-	for _, n := range podname {
-		if !strings.HasPrefix(name, n) {
-			continue
-		}
-
-		parts := strings.Split(name, "-")
-		if len(parts) < 3 {
-			continue
-		}
-		return strings.Join(parts[:len(parts)-1], "-")
-	}
-	return name
 }
