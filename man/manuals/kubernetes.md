@@ -76,7 +76,8 @@ rules:
 - apiGroups:
   - batch
   resources:
-  - jobs
+  - jobs 
+  - cronjobs
   verbs:
   - get
   - list
@@ -100,10 +101,10 @@ roleRef:
 
 ```sh
 ## 执行编排yaml
-$kubectl apply -f account.yaml
+kubectl apply -f account.yaml
 
 ## 确认创建成功
-$kubectl get sa -n datakit-monitor
+kubectl get sa -n datakit-monitor
 NAME              SECRETS   AGE
 datakit-monitor   1         3d13h
 default           1         3d13h
@@ -112,7 +113,7 @@ default           1         3d13h
 - 获取服务地址
 
 ```sh
-$kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{.name}{"\t"}{.cluster.server}{"\n"}{end}'
+kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{.name}{"\t"}{.cluster.server}{"\n"}{end}'
 ```
 
 注意：以上得到的集群服务地址，将用于 kubernetes 采集器的 `url` 配置项中
@@ -121,13 +122,13 @@ $kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}
 
 ```sh
 ## 获取token
-$kubectl get secrets -n datakit-monitor -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit-monitor')].data.token}"| base64 --decode > token
+kubectl get secrets -n datakit-monitor -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit-monitor')].data.token}"| base64 --decode > token
 
 ## 获取CA证书
-$kubectl get secrets -n datakit-monitor -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit-monitor')].data.ca\\.crt}" | base64 --decode > ca_crt.pem
+kubectl get secrets -n datakit-monitor -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit-monitor')].data.ca\\.crt}" | base64 --decode > ca_crt.pem
 
 ## 确认结果
-$ls -l 
+ls -l 
 -rw-r--r--  1 liushaobo  staff   1066  6  1 15:48 ca.crt
 -rw-r--r--  1 liushaobo  staff    953  6  1 15:48 token
 ```
