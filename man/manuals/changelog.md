@@ -2,6 +2,26 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc3(2021/06/10)
+
+### 发布说明
+
+- 新增 [磁盘 S.M.A.R.T 采集器](smart) 采集器
+- 新增 [硬件 温度采集器](sensors) 
+- 新增 [Prometheus 采集器](prom) 
+
+### 问题修复
+
+- 修正 [Kubernetes 采集器](kubernetes)，支持更多 K8s 对象统计指标收集
+- 完善[容器采集器](container)，支持 image/container/pod 过滤
+- 修正 [Mongodb 采集器](mongodb)问题
+- 修正 MySQL/Redis 可能因为配置缺失导致奔溃的问题
+- 修正[离线安装问题](datakit-offline-install)
+- 修正部分采集器日志设置问题
+- 修正 [SSH](ssh)/[Jenkins](jenkins) 等采集器的数据问题
+
+----
+
 ## 1.1.7-rc2(2021/06/07)
 
 ### 发布说明
