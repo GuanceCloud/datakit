@@ -29,6 +29,10 @@ const (
 	MinGatherInterval = 1 * time.Second
 )
 
+var (
+	log = logger.DefaultSLogger("jolokia")
+)
+
 type JolokiaAgent struct {
 	DefaultFieldPrefix    string
 	DefaultFieldSeparator string
@@ -48,20 +52,24 @@ type JolokiaAgent struct {
 
 	collectCache []Measurement
 	PluginName   string `toml:"-"`
-	l            *logger.Logger
+	L            *logger.Logger
 
 	Tags  map[string]string `toml:"-"`
 	Types map[string]string `toml:"-"`
 }
 
 func (j *JolokiaAgent) Collect() {
-	j.l = logger.DefaultSLogger(j.PluginName)
-	j.l.Infof("%s input started...", j.PluginName)
+	log = logger.SLogger("jolokia")
+
+	if j.L == nil {
+		j.L = log
+	}
+	j.L.Infof("%s input started...", j.PluginName)
 	j = j.Adaptor()
 
 	duration, err := time.ParseDuration(j.Interval)
 	if err != nil {
-		j.l.Error(err)
+		j.L.Error(err)
 		return
 	}
 	duration = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, duration)
@@ -74,7 +82,7 @@ func (j *JolokiaAgent) Collect() {
 			start := time.Now()
 			if err := j.Gather(); err != nil {
 				io.FeedLastError(j.PluginName, err.Error())
-				j.l.Error(err)
+				j.L.Error(err)
 			} else {
 				FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: false})
@@ -82,7 +90,7 @@ func (j *JolokiaAgent) Collect() {
 			}
 
 		case <-datakit.Exit.Wait():
-			j.l.Infof("input %s exit", j.PluginName)
+			j.L.Infof("input %s exit", j.PluginName)
 			return
 		}
 	}
@@ -113,7 +121,7 @@ func (ja *JolokiaAgent) Gather() error {
 
 			err := ja.gatherer.Gather(client, ja)
 			if err != nil {
-				ja.l.Errorf("unable to gather metrics for %s: %v", client.URL, err)
+				ja.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
 			}
 		}(client)
 	}
