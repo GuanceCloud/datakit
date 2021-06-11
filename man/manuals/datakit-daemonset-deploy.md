@@ -6,9 +6,15 @@
 
 # DaemonSet 安装 DataKit 
 
+<<<<<<< HEAD
 > 注意：DaemonSet 方式部署时，不建议开启 kubernetes 集群内部采集（如采集 Kubernetes 集群中其它 Pod 内的 Redis/MySQL 等数据），一来可能导致多份采集（DaemonSet 自动扩容导致多个 DataKit 采集实例），二来 DaemonSet 方式部署时，不能通过 service 名来访问其它 Pod。
 
 本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
+=======
+> 注意：DaemonSet 方式部署时，不建议开启 kubernetes 集群内部采集（如采集 Kubernetes 集群中的 Redis/MySQL 等数据），一来可能导致多份采集（DaemonSet 自动扩容导致多个 DataKit 采集实例），二来 DaemonSet 方式部署时，不能通过 service 名来访问其它 Pod。
+
+本文档介绍如何在 在 K8s 中通过 DaemonSet 方式安装 DataKit
+>>>>>>> hotfix
 
 ## 安装步骤 
 
@@ -129,6 +135,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - "extensions"
   resources:
@@ -145,9 +152,11 @@ rules:
   - batch
   resources:
   - jobs
+  - cronjobs
   verbs:
   - get
   - list
+  - watch
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 
