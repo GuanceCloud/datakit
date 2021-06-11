@@ -43,7 +43,6 @@ const (
 
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
-  
   ## TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
