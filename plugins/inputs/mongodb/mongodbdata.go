@@ -34,12 +34,11 @@ type MongodbData struct {
 	collectCost   time.Duration
 }
 
-func NewMongodbData(statLine *StatLine, tags map[string]string, cost time.Duration) *MongodbData {
+func NewMongodbData(statLine *StatLine, tags map[string]string) *MongodbData {
 	return &MongodbData{
-		StatLine:    statLine,
-		Tags:        tags,
-		Fields:      make(map[string]interface{}),
-		collectCost: cost,
+		StatLine: statLine,
+		Tags:     tags,
+		Fields:   make(map[string]interface{}),
 	}
 }
 
@@ -219,9 +218,9 @@ func (d *MongodbData) append() {
 	}
 }
 
-func (d *MongodbData) flush() {
+func (d *MongodbData) flush(cost time.Duration) {
 	if len(d.collectCache) != 0 {
-		if err := inputs.FeedMeasurement(inputName, datakit.Metric, d.collectCache, &io.Option{CollectCost: d.collectCost}); err != nil {
+		if err := inputs.FeedMeasurement(inputName, datakit.Metric, d.collectCache, &io.Option{CollectCost: cost}); err != nil {
 			l.Error(err)
 			io.FeedLastError(inputName, err.Error())
 		}
