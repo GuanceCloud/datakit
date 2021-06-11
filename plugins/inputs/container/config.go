@@ -1,8 +1,8 @@
 package container
 
 import (
-	"net"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -26,7 +26,8 @@ const (
   metric_interval = "10s"
 
   drop_tags = ["contaienr_id"]
-  pod_name_rewrite = []
+  ignore_image_name = []
+  ignore_container_name = []
   
   ## TLS Config
   # tls_ca = "/path/to/ca.pem"
@@ -37,6 +38,7 @@ const (
   
   [inputs.container.kubelet]
     kubelet_url = "http://127.0.0.1:10255"
+    ignore_pod_name = []
 
     ## Use bearer token for authorization. ('bearer_token' takes priority)
     ## If both of these are empty, we'll use the default serviceaccount:
@@ -103,14 +105,7 @@ var (
 )
 
 func (this *Input) loadCfg() (err error) {
-	// tlsConfig 可以为空指针，即没有配置tls
-	tlsConfig, _err := this.ClientConfig.TLSConfig()
-	if _err != nil {
-		return _err
-	}
-
-	this.client, err = this.newClient(this.Endpoint, tlsConfig)
-	if err != nil {
+	if err = this.compileIgnoreRegexps(); err != nil {
 		return
 	}
 
@@ -118,34 +113,83 @@ func (this *Input) loadCfg() (err error) {
 		return
 	}
 
-	if this.Kubernetes != nil {
-		l.Debugf("use kubelet_url %s", this.Kubernetes.URL)
+	if err = this.buildClient(); err != nil {
+		return
+	}
 
-		u, err := url.Parse(this.Kubernetes.URL)
-		if err != nil {
-			return err
-		}
-
-		func() {
-			// kubelet API 没有提供 ping 功能
-			// 此处手动检查该端口是否可以连接
-			if err = rawConnect(u.Hostname(), u.Port()); err != nil {
-				l.Errorf("kubelet_url connecting error(not collect kubelet): %s", err)
-				// 如果检测到该端口尚未监听，或无法连接，则将 this.Kubernetes 置为 空指针
-				// 后续将不再采用 kubelet 相关数据
-				this.Kubernetes = nil
-				return
-			}
-
-			if err := this.Kubernetes.Init(); err != nil {
-				l.Debugf("read kubelet token error (use empty tokne): %s", err)
-				// use empty token
-				this.Kubernetes.BearerTokenString = ""
-			}
-		}()
+	if err = this.buildK8sConnection(); err != nil {
+		return
 	}
 
 	return
+}
+
+func (this *Input) buildClient() error {
+	// tlsConfig 可以为空指针，即没有配置tls
+	tlsConfig, err := this.ClientConfig.TLSConfig()
+	if err != nil {
+		return err
+	}
+
+	this.client, err = this.newClient(this.Endpoint, tlsConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (this *Input) buildK8sConnection() error {
+	if this.Kubernetes == nil {
+		return nil
+	}
+	l.Debugf("use kubelet_url %s", this.Kubernetes.URL)
+
+	u, err := url.Parse(this.Kubernetes.URL)
+	if err != nil {
+		return err
+	}
+
+	// kubelet API 没有提供 ping 功能，此处手动检查该端口是否可以连接
+	if err = RawConnect(u.Hostname(), u.Port()); err != nil {
+		l.Errorf("kubelet_url connecting error(not collect kubelet): %s", err)
+		// 如果检测到该端口尚未监听，或无法连接，则将 this.Kubernetes 置为 空指针
+		// 后续将不再采集 kubelet 相关数据
+		this.Kubernetes = nil
+		return nil
+	}
+
+	if err := this.Kubernetes.Init(); err != nil {
+		l.Debugf("read kubelet token error (use empty tokne): %s", err)
+		// use empty token
+		this.Kubernetes.BearerTokenString = ""
+	}
+
+	return nil
+}
+
+func (this *Input) compileIgnoreRegexps() error {
+	// reset array
+	this.ignoreImageNameRegexps = this.ignoreImageNameRegexps[:0]
+	this.ignoreContainerNameRegexps = this.ignoreContainerNameRegexps[:0]
+
+	for _, n := range this.IgnoreImageName {
+		re, err := regexp.Compile(n)
+		if err != nil {
+			return err
+		}
+		this.ignoreImageNameRegexps = append(this.ignoreImageNameRegexps, re)
+	}
+
+	for _, n := range this.IgnoreContainerName {
+		re, err := regexp.Compile(n)
+		if err != nil {
+			return err
+		}
+		this.ignoreContainerNameRegexps = append(this.ignoreContainerNameRegexps, re)
+	}
+
+	return nil
 }
 
 func (this *Input) initLoggingConf() error {
@@ -153,19 +197,6 @@ func (this *Input) initLoggingConf() error {
 		if err := lf.Init(); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func rawConnect(host string, port string) error {
-	timeout := time.Second
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
-	if err != nil {
-		return err
-	}
-	if conn != nil {
-		defer conn.Close()
-		return nil
 	}
 	return nil
 }
