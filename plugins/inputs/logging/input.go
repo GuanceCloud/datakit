@@ -16,8 +16,11 @@ const (
 
 	sampleCfg = `
 [[inputs.logging]]
-  ## required, glob logfiles
-  logfiles = ["/var/log/syslog"]
+  ## required
+  logfiles = [
+    "/var/log/syslog",
+    "/var/log/message",
+  ]
 
   ## glob filteer
   ignore = [""]
