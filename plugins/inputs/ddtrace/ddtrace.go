@@ -46,8 +46,10 @@ func (d *Input) Run() {
 	log.Infof("%s input started...", inputName)
 
 	if d != nil {
-	<-datakit.Exit.Wait()
-	log.Infof("%s input exit", inputName)
+		<-datakit.Exit.Wait()
+		log.Infof("%s input exit", inputName)
+	}
+}
 
 func (d *Input) RegHttpHandler() {
 	if d.Path == "" {
@@ -56,6 +58,7 @@ func (d *Input) RegHttpHandler() {
 	http.RegHttpHandler("POST", d.Path, DdtraceTraceHandle)
 	http.RegHttpHandler("PUT", d.Path, DdtraceTraceHandle)
 }
+
 func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
