@@ -12,22 +12,14 @@
 
 准备对应语言的 ddtrace 配置：
 
-- Python: https://github.com/DataDog/dd-trace-py
-- Golang: https://github.com/DataDog/dd-trace-go
-- NodeJS: https://github.com/DataDog/dd-trace-js
-- PHP: https://github.com/DataDog/dd-trace-php
-- Ruby: https://github.com/DataDog/dd-trace-rb
-- C#: https://github.com/DataDog/dd-trace-dotnet
-- C++: https://github.com/opentracing/opentracing-cpp
-- Java：
-
-下载 jar 包：
-
-```shell
-$ wget -O dd-java-agent.jar https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/backups/dd-java-agent.jar
-```
-
-其它版本的 [Maven 地址](https://repo1.maven.org/maven2/com/datadoghq/dd-java-agent/)
+- [Python](https://github.com/DataDog/dd-trace-py)
+- [Golang](https://github.com/DataDog/dd-trace-go)
+- [NodeJS](https://github.com/DataDog/dd-trace-js)
+- [PHP](https://github.com/DataDog/dd-trace-php)
+- [Ruby](https://github.com/DataDog/dd-trace-rb)
+- [C#](https://github.com/DataDog/dd-trace-dotnet)
+- [C++](https://github.com/opentracing/opentracing-cpp)
+- Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`。也可以直接去 [Maven 下载](https://repo1.maven.org/maven2/com/datadoghq/dd-java-agent/)
 
 ## 配置
 
@@ -45,7 +37,7 @@ $ wget -O dd-java-agent.jar https://zhuyun-static-files-production.oss-cn-hangzh
 
 ```shell
 # 先安装 flask 包
-$ pip install flask
+pip install flask
 ```
 
 ```python
@@ -144,15 +136,15 @@ if __name__ == '__main__':
 
 ```shell
 # 分别后台启动两个服务：
-$ (ddtrace-run python3 service_a.py &> a.log &)
-$ (ddtrace-run python3 service_b.py &> b.log &)
+(ddtrace-run python3 service_a.py &> a.log &)
+(ddtrace-run python3 service_b.py &> b.log &)
 
 # 调用 A 服务，促使其调用 B 服务，这样就能产生对应 trace 数据（此处可多次执行触发）
-$ curl http://localhost:54321/a
+curl http://localhost:54321/a
 
 # 分别停止两个服务
-$ curl http://localhost:54321/stop
-$ curl http://localhost:54322/stop
+curl http://localhost:54321/stop
+curl http://localhost:54322/stop
 ```
 
 可以通过 [DQL](https://www.yuque.com/dataflux/doc/fsnd2r) 验证上报的数据：
@@ -189,7 +181,7 @@ operation 'flask.process_response'
 - 通过命令行注入环境变量
 
 ```shell
-$ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
+DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
 - 在 ddtrace.conf 中直接配置自定义标签。这种方式会影响**所有**发送给 DataKit tracing 服务的数据，需慎重考虑：
@@ -208,7 +200,7 @@ $ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app
 若需要链路数据和容器对象关联，可按照如下方式开启应用（一般情况下就是修改 Dockerfile 中的启动命令 `CMD`）。这里的 `$HOSTNAME` 环境变量会自动替换成对应容器中的主机名：
 
 ```shell
-$ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python your_app.py
+DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python your_app.py
 ```
 
 ### 设置 trace 数据采样率
