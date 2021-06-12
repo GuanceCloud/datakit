@@ -69,6 +69,7 @@ var (
 #		tag1 = "tag1"
 #		tag2 = "tag2"
 #		tag3 = "tag3"`
+	log = logger.DefaultSLogger(inputName)
 )
 
 const (
@@ -85,6 +86,7 @@ func (t *Traefik) Catalog() string {
 }
 
 func (t *Traefik) Run() {
+	log = logger.SLogger(inputName)
 	if t.Url == "" {
 		return
 	}
@@ -106,7 +108,7 @@ func (t *Traefik) genParam() *TraefikParam {
 	input := TraefikInput{*t}
 	output := TraefikOutput{io.NamedFeed}
 
-	p := &TraefikParam{input, output, logger.SLogger("traefik")}
+	p := &TraefikParam{input, output, log}
 	return p
 }
 func (p *TraefikParam) gather() {
