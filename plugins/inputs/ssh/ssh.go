@@ -67,6 +67,7 @@ var (
 )
 
 func (i *Input) Run() {
+	l = logger.SLogger(inputName)
 	if i.Host == "" {
 		l.Errorf("host configuration missed")
 		return
@@ -176,7 +177,9 @@ func (i *Input) gather() {
 			if err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Errorf("getMetrics err: %s", err.Error())
-			} else {
+			}
+
+			if len(collectCache) != 0 {
 				inputs.FeedMeasurement(inputName, datakit.Metric, collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: false})
 			}
