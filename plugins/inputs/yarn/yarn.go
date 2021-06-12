@@ -168,6 +168,10 @@ const (
 	MinGatherInterval = 1 * time.Second
 )
 
+var (
+	log = logger.DefaultSLogger(inputName)
+)
+
 func (y *Yarn) Catalog() string {
 	return "yarn"
 }
@@ -177,6 +181,7 @@ func (y *Yarn) SampleConfig() string {
 }
 
 func (y *Yarn) Run() {
+	log = logger.SLogger(inputName)
 	if y.Host == "" {
 		return
 	}
@@ -198,7 +203,7 @@ func (y *Yarn) genParam() *YarnParam {
 
 	input := YarnInput{*y}
 	output := YarnOutput{io.NamedFeed}
-	p := &YarnParam{input, output, logger.SLogger("yarn")}
+	p := &YarnParam{input, output, log}
 	return p
 }
 
