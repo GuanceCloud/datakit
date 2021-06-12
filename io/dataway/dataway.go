@@ -172,18 +172,94 @@ func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
 	return nil
 }
 
-func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
+func (dw *DataWayCfg) Election(id string) ([]byte, error) {
+	if len(dw.dataWayClients) < 1 {
+		return nil, fmt.Errorf("no dataway available")
+	}
 
-	if dw.httpCli == nil {
-		if err := dw.initHttp(); err != nil {
-			return err
-		}
+	dc := dw.dataWayClients[0] // 选举相关接口只只发送给第一个 dataway
+
+	requrl, ok := dc.categoryURL[datakit.Election]
+	if !ok {
+		return nil, fmt.Errorf("no election URL available")
+	}
+
+	if strings.Contains(requrl, "?token") {
+		requrl += ("&id=" + id)
+	} else {
+		return nil, fmt.Errorf("token missing")
 	}
 
 	defer dw.httpCli.CloseIdleConnections()
 
-	for idx, dc := range dw.dataWayClients {
-		l.Debugf("post to %d dataway...", idx)
+	resp, err := dw.httpCli.Post(requrl, "", nil)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	switch resp.StatusCode / 100 {
+	case 2:
+		return body, nil
+	default:
+		return nil, fmt.Errorf("election failed: %s", string(body))
+	}
+}
+
+func (dw *DataWayCfg) ElectionHeartbeat(id string) ([]byte, error) {
+	if len(dw.dataWayClients) < 1 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.dataWayClients[0] // 选举相关接口只只发送给第一个 dataway
+
+	requrl, ok := dc.categoryURL[datakit.ElectionHeartbeat]
+	if !ok {
+		return nil, fmt.Errorf("no election URL available")
+	}
+
+	if strings.Contains(requrl, "?token") {
+		requrl += ("&id=" + id)
+	} else {
+		return nil, fmt.Errorf("token missing")
+	}
+
+	defer dw.httpCli.CloseIdleConnections()
+
+	resp, err := dw.httpCli.Post(requrl, "", nil)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	switch resp.StatusCode / 100 {
+	case 2:
+		return body, nil
+	default:
+		return nil, fmt.Errorf("election heartbeat failed: %s", string(body))
+	}
+}
+
+func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
+
+	defer dw.httpCli.CloseIdleConnections()
+
+	for i, dc := range dw.dataWayClients {
+		l.Debugf("send to %dth dataway", i)
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
 			return err
 		}
@@ -229,26 +305,6 @@ func (dw *DataWayCfg) QueryRawURL() []string {
 	for _, dc := range dw.dataWayClients {
 		queryRawURL := dc.categoryURL["queryRawURL"]
 		resURL = append(resURL, queryRawURL)
-	}
-
-	return resURL
-}
-
-func (dw *DataWayCfg) ElectionURL() []string {
-	var resURL []string
-	for _, dc := range dw.dataWayClients {
-		electionUrl := dc.categoryURL[datakit.Election]
-		resURL = append(resURL, electionUrl)
-	}
-
-	return resURL
-}
-
-func (dw *DataWayCfg) ElectionHeartBeatURL() []string {
-	var resURL []string
-	for _, dc := range dw.dataWayClients {
-		electionBeatUrl := dc.categoryURL[datakit.ElectionHeartbeat]
-		resURL = append(resURL, electionBeatUrl)
 	}
 
 	return resURL
