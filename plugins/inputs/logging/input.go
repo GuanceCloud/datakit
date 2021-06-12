@@ -16,8 +16,11 @@ const (
 
 	sampleCfg = `
 [[inputs.logging]]
-  ## required, glob logfiles
-  logfiles = ["/var/log/syslog"]
+  ## required
+  logfiles = [
+    "/var/log/syslog",
+    "/var/log/message",
+  ]
 
   ## glob filteer
   ignore = [""]
@@ -70,6 +73,10 @@ type Input struct {
 }
 
 var l = logger.DefaultSLogger(inputName)
+
+// TODO
+func (*Input) RunPipeline() {
+}
 
 func (this *Input) Run() {
 	l = logger.SLogger(inputName)
