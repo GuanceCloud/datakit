@@ -331,3 +331,40 @@ func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[s
 	}
 	return
 }
+
+var electionInputs = map[string]interface{}{
+	"kubernetes": nil,
+	"gitlab":     nil,
+	"demo":       nil,
+	"prom":       nil,
+}
+
+func tryStartElection(tbl *ast.Table, entries map[string]interface{}) {
+	for _, node := range tbl.Fields {
+		stbl, ok := node.(*ast.Table)
+		if !ok {
+			continue
+		}
+		for inputName := range stbl.Fields {
+			if _, ok := entries[inputName]; !ok {
+				continue
+			}
+
+			// datakit 开启选举功能，且当前选举处于初始状态
+			//
+			// 在此判断选举是否处于初始状态的原因
+			// 为了避免多重选举。
+			// 例如第一次遇到 kubernetes input，此时选举状态为初始化的 Dead，条件成立，改变状态，开始选举
+			// 第二次遇到 kubernetes input 时，如果是非初始状态 Dead，证明已经有选举在进行中，不应该再次开始选举
+
+			if datakit.Cfg.EnableElection && election.CurrentStats().IsDead() {
+				election.SetCandidate()
+				go election.StartElection()
+			}
+			// datakit 不开启选举，默认自己是 Leader
+			if !datakit.Cfg.EnableElection {
+				election.SetLeader()
+			}
+		}
+	}
+}
