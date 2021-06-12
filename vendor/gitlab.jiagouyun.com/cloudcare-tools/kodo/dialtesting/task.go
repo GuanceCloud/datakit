@@ -10,7 +10,7 @@ const (
 	ClassHTTP     = "HTTP"
 	ClassTCP      = "TCP"
 	ClassDNS      = "DNS"
-	ClassHeadless = "HEADLESS"
+	ClassHeadless = "BROWSER"
 
 	ClassOther = "OTHER"
 )

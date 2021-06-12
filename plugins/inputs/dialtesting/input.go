@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	//	"github.com/jinzhu/copier"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -56,22 +58,25 @@ type Input struct {
 	pos      int64 // current largest-task-update-time
 }
 
-const sample = `[[inputs.dialtesting]]
-	#  中心任务存储的服务地址，或本地json 文件全路径
-	server = "files:///your/dir/json-file-name"
+const sample = `
+[[inputs.dialtesting]]
+  # 中心任务存储的服务地址，或本地json 文件全路径
+  #server = "files:///your/dir/json-file-name"
+  #server = "https://dflux-dial.dataflux.cn"
 
-	# require，节点惟一标识ID
-	region_id = "default"
+  # require，节点惟一标识ID
+  region_id = "default"
 
-	# 若server配为中心任务服务地址时，需要配置相应的ak或者sk
-	ak = ""
-	sk = ""
+  # 若server配为中心任务服务地址时，需要配置相应的ak或者sk
+  ak = ""
+  sk = ""
 
-	pull_interval = "1m"
+  pull_interval = "1m"
 
-	[inputs.dialtesting.tags]
-	# 各种可能的 tag
-	`
+  [inputs.dialtesting.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...`
 
 func (dt *Input) SampleConfig() string {
 	return sample
@@ -89,7 +94,7 @@ func (dt *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) AvailableArchs() []string {
-	return datakit.UnknownArch
+	return datakit.AllArch
 }
 
 func (d *Input) Run() {
@@ -170,6 +175,7 @@ func (d *Input) doLocalTask(path string) {
 
 func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 
+	//
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -247,24 +253,33 @@ func (d *Input) dispatchTasks(j []byte) error {
 
 	for k, arr := range resp.Content {
 
-		var t dt.Task
+		l.Debugf(`class: %s`, k)
 
-		switch k {
-		case dt.ClassHTTP:
-			t = &dt.HTTPTask{}
-		case dt.ClassHeadless:
-			t = &dt.HeadlessTask{}
-		case dt.ClassDNS:
-			// TODO
-		case dt.ClassTCP:
-			// TODO
-		case dt.ClassOther:
-			// TODO
-		default:
-			return fmt.Errorf("unknown task type: %s", k)
+		if k == RegionInfo {
+			continue
 		}
 
 		for _, j := range arr.([]interface{}) {
+			var t dt.Task
+
+			switch k {
+			case dt.ClassHTTP:
+				t = &dt.HTTPTask{}
+			case dt.ClassHeadless:
+				t = &dt.HeadlessTask{}
+			case dt.ClassDNS:
+				// TODO
+			case dt.ClassTCP:
+				// TODO
+			case dt.ClassOther:
+				// TODO
+			case RegionInfo:
+				break
+				//no need dealwith
+			default:
+				l.Errorf("unknown task type: %s", k)
+				break
+			}
 			if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
 				l.Errorf(`%s`, err.Error())
 				return err
@@ -276,7 +291,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 				d.pos = ts
 			}
 
-			l.Debugf(`%+#v`, d.curTasks[t.ID()])
+			l.Debugf(`%+#v id: %s`, d.curTasks[t.ID()], t.ID())
 
 			if dialer, ok := d.curTasks[t.ID()]; ok { // update task
 
@@ -295,6 +310,11 @@ func (d *Input) dispatchTasks(j []byte) error {
 				}
 
 			} else { // create new task
+
+				if strings.ToLower(t.Status()) == dt.StatusStop {
+					l.Warnf(`%s status is stop, exit ignore`, t.ID())
+					continue
+				}
 
 				l.Debugf(`create new task %+#v`, t)
 				dialer, err := d.newTaskRun(t)
