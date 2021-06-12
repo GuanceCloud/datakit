@@ -143,9 +143,6 @@ func corsMiddleware(c *gin.Context) {
 }
 
 func HttpStart() {
-
-	router := gin.New()
-
 	gin.DisableConsoleColor()
 
 	l.Infof("set gin log to %s", ginLog)
@@ -161,6 +158,7 @@ func HttpStart() {
 
 	l.Debugf("HTTP bind addr:%s", httpBind)
 
+	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware)

@@ -41,8 +41,8 @@ const (
 )
 
 var (
-	l         *logger.Logger
 	inputName = "csvobject"
+	l         = logger.DefaultSLogger(inputName)
 )
 
 func (_ *CsvObject) Catalog() string {
@@ -57,8 +57,9 @@ func (x *CsvObject) Run() {
 	var encodeStr string
 	var intVal int
 	var startCmd = "python"
-	l = logger.SLogger(inputName)
 	logFile := inputName + ".log"
+
+	l = logger.SLogger(inputName)
 
 	if b, err := toml.Marshal(x); err != nil {
 		l.Error(err)

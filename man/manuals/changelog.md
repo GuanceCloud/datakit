@@ -2,6 +2,59 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc4(2021/06/11)
+
+### 问题修复
+
+禁用 Docker 采集器，其功能完全由[容器采集器](container) 来实现。
+
+原因：
+
+- Docker 采集器和容器采集器并存的情况下（DataKit 默认安装、升级情况下，会自动启用容器采集器），会导致数据重复
+- 现有 Studio 前端、模板视图等尚不支持最新的容器字段，可能导致用户升级上来之后，看不到容器数据。本版本的容器采集器会冗余一份原 Docker 采集器中采集上来的指标，使得 Studio 能正常工作。
+
+> 注意：如果在老版本中，有针对 Docker 的额外配置，建议手动移植到 [容器采集器](container) 中来。它们之间的配置基本上是兼容的。
+
+----
+
+## 1.1.7-rc3(2021/06/10)
+
+### 发布说明
+
+- 新增 [磁盘 S.M.A.R.T 采集器](smart)
+- 新增 [硬件 温度采集器](sensors) 
+- 新增 [Prometheus 采集器](prom) 
+
+### 问题修复
+
+- 修正 [Kubernetes 采集器](kubernetes)，支持更多 K8s 对象统计指标收集
+- 完善[容器采集器](container)，支持 image/container/pod 过滤
+- 修正 [Mongodb 采集器](mongodb)问题
+- 修正 MySQL/Redis 采集器可能因为配置缺失导致奔溃的问题
+- 修正[离线安装问题](datakit-offline-install)
+- 修正部分采集器日志设置问题
+- 修正 [SSH](ssh)/[Jenkins](jenkins) 等采集器的数据问题
+
+----
+
+## 1.1.7-rc2(2021/06/07)
+
+### 发布说明
+
+- 新增 [Kubernetes 采集器](kubernetes)
+- DataKit 支持 [DaemonSet 方式部署](datakit-daemonset-deploy)
+- 新增 [SQL Server 采集器](sqlserver)
+- 新增 [PostgreSQL 采集器](postgresql)
+- 新增 [statsd 采集器](statsd)，以支持采集从网络上发送过来的 statsd 数据
+- [JVM 采集器](jvm) 优先采用 ddtrace + statsd 采集
+- 新增[容器采集器](container)，增强对 k8s 节点（Node）采集，以替代原有 [docker 采集器](docker)（原 docker 采集器仍可用）
+- [拨测采集器](dialtesting)支持 Headleass 模式
+- [Mongodb 采集器](mongodb) 支持采集 Mongodb 自身日志
+- DataKit 新增 DQL HTTP [API 接口](apis) `/v1/query/raw`
+- 完善部分采集器文档，增加中间件（如 MySQL/Redis/ES 等）日志采集相关文档
+
+----
+
 ## 1.1.7-rc1(2021/05/26)
 
 ### 发布说明
