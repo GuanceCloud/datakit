@@ -57,6 +57,7 @@ var (
 #    tag1 = "tag1"
 #    tag2 = "tag2"
 #    tagn = "tagn"`
+	l = logger.DefaultSLogger(inputName)
 )
 
 func (t *Timezone) SampleConfig() string {
@@ -68,6 +69,7 @@ func (t *Timezone) Catalog() string {
 }
 
 func (t *Timezone) Run() {
+	l = logger.SLogger(inputName)
 	p := t.genParams()
 	p.log.Info("timezone input started...")
 	p.gather()
@@ -84,7 +86,7 @@ func (t *Timezone) genParams() *TzParams {
 
 	input := TzInput{*t}
 	output := TzOutput{io.NamedFeed}
-	p := &TzParams{input, output, logger.SLogger("timezone")}
+	p := &TzParams{input, output, l}
 	return p
 }
 
