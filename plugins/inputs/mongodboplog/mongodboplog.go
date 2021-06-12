@@ -7,19 +7,16 @@ import (
 
 	"github.com/vinllen/mgo"
 	"github.com/vinllen/mgo/bson"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const (
-	inputName = "mongodb_oplog"
-
+var (
+	inputName          = "mongodb_oplog"
 	defaultMeasurement = "mongodb_oplog"
-
-	sampleCfg = `
+	sampleCfg          = `
 [[inputs.mongodb_oplog]]
     ## MongoDB URL: mongodb://user:password@host:port/database
     ## required
@@ -53,21 +50,9 @@ const (
     # some_tag = "some_value"
     # more_tag = "some_other_value"
 `
-
 	timestampBitOffset = 32
+	l                  = logger.DefaultSLogger(inputName)
 )
-
-var l = logger.DefaultSLogger(inputName)
-
-func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return &Mongodboplog{
-			FieldList: make(map[string]string),
-			Tags:      make(map[string]string),
-			pointlist: make(map[string]string),
-		}
-	})
-}
 
 type Mongodboplog struct {
 	MongodbURL string            `toml:"mongodb_url"`
@@ -308,4 +293,14 @@ type PartialLog struct {
 	UniqueIndexesUpdates bson.M // generate by CollisionMatrix
 	RawSize              int    // generate by Decorator
 	SourceID             int    // generate by Validator
+}
+
+func init() {
+	inputs.Add(inputName, func() inputs.Input {
+		return &Mongodboplog{
+			FieldList: make(map[string]string),
+			Tags:      make(map[string]string),
+			pointlist: make(map[string]string),
+		}
+	})
 }
