@@ -37,6 +37,7 @@ type HTTPInput interface {
 type PipelineInput interface {
 	Input
 	PipelineConfig() map[string]string
+	RunPipeline()
 }
 
 // new input interface got extra interfaces, for better documentation
@@ -107,6 +108,8 @@ func RunInputs() error {
 			switch inp := ii.input.(type) {
 			case HTTPInput:
 				inp.RegHttpHandler()
+			case PipelineInput:
+				inp.RunPipeline()
 			default:
 				// pass
 			}
