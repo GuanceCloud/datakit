@@ -49,8 +49,7 @@ func (d *dialer) stop() {
 func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
 
 	return &dialer{
-		task: t,
-
+		task:     t,
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
 		tags:     ts,
@@ -74,6 +73,7 @@ func (d *dialer) run() error {
 
 		case <-d.ticker.C:
 
+			l.Debugf(`dialer run %+#v`, d)
 			d.testCnt++
 			//dialtesting start
 			//无论成功或失败，都要记录测试结果
@@ -82,7 +82,7 @@ func (d *dialer) run() error {
 				l.Errorf("task %s failed, %s", d.task.ID(), err.Error())
 			}
 
-			err = d.feedIo()
+			err = d.feedIO()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
@@ -91,10 +91,7 @@ func (d *dialer) run() error {
 			d.doUpdateTask(t)
 
 			if strings.ToLower(d.task.Status()) == dt.StatusStop {
-				if err := t.Stop(); err != nil {
-					l.Warnf("stop task failed: %s", err.Error())
-				}
-
+				d.stop()
 				l.Info("task %s stopped", d.task.ID())
 				return nil
 			}
@@ -102,7 +99,7 @@ func (d *dialer) run() error {
 	}
 }
 
-func (d *dialer) feedIo() error {
+func (d *dialer) feedIO() error {
 
 	// 考虑到推送至不同的dataway地址
 	u, err := url.Parse(d.task.PostURLStr())
@@ -111,7 +108,7 @@ func (d *dialer) feedIo() error {
 		return err
 	}
 
-	u.Path = u.Path + "v1/write/" + datakit.Logging // `/v1/write/logging`
+	u.Path = u.Path + datakit.Logging // `/v1/write/logging`
 
 	urlStr := u.String()
 	switch d.task.Class() {

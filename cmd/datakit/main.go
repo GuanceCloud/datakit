@@ -49,15 +49,18 @@ var (
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
 	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
 	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
+	flagProm     = flag.String("prom-conf", "", "config file to test")
 
 	// manuals related
 	flagMan               = flag.Bool("man", false, "read manuals of inputs")
+	flagK8sCfgPath        = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
 	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
 	flagTODO              = flag.String("TODO", "TODO", "set TODO")
 
+	flagInteractive         = flag.Bool("interactive", false, "interactive generate k8s deploy config")
 	flagCheckUpdate         = flag.Bool("check-update", false, "check if new verison available")
 	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
@@ -73,6 +76,7 @@ var (
 	flagRestart    = flag.Bool("restart", false, "restart datakit")
 	flagReload     = flag.Bool("reload", false, "reload datakit")
 	flagStatus     = flag.Bool("status", false, "show datakit service status")
+	flagUninstall  = flag.Bool("uninstall", false, "uninstall datakit service")
 	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
 
 	// partially update
@@ -381,6 +385,11 @@ func runDatakitWithCmd() {
 		os.Exit(0)
 	}
 
+	if *flagProm != "" {
+		cmds.PromDebugger(*flagProm)
+		os.Exit(0)
+	}
+
 	if *flagGrokq {
 		cmds.Grokq()
 		os.Exit(0)
@@ -388,6 +397,16 @@ func runDatakitWithCmd() {
 
 	if *flagMan {
 		cmds.Man()
+		os.Exit(0)
+	}
+
+	if *flagK8sCfgPath != "" {
+		if err := os.MkdirAll(*flagK8sCfgPath, os.ModePerm); err != nil {
+			l.Errorf("invalid path %s", err.Error())
+			os.Exit(-1)
+		}
+
+		cmds.BuildK8sConfig("datakit-k8s-deploy", *flagK8sCfgPath, *flagInteractive)
 		os.Exit(0)
 	}
 
@@ -487,6 +506,14 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 		fmt.Println(x)
+		os.Exit(0)
+	}
+
+	if *flagUninstall {
+		if err := cmds.UninstallDatakit(); err != nil {
+			fmt.Println("Get DataKit status failed: %s\n", err)
+			os.Exit(-1)
+		}
 		os.Exit(0)
 	}
 
