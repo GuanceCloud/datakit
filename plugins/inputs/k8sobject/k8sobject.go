@@ -193,7 +193,7 @@ const (
 )
 
 var (
-	log *logger.Logger
+	log = logger.DefaultSLogger(pluginName)
 )
 
 func (k *K8sObject) Catalog() string {
@@ -206,6 +206,7 @@ func (k *K8sObject) SampleConfig() string {
 
 func (k *K8sObject) Run() {
 	var err error
+
 	log = logger.SLogger(pluginName)
 	log.Infof("%s input started...", pluginName)
 
