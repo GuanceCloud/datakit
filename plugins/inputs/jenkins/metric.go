@@ -35,7 +35,7 @@ type Metric struct {
 	Gauges  map[string]map[string]interface{} `json:"gauges"`
 }
 
-func getPluginMetric(n *Input) {
+func (n *Input) getPluginMetric() {
 	var metric Metric
 	err := n.requestJSON(fmt.Sprintf("/metrics/%s/metrics?pretty=true", n.Key), &metric)
 	if err != nil {
@@ -48,6 +48,9 @@ func getPluginMetric(n *Input) {
 		"metric_plugin_version": metric.Version,
 		"url":                   n.Url,
 	}
+	for k, v := range n.Tags {
+		tags[k] = v
+	}
 	fields := map[string]interface{}{}
 	for k, v := range metric.Gauges {
 		if fieldKey, ok := fieldMap[k]; ok {
@@ -57,7 +60,12 @@ func getPluginMetric(n *Input) {
 	if version, ok := metric.Gauges["jenkins.versions.core"]; ok {
 		tags["version"] = (version["value"]).(string)
 	}
-
+	if len(fields) == 0 {
+		err = fmt.Errorf("jenkins empty field")
+		l.Error(err.Error())
+		n.lastErr = err
+		return
+	}
 	n.collectCache = append(n.collectCache, &Measurement{fields: fields, tags: tags, ts: ts, name: inputName})
 	l.Debug(n.collectCache[0])
 }

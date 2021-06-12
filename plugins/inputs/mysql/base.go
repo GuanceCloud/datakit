@@ -504,11 +504,6 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 
 // 数据源获取数据
 func (m *baseMeasurement) getStatus() error {
-	if err := m.i.db.Ping(); err != nil {
-		l.Errorf("connect error %v", err)
-		return err
-	}
-
 	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
 	rows, err := m.i.db.Query(globalStatusSql)
 	if err != nil {
