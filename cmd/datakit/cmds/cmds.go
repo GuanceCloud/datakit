@@ -115,7 +115,7 @@ func ReloadDatakit(port int) error {
 }
 
 func UninstallDatakit() error {
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
 	}
