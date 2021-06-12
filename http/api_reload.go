@@ -11,19 +11,24 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type reloadOption struct {
-	ReloadInputs, ReloadMainCfg, ReloadIO bool
+	ReloadInputs,
+	ReloadMainCfg,
+	ReloadIO,
+	ReloadElection bool
 }
 
 func apiReload(c *gin.Context) {
 
 	if err := ReloadDatakit(&reloadOption{
-		ReloadInputs:  true,
-		ReloadMainCfg: true,
-		ReloadIO:      true,
+		ReloadInputs:   true,
+		ReloadMainCfg:  true,
+		ReloadIO:       true,
+		ReloadElection: true,
 	}); err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrReloadDatakitFailed, err.Error()))
 		return
@@ -74,6 +79,11 @@ func ReloadDatakit(ro *reloadOption) error {
 			l.Error("error running inputs: %v", err)
 			return err
 		}
+	}
+
+	if ro.ReloadElection {
+		l.Info("reloading election...")
+		election.Start(config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
 	return nil
