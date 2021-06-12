@@ -20,15 +20,27 @@ RUN wget -q -O data.tar.gz https://zhuyun-static-files-production.oss-cn-hangzho
 	&& tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
 
 ARG dataway=""
-ARG uuid=""
 ARG loglevel=""
 ARG global_tags=""
 ARG hostname=""
+ARG name=""
+ARG http_listen=""
+ARG rum_origin_ip_header=""
+ARG enable_pprof=""
+ARG disable_protect_mode=""
+ARG default_enabled_inputs=""
+ARG enable_election=""
 
-ENV ENV_UUID=$uuid \
-    ENV_DATAWAY=$dataway \
+ENV ENV_DATAWAY=$dataway \
     ENV_LOG_LEVEL=$loglevel \
     ENV_GLOBAL_TAGS=$global_tags \
+		ENV_NAME=$name \
+		ENV_HTTP_LISTE=$http_listen \
+		ENV_RUM_ORIGIN_IP_HEADER=$rum_origin_ip_header \
+		ENV_ENABLE_PPROF=$enable_pprof \
+		ENV_DISABLE_PROTECT_MODE=$=$disable_protect_mode \
+		ENV_DEFAULT_ENABLED_INPUTS=$default_enabled_inputs \
+		ENV_ENABLE_ELECTION=$enable_election \
     ENV_HOSTNAME=$hostname
 
 CMD ["/usr/local/datakit/datakit", "--docker"]
