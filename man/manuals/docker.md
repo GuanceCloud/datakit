@@ -6,11 +6,13 @@
 
 # {{.InputName}}
 
+> Docker 采集器已经停止维护，建议使用[容器采集器](container)。
+
 采集 Docker 服务数据和容器数据，分别以指标、对象和日志的方式上报到 DataFlux 中。
 
 ## 前置条件
 
-- 已安装 Docker(v1.24+)，参考 [Docker 安装官方链接](https://www.docker.com/get-started)
+- Docker 版本 >= 1.24
 
 ## 配置
 
