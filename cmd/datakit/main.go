@@ -232,34 +232,7 @@ ReleasedInputs: %s
 			os.Exit(0)
 		}
 
-		addr := "http://localhost:9529/stats"
-		if *flagAddr != "" {
-			addr = *flagAddr
-		}
-		interval := 3 * time.Second
-		if *flagInterval != "" {
-			if du, err := time.ParseDuration(*flagInterval); err == nil {
-				if du >= time.Second {
-					interval = du // only accept interval >= 1s
-				}
-			}
-		}
-
-		for {
-
-			fmt.Print("\033[H\033[2J") // clean screen
-
-			x, err := cmds.CMDMonitor(addr)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(-1)
-			} else {
-				fmt.Println(string(x))
-				fmt.Println("Press ctrl+c to exit.")
-			}
-			time.Sleep(interval)
-		}
-
+		cmds.CMDMonitor(*flagInterval, *flagAddr)
 		os.Exit(0)
 	}
 
