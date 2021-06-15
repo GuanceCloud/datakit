@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"time"
 
 	"golang.org/x/term"
 
@@ -12,7 +14,38 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
-func CMDMonitor(url string) ([]byte, error) {
+func CMDMonitor(intervalStr, addrStr string) {
+	addr := "http://localhost:9529/stats"
+	if addrStr != "" {
+		addr = "http://" + addrStr + "/stats"
+	}
+
+	interval := 3 * time.Second
+	if intervalStr != "" {
+		if du, err := time.ParseDuration(intervalStr); err == nil {
+			if du >= time.Second {
+				interval = du // only accept interval >= 1s
+			}
+		}
+	}
+
+	for {
+
+		fmt.Print("\033[H\033[2J") // clean screen
+
+		x, err := doCMDMonitor(addr)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(-1)
+		} else {
+			fmt.Println(string(x))
+			fmt.Printf("(Refresh at %s)Press ctrl+c to exit.\n", interval)
+		}
+		time.Sleep(interval)
+	}
+}
+
+func doCMDMonitor(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
