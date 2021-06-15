@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	containerName   = "container"
+	containerName   = "docker_containers"
 	kubeletNodeName = "kubelet_node"
 	kubeletPodName  = "kubelet_pod"
 )
