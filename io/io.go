@@ -144,10 +144,17 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 
 	l.Debugf("io feed %s", name)
 
+	var after []*Point
+	for _, pt := range pts {
+		if !defLogfilter.check(pt) {
+			after = append(after, pt)
+		}
+	}
+
 	select {
 	case ch <- &iodata{
 		category: category,
-		pts:      pts,
+		pts:      after,
 		name:     name,
 		opt:      opt,
 	}:
