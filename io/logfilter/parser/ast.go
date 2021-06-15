@@ -15,8 +15,8 @@ import (
 type Node interface {
 	String() string
 	Pos() *PositionRange
-	InfluxQL() (string, error)
-	ESQL() (interface{}, error)
+	// InfluxQL() (string, error)
+	// ESQL() (interface{}, error)
 }
 
 type CascadeFunctions struct {
