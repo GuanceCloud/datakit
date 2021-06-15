@@ -13,39 +13,144 @@ func TestParse(t *testing.T) {
 		expected interface{}
 		fail     bool
 	}{
+
 		{
-			in: `{
-				a > 0, c < 5 || d < 2}`,
-			//in: "{a > 0}",
-			expected: WhereCondition{
-				conditions: []Node{
-					&BinaryExpr{
-						Op: AND,
-						LHS: &BinaryExpr{
+			in: `{a>1}; {b>1};`, // multiple conditions
+			expected: WhereConditions{
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
 							Op:  GT,
 							LHS: &Identifier{Name: "a"},
-							RHS: &NumberLiteral{IsInt: true, Int: 0},
+							RHS: &NumberLiteral{IsInt: true, Int: 1},
 						},
+					},
+				},
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+							Op:  GT,
+							LHS: &Identifier{Name: "b"},
+							RHS: &NumberLiteral{IsInt: true, Int: 1},
+						},
+					},
+				},
+			},
+		},
 
-						RHS: &BinaryExpr{
-							Op: OR,
+		{
+			in: `{source = 'http_dial_testing' and ( aaaa in ['aaaa44', 'gaga']  and  city in ['北京'] )}`,
+			expected: WhereConditions{
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+
+							Op: AND,
+
 							LHS: &BinaryExpr{
-
-								Op:  LT,
-								LHS: &Identifier{Name: "c"},
-								RHS: &NumberLiteral{IsInt: true, Int: 5},
+								Op:  EQ,
+								LHS: &Identifier{Name: "source"},
+								RHS: &StringLiteral{Val: "http_dial_testing"},
 							},
 
-							RHS: &BinaryExpr{
-								Op:  LT,
-								LHS: &Identifier{Name: "d"},
-								RHS: &NumberLiteral{IsInt: true, Int: 2},
+							RHS: &ParenExpr{
+								Param: &BinaryExpr{
+
+									Op: AND,
+
+									LHS: &BinaryExpr{
+
+										Op:  IN,
+										LHS: &Identifier{Name: "aaaa"},
+										RHS: &NodeList{
+											&StringLiteral{Val: "aaaa44"},
+											&StringLiteral{Val: "gaga"},
+										},
+									},
+									RHS: &BinaryExpr{
+										Op:  IN,
+										LHS: &Identifier{Name: "city"},
+										RHS: &NodeList{
+											&StringLiteral{Val: "北京"},
+										},
+									},
+								},
 							},
 						},
 					},
 				},
 			},
 		},
+
+		{
+			in: `{source = 'http_dial_testing' and  aaaa in ['aaaa44', 'gaga']  and  city in ['北京'] }`,
+			expected: WhereConditions{
+				&WhereCondition{
+
+					conditions: []Node{
+						&BinaryExpr{
+							Op: AND,
+							LHS: &BinaryExpr{
+								Op: AND,
+								LHS: &BinaryExpr{
+									Op:  EQ,
+									LHS: &Identifier{Name: "source"},
+									RHS: &StringLiteral{Val: "http_dial_testing"},
+								},
+								RHS: &BinaryExpr{
+									Op:  IN,
+									LHS: &Identifier{Name: "aaaa"},
+									RHS: &NodeList{
+										&StringLiteral{Val: "aaaa44"},
+										&StringLiteral{Val: "gaga"},
+									},
+								},
+							},
+							RHS: &BinaryExpr{
+								Op:  IN,
+								LHS: &Identifier{Name: "city"},
+								RHS: &NodeList{
+									&StringLiteral{Val: "北京"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		//{
+		//	in: `{
+		//		a > 0, c < 5 || d < 2}`,
+		//	//in: "{a > 0}",
+		//	expected: &WhereCondition{
+		//		conditions: []Node{
+		//			&BinaryExpr{
+		//				Op: AND,
+		//				LHS: &BinaryExpr{
+		//					Op:  GT,
+		//					LHS: &Identifier{Name: "a"},
+		//					RHS: &NumberLiteral{IsInt: true, Int: 0},
+		//				},
+
+		//				RHS: &BinaryExpr{
+		//					Op: OR,
+		//					LHS: &BinaryExpr{
+
+		//						Op:  LT,
+		//						LHS: &Identifier{Name: "c"},
+		//						RHS: &NumberLiteral{IsInt: true, Int: 5},
+		//					},
+
+		//					RHS: &BinaryExpr{
+		//						Op:  LT,
+		//						LHS: &Identifier{Name: "d"},
+		//						RHS: &NumberLiteral{IsInt: true, Int: 2},
+		//					},
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
 	}
 
 	for _, tc := range cases {
@@ -61,12 +166,16 @@ func TestParse(t *testing.T) {
 			continue
 		}
 
-		switch w := p.parseResult.(type) {
-		case *WhereCondition:
-			exp := tc.expected.(WhereCondition)
-			x, y := exp.String(), w.String()
+		switch v := p.parseResult.(type) {
+		case WhereConditions:
+
+			exp := tc.expected.(WhereConditions)
+
+			x := exp.String()
+			y := v.String()
+
 			tu.Equals(t, x, y)
-			t.Logf("in: %s, exp: %s", x, y)
+			t.Logf("[ok] in: %s, exp: %s", x, y)
 		default:
 			t.Fatalf("should not been here: %s", reflect.TypeOf(p.parseResult).String())
 		}
