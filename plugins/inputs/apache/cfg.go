@@ -34,7 +34,7 @@ var (
   [inputs.apache.log]
   # files = []
   # grok pipeline script path
-  # pipeline = "nginx.p"
+  # pipeline = "apache.p"
 
   [inputs.apache.tags]
   # some_tag = "some_value"
