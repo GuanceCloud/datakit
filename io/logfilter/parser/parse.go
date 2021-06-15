@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/prometheus/prometheus/util/strutil"
+	"github.com/siddontang/go/log"
 )
 
 var parserPool = sync.Pool{
@@ -31,32 +32,20 @@ type parser struct {
 	inject    ItemType
 	injecting bool
 
-	curQuery *DFQuery
-	// ExtraParam *s
-
 	context interface{}
 }
 
 func newParser(input string) *parser {
-	return newParserWithParam(input)
-}
-
-func newParserWithParam(input string) *parser {
 	p := parserPool.Get().(*parser)
 
 	// reset parser fields
 	p.injecting = false
 	p.errs = nil
 	p.parseResult = nil
-	p.curQuery = nil
 	p.lex = Lexer{
 		input: input,
 		state: lexStatements,
 	}
-
-	// if param != nil {
-	// 	p.ExtraParam = param
-	// }
 
 	return p
 }
@@ -157,49 +146,9 @@ func (p *parser) unquoteString(s string) string {
 	return unq
 }
 
-// func (p *parser) doParse() {
-// 	p.InjectItem(START_STMTS)
-// 	p.yyParser.Parse(p)
-// 	if len(p.errs) == 0 {
-// 		p.checkingSemantic()
-// 	}
-// 	p.addDefaultLimit()
-// 	p.addDefaultSLimit()
-// 	p.addSearchAfter()
-// 	p.addHighlight()
-// }
-
-func (p *parser) checkingSemantic() {
-	if p.parseResult == nil {
-		return
-	}
-
-	stmts, ok := p.parseResult.(Stmts)
-	if !ok {
-		p.addParseErr(p.yyParser.lval.item.PositionRange(),
-			fmt.Errorf("unknown parser result: %v", p.parseResult))
-		return
-	}
-
-	for _, node := range stmts {
-		switch v := node.(type) {
-		case *DFQuery:
-			errs := v.checkingSemantic()
-			for _, err := range errs {
-				if err.Err == nil {
-					continue
-				}
-
-				pos := p.yyParser.lval.item.PositionRange()
-				if err.Pos != nil {
-					pos = err.Pos
-				}
-				p.addParseErr(pos, err.Err)
-			}
-		default:
-			// pass
-		}
-	}
+func (p *parser) doParse() {
+	p.InjectItem(START_WHERE_CONDITION)
+	p.yyParser.Parse(p)
 }
 
 func (p *parser) InjectItem(typ ItemType) {
@@ -271,84 +220,8 @@ func (p *parser) newQuery(x interface{}) (*DFQuery, error) {
 		return nil, fmt.Errorf("invalid query from source: %+#v", x)
 	}
 
-	p.curQuery = m
-	p.context = p.curQuery
+	p.context = p.parseResult
 	return m, nil
-}
-
-func (p *parser) newShow(f *FuncExpr) (interface{}, error) {
-	if f == nil {
-		panic("function should not be nil")
-	}
-	show := &Show{}
-	switch strings.ToLower(f.Name) {
-	case "show_object_class", "show_object_source", "show_object_field":
-		show.Namespace = "object"
-
-	case "show_event_source", "show_event_field":
-		show.Namespace = "event"
-
-	case "show_logging_source", "show_logging_field":
-		show.Namespace = "logging"
-
-	case "show_tracing_service", "show_tracing_source", "show_tracing_field":
-		show.Namespace = "tracing"
-
-	case "show_rum_type", "show_rum_source", "show_rum_field":
-		show.Namespace = "rum"
-
-	case "show_measurement", "show_field_key", "show_tag_key", "show_tag_value":
-		show.Namespace = "metric"
-
-	case "show_security_category", "show_security_source", "show_security_field":
-		show.Namespace = "security"
-
-	default:
-		return nil, fmt.Errorf("unknown show function")
-	}
-	show.Func = f
-	return show, nil
-}
-
-func (p *parser) newLambda(left *DFQuery, op Item, where NodeList) *Lambda {
-	ld := &Lambda{Left: left, WhereCondition: where}
-
-	switch op.Typ {
-	case FILTER:
-		ld.Opt = LambdaFilter
-	case LINK:
-		ld.Opt = LambdaLink
-	}
-
-	return ld
-}
-
-func (p *parser) newTarget(n Node, alias string) (*Target, error) {
-	t := Target{Col: n, Alias: alias}
-
-	switch v := n.(type) {
-	case *FuncExpr:
-		val, fill, err := v.SplitFill()
-		if err != nil {
-			return nil, err
-		}
-
-		if fill != nil {
-			t.Col = val
-			t.Fill = fill
-		}
-	}
-
-	return &t, nil
-}
-
-func (p *parser) newSubquery(m *DFQuery) *DFQuery {
-	ret := &DFQuery{
-		Subquery: m,
-	}
-
-	p.curQuery = ret // cur-metric points to father
-	return ret
 }
 
 func (p *parser) newBinExpr(l, r Node, op Item) *BinaryExpr {
@@ -390,27 +263,6 @@ func (p *parser) newOrderByElem(column string, op Item) *OrderByElem {
 	}
 
 	return order
-}
-
-func (p *parser) newTimeExpr(t *TimeExpr) *TimeExpr {
-	if t.IsDuration {
-		t.Time = time.Now().Add(-1 * t.Duration)
-	}
-	return t
-}
-
-func (p *parser) newTimeZone(t *StringLiteral) *TimeZone {
-	_, err := time.LoadLocation(t.Val)
-	if err == nil {
-		return &TimeZone{Input: t.Val, TimeZone: t.Val}
-	}
-
-	if tz, ok := timezoneList[t.Val]; ok {
-		return &TimeZone{Input: t.Val, TimeZone: tz}
-	}
-
-	p.addParseErrf(p.yyParser.lval.item.PositionRange(), "invalid time zone or UTC offset")
-	return nil
 }
 
 // end of yylex.(*parser).newXXXX
@@ -469,37 +321,6 @@ type PositionRange struct {
 	Start, End Pos
 }
 
-func newShow(f *FuncExpr) (*Show, error) {
-	if f == nil {
-		return nil, fmt.Errorf("empty show function, should not been here")
-	}
-
-	show := &Show{}
-	switch strings.ToLower(f.Name) {
-	case "show_object_class":
-		show.Namespace = "object"
-
-	case "show_event_source":
-		show.Namespace = "event"
-
-	case "show_logging_source":
-		show.Namespace = "logging"
-
-	case "show_tracing_service":
-		show.Namespace = "tracing"
-
-	case "show_rum_type":
-		show.Namespace = "rum"
-
-	case "show_measurement", "show_field_key", "show_tag_key", "show_tag_value":
-		show.Namespace = "metric"
-
-	default:
-		return nil, fmt.Errorf("unknown show function `%s'", f.Name)
-	}
-	return show, nil
-}
-
 var durationRE = regexp.MustCompile("^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?(([0-9]+)ns)?$")
 
 func parseDuration(s string) (time.Duration, error) {
@@ -538,343 +359,8 @@ func parseDuration(s string) (time.Duration, error) {
 	return time.Duration(du), nil
 }
 
-// ChainFuncsInfo dql support outer funcs list
-// 支持外层函数列表
-var ChainFuncsInfo = map[string]map[string]string{
-	"abs": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"avg": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"cumsum": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"derivative": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"difference": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"first": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"last": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"log10": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"log2": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"max": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"min": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"moving_average": map[string]string{
-		"lenArg": "2", "arg0Name": "dql", "arg0Type": "string",
-		"arg1Name": "size", "arg1Type": "int",
-	},
-	"non_negative_derivative": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"non_negative_difference": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"sum": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"count": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-	"count_distinct": map[string]string{
-		"lenArg": "1", "arg0Name": "dql", "arg0Type": "string",
-	},
-}
-
-// (1) 判断是否是支持的 outer func
-func checkOuterFuncName(f *FuncExpr, oFunc *OuterFunc, notFirst bool) error {
-	fName := strings.ToLower(f.Name)
-	for k := range ChainFuncsInfo {
-		if k == fName {
-			if fName != f.Name {
-				f.Name = fName
-			}
-			oFunc.Func = f
-			return nil
-		}
+func (p *parser) newWhereConditions(conditions []Node) *WhereCondition {
+	return &WhereCondition{
+		conditions: conditions,
 	}
-	return fmt.Errorf("unsupport outer func: %s", fName)
 }
-
-// 获取外层函数的命名参数类型
-// func getArgType(argVal interface{}) (string, interface{}) {
-// 	if IsStringParam(argVal) {
-// 		return "string", GetStringParam(argVal)
-// 	}
-// 	if argVal, ok := argVal.(*NumberLiteral); ok {
-// 		if argVal.IsInt {
-// 			return "int", int64(argVal.Int)
-// 		}
-// 	}
-// 	return "unknown", nil
-// }
-
-// (2) 检查outer func的参数是否合法
-// func checkOuterFuncParam(f *FuncExpr, oFunc *OuterFunc, notFirst bool) error {
-// 	// 第一个外层函数
-// 	if !notFirst {
-// 		return checkFirstOuterFuncParam(f, oFunc)
-// 	}
-// 	// 其他的链接函数
-// 	fInfo := ChainFuncsInfo[f.Name]
-// 	expectLen, err := strconv.Atoi(fInfo["lenArg"])
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// 链式函数，除了第一个函数，其他不需要dql参数
-// 	lenParam := len(f.Param) + 1
-// 	i := 1
-
-// 	if lenParam != expectLen {
-// 		return fmt.Errorf("outer func %s : must have %d params, but give %d params", f.Name, expectLen, lenParam)
-// 	}
-
-// 	for i < lenParam {
-
-// 		exceptName := fInfo["arg"+strconv.Itoa(i)+"Name"]
-// 		exceptType := fInfo["arg"+strconv.Itoa(i)+"Type"]
-
-// 		var inputArgType string
-// 		var inputArgVal interface{}
-
-// 		switch f.Param[i-1].(type) {
-// 		case *FuncArg: // 命名参数
-// 			fArg := f.Param[i-1].(*FuncArg)
-// 			inputArgType, inputArgVal = getArgType(fArg.ArgVal)
-// 			if fArg.ArgName != exceptName || inputArgType != exceptType {
-// 				return fmt.Errorf(
-// 					"outer func %s : arg name:type should be %s:%s, but input arg is %s:%s",
-// 					f.Name, exceptName, exceptType, fArg.ArgName, inputArgType,
-// 				)
-// 			}
-// 		case *NumberLiteral: // 非命名参数
-// 			fNumber := f.Param[i-1].(*NumberLiteral)
-// 			if fNumber.IsInt {
-// 				inputArgType = "int"
-// 				inputArgVal = fNumber.Int
-// 			} else {
-// 				inputArgType = "float"
-// 				inputArgVal = fNumber.Float
-// 			}
-// 			if inputArgType != exceptType {
-// 				return fmt.Errorf(
-// 					"outer func %s : the arg %s type should be %s, but input type is %s",
-// 					f.Name, exceptName, exceptType, inputArgType,
-// 				)
-// 			}
-// 		default:
-// 			return fmt.Errorf("outer func %s args error", f.Name)
-// 		}
-
-// 		oFunc.FuncArgTypes = append(oFunc.FuncArgTypes, inputArgType)
-// 		oFunc.FuncArgVals = append(oFunc.FuncArgVals, inputArgVal)
-// 		oFunc.FuncArgNames = append(oFunc.FuncArgNames, exceptName)
-// 		i = i + 1
-// 	}
-// 	return nil
-// }
-
-// (2) 检查outer func的参数是否合法
-// func checkFirstOuterFuncParam(f *FuncExpr, oFunc *OuterFunc) error {
-// 	fInfo := ChainFuncsInfo[f.Name]
-// 	expectLen, err := strconv.Atoi(fInfo["lenArg"])
-// 	if err != nil {
-// 		return err
-// 	}
-// 	lenParam := len(f.Param)
-// 	i := 0
-// 	if lenParam != expectLen {
-// 		return fmt.Errorf("outer func %s : must have %d params, but give %d params", f.Name, expectLen, lenParam)
-// 	}
-
-// 	for i < lenParam {
-// 		exceptName := fInfo["arg"+strconv.Itoa(i)+"Name"]
-// 		exceptType := fInfo["arg"+strconv.Itoa(i)+"Type"]
-
-// 		var inputArgType string
-// 		var inputArgVal interface{}
-
-// 		switch f.Param[i].(type) {
-// 		case *FuncArg: // 命名参数
-// 			fArg := f.Param[i].(*FuncArg)
-// 			inputArgType, inputArgVal = getArgType(fArg.ArgVal)
-// 			if fArg.ArgName != exceptName || inputArgType != exceptType {
-// 				return fmt.Errorf(
-// 					"outer func %s : arg name:type should be %s:%s, but input arg is %s:%s",
-// 					f.Name, exceptName, exceptType, fArg.ArgName, inputArgType,
-// 				)
-// 			}
-// 		case *NumberLiteral: // 非命名参数, 数值类型（外层函数的首个函数第一个参数必须是dql字符串）
-// 			fNumber := f.Param[i].(*NumberLiteral)
-// 			if fNumber.IsInt {
-// 				inputArgType = "int"
-// 				inputArgVal = fNumber.Int
-// 			} else {
-// 				inputArgType = "float"
-// 				inputArgVal = fNumber.Float
-// 			}
-// 			if inputArgType != exceptType {
-// 				return fmt.Errorf(
-// 					"outer func %s : the arg %s type should be %s, but input type is %s",
-// 					f.Name, exceptName, exceptType, inputArgType,
-// 				)
-// 			}
-// 		case *Identifier, *StringLiteral: // 非命名参数，字符串类型
-// 			inputArgVal = GetStringParam(f.Param[i])
-// 			inputArgType = "string"
-// 			if inputArgType != exceptType {
-// 				return fmt.Errorf(
-// 					"outer func %s : the arg %s type should be %s, but input type is %s",
-// 					f.Name, exceptName, exceptType, inputArgType,
-// 				)
-// 			}
-// 		default:
-// 			return fmt.Errorf("outer func %s args error", f.Name)
-// 		}
-// 		oFunc.FuncArgTypes = append(oFunc.FuncArgTypes, inputArgType)
-// 		oFunc.FuncArgVals = append(oFunc.FuncArgVals, inputArgVal)
-// 		oFunc.FuncArgNames = append(oFunc.FuncArgNames, exceptName)
-// 		i = i + 1
-// 	}
-// 	return nil
-// }
-
-func (f *FuncExpr) lowerFuncName() string {
-	return strings.ToLower(f.Name)
-}
-
-func (f *FuncExpr) isShowFunc() bool {
-	fName := f.lowerFuncName()
-	return len(fName) > 5 && fName[:5] == "show_"
-}
-
-func (f *FuncExpr) isDeleteFunc() bool {
-	fName := f.lowerFuncName()
-	return fName == "delete"
-}
-
-// check chain funcs
-func (oFuncs *OuterFuncs) checkFuncsSort(f *FuncExpr) error {
-	if len(oFuncs.Funcs) == 1 {
-		preFunc := oFuncs.Funcs[0].Func
-		if preFunc.isShowFunc() || preFunc.isDeleteFunc() { // show 和 delete函数不能链式调用
-			return fmt.Errorf("you can not call the func chain: %s func, %s func", preFunc.lowerFuncName(), f.lowerFuncName())
-		}
-	}
-	return nil
-}
-
-// newOuterFunc
-// func (p *parser) newOuterFunc(chainFuncs *OuterFuncs, f *FuncExpr) (interface{}, error) {
-// 	if f == nil {
-// 		return nil, fmt.Errorf("empty outer function")
-// 	}
-// 	// 1) 可能为show函数
-// 	if f.isShowFunc() {
-// 		return p.newShow(f)
-// 	}
-// 	// 2) 可能为delete函数
-// 	if f.isDeleteFunc() {
-// 		return p.newDeleteFunc(f)
-// 	}
-// 	// 3) 外层链接调用函数
-// 	if chainFuncs == nil || len(chainFuncs.Funcs) == 0 {
-// 		chainFuncs = &OuterFuncs{
-// 			Funcs: []*OuterFunc{},
-// 		}
-// 	}
-
-// 	var err error
-
-// 	oFunc := &OuterFunc{}
-
-// 	checkFuncs := []func(*FuncExpr, *OuterFunc, bool) error{
-// 		checkOuterFuncName,  // (1) 检查是否是支持的 outer func
-// 		checkOuterFuncParam, // (2) 检查参数
-// 		// checkOuterFuncSort 检查多个外层函数的嵌套是否有意义, e.g. max(dql='').top(3)
-// 	}
-// 	for _, checkFunc := range checkFuncs {
-// 		err = checkFunc(f, oFunc, len(chainFuncs.Funcs) >= 1)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	oFunc.Func = f
-// 	err = chainFuncs.checkFuncsSort(f)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	chainFuncs.Funcs = append(chainFuncs.Funcs, oFunc)
-// 	return chainFuncs, nil
-
-// }
-
-// 外层函数，删除查询出来的结果
-// func (p *parser) newDeleteFunc(f *FuncExpr) (interface{}, error) {
-// 	if f == nil {
-// 		return nil, fmt.Errorf("empty outer delete function")
-// 	}
-// 	fName := strings.ToLower(f.Name)
-// 	if fName != "delete" {
-// 		return nil, fmt.Errorf("unsupport func")
-// 	}
-
-// 	lenParam := len(f.Param)
-// 	if lenParam != 1 {
-// 		return nil, fmt.Errorf("outer delete func %s : must have 1 params, but give %d params", f.Name, lenParam)
-// 	}
-
-// 	var (
-// 		inputArgVal       string
-// 		inputArgType      string
-// 		deleteIndex       bool
-// 		deleteMeasurement bool
-// 	)
-
-// 	switch f.Param[0].(type) {
-// 	case *FuncArg: // 命名参数, 必须为dql或者index,measurement
-// 		fArg := f.Param[0].(*FuncArg)
-// 		if IsStringParam(fArg.ArgVal) {
-// 			inputArgType, inputArgVal = "string", GetStringParam(fArg.ArgVal)
-// 		}
-// 		if (fArg.ArgName != "index" && fArg.ArgName != "dql" && fArg.ArgName != "measurement") || inputArgType != "string" {
-// 			return nil, fmt.Errorf(
-// 				"outer delete func: arg name:type should be dql:string or index:string measurement:string, but input arg is %s:%s",
-// 				fArg.ArgName, inputArgType,
-// 			)
-// 		}
-// 		if fArg.ArgName == "index" {
-// 			deleteIndex = true
-// 		} else if fArg.ArgName == "measurement" {
-// 			deleteMeasurement = true
-// 		}
-// 	case *Identifier, *StringLiteral: // 非命名参数，字符串类型
-// 		inputArgVal = GetStringParam(f.Param[0])
-// 	default:
-// 		return nil, fmt.Errorf("outer func delete args error, should be string dql")
-// 	}
-
-// 	deleteFunc := DeleteFunc{
-// 		Func:              f,
-// 		StrDql:            inputArgVal,
-// 		DeleteIndex:       deleteIndex,
-// 		DeleteMeasurement: deleteMeasurement,
-// 	}
-// 	return &deleteFunc, nil
-
-// }
