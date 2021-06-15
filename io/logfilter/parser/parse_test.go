@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
@@ -1667,133 +1666,175 @@ func TestParseBinaryExpr(t *testing.T) {
 	}
 }
 
-func TestParseQuery(t *testing.T) {
-	runCases(t, queryCases)
-}
-
-func runCases(t *testing.T, cases []*parseCase) {
-	for idx := len(cases) - 1; idx >= 0; idx-- {
-		tc := cases[idx]
-
-		nodes, err := ParseDQL(tc.in)
-		if err != nil {
-			t.Log(err)
-		}
-
-		var x, y string
-
-		_ = x
-		_ = y
-
-		// for debug
-		switch v := nodes.(type) {
-		case Stmts:
-			if err != nil {
-				t.Logf("parse error: %s", err.Error())
-			} else {
-				if tc.expected != nil {
-					// t.Logf("tc.expected: %+#v", tc.expected)
-					expected, ok := tc.expected.(Stmts)
-					if ok {
-						x = expected.String()
-					}
-					y = v.String()
-				}
-			}
-
-		default:
-			if !tc.fail {
-				t.Errorf("[%d] in: %s -> unknown parse result: %v, err: %v", idx, tc.in, nodes, err)
-			}
-		}
-
-		if !tc.fail {
-			testutil.Ok(t, err)
-			testutil.Equals(t, x, y)
-			t.Logf("[%d] ok %s -> %s", idx, tc.in, y)
-		} else {
-			t.Logf("[%d] %s -> expect fail: %v", idx, tc.in, err)
-			testutil.NotOk(t, err, "")
-		}
-	}
-}
-
-func BenchmarkParser(b *testing.B) {
-	logger.SetStdoutRootLogger(logger.INFO, logger.OPT_DEFAULT)
-	log = logger.DefaultSLogger("parser")
-
-	b.ReportAllocs()
-
-	nbytes := 0
-	for _, c := range queryCases {
-		nbytes += len(c.in)
-	}
-	b.SetBytes(int64(nbytes))
-
-	nparse := 0
-	for x := 0; x < b.N; x++ {
-		for _, c := range queryCases {
-			_, _ = ParseDQL(c.in)
-			nparse++
-		}
-	}
-}
-
-func TestDQLToJson(t *testing.T) {
-	for idx := len(queryCases) - 1; idx >= 0; idx-- {
-		tc := queryCases[idx]
-
-		nodes, err := ParseDQL(tc.in)
-		if err != nil {
-			continue
-		}
-
-		// for debug
-		switch v := nodes.(type) {
-		case Stmts:
-			for _, stmt := range v {
-				switch vv := stmt.(type) {
-				case *DFQuery:
-					b, err := vv.JSON()
-					if err != nil {
-						t.Fatalf("[%d] %s -> expect fail: %v", idx, tc.in, err)
-					}
-
-					t.Logf("[%d] ok %s -> %s", idx, tc.in, b)
-				}
-			}
-
-		default:
-			t.Fatal("panic")
-		}
-	}
-}
-
-func TestOuterFuncParse(t *testing.T) {
-	var testCases = []map[string]string{
-
-		{
-			// 1, 测试逻辑not
-			"index": "1",
-
-			// "input": "difference(2, dql=`L::logging_b:(filesize) limit 3`).moving_average(2)",
-			// "input": "difference(dql=`L::logging_b:(filesize) limit 3`).moving_average(size=2)",
-			// "input": "difference(difference(dql=`L::logging_b:(filesize) limit 10`))",
-			// "input": "moving_average(dql=`L::logging_b:(filesize) limit 10`, size=2)",
-			"input":    "difference(`L::logging_b:(filesize) limit 3`)",
-			"expected": ``,
+func TestWhereCond(t *testing.T) {
+	pc := &parseCase{
+		in: `{x > 0, f in [1,2,3,4]}`,
+		expected: Stmts{&DFQuery{
+			Namespace: "M",
+			Names:     []string{"cpu"},
+			WhereCondition: []Node{
+				&BinaryExpr{
+					Op:  GT,
+					LHS: &Identifier{Name: "x"},
+					RHS: &NumberLiteral{IsInt: true, Int: 0},
+				},
+				&BinaryExpr{
+					Op:  IN,
+					LHS: &Identifier{Name: "f"},
+					RHS: &NodeList{
+						&NumberLiteral{IsInt: true, Int: 1},
+						&NumberLiteral{IsInt: true, Int: 2},
+						&NumberLiteral{IsInt: true, Int: 3},
+						&NumberLiteral{IsInt: true, Int: 4},
+					},
+				},
+			},
+		},
 		},
 	}
 
-	for _, item := range testCases {
-		asts, perr := ParseDQL(item["input"])
-		if perr != nil {
-			t.Errorf(
-				"parse error: the input is:\n\n %s \n\n err is:\n\n %s \n",
-				item["input"],
-				perr,
-			)
-		}
-		log.Info(asts)
+	res, err := ParseWhereCond(pc.in)
+	if err != nil {
+		log.Errorf(err.Error())
+	} else {
+		log.Info(res)
 	}
+
+	// ndoe, err := ParseDQL(pc.in)
+	// if err != nil {
+	// 	t.Log(err)
+	// } else {
+	// 	t.Log(node)
+	// }
 }
+
+// func TestParseQuery(t *testing.T) {
+// 	runCases(t, queryCases)
+// }
+
+// func runCases(t *testing.T, cases []*parseCase) {
+// 	for idx := len(cases) - 1; idx >= 0; idx-- {
+// 		tc := cases[idx]
+
+// 		nodes, err := ParseDQL(tc.in)
+// 		if err != nil {
+// 			t.Log(err)
+// 		}
+
+// 		var x, y string
+
+// 		_ = x
+// 		_ = y
+
+// 		// for debug
+// 		switch v := nodes.(type) {
+// 		case Stmts:
+// 			if err != nil {
+// 				t.Logf("parse error: %s", err.Error())
+// 			} else {
+// 				if tc.expected != nil {
+// 					// t.Logf("tc.expected: %+#v", tc.expected)
+// 					expected, ok := tc.expected.(Stmts)
+// 					if ok {
+// 						x = expected.String()
+// 					}
+// 					y = v.String()
+// 				}
+// 			}
+
+// 		default:
+// 			if !tc.fail {
+// 				t.Errorf("[%d] in: %s -> unknown parse result: %v, err: %v", idx, tc.in, nodes, err)
+// 			}
+// 		}
+
+// 		if !tc.fail {
+// 			testutil.Ok(t, err)
+// 			testutil.Equals(t, x, y)
+// 			t.Logf("[%d] ok %s -> %s", idx, tc.in, y)
+// 		} else {
+// 			t.Logf("[%d] %s -> expect fail: %v", idx, tc.in, err)
+// 			testutil.NotOk(t, err, "")
+// 		}
+// 	}
+// }
+
+// func BenchmarkParser(b *testing.B) {
+// 	logger.SetStdoutRootLogger(logger.INFO, logger.OPT_DEFAULT)
+// 	log = logger.DefaultSLogger("parser")
+
+// 	b.ReportAllocs()
+
+// 	nbytes := 0
+// 	for _, c := range queryCases {
+// 		nbytes += len(c.in)
+// 	}
+// 	b.SetBytes(int64(nbytes))
+
+// 	nparse := 0
+// 	for x := 0; x < b.N; x++ {
+// 		for _, c := range queryCases {
+// 			_, _ = ParseDQL(c.in)
+// 			nparse++
+// 		}
+// 	}
+// }
+
+// func TestDQLToJson(t *testing.T) {
+// 	for idx := len(queryCases) - 1; idx >= 0; idx-- {
+// 		tc := queryCases[idx]
+
+// 		nodes, err := ParseDQL(tc.in)
+// 		if err != nil {
+// 			continue
+// 		}
+
+// 		// for debug
+// 		switch v := nodes.(type) {
+// 		case Stmts:
+// 			for _, stmt := range v {
+// 				switch vv := stmt.(type) {
+// 				case *DFQuery:
+// 					b, err := vv.JSON()
+// 					if err != nil {
+// 						t.Fatalf("[%d] %s -> expect fail: %v", idx, tc.in, err)
+// 					}
+
+// 					t.Logf("[%d] ok %s -> %s", idx, tc.in, b)
+// 				}
+// 			}
+
+// 		default:
+// 			t.Fatal("panic")
+// 		}
+// 	}
+// }
+
+// func TestOuterFuncParse(t *testing.T) {
+// 	var testCases = []map[string]string{
+
+// 		{
+// 			// 1, 测试逻辑not
+// 			"index": "1",
+
+// 			// "input": "difference(2, dql=`L::logging_b:(filesize) limit 3`).moving_average(2)",
+// 			// "input": "difference(dql=`L::logging_b:(filesize) limit 3`).moving_average(size=2)",
+// 			// "input": "difference(difference(dql=`L::logging_b:(filesize) limit 10`))",
+// 			// "input": "moving_average(dql=`L::logging_b:(filesize) limit 10`, size=2)",
+// 			"input":    "difference(`L::logging_b:(filesize) limit 3`)",
+// 			"expected": ``,
+// 		},
+// 	}
+
+// 	for _, item := range testCases {
+// 		asts, perr := ParseDQL(item["input"])
+// 		if perr != nil {
+// 			t.Errorf(
+// 				"parse error: the input is:\n\n %s \n\n err is:\n\n %s \n",
+// 				item["input"],
+// 				perr,
+// 			)
+// 		}
+// 		log.Info(asts)
+// 	}
+// }
