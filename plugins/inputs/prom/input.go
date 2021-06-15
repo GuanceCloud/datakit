@@ -43,14 +43,13 @@ const (
 
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
-
   ## TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
   # tls_key = "/tmp/peer.key"
 
-  ## 自定义指标集名称
+	## 自定义指标集名称
   # 可以将包含前缀prefix的指标归为一类指标集
   # 自定义指标集名称配置优先measurement_name配置项
   #[[inputs.prom.measurements]]
