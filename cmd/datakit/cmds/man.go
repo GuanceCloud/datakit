@@ -110,7 +110,11 @@ func runMan(txt string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	default:
-		x, err := man.BuildMarkdownManual(s, &man.Option{WithCSS: false, DisableMonofontOnTagFieldName: true})
+		x, err := man.BuildMarkdownManual(s, &man.Option{
+			WithCSS:                       false,
+			DisableMonofontOnTagFieldName: true,
+		})
+
 		if err != nil {
 			fmt.Printf("[E] %s\n", err.Error())
 		} else {
