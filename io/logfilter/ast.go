@@ -215,7 +215,7 @@ func (n NodeList) String() string {
 	for _, arg := range n {
 		arr = append(arr, arg.String())
 	}
-	return strings.Join(arr, ", ")
+	return "[" + strings.Join(arr, ", ") + "]"
 }
 
 type FuncArg struct {
@@ -746,7 +746,10 @@ type BinaryExpr struct { // impl Expr & Node
 func (e *BinaryExpr) Type() ValueType     { return "" }  // TODO
 func (e *BinaryExpr) Pos() *PositionRange { return nil } // TODO
 func (e *BinaryExpr) String() string {
-	return fmt.Sprintf("%s %s %s", e.LHS.String(), e.Op.String(), e.RHS.String())
+	return fmt.Sprintf("%s %s %s",
+		e.LHS.String(),
+		e.Op.String(),
+		e.RHS.String())
 }
 
 func (e *BinaryExpr) DQLExpr() {} // not used
@@ -908,7 +911,6 @@ type WhereCondition struct {
 }
 
 func (x *WhereCondition) String() string {
-
 	arr := []string{}
 	for _, f := range x.conditions {
 		arr = append(arr, f.String())
@@ -918,4 +920,15 @@ func (x *WhereCondition) String() string {
 
 func (d *WhereCondition) Pos() *PositionRange {
 	return nil
+}
+
+type WhereConditions []Node
+
+func (x WhereConditions) Pos() *PositionRange { return nil }
+func (x WhereConditions) String() string {
+	arr := []string{}
+	for _, c := range x {
+		arr = append(arr, c.String())
+	}
+	return strings.Join(arr, "; ")
 }
