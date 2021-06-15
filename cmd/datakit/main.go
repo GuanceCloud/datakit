@@ -81,6 +81,10 @@ var (
 	flagUninstall  = flag.Bool("uninstall", false, "uninstall datakit service")
 	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
 
+	// DQL
+	flagDQL    = flag.Bool("dql", false, "query DQL")
+	flagRunDQL = flag.String("run-dql", "", "run single DQL")
+
 	// partially update
 	flagUpdateIPDb = flag.Bool("update-ip-db", false, "update ip db")
 	flagAddr       = flag.StringP("addr", "A", "", "url path")
@@ -205,6 +209,15 @@ ReleasedInputs: %s
 	}
 
 	inputs.TODO = *flagTODO
+
+	if *flagDQL {
+		cmds.DQL()
+		os.Exit(0)
+	}
+
+	if *flagRunDQL != "" {
+		os.Exit(0)
+	}
 
 	if *flagShowCloudInfo != "" {
 		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
