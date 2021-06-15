@@ -7,8 +7,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"google.golang.org/appengine/log"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
+
+var log = logger.DefaultSLogger("logfilter-parser")
 
 type Item struct {
 	Typ ItemType
@@ -123,6 +125,8 @@ var (
 )
 
 func init() {
+	log = logger.SLogger("logfilter-parser")
+
 	// Add keywords to Item type strings.
 	for s, ty := range keywords {
 		ItemTypeStr[ty] = s
@@ -386,7 +390,6 @@ __goon:
 			word := l.input[l.start:l.pos]
 
 			if kw, ok := keywords[strings.ToLower(word)]; ok {
-				//log.Debugf("emit keyword: %s", kw)
 				l.emit(kw)
 			} else {
 				l.emit(ID)
