@@ -1,4 +1,4 @@
-package logfilter
+package parser
 
 import (
 	"reflect"
