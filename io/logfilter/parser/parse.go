@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/prometheus/prometheus/util/strutil"
-	"github.com/siddontang/go/log"
 )
 
 var parserPool = sync.Pool{
