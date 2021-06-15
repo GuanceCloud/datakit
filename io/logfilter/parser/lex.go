@@ -6,6 +6,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"google.golang.org/appengine/log"
 )
 
 type Item struct {
