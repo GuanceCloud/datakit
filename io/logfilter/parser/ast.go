@@ -7,7 +7,16 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/siddontang/go/log"
 )
+
+type Value interface {
+	Type() ValueType
+	String() string
+}
+
+type ValueType string
 
 ///////////////////////////////////////
 // Node
@@ -15,8 +24,6 @@ import (
 type Node interface {
 	String() string
 	Pos() *PositionRange
-	// InfluxQL() (string, error)
-	// ESQL() (interface{}, error)
 }
 
 type CascadeFunctions struct {
@@ -413,135 +420,6 @@ func (n *FuncExpr) String() string {
 func (n *FuncExpr) Pos() *PositionRange { return nil } // TODO
 
 // stmt
-
-type Show struct {
-	Namespace string `json:"namespace,omitempty"`
-	//Targets   []Node
-	Func *FuncExpr `json:"func,omitempty"`
-
-	WhereCondition []Node     `json:"where_condition,omitempty"`
-	TimeRange      *TimeRange `json:"time_range,omitempty"`
-	Limit          *Limit     `json:"limit,omitempty"`
-	Offset         *Offset    `json:"offset,omitempty"`
-
-	Helper *Helper `json:"-"`
-}
-
-func (s *Show) JSON() ([]byte, error) {
-	// json.Marshal escaping < and >
-	// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(s)
-
-	// Encode() followed by a newline character
-	return buffer.Bytes(), err
-}
-
-func (s *Show) String() string {
-	parts := []string{"{"}
-
-	if s.Func != nil {
-		parts = append(parts, s.Func.String())
-	}
-
-	if s.WhereCondition != nil {
-		arr := []string{}
-		for _, f := range s.WhereCondition {
-			arr = append(arr, f.String())
-		}
-		parts = append(parts, "{"+strings.Join(arr, ", ")+"}")
-	}
-
-	if s.TimeRange != nil {
-		parts = append(parts, "["+s.TimeRange.String()+"]")
-	}
-
-	if s.Limit != nil {
-		parts = append(parts, s.Limit.String())
-	}
-
-	if s.Offset != nil {
-		parts = append(parts, s.Offset.String())
-	}
-
-	return strings.Join(parts, " ") + "}"
-}
-
-func (*Show) Pos() *PositionRange { return nil } // TODO
-
-type LambdaType int
-
-func (lt LambdaType) String() string {
-	switch lt {
-	case LambdaFilter:
-		return "FILTER"
-	case LambdaLink:
-		return "LINK"
-	}
-	return "unreachable"
-}
-
-func (lt LambdaType) MarshalJSON() ([]byte, error) {
-	const res = `{"type":"%s"}`
-	return []byte(fmt.Sprintf(res, strings.ToLower(lt.String()))), nil
-}
-
-const (
-	LambdaFilter LambdaType = iota + 1
-	LambdaLink
-)
-
-type Lambda struct {
-	Left           *DFQuery   `json:"left,omitempty"`
-	Opt            LambdaType `json:"opt,omitempty"`
-	Right          []*DFQuery `json:"right,omitempty"`
-	WhereCondition []Node     `json:"where_condition,omitempty"`
-}
-
-func (lq *Lambda) JSON() ([]byte, error) {
-	// json.Marshal escaping < and >
-	// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(lq)
-
-	// Encode() followed by a newline character
-	return buffer.Bytes(), err
-}
-
-func (lq *Lambda) String() string {
-	var res []string
-
-	res = append(res, lq.Left.String())
-
-	res = append(res, lq.Opt.String())
-
-	res = append(res, func() string {
-		var s []string
-		for _, dql := range lq.Right {
-			s = append(s, dql.String())
-		}
-		return strings.Join(s, " "+lq.Opt.String()+" ")
-	}())
-
-	res = append(res, "WITH")
-
-	if lq.WhereCondition != nil {
-		arr := []string{}
-		for _, f := range lq.WhereCondition {
-			arr = append(arr, f.String())
-		}
-		res = append(res, "{"+strings.Join(arr, ", ")+"}")
-	}
-
-	return strings.Join(res, " ")
-}
-
-func (*Lambda) Pos() *PositionRange { return nil } // TODO
-
 type ESTRes struct {
 	Alias           map[string]string // 别名信息
 	SortFields      []string          // 返回字段有序列表
@@ -574,7 +452,6 @@ type DFQuery struct { // impl Node
 
 	Targets        []*Target    `json:"targets,omitempty"`
 	WhereCondition []Node       `json:"where_condition,omitempty"`
-	TimeRange      *TimeRange   `json:"time_range,omitempty"`
 	GroupBy        *GroupBy     `json:"groupby,omitempty"`
 	OrderBy        *OrderBy     `json:"orderby,omitempty"`
 	Limit          *Limit       `json:"limit,omitempty"`
@@ -715,10 +592,6 @@ func (m *DFQuery) String() string {
 		parts = append(parts, "{"+strings.Join(arr, ", ")+"}")
 	}
 
-	if m.TimeRange != nil {
-		parts = append(parts, "["+m.TimeRange.String()+"]")
-	}
-
 	if m.GroupBy != nil {
 		parts = append(parts, " "+m.GroupBy.String())
 	}
@@ -833,45 +706,6 @@ func (n *TimeResolution) String() string {
 
 func (n *TimeResolution) Pos() *PositionRange { return nil /* TODO */ }
 
-type TimeRange struct {
-	Start, End       *TimeExpr
-	Resolution       *TimeResolution
-	ResolutionOffset time.Duration
-}
-
-func (n *TimeRange) TimeLength() time.Duration {
-	if n.Start != nil && n.End != nil {
-		return n.End.Time.Sub(n.Start.Time)
-	}
-	if n.Start != nil {
-		return time.Now().Sub(n.Start.Time)
-	}
-	return 0
-}
-
-func (n *TimeRange) String() string {
-	startStr, endStr, resStr, offsetStr := "", "", "", ""
-
-	if n.Resolution != nil {
-		resStr = n.Resolution.String()
-	}
-
-	if n.ResolutionOffset != time.Duration(0) {
-		offsetStr = fmt.Sprintf(",%v", n.ResolutionOffset)
-	}
-
-	if n.Start != nil {
-		startStr = n.Start.String()
-	}
-	if n.End != nil {
-		endStr = n.End.String()
-	}
-
-	return fmt.Sprintf("%s:%s:%s%s",
-		startStr, endStr, resStr, offsetStr)
-}
-func (n *TimeRange) Pos() *PositionRange { return nil } // TODO
-
 ///////////////////////////////////////
 // Expr
 ///////////////////////////////////////
@@ -880,23 +714,6 @@ type Expr interface {
 	Type() ValueType
 
 	DQLExpr()
-}
-
-type TimeExpr struct {
-	IsDuration bool
-	Duration   time.Duration `json:"duration,omitempty"`
-	Time       time.Time     `json:"time,omitempty"`
-}
-
-func (e *TimeExpr) Type() ValueType     { return "" }
-func (e *TimeExpr) Pos() *PositionRange { return nil }
-func (e *TimeExpr) String() string {
-	if e.IsDuration {
-		return fmt.Sprintf("%v", e.Duration)
-	} else {
-		// default use UTC time
-		return e.Time.In(time.UTC).Format(DateTimeFormat)
-	}
 }
 
 type Regex struct {
@@ -1060,14 +877,6 @@ func (oFunc *OuterFunc) Pos() *PositionRange {
 	return nil
 }
 
-func (oFunc *OuterFunc) InfluxQL() (string, error) {
-	return "", nil
-}
-
-func (oFunc *OuterFunc) ESQL() (interface{}, error) {
-	return "", nil
-}
-
 func (ofuncs *OuterFuncs) String() string {
 	// TODO
 	return "outer func"
@@ -1075,14 +884,6 @@ func (ofuncs *OuterFuncs) String() string {
 
 func (oFuncs *OuterFuncs) Pos() *PositionRange {
 	return nil
-}
-
-func (oFuncs *OuterFuncs) InfluxQL() (string, error) {
-	return "", nil
-}
-
-func (oFuncs *OuterFuncs) ESQL() (interface{}, error) {
-	return "", nil
 }
 
 // DeleteFunc delete info
@@ -1104,10 +905,19 @@ func (d *DeleteFunc) Pos() *PositionRange {
 	return nil
 }
 
-func (d *DeleteFunc) InfluxQL() (string, error) {
-	return "", nil
+type WhereCondition struct {
+	conditions []Node
 }
 
-func (d *DeleteFunc) ESQL() (interface{}, error) {
-	return "", nil
+func (x *WhereCondition) String() string {
+
+	arr := []string{}
+	for _, f := range x.conditions {
+		arr = append(arr, f.String())
+	}
+	return "{" + strings.Join(arr, " and ") + "}"
+}
+
+func (d *WhereCondition) Pos() *PositionRange {
+	return nil
 }
