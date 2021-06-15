@@ -1,10 +1,3290 @@
 
-70 terminals, 60 nonterminals
-85 grammar rules, 0/8000 states
-0 shift/reduce, 0 reduce/reduce conflicts reported
-0 working sets used
-memory: parser 0/120000
-0 extra closures
-0 shift entries, 0 exceptions
-0 goto entries
-0 entries saved by goto default
+state 0
+	$accept: .start $end 
+
+	error  shift 6
+	START_STMTS  shift 2
+	START_BINARY_EXPRESSION  shift 3
+	START_FUNC_EXPRESSION  shift 4
+	START_WHERE  shift 5
+	.  error
+
+	start  goto 1
+
+state 1
+	$accept:  start.$end 
+	start:  start.EOF 
+
+	$end  accept
+	EOF  shift 7
+	.  error
+
+
+state 2
+	start:  START_STMTS.stmts 
+
+	ID  shift 23
+	LEFT_PAREN  shift 22
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	RE  shift 26
+	.  error
+
+	function_name  goto 16
+	identifier  goto 19
+	namespace  goto 18
+	stmt  goto 9
+	stmts  goto 8
+	query_stmt  goto 10
+	query_base_stmt  goto 13
+	outerFunc_stmt  goto 11
+	lambda_stmt  goto 12
+	from_clause  goto 15
+	attr_expr  goto 20
+	from_list  goto 17
+	function_expr  goto 14
+	regex  goto 21
+
+state 3
+	start:  START_BINARY_EXPRESSION.binary_expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 27
+	expr  goto 28
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 4
+	start:  START_FUNC_EXPRESSION.function_expr 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	function_name  goto 16
+	identifier  goto 55
+	attr_expr  goto 56
+	function_expr  goto 54
+
+state 5
+	start:  START_WHERE.where_conditions 
+	where_conditions: .    (84)
+
+	LEFT_BRACE  shift 58
+	.  reduce 84 (src line 585)
+
+	where_conditions  goto 57
+
+state 6
+	start:  error.    (6)
+
+	.  reduce 6 (src line 152)
+
+
+state 7
+	start:  start EOF.    (5)
+
+	.  reduce 5 (src line 151)
+
+
+state 8
+	start:  START_STMTS stmts.    (1)
+	stmts:  stmts.SEMICOLON stmt 
+	stmts:  stmts.SEMICOLON 
+
+	SEMICOLON  shift 59
+	.  reduce 1 (src line 135)
+
+
+state 9
+	stmts:  stmt.    (10)
+
+	.  reduce 10 (src line 166)
+
+
+state 10
+	stmt:  query_stmt.    (7)
+	lambda_stmt:  query_stmt.lambda_label lambda_query_list WITH where_conditions 
+
+	FILTER  shift 61
+	LINK  shift 62
+	.  reduce 7 (src line 158)
+
+	lambda_label  goto 60
+
+state 11
+	stmt:  outerFunc_stmt.    (8)
+	outerFunc_stmt:  outerFunc_stmt.DOT function_expr 
+
+	DOT  shift 63
+	.  reduce 8 (src line 160)
+
+
+state 12
+	stmt:  lambda_stmt.    (9)
+
+	.  reduce 9 (src line 162)
+
+
+state 13
+	query_stmt:  query_base_stmt.time_range_opt group_by_stmt order_by_stmt limit_stmt offset_stmt slimit_stmt soffset_stmt timezone_stmt 
+	time_range_opt: .    (107)
+
+	LEFT_BRACKET  shift 65
+	.  reduce 107 (src line 696)
+
+	time_range_opt  goto 64
+
+state 14
+	outerFunc_stmt:  function_expr.where_conditions time_range_opt limit_stmt offset_stmt 
+	where_conditions: .    (84)
+
+	LEFT_BRACE  shift 58
+	.  reduce 84 (src line 585)
+
+	where_conditions  goto 66
+
+state 15
+	query_base_stmt:  from_clause.target_clause where_conditions 
+	target_clause: .    (74)
+
+	COLON  shift 68
+	.  reduce 74 (src line 530)
+
+	target_clause  goto 67
+
+state 16
+	function_expr:  function_name.LEFT_PAREN function_args RIGHT_PAREN 
+
+	LEFT_PAREN  shift 69
+	.  error
+
+
+state 17
+	from_clause:  from_list.    (63)
+	from_list:  from_list.COMMA regex 
+	from_list:  from_list.COMMA identifier 
+	from_list:  from_list.COMMA 
+
+	COMMA  shift 70
+	.  reduce 63 (src line 456)
+
+
+state 18
+	from_clause:  namespace.from_list 
+
+	ID  shift 43
+	LEFT_PAREN  shift 22
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	RE  shift 26
+	.  error
+
+	identifier  goto 73
+	attr_expr  goto 72
+	from_list  goto 71
+	regex  goto 21
+
+state 19
+	attr_expr:  identifier.DOT identifier 
+	from_list:  identifier.    (68)
+	function_name:  identifier.    (145)
+
+	LEFT_PAREN  reduce 145 (src line 857)
+	DOT  shift 74
+	.  reduce 68 (src line 492)
+
+
+state 20
+	attr_expr:  attr_expr.DOT identifier 
+	from_list:  attr_expr.    (67)
+	function_name:  attr_expr.    (146)
+
+	LEFT_PAREN  reduce 146 (src line 861)
+	DOT  shift 75
+	.  reduce 67 (src line 482)
+
+
+state 21
+	from_list:  regex.    (66)
+
+	.  reduce 66 (src line 474)
+
+
+state 22
+	from_list:  LEFT_PAREN.query_stmt RIGHT_PAREN 
+
+	ID  shift 23
+	LEFT_PAREN  shift 22
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	RE  shift 26
+	.  error
+
+	identifier  goto 73
+	namespace  goto 18
+	query_stmt  goto 76
+	query_base_stmt  goto 13
+	from_clause  goto 15
+	attr_expr  goto 72
+	from_list  goto 17
+	regex  goto 21
+
+state 23
+	namespace:  ID.NAMESPACE 
+	identifier:  ID.    (159)
+
+	NAMESPACE  shift 77
+	.  reduce 159 (src line 969)
+
+
+state 24
+	identifier:  QUOTED_STRING.    (160)
+
+	.  reduce 160 (src line 970)
+
+
+state 25
+	identifier:  IDENTIFIER.LEFT_PAREN string_literal RIGHT_PAREN 
+
+	LEFT_PAREN  shift 78
+	.  error
+
+
+state 26
+	regex:  RE.LEFT_PAREN string_literal RIGHT_PAREN 
+	regex:  RE.LEFT_PAREN QUOTED_STRING RIGHT_PAREN 
+
+	LEFT_PAREN  shift 79
+	.  error
+
+
+state 27
+	start:  START_BINARY_EXPRESSION binary_expr.    (2)
+	expr:  binary_expr.    (17)
+
+	$end  reduce 2 (src line 139)
+	EOF  reduce 2 (src line 139)
+	.  reduce 17 (src line 183)
+
+
+state 28
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	EQ  shift 93
+	ADD  shift 80
+	DIV  shift 81
+	GTE  shift 82
+	GT  shift 83
+	LT  shift 86
+	LTE  shift 87
+	MOD  shift 88
+	MUL  shift 89
+	NEQ  shift 90
+	POW  shift 91
+	SUB  shift 92
+	AND  shift 84
+	OR  shift 85
+	.  error
+
+
+state 29
+	array_elem:  columnref.    (43)
+	binary_expr:  columnref.IN LEFT_BRACKET array_list RIGHT_BRACKET 
+
+	IN  shift 94
+	.  reduce 43 (src line 299)
+
+
+state 30
+	expr:  array_elem.    (13)
+
+	.  reduce 13 (src line 183)
+
+
+state 31
+	expr:  regex.    (14)
+
+	.  reduce 14 (src line 183)
+
+
+state 32
+	expr:  paren_expr.    (15)
+
+	.  reduce 15 (src line 183)
+
+
+state 33
+	expr:  function_expr.    (16)
+	cascade_functions:  function_expr.DOT function_expr 
+
+	DOT  shift 95
+	.  reduce 16 (src line 183)
+
+
+state 34
+	expr:  cascade_functions.    (18)
+	cascade_functions:  cascade_functions.DOT function_expr 
+
+	DOT  shift 96
+	.  reduce 18 (src line 183)
+
+
+state 35
+	columnref:  identifier.    (19)
+	attr_expr:  identifier.DOT identifier 
+	function_name:  identifier.    (145)
+
+	LEFT_PAREN  reduce 145 (src line 857)
+	DOT  shift 74
+	.  reduce 19 (src line 186)
+
+
+state 36
+	columnref:  attr_expr.    (20)
+	attr_expr:  attr_expr.DOT identifier 
+	function_name:  attr_expr.    (146)
+
+	LEFT_PAREN  reduce 146 (src line 861)
+	DOT  shift 75
+	.  reduce 20 (src line 190)
+
+
+state 37
+	array_elem:  number_literal.    (41)
+
+	.  reduce 41 (src line 297)
+
+
+state 38
+	array_elem:  string_literal.    (42)
+
+	.  reduce 42 (src line 298)
+
+
+state 39
+	array_elem:  nil_literal.    (44)
+
+	.  reduce 44 (src line 300)
+
+
+state 40
+	array_elem:  bool_literal.    (45)
+
+	.  reduce 45 (src line 301)
+
+
+state 41
+	array_elem:  star.    (46)
+
+	.  reduce 46 (src line 302)
+
+
+state 42
+	paren_expr:  LEFT_PAREN.expr RIGHT_PAREN 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 97
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 43
+	identifier:  ID.    (159)
+
+	.  reduce 159 (src line 969)
+
+
+state 44
+	number_literal:  NUMBER.    (147)
+
+	.  reduce 147 (src line 868)
+
+
+state 45
+	number_literal:  unary_op.NUMBER 
+
+	NUMBER  shift 99
+	.  error
+
+
+state 46
+	string_literal:  STRING.    (25)
+
+	.  reduce 25 (src line 216)
+
+
+state 47
+	nil_literal:  NIL.    (26)
+
+	.  reduce 26 (src line 222)
+
+
+state 48
+	nil_literal:  NULL.    (27)
+
+	.  reduce 27 (src line 226)
+
+
+state 49
+	bool_literal:  TRUE.    (28)
+
+	.  reduce 28 (src line 232)
+
+
+state 50
+	bool_literal:  FALSE.    (29)
+
+	.  reduce 29 (src line 236)
+
+
+state 51
+	star:  MUL.    (47)
+
+	.  reduce 47 (src line 305)
+
+
+state 52
+	unary_op:  ADD.    (23)
+
+	.  reduce 23 (src line 212)
+
+
+state 53
+	unary_op:  SUB.    (24)
+
+	.  reduce 24 (src line 213)
+
+
+state 54
+	start:  START_FUNC_EXPRESSION function_expr.    (3)
+
+	.  reduce 3 (src line 143)
+
+
+state 55
+	attr_expr:  identifier.DOT identifier 
+	function_name:  identifier.    (145)
+
+	DOT  shift 74
+	.  reduce 145 (src line 857)
+
+
+state 56
+	attr_expr:  attr_expr.DOT identifier 
+	function_name:  attr_expr.    (146)
+
+	DOT  shift 75
+	.  reduce 146 (src line 861)
+
+
+state 57
+	start:  START_WHERE where_conditions.    (4)
+
+	.  reduce 4 (src line 147)
+
+
+state 58
+	where_conditions:  LEFT_BRACE.filter_list RIGHT_BRACE 
+	filter_list: .    (88)
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  reduce 88 (src line 601)
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	filter_list  goto 100
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 102
+	expr  goto 28
+	filter_elem  goto 101
+	function_expr  goto 33
+	paren_expr  goto 103
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 59
+	stmts:  stmts SEMICOLON.stmt 
+	stmts:  stmts SEMICOLON.    (12)
+
+	ID  shift 23
+	LEFT_PAREN  shift 22
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	RE  shift 26
+	.  reduce 12 (src line 176)
+
+	function_name  goto 16
+	identifier  goto 19
+	namespace  goto 18
+	stmt  goto 104
+	query_stmt  goto 10
+	query_base_stmt  goto 13
+	outerFunc_stmt  goto 11
+	lambda_stmt  goto 12
+	from_clause  goto 15
+	attr_expr  goto 20
+	from_list  goto 17
+	function_expr  goto 14
+	regex  goto 21
+
+state 60
+	lambda_stmt:  query_stmt lambda_label.lambda_query_list WITH where_conditions 
+
+	ID  shift 23
+	LEFT_PAREN  shift 22
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	RE  shift 26
+	.  error
+
+	identifier  goto 73
+	namespace  goto 18
+	lambda_query_list  goto 105
+	query_stmt  goto 106
+	query_base_stmt  goto 13
+	from_clause  goto 15
+	attr_expr  goto 72
+	from_list  goto 17
+	regex  goto 21
+
+state 61
+	lambda_label:  FILTER.    (57)
+
+	.  reduce 57 (src line 387)
+
+
+state 62
+	lambda_label:  LINK.    (58)
+
+	.  reduce 58 (src line 391)
+
+
+state 63
+	outerFunc_stmt:  outerFunc_stmt DOT.function_expr 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	function_name  goto 16
+	identifier  goto 55
+	attr_expr  goto 56
+	function_expr  goto 107
+
+state 64
+	query_stmt:  query_base_stmt time_range_opt.group_by_stmt order_by_stmt limit_stmt offset_stmt slimit_stmt soffset_stmt timezone_stmt 
+	group_by_stmt: .    (135)
+
+	BY  shift 109
+	.  reduce 135 (src line 814)
+
+	group_by_stmt  goto 108
+
+state 65
+	time_range_opt:  LEFT_BRACKET.time_range_start time_range_end group_by_interval time_range_offset RIGHT_BRACKET 
+	time_range_start: .    (109)
+
+	DURATION  shift 114
+	NUMBER  shift 118
+	ADD  shift 52
+	SUB  shift 53
+	.  reduce 109 (src line 704)
+
+	unary_op  goto 115
+	time_expr  goto 111
+	time_range_start  goto 110
+	number_literal  goto 117
+	duration  goto 112
+	timestamp  goto 113
+	date_literal  goto 116
+
+state 66
+	outerFunc_stmt:  function_expr where_conditions.time_range_opt limit_stmt offset_stmt 
+	time_range_opt: .    (107)
+
+	LEFT_BRACKET  shift 65
+	.  reduce 107 (src line 696)
+
+	time_range_opt  goto 119
+
+state 67
+	query_base_stmt:  from_clause target_clause.where_conditions 
+	where_conditions: .    (84)
+
+	LEFT_BRACE  shift 58
+	.  reduce 84 (src line 585)
+
+	where_conditions  goto 120
+
+state 68
+	target_clause:  COLON.LEFT_PAREN target_list RIGHT_PAREN 
+
+	LEFT_PAREN  shift 121
+	.  error
+
+
+state 69
+	function_expr:  function_name LEFT_PAREN.function_args RIGHT_PAREN 
+	function_args: .    (37)
+
+	ID  shift 43
+	LEFT_BRACKET  shift 127
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	INT  shift 129
+	FLOAT  shift 130
+	.  reduce 37 (src line 275)
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 128
+	function_args  goto 122
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 126
+	function_arg  goto 123
+	function_expr  goto 33
+	naming_arg  goto 124
+	paren_expr  goto 32
+	regex  goto 31
+	static_cast  goto 125
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 70
+	from_list:  from_list COMMA.regex 
+	from_list:  from_list COMMA.identifier 
+	from_list:  from_list COMMA.    (72)
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	RE  shift 26
+	.  reduce 72 (src line 520)
+
+	identifier  goto 132
+	regex  goto 131
+
+state 71
+	from_clause:  namespace from_list.    (64)
+	from_list:  from_list.COMMA regex 
+	from_list:  from_list.COMMA identifier 
+	from_list:  from_list.COMMA 
+
+	COMMA  shift 70
+	.  reduce 64 (src line 460)
+
+
+state 72
+	attr_expr:  attr_expr.DOT identifier 
+	from_list:  attr_expr.    (67)
+
+	DOT  shift 75
+	.  reduce 67 (src line 482)
+
+
+state 73
+	attr_expr:  identifier.DOT identifier 
+	from_list:  identifier.    (68)
+
+	DOT  shift 74
+	.  reduce 68 (src line 492)
+
+
+state 74
+	attr_expr:  identifier DOT.identifier 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	identifier  goto 133
+
+state 75
+	attr_expr:  attr_expr DOT.identifier 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	identifier  goto 134
+
+state 76
+	from_list:  LEFT_PAREN query_stmt.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 135
+	.  error
+
+
+state 77
+	namespace:  ID NAMESPACE.    (65)
+
+	.  reduce 65 (src line 468)
+
+
+state 78
+	identifier:  IDENTIFIER LEFT_PAREN.string_literal RIGHT_PAREN 
+
+	STRING  shift 46
+	.  error
+
+	string_literal  goto 136
+
+state 79
+	regex:  RE LEFT_PAREN.string_literal RIGHT_PAREN 
+	regex:  RE LEFT_PAREN.QUOTED_STRING RIGHT_PAREN 
+
+	STRING  shift 46
+	QUOTED_STRING  shift 138
+	.  error
+
+	string_literal  goto 137
+
+state 80
+	binary_expr:  expr ADD.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 139
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 81
+	binary_expr:  expr DIV.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 140
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 82
+	binary_expr:  expr GTE.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 141
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 83
+	binary_expr:  expr GT.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 142
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 84
+	binary_expr:  expr AND.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 143
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 85
+	binary_expr:  expr OR.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 144
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 86
+	binary_expr:  expr LT.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 145
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 87
+	binary_expr:  expr LTE.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 146
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 88
+	binary_expr:  expr MOD.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 147
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 89
+	binary_expr:  expr MUL.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 148
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 90
+	binary_expr:  expr NEQ.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 149
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 91
+	binary_expr:  expr POW.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 150
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 92
+	binary_expr:  expr SUB.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 151
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 93
+	binary_expr:  expr EQ.expr 
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 152
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 94
+	binary_expr:  columnref IN.LEFT_BRACKET array_list RIGHT_BRACKET 
+
+	LEFT_BRACKET  shift 153
+	.  error
+
+
+state 95
+	cascade_functions:  function_expr DOT.function_expr 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	function_name  goto 16
+	identifier  goto 55
+	attr_expr  goto 56
+	function_expr  goto 154
+
+state 96
+	cascade_functions:  cascade_functions DOT.function_expr 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	function_name  goto 16
+	identifier  goto 55
+	attr_expr  goto 56
+	function_expr  goto 155
+
+state 97
+	paren_expr:  LEFT_PAREN expr.RIGHT_PAREN 
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	EQ  shift 93
+	RIGHT_PAREN  shift 156
+	ADD  shift 80
+	DIV  shift 81
+	GTE  shift 82
+	GT  shift 83
+	LT  shift 86
+	LTE  shift 87
+	MOD  shift 88
+	MUL  shift 89
+	NEQ  shift 90
+	POW  shift 91
+	SUB  shift 92
+	AND  shift 84
+	OR  shift 85
+	.  error
+
+
+state 98
+	expr:  binary_expr.    (17)
+
+	.  reduce 17 (src line 183)
+
+
+state 99
+	number_literal:  unary_op NUMBER.    (148)
+
+	.  reduce 148 (src line 872)
+
+
+state 100
+	where_conditions:  LEFT_BRACE filter_list.RIGHT_BRACE 
+	filter_list:  filter_list.COMMA filter_elem 
+	filter_list:  filter_list.COMMA 
+
+	COMMA  shift 158
+	RIGHT_BRACE  shift 157
+	.  error
+
+
+state 101
+	filter_list:  filter_elem.    (85)
+
+	.  reduce 85 (src line 592)
+
+
+state 102
+	expr:  binary_expr.    (17)
+	filter_elem:  binary_expr.    (89)
+
+	COMMA  reduce 89 (src line 605)
+	RIGHT_BRACE  reduce 89 (src line 605)
+	.  reduce 17 (src line 183)
+
+
+state 103
+	expr:  paren_expr.    (15)
+	filter_elem:  paren_expr.    (90)
+
+	COMMA  reduce 90 (src line 605)
+	RIGHT_BRACE  reduce 90 (src line 605)
+	.  reduce 15 (src line 183)
+
+
+state 104
+	stmts:  stmts SEMICOLON stmt.    (11)
+
+	.  reduce 11 (src line 170)
+
+
+state 105
+	lambda_stmt:  query_stmt lambda_label lambda_query_list.WITH where_conditions 
+	lambda_query_list:  lambda_query_list.lambda_label query_stmt 
+
+	FILTER  shift 61
+	LINK  shift 62
+	WITH  shift 159
+	.  error
+
+	lambda_label  goto 160
+
+state 106
+	lambda_query_list:  query_stmt.    (59)
+
+	.  reduce 59 (src line 397)
+
+
+state 107
+	outerFunc_stmt:  outerFunc_stmt DOT function_expr.    (55)
+
+	.  reduce 55 (src line 365)
+
+
+state 108
+	query_stmt:  query_base_stmt time_range_opt group_by_stmt.order_by_stmt limit_stmt offset_stmt slimit_stmt soffset_stmt timezone_stmt 
+	order_by_stmt: .    (137)
+
+	ORDER  shift 162
+	.  reduce 137 (src line 823)
+
+	order_by_stmt  goto 161
+
+state 109
+	group_by_stmt:  BY.array_list 
+	array_list: .    (40)
+
+	ID  shift 43
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	.  reduce 40 (src line 291)
+
+	unary_op  goto 45
+	identifier  goto 166
+	array_elem  goto 164
+	array_list  goto 163
+	attr_expr  goto 167
+	columnref  goto 165
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	star  goto 41
+
+110: shift/reduce conflict (shift 169(0), red'n 112(0)) on COLON
+state 110
+	time_range_opt:  LEFT_BRACKET time_range_start.time_range_end group_by_interval time_range_offset RIGHT_BRACKET 
+	time_range_end: .    (112)
+
+	COLON  shift 169
+	.  reduce 112 (src line 712)
+
+	time_range_end  goto 168
+
+state 111
+	time_range_start:  time_expr.    (108)
+
+	.  reduce 108 (src line 702)
+
+
+state 112
+	time_expr:  duration.    (122)
+
+	.  reduce 122 (src line 746)
+
+
+state 113
+	time_expr:  timestamp.    (123)
+
+	.  reduce 123 (src line 750)
+
+
+state 114
+	duration:  DURATION.    (151)
+
+	.  reduce 151 (src line 909)
+
+
+state 115
+	number_literal:  unary_op.NUMBER 
+	duration:  unary_op.DURATION 
+
+	DURATION  shift 170
+	NUMBER  shift 99
+	.  error
+
+
+state 116
+	timestamp:  date_literal.    (153)
+
+	.  reduce 153 (src line 934)
+
+
+state 117
+	timestamp:  number_literal.    (154)
+
+	.  reduce 154 (src line 935)
+
+
+state 118
+	number_literal:  NUMBER.    (147)
+	date_literal:  NUMBER.SUB NUMBER SUB NUMBER NUMBER COLON NUMBER COLON NUMBER 
+	date_literal:  NUMBER.SUB NUMBER SUB NUMBER 
+
+	SUB  shift 171
+	.  reduce 147 (src line 868)
+
+
+state 119
+	outerFunc_stmt:  function_expr where_conditions time_range_opt.limit_stmt offset_stmt 
+	limit_stmt: .    (131)
+
+	LIMIT  shift 173
+	.  reduce 131 (src line 788)
+
+	limit_stmt  goto 172
+
+state 120
+	query_base_stmt:  from_clause target_clause where_conditions.    (62)
+
+	.  reduce 62 (src line 447)
+
+
+state 121
+	target_clause:  COLON LEFT_PAREN.target_list RIGHT_PAREN 
+	target_list: .    (78)
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	INT  shift 129
+	FLOAT  shift 130
+	.  reduce 78 (src line 543)
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	target_list  goto 174
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 176
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	static_cast  goto 177
+	target_elem  goto 175
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 122
+	function_expr:  function_name LEFT_PAREN function_args.RIGHT_PAREN 
+	function_args:  function_args.COMMA function_arg 
+	function_args:  function_args.COMMA 
+
+	COMMA  shift 179
+	RIGHT_PAREN  shift 178
+	.  error
+
+
+state 123
+	function_args:  function_arg.    (36)
+
+	.  reduce 36 (src line 271)
+
+
+state 124
+	function_arg:  naming_arg.    (48)
+
+	.  reduce 48 (src line 311)
+
+
+state 125
+	function_arg:  static_cast.    (49)
+
+	.  reduce 49 (src line 312)
+
+
+state 126
+	function_arg:  expr.    (50)
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	EQ  shift 93
+	ADD  shift 80
+	DIV  shift 81
+	GTE  shift 82
+	GT  shift 83
+	LT  shift 86
+	LTE  shift 87
+	MOD  shift 88
+	MUL  shift 89
+	NEQ  shift 90
+	POW  shift 91
+	SUB  shift 92
+	AND  shift 84
+	OR  shift 85
+	.  reduce 50 (src line 313)
+
+
+state 127
+	function_arg:  LEFT_BRACKET.array_list RIGHT_BRACKET 
+	array_list: .    (40)
+
+	ID  shift 43
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	.  reduce 40 (src line 291)
+
+	unary_op  goto 45
+	identifier  goto 166
+	array_elem  goto 164
+	array_list  goto 180
+	attr_expr  goto 167
+	columnref  goto 165
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	star  goto 41
+
+128: shift/reduce conflict (shift 181(3), red'n 19(0)) on EQ
+state 128
+	columnref:  identifier.    (19)
+	attr_expr:  identifier.DOT identifier 
+	naming_arg:  identifier.EQ expr 
+	naming_arg:  identifier.EQ LEFT_BRACKET array_list RIGHT_BRACKET 
+	function_name:  identifier.    (145)
+
+	EQ  shift 181
+	LEFT_PAREN  reduce 145 (src line 857)
+	DOT  shift 74
+	.  reduce 19 (src line 186)
+
+
+state 129
+	static_cast:  INT.LEFT_PAREN identifier RIGHT_PAREN 
+
+	LEFT_PAREN  shift 182
+	.  error
+
+
+state 130
+	static_cast:  FLOAT.LEFT_PAREN identifier RIGHT_PAREN 
+
+	LEFT_PAREN  shift 183
+	.  error
+
+
+state 131
+	from_list:  from_list COMMA regex.    (70)
+
+	.  reduce 70 (src line 504)
+
+
+state 132
+	from_list:  from_list COMMA identifier.    (71)
+
+	.  reduce 71 (src line 512)
+
+
+state 133
+	attr_expr:  identifier DOT identifier.    (21)
+
+	.  reduce 21 (src line 196)
+
+
+state 134
+	attr_expr:  attr_expr DOT identifier.    (22)
+
+	.  reduce 22 (src line 203)
+
+
+state 135
+	from_list:  LEFT_PAREN query_stmt RIGHT_PAREN.    (69)
+
+	.  reduce 69 (src line 500)
+
+
+state 136
+	identifier:  IDENTIFIER LEFT_PAREN string_literal.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 184
+	.  error
+
+
+state 137
+	regex:  RE LEFT_PAREN string_literal.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 185
+	.  error
+
+
+state 138
+	regex:  RE LEFT_PAREN QUOTED_STRING.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 186
+	.  error
+
+
+state 139
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr ADD expr.    (91)
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	DIV  shift 81
+	MOD  shift 88
+	MUL  shift 89
+	POW  shift 91
+	.  reduce 91 (src line 608)
+
+
+state 140
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr DIV expr.    (92)
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	POW  shift 91
+	.  reduce 92 (src line 612)
+
+
+state 141
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr GTE expr.    (93)
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	ADD  shift 80
+	DIV  shift 81
+	MOD  shift 88
+	MUL  shift 89
+	POW  shift 91
+	SUB  shift 92
+	.  reduce 93 (src line 616)
+
+
+state 142
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr GT expr.    (94)
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	ADD  shift 80
+	DIV  shift 81
+	MOD  shift 88
+	MUL  shift 89
+	POW  shift 91
+	SUB  shift 92
+	.  reduce 94 (src line 622)
+
+
+state 143
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr AND expr.    (95)
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	EQ  shift 93
+	ADD  shift 80
+	DIV  shift 81
+	GTE  shift 82
+	GT  shift 83
+	LT  shift 86
+	LTE  shift 87
+	MOD  shift 88
+	MUL  shift 89
+	NEQ  shift 90
+	POW  shift 91
+	SUB  shift 92
+	.  reduce 95 (src line 628)
+
+
+state 144
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr OR expr.    (96)
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	EQ  shift 93
+	ADD  shift 80
+	DIV  shift 81
+	GTE  shift 82
+	GT  shift 83
+	LT  shift 86
+	LTE  shift 87
+	MOD  shift 88
+	MUL  shift 89
+	NEQ  shift 90
+	POW  shift 91
+	SUB  shift 92
+	AND  shift 84
+	.  reduce 96 (src line 634)
+
+
+state 145
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr LT expr.    (97)
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	ADD  shift 80
+	DIV  shift 81
+	MOD  shift 88
+	MUL  shift 89
+	POW  shift 91
+	SUB  shift 92
+	.  reduce 97 (src line 640)
+
+
+state 146
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr LTE expr.    (98)
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	ADD  shift 80
+	DIV  shift 81
+	MOD  shift 88
+	MUL  shift 89
+	POW  shift 91
+	SUB  shift 92
+	.  reduce 98 (src line 646)
+
+
+state 147
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr MOD expr.    (99)
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	POW  shift 91
+	.  reduce 99 (src line 652)
+
+
+state 148
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr MUL expr.    (100)
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	POW  shift 91
+	.  reduce 100 (src line 657)
+
+
+state 149
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr NEQ expr.    (101)
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	ADD  shift 80
+	DIV  shift 81
+	MOD  shift 88
+	MUL  shift 89
+	POW  shift 91
+	SUB  shift 92
+	.  reduce 101 (src line 662)
+
+
+state 150
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr POW expr.    (102)
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	POW  shift 91
+	.  reduce 102 (src line 668)
+
+
+state 151
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr SUB expr.    (103)
+	binary_expr:  expr.EQ expr 
+
+	DIV  shift 81
+	MOD  shift 88
+	MUL  shift 89
+	POW  shift 91
+	.  reduce 103 (src line 673)
+
+
+state 152
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+	binary_expr:  expr EQ expr.    (104)
+
+	ADD  shift 80
+	DIV  shift 81
+	MOD  shift 88
+	MUL  shift 89
+	POW  shift 91
+	SUB  shift 92
+	.  reduce 104 (src line 678)
+
+
+state 153
+	binary_expr:  columnref IN LEFT_BRACKET.array_list RIGHT_BRACKET 
+	array_list: .    (40)
+
+	ID  shift 43
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	.  reduce 40 (src line 291)
+
+	unary_op  goto 45
+	identifier  goto 166
+	array_elem  goto 164
+	array_list  goto 187
+	attr_expr  goto 167
+	columnref  goto 165
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	star  goto 41
+
+state 154
+	cascade_functions:  function_expr DOT function_expr.    (32)
+
+	.  reduce 32 (src line 254)
+
+
+state 155
+	cascade_functions:  cascade_functions DOT function_expr.    (33)
+
+	.  reduce 33 (src line 258)
+
+
+state 156
+	paren_expr:  LEFT_PAREN expr RIGHT_PAREN.    (30)
+
+	.  reduce 30 (src line 242)
+
+
+state 157
+	where_conditions:  LEFT_BRACE filter_list RIGHT_BRACE.    (83)
+
+	.  reduce 83 (src line 581)
+
+
+state 158
+	filter_list:  filter_list COMMA.filter_elem 
+	filter_list:  filter_list COMMA.    (87)
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  reduce 87 (src line 600)
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 102
+	expr  goto 28
+	filter_elem  goto 188
+	function_expr  goto 33
+	paren_expr  goto 103
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 159
+	lambda_stmt:  query_stmt lambda_label lambda_query_list WITH.where_conditions 
+	where_conditions: .    (84)
+
+	LEFT_BRACE  shift 58
+	.  reduce 84 (src line 585)
+
+	where_conditions  goto 189
+
+state 160
+	lambda_query_list:  lambda_query_list lambda_label.query_stmt 
+
+	ID  shift 23
+	LEFT_PAREN  shift 22
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	RE  shift 26
+	.  error
+
+	identifier  goto 73
+	namespace  goto 18
+	query_stmt  goto 190
+	query_base_stmt  goto 13
+	from_clause  goto 15
+	attr_expr  goto 72
+	from_list  goto 17
+	regex  goto 21
+
+state 161
+	query_stmt:  query_base_stmt time_range_opt group_by_stmt order_by_stmt.limit_stmt offset_stmt slimit_stmt soffset_stmt timezone_stmt 
+	limit_stmt: .    (131)
+
+	LIMIT  shift 173
+	.  reduce 131 (src line 788)
+
+	limit_stmt  goto 191
+
+state 162
+	order_by_stmt:  ORDER.BY order_by_list 
+
+	BY  shift 192
+	.  error
+
+
+state 163
+	array_list:  array_list.COMMA array_elem 
+	group_by_stmt:  BY array_list.    (134)
+
+	COMMA  shift 193
+	.  reduce 134 (src line 805)
+
+
+state 164
+	array_list:  array_elem.    (39)
+
+	.  reduce 39 (src line 287)
+
+
+state 165
+	array_elem:  columnref.    (43)
+
+	.  reduce 43 (src line 299)
+
+
+state 166
+	columnref:  identifier.    (19)
+	attr_expr:  identifier.DOT identifier 
+
+	DOT  shift 74
+	.  reduce 19 (src line 186)
+
+
+state 167
+	columnref:  attr_expr.    (20)
+	attr_expr:  attr_expr.DOT identifier 
+
+	DOT  shift 75
+	.  reduce 20 (src line 190)
+
+
+state 168
+	time_range_opt:  LEFT_BRACKET time_range_start time_range_end.group_by_interval time_range_offset RIGHT_BRACKET 
+	group_by_interval: .    (121)
+
+	COLON  shift 195
+	.  reduce 121 (src line 742)
+
+	group_by_interval  goto 194
+
+state 169
+	time_range_end:  COLON.time_expr 
+	time_range_end:  COLON.    (111)
+
+	DURATION  shift 114
+	NUMBER  shift 118
+	ADD  shift 52
+	SUB  shift 53
+	.  reduce 111 (src line 710)
+
+	unary_op  goto 115
+	time_expr  goto 196
+	number_literal  goto 117
+	duration  goto 112
+	timestamp  goto 113
+	date_literal  goto 116
+
+state 170
+	duration:  unary_op DURATION.    (152)
+
+	.  reduce 152 (src line 918)
+
+
+state 171
+	date_literal:  NUMBER SUB.NUMBER SUB NUMBER NUMBER COLON NUMBER COLON NUMBER 
+	date_literal:  NUMBER SUB.NUMBER SUB NUMBER 
+
+	NUMBER  shift 197
+	.  error
+
+
+state 172
+	outerFunc_stmt:  function_expr where_conditions time_range_opt limit_stmt.offset_stmt 
+	offset_stmt: .    (127)
+
+	OFFSET  shift 199
+	.  reduce 127 (src line 768)
+
+	offset_stmt  goto 198
+
+state 173
+	limit_stmt:  LIMIT.number_literal 
+
+	NUMBER  shift 44
+	ADD  shift 52
+	SUB  shift 53
+	.  error
+
+	unary_op  goto 45
+	number_literal  goto 200
+
+state 174
+	target_clause:  COLON LEFT_PAREN target_list.RIGHT_PAREN 
+	target_list:  target_list.COMMA target_elem 
+	target_list:  target_list.COMMA 
+
+	COMMA  shift 202
+	RIGHT_PAREN  shift 201
+	.  error
+
+
+state 175
+	target_list:  target_elem.    (75)
+
+	.  reduce 75 (src line 534)
+
+
+state 176
+	target_elem:  expr.    (79)
+	target_elem:  expr.AS identifier 
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	EQ  shift 93
+	ADD  shift 80
+	DIV  shift 81
+	GTE  shift 82
+	GT  shift 83
+	LT  shift 86
+	LTE  shift 87
+	MOD  shift 88
+	MUL  shift 89
+	NEQ  shift 90
+	POW  shift 91
+	SUB  shift 92
+	AS  shift 203
+	AND  shift 84
+	OR  shift 85
+	.  reduce 79 (src line 547)
+
+
+state 177
+	target_elem:  static_cast.    (80)
+	target_elem:  static_cast.AS identifier 
+
+	AS  shift 204
+	.  reduce 80 (src line 555)
+
+
+state 178
+	function_expr:  function_name LEFT_PAREN function_args RIGHT_PAREN.    (31)
+
+	.  reduce 31 (src line 248)
+
+
+state 179
+	function_args:  function_args COMMA.function_arg 
+	function_args:  function_args COMMA.    (35)
+
+	ID  shift 43
+	LEFT_BRACKET  shift 127
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	INT  shift 129
+	FLOAT  shift 130
+	.  reduce 35 (src line 270)
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 128
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 126
+	function_arg  goto 205
+	function_expr  goto 33
+	naming_arg  goto 124
+	paren_expr  goto 32
+	regex  goto 31
+	static_cast  goto 125
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 180
+	array_list:  array_list.COMMA array_elem 
+	function_arg:  LEFT_BRACKET array_list.RIGHT_BRACKET 
+
+	COMMA  shift 193
+	RIGHT_BRACKET  shift 206
+	.  error
+
+
+state 181
+	naming_arg:  identifier EQ.expr 
+	naming_arg:  identifier EQ.LEFT_BRACKET array_list RIGHT_BRACKET 
+
+	ID  shift 43
+	LEFT_BRACKET  shift 208
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	.  error
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 207
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 182
+	static_cast:  INT LEFT_PAREN.identifier RIGHT_PAREN 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	identifier  goto 209
+
+state 183
+	static_cast:  FLOAT LEFT_PAREN.identifier RIGHT_PAREN 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	identifier  goto 210
+
+state 184
+	identifier:  IDENTIFIER LEFT_PAREN string_literal RIGHT_PAREN.    (161)
+
+	.  reduce 161 (src line 974)
+
+
+state 185
+	regex:  RE LEFT_PAREN string_literal RIGHT_PAREN.    (155)
+
+	.  reduce 155 (src line 949)
+
+
+state 186
+	regex:  RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN.    (156)
+
+	.  reduce 156 (src line 953)
+
+
+state 187
+	array_list:  array_list.COMMA array_elem 
+	binary_expr:  columnref IN LEFT_BRACKET array_list.RIGHT_BRACKET 
+
+	COMMA  shift 193
+	RIGHT_BRACKET  shift 211
+	.  error
+
+
+state 188
+	filter_list:  filter_list COMMA filter_elem.    (86)
+
+	.  reduce 86 (src line 596)
+
+
+state 189
+	lambda_stmt:  query_stmt lambda_label lambda_query_list WITH where_conditions.    (56)
+
+	.  reduce 56 (src line 377)
+
+
+state 190
+	lambda_query_list:  lambda_query_list lambda_label query_stmt.    (60)
+
+	.  reduce 60 (src line 401)
+
+
+state 191
+	query_stmt:  query_base_stmt time_range_opt group_by_stmt order_by_stmt limit_stmt.offset_stmt slimit_stmt soffset_stmt timezone_stmt 
+	offset_stmt: .    (127)
+
+	OFFSET  shift 199
+	.  reduce 127 (src line 768)
+
+	offset_stmt  goto 212
+
+state 192
+	order_by_stmt:  ORDER BY.order_by_list 
+	order_by_list: .    (140)
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  reduce 140 (src line 839)
+
+	identifier  goto 215
+	order_by_elem  goto 214
+	order_by_list  goto 213
+
+state 193
+	array_list:  array_list COMMA.array_elem 
+
+	ID  shift 43
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	.  error
+
+	unary_op  goto 45
+	identifier  goto 166
+	array_elem  goto 216
+	attr_expr  goto 167
+	columnref  goto 165
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	star  goto 41
+
+state 194
+	time_range_opt:  LEFT_BRACKET time_range_start time_range_end group_by_interval.time_range_offset RIGHT_BRACKET 
+	time_range_offset: .    (115)
+
+	COMMA  shift 218
+	.  reduce 115 (src line 720)
+
+	time_range_offset  goto 217
+
+state 195
+	group_by_interval:  COLON.duration 
+	group_by_interval:  COLON.AUTO 
+	group_by_interval:  COLON.AUTO LEFT_PAREN RIGHT_PAREN 
+	group_by_interval:  COLON.AUTO LEFT_PAREN number_literal RIGHT_PAREN 
+	group_by_interval:  COLON.    (120)
+
+	DURATION  shift 114
+	ADD  shift 52
+	SUB  shift 53
+	AUTO  shift 220
+	.  reduce 120 (src line 740)
+
+	unary_op  goto 221
+	duration  goto 219
+
+state 196
+	time_range_end:  COLON time_expr.    (110)
+
+	.  reduce 110 (src line 708)
+
+
+state 197
+	date_literal:  NUMBER SUB NUMBER.SUB NUMBER NUMBER COLON NUMBER COLON NUMBER 
+	date_literal:  NUMBER SUB NUMBER.SUB NUMBER 
+
+	SUB  shift 222
+	.  error
+
+
+state 198
+	outerFunc_stmt:  function_expr where_conditions time_range_opt limit_stmt offset_stmt.    (54)
+
+	.  reduce 54 (src line 333)
+
+
+state 199
+	offset_stmt:  OFFSET.number_literal 
+
+	NUMBER  shift 44
+	ADD  shift 52
+	SUB  shift 53
+	.  error
+
+	unary_op  goto 45
+	number_literal  goto 223
+
+state 200
+	limit_stmt:  LIMIT number_literal.    (130)
+
+	.  reduce 130 (src line 784)
+
+
+state 201
+	target_clause:  COLON LEFT_PAREN target_list RIGHT_PAREN.    (73)
+
+	.  reduce 73 (src line 526)
+
+
+state 202
+	target_list:  target_list COMMA.target_elem 
+	target_list:  target_list COMMA.    (77)
+
+	ID  shift 43
+	LEFT_PAREN  shift 42
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	RE  shift 26
+	INT  shift 129
+	FLOAT  shift 130
+	.  reduce 77 (src line 542)
+
+	unary_op  goto 45
+	function_name  goto 16
+	identifier  goto 35
+	array_elem  goto 30
+	attr_expr  goto 36
+	binary_expr  goto 98
+	expr  goto 176
+	function_expr  goto 33
+	paren_expr  goto 32
+	regex  goto 31
+	static_cast  goto 177
+	target_elem  goto 224
+	columnref  goto 29
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	cascade_functions  goto 34
+	star  goto 41
+
+state 203
+	target_elem:  expr AS.identifier 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	identifier  goto 225
+
+state 204
+	target_elem:  static_cast AS.identifier 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	identifier  goto 226
+
+state 205
+	function_args:  function_args COMMA function_arg.    (34)
+
+	.  reduce 34 (src line 266)
+
+
+state 206
+	function_arg:  LEFT_BRACKET array_list RIGHT_BRACKET.    (51)
+
+	.  reduce 51 (src line 314)
+
+
+state 207
+	naming_arg:  identifier EQ expr.    (52)
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+
+	EQ  shift 93
+	ADD  shift 80
+	DIV  shift 81
+	GTE  shift 82
+	GT  shift 83
+	LT  shift 86
+	LTE  shift 87
+	MOD  shift 88
+	MUL  shift 89
+	NEQ  shift 90
+	POW  shift 91
+	SUB  shift 92
+	AND  shift 84
+	OR  shift 85
+	.  reduce 52 (src line 320)
+
+
+state 208
+	naming_arg:  identifier EQ LEFT_BRACKET.array_list RIGHT_BRACKET 
+	array_list: .    (40)
+
+	ID  shift 43
+	NUMBER  shift 44
+	STRING  shift 46
+	QUOTED_STRING  shift 24
+	ADD  shift 52
+	MUL  shift 51
+	SUB  shift 53
+	TRUE  shift 49
+	FALSE  shift 50
+	IDENTIFIER  shift 25
+	NIL  shift 47
+	NULL  shift 48
+	.  reduce 40 (src line 291)
+
+	unary_op  goto 45
+	identifier  goto 166
+	array_elem  goto 164
+	array_list  goto 227
+	attr_expr  goto 167
+	columnref  goto 165
+	bool_literal  goto 40
+	string_literal  goto 38
+	nil_literal  goto 39
+	number_literal  goto 37
+	star  goto 41
+
+state 209
+	static_cast:  INT LEFT_PAREN identifier.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 228
+	.  error
+
+
+state 210
+	static_cast:  FLOAT LEFT_PAREN identifier.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 229
+	.  error
+
+
+state 211
+	binary_expr:  columnref IN LEFT_BRACKET array_list RIGHT_BRACKET.    (105)
+
+	.  reduce 105 (src line 684)
+
+
+state 212
+	query_stmt:  query_base_stmt time_range_opt group_by_stmt order_by_stmt limit_stmt offset_stmt.slimit_stmt soffset_stmt timezone_stmt 
+	slimit_stmt: .    (133)
+
+	SLIMIT  shift 231
+	.  reduce 133 (src line 798)
+
+	slimit_stmt  goto 230
+
+state 213
+	order_by_stmt:  ORDER BY order_by_list.    (136)
+	order_by_list:  order_by_list.COMMA order_by_elem 
+
+	COMMA  shift 232
+	.  reduce 136 (src line 819)
+
+
+state 214
+	order_by_list:  order_by_elem.    (139)
+
+	.  reduce 139 (src line 835)
+
+
+state 215
+	order_by_elem:  identifier.order_by_label 
+	order_by_label: .    (144)
+
+	ASC  shift 234
+	DESC  shift 235
+	.  reduce 144 (src line 852)
+
+	order_by_label  goto 233
+
+state 216
+	array_list:  array_list COMMA array_elem.    (38)
+
+	.  reduce 38 (src line 281)
+
+
+state 217
+	time_range_opt:  LEFT_BRACKET time_range_start time_range_end group_by_interval time_range_offset.RIGHT_BRACKET 
+
+	RIGHT_BRACKET  shift 236
+	.  error
+
+
+state 218
+	time_range_offset:  COMMA.duration 
+	time_range_offset:  COMMA.    (114)
+
+	DURATION  shift 114
+	ADD  shift 52
+	SUB  shift 53
+	.  reduce 114 (src line 718)
+
+	unary_op  goto 221
+	duration  goto 237
+
+state 219
+	group_by_interval:  COLON duration.    (116)
+
+	.  reduce 116 (src line 724)
+
+
+state 220
+	group_by_interval:  COLON AUTO.    (117)
+	group_by_interval:  COLON AUTO.LEFT_PAREN RIGHT_PAREN 
+	group_by_interval:  COLON AUTO.LEFT_PAREN number_literal RIGHT_PAREN 
+
+	LEFT_PAREN  shift 238
+	.  reduce 117 (src line 728)
+
+
+state 221
+	duration:  unary_op.DURATION 
+
+	DURATION  shift 170
+	.  error
+
+
+state 222
+	date_literal:  NUMBER SUB NUMBER SUB.NUMBER NUMBER COLON NUMBER COLON NUMBER 
+	date_literal:  NUMBER SUB NUMBER SUB.NUMBER 
+
+	NUMBER  shift 239
+	.  error
+
+
+state 223
+	offset_stmt:  OFFSET number_literal.    (126)
+
+	.  reduce 126 (src line 764)
+
+
+state 224
+	target_list:  target_list COMMA target_elem.    (76)
+
+	.  reduce 76 (src line 538)
+
+
+state 225
+	target_elem:  expr AS identifier.    (81)
+
+	.  reduce 81 (src line 563)
+
+
+state 226
+	target_elem:  static_cast AS identifier.    (82)
+
+	.  reduce 82 (src line 571)
+
+
+state 227
+	array_list:  array_list.COMMA array_elem 
+	naming_arg:  identifier EQ LEFT_BRACKET array_list.RIGHT_BRACKET 
+
+	COMMA  shift 193
+	RIGHT_BRACKET  shift 240
+	.  error
+
+
+state 228
+	static_cast:  INT LEFT_PAREN identifier RIGHT_PAREN.    (157)
+
+	.  reduce 157 (src line 959)
+
+
+state 229
+	static_cast:  FLOAT LEFT_PAREN identifier RIGHT_PAREN.    (158)
+
+	.  reduce 158 (src line 963)
+
+
+state 230
+	query_stmt:  query_base_stmt time_range_opt group_by_stmt order_by_stmt limit_stmt offset_stmt slimit_stmt.soffset_stmt timezone_stmt 
+	soffset_stmt: .    (129)
+
+	SOFFSET  shift 242
+	.  reduce 129 (src line 778)
+
+	soffset_stmt  goto 241
+
+state 231
+	slimit_stmt:  SLIMIT.number_literal 
+
+	NUMBER  shift 44
+	ADD  shift 52
+	SUB  shift 53
+	.  error
+
+	unary_op  goto 45
+	number_literal  goto 243
+
+state 232
+	order_by_list:  order_by_list COMMA.order_by_elem 
+
+	ID  shift 43
+	QUOTED_STRING  shift 24
+	IDENTIFIER  shift 25
+	.  error
+
+	identifier  goto 215
+	order_by_elem  goto 244
+
+state 233
+	order_by_elem:  identifier order_by_label.    (141)
+
+	.  reduce 141 (src line 845)
+
+
+state 234
+	order_by_label:  ASC.    (142)
+
+	.  reduce 142 (src line 851)
+
+
+state 235
+	order_by_label:  DESC.    (143)
+
+	.  reduce 143 (src line 851)
+
+
+state 236
+	time_range_opt:  LEFT_BRACKET time_range_start time_range_end group_by_interval time_range_offset RIGHT_BRACKET.    (106)
+
+	.  reduce 106 (src line 692)
+
+
+state 237
+	time_range_offset:  COMMA duration.    (113)
+
+	.  reduce 113 (src line 716)
+
+
+state 238
+	group_by_interval:  COLON AUTO LEFT_PAREN.RIGHT_PAREN 
+	group_by_interval:  COLON AUTO LEFT_PAREN.number_literal RIGHT_PAREN 
+
+	NUMBER  shift 44
+	RIGHT_PAREN  shift 245
+	ADD  shift 52
+	SUB  shift 53
+	.  error
+
+	unary_op  goto 45
+	number_literal  goto 246
+
+state 239
+	date_literal:  NUMBER SUB NUMBER SUB NUMBER.NUMBER COLON NUMBER COLON NUMBER 
+	date_literal:  NUMBER SUB NUMBER SUB NUMBER.    (150)
+
+	NUMBER  shift 247
+	.  reduce 150 (src line 898)
+
+
+state 240
+	naming_arg:  identifier EQ LEFT_BRACKET array_list RIGHT_BRACKET.    (53)
+
+	.  reduce 53 (src line 324)
+
+
+state 241
+	query_stmt:  query_base_stmt time_range_opt group_by_stmt order_by_stmt limit_stmt offset_stmt slimit_stmt soffset_stmt.timezone_stmt 
+	timezone_stmt: .    (125)
+
+	TIMEZONE  shift 249
+	.  reduce 125 (src line 760)
+
+	timezone_stmt  goto 248
+
+state 242
+	soffset_stmt:  SOFFSET.number_literal 
+
+	NUMBER  shift 44
+	ADD  shift 52
+	SUB  shift 53
+	.  error
+
+	unary_op  goto 45
+	number_literal  goto 250
+
+state 243
+	slimit_stmt:  SLIMIT number_literal.    (132)
+
+	.  reduce 132 (src line 794)
+
+
+state 244
+	order_by_list:  order_by_list COMMA order_by_elem.    (138)
+
+	.  reduce 138 (src line 829)
+
+
+state 245
+	group_by_interval:  COLON AUTO LEFT_PAREN RIGHT_PAREN.    (118)
+
+	.  reduce 118 (src line 732)
+
+
+state 246
+	group_by_interval:  COLON AUTO LEFT_PAREN number_literal.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 251
+	.  error
+
+
+state 247
+	date_literal:  NUMBER SUB NUMBER SUB NUMBER NUMBER.COLON NUMBER COLON NUMBER 
+
+	COLON  shift 252
+	.  error
+
+
+state 248
+	query_stmt:  query_base_stmt time_range_opt group_by_stmt order_by_stmt limit_stmt offset_stmt slimit_stmt soffset_stmt timezone_stmt.    (61)
+
+	.  reduce 61 (src line 407)
+
+
+state 249
+	timezone_stmt:  TIMEZONE.LEFT_PAREN string_literal RIGHT_PAREN 
+
+	LEFT_PAREN  shift 253
+	.  error
+
+
+state 250
+	soffset_stmt:  SOFFSET number_literal.    (128)
+
+	.  reduce 128 (src line 774)
+
+
+state 251
+	group_by_interval:  COLON AUTO LEFT_PAREN number_literal RIGHT_PAREN.    (119)
+
+	.  reduce 119 (src line 736)
+
+
+state 252
+	date_literal:  NUMBER SUB NUMBER SUB NUMBER NUMBER COLON.NUMBER COLON NUMBER 
+
+	NUMBER  shift 254
+	.  error
+
+
+state 253
+	timezone_stmt:  TIMEZONE LEFT_PAREN.string_literal RIGHT_PAREN 
+
+	STRING  shift 46
+	.  error
+
+	string_literal  goto 255
+
+state 254
+	date_literal:  NUMBER SUB NUMBER SUB NUMBER NUMBER COLON NUMBER.COLON NUMBER 
+
+	COLON  shift 256
+	.  error
+
+
+state 255
+	timezone_stmt:  TIMEZONE LEFT_PAREN string_literal.RIGHT_PAREN 
+
+	RIGHT_PAREN  shift 257
+	.  error
+
+
+state 256
+	date_literal:  NUMBER SUB NUMBER SUB NUMBER NUMBER COLON NUMBER COLON.NUMBER 
+
+	NUMBER  shift 258
+	.  error
+
+
+state 257
+	timezone_stmt:  TIMEZONE LEFT_PAREN string_literal RIGHT_PAREN.    (124)
+
+	.  reduce 124 (src line 756)
+
+
+state 258
+	date_literal:  NUMBER SUB NUMBER SUB NUMBER NUMBER COLON NUMBER COLON NUMBER.    (149)
+
+	.  reduce 149 (src line 888)
+
+
+71 terminals, 60 nonterminals
+162 grammar rules, 259/8000 states
+2 shift/reduce, 0 reduce/reduce conflicts reported
+109 working sets used
+memory: parser 1068/120000
+200 extra closures
+742 shift entries, 12 exceptions
+186 goto entries
+412 entries saved by goto default
+Optimizer space used: output 574/120000
+574 table entries, 112 zero
+maximum spread: 70, maximum offset: 253
