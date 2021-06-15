@@ -27,6 +27,7 @@ var (
 		datakit.HeartBeat,
 		datakit.Election,
 		datakit.ElectionHeartbeat,
+		datakit.QueryRaw,
 	}
 
 	ExtraHeaders = map[string]string{}
@@ -172,8 +173,23 @@ func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
 	return nil
 }
 
+func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
+	if len(dw.dataWayClients) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.dataWayClients[0]
+	requrl, ok := dc.categoryURL[datakit.QueryRaw]
+	if !ok {
+		return nil, fmt.Errorf("no DQL query URL available")
+	}
+
+	defer dw.httpCli.CloseIdleConnections()
+	return dw.httpCli.Post(requrl, "application/json", bytes.NewBuffer(body))
+}
+
 func (dw *DataWayCfg) Election(id string) ([]byte, error) {
-	if len(dw.dataWayClients) < 1 {
+	if len(dw.dataWayClients) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
@@ -214,7 +230,7 @@ func (dw *DataWayCfg) Election(id string) ([]byte, error) {
 }
 
 func (dw *DataWayCfg) ElectionHeartbeat(id string) ([]byte, error) {
-	if len(dw.dataWayClients) < 1 {
+	if len(dw.dataWayClients) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
 
@@ -298,16 +314,6 @@ func (dw *DataWayCfg) HeartBeat() error {
 	}
 
 	return nil
-}
-
-func (dw *DataWayCfg) QueryRawURL() []string {
-	var resURL []string
-	for _, dc := range dw.dataWayClients {
-		queryRawURL := dc.categoryURL["queryRawURL"]
-		resURL = append(resURL, queryRawURL)
-	}
-
-	return resURL
 }
 
 func (dw *DataWayCfg) GetToken() []string {
