@@ -7,6 +7,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
+func TestDatawayAPIURLs(t *testing.T) {
+
+	dw := &DataWayCfg{URLs: []string{"http://abc.com?token=tkn_123"}}
+	dw.Apply()
+	for _, dc := range dw.dataWayClients {
+		tu.Equals(t, len(dc.categoryURL), len(apis))
+		for k, x := range dc.categoryURL {
+			t.Logf("%s: %s", k, x)
+		}
+	}
+}
+
 func TestHeartBeat(t *testing.T) {
 	cases := []struct {
 		urls []string
