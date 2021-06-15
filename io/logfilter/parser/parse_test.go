@@ -14,9 +14,7 @@ func TestParse(t *testing.T) {
 		fail     bool
 	}{
 		{
-			in: `{
-				a > 0, c < 5 || d < 2}`,
-			//in: "{a > 0}",
+			in: `{a > 0, c < 5 || d < 2}`,
 			expected: WhereCondition{
 				conditions: []Node{
 					&BinaryExpr{
