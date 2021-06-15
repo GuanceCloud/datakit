@@ -123,7 +123,6 @@ func SetTest() {
 }
 
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
-
 	ch := x.in
 
 	if opt != nil && opt.HighFreq {
