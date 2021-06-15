@@ -1,5 +1,5 @@
 default:
-	@goyacc -o parser_y.go -p yy parser.y
+	@goyacc -o gram_y.go gram.y
 
 clean:
-	@rm -rf parser_y.go y.output
+	@rm -rf gram_y.go y.output
