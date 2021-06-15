@@ -1,5 +1,5 @@
 %{
-package logfilter
+package parser
 
 import (
 	"time"
@@ -36,7 +36,7 @@ import (
 %token keywordsStart
 %token <item>
 AS ASC AUTO BY DESC TRUE FALSE FILTER
-IDENTIFIER IN AND LINK LIMIT SLIMIT 
+IDENTIFIER IN AND LINK LIMIT SLIMIT
 OR NIL NULL OFFSET SOFFSET
 ORDER RE INT FLOAT POINT TIMEZONE WITH
 %token keywordsEnd
@@ -49,7 +49,7 @@ ORDER RE INT FLOAT POINT TIMEZONE WITH
 ////////////////////////////////////////////////////
 // grammar rules
 ////////////////////////////////////////////////////
-%type <item> 
+%type <item>
 	unary_op
 	function_name
 	identifier
@@ -58,7 +58,7 @@ ORDER RE INT FLOAT POINT TIMEZONE WITH
 	filter_list
 	function_args
 
-%type <node> 
+%type <node>
 	stmts
 	where_conditions
 	array_elem
@@ -85,7 +85,7 @@ ORDER RE INT FLOAT POINT TIMEZONE WITH
 // operator listed with increasing precedence
 %left OR
 %left AND
-%left GTE GT NEQ EQ LTE LT 
+%left GTE GT NEQ EQ LTE LT
 %left ADD SUB
 %left MUL DIV MOD
 %right POW
@@ -192,7 +192,7 @@ function_expr: function_name LEFT_PAREN function_args RIGHT_PAREN
 							;
 
 cascade_functions: function_expr DOT function_expr
-								 { 
+								 {
 								 	$$ = &CascadeFunctions{Funcs: []*FuncExpr{$1.(*FuncExpr), $3.(*FuncExpr)}}
 								 }
 								 | cascade_functions DOT function_expr
@@ -269,7 +269,7 @@ naming_arg: identifier EQ expr
 						}
 						;
 
-where_conditions: LEFT_BRACE filter_list RIGHT_BRACE 
+where_conditions: LEFT_BRACE filter_list RIGHT_BRACE
 						 {
 						   $$ = yylex.(*parser).newWhereConditions($2)
 						 }
@@ -304,13 +304,13 @@ binary_expr: expr ADD expr
 					 {
 					   $$ = yylex.(*parser).newBinExpr($1, $3, $2)
 					 }
-					 | expr GTE expr 
+					 | expr GTE expr
 					 {
 						 bexpr := yylex.(*parser).newBinExpr($1, $3, $2)
 						 bexpr.ReturnBool = true
 						 $$ = bexpr
 					 }
-					 | expr GT expr 
+					 | expr GT expr
 					 {
 						 bexpr := yylex.(*parser).newBinExpr($1, $3, $2)
 						 bexpr.ReturnBool = true
@@ -415,11 +415,11 @@ number_literal: NUMBER
 
 regex: RE LEFT_PAREN string_literal RIGHT_PAREN
 		 {
-		   $$ = &Regex{Regex: $3.(*StringLiteral).Val} 
+		   $$ = &Regex{Regex: $3.(*StringLiteral).Val}
 		 }
 		 | RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN
 		 {
-		   $$ = &Regex{Regex: yylex.(*parser).unquoteString($3.Val)} 
+		   $$ = &Regex{Regex: yylex.(*parser).unquoteString($3.Val)}
 		 }
 		 ;
 
