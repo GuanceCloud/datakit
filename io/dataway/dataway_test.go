@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestHeartBeat(t *testing.T) {
@@ -100,7 +101,11 @@ func TestElectionHeartBeatURL(t *testing.T) {
 			tu.Ok(t, err)
 		}
 
-		urls := dw.ElectionHeartBeatURL()
+		urls := []string{}
+		for _, c := range dw.dataWayClients {
+			urls = append(urls, c.categoryURL[datakit.ElectionHeartbeat])
+		}
+
 		for idx, u := range urls {
 			tu.Equals(t, tc.expect[idx], u)
 		}
@@ -134,7 +139,11 @@ func TestElectionURL(t *testing.T) {
 			tu.Ok(t, err)
 		}
 
-		urls := dw.ElectionURL()
+		urls := []string{}
+		for _, c := range dw.dataWayClients {
+			urls = append(urls, c.categoryURL[datakit.Election])
+		}
+
 		for idx, u := range urls {
 			tu.Equals(t, tc.expect[idx], u)
 		}
