@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
@@ -17,25 +18,41 @@ var (
 	log           = logger.DefaultSLogger("logfilter")
 )
 
+var DefLogfilter *logFilter
+
 type rules struct {
 	content []string `json:"content"`
 }
 
-type LogFilter struct {
+type logFilter struct {
 	clnt  *http.Client
 	rules rules
 	sync.Mutex
 }
 
-func NewLogFilter() *LogFilter {
-	return &LogFilter{clnt: &http.Client{Timeout: defReqTimeout}}
+func newLogFilter() *logFilter {
+	return &logFilter{clnt: &http.Client{Timeout: defReqTimeout}}
 }
 
-func (this *LogFilter) Run() {
+func (this *logFilter) start() {
+	log.Info("log filter engaged")
 
+	go func() {
+		tick := time.NewTicker(defInterval)
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				log.Info("log filter exits")
+			case <-tick.C:
+				if err := this.refreshRules(); err != nil {
+					log.Error(err.Error())
+				}
+			}
+		}
+	}()
 }
 
-func (this *LogFilter) refreshRules() error {
+func (this *logFilter) refreshRules() error {
 	req, err := http.NewRequest(http.MethodGet, defReqUrl, nil)
 	if err != nil {
 		return err
@@ -64,6 +81,13 @@ func (this *LogFilter) refreshRules() error {
 	return nil
 }
 
+func (this *logFilter) getRules() []string {
+	return this.rules.content
+}
+
 func init() {
 	log = logger.SLogger("logfilter")
+
+	DefLogfilter = newLogFilter()
+	DefLogfilter.start()
 }
