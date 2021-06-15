@@ -1,16 +1,20 @@
 package logfilter
 
 import (
+<<<<<<< HEAD
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
 
+=======
+>>>>>>> de7be4ce2a5fbef3f16cf43864aa632d0022a24c
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var (
+<<<<<<< HEAD
 	defReqUrl     = "/v1/logfilter/pull"
 	defInterval   = 10 * time.Second
 	defReqTimeout = 3 * time.Second
@@ -67,3 +71,7 @@ func (this *LogFilter) refreshRules() error {
 func init() {
 	log = logger.SLogger("logfilter")
 }
+=======
+	log = logger.DefaultSLogger("logfilter")
+)
+>>>>>>> de7be4ce2a5fbef3f16cf43864aa632d0022a24c
