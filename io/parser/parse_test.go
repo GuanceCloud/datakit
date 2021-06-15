@@ -15,7 +15,7 @@ func TestParse(t *testing.T) {
 	}{
 
 		{
-			in: `{a>1}; {b>1};`, // multiple conditions
+			in: `{a>1}; {b>1}`, // multiple conditions
 			expected: WhereConditions{
 				&WhereCondition{
 					conditions: []Node{
