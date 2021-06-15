@@ -22,7 +22,7 @@ var parserPool = sync.Pool{
 
 type parser struct {
 	lex      Lexer
-	yyParser condParserImpl
+	yyParser yyParserImpl
 
 	parseResult interface{}
 	lastClosing Pos
@@ -111,7 +111,7 @@ func (p *parser) addParseErrf(pr *PositionRange, format string, args ...interfac
 }
 
 // impl Lex interface
-func (p *parser) Lex(lval *condSymType) int {
+func (p *parser) Lex(lval *yySymType) int {
 	var typ ItemType
 
 	if p.injecting {

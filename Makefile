@@ -81,8 +81,8 @@ test:
 	@GO111MODULE=off go test ./...
 
 gogenerate:
-	cd io/logfilter/parser && make
-	cd pipeline/parser && make
+	@cd io/logfilter/parser && make
+	@cd pipeline/parser && make
 
 local: man gofmt
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
