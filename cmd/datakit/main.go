@@ -52,14 +52,15 @@ var (
 
 	// manuals related
 	flagMan               = flag.Bool("man", false, "read manuals of inputs")
-	flagK8sCfgPath        = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
 	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
 	flagTODO              = flag.String("TODO", "TODO", "set TODO")
 
-	flagInteractive         = flag.Bool("interactive", false, "interactive generate k8s deploy config")
+	flagK8sCfgPath  = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
+	flagInteractive = flag.Bool("interactive", false, "interactive generate k8s deploy config")
+
 	flagCheckUpdate         = flag.Bool("check-update", false, "check if new verison available")
 	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
@@ -80,11 +81,13 @@ var (
 
 	// partially update
 	flagUpdateIPDb = flag.Bool("update-ip-db", false, "update ip db")
-	flagAddr       = flag.String("addr", "", "url path")
+	flagAddr       = flag.StringP("addr", "A", "", "url path")
+	flagInterval   = flag.StringP("interval", "D", "", "auxiliary option, time interval")
 
 	// utils
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
+	flagMonitor       = flag.Bool("monitor", false, "show monitor info of current datakit")
 )
 
 var (
@@ -99,14 +102,18 @@ const (
 )
 
 func main() {
-	flag.CommandLine.MarkHidden("cmd")                  // deprecated
-	flag.CommandLine.MarkHidden("TODO")                 // internal using
-	flag.CommandLine.MarkHidden("check-update")         // internal using
-	flag.CommandLine.MarkHidden("man-version")          // internal using
-	flag.CommandLine.MarkHidden("export-integration")   // internal using
-	flag.CommandLine.MarkHidden("addr")                 // internal using
-	flag.CommandLine.MarkHidden("show-testing-version") // internal using
-	flag.CommandLine.MarkHidden("update-log")           // internal using
+	flag.CommandLine.MarkHidden("cmd") // deprecated
+
+	// internal using
+	flag.CommandLine.MarkHidden("TODO")
+	flag.CommandLine.MarkHidden("check-update")
+	flag.CommandLine.MarkHidden("man-version")
+	flag.CommandLine.MarkHidden("export-integration")
+	flag.CommandLine.MarkHidden("addr")
+	flag.CommandLine.MarkHidden("show-testing-version")
+	flag.CommandLine.MarkHidden("update-log")
+	flag.CommandLine.MarkHidden("k8s-deploy")
+	flag.CommandLine.MarkHidden("interactive")
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -212,6 +219,43 @@ ReleasedInputs: %s
 		sort.Strings(keys)
 		for _, k := range keys {
 			fmt.Printf("\t% 24s: %v\n", k, info[k])
+		}
+
+		os.Exit(0)
+	}
+
+	if *flagMonitor {
+		if runtime.GOOS == "windows" {
+			fmt.Println("unavailable under Windows")
+			os.Exit(0)
+		}
+
+		addr := "http://localhost:9529/stats"
+		if *flagAddr != "" {
+			addr = *flagAddr
+		}
+		interval := 3 * time.Second
+		if *flagInterval != "" {
+			if du, err := time.ParseDuration(*flagInterval); err == nil {
+				if du >= time.Second {
+					interval = du // only accept interval >= 1s
+				}
+			}
+		}
+
+		for {
+
+			fmt.Print("\033[H\033[2J") // clean screen
+
+			x, err := cmds.CMDMonitor(addr)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(-1)
+			} else {
+				fmt.Println(string(x))
+				fmt.Println("Press ctrl+c to exit.")
+			}
+			time.Sleep(interval)
 		}
 
 		os.Exit(0)
