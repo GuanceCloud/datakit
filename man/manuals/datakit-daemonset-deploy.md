@@ -129,6 +129,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - "extensions"
   resources:
@@ -145,9 +146,11 @@ rules:
   - batch
   resources:
   - jobs
+  - cronjobs
   verbs:
   - get
   - list
+  - watch
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 
