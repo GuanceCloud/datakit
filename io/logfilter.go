@@ -1,4 +1,4 @@
-package logfilter
+package io
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ var (
 	log           = logger.DefaultSLogger("logfilter")
 )
 
-var DefLogfilter *logFilter
+var defLogfilter *logFilter
 
 type rules struct {
 	content []string `json:"content"`
@@ -32,6 +32,10 @@ type logFilter struct {
 
 func newLogFilter() *logFilter {
 	return &logFilter{clnt: &http.Client{Timeout: defReqTimeout}}
+}
+
+func (this *logFilter) check(point *Point) bool {
+	return false
 }
 
 func (this *logFilter) start() {
@@ -88,6 +92,6 @@ func (this *logFilter) getRules() []string {
 func init() {
 	log = logger.SLogger("logfilter")
 
-	DefLogfilter = newLogFilter()
-	DefLogfilter.start()
+	defLogfilter = newLogFilter()
+	defLogfilter.start()
 }
