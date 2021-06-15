@@ -1,4 +1,4 @@
-package logfilter
+package parser
 
 import (
 	"bytes"
@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/siddontang/go/log"
 )
 
 type Value interface {
