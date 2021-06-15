@@ -1,2 +1,2 @@
-all:
-	@goyacc -o parser_y.go -p cond parser.y
+default:
+	goyacc -o parser_y.go -p cond parser.y
