@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/siddontang/go/log"
 )
 
 type Value interface {
