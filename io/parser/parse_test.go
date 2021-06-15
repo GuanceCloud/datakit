@@ -15,6 +15,7 @@ func TestParse(t *testing.T) {
 	}{
 		{
 			in: `{a > 0, c < 5 || d < 2}`,
+			// in: `{'http_dial_testing'  and ( aaaa in ['aaaa44', 'gaga']  and  city in ['北京'] )}`,
 			expected: WhereCondition{
 				conditions: []Node{
 					&BinaryExpr{
