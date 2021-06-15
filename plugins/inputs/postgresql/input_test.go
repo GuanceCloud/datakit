@@ -11,8 +11,7 @@ import (
 
 	"github.com/araddon/dateparse"
 	"github.com/stretchr/testify/assert"
-	dk "gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	dkInputs "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 type MockCollectService struct {
@@ -179,7 +178,7 @@ func TestInput(t *testing.T) {
 
 	assert.Equal(t, input.Catalog(), catalogName)
 	assert.Equal(t, input.SampleConfig(), sampleConfig)
-	assert.Equal(t, input.AvailableArchs(), dk.AllArch)
+	assert.Equal(t, input.AvailableArchs(), datakit.AllArch)
 
 	assert.Equal(t, input.PipelineConfig()["postgresql"], pipelineCfg)
 
@@ -235,80 +234,6 @@ func TestSanitizedAddress(t *testing.T) {
 	transAddress, err = input.SanitizedAddress()
 	assert.Error(t, err)
 	assert.Equal(t, transAddress, "")
-
-}
-
-type DkInputsMock struct {
-	tailerError int
-}
-type TailerMock struct{}
-
-func (TailerMock) Run() {}
-func (DkInputsMock) FeedMeasurement(name, category string, measurements interface{}, opt interface{}) error {
-	return nil
-}
-
-func (d DkInputsMock) NewTailer(opt interface{}) (Tailer, error) {
-	if d.tailerError == 1 {
-		return nil, errorMock{}
-	}
-	return TailerMock{}, nil
-}
-
-func (DkInputsMock) JoinPipelinePath(op interface{}, defaultPipeline string) {
-	dkInputs.JoinPipelinePath(op.(*dkInputs.TailerOption), defaultPipeline)
-}
-func TestRun(t *testing.T) {
-	mockFields := map[string]interface{}{
-		"numbackends": int64(1),
-	}
-
-	input := NewInput(&MockCollectService{
-		mockData: getMockData(mockFields),
-	})
-
-	inputs := DkInputsMock{}
-
-	datakit := Datakit{
-		ch: make(chan interface{}),
-	}
-	datakit.ProtectedInterval = func(min, max, cur time.Duration) time.Duration {
-		return min
-	}
-	datakit.Exit = func() <-chan interface{} {
-		return datakit.ch
-	}
-	go func() {
-		input.runService(inputs, datakit)
-
-	}()
-	time.Sleep(5 * time.Second)
-	assert.Nil(t, input.tail)
-	datakit.Close()
-
-	t.Run("Log", func(t *testing.T) {
-		datakit.ch = make(chan interface{})
-		input.Log = &dkInputs.TailerOption{}
-		input.Tags = map[string]string{"tag": "pg"}
-		go func() {
-			input.runService(inputs, datakit)
-		}()
-		time.Sleep(5 * time.Second)
-		assert.NotNil(t, input.tail)
-		datakit.Close()
-
-		t.Run("NewTailer error", func(t *testing.T) {
-			datakit.ch = make(chan interface{})
-			input.tail = nil
-			inputs.tailerError = 1
-			go func() {
-				input.runService(inputs, datakit)
-			}()
-			time.Sleep(5 * time.Second)
-			assert.Nil(t, input.tail)
-			datakit.Close()
-		})
-	})
 
 }
 
