@@ -34,6 +34,12 @@ type parser struct {
 	context interface{}
 }
 
+func GetConds(input string) WhereConditions {
+	parser := newParser(input)
+
+	return parser.parseResult.(WhereConditions)
+}
+
 func newParser(input string) *parser {
 	p := parserPool.Get().(*parser)
 
@@ -362,4 +368,15 @@ func (p *parser) newWhereConditions(conditions []Node) *WhereCondition {
 	return &WhereCondition{
 		conditions: conditions,
 	}
+}
+
+func GetParser(rules string) WhereConditions {
+	var err error
+	p := newParser(rules)
+	defer parserPool.Put(p)
+	defer p.recover(&err)
+
+	p.doParse()
+
+	return p.parseResult.(WhereConditions)
 }

@@ -135,6 +135,12 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.KeyEvent:
 	case datakit.Object:
 	case datakit.Logging:
+		if x.dw.ClientsCount() == 1 {
+			pts = defLogfilter.filter(pts)
+		} else {
+			// TODO: add multiple dataway config support
+			l.Infof("multiple dataway config for log filter not support yet")
+		}
 	case datakit.Tracing:
 	case datakit.Security:
 	case datakit.Rum:
@@ -144,17 +150,10 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 
 	l.Debugf("io feed %s", name)
 
-	var after []*Point
-	for _, pt := range pts {
-		if !defLogfilter.check(pt) {
-			after = append(after, pt)
-		}
-	}
-
 	select {
 	case ch <- &iodata{
 		category: category,
-		pts:      after,
+		pts:      pts,
 		name:     name,
 		opt:      opt,
 	}:
