@@ -27,6 +27,7 @@ var (
 		datakit.HeartBeat,
 		datakit.Election,
 		datakit.ElectionHeartbeat,
+		datakit.QueryRaw,
 	}
 
 	ExtraHeaders = map[string]string{}
@@ -303,7 +304,7 @@ func (dw *DataWayCfg) HeartBeat() error {
 func (dw *DataWayCfg) QueryRawURL() []string {
 	var resURL []string
 	for _, dc := range dw.dataWayClients {
-		queryRawURL := dc.categoryURL["queryRawURL"]
+		queryRawURL := dc.categoryURL[QueryRaw]
 		resURL = append(resURL, queryRawURL)
 	}
 
