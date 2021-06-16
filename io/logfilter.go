@@ -97,7 +97,7 @@ func (this *logFilter) refreshRules() error {
 	// 	return err
 	// }
 
-	body, err := datakit.Cfg.DataWay.GetLogFilter()
+	body, err := defLogFilterMock.GetLogFilter()
 	if err != nil {
 		return err
 	}
