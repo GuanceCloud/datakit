@@ -7,7 +7,38 @@ import (
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
-func TestCondition(t *testing.T) {
+func TestExprConditions(t *testing.T) {
+	cases := []struct {
+		in     string
+		source string
+		tags   map[string]string
+		fields map[string]interface{}
+		pass   bool
+	}{
+		{
+			in:     "{a > 1, b > 1 or c > 1}",
+			fields: map[string]interface{}{"a": int64(2), "c": "xyz"},
+			pass:   false,
+		},
+
+		{
+			in:     "{a > 1, b > 1 or c = 'xyz'}",
+			fields: map[string]interface{}{"a": int64(2), "c": "xyz", "b": false},
+			pass:   true,
+		},
+	}
+
+	for _, tc := range cases {
+		conditions := GetParser(tc.in)
+		tu.Assert(t, conditions != nil, "conditions should not nil")
+
+		tu.Equals(t, tc.pass, conditions.Eval(tc.source, tc.tags, tc.fields))
+
+		t.Logf("[ok] %s => %v, source: %s, tags: %+#v, fields: %+#v", tc.in, tc.pass, tc.source, tc.tags, tc.fields)
+	}
+}
+
+func TestConditions(t *testing.T) {
 	cases := []struct {
 		in     WhereConditions
 		source string
@@ -15,6 +46,33 @@ func TestCondition(t *testing.T) {
 		fields map[string]interface{}
 		pass   bool
 	}{
+
+		{ // multi conditions
+			fields: map[string]interface{}{"a": int64(2), "c": "xyz"},
+			in: WhereConditions{
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+							Op:  GT,
+							LHS: &Identifier{Name: "b"},
+							RHS: &NumberLiteral{IsInt: true, Int: int64(1)},
+						},
+					},
+				},
+
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+							Op:  GT,
+							LHS: &Identifier{Name: "d"},
+							RHS: &NumberLiteral{IsInt: true, Int: int64(1)},
+						},
+					},
+				},
+			},
+			pass: false,
+		},
+
 		{
 			fields: map[string]interface{}{"a": int64(2)},
 			in: WhereConditions{
@@ -105,8 +163,8 @@ func TestCondition(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Logf("[ok] %s => %v, source: %s, tags: %+#v, fields: %+#v", tc.in, tc.pass, tc.source, tc.tags, tc.fields)
 		tu.Equals(t, tc.pass, tc.in.Eval(tc.source, tc.tags, tc.fields))
+		t.Logf("[ok] %s => %v, source: %s, tags: %+#v, fields: %+#v", tc.in, tc.pass, tc.source, tc.tags, tc.fields)
 	}
 }
 
