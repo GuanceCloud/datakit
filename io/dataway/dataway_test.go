@@ -7,14 +7,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func TestDatawayAPIURLs(t *testing.T) {
+func TestDataWayAPIs(t *testing.T) {
+	dw := DataWayCfg{URLs: []string{"https://abc.com?token=tkn_abc"}}
 
-	dw := &DataWayCfg{URLs: []string{"http://abc.com?token=tkn_123"}}
 	dw.Apply()
-	for _, dc := range dw.dataWayClients {
-		tu.Equals(t, len(dc.categoryURL), len(apis))
-		for k, x := range dc.categoryURL {
-			t.Logf("%s: %s", k, x)
+
+	for _, c := range dw.dataWayClients {
+		tu.Equals(t, len(apis), len(c.categoryURL))
+		for k, u := range c.categoryURL {
+			t.Logf("%s: %s", k, u)
 		}
 	}
 }
