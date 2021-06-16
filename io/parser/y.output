@@ -18,114 +18,125 @@ state 1
 
 
 state 2
-	start:  START_WHERE_CONDITION.stmt 
-	where_conditions: .    (46)
+	start:  START_WHERE_CONDITION.stmts 
+	where_conditions: .    (47)
 
 	LEFT_BRACE  shift 7
-	.  reduce 46 (src line 269)
+	.  reduce 47 (src line 276)
 
-	stmt  goto 5
+	stmts  goto 5
 	where_conditions  goto 6
 
 state 3
 	start:  error.    (3)
 
-	.  reduce 3 (src line 105)
+	.  reduce 3 (src line 104)
 
 
 state 4
 	start:  start EOF.    (2)
 
-	.  reduce 2 (src line 104)
+	.  reduce 2 (src line 103)
 
 
 state 5
-	start:  START_WHERE_CONDITION stmt.    (1)
+	start:  START_WHERE_CONDITION stmts.    (1)
+	stmts:  stmts.SEMICOLON where_conditions 
 
-	.  reduce 1 (src line 100)
+	SEMICOLON  shift 8
+	.  reduce 1 (src line 99)
 
 
 state 6
-	stmt:  where_conditions.    (4)
+	stmts:  where_conditions.    (4)
 
-	.  reduce 4 (src line 111)
+	.  reduce 4 (src line 110)
 
 
 state 7
 	where_conditions:  LEFT_BRACE.filter_list RIGHT_BRACE 
-	filter_list: .    (50)
+	filter_list: .    (51)
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
-	.  reduce 50 (src line 285)
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
+	.  reduce 51 (src line 292)
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	filter_list  goto 8
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 10
-	expr  goto 12
-	function_expr  goto 17
-	paren_expr  goto 11
-	filter_elem  goto 9
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	filter_list  goto 9
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 11
+	expr  goto 13
+	function_expr  goto 18
+	paren_expr  goto 12
+	filter_elem  goto 10
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 8
+	stmts:  stmts SEMICOLON.where_conditions 
+	where_conditions: .    (47)
+
+	LEFT_BRACE  shift 7
+	.  reduce 47 (src line 276)
+
+	where_conditions  goto 42
+
+state 9
 	where_conditions:  LEFT_BRACE filter_list.RIGHT_BRACE 
 	filter_list:  filter_list.COMMA filter_elem 
 	filter_list:  filter_list.COMMA 
 
-	COMMA  shift 42
-	RIGHT_BRACE  shift 41
+	COMMA  shift 44
+	RIGHT_BRACE  shift 43
 	.  error
 
 
-state 9
-	filter_list:  filter_elem.    (47)
-
-	.  reduce 47 (src line 276)
-
-
 state 10
-	expr:  binary_expr.    (9)
-	filter_elem:  binary_expr.    (51)
+	filter_list:  filter_elem.    (48)
 
-	COMMA  reduce 51 (src line 289)
-	RIGHT_BRACE  reduce 51 (src line 289)
-	.  reduce 9 (src line 116)
+	.  reduce 48 (src line 283)
 
 
 state 11
-	expr:  paren_expr.    (7)
-	filter_elem:  paren_expr.    (52)
+	expr:  binary_expr.    (10)
+	filter_elem:  binary_expr.    (52)
 
-	COMMA  reduce 52 (src line 289)
-	RIGHT_BRACE  reduce 52 (src line 289)
-	.  reduce 7 (src line 116)
+	COMMA  reduce 52 (src line 296)
+	RIGHT_BRACE  reduce 52 (src line 296)
+	.  reduce 10 (src line 123)
 
 
 state 12
+	expr:  paren_expr.    (8)
+	filter_elem:  paren_expr.    (53)
+
+	COMMA  reduce 53 (src line 296)
+	RIGHT_BRACE  reduce 53 (src line 296)
+	.  reduce 8 (src line 123)
+
+
+state 13
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -141,812 +152,818 @@ state 12
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	EQ  shift 56
-	ADD  shift 43
-	DIV  shift 44
-	GTE  shift 45
-	GT  shift 46
-	LT  shift 49
-	LTE  shift 50
-	MOD  shift 51
-	MUL  shift 52
-	NEQ  shift 53
-	POW  shift 54
-	SUB  shift 55
-	AND  shift 47
-	OR  shift 48
+	EQ  shift 58
+	ADD  shift 45
+	DIV  shift 46
+	GTE  shift 47
+	GT  shift 48
+	LT  shift 51
+	LTE  shift 52
+	MOD  shift 53
+	MUL  shift 54
+	NEQ  shift 55
+	POW  shift 56
+	SUB  shift 57
+	AND  shift 49
+	OR  shift 50
 	.  error
-
-
-state 13
-	array_elem:  columnref.    (35)
-	binary_expr:  columnref.IN LEFT_BRACKET array_list RIGHT_BRACKET 
-
-	IN  shift 57
-	.  reduce 35 (src line 232)
 
 
 state 14
-	paren_expr:  LEFT_PAREN.expr RIGHT_PAREN 
+	array_elem:  columnref.    (36)
+	binary_expr:  columnref.IN LEFT_BRACKET array_list RIGHT_BRACKET 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
-	.  error
+	IN  shift 59
+	.  reduce 36 (src line 239)
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
-	expr  goto 58
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
 
 state 15
-	expr:  array_elem.    (5)
+	paren_expr:  LEFT_PAREN.expr RIGHT_PAREN 
 
-	.  reduce 5 (src line 116)
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
+	.  error
 
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
+	expr  goto 60
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 16
-	expr:  regex.    (6)
+	expr:  array_elem.    (6)
 
-	.  reduce 6 (src line 116)
+	.  reduce 6 (src line 123)
 
 
 state 17
-	expr:  function_expr.    (8)
-	cascade_functions:  function_expr.DOT function_expr 
+	expr:  regex.    (7)
 
-	DOT  shift 61
-	.  reduce 8 (src line 116)
+	.  reduce 7 (src line 123)
 
 
 state 18
-	expr:  cascade_functions.    (10)
-	cascade_functions:  cascade_functions.DOT function_expr 
+	expr:  function_expr.    (9)
+	cascade_functions:  function_expr.DOT function_expr 
 
-	DOT  shift 62
-	.  reduce 10 (src line 116)
+	DOT  shift 63
+	.  reduce 9 (src line 123)
 
 
 state 19
-	columnref:  identifier.    (11)
-	attr_expr:  identifier.DOT identifier 
-	function_name:  identifier.    (68)
+	expr:  cascade_functions.    (11)
+	cascade_functions:  cascade_functions.DOT function_expr 
 
-	LEFT_PAREN  reduce 68 (src line 377)
-	DOT  shift 63
-	.  reduce 11 (src line 119)
+	DOT  shift 64
+	.  reduce 11 (src line 123)
 
 
 state 20
-	columnref:  attr_expr.    (12)
-	attr_expr:  attr_expr.DOT identifier 
-	function_name:  attr_expr.    (69)
+	columnref:  identifier.    (12)
+	attr_expr:  identifier.DOT identifier 
+	function_name:  identifier.    (69)
 
-	LEFT_PAREN  reduce 69 (src line 381)
-	DOT  shift 64
-	.  reduce 12 (src line 123)
+	LEFT_PAREN  reduce 69 (src line 384)
+	DOT  shift 65
+	.  reduce 12 (src line 126)
 
 
 state 21
-	array_elem:  number_literal.    (33)
+	columnref:  attr_expr.    (13)
+	attr_expr:  attr_expr.DOT identifier 
+	function_name:  attr_expr.    (70)
 
-	.  reduce 33 (src line 230)
+	LEFT_PAREN  reduce 70 (src line 388)
+	DOT  shift 66
+	.  reduce 13 (src line 130)
 
 
 state 22
-	array_elem:  string_literal.    (34)
+	array_elem:  number_literal.    (34)
 
-	.  reduce 34 (src line 231)
+	.  reduce 34 (src line 237)
 
 
 state 23
-	array_elem:  nil_literal.    (36)
+	array_elem:  string_literal.    (35)
 
-	.  reduce 36 (src line 233)
+	.  reduce 35 (src line 238)
 
 
 state 24
-	array_elem:  bool_literal.    (37)
+	array_elem:  nil_literal.    (37)
 
-	.  reduce 37 (src line 234)
+	.  reduce 37 (src line 240)
 
 
 state 25
-	array_elem:  star.    (38)
+	array_elem:  bool_literal.    (38)
 
-	.  reduce 38 (src line 235)
+	.  reduce 38 (src line 241)
 
 
 state 26
-	regex:  RE.LEFT_PAREN string_literal RIGHT_PAREN 
-	regex:  RE.LEFT_PAREN QUOTED_STRING RIGHT_PAREN 
+	array_elem:  star.    (39)
 
-	LEFT_PAREN  shift 65
-	.  error
+	.  reduce 39 (src line 242)
 
 
 state 27
-	function_expr:  function_name.LEFT_PAREN function_args RIGHT_PAREN 
-
-	LEFT_PAREN  shift 66
-	.  error
-
-
-state 28
-	identifier:  ID.    (74)
-
-	.  reduce 74 (src line 419)
-
-
-state 29
-	identifier:  QUOTED_STRING.    (75)
-
-	.  reduce 75 (src line 420)
-
-
-state 30
-	identifier:  IDENTIFIER.LEFT_PAREN string_literal RIGHT_PAREN 
+	regex:  RE.LEFT_PAREN string_literal RIGHT_PAREN 
+	regex:  RE.LEFT_PAREN QUOTED_STRING RIGHT_PAREN 
 
 	LEFT_PAREN  shift 67
 	.  error
 
 
-state 31
-	number_literal:  NUMBER.    (70)
+state 28
+	function_expr:  function_name.LEFT_PAREN function_args RIGHT_PAREN 
 
-	.  reduce 70 (src line 388)
+	LEFT_PAREN  shift 68
+	.  error
+
+
+state 29
+	identifier:  ID.    (75)
+
+	.  reduce 75 (src line 426)
+
+
+state 30
+	identifier:  QUOTED_STRING.    (76)
+
+	.  reduce 76 (src line 427)
+
+
+state 31
+	identifier:  IDENTIFIER.LEFT_PAREN string_literal RIGHT_PAREN 
+
+	LEFT_PAREN  shift 69
+	.  error
 
 
 state 32
-	number_literal:  unary_op.NUMBER 
+	number_literal:  NUMBER.    (71)
 
-	NUMBER  shift 68
-	.  error
+	.  reduce 71 (src line 395)
 
 
 state 33
-	string_literal:  STRING.    (17)
+	number_literal:  unary_op.NUMBER 
 
-	.  reduce 17 (src line 149)
+	NUMBER  shift 70
+	.  error
 
 
 state 34
-	nil_literal:  NIL.    (18)
+	string_literal:  STRING.    (18)
 
-	.  reduce 18 (src line 155)
+	.  reduce 18 (src line 156)
 
 
 state 35
-	nil_literal:  NULL.    (19)
+	nil_literal:  NIL.    (19)
 
-	.  reduce 19 (src line 159)
+	.  reduce 19 (src line 162)
 
 
 state 36
-	bool_literal:  TRUE.    (20)
+	nil_literal:  NULL.    (20)
 
-	.  reduce 20 (src line 165)
+	.  reduce 20 (src line 166)
 
 
 state 37
-	bool_literal:  FALSE.    (21)
+	bool_literal:  TRUE.    (21)
 
-	.  reduce 21 (src line 169)
+	.  reduce 21 (src line 172)
 
 
 state 38
-	star:  MUL.    (39)
+	bool_literal:  FALSE.    (22)
 
-	.  reduce 39 (src line 238)
+	.  reduce 22 (src line 176)
 
 
 state 39
-	unary_op:  ADD.    (15)
+	star:  MUL.    (40)
 
-	.  reduce 15 (src line 145)
+	.  reduce 40 (src line 245)
 
 
 state 40
-	unary_op:  SUB.    (16)
+	unary_op:  ADD.    (16)
 
-	.  reduce 16 (src line 146)
+	.  reduce 16 (src line 152)
 
 
 state 41
-	where_conditions:  LEFT_BRACE filter_list RIGHT_BRACE.    (45)
+	unary_op:  SUB.    (17)
 
-	.  reduce 45 (src line 265)
+	.  reduce 17 (src line 153)
 
 
 state 42
-	filter_list:  filter_list COMMA.filter_elem 
-	filter_list:  filter_list COMMA.    (49)
+	stmts:  stmts SEMICOLON where_conditions.    (5)
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
-	.  reduce 49 (src line 284)
+	.  reduce 5 (src line 114)
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 10
-	expr  goto 12
-	function_expr  goto 17
-	paren_expr  goto 11
-	filter_elem  goto 69
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
 
 state 43
-	binary_expr:  expr ADD.expr 
+	where_conditions:  LEFT_BRACE filter_list RIGHT_BRACE.    (46)
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
-	.  error
+	.  reduce 46 (src line 272)
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
-	expr  goto 70
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
 
 state 44
-	binary_expr:  expr DIV.expr 
+	filter_list:  filter_list COMMA.filter_elem 
+	filter_list:  filter_list COMMA.    (50)
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
-	.  error
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
+	.  reduce 50 (src line 291)
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
-	expr  goto 71
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 11
+	expr  goto 13
+	function_expr  goto 18
+	paren_expr  goto 12
+	filter_elem  goto 71
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 45
-	binary_expr:  expr GTE.expr 
+	binary_expr:  expr ADD.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 72
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 46
-	binary_expr:  expr GT.expr 
+	binary_expr:  expr DIV.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 73
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 47
-	binary_expr:  expr AND.expr 
+	binary_expr:  expr GTE.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 74
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 48
-	binary_expr:  expr OR.expr 
+	binary_expr:  expr GT.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 75
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 49
-	binary_expr:  expr LT.expr 
+	binary_expr:  expr AND.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 76
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 50
-	binary_expr:  expr LTE.expr 
+	binary_expr:  expr OR.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 77
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 51
-	binary_expr:  expr MOD.expr 
+	binary_expr:  expr LT.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 78
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 52
-	binary_expr:  expr MUL.expr 
+	binary_expr:  expr LTE.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 79
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 53
-	binary_expr:  expr NEQ.expr 
+	binary_expr:  expr MOD.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 80
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 54
-	binary_expr:  expr POW.expr 
+	binary_expr:  expr MUL.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 81
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 55
-	binary_expr:  expr SUB.expr 
+	binary_expr:  expr NEQ.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 82
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 56
-	binary_expr:  expr EQ.expr 
+	binary_expr:  expr POW.expr 
 
-	ID  shift 28
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
 	expr  goto 83
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 57
+	binary_expr:  expr SUB.expr 
+
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
+	.  error
+
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
+	expr  goto 84
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
+
+state 58
+	binary_expr:  expr EQ.expr 
+
+	ID  shift 29
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
+	.  error
+
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
+	expr  goto 85
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
+
+state 59
 	binary_expr:  columnref IN.LEFT_BRACKET array_list RIGHT_BRACKET 
 
-	LEFT_BRACKET  shift 84
+	LEFT_BRACKET  shift 86
 	.  error
 
 
-state 58
+state 60
 	paren_expr:  LEFT_PAREN expr.RIGHT_PAREN 
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
@@ -963,204 +980,159 @@ state 58
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	EQ  shift 56
-	RIGHT_PAREN  shift 85
-	ADD  shift 43
-	DIV  shift 44
-	GTE  shift 45
-	GT  shift 46
-	LT  shift 49
-	LTE  shift 50
-	MOD  shift 51
-	MUL  shift 52
-	NEQ  shift 53
-	POW  shift 54
-	SUB  shift 55
-	AND  shift 47
-	OR  shift 48
+	EQ  shift 58
+	RIGHT_PAREN  shift 87
+	ADD  shift 45
+	DIV  shift 46
+	GTE  shift 47
+	GT  shift 48
+	LT  shift 51
+	LTE  shift 52
+	MOD  shift 53
+	MUL  shift 54
+	NEQ  shift 55
+	POW  shift 56
+	SUB  shift 57
+	AND  shift 49
+	OR  shift 50
 	.  error
-
-
-state 59
-	expr:  paren_expr.    (7)
-
-	.  reduce 7 (src line 116)
-
-
-state 60
-	expr:  binary_expr.    (9)
-
-	.  reduce 9 (src line 116)
 
 
 state 61
-	cascade_functions:  function_expr DOT.function_expr 
+	expr:  paren_expr.    (8)
 
-	ID  shift 28
-	QUOTED_STRING  shift 29
-	IDENTIFIER  shift 30
-	.  error
+	.  reduce 8 (src line 123)
 
-	function_name  goto 27
-	identifier  goto 87
-	attr_expr  goto 88
-	function_expr  goto 86
 
 state 62
-	cascade_functions:  cascade_functions DOT.function_expr 
+	expr:  binary_expr.    (10)
 
-	ID  shift 28
-	QUOTED_STRING  shift 29
-	IDENTIFIER  shift 30
-	.  error
+	.  reduce 10 (src line 123)
 
-	function_name  goto 27
-	identifier  goto 87
-	attr_expr  goto 88
-	function_expr  goto 89
 
 state 63
-	attr_expr:  identifier DOT.identifier 
+	cascade_functions:  function_expr DOT.function_expr 
 
-	ID  shift 28
-	QUOTED_STRING  shift 29
-	IDENTIFIER  shift 30
+	ID  shift 29
+	QUOTED_STRING  shift 30
+	IDENTIFIER  shift 31
 	.  error
 
-	identifier  goto 90
+	function_name  goto 28
+	identifier  goto 89
+	attr_expr  goto 90
+	function_expr  goto 88
 
 state 64
-	attr_expr:  attr_expr DOT.identifier 
+	cascade_functions:  cascade_functions DOT.function_expr 
 
-	ID  shift 28
-	QUOTED_STRING  shift 29
-	IDENTIFIER  shift 30
+	ID  shift 29
+	QUOTED_STRING  shift 30
+	IDENTIFIER  shift 31
 	.  error
 
-	identifier  goto 91
+	function_name  goto 28
+	identifier  goto 89
+	attr_expr  goto 90
+	function_expr  goto 91
 
 state 65
+	attr_expr:  identifier DOT.identifier 
+
+	ID  shift 29
+	QUOTED_STRING  shift 30
+	IDENTIFIER  shift 31
+	.  error
+
+	identifier  goto 92
+
+state 66
+	attr_expr:  attr_expr DOT.identifier 
+
+	ID  shift 29
+	QUOTED_STRING  shift 30
+	IDENTIFIER  shift 31
+	.  error
+
+	identifier  goto 93
+
+state 67
 	regex:  RE LEFT_PAREN.string_literal RIGHT_PAREN 
 	regex:  RE LEFT_PAREN.QUOTED_STRING RIGHT_PAREN 
 
-	STRING  shift 33
-	QUOTED_STRING  shift 93
+	STRING  shift 34
+	QUOTED_STRING  shift 95
 	.  error
 
-	string_literal  goto 92
-
-state 66
-	function_expr:  function_name LEFT_PAREN.function_args RIGHT_PAREN 
-	function_args: .    (29)
-
-	ID  shift 28
-	LEFT_BRACKET  shift 98
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
-	.  reduce 29 (src line 208)
-
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 99
-	function_args  goto 94
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
-	expr  goto 97
-	function_arg  goto 95
-	function_expr  goto 17
-	naming_arg  goto 96
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
-
-state 67
-	identifier:  IDENTIFIER LEFT_PAREN.string_literal RIGHT_PAREN 
-
-	STRING  shift 33
-	.  error
-
-	string_literal  goto 100
+	string_literal  goto 94
 
 state 68
-	number_literal:  unary_op NUMBER.    (71)
+	function_expr:  function_name LEFT_PAREN.function_args RIGHT_PAREN 
+	function_args: .    (30)
 
-	.  reduce 71 (src line 392)
+	ID  shift 29
+	LEFT_BRACKET  shift 100
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
+	.  reduce 30 (src line 215)
 
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 101
+	function_args  goto 96
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
+	expr  goto 99
+	function_arg  goto 97
+	function_expr  goto 18
+	naming_arg  goto 98
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 69
-	filter_list:  filter_list COMMA filter_elem.    (48)
+	identifier:  IDENTIFIER LEFT_PAREN.string_literal RIGHT_PAREN 
 
-	.  reduce 48 (src line 280)
+	STRING  shift 34
+	.  error
 
+	string_literal  goto 102
 
 state 70
-	binary_expr:  expr.ADD expr 
-	binary_expr:  expr ADD expr.    (53)
-	binary_expr:  expr.DIV expr 
-	binary_expr:  expr.GTE expr 
-	binary_expr:  expr.GT expr 
-	binary_expr:  expr.AND expr 
-	binary_expr:  expr.OR expr 
-	binary_expr:  expr.LT expr 
-	binary_expr:  expr.LTE expr 
-	binary_expr:  expr.MOD expr 
-	binary_expr:  expr.MUL expr 
-	binary_expr:  expr.NEQ expr 
-	binary_expr:  expr.POW expr 
-	binary_expr:  expr.SUB expr 
-	binary_expr:  expr.EQ expr 
+	number_literal:  unary_op NUMBER.    (72)
 
-	DIV  shift 44
-	MOD  shift 51
-	MUL  shift 52
-	POW  shift 54
-	.  reduce 53 (src line 292)
+	.  reduce 72 (src line 399)
 
 
 state 71
-	binary_expr:  expr.ADD expr 
-	binary_expr:  expr.DIV expr 
-	binary_expr:  expr DIV expr.    (54)
-	binary_expr:  expr.GTE expr 
-	binary_expr:  expr.GT expr 
-	binary_expr:  expr.AND expr 
-	binary_expr:  expr.OR expr 
-	binary_expr:  expr.LT expr 
-	binary_expr:  expr.LTE expr 
-	binary_expr:  expr.MOD expr 
-	binary_expr:  expr.MUL expr 
-	binary_expr:  expr.NEQ expr 
-	binary_expr:  expr.POW expr 
-	binary_expr:  expr.SUB expr 
-	binary_expr:  expr.EQ expr 
+	filter_list:  filter_list COMMA filter_elem.    (49)
 
-	POW  shift 54
-	.  reduce 54 (src line 296)
+	.  reduce 49 (src line 287)
 
 
 state 72
 	binary_expr:  expr.ADD expr 
+	binary_expr:  expr ADD expr.    (54)
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
-	binary_expr:  expr GTE expr.    (55)
 	binary_expr:  expr.GT expr 
 	binary_expr:  expr.AND expr 
 	binary_expr:  expr.OR expr 
@@ -1173,21 +1145,19 @@ state 72
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	ADD  shift 43
-	DIV  shift 44
-	MOD  shift 51
-	MUL  shift 52
-	POW  shift 54
-	SUB  shift 55
-	.  reduce 55 (src line 300)
+	DIV  shift 46
+	MOD  shift 53
+	MUL  shift 54
+	POW  shift 56
+	.  reduce 54 (src line 299)
 
 
 state 73
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
+	binary_expr:  expr DIV expr.    (55)
 	binary_expr:  expr.GTE expr 
 	binary_expr:  expr.GT expr 
-	binary_expr:  expr GT expr.    (56)
 	binary_expr:  expr.AND expr 
 	binary_expr:  expr.OR expr 
 	binary_expr:  expr.LT expr 
@@ -1199,22 +1169,17 @@ state 73
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	ADD  shift 43
-	DIV  shift 44
-	MOD  shift 51
-	MUL  shift 52
-	POW  shift 54
-	SUB  shift 55
-	.  reduce 56 (src line 306)
+	POW  shift 56
+	.  reduce 55 (src line 303)
 
 
 state 74
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
+	binary_expr:  expr GTE expr.    (56)
 	binary_expr:  expr.GT expr 
 	binary_expr:  expr.AND expr 
-	binary_expr:  expr AND expr.    (57)
 	binary_expr:  expr.OR expr 
 	binary_expr:  expr.LT expr 
 	binary_expr:  expr.LTE expr 
@@ -1225,19 +1190,13 @@ state 74
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	EQ  shift 56
-	ADD  shift 43
-	DIV  shift 44
-	GTE  shift 45
-	GT  shift 46
-	LT  shift 49
-	LTE  shift 50
-	MOD  shift 51
-	MUL  shift 52
-	NEQ  shift 53
-	POW  shift 54
-	SUB  shift 55
-	.  reduce 57 (src line 312)
+	ADD  shift 45
+	DIV  shift 46
+	MOD  shift 53
+	MUL  shift 54
+	POW  shift 56
+	SUB  shift 57
+	.  reduce 56 (src line 307)
 
 
 state 75
@@ -1245,9 +1204,9 @@ state 75
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
 	binary_expr:  expr.GT expr 
+	binary_expr:  expr GT expr.    (57)
 	binary_expr:  expr.AND expr 
 	binary_expr:  expr.OR expr 
-	binary_expr:  expr OR expr.    (58)
 	binary_expr:  expr.LT expr 
 	binary_expr:  expr.LTE expr 
 	binary_expr:  expr.MOD expr 
@@ -1257,20 +1216,13 @@ state 75
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	EQ  shift 56
-	ADD  shift 43
-	DIV  shift 44
-	GTE  shift 45
-	GT  shift 46
-	LT  shift 49
-	LTE  shift 50
-	MOD  shift 51
-	MUL  shift 52
-	NEQ  shift 53
-	POW  shift 54
-	SUB  shift 55
-	AND  shift 47
-	.  reduce 58 (src line 318)
+	ADD  shift 45
+	DIV  shift 46
+	MOD  shift 53
+	MUL  shift 54
+	POW  shift 56
+	SUB  shift 57
+	.  reduce 57 (src line 313)
 
 
 state 76
@@ -1279,9 +1231,9 @@ state 76
 	binary_expr:  expr.GTE expr 
 	binary_expr:  expr.GT expr 
 	binary_expr:  expr.AND expr 
+	binary_expr:  expr AND expr.    (58)
 	binary_expr:  expr.OR expr 
 	binary_expr:  expr.LT expr 
-	binary_expr:  expr LT expr.    (59)
 	binary_expr:  expr.LTE expr 
 	binary_expr:  expr.MOD expr 
 	binary_expr:  expr.MUL expr 
@@ -1290,13 +1242,19 @@ state 76
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	ADD  shift 43
-	DIV  shift 44
-	MOD  shift 51
-	MUL  shift 52
-	POW  shift 54
-	SUB  shift 55
-	.  reduce 59 (src line 324)
+	EQ  shift 58
+	ADD  shift 45
+	DIV  shift 46
+	GTE  shift 47
+	GT  shift 48
+	LT  shift 51
+	LTE  shift 52
+	MOD  shift 53
+	MUL  shift 54
+	NEQ  shift 55
+	POW  shift 56
+	SUB  shift 57
+	.  reduce 58 (src line 319)
 
 
 state 77
@@ -1306,9 +1264,9 @@ state 77
 	binary_expr:  expr.GT expr 
 	binary_expr:  expr.AND expr 
 	binary_expr:  expr.OR expr 
+	binary_expr:  expr OR expr.    (59)
 	binary_expr:  expr.LT expr 
 	binary_expr:  expr.LTE expr 
-	binary_expr:  expr LTE expr.    (60)
 	binary_expr:  expr.MOD expr 
 	binary_expr:  expr.MUL expr 
 	binary_expr:  expr.NEQ expr 
@@ -1316,13 +1274,20 @@ state 77
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	ADD  shift 43
-	DIV  shift 44
-	MOD  shift 51
-	MUL  shift 52
-	POW  shift 54
-	SUB  shift 55
-	.  reduce 60 (src line 330)
+	EQ  shift 58
+	ADD  shift 45
+	DIV  shift 46
+	GTE  shift 47
+	GT  shift 48
+	LT  shift 51
+	LTE  shift 52
+	MOD  shift 53
+	MUL  shift 54
+	NEQ  shift 55
+	POW  shift 56
+	SUB  shift 57
+	AND  shift 49
+	.  reduce 59 (src line 325)
 
 
 state 78
@@ -1333,17 +1298,22 @@ state 78
 	binary_expr:  expr.AND expr 
 	binary_expr:  expr.OR expr 
 	binary_expr:  expr.LT expr 
+	binary_expr:  expr LT expr.    (60)
 	binary_expr:  expr.LTE expr 
 	binary_expr:  expr.MOD expr 
-	binary_expr:  expr MOD expr.    (61)
 	binary_expr:  expr.MUL expr 
 	binary_expr:  expr.NEQ expr 
 	binary_expr:  expr.POW expr 
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	POW  shift 54
-	.  reduce 61 (src line 336)
+	ADD  shift 45
+	DIV  shift 46
+	MOD  shift 53
+	MUL  shift 54
+	POW  shift 56
+	SUB  shift 57
+	.  reduce 60 (src line 331)
 
 
 state 79
@@ -1355,16 +1325,21 @@ state 79
 	binary_expr:  expr.OR expr 
 	binary_expr:  expr.LT expr 
 	binary_expr:  expr.LTE expr 
+	binary_expr:  expr LTE expr.    (61)
 	binary_expr:  expr.MOD expr 
 	binary_expr:  expr.MUL expr 
-	binary_expr:  expr MUL expr.    (62)
 	binary_expr:  expr.NEQ expr 
 	binary_expr:  expr.POW expr 
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	POW  shift 54
-	.  reduce 62 (src line 341)
+	ADD  shift 45
+	DIV  shift 46
+	MOD  shift 53
+	MUL  shift 54
+	POW  shift 56
+	SUB  shift 57
+	.  reduce 61 (src line 337)
 
 
 state 80
@@ -1377,20 +1352,15 @@ state 80
 	binary_expr:  expr.LT expr 
 	binary_expr:  expr.LTE expr 
 	binary_expr:  expr.MOD expr 
+	binary_expr:  expr MOD expr.    (62)
 	binary_expr:  expr.MUL expr 
 	binary_expr:  expr.NEQ expr 
-	binary_expr:  expr NEQ expr.    (63)
 	binary_expr:  expr.POW expr 
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	ADD  shift 43
-	DIV  shift 44
-	MOD  shift 51
-	MUL  shift 52
-	POW  shift 54
-	SUB  shift 55
-	.  reduce 63 (src line 346)
+	POW  shift 56
+	.  reduce 62 (src line 343)
 
 
 state 81
@@ -1404,14 +1374,14 @@ state 81
 	binary_expr:  expr.LTE expr 
 	binary_expr:  expr.MOD expr 
 	binary_expr:  expr.MUL expr 
+	binary_expr:  expr MUL expr.    (63)
 	binary_expr:  expr.NEQ expr 
 	binary_expr:  expr.POW expr 
-	binary_expr:  expr POW expr.    (64)
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	POW  shift 54
-	.  reduce 64 (src line 352)
+	POW  shift 56
+	.  reduce 63 (src line 348)
 
 
 state 82
@@ -1426,16 +1396,18 @@ state 82
 	binary_expr:  expr.MOD expr 
 	binary_expr:  expr.MUL expr 
 	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr NEQ expr.    (64)
 	binary_expr:  expr.POW expr 
 	binary_expr:  expr.SUB expr 
-	binary_expr:  expr SUB expr.    (65)
 	binary_expr:  expr.EQ expr 
 
-	DIV  shift 44
-	MOD  shift 51
-	MUL  shift 52
-	POW  shift 54
-	.  reduce 65 (src line 357)
+	ADD  shift 45
+	DIV  shift 46
+	MOD  shift 53
+	MUL  shift 54
+	POW  shift 56
+	SUB  shift 57
+	.  reduce 64 (src line 353)
 
 
 state 83
@@ -1451,133 +1423,178 @@ state 83
 	binary_expr:  expr.MUL expr 
 	binary_expr:  expr.NEQ expr 
 	binary_expr:  expr.POW expr 
+	binary_expr:  expr POW expr.    (65)
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
-	binary_expr:  expr EQ expr.    (66)
 
-	ADD  shift 43
-	DIV  shift 44
-	MOD  shift 51
-	MUL  shift 52
-	POW  shift 54
-	SUB  shift 55
-	.  reduce 66 (src line 362)
+	POW  shift 56
+	.  reduce 65 (src line 359)
 
 
 state 84
-	binary_expr:  columnref IN LEFT_BRACKET.array_list RIGHT_BRACKET 
-	array_list: .    (32)
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr SUB expr.    (66)
+	binary_expr:  expr.EQ expr 
 
-	ID  shift 28
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	.  reduce 32 (src line 224)
+	DIV  shift 46
+	MOD  shift 53
+	MUL  shift 54
+	POW  shift 56
+	.  reduce 66 (src line 364)
 
-	unary_op  goto 32
-	identifier  goto 104
-	array_elem  goto 102
-	array_list  goto 101
-	attr_expr  goto 105
-	columnref  goto 103
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	star  goto 25
 
 state 85
-	paren_expr:  LEFT_PAREN expr RIGHT_PAREN.    (22)
+	binary_expr:  expr.ADD expr 
+	binary_expr:  expr.DIV expr 
+	binary_expr:  expr.GTE expr 
+	binary_expr:  expr.GT expr 
+	binary_expr:  expr.AND expr 
+	binary_expr:  expr.OR expr 
+	binary_expr:  expr.LT expr 
+	binary_expr:  expr.LTE expr 
+	binary_expr:  expr.MOD expr 
+	binary_expr:  expr.MUL expr 
+	binary_expr:  expr.NEQ expr 
+	binary_expr:  expr.POW expr 
+	binary_expr:  expr.SUB expr 
+	binary_expr:  expr.EQ expr 
+	binary_expr:  expr EQ expr.    (67)
 
-	.  reduce 22 (src line 175)
+	ADD  shift 45
+	DIV  shift 46
+	MOD  shift 53
+	MUL  shift 54
+	POW  shift 56
+	SUB  shift 57
+	.  reduce 67 (src line 369)
 
 
 state 86
-	cascade_functions:  function_expr DOT function_expr.    (24)
+	binary_expr:  columnref IN LEFT_BRACKET.array_list RIGHT_BRACKET 
+	array_list: .    (33)
 
-	.  reduce 24 (src line 187)
+	ID  shift 29
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	.  reduce 33 (src line 231)
 
+	unary_op  goto 33
+	identifier  goto 106
+	array_elem  goto 104
+	array_list  goto 103
+	attr_expr  goto 107
+	columnref  goto 105
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	star  goto 26
 
 state 87
-	attr_expr:  identifier.DOT identifier 
-	function_name:  identifier.    (68)
+	paren_expr:  LEFT_PAREN expr RIGHT_PAREN.    (23)
 
-	DOT  shift 63
-	.  reduce 68 (src line 377)
+	.  reduce 23 (src line 182)
 
 
 state 88
-	attr_expr:  attr_expr.DOT identifier 
-	function_name:  attr_expr.    (69)
+	cascade_functions:  function_expr DOT function_expr.    (25)
 
-	DOT  shift 64
-	.  reduce 69 (src line 381)
+	.  reduce 25 (src line 194)
 
 
 state 89
-	cascade_functions:  cascade_functions DOT function_expr.    (25)
+	attr_expr:  identifier.DOT identifier 
+	function_name:  identifier.    (69)
 
-	.  reduce 25 (src line 191)
+	DOT  shift 65
+	.  reduce 69 (src line 384)
 
 
 state 90
-	attr_expr:  identifier DOT identifier.    (13)
+	attr_expr:  attr_expr.DOT identifier 
+	function_name:  attr_expr.    (70)
 
-	.  reduce 13 (src line 129)
+	DOT  shift 66
+	.  reduce 70 (src line 388)
 
 
 state 91
-	attr_expr:  attr_expr DOT identifier.    (14)
+	cascade_functions:  cascade_functions DOT function_expr.    (26)
+
+	.  reduce 26 (src line 198)
+
+
+state 92
+	attr_expr:  identifier DOT identifier.    (14)
 
 	.  reduce 14 (src line 136)
 
 
-state 92
-	regex:  RE LEFT_PAREN string_literal.RIGHT_PAREN 
-
-	RIGHT_PAREN  shift 106
-	.  error
-
-
 state 93
-	regex:  RE LEFT_PAREN QUOTED_STRING.RIGHT_PAREN 
+	attr_expr:  attr_expr DOT identifier.    (15)
 
-	RIGHT_PAREN  shift 107
-	.  error
+	.  reduce 15 (src line 143)
 
 
 state 94
-	function_expr:  function_name LEFT_PAREN function_args.RIGHT_PAREN 
-	function_args:  function_args.COMMA function_arg 
-	function_args:  function_args.COMMA 
+	regex:  RE LEFT_PAREN string_literal.RIGHT_PAREN 
 
-	COMMA  shift 109
 	RIGHT_PAREN  shift 108
 	.  error
 
 
 state 95
-	function_args:  function_arg.    (28)
+	regex:  RE LEFT_PAREN QUOTED_STRING.RIGHT_PAREN 
 
-	.  reduce 28 (src line 204)
+	RIGHT_PAREN  shift 109
+	.  error
 
 
 state 96
-	function_arg:  naming_arg.    (40)
+	function_expr:  function_name LEFT_PAREN function_args.RIGHT_PAREN 
+	function_args:  function_args.COMMA function_arg 
+	function_args:  function_args.COMMA 
 
-	.  reduce 40 (src line 244)
+	COMMA  shift 111
+	RIGHT_PAREN  shift 110
+	.  error
 
 
 state 97
-	function_arg:  expr.    (41)
+	function_args:  function_arg.    (29)
+
+	.  reduce 29 (src line 211)
+
+
+state 98
+	function_arg:  naming_arg.    (41)
+
+	.  reduce 41 (src line 251)
+
+
+state 99
+	function_arg:  expr.    (42)
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1593,272 +1610,272 @@ state 97
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	EQ  shift 56
-	ADD  shift 43
-	DIV  shift 44
-	GTE  shift 45
-	GT  shift 46
-	LT  shift 49
-	LTE  shift 50
-	MOD  shift 51
-	MUL  shift 52
-	NEQ  shift 53
-	POW  shift 54
-	SUB  shift 55
-	AND  shift 47
-	OR  shift 48
-	.  reduce 41 (src line 245)
-
-
-state 98
-	function_arg:  LEFT_BRACKET.array_list RIGHT_BRACKET 
-	array_list: .    (32)
-
-	ID  shift 28
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	.  reduce 32 (src line 224)
-
-	unary_op  goto 32
-	identifier  goto 104
-	array_elem  goto 102
-	array_list  goto 110
-	attr_expr  goto 105
-	columnref  goto 103
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	star  goto 25
-
-99: shift/reduce conflict (shift 111(3), red'n 11(0)) on EQ
-state 99
-	columnref:  identifier.    (11)
-	attr_expr:  identifier.DOT identifier 
-	naming_arg:  identifier.EQ expr 
-	naming_arg:  identifier.EQ LEFT_BRACKET array_list RIGHT_BRACKET 
-	function_name:  identifier.    (68)
-
-	EQ  shift 111
-	LEFT_PAREN  reduce 68 (src line 377)
-	DOT  shift 63
-	.  reduce 11 (src line 119)
+	EQ  shift 58
+	ADD  shift 45
+	DIV  shift 46
+	GTE  shift 47
+	GT  shift 48
+	LT  shift 51
+	LTE  shift 52
+	MOD  shift 53
+	MUL  shift 54
+	NEQ  shift 55
+	POW  shift 56
+	SUB  shift 57
+	AND  shift 49
+	OR  shift 50
+	.  reduce 42 (src line 252)
 
 
 state 100
-	identifier:  IDENTIFIER LEFT_PAREN string_literal.RIGHT_PAREN 
+	function_arg:  LEFT_BRACKET.array_list RIGHT_BRACKET 
+	array_list: .    (33)
 
-	RIGHT_PAREN  shift 112
-	.  error
+	ID  shift 29
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	.  reduce 33 (src line 231)
 
+	unary_op  goto 33
+	identifier  goto 106
+	array_elem  goto 104
+	array_list  goto 112
+	attr_expr  goto 107
+	columnref  goto 105
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	star  goto 26
 
+101: shift/reduce conflict (shift 113(3), red'n 12(0)) on EQ
 state 101
-	array_list:  array_list.COMMA array_elem 
-	binary_expr:  columnref IN LEFT_BRACKET array_list.RIGHT_BRACKET 
+	columnref:  identifier.    (12)
+	attr_expr:  identifier.DOT identifier 
+	naming_arg:  identifier.EQ expr 
+	naming_arg:  identifier.EQ LEFT_BRACKET array_list RIGHT_BRACKET 
+	function_name:  identifier.    (69)
 
-	COMMA  shift 113
-	RIGHT_BRACKET  shift 114
-	.  error
+	EQ  shift 113
+	LEFT_PAREN  reduce 69 (src line 384)
+	DOT  shift 65
+	.  reduce 12 (src line 126)
 
 
 state 102
-	array_list:  array_elem.    (31)
+	identifier:  IDENTIFIER LEFT_PAREN string_literal.RIGHT_PAREN 
 
-	.  reduce 31 (src line 220)
+	RIGHT_PAREN  shift 114
+	.  error
 
 
 state 103
-	array_elem:  columnref.    (35)
-
-	.  reduce 35 (src line 232)
-
-
-state 104
-	columnref:  identifier.    (11)
-	attr_expr:  identifier.DOT identifier 
-
-	DOT  shift 63
-	.  reduce 11 (src line 119)
-
-
-state 105
-	columnref:  attr_expr.    (12)
-	attr_expr:  attr_expr.DOT identifier 
-
-	DOT  shift 64
-	.  reduce 12 (src line 123)
-
-
-state 106
-	regex:  RE LEFT_PAREN string_literal RIGHT_PAREN.    (72)
-
-	.  reduce 72 (src line 409)
-
-
-state 107
-	regex:  RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN.    (73)
-
-	.  reduce 73 (src line 413)
-
-
-state 108
-	function_expr:  function_name LEFT_PAREN function_args RIGHT_PAREN.    (23)
-
-	.  reduce 23 (src line 181)
-
-
-state 109
-	function_args:  function_args COMMA.function_arg 
-	function_args:  function_args COMMA.    (27)
-
-	ID  shift 28
-	LEFT_BRACKET  shift 98
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
-	.  reduce 27 (src line 203)
-
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 99
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
-	expr  goto 97
-	function_arg  goto 115
-	function_expr  goto 17
-	naming_arg  goto 96
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
-
-state 110
 	array_list:  array_list.COMMA array_elem 
-	function_arg:  LEFT_BRACKET array_list.RIGHT_BRACKET 
+	binary_expr:  columnref IN LEFT_BRACKET array_list.RIGHT_BRACKET 
 
-	COMMA  shift 113
+	COMMA  shift 115
 	RIGHT_BRACKET  shift 116
 	.  error
 
 
+state 104
+	array_list:  array_elem.    (32)
+
+	.  reduce 32 (src line 227)
+
+
+state 105
+	array_elem:  columnref.    (36)
+
+	.  reduce 36 (src line 239)
+
+
+state 106
+	columnref:  identifier.    (12)
+	attr_expr:  identifier.DOT identifier 
+
+	DOT  shift 65
+	.  reduce 12 (src line 126)
+
+
+state 107
+	columnref:  attr_expr.    (13)
+	attr_expr:  attr_expr.DOT identifier 
+
+	DOT  shift 66
+	.  reduce 13 (src line 130)
+
+
+state 108
+	regex:  RE LEFT_PAREN string_literal RIGHT_PAREN.    (73)
+
+	.  reduce 73 (src line 416)
+
+
+state 109
+	regex:  RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN.    (74)
+
+	.  reduce 74 (src line 420)
+
+
+state 110
+	function_expr:  function_name LEFT_PAREN function_args RIGHT_PAREN.    (24)
+
+	.  reduce 24 (src line 188)
+
+
 state 111
-	naming_arg:  identifier EQ.expr 
-	naming_arg:  identifier EQ.LEFT_BRACKET array_list RIGHT_BRACKET 
+	function_args:  function_args COMMA.function_arg 
+	function_args:  function_args COMMA.    (28)
 
-	ID  shift 28
-	LEFT_BRACKET  shift 118
-	LEFT_PAREN  shift 14
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	RE  shift 26
-	.  error
+	ID  shift 29
+	LEFT_BRACKET  shift 100
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
+	.  reduce 28 (src line 210)
 
-	unary_op  goto 32
-	function_name  goto 27
-	identifier  goto 19
-	array_elem  goto 15
-	attr_expr  goto 20
-	binary_expr  goto 60
-	expr  goto 117
-	function_expr  goto 17
-	paren_expr  goto 59
-	regex  goto 16
-	columnref  goto 13
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	cascade_functions  goto 18
-	star  goto 25
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 101
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
+	expr  goto 99
+	function_arg  goto 117
+	function_expr  goto 18
+	naming_arg  goto 98
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 112
-	identifier:  IDENTIFIER LEFT_PAREN string_literal RIGHT_PAREN.    (76)
+	array_list:  array_list.COMMA array_elem 
+	function_arg:  LEFT_BRACKET array_list.RIGHT_BRACKET 
 
-	.  reduce 76 (src line 424)
+	COMMA  shift 115
+	RIGHT_BRACKET  shift 118
+	.  error
 
 
 state 113
-	array_list:  array_list COMMA.array_elem 
+	naming_arg:  identifier EQ.expr 
+	naming_arg:  identifier EQ.LEFT_BRACKET array_list RIGHT_BRACKET 
 
-	ID  shift 28
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
+	ID  shift 29
+	LEFT_BRACKET  shift 120
+	LEFT_PAREN  shift 15
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	RE  shift 27
 	.  error
 
-	unary_op  goto 32
-	identifier  goto 104
-	array_elem  goto 119
-	attr_expr  goto 105
-	columnref  goto 103
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	star  goto 25
+	unary_op  goto 33
+	function_name  goto 28
+	identifier  goto 20
+	array_elem  goto 16
+	attr_expr  goto 21
+	binary_expr  goto 62
+	expr  goto 119
+	function_expr  goto 18
+	paren_expr  goto 61
+	regex  goto 17
+	columnref  goto 14
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	cascade_functions  goto 19
+	star  goto 26
 
 state 114
-	binary_expr:  columnref IN LEFT_BRACKET array_list RIGHT_BRACKET.    (67)
+	identifier:  IDENTIFIER LEFT_PAREN string_literal RIGHT_PAREN.    (77)
 
-	.  reduce 67 (src line 368)
+	.  reduce 77 (src line 431)
 
 
 state 115
-	function_args:  function_args COMMA function_arg.    (26)
+	array_list:  array_list COMMA.array_elem 
 
-	.  reduce 26 (src line 199)
+	ID  shift 29
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	.  error
 
+	unary_op  goto 33
+	identifier  goto 106
+	array_elem  goto 121
+	attr_expr  goto 107
+	columnref  goto 105
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	star  goto 26
 
 state 116
-	function_arg:  LEFT_BRACKET array_list RIGHT_BRACKET.    (42)
+	binary_expr:  columnref IN LEFT_BRACKET array_list RIGHT_BRACKET.    (68)
 
-	.  reduce 42 (src line 246)
+	.  reduce 68 (src line 375)
 
 
 state 117
-	naming_arg:  identifier EQ expr.    (43)
+	function_args:  function_args COMMA function_arg.    (27)
+
+	.  reduce 27 (src line 206)
+
+
+state 118
+	function_arg:  LEFT_BRACKET array_list RIGHT_BRACKET.    (43)
+
+	.  reduce 43 (src line 253)
+
+
+state 119
+	naming_arg:  identifier EQ expr.    (44)
 	binary_expr:  expr.ADD expr 
 	binary_expr:  expr.DIV expr 
 	binary_expr:  expr.GTE expr 
@@ -1874,83 +1891,83 @@ state 117
 	binary_expr:  expr.SUB expr 
 	binary_expr:  expr.EQ expr 
 
-	EQ  shift 56
-	ADD  shift 43
-	DIV  shift 44
-	GTE  shift 45
-	GT  shift 46
-	LT  shift 49
-	LTE  shift 50
-	MOD  shift 51
-	MUL  shift 52
-	NEQ  shift 53
-	POW  shift 54
-	SUB  shift 55
-	AND  shift 47
-	OR  shift 48
-	.  reduce 43 (src line 252)
-
-
-state 118
-	naming_arg:  identifier EQ LEFT_BRACKET.array_list RIGHT_BRACKET 
-	array_list: .    (32)
-
-	ID  shift 28
-	NUMBER  shift 31
-	STRING  shift 33
-	QUOTED_STRING  shift 29
-	ADD  shift 39
-	MUL  shift 38
-	SUB  shift 40
-	TRUE  shift 36
-	FALSE  shift 37
-	IDENTIFIER  shift 30
-	NIL  shift 34
-	NULL  shift 35
-	.  reduce 32 (src line 224)
-
-	unary_op  goto 32
-	identifier  goto 104
-	array_elem  goto 102
-	array_list  goto 120
-	attr_expr  goto 105
-	columnref  goto 103
-	bool_literal  goto 24
-	string_literal  goto 22
-	nil_literal  goto 23
-	number_literal  goto 21
-	star  goto 25
-
-state 119
-	array_list:  array_list COMMA array_elem.    (30)
-
-	.  reduce 30 (src line 214)
+	EQ  shift 58
+	ADD  shift 45
+	DIV  shift 46
+	GTE  shift 47
+	GT  shift 48
+	LT  shift 51
+	LTE  shift 52
+	MOD  shift 53
+	MUL  shift 54
+	NEQ  shift 55
+	POW  shift 56
+	SUB  shift 57
+	AND  shift 49
+	OR  shift 50
+	.  reduce 44 (src line 259)
 
 
 state 120
+	naming_arg:  identifier EQ LEFT_BRACKET.array_list RIGHT_BRACKET 
+	array_list: .    (33)
+
+	ID  shift 29
+	NUMBER  shift 32
+	STRING  shift 34
+	QUOTED_STRING  shift 30
+	ADD  shift 40
+	MUL  shift 39
+	SUB  shift 41
+	TRUE  shift 37
+	FALSE  shift 38
+	IDENTIFIER  shift 31
+	NIL  shift 35
+	NULL  shift 36
+	.  reduce 33 (src line 231)
+
+	unary_op  goto 33
+	identifier  goto 106
+	array_elem  goto 104
+	array_list  goto 122
+	attr_expr  goto 107
+	columnref  goto 105
+	bool_literal  goto 25
+	string_literal  goto 23
+	nil_literal  goto 24
+	number_literal  goto 22
+	star  goto 26
+
+state 121
+	array_list:  array_list COMMA array_elem.    (31)
+
+	.  reduce 31 (src line 221)
+
+
+state 122
 	array_list:  array_list.COMMA array_elem 
 	naming_arg:  identifier EQ LEFT_BRACKET array_list.RIGHT_BRACKET 
 
-	COMMA  shift 113
-	RIGHT_BRACKET  shift 121
+	COMMA  shift 115
+	RIGHT_BRACKET  shift 123
 	.  error
 
 
-state 121
-	naming_arg:  identifier EQ LEFT_BRACKET array_list RIGHT_BRACKET.    (44)
+state 123
+	naming_arg:  identifier EQ LEFT_BRACKET array_list RIGHT_BRACKET.    (45)
 
-	.  reduce 44 (src line 256)
+	.  reduce 45 (src line 263)
 
 
 71 terminals, 27 nonterminals
-77 grammar rules, 122/8000 states
+78 grammar rules, 124/8000 states
 1 shift/reduce, 0 reduce/reduce conflicts reported
 76 working sets used
 memory: parser 583/120000
 80 extra closures
-509 shift entries, 8 exceptions
-80 goto entries
+511 shift entries, 8 exceptions
+81 goto entries
 326 entries saved by goto default
-Optimizer space used: output 334/120000
-334 table entries, 98 zero
-maximum spread: 70, maximum offset: 118
+Optimizer space used: output 336/120000
+336 table entries, 98 zero
+maximum spread: 70, maximum offset: 120
