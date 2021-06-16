@@ -37,21 +37,19 @@ const (
 
 type dockerClient struct {
 	client *docker.Client
-	k8s    *Kubernetes
+	K8s    *Kubernetes
 
-	containerListOptions types.ContainerListOptions
+	IgnoreImageName     []string
+	IgnoreContainerName []string
+
+	ProcessTags func(tags map[string]string)
+	LogFilters  LogFilters
+
 	containerLogsOptions types.ContainerLogsOptions
+	containerLogList     map[string]context.CancelFunc
 
-	containerLogList map[string]context.CancelFunc
-	mu               sync.Mutex
-	wg               sync.WaitGroup
-
-	ignoreImageName     []string
-	ignoreContainerName []string
-
-	processTags func(tags map[string]string)
-
-	logFilters LogFilters
+	mu sync.Mutex
+	wg sync.WaitGroup
 }
 
 /*This file is inherited from telegraf docker input plugin*/
@@ -87,7 +85,6 @@ func newDockerClient(host string, tlsConfig *tls.Config) (*dockerClient, error) 
 	return &dockerClient{
 		client:               client,
 		containerLogList:     make(map[string]context.CancelFunc),
-		containerListOptions: types.ContainerListOptions{},
 		containerLogsOptions: containerLogsOptions,
 	}, nil
 }
@@ -118,14 +115,14 @@ func (d *dockerClient) Metric(ctx context.Context, in chan<- *job) {
 			l.Error(err)
 			return
 		}
-		result.setMetric()
 
+		result.setMetric()
 		in <- result
 	}
-	if err := d.do(ctx, fn); err != nil {
+
+	if err := d.do(ctx, fn, types.ContainerListOptions{All: containerAllForMetric}); err != nil {
 		l.Error(err)
 	}
-
 }
 
 func (d *dockerClient) Object(ctx context.Context, in chan<- *job) {
@@ -144,18 +141,20 @@ func (d *dockerClient) Object(ctx context.Context, in chan<- *job) {
 		if hostname, err := d.getContainerHostname(ctx, c.ID); err != nil {
 			result.addTag("container_host", hostname)
 		}
+		result.addTag("status", c.Status)
+		result.addField("age", time.Since(time.Unix(c.Created, 0)).Milliseconds()/1e3) // 毫秒除以1000得秒数，不使用Second()因为它返回浮点
 
 		result.setObject()
 		in <- result
 	}
 
-	if err := d.do(ctx, fn); err != nil {
+	if err := d.do(ctx, fn, types.ContainerListOptions{All: containerAllForObject}); err != nil {
 		l.Error(err)
 	}
 }
 
-func (d *dockerClient) do(ctx context.Context, processFunc func(types.Container)) error {
-	cList, err := d.containerList(ctx)
+func (d *dockerClient) do(ctx context.Context, processFunc func(types.Container), opt types.ContainerListOptions) error {
+	cList, err := d.client.ContainerList(ctx, opt)
 	if err != nil {
 		l.Error(err)
 		return err
@@ -174,18 +173,21 @@ func (d *dockerClient) do(ctx context.Context, processFunc func(types.Container)
 	return nil
 }
 
-func (d *dockerClient) containerList(ctx context.Context) ([]types.Container, error) {
-	return d.client.ContainerList(ctx, types.ContainerListOptions{})
-}
-
 func (d *dockerClient) gather(container types.Container) (*job, error) {
 	startTime := time.Now()
 	tags := d.gatherSingleContainerInfo(container)
 
-	fields, err := d.gatherSingleContainerStats(context.Background(), container)
-	if err != nil {
-		l.Error(err)
-		return nil, err
+	var fields = make(map[string]interface{})
+	var err error
+
+	// 注意，此处如果没有 fields，构建 point 会失败
+	// 需要在上层手动 addFiedls
+	if container.State == "running" {
+		fields, err = d.gatherSingleContainerStats(context.Background(), container)
+		if err != nil {
+			l.Error(err)
+			return nil, err
+		}
 	}
 	cost := time.Since(startTime)
 
@@ -193,11 +195,11 @@ func (d *dockerClient) gather(container types.Container) (*job, error) {
 }
 
 func (d *dockerClient) ignoreImageNameFromContainer(name string) bool {
-	return regexpMatchString(d.ignoreImageName, name)
+	return regexpMatchString(d.IgnoreImageName, name)
 }
 
 func (d *dockerClient) ignoreContainerNameFromContainer(name string) bool {
-	return regexpMatchString(d.ignoreContainerName, name)
+	return regexpMatchString(d.IgnoreContainerName, name)
 }
 
 func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[string]string {
@@ -205,12 +207,6 @@ func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[
 		"container_id":   container.ID,
 		"container_name": getContainerName(container.Names),
 		"state":          container.State,
-		"container_type": func() string {
-			if contianerIsFromKubernetes(getContainerName(container.Names)) {
-				return "kubernetes"
-			}
-			return "docker"
-		}(),
 	}
 
 	if !contianerIsFromKubernetes(getContainerName(container.Names)) {
@@ -219,15 +215,19 @@ func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[
 		tags["image_name"] = imageName
 		tags["image_short_name"] = imageShortName
 		tags["image_tag"] = imageTag
+		tags["container_type"] = "docker"
+	} else {
+		tags["container_type"] = "kubernetes"
+
 	}
 
-	if d.k8s != nil {
-		name, _ := d.k8s.GetContainerPodName(container.ID)
+	if d.K8s != nil {
+		name, _ := d.K8s.GetContainerPodName(container.ID)
 		if name != "" {
 			tags["pod_name"] = name
 		}
 
-		namespace, _ := d.k8s.GetContainerPodNamespace(container.ID)
+		namespace, _ := d.K8s.GetContainerPodNamespace(container.ID)
 		if namespace != "" {
 			tags["pod_namespace"] = namespace
 		}
@@ -239,7 +239,7 @@ func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[
 const streamStats = false
 
 func (d *dockerClient) gatherSingleContainerStats(ctx context.Context, container types.Container) (map[string]interface{}, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
+	ctx, cancel := context.WithTimeout(ctx, apiTimeoutDuration)
 	defer cancel()
 
 	resp, err := d.client.ContainerStats(ctx, container.ID, streamStats)
@@ -353,7 +353,7 @@ func (d *dockerClient) Logging(ctx context.Context) {
 	ctx, cancel := context.WithTimeout(ctx, apiTimeoutDuration)
 	defer cancel()
 
-	cList, err := d.client.ContainerList(ctx, d.containerListOptions)
+	cList, err := d.client.ContainerList(ctx, types.ContainerListOptions{All: containerAllForLogging})
 	if err != nil {
 		return
 	}
@@ -390,20 +390,22 @@ func (d *dockerClient) Logging(ctx context.Context) {
 
 func (d *dockerClient) getTags(container types.Container) map[string]string {
 	imageName, _, _ := ParseImage(container.Image)
-	containerName := getContainerName(container.Names)
 	tags := map[string]string{
 		"container_name": containerName,
 		"container_id":   container.ID,
 		"image_name":     imageName,
-		"container_type": func() string {
-			if contianerIsFromKubernetes(getContainerName(container.Names)) {
-				return "kubernetes"
-			}
-			return "docker"
-		}(),
 	}
-	if d.k8s != nil {
-		namespace, err := d.k8s.GetContainerPodNamespace(container.ID)
+
+	if !contianerIsFromKubernetes(getContainerName(container.Names)) {
+		imageName, _, _ := ParseImage(container.Image)
+		tags["image_name"] = imageName
+		tags["container_type"] = "docker"
+	} else {
+		tags["container_type"] = "kubernetes"
+	}
+
+	if d.K8s != nil {
+		namespace, err := d.K8s.GetContainerPodNamespace(container.ID)
 		if err != nil {
 			l.Debugf("gather k8s pod error, %s", err)
 		}
@@ -411,8 +413,8 @@ func (d *dockerClient) getTags(container types.Container) map[string]string {
 			tags["namespace"] = namespace
 		}
 	}
-	if d.processTags != nil {
-		d.processTags(tags)
+	if d.ProcessTags != nil {
+		d.ProcessTags(tags)
 	}
 	return tags
 }
@@ -422,8 +424,8 @@ func (d *dockerClient) getSource(container types.Container) string {
 	// 如果该字段值（即 source 参数）不为空，则使用
 	var source = getContainerName(container.Names)
 
-	if contianerIsFromKubernetes(getContainerName(container.Names)) && d.k8s != nil {
-		name, err := d.k8s.GetContainerWorkname(container.ID)
+	if contianerIsFromKubernetes(getContainerName(container.Names)) && d.K8s != nil {
+		name, err := d.K8s.GetContainerWorkname(container.ID)
 		if err != nil {
 		} else {
 			source = name
@@ -488,7 +490,7 @@ func (d *dockerClient) tailStream(reader io.ReadCloser, stream string, container
 
 		var fields = make(map[string]interface{})
 
-		for _, lf := range d.logFilters {
+		for _, lf := range d.LogFilters {
 			if lf.MatchMessage(message) {
 				if lf.Source != "" {
 					measurement = lf.Source
