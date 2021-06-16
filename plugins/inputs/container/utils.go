@@ -1,7 +1,8 @@
 package container
 
 import (
-	"net"
+	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -9,56 +10,139 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
-func RawConnect(host string, port string) error {
-	timeout := time.Second
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
-	if err != nil {
-		return err
+// Adapts some of the logic from the actual Docker library's image parsing
+// routines:
+// https://github.com/docker/distribution/blob/release/2.7/reference/normalize.go
+func ParseImage(image string) (string, string, string) {
+	domain := ""
+	remainder := ""
+
+	i := strings.IndexRune(image, '/')
+
+	if i == -1 || (!strings.ContainsAny(image[:i], ".:") && image[:i] != "localhost") {
+		remainder = image
+	} else {
+		domain, remainder = image[:i], image[i+1:]
 	}
-	if conn != nil {
-		defer conn.Close()
-		return nil
+
+	imageName := ""
+	imageVersion := "unknown"
+
+	i = strings.LastIndex(remainder, ":")
+	if i > -1 {
+		imageVersion = remainder[i+1:]
+		imageName = remainder[:i]
+	} else {
+		imageName = remainder
+	}
+
+	if domain != "" {
+		imageName = domain + "/" + imageName
+	}
+
+	shortName := imageName
+	if imageBlock := strings.Split(imageName, "/"); len(imageBlock) > 0 {
+		// there is no need to do
+		// Split not return empty slice
+		shortName = imageBlock[len(imageBlock)-1]
+	}
+
+	return imageName, shortName, imageVersion
+}
+
+func takeTime(fields map[string]interface{}) (ts time.Time, err error) {
+	// time should be nano-second
+	if v, ok := fields[pipelineTimeField]; ok {
+		nanots, ok := v.(int64)
+		if !ok {
+			err = fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
+				pipelineTimeField, v, reflect.TypeOf(v).String())
+			return
+		}
+
+		ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
+		delete(fields, pipelineTimeField)
+	} else {
+		ts = time.Now()
+	}
+
+	return
+}
+
+// checkFieldsLength 指定字段长度 "小于等于" maxlength
+func checkFieldsLength(fields map[string]interface{}, maxlength int) error {
+	for k, v := range fields {
+		switch vv := v.(type) {
+		// FIXME:
+		// need  "case []byte" ?
+		case string:
+			if len(vv) <= maxlength {
+				continue
+			}
+			if k == "message" {
+				fields[k] = vv[:maxlength]
+			} else {
+				return fmt.Errorf("fields: %s, length=%d, out of maximum length", k, len(vv))
+			}
+		default:
+			// nil
+		}
 	}
 	return nil
 }
 
-func TrimPodName(podname []string, name string) string {
-	for _, n := range podname {
-		if !strings.HasPrefix(name, n) {
-			continue
-		}
-
-		parts := strings.Split(name, "-")
-		if len(parts) < 3 {
-			continue
-		}
-		return strings.Join(parts[:len(parts)-1], "-")
-	}
-	return name
+var statusMap = map[string]string{
+	"f":        "emerg",
+	"emerg":    "emerg",
+	"a":        "alert",
+	"alert":    "alert",
+	"c":        "critical",
+	"critical": "critical",
+	"e":        "error",
+	"error":    "error",
+	"w":        "warning",
+	"warning":  "warning",
+	"i":        "info",
+	"info":     "info",
+	"d":        "debug",
+	"trace":    "debug",
+	"verbose":  "debug",
+	"debug":    "debug",
+	"o":        "OK",
+	"s":        "OK",
+	"ok":       "OK",
 }
 
-func RegexpMatchString(regexps []*regexp.Regexp, s string) bool {
+func addStatus(fields map[string]interface{}) {
+	// map 有 "status" 字段
+	statusField, ok := fields["status"]
+	if !ok {
+		fields["status"] = "info"
+		return
+	}
+	// "status" 类型必须是 string
+	statusStr, ok := statusField.(string)
+	if !ok {
+		fields["status"] = "info"
+		return
+	}
+
+	// 查询 statusMap 枚举表并替换
+	if v, ok := statusMap[strings.ToLower(statusStr)]; !ok {
+		fields["status"] = "info"
+	} else {
+		fields["status"] = v
+	}
+}
+
+func regexpMatchString(regexps []string, src string) bool {
 	for _, re := range regexps {
-		if re.MatchString(s) {
+		isMatch, _ := regexp.MatchString(re, src)
+		if isMatch {
 			return true
 		}
 	}
 	return false
-}
-
-func getContainerName(names []string) string {
-	if len(names) > 0 {
-		return strings.TrimPrefix(names[0], "/")
-	}
-	return "invalidContainerName"
-}
-
-// contianerIsFromKubernetes 判断该容器是否由kubernetes创建
-// 所有kubernetes启动的容器的containerNamePrefix都是k8s，依据链接如下
-// https://github.com/rootsongjc/kubernetes-handbook/blob/master/practice/monitor.md#%E5%AE%B9%E5%99%A8%E7%9A%84%E5%91%BD%E5%90%8D%E8%A7%84%E5%88%99
-func contianerIsFromKubernetes(containerName string) bool {
-	const kubernetesContainerNamePrefix = "k8s"
-	return strings.HasPrefix(containerName, kubernetesContainerNamePrefix)
 }
 
 // https://docs.docker.com/engine/api/v1.41/#operation/ContainerStats
