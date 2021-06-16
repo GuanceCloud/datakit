@@ -1,27 +1,19 @@
 package container
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
-	containerName   = "docker_containers"
-	kubeletNodeName = "kubelet_node"
-	kubeletPodName  = "kubelet_pod"
+	containerName  = "docker_containers"
+	kubeletPodName = "kubelet_pod"
 )
 
-type containersMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
+type containersMeasurement struct{}
 
 func (c *containersMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(c.name, c.tags, c.fields, c.ts)
+	return nil, nil
 }
 
 func (c *containersMeasurement) Info() *inputs.MeasurementInfo {
@@ -29,16 +21,18 @@ func (c *containersMeasurement) Info() *inputs.MeasurementInfo {
 		Name: containerName,
 		Desc: "容器指标或对象数据",
 		Tags: map[string]interface{}{
-			"container_id":   inputs.NewTagInfo(`容器 ID`),
-			"images_name":    inputs.NewTagInfo(`容器镜像名称`),
-			"docker_image":   inputs.NewTagInfo(`镜像名称+版本号`),
-			"name":           inputs.NewTagInfo(`对象数据的指定 ID，（仅在对象数据中存在）`),
-			"container_name": inputs.NewTagInfo(`容器名称`),
-			"container_host": inputs.NewTagInfo(`容器内部的主机名（仅在对象数据中存在）`),
-			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
-			"state":          inputs.NewTagInfo(`运行状态，running/exited/removed`),
-			"pod_name":       inputs.NewTagInfo(`pod名称`),
-			"pod_namesapce":  inputs.NewTagInfo(`pod命名空间`),
+			"container_id":      inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
+			"name":              inputs.NewTagInfo(`对象数据的指定 ID，（仅在对象数据中存在）`),
+			"container_name":    inputs.NewTagInfo(`容器名称`),
+			"docker_image":      inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`，（仅在容器由 docker 创建时存在）"),
+			"images_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`，（仅在容器由 docker 创建时存在）"),
+			"images_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`，（仅在容器由 docker 创建时存在）"),
+			"images_tag":        inputs.NewTagInfo("镜像tag，例如 `1.21.0`，（仅在容器由 docker 创建时存在）"),
+			"container_host":    inputs.NewTagInfo(`容器内部的主机名（仅在对象数据中存在）`),
+			"container_type":    inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
+			"state":             inputs.NewTagInfo(`运行状态，running/exited/removed`),
+			"pod_name":          inputs.NewTagInfo(`pod名称`),
+			"pod_namesapce":     inputs.NewTagInfo(`pod命名空间`),
 			// "kube_container_name": inputs.NewTagInfo(`TODO`),
 			// "kube_daemon_set":     inputs.NewTagInfo(`TODO`),
 			// "kube_deployment":     inputs.NewTagInfo(`TODO`),
@@ -64,15 +58,10 @@ func (c *containersMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type containersLogMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
+type containersLogMeasurement struct{}
 
 func (c *containersLogMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(c.name, c.tags, c.fields, c.ts)
+	return nil, nil
 }
 
 func (c *containersLogMeasurement) Info() *inputs.MeasurementInfo {
@@ -82,7 +71,8 @@ func (c *containersLogMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"container_id":   inputs.NewTagInfo(`容器ID`),
-			"image_name":     inputs.NewTagInfo(`容器镜像名称`),
+			"images_name":    inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`，（仅在容器由 docker 创建时存在）"),
+			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
 			"namespace":      inputs.NewTagInfo(`所属 Kubernetes 命名空间`),
 		},
@@ -95,15 +85,10 @@ func (c *containersLogMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type kubeletPodMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
+type kubeletPodMeasurement struct{}
 
 func (k *kubeletPodMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(k.name, k.tags, k.fields, k.ts)
+	return nil, nil
 }
 
 func (k *kubeletPodMeasurement) Info() *inputs.MeasurementInfo {
@@ -114,9 +99,14 @@ func (k *kubeletPodMeasurement) Info() *inputs.MeasurementInfo {
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
 			"pod_name":  inputs.NewTagInfo(`pod 名字`),
 			"namespace": inputs.NewTagInfo(`所属命名空间`),
-			"name":      inputs.NewTagInfo(`pod UID，（仅在对象数据中存在）`),
+			"name":      inputs.NewTagInfo(`UID（仅在对象数据中存在）`),
+			"ready":     inputs.NewTagInfo(`可用副本数，就绪个数/期望个数（仅在对象数据中存在）`),
+			"status":    inputs.NewTagInfo(`当前阶段的状态，Running/Failed/Pending（仅在对象数据中存在）`),
+			"age":       inputs.NewTagInfo(`该容器运行至今的时长，单位毫秒（仅在对象数据中存在）`),
 		},
 		Fields: map[string]interface{}{
+			"labels":                     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "pod labels（仅在对象数据中存在）"},
+			"restart":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "pod 重启次数（仅在对象数据中存在）"},
 			"cpu_usage":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
 			"mem_usage_percent":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of memory used"},
 			"cpu_usage_nanocores":        &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "The number of cpu usage nanocores"},
