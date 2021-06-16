@@ -13,9 +13,13 @@ func TestParse(t *testing.T) {
 		expected interface{}
 		fail     bool
 	}{
+		{
+			in:       `{};{};{}`,
+			expected: WhereConditions{&WhereCondition{}, &WhereCondition{}, &WhereCondition{}},
+		},
 
 		{
-			in: `{a>1}; {b>1}`, // multiple conditions
+			in: `;;;;;{a>1};;;; {b>1};;;;`, // multiple conditions
 			expected: WhereConditions{
 				&WhereCondition{
 					conditions: []Node{
