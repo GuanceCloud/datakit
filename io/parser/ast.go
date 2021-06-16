@@ -910,16 +910,17 @@ type WhereCondition struct {
 	conditions []Node
 }
 
-func (x *WhereCondition) eval(source string, tags map[string]string, fields map[string]interface{}, binary BinaryExpr) bool {
-	// binary.LHS
-	// eval()
-	// binary.RHS
-
-	return false
-}
-
 func (x *WhereCondition) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
-	return false
+	for _, c := range x.conditions {
+		switch expr := c.(type) {
+		case *BinaryExpr:
+			if !expr.Eval(source, tags, fields) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (x *WhereCondition) String() string {
@@ -944,4 +945,24 @@ func (x WhereConditions) String() string {
 		arr = append(arr, c.String())
 	}
 	return strings.Join(arr, "; ")
+}
+
+func (x WhereConditions) Eval(source string,
+	tags map[string]string,
+	fields map[string]interface{}) bool {
+
+	for _, item := range x {
+		switch c := item.(type) {
+		case *WhereCondition:
+			if c.Eval(source, tags, fields) {
+				return true
+			}
+
+		default:
+			log.Warnf("invalid where condition: %s", c)
+			return false
+		}
+	}
+
+	return false
 }
