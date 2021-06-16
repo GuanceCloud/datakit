@@ -6,6 +6,19 @@ import (
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
+func TestDataWayAPIs(t *testing.T) {
+	dw := DataWayCfg{URLs: []string{"https://abc.com?token=tkn_abc"}}
+
+	dw.Apply()
+
+	for _, c := range dw.dataWayClients {
+		tu.Equals(t, len(apis), len(c.categoryURL))
+		for k, u := range c.categoryURL {
+			t.Logf("%s: %s", k, u)
+		}
+	}
+}
+
 func TestHeartBeat(t *testing.T) {
 	cases := []struct {
 		urls []string
