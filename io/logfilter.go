@@ -2,40 +2,55 @@ package io
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
+)
+
+const (
+	filter_release uint8 = iota + 1
+	filter_refreshed
 )
 
 var (
-	defReqUrl     = "/v1/logfilter/pull"
 	defInterval   = 10 * time.Second
 	defReqTimeout = 3 * time.Second
+	defLogfilter  *logFilter
 	log           = logger.DefaultSLogger("logfilter")
 )
-
-var defLogfilter *logFilter
 
 type rules struct {
 	content []string `json:"content"`
 }
 
 type logFilter struct {
-	clnt  *http.Client
-	rules rules
+	clnt   *http.Client
+	status uint8
+	rules  string
+	conds  parser.WhereConditions
 	sync.Mutex
 }
 
 func newLogFilter() *logFilter {
-	return &logFilter{clnt: &http.Client{Timeout: defReqTimeout}}
+	return &logFilter{
+		clnt:   &http.Client{Timeout: defReqTimeout},
+		status: filter_refreshed,
+	}
 }
 
-func (this *logFilter) check(point *Point) bool {
-	return false
+func (this *logFilter) filter(pts []*Point) []*Point {
+	if this.status == filter_release {
+		return pts
+	}
+
+	// this.conds
+
+	return nil
 }
 
 func (this *logFilter) start() {
@@ -57,36 +72,48 @@ func (this *logFilter) start() {
 }
 
 func (this *logFilter) refreshRules() error {
-	req, err := http.NewRequest(http.MethodGet, defReqUrl, nil)
-	if err != nil {
-		return err
-	}
+	// req, err := http.NewRequest(http.MethodGet, defReqUrl, nil)
+	// if err != nil {
+	// 	return err
+	// }
 
-	resp, err := this.clnt.Do(req)
-	if err != nil {
-		return err
-	}
+	// resp, err := this.clnt.Do(req)
+	// if err != nil {
+	// 	return err
+	// }
 
-	buf, err := ioutil.ReadAll(resp.Body)
+	// buf, err := ioutil.ReadAll(resp.Body)
+	// if err != nil {
+	// 	return err
+	// }
+
+	body, err := datakit.Cfg.DataWay.GetLogFilter()
 	if err != nil {
 		return err
 	}
 
 	var rules rules
-	if err = json.Unmarshal(buf, &rules); err != nil {
+	if err = json.Unmarshal(body, &rules); err != nil {
 		return err
+	}
+
+	if len(rules.content) == 0 {
+		this.status = filter_release
+
+		return nil
 	}
 
 	this.Lock()
 	defer this.Unlock()
 
-	this.rules = rules
+	// compare and refresh
+	if newRules := strings.Join(rules.content, ";"); newRules != this.rules {
+		this.rules = newRules
+		this.conds = parser.GetConds(this.rules)
+		this.status = filter_refreshed
+	}
 
 	return nil
-}
-
-func (this *logFilter) getRules() []string {
-	return this.rules.content
 }
 
 func init() {
