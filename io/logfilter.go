@@ -43,14 +43,28 @@ func newLogFilter() *logFilter {
 	}
 }
 
+func (this *logFilter) check(pt *Point) bool {
+	for _, node := range this.conds {
+		switch node.(type) {
+		case *parser.WhereCondition:
+
+		}
+	}
+}
+
 func (this *logFilter) filter(pts []*Point) []*Point {
 	if this.status == filter_release {
 		return pts
 	}
 
-	// this.conds
+	var after []*Point
+	for _, pt := range pts {
+		if !this.check(pt) {
+			after = append(after, pt)
+		}
+	}
 
-	return nil
+	return after
 }
 
 func (this *logFilter) start() {
