@@ -113,9 +113,13 @@ stmts: where_conditions
 		 }
 		 | stmts SEMICOLON where_conditions
 		 {
-			arr := $1.(WhereConditions)
-			arr = append(arr, $3)
-			$$ = arr
+			 if $3 != nil {
+				arr := $1.(WhereConditions)
+				arr = append(arr, $3)
+				$$ = arr
+			 } else {
+			 	$$ = $1
+			 }
 		 }
 		 ;
 
@@ -275,7 +279,7 @@ where_conditions: LEFT_BRACE filter_list RIGHT_BRACE
 						 }
 						 | /* empty */
 						 {
-						   $$ = yylex.(*parser).newWhereConditions(nil)
+						   $$ = nil
 						 }
 						 ;
 
