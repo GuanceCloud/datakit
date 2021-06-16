@@ -26,6 +26,7 @@ func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caCertPool,
+		MinVersion:   tls.VersionTLS10,
 	}
 	tlsConfig.BuildNameToCertificate()
 
