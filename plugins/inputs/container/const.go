@@ -28,6 +28,11 @@ const (
 
 	// 定时发现新日志源
 	loggingHitDuration = time.Second * 5
+
+	// 是否采集全部容器，包括未在运行的
+	containerAllForMetric  = false
+	containerAllForObject  = true
+	containerAllForLogging = false
 )
 
 const sampleCfg = `
