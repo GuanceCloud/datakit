@@ -928,6 +928,7 @@ func (x *WhereCondition) String() string {
 	for _, f := range x.conditions {
 		arr = append(arr, f.String())
 	}
+
 	return "{" + strings.Join(arr, " and ") + "}"
 }
 
@@ -942,6 +943,10 @@ func (x WhereConditions) Pos() *PositionRange { return nil }
 func (x WhereConditions) String() string {
 	arr := []string{}
 	for _, c := range x {
+		if c == nil {
+			continue
+		}
+
 		arr = append(arr, c.String())
 	}
 	return strings.Join(arr, "; ")
