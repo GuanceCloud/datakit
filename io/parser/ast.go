@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"k8s.io/gengo/examples/deepcopy-gen/output_tests/interfaces"
 )
 
 type Value interface {
@@ -910,6 +912,10 @@ type WhereCondition struct {
 	conditions []Node
 }
 
+func (x *WhereCondition) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
+
+}
+
 func (x *WhereCondition) String() string {
 	arr := []string{}
 	for _, f := range x.conditions {
@@ -925,6 +931,7 @@ func (d *WhereCondition) Pos() *PositionRange {
 type WhereConditions []Node
 
 func (x WhereConditions) Pos() *PositionRange { return nil }
+
 func (x WhereConditions) String() string {
 	arr := []string{}
 	for _, c := range x {
