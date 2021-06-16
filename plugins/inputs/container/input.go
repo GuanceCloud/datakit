@@ -75,9 +75,11 @@ func (*Input) PipelineConfig() map[string]string {
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&containersMeasurement{},
-		&containersLogMeasurement{},
-		&kubeletPodMeasurement{},
+		&containerMetricMeasurement{},
+		&containerObjectMeasurement{},
+		&containerLogMeasurement{},
+		&kubeletPodMetricMeasurement{},
+		&kubeletPodObjectMeasurement{},
 	}
 }
 
@@ -232,11 +234,11 @@ func (this *Input) buildDockerClient() error {
 		l.Error(err)
 		return err
 	}
-	client.ignoreImageName = this.IgnoreImageName
-	client.ignoreContainerName = this.IgnoreContainerName
-	client.processTags = this.processTags
-	client.logFilters = this.LogFilters
-	client.k8s = this.Kubernetes
+	client.IgnoreImageName = this.IgnoreImageName
+	client.IgnoreContainerName = this.IgnoreContainerName
+	client.ProcessTags = this.processTags
+	client.LogFilters = this.LogFilters
+	client.K8s = this.Kubernetes
 
 	this.clients = append(this.clients, client)
 
