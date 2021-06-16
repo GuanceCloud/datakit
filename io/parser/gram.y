@@ -59,8 +59,7 @@ ORDER RE INT FLOAT POINT TIMEZONE WITH
 	function_args
 
 %type <node>
-	//stmts
-	stmt
+	stmts
 	where_conditions
 	array_elem
 	array_list
@@ -97,7 +96,7 @@ ORDER RE INT FLOAT POINT TIMEZONE WITH
 
 %%
 
-start: START_WHERE_CONDITION stmt
+start: START_WHERE_CONDITION stmts
 		 {
 				yylex.(*parser).parseResult = $2
 		 }
@@ -108,9 +107,17 @@ start: START_WHERE_CONDITION stmt
 		 }
 		 ;
 
-stmt: where_conditions
-		{ $$ = $1 }
-		;
+stmts: where_conditions
+		 {
+		 $$ = WhereConditions{$1}
+		 }
+		 | stmts SEMICOLON where_conditions
+		 {
+			arr := $1.(WhereConditions)
+			arr = append(arr, $3)
+			$$ = arr
+		 }
+		 ;
 
 /* expression */
 expr: array_elem | regex | paren_expr | function_expr | binary_expr | cascade_functions
