@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"k8s.io/gengo/examples/deepcopy-gen/output_tests/interfaces"
 )
 
 type Value interface {
@@ -912,8 +910,16 @@ type WhereCondition struct {
 	conditions []Node
 }
 
-func (x *WhereCondition) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
+func (x *WhereCondition) eval(source string, tags map[string]string, fields map[string]interface{}, binary BinaryExpr) bool {
+	// binary.LHS
+	// eval()
+	// binary.RHS
 
+	return false
+}
+
+func (x *WhereCondition) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
+	return false
 }
 
 func (x *WhereCondition) String() string {
