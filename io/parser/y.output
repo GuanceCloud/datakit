@@ -22,7 +22,7 @@ state 2
 	where_conditions: .    (47)
 
 	LEFT_BRACE  shift 7
-	.  reduce 47 (src line 276)
+	.  reduce 47 (src line 280)
 
 	stmts  goto 5
 	where_conditions  goto 6
@@ -71,7 +71,7 @@ state 7
 	NIL  shift 35
 	NULL  shift 36
 	RE  shift 27
-	.  reduce 51 (src line 292)
+	.  reduce 51 (src line 296)
 
 	unary_op  goto 33
 	function_name  goto 28
@@ -98,7 +98,7 @@ state 8
 	where_conditions: .    (47)
 
 	LEFT_BRACE  shift 7
-	.  reduce 47 (src line 276)
+	.  reduce 47 (src line 280)
 
 	where_conditions  goto 42
 
@@ -115,25 +115,25 @@ state 9
 state 10
 	filter_list:  filter_elem.    (48)
 
-	.  reduce 48 (src line 283)
+	.  reduce 48 (src line 287)
 
 
 state 11
 	expr:  binary_expr.    (10)
 	filter_elem:  binary_expr.    (52)
 
-	COMMA  reduce 52 (src line 296)
-	RIGHT_BRACE  reduce 52 (src line 296)
-	.  reduce 10 (src line 123)
+	COMMA  reduce 52 (src line 300)
+	RIGHT_BRACE  reduce 52 (src line 300)
+	.  reduce 10 (src line 127)
 
 
 state 12
 	expr:  paren_expr.    (8)
 	filter_elem:  paren_expr.    (53)
 
-	COMMA  reduce 53 (src line 296)
-	RIGHT_BRACE  reduce 53 (src line 296)
-	.  reduce 8 (src line 123)
+	COMMA  reduce 53 (src line 300)
+	RIGHT_BRACE  reduce 53 (src line 300)
+	.  reduce 8 (src line 127)
 
 
 state 13
@@ -174,7 +174,7 @@ state 14
 	binary_expr:  columnref.IN LEFT_BRACKET array_list RIGHT_BRACKET 
 
 	IN  shift 59
-	.  reduce 36 (src line 239)
+	.  reduce 36 (src line 243)
 
 
 state 15
@@ -217,13 +217,13 @@ state 15
 state 16
 	expr:  array_elem.    (6)
 
-	.  reduce 6 (src line 123)
+	.  reduce 6 (src line 127)
 
 
 state 17
 	expr:  regex.    (7)
 
-	.  reduce 7 (src line 123)
+	.  reduce 7 (src line 127)
 
 
 state 18
@@ -231,7 +231,7 @@ state 18
 	cascade_functions:  function_expr.DOT function_expr 
 
 	DOT  shift 63
-	.  reduce 9 (src line 123)
+	.  reduce 9 (src line 127)
 
 
 state 19
@@ -239,7 +239,7 @@ state 19
 	cascade_functions:  cascade_functions.DOT function_expr 
 
 	DOT  shift 64
-	.  reduce 11 (src line 123)
+	.  reduce 11 (src line 127)
 
 
 state 20
@@ -247,9 +247,9 @@ state 20
 	attr_expr:  identifier.DOT identifier 
 	function_name:  identifier.    (69)
 
-	LEFT_PAREN  reduce 69 (src line 384)
+	LEFT_PAREN  reduce 69 (src line 388)
 	DOT  shift 65
-	.  reduce 12 (src line 126)
+	.  reduce 12 (src line 130)
 
 
 state 21
@@ -257,39 +257,39 @@ state 21
 	attr_expr:  attr_expr.DOT identifier 
 	function_name:  attr_expr.    (70)
 
-	LEFT_PAREN  reduce 70 (src line 388)
+	LEFT_PAREN  reduce 70 (src line 392)
 	DOT  shift 66
-	.  reduce 13 (src line 130)
+	.  reduce 13 (src line 134)
 
 
 state 22
 	array_elem:  number_literal.    (34)
 
-	.  reduce 34 (src line 237)
+	.  reduce 34 (src line 241)
 
 
 state 23
 	array_elem:  string_literal.    (35)
 
-	.  reduce 35 (src line 238)
+	.  reduce 35 (src line 242)
 
 
 state 24
 	array_elem:  nil_literal.    (37)
 
-	.  reduce 37 (src line 240)
+	.  reduce 37 (src line 244)
 
 
 state 25
 	array_elem:  bool_literal.    (38)
 
-	.  reduce 38 (src line 241)
+	.  reduce 38 (src line 245)
 
 
 state 26
 	array_elem:  star.    (39)
 
-	.  reduce 39 (src line 242)
+	.  reduce 39 (src line 246)
 
 
 state 27
@@ -310,13 +310,13 @@ state 28
 state 29
 	identifier:  ID.    (75)
 
-	.  reduce 75 (src line 426)
+	.  reduce 75 (src line 430)
 
 
 state 30
 	identifier:  QUOTED_STRING.    (76)
 
-	.  reduce 76 (src line 427)
+	.  reduce 76 (src line 431)
 
 
 state 31
@@ -329,7 +329,7 @@ state 31
 state 32
 	number_literal:  NUMBER.    (71)
 
-	.  reduce 71 (src line 395)
+	.  reduce 71 (src line 399)
 
 
 state 33
@@ -342,49 +342,49 @@ state 33
 state 34
 	string_literal:  STRING.    (18)
 
-	.  reduce 18 (src line 156)
+	.  reduce 18 (src line 160)
 
 
 state 35
 	nil_literal:  NIL.    (19)
 
-	.  reduce 19 (src line 162)
+	.  reduce 19 (src line 166)
 
 
 state 36
 	nil_literal:  NULL.    (20)
 
-	.  reduce 20 (src line 166)
+	.  reduce 20 (src line 170)
 
 
 state 37
 	bool_literal:  TRUE.    (21)
 
-	.  reduce 21 (src line 172)
+	.  reduce 21 (src line 176)
 
 
 state 38
 	bool_literal:  FALSE.    (22)
 
-	.  reduce 22 (src line 176)
+	.  reduce 22 (src line 180)
 
 
 state 39
 	star:  MUL.    (40)
 
-	.  reduce 40 (src line 245)
+	.  reduce 40 (src line 249)
 
 
 state 40
 	unary_op:  ADD.    (16)
 
-	.  reduce 16 (src line 152)
+	.  reduce 16 (src line 156)
 
 
 state 41
 	unary_op:  SUB.    (17)
 
-	.  reduce 17 (src line 153)
+	.  reduce 17 (src line 157)
 
 
 state 42
@@ -396,7 +396,7 @@ state 42
 state 43
 	where_conditions:  LEFT_BRACE filter_list RIGHT_BRACE.    (46)
 
-	.  reduce 46 (src line 272)
+	.  reduce 46 (src line 276)
 
 
 state 44
@@ -417,7 +417,7 @@ state 44
 	NIL  shift 35
 	NULL  shift 36
 	RE  shift 27
-	.  reduce 50 (src line 291)
+	.  reduce 50 (src line 295)
 
 	unary_op  goto 33
 	function_name  goto 28
@@ -1001,13 +1001,13 @@ state 60
 state 61
 	expr:  paren_expr.    (8)
 
-	.  reduce 8 (src line 123)
+	.  reduce 8 (src line 127)
 
 
 state 62
 	expr:  binary_expr.    (10)
 
-	.  reduce 10 (src line 123)
+	.  reduce 10 (src line 127)
 
 
 state 63
@@ -1085,7 +1085,7 @@ state 68
 	NIL  shift 35
 	NULL  shift 36
 	RE  shift 27
-	.  reduce 30 (src line 215)
+	.  reduce 30 (src line 219)
 
 	unary_op  goto 33
 	function_name  goto 28
@@ -1119,13 +1119,13 @@ state 69
 state 70
 	number_literal:  unary_op NUMBER.    (72)
 
-	.  reduce 72 (src line 399)
+	.  reduce 72 (src line 403)
 
 
 state 71
 	filter_list:  filter_list COMMA filter_elem.    (49)
 
-	.  reduce 49 (src line 287)
+	.  reduce 49 (src line 291)
 
 
 state 72
@@ -1149,7 +1149,7 @@ state 72
 	MOD  shift 53
 	MUL  shift 54
 	POW  shift 56
-	.  reduce 54 (src line 299)
+	.  reduce 54 (src line 303)
 
 
 state 73
@@ -1170,7 +1170,7 @@ state 73
 	binary_expr:  expr.EQ expr 
 
 	POW  shift 56
-	.  reduce 55 (src line 303)
+	.  reduce 55 (src line 307)
 
 
 state 74
@@ -1196,7 +1196,7 @@ state 74
 	MUL  shift 54
 	POW  shift 56
 	SUB  shift 57
-	.  reduce 56 (src line 307)
+	.  reduce 56 (src line 311)
 
 
 state 75
@@ -1222,7 +1222,7 @@ state 75
 	MUL  shift 54
 	POW  shift 56
 	SUB  shift 57
-	.  reduce 57 (src line 313)
+	.  reduce 57 (src line 317)
 
 
 state 76
@@ -1254,7 +1254,7 @@ state 76
 	NEQ  shift 55
 	POW  shift 56
 	SUB  shift 57
-	.  reduce 58 (src line 319)
+	.  reduce 58 (src line 323)
 
 
 state 77
@@ -1287,7 +1287,7 @@ state 77
 	POW  shift 56
 	SUB  shift 57
 	AND  shift 49
-	.  reduce 59 (src line 325)
+	.  reduce 59 (src line 329)
 
 
 state 78
@@ -1313,7 +1313,7 @@ state 78
 	MUL  shift 54
 	POW  shift 56
 	SUB  shift 57
-	.  reduce 60 (src line 331)
+	.  reduce 60 (src line 335)
 
 
 state 79
@@ -1339,7 +1339,7 @@ state 79
 	MUL  shift 54
 	POW  shift 56
 	SUB  shift 57
-	.  reduce 61 (src line 337)
+	.  reduce 61 (src line 341)
 
 
 state 80
@@ -1360,7 +1360,7 @@ state 80
 	binary_expr:  expr.EQ expr 
 
 	POW  shift 56
-	.  reduce 62 (src line 343)
+	.  reduce 62 (src line 347)
 
 
 state 81
@@ -1381,7 +1381,7 @@ state 81
 	binary_expr:  expr.EQ expr 
 
 	POW  shift 56
-	.  reduce 63 (src line 348)
+	.  reduce 63 (src line 352)
 
 
 state 82
@@ -1407,7 +1407,7 @@ state 82
 	MUL  shift 54
 	POW  shift 56
 	SUB  shift 57
-	.  reduce 64 (src line 353)
+	.  reduce 64 (src line 357)
 
 
 state 83
@@ -1428,7 +1428,7 @@ state 83
 	binary_expr:  expr.EQ expr 
 
 	POW  shift 56
-	.  reduce 65 (src line 359)
+	.  reduce 65 (src line 363)
 
 
 state 84
@@ -1452,7 +1452,7 @@ state 84
 	MOD  shift 53
 	MUL  shift 54
 	POW  shift 56
-	.  reduce 66 (src line 364)
+	.  reduce 66 (src line 368)
 
 
 state 85
@@ -1478,7 +1478,7 @@ state 85
 	MUL  shift 54
 	POW  shift 56
 	SUB  shift 57
-	.  reduce 67 (src line 369)
+	.  reduce 67 (src line 373)
 
 
 state 86
@@ -1497,7 +1497,7 @@ state 86
 	IDENTIFIER  shift 31
 	NIL  shift 35
 	NULL  shift 36
-	.  reduce 33 (src line 231)
+	.  reduce 33 (src line 235)
 
 	unary_op  goto 33
 	identifier  goto 106
@@ -1514,13 +1514,13 @@ state 86
 state 87
 	paren_expr:  LEFT_PAREN expr RIGHT_PAREN.    (23)
 
-	.  reduce 23 (src line 182)
+	.  reduce 23 (src line 186)
 
 
 state 88
 	cascade_functions:  function_expr DOT function_expr.    (25)
 
-	.  reduce 25 (src line 194)
+	.  reduce 25 (src line 198)
 
 
 state 89
@@ -1528,7 +1528,7 @@ state 89
 	function_name:  identifier.    (69)
 
 	DOT  shift 65
-	.  reduce 69 (src line 384)
+	.  reduce 69 (src line 388)
 
 
 state 90
@@ -1536,25 +1536,25 @@ state 90
 	function_name:  attr_expr.    (70)
 
 	DOT  shift 66
-	.  reduce 70 (src line 388)
+	.  reduce 70 (src line 392)
 
 
 state 91
 	cascade_functions:  cascade_functions DOT function_expr.    (26)
 
-	.  reduce 26 (src line 198)
+	.  reduce 26 (src line 202)
 
 
 state 92
 	attr_expr:  identifier DOT identifier.    (14)
 
-	.  reduce 14 (src line 136)
+	.  reduce 14 (src line 140)
 
 
 state 93
 	attr_expr:  attr_expr DOT identifier.    (15)
 
-	.  reduce 15 (src line 143)
+	.  reduce 15 (src line 147)
 
 
 state 94
@@ -1584,13 +1584,13 @@ state 96
 state 97
 	function_args:  function_arg.    (29)
 
-	.  reduce 29 (src line 211)
+	.  reduce 29 (src line 215)
 
 
 state 98
 	function_arg:  naming_arg.    (41)
 
-	.  reduce 41 (src line 251)
+	.  reduce 41 (src line 255)
 
 
 state 99
@@ -1624,7 +1624,7 @@ state 99
 	SUB  shift 57
 	AND  shift 49
 	OR  shift 50
-	.  reduce 42 (src line 252)
+	.  reduce 42 (src line 256)
 
 
 state 100
@@ -1643,7 +1643,7 @@ state 100
 	IDENTIFIER  shift 31
 	NIL  shift 35
 	NULL  shift 36
-	.  reduce 33 (src line 231)
+	.  reduce 33 (src line 235)
 
 	unary_op  goto 33
 	identifier  goto 106
@@ -1666,9 +1666,9 @@ state 101
 	function_name:  identifier.    (69)
 
 	EQ  shift 113
-	LEFT_PAREN  reduce 69 (src line 384)
+	LEFT_PAREN  reduce 69 (src line 388)
 	DOT  shift 65
-	.  reduce 12 (src line 126)
+	.  reduce 12 (src line 130)
 
 
 state 102
@@ -1690,13 +1690,13 @@ state 103
 state 104
 	array_list:  array_elem.    (32)
 
-	.  reduce 32 (src line 227)
+	.  reduce 32 (src line 231)
 
 
 state 105
 	array_elem:  columnref.    (36)
 
-	.  reduce 36 (src line 239)
+	.  reduce 36 (src line 243)
 
 
 state 106
@@ -1704,7 +1704,7 @@ state 106
 	attr_expr:  identifier.DOT identifier 
 
 	DOT  shift 65
-	.  reduce 12 (src line 126)
+	.  reduce 12 (src line 130)
 
 
 state 107
@@ -1712,25 +1712,25 @@ state 107
 	attr_expr:  attr_expr.DOT identifier 
 
 	DOT  shift 66
-	.  reduce 13 (src line 130)
+	.  reduce 13 (src line 134)
 
 
 state 108
 	regex:  RE LEFT_PAREN string_literal RIGHT_PAREN.    (73)
 
-	.  reduce 73 (src line 416)
+	.  reduce 73 (src line 420)
 
 
 state 109
 	regex:  RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN.    (74)
 
-	.  reduce 74 (src line 420)
+	.  reduce 74 (src line 424)
 
 
 state 110
 	function_expr:  function_name LEFT_PAREN function_args RIGHT_PAREN.    (24)
 
-	.  reduce 24 (src line 188)
+	.  reduce 24 (src line 192)
 
 
 state 111
@@ -1752,7 +1752,7 @@ state 111
 	NIL  shift 35
 	NULL  shift 36
 	RE  shift 27
-	.  reduce 28 (src line 210)
+	.  reduce 28 (src line 214)
 
 	unary_op  goto 33
 	function_name  goto 28
@@ -1825,7 +1825,7 @@ state 113
 state 114
 	identifier:  IDENTIFIER LEFT_PAREN string_literal RIGHT_PAREN.    (77)
 
-	.  reduce 77 (src line 431)
+	.  reduce 77 (src line 435)
 
 
 state 115
@@ -1859,19 +1859,19 @@ state 115
 state 116
 	binary_expr:  columnref IN LEFT_BRACKET array_list RIGHT_BRACKET.    (68)
 
-	.  reduce 68 (src line 375)
+	.  reduce 68 (src line 379)
 
 
 state 117
 	function_args:  function_args COMMA function_arg.    (27)
 
-	.  reduce 27 (src line 206)
+	.  reduce 27 (src line 210)
 
 
 state 118
 	function_arg:  LEFT_BRACKET array_list RIGHT_BRACKET.    (43)
 
-	.  reduce 43 (src line 253)
+	.  reduce 43 (src line 257)
 
 
 state 119
@@ -1905,7 +1905,7 @@ state 119
 	SUB  shift 57
 	AND  shift 49
 	OR  shift 50
-	.  reduce 44 (src line 259)
+	.  reduce 44 (src line 263)
 
 
 state 120
@@ -1924,7 +1924,7 @@ state 120
 	IDENTIFIER  shift 31
 	NIL  shift 35
 	NULL  shift 36
-	.  reduce 33 (src line 231)
+	.  reduce 33 (src line 235)
 
 	unary_op  goto 33
 	identifier  goto 106
@@ -1941,7 +1941,7 @@ state 120
 state 121
 	array_list:  array_list COMMA array_elem.    (31)
 
-	.  reduce 31 (src line 221)
+	.  reduce 31 (src line 225)
 
 
 state 122
@@ -1956,7 +1956,7 @@ state 122
 state 123
 	naming_arg:  identifier EQ LEFT_BRACKET array_list RIGHT_BRACKET.    (45)
 
-	.  reduce 45 (src line 263)
+	.  reduce 45 (src line 267)
 
 
 71 terminals, 27 nonterminals
