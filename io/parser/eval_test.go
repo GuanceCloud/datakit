@@ -15,6 +15,13 @@ func TestExprConditions(t *testing.T) {
 		fields map[string]interface{}
 		pass   bool
 	}{
+
+		{
+			in:     ";;;{a > 1, b > 1 or c > 1, xx != 123 };;;; {xyz > 1};;;",
+			fields: map[string]interface{}{"a": int64(2), "c": "xyz"},
+			pass:   false,
+		},
+
 		{
 			in:     "{a > 1, b > 1 or c > 1}",
 			fields: map[string]interface{}{"a": int64(2), "c": "xyz"},
@@ -23,6 +30,12 @@ func TestExprConditions(t *testing.T) {
 
 		{
 			in:     "{a > 1, b > 1 or c = 'xyz'}",
+			fields: map[string]interface{}{"a": int64(2), "c": "xyz", "b": false},
+			pass:   true,
+		},
+
+		{
+			in:     "{xxx < 111}; {a > 1, b > 1 or c = 'xyz'}",
 			fields: map[string]interface{}{"a": int64(2), "c": "xyz", "b": false},
 			pass:   true,
 		},
