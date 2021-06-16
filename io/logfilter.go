@@ -50,6 +50,8 @@ func (this *logFilter) check(pt *Point) bool {
 
 		}
 	}
+
+	return false
 }
 
 func (this *logFilter) filter(pts []*Point) []*Point {
