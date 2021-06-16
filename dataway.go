@@ -26,6 +26,7 @@ var (
 		HeartBeat,
 		Election,
 		ElectionHeartbeat,
+		QueryRaw,
 	}
 )
 
@@ -220,7 +221,7 @@ func (dw *DataWayCfg) HeartBeat(id, host string) error {
 func (dw *DataWayCfg) QueryRawURL() []string {
 	var resURL []string
 	for _, dc := range dw.dataWayClients {
-		queryRawURL := dc.categoryURL["queryRawURL"]
+		queryRawURL := dc.categoryURL[QueryRaw]
 		resURL = append(resURL, queryRawURL)
 	}
 
