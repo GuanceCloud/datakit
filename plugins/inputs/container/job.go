@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -22,6 +23,30 @@ type job struct {
 	ts          time.Time
 	cost        time.Duration
 	category    string
+}
+
+func (j *job) merge(newJob *job) error {
+	if newJob == nil {
+		return nil
+	}
+
+	if j.measurement != newJob.measurement {
+		return fmt.Errorf("two measurement is differect")
+	}
+
+	if j.category != newJob.category {
+		return fmt.Errorf("two category is differect")
+	}
+
+	for k, v := range newJob.tags {
+		j.tags[k] = v
+	}
+
+	for k, v := range newJob.fields {
+		j.fields[k] = v
+	}
+
+	return nil
 }
 
 func (j *job) setMetric() {
