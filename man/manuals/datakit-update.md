@@ -3,17 +3,47 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：`linux/amd64`
+- 操作系统支持：全平台
 
 # 简介
 
-在 Linux 中，为便于 DataKit 实现自动更新，可通过 crontab 方式添加任务，实现定期更新。
+DataKit 支持手动更新和自动更新两种方式。
 
 ## 前置条件
 
-- DataKit 版本 >= 1.1.6-rc1
+- 自动更新要求 DataKit 版本 >= 1.1.6-rc1
+- 手动更新暂无版本要求
 
-## 准备更新脚本
+## 手动更新
+
+直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
+
+```shell
+$ datakit --version
+
+       Version: 1.1.6-rc0
+        Commit: d1f4604d
+        Branch: dk-api
+ Build At(UTC): 2021-05-11 11:07:06
+Golang Version: go version go1.15.8 darwin/amd64
+      Uploader: tan-air.local/xxxxxxx/yyyyyyy
+ReleasedInputs: all
+---------------------------------------------------
+
+
+Online version available: 1.1.6-rc2, commit 85ff4854 (release at 2021-05-11 07:16:34)
+
+Upgrade:
+        sudo -- sh -c "curl https://static.dataflux.cn/datakit/installer-darwin-amd64 -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"
+```
+
+## 自动更新
+
+在 Linux 中，为便于 DataKit 实现自动更新，可通过 crontab 方式添加任务，实现定期更新。
+
+> 注：目前自动更新只支持 Linux。 
+
+### 准备更新脚本
 
 将如下脚本内容复制到 DataKit 所在机器的安装目录下，保存 `datakit-update.sh`（名称随意）
 
@@ -91,27 +121,4 @@ service cron restart
 2021-05-10T09:52:18.391+0800 DEBUG ota-update datakit/main.go:216 online version: datakit 1.1.6-rc0/9bc4b960, local version: datakit 1.0.1/7a1d0956
 2021-05-10T09:52:18.391+0800 INFO  ota-update datakit/main.go:219 New online version available: 1.1.6-rc0, commit 9bc4b960 (release at 2021-04-30 14:31:27)
 ...
-```
-
-## 手动更新
-
-直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
-
-```shell
-$ datakit --version
-
-       Version: 1.1.6-rc0
-        Commit: d1f4604d
-        Branch: dk-api
- Build At(UTC): 2021-05-11 11:07:06
-Golang Version: go version go1.15.8 darwin/amd64
-      Uploader: tan-air.local/tanbiao/tanbiao
-ReleasedInputs: all
----------------------------------------------------
-
-
-Online version available: 1.1.6-rc2, commit 85ff4854 (release at 2021-05-11 07:16:34)
-
-Upgrade:
-        sudo -- sh -c "curl https://static.dataflux.cn/datakit/installer-darwin-amd64 -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"
-```
+``` 
