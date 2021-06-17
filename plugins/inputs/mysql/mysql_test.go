@@ -98,8 +98,8 @@ func TestBaseCollect(t *testing.T) {
 		input := &Input{
 			Host: "127.0.0.1",
 			Port: 3307,
-			User: "root",
-			Pass: "test",
+			User: "datakitMonitor",
+			Pass: "datakitMonitor",
 			Tags: make(map[string]string),
 		}
 
@@ -124,11 +124,19 @@ func TestBaseCollect(t *testing.T) {
 	})
 
 	t.Run("bin log on", func(t *testing.T) {
+		// input := &Input{
+		// 	Host: "rm-bp15268nefz6870hg.mysql.rds.aliyuncs.com",
+		// 	Port: 3306,
+		// 	User: "cc_monitor",
+		// 	Pass: "Zyadmin123",
+		// 	Tags: make(map[string]string),
+		// }
+
 		input := &Input{
 			Host: "rm-bp15268nefz6870hg.mysql.rds.aliyuncs.com",
 			Port: 3306,
-			User: "cc_monitor",
-			Pass: "Zyadmin123",
+			User: "datakitMonitor",
+			Pass: "SunxEVJEE75tmUJZU7Eb",
 			Tags: make(map[string]string),
 		}
 
