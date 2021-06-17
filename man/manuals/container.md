@@ -52,9 +52,9 @@
 ### 标签定制和删除
 
 - `drop_tags`：对于某些 Tag，收集的意义不大，但会导致时间线暴涨。目前将 `contaienr_id` 这个 tag 移除掉了。
-- `ignore_image_name`：配置正则表达式列表[正则表达式参见这里](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)，如果容器的 `image_name` 能够匹配任意其一，则忽略此条数据。适用于容器的指标和对象，对容器日志无效。
-- `ignore_container_name`：配置正则表达式列表，如果容器的 `container_name` 能够匹配任意其一，则忽略此条数据。适用于容器的指标和对象，对容器日志无效。
-- `kubelet.ignore_container_name`：配置正则表达式列表，如果 kubelet pod 的 `pod_name` 能够匹配任意其一，则忽略此条数据。适用于 pod 的指标和对象。
+- `ignore_image_name`：配置正则表达式列表[正则表达式参见这里](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)，如果容器的 `image_name` 能够匹配任意其一，则忽略此条容器的数据
+- `ignore_container_name`：配置正则表达式列表，如果容器的 `container_name` 能够匹配任意其一，则忽略此条容器的数据
+- `kubelet.ignore_container_name`：配置正则表达式列表，如果 kubelet pod 的 `pod_name` 能够匹配任意其一，则忽略此条数据。适用于 pod 的指标和对象
 
 ### 容器日志采集
 
