@@ -75,9 +75,11 @@ func (*Input) PipelineConfig() map[string]string {
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&containersMeasurement{},
-		&containersLogMeasurement{},
-		&kubeletPodMeasurement{},
+		&containerMetricMeasurement{},
+		&containerObjectMeasurement{},
+		&containerLogMeasurement{},
+		&kubeletPodMetricMeasurement{},
+		&kubeletPodObjectMeasurement{},
 	}
 }
 
@@ -232,11 +234,11 @@ func (this *Input) buildDockerClient() error {
 		l.Error(err)
 		return err
 	}
-	client.ignoreImageName = this.IgnoreImageName
-	client.ignoreContainerName = this.IgnoreContainerName
-	client.processTags = this.processTags
-	client.logFilters = this.LogFilters
-	client.k8s = this.Kubernetes
+	client.IgnoreImageName = this.IgnoreImageName
+	client.IgnoreContainerName = this.IgnoreContainerName
+	client.ProcessTags = this.processTags
+	client.LogFilters = this.LogFilters
+	client.K8s = this.Kubernetes
 
 	this.clients = append(this.clients, client)
 
@@ -284,6 +286,15 @@ func (this *Input) verifyIgnoreRegexps() error {
 }
 
 func (this *Input) doFeed() {
+	type data = struct {
+		pts   []*io.Point
+		costs []time.Duration
+	}
+	var cache = make(map[string]*data)
+
+	cleanTick := time.NewTicker(time.Second * 3)
+	defer cleanTick.Stop()
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -298,15 +309,42 @@ func (this *Input) doFeed() {
 				continue
 			}
 
-			opt := func() *io.Option {
-				if in.cost != 0 {
-					return &io.Option{CollectCost: in.cost}
-				}
-				return nil
-			}()
+			if _, ok := cache[in.category]; !ok {
+				cache[in.category] = &data{}
+			}
 
-			if err := io.Feed(inputName, in.category, []*io.Point{pt}, opt); err != nil {
-				l.Error(err)
+			cache[in.category].pts = append(cache[in.category].pts, pt)
+			cache[in.category].costs = append(cache[in.category].costs, in.cost)
+
+		case <-cleanTick.C:
+			for category, d := range cache {
+				if len(d.pts) == 0 {
+					d.costs = d.costs[:0]
+					continue
+				}
+
+				opt := func() *io.Option {
+					if len(d.costs) == 0 {
+						return nil
+					}
+
+					var sum time.Duration
+					for _, cost := range d.costs {
+						sum += cost
+					}
+					if sum == 0 {
+						return nil
+					}
+
+					return &io.Option{CollectCost: time.Duration(int64(sum) / int64(len(d.costs)))}
+				}()
+
+				if err := io.Feed(inputName, category, d.pts, opt); err != nil {
+					l.Error(err)
+				}
+
+				d.pts = d.pts[:0]
+				d.costs = d.costs[:0]
 			}
 		}
 	}
