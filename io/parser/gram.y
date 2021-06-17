@@ -2,41 +2,48 @@
 package parser
 
 import (
-	"fmt"
+	"time"
 )
 %}
 
 %union {
 	node       Node
 	nodes      []Node
+
 	item       Item
+
 	strings    []string
 	float      float64
+	duration   time.Duration
+	timestamp  time.Time
 }
 
-%token <item> SEMICOLON COMMA COMMENT DOT
-	EOF ERROR ID LEFT_PAREN LEFT_BRACKET NUMBER
-	RIGHT_PAREN RIGHT_BRACKET SPACE STRING QUOTED_STRING
+%token <item> EQ COLON SEMICOLON COMMA COMMENT DURATION
+	EOF ERROR ID LEFT_BRACE LEFT_BRACKET
+	LEFT_PAREN NUMBER RIGHT_BRACE RIGHT_BRACKET
+	RIGHT_PAREN SPACE STRING QUOTED_STRING NAMESPACE
+	DOT
 
 // operator
 %token operatorsStart
 %token <item> ADD
 	DIV GTE GT
 	LT LTE MOD MUL
-	NEQ EQ POW SUB
+	NEQ POW SUB
 %token operatorsEnd
 
 // keywords
 %token keywordsStart
 %token <item>
-TRUE FALSE IDENTIFIER
-AND OR NIL NULL RE JP
+AS ASC AUTO BY DESC TRUE FALSE FILTER
+IDENTIFIER IN AND LINK LIMIT SLIMIT
+OR NIL NULL OFFSET SOFFSET
+ORDER RE INT FLOAT POINT TIMEZONE WITH
 %token keywordsEnd
-
 
 // start symbols for parser
 %token startSymbolsStart
-%token START_PIPELINE
+%token START_STMTS START_BINARY_EXPRESSION START_FUNC_EXPRESSION START_WHERE_CONDITION
 %token startSymbolsEnd
 
 ////////////////////////////////////////////////////
@@ -47,25 +54,31 @@ AND OR NIL NULL RE JP
 	function_name
 	identifier
 
-%type<nodes> function_args
+%type<nodes>
+	filter_list
+	function_args
 
 %type <node>
+	stmts
+	where_conditions
 	array_elem
 	array_list
+	attr_expr
 	binary_expr
 	expr
 	function_arg
 	function_expr
+	naming_arg
 	paren_expr
+	filter_elem
 	regex
+	columnref
 	bool_literal
 	string_literal
 	nil_literal
 	number_literal
-	//columnref
-	index_expr
-	attr_expr
-	pipeline
+	cascade_functions
+	star
 
 %start start
 
@@ -77,9 +90,13 @@ AND OR NIL NULL RE JP
 %left MUL DIV MOD
 %right POW
 
+// `offset` do not have associativity
+%nonassoc OFFSET
+%right LEFT_BRACKET
+
 %%
 
-start: START_PIPELINE pipeline
+start: START_WHERE_CONDITION stmts
 		 {
 				yylex.(*parser).parseResult = $2
 		 }
@@ -90,21 +107,51 @@ start: START_PIPELINE pipeline
 		 }
 		 ;
 
-pipeline: function_expr
+stmts: where_conditions
 		 {
-		 	$$ = &Ast{ Functions: []*FuncExpr{$1.(*FuncExpr)} }
+		 $$ = WhereConditions{$1}
 		 }
-		 | pipeline function_expr
+		 | stmts SEMICOLON where_conditions
 		 {
-		 	ast := $1.(*Ast)
-			ast.Functions = append(ast.Functions, $2.(*FuncExpr))
-			$$ = $1
+			 if $3 != nil {
+				arr := $1.(WhereConditions)
+				arr = append(arr, $3)
+				$$ = arr
+			 } else {
+			 	$$ = $1
+			 }
 		 }
 		 ;
 
 /* expression */
-expr:  array_elem | regex | paren_expr | function_expr | binary_expr | attr_expr
+expr: array_elem | regex | paren_expr | function_expr | binary_expr | cascade_functions
 		;
+
+columnref: identifier
+				 {
+				   $$ = &Identifier{Name: $1.Val}
+				 }
+				 | attr_expr
+				 {
+					 $$ = $1
+				 }
+				 ;
+
+attr_expr: identifier DOT identifier
+				 {
+				 	 $$ = &AttrExpr{
+					 	 Obj: &Identifier{Name: $1.Val},
+					 	 Attr: &Identifier{Name: $3.Val},
+					 }
+				 }
+				 | attr_expr DOT identifier
+				 {
+				 	 $$ = &AttrExpr{
+						 Obj: $1.(*AttrExpr),
+						 Attr: &Identifier{Name: $3.Val},
+					 }
+				 }
+				 ;
 
 unary_op: ADD
 				| SUB
@@ -148,6 +195,18 @@ function_expr: function_name LEFT_PAREN function_args RIGHT_PAREN
 							}
 							;
 
+cascade_functions: function_expr DOT function_expr
+								 {
+								 	$$ = &CascadeFunctions{Funcs: []*FuncExpr{$1.(*FuncExpr), $3.(*FuncExpr)}}
+								 }
+								 | cascade_functions DOT function_expr
+								 {
+								 	fc := $1.(*CascadeFunctions)
+									fc.Funcs = append(fc.Funcs, $3.(*FuncExpr))
+									$$ = fc
+								 }
+								 ;
+
 function_args: function_args COMMA function_arg
 						 {
 						   $$ = append($$, $3)
@@ -162,17 +221,6 @@ function_args: function_args COMMA function_arg
 						 	 $$ = nil
 						 }
 						 ;
-
-
-function_arg: expr
-						{
-							$$ = $1
-						}
-						| LEFT_BRACKET array_list RIGHT_BRACKET
-                        {
-                        	$$ = getFuncArgList($2.(NodeList))
-                        }
-						;
 
 array_list: array_list COMMA array_elem
 					{
@@ -192,9 +240,64 @@ array_list: array_list COMMA array_elem
 
 array_elem: number_literal
 					| string_literal
-					//| columnref
+					| columnref
 					| nil_literal
 					| bool_literal
+					| star
+					;
+
+star : MUL
+		 {
+		 		$$ = &Star{}
+		 }
+		 ;
+
+function_arg: naming_arg
+						| expr
+						| LEFT_BRACKET array_list RIGHT_BRACKET
+						{
+							$$ = getFuncArgList($2.(NodeList))
+						}
+						;
+
+naming_arg: identifier EQ expr
+						{
+							$$ = &FuncArg{ArgName: $1.Val, ArgVal: $3}
+						}
+						| identifier EQ LEFT_BRACKET array_list RIGHT_BRACKET
+						{
+							$$ = &FuncArg{
+								ArgName: $1.Val,
+								ArgVal: getFuncArgList($4.(NodeList)),
+							}
+						}
+						;
+
+where_conditions: LEFT_BRACE filter_list RIGHT_BRACE
+						 {
+						   $$ = yylex.(*parser).newWhereConditions($2)
+						 }
+						 | /* empty */
+						 {
+						   $$ = nil
+						 }
+						 ;
+
+/* filter list */
+filter_list: filter_elem
+					 {
+					  	$$ = []Node{ $1 }
+					 }
+					 | filter_list COMMA filter_elem
+					 {
+					  	$$ = append($$, $3)
+					 }
+					 | filter_list COMMA
+					 | /* empty */
+					 { $$ = nil }
+					 ;
+
+filter_elem: binary_expr | paren_expr
 					;
 
 binary_expr: expr ADD expr
@@ -273,13 +376,22 @@ binary_expr: expr ADD expr
 						 bexpr.ReturnBool = true
 						 $$ = bexpr
 					 }
+					 | columnref IN LEFT_BRACKET array_list RIGHT_BRACKET
+					 {
+						 bexpr := yylex.(*parser).newBinExpr($1, $4, $2)
+						 bexpr.ReturnBool = true
+						 $$ = bexpr
+					 }
 					 ;
-
 
 /* function names */
 function_name: identifier
 						 {
 						 	$$ = $1
+						 }
+						 | attr_expr
+						 {
+						 	$$ = Item{Val: $1.(*AttrExpr).String()}
 						 }
 						;
 
@@ -304,79 +416,24 @@ number_literal: NUMBER
 							}
 							;
 
+
 regex: RE LEFT_PAREN string_literal RIGHT_PAREN
-          		 {
-          		   $$ = &Regex{Regex: $3.(*StringLiteral).Val}
-          		 }
-          		 | RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN
-          		 {
-          		   $$ = &Regex{Regex: yylex.(*parser).unquoteString($3.Val)}
-          		 }
-          		 ;
+		 {
+		   $$ = &Regex{Regex: $3.(*StringLiteral).Val}
+		 }
+		 | RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN
+		 {
+		   $$ = &Regex{Regex: yylex.(*parser).unquoteString($3.Val)}
+		 }
+		 ;
 
 identifier: ID
-					| QUOTED_STRING
-					{
-						$$.Val = yylex.(*parser).unquoteString($1.Val)
-					}
-					| IDENTIFIER LEFT_PAREN string_literal RIGHT_PAREN
-					{
-						$$.Val = $3.(*StringLiteral).Val
-					}
-					;
-
-index_expr: identifier LEFT_BRACKET number_literal RIGHT_BRACKET
-					{
-						nl := $3.(*NumberLiteral)
-						if !nl.IsInt {
-							yylex.(*parser).addParseErr(nil,
-								fmt.Errorf("array index should be int, got `%f'", nl.Float))
-							$$ = nil
-						} else {
-							$$ = &IndexExpr{Obj: &Identifier{Name: $1.Val}, Index: []int64{nl.Int}}
-						}
-					}
-					| index_expr LEFT_BRACKET number_literal RIGHT_BRACKET
-					{
-
-						nl := $3.(*NumberLiteral)
-						if !nl.IsInt {
-							yylex.(*parser).addParseErr(nil,
-								fmt.Errorf("array index should be int, got `%f'", nl.Float))
-							$$ = nil
-						} else {
-							in := $1.(*IndexExpr)
-							in.Index = append(in.Index, nl.Int)
-							$$ = in
-						}
-					}
-					| LEFT_BRACKET number_literal RIGHT_BRACKET
-					{
-						nl := $2.(*NumberLiteral)
-						if !nl.IsInt {
-							yylex.(*parser).addParseErr(nil,
-								fmt.Errorf("array index should be int, got `%f'", nl.Float))
-							$$ = nil
-						} else {
-							$$ = &IndexExpr{ Index: []int64{nl.Int}}
-						}
-					}
-					;
-
-attr_expr: identifier
-				 {
-				 	$$ = &AttrExpr{Obj: &Identifier{Name: $1.Val}}
-				 }
-				 | index_expr
-				 {
-				 	$$ = &AttrExpr{Obj: $1}
-				 }
-				 | attr_expr DOT identifier
-				 {
-				 	$$ = &AttrExpr{Obj: $1, Attr: &Identifier{Name: $3.Val}}
-				 }
-				 | attr_expr DOT index_expr
-				 {
-				 	$$ = &AttrExpr{Obj: $1, Attr: $3}
-				 }
+          | QUOTED_STRING
+          {
+          	$$.Val = yylex.(*parser).unquoteString($1.Val)
+          }
+          | IDENTIFIER LEFT_PAREN string_literal RIGHT_PAREN
+          {
+          	$$.Val = $3.(*StringLiteral).Val
+          }
 %%
