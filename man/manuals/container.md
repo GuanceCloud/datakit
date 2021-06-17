@@ -10,7 +10,7 @@
 
 ## 前置条件
 
-- 目前 container 会默认连接 Docker 服务，需安装 Docker(v1.24+)
+- 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
 
 ## 配置
 
