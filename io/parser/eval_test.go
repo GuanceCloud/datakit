@@ -42,7 +42,7 @@ func TestExprConditions(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		conditions := GetParser(tc.in)
+		conditions := GetConds(tc.in)
 		tu.Assert(t, conditions != nil, "conditions should not nil")
 
 		tu.Equals(t, tc.pass, conditions.Eval(tc.source, tc.tags, tc.fields))
