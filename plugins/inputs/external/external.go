@@ -1,7 +1,9 @@
 package external
 
 import (
+	"fmt"
 	"os/exec"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -95,6 +97,19 @@ func (ex *ExernalInput) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("starting external input %s...", ex.Name)
+
+	tagsStr := ""
+	arr := []string{}
+	for tagKey, tagVal := range ex.Tags {
+		arr = append(arr, fmt.Sprintf("%s=%s", tagKey, tagVal))
+	}
+	if len(arr) > 0 {
+		tagsStr = strings.Join(arr, ";")
+	}
+
+	if tagsStr != "" {
+		ex.Args = append(ex.Args, []string{"--tags", tagsStr}...)
+	}
 
 	for {
 		if err := ex.precheck(); err != nil {
