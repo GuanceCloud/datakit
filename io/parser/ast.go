@@ -906,6 +906,10 @@ func (d *DeleteFunc) Pos() *PositionRange {
 	return nil
 }
 
+type Evaluable interface {
+	Eval(source string, tags map[string]string, fields map[string]interface{}) bool
+}
+
 type WhereCondition struct {
 	conditions []Node
 }
