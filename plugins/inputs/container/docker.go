@@ -108,7 +108,11 @@ func (d *dockerClient) Stop() {
 
 func (d *dockerClient) Metric(ctx context.Context, in chan<- *job) {
 	fn := func(c types.Container) {
-		if d.ignoreImageNameFromContainer(c.Image) || d.ignoreContainerNameFromContainer(c.ID) {
+		if ignoreCommand(c.Command) {
+			return
+		}
+
+		if d.ignoreImageName(c.Image) || d.ignoreContainerName(c.ID) {
 			return
 		}
 
@@ -129,7 +133,11 @@ func (d *dockerClient) Metric(ctx context.Context, in chan<- *job) {
 
 func (d *dockerClient) Object(ctx context.Context, in chan<- *job) {
 	fn := func(c types.Container) {
-		if d.ignoreImageNameFromContainer(c.Image) || d.ignoreContainerNameFromContainer(c.ID) {
+		if ignoreCommand(c.Command) {
+			return
+		}
+
+		if d.ignoreImageName(c.Image) || d.ignoreContainerName(c.ID) {
 			return
 		}
 
@@ -203,40 +211,42 @@ func (d *dockerClient) gather(container types.Container) (*job, error) {
 	return &job{measurement: containerName, tags: tags, fields: fields, ts: time.Now(), cost: cost}, nil
 }
 
-func (d *dockerClient) ignoreImageNameFromContainer(name string) bool {
+func (d *dockerClient) ignoreImageName(name string) bool {
 	return regexpMatchString(d.IgnoreImageName, name)
 }
 
-func (d *dockerClient) ignoreContainerNameFromContainer(name string) bool {
+func (d *dockerClient) ignoreContainerName(name string) bool {
 	return regexpMatchString(d.IgnoreContainerName, name)
 }
 
 func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[string]string {
+	imageName, imageShortName, imageTag := ParseImage(container.Image)
 	var tags = map[string]string{
-		"container_id":   container.ID,
-		"container_name": getContainerName(container.Names),
-		"state":          container.State,
+		"container_id":     container.ID,
+		"container_name":   getContainerName(container.Names),
+		"state":            container.State,
+		"docker_image":     container.Image,
+		"image_name":       imageName,
+		"image_short_name": imageShortName,
+		"image_tag":        imageTag,
 	}
 
 	if !contianerIsFromKubernetes(getContainerName(container.Names)) {
-		imageName, imageShortName, imageTag := ParseImage(container.Image)
-		tags["docker_image"] = container.Image
-		tags["image_name"] = imageName
-		tags["image_short_name"] = imageShortName
-		tags["image_tag"] = imageTag
 		tags["container_type"] = "docker"
 	} else {
 		tags["container_type"] = "kubernetes"
 	}
 
 	if d.K8s != nil {
-		name, _ := d.K8s.GetContainerPodName(containerIDPrefix + container.ID)
-		if name != "" {
+		if name, err := d.K8s.GetContainerPodName("docker://" + container.ID); err != nil {
+			l.Warn(err)
+		} else if name != "" {
 			tags["pod_name"] = name
 		}
 
-		namespace, _ := d.K8s.GetContainerPodNamespace(containerIDPrefix + container.ID)
-		if namespace != "" {
+		if namespace, err := d.K8s.GetContainerPodNamespace("docker://" + container.ID); err != nil {
+			l.Warn(err)
+		} else if namespace != "" {
 			tags["pod_namespace"] = namespace
 		}
 	}
@@ -367,10 +377,14 @@ func (d *dockerClient) Logging(ctx context.Context) {
 	}
 
 	for _, container := range cList {
+		if ignoreCommand(container.Command) {
+			continue
+		}
+
 		// ParseImage() return imageName imageShortName and imageVersion, discard imageShortName and imageVersion
 		imageName, _, _ := ParseImage(container.Image)
-		if d.ignoreImageNameFromContainer(imageName) ||
-			d.ignoreContainerNameFromContainer(container.ID) {
+		if d.ignoreImageName(imageName) ||
+			d.ignoreContainerName(container.ID) {
 			continue
 		}
 
@@ -421,9 +435,9 @@ func (d *dockerClient) getSource(container types.Container) string {
 	var source = getContainerName(container.Names)
 
 	if contianerIsFromKubernetes(getContainerName(container.Names)) && d.K8s != nil {
-		name, err := d.K8s.GetContainerWorkname(container.ID)
-		if err != nil {
-		} else {
+		if name, err := d.K8s.GetContainerWorkname(container.ID); err != nil {
+			l.Warn(err)
+		} else if name != "" {
 			source = name
 		}
 	}
@@ -569,4 +583,9 @@ func (d *dockerClient) tailMultiplexed(src io.ReadCloser, container types.Contai
 	src.Close()
 	wg.Wait()
 	return err
+}
+
+// ignoreCommand 忽略 k8s pod 的 init container
+func ignoreCommand(command string) bool {
+	return command == "/pause"
 }
