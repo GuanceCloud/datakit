@@ -118,6 +118,7 @@ import (
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tcpdump"
 
 	// only windows
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/win_event"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wmi"
 
 	// 32bit disabled, only 64 bit available
