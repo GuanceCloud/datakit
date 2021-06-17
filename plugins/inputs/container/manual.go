@@ -26,14 +26,13 @@ func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 			"docker_image":      inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`，（仅在容器由 docker 创建时存在）"),
 			"images_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`，（仅在容器由 docker 创建时存在）"),
 			"images_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`，（仅在容器由 docker 创建时存在）"),
-			"images_tag":        inputs.NewTagInfo("镜像tag，例如 `1.21.0`，（仅在容器由 docker 创建时存在）"),
+			"images_tag":        inputs.NewTagInfo("镜像 tag，例如 `1.21.0`，（仅在容器由 docker 创建时存在）"),
 			"container_type":    inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"state":             inputs.NewTagInfo(`运行状态，running`),
-			"pod_name":          inputs.NewTagInfo(`pod名称`),
-			"pod_namesapce":     inputs.NewTagInfo(`pod命名空间`),
+			"pod_name":          inputs.NewTagInfo(`pod 名称`),
+			"pod_namesapce":     inputs.NewTagInfo(`pod 命名空间`),
 		},
 		Fields: map[string]interface{}{
-			"from_kubernetes":    &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建（deprecated）"},
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
 			"cpu_delta":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "容器 CPU 增量"},
 			"cpu_system_delta":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeIByte, Desc: "系统 CPU 增量"},
@@ -108,16 +107,13 @@ func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"container_id":   inputs.NewTagInfo(`容器ID`),
-			"images_name":    inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`，（仅在容器由 docker 创建时存在）"),
 			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
-			"namespace":      inputs.NewTagInfo(`所属 Kubernetes 命名空间`),
 		},
 		Fields: map[string]interface{}{
-			"from_kubernetes": &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建"},
-			"service":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "服务名称"},
-			"status":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK"},
-			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
+			"service": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "服务名称"},
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK"},
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
 	}
 }
@@ -134,8 +130,8 @@ func (k *kubeletPodMetricMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: "kubelet pod 指标数据（只采集正在运行的 pod）",
 		Tags: map[string]interface{}{
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
-			"pod_name":  inputs.NewTagInfo(`pod 名字`),
-			"namespace": inputs.NewTagInfo(`所属命名空间`),
+			"pod_name":  inputs.NewTagInfo(`pod 名称`),
+			"namespace": inputs.NewTagInfo(`pod 所属命名空间`),
 		},
 		Fields: map[string]interface{}{
 			"cpu_usage":                  &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage of cpu used"},
@@ -168,8 +164,9 @@ func (k *kubeletPodObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: "kubelet pod 对象数据（数值型字段仅在 pod 处于 Running 时存在，例如 cpu_usage 等）",
 		Tags: map[string]interface{}{
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
-			"namespace": inputs.NewTagInfo(`所属命名空间`),
-			"name":      inputs.NewTagInfo(`pod 名字`),
+			"name":      inputs.NewTagInfo(`pod UID`),
+			"pod_name":  inputs.NewTagInfo(`pod 名称`),
+			"namespace": inputs.NewTagInfo(`pod 所属命名空间`),
 			"ready":     inputs.NewTagInfo(`可用副本数，就绪个数/期望个数，例如 "1/1"`),
 			"state":     inputs.NewTagInfo(`当前阶段的状态，Running/Failed/Pending`),
 			"labels":    inputs.NewTagInfo(`pod labels，格式为 JSON 字符串`),
