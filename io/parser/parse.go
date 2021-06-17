@@ -36,6 +36,8 @@ type parser struct {
 
 func GetConds(input string) WhereConditions {
 	parser := newParser(input)
+	// parser.doParse()
+	log.Debug(input)
 
 	return parser.parseResult.(WhereConditions)
 }
