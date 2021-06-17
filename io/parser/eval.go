@@ -6,36 +6,48 @@ import (
 	"strings"
 )
 
+func (p *ParenExpr) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
+	if p.Param == nil {
+		return false
+	}
+
+	switch expr := p.Param.(type) {
+
+	case Evaluable:
+		return expr.Eval(source, tags, fields)
+	default:
+		log.Errorf("ParenExpr's Param should be Evaluable")
+	}
+
+	return false
+}
+
 func (e *BinaryExpr) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
 	switch e.Op {
 	case AND:
-		l, ok := e.LHS.(*BinaryExpr)
-		if !ok {
-			log.Errorf("LHS not BinaryExpr, should not been here")
-			return false
+		for _, expr := range []Node{e.LHS, e.RHS} {
+			switch expr.(type) {
+			case Evaluable:
+			default:
+				log.Errorf("LHS and RHS should be BinaryExpr or ParenExpr")
+				return false
+			}
 		}
 
-		r, ok := e.RHS.(*BinaryExpr)
-		if !ok {
-			log.Errorf("RHS not BinaryExpr, should not been here")
-			return false
-		}
+		return e.LHS.(Evaluable).Eval(source, tags, fields) && e.RHS.(Evaluable).Eval(source, tags, fields)
 
-		return l.Eval(source, tags, fields) && r.Eval(source, tags, fields)
 	case OR: // LHS/RHS should be BinaryExpr
-		l, ok := e.LHS.(*BinaryExpr)
-		if !ok {
-			log.Errorf("LHS not BinaryExpr, should not been here")
-			return false
+
+		for _, expr := range []Node{e.LHS, e.RHS} {
+			switch expr.(type) {
+			case Evaluable:
+			default:
+				log.Errorf("LHS and RHS should be BinaryExpr or ParenExpr")
+				return false
+			}
 		}
 
-		r, ok := e.RHS.(*BinaryExpr)
-		if !ok {
-			log.Errorf("RHS not BinaryExpr, should not been here")
-			return false
-		}
-
-		return l.Eval(source, tags, fields) || r.Eval(source, tags, fields)
+		return e.LHS.(Evaluable).Eval(source, tags, fields) || e.RHS.(Evaluable).Eval(source, tags, fields)
 
 	default:
 		return e.doEval(source, tags, fields)
