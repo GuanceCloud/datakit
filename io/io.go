@@ -139,7 +139,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 			pts = defLogfilter.filter(pts)
 		} else {
 			// TODO: add multiple dataway config support
-			l.Infof("multiple dataway config for log filter not support yet")
+			l.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
 		}
 	case datakit.Tracing:
 	case datakit.Security:
