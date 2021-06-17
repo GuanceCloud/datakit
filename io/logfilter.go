@@ -111,6 +111,11 @@ func (this *logFilter) refreshRules() error {
 	if err != nil {
 		return err
 	}
+	if len(body) == 0 {
+		this.status = filter_released
+
+		return nil
+	}
 
 	var rules rules
 	if err = json.Unmarshal(body, &rules); err != nil {
