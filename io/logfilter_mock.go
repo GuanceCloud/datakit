@@ -7,11 +7,16 @@ var (
 )
 
 type logFilterMock interface {
-	GetLogFilter() ([]byte, error)
+	getLogFilter() ([]byte, error)
+	preparePoints(pts []*Point) []*Point
 }
 
 type prodLogFilterMock struct{}
 
-func (*prodLogFilterMock) GetLogFilter() ([]byte, error) {
+func (*prodLogFilterMock) getLogFilter() ([]byte, error) {
 	return datakit.Cfg.DataWay.GetLogFilter()
+}
+
+func (*prodLogFilterMock) preparePoints(pts []*Point) []*Point {
+	return pts
 }
