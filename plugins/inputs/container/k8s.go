@@ -94,8 +94,20 @@ func (k *Kubernetes) Stop() {
 }
 
 func (k *Kubernetes) Metric(ctx context.Context, in chan<- *job) {
-	fn := func(metric *PodMetrics, pods *Pods, nodeName string) {
-		result := k.gatherPod(metric)
+	summary, err := k.getStatsSummary()
+	if err != nil {
+		l.Error(err)
+		return
+	}
+
+	nodeName := summary.Node.NodeName
+
+	for _, podMetrics := range summary.Pods {
+		if k.ignorePodName(podMetrics.PodRef.Name) {
+			continue
+		}
+
+		result := k.gatherPodMetrics(&podMetrics)
 		if result == nil {
 			return
 		}
@@ -104,29 +116,57 @@ func (k *Kubernetes) Metric(ctx context.Context, in chan<- *job) {
 		in <- result
 	}
 
-	k.do(ctx, fn)
+	//l.Debugf("")
 }
 
 func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
-	fn := func(metric *PodMetrics, pods *Pods, nodeName string) {
-		result := k.gatherPod(metric)
+	var summary *SummaryMetrics
+	var pods *Pods
+	var err error
+
+	summary, err = k.getStatsSummary()
+	if err != nil {
+		l.Error(err)
+		return
+	}
+
+	pods, err = k.getPods()
+	if err != nil {
+		l.Error(err)
+		return
+	}
+
+	nodeName := summary.Node.NodeName
+
+	for _, item := range pods.Items {
+		if k.ignorePodName(item.Metadata.Name) {
+			continue
+		}
+
+		result := k.gatherPodObject(&item)
 		if result == nil {
 			return
 		}
-
 		result.addTag("node_name", nodeName)
-		result.addTag("name", metric.PodRef.Name)
 
-		podItem := k.getPodItem(pods, metric.PodRef.UID)
-		if podItem != nil {
-			result.addTag("ready", fmt.Sprintf("%d/%d", podItem.Status.ContainerStatuses.Ready(), podItem.Status.ContainerStatuses.Length()))
-			result.addTag("status", podItem.Status.Phase)
-			result.addTag("age", podItem.Status.Age())
-			result.addField("labels", podItem.Metadata.LabelsJSON())
-			result.addField("restart", podItem.Status.ContainerStatuses.RestartCount())
-		}
+		func() {
+			podMetrics := k.findPodMetricsByUID(item.Metadata.UID, summary)
+			if podMetrics == nil {
+				return
+			}
+
+			resMetrics := k.gatherPodMetrics(podMetrics)
+			if resMetrics == nil {
+				return
+			}
+
+			if err := result.merge(resMetrics); err != nil {
+				l.Warn(err)
+			}
+		}()
 
 		if message, err := result.marshal(); err != nil {
+			l.Warnf("failed of marshal json, %s", err)
 		} else {
 			result.addField("message", string(message))
 		}
@@ -135,42 +175,17 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
 		in <- result
 	}
 
-	k.do(ctx, fn)
 }
 
 func (k *Kubernetes) Logging(ctx context.Context) {
 	return
 }
 
-type k8sDataProcessFunc func(metric *PodMetrics, pods *Pods, nodeName string)
-
-func (k *Kubernetes) do(ctx context.Context, processFunc k8sDataProcessFunc) error {
-	summary, err := k.getStatsSummary()
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-
-	pods, err := k.getPods()
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-
-	nodeName := summary.Node.NodeName
-
-	for _, pod := range summary.Pods {
-		processFunc(&pod, pods, nodeName)
-	}
-
-	return nil
-}
-
 func (k *Kubernetes) ignorePodName(name string) bool {
 	return regexpMatchString(k.IgnorePodName, name)
 }
 
-func (k *Kubernetes) gatherPod(pod *PodMetrics) *job {
+func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
 	var tags = make(map[string]string)
 	tags["namespace"] = pod.PodRef.Namespace
 	tags["pod_name"] = pod.PodRef.Name
@@ -195,6 +210,30 @@ func (k *Kubernetes) gatherPod(pod *PodMetrics) *job {
 	return &job{measurement: kubeletPodName, tags: tags, fields: fields, ts: time.Now()}
 }
 
+func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
+	var tags = make(map[string]string)
+	tags["name"] = item.Metadata.UID
+	tags["ready"] = fmt.Sprintf("%d/%d", item.Status.ContainerStatuses.Ready(), item.Status.ContainerStatuses.Length())
+	tags["state"] = item.Status.Phase
+	tags["labels"] = item.Metadata.LabelsJSON()
+
+	fields := map[string]interface{}{
+		"age":     item.Status.Age(),
+		"restart": item.Status.ContainerStatuses.RestartCount(),
+	}
+
+	return &job{measurement: kubeletPodName, tags: tags, fields: fields, ts: time.Now()}
+}
+
+func (k *Kubernetes) findPodMetricsByUID(uid string, summary *SummaryMetrics) *PodMetrics {
+	for _, podMetrics := range summary.Pods {
+		if podMetrics.PodRef.UID == uid {
+			return &podMetrics
+		}
+	}
+	return nil
+}
+
 func (k *Kubernetes) getPods() (*Pods, error) {
 	var pods Pods
 	err := k.LoadJson(fmt.Sprintf("%s/pods", k.URL), &pods)
@@ -211,15 +250,6 @@ func (k *Kubernetes) getStatsSummary() (*SummaryMetrics, error) {
 		return nil, err
 	}
 	return &summary, err
-}
-
-func (k *Kubernetes) getPodItem(pods *Pods, uid string) *PodItem {
-	for _, pod := range pods.Items {
-		if pod.Metadata.UID == uid {
-			return &pod
-		}
-	}
-	return nil
 }
 
 func (k *Kubernetes) GetContainerPodNamespace(id string) (string, error) {
@@ -411,13 +441,12 @@ func (p PodItemMetadata) LabelsJSON() string {
 	return string(j)
 }
 
-func (p PodItemStatus) Age() string {
+func (p PodItemStatus) Age() int64 {
 	ts, err := time.Parse(time.RFC3339, p.StartTime)
 	if err != nil {
-		return "unknown"
+		return -1
 	}
-
-	return fmt.Sprintf("%d", time.Since(ts).Milliseconds())
+	return time.Since(ts).Milliseconds() / 1e3 // 毫秒除以1000得秒数，不使用Second()因为它返回浮点
 }
 
 func (ps PodItemStatusContainers) RestartCount() int64 {
