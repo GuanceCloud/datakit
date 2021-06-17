@@ -71,10 +71,12 @@ func (this *logFilter) start() {
 
 	go func() {
 		tick := time.NewTicker(defInterval)
+	EXIT:
 		for {
 			select {
 			case <-datakit.Exit.Wait():
 				log.Info("log filter exits")
+				break EXIT
 			case <-tick.C:
 				log.Debug("### enter log filter refresh routine")
 				if err := this.refreshRules(); err != nil {
@@ -111,6 +113,8 @@ func (this *logFilter) refreshRules() error {
 	if err != nil {
 		return err
 	}
+	log.Debug(string(body))
+
 	if len(body) == 0 {
 		this.status = filter_released
 
@@ -133,9 +137,12 @@ func (this *logFilter) refreshRules() error {
 
 	// compare and refresh
 	if newRules := strings.Join(rules.Content, ";"); newRules != this.rules {
-		this.conds = parser.GetConds(newRules)
-		this.rules = newRules
-		this.status = filter_refreshed
+		conds := parser.GetConds(newRules)
+		if conds != nil {
+			this.conds = conds
+			this.rules = newRules
+			this.status = filter_refreshed
+		}
 	}
 
 	return nil
