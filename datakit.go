@@ -31,6 +31,7 @@ const (
 	KeyEvent          = "/v1/write/keyevent"
 	Object            = "/v1/write/object"
 	Logging           = "/v1/write/logging"
+	LogFilter         = "/v1/logfilter/pull"
 	Tracing           = "/v1/write/tracing"
 	Rum               = "/v1/write/rum"
 	Security          = "/v1/write/security"
