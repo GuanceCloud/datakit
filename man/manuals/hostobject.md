@@ -98,7 +98,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `module_name` | CPU 型号，如 `Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz` | string |
 | `cores`       | 核数                                                    | int    |
 | `mhz`         | 频率                                                    | int    |
-| `cache_size`  | 缓存大小                                                | int    |
+| `cache_size`  | L2 缓存大小（KB）                                       | int    |
 
 #### `host.mem`
 
