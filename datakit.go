@@ -38,6 +38,7 @@ const (
 	HeartBeat         = "/v1/write/heartbeat"
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"
+	QueryRaw          = "/v1/query/raw"
 )
 
 var (
