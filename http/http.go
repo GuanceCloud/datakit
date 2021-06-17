@@ -18,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
@@ -162,7 +163,9 @@ func HttpStart() {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware)
-	router.NoRoute(page404)
+	if !datakit.Cfg.Disable404Page {
+		router.NoRoute(page404)
+	}
 
 	applyHTTPRoute(router)
 
