@@ -36,7 +36,7 @@ import (
 %token keywordsStart
 %token <item>
 AS ASC AUTO BY DESC TRUE FALSE FILTER
-IDENTIFIER IN AND LINK LIMIT SLIMIT
+IDENTIFIER IN NOTIN AND LINK LIMIT SLIMIT
 OR NIL NULL OFFSET SOFFSET
 ORDER RE INT FLOAT POINT TIMEZONE WITH
 %token keywordsEnd
@@ -377,6 +377,12 @@ binary_expr: expr ADD expr
 						 $$ = bexpr
 					 }
 					 | columnref IN LEFT_BRACKET array_list RIGHT_BRACKET
+					 {
+						 bexpr := yylex.(*parser).newBinExpr($1, $4, $2)
+						 bexpr.ReturnBool = true
+						 $$ = bexpr
+					 }
+					 | columnref NOTIN LEFT_BRACKET array_list RIGHT_BRACKET
 					 {
 						 bexpr := yylex.(*parser).newBinExpr($1, $4, $2)
 						 bexpr.ReturnBool = true
