@@ -33,6 +33,8 @@ const (
 	pipelineTimeField = "time"
 
 	useIOHighFreq = true
+
+	containerIDPrefix = "docker://"
 )
 
 type dockerClient struct {
@@ -143,6 +145,13 @@ func (d *dockerClient) Object(ctx context.Context, in chan<- *job) {
 		}
 		result.addTag("status", c.Status)
 		result.addField("age", time.Since(time.Unix(c.Created, 0)).Milliseconds()/1e3) // 毫秒除以1000得秒数，不使用Second()因为它返回浮点
+		result.addField("from_kubernetes", contianerIsFromKubernetes(getContainerName(c.Names)))
+
+		if message, err := result.marshal(); err != nil {
+			l.Warnf("failed of marshal json, %s", err)
+		} else {
+			result.addField("message", string(message))
+		}
 
 		result.setObject()
 		in <- result
@@ -218,16 +227,15 @@ func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[
 		tags["container_type"] = "docker"
 	} else {
 		tags["container_type"] = "kubernetes"
-
 	}
 
 	if d.K8s != nil {
-		name, _ := d.K8s.GetContainerPodName(container.ID)
+		name, _ := d.K8s.GetContainerPodName(containerIDPrefix + container.ID)
 		if name != "" {
 			tags["pod_name"] = name
 		}
 
-		namespace, _ := d.K8s.GetContainerPodNamespace(container.ID)
+		namespace, _ := d.K8s.GetContainerPodNamespace(containerIDPrefix + container.ID)
 		if namespace != "" {
 			tags["pod_namespace"] = namespace
 		}
@@ -359,7 +367,7 @@ func (d *dockerClient) Logging(ctx context.Context) {
 	}
 
 	for _, container := range cList {
-		// ParseImage() return imageName and imageVersion, discard imageVersion
+		// ParseImage() return imageName imageShortName and imageVersion, discard imageShortName and imageVersion
 		imageName, _, _ := ParseImage(container.Image)
 		if d.ignoreImageNameFromContainer(imageName) ||
 			d.ignoreContainerNameFromContainer(container.ID) {
@@ -382,37 +390,25 @@ func (d *dockerClient) Logging(ctx context.Context) {
 			err = d.tailContainerLogs(ctx, container)
 			if err != nil && err != context.Canceled {
 				l.Error(err)
-				iod.FeedLastError(inputName, fmt.Sprintf("gather logging: %s", err.Error()))
+				iod.FeedLastError(inputName, fmt.Sprintf("failed of gather logging, restart this container logging, name:%s ID:%s error: %s",
+					getContainerName(container.Names), container.ID, err))
 			}
 		}(container)
 	}
 }
 
 func (d *dockerClient) getTags(container types.Container) map[string]string {
-	imageName, _, _ := ParseImage(container.Image)
 	tags := map[string]string{
 		"container_name": containerName,
 		"container_id":   container.ID,
-		"image_name":     imageName,
 	}
 
 	if !contianerIsFromKubernetes(getContainerName(container.Names)) {
-		imageName, _, _ := ParseImage(container.Image)
-		tags["image_name"] = imageName
 		tags["container_type"] = "docker"
 	} else {
 		tags["container_type"] = "kubernetes"
 	}
 
-	if d.K8s != nil {
-		namespace, err := d.K8s.GetContainerPodNamespace(container.ID)
-		if err != nil {
-			l.Debugf("gather k8s pod error, %s", err)
-		}
-		if namespace != "" {
-			tags["namespace"] = namespace
-		}
-	}
 	if d.ProcessTags != nil {
 		d.ProcessTags(tags)
 	}
