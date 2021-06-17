@@ -121,6 +121,7 @@ import (
 
 	// only windows
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/wmi"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/win_event"
 
 	// 32bit disabled, only 64 bit available
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/binlog"
