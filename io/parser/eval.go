@@ -44,7 +44,7 @@ func (e *BinaryExpr) Eval(source string, tags map[string]string, fields map[stri
 
 func (e *BinaryExpr) doEval(source string, tags map[string]string, fields map[string]interface{}) bool {
 	switch e.Op {
-	case GTE, GT, LT, LTE, NEQ, EQ, IN:
+	case GTE, GT, LT, LTE, NEQ, EQ, IN, NOTIN:
 	default:
 		log.Errorf("unsupported OP %s", e.Op.String())
 		return false
@@ -103,8 +103,8 @@ func binEval(op ItemType, lhs, rhs interface{}) bool {
 	tr := reflect.TypeOf(rhs).String()
 
 	switch op {
-	case IN: // XXX: in expr should convert into multiple equal expr(EQ)
-		log.Warnf("IN operator should not been here")
+	case IN, NOTIN: // XXX: in expr should convert into multiple equal expr(EQ)
+		log.Warnf("IN/NOTIN operator should not been here")
 		return false
 
 	case GTE, GT, LT, LTE, NEQ, EQ: // type conflict detecting on comparison expr
@@ -273,11 +273,37 @@ func (e *BinaryExpr) singleEval(source string, tags map[string]string, fields ma
 
 					if v, ok := fields[name]; ok {
 						if binEval(EQ, v, item) {
+							log.Debugf("%v %s %s", v, EQ, item)
 							return true
 						}
 					}
 				}
 			}
+			return false
+
+		case NOTIN:
+			// XXX: if x in @arr, then return false
+			for _, item := range arr {
+
+				if name == "source" {
+					if binEval(EQ, source, item) {
+						return false
+					}
+				} else { // for any tags/fields
+					if v, ok := tags[name]; ok {
+						if binEval(EQ, v, item) {
+							return false
+						}
+					}
+
+					if v, ok := fields[name]; ok {
+						if binEval(EQ, v, item) {
+							return false
+						}
+					}
+				}
+			}
+			return true
 
 		case GTE, GT, LT, LTE, NEQ, EQ:
 
