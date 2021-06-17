@@ -19,14 +19,14 @@ func (c *containerMetricMeasurement) LineProto() (*io.Point, error) {
 func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerName,
-		Desc: "容器指标数据（只采集正在运行的容器）",
+		Desc: "容器指标数据（忽略 k8s pause 容器），只采集正在运行的容器",
 		Tags: map[string]interface{}{
 			"container_id":      inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"container_name":    inputs.NewTagInfo(`容器名称`),
-			"docker_image":      inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`，（仅在容器由 docker 创建时存在）"),
-			"images_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`，（仅在容器由 docker 创建时存在）"),
-			"images_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`，（仅在容器由 docker 创建时存在）"),
-			"images_tag":        inputs.NewTagInfo("镜像 tag，例如 `1.21.0`，（仅在容器由 docker 创建时存在）"),
+			"docker_image":      inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
+			"images_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
+			"images_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
+			"images_tag":        inputs.NewTagInfo("镜像 tag，例如 `1.21.0`"),
 			"container_type":    inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"state":             inputs.NewTagInfo(`运行状态，running`),
 			"pod_name":          inputs.NewTagInfo(`pod 名称`),
@@ -58,16 +58,16 @@ func (c *containerObjectMeasurement) LineProto() (*io.Point, error) {
 func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerName,
-		Desc: "容器对象数据（数值型字段仅在容器处于 running 时存在，例如 cpu_usage 等）",
+		Desc: "容器对象数据（忽略 k8s pause 容器），数值型字段仅在容器处于 running 时存在，例如 cpu_usage 等",
 		Tags: map[string]interface{}{
 			"container_id":      inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"name":              inputs.NewTagInfo(`对象数据的指定 ID`),
 			"status":            inputs.NewTagInfo("容器状态，例如 `Up 5 hours`"),
 			"container_name":    inputs.NewTagInfo(`容器名称`),
-			"docker_image":      inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`，（仅在容器由 docker 创建时存在）"),
-			"images_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`，（仅在容器由 docker 创建时存在）"),
-			"images_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`，（仅在容器由 docker 创建时存在）"),
-			"images_tag":        inputs.NewTagInfo("镜像tag，例如 `1.21.0`，（仅在容器由 docker 创建时存在）"),
+			"docker_image":      inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
+			"images_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
+			"images_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
+			"images_tag":        inputs.NewTagInfo("镜像tag，例如 `1.21.0`"),
 			"container_host":    inputs.NewTagInfo(`容器内部的主机名`),
 			"container_type":    inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"state":             inputs.NewTagInfo(`运行状态，running/exited/removed`),
@@ -102,8 +102,8 @@ func (c *containerLogMeasurement) LineProto() (*io.Point, error) {
 
 func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "日志数据（只采集正在运行的容器日志）",
-		Desc: "默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值",
+		Name: "日志数据",
+		Desc: "默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值（只采集正在运行的容器日志且忽略 k8s pause 容器）",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
 			"container_id":   inputs.NewTagInfo(`容器ID`),
