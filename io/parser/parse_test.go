@@ -14,6 +14,25 @@ func TestParse(t *testing.T) {
 		fail     bool
 	}{
 		{
+			in: `{abc notin [1.1,1.2,1.3]}`,
+			expected: WhereConditions{
+				&WhereCondition{
+					conditions: []Node{
+						&BinaryExpr{
+							Op:  NOTIN,
+							LHS: &Identifier{Name: "abc"},
+							RHS: NodeList{
+								&NumberLiteral{Float: 1.1},
+								&NumberLiteral{Float: 1.2},
+								&NumberLiteral{Float: 1.3},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
 			in:       `{};{};{}`,
 			expected: WhereConditions{&WhereCondition{}, &WhereCondition{}, &WhereCondition{}},
 		},
