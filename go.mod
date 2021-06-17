@@ -150,6 +150,7 @@ require (
 	k8s.io/api v0.0.0-20190813020757-36bff7324fb7
 	k8s.io/apimachinery v0.17.1
 	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 )
 
 replace github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c => github.com/1157987916/websocketproxy v0.0.0-20201229082103-cfa96d57158c
