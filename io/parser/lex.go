@@ -76,6 +76,7 @@ var (
 		"filter":     FILTER,
 		"identifier": IDENTIFIER,
 		"in":         IN,
+		"notin":      NOTIN,
 		"limit":      LIMIT,
 		"link":       LINK,
 		"nil":        NIL,
