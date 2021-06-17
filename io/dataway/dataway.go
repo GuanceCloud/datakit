@@ -21,6 +21,7 @@ var (
 		datakit.KeyEvent,
 		datakit.Object,
 		datakit.Logging,
+		datakit.LogFilter,
 		datakit.Tracing,
 		datakit.Rum,
 		datakit.Security,
@@ -144,6 +145,26 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	}
 
 	return nil
+}
+
+func (dc *dataWayClient) getLogFilter(cli *http.Client) ([]byte, error) {
+	url, ok := dc.categoryURL[datakit.LogFilter]
+	if !ok {
+		return nil, fmt.Errorf("LogFilter API missing, should not been here")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return ioutil.ReadAll(resp.Body)
 }
 
 func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
@@ -284,7 +305,23 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 	return nil
 }
 
-func (dw *DataWayCfg) HeartBeat() error {
+func (dw *DataWayCfg) ClientsCount() int {
+	return len(dw.dataWayClients)
+}
+
+func (dw *DataWayCfg) GetLogFilter() ([]byte, error) {
+	if dw.httpCli != nil {
+		defer dw.httpCli.CloseIdleConnections()
+	}
+
+	if len(dw.dataWayClients) == 0 {
+		return nil, fmt.Errorf("[error] dataway url empty")
+	}
+
+	return dw.dataWayClients[0].getLogFilter(dw.httpCli)
+}
+
+func (dw *DataWayCfg) HeartBeat(id, host string) error {
 	if dw.httpCli != nil {
 		defer dw.httpCli.CloseIdleConnections()
 	}
