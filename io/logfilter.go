@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	filter_release uint8 = iota + 1
+	filter_released uint8 = iota + 1
 	filter_refreshed
 )
 
@@ -25,7 +25,7 @@ var (
 )
 
 type rules struct {
-	content []string `json:"content"`
+	Content []string `json:"content"`
 }
 
 type logFilter struct {
@@ -39,12 +39,15 @@ type logFilter struct {
 func newLogFilter() *logFilter {
 	return &logFilter{
 		clnt:   &http.Client{Timeout: defReqTimeout},
-		status: filter_refreshed,
+		status: filter_released,
 	}
 }
 
 func (this *logFilter) filter(pts []*Point) []*Point {
-	if this.status == filter_release {
+	// mock data injector
+	pts = defLogFilterMock.preparePoints(pts)
+
+	if this.status == filter_released {
 		return pts
 	}
 
@@ -73,6 +76,7 @@ func (this *logFilter) start() {
 			case <-datakit.Exit.Wait():
 				log.Info("log filter exits")
 			case <-tick.C:
+				log.Debug("### enter log filter refresh routine")
 				if err := this.refreshRules(); err != nil {
 					log.Error(err.Error())
 				}
@@ -97,9 +101,20 @@ func (this *logFilter) refreshRules() error {
 	// 	return err
 	// }
 
-	body, err := defLogFilterMock.GetLogFilter()
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error(err)
+		}
+	}()
+
+	body, err := defLogFilterMock.getLogFilter()
 	if err != nil {
 		return err
+	}
+	if len(body) == 0 {
+		this.status = filter_released
+
+		return nil
 	}
 
 	var rules rules
@@ -107,8 +122,8 @@ func (this *logFilter) refreshRules() error {
 		return err
 	}
 
-	if len(rules.content) == 0 {
-		this.status = filter_release
+	if len(rules.Content) == 0 {
+		this.status = filter_released
 
 		return nil
 	}
@@ -117,9 +132,9 @@ func (this *logFilter) refreshRules() error {
 	defer this.Unlock()
 
 	// compare and refresh
-	if newRules := strings.Join(rules.content, ";"); newRules != this.rules {
+	if newRules := strings.Join(rules.Content, ";"); newRules != this.rules {
+		this.conds = parser.GetConds(newRules)
 		this.rules = newRules
-		this.conds = parser.GetConds(this.rules)
 		this.status = filter_refreshed
 	}
 
