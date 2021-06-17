@@ -104,7 +104,7 @@ func (m *Measurement) LineProto() (*io.Point, error) {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
-		Desc:"metric detail on the basis of server-status?auto url",
+		Desc: "采集到的指标，受 Apache 安装环境影响。具体以 `http://<your-apache-server>/server-status?auto` 页面展示的为准。",
 		Fields: map[string]interface{}{
 			"idle_workers":           newCountFieldInfo("The number of idle workers"),
 			"busy_workers":           newCountFieldInfo("The number of workers serving requests."),
