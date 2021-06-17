@@ -15,6 +15,13 @@ func TestExprConditions(t *testing.T) {
 		fields map[string]interface{}
 		pass   bool
 	}{
+
+		{
+			in:     "{abc notin [1.1,1.2,1.3] and (a > 1 || c< 0)}",
+			fields: map[string]interface{}{"abc": int64(4), "a": int64(-1), "c": int64(-2)},
+			pass:   true,
+		},
+
 		{
 			in:     "{a notin [1,2,3,4]}",
 			fields: map[string]interface{}{"a": int64(4)},
