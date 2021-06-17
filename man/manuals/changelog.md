@@ -2,11 +2,29 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc6(2021/06/17)
+
+### 发布说明
+
+- 新增[Windows 事件采集器](windows_event)
+- 为便于用户部署 [RUM](rum) 公网 DataKit，提供禁用 DataKit 404 页面的选项
+- [容器采集器](container)字段有了新的优化，主要涉及 pod 的 restart/ready/state 等字段
+- [Kubernetes 采集器](kubernetes) 增加更多指标采集
+- 支持在 DataKit 端[对日志进行过滤](https://www.yuque.com/dataflux/doc/ilhawc)
+
+### Breaking Changes
+
+对于没有语雀文档支持的采集器，在这次发布中，均已移除。如果有对这些采集器有依赖，不建议升级。
+
+----
+
 ## 1.1.7-rc5(2021/06/16)
 
 ### 问题修复
 
 修复 [DataKit API](apis) `/v1/query/raw` 无法使用的问题。
+
+----
 
 ## 1.1.7-rc4(2021/06/11)
 
