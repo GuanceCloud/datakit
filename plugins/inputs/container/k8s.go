@@ -160,15 +160,13 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
 				return
 			}
 
-			// 避免跟 pod_object name 重复
-			resMetrics.deleteTag("pod_name")
-
 			if err := result.merge(resMetrics); err != nil {
 				l.Warn(err)
 			}
 		}()
 
 		if message, err := result.marshal(); err != nil {
+			l.Warnf("failed of marshal json, %s", err)
 		} else {
 			result.addField("message", string(message))
 		}
@@ -214,7 +212,7 @@ func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
 
 func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
 	var tags = make(map[string]string)
-	tags["name"] = item.Metadata.Name
+	tags["name"] = item.Metadata.UID
 	tags["ready"] = fmt.Sprintf("%d/%d", item.Status.ContainerStatuses.Ready(), item.Status.ContainerStatuses.Length())
 	tags["state"] = item.Status.Phase
 	tags["labels"] = item.Metadata.LabelsJSON()
