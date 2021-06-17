@@ -76,14 +76,20 @@ func buildMonitor() *monitor {
 		host:        opt.Host,
 		port:        opt.Port,
 		serviceName: opt.ServiceName,
+		tags:        make(map[string]string),
 	}
 
 	items := strings.Split(opt.Tags, ";")
 	for _, item := range items {
 		tagArr := strings.Split(item, "=")
-		tagKey := strings.Trim(tagArr[0], " ")
-		tagVal := strings.Trim(tagArr[1], " ")
-		m.tags[tagKey] = tagVal
+
+		if len(tagArr) == 2 {
+			tagKey := strings.Trim(tagArr[0], " ")
+			tagVal := strings.Trim(tagArr[1], " ")
+			if tagKey != "" {
+				m.tags[tagKey] = tagVal
+			}
+		}
 	}
 
 	if m.interval != "" {
@@ -130,10 +136,10 @@ func main() {
 	}
 
 	if opt.Log == "" {
-		opt.Log = filepath.Join(datakit.InstallDir, "externals", "oraclemonitor.log")
+		opt.Log = filepath.Join(datakit.InstallDir, "externals", "oracle.log")
 	}
 
-	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?name=oraclemonitor", opt.DatakitHTTPPort)
+	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle", opt.DatakitHTTPPort)
 
 	logger.SetGlobalRootLogger(opt.Log, opt.LogLevel, logger.OPT_DEFAULT)
 	if opt.InstanceDesc != "" { // add description to logger
