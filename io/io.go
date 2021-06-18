@@ -61,9 +61,9 @@ type IO struct {
 }
 
 func NewIO(maxCacheCnt int64) *IO {
-	io := &IO{
-		MaxCacheCnt:        1024,
-		MaxDynamicCacheCnt: 1024,
+	x := &IO{
+		MaxCacheCnt:        maxCacheCnt,
+		MaxDynamicCacheCnt: maxCacheCnt,
 		FlushInterval:      10 * time.Second,
 		in:                 make(chan *iodata, 128),
 		in2:                make(chan *iodata, 128*8),
@@ -77,10 +77,9 @@ func NewIO(maxCacheCnt int64) *IO {
 		dw:           datakit.Cfg.DataWay,
 	}
 
-	io.MaxCacheCnt = maxCacheCnt
-	io.MaxDynamicCacheCnt = maxCacheCnt
+	l.Debugf("IO: %+#v", x)
 
-	return io
+	return x
 }
 
 const (
@@ -350,7 +349,7 @@ func (x *IO) flushAll() {
 		l.Warnf("post failed cache count: %d", x.cacheCnt)
 	}
 
-	if x.cacheCnt > x.MaxCacheCnt {
+	if x.cacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
 		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCnt)
 		for k, _ := range x.cache {
 			x.cache[k] = nil
@@ -358,7 +357,7 @@ func (x *IO) flushAll() {
 		x.cacheCnt = 0
 	}
 
-	if x.dynamicCacheCnt > x.MaxCacheCnt {
+	if x.dynamicCacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
 		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCnt)
 		for k, _ := range x.dynamicCache {
 			x.dynamicCache[k] = nil
