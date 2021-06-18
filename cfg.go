@@ -39,6 +39,8 @@ func DefaultConfig() *Config {
 			RUMOriginIPHeader: "X-Forward-For",
 		},
 
+		IOCacheCount: 1024,
+
 		LogLevel:  "info",
 		LogRotate: 32,
 		Log:       filepath.Join("/var/log/datakit", "log"),
@@ -99,8 +101,9 @@ type Config struct {
 	BlackList []*InputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
 
-	EnableElection bool `toml:"enable_election"`
-	Disable404Page bool `toml:"disable_404page"`
+	EnableElection bool  `toml:"enable_election"`
+	Disable404Page bool  `toml:"disable_404page"`
+	IOCacheCount   int64 `toml:"io_cache_count"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
