@@ -1,3 +1,5 @@
+//go:generate stringer -type logFilterStatus -output logfilter_stringer.go
+
 package io
 
 import (
@@ -12,8 +14,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
 
+type logFilterStatus uint8
+
 const (
-	filter_released uint8 = iota + 1
+	filter_released logFilterStatus = iota + 1
 	filter_refreshed
 )
 
@@ -30,7 +34,7 @@ type rules struct {
 
 type logFilter struct {
 	clnt   *http.Client
-	status uint8
+	status logFilterStatus
 	rules  string
 	conds  parser.WhereConditions
 	sync.Mutex
@@ -78,7 +82,7 @@ func (this *logFilter) start() {
 				log.Info("log filter exits")
 				break EXIT
 			case <-tick.C:
-				log.Debug("### enter log filter refresh routine")
+				log.Debugf("### enter log filter refresh routine. status: %s", this.status.String())
 				if err := this.refreshRules(); err != nil {
 					log.Error(err.Error())
 				}
