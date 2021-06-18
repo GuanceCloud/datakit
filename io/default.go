@@ -11,13 +11,15 @@ import (
 )
 
 var (
-	defaultMaxCacheCnt = int64(1024)
+	DefaultMaxCacheCnt = int64(1024)
 
-	defaultIO = NewIO(defaultMaxCacheCnt)
+	defaultIO *IO
 )
 
 func Start() error {
 	l = logger.SLogger("io")
+
+	defaultIO = NewIO(datakit.Cfg.IOCacheCount)
 
 	if datakit.OutputFile != "" {
 		defaultIO.OutputFile = datakit.OutputFile
