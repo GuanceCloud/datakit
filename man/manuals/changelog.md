@@ -11,10 +11,11 @@
 - [容器采集器](container)字段有了新的优化，主要涉及 pod 的 restart/ready/state 等字段
 - [Kubernetes 采集器](kubernetes) 增加更多指标采集
 - 支持在 DataKit 端[对日志进行（黑名单）过滤](https://www.yuque.com/dataflux/doc/ilhawc#wGemu)
+	- 注意：如果 DataKit 上配置了多个 DataWay 地址，日志过滤功能将不生效。
 
 ### Breaking Changes
 
-对于没有语雀文档支持的采集器，在这次发布中，均已移除。如果有对这些采集器有依赖，不建议升级。
+对于没有语雀文档支持的采集器，在这次发布中，均已移除（各种云采集器，如阿里云监控数据、费用等采集）。如果有对这些采集器有依赖，不建议升级。
 
 ----
 
