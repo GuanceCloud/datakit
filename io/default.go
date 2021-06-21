@@ -13,7 +13,11 @@ import (
 
 var (
 	extraTags = map[string]string{}
-	defaultIO = NewIO()
+	defaultIO = &IO{
+		MaxCacheCnt:        1024,
+		MaxDynamicCacheCnt: 1024,
+		FlushInterval:      10 * time.Second,
+	}
 )
 
 func SetGlobalCacheCount(i int64) {
@@ -35,6 +39,14 @@ func SetExtraTags(x map[string]string) {
 
 func Start() error {
 	l = logger.SLogger("io")
+
+	defaultIO.in = make(chan *iodata, 128)
+	defaultIO.in2 = make(chan *iodata, 128*8)
+	defaultIO.inLastErr = make(chan *lastErr, 128)
+	defaultIO.inputstats = map[string]*InputsStat{}
+	defaultIO.qstatsCh = make(chan *qstats) // blocking
+	defaultIO.cache = map[string][]*Point{}
+	defaultIO.dynamicCache = map[string][]*Point{}
 
 	datakit.WG.Add(1)
 	go func() {
