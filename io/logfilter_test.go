@@ -21,7 +21,7 @@ func (*debugLogFilterMock) getLogFilter() ([]byte, error) {
 func (*debugLogFilterMock) preparePoints(pts []*Point) []*Point {
 	influxPts, err := lp.ParsePoints(debugPoints, nil)
 	if err != nil {
-		log.Error(err)
+		l.Error(err)
 		pts = nil
 	}
 
@@ -47,18 +47,18 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb a
 	time.Sleep(3 * time.Second)
 
 	if defLogfilter.status == filter_released {
-		log.Info("log filter released")
+		l.Info("log filter released")
 	} else if defLogfilter.status == filter_refreshed {
-		log.Info("log filter refreshed")
+		l.Info("log filter refreshed")
 	} else {
-		log.Info("log filter status unknow")
+		l.Info("log filter status unknow")
 	}
 
-	log.Infof("log filter current rules: %q", defLogfilter.rules)
+	l.Infof("log filter current rules: %q", defLogfilter.rules)
 
 	after := defLogfilter.filter(nil)
 	for _, pt := range after {
-		log.Info(pt)
+		l.Info(pt)
 	}
 }
 
@@ -76,35 +76,35 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 	time.Sleep(3 * time.Second)
 
 	if defLogfilter.status == filter_released {
-		log.Info("log filter released")
+		l.Info("log filter released")
 	} else if defLogfilter.status == filter_refreshed {
-		log.Info("log filter refreshed")
+		l.Info("log filter refreshed")
 	} else {
-		log.Info("log filter status unknow")
+		l.Info("log filter status unknow")
 	}
 
-	log.Debug("log filter current rules: %q", defLogfilter.rules)
+	l.Debug("log filter current rules: %q", defLogfilter.rules)
 
 	after := defLogfilter.filter(nil)
 	for _, pt := range after {
-		log.Info(pt)
+		l.Info(pt)
 	}
 
 	debugFilterRules = []byte(`{"content": []}`)
 	time.Sleep(3 * time.Second)
 	if defLogfilter.status == filter_released {
-		log.Info("log filter released")
+		l.Info("log filter released")
 	} else if defLogfilter.status == filter_refreshed {
-		log.Info("log filter refreshed")
+		l.Info("log filter refreshed")
 	} else {
-		log.Info("log filter status unknow")
+		l.Info("log filter status unknow")
 	}
 
-	log.Infof("log filter current rules: %q", defLogfilter.rules)
+	l.Infof("log filter current rules: %q", defLogfilter.rules)
 
 	after = defLogfilter.filter(nil)
 	for _, pt := range after {
-		log.Info(pt)
+		l.Info(pt)
 	}
 }
 
