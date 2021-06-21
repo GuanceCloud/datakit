@@ -330,6 +330,9 @@ func (x *IO) StartIO(recoverable bool) {
 		}
 	}
 
+	// start log filter
+	defLogfilter.start()
+
 	l.Info("starting...")
 	f(nil, nil)
 }
