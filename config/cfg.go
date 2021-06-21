@@ -185,7 +185,7 @@ func InitDirs() {
 		datakit.ConfdDir,
 		datakit.PipelineDir,
 		datakit.PipelinePatternDir} {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(dir, 0600); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
 	}
@@ -283,8 +283,12 @@ func (c *Config) ApplyMainConfig() error {
 
 	// set global log root
 	l.Infof("set log to %s", c.Log)
-	logger.MaxSize = c.LogRotate
-	logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT)
+	if c.Log != "stdout" || c.Log == "" {
+		logger.MaxSize = c.LogRotate
+		logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT)
+	} else {
+		logger.SetStdoutRootLogger(c.LogLevel, logger.OPT_DEFAULT|logger.OPT_STDOUT)
+	}
 
 	l = logger.SLogger("datakit")
 
@@ -313,6 +317,8 @@ func (c *Config) ApplyMainConfig() error {
 	if c.HTTPAPI != nil {
 		dkhttp.SetAPIConfig(c.HTTPAPI)
 	}
+
+	dkhttp.SetDataWay(c.DataWay)
 
 	io.SetDataWay(c.DataWay)
 	io.SetGlobalCacheCount(c.IOCacheCount)
