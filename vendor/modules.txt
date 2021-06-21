@@ -192,8 +192,6 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/basgys/goxml2json
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
-# github.com/blang/semver/v4 v4.0.0
-github.com/blang/semver/v4
 # github.com/c-bata/go-prompt v0.2.5 => github.com/coanor/go-prompt v0.2.6
 github.com/c-bata/go-prompt
 github.com/c-bata/go-prompt/internal/bisect
@@ -1020,7 +1018,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210528040150-d44a55a4a70a
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210621103313-53d96bc7b8b2
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
