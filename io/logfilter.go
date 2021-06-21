@@ -1,3 +1,5 @@
+//go:generate stringer -type logFilterStatus -output logfilter_stringer.go
+
 package io
 
 import (
@@ -12,8 +14,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
 
+type logFilterStatus uint8
+
 const (
-	filter_released uint8 = iota + 1
+	filter_released logFilterStatus = iota + 1
 	filter_refreshed
 )
 
@@ -30,7 +34,7 @@ type rules struct {
 
 type logFilter struct {
 	clnt   *http.Client
-	status uint8
+	status logFilterStatus
 	rules  string
 	conds  parser.WhereConditions
 	sync.Mutex
@@ -71,12 +75,14 @@ func (this *logFilter) start() {
 
 	go func() {
 		tick := time.NewTicker(defInterval)
+	EXIT:
 		for {
 			select {
 			case <-datakit.Exit.Wait():
 				log.Info("log filter exits")
+				break EXIT
 			case <-tick.C:
-				log.Debug("### enter log filter refresh routine")
+				log.Debugf("### enter log filter refresh routine. status: %s", this.status.String())
 				if err := this.refreshRules(); err != nil {
 					log.Error(err.Error())
 				}
@@ -111,6 +117,8 @@ func (this *logFilter) refreshRules() error {
 	if err != nil {
 		return err
 	}
+	log.Debug(string(body))
+
 	if len(body) == 0 {
 		this.status = filter_released
 
@@ -133,9 +141,12 @@ func (this *logFilter) refreshRules() error {
 
 	// compare and refresh
 	if newRules := strings.Join(rules.Content, ";"); newRules != this.rules {
-		this.conds = parser.GetConds(newRules)
-		this.rules = newRules
-		this.status = filter_refreshed
+		conds := parser.GetConds(newRules)
+		if conds != nil {
+			this.conds = conds
+			this.rules = newRules
+			this.status = filter_refreshed
+		}
 	}
 
 	return nil

@@ -89,11 +89,13 @@ var (
     # "key2" = "value2"
 `
 	pipelineConfig = `
-  json(_, ` + "`t.$date`" + `, "time")
+  json(_, t, "tmp")
+  json(tmp, ` + "`" + "$date" + "`" + `, "time")
   json(_, s, "status")
   json(_, c, "component")
   json(_, msg, "msg")
   json(_, ctx, "context")
+  drop_key(tmp)
   default_time(time)
 `
 	l = logger.DefaultSLogger(inputName)
