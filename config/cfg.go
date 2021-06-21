@@ -15,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -41,9 +42,11 @@ func DefaultConfig() *Config {
 		ProtectMode: true,
 
 		HTTPListen: "localhost:9529",
-		HTTPAPI: &apiConfig{
+		HTTPAPI: &dkhttp.APIConfig{
 			RUMOriginIPHeader: "X-Forward-For",
 		},
+
+		IOCacheCount: 1024,
 
 		LogLevel:  "info",
 		LogRotate: 32,
@@ -67,10 +70,6 @@ func DefaultConfig() *Config {
 	return c
 }
 
-type apiConfig struct {
-	RUMOriginIPHeader string `toml:"rum_origin_ip_header"`
-}
-
 type Config struct {
 	UUID           string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
@@ -81,7 +80,7 @@ type Config struct {
 	HTTPBindDeprecated string `toml:"http_server_addr,omitempty"`
 	HTTPListen         string `toml:"http_listen,omitempty"`
 
-	HTTPAPI *apiConfig `toml:"http_api"`
+	HTTPAPI *dkhttp.APIConfig `toml:"http_api"`
 
 	Log       string `toml:"log"`
 	LogLevel  string `toml:"log_level"`
@@ -105,7 +104,9 @@ type Config struct {
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 
-	EnableElection bool `toml:"enable_election"`
+	EnableElection bool  `toml:"enable_election"`
+	Disable404Page bool  `toml:"disable_404page"`
+	IOCacheCount   int64 `toml:"io_cache_count"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
@@ -305,7 +306,16 @@ func (c *Config) ApplyMainConfig() error {
 		return err
 	}
 
+	if c.Disable404Page {
+		dkhttp.Disable404Page()
+	}
+
+	if c.HTTPAPI != nil {
+		dkhttp.SetAPIConfig(c.HTTPAPI)
+	}
+
 	io.SetDataWay(c.DataWay)
+	io.SetGlobalCacheCount(c.IOCacheCount)
 
 	if err := c.setupGlobalTags(); err != nil {
 		return err
@@ -417,7 +427,7 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	if v := getEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {
-		c.HTTPAPI = &apiConfig{RUMOriginIPHeader: v}
+		c.HTTPAPI = &dkhttp.APIConfig{RUMOriginIPHeader: v}
 	}
 
 	if v := getEnv("ENV_ENABLE_PPROF"); v != "" {
