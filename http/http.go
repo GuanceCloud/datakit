@@ -18,8 +18,8 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 var (
@@ -36,6 +36,11 @@ var (
 	stopCh   = make(chan interface{})
 	stopOkCh = make(chan interface{})
 	mtx      = sync.Mutex{}
+
+	disable404Page = false
+	dw             *dataway.DataWayCfg
+	extraTags      = map[string]string{}
+	apiConfig      *APIConfig
 )
 
 const (
@@ -55,6 +60,10 @@ type Option struct {
 
 	GinReleaseMode bool
 	PProf          bool
+}
+
+type APIConfig struct {
+	RUMOriginIPHeader string `toml:"rum_origin_ip_header"`
 }
 
 func Start(o *Option) {
@@ -80,6 +89,22 @@ type welcome struct {
 	Arch    string
 }
 
+func Disable404Page() {
+	disable404Page = true
+}
+
+func SetDataWay(dw *dataway.DataWayCfg) {
+	dw = dw
+}
+
+func SetAPIConfig(c *APIConfig) {
+	apiConfig = c
+}
+
+func SetGlobalTags(tags map[string]string) {
+	extraTags = tags
+}
+
 func page404(c *gin.Context) {
 
 	w := &welcome{
@@ -91,7 +116,7 @@ func page404(c *gin.Context) {
 
 	c.Writer.Header().Set("Content-Type", "text/html")
 	t := template.New(``)
-	t, err := t.Parse(config.WelcomeMsgTemplate)
+	t, err := t.Parse(welcomeMsgTemplate)
 	if err != nil {
 		l.Error("parse welcome msg failed: %s", err.Error())
 		uhttp.HttpErr(c, err)
@@ -162,7 +187,9 @@ func HttpStart() {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware)
-	router.NoRoute(page404)
+	if !disable404Page {
+		router.NoRoute(page404)
+	}
 
 	applyHTTPRoute(router)
 
@@ -173,7 +200,7 @@ func HttpStart() {
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 
-	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
+	//router.GET("/reload", func(c *gin.Context) { apiReload(c) })
 
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
 
