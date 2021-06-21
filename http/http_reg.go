@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func resetHttpRoute() {
+func ResetHttpRoute() {
 	mtx.Lock()
 	defer mtx.Unlock()
 	httpRouteList = make(map[string]*httpRouteInfo)
