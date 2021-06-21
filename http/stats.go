@@ -18,7 +18,7 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
@@ -190,15 +190,15 @@ func GetStats() (*DatakitStats, error) {
 
 	now := time.Now()
 	stats := &DatakitStats{
-		Version:      git.Version,
-		BuildAt:      git.BuildAt,
-		Branch:       git.Branch,
-		Uptime:       fmt.Sprintf("%v", now.Sub(uptime)),
-		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:    reloadCnt,
-		ReloadInfo:   "0",
-		WithinDocker: config.Docker,
-		IOChanStat:   io.ChanStat(),
+		Version:    git.Version,
+		BuildAt:    git.BuildAt,
+		Branch:     git.Branch,
+		Uptime:     fmt.Sprintf("%v", now.Sub(uptime)),
+		OSArch:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		ReloadCnt:  reloadCnt,
+		ReloadInfo: "0",
+		//WithinDocker: config.Docker,
+		IOChanStat: io.ChanStat(),
 	}
 
 	if reloadCnt > 0 {
