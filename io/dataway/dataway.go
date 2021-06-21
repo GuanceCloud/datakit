@@ -321,7 +321,7 @@ func (dw *DataWayCfg) GetLogFilter() ([]byte, error) {
 	return dw.dataWayClients[0].getLogFilter(dw.httpCli)
 }
 
-func (dw *DataWayCfg) HeartBeat(id, host string) error {
+func (dw *DataWayCfg) HeartBeat() error {
 	if dw.httpCli != nil {
 		defer dw.httpCli.CloseIdleConnections()
 	}
