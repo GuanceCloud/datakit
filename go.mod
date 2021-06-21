@@ -28,7 +28,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/aws/aws-sdk-go v1.35.20
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/blang/semver/v4 v4.0.0
+	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/c-bata/go-prompt v0.2.5
 	github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327 // indirect
 	github.com/containerd/containerd v1.4.1
@@ -129,7 +129,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210528040150-d44a55a4a70a
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210621103313-53d96bc7b8b2
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210603111111-890a3501d71c
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
@@ -137,7 +137,7 @@ require (
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210525143221-35b2ab0089ea
-	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed // indirect
+	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
 	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.28.0
@@ -150,7 +150,7 @@ require (
 	k8s.io/api v0.0.0-20190813020757-36bff7324fb7
 	k8s.io/apimachinery v0.17.1
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
+	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6 // indirect
 )
 
 replace github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c => github.com/1157987916/websocketproxy v0.0.0-20201229082103-cfa96d57158c
