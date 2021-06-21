@@ -61,8 +61,8 @@ type IO struct {
 	outputFileSize  int64
 }
 
-func NewIO(maxCacheCnt int64) *IO {
-	io := &IO{
+func NewIO() *IO {
+	x := &IO{
 		MaxCacheCnt:        1024,
 		MaxDynamicCacheCnt: 1024,
 		FlushInterval:      10 * time.Second,
@@ -77,10 +77,9 @@ func NewIO(maxCacheCnt int64) *IO {
 		dynamicCache: map[string][]*Point{},
 	}
 
-	io.MaxCacheCnt = maxCacheCnt
-	io.MaxDynamicCacheCnt = maxCacheCnt
+	l.Debugf("IO: %+#v", x)
 
-	return io
+	return x
 }
 
 const (
@@ -139,7 +138,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 			pts = defLogfilter.filter(pts)
 		} else {
 			// TODO: add multiple dataway config support
-			l.Infof("multiple dataway config for log filter not support yet")
+			l.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
 		}
 	case datakit.Tracing:
 	case datakit.Security:
@@ -350,7 +349,7 @@ func (x *IO) flushAll() {
 		l.Warnf("post failed cache count: %d", x.cacheCnt)
 	}
 
-	if x.cacheCnt > x.MaxCacheCnt {
+	if x.cacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
 		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCnt)
 		for k, _ := range x.cache {
 			x.cache[k] = nil
@@ -358,7 +357,7 @@ func (x *IO) flushAll() {
 		x.cacheCnt = 0
 	}
 
-	if x.dynamicCacheCnt > x.MaxCacheCnt {
+	if x.dynamicCacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
 		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCnt)
 		for k, _ := range x.dynamicCache {
 			x.dynamicCache[k] = nil

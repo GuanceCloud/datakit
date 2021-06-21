@@ -147,7 +147,6 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
 		if result == nil {
 			return
 		}
-		result.addTag("node_name", nodeName)
 
 		func() {
 			podMetrics := k.findPodMetricsByUID(item.Metadata.UID, summary)
@@ -164,6 +163,10 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
 				l.Warn(err)
 			}
 		}()
+
+		result.addTag("node_name", nodeName)
+		// 一定要在此处进行 add pod_name
+		result.addTag("pod_name", item.Metadata.Name)
 
 		if message, err := result.marshal(); err != nil {
 			l.Warnf("failed of marshal json, %s", err)
