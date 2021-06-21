@@ -79,6 +79,8 @@ func doDQL(s string) {
 		return
 	}
 
+	l.Debugf("query: %s", string(j))
+
 	resp, err := http.Post("http://localhost:9529/v1/query/raw", "application/json", bytes.NewBuffer(j))
 	if err != nil {
 		fmt.Printf("[E] %s\n", err)
