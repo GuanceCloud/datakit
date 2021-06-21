@@ -141,6 +141,7 @@ var (
 		"ucloud_monitor":         true,
 		"wechatminiprogram":      true,
 		"wmi":                    true,
+		"windows_event":          true,
 		"yarn":                   true,
 		"zabbix":                 true,
 		"zaplog":                 true,
