@@ -28,7 +28,7 @@ func TestGatherServerStats(t *testing.T) {
 
 	for _, srv := range input.mongos {
 		if srv.lastResult != nil {
-			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host}, 1)
+			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			data.AddDefaultStats()
 			data.AddDbStats()
 			data.AddColStats()
@@ -67,7 +67,7 @@ func TestGatherCluster(t *testing.T) {
 
 	for _, srv := range input.mongos {
 		if srv.lastResult != nil {
-			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host}, 1)
+			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			data.AddDefaultStats()
 			data.AddDbStats()
 			data.AddColStats()
@@ -106,7 +106,7 @@ func TestGatherPerDbStats(t *testing.T) {
 
 	for _, srv := range input.mongos {
 		if srv.lastResult != nil {
-			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host}, 1)
+			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			// data.AddDefaultStats()
 			data.AddDbStats()
 			data.AddColStats()
@@ -149,7 +149,7 @@ func TestGatherCollection(t *testing.T) {
 
 	for _, srv := range input.mongos {
 		if srv.lastResult != nil {
-			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host}, 1)
+			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			// data.AddDefaultStats()
 			data.AddDbStats()
 			data.AddColStats()
@@ -188,7 +188,7 @@ func TestGatherTop(t *testing.T) {
 
 	for _, srv := range input.mongos {
 		if srv.lastResult != nil {
-			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host}, 1)
+			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			// data.AddDefaultStats()
 			data.AddDbStats()
 			data.AddColStats()
@@ -207,7 +207,6 @@ func TestGatherTop(t *testing.T) {
 	}
 }
 
-// TODO: add tls dial and connection test
 func TestTlsConnectCollect(t *testing.T) {
 	input := &Input{
 		Interval: datakit.Duration{Duration: 3 * time.Second},
@@ -236,7 +235,7 @@ func TestTlsConnectCollect(t *testing.T) {
 
 	for _, srv := range input.mongos {
 		if srv.lastResult != nil {
-			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host}, 1)
+			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			data.AddDefaultStats()
 			data.AddDbStats()
 			data.AddColStats()
