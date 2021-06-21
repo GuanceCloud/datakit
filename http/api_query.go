@@ -47,14 +47,20 @@ func apiQueryRaw(c *gin.Context) {
 
 	body, err := uhttp.GinRead(c)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("GinRead: %s", err.Error())
 		uhttp.HttpErr(c, err)
 		return
 	}
 
 	var q QueryRaw
 	if err := json.Unmarshal(body, &q); err != nil {
+		l.Errorf("json.Unmarshal: %s", err)
 		uhttp.HttpErr(c, err)
+		return
+	}
+
+	if dw == nil {
+		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
 		return
 	}
 
@@ -68,13 +74,16 @@ func apiQueryRaw(c *gin.Context) {
 
 	j, err := json.Marshal(q)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("json.Marshal: %s", err.Error())
 		uhttp.HttpErr(c, err)
 		return
 	}
 
+	l.Debugf("query: %s", string(j))
+
 	resp, err := dw.DQLQuery(j)
 	if err != nil {
+		l.Errorf("DQLQuery: %s", err)
 		uhttp.HttpErr(c, err)
 		return
 	}
