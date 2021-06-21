@@ -12,20 +12,17 @@ import (
 )
 
 var (
-	defaultMaxCacheCnt = int64(1024)
-
-	defaultIO     = NewIO(defaultMaxCacheCnt)
-	outputFile    = ""
-	flushInterval = 10 * time.Second
-	extraTags     = map[string]string{}
+	extraTags = map[string]string{}
+	defaultIO = NewIO()
 )
+
+func SetGlobalCacheCount(i int64) {
+	defaultIO.MaxCacheCnt = i
+	defaultIO.MaxDynamicCacheCnt = i
+}
 
 func SetOutputFile(f string) {
 	defaultIO.OutputFile = f
-}
-
-func SetFlushInterval(x time.Duration) {
-	defaultIO.FlushInterval = x
 }
 
 func SetDataWay(dw *dataway.DataWayCfg) {
