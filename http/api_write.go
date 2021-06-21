@@ -8,7 +8,6 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -56,9 +55,9 @@ func apiWrite(c *gin.Context) {
 		return
 	}
 
-	extraTags := config.Cfg.GlobalTags
+	tags := extraTags
 	if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
-		extraTags = nil
+		tags = nil
 	}
 
 	body, err = uhttp.GinRead(c)
@@ -74,7 +73,7 @@ func apiWrite(c *gin.Context) {
 		return
 	}
 
-	pts, err := handleWriteBody(body, extraTags, precision)
+	pts, err := handleWriteBody(body, tags, precision)
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
