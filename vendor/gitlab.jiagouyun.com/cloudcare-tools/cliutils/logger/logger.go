@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -150,6 +151,16 @@ func SetStdoutRootLogger(level string, options int) {
 func SetGlobalRootLogger(fpath, level string, options int) error {
 	mtx.Lock()
 	defer mtx.Unlock()
+
+	logdir := filepath.Dir(fpath)
+	if err := os.MkdirAll(logdir, 0600); err != nil {
+		return err
+	}
+
+	// create log file
+	if err := ioutil.WriteFile(fpath, nil, 0600); err != nil {
+		return err
+	}
 
 	if defaultRootLogger != nil {
 		if ll != nil {
