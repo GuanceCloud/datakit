@@ -54,6 +54,8 @@ func LoadCfg(c *Config, mcp string) error {
 		}
 	}
 
+	l.Debugf("apply main configure...")
+
 	if err := c.ApplyMainConfig(); err != nil {
 		return err
 	}
