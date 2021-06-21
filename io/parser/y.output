@@ -312,13 +312,13 @@ state 28
 state 29
 	identifier:  ID.    (76)
 
-	.  reduce 76 (src line 436)
+	.  reduce 76 (src line 435)
 
 
 state 30
 	identifier:  QUOTED_STRING.    (77)
 
-	.  reduce 77 (src line 437)
+	.  reduce 77 (src line 436)
 
 
 state 31
@@ -1766,13 +1766,13 @@ state 110
 state 111
 	regex:  RE LEFT_PAREN string_literal RIGHT_PAREN.    (74)
 
-	.  reduce 74 (src line 426)
+	.  reduce 74 (src line 425)
 
 
 state 112
 	regex:  RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN.    (75)
 
-	.  reduce 75 (src line 430)
+	.  reduce 75 (src line 429)
 
 
 state 113
@@ -1873,7 +1873,7 @@ state 116
 state 117
 	identifier:  IDENTIFIER LEFT_PAREN string_literal RIGHT_PAREN.    (78)
 
-	.  reduce 78 (src line 441)
+	.  reduce 78 (src line 440)
 
 
 state 118
