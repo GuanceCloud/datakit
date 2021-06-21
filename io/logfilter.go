@@ -4,12 +4,10 @@ package io
 
 import (
 	"encoding/json"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
@@ -22,10 +20,8 @@ const (
 )
 
 var (
-	defInterval   = 10 * time.Second
-	defReqTimeout = 3 * time.Second
-	defLogfilter  *logFilter
-	log           = logger.DefaultSLogger("logfilter")
+	defInterval  = 10 * time.Second
+	defLogfilter = &logFilter{status: filter_released}
 )
 
 type rules struct {
@@ -33,18 +29,10 @@ type rules struct {
 }
 
 type logFilter struct {
-	clnt   *http.Client
 	status logFilterStatus
 	rules  string
 	conds  parser.WhereConditions
 	sync.Mutex
-}
-
-func newLogFilter() *logFilter {
-	return &logFilter{
-		clnt:   &http.Client{Timeout: defReqTimeout},
-		status: filter_released,
-	}
 }
 
 func (this *logFilter) filter(pts []*Point) []*Point {
@@ -59,7 +47,7 @@ func (this *logFilter) filter(pts []*Point) []*Point {
 	for _, pt := range pts {
 		fields, err := pt.Fields()
 		if err != nil {
-			log.Error(err)
+			l.Error(err)
 			continue
 		}
 		if !this.conds.Eval(pt.Name(), pt.Tags(), fields) {
@@ -71,7 +59,7 @@ func (this *logFilter) filter(pts []*Point) []*Point {
 }
 
 func (this *logFilter) start() {
-	log.Info("log filter engaged")
+	l.Infof("log filter engaged, status: %q refresh_interval: %ds", this.status.String(), int(defInterval.Seconds()))
 
 	go func() {
 		tick := time.NewTicker(defInterval)
@@ -79,12 +67,12 @@ func (this *logFilter) start() {
 		for {
 			select {
 			case <-datakit.Exit.Wait():
-				log.Info("log filter exits")
+				l.Info("log filter exits")
 				break EXIT
 			case <-tick.C:
-				log.Debugf("### enter log filter refresh routine. status: %s", this.status.String())
+				l.Debugf("### enter log filter refresh routine, status: %q", this.status.String())
 				if err := this.refreshRules(); err != nil {
-					log.Error(err.Error())
+					l.Error(err.Error())
 				}
 			}
 		}
@@ -92,24 +80,9 @@ func (this *logFilter) start() {
 }
 
 func (this *logFilter) refreshRules() error {
-	// req, err := http.NewRequest(http.MethodGet, defReqUrl, nil)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// resp, err := this.clnt.Do(req)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// buf, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	return err
-	// }
-
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error(err)
+			l.Error(err)
 		}
 	}()
 
@@ -117,7 +90,7 @@ func (this *logFilter) refreshRules() error {
 	if err != nil {
 		return err
 	}
-	log.Debug(string(body))
+	l.Debug(string(body))
 
 	if len(body) == 0 {
 		this.status = filter_released
@@ -150,11 +123,4 @@ func (this *logFilter) refreshRules() error {
 	}
 
 	return nil
-}
-
-func init() {
-	log = logger.SLogger("logfilter")
-
-	defLogfilter = newLogFilter()
-	//defLogfilter.start()
 }
