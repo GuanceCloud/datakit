@@ -15,7 +15,7 @@ func TestGatherDockerMetric(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cList, err := mock.containerList(context.Background())
+	cList, err := mock.client.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestGatherDockerMetric2(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cList, err := mock.containerList(context.Background())
+	cList, err := mock.client.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestGatherDockerStats(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cList, err := mock.containerList(context.Background())
+	cList, err := mock.client.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
