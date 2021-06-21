@@ -342,21 +342,26 @@ func run() {
 	// branch should not reached, but for daily debugging(ctrl-c), we kept the signal
 	// exit option.
 	signals := make(chan os.Signal, datakit.CommonChanCap)
-	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-	select {
-	case sig := <-signals:
-		if sig == syscall.SIGHUP {
-			// TODO: reload configures
-		} else {
-			l.Infof("get signal %v, wait & exit", sig)
+	for {
+		signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+		select {
+		case sig := <-signals:
+			if sig == syscall.SIGHUP {
+				l.Info("under signal SIGHUP, reloading...")
+				cmds.Reload()
+			} else {
+				l.Infof("get signal %v, wait & exit", sig)
+				http.HttpStop()
+				datakit.Quit()
+				break
+			}
+
+		case <-service.StopCh:
+			l.Infof("service stopping")
 			http.HttpStop()
 			datakit.Quit()
+			break
 		}
-
-	case <-service.StopCh:
-		l.Infof("service stopping")
-		http.HttpStop()
-		datakit.Quit()
 	}
 
 	l.Info("datakit exit.")
