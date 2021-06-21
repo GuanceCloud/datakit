@@ -156,5 +156,5 @@ func init() {
 	log = logger.SLogger("logfilter")
 
 	defLogfilter = newLogFilter()
-	defLogfilter.start()
+	//defLogfilter.start()
 }
