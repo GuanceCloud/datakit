@@ -44,6 +44,12 @@ func GetConds(input string) WhereConditions {
 
 	p.doParse()
 
+	if len(p.errs) > 0 {
+		log.Error(p.errs.Error())
+
+		return nil
+	}
+
 	return p.parseResult.(WhereConditions)
 }
 
