@@ -93,8 +93,9 @@ func Disable404Page() {
 	disable404Page = true
 }
 
-func SetDataWay(dw *dataway.DataWayCfg) {
-	dw = dw
+func SetDataWay(x *dataway.DataWayCfg) {
+	l.Debugf("set http dataway to %v", x)
+	dw = x
 }
 
 func SetAPIConfig(c *APIConfig) {
