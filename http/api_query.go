@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 type SingleQuery struct {
@@ -59,7 +58,7 @@ func apiQueryRaw(c *gin.Context) {
 		return
 	}
 
-	tkns := config.Cfg.DataWay.GetToken()
+	tkns := dw.GetToken()
 	if len(tkns) == 0 {
 		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
 		return
@@ -74,7 +73,7 @@ func apiQueryRaw(c *gin.Context) {
 		return
 	}
 
-	resp, err := config.Cfg.DataWay.DQLQuery(j)
+	resp, err := dw.DQLQuery(j)
 	if err != nil {
 		uhttp.HttpErr(c, err)
 		return
