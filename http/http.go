@@ -200,7 +200,10 @@ func HttpStart() {
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 
-	//router.GET("/reload", func(c *gin.Context) { apiReload(c) })
+	// reload disabled under windows, syscall.Kill() not supported under windows
+	if runtime.GOOS != "windows" {
+		router.GET("/reload", func(c *gin.Context) { apiReload(c) })
+	}
 
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
 
