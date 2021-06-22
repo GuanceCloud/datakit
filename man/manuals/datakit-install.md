@@ -48,4 +48,3 @@ sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 其它相关链接：
 
 - 关于 DataKit 的基本 使用，参考 [DataKit 使用入门](datakit-how-to)
-- DataKit 容器安装，参考 [DataKit 容器节点部署](datakit-docker-install)
