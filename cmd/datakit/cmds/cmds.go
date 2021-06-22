@@ -3,6 +3,7 @@ package cmds
 import (
 	"fmt"
 	nhttp "net/http"
+	"path/filepath"
 
 	"github.com/c-bata/go-prompt"
 	"github.com/kardianos/service"
@@ -10,6 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
@@ -37,7 +39,7 @@ func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
 }
 
 func StopDatakit() error {
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
 	}
@@ -59,7 +61,7 @@ func StopDatakit() error {
 }
 
 func StartDatakit() error {
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
 	}
@@ -113,7 +115,7 @@ func ReloadDatakit(port int) error {
 }
 
 func UninstallDatakit() error {
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
 	}
@@ -124,7 +126,7 @@ func UninstallDatakit() error {
 
 func DatakitStatus() (string, error) {
 
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return "", err
 	}
@@ -146,10 +148,14 @@ func DatakitStatus() (string, error) {
 }
 
 func IPInfo(ip string) (map[string]string, error) {
-	if err := geo.LoadIPLib(); err != nil {
+
+	datadir := datakit.DataDir
+
+	if err := geo.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return nil, err
 	}
-	if err := ip2isp.Init(); err != nil {
+
+	if err := ip2isp.Init(filepath.Join(datadir, "ip2isp.txt")); err != nil {
 		return nil, err
 	}
 
