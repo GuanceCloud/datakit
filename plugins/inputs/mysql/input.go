@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -49,28 +51,36 @@ type customQuery struct {
 }
 
 type Input struct {
-	Host            string        `toml:"host"`
-	Port            int           `toml:"port"`
-	User            string        `toml:"user"`
-	Pass            string        `toml:"pass"`
-	Sock            string        `toml:"sock"`
-	Charset         string        `toml:"charset"`
+	Host string `toml:"host"`
+	Port int    `toml:"port"`
+	User string `toml:"user"`
+	Pass string `toml:"pass"`
+	Sock string `toml:"sock"`
+
+	Charset string `toml:"charset"`
+
 	Timeout         string        `toml:"connect_timeout"`
-	TimeoutDuration time.Duration `toml:"-"`
-	Tls             *tls          `toml:"tls"`
-	Service         string        `toml:"service"`
-	Interval        datakit.Duration
-	Tags            map[string]string        `toml:"tags"`
-	options         *options                 `toml:"options"`
-	Query           []*customQuery           `toml:"custom_queries"`
-	db              *sql.DB                  `toml:"-"`
-	Addr            string                   `toml:"-"`
-	collectCache    []inputs.Measurement     `toml:"-"`
-	response        []map[string]interface{} `toml:"-"`
-	Log             *inputs.TailerOption     `toml:"log"`
-	tailer          *inputs.Tailer           `toml:"-"`
-	InnoDB          bool                     `toml:"innodb"`
-	err             error
+	timeoutDuration time.Duration `toml:"-"`
+
+	Tls *tls `toml:"tls"`
+
+	Service  string `toml:"service"`
+	Interval datakit.Duration
+
+	Tags map[string]string `toml:"tags"`
+
+	options *options             `toml:"options"`
+	Query   []*customQuery       `toml:"custom_queries"`
+	Addr    string               `toml:"-"`
+	InnoDB  bool                 `toml:"innodb"`
+	Log     *inputs.TailerOption `toml:"log"`
+
+	start      time.Time                `toml:"-"`
+	db         *sql.DB                  `toml:"-"`
+	response   []map[string]interface{} `toml:"-"`
+	tailer     *inputs.Tailer           `toml:"-"`
+	err        error
+	collectors []func() ([]inputs.Measurement, error) `toml:"-"`
 }
 
 func (i *Input) getDsnString() string {
@@ -93,18 +103,13 @@ func (i *Input) getDsnString() string {
 	i.Addr = cfg.Addr
 
 	// set timeout
-	if i.TimeoutDuration != 0 {
-		cfg.Timeout = i.TimeoutDuration
+	if i.timeoutDuration != 0 {
+		cfg.Timeout = i.timeoutDuration
 	}
 
 	// set Charset
 	if i.Charset != "" {
 		cfg.Params["charset"] = i.Charset
-	}
-
-	// ssl
-	if i.Tls != nil {
-
 	}
 
 	// tls (todo)
@@ -113,23 +118,38 @@ func (i *Input) getDsnString() string {
 
 func (i *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"mysql":     pipelineCfg,
-		"mysql_rds": rdsPipelineCfg,
+		"mysql": pipelineCfg,
 	}
 	return pipelineMap
 }
 
-func (i *Input) initCfg() {
+func (i *Input) initCfg() error {
+	var err error
+	i.timeoutDuration, err = time.ParseDuration(i.Timeout)
+	if err != nil {
+		i.timeoutDuration = 10 * time.Second
+	}
+
 	dsnStr := i.getDsnString()
-	l.Infof("db build dsn connect str %s", dsnStr)
+
 	db, err := sql.Open("mysql", dsnStr)
 	if err != nil {
 		l.Errorf("sql.Open(): %s", err.Error())
+		return err
 	} else {
 		i.db = db
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	defer cancel()
+
+	if err := i.db.PingContext(ctx); err != nil {
+		l.Errorf("init config connect error %v", err)
+		return err
+	}
+
 	i.globalTag()
+	return nil
 }
 
 func (i *Input) globalTag() {
@@ -138,26 +158,37 @@ func (i *Input) globalTag() {
 }
 
 func (i *Input) Collect() error {
-	i.collectCache = []inputs.Measurement{}
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	defer cancel()
 
-	i.collectBaseMeasurement()
-	i.collectSchemaMeasurement()
-	i.customSchemaMeasurement()
-
-	if i.InnoDB {
-		i.collectInnodbMeasurement()
+	if err := i.db.PingContext(ctx); err != nil {
+		l.Errorf("connect error %v", err)
+		io.FeedLastError(inputName, err.Error())
+		return err
 	}
 
-	if i.err != nil {
-		io.FeedLastError(inputName, i.err.Error())
-		i.err = nil
+	for idx, f := range i.collectors {
+		l.Debugf("collecting %d(%v)...", idx, f)
+
+		if ms, err := f(); err != nil {
+			io.FeedLastError(inputName, err.Error())
+		} else {
+			if len(ms) > 0 {
+				if err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					ms,
+					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+					l.Error(err)
+				}
+			}
+		}
 	}
 
 	return nil
 }
 
 // 获取base指标
-func (i *Input) collectBaseMeasurement() {
+func (i *Input) collectBaseMeasurement() ([]inputs.Measurement, error) {
 	m := &baseMeasurement{
 		i:       i,
 		resData: make(map[string]interface{}),
@@ -171,117 +202,130 @@ func (i *Input) collectBaseMeasurement() {
 	}
 
 	if err := m.getStatus(); err != nil {
-		i.err = err
+		return nil, err
 	}
 
 	if err := m.getVariables(); err != nil {
-		i.err = err
+		return nil, err
 	}
 
-	if err := m.getLogStats(); err != nil {
-		i.err = err
+	// 如果没有打开 bin-log，这里可能报错：Error 1381: You are not using binary logging
+	// 不过忽略这一错误
+	// TODO: if-bin-log-enabled
+	if m.resData["log_bin"] == "ON" || m.resData["log_bin"] == "on" {
+		_ = m.getLogStats()
 	}
 
 	if err := m.submit(); err == nil {
 		if len(m.fields) > 0 {
-			i.collectCache = append(i.collectCache, m)
+			return []inputs.Measurement{m}, nil
 		}
 	}
+
+	return nil, nil
 }
 
 // 获取innodb指标
-func (i *Input) collectInnodbMeasurement() {
-	m := &innodbMeasurement{
-		i:       i,
-		resData: make(map[string]interface{}),
-		tags:    make(map[string]string),
-		fields:  make(map[string]interface{}),
-	}
-
-	m.name = "mysql_innodb"
-	for key, value := range i.Tags {
-		m.tags[key] = value
-	}
-
-	if err := m.getInnodb(); err != nil {
-		i.err = err
-	}
-
-	if err := m.submit(); err == nil {
-		if len(m.fields) > 0 {
-			i.collectCache = append(i.collectCache, m)
-		}
-	}
+func (i *Input) collectInnodbMeasurement() ([]inputs.Measurement, error) {
+	return i.getInnodb()
 }
 
 // 获取schema指标
-func (i *Input) collectSchemaMeasurement() {
-	if err := i.getSchemaSize(); err != nil {
-		i.err = err
+func (i *Input) collectSchemaMeasurement() ([]inputs.Measurement, error) {
+	x, err := i.getSchemaSize()
+	if err != nil {
+		return nil, err
 	}
-	if err := i.getQueryExecTimePerSchema(); err != nil {
-		i.err = err
+
+	y, err := i.getQueryExecTimePerSchema()
+	if err != nil {
+		return nil, err
 	}
+
+	return append(x, y...), nil
 }
 
-func (i *Input) runLog(defaultPile string) {
+func (i *Input) runLog(defaultPile string) error {
 	if i.Log != nil {
-		go func() {
-			pfile := defaultPile
-			if i.Log.Pipeline != "" {
-				pfile = i.Log.Pipeline
-			}
+		if len(i.Log.Files) == 0 {
+			return nil
+		}
 
-			i.Log.Service = i.Service
-			i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
+		pfile := defaultPile
+		if i.Log.Pipeline != "" {
+			pfile = i.Log.Pipeline
+		}
 
-			i.Log.Source = inputName
-			i.Log.Tags = make(map[string]string)
-			for k, v := range i.Tags {
-				i.Log.Tags[k] = v
-			}
-			tailer, err := inputs.NewTailer(i.Log)
-			if err != nil {
-				i.err = err
-				l.Errorf("init tailf err:%s", err.Error())
-				return
-			}
-			i.tailer = tailer
-			tailer.Run()
-		}()
+		i.Log.Service = i.Service
+		i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
+
+		i.Log.Source = inputName
+		i.Log.Tags = make(map[string]string)
+		for k, v := range i.Tags {
+			i.Log.Tags[k] = v
+		}
+		tailer, err := inputs.NewTailer(i.Log)
+		if err != nil {
+			l.Errorf("init tailf err:%s", err.Error())
+			return err
+		}
+		i.tailer = tailer
+
+		go tailer.Run()
 	}
+
+	return nil
+}
+
+// TODO
+func (*Input) RunPipeline() {
 }
 
 func (i *Input) Run() {
 	l = logger.SLogger("mysql")
-	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
-	i.initCfg()
+	for { // try until init OK
 
-	i.runLog("mysql.p")
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+		}
+
+		if err := i.initCfg(); err != nil {
+			io.FeedLastError(inputName, err.Error())
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
+	}
+
+	if err := i.runLog("mysql.p"); err != nil {
+		io.FeedLastError(inputName, err.Error())
+	}
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
-	n := 0
+	l.Infof("collecting each %v", i.Interval.Duration)
+
+	i.collectors = []func() ([]inputs.Measurement, error){
+		i.collectBaseMeasurement,
+		i.collectSchemaMeasurement,
+		i.customSchemaMeasurement,
+	}
+
+	if i.InnoDB {
+		i.collectors = append(i.collectors, i.collectInnodbMeasurement)
+	}
 
 	for {
-		n++
 		select {
 		case <-tick.C:
-			l.Debugf("redis input gathering...")
-			start := time.Now()
-			if err := i.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
-			} else {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
-					io.FeedLastError(inputName, err.Error())
-				}
-
-				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
-			}
-
+			l.Debugf("mysql input gathering...")
+			i.start = time.Now()
+			i.Collect()
 		case <-datakit.Exit.Wait():
 			if i.tailer != nil {
 				i.tailer.Close()
@@ -311,6 +355,6 @@ func (i *Input) AvailableArchs() []string {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{Timeout: "10s"}
 	})
 }

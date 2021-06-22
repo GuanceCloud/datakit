@@ -8,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -27,10 +28,14 @@ func (_ *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("jenkins start")
-	n.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	if n.Log != nil {
 		go func() {
@@ -51,7 +56,8 @@ func (n *Input) Run() {
 	for {
 		select {
 		case <-tick.C:
-			n.getMetric()
+			n.start = time.Now()
+			n.getPluginMetric()
 			if len(n.collectCache) > 0 {
 				err := inputs.FeedMeasurement(inputName, datakit.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
 				n.collectCache = n.collectCache[:0]
@@ -93,23 +99,6 @@ func (n *Input) getLog() {
 	tail.Run()
 }
 
-type MetricFunc func(input *Input)
-
-func (n *Input) getMetric() {
-	n.start = time.Now()
-	// 此处函数待添加调研
-	getFunc := []MetricFunc{getPluginMetric}
-	n.wg.Add(len(getFunc))
-	for _, v := range getFunc {
-		go func(gf MetricFunc) {
-			defer n.wg.Done()
-			gf(n)
-		}(v)
-	}
-	n.wg.Wait()
-
-}
-
 func (n *Input) requestJSON(u string, target interface{}) error {
 	u = fmt.Sprintf("%s%s", n.Url, u)
 
@@ -124,8 +113,11 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("response err:%+#v", resp)
+	}
 	json.NewDecoder(resp.Body).Decode(target)
 
 	return nil
