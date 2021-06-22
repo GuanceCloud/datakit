@@ -18,6 +18,7 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
@@ -31,7 +32,7 @@ type enabledInput struct {
 	Panics    int      `json:"panic"`
 }
 
-type datakitStats struct {
+type DatakitStats struct {
 	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
 	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
 	AvailableInputs []string                  `json:"available_inputs"`
@@ -49,30 +50,40 @@ type datakitStats struct {
 	WithinDocker bool   `json:"docker"`
 	IOChanStat   string `json:"io_chan_stats"`
 
+	// markdown options
+	DisableMonofont  bool `json:"-"`
+	DisableBasicInfo bool `json:"-"`
+
 	CSS string `json:"-"`
 }
 
-const (
-	monitorTmpl = `
+var (
+	part1 = `
+- 版本       : {{.Version}}
+- 运行时间   : {{.Uptime}}
+- 发布日期   : {{.BuildAt}}
+- 分支       : {{.Branch}}
+- 系统类型   : {{.OSArch}}
+- 容器运行   : {{.WithinDocker}}
+- Reload 次数: {{.ReloadInfo}}
+- IO 消耗统计: {{.IOChanStat}}
+	`
+
+	part2 = `
+{{.InputsStatsTable}}
+`
+
+	fullMonitorTmpl = `
 {{.CSS}}
 
 # DataKit 运行展示
-
+` + `
 ## 基本信息
-
-- 版本         : {{.Version}}
-- 运行时间     : {{.Uptime}}
-- 发布日期     : {{.BuildAt}}
-- 分支         : {{.Branch}}
-- 系统类型     : {{.OSArch}}
-- 是否容器运行 : {{.WithinDocker}}
-- Reload 次数  : {{.ReloadInfo}}
-- IO 消耗统计  : {{.IOChanStat}}
-
+` + part1 + `
 ## 采集器运行情况
+` + part2
 
-{{.InputsStatsTable}}
-`
+	inputMonitorTmpl = part2
 )
 
 var (
@@ -88,15 +99,19 @@ var (
 	}
 )
 
-func (x *datakitStats) InputsStatsTable() string {
+func (x *DatakitStats) InputsStatsTable() string {
 
 	const (
 		tblHeader = `
 | 采集器 | 实例个数 | 数据类型 | 频率   | 平均 IO 大小 | 总次数 | 点数  | 首次采集 | 最近采集 | 当前错误(时间) | 平均采集消耗 | 最大采集消耗 | 奔溃次数 |
 | ----   | :----:   | :----:   | :----: | :----:       | :----: | :---: | :----:   | :---:    | :----:         | :----:       | :---:        | :----:   |
 `
-		rowFmt = "|`%s`|%d|`%s`|%s|%d|%d|%d|%s|%s|`%s`(%s)|%s|%s|%d|"
 	)
+
+	var rowFmt = "|`%s`|%d|`%s`|%s|%d|%d|%d|%s|%s|`%s`(%s)|%s|%s|%d|"
+	if x.DisableMonofont {
+		rowFmt = "|%s|%d|%s|%s|%d|%d|%d|%s|%s|%s(%s)|%s|%s|%d|"
+	}
 
 	if len(x.EnabledInputs) == 0 {
 		return "没有开启任何采集器"
@@ -171,19 +186,19 @@ func (x *datakitStats) InputsStatsTable() string {
 	return tblHeader + strings.Join(rows, "\n")
 }
 
-func getStats() (*datakitStats, error) {
+func GetStats() (*DatakitStats, error) {
 
 	now := time.Now()
-	stats := &datakitStats{
-		Version:      git.Version,
-		BuildAt:      git.BuildAt,
-		Branch:       git.Branch,
-		Uptime:       fmt.Sprintf("%v", now.Sub(uptime)),
-		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:    reloadCnt,
-		ReloadInfo:   "0",
-		WithinDocker: datakit.Docker,
-		IOChanStat:   io.ChanStat(),
+	stats := &DatakitStats{
+		Version:    git.Version,
+		BuildAt:    git.BuildAt,
+		Branch:     git.Branch,
+		Uptime:     fmt.Sprintf("%v", now.Sub(uptime)),
+		OSArch:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		ReloadCnt:  reloadCnt,
+		ReloadInfo: "0",
+		//WithinDocker: config.Docker,
+		IOChanStat: io.ChanStat(),
 	}
 
 	if reloadCnt > 0 {
@@ -225,23 +240,39 @@ func getStats() (*datakitStats, error) {
 	return stats, nil
 }
 
-func apiGetDatakitMonitor(c *gin.Context) {
-	s, err := getStats()
-	if err != nil {
-		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
-		return
+func (ds *DatakitStats) Markdown(css string) ([]byte, error) {
+
+	tmpl := fullMonitorTmpl
+	if ds.DisableBasicInfo {
+		tmpl = inputMonitorTmpl
 	}
 
-	temp, err := template.New("").Parse(monitorTmpl)
+	temp, err := template.New("").Parse(tmpl)
 	if err != nil {
-		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
-		return
+		return nil, fmt.Errorf("parse markdown template failed: %s", err.Error())
 	}
 
-	s.CSS = man.MarkdownCSS
+	if css != "" {
+		ds.CSS = css
+	}
 
 	var buf bytes.Buffer
-	if err := temp.Execute(&buf, s); err != nil {
+	if err := temp.Execute(&buf, ds); err != nil {
+		return nil, fmt.Errorf("execute markdown template failed: %s", err.Error())
+	}
+
+	return buf.Bytes(), nil
+}
+
+func apiGetDatakitMonitor(c *gin.Context) {
+	s, err := GetStats()
+	if err != nil {
+		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
+		return
+	}
+
+	mdbytes, err := s.Markdown(man.MarkdownCSS)
+	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return
 	}
@@ -254,14 +285,14 @@ func apiGetDatakitMonitor(c *gin.Context) {
 	//opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
 	renderer := html.NewRenderer(opts)
 
-	out := markdown.ToHTML(buf.Bytes(), psr, renderer)
+	out := markdown.ToHTML(mdbytes, psr, renderer)
 
 	c.Data(http.StatusOK, "text/html; charset=UTF-8", out)
 }
 
 func apiGetDatakitStats(c *gin.Context) {
 
-	s, err := getStats()
+	s, err := GetStats()
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return
