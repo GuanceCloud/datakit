@@ -33,7 +33,7 @@ const (
 
   ## 指标集名称前缀
   # 配置此项，可以给指标集名称添加前缀
-  measurement_prefix = "prom_"
+  measurement_prefix = ""
 
   ## 指标集名称
   # 默认会将指标名称以下划线"_"进行切割，切割后的第一个字段作为指标集名称，剩下字段作为当前指标名称
@@ -43,14 +43,13 @@ const (
 
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
-
   ## TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
   # tls_key = "/tmp/peer.key"
 
-  ## 自定义指标集名称
+	## 自定义指标集名称
   # 可以将包含前缀prefix的指标归为一类指标集
   # 自定义指标集名称配置优先measurement_name配置项
   #[[inputs.prom.measurements]]
