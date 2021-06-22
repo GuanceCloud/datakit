@@ -55,9 +55,9 @@ func apiWrite(c *gin.Context) {
 		return
 	}
 
-	extraTags := datakit.Cfg.GlobalTags
+	tags := extraTags
 	if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
-		extraTags = nil
+		tags = nil
 	}
 
 	body, err = uhttp.GinRead(c)
@@ -73,7 +73,7 @@ func apiWrite(c *gin.Context) {
 		return
 	}
 
-	pts, err := handleWriteBody(body, extraTags, precision)
+	pts, err := handleWriteBody(body, tags, precision)
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
