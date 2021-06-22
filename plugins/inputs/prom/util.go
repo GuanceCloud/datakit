@@ -3,6 +3,7 @@ package prom
 import (
 	"fmt"
 	"io"
+	"math"
 	"regexp"
 	"strings"
 	"time"
@@ -159,6 +160,9 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 		case dto.MetricType_GAUGE:
 			for _, m := range metrics {
 				v := m.GetGauge().GetValue()
+				if math.IsInf(v, 0) {
+					continue
+				}
 				tags := make(map[string]string)
 				fields := make(map[string]interface{})
 				fields[fieldName] = v
@@ -181,6 +185,9 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 			fields := make(map[string]interface{})
 			for _, m := range metrics {
 				v := m.GetUntyped().GetValue()
+				if math.IsInf(v, 0) {
+					continue
+				}
 				fields[fieldName] = v
 				labels := m.GetLabel()
 				for _, lab := range labels {
@@ -201,6 +208,9 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 				tags := make(map[string]string)
 				fields := make(map[string]interface{})
 				v := m.GetCounter().GetValue()
+				if math.IsInf(v, 0) {
+					continue
+				}
 				fields[fieldName] = v
 				labels := m.GetLabel()
 				for _, lab := range labels {
