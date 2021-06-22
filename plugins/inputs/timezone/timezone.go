@@ -10,6 +10,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -56,6 +57,7 @@ var (
 #    tag1 = "tag1"
 #    tag2 = "tag2"
 #    tagn = "tagn"`
+	l = logger.DefaultSLogger(inputName)
 )
 
 func (t *Timezone) SampleConfig() string {
@@ -67,6 +69,7 @@ func (t *Timezone) Catalog() string {
 }
 
 func (t *Timezone) Run() {
+	l = logger.SLogger(inputName)
 	p := t.genParams()
 	p.log.Info("timezone input started...")
 	p.gather()
@@ -83,7 +86,7 @@ func (t *Timezone) genParams() *TzParams {
 
 	input := TzInput{*t}
 	output := TzOutput{io.NamedFeed}
-	p := &TzParams{input, output, logger.SLogger("timezone")}
+	p := &TzParams{input, output, l}
 	return p
 }
 
@@ -105,7 +108,7 @@ func (p *TzParams) gather() {
 		return
 	}
 
-	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
+	d = config.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 
