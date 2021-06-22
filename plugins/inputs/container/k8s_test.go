@@ -1,41 +1,31 @@
 package container
 
-/*
 import (
-	"fmt"
 	"testing"
 )
 
-func TestK8s(t *testing.T) {
-	const kubeletURL = "http://127.0.0.1:10255"
-
-	k := Kubernetes{
-		URL:               kubeletURL,
-		BearerTokenString: "NULL",
+func TestGetContainerPodName(t *testing.T) {
+	mock := Kubernetes{
+		URL: "http://127.0.0.1:10255",
 	}
-	if err := k.Init(); err != nil {
+
+	if err := mock.Init(); err != nil {
 		t.Fatal(err)
 	}
 
-	summaryApi, err := k.GetSummaryMetrics()
-	if err != nil {
-		t.Fatal(err)
+	var cases = []struct {
+		id string
+	}{
+		{
+			"cf063df157fed1976dfff6b47e7ba55a1ce36385715b859bd03d4acc9b92690c",
+		},
 	}
 
-	pt, err := buildNodeMetrics(summaryApi)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fmt.Printf("%s\n\n", pt.String())
-
-	pts, err := buildPodMetrics(summaryApi)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, pt := range pts {
-		fmt.Printf("%s\n\n", pt.String())
+	for idx, tc := range cases {
+		name, err := mock.GetContainerPodName(containerIDPrefix + tc.id)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("[%d] container_id:%s pod_name:%s\n", idx, tc.id, name)
 	}
 }
-*/
