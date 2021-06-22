@@ -48,7 +48,7 @@ var (
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
 	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
 	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagProm     = flag.String("prom-conf", "", "config file to test(under the dir conf.d/prom)")
+	flagProm     = flag.String("prom-conf", "", "config file to test")
 
 	// manuals related
 	flagMan               = flag.Bool("man", false, "read manuals of inputs")
