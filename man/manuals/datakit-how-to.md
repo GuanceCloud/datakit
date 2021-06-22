@@ -6,15 +6,15 @@
 
 # DataKit 入门简介
 
-本文档主要介绍 DataKit 安装完后，如何使用 DataKit 中的基本功能，包括如下几个方面：
+本文档主要介绍 [DataKit 安装](datakit-install)完后，如何使用 DataKit 中的基本功能，包括如下几个方面：
 
 - 安装介绍
 - 采集器使用，包括如何开启、管理等
-- 如何使用 DataKit 中的各种小工具
+- DataKit 中各种小工具使用
 
 ## DataKit 目录介绍
 
-DataKit 目前支持 Linux/Windows/macOS 三种主流平台：
+DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
 
 | 操作系统                            | 架构                | 安装路径                                                                                     |
