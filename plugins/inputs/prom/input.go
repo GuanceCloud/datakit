@@ -7,7 +7,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -117,6 +117,9 @@ type Input struct {
 	duration     time.Duration
 	collectTime  time.Time
 	collectCache []inputs.Measurement
+
+	chPause chan bool
+	pause   bool
 }
 
 func (i *Input) SampleConfig() string {
@@ -205,7 +208,7 @@ func (i *Input) Run() {
 		return
 	}
 
-	i.duration = datakit.ProtectedInterval(minInterval, maxInterval, duration)
+	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	err = i.InitClient()
 	if err != nil {
@@ -224,24 +227,41 @@ func (i *Input) Run() {
 			return
 
 		case <-tick.C:
-			if election.CurrentStats().IsLeader() {
-				start := time.Now()
-				if err := i.Collect(); err != nil {
-					io.FeedLastError(inputName, err.Error())
-					l.Error(err)
-				} else {
-					if len(i.collectCache) > 0 {
-						err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
-						if err != nil {
-							io.FeedLastError(inputName, err.Error())
-							l.Errorf(err.Error())
-						}
-						i.collectCache = i.collectCache[:0]
-					}
+			if i.pause {
+				continue
+			}
+
+			start := time.Now()
+			if err := i.Collect(); err != nil {
+				io.FeedLastError(inputName, err.Error())
+				l.Error(err)
+			} else {
+				if len(i.collectCache) > 0 {
+					continue
 				}
+
+				err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					i.collectCache,
+					&io.Option{CollectCost: time.Since(start)})
+				if err != nil {
+					io.FeedLastError(inputName, err.Error())
+					l.Errorf(err.Error())
+				}
+				i.collectCache = i.collectCache[:0]
 			}
 		}
 	}
+}
+
+func (i *Input) Pause() error {
+	i.chPause <- true
+	return nil
+}
+
+func (i *Input) Resume() error {
+	i.chPause <- false
+	return nil
 }
 
 func (i *Input) stop() {
@@ -273,6 +293,7 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 func NewProm(sampleCfg string) *Input {
 	return &Input{
 		SampleCfg: sampleCfg,
+		chPause:   make(chan bool, 1),
 	}
 }
 
