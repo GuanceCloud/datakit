@@ -14,6 +14,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -40,8 +41,8 @@ const (
 )
 
 var (
-	l         *logger.Logger
 	inputName = "csvobject"
+	l         = logger.DefaultSLogger(inputName)
 )
 
 func (_ *CsvObject) Catalog() string {
@@ -56,8 +57,9 @@ func (x *CsvObject) Run() {
 	var encodeStr string
 	var intVal int
 	var startCmd = "python"
-	l = logger.SLogger(inputName)
 	logFile := inputName + ".log"
+
+	l = logger.SLogger(inputName)
 
 	if b, err := toml.Marshal(x); err != nil {
 		l.Error(err)
@@ -77,19 +79,19 @@ func (x *CsvObject) Run() {
 		intVal = int(interval) / 1e9
 	}
 
-	if datakit.Cfg.HTTPListen == "" {
+	if config.Cfg.HTTPListen == "" {
 		l.Errorf("missed http_server_addr configuration in datakit.conf")
 		return
 	}
 
-	port := strings.Split(datakit.Cfg.HTTPListen, ":")[1]
+	port := strings.Split(config.Cfg.HTTPListen, ":")[1]
 	args := []string{
 		filepath.Join(datakit.InstallDir, "externals", "csv", "main.py"),
 		"--object", encodeStr,
 		"--interval", fmt.Sprintf("%d", intVal),
 		"--http", "http://127.0.0.1:" + port,
 		"--log_file", filepath.Join(datakit.InstallDir, "externals", logFile),
-		"--log_level", datakit.Cfg.LogLevel,
+		"--log_level", config.Cfg.LogLevel,
 	}
 
 	if x.PythonEnv != "" {
