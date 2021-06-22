@@ -8,22 +8,45 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 var (
-	defaultMaxCacheCnt = int64(1024)
-
-	defaultIO = NewIO(defaultMaxCacheCnt)
+	extraTags = map[string]string{}
+	defaultIO = &IO{
+		MaxCacheCnt:        1024,
+		MaxDynamicCacheCnt: 1024,
+		FlushInterval:      10 * time.Second,
+	}
 )
+
+func SetGlobalCacheCount(i int64) {
+	defaultIO.MaxCacheCnt = i
+	defaultIO.MaxDynamicCacheCnt = i
+}
+
+func SetOutputFile(f string) {
+	defaultIO.OutputFile = f
+}
+
+func SetDataWay(dw *dataway.DataWayCfg) {
+	defaultIO.dw = dw
+}
+
+func SetExtraTags(x map[string]string) {
+	extraTags = x
+}
 
 func Start() error {
 	l = logger.SLogger("io")
 
-	if datakit.OutputFile != "" {
-		defaultIO.OutputFile = datakit.OutputFile
-	}
-
-	defaultIO.FlushInterval = datakit.IntervalDuration
+	defaultIO.in = make(chan *iodata, 128)
+	defaultIO.in2 = make(chan *iodata, 128*8)
+	defaultIO.inLastErr = make(chan *lastErr, 128)
+	defaultIO.inputstats = map[string]*InputsStat{}
+	defaultIO.qstatsCh = make(chan *qstats) // blocking
+	defaultIO.cache = map[string][]*Point{}
+	defaultIO.dynamicCache = map[string][]*Point{}
 
 	datakit.WG.Add(1)
 	go func() {
@@ -109,7 +132,7 @@ func MakePoint(name string,
 
 	p, err := lp.MakeLineProtoPoint(name, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.GlobalTags,
+			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
@@ -163,7 +186,7 @@ func HighFreqFeedEx(name, category, metric string,
 
 	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.GlobalTags,
+			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
@@ -189,7 +212,7 @@ func NamedFeedEx(name, category, metric string,
 
 	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
 		&lp.Option{
-			ExtraTags: datakit.Cfg.GlobalTags,
+			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
