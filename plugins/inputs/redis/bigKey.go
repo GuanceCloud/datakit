@@ -1,8 +1,9 @@
 package redis
 
 import (
+	"context"
 	"fmt"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"time"
@@ -44,29 +45,36 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) getKeys() {
+func (i *Input) getKeys() ([]string, error) {
+	var res []string
 	for _, pattern := range i.Keys {
 		var cursor uint64
 		for {
 			var keys []string
 			var err error
-			keys, cursor, err = i.client.Scan(cursor, pattern, 10).Result()
+			ctx := context.Background()
+
+			keys, cursor, err = i.client.Scan(ctx, cursor, pattern, 10).Result()
 			if err != nil {
-				i.err = err
 				l.Errorf("redis pattern key %s scan fail error %v", pattern, err)
+				return nil, err
 			}
 
-			i.resKeys = append(i.resKeys, keys...)
+			res = append(res, keys...)
 			if cursor == 0 {
 				break
 			}
 		}
 	}
+
+	return res, nil
 }
 
 // 数据源获取数据
-func (i *Input) getData() error {
-	for _, key := range i.resKeys {
+func (i *Input) getData(resKeys []string) ([]inputs.Measurement, error) {
+	var collectCache []inputs.Measurement
+
+	for _, key := range resKeys {
 		found := false
 
 		m := &commandMeasurement{
@@ -81,7 +89,7 @@ func (i *Input) getData() error {
 
 		m.tags["db_name"] = fmt.Sprintf("%d", i.DB)
 		m.tags["key"] = key
-
+		ctx := context.Background()
 		for _, op := range []string{
 			"HLEN",
 			"LLEN",
@@ -90,7 +98,7 @@ func (i *Input) getData() error {
 			"PFCOUNT",
 			"STRLEN",
 		} {
-			if val, err := i.client.Do(op, key).Result(); err == nil && val != nil {
+			if val, err := i.client.Do(ctx, op, key).Result(); err == nil && val != nil {
 				found = true
 				m.fields["value_length"] = val
 				break
@@ -106,9 +114,9 @@ func (i *Input) getData() error {
 		}
 
 		if len(m.fields) > 0 {
-			i.collectCache = append(i.collectCache, m)
+			collectCache = append(collectCache, m)
 		}
 	}
 
-	return nil
+	return collectCache, nil
 }

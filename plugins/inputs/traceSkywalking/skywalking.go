@@ -26,7 +26,7 @@ var (
 #		tag2 = "tag2"
 #		tag3 = "tag3"
 `
-	log *logger.Logger
+	log = logger.DefaultSLogger(inputName)
 )
 
 type Skywalking struct {
