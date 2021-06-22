@@ -6,13 +6,18 @@
 
 # DaemonSet 安装 DataKit 
 
-> 注意：DaemonSet 方式部署时，不建议开启 kubernetes 集群内部采集（如采集 Kubernetes 集群中的 Redis/MySQL 等数据），一来可能导致多份采集（DaemonSet 自动扩容导致多个 DataKit 采集实例），二来 DaemonSet 方式部署时，不能通过 service 名来访问其它 Pod。
+> 注意：DaemonSet 方式部署时，不建议开启 kubernetes 集群内部采集（如采集 Kubernetes 集群中其它 Pod 内的 Redis/MySQL 等数据），一来可能导致多份采集（DaemonSet 自动扩容导致多个 DataKit 采集实例），二来 DaemonSet 方式部署时，不能通过 service 名来访问其它 Pod。
 
-本文档介绍如何在 在 K8s 中通过 DaemonSet 方式安装 DataKit
+本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
 
 ## 安装步骤 
 
-先下载本文档尾部的 yaml 配置
+先下载本文档尾部的 yaml 配置，保存为 `datakit-default.yaml`（命名无要求）。在该配置中，有两个采集器可以配置：
+
+- kubernetes：用来采集 Kubernetes 中心指标，需要填写 kubernetes 中心采集地址
+- container：用来采集 Node 上的容器对象以及运行指标（如果要采集容器运行指标，则需要修改配置）
+
+其它主机相关的采集器都是默认开启的（`cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes`），且无需额外配置。
 
 ### 修改配置
 
@@ -21,8 +26,8 @@
 修改 `datakit-default.yaml` 中的 dataway 配置
 
 ```yaml
-        - name: ENV_DATAWAY
-          value: <dataway_url> # 此处填上 dataway 真实地址
+	- name: ENV_DATAWAY
+		value: <dataway_url> # 此处填上 dataway 真实地址
 ```
 
 修改 Kubernetes API 地址：
@@ -33,11 +38,11 @@
 kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{.name}{"\t"}{.cluster.server}{"\n"}{end}'
 ```
 
-将地址填到 yaml 如下配置中：
+将地址填到 `datakit-default.yaml` 如下配置中：
 
 ```yaml
-      [[inputs.kubernetes]]
-          url = "<your-k8s-api-server>"
+	[[inputs.kubernetes]]
+			url = "<your-k8s-api-server>"
 ```
 
 详情参见 [Kubernetes 采集配置](kubernetes)
@@ -47,11 +52,11 @@ kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{
 默认情况下，container 采集器没有开启指标采集，如需开启指标采集，修改 `datakit-default.yaml` 中如下配置：
 
 ```yaml
-      [inputs.container]
-        endpoint = "unix:///var/run/docker.sock"
+	[inputs.container]
+		endpoint = "unix:///var/run/docker.sock"
 
-        enable_metric = true # 将此处设置成 true
-        enable_object = true
+		enable_metric = true # 将此处设置成 true
+		enable_object = true
 ```
 
 详情参见 [容器采集配置](container)
@@ -91,14 +96,12 @@ kubectl get pod -n datakit-monitor
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: datakit-monitor
-
+  name: datakit
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: datakit-monitor
+  name: datakit
 rules:
 - apiGroups:
   - ""
@@ -156,23 +159,23 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: datakit-monitor
-  namespace: datakit-monitor
+  name: datakit
+  namespace: datakit
 
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: datakit-monitor
+  name: datakit
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: datakit-monitor
+  name: datakit
 subjects:
 - kind: ServiceAccount
-  name: datakit-monitor
-  namespace: datakit-monitor
+  name: datakit
+  namespace: datakit
 
 ---
 
@@ -181,8 +184,8 @@ kind: DaemonSet
 metadata:
   labels:
     app: daemonset-datakit
-  name: datakit-monitor
-  namespace: datakit-monitor
+  name: datakit
+  namespace: datakit
 spec:
   revisionHistoryLimit: 10
   selector:
@@ -195,7 +198,7 @@ spec:
     spec:
       containers:
       - env:
-        - name: HOSTIP
+        - name: HOST_IP
           valueFrom:
             fieldRef:
               apiVersion: v1
@@ -208,14 +211,14 @@ spec:
         - name: ENV_DATAWAY
           value: <dataway_url>
         - name: ENV_GLOBAL_TAGS
-          value: host=__datakit_hostname
+          value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS
           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
         - name: ENV_ENABLE_ELECTION
-          value: enabled
-        - name: TZ
-          value: Asia/Shanghai
-        image: pubrepo.jiagouyun.com/datakit/datakit:1.1.7-rc2
+          value: enable
+        - name: ENV_HTTP_LISTEN
+          value: 0.0.0.0:9529
+        image: pubrepo.jiagouyun.com/datakit/datakit:{{.Version}}
         imagePullPolicy: Always
         name: datakit
         ports:
@@ -223,23 +226,17 @@ spec:
           hostPort: 9529
           name: port
           protocol: TCP
-        resources: {}
         securityContext:
           privileged: true
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /var/run/docker.sock
           name: docker-socket
           readOnly: true
-        - name: tz-config
-          mountPath: /etc/localtime
-          readOnly: true
         - mountPath: /usr/local/datakit/conf.d/container/container.conf
-          name: datakit-monitor-conf
+          name: datakit-conf
           subPath: container.conf
         - mountPath: /usr/local/datakit/conf.d/kubernetes/kubernetes.conf
-          name: datakit-monitor-conf
+          name: datakit-conf
           subPath: kubernetes.conf
         - mountPath: /host/proc
           name: proc
@@ -258,23 +255,12 @@ spec:
       hostNetwork: true
       hostPID: true
       restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      serviceAccount: datakit-monitor
-      serviceAccountName: datakit-monitor
-      terminationGracePeriodSeconds: 30
+      serviceAccount: datakit
+      serviceAccountName: datakit
       volumes:
-      - name: tz-config
-        hostPath:
-          path: /etc/localtime
       - configMap:
-          name: datakit-monitor-conf
-          items:
-          - key: container.conf
-            path: container.conf
-          - key: kubernetes.conf
-            path: kubernetes.conf
-        name: datakit-monitor-conf
+          name: datakit-conf
+        name: datakit-conf
       - hostPath:
           path: /var/run/docker.sock
         name: docker-socket
@@ -302,8 +288,8 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: datakit-monitor-conf
-  namespace: datakit-monitor
+  name: datakit-conf
+  namespace: datakit
 data:
     #### container
     container.conf: |-
@@ -377,22 +363,21 @@ data:
           [inputs.kubernetes.tags]
            #tag1 = "val1"
            #tag2 = "valn"
-
 ```
 
 > 注意：默认情况下，我们在该 yaml 中开启了如下采集器：
 
-- cpu
-- disk
-- diskio
-- mem
-- swap
-- system
-- hostobject
-- net
-- host_processes
-- kubernetes
-- container
+- `cpu`
+- `disk`
+- `diskio`
+- `mem`
+- `swap`
+- `system`
+- `hostobject`
+- `net`
+- `host_processes`
+- `kubernetes`
+- `container`
 
 如需开启更多其它采集器，如开启 ddtrace，直接在如下配置中追加即可。当然也可以将某些采集器从这个列表中删掉。
 
