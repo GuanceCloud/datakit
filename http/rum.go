@@ -32,7 +32,7 @@ func geoTags(srcip string) (tags map[string]string) {
 
 	ipInfo, err := geo.Geo(srcip)
 
-	l.Debugf("ipinfo: %+#v", ipInfo)
+	l.Debugf("ipinfo(%s): %+#v", ipInfo, srcip)
 
 	if err != nil {
 		l.Errorf("geo failed: %s, ignored", err)
@@ -91,7 +91,11 @@ func handleRUMBody(body []byte, precision, srcip string) (rumpts []*influxdb.Poi
 
 func handleRUM(c *gin.Context, precision, input string, body []byte) {
 
-	srcip := c.Request.Header.Get(datakit.Cfg.HTTPAPI.RUMOriginIPHeader)
+	srcip := ""
+	if apiConfig != nil {
+		srcip = c.Request.Header.Get(apiConfig.RUMOriginIPHeader)
+	}
+
 	if srcip != "" {
 		parts := strings.Split(srcip, ",")
 		if len(parts) > 0 {
@@ -108,6 +112,16 @@ func handleRUM(c *gin.Context, precision, input string, body []byte) {
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
+	}
+
+	for _, pt := range rumpts {
+		x := pt.String()
+		l.Debugf("%s", x)
+		if err := lp.ParseLineProto([]byte(x), "n"); err != nil {
+			l.Errorf("parse failed: %s", err.Error())
+		} else {
+			l.Debug("parse ok")
+		}
 	}
 
 	if len(rumpts) > 0 {

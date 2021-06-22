@@ -39,7 +39,9 @@ func (m *TomcatGlobalRequestProcessorM) Info() *inputs.MeasurementInfo {
 			"errorCount":     newFielInfoCount("Number of errors"),
 		},
 		Tags: map[string]interface{}{
-			"name": inputs.NewTagInfo(""),
+			"name":              inputs.NewTagInfo("protocol handler name"),
+			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
+			"host":              inputs.NewTagInfo("hostname"),
 		},
 	}
 }
@@ -53,9 +55,11 @@ func (m *TomcatJspMonitorM) Info() *inputs.MeasurementInfo {
 			"jspUnloadCount": newFielInfoCount("The number of JSPs that have been unloaded"),
 		},
 		Tags: map[string]interface{}{
-			"J2EEApplication": inputs.NewTagInfo(""),
-			"J2EEServer":      inputs.NewTagInfo(""),
-			"WebModule":       inputs.NewTagInfo(""),
+			"J2EEApplication":   inputs.NewTagInfo("J2EE Application"),
+			"J2EEServer":        inputs.NewTagInfo("J2EE Server"),
+			"WebModule":         inputs.NewTagInfo("Web Module"),
+			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
+			"host":              inputs.NewTagInfo("hostname"),
 		},
 	}
 }
@@ -69,7 +73,9 @@ func (m *TomcatThreadPoolM) Info() *inputs.MeasurementInfo {
 			"currentThreadsBusy": newFielInfoCount("currentThreadsBusy"),
 		},
 		Tags: map[string]interface{}{
-			"name": inputs.NewTagInfo(""),
+			"name":              inputs.NewTagInfo("protocol handler name"),
+			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
+			"host":              inputs.NewTagInfo("hostname"),
 		},
 	}
 }
@@ -83,10 +89,12 @@ func (m *TomcatServletM) Info() *inputs.MeasurementInfo {
 			"requestCount":   newFielInfoCount("Number of requests processed by this wrapper"),
 		},
 		Tags: map[string]interface{}{
-			"name":            inputs.NewTagInfo(""),
-			"J2EEApplication": inputs.NewTagInfo(""),
-			"J2EEServer":      inputs.NewTagInfo(""),
-			"WebModule":       inputs.NewTagInfo(""),
+			"J2EEApplication":   inputs.NewTagInfo("J2EE Application"),
+			"J2EEServer":        inputs.NewTagInfo("J2EE Server"),
+			"WebModule":         inputs.NewTagInfo("Web Module"),
+			"host":              inputs.NewTagInfo("hostname"),
+			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
+			"name":              inputs.NewTagInfo(" "),
 		},
 	}
 }
@@ -100,8 +108,10 @@ func (m *TomcatCacheM) Info() *inputs.MeasurementInfo {
 			"lookupCount": newFielInfoCount("The number of requests for resources"),
 		},
 		Tags: map[string]interface{}{
-			"tomcat_context": inputs.NewTagInfo(""),
-			"tomcat_host":    inputs.NewTagInfo(""),
+			"tomcat_context":    inputs.NewTagInfo("tomcat context"),
+			"tomcat_host":       inputs.NewTagInfo("tomcat host"),
+			"host":              inputs.NewTagInfo("hostname"),
+			"jolokia_agent_url": inputs.NewTagInfo("jolokia agent url"),
 		},
 	}
 }
