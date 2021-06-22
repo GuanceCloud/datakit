@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：`windows/amd64,windows/386,linux/arm,linux/arm64,linux/386,linux/amd64,darwin/amd64`
 
 # {{.InputName}}
 
@@ -16,6 +16,9 @@
 [[inputs.logging]]
   # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
   # 推荐使用绝对路径
+  # 如果是 windows 操作系统，此处不需要进行转义，直接使用原路径即可
+  # Example：
+  #    ["C:/Users/admin/Desktop/logging_tesing.txt", "C:/Users/admin/Desktop/space 空格和中文路径/logging_tesing2.txt"]
   logfiles = ["/var/log/syslog"]
   
   # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
