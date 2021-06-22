@@ -43,7 +43,8 @@ const (
 
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
-  ## TLS 配置
+  
+	## TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
@@ -59,6 +60,12 @@ const (
   # [[inputs.prom.measurements]]
   # prefix = "mem_"
   # name = "mem"
+
+	## 自定义认证方式，目前仅支持 Bearer Token
+	# [inputs.prom.auth]
+	# type = "bearer_token"
+	# token = "xxxxxxxx"
+	# token_file = "/tmp/token" 
 
   ## 自定义Tags
   [inputs.prom.tags]
@@ -110,6 +117,7 @@ type Input struct {
 	KeyFile    string `toml:"tls_key"`
 
 	Tags map[string]string `toml:"tags"`
+	Auth map[string]string `toml:"auth"`
 
 	SampleCfg string
 
@@ -140,8 +148,26 @@ func (i *Input) extendSelfTag(tags map[string]string) {
 	}
 }
 
+func (i *Input) GetReq(url string) (*http.Request, error) {
+	var (
+		req *http.Request
+		err error
+	)
+	if len(i.Auth) > 0 {
+		authType := i.Auth["type"]
+		if authFunc, ok := AuthMaps[authType]; ok {
+			req, err = authFunc(i.Auth, url)
+		} else {
+			req, err = http.NewRequest("GET", url, nil)
+		}
+	} else {
+		req, err = http.NewRequest("GET", url, nil)
+	}
+	return req, err
+}
+
 func (i *Input) Collect() error {
-	req, err := http.NewRequest("GET", i.URL, nil)
+	req, err := i.GetReq(i.URL)
 	if err != nil {
 		return err
 	}
@@ -261,12 +287,11 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 		if err != nil {
 			return nil, err
 		} else {
-			i.client.Transport = &http.Transport{
+			client.Transport = &http.Transport{
 				TLSClientConfig: tc,
 			}
 		}
 	}
-
 	return client, nil
 }
 
