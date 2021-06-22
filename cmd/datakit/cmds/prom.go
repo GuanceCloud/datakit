@@ -3,6 +3,7 @@ package cmds
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -15,12 +16,15 @@ import (
 )
 
 func PromDebugger(configFile string) error {
-	currentDir, _ := os.Getwd()
-	configPath := filepath.Join(currentDir, configFile)
-	_, err := os.Stat(configPath)
-	if err != nil {
-		configPath = filepath.Join(datakit.ConfdDir, "prom", configFile)
-		fmt.Printf("config is not found in current dir, using %s instead\n", configPath)
+	var configPath = configFile
+	if !path.IsAbs(configFile) {
+		currentDir, _ := os.Getwd()
+		configPath = filepath.Join(currentDir, configFile)
+		_, err := os.Stat(configPath)
+		if err != nil {
+			configPath = filepath.Join(datakit.ConfdDir, "prom", configFile)
+			fmt.Printf("config is not found in current dir, using %s instead\n", configPath)
+		}
 	}
 
 	input, err := GetPromInput(configPath)
