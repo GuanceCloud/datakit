@@ -29,6 +29,16 @@ sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   # ...
 ```
 
+## 部署图
+![](dialtesting部署图.png)
+
+注意事项：
+
+	1.  forethought-core 中心配置 dataway的地址；
+	2.  拨测节点的 datakit 到 dataway 的网络畅通；
+	3.  拨测节点的 datakit 到 dialtesting中心服务的网络畅通；
+	
+
 ## 浏览器拨测（Headless 拨测）
 
 浏览器测需在 DataKit 上安装 Chrome 浏览器，以 Ubuntu 为例：
