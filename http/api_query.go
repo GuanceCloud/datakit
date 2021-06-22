@@ -1,20 +1,16 @@
 package http
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"net/url"
 
 	"github.com/gin-gonic/gin"
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-type singleQuery struct {
+type SingleQuery struct {
 	Query                string              `json:"query"`
 	TimeRange            []int64             `json:"time_range"`
 	Conditions           string              `json:"conditions"`
@@ -31,7 +27,7 @@ type singleQuery struct {
 
 type QueryRaw struct {
 	Token       string         `json:"token"`
-	Queries     []*singleQuery `json:"queries"`
+	Queries     []*SingleQuery `json:"queries"`
 	EchoExplain bool           `json:"echo_explain"`
 }
 
@@ -47,50 +43,48 @@ func (q *QueryRaw) JSON() ([]byte, error) {
 	return json.Marshal(q)
 }
 
-// PostQuery 将 QueryRaw 序列化成JSON，发送到第一个 DataWay（DataWay 可能有多个）
-func (q *QueryRaw) PostQuery() (*http.Response, error) {
-	if len(datakit.Cfg.DataWay.QueryRawURL()) == 0 {
-		return nil, fmt.Errorf("invalid queryRawURL, is empty")
-	}
-
-	queryRawURL := datakit.Cfg.DataWay.QueryRawURL()[0]
-
-	u, err := url.Parse(queryRawURL)
-	if err != nil {
-		return nil, err
-	}
-
-	q.Token = u.Query().Get("token")
-
-	body, err := q.JSON()
-	if err != nil {
-		return nil, err
-	}
-
-	// DataKit 没有 HTTP Client 连接池，暂且使用标准库的 default Client
-	return http.Post(queryRawURL, "application/json", bytes.NewReader(body))
-}
-
-// PostQuery2  PostQuery输出美化版，摒弃 response 诸多细节，直接返回数据和error，适用于终端查询和输出结果
-func (q *QueryRaw) PostQuery2() (string, error) {
-	return "", nil
-}
-
 func apiQueryRaw(c *gin.Context) {
-	var q QueryRaw
 
-	if err := json.NewDecoder(c.Request.Body).Decode(&q); err != nil {
-		l.Errorf("json parse failed, %s", err)
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+	body, err := uhttp.GinRead(c)
+	if err != nil {
+		l.Errorf("GinRead: %s", err.Error())
+		uhttp.HttpErr(c, err)
 		return
 	}
 
-	l.Debugf("query row: %s", q.String())
+	var q QueryRaw
+	if err := json.Unmarshal(body, &q); err != nil {
+		l.Errorf("json.Unmarshal: %s", err)
+		uhttp.HttpErr(c, err)
+		return
+	}
 
-	resp, err := q.PostQuery()
+	if dw == nil {
+		uhttp.HttpErr(c, fmt.Errorf("dataway not set"))
+		return
+	}
+
+	tkns := dw.GetToken()
+	if len(tkns) == 0 {
+		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
+		return
+	}
+
+	q.Token = tkns[0]
+
+	j, err := json.Marshal(q)
 	if err != nil {
-		l.Errorf("post query failed, %s", err)
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+		l.Errorf("json.Marshal: %s", err.Error())
+		uhttp.HttpErr(c, err)
+		return
+	}
+
+	l.Debugf("query: %s", string(j))
+
+	resp, err := dw.DQLQuery(j)
+	if err != nil {
+		l.Errorf("DQLQuery: %s", err)
+		uhttp.HttpErr(c, err)
 		return
 	}
 
