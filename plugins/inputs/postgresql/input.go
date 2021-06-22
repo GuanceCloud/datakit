@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -376,7 +377,7 @@ func (i *Input) Run() {
 		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
 	}
 
-	i.duration = datakit.ProtectedInterval(minInterval, maxInterval, duration)
+	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(i.duration)
 
@@ -405,8 +406,7 @@ func (i *Input) Run() {
 }
 
 // TODO
-func (*Input) RunPipeline() {
-}
+func (*Input) RunPipeline() {}
 
 func parseURL(uri string) (string, error) {
 	u, err := url.Parse(uri)
