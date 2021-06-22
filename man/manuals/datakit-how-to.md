@@ -317,6 +317,10 @@ $ sudo datakit --restart
 $ sudo datakit --reload
 ```
 
+#### Windows 下 DataKit 服务操作
+
+按下 Win 键，输入 `services` 即可进入 Windows 服务管理界面，找到 `datakit` ，右键即可停止、重启服务。
+
 ### DataKit 更新 IP 数据库文件
 
 可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
