@@ -10,7 +10,14 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 ## 前置条件
 
-- 将 DataKit 部署成公网可访问（文档待补充）。
+- 将 DataKit 部署成公网可访问。
+
+> 注意：可通过如下配置，禁用公网访问 DataKit 404 页面：
+
+```toml
+# datakit.conf
+disable_404page = true
+```
 
 ## 配置
 
