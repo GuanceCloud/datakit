@@ -63,14 +63,16 @@ const (
     tag_prefix = "tomcat_"`
 
 	pipelineCfg = `
-# access log
+# juli OneLineFormatter format
+# cataline / host-manager / localhost / manager log 
+add_pattern("olf_time", "%{MONTHDAY}-%{MONTH}-%{YEAR} %{TIME}")
+grok(_, "%{olf_time:time} %{LOGLEVEL:status} \\[%{NOTSPACE:thread_name}\\] %{NOTSPACE:report_source} %{GREEDYDATA:msg}")
+  
+# localhost_access_log log
 grok(_, "%{IPORHOST:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
-group_in(status, ["warn", "notice"], "warning")
-group_in(status, ["error", "crit", "alert", "emerg"], "error")
 
 cast(status_code, "int")
 cast(bytes, "int")
-
 group_between(status_code, [200,299], "OK", status)
 group_between(status_code, [300,399], "notice", status)
 group_between(status_code, [400,499], "warning", status)
@@ -78,7 +80,7 @@ group_between(status_code, [500,599], "error", status)
 
 nullif(http_ident, "-")
 nullif(http_auth, "-")
-nullif(upstream, "")
+
 default_time(time)
 `
 )
