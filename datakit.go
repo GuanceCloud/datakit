@@ -31,12 +31,14 @@ const (
 	KeyEvent          = "/v1/write/keyevent"
 	Object            = "/v1/write/object"
 	Logging           = "/v1/write/logging"
+	LogFilter         = "/v1/logfilter/pull"
 	Tracing           = "/v1/write/tracing"
 	Rum               = "/v1/write/rum"
 	Security          = "/v1/write/security"
 	HeartBeat         = "/v1/write/heartbeat"
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"
+	QueryRaw          = "/v1/query/raw"
 )
 
 var (
