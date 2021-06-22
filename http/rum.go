@@ -91,7 +91,11 @@ func handleRUMBody(body []byte, precision, srcip string) (rumpts []*influxdb.Poi
 
 func handleRUM(c *gin.Context, precision, input string, body []byte) {
 
-	srcip := c.Request.Header.Get(datakit.Cfg.HTTPAPI.RUMOriginIPHeader)
+	srcip := ""
+	if apiConfig != nil {
+		srcip = c.Request.Header.Get(apiConfig.RUMOriginIPHeader)
+	}
+
 	if srcip != "" {
 		parts := strings.Split(srcip, ",")
 		if len(parts) > 0 {

@@ -1,6 +1,6 @@
-package config
+package http
 
-var WelcomeMsgTemplate = `
+var welcomeMsgTemplate = `
 <!doctype html>
 	<html>
 
