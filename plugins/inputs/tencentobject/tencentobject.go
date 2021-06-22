@@ -87,6 +87,10 @@ func (ag *objectAgent) parseObject(obj interface{}, class, id string, pipeline *
 	io.NamedFeedEx(inputName, datakit.Object, class, tags, fields, time.Now().UTC())
 }
 
+// TODO
+func (*objectAgent) RunPipeline() {
+}
+
 func (ag *objectAgent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
