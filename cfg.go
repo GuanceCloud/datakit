@@ -100,6 +100,7 @@ type Config struct {
 	WhiteList []*InputHostList `toml:"white_lists,omitempty"`
 
 	EnableElection bool `toml:"enable_election"`
+	Disable404Page bool `toml:"disable_404page"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
