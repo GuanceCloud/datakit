@@ -72,7 +72,7 @@ func (j *JolokiaAgent) Collect() {
 		j.L.Error(err)
 		return
 	}
-	duration = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, duration)
+
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
 
