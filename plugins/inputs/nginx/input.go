@@ -6,6 +6,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -31,7 +32,7 @@ var (
 	response_timeout = "20s"
 
 	[inputs.nginx.log]
-	#	files = []
+	#	files = ["/var/log/nginx/access.log","/var/log/nginx/error.log"]
 	#	# grok pipeline script path
 	#	pipeline = "nginx.p"
 	[inputs.nginx.tags]
@@ -89,10 +90,14 @@ func (_ *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
-	n.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	if n.Log != nil {
 		go func() {
