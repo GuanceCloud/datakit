@@ -1,4 +1,4 @@
-package datakit
+package service
 
 import (
 	"fmt"
@@ -55,7 +55,7 @@ func StartService() error {
 		return err
 	}
 
-	errch := make(chan error, CommonChanCap)
+	errch := make(chan error, 32)
 	slogger, err = svc.Logger(errch)
 	if err != nil {
 		return err
@@ -97,4 +97,8 @@ func (p *program) Stop(s service.Service) error {
 	// exit unexpected
 	<-waitstopCh
 	return nil
+}
+
+func Stop() {
+	close(waitstopCh)
 }

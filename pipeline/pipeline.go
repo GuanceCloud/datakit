@@ -266,14 +266,14 @@ func debugNodesHelp(f *parser.FuncExpr, prev string) {
 	}
 }
 
-func Init() error {
+func Init(datadir string) error {
 	l = logger.SLogger("pipeline")
 
-	if err := geo.LoadIPLib(); err != nil {
+	if err := geo.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return err
 	}
 
-	if err := ip2isp.Init(); err != nil {
+	if err := ip2isp.Init(filepath.Join(datadir, "ip2isp.txt")); err != nil {
 		return err
 	}
 
