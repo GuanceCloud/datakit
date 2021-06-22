@@ -3,7 +3,6 @@ package install
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,16 +11,18 @@ import (
 
 	"github.com/kardianos/service"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
 	l = logger.DefaultSLogger("install")
 
 	DefaultHostInputs          = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"}
-	DefaultHostInputsWithLinux = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "docker"}
+	DefaultHostInputsWithLinux = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "container"}
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
@@ -43,35 +44,31 @@ func readInput(prompt string) string {
 	return strings.TrimSpace(txt)
 }
 
-func getDataWayCfg() *datakit.DataWayCfg {
-	var dc *datakit.DataWayCfg
-	var err error
+func getDataWayCfg() *dataway.DataWayCfg {
+	dw := &dataway.DataWayCfg{}
 
 	if DataWayHTTP == "" {
+
 		for {
 			dwhttp := readInput("Please set DataWay HTTP URL(http[s]://host:port?token=xxx) > ")
-			dwUrls := []string{dwhttp}
-			dc, err = datakit.ParseDataway(dwUrls)
-			if err != nil {
+
+			dwurls := strings.Split(dwhttp, ",")
+			dw.URLs = dwurls
+			if err := dw.Apply(); err != nil {
 				fmt.Printf("%s\n", err.Error())
 				continue
 			}
-			if err := dc.Test(); err != nil {
-				fmt.Printf("%s\n", err.Error())
-				continue
-			}
+
 			break
 		}
 	} else {
-		dwUrls := []string{DataWayHTTP}
-		datakit.Cfg.DataWay.Urls = dwUrls
-		dc, err = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
-		if err != nil {
+		dw.URLs = strings.Split(DataWayHTTP, ",")
+		if err := dw.Apply(); err != nil {
 			l.Fatal(err)
 		}
 	}
 
-	return dc
+	return dw
 }
 
 func InstallNewDatakit(svc service.Service) {
@@ -80,14 +77,14 @@ func InstallNewDatakit(svc service.Service) {
 		l.Warnf("uninstall service: %s, ignored", err.Error())
 	}
 
-	mc := datakit.Cfg
+	mc := config.Cfg
 
 	// prepare dataway info
 	mc.DataWay = getDataWayCfg()
 
 	// accept any install options
 	if GlobalTags != "" {
-		mc.GlobalTags = datakit.ParseGlobalTags(GlobalTags)
+		mc.GlobalTags = config.ParseGlobalTags(GlobalTags)
 	}
 
 	mc.HTTPListen = fmt.Sprintf("localhost:%d", Port)
@@ -97,25 +94,15 @@ func InstallNewDatakit(svc service.Service) {
 		mc.Name = DatakitName
 	}
 
-	// XXX: load old datakit UUID file: reuse datakit UUID installed before
-	if data, err := ioutil.ReadFile(datakit.UUIDFile); err != nil {
-		mc.UUID = cliutils.XID("dkid_")
-		if err := datakit.CreateUUIDFile(datakit.UUIDFile, mc.UUID); err != nil {
-			l.Fatalf("create datakit id failed: %s", err.Error())
-		}
-	} else {
-		mc.UUID = string(data)
-	}
-
 	writeDefInputToMainCfg(mc)
 
-	l.Infof("installing service %s...", datakit.ServiceName)
+	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("install service: %s, ignored", err.Error())
 	}
 }
 
-func writeDefInputToMainCfg(mc *datakit.Config) {
+func writeDefInputToMainCfg(mc *config.Config) {
 
 	var hostInputs = DefaultHostInputs
 	if runtime.GOOS == datakit.OSLinux {
@@ -136,7 +123,7 @@ func writeDefInputToMainCfg(mc *datakit.Config) {
 	}
 }
 
-func upgradeMainConfig(c *datakit.Config) (*datakit.Config, error) {
+func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 
 	if c.DataWay != nil {
 		c.DataWay.DeprecatedURL = ""
@@ -163,8 +150,8 @@ func UpgradeDatakit(svc service.Service) error {
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
 
-	mc := datakit.Cfg
-	if err := mc.LoadMainConfig(datakit.MainConfPath); err == nil {
+	mc := config.Cfg
+	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
 		mc, _ = upgradeMainConfig(mc)
 		writeDefInputToMainCfg(mc)
 	} else {
