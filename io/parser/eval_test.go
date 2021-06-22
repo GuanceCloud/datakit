@@ -15,7 +15,6 @@ func TestExprConditions(t *testing.T) {
 		fields map[string]interface{}
 		pass   bool
 	}{
-
 		{
 			in:     "{abc notin [1.1,1.2,1.3] and (a > 1 || c< 0)}",
 			fields: map[string]interface{}{"abc": int64(4), "a": int64(-1), "c": int64(-2)},
@@ -57,6 +56,24 @@ func TestExprConditions(t *testing.T) {
 			fields: map[string]interface{}{"a": int64(2), "c": "xyz", "b": false},
 			pass:   true,
 		},
+
+		{
+			in:     `{host = re("^nginx_.*$")}`,
+			fields: map[string]interface{}{"host": "nginx_abc"},
+			pass:   true,
+		},
+
+		{
+			in:     "{host = re(`nginx_*`)}",
+			fields: map[string]interface{}{"host": "abcdef"},
+			pass:   false,
+		},
+
+		// {
+		// 	in:     "{host in [re(`mongo_.*`), re(`nginx_.*`), reg(`mysql_.*`)]}",
+		// 	fields: map[string]interface{}{"host": "123abc"},
+		// 	pass:   false,
+		// },
 	}
 
 	for _, tc := range cases {
