@@ -30,14 +30,8 @@ sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
 ## 拨测部署图
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-arch.png)
 
-注意事项：
-
-	1.  forethought-core 中心配置 dataway的地址；
-	2.  拨测节点的 datakit 到 dataway 的网络畅通；
-	3.  拨测节点的 datakit 到 dialtesting中心服务的网络畅通；
-	
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-net-arch.png)
 
 ## 浏览器拨测（Headless 拨测）
 
