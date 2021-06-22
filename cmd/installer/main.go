@@ -14,7 +14,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
@@ -48,7 +50,7 @@ var (
 	flagInstallLog   = flag.String("install-log", "", "install log")
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
-	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
+	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
 )
 
 const (
@@ -99,12 +101,12 @@ func main() {
 
 	l = logger.SLogger("installer")
 
-	datakit.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
+	dkservice.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
-		datakit.ServiceExecutable += ".exe"
+		dkservice.ServiceExecutable += ".exe"
 	}
 
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
 		return
@@ -118,7 +120,7 @@ func main() {
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)
 
-	datakit.InitDirs()
+	config.InitDirs()
 	applyFlags()
 
 	// create install dir if not exists
@@ -156,13 +158,13 @@ func main() {
 	}
 
 	if !*flagInstallOnly {
-		l.Infof("starting service %s...", datakit.ServiceName)
+		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
 			l.Warnf("star service: %s, ignored", err.Error())
 		}
 	}
 
-	createSymlinks()
+	config.CreateSymlinks()
 
 	if *flagUpgrade { // upgrade new version
 		l.Info(":) Upgrade Success!")
@@ -199,13 +201,13 @@ Golang Version: %s
 
 		if err := install.Download(datakitUrl,
 			fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
-				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, false); err != nil {
+				runtime.GOOS, runtime.GOARCH, DataKitVersion), true, true); err != nil {
 			return
 		}
 		fmt.Printf("\n")
 
 		install.CurDownloading = dlData
-		if err := install.Download(dataUrl, "data.tar.gz", true, false); err != nil {
+		if err := install.Download(dataUrl, "data.tar.gz", true, true); err != nil {
 			return
 		}
 
@@ -219,47 +221,4 @@ Golang Version: %s
 	install.Port = *flagPort
 	install.DatakitName = *flagDatakitName
 	install.EnableInputs = *flagEnableInputs
-}
-
-func createSymlinks() error {
-
-	x := [][2]string{}
-
-	if runtime.GOOS == datakit.OSWindows {
-		x = [][2]string{
-			[2]string{
-				filepath.Join(datakit.InstallDir, "datakit.exe"),
-				`C:\WINDOWS\system32\datakit.exe`,
-			},
-		}
-	} else {
-		x = [][2]string{
-			[2]string{
-				filepath.Join(datakit.InstallDir, "datakit"),
-				"/usr/local/bin/datakit",
-			},
-		}
-	}
-
-	for _, item := range x {
-		if err := symlink(item[0], item[1]); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func symlink(src, dst string) error {
-
-	l.Debugf("remove link %s...", dst)
-	if err := os.Remove(dst); err != nil {
-		l.Warnf("%s, ignored", err)
-	}
-
-	if err := os.Symlink(src, dst); err != nil {
-		l.Errorf("create datakit soft link: %s -> %s: %s", dst, src, err.Error())
-		return err
-	}
-	return nil
 }

@@ -6,16 +6,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	inputName = "kafka"
-)
-
 const (
 	defaultInterval = "60s"
+	inputName       = "kafka"
 )
 
 var (
-	l *logger.Logger
+	l = logger.DefaultSLogger(inputName)
 )
 
 type Input struct {
@@ -24,13 +21,18 @@ type Input struct {
 	Tags map[string]string    `toml:"tags"`
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) Run() {
+	l = logger.SLogger(inputName)
+
 	if i.Interval == "" {
 		i.Interval = defaultInterval
 	}
 
-	l = logger.DefaultSLogger(inputName)
-
+	i.JolokiaAgent.L = l
 	i.PluginName = inputName
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = KafkaTypeMap
