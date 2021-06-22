@@ -78,6 +78,10 @@ const (
 	maxIssuesPerQueue = 1000
 )
 
+var (
+	log = logger.DefaultSLogger(inputName)
+)
+
 func (g *Jira) Catalog() string {
 	return "jira"
 }
@@ -87,6 +91,7 @@ func (j *Jira) SampleConfig() string {
 }
 
 func (j *Jira) Run() {
+	log = logger.SLogger(inputName)
 	if j.Host == "" {
 		return
 	}
@@ -106,7 +111,6 @@ func (j *Jira) genParam() *JiraParam {
 
 	input := JiraInput{*j}
 	output := JiraOutput{io.NamedFeed}
-	log := logger.SLogger("jira")
 
 	p := &JiraParam{input, output, log}
 	return p
