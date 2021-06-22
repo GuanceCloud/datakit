@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -47,11 +48,15 @@ func (i *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) Run() {
 	if d, err := time.ParseDuration(i.Interval); err != nil {
 		i.Interval = (time.Second * 10).String()
 	} else {
-		i.Interval = datakit.ProtectedInterval(minInterval, maxInterval, d).String()
+		i.Interval = config.ProtectedInterval(minInterval, maxInterval, d).String()
 	}
 	i.PluginName = inputName
 	i.JolokiaAgent.Tags = i.Tags

@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -167,6 +168,10 @@ const (
 	MinGatherInterval = 1 * time.Second
 )
 
+var (
+	log = logger.DefaultSLogger(inputName)
+)
+
 func (y *Yarn) Catalog() string {
 	return "yarn"
 }
@@ -176,6 +181,7 @@ func (y *Yarn) SampleConfig() string {
 }
 
 func (y *Yarn) Run() {
+	log = logger.SLogger(inputName)
 	if y.Host == "" {
 		return
 	}
@@ -197,7 +203,7 @@ func (y *Yarn) genParam() *YarnParam {
 
 	input := YarnInput{*y}
 	output := YarnOutput{io.NamedFeed}
-	p := &YarnParam{input, output, logger.SLogger("yarn")}
+	p := &YarnParam{input, output, log}
 	return p
 }
 
@@ -219,7 +225,7 @@ func (p *YarnParam) gather() {
 		return
 	}
 
-	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
+	d = config.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {

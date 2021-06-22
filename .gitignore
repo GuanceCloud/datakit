@@ -4,7 +4,7 @@
 .orig
 proxy_config.yaml
 pub
-a.out
+*.out
 test.go
 dist/
 *.ak
@@ -54,3 +54,7 @@ test.output
 .docs/
 demo/
 liu_script.sh
+plugins/input/kubernetes/*.out
+plugins/input/kubernetes/pki/*
+plugins/input/kubernetes/cfg.conf
+data/*
