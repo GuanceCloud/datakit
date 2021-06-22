@@ -123,7 +123,6 @@ func SetTest() {
 }
 
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
-
 	ch := x.in
 
 	if opt != nil && opt.HighFreq {
@@ -136,6 +135,12 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.KeyEvent:
 	case datakit.Object:
 	case datakit.Logging:
+		if x.dw.ClientsCount() == 1 {
+			pts = defLogfilter.filter(pts)
+		} else {
+			// TODO: add multiple dataway config support
+			l.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
+		}
 	case datakit.Tracing:
 	case datakit.Security:
 	case datakit.Rum:
