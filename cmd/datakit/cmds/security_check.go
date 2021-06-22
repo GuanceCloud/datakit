@@ -56,7 +56,7 @@ func InstallSecCheck(installDir string) error {
 	cmd := exec.Command("/bin/bash", "-c", string(body))
 	x, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Security Checker install failed: %s", string(x))
+		fmt.Printf("Security Checker install failed: %s \n", string(x))
 		return err
 	}
 	fmt.Printf("Install Security Checker successfully.\n")

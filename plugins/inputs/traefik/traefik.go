@@ -8,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -68,6 +69,7 @@ var (
 #		tag1 = "tag1"
 #		tag2 = "tag2"
 #		tag3 = "tag3"`
+	log = logger.DefaultSLogger(inputName)
 )
 
 const (
@@ -84,6 +86,7 @@ func (t *Traefik) Catalog() string {
 }
 
 func (t *Traefik) Run() {
+	log = logger.SLogger(inputName)
 	if t.Url == "" {
 		return
 	}
@@ -105,7 +108,7 @@ func (t *Traefik) genParam() *TraefikParam {
 	input := TraefikInput{*t}
 	output := TraefikOutput{io.NamedFeed}
 
-	p := &TraefikParam{input, output, logger.SLogger("traefik")}
+	p := &TraefikParam{input, output, log}
 	return p
 }
 func (p *TraefikParam) gather() {
@@ -125,7 +128,7 @@ func (p *TraefikParam) gather() {
 		p.log.Errorf("interval type unsupported")
 		return
 	}
-	d = datakit.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
+	d = config.ProtectedInterval(MinGatherInterval, MaxGatherInterval, d)
 	tick := time.NewTicker(d)
 	defer tick.Stop()
 	for {
