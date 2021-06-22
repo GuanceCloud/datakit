@@ -15,7 +15,7 @@
 
 | 参数名               | 类型   | 是否必选 | 默认值    | 说明                                    |
 | -----                | ----   | -------  | ----      | -----                                   |
-| `category`           | string | true     | 无        | 目前只支持 `metric/logging/rum`         |
+| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object`    |
 | `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)           |
 | `input`              | string | false    | `datakit` | 数据源名称                              |
 | `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag |
@@ -43,6 +43,25 @@ cpu,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 mem,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 net,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
 ```
+
+### 对象数据(object)示例
+
+```http
+POST /v1/write/object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
+
+redis,name=xxx,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
+rds,name=yyy,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
+slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
+```
+
+> 注意：
+
+- 对象数据必须有 `name` 这个 tag，否则协议报错
+- 对象数据最好有 `message` 字段，主要便于做全文搜索
+
+### RUM
+
+参见 [RUM 文档](rum)
 
 ## `/v1/ping`
 
