@@ -8,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -94,6 +95,10 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName: pipelineCfg,
@@ -108,7 +113,7 @@ func (i *Input) AvailableArchs() []string {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("solr input started")
-	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	if i.Log != nil && len(i.Log.Files) > 0 {
 		go i.gatherLog()
