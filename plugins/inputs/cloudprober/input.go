@@ -2,14 +2,16 @@ package cloudprober
 
 import (
 	"fmt"
-	"github.com/prometheus/common/expfmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/prometheus/common/expfmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func (_ *Input) SampleConfig() string {
@@ -23,7 +25,7 @@ func (_ *Input) Catalog() string {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("cloudprober start")
-	n.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	client, err := n.createHttpClient()
 	if err != nil {
@@ -59,7 +61,7 @@ func (n *Input) getMetric() {
 	}
 	defer resp.Body.Close()
 
-	collector, err := parse(resp.Body)
+	collector, err := n.parse(resp.Body)
 	if err != nil {
 		n.lastErr = err
 		l.Error(err.Error())
@@ -72,7 +74,7 @@ func (n *Input) getMetric() {
 
 }
 
-func parse(reader io.Reader) ([]inputs.Measurement, error) {
+func (n *Input) parse(reader io.Reader) ([]inputs.Measurement, error) {
 	var (
 		parse     expfmt.TextParser
 		collector []inputs.Measurement
@@ -88,7 +90,9 @@ func parse(reader io.Reader) ([]inputs.Measurement, error) {
 				fields: map[string]interface{}{},
 				ts:     datakit.TimestampMsToTime(metric.GetTimestampMs()),
 			}
-
+			for k, v := range n.Tags {
+				measurement.tags[k] = v
+			}
 			for _, label := range metric.Label {
 				if label.GetName() == "ptype" {
 					measurement.name = fmt.Sprintf("probe_%s", label.GetValue())

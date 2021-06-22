@@ -41,6 +41,10 @@ func (r *logstashInfluxdbOutput) PipelineConfig() map[string]string {
 	}
 }
 
+// TODO
+func (*logstashInfluxdbOutput) RunPipeline() {
+}
+
 func (r *logstashInfluxdbOutput) Run() {
 }
 

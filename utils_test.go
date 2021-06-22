@@ -1,7 +1,9 @@
 package datakit
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	//"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -136,4 +138,14 @@ func BenchmarkGzipBytes(b *testing.B) {
 	//       80ms  2.43% 83.59%       80ms  2.43%  runtime.usleep
 	//       70ms  2.13% 85.71%       70ms  2.13%  runtime.memmove
 	//       60ms  1.82% 87.54%       60ms  1.82%  runtime.madvise
+}
+
+func TestDuration(t *testing.T) {
+	d := Duration{Duration: time.Second}
+	fmt.Println(d.UnitString(time.Second))
+	fmt.Println(d.UnitString(time.Nanosecond))
+	fmt.Println(d.UnitString(time.Microsecond))
+	fmt.Println(d.UnitString(time.Millisecond))
+	fmt.Println(d.UnitString(time.Minute))
+	fmt.Println(d.UnitString(time.Hour))
 }
