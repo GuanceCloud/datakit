@@ -13,6 +13,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -133,8 +134,8 @@ const sampleConfig = `
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
-[inputs.elasticsearch.log]
-  #  files = []
+# [inputs.elasticsearch.log]
+  #	files = []
   ## grok pipeline script path
   #  pipeline = "elasticsearch.p"
 
@@ -146,10 +147,10 @@ const sampleConfig = `
 
 const pipelineCfg = `
 # Elasticsearch_search_query
-grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[index.search.slowlog.%{WORD:operator}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\]\\[%{INT:shard}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
+grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[i.s.s.(query|fetch)%{SPACE}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\]\\[%{INT}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
 
 # Elasticsearch_slow_indexing
-grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[index.search.slowlog.%{WORD:operator}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
+grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[i.i.s.index%{SPACE}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}/%{NOTSPACE}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
 
 # Elasticsearch_default
 grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[%{NOTSPACE:name}%{SPACE}\\]%{SPACE}(\\[%{HOSTNAME:nodeId}\\])?.*")
@@ -157,7 +158,6 @@ grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[%{NO
 cast(shard, "int")
 cast(duration, "int")
 
-# why duration * 1000000
 expr(duration*1000000, duration)
 
 nullif(nodeId, "")
@@ -379,7 +379,12 @@ const (
 	minInterval = 1 * time.Second
 )
 
+// TODO
+func (*Input) RunPipeline() {
+}
+
 func (i *Input) Run() {
+	l = logger.SLogger(inputName)
 	// collect logs
 	if i.Log != nil {
 		go func() {
@@ -408,7 +413,7 @@ func (i *Input) Run() {
 		return
 	}
 
-	i.duration = datakit.ProtectedInterval(minInterval, maxInterval, duration)
+	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	client, err := i.createHTTPClient()
 	if err != nil {
