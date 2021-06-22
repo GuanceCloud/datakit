@@ -3,6 +3,7 @@ package parser
 import (
 	"math"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -114,15 +115,17 @@ func binEval(op ItemType, lhs, rhs interface{}) bool {
 	tl := reflect.TypeOf(lhs).String()
 	tr := reflect.TypeOf(rhs).String()
 
-	switch op {
-	case IN, NOTIN: // XXX: in expr should convert into multiple equal expr(EQ)
-		log.Warnf("IN/NOTIN operator should not been here")
-		return false
-
-	case GTE, GT, LT, LTE, NEQ, EQ: // type conflict detecting on comparison expr
-		if tl != tr {
-			log.Warnf("type conflict %+#v <> %+#v", lhs, rhs)
+	if _, ok := rhs.(*Regex); !ok {
+		switch op {
+		case IN, NOTIN: // XXX: in expr should convert into multiple equal expr(EQ)
+			log.Warnf("IN/NOTIN operator should not been here")
 			return false
+
+		case GTE, GT, LT, LTE, NEQ, EQ: // type conflict detecting on comparison expr
+			if tl != tr {
+				log.Warnf("type conflict %+#v <> %+#v", lhs, rhs)
+				return false
+			}
 		}
 	}
 
@@ -136,7 +139,17 @@ func binEval(op ItemType, lhs, rhs interface{}) bool {
 				return almostEqual(lv, f)
 			}
 		default: // NOTE: interface{} EQ/NEQ, see: https://stackoverflow.com/a/34246225/342348
-			return lhs == rhs
+			switch reg := rhs.(type) {
+			case *Regex:
+				ok, err := regexp.MatchString(reg.Regex, lhs.(string))
+				if err != nil {
+					log.Error(err)
+				}
+
+				return ok
+			default:
+				return lhs == rhs
+			}
 		}
 
 	case NEQ:
@@ -235,6 +248,7 @@ func (e *BinaryExpr) singleEval(source string, tags map[string]string, fields ma
 	switch rhs := e.RHS.(type) {
 	case *StringLiteral:
 		lit = rhs.Val
+
 	case *NumberLiteral:
 		if rhs.IsInt {
 			lit = rhs.Int
@@ -257,6 +271,9 @@ func (e *BinaryExpr) singleEval(source string, tags map[string]string, fields ma
 				log.Warnf("unsupported node list with type `%s'", reflect.TypeOf(elem).String())
 			}
 		}
+
+	case *Regex:
+		lit = rhs
 
 	default:
 		log.Panic("invalid RHS, got type `%s'", reflect.TypeOf(e.RHS).String())
