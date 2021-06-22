@@ -1,4 +1,4 @@
-package datakit
+package dataway
 
 import (
 	"bytes"
@@ -9,26 +9,30 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
-	ExtraHeaders = map[string]string{}
-
 	apis = []string{
-		MetricDeprecated,
-		Metric,
-		KeyEvent,
-		Object,
-		Logging,
-		LogFilter,
-		Tracing,
-		Rum,
-		Security,
-		HeartBeat,
-		Election,
-		ElectionHeartbeat,
-		QueryRaw,
+		datakit.MetricDeprecated,
+		datakit.Metric,
+		datakit.KeyEvent,
+		datakit.Object,
+		datakit.Logging,
+		datakit.LogFilter,
+		datakit.Tracing,
+		datakit.Rum,
+		datakit.Security,
+		datakit.HeartBeat,
+		datakit.Election,
+		datakit.ElectionHeartbeat,
+		datakit.QueryRaw,
 	}
+
+	ExtraHeaders = map[string]string{}
+	l            = logger.DefaultSLogger("dataway")
 )
 
 type DataWayCfg struct {
@@ -47,7 +51,10 @@ type DataWayCfg struct {
 
 	dataWayClients []*dataWayClient
 	httpCli        *http.Client
-	ontest         bool
+
+	Hostname string `toml:"-"`
+
+	ontest bool
 }
 
 type dataWayClient struct {
@@ -141,7 +148,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 }
 
 func (dc *dataWayClient) getLogFilter(cli *http.Client) ([]byte, error) {
-	url, ok := dc.categoryURL[LogFilter]
+	url, ok := dc.categoryURL[datakit.LogFilter]
 	if !ok {
 		return nil, fmt.Errorf("LogFilter API missing, should not been here")
 	}
@@ -161,7 +168,7 @@ func (dc *dataWayClient) getLogFilter(cli *http.Client) ([]byte, error) {
 }
 
 func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
-	requrl, ok := dc.categoryURL[HeartBeat]
+	requrl, ok := dc.categoryURL[datakit.HeartBeat]
 	if !ok {
 		return fmt.Errorf("HeartBeat API missing, should not been here")
 	}
@@ -187,18 +194,109 @@ func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
 	return nil
 }
 
-func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
+func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
+	if len(dw.dataWayClients) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
 
-	if dw.httpCli == nil {
-		if err := dw.initHttp(); err != nil {
-			return err
-		}
+	dc := dw.dataWayClients[0]
+	requrl, ok := dc.categoryURL[datakit.QueryRaw]
+	if !ok {
+		return nil, fmt.Errorf("no DQL query URL available")
+	}
+
+	defer dw.httpCli.CloseIdleConnections()
+	return dw.httpCli.Post(requrl, "application/json", bytes.NewBuffer(body))
+}
+
+func (dw *DataWayCfg) Election(id string) ([]byte, error) {
+	if len(dw.dataWayClients) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.dataWayClients[0] // 选举相关接口只只发送给第一个 dataway
+
+	requrl, ok := dc.categoryURL[datakit.Election]
+	if !ok {
+		return nil, fmt.Errorf("no election URL available")
+	}
+
+	if strings.Contains(requrl, "?token") {
+		requrl += ("&id=" + id)
+	} else {
+		return nil, fmt.Errorf("token missing")
 	}
 
 	defer dw.httpCli.CloseIdleConnections()
 
-	for idx, dc := range dw.dataWayClients {
-		l.Debugf("post to %d dataway...", idx)
+	resp, err := dw.httpCli.Post(requrl, "", nil)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	switch resp.StatusCode / 100 {
+	case 2:
+		return body, nil
+	default:
+		return nil, fmt.Errorf("election failed: %s", string(body))
+	}
+}
+
+func (dw *DataWayCfg) ElectionHeartbeat(id string) ([]byte, error) {
+	if len(dw.dataWayClients) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.dataWayClients[0] // 选举相关接口只只发送给第一个 dataway
+
+	requrl, ok := dc.categoryURL[datakit.ElectionHeartbeat]
+	if !ok {
+		return nil, fmt.Errorf("no election URL available")
+	}
+
+	if strings.Contains(requrl, "?token") {
+		requrl += ("&id=" + id)
+	} else {
+		return nil, fmt.Errorf("token missing")
+	}
+
+	defer dw.httpCli.CloseIdleConnections()
+
+	resp, err := dw.httpCli.Post(requrl, "", nil)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		l.Error(err)
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	switch resp.StatusCode / 100 {
+	case 2:
+		return body, nil
+	default:
+		return nil, fmt.Errorf("election heartbeat failed: %s", string(body))
+	}
+}
+
+func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
+
+	defer dw.httpCli.CloseIdleConnections()
+
+	for i, dc := range dw.dataWayClients {
+		l.Debugf("send to %dth dataway", i)
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
 			return err
 		}
@@ -223,15 +321,15 @@ func (dw *DataWayCfg) GetLogFilter() ([]byte, error) {
 	return dw.dataWayClients[0].getLogFilter(dw.httpCli)
 }
 
-func (dw *DataWayCfg) HeartBeat(id, host string) error {
+func (dw *DataWayCfg) HeartBeat() error {
 	if dw.httpCli != nil {
 		defer dw.httpCli.CloseIdleConnections()
 	}
 
 	body := map[string]interface{}{
-		"dk_uuid":   id,
+		"dk_uuid":   dw.Hostname, // 暂用 hostname 代之, 后将弃用该字段
 		"heartbeat": time.Now().Unix(),
-		"host":      host,
+		"host":      dw.Hostname,
 	}
 
 	if dw.httpCli == nil {
@@ -255,36 +353,6 @@ func (dw *DataWayCfg) HeartBeat(id, host string) error {
 	return nil
 }
 
-func (dw *DataWayCfg) QueryRawURL() []string {
-	var resURL []string
-	for _, dc := range dw.dataWayClients {
-		queryRawURL := dc.categoryURL[QueryRaw]
-		resURL = append(resURL, queryRawURL)
-	}
-
-	return resURL
-}
-
-func (dw *DataWayCfg) ElectionURL() []string {
-	var resURL []string
-	for _, dc := range dw.dataWayClients {
-		electionUrl := dc.categoryURL[Election]
-		resURL = append(resURL, electionUrl)
-	}
-
-	return resURL
-}
-
-func (dw *DataWayCfg) ElectionHeartBeatURL() []string {
-	var resURL []string
-	for _, dc := range dw.dataWayClients {
-		electionBeatUrl := dc.categoryURL[ElectionHeartbeat]
-		resURL = append(resURL, electionBeatUrl)
-	}
-
-	return resURL
-}
-
 func (dw *DataWayCfg) GetToken() []string {
 	resToken := []string{}
 	for _, dataWayClient := range dw.dataWayClients {
@@ -300,6 +368,7 @@ func (dw *DataWayCfg) GetToken() []string {
 }
 
 func (dw *DataWayCfg) Apply() error {
+	l = logger.SLogger("dataway")
 
 	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
 	// 避免俩边配置了同样的 dataway, 造成数据混乱
