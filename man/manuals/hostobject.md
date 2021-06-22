@@ -82,7 +82,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | 字段名             | 描述                                           | 类型   |
 | ---                | ----                                           | :---:  |
 | `host_name`        | 主机名                                         | string |
-| `boot_time`        | 开机时间                                       | string |
+| `boot_time`        | 开机时间                                       | int    |
 | `os`               | 操作系统类型，如 `linux/windows/darwin`        | string |
 | `platform`         | 平台名称，如 `ubuntu`                          | string |
 | `platform_family`  | 平台分类，如 `ubuntu` 属于 `debian` 分类       | string |
@@ -98,7 +98,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `module_name` | CPU 型号，如 `Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz` | string |
 | `cores`       | 核数                                                    | int    |
 | `mhz`         | 频率                                                    | int    |
-| `cache_size`  | 缓存大小                                                | int    |
+| `cache_size`  | L2 缓存大小（KB）                                       | int    |
 
 #### `host.mem`
 
