@@ -60,10 +60,8 @@ func MonitProc(proc *os.Process, name string) error {
 
 		case <-Exit.Wait():
 			if err := proc.Kill(); err != nil { // XXX: should we wait here?
-				l.Errorf("kill %s failed :%s", name, err.Error())
 				return err
 			}
-			l.Infof("kill %s ok", name)
 
 			return nil
 		}
