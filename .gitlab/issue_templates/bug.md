@@ -1,14 +1,16 @@
-# DataKit/操作系统版本信息（建议提供 datakit --version 的输出）
+## 问题描述
 
-# 你预期的行为是怎样的？
+## DataKit/操作系统版本信息（建议提供 datakit --version 的输出）
 
-# 尽可能提供复现步骤（文字、截屏、视屏等不限）
+## 预期的行为是怎样的？
 
-# 如果是对应采集器（如 MySQL）问题，请给出对应采集器的配置文件
+## 尽可能提供复现步骤（文字、截屏、视屏等不限）
 
-# 如果可以，请给出 http://datakit-ip:9529/monitor 截图，便于排查问题
+## 如果是对应采集器（如 MySQL）问题，请给出对应采集器的配置文件
 
-# 尽可能给出 DataKit 的 ERROR/WARN 日志
+## 如果可以，请给出 http://datakit-ip:9529/monitor 截图，便于排查问题
+
+## 尽可能给出 DataKit 的 ERROR/WARN 日志
 
 - Windows 位于 `C:\Program Files\datakit\log`
 
