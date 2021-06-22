@@ -17,16 +17,17 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
-		"apis":                    "man/manuals/apis.md",
-		"changelog":               "man/manuals/changelog.md",
-		"datakit-arch":            "man/manuals/datakit-arch.md",
-		"datakit-batch-deploy":    "man/manuals/datakit-batch-deploy.md",
-		"datakit-docker-install":  "man/manuals/datakit-docker-install.md",
+		"apis":                     "man/manuals/apis.md",
+		"changelog":                "man/manuals/changelog.md",
+		"datakit-arch":             "man/manuals/datakit-arch.md",
+		"datakit-batch-deploy":     "man/manuals/datakit-batch-deploy.md",
+		"datakit-daemonset-deploy": "man/manuals/datakit-daemonset-deploy.md",
+		//"datakit-docker-install":   "man/manuals/datakit-docker-install.md",
 		"datakit-how-to":          "man/manuals/datakit-how-to.md",
 		"datakit-install":         "man/manuals/datakit-install.md",
 		"datakit-offline-install": "man/manuals/datakit-offline-install.md",
 		"datakit-on-public":       "man/manuals/datakit-on-public.md",
-		"datakit-update-crontab":  "datakit-update-crontab.md",
+		"datakit-update":          "datakit-update.md",
 		"datatypes":               "man/manuals/datatypes.md",
 		"dataway":                 "man/manuals/dataway.md",
 		"election":                "man/manuals/election.md",
@@ -112,6 +113,8 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 			}
 
 		default:
+			l.Warnf("incomplete input: %s", name)
+
 			return nil, nil
 		}
 	}
