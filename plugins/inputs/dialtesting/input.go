@@ -60,9 +60,9 @@ type Input struct {
 
 const sample = `
 [[inputs.dialtesting]]
-  # 中心任务存储的服务地址，或本地json 文件全路径
-  #server = "files:///your/dir/json-file-name"
-  #server = "https://dflux-dial.dataflux.cn"
+  # 中心任务存储的服务地址，即df_dialtesting center service。
+  # 此处同时可配置成本地json 文件全路径 "files:///your/dir/json-file-name", 为task任务的json字符串。
+  server = "https://dflux-dial.dataflux.cn"
 
   # require，节点惟一标识ID
   region_id = "default"
