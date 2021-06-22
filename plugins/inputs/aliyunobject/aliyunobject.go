@@ -66,6 +66,10 @@ func (_ *objectAgent) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+// TODO
+func (*objectAgent) RunPipeline() {
+}
+
 func (ag *objectAgent) Run() {
 
 	moduleLogger = logger.SLogger(inputName)
