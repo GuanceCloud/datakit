@@ -9,6 +9,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -64,7 +65,7 @@ func (m *Mock) Run() {
 
 			pt, err := influxdb.NewPoint(m.Metric,
 				map[string]string{
-					"from": datakit.Cfg.Hostname,
+					"from": config.Cfg.Hostname,
 				},
 				map[string]interface{}{
 					"f1": randomdata.Number(0, 100),
