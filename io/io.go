@@ -9,6 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 var (
@@ -42,7 +43,7 @@ type IO struct {
 	OutputFile         string
 	FlushInterval      time.Duration
 
-	dw *datakit.DataWayCfg
+	dw *dataway.DataWayCfg
 
 	in        chan *iodata
 	in2       chan *iodata // high-freq chan
@@ -60,8 +61,8 @@ type IO struct {
 	outputFileSize  int64
 }
 
-func NewIO(maxCacheCnt int64) *IO {
-	io := &IO{
+func NewIO() *IO {
+	x := &IO{
 		MaxCacheCnt:        1024,
 		MaxDynamicCacheCnt: 1024,
 		FlushInterval:      10 * time.Second,
@@ -74,13 +75,11 @@ func NewIO(maxCacheCnt int64) *IO {
 
 		cache:        map[string][]*Point{},
 		dynamicCache: map[string][]*Point{},
-		dw:           datakit.Cfg.DataWay,
 	}
 
-	io.MaxCacheCnt = maxCacheCnt
-	io.MaxDynamicCacheCnt = maxCacheCnt
+	l.Debugf("IO: %+#v", x)
 
-	return io
+	return x
 }
 
 const (
@@ -123,7 +122,6 @@ func SetTest() {
 }
 
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
-
 	ch := x.in
 
 	if opt != nil && opt.HighFreq {
@@ -136,6 +134,12 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.KeyEvent:
 	case datakit.Object:
 	case datakit.Logging:
+		if x.dw.ClientsCount() == 1 {
+			pts = defLogfilter.filter(pts)
+		} else {
+			// TODO: add multiple dataway config support
+			l.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
+		}
 	case datakit.Tracing:
 	case datakit.Security:
 	case datakit.Rum:
@@ -251,7 +255,7 @@ func (x *IO) cleanHighFreqIOData() {
 
 func (x *IO) init() error {
 	if x.OutputFile != "" {
-		f, err := os.OpenFile(datakit.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
 			l.Error(err)
 			return err
@@ -326,6 +330,9 @@ func (x *IO) StartIO(recoverable bool) {
 		}
 	}
 
+	// start log filter
+	defLogfilter.start()
+
 	l.Info("starting...")
 	f(nil, nil)
 }
@@ -345,7 +352,7 @@ func (x *IO) flushAll() {
 		l.Warnf("post failed cache count: %d", x.cacheCnt)
 	}
 
-	if x.cacheCnt > x.MaxCacheCnt {
+	if x.cacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
 		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCnt)
 		for k, _ := range x.cache {
 			x.cache[k] = nil
@@ -353,7 +360,7 @@ func (x *IO) flushAll() {
 		x.cacheCnt = 0
 	}
 
-	if x.dynamicCacheCnt > x.MaxCacheCnt {
+	if x.dynamicCacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
 		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCnt)
 		for k, _ := range x.dynamicCache {
 			x.dynamicCache[k] = nil
