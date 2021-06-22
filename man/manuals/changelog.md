@@ -2,23 +2,62 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc6(2021/06/17)
+
+### 发布说明
+
+- 新增[Windows 事件采集器](windows_event)
+- 为便于用户部署 [RUM](rum) 公网 DataKit，提供禁用 DataKit 404 页面的选项
+- [容器采集器](container)字段有了新的优化，主要涉及 pod 的 restart/ready/state 等字段
+- [Kubernetes 采集器](kubernetes) 增加更多指标采集
+- 支持在 DataKit 端[对日志进行（黑名单）过滤](https://www.yuque.com/dataflux/doc/ilhawc#wGemu)
+
+### Breaking Changes
+
+对于没有语雀文档支持的采集器，在这次发布中，均已移除（各种云采集器，如阿里云监控数据、费用等采集）。如果有对这些采集器有依赖，不建议升级。
+
+----
+
+## 1.1.7-rc5(2021/06/16)
+
+### 问题修复
+
+修复 [DataKit API](apis) `/v1/query/raw` 无法使用的问题。
+
+----
+
+## 1.1.7-rc4(2021/06/11)
+
+### 问题修复
+
+禁用 Docker 采集器，其功能完全由[容器采集器](container) 来实现。
+
+原因：
+
+- Docker 采集器和容器采集器并存的情况下（DataKit 默认安装、升级情况下，会自动启用容器采集器），会导致数据重复
+- 现有 Studio 前端、模板视图等尚不支持最新的容器字段，可能导致用户升级上来之后，看不到容器数据。本版本的容器采集器会冗余一份原 Docker 采集器中采集上来的指标，使得 Studio 能正常工作。
+
+> 注意：如果在老版本中，有针对 Docker 的额外配置，建议手动移植到 [容器采集器](container) 中来。它们之间的配置基本上是兼容的。
+
+----
+
 ## 1.1.7-rc3(2021/06/10)
 
 ### 发布说明
 
-- 新增 [磁盘 S.M.A.R.T 采集器](smart) 采集器
+- 新增 [磁盘 S.M.A.R.T 采集器](smart)
 - 新增 [硬件 温度采集器](sensors) 
 - 新增 [Prometheus 采集器](prom) 
 
 ### 问题修复
 
-- 修正 Kubernetes 采集器，增加更多对象统计指标收集
-- 完善容器采集器，支持 image/container/pod 过滤
-- 修正 Mongodb 采集器问题
-- 修正 MySQL/Redis 可能因为配置确实导致奔溃的问题
-- 修正离线安装问题
+- 修正 [Kubernetes 采集器](kubernetes)，支持更多 K8s 对象统计指标收集
+- 完善[容器采集器](container)，支持 image/container/pod 过滤
+- 修正 [Mongodb 采集器](mongodb)问题
+- 修正 MySQL/Redis 采集器可能因为配置缺失导致奔溃的问题
+- 修正[离线安装问题](datakit-offline-install)
 - 修正部分采集器日志设置问题
-- 修正 SSH/Jenkins 等采集器的数据问题
+- 修正 [SSH](ssh)/[Jenkins](jenkins) 等采集器的数据问题
 
 ----
 
