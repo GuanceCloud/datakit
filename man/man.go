@@ -37,6 +37,7 @@ var (
 		"sec-checker":             "man/manuals/sec-checker.md",
 		"telegraf":                "man/manuals/telegraf.md",
 		"rum":                     "man/manuals/rum.md",
+		"ddtrace-java":            "man/manuals/ddtrace-java.md",
 	}
 
 	l = logger.DefaultSLogger("man")
