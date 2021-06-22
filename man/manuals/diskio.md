@@ -10,7 +10,15 @@ diskio 采集器用于磁盘流量和时间的指标的采集
 
 ## 前置条件
 
-暂无
+对于部分旧版本 Windows 操作系统，如若遇到 Datakit 报错： **"The system cannot find the file specified."**
+
+请以管理员身份运行 PowerShell，并执行：
+
+```powershell
+diskperf -Y
+```
+
+在执行成功后需要重启 Datakit 服务。
 
 ## 配置
 
