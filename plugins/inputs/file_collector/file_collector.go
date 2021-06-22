@@ -1,22 +1,24 @@
 package file_collector
 
 import (
-	"code.cloudfoundry.org/bytefmt"
 	"context"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
-	"github.com/gofrs/flock"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	goIO "io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"code.cloudfoundry.org/bytefmt"
+	"github.com/fsnotify/fsnotify"
+	"github.com/gofrs/flock"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -203,8 +205,8 @@ func (fc *FileCollector) handFail() {
 }
 
 func (fc *FileCollector) getRemotePath(name string) string {
-	token := datakit.Cfg.DataWay.GetToken()
-	hostName := datakit.Cfg.Hostname
+	token := config.Cfg.DataWay.GetToken()
+	hostName := config.Cfg.Hostname
 	name = strings.ReplaceAll(name, "/", "_")
 	name = strings.ReplaceAll(name, "\\", "_")
 	if fc.UploadType == "sftp" {
