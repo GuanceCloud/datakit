@@ -33,7 +33,7 @@ var (
 			osarchs: map[string]bool{
 				"linux/amd64": true,
 				"linux/386":   true,
-				// `darwin/amd64`: true,
+				// "darwin/amd64": true,
 			},
 
 			buildArgs: nil,

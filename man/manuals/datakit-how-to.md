@@ -6,15 +6,15 @@
 
 # DataKit 入门简介
 
-本文档主要介绍 DataKit 安装完后，如何使用 DataKit 中的基本功能，包括如下几个方面：
+本文档主要介绍 [DataKit 安装](datakit-install)完后，如何使用 DataKit 中的基本功能，包括如下几个方面：
 
 - 安装介绍
 - 采集器使用，包括如何开启、管理等
-- 如何使用 DataKit 中的各种小工具
+- DataKit 中各种小工具使用
 
 ## DataKit 目录介绍
 
-DataKit 目前支持 Linux/Windows/macOS 三种主流平台：
+DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
 
 | 操作系统                            | 架构                | 安装路径                                                                                     |
@@ -200,7 +200,10 @@ DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为
 
 - 我们将 MySQL 的日志采集和指标采集放在一起，主要是便于大家使用，无需单独用额外的采集器配置来收集日志
 - 在采集器的配置中，我们可以使用形如 `$XXXXX` 这样的环境变量（注意，DataKit 主配置中不支持这种）。例如，假定该 MySQL 运行在容器中，但其主机名实际上并不可提前预知，此时可以追加额外标签 `host = $HOSTNAME`。需注意的是，指定的环境变量必须真实有效，如果 DataKit 运行时获取不到该环境变量，那么会直接使用字符串 `no-value` 作为该字段的值。
-- 如果要配置多个不同 MySQL 采集，可单独再复制一份出来，如下 `mysql.conf` 所示：
+
+#### 单个采集器如何开启多份采集
+
+如果要配置多个不同 MySQL 采集，可单独再复制一份出来，如下 `mysql.conf` 所示：
 
 ```toml
 # 第一个 MySQL 采集
@@ -242,7 +245,9 @@ DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为
 
 #### 全局 host 标签问题
 
-因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰，比如 MySQL 不在 DataKit 所在机器，肯定希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名。此时可在 `[inputs.mysql.tags]` 中手动增加 `host = "<your-mysql-real-hostname>"`，以此来屏蔽 DataKit 默认追加的 `host` 标签。在 DataKit 看来，如果采集到的数据中就带有 `host` 标签，那么就不再追加 DataKit 所在主机的 host 信息了。
+因为 DataKit 会默认给采集到的所有数据追加标签 `host=<DataKit所在主机名>`，但某些情况这个默认追加的 `host` 会带来困扰。
+
+以 MySQL 为例，如果 MySQL 不在 DataKit 所在机器，肯定希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名。此时可在 `[inputs.mysql.tags]` 中手动增加 `host = "<your-mysql-real-hostname>"`，以此来屏蔽 DataKit 默认追加的 `host` 标签。在 DataKit 看来，如果采集到的数据中就带有 `host` 标签，那么就不再追加 DataKit 所在主机的 host 信息了。
 
 ## DataKit 各种工具使用
 
@@ -311,6 +316,10 @@ $ sudo datakit --start
 $ sudo datakit --restart
 $ sudo datakit --reload
 ```
+
+#### Windows 下 DataKit 服务操作
+
+按下 Win 键，输入 `services` 即可进入 Windows 服务管理界面，找到 `datakit` ，右键即可停止、重启服务。
 
 ### DataKit 更新 IP 数据库文件
 
