@@ -1,7 +1,7 @@
 package inputs
 
 import (
-	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/demo"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/demo"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/self"
 
 	//_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/aliyunactiontrail"

@@ -19,7 +19,7 @@ const (
 
 func initPluginPipeline() error {
 
-	if err := pipeline.Init(); err != nil {
+	if err := pipeline.Init(datakit.DataDir); err != nil {
 		return err
 	}
 
