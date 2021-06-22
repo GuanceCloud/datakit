@@ -42,7 +42,7 @@ func (k *Kubernetes) Init() error {
 
 	// kubelet API 没有提供 ping 功能，此处手动检查该端口是否可以连接
 	if err := net.RawConnect(u.Hostname(), u.Port(), time.Second); err != nil {
-		l.Errorf("kubelet_url connecting error(not collect kubelet): %s", err)
+		l.Warnf("failed of kubelet connect(not collect kubelet): %s", err)
 		return err
 	}
 
@@ -59,7 +59,7 @@ func (k *Kubernetes) Init() error {
 			}
 			k.BearerTokenString = strings.TrimSpace(string(token))
 		} else {
-			l.Debug("kubernetes bearerToken is not exist, use empty token")
+			l.Info("kubernetes bearerToken is not exist, use empty token")
 		}
 	}
 
