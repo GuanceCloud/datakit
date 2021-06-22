@@ -22,6 +22,19 @@ var (
 	mtx         = sync.RWMutex{}
 )
 
+func GetElectionInputs() []ElectionInput {
+	res := []ElectionInput{}
+	for _, arr := range InputsInfo {
+		for _, x := range arr {
+			switch y := x.input.(type) {
+			case ElectionInput:
+				res = append(res, y)
+			}
+		}
+	}
+	return res
+}
+
 type Input interface {
 	Catalog() string
 	Run()
@@ -30,13 +43,14 @@ type Input interface {
 }
 
 type HTTPInput interface {
-	Input
+	//Input
 	RegHttpHandler()
 }
 
 type PipelineInput interface {
-	Input
+	//Input
 	PipelineConfig() map[string]string
+	RunPipeline()
 }
 
 // new input interface got extra interfaces, for better documentation
@@ -44,6 +58,11 @@ type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement
 	AvailableArchs() []string
+}
+
+type ElectionInput interface {
+	Pause() error
+	Resume() error
 }
 
 type Creator func() Input
@@ -107,6 +126,8 @@ func RunInputs() error {
 			switch inp := ii.input.(type) {
 			case HTTPInput:
 				inp.RegHttpHandler()
+			case PipelineInput:
+				inp.RunPipeline()
 			default:
 				// pass
 			}
