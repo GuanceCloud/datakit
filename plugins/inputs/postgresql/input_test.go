@@ -237,8 +237,7 @@ func TestSanitizedAddress(t *testing.T) {
 
 }
 
-type DbMock struct {
-}
+type DbMock struct{}
 
 func (DbMock) SetMaxOpenConns(n int)            {}
 func (DbMock) SetMaxIdleConns(n int)            {}
