@@ -3,18 +3,16 @@ package jvm
 import (
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-)
-
-var (
-	inputName = "jvm"
 )
 
 const (
 	defaultInterval   = "60s"
 	MaxGatherInterval = 30 * time.Minute
 	MinGatherInterval = 1 * time.Second
+	inputName         = "jvm"
 )
 
 const (
@@ -113,7 +111,12 @@ type Input struct {
 	Tags map[string]string `toml:"tags"`
 }
 
+var (
+	log = logger.DefaultSLogger(inputName)
+)
+
 func (i *Input) Run() {
+	log = logger.SLogger(inputName)
 	if i.Interval == "" {
 		i.Interval = defaultInterval
 	}
@@ -122,6 +125,7 @@ func (i *Input) Run() {
 
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = JvmTypeMap
+	i.JolokiaAgent.L = log
 	i.JolokiaAgent.Collect()
 }
 
