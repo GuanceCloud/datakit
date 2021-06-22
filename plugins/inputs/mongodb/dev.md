@@ -7,41 +7,158 @@
 - `mongodb_col_stats` mongodb collection 运行状态
 - `mongodb_shard_stats` mongodb sharding 运行状态
 - `mongodb_top_stats` mongodb top 命令
+- `mongod_log` mongod log
 
 # config sample
 
 ```
 [[inputs.mongodb]]
-	## gather interval
-	interval = "10s"
-	## An array of URLs of the form:
-	##   "mongodb://" [user ":" pass "@"] host [ ":" port]
-	## For example:
-	##   mongodb://user:auth_key@10.10.3.30:27017,
-	##   mongodb://10.10.3.33:18832,
-	servers = ["mongodb://127.0.0.1:27017"]
-	## When true, collect replica set stats
-	gather_replica_set_stats = false
-	## When true, collect cluster stats
-	## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
-	gather_cluster_stats = false
-	## When true, collect per database stats
-	gather_per_db_stats = true
-	## When true, collect per collection stats
-	gather_per_col_stats = true
-	## List of db where collections stats are collected, If empty, all db are concerned
-	col_stats_dbs = ["local"]
-	## When true, collect top stats
-	gather_top_stat = true
-	## Optional TLS Config, enabled if true
-	enable_tls = false
-	[inputs.mongodb.tlsconf]
-		# ca_certs = ["/etc/datakit/ca.pem"]
-		# cert = "/etc/datakit/cert.pem"
-		# cert_key = "/etc/datakit/key.pem"
-		## Use TLS but skip chain & host verification
-		# insecure_skip_verify = false
-		# server_name = ""
+  ## Gathering interval
+  # interval = "` + defInterval.UnitString(time.Second) + `"
+
+  ## An array of URLs of the form:
+  ##   "mongodb://" [user ":" pass "@"] host [ ":" port]
+  ## For example:
+  ##   mongodb://user:auth_key@10.10.3.30:27017,
+  ##   mongodb://10.10.3.33:18832,
+  # servers = ["` + defMongoUrl + `"]
+
+  ## When true, collect replica set stats
+  # gather_replica_set_stats = false
+
+  ## When true, collect cluster stats
+  ## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
+  # gather_cluster_stats = false
+
+  ## When true, collect per database stats
+  # gather_per_db_stats = true
+
+  ## When true, collect per collection stats
+  # gather_per_col_stats = true
+
+  ## List of db where collections stats are collected, If empty, all dbs are concerned.
+  # col_stats_dbs = []
+
+  ## When true, collect top command stats.
+  # gather_top_stat = true
+
+  ## Optional TLS Config, enabled if true.
+  # enable_tls = false
+
+	## Optional local Mongod log input config, enabled if true.
+	# enable_mongod_log = false
+
+  ## TLS connection config
+  [inputs.mongodb.tlsconf]
+    # ca_certs = ["` + defTlsCaCert + `"]
+    # cert = "` + defTlsCert + `"
+    # cert_key = "` + defTlsCertKey + `"
+    ## Use TLS but skip chain & host verification
+    # insecure_skip_verify = false
+    # server_name = ""
+
+	## MongoD log
+	[inputs.mongodb.log]
+		## Log file path check your mongodb config path usually under /var/log/mongodb/mongod.log
+		# files = ["` + defMongodLogPath + `"]
+		## Grok pipeline script path
+		# pipeline = "` + defPipeline + `"
+
+  ## Customer tags, if set will be seen with every metric.
+  [inputs.mongodb.tags]
+    # "key1" = "value1"
+    # "key2" = "value2"
+```
+
+# pipeline config
+
+```
+json_all()
+rename("command", c)
+rename("severity", s)
+rename("context", ctx)
+drop_key(id)
+```
+
+# tls config
+
+config mongodb to enable connect to mongod instance using encryption and client side identification.
+
+## prerequisite
+
+run `openssl version` if nothing output run `sudo apt install openssl -y` to install openssl lib.
+
+## encryption with tls option
+
+use openssl to generate .pem file for mongod server tls encryption, run command
+
+```
+sudo openssl req -x509 -newkey rsa:2048 -days 365 -keyout mongod.key.pem -out mongod.cert.pem -nodes -subj '/CN=\<mongod server you want to connect to\>'
+```
+
+after run this command above you will find mongod certificate file `mongod.cert.pem` and mongod certificate key file `mongod.key.pem` under path, we need to merge these two files, run command
+
+```
+sudo bash -c "cat mongod.cert.pem mongod.key.pem >>mongod.pem"
+```
+
+after merge add this config into your mongod config file `/etc/mongod.conf`
+
+```
+# TLS config
+net:
+  tls:
+    mode: requireTLS
+    certificateKeyFile: /etc/ssl/mongod.pem
+```
+
+start mongod
+
+```
+sudo mongod --config /etc/mongod.conf
+```
+
+copy `mongod.cert.pem` file into your client side and test connect with tls, run command
+
+```
+mongo --tls --host <your mongod url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem
+```
+
+## client identification with tls option
+
+use openssl to generate .pem file for mongo client side identification using tls, run command
+
+```
+sudo openssl req -x509 -newkey rsa:2048 -days 365 -keyout mongo.key.pem -out mongo.cert.pem -nodes
+```
+
+after run this command above you will find mongo certificate file `mongo.cert.pem` and mongo certificate key file `mongo.key.pem` under path, we need to copy `mongo.cert.pem` file into your mongodb server, and config `/etc/mongod.config` file
+
+```
+# Tls config
+net:
+  tls:
+    mode: requireTLS
+    certificateKeyFile: /etc/ssl/mongod.pem
+    CAFile: /etc/ssl/mongo.cert.pem
+```
+
+start mongod server, run command
+
+```
+sudo mongod --config /etc/mongod.conf
+```
+
+on your client side, merge `mongo.cert.pem` and `mongo.key.pem` into `mongo.pem`, run command
+
+```
+sudo bash -c "cat mongo.cert.pem mongo.key.pem >>mongo.pem"
+```
+
+connect to mongod server with tls, run command
+
+```
+mongo --tls --host <your mongod url> --tlsCAFile /etc/ssl/certs/mongod.cert.pem --tlsCertificateKeyFile /etc/ssl/certs/mongo.pem
 ```
 
 # metrics
@@ -274,3 +391,21 @@
 | update_time      | inputs.Int | inputs.Gauge | inputs.NCount | The amount of time in microseconds that "update" costs.    |
 | write_lock_count | inputs.Int | inputs.Gauge | inputs.NCount | The total number of "writeLock" event issues.              |
 | write_lock_time  | inputs.Int | inputs.Gauge | inputs.NCount | The amount of time in microseconds that "writeLock" costs. |
+
+## mongod_log
+
+| 标签名   | 描述                       |
+| -------- | -------------------------- |
+| filename | The file name to 'tail -f' |
+| host     | host name                  |
+| service  | service name: mongod_log   |
+
+| 字段名    | 字段值 | 说明                                                           |
+| --------- | ------ | -------------------------------------------------------------- |
+| message   | string | Log raw data .                                                 |
+| component | string | The full component string of the log message                   |
+| context   | string | The name of the thread issuing the log statement               |
+| msg       | string | The raw log output message as passed from the server or driver |
+| severity  | string | The short severity code of the log message                     |
+| status    | string | Log level                                                      |
+| time      | string | Timestamp                                                      |
