@@ -88,12 +88,12 @@ func FeedX(name, category string, pt *Point, opt *Option) error {
 }
 
 func TestFlush(t *testing.T) {
-	urls := []string{"https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a",
-		"https://openway.dataflux.cn/v1/write/metrics?token=tkn_a5cbdacf23214966aa382ae0182e972b",
-	}
+	// urls := []string{"https://openway.dataflux.cn/v1/write/metrics?token=tkn_76d2d1efd3ff43db984497bfb4f3c25a",
+	// 	"https://openway.dataflux.cn/v1/write/metrics?token=tkn_a5cbdacf23214966aa382ae0182e972b",
+	// }
 	defaultMaxCacheCnt = int64(1024)
 	x = NewIO(defaultMaxCacheCnt)
-	x.dw, _ = datakit.ParseDataway(urls)
+	// x.dw, _ = datakit.ParseDataway(urls)
 	x.FlushInterval = 1 * time.Second
 
 	StartCollect()
@@ -120,17 +120,17 @@ func TestFlush(t *testing.T) {
 }
 
 func TestUnmarshalMainCfg(t *testing.T) {
-	datakit.Cfg.DoLoadMainConfig([]byte(cfg))
+	// datakit.Cfg.DoLoadMainConfig([]byte(cfg))
 
 	t.Log(datakit.Cfg.DataWay.HttpProxy)
 }
 
 func TestPushData(t *testing.T) {
-	datakit.Cfg.DoLoadMainConfig([]byte(cfg))
+	// datakit.Cfg.DoLoadMainConfig([]byte(cfg))
 
 	defaultMaxCacheCnt = int64(1024)
 	x = NewIO(defaultMaxCacheCnt)
-	x.dw, _ = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
+	// x.dw, _ = datakit.ParseDataway(datakit.Cfg.DataWay.Urls)
 	x.FlushInterval = 1 * time.Second
 
 	StartCollect()
