@@ -29,8 +29,8 @@ sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   # ...
 ```
 
-## 部署图
-![](dialtesting部署图.png)
+## 拨测部署图
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-arch.png)
 
 注意事项：
 
