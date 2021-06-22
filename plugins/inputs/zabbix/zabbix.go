@@ -34,6 +34,7 @@ var (
 	defaultStartDate = "2019-12-02T00:00:00"
 	locker           sync.Mutex
 	inputName        = "zabbix"
+	log              = logger.DefaultSLogger(inputName)
 )
 
 type Zabbix struct {
@@ -56,6 +57,7 @@ func (z *Zabbix) SampleConfig() string {
 }
 
 func (z *Zabbix) Run() {
+	log = logger.SLogger(inputName)
 	p := z.genParam()
 	p.log.Info("yarn zabbix started...")
 	p.mkZabbixDataDir()
@@ -76,7 +78,7 @@ func (z *Zabbix) genParam() *ZabbixParam {
 
 	input := ZabbixInput{*z}
 	output := ZabbixOutput{io.NamedFeed}
-	p := &ZabbixParam{input, output, logger.SLogger("zabbix")}
+	p := &ZabbixParam{input, output, log}
 	return p
 }
 
