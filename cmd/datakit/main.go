@@ -73,13 +73,14 @@ var (
 	flagInstallExternal = flag.String("install", "", "install external tool/software")
 
 	// managing service
-	flagStart      = flag.Bool("start", false, "start datakit")
-	flagStop       = flag.Bool("stop", false, "stop datakit")
-	flagRestart    = flag.Bool("restart", false, "restart datakit")
-	flagReload     = flag.Bool("reload", false, "reload datakit")
-	flagStatus     = flag.Bool("status", false, "show datakit service status")
-	flagUninstall  = flag.Bool("uninstall", false, "uninstall datakit service")
-	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
+	flagStart     = flag.Bool("start", false, "start datakit")
+	flagStop      = flag.Bool("stop", false, "stop datakit")
+	flagRestart   = flag.Bool("restart", false, "restart datakit")
+	flagReload    = flag.Bool("reload", false, "reload datakit")
+	flagStatus    = flag.Bool("status", false, "show datakit service status")
+	flagUninstall = flag.Bool("uninstall", false, "uninstall datakit service")
+
+	flagDatakitHost = flag.String("datakit-host", "localhost:9529", "datakit HTTP host")
 
 	// DQL
 	flagDQL    = flag.Bool("dql", false, "query DQL")
@@ -211,7 +212,7 @@ ReleasedInputs: %s
 	inputs.TODO = *flagTODO
 
 	if *flagDQL {
-		cmds.DQL()
+		cmds.DQL(*flagDatakitHost)
 		os.Exit(0)
 	}
 
@@ -530,7 +531,7 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		if err := cmds.ReloadDatakit(*flagReloadPort); err != nil {
+		if err := cmds.ReloadDatakit(*flagDatakitHost); err != nil {
 			fmt.Printf("Reload DataKit Failed\n")
 			os.Exit(-1)
 		}
@@ -568,7 +569,7 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		if err := cmds.UpdateIpDB(*flagReloadPort, *flagAddr); err != nil {
+		if err := cmds.UpdateIpDB(*flagDatakitHost, *flagAddr); err != nil {
 			fmt.Printf("Reload DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}
