@@ -385,6 +385,7 @@ func tryLoadConfig() {
 func doRun() error {
 
 	io.Start()
+
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Hostname, config.Cfg.DataWay)
 	}
