@@ -229,6 +229,7 @@ func (dw *DataWayCfg) Election(id string) ([]byte, error) {
 
 	defer dw.httpCli.CloseIdleConnections()
 
+	l.Debugf("election sending %s", requrl)
 	resp, err := dw.httpCli.Post(requrl, "", nil)
 	if err != nil {
 		l.Error(err)
@@ -244,8 +245,10 @@ func (dw *DataWayCfg) Election(id string) ([]byte, error) {
 	defer resp.Body.Close()
 	switch resp.StatusCode / 100 {
 	case 2:
+		l.Debugf("election %s ok", requrl)
 		return body, nil
 	default:
+		l.Debugf("election failed: %d", resp.StatusCode)
 		return nil, fmt.Errorf("election failed: %s", string(body))
 	}
 }
@@ -270,6 +273,7 @@ func (dw *DataWayCfg) ElectionHeartbeat(id string) ([]byte, error) {
 
 	defer dw.httpCli.CloseIdleConnections()
 
+	l.Debugf("election sending heartbeat %s", requrl)
 	resp, err := dw.httpCli.Post(requrl, "", nil)
 	if err != nil {
 		l.Error(err)
