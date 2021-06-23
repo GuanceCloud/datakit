@@ -8,6 +8,7 @@ import (
 	"github.com/c-bata/go-prompt"
 	"github.com/kardianos/service"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
@@ -20,6 +21,8 @@ var (
 		{Text: "Q", Description: "exit cmd"},
 		{Text: "flushall", Description: "k8s interactive command to generate deploy file"},
 	}
+
+	l = logger.DefaultSLogger("cmds")
 )
 
 type completer struct{}
@@ -99,14 +102,14 @@ func RestartDatakit() error {
 	return nil
 }
 
-func ReloadDatakit(port int) error {
+func ReloadDatakit(host string) error {
 	// FIXME: 如果没有绑定在 localhost 怎么办? 此处需解析 datakit 所用的 conf
 	client := &nhttp.Client{
 		CheckRedirect: func(req *nhttp.Request, via []*nhttp.Request) error {
 			return nhttp.ErrUseLastResponse
 		},
 	}
-	_, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
+	_, err := client.Get(fmt.Sprintf("http://%s/reload", host))
 	if err == nhttp.ErrUseLastResponse {
 		return nil
 	}
