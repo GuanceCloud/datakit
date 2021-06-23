@@ -2,6 +2,7 @@ package cmds
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,21 +13,39 @@ import (
 	"time"
 
 	"github.com/c-bata/go-prompt"
+	"github.com/fatih/color"
 	"github.com/influxdata/influxdb1-client/models"
 
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
-func DQL() {
+var (
+	datakitHost = ""
+
+	disableNil  = false
+	echoExplain = false
+
+	dqlcli = &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+)
+
+func DQL(host string) {
+	datakitHost = host
+
 	switch runtime.GOOS {
 	case "windows":
-		fmt.Println("\n[E] --man do not support Windows")
+		colorPrint("--dql do not support Windows\n", color.FgRed)
 		return
 	}
 
-	// TODO: add suggestions
-
 	c, _ := newCompleter()
+	suggestions = append(suggestions, dqlSuggestions...)
 
 	p := prompt.New(
 		runDQL,
@@ -49,8 +68,16 @@ func runDQL(txt string) {
 	case "":
 		return
 	case "Q", "EXIT":
-		fmt.Println("Bye!")
+		output("Bye!\n")
 		os.Exit(0)
+
+	case "disable_nil":
+		disableNil = true
+	case "enable_nil":
+		disableNil = false
+	case "echo_explain":
+		echoExplain = true
+
 	default:
 		lines := []string{}
 		if strings.HasSuffix(s, "\\") {
@@ -66,6 +93,7 @@ func runDQL(txt string) {
 func doDQL(s string) {
 
 	q := &dkhttp.QueryRaw{
+		EchoExplain: echoExplain,
 		Queries: []*dkhttp.SingleQuery{
 			&dkhttp.SingleQuery{
 				Query: s,
@@ -75,25 +103,48 @@ func doDQL(s string) {
 
 	j, err := json.Marshal(q)
 	if err != nil {
-		fmt.Printf("[E] %s\n", err)
+		colorPrint("%s\n", color.FgRed, err.Error())
 		return
 	}
 
-	l.Debugf("query: %s", string(j))
-
-	resp, err := http.Post("http://localhost:9529/v1/query/raw", "application/json", bytes.NewBuffer(j))
+	req, err := http.NewRequest("POST",
+		fmt.Sprintf("http://%s/v1/query/raw", datakitHost),
+		bytes.NewBuffer(j))
 	if err != nil {
-		fmt.Printf("[E] %s\n", err)
+		colorPrint("%s\n", color.FgRed, err.Error())
 		return
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	resp, err := dqlcli.Do(req)
 	if err != nil {
-		fmt.Printf("[E] read response body: %s\n", err)
+		colorPrint("%s\n", color.FgRed, err.Error())
 		return
 	}
 
-	show(respBody)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		colorPrint("%s\n", color.FgRed, err.Error())
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode/100 != 2 {
+		r := struct {
+			Err string `json:"error_code"`
+			Msg string `json:"message"`
+		}{}
+
+		if err := json.Unmarshal(body, &r); err != nil {
+			colorPrint("%s\n", color.FgRed, err.Error())
+			return
+		}
+
+		colorPrint("[%s]\n", color.FgRed, r.Err, r.Msg)
+		return
+	}
+
+	show(body)
 }
 
 type queryResult struct {
@@ -112,12 +163,12 @@ func show(body []byte) {
 	jd := json.NewDecoder(bytes.NewReader(body))
 	jd.UseNumber()
 	if err := jd.Decode(&r); err != nil {
-		fmt.Printf("[E] %s\n", err)
+		colorPrint("%s\n", color.FgRed, err.Error())
 		return
 	}
 
 	if r.Content == nil {
-		fmt.Println("[W] Empty result")
+		colorPrint("Empty result\n", color.FgRed)
 		return
 	}
 
@@ -136,30 +187,30 @@ func doShow(c *queryResult) {
 		if json.Valid([]byte(c.RawQuery)) {
 			var x map[string]interface{}
 			if err := json.Unmarshal([]byte(c.RawQuery), &x); err != nil {
-				fmt.Printf("[E] %s\n", err)
+				colorPrint("%s\n", color.FgRed, err)
 			} else {
 				j, err := json.MarshalIndent(x, "", "    ")
 				if err != nil {
-					fmt.Printf("[E] %s\n", err)
+					colorPrint("%s\n", color.FgRed, err)
 				} else {
-					fmt.Println("---------")
-					fmt.Printf("explain:\n%s\n", string(j))
+					output("---------\n")
+					output("explain:\n%s\n", string(j))
 				}
 			}
 		} else {
-			fmt.Println("---------")
-			fmt.Printf("explain: %s\n", c.RawQuery)
+			output("---------\n")
+			output("explain: %s\n", c.RawQuery)
 		}
 	}
 
-	fmt.Printf("---------\n%d rows, cost %s\n", rows, c.Cost)
+	output("---------\n%d rows, cost %s\n", rows, c.Cost)
 }
 
 func prettyShow(resp *queryResult) int {
 	nrows := 0
 
 	if len(resp.Series) == 0 {
-		fmt.Println("no data")
+		colorPrint("no data\n", color.FgYellow)
 		return 0
 	}
 
@@ -168,12 +219,12 @@ func prettyShow(resp *queryResult) int {
 		case 1:
 
 			if s.Name == "" {
-				fmt.Printf("<unknown>\n")
+				output("<unknown>\n")
 			} else {
-				fmt.Printf("%s\n", s.Name)
+				output("%s\n", s.Name)
 			}
 
-			fmt.Printf("%s\n", "-------------------")
+			output("%s\n", "-------------------")
 			for _, val := range s.Values {
 				if len(val) == 0 {
 					continue
@@ -181,10 +232,10 @@ func prettyShow(resp *queryResult) int {
 
 				switch val[0].(type) {
 				case string:
-					//AddSug(val[0].(string))
+					addSug(val[0].(string))
 				}
 
-				fmt.Printf("%s\n", val[0])
+				output("%s\n", val[0])
 				nrows++
 			}
 
@@ -193,17 +244,17 @@ func prettyShow(resp *queryResult) int {
 			fmtStr := fmt.Sprintf("%%%ds%%s", colWidth)
 			for _, val := range s.Values {
 				nrows++
-				fmt.Printf("-----------------[ %d.%s ]-----------------\n", nrows, s.Name)
+				output("-----------------[ %d.%s ]-----------------\n", nrows, s.Name)
 
 				for k, v := range s.Tags {
-					fmt.Printf(fmtStr+" %s\n", k, "#", v)
-					//AddSug(k)
+					output(fmtStr+" %s\n", k, "#", v)
+					addSug(k)
 				}
 
 				for colIdx, _ := range s.Columns {
-					//if DisableNil && val[colIdx] == nil {
-					//	continue
-					//}
+					if disableNil && val[colIdx] == nil {
+						continue
+					}
 
 					col := s.Columns[colIdx]
 					if _, ok := s.Tags[col]; !ok {
@@ -252,9 +303,9 @@ func prettyShow(resp *queryResult) int {
 							// pass
 						}
 
-						fmt.Printf(fmtStr+valFmt, col, " ", val[colIdx])
+						output(fmtStr+valFmt, col, " ", val[colIdx])
 					}
-					//AddSug(s.Columns[colIdx])
+					addSug(s.Columns[colIdx])
 				}
 			}
 		}
@@ -278,4 +329,174 @@ func getMaxColWidth(r *models.Row) int {
 	}
 
 	return max
+}
+
+func colorPrint(fmtstr string, c color.Attribute, args ...interface{}) {
+	color.Set(c)
+	output(fmtstr, args...)
+	color.Unset()
+}
+
+func output(fmtstr string, args ...interface{}) {
+	fmt.Printf(fmtstr, args...)
+}
+
+var (
+	liveSug        = map[string]bool{}
+	dqlSuggestions = []prompt.Suggest{
+		{Text: "AND", Description: "..."},
+		{Text: "AS", Description: "..."},
+		{Text: "ASC", Description: "..."},
+		{Text: "BY", Description: "..."},
+		{Text: "DESC", Description: "..."},
+		{Text: "FALSE", Description: "..."},
+		{Text: "FILL()", Description: "fill default value"},
+		{Text: "FILTER", Description: ""},
+		{Text: "GROUP", Description: "..."},
+		{Text: "LIMIT", Description: "..."},
+		{Text: "LINK", Description: "..."},
+		{Text: "LINEAR", Description: "..."},
+		{Text: "NIL", Description: "..."},
+		{Text: "OFFSET", Description: "..."},
+		{Text: "OR", Description: "..."},
+		{Text: "ORDER", Description: "..."},
+		{Text: "PREVIOUS", Description: "..."},
+		{Text: "re()", Description: "regex expressionn"},
+		{Text: "SLIMIT", Description: "..."},
+		{Text: "SOFFSET", Description: "..."},
+		{Text: "TRUE", Description: "..."},
+		{Text: "tz()", Description: "timezone function"},
+		{Text: "WITH", Description: ""},
+		{Text: "INFO", Description: "show token/workspace info"},
+
+		{Text: "metric::", Description: "metric namespace"},
+		{Text: "object::", Description: "object namespace"},
+		{Text: "event::", Description: "event namespace"},
+		{Text: "logging::", Description: "logging namespace"},
+		{Text: "tracing::", Description: "tracing namespace"},
+		{Text: "rum::", Description: "RUM namespace"},
+
+		{Text: "M::", Description: "metric namespace"},
+		{Text: "O::", Description: "object namespace"},
+		{Text: "E::", Description: "event namespace"},
+		{Text: "L::", Description: "logging namespace"},
+		{Text: "T::", Description: "tracing namespace"},
+		{Text: "R::", Description: "RUM namespace"},
+
+		// functions
+		{Text: "show_measurement()", Description: "show all metric names"},
+		{Text: "show_field_key()", Description: "show metric fields"},
+		{Text: "show_tag_key()", Description: "show metric tags"},
+		{Text: "show_tag_value(keyin=[])", Description: "show metric tag values"},
+
+		{Text: "show_object_class()", Description: "show object classes"},
+		{Text: "show_object_field()", Description: "show object fields"},
+
+		{Text: "show_logging_source()", Description: "show logging sources"},
+		{Text: "show_logging_field()", Description: "show logging fields"},
+
+		{Text: "show_event_source()", Description: "show event sources"},
+		{Text: "show_event_field()", Description: "show event fields"},
+
+		{Text: "show_tracing_service()", Description: "show tracing services"},
+		{Text: "show_tracing_field()", Description: "show tracing fields"},
+
+		{Text: "show_rum_type()", Description: "show RUM types"},
+		{Text: "show_rum_field(rum-type-value)", Description: "show RUM type fields"},
+
+		{Text: "show_security_source()", Description: "show security categories, same as show_security_category()"},
+		{Text: "show_security_category()", Description: "show security categories"},
+		{Text: "show_security_field()", Description: "show security fields"},
+
+		{Text: "avg()", Description: ""},
+		{Text: "bottom()", Description: ""},
+		{Text: "count()", Description: ""},
+		{Text: "derivative()", Description: ""},
+		{Text: "difference()", Description: ""},
+		{Text: "distinct()", Description: ""},
+		{Text: "first()", Description: ""},
+		{Text: "float()", Description: ""},
+		{Text: "int()", Description: ""},
+		{Text: "last()", Description: ""},
+		{Text: "log()", Description: ""},
+		{Text: "match()", Description: ""},
+		{Text: "max()", Description: ""},
+		{Text: "min()", Description: ""},
+		{Text: "moving_average()", Description: ""},
+		{Text: "non_negative_derivative()", Description: ""},
+		{Text: "percent()", Description: ""},
+		{Text: "sum()", Description: ""},
+		{Text: "top()", Description: ""},
+		{Text: "dataflux__dql.CHAIN()", Description: ""},
+		{Text: "dataflux__dql.EXEC_EXPR()", Description: ""},
+		{Text: "dataflux__dql.EXEC_FORMULA()", Description: ""},
+		{Text: "dataflux__dql.ABS()", Description: ""},
+		{Text: "dataflux__dql.CUMSUM()", Description: ""},
+		{Text: "dataflux__dql.INTEGRAL()", Description: ""},
+		{Text: "dataflux__dql.LOG2()", Description: ""},
+		{Text: "dataflux__dql.LOG10()", Description: ""},
+		{Text: "dataflux__dql.TOP()", Description: ""},
+		{Text: "dataflux__dql.BOTTOM()", Description: ""},
+		{Text: "dataflux__dql.DIFF()", Description: ""},
+		{Text: "dataflux__dql.MIN()", Description: ""},
+		{Text: "dataflux__dql.MAX()", Description: ""},
+		{Text: "dataflux__dql.AVG()", Description: ""},
+		{Text: "dataflux__dql.SUM()", Description: ""},
+		{Text: "dataflux__dql.FIRST()", Description: ""},
+		{Text: "dataflux__dql.LAST()", Description: ""},
+
+		// commands used within dfcli
+		{Text: "pretty", Description: "pretty output"},
+		{Text: "json", Description: "json output"},
+
+		{Text: "play", Description: "play output"},
+		{Text: "speed_play_0.1X", Description: "set play speed 0.1X"},
+		{Text: "speed_play_0.5X", Description: "set play speed 0.5X"},
+		{Text: "speed_play_1X", Description: "set play speed 1X"},
+		{Text: "speed_play_2X", Description: "set play speed 2X"},
+		{Text: "speed_play_4X", Description: "set play speed 4X"},
+		{Text: "speed_play_8X", Description: "set play speed 8X"},
+
+		{Text: "echo_explain", Description: "echo backend query"},
+		{Text: "echo_explain_off", Description: "disable echo backend query"},
+		{Text: "disable_nil", Description: "disable show nil values"},
+
+		{Text: "enable_multiple_field", Description: "enable multiple field query"},
+		{Text: "disable_multiple_field", Description: "disable multiple field query"},
+
+		{Text: "enable_nil", Description: "show nil values"},
+		{Text: "file_output", Description: "copy output to file"},
+		{Text: "file_output_off", Description: "disable copy output to file"},
+		{Text: "file_output_truncate", Description: "truncate output file"},
+		{Text: "clear", Description: "clear suggestion cache"},
+		{Text: "version", Description: "show dfcli version"},
+		{Text: "exit", Description: "exit dfcli"},
+
+		{Text: "use", Description: "clear USE_xxx"},
+		{Text: "use_rum", Description: "use RUM data"},
+		{Text: "use_object", Description: "use Object data"},
+		{Text: "use_metric", Description: "use Metric data"},
+		{Text: "use_logging", Description: "use Logging data"},
+		{Text: "use_tracing", Description: "use Tracing data"},
+		{Text: "use_event", Description: "use Event data"},
+		{Text: "use_security", Description: "use Security data"},
+
+		{Text: "show_workspace", Description: "show workspaces"},
+		{Text: "switch_workspace", Description: "switch specified workspace"},
+		// new outer funcs
+		{Text: "abs", Description: "math.abs"},
+		{Text: "cumsum", Description: "cumsum"},
+		{Text: "log10", Description: "log10"},
+		{Text: "log2", Description: "log2"},
+		{Text: "non_negative_difference", Description: "positive difference"},
+	}
+)
+
+func addSug(key string) {
+	if ok, _ := liveSug[key]; !ok {
+		suggestions = append(suggestions, prompt.Suggest{
+			Text: key, Description: "",
+		})
+		liveSug[key] = true
+	}
 }
