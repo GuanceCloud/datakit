@@ -64,6 +64,8 @@ func (x *candidate) run(id string, dw *dataway.DataWayCfg) {
 	x.dw = dw
 	x.plugins = inputs.GetElectionInputs()
 
+	l.Infof("get %d election inputs", len(x.plugins))
+
 	datakit.WG.Add(1)
 	go func() {
 		defer datakit.WG.Done()
@@ -97,6 +99,7 @@ func (x *candidate) startElection() {
 				return
 
 			case <-tick.C:
+				l.Debugf("run once...")
 				x.runOnce()
 			}
 		}
@@ -108,18 +111,18 @@ func (x *candidate) startElection() {
 }
 
 func (x *candidate) runOnce() {
+
 	switch x.status {
 	case statusSuccess:
-		x.keepalive()
+		_ = x.keepalive()
 	default:
-		x.tryElection()
+		_ = x.tryElection()
 	}
 }
 
 func (x *candidate) pausePlugins() {
 	for i, p := range x.plugins {
-		_ = i
-		//l.Debugf("pause %dth inputs...", i)
+		l.Debugf("pause %dth inputs...", i)
 		if err := p.Pause(); err != nil {
 			l.Warn(err)
 		}
@@ -128,25 +131,24 @@ func (x *candidate) pausePlugins() {
 
 func (x *candidate) resumePlugins() {
 	for i, p := range x.plugins {
-		_ = i
-		//l.Debugf("resume %dth inputs...", i)
+		l.Debugf("resume %dth inputs...", i)
 		if err := p.Resume(); err != nil {
 			l.Warn(err)
 		}
 	}
 }
 
-func (x *candidate) keepalive() {
+func (x *candidate) keepalive() error {
 	body, err := x.dw.ElectionHeartbeat(x.id)
 	if err != nil {
 		l.Error(err)
-		return
+		return err
 	}
 
 	var e = electionResult{}
 	if err := json.Unmarshal(body, &e); err != nil {
 		l.Error(err)
-		return
+		return err
 	}
 
 	switch e.Content.Status {
@@ -154,14 +156,13 @@ func (x *candidate) keepalive() {
 		x.status = statusFail
 		x.nOffline++
 		x.pausePlugins()
-		//l.Debugf("%s offline", x.id)
 	case statusSuccess:
 		x.nHeartbeat++
 		l.Debugf("%s HB %d", x.id, x.nHeartbeat)
 	default:
 		l.Warnf("unknown election status: %s", e.Content.Status)
 	}
-	return
+	return nil
 }
 
 type electionResult struct {
