@@ -6,13 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-)
-
-var (
-	l = logger.DefaultSLogger("cmds")
 )
 
 func PipelineDebugger(plname, txt string) {
