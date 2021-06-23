@@ -29,6 +29,10 @@ sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   # ...
 ```
 
+## 拨测部署图
+
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-net-arch.png)
+
 ## 浏览器拨测（Headless 拨测）
 
 浏览器测需在 DataKit 上安装 Chrome 浏览器，以 Ubuntu 为例：
