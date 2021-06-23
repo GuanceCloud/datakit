@@ -12,7 +12,7 @@ const (
 	dataUrl = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/data.tar.gz"
 )
 
-func UpdateIpDB(port int, addr string) error {
+func UpdateIpDB(dkhost, addr string) error {
 	if addr == "" {
 		addr = dataUrl
 	}
@@ -25,7 +25,7 @@ func UpdateIpDB(port int, addr string) error {
 
 	fmt.Printf("Download and decompress data.tar.gz successfully.\n")
 
-	_, err := nhttp.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
+	_, err := nhttp.Get(fmt.Sprintf("http://%s/reload", dkhost))
 	if err != nil {
 		fmt.Printf("Reload datakit fail!\n")
 		fmt.Printf("You need restart datakit by `datakit --restart` to make effect.\n")
