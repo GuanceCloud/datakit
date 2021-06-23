@@ -113,6 +113,7 @@ func (i *Input) Run() {
 
 		select {
 		case i.paused = <-i.chpause:
+			l.Debugf("demo paused? %v", i.paused)
 
 		case <-tick.C:
 
@@ -189,6 +190,7 @@ func (i *Input) Resume() error {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
+			paused:  true,
 			chpause: make(chan bool),
 		}
 	})
