@@ -207,13 +207,23 @@ func (i *Input) Run() {
 }
 
 func (i *Input) Pause() error {
-	i.chPause <- true
-	return nil
+	tick := time.NewTicker(time.Second * 5)
+	select {
+	case i.chPause <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
 }
 
 func (i *Input) Resume() error {
-	i.chPause <- false
-	return nil
+	tick := time.NewTicker(time.Second * 5)
+	select {
+	case i.chPause <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
 }
 
 func (i *Input) clear() {
