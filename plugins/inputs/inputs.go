@@ -24,10 +24,11 @@ var (
 
 func GetElectionInputs() []ElectionInput {
 	res := []ElectionInput{}
-	for _, arr := range InputsInfo {
+	for k, arr := range InputsInfo {
 		for _, x := range arr {
 			switch y := x.input.(type) {
 			case ElectionInput:
+				l.Debugf("find election inputs %s", k)
 				res = append(res, y)
 			}
 		}
