@@ -14,12 +14,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// load all inputs under @InstallDir/conf.d
-func LoadInputsConfig(c *Config) error {
+func SearchDir(dir string, suffix string) []string {
 
-	availableInputCfgs := map[string]*ast.Table{}
+	fps := []string{}
 
-	if err := filepath.Walk(datakit.ConfdDir, func(fp string, f os.FileInfo, err error) error {
+	if err := filepath.Walk(dir, func(fp string, f os.FileInfo, err error) error {
 		if err != nil {
 			l.Error(err)
 		}
@@ -29,15 +28,31 @@ func LoadInputsConfig(c *Config) error {
 			return nil
 		}
 
-		if f.Name() == "datakit.conf" {
-			return nil
-		}
-		if !strings.HasSuffix(f.Name(), ".conf") {
-			l.Debugf("ignore non-conf %s", fp)
+		if !strings.HasSuffix(f.Name(), suffix) {
 			return nil
 		}
 
-		tbl, err := parseCfgFile(fp)
+		fps = append(fps, fp)
+		return nil
+	}); err != nil {
+		l.Error(err)
+	}
+
+	return fps
+}
+
+// load all inputs under @InstallDir/conf.d
+func LoadInputsConfig(c *Config) error {
+
+	availableInputCfgs := map[string]*ast.Table{}
+	confs := SearchDir(datakit.ConfdDir, ".conf")
+	for _, fp := range confs {
+
+		if filepath.Base(fp) == "datakit.conf" {
+			continue
+		}
+
+		tbl, err := ParseCfgFile(fp)
 		if err != nil {
 			l.Warnf("[error] parse conf %s failed: %s, ignored", fp, err)
 			return nil
@@ -58,9 +73,6 @@ func LoadInputsConfig(c *Config) error {
 		l.Debugf("parse %s ok", fp)
 		availableInputCfgs[fp] = tbl
 		return nil
-	}); err != nil {
-		l.Error(err)
-		return err
 	}
 
 	// reset inputs(for reloading)
@@ -87,7 +99,14 @@ func LoadInputsConfig(c *Config) error {
 func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
 
 	l.Debugf("search input cfg for %s", name)
-	searchDatakitInputCfg(c, inputcfgs, name, creator)
+	list := searchDatakitInputCfg(c, inputcfgs, name, creator)
+
+	for _, i := range list {
+		if err := inputs.AddInput(name, i); err != nil {
+			l.Error("add %s failed: %v", name, err)
+			continue
+		}
+	}
 
 	return nil
 }
@@ -95,12 +114,14 @@ func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs m
 func searchDatakitInputCfg(c *Config,
 	inputcfgs map[string]*ast.Table,
 	name string,
-	creator inputs.Creator) {
+	creator inputs.Creator) []inputs.Input {
+
 	var err error
+
+	inputlist := []inputs.Input{}
 
 	for fp, tbl := range inputcfgs {
 		for field, node := range tbl.Fields {
-			inputlist := []inputs.Input{}
 
 			switch field {
 			case "inputs": //nolint:goconst
@@ -128,17 +149,10 @@ func searchDatakitInputCfg(c *Config,
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				}
 			}
-
-			for _, i := range inputlist {
-				if err := inputs.AddInput(name, i, fp); err != nil {
-					l.Error("add %s failed: %v", name, err)
-					continue
-				}
-
-				l.Infof("add input %s(%s) ok", name, fp)
-			}
 		}
 	}
+
+	return inputlist
 }
 
 func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
@@ -204,7 +218,7 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 
 	cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
 	l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
-	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), 0600); err != nil {
 		l.Errorf("create catalog dir %s failed: %s", catalog, err.Error())
 		return err
 	}
@@ -256,7 +270,7 @@ func initDefaultEnabledPlugins(c *Config) {
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(fpath), 0600); err != nil {
 			l.Errorf("mkdir failed: %s, ignored", err.Error())
 			continue
 		}
@@ -266,7 +280,7 @@ func initDefaultEnabledPlugins(c *Config) {
 			continue
 		}
 
-		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(fpath, []byte(sample), 0600); err != nil {
 			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
 			continue
 		}
@@ -277,7 +291,7 @@ func initDefaultEnabledPlugins(c *Config) {
 
 func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, error) {
 
-	tbl, err := parseCfgFile(f)
+	tbl, err := ParseCfgFile(f)
 	if err != nil {
 		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
 	}
