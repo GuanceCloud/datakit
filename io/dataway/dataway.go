@@ -20,6 +20,7 @@ var (
 		datakit.Metric,
 		datakit.KeyEvent,
 		datakit.Object,
+		datakit.CustomObject,
 		datakit.Logging,
 		datakit.LogFilter,
 		datakit.Tracing,
