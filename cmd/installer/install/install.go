@@ -160,7 +160,7 @@ func UpgradeDatakit(svc service.Service) error {
 	}
 
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(dir, 0600); err != nil {
 			return err
 		}
 	}
