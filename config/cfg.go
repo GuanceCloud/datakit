@@ -201,7 +201,6 @@ func (c *Config) InitCfg(p string) error {
 		l.Errorf("TomlMarshal(): %s", err.Error())
 		return err
 	} else {
-
 		if err := ioutil.WriteFile(p, mcdata, 0600); err != nil {
 			l.Errorf("error creating %s: %s", p, err)
 			return err
@@ -237,10 +236,7 @@ func (c *Config) setupGlobalTags() error {
 		c.GlobalTags = map[string]string{}
 	}
 
-	// add global tag implicitly
-	if _, ok := c.GlobalTags["host"]; !ok {
-		c.GlobalTags["host"] = c.Hostname
-	}
+	delete(c.GlobalTags, "host") // delete host tag if configured
 
 	// setup global tags
 	for k, v := range c.GlobalTags {
@@ -326,7 +322,14 @@ func (c *Config) ApplyMainConfig() error {
 	if err := c.setupGlobalTags(); err != nil {
 		return err
 	}
-	io.SetExtraTags(c.GlobalTags)
+
+	for k, v := range c.GlobalTags {
+		io.SetExtraTags(k, v)
+	}
+
+	// 此处不将 host 计入 c.GlobalTags，因为 c.GlobalTags 是读取的用户配置，而 host
+	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
+	io.SetExtraTags("host", c.Hostname)
 
 	if c.IntervalDeprecated != "" {
 		du, err := time.ParseDuration(c.IntervalDeprecated)
