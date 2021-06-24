@@ -23,8 +23,9 @@ type Option struct {
 	CollectCost time.Duration
 	HighFreq    bool
 
-	HTTPHost    string
-	PostTimeout time.Duration
+	HTTPHost     string
+	PostTimeout  time.Duration
+	SampleConfig *TraceSampleConfig
 }
 
 type lastErr struct {
