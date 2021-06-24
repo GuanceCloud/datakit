@@ -10,6 +10,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
@@ -174,4 +175,13 @@ func IPInfo(ip string) (map[string]string, error) {
 		"isp":      ip2isp.SearchIsp(ip),
 		"ip":       ip,
 	}, nil
+}
+
+func SetCmdRootLog() {
+	rl := filepath.Join(datakit.InstallDir, "cmd.log")
+	logger.SetGlobalRootLogger(rl, logger.DEBUG, logger.OPT_DEFAULT)
+	l = logger.SLogger("cmds")
+
+	config.SetLog()
+
 }
