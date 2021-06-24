@@ -78,7 +78,6 @@ func Add(name string, creator Creator) {
 
 type inputInfo struct {
 	input Input
-	cfg   string
 }
 
 func (ii *inputInfo) Run() {
@@ -90,20 +89,20 @@ func (ii *inputInfo) Run() {
 	case Input:
 		ii.input.Run()
 	default:
-		l.Errorf("invalid input type, cfg: %s", ii.cfg)
+		l.Errorf("invalid input type")
 	}
 }
 
-func AddInput(name string, input Input, fp string) error {
+func AddInput(name string, input Input) error {
 	mtx.Lock()
 	defer mtx.Unlock()
-	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input, cfg: fp})
+	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
 	return nil
 }
 
 func AddSelf() {
 	self, _ := Inputs["self"]
-	AddInput("self", self(), "no config for `self' input")
+	AddInput("self", self())
 }
 
 func ResetInputs() {
@@ -195,16 +194,12 @@ func addPanic(name string) {
 	panicInputs[name]++
 }
 
-func InputEnabled(name string) (n int, cfgs []string) {
+func InputEnabled(name string) (n int) {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	arr, ok := InputsInfo[name]
 	if !ok {
 		return
-	}
-
-	for _, i := range arr {
-		cfgs = append(cfgs, i.cfg)
 	}
 
 	n = len(arr)
