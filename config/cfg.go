@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,7 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -28,6 +29,10 @@ var (
 
 	l = logger.DefaultSLogger("config")
 )
+
+func SetLog() {
+	l = logger.SLogger("config")
+}
 
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
@@ -293,7 +298,7 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	if c.OutputFile != "" {
-		io.SetOutputFile(c.OutputFile)
+		dkio.SetOutputFile(c.OutputFile)
 	}
 
 	if c.Hostname == "" {
@@ -316,20 +321,20 @@ func (c *Config) ApplyMainConfig() error {
 
 	dkhttp.SetDataWay(c.DataWay)
 
-	io.SetDataWay(c.DataWay)
-	io.SetGlobalCacheCount(c.IOCacheCount)
+	dkio.SetDataWay(c.DataWay)
+	dkio.SetGlobalCacheCount(c.IOCacheCount)
 
 	if err := c.setupGlobalTags(); err != nil {
 		return err
 	}
 
 	for k, v := range c.GlobalTags {
-		io.SetExtraTags(k, v)
+		dkio.SetExtraTags(k, v)
 	}
 
 	// 此处不将 host 计入 c.GlobalTags，因为 c.GlobalTags 是读取的用户配置，而 host
 	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
-	io.SetExtraTags("host", c.Hostname)
+	dkio.SetExtraTags("host", c.Hostname)
 
 	if c.IntervalDeprecated != "" {
 		du, err := time.ParseDuration(c.IntervalDeprecated)
@@ -347,7 +352,7 @@ func (c *Config) ApplyMainConfig() error {
 		if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
 			l.Fatalf("encode main configure failed: %s", err.Error())
 		}
-		if err := ioutil.WriteFile(datakit.MainConfPath, buf.Bytes(), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(datakit.MainConfPath, buf.Bytes(), 0600); err != nil {
 			l.Fatalf("refresh main configure failed: %s", err.Error())
 		}
 
@@ -480,7 +485,7 @@ func ParseGlobalTags(s string) map[string]string {
 }
 
 func CreateUUIDFile(f, uuid string) error {
-	return ioutil.WriteFile(f, []byte(uuid), os.ModePerm)
+	return ioutil.WriteFile(f, []byte(uuid), 0600)
 }
 
 func LoadUUID(f string) (string, error) {
@@ -491,7 +496,47 @@ func LoadUUID(f string) (string, error) {
 	}
 }
 
+func emptyDir(fp string) bool {
+	fd, err := os.Open(fp)
+	if err != nil {
+		l.Error(err)
+		return false
+	}
+
+	_, err = fd.ReadDir(1)
+	switch err {
+	case io.EOF:
+		return true
+	default:
+		return false
+	}
+}
+
+// remove all xxx.conf.sample
+func removeDeprecatedCfgs() {
+	fps := SearchDir(datakit.ConfdDir, ".sample")
+	for _, fp := range fps {
+		if err := os.RemoveAll(fp); err != nil {
+			l.Error(err)
+			continue
+		}
+
+		l.Debugf("remove sample %s", fp)
+
+		// check if directory empty
+		pwd := filepath.Dir(fp)
+		if emptyDir(pwd) {
+			if err := os.RemoveAll(pwd); err != nil {
+				l.Error(err)
+			}
+		}
+
+		l.Debugf("remove dir %s", pwd)
+	}
+}
+
 func MoveDeprecatedCfg() {
+
 	if _, err := os.Stat(datakit.MainConfPathDeprecated); err == nil {
 		if err := os.Rename(datakit.MainConfPathDeprecated, datakit.MainConfPath); err != nil {
 			l.Fatal("move deprecated main configure failed: %s", err.Error())
