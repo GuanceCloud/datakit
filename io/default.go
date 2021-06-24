@@ -33,8 +33,8 @@ func SetDataWay(dw *dataway.DataWayCfg) {
 	defaultIO.dw = dw
 }
 
-func SetExtraTags(x map[string]string) {
-	extraTags = x
+func SetExtraTags(k, v string) {
+	extraTags[k] = v
 }
 
 func Start() error {
