@@ -60,6 +60,8 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
+	removeDeprecatedCfgs()
+
 	if err := c.InitCfg(datakit.MainConfPath); err != nil {
 		return err
 	}
@@ -120,7 +122,7 @@ func feedEnvs(data []byte) []byte {
 	return data
 }
 
-func parseCfgFile(f string) (*ast.Table, error) {
+func ParseCfgFile(f string) (*ast.Table, error) {
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
 		l.Error(err)
