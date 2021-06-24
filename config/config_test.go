@@ -13,6 +13,21 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+func TestEmptyDir(t *testing.T) {
+	dirname := "test123"
+	if err := os.MkdirAll(dirname, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := os.RemoveAll(dirname); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	tu.Assert(t, emptyDir(dirname) == true, "dir %s should be empty", dirname)
+}
+
 func TestTomlSerialization(t *testing.T) {
 	type X struct {
 		A int    `toml:"a,___a"`
