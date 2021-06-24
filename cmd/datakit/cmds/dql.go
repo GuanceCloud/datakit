@@ -117,6 +117,8 @@ func doDQL(s string) {
 		return
 	}
 
+	l.Debugf("dql request: %s", string(j))
+
 	req, err := http.NewRequest("POST",
 		fmt.Sprintf("http://%s/v1/query/raw", datakitHost),
 		bytes.NewBuffer(j))
@@ -150,7 +152,7 @@ func doDQL(s string) {
 			return
 		}
 
-		colorPrint("[%s]\n", color.FgRed, r.Err, r.Msg)
+		colorPrint("[%s] %s\n", color.FgRed, r.Err, r.Msg)
 		return
 	}
 
@@ -455,44 +457,13 @@ var (
 		{Text: "dataflux__dql.FIRST()", Description: ""},
 		{Text: "dataflux__dql.LAST()", Description: ""},
 
-		// commands used within dfcli
-		{Text: "pretty", Description: "pretty output"},
-		{Text: "json", Description: "json output"},
-
-		{Text: "play", Description: "play output"},
-		{Text: "speed_play_0.1X", Description: "set play speed 0.1X"},
-		{Text: "speed_play_0.5X", Description: "set play speed 0.5X"},
-		{Text: "speed_play_1X", Description: "set play speed 1X"},
-		{Text: "speed_play_2X", Description: "set play speed 2X"},
-		{Text: "speed_play_4X", Description: "set play speed 4X"},
-		{Text: "speed_play_8X", Description: "set play speed 8X"},
-
 		{Text: "echo_explain", Description: "echo backend query"},
 		{Text: "echo_explain_off", Description: "disable echo backend query"},
 		{Text: "disable_nil", Description: "disable show nil values"},
 
-		{Text: "enable_multiple_field", Description: "enable multiple field query"},
-		{Text: "disable_multiple_field", Description: "disable multiple field query"},
-
 		{Text: "enable_nil", Description: "show nil values"},
-		{Text: "file_output", Description: "copy output to file"},
-		{Text: "file_output_off", Description: "disable copy output to file"},
-		{Text: "file_output_truncate", Description: "truncate output file"},
-		{Text: "clear", Description: "clear suggestion cache"},
-		{Text: "version", Description: "show dfcli version"},
 		{Text: "exit", Description: "exit dfcli"},
 
-		{Text: "use", Description: "clear USE_xxx"},
-		{Text: "use_rum", Description: "use RUM data"},
-		{Text: "use_object", Description: "use Object data"},
-		{Text: "use_metric", Description: "use Metric data"},
-		{Text: "use_logging", Description: "use Logging data"},
-		{Text: "use_tracing", Description: "use Tracing data"},
-		{Text: "use_event", Description: "use Event data"},
-		{Text: "use_security", Description: "use Security data"},
-
-		{Text: "show_workspace", Description: "show workspaces"},
-		{Text: "switch_workspace", Description: "switch specified workspace"},
 		// new outer funcs
 		{Text: "abs", Description: "math.abs"},
 		{Text: "cumsum", Description: "cumsum"},
