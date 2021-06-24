@@ -14,6 +14,7 @@
 	- [Zipking]()
 	- [SkyWalking]()
 - K8s 集群 Prometheus 指标采集[通用方案]()
+- DataKit API 支持[自定义对象写入]()
 
 ### Breaking Changes
 
