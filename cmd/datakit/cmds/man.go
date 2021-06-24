@@ -47,7 +47,7 @@ func Man() {
 }
 
 func ExportMan(to, skipList, ver string) error {
-	if err := os.MkdirAll(to, os.ModePerm); err != nil {
+	if err := os.MkdirAll(to, 0600); err != nil {
 		return err
 	}
 
