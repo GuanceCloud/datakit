@@ -1,36 +1,104 @@
 package http
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	nhttp "net/http"
 	"testing"
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-var (
-	__host  = "http://127.0.0.1"
-	__bind  = ":12345"
-	__token = "tkn_2dc438b6693711eb8ff97aeee04b54af"
-)
+func BenchmarkHandleWriteBody(b *testing.B) {
+
+	body := []byte(`abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216
+abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
+
+	for n := 0; n < b.N; n++ {
+		handleWriteBody(body, "s", nil, false)
+	}
+}
+
+func BenchmarkHandleJSONWriteBody(b *testing.B) {
+
+	body := []byte(`[
+			{
+				"measurement":"abc",
+				"tags": {"t1":"b", "t2":"d"},
+				"fields": {"f1": 123, "f2": 3.4, "f3": "strval"},
+				"time":1624550216
+			},
+
+			{
+				"measurement":"def",
+				"tags": {"t1":"b", "t2":"d"},
+				"fields": {"f1": 123, "f2": 3.4, "f3": "strval"},
+				"time":1624550216
+			}
+			]`)
+
+	for n := 0; n < b.N; n++ {
+		handleWriteBody(body, "s", nil, true)
+	}
+}
 
 func TestHandleBody(t *testing.T) {
 	var cases = []struct {
 		body []byte
 		prec string
 		fail bool
+		js   bool
 		npts int
 		tags map[string]string
 	}{
+
+		{
+			body: []byte(`[
+			{
+				"measurement":"abc",
+				"fields": {"f1": 123, "f2": 3.4, "f3": "strval", "fx": [1,2,3]}
+			}
+			]`),
+			fail: true, // invalid field
+			js:   true,
+		},
+
+		{
+			body: []byte(`[
+			{
+				"measurement":"abc",
+				"fields": {"f1": 123, "f2": 3.4, "f3": "strval"}
+			},
+			{
+				"measurement":"def",
+				"fields": {"f1": 123, "f2": 3.4, "f3": "strval"},
+				"time": 1624550216000000000
+			}
+			]`),
+			js:   true,
+			npts: 2,
+		},
+
+		{
+			body: []byte(`[
+			{
+				"measurement":"abc",
+				"tags": {"t1":"b", "t2":"d"},
+				"fields": {"f1": 123, "f2": 3.4, "f3": "strval"},
+				"time":1624550216
+			},
+			{
+				"measurement":"def",
+				"tags": {"t1":"b", "t2":"d"},
+				"fields": {"f1": 123, "f2": 3.4, "f3": "strval"},
+				"time":1624550216
+			}
+			]`),
+			prec: "s",
+			npts: 2,
+			js:   true,
+		},
+
 		{
 			prec: "s",
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
@@ -56,7 +124,7 @@ test,t1=abc f1=1i,f2=2,f3="str"`),
 	}
 
 	for i, tc := range cases {
-		pts, err := handleWriteBody(tc.body, tc.tags, tc.prec)
+		pts, err := handleWriteBody(tc.body, tc.prec, tc.tags, tc.js)
 
 		if tc.fail {
 			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
@@ -97,8 +165,20 @@ func TestRUMHandleBody(t *testing.T) {
 		body []byte
 		prec string
 		fail bool
+		js   bool
 		npts int
 	}{
+
+		{
+			body: []byte(`[{
+"measurement": "error",
+"tags": {"t1": "tv1"},
+"fields": {"f1": 1.0, "f2": 2}
+}]`),
+			npts: 1,
+			js:   true,
+		},
+
 		{
 			prec: "ms",
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
@@ -128,7 +208,7 @@ func TestRUMHandleBody(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		pts, err := handleRUMBody(tc.body, tc.prec, "")
+		pts, err := handleRUMBody(tc.body, tc.prec, "", tc.js)
 
 		if tc.fail {
 			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
@@ -210,221 +290,5 @@ func TestParsePoint(t *testing.T) {
 				t.Log(pt.String())
 			}
 		}
-	}
-}
-
-func TestReload(t *testing.T) {
-	Start(&Option{Bind: __bind, GinLog: ".gin.log", PProf: true})
-	time.Sleep(time.Second)
-
-	n := 10
-
-	for i := 0; i < n; i++ {
-		if err := ReloadDatakit(&reloadOption{}); err != nil {
-			t.Error(err)
-		}
-
-		go RestartHttpServer()
-		time.Sleep(time.Second)
-	}
-
-	HttpStop()
-	<-stopOkCh // wait HTTP server stop tk
-	if reloadCnt != n {
-		t.Errorf("reload count unmatch: expect %d, got %d", n, reloadCnt)
-	}
-	t.Log("HTTP server stop ok")
-}
-
-func TestAPI(t *testing.T) {
-
-	var cases = []struct {
-		api    string
-		body   []byte
-		method string
-		gz     bool
-		fail   bool
-	}{
-		{
-			api:    "/v1/write/metric?precision=mss",
-			body:   []byte(`abc,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621315267`),
-			method: `POST`,
-			fail:   true,
-		},
-
-		{
-			api:    "/v1/ping",
-			method: "GET",
-			gz:     false,
-		},
-
-		{
-			api:    "/v1/write/metric?input=test",
-			body:   []byte(`test,t1=abc f1=1i,f2=2,f3="str"`),
-			method: "POST",
-			gz:     true,
-		},
-		{
-			api:    "/v1/write/metric?input=test",
-			body:   []byte(`test t1=abc f1=1i,f2=2,f3="str"`),
-			method: "POST",
-			gz:     true,
-			fail:   true,
-		},
-		{
-			api:    "/v1/write/metric?input=test&token=" + __token,
-			body:   []byte(`test-01,category=host,host=ubt-server,level=warn,title=a\ demo message="passwd 发生了变化" 1619599490000652659`),
-			method: "POST",
-			gz:     true,
-		},
-		{
-			api:    "/v1/write/metric?input=test&token=" + __token,
-			body:   []byte(``),
-			method: "POST",
-			gz:     true,
-			fail:   true,
-		},
-		{
-			api:    "/v1/write/object?input=test&token=" + __token,
-			body:   []byte(``),
-			method: "POST",
-			gz:     true,
-			fail:   true,
-		},
-		{
-			api:    "/v1/write/logging?input=test&token=" + __token,
-			body:   []byte(``),
-			method: "POST",
-			gz:     true,
-			fail:   true,
-		},
-		{
-			api:    "/v1/write/keyevent?input=test&token=" + __token,
-			body:   []byte(``),
-			method: "POST",
-			gz:     true,
-			fail:   true,
-		},
-
-		// rum cases
-		{
-			api:    "/v1/write/rum?input=test&token=" + __token,
-			body:   []byte(``),
-			method: "POST",
-			gz:     true,
-			fail:   true,
-		},
-
-		{ // unknown RUM metric
-			api:    "/v1/write/rum?input=unknown-RUM-metric",
-			body:   []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			method: `POST`,
-			gz:     true,
-			fail:   true,
-		},
-
-		{ // bad line-proto
-			api:    "/v1/write/rum?input=bad-line-proto",
-			body:   []byte(`not_rum_metric,t1=tag1,t2=tag2 f1=1.0f,f2=2i,f3="abc"`),
-			method: `POST`,
-			gz:     true,
-			fail:   true,
-		},
-
-		{
-			api:    "/v1/write/rum?input=rum-test",
-			body:   []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			method: `POST`,
-			gz:     true,
-		},
-
-		{
-			api: "/v1/write/rum?input=rum-test",
-			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			method: `POST`,
-			gz:     true,
-		},
-
-		{
-			api:    "/v1/write/rum?precision=ms",
-			body:   []byte(`resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621315267`),
-			method: `POST`,
-			gz:     true,
-		},
-
-		{
-			api:    "/v1/write/xxx?precision=ms",
-			body:   []byte(`view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621315267`),
-			method: `POST`,
-			fail:   true,
-		},
-	}
-
-	httpBind = __bind
-	io.SetTest()
-	ginLog = "./gin.log"
-
-	go func() {
-		HttpStart()
-	}()
-
-	time.Sleep(time.Second)
-
-	httpCli := &nhttp.Client{}
-	var err error
-
-	for i, tc := range cases {
-		if tc.gz {
-			tc.body, err = datakit.GZip(tc.body)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-
-		urlstr := fmt.Sprintf("%s%s%s", __host, __bind, tc.api)
-		t.Logf("request URL: %s", urlstr)
-		req, err := nhttp.NewRequest(tc.method, urlstr,
-			bytes.NewBuffer([]byte(tc.body)))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if tc.gz {
-			req.Header.Set("Content-Encoding", "gzip")
-		}
-
-		resp, err := httpCli.Do(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		respbody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if tc.fail {
-			tu.Assert(t, resp.StatusCode != http.StatusOK, "[%d] http should be failed, but ok, api: %s", i, tc.api)
-		} else {
-			tu.Assert(t, resp.StatusCode == http.StatusOK,
-				"[%d] request failed, http code %d, body: %s, api: %s", i, resp.Status, string(respbody), tc.api)
-		}
-
-		if len(respbody) > 0 {
-
-			var x struct {
-				ErrCode string `json:"error_code"`
-				Msg     string `json:"message"`
-			}
-
-			if err := json.Unmarshal(respbody, &x); err != nil {
-				t.Error(err.Error())
-			}
-		}
-		t.Logf("case [%d] %s ok", i, cases[i].api)
 	}
 }
