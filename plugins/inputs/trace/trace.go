@@ -32,7 +32,7 @@ type ZipkinTracer struct {
 }
 
 type TraceAdapter struct {
-	Source string
+	Source string // third part source name
 
 	//纳秒单位
 	Duration int64
@@ -48,7 +48,7 @@ type TraceAdapter struct {
 	OperationName  string
 	Resource       string
 	ParentID       string
-	TraceID        string
+	TraceID        string // source trace id
 	SpanID         string
 	Status         string
 	SpanType       string
