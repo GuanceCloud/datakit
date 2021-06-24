@@ -1,16 +1,12 @@
 package main
 
 import (
-	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	nhttp "net/http"
 	"os"
 	"os/signal"
 	"os/user"
-	"path"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -25,11 +21,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -95,20 +89,20 @@ var (
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
 	flagMonitor       = flag.Bool("monitor", false, "show monitor info of current datakit")
+	flagCheckConfig   = flag.Bool("check-config", false, "check inputs configure and main configure")
 )
 
 var (
 	l = logger.DefaultSLogger("main")
 
-	ReleaseType    = ""
-	ReleaseVersion = git.Version
+	ReleaseType = ""
 )
 
 const (
 	PID_FILENAME = ".pid"
 )
 
-func main() {
+func setupFlags() {
 	flag.CommandLine.MarkHidden("cmd") // deprecated
 
 	// internal using
@@ -124,9 +118,12 @@ func main() {
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
+}
 
+func main() {
+
+	setupFlags()
 	flag.Parse()
-
 	applyFlags()
 
 	if !checkIsRuning() {
@@ -154,178 +151,32 @@ func main() {
 	l.Info("datakit exited")
 }
 
-const (
-	winUpgradeCmd = `Import-Module bitstransfer; ` +
-		`start-bitstransfer -source %s -destination .dk-installer.exe; ` +
-		`.dk-installer.exe -upgrade; ` +
-		`rm .dk-installer.exe`
-	unixUpgradeCmd = `sudo -- sh -c ` +
-		`"curl %s -o dk-installer ` +
-		`&& chmod +x ./dk-installer ` +
-		`&& ./dk-installer -upgrade ` +
-		`&& rm -rf ./dk-installer"`
-)
-
 func applyFlags() {
-
-	if *flagVersion {
-		fmt.Printf(`
-       Version: %s
-        Commit: %s
-        Branch: %s
- Build At(UTC): %s
-Golang Version: %s
-      Uploader: %s
-ReleasedInputs: %s
-`, ReleaseVersion, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
-		vers, err := getOnlineVersions()
-		if err != nil {
-			fmt.Printf("Get online version failed: \n%s\n", err.Error())
-			os.Exit(-1)
-		}
-		curver, err := getLocalVersion()
-		if err != nil {
-			fmt.Printf("Get local version failed: \n%s\n", err.Error())
-			os.Exit(-1)
-		}
-
-		for k, v := range vers {
-
-			if version.IsNewVersion(v, curver, true) { // show version info, also show RC verison info
-				fmt.Println("---------------------------------------------------")
-				fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
-					k, v.VersionString, v.Commit, v.ReleaseDate)
-				switch runtime.GOOS {
-				case "windows":
-					cmdWin := fmt.Sprintf(winUpgradeCmd, v.DownloadURL)
-					fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
-				default:
-					cmd := fmt.Sprintf(unixUpgradeCmd, v.DownloadURL)
-					fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
-				}
-			}
-		}
-
-		os.Exit(0)
-	}
 
 	inputs.TODO = *flagTODO
 
-	if *flagDQL {
-		cmds.DQL(*flagDatakitHost)
-		os.Exit(0)
-	}
-
-	if *flagRunDQL != "" {
-		os.Exit(0)
-	}
-
-	if *flagShowCloudInfo != "" {
-		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
-		if err != nil {
-			fmt.Printf("Get cloud info failed: %s\n", err.Error())
-			os.Exit(-1)
-		}
-
-		keys := []string{}
-		for k, _ := range info {
-			keys = append(keys, k)
-		}
-
-		sort.Strings(keys)
-		for _, k := range keys {
-			fmt.Printf("\t% 24s: %v\n", k, info[k])
-		}
-
-		os.Exit(0)
-	}
-
-	if *flagMonitor {
-		if runtime.GOOS == "windows" {
-			fmt.Println("unavailable under Windows")
-			os.Exit(0)
-		}
-
-		cmds.CMDMonitor(*flagInterval, *flagAddr)
-		os.Exit(0)
-	}
-
-	if *flagIPInfo != "" {
-		x, err := cmds.IPInfo(*flagIPInfo)
-		if err != nil {
-			fmt.Printf("\t%v\n", err)
-		} else {
-			for k, v := range x {
-				fmt.Printf("\t% 8s: %s\n", k, v)
-			}
-		}
-
-		os.Exit(0)
-	}
-
-	if *flagCheckUpdate {
-
-		if *flagUpdateLogFile != "" {
-			logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT)
-		}
-		l = logger.SLogger("ota-update")
-
-		install.Init()
-
-		l.Debugf("get online version...")
-		vers, err := getOnlineVersions()
-		if err != nil {
-			l.Errorf("Get online version failed: \n%s\n", err.Error())
-			os.Exit(0)
-		}
-
-		ver := vers["Online"]
-
-		curver, err := getLocalVersion()
-		if err != nil {
-			l.Errorf("Get online version failed: \n%s\n", err.Error())
-			os.Exit(-1)
-		}
-
-		l.Debugf("online version: %v, local version: %v", ver, curver)
-
-		if ver != nil && version.IsNewVersion(ver, curver, *flagAcceptRCVersion) {
-			l.Infof("New online version available: %s, commit %s (release at %s)",
-				ver.VersionString, ver.Commit, ver.ReleaseDate)
-			os.Exit(42)
-		} else {
-			if *flagAcceptRCVersion {
-				l.Infof("Up to date(%s)", curver.VersionString)
-			} else {
-				l.Infof("Up to date(%s), RC version skipped", curver.VersionString)
-			}
-		}
-
-		os.Exit(0)
-	}
-
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
-
-	runDatakitWithCmd()
 
 	if *flagDocker {
 		config.Docker = true
 	}
+
+	runDatakitWithCmds()
+
 }
 
 func dumpAllConfigSamples(fpath string) {
 
-	if err := os.MkdirAll(fpath, os.ModePerm); err != nil {
+	if err := os.MkdirAll(fpath, 0600); err != nil {
 		panic(err)
 	}
 
 	for k, v := range inputs.Inputs {
 		sample := v().SampleConfig()
-		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), 0600); err != nil {
 			panic(err)
 		}
 	}
-
 }
 
 func run() {
@@ -416,33 +267,118 @@ func isRoot() bool {
 	return u.Username == "root"
 }
 
-func runDatakitWithCmd() {
+func runDatakitWithCmds() {
+
+	if *flagCheckUpdate { // 更新日志单独存放，不跟 cmd.log 一块
+		if *flagUpdateLogFile != "" {
+			logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT)
+		}
+		ret := cmds.CheckUpdate(*flagAcceptRCVersion)
+		os.Exit(ret)
+	}
+
+	if *flagVersion {
+		cmds.SetCmdRootLog()
+
+		cmds.ShowVersion(ReleaseType, *flagShowTestingVersions)
+		os.Exit(0)
+	}
+
+	if *flagCheckConfig {
+		cmds.SetCmdRootLog()
+		cmds.CheckConfig()
+		os.Exit(0)
+	}
+
+	if *flagDQL {
+		cmds.SetCmdRootLog()
+		cmds.DQL(*flagDatakitHost)
+		os.Exit(0)
+	}
+
+	if *flagRunDQL != "" {
+		cmds.SetCmdRootLog()
+		os.Exit(0)
+	}
+
+	if *flagShowCloudInfo != "" {
+		cmds.SetCmdRootLog()
+		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
+		if err != nil {
+			fmt.Printf("Get cloud info failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		keys := []string{}
+		for k, _ := range info {
+			keys = append(keys, k)
+		}
+
+		sort.Strings(keys)
+		for _, k := range keys {
+			fmt.Printf("\t% 24s: %v\n", k, info[k])
+		}
+
+		os.Exit(0)
+	}
+
+	if *flagMonitor {
+		cmds.SetCmdRootLog()
+		if runtime.GOOS == "windows" {
+			fmt.Println("unavailable under Windows")
+			os.Exit(0)
+		}
+
+		cmds.CMDMonitor(*flagInterval, *flagDatakitHost)
+		os.Exit(0)
+	}
+
+	if *flagIPInfo != "" {
+		cmds.SetCmdRootLog()
+		x, err := cmds.IPInfo(*flagIPInfo)
+		if err != nil {
+			fmt.Printf("\t%v\n", err)
+		} else {
+			for k, v := range x {
+				fmt.Printf("\t% 8s: %s\n", k, v)
+			}
+		}
+
+		os.Exit(0)
+	}
+
 	if *flagCmdDeprecated {
+		cmds.SetCmdRootLog()
 		l.Warn("--cmd parameter has been discarded")
 	}
 
 	if *flagPipeline != "" {
+		cmds.SetCmdRootLog()
 		cmds.PipelineDebugger(*flagPipeline, *flagText)
 		os.Exit(0)
 	}
 
 	if *flagProm != "" {
+		cmds.SetCmdRootLog()
 		cmds.PromDebugger(*flagProm)
 		os.Exit(0)
 	}
 
 	if *flagGrokq {
+		cmds.SetCmdRootLog()
 		cmds.Grokq()
 		os.Exit(0)
 	}
 
 	if *flagMan {
+		cmds.SetCmdRootLog()
 		cmds.Man()
 		os.Exit(0)
 	}
 
 	if *flagK8sCfgPath != "" {
-		if err := os.MkdirAll(*flagK8sCfgPath, os.ModePerm); err != nil {
+		cmds.SetCmdRootLog()
+		if err := os.MkdirAll(*flagK8sCfgPath, 0600); err != nil {
 			l.Errorf("invalid path %s", err.Error())
 			os.Exit(-1)
 		}
@@ -452,6 +388,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
+		cmds.SetCmdRootLog()
 		if err := cmds.ExportMan(*flagExportMan, *flagIgnore, *flagManVersion); err != nil {
 			l.Error(err)
 		}
@@ -459,6 +396,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportIntegration != "" {
+		cmds.SetCmdRootLog()
 		if err := cmds.ExportIntegration(*flagExportIntegration, *flagIgnore); err != nil {
 			l.Error(err)
 		}
@@ -466,6 +404,8 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagInstallExternal != "" {
+		cmds.SetCmdRootLog()
+
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -478,6 +418,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagStart {
+		cmds.SetCmdRootLog()
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -494,6 +435,7 @@ func runDatakitWithCmd() {
 
 	if *flagStop {
 
+		cmds.SetCmdRootLog()
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -509,6 +451,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagRestart {
+		cmds.SetCmdRootLog()
 
 		if !isRoot() {
 			l.Error("Permission Denied")
@@ -525,6 +468,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagReload {
+		cmds.SetCmdRootLog()
 
 		if !isRoot() {
 			l.Error("Permission Denied")
@@ -541,6 +485,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagStatus {
+		cmds.SetCmdRootLog()
 		x, err := cmds.DatakitStatus()
 		if err != nil {
 			fmt.Println("Get DataKit status failed: %s\n", err)
@@ -551,6 +496,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagUninstall {
+		cmds.SetCmdRootLog()
 		if err := cmds.UninstallDatakit(); err != nil {
 			fmt.Println("Get DataKit status failed: %s\n", err)
 			os.Exit(-1)
@@ -559,6 +505,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagUpdateIPDb {
+		cmds.SetCmdRootLog()
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -636,65 +583,4 @@ func rmPidFile() {
 	if err != nil {
 		l.Errorf("remove %s %v", pidFile, err)
 	}
-}
-
-func getOnlineVersions() (res map[string]*version.VerInfo, err error) {
-
-	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	res = map[string]*version.VerInfo{}
-
-	onlineVer, err := getVersion("static.dataflux.cn/datakit")
-	if err != nil {
-		return nil, err
-	}
-	res["Online"] = onlineVer
-
-	if *flagShowTestingVersions {
-		testVer, err := getVersion("zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit")
-		if err != nil {
-			return nil, err
-		}
-		res["Testing"] = testVer
-	}
-
-	return
-}
-
-func getLocalVersion() (*version.VerInfo, error) {
-	v := &version.VerInfo{
-		VersionString: strings.TrimPrefix(ReleaseVersion, "v"),
-		Commit:        git.Commit,
-		ReleaseDate:   git.BuildAt}
-	if err := v.Parse(); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-func getVersion(addr string) (*version.VerInfo, error) {
-	resp, err := nhttp.Get("http://" + path.Join(addr, "version"))
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	infobody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var ver version.VerInfo
-	if err = json.Unmarshal(infobody, &ver); err != nil {
-		return nil, err
-	}
-
-	if err := ver.Parse(); err != nil {
-		return nil, err
-	}
-	ver.DownloadURL = fmt.Sprintf("https://%s/installer-%s-%s",
-		addr, runtime.GOOS, runtime.GOARCH)
-	if runtime.GOOS == "windows" {
-		ver.DownloadURL += ".exe"
-	}
-	return &ver, nil
 }
