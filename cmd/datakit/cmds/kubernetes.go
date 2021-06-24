@@ -146,7 +146,7 @@ func (k *KubeDeploy) render() error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filename, buf.Bytes(), os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(filename, buf.Bytes(), 0600); err != nil {
 		return err
 	}
 
