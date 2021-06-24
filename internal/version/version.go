@@ -4,12 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-)
-
-var (
-	l = logger.DefaultSLogger("version")
 )
 
 type VerInfo struct {
@@ -34,8 +28,6 @@ func (x *VerInfo) Compare(y *VerInfo) int {
 
 	a := x.major*1024*1024*1024 + x.minor*1024*1024 + x.min
 	b := y.major*1024*1024*1024 + y.minor*1024*1024 + y.min
-
-	l.Debugf("v1: %d, v2: %d", a, b)
 
 	if a > b {
 		return 1
