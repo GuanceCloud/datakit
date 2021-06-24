@@ -133,6 +133,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.Metric:
 	case datakit.KeyEvent:
 	case datakit.Object:
+	case datakit.CustomObject:
 	case datakit.Logging:
 		if x.dw.ClientsCount() == 1 {
 			pts = defLogfilter.filter(pts)
