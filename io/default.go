@@ -118,8 +118,16 @@ func FeedLastError(inputName string, err string) error {
 	return nil
 }
 
-func MakePoint(name string,
+func MakePointWithoutGlobalTags(name string,
 	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) (*Point, error) {
+
+	return makePoint(name, tags, nil, fields, t...)
+}
+
+func makePoint(name string,
+	tags, extags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
 
@@ -132,7 +140,7 @@ func MakePoint(name string,
 
 	p, err := lp.MakeLineProtoPoint(name, tags, fields,
 		&lp.Option{
-			ExtraTags: extraTags,
+			ExtraTags: extags,
 			Strict:    true,
 			Time:      ts,
 			Precision: "n"})
@@ -141,6 +149,13 @@ func MakePoint(name string,
 	}
 
 	return &Point{Point: p}, nil
+}
+
+func MakePoint(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) (*Point, error) {
+	return makePoint(name, tags, extraTags, fields, t...)
 }
 
 // Deprecated
