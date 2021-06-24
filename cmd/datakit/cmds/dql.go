@@ -64,21 +64,31 @@ func runDQL(txt string) {
 		return
 	}
 
-	switch strings.ToUpper(s) {
+	switch strings.ToLower(s) {
 	case "":
 		return
-	case "Q", "EXIT":
+	case "q", "exit":
 		output("Bye!\n")
 		os.Exit(0)
 
+		// nil
 	case "disable_nil":
 		disableNil = true
+		return
 	case "enable_nil":
 		disableNil = false
+		return
+
+		// explain
 	case "echo_explain":
 		echoExplain = true
+		return
+	case "echo_explain_off":
+		echoExplain = false
+		return
 
 	default:
+
 		lines := []string{}
 		if strings.HasSuffix(s, "\\") {
 			lines = append(lines, strings.TrimSuffix(s, "\\"))
