@@ -75,6 +75,10 @@ var (
 	GRPCSock           = ""
 )
 
+const (
+	ConfPerm = 0777
+)
+
 func Quit() {
 	Exit.Close()
 	WG.Wait()
