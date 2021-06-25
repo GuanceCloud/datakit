@@ -26,10 +26,9 @@ import (
 )
 
 type enabledInput struct {
-	Input     string   `json:"input"`
-	Instances int      `json:"instances"`
-	Cfgs      []string `json:"configs"`
-	Panics    int      `json:"panic"`
+	Input     string `json:"input"`
+	Instances int    `json:"instances"`
+	Panics    int    `json:"panic"`
 }
 
 type DatakitStats struct {
@@ -218,10 +217,10 @@ func GetStats() (*DatakitStats, error) {
 			continue
 		}
 
-		n, cfgs := inputs.InputEnabled(k)
+		n := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
-			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Cfgs: cfgs, Panics: npanic})
+			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Panics: npanic})
 		}
 	}
 
