@@ -2,6 +2,30 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc7(预发)
+
+### 发布说明
+
+- 命令行增加功能：
+	- [DQL查询功能]()
+	- [命令行查看 monitor]()
+	- [检查 config 是否正确]()
+
+- 日志功能性能优化
+- 应用性能指标采集，支持采样率设置
+	- [DDtrace]()
+	- [Jaeger]()
+	- [Zipking]()
+	- [SkyWalking]()
+- K8s 集群 Prometheus 指标采集[通用方案]()
+- DataKit API 支持[自定义对象写入]()
+
+### Breaking Changes
+
+- 在 datakit.conf 中配置的 `global_tags` 中，`host` tag 将不生效，此举主要为了避免大家在配置 host 时造成一些误解（即配置了 `host`，但可能跟实际的主机名不同，造成一些数据误解）
+
+----
+
 ## 1.1.7-rc6(2021/06/17)
 
 ### 发布说明

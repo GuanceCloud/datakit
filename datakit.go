@@ -29,6 +29,7 @@ const (
 	Metric            = "/v1/write/metric"
 	KeyEvent          = "/v1/write/keyevent"
 	Object            = "/v1/write/object"
+	CustomObject      = "/v1/write/custom_object"
 	Logging           = "/v1/write/logging"
 	LogFilter         = "/v1/logfilter/pull"
 	Tracing           = "/v1/write/tracing"
