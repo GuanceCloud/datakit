@@ -141,7 +141,10 @@ func main() {
 
 	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle", opt.DatakitHTTPPort)
 
-	logger.SetGlobalRootLogger(opt.Log, opt.LogLevel, logger.OPT_DEFAULT)
+	if err := logger.SetGlobalRootLogger(opt.Log, opt.LogLevel, logger.OPT_DEFAULT); err != nil {
+		l.Errorf("set root log faile: %s", err.Error())
+	}
+
 	if opt.InstanceDesc != "" { // add description to logger
 		l = logger.SLogger("oracle-" + opt.InstanceDesc)
 	} else {
