@@ -92,10 +92,14 @@ func main() {
 			lopt |= logger.OPT_COLOR
 		}
 
-		logger.SetGlobalRootLogger("", logger.DEBUG, lopt)
+		if err := logger.SetGlobalRootLogger("", logger.DEBUG, lopt); err != nil {
+			l.Errorf("set root log failed: %s", err.Error())
+		}
 	} else {
 		l.Infof("set log file to %s", *flagInstallLog)
-		logger.SetGlobalRootLogger(*flagInstallLog, logger.DEBUG, logger.OPT_DEFAULT)
+		if err := logger.SetGlobalRootLogger(*flagInstallLog, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
+			l.Errorf("set root log failed: %s", err.Error())
+		}
 		install.Init()
 	}
 
