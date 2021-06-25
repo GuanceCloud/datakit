@@ -135,13 +135,21 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 		return nil
 
 	case 4:
-		l.Debugf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
-			len(data), requrl, resp.StatusCode, string(respbody), time.Since(postbeg))
+		l.Warnf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
+			len(data),
+			requrl,
+			resp.Status,
+			string(respbody),
+			time.Since(postbeg))
 		return nil
 
 	case 5:
 		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
-			len(data), requrl, resp.Status, string(respbody), time.Since(postbeg))
+			len(data),
+			requrl,
+			resp.Status,
+			string(respbody),
+			time.Since(postbeg))
 		return fmt.Errorf("dataway internal error")
 	}
 
