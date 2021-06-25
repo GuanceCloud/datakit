@@ -35,7 +35,7 @@ func initPluginPipeline() error {
 
 				plpath := filepath.Join(datakit.PipelineDir, k+".p")
 
-				if err := ioutil.WriteFile(plpath, []byte(pipelineWarning+v), 0600); err != nil {
+				if err := ioutil.WriteFile(plpath, []byte(pipelineWarning+v), datakit.ConfPerm); err != nil {
 					l.Errorf("failed to create pipeline script for %s/%s", name, k, err.Error())
 					return err
 				}
