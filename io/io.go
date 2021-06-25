@@ -23,9 +23,9 @@ type Option struct {
 	CollectCost time.Duration
 	HighFreq    bool
 
-	HTTPHost     string
-	PostTimeout  time.Duration
-	SampleConfig *TraceSampleConfig
+	HTTPHost    string
+	PostTimeout time.Duration
+	Sample      func(points []*Point) []*Point
 }
 
 type lastErr struct {
