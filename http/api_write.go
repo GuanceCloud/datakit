@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -23,7 +24,7 @@ type jsonPoint struct {
 
 // convert json point to real point
 func (jp *jsonPoint) pt(prec string, extags map[string]string) (*io.Point, error) {
-	if prec == "" {
+	if prec == "" || prec == "n" {
 		prec = "ns"
 	}
 
@@ -102,7 +103,6 @@ func apiWrite(c *gin.Context) {
 		return
 	}
 
-	l.Debugf("body: %s", string(body))
 	isjson := (c.Request.Header.Get("Content-Type") == "application/json")
 
 	var pts []*io.Point
@@ -113,14 +113,16 @@ func apiWrite(c *gin.Context) {
 		}
 
 		if srcip != "" {
+			l.Debugf("header remote addr: %s", c.Request.RemoteAddr)
 			parts := strings.Split(srcip, ",")
 			if len(parts) > 0 {
 				srcip = parts[0] // 注意：此处只取第一个 IP 作为源 IP
 			}
 		} else { // 默认取 gin 框架带进来的 IP
-			parts := strings.Split(c.Request.RemoteAddr, ":")
-			if len(parts) > 0 {
-				srcip = parts[0]
+			l.Debugf("gin remote addr: %s", c.Request.RemoteAddr)
+			host, _, err := net.SplitHostPort(c.Request.RemoteAddr)
+			if err == nil {
+				srcip = host
 			}
 		}
 
@@ -169,7 +171,7 @@ func handleWriteBody(body []byte,
 			Precision: precision})
 
 		if err != nil {
-			return nil, err
+			return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
 		}
 
 		return io.WrapPoint(pts), nil
