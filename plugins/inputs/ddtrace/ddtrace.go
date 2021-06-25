@@ -1,6 +1,8 @@
 package ddtrace
 
 import (
+	"fmt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -9,21 +11,25 @@ import (
 )
 
 var (
+	defRate         = 15
+	defScope        = 100
+	traceSampleConf *trace.TraceSampleConfig
+)
+
+var (
 	inputName                = "ddtrace"
 	traceDdtraceConfigSample = `
-[inputs.ddtrace]
+[[inputs.ddtrace]]
   # 此路由建议不要修改，以免跟其它路由冲突
   path = "/v0.4/traces"
 
-  ## trace input sample switch status: true: on, false: off
-  # trace_sample_on = false
-  ## sample config
+  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
   [inputs.ddtrace.sample_config]
-    ## sample rate, rate and scope determine rate number of input out of scope number will be sampled
-    # rate = 15
-    ## sample scope
-    # scope = 100
-    ## ignore sample tags list
+    ## sample rate, how many will be sampled
+    # rate = ` + fmt.Sprintf("%d", defRate) + `
+    ## sample scope, the range to sample
+    # scope = ` + fmt.Sprintf("%d", defScope) + `
+    ## ignore tags list for samplingx
     # ignore_tags_list = []
 
   [inputs.ddtrace.tags]
@@ -31,9 +37,7 @@ var (
     # more_tag = "some_other_value"
     ## ...
 `
-	traceSampleOn   = false
-	traceSampleConf *trace.TraceSampleConfig
-	log             = logger.DefaultSLogger(inputName)
+	log = logger.DefaultSLogger(inputName)
 )
 
 const (
@@ -44,7 +48,6 @@ var DdtraceTags map[string]string
 
 type Input struct {
 	Path            string                   `toml:"path"`
-	TraceSampleOn   bool                     `toml:"trace_sample_on"`
 	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
 	Tags            map[string]string        `toml:"tags"`
 }
@@ -60,6 +63,16 @@ func (_ *Input) SampleConfig() string {
 func (d *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
+
+	if d.TraceSampleConf != nil {
+		if d.TraceSampleConf.Rate <= 0 {
+			d.TraceSampleConf.Rate = defRate
+		}
+		if d.TraceSampleConf.Scope <= 0 {
+			d.TraceSampleConf.Scope = defScope
+		}
+	}
+	traceSampleConf = d.TraceSampleConf
 
 	log.Info(*d)
 
@@ -90,7 +103,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		d := &Input{}
-		log.Debug(*d)
 
 		return d
 	})
