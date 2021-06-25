@@ -11,7 +11,7 @@ var (
 		STATUS_CRITICAL: 4,
 	}
 	DefErrCheckHandler = func(err int32) bool {
-		return err == 0
+		return err != 0
 	}
 	DefIgnoreTagsHandler = func(source map[string]string, ignoreList []string) bool {
 		for _, v := range ignoreList {
