@@ -2,36 +2,64 @@ package traceSkywalking
 
 import (
 	"fmt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var (
-	inputName = "traceSkywalking"
+	defRate         = 15
+	defScope        = 100
+	traceSampleConf *trace.TraceSampleConfig
+)
 
-	traceJaegerConfigSample = `
-#[inputs.traceSkywalking.V2]
-#	grpcPort = 11800
-#	[inputs.traceSkywalking.V2.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
-#
-#[inputs.traceSkywalking.V3]
-#	grpcPort = 13800
-#	[inputs.traceSkywalking.V3.tags]
-#		tag1 = "tag1"
-#		tag2 = "tag2"
-#		tag3 = "tag3"
+var (
+	inputName                   = "traceSkywalking"
+	traceSkywalkingConfigSample = `
+[[inputs.traceSkywalking.V2]]
+  #	grpcPort = 11800
+
+  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
+  [inputs.traceSkywalking.sample_config]
+    ## sample rate, how many will be sampled
+    # rate = ` + fmt.Sprintf("%d", defRate) + `
+    ## sample scope, the range to sample
+    # scope = ` + fmt.Sprintf("%d", defScope) + `
+    ## ignore tags list for samplingx
+    # ignore_tags_list = []
+
+  #	[inputs.traceSkywalking.V2.tags]
+      # tag1 = "tag1"
+      # tag2 = "tag2"
+      # tag3 = "tag3"
+
+[[inputs.traceSkywalking.V3]]
+  # grpcPort = 13800
+
+  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
+  [inputs.traceSkywalking.sample_config]
+    ## sample rate, how many will be sampled
+    # rate = ` + fmt.Sprintf("%d", defRate) + `
+    ## sample scope, the range to sample
+    # scope = ` + fmt.Sprintf("%d", defScope) + `
+    ## ignore tags list for samplingx
+    # ignore_tags_list = []
+
+  [inputs.traceSkywalking.V3.tags]
+    # tag1 = "tag1"
+    # tag2 = "tag2"
+    # tag3 = "tag3"
 `
 	log = logger.DefaultSLogger(inputName)
 )
 
 type Skywalking struct {
-	GrpcPort int32
-	Tags     map[string]string
+	GrpcPort int32 `toml:"grpcPort"`
+
+	Tags map[string]string `toml:"tags"`
 }
 
 type SkywalkingTrace struct {
@@ -47,7 +75,7 @@ func (_ *SkywalkingTrace) Catalog() string {
 }
 
 func (_ *SkywalkingTrace) SampleConfig() string {
-	return traceJaegerConfigSample
+	return traceSkywalkingConfigSample
 }
 
 func (t *SkywalkingTrace) Run() {
@@ -85,6 +113,7 @@ func (t *SkywalkingTrace) RegHttpHandler() {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		t := &SkywalkingTrace{}
+
 		return t
 	})
 }
