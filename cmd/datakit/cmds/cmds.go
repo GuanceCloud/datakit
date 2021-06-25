@@ -177,11 +177,14 @@ func IPInfo(ip string) (map[string]string, error) {
 	}, nil
 }
 
-func SetCmdRootLog() {
-	rl := filepath.Join(datakit.InstallDir, "cmd.log")
-	logger.SetGlobalRootLogger(rl, logger.DEBUG, logger.OPT_DEFAULT)
-	l = logger.SLogger("cmds")
+func SetCmdRootLog(rl string) {
+	if err := logger.SetGlobalRootLogger(rl, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
+		l.Error(err)
+		return
+	}
 
 	config.SetLog()
 
+	l = logger.SLogger("cmds")
+	l.Infof("root log path set to %s", rl)
 }
