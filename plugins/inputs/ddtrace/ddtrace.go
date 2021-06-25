@@ -9,17 +9,16 @@ import (
 )
 
 var (
-	inputName = "ddtrace"
-
+	inputName                = "ddtrace"
 	traceDdtraceConfigSample = `
 [inputs.ddtrace]
   # 此路由建议不要修改，以免跟其它路由冲突
   path = "/v0.4/traces"
 
-  ## trace input sample status: true: on, false: off
-  # sample_status = false
+  ## trace input sample switch status: true: on, false: off
+  # trace_sample_on = false
   ## sample config
-  # [inputs.ddtrace.sample_config]
+  [inputs.ddtrace.sample_config]
     ## sample rate, rate and scope determine rate number of input out of scope number will be sampled
     # rate = 15
     ## sample scope
@@ -32,7 +31,9 @@ var (
     # more_tag = "some_other_value"
     ## ...
 `
-	log = logger.DefaultSLogger(inputName)
+	traceSampleOn   = false
+	traceSampleConf *trace.TraceSampleConfig
+	log             = logger.DefaultSLogger(inputName)
 )
 
 const (
@@ -43,6 +44,7 @@ var DdtraceTags map[string]string
 
 type Input struct {
 	Path            string                   `toml:"path"`
+	TraceSampleOn   bool                     `toml:"trace_sample_on"`
 	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
 	Tags            map[string]string        `toml:"tags"`
 }
@@ -58,6 +60,8 @@ func (_ *Input) SampleConfig() string {
 func (d *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
+
+	log.Info(*d)
 
 	if d != nil {
 		<-datakit.Exit.Wait()
@@ -86,6 +90,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		d := &Input{}
+		log.Debug(*d)
 
 		return d
 	})
