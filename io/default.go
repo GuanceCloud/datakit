@@ -102,11 +102,6 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 		return fmt.Errorf("no points")
 	}
 
-	// sample trace data
-	if opt.SampleConfig != nil {
-		pts = opt.SampleConfig.TraceSample(pts)
-	}
-
 	return defaultIO.DoFeed(pts, category, name, opt)
 }
 
