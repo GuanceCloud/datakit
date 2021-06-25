@@ -4,8 +4,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var (
@@ -24,10 +24,8 @@ var (
     # rate = 15
     ## sample scope
     # scope = 100
-    # [inputs.ddtrace.sample_config.ignore_list]
-      # key1 = "value1"
-      # key2 = "value2"
-      ## ...
+    ## ignore sample tags list
+    # ignore_tags_list = []
 
   [inputs.ddtrace.tags]
     # some_tag = "some_value"
@@ -44,9 +42,9 @@ const (
 var DdtraceTags map[string]string
 
 type Input struct {
-	Path            string                `toml:"path"`
-	TraceSampleConf *io.TraceSampleConfig `toml:"sample_config"`
-	Tags            map[string]string     `toml:"tags"`
+	Path            string                   `toml:"path"`
+	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
+	Tags            map[string]string        `toml:"tags"`
 }
 
 func (_ *Input) Catalog() string {
@@ -88,9 +86,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		d := &Input{}
-		d.TraceSampleConf.SampleHandler = io.DefSampleHandler
-		d.TraceSampleConf.Key = "trace_id"
-		d.TraceSampleConf.ConvertHandler = io.DefConvertHandler
 
 		return d
 	})
