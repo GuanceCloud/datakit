@@ -28,12 +28,11 @@ func SearchDir(dir string, suffix string) []string {
 			return nil
 		}
 
-		if !strings.HasSuffix(f.Name(), suffix) {
-			return nil
+		if strings.HasSuffix(f.Name(), suffix) {
+			fps = append(fps, fp)
 		}
-
-		fps = append(fps, fp)
 		return nil
+
 	}); err != nil {
 		l.Error(err)
 	}
@@ -46,7 +45,12 @@ func LoadInputsConfig(c *Config) error {
 
 	availableInputCfgs := map[string]*ast.Table{}
 	confs := SearchDir(datakit.ConfdDir, ".conf")
+
+	l.Debugf("loading %d conf...", len(confs))
+
 	for _, fp := range confs {
+
+		l.Debugf("loading conf %s...", fp)
 
 		if filepath.Base(fp) == "datakit.conf" {
 			continue
@@ -54,8 +58,8 @@ func LoadInputsConfig(c *Config) error {
 
 		tbl, err := ParseCfgFile(fp)
 		if err != nil {
-			l.Warnf("[error] parse conf %s failed: %s, ignored", fp, err)
-			return nil
+			l.Warnf("parse conf %s failed: %s, ignored", fp, err)
+			continue
 		}
 
 		deprecates := checkDepercatedInputs(tbl, deprecatedInputs)
@@ -66,13 +70,12 @@ func LoadInputsConfig(c *Config) error {
 		}
 
 		if len(tbl.Fields) == 0 {
-			l.Debugf("no conf available on %s", fp)
-			return nil
+			l.Warnf("no conf available on %s", fp)
+			continue
 		}
 
 		l.Debugf("parse %s ok", fp)
 		availableInputCfgs[fp] = tbl
-		return nil
 	}
 
 	// reset inputs(for reloading)
@@ -81,7 +84,7 @@ func LoadInputsConfig(c *Config) error {
 
 	for name, creator := range inputs.Inputs {
 		if !datakit.Enabled(name) {
-			l.Debugf("LoadInputsConfig: ignore unchecked input %s", name)
+			l.Debugf("ignore unchecked input %s", name)
 			continue
 		}
 
@@ -237,7 +240,7 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 }
 
 // Creata datakit input plugin's configures if not exists
-func initPluginSamples() {
+func initPluginSamples() error {
 	for name, create := range inputs.Inputs {
 
 		if !datakit.Enabled(name) {
@@ -246,18 +249,23 @@ func initPluginSamples() {
 		}
 
 		if err := initDatakitConfSample(name, create); err != nil {
-			l.Fatal(err)
+			return err
 		}
 	}
+	return nil
 }
 
 func initDefaultEnabledPlugins(c *Config) {
 
 	if len(c.DefaultEnabledInputs) == 0 {
+		l.Debug("no default inputs enabled")
 		return
 	}
 
 	for _, name := range c.DefaultEnabledInputs {
+
+		l.Debugf("init default input %s conf...", name)
+
 		var fpath, sample string
 
 		if c, ok := inputs.Inputs[name]; ok {
