@@ -6,6 +6,7 @@ import (
 	"time"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
+	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
@@ -28,10 +29,10 @@ func geoTags(srcip string) (tags map[string]string) {
 
 	ipInfo, err := geo.Geo(srcip)
 
-	l.Debugf("ipinfo(%s): %+#v", ipInfo, srcip)
+	l.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
 
 	if err != nil {
-		l.Errorf("geo failed: %s, ignored", err)
+		l.Warnf("geo failed: %s, ignored", err)
 		return
 	} else {
 		// 无脑填充 geo 数据
@@ -83,7 +84,7 @@ func handleRUMBody(body []byte, precision, srcip string, isjson bool) ([]*io.Poi
 
 	if err != nil {
 		l.Error(err)
-		return nil, err
+		return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
 	}
 
 	return io.WrapPoint(rumpts), nil
