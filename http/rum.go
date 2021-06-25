@@ -7,14 +7,11 @@ import (
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 
-	"github.com/gin-gonic/gin"
 	influxm "github.com/influxdata/influxdb1-client/models"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 var (
@@ -32,10 +29,10 @@ func geoTags(srcip string) (tags map[string]string) {
 
 	ipInfo, err := geo.Geo(srcip)
 
-	l.Debugf("ipinfo(%s): %+#v", ipInfo, srcip)
+	l.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
 
 	if err != nil {
-		l.Errorf("geo failed: %s, ignored", err)
+		l.Warnf("geo failed: %s, ignored", err)
 		return
 	} else {
 		// 无脑填充 geo 数据
@@ -51,13 +48,17 @@ func geoTags(srcip string) (tags map[string]string) {
 	return
 }
 
-func handleRUMBody(body []byte, precision, srcip string) (rumpts []*influxdb.Point, err error) {
-	extraTags := geoTags(srcip)
+func handleRUMBody(body []byte, precision, srcip string, isjson bool) ([]*io.Point, error) {
+	extags := geoTags(srcip)
 
-	rumpts, err = lp.ParsePoints(body, &lp.Option{
+	if isjson {
+		return jsonPoints(body, precision, extags)
+	}
+
+	rumpts, err := lp.ParsePoints(body, &lp.Option{
 		Time:      time.Now(),
 		Precision: precision,
-		ExtraTags: extraTags,
+		ExtraTags: extags,
 		Strict:    true,
 
 		// 由于 RUM 数据需要分别处理，故用回调函数来区分
@@ -83,53 +84,36 @@ func handleRUMBody(body []byte, precision, srcip string) (rumpts []*influxdb.Poi
 
 	if err != nil {
 		l.Error(err)
-		return nil, err
+		return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
 	}
 
-	return rumpts, nil
+	return io.WrapPoint(rumpts), nil
 }
 
-func handleRUM(c *gin.Context, precision, input string, body []byte) {
-
-	srcip := ""
-	if apiConfig != nil {
-		srcip = c.Request.Header.Get(apiConfig.RUMOriginIPHeader)
-	}
-
-	if srcip != "" {
-		parts := strings.Split(srcip, ",")
-		if len(parts) > 0 {
-			srcip = parts[0] // 注意：此处只取第一个 IP 作为源 IP
-		}
-	} else { // 默认取 gin 框架带进来的 IP
-		parts := strings.Split(c.Request.RemoteAddr, ":")
-		if len(parts) > 0 {
-			srcip = parts[0]
-		}
-	}
-
-	rumpts, err := handleRUMBody(body, precision, srcip)
-	if err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-		return
-	}
-
-	for _, pt := range rumpts {
-		x := pt.String()
-		l.Debugf("%s", x)
-		if err := lp.ParseLineProto([]byte(x), "n"); err != nil {
-			l.Errorf("parse failed: %s", err.Error())
-		} else {
-			l.Debug("parse ok")
-		}
-	}
-
-	if len(rumpts) > 0 {
-		if err = io.Feed(input, datakit.Rum, io.WrapPoint(rumpts), &io.Option{HighFreq: true}); err != nil {
-			uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-			return
-		}
-	}
-
-	ErrOK.HttpBody(c, nil)
-}
+//func handleRUM(srcip, precision, input string, body []byte, json bool) ([]*io.Point, error) {
+//
+//	rumpts, err := handleRUMBody(body, precision, srcip, json)
+//	if err != nil {
+//		//uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+//		return nil, err
+//	}
+//
+//	for _, pt := range rumpts {
+//		x := pt.String()
+//		l.Debugf("%s", x)
+//		if err := lp.ParseLineProto([]byte(x), "n"); err != nil {
+//			l.Errorf("parse failed: %s", err.Error())
+//		} else {
+//			l.Debug("parse ok")
+//		}
+//	}
+//
+//	if len(rumpts) > 0 {
+//		if err = io.Feed(input, datakit.Rum, io.WrapPoint(rumpts), &io.Option{HighFreq: true}); err != nil {
+//			uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
+//			return
+//		}
+//	}
+//
+//	ErrOK.HttpBody(c, nil)
+//}
