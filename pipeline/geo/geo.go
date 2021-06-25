@@ -14,6 +14,10 @@ var (
 	l  = logger.DefaultSLogger("geo")
 )
 
+func SetLog() {
+	l = logger.SLogger("geo")
+}
+
 func Geo(ip string) (*ipL.IP2Locationrecord, error) {
 	if Db == nil {
 		return nil, fmt.Errorf("ip2location db nil")
@@ -41,6 +45,9 @@ func Geo(ip string) (*ipL.IP2Locationrecord, error) {
 
 func LoadIPLib(f string) error {
 	var err error
+
+	l = logger.SLogger("geo")
+
 	if !datakit.FileExist(f) {
 		l.Warnf("%v not found", f)
 		return nil
