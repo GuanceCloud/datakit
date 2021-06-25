@@ -13,7 +13,6 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -60,21 +59,24 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
-	removeDeprecatedCfgs()
+	removeSamples()
 
 	if err := c.InitCfg(datakit.MainConfPath); err != nil {
 		return err
 	}
 
-	l = logger.SLogger("config")
-
 	l.Infof("main cfg: %+#v", c)
 
-	initPluginSamples()
-	if err := initPluginPipeline(); err != nil {
-		l.Fatal(err)
+	if err := initPluginSamples(); err != nil {
+		return err
 	}
 
+	if err := initPluginPipeline(); err != nil {
+		l.Errorf("init plugin pipeline: %s", err.Error())
+		return err
+	}
+
+	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))
 	initDefaultEnabledPlugins(c)
 
 	if err := LoadInputsConfig(c); err != nil {
