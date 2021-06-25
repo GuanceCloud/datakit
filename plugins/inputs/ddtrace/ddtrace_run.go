@@ -152,6 +152,15 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 				tag[k] = v
 			}
 
+			// run sample
+			if traceSampleConf != nil {
+				if !trace.DefErrCheckHandler(span.Error) && !trace.DefIgnoreTagsHandler(tag, traceSampleConf.IgnoreTagsList) {
+					if !trace.DefSampleHandler(span.TraceID, traceSampleConf.Rate, traceSampleConf.Scope) {
+						continue
+					}
+				}
+			}
+
 			field[trace.FIELD_RESOURCE] = span.Resource
 			field[trace.FIELD_PARENTID] = fmt.Sprintf("%d", span.ParentID)
 			field[trace.FIELD_TRACEID] = fmt.Sprintf("%d", span.TraceID)
