@@ -291,7 +291,7 @@ func (c *Config) ApplyMainConfig() error {
 		logger.SetStdoutRootLogger(c.LogLevel, logger.OPT_DEFAULT|logger.OPT_STDOUT)
 	}
 
-	l = logger.SLogger("datakit")
+	l = logger.SLogger("config")
 
 	if c.EnableUncheckedInputs {
 		datakit.EnableUncheckInputs = true
@@ -513,8 +513,8 @@ func emptyDir(fp string) bool {
 }
 
 // remove all xxx.conf.sample
-func removeDeprecatedCfgs() {
-	fps := SearchDir(datakit.ConfdDir, ".sample")
+func removeSamples() {
+	fps := SearchDir(datakit.ConfdDir, ".conf.sample")
 	for _, fp := range fps {
 		if err := os.RemoveAll(fp); err != nil {
 			l.Error(err)
