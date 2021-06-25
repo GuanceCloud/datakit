@@ -10,6 +10,7 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -180,7 +181,7 @@ func TestLoadEnv(t *testing.T) {
 				Name:                 "testing-datakit",
 				DataWay:              &dataway.DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}},
 				HTTPListen:           "localhost:9559",
-				HTTPAPI:              &apiConfig{RUMOriginIPHeader: "not-set"},
+				HTTPAPI:              &dkhttp.APIConfig{RUMOriginIPHeader: "not-set"},
 				LogLevel:             "debug",
 				EnablePProf:          true,
 				Hostname:             "1024.coding",
@@ -299,7 +300,7 @@ hostname = "should-not-set"`,
 
 		c := DefaultConfig()
 
-		if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0600); err != nil {
 			t.Fatal(err)
 		}
 
