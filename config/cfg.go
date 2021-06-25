@@ -190,7 +190,7 @@ func InitDirs() {
 		datakit.ConfdDir,
 		datakit.PipelineDir,
 		datakit.PipelinePatternDir} {
-		if err := os.MkdirAll(dir, 0600); err != nil {
+		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
 	}
@@ -206,7 +206,7 @@ func (c *Config) InitCfg(p string) error {
 		l.Errorf("TomlMarshal(): %s", err.Error())
 		return err
 	} else {
-		if err := ioutil.WriteFile(p, mcdata, 0600); err != nil {
+		if err := ioutil.WriteFile(p, mcdata, datakit.ConfPerm); err != nil {
 			l.Errorf("error creating %s: %s", p, err)
 			return err
 		}
@@ -286,7 +286,9 @@ func (c *Config) ApplyMainConfig() error {
 	l.Infof("set log to %s", c.Log)
 	if c.Log != "stdout" || c.Log == "" {
 		logger.MaxSize = c.LogRotate
-		logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT)
+		if err := logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT); err != nil {
+			l.Errorf("set root log faile: %s", err.Error())
+		}
 	} else {
 		logger.SetStdoutRootLogger(c.LogLevel, logger.OPT_DEFAULT|logger.OPT_STDOUT)
 	}
@@ -352,7 +354,7 @@ func (c *Config) ApplyMainConfig() error {
 		if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
 			l.Fatalf("encode main configure failed: %s", err.Error())
 		}
-		if err := ioutil.WriteFile(datakit.MainConfPath, buf.Bytes(), 0600); err != nil {
+		if err := ioutil.WriteFile(datakit.MainConfPath, buf.Bytes(), datakit.ConfPerm); err != nil {
 			l.Fatalf("refresh main configure failed: %s", err.Error())
 		}
 
@@ -485,7 +487,7 @@ func ParseGlobalTags(s string) map[string]string {
 }
 
 func CreateUUIDFile(f, uuid string) error {
-	return ioutil.WriteFile(f, []byte(uuid), 0600)
+	return ioutil.WriteFile(f, []byte(uuid), datakit.ConfPerm)
 }
 
 func LoadUUID(f string) (string, error) {
