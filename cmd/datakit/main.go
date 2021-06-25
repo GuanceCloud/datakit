@@ -44,7 +44,7 @@ var (
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
 	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
 	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagProm     = flag.String("prom-conf", "", "config file to test")
+	flagProm     = flag.String("prom-conf", "", "prom config file to test")
 
 	// manuals related
 	flagMan               = flag.Bool("man", false, "read manuals of inputs")
@@ -90,6 +90,7 @@ var (
 	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
 	flagMonitor       = flag.Bool("monitor", false, "show monitor info of current datakit")
 	flagCheckConfig   = flag.Bool("check-config", false, "check inputs configure and main configure")
+	flagCmdLogPath    = flag.String("cmd-log", "/dev/null", "command line log path")
 )
 
 var (
@@ -118,6 +119,10 @@ func setupFlags() {
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
+
+	if runtime.GOOS == "windows" {
+		*flagCmdLogPath = "nul" // under windows, nul is /dev/null
+	}
 }
 
 func main() {
@@ -162,18 +167,17 @@ func applyFlags() {
 	}
 
 	runDatakitWithCmds()
-
 }
 
 func dumpAllConfigSamples(fpath string) {
 
-	if err := os.MkdirAll(fpath, 0600); err != nil {
+	if err := os.MkdirAll(fpath, datakit.ConfPerm); err != nil {
 		panic(err)
 	}
 
 	for k, v := range inputs.Inputs {
 		sample := v().SampleConfig()
-		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), 0600); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), datakit.ConfPerm); err != nil {
 			panic(err)
 		}
 	}
@@ -271,38 +275,40 @@ func runDatakitWithCmds() {
 
 	if *flagCheckUpdate { // 更新日志单独存放，不跟 cmd.log 一块
 		if *flagUpdateLogFile != "" {
-			logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT)
+			if err := logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
+				l.Errorf("set root log faile: %s", err.Error())
+			}
 		}
 		ret := cmds.CheckUpdate(*flagAcceptRCVersion)
 		os.Exit(ret)
 	}
 
 	if *flagVersion {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		cmds.ShowVersion(ReleaseType, *flagShowTestingVersions)
 		os.Exit(0)
 	}
 
 	if *flagCheckConfig {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.CheckConfig()
 		os.Exit(0)
 	}
 
 	if *flagDQL {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.DQL(*flagDatakitHost)
 		os.Exit(0)
 	}
 
 	if *flagRunDQL != "" {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		os.Exit(0)
 	}
 
 	if *flagShowCloudInfo != "" {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
 		if err != nil {
 			fmt.Printf("Get cloud info failed: %s\n", err.Error())
@@ -323,7 +329,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagMonitor {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if runtime.GOOS == "windows" {
 			fmt.Println("unavailable under Windows")
 			os.Exit(0)
@@ -334,7 +340,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagIPInfo != "" {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		x, err := cmds.IPInfo(*flagIPInfo)
 		if err != nil {
 			fmt.Printf("\t%v\n", err)
@@ -348,37 +354,37 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagCmdDeprecated {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		l.Warn("--cmd parameter has been discarded")
 	}
 
 	if *flagPipeline != "" {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.PipelineDebugger(*flagPipeline, *flagText)
 		os.Exit(0)
 	}
 
 	if *flagProm != "" {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.PromDebugger(*flagProm)
 		os.Exit(0)
 	}
 
 	if *flagGrokq {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.Grokq()
 		os.Exit(0)
 	}
 
 	if *flagMan {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.Man()
 		os.Exit(0)
 	}
 
 	if *flagK8sCfgPath != "" {
-		cmds.SetCmdRootLog()
-		if err := os.MkdirAll(*flagK8sCfgPath, 0600); err != nil {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+		if err := os.MkdirAll(*flagK8sCfgPath, datakit.ConfPerm); err != nil {
 			l.Errorf("invalid path %s", err.Error())
 			os.Exit(-1)
 		}
@@ -388,7 +394,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagExportMan != "" {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.ExportMan(*flagExportMan, *flagIgnore, *flagManVersion); err != nil {
 			l.Error(err)
 		}
@@ -396,7 +402,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagExportIntegration != "" {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.ExportIntegration(*flagExportIntegration, *flagIgnore); err != nil {
 			l.Error(err)
 		}
@@ -404,7 +410,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagInstallExternal != "" {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if !isRoot() {
 			l.Error("Permission Denied")
@@ -418,7 +424,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagStart {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -435,7 +441,7 @@ func runDatakitWithCmds() {
 
 	if *flagStop {
 
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -451,7 +457,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagRestart {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if !isRoot() {
 			l.Error("Permission Denied")
@@ -468,7 +474,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagReload {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if !isRoot() {
 			l.Error("Permission Denied")
@@ -485,7 +491,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagStatus {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		x, err := cmds.DatakitStatus()
 		if err != nil {
 			fmt.Println("Get DataKit status failed: %s\n", err)
@@ -496,7 +502,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagUninstall {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.UninstallDatakit(); err != nil {
 			fmt.Println("Get DataKit status failed: %s\n", err)
 			os.Exit(-1)
@@ -505,7 +511,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagUpdateIPDb {
-		cmds.SetCmdRootLog()
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
