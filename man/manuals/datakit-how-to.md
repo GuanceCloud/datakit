@@ -253,6 +253,50 @@ DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为
 
 DataKit 内置很多不同的小工具，便于大家日常使用。
 
+### 查询 DQL
+
+DataKit 支持以交互式方式执行 DQL 查询：
+
+```shell
+datakit --dql
+dql > cpu limit 1
+-----------------[ 1.cpu ]-----------------
+            time 2021-06-23 10:06:03 +0800 CST
+             cpu 'cpu-total'
+            host 'tan-air.local'
+     usage_guest 0
+usage_guest_nice 0
+      usage_idle 56.928839
+    usage_iowait 0
+       usage_irq 0
+      usage_nice 0
+   usage_softirq 0
+     usage_steal 0
+    usage_system 23.245943
+     usage_total 43.071161
+      usage_user 19.825218
+---------
+1 rows, cost 13.55119ms
+```
+
+Tips：
+
+- 输入 `echo_explain` 即可看到后端查询语句
+- 为避免显示太多 `nil` 查询结果，可通过 `disable_nil/enable_nil` 来开关
+- 支持查询语句模糊搜，如 `echo_explain` 只需要输入 `echo` 或 `exp` 即可弹出提示，通过 `Tab` 即可选择下拉提示
+
+> 注：Windows 下，请在 Powershell 中执行 `datakit --dql`。
+
+### 查看 DataKit 运行情况
+
+在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
+
+```shell
+datakit --monintor
+```
+
+> 注：Windows 下暂不支持在终端查看 monitor 数据，只能在浏览器端查看。
+
 ### 调试 grok 和 pipeline
 
 指定 pipeline 脚本名称（`--pl`，pipeline 脚本必须放在 `<DataKit 安装目录>/pipeline` 目录下），输入一段文本（`--txt`）即可判断提取是否成功
@@ -293,6 +337,8 @@ grokq > Q                              # Q 或 exit 退出
 Bye!
 ```
 
+> 注：Windows 下，请在 Powershell 中执行调试。
+
 ### 查看帮助文档
 
 为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
@@ -330,7 +376,6 @@ $ sudo datakit --update-ip-db
 ```
 
 若 DataKit 在运行中，更新成功后会自动执行 Reload 操作
-
 
 ### DataKit 安装第三方软件
 
