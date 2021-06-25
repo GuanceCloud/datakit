@@ -28,6 +28,9 @@ func apiWrite(c *gin.Context) {
 		datakit.Tracing,
 		datakit.KeyEvent:
 
+	case datakit.CustomObject:
+		input = "custom_object"
+
 	case datakit.Rum:
 		input = "rum"
 	case datakit.Security:
