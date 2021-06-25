@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -412,6 +413,19 @@ func getEnv(env string) string {
 }
 
 func (c *Config) LoadEnvs() error {
+
+	if v := getEnv("ENV_IO_CACHE_COUNT"); v != "" {
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			l.Errorf("invalid ENV_IO_CACHE_COUNT: %s", v)
+		} else {
+			c.IOCacheCount = i
+		}
+	}
+
+	if v := getEnv("ENV_DISABLE_404PAGE"); v != "" {
+		c.Disable404Page = true
+	}
 
 	if v := getEnv("ENV_GLOBAL_TAGS"); v != "" {
 		c.GlobalTags = ParseGlobalTags(v)
