@@ -221,7 +221,7 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 
 	cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
 	l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
-	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), 0600); err != nil {
+	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), datakit.ConfPerm); err != nil {
 		l.Errorf("create catalog dir %s failed: %s", catalog, err.Error())
 		return err
 	}
@@ -231,7 +231,7 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 		return fmt.Errorf("no sample available on collector %s", name)
 	}
 
-	if err := ioutil.WriteFile(cfgpath, []byte(sample), 0600); err != nil {
+	if err := ioutil.WriteFile(cfgpath, []byte(sample), datakit.ConfPerm); err != nil {
 		l.Errorf("failed to create sample configure for collector %s: %s", name, err.Error())
 		return err
 	}
@@ -278,7 +278,7 @@ func initDefaultEnabledPlugins(c *Config) {
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(fpath), 0600); err != nil {
+		if err := os.MkdirAll(filepath.Dir(fpath), datakit.ConfPerm); err != nil {
 			l.Errorf("mkdir failed: %s, ignored", err.Error())
 			continue
 		}
@@ -288,7 +288,7 @@ func initDefaultEnabledPlugins(c *Config) {
 			continue
 		}
 
-		if err := ioutil.WriteFile(fpath, []byte(sample), 0600); err != nil {
+		if err := ioutil.WriteFile(fpath, []byte(sample), datakit.ConfPerm); err != nil {
 			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
 			continue
 		}
