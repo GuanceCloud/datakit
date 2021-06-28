@@ -176,6 +176,8 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DISABLE_PROTECT_MODE":   "true",
 				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
 				"ENV_ENABLE_ELECTION":        "1",
+				"ENV_IO_CACHE_COUNT":         "-1234",
+				"ENV_DISABLE_404PAGE":        "on",
 			},
 			expect: &Config{
 				Name:                 "testing-datakit",
@@ -185,6 +187,8 @@ func TestLoadEnv(t *testing.T) {
 				LogLevel:             "debug",
 				EnablePProf:          true,
 				Hostname:             "1024.coding",
+				Disable404Page:       true,
+				IOCacheCount:         -1234,
 				ProtectMode:          false,
 				DefaultEnabledInputs: []string{"cpu", "mem", "disk"},
 				EnableElection:       true,
