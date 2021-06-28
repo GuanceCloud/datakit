@@ -71,8 +71,8 @@ func (d *Input) Run() {
 		if d.TraceSampleConf.Scope <= 0 {
 			d.TraceSampleConf.Scope = defScope
 		}
+		traceSampleConf = d.TraceSampleConf
 	}
-	traceSampleConf = d.TraceSampleConf
 
 	log.Info(*d)
 
