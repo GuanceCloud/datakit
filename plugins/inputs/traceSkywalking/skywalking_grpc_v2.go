@@ -158,6 +158,15 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 		t.EndPoint = span.Peer
 		t.Tags = SkywalkingTagsV2
 
+		// run trace data sample
+		if traceSampleConf != nil {
+			if !trace.DefErrCheckHandler(trace.ErrMapper[t.Status]) && !trace.DefIgnoreTagsHandler(t.Tags, traceSampleConf.IgnoreTagsList) {
+				if !trace.DefSampleHandler(uint64(trace.TraceStrIdToInt(t.TraceID)), traceSampleConf.Rate, traceSampleConf.Scope) {
+					continue
+				}
+			}
+		}
+
 		adapterGroup = append(adapterGroup, t)
 	}
 	trace.MkLineProto(adapterGroup, inputName)
