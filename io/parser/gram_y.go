@@ -169,14 +169,13 @@ var yyToknames = [...]string{
 	"START_WHERE_CONDITION",
 	"startSymbolsEnd",
 }
-
 var yyStatenames = [...]string{}
 
 const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line gram.y:445
+//line gram.y:444
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -207,6 +206,7 @@ const yyPrivate = 57344
 const yyLast = 363
 
 var yyAct = [...]int{
+
 	20, 13, 14, 29, 16, 105, 3, 21, 23, 99,
 	59, 60, 56, 30, 67, 18, 62, 61, 63, 10,
 	116, 45, 46, 66, 12, 65, 11, 53, 54, 46,
@@ -245,8 +245,8 @@ var yyAct = [...]int{
 	0, 0, 45, 46, 47, 48, 51, 52, 53, 54,
 	55, 56, 57,
 }
-
 var yyPact = [...]int{
+
 	4, 74, 70, -1000, -1000, 100, -1000, 191, 70, 95,
 	-1000, -1000, -1000, 282, -38, 191, -1000, -1000, 8, 1,
 	-1, -10, -1000, -1000, -1000, -1000, -1000, 54, 31, -1000,
@@ -261,14 +261,14 @@ var yyPact = [...]int{
 	91, -1000, -1000, -1000, 155, 79, 119, -1000, 251, -1000,
 	-1000, -1000, -1000, 282, 251, -1000, 69, -1000,
 }
-
 var yyPgo = [...]int{
+
 	0, 142, 139, 0, 138, 137, 136, 104, 4, 5,
 	7, 18, 1, 9, 15, 128, 16, 19, 122, 2,
 	120, 8, 117, 114, 101, 99, 85,
 }
-
 var yyR1 = [...]int{
+
 	0, 26, 26, 26, 6, 6, 12, 12, 12, 12,
 	12, 12, 19, 19, 10, 10, 1, 1, 21, 22,
 	22, 20, 20, 16, 14, 24, 24, 5, 5, 5,
@@ -278,8 +278,8 @@ var yyR1 = [...]int{
 	11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
 	2, 2, 23, 23, 18, 18, 3, 3, 3,
 }
-
 var yyR2 = [...]int{
+
 	0, 2, 2, 1, 1, 3, 1, 1, 1, 1,
 	1, 1, 1, 1, 3, 3, 1, 1, 1, 1,
 	1, 1, 1, 3, 4, 3, 3, 3, 2, 1,
@@ -289,8 +289,8 @@ var yyR2 = [...]int{
 	3, 3, 3, 3, 3, 3, 3, 3, 5, 5,
 	1, 1, 1, 2, 4, 4, 1, 1, 4,
 }
-
 var yyChk = [...]int{
+
 	-1000, -26, 71, 2, 10, -6, -7, 13, 6, -4,
 	-17, -11, -16, -12, -19, 15, -8, -18, -14, -24,
 	-3, -10, -23, -21, -22, -20, -25, 60, -2, 12,
@@ -305,8 +305,8 @@ var yyChk = [...]int{
 	-9, 19, 19, 19, 7, -9, 4, 19, 7, 18,
 	18, -13, 18, -12, 14, -8, -9, 18,
 }
-
 var yyDef = [...]int{
+
 	0, -2, 47, 3, 2, 1, 4, 51, 47, 0,
 	48, -2, -2, 0, 36, 0, 6, 7, 9, 11,
 	-2, -2, 34, 35, 37, 38, 39, 0, 0, 76,
@@ -321,12 +321,12 @@ var yyDef = [...]int{
 	0, 74, 75, 24, 28, 0, 0, 78, 0, 68,
 	69, 27, 43, 44, 33, 31, 0, 45,
 }
-
 var yyTok1 = [...]int{
+
 	1,
 }
-
 var yyTok2 = [...]int{
+
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 	22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
@@ -336,7 +336,6 @@ var yyTok2 = [...]int{
 	62, 63, 64, 65, 66, 67, 68, 69, 70, 71,
 	72,
 }
-
 var yyTok3 = [...]int{
 	0,
 }
@@ -1045,25 +1044,25 @@ yydefault:
 		}
 	case 74:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line gram.y:427
+//line gram.y:426
 		{
 			yyVAL.node = &Regex{Regex: yyDollar[3].node.(*StringLiteral).Val}
 		}
 	case 75:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line gram.y:431
+//line gram.y:430
 		{
 			yyVAL.node = &Regex{Regex: yylex.(*parser).unquoteString(yyDollar[3].item.Val)}
 		}
 	case 77:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line gram.y:438
+//line gram.y:437
 		{
 			yyVAL.item.Val = yylex.(*parser).unquoteString(yyDollar[1].item.Val)
 		}
 	case 78:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line gram.y:442
+//line gram.y:441
 		{
 			yyVAL.item.Val = yyDollar[3].node.(*StringLiteral).Val
 		}

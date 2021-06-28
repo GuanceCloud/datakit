@@ -12,7 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -57,6 +57,9 @@ type Input struct {
 	mu             sync.Mutex
 	selectorFilter filter.Filter
 	collectors     map[string]func(collector string) error
+
+	chPause chan bool
+	pause   bool
 }
 
 func (i *Input) initCfg() error {
@@ -123,15 +126,6 @@ func (i *Input) globalTag() {
 
 func (i *Input) Collect() error {
 	i.collectors = map[string]func(collector string) error{
-		// "daemonsets":             i.collectDaemonSets,
-		// "deployments":            i.collectDeployments,
-		// "endpoints":              i.collectEndpoints,
-		// "ingress":                i.collectIngress,
-		// "services":               i.collectServices,
-		// "statefulsets":           i.collectStatefulSets,
-		// "persistentvolumes":      i.collectPersistentVolumes,
-		// "persistentvolumeclaims": i.collectPersistentVolumeClaims,
-		// "objectPod":              i.collectPodObject,
 		"kubernetes": i.collectKubernetes,
 	}
 
@@ -174,7 +168,7 @@ func (i *Input) Collect() error {
 
 func (i *Input) Run() {
 	l = logger.SLogger("kubernetes")
-	i.Interval.Duration = datakit.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	i.ObjectIntervalDuration = 5 * time.Minute
 	i.ObjectIntervalDuration, _ = time.ParseDuration(i.ObjectInterval)
@@ -192,19 +186,43 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-tick.C:
-			if !election.CurrentStats().IsLeader() {
-				l.Debugf("kubernetes input not leader, skip doing gather")
+			if i.pause {
+				l.Debugf("not leader, skipped")
 				continue
 			}
+
 			l.Debugf("kubernetes metric input gathering...")
 			i.start = time.Now()
 			i.Collect()
+
 			// clear cache
 			i.clear()
 		case <-datakit.Exit.Wait():
 			l.Info("kubernetes exit")
 			return
+
+		case i.pause = <-i.chPause:
 		}
+	}
+}
+
+func (i *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	select {
+	case i.chPause <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	select {
+	case i.chPause <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
@@ -224,20 +242,14 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		// &daemonSet{},
-		// &deployment{},
-		// &endpointM{},
-		// &pvM{},
-		// &pvcM{},
-		// &serviceM{},
-		// &statefulSet{},
-		// &ingressM{},
 		&kubernetesMetric{},
 	}
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			chPause: make(chan bool, 1),
+		}
 	})
 }
