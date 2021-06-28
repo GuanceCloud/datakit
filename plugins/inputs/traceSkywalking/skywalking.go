@@ -2,6 +2,7 @@ package traceSkywalking
 
 import (
 	"fmt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -9,8 +10,7 @@ import (
 )
 
 var (
-	inputName = "traceSkywalking"
-
+	inputName               = "traceSkywalking"
 	traceJaegerConfigSample = `
 #[inputs.traceSkywalking.V2]
 #	grpcPort = 11800
