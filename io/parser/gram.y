@@ -422,7 +422,6 @@ number_literal: NUMBER
 							}
 							;
 
-
 regex: RE LEFT_PAREN string_literal RIGHT_PAREN
 		 {
 		   $$ = &Regex{Regex: $3.(*StringLiteral).Val}

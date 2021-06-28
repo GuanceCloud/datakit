@@ -47,7 +47,7 @@ func Man() {
 }
 
 func ExportMan(to, skipList, ver string) error {
-	if err := os.MkdirAll(to, os.ModePerm); err != nil {
+	if err := os.MkdirAll(to, 0600); err != nil {
 		return err
 	}
 
@@ -110,7 +110,11 @@ func runMan(txt string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	default:
-		x, err := man.BuildMarkdownManual(s, &man.Option{WithCSS: false, DisableMonofontOnTagFieldName: true})
+		x, err := man.BuildMarkdownManual(s, &man.Option{
+			WithCSS:                       false,
+			DisableMonofontOnTagFieldName: true,
+		})
+
 		if err != nil {
 			fmt.Printf("[E] %s\n", err.Error())
 		} else {
