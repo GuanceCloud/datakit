@@ -55,7 +55,7 @@ otalog=/usr/local/datakit/ota-update.log
 installer=https://static.dataflux.cn/datakit/installer-linux-amd64
 
 # 注意：如果不希望更新 RC 版本的 DataKit，可移除 `--accept-rc-version`
-sudo datakit --check-update --accept-rc-version --update-log $otalog
+/usr/local/datakit/datakit --check-update --accept-rc-version --update-log $otalog
 
 if [[ $? == 42 ]]; then
  echo "update now..."
