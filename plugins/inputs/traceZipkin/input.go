@@ -21,8 +21,8 @@ var (
 
 	traceZipkinConfigSample = `
 [[inputs.traceZipkin]]
-	#	pathV1 = "/api/v1/spans"
-	#	pathV2 = "/api/v2/spans"
+  #	pathV1 = "/api/v1/spans"
+  #	pathV2 = "/api/v2/spans"
 
   ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
   [inputs.traceZipkin.sample_config]
@@ -33,10 +33,10 @@ var (
     ## ignore tags list for samplingx
     # ignore_tags_list = []
 
-	#	[inputs.traceZipkin.tags]
-			# tag1 = "tag1"
-			# tag2 = "tag2"
-			# tag3 = "tag3"
+  [inputs.traceZipkin.tags]
+    # tag1 = "tag1"
+    # tag2 = "tag2"
+    # tag3 = "tag3"
 `
 	log = logger.DefaultSLogger(inputName)
 )
@@ -82,10 +82,11 @@ func (t *TraceZipkin) Run() {
 		if t.TraceSampleConf.Scope <= 0 {
 			t.TraceSampleConf.Scope = defScope
 		}
+		traceSampleConf = t.TraceSampleConf
 	}
-	traceSampleConf = t.TraceSampleConf
 
 	<-datakit.Exit.Wait()
+
 	log.Infof("%s input exit", inputName)
 }
 

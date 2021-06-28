@@ -33,7 +33,7 @@ var (
     ## ignore tags list for samplingx
     # ignore_tags_list = []
 
-	[inputs.traceJaeger.tags]
+  [inputs.traceJaeger.tags]
     # tag1 = "val1"
     #	tag2 = "val2"
     # tag3 = "val3"
@@ -81,8 +81,8 @@ func (t *JaegerTrace) Run() {
 		if t.TraceSampleConf.Scope <= 0 {
 			t.TraceSampleConf.Scope = defScope
 		}
+		traceSampleConf = t.TraceSampleConf
 	}
-	traceSampleConf = t.TraceSampleConf
 
 	<-datakit.Exit.Wait()
 	log.Infof("%s input exit", inputName)

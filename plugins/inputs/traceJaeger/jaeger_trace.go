@@ -79,48 +79,42 @@ func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 	}
 
 	for _, span := range batch.Spans {
-		tAdpter := &trace.TraceAdapter{}
-		tAdpter.Source = "jaeger"
-		tAdpter.Project = project
-		tAdpter.Version = ver
-		tAdpter.Env = env
+		tAdapter := &trace.TraceAdapter{}
+		tAdapter.Source = "jaeger"
+		tAdapter.Project = project
+		tAdapter.Version = ver
+		tAdapter.Env = env
 
-		tAdpter.Duration = span.Duration * 1000
-		tAdpter.Start = span.StartTime * 1000
+		tAdapter.Duration = span.Duration * 1000
+		tAdapter.Start = span.StartTime * 1000
 		sJson, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdpter.Content = string(sJson)
+		tAdapter.Content = string(sJson)
 
-		tAdpter.ServiceName = batch.Process.ServiceName
-		tAdpter.OperationName = span.OperationName
+		tAdapter.ServiceName = batch.Process.ServiceName
+		tAdapter.OperationName = span.OperationName
 		if span.ParentSpanId != 0 {
-			tAdpter.ParentID = fmt.Sprintf("%d", span.ParentSpanId)
+			tAdapter.ParentID = fmt.Sprintf("%d", span.ParentSpanId)
 		}
 
-		tAdpter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
-		tAdpter.SpanID = fmt.Sprintf("%d", span.SpanId)
+		tAdapter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+		tAdapter.SpanID = fmt.Sprintf("%d", span.SpanId)
 
-		tAdpter.Status = trace.STATUS_OK
+		tAdapter.Status = trace.STATUS_OK
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				tAdpter.Status = trace.STATUS_ERR
+				tAdapter.Status = trace.STATUS_ERR
 				break
 			}
 		}
-		tAdpter.Tags = JaegerTags
+		tAdapter.Tags = JaegerTags
 
 		// run trace data sample
-		if traceSampleConf != nil {
-			if !trace.DefErrCheckHandler(trace.ErrMapper[tAdpter.Status]) && !trace.DefIgnoreTagsHandler(tAdpter.Tags, traceSampleConf.IgnoreTagsList) {
-				if !trace.DefSampleHandler(uint64(trace.TraceStrIdToInt(tAdpter.TraceID)), traceSampleConf.Rate, traceSampleConf.Scope) {
-					continue
-				}
-			}
+		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
+			adapterGroup = append(adapterGroup, tAdapter)
 		}
-
-		adapterGroup = append(adapterGroup, tAdpter)
 	}
 
 	return adapterGroup, nil
