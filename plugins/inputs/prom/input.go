@@ -7,7 +7,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -43,7 +43,8 @@ const (
 
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
-  ## TLS 配置
+
+	## TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
@@ -59,6 +60,12 @@ const (
   # [[inputs.prom.measurements]]
   # prefix = "mem_"
   # name = "mem"
+
+	## 自定义认证方式，目前仅支持 Bearer Token
+	# [inputs.prom.auth]
+	# type = "bearer_token"
+	# token = "xxxxxxxx"
+	# token_file = "/tmp/token"
 
   ## 自定义Tags
   [inputs.prom.tags]
@@ -110,6 +117,7 @@ type Input struct {
 	KeyFile    string `toml:"tls_key"`
 
 	Tags map[string]string `toml:"tags"`
+	Auth map[string]string `toml:"auth"`
 
 	SampleCfg string
 
@@ -117,6 +125,9 @@ type Input struct {
 	duration     time.Duration
 	collectTime  time.Time
 	collectCache []inputs.Measurement
+
+	chPause chan bool
+	pause   bool
 }
 
 func (i *Input) SampleConfig() string {
@@ -140,8 +151,26 @@ func (i *Input) extendSelfTag(tags map[string]string) {
 	}
 }
 
+func (i *Input) GetReq(url string) (*http.Request, error) {
+	var (
+		req *http.Request
+		err error
+	)
+	if len(i.Auth) > 0 {
+		authType := i.Auth["type"]
+		if authFunc, ok := AuthMaps[authType]; ok {
+			req, err = authFunc(i.Auth, url)
+		} else {
+			req, err = http.NewRequest("GET", url, nil)
+		}
+	} else {
+		req, err = http.NewRequest("GET", url, nil)
+	}
+	return req, err
+}
+
 func (i *Input) Collect() error {
-	req, err := http.NewRequest("GET", i.URL, nil)
+	req, err := i.GetReq(i.URL)
 	if err != nil {
 		return err
 	}
@@ -205,7 +234,7 @@ func (i *Input) Run() {
 		return
 	}
 
-	i.duration = datakit.ProtectedInterval(minInterval, maxInterval, duration)
+	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	err = i.InitClient()
 	if err != nil {
@@ -224,23 +253,50 @@ func (i *Input) Run() {
 			return
 
 		case <-tick.C:
-			if election.CurrentStats().IsLeader() {
-				start := time.Now()
-				if err := i.Collect(); err != nil {
-					io.FeedLastError(inputName, err.Error())
-					l.Error(err)
-				} else {
-					if len(i.collectCache) > 0 {
-						err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
-						if err != nil {
-							io.FeedLastError(inputName, err.Error())
-							l.Errorf(err.Error())
-						}
-						i.collectCache = i.collectCache[:0]
-					}
+			if i.pause {
+				continue
+			}
+
+			start := time.Now()
+			if err := i.Collect(); err != nil {
+				io.FeedLastError(inputName, err.Error())
+				l.Error(err)
+			} else {
+				if len(i.collectCache) > 0 {
+					continue
 				}
+
+				err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					i.collectCache,
+					&io.Option{CollectCost: time.Since(start)})
+				if err != nil {
+					io.FeedLastError(inputName, err.Error())
+					l.Errorf(err.Error())
+				}
+				i.collectCache = i.collectCache[:0]
 			}
 		}
+	}
+}
+
+func (i *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	select {
+	case i.chPause <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	select {
+	case i.chPause <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
@@ -261,18 +317,18 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 		if err != nil {
 			return nil, err
 		} else {
-			i.client.Transport = &http.Transport{
+			client.Transport = &http.Transport{
 				TLSClientConfig: tc,
 			}
 		}
 	}
-
 	return client, nil
 }
 
 func NewProm(sampleCfg string) *Input {
 	return &Input{
 		SampleCfg: sampleCfg,
+		chPause:   make(chan bool, 1),
 	}
 }
 

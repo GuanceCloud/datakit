@@ -6,13 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-)
-
-var (
-	l = logger.DefaultSLogger("cmds")
 )
 
 func PipelineDebugger(plname, txt string) {
@@ -20,7 +15,7 @@ func PipelineDebugger(plname, txt string) {
 		l.Fatal("-txt required")
 	}
 
-	if err := pipeline.Init(); err != nil {
+	if err := pipeline.Init(datakit.DataDir); err != nil {
 		l.Fatalf("pipeline init failed: %s", err.Error())
 	}
 
