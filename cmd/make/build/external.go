@@ -33,7 +33,6 @@ var (
 			osarchs: map[string]bool{
 				"linux/amd64": true,
 				"linux/386":   true,
-				// "darwin/amd64": true,
 			},
 
 			buildArgs: nil,
@@ -42,56 +41,9 @@ var (
 			},
 		},
 
-		&dkexternal{
-			name: "csv",
-			osarchs: map[string]bool{
-				`linux/386`:     true,
-				`linux/amd64`:   true,
-				`linux/arm`:     true,
-				`linux/arm64`:   true,
-				`darwin/amd64`:  true,
-				`windows/amd64`: true,
-				`windows/386`:   true,
-			},
-			buildArgs: []string{"plugins/externals/csv/build.sh"},
-			buildCmd:  "bash",
-		},
-		&dkexternal{
-			name: "ansible",
-			osarchs: map[string]bool{
-				`linux/386`:     true,
-				`linux/amd64`:   true,
-				`linux/arm`:     true,
-				`linux/arm64`:   true,
-				`darwin/amd64`:  true,
-				`windows/amd64`: true,
-				`windows/386`:   true,
-			},
-			buildArgs: []string{"plugins/externals/ansible/build.sh"},
-			buildCmd:  "bash",
-		},
-		&dkexternal{
-			name: "qyt_all",
-			osarchs: map[string]bool{
-				`linux/386`:     true,
-				`linux/amd64`:   true,
-				`linux/arm`:     true,
-				`linux/arm64`:   true,
-				`darwin/amd64`:  true,
-				`windows/amd64`: true,
-				`windows/386`:   true,
-			},
-			buildArgs: []string{"plugins/externals/qyt_all/build.sh"},
-			buildCmd:  "bash",
-		},
-
 		/*
 			&dkexternal{
-				// requirement: apt-get install gcc-multilib
-				name: "skywalkingGrpcV3",
-				lang: "go",
-
-				entry: "main.go",
+				name: "csv",
 				osarchs: map[string]bool{
 					`linux/386`:     true,
 					`linux/amd64`:   true,
@@ -101,12 +53,59 @@ var (
 					`windows/amd64`: true,
 					`windows/386`:   true,
 				},
-
-				buildArgs: nil,
-				envs: []string{
-					"CGO_ENABLED=0",
+				buildArgs: []string{"plugins/externals/csv/build.sh"},
+				buildCmd:  "bash",
+			},
+			&dkexternal{
+				name: "ansible",
+				osarchs: map[string]bool{
+					`linux/386`:     true,
+					`linux/amd64`:   true,
+					`linux/arm`:     true,
+					`linux/arm64`:   true,
+					`darwin/amd64`:  true,
+					`windows/amd64`: true,
+					`windows/386`:   true,
 				},
-			}, */
+				buildArgs: []string{"plugins/externals/ansible/build.sh"},
+				buildCmd:  "bash",
+			},
+			&dkexternal{
+				name: "qyt_all",
+				osarchs: map[string]bool{
+					`linux/386`:     true,
+					`linux/amd64`:   true,
+					`linux/arm`:     true,
+					`linux/arm64`:   true,
+					`darwin/amd64`:  true,
+					`windows/amd64`: true,
+					`windows/386`:   true,
+				},
+				buildArgs: []string{"plugins/externals/qyt_all/build.sh"},
+				buildCmd:  "bash",
+			},
+
+				&dkexternal{
+					// requirement: apt-get install gcc-multilib
+					name: "skywalkingGrpcV3",
+					lang: "go",
+
+					entry: "main.go",
+					osarchs: map[string]bool{
+						`linux/386`:     true,
+						`linux/amd64`:   true,
+						`linux/arm`:     true,
+						`linux/arm64`:   true,
+						`darwin/amd64`:  true,
+						`windows/amd64`: true,
+						`windows/386`:   true,
+					},
+
+					buildArgs: nil,
+					envs: []string{
+						"CGO_ENABLED=0",
+					},
+				}, */
 
 		// others...
 	}
