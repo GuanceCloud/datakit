@@ -7,13 +7,16 @@ var (
 		return (traceId % uint64(scope)) < uint64(rate)
 	}
 	ErrMapper = map[string]int32{
-		// STATUS_INFO:     1,
+		STATUS_OK:       0,
+		STATUS_INFO:     0,
 		STATUS_WARN:     2,
 		STATUS_ERR:      3,
 		STATUS_CRITICAL: 4,
 	}
-	DefErrCheckHandler = func(err int32) bool {
-		return err != 0
+	DefErrCheckHandler = func(status string) bool {
+		_, ok := ErrMapper[status]
+
+		return ok
 	}
 	DefIgnoreTagsHandler = func(source map[string]string, ignoreList []string) bool {
 		for _, v := range ignoreList {
@@ -32,8 +35,18 @@ type TraceSampleConfig struct {
 	IgnoreTagsList []string `toml:ignore_tags_list`
 }
 
-func TraceStrIdToInt(traceId string) int {
-	id, _ := strconv.Atoi(traceId)
+// sample if true, not sample if false
+func (this *TraceSampleConfig) SampleFilter(status string, tags map[string]string, traceId string) bool {
+	if this != nil {
+		if !DefErrCheckHandler(status) && !DefIgnoreTagsHandler(tags, this.IgnoreTagsList) {
+			traceId, err := strconv.ParseInt(traceId, 10, 64)
+			if err != nil {
+				return true
+			}
 
-	return id
+			return DefSampleHandler(uint64(traceId), this.Rate, this.Scope)
+		}
+	}
+
+	return true
 }
