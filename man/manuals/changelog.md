@@ -2,6 +2,31 @@
 
 # DataKit 版本历史
 
+## 1.1.7-rc7(预发)
+
+### 发布说明
+
+- 命令行增加功能：
+	- [DQL查询功能]()
+	- [命令行查看 monitor]()
+	- [检查 config 是否正确]()
+
+- 日志功能性能优化
+- DataKit 支持全局限制自身 CPU 使用
+- 应用性能指标采集，支持采样率设置
+	- [DDtrace]()
+	- [Jaeger]()
+	- [Zipking]()
+	- [SkyWalking]()
+- K8s 集群 Prometheus 指标采集[通用方案]()
+- [DataKit API](api) 支持，且支持 JSON Body
+
+### Breaking Changes
+
+- 在 datakit.conf 中配置的 `global_tags` 中，`host` tag 将不生效，此举主要为了避免大家在配置 host 时造成一些误解（即配置了 `host`，但可能跟实际的主机名不同，造成一些数据误解）
+
+----
+
 ## 1.1.7-rc6(2021/06/17)
 
 ### 发布说明
@@ -11,6 +36,7 @@
 - [容器采集器](container)字段有了新的优化，主要涉及 pod 的 restart/ready/state 等字段
 - [Kubernetes 采集器](kubernetes) 增加更多指标采集
 - 支持在 DataKit 端[对日志进行（黑名单）过滤](https://www.yuque.com/dataflux/doc/ilhawc#wGemu)
+	- 注意：如果 DataKit 上配置了多个 DataWay 地址，日志过滤功能将不生效。
 
 ### Breaking Changes
 
