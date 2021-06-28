@@ -11,22 +11,14 @@ import (
 	"github.com/influxdata/toml/ast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// load all inputs under @InstallDir/conf.d
-func LoadInputsConfig(c *datakit.Config) error {
-	// 初始化全局选举模块
-	// 行为简单，默认不会报错。一旦报错直接退出
-	if err := election.InitGlobalConsensusModule(); err != nil {
-		l.Errorf("init consensus module failed: %s", err)
-		return err
-	}
+func SearchDir(dir string, suffix string) []string {
 
-	availableInputCfgs := map[string]*ast.Table{}
+	fps := []string{}
 
-	if err := filepath.Walk(datakit.ConfdDir, func(fp string, f os.FileInfo, err error) error {
+	if err := filepath.Walk(dir, func(fp string, f os.FileInfo, err error) error {
 		if err != nil {
 			l.Error(err)
 		}
@@ -36,18 +28,38 @@ func LoadInputsConfig(c *datakit.Config) error {
 			return nil
 		}
 
-		if f.Name() == "datakit.conf" {
-			return nil
+		if strings.HasSuffix(f.Name(), suffix) {
+			fps = append(fps, fp)
 		}
-		if !strings.HasSuffix(f.Name(), ".conf") {
-			l.Debugf("ignore non-conf %s", fp)
-			return nil
+		return nil
+
+	}); err != nil {
+		l.Error(err)
+	}
+
+	return fps
+}
+
+// load all inputs under @InstallDir/conf.d
+func LoadInputsConfig(c *Config) error {
+
+	availableInputCfgs := map[string]*ast.Table{}
+	confs := SearchDir(datakit.ConfdDir, ".conf")
+
+	l.Debugf("loading %d conf...", len(confs))
+
+	for _, fp := range confs {
+
+		l.Debugf("loading conf %s...", fp)
+
+		if filepath.Base(fp) == "datakit.conf" {
+			continue
 		}
 
-		tbl, err := parseCfgFile(fp)
+		tbl, err := ParseCfgFile(fp)
 		if err != nil {
-			l.Warnf("[error] parse conf %s failed: %s, ignored", fp, err)
-			return nil
+			l.Warnf("parse conf %s failed: %s, ignored", fp, err)
+			continue
 		}
 
 		deprecates := checkDepercatedInputs(tbl, deprecatedInputs)
@@ -57,19 +69,13 @@ func LoadInputsConfig(c *datakit.Config) error {
 			}
 		}
 
-		tryStartElection(tbl, electionInputs)
-
 		if len(tbl.Fields) == 0 {
-			l.Debugf("no conf available on %s", fp)
-			return nil
+			l.Warnf("no conf available on %s", fp)
+			continue
 		}
 
 		l.Debugf("parse %s ok", fp)
 		availableInputCfgs[fp] = tbl
-		return nil
-	}); err != nil {
-		l.Error(err)
-		return err
 	}
 
 	// reset inputs(for reloading)
@@ -78,7 +84,7 @@ func LoadInputsConfig(c *datakit.Config) error {
 
 	for name, creator := range inputs.Inputs {
 		if !datakit.Enabled(name) {
-			l.Debugf("LoadInputsConfig: ignore unchecked input %s", name)
+			l.Debugf("ignore unchecked input %s", name)
 			continue
 		}
 
@@ -90,28 +96,35 @@ func LoadInputsConfig(c *datakit.Config) error {
 
 	inputs.AddSelf()
 
-	l.Debugf("datakit election status: %s", election.CurrentStats())
-
 	return nil
 }
 
-func doLoadInputConf(c *datakit.Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
+func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
 
 	l.Debugf("search input cfg for %s", name)
-	searchDatakitInputCfg(c, inputcfgs, name, creator)
+	list := searchDatakitInputCfg(c, inputcfgs, name, creator)
+
+	for _, i := range list {
+		if err := inputs.AddInput(name, i); err != nil {
+			l.Error("add %s failed: %v", name, err)
+			continue
+		}
+	}
 
 	return nil
 }
 
-func searchDatakitInputCfg(c *datakit.Config,
+func searchDatakitInputCfg(c *Config,
 	inputcfgs map[string]*ast.Table,
 	name string,
-	creator inputs.Creator) {
+	creator inputs.Creator) []inputs.Input {
+
 	var err error
+
+	inputlist := []inputs.Input{}
 
 	for fp, tbl := range inputcfgs {
 		for field, node := range tbl.Fields {
-			inputlist := []inputs.Input{}
 
 			switch field {
 			case "inputs": //nolint:goconst
@@ -139,20 +152,13 @@ func searchDatakitInputCfg(c *datakit.Config,
 					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
 				}
 			}
-
-			for _, i := range inputlist {
-				if err := inputs.AddInput(name, i, fp); err != nil {
-					l.Error("add %s failed: %v", name, err)
-					continue
-				}
-
-				l.Infof("add input %s(%s) ok", name, fp)
-			}
 		}
 	}
+
+	return inputlist
 }
 
-func isDisabled(wlists, blists []*datakit.InputHostList, hostname, name string) bool {
+func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
 
 	for _, bl := range blists {
 		if bl.MatchHost(hostname) && bl.MatchInput(name) {
@@ -215,7 +221,7 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 
 	cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
 	l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
-	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, catalog), datakit.ConfPerm); err != nil {
 		l.Errorf("create catalog dir %s failed: %s", catalog, err.Error())
 		return err
 	}
@@ -225,7 +231,7 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 		return fmt.Errorf("no sample available on collector %s", name)
 	}
 
-	if err := ioutil.WriteFile(cfgpath, []byte(sample), 0600); err != nil {
+	if err := ioutil.WriteFile(cfgpath, []byte(sample), datakit.ConfPerm); err != nil {
 		l.Errorf("failed to create sample configure for collector %s: %s", name, err.Error())
 		return err
 	}
@@ -234,7 +240,7 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 }
 
 // Creata datakit input plugin's configures if not exists
-func initPluginSamples() {
+func initPluginSamples() error {
 	for name, create := range inputs.Inputs {
 
 		if !datakit.Enabled(name) {
@@ -243,18 +249,23 @@ func initPluginSamples() {
 		}
 
 		if err := initDatakitConfSample(name, create); err != nil {
-			l.Fatal(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func initDefaultEnabledPlugins(c *datakit.Config) {
+func initDefaultEnabledPlugins(c *Config) {
 
 	if len(c.DefaultEnabledInputs) == 0 {
+		l.Debug("no default inputs enabled")
 		return
 	}
 
 	for _, name := range c.DefaultEnabledInputs {
+
+		l.Debugf("init default input %s conf...", name)
+
 		var fpath, sample string
 
 		if c, ok := inputs.Inputs[name]; ok {
@@ -267,7 +278,7 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(fpath), datakit.ConfPerm); err != nil {
 			l.Errorf("mkdir failed: %s, ignored", err.Error())
 			continue
 		}
@@ -277,7 +288,7 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 			continue
 		}
 
-		if err := ioutil.WriteFile(fpath, []byte(sample), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(fpath, []byte(sample), datakit.ConfPerm); err != nil {
 			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
 			continue
 		}
@@ -288,7 +299,7 @@ func initDefaultEnabledPlugins(c *datakit.Config) {
 
 func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, error) {
 
-	tbl, err := parseCfgFile(f)
+	tbl, err := ParseCfgFile(f)
 	if err != nil {
 		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
 	}
@@ -341,41 +352,4 @@ func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[s
 		}
 	}
 	return
-}
-
-var electionInputs = map[string]interface{}{
-	"kubernetes": nil,
-	"gitlab":     nil,
-	"demo":       nil,
-	"prom":       nil,
-}
-
-func tryStartElection(tbl *ast.Table, entries map[string]interface{}) {
-	for _, node := range tbl.Fields {
-		stbl, ok := node.(*ast.Table)
-		if !ok {
-			continue
-		}
-		for inputName := range stbl.Fields {
-			if _, ok := entries[inputName]; !ok {
-				continue
-			}
-
-			// datakit 开启选举功能，且当前选举处于初始状态
-			//
-			// 在此判断选举是否处于初始状态的原因
-			// 为了避免多重选举。
-			// 例如第一次遇到 kubernetes input，此时选举状态为初始化的 Dead，条件成立，改变状态，开始选举
-			// 第二次遇到 kubernetes input 时，如果是非初始状态 Dead，证明已经有选举在进行中，不应该再次开始选举
-
-			if datakit.Cfg.EnableElection && election.CurrentStats().IsDead() {
-				election.SetCandidate()
-				go election.StartElection()
-			}
-			// datakit 不开启选举，默认自己是 Leader
-			if !datakit.Cfg.EnableElection {
-				election.SetLeader()
-			}
-		}
-	}
 }
