@@ -47,9 +47,9 @@
 
   ## TLS Config
   tls_open = false
-  # tls_ca = "/etc/telegraf/ca.pem"
-  # tls_cert = "/etc/telegraf/cert.pem"
-  # tls_key = "/etc/telegraf/key.pem"
+  # tls_ca = "/path/to/ca.pem"
+  # tls_cert = "/path/to/cert.pem"
+  # tls_key = "/path/to/key.pem"
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
