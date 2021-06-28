@@ -22,6 +22,20 @@ var (
 	mtx         = sync.RWMutex{}
 )
 
+func GetElectionInputs() []ElectionInput {
+	res := []ElectionInput{}
+	for k, arr := range InputsInfo {
+		for _, x := range arr {
+			switch y := x.input.(type) {
+			case ElectionInput:
+				l.Debugf("find election inputs %s", k)
+				res = append(res, y)
+			}
+		}
+	}
+	return res
+}
+
 type Input interface {
 	Catalog() string
 	Run()
@@ -30,12 +44,12 @@ type Input interface {
 }
 
 type HTTPInput interface {
-	Input
+	//Input
 	RegHttpHandler()
 }
 
 type PipelineInput interface {
-	Input
+	//Input
 	PipelineConfig() map[string]string
 	RunPipeline()
 }
@@ -45,6 +59,11 @@ type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement
 	AvailableArchs() []string
+}
+
+type ElectionInput interface {
+	Pause() error
+	Resume() error
 }
 
 type Creator func() Input
@@ -59,7 +78,6 @@ func Add(name string, creator Creator) {
 
 type inputInfo struct {
 	input Input
-	cfg   string
 }
 
 func (ii *inputInfo) Run() {
@@ -71,20 +89,20 @@ func (ii *inputInfo) Run() {
 	case Input:
 		ii.input.Run()
 	default:
-		l.Errorf("invalid input type, cfg: %s", ii.cfg)
+		l.Errorf("invalid input type")
 	}
 }
 
-func AddInput(name string, input Input, fp string) error {
+func AddInput(name string, input Input) error {
 	mtx.Lock()
 	defer mtx.Unlock()
-	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input, cfg: fp})
+	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
 	return nil
 }
 
 func AddSelf() {
 	self, _ := Inputs["self"]
-	AddInput("self", self(), "no config for `self' input")
+	AddInput("self", self())
 }
 
 func ResetInputs() {
@@ -176,16 +194,12 @@ func addPanic(name string) {
 	panicInputs[name]++
 }
 
-func InputEnabled(name string) (n int, cfgs []string) {
+func InputEnabled(name string) (n int) {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	arr, ok := InputsInfo[name]
 	if !ok {
 		return
-	}
-
-	for _, i := range arr {
-		cfgs = append(cfgs, i.cfg)
 	}
 
 	n = len(arr)
