@@ -152,7 +152,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 				tag[k] = v
 			}
 
-			// run sample
+			// run trace data sample
 			if traceSampleConf != nil {
 				if !trace.DefErrCheckHandler(span.Error) && !trace.DefIgnoreTagsHandler(tag, traceSampleConf.IgnoreTagsList) {
 					if !trace.DefSampleHandler(span.TraceID, traceSampleConf.Rate, traceSampleConf.Scope) {
