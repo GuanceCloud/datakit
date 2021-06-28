@@ -3,13 +3,17 @@ package cmds
 import (
 	"fmt"
 	nhttp "net/http"
+	"path/filepath"
 
 	"github.com/c-bata/go-prompt"
 	"github.com/kardianos/service"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
@@ -18,6 +22,8 @@ var (
 		{Text: "Q", Description: "exit cmd"},
 		{Text: "flushall", Description: "k8s interactive command to generate deploy file"},
 	}
+
+	l = logger.DefaultSLogger("cmds")
 )
 
 type completer struct{}
@@ -37,7 +43,7 @@ func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
 }
 
 func StopDatakit() error {
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
 	}
@@ -59,7 +65,7 @@ func StopDatakit() error {
 }
 
 func StartDatakit() error {
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
 	}
@@ -97,14 +103,14 @@ func RestartDatakit() error {
 	return nil
 }
 
-func ReloadDatakit(port int) error {
+func ReloadDatakit(host string) error {
 	// FIXME: 如果没有绑定在 localhost 怎么办? 此处需解析 datakit 所用的 conf
 	client := &nhttp.Client{
 		CheckRedirect: func(req *nhttp.Request, via []*nhttp.Request) error {
 			return nhttp.ErrUseLastResponse
 		},
 	}
-	_, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/reload", port))
+	_, err := client.Get(fmt.Sprintf("http://%s/reload", host))
 	if err == nhttp.ErrUseLastResponse {
 		return nil
 	}
@@ -113,7 +119,7 @@ func ReloadDatakit(port int) error {
 }
 
 func UninstallDatakit() error {
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
 	}
@@ -124,7 +130,7 @@ func UninstallDatakit() error {
 
 func DatakitStatus() (string, error) {
 
-	svc, err := datakit.NewService()
+	svc, err := dkservice.NewService()
 	if err != nil {
 		return "", err
 	}
@@ -146,10 +152,14 @@ func DatakitStatus() (string, error) {
 }
 
 func IPInfo(ip string) (map[string]string, error) {
-	if err := geo.LoadIPLib(); err != nil {
+
+	datadir := datakit.DataDir
+
+	if err := geo.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return nil, err
 	}
-	if err := ip2isp.Init(); err != nil {
+
+	if err := ip2isp.Init(filepath.Join(datadir, "ip2isp.txt")); err != nil {
 		return nil, err
 	}
 
@@ -165,4 +175,16 @@ func IPInfo(ip string) (map[string]string, error) {
 		"isp":      ip2isp.SearchIsp(ip),
 		"ip":       ip,
 	}, nil
+}
+
+func SetCmdRootLog(rl string) {
+	if err := logger.SetGlobalRootLogger(rl, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
+		l.Error(err)
+		return
+	}
+
+	config.SetLog()
+
+	l = logger.SLogger("cmds")
+	l.Infof("root log path set to %s", rl)
 }
