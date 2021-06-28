@@ -10,10 +10,23 @@ import (
 	"github.com/influxdata/toml/ast"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
 )
+
+func TestEmptyDir(t *testing.T) {
+	dirname := "test123"
+	if err := os.MkdirAll(dirname, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := os.RemoveAll(dirname); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	tu.Assert(t, emptyDir(dirname) == true, "dir %s should be empty", dirname)
+}
 
 func TestTomlSerialization(t *testing.T) {
 	type X struct {
@@ -21,23 +34,35 @@ func TestTomlSerialization(t *testing.T) {
 		B string `toml:"b,__b"`
 	}
 
-	cases := []string{
-		`a = 123
+	cases := []struct {
+		str  string
+		fail bool
+	}{
+		{
+			str: `a = 123
 		b = "xyz"`,
-
-		`___a = 123
+		},
+		{
+			str: `___a = 123
 		__b = "xyz"`,
+			fail: true,
+		},
 	}
 
 	for _, tc := range cases {
 		var x X
 
-		if err := toml.Unmarshal([]byte(tc), &x); err != nil {
-			t.Error(err)
+		err := toml.Unmarshal([]byte(tc.str), &x)
+		if tc.fail {
+			tu.NotOk(t, err, "")
+		} else {
+			tu.Ok(t, err)
 		}
+
 		t.Logf("bstoml: %+#v", x)
 
-		if _, err := bstoml.Decode(tc, &x); err != nil {
+		_, err = bstoml.Decode(tc.str, &x)
+		if err != nil {
 			t.Error(err)
 		}
 		t.Logf("bstoml: %+#v", x)
@@ -234,8 +259,8 @@ func TestBuildInputCfg(t *testing.T) {
 	[inputs.diskio.tags]
 	host = '{{.Hostname}}'`
 
-	datakit.Cfg.Hostname = "this-is-the-test-host-name"
-	sample, err := BuildInputCfg([]byte(data), datakit.Cfg)
+	config.Cfg.Hostname = "this-is-the-test-host-name"
+	sample, err := BuildInputCfg([]byte(data), config.Cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,7 +270,7 @@ func TestBuildInputCfg(t *testing.T) {
 
 //func TestLoadMainCfg(t *testing.T) {
 //
-//	c := datakit.Cfg
+//	c := config.Cfg
 //	if err := c.LoadMainConfig(); err != nil {
 //		t.Errorf("%s", err)
 //	}
@@ -323,28 +348,24 @@ global = "global config"
 	}
 }
 
-func TestInitCfg(t *testing.T) {
-	// TODO
-}
-
 func TestBlackWhiteList(t *testing.T) {
-	wlists := []*datakit.InputHostList{
-		&datakit.InputHostList{
+	wlists := []*inputHostList{
+		&inputHostList{
 			Hosts:  []string{"host1", "host2"},
 			Inputs: []string{"input1", "input2"},
 		},
-		&datakit.InputHostList{
+		&inputHostList{
 			Hosts:  []string{"hostx", "hosty"},
 			Inputs: []string{"inputx", "inputy"},
 		},
 	}
 
-	blists := []*datakit.InputHostList{
-		&datakit.InputHostList{
+	blists := []*inputHostList{
+		&inputHostList{
 			Hosts:  []string{"host_3", "host_4"},
 			Inputs: []string{"input_3", "input_4"},
 		},
-		&datakit.InputHostList{
+		&inputHostList{
 			Hosts:  []string{"host_i", "host_j"},
 			Inputs: []string{"input_i", "input_j"},
 		},
@@ -362,7 +383,7 @@ func TestBlackWhiteList(t *testing.T) {
 }
 
 func TestLoadCfg(t *testing.T) {
-	var c = datakit.Config{}
+	var c = Config{}
 	availableInputCfgs := map[string]*ast.Table{}
 	conf := map[string]string{
 		"1.conf": `[[inputs.aliyunobject]]
