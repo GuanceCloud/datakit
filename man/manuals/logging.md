@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
+- 操作系统支持：全平台
 
 # {{.InputName}}
 
@@ -16,7 +16,10 @@
 [[inputs.logging]]
   # 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定
   # 推荐使用绝对路径
-  logfiles = ["/var/log/syslog"]
+  logfiles = [
+    "/var/log/syslog",                     # Unix 格式文件路径
+    "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
+  ]
   
   # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
   ignore = [""]
