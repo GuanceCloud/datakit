@@ -1,16 +1,12 @@
 package main
 
 import (
-	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	nhttp "net/http"
 	"os"
 	"os/signal"
 	"os/user"
-	"path"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -19,20 +15,20 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/blang/semver/v4"
 	pr "github.com/shirou/gopsutil/v3/process"
 	flag "github.com/spf13/pflag"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
@@ -48,18 +44,19 @@ var (
 	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
 	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
 	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagProm     = flag.String("prom-conf", "", "config file to test")
+	flagProm     = flag.String("prom-conf", "", "prom config file to test")
 
 	// manuals related
 	flagMan               = flag.Bool("man", false, "read manuals of inputs")
-	flagK8sCfgPath        = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
 	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
 	flagTODO              = flag.String("TODO", "TODO", "set TODO")
 
-	flagInteractive         = flag.Bool("interactive", false, "interactive generate k8s deploy config")
+	flagK8sCfgPath  = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
+	flagInteractive = flag.Bool("interactive", false, "interactive generate k8s deploy config")
+
 	flagCheckUpdate         = flag.Bool("check-update", false, "check if new verison available")
 	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
 	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
@@ -70,49 +67,68 @@ var (
 	flagInstallExternal = flag.String("install", "", "install external tool/software")
 
 	// managing service
-	flagStart      = flag.Bool("start", false, "start datakit")
-	flagStop       = flag.Bool("stop", false, "stop datakit")
-	flagRestart    = flag.Bool("restart", false, "restart datakit")
-	flagReload     = flag.Bool("reload", false, "reload datakit")
-	flagStatus     = flag.Bool("status", false, "show datakit service status")
-	flagUninstall  = flag.Bool("uninstall", false, "uninstall datakit service")
-	flagReloadPort = flag.Int("reload-port", 9529, "datakit http server port")
+	flagStart     = flag.Bool("start", false, "start datakit")
+	flagStop      = flag.Bool("stop", false, "stop datakit")
+	flagRestart   = flag.Bool("restart", false, "restart datakit")
+	flagReload    = flag.Bool("reload", false, "reload datakit")
+	flagStatus    = flag.Bool("status", false, "show datakit service status")
+	flagUninstall = flag.Bool("uninstall", false, "uninstall datakit service")
+
+	flagDatakitHost = flag.String("datakit-host", "localhost:9529", "datakit HTTP host")
+
+	// DQL
+	flagDQL    = flag.Bool("dql", false, "query DQL")
+	flagRunDQL = flag.String("run-dql", "", "run single DQL")
 
 	// partially update
 	flagUpdateIPDb = flag.Bool("update-ip-db", false, "update ip db")
-	flagAddr       = flag.String("addr", "", "url path")
+	flagAddr       = flag.StringP("addr", "A", "", "url path")
+	flagInterval   = flag.StringP("interval", "D", "", "auxiliary option, time interval")
 
 	// utils
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
+	flagMonitor       = flag.Bool("monitor", false, "show monitor info of current datakit")
+	flagCheckConfig   = flag.Bool("check-config", false, "check inputs configure and main configure")
+	flagCmdLogPath    = flag.String("cmd-log", "/dev/null", "command line log path")
 )
 
 var (
 	l = logger.DefaultSLogger("main")
 
-	ReleaseType    = ""
-	ReleaseVersion = git.Version
+	ReleaseType = ""
 )
 
 const (
 	PID_FILENAME = ".pid"
 )
 
-func main() {
-	flag.CommandLine.MarkHidden("cmd")                  // deprecated
-	flag.CommandLine.MarkHidden("TODO")                 // internal using
-	flag.CommandLine.MarkHidden("check-update")         // internal using
-	flag.CommandLine.MarkHidden("man-version")          // internal using
-	flag.CommandLine.MarkHidden("export-integration")   // internal using
-	flag.CommandLine.MarkHidden("addr")                 // internal using
-	flag.CommandLine.MarkHidden("show-testing-version") // internal using
-	flag.CommandLine.MarkHidden("update-log")           // internal using
+func setupFlags() {
+	flag.CommandLine.MarkHidden("cmd") // deprecated
+
+	// internal using
+	flag.CommandLine.MarkHidden("TODO")
+	flag.CommandLine.MarkHidden("check-update")
+	flag.CommandLine.MarkHidden("man-version")
+	flag.CommandLine.MarkHidden("export-integration")
+	flag.CommandLine.MarkHidden("addr")
+	flag.CommandLine.MarkHidden("show-testing-version")
+	flag.CommandLine.MarkHidden("update-log")
+	flag.CommandLine.MarkHidden("k8s-deploy")
+	flag.CommandLine.MarkHidden("interactive")
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
 
-	flag.Parse()
+	if runtime.GOOS == "windows" {
+		*flagCmdLogPath = "nul" // under windows, nul is /dev/null
+	}
+}
 
+func main() {
+
+	setupFlags()
+	flag.Parse()
 	applyFlags()
 
 	if !checkIsRuning() {
@@ -130,8 +146,8 @@ func main() {
 	if *flagDocker {
 		run()
 	} else {
-		datakit.Entry = run
-		if err := datakit.StartService(); err != nil {
+		service.Entry = run
+		if err := service.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
 			return
 		}
@@ -140,64 +156,159 @@ func main() {
 	l.Info("datakit exited")
 }
 
-const (
-	winUpgradeCmd = `Import-Module bitstransfer; ` +
-		`start-bitstransfer -source %s -destination .dk-installer.exe; ` +
-		`.dk-installer.exe -upgrade; ` +
-		`rm .dk-installer.exe`
-	unixUpgradeCmd = `sudo -- sh -c ` +
-		`"curl %s -o dk-installer ` +
-		`&& chmod +x ./dk-installer ` +
-		`&& ./dk-installer -upgrade ` +
-		`&& rm -rf ./dk-installer"`
-)
-
 func applyFlags() {
-
-	if *flagVersion {
-		fmt.Printf(`
-       Version: %s
-        Commit: %s
-        Branch: %s
- Build At(UTC): %s
-Golang Version: %s
-      Uploader: %s
-ReleasedInputs: %s
-`, ReleaseVersion, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, ReleaseType)
-		vers, err := getOnlineVersions()
-		if err != nil {
-			fmt.Printf("Get online version failed: \n%s\n", err.Error())
-			os.Exit(-1)
-		}
-		curver, err := getLocalVersion()
-		if err != nil {
-			fmt.Printf("Get local version failed: \n%s\n", err.Error())
-			os.Exit(-1)
-		}
-
-		for k, v := range vers {
-
-			if isNewVersion(v, curver, true) { // show version info, also show RC verison info
-				fmt.Println("---------------------------------------------------")
-				fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
-					k, v.version, v.Commit, v.ReleaseDate)
-				switch runtime.GOOS {
-				case "windows":
-					cmdWin := fmt.Sprintf(winUpgradeCmd, v.downloadURL)
-					fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
-				default:
-					cmd := fmt.Sprintf(unixUpgradeCmd, v.downloadURL)
-					fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
-				}
-			}
-		}
-
-		os.Exit(0)
-	}
 
 	inputs.TODO = *flagTODO
 
+	datakit.EnableUncheckInputs = (ReleaseType == "all")
+
+	if *flagDocker {
+		config.Docker = true
+	}
+
+	runDatakitWithCmds()
+}
+
+func dumpAllConfigSamples(fpath string) {
+
+	if err := os.MkdirAll(fpath, datakit.ConfPerm); err != nil {
+		panic(err)
+	}
+
+	for k, v := range inputs.Inputs {
+		sample := v().SampleConfig()
+		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), datakit.ConfPerm); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func run() {
+
+	l.Info("datakit start...")
+	if err := doRun(); err != nil {
+		return
+	}
+
+	l.Info("datakit start ok. Wait signal or service stop...")
+
+	// NOTE:
+	// Actually, the datakit process been managed by system service, no matter on
+	// windows/UNIX, datakit should exit via `service-stop' operation, so the signal
+	// branch should not reached, but for daily debugging(ctrl-c), we kept the signal
+	// exit option.
+	signals := make(chan os.Signal, datakit.CommonChanCap)
+	for {
+		signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+		select {
+		case sig := <-signals:
+			if sig == syscall.SIGHUP {
+				l.Info("under signal SIGHUP, reloading...")
+				cmds.Reload()
+			} else {
+				l.Infof("get signal %v, wait & exit", sig)
+				http.HttpStop()
+				datakit.Quit()
+				break
+			}
+
+		case <-service.StopCh:
+			l.Infof("service stopping")
+			http.HttpStop()
+			datakit.Quit()
+			break
+		}
+	}
+
+	l.Info("datakit exit.")
+}
+
+func tryLoadConfig() {
+	config.MoveDeprecatedCfg()
+
+	for {
+		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
+			l.Errorf("load config failed: %s", err)
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
+	}
+
+	l = logger.SLogger("main")
+}
+
+func doRun() error {
+
+	io.Start()
+
+	if config.Cfg.EnableElection {
+		election.Start(config.Cfg.Hostname, config.Cfg.DataWay)
+	}
+
+	if err := inputs.RunInputs(); err != nil {
+		l.Error("error running inputs: %v", err)
+		return err
+	}
+
+	http.Start(&http.Option{
+		Bind:           config.Cfg.HTTPListen,
+		GinLog:         config.Cfg.GinLog,
+		GinReleaseMode: strings.ToLower(config.Cfg.LogLevel) != "debug",
+		PProf:          config.Cfg.EnablePProf,
+	})
+
+	return nil
+}
+
+func isRoot() bool {
+	u, err := user.Current()
+	if err != nil {
+		l.Errorf("get current user failed: %s", err.Error())
+		return false
+	}
+
+	return u.Username == "root"
+}
+
+func runDatakitWithCmds() {
+
+	if *flagCheckUpdate { // 更新日志单独存放，不跟 cmd.log 一块
+		if *flagUpdateLogFile != "" {
+			if err := logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
+				l.Errorf("set root log faile: %s", err.Error())
+			}
+		}
+		ret := cmds.CheckUpdate(*flagAcceptRCVersion)
+		os.Exit(ret)
+	}
+
+	if *flagVersion {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+
+		cmds.ShowVersion(ReleaseType, *flagShowTestingVersions)
+		os.Exit(0)
+	}
+
+	if *flagCheckConfig {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+		cmds.CheckConfig()
+		os.Exit(0)
+	}
+
+	if *flagDQL {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+		cmds.DQL(*flagDatakitHost)
+		os.Exit(0)
+	}
+
+	if *flagRunDQL != "" {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+		os.Exit(0)
+	}
+
 	if *flagShowCloudInfo != "" {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
 		if err != nil {
 			fmt.Printf("Get cloud info failed: %s\n", err.Error())
@@ -217,7 +328,19 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
+	if *flagMonitor {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+		if runtime.GOOS == "windows" {
+			fmt.Println("unavailable under Windows")
+			os.Exit(0)
+		}
+
+		cmds.CMDMonitor(*flagInterval, *flagDatakitHost)
+		os.Exit(0)
+	}
+
 	if *flagIPInfo != "" {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		x, err := cmds.IPInfo(*flagIPInfo)
 		if err != nil {
 			fmt.Printf("\t%v\n", err)
@@ -230,177 +353,38 @@ ReleasedInputs: %s
 		os.Exit(0)
 	}
 
-	if *flagCheckUpdate {
-
-		if *flagUpdateLogFile != "" {
-			logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT)
-		}
-		l = logger.SLogger("ota-update")
-
-		install.Init()
-
-		l.Debugf("get online version...")
-		vers, err := getOnlineVersions()
-		if err != nil {
-			l.Errorf("Get online version failed: \n%s\n", err.Error())
-			os.Exit(0)
-		}
-
-		ver := vers["Online"]
-
-		curver, err := getLocalVersion()
-		if err != nil {
-			l.Errorf("Get online version failed: \n%s\n", err.Error())
-			os.Exit(-1)
-		}
-
-		l.Debugf("online version: %v, local version: %v", ver, curver)
-
-		if ver != nil && isNewVersion(ver, curver, *flagAcceptRCVersion) {
-			l.Infof("New online version available: %s, commit %s (release at %s)",
-				ver.version, ver.Commit, ver.ReleaseDate)
-			os.Exit(42)
-		} else {
-			if *flagAcceptRCVersion {
-				l.Infof("Up to date(%s)", curver.VersionString)
-			} else {
-				l.Infof("Up to date(%s), RC version skipped", curver.VersionString)
-			}
-		}
-
-		os.Exit(0)
-	}
-
-	datakit.EnableUncheckInputs = (ReleaseType == "all")
-
-	runDatakitWithCmd()
-
-	if *flagDocker {
-		datakit.Docker = true
-	}
-}
-
-func dumpAllConfigSamples(fpath string) {
-
-	if err := os.MkdirAll(fpath, os.ModePerm); err != nil {
-		panic(err)
-	}
-
-	for k, v := range inputs.Inputs {
-		sample := v().SampleConfig()
-		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), os.ModePerm); err != nil {
-			panic(err)
-		}
-	}
-
-}
-
-func run() {
-
-	l.Info("datakit start...")
-	if err := runDatakitWithHTTPServer(); err != nil {
-		return
-	}
-
-	l.Info("datakit start ok. Wait signal or service stop...")
-
-	// NOTE:
-	// Actually, the datakit process been managed by system service, no matter on
-	// windows/UNIX, datakit should exit via `service-stop' operation, so the signal
-	// branch should not reached, but for daily debugging(ctrl-c), we kept the signal
-	// exit option.
-	signals := make(chan os.Signal, datakit.CommonChanCap)
-	signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-	select {
-	case sig := <-signals:
-		if sig == syscall.SIGHUP {
-			// TODO: reload configures
-		} else {
-			l.Infof("get signal %v, wait & exit", sig)
-			http.HttpStop()
-			datakit.Quit()
-		}
-
-	case <-datakit.StopCh:
-		l.Infof("service stopping")
-		http.HttpStop()
-		datakit.Quit()
-	}
-
-	l.Info("datakit exit.")
-}
-
-func tryLoadConfig() {
-	datakit.MoveDeprecatedCfg()
-
-	for {
-		if err := config.LoadCfg(datakit.Cfg, datakit.MainConfPath); err != nil {
-			l.Errorf("load config failed: %s", err)
-			time.Sleep(time.Second)
-		} else {
-			break
-		}
-	}
-
-	l = logger.SLogger("main")
-}
-
-func runDatakitWithHTTPServer() error {
-
-	io.Start()
-
-	if err := inputs.RunInputs(); err != nil {
-		l.Error("error running inputs: %v", err)
-		return err
-	}
-
-	http.Start(&http.Option{
-		Bind:           datakit.Cfg.HTTPListen,
-		GinLog:         datakit.Cfg.GinLog,
-		GinReleaseMode: strings.ToLower(datakit.Cfg.LogLevel) != "debug",
-		PProf:          datakit.Cfg.EnablePProf,
-	})
-
-	return nil
-}
-
-func isRoot() bool {
-	u, err := user.Current()
-	if err != nil {
-		l.Errorf("get current user failed: %s", err.Error())
-		return false
-	}
-
-	return u.Username == "root"
-}
-
-func runDatakitWithCmd() {
 	if *flagCmdDeprecated {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		l.Warn("--cmd parameter has been discarded")
 	}
 
 	if *flagPipeline != "" {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.PipelineDebugger(*flagPipeline, *flagText)
 		os.Exit(0)
 	}
 
 	if *flagProm != "" {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.PromDebugger(*flagProm)
 		os.Exit(0)
 	}
 
 	if *flagGrokq {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.Grokq()
 		os.Exit(0)
 	}
 
 	if *flagMan {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		cmds.Man()
 		os.Exit(0)
 	}
 
 	if *flagK8sCfgPath != "" {
-		if err := os.MkdirAll(*flagK8sCfgPath, os.ModePerm); err != nil {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+		if err := os.MkdirAll(*flagK8sCfgPath, datakit.ConfPerm); err != nil {
 			l.Errorf("invalid path %s", err.Error())
 			os.Exit(-1)
 		}
@@ -410,6 +394,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportMan != "" {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.ExportMan(*flagExportMan, *flagIgnore, *flagManVersion); err != nil {
 			l.Error(err)
 		}
@@ -417,6 +402,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagExportIntegration != "" {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.ExportIntegration(*flagExportIntegration, *flagIgnore); err != nil {
 			l.Error(err)
 		}
@@ -424,6 +410,8 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagInstallExternal != "" {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -436,6 +424,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagStart {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -452,6 +441,7 @@ func runDatakitWithCmd() {
 
 	if *flagStop {
 
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -467,6 +457,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagRestart {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if !isRoot() {
 			l.Error("Permission Denied")
@@ -483,13 +474,14 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagReload {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
 		}
 
-		if err := cmds.ReloadDatakit(*flagReloadPort); err != nil {
+		if err := cmds.ReloadDatakit(*flagDatakitHost); err != nil {
 			fmt.Printf("Reload DataKit Failed\n")
 			os.Exit(-1)
 		}
@@ -499,6 +491,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagStatus {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		x, err := cmds.DatakitStatus()
 		if err != nil {
 			fmt.Println("Get DataKit status failed: %s\n", err)
@@ -509,6 +502,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagUninstall {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.UninstallDatakit(); err != nil {
 			fmt.Println("Get DataKit status failed: %s\n", err)
 			os.Exit(-1)
@@ -517,6 +511,7 @@ func runDatakitWithCmd() {
 	}
 
 	if *flagUpdateIPDb {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if !isRoot() {
 			l.Error("Permission Denied")
 			os.Exit(-1)
@@ -527,7 +522,7 @@ func runDatakitWithCmd() {
 			os.Exit(-1)
 		}
 
-		if err := cmds.UpdateIpDB(*flagReloadPort, *flagAddr); err != nil {
+		if err := cmds.UpdateIpDB(*flagDatakitHost, *flagAddr); err != nil {
 			fmt.Printf("Reload DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}
@@ -536,104 +531,6 @@ func runDatakitWithCmd() {
 
 		os.Exit(0)
 	}
-}
-
-type datakitVerInfo struct {
-	VersionString string `json:"version"`
-	Commit        string `json:"commit"`
-	ReleaseDate   string `json:"date_utc"`
-
-	downloadURL        string `json:"-"`
-	downloadURLTesting string `json:"-"`
-
-	version *semver.Version
-}
-
-func (vi *datakitVerInfo) String() string {
-	return fmt.Sprintf("datakit %s/%s", vi.VersionString, vi.Commit)
-}
-
-func (vi *datakitVerInfo) parse() error {
-	verstr := strings.TrimPrefix(vi.VersionString, "v") // older version has prefix `v', this crash semver.Parse()
-	v, err := semver.Parse(verstr)
-	if err != nil {
-		return err
-	}
-	vi.version = &v
-	return nil
-}
-
-func getVersion(addr string) (*datakitVerInfo, error) {
-	resp, err := nhttp.Get("http://" + path.Join(addr, "version"))
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	infobody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var ver datakitVerInfo
-	if err = json.Unmarshal(infobody, &ver); err != nil {
-		return nil, err
-	}
-
-	if err := ver.parse(); err != nil {
-		return nil, err
-	}
-	ver.downloadURL = fmt.Sprintf("https://%s/installer-%s-%s",
-		addr, runtime.GOOS, runtime.GOARCH)
-	if runtime.GOOS == "windows" {
-		ver.downloadURL += ".exe"
-	}
-	return &ver, nil
-}
-
-func getOnlineVersions() (res map[string]*datakitVerInfo, err error) {
-
-	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	res = map[string]*datakitVerInfo{}
-
-	onlineVer, err := getVersion("static.dataflux.cn/datakit")
-	if err != nil {
-		return nil, err
-	}
-	res["Online"] = onlineVer
-
-	if *flagShowTestingVersions {
-		testVer, err := getVersion("zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit")
-		if err != nil {
-			return nil, err
-		}
-		res["Testing"] = testVer
-	}
-
-	return
-}
-
-func getLocalVersion() (*datakitVerInfo, error) {
-	v := &datakitVerInfo{VersionString: strings.TrimPrefix(ReleaseVersion, "v"), Commit: git.Commit, ReleaseDate: git.BuildAt}
-	if err := v.parse(); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-func isNewVersion(newVer, curver *datakitVerInfo, acceptRC bool) bool {
-
-	if newVer.version.Compare(*curver.version) > 0 { // new version
-		if len(newVer.version.Pre) == 0 {
-			return true
-		}
-
-		if acceptRC {
-			return true
-		}
-	}
-
-	return false
 }
 
 func checkIsRuning() bool {
