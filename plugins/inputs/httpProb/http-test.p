@@ -1,5 +1,0 @@
-json(_, body)
-#json(_, header.Connection)
-#json(_, header.`Content-Type`)
-#json(_, header.`Accept-Encoding`)
-#drop_origin_data()
