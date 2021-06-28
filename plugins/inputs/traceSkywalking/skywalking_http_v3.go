@@ -3,9 +3,10 @@ package traceSkywalking
 import (
 	"encoding/json"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
@@ -148,6 +149,15 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 		}
 		t.EndPoint = span.Peer
 		t.Tags = SkywalkingTagsV3
+
+		// run trace data sample
+		if traceSampleConf != nil {
+			if !trace.DefErrCheckHandler(trace.ErrMapper[t.Status]) && !trace.DefIgnoreTagsHandler(t.Tags, traceSampleConf.IgnoreTagsList) {
+				if !trace.DefSampleHandler(uint64(trace.TraceStrIdToInt(t.TraceID)), traceSampleConf.Rate, traceSampleConf.Scope) {
+					continue
+				}
+			}
+		}
 
 		adapterGroup = append(adapterGroup, t)
 	}
