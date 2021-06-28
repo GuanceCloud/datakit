@@ -19,6 +19,7 @@ var (
 var (
 	inputName                   = "traceSkywalking"
 	traceSkywalkingConfigSample = `
+[[inputs.traceSkywalking]]
 ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
 [inputs.traceSkywalking.sample_config]
   ## sample rate, how many will be sampled
