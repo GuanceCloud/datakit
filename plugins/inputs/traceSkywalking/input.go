@@ -57,14 +57,14 @@ var (
 )
 
 type Skywalking struct {
-	GrpcPort int32 `toml:"grpcPort"`
-
-	Tags map[string]string `toml:"tags"`
+	GrpcPort        int32                    `toml:"grpcPort"`
+	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
+	Tags            map[string]string        `toml:"tags"`
 }
 
 type SkywalkingTrace struct {
-	V2 *Skywalking
-	V3 *Skywalking
+	V2 *Skywalking `toml:"V2"`
+	V3 *Skywalking `toml:"V3"`
 }
 
 var SkywalkingTagsV2 map[string]string

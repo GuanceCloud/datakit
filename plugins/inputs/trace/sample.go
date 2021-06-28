@@ -1,5 +1,7 @@
 package trace
 
+import "strconv"
+
 var (
 	DefSampleHandler = func(traceId uint64, rate, scope int) bool {
 		return (traceId % uint64(scope)) < uint64(rate)
@@ -28,4 +30,10 @@ type TraceSampleConfig struct {
 	Rate           int      `toml:"rate"`
 	Scope          int      `toml:"scope"`
 	IgnoreTagsList []string `toml:ignore_tags_list`
+}
+
+func TraceStrIdToInt(traceId string) int {
+	id, _ := strconv.Atoi(traceId)
+
+	return id
 }
