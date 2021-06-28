@@ -19,34 +19,25 @@ var (
 var (
 	inputName                   = "traceSkywalking"
 	traceSkywalkingConfigSample = `
-[[inputs.traceSkywalking.V2]]
+## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
+[inputs.traceSkywalking.sample_config]
+  ## sample rate, how many will be sampled
+  # rate = ` + fmt.Sprintf("%d", defRate) + `
+  ## sample scope, the range to sample
+  # scope = ` + fmt.Sprintf("%d", defScope) + `
+  ## ignore tags list for samplingx
+  # ignore_tags_list = []
+
+[inputs.traceSkywalking.V2]
   #	grpcPort = 11800
 
-  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
-  [inputs.traceSkywalking.sample_config]
-    ## sample rate, how many will be sampled
-    # rate = ` + fmt.Sprintf("%d", defRate) + `
-    ## sample scope, the range to sample
-    # scope = ` + fmt.Sprintf("%d", defScope) + `
-    ## ignore tags list for samplingx
-    # ignore_tags_list = []
+  [inputs.traceSkywalking.V2.tags]
+    # tag1 = "tag1"
+    # tag2 = "tag2"
+    # tag3 = "tag3"
 
-  #	[inputs.traceSkywalking.V2.tags]
-      # tag1 = "tag1"
-      # tag2 = "tag2"
-      # tag3 = "tag3"
-
-[[inputs.traceSkywalking.V3]]
+[inputs.traceSkywalking.V3]
   # grpcPort = 13800
-
-  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
-  [inputs.traceSkywalking.sample_config]
-    ## sample rate, how many will be sampled
-    # rate = ` + fmt.Sprintf("%d", defRate) + `
-    ## sample scope, the range to sample
-    # scope = ` + fmt.Sprintf("%d", defScope) + `
-    ## ignore tags list for samplingx
-    # ignore_tags_list = []
 
   [inputs.traceSkywalking.V3.tags]
     # tag1 = "tag1"
@@ -57,14 +48,14 @@ var (
 )
 
 type Skywalking struct {
-	GrpcPort        int32                    `toml:"grpcPort"`
-	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
-	Tags            map[string]string        `toml:"tags"`
+	GrpcPort int32             `toml:"grpcPort"`
+	Tags     map[string]string `toml:"tags"`
 }
 
 type SkywalkingTrace struct {
-	V2 *Skywalking `toml:"V2"`
-	V3 *Skywalking `toml:"V3"`
+	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
+	V2              *Skywalking              `toml:"V2"`
+	V3              *Skywalking              `toml:"V3"`
 }
 
 var SkywalkingTagsV2 map[string]string
@@ -81,6 +72,16 @@ func (_ *SkywalkingTrace) SampleConfig() string {
 func (t *SkywalkingTrace) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
+
+	if t.TraceSampleConf != nil {
+		if t.TraceSampleConf.Rate <= 0 {
+			t.TraceSampleConf.Rate = defRate
+		}
+		if t.TraceSampleConf.Scope <= 0 {
+			t.TraceSampleConf.Scope = defScope
+		}
+		traceSampleConf = t.TraceSampleConf
+	}
 
 	if t.V2 != nil {
 		SkywalkingTagsV2 = t.V2.Tags

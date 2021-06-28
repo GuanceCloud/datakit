@@ -124,17 +124,10 @@ func parseZipkinJsonV1(octets []byte) error {
 		tAdapter.Tags = ZipkinTags
 
 		// run trace data sample
-		if traceSampleConf != nil {
-			if !trace.DefErrCheckHandler(trace.ErrMapper[tAdapter.Status]) && !trace.DefIgnoreTagsHandler(tAdapter.Tags, traceSampleConf.IgnoreTagsList) {
-				if !trace.DefSampleHandler(uint64(trace.TraceStrIdToInt(tAdapter.TraceID)), traceSampleConf.Rate, traceSampleConf.Scope) {
-					continue
-				}
-			}
+		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
+			adapterGroup = append(adapterGroup, tAdapter)
 		}
-
-		adapterGroup = append(adapterGroup, tAdapter)
 	}
-
 	trace.MkLineProto(adapterGroup, inputName)
 
 	return nil
@@ -298,17 +291,10 @@ func parseZipkinThriftV1(octets []byte) error {
 		tAdapter.Tags = ZipkinTags
 
 		// run trace data sample
-		if traceSampleConf != nil {
-			if !trace.DefErrCheckHandler(trace.ErrMapper[tAdapter.Status]) && !trace.DefIgnoreTagsHandler(tAdapter.Tags, traceSampleConf.IgnoreTagsList) {
-				if !trace.DefSampleHandler(uint64(trace.TraceStrIdToInt(tAdapter.TraceID)), traceSampleConf.Rate, traceSampleConf.Scope) {
-					continue
-				}
-			}
+		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
+			adapterGroup = append(adapterGroup, tAdapter)
 		}
-
-		adapterGroup = append(adapterGroup, tAdapter)
 	}
-
 	trace.MkLineProto(adapterGroup, inputName)
 
 	return nil
