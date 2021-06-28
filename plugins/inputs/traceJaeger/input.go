@@ -21,7 +21,6 @@ var (
 	traceJaegerConfigSample = `
 [[inputs.traceJaeger]]
   #	path = "/api/traces"
-
   #	udp_agent = "127.0.0.1:6832"
 
   ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
