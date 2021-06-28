@@ -89,6 +89,20 @@ func TestPromText2Metrics(t *testing.T) {
 		}
 	})
 
+	t.Run("Inf", func(t *testing.T) {
+		text := `
+# HELP rest_client_exec_plugin_ttl_seconds [ALPHA] Gauge of the shortest TTL (time-to-live) of the client certificate(s) managed by the auth exec plugin. The value is in seconds until certificate expiry (negative if already expired). If auth exec plugins are unused or manage no TLS certificates, the value will be +INF.
+# TYPE rest_client_exec_plugin_ttl_seconds gauge
+rest_client_exec_plugin_ttl_seconds +Inf
+		`
+		prom := &Input{
+			MetricNameFilter: []string{"rest_client_exec_plugin_ttl_seconds"},
+		}
+		points, err := PromText2Metrics(text, prom)
+		assert.NoError(t, err)
+		assert.Empty(t, points)
+	})
+
 	t.Run("metric types filter", func(t *testing.T) {
 		prom := &Input{
 			MetricTypes: []string{"gauge"},
