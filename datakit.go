@@ -1,6 +1,7 @@
 package datakit
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -76,7 +77,7 @@ var (
 )
 
 const (
-	ConfPerm = 0777
+	ConfPerm = os.ModePerm
 )
 
 func Quit() {
