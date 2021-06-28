@@ -78,38 +78,47 @@ func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 		env = trace.GetFromPluginTag(JaegerTags, trace.ENV)
 	}
 
-	for _, s := range batch.Spans {
+	for _, span := range batch.Spans {
 		tAdpter := &trace.TraceAdapter{}
 		tAdpter.Source = "jaeger"
 		tAdpter.Project = project
 		tAdpter.Version = ver
 		tAdpter.Env = env
 
-		tAdpter.Duration = s.Duration * 1000
-		tAdpter.Start = s.StartTime * 1000
-		sJson, err := json.Marshal(s)
+		tAdpter.Duration = span.Duration * 1000
+		tAdpter.Start = span.StartTime * 1000
+		sJson, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
 		tAdpter.Content = string(sJson)
 
 		tAdpter.ServiceName = batch.Process.ServiceName
-		tAdpter.OperationName = s.OperationName
-		if s.ParentSpanId != 0 {
-			tAdpter.ParentID = fmt.Sprintf("%d", s.ParentSpanId)
+		tAdpter.OperationName = span.OperationName
+		if span.ParentSpanId != 0 {
+			tAdpter.ParentID = fmt.Sprintf("%d", span.ParentSpanId)
 		}
 
-		tAdpter.TraceID = fmt.Sprintf("%x%x", uint64(s.TraceIdHigh), uint64(s.TraceIdLow))
-		tAdpter.SpanID = fmt.Sprintf("%d", s.SpanId)
+		tAdpter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+		tAdpter.SpanID = fmt.Sprintf("%d", span.SpanId)
 
 		tAdpter.Status = trace.STATUS_OK
-		for _, tag := range s.Tags {
+		for _, tag := range span.Tags {
 			if tag.Key == "error" {
 				tAdpter.Status = trace.STATUS_ERR
 				break
 			}
 		}
 		tAdpter.Tags = JaegerTags
+
+		// run trace data sample
+		if traceSampleConf != nil {
+			if !trace.DefErrCheckHandler(trace.ErrMapper[tAdpter.Status]) && !trace.DefIgnoreTagsHandler(tAdpter.Tags, traceSampleConf.IgnoreTagsList) {
+				if !trace.DefSampleHandler(uint64(trace.TraceStrIdToInt(tAdpter.TraceID)), traceSampleConf.Rate, traceSampleConf.Scope) {
+					continue
+				}
+			}
+		}
 
 		adapterGroup = append(adapterGroup, tAdpter)
 	}
