@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	zipkincore "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin/zipkinV1_core"
 )

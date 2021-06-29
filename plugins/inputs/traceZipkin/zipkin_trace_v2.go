@@ -11,7 +11,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	zipkinmodel "github.com/openzipkin/zipkin-go/model"
 	zipkin_proto3 "github.com/openzipkin/zipkin-go/proto/v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
