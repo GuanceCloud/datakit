@@ -24,7 +24,7 @@ var (
   #	udp_agent = "127.0.0.1:6832"
 
   ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
-  [inputs.traceJaeger.sample_config]
+  # [inputs.traceJaeger.sample_config]
     ## sample rate, how many will be sampled
     # rate = ` + fmt.Sprintf("%d", defRate) + `
     ## sample scope, the range to sample
@@ -32,7 +32,7 @@ var (
     ## ignore tags list for samplingx
     # ignore_tags_list = []
 
-  [inputs.traceJaeger.tags]
+  # [inputs.traceJaeger.tags]
     # tag1 = "val1"
     #	tag2 = "val2"
     # tag3 = "val3"
@@ -46,22 +46,22 @@ const (
 	defaultJeagerPath = "/api/traces"
 )
 
-type JaegerTrace struct {
+type Input struct {
 	Path            string                   `toml:"path"`
 	UdpAgent        string                   `toml:"udp_agent"`
 	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
 	Tags            map[string]string
 }
 
-func (_ *JaegerTrace) Catalog() string {
+func (_ *Input) Catalog() string {
 	return inputName
 }
 
-func (_ *JaegerTrace) SampleConfig() string {
+func (_ *Input) SampleConfig() string {
 	return traceJaegerConfigSample
 }
 
-func (t *JaegerTrace) Run() {
+func (t *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
@@ -87,7 +87,7 @@ func (t *JaegerTrace) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
-func (t *JaegerTrace) RegHttpHandler() {
+func (t *Input) RegHttpHandler() {
 	if t.Path == "" {
 		t.Path = defaultJeagerPath
 	}
@@ -96,8 +96,6 @@ func (t *JaegerTrace) RegHttpHandler() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		t := &JaegerTrace{}
-
-		return t
+		return &Input{}
 	})
 }
