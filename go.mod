@@ -28,7 +28,6 @@ require (
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/aws/aws-sdk-go v1.35.20
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/c-bata/go-prompt v0.2.5
 	github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327 // indirect
 	github.com/containerd/containerd v1.4.1
@@ -42,6 +41,7 @@ require (
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153
+	github.com/fatih/color v1.9.0
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gin-gonic/gin v1.6.3
@@ -108,7 +108,6 @@ require (
 	github.com/shirou/gopsutil v3.20.12+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
-	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed
 	github.com/siddontang/go-mysql v0.0.0-20200222075837-12e89848f047
 	github.com/sirupsen/logrus v1.8.1 // indirect
@@ -151,7 +150,6 @@ require (
 	k8s.io/api v0.0.0-20190813020757-36bff7324fb7
 	k8s.io/apimachinery v0.17.1
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6 // indirect
 )
 
 replace github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c => github.com/1157987916/websocketproxy v0.0.0-20201229082103-cfa96d57158c
