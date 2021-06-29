@@ -24,7 +24,7 @@ var (
   path = "/v0.4/traces"
 
   ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
-  [inputs.ddtrace.sample_config]
+  # [inputs.ddtrace.sample_config]
     ## sample rate, how many will be sampled
     # rate = ` + fmt.Sprintf("%d", defRate) + `
     ## sample scope, the range to sample
@@ -32,7 +32,7 @@ var (
     ## ignore tags list for samplingx
     # ignore_tags_list = []
 
-  [inputs.ddtrace.tags]
+  # [inputs.ddtrace.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
     ## ...
@@ -74,8 +74,6 @@ func (d *Input) Run() {
 		traceSampleConf = d.TraceSampleConf
 	}
 
-	log.Info(*d)
-
 	if d != nil {
 		<-datakit.Exit.Wait()
 		log.Infof("%s input exit", inputName)
@@ -102,8 +100,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		d := &Input{}
-
-		return d
+		return &Input{}
 	})
 }
