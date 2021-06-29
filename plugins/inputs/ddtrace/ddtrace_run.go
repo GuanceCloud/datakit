@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ugorji/go/codec"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
@@ -87,13 +88,13 @@ func handleDdtrace(w http.ResponseWriter, r *http.Request) error {
 }
 
 func parseDdtraceMsgpack(body io.ReadCloser) error {
-	dspans, err := unmarshalDdtraceMsgpack(body)
+	ddspans, err := defDDTraceMock.unmarshalDdtraceMsgpack(body)
 	if err != nil {
 		return err
 	}
 
 	pts := []*dkio.Point{}
-	for _, spans := range dspans {
+	for _, spans := range ddspans {
 		spanIds, parentIds := getSpanAndParentId(spans)
 		for _, span := range spans {
 			tags := make(map[string]string)
@@ -184,6 +185,9 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			pts = append(pts, pt)
 		}
 	}
+	// // for mock data statistic only, commit it out in production env
+	// defDDTraceMock.statistic(ddspans, pts)
+	// return nil
 
 	return dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true})
 }

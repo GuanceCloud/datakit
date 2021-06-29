@@ -20,30 +20,30 @@ var (
 	inputName                   = "traceSkywalking"
 	traceSkywalkingConfigSample = `
 [[inputs.traceSkywalking]]
-## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
-[inputs.traceSkywalking.sample_config]
-  ## sample rate, how many will be sampled
-  # rate = ` + fmt.Sprintf("%d", defRate) + `
-  ## sample scope, the range to sample
-  # scope = ` + fmt.Sprintf("%d", defScope) + `
-  ## ignore tags list for samplingx
-  # ignore_tags_list = []
+  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
+  # [inputs.traceSkywalking.sample_config]
+    ## sample rate, how many will be sampled
+    # rate = ` + fmt.Sprintf("%d", defRate) + `
+    ## sample scope, the range to sample
+    # scope = ` + fmt.Sprintf("%d", defScope) + `
+    ## ignore tags list for samplingx
+    # ignore_tags_list = []
 
-[inputs.traceSkywalking.V2]
-  #	grpcPort = 11800
+  # [inputs.traceSkywalking.V2]
+    #	grpcPort = 11800
 
-  [inputs.traceSkywalking.V2.tags]
-    # tag1 = "tag1"
-    # tag2 = "tag2"
-    # tag3 = "tag3"
+    # [inputs.traceSkywalking.V2.tags]
+      # tag1 = "tag1"
+      # tag2 = "tag2"
+      # ...
 
-[inputs.traceSkywalking.V3]
-  # grpcPort = 13800
+  # [inputs.traceSkywalking.V3]
+    # grpcPort = 13800
 
-  [inputs.traceSkywalking.V3.tags]
-    # tag1 = "tag1"
-    # tag2 = "tag2"
-    # tag3 = "tag3"
+    # [inputs.traceSkywalking.V3.tags]
+      # tag1 = "tag1"
+      # tag2 = "tag2"
+      # ...
 `
 	log = logger.DefaultSLogger(inputName)
 )
@@ -53,7 +53,7 @@ type Skywalking struct {
 	Tags     map[string]string `toml:"tags"`
 }
 
-type SkywalkingTrace struct {
+type Input struct {
 	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
 	V2              *Skywalking              `toml:"V2"`
 	V3              *Skywalking              `toml:"V3"`
@@ -62,15 +62,15 @@ type SkywalkingTrace struct {
 var SkywalkingTagsV2 map[string]string
 var SkywalkingTagsV3 map[string]string
 
-func (_ *SkywalkingTrace) Catalog() string {
+func (_ *Input) Catalog() string {
 	return inputName
 }
 
-func (_ *SkywalkingTrace) SampleConfig() string {
+func (_ *Input) SampleConfig() string {
 	return traceSkywalkingConfigSample
 }
 
-func (t *SkywalkingTrace) Run() {
+func (t *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
@@ -103,7 +103,7 @@ func (t *SkywalkingTrace) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
-func (t *SkywalkingTrace) RegHttpHandler() {
+func (t *Input) RegHttpHandler() {
 	if t.V3 != nil {
 		http.RegHttpHandler("POST", "/v3/segment", SkywalkingTraceHandle)
 		http.RegHttpHandler("POST", "/v3/segments", SkywalkingTraceHandle)
@@ -114,8 +114,6 @@ func (t *SkywalkingTrace) RegHttpHandler() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		t := &SkywalkingTrace{}
-
-		return t
+		return &Input{}
 	})
 }
