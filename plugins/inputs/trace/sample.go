@@ -14,9 +14,9 @@ var (
 		STATUS_CRITICAL: 4,
 	}
 	DefErrCheckHandler = func(status string) bool {
-		_, ok := ErrMapper[status]
+		stat, ok := ErrMapper[status]
 
-		return ok
+		return ok && (stat != 0)
 	}
 	DefIgnoreTagsHandler = func(source map[string]string, ignoreList []string) bool {
 		for _, v := range ignoreList {
@@ -41,6 +41,8 @@ func (this *TraceSampleConfig) SampleFilter(status string, tags map[string]strin
 		if !DefErrCheckHandler(status) && !DefIgnoreTagsHandler(tags, this.IgnoreTagsList) {
 			traceId, err := strconv.ParseInt(traceId, 10, 64)
 			if err != nil {
+				log.Error(err)
+
 				return true
 			}
 
