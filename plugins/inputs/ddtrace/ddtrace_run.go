@@ -88,16 +88,16 @@ func handleDdtrace(w http.ResponseWriter, r *http.Request) error {
 }
 
 func parseDdtraceMsgpack(body io.ReadCloser) error {
-	dspans, err := unmarshalDdtraceMsgpack(body)
+	ddspans, err := defDDTraceMock.unmarshalDdtraceMsgpack(body)
 	if err != nil {
 		return err
 	}
 
 	pts := []*dkio.Point{}
-	for _, spans := range dspans {
+	for _, spans := range ddspans {
 		spanIds, parentIds := getSpanAndParentId(spans)
 		for _, span := range spans {
-			tag := make(map[string]string)
+			tags := make(map[string]string)
 			field := make(map[string]interface{})
 
 			tm := &trace.TraceMeasurement{}
@@ -121,35 +121,40 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 					spanType = trace.SPAN_TYPE_ENTRY
 				}
 			}
-			tag[trace.TAG_SPAN_TYPE] = spanType
-			tag[trace.TAG_SERVICE] = span.Service
-			tag[trace.TAG_OPERATION] = span.Name
-			tag[trace.TAG_TYPE] = ddtraceSpanType[span.Type]
+			tags[trace.TAG_SPAN_TYPE] = spanType
+			tags[trace.TAG_SERVICE] = span.Service
+			tags[trace.TAG_OPERATION] = span.Name
+			tags[trace.TAG_TYPE] = ddtraceSpanType[span.Type]
 			if span.Error == 0 {
-				tag[trace.TAG_SPAN_STATUS] = trace.STATUS_OK
+				tags[trace.TAG_SPAN_STATUS] = trace.STATUS_OK
 			} else {
-				tag[trace.TAG_SPAN_STATUS] = trace.STATUS_ERR
+				tags[trace.TAG_SPAN_STATUS] = trace.STATUS_ERR
 			}
-			tag[trace.TAG_PROJECT] = span.Meta[trace.PROJECT]
-			if tag[trace.TAG_PROJECT] == "" {
-				tag[trace.TAG_PROJECT] = trace.GetFromPluginTag(DdtraceTags, trace.PROJECT)
-			}
-
-			tag[trace.TAG_ENV] = span.Meta[trace.ENV]
-			if tag[trace.TAG_ENV] == "" {
-				tag[trace.TAG_ENV] = trace.GetFromPluginTag(DdtraceTags, trace.ENV)
+			tags[trace.TAG_PROJECT] = span.Meta[trace.PROJECT]
+			if tags[trace.TAG_PROJECT] == "" {
+				tags[trace.TAG_PROJECT] = trace.GetFromPluginTag(DdtraceTags, trace.PROJECT)
 			}
 
-			tag[trace.TAG_VERSION] = span.Meta[trace.VERSION]
-			if tag[trace.TAG_VERSION] == "" {
-				tag[trace.TAG_VERSION] = trace.GetFromPluginTag(DdtraceTags, trace.VERSION)
+			tags[trace.TAG_ENV] = span.Meta[trace.ENV]
+			if tags[trace.TAG_ENV] == "" {
+				tags[trace.TAG_ENV] = trace.GetFromPluginTag(DdtraceTags, trace.ENV)
 			}
-			tag[trace.TAG_CONTAINER_HOST] = span.Meta[trace.CONTAINER_HOST]
-			tag[trace.TAG_HTTP_METHOD] = span.Meta["http.method"]
-			tag[trace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
+
+			tags[trace.TAG_VERSION] = span.Meta[trace.VERSION]
+			if tags[trace.TAG_VERSION] == "" {
+				tags[trace.TAG_VERSION] = trace.GetFromPluginTag(DdtraceTags, trace.VERSION)
+			}
+			tags[trace.TAG_CONTAINER_HOST] = span.Meta[trace.CONTAINER_HOST]
+			tags[trace.TAG_HTTP_METHOD] = span.Meta["http.method"]
+			tags[trace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
 
 			for k, v := range DdtraceTags {
-				tag[k] = v
+				tags[k] = v
+			}
+
+			// run trace data sample
+			if !traceSampleConf.SampleFilter(tags[trace.TAG_SPAN_STATUS], tags, fmt.Sprintf("%d", span.TraceID)) {
+				continue
 			}
 
 			field[trace.FIELD_RESOURCE] = span.Resource
@@ -168,7 +173,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			}
 			field[trace.FIELD_MSG] = string(js)
 
-			tm.Tags = tag
+			tm.Tags = tags
 			tm.Fields = field
 			tm.Ts = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
 
@@ -180,6 +185,9 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			pts = append(pts, pt)
 		}
 	}
+	// // for mock data statistic only, commit it out in production env
+	// defDDTraceMock.statistic(ddspans, pts)
+	// return nil
 
 	return dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true})
 }
