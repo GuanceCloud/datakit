@@ -27,25 +27,22 @@ import "common/Common.proto";
 
 // Define the service reporting the extra information of the instance.
 service ManagementService {
-    // Report custom properties of a service instance.
-    rpc reportInstanceProperties (InstanceProperties) returns (Commands) {
-    }
+  // Report custom properties of a service instance.
+  rpc reportInstanceProperties(InstanceProperties) returns (Commands) {}
 
-    // Keep the instance alive in the backend analysis.
-    // Only recommend to do separate keepAlive report when no trace and metrics needs to be reported.
-    // Otherwise, it is duplicated.
-    rpc keepAlive (InstancePingPkg) returns (Commands) {
-
-    }
+  // Keep the instance alive in the backend analysis.
+  // Only recommend to do separate keepAlive report when no trace and metrics
+  // needs to be reported. Otherwise, it is duplicated.
+  rpc keepAlive(InstancePingPkg) returns (Commands) {}
 }
 
 message InstanceProperties {
-    string service = 1;
-    string serviceInstance = 2;
-    repeated KeyStringValuePair properties = 3;
+  string service = 1;
+  string serviceInstance = 2;
+  repeated KeyStringValuePair properties = 3;
 }
 
 message InstancePingPkg {
-    string service = 1;
-    string serviceInstance = 2;
+  string service = 1;
+  string serviceInstance = 2;
 }
