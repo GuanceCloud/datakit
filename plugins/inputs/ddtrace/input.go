@@ -1,24 +1,42 @@
 package ddtrace
 
 import (
+	"fmt"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var (
-	inputName = "ddtrace"
+	defRate         = 15
+	defScope        = 100
+	traceSampleConf *trace.TraceSampleConfig
+)
 
+var (
+	inputName                = "ddtrace"
 	traceDdtraceConfigSample = `
-[inputs.ddtrace]
+[[inputs.ddtrace]]
   # 此路由建议不要修改，以免跟其它路由冲突
   path = "/v0.4/traces"
 
-  [inputs.ddtrace.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...`
+  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
+  # [inputs.ddtrace.sample_config]
+    ## sample rate, how many will be sampled
+    # rate = ` + fmt.Sprintf("%d", defRate) + `
+    ## sample scope, the range to sample
+    # scope = ` + fmt.Sprintf("%d", defScope) + `
+    ## ignore tags list for samplingx
+    # ignore_tags_list = []
+
+  # [inputs.ddtrace.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+    ## ...
+`
 	log = logger.DefaultSLogger(inputName)
 )
 
@@ -29,8 +47,9 @@ const (
 var DdtraceTags map[string]string
 
 type Input struct {
-	Path string
-	Tags map[string]string
+	Path            string                   `toml:"path"`
+	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
+	Tags            map[string]string        `toml:"tags"`
 }
 
 func (_ *Input) Catalog() string {
@@ -44,6 +63,16 @@ func (_ *Input) SampleConfig() string {
 func (d *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
+
+	if d.TraceSampleConf != nil {
+		if d.TraceSampleConf.Rate <= 0 {
+			d.TraceSampleConf.Rate = defRate
+		}
+		if d.TraceSampleConf.Scope <= 0 {
+			d.TraceSampleConf.Scope = defScope
+		}
+		traceSampleConf = d.TraceSampleConf
+	}
 
 	if d != nil {
 		<-datakit.Exit.Wait()
@@ -71,7 +100,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		d := &Input{}
-		return d
+		return &Input{}
 	})
 }

@@ -3,9 +3,10 @@ package traceSkywalking
 import (
 	"encoding/json"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
@@ -111,47 +112,51 @@ func handleSkyWalking(w http.ResponseWriter, r *http.Request, path string, body 
 func skywalkToLineProto(sg *SkyWalkSegment) error {
 	adapterGroup := []*trace.TraceAdapter{}
 	for _, span := range sg.Spans {
-		t := &trace.TraceAdapter{}
+		tAdapter := &trace.TraceAdapter{}
 
-		t.Source = "skywalking"
+		tAdapter.Source = "skywalking"
 
-		t.Duration = (span.EndTime - span.StartTime) * 1000000
-		t.Start = span.StartTime * 1000000
+		tAdapter.Duration = (span.EndTime - span.StartTime) * 1000000
+		tAdapter.Start = span.StartTime * 1000000
 		js, err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
-		t.Content = string(js)
-		t.ServiceName = sg.Service
-		t.OperationName = span.OperationName
+		tAdapter.Content = string(js)
+		tAdapter.ServiceName = sg.Service
+		tAdapter.OperationName = span.OperationName
 		if span.SpanType == "Entry" {
 			if len(span.Refs) > 0 {
-				t.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
+				tAdapter.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
 					span.Refs[0].ParentSpanId)
 			}
 		} else {
-			t.ParentID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
+			tAdapter.ParentID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
 		}
 
-		t.TraceID = sg.TraceId
-		t.SpanID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
-		t.Status = trace.STATUS_OK
+		tAdapter.TraceID = sg.TraceId
+		tAdapter.SpanID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
+		tAdapter.Status = trace.STATUS_OK
 		if span.IsError {
-			t.Status = trace.STATUS_ERR
+			tAdapter.Status = trace.STATUS_ERR
 		}
 		if span.SpanType == "Entry" {
-			t.SpanType = trace.SPAN_TYPE_ENTRY
+			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
 		} else if span.SpanType == "Exit" {
-			t.SpanType = trace.SPAN_TYPE_EXIT
+			tAdapter.SpanType = trace.SPAN_TYPE_EXIT
 		} else {
-			t.SpanType = trace.SPAN_TYPE_LOCAL
+			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		}
-		t.EndPoint = span.Peer
-		t.Tags = SkywalkingTagsV3
+		tAdapter.EndPoint = span.Peer
+		tAdapter.Tags = SkywalkingTagsV3
 
-		adapterGroup = append(adapterGroup, t)
+		// run trace data sample
+		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
+			adapterGroup = append(adapterGroup, tAdapter)
+		}
 	}
 	trace.MkLineProto(adapterGroup, inputName)
+
 	return nil
 }
 func handleSkyWalkSegment(w http.ResponseWriter, r *http.Request, body []byte) error {
