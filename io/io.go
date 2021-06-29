@@ -25,6 +25,7 @@ type Option struct {
 
 	HTTPHost    string
 	PostTimeout time.Duration
+	Sample      func(points []*Point) []*Point
 }
 
 type lastErr struct {
