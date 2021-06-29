@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ugorji/go/codec"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
