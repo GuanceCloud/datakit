@@ -17,15 +17,14 @@ var (
 )
 
 var (
-	inputName = "traceZipkin"
-
+	inputName               = "traceZipkin"
 	traceZipkinConfigSample = `
 [[inputs.traceZipkin]]
   #	pathV1 = "/api/v1/spans"
   #	pathV2 = "/api/v2/spans"
 
   ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
-  [inputs.traceZipkin.sample_config]
+  # [inputs.traceZipkin.sample_config]
     ## sample rate, how many will be sampled
     # rate = ` + fmt.Sprintf("%d", defRate) + `
     ## sample scope, the range to sample
@@ -33,10 +32,10 @@ var (
     ## ignore tags list for samplingx
     # ignore_tags_list = []
 
-  [inputs.traceZipkin.tags]
+  # [inputs.traceZipkin.tags]
     # tag1 = "tag1"
     # tag2 = "tag2"
-    # tag3 = "tag3"
+    # ...
 `
 	log = logger.DefaultSLogger(inputName)
 )
@@ -48,26 +47,22 @@ const (
 
 var ZipkinTags map[string]string
 
-type Zipkin struct {
-	Tags map[string]string
-}
-
-type TraceZipkin struct {
+type Input struct {
 	PathV1          string                   `toml:"pathV1"`
 	PathV2          string                   `toml:"pathV2"`
 	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
 	Tags            map[string]string        `toml:"tags"`
 }
 
-func (_ *TraceZipkin) Catalog() string {
+func (_ *Input) Catalog() string {
 	return inputName
 }
 
-func (_ *TraceZipkin) SampleConfig() string {
+func (_ *Input) SampleConfig() string {
 	return traceZipkinConfigSample
 }
 
-func (t *TraceZipkin) Run() {
+func (t *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
@@ -90,7 +85,7 @@ func (t *TraceZipkin) Run() {
 	log.Infof("%s input exit", inputName)
 }
 
-func (t *TraceZipkin) RegHttpHandler() {
+func (t *Input) RegHttpHandler() {
 	if t.PathV1 == "" {
 		t.PathV1 = defaultZipkinPathV1
 	}
@@ -104,7 +99,6 @@ func (t *TraceZipkin) RegHttpHandler() {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		t := &TraceZipkin{}
-		return t
+		return &Input{}
 	})
 }
