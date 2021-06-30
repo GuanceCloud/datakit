@@ -101,8 +101,8 @@ var statusMap = map[string]string{
 }
 
 // addStatus 添加默认status和status映射
-func (x *logs) addStatus(notExec bool) *logs {
-	if x.err != nil || notExec {
+func (x *logs) addStatus(disable bool) *logs {
+	if x.err != nil || disable {
 		return x
 	}
 
@@ -175,7 +175,6 @@ func (x *logs) point(measurement string, tags map[string]string) *logs {
 		return x
 	}
 	x.pt, x.err = io.MakePoint(measurement, tags, x.fields, x.ts)
-	fmt.Println(x.pt.String())
 	return x
 }
 
@@ -189,6 +188,13 @@ func (x *logs) feed(inputName string) *logs {
 		&io.Option{HighFreq: disableHighFreqIODdata},
 	)
 	return x
+}
+
+func (x *logs) output() string {
+	if x.pt == nil {
+		return ""
+	}
+	return x.pt.String()
 }
 
 func (x *logs) error() error {

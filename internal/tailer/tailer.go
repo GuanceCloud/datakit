@@ -22,6 +22,7 @@ const (
 )
 
 type Option struct {
+	// 默认值是 $Source + `_log`
 	InputName string
 
 	// 数据来源，默认值为'default'
@@ -68,9 +69,8 @@ type Option struct {
 	// 添加tag
 	GlobalTags map[string]string
 
-	StopChan chan interface{} `toml:"-"`
-
-	log *logger.Logger
+	done chan string
+	log  *logger.Logger
 }
 
 func (opt *Option) init() error {
@@ -95,11 +95,7 @@ func (opt *Option) init() error {
 	}
 
 	opt.GlobalTags["service"] = opt.Service
-
-	if opt.StopChan == nil {
-		opt.StopChan = make(chan interface{})
-	}
-
+	opt.done = make(chan string)
 	opt.log = logger.SLogger(opt.InputName)
 
 	var err error
@@ -115,6 +111,8 @@ type Tailer struct {
 
 	pathNames       []string
 	ignorePathNames []string
+
+	stop chan interface{}
 }
 
 func NewTailer(pathNames []string, opt *Option, ignorePathNames ...[]string) (*Tailer, error) {
@@ -125,6 +123,7 @@ func NewTailer(pathNames []string, opt *Option, ignorePathNames ...[]string) (*T
 	t := Tailer{
 		opt:       opt,
 		pathNames: pathNames,
+		stop:      make(chan interface{}),
 	}
 
 	if t.opt == nil {
@@ -159,7 +158,10 @@ func (t *Tailer) Start() {
 
 	for {
 		select {
-		case <-t.opt.StopChan:
+		case name := <-t.opt.done:
+			t.watcher.Remove(name)
+			t.opt.log.Debugf("tailer %s exit", name)
+		case <-t.stop:
 			watcherCancel()
 			t.watcher.Close()
 			t.opt.log.Infof("waiting for all tailers to exit")
@@ -199,10 +201,10 @@ func (t *Tailer) do() {
 
 func (t *Tailer) Close() error {
 	select {
-	case <-t.opt.StopChan:
+	case <-t.stop:
 		// pass
 	default:
-		close(t.opt.StopChan)
+		close(t.stop)
 	}
 	return nil
 }
