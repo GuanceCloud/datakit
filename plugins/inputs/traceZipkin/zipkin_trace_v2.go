@@ -23,154 +23,161 @@ func parseZipkinJsonV2(octets []byte) error {
 	}
 
 	adapterGroup := []*trace.TraceAdapter{}
-	for _, zs := range spans {
-		tAdpter := &trace.TraceAdapter{}
-		tAdpter.Source = "zipkin"
+	for _, span := range spans {
+		tAdapter := &trace.TraceAdapter{}
+		tAdapter.Source = "zipkin"
 
-		tAdpter.Duration = int64(zs.Duration)
-		tAdpter.Start = zs.Timestamp.UnixNano()
-		sJson, err := json.Marshal(zs)
+		tAdapter.Duration = int64(span.Duration)
+		tAdapter.Start = span.Timestamp.UnixNano()
+		sJson, err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
-		tAdpter.Content = string(sJson)
+		tAdapter.Content = string(sJson)
 
-		if zs.LocalEndpoint != nil {
-			tAdpter.ServiceName = zs.LocalEndpoint.ServiceName
+		if span.LocalEndpoint != nil {
+			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
 		}
 
-		tAdpter.OperationName = zs.Name
+		tAdapter.OperationName = span.Name
 
-		if zs.ParentID != nil {
-			tAdpter.ParentID = fmt.Sprintf("%x", uint64(*zs.ParentID))
+		if span.ParentID != nil {
+			tAdapter.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
 		}
 
-		if zs.TraceID.High != 0 {
-			tAdpter.TraceID = fmt.Sprintf("%x%x", zs.TraceID.High, zs.TraceID.Low)
+		if span.TraceID.High != 0 {
+			tAdapter.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
 		} else {
-			tAdpter.TraceID = fmt.Sprintf("%x", zs.TraceID.Low)
+			tAdapter.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
 		}
 
-		tAdpter.SpanID = fmt.Sprintf("%x", uint64(zs.ID))
+		tAdapter.SpanID = fmt.Sprintf("%x", uint64(span.ID))
 
-		tAdpter.Status = trace.STATUS_OK
-		for tag, _ := range zs.Tags {
+		tAdapter.Status = trace.STATUS_OK
+		for tag, _ := range span.Tags {
 			if tag == "error" {
-				tAdpter.Status = trace.STATUS_ERR
+				tAdapter.Status = trace.STATUS_ERR
 				break
 			}
 		}
 
-		if zs.RemoteEndpoint != nil {
-			if len(zs.RemoteEndpoint.IPv4) != 0 {
-				tAdpter.EndPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv4)
+		if span.RemoteEndpoint != nil {
+			if len(span.RemoteEndpoint.IPv4) != 0 {
+				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv4)
 			}
 
-			if len(zs.RemoteEndpoint.IPv6) != 0 {
-				tAdpter.EndPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv6)
+			if len(span.RemoteEndpoint.IPv6) != 0 {
+				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv6)
 			}
 		}
 
-		//tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
-		//if zs.RemoteEndpoint == nil {
-		//	if zs.LocalEndpoint == nil {
-		//		tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		//tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
+		//if span.RemoteEndpoint == nil {
+		//	if span.LocalEndpoint == nil {
+		//		tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		//	} else {
-		//		if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
-		//			tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		//		if len(span.LocalEndpoint.IPv4) == 0 && len(span.LocalEndpoint.IPv6) == 0 {
+		//			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		//		}
 		//	}
 		//}
-		if zs.Kind == zipkinmodel.Undetermined {
-			tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		if span.Kind == zipkinmodel.Undetermined {
+			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
-			tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
 		}
 
-		tAdpter.Tags = ZipkinTags
+		tAdapter.Tags = ZipkinTags
 
-		adapterGroup = append(adapterGroup, tAdpter)
+		// run trace data sample
+		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
+			adapterGroup = append(adapterGroup, tAdapter)
+		}
 	}
-
 	trace.MkLineProto(adapterGroup, inputName)
+
 	return nil
 }
 
 func parseZipkinProtobufV2(octets []byte) error {
-	zss, err := parseZipkinProtobuf3(octets)
+	spans, err := parseZipkinProtobuf3(octets)
 	if err != nil {
 		return err
 	}
 
 	adapterGroup := []*trace.TraceAdapter{}
-	for _, zs := range zss {
-		tAdpter := &trace.TraceAdapter{}
-		tAdpter.Source = "zipkin"
+	for _, span := range spans {
+		tAdapter := &trace.TraceAdapter{}
+		tAdapter.Source = "zipkin"
 
-		tAdpter.Duration = int64(zs.Duration)
-		tAdpter.Start = zs.Timestamp.UnixNano()
-		sJson, err := json.Marshal(zs)
+		tAdapter.Duration = int64(span.Duration)
+		tAdapter.Start = span.Timestamp.UnixNano()
+		sJson, err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
-		tAdpter.Content = string(sJson)
+		tAdapter.Content = string(sJson)
 
-		if zs.LocalEndpoint != nil {
-			tAdpter.ServiceName = zs.LocalEndpoint.ServiceName
+		if span.LocalEndpoint != nil {
+			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
 		}
-		tAdpter.OperationName = zs.Name
+		tAdapter.OperationName = span.Name
 
-		if zs.ParentID != nil {
-			tAdpter.ParentID = fmt.Sprintf("%d", *zs.ParentID)
+		if span.ParentID != nil {
+			tAdapter.ParentID = fmt.Sprintf("%d", *span.ParentID)
 		}
 
-		if zs.TraceID.High != 0 {
-			tAdpter.TraceID = fmt.Sprintf("%d%d", zs.TraceID.High, zs.TraceID.Low)
+		if span.TraceID.High != 0 {
+			tAdapter.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
 		} else {
-			tAdpter.TraceID = fmt.Sprintf("%d", zs.TraceID.Low)
+			tAdapter.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
 		}
 
-		tAdpter.SpanID = fmt.Sprintf("%d", zs.ID)
+		tAdapter.SpanID = fmt.Sprintf("%d", span.ID)
 
-		tAdpter.Status = trace.STATUS_OK
-		for tag, _ := range zs.Tags {
+		tAdapter.Status = trace.STATUS_OK
+		for tag, _ := range span.Tags {
 			if tag == "error" {
-				tAdpter.Status = trace.STATUS_ERR
+				tAdapter.Status = trace.STATUS_ERR
 				break
 			}
 		}
 
-		if zs.RemoteEndpoint != nil {
-			if len(zs.RemoteEndpoint.IPv4) != 0 {
-				tAdpter.EndPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv4)
+		if span.RemoteEndpoint != nil {
+			if len(span.RemoteEndpoint.IPv4) != 0 {
+				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv4)
 			}
 
-			if len(zs.RemoteEndpoint.IPv6) != 0 {
-				tAdpter.EndPoint = fmt.Sprintf("%s", zs.RemoteEndpoint.IPv6)
+			if len(span.RemoteEndpoint.IPv6) != 0 {
+				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv6)
 			}
 		}
 
-		//tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
-		//if zs.RemoteEndpoint == nil {
-		//	if zs.LocalEndpoint == nil {
-		//		tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		//tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
+		//if span.RemoteEndpoint == nil {
+		//	if span.LocalEndpoint == nil {
+		//		tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		//	} else {
-		//		if len(zs.LocalEndpoint.IPv4) == 0 && len(zs.LocalEndpoint.IPv6) == 0 {
-		//			tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		//		if len(span.LocalEndpoint.IPv4) == 0 && len(span.LocalEndpoint.IPv6) == 0 {
+		//			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		//		}
 		//	}
 		//}
-		if zs.Kind == zipkinmodel.Undetermined {
-			tAdpter.SpanType = trace.SPAN_TYPE_LOCAL
+		if span.Kind == zipkinmodel.Undetermined {
+			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
-			tAdpter.SpanType = trace.SPAN_TYPE_ENTRY
+			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
 		}
 
-		tAdpter.Tags = ZipkinTags
-		adapterGroup = append(adapterGroup, tAdpter)
+		tAdapter.Tags = ZipkinTags
 
+		// run trace data sample
+		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
+			adapterGroup = append(adapterGroup, tAdapter)
+		}
 	}
 	trace.MkLineProto(adapterGroup, inputName)
+
 	return nil
 }
 
