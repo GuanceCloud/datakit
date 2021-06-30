@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
 
 	"github.com/uber/jaeger-client-go/thrift"
 	j "github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
@@ -78,40 +78,43 @@ func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 		env = trace.GetFromPluginTag(JaegerTags, trace.ENV)
 	}
 
-	for _, s := range batch.Spans {
-		tAdpter := &trace.TraceAdapter{}
-		tAdpter.Source = "jaeger"
-		tAdpter.Project = project
-		tAdpter.Version = ver
-		tAdpter.Env = env
+	for _, span := range batch.Spans {
+		tAdapter := &trace.TraceAdapter{}
+		tAdapter.Source = "jaeger"
+		tAdapter.Project = project
+		tAdapter.Version = ver
+		tAdapter.Env = env
 
-		tAdpter.Duration = s.Duration * 1000
-		tAdpter.Start = s.StartTime * 1000
-		sJson, err := json.Marshal(s)
+		tAdapter.Duration = span.Duration * 1000
+		tAdapter.Start = span.StartTime * 1000
+		sJson, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdpter.Content = string(sJson)
+		tAdapter.Content = string(sJson)
 
-		tAdpter.ServiceName = batch.Process.ServiceName
-		tAdpter.OperationName = s.OperationName
-		if s.ParentSpanId != 0 {
-			tAdpter.ParentID = fmt.Sprintf("%d", s.ParentSpanId)
+		tAdapter.ServiceName = batch.Process.ServiceName
+		tAdapter.OperationName = span.OperationName
+		if span.ParentSpanId != 0 {
+			tAdapter.ParentID = fmt.Sprintf("%d", span.ParentSpanId)
 		}
 
-		tAdpter.TraceID = fmt.Sprintf("%x%x", uint64(s.TraceIdHigh), uint64(s.TraceIdLow))
-		tAdpter.SpanID = fmt.Sprintf("%d", s.SpanId)
+		tAdapter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+		tAdapter.SpanID = fmt.Sprintf("%d", span.SpanId)
 
-		tAdpter.Status = trace.STATUS_OK
-		for _, tag := range s.Tags {
+		tAdapter.Status = trace.STATUS_OK
+		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				tAdpter.Status = trace.STATUS_ERR
+				tAdapter.Status = trace.STATUS_ERR
 				break
 			}
 		}
-		tAdpter.Tags = JaegerTags
+		tAdapter.Tags = JaegerTags
 
-		adapterGroup = append(adapterGroup, tAdpter)
+		// run trace data sample
+		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
+			adapterGroup = append(adapterGroup, tAdapter)
+		}
 	}
 
 	return adapterGroup, nil
