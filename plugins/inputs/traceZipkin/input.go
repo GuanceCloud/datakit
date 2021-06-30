@@ -10,6 +10,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
+const (
+	defaultZipkinPathV1 = "/api/v1/spans"
+	defaultZipkinPathV2 = "/api/v2/spans"
+)
+
 var (
 	defRate         = 15
 	defScope        = 100
@@ -37,15 +42,9 @@ var (
     # tag2 = "tag2"
     # ...
 `
-	log = logger.DefaultSLogger(inputName)
+	ZipkinTags map[string]string
+	log        = logger.DefaultSLogger(inputName)
 )
-
-const (
-	defaultZipkinPathV1 = "/api/v1/spans"
-	defaultZipkinPathV2 = "/api/v2/spans"
-)
-
-var ZipkinTags map[string]string
 
 type Input struct {
 	PathV1          string                   `toml:"pathV1"`
@@ -66,7 +65,7 @@ func (t *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	if t != nil {
+	if t.Tags != nil {
 		ZipkinTags = t.Tags
 	}
 
