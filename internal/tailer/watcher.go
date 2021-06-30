@@ -76,13 +76,18 @@ func (w *Watcher) Add(filename string, in WatcherStop) error {
 	return nil
 }
 
-func (w *Watcher) Remove(filename string) error {
+func (w *Watcher) Stop(filename string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if in, ok := w.list[filename]; ok {
 		in.Stop()
-		delete(w.list, filename)
 	}
+}
+
+func (w *Watcher) Remove(filename string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	delete(w.list, filename)
 	return w.watcher.Remove(filename)
 }
 
@@ -121,6 +126,7 @@ func (w *Watcher) Watching(ctx context.Context) {
 				continue
 			}
 			if event.Op&fsnotify.Rename == fsnotify.Rename {
+				w.Stop(event.Name)
 				w.Remove(event.Name)
 			}
 
