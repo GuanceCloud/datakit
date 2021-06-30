@@ -8,7 +8,6 @@ import (
 	"runtime"
 
 	"github.com/influxdata/toml"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
