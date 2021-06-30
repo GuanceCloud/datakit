@@ -49,17 +49,17 @@ const (
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
-	## 过滤tags, 可配置多个tag
-	# 匹配的tag将被忽略
-	# tags_ignore = ["xxxx"]
+  ## 过滤tags, 可配置多个tag
+  # 匹配的tag将被忽略
+  # tags_ignore = ["xxxx"]
 
-	## TLS 配置
+  ## TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
   # tls_key = "/tmp/peer.key"
 
-	## 自定义指标集名称
+  ## 自定义指标集名称
   # 可以将包含前缀prefix的指标归为一类指标集
   # 自定义指标集名称配置优先measurement_name配置项
   #[[inputs.prom.measurements]]
@@ -70,11 +70,11 @@ const (
   # prefix = "mem_"
   # name = "mem"
 
-	## 自定义认证方式，目前仅支持 Bearer Token
-	# [inputs.prom.auth]
-	# type = "bearer_token"
-	# token = "xxxxxxxx"
-	# token_file = "/tmp/token"
+  ## 自定义认证方式，目前仅支持 Bearer Token
+  # [inputs.prom.auth]
+  # type = "bearer_token"
+  # token = "xxxxxxxx"
+  # token_file = "/tmp/token"
 
   ## 自定义Tags
   [inputs.prom.tags]
