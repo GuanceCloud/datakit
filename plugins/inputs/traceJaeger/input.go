@@ -10,6 +10,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
+const (
+	defaultJeagerPath = "/api/traces"
+)
+
 var (
 	defRate         = 15
 	defScope        = 100
@@ -35,15 +39,10 @@ var (
   # [inputs.traceJaeger.tags]
     # tag1 = "val1"
     #	tag2 = "val2"
-    # tag3 = "val3"
+    # ...
 `
-	log = logger.DefaultSLogger(inputName)
-)
-
-var JaegerTags map[string]string
-
-const (
-	defaultJeagerPath = "/api/traces"
+	JaegerTags map[string]string
+	log        = logger.DefaultSLogger(inputName)
 )
 
 type Input struct {
@@ -65,7 +64,7 @@ func (t *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	if t != nil {
+	if t.Tags != nil {
 		JaegerTags = t.Tags
 	}
 
