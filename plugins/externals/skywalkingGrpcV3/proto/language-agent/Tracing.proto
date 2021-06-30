@@ -191,40 +191,41 @@ message Log {
 
 // Map to the type of span
 enum SpanType {
-    // Server side of RPC. Consumer side of MQ.
-    Entry = 0;
-    // Client side of RPC. Producer side of MQ.
-    Exit = 1;
-    // A common local code execution.
-    Local = 2;
+  // Server side of RPC. Consumer side of MQ.
+  Entry = 0;
+  // Client side of RPC. Producer side of MQ.
+  Exit = 1;
+  // A common local code execution.
+  Local = 2;
 }
 
 // A ID could be represented by multiple string sections.
 message ID {
-    repeated string id = 1;
+  repeated string id = 1;
 }
 
 // Type of the reference
 enum RefType {
-    // Map to the reference targeting the segment in another OS process.
-    CrossProcess = 0;
-    // Map to the reference targeting the segment in the same process of the current one, just across thread.
-    // This is only used when the coding language has the thread concept. 
-    CrossThread = 1;
+  // Map to the reference targeting the segment in another OS process.
+  CrossProcess = 0;
+  // Map to the reference targeting the segment in the same process of the
+  // current one, just across thread. This is only used when the coding language
+  // has the thread concept.
+  CrossThread = 1;
 }
 
 // Map to the layer of span
 enum SpanLayer {
-    // Unknown layer. Could be anything.
-    Unknown = 0;
-    // A database layer, used in tracing the database client component.
-    Database = 1;
-    // A RPC layer, used in both client and server sides of RPC component.
-    RPCFramework = 2;
-    // HTTP is a more specific RPCFramework.
-    Http = 3;
-    // A MQ layer, used in both producer and consuer sides of the MQ component.
-    MQ = 4;
-    // A cache layer, used in tracing the cache client component.
-    Cache = 5;
+  // Unknown layer. Could be anything.
+  Unknown = 0;
+  // A database layer, used in tracing the database client component.
+  Database = 1;
+  // A RPC layer, used in both client and server sides of RPC component.
+  RPCFramework = 2;
+  // HTTP is a more specific RPCFramework.
+  Http = 3;
+  // A MQ layer, used in both producer and consuer sides of the MQ component.
+  MQ = 4;
+  // A cache layer, used in tracing the cache client component.
+  Cache = 5;
 }
