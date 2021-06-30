@@ -152,6 +152,4 @@ require (
 	k8s.io/client-go v12.0.0+incompatible
 )
 
-replace github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c => github.com/1157987916/websocketproxy v0.0.0-20201229082103-cfa96d57158c
-
 replace github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
