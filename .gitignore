@@ -52,7 +52,6 @@ data/iploc.bin
 build.sh
 test.output
 .docs/
-demo/
 liu_script.sh
 plugins/input/kubernetes/*.out
 plugins/input/kubernetes/pki/*
