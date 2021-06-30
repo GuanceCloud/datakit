@@ -106,7 +106,31 @@ func getNames(name string, customMeasurementRules []Rule, measurementName, measu
 	return measurementPrefix + name, name
 }
 
-func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, error) {
+func getTags(labels []*dto.LabelPair, tags, extraTags map[string]string, ignoreTags []string) map[string]string {
+	if tags == nil {
+		tags = map[string]string{}
+	}
+
+	for k, v := range extraTags {
+		tags[k] = v
+	}
+
+	for _, lab := range labels {
+		tags[lab.GetName()] = lab.GetValue()
+	}
+
+	for k := range tags {
+		for _, ignoreTag := range ignoreTags {
+			if k == ignoreTag {
+				delete(tags, k)
+			}
+		}
+	}
+
+	return tags
+}
+
+func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string) ([]inputs.Measurement, error) {
 	var reader io.Reader
 	r, ok := text.(string)
 	if ok {
@@ -163,15 +187,13 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 				if math.IsInf(v, 0) {
 					continue
 				}
-				tags := make(map[string]string)
+
 				fields := make(map[string]interface{})
 				fields[fieldName] = v
-				labels := m.GetLabel()
-				for _, lab := range labels {
-					tags[lab.GetName()] = lab.GetValue()
-				}
 
-				prom.extendSelfTag(tags)
+				labels := m.GetLabel()
+				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+
 				points = append(points, Measurement{
 					name:   measurementName,
 					tags:   tags,
@@ -181,20 +203,18 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 
 			}
 		case dto.MetricType_UNTYPED:
-			tags := make(map[string]string)
-			fields := make(map[string]interface{})
 			for _, m := range metrics {
 				v := m.GetUntyped().GetValue()
 				if math.IsInf(v, 0) {
 					continue
 				}
-				fields[fieldName] = v
-				labels := m.GetLabel()
-				for _, lab := range labels {
-					tags[lab.GetName()] = lab.GetValue()
-				}
 
-				prom.extendSelfTag(tags)
+				fields := make(map[string]interface{})
+				fields[fieldName] = v
+
+				labels := m.GetLabel()
+				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+
 				points = append(points, Measurement{
 					name:   measurementName,
 					tags:   tags,
@@ -205,19 +225,16 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 			}
 		case dto.MetricType_COUNTER:
 			for _, m := range metrics {
-				tags := make(map[string]string)
 				fields := make(map[string]interface{})
 				v := m.GetCounter().GetValue()
 				if math.IsInf(v, 0) {
 					continue
 				}
 				fields[fieldName] = v
-				labels := m.GetLabel()
-				for _, lab := range labels {
-					tags[lab.GetName()] = lab.GetValue()
-				}
 
-				prom.extendSelfTag(tags)
+				labels := m.GetLabel()
+				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+
 				points = append(points, Measurement{
 					name:   measurementName,
 					tags:   tags,
@@ -227,7 +244,6 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 			}
 		case dto.MetricType_SUMMARY:
 			for _, m := range metrics {
-				tags := make(map[string]string)
 				fields := make(map[string]interface{})
 				count := m.GetSummary().GetSampleCount()
 				sum := m.GetSummary().GetSampleSum()
@@ -235,12 +251,10 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 
 				fields[fieldName+"_count"] = float64(count)
 				fields[fieldName+"_sum"] = sum
-				labels := m.GetLabel()
-				for _, lab := range labels {
-					tags[lab.GetName()] = lab.GetValue()
-				}
 
-				prom.extendSelfTag(tags)
+				labels := m.GetLabel()
+				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+
 				points = append(points, Measurement{
 					name:   measurementName,
 					tags:   tags,
@@ -249,18 +263,17 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 				})
 
 				for _, q := range quantiles {
-					tags := make(map[string]string)
 					quantile := q.GetQuantile() // 0 0.25 0.5 0.75 1
 					val := q.GetValue()         // value
 
 					fields := make(map[string]interface{})
 					fields[fieldName] = val
-					for _, lab := range labels {
-						tags[lab.GetName()] = lab.GetValue()
-					}
+
+					labels := m.GetLabel()
+					tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+
 					tags["quantile"] = fmt.Sprint(quantile)
 
-					prom.extendSelfTag(tags)
 					points = append(points, Measurement{
 						name:   measurementName,
 						tags:   tags,
@@ -272,7 +285,6 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 			}
 		case dto.MetricType_HISTOGRAM:
 			for _, m := range metrics {
-				tags := make(map[string]string)
 				fields := make(map[string]interface{})
 				count := m.GetHistogram().GetSampleCount()
 				sum := m.GetHistogram().GetSampleSum()
@@ -280,12 +292,10 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 
 				fields[fieldName+"_count"] = float64(count)
 				fields[fieldName+"_sum"] = sum
-				labels := m.GetLabel()
-				for _, lab := range labels {
-					tags[lab.GetName()] = lab.GetValue()
-				}
 
-				prom.extendSelfTag(tags)
+				labels := m.GetLabel()
+				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+
 				points = append(points, Measurement{
 					name:   measurementName,
 					tags:   tags,
@@ -296,14 +306,14 @@ func PromText2Metrics(text interface{}, prom *Input) ([]inputs.Measurement, erro
 				for _, b := range buckets {
 					count := b.GetCumulativeCount()
 					bond := b.GetUpperBound()
-					tags := make(map[string]string)
+
 					fields := make(map[string]interface{})
 					fields[fieldName+"_bucket"] = count
-					for _, lab := range labels {
-						tags[lab.GetName()] = lab.GetValue()
-					}
+
+					labels := m.GetLabel()
+					tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 					tags["le"] = fmt.Sprint(bond)
-					prom.extendSelfTag(tags)
+
 					points = append(points, Measurement{
 						name:   measurementName,
 						tags:   tags,
