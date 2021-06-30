@@ -1,6 +1,6 @@
 module gitlab.jiagouyun.com/cloudcare-tools/datakit
 
-go 1.13
+go 1.16
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
@@ -67,7 +67,6 @@ require (
 	github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.0.30-rc.1
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
-	//github.com/influxdata/telegraf v1.16.1
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
