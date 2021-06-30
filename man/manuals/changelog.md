@@ -2,23 +2,24 @@
 
 # DataKit 版本历史
 
-## 1.1.7-rc7(预发)
+## 1.1.7-rc7(即将发布)
 
 ### 发布说明
 
+- [DataKit API](api) 支持，且支持 JSON Body
 - 命令行增加功能：
 	- [DQL查询功能]()
 	- [命令行查看 monitor]()
 	- [检查 config 是否正确]()
 
-- 日志功能性能优化
-- 应用性能指标采集，支持采样率设置
+- 日志功能性能优化（未完成）
+- 主机对象采集器，增加 conntrack 和 filefd 俩个指标（未完成）
+- 应用性能指标采集，支持采样率设置（未完成）
 	- [DDtrace]()
 	- [Jaeger]()
 	- [Zipking]()
 	- [SkyWalking]()
-- K8s 集群 Prometheus 指标采集[通用方案]()
-- [DataKit API](api) 支持，且支持 JSON Body
+- K8s 集群 Prometheus 指标采集[通用方案]（未完成）
 
 ### Breaking Changes
 
