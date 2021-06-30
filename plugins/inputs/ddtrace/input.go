@@ -10,6 +10,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
+const (
+	defaultDdtracePath = "/v0.4/traces"
+)
+
 var (
 	defRate         = 15
 	defScope        = 100
@@ -37,14 +41,9 @@ var (
     # more_tag = "some_other_value"
     ## ...
 `
-	log = logger.DefaultSLogger(inputName)
+	DdtraceTags map[string]string
+	log         = logger.DefaultSLogger(inputName)
 )
-
-const (
-	defaultDdtracePath = "/v0.4/traces"
-)
-
-var DdtraceTags map[string]string
 
 type Input struct {
 	Path            string                   `toml:"path"`
@@ -72,6 +71,10 @@ func (d *Input) Run() {
 			d.TraceSampleConf.Scope = defScope
 		}
 		traceSampleConf = d.TraceSampleConf
+	}
+
+	if d.Tags != nil {
+		DdtraceTags = d.Tags
 	}
 
 	if d != nil {
