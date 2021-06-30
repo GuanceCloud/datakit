@@ -13,14 +13,15 @@ import (
 )
 
 const (
-	sleepDuration = time.Second
-	readBuffSize  = 1024 * 4
-	chanSize      = 32
+	defaultSleepDuration = time.Second
+	readBuffSize         = 1024 * 4
+	readChanSize         = 32
 )
 
 type TailerSingle struct {
-	opt  *Option
-	file *os.File
+	opt      *Option
+	file     *os.File
+	filename string
 
 	decoder  *encoding.Decoder
 	mult     *Multiline
@@ -28,9 +29,8 @@ type TailerSingle struct {
 
 	tags map[string]string
 
-	outputChan    chan []byte
-	stop          chan interface{}
-	sleepDuration time.Duration
+	outputChan chan []byte
+	stop       chan interface{}
 
 	err error
 }
@@ -62,8 +62,9 @@ func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
 		}
 	}
 
-	t.outputChan = make(chan []byte, chanSize)
+	t.outputChan = make(chan []byte, readChanSize)
 	t.stop = make(chan interface{}, 1)
+	t.filename = t.file.Name()
 
 	return t, nil
 }
@@ -74,10 +75,10 @@ func (t *TailerSingle) Start() {
 }
 
 func (t *TailerSingle) Stop() {
-	t.opt.log.Debugf("closing %s", t.file.Name())
-	t.file.Close()
 	t.stop <- nil
-
+	t.file.Close()
+	t.opt.done <- t.filename
+	t.opt.log.Debugf("closing %s", t.filename)
 	select {
 	case <-t.outputChan:
 		// nil
@@ -162,12 +163,13 @@ func (t *TailerSingle) readFroever() {
 	for {
 		n, err := t.read()
 		if err != nil {
-			t.opt.log.Debug(err)
+			t.opt.log.Debugf("failed of read data from file %s", t.filename)
 			return
 		}
 
 		select {
 		case <-t.stop:
+			t.opt.log.Debugf("stop reading data from file %s", t.filename)
 			return
 		default:
 			if n == 0 {
@@ -178,7 +180,7 @@ func (t *TailerSingle) readFroever() {
 }
 
 func (t *TailerSingle) wait() {
-	time.Sleep(sleepDuration)
+	time.Sleep(defaultSleepDuration)
 }
 
 func (t *TailerSingle) buildTags(globalTags map[string]string) map[string]string {
@@ -187,7 +189,7 @@ func (t *TailerSingle) buildTags(globalTags map[string]string) map[string]string
 		tags[k] = v
 	}
 	if _, ok := tags["filename"]; !ok {
-		tags["filename"] = filepath.Base(t.file.Name())
+		tags["filename"] = filepath.Base(t.filename)
 	}
 	return tags
 }
