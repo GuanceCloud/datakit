@@ -1,10 +1,15 @@
 package prom
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strings"
+	"sync"
 	"time"
 
+	"github.com/mattn/go-zglob"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -44,13 +49,17 @@ const (
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
-	## TLS 配置
+  ## 过滤tags, 可配置多个tag
+  # 匹配的tag将被忽略
+  # tags_ignore = ["xxxx"]
+
+  ## TLS 配置
   tls_open = false
   # tls_ca = "/tmp/ca.crt"
   # tls_cert = "/tmp/peer.crt"
   # tls_key = "/tmp/peer.key"
 
-	## 自定义指标集名称
+  ## 自定义指标集名称
   # 可以将包含前缀prefix的指标归为一类指标集
   # 自定义指标集名称配置优先measurement_name配置项
   #[[inputs.prom.measurements]]
@@ -61,11 +70,11 @@ const (
   # prefix = "mem_"
   # name = "mem"
 
-	## 自定义认证方式，目前仅支持 Bearer Token
-	# [inputs.prom.auth]
-	# type = "bearer_token"
-	# token = "xxxxxxxx"
-	# token_file = "/tmp/token"
+  ## 自定义认证方式，目前仅支持 Bearer Token
+  # [inputs.prom.auth]
+  # type = "bearer_token"
+  # token = "xxxxxxxx"
+  # token_file = "/tmp/token"
 
   ## 自定义Tags
   [inputs.prom.tags]
@@ -101,8 +110,20 @@ type Rule struct {
 	Name    string `toml:"name"`
 }
 
+type Url interface{}
+
+type K8sInfo struct {
+	Pod       string            `json:"pod"`
+	Namespace string            `json:"namespace"`
+	Status    string            `json:"status"`
+	PodIp     string            `json:"podIp"`
+	NodeName  string            `json:"nodeName"`
+	Targets   []string          `json:"targets"`
+	Labels    map[string]string `json:"labels"`
+}
+
 type Input struct {
-	URL               string   `toml:"url"`
+	URL               Url      `toml:"url"`
 	MetricTypes       []string `toml:"metric_types"`
 	MetricNameFilter  []string `toml:"metric_name_filter"`
 	MeasurementPrefix string   `toml:"measurement_prefix"`
@@ -116,8 +137,9 @@ type Input struct {
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Tags map[string]string `toml:"tags"`
-	Auth map[string]string `toml:"auth"`
+	Tags       map[string]string `toml:"tags"`
+	TagsIgnore []string          `toml:"tags_ignore"`
+	Auth       map[string]string `toml:"auth"`
 
 	SampleCfg string
 
@@ -169,24 +191,131 @@ func (i *Input) GetReq(url string) (*http.Request, error) {
 	return req, err
 }
 
-func (i *Input) Collect() error {
-	req, err := i.GetReq(i.URL)
+func (i *Input) collectUrl(url string, tags map[string]string) error {
+	req, err := i.GetReq(url)
 	if err != nil {
 		return err
 	}
+
+	if i.client == nil {
+		err := i.InitClient()
+		if err != nil {
+			return err
+		}
+	}
+
 	r, err := i.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer r.Body.Close()
 
-	measurements, err := PromText2Metrics(r.Body, i)
+	measurements, err := PromText2Metrics(r.Body, i, tags)
 	if err != nil {
 		return err
 	}
 
 	i.collectCache = append(i.collectCache, measurements...)
 
+	return nil
+}
+
+func (i *Input) collectFile(path string) error {
+	const RUNNING = "Running"
+	var wg sync.WaitGroup
+	matchs, err := zglob.Glob(path)
+	if err != nil {
+		return err
+	}
+	for _, file := range matchs {
+		fileContent, err := ioutil.ReadFile(file)
+		if err != nil {
+			l.Warnf("collect file error: %s", err.Error())
+			continue
+		}
+		fileInfoList := make([]K8sInfo, 1)
+		err = json.Unmarshal(fileContent, &fileInfoList)
+		if err != nil {
+			l.Warnf("parse file error: %s", err.Error())
+			continue
+		}
+
+		for _, podInfo := range fileInfoList {
+			tags := map[string]string{
+				"pod":       podInfo.Pod,
+				"namespace": podInfo.Namespace,
+				"pod_ip":    podInfo.PodIp,
+				"node_name": podInfo.NodeName,
+			}
+
+			for k, v := range podInfo.Labels {
+				tags[k] = v
+			}
+
+			targets := podInfo.Targets
+			if podInfo.Status != RUNNING {
+				l.Debugf("pod '%s' status is %s, skip", podInfo.NodeName, podInfo.Status)
+				continue
+			}
+			for _, target := range targets {
+				wg.Add(1)
+				go func(target string) {
+					defer wg.Done()
+					err := i.collectUrl(target, tags)
+					if err != nil {
+						l.Warnf("collect url error: %s", err.Error())
+					}
+				}(target)
+			}
+		}
+
+	}
+
+	wg.Wait()
+	return nil
+}
+
+func (i *Input) collectMetric(url string) error {
+	var err error
+	isHttp := strings.HasPrefix(url, "http")
+	if isHttp { // http request
+		err = i.collectUrl(url, map[string]string{})
+	} else { // file path
+		err = i.collectFile(url)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Input) Collect() error {
+	var err error
+	var wg sync.WaitGroup
+	urls := i.URL
+	switch urls := urls.(type) {
+	case string:
+		err = i.collectMetric(urls)
+		return err
+	case []string:
+		for _, url := range urls {
+			wg.Add(1)
+			go func(url string) {
+				defer wg.Done()
+				err = i.collectMetric(url)
+				if err != nil {
+					l.Warnf("collect error: %s", err.Error())
+				}
+			}(url)
+
+		}
+	default:
+		return fmt.Errorf("invalid url type: %T", urls)
+	}
+
+	wg.Wait()
 	return nil
 }
 
@@ -262,7 +391,7 @@ func (i *Input) Run() {
 				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			} else {
-				if len(i.collectCache) > 0 {
+				if len(i.collectCache) == 0 {
 					continue
 				}
 
