@@ -6,6 +6,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -66,7 +67,7 @@ type Input struct {
 	Tags                    map[string]string `toml:"tags"`
 	FromBeginning           bool              `toml:"-"`
 
-	tailer *inputs.Tailer
+	tailer *tailer.Tailer
 
 	// 在输出 log 内容时，区分是 tailf 还是 logging
 	inputName string
@@ -86,33 +87,33 @@ func (this *Input) Run() {
 		this.Pipeline = this.DeprecatedPipeline
 	}
 
+	var pipelinePath string
+
 	if this.Pipeline == "" {
-		this.Pipeline = filepath.Join(datakit.PipelineDir, this.Source+".p")
+		pipelinePath = filepath.Join(datakit.PipelineDir, this.Source+".p")
 	} else {
-		this.Pipeline = filepath.Join(datakit.PipelineDir, this.Pipeline)
+		pipelinePath = filepath.Join(datakit.PipelineDir, this.Pipeline)
 	}
 
-	option := inputs.TailerOption{
-		Files:             this.LogFiles,
-		IgnoreFiles:       this.Ignore,
+	opt := &tailer.Option{
 		Source:            this.Source,
 		Service:           this.Service,
-		Pipeline:          this.Pipeline,
+		Pipeline:          pipelinePath,
 		IgnoreStatus:      this.IgnoreStatus,
 		FromBeginning:     this.FromBeginning,
 		CharacterEncoding: this.CharacterEncoding,
 		Match:             this.Match,
-		Tags:              this.Tags,
+		GlobalTags:        this.Tags,
 	}
 
 	var err error
-	this.tailer, err = inputs.NewTailer(&option)
+	this.tailer, err = tailer.NewTailer(this.LogFiles, opt, this.Ignore)
 	if err != nil {
 		l.Error(err)
 		return
 	}
 
-	go this.tailer.Run()
+	go this.tailer.Start()
 
 	for {
 		// 阻塞在此，用以关闭 tailer 资源
