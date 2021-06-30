@@ -45,7 +45,9 @@ var (
       # tag2 = "tag2"
       # ...
 `
-	log = logger.DefaultSLogger(inputName)
+	SkywalkingTagsV2 map[string]string
+	SkywalkingTagsV3 map[string]string
+	log              = logger.DefaultSLogger(inputName)
 )
 
 type Skywalking struct {
@@ -58,9 +60,6 @@ type Input struct {
 	V2              *Skywalking              `toml:"V2"`
 	V3              *Skywalking              `toml:"V3"`
 }
-
-var SkywalkingTagsV2 map[string]string
-var SkywalkingTagsV3 map[string]string
 
 func (_ *Input) Catalog() string {
 	return inputName
@@ -85,7 +84,9 @@ func (t *Input) Run() {
 	}
 
 	if t.V2 != nil {
-		SkywalkingTagsV2 = t.V2.Tags
+		if t.V2.Tags != nil {
+			SkywalkingTagsV2 = t.V2.Tags
+		}
 		if t.V2.GrpcPort != 0 {
 			//BoltDbInit()
 			go SkyWalkingServerRunV2(fmt.Sprintf(":%d", t.V2.GrpcPort))
@@ -93,7 +94,9 @@ func (t *Input) Run() {
 	}
 
 	if t.V3 != nil {
-		SkywalkingTagsV3 = t.V3.Tags
+		if t.V3.Tags != nil {
+			SkywalkingTagsV3 = t.V3.Tags
+		}
 		if t.V3.GrpcPort != 0 {
 			go SkyWalkingServerRunV3(t.V3)
 		}
