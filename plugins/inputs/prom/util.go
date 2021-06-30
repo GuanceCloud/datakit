@@ -285,7 +285,6 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 			}
 		case dto.MetricType_HISTOGRAM:
 			for _, m := range metrics {
-
 				fields := make(map[string]interface{})
 				count := m.GetHistogram().GetSampleCount()
 				sum := m.GetHistogram().GetSampleSum()
