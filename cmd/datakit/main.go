@@ -96,7 +96,8 @@ var (
 var (
 	l = logger.DefaultSLogger("main")
 
-	ReleaseType = ""
+	ReleaseType    = ""
+	ReleaseVersion = git.Version
 )
 
 const (
@@ -279,14 +280,14 @@ func runDatakitWithCmds() {
 				l.Errorf("set root log faile: %s", err.Error())
 			}
 		}
-		ret := cmds.CheckUpdate(*flagAcceptRCVersion)
+		ret := cmds.CheckUpdate(ReleaseVersion, *flagAcceptRCVersion)
 		os.Exit(ret)
 	}
 
 	if *flagVersion {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 
-		cmds.ShowVersion(ReleaseType, *flagShowTestingVersions)
+		cmds.ShowVersion(ReleaseVersion, ReleaseType, *flagShowTestingVersions)
 		os.Exit(0)
 	}
 
