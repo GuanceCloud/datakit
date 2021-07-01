@@ -38,6 +38,8 @@ var (
 		"telegraf":                "man/manuals/telegraf.md",
 		"rum":                     "man/manuals/rum.md",
 		"ddtrace-java":            "man/manuals/ddtrace-java.md",
+		"kube-state-metrics":      "man/manuals/kube-state-metrics.md",
+		"kubernetes-prom":         "man/manuals/kubernetes-prom.md",
 	}
 
 	l = logger.DefaultSLogger("man")
