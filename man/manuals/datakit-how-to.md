@@ -292,7 +292,7 @@ Tips：
 在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
 
 ```shell
-datakit --monintor
+datakit --monitor
 ```
 
 > 注：Windows 下暂不支持在终端查看 monitor 数据，只能在浏览器端查看。
