@@ -247,7 +247,7 @@ const sampleConfig = `
   ## Max duration (TTL) for each metric to stay cached/reported without being updated.
   #max_ttl = "1000h"
 
-  [input.statsd.tags]
+  [inputs.statsd.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
 
