@@ -27,7 +27,7 @@ var (
   # 此路由建议不要修改，以免跟其它路由冲突
   path = "/v0.4/traces"
 
-  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
+  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to DataFlux workspace.
   # [inputs.ddtrace.sample_config]
     ## sample rate, how many will be sampled
     # rate = ` + fmt.Sprintf("%d", defRate) + `
