@@ -75,7 +75,7 @@ func TestLoadCfg(t *testing.T) {
 	t.Log("ca ---->", kube.TLSCA)
 }
 
-func TestRun(t *testing.T) {
+func TestCollect(t *testing.T) {
 	arr, err := config.LoadInputConfigFile("./cfg.conf", func() inputs.Input {
 		return &Input{}
 	})
@@ -107,5 +107,28 @@ func TestRun(t *testing.T) {
 				t.Log("point ->", point.String())
 			}
 		}
+	}
+}
+
+func TestDiscovery(t *testing.T) {
+	arr, err := config.LoadInputConfigFile("./cfg.conf", func() inputs.Input {
+		return &Input{}
+	})
+
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+
+	kube := arr[0].(*Input)
+
+	err = kube.initCfg()
+	if err != nil {
+		t.Log("init config error ---->", err)
+		return
+	}
+
+	err = kube.collectPodsExporter()
+	if err != nil {
+		t.Log("collect data error ---->", err)
 	}
 }
