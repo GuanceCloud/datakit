@@ -4,25 +4,23 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
-# kubernetes 集群中 Prometheus Exporter 指标采集
+# Kubernetes 集群中 Exporter 指标采集
 
 ## 介绍
 
-该方案可以在 kubernetes 集群中通过配置，自定义收集 Prometheus Exporter 数据
+该方案可以在 Kubernetes 集群中通过配置，采集集群中的 Exporter 数据。
 
-以下以一个 Demo 的方式进行展开
-
-## 使用demo
+## 使用 demo
 
 ### 场景
 
-现有一个服务 dummy-server 需要被 datakit 收集其通过 Prometheus Exporter 接口提供的 Metric
+通过 DataKit 采集 dummy-server（一组 pod）`:12345/metric` 端口暴露出来的指标（Prometheus Exporter 形式）。
 
-### 部署demo Deployment
+### 部署 demo Deployment
 
-dummy-server 服务是使用 deployment 部署的3个 pod 副本的服务，在该服务中，打有特征标记label datakit
+dummy-server 服务是使用 deployment 部署的3个 pod 副本的服务，在该服务中，在每个 pod 上打上特征标记（label），如 `datakit: prom-dev`
 
-```
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -47,51 +45,54 @@ spec:
         - containerPort: 12345
 ```
 
-### 创建pod注解
+### 创建 pod 注解
 
-通过上文定义的标签特征对 pod 添加 annotate 注解
+通过上文定义的标签特征对 pod 添加注解（annotation）：
 
-```
+```shell
 kubectl annotate --overwrite pods -l datakit exporter_url.dummy_server='http://$ip:12345/metric'
+
+# 关闭指标采集
+kubectl annotate --overwrite pods -l datakit exporter_url.dummy_server='off'
 ```
 
 **注意**
 
-约定annotate key/value 数据格式规范： `exporter_url.<service>='http://$ip:<port>/<metric path>'`
-
-参数说明:
-
-- <service>: 服务名，该配置要和下文中 prom 配置相统一
-- <port>: pod 中 exporter 的端口
-- <metric path>: exporter 的路由, 如：`/metric`
-
-### 禁用采集
-
-关闭对自定义exporter的指标收集
+约定注解 key/value 数据格式规范：
 
 ```
-kubectl annotate --overwrite pods -l datakit exporter_url.dummy_server='off'
+exporter_url.<service>='http://$ip:<port>/<metric-path>'
+
+# 禁用 URL
+exporter_url.<service>='off'
 ```
 
-### 编写自定义 prom Config
+变量说明:
 
-详情参见 [prom采集器](prom)
+- `<service>`: 服务名，该配置要和下文中 prom 配置相统一，如 `dummy_server` 对应 `dummy_server.json`
+- `$ip`：通配 pod 的内网 IP，形如 `172.16.0.3`，无需额外配置
+- `<port>`: pod 中 exporter 的端口
+- `<metric-path>`: exporter 的路由, 如：`/metric`
 
-### 修改k8s daemonSet
+### 编写自定义 prom 配置
 
-- 追加mountPath
+详情参见 [prom 采集器](prom)
+
+### 修改 Kubernetes DaemonSet
+
+- 追加 MountPath
 
 注意：以下配置中变量内容，为上文创建 pod 注解中的 `service` 值保持一致
 
 示例:
 
-```
+```yaml
 - mountPath: /usr/local/datakit/conf.d/prom/<dummy_server>.conf
   name: datakit-conf
   subPath: <dummy_server>.conf
 ```
 
-- 追加编写的configMap
+- 追加编写的 ConfigMap
 
 注意：以下配置中变量内容，为上文创建 pod 注解中的`service`值保持一致
 
@@ -117,7 +118,7 @@ kubectl annotate --overwrite pods -l datakit exporter_url.dummy_server='off'
         service = "dummy-exporter"
 ```
 
-完整部署yaml示例：
+### 完整部署 yaml 示例
 
 ```
 apiVersion: v1
@@ -234,7 +235,7 @@ spec:
               apiVersion: v1
               fieldPath: spec.nodeName
         - name: ENV_DATAWAY
-          value: https://openway.dataflux.cn?token=<xxxxx>
+          value: https://openway.dataflux.cn?token=<your-token>
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS
@@ -243,7 +244,7 @@ spec:
           value: enable
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
-        image: pubrepo.jiagouyun.com/demo/datakit:<xxxxx>
+        image: pubrepo.jiagouyun.com/datakit/datakit:{{.Version}}
         imagePullPolicy: Always
         name: datakit
         ports:
@@ -411,7 +412,3 @@ data:
         [inputs.prom.tags]
           service = "dummy-exporter"
 ```
-
-
-
-
