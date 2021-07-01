@@ -91,6 +91,7 @@ var (
 	flagMonitor       = flag.Bool("monitor", false, "show monitor info of current datakit")
 	flagCheckConfig   = flag.Bool("check-config", false, "check inputs configure and main configure")
 	flagCmdLogPath    = flag.String("cmd-log", "/dev/null", "command line log path")
+	flagDumpSamples   = flag.String("dump-samples", "", "dump all inputs samples")
 )
 
 var (
@@ -117,6 +118,7 @@ func setupFlags() {
 	flag.CommandLine.MarkHidden("update-log")
 	flag.CommandLine.MarkHidden("k8s-deploy")
 	flag.CommandLine.MarkHidden("interactive")
+	flag.CommandLine.MarkHidden("dump-samples")
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -168,20 +170,6 @@ func applyFlags() {
 	}
 
 	runDatakitWithCmds()
-}
-
-func dumpAllConfigSamples(fpath string) {
-
-	if err := os.MkdirAll(fpath, datakit.ConfPerm); err != nil {
-		panic(err)
-	}
-
-	for k, v := range inputs.Inputs {
-		sample := v().SampleConfig()
-		if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"), []byte(sample), datakit.ConfPerm); err != nil {
-			panic(err)
-		}
-	}
 }
 
 func run() {
@@ -351,6 +339,23 @@ func runDatakitWithCmds() {
 			}
 		}
 
+		os.Exit(0)
+	}
+
+	if *flagDumpSamples != "" {
+		fpath := *flagDumpSamples
+
+		if err := os.MkdirAll(fpath, datakit.ConfPerm); err != nil {
+			panic(err)
+		}
+
+		for k, v := range inputs.Inputs {
+			sample := v().SampleConfig()
+			if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"),
+				[]byte(sample), datakit.ConfPerm); err != nil {
+				panic(err)
+			}
+		}
 		os.Exit(0)
 	}
 
