@@ -192,9 +192,9 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 ### ddtrace 采样透传 tag
 
-| key         | value |
-| ----------- | ----- |
-| \_dd.origin | rum   |
+| key          | value |
+| -----------  | ----- |
+| `_dd.origin` | `rum` |
 
 #### 关联 ddtrace 数据和容器对象
 
@@ -206,24 +206,21 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 
 ### 设置 trace 数据采样率
 
-默认每次调用都会产生 trace 数据，若不加以限制，会导致采集到数据量大，占用过多的存储，网络带宽等系统资源，可以通过设置采样率解决这一问题，
-有如下两种方式设置采样率
+默认每次调用都会产生 trace 数据，若不加以限制，会导致采集到数据量大，占用过多的存储，网络带宽等系统资源，可以通过设置采样率解决这一问题，修改 `{{.InputName}}.conf` ：
 
-#### 环境变量设置
-
-例如：通过环境变量 `DD_TRACE_SAMPLE_RATE=0.05` 设置采用率为 5%
-
-#### 应用初始化时设置
-
-以 `Python` 应用为例
-
-```python
-tracer.configure(
-    hostname="127.0.0.1",
-    port="9529",
-    sampler= sampler.RateSampler(0.05)   #设置采用率为5%
-)
+```toml
+[inputs.ddtrace.sample_config]
+	## sample rate, how many will be sampled
+	rate = 10
+	## sample scope, the range to sample
+	scope = 100
 ```
+
+说明：
+
+- 此处 `rate/scope` 即最终的采样率，示例配置即采样 10%
+- 如果在 DataKit 上开启了采样率，就不要在 ddtrace 上再设置采样率，这可能导致双重采样，导致数据大面积缺失
+- 对 RUM 产生的 trace，这里的采样率不生效，建议在 [RUM 中设置采样率](https://www.yuque.com/dataflux/doc/eqs7v2#16fe8486)
 
 ## 指标集
 
