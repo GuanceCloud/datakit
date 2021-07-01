@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -25,6 +27,14 @@ var (
 	catalogName = "db"
 	l           = logger.DefaultSLogger("redis")
 )
+
+type redislog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
+}
 
 type Input struct {
 	Host              string        `toml:"host"`
@@ -45,8 +55,8 @@ type Input struct {
 	Tags              map[string]string                      `toml:"tags"`
 	client            *redis.Client                          `toml:"-"`
 	Addr              string                                 `toml:"-"`
-	Log               *inputs.TailerOption                   `toml:"log"`
-	tailer            *inputs.Tailer                         `toml:"-"`
+	Log               *redislog                              `toml:"log"`
+	tail              *tailer.Tailer                         `toml:"-"`
 	start             time.Time                              `toml:"-"`
 	collectors        []func() ([]inputs.Measurement, error) `toml:"-"`
 }
@@ -184,36 +194,38 @@ func (i *Input) collectSlowlogMeasurement() ([]inputs.Measurement, error) {
 	return i.getSlowData()
 }
 
-func (i *Input) runLog(defaultPile string) error {
-	if i.Log != nil {
-		if len(i.Log.Files) == 0 {
-			return nil
-		}
-
-		pfile := defaultPile
-		if i.Log.Pipeline != "" {
-			pfile = i.Log.Pipeline
-		}
-
-		i.Log.Service = i.Service
-		i.Log.Pipeline = filepath.Join(datakit.PipelineDir, pfile)
-
-		i.Log.Source = inputName
-		i.Log.Tags = make(map[string]string)
-		for k, v := range i.Tags {
-			i.Log.Tags[k] = v
-		}
-		tailer, err := inputs.NewTailer(i.Log)
-		if err != nil {
-			l.Errorf("init tailf err:%s", err.Error())
-			return err
-		}
-
-		i.tailer = tailer
-
-		go tailer.Run()
+func (i *Input) runLog() error {
+	if i.Log == nil {
+		return nil
 	}
 
+	if i.Log.Pipeline == "" {
+		i.Log.Pipeline = "redis.p" // use default
+	}
+
+	opt := &tailer.Option{
+		Source:            "redis",
+		Service:           "redis",
+		GlobalTags:        i.Tags,
+		CharacterEncoding: i.Log.CharacterEncoding,
+		Match:             i.Log.Match,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	var err error
+	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)
+	if err != nil {
+		l.Error(err)
+		return err
+	}
+
+	go i.tail.Start()
 	return nil
 }
 
@@ -225,6 +237,10 @@ func (i *Input) Run() {
 	l = logger.SLogger("redis")
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+
+	if err := i.runLog(); err != nil {
+		io.FeedLastError(inputName, err.Error())
+	}
 
 	for {
 		select {
@@ -239,10 +255,6 @@ func (i *Input) Run() {
 		} else {
 			break
 		}
-	}
-
-	if err := i.runLog("redis.p"); err != nil {
-		io.FeedLastError(inputName, err.Error())
 	}
 
 	tick := time.NewTicker(i.Interval.Duration)
@@ -268,8 +280,8 @@ func (i *Input) Run() {
 			i.Collect()
 
 		case <-datakit.Exit.Wait():
-			if i.tailer != nil {
-				i.tailer.Close()
+			if i.tail != nil {
+				i.tail.Close()
 				l.Info("redis log exit")
 			}
 			l.Info("redis exit")
