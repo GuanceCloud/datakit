@@ -4,30 +4,10 @@ package hostobject
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/prometheus/procfs"
 )
-
-func readUintFromFile(path string) (uint64, error) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return 0, err
-	}
-	value, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return value, nil
-}
-
-func procFilePath(name string) string {
-	return filepath.Join("/tmp", name)
-}
 
 /*
 type conntrackCollector struct {
