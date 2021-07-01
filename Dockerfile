@@ -35,7 +35,7 @@ ENV ENV_DATAWAY=$dataway \
     ENV_LOG_LEVEL=$loglevel \
     ENV_GLOBAL_TAGS=$global_tags \
 		ENV_NAME=$name \
-		ENV_HTTP_LISTE=$http_listen \
+		ENV_HTTP_LISTEN=$http_listen \
 		ENV_RUM_ORIGIN_IP_HEADER=$rum_origin_ip_header \
 		ENV_ENABLE_PPROF=$enable_pprof \
 		ENV_DISABLE_PROTECT_MODE=$=$disable_protect_mode \
