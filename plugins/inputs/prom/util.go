@@ -106,9 +106,11 @@ func getNames(name string, customMeasurementRules []Rule, measurementName, measu
 	return measurementPrefix + name, name
 }
 
-func getTags(labels []*dto.LabelPair, tags, extraTags map[string]string, ignoreTags []string) map[string]string {
-	if tags == nil {
-		tags = map[string]string{}
+func getTags(labels []*dto.LabelPair, promTags, extraTags map[string]string, ignoreTags []string) map[string]string {
+	tags := map[string]string{}
+
+	for k, v := range promTags {
+		tags[k] = v
 	}
 
 	for k, v := range extraTags {
