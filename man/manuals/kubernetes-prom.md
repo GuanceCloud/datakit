@@ -4,76 +4,122 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
-# DaemonSet 安装 DataKit 
+# kubernetes 集群中 Prometheus Exporter 指标采集
 
-> 注意：DaemonSet 方式部署时，不建议开启 kubernetes 集群内部采集（如采集 Kubernetes 集群中其它 Pod 内的 Redis/MySQL 等数据），可能导致多份采集（DaemonSet 自动扩容导致多个 DataKit 采集实例）
+## 介绍
 
-本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
+该方案可以在 kubernetes 集群中通过配置，自定义收集 Prometheus Exporter 数据
 
-## 安装步骤 
+以下以一个 Demo 的方式进行展开
 
-先下载本文档尾部的 yaml 配置，保存为 `datakit-default.yaml`（命名无要求）。在该配置中，有两个采集器可以配置：
+## 使用demo
 
-- kubernetes：用来采集 Kubernetes 中心指标，需要填写 kubernetes 中心采集地址
-- container：用来采集 Node 上的容器对象以及运行指标（如果要采集容器运行指标，则需要修改配置）
+### 场景
 
-其它主机相关的采集器都是默认开启的（`cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes`），且无需额外配置。
+现有一个服务 dummy-server 需要被 datakit 收集其通过 Prometheus Exporter 接口提供的 Metric
 
-### 修改配置
+### 部署demo Deployment
 
-修改 `datakit-default.yaml` 中的 dataway 配置
+dummy-server 服务是使用 deployment 部署的3个 pod 副本的服务，在该服务中，打有特征标记label datakit
 
-```yaml
-	- name: ENV_DATAWAY
-		value: <dataway_url> # 此处填上 dataway 真实地址
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dummy-exporter-deployment
+  labels:
+    app: dummy-exporter
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dummy-exporter
+  template:
+    metadata:
+      labels:
+        app: dummy-exporter
+        datakit: prom-dev
+    spec:
+      containers:
+      - name: dummy-exporter
+        image: pubrepo.jiagouyun.com/demo/dummy-exporter:latest
+        ports:
+        - containerPort: 12345
 ```
 
-#### container 配置
+### 创建pod注解
 
-默认情况下，container 采集器没有开启指标采集，如需开启指标采集，修改 `datakit-default.yaml` 中如下配置：
+通过上文定义的标签特征对 pod 添加 annotate 注解
 
-```yaml
-	[inputs.container]
-		endpoint = "unix:///var/run/docker.sock"
-
-		enable_metric = true # 将此处设置成 true
-		enable_object = true
+```
+kubectl annotate --overwrite pods -l datakit exporter_url.dummy_server='http://$ip:12345/metric'
 ```
 
-详情参见 [容器采集配置](container)
+**注意**
 
-### 安装 yaml
+约定annotate key/value 数据格式规范： `exporter_url.<service>='http://$ip:<port>/<metric path>'`
 
-```shell
-kubectl apply -f datakit-default.yaml
+参数说明:
+
+- <service>: 服务名，该配置要和下文中 prom 配置相统一
+- <port>: pod 中 exporter 的端口
+- <metric path>: exporter 的路由, 如：`/metric`
+
+### 禁用采集
+
+关闭对自定义exporter的指标收集
+
+```
+kubectl annotate --overwrite pods -l datakit exporter_url.dummy_server='off'
 ```
 
-### 查看运行状态：
+### 编写自定义 prom Config
 
-安装完后，会创建一个 datakit 的 DaemonSet 部署：
+详情参见 [prom采集器](prom)
 
-```shell
-kubectl get pod -n datakit
+### 修改k8s daemonSet
+
+- 追加mountPath
+
+注意：以下配置中变量内容，为上文创建 pod 注解中的 `service` 值保持一致
+
+示例:
+
+```
+- mountPath: /usr/local/datakit/conf.d/prom/<dummy_server>.conf
+  name: datakit-conf
+  subPath: <dummy_server>.conf
 ```
 
-### DataKit 中其它环境变量设置
+- 追加编写的configMap
 
-在 DaemonSet 模式中，DataKit 支持多个环境变量配置，如下表所示：
+注意：以下配置中变量内容，为上文创建 pod 注解中的`service`值保持一致
 
+示例:
 
-| 环境变量名称                 | 默认值           | 是否必须 | 说明                                                                                         |
-| ---------                    | ---              | ------   | ----                                                                                         |
-| `ENV_GLOBAL_TAGS`            | 无               | 否       | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                               |
-| `ENV_LOG_LEVEL`              | `info`           | 否       | 可选值 `info/debug`                                                                          |
-| `ENV_DATAWAY`                | 无               | 否       | 可配置多个 dataway，以英文逗号分割，如 `https://dataway?token=xxx,https://dataway?token=yyy` |
-| `ENV_HTTP_LISTEN`            | `localhost:9529` | 否       | 可修改改地址，使得外部可以调用 [DataKit 接口](apis)                                          |
-| `ENV_RUM_ORIGIN_IP_HEADER`   | `X-Forward-For`  | 否       | RUM 专用                                                                                     |
-| `ENV_DEFAULT_ENABLED_INPUTS` | 无               | 否       | 默认开启采集器列表，以英文逗号分割，如 `cpu,mem,disk`                                        |
-| `ENV_ENABLE_ELECTION`        | 默认不开启       | 否       | 开启[选举](election)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可             |
+```
+  #### dummy-server
+  <dummy_server>.conf: |-
+    [[inputs.prom]]
+      ## Exporter 地址
+      url = "/usr/local/datakit/data/exporter_urls/<dummy_server>.json"
 
-### yaml 配置
+      # 默认只采集 counter 和 gauge 类型的指标
+      metric_types = ["counter", "gauge"]
 
-```yaml
+      ## 采集间隔
+      interval = "10s"
+
+      tags_ignore = ["pod"]
+
+      ## 自定义Tags
+      [inputs.prom.tags]
+        service = "dummy-exporter"
+```
+
+完整部署yaml示例：
+
+```
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -188,7 +234,7 @@ spec:
               apiVersion: v1
               fieldPath: spec.nodeName
         - name: ENV_DATAWAY
-          value: <dataway_url>
+          value: https://openway.dataflux.cn?token=<xxxxx>
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS
@@ -197,7 +243,7 @@ spec:
           value: enable
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
-        image: pubrepo.jiagouyun.com/datakit/datakit:{{.Version}}
+        image: pubrepo.jiagouyun.com/demo/datakit:<xxxxx>
         imagePullPolicy: Always
         name: datakit
         ports:
@@ -217,6 +263,9 @@ spec:
         - mountPath: /usr/local/datakit/conf.d/kubernetes/kubernetes.conf
           name: datakit-conf
           subPath: kubernetes.conf
+        - mountPath: /usr/local/datakit/conf.d/prom/dummy_server.conf
+          name: datakit-conf
+          subPath: dummy_server.conf
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -324,7 +373,7 @@ data:
           # required
           interval = "10s"
           ## URL for the Kubernetes API
-          url = "<https://k8s-api-server>"
+          url = "https://kubernetes.default:443"
           ## Use bearer token for authorization. ('bearer_token' takes priority)
           ## at: /run/secrets/kubernetes.io/serviceaccount/token
           bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
@@ -341,25 +390,28 @@ data:
           [inputs.kubernetes.tags]
            #tag1 = "val1"
            #tag2 = "valn"
+
+    #### prom_dummy-exporter
+    dummy_server.conf: |-
+      [[inputs.prom]]
+        ## Exporter 地址
+        url = "/usr/local/datakit/data/exporter_urls/dummy_server.json"
+
+        # 默认只采集 counter 和 gauge 类型的指标
+        metric_types = ["counter", "gauge"]
+
+        measurement_name = "dummy_server"
+
+        ## 采集间隔
+        interval = "10s"
+
+        tags_ignore = ["pod"]
+
+        ## 自定义Tags
+        [inputs.prom.tags]
+          service = "dummy-exporter"
 ```
 
-> 注意：默认情况下，我们在该 yaml 中开启了如下采集器：
 
-- `cpu`
-- `disk`
-- `diskio`
-- `mem`
-- `swap`
-- `system`
-- `hostobject`
-- `net`
-- `host_processes`
-- `kubernetes`
-- `container`
 
-如需开启更多其它采集器，如开启 ddtrace，直接在如下配置中追加即可。当然也可以将某些采集器从这个列表中删掉。
 
-```yaml
-        - name: ENV_ENABLE_INPUTS
-          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
-```
