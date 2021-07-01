@@ -6,16 +6,17 @@
 
 ### 发布说明
 
-- [DataKit API](apis) 支持，且支持 JSON Body
+- DataKit API 支持，且支持 [JSON Body](apis#75f8e5a2)
 - 命令行增加功能：
-	- [DQL查询功能]()
-	- [命令行查看 monitor]()
-	- [检查 config 是否正确]()
+	- [DQL查询功能](datakit-how-to#cb421e00)
+	- [命令行查看 monitor](datakit-how-to#44462aae)
+	- [检查采集器配置是否正确](datakit-how-to#519a9e75)
 
-- 日志性能优化
-- 主机对象采集器，增加 conntrack 和 filefd 俩类指标
-- 应用性能指标采集，支持采样率设置
-- K8s 集群 Prometheus 指标采集[通用方案]()
+- 日志性能优化（对各个采集器自带的日志采集而言，目前仅针对 nginx/MySQL/Redis 做了适配，后续将适配其它各个自带日志收集的采集器）
+
+- 主机对象采集器，增加 [conntrack](hostobject#2300b531) 和 [filefd](hostobject#697f87e2) 俩类指标
+- 应用性能指标采集，支持[采样率设置](ddtrace#c59ce95c)
+- K8s 集群 Prometheus 指标采集[通用方案](kubernetes-prom)
 
 ### Breaking Changes
 
