@@ -438,7 +438,7 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 		return i.client, nil
 	}
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 
 	if i.TLSOpen {
