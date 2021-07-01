@@ -1,6 +1,8 @@
 package trace
 
-import "strconv"
+import (
+	"strconv"
+)
 
 var (
 	DefSampleHandler = func(traceId uint64, rate, scope int) bool {
@@ -35,7 +37,7 @@ type TraceSampleConfig struct {
 	IgnoreTagsList []string `toml:ignore_tags_list`
 }
 
-// sample if true, not sample if false
+// sampled if true, not sampled if false
 func (this *TraceSampleConfig) SampleFilter(status string, tags map[string]string, traceId string) bool {
 	if this != nil {
 		if !DefErrCheckHandler(status) && !DefIgnoreTagsHandler(tags, this.IgnoreTagsList) {
@@ -51,4 +53,20 @@ func (this *TraceSampleConfig) SampleFilter(status string, tags map[string]strin
 	}
 
 	return true
+}
+
+type SampleFilterFunc func(status string, tags map[string]string, traceId string) bool
+
+func StaticTagsFilter(sourceTags map[string]string, targetTags map[string]string, sampleFunc SampleFilterFunc) SampleFilterFunc {
+	return func(status string, tags map[string]string, traceId string) bool {
+		if len(sourceTags) != 0 {
+			for k, v := range targetTags {
+				if sourceTags[k] == v {
+					return true
+				}
+			}
+		}
+
+		return sampleFunc(status, tags, traceId)
+	}
 }
