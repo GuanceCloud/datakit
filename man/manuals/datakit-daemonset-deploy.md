@@ -6,7 +6,7 @@
 
 # DaemonSet 安装 DataKit 
 
-> 注意：DaemonSet 方式部署时，不建议开启 kubernetes 集群内部采集（如采集 Kubernetes 集群中其它 Pod 内的 Redis/MySQL 等数据），一来可能导致多份采集（DaemonSet 自动扩容导致多个 DataKit 采集实例），二来 DaemonSet 方式部署时，不能通过 service 名来访问其它 Pod。
+> 注意：DaemonSet 方式部署时，不建议开启 kubernetes 集群内部采集（如采集 Kubernetes 集群中其它 Pod 内的 Redis/MySQL 等数据），可能导致多份采集（DaemonSet 自动扩容导致多个 DataKit 采集实例）
 
 本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
 
@@ -21,31 +21,12 @@
 
 ### 修改配置
 
-#### kubernetes 配置
-
 修改 `datakit-default.yaml` 中的 dataway 配置
 
 ```yaml
 	- name: ENV_DATAWAY
 		value: <dataway_url> # 此处填上 dataway 真实地址
 ```
-
-修改 Kubernetes API 地址：
-
-通过如下命令，获取 k8s API 地址：
-
-```shell
-kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{.name}{"\t"}{.cluster.server}{"\n"}{end}'
-```
-
-将地址填到 `datakit-default.yaml` 如下配置中：
-
-```yaml
-	[[inputs.kubernetes]]
-			url = "<your-k8s-api-server>"
-```
-
-详情参见 [Kubernetes 采集配置](kubernetes)
 
 #### container 配置
 
@@ -69,10 +50,10 @@ kubectl apply -f datakit-default.yaml
 
 ### 查看运行状态：
 
-安装完后，会创建一个 datakit-monitor 的 DaemonSet 部署：
+安装完后，会创建一个 datakit 的 DaemonSet 部署：
 
 ```shell
-kubectl get pod -n datakit-monitor
+kubectl get pod -n datakit
 ```
 
 ### DataKit 中其它环境变量设置
@@ -131,13 +112,9 @@ rules:
   - list
   - watch
 - apiGroups:
-  - "extensions"
+  - extensions
   resources:
   - ingresses
-  - deployments
-  - daemonsets
-  - statefulsets
-  - replicasets
   verbs:
   - get
   - list
@@ -196,6 +173,8 @@ spec:
       labels:
         app: daemonset-datakit
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
       - env:
         - name: HOST_IP
@@ -250,7 +229,6 @@ spec:
         - mountPath: /rootfs
           name: rootfs
         workingDir: /usr/local/datakit
-      dnsPolicy: ClusterFirst
       hostIPC: true
       hostNetwork: true
       hostPID: true
