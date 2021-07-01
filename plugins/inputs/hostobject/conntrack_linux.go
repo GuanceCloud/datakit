@@ -40,7 +40,7 @@ func ConntrackCollect() *ConntrackInfo {
 	value, err := readIntFromFile("/proc/sys/net/netfilter/nf_conntrack_count")
 	if err != nil {
 		l.Warn(err)
-		info.Current = 0 // set default 0
+		info.Current = -1 // set default -1
 	} else {
 		info.Current = value
 	}
@@ -48,7 +48,7 @@ func ConntrackCollect() *ConntrackInfo {
 	value, err = readIntFromFile("/proc/sys/net/netfilter/nf_conntrack_max")
 	if err != nil {
 		l.Warn(err)
-		info.Limit = 0
+		info.Limit = -1
 	} else {
 		info.Limit = value
 	}
