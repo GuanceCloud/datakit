@@ -66,11 +66,13 @@ type (
 	}
 
 	HostInfo struct {
-		HostMeta   *HostMetaInfo `json:"meta"`
-		CPU        []*CPUInfo    `json:"cpu"`
-		Mem        *MemInfo      `json:"mem"`
-		Net        []*NetInfo    `json:"net"`
-		Disk       []*DiskInfo   `json:"disk"`
+		HostMeta   *HostMetaInfo  `json:"meta"`
+		CPU        []*CPUInfo     `json:"cpu"`
+		Mem        *MemInfo       `json:"mem"`
+		Net        []*NetInfo     `json:"net"`
+		Disk       []*DiskInfo    `json:"disk"`
+		Conntrack  *ConntrackInfo `json:"conntrack"`
+		FileFd     *FileFdInfo    `json:"filefd"`
 		cpuPercent float64
 		load5      float64
 		cloudInfo  map[string]interface{}
@@ -87,6 +89,24 @@ type (
 		LastTime    int64  `json:"last_time,omitempty"`
 		LastErr     string `json:"last_err,omitempty"`
 		LastErrTime int64  `json:"last_err_time,omitempty"`
+	}
+
+	ConntrackInfo struct {
+		Current       int64 `json:"entries"`
+		Limit         int64 `json:"entries_limit"`
+		Found         int64 `json:"stat_found"`
+		Invalid       int64 `json:"stat_invalid"`
+		Ignore        int64 `json:"stat_ignore"`
+		Insert        int64 `json:"stat_insert"`
+		InsertFailed  int64 `json:"stat_insert_failed"`
+		Drop          int64 `json:"stat_drop"`
+		EarlyDrop     int64 `json:"stat_early_drop"`
+		SearchRestart int64 `json:"stat_search_restart"`
+	}
+
+	FileFdInfo struct {
+		Allocated int64 `json:"allocated"`
+		Maximum   int64 `json:"maximum"`
 	}
 )
 
@@ -252,6 +272,30 @@ func getDiskInfo(ignoreFs []string) []*DiskInfo {
 	return infos
 }
 
+func getConntrackInfo() *ConntrackInfo {
+	info := ConntrackCollect()
+	return info
+}
+
+func getFileFdInfo() *FileFdInfo {
+	info, err := FileFdCollect()
+	fileInfo := &FileFdInfo{}
+
+	if err != nil {
+		l.Warnf("fail to get filefd stats, %s", err)
+	} else {
+		if allocated, ok := info["allocated"]; ok {
+			fileInfo.Allocated = allocated
+		}
+
+		if maximum, ok := info["maximum"]; ok {
+			fileInfo.Maximum = maximum
+		}
+	}
+
+	return fileInfo
+}
+
 func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 
 	inputsStats, err := io.GetStats(c.IOTimeout.Duration) // get all inputs stats
@@ -323,6 +367,8 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		Mem:        getMemInfo(),
 		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
 		Disk:       getDiskInfo(c.IgnoreFS),
+		Conntrack:  getConntrackInfo(),
+		FileFd:     getFileFdInfo(),
 	}
 
 	// sync cloud extra fields
