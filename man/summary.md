@@ -47,6 +47,8 @@
 		- [SSH](ssh)
 		- [容器](container)
 		- [Kubernetes](kubernetes)
+		- [Kube-state-metrics](kube-state-metrics)
+		- [Kubernetes-prom](kubernetes-prom)
 
 	- [Java]()
 		- [JVM](jvm)
