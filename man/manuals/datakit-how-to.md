@@ -297,6 +297,16 @@ datakit --monintor
 
 > 注：Windows 下暂不支持在终端查看 monitor 数据，只能在浏览器端查看。
 
+### 检查采集器配置是否正确
+
+编辑完采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可检查是否正确：
+
+```shell
+sudo datakit --check-config
+------------------------
+checked 13 conf, all passing, cost 22.27455ms
+```
+
 ### 调试 grok 和 pipeline
 
 指定 pipeline 脚本名称（`--pl`，pipeline 脚本必须放在 `<DataKit 安装目录>/pipeline` 目录下），输入一段文本（`--txt`）即可判断提取是否成功
