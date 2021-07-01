@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
@@ -50,6 +51,7 @@ type Input struct {
 
 	SelectorInclude []string `toml:"selector_include"`
 	SelectorExclude []string `toml:"selector_exclude"`
+	DiscoveryDir    string   `toml:"discovery_dir"`
 
 	tls.ClientConfig
 	start          time.Time
@@ -57,9 +59,8 @@ type Input struct {
 	mu             sync.Mutex
 	selectorFilter filter.Filter
 	collectors     map[string]func(collector string) error
-
-	chPause chan bool
-	pause   bool
+	chPause        chan bool
+	pause          bool
 }
 
 func (i *Input) initCfg() error {
@@ -89,6 +90,18 @@ func (i *Input) initCfg() error {
 
 		config, err = createConfigByToken(i.URL, i.BearerTokenString, i.TLSCA, i.InsecureSkipVerify)
 		if err != nil {
+			return err
+		}
+	}
+
+	// create discovery dir
+	if i.DiscoveryDir == "" {
+		i.DiscoveryDir = "/usr/local/datakit/data/exporter_urls"
+	}
+
+	if !datakit.FileExist(i.DiscoveryDir) {
+		if err := os.MkdirAll(i.DiscoveryDir, os.ModePerm); err != nil {
+			l.Errorf("create %s failed: %s", i.DiscoveryDir, err)
 			return err
 		}
 	}
@@ -183,6 +196,9 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
+	disTick := time.NewTicker(i.Interval.Duration)
+	defer disTick.Stop()
+
 	for {
 		select {
 		case <-tick.C:
@@ -197,6 +213,17 @@ func (i *Input) Run() {
 
 			// clear cache
 			i.clear()
+		case <-disTick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+
+			l.Debugf("exec discovery server...")
+			if err := i.collectPodsExporter(); err != nil {
+				l.Errorf("%s discovery exec error %v", err)
+				io.FeedLastError(inputName, err.Error())
+			}
 		case <-datakit.Exit.Wait():
 			l.Info("kubernetes exit")
 			return
