@@ -65,6 +65,7 @@ func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
 	t.outputChan = make(chan []byte, readChanSize)
 	t.stop = make(chan interface{}, 1)
 	t.filename = t.file.Name()
+	t.tags = t.buildTags(opt.GlobalTags)
 
 	return t, nil
 }
