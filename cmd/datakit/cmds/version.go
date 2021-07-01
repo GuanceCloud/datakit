@@ -29,7 +29,7 @@ const (
 		`&& rm -rf ./dk-installer"`
 )
 
-func CheckUpdate(acceptRC bool) int {
+func CheckUpdate(curverStr string, acceptRC bool) int {
 
 	l = logger.SLogger("ota-update")
 
@@ -44,7 +44,7 @@ func CheckUpdate(acceptRC bool) int {
 
 	ver := vers["Online"]
 
-	curver, err := getLocalVersion()
+	curver, err := getLocalVersion(curverStr)
 	if err != nil {
 		l.Errorf("Get online version failed: \n%s\n", err.Error())
 		return -1
@@ -66,7 +66,7 @@ func CheckUpdate(acceptRC bool) int {
 	return 0
 }
 
-func ShowVersion(releaseType string, showTestingVer bool) {
+func ShowVersion(curverStr, releaseType string, showTestingVer bool) {
 	fmt.Printf(`
        Version: %s
         Commit: %s
@@ -75,13 +75,13 @@ func ShowVersion(releaseType string, showTestingVer bool) {
 Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
-`, git.Version, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, releaseType)
+`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, releaseType)
 	vers, err := getOnlineVersions(showTestingVer)
 	if err != nil {
 		fmt.Printf("Get online version failed: \n%s\n", err.Error())
 		os.Exit(-1)
 	}
-	curver, err := getLocalVersion()
+	curver, err := getLocalVersion(curverStr)
 	if err != nil {
 		fmt.Printf("Get local version failed: \n%s\n", err.Error())
 		os.Exit(-1)
@@ -89,7 +89,8 @@ ReleasedInputs: %s
 
 	for k, v := range vers {
 
-		if version.IsNewVersion(v, curver, true) { // show version info, also show RC verison info
+		// always show testing verison if showTestingVer is true
+		if k == "Testing" || version.IsNewVersion(v, curver, true) { // show version info, also show RC verison info
 			fmt.Println("---------------------------------------------------")
 			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
 				k, v.VersionString, v.Commit, v.ReleaseDate)
@@ -105,7 +106,7 @@ ReleasedInputs: %s
 	}
 }
 
-func getLocalVersion() (*version.VerInfo, error) {
+func getLocalVersion(ver string) (*version.VerInfo, error) {
 	v := &version.VerInfo{
 		VersionString: strings.TrimPrefix(git.Version, "v"),
 		Commit:        git.Commit,
