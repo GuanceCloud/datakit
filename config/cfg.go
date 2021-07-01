@@ -592,6 +592,26 @@ func CreateSymlinks() error {
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/local/bin/datakit",
 			},
+
+			[2]string{
+				filepath.Join(datakit.InstallDir, "datakit"),
+				"/usr/local/sbin/datakit",
+			},
+
+			[2]string{
+				filepath.Join(datakit.InstallDir, "datakit"),
+				"/sbin/datakit",
+			},
+
+			[2]string{
+				filepath.Join(datakit.InstallDir, "datakit"),
+				"/usr/sbin/datakit",
+			},
+
+			[2]string{
+				filepath.Join(datakit.InstallDir, "datakit"),
+				"/usr/bin/datakit",
+			},
 		}
 	}
 
