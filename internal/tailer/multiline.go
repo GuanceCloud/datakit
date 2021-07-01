@@ -34,7 +34,7 @@ func (m *Multiline) IsEnabled() bool {
 }
 
 func (m *Multiline) ProcessLine(text string) string {
-	if m.IsEnabled() {
+	if !m.IsEnabled() {
 		return text
 	}
 
