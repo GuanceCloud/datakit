@@ -187,13 +187,14 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 - 在 ddtrace.conf 中直接配置自定义标签。这种方式会影响**所有**发送给 DataKit tracing 服务的数据，需慎重考虑：
 
 ```toml
-[inputs.ddtrace]
-	path = "/v0.4/traces"             # ddtrace 链路数据接收路径，默认与ddtrace官方定义的路径相同
-	[inputs.ddtrace.tags]             # 自定义标签组
-		project = "your_project_name"   # 设置项目名
-		env     = "your_env_name"       # 设置环境名
-		version = "your_version"        # 设置版本信息
+{{.InputSample}}
 ```
+
+### ddtrace 采样透传 tag
+
+| key         | value |
+| ----------- | ----- |
+| \_dd.origin | rum   |
 
 #### 关联 ddtrace 数据和容器对象
 
@@ -210,7 +211,7 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 
 #### 环境变量设置
 
-例如：通过环境变量 `DD_TRACE_SAMPLE_RATE=0.05` 设置采用率为5%
+例如：通过环境变量 `DD_TRACE_SAMPLE_RATE=0.05` 设置采用率为 5%
 
 #### 应用初始化时设置
 
@@ -228,7 +229,7 @@ tracer.configure(
 
 以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
-``` toml
+```toml
  [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -239,7 +240,7 @@ tracer.configure(
 
 ### `{{$m.Name}}`
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
