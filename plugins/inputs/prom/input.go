@@ -165,14 +165,6 @@ func (i *Input) Catalog() string {
 
 }
 
-func (i *Input) extendSelfTag(tags map[string]string) {
-	if i.Tags != nil {
-		for k, v := range i.Tags {
-			tags[k] = v
-		}
-	}
-}
-
 func (i *Input) GetReq(url string) (*http.Request, error) {
 	var (
 		req *http.Request
@@ -224,8 +216,10 @@ func (i *Input) collectFile(path string) error {
 	const RUNNING = "Running"
 	var wg sync.WaitGroup
 	matchs, err := zglob.Glob(path)
+	// only log error to file
 	if err != nil {
-		return err
+		l.Warnf("file path invalid: %s", err.Error())
+		return nil
 	}
 	for _, file := range matchs {
 		fileContent, err := ioutil.ReadFile(file)
@@ -405,6 +399,7 @@ func (i *Input) Run() {
 				}
 				i.collectCache = i.collectCache[:0]
 			}
+		case i.pause = <-i.chPause:
 		}
 	}
 }
@@ -438,7 +433,7 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 		return i.client, nil
 	}
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 
 	if i.TLSOpen {
