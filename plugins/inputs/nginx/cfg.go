@@ -7,6 +7,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,20 +18,25 @@ const (
 	CacheZone    = "nginx_cache_zone"
 )
 
+type ngxlog struct {
+	Files    []string `toml:"files"`
+	Pipeline string   `toml:"pipeline"`
+}
+
 type Input struct {
-	Url             string               `toml:"url"`
-	Interval        datakit.Duration     `toml:"interval"`
-	ResponseTimeout datakit.Duration     `toml:"response_timeout"`
-	UseVts          bool                 `toml:"use_vts"`
-	Log             *inputs.TailerOption `toml:"log"`
-	Tags            map[string]string    `toml:"tags"`
+	Url             string            `toml:"url"`
+	Interval        datakit.Duration  `toml:"interval"`
+	ResponseTimeout datakit.Duration  `toml:"response_timeout"`
+	UseVts          bool              `toml:"use_vts"`
+	Log             *ngxlog           `toml:"log"`
+	Tags            map[string]string `toml:"tags"`
 
 	tls.ClientConfig
 	// HTTP client
 	client *http.Client
 
 	start time.Time
-	tail  *inputs.Tailer
+	tail  *tailer.Tailer
 
 	lastErr error
 
