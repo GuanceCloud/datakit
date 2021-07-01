@@ -17,28 +17,11 @@ Kubernetes 集群指标采集，主要用于收集各种资源指标
 - 创建 `account.yaml` 编排文件, 文件内容如下:
 
 ```yaml
-# create namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: datakit-monitor
-  labels:
-    name: datakit
----
-# create ServiceAccount
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: datakit-monitor
-  namespace: datakit-monitor
-  labels:
-    name: datakit
----
 # create ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: datakit-monitor
+  name: datakit
 rules:
 - apiGroups:
   - ""
@@ -55,6 +38,13 @@ rules:
   - persistentvolumes
   - namespaces
   - endpoints
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
   verbs:
   - list
   - watch
@@ -145,14 +135,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: datakit-monitor
+  name: datakit
 subjects:
 - kind: ServiceAccount
-  name: datakit-monitor
-  namespace: datakit-monitor
+  name: datakit
+  namespace: datakit
 roleRef:
   kind: ClusterRole
-  name: datakit-monitor
+  name: datakit
   apiGroup: rbac.authorization.k8s.io
 ```
 
@@ -163,9 +153,9 @@ roleRef:
 kubectl apply -f account.yaml
 
 ## 确认创建成功
-kubectl get sa -n datakit-monitor
+kubectl get sa -n datakit
 NAME              SECRETS   AGE
-datakit-monitor   1         3d13h
+datakit           1         3d13h
 default           1         3d13h
 ```
 
@@ -181,10 +171,10 @@ kubectl config view -o jsonpath='{"Cluster name\tServer\n"}{range .clusters[*]}{
 
 ```sh
 ## 获取token
-kubectl get secrets -n datakit-monitor -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit-monitor')].data.token}"| base64 --decode > token
+kubectl get secrets -n datakit -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit')].data.token}"| base64 --decode > token
 
 ## 获取CA证书
-kubectl get secrets -n datakit-monitor -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit-monitor')].data.ca\\.crt}" | base64 --decode > ca_crt.pem
+kubectl get secrets -n datakit -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='datakit')].data.ca\\.crt}" | base64 --decode > ca_crt.pem
 
 ## 确认结果
 ls -l 
@@ -211,7 +201,7 @@ metadata:
     app.kubernetes.io/name: kube-state-metrics
     app.kubernetes.io/version: 2.1.0
   name: kube-state-metrics
-  namespace: datakit-monitor
+  namespace: datakit
 spec:
   replicas: 1
   selector:
@@ -247,7 +237,7 @@ spec:
           runAsUser: 65534
       nodeSelector:
         kubernetes.io/os: linux
-      serviceAccountName: datakit-monitor
+      serviceAccountName: datakit
 ---
 apiVersion: v1
 kind: Service
@@ -256,7 +246,7 @@ metadata:
     app.kubernetes.io/name: kube-state-metrics
     app.kubernetes.io/version: 2.1.0
   name: kube-state-metrics
-  namespace: datakit-monitor
+  namespace: datakit
 spec:
   type: NodePort
   ports:
