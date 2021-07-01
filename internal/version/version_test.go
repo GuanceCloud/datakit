@@ -14,6 +14,11 @@ func TestCompare(t *testing.T) {
 		fail        bool
 	}{
 		{
+			v1:         "1.1.7-rc6.1-125-g40c4860c",
+			v2:         "1.1.7-rc6-125-g40c4860c",
+			newVersion: true,
+		},
+		{
 			v1: "1.1.7-rc1-125-g40c4860c",
 			v2: "1.1.7-rc2-125-g40c4860c",
 		},
