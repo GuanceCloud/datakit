@@ -153,7 +153,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			}
 
 			// run trace data sample
-			if !traceSampleConf.SampleFilter(tags[trace.TAG_SPAN_STATUS], tags, fmt.Sprintf("%d", span.TraceID)) {
+			if !trace.StaticTagsFilter(span.Meta, map[string]string{"_dd.origin": "rum"}, traceSampleConf.SampleFilter)(tags[trace.TAG_SPAN_STATUS], tags, fmt.Sprintf("%d", span.TraceID)) {
 				continue
 			}
 
@@ -185,7 +185,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			pts = append(pts, pt)
 		}
 	}
-	// // for mock data statistic only, commit it out in production env
+	// for mock data statistic only, commit it out in production env
 	// defDDTraceMock.statistic(ddspans, pts)
 	// return nil
 
