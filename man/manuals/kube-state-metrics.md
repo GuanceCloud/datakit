@@ -4,11 +4,11 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
-# Datakit 通过内置 kube-state-metrics 服务收集 kubernetes 集群监控指标数据
+# Kubernetes 集群监控指标数据
 
-该方案扩展了 Datakit 集群部署，内置 [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) 服务
+该方案扩展了 Datakit 集群部署，内置 [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) 服务，用来采集 kubernetes 集群监控指标数据。
 
-指标参考 [kubernetes](kubernetes)
+> 具体指标，参考 [kubernetes](kubernetes) 中的列表
 
 ### 修改配置
 
@@ -16,7 +16,15 @@
 
 ```yaml
   - name: ENV_DATAWAY
-    value: <dataway_url> # 此处填上 dataway 真实地址
+		value: https://openway.dataflux.cn?token=<your-token> # 此处填上具体 token
+```
+
+### 应用 yaml 配置
+
+下载下文 yaml， 直接应用即可：
+
+```shell
+kubectl apply path/to/your.yaml
 ```
 
 ### yaml 配置
@@ -136,7 +144,7 @@ spec:
               apiVersion: v1
               fieldPath: spec.nodeName
         - name: ENV_DATAWAY
-          value: <dataway_url>
+          value: https://openway.dataflux.cn?token=<your-token>
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS
@@ -489,4 +497,3 @@ data:
           #tag1 = "value1"
           #tag2 = "value2"
 ```
-
