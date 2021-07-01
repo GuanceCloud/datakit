@@ -179,12 +179,12 @@ func (this *Input) setup() bool {
 			continue
 		}
 
-		if err = this.buildDockerClient(); err != nil {
+		if err = this.buildK8sClient(); err != nil {
 			l.Error(err)
 			continue
 		}
 
-		if err = this.buildK8sClient(); err != nil {
+		if err = this.buildDockerClient(); err != nil {
 			l.Error(err)
 			continue
 		}
