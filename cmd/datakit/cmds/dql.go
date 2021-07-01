@@ -383,6 +383,7 @@ var (
 
 		{Text: "metric::", Description: "metric namespace"},
 		{Text: "object::", Description: "object namespace"},
+		{Text: "custom_object::", Description: "custom object namespace"},
 		{Text: "event::", Description: "event namespace"},
 		{Text: "logging::", Description: "logging namespace"},
 		{Text: "tracing::", Description: "tracing namespace"},
@@ -390,6 +391,7 @@ var (
 
 		{Text: "M::", Description: "metric namespace"},
 		{Text: "O::", Description: "object namespace"},
+		{Text: "CO::", Description: "custom object namespace"},
 		{Text: "E::", Description: "event namespace"},
 		{Text: "L::", Description: "logging namespace"},
 		{Text: "T::", Description: "tracing namespace"},
