@@ -96,7 +96,7 @@ func randomId(l int) uint64 {
 
 func TestDDTraceSampleWithNoErrorNoIgnore(t *testing.T) {
 	traceSampleConf = &trace.TraceSampleConfig{
-		Rate:  15,
+		Rate:  9,
 		Scope: 100,
 	}
 	defDDTraceMock = &debugDDTraceMock{
