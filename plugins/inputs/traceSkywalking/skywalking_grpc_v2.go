@@ -111,54 +111,57 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 
 	adapterGroup := []*trace.TraceAdapter{}
 	for _, span := range sg.Segment.Spans {
-		t := &trace.TraceAdapter{}
+		tAdapter := &trace.TraceAdapter{}
 
-		t.Source = "skywalking"
-		t.Duration = (span.EndTime - span.StartTime) * 1000000
-		t.Start = span.StartTime * 1000000
+		tAdapter.Source = "skywalking"
+		tAdapter.Duration = (span.EndTime - span.StartTime) * 1000000
+		tAdapter.Start = span.StartTime * 1000000
 		js, err := json.Marshal(span)
 		if err != nil {
 			return err
 		}
-		t.Content = string(js)
-		t.ServiceName = service
-		t.OperationName = span.OperationName
-		if t.OperationName == "" {
+		tAdapter.Content = string(js)
+		tAdapter.ServiceName = service
+		tAdapter.OperationName = span.OperationName
+		if tAdapter.OperationName == "" {
 			on, ok := RegEndpoint.Load(span.OperationNameId)
 			if !ok {
-				return fmt.Errorf("operation name %s null", t.OperationName)
+				return fmt.Errorf("operation name %s null", tAdapter.OperationName)
 			}
 			switch on.(type) {
 			case string:
-				t.OperationName = on.(string)
+				tAdapter.OperationName = on.(string)
 			default:
 				return fmt.Errorf("operation Name wrong type")
 			}
 		}
 
 		if len(span.Refs) > 0 {
-			t.ParentID = fmt.Sprintf("%v%v", span.Refs[0].ParentTraceSegmentId.IdParts[2], span.Refs[0].ParentSpanId)
+			tAdapter.ParentID = fmt.Sprintf("%v%v", span.Refs[0].ParentTraceSegmentId.IdParts[2], span.Refs[0].ParentSpanId)
 		} else if span.ParentSpanId != -1 {
-			t.ParentID = fmt.Sprintf("%v%v", sgid, span.ParentSpanId)
+			tAdapter.ParentID = fmt.Sprintf("%v%v", sgid, span.ParentSpanId)
 		}
 
-		t.TraceID = fmt.Sprintf("%d", traceId)
-		t.SpanID = fmt.Sprintf("%v%v", sgid, span.SpanId)
-		t.Status = trace.STATUS_OK
+		tAdapter.TraceID = fmt.Sprintf("%d", traceId)
+		tAdapter.SpanID = fmt.Sprintf("%v%v", sgid, span.SpanId)
+		tAdapter.Status = trace.STATUS_OK
 		if span.IsError {
-			t.Status = trace.STATUS_ERR
+			tAdapter.Status = trace.STATUS_ERR
 		}
 		if span.SpanType == common.SpanType_Entry {
-			t.SpanType = trace.SPAN_TYPE_ENTRY
+			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
 		} else if span.SpanType == common.SpanType_Local {
-			t.SpanType = trace.SPAN_TYPE_LOCAL
+			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
-			t.SpanType = trace.SPAN_TYPE_EXIT
+			tAdapter.SpanType = trace.SPAN_TYPE_EXIT
 		}
-		t.EndPoint = span.Peer
-		t.Tags = SkywalkingTagsV2
+		tAdapter.EndPoint = span.Peer
+		tAdapter.Tags = SkywalkingTagsV2
 
-		adapterGroup = append(adapterGroup, t)
+		// run trace data sample
+		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
+			adapterGroup = append(adapterGroup, tAdapter)
+		}
 	}
 	trace.MkLineProto(adapterGroup, inputName)
 
