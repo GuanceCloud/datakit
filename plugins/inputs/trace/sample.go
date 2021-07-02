@@ -1,72 +1,81 @@
 package trace
 
-import (
-	"strconv"
-)
-
 var (
-	DefSampleHandler = func(traceId uint64, rate, scope int) bool {
-		return (traceId % uint64(scope)) < uint64(rate)
-	}
-	ErrMapper = map[string]int32{
+	DefSampleFunc SampleHandler = sampleHandlerFunc
+	DefErrMapper                = map[string]int32{
 		STATUS_OK:       0,
 		STATUS_INFO:     0,
 		STATUS_WARN:     2,
 		STATUS_ERR:      3,
 		STATUS_CRITICAL: 4,
 	}
-	DefErrCheckHandler = func(status string) bool {
-		stat, ok := ErrMapper[status]
+)
 
-		return ok && (stat != 0)
+// will be sampled if true, not if false
+type SampleHandler func(traceId uint64, rate, scope int) bool
+
+func sampleHandlerFunc(traceId uint64, rate, scope int) bool {
+	return (traceId % uint64(scope)) < uint64(rate)
+}
+
+type TraceSampleConfig struct {
+	Target         map[string]string `toml:"target"`
+	Rate           int               `toml:"rate"`
+	Scope          int               `toml:"scope"`
+	IgnoreTagsList []string          `toml:ignore_tags_list`
+}
+
+func TraceSampleMatcher(confs []*TraceSampleConfig, tags map[string]string) *TraceSampleConfig {
+	var conf *TraceSampleConfig
+	for _, conf = range confs {
+		for k, v := range conf.Target {
+			if tags[k] == v {
+				return conf
+			}
+			// only match once
+			break
+		}
 	}
-	DefIgnoreTagsHandler = func(source map[string]string, ignoreList []string) bool {
-		for _, v := range ignoreList {
+
+	if len(conf.Target) == 0 {
+		return conf
+	} else {
+		return nil
+	}
+}
+
+func IgnoreErrSampleMW(status string, sampleFunc SampleHandler) SampleHandler {
+	return func(traceId uint64, rate, scope int) bool {
+		if stat, ok := DefErrMapper[status]; ok && (stat != 0) {
+			return true
+		} else {
+			return sampleFunc(traceId, rate, scope)
+		}
+	}
+}
+
+func IgnoreTagsSampleMW(source map[string]string, ignores []string, sampleFunc SampleHandler) SampleHandler {
+	return func(traceId uint64, rate, scope int) bool {
+		for _, v := range ignores {
 			if _, ok := source[v]; ok {
 				return true
 			}
 		}
 
-		return false
+		return sampleFunc(traceId, rate, scope)
 	}
-)
-
-type TraceSampleConfig struct {
-	Rate           int      `toml:"rate"`
-	Scope          int      `toml:"scope"`
-	IgnoreTagsList []string `toml:ignore_tags_list`
 }
 
-// sampled if true, not sampled if false
-func (this *TraceSampleConfig) SampleFilter(status string, tags map[string]string, traceId string) bool {
-	if this != nil {
-		if !DefErrCheckHandler(status) && !DefIgnoreTagsHandler(tags, this.IgnoreTagsList) {
-			traceId, err := strconv.ParseInt(traceId, 10, 64)
-			if err != nil {
-				log.Error(err)
-
-				return true
-			}
-
-			return DefSampleHandler(uint64(traceId), this.Rate, this.Scope)
-		}
-	}
-
-	return true
-}
-
-type SampleFilterFunc func(status string, tags map[string]string, traceId string) bool
-
-func StaticTagsFilter(sourceTags map[string]string, targetTags map[string]string, sampleFunc SampleFilterFunc) SampleFilterFunc {
-	return func(status string, tags map[string]string, traceId string) bool {
-		if len(sourceTags) != 0 {
-			for k, v := range targetTags {
-				if sourceTags[k] == v {
+func IgnoreKVPairsSampleMW(source map[string]string, ignores map[string]string, sampleFunc SampleHandler) SampleHandler {
+	return func(traceId uint64, rate, scope int) bool {
+		if len(source) != 0 {
+			for k, v := range ignores {
+				if source[k] == v {
 					return true
 				}
 			}
 		}
 
-		return sampleFunc(status, tags, traceId)
+		return sampleFunc(traceId, rate, scope)
 	}
 }
