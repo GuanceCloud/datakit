@@ -25,8 +25,7 @@ import (
 var (
 	IntervalDuration = 10 * time.Second
 
-	Cfg    = DefaultConfig()
-	Docker = false
+	Cfg = DefaultConfig()
 
 	l = logger.DefaultSLogger("config")
 )
@@ -113,6 +112,9 @@ type Config struct {
 	EnableElection bool  `toml:"enable_election"`
 	Disable404Page bool  `toml:"disable_404page"`
 	IOCacheCount   int64 `toml:"io_cache_count"`
+
+	// 是否已开启自动更新，通过 dk-install --ota 来开启
+	AutoUpdate bool `toml:"auto_update"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }

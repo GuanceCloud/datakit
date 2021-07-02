@@ -46,6 +46,8 @@ var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
 
+	Docker = false
+
 	InstallDir         = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: `C:\Program Files\datakit`,
