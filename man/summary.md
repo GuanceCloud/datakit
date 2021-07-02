@@ -49,8 +49,8 @@
 
 	- [Kubernetes]()
 		- [Kubernetes](kubernetes)
-		- [Kubernetes 更多指标采集](kube-state-metrics)
-		- [Kubernetes 通用指标采集](kubernetes-prom)
+		- [Kubernetes kube-state-metrics 服务指标采集](kube-state-metrics)
+		- [Kubernetes 集群中 Exporter 指标采集](kubernetes-prom)
 
 	- [Java]()
 		- [JVM](jvm)
