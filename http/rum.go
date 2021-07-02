@@ -89,31 +89,3 @@ func handleRUMBody(body []byte, precision, srcip string, isjson bool) ([]*io.Poi
 
 	return io.WrapPoint(rumpts), nil
 }
-
-//func handleRUM(srcip, precision, input string, body []byte, json bool) ([]*io.Point, error) {
-//
-//	rumpts, err := handleRUMBody(body, precision, srcip, json)
-//	if err != nil {
-//		//uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-//		return nil, err
-//	}
-//
-//	for _, pt := range rumpts {
-//		x := pt.String()
-//		l.Debugf("%s", x)
-//		if err := lp.ParseLineProto([]byte(x), "n"); err != nil {
-//			l.Errorf("parse failed: %s", err.Error())
-//		} else {
-//			l.Debug("parse ok")
-//		}
-//	}
-//
-//	if len(rumpts) > 0 {
-//		if err = io.Feed(input, datakit.Rum, io.WrapPoint(rumpts), &io.Option{HighFreq: true}); err != nil {
-//			uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-//			return
-//		}
-//	}
-//
-//	ErrOK.HttpBody(c, nil)
-//}
