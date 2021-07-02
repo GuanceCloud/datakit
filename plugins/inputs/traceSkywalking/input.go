@@ -11,23 +11,54 @@ import (
 )
 
 var (
-	defRate         = 15
-	defScope        = 100
-	traceSampleConf *trace.TraceSampleConfig
+	sampleConfs []*trace.TraceSampleConfig
 )
 
 var (
 	inputName                   = "traceSkywalking"
 	traceSkywalkingConfigSample = `
 [[inputs.traceSkywalking]]
-  ## trace sample config, sample_rate and sample_scope together determine how many trace sample data will send to io
-  # [inputs.traceSkywalking.sample_config]
-    ## sample rate, how many will be sampled
-    # rate = ` + fmt.Sprintf("%d", defRate) + `
-    ## sample scope, the range to sample
-    # scope = ` + fmt.Sprintf("%d", defScope) + `
-    ## ignore tags list for samplingx
-    # ignore_tags_list = []
+  ## Tracing data sample config, [rate] and [scope] together determine how many trace sample data
+  ## will be send to DataFlux workspace.
+  ## Sub item in sample_configs list with priority 1.
+  [[inputs.ddtrace.sample_configs]]
+    ## Sample rate, how many tracing data will be sampled.
+    rate = 10
+    ## Sample scope, the range that will consider to be covered by sample function.
+    scope = 100
+    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
+    ignore_tags_list = []
+    ## Sample target, program will search this [tag, value] pair for sampling purpose.
+    [inputs.ddtrace.sample_configs.target]
+    tag = "value"
+
+  ## Sub item in sample_configs list with priority 2.
+  [[inputs.ddtrace.sample_configs]]
+    ## Sample rate, how many tracing data will be sampled.
+    rate = 10
+    ## Sample scope, the range that will consider to be covered by sample function.
+    scope = 100
+    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
+    ignore_tags_list = []
+    ## Sample target, program will search this [tag, value] pair for sampling purpose.
+    [inputs.ddtrace.sample_configs.target]
+    tag = "value"
+
+  ## ...
+
+  ## Sub item in sample_configs list with priority n.
+  [[inputs.ddtrace.sample_configs]]
+    ## Sample rate, how many tracing data will be sampled.
+    rate = 10
+    ## Sample scope, the range that will consider to be covered by sample function.
+    scope = 100
+    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
+    ignore_tags_list = []
+    ## Sample target, program will search this [tag, value] pair for sampling purpose.
+    ## As general, the last item in sample_configs list without [tag, value] pair will be used as default sample rule
+    ## only if all above rules mismatched.
+    # [inputs.ddtrace.sample_configs.target]
+    # tag = "value"
 
   # [inputs.traceSkywalking.V2]
     #	grpcPort = 11800
@@ -56,9 +87,9 @@ type Skywalking struct {
 }
 
 type Input struct {
-	TraceSampleConf *trace.TraceSampleConfig `toml:"sample_config"`
-	V2              *Skywalking              `toml:"V2"`
-	V3              *Skywalking              `toml:"V3"`
+	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs"`
+	V2               *Skywalking                `toml:"V2"`
+	V3               *Skywalking                `toml:"V3"`
 }
 
 func (_ *Input) Catalog() string {
@@ -73,14 +104,14 @@ func (t *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	if t.TraceSampleConf != nil {
-		if t.TraceSampleConf.Rate <= 0 {
-			t.TraceSampleConf.Rate = defRate
+	sampleConfs = t.TraceSampleConfs
+	// check tracing sample config
+	for k, v := range sampleConfs {
+		if v.Rate <= 0 || v.Scope < v.Rate {
+			v.Rate = 100
+			v.Scope = 100
+			log.Warnf("%s input tracing sample config [%d] invalid, reset to default.", inputName, k)
 		}
-		if t.TraceSampleConf.Scope <= 0 {
-			t.TraceSampleConf.Scope = defScope
-		}
-		traceSampleConf = t.TraceSampleConf
 	}
 
 	if t.V2 != nil {
