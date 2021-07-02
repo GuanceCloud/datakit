@@ -66,6 +66,8 @@ var (
 - 容器运行   : {{.WithinDocker}}
 - Reload 次数: {{.ReloadInfo}}
 - IO 消耗统计: {{.IOChanStat}}
+- 自动更新   ：{{.AutoUpdate}}
+- 选举状态   ：{{.Elected}}
 	`
 
 	part2 = `
@@ -189,15 +191,15 @@ func GetStats() (*DatakitStats, error) {
 
 	now := time.Now()
 	stats := &DatakitStats{
-		Version:    git.Version,
-		BuildAt:    git.BuildAt,
-		Branch:     git.Branch,
-		Uptime:     fmt.Sprintf("%v", now.Sub(uptime)),
-		OSArch:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:  reloadCnt,
-		ReloadInfo: "0",
-		//WithinDocker: config.Docker,
-		IOChanStat: io.ChanStat(),
+		Version:      git.Version,
+		BuildAt:      git.BuildAt,
+		Branch:       git.Branch,
+		Uptime:       fmt.Sprintf("%v", now.Sub(uptime)),
+		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		ReloadCnt:    reloadCnt,
+		ReloadInfo:   "0",
+		WithinDocker: datakit.Docker,
+		IOChanStat:   io.ChanStat(),
 	}
 
 	if reloadCnt > 0 {
