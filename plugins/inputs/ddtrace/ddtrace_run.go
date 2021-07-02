@@ -152,9 +152,11 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 				tags[k] = v
 			}
 
-			// run trace data sample
-			if !trace.StaticTagsFilter(span.Meta, map[string]string{"_dd.origin": "rum"}, traceSampleConf.SampleFilter)(tags[trace.TAG_SPAN_STATUS], tags, fmt.Sprintf("%d", span.TraceID)) {
-				continue
+			// run tracing sample function
+			if conf := trace.TraceSampleMatcher(sampleConfs, tags); conf != nil {
+				if !trace.IgnoreErrSampleMW(tags[trace.TAG_SPAN_STATUS], trace.IgnoreKVPairsSampleMW(span.Meta, map[string]string{"_dd.origin": "rum"}, trace.IgnoreTagsSampleMW(tags, conf.IgnoreTagsList, trace.DefSampleFunc)))(span.TraceID, conf.Rate, conf.Scope) {
+					continue
+				}
 			}
 
 			field[trace.FIELD_RESOURCE] = span.Resource
@@ -185,7 +187,7 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			pts = append(pts, pt)
 		}
 	}
-	// for mock data statistic only, commit it out in production env
+	// // for mock data statistic only, commit it out in production env
 	// defDDTraceMock.statistic(ddspans, pts)
 	// return nil
 
