@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
@@ -150,10 +151,18 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 		tAdapter.EndPoint = span.Peer
 		tAdapter.Tags = SkywalkingTagsV3
 
-		// run trace data sample
-		if traceSampleConf.SampleFilter(tAdapter.Status, tAdapter.Tags, tAdapter.TraceID) {
-			adapterGroup = append(adapterGroup, tAdapter)
+		// run tracing sample function
+		if conf := trace.TraceSampleMatcher(sampleConfs, tAdapter.Tags); conf != nil {
+			if trcid, err := strconv.ParseUint(tAdapter.TraceID, 10, 64); err == nil {
+				if !trace.IgnoreErrSampleMW(tAdapter.Status, trace.IgnoreTagsSampleMW(tAdapter.Tags, conf.IgnoreTagsList, trace.DefSampleFunc))(trcid, conf.Rate, conf.Scope) {
+					continue
+				}
+			} else {
+				log.Errorf("Parse uint64 trace id failed when doing tracing sample")
+			}
 		}
+
+		adapterGroup = append(adapterGroup, tAdapter)
 	}
 	trace.MkLineProto(adapterGroup, inputName)
 
