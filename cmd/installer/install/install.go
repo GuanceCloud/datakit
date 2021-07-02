@@ -31,6 +31,7 @@ var (
 	Port         = 9529
 	DatakitName  = ""
 	EnableInputs = ""
+	OTA          = false
 )
 
 func readInput(prompt string) string {
@@ -81,6 +82,7 @@ func InstallNewDatakit(svc service.Service) {
 
 	// prepare dataway info
 	mc.DataWay = getDataWayCfg()
+	mc.AutoUpdate = OTA
 
 	// accept any install options
 	if GlobalTags != "" {

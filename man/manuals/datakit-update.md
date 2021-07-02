@@ -61,7 +61,7 @@ if [[ $? == 42 ]]; then
  echo "update now..."
  sudo -- sh -c "curl ${installer}  -o dk-installer &&
 	 chmod +x ./dk-installer &&
-	 ./dk-installer --upgrade --install-log "${otalog}" &&
+	 ./dk-installer --upgrade --ota --install-log "${otalog}" &&
 	 rm -rf ./dk-installer"
 fi
 ```
