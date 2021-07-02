@@ -166,7 +166,7 @@ func applyFlags() {
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
 	if *flagDocker {
-		config.Docker = true
+		datakit.Docker = true
 	}
 
 	runDatakitWithCmds()
