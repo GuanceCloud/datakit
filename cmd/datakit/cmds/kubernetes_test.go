@@ -2,7 +2,6 @@ package cmds
 
 import (
 	"bytes"
-	"fmt"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"testing"
 )
@@ -49,7 +48,6 @@ func TestRunBuild(t *testing.T) {
 	for _, item := range testCases {
 		buf := bytes.Buffer{}
 		k.runCmd(&buf, item.in)
-		fmt.Println("hello world!")
 		got := buf.String()
 
 		if got != item.expect {
