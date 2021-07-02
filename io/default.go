@@ -44,7 +44,7 @@ func Start() error {
 	defaultIO.in2 = make(chan *iodata, 128*8)
 	defaultIO.inLastErr = make(chan *lastErr, 128)
 	defaultIO.inputstats = map[string]*InputsStat{}
-	defaultIO.qstatsCh = make(chan *qstats) // blocking
+	defaultIO.qstatsCh = make(chan *qinputStats) // blocking
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}
 
@@ -60,7 +60,7 @@ func Start() error {
 }
 
 func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
-	q := &qstats{
+	q := &qinputStats{
 		qid: cliutils.XID("statqid_"),
 		ch:  make(chan map[string]*InputsStat),
 	}
