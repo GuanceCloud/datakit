@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -90,6 +91,7 @@ ReleasedInputs: %s
 	for k, v := range vers {
 
 		// always show testing verison if showTestingVer is true
+		l.Debugf("compare %s <=> %s", v, curver)
 		if k == "Testing" || version.IsNewVersion(v, curver, true) { // show version info, also show RC verison info
 			fmt.Println("---------------------------------------------------")
 			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
@@ -108,7 +110,7 @@ ReleasedInputs: %s
 
 func getLocalVersion(ver string) (*version.VerInfo, error) {
 	v := &version.VerInfo{
-		VersionString: strings.TrimPrefix(git.Version, "v"),
+		VersionString: strings.TrimPrefix(datakit.Version, "v"),
 		Commit:        git.Commit,
 		ReleaseDate:   git.BuildAt}
 	if err := v.Parse(); err != nil {
@@ -155,6 +157,7 @@ func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, er
 		return nil, err
 	}
 	res["Online"] = onlineVer
+	l.Debugf("online version: %s", onlineVer)
 
 	if showTestingVer {
 		testVer, err := getVersion("zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit")
@@ -162,6 +165,7 @@ func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, er
 			return nil, err
 		}
 		res["Testing"] = testVer
+		l.Debugf("testing version: %s", testVer)
 	}
 
 	return
