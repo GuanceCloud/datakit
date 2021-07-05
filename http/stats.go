@@ -193,7 +193,7 @@ func GetStats() (*DatakitStats, error) {
 
 	now := time.Now()
 	stats := &DatakitStats{
-		Version:      git.Version,
+		Version:      datakit.Version,
 		BuildAt:      git.BuildAt,
 		Branch:       git.Branch,
 		Uptime:       fmt.Sprintf("%v", now.Sub(uptime)),
