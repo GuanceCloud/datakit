@@ -32,17 +32,20 @@ import (
 
 var (
 	defaultCandidate = &candidate{
-		status: statusFail,
+		status: statusDisabled,
 	}
 
 	l                = logger.DefaultSLogger("dk-election")
 	HTTPTimeout      = time.Second * 3
 	electionInterval = time.Second * 3
+
+	qch = make(chan int)
 )
 
 const (
-	statusSuccess = "success"
-	statusFail    = "fail"
+	statusSuccess  = "success"
+	statusFail     = "defeat"
+	statusDisabled = "disabled"
 )
 
 type candidate struct {
@@ -108,6 +111,11 @@ func (x *candidate) startElection() {
 	// 先暂停采集，待选举成功再恢复运行
 	x.pausePlugins()
 	f(nil, nil)
+}
+
+// 此处暂不考虑互斥性，只用于状态展示
+func Elected() string {
+	return defaultCandidate.status
 }
 
 func (x *candidate) runOnce() {
