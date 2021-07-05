@@ -16,7 +16,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -114,7 +113,7 @@ type Config struct {
 	IOCacheCount   int64 `toml:"io_cache_count"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
-	AutoUpdate bool `toml:"auto_update"`
+	AutoUpdate bool `toml:"auto_update,omitempty"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
@@ -230,7 +229,7 @@ func (c *Config) setupDataway() error {
 	}
 
 	dataway.ExtraHeaders = map[string]string{
-		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, git.Version),
+		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, datakit.Version),
 	}
 
 	c.DataWay.Hostname = c.Hostname

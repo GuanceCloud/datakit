@@ -18,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -109,7 +110,7 @@ func SetGlobalTags(tags map[string]string) {
 func page404(c *gin.Context) {
 
 	w := &welcome{
-		Version: git.Version,
+		Version: datakit.Version,
 		BuildAt: git.BuildAt,
 		OS:      runtime.GOOS,
 		Arch:    runtime.GOARCH,
