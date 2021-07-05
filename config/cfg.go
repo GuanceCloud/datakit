@@ -324,6 +324,8 @@ func (c *Config) ApplyMainConfig() error {
 		dkhttp.SetAPIConfig(c.HTTPAPI)
 	}
 
+	datakit.AutoUpdate = c.AutoUpdate
+
 	dkhttp.SetDataWay(c.DataWay)
 
 	dkio.SetDataWay(c.DataWay)
