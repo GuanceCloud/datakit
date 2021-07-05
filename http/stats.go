@@ -18,9 +18,9 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -48,6 +48,8 @@ type DatakitStats struct {
 
 	WithinDocker bool   `json:"docker"`
 	IOChanStat   string `json:"io_chan_stats"`
+	Elected      string `json:"elected"`
+	AutoUpdate   bool   `json:"auto_update"`
 
 	// markdown options
 	DisableMonofont  bool `json:"-"`
@@ -200,6 +202,8 @@ func GetStats() (*DatakitStats, error) {
 		ReloadInfo:   "0",
 		WithinDocker: datakit.Docker,
 		IOChanStat:   io.ChanStat(),
+		Elected:      election.Elected(),
+		AutoUpdate:   datakit.AutoUpdate,
 	}
 
 	if reloadCnt > 0 {
