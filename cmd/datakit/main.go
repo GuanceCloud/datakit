@@ -22,7 +22,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
@@ -51,7 +50,7 @@ var (
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
-	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
+	flagManVersion        = flag.String("man-version", datakit.Version, "specify manuals version")
 	flagTODO              = flag.String("TODO", "TODO", "set TODO")
 
 	flagK8sCfgPath  = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
@@ -98,7 +97,7 @@ var (
 	l = logger.DefaultSLogger("main")
 
 	ReleaseType    = ""
-	ReleaseVersion = git.Version
+	ReleaseVersion = ""
 )
 
 const (
@@ -129,6 +128,10 @@ func setupFlags() {
 }
 
 func main() {
+
+	if ReleaseVersion != "" {
+		datakit.Version = ReleaseVersion
+	}
 
 	setupFlags()
 	flag.Parse()
