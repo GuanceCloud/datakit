@@ -4,8 +4,8 @@ import (
 	"runtime"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -85,7 +85,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 
 	tags := map[string]string{
 		"uuid":    config.Cfg.UUID,
-		"vserion": git.Version,
+		"vserion": datakit.Version,
 		"os":      s.OS,
 		"arch":    s.Arch,
 		"host":    s.HostName,
