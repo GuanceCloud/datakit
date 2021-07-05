@@ -46,7 +46,8 @@ var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
 
-	Docker = false
+	Docker     = false
+	AutoUpdate = false
 
 	InstallDir         = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 	optionalInstallDir = map[string]string{
