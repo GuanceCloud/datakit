@@ -48,7 +48,7 @@ func DefaultConfig() *Config {
 
 		HTTPListen: "localhost:9529",
 		HTTPAPI: &dkhttp.APIConfig{
-			RUMOriginIPHeader: "X-Forward-For",
+			RUMOriginIPHeader: "X-Forwarded-For",
 		},
 
 		IOCacheCount: 1024,
