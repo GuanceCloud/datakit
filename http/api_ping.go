@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 type ping struct {
@@ -15,5 +15,5 @@ type ping struct {
 }
 
 func apiPing(c *gin.Context) {
-	ErrOK.HttpBody(c, &ping{Version: git.Version, Uptime: fmt.Sprintf("%v", time.Since(uptime))})
+	ErrOK.HttpBody(c, &ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(uptime))})
 }
