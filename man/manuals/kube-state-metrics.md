@@ -373,7 +373,7 @@ data:
         url = "http://kube-state-metrics.datakit:8080/metrics"
 
         ## 采集器别名
-        input_alias = "kube-state-metric"
+        #input_alias = "kube-state-metric"
 
         # 只采集 counter 和 gauge 类型的指标
         metric_types = ["counter", "gauge"]
@@ -476,6 +476,11 @@ data:
           ## replicaset
           prefix = "kube_replicaset_"
           name = "kube_replicaset"
+
+        [[inputs.prom.measurements]]
+          ## statefulset
+          prefix = "kube_statefulset_"
+          name = "kube_statefulset"
 
         [[inputs.prom.measurements]]
           ## hpa
