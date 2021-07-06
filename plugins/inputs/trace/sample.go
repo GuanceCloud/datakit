@@ -37,7 +37,7 @@ func TraceSampleMatcher(confs []*TraceSampleConfig, tags map[string]string) *Tra
 		}
 	}
 
-	if len(conf.Target) == 0 {
+	if conf != nil && len(conf.Target) == 0 {
 		return conf
 	} else {
 		return nil
