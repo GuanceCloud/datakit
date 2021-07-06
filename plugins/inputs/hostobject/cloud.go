@@ -1,6 +1,7 @@
 package hostobject
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -80,7 +81,8 @@ func metaGet(metaURL string) (res string) {
 		l.Warnf("read response %s: %s", metaURL, err)
 		return
 	}
-	res = string(x)
 
+	// 避免 meta 接口返回多行数据
+	res = string(bytes.Replace(x, []byte{'\n'}, []byte{' '}, -1))
 	return
 }
