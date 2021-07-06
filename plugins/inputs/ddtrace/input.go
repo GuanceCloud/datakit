@@ -28,44 +28,43 @@ var (
   ## Tracing data sample config, [rate] and [scope] together determine how many trace sample data
   ## will be send to DataFlux workspace.
   ## Sub item in sample_configs list with priority 1.
-  [[inputs.ddtrace.sample_configs]]
+  # [[inputs.ddtrace.sample_configs]]
     ## Sample rate, how many tracing data will be sampled.
-    rate = 10
+    # rate = 10
     ## Sample scope, the range that will consider to be covered by sample function.
-    scope = 100
+    # scope = 100
     ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
-    ignore_tags_list = []
+    # ignore_tags_list = []
     ## Sample target, program will search this [tag, value] pair for sampling purpose.
-    [inputs.ddtrace.sample_configs.target]
-    tag = "value"
+    # [inputs.ddtrace.sample_configs.target]
+    # tag = "value"
 
   ## Sub item in sample_configs list with priority 2.
-  [[inputs.ddtrace.sample_configs]]
+  # [[inputs.ddtrace.sample_configs]]
     ## Sample rate, how many tracing data will be sampled.
-    rate = 10
+    # rate = 10
     ## Sample scope, the range that will consider to be covered by sample function.
-    scope = 100
+    # scope = 100
     ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
-    ignore_tags_list = []
+    # ignore_tags_list = []
     ## Sample target, program will search this [tag, value] pair for sampling purpose.
-    [inputs.ddtrace.sample_configs.target]
-    tag = "value"
+    # [inputs.ddtrace.sample_configs.target]
+    # tag = "value"
 
   ## ...
 
   ## Sub item in sample_configs list with priority n.
-  [[inputs.ddtrace.sample_configs]]
+  # [[inputs.ddtrace.sample_configs]]
     ## Sample rate, how many tracing data will be sampled.
-    rate = 10
+    # rate = 10
     ## Sample scope, the range that will consider to be covered by sample function.
-    scope = 100
+    # scope = 100
     ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
-    ignore_tags_list = []
+    # ignore_tags_list = []
     ## Sample target, program will search this [tag, value] pair for sampling purpose.
     ## As general, the last item in sample_configs list without [tag, value] pair will be used as default sample rule
-    ## only if all above rules mismatched.
+    ## only if all above rules mismatched, so that this pair shoud be empty.
     # [inputs.ddtrace.sample_configs.target]
-    # tag = "value"
 
 	## customer tags
   # [inputs.ddtrace.tags]
