@@ -33,6 +33,60 @@ func SetLog() {
 	l = logger.SLogger("config")
 }
 
+// type Config struct {
+// 	UUID           string `toml:"-"`
+// 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
+
+// 	Name    string              `toml:"name,omitempty"`
+// 	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
+
+// 	HTTPBindDeprecated string `toml:"http_server_addr,omitempty"`
+// 	HTTPListen         string `toml:"http_listen,omitempty"`
+
+// 	HTTPAPI *dkhttp.APIConfig `toml:"http_api"`
+
+// 	Log       string `toml:"log"`
+// 	LogLevel  string `toml:"log_level"`
+// 	LogRotate int    `toml:"log_rotate,omitempty"`
+
+// 	GinLog     string            `toml:"gin_log"`
+// 	GlobalTags map[string]string `toml:"global_tags"`
+
+// 	EnablePProf bool `toml:"enable_pprof,omitempty"`
+// 	ProtectMode bool `toml:"protect_mode"`
+
+// 	IntervalDeprecated string `toml:"interval,omitempty"`
+
+// 	OutputFile string `toml:"output_file"`
+// 	//Hostname   string `toml:"hostname,omitempty"`
+// 	Hostname string `toml:"-"`
+
+// 	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
+// 	InstallDate          time.Time `toml:"install_date,omitempty"`
+
+// 	// TraceConfig struct {
+// 	// 	ServiceName         string `toml:"service_name"`
+// 	// 	Enabled             bool   `toml:"enabled"`
+// 	// 	Host                string `toml:"host"`
+// 	// 	Port                int    `toml:"port"`
+// 	// 	StatsdPort          int    `toml:"statsd_port"`
+// 	// 	EnableRuntimeMetric bool   `toml:"enable_runtime_metric"`
+// 	// 	Debug               bool   `toml:"debug"`
+// 	// } `toml:"trace_config,omitempty"`
+
+// 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
+// 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
+
+// 	EnableElection bool `toml:"enable_election"`
+// 	Disable404Page bool `toml:"disable_404page"`
+
+// 	// Trace *trace.Tracer `toml:"trace,omitempty"`
+
+// 	IOCacheCount int64 `toml:"io_cache_count"`
+
+// 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
+// }
+
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
 		GlobalTags: map[string]string{
@@ -40,6 +94,14 @@ func DefaultConfig() *Config {
 			"cluster": "",
 			"site":    "",
 		},
+
+		// Trace: &trace.TraceOption{
+		// 	Enabled: false,
+		// 	Host:    "localhost",
+		// 	Port:    9529,
+		// 	Debug:   false,
+		// 	logger:  ddLog{},
+		// },
 
 		DataWay: &dataway.DataWayCfg{},
 
@@ -154,7 +216,6 @@ func (c *Config) LoadMainTOML(p string) error {
 		return err
 	}
 
-	// 由于 datakit UUID 不再重要, 出错也不管了
 	_ = c.SetUUID()
 
 	return nil
