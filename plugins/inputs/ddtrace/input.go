@@ -37,19 +37,19 @@ var (
     # ignore_tags_list = []
     ## Sample target, program will search this [tag, value] pair for sampling purpose.
     # [inputs.ddtrace.sample_configs.target]
-    # tag = "value"
+    # env = "prod"
 
   ## Sub item in sample_configs list with priority 2.
   # [[inputs.ddtrace.sample_configs]]
     ## Sample rate, how many tracing data will be sampled.
-    # rate = 10
+    # rate = 100
     ## Sample scope, the range that will consider to be covered by sample function.
-    # scope = 100
+    # scope = 1000
     ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
     # ignore_tags_list = []
     ## Sample target, program will search this [tag, value] pair for sampling purpose.
     # [inputs.ddtrace.sample_configs.target]
-    # tag = "value"
+    # env = "dev"
 
   ## ...
 
