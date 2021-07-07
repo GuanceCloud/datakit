@@ -190,7 +190,7 @@ func (i *Input) Resume() error {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			paused:  true,
+			paused:  false,
 			chpause: make(chan bool),
 		}
 	})
