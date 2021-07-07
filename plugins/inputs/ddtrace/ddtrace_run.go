@@ -193,7 +193,11 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 	// defDDTraceMock.statistic(ddspans, pts)
 	// return nil
 
-	return dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true})
+	if len(pts) == 0 {
+		return nil
+	} else {
+		return dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true})
+	}
 }
 
 func unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*Span, error) {
