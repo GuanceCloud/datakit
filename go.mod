@@ -62,7 +62,7 @@ require (
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.26.0
+	github.com/prometheus/common v0.29.0
 	github.com/prometheus/procfs v0.6.0
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -82,18 +82,19 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210621103313-53d96bc7b8b2
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210707061510-4e1b444d2b4f
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210603111111-890a3501d71c
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
 	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
 	golang.org/x/text v0.3.6
-	google.golang.org/grpc v1.28.0
-	google.golang.org/protobuf v1.26.0
+	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
+	google.golang.org/grpc v1.31.0
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 	gopkg.in/yaml.v2 v2.4.0
