@@ -17,7 +17,6 @@ import (
 )
 
 var (
-
 	// envVarRe is a regex to find environment variables in the config file
 	envVarRe      = regexp.MustCompile(`\$\{(\w+)\}|\$(\w+)`)
 	envVarEscaper = strings.NewReplacer(
