@@ -78,6 +78,7 @@ var (
 		"httpstat":               true,
 		"huaweiyunces":           true,
 		"huaweiyunobject":        true,
+		"iis":                    true,
 		"jenkins":                true,
 		"jira":                   true,
 		"jvm":                    true,
