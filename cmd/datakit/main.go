@@ -22,7 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
