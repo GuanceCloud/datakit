@@ -147,10 +147,11 @@ func searchDatakitInputCfg(c *Config,
 				}
 
 			default: // compatible with old version: no [[inputs.xxx]] header
-				inputlist, err = TryUnmarshal(node, name, creator)
-				if err != nil {
-					l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
-				}
+				l.Debugf("ignore field %s in file %s", field, fp)
+				//inputlist, err = TryUnmarshal(node, name, creator)
+				//if err != nil {
+				//	l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
+				//}
 			}
 		}
 	}
@@ -201,7 +202,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 		input := creator()
 		err = toml.UnmarshalTable(t, input)
 		if err != nil {
-			l.Errorf("toml unmarshal %s failed: %v", name, err)
+			l.Warnf("toml unmarshal %s failed: %v", name, err)
 			continue
 		}
 
