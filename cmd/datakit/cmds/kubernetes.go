@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/sprig"
 	"github.com/c-bata/go-prompt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds/kube"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -105,7 +106,7 @@ type Option struct {
 }
 
 func (k *KubeDeploy) buildConfig(name string, opt *Option) error {
-	ver := git.Version
+	ver := datakit.Version
 	c, ok := inputs.Inputs[name]
 	if !ok {
 		return fmt.Errorf("intput %s not found", name)
