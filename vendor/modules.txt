@@ -1,6 +1,8 @@
 # code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 ## explicit
 code.cloudfoundry.org/bytefmt
+# github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
+## explicit
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
@@ -137,10 +139,7 @@ github.com/chromedp/chromedp/kb
 # github.com/chromedp/sysutil v1.0.0
 github.com/chromedp/sysutil
 # github.com/containerd/containerd v1.4.1
-<<<<<<< HEAD
-=======
 ## explicit
->>>>>>> dev
 github.com/containerd/containerd/errdefs
 # github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 github.com/danwakefield/fnmatch
@@ -301,11 +300,7 @@ github.com/gomarkdown/markdown
 github.com/gomarkdown/markdown/ast
 github.com/gomarkdown/markdown/html
 github.com/gomarkdown/markdown/parser
-<<<<<<< HEAD
 # github.com/google/gofuzz v1.2.0
-=======
-# github.com/google/gofuzz v1.0.0
->>>>>>> dev
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
 # github.com/google/gopacket v1.1.17
@@ -424,21 +419,15 @@ github.com/mitchellh/reflectwalk
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
-<<<<<<< HEAD
-=======
 # github.com/morikuni/aec v1.0.0
 ## explicit
->>>>>>> dev
 # github.com/mssola/user_agent v0.5.2
 ## explicit
 github.com/mssola/user_agent
 # github.com/naoina/go-stringutil v0.1.0
 github.com/naoina/go-stringutil
-<<<<<<< HEAD
-=======
 # github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e
 ## explicit
->>>>>>> dev
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit
 github.com/opencontainers/go-digest
@@ -449,11 +438,9 @@ github.com/opencontainers/image-spec/specs-go/v1
 ## explicit
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/proto/v2
-<<<<<<< HEAD
 # github.com/philhofer/fwd v1.1.1
+## explicit
 github.com/philhofer/fwd
-=======
->>>>>>> dev
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pkg/sftp v1.11.0
@@ -471,33 +458,24 @@ github.com/prometheus/client_model/go
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
-<<<<<<< HEAD
-=======
 # github.com/prometheus/procfs v0.6.0
 ## explicit
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
->>>>>>> dev
 # github.com/prometheus/prometheus v2.5.0+incompatible
 ## explicit
 github.com/prometheus/prometheus/util/strutil
 # github.com/rivo/uniseg v0.2.0
 ## explicit
 github.com/rivo/uniseg
-<<<<<<< HEAD
-=======
 # github.com/rogpeppe/go-internal v1.8.0
 ## explicit
->>>>>>> dev
 # github.com/rs/xid v1.3.0
 ## explicit
 github.com/rs/xid
-<<<<<<< HEAD
-=======
 # github.com/sergi/go-diff v1.0.1-0.20180205163309-da645544ed44
 ## explicit
->>>>>>> dev
 # github.com/shirou/gopsutil v3.20.12+incompatible
 ## explicit
 github.com/shirou/gopsutil/cpu
@@ -534,11 +512,8 @@ github.com/tidwall/gjson
 github.com/tidwall/match
 # github.com/tidwall/pretty v1.1.0
 github.com/tidwall/pretty
-<<<<<<< HEAD
 # github.com/tinylib/msgp v1.1.2
 github.com/tinylib/msgp/msgp
-=======
->>>>>>> dev
 # github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
 ## explicit
 github.com/tweekmonster/luser
@@ -548,12 +523,8 @@ github.com/uber/jaeger-client-go/thrift
 github.com/uber/jaeger-client-go/thrift-gen/agent
 github.com/uber/jaeger-client-go/thrift-gen/jaeger
 github.com/uber/jaeger-client-go/thrift-gen/zipkincore
-<<<<<<< HEAD
-# github.com/ugorji/go/codec v1.2.4
-=======
 # github.com/ugorji/go/codec v1.2.6
 ## explicit
->>>>>>> dev
 github.com/ugorji/go/codec
 # github.com/vjeantet/grok v1.0.0
 ## explicit
@@ -572,12 +543,8 @@ github.com/yuin/goldmark/util
 # github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 ## explicit
 github.com/yuin/goldmark-highlighting
-<<<<<<< HEAD
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210621103313-53d96bc7b8b2
-=======
 # gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210707061510-4e1b444d2b4f
 ## explicit
->>>>>>> dev
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
@@ -616,12 +583,8 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-<<<<<<< HEAD
-# golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
-=======
 # golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 ## explicit
->>>>>>> dev
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
@@ -646,14 +609,10 @@ golang.org/x/image/tiff/lzw
 golang.org/x/image/vp8
 golang.org/x/image/vp8l
 golang.org/x/image/webp
-<<<<<<< HEAD
-# golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
-=======
 # golang.org/x/mod v0.4.2
 ## explicit
 # golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 ## explicit
->>>>>>> dev
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -666,12 +625,6 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
-<<<<<<< HEAD
-# golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-golang.org/x/oauth2
-golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20210525143221-35b2ab0089ea
-=======
 # golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
@@ -679,7 +632,6 @@ golang.org/x/oauth2/internal
 ## explicit
 # golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
 ## explicit
->>>>>>> dev
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
@@ -692,35 +644,25 @@ golang.org/x/sys/windows/svc/mgr
 # golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
 ## explicit
 golang.org/x/term
-<<<<<<< HEAD
-# golang.org/x/text v0.3.4
-=======
 # golang.org/x/text v0.3.6
 ## explicit
->>>>>>> dev
 golang.org/x/text/encoding
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/unicode
-<<<<<<< HEAD
-=======
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
->>>>>>> dev
 golang.org/x/text/internal/utf8internal
+golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-<<<<<<< HEAD
-# golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
-=======
 # golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6
 ## explicit
->>>>>>> dev
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
@@ -810,10 +752,8 @@ google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
-<<<<<<< HEAD
 # gopkg.in/DataDog/dd-trace-go.v1 v1.31.1
-gopkg.in/DataDog/dd-trace-go.v1/contrib/internal/httputil
-gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http
+## explicit
 gopkg.in/DataDog/dd-trace-go.v1/ddtrace
 gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext
 gopkg.in/DataDog/dd-trace-go.v1/ddtrace/internal
@@ -822,10 +762,8 @@ gopkg.in/DataDog/dd-trace-go.v1/internal
 gopkg.in/DataDog/dd-trace-go.v1/internal/globalconfig
 gopkg.in/DataDog/dd-trace-go.v1/internal/log
 gopkg.in/DataDog/dd-trace-go.v1/internal/version
-=======
 # gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 ## explicit
->>>>>>> dev
 # gopkg.in/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
 # gopkg.in/inf.v0 v0.9.1
