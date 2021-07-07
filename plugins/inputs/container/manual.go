@@ -75,6 +75,7 @@ func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"pod_namesapce":     inputs.NewTagInfo(`pod 命名空间`),
 		},
 		Fields: map[string]interface{}{
+			"process":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "容器进程列表，即运行命令`ps -ef`所得，内容为 JSON 字符串，格式是 map 数组"},
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: `该容器创建时长，单位秒`},
 			"from_kubernetes":    &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "该容器是否由 Kubernetes 创建（deprecated）"},
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
