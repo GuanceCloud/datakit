@@ -148,7 +148,7 @@ func (d *dockerClient) Object(ctx context.Context, in chan<- *job) {
 		}
 
 		result.addTag("name", c.ID)
-		if hostname, err := d.getContainerHostname(ctx, c.ID); err != nil {
+		if hostname, err := d.getContainerHostname(c.ID); err != nil {
 			result.addTag("container_host", hostname)
 		}
 		result.addTag("status", c.Status)
@@ -159,6 +159,12 @@ func (d *dockerClient) Object(ctx context.Context, in chan<- *job) {
 			l.Warnf("failed of marshal json, %s", err)
 		} else {
 			result.addField("message", string(message))
+		}
+
+		if process, err := d.gatherSingleContainerProcessToJSON(c); err != nil {
+			l.Debug(err)
+		} else {
+			result.addField("process", process)
 		}
 
 		result.setObject()
@@ -200,7 +206,7 @@ func (d *dockerClient) gather(container types.Container) (*job, error) {
 	// 注意，此处如果没有 fields，构建 point 会失败
 	// 需要在上层手动 addFiedls
 	if container.State == "running" {
-		fields, err = d.gatherSingleContainerStats(context.Background(), container)
+		fields, err = d.gatherSingleContainerStats(container)
 		if err != nil {
 			l.Error(err)
 			return nil, err
@@ -254,13 +260,52 @@ func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[
 	return tags
 }
 
+func (d *dockerClient) gatherSingleContainerProcess(container types.Container) ([]map[string]string, error) {
+	// query parameters: top
+	// default "-ef"
+	// The arguments to pass to ps. For example, aux
+	top, err := d.client.ContainerTop(context.TODO(), container.ID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []map[string]string
+
+	for _, proc := range top.Processes {
+		if len(proc) != len(top.Titles) {
+			continue
+		}
+
+		var p = make(map[string]string)
+
+		for idx, title := range top.Titles {
+			p[title] = proc[idx]
+		}
+
+		res = append(res, p)
+	}
+
+	return res, nil
+}
+
+func (d *dockerClient) gatherSingleContainerProcessToJSON(container types.Container) (string, error) {
+	process, err := d.gatherSingleContainerProcess(container)
+	if err != nil {
+		return "", err
+	}
+
+	j, err := json.Marshal(process)
+	if err != nil {
+		return "", err
+	}
+
+	return string(j), nil
+}
+
 const streamStats = false
 
-func (d *dockerClient) gatherSingleContainerStats(ctx context.Context, container types.Container) (map[string]interface{}, error) {
-	ctx, cancel := context.WithTimeout(ctx, apiTimeoutDuration)
-	defer cancel()
-
-	resp, err := d.client.ContainerStats(ctx, container.ID, streamStats)
+func (d *dockerClient) gatherSingleContainerStats(container types.Container) (map[string]interface{}, error) {
+	resp, err := d.client.ContainerStats(context.TODO(), container.ID, streamStats)
 	if err != nil {
 		return nil, err
 	}
@@ -300,8 +345,8 @@ func (d *dockerClient) calculateContainerStats(v *types.StatsJSON) map[string]in
 	}
 }
 
-func (d *dockerClient) getContainerHostname(ctx context.Context, id string) (string, error) {
-	containerJson, err := d.client.ContainerInspect(context.Background(), id)
+func (d *dockerClient) getContainerHostname(id string) (string, error) {
+	containerJson, err := d.client.ContainerInspect(context.TODO(), id)
 	if err != nil {
 		return "", err
 	}
