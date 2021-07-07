@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
@@ -57,6 +58,8 @@ type DataWayCfg struct {
 
 	ontest bool
 }
+
+type Option func(cnf *DataWayCfg)
 
 type dataWayClient struct {
 	url         string
@@ -154,6 +157,19 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	}
 
 	return nil
+}
+
+func (dc *dataWayClient) sendWithTracing(cli *http.Client, category string, data []byte, gz bool) error {
+	l.Info("send data with tracing")
+
+	tracer.GlobalTracer.Start()
+	defer tracer.GlobalTracer.Stop()
+
+	span := tracer.GlobalTracer.StartSpan("send")
+	err := dc.send(cli, category, data, gz)
+	span.Finish(tracer.WithFinishTime(time.Now()), tracer.WithError(err))
+
+	return err
 }
 
 func (dc *dataWayClient) getLogFilter(cli *http.Client) ([]byte, error) {
@@ -310,7 +326,10 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 
 	for i, dc := range dw.dataWayClients {
 		l.Debugf("send to %dth dataway", i)
-		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
+		// if err := dc.send(dw.httpCli, category, data, gz); err != nil {
+		// 	return err
+		// }
+		if err := dc.sendWithTracing(dw.httpCli, category, data, gz); err != nil {
 			return err
 		}
 	}

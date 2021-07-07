@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -110,7 +109,7 @@ ReleasedInputs: %s
 
 func getLocalVersion(ver string) (*version.VerInfo, error) {
 	v := &version.VerInfo{
-		VersionString: strings.TrimPrefix(datakit.Version, "v"),
+		VersionString: strings.TrimPrefix(ver, "v"),
 		Commit:        git.Commit,
 		ReleaseDate:   git.BuildAt}
 	if err := v.Parse(); err != nil {
