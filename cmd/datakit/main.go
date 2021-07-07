@@ -128,6 +128,7 @@ func setupFlags() {
 }
 
 func main() {
+	datakit.Version = ReleaseVersion
 
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
@@ -199,14 +200,14 @@ func run() {
 				cmds.Reload()
 			} else {
 				l.Infof("get signal %v, wait & exit", sig)
-				http.HttpStop()
+				dkhttp.HttpStop()
 				datakit.Quit()
 				break
 			}
 
 		case <-service.StopCh:
 			l.Infof("service stopping")
-			http.HttpStop()
+			dkhttp.HttpStop()
 			datakit.Quit()
 			break
 		}
@@ -243,12 +244,18 @@ func doRun() error {
 		return err
 	}
 
-	http.Start(&http.Option{
+	dkhttp.Start(&dkhttp.Option{
 		Bind:           config.Cfg.HTTPListen,
 		GinLog:         config.Cfg.GinLog,
 		GinReleaseMode: strings.ToLower(config.Cfg.LogLevel) != "debug",
 		PProf:          config.Cfg.EnablePProf,
 	})
+
+	time.Sleep(time.Second) // wait http server ok
+	// if config.Cfg.Trace != nil && config.Cfg.Trace.Enabled {
+	// 	config.Cfg.Trace.Start()
+	// 	defer config.Cfg.Trace.Stop()
+	// }
 
 	return nil
 }
