@@ -168,15 +168,38 @@ func checkTags(tags map[string]string) error {
 		if strings.HasSuffix(v, `\`) {
 			return fmt.Errorf("invalid tag value `%s'", v)
 		}
+
+		if strings.Contains(v, "\n") {
+			return fmt.Errorf("invalid tag value `%s': found new line", v)
+		}
+
+		if strings.Contains(k, "\n") {
+			return fmt.Errorf("invalid tag key `%s': found new line", k)
+		}
 	}
 
 	return nil
 }
 
+// Remove all `\` suffix on key/val
+// Replace all `\n` with ` `
 func adjustTags(tags map[string]string) (res map[string]string) {
 	res = map[string]string{}
 	for k, v := range tags {
-		res[trimSuffixAll(k, `\`)] = trimSuffixAll(v, `\`)
+		if strings.HasSuffix(k, `\`) {
+			delete(tags, k)
+			k = trimSuffixAll(k, `\`)
+			tags[k] = v
+		}
+
+		if strings.Contains(k, "\n") {
+			delete(tags, k)
+			k = strings.Replace(k, "\n", " ", -1)
+			tags[k] = v
+		}
+
+		res[k] = strings.Replace(trimSuffixAll(v, `\`), "\n", " ", -1)
 	}
+
 	return
 }
