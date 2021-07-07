@@ -44,7 +44,7 @@ type DatakitStats struct {
 
 	Reload     time.Time `json:"reload"`
 	ReloadCnt  int       `json:"reload_cnt"`
-	ReloadInfo string    `json:"reload"`
+	ReloadInfo string    `json:"reload_info"`
 
 	WithinDocker bool   `json:"docker"`
 	IOChanStat   string `json:"io_chan_stats"`
