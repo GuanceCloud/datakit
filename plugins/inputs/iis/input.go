@@ -1,4 +1,4 @@
-// +build windows
+// +build windows,amd64
 
 package iis
 
@@ -92,6 +92,7 @@ func (i *Input) Run() {
 				l.Error(err)
 				io.FeedLastError(inputName, err.Error())
 			}
+			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
 			l.Infof("iis input exit")
 			return
