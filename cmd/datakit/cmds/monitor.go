@@ -13,7 +13,7 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
-func CMDMonitor(intervalStr, addrStr string) {
+func CMDMonitor(intervalStr, addrStr string, verbose bool) {
 	addr := "http://localhost:9529/stats"
 	if addrStr != "" {
 		addr = "http://" + addrStr + "/stats"
@@ -34,7 +34,7 @@ func CMDMonitor(intervalStr, addrStr string) {
 		case <-tick.C:
 			fmt.Print("\033[H\033[2J") // clean screen
 
-			x, err := doCMDMonitor(addr)
+			x, err := doCMDMonitor(addr, verbose)
 			if err != nil {
 				fmt.Println(err.Error())
 			} else {
@@ -45,7 +45,7 @@ func CMDMonitor(intervalStr, addrStr string) {
 	}
 }
 
-func doCMDMonitor(url string) ([]byte, error) {
+func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func doCMDMonitor(url string) ([]byte, error) {
 
 	l.Debugf("stats.ReloadInfo: %s", ds.ReloadInfo)
 
-	mdtxt, err := ds.Markdown("")
+	mdtxt, err := ds.Markdown("", verbose)
 	if err != nil {
 		return nil, err
 	}
