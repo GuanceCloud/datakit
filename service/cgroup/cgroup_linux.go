@@ -18,8 +18,8 @@ var (
 
 func start() {
 	// config.Cfg.Cgroup 是百分比
-	high := config.Cfg.Cgroup.CPUMax / 100
-	low := config.Cfg.Cgroup.CPUMin / 100
+	high := config.Cfg.Cgroup.CPUMax * float64(runtime.NumCPU()) / 100
+	low := config.Cfg.Cgroup.CPUMin * float64(runtime.NumCPU()) / 100
 
 	quotaHigh := int64(float64(period) * high)
 	quotaLow := int64(float64(period) * low)
@@ -58,7 +58,7 @@ func start() {
 
 		var q int64
 
-		if 1 < percpu+high {
+		if 100 < percpu+high {
 			if level == "low" {
 				continue
 			}
