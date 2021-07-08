@@ -59,6 +59,8 @@ type DatakitStats struct {
 
 var (
 	part1 = `
+## 基本信息
+
 - 版本       : {{.Version}}
 - 运行时间   : {{.Uptime}}
 - 发布日期   : {{.BuildAt}}
@@ -72,24 +74,28 @@ var (
 	`
 
 	part2 = `
+## 采集器运行情况
+
 {{.InputsStatsTable}}
 `
 
 	part3 = `
+## 采集器配置情况
+
 {{.InputsConfTable}}
 `
 
-	fullMonitorTmpl = `
+	verboseMonitorTmpl = `
 {{.CSS}}
 
 # DataKit 运行展示
-` + `
-## 基本信息
-` + part1 + `
-## 采集器运行情况
-` + part2 + `
-## 采集器配置情况
-` + part3
+` + part1 + part2 + part3
+
+	monitorTmpl = `
+{{.CSS}}
+
+# DataKit 运行展示
+` + part1 + part2
 )
 
 var (
@@ -259,9 +265,12 @@ func GetStats() (*DatakitStats, error) {
 	return stats, nil
 }
 
-func (ds *DatakitStats) Markdown(css string) ([]byte, error) {
+func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 
-	tmpl := fullMonitorTmpl
+	tmpl := monitorTmpl
+	if verbose {
+		tmpl = verboseMonitorTmpl
+	}
 
 	temp, err := template.New("").Parse(tmpl)
 	if err != nil {
@@ -287,7 +296,7 @@ func apiGetDatakitMonitor(c *gin.Context) {
 		return
 	}
 
-	mdbytes, err := s.Markdown(man.MarkdownCSS)
+	mdbytes, err := s.Markdown(man.MarkdownCSS, true)
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return
