@@ -15,6 +15,7 @@ require (
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
+	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/containerd v1.4.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
@@ -59,6 +60,7 @@ require (
 	github.com/mssola/user_agent v0.5.2
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/sftp v1.11.0
