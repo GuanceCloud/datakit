@@ -48,7 +48,7 @@
 // Tiago Carvalho <sugoiuguu@tfwno.gf>
 // wsf01 <wf1337@sina.com>
 
-// +build windows
+// +build windows,amd64
 
 package pdh
 
