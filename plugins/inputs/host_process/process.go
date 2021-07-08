@@ -299,6 +299,9 @@ func (p *Input) WriteObject() {
 				l.Errorf("[error] process new pipeline err:%s", err.Error())
 			}
 		}
+		if len(fields) == 0 {
+			continue
+		}
 		obj := &ProcessObject{
 			name:   inputName,
 			tags:   tags,
@@ -306,6 +309,9 @@ func (p *Input) WriteObject() {
 			ts:     t,
 		}
 		collectCache = append(collectCache, obj)
+	}
+	if len(collectCache) == 0 {
+		return
 	}
 	if err := inputs.FeedMeasurement(inputName, datakit.Object, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
@@ -341,7 +347,13 @@ func (p *Input) WriteMetric() {
 			fields: fields,
 			ts:     t,
 		}
+		if len(fields) == 0 {
+			continue
+		}
 		collectCache = append(collectCache, metric)
+	}
+	if len(collectCache) == 0 {
+		return
 	}
 	if err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(t)}); err != nil {
 		l.Errorf("FeedMeasurement err :%s", err.Error())
