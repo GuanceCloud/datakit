@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
@@ -99,6 +98,8 @@ func (t *Tracer) Start(opts ...Option) {
 		return
 	}
 
+	t.addr = fmt.Sprintf("%s:%d", t.Host, t.Port)
+
 	sopts := []tracer.StartOption{
 		tracer.WithEnv("prod"),
 		tracer.WithService(t.Service),
@@ -128,6 +129,6 @@ func (t *Tracer) Stop() {
 	}
 }
 
-func init() {
-	GlobalTracer = newTracer(WithService("datakit", git.Version), WithEnable(true), WithAgentAddr("10.200.7.21", 9529), WithDebug(true), WithLogger(DDLog{}))
-}
+// func init() {
+// 	GlobalTracer = newTracer(WithService("datakit", git.Version), WithEnable(false), WithAgentAddr("10.200.7.21", 9529), WithDebug(true), WithLogger(DDLog{}))
+// }
