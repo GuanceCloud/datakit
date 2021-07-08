@@ -64,6 +64,7 @@ func DefaultConfig() *Config {
 		WhiteList: []*inputHostList{
 			&inputHostList{Hosts: []string{}, Inputs: []string{}},
 		},
+		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
@@ -73,6 +74,12 @@ func DefaultConfig() *Config {
 	}
 
 	return c
+}
+
+type Cgroup struct {
+	Enable bool    `toml:"enable"`
+	CPUMax float64 `toml:"cpu_max"`
+	CPUMin float64 `toml:"cpu_min"`
 }
 
 type Config struct {
@@ -107,6 +114,7 @@ type Config struct {
 
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
+	Cgroup    *Cgroup          `toml:"cgroup"`
 
 	EnableElection bool           `toml:"enable_election"`
 	Disable404Page bool           `toml:"disable_404page"`
