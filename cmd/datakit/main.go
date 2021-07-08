@@ -28,6 +28,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service/cgroup"
 )
 
 var (
@@ -153,6 +154,7 @@ func main() {
 	if *flagDocker {
 		run()
 	} else {
+		go cgroup.Run()
 		service.Entry = run
 		if err := service.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
