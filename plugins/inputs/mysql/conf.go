@@ -21,6 +21,12 @@ const (
     ## @param inno_db
     innodb = true
 
+    ## table_schema
+    tables = []
+
+    ## user
+    users = []
+
     [inputs.mysql.log]
     ## required, glob logfiles
     #files = ["/var/log/mysql/*.log"]
