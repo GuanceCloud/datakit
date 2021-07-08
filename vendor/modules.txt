@@ -138,9 +138,15 @@ github.com/chromedp/chromedp/device
 github.com/chromedp/chromedp/kb
 # github.com/chromedp/sysutil v1.0.0
 github.com/chromedp/sysutil
+# github.com/containerd/cgroups v1.0.1
+## explicit
+github.com/containerd/cgroups
+github.com/containerd/cgroups/stats/v1
 # github.com/containerd/containerd v1.4.1
 ## explicit
 github.com/containerd/containerd/errdefs
+# github.com/coreos/go-systemd/v22 v22.1.0
+github.com/coreos/go-systemd/v22/dbus
 # github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 github.com/danwakefield/fnmatch
 # github.com/davecgh/go-spew v1.1.1
@@ -273,6 +279,8 @@ github.com/gobwas/pool/pbytes
 # github.com/gobwas/ws v1.1.0-rc.5
 github.com/gobwas/ws
 github.com/gobwas/ws/wsutil
+# github.com/godbus/dbus/v5 v5.0.3
+github.com/godbus/dbus/v5
 # github.com/godror/godror v0.17.0
 ## explicit
 github.com/godror/godror
@@ -282,8 +290,10 @@ github.com/godror/godror/odpi/src
 # github.com/gofrs/flock v0.8.0
 ## explicit
 github.com/gofrs/flock
-# github.com/gogo/protobuf v1.3.1
+# github.com/gogo/protobuf v1.3.2
+github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
+github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
@@ -434,6 +444,9 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
+# github.com/opencontainers/runtime-spec v1.0.2
+## explicit
+github.com/opencontainers/runtime-spec/specs-go
 # github.com/openzipkin/zipkin-go v0.2.2
 ## explicit
 github.com/openzipkin/zipkin-go/model
