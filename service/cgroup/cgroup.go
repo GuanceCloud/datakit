@@ -16,38 +16,5 @@ func Run() {
 		return
 	}
 
-	go func() {
-		for {
-		}
-	}()
-	go func() {
-		for {
-		}
-	}()
-	go func() {
-		for {
-		}
-	}()
-	go func() {
-		for {
-		}
-	}()
-	go func() {
-		for {
-		}
-	}()
-	go func() {
-		for {
-		}
-	}()
-	go func() {
-		for {
-		}
-	}()
-	go func() {
-		for {
-		}
-	}()
-
 	start()
 }
