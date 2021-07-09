@@ -88,7 +88,7 @@ var (
 	// utils
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
-	flagMonitor       = flag.Bool("monitor", false, "show monitor info of current datakit")
+	flagMonitor       = flag.BoolP("monitor", "M", false, "show monitor info of current datakit")
 	flagCheckConfig   = flag.Bool("check-config", false, "check inputs configure and main configure")
 	flagVVV           = flag.Bool("vvv", false, "more verbose info")
 	flagCmdLogPath    = flag.String("cmd-log", "/dev/null", "command line log path")
