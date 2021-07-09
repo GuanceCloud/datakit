@@ -19,6 +19,10 @@ var (
 	highFreqCleanInterval = time.Millisecond * 500
 )
 
+const (
+	minGZSize = 1024
+)
+
 type Option struct {
 	CollectCost time.Duration
 	HighFreq    bool
@@ -31,11 +35,6 @@ type Option struct {
 type lastErr struct {
 	from, err string
 	ts        time.Time
-}
-
-type qstats struct {
-	qid string
-	ch  chan map[string]*InputsStat
 }
 
 type IO struct {
@@ -51,7 +50,7 @@ type IO struct {
 	inLastErr chan *lastErr
 
 	inputstats map[string]*InputsStat
-	qstatsCh   chan *qstats
+	qstatsCh   chan *qinputStats
 
 	cache        map[string][]*Point
 	dynamicCache map[string][]*Point
@@ -72,7 +71,7 @@ func NewIO() *IO {
 		inLastErr:          make(chan *lastErr, 128),
 
 		inputstats: map[string]*InputsStat{},
-		qstatsCh:   make(chan *qstats), // blocking
+		qstatsCh:   make(chan *qinputStats), // blocking
 
 		cache:        map[string][]*Point{},
 		dynamicCache: map[string][]*Point{},
@@ -83,35 +82,12 @@ func NewIO() *IO {
 	return x
 }
 
-const (
-	minGZSize = 1024
-)
-
 type iodata struct {
 	category, name string
 	opt            *Option
 	pts            []*Point
 	url            string
 	isProxy        bool
-}
-
-type InputsStat struct {
-	//Name      string    `json:"name"`
-	Category  string    `json:"category"`
-	Frequency string    `json:"frequency,omitempty"`
-	AvgSize   int64     `json:"avg_size"`
-	Total     int64     `json:"total"`
-	Count     int64     `json:"count"`
-	First     time.Time `json:"first"`
-	Last      time.Time `json:"last"`
-
-	LastErr   string    `json:"last_error,omitempty"`
-	LastErrTS time.Time `json:"last_error_ts,omitempty"`
-
-	MaxCollectCost time.Duration `json:"max_collect_cost"`
-	AvgCollectCost time.Duration `json:"avg_collect_cost"`
-
-	totalCost time.Duration `json:"-"`
 }
 
 func TestOutput() {
@@ -337,14 +313,6 @@ func (x *IO) StartIO(recoverable bool) {
 
 	l.Info("starting...")
 	f(nil, nil)
-}
-
-func dumpStats(is map[string]*InputsStat) (res map[string]*InputsStat) {
-	res = map[string]*InputsStat{}
-	for x, y := range is {
-		res[x] = y
-	}
-	return
 }
 
 func (x *IO) flushAll() {
