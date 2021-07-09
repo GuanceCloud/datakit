@@ -420,6 +420,35 @@ $ sudo datakit --install sec-checker  # 该命名即将废弃
 
 安装成功后会自动运行，Security Checker 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install) 
 
+### DataKit 限制运行资源
+
+通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），仅支持 linux 操作系统。
+
+进入 DataKit 安装目录下的 `conf.d` 目录，修改 `datakit.conf` 配置文件，将 `enable` 设置为 `true`，示例如下：
+
+```
+[cgroup]
+  # 是否开启资源限制，默认关闭
+  enable = true
+
+  # 允许 CPU 最大使用率（百分制）
+  cpu_max = 40.0
+
+  # 允许 CPU 最使用率（百分制）
+  cpu_min = 5.0
+```
+
+配置好后，重启 DataKit 即可。
+
+#### CPU使用率说明
+
+DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用的 CPU 资源。假设现在 CPU 使用率较高，DataKit 可能会将自身限制在 `cpu_min` 值以下，反之 CPU 较为空闲时，可能会将限制调整到 `cpu_max`。
+
+`cpu_max` 和 `cpu_min` 是正浮点数，且最大值不能超过 `100`。此值为主机 CPU 使用率，而非某个 CPU 核心使用率。
+
+例如 `cpu_max` 为 `40.0`，8 核心 CPU 满负载使用率为 `800%`，则 DataKit 能使用的最大 CPU 资源是 `800% * 40% = 320%` 左右，是占全局 CPU 资源的 40%，而非单核心 CPU 的 40%。
+
+
 ### 其它命令
 
 - 查看云属性数据
