@@ -16,6 +16,12 @@ func Run() {
 		return
 	}
 
+	if !(0 < config.Cfg.Cgroup.CPUMax && config.Cfg.Cgroup.CPUMax < 100) ||
+		!(0 < config.Cfg.Cgroup.CPUMin && config.Cfg.Cgroup.CPUMin < 100) {
+		l.Errorf("CPUMax and CPUMin should be in range of (0.0, 100.0)")
+		return
+	}
+
 	if config.Cfg.Cgroup.CPUMax < config.Cfg.Cgroup.CPUMin {
 		l.Errorf("CPUMin should less than CPUMax of the cgroup")
 		return
