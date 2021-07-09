@@ -1,5 +1,3 @@
-// +build windows,amd64
-
 package iis
 
 const (
