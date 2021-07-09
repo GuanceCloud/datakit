@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 
 	"golang.org/x/term"
@@ -14,7 +13,7 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
-func CMDMonitor(intervalStr, addrStr string) {
+func CMDMonitor(intervalStr, addrStr string, verbose bool) {
 	addr := "http://localhost:9529/stats"
 	if addrStr != "" {
 		addr = "http://" + addrStr + "/stats"
@@ -29,23 +28,24 @@ func CMDMonitor(intervalStr, addrStr string) {
 		}
 	}
 
+	tick := time.NewTicker(interval)
 	for {
+		select {
+		case <-tick.C:
+			fmt.Print("\033[H\033[2J") // clean screen
 
-		fmt.Print("\033[H\033[2J") // clean screen
-
-		x, err := doCMDMonitor(addr)
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(-1)
-		} else {
-			fmt.Println(string(x))
-			fmt.Printf("(Refresh at %s)Press ctrl+c to exit.\n", interval)
+			x, err := doCMDMonitor(addr, verbose)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println(string(x))
+				fmt.Printf("(Refresh at %s)Press ctrl+c to exit.\n", interval)
+			}
 		}
-		time.Sleep(interval)
 	}
 }
 
-func doCMDMonitor(url string) ([]byte, error) {
+func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,9 @@ func doCMDMonitor(url string) ([]byte, error) {
 		return nil, err
 	}
 
-	mdtxt, err := ds.Markdown("")
+	l.Debugf("stats.ReloadInfo: %s", ds.ReloadInfo)
+
+	mdtxt, err := ds.Markdown("", verbose)
 	if err != nil {
 		return nil, err
 	}

@@ -91,6 +91,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `platform_version` | 平台版本，如 `18.04`，即 Ubuntu 的某个分发版本 | string |
 | `kernel_release`   | 内核版本，如 `4.15.0-139-generic`              | string |
 | `arch`             | CPU 硬件架构，如 `x86_64/arm64` 等             | string |
+| `extra_cloud_meta` | 开启云同步时，会带上一串云属性的 JSON 数据     | string |
 
 #### `host.cpu`
 
