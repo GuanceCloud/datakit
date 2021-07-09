@@ -293,6 +293,11 @@ Tips：
 
 ```shell
 datakit --monitor
+# 或者
+datakit -M
+
+# 同时可查看采集器开启情况：
+datakit -M --vvv
 ```
 
 > 注：Windows 下暂不支持在终端查看 monitor 数据，只能在浏览器端查看。
@@ -422,7 +427,7 @@ $ sudo datakit --install sec-checker  # 该命名即将废弃
 
 ### DataKit 限制运行资源
 
-通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），仅支持 linux 操作系统。
+通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），仅支持 Linux 操作系统。
 
 进入 DataKit 安装目录下的 `conf.d` 目录，修改 `datakit.conf` 配置文件，将 `enable` 设置为 `true`，示例如下：
 
