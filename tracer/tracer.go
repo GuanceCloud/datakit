@@ -64,17 +64,14 @@ func WithError(err error) tracer.FinishOption {
 }
 
 type Tracer struct {
-	Service  string `toml:"service"`
-	Version  string `toml:"version"`
-	Enabled  bool   `toml:"enabled"`
-	Resource string `toml:"resource"`
-	Host     string `toml:"host"`
-	Port     int    `toml:"port"`
-	addr     string
-	// StatsdPort          int    `toml:"statsd_port"`
-	// EnableRuntimeMetric bool   `toml:"enable_runtime_metric"`
-	Debug  bool `toml:"debug"`
-	logger ddtrace.Logger
+	Service string `toml:"service"`
+	Version string `toml:"version"`
+	Enabled bool   `toml:"enabled"`
+	Host    string `toml:"host"`
+	Port    int    `toml:"port"`
+	addr    string
+	Debug   bool `toml:"debug"`
+	logger  ddtrace.Logger
 }
 
 func newTracer(enabled bool, opts ...Option) *Tracer {
@@ -94,8 +91,6 @@ func (t *Tracer) Start(opts ...Option) {
 	for _, opt := range opts {
 		opt(t)
 	}
-
-	t.addr = fmt.Sprintf("%s:%d", t.Host, t.Port)
 
 	t.addr = fmt.Sprintf("%s:%d", t.Host, t.Port)
 
@@ -132,7 +127,7 @@ func (t *Tracer) FinishSpan(span tracer.Span, opts ...ddtrace.FinishOption) {
 	}
 }
 
-func (t *Tracer) Middleware(opts ...Option) gin.HandlerFunc {
+func (t *Tracer) Middleware(resource string, opts ...Option) gin.HandlerFunc {
 	if !t.Enabled {
 		return func(c *gin.Context) {
 			c.Next()
@@ -145,7 +140,7 @@ func (t *Tracer) Middleware(opts ...Option) gin.HandlerFunc {
 		return func(c *gin.Context) {
 			ssopts := []ddtrace.StartSpanOption{
 				tracer.ServiceName(t.Service),
-				tracer.ResourceName(t.Resource),
+				tracer.ResourceName(resource),
 				tracer.SpanType(ext.SpanTypeWeb),
 				tracer.Tag(ext.HTTPMethod, c.Request.Method),
 				tracer.Tag(ext.HTTPURL, c.Request.URL.Path),
