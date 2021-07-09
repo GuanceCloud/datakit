@@ -58,7 +58,9 @@ func start() {
 
 		var q int64
 
-		if 100 < percpu+high {
+		// 当前 cpu 使用率 + 设定的最大使用率 超过 95% 时，将使用 low 模式
+		// 否则如果连续 3 次判断小于 95%，则使用 high 模式
+		if 95 < percpu+high {
 			if level == "low" {
 				continue
 			}
