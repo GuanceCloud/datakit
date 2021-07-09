@@ -64,6 +64,7 @@ var ddtraceSpanType = map[string]string{
 
 func DdtraceTraceHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("trace handle with path: %s", r.URL.Path)
+
 	defer func() {
 		if r := recover(); r != nil {
 			log.Errorf("Stack crash: %v", r)
@@ -152,9 +153,12 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 				tags[k] = v
 			}
 
-			// run trace data sample
-			if !trace.StaticTagsFilter(span.Meta, map[string]string{"_dd.origin": "rum"}, traceSampleConf.SampleFilter)(tags[trace.TAG_SPAN_STATUS], tags, fmt.Sprintf("%d", span.TraceID)) {
-				continue
+			// run tracing sample function
+			if conf := trace.TraceSampleMatcher(sampleConfs, tags); conf != nil {
+				log.Info(*conf)
+				if !trace.IgnoreErrSampleMW(tags[trace.TAG_SPAN_STATUS], trace.IgnoreKVPairsSampleMW(span.Meta, map[string]string{"_dd.origin": "rum"}, trace.IgnoreTagsSampleMW(tags, conf.IgnoreTagsList, trace.DefSampleFunc)))(span.TraceID, conf.Rate, conf.Scope) {
+					continue
+				}
 			}
 
 			field[trace.FIELD_RESOURCE] = span.Resource
@@ -185,11 +189,15 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			pts = append(pts, pt)
 		}
 	}
-	// for mock data statistic only, commit it out in production env
+	// // for mock data statistic only, commit it out in production env
 	// defDDTraceMock.statistic(ddspans, pts)
 	// return nil
 
-	return dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true})
+	if len(pts) == 0 {
+		return nil
+	} else {
+		return dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true})
+	}
 }
 
 func unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*Span, error) {

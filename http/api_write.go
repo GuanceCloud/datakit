@@ -110,10 +110,18 @@ func apiWrite(c *gin.Context) {
 		srcip := ""
 		if apiConfig != nil {
 			srcip = c.Request.Header.Get(apiConfig.RUMOriginIPHeader)
+			l.Debugf("get ip from %s: %s", apiConfig.RUMOriginIPHeader, srcip)
+			if srcip == "" {
+				for k, v := range c.Request.Header {
+					l.Debugf("%s: %s", k, strings.Join(v, ","))
+				}
+			}
+		} else {
+			l.Debugf("apiConfig not set")
 		}
 
 		if srcip != "" {
-			l.Debugf("header remote addr: %s", c.Request.RemoteAddr)
+			l.Debugf("header remote addr: %s", srcip)
 			parts := strings.Split(srcip, ",")
 			if len(parts) > 0 {
 				srcip = parts[0] // 注意：此处只取第一个 IP 作为源 IP
