@@ -61,11 +61,13 @@ type mysqllog struct {
 }
 
 type Input struct {
-	Host string `toml:"host"`
-	Port int    `toml:"port"`
-	User string `toml:"user"`
-	Pass string `toml:"pass"`
-	Sock string `toml:"sock"`
+	Host   string   `toml:"host"`
+	Port   int      `toml:"port"`
+	User   string   `toml:"user"`
+	Pass   string   `toml:"pass"`
+	Sock   string   `toml:"sock"`
+	Tables []string `toml:"tables"`
+	Users  []string `toml:"users"`
 
 	Charset string `toml:"charset"`
 
@@ -240,6 +242,16 @@ func (i *Input) collectInnodbMeasurement() ([]inputs.Measurement, error) {
 	return i.getInnodb()
 }
 
+// 获取tableSchema指标
+func (i *Input) collectTableSchemaMeasurement() ([]inputs.Measurement, error) {
+	return i.getTableSchema()
+}
+
+// 获取用户指标
+func (i *Input) collectUserMeasurement() ([]inputs.Measurement, error) {
+	return i.getUserData()
+}
+
 // 获取schema指标
 func (i *Input) collectSchemaMeasurement() ([]inputs.Measurement, error) {
 	x, err := i.getSchemaSize()
@@ -327,6 +339,8 @@ func (i *Input) Run() {
 		i.collectBaseMeasurement,
 		i.collectSchemaMeasurement,
 		i.customSchemaMeasurement,
+		i.collectTableSchemaMeasurement,
+		i.collectUserMeasurement,
 	}
 
 	if i.InnoDB {
@@ -359,6 +373,8 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&baseMeasurement{},
 		&schemaMeasurement{},
 		&innodbMeasurement{},
+		&tbMeasurement{},
+		&userMeasurement{},
 	}
 }
 

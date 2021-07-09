@@ -18,9 +18,9 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	//"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -42,22 +42,25 @@ type DatakitStats struct {
 	Uptime  string `json:"uptime"`
 	OSArch  string `json:"os_arch"`
 
-	Reload     time.Time `json:"reload,omitempty"`
+	Reload     time.Time `json:"reload"`
 	ReloadCnt  int       `json:"reload_cnt"`
-	ReloadInfo string    `json:"reload"`
+	ReloadInfo string    `json:"reload_info"`
 
 	WithinDocker bool   `json:"docker"`
 	IOChanStat   string `json:"io_chan_stats"`
+	Elected      string `json:"elected"`
+	AutoUpdate   bool   `json:"auto_update"`
 
 	// markdown options
-	DisableMonofont  bool `json:"-"`
-	DisableBasicInfo bool `json:"-"`
+	DisableMonofont bool `json:"-"`
 
 	CSS string `json:"-"`
 }
 
 var (
 	part1 = `
+## 基本信息
+
 - 版本       : {{.Version}}
 - 运行时间   : {{.Uptime}}
 - 发布日期   : {{.BuildAt}}
@@ -66,23 +69,33 @@ var (
 - 容器运行   : {{.WithinDocker}}
 - Reload 次数: {{.ReloadInfo}}
 - IO 消耗统计: {{.IOChanStat}}
+- 自动更新   ：{{.AutoUpdate}}
+- 选举状态   ：{{.Elected}}
 	`
 
 	part2 = `
+## 采集器运行情况
+
 {{.InputsStatsTable}}
 `
 
-	fullMonitorTmpl = `
+	part3 = `
+## 采集器配置情况
+
+{{.InputsConfTable}}
+`
+
+	verboseMonitorTmpl = `
 {{.CSS}}
 
 # DataKit 运行展示
-` + `
-## 基本信息
-` + part1 + `
-## 采集器运行情况
-` + part2
+` + part1 + part2 + part3
 
-	inputMonitorTmpl = part2
+	monitorTmpl = `
+{{.CSS}}
+
+# DataKit 运行展示
+` + part1 + part2
 )
 
 var (
@@ -98,87 +111,98 @@ var (
 	}
 )
 
-func (x *DatakitStats) InputsStatsTable() string {
-
+func (x *DatakitStats) InputsConfTable() string {
 	const (
 		tblHeader = `
-| 采集器 | 实例个数 | 数据类型 | 频率   | 平均 IO 大小 | 总次数 | 点数  | 首次采集 | 最近采集 | 当前错误(时间) | 平均采集消耗 | 最大采集消耗 | 奔溃次数 |
-| ----   | :----:   | :----:   | :----: | :----:       | :----: | :---: | :----:   | :---:    | :----:         | :----:       | :---:        | :----:   |
+| 采集器 | 实例个数 | 奔溃次数 |
+| ----   | :----:   |  :----:  |
 `
 	)
 
-	var rowFmt = "|`%s`|%d|`%s`|%s|%d|%d|%d|%s|%s|`%s`(%s)|%s|%s|%d|"
+	var rowFmt = "|`%s`|%d|%d|"
 	if x.DisableMonofont {
-		rowFmt = "|%s|%d|%s|%s|%d|%d|%d|%s|%s|%s(%s)|%s|%s|%d|"
+		rowFmt = "|%s|%d|%d|"
 	}
 
 	if len(x.EnabledInputs) == 0 {
 		return "没有开启任何采集器"
 	}
 
+	rows := []string{}
+	for _, v := range x.EnabledInputs {
+		rows = append(rows, fmt.Sprintf(rowFmt,
+			v.Input,
+			v.Instances,
+			v.Panics,
+		))
+	}
+
+	sort.Strings(rows)
+	return tblHeader + strings.Join(rows, "\n")
+}
+
+func (x *DatakitStats) InputsStatsTable() string {
+
+	const (
+		tblHeader = `
+| 采集器 | 数据类型 | 频率   | 平均 IO 大小 | 总次数 | 点数  | 首次采集 | 最近采集 | 平均采集消耗 | 最大采集消耗 | 当前错误(时间) |
+| ----   | :----:   | :----: | :----:       | :----: | :---: | :----:   | :---:    | :----:       | :---:        | :----:         |
+`
+	)
+
+	var rowFmt = "|`%s`|`%s`|%s|%d|%d|%d|%s|%s|%s|%s|`%s`(%s)|"
+	if x.DisableMonofont {
+		rowFmt = "|%s|%s|%s|%d|%d|%d|%s|%s|%s|%s|%s(%s)|"
+	}
+
+	if len(x.InputsStats) == 0 {
+		return "暂无采集器统计数据"
+	}
+
 	now := time.Now()
 
 	rows := []string{}
-	for _, v := range x.EnabledInputs {
-		if s, ok := x.InputsStats[v.Input]; !ok {
-			rows = append(rows,
-				fmt.Sprintf(rowFmt,
-					v.Input,
-					v.Instances,
-					"-",
-					"-",
-					0,
-					0,
-					0,
-					"-",
-					"-",
-					"-",
-					"-",
-					"-",
-					"-",
-					0))
-			continue
-		} else {
-			firstIO := humanize.RelTime(s.First, now, "ago", "")
-			lastIO := humanize.RelTime(s.Last, now, "ago", "")
 
-			lastErr := "-"
-			if s.LastErr != "" {
-				lastErr = s.LastErr
-			}
+	for k, s := range x.InputsStats {
 
-			lastErrTime := "-"
-			if s.LastErr != "" {
-				lastErrTime = humanize.RelTime(s.LastErrTS, now, "ago", "")
-			}
+		firstIO := humanize.RelTime(s.First, now, "ago", "")
+		lastIO := humanize.RelTime(s.Last, now, "ago", "")
 
-			freq := "-"
-			if s.Frequency != "" {
-				freq = s.Frequency
-			}
-
-			category := "-"
-			if s.Category != "" {
-				category = categoryMap[s.Category]
-			}
-
-			rows = append(rows,
-				fmt.Sprintf(rowFmt,
-					v.Input,
-					v.Instances,
-					category,
-					freq,
-					s.AvgSize,
-					s.Count,
-					s.Total,
-					firstIO,
-					lastIO,
-					lastErr,
-					lastErrTime,
-					s.AvgCollectCost,
-					s.MaxCollectCost,
-					v.Panics))
+		lastErr := "-"
+		if s.LastErr != "" {
+			lastErr = s.LastErr
 		}
+
+		lastErrTime := "-"
+		if s.LastErr != "" {
+			lastErrTime = humanize.RelTime(s.LastErrTS, now, "ago", "")
+		}
+
+		freq := "-"
+		if s.Frequency != "" {
+			freq = s.Frequency
+		}
+
+		category := "-"
+		if s.Category != "" {
+			category = categoryMap[s.Category]
+		}
+
+		rows = append(rows,
+			fmt.Sprintf(rowFmt,
+				k,
+				category,
+				freq,
+				s.AvgSize,
+				s.Count,
+				s.Total,
+				firstIO,
+				lastIO,
+				s.AvgCollectCost,
+				s.MaxCollectCost,
+				lastErr,
+				lastErrTime,
+			))
 	}
 
 	sort.Strings(rows)
@@ -189,15 +213,17 @@ func GetStats() (*DatakitStats, error) {
 
 	now := time.Now()
 	stats := &DatakitStats{
-		Version:    git.Version,
-		BuildAt:    git.BuildAt,
-		Branch:     git.Branch,
-		Uptime:     fmt.Sprintf("%v", now.Sub(uptime)),
-		OSArch:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:  reloadCnt,
-		ReloadInfo: "0",
-		//WithinDocker: config.Docker,
-		IOChanStat: io.ChanStat(),
+		Version:      datakit.Version,
+		BuildAt:      git.BuildAt,
+		Branch:       git.Branch,
+		Uptime:       fmt.Sprintf("%v", now.Sub(uptime)),
+		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		ReloadCnt:    reloadCnt,
+		ReloadInfo:   "0",
+		WithinDocker: datakit.Docker,
+		IOChanStat:   io.ChanStat(),
+		Elected:      election.Elected(),
+		AutoUpdate:   datakit.AutoUpdate,
 	}
 
 	if reloadCnt > 0 {
@@ -239,11 +265,11 @@ func GetStats() (*DatakitStats, error) {
 	return stats, nil
 }
 
-func (ds *DatakitStats) Markdown(css string) ([]byte, error) {
+func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 
-	tmpl := fullMonitorTmpl
-	if ds.DisableBasicInfo {
-		tmpl = inputMonitorTmpl
+	tmpl := monitorTmpl
+	if verbose {
+		tmpl = verboseMonitorTmpl
 	}
 
 	temp, err := template.New("").Parse(tmpl)
@@ -270,7 +296,7 @@ func apiGetDatakitMonitor(c *gin.Context) {
 		return
 	}
 
-	mdbytes, err := s.Markdown(man.MarkdownCSS)
+	mdbytes, err := s.Markdown(man.MarkdownCSS, true)
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return
