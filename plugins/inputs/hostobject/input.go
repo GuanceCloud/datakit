@@ -7,7 +7,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -164,7 +163,7 @@ func (c *Input) Collect() error {
 			"message":          string(messageData),
 			"os":               message.Host.HostMeta.OS,
 			"start_time":       message.Host.HostMeta.BootTime,
-			"datakit_ver":      git.Version,
+			"datakit_ver":      datakit.Version,
 			"cpu_usage":        message.Host.cpuPercent,
 			"mem_used_percent": message.Host.Mem.usedPercent,
 			"load":             message.Host.load5,
