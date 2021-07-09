@@ -16,17 +16,16 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
 	IntervalDuration = 10 * time.Second
 
-	Cfg    = DefaultConfig()
-	Docker = false
+	Cfg = DefaultConfig()
 
 	l = logger.DefaultSLogger("config")
 )
@@ -49,7 +48,7 @@ func DefaultConfig() *Config {
 
 		HTTPListen: "localhost:9529",
 		HTTPAPI: &dkhttp.APIConfig{
-			RUMOriginIPHeader: "X-Forward-For",
+			RUMOriginIPHeader: "X-Forwarded-For",
 		},
 
 		IOCacheCount: 1024,
@@ -65,6 +64,7 @@ func DefaultConfig() *Config {
 		WhiteList: []*inputHostList{
 			&inputHostList{Hosts: []string{}, Inputs: []string{}},
 		},
+		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
@@ -74,6 +74,12 @@ func DefaultConfig() *Config {
 	}
 
 	return c
+}
+
+type Cgroup struct {
+	Enable bool    `toml:"enable"`
+	CPUMax float64 `toml:"cpu_max"`
+	CPUMin float64 `toml:"cpu_min"`
 }
 
 type Config struct {
@@ -101,18 +107,31 @@ type Config struct {
 	IntervalDeprecated string `toml:"interval,omitempty"`
 
 	OutputFile string `toml:"output_file"`
-	//Hostname   string `toml:"hostname,omitempty"`
-	Hostname string `toml:"-"`
+	Hostname   string `toml:"-"`
 
 	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
 	InstallDate          time.Time `toml:"install_date,omitempty"`
 
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
+	Cgroup    *Cgroup          `toml:"cgroup"`
 
-	EnableElection bool  `toml:"enable_election"`
-	Disable404Page bool  `toml:"disable_404page"`
-	IOCacheCount   int64 `toml:"io_cache_count"`
+	EnableElection bool           `toml:"enable_election"`
+	Disable404Page bool           `toml:"disable_404page"`
+	IOCacheCount   int64          `toml:"io_cache_count"`
+	Tracer         *tracer.Tracer `toml:"tracer,omitempty"`
+	// Tracer *struct {
+	// 	Service  string `toml:"service"`
+	// 	Version  string `toml:"version"`
+	// 	Enabled  bool   `toml:"enabled"`
+	// 	Resource string `toml:"resource"`
+	// 	Host     string `toml:"host"`
+	// 	Port     int    `toml:"port"`
+	// 	Debug    bool   `toml:"debug"`
+	// } `toml:"tracer,omitempty"`
+
+	// 是否已开启自动更新，通过 dk-install --ota 来开启
+	AutoUpdate bool `toml:"auto_update,omitempty"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
 }
@@ -154,7 +173,6 @@ func (c *Config) LoadMainTOML(p string) error {
 		return err
 	}
 
-	// 由于 datakit UUID 不再重要, 出错也不管了
 	_ = c.SetUUID()
 
 	return nil
@@ -228,7 +246,7 @@ func (c *Config) setupDataway() error {
 	}
 
 	dataway.ExtraHeaders = map[string]string{
-		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, git.Version),
+		"X-Datakit-Info": fmt.Sprintf("%s; %s", c.Hostname, datakit.Version),
 	}
 
 	c.DataWay.Hostname = c.Hostname
@@ -318,9 +336,15 @@ func (c *Config) ApplyMainConfig() error {
 		dkhttp.Disable404Page()
 	}
 
+	if c.Tracer != nil {
+		tracer.GlobalTracer = c.Tracer
+	}
+
 	if c.HTTPAPI != nil {
 		dkhttp.SetAPIConfig(c.HTTPAPI)
 	}
+
+	datakit.AutoUpdate = c.AutoUpdate
 
 	dkhttp.SetDataWay(c.DataWay)
 
@@ -366,6 +390,7 @@ func (c *Config) ApplyMainConfig() error {
 }
 
 func (c *Config) setHostname() error {
+
 	hn, err := os.Hostname()
 	if err != nil {
 		l.Errorf("get hostname failed: %s", err.Error())

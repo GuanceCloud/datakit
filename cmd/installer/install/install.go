@@ -31,6 +31,7 @@ var (
 	Port         = 9529
 	DatakitName  = ""
 	EnableInputs = ""
+	OTA          = false
 )
 
 func readInput(prompt string) string {
@@ -81,6 +82,10 @@ func InstallNewDatakit(svc service.Service) {
 
 	// prepare dataway info
 	mc.DataWay = getDataWayCfg()
+	if OTA {
+		l.Debugf("set auto update flag")
+		mc.AutoUpdate = OTA
+	}
 
 	// accept any install options
 	if GlobalTags != "" {
@@ -151,8 +156,15 @@ func UpgradeDatakit(svc service.Service) error {
 	}
 
 	mc := config.Cfg
+
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
 		mc, _ = upgradeMainConfig(mc)
+
+		if OTA {
+			l.Debugf("set auto update flag")
+			mc.AutoUpdate = OTA
+		}
+
 		writeDefInputToMainCfg(mc)
 	} else {
 		l.Warnf("load main config: %s, ignored", err.Error())
