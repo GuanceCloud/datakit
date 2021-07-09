@@ -166,19 +166,6 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	return nil
 }
 
-// func (dc *dataWayClient) sendWithTracing(cli *http.Client, category string, data []byte, gz bool) error {
-// 	l.Info("send data with tracing")
-
-// 	tracer.GlobalTracer.Start(tracer.WithLogger(tracer.DDLog{}))
-// 	defer tracer.GlobalTracer.Stop()
-
-// 	span := tracer.GlobalTracer.StartSpan("send")
-// 	err := dc.send(cli, category, data, gz)
-// 	span.Finish(tracer.WithFinishTime(time.Now()), tracer.WithError(err))
-
-// 	return err
-// }
-
 func (dc *dataWayClient) getLogFilter(cli *http.Client) ([]byte, error) {
 	url, ok := dc.categoryURL[datakit.LogFilter]
 	if !ok {
@@ -336,14 +323,6 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
 			return err
 		}
-		// if tracer.GlobalTracer != nil {
-		// 	if err := dc.sendWithTracing(dw.httpCli, category, data, gz); err != nil {
-		// 		return err
-		// 	}
-		// } else {
-		// 	if err := dc.send(dw.httpCli, category, data, gz); err != nil {
-		// 		return err
-		// 	}
 	}
 
 	return nil
@@ -438,6 +417,8 @@ func (dw *DataWayCfg) Apply() error {
 	if err := dw.initHttp(); err != nil {
 		return err
 	}
+
+	dw.dataWayClients = dw.dataWayClients[:0]
 
 	for _, httpurl := range dw.URLs {
 		u, err := url.ParseRequestURI(httpurl)
