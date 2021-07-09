@@ -22,13 +22,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service/cgroup"
 )
 
 var (
@@ -51,7 +51,7 @@ var (
 	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
 	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
-	flagManVersion        = flag.String("man-version", git.Version, "specify manuals version")
+	flagManVersion        = flag.String("man-version", datakit.Version, "specify manuals version")
 	flagTODO              = flag.String("TODO", "TODO", "set TODO")
 
 	flagK8sCfgPath  = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
@@ -88,8 +88,9 @@ var (
 	// utils
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
-	flagMonitor       = flag.Bool("monitor", false, "show monitor info of current datakit")
+	flagMonitor       = flag.BoolP("monitor", "M", false, "show monitor info of current datakit")
 	flagCheckConfig   = flag.Bool("check-config", false, "check inputs configure and main configure")
+	flagVVV           = flag.Bool("vvv", false, "more verbose info")
 	flagCmdLogPath    = flag.String("cmd-log", "/dev/null", "command line log path")
 	flagDumpSamples   = flag.String("dump-samples", "", "dump all inputs samples")
 )
@@ -98,7 +99,7 @@ var (
 	l = logger.DefaultSLogger("main")
 
 	ReleaseType    = ""
-	ReleaseVersion = git.Version
+	ReleaseVersion = ""
 )
 
 const (
@@ -129,6 +130,11 @@ func setupFlags() {
 }
 
 func main() {
+	datakit.Version = ReleaseVersion
+
+	if ReleaseVersion != "" {
+		datakit.Version = ReleaseVersion
+	}
 
 	setupFlags()
 	flag.Parse()
@@ -149,6 +155,7 @@ func main() {
 	if *flagDocker {
 		run()
 	} else {
+		go cgroup.Run()
 		service.Entry = run
 		if err := service.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
@@ -166,7 +173,7 @@ func applyFlags() {
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
 	if *flagDocker {
-		config.Docker = true
+		datakit.Docker = true
 	}
 
 	runDatakitWithCmds()
@@ -196,14 +203,14 @@ func run() {
 				cmds.Reload()
 			} else {
 				l.Infof("get signal %v, wait & exit", sig)
-				http.HttpStop()
+				dkhttp.HttpStop()
 				datakit.Quit()
 				break
 			}
 
 		case <-service.StopCh:
 			l.Infof("service stopping")
-			http.HttpStop()
+			dkhttp.HttpStop()
 			datakit.Quit()
 			break
 		}
@@ -240,12 +247,18 @@ func doRun() error {
 		return err
 	}
 
-	http.Start(&http.Option{
+	dkhttp.Start(&dkhttp.Option{
 		Bind:           config.Cfg.HTTPListen,
 		GinLog:         config.Cfg.GinLog,
 		GinReleaseMode: strings.ToLower(config.Cfg.LogLevel) != "debug",
 		PProf:          config.Cfg.EnablePProf,
 	})
+
+	time.Sleep(time.Second) // wait http server ok
+	// if config.Cfg.Trace != nil && config.Cfg.Trace.Enabled {
+	// 	config.Cfg.Trace.Start()
+	// 	defer config.Cfg.Trace.Stop()
+	// }
 
 	return nil
 }
@@ -324,7 +337,7 @@ func runDatakitWithCmds() {
 			os.Exit(0)
 		}
 
-		cmds.CMDMonitor(*flagInterval, *flagDatakitHost)
+		cmds.CMDMonitor(*flagInterval, *flagDatakitHost, *flagVVV)
 		os.Exit(0)
 	}
 

@@ -48,6 +48,7 @@ var (
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
 	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
 	flagInstallLog   = flag.String("install-log", "", "install log")
+	flagOTA          = flag.Bool("ota", false, "auto update")
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
@@ -86,6 +87,10 @@ func main() {
 
 	flag.Parse()
 
+	if *flagOTA {
+		install.OTA = true
+	}
+
 	if *flagInstallLog == "" {
 		lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
 		if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
@@ -93,7 +98,7 @@ func main() {
 		}
 
 		if err := logger.SetGlobalRootLogger("", logger.DEBUG, lopt); err != nil {
-			l.Errorf("set root log failed: %s", err.Error())
+			l.Warnf("set root log failed: %s", err.Error())
 		}
 	} else {
 		l.Infof("set log file to %s", *flagInstallLog)
@@ -194,7 +199,7 @@ func applyFlags() {
 Golang Version: %s
        BaseUrl: %s
        DataKit: %s
-`, git.Version, git.BuildAt, git.Golang, DataKitBaseURL, datakitUrl)
+`, datakit.Version, git.BuildAt, git.Golang, DataKitBaseURL, datakitUrl)
 		os.Exit(0)
 	}
 
