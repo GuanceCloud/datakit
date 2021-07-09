@@ -120,6 +120,15 @@ type Config struct {
 	Disable404Page bool           `toml:"disable_404page"`
 	IOCacheCount   int64          `toml:"io_cache_count"`
 	Tracer         *tracer.Tracer `toml:"tracer,omitempty"`
+	// Tracer *struct {
+	// 	Service  string `toml:"service"`
+	// 	Version  string `toml:"version"`
+	// 	Enabled  bool   `toml:"enabled"`
+	// 	Resource string `toml:"resource"`
+	// 	Host     string `toml:"host"`
+	// 	Port     int    `toml:"port"`
+	// 	Debug    bool   `toml:"debug"`
+	// } `toml:"tracer,omitempty"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
