@@ -190,6 +190,37 @@ func TestSchemaCollect(t *testing.T) {
 	}
 }
 
+func TestTbSchemaCollect(t *testing.T) {
+	input := &Input{
+		Host: "127.0.0.1",
+		Port: 3306,
+		User: "root",
+		Pass: "test",
+		Tags: make(map[string]string),
+	}
+
+	input.Tables = []string{}
+
+	err := input.initCfg()
+	if err != nil {
+		assert.Error(t, err, "collect data err")
+	}
+
+	resData, err := input.collectTableSchemaMeasurement()
+	if err != nil {
+		assert.Error(t, err, "collect data err")
+	}
+
+	for _, pt := range resData {
+		point, err := pt.LineProto()
+		if err != nil {
+			fmt.Println("error =======>", err)
+		} else {
+			fmt.Println("point line =====>", point.String())
+		}
+	}
+}
+
 func TestCustomSchemaMeasurement(t *testing.T) {
 	input := &Input{
 		Host: "127.0.0.1",
@@ -214,6 +245,37 @@ func TestCustomSchemaMeasurement(t *testing.T) {
 	}
 
 	resData, err := input.customSchemaMeasurement()
+	if err != nil {
+		assert.Error(t, err, "collect data err")
+	}
+
+	for _, pt := range resData {
+		point, err := pt.LineProto()
+		if err != nil {
+			fmt.Println("error =======>", err)
+		} else {
+			fmt.Println("point line =====>", point.String())
+		}
+	}
+}
+
+func TestUserMeasurement(t *testing.T) {
+	input := &Input{
+		Host: "127.0.0.1",
+		Port: 3306,
+		User: "root",
+		Pass: "test",
+		Tags: make(map[string]string),
+	}
+
+	input.Users = []string{}
+
+	err := input.initCfg()
+	if err != nil {
+		assert.Error(t, err, "collect data err")
+	}
+
+	resData, err := input.collectUserMeasurement()
 	if err != nil {
 		assert.Error(t, err, "collect data err")
 	}
