@@ -162,7 +162,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 func (dc *dataWayClient) sendWithTracing(cli *http.Client, category string, data []byte, gz bool) error {
 	l.Info("send data with tracing")
 
-	tracer.GlobalTracer.Start()
+	tracer.GlobalTracer.Start(tracer.WithLogger(tracer.DDLog{}))
 	defer tracer.GlobalTracer.Stop()
 
 	span := tracer.GlobalTracer.StartSpan("send")
@@ -326,11 +326,14 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 
 	for i, dc := range dw.dataWayClients {
 		l.Debugf("send to %dth dataway", i)
-		// if err := dc.send(dw.httpCli, category, data, gz); err != nil {
-		// 	return err
-		// }
-		if err := dc.sendWithTracing(dw.httpCli, category, data, gz); err != nil {
-			return err
+		if tracer.GlobalTracer != nil {
+			if err := dc.sendWithTracing(dw.httpCli, category, data, gz); err != nil {
+				return err
+			}
+		} else {
+			if err := dc.send(dw.httpCli, category, data, gz); err != nil {
+				return err
+			}
 		}
 	}
 
