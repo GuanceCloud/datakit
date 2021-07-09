@@ -16,6 +16,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/iis"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafka"

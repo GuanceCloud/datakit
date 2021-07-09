@@ -13,16 +13,13 @@ import (
 
 func apiReload(c *gin.Context) {
 
+	l.Debugf("apiReload...")
+
 	dkpid := os.Getpid()
 
 	syscall.Kill(dkpid, syscall.SIGHUP)
 
 	ErrOK.HttpBody(c, nil)
-
-	go func() {
-		RestartHttpServer()
-		l.Info("reload HTTP server ok")
-	}()
 
 	c.Redirect(http.StatusFound, "/monitor")
 }

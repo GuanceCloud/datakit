@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
@@ -45,6 +46,10 @@ const (
 var (
 	Exit = cliutils.NewSem()
 	WG   = sync.WaitGroup{}
+
+	Docker     = false
+	Version    = git.Version
+	AutoUpdate = false
 
 	InstallDir         = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 	optionalInstallDir = map[string]string{
