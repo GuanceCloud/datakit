@@ -90,6 +90,7 @@ var (
 	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
 	flagMonitor       = flag.Bool("monitor", false, "show monitor info of current datakit")
 	flagCheckConfig   = flag.Bool("check-config", false, "check inputs configure and main configure")
+	flagVVV           = flag.Bool("vvv", false, "more verbose info")
 	flagCmdLogPath    = flag.String("cmd-log", "/dev/null", "command line log path")
 	flagDumpSamples   = flag.String("dump-samples", "", "dump all inputs samples")
 )
@@ -336,7 +337,7 @@ func runDatakitWithCmds() {
 			os.Exit(0)
 		}
 
-		cmds.CMDMonitor(*flagInterval, *flagDatakitHost)
+		cmds.CMDMonitor(*flagInterval, *flagDatakitHost, *flagVVV)
 		os.Exit(0)
 	}
 
