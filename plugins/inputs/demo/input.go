@@ -2,6 +2,7 @@ package demo
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -16,7 +17,8 @@ var (
 )
 
 type Input struct {
-	Tags map[string]string
+	EatCPU bool `toml:"eat_cpu"`
+	Tags   map[string]string
 
 	collectCache []inputs.Measurement
 	chpause      chan bool
@@ -86,6 +88,7 @@ func (i *Input) Collect() error {
 			fields: map[string]interface{}{
 				"usage":       "12.3",
 				"disk_size":   5e9,
+				"mem_size":    1e9,
 				"some_string": "hello world",
 				"ok":          true,
 			},
@@ -106,6 +109,10 @@ func (i *Input) Run() {
 	defer tick.Stop()
 
 	n := 0
+
+	if i.EatCPU {
+		eatCPU(runtime.NumCPU())
+	}
 
 	for {
 
@@ -149,7 +156,10 @@ func (i *Input) Catalog() string { return "testing" }
 func (i *Input) SampleConfig() string {
 	return `
 [inputs.demo]
-# 这里无需任何配置
+  ## 这里是一些测试配置
+
+  # 是否开启 CPU 爆满
+  eat_cpu = false
 
 [inputs.demo.tags] # 所有采集器，都应该有 tags 配置项
 	# tag_a = "val1"
@@ -190,8 +200,18 @@ func (i *Input) Resume() error {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			paused:  true,
+			paused:  false,
 			chpause: make(chan bool),
 		}
 	})
+}
+
+func eatCPU(n int) {
+	for i := 0; i < n; i++ {
+		l.Debugf("start eat_cpu: %d", i)
+		go func() {
+			for {
+			}
+		}()
+	}
 }

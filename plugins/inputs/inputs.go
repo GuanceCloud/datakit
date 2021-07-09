@@ -123,13 +123,11 @@ func RunInputs() error {
 				continue
 			}
 
-			switch inp := ii.input.(type) {
-			case HTTPInput:
+			if inp, ok := ii.input.(HTTPInput); ok {
 				inp.RegHttpHandler()
-			case PipelineInput:
+			}
+			if inp, ok := ii.input.(PipelineInput); ok {
 				inp.RunPipeline()
-			default:
-				// pass
 			}
 
 			datakit.WG.Add(1)

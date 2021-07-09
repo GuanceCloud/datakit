@@ -17,7 +17,6 @@ import (
 )
 
 var (
-
 	// envVarRe is a regex to find environment variables in the config file
 	envVarRe      = regexp.MustCompile(`\$\{(\w+)\}|\$(\w+)`)
 	envVarEscaper = strings.NewReplacer(
@@ -30,7 +29,7 @@ func LoadCfg(c *Config, mcp string) error {
 
 	InitDirs()
 
-	if Docker { // only accept configs from ENV under docker(or daemon-set) mode
+	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
 
 		if runtime.GOOS != "linux" {
 			return fmt.Errorf("docker mode not supported under %s", runtime.GOOS)
