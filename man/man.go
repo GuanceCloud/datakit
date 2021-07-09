@@ -8,6 +8,7 @@ import (
 
 	"github.com/gobuffalo/packr/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -72,7 +73,7 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 	var p *Params
 
 	css := MarkdownCSS
-	ver := git.Version
+	ver := datakit.Version
 
 	if !opt.WithCSS {
 		css = ""
