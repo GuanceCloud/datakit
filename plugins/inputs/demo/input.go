@@ -88,6 +88,7 @@ func (i *Input) Collect() error {
 			fields: map[string]interface{}{
 				"usage":       "12.3",
 				"disk_size":   5e9,
+				"mem_size":    1e9,
 				"some_string": "hello world",
 				"ok":          true,
 			},
