@@ -21,7 +21,9 @@ func (this *debugDDTraceMock) unmarshalDdtraceMsgpack(body io.ReadCloser) ([][]*
 
 func (this *debugDDTraceMock) statistic(origin [][]*Span, sampled []*dkio.Point) {
 	log.Info("####### sample statistic")
-	log.Infof("rules %v", *traceSampleConf)
+	for k, conf := range sampleConfs {
+		log.Infof("rules[%d]: %v", k, *conf)
+	}
 
 	scope := 0
 	for _, spans := range origin {
@@ -95,9 +97,21 @@ func randomId(l int) uint64 {
 }
 
 func TestDDTraceSampleWithNoErrorNoIgnore(t *testing.T) {
-	traceSampleConf = &trace.TraceSampleConfig{
-		Rate:  9,
-		Scope: 100,
+	sampleConfs = []*trace.TraceSampleConfig{
+		// &trace.TraceSampleConfig{
+		// 	Target: map[string]string{"name": "zhuyun"},
+		// 	Rate:   9,
+		// 	Scope:  100,
+		// },
+		// &trace.TraceSampleConfig{
+		// 	Target: map[string]string{"age": "123"},
+		// 	Rate:   18,
+		// 	Scope:  100,
+		// },
+		&trace.TraceSampleConfig{
+			Rate:  27,
+			Scope: 100,
+		},
 	}
 	defDDTraceMock = &debugDDTraceMock{
 		count: 1000,
@@ -119,9 +133,21 @@ func TestDDTraceSampleWithNoErrorNoIgnore(t *testing.T) {
 }
 
 func TestDDTraceSampleWithError(t *testing.T) {
-	traceSampleConf = &trace.TraceSampleConfig{
-		Rate:  15,
-		Scope: 100,
+	sampleConfs = []*trace.TraceSampleConfig{
+		&trace.TraceSampleConfig{
+			Target: map[string]string{"name": "zhuyun"},
+			Rate:   9,
+			Scope:  100,
+		},
+		&trace.TraceSampleConfig{
+			Target: map[string]string{"age": "123"},
+			Rate:   18,
+			Scope:  100,
+		},
+		&trace.TraceSampleConfig{
+			Rate:  27,
+			Scope: 100,
+		},
 	}
 	defDDTraceMock = &debugDDTraceMock{
 		count: 1000,
@@ -145,11 +171,22 @@ func TestDDTraceSampleWithError(t *testing.T) {
 }
 
 func TestDDTraceSampleWithIgnoreTags(t *testing.T) {
-	traceSampleConf = &trace.TraceSampleConfig{
-		Rate:           15,
-		Scope:          100,
-		IgnoreTagsList: []string{trace.PROJECT},
-		// IgnoreTagsList: []string{"tnt"},
+	sampleConfs = []*trace.TraceSampleConfig{
+		&trace.TraceSampleConfig{
+			Target: map[string]string{"name": "zhuyun"},
+			Rate:   9,
+			Scope:  100,
+		},
+		&trace.TraceSampleConfig{
+			Target: map[string]string{"age": "123"},
+			Rate:   18,
+			Scope:  100,
+		},
+		&trace.TraceSampleConfig{
+			Rate:           27,
+			Scope:          100,
+			IgnoreTagsList: []string{trace.PROJECT},
+		},
 	}
 	defDDTraceMock = &debugDDTraceMock{
 		count: 1000,
