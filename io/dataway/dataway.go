@@ -12,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
@@ -58,6 +59,8 @@ type DataWayCfg struct {
 	ontest bool
 }
 
+type Option func(cnf *DataWayCfg)
+
 type dataWayClient struct {
 	url         string
 	host        string
@@ -81,6 +84,9 @@ func (dw *DataWayCfg) String() string {
 }
 
 func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz bool) error {
+	tracer.GlobalTracer.Start(tracer.WithLogger(tracer.DDLog{}))
+	defer tracer.GlobalTracer.Stop()
+
 	requrl, ok := dc.categoryURL[category]
 	if !ok {
 		// for dialtesting, there are user-defined url to post
@@ -93,11 +99,15 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 		}
 	}
 
+	span := tracer.GlobalTracer.StartSpan("send")
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
 	if err != nil {
 		l.Error(err)
+		tracer.GlobalTracer.FinishSpan(span, tracer.WithError(err))
+
 		return err
 	}
+	tracer.GlobalTracer.Inject(span, req.Header)
 
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
@@ -407,6 +417,8 @@ func (dw *DataWayCfg) Apply() error {
 	if err := dw.initHttp(); err != nil {
 		return err
 	}
+
+	dw.dataWayClients = dw.dataWayClients[:0]
 
 	for _, httpurl := range dw.URLs {
 		u, err := url.ParseRequestURI(httpurl)
