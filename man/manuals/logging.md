@@ -158,6 +158,14 @@ Pipeline 的几个注意事项：
 
 另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。
 
+## 远程文件采集方案
+
+### linux操作系统
+
+在 linux 系统进行远程日志文件采集，需要采用 `mount NFS` 方式，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
+
+linux mount NFS [说明文档](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/)。
+
 ## 指标集
 
 以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
