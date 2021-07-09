@@ -19,7 +19,7 @@
 - [Ruby](https://github.com/DataDog/dd-trace-rb)
 - [C#](https://github.com/DataDog/dd-trace-dotnet)
 - [C++](https://github.com/opentracing/opentracing-cpp)
-- Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`。也可以直接去 [Maven 下载](https://repo1.maven.org/maven2/com/datadoghq/dd-java-agent/)
+- Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent)
 
 ## 配置
 
