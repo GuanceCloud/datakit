@@ -6,15 +6,15 @@
 
 ### 发布说明
 
-- 支持 MySQL 用户以及表级别的指标采集
+- 支持 MySQL [用户](mysql#15319c6c)以及[表级别](mysql#3343f732)的指标采集
 - 调整 monitor 页面展示
 	- 采集器配置情况和采集情况分离显示
 	- 增加选举、自动更新状态显示
 - 支持从 `ENV_HOSTNAME` 获取主机名，以应付原始主机名不可用的问题
-- 支持 tag 级别的 Trace 过滤
-- 容器采集器支持采集容器内进程对象
-- 支持通过 cgroup 控制 DataKit CPU 占用（仅 Linux 支持）
-- 新增 IIS 采集器
+- 支持 tag 级别的 [Trace](ddtrace) 过滤
+- [容器采集器](container)支持采集容器内进程对象
+- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit/datakit-how-to#9e364a84)（仅 Linux 支持）
+- 新增 [IIS 采集器](iis)
 
 ### Bug 修复
 
