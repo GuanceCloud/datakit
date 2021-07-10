@@ -13,7 +13,7 @@
 - 支持从 `ENV_HOSTNAME` 获取主机名，以应付原始主机名不可用的问题
 - 支持 tag 级别的 [Trace](ddtrace) 过滤
 - [容器采集器](container)支持采集容器内进程对象
-- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit/datakit-how-to#9e364a84)（仅 Linux 支持）
+- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit-how-to#9e364a84)（仅 Linux 支持）
 - 新增 [IIS 采集器](iis)
 
 ### Bug 修复
