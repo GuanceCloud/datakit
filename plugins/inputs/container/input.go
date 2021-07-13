@@ -238,7 +238,9 @@ func (this *Input) buildDockerClient() error {
 	client.IgnoreContainerName = this.IgnoreContainerName
 	client.ProcessTags = this.processTags
 	client.LogFilters = this.LogFilters
-	client.K8s = this.Kubernetes
+	if verifyIntegrityOfK8sConnect(this.Kubernetes) {
+		client.K8s = this.Kubernetes
+	}
 
 	this.clients = append(this.clients, client)
 
