@@ -1,13 +1,14 @@
 package sqlserver
 
 import (
+	"database/sql"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
-	"database/sql"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 var (
@@ -51,17 +52,25 @@ default_time(time)
 )
 
 type Input struct {
-	Host     string               `toml:"host"`
-	User     string               `toml:"user"`
-	Password string               `toml:"password"`
-	Interval datakit.Duration     `toml:"interval"`
-	Tags     map[string]string    `toml:"tags"`
-	Log      *inputs.TailerOption `toml:"log"`
+	Host     string            `toml:"host"`
+	User     string            `toml:"user"`
+	Password string            `toml:"password"`
+	Interval datakit.Duration  `toml:"interval"`
+	Tags     map[string]string `toml:"tags"`
+	Log      *sqlserverlog     `toml:"log"`
 
 	lastErr error
-	tail    *inputs.Tailer
+	tail    *tailer.Tailer
 	start   time.Time
 	db      *sql.DB
+}
+
+type sqlserverlog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {
