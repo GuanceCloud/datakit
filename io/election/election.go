@@ -19,14 +19,13 @@ import (
  *
  * 流程：
  *      1. DataKit 开启 cfg.EnableElection（booler）配置
- *      2. 当运行对应的采集器（采集器列表在 config/inputcfg.go）时，程序会创建一个 goroutine 向 DataWay 发送选举请求，并携带此 Datakit 的 token 和 UUID
+ *      2. 当运行对应的采集器（采集器列表在 config/inputcfg.go）时，程序会创建一个 goroutine 向 DataWay 发送选举请求，并携带 token 和 namespace（若存在）以及 id
  *      3. 选举成功担任 leader 后会持续发送心跳，心跳间隔过长或选举失败，会恢复 candidate 状态并继续发送选举请求
  *      4. 采集器端只要在采集数据时，判断当前是否为 leader 状态，具体使用见下
  *
  * 使用方式：
  *      1. 在 config/inputcfg.go 的 electionInputs 中添加需要选举的采集器（目前使用此方式后续会优化）
  *      2. 采集器中 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/election"
- *      3. 在采集入口处，调用 election.CurrentStats().IsLeader() 进行判断，并决定是否执行采集
  *      4. 详见 demo 采集器
  */
 
@@ -49,24 +48,26 @@ const (
 )
 
 type candidate struct {
-	status  string
-	id      string
-	dw      *dataway.DataWayCfg
-	plugins []inputs.ElectionInput
+	status        string
+	id, namespace string
+	dw            *dataway.DataWayCfg
+	plugins       []inputs.ElectionInput
 
 	nElected, nHeartbeat, nOffline int
 }
 
-func Start(id string, dw *dataway.DataWayCfg) {
+func Start(namespace, id string, dw *dataway.DataWayCfg) {
 	l = logger.SLogger("dk-election")
-	defaultCandidate.run(id, dw)
+	defaultCandidate.run(namespace, id, dw)
 }
 
-func (x *candidate) run(id string, dw *dataway.DataWayCfg) {
+func (x *candidate) run(namespace, id string, dw *dataway.DataWayCfg) {
 	x.id = id
+	x.namespace = namespace
 	x.dw = dw
 	x.plugins = inputs.GetElectionInputs()
 
+	l.Debugf("namespace: %s id: %s", x.namespace, x.id)
 	l.Infof("get %d election inputs", len(x.plugins))
 
 	datakit.WG.Add(1)
@@ -147,7 +148,7 @@ func (x *candidate) resumePlugins() {
 }
 
 func (x *candidate) keepalive() error {
-	body, err := x.dw.ElectionHeartbeat(x.id)
+	body, err := x.dw.ElectionHeartbeat(x.namespace, x.id)
 	if err != nil {
 		l.Error(err)
 		return err
@@ -158,6 +159,8 @@ func (x *candidate) keepalive() error {
 		l.Error(err)
 		return err
 	}
+
+	l.Debugf("result body: %s", body)
 
 	switch e.Content.Status {
 	case statusFail:
@@ -175,14 +178,17 @@ func (x *candidate) keepalive() error {
 
 type electionResult struct {
 	Content struct {
-		Status   string `json:"status"`
-		ErrorMsg string `json:"error_msg"`
+		Status       string `json:"status"`
+		Namespace    string `json:"namespace,omitempty"`
+		Id           string `json:"id"`
+		IncumbencyId string `json:"incumbency_id,omitempty"`
+		ErrorMsg     string `json:"error_msg,omitempty"`
 	} `json:"content"`
 }
 
 func (x *candidate) tryElection() error {
 
-	body, err := x.dw.Election(x.id)
+	body, err := x.dw.Election(x.namespace, x.id)
 	if err != nil {
 		l.Error(err)
 		return err
@@ -193,6 +199,8 @@ func (x *candidate) tryElection() error {
 		l.Error(err)
 		return nil
 	}
+
+	l.Debugf("result body: %s", body)
 
 	switch e.Content.Status {
 	case statusFail:
