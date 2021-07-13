@@ -103,7 +103,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
 	if err != nil {
 		l.Error(err)
-		tracer.GlobalTracer.FinishSpan(span, tracer.WithError(err))
+		tracer.GlobalTracer.FinishSpan(span, tracer.WithError(err), tracer.WithFinishTime(time.Now()))
 
 		return err
 	}
