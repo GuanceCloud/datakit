@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var redisInfo = `
@@ -185,7 +185,7 @@ func TestCollectInfoMeasurement(t *testing.T) {
 		Password: "dev",
 		Service:  "dev-test",
 		Tags:     make(map[string]string),
-		Log:      &inputs.TailerOption{},
+		Log:      &redislog{},
 	}
 
 	err := input.initCfg()
@@ -416,7 +416,7 @@ func TestCollect(t *testing.T) {
 // 		Tags:     make(map[string]string),
 // 		Keys:     []string{"queue"},
 // 		DB:       1,
-// 		Log:      &inputs.TailerOption{},
+// 		Log:      &redislog{},
 // 	}
 
 // 	input.Run()

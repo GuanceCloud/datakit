@@ -2,6 +2,8 @@ package solr
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -56,6 +59,14 @@ default_time(time,"UTC")
 `
 )
 
+type solrlog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
+}
+
 type Input struct {
 	Cores    []string // deprecated
 	Servers  []string
@@ -63,11 +74,12 @@ type Input struct {
 	Password string
 	Interval datakit.Duration
 
-	Log  *inputs.TailerOption `toml:"log"`
+	Log  *solrlog `toml:"log"`
 	Tags map[string]string
 
 	HTTPTimeout  datakit.Duration
 	client       *http.Client
+	tail         *tailer.Tailer
 	collectCache []inputs.Measurement
 	gatherData   GatherData
 	m            sync.Mutex
@@ -95,8 +107,40 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-// TODO
-func (*Input) RunPipeline() {
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
+		return
+	}
+
+	if i.Log.Pipeline == "" {
+		i.Log.Pipeline = "slor.p" // use default
+	}
+
+	opt := &tailer.Option{
+		Source:            inputName,
+		Service:           inputName,
+		GlobalTags:        i.Tags,
+		IgnoreStatus:      i.Log.IgnoreStatus,
+		CharacterEncoding: i.Log.CharacterEncoding,
+		Match:             i.Log.Match,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	var err error
+	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
+	go i.tail.Start()
 }
 
 func (i *Input) PipelineConfig() map[string]string {
@@ -115,10 +159,6 @@ func (i *Input) Run() {
 	l.Infof("solr input started")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
-	if i.Log != nil && len(i.Log.Files) > 0 {
-		go i.gatherLog()
-	}
-
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
@@ -135,6 +175,10 @@ func (i *Input) Run() {
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
+			if i.tail != nil {
+				i.tail.Close()
+				l.Info("solr log exit")
+			}
 			l.Infof("solr input exit")
 			return
 		}
@@ -205,21 +249,6 @@ func (i *Input) Collect() error {
 	}
 	wg.Wait()
 	return nil
-}
-
-func (i *Input) gatherLog() {
-	inputs.JoinPipelinePath(i.Log, inputName+".p")
-	i.Log.Source = inputName
-	i.Log.Tags = map[string]string{}
-	for k, v := range i.Tags {
-		i.Log.Tags[k] = v
-	}
-	if tail, err := inputs.NewTailer(i.Log); err != nil {
-		return
-	} else {
-		defer tail.Close()
-		tail.Run()
-	}
 }
 
 func init() {
