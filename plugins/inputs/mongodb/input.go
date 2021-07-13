@@ -5,16 +5,20 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"gopkg.in/mgo.v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gopkg.in/mgo.v2"
 )
 
 var (
@@ -101,6 +105,14 @@ var (
 	l = logger.DefaultSLogger(inputName)
 )
 
+type mongodblog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
+}
+
 type Input struct {
 	Interval              datakit.Duration       `toml:"interval"`
 	Servers               []string               `toml:"servers"`
@@ -113,10 +125,10 @@ type Input struct {
 	EnableTls             bool                   `toml:"enable_tls"`
 	TlsConf               *dknet.TlsClientConfig `toml:"tlsconf"`
 	EnableMongodLog       bool                   `toml:"enable_mongod_log"`
-	Log                   *inputs.TailerOption   `toml:"log"`
+	Log                   *mongodblog            `toml:"log"`
 	Tags                  map[string]string      `toml:"tags"`
 	mongos                map[string]*Server
-	tailer                *inputs.Tailer
+	tail                  *tailer.Tailer
 }
 
 func (*Input) Catalog() string {
@@ -146,24 +158,39 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (m *Input) RunPipeline() {
-	if m.EnableMongodLog && m.Log != nil && len(m.Log.Files) != 0 {
-		inputs.JoinPipelinePath(m.Log, m.Log.Pipeline)
-		m.Log.Source = inputName
-		m.Log.Tags = make(map[string]string)
-		for k, v := range m.Tags {
-			m.Log.Tags[k] = v
-		}
-
-		var err error
-		if m.tailer, err = inputs.NewTailer(m.Log); err != nil {
-			l.Errorf("init tailf err:%s", err.Error())
-		} else {
-			l.Infof("pipeline %s input started", inputName)
-			go m.tailer.Run()
-		}
-	} else {
-		l.Infof("pipeline %s not enabled", inputName)
+	if !m.EnableMongodLog || m.Log == nil || len(m.Log.Files) == 0 {
+		return
 	}
+
+	if m.Log.Pipeline == "" {
+		m.Log.Pipeline = "mongod.p" // use default
+	}
+
+	opt := &tailer.Option{
+		Source:            inputName,
+		Service:           inputName,
+		GlobalTags:        m.Tags,
+		IgnoreStatus:      m.Log.IgnoreStatus,
+		CharacterEncoding: m.Log.CharacterEncoding,
+		Match:             m.Log.Match,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, m.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	var err error
+	m.tail, err = tailer.NewTailer(m.Log.Files, opt)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
+	go m.tail.Start()
 }
 
 func (m *Input) Run() {
@@ -182,6 +209,10 @@ func (m *Input) Run() {
 				continue
 			}
 		case <-datakit.Exit.Wait():
+			if m.tail != nil {
+				m.tail.Close()
+				l.Info("mongodb log exits")
+			}
 			l.Info("mongodb input exits")
 
 			return
@@ -292,7 +323,7 @@ func init() {
 				InsecureSkipVerify: true,
 			},
 			EnableMongodLog: false,
-			Log:             &inputs.TailerOption{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
+			Log:             &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
 			mongos:          make(map[string]*Server),
 		}
 	})
