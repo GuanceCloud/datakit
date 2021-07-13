@@ -68,7 +68,7 @@ func doRelaod(ro *reloadOption) error {
 
 	if ro.ReloadElection {
 		l.Info("reloading election...")
-		election.Start(config.Cfg.Hostname, config.Cfg.DataWay)
+		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
 	go func() {
