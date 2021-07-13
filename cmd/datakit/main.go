@@ -239,7 +239,7 @@ func doRun() error {
 	io.Start()
 
 	if config.Cfg.EnableElection {
-		election.Start(config.Cfg.Hostname, config.Cfg.DataWay)
+		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
 	if err := inputs.RunInputs(); err != nil {

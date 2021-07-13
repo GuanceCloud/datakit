@@ -228,7 +228,7 @@ func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
 	return dw.httpCli.Post(requrl, "application/json", bytes.NewBuffer(body))
 }
 
-func (dw *DataWayCfg) Election(id string) ([]byte, error) {
+func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
 	if len(dw.dataWayClients) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -241,7 +241,7 @@ func (dw *DataWayCfg) Election(id string) ([]byte, error) {
 	}
 
 	if strings.Contains(requrl, "?token") {
-		requrl += ("&id=" + id)
+		requrl += fmt.Sprintf("&namespace=%s&id=%s", namespace, id)
 	} else {
 		return nil, fmt.Errorf("token missing")
 	}
@@ -272,7 +272,7 @@ func (dw *DataWayCfg) Election(id string) ([]byte, error) {
 	}
 }
 
-func (dw *DataWayCfg) ElectionHeartbeat(id string) ([]byte, error) {
+func (dw *DataWayCfg) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 	if len(dw.dataWayClients) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -285,7 +285,7 @@ func (dw *DataWayCfg) ElectionHeartbeat(id string) ([]byte, error) {
 	}
 
 	if strings.Contains(requrl, "?token") {
-		requrl += ("&id=" + id)
+		requrl += fmt.Sprintf("&namespace=%s&id=%s", namespace, id)
 	} else {
 		return nil, fmt.Errorf("token missing")
 	}
