@@ -75,8 +75,8 @@ type Input struct {
 
 var l = logger.DefaultSLogger(inputName)
 
-// TODO
 func (*Input) RunPipeline() {
+	// nil
 }
 
 func (this *Input) Run() {
@@ -115,15 +115,10 @@ func (this *Input) Run() {
 
 	go this.tailer.Start()
 
-	for {
-		// 阻塞在此，用以关闭 tailer 资源
-		select {
-		case <-datakit.Exit.Wait():
-			this.Stop()
-			l.Infof("%s exit", this.inputName)
-			return
-		}
-	}
+	// 阻塞在此，用以关闭 tailer 资源
+	<-datakit.Exit.Wait()
+	this.Stop()
+	l.Infof("%s exit", this.inputName)
 }
 
 func (this *Input) Stop() {
