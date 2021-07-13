@@ -1,11 +1,14 @@
 package rabbitmq
 
 import (
+	"os"
+	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -29,33 +32,45 @@ func (_ *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-// TODO
-func (*Input) RunPipeline() {
+func (n *Input) RunPipeline() {
+	if n.Log == nil || len(n.Log.Files) == 0 {
+		return
+	}
+
+	if n.Log.Pipeline == "" {
+		n.Log.Pipeline = "rabbitmq.p" // use default
+	}
+
+	opt := &tailer.Option{
+		Source:            "rabbitmq",
+		Service:           "rabbitmq",
+		GlobalTags:        n.Tags,
+		CharacterEncoding: n.Log.CharacterEncoding,
+		Match:             n.Log.Match,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	var err error
+	n.tail, err = tailer.NewTailer(n.Log.Files, opt, n.Log.IgnoreStatus)
+	if err != nil {
+		io.FeedLastError(inputName, err.Error())
+		l.Error(err)
+		return
+	}
+
+	go n.tail.Start()
 }
 
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-
-	if n.Log != nil {
-		go func() {
-			inputs.JoinPipelinePath(n.Log, "rabbitmq.p")
-			n.Log.Source = inputName
-			n.Log.Tags = map[string]string{}
-			for k, v := range n.Tags {
-				n.Log.Tags[k] = v
-			}
-
-			tail, err := inputs.NewTailer(n.Log)
-			if err != nil {
-				l.Errorf("init tailf err:%s", err.Error())
-				return
-			}
-			n.tail = tail
-			tail.Run()
-		}()
-	}
 
 	client, err := n.createHttpClient()
 	if err != nil {
