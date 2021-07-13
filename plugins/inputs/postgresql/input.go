@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -13,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -98,18 +101,26 @@ type scanner interface {
 }
 
 type Input struct {
-	Address          string               `toml:"address"`
-	Outputaddress    string               `toml:"outputaddress"`
-	IgnoredDatabases []string             `toml:"ignored_databases"`
-	Databases        []string             `toml:"databases"`
-	Interval         string               `toml:"interval"`
-	Tags             map[string]string    `toml:"tags"`
-	Log              *inputs.TailerOption `toml:"log"`
+	Address          string            `toml:"address"`
+	Outputaddress    string            `toml:"outputaddress"`
+	IgnoredDatabases []string          `toml:"ignored_databases"`
+	Databases        []string          `toml:"databases"`
+	Interval         string            `toml:"interval"`
+	Tags             map[string]string `toml:"tags"`
+	Log              *postgresqllog    `toml:"log"`
 
 	service      Service
-	tail         *inputs.Tailer
+	tail         *tailer.Tailer
 	duration     time.Duration
 	collectCache []inputs.Measurement
+}
+
+type postgresqllog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
 }
 
 type inputMeasurement struct {
@@ -345,6 +356,42 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 
 }
 
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
+		return
+	}
+
+	if i.Log.Pipeline == "" {
+		i.Log.Pipeline = inputName + ".p" // use default
+	}
+
+	opt := &tailer.Option{
+		Source:            inputName,
+		Service:           inputName,
+		GlobalTags:        i.Tags,
+		IgnoreStatus:      i.Log.IgnoreStatus,
+		CharacterEncoding: i.Log.CharacterEncoding,
+		Match:             i.Log.Match,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	var err error
+	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
+	go i.tail.Start()
+}
+
 const (
 	maxInterval = 1 * time.Minute
 	minInterval = 1 * time.Second
@@ -352,23 +399,6 @@ const (
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
-	if i.Log != nil {
-		go func() {
-			inputs.JoinPipelinePath(i.Log, "postgresql.p")
-			i.Log.Source = inputName
-			i.Log.Tags = make(map[string]string)
-			for k, v := range i.Tags {
-				i.Log.Tags[k] = v
-			}
-			tail, err := inputs.NewTailer(i.Log)
-			if err != nil {
-				l.Errorf("init tailf err: %s", err.Error())
-				return
-			}
-			i.tail = tail
-			tail.Run()
-		}()
-	}
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
@@ -384,8 +414,13 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Infof("%s exit", inputName)
+			if i.tail != nil {
+				i.tail.Close()
+				l.Info("postgresql log exit")
+			}
+			l.Info("postgresql exit")
 			return
+
 		case <-tick.C:
 			start := time.Now()
 			if err := i.Collect(); err != nil {
@@ -404,9 +439,6 @@ func (i *Input) Run() {
 		}
 	}
 }
-
-// TODO
-func (*Input) RunPipeline() {}
 
 func parseURL(uri string) (string, error) {
 	u, err := url.Parse(uri)
