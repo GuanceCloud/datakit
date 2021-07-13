@@ -121,9 +121,21 @@ func (t *Tracer) StartSpan(resource string) ddtrace.Span {
 	return tracer.StartSpan(resource, opts...)
 }
 
+func (t *Tracer) SetSpanTag(span tracer.Span, key string, value interface{}) {
+	if t.Enabled && span != nil {
+		span.SetTag(key, value)
+	}
+}
+
 func (t *Tracer) FinishSpan(span tracer.Span, opts ...ddtrace.FinishOption) {
 	if t.Enabled && span != nil {
 		span.Finish(opts...)
+	}
+}
+
+func (t *Tracer) Inject(span ddtrace.Span, header http.Header) {
+	if t.Enabled {
+		tracer.Inject(span.Context(), tracer.HTTPHeadersCarrier(header))
 	}
 }
 
@@ -165,12 +177,6 @@ func (t *Tracer) Middleware(resource string, opts ...Option) gin.HandlerFunc {
 				span.SetTag("gin.errors", c.Errors.String())
 			}
 		}
-	}
-}
-
-func (t *Tracer) Inject(span ddtrace.Span, header http.Header) {
-	if t.Enabled {
-		tracer.Inject(span.Context(), tracer.HTTPHeadersCarrier(header))
 	}
 }
 
