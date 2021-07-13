@@ -200,3 +200,22 @@ func (x *logs) output() string {
 func (x *logs) error() error {
 	return x.err
 }
+
+func feed(inputName, measurement string, tags map[string]string, message string) error {
+	pt, err := io.MakePoint(measurement,
+		tags,
+		map[string]interface{}{"message": message},
+		time.Now())
+
+	if err != nil {
+		return err
+	}
+
+	err = io.Feed(inputName,
+		datakit.Logging,
+		[]*io.Point{pt},
+		&io.Option{HighFreq: disableHighFreqIODdata},
+	)
+
+	return err
+}

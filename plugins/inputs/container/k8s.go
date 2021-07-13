@@ -581,3 +581,7 @@ func (p *Pods) GetContainerPodUID(id string) string {
 	}
 	return ""
 }
+
+func verifyIntegrityOfK8sConnect(k *Kubernetes) bool {
+	return k != nil && k.roundTripper != nil
+}
