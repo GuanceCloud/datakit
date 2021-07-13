@@ -76,7 +76,7 @@ func (n *Input) Run() {
 
 	if err := n.initDb(); err != nil {
 		l.Error(err.Error())
-		io.FeedLastError(inputName, n.lastErr.Error())
+		io.FeedLastError(inputName, err.Error())
 		return
 	}
 	defer n.db.Close()
