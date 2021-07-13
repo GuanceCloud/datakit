@@ -1,10 +1,15 @@
 package tomcat
 
 import (
+	"os"
+	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -14,10 +19,24 @@ const (
 	maxInterval = time.Minute * 20
 )
 
+var (
+	l = logger.DefaultSLogger(inputName)
+)
+
+type tomcatlog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
+}
+
 type Input struct {
 	inputs.JolokiaAgent
-	Log  *inputs.TailerOption `toml:"log"`
-	Tags map[string]string    `toml:"tags"`
+	Log  *tomcatlog        `toml:"log"`
+	Tags map[string]string `toml:"tags"`
+
+	tail *tailer.Tailer
 }
 
 func (i *Input) Catalog() string {
@@ -48,11 +67,52 @@ func (i *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-// TODO
-func (*Input) RunPipeline() {
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
+		return
+	}
+
+	if i.Log.Pipeline == "" {
+		i.Log.Pipeline = inputName + ".p" // use default
+	}
+
+	opt := &tailer.Option{
+		Source:            inputName,
+		Service:           inputName,
+		GlobalTags:        i.Tags,
+		IgnoreStatus:      i.Log.IgnoreStatus,
+		CharacterEncoding: i.Log.CharacterEncoding,
+		Match:             i.Log.Match,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	var err error
+	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
+	go i.tail.Start()
 }
 
 func (i *Input) Run() {
+	go func() {
+		for {
+			<-datakit.Exit.Wait()
+			if i.tail != nil {
+				i.tail.Close()
+			}
+		}
+
+	}()
 	if d, err := time.ParseDuration(i.Interval); err != nil {
 		i.Interval = (time.Second * 10).String()
 	} else {
@@ -61,25 +121,7 @@ func (i *Input) Run() {
 	i.PluginName = inputName
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = TomcatMetricType
-	if i.Log != nil && len(i.Log.Files) > 0 {
-		go i.gatherLog()
-	}
 	i.JolokiaAgent.Collect()
-}
-
-func (i *Input) gatherLog() {
-	inputs.JoinPipelinePath(i.Log, inputName+".p")
-	i.Log.Source = inputName
-	i.Log.Tags = map[string]string{}
-	for k, v := range i.Tags {
-		i.Log.Tags[k] = v
-	}
-	tail, err := inputs.NewTailer(i.Log)
-	if err != nil {
-		return
-	}
-	defer tail.Close()
-	tail.Run()
 }
 
 func init() {

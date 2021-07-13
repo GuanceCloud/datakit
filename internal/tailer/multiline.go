@@ -5,10 +5,13 @@ import (
 	"regexp"
 )
 
+var maxLines = 30
+
 type Multiline struct {
 	enabled       bool
 	patternRegexp *regexp.Regexp
 	buff          bytes.Buffer
+	lines         int
 }
 
 func NewMultiline(pattern string) (*Multiline, error) {
@@ -39,17 +42,23 @@ func (m *Multiline) ProcessLine(text string) string {
 	}
 
 	if m.notMatchString(text) {
-		m.buff.WriteString("\n")
+		if m.lines != 0 {
+			m.buff.WriteString("\n")
+		}
 		m.buff.WriteString(text)
+		m.lines++
+
+		if m.lines >= maxLines {
+			return m.Flush()
+		}
 		return ""
 	}
 
-	previousText := m.buff.String()
-	m.buff.Reset()
+	previousText := m.Flush()
 	m.buff.WriteString(text)
-	text = previousText
+	m.lines++
 
-	return text
+	return previousText
 }
 
 func (m *Multiline) Flush() string {
@@ -58,6 +67,7 @@ func (m *Multiline) Flush() string {
 	}
 	text := m.buff.String()
 	m.buff.Reset()
+	m.lines = 0
 	return text
 }
 
