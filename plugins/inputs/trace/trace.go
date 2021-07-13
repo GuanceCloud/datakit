@@ -151,11 +151,14 @@ func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 		tags[TAG_CONTAINER_HOST] = tAdpt.ContainerHost
 	}
 
+	if tAdpt.ParentID == "" {
+		tAdpt.ParentID = "0"
+	}
+
 	fields[FIELD_DURATION] = tAdpt.Duration / 1000
 	fields[FIELD_START] = tAdpt.Start / 1000
 	fields[FIELD_MSG] = tAdpt.Content
 	fields[FIELD_RESOURCE] = tAdpt.Resource
-
 	fields[FIELD_PARENTID] = tAdpt.ParentID
 	fields[FIELD_TRACEID] = tAdpt.TraceID
 	fields[FIELD_SPANID] = tAdpt.SpanID
