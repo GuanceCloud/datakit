@@ -15,7 +15,7 @@ import (
 const (
 	defaultSleepDuration = time.Second
 	readBuffSize         = 1024 * 4
-	readChanSize         = 32
+	timeoutDuration      = time.Second * 3
 )
 
 type TailerSingle struct {
@@ -29,10 +29,8 @@ type TailerSingle struct {
 
 	tags map[string]string
 
-	outputChan chan []byte
-	stop       chan interface{}
-
-	err error
+	stop chan interface{}
+	err  error
 }
 
 func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
@@ -62,8 +60,7 @@ func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
 		}
 	}
 
-	t.outputChan = make(chan []byte, readChanSize)
-	t.stop = make(chan interface{}, 1)
+	t.stop = make(chan interface{})
 	t.filename = t.file.Name()
 	t.tags = t.buildTags(opt.GlobalTags)
 
@@ -72,48 +69,69 @@ func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
 
 func (t *TailerSingle) Start() {
 	go t.forwardMessage()
-	go t.readFroever()
 }
 
 func (t *TailerSingle) Stop() {
-	t.stop <- nil
+	select {
+	case <-t.stop:
+		// nil
+	default:
+		close(t.stop)
+	}
+
 	t.file.Close()
 	t.opt.done <- t.filename
 	t.opt.log.Debugf("closing %s", t.filename)
-	select {
-	case <-t.outputChan:
-		// nil
-	default:
-		close(t.outputChan)
-	}
 }
 
 func (t *TailerSingle) forwardMessage() {
-	var textBlock []byte
-	for output := range t.outputChan {
-		lines := bytes.Split(output, []byte{'\n'})
-		if len(lines) == 0 {
+	var (
+		b       = &buffer{}
+		timeout = time.NewTicker(timeoutDuration)
+		lines   []string
+		readNum int
+		err     error
+	)
+	defer timeout.Stop()
+
+	for {
+		b.buf = b.buf[:0]
+
+		select {
+		case <-t.stop:
+			t.opt.log.Debugf("stop reading data from file %s", t.filename)
+			return
+
+		case <-timeout.C:
+			if err := t.processText(t.mult.Flush()); err != nil {
+				t.opt.log.Debug(err)
+			}
+		}
+
+		b.buf, readNum, err = t.read()
+		if err != nil {
+			t.opt.log.Debugf("failed of read data from file %s", t.filename)
+			return
+		}
+		if readNum == 0 {
+			t.wait()
 			continue
 		}
 
-		if len(textBlock) != 0 {
-			lines[0] = append(textBlock, lines[0]...)
-			textBlock = textBlock[:0]
-		}
-
-		if len(lines[len(lines)-1]) != 0 {
-			textBlock = lines[len(lines)-1]
-			lines = lines[:len(lines)-1]
-		}
+		lines = b.split()
 
 		for _, line := range lines {
-			if len(line) == 0 {
+			if line == "" {
 				continue
 			}
 
-			text, err := t.decode(string(line))
+			text, err := t.decode(line)
 			if err != nil {
-				t.opt.log.Debug(err)
+				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
+				err = feed(t.opt.InputName, t.opt.Source, t.tags, line)
+				if err != nil {
+					t.opt.log.Debug(err)
+				}
 			}
 
 			text = t.multiline(text)
@@ -130,6 +148,10 @@ func (t *TailerSingle) forwardMessage() {
 }
 
 func (t *TailerSingle) processText(text string) error {
+	if text == "" {
+		return nil
+	}
+
 	err := newLogs(text).
 		pipeline(t.pipeline).
 		checkFieldsLength().
@@ -143,41 +165,14 @@ func (t *TailerSingle) processText(text string) error {
 	return err
 }
 
-func (t *TailerSingle) read() (int, error) {
+func (t *TailerSingle) read() ([]byte, int, error) {
 	buf := make([]byte, readBuffSize)
 	n, err := t.file.Read(buf)
 	if err != nil && err != io.EOF {
 		t.opt.log.Debug(err)
-		return 0, err
+		return nil, 0, err
 	}
-
-	if n == 0 {
-		return 0, nil
-	}
-	t.outputChan <- buf[:n]
-	return n, nil
-
-}
-
-func (t *TailerSingle) readFroever() {
-	defer t.Stop()
-	for {
-		n, err := t.read()
-		if err != nil {
-			t.opt.log.Debugf("failed of read data from file %s", t.filename)
-			return
-		}
-
-		select {
-		case <-t.stop:
-			t.opt.log.Debugf("stop reading data from file %s", t.filename)
-			return
-		default:
-			if n == 0 {
-				t.wait()
-			}
-		}
-	}
+	return buf[:n], n, nil
 }
 
 func (t *TailerSingle) wait() {
@@ -214,4 +209,39 @@ func (t *TailerSingle) multilineFlush() string {
 		return ""
 	}
 	return t.mult.Flush()
+}
+
+type buffer struct {
+	buf           []byte
+	previousBlock []byte
+}
+
+func (b *buffer) split() []string {
+	// 以换行符 split
+	lines := bytes.Split(b.buf, []byte{'\n'})
+	if len(lines) == 0 {
+		return nil
+	}
+
+	var res []string
+
+	// block 不为空时，将其内容添加到 lines 首元素前端
+	// block 置空
+	if len(b.previousBlock) != 0 {
+		lines[0] = append(b.previousBlock, lines[0]...)
+		b.previousBlock = b.previousBlock[:0]
+	}
+
+	// 当 lines 最后一个元素不为空时，说明这段内容并不包含换行符，将其暂存到 previousBlock
+	if len(lines[len(lines)-1]) != 0 {
+		// 将 lines 尾元素 append previousBlock，避免占用此 slice 造成内存泄漏
+		b.previousBlock = append(b.previousBlock, lines[len(lines)-1]...)
+		lines = lines[:len(lines)-1]
+	}
+
+	for _, line := range lines {
+		res = append(res, string(line))
+	}
+
+	return res
 }
