@@ -93,14 +93,8 @@ func (_ *Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
-// TODO
-func (*Input) RunPipeline() {
-
-}
-
-func (n *Input) RunLogging() {
-
-	if n.Log == nil {
+func (n *Input) RunPipeline() {
+	if n.Log == nil || len(n.Log.Files) == 0 {
 		return
 	}
 
@@ -135,8 +129,6 @@ func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-
-	n.RunLogging()
 
 	client, err := n.createHttpClient()
 	if err != nil {

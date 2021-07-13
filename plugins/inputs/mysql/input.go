@@ -267,9 +267,9 @@ func (i *Input) collectSchemaMeasurement() ([]inputs.Measurement, error) {
 	return append(x, y...), nil
 }
 
-func (i *Input) runLog() error {
-	if i.Log == nil {
-		return nil
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
+		return
 	}
 
 	if i.Log.Pipeline == "" {
@@ -295,24 +295,16 @@ func (i *Input) runLog() error {
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)
 	if err != nil {
 		l.Error(err)
-		return err
+		io.FeedLastError(inputName, err.Error())
+		return
 	}
 
 	go i.tail.Start()
-	return nil
-}
-
-// TODO
-func (*Input) RunPipeline() {
 }
 
 func (i *Input) Run() {
 	l = logger.SLogger("mysql")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-
-	if err := i.runLog(); err != nil {
-		io.FeedLastError(inputName, err.Error())
-	}
 
 	for { // try until init OK
 
