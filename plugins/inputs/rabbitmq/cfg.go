@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -68,22 +69,30 @@ const (
 )
 
 type Input struct {
-	Url      string               `toml:"url"`
-	Username string               `toml:"username"`
-	Password string               `toml:"password"`
-	Interval datakit.Duration     `toml:"interval"`
-	Log      *inputs.TailerOption `toml:"log"`
-	Tags     map[string]string    `toml:"tags"`
+	Url      string            `toml:"url"`
+	Username string            `toml:"username"`
+	Password string            `toml:"password"`
+	Interval datakit.Duration  `toml:"interval"`
+	Log      *rabbitmqlog      `toml:"log"`
+	Tags     map[string]string `toml:"tags"`
 
 	tls.ClientConfig
 
 	// HTTP client
 	client *http.Client
 
-	tail    *inputs.Tailer
+	tail    *tailer.Tailer
 	lastErr error
 	start   time.Time
 	wg      sync.WaitGroup
+}
+
+type rabbitmqlog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
 }
 
 type OverviewResponse struct {
