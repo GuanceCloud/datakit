@@ -10,6 +10,9 @@ func TestMultiline(t *testing.T) {
 		panic(err)
 	}
 
+	// 更改最大限定，方便测试
+	maxLines = 10
+
 	var slows = [][]string{
 		{
 			"# Time: 2021-05-31T11:15:26.043419Z",
@@ -22,12 +25,16 @@ func TestMultiline(t *testing.T) {
 		},
 		{
 			"# Time: 2021-05-31T11:15:26.043419Z",
-			"# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228",
-			"# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288",
-			"SET timestamp=1622459726;",
-			"SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb",
-			"                FROM     information_schema.tables",
-			"                GROUP BY table_schema;",
+			"# Line: 2 ========================",
+			"# Line: 3 ========================",
+			"# Line: 4 ========================",
+			"# Line: 5 ========================",
+			"# Line: 6 ========================",
+			"# Line: 7 ========================",
+			"# Line: 8 ========================",
+			"# Line: 9 ========================",
+			"# Line: 10 =======================",
+			"# Line: 11 =======================",
 		},
 		{
 			"2021-05-31T11:15:26.043419Z",
