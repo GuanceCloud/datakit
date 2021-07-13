@@ -3,7 +3,6 @@ package inputs
 import (
 	"fmt"
 	"math/rand"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -210,12 +209,4 @@ func GetSample(name string) (sample string, err error) {
 		return
 	}
 	return "", fmt.Errorf("input not found")
-}
-
-func JoinPipelinePath(op *TailerOption, defaultPipeline string) {
-	if op.Pipeline != "" {
-		op.Pipeline = filepath.Join(datakit.PipelineDir, op.Pipeline)
-	} else {
-		op.Pipeline = filepath.Join(datakit.PipelineDir, defaultPipeline)
-	}
 }
