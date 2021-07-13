@@ -13,10 +13,19 @@ func TestProcessText(t *testing.T) {
 		},
 	}
 
-	tl := &TailerSingle{opt: &Option{}}
-
 	for _, tc := range cases {
-		out := tl.processText(tc.in)
-		t.Log(out)
+		logs := newLogs(tc.in)
+		err := logs.pipeline(nil).
+			checkFieldsLength().
+			addStatus(false).
+			ignoreStatus(nil).
+			takeTime().
+			point("testing", nil).
+			error()
+		if err != nil {
+			t.Error(err)
+		}
+
+		t.Log(logs.output())
 	}
 }
