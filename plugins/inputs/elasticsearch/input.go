@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -14,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -165,21 +168,21 @@ default_time(time)
 `
 
 type Input struct {
-	Interval                   string               `toml:"interval"`
-	Local                      bool                 `toml:"local"`
-	Servers                    []string             `toml:"servers"`
-	HTTPTimeout                Duration             `toml:"http_timeout"`
-	ClusterHealth              bool                 `toml:"cluster_health"`
-	ClusterHealthLevel         string               `toml:"cluster_health_level"`
-	ClusterStats               bool                 `toml:"cluster_stats"`
-	ClusterStatsOnlyFromMaster bool                 `toml:"cluster_stats_only_from_master"`
-	IndicesInclude             []string             `toml:"indices_include"`
-	IndicesLevel               string               `toml:"indices_level"`
-	NodeStats                  []string             `toml:"node_stats"`
-	Username                   string               `toml:"username"`
-	Password                   string               `toml:"password"`
-	Log                        *inputs.TailerOption `toml:"log"`
-	Tags                       map[string]string    `toml:"tags"`
+	Interval                   string            `toml:"interval"`
+	Local                      bool              `toml:"local"`
+	Servers                    []string          `toml:"servers"`
+	HTTPTimeout                Duration          `toml:"http_timeout"`
+	ClusterHealth              bool              `toml:"cluster_health"`
+	ClusterHealthLevel         string            `toml:"cluster_health_level"`
+	ClusterStats               bool              `toml:"cluster_stats"`
+	ClusterStatsOnlyFromMaster bool              `toml:"cluster_stats_only_from_master"`
+	IndicesInclude             []string          `toml:"indices_include"`
+	IndicesLevel               string            `toml:"indices_level"`
+	NodeStats                  []string          `toml:"node_stats"`
+	Username                   string            `toml:"username"`
+	Password                   string            `toml:"password"`
+	Log                        *elasticsearchlog `toml:"log"`
+	Tags                       map[string]string `toml:"tags"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
@@ -190,9 +193,17 @@ type Input struct {
 	serverInfo      map[string]serverInfo
 	serverInfoMutex sync.Mutex
 	duration        time.Duration
-	tail            *inputs.Tailer
+	tail            *tailer.Tailer
 
 	collectCache []inputs.Measurement
+}
+
+type elasticsearchlog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
 }
 
 type serverInfo struct {
@@ -379,30 +390,44 @@ const (
 	minInterval = 1 * time.Second
 )
 
-// TODO
-func (*Input) RunPipeline() {
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
+		return
+	}
+
+	if i.Log.Pipeline == "" {
+		i.Log.Pipeline = inputName + ".p" // use default
+	}
+
+	opt := &tailer.Option{
+		Source:            inputName,
+		Service:           inputName,
+		GlobalTags:        i.Tags,
+		IgnoreStatus:      i.Log.IgnoreStatus,
+		CharacterEncoding: i.Log.CharacterEncoding,
+		Match:             i.Log.Match,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	var err error
+	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
+	go i.tail.Start()
 }
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
-	// collect logs
-	if i.Log != nil {
-		go func() {
-			inputs.JoinPipelinePath(i.Log, "elasticsearch.p")
-			i.Log.Source = inputName
-			i.Log.Tags = make(map[string]string)
-			for k, v := range i.Tags {
-				i.Log.Tags[k] = v
-			}
-			tail, err := inputs.NewTailer(i.Log)
-			if err != nil {
-				l.Errorf("init tailf err:%s", err.Error())
-				return
-			}
-			i.tail = tail
-			tail.Run()
-		}()
-	}
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
