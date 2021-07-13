@@ -83,7 +83,9 @@ type Cgroup struct {
 }
 
 type Config struct {
+	Namespace      string `toml:"namespace"`
 	UUID           string `toml:"-"`
+	Hostname       string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
 
 	Name    string              `toml:"name,omitempty"`
@@ -101,13 +103,12 @@ type Config struct {
 	GinLog     string            `toml:"gin_log"`
 	GlobalTags map[string]string `toml:"global_tags"`
 
+	OutputFile string `toml:"output_file"`
+
 	EnablePProf bool `toml:"enable_pprof,omitempty"`
 	ProtectMode bool `toml:"protect_mode"`
 
 	IntervalDeprecated string `toml:"interval,omitempty"`
-
-	OutputFile string `toml:"output_file"`
-	Hostname   string `toml:"-"`
 
 	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
 	InstallDate          time.Time `toml:"install_date,omitempty"`
@@ -446,6 +447,10 @@ func (c *Config) LoadEnvs() error {
 		} else {
 			c.IOCacheCount = i
 		}
+	}
+
+	if v := getEnv("ENV_NAMESPACE"); v != "" {
+		c.Namespace = v
 	}
 
 	if v := getEnv("ENV_DISABLE_404PAGE"); v != "" {
