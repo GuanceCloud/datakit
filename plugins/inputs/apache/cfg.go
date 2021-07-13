@@ -1,13 +1,15 @@
 package apache
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"net/http"
-	"time"
 )
 
 var (
@@ -33,7 +35,7 @@ var (
 
   [inputs.apache.log]
   # files = []
-  # grok pipeline script path
+  ## grok pipeline script path
   # pipeline = "apache.p"
 
   [inputs.apache.tags]
@@ -74,20 +76,28 @@ default_time(time)
 )
 
 type Input struct {
-	Url      string               `toml:"url"`
-	Username string               `toml:"username,omitempty"`
-	Password string               `toml:"password,omitempty"`
-	Interval datakit.Duration     `toml:"interval,omitempty"`
-	Tags     map[string]string    `toml:"tags,omitempty"`
-	Log      *inputs.TailerOption `toml:"log"`
+	Url      string            `toml:"url"`
+	Username string            `toml:"username,omitempty"`
+	Password string            `toml:"password,omitempty"`
+	Interval datakit.Duration  `toml:"interval,omitempty"`
+	Tags     map[string]string `toml:"tags,omitempty"`
+	Log      *apachelog        `toml:"log"`
 
 	tls.ClientConfig
 
 	start        time.Time
-	tail         *inputs.Tailer
+	tail         *tailer.Tailer
 	collectCache []inputs.Measurement
 	client       *http.Client
 	lastErr      error
+}
+
+type apachelog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
 }
 
 type Measurement struct {
