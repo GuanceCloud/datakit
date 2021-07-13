@@ -1,8 +1,13 @@
 package kafka
 
 import (
+	"os"
+	"path/filepath"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,12 +22,18 @@ var (
 
 type Input struct {
 	inputs.JolokiaAgent
-	Log  *inputs.TailerOption `toml:"log"`
-	Tags map[string]string    `toml:"tags"`
+	Log  *kafkalog         `toml:"log"`
+	Tags map[string]string `toml:"tags"`
+
+	tail *tailer.Tailer
 }
 
-// TODO
-func (*Input) RunPipeline() {
+type kafkalog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	Match             string   `toml:"match"`
 }
 
 func (i *Input) Run() {
@@ -37,25 +48,43 @@ func (i *Input) Run() {
 	i.JolokiaAgent.Tags = i.Tags
 	i.JolokiaAgent.Types = KafkaTypeMap
 
-	if i.Log != nil {
-		go i.runLog()
-	}
 	i.JolokiaAgent.Collect()
 }
 
-func (i *Input) runLog() {
-	inputs.JoinPipelinePath(i.Log, "kafka.p")
-	i.Log.Source = "kafka"
-	i.Log.Tags = make(map[string]string)
-	for k, v := range i.Tags {
-		i.Log.Tags[k] = v
-	}
-	tail, err := inputs.NewTailer(i.Log)
-	if err != nil {
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
 	}
-	defer tail.Close()
-	tail.Run()
+
+	if i.Log.Pipeline == "" {
+		i.Log.Pipeline = inputName + ".p" // use default
+	}
+
+	opt := &tailer.Option{
+		Source:            inputName,
+		Service:           inputName,
+		GlobalTags:        i.Tags,
+		IgnoreStatus:      i.Log.IgnoreStatus,
+		CharacterEncoding: i.Log.CharacterEncoding,
+		Match:             i.Log.Match,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	var err error
+	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
+	go i.tail.Start()
 }
 
 func (_ *Input) PipelineConfig() map[string]string {
