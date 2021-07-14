@@ -15,9 +15,25 @@
 
 ## 获取安装命令
 
-登陆工作空间，通过 [数据网关](https://console.dataflux.cn/workspace/datacollection) 页面即可获取安装链接。各种环境安装命令，可按照下图来自由选择：
+登陆工作空间，点击左侧「集成」选择顶部「Datakit」，即可看到各种平台的安装命令。以 linux/amd64 平台为例，其命令大概如下：
 
-![选择不同的平台安装采集器](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-install.png)
+
+```shell
+sudo -- sh -c 'curl https://static.dataflux.cn/datakit/installer-linux-amd64 -o dk-installer \
+	&& chmod +x ./dk-installer \
+	&& ./dk-installer -dataway "https://openway.dataflux.cn?token=tkn_f2b9920f05d84d6bb5b14d9d39db1dd3" \
+	&& rm -rf ./dk-installer'
+```
+
+除了指定 DataWay 之外，`dk-installer` 额外支持如下安装选项（以下选项全平台支持）：
+
+- `-cloud-provider`：支持安装阶段填写云厂商(aliyun/aws/tencent)
+- `-namespace`：支持安装阶段指定命名空间(选举用)
+- `-global-tags`：支持安装阶段填写全局 tag，如 `project="abc",owner="张三"`（多个 tag 之间以英文逗号分隔）
+- `-listen`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
+- `-port`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
+- `-offline`：离线安装本地已有的 DataKit 安装包
+- `-download-only`：仅下载，不安装（离线安装时用）
 
 安装完成后，在终端会看到安装成功的提示。
 
