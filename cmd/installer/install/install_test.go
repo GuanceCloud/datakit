@@ -5,30 +5,43 @@ import (
 	"testing"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
+
+func TestPreEnableHostobjectInput(t *testing.T) {
+	for _, cloud := range []string{
+		"aws", "tencent", "aliyun", "unknown", "",
+	} {
+		conf, err := preEnableHostobjectInput(cloud)
+		if err != nil {
+			t.Fatal()
+		}
+
+		t.Logf("conf:\n%s", string(conf))
+	}
+}
 
 func TestUpgradeMainConfigure(t *testing.T) {
 	cases := []struct {
-		c, expect *datakit.Config
+		c, expect *config.Config
 		os        string
 		arch      string
 	}{
 		{
-			c:      &datakit.Config{Log: "a/b/c", GinLog: "/d/e/f"},
-			expect: &datakit.Config{Log: "/var/log/datakit/log", GinLog: "/var/log/datakit/gin.log"},
+			c:      &config.Config{Log: "a/b/c", GinLog: "/d/e/f"},
+			expect: &config.Config{Log: "/var/log/datakit/log", GinLog: "/var/log/datakit/gin.log"},
 		},
 
 		{
-			c: &datakit.Config{Log: "a/b/c", GinLog: "/d/e/f"},
-			expect: &datakit.Config{Log: `C:\Program Files\datakit\log`,
+			c: &config.Config{Log: "a/b/c", GinLog: "/d/e/f"},
+			expect: &config.Config{Log: `C:\Program Files\datakit\log`,
 				GinLog: `C:\Program Files\datakit\gin.log`},
 			os: "windows",
 		},
 
 		{
-			c: &datakit.Config{Log: "a/b/c", GinLog: "/d/e/f"},
-			expect: &datakit.Config{Log: `C:\Program Files (x86)\datakit\log`,
+			c: &config.Config{Log: "a/b/c", GinLog: "/d/e/f"},
+			expect: &config.Config{Log: `C:\Program Files (x86)\datakit\log`,
 				GinLog: `C:\Program Files (x86)\datakit\gin.log`},
 			os:   "windows",
 			arch: "386",
