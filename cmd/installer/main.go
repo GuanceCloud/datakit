@@ -46,9 +46,14 @@ var (
 	flagEnableInputs = flag.String("enable-inputs", "", `default enable inputs(comma splited, example: cpu,mem,disk)`)
 	flagDatakitName  = flag.String("name", "", `specify DataKit name, example: prod-env-datakit`)
 	flagGlobalTags   = flag.String("global-tags", "", `enable global tags, example: host=__datakit_hostname,ip=__datakit_ip`)
-	flagPort         = flag.Int("port", 9529, "datakit HTTP port")
-	flagInstallLog   = flag.String("install-log", "", "install log")
-	flagOTA          = flag.Bool("ota", false, "auto update")
+
+	flagPort      = flag.Int("port", 9529, "datakit HTTP port")
+	flagListen    = flag.String("listen", "localhost", "datakit HTTP listen")
+	flagNamespace = flag.String("namespace", "", "datakit namespace")
+
+	flagInstallLog    = flag.String("install-log", "", "install log")
+	flagOTA           = flag.Bool("ota", false, "auto update")
+	flagCloudProvider = flag.String("cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
@@ -186,7 +191,7 @@ func main() {
 
 func promptReferences() {
 	fmt.Printf("\n\tVisit http://localhost:%d/man/changelog to see DataKit change logs.\n", *flagPort)
-	fmt.Printf("\tVisit http://localhost:%d/stats to see DataKit running status.\n", *flagPort)
+	fmt.Printf("\tVisit http://localhost:%d/monitor to see DataKit running status.\n", *flagPort)
 	fmt.Printf("\tVisit http://localhost:%d/man to see DataKit manuals.\n\n", *flagPort)
 }
 
@@ -228,6 +233,9 @@ Golang Version: %s
 	install.DataWayHTTP = *flagDatawayHTTP
 	install.GlobalTags = *flagGlobalTags
 	install.Port = *flagPort
+	install.Listen = *flagListen
+	install.CloudProvider = *flagCloudProvider
 	install.DatakitName = *flagDatakitName
 	install.EnableInputs = *flagEnableInputs
+	install.Namespace = *flagNamespace
 }
