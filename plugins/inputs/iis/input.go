@@ -4,11 +4,14 @@ package iis
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/win_utils/pdh"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -27,11 +30,18 @@ var (
 	l                    = logger.DefaultSLogger("iis")
 )
 
+type iisLog struct {
+	Files    []string `toml:"files"`
+	Pipeline string   `toml:"pipeline"`
+}
+
 type Input struct {
 	Interval datakit.Duration
 
-	Log  *inputs.TailerOption `toml:"log"`
 	Tags map[string]string
+
+	Log  *iisLog `toml:"log"`
+	tail *tailer.Tailer
 
 	collectCache []inputs.Measurement
 }
@@ -52,7 +62,37 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 // TODO
-func (*Input) RunPipeline() {}
+func (i *Input) RunPipeline() {
+	if i.Log == nil || len(i.Log.Files) == 0 {
+		return
+	}
+
+	if i.Log.Pipeline == "" {
+		i.Log.Pipeline = "iis.p"
+	}
+
+	opt := &tailer.Option{
+		Source:     "iis",
+		Service:    "iis",
+		GlobalTags: i.Tags,
+	}
+
+	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	if _, err := os.Stat(pl); err != nil {
+		l.Warn("%s missing: %s", pl, err.Error())
+	} else {
+		opt.Pipeline = pl
+	}
+
+	if t, err := tailer.NewTailer(i.Log.Files, opt); err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	} else {
+		i.tail = t
+		go i.tail.Start()
+	}
+}
 
 func (i *Input) PipelineConfig() map[string]string {
 	pipelineConfig := map[string]string{
@@ -70,11 +110,10 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
+
 	l.Infof("iis input started")
+
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-	if i.Log != nil && len(i.Log.Files) > 0 {
-		go i.gatherLog()
-	}
 	tick := time.NewTicker(i.Interval.Duration)
 
 	defer tick.Stop()
@@ -94,6 +133,10 @@ func (i *Input) Run() {
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
+			if i.tail != nil {
+				i.tail.Close()
+				l.Infof("iis logging exit")
+			}
 			l.Infof("iis input exit")
 			return
 		}
@@ -213,20 +256,6 @@ func (i *Input) Collect() error {
 		}
 	}
 	return nil
-}
-
-func (i *Input) gatherLog() {
-	inputs.JoinPipelinePath(i.Log, inputName+".p")
-	i.Log.Source = inputName
-	for k, v := range i.Tags {
-		i.Log.Tags[k] = v
-	}
-	if tailer, err := inputs.NewTailer(i.Log); err != nil {
-		return
-	} else {
-		defer tailer.Close()
-		tailer.Run()
-	}
 }
 
 func init() {
