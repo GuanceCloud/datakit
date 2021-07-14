@@ -413,3 +413,12 @@ func CheckExcluded(item string, blacklist, whitelist []string) bool {
 func TimestampMsToTime(ms int64) time.Time {
 	return time.Unix(0, ms*1000000)
 }
+
+func GetEnv(env string) string {
+	if v, ok := os.LookupEnv(env); ok {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
