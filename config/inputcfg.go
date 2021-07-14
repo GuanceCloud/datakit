@@ -23,6 +23,11 @@ func SearchDir(dir string, suffix string) []string {
 			l.Error(err)
 		}
 
+		if f == nil {
+			l.Warnf("nil FileInfo on %s", fp)
+			return nil
+		}
+
 		if f.IsDir() {
 			l.Debugf("ignore dir %s", fp)
 			return nil
