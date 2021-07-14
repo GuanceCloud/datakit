@@ -95,7 +95,10 @@ func (ii *inputInfo) Run() {
 func AddInput(name string, input Input) error {
 	mtx.Lock()
 	defer mtx.Unlock()
+
 	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
+
+	l.Debugf("add input %s, total %d", name, len(InputsInfo[name]))
 	return nil
 }
 
@@ -111,7 +114,6 @@ func ResetInputs() {
 }
 
 func RunInputs() error {
-	l = logger.SLogger("inputs")
 	mtx.RLock()
 	defer mtx.RUnlock()
 
@@ -200,13 +202,10 @@ func InputEnabled(name string) (n int) {
 	}
 
 	n = len(arr)
+	l.Debugf("name enabled %d", n)
 	return
 }
 
-func GetSample(name string) (sample string, err error) {
-	if c, ok := Inputs[name]; ok {
-		sample = c().SampleConfig()
-		return
-	}
-	return "", fmt.Errorf("input not found")
+func Init() {
+	l = logger.SLogger("inputs")
 }
