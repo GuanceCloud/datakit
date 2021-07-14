@@ -68,6 +68,7 @@ kubectl get pod -n datakit
 | `ENV_DATAWAY`                | 无                | 否       | 可配置多个 dataway，以英文逗号分割，如 `https://dataway?token=xxx,https://dataway?token=yyy`          |
 | `ENV_HTTP_LISTEN`            | `localhost:9529`  | 否       | 可修改改地址，使得外部可以调用 [DataKit 接口](apis)                                                   |
 | `ENV_RUM_ORIGIN_IP_HEADER`   | `X-Forwarded-For` | 否       | RUM 专用                                                                                              |
+| `ENV_DISABLE_404PAGE`        | 无                | 否       | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用） |
 | `ENV_DEFAULT_ENABLED_INPUTS` | 无                | 否       | 默认开启采集器列表，以英文逗号分割，如 `cpu,mem,disk`                                                 |
 | `ENV_ENABLE_ELECTION`        | 默认不开启        | 否       | 开启[选举](election)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                      |
 | `ENV_NAMESPACE`              | 无                | 否       | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example` |
