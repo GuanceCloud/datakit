@@ -43,6 +43,8 @@ func SearchDir(dir string, suffix string) []string {
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *Config) error {
 
+	inputs.Init()
+
 	availableInputCfgs := map[string]*ast.Table{}
 	confs := SearchDir(datakit.ConfdDir, ".conf")
 
@@ -119,8 +121,6 @@ func searchDatakitInputCfg(c *Config,
 	name string,
 	creator inputs.Creator) []inputs.Input {
 
-	var err error
-
 	inputlist := []inputs.Input{}
 
 	for fp, tbl := range inputcfgs {
@@ -136,13 +136,14 @@ func searchDatakitInputCfg(c *Config,
 						if inputName != name {
 							continue
 						}
-						inputlist, err = TryUnmarshal(v, inputName, creator)
+						lst, err := TryUnmarshal(v, inputName, creator)
 						if err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
 							continue
 						}
 
 						l.Infof("load input %s from %s ok", inputName, fp)
+						inputlist = append(inputlist, lst...)
 					}
 				}
 
