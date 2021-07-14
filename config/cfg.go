@@ -121,15 +121,6 @@ type Config struct {
 	Disable404Page bool           `toml:"disable_404page"`
 	IOCacheCount   int64          `toml:"io_cache_count"`
 	Tracer         *tracer.Tracer `toml:"tracer,omitempty"`
-	// Tracer *struct {
-	// 	Service  string `toml:"service"`
-	// 	Version  string `toml:"version"`
-	// 	Enabled  bool   `toml:"enabled"`
-	// 	Resource string `toml:"resource"`
-	// 	Host     string `toml:"host"`
-	// 	Port     int    `toml:"port"`
-	// 	Debug    bool   `toml:"debug"`
-	// } `toml:"tracer,omitempty"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -425,22 +416,9 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 	c.DefaultEnabledInputs = inputs
 }
 
-func getEnv(env string) string {
-	if v, ok := os.LookupEnv(env); ok {
-		if v != "" {
-			l.Infof("get env %s ok: %s", env, v)
-			return v
-		} else {
-			l.Infof("ignore empty env %s", env)
-			return v
-		}
-	}
-	return ""
-}
-
 func (c *Config) LoadEnvs() error {
 
-	if v := getEnv("ENV_IO_CACHE_COUNT"); v != "" {
+	if v := datakit.GetEnv("ENV_IO_CACHE_COUNT"); v != "" {
 		i, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			l.Errorf("invalid ENV_IO_CACHE_COUNT: %s", v)
@@ -449,24 +427,24 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
-	if v := getEnv("ENV_NAMESPACE"); v != "" {
+	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
 		c.Namespace = v
 	}
 
-	if v := getEnv("ENV_DISABLE_404PAGE"); v != "" {
+	if v := datakit.GetEnv("ENV_DISABLE_404PAGE"); v != "" {
 		c.Disable404Page = true
 	}
 
-	if v := getEnv("ENV_GLOBAL_TAGS"); v != "" {
+	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" {
 		c.GlobalTags = ParseGlobalTags(v)
 	}
 
-	if v := getEnv("ENV_LOG_LEVEL"); v != "" {
+	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
 		c.LogLevel = v
 	}
 
 	// 多个 dataway 支持 ',' 分割
-	if v := getEnv("ENV_DATAWAY"); v != "" {
+	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
 
 		if c.DataWay == nil {
 			c.DataWay = &dataway.DataWayCfg{}
@@ -474,39 +452,39 @@ func (c *Config) LoadEnvs() error {
 		c.DataWay.URLs = strings.Split(v, ",")
 	}
 
-	if v := getEnv("ENV_HOSTNAME"); v != "" {
+	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
 		c.Hostname = v
 	}
 
-	if v := getEnv("ENV_NAME"); v != "" {
+	if v := datakit.GetEnv("ENV_NAME"); v != "" {
 		c.Name = v
 	}
 
-	if v := getEnv("ENV_HTTP_LISTEN"); v != "" {
+	if v := datakit.GetEnv("ENV_HTTP_LISTEN"); v != "" {
 		c.HTTPListen = v
 	}
 
-	if v := getEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {
+	if v := datakit.GetEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {
 		c.HTTPAPI = &dkhttp.APIConfig{RUMOriginIPHeader: v}
 	}
 
-	if v := getEnv("ENV_ENABLE_PPROF"); v != "" {
+	if v := datakit.GetEnv("ENV_ENABLE_PPROF"); v != "" {
 		c.EnablePProf = true
 	}
 
-	if v := getEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
+	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
 		c.ProtectMode = false
 	}
 
-	if v := os.Getenv("ENV_DEFAULT_ENABLED_INPUTS"); v != "" {
+	if v := datakit.GetEnv("ENV_DEFAULT_ENABLED_INPUTS"); v != "" {
 		c.DefaultEnabledInputs = strings.Split(v, ",")
 	} else {
-		if v := os.Getenv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
+		if v := datakit.GetEnv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
 			c.DefaultEnabledInputs = strings.Split(v, ",")
 		}
 	}
 
-	if v := getEnv("ENV_ENABLE_ELECTION"); v != "" {
+	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
 		c.EnableElection = true
 	}
 
@@ -647,7 +625,7 @@ func CreateSymlinks() error {
 
 	for _, item := range x {
 		if err := symlink(item[0], item[1]); err != nil {
-			return err
+			l.Warnf("create datakit symlink: %s -> %s: %s, ignored", item[1], item[0], err.Error())
 		}
 	}
 
@@ -661,9 +639,5 @@ func symlink(src, dst string) error {
 		l.Warnf("%s, ignored", err)
 	}
 
-	if err := os.Symlink(src, dst); err != nil {
-		l.Errorf("create datakit soft link: %s -> %s: %s", dst, src, err.Error())
-		return err
-	}
-	return nil
+	return os.Symlink(src, dst)
 }
