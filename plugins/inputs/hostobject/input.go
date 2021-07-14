@@ -17,21 +17,21 @@ var (
 )
 
 type Input struct {
-	Name  string //deprecated
-	Class string //deprecated
+	Name  string `toml:"name,omitempty"`        //deprecated
+	Class string `toml:"class,omitempty"`       //deprecated
 	Desc  string `toml:"description,omitempty"` //deprecated
 
-	Interval datakit.Duration
-	Pipeline string            `toml:"pipeline"`
+	Pipeline string            `toml:"pipeline,omitempty"`
 	Tags     map[string]string `toml:"tags,omitempty"`
 
-	IgnoreInputsErrorsBefore datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
-	IOTimeout                datakit.Duration `toml:"io_timeout,omitempty"`
+	Interval                 *datakit.Duration `toml:"-"`
+	IgnoreInputsErrorsBefore *datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
+	IOTimeout                *datakit.Duration `toml:"io_timeout,omitempty"`
 
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreFS                   []string `toml:"ignore_fs"`
 
-	CloudInfo map[string]string `toml:"cloud_info"`
+	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
 
 	p *pipeline.Pipeline
 
@@ -225,22 +225,26 @@ func (c *Input) getPipeline() *pipeline.Pipeline {
 	return p
 }
 
+func DefaultHostObject() *Input {
+	return &Input{
+		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
+		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Minute},
+		IOTimeout:                &datakit.Duration{Duration: 10 * time.Second},
+		IgnoreFS: []string{
+			"autofs",
+			"tmpfs",
+			"devtmpfs",
+			"devfs",
+			"iso9660",
+			"overlay",
+			"aufs",
+			"squashfs",
+		},
+	}
+}
+
 func init() {
 	inputs.Add(InputName, func() inputs.Input {
-		return &Input{
-			Interval:                 datakit.Duration{Duration: 5 * time.Minute},
-			IgnoreInputsErrorsBefore: datakit.Duration{Duration: 30 * time.Minute},
-			IOTimeout:                datakit.Duration{Duration: 10 * time.Second},
-			IgnoreFS: []string{
-				"autofs",
-				"tmpfs",
-				"devtmpfs",
-				"devfs",
-				"iso9660",
-				"overlay",
-				"aufs",
-				"squashfs",
-			},
-		}
+		return DefaultHostObject()
 	})
 }
