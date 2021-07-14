@@ -2,7 +2,9 @@ package install
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -26,12 +28,15 @@ var (
 
 	OSArch = runtime.GOOS + "/" + runtime.GOARCH
 
-	DataWayHTTP  = ""
-	GlobalTags   = ""
-	Port         = 9529
-	DatakitName  = ""
-	EnableInputs = ""
-	OTA          = false
+	DataWayHTTP   = ""
+	GlobalTags    = ""
+	Port          = 9529
+	Listen        = "localhost"
+	CloudProvider = ""
+	DatakitName   = ""
+	EnableInputs  = ""
+	Namespace     = ""
+	OTA           = false
 )
 
 func readInput(prompt string) string {
@@ -92,7 +97,8 @@ func InstallNewDatakit(svc service.Service) {
 		mc.GlobalTags = config.ParseGlobalTags(GlobalTags)
 	}
 
-	mc.HTTPListen = fmt.Sprintf("localhost:%d", Port)
+	mc.Namespace = Namespace
+	mc.HTTPListen = fmt.Sprintf("%s:%d", Listen, Port)
 	mc.InstallDate = time.Now()
 
 	if DatakitName != "" {
@@ -122,10 +128,53 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 	mc.EnableDefaultsInputs(EnableInputs)
 
+	switch CloudProvider {
+	case "aliyun", "tencent", "aws":
+		if conf, err := preEnableHostobjectInput(CloudProvider); err != nil {
+			l.Fatalf("failed to init hostobject conf: %s", err.Error())
+		} else {
+			cfgpath := filepath.Join(datakit.ConfdDir, "host", "hostobject.conf")
+			if err := ioutil.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
+				l.Fatalf("failed to init hostobject conf: %s", err.Error())
+			}
+		}
+	default:
+		// pass
+	}
+
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
+}
+
+func preEnableHostobjectInput(cloud string) ([]byte, error) {
+	// I don't want to import hostobject input, cause the installer binary bigger
+	sample := []byte(`
+[inputs.hostobject]
+
+#pipeline = '' # optional
+
+## Datakit does not collect network virtual interfaces under the linux system.
+## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
+# enable_net_virtual_interfaces = true
+
+## Ignore mount points by filesystem type. Default ingore following FS types
+# ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
+
+
+[inputs.hostobject.tags] # (optional) custom tags
+# cloud_provider = "aliyun" # aliyun/tencent/aws
+# some_tag = "some_value"
+# more_tag = "some_other_value"
+# ...`)
+
+	conf := bytes.Replace(sample,
+		[]byte(`# cloud_provider = "aliyun"`),
+		[]byte(fmt.Sprintf(`  cloud_provider = "%s"`, cloud)),
+		-1)
+
+	return conf, nil
 }
 
 func upgradeMainConfig(c *config.Config) (*config.Config, error) {
