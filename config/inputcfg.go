@@ -148,10 +148,6 @@ func searchDatakitInputCfg(c *Config,
 
 			default: // compatible with old version: no [[inputs.xxx]] header
 				l.Debugf("ignore field %s in file %s", field, fp)
-				//inputlist, err = TryUnmarshal(node, name, creator)
-				//if err != nil {
-				//	l.Warnf("unmarshal input %s failed within %s: %s", name, fp, err.Error())
-				//}
 			}
 		}
 	}
