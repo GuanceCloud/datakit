@@ -74,7 +74,7 @@ var (
 	flagStatus    = flag.Bool("status", false, "show datakit service status")
 	flagUninstall = flag.Bool("uninstall", false, "uninstall datakit service")
 
-	flagDatakitHost = flag.String("datakit-host", "localhost:9529", "datakit HTTP host")
+	flagDatakitHost = flag.StringP("datakit-host", "H", "localhost:9529", "datakit HTTP host")
 
 	// DQL
 	flagDQL    = flag.Bool("dql", false, "query DQL")
