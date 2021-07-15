@@ -324,21 +324,11 @@ func (c *Config) ApplyMainConfig() error {
 		return err
 	}
 
-	if c.Disable404Page {
-		dkhttp.Disable404Page()
-	}
-
 	if c.Tracer != nil {
 		tracer.GlobalTracer = c.Tracer
 	}
 
-	if c.HTTPAPI != nil {
-		dkhttp.SetAPIConfig(c.HTTPAPI)
-	}
-
 	datakit.AutoUpdate = c.AutoUpdate
-
-	dkhttp.SetDataWay(c.DataWay)
 
 	dkio.SetDataWay(c.DataWay)
 	dkio.SetGlobalCacheCount(c.IOCacheCount)
