@@ -326,7 +326,7 @@ data:
           # required
           interval = "10s"
           ## URL for the Kubernetes API
-          url = "<https://k8s-api-server>"
+          url = "https://kubernetes.default:443"
           ## Use bearer token for authorization. ('bearer_token' takes priority)
           ## at: /run/secrets/kubernetes.io/serviceaccount/token
           bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
