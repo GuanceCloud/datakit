@@ -79,6 +79,7 @@ var (
 		"huaweiyunces":           true,
 		"huaweiyunobject":        true,
 		"iis":                    true,
+		"influxdb":               true,
 		"jenkins":                true,
 		"jira":                   true,
 		"jvm":                    true,
