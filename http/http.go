@@ -5,16 +5,15 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	iowrite "io"
 	"net/http"
 	_ "net/http/pprof"
-	"os"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -42,6 +41,8 @@ var (
 	dw             *dataway.DataWayCfg
 	extraTags      = map[string]string{}
 	apiConfig      *APIConfig
+
+	ginRotate = 32 // MB
 )
 
 const (
@@ -56,8 +57,12 @@ const (
 )
 
 type Option struct {
-	Bind   string
-	GinLog string
+	Bind           string
+	GinLog         string
+	GinRotate      int
+	Disable404Page bool
+	APIConfig      *APIConfig
+	DataWay        *dataway.DataWayCfg
 
 	GinReleaseMode bool
 	PProf          bool
@@ -75,6 +80,10 @@ func Start(o *Option) {
 	ginLog = o.GinLog
 	pprof = o.PProf
 	ginReleaseMode = o.GinReleaseMode
+	disable404Page = o.Disable404Page
+	ginRotate = o.GinRotate
+	apiConfig = o.APIConfig
+	dw = o.DataWay
 
 	// start HTTP server
 	go func() {
@@ -88,15 +97,6 @@ type welcome struct {
 	Uptime  string
 	OS      string
 	Arch    string
-}
-
-func Disable404Page() {
-	disable404Page = true
-}
-
-func SetDataWay(x *dataway.DataWayCfg) {
-	l.Debugf("set http dataway to %v", x)
-	dw = x
 }
 
 func SetAPIConfig(c *APIConfig) {
@@ -172,13 +172,6 @@ func corsMiddleware(c *gin.Context) {
 func HttpStart() {
 	gin.DisableConsoleColor()
 
-	l.Infof("set gin log to %s", ginLog)
-	f, err := os.Create(ginLog)
-	if err != nil {
-		l.Fatalf("create gin log failed: %s", err)
-	}
-	gin.DefaultWriter = iowrite.MultiWriter(f)
-
 	if ginReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -186,7 +179,20 @@ func HttpStart() {
 	l.Debugf("HTTP bind addr:%s", httpBind)
 
 	router := gin.New()
-	router.Use(gin.Logger())
+
+	// set gin logger
+	l.Infof("set gin log to %s", ginLog)
+	ginlogger := &lumberjack.Logger{
+		Filename:   ginLog,
+		MaxSize:    ginRotate, // MB
+		MaxBackups: 5,
+		MaxAge:     30, // day
+	}
+	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
+		Formatter: nil, // not set, use the default
+		Output:    ginlogger,
+	}))
+
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware)
 	if !disable404Page {
