@@ -37,6 +37,7 @@ MySQL 指标采集，收集以下数据：
     GRANT PROCESS ON *.* TO 'datakitMonitor'@'localhost';
     show databases like 'performance_schema';
     GRANT SELECT ON performance_schema.* TO 'datakitMonitor'@'localhost';
+    GRANT SELECT ON mysql.user TO 'datakitMonitor'@'%';
     GRANT replication client on *.*  to 'datakitMonitor'@'localhost';
 ```
 
