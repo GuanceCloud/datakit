@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"runtime"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,6 +25,9 @@ var (
 	disableNil  = false
 	echoExplain = false
 
+	history    []string
+	MaxHistory = 5000
+
 	dqlcli = &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
@@ -38,23 +41,76 @@ var (
 func DQL(host string) {
 	datakitHost = host
 
-	switch runtime.GOOS {
-	case "windows":
-		colorPrint("--dql do not support Windows\n", color.FgRed)
-		return
-	}
-
 	c, _ := newCompleter()
 	suggestions = append(suggestions, dqlSuggestions...)
+
+	loadHistory()
 
 	p := prompt.New(
 		runDQL,
 		c.Complete,
 		prompt.OptionTitle("DQL: query DQL in DataKit"),
 		prompt.OptionPrefix("dql > "),
+		prompt.OptionHistory(history),
 	)
 
 	p.Run()
+}
+
+func loadHistory() {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		l.Errorf("UserHomeDir(): %s", err.Error())
+		return
+	}
+
+	histpath := filepath.Join(homedir, ".dql_history")
+
+	if _, err := os.Stat(histpath); err != nil {
+		l.Warnf("history file %s not found", histpath)
+		return
+	}
+
+	data, err := ioutil.ReadFile(histpath)
+	if err != nil {
+		l.Warnf("read history failed: %s", err.Error())
+		return
+	}
+
+	history = strings.Split(string(data), "\n")
+}
+
+func addHistory(s ...string) {
+
+	history = append(history, s...)
+	if len(history) > MaxHistory {
+		dumpHistory()
+	}
+}
+
+func dumpHistory() {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		l.Errorf("UserHomeDir(): %s", err.Error())
+		return
+	}
+
+	if len(history) > MaxHistory {
+		history = history[len(history)-MaxHistory/2:] // trim older-histories
+	}
+
+	if err := ioutil.WriteFile(filepath.Join(homedir, ".dql_history"),
+		[]byte(strings.Join(history, "\n")), 0644); err != nil {
+		l.Errorf("update history error: %s", err.Error())
+	}
+}
+
+func updateHistoryOnExit() {
+	if len(history) == 0 {
+		return
+	}
+
+	dumpHistory()
 }
 
 func runDQL(txt string) {
@@ -64,11 +120,14 @@ func runDQL(txt string) {
 		return
 	}
 
+	addHistory(s)
+
 	switch strings.ToLower(s) {
 	case "":
 		return
 	case "q", "exit":
 		output("Bye!\n")
+		updateHistoryOnExit()
 		os.Exit(0)
 
 		// nil
@@ -363,10 +422,7 @@ var (
 		{Text: "DESC", Description: "..."},
 		{Text: "FALSE", Description: "..."},
 		{Text: "FILL()", Description: "fill default value"},
-		{Text: "FILTER", Description: ""},
-		{Text: "GROUP", Description: "..."},
 		{Text: "LIMIT", Description: "..."},
-		{Text: "LINK", Description: "..."},
 		{Text: "LINEAR", Description: "..."},
 		{Text: "NIL", Description: "..."},
 		{Text: "OFFSET", Description: "..."},
@@ -378,16 +434,15 @@ var (
 		{Text: "SOFFSET", Description: "..."},
 		{Text: "TRUE", Description: "..."},
 		{Text: "tz()", Description: "timezone function"},
-		{Text: "WITH", Description: ""},
-		{Text: "INFO", Description: "show token/workspace info"},
 
-		{Text: "metric::", Description: "metric namespace"},
-		{Text: "object::", Description: "object namespace"},
-		{Text: "custom_object::", Description: "custom object namespace"},
-		{Text: "event::", Description: "event namespace"},
-		{Text: "logging::", Description: "logging namespace"},
-		{Text: "tracing::", Description: "tracing namespace"},
+		{Text: "metric::", Description: "Metric namespace"},
+		{Text: "object::", Description: "Object namespace"},
+		{Text: "custom_object::", Description: "Custom object namespace"},
+		{Text: "event::", Description: "Event namespace"},
+		{Text: "logging::", Description: "Logging namespace"},
+		{Text: "tracing::", Description: "Tracing namespace"},
 		{Text: "rum::", Description: "RUM namespace"},
+		{Text: "security::", Description: "Security namespace"},
 
 		{Text: "M::", Description: "metric namespace"},
 		{Text: "O::", Description: "object namespace"},
@@ -396,6 +451,7 @@ var (
 		{Text: "L::", Description: "logging namespace"},
 		{Text: "T::", Description: "tracing namespace"},
 		{Text: "R::", Description: "RUM namespace"},
+		{Text: "S::", Description: "Security namespace"},
 
 		// functions
 		{Text: "show_measurement()", Description: "show all metric names"},
@@ -459,10 +515,10 @@ var (
 		{Text: "dataflux__dql.FIRST()", Description: ""},
 		{Text: "dataflux__dql.LAST()", Description: ""},
 
+		// settings
 		{Text: "echo_explain", Description: "echo backend query"},
 		{Text: "echo_explain_off", Description: "disable echo backend query"},
 		{Text: "disable_nil", Description: "disable show nil values"},
-
 		{Text: "enable_nil", Description: "show nil values"},
 		{Text: "exit", Description: "exit dfcli"},
 
