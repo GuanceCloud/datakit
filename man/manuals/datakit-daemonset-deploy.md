@@ -63,9 +63,9 @@ kubectl get pod -n datakit
 
 | 环境变量名称                 | 默认值            | 是否必须 | 说明                                                                                                  |
 | ---------                    | ---               | ------   | ----                                                                                                  |
+| `ENV_DATAWAY`                | 无                | 是       | 可配置多个 dataway，以英文逗号分割，如 `https://dataway?token=xxx,https://dataway?token=yyy`          |
 | `ENV_GLOBAL_TAGS`            | 无                | 否       | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                                        |
 | `ENV_LOG_LEVEL`              | `info`            | 否       | 可选值 `info/debug`                                                                                   |
-| `ENV_DATAWAY`                | 无                | 否       | 可配置多个 dataway，以英文逗号分割，如 `https://dataway?token=xxx,https://dataway?token=yyy`          |
 | `ENV_HTTP_LISTEN`            | `localhost:9529`  | 否       | 可修改改地址，使得外部可以调用 [DataKit 接口](apis)                                                   |
 | `ENV_RUM_ORIGIN_IP_HEADER`   | `X-Forwarded-For` | 否       | RUM 专用                                                                                              |
 | `ENV_DISABLE_404PAGE`        | 无                | 否       | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用） |
