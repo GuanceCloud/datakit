@@ -284,8 +284,9 @@ Tips：
 - 输入 `echo_explain` 即可看到后端查询语句
 - 为避免显示太多 `nil` 查询结果，可通过 `disable_nil/enable_nil` 来开关
 - 支持查询语句模糊搜，如 `echo_explain` 只需要输入 `echo` 或 `exp` 即可弹出提示，通过 `Tab` 即可选择下拉提示
+- DataKit 会自动保存前面多次运行的 DQL 查询历史（最大 5000 条），可通过上下方向键来选择
 
-> 注：Windows 下，请在 Powershell 中执行 `datakit --dql`。
+> 注：Windows 下，请在 Powershell 中执行 `datakit --dql`
 
 ### 查看 DataKit 运行情况
 
