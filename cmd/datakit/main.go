@@ -248,9 +248,15 @@ func doRun() error {
 	}
 
 	dkhttp.Start(&dkhttp.Option{
-		Bind:           config.Cfg.HTTPListen,
+		Bind: config.Cfg.HTTPListen,
+
 		GinLog:         config.Cfg.GinLog,
+		GinRotate:      config.Cfg.LogRotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.LogLevel) != "debug",
+
+		Disable404Page: config.Cfg.Disable404Page,
+		DataWay:        config.Cfg.DataWay,
+		APIConfig:      config.Cfg.HTTPAPI,
 		PProf:          config.Cfg.EnablePProf,
 	})
 
