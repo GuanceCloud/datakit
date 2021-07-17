@@ -20,7 +20,8 @@ func SearchDir(dir string, suffix string) []string {
 
 	if err := filepath.Walk(dir, func(fp string, f os.FileInfo, err error) error {
 		if err != nil {
-			l.Error(err)
+			l.Errorf("walk on %s failed: %s", fp, err)
+			return nil
 		}
 
 		if f == nil {
