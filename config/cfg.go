@@ -517,6 +517,8 @@ func emptyDir(fp string) bool {
 		return false
 	}
 
+	defer fd.Close()
+
 	_, err = fd.ReadDir(1)
 	switch err {
 	case io.EOF:
@@ -528,9 +530,15 @@ func emptyDir(fp string) bool {
 
 // remove all xxx.conf.sample
 func removeSamples() {
+
+	l.Debugf("searching samples under %s", datakit.ConfdDir)
+
 	fps := SearchDir(datakit.ConfdDir, ".conf.sample")
+
+	l.Debugf("searched %d samples", len(fps))
+
 	for _, fp := range fps {
-		if err := os.RemoveAll(fp); err != nil {
+		if err := os.Remove(fp); err != nil {
 			l.Error(err)
 			continue
 		}
