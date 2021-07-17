@@ -15,6 +15,12 @@ func TestCompare(t *testing.T) {
 	}{
 
 		{
+			v1:         "1.1.7-rc7.1",
+			v2:         "1.1.7-rc7",
+			newVersion: true,
+		},
+
+		{
 			v1:         "1.1.7-rc7",
 			v2:         "1.1.7-rc0",
 			newVersion: true,
