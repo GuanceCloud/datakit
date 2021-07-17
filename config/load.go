@@ -58,13 +58,10 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
-	removeSamples()
-
-	if err := c.InitCfg(datakit.MainConfPath); err != nil {
-		return err
-	}
-
 	l.Infof("main cfg: %+#v", c)
+
+	// clear all samples before loading
+	removeSamples()
 
 	if err := initPluginSamples(); err != nil {
 		return err
