@@ -37,15 +37,15 @@ build-testing:
   tags:
     - cloudcare-ft
 
-build-release:
-  stage: deploy
-  only:
-    - master
-  script:
-    - make ci_notify
-    - make release
-    - make pub_release
-    - make pub_release_img
-    - make release_notify
-  tags:
-    - cloudcare-ft
+#build-release:
+#  stage: deploy
+#  only:
+#    - master
+#  script:
+#    - make ci_notify
+#    - make release
+#    - make pub_release
+#    - make pub_release_img
+#    - make release_notify
+#  tags:
+#    - cloudcare-ft
