@@ -97,9 +97,6 @@ java -javaagent:dd-java-agent.jar \
 	-Ddd.jmxfetch.check-period=1000 \
 	-Ddd.jmxfetch.statsd.host=127.0.0.1  \
 	-Ddd.jmxfetch.statsd.port=8125 \
-	-Ddd.trace.health.metrics.enabled=true  \
-	-Ddd.trace.health.metrics.statsd.host=127.0.0.1 \
-	-Ddd.trace.health.metrics.statsd.port=8125 \
 	-Ddd.version=1.0 \
 	-jar your-app.jar
 ```
