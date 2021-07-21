@@ -24,7 +24,7 @@ type Input struct {
 	Pipeline string            `toml:"pipeline,omitempty"`
 	Tags     map[string]string `toml:"tags,omitempty"`
 
-	Interval                 *datakit.Duration `toml:"-"`
+	Interval                 *datakit.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore *datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
 	IOTimeout                *datakit.Duration `toml:"io_timeout,omitempty"`
 
