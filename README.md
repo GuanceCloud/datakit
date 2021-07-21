@@ -35,7 +35,7 @@ dist/
     └── version
 ```
 
-> Note: The Darwin release can not be build under Linux/Darwin, because we applied CGO for Darwin release
+> Note: The Darwin release can not be build under Linux/Windows, because we applied CGO for Darwin release
 
 # More references
 
