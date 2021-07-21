@@ -12,6 +12,10 @@ LOCAL=windows/amd64 make
 
 # build linux binary on Mac
 LOCAL=linux/amd64 make
+
+# build on different OS/Arch, DataKit build tool will
+# detect current OS/Arch and build the default one
+make
 ```
 
 and is's possible to huild all release under Darwin:
