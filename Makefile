@@ -99,9 +99,6 @@ release_mac: man
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
-pub_local_mac:
-	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(MAC_ARCHS))
-
 pub_testing:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
