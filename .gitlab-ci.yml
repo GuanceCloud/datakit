@@ -1,38 +1,38 @@
-before_script:
-  - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - source ~/.ossenv
+#before_script:
+#  - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+#  - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+#  - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+#  - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+#  - source ~/.ossenv
+#
+#variables:
+#  PROJECT: "datakit"
+#
+#stages:
+#  - deploy
 
-variables:
-  PROJECT: "datakit"
-
-stages:
-  - deploy
-
-build-testing:
-  stage: deploy
-  only:
-    - testing
-  script:
-    - make ci_notify
-    - make testing
-    - make pub_testing
-    - make pub_testing_img
-    - make test_notify
-  tags:
-    - cloudcare-ft
-
-build-release:
-  stage: deploy
-  only:
-    - master
-  script:
-    - make ci_notify
-    - make release
-    - make pub_release
-    - make pub_release_img
-    - make release_notify
-  tags:
-    - cloudcare-ft
+#build-testing:
+#  stage: deploy
+#  only:
+#    - testing
+#  script:
+#    - make ci_notify
+#    - make testing
+#    - make pub_testing
+#    - make pub_testing_img
+#    - make test_notify
+#  tags:
+#    - cloudcare-ft
+#
+#build-release:
+#  stage: deploy
+#  only:
+#    - master
+#  script:
+#    - make ci_notify
+#    - make release
+#    - make pub_release
+#    - make pub_release_img
+#    - make release_notify
+#  tags:
+#    - cloudcare-ft
