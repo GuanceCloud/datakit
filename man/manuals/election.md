@@ -35,7 +35,8 @@ namespace = "dk-namespace-example"
 
 ## 支持选举的采集列表
 
-目前支持选举的采集器列表有以下：
+目前支持选举的采集器列表如下：
 
 - [kubernetes](kubernetes)
+- [prom](prom)
 - [gitlab](gitlab)
