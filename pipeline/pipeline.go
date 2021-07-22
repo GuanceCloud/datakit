@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
 	conv "github.com/spf13/cast"
@@ -27,6 +28,7 @@ type Pipeline struct {
 	patterns map[string]string //存放自定义patterns
 	ast      *parser.Ast
 	grok     *vgrok.Grok
+	timezone map[string]*time.Location
 }
 
 var (
@@ -199,14 +201,25 @@ func (p *Pipeline) getContent(key interface{}) (interface{}, error) {
 
 func (p *Pipeline) getContentStr(key interface{}) (string, error) {
 	c, err := p.getContent(key)
+	if err != nil {
+		return "", err
+	}
 
 	switch v := reflect.ValueOf(c); v.Kind() {
 	case reflect.Map:
 		res, err := json.Marshal(v.Interface())
 		return string(res), err
 	default:
-		return conv.ToString(v), err
+		return conv.ToString(v.Interface()), err
 	}
+}
+
+func (p *Pipeline) setTimezone(k string, v *time.Location) error {
+	if p.timezone == nil {
+		p.timezone = make(map[string]*time.Location)
+	}
+	p.timezone[k] = v
+	return nil
 }
 
 func (p *Pipeline) setContent(k, v interface{}) error {
