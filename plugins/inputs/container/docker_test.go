@@ -74,29 +74,29 @@ func TestGatherDockerMetric2(t *testing.T) {
 	t.Logf("\n并发采集总耗时 cost: %s", time.Since(startTime1))
 }
 
-func TestGatherDockerStats(t *testing.T) {
-	mock, err := newDockerClient(dockerEndpoint, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+// func TestGatherDockerStats(t *testing.T) {
+// 	mock, err := newDockerClient(dockerEndpoint, nil)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	cList, err := mock.client.ContainerList(context.Background(), types.ContainerListOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	cList, err := mock.client.ContainerList(context.Background(), types.ContainerListOptions{})
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	t.Logf("container sum: %d\n", len(cList))
+// 	t.Logf("container sum: %d\n", len(cList))
 
-	// 串行
-	startTime := time.Now()
-	for index, container := range cList {
-		s1 := time.Now()
-		_, err := mock.gatherSingleContainerStats(context.Background(), container)
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Logf("[%d] ID: %s Cost: %s\n", index, container.ID, time.Since(s1))
-	}
+// 	// 串行
+// 	startTime := time.Now()
+// 	for index, container := range cList {
+// 		s1 := time.Now()
+// 		_, err := mock.gatherSingleContainerStats(context.Background(), container)
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+// 		t.Logf("[%d] ID: %s Cost: %s\n", index, container.ID, time.Since(s1))
+// 	}
 
-	t.Logf("\n串行http get采集总耗时 cost: %s", time.Since(startTime))
-}
+// 	t.Logf("\n串行http get采集总耗时 cost: %s", time.Since(startTime))
+// }

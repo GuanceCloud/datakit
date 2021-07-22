@@ -10,9 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
+	dktracer "gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
@@ -84,8 +85,8 @@ func (dw *DataWayCfg) String() string {
 }
 
 func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz bool) error {
-	tracer.GlobalTracer.Start(tracer.WithLogger(tracer.DDLog{}))
-	defer tracer.GlobalTracer.Stop()
+	dktracer.GlobalTracer.Start(tracer.WithLogger(tracer.DDLog{}))
+	defer dktracer.GlobalTracer.Stop()
 
 	requrl, ok := dc.categoryURL[category]
 	if !ok {
@@ -99,15 +100,12 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 		}
 	}
 
-	span := tracer.GlobalTracer.StartSpan("send")
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
 	if err != nil {
 		l.Error(err)
-		tracer.GlobalTracer.FinishSpan(span, tracer.WithError(err), tracer.WithFinishTime(time.Now()))
 
 		return err
 	}
-	tracer.GlobalTracer.Inject(span, req.Header)
 
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
@@ -125,8 +123,16 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 		return nil
 	}
 
+	// start trace span from request context
+	span, _ := dktracer.GlobalTracer.StartSpanFromContext(req.Context(), "datakit.dataway.send", req.RequestURI, tracer.SpanTypeHTTP)
+	defer dktracer.GlobalTracer.FinishSpan(span, tracer.WithFinishTime(time.Now()))
+
+	// inject span into http header
+	dktracer.GlobalTracer.Inject(span, req.Header)
+
 	resp, err := cli.Do(req)
 	if err != nil {
+		dktracer.GlobalTracer.SetTag(span, "http_client_do_error", err.Error())
 		l.Errorf("request url %s failed: %s", requrl, err)
 		return err
 	}
@@ -134,6 +140,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	defer resp.Body.Close()
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		dktracer.GlobalTracer.SetTag(span, "io_read_request_body_error", err.Error())
 		l.Error(err)
 		return err
 	}
@@ -145,6 +152,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 		return nil
 
 	case 4:
+		dktracer.GlobalTracer.SetTag(span, "http_request_400_error", fmt.Errorf("%d: %s", resp.StatusCode, http.StatusText(resp.StatusCode)))
 		l.Warnf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
 			len(data),
 			requrl,
@@ -154,6 +162,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 		return nil
 
 	case 5:
+		dktracer.GlobalTracer.SetTag(span, "http_request_500_error", fmt.Errorf("%d: %s", resp.StatusCode, http.StatusText(resp.StatusCode)))
 		l.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v",
 			len(data),
 			requrl,
