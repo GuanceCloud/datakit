@@ -105,11 +105,24 @@ pub_testing:
 pub_testing_mac:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
+pub_testing_win_img:
+	@mkdir -p embed/windows-amd64
+	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
+	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
+
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+
+pub_release_win_img:
+	# release to pub hub
+	@mkdir -p embed/windows-amd64
+	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
+	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
 
 pub_release_img:
 	# release to pub hub

@@ -21,6 +21,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafka"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kube_state_metric"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logging"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mem"

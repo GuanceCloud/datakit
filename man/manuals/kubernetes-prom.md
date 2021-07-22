@@ -4,11 +4,11 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
-# Kubernetes 集群中 Exporter 指标采集
+# Kubernetes 集群中自定义 Exporter 指标采集
 
 ## 介绍
 
-该方案可以在 Kubernetes 集群中通过配置，采集集群中的 Exporter 数据。
+该方案可以在 Kubernetes 集群中通过配置，采集集群中的自定义的 Pod 的 Exporter 数据。
 
 ## 使用 demo
 
