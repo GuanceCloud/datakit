@@ -13,6 +13,7 @@
 - [DataKit API](apis)
 - [DataKit 整体架构简介](datakit-arch)
 - [文本数据处理（Pipeline）](pipeline)
+- [如何排查无数据问题](why-no-data)
 - [采集器]()
 
 	- [主机]()

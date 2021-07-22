@@ -41,6 +41,7 @@ var (
 		"ddtrace-java":            "man/manuals/ddtrace-java.md",
 		"kube-state-metrics":      "man/manuals/kube-state-metrics.md",
 		"kubernetes-prom":         "man/manuals/kubernetes-prom.md",
+		"why-no-data":             "man/manuals/why-no-data.md",
 	}
 
 	l = logger.DefaultSLogger("man")
