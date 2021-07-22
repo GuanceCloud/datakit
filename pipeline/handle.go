@@ -16,6 +16,84 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
+var datePattern = func() []struct {
+	desc        string
+	pattern     *regexp.Regexp
+	goFmt       string
+	defaultYear bool
+} {
+	dataPatternSource := []struct {
+		desc        string
+		pattern     string
+		goFmt       string
+		defaultYear bool
+	}{
+		{
+			desc:    "nginx log datetime, 02/Jan/2006:15:04:05 -0700",
+			pattern: `\d{2}/\w+/\d{4}:\d{2}:\d{2}:\d{2} \+\d{4}`,
+			goFmt:   "02/Jan/2006:15:04:05 -0700",
+		},
+		{
+			desc:    "redis log datetime, 14 May 2019 19:11:40.164",
+			pattern: `\d{2} \w+ \d{4} \d{2}:\d{2}:\d{2}.\d{3}`,
+			goFmt:   "02 Jan 2006 15:04:05.000",
+		},
+		{
+			desc:        "redis log datetime, 14 May 19:11:40.164",
+			pattern:     `\d{2} \w+ \d{2}:\d{2}:\d{2}.\d{3}`,
+			goFmt:       "02 Jan 15:04:05.000 2006",
+			defaultYear: true,
+		},
+		{
+			desc:    "mysql, 171113 14:14:20",
+			pattern: `\d{6} \d{2}:\d{2}:\d{2}`,
+			goFmt:   "060102 15:04:05",
+		},
+
+		{
+			desc:    "gin, 2021/02/27 - 14:14:20",
+			pattern: `\d{4}/\d{2}/\d{2} - \d{2}:\d{2}:\d{2}`,
+			goFmt:   "2006/01/02 - 15:04:05",
+		},
+		{
+			desc:    "apache,  Tue May 18 06:25:05.176170 2021",
+			pattern: `\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}.\d{6} \d{4}`,
+			goFmt:   "Mon Jan 2 15:04:05.000000 2006",
+		},
+		{
+			desc:    "postgresql, 2021-05-27 06:54:14.760 UTC",
+			pattern: `\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC`,
+			goFmt:   "2006-01-02 15:04:05.000 UTC",
+		},
+	}
+
+	dst := []struct {
+		desc        string
+		pattern     *regexp.Regexp
+		goFmt       string
+		defaultYear bool
+	}{}
+
+	for _, p := range dataPatternSource {
+		if c, err := regexp.Compile(p.pattern); err != nil {
+			l.Errorf("Compile `%s` failed!", p.goFmt)
+		} else {
+			dst = append(dst, struct {
+				desc        string
+				pattern     *regexp.Regexp
+				goFmt       string
+				defaultYear bool
+			}{
+				desc:        p.desc,
+				pattern:     c,
+				goFmt:       p.goFmt,
+				defaultYear: p.defaultYear,
+			})
+		}
+	}
+	return dst
+}()
+
 func UrldecodeHandle(path string) (interface{}, error) {
 	params, err := url.QueryUnescape(path)
 	if err != nil {
@@ -103,78 +181,31 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 	return false
 }
 
-var datePattern = []struct {
-	desc        string
-	pattern     string
-	goFmt       string
-	defaultYear bool
-}{
-	{
-		desc:    "nginx log datetime, 02/Jan/2006:15:04:05 -0700",
-		pattern: `\d{2}/\w+/\d{4}:\d{2}:\d{2}:\d{2} \+\d{4}`,
-		goFmt:   "02/Jan/2006:15:04:05 -0700",
-	},
-	{
-		desc:    "redis log datetime, 14 May 2019 19:11:40.164",
-		pattern: `\d{2} \w+ \d{4} \d{2}:\d{2}:\d{2}.\d{3}`,
-		goFmt:   "02 Jan 2006 15:04:05.000",
-	},
-	{
-		desc:        "redis log datetime, 14 May 19:11:40.164",
-		pattern:     `\d{2} \w+ \d{2}:\d{2}:\d{2}.\d{3}`,
-		goFmt:       "02 Jan 15:04:05.000 2006",
-		defaultYear: true,
-	},
-	{
-		desc:    "mysql, 171113 14:14:20",
-		pattern: `\d{6} \d{2}:\d{2}:\d{2}`,
-		goFmt:   "060102 15:04:05",
-	},
-
-	{
-		desc:    "gin, 2021/02/27 - 14:14:20",
-		pattern: `\d{4}/\d{2}/\d{2} - \d{2}:\d{2}:\d{2}`,
-		goFmt:   "2006/01/02 - 15:04:05",
-	},
-	{
-		desc:    "apache,  Tue May 18 06:25:05.176170 2021",
-		pattern: `\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}.\d{6} \d{4}`,
-		goFmt:   "Mon Jan 2 15:04:05.000000 2006",
-	},
-	{
-		desc:    "postgresql, 2021-05-27 06:54:14.760 UTC",
-		pattern: `\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC`,
-		goFmt:   "2006-01-02 15:04:05.000 UTC",
-	},
-}
-
 func parseDatePattern(value string) (int64, error) {
+
 	for _, p := range datePattern {
-		if match, err := regexp.MatchString(p.pattern, value); err != nil {
-			l.Errorf("regexp.MatchString: %s", err)
-			return 0, err
-		} else if match {
-			if p.defaultYear {
-				ty := time.Now()
-				year := ty.Year()
-				value = fmt.Sprintf("%s %d", value, year)
-			}
-
-			if tm, err := time.Parse(p.goFmt, value); err != nil {
-				l.Errorf("time.Parse(): %s", err)
-				return 0, err
-			} else {
-				unix_time := tm.UnixNano()
-				l.Debugf("parse `%s` -> %v(nano: %d)", value, tm, tm.UnixNano())
-				return unix_time, nil
-			}
+		// if match := p.pattern.MatchString(value); match {
+		if p.defaultYear {
+			ty := time.Now()
+			year := ty.Year()
+			value = fmt.Sprintf("%s %d", value, year)
 		}
-	}
 
+		// 默认定义的规则能匹配，不匹配的则由 dataparse 处理
+		if tm, err := time.Parse(p.goFmt, value); err != nil {
+			// l.Errorf("time.Parse(): %s", err)
+			return 0, nil
+		} else {
+			unix_time := tm.UnixNano()
+			// l.Debugf("parse `%s` -> %v(nano: %d)", value, tm, tm.UnixNano())
+			return unix_time, nil
+		}
+		// }
+	}
 	return 0, nil
 }
 
-func TimestampHandle(value, tz string) (int64, error) {
+func TimestampHandle(p *Pipeline, value, tz string) (int64, error) {
 	var t time.Time
 	var err error
 	var timezone = time.Local
@@ -186,7 +217,14 @@ func TimestampHandle(value, tz string) (int64, error) {
 	}
 
 	if tz != "" {
-		timezone, err = time.LoadLocation(tz)
+		if timezone_cache, ok := p.timezone[tz]; ok {
+			timezone = timezone_cache
+		} else {
+			timezone, err = time.LoadLocation(tz)
+			if err == nil {
+				p.setTimezone(tz, timezone)
+			}
+		}
 	}
 
 	if err == nil {
@@ -196,7 +234,7 @@ func TimestampHandle(value, tz string) (int64, error) {
 	if err != nil {
 		return 0, err
 	} else {
-		l.Debugf("parse `%s' -> %v(nano: %d)", value, t, t.UnixNano())
+		// l.Debugf("parse `%s' -> %v(nano: %d)", value, t, t.UnixNano())
 	}
 
 	unix_time = t.UnixNano()
@@ -261,17 +299,11 @@ func parseJson2Map(obj gjson.Result, res map[string]interface{}, prefix string) 
 }
 
 func isObject(obj gjson.Result) bool {
-	if obj.IsObject() {
-		return true
-	}
-	return false
+	return obj.IsObject()
 }
 
 func isArray(obj gjson.Result) bool {
-	if obj.IsArray() {
-		return true
-	}
-	return false
+	return obj.IsArray()
 }
 
 func parseDate(yy, mm, dd, hh, mi, ss, ns, zone string) int64 {
