@@ -98,9 +98,16 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 func AddPattern(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
+	if funcExpr.RunOk {
+		return p, nil
+	}
 	if len(funcExpr.Param) != 2 {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
+
+	defer func() {
+		funcExpr.RunOk = true
+	}()
 
 	var name, pattern string
 	switch v := funcExpr.Param[0].(type) {

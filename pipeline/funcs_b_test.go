@@ -2,11 +2,11 @@ package pipeline
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type funcCase struct {
@@ -281,7 +281,7 @@ func TestGeoIpFunc(t *testing.T) {
 		},
 	}
 
-	geo.Init()
+	// geo.Init()
 
 	for _, tt := range testCase {
 		p, err := NewPipeline(tt.script)
