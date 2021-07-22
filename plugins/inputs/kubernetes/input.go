@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -261,7 +262,13 @@ func (i *Input) clear() {
 
 func (i *Input) Catalog() string { return catalogName }
 
-func (i *Input) SampleConfig() string { return configSample }
+func (i *Input) SampleConfig() string {
+	if runtime.GOOS == "windows" {
+		return configSampleWin
+	}
+
+	return configSampleLinux
+}
 
 func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
