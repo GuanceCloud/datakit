@@ -16,6 +16,7 @@ build-testing:
   only:
     - testing
   script:
+    # building && publish testing
     - make ci_notify
     - make testing
     - make pub_testing

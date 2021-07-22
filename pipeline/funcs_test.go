@@ -46,7 +46,6 @@ func TestRenameFunc(t *testing.T) {
 		grok(_, "%{time}")
 		rename(newhour, hour)
 	`
-
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
 
