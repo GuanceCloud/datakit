@@ -17,31 +17,32 @@ type PipelineFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
 var (
 	funcsMap = map[string]PipelineFunc{
-		"add_key":          Addkey,
-		"add_pattern":      AddPattern,
-		"cast":             Cast,
-		"datetime":         DateTime,
-		"default_time":     DefaultTime,
-		"drop_key":         Dropkey,
-		"drop_origin_data": DropOriginData,
-		"expr":             Expr,
-		"geoip":            GeoIp,
-		"grok":             Grok,
-		"group_between":    Group,
-		"group_in":         GroupIn,
-		"json":             Json,
-		"json_all":         JsonAll,
-		"lowercase":        Lowercase,
-		"nullif":           NullIf,
-		"rename":           Rename,
-		"strfmt":           Strfmt,
-		"uppercase":        Uppercase,
-		"url_decode":       UrlDecode,
-		"user_agent":       UserAgent,
-		"parse_duration":   ParseDuration,
-		"parse_date":       ParseDate,
-		"cover":            Dz,
-		"replace":          Replace,
+		"add_key":               Addkey,
+		"add_pattern":           AddPattern,
+		"cast":                  Cast,
+		"datetime":              DateTime,
+		"default_time":          DefaultTime,
+		"default_time_with_fmt": DefaultTimeWithFmt,
+		"drop_key":              Dropkey,
+		"drop_origin_data":      DropOriginData,
+		"expr":                  Expr,
+		"geoip":                 GeoIp,
+		"grok":                  Grok,
+		"group_between":         Group,
+		"group_in":              GroupIn,
+		"json":                  Json,
+		"json_all":              JsonAll,
+		"lowercase":             Lowercase,
+		"nullif":                NullIf,
+		"rename":                Rename,
+		"strfmt":                Strfmt,
+		"uppercase":             Uppercase,
+		"url_decode":            UrlDecode,
+		"user_agent":            UserAgent,
+		"parse_duration":        ParseDuration,
+		"parse_date":            ParseDate,
+		"cover":                 Dz,
+		"replace":               Replace,
 	}
 )
 
@@ -748,13 +749,87 @@ func DefaultTime(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		return p, nil
 	}
 
-	if v, err := TimestampHandle(cont, tz); err != nil {
+	if v, err := TimestampHandle(p, cont, tz); err != nil {
 		return p, fmt.Errorf("time convert fail error %v", err)
 	} else {
 		p.setContent(key, v)
 	}
 
 	return p, nil
+}
+
+func DefaultTimeWithFmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
+	var err error
+	var goTimeFmt string
+	var tz string
+	var t time.Time
+	var timezone = time.Local
+
+	funcExpr := node.(*parser.FuncExpr)
+	if len(funcExpr.Param) < 2 {
+		return p, fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
+	}
+
+	var key parser.Node
+	switch v := funcExpr.Param[0].(type) {
+	case *parser.AttrExpr, *parser.Identifier:
+		key = v
+	default:
+		return p, fmt.Errorf("param key expect AttrExpr or Identifier, got %s",
+			reflect.TypeOf(funcExpr.Param[0]).String())
+	}
+
+	switch v := funcExpr.Param[1].(type) {
+	case *parser.StringLiteral:
+		goTimeFmt = v.Val
+	default:
+		return p, fmt.Errorf("param key expect StringLiteral, got %s",
+			reflect.TypeOf(funcExpr.Param[1]).String())
+	}
+
+	if len(funcExpr.Param) > 2 {
+		switch v := funcExpr.Param[2].(type) {
+		case *parser.StringLiteral:
+			tz = v.Val
+		default:
+			return p, fmt.Errorf("param key expect StringLiteral, got %s",
+				reflect.TypeOf(funcExpr.Param[2]).String())
+		}
+	}
+
+	timeStr, err := p.getContentStr(key)
+	if err != nil {
+		l.Debugf("key `%v' not exist", key)
+		return p, nil
+	}
+
+	if tz != "" {
+		if timezone_cache, ok := p.timezone[tz]; ok {
+			timezone = timezone_cache
+		} else {
+			timezone, err = time.LoadLocation(tz)
+			if err == nil {
+				p.setTimezone(tz, timezone)
+			}
+		}
+
+	}
+
+	if err == nil {
+		t, err = time.ParseInLocation(goTimeFmt, timeStr, timezone)
+	}
+
+	if err != nil {
+		l.Debugf("time string: %s, time format: %s, timezone: %s, error msg: %s",
+			timeStr, goTimeFmt, tz, err)
+		return p, err
+	} else {
+
+		// l.Debugf("parse `%s' -> %v(nano: %d)", timeStr, t, t.UnixNano())
+		p.setContent(key, t.UnixNano())
+
+		return p, nil
+	}
 }
 
 func Uppercase(p *Pipeline, node parser.Node) (*Pipeline, error) {
