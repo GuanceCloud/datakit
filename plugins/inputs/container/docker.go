@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -15,11 +16,20 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 
 	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 )
+
+// 日志 source 选择
+// 0. 默认是 container_name
+// 1. 当容器由 k8s 创建，且 deployment 不为空时，使用 deployment 值
+// 2. 当 cotainer_name 或 deployment 匹配 log filter 时，使用该 filter 的 source，即用户配置为最高优先
+// service 同上，service 是一个 tag 而非 field
+// commit: 71bfb0731dedcbb624cecb23a1ede9846311767b
 
 const (
 	// Maximum bytes of a log line before it will be split, size is mirroring
@@ -45,7 +55,7 @@ type dockerClient struct {
 	IgnoreContainerName []string
 
 	ProcessTags func(tags map[string]string)
-	LogFilters  LogFilters
+	Logs        Logs
 
 	containerLogsOptions types.ContainerLogsOptions
 	containerLogList     map[string]context.CancelFunc
@@ -198,7 +208,7 @@ func (d *dockerClient) do(ctx context.Context, processFunc func(types.Container)
 
 func (d *dockerClient) gather(container types.Container) (*job, error) {
 	startTime := time.Now()
-	tags := d.gatherSingleContainerInfo(container)
+	tags := d.gatherContainerInfo(container)
 
 	var fields = make(map[string]interface{})
 	var err error
@@ -225,11 +235,9 @@ func (d *dockerClient) ignoreContainerName(name string) bool {
 	return regexpMatchString(d.IgnoreContainerName, name)
 }
 
-func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[string]string {
+func (d *dockerClient) gatherContainerInfo(container types.Container) map[string]string {
 	imageName, imageShortName, imageTag := ParseImage(container.Image)
 	var tags = map[string]string{
-		"container_id":     container.ID,
-		"container_name":   getContainerName(container.Names),
 		"state":            container.State,
 		"docker_image":     container.Image,
 		"image_name":       imageName,
@@ -237,24 +245,12 @@ func (d *dockerClient) gatherSingleContainerInfo(container types.Container) map[
 		"image_tag":        imageTag,
 	}
 
-	if !contianerIsFromKubernetes(getContainerName(container.Names)) {
-		tags["container_type"] = "docker"
-	} else {
-		tags["container_type"] = "kubernetes"
+	for k, v := range d.getContainerTags(container) {
+		tags[k] = v
 	}
 
-	if d.K8s != nil {
-		if name, err := d.K8s.GetContainerPodName("docker://" + container.ID); err != nil {
-			l.Warn(err)
-		} else if name != "" {
-			tags["pod_name"] = name
-		}
-
-		if namespace, err := d.K8s.GetContainerPodNamespace("docker://" + container.ID); err != nil {
-			l.Warn(err)
-		} else if namespace != "" {
-			tags["pod_namespace"] = namespace
-		}
+	if d.ProcessTags != nil {
+		d.ProcessTags(tags)
 	}
 
 	return tags
@@ -456,39 +452,40 @@ func (d *dockerClient) Logging(ctx context.Context) {
 	}
 }
 
-func (d *dockerClient) getTags(container types.Container) map[string]string {
+func (d *dockerClient) getContainerTags(container types.Container) map[string]string {
+	name := getContainerName(container.Names)
 	tags := map[string]string{
-		"container_name": containerName,
+		"container_name": name,
 		"container_id":   container.ID,
 	}
 
-	if !contianerIsFromKubernetes(getContainerName(container.Names)) {
+	if !contianerIsFromKubernetes(name) {
 		tags["container_type"] = "docker"
 	} else {
 		tags["container_type"] = "kubernetes"
 	}
 
-	if d.ProcessTags != nil {
-		d.ProcessTags(tags)
+	if d.K8s != nil {
+		func() {
+			pods, err := d.K8s.getPods()
+			if err != nil {
+				l.Warn(err)
+				return
+			}
+			id := "docker://" + container.ID
+			if name := pods.GetContainerPodName(id); name != "" {
+				tags["pod_name"] = name
+			}
+			if namespace := pods.GetContainerPodNamespace(id); namespace != "" {
+				tags["pod_namespace"] = namespace
+			}
+			if deploymentName := pods.GetContainerDeploymentName(id); deploymentName != "" {
+				tags["deployment"] = deploymentName
+			}
+		}()
 	}
+
 	return tags
-}
-
-func (d *dockerClient) getSource(container types.Container) string {
-	// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试获取它的 work name（work-load）
-	// 如果该字段值（即 source 参数）不为空，则使用
-	var source = getContainerName(container.Names)
-
-	if contianerIsFromKubernetes(getContainerName(container.Names)) && d.K8s != nil {
-		if name, err := d.K8s.GetContainerWorkname(container.ID); err != nil {
-			l.Warn(err)
-		} else if name != "" {
-			source = name
-		}
-	}
-
-	return source
-
 }
 
 func (d *dockerClient) tailContainerLogs(ctx context.Context, container types.Container) error {
@@ -509,25 +506,58 @@ func (d *dockerClient) tailContainerLogs(ctx context.Context, container types.Co
 	// If the container is *not* using a TTY, streams for stdout and stderr are
 	// multiplexed.
 	if hasTTY {
-		return d.tailStream(logReader, "tty", container)
+		return d.tailStream(ctx, logReader, "tty", container)
 	} else {
-		return d.tailMultiplexed(logReader, container)
+		return d.tailMultiplexed(ctx, logReader, container)
 	}
 
 }
 
-func (d *dockerClient) tailStream(reader io.ReadCloser, stream string, container types.Container) error {
+func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, stream string, container types.Container) error {
 	defer reader.Close()
 
-	var tags = d.getTags(container)
-	tags["stream"] = stream
+	var (
+		tags       = d.getContainerTags(container)
+		name       = tags["container_name"]
+		deployment = tags["deployment"]
 
-	var containerName = getContainerName(container.Names)
-	var source = d.getSource(container)
+		pipe *pipeline.Pipeline
+		err  error
+
+		source = func() string {
+			// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试使用它的 deployment name
+			if tags["container_type"] == "kubernetes" && deployment != "" {
+				return deployment
+			}
+			return name
+		}()
+		service = name
+	)
+
+	l.Debugf("matched name:%s deployment:%s", name, deployment)
+
+	if n := d.Logs.MatchName(deployment, name); n != -1 {
+		pipe, err = pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, d.Logs[n].Pipeline))
+		if err != nil {
+			l.Debugf("new pipeline error: %s", err)
+		}
+		source = d.Logs[n].Source
+		service = d.Logs[n].Service
+	}
+
+	tags["stream"] = stream
+	tags["service"] = service
 
 	r := bufio.NewReaderSize(reader, maxLineBytes)
 
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			// nil
+		}
+
 		line, err := r.ReadBytes('\n')
 		if err != nil {
 			if err == io.EOF {
@@ -540,66 +570,22 @@ func (d *dockerClient) tailStream(reader io.ReadCloser, stream string, container
 			continue
 		}
 
-		measurement := source
-		message := strings.TrimSpace(string(line))
+		text := strings.TrimSpace(string(line))
 
-		var fields = make(map[string]interface{})
-
-		for _, lf := range d.LogFilters {
-			if lf.MatchMessage(message) {
-				if lf.Source != "" {
-					measurement = lf.Source
-				}
-
-				var err error
-				fields, err = lf.RunPipeline(message)
-				if err != nil {
-					l.Debug(err)
-				}
-
-				if lf.Service != "" {
-					fields["service"] = lf.Service
-				}
-				break
-			}
-		}
-
-		// 没有对应的 logFilters
-		if len(fields) == 0 {
-			fields["service"] = containerName
-			fields["message"] = message
-		}
-
-		// l.Debugf("get %d bytes from source: %s", len(message), measurement)
-
-		if err := checkFieldsLength(fields, maxFieldsLength); err != nil {
-			// 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
-			// 防止通过 pipeline 添加巨长字段的恶意行为
-			l.Error(err)
-			continue
-		}
-
-		addStatus(fields)
-
-		// pipeline切割的日志时间
-		ts, err := takeTime(fields)
-		if err != nil {
-			ts = time.Now()
-			l.Error(err)
-		}
-
-		pt, err := iod.MakePoint(measurement, tags, fields, ts)
-		if err != nil {
-			l.Error(err)
-		} else {
-			if err := iod.Feed(inputName, datakit.Logging, []*iod.Point{pt}, &iod.Option{HighFreq: useIOHighFreq}); err != nil {
-				l.Error("logging gather failed, container_id: %s, container_name:%s, err: %s", err.Error())
-			}
+		if err := tailer.NewLogs(text).
+			Pipeline(pipe).
+			CheckFieldsLength().
+			AddStatus(false).
+			TakeTime().
+			Point(source, tags).
+			Feed(inputName).
+			Error(); err != nil {
+			l.Error("logging gather failed, container_id: %s, container_name:%s, err: %s", err.Error())
 		}
 	}
 }
 
-func (d *dockerClient) tailMultiplexed(src io.ReadCloser, container types.Container) error {
+func (d *dockerClient) tailMultiplexed(ctx context.Context, src io.ReadCloser, container types.Container) error {
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
 
@@ -607,7 +593,7 @@ func (d *dockerClient) tailMultiplexed(src io.ReadCloser, container types.Contai
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := d.tailStream(outReader, "stdout", container)
+		err := d.tailStream(ctx, outReader, "stdout", container)
 		if err != nil {
 			l.Error(err)
 		}
@@ -616,7 +602,7 @@ func (d *dockerClient) tailMultiplexed(src io.ReadCloser, container types.Contai
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := d.tailStream(errReader, "stderr", container)
+		err := d.tailStream(ctx, errReader, "stderr", container)
 		if err != nil {
 			l.Error(err)
 		}

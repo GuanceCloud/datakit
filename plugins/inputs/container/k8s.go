@@ -277,7 +277,7 @@ func (k *Kubernetes) GetContainerPodName(id string) (string, error) {
 	return pods.GetContainerPodName(id), nil
 }
 
-func (k *Kubernetes) GetContainerWorkname(id string) (string, error) {
+func (k *Kubernetes) GetContainerDeploymentName(id string) (string, error) {
 	if id == "" {
 		return "", fmt.Errorf("invalid containerID, cannot be empty")
 	}
@@ -285,14 +285,7 @@ func (k *Kubernetes) GetContainerWorkname(id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	uid := pods.GetContainerPodUID(id)
-
-	summary, err := k.getStatsSummary()
-	if err != nil {
-		return "", err
-	}
-
-	return summary.GetWorkname(uid), nil
+	return pods.GetContainerDeploymentName(id), nil
 }
 
 func (k *Kubernetes) LoadJson(url string, v interface{}) error {
@@ -524,20 +517,12 @@ func (m *MemoryMetrics) Percent() (float64, error) {
 	return float64(m.UsageBytes) / float64(m.UsageBytes+m.AvailableBytes), nil
 }
 
-func (s *SummaryMetrics) GetWorkname(uid string) string {
-	if uid == "" {
+func (p *Pods) GetContainerDeploymentName(id string) string {
+	podName := p.GetContainerPodName(id)
+	if podName == "" {
 		return ""
 	}
-	for _, podMetadata := range s.Pods {
-		if len(podMetadata.Containers) == 0 {
-			continue
-		}
-
-		if podMetadata.PodRef.UID == uid {
-			return podMetadata.Containers[0].Name
-		}
-	}
-	return ""
+	return getDeploymentFromPodName(podName)
 }
 
 func (p *Pods) GetContainerPodName(id string) string {
@@ -584,4 +569,12 @@ func (p *Pods) GetContainerPodUID(id string) string {
 
 func verifyIntegrityOfK8sConnect(k *Kubernetes) bool {
 	return k != nil && k.roundTripper != nil
+}
+
+func getDeploymentFromPodName(name string) string {
+	s := strings.Split(name, "-")
+	if len(s) > 2 {
+		return strings.Join(s[:len(s)-2], "-")
+	}
+	return name
 }
