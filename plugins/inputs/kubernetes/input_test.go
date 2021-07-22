@@ -59,6 +59,22 @@ func TestInitCfgErr(t *testing.T) {
 	t.Log("version ==>", versionInfo.String())
 }
 
+func TestLoadWinCfg(t *testing.T) {
+	arr, err := config.LoadInputConfigFile("./cfg_win.conf", func() inputs.Input {
+		return &Input{}
+	})
+
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+
+	kube := arr[0].(*Input)
+
+	t.Log("url ---->", kube.URL)
+	t.Log("token ---->", kube.BearerToken)
+	t.Log("ca ---->", kube.TLSCA)
+}
+
 func TestLoadCfg(t *testing.T) {
 	arr, err := config.LoadInputConfigFile("./cfg.conf", func() inputs.Input {
 		return &Input{}
