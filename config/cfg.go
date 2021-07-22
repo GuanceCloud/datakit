@@ -14,12 +14,13 @@ import (
 
 	bstoml "github.com/BurntSushi/toml"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
+	dktracer "gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
@@ -324,8 +325,9 @@ func (c *Config) ApplyMainConfig() error {
 		return err
 	}
 
+	// initialize global tracer
 	if c.Tracer != nil {
-		tracer.GlobalTracer = c.Tracer
+		dktracer.GlobalTracer = c.Tracer
 	}
 
 	datakit.AutoUpdate = c.AutoUpdate
