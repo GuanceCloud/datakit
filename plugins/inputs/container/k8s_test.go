@@ -2,6 +2,8 @@ package container
 
 import (
 	"testing"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestGetContainerPodName(t *testing.T) {
@@ -27,5 +29,40 @@ func TestGetContainerPodName(t *testing.T) {
 			t.Error(err)
 		}
 		t.Logf("[%d] container_id:%s pod_name:%s\n", idx, tc.id, name)
+	}
+}
+
+func TestGetDeploymentFromPodName(t *testing.T) {
+	var cases = []struct {
+		podName, deploymentName string
+	}{
+		{
+			"corestone-76b5fb8bd-lbxc6",
+			"corestone",
+		},
+		{
+			"nsqd-7c49ff9c77-w85mb",
+			"nsqd",
+		},
+		{
+			"kodo-inner-5df4fb4897-csqdz",
+			"kodo-inner",
+		},
+		{
+			"invalid-12345678",
+			"invalid-12345678",
+		},
+		{
+			"invalid",
+			"invalid",
+		},
+	}
+
+	for _, tc := range cases {
+		output := getDeploymentFromPodName(tc.podName)
+
+		tu.Assert(t, output == tc.deploymentName,
+			"\nexpect: %s\n   got: %s",
+			tc.deploymentName, output)
 	}
 }

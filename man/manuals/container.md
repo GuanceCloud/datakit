@@ -60,13 +60,34 @@
 
 对于容器日志采集，有着更细致的配置，主要解决了区分日志 `source` 和使用 pipeline 的问题。
 
-日志采集配置项为 `[[inputs.container.logfilter]]`，该项是数组配置，意即可以有多个 logfilter 来处理采集到的容器日志，比如某个容器中既有 MySQL 日志，也有 Redis 日志，那么此时可能需要两个 logfilter 来分别处理它们。
+日志采集配置项为 `[[inputs.container.log]]`，该项是数组配置，意即可以有多个 log 来处理采集到的容器日志，比如某个容器中既有 MySQL 日志，也有 Redis 日志，那么此时可能需要两个 log 来分别处理它们。
 
-- `filter_message` 为匹配日志文本的正则表达式，该参数类型是字符串数组，只要任意一个正则匹配成功即可。未匹配的日志内容将被丢弃。[正则表达式参见这里](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
+- `match_by` 为匹配类型，只支持填写 `contianer-name` 和 `deployment-name`（注意是中横线）。例如该项为 `container_name`，则会以容器名进行后续的正则匹配，当匹配成功时使用此 `source` 和 pipeline
+- `match` 为匹配日志文本的正则表达式，该参数类型是字符串数组，只要任意一个正则匹配成功即可。未匹配的容器，其日志将执行默认处理方式。[正则表达式参见这里](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
 >Tips：为保证此处正则表达式的正确书写，请务必将正则表达式用 `'''这里是一个正则表达式'''` 这种形式来配置（即两边用三个单引号来包围正则文本），否则可能导致正则转义问题。
-- `source` 指定数据来源，如果为空值，则默认使用容器名
+- `source` 指定数据来源，其值不可为空
 - `service` 指定该条日志的服务名，如果为空值，则使用 `source` 字段值
 - `pipeline` 只需写文件名即可，不需要写全路径，使用方式见 [Pipeline 文档](pipeline)。当此值为空值或该文件不存在时，将不使用 pipeline 功能
+
+如果一个容器的 `container name` 和 `deployment` 分别匹配两个 log，会优先使用 `deployment` 所匹配的 log。例如容器的 `container name` 为 `containerAAA`，`deployment` 为 `deploymentAAA`，且配置如下：
+
+```
+[[inputs.container.log]]
+  match_by = "container-name"
+  match = ['''container*''']
+  source = "dummy1"
+  service = "dummy1"
+  pipeline = "dummy1.p"
+
+[[inputs.container.log]]
+  match_by = "deployment-name"
+  match = ['''deployment*''']
+  source = "dummy2"
+  service = "dummy2"
+  pipeline = "dummy2.p"
+```
+
+此时该容器能够匹配两个 log，优先使用第二个 `deployment`。
 
 #### 日志切割注意事项
 

@@ -22,7 +22,7 @@ const (
 	disableHighFreqIODdata = false
 )
 
-type logs struct {
+type Logs struct {
 	text   string
 	fields map[string]interface{}
 	ts     time.Time
@@ -30,11 +30,11 @@ type logs struct {
 	err    error
 }
 
-func newLogs(text string) *logs {
-	return &logs{text: text, fields: make(map[string]interface{})}
+func NewLogs(text string) *Logs {
+	return &Logs{text: text, fields: make(map[string]interface{})}
 }
 
-func (x *logs) pipeline(p *pipeline.Pipeline) *logs {
+func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
 	if x.err != nil || p == nil {
 		x.fields["message"] = x.text
 		return x
@@ -51,7 +51,7 @@ func (x *logs) pipeline(p *pipeline.Pipeline) *logs {
 // checkFieldsLength 检查数据是否过长
 // 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
 // 防止通过 pipeline 添加巨长字段的恶意行为
-func (x *logs) checkFieldsLength() *logs {
+func (x *Logs) CheckFieldsLength() *Logs {
 	if x.err != nil {
 		return x
 	}
@@ -101,7 +101,7 @@ var statusMap = map[string]string{
 }
 
 // addStatus 添加默认status和status映射
-func (x *logs) addStatus(disable bool) *logs {
+func (x *Logs) AddStatus(disable bool) *Logs {
 	if x.err != nil || disable {
 		return x
 	}
@@ -130,7 +130,7 @@ func (x *logs) addStatus(disable bool) *logs {
 }
 
 // ignoreStatus 过滤指定status
-func (x *logs) ignoreStatus(ignoreStatus []string) *logs {
+func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
 	if x.err != nil || len(ignoreStatus) == 0 {
 		return x
 	}
@@ -147,7 +147,7 @@ func (x *logs) ignoreStatus(ignoreStatus []string) *logs {
 	return x
 }
 
-func (x *logs) takeTime() *logs {
+func (x *Logs) TakeTime() *Logs {
 	if x.err != nil {
 		return x
 	}
@@ -170,7 +170,7 @@ func (x *logs) takeTime() *logs {
 	return x
 }
 
-func (x *logs) point(measurement string, tags map[string]string) *logs {
+func (x *Logs) Point(measurement string, tags map[string]string) *Logs {
 	if x.err != nil {
 		return x
 	}
@@ -178,7 +178,7 @@ func (x *logs) point(measurement string, tags map[string]string) *logs {
 	return x
 }
 
-func (x *logs) feed(inputName string) *logs {
+func (x *Logs) Feed(inputName string) *Logs {
 	if x.err != nil {
 		return x
 	}
@@ -190,14 +190,14 @@ func (x *logs) feed(inputName string) *logs {
 	return x
 }
 
-func (x *logs) output() string {
+func (x *Logs) Output() string {
 	if x.pt == nil {
 		return ""
 	}
 	return x.pt.String()
 }
 
-func (x *logs) error() error {
+func (x *Logs) Error() error {
 	return x.err
 }
 

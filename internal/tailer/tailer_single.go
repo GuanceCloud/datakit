@@ -152,15 +152,15 @@ func (t *TailerSingle) processText(text string) error {
 		return nil
 	}
 
-	err := newLogs(text).
-		pipeline(t.pipeline).
-		checkFieldsLength().
-		addStatus(t.opt.DisableAddStatusField).
-		ignoreStatus(t.opt.IgnoreStatus).
-		takeTime().
-		point(t.opt.Source, t.tags).
-		feed(t.opt.InputName).
-		error()
+	err := NewLogs(text).
+		Pipeline(t.pipeline).
+		CheckFieldsLength().
+		AddStatus(t.opt.DisableAddStatusField).
+		IgnoreStatus(t.opt.IgnoreStatus).
+		TakeTime().
+		Point(t.opt.Source, t.tags).
+		Feed(t.opt.InputName).
+		Error()
 
 	return err
 }

@@ -40,7 +40,7 @@ type Input struct {
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 
 	Kubernetes *Kubernetes `toml:"kubelet"`
-	LogFilters LogFilters  `toml:"logfilter"`
+	Logs       Logs        `toml:"log"`
 
 	in chan *job
 
@@ -49,7 +49,8 @@ type Input struct {
 	wg sync.WaitGroup
 	mu sync.Mutex
 
-	DeprecatedPodNameRewrite []string `toml:"pod_name_write"`
+	DepercatedLog            DepercatedLog `toml:"logfilter"`
+	DeprecatedPodNameRewrite []string      `toml:"pod_name_write"`
 }
 
 func newInput() *Input {
@@ -189,7 +190,7 @@ func (this *Input) setup() bool {
 			continue
 		}
 
-		if err = this.initLogFilters(); err != nil {
+		if err = this.initLogs(); err != nil {
 			l.Error(err)
 			continue
 		}
@@ -237,7 +238,7 @@ func (this *Input) buildDockerClient() error {
 	client.IgnoreImageName = this.IgnoreImageName
 	client.IgnoreContainerName = this.IgnoreContainerName
 	client.ProcessTags = this.processTags
-	client.LogFilters = this.LogFilters
+	client.Logs = this.Logs
 	if verifyIntegrityOfK8sConnect(this.Kubernetes) {
 		client.K8s = this.Kubernetes
 	}
@@ -271,13 +272,8 @@ func (this *Input) buildK8sClient() error {
 	return nil
 }
 
-func (this *Input) initLogFilters() error {
-	for _, lf := range this.LogFilters {
-		if err := lf.Init(); err != nil {
-			return err
-		}
-	}
-	return nil
+func (this *Input) initLogs() error {
+	return this.Logs.Init()
 }
 
 func (this *Input) verifyIgnoreRegexps() error {
