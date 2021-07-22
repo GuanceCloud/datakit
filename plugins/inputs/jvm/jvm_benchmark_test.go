@@ -3,7 +3,6 @@ package jvm
 import (
 	"encoding/json"
 	"fmt"
-	"testing"
 )
 
 var data = []json.Number{
@@ -224,21 +223,21 @@ func genConvertMap() map[string]string {
 	return m
 }
 
-func BenchmarkConv(b *testing.B) {
-	genConvertMap()
-	for j := 0; j < TestNum; j++ {
-		for i, v := range data {
-			convertJsonNumber(fmt.Sprintf("%d", i), v, nil)
-		}
-	}
+// func BenchmarkConv(b *testing.B) {
+// 	genConvertMap()
+// 	for j := 0; j < TestNum; j++ {
+// 		for i, v := range data {
+// 			convertJsonNumber(fmt.Sprintf("%d", i), v, nil)
+// 		}
+// 	}
 
-}
+// }
 
-func BenchmarkConvSpecifyType(b *testing.B) {
-	m := genConvertMap()
-	for j := 0; j < TestNum; j++ {
-		for i, v := range data {
-			convertJsonNumber(fmt.Sprintf("%d", i), v, m)
-		}
-	}
-}
+// func BenchmarkConvSpecifyType(b *testing.B) {
+// 	m := genConvertMap()
+// 	for j := 0; j < TestNum; j++ {
+// 		for i, v := range data {
+// 			convertJsonNumber(fmt.Sprintf("%d", i), v, m)
+// 		}
+// 	}
+// }
