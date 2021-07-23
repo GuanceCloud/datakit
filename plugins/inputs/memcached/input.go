@@ -3,15 +3,16 @@ package memcached
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"strconv"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -90,30 +91,25 @@ func (i *Input) Collect() error {
 	if len(i.Servers) == 0 && len(i.UnixSockets) == 0 {
 		return i.gatherServer(":11211", false)
 	}
-	var wg sync.WaitGroup
+
+	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
 	for _, serverAddress := range i.Servers {
-		wg.Add(1)
-		go func(addr string) {
-			defer wg.Done()
-			if err := i.gatherServer(addr, false); err != nil {
-				l.Error(err)
-			}
+		func(addr string) {
+			g.Go(func(ctx context.Context) error {
+				return i.gatherServer(addr, false)
+			})
 		}(serverAddress)
 	}
 
 	for _, unixAddress := range i.UnixSockets {
-		wg.Add(1)
-		go func(unixAddr string) {
-			defer wg.Done()
-			if err := i.gatherServer(unixAddr, true); err != nil {
-				l.Error(err)
-			}
+		func(unixAddr string) {
+			g.Go(func(ctx context.Context) error {
+				return i.gatherServer(unixAddr, true)
+			})
 		}(unixAddress)
 	}
 
-	wg.Wait()
-
-	return nil
+	return g.Wait()
 }
 
 func (i *Input) gatherServer(address string, unix bool) error {
@@ -240,15 +236,15 @@ func (i *Input) Run() {
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
-			} else {
-				if len(i.collectCache) > 0 {
-					err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
-					if err != nil {
-						io.FeedLastError(inputName, err.Error())
-						l.Error(err.Error())
-					}
-					i.collectCache = i.collectCache[:0]
+			}
+
+			if len(i.collectCache) > 0 {
+				err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
+				if err != nil {
+					io.FeedLastError(inputName, err.Error())
+					l.Error(err.Error())
 				}
+				i.collectCache = i.collectCache[:0]
 			}
 		}
 	}

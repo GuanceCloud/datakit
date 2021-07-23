@@ -38,6 +38,7 @@ func doRelaod(ro *reloadOption) error {
 	datakit.Exit.Close()
 	l.Info("wait all goroutines exit...")
 	datakit.WG.Wait()
+	datakit.GWait()
 
 	l.Info("reopen datakit.Exit...")
 	datakit.Exit = cliutils.NewSem() // reopen
