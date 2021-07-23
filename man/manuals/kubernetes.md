@@ -12,11 +12,9 @@ Kubernetes 集群指标采集
 
 该方案扩展了 Datakit 集群部署，内置 [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) 服务，用来采集 kubernetes 集群监控指标数据。
 
-> 具体指标，参考 [kubernetes](kubernetes) 中的列表
-
 ### 修改配置
 
-修改 `datakit-default.yaml` 中的 dataway 配置
+修改 yaml 中的 dataway 配置
 
 ```yaml
   - name: ENV_DATAWAY
@@ -25,13 +23,212 @@ Kubernetes 集群指标采集
 
 ### 应用 yaml 配置
 
-下载下文 yaml， 直接应用即可：
+下载对应的 yaml， 直接应用即可：
 
 ```shell
 kubectl apply path/to/your.yaml
 ```
 
-### linux work node yaml 配置
+关于 yaml 的几个说明：
+
+- 在现有提供的 yaml 中，有如下几个环境变量设置：
+
+	- `ENV_DATAWAY`：设置 DataWay 地址，不要忘了填写对应的工作空间的 token
+	- `ENV_GLOBAL_TAGS`：设置 DataKit 全局 tag
+	- `ENV_ENABLE_INPUTS`：设定默认开启的采集器，对 Windows 而言，只开启了 `kubernetes` 以及 `kube_state_metric` 两个采集器
+	- `ENV_ENABLE_ELECTION`：开启选举。由于 Kubernetes 是一种中心采集，多节点均部署 DataKit 的情况下，需开启选举来避免重复采集
+	- `ENV_HTTP_LISTEN`：修改 DataKit 绑定的 HTTP 地址
+
+- 为便于 k8s 指标采集，在 yaml 中我们默认开启了 `kube-state-metrics` 这个服务
+
+## 指标集
+
+以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
+
+{{ range $i, $m := .Measurements }}
+
+### `{{$m.Name}}`
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+
+{{ end }}
+
+### `kube_daemonset`
+
+-  标签
+
+| 标签名      | 描述           |
+| ----        | --------       |
+| `daemonset` | daemonset name |
+| `namespace` | namespace      |
+
+- 指标列表
+
+| 指标                              | 描述                                                                                                                   | 数据类型 | 单位   |
+| ----                              | ----                                                                                                                   | :---:    | :----: |
+| `status_current_number_scheduled` | The number of nodes running at least one daemon pod and are supposed to                                                | int      | -      |
+| `status_desired_number_scheduled` | The number of nodes that should be running the daemon pod                                                              | int      | -      |
+| `status_number_available`         | The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and available | int      | -      |
+| `status_desired_number_scheduled` | The number of nodes that should be running the daemon pod                                                              | int      | -      |
+| `status_number_misscheduled`      | The number of nodes running a daemon pod but are not supposed to                                                       | int      | -      |
+| `status_number_ready`             | The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready     | int      | -      |
+| `status_number_unavailable`       | The number of nodes that should be running the daemon pod and have none of the daemon pod running and available        | int      | -      |
+| `updated_number_scheduled`        | The total number of nodes that are running updated daemon pod                                                          | int      | -      |
+
+### `kube_deployment`
+
+-  标签
+
+| 标签名       | 描述            |
+| ----         | --------        |
+| `condition`  | condition       |
+| `deployment` | deployment name |
+| `namespace`  | namespace       |
+| `status`     | status          |
+
+- 指标列表
+
+| 指标                                          | 描述                                                                                                                          | 数据类型 | 单位   |
+| ----                                          | ----                                                                                                                          | :---:    | :----: |
+| `spec_paused`                                 | Whether the deployment is paused and will not be processed by the deployment controller                                       | int      | -      |
+| `spec_replicas`                               | The number of replicas per deployment                                                                                         | int      | -      |
+| `spec_strategy_rollingupdate_max_surge`       | Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a deployment | int      | -      |
+| `spec_strategy_rollingupdate_max_unavailable` | Maximum number of unavailable replicas during a rolling update of a deployment                                                | int      | -      |
+| `status_number_misscheduled`                  | Number of desired pods for a deployment                                                                                       | int      | -      |
+| `status_condition`                            | The current status conditions of a deployment                                                                                 | int      | -      |
+| `status_replicas`                             | The number of nodes that should be running the daemon pod and have none of the daemon pod running and available               | int      | -      |
+| `status_replicas_available`                   | The number of available replicas per deployment                                                                               | int      | -      |
+| `status_replicas_unavailable`                 | The number of unavailable replicas per deployment                                                                             | int      | -      |
+| `status_replicas_updated`                     | The number of updated replicas per deployment                                                                                 | int      | -      |
+
+### `kube_endpoint`
+
+-  标签
+
+| 标签名      | 描述          |
+| ----        | --------      |
+| `endpoint`  | endpoint name |
+| `namespace` | namespace     |
+
+- 指标列表
+
+| 指标                | 描述                                      | 数据类型 | 单位   |
+| ----                | ----                                      | :---:    | :----: |
+| `address_available` | Number of addresses available in endpoint | int      | -      |
+| `address_not_ready` | Number of addresses not ready in endpoint | int      | -      |
+
+### `kube_persistentvolume`
+
+-  标签
+
+| 标签名             | 描述                  |
+| ----               | --------              |
+| `persistentvolume` | persistentvolume name |
+| `phase`            | phase                 |
+
+- 指标列表
+
+| 指标             | 描述                                                                                   | 数据类型 | 单位   |
+| ----             | ----                                                                                   | :---:    | :----: |
+| `capacity_bytes` | Persistentvolume capacity in bytes                                                     | int      | -      |
+| `status_phase`   | The phase indicates if a volume is available, bound to a claim, or released by a claim | int      | -      |
+
+### `kube_persistentvolumeclaim`
+
+-  标签
+
+| 标签名                  | 描述                       |
+| ----                    | --------                   |
+| `access_mode`           | access mode                |
+| `namespace`             | namespace                  |
+| `persistentvolumeclaim` | persistentvolumeclaim name |
+| `phase`                 | phase                      |
+
+- 指标列表
+
+| 指标                              | 描述                                                             | 数据类型 | 单位   |
+| ----                              | ----                                                             | :---:    | :----: |
+| `access_mode`                     | The access mode(s) specified by the persistent volume claim      | int      | -      |
+| `resource_requests_storage_bytes` | The capacity of storage requested by the persistent volume claim | int      | -      |
+| `status_phase`                    | The phase the persistent volume claim is currently in            | int      | -      |
+
+### `kube_replicaset`
+
+-  标签
+
+| 标签名       | 描述            |
+| ----         | --------        |
+| `namespace`  | namespace       |
+| `replicaset` | replicaset name |
+
+- 指标列表
+
+| 指标                            | 描述                                                | 数据类型 | 单位   |
+| ----                            | ----                                                | :---:    | :----: |
+| `status_fully_labeled_replicas` | The number of fully labeled replicas per ReplicaSet | int      | -      |
+| `status_observed_generation`    | Number of desired pods for a ReplicaSet             | int      | -      |
+| `status_ready_replicas`         | The number of ready replicas per ReplicaSet         | int      | -      |
+| `status_replicas`               | The number of replicas per ReplicaSet               | int      | -      |
+
+### `kube_secret`
+
+-  标签
+
+| 标签名      | 描述        |
+| ----        | --------    |
+| `namespace` | namespace   |
+| `secret`    | secret name |
+| `type`      | type        |
+
+- 指标列表
+
+| 指标   | 描述              | 数据类型 | 单位   |
+| ----   | ----              | :---:    | :----: |
+| `type` | Type about secret | int      | -      |
+
+### `kube_cronjob`
+
+-  标签
+
+| 标签名      | 描述      |
+| ----        | --------  |
+| `namespace` | namespace |
+
+- 指标列表
+
+| 指标                        | 描述                                                                                            | 数据类型 | 单位   |
+| ----                        | ----                                                                                            | :---:    | :----: |
+| `status_active`             | Active holds pointers to currently running jobs                                                 | int      | -      |
+| `spec_suspend`              | Suspend flag tells the controller to suspend subsequent executions                              | int      | -      |
+| `status_last_schedule_time` | LastScheduleTime keeps information of when was the last time the job was successfully scheduled | int      | -      |
+
+### `kube_job`
+
+-  标签
+
+| 标签名      | 描述      |
+| ----        | --------  |
+| `namespace` | namespace |
+
+- 指标列表
+
+| 指标               | 描述                                             | 数据类型 | 单位   |
+| ----               | ----                                             | :---:    | :----: |
+| `status_active`    | The number of actively running pods              | int      | -      |
+| `status_failed`    | The number of pods which reached Phase Failed    | int      | -      |
+| `status_succeeded` | The number of pods which reached Phase Succeeded | int      | -      |
+| `complete`         | The job has completed its execution              | int      | -      |
+
+
+## 节点 yaml 配置
+
+### Linux 节点 yaml 配置
 
 ```yaml
 apiVersion: v1
@@ -190,7 +387,6 @@ spec:
           name: rootfs
         workingDir: /usr/local/datakit
       hostIPC: true
-      hostNetwork: true
       hostPID: true
       restartPolicy: Always
       serviceAccount: datakit
@@ -277,12 +473,11 @@ metadata:
   name: kube-state-metrics
   namespace: datakit
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
   - name: http-metrics
     port: 8080
     targetPort: http-metrics
-    nodePort: 30022
   - name: telemetry
     port: 8081
     targetPort: telemetry
@@ -369,7 +564,7 @@ data:
            #tag2 = "valn"
 ```
 
-- windows node节点yaml
+### Windows 节点 yaml 配置
 
 ```yaml
 apiVersion: v1
@@ -579,199 +774,14 @@ metadata:
   name: kube-state-metrics
   namespace: datakit
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
   - name: http-metrics
     port: 8080
     targetPort: http-metrics
-    nodePort: 30022
   - name: telemetry
     port: 8081
     targetPort: telemetry
   selector:
     app.kubernetes.io/name: kube-state-metrics
 ```
-
-## 指标集
-
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
-
-{{ range $i, $m := .Measurements }}
-
-### `{{$m.Name}}`
-
--  标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
-
-{{ end }}
-
-### `kube_daemonset`
-
--  标签
-
-| 标签名      | 描述           |
-| ----        | --------       |
-| `daemonset` | daemonset name |
-| `namespace` | namespace      |
-
-- 指标列表
-
-| 指标                              | 描述                                                                                                                   | 数据类型 | 单位   |
-| ----                              | ----                                                                                                                   | :---:    | :----: |
-| `status_current_number_scheduled` | The number of nodes running at least one daemon pod and are supposed to                                                | int      | -      |
-| `status_desired_number_scheduled` | The number of nodes that should be running the daemon pod                                                              | int      | -      |
-| `status_number_available`         | The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and available | int      | -      |
-| `status_desired_number_scheduled` | The number of nodes that should be running the daemon pod                                                              | int      | -      |
-| `status_number_misscheduled`      | The number of nodes running a daemon pod but are not supposed to                                                       | int      | -      |
-| `status_number_ready`             | The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready     | int      | -      |
-| `status_number_unavailable`       | The number of nodes that should be running the daemon pod and have none of the daemon pod running and available        | int      | -      |
-| `updated_number_scheduled`        | The total number of nodes that are running updated daemon pod                                                          | int      | -      |
-
-### `kube_deployment`
-
--  标签
-
-| 标签名       | 描述            |
-| ----         | --------        |
-| `condition`  | condition       |
-| `deployment` | deployment name |
-| `namespace`  | namespace       |
-| `status`     | status          |
-
-- 指标列表
-
-| 指标                                          | 描述                                                                                                                          | 数据类型 | 单位   |
-| ----                                          | ----                                                                                                                          | :---:    | :----: |
-| `spec_paused`                                 | Whether the deployment is paused and will not be processed by the deployment controller                                       | int      | -      |
-| `spec_replicas`                               | The number of replicas per deployment                                                                                         | int      | -      |
-| `spec_strategy_rollingupdate_max_surge`       | Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a deployment | int      | -      |
-| `spec_strategy_rollingupdate_max_unavailable` | Maximum number of unavailable replicas during a rolling update of a deployment                                                | int      | -      |
-| `status_number_misscheduled`                  | Number of desired pods for a deployment                                                                                       | int      | -      |
-| `status_condition`                            | The current status conditions of a deployment                                                                                 | int      | -      |
-| `status_replicas`                             | The number of nodes that should be running the daemon pod and have none of the daemon pod running and available               | int      | -      |
-| `status_replicas_available`                   | The number of available replicas per deployment                                                                               | int      | -      |
-| `status_replicas_unavailable`                 | The number of unavailable replicas per deployment                                                                             | int      | -      |
-| `status_replicas_updated`                     | The number of updated replicas per deployment                                                                                 | int      | -      |
-
-### `kube_endpoint`
-
--  标签
-
-| 标签名      | 描述          |
-| ----        | --------      |
-| `endpoint`  | endpoint name |
-| `namespace` | namespace     |
-
-- 指标列表
-
-| 指标                | 描述                                      | 数据类型 | 单位   |
-| ----                | ----                                      | :---:    | :----: |
-| `address_available` | Number of addresses available in endpoint | int      | -      |
-| `address_not_ready` | Number of addresses not ready in endpoint | int      | -      |
-
-### `kube_persistentvolume`
-
--  标签
-
-| 标签名             | 描述                  |
-| ----               | --------              |
-| `persistentvolume` | persistentvolume name |
-| `phase`            | phase                 |
-
-- 指标列表
-
-| 指标             | 描述                                                                                   | 数据类型 | 单位   |
-| ----             | ----                                                                                   | :---:    | :----: |
-| `capacity_bytes` | Persistentvolume capacity in bytes                                                     | int      | -      |
-| `status_phase`   | The phase indicates if a volume is available, bound to a claim, or released by a claim | int      | -      |
-
-### `kube_persistentvolumeclaim`
-
--  标签
-
-| 标签名                  | 描述                       |
-| ----                    | --------                   |
-| `access_mode`           | access mode                |
-| `namespace`             | namespace                  |
-| `persistentvolumeclaim` | persistentvolumeclaim name |
-| `phase`                 | phase                      |
-
-- 指标列表
-
-| 指标                              | 描述                                                             | 数据类型 | 单位   |
-| ----                              | ----                                                             | :---:    | :----: |
-| `access_mode`                     | The access mode(s) specified by the persistent volume claim      | int      | -      |
-| `resource_requests_storage_bytes` | The capacity of storage requested by the persistent volume claim | int      | -      |
-| `status_phase`                    | The phase the persistent volume claim is currently in            | int      | -      |
-
-### `kube_replicaset`
-
--  标签
-
-| 标签名       | 描述            |
-| ----         | --------        |
-| `namespace`  | namespace       |
-| `replicaset` | replicaset name |
-
-- 指标列表
-
-| 指标                            | 描述                                                | 数据类型 | 单位   |
-| ----                            | ----                                                | :---:    | :----: |
-| `status_fully_labeled_replicas` | The number of fully labeled replicas per ReplicaSet | int      | -      |
-| `status_observed_generation`    | Number of desired pods for a ReplicaSet             | int      | -      |
-| `status_ready_replicas`         | The number of ready replicas per ReplicaSet         | int      | -      |
-| `status_replicas`               | The number of replicas per ReplicaSet               | int      | -      |
-
-### `kube_secret`
-
--  标签
-
-| 标签名      | 描述        |
-| ----        | --------    |
-| `namespace` | namespace   |
-| `secret`    | secret name |
-| `type`      | type        |
-
-- 指标列表
-
-| 指标   | 描述              | 数据类型 | 单位   |
-| ----   | ----              | :---:    | :----: |
-| `type` | Type about secret | int      | -      |
-
-### `kube_cronjob`
-
--  标签
-
-| 标签名      | 描述      |
-| ----        | --------  |
-| `namespace` | namespace |
-
-- 指标列表
-
-| 指标                        | 描述                                                                                            | 数据类型 | 单位   |
-| ----                        | ----                                                                                            | :---:    | :----: |
-| `status_active`             | Active holds pointers to currently running jobs                                                 | int      | -      |
-| `spec_suspend`              | Suspend flag tells the controller to suspend subsequent executions                              | int      | -      |
-| `status_last_schedule_time` | LastScheduleTime keeps information of when was the last time the job was successfully scheduled | int      | -      |
-
-### `kube_job`
-
--  标签
-
-| 标签名      | 描述      |
-| ----        | --------  |
-| `namespace` | namespace |
-
-- 指标列表
-
-| 指标               | 描述                                             | 数据类型 | 单位   |
-| ----               | ----                                             | :---:    | :----: |
-| `status_active`    | The number of actively running pods              | int      | -      |
-| `status_failed`    | The number of pods which reached Phase Failed    | int      | -      |
-| `status_succeeded` | The number of pods which reached Phase Succeeded | int      | -      |
-| `complete`         | The job has completed its execution              | int      | -      |

@@ -161,10 +161,6 @@ define build_ip2isp
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
 endef
 
-.PHONY: agent
-agent:
-	$(call build_agent)
-
 ip2isp:
 	$(call build_ip2isp)
 
