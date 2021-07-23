@@ -6,7 +6,7 @@
 
 大家在部署完数据采集之后（通过 DataKit 或 Function 采集），有时候在 DataFlux 的页面上看不到对应的数据更新，每次排查起来都心力憔悴，为了缓解这一状况，可按照如下的一些步骤，来逐步围歼「为啥没有数据」这一问题：
 
-- 检查 DataKit 所在机器跟 DataWay 是否连通
+## 检查 DataWay 连接是否正常
 
 ```shell
 curl http[s]://your-dataway-addr:port
@@ -24,7 +24,7 @@ curl https://openway.dataflux.cn
 curl: (6) Could not resolve host: openway.dataflux.cn
 ```
 
-- 检查被采集的机器，其时间设置是否正确
+## 检查机器时间
 
 在 Linux/Mac 上，输入 `date` 即可查看当前系统时间：
 
@@ -43,7 +43,7 @@ Wed Jul 21 08:22:32 UTC 2021
 
 如果当前系统的时间跟你的手机时间相差甚远，特别是，它如果超前了，那么 DataFlux 上是看不到这些「将来」的数据的。
 
-- 对 DataKit 采集而言，先查看 Monitor 页面。
+## 查看 Monitor 页面
 
 如果是 Windows 系统，DataKit 主配置中需将 `http_listen` 设置在 `0.0.0.0:9529` 上，然后打开浏览器，输入
 
@@ -65,9 +65,11 @@ datakit --monitor --vvv
 
 页面上会显示每个采集器的运行情况，如果某个采集器有误，在「当前错误（时间）」这一列，能看到具体的报错信息以及报错时间。
 
-- 通过 DQL 查看是否有数据产生
+## 通过 DQL 查看是否有数据产生
 
-> 在 Windows/Linux/Mac 上，这一功能均支持，其中，Windows 需在 Powershell 中执行。DataKit [1.1.7-rc7](changelog#494d6cd5) 才支持这一功能
+在 Windows/Linux/Mac 上，这一功能均支持，其中 Windows 需在 Powershell 中执行
+
+> DataKit [1.1.7-rc7](changelog#494d6cd5) 才支持这一功能
 
 ```shell
 datakit --dql
@@ -105,7 +107,7 @@ show_tracing_service()
 
 以此类推，如果数据确实上报了，那么通过 DQL 总能找到，至于前端不显示，可能是其它过滤条件给挡掉了。通过 DQL，不管是 DataKit 采集的数据，还是其它手段（如 Function）采集的数据，都可以零距离查看原式数据，特别便于 Debug。
 
-- 查看 datakit 程序日志，看其中是否有异常
+## 查看 DataKit 程序日志是否有异常
 
 Windows 平台：
 
