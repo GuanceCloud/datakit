@@ -1,13 +1,13 @@
 package io
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -49,6 +49,9 @@ type IO struct {
 	in2       chan *iodata // high-freq chan
 	inLastErr chan *lastErr
 
+	lastBodyBytes int
+	SentBytes     int
+
 	inputstats map[string]*InputsStat
 	qstatsCh   chan *qinputStats
 
@@ -59,6 +62,10 @@ type IO struct {
 	dynamicCacheCnt int64
 	fd              *os.File
 	outputFileSize  int64
+}
+
+type IoStat struct {
+	SentBytes int `json:"sent_bytes"`
 }
 
 func NewIO() *IO {
@@ -152,7 +159,9 @@ func (x *IO) ioStop() {
 func (x *IO) updateLastErr(e *lastErr) {
 	stat, ok := x.inputstats[e.from]
 	if !ok {
-		stat = &InputsStat{}
+		stat = &InputsStat{
+			First: time.Now(),
+		}
 		x.inputstats[e.from] = stat
 	}
 
@@ -246,19 +255,14 @@ func (x *IO) init() error {
 }
 
 func (x *IO) StartIO(recoverable bool) {
-	if err := x.init(); err != nil {
-		l.Errorf("init io err %v", err)
-		return
-	}
-
-	defer x.ioStop()
-
-	var f rtpanic.RecoverCallback
-
-	f = func(trace []byte, _ error) {
-		if recoverable {
-			defer rtpanic.Recover(f, nil)
+	g := datakit.G("io")
+	g.Go(func(ctx context.Context) error {
+		if err := x.init(); err != nil {
+			l.Errorf("init io err %v", err)
+			return nil
 		}
+
+		defer x.ioStop()
 
 		tick := time.NewTicker(x.FlushInterval)
 		defer tick.Stop()
@@ -268,10 +272,6 @@ func (x *IO) StartIO(recoverable bool) {
 
 		heartBeatTick := time.NewTicker(time.Second * 30)
 		defer heartBeatTick.Stop()
-
-		if trace != nil {
-			l.Warnf("recover from %s", string(trace))
-		}
 
 		for {
 			select {
@@ -303,16 +303,17 @@ func (x *IO) StartIO(recoverable bool) {
 
 			case <-datakit.Exit.Wait():
 				l.Info("io exit on exit")
-				return
+				return nil
 			}
 		}
-	}
+
+		return nil
+	})
 
 	// start log filter
 	defLogfilter.start()
 
 	l.Info("starting...")
-	f(nil, nil)
 }
 
 func (x *IO) flushAll() {
@@ -378,14 +379,14 @@ func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
 	}
 
 	raw := strings.Join(lines, "\n")
+	body = []byte(raw)
+	x.lastBodyBytes = len(body)
 	if len(raw) > minGZSize && x.OutputFile == "" { // should not gzip on file output
 		if body, err = datakit.GZipStr(raw); err != nil {
 			l.Errorf("gz: %s", err.Error())
 			return
 		}
 		gzon = true
-	} else {
-		body = []byte(raw)
 	}
 
 	return
@@ -409,7 +410,14 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 		return x.fileOutput(body)
 	}
 
-	return x.dw.Send(category, body, gz)
+	err = x.dw.Send(category, body, gz)
+
+	if err == nil {
+		x.SentBytes += x.lastBodyBytes
+		x.lastBodyBytes = 0
+	}
+
+	return err
 }
 
 func (x *IO) fileOutput(body []byte) error {

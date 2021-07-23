@@ -1,6 +1,7 @@
 package inputs
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -116,7 +117,7 @@ func ResetInputs() {
 func RunInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
-
+	g := datakit.G("inputs")
 	for name, arr := range InputsInfo {
 		for _, ii := range arr {
 			if ii.input == nil {
@@ -131,16 +132,16 @@ func RunInputs() error {
 				inp.RunPipeline()
 			}
 
-			datakit.WG.Add(1)
-			go func(name string, ii *inputInfo) {
+			func(name string, ii *inputInfo) {
+				g.Go(func(ctx context.Context) error {
+					// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
+					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
+					l.Infof("starting input %s ...", name)
 
-				// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
-				time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
-				l.Infof("starting input %s ...", name)
-
-				defer datakit.WG.Done()
-				protectRunningInput(name, ii)
-				l.Infof("input %s exited", name)
+					protectRunningInput(name, ii)
+					l.Infof("input %s exited", name)
+					return nil
+				})
 			}(name, ii)
 		}
 	}

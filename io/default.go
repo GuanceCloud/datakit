@@ -48,11 +48,7 @@ func Start() error {
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		defaultIO.StartIO(true)
-	}()
+	defaultIO.StartIO(true)
 
 	l.Debugf("io: %+#v", defaultIO)
 
@@ -86,6 +82,13 @@ func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
 	case <-tick.C:
 		return nil, fmt.Errorf("default IO response timeout(qid: %s, %v)", q.qid, timeout)
 	}
+}
+
+func GetIoStats() IoStat {
+	stats := IoStat{
+		SentBytes: defaultIO.SentBytes,
+	}
+	return stats
 }
 
 func ChanStat() string {

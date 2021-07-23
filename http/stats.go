@@ -19,6 +19,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
@@ -33,6 +34,8 @@ type enabledInput struct {
 
 type DatakitStats struct {
 	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
+	IoStats         io.IoStat                 `json:"io_stats"`
+	GoroutineStats  goroutine.Summary         `json:"goroutine_stats"`
 	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
 	AvailableInputs []string                  `json:"available_inputs"`
 
@@ -85,11 +88,17 @@ var (
 {{.InputsConfTable}}
 `
 
+	part4 = `
+## Goroutine运行情况
+
+{{.GoroutineStatTable}}
+`
+
 	verboseMonitorTmpl = `
 {{.CSS}}
 
 # DataKit 运行展示
-` + part1 + part2 + part3
+` + part1 + part2 + part3 + part4
 
 	monitorTmpl = `
 {{.CSS}}
@@ -209,21 +218,65 @@ func (x *DatakitStats) InputsStatsTable() string {
 	return tblHeader + strings.Join(rows, "\n")
 }
 
+func (x *DatakitStats) GoroutineStatTable() string {
+
+	const (
+		summaryFmt = `
+- 已完成: %d
+- 运行中: %d
+- 总消耗: %s
+- 平均消耗: %s
+`
+		tblHeader = `
+| 名称 | 已完成 | 运行中 | 总消耗 | 最小消耗 | 最大消耗 | 失败次数 |
+| ----   | :----:   |  :----:  |  :----:  |  :----:  |  :----:  |  :----:  |
+`
+	)
+
+	var rowFmt = "|%s|%d|%d|%s|%s|%s|%d|"
+
+	rows := []string{}
+
+	s := goroutine.GetStat()
+
+	summary := fmt.Sprintf(summaryFmt, s.Total, s.RunningTotal, s.CostTime, s.AvgCostTime)
+	if len(s.Items) == 0 {
+		return summary
+	}
+
+	for name, item := range s.Items {
+		rows = append(rows, fmt.Sprintf(rowFmt,
+			name,
+			item.Total,
+			item.RunningTotal,
+			item.CostTime,
+			item.MaxCostTime,
+			item.MaxCostTime,
+			item.ErrCount,
+		))
+	}
+
+	sort.Strings(rows)
+	return summary + "\n" + tblHeader + strings.Join(rows, "\n")
+}
+
 func GetStats() (*DatakitStats, error) {
 
 	now := time.Now()
 	stats := &DatakitStats{
-		Version:      datakit.Version,
-		BuildAt:      git.BuildAt,
-		Branch:       git.Branch,
-		Uptime:       fmt.Sprintf("%v", now.Sub(uptime)),
-		OSArch:       fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:    reloadCnt,
-		ReloadInfo:   "0",
-		WithinDocker: datakit.Docker,
-		IOChanStat:   io.ChanStat(),
-		Elected:      election.Elected(),
-		AutoUpdate:   datakit.AutoUpdate,
+		Version:        datakit.Version,
+		BuildAt:        git.BuildAt,
+		Branch:         git.Branch,
+		Uptime:         fmt.Sprintf("%v", now.Sub(uptime)),
+		OSArch:         fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		ReloadCnt:      reloadCnt,
+		ReloadInfo:     "0",
+		WithinDocker:   datakit.Docker,
+		IOChanStat:     io.ChanStat(),
+		IoStats:        io.GetIoStats(),
+		Elected:        election.Elected(),
+		AutoUpdate:     datakit.AutoUpdate,
+		GoroutineStats: goroutine.GetStat(),
 	}
 
 	if reloadCnt > 0 {
