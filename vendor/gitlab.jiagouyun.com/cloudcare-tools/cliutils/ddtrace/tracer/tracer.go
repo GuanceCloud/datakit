@@ -2,15 +2,21 @@ package tracer
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
+	"github.com/go-sql-driver/mysql"
 	"github.com/nsqio/go-nsq"
 	nsqtracer "gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/go-nsq"
+	redistracer "gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/go-redis"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	ddtsql "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
+	ddtredis "gopkg.in/DataDog/dd-trace-go.v1/contrib/go-redis/redis"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
@@ -69,7 +75,7 @@ func (this *Tracer) Start(opts ...Option) {
 	tracer.Start(sopts...)
 }
 
-func (this *Tracer) StartSpan(resource string, spanType SpanType) ddtrace.Span {
+func (this *Tracer) StartSpan(resource string, spanType string) ddtrace.Span {
 	if !this.Enabled {
 		return nil
 	}
@@ -83,7 +89,7 @@ func (this *Tracer) StartSpan(resource string, spanType SpanType) ddtrace.Span {
 	return tracer.StartSpan(resource, ssopts...)
 }
 
-func (this *Tracer) StartSpanFromContext(ctx context.Context, resource, operatoin string, spanType SpanType, opts ...Option) (ddtrace.Span, context.Context) {
+func (this *Tracer) StartSpanFromContext(ctx context.Context, resource, operatoin string, spanType string, opts ...Option) (ddtrace.Span, context.Context) {
 	if !this.Enabled {
 		return nil, nil
 	}
@@ -91,7 +97,7 @@ func (this *Tracer) StartSpanFromContext(ctx context.Context, resource, operatoi
 	ssopts := []ddtrace.StartSpanOption{
 		tracer.ServiceName(this.Service),
 		tracer.ResourceName(resource),
-		tracer.SpanType(string(spanType)),
+		tracer.SpanType(spanType),
 		tracer.Measured(),
 	}
 
@@ -118,7 +124,7 @@ func (this *Tracer) Inject(span ddtrace.Span, header http.Header) error {
 	return nil
 }
 
-func (this *Tracer) GinMiddleware(resource string, spanType SpanType, opts ...Option) gin.HandlerFunc {
+func (this *Tracer) GinMiddleware(resource string, spanType string, opts ...Option) gin.HandlerFunc {
 	if !this.Enabled {
 		return func(c *gin.Context) {
 			c.Next()
@@ -131,7 +137,7 @@ func (this *Tracer) GinMiddleware(resource string, spanType SpanType, opts ...Op
 		ssopts := []ddtrace.StartSpanOption{
 			tracer.ServiceName(this.Service),
 			tracer.ResourceName(resource),
-			tracer.SpanType(string(spanType)),
+			tracer.SpanType(spanType),
 			tracer.Tag(ext.HTTPMethod, c.Request.Method),
 			tracer.Tag(ext.HTTPURL, c.Request.URL.Path),
 			tracer.Measured(),
@@ -164,17 +170,35 @@ func (this *Tracer) Stop() {
 }
 
 func (this *Tracer) NewProducer(addr string, config *nsq.Config) (nsqtracer.TraceableProducer, error) {
-	if !this.Enabled {
-		return nsq.NewProducer(addr, config)
-	} else {
+	if this.Enabled {
 		return nsqtracer.NewProducer(addr, config, nsqtracer.WithService(this.Service), nsqtracer.WithContext(context.Background()))
+	} else {
+		return nsq.NewProducer(addr, config)
 	}
 }
 
 func (this *Tracer) NewConsumer(topic string, channel string, config *nsq.Config) (nsqtracer.TraceableConsumer, error) {
-	if !this.Enabled {
-		return nsq.NewConsumer(topic, channel, config)
-	} else {
+	if this.Enabled {
 		return nsqtracer.NewConsumer(topic, channel, config, nsqtracer.WithService(this.Service), nsqtracer.WithContext(context.Background()))
+	} else {
+		return nsq.NewConsumer(topic, channel, config)
+	}
+}
+
+func (this *Tracer) NewRedisClient(rdsopt *redis.Options) redistracer.TraceableClient {
+	if this.Enabled {
+		return ddtredis.NewClient(rdsopt, ddtredis.WithServiceName(this.Service))
+	} else {
+		return redis.NewClient(rdsopt)
+	}
+}
+
+func (this *Tracer) OpenDB(driverName, dataSourceName string) (*sql.DB, error) {
+	if this.Enabled {
+		ddtsql.Register(driverName, &mysql.MySQLDriver{}, ddtsql.WithServiceName(this.Service))
+
+		return ddtsql.Open(driverName, dataSourceName, ddtsql.WithServiceName(this.Service))
+	} else {
+		return sql.Open(driverName, dataSourceName)
 	}
 }

@@ -229,6 +229,14 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.6.1
 ## explicit
 github.com/go-playground/validator/v10
+# github.com/go-redis/redis v6.15.9+incompatible
+github.com/go-redis/redis
+github.com/go-redis/redis/internal
+github.com/go-redis/redis/internal/consistenthash
+github.com/go-redis/redis/internal/hashtag
+github.com/go-redis/redis/internal/pool
+github.com/go-redis/redis/internal/proto
+github.com/go-redis/redis/internal/util
 # github.com/go-redis/redis/v8 v8.8.0
 ## explicit
 github.com/go-redis/redis/v8
@@ -545,10 +553,11 @@ github.com/yuin/goldmark/util
 # github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 ## explicit
 github.com/yuin/goldmark-highlighting
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210721093820-ab0e80ae2fdf
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210723090055-b88d7b9894d6
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/go-nsq
+gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/go-redis
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/tracer
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
@@ -757,6 +766,10 @@ google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/DataDog/dd-trace-go.v1 v1.31.1
+## explicit
+gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql
+gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql/internal
+gopkg.in/DataDog/dd-trace-go.v1/contrib/go-redis/redis
 gopkg.in/DataDog/dd-trace-go.v1/ddtrace
 gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext
 gopkg.in/DataDog/dd-trace-go.v1/ddtrace/internal
