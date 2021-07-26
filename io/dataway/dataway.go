@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dktracer "gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 )
 
 var (
@@ -124,7 +125,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	}
 
 	// start trace span from request context
-	span, _ := dktracer.GlobalTracer.StartSpanFromContext(req.Context(), "datakit.dataway.send", req.RequestURI, tracer.SpanTypeHTTP)
+	span, _ := dktracer.GlobalTracer.StartSpanFromContext(req.Context(), "datakit.dataway.send", req.RequestURI, ext.SpanTypeHTTP)
 	defer dktracer.GlobalTracer.FinishSpan(span, tracer.WithFinishTime(time.Now()))
 
 	// inject span into http header
