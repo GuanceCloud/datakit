@@ -21,7 +21,7 @@
 ```shell
 sudo -- sh -c 'curl https://static.dataflux.cn/datakit/installer-linux-amd64 -o dk-installer \
 	&& chmod +x ./dk-installer \
-	&& ./dk-installer -dataway "https://openway.dataflux.cn?token=tkn_f2b9920f05d84d6bb5b14d9d39db1dd3" \
+	&& ./dk-installer -dataway "https://openway.dataflux.cn?token=TOKEN" \
 	&& rm -rf ./dk-installer'
 ```
 
