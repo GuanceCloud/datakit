@@ -12,41 +12,43 @@
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
 
+> Safari 浏览器下载时，后缀名可能不同（如将 `.tar.gz` 文件下载成 `.tar`），会导致安装失败。建议用 Chrome 浏览器下载。
+
 先下载数据包，每个平台都一样： https://static.dataflux.cn/datakit/data.tar.gz
 
 然后再下载俩个安装程序：
 
 - Windows 32 位：
-	- [installer](https://static.dataflux.cn/datakit/installer-windows-386.exe)
+	- [Installer](https://static.dataflux.cn/datakit/installer-windows-386.exe)
 	- [DataKit](https://static.dataflux.cn/datakit/datakit-windows-386-{{.Version}}.tar.gz)
 - Windows 64 位：
-	- [installer](https://static.dataflux.cn/datakit/installer-windows-amd64.exe)
+	- [Installer](https://static.dataflux.cn/datakit/installer-windows-amd64.exe)
 	- [DataKit](https://static.dataflux.cn/datakit/datakit-windows-amd64-{{.Version}}.tar.gz) 
 - Darwin(Mac) 64 位：
-	- [installer](https://static.dataflux.cn/datakit/installer-darwin-amd64)
+	- [Installer](https://static.dataflux.cn/datakit/installer-darwin-amd64)
 	- [DataKit](https://static.dataflux.cn/datakit/datakit-darwin-amd64-{{.Version}}.tar.gz)
 - Linux X86 32 位：
-	- [installer](https://static.dataflux.cn/datakit/installer-linux-386)
+	- [Installer](https://static.dataflux.cn/datakit/installer-linux-386)
 	- [DataKit](https://static.dataflux.cn/datakit/datakit-linux-386-{{.Version}}.tar.gz) 
 - Linux X86 64 位
-	- [installer](https://static.dataflux.cn/datakit/installer-linux-amd64)
+	- [Installer](https://static.dataflux.cn/datakit/installer-linux-amd64)
 	- [DataKit](https://static.dataflux.cn/datakit/datakit-linux-amd64-{{.Version}}.tar.gz)
 - Linux Arm 32 位
-	- [installer](https://static.dataflux.cn/datakit/installer-linux-arm)
+	- [Installer](https://static.dataflux.cn/datakit/installer-linux-arm)
 	- [DataKit](https://static.dataflux.cn/datakit/datakit-linux-arm-{{.Version}}.tar.gz)
 - Linux Arm 64 位
-	- [installer](https://static.dataflux.cn/datakit/installer-linux-arm64)
+	- [Installer](https://static.dataflux.cn/datakit/installer-linux-arm64)
 	- [DataKit](https://static.dataflux.cn/datakit/datakit-linux-arm64-{{.Version}}.tar.gz)
 
 ## 离线安装
 
 下载完后，应该有三个文件：
 
-- datakit-xxx-xxx.tar.gz
-- installer-xxx-xxx
-- data.tar.gz
+- `datakit-OS-ARCH.tar.gz`
+- `installer-OS-ARCH` 或 `installer-OS-ARCH.exe`
+- `data.tar.gz`
 
-通过 `scp` 或其它文件传输工具，将安装程序 `installer-xxx-xxx` （Windows 下文件名为 `installer-xxx-xxx.exe`）以及安装包（`data.tar.gz` 以及 `datakit-xxx-xxx-{{.Version}}.tar.gz`）上传到目标机器。以 Linux 为例：
+通过 `scp` 或其它文件传输工具，将安装程序 `installer-OS-ARCH` （Windows 下文件名为 `installer-OS-ARCH.exe`）以及安装包（`data.tar.gz` 以及 `datakit-OS-ARCH-{{.Version}}.tar.gz`）上传到目标机器。以 Linux 为例：
 
 ```shell
 scp installer-linux-amd64 datakit-linux-amd64-{{.Version}}.tar.gz data.tar.gz USER-NAME@YOUR-LINUX-HOST:~/
