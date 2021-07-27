@@ -58,7 +58,7 @@ scp installer-linux-amd64 datakit-linux-amd64-{{.Version}}.tar.gz data.tar.gz US
 
 ```shell
 # Windows（需以 administrator 权限运行 Powershell 执行）
-installer-windows-amd64.exe -offline -dataway "https://openway.dataflux.cn?token=<TOKEN>" -srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
+.\installer-windows-amd64.exe -offline -dataway "https://openway.dataflux.cn?token=<TOKEN>" -srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
 
 # Linux（需以 root 权限运行）
 chmod +x installer-linux-amd64
