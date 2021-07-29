@@ -13,6 +13,7 @@ var (
 	ServiceDescription = `Collects data and upload it to DataFlux.`
 	ServiceExecutable  string
 	ServiceArguments   []string
+	ServiceEnvs        []string
 
 	Entry func()
 

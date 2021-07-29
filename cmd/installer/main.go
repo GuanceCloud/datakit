@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -57,6 +58,8 @@ var (
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
+
+	flagPreserveEnvRegex = flag.Bool("preserve-env-regex", "", "preserve existing environment variables")
 )
 
 const (
@@ -114,6 +117,23 @@ func main() {
 	}
 
 	l = logger.SLogger("installer")
+
+	if *flagPreserveEnvRegex != "" {
+		re, err := regexp.Compile(*flagPreserveEnvRegex)
+		if err != nil {
+			l.Fatalf("invalid regex: %s", err.Error())
+		}
+
+		envs := os.Environ()
+		for _, env := range envs {
+			if re.MatchString(env) {
+				l.Debugf("add env %s", env)
+				dkservice.ServiceEnvs = append(dkservice.ServiceEnvs, env)
+			}
+		}
+
+		l.Infof("added %d envs", len(dkservice.ServiceEnvs))
+	}
 
 	dkservice.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
