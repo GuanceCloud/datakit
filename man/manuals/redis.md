@@ -25,6 +25,8 @@ Redis 指标采集器，采集以下数据：
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
+> 如果是阿里云 Redis，且设置了对应的用户名密码，下面的 `<PASSWORD>` 应该设置成 `your-user:your-password`，如 `datakit:Pa55W0rd`
+
 ```toml
 {{.InputSample}}
 ```
