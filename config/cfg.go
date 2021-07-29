@@ -375,6 +375,12 @@ func (c *Config) ApplyMainConfig() error {
 
 func (c *Config) setHostname() error {
 
+	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
+		l.Infof("set hostname to `%s' from ENV_HOSTNAME", v)
+		c.Hostname = v
+		return nil
+	}
+
 	hn, err := os.Hostname()
 	if err != nil {
 		l.Errorf("get hostname failed: %s", err.Error())
