@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -87,7 +88,7 @@ func (i *Input) initCfg() error {
 			return err
 		}
 
-		i.BearerTokenString = string(token)
+		i.BearerTokenString = strings.TrimSpace(string(token))
 
 		config, err = createConfigByToken(i.URL, i.BearerTokenString, i.TLSCA, i.InsecureSkipVerify)
 		if err != nil {
@@ -214,6 +215,16 @@ func (i *Input) Run() {
 
 			// clear cache
 			i.clear()
+
+			cluster{client: i.client}.Gather()
+			pod{client: i.client}.Gather()
+			deployment{client: i.client}.Gather()
+			replicaSet{client: i.client}.Gather()
+			service{client: i.client}.Gather()
+			node{client: i.client}.Gather()
+			job{client: i.client}.Gather()
+			cronJob{client: i.client}.Gather()
+
 		case <-disTick.C:
 			if i.pause {
 				l.Debugf("not leader, skipped")
@@ -275,9 +286,12 @@ func (i *Input) AvailableArchs() []string {
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&kubernetesMetric{},
+	var res []inputs.Measurement
+	for _, resource := range resources {
+		res = append(res, resource)
 	}
+	res = append(res, &kubernetesMetric{})
+	return res
 }
 
 func init() {
