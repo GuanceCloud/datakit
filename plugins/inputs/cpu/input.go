@@ -22,8 +22,12 @@ const (
 	metricName = inputName
 	sampleCfg  = `
 [[inputs.cpu]]
-  # Collect interval, default is 10 seconds(optional)
+  ## Collect interval, default is 10 seconds(optional)
   interval = '10s'
+  ##
+  ## Setting disable_temperature_collect to false will collect cpu temperature stats for linux.
+  ##
+  # disable_temperature_collect = false
 
 [inputs.cpu.tags]
   # some_tag = "some_value"
@@ -37,6 +41,8 @@ type Input struct {
 	TotalCPU       bool `toml:"totalcpu"`         // deprecated
 	CollectCPUTime bool `toml:"collect_cpu_time"` // deprecated
 	ReportActive   bool `toml:"report_active"`    // deprecated
+
+	DisableTemperatureCollect bool `toml:"disable_temperature_collect"`
 
 	Interval datakit.Duration
 	Tags     map[string]string
@@ -93,7 +99,7 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 			"usage_total": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "% CPU in total active usage, as well as (100 - usage_idle)."},
 			"core_temperature": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Celsius,
-				Desc: "CPU core temperature"},
+				Desc: "CPU core temperature.This is not collected by default"},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
@@ -144,7 +150,6 @@ func (i *Input) Collect() error {
 		for k, v := range i.Tags {
 			tags[k] = v
 		}
-		fields := make(map[string]interface{})
 
 		_, total := CpuActiveTotalTime(cts)
 
@@ -163,17 +168,28 @@ func (i *Input) Collect() error {
 		}
 		cpuUsage, _ := CalculateUsage(cts, lastCts, totalDelta)
 
-		if ok := CPUStatStructToMap(fields, cpuUsage, "usage_"); !ok {
-			l.Error("error: collect cpu time, check cpu usage stat struct")
-			break
-		} else {
+		fields := map[string]interface{}{
+			"usage_user":       cpuUsage.User,
+			"usage_system":     cpuUsage.System,
+			"usage_idle":       cpuUsage.Idle,
+			"usage_nice":       cpuUsage.Nice,
+			"usage_iowait":     cpuUsage.Iowait,
+			"usage_irq":        cpuUsage.Irq,
+			"usage_softirq":    cpuUsage.Softirq,
+			"usage_steal":      cpuUsage.Steal,
+			"usage_guest":      cpuUsage.Guest,
+			"usage_guest_nice": cpuUsage.GuestNice,
+			"usage_total":      cpuUsage.Total,
+		}
+
+		if !i.DisableTemperatureCollect {
 			if temp, err := CoreTempAvg(); err == nil {
 				// 不增加新tag， 计算 core temp 的平均值
 				fields["core_temperature"] = temp
 			}
-			i.appendMeasurement(inputName, tags, fields, time_now)
-			// i.addField("active", 100 * (active-lastActive)/totalDelta)
 		}
+		i.appendMeasurement(inputName, tags, fields, time_now)
+
 	}
 	i.lastStats = make(map[string]cpu.TimesStat)
 	for _, cts := range cpuTimes {
@@ -217,8 +233,9 @@ func (i *Input) Run() {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			ps:       &CPUInfo{},
-			Interval: datakit.Duration{Duration: time.Second * 10},
+			ps:                        &CPUInfo{},
+			Interval:                  datakit.Duration{Duration: time.Second * 10},
+			DisableTemperatureCollect: true,
 		}
 	})
 }

@@ -1,15 +1,12 @@
 package election
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -70,48 +67,28 @@ func (x *candidate) run(namespace, id string, dw *dataway.DataWayCfg) {
 	l.Debugf("namespace: %s id: %s", x.namespace, x.id)
 	l.Infof("get %d election inputs", len(x.plugins))
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		x.startElection()
-	}()
+	x.startElection()
+
 }
 
 func (x *candidate) startElection() {
-
-	var f rtpanic.RecoverCallback
-	crashTime := []string{}
-	f = func(trace []byte, err error) {
-
-		defer rtpanic.Recover(f, nil)
-		if trace != nil {
-			l.Warnf("election panic:\n%s", string(trace))
-			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
-			if len(crashTime) > 6 {
-				io.FeedLastError("Election", fmt.Sprintf("election crashed %d times, exited", len(crashTime)))
-				l.Errorf("election crashed %d times(at %s), exit now", len(crashTime), strings.Join(crashTime, "\n"))
-				return
-			}
-		}
-
+	g := datakit.G("election")
+	g.Go(func(ctx context.Context) error {
+		x.pausePlugins()
 		tick := time.NewTicker(electionInterval)
 		defer tick.Stop()
 
 		for {
 			select {
 			case <-datakit.Exit.Wait():
-				return
+				return nil
 
 			case <-tick.C:
 				l.Debugf("run once...")
 				x.runOnce()
 			}
 		}
-	}
-
-	// 先暂停采集，待选举成功再恢复运行
-	x.pausePlugins()
-	f(nil, nil)
+	})
 }
 
 // 此处暂不考虑互斥性，只用于状态展示

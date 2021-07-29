@@ -1,18 +1,19 @@
 package prom
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/mattn/go-zglob"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -25,6 +26,9 @@ const (
 [[inputs.prom]]
   ## Exporter 地址
   url = "http://127.0.0.1:9100/metrics"
+
+	## 采集器别名
+	source = "prom"
 
   ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary
   # 默认只采集 counter 和 gauge 类型的指标
@@ -124,6 +128,7 @@ type K8sInfo struct {
 
 type Input struct {
 	URL               Url      `toml:"url"`
+	Source            string   `toml:"source"`
 	MetricTypes       []string `toml:"metric_types"`
 	MetricNameFilter  []string `toml:"metric_name_filter"`
 	MeasurementPrefix string   `toml:"measurement_prefix"`
@@ -201,12 +206,10 @@ func (i *Input) collectUrl(url string, tags map[string]string) error {
 		return err
 	}
 	defer r.Body.Close()
-
 	measurements, err := PromText2Metrics(r.Body, i, tags)
 	if err != nil {
 		return err
 	}
-
 	i.collectCache = append(i.collectCache, measurements...)
 
 	return nil
@@ -214,13 +217,16 @@ func (i *Input) collectUrl(url string, tags map[string]string) error {
 
 func (i *Input) collectFile(path string) error {
 	const RUNNING = "Running"
-	var wg sync.WaitGroup
 	matchs, err := zglob.Glob(path)
 	// only log error to file
 	if err != nil {
 		l.Warnf("file path invalid: %s", err.Error())
 		return nil
 	}
+
+	source := i.getSource()
+	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(source)})
+
 	for _, file := range matchs {
 		fileContent, err := ioutil.ReadFile(file)
 		if err != nil {
@@ -252,21 +258,22 @@ func (i *Input) collectFile(path string) error {
 				continue
 			}
 			for _, target := range targets {
-				wg.Add(1)
-				go func(target string) {
-					defer wg.Done()
-					err := i.collectUrl(target, tags)
-					if err != nil {
-						l.Warnf("collect url error: %s", err.Error())
-					}
+				func(target string) {
+					g.Go(func(ctx context.Context) error {
+						err := i.collectUrl(target, tags)
+						if err != nil {
+							l.Warnf("collect url error: %s", err.Error())
+						}
+						return err
+					})
 				}(target)
 			}
 		}
 
 	}
 
-	wg.Wait()
-	return nil
+	err = g.Wait()
+	return err
 }
 
 func (i *Input) collectMetric(url string) error {
@@ -287,29 +294,38 @@ func (i *Input) collectMetric(url string) error {
 
 func (i *Input) Collect() error {
 	var err error
-	var wg sync.WaitGroup
 	urls := i.URL
 	switch urls := urls.(type) {
 	case string:
 		err = i.collectMetric(urls)
 		return err
-	case []string:
-		for _, url := range urls {
-			wg.Add(1)
-			go func(url string) {
-				defer wg.Done()
-				err = i.collectMetric(url)
-				if err != nil {
-					l.Warnf("collect error: %s", err.Error())
-				}
-			}(url)
+	case []Url:
+		source := i.getSource()
+		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(source)})
+		for _, value := range urls {
+			url, ok := value.(string)
+			if !ok {
+				continue
+			}
 
+			func(url string) {
+				g.Go(func(ctx context.Context) error {
+					err = i.collectMetric(url)
+					if err != nil {
+						l.Warnf("collect error: %s", err.Error())
+					}
+					return err
+				})
+			}(url)
+		}
+		err := g.Wait()
+		if err != nil {
+			return err
 		}
 	default:
 		return fmt.Errorf("invalid url type: %T", urls)
 	}
 
-	wg.Wait()
 	return nil
 }
 
@@ -345,7 +361,16 @@ func (i *Input) SetClient(client *http.Client) {
 	i.client = client
 }
 
+func (i *Input) getSource() string {
+	source := inputName
+	if len(i.Source) > 0 {
+		source = i.Source
+	}
+	return source
+}
+
 func (i *Input) Run() {
+	source := i.getSource()
 	l = logger.SLogger(inputName)
 	duration, err := time.ParseDuration(i.Interval)
 
@@ -382,23 +407,26 @@ func (i *Input) Run() {
 
 			start := time.Now()
 			if err := i.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
+				io.FeedLastError(source, err.Error())
 				l.Error(err)
-			} else {
-				if len(i.collectCache) == 0 {
-					continue
-				}
-
-				err := inputs.FeedMeasurement(inputName,
-					datakit.Metric,
-					i.collectCache,
-					&io.Option{CollectCost: time.Since(start)})
-				if err != nil {
-					io.FeedLastError(inputName, err.Error())
-					l.Errorf(err.Error())
-				}
-				i.collectCache = i.collectCache[:0]
 			}
+
+			if len(i.collectCache) == 0 {
+				continue
+			}
+
+			err := inputs.FeedMeasurement(source,
+				datakit.Metric,
+				i.collectCache,
+				&io.Option{CollectCost: time.Since(start)})
+
+			if err != nil {
+				io.FeedLastError(source, err.Error())
+				l.Errorf(err.Error())
+			}
+
+			i.collectCache = i.collectCache[:0]
+
 		case i.pause = <-i.chPause:
 		}
 	}

@@ -1,6 +1,7 @@
 package elasticsearch
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -299,90 +301,84 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 func (i *Input) Collect() error {
 	// 获取nodeID和masterID
 	if i.ClusterStats || len(i.IndicesInclude) > 0 || len(i.IndicesLevel) > 0 {
-		var wgC sync.WaitGroup
-		wgC.Add(len(i.Servers))
-
 		i.serverInfo = make(map[string]serverInfo)
+		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
 		for _, serv := range i.Servers {
-			go func(s string) {
-				defer wgC.Done()
-				info := serverInfo{}
+			func(s string) {
+				g.Go(func(ctx context.Context) error {
+					var err error
+					info := serverInfo{}
 
-				var err error
+					// Gather node ID
+					if info.nodeID, err = i.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
+						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+					}
 
-				// Gather node ID
-				if info.nodeID, err = i.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
-					l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
-					return
-				}
+					// get cat/master information here so NodeStats can determine
+					// whether this node is the Master
+					if info.masterID, err = i.getCatMaster(s + "/_cat/master"); err != nil {
+						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+					}
 
-				// get cat/master information here so NodeStats can determine
-				// whether this node is the Master
-				if info.masterID, err = i.getCatMaster(s + "/_cat/master"); err != nil {
-					l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
-					return
-				}
+					i.serverInfoMutex.Lock()
+					i.serverInfo[s] = info
+					i.serverInfoMutex.Unlock()
 
-				i.serverInfoMutex.Lock()
-				i.serverInfo[s] = info
-				i.serverInfoMutex.Unlock()
-
+					return nil
+				})
 			}(serv)
 		}
-		wgC.Wait()
+		err := g.Wait()
+		if err != nil {
+			return err
+		}
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(i.Servers))
-
+	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
 	for _, serv := range i.Servers {
-		go func(s string) {
-			defer wg.Done()
-			url := i.nodeStatsURL(s)
+		func(s string) {
+			g.Go(func(ctx context.Context) error {
+				url := i.nodeStatsURL(s)
 
-			// Always gather node stats
-			if err := i.gatherNodeStats(url); err != nil {
-				l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
-				return
-			}
-
-			if i.ClusterHealth {
-				url = s + "/_cluster/health"
-				if i.ClusterHealthLevel != "" {
-					url = url + "?level=" + i.ClusterHealthLevel
+				// Always gather node stats
+				if err := i.gatherNodeStats(url); err != nil {
+					return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 				}
-				if err := i.gatherClusterHealth(url); err != nil {
-					l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
-					return
-				}
-			}
 
-			if i.ClusterStats && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
-				if err := i.gatherClusterStats(s + "/_cluster/stats"); err != nil {
-					l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
-					return
-				}
-			}
-
-			if len(i.IndicesInclude) > 0 && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
-				if i.IndicesLevel != "shards" {
-					if err := i.gatherIndicesStats(s + "/" + strings.Join(i.IndicesInclude, ",") + "/_stats"); err != nil {
-						l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
-						return
+				if i.ClusterHealth {
+					url = s + "/_cluster/health"
+					if i.ClusterHealthLevel != "" {
+						url = url + "?level=" + i.ClusterHealthLevel
 					}
-				} else {
-					if err := i.gatherIndicesStats(s + "/" + strings.Join(i.IndicesInclude, ",") + "/_stats?level=shards"); err != nil {
-						l.Error(fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@")))
-						return
+					if err := i.gatherClusterHealth(url); err != nil {
+						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
-			}
+
+				if i.ClusterStats && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
+					if err := i.gatherClusterStats(s + "/_cluster/stats"); err != nil {
+						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+					}
+				}
+
+				if len(i.IndicesInclude) > 0 && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
+					if i.IndicesLevel != "shards" {
+						if err := i.gatherIndicesStats(s + "/" + strings.Join(i.IndicesInclude, ",") + "/_stats"); err != nil {
+							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+						}
+					} else {
+						if err := i.gatherIndicesStats(s + "/" + strings.Join(i.IndicesInclude, ",") + "/_stats?level=shards"); err != nil {
+							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+						}
+					}
+				}
+				return nil
+			})
 		}(serv)
+
 	}
 
-	wg.Wait()
-
-	return nil
+	return g.Wait()
 }
 
 const (

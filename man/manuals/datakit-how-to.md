@@ -379,6 +379,23 @@ $ sudo datakit --restart
 $ sudo datakit --reload
 ```
 
+Linux 下，如果上述命令失效，可使用以下命令来替代：
+
+```shell
+sudo service datakti stop/start/restart
+sudo systemctl stop/start/restart datakit
+```
+
+Mac 下，可以用如下命令代替：
+
+```shell
+# 启动 DataKit
+sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+
+# 停止 DataKit
+sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+```
+
 #### Windows 下 DataKit 服务操作
 
 按下 Win 键，输入 `services` 即可进入 Windows 服务管理界面，找到 `datakit` ，右键即可停止、重启服务。

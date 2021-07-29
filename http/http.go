@@ -43,6 +43,8 @@ var (
 	apiConfig      *APIConfig
 
 	ginRotate = 32 // MB
+
+	g = datakit.G("http")
 )
 
 const (
@@ -86,9 +88,10 @@ func Start(o *Option) {
 	dw = o.DataWay
 
 	// start HTTP server
-	go func() {
+	g.Go(func(ctx context.Context) error {
 		HttpStart()
-	}()
+		return nil
+	})
 }
 
 type welcome struct {
@@ -224,10 +227,11 @@ func HttpStart() {
 		Handler: router,
 	}
 
-	go func() {
+	g.Go(func(ctx context.Context) error {
 		tryStartServer(srv)
 		l.Info("http server exit")
-	}()
+		return nil
+	})
 
 	// start pprof if enabled
 	var pprofSrv *http.Server
@@ -236,10 +240,11 @@ func HttpStart() {
 			Addr: ":6060",
 		}
 
-		go func() {
+		g.Go(func(ctx context.Context) error {
 			tryStartServer(pprofSrv)
 			l.Info("pprof server exit")
-		}()
+			return nil
+		})
 	}
 
 	l.Debug("http server started")

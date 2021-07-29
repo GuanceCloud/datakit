@@ -1,6 +1,7 @@
 package postgresql
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -9,12 +10,12 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -273,37 +274,27 @@ func (i *Input) Collect() error {
 		return err
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(3)
+	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
+
 	// collect db metrics
-	go func() {
-		defer wg.Done()
-		if e := i.getDbMetrics(); e != nil {
-			l.Error(e.Error())
-			err = e
-		}
-	}()
+	g.Go(func(ctx context.Context) error {
+		err := i.getDbMetrics()
+		return err
+	})
 
 	// collect bgwriter
-	go func() {
-		defer wg.Done()
-		if e := i.getBgwMetrics(); e != nil {
-			l.Error(e.Error())
-			err = e
-		}
-	}()
+	g.Go(func(ctx context.Context) error {
+		err := i.getBgwMetrics()
+		return err
+	})
 
 	// connection
-	go func() {
-		defer wg.Done()
-		if e := i.getConnectionMetrics(); e != nil {
-			l.Error(e.Error())
-			err = e
-		}
-	}()
+	g.Go(func(ctx context.Context) error {
+		err := i.getConnectionMetrics()
+		return err
+	})
 
-	wg.Wait()
-	return err
+	return g.Wait()
 }
 
 func (i *Input) accRow(columnMap map[string]*interface{}) error {
@@ -426,15 +417,15 @@ func (i *Input) Run() {
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
-			} else {
-				if len(i.collectCache) > 0 {
-					err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
-					if err != nil {
-						io.FeedLastError(inputName, err.Error())
-						l.Error(err.Error())
-					}
-					i.collectCache = i.collectCache[:0]
+			}
+
+			if len(i.collectCache) > 0 {
+				err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
+				if err != nil {
+					io.FeedLastError(inputName, err.Error())
+					l.Error(err.Error())
 				}
+				i.collectCache = i.collectCache[:0]
 			}
 		}
 	}

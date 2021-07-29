@@ -8,7 +8,7 @@ RUN mkdir ${target}
 COPY ${exe} ${target}
 
 # download data files required by datakit
-ADD https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/data.tar.gz data.tar.gz
+ADD https://static.dataflux.cn/datakit/data.tar.gz data.tar.gz
 RUN tar -zxvf data.tar.gz -C ${target}
 RUN del "data.tar.gz"
 

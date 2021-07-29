@@ -25,6 +25,7 @@ require (
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/junhsieh/goexamples v0.0.0-20190721045834-1c67ae74caa6
 	github.com/lib/pq v1.8.0
+	github.com/mattn/go-sqlite3 v1.14.8 // indirect
 	github.com/nsqio/go-nsq v1.0.8
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect

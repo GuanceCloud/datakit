@@ -3,6 +3,7 @@
 package io
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -61,7 +62,8 @@ func (this *logFilter) filter(pts []*Point) []*Point {
 func (this *logFilter) start() {
 	l.Infof("log filter engaged, status: %q refresh_interval: %ds", this.status.String(), int(defInterval.Seconds()))
 
-	go func() {
+	g := datakit.G("logfilter")
+	g.Go(func(ctx context.Context) error {
 		tick := time.NewTicker(defInterval)
 	EXIT:
 		for {
@@ -76,7 +78,8 @@ func (this *logFilter) start() {
 				}
 			}
 		}
-	}()
+		return nil
+	})
 }
 
 func (this *logFilter) refreshRules() error {

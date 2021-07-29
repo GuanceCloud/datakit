@@ -123,7 +123,7 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 - 对象数据最好有 `message` 字段，主要便于做全文搜索
 
 
-### 用户对象数据(custom_object)示例
+### 自定义对象数据(custom_object)示例
 
 ```http
 POST /v1/write/custom_object?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
@@ -135,8 +135,8 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 
 > 注意：
 
-- 对象数据必须有 `name` 这个 tag，否则协议报错
-- 对象数据最好有 `message` 字段，主要便于做全文搜索
+- 自定义对象数据必须有 `name` 这个 tag，否则协议报错
+- 自定义对象数据最好有 `message` 字段，主要便于做全文搜索
 
 ### RUM
 
