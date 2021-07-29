@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package service provides a simple way to create a system service.
-// Currently supports Windows, Linux/(systemd | Upstart | SysV), and OSX/Launchd.
+// Currently supports Windows, Linux/(systemd | Upstart | SysV | OpenRC), and OSX/Launchd.
 //
 // Windows controls services by setting up callbacks that is non-trivial. This
 // is very different then other systems. This package provides the same API
@@ -77,15 +77,23 @@ const (
 	optionSessionCreateDefault = false
 	optionLogOutput            = "LogOutput"
 	optionLogOutputDefault     = false
+	optionPrefix               = "Prefix"
+	optionPrefixDefault        = "application"
 
-	optionRunWait      = "RunWait"
-	optionReloadSignal = "ReloadSignal"
-	optionPIDFile      = "PIDFile"
+	optionRunWait            = "RunWait"
+	optionReloadSignal       = "ReloadSignal"
+	optionPIDFile            = "PIDFile"
+	optionLimitNOFILE        = "LimitNOFILE"
+	optionLimitNOFILEDefault = -1 // -1 = don't set in configuration
+	optionRestart            = "Restart"
+
+	optionSuccessExitStatus = "SuccessExitStatus"
 
 	optionSystemdScript = "SystemdScript"
 	optionSysvScript    = "SysvScript"
 	optionUpstartScript = "UpstartScript"
 	optionLaunchdConfig = "LaunchdConfig"
+	optionOpenRCScript  = "OpenRCScript"
 )
 
 // Status represents service status as an byte value
@@ -111,7 +119,13 @@ type Config struct {
 	Executable string
 
 	// Array of service dependencies.
-	// Not yet implemented on Linux or OS X.
+	// Not yet fully implemented on Linux or OS X:
+	//  1. Support linux-systemd dependencies, just put each full line as the
+	//     element of the string array, such as
+	//     "After=network.target syslog.target"
+	//     "Requires=syslog.target"
+	//     Note, such lines will be directly appended into the [Unit] of
+	//     the generated service config file, will not check their correctness.
 	Dependencies []string
 
 	// The following fields are not supported on Windows.
@@ -119,21 +133,10 @@ type Config struct {
 	ChRoot           string
 
 	// System specific options.
-	//  * OS X
-	//    - LaunchdConfig string ()      - Use custom launchd config
-	//    - KeepAlive     bool   (true)
-	//    - RunAtLoad     bool   (false)
-	//    - UserService   bool   (false) - Install as a current user service.
-	//    - SessionCreate bool   (false) - Create a full user session.
-	//  * POSIX
-	//    - SystemdScript string ()                 - Use custom systemd script
-	//    - UpstartScript string ()                 - Use custom upstart script
-	//    - SysvScript    string ()                 - Use custom sysv script
-	//    - RunWait       func() (wait for SIGNAL)  - Do not install signal but wait for this function to return.
-	//    - ReloadSignal  string () [USR1, ...]     - Signal to send on reaload.
-	//    - PIDFile       string () [/run/prog.pid] - Location of the PID file.
-	//    - LogOutput     bool   (false)            - Redirect StdErr & StdOut to files.
 	Option KeyValue
+
+	// Environments settings
+	Envs map[string]string
 }
 
 var (
@@ -146,7 +149,7 @@ var (
 	ErrNameFieldRequired = errors.New("Config.Name field is required.")
 	// ErrNoServiceSystemDetected is returned when no system was detected.
 	ErrNoServiceSystemDetected = errors.New("No service system detected.")
-	// ErrNotInstalled is returned when the service is not installed
+	// ErrNotInstalled is returned when the service is not installed.
 	ErrNotInstalled = errors.New("the service is not installed")
 )
 
@@ -161,8 +164,41 @@ func New(i Interface, c *Config) (Service, error) {
 	return system.New(i, c)
 }
 
-// KeyValue provides a list of platform specific options. See platform docs for
-// more details.
+// KeyValue provides a list of system specific options.
+//  * OS X
+//    - LaunchdConfig string ()                 - Use custom launchd config.
+//    - KeepAlive     bool   (true)             - Prevent the system from stopping the service automatically.
+//    - RunAtLoad     bool   (false)            - Run the service after its job has been loaded.
+//    - SessionCreate bool   (false)            - Create a full user session.
+//
+//  * Solaris
+//    - Prefix        string ("application")    - Service FMRI prefix.
+//
+//  * POSIX
+//    - UserService   bool   (false)            - Install as a current user service.
+//    - SystemdScript string ()                 - Use custom systemd script.
+//    - UpstartScript string ()                 - Use custom upstart script.
+//    - SysvScript    string ()                 - Use custom sysv script.
+//    - OpenRCScript  string ()                 - Use custom OpenRC script.
+//    - RunWait       func() (wait for SIGNAL)  - Do not install signal but wait for this function to return.
+//    - ReloadSignal  string () [USR1, ...]     - Signal to send on reload.
+//    - PIDFile       string () [/run/prog.pid] - Location of the PID file.
+//    - LogOutput     bool   (false)            - Redirect StdErr & StandardOutPath to files.
+//    - Restart       string (always)           - How shall service be restarted.
+//    - SuccessExitStatus string ()             - The list of exit status that shall be considered as successful,
+//                                                in addition to the default ones.
+//  * Linux (systemd)
+//    - LimitNOFILE   int    (-1)               - Maximum open files (ulimit -n)
+//                                                (https://serverfault.com/questions/628610/increasing-nproc-for-processes-launched-by-systemd-on-centos-7)
+//  * Windows
+//    - DelayedAutoStart  bool (false)                - After booting, start this service after some delay.
+//    - Password  string ()                           - Password to use when interfacing with the system service manager.
+//    - Interactive       bool (false)                - The service can interact with the desktop. (more information https://docs.microsoft.com/en-us/windows/win32/services/interactive-services)
+//    - DelayedAutoStart        bool (false)          - after booting start this service after some delay.
+//    - StartType               string ("automatic")  - Start service type. (automatic | manual | disabled)
+//    - OnFailure               string ("restart" )   - Action to perform on service failure. (restart | reboot | noaction)
+//    - OnFailureDelayDuration  string ( "1s" )       - Delay before restarting the service, time.Duration string.
+//    - OnFailureResetPeriod    int ( 10 )            - Reset period for errors, seconds.
 type KeyValue map[string]interface{}
 
 // bool returns the value of the given name, assuming the value is a boolean.
@@ -209,7 +245,7 @@ func (kv KeyValue) float64(name string, defaultValue float64) float64 {
 	return defaultValue
 }
 
-// funcSingle returns the value of the given name, assuming the value is a float64.
+// funcSingle returns the value of the given name, assuming the value is a func().
 // If the value isn't found or is not of the type, the defaultValue is returned.
 func (kv KeyValue) funcSingle(name string, defaultValue func()) func() {
 	if v, found := kv[name]; found {
@@ -296,7 +332,7 @@ type System interface {
 //   8. Service.Run returns.
 //   9. User program should quickly exit.
 type Interface interface {
-	// Start provides a place to initiate the service. The service doesn't not
+	// Start provides a place to initiate the service. The service doesn't
 	// signal a completed start until after this function returns, so the
 	// Start function must not take more then a few seconds at most.
 	Start(s Service) error
@@ -305,6 +341,16 @@ type Interface interface {
 	// It should not take more then a few seconds to execute.
 	// Stop should not call os.Exit directly in the function.
 	Stop(s Service) error
+}
+
+// Shutdowner represents a service interface for a program that differentiates between "stop" and
+// "shutdown". A shutdown is triggered when the whole box (not just the service) is stopped.
+type Shutdowner interface {
+	Interface
+	// Shutdown provides a place to clean up program execution when the system is being shutdown.
+	// It is essentially the same as Stop but for the case where machine is being shutdown/restarted
+	// instead of just normally stopping the service. Stop won't be called when Shutdown is.
+	Shutdown(s Service) error
 }
 
 // TODO: Add Configure to Service interface.
