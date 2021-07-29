@@ -7,16 +7,18 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
+	// netv1 "k8s.io/api/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchbetav1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	v1beta1 "k8s.io/api/extensions/v1beta1"
-
-	// netv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -32,6 +34,18 @@ type client struct {
 	timeout   time.Duration
 	*kubernetes.Clientset
 	restClient *http.Client
+}
+
+func newClientFromBearerToken() (*client, error) {
+	return nil, nil
+}
+
+func newClientFromBearerTokenString() (*client, error) {
+	return nil, nil
+}
+
+func newClientFromTLS() (*client, error) {
+	return nil, nil
 }
 
 func createConfigByKubePath(kubePath string) (*rest.Config, error) {
@@ -62,7 +76,7 @@ func createConfigByToken(baseURL, bearerToken string, caFile string, insecureSki
 		if err != nil {
 			return nil, err
 		}
-		bearerToken = string(token)
+		bearerToken = strings.TrimSpace(string(token))
 	}
 
 	tlsClientConfig := rest.TLSClientConfig{
@@ -120,57 +134,27 @@ func newClient(config *rest.Config, timeout time.Duration) (*client, error) {
 	return cli, nil
 }
 
-func (c *client) promMetrics(url string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.restClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func (c *client) getDaemonSets() (*appsv1.DaemonSetList, error) {
-	return c.AppsV1().DaemonSets(c.namespace).List(metav1.ListOptions{})
-}
-
-func (c *client) getDeployments() (*appsv1.DeploymentList, error) {
-	return c.AppsV1().Deployments(c.namespace).List(metav1.ListOptions{})
-}
-
-func (c *client) getEndpoints() (*corev1.EndpointsList, error) {
-	return c.CoreV1().Endpoints(c.namespace).List(metav1.ListOptions{})
-}
-
-func (c *client) getNamespaces() (*corev1.NamespaceList, error) {
-	return c.CoreV1().Namespaces().List(metav1.ListOptions{})
-}
-
-func (c *client) getNodes() (*corev1.NodeList, error) {
-	return c.CoreV1().Nodes().List(metav1.ListOptions{})
-}
-
-func (c *client) getPersistentVolumes() (*corev1.PersistentVolumeList, error) {
-	return c.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
-}
-
-func (c *client) getPersistentVolumeClaims() (*corev1.PersistentVolumeClaimList, error) {
-	return c.CoreV1().PersistentVolumeClaims(c.namespace).List(metav1.ListOptions{})
+func (c *client) getClusters() (*rbacv1.ClusterRoleList, error) {
+	return c.RbacV1().ClusterRoles().List(metav1.ListOptions{})
 }
 
 func (c *client) getPods() (*corev1.PodList, error) {
 	return c.CoreV1().Pods(c.namespace).List(metav1.ListOptions{})
 }
 
+func (c *client) getDeployments() (*appsv1.DeploymentList, error) {
+	return c.AppsV1().Deployments(c.namespace).List(metav1.ListOptions{})
+}
+
+func (c *client) getReplicaSets() (*appsv1.ReplicaSetList, error) {
+	return c.AppsV1().ReplicaSets(c.namespace).List(metav1.ListOptions{})
+}
+
 func (c *client) getServices() (*corev1.ServiceList, error) {
 	return c.CoreV1().Services(c.namespace).List(metav1.ListOptions{})
 }
-
-func (c *client) getStatefulSets() (*appsv1.StatefulSetList, error) {
-	return c.AppsV1().StatefulSets(c.namespace).List(metav1.ListOptions{})
+func (c *client) getNodes() (*corev1.NodeList, error) {
+	return c.CoreV1().Nodes().List(metav1.ListOptions{})
 }
 
 func (c *client) getJobs() (*batchv1.JobList, error) {
@@ -181,6 +165,31 @@ func (c *client) getCronJobs() (*batchbetav1.CronJobList, error) {
 	return c.BatchV1beta1().CronJobs(c.namespace).List(metav1.ListOptions{})
 }
 
+///
+
+func (c *client) getEndpoints() (*corev1.EndpointsList, error) {
+	return c.CoreV1().Endpoints(c.namespace).List(metav1.ListOptions{})
+}
+
+func (c *client) getNamespaces() (*corev1.NamespaceList, error) {
+	return c.CoreV1().Namespaces().List(metav1.ListOptions{})
+}
+
+func (c *client) getDaemonSets() (*appsv1.DaemonSetList, error) {
+	return c.AppsV1().DaemonSets(c.namespace).List(metav1.ListOptions{})
+}
+
+func (c *client) getStatefulSets() (*appsv1.StatefulSetList, error) {
+	return c.AppsV1().StatefulSets(c.namespace).List(metav1.ListOptions{})
+}
+
 func (c *client) getIngress() (*v1beta1.IngressList, error) {
 	return c.ExtensionsV1beta1().Ingresses(c.namespace).List(metav1.ListOptions{})
+}
+func (c *client) getPersistentVolumes() (*corev1.PersistentVolumeList, error) {
+	return c.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
+}
+
+func (c *client) getPersistentVolumeClaims() (*corev1.PersistentVolumeClaimList, error) {
+	return c.CoreV1().PersistentVolumeClaims(c.namespace).List(metav1.ListOptions{})
 }
