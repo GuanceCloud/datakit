@@ -31,39 +31,6 @@ func TestCpuActiveTotalTime(t *testing.T) {
 	}
 }
 
-func TestCPUStatStructToMap(t *testing.T) {
-	mU := make(map[string]interface{})
-
-	sU := UsageStat{}
-
-	if ok := CPUStatStructToMap(mU, sU, "usage_"); !ok {
-		t.Errorf("Failed to convert cpu usage stat struct to map. There may be private variables in struct")
-	}
-
-	mUe := map[string]interface{}{
-		"usage_user":       0,
-		"usage_system":     0,
-		"usage_idle":       0,
-		"usage_nice":       0,
-		"usage_iowait":     0,
-		"usage_irq":        0,
-		"usage_softirq":    0,
-		"usage_steal":      0,
-		"usage_guest":      0,
-		"usage_guest_nice": 0,
-		"usage_total":      0,
-	}
-
-	for k := range mU {
-		if _, ok := mUe[k]; !ok {
-			t.Errorf("error: CPU usage stat unexpected field: %s", k)
-		}
-	}
-	if len(mU) != len(mUe) {
-		t.Errorf("error: CPU usage stat have %d fields, but expect %d", len(mU), len(mUe))
-	}
-}
-
 func TestCalculateUsage(t *testing.T) {
 	lastT := cpu.TimesStat{
 		CPU:       "cpu-total",
@@ -154,8 +121,7 @@ func TestCollect(t *testing.T) {
 	}
 
 	timeStats := [][]cpu.TimesStat{
-		[]cpu.TimesStat{lastT},
-		[]cpu.TimesStat{nowT},
+		{lastT}, {nowT},
 	}
 	i := &Input{ps: &CPUInfoTest{timeStat: timeStats}}
 	if err := i.Collect(); err != nil {
@@ -198,24 +164,6 @@ func TestCollect(t *testing.T) {
 	assertEqualFloat64(t, 100*(active-lastActive)/totalDelta, fields["usage_total"].(float64), "usage_total")
 }
 
-func TestHumpToUnderline(t *testing.T) {
-	if HumpToUnderline("SaRRdDD") != "sa_r_rd_dd" {
-		t.Errorf("error: SaRRdDD --> %s", HumpToUnderline("SaRRdDD"))
-	}
-	if HumpToUnderline("UserAgent") != "user_agent" {
-		t.Errorf("error: UserAgent --> %s", HumpToUnderline("UserAgent"))
-	}
-	if HumpToUnderline("userAgent") != "user_agent" {
-		t.Errorf("error: userAgent --> %s", HumpToUnderline("userAgent"))
-	}
-	if HumpToUnderline("aaa") != "aaa" {
-		t.Errorf("error: aaa --> %s", HumpToUnderline("aaa"))
-	}
-	if HumpToUnderline("AAA") != "aaa" {
-		t.Errorf("error: AAA --> %s", HumpToUnderline("AAA"))
-	}
-}
-
 func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {
 	if expected != actual {
 		t.Errorf("error: "+mName+" expected: %f \t actual %f", expected, actual)
@@ -227,5 +175,11 @@ func TestSampleMeasurement(t *testing.T) {
 
 	for _, m := range x.SampleMeasurement() {
 		_ = m.Info()
+	}
+}
+
+func TestCoreTempAvg(t *testing.T) {
+	if _, err := CoreTempAvg(); err != nil {
+		t.Error(err)
 	}
 }
