@@ -87,7 +87,7 @@ require (
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
 	golang.org/x/text v0.3.6
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
@@ -105,4 +105,4 @@ require (
 
 replace github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 
-replace github.com/kardianos/service => github.com/coanor/service v1.2.1
+replace github.com/kardianos/service => github.com/coanor/service v1.2.2

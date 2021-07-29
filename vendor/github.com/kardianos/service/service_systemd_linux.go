@@ -148,7 +148,7 @@ func (s *systemd) Install() error {
 	}
 
 	// create EnvironmentFile file /etc/sysconfig/{{.Name}}
-	if s.Config.Envs == nil {
+	if s.Config.Envs != nil {
 		if err := createSysconfig(s.Config.Name, s.Config.Envs); err != nil {
 			return err
 		}

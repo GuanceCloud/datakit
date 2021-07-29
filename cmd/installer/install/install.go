@@ -16,8 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (

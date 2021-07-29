@@ -23,12 +23,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service/cgroup"
 )
 
 var (
@@ -235,6 +235,10 @@ func tryLoadConfig() {
 }
 
 func doRun() error {
+
+	for _, x := range os.Environ() {
+		l.Infof("get env %s", x)
+	}
 
 	io.Start()
 

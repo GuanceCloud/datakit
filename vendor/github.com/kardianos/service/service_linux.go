@@ -154,10 +154,12 @@ func createSysconfig(name string, envs map[string]string) error {
 		buf = append(buf, fmt.Sprintf(`%s="%s"`, k, v))
 	}
 
-	if err := ioutil.WriteFile(filepath.Join("/etc/sysconfig", name),
-		[]byte(strings.Join(buf, "\n")),
-		os.ModePerm); err != nil {
-		return err
+	if len(buf) > 0 {
+		if err := ioutil.WriteFile(filepath.Join("/etc/sysconfig", name),
+			[]byte(strings.Join(buf, "\n")),
+			os.ModePerm); err != nil {
+			return err
+		}
 	}
 
 	return nil

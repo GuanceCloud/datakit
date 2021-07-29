@@ -17,7 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
 var (
@@ -59,7 +59,7 @@ var (
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
 
-	flagPreserveEnvRegex = flag.Bool("preserve-env-regex", "", "preserve existing environment variables")
+	flagPreserveEnvRegex = flag.String("preserve-env-regex", "", "preserve existing environment variables")
 )
 
 const (
@@ -78,7 +78,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if _, err := os.Stat(olddir); err != nil {
-		l.Debugf("path %s not exists, ingored", olddir)
+		l.Debugf("deprecated install path %s not exists, ingored", olddir)
 		return
 	}
 
@@ -89,6 +89,28 @@ func mvOldDatakit(svc service.Service) {
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
 		l.Fatalf("move %s -> %s failed: %s", olddir, datakit.InstallDir, err.Error())
 	}
+}
+
+func filterEnvs(regex string) (res map[string]string) {
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		l.Fatalf("invalid regex: %s", err.Error())
+	}
+
+	res = map[string]string{}
+
+	envs := os.Environ()
+	for _, env := range envs {
+		if re.MatchString(env) {
+			l.Debugf("get env %s", env)
+			arr := strings.SplitN(env, "=", 2)
+			if len(arr) != 2 {
+				continue
+			}
+			res[arr[0]] = arr[1]
+		}
+	}
+	return
 }
 
 func main() {
@@ -119,19 +141,7 @@ func main() {
 	l = logger.SLogger("installer")
 
 	if *flagPreserveEnvRegex != "" {
-		re, err := regexp.Compile(*flagPreserveEnvRegex)
-		if err != nil {
-			l.Fatalf("invalid regex: %s", err.Error())
-		}
-
-		envs := os.Environ()
-		for _, env := range envs {
-			if re.MatchString(env) {
-				l.Debugf("add env %s", env)
-				dkservice.ServiceEnvs = append(dkservice.ServiceEnvs, env)
-			}
-		}
-
+		dkservice.ServiceEnvs = filterEnvs(*flagPreserveEnvRegex)
 		l.Infof("added %d envs", len(dkservice.ServiceEnvs))
 	}
 

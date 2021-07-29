@@ -1,14 +1,24 @@
 package main
 
 import (
-	"os"
 	"testing"
 )
 
-func TestEnviron(t *testing.T) {
-	envs := os.Environ()
-	for i, x := range envs {
-		t.Logf("[%02d] %s", i, x)
+func TestFilterEnvs(t *testing.T) {
+	cases := []string{
+		"tmux.*",
+		"^[A-Z]+",
+		"^ENV_.*",
+	}
+
+	for _, c := range cases {
+		envs := filterEnvs(c)
+		t.Logf("get %d envs from `%s'", len(envs), c)
+		if len(envs) < 10 {
+			for k, v := range envs {
+				t.Logf("%s = %s", k, v)
+			}
+		}
 	}
 }
 
