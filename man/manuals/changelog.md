@@ -4,14 +4,16 @@
 
 ## 1.1.8-rc0(2021/08/03)
 
-- 完善 [Kubernetes]() 采集器，增加更多 Kubernetes 对象采集
-- 完善[主机名覆盖功能]()
+- 完善 [Kubernetes](...) 采集器，增加更多 Kubernetes 对象采集
+- 完善[主机名覆盖功能](...)
 - 优化 Pipeline 处理性能（约 15 倍左右，视不同 Pipeline 复杂度而定）
-- 加强[行协议数据检查]()
-- `system` 采集器，增加 [`conntrack`以及`filefd`]() 两个指标集（未完成）
-- `datakit.conf` 增加 [IO 调参入口]()，便于用户对 DataKit 网络出口流量做优化（未完成）
-- `datakit` 支持[服务卸载和恢复]()
-- Windows 平台的服务支持通过[命令行管理]()
+- 加强[行协议数据检查](...)
+- `system` 采集器，增加 [`conntrack`以及`filefd`](...) 两个指标集（未完成）
+- `datakit.conf` 增加 [IO 调参入口](...)，便于用户对 DataKit 网络出口流量做优化（未完成）
+- `datakit` 支持[服务卸载和恢复](...)
+- Windows 平台的服务支持通过[命令行管理](...)
+- DataKit [API](...) 支持 Label 导入
+- DataKit 支持动态获取最新 DataWay 地址，避免默认 DataWay 被 DDos 攻击
 - 其它一些 bug 修复，完善现有的各种文档
 
 ## 1.1.7-rc9.1(2021/07/17)
