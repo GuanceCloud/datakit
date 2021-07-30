@@ -43,6 +43,10 @@ func DefaultConfig() *Config {
 			"site":    "",
 		},
 
+		Environments: map[string]string{
+			"ENV_HOSTNAME": "", // not set
+		}, // default nothing
+
 		DataWay: &dataway.DataWayCfg{},
 
 		ProtectMode: true,
@@ -101,8 +105,9 @@ type Config struct {
 	LogLevel  string `toml:"log_level"`
 	LogRotate int    `toml:"log_rotate,omitempty"`
 
-	GinLog     string            `toml:"gin_log"`
-	GlobalTags map[string]string `toml:"global_tags"`
+	GinLog       string            `toml:"gin_log"`
+	GlobalTags   map[string]string `toml:"global_tags"`
+	Environments map[string]string `toml:"environments"`
 
 	OutputFile string `toml:"output_file"`
 
@@ -375,12 +380,21 @@ func (c *Config) ApplyMainConfig() error {
 
 func (c *Config) setHostname() error {
 
+	// try get hostname from configure
+	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
+		c.Hostname = v
+		l.Infof("set hostname to %s from config ENV_HOSTNAME", v)
+		return nil
+	}
+
+	// try get hostname from $env
 	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
 		c.Hostname = v
 		l.Infof("set hostname to %s from env ENV_HOSTNAME", v)
 		return nil
 	}
 
+	// get real hostname
 	hn, err := os.Hostname()
 	if err != nil {
 		l.Errorf("get hostname failed: %s", err.Error())
