@@ -201,6 +201,11 @@ func (i *Input) Run() {
 	disTick := time.NewTicker(i.Interval.Duration)
 	defer disTick.Stop()
 
+	objectTick := time.NewTicker(time.Minute * 5)
+	defer objectTick.Stop()
+
+	i.gatherObject()
+
 	for {
 		select {
 		case <-tick.C:
@@ -216,14 +221,8 @@ func (i *Input) Run() {
 			// clear cache
 			i.clear()
 
-			cluster{client: i.client}.Gather()
-			pod{client: i.client}.Gather()
-			deployment{client: i.client}.Gather()
-			replicaSet{client: i.client}.Gather()
-			service{client: i.client}.Gather()
-			node{client: i.client}.Gather()
-			job{client: i.client}.Gather()
-			cronJob{client: i.client}.Gather()
+		case <-objectTick.C:
+			i.gatherObject()
 
 		case <-disTick.C:
 			if i.pause {
@@ -243,6 +242,17 @@ func (i *Input) Run() {
 		case i.pause = <-i.chPause:
 		}
 	}
+}
+
+func (i *Input) gatherObject() {
+	cluster{client: i.client, tags: i.Tags}.Gather()
+	pod{client: i.client, tags: i.Tags}.Gather()
+	deployment{client: i.client, tags: i.Tags}.Gather()
+	replicaSet{client: i.client, tags: i.Tags}.Gather()
+	service{client: i.client, tags: i.Tags}.Gather()
+	node{client: i.client, tags: i.Tags}.Gather()
+	job{client: i.client, tags: i.Tags}.Gather()
+	cronJob{client: i.client, tags: i.Tags}.Gather()
 }
 
 func (i *Input) Pause() error {

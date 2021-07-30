@@ -17,6 +17,7 @@ type job struct {
 	client interface {
 		getJobs() (*batchv1.JobList, error)
 	}
+	tags map[string]string
 }
 
 func (j job) Gather() {
@@ -34,9 +35,11 @@ func (j job) Gather() {
 			"pod_name":     obj.ClusterName,
 			"namespace":    obj.Namespace,
 		}
+		for k, v := range j.tags {
+			tags[k] = v
+		}
 		fields := map[string]interface{}{
-			"age": int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
-
+			"age":       int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
 			"active":    obj.Status.Active,
 			"succeeded": obj.Status.Succeeded,
 			"failed":    obj.Status.Failed,
@@ -55,7 +58,6 @@ func (j job) Gather() {
 			fields["backoff_limit"] = *obj.Spec.BackoffLimit
 		}
 
-		addJSONStringToMap("kubernetes_labels", obj.Labels, fields)
 		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
@@ -70,35 +72,33 @@ func (j job) Gather() {
 	}
 }
 
-func (*job) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (*job) Resource() { /*empty interface*/ }
+
+func (*job) LineProto() (*io.Point, error) { return nil, nil }
 
 func (*job) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesJobName,
 		Desc: kubernetesJobName,
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo(""),
-			"job_name":     inputs.NewTagInfo(""),
-			"cluster_name": inputs.NewTagInfo(""),
-			// "status":       inputs.NewTagInfo(""),
-			"namespace": inputs.NewTagInfo(""),
+			"name":         inputs.NewTagInfo("job UID"),
+			"job_name":     inputs.NewTagInfo("job 名称"),
+			"cluster_name": inputs.NewTagInfo("所在 cluster"),
+			"namespace":    inputs.NewTagInfo("所在命名空间"),
 		},
 		Fields: map[string]interface{}{
-			"age":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			"active":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"succeeded": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"failed":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
+			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"active":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
+			"succeeded":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
+			"failed":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
+			"completions":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"parallelism":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"backoff_limit":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"active_deadline":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
+			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 			// "pod_statuses":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"completions":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"parallelism":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"backoff_limit":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"active_deadline": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			//"duration":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_labels":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }

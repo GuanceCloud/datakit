@@ -17,6 +17,7 @@ type node struct {
 	client interface {
 		getNodes() (*corev1.NodeList, error)
 	}
+	tags map[string]string
 }
 
 func (n node) Gather() {
@@ -34,12 +35,14 @@ func (n node) Gather() {
 			"namespace":    obj.Namespace,
 			"status":       fmt.Sprintf("%v", obj.Status.Phase),
 		}
+		for k, v := range n.tags {
+			tags[k] = v
+		}
 		fields := map[string]interface{}{
 			"age":             int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
 			"kubelet_version": obj.Status.NodeInfo.KubeletVersion,
 		}
 
-		addJSONStringToMap("kubernetes_labels", obj.Labels, fields)
 		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
@@ -54,33 +57,32 @@ func (n node) Gather() {
 	}
 }
 
-func (*node) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (*node) Resource() { /*empty interface*/ }
+
+func (*node) LineProto() (*io.Point, error) { return nil, nil }
 
 func (*node) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesNodeName,
 		Desc: kubernetesNodeName,
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo(""),
-			"node_name":    inputs.NewTagInfo(""),
-			"cluster_name": inputs.NewTagInfo(""),
-			"status":       inputs.NewTagInfo(""),
-			"namespace":    inputs.NewTagInfo(""),
+			"name":         inputs.NewTagInfo("node UID"),
+			"node_name":    inputs.NewTagInfo("node 名称"),
+			"cluster_name": inputs.NewTagInfo("所在 cluster"),
+			"namespace":    inputs.NewTagInfo("所在命名空间"),
+			"status":       inputs.NewTagInfo("当期状态，Pending/Running/Terminated"),
 		},
 		Fields: map[string]interface{}{
-			"age": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"kubelet_version":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubelet 版本"},
+			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
+			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 			// "schedulability":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "role":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubelet_version": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "taints":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "pods":                   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "pod_capacity":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "pod_usage":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_labels":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }
