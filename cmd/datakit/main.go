@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -72,18 +71,19 @@ var (
 	flagRestart   = flag.Bool("restart", false, "restart datakit")
 	flagReload    = flag.Bool("reload", false, "reload datakit")
 	flagStatus    = flag.Bool("status", false, "show datakit service status")
-	flagUninstall = flag.Bool("uninstall", false, "uninstall datakit service")
+	flagUninstall = flag.Bool("uninstall", false, "uninstall datakit service(not delete DataKit files)")
+	flagReinstall = flag.Bool("reinstall", false, "re-install datakit service")
 
 	flagDatakitHost = flag.StringP("datakit-host", "H", "localhost:9529", "datakit HTTP host")
 
 	// DQL
-	flagDQL    = flag.Bool("dql", false, "query DQL")
+	flagDQL    = flag.BoolP("dql", "Q", false, "query DQL interactively")
 	flagRunDQL = flag.String("run-dql", "", "run single DQL")
 
 	// partially update
 	flagUpdateIPDb = flag.Bool("update-ip-db", false, "update ip db")
 	flagAddr       = flag.StringP("addr", "A", "", "url path")
-	flagInterval   = flag.StringP("interval", "D", "", "auxiliary option, time interval")
+	flagInterval   = flag.StringP("interval", "I", "", "auxiliary option, time interval")
 
 	// utils
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
@@ -120,6 +120,10 @@ func setupFlags() {
 	flag.CommandLine.MarkHidden("k8s-deploy")
 	flag.CommandLine.MarkHidden("interactive")
 	flag.CommandLine.MarkHidden("dump-samples")
+
+	if runtime.GOOS == "windows" {
+		flag.CommandLine.MarkHidden("reload")
+	}
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -273,16 +277,6 @@ func doRun() error {
 	return nil
 }
 
-func isRoot() bool {
-	u, err := user.Current()
-	if err != nil {
-		l.Errorf("get current user failed: %s", err.Error())
-		return false
-	}
-
-	return u.Username == "root"
-}
-
 func runDatakitWithCmds() {
 
 	if *flagCheckUpdate { // 更新日志单独存放，不跟 cmd.log 一块
@@ -343,8 +337,8 @@ func runDatakitWithCmds() {
 	if *flagMonitor {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if runtime.GOOS == "windows" {
-			fmt.Println("unavailable under Windows")
-			os.Exit(0)
+			fmt.Println("unsupport under Windows")
+			os.Exit(-1)
 		}
 
 		cmds.CMDMonitor(*flagInterval, *flagDatakitHost, *flagVVV)
@@ -441,11 +435,6 @@ func runDatakitWithCmds() {
 	if *flagInstallExternal != "" {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
-
 		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
 			l.Error(err)
 		}
@@ -453,11 +442,8 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagStart {
+
 		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
 
 		if err := cmds.StartDatakit(); err != nil {
 			fmt.Printf("Start DataKit failed: %s\n", err)
@@ -471,10 +457,6 @@ func runDatakitWithCmds() {
 	if *flagStop {
 
 		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
 
 		if err := cmds.StopDatakit(); err != nil {
 			fmt.Printf("Stop DataKit failed: %s\n", err)
@@ -486,12 +468,8 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagRestart {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
 
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if err := cmds.RestartDatakit(); err != nil {
 			fmt.Printf("Restart DataKit failed: %s\n", err)
@@ -503,12 +481,12 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagReload {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		if !isRoot() {
-			l.Error("Permission Denied")
+		if runtime.GOOS == "windows" {
+			fmt.Println("unsupport under Windows")
 			os.Exit(-1)
 		}
+
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if err := cmds.ReloadDatakit(*flagDatakitHost); err != nil {
 			fmt.Printf("Reload DataKit Failed\n")
@@ -520,6 +498,7 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagStatus {
+
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 		x, err := cmds.DatakitStatus()
 		if err != nil {
@@ -539,12 +518,17 @@ func runDatakitWithCmds() {
 		os.Exit(0)
 	}
 
-	if *flagUpdateIPDb {
+	if *flagReinstall {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if !isRoot() {
-			l.Error("Permission Denied")
+		if err := cmds.ReinstallDatakit(); err != nil {
+			fmt.Println("Reinstall DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}
+		os.Exit(0)
+	}
+
+	if *flagUpdateIPDb {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if runtime.GOOS == datakit.OSWindows {
 			fmt.Println("[E] not supported")
