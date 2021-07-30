@@ -60,7 +60,47 @@ sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 - Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell
 	- 按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择 以管理员身份运行 即可
 
+## 如何应付不友好的主机名
+
+由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用 DataFlux 带来一定的困扰。在 DataKit 中，提供了两方式来覆盖这个不友好的主机名。
+
+### 主配置中设置主机名
+
+在 `datakit.conf` 中，修改如下配置，DataKit 将读取 `ENV_HOSTNAME` 来覆盖当前的真实主机名：
+
+```toml
+[environments]
+	ENV_HOSTNAME = "your-fake-hostname-for-datakit"
+```
+
+### 安装阶段设置主机名
+
+- 在 DataKit 安装前，设置一个环境变量 `ENV_HOSTNAME=xxxxx`：
+
+> 注：Windows 上，`ENV_HOSTNAME` 这个环境变量可随时设置，即使在安装之后，也可以追加这个环境变量设置，重启 DataKit 即可生效。
+
+```
+# Linux/Mac shell
+export ENV_HOSTNAME="your-fake-hostname-for-datakit"
+
+# Windows Powershell
+[Environment]::SetEnvironmentVariable("ENV_HOSTNAME", "your-fake-hostname-for-datakit", 'Machine')
+```
+
+- 在安装命令中，添加 `-preserve-env-regex` 参数：
+
+```shell
+# Linux/Mac
+sudo -E -- sh -c "curl https://static.dataflux.cn/datakit/installer-linux-amd64 -o dk-installer \
+	&& chmod +x ./dk-installer \
+	&& ./dk-installer -preserve-env-regex '^ENV_HOSTNAME$' -dataway 'https://openway.dataflux.cn?token=TOKEN' \
+	&& rm -rf ./dk-installer'
+
+# Windows 平台安装命令无需更改
+```
+
+这里 `-preserve-env-regex` 是一个正则表达式，实际上可以注入更多环境变量，但目前我们只需要 `ENV_HOSTNAME`。
 
 其它相关链接：
 
-- 关于 DataKit 的基本 使用，参考 [DataKit 使用入门](datakit-how-to)
+- 关于 DataKit 的基本使用，参考 [DataKit 使用入门](datakit-how-to)

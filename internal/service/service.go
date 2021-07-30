@@ -13,6 +13,7 @@ var (
 	ServiceDescription = `Collects data and upload it to DataFlux.`
 	ServiceExecutable  string
 	ServiceArguments   []string
+	ServiceEnvs        map[string]string
 
 	Entry func()
 
@@ -33,6 +34,10 @@ func NewService() (service.Service, error) {
 		Description: ServiceDescription,
 		Executable:  ServiceExecutable,
 		Arguments:   ServiceArguments,
+	}
+
+	if len(ServiceEnvs) > 0 {
+		scfg.Envs = ServiceEnvs
 	}
 
 	if runtime.GOOS == "darwin" {

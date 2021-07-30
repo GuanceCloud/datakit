@@ -26,15 +26,6 @@ var (
 	}
 )
 
-func ParseLineProto(data []byte, precision string) error {
-	if data == nil || len(data) == 0 {
-		return fmt.Errorf("empty data")
-	}
-
-	_, err := models.ParsePointsWithPrecision(data, time.Now().UTC(), precision)
-	return err
-}
-
 func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("empty data")
@@ -66,6 +57,10 @@ func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 				return nil, err
 			}
 			point = newPoint
+		}
+
+		if err := checkPoint(point); err != nil {
+			return nil, err
 		}
 
 		if point != nil {
@@ -140,11 +135,57 @@ func MakeLineProtoPoint(name string,
 		}
 	}
 
+	if err := checkTagFieldSameKey(tags, fields); err != nil {
+		return nil, err
+	}
+
 	if opt.Time.IsZero() {
 		return influxdb.NewPoint(name, tags, fields, time.Now().UTC())
 	} else {
 		return influxdb.NewPoint(name, tags, fields, opt.Time)
 	}
+}
+
+func checkPoint(p models.Point) error {
+	// check if same key in tags and fields
+	fs, err := p.Fields()
+	if err != nil {
+		return err
+	}
+
+	for k, _ := range fs {
+		if p.HasTag([]byte(k)) {
+			return fmt.Errorf("same key `%s' in tag and field", k)
+		}
+	}
+
+	// check if dup keys in fields
+	fi := p.FieldIterator()
+	fcnt := 0
+	for fi.Next() {
+		fcnt++
+	}
+
+	if fcnt != len(fs) {
+		return fmt.Errorf("unmached field count, expect %d, got %d", fcnt, len(fs))
+	}
+
+	// add more point checking here...
+	return nil
+}
+
+func checkTagFieldSameKey(tags map[string]string, fields map[string]interface{}) error {
+	if tags == nil || fields == nil {
+		return nil
+	}
+
+	for k, _ := range tags {
+		if _, ok := fields[k]; ok {
+			return fmt.Errorf("same key `%s' in tag and field", k)
+		}
+	}
+
+	return nil
 }
 
 func trimSuffixAll(s, sfx string) string {

@@ -233,3 +233,10 @@ Content-Type: application/json
     ]
 }
 ```
+
+## DataKit 行协议约束
+
+为规范 DataFlux 中的数据，现对经过 DataKit 的行协议数据，做如下约束：
+
+- tags 和 fields 中的 key 不允许重名
+- tags 内部或 fields 内部不允许出现同名 key
