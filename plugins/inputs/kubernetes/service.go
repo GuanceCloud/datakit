@@ -17,6 +17,7 @@ type service struct {
 	client interface {
 		getServices() (*corev1.ServiceList, error)
 	}
+	tags map[string]string
 }
 
 func (s service) Gather() {
@@ -34,6 +35,10 @@ func (s service) Gather() {
 			"namespace":    obj.Namespace,
 			"type":         fmt.Sprintf("%v", obj.Spec.Type),
 		}
+		for k, v := range s.tags {
+			tags[k] = v
+		}
+
 		fields := map[string]interface{}{
 			"age":                     int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
 			"cluster_ip":              obj.Spec.ClusterIP,
@@ -42,11 +47,10 @@ func (s service) Gather() {
 			"session_affinity":        fmt.Sprintf("%v", obj.Spec.SessionAffinity),
 		}
 
+		// addJSONStringToMap("selectors", obj.Spec.Selector, fields)
+		// addJSONStringToMap("load_balancer_ingress", obj.Status.LoadBalancer, fields)
 		addJSONStringToMap("external_ips", obj.Spec.ExternalIPs, fields)
-		addJSONStringToMap("selectors", obj.Spec.Selector, fields)
-		addJSONStringToMap("load_balancer_ingress", obj.Status.LoadBalancer, fields)
 
-		addJSONStringToMap("kubernetes_labels", obj.Labels, fields)
 		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
@@ -61,35 +65,34 @@ func (s service) Gather() {
 	}
 }
 
-func (*service) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (*service) Resource() { /*empty interface*/ }
+
+func (*service) LineProto() (*io.Point, error) { return nil, nil }
 
 func (*service) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesServiceName,
 		Desc: kubernetesServiceName,
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo(""),
-			"service_name": inputs.NewTagInfo(""),
-			"cluster_name": inputs.NewTagInfo(""),
-			"namespace":    inputs.NewTagInfo(""),
-			"type":         inputs.NewTagInfo(""),
+			"name":         inputs.NewTagInfo("service UID"),
+			"service_name": inputs.NewTagInfo("service 名称"),
+			"cluster_name": inputs.NewTagInfo("所在 cluster"),
+			"namespace":    inputs.NewTagInfo("所在命名空间"),
+			"type":         inputs.NewTagInfo("服务类型，ClusterIP/NodePort/LoadBalancer/ExternalName"),
 		},
 		Fields: map[string]interface{}{
-			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
 			"cluster_ip":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			"external_ips":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"ports":                   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			"external_name":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			"external_traffic_policy": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			//"ip_family":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"load_balancer_ingress":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"session_affinity":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"selectors":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_labels":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"session_affinity":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"kubernetes_annotations":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
+			"message":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			// "load_balancer_ingress":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			// "selectors":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			// "ip_family":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			// "ports":                   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }

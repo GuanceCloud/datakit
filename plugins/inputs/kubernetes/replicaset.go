@@ -17,6 +17,7 @@ type replicaSet struct {
 	client interface {
 		getReplicaSets() (*appsv1.ReplicaSetList, error)
 	}
+	tags map[string]string
 }
 
 func (r replicaSet) Gather() {
@@ -33,13 +34,15 @@ func (r replicaSet) Gather() {
 			"cluster_name":     obj.ClusterName,
 			"namespace":        obj.Namespace,
 		}
+		for k, v := range r.tags {
+			tags[k] = v
+		}
 		fields := map[string]interface{}{
 			"age":   int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
 			"ready": obj.Status.ReadyReplicas,
 		}
 
-		addJSONStringToMap("selectors", obj.Spec.Selector, fields)
-		addJSONStringToMap("kubernetes_labels", obj.Labels, fields)
+		// addJSONStringToMap("selectors", obj.Spec.Selector, fields)
 		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
@@ -54,28 +57,27 @@ func (r replicaSet) Gather() {
 	}
 }
 
-func (*replicaSet) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (*replicaSet) resource() { /*empty interface*/ }
+
+func (*replicaSet) LineProto() (*io.Point, error) { return nil, nil }
 
 func (*replicaSet) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesReplicaSetName,
 		Desc: kubernetesReplicaSetName,
 		Tags: map[string]interface{}{
-			"name":             inputs.NewTagInfo(""),
-			"replica_set_name": inputs.NewTagInfo(""),
-			"cluster_name":     inputs.NewTagInfo(""),
-			"namespace":        inputs.NewTagInfo(""),
+			"name":             inputs.NewTagInfo("replicaSet UID"),
+			"replica_set_name": inputs.NewTagInfo("replicaSet 名称"),
+			"cluster_name":     inputs.NewTagInfo("所在 cluster"),
+			"namespace":        inputs.NewTagInfo("所在命名空间"),
 		},
 		Fields: map[string]interface{}{
-			"age":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			"ready":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"selectors": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"ready":                  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ready replicas"},
+			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
+			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			// "selectors": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "current/desired":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_labels":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }

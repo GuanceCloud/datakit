@@ -17,6 +17,7 @@ type deployment struct {
 	client interface {
 		getDeployments() (*appsv1.DeploymentList, error)
 	}
+	tags map[string]string
 }
 
 func (d deployment) Gather() {
@@ -33,6 +34,10 @@ func (d deployment) Gather() {
 			"cluster_name":    obj.ClusterName,
 			"namespace":       obj.Namespace,
 		}
+		for k, v := range d.tags {
+			tags[k] = v
+		}
+
 		fields := map[string]interface{}{
 			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
 			"up_dated":    obj.Status.UpdatedReplicas,
@@ -49,7 +54,6 @@ func (d deployment) Gather() {
 			fields["max_unavailable"] = obj.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()
 		}
 
-		addJSONStringToMap("kubernetes_labels", obj.Labels, fields)
 		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
@@ -64,36 +68,35 @@ func (d deployment) Gather() {
 	}
 }
 
-func (*deployment) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (*deployment) Resource() { /*empty interface*/ }
+
+func (*deployment) LineProto() (*io.Point, error) { return nil, nil }
 
 func (*deployment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesDeploymentName,
 		Desc: kubernetesDeploymentName,
 		Tags: map[string]interface{}{
-			"name":            inputs.NewTagInfo(""),
-			"deployment_name": inputs.NewTagInfo(""),
-			"cluster_name":    inputs.NewTagInfo(""),
-			"namespace":       inputs.NewTagInfo(""),
+			"name":            inputs.NewTagInfo("deployment UID"),
+			"deployment_name": inputs.NewTagInfo("deployment 名称"),
+			"cluster_name":    inputs.NewTagInfo("所在 cluster"),
+			"namespace":       inputs.NewTagInfo("所在命名空间"),
 		},
 		Fields: map[string]interface{}{
-			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			"max_surge":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"max_unavailable": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"up_dated":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "updated replicas"},
-			"ready":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			"available":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			"unavailable":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			//"condition":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"strategy":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"selectors": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"ready":                  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "就绪"},
+			"max_surge":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
+			"max_unavailable":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
+			"up_dated":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "updated replicas"},
+			"available":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"unavailable":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
+			"strategy":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
+			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			// "selectors":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			// "condition":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "paused":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "current/desired":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_labels":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }

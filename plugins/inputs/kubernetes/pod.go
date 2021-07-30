@@ -17,6 +17,7 @@ type pod struct {
 	client interface {
 		getPods() (*corev1.PodList, error)
 	}
+	tags map[string]string
 }
 
 func (p pod) Gather() {
@@ -40,16 +41,25 @@ func (p pod) Gather() {
 			"pod_name":     obj.Name,
 			"cluster_name": obj.ClusterName,
 			"node_name":    obj.Spec.NodeName,
-			"status":       fmt.Sprintf("%v", obj.Status.Phase),
 			"phase":        fmt.Sprintf("%v", obj.Status.Phase),
 			"qos_class":    fmt.Sprintf("%v", obj.Status.QOSClass),
 			"namespace":    obj.Namespace,
+		}
+		for k, v := range p.tags {
+			tags[k] = v
+		}
+
+		for _, containerStatus := range obj.Status.ContainerStatuses {
+			if containerStatus.State.Waiting != nil {
+				tags["status"] = containerStatus.State.Waiting.Reason
+				break
+			}
 		}
 
 		fields := map[string]interface{}{
 			"ready":       fmt.Sprintf("%d/%d", containerReadyCount, containerAllCount),
 			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
-			"create_time": obj.CreationTimestamp.Time,
+			"create_time": obj.CreationTimestamp.Time.Unix(),
 		}
 
 		restartCount := 0
@@ -64,7 +74,6 @@ func (p pod) Gather() {
 		}
 		fields["restarts"] = restartCount
 
-		addJSONStringToMap("kubernetes_labels", obj.Labels, fields)
 		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
@@ -79,31 +88,31 @@ func (p pod) Gather() {
 	}
 }
 
-func (*pod) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (*pod) Resource() { /*empty interface*/ }
+
+func (*pod) LineProto() (*io.Point, error) { return nil, nil }
 
 func (*pod) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesPodName,
 		Desc: kubernetesPodName,
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo(""),
-			"pod_name":     inputs.NewTagInfo(""),
-			"cluster_name": inputs.NewTagInfo(""),
-			"node_name":    inputs.NewTagInfo(""),
-			"status":       inputs.NewTagInfo(""),
-			"phase":        inputs.NewTagInfo(""),
-			"namespace":    inputs.NewTagInfo(""),
-			"qos_class":    inputs.NewTagInfo(""),
+			"name":         inputs.NewTagInfo("pod UID"),
+			"pod_name":     inputs.NewTagInfo("pod 名称"),
+			"node_name":    inputs.NewTagInfo("所在 node"),
+			"cluster_name": inputs.NewTagInfo("所在 cluster"),
+			"namespace":    inputs.NewTagInfo("所在命名空间"),
+			"phase":        inputs.NewTagInfo("所处阶段，Pending/Running/Succeeded/Failed/Unknown"),
+			"status":       inputs.NewTagInfo("当前状态"),
+			"qos_class":    inputs.NewTagInfo("QOS Class"),
 		},
 		Fields: map[string]interface{}{
-			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			"restarts":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"ready":                  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_labels":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"create_time":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "创建时间戳，精度为秒"},
+			"restarts":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "所有容器的重启次数"},
+			"ready":                  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "就绪"},
+			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
+			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 		},
 	}
 }
