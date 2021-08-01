@@ -95,14 +95,19 @@ sudo datakit --restart
 
 #### HTTP 绑定端口
 
-出于安全考虑，DataKit 的 HTTP 服务默认绑定在 localhost:9529 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `http_listen` 字段，将其改成 `0.0.0.0:9529` 或其它网卡、端口。这样就能从其它主机上请求 DataKit 接口了。
+出于安全考虑，DataKit 的 HTTP 服务默认绑定在 `localhost:9529` 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `listen` 字段，这样就能从其它主机上请求 DataKit 接口了：
 
-当你需要做如下操作时，一般都需要修改 `http_listen` 配置：
+```toml
+[http_api]
+	listen = "0.0.0.0:9529" # 将其改成 `0.0.0.0:9529` 或其它网卡、端口
+```
+
+当你需要做如下操作时，一般都需要修改 `listen` 配置：
 
 - [远程查看 DataKit 运行情况](http://localhost:9529/monitor)
 - [远程查看 DataKit 文档](http://localhost:9529/man)
 - [RUM 采集](rum)
-- 其它诸如 [APM](ddtrace)/[安全巡检](sec-checker) 等，看具体的部署情况，可能也需要修改 `http_listen` 配置
+- 其它诸如 [APM](ddtrace)/[安全巡检](sec-checker) 等，看具体的部署情况，可能也需要修改 `listen` 配置
 
 #### 全局标签（tag）的开启
 

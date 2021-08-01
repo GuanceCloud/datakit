@@ -222,11 +222,13 @@ func IPInfo(ip string) (map[string]string, error) {
 }
 
 func SetCmdRootLog(rl string) {
-	if err := logger.SetGlobalRootLogger(rl, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
+
+	if err := logger.InitRoot(&logger.Option{Path: rl, Flags: logger.OPT_DEFAULT, Level: logger.DEBUG}); err != nil {
 		l.Error(err)
 		return
 	}
 
+	// setup config module logger, redirect to @rl
 	config.SetLog()
 
 	l = logger.SLogger("cmds")

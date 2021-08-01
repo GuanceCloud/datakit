@@ -98,7 +98,7 @@ func InstallNewDatakit(svc service.Service) {
 	}
 
 	mc.Namespace = Namespace
-	mc.HTTPListen = fmt.Sprintf("%s:%d", Listen, Port)
+	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", Listen, Port)
 	mc.InstallDate = time.Now()
 
 	if DatakitName != "" {
@@ -186,14 +186,44 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 	// XXX: 无脑更改日志位置
 	switch runtime.GOOS {
 	case datakit.OSWindows:
-		c.Log = filepath.Join(datakit.InstallDir, "log")
-		c.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
+		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
+		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	default:
-		c.Log = "/var/log/datakit/log"
-		c.GinLog = "/var/log/datakit/gin.log"
+		c.Logging.Log = "/var/log/datakit/log"
+		c.Logging.GinLog = "/var/log/datakit/gin.log"
 	}
-	l.Debugf("set log to %s, remove ", c.Log)
-	l.Debugf("set gin log to %s", c.GinLog)
+	l.Debugf("set log to %s, remove ", c.Logging.Log)
+	l.Debugf("set gin log to %s", c.Logging.GinLog)
+
+	if c.LogDeprecated != "" {
+		c.Logging.Log = c.LogDeprecated
+		c.LogDeprecated = ""
+	}
+
+	if c.LogLevelDeprecated != "" {
+		c.Logging.Level = c.LogLevelDeprecated
+		c.LogLevelDeprecated = ""
+	}
+
+	if c.LogRotateDeprecated != 0 {
+		c.Logging.Rotate = c.LogRotateDeprecated
+		c.LogRotateDeprecated = 0
+	}
+
+	if c.GinLogDeprecated != "" {
+		c.Logging.GinLog = c.GinLogDeprecated
+		c.GinLogDeprecated = ""
+	}
+
+	if c.HTTPListenDeprecated != "" {
+		c.HTTPAPI.Listen = c.HTTPListenDeprecated
+		c.HTTPListenDeprecated = ""
+	}
+
+	if c.Disable404PageDeprecated {
+		c.HTTPAPI.Disable404Page = true
+		c.Disable404PageDeprecated = false
+	}
 
 	return c, nil
 }

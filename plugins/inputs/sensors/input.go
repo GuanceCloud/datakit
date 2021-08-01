@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
@@ -40,6 +41,9 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (s *Input) Run() {
+
+	l = logger.SLogger(inputName)
+
 	l.Info("sensors input started")
 
 	var err error

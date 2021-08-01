@@ -44,21 +44,25 @@ const (
 	PANIC  = "panic"
 	DPANIC = "dpanic"
 	FATAL  = "fatal"
+
+	STDOUT = "stdout" // log output to stdout
 )
 
 var (
-	defaultRootLogger *zap.Logger
-	stdoutRootLogger  *zap.Logger
+	root                    *zap.Logger
+	stdoutRootLogger        *zap.Logger
+	defaultStdoutRootLogger *zap.Logger // used for logging where root logger not setted
 
 	ll                  *zap.SugaredLogger // logger's logging
 	reservedSLoggerName string             = "__reserved__"
-	slogs               *sync.Map
+
+	slogs = &sync.Map{}
 
 	mtx = &sync.Mutex{}
 
-	MaxSize    = 32 // megabytes
+	MaxSize    = 32 // MB
 	MaxBackups = 5
-	MaxAge     = 28 // day
+	MaxAge     = 30 // day
 
 	EnvRootLoggerPath = "ROOT_LOGGER_PATH"
 
@@ -85,8 +89,9 @@ func Reset() {
 	mtx.Lock()
 	defer mtx.Unlock()
 
-	defaultRootLogger = nil
+	root = nil
 	stdoutRootLogger = nil
+	defaultStdoutRootLogger = nil
 }
 
 func InitRoot(opt *Option) error {
@@ -112,15 +117,19 @@ func InitRoot(opt *Option) error {
 		return SetEnvRootLogger(opt.Env, opt.Level, opt.Flags)
 	}
 
-	if opt.Path == "" {
-		SetStdoutRootLogger(opt.Level, opt.Flags)
+	switch opt.Path {
+	case "":
+		if opt.Flags^OPT_STDOUT != 0 {
+			setStdoutRootLogger(opt.Level, opt.Flags)
+		} else {
+			setDefaultStdoutRootLogger(opt.Level, opt.Flags)
+		}
+
 		return nil
-	} else {
-		SetGlobalRootLogger(opt.Path, opt.Level, opt.Flags)
+	default:
+		doSetGlobalRootLogger(opt.Path, opt.Level, opt.Flags)
 		return nil
 	}
-
-	return nil
 }
 
 func SetEnvRootLogger(env, level string, options int) error {
@@ -129,57 +138,81 @@ func SetEnvRootLogger(env, level string, options int) error {
 		return fmt.Errorf("ENV `%s' not set", env)
 	}
 
-	return SetGlobalRootLogger(fpath, level, options)
+	return doSetGlobalRootLogger(fpath, level, options)
 }
 
-func SetStdoutRootLogger(level string, options int) {
+func setStdoutRootLogger(level string, options int) {
 	mtx.Lock()
 	defer mtx.Unlock()
-
-	opt := options | OPT_STDOUT
-	if stdoutRootLogger != nil {
-		return
-	}
 
 	var err error
-	stdoutRootLogger, err = newRootLogger("", level, opt)
-	if err != nil {
-		panic(err)
+
+	if stdoutRootLogger == nil {
+		stdoutRootLogger, err = stdoutLogger(level, options)
+		if err != nil {
+			panic(fmt.Sprintf("should not been here: %s", err))
+		}
 	}
+
+	root = stdoutRootLogger
 }
 
-func SetGlobalRootLogger(fpath, level string, options int) error {
+func setDefaultStdoutRootLogger(level string, options int) {
+
 	mtx.Lock()
 	defer mtx.Unlock()
 
-	logdir := filepath.Dir(fpath)
-	if err := os.MkdirAll(logdir, 0600); err != nil {
-		return err
+	var err error
+
+	if defaultStdoutRootLogger == nil {
+		defaultStdoutRootLogger, err = stdoutLogger(level, options)
+		if err != nil {
+			panic(fmt.Sprintf("should not been here: %s", err))
+		}
 	}
 
-	// create log file
-	if err := ioutil.WriteFile(fpath, nil, 0600); err != nil {
-		return err
-	}
+}
 
-	if defaultRootLogger != nil {
+func stdoutLogger(level string, options int) (*zap.Logger, error) {
+
+	opt := options | OPT_STDOUT
+
+	if rootlogger, err := newRootLogger("", level, opt); err != nil {
+		return nil, err
+	} else {
+		return rootlogger, err
+	}
+}
+
+func doSetGlobalRootLogger(fpath, level string, options int) error {
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	if root != nil {
 		if ll != nil {
-			ll.Warnf("global root logger has been initialized %+#v", defaultRootLogger)
+			ll.Warnf("global root logger has been initialized %+#v", root)
 		}
 
 		return nil
 	}
 
+	if err := os.MkdirAll(filepath.Dir(fpath), 0600); err != nil {
+		return err
+	}
+
+	// create empty log file
+	if err := ioutil.WriteFile(fpath, nil, 0600); err != nil {
+		return err
+	}
+
 	var err error
-	defaultRootLogger, err = newRootLogger(fpath, level, options)
+	root, err = newRootLogger(fpath, level, options)
 	if err != nil {
 		return err
 	}
 
-	slogs = &sync.Map{}
-
 	if options&OPT_RESERVED_LOGGER != 0 {
-		ll = getSugarLogger(defaultRootLogger, reservedSLoggerName)
+		ll = getSugarLogger(root, reservedSLoggerName)
 		slogs.Store(reservedSLoggerName, ll)
 
 		ll.Info("root logger init ok")
@@ -187,8 +220,13 @@ func SetGlobalRootLogger(fpath, level string, options int) error {
 	return nil
 }
 
+// Deprecated: use InitRoot() instead
+func SetGlobalRootLogger(fpath, level string, options int) error {
+	return doSetGlobalRootLogger(fpath, level, options)
+}
+
 func SLogger(name string) *Logger {
-	if defaultRootLogger == nil && stdoutRootLogger == nil {
+	if root == nil && defaultStdoutRootLogger == nil {
 		panic("root logger not set")
 	}
 
@@ -200,28 +238,30 @@ func DefaultSLogger(name string) *Logger {
 }
 
 func slogger(name string) *zap.SugaredLogger {
-	root := defaultRootLogger // prefer defaultRootLogger
-	if root == nil {
-		root = stdoutRootLogger
+
+	l := root // prefer root logger
+
+	if l == nil {
+		l = defaultStdoutRootLogger
 	}
 
-	if root == nil {
+	if l == nil {
+		l = stdoutRootLogger
+	}
+
+	if l == nil {
 		// try set root-logger via env
 		if err := SetEnvRootLogger(EnvRootLoggerPath, DEBUG, OPT_DEFAULT); err == nil {
-			root = defaultRootLogger
+			l = root
 		} else {
-			if runtime.GOOS != "windows" {
-				SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT|OPT_COLOR)
-			} else {
-				SetStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
-			}
-			root = stdoutRootLogger
+			setDefaultStdoutRootLogger(DEBUG, OPT_DEFAULT|OPT_STDOUT)
+			l = defaultStdoutRootLogger
 		}
 	}
 
-	newlog := getSugarLogger(root, name)
+	newlog := getSugarLogger(l, name)
 
-	if defaultRootLogger != nil {
+	if root != nil {
 		l, ok := slogs.LoadOrStore(name, newlog)
 		if ll != nil {
 			if ok {
@@ -237,12 +277,12 @@ func slogger(name string) *zap.SugaredLogger {
 	return newlog
 }
 
-func getLogger(root *zap.Logger, name string) *zap.Logger {
-	return root.Named(name)
+func getLogger(l *zap.Logger, name string) *zap.Logger {
+	return l.Named(name)
 }
 
-func getSugarLogger(root *zap.Logger, name string) *zap.SugaredLogger {
-	return root.Sugar().Named(name)
+func getSugarLogger(l *zap.Logger, name string) *zap.SugaredLogger {
+	return l.Sugar().Named(name)
 }
 
 func newWinFileSink(u *url.URL) (zap.Sink, error) {
@@ -255,6 +295,7 @@ func newRotateRootLogger(fpath, level string, options int) (*zap.Logger, error) 
 		fpath = filepath.Join(os.TempDir(), `logger.log`)
 	}
 
+	// use lumberjack.Logger for rotate
 	w := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   fpath,
 		MaxSize:    MaxSize,
@@ -262,40 +303,48 @@ func newRotateRootLogger(fpath, level string, options int) (*zap.Logger, error) 
 		MaxAge:     MaxAge,
 	})
 
-	encodeCfg := zapcore.EncoderConfig{
-		NameKey:    "MOD",
-		MessageKey: "MSG",
-
-		LevelKey:    "LEV",
-		EncodeLevel: zapcore.CapitalLevelEncoder,
-
-		TimeKey:    "TS",
-		EncodeTime: zapcore.ISO8601TimeEncoder,
-
+	cfg := zapcore.EncoderConfig{
+		NameKey:      "MOD",
+		MessageKey:   "MSG",
+		LevelKey:     "LEV",
+		EncodeLevel:  zapcore.CapitalLevelEncoder,
+		TimeKey:      "TS",
+		EncodeTime:   zapcore.ISO8601TimeEncoder,
 		CallerKey:    "POS",
 		EncodeCaller: zapcore.FullCallerEncoder,
 	}
 
 	if options&OPT_COLOR != 0 {
-		encodeCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		cfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	}
 
 	if options&OPT_SHORT_CALLER != 0 {
-		encodeCfg.EncodeCaller = zapcore.ShortCallerEncoder
+		cfg.EncodeCaller = zapcore.ShortCallerEncoder
 	}
 
 	var enc zapcore.Encoder
 	if options&OPT_ENC_CONSOLE != 0 {
-		enc = zapcore.NewConsoleEncoder(encodeCfg)
+		enc = zapcore.NewConsoleEncoder(cfg)
 	} else {
-		enc = zapcore.NewJSONEncoder(encodeCfg)
+		enc = zapcore.NewJSONEncoder(cfg)
 	}
 
 	lvl := zap.InfoLevel
 	switch strings.ToLower(level) {
 	case INFO: // pass
+		lvl = zap.InfoLevel
 	case DEBUG:
 		lvl = zap.DebugLevel
+	case WARN:
+		lvl = zap.WarnLevel
+	case ERROR:
+		lvl = zap.ErrorLevel
+	case PANIC:
+		lvl = zap.PanicLevel
+	case DPANIC:
+		lvl = zap.DPanicLevel
+	case FATAL:
+		lvl = zap.FatalLevel
 	default:
 		lvl = zap.DebugLevel
 	}
@@ -314,15 +363,12 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 	cfg := &zap.Config{
 		Encoding: `json`,
 		EncoderConfig: zapcore.EncoderConfig{
-			NameKey:    "MOD",
-			MessageKey: "MSG",
-
-			LevelKey:    "LEV",
-			EncodeLevel: zapcore.CapitalLevelEncoder,
-
-			TimeKey:    "TS",
-			EncodeTime: zapcore.ISO8601TimeEncoder,
-
+			NameKey:      "MOD",
+			MessageKey:   "MSG",
+			LevelKey:     "LEV",
+			EncodeLevel:  zapcore.CapitalLevelEncoder,
+			TimeKey:      "TS",
+			EncodeTime:   zapcore.ISO8601TimeEncoder,
 			CallerKey:    "POS",
 			EncodeCaller: zapcore.FullCallerEncoder,
 		},
@@ -333,7 +379,7 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 
 		if runtime.GOOS == "windows" { // See: https://github.com/uber-go/zap/issues/621
 			if err := zap.RegisterSink("winfile", newWinFileSink); err != nil {
-				panic(err)
+				return nil, err
 			}
 
 			cfg.OutputPaths = []string{
@@ -374,7 +420,7 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 	}
 
 	if options&OPT_STDOUT != 0 || fpath == "" { // if no log file path set, default set to stdout
-		cfg.OutputPaths = append(cfg.OutputPaths, "stdout")
+		cfg.OutputPaths = append(cfg.OutputPaths, STDOUT)
 	}
 
 	l, err := cfg.Build()
@@ -383,4 +429,10 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 	}
 
 	return l, nil
+}
+
+func Close() {
+	if root != nil {
+		root.Sync()
+	}
 }

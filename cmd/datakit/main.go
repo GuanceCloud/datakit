@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	flagVersion = flag.BoolP("version", "v", false, `show version info`)
+	flagVersion = flag.BoolP("version", "V", false, `show version info`)
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// deprecated
@@ -256,23 +256,19 @@ func doRun() error {
 	}
 
 	dkhttp.Start(&dkhttp.Option{
-		Bind: config.Cfg.HTTPListen,
+		//Bind:           config.Cfg.HTTPAPI.Listen,
+		//Disable404Page: config.Cfg.HTTPAPI.Disable404Page,
+		APIConfig: config.Cfg.HTTPAPI,
 
-		GinLog:         config.Cfg.GinLog,
-		GinRotate:      config.Cfg.LogRotate,
-		GinReleaseMode: strings.ToLower(config.Cfg.LogLevel) != "debug",
+		GinLog:         config.Cfg.Logging.GinLog,
+		GinRotate:      config.Cfg.Logging.Rotate,
+		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
 
-		Disable404Page: config.Cfg.Disable404Page,
-		DataWay:        config.Cfg.DataWay,
-		APIConfig:      config.Cfg.HTTPAPI,
-		PProf:          config.Cfg.EnablePProf,
+		DataWay: config.Cfg.DataWay,
+		PProf:   config.Cfg.EnablePProf,
 	})
 
 	time.Sleep(time.Second) // wait http server ok
-	// if config.Cfg.Trace != nil && config.Cfg.Trace.Enabled {
-	// 	config.Cfg.Trace.Start()
-	// 	defer config.Cfg.Trace.Stop()
-	// }
 
 	return nil
 }

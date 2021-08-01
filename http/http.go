@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -24,7 +26,6 @@ import (
 
 var (
 	l              = logger.DefaultSLogger("http")
-	httpBind       string
 	ginLog         string
 	ginReleaseMode = true
 	pprof          bool
@@ -37,10 +38,9 @@ var (
 	stopOkCh = make(chan interface{})
 	mtx      = sync.Mutex{}
 
-	disable404Page = false
-	dw             *dataway.DataWayCfg
-	extraTags      = map[string]string{}
-	apiConfig      *APIConfig
+	dw        *dataway.DataWayCfg
+	extraTags = map[string]string{}
+	apiConfig *APIConfig
 
 	ginRotate = 32 // MB
 
@@ -59,12 +59,10 @@ const (
 )
 
 type Option struct {
-	Bind           string
-	GinLog         string
-	GinRotate      int
-	Disable404Page bool
-	APIConfig      *APIConfig
-	DataWay        *dataway.DataWayCfg
+	GinLog    string
+	GinRotate int
+	APIConfig *APIConfig
+	DataWay   *dataway.DataWayCfg
 
 	GinReleaseMode bool
 	PProf          bool
@@ -72,17 +70,17 @@ type Option struct {
 
 type APIConfig struct {
 	RUMOriginIPHeader string `toml:"rum_origin_ip_header"`
+	Listen            string `toml:"listen"`
+	Disable404Page    bool   `toml:"disable_404page"`
 }
 
 func Start(o *Option) {
 
 	l = logger.SLogger("http")
 
-	httpBind = o.Bind
 	ginLog = o.GinLog
 	pprof = o.PProf
 	ginReleaseMode = o.GinReleaseMode
-	disable404Page = o.Disable404Page
 	ginRotate = o.GinRotate
 	apiConfig = o.APIConfig
 	dw = o.DataWay
@@ -179,18 +177,24 @@ func HttpStart() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	l.Debugf("HTTP bind addr:%s", httpBind)
+	l.Debugf("HTTP bind addr:%s", apiConfig.Listen)
 
 	router := gin.New()
 
 	// set gin logger
 	l.Infof("set gin log to %s", ginLog)
-	ginlogger := &lumberjack.Logger{
-		Filename:   ginLog,
-		MaxSize:    ginRotate, // MB
-		MaxBackups: 5,
-		MaxAge:     30, // day
+	var ginlogger io.Writer
+	if ginLog == "stdout" {
+		ginlogger = os.Stdout
+	} else {
+		ginlogger = &lumberjack.Logger{
+			Filename:   ginLog,
+			MaxSize:    ginRotate, // MB
+			MaxBackups: 5,
+			MaxAge:     30, // day
+		}
 	}
+
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: nil, // not set, use the default
 		Output:    ginlogger,
@@ -198,7 +202,7 @@ func HttpStart() {
 
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware)
-	if !disable404Page {
+	if !apiConfig.Disable404Page {
 		router.NoRoute(page404)
 	}
 
@@ -223,7 +227,7 @@ func HttpStart() {
 	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
 
 	srv := &http.Server{
-		Addr:    httpBind,
+		Addr:    apiConfig.Listen,
 		Handler: router,
 	}
 

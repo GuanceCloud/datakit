@@ -54,7 +54,7 @@ Wed Jul 21 08:22:32 UTC 2021
 http://localhost:9529/monitor
 ```
 
-如果是 Linux/Mac，直接在终端输入（无需修改 `http_listen` 配置）：
+如果是 Linux/Mac，直接在终端输入（无需修改 `listen` 配置）：
 
 > DataKit [1.1.7-rc7](changelog#494d6cd5) 才支持这一功能
 

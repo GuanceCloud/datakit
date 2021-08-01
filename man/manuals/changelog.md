@@ -14,7 +14,28 @@
 - Windows 平台的服务支持通过[命令行管理](...)
 - DataKit [API](...) 支持 Label 导入
 - DataKit 支持动态获取最新 DataWay 地址，避免默认 DataWay 被 DDos 攻击
+- DataKit 日志支持[输出到终端](...)，便于 k8s 部署时日志查看、采集
+- 调整 DataKit 主配置，各个不同配置模块化
 - 其它一些 bug 修复，完善现有的各种文档
+
+### Breaking Changes
+
+以下改动，在升级过程中会*自动调整*，这里只是提及具体变更，便于大家理解
+
+- 主配置修改：增加如下几个模块
+
+```toml
+[http_api]
+	listen = "localhost:9529"  # 原 http_listen
+	disable_404page = false    # 原 disable_404page
+
+[logging]
+	log = "/var/log/datakit/log"         # 原 log
+	gin_log = "/var/log/datakit/gin.log" # 原 gin.log
+	level = "info" # 原 log_level
+	rotate = 32    # 原 log_rotate
+	disable_color = false # 新增配置
+```
 
 ## 1.1.7-rc9.1(2021/07/17)
 
