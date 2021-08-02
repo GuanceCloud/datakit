@@ -38,11 +38,11 @@ type Input struct {
 	collectData *hostMeasurement
 }
 
-func (_ *Input) Catalog() string {
+func (i *Input) Catalog() string {
 	return InputCat
 }
 
-func (_ *Input) SampleConfig() string {
+func (i *Input) SampleConfig() string {
 	return SampleConfig
 }
 
