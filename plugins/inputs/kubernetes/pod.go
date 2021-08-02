@@ -20,7 +20,7 @@ type pod struct {
 	tags map[string]string
 }
 
-func (p pod) Gather() {
+func (p *pod) Gather() {
 	list, err := p.client.getPods()
 	if err != nil {
 		l.Errorf("failed of get pods resource: %s", err)
@@ -95,7 +95,8 @@ func (*pod) LineProto() (*io.Point, error) { return nil, nil }
 func (*pod) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesPodName,
-		Desc: kubernetesPodName,
+		Desc: fmt.Sprintf("%s 对象数据", kubernetesPodName),
+		Type: datakit.Object,
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("pod UID"),
 			"pod_name":     inputs.NewTagInfo("pod 名称"),

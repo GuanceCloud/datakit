@@ -20,7 +20,7 @@ type cronJob struct {
 	tags map[string]string
 }
 
-func (c cronJob) Gather() {
+func (c *cronJob) Gather() {
 	list, err := c.client.getCronJobs()
 	if err != nil {
 		l.Errorf("failed of get cronjobs resource: %s", err)
@@ -69,7 +69,8 @@ func (*cronJob) LineProto() (*io.Point, error) { return nil, nil }
 func (*cronJob) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesCronJobName,
-		Desc: kubernetesCronJobName,
+		Desc: fmt.Sprintf("%s 对象数据", kubernetesCronJobName),
+		Type: datakit.Object,
 		Tags: map[string]interface{}{
 			"name":          inputs.NewTagInfo("cronJob UID"),
 			"cron_job_name": inputs.NewTagInfo("cronJob 名称"),
@@ -78,8 +79,8 @@ func (*cronJob) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"active_jobs":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "活跃的 job 数量"},
-			"schedule":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"suspend":                &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: ""},
+			"schedule":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "运行日程，例如 `*/1 * * * *`"},
+			"suspend":                &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "是否暂停"},
 			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
 			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 		},

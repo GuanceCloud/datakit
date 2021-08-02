@@ -20,7 +20,7 @@ type replicaSet struct {
 	tags map[string]string
 }
 
-func (r replicaSet) Gather() {
+func (r *replicaSet) Gather() {
 	list, err := r.client.getReplicaSets()
 	if err != nil {
 		l.Errorf("failed of get replicaSet resource: %s", err)
@@ -37,6 +37,7 @@ func (r replicaSet) Gather() {
 		for k, v := range r.tags {
 			tags[k] = v
 		}
+
 		fields := map[string]interface{}{
 			"age":   int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
 			"ready": obj.Status.ReadyReplicas,
@@ -64,7 +65,8 @@ func (*replicaSet) LineProto() (*io.Point, error) { return nil, nil }
 func (*replicaSet) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesReplicaSetName,
-		Desc: kubernetesReplicaSetName,
+		Desc: fmt.Sprintf("%s 对象数据", kubernetesReplicaSetName),
+		Type: datakit.Object,
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("replicaSet UID"),
 			"replica_set_name": inputs.NewTagInfo("replicaSet 名称"),
@@ -76,6 +78,7 @@ func (*replicaSet) Info() *inputs.MeasurementInfo {
 			"ready":                  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ready replicas"},
 			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
 			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			//TODO:
 			// "selectors": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "current/desired":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},

@@ -20,7 +20,7 @@ type cluster struct {
 	tags map[string]string
 }
 
-func (c cluster) Gather() {
+func (c *cluster) Gather() {
 	list, err := c.client.getClusters()
 	if err != nil {
 		l.Errorf("failed of get clusters resource: %s", err)
@@ -60,7 +60,8 @@ func (*cluster) LineProto() (*io.Point, error) { return nil, nil }
 func (*cluster) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesClusterName,
-		Desc: kubernetesClusterName,
+		Desc: fmt.Sprintf("%s 对象数据", kubernetesClusterName),
+		Type: datakit.Object,
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("cluster UID"),
 			"cluster_name": inputs.NewTagInfo("cluster 名称"),
@@ -70,6 +71,7 @@ func (*cluster) Info() *inputs.MeasurementInfo {
 			"create_time":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "创建时间戳，精度为秒"},
 			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
 			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			// TODO:
 			// "pod_capacity":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
 			// "pod_usage":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
 			// "namespaces":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
