@@ -76,6 +76,7 @@ type TagInfo struct {
 type MeasurementInfo struct {
 	Name   string
 	Desc   string
+	Type   string
 	Fields map[string]interface{}
 	Tags   map[string]interface{}
 }
