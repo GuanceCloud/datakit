@@ -6,14 +6,14 @@
 
 Datakit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
 
-大家试用下这个 bucket：`oss://df-storage-dev/` 以下 AK/SK 有需要可申请获取：
+大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
+
+> 可下载 [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478) 客户端工具来查看 OSS 中的文件。
 
 - AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
 - SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 Datakit 测试文件，以 `zhangsan` 为例
-
-在 `zhangsan/datakit` 目录下的文件结构，就知道怎么搞了
+在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件，以 `zhangsan` 为例：
 
 配置开发机器的环境变量：
 
@@ -50,7 +50,7 @@ installer="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/${user}/datakit/i
 dw="https://openway.dataflux.cn?token=${tkn}"
 
 # 升级脚本(linux/mac)
-sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && sudo -E ./dk-installer -upgrade && rm -rf ./dk-installer"; exit 0
+sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"; exit 0
 
 # 安装脚本(linux/mac)
 sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -dataway $dw && rm -rf ./dk-installer"; exit 0
