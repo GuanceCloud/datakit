@@ -19,7 +19,31 @@ Kubernetes 集群对象数据采集
   # ...
 ```
 
+## 指标
+
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "metric"}}
+
+### `{{$m.Name}}`
+{{$m.Desc}}
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 对象
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -32,5 +56,6 @@ Kubernetes 集群对象数据采集
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
-{{ end }} 
+{{ end }}

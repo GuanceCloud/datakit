@@ -20,7 +20,7 @@ type node struct {
 	tags map[string]string
 }
 
-func (n node) Gather() {
+func (n *node) Gather() {
 	list, err := n.client.getNodes()
 	if err != nil {
 		l.Errorf("failed of get nodes resource: %s", err)
@@ -38,6 +38,7 @@ func (n node) Gather() {
 		for k, v := range n.tags {
 			tags[k] = v
 		}
+
 		fields := map[string]interface{}{
 			"age":             int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
 			"kubelet_version": obj.Status.NodeInfo.KubeletVersion,
@@ -65,6 +66,7 @@ func (*node) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesNodeName,
 		Desc: kubernetesNodeName,
+		Type: datakit.Object,
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("node UID"),
 			"node_name":    inputs.NewTagInfo("node 名称"),
@@ -77,6 +79,7 @@ func (*node) Info() *inputs.MeasurementInfo {
 			"kubelet_version":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubelet 版本"},
 			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
 			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			// TODO:
 			// "schedulability":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "role":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "taints":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},

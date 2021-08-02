@@ -13,7 +13,7 @@ type resource interface {
 	Info() *inputs.MeasurementInfo
 }
 
-var resources = map[string]resource{
+var resourceList = map[string]resource{
 	"cluster":    &cluster{},
 	"pod":        &pod{},
 	"deployment": &deployment{},
@@ -25,6 +25,9 @@ var resources = map[string]resource{
 }
 
 func addJSONStringToMap(key string, value interface{}, m map[string]interface{}) {
+	if value == nil {
+		return
+	}
 	b, err := json.Marshal(value)
 	if err != nil {
 		return

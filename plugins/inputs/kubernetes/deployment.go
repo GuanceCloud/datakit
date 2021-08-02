@@ -20,7 +20,7 @@ type deployment struct {
 	tags map[string]string
 }
 
-func (d deployment) Gather() {
+func (d *deployment) Gather() {
 	list, err := d.client.getDeployments()
 	if err != nil {
 		l.Errorf("failed of get deployments resource: %s", err)
@@ -75,7 +75,8 @@ func (*deployment) LineProto() (*io.Point, error) { return nil, nil }
 func (*deployment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesDeploymentName,
-		Desc: kubernetesDeploymentName,
+		Desc: fmt.Sprintf("%s 对象数据", kubernetesDeploymentName),
+		Type: datakit.Object,
 		Tags: map[string]interface{}{
 			"name":            inputs.NewTagInfo("deployment UID"),
 			"deployment_name": inputs.NewTagInfo("deployment 名称"),
@@ -85,14 +86,15 @@ func (*deployment) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
 			"ready":                  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "就绪"},
-			"max_surge":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"max_unavailable":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
+			"max_surge":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "最大 surge 数值"},
+			"max_unavailable":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "最大 unavailable 数量"},
 			"up_dated":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "updated replicas"},
-			"available":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			"unavailable":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: ""},
-			"strategy":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"available":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "可用数"},
+			"unavailable":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "不可用数"},
+			"strategy":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "strategy"},
 			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
 			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			// TODO:
 			// "selectors":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "condition":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "paused":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},

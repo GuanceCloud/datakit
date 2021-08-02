@@ -20,10 +20,10 @@ type job struct {
 	tags map[string]string
 }
 
-func (j job) Gather() {
+func (j *job) Gather() {
 	list, err := j.client.getJobs()
 	if err != nil {
-		l.Errorf("failed of get nodes resource: %s", err)
+		l.Errorf("failed of get jobs resource: %s", err)
 		return
 	}
 
@@ -38,6 +38,7 @@ func (j job) Gather() {
 		for k, v := range j.tags {
 			tags[k] = v
 		}
+
 		fields := map[string]interface{}{
 			"age":       int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
 			"active":    obj.Status.Active,
@@ -79,7 +80,8 @@ func (*job) LineProto() (*io.Point, error) { return nil, nil }
 func (*job) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesJobName,
-		Desc: kubernetesJobName,
+		Desc: fmt.Sprintf("%s 对象数据", kubernetesJobName),
+		Type: datakit.Object,
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("job UID"),
 			"job_name":     inputs.NewTagInfo("job 名称"),
@@ -88,15 +90,16 @@ func (*job) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"active":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"succeeded":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"failed":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
-			"completions":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"parallelism":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"backoff_limit":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			"active_deadline":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			"active":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "活跃数"},
+			"succeeded":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "成功数"},
+			"failed":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "失败数"},
+			"completions":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "确定完成计数"},
+			"parallelism":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "并行数量"},
+			"backoff_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "重试次数"},
+			"active_deadline":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "活跃期限，单位为秒"},
 			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
 			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			// TODO:
 			// "pod_statuses":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			//"duration":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
