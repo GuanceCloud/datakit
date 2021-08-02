@@ -1,6 +1,6 @@
 // +build !linux
 
-package hostobject
+package filefd
 
 func FileFdCollect() (map[string]int64, error) {
 	info := make(map[string]int64)

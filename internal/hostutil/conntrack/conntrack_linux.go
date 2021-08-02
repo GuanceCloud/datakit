@@ -1,6 +1,6 @@
 // +build linux
 
-package hostobject
+package conntrack
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ func ConntrackCollect() *ConntrackInfo {
 
 	value, err := readIntFromFile("/proc/sys/net/netfilter/nf_conntrack_count")
 	if err != nil {
-		l.Warn(err)
+		// l.Warn(err)
 		info.Current = -1 // set default -1
 	} else {
 		info.Current = value
@@ -47,7 +47,7 @@ func ConntrackCollect() *ConntrackInfo {
 
 	value, err = readIntFromFile("/proc/sys/net/netfilter/nf_conntrack_max")
 	if err != nil {
-		l.Warn(err)
+		// l.Warn(err)
 		info.Limit = -1
 	} else {
 		info.Limit = value
@@ -55,7 +55,7 @@ func ConntrackCollect() *ConntrackInfo {
 
 	conntrackStats, err := getConntrackStatistics()
 	if err != nil {
-		l.Warn(err)
+		// l.Warn(err)
 	} else {
 		info.Found = int64(conntrackStats.found)
 		info.Invalid = int64(conntrackStats.invalid)

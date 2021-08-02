@@ -1,6 +1,6 @@
 // +build linux
 
-package hostobject
+package filefd
 
 import (
 	"bytes"

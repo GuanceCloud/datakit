@@ -1,6 +1,6 @@
 // +build !linux
 
-package hostobject
+package conntrack
 
 func ConntrackCollect() *ConntrackInfo {
 	info := &ConntrackInfo{
