@@ -225,6 +225,16 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 		c.Disable404PageDeprecated = false
 	}
 
+	if c.IOCacheCountDeprecated != 0 {
+		c.IOConf.MaxCacheCount = c.IOCacheCountDeprecated
+		c.IOCacheCountDeprecated = 0
+	}
+
+	if c.OutputFileDeprecated != "" {
+		c.IOConf.OutputFile = c.OutputFileDeprecated
+		c.OutputFileDeprecated = ""
+	}
+
 	return c, nil
 }
 

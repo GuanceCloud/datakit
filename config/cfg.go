@@ -47,6 +47,14 @@ func DefaultConfig() *Config {
 			"ENV_HOSTNAME": "", // not set
 		}, // default nothing
 
+		IOConf: &IOConfig{
+			MaxCacheCount:             1024,
+			CacheDumpThreshold:        512,
+			MaxDynamicCacheCount:      1024,
+			DynamicCacheDumpThreshold: 512,
+			FlushInterval:             "10s",
+		},
+
 		DataWay: &dataway.DataWayCfg{},
 
 		ProtectMode: true,
@@ -55,8 +63,6 @@ func DefaultConfig() *Config {
 			RUMOriginIPHeader: "X-Forwarded-For",
 			Listen:            "localhost:9529",
 		},
-
-		IOCacheCount: 1024,
 
 		Logging: &LoggerCfg{
 			Level:  "info",
@@ -89,6 +95,15 @@ type Cgroup struct {
 	CPUMin float64 `toml:"cpu_min"`
 }
 
+type IOConfig struct {
+	MaxCacheCount             int64  `toml:"max_cache_count"`
+	CacheDumpThreshold        int64  `toml:"cache_dump_threshold"`
+	MaxDynamicCacheCount      int64  `toml:"max_dynamic_cache_count"`
+	DynamicCacheDumpThreshold int64  `toml:"dynamic_cache_dump_threshold"`
+	FlushInterval             string `toml:"flush_interval"`
+	OutputFile                string `toml:"output_file"`
+}
+
 type LoggerCfg struct {
 	Log          string `toml:"log"`
 	GinLog       string `toml:"gin_log"`
@@ -104,6 +119,8 @@ type Config struct {
 	Name      string `toml:"name,omitempty"`
 	Hostname  string `toml:"-"`
 	Namespace string `toml:"namespace"`
+
+	IOConf *IOConfig `toml:"io"`
 
 	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
 
@@ -123,7 +140,7 @@ type Config struct {
 	GlobalTags   map[string]string `toml:"global_tags"`
 	Environments map[string]string `toml:"environments"`
 
-	OutputFile string `toml:"output_file"`
+	OutputFileDeprecated string `toml:"output_file,omitempty"`
 
 	EnablePProf bool `toml:"enable_pprof,omitempty"`
 	ProtectMode bool `toml:"protect_mode"`
@@ -137,9 +154,9 @@ type Config struct {
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 	Cgroup    *Cgroup          `toml:"cgroup"`
 
-	EnableElection bool           `toml:"enable_election"`
-	IOCacheCount   int64          `toml:"io_cache_count"`
-	Tracer         *tracer.Tracer `toml:"tracer,omitempty"`
+	EnableElection         bool           `toml:"enable_election"`
+	IOCacheCountDeprecated int64          `toml:"io_cache_count,omitzero"`
+	Tracer                 *tracer.Tracer `toml:"tracer,omitempty"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -355,10 +372,6 @@ func (c *Config) ApplyMainConfig() error {
 		datakit.EnableUncheckInputs = true
 	}
 
-	if c.OutputFile != "" {
-		dkio.SetOutputFile(c.OutputFile)
-	}
-
 	if c.Hostname == "" {
 		if err := c.setHostname(); err != nil {
 			return err
@@ -376,8 +389,16 @@ func (c *Config) ApplyMainConfig() error {
 
 	datakit.AutoUpdate = c.AutoUpdate
 
-	dkio.SetDataWay(c.DataWay)
-	dkio.SetGlobalCacheCount(c.IOCacheCount)
+	// config default io
+	if c.IOConf != nil {
+		if c.IOConf.MaxCacheCount == 0 && c.IOCacheCountDeprecated != 0 {
+			c.IOConf.MaxCacheCount = c.IOCacheCountDeprecated
+		}
+		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
+			c.IOConf.OutputFile = c.OutputFileDeprecated
+		}
+		dkio.ConfigDefaultIO(dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount), dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold), dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount), dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold), dkio.SetFlushInterval(c.IOConf.FlushInterval), dkio.SetOutputFile(c.IOConf.OutputFile), dkio.SetDataway(c.DataWay))
+	}
 
 	if err := c.setupGlobalTags(); err != nil {
 		return err
@@ -468,13 +489,26 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 }
 
 func (c *Config) LoadEnvs() error {
-
-	if v := datakit.GetEnv("ENV_IO_CACHE_COUNT"); v != "" {
-		i, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			l.Errorf("invalid ENV_IO_CACHE_COUNT: %s", v)
-		} else {
-			c.IOCacheCount = i
+	if c.IOConf == nil {
+		c.IOConf = &IOConfig{}
+	}
+	for _, envkey := range []string{"ENV_MAX_CACHE_COUNT", "ENV_CACHE_DUMP_THRESHOLD", "ENV_MAX_DYNAMIC_CACHE_COUNT", "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD"} {
+		if v := datakit.GetEnv(envkey); v != "" {
+			value, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				l.Errorf("invalid env key value pair [%s:%s]", envkey, v)
+			} else {
+				switch envkey {
+				case "ENV_MAX_CACHE_COUNT":
+					c.IOConf.MaxCacheCount = value
+				case "ENV_CACHE_DUMP_THRESHOLD":
+					c.IOConf.CacheDumpThreshold = value
+				case "ENV_MAX_DYNAMIC_CACHE_COUNT":
+					c.IOConf.MaxDynamicCacheCount = value
+				case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
+					c.IOConf.DynamicCacheDumpThreshold = value
+				}
+			}
 		}
 	}
 
