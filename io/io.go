@@ -12,15 +12,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
-var (
-	testAssert = false
-	l          = logger.DefaultSLogger("io")
-
-	highFreqCleanInterval = time.Millisecond * 500
+const (
+	minGZSize   = 1024
+	maxKodoPack = 10 * 1000 * 10000
 )
 
-const (
-	minGZSize = 1024
+var (
+	testAssert            = false
+	highFreqCleanInterval = time.Millisecond * 500
+	l                     = logger.DefaultSLogger("io")
 )
 
 type Option struct {
@@ -37,11 +37,23 @@ type lastErr struct {
 	ts        time.Time
 }
 
+type body struct {
+	buf  []byte
+	gzon bool
+	err  error
+}
+
+func (this *body) len() int {
+	return len(this.buf)
+}
+
 type IO struct {
-	MaxCacheCnt        int64
-	MaxDynamicCacheCnt int64
-	OutputFile         string
-	FlushInterval      time.Duration
+	MaxCacheCount             int64
+	CacheDumpThreshold        int64
+	MaxDynamicCacheCount      int64
+	DynamicCacheDumpThreshold int64
+	FlushInterval             time.Duration
+	OutputFile                string
 
 	dw *dataway.DataWayCfg
 
@@ -70,12 +82,12 @@ type IoStat struct {
 
 func NewIO() *IO {
 	x := &IO{
-		MaxCacheCnt:        1024,
-		MaxDynamicCacheCnt: 1024,
-		FlushInterval:      10 * time.Second,
-		in:                 make(chan *iodata, 128),
-		in2:                make(chan *iodata, 128*8),
-		inLastErr:          make(chan *lastErr, 128),
+		MaxCacheCount:        1024,
+		MaxDynamicCacheCount: 1024,
+		FlushInterval:        10 * time.Second,
+		in:                   make(chan *iodata, 128),
+		in2:                  make(chan *iodata, 128*8),
+		inLastErr:            make(chan *lastErr, 128),
 
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qinputStats), // blocking
@@ -219,7 +231,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	if x.cacheCnt > x.MaxCacheCnt && tryClean || x.dynamicCacheCnt > x.MaxDynamicCacheCnt {
+	if x.cacheCnt > x.MaxCacheCount && tryClean || x.dynamicCacheCnt > x.MaxDynamicCacheCount {
 		x.flushAll()
 	}
 }
@@ -306,8 +318,6 @@ func (x *IO) StartIO(recoverable bool) {
 				return nil
 			}
 		}
-
-		return nil
 	})
 
 	// start log filter
@@ -323,16 +333,17 @@ func (x *IO) flushAll() {
 		l.Warnf("post failed cache count: %d", x.cacheCnt)
 	}
 
-	if x.cacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
-		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCnt)
+	// dump cache pts
+	if x.CacheDumpThreshold > 0 && x.cacheCnt > x.CacheDumpThreshold {
+		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCount)
 		for k, _ := range x.cache {
 			x.cache[k] = nil
 		}
 		x.cacheCnt = 0
 	}
-
-	if x.dynamicCacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
-		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCnt)
+	// dump dynamic cache pts
+	if x.DynamicCacheDumpThreshold > 0 && x.dynamicCacheCnt > x.DynamicCacheDumpThreshold {
+		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCount)
 		for k, _ := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
@@ -371,25 +382,37 @@ func (x *IO) flush() {
 	}
 }
 
-func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
-
-	lines := []string{}
-	for _, pt := range pts {
-		lines = append(lines, pt.String())
-	}
-
-	raw := strings.Join(lines, "\n")
-	body = []byte(raw)
-	x.lastBodyBytes = len(body)
-	if len(raw) > minGZSize && x.OutputFile == "" { // should not gzip on file output
-		if body, err = datakit.GZipStr(raw); err != nil {
-			l.Errorf("gz: %s", err.Error())
-			return
+// buildBody need <out> parameter as result output and guarantee that not nil body send back to caller always, so
+// check if body.len() == 0 when input <pts> is empty and body == nil if output channel closed.
+func (x *IO) buildBody(pts []*Point, out chan *body) {
+	send := func(lines []string) {
+		body := &body{buf: []byte(strings.Join(lines, "\n"))}
+		l.Debugf("### io body before GZ size: %dM %dK", body.len()/1000/1000, body.len()/1000)
+		if body.len() > minGZSize && x.OutputFile == "" {
+			if body.buf, body.err = datakit.GZipStr(string(body.buf)); body.err != nil {
+				l.Errorf("gz: %s", body.err.Error())
+			} else {
+				body.gzon = true
+			}
 		}
-		gzon = true
+		out <- body
 	}
 
-	return
+	var (
+		lines []string
+		bytes = 0
+	)
+	for _, pt := range pts {
+		if bytes+len(pt.String())+1 >= maxKodoPack {
+			send(lines)
+			lines = []string{}
+			bytes = 0
+		}
+		lines = append(lines, pt.String())
+		bytes += len(pt.String()) + 1
+	}
+	send(lines)
+	close(out)
 }
 
 func (x *IO) doFlush(pts []*Point, category string) error {
@@ -401,23 +424,28 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 		return nil
 	}
 
-	body, gz, err := x.buildBody(pts)
-	if err != nil {
-		return err
-	}
+	output := make(chan *body)
+	go x.buildBody(pts, output)
+	for body := range output {
+		if body == nil || body.len() == 0 {
+			break
+		}
+		if body.err != nil {
+			return body.err
+		}
 
-	if x.OutputFile != "" {
-		return x.fileOutput(body)
-	}
+		if x.OutputFile != "" {
+			return x.fileOutput(body.buf)
+		}
 
-	err = x.dw.Send(category, body, gz)
-
-	if err == nil {
+		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
+			return err
+		}
 		x.SentBytes += x.lastBodyBytes
 		x.lastBodyBytes = 0
 	}
 
-	return err
+	return nil
 }
 
 func (x *IO) fileOutput(body []byte) error {

@@ -25,6 +25,14 @@
 - 主配置修改：增加如下几个模块
 
 ```toml
+[io]
+  max_cache_count = 1024 # 本地缓存最大值 原主配置中 io_cache_count
+  cache_dump_threshold = 512 # 本地缓存推送后清理剩余缓存阈值，[!!!important 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
+  max_dynamic_cache_count = 1024 # HTTP缓存最大值
+  dynamic_cache_dump_threshold = 512 # HTTP缓存推送后清理剩余缓存阈值，[!!!important 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
+  flush_interval = "10s" # 推送时间间隔
+  output_file = ""  # 输出io数据到本地文件，原主配置中 output_file
+
 [http_api]
 	listen = "localhost:9529"  # 原 http_listen
 	disable_404page = false    # 原 disable_404page
@@ -61,8 +69,8 @@
 
 - 支持 MySQL [用户](mysql#15319c6c)以及[表级别](mysql#3343f732)的指标采集
 - 调整 monitor 页面展示
-	- 采集器配置情况和采集情况分离显示
-	- 增加选举、自动更新状态显示
+  - 采集器配置情况和采集情况分离显示
+  - 增加选举、自动更新状态显示
 - 支持从 `ENV_HOSTNAME` 获取主机名，以应付原始主机名不可用的问题
 - 支持 tag 级别的 [Trace](ddtrace) 过滤
 - [容器采集器](container)支持采集容器内进程对象
@@ -81,9 +89,10 @@
 
 - DataKit API 支持，且支持 [JSON Body](apis#75f8e5a2)
 - 命令行增加功能：
-	- [DQL查询功能](datakit-how-to#cb421e00)
-	- [命令行查看 monitor](datakit-how-to#44462aae)
-	- [检查采集器配置是否正确](datakit-how-to#519a9e75)
+
+  - [DQL 查询功能](datakit-how-to#cb421e00)
+  - [命令行查看 monitor](datakit-how-to#44462aae)
+  - [检查采集器配置是否正确](datakit-how-to#519a9e75)
 
 - 日志性能优化（对各个采集器自带的日志采集而言，目前仅针对 nginx/MySQL/Redis 做了适配，后续将适配其它各个自带日志收集的采集器）
 
@@ -95,7 +104,7 @@
 
 - 在 datakit.conf 中配置的 `global_tags` 中，`host` tag 将不生效，此举主要为了避免大家在配置 host 时造成一些误解（即配置了 `host`，但可能跟实际的主机名不同，造成一些数据误解）
 
-----
+---
 
 ## 1.1.7-rc6(2021/06/17)
 
@@ -106,13 +115,13 @@
 - [容器采集器](container)字段有了新的优化，主要涉及 pod 的 restart/ready/state 等字段
 - [Kubernetes 采集器](kubernetes) 增加更多指标采集
 - 支持在 DataKit 端[对日志进行（黑名单）过滤](https://www.yuque.com/dataflux/doc/ilhawc#wGemu)
-	- 注意：如果 DataKit 上配置了多个 DataWay 地址，日志过滤功能将不生效。
+  - 注意：如果 DataKit 上配置了多个 DataWay 地址，日志过滤功能将不生效。
 
 ### Breaking Changes
 
 对于没有语雀文档支持的采集器，在这次发布中，均已移除（各种云采集器，如阿里云监控数据、费用等采集）。如果有对这些采集器有依赖，不建议升级。
 
-----
+---
 
 ## 1.1.7-rc5(2021/06/16)
 
@@ -120,7 +129,7 @@
 
 修复 [DataKit API](apis) `/v1/query/raw` 无法使用的问题。
 
-----
+---
 
 ## 1.1.7-rc4(2021/06/11)
 
@@ -135,15 +144,15 @@
 
 > 注意：如果在老版本中，有针对 Docker 的额外配置，建议手动移植到 [容器采集器](container) 中来。它们之间的配置基本上是兼容的。
 
-----
+---
 
 ## 1.1.7-rc3(2021/06/10)
 
 ### 发布说明
 
 - 新增 [磁盘 S.M.A.R.T 采集器](smart)
-- 新增 [硬件 温度采集器](sensors) 
-- 新增 [Prometheus 采集器](prom) 
+- 新增 [硬件 温度采集器](sensors)
+- 新增 [Prometheus 采集器](prom)
 
 ### 问题修复
 
@@ -155,7 +164,7 @@
 - 修正部分采集器日志设置问题
 - 修正 [SSH](ssh)/[Jenkins](jenkins) 等采集器的数据问题
 
-----
+---
 
 ## 1.1.7-rc2(2021/06/07)
 
@@ -173,7 +182,7 @@
 - DataKit 新增 DQL HTTP [API 接口](apis) `/v1/query/raw`
 - 完善部分采集器文档，增加中间件（如 MySQL/Redis/ES 等）日志采集相关文档
 
-----
+---
 
 ## 1.1.7-rc1(2021/05/26)
 
@@ -182,7 +191,7 @@
 - 修复 Redis/MySQL 采集器数据异常问题
 - MySQL InnoDB 指标重构，具体细节参考 [MySQL 文档](mysql#e370e857)
 
-----
+---
 
 ## 1.1.7-rc0(2021/05/20)
 
@@ -213,7 +222,7 @@
 
 [RUM 采集](rum)中数据类型做了调整，原有数据类型基本已经废弃，需[更新对应 SDK](/dataflux/doc/eqs7v2)。
 
-----
+---
 
 ## 1.1.6-rc7(2021/05/19)
 
@@ -221,7 +230,7 @@
 
 - 修复 Windows 平台安装、升级问题
 
-----
+---
 
 ## 1.1.6-rc6(2021/05/19)
 
@@ -230,14 +239,15 @@
 - 修复部分采集器（MySQL/Redis）数据处理过程中， 因缺少指标导致的数据问题
 - 其它一些 bug 修复
 
-----
+---
 
 ## 1.1.6-rc5(2021/05/18)
 
 ### 发布说明
 
 - 修复 HTTP API precision 解析问题，导致部分数据时间戳解析失败
-----
+
+---
 
 ## 1.1.6-rc4(2021/05/17)
 
@@ -245,7 +255,7 @@
 
 - 修复容器日志采集可能奔溃的问题
 
-----
+---
 
 ## 1.1.6-rc3(2021/05/13)
 
@@ -254,15 +264,16 @@
 本次发布，有如下更新：
 
 - DataKit 安装/升级后，安装目录变更为
-	- Linux/Mac: `/usr/local/datakit`，日志目录为 `/var/log/datakit`
-	- Windows: `C:\Program Files\datakit`，日志目录就在安装目录下
+
+  - Linux/Mac: `/usr/local/datakit`，日志目录为 `/var/log/datakit`
+  - Windows: `C:\Program Files\datakit`，日志目录就在安装目录下
 
 - 支持 [`/v1/ping` 接口](apis#50ea0eb5)
 - 移除 RUM 采集器，RUM 接口[默认已经支持](apis#f53903a9)
 - 新增 monitor 页面：http://localhost:9529/monitor，以替代之前的 /stats 页面。reload 之后自动跳转到 monitor 页面
 - 支持命令直接[安装 sec-checker](datakit-how-to#01243fef) 以及[更新 ip-db](datakit-how-to#ab5cd5ad)
 
-----
+---
 
 ## 1.1.6-rc2(2021/05/11)
 
@@ -270,7 +281,7 @@
 
 - 修复容器部署情况下无法启动的问题
 
-----
+---
 
 ## 1.1.6-rc1(2021/05/10)
 
@@ -288,7 +299,7 @@
 - DataKit 单实例运行检测
 - DataKit [自动更新功能](datakit-update-crontab)
 
-----
+---
 
 ## 1.1.6-rc0(2021/04/30)
 
@@ -308,7 +319,7 @@
 - 增加 datakit-how-to 文档，便于大家初步入门（:9529/man 页面可看到）
 - 其它一些采集器的指标采集调整
 
-----
+---
 
 ## v1.1.5-rc2(2021/04/22)
 
@@ -318,7 +329,7 @@
 - 调整华为云监控数据采集配置，放出更多可配置信息，便于实时调整
 - 调整 Nginx 错误日志（error.log）切割脚本，同时增加默认日志等级的归类
 
-----
+---
 
 ## v1.1.5-rc1(2021/04/21)
 
@@ -326,7 +337,7 @@
 
 - 修复 tailf 采集器配置文件兼容性问题，该问题导致 tailf 采集器无法运行
 
-----
+---
 
 ## v1.1.5-rc0(2021/04/20)
 
@@ -339,11 +350,11 @@
 涉及的采集器列表如下：
 
 | 采集器          | 说明                                                                                                                                                                                      |
-| -----           | ----                                                                                                                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cpu`           | DataKit 内置 CPU 采集器，移除 Telegraf CPU 采集器，配置文件保持兼容。另外，Mac 平台暂不支持 CPU 采集，后续会补上                                                                          |
 | `disk`          | DataKit 内置磁盘采集器                                                                                                                                                                    |
 | `docker`        | 重新开发了 docker 采集器，同时支持容器对象、容器日志以及容器指标采集（额外增加对 K8s 容器采集）                                                                                           |
-| `elasticsearch` | DataKit 内置ES 采集器，同时移除 Telegraf 中的 ES 采集器。另外，可在该采集器中直接配置采集 ES 日志                                                                                         |
+| `elasticsearch` | DataKit 内置 ES 采集器，同时移除 Telegraf 中的 ES 采集器。另外，可在该采集器中直接配置采集 ES 日志                                                                                        |
 | `jvm`           | DataKit 内置 JVM 采集器                                                                                                                                                                   |
 | `kafka`         | DataKit 内置 Kafka 指标采集器，可在该采集器中直接采集 Kafka 日志                                                                                                                          |
 | `mem`           | DataKit 内置内存采集器，移除 Telegraf 内存采集器，配置文件保持兼容                                                                                                                        |
@@ -356,16 +367,16 @@
 | `swap`          | DataKit 内置内存 swap 采集器                                                                                                                                                              |
 | `system`        | DataKit 内置 system 采集器，移除 Telegraf system 采集器。内置的 system 采集器新增三个指标： `load1_per_core/load5_per_core/load15_per_core`，便于客户端直接显示单核平均负载，无需额外计算 |
 
-以上采集器的更新，非主机类型的采集器，绝大部分涉均有指标集、指标名的更新，具体参考各个采集器文档。 
+以上采集器的更新，非主机类型的采集器，绝大部分涉均有指标集、指标名的更新，具体参考各个采集器文档。
 
 其它兼容性问题：
 
 - 出于安全考虑，采集器不再默认绑定所有网卡，默认绑定在 `localhost:9529` 上。原来绑定的 `0.0.0.0:9529` 已失效（字段 `http_server_addr` 也已弃用），可手动修改 `http_listen`，将其设定成 `http_listen = "0.0.0.0:9529"`（此处端口可变更）
 - 某些中间件（如 MySQL/Nginx/Docker 等）已经集成了对应的日志采集，它们的日志采集可以直接在对应的采集器中配置，无需额外用 `tailf` 来采集了（但 `tailf` 仍然可以单独采集这些日志）
 - 以下采集器，将不再有效，请用上面内置的采集器来采集
-	- `dockerlog`：已集成到 docker 采集器
-	- `docker_containers`：已集成到 docker 采集器
-	- `mysqlMonitor`：以集成到 mysql 采集器
+  - `dockerlog`：已集成到 docker 采集器
+  - `docker_containers`：已集成到 docker 采集器
+  - `mysqlMonitor`：以集成到 mysql 采集器
 
 ### 新增特性
 
@@ -384,7 +395,8 @@
 	(显示 MySQL 采集文档)
 	man > Q               # 输入 Q 或 exit 退出
 ```
-----
+
+---
 
 ## v1.1.4-rc2(2021/04/07)
 
@@ -392,7 +404,7 @@
 
 - 修复阿里云监控数据采集器（`aliyuncms`）频繁采集导致部分其它采集器卡死的问题。
 
-----
+---
 
 ## v1.1.4-rc1(2021/03/25)
 
@@ -401,29 +413,33 @@
 - 进程采集器 `message` 字段增加更多信息，便于全文搜索
 - 主机对象采集器支持自定义 tag，便于云属性同步
 
-----
+---
 
 ## v1.1.4-rc0(2021/03/25)
 
 ### 新增功能
-- 增加文件采集器、拨测采集器以及HTTP报文采集器
-- 内置支持 ActiveMQ/Kafka/RabbitMQ/gin（Gin HTTP访问日志）/Zap（第三方日志框架）日志切割
+
+- 增加文件采集器、拨测采集器以及 HTTP 报文采集器
+- 内置支持 ActiveMQ/Kafka/RabbitMQ/gin（Gin HTTP 访问日志）/Zap（第三方日志框架）日志切割
 
 ### 改进
+
 - 丰富 `http://localhost:9529/stats` 页面统计信息，增加诸如采集频率（`n/min`），每次采集的数据量大小等
 - DataKit 本身增加一定的缓存空间（重启即失效），避免偶然的网络原因导致数据丢失
 - 改进 Pipeline 日期转换函数，提升准确性。另外增加了更多 Pipeline 函数（`parse_duration()/parse_date()`）
 - trace 数据增加更多业务字段（`project/env/version/http_method/http_status_code`）
 - 其它采集器各种细节改进
 
-----
+---
+
 ## v1.1.3-rc4(2021/03/16)
 
 ### Bug 修复
 
 - 进程采集器：修复用户名缺失导致显示空白的问题，对用户名获取失败的进程，以 `nobody` 当做其用户名。
 
-----
+---
+
 ## v1.1.3-rc3(2021/03/04)
 
 ### Bug 修复
@@ -437,7 +453,8 @@
 - `http://datakit:9529/reload` 页面增加每分钟采集频率（`frequency`）以及每次采集的数据量大小统计
 - `kubernetes` 指标采集器增加 node 的内存使用率（`mem_usage_percent`）采集 -->
 
-----
+---
+
 ## v1.1.3-rc2(2021/03/01)
 
 ### Bug 修复
@@ -446,10 +463,12 @@
 - 修正华为云对象采集器 pipeline 问题
 - 修复 Nginx/MySQL/Redis 日志采集器升级后的兼容性问题
 
-----
+---
+
 ## v1.1.3-rc1(2021/02/26)
 
 ### 新增功能
+
 - 增加内置 Redis/Nginx
 - 完善 MySQL 慢查询日志分析
 
@@ -472,12 +491,14 @@
 ### Breaking Changes
 
 - 对于某些采集器，如果原始指标中带有 `uint64` 类型的字段，新版本会导致字段不兼容，应该删掉原有指标集，避免类型冲突
-	- 原来对于 uint64 的处理，将其自动转成了 string，这会导致使用过程中困扰。实际上可以更为精确的控制这个整数移除的问题
-	- 对于超过 max-int64 的 uint 整数，采集器会丢弃这样的指标，因为目前 influx1.7 不支持 uint64 的指标
+
+  - 原来对于 uint64 的处理，将其自动转成了 string，这会导致使用过程中困扰。实际上可以更为精确的控制这个整数移除的问题
+  - 对于超过 max-int64 的 uint 整数，采集器会丢弃这样的指标，因为目前 influx1.7 不支持 uint64 的指标
 
 - 移除部分原 dkctrl 命令执行功能，配置管理功能后续不再依赖该方式实现
 
-----
+---
+
 ## v1.1.2(2021/02/03)
 
 ### 功能改进
@@ -492,14 +513,17 @@
 - 修复 zipkin 中时间单位问题
 - 主机对象出采集器中添加 `state` 字段
 
-----
+---
+
 ## v1.1.1(2021/02/01)
 
 ### Bug 修复
+
 - 修复 mysqlmonitor 采集器 status/variable 字段均为 string 类型的问题。回退至原始字段类型。同时对 int64 溢出问题做了保护。
 - 更改进程采集器部分字段命名，使其跟主机采集器命名一致
 
-----
+---
+
 ## v1.1.0(2021/01/29)
 
 ### 发布说明

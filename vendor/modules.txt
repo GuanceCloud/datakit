@@ -553,7 +553,7 @@ github.com/yuin/goldmark/util
 # github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 ## explicit
 github.com/yuin/goldmark-highlighting
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210801030650-7101b5308ca5
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210801085853-2efd2cfc7023
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/go-nsq
@@ -624,7 +624,7 @@ golang.org/x/image/vp8l
 golang.org/x/image/webp
 # golang.org/x/mod v0.4.2
 ## explicit
-# golang.org/x/net v0.0.0-20210525063256-abc453219eb5
+# golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp

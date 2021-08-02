@@ -11,5 +11,5 @@ var (
 )
 
 func init() {
-	GlobalTracer = tracer.NewTracer(false)
+	GlobalTracer = tracer.NewTracer(false, tracer.WithLogger(&tracer.DiscardLogger{}))
 }

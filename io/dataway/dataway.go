@@ -86,7 +86,7 @@ func (dw *DataWayCfg) String() string {
 }
 
 func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz bool) error {
-	dktracer.GlobalTracer.Start(tracer.WithLogger(tracer.DDLog{}))
+	dktracer.GlobalTracer.Start(tracer.WithLogger(&tracer.SimpleLogger{}))
 	defer dktracer.GlobalTracer.Stop()
 
 	requrl, ok := dc.categoryURL[category]

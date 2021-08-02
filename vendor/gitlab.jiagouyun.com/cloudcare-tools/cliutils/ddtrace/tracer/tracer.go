@@ -17,17 +17,22 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	ddtsql "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
 	ddtredis "gopkg.in/DataDog/dd-trace-go.v1/contrib/go-redis/redis"
-
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
-var l = logger.DefaultSLogger("ddtraces")
+var (
+	l = logger.DefaultSLogger("ddtraces")
+)
 
-type DDLog struct{}
+type DiscardLogger struct{}
 
-func (ddl DDLog) Log(msg string) { // use exist logger for ddtrace log
+func (*DiscardLogger) Log(msg string) {}
+
+type SimpleLogger struct{}
+
+func (*SimpleLogger) Log(msg string) {
 	l.Debug(msg)
 }
 

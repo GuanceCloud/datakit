@@ -14,23 +14,71 @@ import (
 var (
 	extraTags = map[string]string{}
 	defaultIO = &IO{
-		MaxCacheCnt:        1024,
-		MaxDynamicCacheCnt: 1024,
-		FlushInterval:      10 * time.Second,
+		MaxCacheCount:             1024,
+		CacheDumpThreshold:        512,
+		MaxDynamicCacheCount:      1024,
+		DynamicCacheDumpThreshold: 512,
+		FlushInterval:             10 * time.Second,
 	}
 )
 
-func SetGlobalCacheCount(i int64) {
-	defaultIO.MaxCacheCnt = i
-	defaultIO.MaxDynamicCacheCnt = i
+type IOOption func(io *IO)
+
+func SetMaxCacheCount(max int64) IOOption {
+	return func(io *IO) {
+		io.MaxCacheCount = max
+	}
 }
 
-func SetOutputFile(f string) {
-	defaultIO.OutputFile = f
+func SetCacheDumpThreshold(threshold int64) IOOption {
+	return func(io *IO) {
+		io.CacheDumpThreshold = threshold
+	}
 }
 
-func SetDataWay(dw *dataway.DataWayCfg) {
-	defaultIO.dw = dw
+func SetMaxDynamicCacheCount(max int64) IOOption {
+	return func(io *IO) {
+		io.MaxDynamicCacheCount = max
+	}
+}
+
+func SetDynamicCacheDumpThreshold(threshold int64) IOOption {
+	return func(io *IO) {
+		io.DynamicCacheDumpThreshold = threshold
+	}
+}
+
+func SetFlushInterval(s string) IOOption {
+	return func(io *IO) {
+		if len(s) == 0 {
+			io.FlushInterval = 10 * time.Second
+		} else {
+			if d, err := time.ParseDuration(s); err != nil {
+				l.Errorf("parse io flush interval failed, %s", err.Error())
+				io.FlushInterval = 10 * time.Second
+			} else {
+				io.FlushInterval = d
+			}
+		}
+	}
+}
+
+func SetOutputFile(output string) IOOption {
+	return func(io *IO) {
+		io.OutputFile = output
+	}
+}
+
+func SetDataway(dw *dataway.DataWayCfg) IOOption {
+	return func(io *IO) {
+		io.dw = dw
+	}
+}
+
+func ConfigDefaultIO(opts ...IOOption) {
+	for _, opt := range opts {
+		opt(defaultIO)
+	}
 }
 
 func SetExtraTags(k, v string) {
