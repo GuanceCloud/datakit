@@ -10,12 +10,12 @@
 - 加强[行协议数据检查](...)
 - `system` 采集器，增加 [`conntrack`以及`filefd`](...) 两个指标集（未完成）
 - `datakit.conf` 增加 [IO 调参入口](...)，便于用户对 DataKit 网络出口流量做优化（未完成）
-- `datakit` 支持[服务卸载和恢复](...)
+- DataKit 支持[服务卸载和恢复](...)
 - Windows 平台的服务支持通过[命令行管理](...)
 - DataKit [API](...) 支持 Label 导入
 - DataKit 支持动态获取最新 DataWay 地址，避免默认 DataWay 被 DDos 攻击
-- DataKit 日志支持[输出到终端](...)，便于 k8s 部署时日志查看、采集
-- 调整 DataKit 主配置，各个不同配置模块化
+- DataKit 日志支持[输出到终端](...)（Windows 暂不不支持），便于 k8s 部署时日志查看、采集
+- 调整 DataKit 主配置，各个不同配置模块化（详见下面的 Breaking Changes）
 - 其它一些 bug 修复，完善现有的各种文档
 
 ### Breaking Changes

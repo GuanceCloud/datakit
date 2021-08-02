@@ -42,6 +42,7 @@ var (
 		"kubernetes-x":    "man/manuals/kubernetes-x.md",
 		"kubernetes-prom": "man/manuals/kubernetes-prom.md",
 		"why-no-data":     "man/manuals/why-no-data.md",
+		"development":     "man/manuals/development.md",
 	}
 
 	l = logger.DefaultSLogger("man")
