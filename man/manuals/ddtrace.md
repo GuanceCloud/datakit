@@ -31,6 +31,18 @@
 
 编辑 `conf.d/datakit.conf`，将 `listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）。此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `listen` 配置，直接使用 `http://localhost:9529` 即可。
 
+如果有 trace 数据发送给 DataKit，那么在 DataKit 的 `gin.log` 上能看到：
+
+```shell
+tail -f /var/log/datakit/gin.log
+[GIN] 2021/08/02 - 17:16:31 | 200 |     386.256µs |       127.0.0.1 | POST     "/v0.4/traces"
+[GIN] 2021/08/02 - 17:17:30 | 200 |     116.109µs |       127.0.0.1 | POST     "/v0.4/traces"
+[GIN] 2021/08/02 - 17:17:30 | 200 |     489.428µs |       127.0.0.1 | POST     "/v0.4/traces"
+...
+```
+
+> 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-how-to#44462aae)是看不到 ddtrace 的采集信息的。
+
 ## Python Flask 完整示例
 
 这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
@@ -222,9 +234,7 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 - 如果在 DataKit 上开启了采样率，就不要在 ddtrace 上再设置采样率，这可能导致双重采样，导致数据大面积缺失
 - 对 RUM 产生的 trace，这里的采样率不生效，建议在 [RUM 中设置采样率](https://www.yuque.com/dataflux/doc/eqs7v2#16fe8486)
 
-## 指标集
-
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ```toml
  [inputs.{{.InputName}}.tags]
@@ -233,16 +243,23 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
   # ...
 ```
 
+## Tracing 数据
+
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
 
 ### `{{$m.Name}}`
 
-- 标签
+{{$m.Desc}}
+
+-  标签
 
 {{$m.TagsMarkdownTable}}
 
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}

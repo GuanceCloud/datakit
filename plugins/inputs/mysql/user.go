@@ -24,6 +24,7 @@ func (m *userMeasurement) LineProto() (*io.Point, error) {
 // 指定指标
 func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
+		Desc: "MySQL 用户指标",
 		Name: "mysql_user_status",
 		Fields: map[string]interface{}{
 			// status
