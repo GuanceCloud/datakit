@@ -41,7 +41,7 @@ func (c *cluster) Gather() {
 			"create_time": obj.CreationTimestamp.Time.Unix(),
 		}
 
-		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
+		addMapToFields("annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesClusterName, tags, fields, time.Now())
@@ -61,16 +61,16 @@ func (*cluster) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesClusterName,
 		Desc: fmt.Sprintf("%s 对象数据", kubernetesClusterName),
-		Type: datakit.Object,
+		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("cluster UID"),
 			"cluster_name": inputs.NewTagInfo("cluster 名称"),
 		},
 		Fields: map[string]interface{}{
-			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"create_time":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "创建时间戳，精度为秒"},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "创建时间戳，精度为秒"},
+			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 			// TODO:
 			// "pod_capacity":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
 			// "pod_usage":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},

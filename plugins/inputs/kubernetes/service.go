@@ -47,11 +47,11 @@ func (s *service) Gather() {
 			"session_affinity":        fmt.Sprintf("%v", obj.Spec.SessionAffinity),
 		}
 
-		// addJSONStringToMap("selectors", obj.Spec.Selector, fields)
-		// addJSONStringToMap("load_balancer_ingress", obj.Status.LoadBalancer, fields)
-		addJSONStringToMap("external_ips", obj.Spec.ExternalIPs, fields)
+		// addSliceToFields("selectors", obj.Spec.Selector, fields)
+		// addSliceToFields("load_balancer_ingress", obj.Status.LoadBalancer, fields)
+		addSliceToFields("external_ips", obj.Spec.ExternalIPs, fields)
 
-		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
+		addMapToFields("annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesServiceName, tags, fields, time.Now())
@@ -73,7 +73,7 @@ func (*service) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesServiceName,
 		Desc: fmt.Sprintf("%s 对象数据", kubernetesServiceName),
-		Type: datakit.Object,
+		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("service UID"),
 			"service_name": inputs.NewTagInfo("service 名称"),
@@ -84,11 +84,11 @@ func (*service) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
 			"cluster_ip":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "cluster IP"},
-			"external_ips":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "external IP 列表，内容为 JSON 的字符串数组"},
+			"external_ips":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "external IP 列表，内容是以英文逗号拼接的字符串"},
 			"external_name":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "external 名称"},
 			"external_traffic_policy": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "external 负载均衡"},
 			"session_affinity":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "session关联性"},
-			"kubernetes_annotations":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
+			"annotations":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
 			"message":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 			// TODO:
 			// "load_balancer_ingress":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},

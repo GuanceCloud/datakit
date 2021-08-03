@@ -44,6 +44,7 @@ func (p *pod) Gather() {
 			"phase":        fmt.Sprintf("%v", obj.Status.Phase),
 			"qos_class":    fmt.Sprintf("%v", obj.Status.QOSClass),
 			"namespace":    obj.Namespace,
+			"status":       fmt.Sprintf("%v", obj.Status.Phase),
 		}
 		for k, v := range p.tags {
 			tags[k] = v
@@ -74,7 +75,7 @@ func (p *pod) Gather() {
 		}
 		fields["restarts"] = restartCount
 
-		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
+		addMapToFields("annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesPodName, tags, fields, time.Now())
@@ -96,7 +97,7 @@ func (*pod) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesPodName,
 		Desc: fmt.Sprintf("%s 对象数据", kubernetesPodName),
-		Type: datakit.Object,
+		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("pod UID"),
 			"pod_name":     inputs.NewTagInfo("pod 名称"),
@@ -108,12 +109,12 @@ func (*pod) Info() *inputs.MeasurementInfo {
 			"qos_class":    inputs.NewTagInfo("QOS Class"),
 		},
 		Fields: map[string]interface{}{
-			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"create_time":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "创建时间戳，精度为秒"},
-			"restarts":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "所有容器的重启次数"},
-			"ready":                  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "就绪"},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "创建时间戳，精度为秒"},
+			"restarts":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "所有容器的重启次数"},
+			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "就绪"},
+			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 		},
 	}
 }

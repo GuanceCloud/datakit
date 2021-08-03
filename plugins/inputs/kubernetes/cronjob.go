@@ -46,9 +46,11 @@ func (c *cronJob) Gather() {
 
 		if obj.Spec.Suspend != nil {
 			fields["suspend"] = *obj.Spec.Suspend
+		} else {
+			fields["suspend"] = defaultBoolerValue
 		}
 
-		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
+		addMapToFields("annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesCronJobName, tags, fields, time.Now())
@@ -70,7 +72,7 @@ func (*cronJob) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesCronJobName,
 		Desc: fmt.Sprintf("%s 对象数据", kubernetesCronJobName),
-		Type: datakit.Object,
+		Type: "object",
 		Tags: map[string]interface{}{
 			"name":          inputs.NewTagInfo("cronJob UID"),
 			"cron_job_name": inputs.NewTagInfo("cronJob 名称"),
@@ -78,11 +80,11 @@ func (*cronJob) Info() *inputs.MeasurementInfo {
 			"namespace":     inputs.NewTagInfo("所在命名空间"),
 		},
 		Fields: map[string]interface{}{
-			"active_jobs":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "活跃的 job 数量"},
-			"schedule":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "运行日程，例如 `*/1 * * * *`"},
-			"suspend":                &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "是否暂停"},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"active_jobs": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "活跃的 job 数量"},
+			"schedule":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "运行日程，例如 `*/1 * * * *`"},
+			"suspend":     &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "是否暂停"},
+			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 		},
 	}
 }

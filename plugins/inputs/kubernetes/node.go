@@ -44,7 +44,7 @@ func (n *node) Gather() {
 			"kubelet_version": obj.Status.NodeInfo.KubeletVersion,
 		}
 
-		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
+		addMapToFields("annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesNodeName, tags, fields, time.Now())
@@ -66,7 +66,7 @@ func (*node) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesNodeName,
 		Desc: kubernetesNodeName,
-		Type: datakit.Object,
+		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("node UID"),
 			"node_name":    inputs.NewTagInfo("node 名称"),
@@ -75,10 +75,10 @@ func (*node) Info() *inputs.MeasurementInfo {
 			"status":       inputs.NewTagInfo("当期状态，Pending/Running/Terminated"),
 		},
 		Fields: map[string]interface{}{
-			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"kubelet_version":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubelet 版本"},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"kubelet_version": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubelet 版本"},
+			"annotations":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 			// TODO:
 			// "schedulability":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "role":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},

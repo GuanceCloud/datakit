@@ -48,18 +48,29 @@ func (j *job) Gather() {
 
 		if obj.Spec.Parallelism != nil {
 			fields["parallelism"] = *obj.Spec.Parallelism
-		}
-		if obj.Spec.Completions != nil {
-			fields["completions"] = *obj.Spec.Completions
-		}
-		if obj.Spec.ActiveDeadlineSeconds != nil {
-			fields["active_deadline"] = *obj.Spec.ActiveDeadlineSeconds
-		}
-		if obj.Spec.BackoffLimit != nil {
-			fields["backoff_limit"] = *obj.Spec.BackoffLimit
+		} else {
+			fields["parallelism"] = defaultInteger32Value
 		}
 
-		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
+		if obj.Spec.Completions != nil {
+			fields["completions"] = *obj.Spec.Completions
+		} else {
+			fields["completions"] = defaultInteger32Value
+		}
+
+		if obj.Spec.ActiveDeadlineSeconds != nil {
+			fields["active_deadline"] = *obj.Spec.ActiveDeadlineSeconds
+		} else {
+			fields["active_deadline"] = defaultInteger64Value
+		}
+
+		if obj.Spec.BackoffLimit != nil {
+			fields["backoff_limit"] = *obj.Spec.BackoffLimit
+		} else {
+			fields["backoff_limit"] = defaultInteger32Value
+		}
+
+		addMapToFields("annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesJobName, tags, fields, time.Now())
@@ -81,7 +92,7 @@ func (*job) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesJobName,
 		Desc: fmt.Sprintf("%s 对象数据", kubernetesJobName),
-		Type: datakit.Object,
+		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("job UID"),
 			"job_name":     inputs.NewTagInfo("job 名称"),
@@ -89,16 +100,16 @@ func (*job) Info() *inputs.MeasurementInfo {
 			"namespace":    inputs.NewTagInfo("所在命名空间"),
 		},
 		Fields: map[string]interface{}{
-			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"active":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "活跃数"},
-			"succeeded":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "成功数"},
-			"failed":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "失败数"},
-			"completions":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "确定完成计数"},
-			"parallelism":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "并行数量"},
-			"backoff_limit":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "重试次数"},
-			"active_deadline":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "活跃期限，单位为秒"},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"active":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "活跃数"},
+			"succeeded":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "成功数"},
+			"failed":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "失败数"},
+			"completions":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "确定完成计数"},
+			"parallelism":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "并行数量"},
+			"backoff_limit":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "重试次数"},
+			"active_deadline": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "活跃期限，单位为秒"},
+			"annotations":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 			// TODO:
 			// "pod_statuses":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			//"duration":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},

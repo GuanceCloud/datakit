@@ -12,9 +12,7 @@ const (
 
 type containerMetricMeasurement struct{}
 
-func (c *containerMetricMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (c *containerMetricMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -52,9 +50,7 @@ func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 
 type containerObjectMeasurement struct{}
 
-func (c *containerObjectMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (c *containerObjectMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -99,9 +95,7 @@ func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 
 type containerLogMeasurement struct{}
 
-func (c *containerLogMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (c *containerLogMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -126,9 +120,7 @@ func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 
 type kubeletPodMetricMeasurement struct{}
 
-func (k *kubeletPodMetricMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (k *kubeletPodMetricMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (k *kubeletPodMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -160,9 +152,7 @@ func (k *kubeletPodMetricMeasurement) Info() *inputs.MeasurementInfo {
 
 type kubeletPodObjectMeasurement struct{}
 
-func (k *kubeletPodObjectMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (k *kubeletPodObjectMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (k *kubeletPodObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{

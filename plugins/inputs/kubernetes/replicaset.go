@@ -43,8 +43,8 @@ func (r *replicaSet) Gather() {
 			"ready": obj.Status.ReadyReplicas,
 		}
 
-		// addJSONStringToMap("selectors", obj.Spec.Selector, fields)
-		addJSONStringToMap("kubernetes_annotations", obj.Annotations, fields)
+		// addMapToFields("selectors", obj.Spec.Selector, fields)
+		addMapToFields("annotations", obj.Annotations, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesReplicaSetName, tags, fields, time.Now())
@@ -66,7 +66,7 @@ func (*replicaSet) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesReplicaSetName,
 		Desc: fmt.Sprintf("%s 对象数据", kubernetesReplicaSetName),
-		Type: datakit.Object,
+		Type: "object",
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("replicaSet UID"),
 			"replica_set_name": inputs.NewTagInfo("replicaSet 名称"),
@@ -74,10 +74,10 @@ func (*replicaSet) Info() *inputs.MeasurementInfo {
 			"namespace":        inputs.NewTagInfo("所在命名空间"),
 		},
 		Fields: map[string]interface{}{
-			"age":                    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"ready":                  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ready replicas"},
-			"kubernetes_annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "k8s annotations"},
-			"message":                &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ready replicas"},
+			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
 			//TODO:
 			// "selectors": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "current/desired":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
