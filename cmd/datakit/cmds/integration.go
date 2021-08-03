@@ -61,6 +61,7 @@ var (
 		"swap":           "Swap",
 		"system":         "System",
 		"tomcat":         "Tomcat",
+		"prom":           "Prometheus 数据接入",
 		"windows_event":  "Windows 事件",
 	}
 )
