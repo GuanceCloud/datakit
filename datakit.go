@@ -44,6 +44,7 @@ const (
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"
 	QueryRaw          = "/v1/query/raw"
+	ListDataWay       = "/v1/list/dataway"
 )
 
 var (

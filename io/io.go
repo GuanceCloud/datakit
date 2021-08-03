@@ -285,6 +285,9 @@ func (x *IO) StartIO(recoverable bool) {
 		heartBeatTick := time.NewTicker(time.Second * 30)
 		defer heartBeatTick.Stop()
 
+		datawaylistTick := time.NewTicker(time.Minute)
+		defer datawaylistTick.Stop()
+
 		for {
 			select {
 			case d := <-x.in:
@@ -308,6 +311,9 @@ func (x *IO) StartIO(recoverable bool) {
 
 			case <-heartBeatTick.C:
 				x.dw.HeartBeat()
+
+			case <-datawaylistTick.C:
+				x.dw.DatawayList()
 
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
