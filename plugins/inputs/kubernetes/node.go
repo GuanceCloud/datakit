@@ -65,7 +65,7 @@ func (*node) LineProto() (*io.Point, error) { return nil, nil }
 func (*node) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesNodeName,
-		Desc: kubernetesNodeName,
+		Desc: "Kubernetes node 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("node UID"),

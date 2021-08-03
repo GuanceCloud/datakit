@@ -80,7 +80,7 @@ func (*deployment) LineProto() (*io.Point, error) { return nil, nil }
 func (*deployment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesDeploymentName,
-		Desc: fmt.Sprintf("%s 对象数据", kubernetesDeploymentName),
+		Desc: "Kubernetes deployment 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":            inputs.NewTagInfo("deployment UID"),

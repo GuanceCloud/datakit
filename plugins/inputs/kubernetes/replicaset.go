@@ -65,7 +65,7 @@ func (*replicaSet) LineProto() (*io.Point, error) { return nil, nil }
 func (*replicaSet) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesReplicaSetName,
-		Desc: fmt.Sprintf("%s 对象数据", kubernetesReplicaSetName),
+		Desc: "Kubernetes replicaSet 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("replicaSet UID"),

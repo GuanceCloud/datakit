@@ -71,7 +71,7 @@ func (*cronJob) LineProto() (*io.Point, error) { return nil, nil }
 func (*cronJob) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesCronJobName,
-		Desc: fmt.Sprintf("%s 对象数据", kubernetesCronJobName),
+		Desc: "Kubernetes cron job 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":          inputs.NewTagInfo("cronJob UID"),
