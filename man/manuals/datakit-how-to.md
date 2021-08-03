@@ -398,7 +398,7 @@ datakit --reload  # Windows 平台不支持 reload 操作，只能通过重启�
 Linux 下，如果上述命令失效，可使用以下命令来替代：
 
 ```shell
-sudo service datakti stop/start/restart
+sudo service datakit stop/start/restart
 sudo systemctl stop/start/restart datakit
 ```
 

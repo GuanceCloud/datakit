@@ -8,8 +8,8 @@
 - 完善[主机名覆盖功能](...)
 - 优化 Pipeline 处理性能（约 15 倍左右，视不同 Pipeline 复杂度而定）
 - 加强[行协议数据检查](...)
-- `system` 采集器，增加 [`conntrack`以及`filefd`](...) 两个指标集（未完成）
-- `datakit.conf` 增加 [IO 调参入口](...)，便于用户对 DataKit 网络出口流量做优化（未完成）
+- `system` 采集器，增加 [`conntrack`以及`filefd`](...) 两个指标集
+- `datakit.conf` 增加 [IO 调参入口](...)，便于用户对 DataKit 网络出口流量做优化
 - DataKit 支持[服务卸载和恢复](...)
 - Windows 平台的服务支持通过[命令行管理](...)
 - DataKit [API](...) 支持 Label 导入
@@ -26,23 +26,23 @@
 
 ```toml
 [io]
-  max_cache_count = 1024 # 本地缓存最大值 原主配置中 io_cache_count
-  cache_dump_threshold = 512 # 本地缓存推送后清理剩余缓存阈值，[!!!important 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
-  max_dynamic_cache_count = 1024 # HTTP缓存最大值
-  dynamic_cache_dump_threshold = 512 # HTTP缓存推送后清理剩余缓存阈值，[!!!important 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
-  flush_interval = "10s" # 推送时间间隔
-  output_file = ""  # 输出io数据到本地文件，原主配置中 output_file
+  max_cache_count              = 1024  # 本地缓存最大值 原主配置中 io_cache_count
+  cache_dump_threshold         = 512   # 本地缓存推送后清理剩余缓存阈值，[!!!important 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
+  max_dynamic_cache_count      = 1024  # HTTP缓存最大值
+  dynamic_cache_dump_threshold = 512   # HTTP缓存推送后清理剩余缓存阈值，[!!!important 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
+  flush_interval               = "10s" # 推送时间间隔
+  output_file                  = ""    # 输出io数据到本地文件，原主配置中 output_file
 
 [http_api]
-	listen = "localhost:9529"  # 原 http_listen
-	disable_404page = false    # 原 disable_404page
+	listen          = "localhost:9529" # 原 http_listen
+	disable_404page = false            # 原 disable_404page
 
 [logging]
-	log = "/var/log/datakit/log"         # 原 log
-	gin_log = "/var/log/datakit/gin.log" # 原 gin.log
-	level = "info" # 原 log_level
-	rotate = 32    # 原 log_rotate
-	disable_color = false # 新增配置
+	log           = "/var/log/datakit/log"     # 原 log
+	gin_log       = "/var/log/datakit/gin.log" # 原 gin.log
+	level         = "info"                     # 原 log_level
+	rotate        = 32                         # 原 log_rotate
+	disable_color = false                      # 新增配置
 ```
 
 ## 1.1.7-rc9.1(2021/07/17)
