@@ -132,26 +132,30 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 #### `host.conntrack`
 
-| 字段名		| 描述		| 类型 |
-| --- | --- |:---: |
-| `entries` | 当前连接数量| int |
-| `entries_limit` | 连接跟踪表的大小 | int |
-| `stat_found` | 成功的搜索条目数目  | int |
-| `stat_invalid` | 不能被跟踪的包数目 | int |
-| `stat_ignore` | 已经被跟踪的报数目 | int |
-| `stat_insert` | 插入的包数目 | int |
-| `stat_insert_failed` | 插入失败的包数目 | int |
-| `stat_drop` | 跟踪失败被丢弃的包数目| int |
-| `stat_early_drop` | 由于跟踪表满而导致部分已跟踪包条目被丢弃的数目| int |
-| `stat_search_restart` | 由于hash表大小修改而导致跟踪表查询重启的数目 | int |
+> 注意：仅 Linux 平台支持
+
+| 字段名                | 描述                                           | 类型  |
+| ---                   | ---                                            | :---: |
+| `entries`             | 当前连接数量                                   | int   |
+| `entries_limit`       | 连接跟踪表的大小                               | int   |
+| `stat_found`          | 成功的搜索条目数目                             | int   |
+| `stat_invalid`        | 不能被跟踪的包数目                             | int   |
+| `stat_ignore`         | 已经被跟踪的报数目                             | int   |
+| `stat_insert`         | 插入的包数目                                   | int   |
+| `stat_insert_failed`  | 插入失败的包数目                               | int   |
+| `stat_drop`           | 跟踪失败被丢弃的包数目                         | int   |
+| `stat_early_drop`     | 由于跟踪表满而导致部分已跟踪包条目被丢弃的数目 | int   |
+| `stat_search_restart` | 由于hash表大小修改而导致跟踪表查询重启的数目   | int   |
 
 #### `host.filefd`
 
-| 字段名		| 描述		| 类型 |
-| --- | --- |:---: |
-| `allocated` | 已分配文件句柄的数目| int |
-| `maximum` | 文件句柄的最大数目 | int |
-| `maximum_mega` | 文件句柄的最大数目，单位 M(10^6) | float |
+> 注意：仅 Linux 平台支持
+
+| 字段名         | 描述                                                 | 类型  |
+| ---            | ---                                                  | :---: |
+| `allocated`    | 已分配文件句柄的数目                                 | int   |
+| `maximum`      | 文件句柄的最大数目（已弃用，用 `maximum_mega` 替代） | int   |
+| `maximum_mega` | 文件句柄的最大数目，单位 M(10^6)                     | float |
 
 #### 单个采集器运行情况字段列表
 

@@ -31,6 +31,7 @@ func (m *conntrackMeasurement) LineProto() (*io.Point, error) {
 func (m *conntrackMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameConntrack,
+		Desc: "系统网络连接指标（仅 Linux 支持）",
 		Fields: map[string]interface{}{
 			"entries":             newFieldInfoCount("当前连接数量"),
 			"entries_limit":       newFieldInfoCount("连接跟踪表的大小"),
@@ -58,6 +59,7 @@ func (m *filefdMeasurement) LineProto() (*io.Point, error) {
 func (m *filefdMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameFilefd,
+		Desc: "系统文件句柄指标（仅 Linux 支持）",
 		Fields: map[string]interface{}{
 			"allocated": newFieldInfoCount("已分配文件句柄的数目"),
 			// "maximum":      newFieldInfoCount("文件句柄的最大数目； 当值为 2^63-1 则页面显示 9223372036854776000(若大于此值，均会造成精度损失)"),
@@ -74,6 +76,7 @@ type systemMeasurement measurement
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameSystem,
+		Desc: "系统运行基础信息",
 		Fields: map[string]interface{}{
 			"load1":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "过去 1 分钟的 CPU 平均负载"},
 			"load5":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "过去 5 分钟的 CPU 平均负载"},
