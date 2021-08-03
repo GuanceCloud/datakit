@@ -48,6 +48,35 @@ func TestHeartBeat(t *testing.T) {
 	}
 }
 
+func TestListDataWay(t *testing.T) {
+	cases := []struct {
+		urls []string
+		fail bool
+	}{
+		{
+			urls: []string{"http://abc.com"},
+		},
+	}
+
+	ExtraHeaders = map[string]string{
+		"dkid": "not-set",
+	}
+
+	for _, tc := range cases {
+		dw := &DataWayCfg{URLs: tc.urls, ontest: true}
+		err := dw.Apply()
+		tu.Equals(t, nil, err)
+
+		err = dw.DatawayList()
+		if tc.fail {
+			tu.NotOk(t, err, "")
+		} else {
+			t.Logf(`dataways: %+#v`, AvailableDataways)
+			tu.Ok(t, err)
+		}
+	}
+}
+
 func TestSend(t *testing.T) {
 	cases := []struct {
 		urls     []string
