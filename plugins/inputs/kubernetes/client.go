@@ -19,8 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
-const tokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-
 type client struct {
 	namespace string
 	*kubernetes.Clientset
@@ -29,10 +27,6 @@ type client struct {
 func newClientFromBearerToken(baseURL, path string) (*client, error) {
 	if baseURL == "" {
 		return nil, fmt.Errorf("invalid baseURL, cannot be empty")
-	}
-
-	if path == "" {
-		path = tokenFile
 	}
 
 	token, err := ioutil.ReadFile(path)

@@ -20,7 +20,7 @@ var (
 )
 
 const (
-	defaultMetricInterval = time.Second * 10
+	defaultMetricInterval = time.Minute * 1
 	defaultObjectInterval = time.Minute * 5
 )
 
@@ -55,8 +55,8 @@ func (this *Input) Run() {
 
 	metricTick := time.NewTicker(func() time.Duration {
 		dur, err := timex.ParseDuration(this.Interval)
-		if err != nil {
-			l.Debug("use default metric interval: 10s")
+		if err != nil || dur < defaultMetricInterval {
+			l.Debug("use default metric interval: 60s")
 			return defaultMetricInterval
 		}
 		return dur
@@ -66,7 +66,8 @@ func (this *Input) Run() {
 	objectTick := time.NewTicker(defaultObjectInterval)
 	defer objectTick.Stop()
 
-	// 首先运行一次对象采集
+	// 首先运行一次采集
+	this.gatherMetric()
 	this.gatherObject()
 
 	for {
@@ -76,8 +77,7 @@ func (this *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			k := &kubernetesMetric{client: this.client, tags: this.Tags}
-			k.Gather()
+			this.gatherMetric()
 
 		case <-objectTick.C:
 			if this.pause {
@@ -183,21 +183,34 @@ end:
 
 func (this *Input) buildResources() {
 	this.resourceList = []resource{
+		// metric
+		&kubernetesMetric{client: this.client, tags: this.Tags},
+		// object
 		&cluster{client: this.client, tags: this.Tags},
-		&pod{client: this.client, tags: this.Tags},
 		&deployment{client: this.client, tags: this.Tags},
 		&replicaSet{client: this.client, tags: this.Tags},
 		&service{client: this.client, tags: this.Tags},
 		&node{client: this.client, tags: this.Tags},
 		&job{client: this.client, tags: this.Tags},
 		&cronJob{client: this.client, tags: this.Tags},
+		// &pod{client: this.client, tags: this.Tags},
 	}
 }
 
 func (this *Input) gatherObject() {
-	for _, resource := range this.resourceList {
+	if len(this.resourceList) < 2 {
+		return
+	}
+	for _, resource := range this.resourceList[1:] {
 		resource.Gather()
 	}
+}
+
+func (this *Input) gatherMetric() {
+	if len(this.resourceList) == 0 {
+		return
+	}
+	this.resourceList[0].Gather()
 }
 
 func (this *Input) Pause() error {
@@ -227,11 +240,12 @@ func (*Input) SampleConfig() string { return sampleCfg }
 func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	var res []inputs.Measurement
+	var res = []inputs.Measurement{
+		&kubernetesMetric{},
+	}
 	for _, resource := range resourceList {
 		res = append(res, resource)
 	}
-	res = append(res, &kubernetesMetric{})
 	return res
 }
 
