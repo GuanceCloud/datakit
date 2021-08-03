@@ -231,7 +231,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	if x.cacheCnt > x.MaxCacheCount && tryClean || x.dynamicCacheCnt > x.MaxDynamicCacheCount {
+	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) || (x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
 		x.flushAll()
 	}
 }
@@ -393,7 +393,7 @@ func (x *IO) flush() {
 func (x *IO) buildBody(pts []*Point, out chan *body) {
 	send := func(lines []string) {
 		body := &body{buf: []byte(strings.Join(lines, "\n"))}
-		l.Debugf("### io body before GZ size: %dM %dK", body.len()/1000/1000, body.len()/1000)
+		l.Debugf("### io body size before GZ: %dM %dK", body.len()/1000/1000, body.len()/1000)
 		if body.len() > minGZSize && x.OutputFile == "" {
 			if body.buf, body.err = datakit.GZipStr(string(body.buf)); body.err != nil {
 				l.Errorf("gz: %s", body.err.Error())
