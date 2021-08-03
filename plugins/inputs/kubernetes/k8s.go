@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -21,7 +20,7 @@ func (m *kubernetesMetric) LineProto() (*io.Point, error) { return nil, nil }
 func (m *kubernetesMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: k8sMeasurement,
-		Desc: fmt.Sprintf("%s 指标数据，统计各种资源数量", k8sMeasurement),
+		Desc: "Kubernetes 指标数据",
 		Type: "metric",
 		Tags: map[string]interface{}{
 			"namespace": &inputs.TagInfo{Desc: "namespace"},

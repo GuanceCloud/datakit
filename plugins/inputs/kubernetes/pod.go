@@ -96,7 +96,7 @@ func (*pod) LineProto() (*io.Point, error) { return nil, nil }
 func (*pod) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesPodName,
-		Desc: fmt.Sprintf("%s 对象数据", kubernetesPodName),
+		Desc: "Kubernetes pod 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("pod UID"),

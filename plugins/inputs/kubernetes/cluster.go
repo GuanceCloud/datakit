@@ -60,7 +60,7 @@ func (*cluster) LineProto() (*io.Point, error) { return nil, nil }
 func (*cluster) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesClusterName,
-		Desc: fmt.Sprintf("%s 对象数据", kubernetesClusterName),
+		Desc: "Kubernetes cluster 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("cluster UID"),

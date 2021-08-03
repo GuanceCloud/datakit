@@ -91,7 +91,7 @@ func (*job) LineProto() (*io.Point, error) { return nil, nil }
 func (*job) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesJobName,
-		Desc: fmt.Sprintf("%s 对象数据", kubernetesJobName),
+		Desc: "Kubernetes job 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("job UID"),

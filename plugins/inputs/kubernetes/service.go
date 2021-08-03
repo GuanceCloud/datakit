@@ -72,7 +72,7 @@ func (*service) LineProto() (*io.Point, error) { return nil, nil }
 func (*service) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesServiceName,
-		Desc: fmt.Sprintf("%s 对象数据", kubernetesServiceName),
+		Desc: "Kubernetes service 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("service UID"),
