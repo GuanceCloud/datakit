@@ -26,9 +26,9 @@
 
 ```toml
 [io]
-  max_cache_count = 1024 # 本地缓存最大值 原主配置中 io_cache_count
+  max_cache_count = 1024 # 本地缓存最大值 原主配置中 io_cache_count [!!!important 此数值与max_dynamic_cache_count同时小于等于零将无限使用内存]
   cache_dump_threshold = 512 # 本地缓存推送后清理剩余缓存阈值，[!!!important 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
-  max_dynamic_cache_count = 1024 # HTTP缓存最大值
+  max_dynamic_cache_count = 1024 # HTTP缓存最大值，[!!!important 此数值与max_cache_count同时小于等于零将无限使用内存]
   dynamic_cache_dump_threshold = 512 # HTTP缓存推送后清理剩余缓存阈值，[!!!important 此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
   flush_interval = "10s" # 推送时间间隔
   output_file = ""  # 输出io数据到本地文件，原主配置中 output_file
