@@ -18,7 +18,7 @@ case $branch_name in
 		git push origin testing
 		;;
 
-	"dev") echo "release prod release..."
+	"master") echo "release prod release..."
 		if [ -z $new_tag ]; then
 			echo "[E] new tag required to release production datakit, latest tag is ${latest_tag}"
 		else
