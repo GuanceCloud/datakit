@@ -93,6 +93,24 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `arch`             | CPU 硬件架构，如 `x86_64/arm64` 等             | string |
 | `extra_cloud_meta` | 开启云同步时，会带上一串云属性的 JSON 数据     | string |
 
+##### `host.meta.extra_cloud_meta`
+
+| 字段名                  | 描述           | 类型   |
+| ---                     | ----           | :---:  |
+| `cloud_provider`        | 云服务商       | string |
+| `description`           | 描述           | string |
+| `instance_id`           | 实例 ID        | string |
+| `instance_name`         | 实例名         | string |
+| `instance_type`         | 实例类型       | string |
+| `instance_charge_type`  | 实例计费类型   | string |
+| `instance_network_type` | 实例网络类型   | string |
+| `instance_status`       | 实例状态       | string |
+| `security_group_id`     | 实例分组       | string |
+| `private_ip`            | 实例私网 IP    | string |
+| `zone_id`               | 实例 Zone ID   | string |
+| `region`                | 实例 Region ID | string |
+
+
 #### `host.cpu`
 
 | 字段名        | 描述                                                    | 类型   |
