@@ -33,12 +33,6 @@ GRANT SELECT ON sys.dba_tablespaces TO datakit;
 GRANT SELECT ON sys.dba_tablespace_usage_metrics TO datakit;
 ```
 
-备注：ORACLE 11g, 需要以下设定
-
-```sql
-ALTER SESSION SET "_ORACLE_SCRIPT"=true;
-```
-
 - 安装依赖包
 
 根据操作系统和 ORACLE 版本选择安装对应的安装包,参考[这里](https://oracle.github.io/odpi/doc/installation.html)，如：
@@ -48,8 +42,7 @@ wget https://download.oracle.com/otn_software/linux/instantclient/211000/instant
 unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
 ```
 
-将解压后的目录文件路径添加到以下配置信息中的`LD_LIBRARY_PATH`环境变量路径中
-
+将解压后的目录文件路径添加到以下配置信息中的`LD_LIBRARY_PATH`环境变量路径中。
 
 ## 配置
 

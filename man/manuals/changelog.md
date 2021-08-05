@@ -2,6 +2,15 @@
 
 # DataKit 版本历史
 
+## 1.1.8-rc1(2021/08/05)
+
+- 修复 Mac 上新装 DataKit 无法启动的问题
+- 修复 Mac 上非 `root` 用户操作服务「假成功」的问题
+- 优化数据上传的性能
+- 文档完善
+
+----------
+
 ## 1.1.8-rc0(2021/08/03)
 
 - 完善 [Kubernetes](kubernetes) 采集器，增加更多 Kubernetes 对象采集
@@ -43,6 +52,7 @@
 	rotate        = 32                         # 原 log_rotate
 	disable_color = false                      # 新增配置
 ```
+-----------
 
 ## 1.1.7-rc9.1(2021/07/17)
 

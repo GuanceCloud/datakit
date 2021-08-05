@@ -39,7 +39,7 @@ var (
 		"rum":                      "man/manuals/rum.md",
 		"ddtrace-java":             "man/manuals/ddtrace-java.md",
 		// "kube-state-metrics":       "man/manuals/kube-state-metrics.md",
-		//"kubernetes-x":    "man/manuals/kubernetes-x.md",
+		"kubernetes-x":    "man/manuals/kubernetes-x.md",
 		"kubernetes-prom": "man/manuals/kubernetes-prom.md",
 		"why-no-data":     "man/manuals/why-no-data.md",
 		"development":     "man/manuals/development.md",
