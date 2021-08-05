@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -35,16 +34,6 @@ type Option struct {
 type lastErr struct {
 	from, err string
 	ts        time.Time
-}
-
-type body struct {
-	buf  []byte
-	gzon bool
-	err  error
-}
-
-func (this *body) len() int {
-	return len(this.buf)
 }
 
 type IO struct {
@@ -388,37 +377,47 @@ func (x *IO) flush() {
 	}
 }
 
-// buildBody need <out> parameter as result output and guarantee that not nil body send back to caller always, so
-// check if body.len() == 0 when input <pts> is empty and body == nil if output channel closed.
-func (x *IO) buildBody(pts []*Point, out chan *body) {
-	send := func(lines []string) {
-		body := &body{buf: []byte(strings.Join(lines, "\n"))}
-		l.Debugf("### io body size before GZ: %dM %dK", body.len()/1000/1000, body.len()/1000)
-		if body.len() > minGZSize && x.OutputFile == "" {
-			if body.buf, body.err = datakit.GZipStr(string(body.buf)); body.err != nil {
-				l.Errorf("gz: %s", body.err.Error())
+type body struct {
+	buf  []byte
+	gzon bool
+}
+
+func (x *IO) buildBody(pts []*Point) ([]*body, error) {
+
+	var curbody []byte
+	var bodies []*body
+	var sep byte = '\n'
+
+	for _, pt := range pts {
+		ln := []byte(pt.String())
+		if len(curbody)+len(ln) > maxKodoPack && x.OutputFile == "" { // NOTE: maxKodoPack should always > minGZSize
+			if buf, err := datakit.GZip(curbody); err != nil {
+				l.Errorf("gzip failed: %s", err)
+				return nil, err
 			} else {
-				body.gzon = true
+				bodies = append(bodies, &body{buf: buf, gzon: true})
+				curbody = nil
 			}
+		} else {
+			curbody = append(curbody, append(ln, sep)...)
 		}
-		out <- body
 	}
 
-	var (
-		lines []string
-		bytes = 0
-	)
-	for _, pt := range pts {
-		if bytes+len(pt.String())+1 >= maxKodoPack {
-			send(lines)
-			lines = []string{}
-			bytes = 0
+	if len(curbody) > 0 {
+		if len(curbody) > minGZSize && x.OutputFile == "" {
+			if buf, err := datakit.GZip(curbody); err != nil {
+				l.Errorf("gzip failed: %s", err)
+				return nil, err
+			} else {
+				bodies = append(bodies, &body{buf: buf, gzon: true})
+				curbody = nil
+			}
+		} else {
+			bodies = append(bodies, &body{buf: curbody, gzon: false})
 		}
-		lines = append(lines, pt.String())
-		bytes += len(pt.String()) + 1
 	}
-	send(lines)
-	close(out)
+
+	return bodies, nil
 }
 
 func (x *IO) doFlush(pts []*Point, category string) error {
@@ -430,18 +429,19 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 		return nil
 	}
 
-	output := make(chan *body)
-	go x.buildBody(pts, output)
-	for body := range output {
-		if body == nil || body.len() == 0 {
-			break
-		}
-		if body.err != nil {
-			return body.err
+	bodies, err := x.buildBody(pts)
+	if err != nil {
+		return err
+	}
+
+	for _, body := range bodies {
+		if body.buf == nil || len(body.buf) == 0 {
+			continue
 		}
 
 		if x.OutputFile != "" {
-			return x.fileOutput(body.buf)
+			x.fileOutput(body.buf)
+			continue
 		}
 
 		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
