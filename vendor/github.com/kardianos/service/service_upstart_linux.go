@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 	"text/template"
+	"time"
 )
 
 func isUpstart() bool {
@@ -224,7 +225,12 @@ func (s *upstart) Stop() error {
 }
 
 func (s *upstart) Restart() error {
-	return run("initctl", "restart", s.Name)
+	err := s.Stop()
+	if err != nil {
+		return err
+	}
+	time.Sleep(50 * time.Millisecond)
+	return s.Start()
 }
 
 // The upstart script should stop with an INT or the Go runtime will terminate

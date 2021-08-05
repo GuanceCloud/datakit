@@ -2,12 +2,11 @@
 // Use of this source code is governed by a zlib-style
 // license that can be found in the LICENSE file.
 
-// +build linux darwin solaris aix freebsd
+// +build linux darwin
 
 package service
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -100,7 +99,7 @@ func runCommand(command string, readStdout bool, arguments ...string) (int, stri
 	// so check for emtpy stderr
 	if command == "launchctl" {
 		slurp, _ := ioutil.ReadAll(stderr)
-		if len(slurp) > 0 && !bytes.HasSuffix(slurp, []byte("Operation now in progress\n")) {
+		if len(slurp) > 0 {
 			return 0, "", fmt.Errorf("%q failed with stderr: %s", command, slurp)
 		}
 	}

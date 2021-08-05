@@ -363,7 +363,7 @@ github.com/jessevdk/go-flags
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
-# github.com/kardianos/service v1.2.0
+# github.com/kardianos/service v1.0.0
 ## explicit
 github.com/kardianos/service
 # github.com/karrick/godirwalk v1.16.1

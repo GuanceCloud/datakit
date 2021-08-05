@@ -43,6 +43,8 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
   # ...
 ```
 
+> 注意：这里添加自定义 tag 时，尽量不要跟已有的 tag key/field key 同名。如果同名，DataKit 将选择配置里面的 tag 来覆盖采集的数据，可能导致一些数据问题。
+
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
@@ -56,6 +58,24 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+如果开启了云同步，会多出如下一些字段（以同步到的字段为准）：
+
+| 字段名                  | 描述           | 类型   |
+| ---                     | ----           | :---:  |
+| `cloud_provider`        | 云服务商       | string |
+| `description`           | 描述           | string |
+| `instance_id`           | 实例 ID        | string |
+| `instance_name`         | 实例名         | string |
+| `instance_type`         | 实例类型       | string |
+| `instance_charge_type`  | 实例计费类型   | string |
+| `instance_network_type` | 实例网络类型   | string |
+| `instance_status`       | 实例状态       | string |
+| `security_group_id`     | 实例分组       | string |
+| `private_ip`            | 实例私网 IP    | string |
+| `zone_id`               | 实例 Zone ID   | string |
+| `region`                | 实例 Region ID | string |
+
 
 ### `message` 指标字段结构
 
@@ -92,24 +112,6 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `kernel_release`   | 内核版本，如 `4.15.0-139-generic`              | string |
 | `arch`             | CPU 硬件架构，如 `x86_64/arm64` 等             | string |
 | `extra_cloud_meta` | 开启云同步时，会带上一串云属性的 JSON 数据     | string |
-
-##### `host.meta.extra_cloud_meta`
-
-| 字段名                  | 描述           | 类型   |
-| ---                     | ----           | :---:  |
-| `cloud_provider`        | 云服务商       | string |
-| `description`           | 描述           | string |
-| `instance_id`           | 实例 ID        | string |
-| `instance_name`         | 实例名         | string |
-| `instance_type`         | 实例类型       | string |
-| `instance_charge_type`  | 实例计费类型   | string |
-| `instance_network_type` | 实例网络类型   | string |
-| `instance_status`       | 实例状态       | string |
-| `security_group_id`     | 实例分组       | string |
-| `private_ip`            | 实例私网 IP    | string |
-| `zone_id`               | 实例 Zone ID   | string |
-| `region`                | 实例 Region ID | string |
-
 
 #### `host.cpu`
 
