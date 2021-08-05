@@ -189,11 +189,14 @@ func (c *Input) Collect() error {
 
 	// merge custom tags: if conflict with fields, ignore the tag
 	for k, v := range c.Tags {
-		if _, ok := c.collectData.fields[k]; !ok {
-			c.collectData.fields[k] = v
-		} else {
-			l.Warnf("ignore tag %s: %s", k, v)
+		// 添加的 tag key 不能存在已有的 field key 中
+		if _, ok := c.collectData.fields[k]; ok {
+			l.Warnf("ignore tag `%s', exists in field", k)
+			continue
 		}
+
+		// 用户 tag 无脑添加 tag(可能覆盖已有 tag)
+		c.collectData.tags[k] = v
 	}
 
 	if c.p != nil {
