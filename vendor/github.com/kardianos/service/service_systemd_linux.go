@@ -69,7 +69,7 @@ func (s *systemd) Platform() string {
 
 func (s *systemd) configPath() (cp string, err error) {
 	if !s.isUserService() {
-		cp = "/etc/systemd/system/" + s.unitName()
+		cp = "/etc/systemd/system/" + s.Config.Name + ".service"
 		return
 	}
 	homeDir, err := os.UserHomeDir()
@@ -81,12 +81,8 @@ func (s *systemd) configPath() (cp string, err error) {
 	if err != nil {
 		return
 	}
-	cp = filepath.Join(systemdUserDir, s.unitName())
+	cp = filepath.Join(systemdUserDir, s.Config.Name+".service")
 	return
-}
-
-func (s *systemd) unitName() string {
-	return s.Config.Name + ".service"
 }
 
 func (s *systemd) getSystemdVersion() int64 {
@@ -145,13 +141,6 @@ func (s *systemd) Install() error {
 	_, err = os.Stat(confPath)
 	if err == nil {
 		return fmt.Errorf("Init already exists: %s", confPath)
-	}
-
-	// create EnvironmentFile file /etc/sysconfig/{{.Name}}
-	if s.Config.Envs != nil {
-		if err := createSysconfig(s.Config.Name, s.Config.Envs); err != nil {
-			return err
-		}
 	}
 
 	f, err := os.OpenFile(confPath, os.O_WRONLY|os.O_CREATE, 0644)
@@ -241,7 +230,7 @@ func (s *systemd) Run() (err error) {
 }
 
 func (s *systemd) Status() (Status, error) {
-	exitCode, out, err := runWithOutput("systemctl", "is-active", s.unitName())
+	exitCode, out, err := runWithOutput("systemctl", "is-active", s.Name)
 	if exitCode == 0 && err != nil {
 		return StatusUnknown, err
 	}
@@ -251,7 +240,7 @@ func (s *systemd) Status() (Status, error) {
 		return StatusRunning, nil
 	case strings.HasPrefix(out, "inactive"):
 		// inactive can also mean its not installed, check unit files
-		exitCode, out, err := runWithOutput("systemctl", "list-unit-files", "-t", "service", s.unitName())
+		exitCode, out, err := runWithOutput("systemctl", "list-unit-files", "-t", "service", s.Name)
 		if exitCode == 0 && err != nil {
 			return StatusUnknown, err
 		}
@@ -290,13 +279,13 @@ func (s *systemd) run(action string, args ...string) error {
 }
 
 func (s *systemd) runAction(action string) error {
-	return s.run(action, s.unitName())
+	return s.run(action, s.Name+".service")
 }
 
 const systemdScript = `[Unit]
 Description={{.Description}}
 ConditionFileIsExecutable={{.Path|cmdEscape}}
-{{range $i, $dep := .Dependencies}}
+{{range $i, $dep := .Dependencies}} 
 {{$dep}} {{end}}
 
 [Service]

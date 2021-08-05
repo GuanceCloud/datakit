@@ -186,7 +186,7 @@ func (s *darwinLaunchdService) Uninstall() error {
 func (s *darwinLaunchdService) Status() (Status, error) {
 	exitCode, out, err := runWithOutput("launchctl", "list", s.Name)
 	if exitCode == 0 && err != nil {
-		if !strings.Contains(err.Error(), "failed with stderr") {
+		if !strings.Contains(err.Error(), "failed with StandardError") {
 			return StatusUnknown, err
 		}
 	}
@@ -259,7 +259,6 @@ func (s *darwinLaunchdService) SystemLogger(errs chan<- error) (Logger, error) {
 	return newSysLogger(s.Name, errs)
 }
 
-// launchd EnvironmentVariables settings, see: https://serverfault.com/a/128693/149732
 var launchdConfig = `<?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"
 "http://www.apple.com/DTDs/PropertyList-1.0.dtd" >
@@ -288,22 +287,12 @@ var launchdConfig = `<?xml version='1.0' encoding='UTF-8'?>
     <{{bool .RunAtLoad}}/>
     <key>Disabled</key>
     <false/>
-
-   <key>EnvironmentVariables</key>
-   {{if .Config.Envs}}
-   <dict>
-   {{ range $key, $value := .Config.Envs }}
-     <key>{{ $key }}</key>
-     <string>{{ $value }}</string>
-   {{ end }}
-   </dict>
-   {{end}}
-
+    
     <key>StandardOutPath</key>
     <string>/usr/local/var/log/{{html .Name}}.out.log</string>
     <key>StandardErrorPath</key>
     <string>/usr/local/var/log/{{html .Name}}.err.log</string>
-
+  
   </dict>
 </plist>
 `

@@ -141,12 +141,6 @@ func (s *upstart) Install() error {
 	}
 	defer f.Close()
 
-	if s.Config.Envs != nil {
-		if err := createSysconfig(s.Config.Name, s.Config.Envs); err != nil {
-			return err
-		}
-	}
-
 	path, err := s.execPath()
 	if err != nil {
 		return err
@@ -263,7 +257,7 @@ script
 	stdout_log="/var/log/{{.Name}}.out"
 	stderr_log="/var/log/{{.Name}}.err"
 	{{end}}
-
+	
 	if [ -f "/etc/sysconfig/{{.Name}}" ]; then
 		set -a
 		source /etc/sysconfig/{{.Name}}

@@ -498,7 +498,7 @@ func runDatakitWithCmds() {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 		x, err := cmds.DatakitStatus()
 		if err != nil {
-			fmt.Println("Get DataKit status failed: %s\n", err)
+			fmt.Printf("Get DataKit status failed: %s\n", err)
 			os.Exit(-1)
 		}
 		fmt.Println(x)
@@ -508,7 +508,7 @@ func runDatakitWithCmds() {
 	if *flagUninstall {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.UninstallDatakit(); err != nil {
-			fmt.Println("Get DataKit status failed: %s\n", err)
+			fmt.Printf("Get DataKit status failed: %s\n", err)
 			os.Exit(-1)
 		}
 		os.Exit(0)
@@ -517,7 +517,7 @@ func runDatakitWithCmds() {
 	if *flagReinstall {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.ReinstallDatakit(); err != nil {
-			fmt.Println("Reinstall DataKit failed: %s\n", err)
+			fmt.Printf("Reinstall DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}
 		os.Exit(0)

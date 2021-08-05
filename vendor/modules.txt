@@ -345,7 +345,6 @@ github.com/influxdata/influxdb1-client/v2
 # github.com/influxdata/telegraf v1.15.2
 ## explicit
 github.com/influxdata/telegraf
-github.com/influxdata/telegraf/filter
 github.com/influxdata/telegraf/internal/templating
 github.com/influxdata/telegraf/metric
 github.com/influxdata/telegraf/plugins/common/tls
@@ -364,7 +363,7 @@ github.com/jessevdk/go-flags
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
-# github.com/kardianos/service v1.0.0 => github.com/coanor/service v1.2.2
+# github.com/kardianos/service v1.2.0
 ## explicit
 github.com/kardianos/service
 # github.com/karrick/godirwalk v1.16.1
@@ -919,18 +918,13 @@ k8s.io/client-go/pkg/version
 k8s.io/client-go/plugin/pkg/client/auth/exec
 k8s.io/client-go/rest
 k8s.io/client-go/rest/watch
-k8s.io/client-go/tools/auth
-k8s.io/client-go/tools/clientcmd
 k8s.io/client-go/tools/clientcmd/api
-k8s.io/client-go/tools/clientcmd/api/latest
-k8s.io/client-go/tools/clientcmd/api/v1
 k8s.io/client-go/tools/metrics
 k8s.io/client-go/tools/reference
 k8s.io/client-go/transport
 k8s.io/client-go/util/cert
 k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/flowcontrol
-k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 # k8s.io/klog v1.0.0
 k8s.io/klog
@@ -939,4 +933,3 @@ k8s.io/utils/integer
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml
 # github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
-# github.com/kardianos/service => github.com/coanor/service v1.2.2
