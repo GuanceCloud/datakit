@@ -1,6 +1,7 @@
 package io
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -13,7 +14,7 @@ import (
 
 const (
 	minGZSize   = 1024
-	maxKodoPack = 10 * 1000 * 10000
+	maxKodoPack = 10 * 1000 * 1000
 )
 
 var (
@@ -382,49 +383,55 @@ type body struct {
 	gzon bool
 }
 
+var lines = bytes.Buffer{}
+
 func (x *IO) buildBody(pts []*Point) ([]*body, error) {
+	var (
+		gz = func(lines []byte) (*body, error) {
+			var (
+				body = &body{buf: lines}
+				err  error
+			)
+			l.Debugf("### io body size before GZ: %dM %dK", len(body.buf)/1000/1000, len(body.buf)/1000)
+			if len(lines) > minGZSize && x.OutputFile == "" {
+				if body.buf, err = datakit.GZip(body.buf); err != nil {
+					l.Errorf("gz: %s", err.Error())
 
-	var curbody []byte
-	var bodies []*body
-	var sep byte = '\n'
+					return nil, err
+				}
+				body.gzon = true
+			}
 
+			return body, nil
+		}
+		// lines  bytes.Buffer
+		bodies []*body
+	)
+	lines.Reset()
 	for _, pt := range pts {
-		ln := []byte(pt.String())
-		if len(curbody)+len(ln) > maxKodoPack && x.OutputFile == "" { // NOTE: maxKodoPack should always > minGZSize
-			if buf, err := datakit.GZip(curbody); err != nil {
-				l.Errorf("gzip failed: %s", err)
+		ptstr := pt.String()
+		if lines.Len()+len(ptstr)+1 >= maxKodoPack {
+			if body, err := gz(lines.Bytes()); err != nil {
 				return nil, err
 			} else {
-				bodies = append(bodies, &body{buf: buf, gzon: true})
-				curbody = nil
+				bodies = append(bodies, body)
 			}
-		} else {
-			curbody = append(curbody, append(ln, sep)...)
+			lines.Reset()
 		}
+		lines.WriteString(ptstr)
+		lines.WriteString("\n")
 	}
-
-	if len(curbody) > 0 {
-		if len(curbody) > minGZSize && x.OutputFile == "" {
-			if buf, err := datakit.GZip(curbody); err != nil {
-				l.Errorf("gzip failed: %s", err)
-				return nil, err
-			} else {
-				bodies = append(bodies, &body{buf: buf, gzon: true})
-				curbody = nil
-			}
-		} else {
-			bodies = append(bodies, &body{buf: curbody, gzon: false})
-		}
+	if body, err := gz(lines.Bytes()); err != nil {
+		return nil, err
+	} else {
+		return append(bodies, body), nil
 	}
-
-	return bodies, nil
 }
 
 func (x *IO) doFlush(pts []*Point, category string) error {
 	if testAssert {
 		return nil
 	}
-
 	if pts == nil {
 		return nil
 	}
@@ -433,12 +440,7 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 	if err != nil {
 		return err
 	}
-
 	for _, body := range bodies {
-		if body.buf == nil || len(body.buf) == 0 {
-			continue
-		}
-
 		if x.OutputFile != "" {
 			x.fileOutput(body.buf)
 			continue
