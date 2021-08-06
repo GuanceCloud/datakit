@@ -71,6 +71,8 @@ sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 	ENV_HOSTNAME = "your-fake-hostname-for-datakit"
 ```
 
+> 注意：如果之前某个主机已经采集了一段时间的数据，更改主机名后，这些历史数据将不再跟新的主机名关联。更改主机名，相当于新增了一台全新的主机。
+
 其它相关链接：
 
 - 关于 DataKit 的基本使用，参考 [DataKit 使用入门](datakit-how-to)
