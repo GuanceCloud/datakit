@@ -4,9 +4,9 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
-# {{.InputName}}
+# Kubernetes 扩展指标采集
 
-> 本文档主要采用第三方服务来收集 Kubernetes 指标，然后通过 DataKit 内置的 `prom` 采集器来汇总、清洗这些指标。目前这种方案只是权宜之计，后面可能会对这种采集做较大的调整，望周知。
+> 本文档主要采用第三方服务来收集 Kubernetes 指标，然后通过 DataKit 内置的 `kube_state_metric` 采集器来汇总、清洗这些指标。目前这种方案只是临时方案，后面可能会对这种采集做较大的调整。
 
 ## 使用
 
