@@ -77,6 +77,14 @@ metadata:
   name: datakit
 rules:
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - nodes
