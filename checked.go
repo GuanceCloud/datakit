@@ -20,7 +20,7 @@ var (
 		"mock":       false,
 		"qyt_all":    false,
 		"secureexec": false,
-		"demo":       false,
+		//"demo":       false,
 
 		"activemqlog":            true,
 		"aliyunactiontrail":      true,
