@@ -35,7 +35,7 @@ kubectl apply path/to/your.yaml
 
 	- `ENV_DATAWAY`：设置 DataWay 地址，不要忘了填写对应的工作空间的 token
 	- `ENV_GLOBAL_TAGS`：设置 DataKit 全局 tag
-	- `ENV_ENABLE_INPUTS`：设定默认开启的采集器，对 Windows 而言，只开启了 `kubernetes` 以及 `kube_state_metric` 两个采集器
+	<!-- - `ENV_ENABLE_INPUTS`：设定默认开启的采集器，对 Windows 而言，只开启了 `kubernetes` 以及 `kube_state_metric` 两个采集器 -->
 	- `ENV_ENABLE_ELECTION`：开启选举。由于 Kubernetes 是一种中心采集，多节点均部署 DataKit 的情况下，需开启选举来避免重复采集
 	- `ENV_HTTP_LISTEN`：修改 DataKit 绑定的 HTTP 地址
 
@@ -407,6 +407,7 @@ data:
            #tag2 = "valn"
 ```
 
+<!--
 ### Windows 节点 yaml 配置
 
 ```yaml
@@ -628,3 +629,4 @@ spec:
   selector:
     app.kubernetes.io/name: kube-state-metrics
 ```
+-->
