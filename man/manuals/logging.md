@@ -21,6 +21,8 @@
     "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
     "/var/log/syslog",                     # Unix 格式文件路径
     "C:/path/space 空格中文路径/some.txt", # Windows 风格文件路径
+    "/var/log/*",                          # 文件路径下所有文件
+    "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
   ]
   
   # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集

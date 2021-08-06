@@ -50,7 +50,7 @@
 
 	- [Kubernetes]()
 		- [Kubernetes](kubernetes)
-		- [Kubernetes 更多指标采集](kubernetes-x)
+		- [Kubernetes 扩展指标采集](kubernetes-x)
 		- [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
 
 	- [Java]()
