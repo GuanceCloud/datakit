@@ -9,7 +9,7 @@
 - 优化数据上传的性能
 - 文档完善
 
-----------
+---
 
 ## 1.1.8-rc0(2021/08/03)
 
@@ -18,7 +18,7 @@
 - 优化 Pipeline 处理性能（约 15 倍左右，视不同 Pipeline 复杂度而定）
 - 加强[行协议数据检查](apis#f54b954f)
 - `system` 采集器，增加 [`conntrack`以及`filefd`](system) 两个指标集
-- `datakit.conf` 增加IO 调参入口，便于用户对 DataKit 网络出口流量做优化（参见下面的 Breaking Changes）
+- `datakit.conf` 增加 IO 调参入口，便于用户对 DataKit 网络出口流量做优化（参见下面的 Breaking Changes）
 - DataKit 支持[服务卸载和恢复](datakit-how-to#9e00a535)
 - Windows 平台的服务支持通过[命令行管理](datakit-how-to#147762ed)
 - DataKit 支持动态获取最新 DataWay 地址，避免默认 DataWay 被 DDos 攻击
@@ -34,7 +34,9 @@
 
 ```toml
 [io]
-  max_cache_count              = 1024  # 本地缓存最大值，原主配置中 io_cache_count [此数值与max_dynamic_cache_count同时小于等于零将无限使用内存]
+  feed_chan_size                 = 1024  # IO管道缓存大小
+  hight_frequency_feed_chan_size = 2048  # 高频IO管道缓存大小
+  max_cache_count                = 1024  # 本地缓存最大值，原主配置中 io_cache_count [此数值与max_dynamic_cache_count同时小于等于零将无限使用内存]
   cache_dump_threshold         = 512   # 本地缓存推送后清理剩余缓存阈值 [此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
   max_dynamic_cache_count      = 1024  # HTTP缓存最大值，[此数值与max_cache_count同时小于等于零将无限使用内存]
   dynamic_cache_dump_threshold = 512   # HTTP缓存推送后清理剩余缓存阈值，[此数值小于等于零将不清理缓存，如遇网络中断可导致内存大量占用]
@@ -52,7 +54,8 @@
 	rotate        = 32                         # 原 log_rotate
 	disable_color = false                      # 新增配置
 ```
------------
+
+---
 
 ## 1.1.7-rc9.1(2021/07/17)
 

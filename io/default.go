@@ -14,6 +14,8 @@ import (
 var (
 	extraTags = map[string]string{}
 	defaultIO = &IO{
+		FeedChanSize:              1024,
+		HighFreqFeedChanSize:      2048,
 		MaxCacheCount:             1024,
 		CacheDumpThreshold:        512,
 		MaxDynamicCacheCount:      1024,
@@ -75,6 +77,18 @@ func SetDataway(dw *dataway.DataWayCfg) IOOption {
 	}
 }
 
+func SetFeedChanSize(size int) IOOption {
+	return func(io *IO) {
+		io.FeedChanSize = size
+	}
+}
+
+func SetHighFreqFeedChanSize(size int) IOOption {
+	return func(io *IO) {
+		io.HighFreqFeedChanSize = size
+	}
+}
+
 func ConfigDefaultIO(opts ...IOOption) {
 	for _, opt := range opts {
 		opt(defaultIO)
@@ -88,8 +102,10 @@ func SetExtraTags(k, v string) {
 func Start() error {
 	l = logger.SLogger("io")
 
-	defaultIO.in = make(chan *iodata, 128)
-	defaultIO.in2 = make(chan *iodata, 128*8)
+	l.Debugf("default io config: %v", *defaultIO)
+
+	defaultIO.in = make(chan *iodata, defaultIO.FeedChanSize)
+	defaultIO.in2 = make(chan *iodata, defaultIO.HighFreqFeedChanSize)
 	defaultIO.inLastErr = make(chan *lastErr, 128)
 	defaultIO.inputstats = map[string]*InputsStat{}
 	defaultIO.qstatsCh = make(chan *qinputStats) // blocking

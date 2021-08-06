@@ -96,6 +96,8 @@ type Cgroup struct {
 }
 
 type IOConfig struct {
+	FeedChanSize              int    `toml:"feed_chan_size"`
+	HighFreqFeedChanSize      int    `toml:"high_frequency_feed_chan_size"`
 	MaxCacheCount             int64  `toml:"max_cache_count"`
 	CacheDumpThreshold        int64  `toml:"cache_dump_threshold"`
 	MaxDynamicCacheCount      int64  `toml:"max_dynamic_cache_count"`
@@ -397,7 +399,7 @@ func (c *Config) ApplyMainConfig() error {
 		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
 			c.IOConf.OutputFile = c.OutputFileDeprecated
 		}
-		dkio.ConfigDefaultIO(dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount), dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold), dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount), dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold), dkio.SetFlushInterval(c.IOConf.FlushInterval), dkio.SetOutputFile(c.IOConf.OutputFile), dkio.SetDataway(c.DataWay))
+		dkio.ConfigDefaultIO(dkio.SetFeedChanSize(c.IOConf.FeedChanSize), dkio.SetHighFreqFeedChanSize(c.IOConf.HighFreqFeedChanSize), dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount), dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold), dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount), dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold), dkio.SetFlushInterval(c.IOConf.FlushInterval), dkio.SetOutputFile(c.IOConf.OutputFile), dkio.SetDataway(c.DataWay))
 	}
 
 	if err := c.setupGlobalTags(); err != nil {
