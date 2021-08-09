@@ -48,6 +48,8 @@ func DefaultConfig() *Config {
 		}, // default nothing
 
 		IOConf: &IOConfig{
+			FeedChanSize:              1024,
+			HighFreqFeedChanSize:      2048,
 			MaxCacheCount:             1024,
 			CacheDumpThreshold:        512,
 			MaxDynamicCacheCount:      1024,
