@@ -91,6 +91,7 @@ var (
   [inputs.mongodb.tags]
     # "key1" = "value1"
     # "key2" = "value2"
+		# ...
 `
 	pipelineConfig = `
   json(_, t, "tmp")

@@ -37,6 +37,7 @@ var (
 	EnableInputs  = ""
 	Namespace     = ""
 	OTA           = false
+	Proxy         = ""
 )
 
 func readInput(prompt string) string {
@@ -100,6 +101,10 @@ func InstallNewDatakit(svc service.Service) {
 	mc.Namespace = Namespace
 	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", Listen, Port)
 	mc.InstallDate = time.Now()
+
+	if mc.DataWay != nil {
+		mc.DataWay.HttpProxy = Proxy
+	}
 
 	if DatakitName != "" {
 		mc.Name = DatakitName
@@ -233,6 +238,10 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 	if c.OutputFileDeprecated != "" {
 		c.IOConf.OutputFile = c.OutputFileDeprecated
 		c.OutputFileDeprecated = ""
+	}
+
+	if c.DataWay != nil {
+		c.DataWay.HttpProxy = Proxy
 	}
 
 	return c, nil
