@@ -24,6 +24,12 @@ curl https://openway.dataflux.cn
 curl: (6) Could not resolve host: openway.dataflux.cn
 ```
 
+如果发现如下这样的错误日志，则说明跟 DataWay 的连接出现了一些问题，可能是防火墙做了限制：
+
+```shell
+request url https://openway.dataflux.cn/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
+```
+
 ## 检查机器时间
 
 在 Linux/Mac 上，输入 `date` 即可查看当前系统时间：
