@@ -6,8 +6,6 @@
 
 # DaemonSet 安装 DataKit 
 
-> 注意：DaemonSet 方式部署时，不建议开启 kubernetes 集群内部采集（如采集 Kubernetes 集群中其它 Pod 内的 Redis/MySQL 等数据），可能导致多份采集（DaemonSet 自动扩容导致多个 DataKit 采集实例）
-
 本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
 
 ## 安装步骤 
