@@ -177,12 +177,14 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `maximum`      | 文件句柄的最大数目（已弃用，用 `maximum_mega` 替代） | int   |
 | `maximum_mega` | 文件句柄的最大数目，单位 M(10^6)                     | float |
 
-#### 单个采集器运行情况字段列表
+#### 采集器运行情况字段列表
 
-| 字段名          | 描述                                           | 类型   |
-| ---             | ----                                           | :---:  |
-| `name`          | 采集器名称                                     | string |
-| `count`         | 采集次数                                       | int    |
-| `last_time`     | 最近一次采集时间                               | int    |
-| `last_err`      | 最后一次报错信息(默认只报告 30 分钟以内的错误) | string |
-| `last_err_time` | 最后一次报错时间                               | int    |
+`collectors` 字段是一个对象列表，每个对象的字段如下：
+
+| 字段名          | 描述                                       | 类型   |
+| ---             | ----                                       | :---:  |
+| `name`          | 采集器名称                                 | string |
+| `count`         | 采集次数                                   | int    |
+| `last_time`     | 最近一次采集时间（Unix 时间戳，单位为秒）  | int    |
+| `last_err`      | 最后一次报错信息(只报告 30 分钟以内的错误) | string |
+| `last_err_time` | 最后一次报错时间（Unix 时间戳，单位为秒）  | int    |
