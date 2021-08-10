@@ -12,9 +12,16 @@ new_tag=$1
 latest_tag=$(git describe --abbrev=0 --tags)
 
 case $branch_name in
-	"testing") echo "release test release..."
-		make &&
-		make pub_testing_mac &&
+	"testing")
+
+		# Darwin's datakit is CGO-enabled, so build it locally
+		if [[ "$OSTYPE" == "darwin"* ]]; then
+			echo "release testing release for Darwin..."
+			make testing_mac && make pub_testing_mac
+		else
+			echo "release testing DataKit without Darwin"
+		fi
+
 		git push origin testing
 		;;
 
