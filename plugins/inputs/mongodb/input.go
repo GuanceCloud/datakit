@@ -207,7 +207,6 @@ func (m *Input) Run() {
 			if err := m.gather(); err != nil {
 				l.Error(err.Error())
 				io.FeedLastError(inputName, err.Error())
-				continue
 			}
 		case <-datakit.Exit.Wait():
 			if m.tail != nil {
