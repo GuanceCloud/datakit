@@ -1,4 +1,3 @@
-
 {{.CSS}}
 
 - 版本：{{.Version}}
@@ -17,7 +16,6 @@
 
 登陆工作空间，点击左侧「集成」选择顶部「Datakit」，即可看到各种平台的安装命令。以 linux/amd64 平台为例，其命令大概如下：
 
-
 ```shell
 sudo -- sh -c 'curl https://static.dataflux.cn/datakit/installer-linux-amd64 -o dk-installer \
 	&& chmod +x ./dk-installer \
@@ -34,6 +32,7 @@ sudo -- sh -c 'curl https://static.dataflux.cn/datakit/installer-linux-amd64 -o 
 - `-port`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
 - `-offline`：离线安装本地已有的 DataKit 安装包
 - `-download-only`：仅下载，不安装（离线安装时用）
+- `-proxy`：通过 Datakit 代理安装
 
 安装完成后，在终端会看到安装成功的提示。
 
@@ -58,7 +57,7 @@ sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 ```
 
 - Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell
-	- 按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择 以管理员身份运行 即可
+  - 按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择 以管理员身份运行 即可
 
 ## 如何应付不友好的主机名
 
