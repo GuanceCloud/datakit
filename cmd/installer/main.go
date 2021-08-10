@@ -79,7 +79,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if _, err := os.Stat(olddir); err != nil {
-		l.Debugf("deprecated install path %s not exists, ingored", olddir)
+		l.Debugf("deprecated install path %s not exists, ignored", olddir)
 		return
 	}
 
