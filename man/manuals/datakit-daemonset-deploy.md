@@ -313,7 +313,7 @@ data:
           ## at: /run/secrets/kubernetes.io/serviceaccount/token
           # bearer_token = "/path/to/bearer/token"
           ## OR
-          # bearer_token_string = "abc_123"
+          # bearer_token_string = "<your-token-string>"
       
           ## Optional TLS Config
           # tls_ca = /path/to/ca.pem
@@ -334,7 +334,7 @@ data:
         [inputs.container.tags]
           # some_tag = "some_value"
           # more_tag = "some_other_value"
-`
+
     #### kubernetes
     kubernetes.conf: |-
       [inputs.kubernetes]
