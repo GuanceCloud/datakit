@@ -2,7 +2,7 @@
 
 - 版本：{{.Version}}
 - 发布日期：{{.ReleaseDate}}
-- 操作系统支持：全平台
+- 操作系统支持：`{{.AvailableArchs}}`
 
 # 简介
 
@@ -13,7 +13,7 @@
 
 ## Nginx 反向代理配置
 
-- 配置 Nginx 代理服务
+- 配置 `Nginx` 代理服务
 
 ```
 server {
@@ -36,13 +36,12 @@ nginx -s reload # reload配置
 curl -v -X POST http://127.0.0.1:8090/v1/write/metrics?token=TOKEN -d "proxy_test_nginx,name=test c=123i"
 ```
 
-- 配置 Datakit
+- 配置 `Datakit` 代理服务
 
 进入 DataKit 安装目录下的 `conf.d/` 目录，配置 `datakit.conf` 中的代理服务。如下：
 
 ```
 [dataway]
-
 	# IP 和 Port 为 Nginx 代理服务的配置信息
   urls = ["http://127.0.0.1:8090?token=TOKEN"]
 ```
@@ -78,3 +77,28 @@ curl -x http://127.0.0.1:9530 -v -X POST https://openway.dataflux.cn/v1/write/me
 ```
 
 配置好后，[重启 DataKit](datakit-how-to#147762ed)。
+
+## Datakit 代理指标集
+
+以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+
+```toml
+ [inputs.{{.InputName}}.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
+
+{{ range $i, $m := .Measurements }}
+
+### `{{$m.Name}}`
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+
+{{ end }}

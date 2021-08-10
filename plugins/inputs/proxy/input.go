@@ -58,12 +58,20 @@ type Input struct {
 	sync.Mutex
 }
 
+func (*Input) Catalog() string {
+	return inputName
+}
+
 func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (*Input) Catalog() string {
-	return inputName
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{&measurement{}}
 }
 
 func (h *Input) Run() {
