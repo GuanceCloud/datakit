@@ -48,9 +48,11 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-// func (*Input) SampleMeasurement() []inputs.Measurement {
-// 	return []inputs.Measurement{&measurement{}}
-// }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		//&measurement{}
+	}
+}
 
 func (h *Input) Run() {
 	l = logger.SLogger(inputName)
