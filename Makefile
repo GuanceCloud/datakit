@@ -96,6 +96,9 @@ release: man
 release_mac: man
 	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
+testing_mac: man
+	$(call build,test, $(MAC_ARCHS), $(TEST_DOWNLOAD_ADDR))
+
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
