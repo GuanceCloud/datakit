@@ -99,12 +99,14 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 		// for dialtesting, there are user-defined url to post
 		if x, err := url.ParseRequestURI(category); err != nil {
 			l.Error(err)
+
 			return fmt.Errorf("invalid url %s", category)
 		} else {
 			l.Debugf("try use URL %+#v", x)
 			requrl = category
 		}
 	}
+	l.Debugf("request %s", requrl)
 
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
 	if err != nil {
@@ -116,16 +118,14 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
-
 	// append extra headers
 	for k, v := range ExtraHeaders {
 		req.Header.Set(k, v)
 	}
 
-	postbeg := time.Now()
-
-	l.Debugf("request %s", requrl)
 	if dc.ontest {
+		l.Debug("Datakit client on test")
+
 		return nil
 	}
 
@@ -141,17 +141,20 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 		dktracer.GlobalTracer.SetTag(span, "http_client_do_error", err.Error())
 		l.Errorf("request url %s failed: %s", requrl, err)
 		dc.fails++
+
 		return err
 	}
-
 	defer resp.Body.Close()
+
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		dktracer.GlobalTracer.SetTag(span, "io_read_request_body_error", err.Error())
 		l.Error(err)
+
 		return err
 	}
 
+	postbeg := time.Now()
 	switch resp.StatusCode / 100 {
 	case 2:
 		dc.fails = 0
@@ -199,6 +202,9 @@ func (dc *dataWayClient) getLogFilter(cli *http.Client) ([]byte, error) {
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("getLogFilter failed with status code %d", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 

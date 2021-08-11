@@ -2,6 +2,7 @@ package system
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -72,7 +73,11 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 func (i *Input) Collect() error {
 	// clear collectCache
 	i.collectCache = make([]inputs.Measurement, 0)
+
+	ts := time.Now()
+
 	loadAvg, err := load.Avg()
+
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {
 		return err
 	}
@@ -86,38 +91,38 @@ func (i *Input) Collect() error {
 		tags[k] = v
 	}
 
-	ts := time.Now()
-
-	conntrackStat := conntrackutil.GetConntrackInfo()
-	filefdStat := filefdutil.GetFileFdInfo()
-
-	conntrackM := conntrackMeasurement{
-		name: metricNameConntrack,
-		fields: map[string]interface{}{
-			"entries":             conntrackStat.Current,
-			"entries_limit":       conntrackStat.Limit,
-			"stat_found":          conntrackStat.Found,
-			"stat_invalid":        conntrackStat.Invalid,
-			"stat_ignore":         conntrackStat.Ignore,
-			"stat_insert":         conntrackStat.Insert,
-			"stat_insert_failed":  conntrackStat.InsertFailed,
-			"stat_drop":           conntrackStat.Drop,
-			"stat_early_drop":     conntrackStat.EarlyDrop,
-			"stat_search_restart": conntrackStat.SearchRestart,
-		},
-		tags: tags,
-		ts:   ts,
-	}
-
-	filefdM := filefdMeasurement{
-		name: metricNameFilefd,
-		fields: map[string]interface{}{
-			"allocated": filefdStat.Allocated,
-			// "maximum":      filefdStat.Maximum,
-			"maximum_mega": filefdStat.MaximumMega,
-		},
-		tags: tags,
-		ts:   ts,
+	if runtime.GOOS == "linux" {
+		conntrackStat := conntrackutil.GetConntrackInfo()
+		filefdStat := filefdutil.GetFileFdInfo()
+		conntrackM := conntrackMeasurement{
+			name: metricNameConntrack,
+			fields: map[string]interface{}{
+				"entries":             conntrackStat.Current,
+				"entries_limit":       conntrackStat.Limit,
+				"stat_found":          conntrackStat.Found,
+				"stat_invalid":        conntrackStat.Invalid,
+				"stat_ignore":         conntrackStat.Ignore,
+				"stat_insert":         conntrackStat.Insert,
+				"stat_insert_failed":  conntrackStat.InsertFailed,
+				"stat_drop":           conntrackStat.Drop,
+				"stat_early_drop":     conntrackStat.EarlyDrop,
+				"stat_search_restart": conntrackStat.SearchRestart,
+			},
+			tags: tags,
+			ts:   ts,
+		}
+		filefdM := filefdMeasurement{
+			name: metricNameFilefd,
+			fields: map[string]interface{}{
+				"allocated": filefdStat.Allocated,
+				// "maximum":      filefdStat.Maximum,
+				"maximum_mega": filefdStat.MaximumMega,
+			},
+			tags: tags,
+			ts:   ts,
+		}
+		i.collectCache = append(i.collectCache, &conntrackM)
+		i.collectCache = append(i.collectCache, &filefdM)
 	}
 
 	sysM := systemMeasurement{
@@ -149,8 +154,6 @@ func (i *Input) Collect() error {
 	}
 
 	i.collectCache = append(i.collectCache, &sysM)
-	i.collectCache = append(i.collectCache, &conntrackM)
-	i.collectCache = append(i.collectCache, &filefdM)
 
 	return err
 }

@@ -2,6 +2,118 @@
 
 # 日常开发手册
 
+## 如何新增采集器
+
+假定新增采集器 `zhangsan`，一般遵循如下步骤：
+
+- 在 `plugins/inputs` 下新增模块 `zhangsan`，创建一个  `input.go`
+- 在 `input.go` 中新建一个结构体
+
+```golang
+// 统一命名为 Input
+type Input struct {
+	// 一些可配置的字段
+	...
+
+	// 一般每个采集器都是可以新增用户自定义 tag 的
+	Tags   map[string]string
+}
+```
+
+- 该结构体实现如下几个接口，具体示例，参见 `demo` 采集器：
+
+```Golang
+Catalog() string                  // 采集器分类，比如 MySQL 采集器属于 `db` 分类
+Run()                             // 采集器入口函数，一般会在这里进行数据采集，并且将数据发送给 `io` 模块
+SampleConfig() string             // 采集器配置文件示例
+SampleMeasurement() []Measurement // 采集器文档生成辅助结构
+AvailableArchs() []string         // 采集器适用的操作系统
+```
+
+- 在 `input.go` 中，新增如下模块初始化入口：
+
+```Golang
+func init() {
+	inputs.Add("zhangsan", func() inputs.Input {
+		return &Input{
+			// 这里可初始化一堆该采集器的默认配置参数
+		}
+	})
+}
+```
+
+- 在 `plugins/inputs/all/all.go` 中新增 `import`：
+
+```Golang
+import (
+	... // 其它已有采集器
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zhangsan"
+)
+```
+
+- 在顶层目录 `checked.go` 中增加采集器：
+
+```Golang
+allInputs = map[string]bool{
+	"zhangsan":       false, // 注意，这里初步置为 false，待该采集器发布时，再改成 true
+	...
+}
+```
+
+- 执行编译，将编译完的二进制替换掉已有 DataKit，以 Mac 平台为例：
+
+```shell
+$ make
+$ tree dist/
+dist/
+└── datakit-darwin-amd64
+    └── datakit          # 将该 dakakit 替换掉已有的 datakit 二进制，一般在 /usr/local/datakit/datakit
+
+sudo datakit --stop                                             # 停掉现有 datakit
+sudo truncate -s 0 /var/log/datakit/log                         # 清空日志
+sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # 覆盖二进制
+sudo datakit --start                                            # 重启 datakit
+```
+
+- 此时，一般会在 `/usr/local/datakit/conf.d/<Catalog>/` 目录下有个 `zhangsan.conf.sample`。注意，这里的 `<Catalog>` 就是上面接口 `Catalog() string` 的返回值。
+- 开启 `zhangsan` 采集器，将 `zhangsan.conf.sample` 复制出一份 `zhangsan.conf`，如果有对应的配置（如用户名、目录配置等），修改之，然后重启 DataKit
+- 执行如下命令检查采集器情况：
+
+```shell
+sudo datakit --check-config # 检查采集器配置文件是否正常
+datakit -M --vvv            # 检查所有采集器的运行情况
+```
+
+- 如果采集器功能完整，增加 `man/manuals/zhangsan.md` 文档，这个可参考 `demo.md`，安装里面的模板来写即可
+
+## Windows/Mac/Liux 平台编译环境搭建
+
+### Windows
+
+TODO
+
+#### 安装 Golang
+#### 安装 packr2
+#### 安装 `make` 工具
+
+### Linux
+
+TODO
+
+#### 安装 Golang
+#### 安装 packr2
+#### 安装 `make` 工具
+#### 安装 `gcc-multilib`
+
+### Mac
+
+TODO
+
+#### 安装 Golang
+#### 安装 packr2
+#### 安装 `make` 工具
+#### 安装 `tree` 工具
+
 ## 安装、升级测试 
 
 Datakit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
