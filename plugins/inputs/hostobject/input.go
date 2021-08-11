@@ -251,3 +251,7 @@ func init() {
 		return DefaultHostObject()
 	})
 }
+
+func SetLog() {
+	l = logger.SLogger("hostobject")
+}

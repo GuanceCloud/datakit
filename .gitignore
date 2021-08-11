@@ -11,7 +11,6 @@ dist/
 old/
 *.tar.gz
 git/git.go
-install.sh
 *.log
 config.d/
 test/
