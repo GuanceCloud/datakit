@@ -189,6 +189,9 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
 		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	default:
+		c.LogDeprecated = ""
+		c.GinLogDeprecated = ""
+
 		c.Logging.Log = "/var/log/datakit/log"
 		c.Logging.GinLog = "/var/log/datakit/gin.log"
 	}
