@@ -18,9 +18,6 @@ Oracle 监控指标采集，具有以下数据收集功能
 - 创建监控账号
 
 ```sql
--- Enable Oracle Script.
-ALTER SESSION SET "_ORACLE_SCRIPT"=true;
-
 -- Create the datakit user. Replace the password placeholder with a secure password.
 CREATE USER datakit IDENTIFIED BY <PASSWORD>;
 
@@ -53,6 +50,8 @@ unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
 ```
 
 配置好后，重启 DataKit 即可。
+
+> 注意：Oracle 采集器的日志在 `/usr/local/datakit/external/oracle.log` 中
 
 ## 指标集
 

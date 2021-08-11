@@ -4,9 +4,9 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
-# {{.InputName}}
+# Kubernetes 扩展指标采集
 
-> 本文档主要采用第三方服务来收集 Kubernetes 指标，然后通过 DataKit 内置的 `prom` 采集器来汇总、清洗这些指标。目前这种方案只是权宜之计，后面可能会对这种采集做较大的调整，望周知。
+> 本文档主要采用第三方服务来收集 Kubernetes 指标，然后通过 DataKit 内置的 `kube_state_metric` 采集器来汇总、清洗这些指标。目前这种方案只是临时方案，后面可能会对这种采集做较大的调整。
 
 ## 使用
 
@@ -35,7 +35,7 @@ kubectl apply path/to/your.yaml
 
 	- `ENV_DATAWAY`：设置 DataWay 地址，不要忘了填写对应的工作空间的 token
 	- `ENV_GLOBAL_TAGS`：设置 DataKit 全局 tag
-	- `ENV_ENABLE_INPUTS`：设定默认开启的采集器，对 Windows 而言，只开启了 `kubernetes` 以及 `kube_state_metric` 两个采集器
+	<!-- - `ENV_ENABLE_INPUTS`：设定默认开启的采集器，对 Windows 而言，只开启了 `kubernetes` 以及 `kube_state_metric` 两个采集器 -->
 	- `ENV_ENABLE_ELECTION`：开启选举。由于 Kubernetes 是一种中心采集，多节点均部署 DataKit 的情况下，需开启选举来避免重复采集
 	- `ENV_HTTP_LISTEN`：修改 DataKit 绑定的 HTTP 地址
 
@@ -76,6 +76,14 @@ kind: ClusterRole
 metadata:
   name: datakit
 rules:
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -329,76 +337,87 @@ data:
     container.conf: |-
       [inputs.container]
         endpoint = "unix:///var/run/docker.sock"
-
-        enable_metric = false
-        enable_object = true
-        enable_logging = true
-
+        
+        enable_metric = false  
+        enable_object = true   
+        enable_logging = true  
+        
         metric_interval = "10s"
-
+      
+        drop_tags = ["contaienr_id"]
+      
+        ## Examples:
+        ##    '''nginx*'''
+        ignore_image_name = []
+        ignore_container_name = []
+        
         ## TLS Config
         # tls_ca = "/path/to/ca.pem"
         # tls_cert = "/path/to/cert.pem"
         # tls_key = "/path/to/key.pem"
         ## Use TLS but skip chain & host verification
         # insecure_skip_verify = false
-
+        
         [inputs.container.kubelet]
           kubelet_url = "http://127.0.0.1:10255"
-
+          ignore_pod_name = []
+      
           ## Use bearer token for authorization. ('bearer_token' takes priority)
           ## If both of these are empty, we'll use the default serviceaccount:
           ## at: /run/secrets/kubernetes.io/serviceaccount/token
           # bearer_token = "/path/to/bearer/token"
           ## OR
-          # bearer_token_string = "abc_123"
-
+          # bearer_token_string = "<your-token-string>"
+      
           ## Optional TLS Config
           # tls_ca = /path/to/ca.pem
           # tls_cert = /path/to/cert.pem
           # tls_key = /path/to/key.pem
           ## Use TLS but skip chain & host verification
           # insecure_skip_verify = false
-
-        #[[inputs.container.logfilter]]
-        #  filter_message = [
-        #    '''<this-is-message-regexp''',
-        #    '''<this-is-another-message-regexp''',
+        
+        #[[inputs.container.log]]
+        #  match_by = "container-name"
+        #  match = [
+        #    '''<this-is-regexp''',
         #  ]
         #  source = "<your-source-name>"
         #  service = "<your-service-name>"
         #  pipeline = "<pipeline.p>"
-
+  
         [inputs.container.tags]
           # some_tag = "some_value"
           # more_tag = "some_other_value"
 
-
     #### kubernetes
     kubernetes.conf: |-
-      [[inputs.kubernetes]]
-          # required
-          interval = "10s"
-          ## URL for the Kubernetes API
-          url = "https://kubernetes.default:443"
-          ## Use bearer token for authorization. ('bearer_token' takes priority)
-          ## at: /run/secrets/kubernetes.io/serviceaccount/token
-          bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
-
-          ## Set http timeout (default 5 seconds)
-          timeout = "5s"
-
-           ## Optional TLS Config
-          tls_ca = "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-
-          ## Use TLS but skip chain & host verification
-          insecure_skip_verify = false
-
-          [inputs.kubernetes.tags]
-           #tag1 = "val1"
-           #tag2 = "valn"
+      [inputs.kubernetes]
+        ## URL for the Kubernetes API
+        url = "https://kubernets.default:443"
+        
+        ## metrics interval
+        interval = "60s"
+        
+        ## Authorization level:
+        ##   bearer_token -> bearer_token_string -> TLS
+        ## Use bearer token for authorization. ('bearer_token' takes priority)
+        ## linux at:   /run/secrets/kubernetes.io/serviceaccount/token
+        ## windows at: C:\var\run\secrets\kubernetes.io\serviceaccount\token
+        # bearer_token = '''/path/to/bearer/token'''
+        # bearer_token_string = "<your-token-string>"
+      
+        ## TLS Config
+        # tls_ca = "/path/to/ca.pem"
+        # tls_cert = "/path/to/cert.pem"
+        # tls_key = "/path/to/key.pem"
+        ## Use TLS but skip chain & host verification
+        # insecure_skip_verify = false
+        
+        [inputs.kubernetes.tags]
+        # some_tag = "some_value"
 ```
 
+<!--
 ### Windows 节点 yaml 配置
 
 ```yaml
@@ -620,3 +639,4 @@ spec:
   selector:
     app.kubernetes.io/name: kube-state-metrics
 ```
+-->

@@ -8,6 +8,8 @@
 
 某些时候，目标机器没有公网访问出口，按照如下方式可离线安装 DataKit。
 
+## 通过代理安装
+
 ## 下载安装包
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
@@ -19,28 +21,28 @@
 然后再下载俩个安装程序：
 
 - Windows 32 位：
-	- [Installer](https://static.dataflux.cn/datakit/installer-windows-386.exe)
-	- [DataKit](https://static.dataflux.cn/datakit/datakit-windows-386-{{.Version}}.tar.gz)
+  - [Installer](https://static.dataflux.cn/datakit/installer-windows-386.exe)
+  - [DataKit](https://static.dataflux.cn/datakit/datakit-windows-386-{{.Version}}.tar.gz)
 - Windows 64 位：
-	- [Installer](https://static.dataflux.cn/datakit/installer-windows-amd64.exe)
-	- [DataKit](https://static.dataflux.cn/datakit/datakit-windows-amd64-{{.Version}}.tar.gz) 
+  - [Installer](https://static.dataflux.cn/datakit/installer-windows-amd64.exe)
+  - [DataKit](https://static.dataflux.cn/datakit/datakit-windows-amd64-{{.Version}}.tar.gz)
 - Darwin(Mac) 64 位：
-	- [Installer](https://static.dataflux.cn/datakit/installer-darwin-amd64)
-	- [DataKit](https://static.dataflux.cn/datakit/datakit-darwin-amd64-{{.Version}}.tar.gz)
+  - [Installer](https://static.dataflux.cn/datakit/installer-darwin-amd64)
+  - [DataKit](https://static.dataflux.cn/datakit/datakit-darwin-amd64-{{.Version}}.tar.gz)
 - Linux X86 32 位：
-	- [Installer](https://static.dataflux.cn/datakit/installer-linux-386)
-	- [DataKit](https://static.dataflux.cn/datakit/datakit-linux-386-{{.Version}}.tar.gz) 
+  - [Installer](https://static.dataflux.cn/datakit/installer-linux-386)
+  - [DataKit](https://static.dataflux.cn/datakit/datakit-linux-386-{{.Version}}.tar.gz)
 - Linux X86 64 位
-	- [Installer](https://static.dataflux.cn/datakit/installer-linux-amd64)
-	- [DataKit](https://static.dataflux.cn/datakit/datakit-linux-amd64-{{.Version}}.tar.gz)
+  - [Installer](https://static.dataflux.cn/datakit/installer-linux-amd64)
+  - [DataKit](https://static.dataflux.cn/datakit/datakit-linux-amd64-{{.Version}}.tar.gz)
 - Linux Arm 32 位
-	- [Installer](https://static.dataflux.cn/datakit/installer-linux-arm)
-	- [DataKit](https://static.dataflux.cn/datakit/datakit-linux-arm-{{.Version}}.tar.gz)
+  - [Installer](https://static.dataflux.cn/datakit/installer-linux-arm)
+  - [DataKit](https://static.dataflux.cn/datakit/datakit-linux-arm-{{.Version}}.tar.gz)
 - Linux Arm 64 位
-	- [Installer](https://static.dataflux.cn/datakit/installer-linux-arm64)
-	- [DataKit](https://static.dataflux.cn/datakit/datakit-linux-arm64-{{.Version}}.tar.gz)
+  - [Installer](https://static.dataflux.cn/datakit/installer-linux-arm64)
+  - [DataKit](https://static.dataflux.cn/datakit/datakit-linux-arm64-{{.Version}}.tar.gz)
 
-## 离线安装
+### 安装
 
 下载完后，应该有三个文件：
 
@@ -54,7 +56,7 @@
 scp installer-linux-amd64 datakit-linux-amd64-{{.Version}}.tar.gz data.tar.gz USER-NAME@YOUR-LINUX-HOST:~/
 ```
 
-登陆目标机器，在对应目录下，*将以下命令中的 `TOKEN` 替换成工作空间的 Token*，即可执行安装（以 64 位 X86 为例）：
+登陆目标机器，在对应目录下，_将以下命令中的 `TOKEN` 替换成工作空间的 Token_，即可执行安装（以 64 位 X86 为例）：
 
 ```shell
 # Windows（需以 administrator 权限运行 Powershell 执行）

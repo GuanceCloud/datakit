@@ -336,7 +336,7 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	if v, ok := c.Tags["cloud_provider"]; ok {
 		info, err := c.SyncCloudInfo(v)
 		if err != nil {
-			l.Warnf("sync cloud info failed: %v, ingored", err)
+			l.Warnf("sync cloud info failed: %v, ignored", err)
 		} else {
 
 			j, err := json.Marshal(info)

@@ -132,6 +132,14 @@ metadata:
   name: datakit
 rules:
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - nodes
@@ -323,74 +331,84 @@ data:
     container.conf: |-
       [inputs.container]
         endpoint = "unix:///var/run/docker.sock"
-
-        enable_metric = false
-        enable_object = true
-        enable_logging = true
-
+        
+        enable_metric = false  
+        enable_object = true   
+        enable_logging = true  
+        
         metric_interval = "10s"
-
+      
+        drop_tags = ["contaienr_id"]
+      
+        ## Examples:
+        ##    '''nginx*'''
+        ignore_image_name = []
+        ignore_container_name = []
+        
         ## TLS Config
         # tls_ca = "/path/to/ca.pem"
         # tls_cert = "/path/to/cert.pem"
         # tls_key = "/path/to/key.pem"
         ## Use TLS but skip chain & host verification
         # insecure_skip_verify = false
-
+        
         [inputs.container.kubelet]
           kubelet_url = "http://127.0.0.1:10255"
-
+          ignore_pod_name = []
+      
           ## Use bearer token for authorization. ('bearer_token' takes priority)
           ## If both of these are empty, we'll use the default serviceaccount:
           ## at: /run/secrets/kubernetes.io/serviceaccount/token
           # bearer_token = "/path/to/bearer/token"
           ## OR
-          # bearer_token_string = "abc_123"
-
+          # bearer_token_string = "<your-token-string>"
+      
           ## Optional TLS Config
           # tls_ca = /path/to/ca.pem
           # tls_cert = /path/to/cert.pem
           # tls_key = /path/to/key.pem
           ## Use TLS but skip chain & host verification
           # insecure_skip_verify = false
-
-        #[[inputs.container.logfilter]]
-        #  filter_message = [
-        #    '''<this-is-message-regexp''',
-        #    '''<this-is-another-message-regexp''',
+        
+        #[[inputs.container.log]]
+        #  match_by = "container-name"
+        #  match = [
+        #    '''<this-is-regexp''',
         #  ]
         #  source = "<your-source-name>"
         #  service = "<your-service-name>"
         #  pipeline = "<pipeline.p>"
-
+  
         [inputs.container.tags]
           # some_tag = "some_value"
           # more_tag = "some_other_value"
 
-
     #### kubernetes
     kubernetes.conf: |-
-      [[inputs.kubernetes]]
-          # required
-          interval = "10s"
-          ## URL for the Kubernetes API
-          url = "https://kubernetes.default:443"
-          ## Use bearer token for authorization. ('bearer_token' takes priority)
-          ## at: /run/secrets/kubernetes.io/serviceaccount/token
-          bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
-
-          ## Set http timeout (default 5 seconds)
-          timeout = "5s"
-
-           ## Optional TLS Config
-          tls_ca = "/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-
-          ## Use TLS but skip chain & host verification
-          insecure_skip_verify = false
-
-          [inputs.kubernetes.tags]
-           #tag1 = "val1"
-           #tag2 = "valn"
+      [inputs.kubernetes]
+        ## URL for the Kubernetes API
+        url = "https://kubernets.default:443"
+        
+        ## metrics interval
+        interval = "60s"
+        
+        ## Authorization level:
+        ##   bearer_token -> bearer_token_string -> TLS
+        ## Use bearer token for authorization. ('bearer_token' takes priority)
+        ## linux at:   /run/secrets/kubernetes.io/serviceaccount/token
+        ## windows at: C:\var\run\secrets\kubernetes.io\serviceaccount\token
+        # bearer_token = '''/path/to/bearer/token'''
+        # bearer_token_string = "<your-token-string>"
+      
+        ## TLS Config
+        # tls_ca = "/path/to/ca.pem"
+        # tls_cert = "/path/to/cert.pem"
+        # tls_key = "/path/to/key.pem"
+        ## Use TLS but skip chain & host verification
+        # insecure_skip_verify = false
+        
+        [inputs.kubernetes.tags]
+        # some_tag = "some_value"
 
     #### prom_dummy-exporter
     dummy_server.conf: |-
