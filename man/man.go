@@ -33,18 +33,15 @@ var (
 		"election":                 "man/manuals/election.md",
 		"pipeline":                 "man/manuals/pipeline.md",
 		"prometheus":               "man/manuals/prometheus.md",
-		"proxy":                    "man/manuals/proxy.md",
 		"sec-checker":              "man/manuals/sec-checker.md",
 		"telegraf":                 "man/manuals/telegraf.md",
 		"rum":                      "man/manuals/rum.md",
 		"ddtrace-java":             "man/manuals/ddtrace-java.md",
-		// "kube-state-metrics":       "man/manuals/kube-state-metrics.md",
-		"kubernetes-x":    "man/manuals/kubernetes-x.md",
-		"kubernetes-prom": "man/manuals/kubernetes-prom.md",
-		"why-no-data":     "man/manuals/why-no-data.md",
-		"development":     "man/manuals/development.md",
+		"kubernetes-x":             "man/manuals/kubernetes-x.md",
+		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
+		"why-no-data":              "man/manuals/why-no-data.md",
+		"development":              "man/manuals/development.md",
 	}
-
 	l = logger.DefaultSLogger("man")
 )
 

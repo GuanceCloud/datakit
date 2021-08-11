@@ -37,6 +37,7 @@ var (
 	EnableInputs  = ""
 	Namespace     = ""
 	OTA           = false
+	Proxy         = ""
 )
 
 func readInput(prompt string) string {
@@ -101,6 +102,10 @@ func InstallNewDatakit(svc service.Service) {
 	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", Listen, Port)
 	mc.InstallDate = time.Now()
 
+	if mc.DataWay != nil {
+		mc.DataWay.HttpProxy = Proxy
+	}
+
 	if DatakitName != "" {
 		mc.Name = DatakitName
 	}
@@ -159,7 +164,7 @@ func preEnableHostobjectInput(cloud string) ([]byte, error) {
 ## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
 # enable_net_virtual_interfaces = true
 
-## Ignore mount points by filesystem type. Default ingore following FS types
+## Ignore mount points by filesystem type. Default ignored following FS types
 # ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
 
 
@@ -233,6 +238,10 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 	if c.OutputFileDeprecated != "" {
 		c.IOConf.OutputFile = c.OutputFileDeprecated
 		c.OutputFileDeprecated = ""
+	}
+
+	if c.DataWay != nil {
+		c.DataWay.HttpProxy = Proxy
 	}
 
 	return c, nil

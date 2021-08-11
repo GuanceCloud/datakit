@@ -24,6 +24,12 @@ curl https://openway.dataflux.cn
 curl: (6) Could not resolve host: openway.dataflux.cn
 ```
 
+如果发现如下这样的错误日志，则说明跟 DataWay 的连接出现了一些问题，可能是防火墙做了限制：
+
+```shell
+request url https://openway.dataflux.cn/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
+```
+
 ## 检查机器时间
 
 在 Linux/Mac 上，输入 `date` 即可查看当前系统时间：
@@ -112,21 +118,45 @@ show_tracing_service()
 
 ## 查看 DataKit 程序日志是否有异常
 
-Windows 平台：
+通过 Shell/Powershell 给出最近 10 个 ERROR, WARN 级别的日志
 
-```powershell
-# 通过 Powershell 给出最近 10 个 ERROR, WARN 级别的日志
+```shell
+# Shell
+cat /var/log/datakit/log | grep "WARN\|ERROR" | tail -n 10
+
+# Powershell
 Select-String -Path 'C:\Program Files\datakit\log' -Pattern "ERROR", "WARN"  | Select-Object Line -Last 10
 ```
 
-Linux/Mac 平台：
+- 如果日志中发现诸如 `Beyond...` 这样的描述，一般情况下，是因为数据量超过了免费额度。
+- 如果出现一些 `ERROR/WARN` 等字样，一般情况下，都表明 DataKit 遇到了一些问题。
+
+### 查看单个采集器的运行日志
+
+如果没有发现什么异常，可直接查看单个采集器的运行日志：
 
 ```shell
-# 给出最近 10 个 ERROR, WARN 级别的日志
-cat /var/log/datakit/log | grep "WARN\|ERROR" | tail -n 10
+# shell
+tail -f /var/log/datakit/log | grep "<采集器名称>" | grep "WARN\|ERROR"
+
+# powershell
+Get-Content -Path "C:\Program Files\datakit\log" -Wait | Select-String "<采集器名称>" | Select-String "ERROR", "WARN"
 ```
 
-如果日志中发现诸如 `Beyond...` 这样的描述，一般情况下，是因为数据量超过了免费额度。
+也可以去掉 `ERROR/WARN` 等过滤，直接查看对应采集器日志。如果日志不够，可将 `datakit.conf` 中的调试日志打开，查看更多日志：
+
+```
+# DataKit >= 1.1.8-rc0
+[logging]
+	...
+	level = "debug" # 将默认的 info 改为 debug
+	...
+
+# DataKit < 1.1.8-rc0
+log_level = "debug"
+```
+
+### 查看 gin.log
 
 对于远程给 DataKit 打数据的采集，可查看 gin.log 来查看是否有远程数据发送过来：
 

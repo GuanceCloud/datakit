@@ -36,8 +36,9 @@ type lastErr struct {
 	from, err string
 	ts        time.Time
 }
-
 type IO struct {
+	FeedChanSize              int
+	HighFreqFeedChanSize      int
 	MaxCacheCount             int64
 	CacheDumpThreshold        int64
 	MaxDynamicCacheCount      int64
@@ -72,6 +73,8 @@ type IoStat struct {
 
 func NewIO() *IO {
 	x := &IO{
+		FeedChanSize:         1024,
+		HighFreqFeedChanSize: 2048,
 		MaxCacheCount:        1024,
 		MaxDynamicCacheCount: 1024,
 		FlushInterval:        10 * time.Second,
@@ -109,7 +112,6 @@ func SetTest() {
 
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	ch := x.in
-
 	if opt != nil && opt.HighFreq {
 		ch = x.in2
 	}

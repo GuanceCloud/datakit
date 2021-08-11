@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -58,6 +59,8 @@ var (
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
+
+	flagProxy = flag.String("proxy", "", "http proxy http://ip:port for datakit")
 )
 
 const (
@@ -76,7 +79,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if _, err := os.Stat(olddir); err != nil {
-		l.Debugf("deprecated install path %s not exists, ingored", olddir)
+		l.Debugf("deprecated install path %s not exists, ignored", olddir)
 		return
 	}
 
@@ -152,6 +155,12 @@ func main() {
 	l.Info("stoping datakit...")
 	if err := service.Control(svc, "stop"); err != nil {
 		l.Warnf("stop service: %s, ignored", err.Error())
+	}
+
+	if *flagProxy != "" {
+		if _, err := url.Parse(*flagProxy); err != nil {
+			l.Warnf("bad proxy config expect http://ip:port given %s", *flagProxy)
+		}
 	}
 
 	// 迁移老版本 datakit 数据目录
@@ -261,4 +270,5 @@ Golang Version: %s
 	install.DatakitName = *flagDatakitName
 	install.EnableInputs = *flagEnableInputs
 	install.Namespace = *flagNamespace
+	install.Proxy = *flagProxy
 }
