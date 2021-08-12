@@ -35,6 +35,7 @@ var (
 		datakit.ElectionHeartbeat,
 		datakit.QueryRaw,
 		datakit.ListDataWay,
+		datakit.ObjectLabel,
 	}
 
 	ExtraHeaders      = map[string]string{}
@@ -603,4 +604,41 @@ func (dw *DataWayCfg) initHttp() error {
 	}
 
 	return nil
+}
+
+// UpsertObjectLabels , dw api create or update object labels
+func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
+	if len(dw.dataWayClients) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.dataWayClients[0]
+	requrl, ok := dc.categoryURL[datakit.ObjectLabel]
+	if !ok {
+		return nil, fmt.Errorf("no object labels URL available")
+	}
+
+	defer dw.httpCli.CloseIdleConnections()
+	return dw.httpCli.Post(requrl, "application/json", bytes.NewBuffer(body))
+}
+
+// DeleteObjectLabels , dw api delete object labels
+func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
+	if len(dw.dataWayClients) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.dataWayClients[0]
+	requrl, ok := dc.categoryURL[datakit.ObjectLabel]
+	if !ok {
+		return nil, fmt.Errorf("no object labels URL available")
+	}
+
+	defer dw.httpCli.CloseIdleConnections()
+	rBody := bytes.NewReader(body)
+	req, err := http.NewRequest("DELETE", requrl, rBody)
+	if err != nil {
+		return nil, fmt.Errorf("delete object label error: %s", err.Error())
+	}
+	return dw.httpCli.Do(req)
 }
