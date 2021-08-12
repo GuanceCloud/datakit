@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
@@ -32,8 +31,6 @@ const (
 func checkUpdate(curverStr string, acceptRC bool) int {
 
 	l = logger.SLogger("ota-update")
-
-	install.Init()
 
 	l.Debugf("get online version...")
 	vers, err := getOnlineVersions(false)

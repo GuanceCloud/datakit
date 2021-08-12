@@ -70,6 +70,22 @@ func init() {
 	flag.StringVarP(&cmds.FlagAddr, "addr", "A", "", "url path")
 	flag.DurationVar(&cmds.FlagInterval, "interval", time.Second*3, "auxiliary option, time interval")
 
+	// install/upgrade datakit, all flags prefixed with `dk-'
+	flag.BoolVar(&cmds.FlagDKInstall, "dk-install", false, "install datakit")
+	flag.BoolVar(&cmds.FlagDKUpgrade, "dk-upgrade", false, ``)
+	flag.BoolVar(&cmds.FlagInstallOnly, "dk-install-only", false, "install only                                                                                                                                                                                                                                                                                                                     , not start")
+	flag.BoolVar(&cmds.FlagOTA, "dk-ota", false, "auto update")
+	flag.StringVar(&cmds.FlagDataway, "dk-dataway", "", `address of dataway                                                                                                                                                                          ( http://IP:Port?token                                                                                                        = xxx) , port default 9528`)
+	flag.StringVar(&cmds.FlagEnableInputs, "dk-enable-inputs", "", `default enable inputs                                                                                                                                                                 ( comma splited                                                                                                                            , example: cpu                                                                                                                                , mem                     , disk)`)
+	flag.StringVar(&cmds.FlagDatakitName, "dk-name", "", `specify DataKit name                                                                                                                                                                                                                                                                                                             , example: prod-env-datakit`)
+	flag.StringVar(&cmds.FlagGlobalTags, "dk-global-tags", "", `enable global tags                                                                                                                                                                                                                                                                                                               , example: host                                                                                                          = __datakit_hostname , ip     = __datakit_ip`)
+	flag.StringVar(&cmds.FlagProxy, "dk-proxy", "", "http proxy http://ip:port for datakit")
+	flag.StringVar(&cmds.FlagDatakitHTTPListen, "dk-listen", "localhost", "datakit HTTP listen")
+	flag.StringVar(&cmds.FlagNamespace, "dk-namespace", "", "datakit namespace")
+	flag.StringVar(&cmds.FlagInstallLog, "dk-install-log", "", "install log")
+	flag.StringVar(&cmds.FlagCloudProvider, "dk-cloud-provider", "", "specify cloud provider                                                                                                                                                               ( accept aliyun/tencent/aws)")
+	flag.IntVar(&cmds.FlagDatakitHTTPPort, "dk-http-port", 9529, "datakit HTTP port")
+
 	// utils
 	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info              ( aliyun/tencent/aws)")
 	flag.StringVar(&cmds.FlagIPInfo, "ipinfo", "", "show IP geo info")
@@ -94,6 +110,7 @@ var (
 var (
 	l = logger.DefaultSLogger("main")
 
+	// injected during building: -X
 	ReleaseType    = ""
 	ReleaseVersion = ""
 )
@@ -102,17 +119,37 @@ func setupFlags() {
 	// deprecated
 	flag.CommandLine.MarkDeprecated("cmd", "--cmd deprecated and not required")
 
-	// internal using
-	flag.CommandLine.MarkHidden("TODO")
-	flag.CommandLine.MarkHidden("check-update")
-	flag.CommandLine.MarkHidden("man-version")
-	flag.CommandLine.MarkHidden("export-integration")
-	flag.CommandLine.MarkHidden("addr")
-	flag.CommandLine.MarkHidden("show-testing-version")
-	flag.CommandLine.MarkHidden("update-log")
-	flag.CommandLine.MarkHidden("k8s-deploy")
-	flag.CommandLine.MarkHidden("interactive")
-	flag.CommandLine.MarkHidden("dump-samples")
+	// hidden flags
+	for _, f := range []string{
+		"TODO",
+		"check-update",
+		"man-version",
+		"export-integration",
+		"addr",
+		"show-testing-version",
+		"update-log",
+		"k8s-deploy",
+		"interactive",
+		"dump-samples",
+
+		// hidden all install related flags
+		"dk-install",
+		"dk-upgrade",
+		"dk-install-only",
+		"dk-ota",
+		"dk-dataway",
+		"dk-enable-inputs",
+		"dk-name",
+		"dk-global-tags",
+		"dk-proxy",
+		"dk-listen",
+		"dk-namespace",
+		"dk-install-log",
+		"dk-cloud-provider",
+		"dk-http-port",
+	} {
+		flag.CommandLine.MarkHidden(f)
+	}
 
 	if runtime.GOOS == "windows" {
 		flag.CommandLine.MarkHidden("reload")

@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"runtime"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 )
 
 const (
@@ -21,7 +19,8 @@ func InstallTelegraf(installDir string) error {
 	}
 
 	fmt.Printf("Start downloading Telegraf...\n")
-	if err := install.Download(url, installDir, false, false); err != nil {
+	curDownloading = "telegraf"
+	if err := download(url, installDir, false, false); err != nil {
 		return err
 	}
 

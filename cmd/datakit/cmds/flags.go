@@ -46,8 +46,9 @@ var (
 
 	FlagDatakitHost string
 
-	FlagDQL    bool
-	FlagRunDQL string
+	FlagDQL     bool
+	FlagRunDQL, // TODO: dump dql query result to specified CSV file
+	FlagCSV string
 
 	FlagUpdateIPDB bool
 	FlagAddr       string
@@ -62,6 +63,23 @@ var (
 	FlagCmdLogPath    string
 	FlagDumpSamples   string
 
+	FlagInstallOnly,
+	FlagOTA,
+	FlagDKInstall,
+	FlagDKUpgrade bool
+	FlagDataway,
+	FlagDatakitName,
+	FlagGlobalTags,
+	FlagDatakitHTTPListen,
+	FlagNamespace,
+	FlagInstallLog,
+	FlagCloudProvider,
+	FlagProxy,
+	FlagEnableInputs string
+	FlagDatakitHTTPPort int
+)
+
+var (
 	ReleaseVersion string
 	ReleaseType    string
 )
@@ -76,6 +94,11 @@ func RunCmds() {
 		}
 		ret := checkUpdate(ReleaseVersion, FlagAcceptRCVersion)
 		os.Exit(ret)
+	}
+
+	if FlagDKUpgrade || FlagDKInstall {
+		runInstallCMDs()
+		os.Exit(0)
 	}
 
 	if FlagVersion {
@@ -99,6 +122,7 @@ func RunCmds() {
 
 	if FlagRunDQL != "" {
 		setCmdRootLog(FlagCmdLogPath)
+		datakitHost = FlagDatakitHost
 		doDQL(FlagRunDQL)
 		os.Exit(0)
 	}
@@ -318,4 +342,8 @@ func RunCmds() {
 
 		os.Exit(0)
 	}
+}
+
+func runInstallCMDs() {
+	runInstaller()
 }
