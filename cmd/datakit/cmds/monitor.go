@@ -13,19 +13,14 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
-func CMDMonitor(intervalStr, addrStr string, verbose bool) {
+func cmdMonitor(interval time.Duration, addrStr string, verbose bool) {
 	addr := "http://localhost:9529/stats"
 	if addrStr != "" {
 		addr = "http://" + addrStr + "/stats"
 	}
 
-	interval := 3 * time.Second
-	if intervalStr != "" {
-		if du, err := time.ParseDuration(intervalStr); err == nil {
-			if du >= time.Second {
-				interval = du // only accept interval >= 1s
-			}
-		}
+	if interval < time.Second {
+		interval = time.Second
 	}
 
 	run := func() {
@@ -40,7 +35,7 @@ func CMDMonitor(intervalStr, addrStr string, verbose bool) {
 		}
 	}
 
-	run()
+	run() // run before sleep
 
 	tick := time.NewTicker(interval)
 	defer tick.Stop()

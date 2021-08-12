@@ -29,7 +29,7 @@ const (
 		`&& rm -rf ./dk-installer"`
 )
 
-func CheckUpdate(curverStr string, acceptRC bool) int {
+func checkUpdate(curverStr string, acceptRC bool) int {
 
 	l = logger.SLogger("ota-update")
 
@@ -66,7 +66,7 @@ func CheckUpdate(curverStr string, acceptRC bool) int {
 	return 0
 }
 
-func ShowVersion(curverStr, releaseType string, showTestingVer bool) {
+func showVersion(curverStr, releaseType string, showTestingVer bool) {
 	fmt.Printf(`
        Version: %s
         Commit: %s

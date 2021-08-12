@@ -23,7 +23,7 @@ var (
 	}
 )
 
-func InstallExternal(service string) error {
+func installExternal(service string) error {
 	name := strings.ToLower(service)
 	dir := runtime.GOOS + "/" + runtime.GOARCH
 

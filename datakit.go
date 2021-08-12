@@ -1,11 +1,16 @@
 package datakit
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/process"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -55,7 +60,8 @@ var (
 	Version    = git.Version
 	AutoUpdate = false
 
-	InstallDir         = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: `C:\Program Files\datakit`,
 		OSArchWin386:   `C:\Program Files (x86)\datakit`,
@@ -89,8 +95,13 @@ const (
 	ConfPerm = os.ModePerm
 )
 
-// goroutines caches  goroutine
-var goroutines = []goroutine.Group{}
+var (
+
+	// goroutines caches  goroutine
+	goroutines = []goroutine.Group{}
+
+	pidFile = filepath.Join(InstallDir, ".pid")
+)
 
 // G create a groutine group, with namespace datakit
 func G(name string) goroutine.Group {
@@ -117,8 +128,57 @@ func GWait() {
 }
 
 func Quit() {
+
+	_ = os.Remove(pidFile)
+
 	Exit.Close()
 	WG.Wait()
 	GWait()
 	service.Stop()
+}
+
+func SavePid() error {
+
+	if isRuning() {
+		return fmt.Errorf("DataKit still running")
+	}
+
+	pid := os.Getpid()
+	return ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), os.ModePerm)
+}
+
+func isRuning() bool {
+	var oidPid int64
+	var name string
+	var p *process.Process
+
+	cont, err := ioutil.ReadFile(pidFile)
+
+	// pid文件不存在
+	if err != nil {
+		return false
+	}
+
+	oidPid, err = strconv.ParseInt(string(cont), 10, 32)
+	if err != nil {
+		return false
+	}
+
+	p, _ = process.NewProcess(int32(oidPid))
+	name, _ = p.Name()
+
+	if name == getBinName() {
+		return true
+	}
+	return false
+}
+
+func getBinName() string {
+	bin := "datakit"
+
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
+
+	return bin
 }

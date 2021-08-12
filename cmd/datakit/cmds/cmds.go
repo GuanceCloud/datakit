@@ -38,7 +38,7 @@ func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
 	}
 }
 
-func IPInfo(ip string) (map[string]string, error) {
+func ipInfo(ip string) (map[string]string, error) {
 
 	datadir := datakit.DataDir
 
@@ -64,7 +64,7 @@ func IPInfo(ip string) (map[string]string, error) {
 	}, nil
 }
 
-func SetCmdRootLog(rl string) {
+func setCmdRootLog(rl string) {
 
 	if err := logger.InitRoot(&logger.Option{Path: rl, Flags: logger.OPT_DEFAULT, Level: logger.DEBUG}); err != nil {
 		l.Error(err)

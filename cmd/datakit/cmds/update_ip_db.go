@@ -12,7 +12,7 @@ const (
 	dataUrl = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/data.tar.gz"
 )
 
-func UpdateIpDB(dkhost, addr string) error {
+func updateIPDB(dkhost, addr string) error {
 	if addr == "" {
 		addr = dataUrl
 	}

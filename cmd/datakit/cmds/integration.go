@@ -66,7 +66,7 @@ var (
 	}
 )
 
-func ExportIntegration(to, ignore string) error {
+func exportIntegration(to, ignore string) error {
 	if err := os.MkdirAll(to, 0600); err != nil {
 		return err
 	}

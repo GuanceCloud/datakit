@@ -105,7 +105,7 @@ var (
 	}
 )
 
-func Grokq() {
+func grokq() {
 
 	var err error
 	G, err = grok.NewWithConfig(&grok.Config{

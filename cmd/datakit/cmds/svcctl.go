@@ -29,7 +29,7 @@ func isRoot() error {
 	return nil
 }
 
-func StopDatakit() error {
+func stopDatakit() error {
 
 	if err := isRoot(); err != nil {
 		return err
@@ -62,7 +62,7 @@ func StopDatakit() error {
 	return nil
 }
 
-func StartDatakit() error {
+func startDatakit() error {
 
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command("powershell", []string{"Start-Service", "datakit"}...)
@@ -95,25 +95,25 @@ func StartDatakit() error {
 	return nil
 }
 
-func RestartDatakit() error {
+func restartDatakit() error {
 
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command("powershell", []string{"Restart-Service", "datakit"}...)
 		return cmd.Run()
 	}
 
-	if err := StopDatakit(); err != nil {
+	if err := stopDatakit(); err != nil {
 		return err
 	}
 
-	if err := StartDatakit(); err != nil {
+	if err := startDatakit(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func ReloadDatakit(host string) error {
+func reloadDatakit(host string) error {
 	client := &nhttp.Client{
 		CheckRedirect: func(req *nhttp.Request, via []*nhttp.Request) error {
 			return nhttp.ErrUseLastResponse
@@ -127,7 +127,7 @@ func ReloadDatakit(host string) error {
 	return err
 }
 
-func UninstallDatakit() error {
+func uninstallDatakit() error {
 	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
@@ -141,7 +141,7 @@ func UninstallDatakit() error {
 	return service.Control(svc, "uninstall")
 }
 
-func ReinstallDatakit() error {
+func reinstallDatakit() error {
 	svc, err := dkservice.NewService()
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func ReinstallDatakit() error {
 	return service.Control(svc, "start")
 }
 
-func DatakitStatus() (string, error) {
+func datakitStatus() (string, error) {
 
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command("powershell", []string{"Get-Service", "datakit"}...)

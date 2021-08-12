@@ -38,7 +38,7 @@ var (
 	}
 )
 
-func DQL(host string) {
+func dql(host string) {
 	datakitHost = host
 
 	c, _ := newCompleter()
