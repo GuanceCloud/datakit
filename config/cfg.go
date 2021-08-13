@@ -496,6 +496,7 @@ func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
 		c.IOConf = &IOConfig{}
 	}
+
 	for _, envkey := range []string{"ENV_MAX_CACHE_COUNT", "ENV_CACHE_DUMP_THRESHOLD", "ENV_MAX_DYNAMIC_CACHE_COUNT", "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD"} {
 		if v := datakit.GetEnv(envkey); v != "" {
 			value, err := strconv.ParseInt(v, 10, 64)
@@ -518,10 +519,6 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
 		c.Namespace = v
-	}
-
-	if v := datakit.GetEnv("ENV_DISABLE_404PAGE"); v != "" {
-		c.HTTPAPI.Disable404Page = true
 	}
 
 	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" {
@@ -558,7 +555,11 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	if v := datakit.GetEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {
-		c.HTTPAPI = &dkhttp.APIConfig{RUMOriginIPHeader: v}
+		c.HTTPAPI.RUMOriginIPHeader = v
+	}
+
+	if v := datakit.GetEnv("ENV_DISABLE_404PAGE"); v != "" {
+		c.HTTPAPI.Disable404Page = true
 	}
 
 	if v := datakit.GetEnv("ENV_ENABLE_PPROF"); v != "" {

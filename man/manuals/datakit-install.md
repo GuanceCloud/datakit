@@ -23,6 +23,8 @@ sudo -- sh -c 'curl https://static.dataflux.cn/datakit/installer-linux-amd64 -o 
 	&& rm -rf ./dk-installer'
 ```
 
+>  注意：安装之前，请确保 9529 端口是否被占用。
+
 除了指定 DataWay 之外，`dk-installer` 额外支持如下安装选项（以下选项全平台支持）：
 
 - `-cloud-provider`：支持安装阶段填写云厂商(aliyun/aws/tencent)
