@@ -13,12 +13,12 @@
 
 写入日志数据，参数列表：
 
-| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                    |
-| -----                | ----   | -------  | ----      | -----                                   |
-| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`    |
-| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)           |
-| `input`              | string | false    | `datakit` | 数据源名称                              |
-| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag |
+| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                               |
+| -------------------- | ------ | -------- | --------- | -------------------------------------------------- |
+| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object` |
+| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                      |
+| `input`              | string | false    | `datakit` | 数据源名称                                         |
+| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag            |
 
 HTTP body 支持行协议以及 JSON 俩种形式。
 
@@ -27,7 +27,7 @@ HTTP body 支持行协议以及 JSON 俩种形式。
 为便于行协议处理，所有数据上传 API 均支持 JSON 形式的 body。JSON body 参数说明
 
 | 参数名        | 类型                        | 是否必选 | 默认值 | 说明                                                                          |
-| -----         | ----                        | -------  | ----   | -----                                                                         |
+| ------------- | --------------------------- | -------- | ------ | ----------------------------------------------------------------------------- |
 | `measurement` | `string`                    | 是       | 无     |                                                                               |
 | `tags`        | `map[string]string`         | 否       | 无     |                                                                               |
 | `fields`      | `map[string]any-basic-type` | 是       | 无     | 行协议不能没有指标（field），只能是基础类型，不是是复合类型（如数组、字典等） |
@@ -191,7 +191,7 @@ Content-Type: application/json
 参数说明：
 
 | 名称                     | 说明                                                                                                                                                                                                                       |
-| :---                     | ---                                                                                                                                                                                                                        |
+| :----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `queries`                | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                   |
 | `echo_explain`           | 是否返回最终执行语句（返回 JSON 数据中的 `raw_query` 字段）                                                                                                                                                                |
 | `query`                  | DQL查询语句（DQL [文档](https://www.yuque.com/dataflux/doc/fsnd2r)）                                                                                                                                                       |
@@ -232,6 +232,102 @@ Content-Type: application/json
         }
     ]
 }
+```
+
+## `/v1/object/labels` | `POST`
+
+创建或者更新对象的 `labels`
+
+请求示例:
+
+`request body`说明
+
+|           参数 |                                     描述                                      |       类型 |
+| -------------: | :---------------------------------------------------------------------------: | ---------: |
+| `object_class` |                表示 `labels` 所关联的 `object` 类型，如 `HOST`                |   `string` |
+|  `object_name` |              表示 `labels` 所关联的 `object`名称，如 `host-123`               |   `string` |
+|          `key` |   表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`   |   `string` |
+|        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` |     `void` |
+|       `labels` |                       `labels` 列表，一个 `string` 数组                       | `[]string` |
+
+```
+	curl -XPOST "127.0.0.1:9529/v1/object/labels" 
+		-H 'Content-Type: application/json' 
+		-d'{	
+				"object_class": "host_processes",	
+				"object_name": "ubuntu20-dev_49392",	
+				"key": "host",	
+				"value": "ubuntu20-dev",	
+				"labels": [		"l1",		"l2"	]
+			}'
+```
+
+成功返回示例:
+
+```
+	status_code: 200
+	{
+		"content": {
+			"_id": "375370265b0641818a99ed1a61aed8563a25459d"
+		}
+	}
+```
+
+
+失败返回示例:
+
+	status_code: 500
+	{
+		"errorCode":""
+	}
+
+
+## `/v1/object/labels` | `DELETE`
+
+删除对象的 `labels`
+
+请求示例:
+
+`request body`说明
+
+|           参数 |                                     描述                                      |     类型 |
+| -------------: | :---------------------------------------------------------------------------: | -------: |
+| `object_class` |                表示 `labels` 所关联的 `object` 类型，如 `HOST`                | `string` |
+|  `object_name` |              表示 `labels` 所关联的 `object`名称，如 `host-123`               | `string` |
+|          `key` |   表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`   | `string` |
+|        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` |   `void` |
+
+```
+	curl -XPOST "127.0.0.1:9529/v1/object/labels" 
+		-H 'Content-Type: application/json' 
+		-d'{	
+				"object_class": "host_processes",	
+				"object_name": "ubuntu20-dev_49392",	
+				"key": "host",	
+				"value": "ubuntu20-dev"
+			}'
+```
+
+成功返回示例:
+
+```
+	status_code: 200
+	{
+		"content": {
+			"msg": "delete success!"
+		}
+	}
+```
+
+
+
+失败返回示例:
+
+```
+	status_code: 500
+	{
+		"errorCode":""
+	}
 ```
 
 ## DataKit 行协议约束

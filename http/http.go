@@ -226,6 +226,10 @@ func HttpStart() {
 
 	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
 
+	router.POST("/v1/object/labels", func(c *gin.Context) { apiCreateOrUpdateObjectLabel(c) })
+
+	router.DELETE("/v1/object/labels", func(c *gin.Context) { apiDeleteObjectLabel(c) })
+
 	srv := &http.Server{
 		Addr:    apiConfig.Listen,
 		Handler: router,
