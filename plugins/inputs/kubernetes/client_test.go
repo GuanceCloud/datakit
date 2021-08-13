@@ -13,6 +13,8 @@ func TestNewClient(t *testing.T) {
 		cert               = "/run/secrets/kubernetes.io/serviceaccount/pki/apiserver-kubelet-client.crt"
 		key                = "/run/secrets/kubernetes.io/serviceaccount/pki/apiserver-kubelet-client.key"
 		insecureSkipVerify = false
+		bearerTokenPath    = ""
+		bearerToken        = ""
 	)
 
 	tlsconfig := net.TlsClientConfig{
