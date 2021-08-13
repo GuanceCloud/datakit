@@ -39,6 +39,8 @@ var (
 
 	flagDKUpgrade,
 	flagInstallOnly,
+	flagOffline, // deprecated
+	flagDownloadOnly, // deprecated
 	flagOTA bool
 	flagDataway,
 	flagEnableInputs,
@@ -71,7 +73,10 @@ func init() {
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagCloudProvider, "cloud-provider", "", "specify cloud provider                                                                                                                                                               ( accept aliyun/tencent/aws)")
-	flag.IntVar(&flagDatakitHTTPPort, "http-port", 9529, "datakit HTTP port")
+	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
+
+	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
+	flag.BoolVar(&flagDownloadOnly, "download-only", false, "-download-only option removed")
 }
 
 func downloadFiles() {
