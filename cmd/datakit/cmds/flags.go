@@ -62,21 +62,6 @@ var (
 	FlagVVV           bool
 	FlagCmdLogPath    string
 	FlagDumpSamples   string
-
-	FlagInstallOnly,
-	FlagOTA,
-	FlagDKInstall,
-	FlagDKUpgrade bool
-	FlagDataway,
-	FlagDatakitName,
-	FlagGlobalTags,
-	FlagDatakitHTTPListen,
-	FlagNamespace,
-	FlagInstallLog,
-	FlagCloudProvider,
-	FlagProxy,
-	FlagEnableInputs string
-	FlagDatakitHTTPPort int
 )
 
 var (
@@ -94,11 +79,6 @@ func RunCmds() {
 		}
 		ret := checkUpdate(ReleaseVersion, FlagAcceptRCVersion)
 		os.Exit(ret)
-	}
-
-	if FlagDKUpgrade || FlagDKInstall {
-		runInstallCMDs()
-		os.Exit(0)
 	}
 
 	if FlagVersion {
@@ -342,8 +322,4 @@ func RunCmds() {
 
 		os.Exit(0)
 	}
-}
-
-func runInstallCMDs() {
-	runInstaller()
 }

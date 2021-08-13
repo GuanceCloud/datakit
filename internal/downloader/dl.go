@@ -1,91 +1,24 @@
-package cmds
+package downloader
 
 import (
 	"archive/tar"
 	"compress/gzip"
+	"crypto/tls"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/c-bata/go-prompt"
 	"github.com/dustin/go-humanize"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
 var (
-	suggestions = []prompt.Suggest{
-		{Text: "exit", Description: "exit cmd"},
-		{Text: "Q", Description: "exit cmd"},
-		{Text: "flushall", Description: "k8s interactive command to generate deploy file"},
-	}
-
-	l = logger.DefaultSLogger("cmds")
-
-	curDownloading string
+	CurDownloading string
+	l              = logger.DefaultSLogger("downloader")
 )
-
-type completer struct{}
-
-func newCompleter() (*completer, error) {
-	return &completer{}, nil
-}
-
-func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
-	w := d.GetWordBeforeCursor()
-	switch w {
-	case "":
-		return []prompt.Suggest{}
-	default:
-		return prompt.FilterFuzzy(suggestions, w, true)
-	}
-}
-
-func ipInfo(ip string) (map[string]string, error) {
-
-	datadir := datakit.DataDir
-
-	if err := geo.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
-		return nil, err
-	}
-
-	if err := ip2isp.Init(filepath.Join(datadir, "ip2isp.txt")); err != nil {
-		return nil, err
-	}
-
-	x, err := geo.Geo(ip)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]string{
-		"city":     x.City,
-		"province": x.Region,
-		"country":  x.Country_short,
-		"isp":      ip2isp.SearchIsp(ip),
-		"ip":       ip,
-	}, nil
-}
-
-func setCmdRootLog(rl string) {
-
-	if err := logger.InitRoot(&logger.Option{Path: rl, Flags: logger.OPT_DEFAULT, Level: logger.DEBUG}); err != nil {
-		l.Error(err)
-		return
-	}
-
-	// setup config module logger, redirect to @rl
-	config.SetLog()
-
-	l = logger.SLogger("cmds")
-	l.Infof("root log path set to %s", rl)
-}
 
 type writeCounter struct {
 	total   uint64
@@ -104,7 +37,7 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 func (wc *writeCounter) PrintProgress() {
 	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
 		fmt.Printf("\r%s", strings.Repeat(" ", 36))
-		fmt.Printf("\rDownloading(% 7s)... %s/%s", curDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.total))
+		fmt.Printf("\rDownloading(% 7s)... %s/%s", CurDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.total))
 		wc.last = 0.0
 	}
 }
@@ -170,4 +103,56 @@ func doExtract(r io.Reader, to string) error {
 	}
 
 	return nil
+}
+
+func Download(from, to string, progress, downloadOnly bool) error {
+
+	l.Debugf("downloading %s...", from)
+
+	// disable SSL verify for some bad client
+	cli := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+
+	req, err := http.NewRequest("GET", from, nil)
+	if err != nil {
+		l.Error(err)
+		return err
+	}
+
+	req.Header.Add("Accept-Encoding", "gzip")
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	progbar := &writeCounter{
+		total: uint64(resp.ContentLength),
+	}
+
+	if downloadOnly {
+		return doDownload(io.TeeReader(resp.Body, progbar), to)
+	} else {
+		if !progress {
+			return doExtract(resp.Body, to)
+		} else {
+			return doExtract(io.TeeReader(resp.Body, progbar), to)
+		}
+	}
+
+	return nil
+}
+
+func doDownload(r io.Reader, to string) error {
+
+	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(f, r); err != nil { //nolint:gosec
+		return err
+	}
+
+	return f.Close()
 }

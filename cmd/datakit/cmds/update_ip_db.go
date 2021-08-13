@@ -5,6 +5,7 @@ import (
 	nhttp "net/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
 
 const (
@@ -19,7 +20,7 @@ func updateIPDB(dkhost, addr string) error {
 	fmt.Printf("Start downloading data.tar.gz...\n")
 
 	curDownloading = "ipdb"
-	if err := download(addr, datakit.InstallDir, true, false); err != nil {
+	if err := dl.Download(addr, datakit.InstallDir, true, false); err != nil {
 		return err
 	}
 

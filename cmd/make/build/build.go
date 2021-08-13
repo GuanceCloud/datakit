@@ -147,13 +147,13 @@ func Compile() {
 		compileArch(AppBin, goos, goarch, dir)
 		buildExternals(dir, goos, goarch)
 
-		//if goos == "windows" {
-		//	installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
-		//} else {
-		//	installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
-		//}
+		if goos == "windows" {
+			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
+		} else {
+			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
+		}
 
-		//buildInstaller(filepath.Join(PubDir, Release), goos, goarch)
+		buildInstaller(filepath.Join(PubDir, Release), goos, goarch)
 	}
 
 	l.Infof("Done!(elapsed %v)", time.Since(start))
