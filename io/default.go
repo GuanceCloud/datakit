@@ -304,3 +304,7 @@ func NamedFeedEx(name, category, metric string,
 
 	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, nil)
 }
+
+func DroppedTotal() int64 {
+	return defaultIO.DroppedTotal()
+}

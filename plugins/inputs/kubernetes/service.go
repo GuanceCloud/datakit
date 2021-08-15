@@ -21,6 +21,9 @@ type service struct {
 }
 
 func (s *service) Gather() {
+	var start = time.Now()
+	var pts []*io.Point
+
 	list, err := s.client.getServices()
 	if err != nil {
 		l.Errorf("failed of get services resource: %s", err)
@@ -52,16 +55,19 @@ func (s *service) Gather() {
 		addSliceToFields("external_ips", obj.Spec.ExternalIPs, fields)
 
 		addMapToFields("annotations", obj.Annotations, fields)
+		addLabelToFields(obj.Labels, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesServiceName, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := io.Feed(inputName, datakit.Object, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+			pts = append(pts, pt)
 		}
+	}
+
+	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+		l.Error(err)
 	}
 }
 

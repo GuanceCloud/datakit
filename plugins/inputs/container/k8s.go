@@ -218,11 +218,15 @@ func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
 	tags["name"] = item.Metadata.UID
 	tags["ready"] = fmt.Sprintf("%d/%d", item.Status.ContainerStatuses.Ready(), item.Status.ContainerStatuses.Length())
 	tags["state"] = item.Status.Phase
-	tags["labels"] = item.Metadata.LabelsJSON()
 
 	fields := map[string]interface{}{
 		"age":     item.Status.Age(),
 		"restart": item.Status.ContainerStatuses.RestartCount(),
+
+		// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
+		"df_label":            item.Metadata.LabelsJSON(),
+		"df_label_premission": "read_only",
+		"df_label_source":     "datakit",
 	}
 
 	return &job{measurement: kubeletPodName, tags: tags, fields: fields, ts: time.Now()}
@@ -430,11 +434,22 @@ type VolumeMetrics struct {
 }
 
 func (p PodItemMetadata) LabelsJSON() string {
-	j, err := json.Marshal(p.Labels)
-	if err != nil {
-		return "{}"
+	// empty array
+	labelsString := "[]"
+
+	if len(p.Labels) != 0 {
+		var lb []string
+		for k, v := range p.Labels {
+			lb = append(lb, k+":"+v)
+		}
+
+		b, err := json.Marshal(lb)
+		if err == nil {
+			labelsString = string(b)
+		}
 	}
-	return string(j)
+
+	return labelsString
 }
 
 func (p PodItemStatus) Age() int64 {

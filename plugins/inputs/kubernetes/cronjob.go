@@ -21,6 +21,9 @@ type cronJob struct {
 }
 
 func (c *cronJob) Gather() {
+	var start = time.Now()
+	var pts []*io.Point
+
 	list, err := c.client.getCronJobs()
 	if err != nil {
 		l.Errorf("failed of get cronjobs resource: %s", err)
@@ -51,16 +54,19 @@ func (c *cronJob) Gather() {
 		}
 
 		addMapToFields("annotations", obj.Annotations, fields)
+		addLabelToFields(obj.Labels, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesCronJobName, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := io.Feed(inputName, datakit.Object, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+			pts = append(pts, pt)
 		}
+	}
+
+	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+		l.Error(err)
 	}
 }
 
