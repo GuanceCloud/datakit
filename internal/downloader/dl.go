@@ -107,8 +107,6 @@ func doExtract(r io.Reader, to string) error {
 
 func Download(from, to string, progress, downloadOnly bool) error {
 
-	l.Debugf("downloading %s...", from)
-
 	// disable SSL verify for some bad client
 	cli := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 

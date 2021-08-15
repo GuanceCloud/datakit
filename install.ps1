@@ -139,6 +139,7 @@ Invoke-Expression $action
 
 # remove installer
 Remove-Item -Force -ErrorAction SilentlyContinue $installer
+Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
 
 # clean envs
 $optional_envs="DK_DATAWAY","DK_UPGRADE","DK_PROXY","DK_HTTP_PORT","DK_HTTP_LISTEN","DK_INSTALL_ONLY"
