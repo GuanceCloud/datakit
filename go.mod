@@ -19,7 +19,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/dustin/go-humanize v1.0.0
-	github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153
+	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 	github.com/fatih/color v1.9.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gin-gonic/gin v1.7.2

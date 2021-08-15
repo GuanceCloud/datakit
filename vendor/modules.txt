@@ -197,7 +197,7 @@ github.com/docker/go-units
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
-# github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153
+# github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 ## explicit
 github.com/elazarl/goproxy
 # github.com/eliukblau/pixterm/pkg/ansimage v0.0.0-20191210081756-9fb6cf8c2f75
