@@ -35,6 +35,9 @@ type ClientStat struct {
 	MaxHeapAlloc     int64
 	MaxHeapSys       int64
 	MaxHeapObjects   int64
+
+	DroppedPointsTotal int64
+	DroppedPoints      int64
 }
 
 func setMax(prev, cur int64) int64 {
@@ -75,6 +78,9 @@ func (s *ClientStat) Update() {
 
 	s.MaxHeapObjects = setMax(s.MaxHeapObjects, s.HeapObjects)
 	s.MinHeapObjects = setMin(s.MinHeapObjects, s.HeapObjects)
+
+	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
+	s.DroppedPointsTotal = io.DroppedTotal()
 }
 
 func (s *ClientStat) ToMetric() *io.Point {
@@ -109,6 +115,9 @@ func (s *ClientStat) ToMetric() *io.Point {
 		"max_heap_alloc":     s.MaxHeapAlloc,
 		"max_heap_sys":       s.MaxHeapSys,
 		"max_heap_objects":   s.MaxHeapObjects,
+
+		"dropped_points_total": s.DroppedPointsTotal,
+		"dropped_points":       s.DroppedPoints,
 	}
 
 	pt, err := io.MakePoint(measurement, tags, fields)
