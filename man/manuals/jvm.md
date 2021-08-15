@@ -85,7 +85,6 @@ DataKit 内置了 [statsd 采集器](statsd)，用于接收网络上发送过来
 
 ```shell
 java -javaagent:dd-java-agent.jar \
-	-XX:FlightRecorderOptions=stackdepth=256 \
 	-Ddd.profiling.enabled=true \
 	-Ddd.logs.injection=true \
 	-Ddd.trace.sample.rate=1 \

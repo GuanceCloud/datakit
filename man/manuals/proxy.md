@@ -62,9 +62,21 @@ curl -v -X POST http://127.0.0.1:8090/v1/write/metrics?token=TOKEN -d "proxy_tes
 
 测试下代理服务是否正常：
 
+- 通过发送 metrics 到工作空间测试
+
 ```shell
-curl -x http://127.0.0.1:9530 -v -X POST https://openway.dataflux.cn/v1/write/metrics?token=TOKEN -d "proxy_test,name=test c=123i"
+curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v -X POST https://openway.dataflux.cn/v1/write/metrics?token=[your_token] -d "proxy_test,name=test c=123i"
 ```
+
+如果代理服务器工作正常，[your_token]代表的工作空间将收到指标数据 "proxy_test,name=test c=123i"。
+
+- 通过测试 Dataway
+
+```shell
+curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v https://openway.dataflux.cn/v1/write/metrics
+```
+
+如果代理服务器工作正常，命令行中将收到 Dataway 返回的 HTML 数据。
 
 - 设置 _被代理 Datakit_ 的代理模式
 

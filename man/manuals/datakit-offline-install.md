@@ -10,6 +10,52 @@
 
 ## 通过代理安装
 
+- Linux
+
+X86 amd64
+
+```shell
+sudo -- sh -c 'curl --proxy http://[proxy_server ip:port] https://static.dataflux.cn/datakit/installer-linux-amd64 -o dk-installer && chmod +x ./dk-installer && ./dk-installer -proxy http://[proxy_server ip:port] -dataway "https://openway.dataflux.cn?token=[TOKEN]" -global-tags "host=__datakit_hostname" && rm -rf ./dk-installer'
+```
+
+X86 i386
+
+```shell
+sudo -- sh -c 'curl --proxy http://[proxy_server ip:port] https://static.dataflux.cn/datakit/installer-linux-386 -o dk-installer && chmod +x ./dk-installer && ./dk-installer -proxy http://[proxy_server ip:port] -dataway "https://openway.dataflux.cn?token=[TOKEN]" -global-tags "host=__datakit_hostname" && rm -rf ./dk-installer'
+```
+
+arm
+
+```shell
+sudo -- sh -c 'curl --proxy http://[proxy_server ip:port] https://static.dataflux.cn/datakit/installer-linux-arm -o dk-installer && chmod +x ./dk-installer && ./dk-installer -proxy http://[proxy_server ip:port] -dataway "https://openway.dataflux.cn?token=[TOKEN]" -global-tags "host=__datakit_hostname" && rm -rf ./dk-installer'
+```
+
+arm64
+
+```shell
+sudo -- sh -c 'curl --proxy http://[proxy_server ip:port] https://static.dataflux.cn/datakit/installer-linux-arm64 -o dk-installer && chmod +x ./dk-installer && ./dk-installer -proxy http://[proxy_server ip:port] -dataway "https://openway.dataflux.cn?token=[TOKEN]" -global-tags "host=__datakit_hostname" && rm -rf ./dk-installer'
+```
+
+- MacOS
+
+```shell
+sudo -- sh -c 'curl --proxy http://[proxy_server ip:port] https://static.dataflux.cn/datakit/installer-darwin-amd64 -o dk-installer && chmod +x ./dk-installer && ./dk-installer -proxy http://[proxy_server ip:port] -dataway "https://openway.dataflux.cn?token=[TOKEN]" -global-tags "host=__datakit_hostname" && rm -rf ./dk-installer'
+```
+
+- Windows
+
+64 位
+
+```shell
+Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/installer-windows-amd64.exe -destination .dk-installer.exe -ProxyUsage Override -ProxyList http://[proxy_server ip:port]; .dk-installer.exe -proxy http://[proxy_server ip:port] -dataway "https://openway.dataflux.cn?token=[TOKEN]" -global-tags "host=__datakit_hostname"; rm .dk-installer.exe
+```
+
+32 位
+
+```shell
+Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/installer-windows-386.exe -destination .dk-installer.exe -ProxyUsage Override -ProxyList http://[proxy_server ip:port]; .dk-installer.exe  -proxy http://[proxy_server ip:port] -dataway "https://openway.dataflux.cn?token=[TOKEN]" -global-tags "host=__datakit_hostname"; rm .dk-installer.exe
+```
+
 ## 下载安装包
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
@@ -60,13 +106,13 @@ scp installer-linux-amd64 datakit-linux-amd64-{{.Version}}.tar.gz data.tar.gz US
 
 ```shell
 # Windows（需以 administrator 权限运行 Powershell 执行）
-.\installer-windows-amd64.exe -offline -dataway "https://openway.dataflux.cn?token=<TOKEN>" -srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
+.\installer-windows-amd64.exe -offline -dataway "https://openway.dataflux.cn?token=[TOKEN]" -srcs .\datakit-windows-amd64-{{.Version}}.tar.gz,.\data.tar.gz
 
 # Linux（需以 root 权限运行）
 chmod +x installer-linux-amd64
-./installer-linux-amd64 -offline -dataway "https://openway.dataflux.cn?token=<TOKEN>" -srcs datakit-linux-amd64-{{.Version}}.tar.gz,data.tar.gz
+./installer-linux-amd64 -offline -dataway "https://openway.dataflux.cn?token=[TOKEN]" -srcs datakit-linux-amd64-{{.Version}}.tar.gz,data.tar.gz
 
 # Mac （需以 root 权限运行）
 chmod +x installer-darwin-amd64
-./installer-darwin-amd64 -offline -dataway "https://openway.dataflux.cn?token=<TOKEN>" -srcs datakit-darwin-amd64-{{.Version}}.tar.gz,data.tar.gz
+./installer-darwin-amd64 -offline -dataway "https://openway.dataflux.cn?token=[TOKEN]" -srcs datakit-darwin-amd64-{{.Version}}.tar.gz,data.tar.gz
 ```
