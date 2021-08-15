@@ -12,7 +12,6 @@ host_port=19529
 # 将 datakit/agent 的配置文件和日志映射到 host 的 HOME 目录下
 mkdir -p ${host_confd}
 sudo truncate -s 0 $HOME/dk.log
-sudo truncate -s 0 ${host_confd}/datakit.conf
 sudo truncate -s 0 $HOME/dk-gin.log
 
 # 停掉老的容器

@@ -50,6 +50,7 @@ const (
 	ElectionHeartbeat = "/v1/election/heartbeat"
 	QueryRaw          = "/v1/query/raw"
 	ListDataWay       = "/v1/list/dataway"
+	ObjectLabel       = "/v1/object/labels" // object label
 )
 
 var (
