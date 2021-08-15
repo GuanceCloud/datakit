@@ -21,6 +21,9 @@ type node struct {
 }
 
 func (n *node) Gather() {
+	var start = time.Now()
+	var pts []*io.Point
+
 	list, err := n.client.getNodes()
 	if err != nil {
 		l.Errorf("failed of get nodes resource: %s", err)
@@ -45,16 +48,19 @@ func (n *node) Gather() {
 		}
 
 		addMapToFields("annotations", obj.Annotations, fields)
+		addLabelToFields(obj.Labels, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesNodeName, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := io.Feed(inputName, datakit.Object, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+			pts = append(pts, pt)
 		}
+	}
+
+	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+		l.Error(err)
 	}
 }
 
