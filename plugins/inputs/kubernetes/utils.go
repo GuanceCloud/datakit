@@ -3,29 +3,13 @@ package kubernetes
 import (
 	"encoding/json"
 	"strings"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type resource interface {
-	Gather()
-	LineProto() (*io.Point, error)
-	Info() *inputs.MeasurementInfo
-}
-
-var resourceList = map[string]resource{
-	"cluster": &cluster{},
-	// "pod":        &pod{},
-	"deployment": &deployment{},
-	"replicaSet": &replicaSet{},
-	"service":    &service{},
-	"node":       &node{},
-	"job":        &job{},
-	"cronJob":    &cronJob{},
-}
-
 func addMapToFields(key string, value map[string]string, fields map[string]interface{}) {
+	if fields == nil {
+		return
+	}
+
 	if value == nil || len(value) == 0 {
 		// 如果该 map 为空，则对应值为空字符串，否则在 json 序列化为 "null"
 		fields[key] = defaultStringValue
@@ -39,10 +23,17 @@ func addMapToFields(key string, value map[string]string, fields map[string]inter
 }
 
 func addSliceToFields(key string, value []string, fields map[string]interface{}) {
+	if fields == nil {
+		return
+	}
 	fields[key] = strings.Join(value, ",")
 }
 
 func addMessageToFields(tags map[string]string, fields map[string]interface{}) {
+	if fields == nil {
+		return
+	}
+
 	var temp = make(map[string]interface{})
 	for k, v := range tags {
 		temp[k] = v
@@ -55,4 +46,30 @@ func addMessageToFields(tags map[string]string, fields map[string]interface{}) {
 		return
 	}
 	fields["message"] = string(b)
+}
+
+func addLabelToFields(labels map[string]string, fields map[string]interface{}) {
+	if fields == nil {
+		return
+	}
+
+	// empty array
+	labelsString := "[]"
+
+	if len(labels) != 0 {
+		var lb []string
+		for k, v := range labels {
+			lb = append(lb, k+":"+v)
+		}
+
+		b, err := json.Marshal(lb)
+		if err == nil {
+			labelsString = string(b)
+		}
+	}
+
+	// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
+	fields["df_label"] = labelsString
+	fields["df_label_premission"] = "read_only"
+	fields["df_label_source"] = "datakit"
 }

@@ -21,6 +21,9 @@ type pod struct {
 }
 
 func (p *pod) Gather() {
+	var start = time.Now()
+	var pts []*io.Point
+
 	list, err := p.client.getPods()
 	if err != nil {
 		l.Errorf("failed of get pods resource: %s", err)
@@ -76,16 +79,19 @@ func (p *pod) Gather() {
 		fields["restarts"] = restartCount
 
 		addMapToFields("annotations", obj.Annotations, fields)
+		addLabelToFields(obj.Labels, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesPodName, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := io.Feed(inputName, datakit.Object, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+			pts = append(pts, pt)
 		}
+	}
+
+	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+		l.Error(err)
 	}
 }
 
