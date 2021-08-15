@@ -14,7 +14,9 @@
 
 ## 获取安装命令
 
-登陆工作空间，点击左侧「集成」选择顶部「Datakit」，即可看到各种平台的安装命令
+登陆工作空间，点击左侧「集成」选择顶部「Datakit」，即可看到各种平台的安装命令。
+
+> 注意，以下 Linux/Mac/Windows 安装程序，能自动识别硬件平台（arm/x86, 32bit/64bit），无需做硬件平台选择。
 
 ### Linux/Mac
 
@@ -65,10 +67,10 @@ $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitst
 - `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
 - `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
 - `DK_INSTALL_ONLY`：仅安装，不运行
-- `DK_PROXY`：通过 Datakit 代理安装
 - `DK_DEF_INPUTS`：默认开启的采集器列表，格式范例：`input1,input2,input3`
 - `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
 - `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.dataflux.cn/datakit`
+- `HTTPS_PROXY`：通过 Datakit 代理安装
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
@@ -77,10 +79,18 @@ $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitst
 DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>" bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
 
 # Windows
-$env:DK_NAMESPACE="<namespace>" $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;"
+$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;"
 ```
 
-注意，Windows 环境变量设置格式为 `$env:NAME="value"`，Linux/Mac 上直接写成 `NAME="value"` 即可。
+俩种环境变量的设置格式为：
+
+```shell
+# Windows: 多个环境变量之间以分号分割
+$env:NAME1="value1"; $env:Name2="value2"
+
+# Linux/Mac: 多个环境变量之间以空格分割
+NAME1="value1" NAME2="value2"
+```
 
 ## 如何应付不友好的主机名
 

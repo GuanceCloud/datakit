@@ -72,6 +72,7 @@ type dataWayClient struct {
 	url         string
 	host        string
 	scheme      string
+	proxy       string
 	urlValues   url.Values
 	categoryURL map[string]string
 	ontest      bool
@@ -140,7 +141,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	resp, err := cli.Do(req)
 	if err != nil {
 		dktracer.GlobalTracer.SetTag(span, "http_client_do_error", err.Error())
-		l.Errorf("request url %s failed: %s", requrl, err)
+		l.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
 		dc.fails++
 
 		return err
@@ -564,6 +565,7 @@ func (dw *DataWayCfg) initDatawayCli(httpurl string) (*dataWayClient, error) {
 		host:        u.Host,
 		categoryURL: map[string]string{},
 		ontest:      dw.ontest,
+		proxy:       dw.HttpProxy,
 	}
 
 	for _, api := range apis {

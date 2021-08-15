@@ -115,22 +115,6 @@ func setupFlags() {
 		"k8s-deploy",
 		"interactive",
 		"dump-samples",
-
-		// hidden all install related flags
-		"dk-install",
-		"dk-upgrade",
-		"dk-install-only",
-		"dk-ota",
-		"dk-dataway",
-		"dk-enable-inputs",
-		"dk-name",
-		"dk-global-tags",
-		"dk-proxy",
-		"dk-listen",
-		"dk-namespace",
-		"dk-install-log",
-		"dk-cloud-provider",
-		"dk-http-port",
 	} {
 		flag.CommandLine.MarkHidden(f)
 	}
@@ -159,7 +143,7 @@ func main() {
 	applyFlags()
 
 	if err := datakit.SavePid(); err != nil {
-		fmt.Printf(err.Error())
+		fmt.Println(err.Error())
 		os.Exit(-1)
 	}
 

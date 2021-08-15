@@ -82,7 +82,13 @@ if ($x -ne $null) {
 }
 
 $proxy=""
-$x = [Environment]::GetEnvironmentVariable("DK_PROXY") 
+$x = [Environment]::GetEnvironmentVariable("HTTP_PROXY") 
+if ($x -ne $null) {
+	$proxy = $x
+	Write-COutput green "* set Proxy to $x" 
+}
+
+$x = [Environment]::GetEnvironmentVariable("HTTPS_PROXY") 
 if ($x -ne $null) {
 	$proxy = $x
 	Write-COutput green "* set Proxy to $x" 
@@ -110,7 +116,6 @@ if ([Environment]::Is64BitProcess -ne [Environment]::Is64BitOperatingSystem) {
 	$arch="i386"
 }
 
-$installer_base_url = "https://static.dataflux.cn/datakit"
 $installer_url = "$installer_base_url/installer-windows-$arch.exe"
 $installer=".dk-installer.exe"
 
@@ -126,15 +131,18 @@ if (Test-Path $installer) {
 Import-Module bitstransfer
 start-bitstransfer -source $installer_url -destination $installer
 
+#$action = "$installer -env"
+
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade"
 } else {
-	$action = "$installer -dataway=$dataway -listen=$http_listen -port=${http_port} -namespace=${namespace} -proxy=${proxy}"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace}"
 	if ($install_only -ne "") {
-		$action = -join($action, " ", "-upgrade")
+		$action = -join($action, " ", "-install-only")
 	}
 }
 
+Write-COutput green "action: $action"
 Invoke-Expression $action
 
 # remove installer
@@ -142,7 +150,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue $installer
 Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
 
 # clean envs
-$optional_envs="DK_DATAWAY","DK_UPGRADE","DK_PROXY","DK_HTTP_PORT","DK_HTTP_LISTEN","DK_INSTALL_ONLY"
+$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HTTP_LISTEN","DK_INSTALL_ONLY"
 foreach ($env in $optional_envs) {
 	Remove-Item -ErrorAction SilentlyContinue Env:$env
 }

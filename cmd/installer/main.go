@@ -18,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -41,6 +42,7 @@ var (
 	flagInstallOnly,
 	flagOffline, // deprecated
 	flagDownloadOnly, // deprecated
+	flagInfo,
 	flagOTA bool
 	flagDataway,
 	flagEnableInputs,
@@ -74,6 +76,7 @@ func init() {
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagCloudProvider, "cloud-provider", "", "specify cloud provider                                                                                                                                                               ( accept aliyun/tencent/aws)")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
+	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "-download-only option removed")
@@ -98,6 +101,17 @@ func downloadFiles() {
 func main() {
 
 	flag.Parse()
+
+	if flagInfo {
+		fmt.Printf(`
+Version: %s
+Build At: %s
+Golang Version: %s
+BaseUrl: %s
+DataKit: %s
+`, datakit.Version, git.BuildAt, git.Golang, datakitUrl, dataUrl)
+		os.Exit(0)
+	}
 
 	if flagInstallLog == "" {
 		lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
@@ -134,12 +148,15 @@ func main() {
 	}
 
 	if flagProxy != "" {
+
+		if !strings.HasPrefix(flagProxy, "http") {
+			flagProxy = "http://" + flagProxy
+		}
+
 		if _, err := url.Parse(flagProxy); err != nil {
 			l.Warnf("bad proxy config expect http://ip:port given %s", flagProxy)
 		} else {
-			if err := os.Setenv("HTTP_PROXY", flagProxy); err != nil {
-				l.Warnf("HTTP_PROXY set fail, os.Setenv(): %s, ignored", err.Error())
-			}
+			l.Infof("set proxy to %s", flagProxy)
 		}
 	}
 
@@ -164,11 +181,13 @@ func main() {
 		installNewDatakit(svc)
 	}
 
-	if flagInstallOnly {
+	if !flagInstallOnly {
 		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
 			l.Warnf("star service: %s, ignored", err.Error())
 		}
+	} else {
+		l.Infof("only install service %s, NOT started", dkservice.ServiceName)
 	}
 
 	config.CreateSymlinks()
@@ -253,10 +272,6 @@ func installNewDatakit(svc service.Service) {
 	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", flagDatakitHTTPListen, flagDatakitHTTPPort)
 	mc.InstallDate = time.Now()
 
-	if mc.DataWay != nil {
-		mc.DataWay.HttpProxy = flagProxy
-	}
-
 	if flagDatakitName != "" {
 		mc.Name = flagDatakitName
 	}
@@ -302,6 +317,8 @@ func writeDefInputToMainCfg(mc *config.Config) {
 	default:
 		// pass
 	}
+
+	l.Debugf("main config:\n%s", mc.String())
 
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
@@ -410,6 +427,11 @@ func getDataWayCfg() *dataway.DataWayCfg {
 		dw.URLs = strings.Split(flagDataway, ",")
 		if err := dw.Apply(); err != nil {
 			l.Fatal(err)
+		}
+
+		if flagProxy != "" {
+			l.Debugf("set proxy to %s", flagProxy)
+			dw.HttpProxy = flagProxy
 		}
 	} else {
 		l.Fatal("should not been here")

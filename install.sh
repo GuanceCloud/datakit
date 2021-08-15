@@ -23,18 +23,33 @@ BLU="\033[34m"
 ##################
 
 # Detect OS/Arch
+
+arch=
+case $(uname -p) in
+	x86_64)
+		arch="amd64"
+		;;
+	i386,i686)
+		arch="386"
+		;;
+	aarch64)
+		arch="arm64"
+		;;
+	arm)
+		arch="arm"
+		;;
+esac
+
 os=
 if [[ "$OSTYPE" == "darwin"* ]]; then
+	if [[ $arch != "amd64" ]]; then # Darwin only support amd64
+		printf "${RED}Darwin only support amd64.${CLR}\n"
+		exit 1;
+	fi
+
 	os="darwin"
 else
 	os="linux"
-fi
-
-arch=
-if [ $(uname -m) == 'x86_64' ]; then
-	arch="amd64"
-else
-	arch="386"
 fi
 
 # Select installer
@@ -101,9 +116,12 @@ if [ -n "$DK_INSTALL_ONLY" ]; then
 	install_only=$DK_INSTALL_ONLY
 fi
 
-proxy=
-if [ -n "$DK_PROXY" ]; then
-	proxy=$DK_PROXY
+if [ -n "$HTTP_PROXY" ]; then
+	proxy=$HTTP_PROXY
+fi
+
+if [ -n "$HTTPS_PROXY" ]; then
+	proxy=$HTTPS_PROXY
 fi
 
 install_log=/var/log/datakit/install.log

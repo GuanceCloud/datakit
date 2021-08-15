@@ -28,6 +28,7 @@ const (
   ## Setting disable_temperature_collect to false will collect cpu temperature stats for linux.
   ##
   # disable_temperature_collect = false
+  enable_temperature = true
 
 [inputs.cpu.tags]
   # some_tag = "some_value"
@@ -37,12 +38,13 @@ const (
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
-	PerCPU         bool `toml:"percpu"`           // deprecated
-	TotalCPU       bool `toml:"totalcpu"`         // deprecated
-	CollectCPUTime bool `toml:"collect_cpu_time"` // deprecated
-	ReportActive   bool `toml:"report_active"`    // deprecated
+	PerCPU                    bool `toml:"percpu"`                      // deprecated
+	TotalCPU                  bool `toml:"totalcpu"`                    // deprecated
+	CollectCPUTime            bool `toml:"collect_cpu_time"`            // deprecated
+	ReportActive              bool `toml:"report_active"`               // deprecated
+	DisableTemperatureCollect bool `toml:"disable_temperature_collect"` // deprecated
 
-	DisableTemperatureCollect bool `toml:"disable_temperature_collect"`
+	EnableTemperature bool `toml:"enable_temperature"`
 
 	Interval datakit.Duration
 	Tags     map[string]string
@@ -182,7 +184,7 @@ func (i *Input) Collect() error {
 			"usage_total":      cpuUsage.Total,
 		}
 
-		if !i.DisableTemperatureCollect {
+		if !i.DisableTemperatureCollect || i.EnableTemperature {
 			if temp, err := CoreTempAvg(); err == nil {
 				// 不增加新tag， 计算 core temp 的平均值
 				fields["core_temperature"] = temp
@@ -235,7 +237,8 @@ func init() {
 		return &Input{
 			ps:                        &CPUInfo{},
 			Interval:                  datakit.Duration{Duration: time.Second * 10},
-			DisableTemperatureCollect: true,
+			DisableTemperatureCollect: false,
+			EnableTemperature:         false,
 		}
 	})
 }

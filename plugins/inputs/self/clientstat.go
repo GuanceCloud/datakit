@@ -20,6 +20,7 @@ type ClientStat struct {
 	Uptime int64
 	OS     string
 	Arch   string
+	Proxy  string
 
 	NumGoroutines int64
 	HeapAlloc     int64
@@ -55,6 +56,9 @@ func setMin(prev, cur int64) int64 {
 
 func (s *ClientStat) Update() {
 	s.HostName = config.Cfg.Hostname
+	if config.Cfg.DataWay.HttpProxy != "" {
+		s.Proxy = config.Cfg.DataWay.HttpProxy
+	}
 
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
@@ -89,6 +93,10 @@ func (s *ClientStat) ToMetric() *io.Point {
 		"os":      s.OS,
 		"arch":    s.Arch,
 		"host":    s.HostName,
+	}
+
+	if s.Proxy != "" {
+		tags["proxy"] = s.Proxy
 	}
 
 	fields := map[string]interface{}{
