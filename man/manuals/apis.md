@@ -28,8 +28,8 @@ HTTP body 支持行协议以及 JSON 俩种形式。
 
 | 参数名        | 类型                        | 是否必选 | 默认值 | 说明                                                                          |
 | ------------- | --------------------------- | -------- | ------ | ----------------------------------------------------------------------------- |
-| `measurement` | `string`                    | 是       | 无     |                                                                               |
-| `tags`        | `map[string]string`         | 否       | 无     |                                                                               |
+| `measurement` | `string`                    | 是       | 无     | 指标集名称                                                                    |
+| `tags`        | `map[string]string`         | 否       | 无     | 标签列表                                                                      |
 | `fields`      | `map[string]any-basic-type` | 是       | 无     | 行协议不能没有指标（field），只能是基础类型，不是是复合类型（如数组、字典等） |
 | `time`        | `int64`                     | 否       | 无     | 如果不提供，则以 DataKit 的接收时间为准                                       |
 
@@ -90,12 +90,13 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/datakit/http       4.499s
 ```http
 POST /v1/write/logging?precision=n&input=my-sample-logger&ignore_global_tags=123 HTTP/1.1
 
-nginx,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
-mysql,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
-redis,tag1=a,tag2=b f1=1i,f2=1.2,f3="abc" 1620723870000000000
+nginx,tag1=a,tag2=b,filename=a.log f1=1i,f2=1.2,f3="abc",message="real-log-data",status="debug" 1620723870000000000
+mysql,tag1=a,tag2=b,filename=b.log f1=1i,f2=1.2,f3="abc",message="other-log-data",status="info" 1620723870000000000
+redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data",status="error" 1620723870000000000
 ```
 
-注意：行协议中的 measurement-name 会作为日志的 `source` 字段来存储。
+- 行协议中的指标集名称(此处的 `nginx/mysql/redis`) 会作为日志的 `source` 字段来存储。
+- 原式日志数据存放在 `message` 字段上
 
 ### 时序数据(metric)示例
 
@@ -178,8 +179,8 @@ Content-Type: application/json
             "conditions": "",                     # 追加dql查询条件
             "max_duration": "1d",                 # 最大时间范围
             "max_point": 0,                       # 最大点数
-            "time_range": [],                     # 
-            "orderby: [],                         # 
+            "time_range": [],                     #
+            "orderby: [],                         #
             "disable_slimit": true,               # 禁用默认SLimit，当为true时，将不添加默认SLimit值，否则会强制添加SLimit 20
             "disable_multiple_field": true        # 禁用多字段。当为true时，只能查询单个字段的数据（不包括time字段）
         }
@@ -242,45 +243,45 @@ Content-Type: application/json
 
 `request body`说明
 
-|           参数 |                                     描述                                      |       类型 |
-| -------------: | :---------------------------------------------------------------------------: | ---------: |
-| `object_class` |                表示 `labels` 所关联的 `object` 类型，如 `HOST`                |   `string` |
-|  `object_name` |              表示 `labels` 所关联的 `object`名称，如 `host-123`               |   `string` |
-|          `key` |   表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`   |   `string` |
-|        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` |     `void` |
-|       `labels` |                       `labels` 列表，一个 `string` 数组                       | `[]string` |
+| 参数           | 描述                                                                          | 类型       |
+| -------------: |  ---------------------------------------------------------------------------  | ---------  |
+| `object_class` | 表示 `labels` 所关联的 `object` 类型，如 `HOST`                               | `string`   |
+| `object_name`  | 表示 `labels` 所关联的 `object` 名称，如 `host-123`                           | `string`   |
+| `key`          | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string`   |
+| `value`        | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`     |
+| `labels`       | `labels` 列表，一个 `string` 数组                                             | `[]string` |
 
-```
-	curl -XPOST "127.0.0.1:9529/v1/object/labels" 
-		-H 'Content-Type: application/json' 
-		-d'{	
-				"object_class": "host_processes",	
-				"object_name": "ubuntu20-dev_49392",	
-				"key": "host",	
-				"value": "ubuntu20-dev",	
-				"labels": [		"l1",		"l2"	]
-			}'
+```shell
+curl -XPOST "127.0.0.1:9529/v1/object/labels" \
+	-H 'Content-Type: application/json'  \
+	-d'{	
+			"object_class": "host_processes",	
+			"object_name": "ubuntu20-dev_49392",	
+			"key": "host",	
+			"value": "ubuntu20-dev",	
+			"labels": ["l1","l2"]
+		}'
 ```
 
 成功返回示例:
 
-```
-	status_code: 200
-	{
-		"content": {
-			"_id": "375370265b0641818a99ed1a61aed8563a25459d"
-		}
+```json
+status_code: 200
+{
+	"content": {
+		"_id": "375370265b0641xxxxxxxxxxxxxxxxxxxxxxxxxx"
 	}
+}
 ```
-
 
 失败返回示例:
 
-	status_code: 500
-	{
-		"errorCode":""
-	}
-
+```json
+status_code: 500
+{
+	"errorCode":""
+}
+```
 
 ## `/v1/object/labels` | `DELETE`
 
@@ -290,44 +291,43 @@ Content-Type: application/json
 
 `request body`说明
 
-|           参数 |                                     描述                                      |     类型 |
-| -------------: | :---------------------------------------------------------------------------: | -------: |
-| `object_class` |                表示 `labels` 所关联的 `object` 类型，如 `HOST`                | `string` |
-|  `object_name` |              表示 `labels` 所关联的 `object`名称，如 `host-123`               | `string` |
-|          `key` |   表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`   | `string` |
-|        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` |   `void` |
+| 参数           | 描述                                                                          | 类型     |
+| -------------: | ---------------------------------------------------------------------------   | -------  |
+| `object_class` | 表示 `labels` 所关联的 `object` 类型，如 `HOST`                               | `string` |
+| `object_name`  | 表示 `labels` 所关联的 `object`名称，如 `host-123`                            | `string` |
+| `key`          | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string` |
+| `value`        | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`   |
 
-```
-	curl -XPOST "127.0.0.1:9529/v1/object/labels" 
-		-H 'Content-Type: application/json' 
-		-d'{	
-				"object_class": "host_processes",	
-				"object_name": "ubuntu20-dev_49392",	
-				"key": "host",	
-				"value": "ubuntu20-dev"
-			}'
+
+```shell
+curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
+	-H 'Content-Type: application/json'  \
+	-d'{
+			"object_class": "host_processes",
+			"object_name": "ubuntu20-dev_49392",
+			"key": "host",
+			"value": "ubuntu20-dev"
+		}'
 ```
 
 成功返回示例:
 
-```
-	status_code: 200
-	{
-		"content": {
-			"msg": "delete success!"
-		}
+```json
+status_code: 200
+{
+	"content": {
+		"msg": "delete success!"
 	}
+}
 ```
-
-
 
 失败返回示例:
 
-```
-	status_code: 500
-	{
-		"errorCode":""
-	}
+```json
+status_code: 500
+{
+	"errorCode":""
+}
 ```
 
 ## DataKit 行协议约束
