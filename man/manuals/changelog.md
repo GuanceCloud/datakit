@@ -4,13 +4,18 @@
 
 ## 1.1.8-rc2(预计 2021/08/17 发布)
 
-- [v]支持同步 Kubernetes labels 到各种对象上（pod/service/...）
-- [v]`datakit` 指标集增加数据丢失统计
+- [v]支持同步 Kubernetes labels 到各种对象上（pod/service/...）(#279)
+- [v]`datakit` 指标集增加数据丢失统计(#286)
 - [?][Kubernetes 集群自定义指标采集] 优化(#283)
 - [?][ElasticSearch] 采集器完善(#275)
 - [?]日志采集器 truncat 优化(#271)
-- [?]新增[主机目录](hostdir)采集器
-- [v]调整 DataKit 安装形式，离线安装方式做了调整（兼容之前老的安装方式）
+- [?]新增[主机目录](hostdir)采集器(#264)
+- [v]调整 DataKit [安装形式](datakit-install)，[离线安装](datakit-offline-install)方式做了调整(#300)
+	- 调整之后，依然兼容之前老的安装方式
+
+### Breaking Changes
+
+- 从环境变量 `ENV_HOSTNAME` 获取主机名的功能已移除（1.1.7-rc8 支持），可通过[主机名覆盖功能](datakit-install#987d5f91) 来实现
 
 ## 1.1.8-rc1.1(2021/08/13)
 
