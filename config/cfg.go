@@ -451,13 +451,6 @@ func (c *Config) setHostname() error {
 		return nil
 	}
 
-	// try get hostname from $env
-	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
-		c.Hostname = v
-		l.Infof("set hostname to %s from env ENV_HOSTNAME", v)
-		return nil
-	}
-
 	// get real hostname
 	hn, err := os.Hostname()
 	if err != nil {

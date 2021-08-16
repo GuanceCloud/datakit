@@ -63,7 +63,7 @@ $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitst
 - `DK_DATAWAY`：指定 dataway 地址，含 `TOKEN`
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent`)
 - `DK_NAMESPACE`：支持安装阶段指定命名空间(选举用)
-- `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project="abc",owner="张三"`（多个 tag 之间以英文逗号分隔）
+- `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project=abc,owner=张三`（多个 tag 之间以英文逗号分隔）
 - `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
 - `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
 - `DK_INSTALL_ONLY`：仅安装，不运行

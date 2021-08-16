@@ -265,7 +265,10 @@ func installNewDatakit(svc service.Service) {
 
 	// accept any install options
 	if flagGlobalTags != "" {
+		l.Infof("set global tags...")
 		mc.GlobalTags = config.ParseGlobalTags(flagGlobalTags)
+
+		l.Infof("set global tags %+#v", mc.GlobalTags)
 	}
 
 	mc.Namespace = flagNamespace
@@ -306,6 +309,9 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 	switch flagCloudProvider {
 	case "aliyun", "tencent", "aws":
+
+		l.Infof("try set cloud provider to %s...", flagCloudProvider)
+
 		if conf, err := preEnableHostobjectInput(flagCloudProvider); err != nil {
 			l.Fatalf("failed to init hostobject conf: %s", err.Error())
 		} else {
@@ -314,8 +320,13 @@ func writeDefInputToMainCfg(mc *config.Config) {
 				l.Fatalf("failed to init hostobject conf: %s", err.Error())
 			}
 		}
+
+		l.Infof("set cloud provider to %s ok", flagCloudProvider)
+
+	case "": //pass
+
 	default:
-		// pass
+		l.Warnf("unknown cloud provider %s, ignored", flagCloudProvider)
 	}
 
 	l.Debugf("main config:\n%s", mc.String())

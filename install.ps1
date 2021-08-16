@@ -136,9 +136,9 @@ start-bitstransfer -source $installer_url -destination $installer
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade"
 } else {
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace}"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --cloud-provider=${cloud_provider} --global-tags='${global_tags}'"
 	if ($install_only -ne "") {
-		$action = -join($action, " ", "-install-only")
+		$action = -join($action, " ", "--install-only")
 	}
 }
 

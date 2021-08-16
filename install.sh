@@ -151,22 +151,24 @@ if [ "$upgrade" ]; then
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 	if [ "$install_only" ]; then
-		$sudo_cmd $installer -dataway="${dataway}" \
-			-global-tags="${global_tags}"            \
-			-cloud-provider="${cloud_provider}"      \
-			-namespace="${namespace}"                \
-			-listen="${http_listen}"                 \
-			-port="${http_port}"                     \
-			-proxy="${proxy}"                        \
-			-install_only | $sudo_cmd tee ${install_log}
+		$sudo_cmd $installer                   \
+			--dataway="${dataway}"               \
+			--global-tags="${global_tags}"       \
+			--cloud-provider="${cloud_provider}" \
+			--namespace="${namespace}"           \
+			--listen="${http_listen}"            \
+			--port="${http_port}"                \
+			--proxy="${proxy}"                   \
+			--install_only | $sudo_cmd tee ${install_log}
 	else
-		$sudo_cmd $installer -dataway="${dataway}" \
-			-global-tags="${global_tags}"            \
-			-cloud-provider="${cloud_provider}"      \
-			-namespace="${namespace}"                \
-			-listen="${http_listen}"                 \
-			-port="${http_port}"                     \
-			-proxy="${proxy}" | $sudo_cmd tee ${install_log}
+		$sudo_cmd $installer                   \
+		  --dataway="${dataway}"               \
+			--global-tags="${global_tags}"       \
+			--cloud-provider="${cloud_provider}" \
+			--namespace="${namespace}"           \
+			--listen="${http_listen}"            \
+			--port="${http_port}"                \
+			--proxy="${proxy}" | $sudo_cmd tee ${install_log}
 	fi
 fi
 
