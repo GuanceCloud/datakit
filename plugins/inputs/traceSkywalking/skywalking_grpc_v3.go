@@ -41,7 +41,7 @@ func SkyWalkingServerRunV3(s *Skywalking) {
 		"-cfg", b64cfg,
 		"-rpc-server", rpcServ,
 		"-log", filepath.Join(datakit.InstallDir, "externals", "skywalkingGrpcV3.log"),
-		"-log-level", config.Cfg.LogLevel,
+		"-log-level", config.Cfg.Logging.Level,
 	}
 
 	cmd := exec.Command(bin, args...)

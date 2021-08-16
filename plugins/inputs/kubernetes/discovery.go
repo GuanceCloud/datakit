@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	corev1 "k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
+
+const discoveryDir = "/usr/local/datakit/data/exporter_urls"
 
 type PromPod struct {
 	Name      string            `json:"pod,omitempty"`
@@ -24,11 +27,10 @@ type PromPod struct {
 
 func (i *Input) collectPodsExporter() error {
 	// mkdir DiscoveryDir
-	l.Info("start discovery server ...")
+	l.Info("start discovery server")
 
 	list, err := i.client.getPods()
 	if err != nil {
-		i.lastErr = err
 		return err
 	}
 
@@ -56,10 +58,8 @@ func (i *Input) getPod(p *corev1.PodList) error {
 				exporters := strings.Split(ankey, ".")
 				if len(exporters) > 1 {
 					promKey := exporters[1]
-
 					promFile := fmt.Sprintf("%s.json", promKey)
-					promFile = filepath.Join(i.DiscoveryDir, promFile)
-					fmt.Printf("discovery status %s \n", anvalue)
+					promFile = filepath.Join(discoveryDir, promFile)
 					if anvalue == "off" {
 						targetPods[promFile] = []PromPod{}
 						continue

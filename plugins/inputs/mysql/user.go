@@ -135,7 +135,6 @@ func (i *Input) getUserData() ([]inputs.Measurement, error) {
 	}
 
 	// run query
-	l.Info("sql query", userSql)
 	rows, err := i.db.Query(userSql)
 	if err != nil {
 		l.Errorf("query %v error %v", userSql, err)

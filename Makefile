@@ -96,6 +96,9 @@ release: man
 release_mac: man
 	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
+testing_mac: man
+	$(call build,test, $(MAC_ARCHS), $(TEST_DOWNLOAD_ADDR))
+
 pub_local:
 	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
@@ -105,11 +108,24 @@ pub_testing:
 pub_testing_mac:
 	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
+pub_testing_win_img:
+	@mkdir -p embed/windows-amd64
+	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
+	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
+
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+
+pub_release_win_img:
+	# release to pub hub
+	@mkdir -p embed/windows-amd64
+	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
+	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
 
 pub_release_img:
 	# release to pub hub
@@ -147,10 +163,6 @@ define build_ip2isp
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
 endef
-
-.PHONY: agent
-agent:
-	$(call build_agent)
 
 ip2isp:
 	$(call build_ip2isp)

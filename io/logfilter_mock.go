@@ -14,7 +14,6 @@ type logFilterMock interface {
 type prodLogFilterMock struct{}
 
 func (*prodLogFilterMock) getLogFilter() ([]byte, error) {
-	//return datakit.Cfg.DataWay.GetLogFilter()
 	return defaultIO.dw.GetLogFilter()
 }
 

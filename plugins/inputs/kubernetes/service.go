@@ -2,130 +2,99 @@ package kubernetes
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	corev1 "k8s.io/api/core/v1"
 )
 
-var serviceMeasurement = "kube_service"
+const kubernetesServiceName = "kubernetes_services"
 
-type serviceM struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-func (m *serviceM) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
-}
-
-func (m *serviceM) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: serviceMeasurement,
-		Desc: "kubernetes service",
-		Tags: map[string]interface{}{
-			"service_name": &inputs.TagInfo{Desc: "service name"},
-			"namespace":    &inputs.TagInfo{Desc: "namespace"},
-			"type":         &inputs.TagInfo{Desc: "service type"},
-		},
-		Fields: map[string]interface{}{
-			"created": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "created time",
-			},
-			"generation": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "A sequence number representing a specific generation of the desired state",
-			},
-			"cluster_ip": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "clusterIP is the IP address of the service",
-			},
-			"external_ip": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "externalIPs is a list of IP addresses for which nodes in the cluster",
-			},
-			"ports": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The list of ports that are exposed by this service",
-			},
-		},
+type service struct {
+	client interface {
+		getServices() (*corev1.ServiceList, error)
 	}
+	tags map[string]string
 }
 
-func (i *Input) collectServices(collector string) error {
-	list, err := i.client.getServices()
+func (s *service) Gather() {
+	list, err := s.client.getServices()
 	if err != nil {
-		return err
-	}
-	for _, item := range list.Items {
-		i.gatherService(collector, item)
-	}
-
-	return nil
-}
-
-func (i *Input) gatherService(collector string, s corev1.Service) {
-	if s.GetCreationTimestamp().Second() == 0 && s.GetCreationTimestamp().Nanosecond() == 0 {
+		l.Errorf("failed of get services resource: %s", err)
 		return
 	}
 
-	servicePorts := make([]string, 0, len(s.Spec.Ports))
-	for _, p := range s.Spec.Ports {
-		servicePorts = append(servicePorts, fmt.Sprintf("%d:%d/%s", p.Port, p.NodePort, p.Protocol))
-	}
+	for _, obj := range list.Items {
+		tags := map[string]string{
+			"name":         fmt.Sprintf("%v", obj.UID),
+			"service_name": obj.Name,
+			"cluster_name": obj.ClusterName,
+			"namespace":    obj.Namespace,
+			"type":         fmt.Sprintf("%v", obj.Spec.Type),
+		}
+		for k, v := range s.tags {
+			tags[k] = v
+		}
 
-	externalIPs := make([]string, 0, len(s.Spec.ExternalIPs))
-	for _, ip := range s.Spec.ExternalIPs {
-		externalIPs = append(externalIPs, ip)
-	}
-	var externalIPsStr = "<none>"
-	if len(externalIPs) > 0 {
-		externalIPsStr = strings.Join(externalIPs, ",")
-	}
+		fields := map[string]interface{}{
+			"age":                     int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"cluster_ip":              obj.Spec.ClusterIP,
+			"external_name":           obj.Spec.ExternalName,
+			"external_traffic_policy": fmt.Sprintf("%v", obj.Spec.ExternalTrafficPolicy),
+			"session_affinity":        fmt.Sprintf("%v", obj.Spec.SessionAffinity),
+		}
 
-	fields := map[string]interface{}{
-		"created":     s.GetCreationTimestamp().UnixNano(),
-		"generation":  s.Generation,
-		"cluster_ip":  s.Spec.ClusterIP,
-		"external_ip": externalIPsStr,
-		"ports":       strings.Join(servicePorts, ","),
-	}
+		// addSliceToFields("selectors", obj.Spec.Selector, fields)
+		// addSliceToFields("load_balancer_ingress", obj.Status.LoadBalancer, fields)
+		addSliceToFields("external_ips", obj.Spec.ExternalIPs, fields)
 
-	tags := map[string]string{
-		"service_name": s.Name,
-		"namespace":    s.Namespace,
-		"type":         string(s.Spec.Type),
-	}
+		addMapToFields("annotations", obj.Annotations, fields)
+		addMessageToFields(tags, fields)
 
-	for key, value := range i.Tags {
-		tags[key] = value
+		pt, err := io.MakePoint(kubernetesServiceName, tags, fields, time.Now())
+		if err != nil {
+			l.Error(err)
+		} else {
+			if err := io.Feed(inputName, datakit.Object, []*io.Point{pt}, nil); err != nil {
+				l.Error(err)
+			}
+		}
 	}
+}
 
-	for key, val := range s.Spec.Selector {
-		tags["selector_"+key] = val
+func (*service) Resource() { /*empty interface*/ }
+
+func (*service) LineProto() (*io.Point, error) { return nil, nil }
+
+func (*service) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: kubernetesServiceName,
+		Desc: "Kubernetes service 对象数据",
+		Type: "object",
+		Tags: map[string]interface{}{
+			"name":         inputs.NewTagInfo("service UID"),
+			"service_name": inputs.NewTagInfo("service 名称"),
+			"cluster_name": inputs.NewTagInfo("所在 cluster"),
+			"namespace":    inputs.NewTagInfo("所在命名空间"),
+			"type":         inputs.NewTagInfo("服务类型，ClusterIP/NodePort/LoadBalancer/ExternalName"),
+		},
+		Fields: map[string]interface{}{
+			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
+			"cluster_ip":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "cluster IP"},
+			"external_ips":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "external IP 列表，内容是以英文逗号拼接的字符串"},
+			"external_name":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "external 名称"},
+			"external_traffic_policy": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "external 负载均衡"},
+			"session_affinity":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "session关联性"},
+			"annotations":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
+			"message":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			// TODO:
+			// "load_balancer_ingress":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			// "selectors":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			// "ip_family":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			// "ports":                   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+		},
 	}
-
-	m := &serviceM{
-		name:   serviceMeasurement,
-		tags:   tags,
-		fields: fields,
-		ts:     time.Now(),
-	}
-
-	i.collectCache[collector] = append(i.collectCache[collector], m)
 }

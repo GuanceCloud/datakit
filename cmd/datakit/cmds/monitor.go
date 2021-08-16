@@ -28,19 +28,26 @@ func CMDMonitor(intervalStr, addrStr string, verbose bool) {
 		}
 	}
 
+	run := func() {
+		fmt.Print("\033[H\033[2J") // clean screen
+
+		x, err := doCMDMonitor(addr, verbose)
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fmt.Println(string(x))
+			fmt.Printf("(Refresh at %s)Press ctrl+c to exit.\n", interval)
+		}
+	}
+
+	run()
+
 	tick := time.NewTicker(interval)
+	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
-			fmt.Print("\033[H\033[2J") // clean screen
-
-			x, err := doCMDMonitor(addr, verbose)
-			if err != nil {
-				fmt.Println(err.Error())
-			} else {
-				fmt.Println(string(x))
-				fmt.Printf("(Refresh at %s)Press ctrl+c to exit.\n", interval)
-			}
+			run()
 		}
 	}
 }

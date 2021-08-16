@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"sync"
 	"testing"
-	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,9 +13,7 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
-	"github.com/yuin/goldmark-highlighting"
-
-	termmarkdown "github.com/MichaelMure/go-term-markdown"
+	highlighting "github.com/yuin/goldmark-highlighting"
 
 	mathjax "github.com/litao91/goldmark-mathjax"
 
@@ -28,7 +25,6 @@ import (
 	ghtml "github.com/yuin/goldmark/renderer/html"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestMarkdownToHTML(t *testing.T) {
@@ -119,38 +115,38 @@ func TestGetDoc(t *testing.T) {
 	t.Log(md)
 }
 
-func TestMarkdownTemplate(t *testing.T) {
-	md, err := Get("demo")
-	if err != nil {
-		t.Error(err)
-	}
+// func TestMarkdownTemplate(t *testing.T) {
+// 	md, err := Get("demo")
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
 
-	temp, err := template.New("demo").Parse(md)
-	if err != nil {
-		panic(err)
-	}
+// 	temp, err := template.New("demo").Parse(md)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	i := &Input{
-		InputName:   "demo",
-		InputSample: "[[inputs.demo]]",
-		Measurements: []*inputs.MeasurementInfo{
-			&inputs.MeasurementInfo{
-				Name: "measurement-1",
-				Fields: map[string]*inputs.FieldInfo{
-					"disk_usage": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "disk used bytes"},
-					"mem_usage":  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "mem used percent"},
-					"net_rx_tx":  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "network send/receive bytes"},
-				},
-				Tags: map[string]*inputs.TagInfo{
-					"host": &inputs.TagInfo{Desc: "host name"},
-				},
-			},
-		},
-	}
+// 	i := &Input{
+// 		InputName:   "demo",
+// 		InputSample: "[[inputs.demo]]",
+// 		Measurements: []*inputs.MeasurementInfo{
+// 			&inputs.MeasurementInfo{
+// 				Name: "measurement-1",
+// 				Fields: map[string]*inputs.FieldInfo{
+// 					"disk_usage": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "disk used bytes"},
+// 					"mem_usage":  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "mem used percent"},
+// 					"net_rx_tx":  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "network send/receive bytes"},
+// 				},
+// 				Tags: map[string]*inputs.TagInfo{
+// 					"host": &inputs.TagInfo{Desc: "host name"},
+// 				},
+// 			},
+// 		},
+// 	}
 
-	var buf bytes.Buffer
-	temp.Execute(&buf, i)
+// 	var buf bytes.Buffer
+// 	temp.Execute(&buf, i)
 
-	result := termmarkdown.Render(buf.String(), 80, 6)
-	t.Log(string(result))
-}
+// 	result := termmarkdown.Render(buf.String(), 80, 6)
+// 	t.Log(string(result))
+// }

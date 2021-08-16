@@ -1,26 +1,26 @@
 package io
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
-var (
-	testAssert = false
-	l          = logger.DefaultSLogger("io")
-
-	highFreqCleanInterval = time.Millisecond * 500
+const (
+	minGZSize   = 1024
+	maxKodoPack = 10 * 1000 * 1000
 )
 
-const (
-	minGZSize = 1024
+var (
+	testAssert            = false
+	highFreqCleanInterval = time.Millisecond * 500
+	l                     = logger.DefaultSLogger("io")
 )
 
 type Option struct {
@@ -36,18 +36,24 @@ type lastErr struct {
 	from, err string
 	ts        time.Time
 }
-
 type IO struct {
-	MaxCacheCnt        int64
-	MaxDynamicCacheCnt int64
-	OutputFile         string
-	FlushInterval      time.Duration
+	FeedChanSize              int
+	HighFreqFeedChanSize      int
+	MaxCacheCount             int64
+	CacheDumpThreshold        int64
+	MaxDynamicCacheCount      int64
+	DynamicCacheDumpThreshold int64
+	FlushInterval             time.Duration
+	OutputFile                string
 
 	dw *dataway.DataWayCfg
 
 	in        chan *iodata
 	in2       chan *iodata // high-freq chan
 	inLastErr chan *lastErr
+
+	lastBodyBytes int
+	SentBytes     int
 
 	inputstats map[string]*InputsStat
 	qstatsCh   chan *qinputStats
@@ -61,14 +67,20 @@ type IO struct {
 	outputFileSize  int64
 }
 
+type IoStat struct {
+	SentBytes int `json:"sent_bytes"`
+}
+
 func NewIO() *IO {
 	x := &IO{
-		MaxCacheCnt:        1024,
-		MaxDynamicCacheCnt: 1024,
-		FlushInterval:      10 * time.Second,
-		in:                 make(chan *iodata, 128),
-		in2:                make(chan *iodata, 128*8),
-		inLastErr:          make(chan *lastErr, 128),
+		FeedChanSize:         1024,
+		HighFreqFeedChanSize: 2048,
+		MaxCacheCount:        1024,
+		MaxDynamicCacheCount: 1024,
+		FlushInterval:        10 * time.Second,
+		in:                   make(chan *iodata, 128),
+		in2:                  make(chan *iodata, 128*8),
+		inLastErr:            make(chan *lastErr, 128),
 
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qinputStats), // blocking
@@ -100,7 +112,6 @@ func SetTest() {
 
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	ch := x.in
-
 	if opt != nil && opt.HighFreq {
 		ch = x.in2
 	}
@@ -152,7 +163,9 @@ func (x *IO) ioStop() {
 func (x *IO) updateLastErr(e *lastErr) {
 	stat, ok := x.inputstats[e.from]
 	if !ok {
-		stat = &InputsStat{}
+		stat = &InputsStat{
+			First: time.Now(),
+		}
 		x.inputstats[e.from] = stat
 	}
 
@@ -210,7 +223,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	if x.cacheCnt > x.MaxCacheCnt && tryClean || x.dynamicCacheCnt > x.MaxDynamicCacheCnt {
+	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) || (x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
 		x.flushAll()
 	}
 }
@@ -246,19 +259,14 @@ func (x *IO) init() error {
 }
 
 func (x *IO) StartIO(recoverable bool) {
-	if err := x.init(); err != nil {
-		l.Errorf("init io err %v", err)
-		return
-	}
-
-	defer x.ioStop()
-
-	var f rtpanic.RecoverCallback
-
-	f = func(trace []byte, _ error) {
-		if recoverable {
-			defer rtpanic.Recover(f, nil)
+	g := datakit.G("io")
+	g.Go(func(ctx context.Context) error {
+		if err := x.init(); err != nil {
+			l.Errorf("init io err %v", err)
+			return nil
 		}
+
+		defer x.ioStop()
 
 		tick := time.NewTicker(x.FlushInterval)
 		defer tick.Stop()
@@ -269,9 +277,8 @@ func (x *IO) StartIO(recoverable bool) {
 		heartBeatTick := time.NewTicker(time.Second * 30)
 		defer heartBeatTick.Stop()
 
-		if trace != nil {
-			l.Warnf("recover from %s", string(trace))
-		}
+		datawaylistTick := time.NewTicker(time.Minute)
+		defer datawaylistTick.Stop()
 
 		for {
 			select {
@@ -297,22 +304,24 @@ func (x *IO) StartIO(recoverable bool) {
 			case <-heartBeatTick.C:
 				x.dw.HeartBeat()
 
+			case <-datawaylistTick.C:
+				x.dw.DatawayList()
+
 			case <-tick.C:
 				l.Debugf("chan stat: %s", ChanStat())
 				x.flushAll()
 
 			case <-datakit.Exit.Wait():
 				l.Info("io exit on exit")
-				return
+				return nil
 			}
 		}
-	}
+	})
 
 	// start log filter
 	defLogfilter.start()
 
 	l.Info("starting...")
-	f(nil, nil)
 }
 
 func (x *IO) flushAll() {
@@ -322,16 +331,17 @@ func (x *IO) flushAll() {
 		l.Warnf("post failed cache count: %d", x.cacheCnt)
 	}
 
-	if x.cacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
-		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCnt)
+	// dump cache pts
+	if x.CacheDumpThreshold > 0 && x.cacheCnt > x.CacheDumpThreshold {
+		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCount)
 		for k, _ := range x.cache {
 			x.cache[k] = nil
 		}
 		x.cacheCnt = 0
 	}
-
-	if x.dynamicCacheCnt > x.MaxCacheCnt && x.MaxCacheCnt > 0 {
-		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCnt)
+	// dump dynamic cache pts
+	if x.DynamicCacheDumpThreshold > 0 && x.dynamicCacheCnt > x.DynamicCacheDumpThreshold {
+		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCount)
 		for k, _ := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
@@ -370,46 +380,82 @@ func (x *IO) flush() {
 	}
 }
 
-func (x *IO) buildBody(pts []*Point) (body []byte, gzon bool, err error) {
+type body struct {
+	buf  []byte
+	gzon bool
+}
 
-	lines := []string{}
-	for _, pt := range pts {
-		lines = append(lines, pt.String())
-	}
+var lines = bytes.Buffer{}
 
-	raw := strings.Join(lines, "\n")
-	if len(raw) > minGZSize && x.OutputFile == "" { // should not gzip on file output
-		if body, err = datakit.GZipStr(raw); err != nil {
-			l.Errorf("gz: %s", err.Error())
-			return
+func (x *IO) buildBody(pts []*Point) ([]*body, error) {
+	var (
+		gz = func(lines []byte) (*body, error) {
+			var (
+				body = &body{buf: lines}
+				err  error
+			)
+			l.Debugf("### io body size before GZ: %dM %dK", len(body.buf)/1000/1000, len(body.buf)/1000)
+			if len(lines) > minGZSize && x.OutputFile == "" {
+				if body.buf, err = datakit.GZip(body.buf); err != nil {
+					l.Errorf("gz: %s", err.Error())
+
+					return nil, err
+				}
+				body.gzon = true
+			}
+
+			return body, nil
 		}
-		gzon = true
-	} else {
-		body = []byte(raw)
+		// lines  bytes.Buffer
+		bodies []*body
+	)
+	lines.Reset()
+	for _, pt := range pts {
+		ptstr := pt.String()
+		if lines.Len()+len(ptstr)+1 >= maxKodoPack {
+			if body, err := gz(lines.Bytes()); err != nil {
+				return nil, err
+			} else {
+				bodies = append(bodies, body)
+			}
+			lines.Reset()
+		}
+		lines.WriteString(ptstr)
+		lines.WriteString("\n")
 	}
-
-	return
+	if body, err := gz(lines.Bytes()); err != nil {
+		return nil, err
+	} else {
+		return append(bodies, body), nil
+	}
 }
 
 func (x *IO) doFlush(pts []*Point, category string) error {
 	if testAssert {
 		return nil
 	}
-
 	if pts == nil {
 		return nil
 	}
 
-	body, gz, err := x.buildBody(pts)
+	bodies, err := x.buildBody(pts)
 	if err != nil {
 		return err
 	}
+	for _, body := range bodies {
+		if x.OutputFile != "" {
+			x.fileOutput(body.buf)
+			continue
+		}
 
-	if x.OutputFile != "" {
-		return x.fileOutput(body)
+		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
+			return err
+		}
+		x.SentBytes += x.lastBodyBytes
+		x.lastBodyBytes = 0
 	}
 
-	return x.dw.Send(category, body, gz)
+	return nil
 }
 
 func (x *IO) fileOutput(body []byte) error {

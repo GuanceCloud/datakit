@@ -54,6 +54,12 @@ const (
 	BytesPerSec    = "B/s"
 	RequestsPerSec = "reqs/s"
 	Celsius        = "°C"
+
+	Peta = "P" // 10^15
+	Tera = "T" // 10^12
+	Giga = "G" // 10^9
+	Mega = "M" // 10^6
+	Kilo = "k" // 10^3
 )
 
 type Measurement interface {
@@ -76,6 +82,7 @@ type TagInfo struct {
 type MeasurementInfo struct {
 	Name   string
 	Desc   string
+	Type   string
 	Fields map[string]interface{}
 	Tags   map[string]interface{}
 }

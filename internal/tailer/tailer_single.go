@@ -101,11 +101,12 @@ func (t *TailerSingle) forwardMessage() {
 		case <-t.stop:
 			t.opt.log.Debugf("stop reading data from file %s", t.filename)
 			return
-
 		case <-timeout.C:
 			if err := t.processText(t.mult.Flush()); err != nil {
 				t.opt.log.Debug(err)
 			}
+		default:
+			// nil
 		}
 
 		b.buf, readNum, err = t.read()
@@ -152,15 +153,15 @@ func (t *TailerSingle) processText(text string) error {
 		return nil
 	}
 
-	err := newLogs(text).
-		pipeline(t.pipeline).
-		checkFieldsLength().
-		addStatus(t.opt.DisableAddStatusField).
-		ignoreStatus(t.opt.IgnoreStatus).
-		takeTime().
-		point(t.opt.Source, t.tags).
-		feed(t.opt.InputName).
-		error()
+	err := NewLogs(text).
+		Pipeline(t.pipeline).
+		CheckFieldsLength().
+		AddStatus(t.opt.DisableAddStatusField).
+		IgnoreStatus(t.opt.IgnoreStatus).
+		TakeTime().
+		Point(t.opt.Source, t.tags).
+		Feed(t.opt.InputName).
+		Error()
 
 	return err
 }

@@ -11,50 +11,65 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func CheckConfig() {
-	start := time.Now()
-	fps := config.SearchDir(datakit.ConfdDir, ".conf")
+var (
+	failed  = 0
+	unknown = 0
+	passed  = 0
+	ignored = 0
+)
 
-	failed := 0
-	for _, fp := range fps {
-		tpl, err := config.ParseCfgFile(fp)
-		if err != nil {
-			fmt.Printf("[E] failed to parse %s:\n%s", fp, err.Error())
-			failed++
-			continue
-		}
+func checkInputCfg(tpl *ast.Table, fp string) {
 
-		for field, node := range tpl.Fields {
+	var err error
 
-			switch field {
-			case "inputs": //nolint:goconst
-				stbl, ok := node.(*ast.Table)
-				if !ok {
-					l.Warnf("ignore bad toml node within %s", fp)
-				} else {
-					for inputName, v := range stbl.Fields {
-						if c, ok := inputs.Inputs[inputName]; !ok {
-							fmt.Printf("[W] unknown input %s found in %s\n", inputName, fp)
+	for field, node := range tpl.Fields {
+
+		switch field {
+		default:
+			fmt.Printf("[I] ignore config %s\n", fp)
+			ignored++
+			return
+
+		case "inputs": //nolint:goconst
+			stbl, ok := node.(*ast.Table)
+			if !ok {
+				l.Warnf("ignore bad toml node within %s", fp)
+			} else {
+				for inputName, v := range stbl.Fields {
+					if c, ok := inputs.Inputs[inputName]; !ok {
+						fmt.Printf("[W] unknown input `%s' found in %s\n", inputName, fp)
+						unknown++
+					} else {
+						if _, err = config.TryUnmarshal(v, inputName, c); err != nil {
+							fmt.Printf("[E] failed to init input %s from %s:\n%s\n", inputName, fp, err.Error())
+							failed++
 						} else {
-							if _, err = config.TryUnmarshal(v, inputName, c); err != nil {
-								fmt.Printf("[E] failed to init input %s from %s:\n%s\n", inputName, fp, err.Error())
-								failed++
-							}
+							passed++
 						}
 					}
 				}
 			}
 		}
 	}
+}
 
-	fmt.Println("------------------------")
-	fmt.Printf("checked %d conf, ", len(fps))
+func CheckConfig() {
+	start := time.Now()
+	fps := config.SearchDir(datakit.ConfdDir, ".conf")
 
-	if failed > 0 {
-		fmt.Printf("%d failed, ", failed)
-	} else {
-		fmt.Printf("all passing, ")
+	for _, fp := range fps {
+		tpl, err := config.ParseCfgFile(fp)
+		if err != nil {
+			fmt.Printf("[E] failed to parse %s: %s", fp, err.Error())
+			failed++
+		} else {
+			checkInputCfg(tpl, fp)
+		}
 	}
+
+	fmt.Printf("\n------------------------\n")
+	fmt.Printf("checked %d conf, %d ignored, %d passed, %d failed, %d unknown, ",
+		len(fps), ignored, passed, failed, unknown)
 
 	fmt.Printf("cost %v\n", time.Since(start))
 }

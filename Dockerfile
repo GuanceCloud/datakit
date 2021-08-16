@@ -17,7 +17,7 @@ RUN wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/
 			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle
 
 # download data files required by datakit
-RUN wget -q -O data.tar.gz https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/data.tar.gz \
+RUN wget -q -O data.tar.gz https://static.dataflux.cn/datakit/data.tar.gz \
 	&& tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
 
 CMD ["/usr/local/datakit/datakit", "--docker"]

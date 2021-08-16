@@ -13,6 +13,7 @@
 - [DataKit API](apis)
 - [DataKit 整体架构简介](datakit-arch)
 - [文本数据处理（Pipeline）](pipeline)
+- [如何排查无数据问题](why-no-data)
 - [采集器]()
 
 	- [主机]()
@@ -49,8 +50,8 @@
 
 	- [Kubernetes]()
 		- [Kubernetes](kubernetes)
-		- [Kubernetes kube-state-metrics 服务指标采集](kube-state-metrics)
-		- [Kubernetes 集群中 Exporter 指标采集](kubernetes-prom)
+		- [Kubernetes 扩展指标采集](kubernetes-x)
+		- [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
 
 	- [Java]()
 		- [JVM](jvm)

@@ -40,7 +40,7 @@ func TestLogsAll(t *testing.T) {
 			point(source, nil).
 			output()
 
-		tu.Assert(t, tc.text != tc.res,
+		tu.Assert(t, output == tc.res,
 			"\nexpect: %s\n   got: %s",
 			tc.res, output)
 	}

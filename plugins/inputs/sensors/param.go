@@ -32,5 +32,5 @@ var (
     # "key1" = "value1"
     # "key2" = "value2"
 `
-	l = logger.SLogger(inputName)
+	l = logger.DefaultSLogger(inputName)
 )

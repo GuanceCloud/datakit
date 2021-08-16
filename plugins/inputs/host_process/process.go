@@ -72,9 +72,6 @@ func (p *Input) Run() {
 	}
 	p.ObjectInterval.Duration = config.ProtectedInterval(minObjectInterval, maxObjectInterval, p.ObjectInterval.Duration)
 
-	if p.RunTime.Duration < 10*time.Minute {
-		p.RunTime.Duration = 10 * time.Minute
-	}
 	tick := time.NewTicker(p.ObjectInterval.Duration)
 	defer tick.Stop()
 	if p.OpenMetric {

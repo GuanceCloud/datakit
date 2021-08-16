@@ -14,12 +14,13 @@ import (
 
 	bstoml "github.com/BurntSushi/toml"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
+	dktracer "gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
@@ -42,21 +43,35 @@ func DefaultConfig() *Config {
 			"site":    "",
 		},
 
+		Environments: map[string]string{
+			"ENV_HOSTNAME": "", // not set
+		}, // default nothing
+
+		IOConf: &IOConfig{
+			FeedChanSize:              1024,
+			HighFreqFeedChanSize:      2048,
+			MaxCacheCount:             1024,
+			CacheDumpThreshold:        512,
+			MaxDynamicCacheCount:      1024,
+			DynamicCacheDumpThreshold: 512,
+			FlushInterval:             "10s",
+		},
+
 		DataWay: &dataway.DataWayCfg{},
 
 		ProtectMode: true,
 
-		HTTPListen: "localhost:9529",
 		HTTPAPI: &dkhttp.APIConfig{
 			RUMOriginIPHeader: "X-Forwarded-For",
+			Listen:            "localhost:9529",
 		},
 
-		IOCacheCount: 1024,
-
-		LogLevel:  "info",
-		LogRotate: 32,
-		Log:       filepath.Join("/var/log/datakit", "log"),
-		GinLog:    filepath.Join("/var/log/datakit", "gin.log"),
+		Logging: &LoggerCfg{
+			Level:  "info",
+			Rotate: 32,
+			Log:    filepath.Join("/var/log/datakit", "log"),
+			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
+		},
 
 		BlackList: []*inputHostList{
 			&inputHostList{Hosts: []string{}, Inputs: []string{}},
@@ -69,8 +84,8 @@ func DefaultConfig() *Config {
 
 	// windows 下，日志继续跟 datakit 放在一起
 	if runtime.GOOS == "windows" {
-		c.Log = filepath.Join(datakit.InstallDir, "log")
-		c.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
+		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
+		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	}
 
 	return c
@@ -82,28 +97,54 @@ type Cgroup struct {
 	CPUMin float64 `toml:"cpu_min"`
 }
 
+type IOConfig struct {
+	FeedChanSize              int    `toml:"feed_chan_size"`
+	HighFreqFeedChanSize      int    `toml:"high_frequency_feed_chan_size"`
+	MaxCacheCount             int64  `toml:"max_cache_count"`
+	CacheDumpThreshold        int64  `toml:"cache_dump_threshold"`
+	MaxDynamicCacheCount      int64  `toml:"max_dynamic_cache_count"`
+	DynamicCacheDumpThreshold int64  `toml:"dynamic_cache_dump_threshold"`
+	FlushInterval             string `toml:"flush_interval"`
+	OutputFile                string `toml:"output_file"`
+}
+
+type LoggerCfg struct {
+	Log          string `toml:"log"`
+	GinLog       string `toml:"gin_log"`
+	Level        string `toml:"level"`
+	DisableColor bool   `toml:"disable_color"`
+	Rotate       int    `toml:"rotate,omitzero"`
+}
+
 type Config struct {
-	Namespace      string `toml:"namespace"`
 	UUID           string `toml:"-"`
-	Hostname       string `toml:"-"`
 	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
 
-	Name    string              `toml:"name,omitempty"`
+	Name      string `toml:"name,omitempty"`
+	Hostname  string `toml:"-"`
+	Namespace string `toml:"namespace"`
+
+	IOConf *IOConfig `toml:"io"`
+
 	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
 
-	HTTPBindDeprecated string `toml:"http_server_addr,omitempty"`
-	HTTPListen         string `toml:"http_listen,omitempty"`
+	// http config: TODO: merge into APIConfig
+	HTTPBindDeprecated       string            `toml:"http_server_addr,omitempty"`
+	HTTPListenDeprecated     string            `toml:"http_listen,omitempty"`
+	Disable404PageDeprecated bool              `toml:"disable_404page,omitempty"`
+	HTTPAPI                  *dkhttp.APIConfig `toml:"http_api"`
 
-	HTTPAPI *dkhttp.APIConfig `toml:"http_api"`
+	// logging config
+	LogDeprecated       string     `toml:"log,omitempty"`
+	LogLevelDeprecated  string     `toml:"log_level,omitempty"`
+	LogRotateDeprecated int        `toml:"log_rotate,omitzero"`
+	GinLogDeprecated    string     `toml:"gin_log,omitempty"`
+	Logging             *LoggerCfg `toml:"logging"`
 
-	Log       string `toml:"log"`
-	LogLevel  string `toml:"log_level"`
-	LogRotate int    `toml:"log_rotate,omitempty"`
+	GlobalTags   map[string]string `toml:"global_tags"`
+	Environments map[string]string `toml:"environments"`
 
-	GinLog     string            `toml:"gin_log"`
-	GlobalTags map[string]string `toml:"global_tags"`
-
-	OutputFile string `toml:"output_file"`
+	OutputFileDeprecated string `toml:"output_file,omitempty"`
 
 	EnablePProf bool `toml:"enable_pprof,omitempty"`
 	ProtectMode bool `toml:"protect_mode"`
@@ -117,10 +158,9 @@ type Config struct {
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 	Cgroup    *Cgroup          `toml:"cgroup"`
 
-	EnableElection bool           `toml:"enable_election"`
-	Disable404Page bool           `toml:"disable_404page"`
-	IOCacheCount   int64          `toml:"io_cache_count"`
-	Tracer         *tracer.Tracer `toml:"tracer,omitempty"`
+	EnableElection         bool           `toml:"enable_election"`
+	IOCacheCountDeprecated int64          `toml:"io_cache_count,omitzero"`
+	Tracer                 *tracer.Tracer `toml:"tracer,omitempty"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -291,27 +331,49 @@ func (c *Config) setupGlobalTags() error {
 	return nil
 }
 
-func (c *Config) ApplyMainConfig() error {
+func (c *Config) setLogging() {
 
 	// set global log root
-	l.Infof("set log to %s", c.Log)
-	if c.Log != "stdout" || c.Log == "" {
-		logger.MaxSize = c.LogRotate
-		if err := logger.SetGlobalRootLogger(c.Log, c.LogLevel, logger.OPT_DEFAULT); err != nil {
+	if c.Logging.Log != "stdout" || c.Logging.Log != "" { // set log to disk file
+
+		l.Infof("set log to %s", c.Logging.Log)
+
+		if c.Logging.Rotate > 0 {
+			logger.MaxSize = c.Logging.Rotate
+		}
+
+		if err := logger.InitRoot(&logger.Option{
+			Path:  c.Logging.Log,
+			Level: c.Logging.Level,
+			Flags: logger.OPT_DEFAULT}); err != nil {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
 	} else {
-		logger.SetStdoutRootLogger(c.LogLevel, logger.OPT_DEFAULT|logger.OPT_STDOUT)
+
+		l.Info("set log to stdout, rotate disabled")
+
+		optflags := (logger.OPT_DEFAULT | logger.OPT_STDOUT)
+		if !c.Logging.DisableColor {
+			optflags |= logger.OPT_COLOR
+		}
+
+		if err := logger.InitRoot(
+			&logger.Option{
+				Level: c.Logging.Level,
+				Flags: optflags}); err != nil {
+			l.Errorf("set root log faile: %s", err.Error())
+		}
 	}
+}
+
+func (c *Config) ApplyMainConfig() error {
+
+	c.setLogging()
 
 	l = logger.SLogger("config")
 
 	if c.EnableUncheckedInputs {
 		datakit.EnableUncheckInputs = true
-	}
-
-	if c.OutputFile != "" {
-		dkio.SetOutputFile(c.OutputFile)
 	}
 
 	if c.Hostname == "" {
@@ -324,14 +386,23 @@ func (c *Config) ApplyMainConfig() error {
 		return err
 	}
 
+	// initialize global tracer
 	if c.Tracer != nil {
-		tracer.GlobalTracer = c.Tracer
+		dktracer.GlobalTracer = c.Tracer
 	}
 
 	datakit.AutoUpdate = c.AutoUpdate
 
-	dkio.SetDataWay(c.DataWay)
-	dkio.SetGlobalCacheCount(c.IOCacheCount)
+	// config default io
+	if c.IOConf != nil {
+		if c.IOConf.MaxCacheCount == 0 && c.IOCacheCountDeprecated != 0 {
+			c.IOConf.MaxCacheCount = c.IOCacheCountDeprecated
+		}
+		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
+			c.IOConf.OutputFile = c.OutputFileDeprecated
+		}
+		dkio.ConfigDefaultIO(dkio.SetFeedChanSize(c.IOConf.FeedChanSize), dkio.SetHighFreqFeedChanSize(c.IOConf.HighFreqFeedChanSize), dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount), dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold), dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount), dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold), dkio.SetFlushInterval(c.IOConf.FlushInterval), dkio.SetOutputFile(c.IOConf.OutputFile), dkio.SetDataway(c.DataWay))
+	}
 
 	if err := c.setupGlobalTags(); err != nil {
 		return err
@@ -373,6 +444,21 @@ func (c *Config) ApplyMainConfig() error {
 
 func (c *Config) setHostname() error {
 
+	// try get hostname from configure
+	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
+		c.Hostname = v
+		l.Infof("set hostname to %s from config ENV_HOSTNAME", v)
+		return nil
+	}
+
+	// try get hostname from $env
+	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
+		c.Hostname = v
+		l.Infof("set hostname to %s from env ENV_HOSTNAME", v)
+		return nil
+	}
+
+	// get real hostname
 	hn, err := os.Hostname()
 	if err != nil {
 		l.Errorf("get hostname failed: %s", err.Error())
@@ -407,13 +493,26 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 }
 
 func (c *Config) LoadEnvs() error {
-
-	if v := datakit.GetEnv("ENV_IO_CACHE_COUNT"); v != "" {
-		i, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			l.Errorf("invalid ENV_IO_CACHE_COUNT: %s", v)
-		} else {
-			c.IOCacheCount = i
+	if c.IOConf == nil {
+		c.IOConf = &IOConfig{}
+	}
+	for _, envkey := range []string{"ENV_MAX_CACHE_COUNT", "ENV_CACHE_DUMP_THRESHOLD", "ENV_MAX_DYNAMIC_CACHE_COUNT", "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD"} {
+		if v := datakit.GetEnv(envkey); v != "" {
+			value, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				l.Errorf("invalid env key value pair [%s:%s]", envkey, v)
+			} else {
+				switch envkey {
+				case "ENV_MAX_CACHE_COUNT":
+					c.IOConf.MaxCacheCount = value
+				case "ENV_CACHE_DUMP_THRESHOLD":
+					c.IOConf.CacheDumpThreshold = value
+				case "ENV_MAX_DYNAMIC_CACHE_COUNT":
+					c.IOConf.MaxDynamicCacheCount = value
+				case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
+					c.IOConf.DynamicCacheDumpThreshold = value
+				}
+			}
 		}
 	}
 
@@ -422,7 +521,7 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	if v := datakit.GetEnv("ENV_DISABLE_404PAGE"); v != "" {
-		c.Disable404Page = true
+		c.HTTPAPI.Disable404Page = true
 	}
 
 	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" {
@@ -430,7 +529,11 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
-		c.LogLevel = v
+		c.Logging.Level = v
+	}
+
+	if v := datakit.GetEnv("ENV_LOG"); v != "" {
+		c.Logging.Log = v
 	}
 
 	// 多个 dataway 支持 ',' 分割
@@ -451,7 +554,7 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	if v := datakit.GetEnv("ENV_HTTP_LISTEN"); v != "" {
-		c.HTTPListen = v
+		c.HTTPAPI.Listen = v
 	}
 
 	if v := datakit.GetEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {

@@ -14,23 +14,85 @@ import (
 var (
 	extraTags = map[string]string{}
 	defaultIO = &IO{
-		MaxCacheCnt:        1024,
-		MaxDynamicCacheCnt: 1024,
-		FlushInterval:      10 * time.Second,
+		FeedChanSize:              1024,
+		HighFreqFeedChanSize:      2048,
+		MaxCacheCount:             1024,
+		CacheDumpThreshold:        512,
+		MaxDynamicCacheCount:      1024,
+		DynamicCacheDumpThreshold: 512,
+		FlushInterval:             10 * time.Second,
 	}
 )
 
-func SetGlobalCacheCount(i int64) {
-	defaultIO.MaxCacheCnt = i
-	defaultIO.MaxDynamicCacheCnt = i
+type IOOption func(io *IO)
+
+func SetMaxCacheCount(max int64) IOOption {
+	return func(io *IO) {
+		io.MaxCacheCount = max
+	}
 }
 
-func SetOutputFile(f string) {
-	defaultIO.OutputFile = f
+func SetCacheDumpThreshold(threshold int64) IOOption {
+	return func(io *IO) {
+		io.CacheDumpThreshold = threshold
+	}
 }
 
-func SetDataWay(dw *dataway.DataWayCfg) {
-	defaultIO.dw = dw
+func SetMaxDynamicCacheCount(max int64) IOOption {
+	return func(io *IO) {
+		io.MaxDynamicCacheCount = max
+	}
+}
+
+func SetDynamicCacheDumpThreshold(threshold int64) IOOption {
+	return func(io *IO) {
+		io.DynamicCacheDumpThreshold = threshold
+	}
+}
+
+func SetFlushInterval(s string) IOOption {
+	return func(io *IO) {
+		if len(s) == 0 {
+			io.FlushInterval = 10 * time.Second
+		} else {
+			if d, err := time.ParseDuration(s); err != nil {
+				l.Errorf("parse io flush interval failed, %s", err.Error())
+				io.FlushInterval = 10 * time.Second
+			} else {
+				io.FlushInterval = d
+			}
+		}
+	}
+}
+
+func SetOutputFile(output string) IOOption {
+	return func(io *IO) {
+		io.OutputFile = output
+	}
+}
+
+func SetDataway(dw *dataway.DataWayCfg) IOOption {
+	return func(io *IO) {
+		io.dw = dw
+	}
+}
+
+func SetFeedChanSize(size int) IOOption {
+	return func(io *IO) {
+		io.FeedChanSize = size
+	}
+}
+
+func SetHighFreqFeedChanSize(size int) IOOption {
+	return func(io *IO) {
+		io.HighFreqFeedChanSize = size
+	}
+}
+
+func ConfigDefaultIO(opts ...IOOption) {
+	for _, opt := range opts {
+		opt(defaultIO)
+	}
 }
 
 func SetExtraTags(k, v string) {
@@ -40,19 +102,17 @@ func SetExtraTags(k, v string) {
 func Start() error {
 	l = logger.SLogger("io")
 
-	defaultIO.in = make(chan *iodata, 128)
-	defaultIO.in2 = make(chan *iodata, 128*8)
+	l.Debugf("default io config: %v", *defaultIO)
+
+	defaultIO.in = make(chan *iodata, defaultIO.FeedChanSize)
+	defaultIO.in2 = make(chan *iodata, defaultIO.HighFreqFeedChanSize)
 	defaultIO.inLastErr = make(chan *lastErr, 128)
 	defaultIO.inputstats = map[string]*InputsStat{}
 	defaultIO.qstatsCh = make(chan *qinputStats) // blocking
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}
 
-	datakit.WG.Add(1)
-	go func() {
-		defer datakit.WG.Done()
-		defaultIO.StartIO(true)
-	}()
+	defaultIO.StartIO(true)
 
 	l.Debugf("io: %+#v", defaultIO)
 
@@ -86,6 +146,13 @@ func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
 	case <-tick.C:
 		return nil, fmt.Errorf("default IO response timeout(qid: %s, %v)", q.qid, timeout)
 	}
+}
+
+func GetIoStats() IoStat {
+	stats := IoStat{
+		SentBytes: defaultIO.SentBytes,
+	}
+	return stats
 }
 
 func ChanStat() string {

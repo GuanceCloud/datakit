@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -10,20 +11,17 @@ import (
 var k8sMeasurement = "kubernetes"
 
 type kubernetesMetric struct {
-	name   string
+	client *client
 	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
 }
 
-func (m *kubernetesMetric) LineProto() (*io.Point, error) {
-	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
-}
+func (m *kubernetesMetric) LineProto() (*io.Point, error) { return nil, nil }
 
 func (m *kubernetesMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: k8sMeasurement,
-		Desc: "kubernetes metric",
+		Desc: "Kubernetes 指标数据",
+		Type: "metric",
 		Tags: map[string]interface{}{
 			"namespace": &inputs.TagInfo{Desc: "namespace"},
 		},
@@ -92,76 +90,80 @@ func (m *kubernetesMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (i *Input) collectKubernetes(collector string) error {
-	list, err := i.client.getNamespaces()
+func (k *kubernetesMetric) Gather() {
+	list, err := k.client.getNamespaces()
 	if err != nil {
-		return err
+		l.Error(err)
+		return
 	}
+
+	defer func() {
+		k.client.namespace = ""
+	}()
 
 	for _, item := range list.Items {
 		tags := map[string]string{}
 		fields := map[string]interface{}{}
 
 		ns := item.Name
-
-		i.client.namespace = ns
+		k.client.namespace = ns
 
 		tags["namespace"] = ns
 
-		for key, value := range i.Tags {
+		for key, value := range k.tags {
 			tags[key] = value
 		}
 
 		// DaemonSets
-		if list, err := i.client.getDaemonSets(); err != nil {
+		if list, err := k.client.getDaemonSets(); err != nil {
 			l.Error(err)
 		} else {
 			fields["daemonSet"] = len(list.Items)
 		}
 
 		// deployment
-		if list, err := i.client.getDeployments(); err != nil {
+		if list, err := k.client.getDeployments(); err != nil {
 			l.Error(err)
 		} else {
 			fields["deployment"] = len(list.Items)
 		}
 
 		// endpoint
-		if list, err := i.client.getEndpoints(); err != nil {
+		if list, err := k.client.getEndpoints(); err != nil {
 			l.Error(err)
 		} else {
 			fields["endpoint"] = len(list.Items)
 		}
 
 		// node
-		if list, err := i.client.getNodes(); err != nil {
+		if list, err := k.client.getNodes(); err != nil {
 			l.Error(err)
 		} else {
 			fields["node"] = len(list.Items)
 		}
 
 		// service
-		if list, err := i.client.getServices(); err != nil {
+		if list, err := k.client.getServices(); err != nil {
 			l.Error(err)
 		} else {
 			fields["service"] = len(list.Items)
 		}
 
 		// statefulSets
-		if list, err := i.client.getStatefulSets(); err != nil {
+		if list, err := k.client.getStatefulSets(); err != nil {
 			l.Error(err)
 		} else {
 			fields["statefulSets"] = len(list.Items)
 		}
 
 		// ingress
-		if list, err := i.client.getIngress(); err != nil {
+		if list, err := k.client.getIngress(); err != nil {
 			l.Error(err)
 		} else {
 			fields["ingress"] = len(list.Items)
 		}
 
-		if list, err := i.client.getPods(); err != nil {
+		if list, err := k.client.getPods(); err != nil {
 			l.Error(err)
 		} else {
 			fields["pod"] = len(list.Items)
@@ -172,28 +174,25 @@ func (i *Input) collectKubernetes(collector string) error {
 			fields["container"] = containerCnt
 		}
 
-		if list, err := i.client.getJobs(); err != nil {
+		if list, err := k.client.getJobs(); err != nil {
 			l.Error(err)
 		} else {
 			fields["job"] = len(list.Items)
 		}
 
-		if list, err := i.client.getCronJobs(); err != nil {
+		if list, err := k.client.getCronJobs(); err != nil {
 			l.Error(err)
 		} else {
 			fields["cronJob"] = len(list.Items)
 		}
 
-		m := &kubernetesMetric{
-			name:   k8sMeasurement,
-			tags:   tags,
-			fields: fields,
-			ts:     time.Now(),
+		pt, err := io.MakePoint(k8sMeasurement, tags, fields, time.Now())
+		if err != nil {
+			l.Error(err)
+		} else {
+			if err := io.Feed(inputName, datakit.Metric, []*io.Point{pt}, nil); err != nil {
+				l.Error(err)
+			}
 		}
-
-		i.collectCache[collector] = append(i.collectCache[collector], m)
-		i.client.namespace = ""
 	}
-
-	return nil
 }

@@ -2,280 +2,257 @@ package kubernetes
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"sync"
 	"time"
-
-	"github.com/influxdata/telegraf/filter"
-	"github.com/influxdata/telegraf/plugins/common/tls"
-	"k8s.io/client-go/rest"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const (
-	maxInterval = 30 * time.Minute
-	minInterval = 15 * time.Second
+var (
+	inputName = "kubernetes"
+	catalog   = "kubernetes"
+
+	l = logger.DefaultSLogger("kubernetes")
 )
 
-var (
-	inputName   = "kubernetes"
-	catalogName = "kubernetes"
-	l           = logger.DefaultSLogger("kubernetes")
+const (
+	defaultMetricInterval = time.Minute * 1
+	defaultObjectInterval = time.Minute * 5
 )
 
 type Input struct {
-	Service                string `toml:"service"`
-	Interval               datakit.Duration
-	ObjectInterval         string                          `toml:"object_Interval"`
-	ObjectIntervalDuration time.Duration                   `toml:"_"`
-	Tags                   map[string]string               `toml:"tags"`
-	collectCache           map[string][]inputs.Measurement `toml:"-"`
-	collectObjectCache     []inputs.Measurement            `toml:"-"`
-	lastErr                error
+	URL      string `toml:"url"`
+	Interval string `toml:"interval"`
 
-	KubeConfigPath    string `toml:"kube_config_path"`
-	URL               string `toml:"url"`
-	BearerToken       string `toml:"bearer_token"`
-	BearerTokenString string `toml:"bearer_token_string"`
-	Namespace         string `toml:"namespace"`
-	Timeout           string `toml:"timeout"`
-	TimeoutDuration   time.Duration
-	ResourceExclude   []string `toml:"resource_exclude"`
-	ResourceInclude   []string `toml:"resource_include"`
+	BearerToken        string `toml:"bearer_token"`
+	BearerTokenString  string `toml:"bearer_token_string"`
+	TLSCA              string `toml:"tls_ca"`
+	TLSCert            string `toml:"tls_cert"`
+	TLSKey             string `toml:"tls_key"`
+	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 
-	SelectorInclude []string `toml:"selector_include"`
-	SelectorExclude []string `toml:"selector_exclude"`
-	DiscoveryDir    string   `toml:"discovery_dir"`
+	Tags map[string]string `toml:"tags"`
 
-	tls.ClientConfig
-	start          time.Time
-	client         *client
-	mu             sync.Mutex
-	selectorFilter filter.Filter
-	collectors     map[string]func(collector string) error
-	chPause        chan bool
-	pause          bool
+	DepercatedTimeout string `toml:"timeout"`
+
+	client       *client
+	resourceList []resource
+
+	chPause chan bool
+	pause   bool
 }
 
-func (i *Input) initCfg() error {
-	TimeoutDuration, err := time.ParseDuration(i.Timeout)
-	if err != nil {
-		TimeoutDuration = 5 * time.Second
-	}
+func (this *Input) Run() {
+	l = logger.SLogger(inputName)
 
-	var (
-		config *rest.Config
-	)
-
-	i.TimeoutDuration = TimeoutDuration
-
-	if i.KubeConfigPath != "" {
-		config, err = createConfigByKubePath(i.KubeConfigPath)
-		if err != nil {
-			return err
-		}
-	} else if i.URL != "" {
-		token, err := ioutil.ReadFile(i.BearerToken)
-		if err != nil {
-			return err
-		}
-
-		i.BearerTokenString = string(token)
-
-		config, err = createConfigByToken(i.URL, i.BearerTokenString, i.TLSCA, i.InsecureSkipVerify)
-		if err != nil {
-			return err
-		}
-	}
-
-	// create discovery dir
-	if i.DiscoveryDir == "" {
-		i.DiscoveryDir = "/usr/local/datakit/data/exporter_urls"
-	}
-
-	if !datakit.FileExist(i.DiscoveryDir) {
-		if err := os.MkdirAll(i.DiscoveryDir, os.ModePerm); err != nil {
-			l.Errorf("create %s failed: %s", i.DiscoveryDir, err)
-			return err
-		}
-	}
-
-	i.client, err = newClient(config, 5*time.Second)
-	if err != nil {
-		return err
-	}
-
-	if i.client.Clientset == nil {
-		return fmt.Errorf("config error init client fail")
-	}
-
-	// 通过 ServerVersion 方法来获取版本号
-	_, err = i.client.ServerVersion()
-	if err != nil {
-		l.Errorf("get k8s version error %v", err)
-		return err
-	}
-
-	i.globalTag()
-
-	return nil
-}
-
-func (i *Input) globalTag() {
-	if i.URL != "" {
-		i.Tags["url"] = i.URL
-	}
-
-	if i.Service != "" {
-		i.Tags["service_name"] = i.Service
-	}
-}
-
-func (i *Input) Collect() error {
-	i.collectors = map[string]func(collector string) error{
-		"kubernetes": i.collectKubernetes,
-	}
-
-	i.collectCache = make(map[string][]inputs.Measurement)
-
-	resourceFilter, err := filter.NewIncludeExcludeFilter(i.ResourceInclude, i.ResourceExclude)
-	if err != nil {
-		return err
-	}
-
-	i.selectorFilter, err = filter.NewIncludeExcludeFilter(i.SelectorInclude, i.SelectorExclude)
-	if err != nil {
-		return err
-	}
-
-	// collect kubernetes
-	for collector, f := range i.collectors {
-		if resourceFilter.Match(collector) {
-			i.collectCache[collector] = make([]inputs.Measurement, 0)
-			err := f(collector)
-			if err != nil {
-				l.Errorf("%s exec %v", collector, err)
-				io.FeedLastError(inputName, err.Error())
-			} else {
-				resData := i.collectCache[collector]
-				if len(resData) > 0 {
-					if err := inputs.FeedMeasurement(inputName,
-						datakit.Metric,
-						resData,
-						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-						l.Error(err)
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func (i *Input) Run() {
-	l = logger.SLogger("kubernetes")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-
-	i.ObjectIntervalDuration = 5 * time.Minute
-	i.ObjectIntervalDuration, _ = time.ParseDuration(i.ObjectInterval)
-
-	err := i.initCfg()
-	if err != nil {
-		l.Errorf("init config error %v", err)
-		io.FeedLastError(inputName, err.Error())
+	if this.setup() {
 		return
 	}
 
-	tick := time.NewTicker(i.Interval.Duration)
-	defer tick.Stop()
+	metricTick := time.NewTicker(func() time.Duration {
+		dur, err := timex.ParseDuration(this.Interval)
+		if err != nil || dur < defaultMetricInterval {
+			l.Debug("use default metric interval: 60s")
+			return defaultMetricInterval
+		}
+		return dur
+	}())
+	defer metricTick.Stop()
 
-	disTick := time.NewTicker(i.Interval.Duration)
-	defer disTick.Stop()
+	objectTick := time.NewTicker(defaultObjectInterval)
+	defer objectTick.Stop()
+
+	// 首先运行一次采集
+	this.gatherMetric()
+	this.gatherObject()
 
 	for {
 		select {
-		case <-tick.C:
-			if i.pause {
+		case <-metricTick.C:
+			if this.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
+			this.gatherMetric()
 
-			l.Debugf("kubernetes metric input gathering...")
-			i.start = time.Now()
-			i.Collect()
-
-			// clear cache
-			i.clear()
-		case <-disTick.C:
-			if i.pause {
+		case <-objectTick.C:
+			if this.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
+			this.gatherObject()
 
-			l.Debugf("exec discovery server...")
-			if err := i.collectPodsExporter(); err != nil {
+			l.Debugf("exec discovery server")
+			if err := this.collectPodsExporter(); err != nil {
 				l.Errorf("%s discovery exec error %v", err)
 				io.FeedLastError(inputName, err.Error())
 			}
+
 		case <-datakit.Exit.Wait():
 			l.Info("kubernetes exit")
 			return
 
-		case i.pause = <-i.chPause:
+		case this.pause = <-this.chPause:
+			// nil
 		}
 	}
 }
 
-func (i *Input) Pause() error {
+func (this *Input) setup() bool {
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("exit")
+			return true
+		default:
+			// nil
+		}
+		time.Sleep(time.Second)
+
+		if err := this.buildClient(); err != nil {
+			l.Error(err)
+			continue
+		}
+
+		break
+	}
+
+	this.buildResources()
+
+	return false
+}
+
+func (this *Input) buildClient() error {
+	var cli *client
+	var err error
+
+	if this.URL == "" {
+		return fmt.Errorf("invalid k8s url, cannot be empty")
+	}
+
+	if this.BearerToken != "" {
+		cli, err = newClientFromBearerToken(this.URL, this.BearerToken)
+		if err != nil {
+			return err
+		}
+		l.Debug("use bearer_token")
+		goto end
+	}
+
+	if this.BearerTokenString != "" {
+		cli, err = newClientFromBearerTokenString(this.URL, this.BearerTokenString)
+		if err != nil {
+			return err
+		}
+		l.Debug("use bearer_token string")
+		goto end
+	}
+
+	if this.TLSCA != "" {
+		t := net.TlsClientConfig{
+			CaCerts: func() []string {
+				if this.TLSCA == "" {
+					return nil
+				}
+				return []string{this.TLSCA}
+			}(),
+			Cert:               this.TLSCert,
+			CertKey:            this.TLSKey,
+			InsecureSkipVerify: this.InsecureSkipVerify,
+		}
+
+		cli, err = newClientFromTLS(this.URL, &t)
+		if err != nil {
+			return err
+		}
+		l.Debug("use tls config")
+		goto end
+	}
+end:
+	if cli != nil {
+		this.client = cli
+		return nil
+	}
+
+	return fmt.Errorf("failed of build client")
+}
+
+func (this *Input) buildResources() {
+	this.resourceList = []resource{
+		// metric
+		&kubernetesMetric{client: this.client, tags: this.Tags},
+		// object
+		&cluster{client: this.client, tags: this.Tags},
+		&deployment{client: this.client, tags: this.Tags},
+		&replicaSet{client: this.client, tags: this.Tags},
+		&service{client: this.client, tags: this.Tags},
+		&node{client: this.client, tags: this.Tags},
+		&job{client: this.client, tags: this.Tags},
+		&cronJob{client: this.client, tags: this.Tags},
+		// &pod{client: this.client, tags: this.Tags},
+	}
+}
+
+func (this *Input) gatherObject() {
+	if len(this.resourceList) < 2 {
+		return
+	}
+	for _, resource := range this.resourceList[1:] {
+		resource.Gather()
+	}
+}
+
+func (this *Input) gatherMetric() {
+	if len(this.resourceList) == 0 {
+		return
+	}
+	this.resourceList[0].Gather()
+}
+
+func (this *Input) Pause() error {
 	tick := time.NewTicker(time.Second * 5)
 	select {
-	case i.chPause <- true:
+	case this.chPause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (this *Input) Resume() error {
 	tick := time.NewTicker(time.Second * 5)
 	select {
-	case i.chPause <- false:
+	case this.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
-func (i *Input) clear() {
-	for cate, _ := range i.collectors {
-		i.collectCache[cate] = i.collectCache[cate][:0]
-	}
-}
+func (*Input) Catalog() string { return catalog }
 
-func (i *Input) Catalog() string { return catalogName }
+func (*Input) SampleConfig() string { return sampleCfg }
 
-func (i *Input) SampleConfig() string { return configSample }
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
-
-func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	var res = []inputs.Measurement{
 		&kubernetesMetric{},
 	}
+	for _, resource := range resourceList {
+		res = append(res, resource)
+	}
+	return res
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
+			Tags:    make(map[string]string),
 			chPause: make(chan bool, 1),
 		}
 	})

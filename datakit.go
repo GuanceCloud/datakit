@@ -5,10 +5,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
 const (
@@ -41,6 +44,7 @@ const (
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"
 	QueryRaw          = "/v1/query/raw"
+	ListDataWay       = "/v1/list/dataway"
 )
 
 var (
@@ -85,8 +89,36 @@ const (
 	ConfPerm = os.ModePerm
 )
 
+// goroutines caches  goroutine
+var goroutines = []goroutine.Group{}
+
+// G create a groutine group, with namespace datakit
+func G(name string) goroutine.Group {
+	var l = logger.SLogger(name)
+	panicCb := func(b []byte) {
+		l.Errorf("%s", b)
+	}
+	gName := "datakit_" + name
+	opt := goroutine.Option{Name: gName, PanicTimes: 6, PanicCb: panicCb, PanicTimeout: 10 * time.Millisecond}
+	g := goroutine.NewGroup(opt)
+	var mu sync.Mutex
+	mu.Lock()
+	goroutines = append(goroutines, g)
+	mu.Unlock()
+	return g
+}
+
+// GWait wait all goroutine group exit
+func GWait() {
+	for _, g := range goroutines {
+		// just ignore error
+		_ = g.Wait()
+	}
+}
+
 func Quit() {
 	Exit.Close()
 	WG.Wait()
+	GWait()
 	service.Stop()
 }

@@ -3,12 +3,13 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 
 	"github.com/prometheus/prometheus/util/strutil"
 )
@@ -151,6 +152,7 @@ func (e *BinaryExpr) String() string {
 
 type FuncExpr struct {
 	Name  string
+	RunOk bool
 	Param []Node
 }
 

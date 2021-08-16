@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -23,16 +22,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/service/cgroup"
 )
 
 var (
-	flagVersion = flag.BoolP("version", "v", false, `show version info`)
+	flagVersion = flag.BoolP("version", "V", false, `show version info`)
 	flagDocker  = flag.Bool("docker", false, "run within docker")
 
 	// deprecated
@@ -72,18 +71,19 @@ var (
 	flagRestart   = flag.Bool("restart", false, "restart datakit")
 	flagReload    = flag.Bool("reload", false, "reload datakit")
 	flagStatus    = flag.Bool("status", false, "show datakit service status")
-	flagUninstall = flag.Bool("uninstall", false, "uninstall datakit service")
+	flagUninstall = flag.Bool("uninstall", false, "uninstall datakit service(not delete DataKit files)")
+	flagReinstall = flag.Bool("reinstall", false, "re-install datakit service")
 
 	flagDatakitHost = flag.StringP("datakit-host", "H", "localhost:9529", "datakit HTTP host")
 
 	// DQL
-	flagDQL    = flag.Bool("dql", false, "query DQL")
+	flagDQL    = flag.BoolP("dql", "Q", false, "query DQL interactively")
 	flagRunDQL = flag.String("run-dql", "", "run single DQL")
 
 	// partially update
 	flagUpdateIPDb = flag.Bool("update-ip-db", false, "update ip db")
 	flagAddr       = flag.StringP("addr", "A", "", "url path")
-	flagInterval   = flag.StringP("interval", "D", "", "auxiliary option, time interval")
+	flagInterval   = flag.StringP("interval", "I", "", "auxiliary option, time interval")
 
 	// utils
 	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
@@ -120,6 +120,10 @@ func setupFlags() {
 	flag.CommandLine.MarkHidden("k8s-deploy")
 	flag.CommandLine.MarkHidden("interactive")
 	flag.CommandLine.MarkHidden("dump-samples")
+
+	if runtime.GOOS == "windows" {
+		flag.CommandLine.MarkHidden("reload")
+	}
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
@@ -236,6 +240,10 @@ func tryLoadConfig() {
 
 func doRun() error {
 
+	for _, x := range os.Environ() {
+		l.Infof("get env %s", x)
+	}
+
 	io.Start()
 
 	if config.Cfg.EnableElection {
@@ -248,35 +256,21 @@ func doRun() error {
 	}
 
 	dkhttp.Start(&dkhttp.Option{
-		Bind: config.Cfg.HTTPListen,
+		//Bind:           config.Cfg.HTTPAPI.Listen,
+		//Disable404Page: config.Cfg.HTTPAPI.Disable404Page,
+		APIConfig: config.Cfg.HTTPAPI,
 
-		GinLog:         config.Cfg.GinLog,
-		GinRotate:      config.Cfg.LogRotate,
-		GinReleaseMode: strings.ToLower(config.Cfg.LogLevel) != "debug",
+		GinLog:         config.Cfg.Logging.GinLog,
+		GinRotate:      config.Cfg.Logging.Rotate,
+		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
 
-		Disable404Page: config.Cfg.Disable404Page,
-		DataWay:        config.Cfg.DataWay,
-		APIConfig:      config.Cfg.HTTPAPI,
-		PProf:          config.Cfg.EnablePProf,
+		DataWay: config.Cfg.DataWay,
+		PProf:   config.Cfg.EnablePProf,
 	})
 
 	time.Sleep(time.Second) // wait http server ok
-	// if config.Cfg.Trace != nil && config.Cfg.Trace.Enabled {
-	// 	config.Cfg.Trace.Start()
-	// 	defer config.Cfg.Trace.Stop()
-	// }
 
 	return nil
-}
-
-func isRoot() bool {
-	u, err := user.Current()
-	if err != nil {
-		l.Errorf("get current user failed: %s", err.Error())
-		return false
-	}
-
-	return u.Username == "root"
 }
 
 func runDatakitWithCmds() {
@@ -339,8 +333,8 @@ func runDatakitWithCmds() {
 	if *flagMonitor {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if runtime.GOOS == "windows" {
-			fmt.Println("unavailable under Windows")
-			os.Exit(0)
+			fmt.Println("unsupport under Windows")
+			os.Exit(-1)
 		}
 
 		cmds.CMDMonitor(*flagInterval, *flagDatakitHost, *flagVVV)
@@ -437,11 +431,6 @@ func runDatakitWithCmds() {
 	if *flagInstallExternal != "" {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
-
 		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
 			l.Error(err)
 		}
@@ -449,11 +438,8 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagStart {
+
 		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
 
 		if err := cmds.StartDatakit(); err != nil {
 			fmt.Printf("Start DataKit failed: %s\n", err)
@@ -467,10 +453,6 @@ func runDatakitWithCmds() {
 	if *flagStop {
 
 		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
 
 		if err := cmds.StopDatakit(); err != nil {
 			fmt.Printf("Stop DataKit failed: %s\n", err)
@@ -482,12 +464,8 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagRestart {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
 
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if err := cmds.RestartDatakit(); err != nil {
 			fmt.Printf("Restart DataKit failed: %s\n", err)
@@ -499,12 +477,12 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagReload {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		if !isRoot() {
-			l.Error("Permission Denied")
+		if runtime.GOOS == "windows" {
+			fmt.Println("unsupport under Windows")
 			os.Exit(-1)
 		}
+
+		cmds.SetCmdRootLog(*flagCmdLogPath)
 
 		if err := cmds.ReloadDatakit(*flagDatakitHost); err != nil {
 			fmt.Printf("Reload DataKit Failed\n")
@@ -516,10 +494,11 @@ func runDatakitWithCmds() {
 	}
 
 	if *flagStatus {
+
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 		x, err := cmds.DatakitStatus()
 		if err != nil {
-			fmt.Println("Get DataKit status failed: %s\n", err)
+			fmt.Printf("Get DataKit status failed: %s\n", err)
 			os.Exit(-1)
 		}
 		fmt.Println(x)
@@ -529,7 +508,16 @@ func runDatakitWithCmds() {
 	if *flagUninstall {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
 		if err := cmds.UninstallDatakit(); err != nil {
-			fmt.Println("Get DataKit status failed: %s\n", err)
+			fmt.Printf("Get DataKit status failed: %s\n", err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
+	}
+
+	if *flagReinstall {
+		cmds.SetCmdRootLog(*flagCmdLogPath)
+		if err := cmds.ReinstallDatakit(); err != nil {
+			fmt.Printf("Reinstall DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}
 		os.Exit(0)
@@ -537,10 +525,6 @@ func runDatakitWithCmds() {
 
 	if *flagUpdateIPDb {
 		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if !isRoot() {
-			l.Error("Permission Denied")
-			os.Exit(-1)
-		}
 
 		if runtime.GOOS == datakit.OSWindows {
 			fmt.Println("[E] not supported")

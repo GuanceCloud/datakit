@@ -43,6 +43,8 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
   # ...
 ```
 
+> 注意：这里添加自定义 tag 时，尽量不要跟已有的 tag key/field key 同名。如果同名，DataKit 将选择配置里面的 tag 来覆盖采集的数据，可能导致一些数据问题。
+
 {{ range $i, $m := .Measurements }}
 
 ### `{{$m.Name}}`
@@ -56,6 +58,24 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+如果开启了云同步，会多出如下一些字段（以同步到的字段为准）：
+
+| 字段名                  | 描述           | 类型   |
+| ---                     | ----           | :---:  |
+| `cloud_provider`        | 云服务商       | string |
+| `description`           | 描述           | string |
+| `instance_id`           | 实例 ID        | string |
+| `instance_name`         | 实例名         | string |
+| `instance_type`         | 实例类型       | string |
+| `instance_charge_type`  | 实例计费类型   | string |
+| `instance_network_type` | 实例网络类型   | string |
+| `instance_status`       | 实例状态       | string |
+| `security_group_id`     | 实例分组       | string |
+| `private_ip`            | 实例私网 IP    | string |
+| `zone_id`               | 实例 Zone ID   | string |
+| `region`                | 实例 Region ID | string |
+
 
 ### `message` 指标字段结构
 
@@ -132,32 +152,39 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 #### `host.conntrack`
 
-| 字段名		| 描述		| 类型 |
-| --- | --- |:---: |
-| `entries` | 当前连接数量| int |
-| `entries_limit` | 连接跟踪表的大小 | int |
-| `stat_found` | 成功的搜索条目数目  | int |
-| `stat_invalid` | 不能被跟踪的包数目 | int |
-| `stat_ignore` | 已经被跟踪的报数目 | int |
-| `stat_insert` | 插入的包数目 | int |
-| `stat_insert_failed` | 插入失败的包数目 | int |
-| `stat_drop` | 跟踪失败被丢弃的包数目| int |
-| `stat_early_drop` | 由于跟踪表满而导致部分已跟踪包条目被丢弃的数目| int |
-| `stat_search_restart` | 由于hash表大小修改而导致跟踪表查询重启的数目 | int |
+> 注意：仅 Linux 平台支持
+
+| 字段名                | 描述                                           | 类型  |
+| ---                   | ---                                            | :---: |
+| `entries`             | 当前连接数量                                   | int   |
+| `entries_limit`       | 连接跟踪表的大小                               | int   |
+| `stat_found`          | 成功的搜索条目数目                             | int   |
+| `stat_invalid`        | 不能被跟踪的包数目                             | int   |
+| `stat_ignore`         | 已经被跟踪的报数目                             | int   |
+| `stat_insert`         | 插入的包数目                                   | int   |
+| `stat_insert_failed`  | 插入失败的包数目                               | int   |
+| `stat_drop`           | 跟踪失败被丢弃的包数目                         | int   |
+| `stat_early_drop`     | 由于跟踪表满而导致部分已跟踪包条目被丢弃的数目 | int   |
+| `stat_search_restart` | 由于hash表大小修改而导致跟踪表查询重启的数目   | int   |
 
 #### `host.filefd`
 
-| 字段名		| 描述		| 类型 |
-| --- | --- |:---: |
-| `allocated` | 已分配文件句柄的数目| int |
-| `maximum` | 文件句柄的最大数目 | int |
+> 注意：仅 Linux 平台支持
 
-#### 单个采集器运行情况字段列表
+| 字段名         | 描述                                                 | 类型  |
+| ---            | ---                                                  | :---: |
+| `allocated`    | 已分配文件句柄的数目                                 | int   |
+| `maximum`      | 文件句柄的最大数目（已弃用，用 `maximum_mega` 替代） | int   |
+| `maximum_mega` | 文件句柄的最大数目，单位 M(10^6)                     | float |
 
-| 字段名          | 描述                                           | 类型   |
-| ---             | ----                                           | :---:  |
-| `name`          | 采集器名称                                     | string |
-| `count`         | 采集次数                                       | int    |
-| `last_time`     | 最近一次采集时间                               | int    |
-| `last_err`      | 最后一次报错信息(默认只报告 30 分钟以内的错误) | string |
-| `last_err_time` | 最后一次报错时间                               | int    |
+#### 采集器运行情况字段列表
+
+`collectors` 字段是一个对象列表，每个对象的字段如下：
+
+| 字段名          | 描述                                       | 类型   |
+| ---             | ----                                       | :---:  |
+| `name`          | 采集器名称                                 | string |
+| `count`         | 采集次数                                   | int    |
+| `last_time`     | 最近一次采集时间（Unix 时间戳，单位为秒）  | int    |
+| `last_err`      | 最后一次报错信息(只报告 30 分钟以内的错误) | string |
+| `last_err_time` | 最后一次报错时间（Unix 时间戳，单位为秒）  | int    |

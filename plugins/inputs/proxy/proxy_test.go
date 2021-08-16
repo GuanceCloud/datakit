@@ -1,17 +1,7 @@
 package proxy
 
 import (
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
 	"testing"
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
-	"github.com/gin-gonic/gin"
 )
 
 const (

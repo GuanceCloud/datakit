@@ -13,66 +13,79 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const (
-	inputName = "proxy"
-
-	defaultMeasurement = "proxy"
-
-	sampleCfg = `
+var (
+	inputName    = "proxy"
+	sampleConfig = `
 [[inputs.proxy]]
-    bind = "0.0.0.0"
-    port = 9530
+  ## default bind ip address
+  bind = "0.0.0.0"
+  ## default bind port
+  port = 9530
 `
+	l = logger.DefaultSLogger(inputName)
 )
 
-var l = logger.DefaultSLogger(inputName)
-
-func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
-	})
+type statistic struct {
+	delivered int64
+	previous  int64
+	reqcount  int
 }
 
 type Input struct {
 	Bind string `toml:"bind"`
 	Port int    `toml:"port"`
-	Path string `toml:"path"`
-}
-
-func (*Input) SampleConfig() string {
-	return sampleCfg
 }
 
 func (*Input) Catalog() string {
-	return "proxy"
+	return inputName
+}
+
+func (*Input) SampleConfig() string {
+	return sampleConfig
+}
+
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		//&measurement{}
+	}
 }
 
 func (h *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("http proxy input started...")
 
-	listen := fmt.Sprintf("%s:%v", h.Bind, h.Port)
-	l.Info("datakit proxy server start...", h.Port)
-
-	// server
-	srv := http.Server{
-		Addr:    listen,
-		Handler: goproxy.NewProxyHttpServer(),
+	proxy := goproxy.NewProxyHttpServer()
+	proxysrv := &http.Server{
+		Addr:    fmt.Sprintf("%s:%v", h.Bind, h.Port),
+		Handler: proxy,
 	}
 
-	go func() {
-		<-datakit.Exit.Wait()
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		if err := srv.Shutdown(ctx); nil != err {
-			l.Errorf("server shutdown failed, err: %v\n", err)
-			return
+	go func(proxysvr *http.Server) {
+		l.Infof("http proxy server listening on %s", proxysrv.Addr)
+		if err := proxysrv.ListenAndServe(); err != http.ErrServerClosed {
+			l.Errorf("proxy server not gracefully shutdown, err :%v\n", err)
+		} else {
+			l.Error(err)
 		}
-		l.Info("proxy server gracefully shutdown")
-	}()
+	}(proxysrv)
 
-	err := srv.ListenAndServe()
-	if http.ErrServerClosed != err {
-		l.Errorf("proxy server not gracefully shutdown, err :%v\n", err)
+	<-datakit.Exit.Wait()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := proxysrv.Shutdown(ctx); nil != err {
+		l.Errorf("server shutdown failed, err: %v\n", err)
+	} else {
+		l.Info("proxy server gracefully shutdown")
 	}
+}
+
+func init() {
+	inputs.Add(inputName, func() inputs.Input {
+		return &Input{}
+	})
 }

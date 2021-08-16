@@ -16,8 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
 )
 
 var (
@@ -37,6 +37,7 @@ var (
 	EnableInputs  = ""
 	Namespace     = ""
 	OTA           = false
+	Proxy         = ""
 )
 
 func readInput(prompt string) string {
@@ -98,8 +99,12 @@ func InstallNewDatakit(svc service.Service) {
 	}
 
 	mc.Namespace = Namespace
-	mc.HTTPListen = fmt.Sprintf("%s:%d", Listen, Port)
+	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", Listen, Port)
 	mc.InstallDate = time.Now()
+
+	if mc.DataWay != nil {
+		mc.DataWay.HttpProxy = Proxy
+	}
 
 	if DatakitName != "" {
 		mc.Name = DatakitName
@@ -159,7 +164,7 @@ func preEnableHostobjectInput(cloud string) ([]byte, error) {
 ## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
 # enable_net_virtual_interfaces = true
 
-## Ignore mount points by filesystem type. Default ingore following FS types
+## Ignore mount points by filesystem type. Default ignored following FS types
 # ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
 
 
@@ -186,14 +191,58 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 	// XXX: 无脑更改日志位置
 	switch runtime.GOOS {
 	case datakit.OSWindows:
-		c.Log = filepath.Join(datakit.InstallDir, "log")
-		c.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
+		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
+		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	default:
-		c.Log = "/var/log/datakit/log"
-		c.GinLog = "/var/log/datakit/gin.log"
+		c.Logging.Log = "/var/log/datakit/log"
+		c.Logging.GinLog = "/var/log/datakit/gin.log"
 	}
-	l.Debugf("set log to %s, remove ", c.Log)
-	l.Debugf("set gin log to %s", c.GinLog)
+	l.Debugf("set log to %s, remove ", c.Logging.Log)
+	l.Debugf("set gin log to %s", c.Logging.GinLog)
+
+	if c.LogDeprecated != "" {
+		c.Logging.Log = c.LogDeprecated
+		c.LogDeprecated = ""
+	}
+
+	if c.LogLevelDeprecated != "" {
+		c.Logging.Level = c.LogLevelDeprecated
+		c.LogLevelDeprecated = ""
+	}
+
+	if c.LogRotateDeprecated != 0 {
+		c.Logging.Rotate = c.LogRotateDeprecated
+		c.LogRotateDeprecated = 0
+	}
+
+	if c.GinLogDeprecated != "" {
+		c.Logging.GinLog = c.GinLogDeprecated
+		c.GinLogDeprecated = ""
+	}
+
+	if c.HTTPListenDeprecated != "" {
+		c.HTTPAPI.Listen = c.HTTPListenDeprecated
+		c.HTTPListenDeprecated = ""
+	}
+
+	if c.Disable404PageDeprecated {
+		c.HTTPAPI.Disable404Page = true
+		c.Disable404PageDeprecated = false
+	}
+
+	if c.IOCacheCountDeprecated != 0 {
+		c.IOConf.MaxCacheCount = c.IOCacheCountDeprecated
+		c.IOCacheCountDeprecated = 0
+	}
+
+	if c.OutputFileDeprecated != "" {
+		c.IOConf.OutputFile = c.OutputFileDeprecated
+		c.OutputFileDeprecated = ""
+	}
+
+	if c.DataWay != nil {
+		c.DataWay.HttpProxy = Proxy
+	}
 
 	return c, nil
 }

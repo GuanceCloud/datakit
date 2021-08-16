@@ -95,14 +95,19 @@ sudo datakit --restart
 
 #### HTTP 绑定端口
 
-出于安全考虑，DataKit 的 HTTP 服务默认绑定在 localhost:9529 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `http_listen` 字段，将其改成 `0.0.0.0:9529` 或其它网卡、端口。这样就能从其它主机上请求 DataKit 接口了。
+出于安全考虑，DataKit 的 HTTP 服务默认绑定在 `localhost:9529` 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `listen` 字段，这样就能从其它主机上请求 DataKit 接口了：
 
-当你需要做如下操作时，一般都需要修改 `http_listen` 配置：
+```toml
+[http_api]
+	listen = "0.0.0.0:9529" # 将其改成 `0.0.0.0:9529` 或其它网卡、端口
+```
+
+当你需要做如下操作时，一般都需要修改 `listen` 配置：
 
 - [远程查看 DataKit 运行情况](http://localhost:9529/monitor)
 - [远程查看 DataKit 文档](http://localhost:9529/man)
 - [RUM 采集](rum)
-- 其它诸如 [APM](ddtrace)/[安全巡检](sec-checker) 等，看具体的部署情况，可能也需要修改 `http_listen` 配置
+- 其它诸如 [APM](ddtrace)/[安全巡检](sec-checker) 等，看具体的部署情况，可能也需要修改 `listen` 配置
 
 #### 全局标签（tag）的开启
 
@@ -251,14 +256,20 @@ DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为
 
 ## DataKit 各种工具使用
 
-DataKit 内置很多不同的小工具，便于大家日常使用。
+DataKit 内置很多不同的小工具，便于大家日常使用。可通过如下命令来查看 DataKit 的命令行帮助：
+
+```shell
+datakit -h
+```
+
+>注意：因不同平台的差异，具体帮助内容会有差别。
 
 ### 查询 DQL
 
 DataKit 支持以交互式方式执行 DQL 查询：
 
 ```shell
-datakit --dql
+datakit --dql      # 或者 datakit -Q
 dql > cpu limit 1
 -----------------[ 1.cpu ]-----------------
             time 2021-06-23 10:06:03 +0800 CST
@@ -286,16 +297,14 @@ Tips：
 - 支持查询语句模糊搜，如 `echo_explain` 只需要输入 `echo` 或 `exp` 即可弹出提示，通过 `Tab` 即可选择下拉提示
 - DataKit 会自动保存前面多次运行的 DQL 查询历史（最大 5000 条），可通过上下方向键来选择
 
-> 注：Windows 下，请在 Powershell 中执行 `datakit --dql`
+> 注：Windows 下，请在 Powershell 中执行 `datakit --dql` 或 `datakit -Q`
 
 ### 查看 DataKit 运行情况
 
 在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
 
 ```shell
-datakit --monitor
-# 或者
-datakit -M
+datakit --monitor     # 或者 datakit -M
 
 # 同时可查看采集器开启情况：
 datakit -M --vvv
@@ -318,7 +327,7 @@ checked 13 conf, all passing, cost 22.27455ms
 指定 pipeline 脚本名称（`--pl`，pipeline 脚本必须放在 `<DataKit 安装目录>/pipeline` 目录下），输入一段文本（`--txt`）即可判断提取是否成功
 
 ```shell
-$ datakit --pl your_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+datakit --pl your_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # 表示切割成功
 {
 	"code"   : "io/io.go: 458",       # 对应代码位置
@@ -329,14 +338,14 @@ Extracted data(cost: 421.705µs): # 表示切割成功
 }
 
 # 提取失败示例
-$ ./datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
+datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 No data extracted from pipeline
 ```
 
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
-$ datakit --grokq
+datakit --grokq
 grokq > Mon Jan 25 19:41:17 CST 2021   # 此处输入你希望匹配的文本
         2 %{DATESTAMP_OTHER: ?}        # 工具会给出对应对的建议，越靠前匹配月精确（权重也越大）。前面的数字表明权重。
         0 %{GREEDYDATA: ?}
@@ -360,7 +369,7 @@ Bye!
 为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
 
 ```shell
-$ datakit --man
+datakit --man
 man > nginx
 (显示 Nginx 采集文档)
 man > mysql
@@ -370,25 +379,61 @@ man > Q               # 输入 Q 或 exit 退出
 
 ### DataKit 服务管理
 
-可直接使用如下命令直接管理 DataKit（仅 Mac/Linux 支持）
+可直接使用如下命令直接管理 DataKit：
 
 ```shell
-$ sudo datakit --stop
-$ sudo datakit --start
-$ sudo datakit --restart
-$ sudo datakit --reload
+# Linux/Mac 可能需加上 sudo
+datakit --stop
+datakit --start
+datakit --restart
+datakit --reload  # Windows 平台不支持 reload 操作，只能通过重启来生效
 ```
 
-#### Windows 下 DataKit 服务操作
+> 注意：如果 DataKit *不是*默认绑定在 `localhost:9529` 或 `0.0.0.0:9529` 上，`--reload` 需稍作调整：`datakit --reload -H ip:port`
 
-按下 Win 键，输入 `services` 即可进入 Windows 服务管理界面，找到 `datakit` ，右键即可停止、重启服务。
+#### 服务管理失败处理
+
+有时候可能因为 DataKit 部分组件的 bug，导致服务操作失败（如 `--stop` 之后，服务并未停止），可按照如下方式来强制处理。
+
+Linux 下，如果上述命令失效，可使用以下命令来替代：
+
+```shell
+sudo service datakit stop/start/restart
+sudo systemctl stop/start/restart datakit
+```
+
+Mac 下，可以用如下命令代替：
+
+```shell
+# 启动 DataKit
+sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+
+# 停止 DataKit
+sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+```
+
+#### 服务卸载以及重装
+
+可直接使用如下命令直接卸载或恢复 DataKit 服务：
+
+> 注意：此处卸载 DataKit 并不会删除 DataKit 相关文件。
+
+```shell
+# Linux/Mac shell
+sudo datakit --uninstall
+sudo datakit --reinstall
+
+# Windows Powershell
+datakit --uninstall
+datakit --reinstall
+```
 
 ### DataKit 更新 IP 数据库文件
 
 可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
 
 ```shell
-$ sudo datakit --update-ip-db
+sudo datakit --update-ip-db
 ```
 
 若 DataKit 在运行中，更新成功后会自动执行 Reload 操作
@@ -402,15 +447,15 @@ $ sudo datakit --update-ip-db
 安装 Telegraf 集成
 
 ```shell
-$ sudo datakit --install telegraf
+sudo datakit --install telegraf
 ```
 
 启动 Telegraf
 
 ```shell
-$ cd /etc/telegraf
-$ sudo cp telegraf.conf.sample telegraf.conf
-$ sudo telegraf --config telegraf.conf
+cd /etc/telegraf
+sudo cp telegraf.conf.sample telegraf.conf
+sudo telegraf --config telegraf.conf
 ```
 
 关于 Telegraf 的使用事项，参见[这里](telegraf)。
@@ -420,8 +465,8 @@ $ sudo telegraf --config telegraf.conf
 安装 Security Checker
 
 ```shell
-$ sudo datakit --install scheck
-$ sudo datakit --install sec-checker  # 该命名即将废弃
+sudo datakit --install scheck
+sudo datakit --install sec-checker  # 该命名即将废弃
 ```
 
 安装成功后会自动运行，Security Checker 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install) 
@@ -462,7 +507,7 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
 
 ```shell
-$ datakit --show-cloud-info aws
+datakit --show-cloud-info aws
 
            cloud_provider: aws
               description: -
@@ -477,4 +522,3 @@ $ datakit --show-cloud-info aws
         security_group_id: launch-wizard-1
                   zone_id: cnnw1-az2
 ```
-

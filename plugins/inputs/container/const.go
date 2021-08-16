@@ -77,10 +77,10 @@ const sampleCfg = `
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
   
-  #[[inputs.container.logfilter]]
-  #  filter_message = [
-  #    '''<this-is-message-regexp''',
-  #    '''<this-is-another-message-regexp''',
+  #[[inputs.container.log]]
+  #  match_by = "container-name"
+  #  match = [
+  #    '''<this-is-regexp''',
   #  ]
   #  source = "<your-source-name>"
   #  service = "<your-service-name>"

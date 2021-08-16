@@ -98,17 +98,17 @@ func randomId(l int) uint64 {
 
 func TestDDTraceSampleWithNoErrorNoIgnore(t *testing.T) {
 	sampleConfs = []*trace.TraceSampleConfig{
-		// &trace.TraceSampleConfig{
+		// {
 		// 	Target: map[string]string{"name": "zhuyun"},
 		// 	Rate:   9,
 		// 	Scope:  100,
 		// },
-		// &trace.TraceSampleConfig{
+		// {
 		// 	Target: map[string]string{"age": "123"},
 		// 	Rate:   18,
 		// 	Scope:  100,
 		// },
-		&trace.TraceSampleConfig{
+		{
 			Rate:  27,
 			Scope: 100,
 		},
@@ -134,17 +134,17 @@ func TestDDTraceSampleWithNoErrorNoIgnore(t *testing.T) {
 
 func TestDDTraceSampleWithError(t *testing.T) {
 	sampleConfs = []*trace.TraceSampleConfig{
-		&trace.TraceSampleConfig{
+		{
 			Target: map[string]string{"name": "zhuyun"},
 			Rate:   9,
 			Scope:  100,
 		},
-		&trace.TraceSampleConfig{
+		{
 			Target: map[string]string{"age": "123"},
 			Rate:   18,
 			Scope:  100,
 		},
-		&trace.TraceSampleConfig{
+		{
 			Rate:  27,
 			Scope: 100,
 		},
@@ -172,17 +172,17 @@ func TestDDTraceSampleWithError(t *testing.T) {
 
 func TestDDTraceSampleWithIgnoreTags(t *testing.T) {
 	sampleConfs = []*trace.TraceSampleConfig{
-		&trace.TraceSampleConfig{
+		{
 			Target: map[string]string{"name": "zhuyun"},
 			Rate:   9,
 			Scope:  100,
 		},
-		&trace.TraceSampleConfig{
+		{
 			Target: map[string]string{"age": "123"},
 			Rate:   18,
 			Scope:  100,
 		},
-		&trace.TraceSampleConfig{
+		{
 			Rate:           27,
 			Scope:          100,
 			IgnoreTagsList: []string{trace.PROJECT},

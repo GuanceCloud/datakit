@@ -37,6 +37,8 @@ system 采集器收集系统负载、正常运行时间、CPU 核心数量以及
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 -  标签
 
 {{$m.TagsMarkdownTable}}

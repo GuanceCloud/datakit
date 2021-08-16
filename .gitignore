@@ -57,7 +57,4 @@ plugins/input/kubernetes/*.out
 plugins/input/kubernetes/pki/*
 plugins/input/kubernetes/cfg.conf
 data/*
-debug/*
-bfg-report/
-ag.sh
-dkr-run.sh
+dk-installer

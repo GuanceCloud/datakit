@@ -2,10 +2,8 @@ package cpu
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"runtime"
-	"strings"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/host"
@@ -53,7 +51,7 @@ func CoreTempAvg() (float64, error) {
 		if err != nil {
 			return 0, err
 		}
-		regexpC, err := regexp.Compile(`coretemp_core[\d]_input`)
+		regexpC, err := regexp.Compile(`coretemp_core[\d]+_input`)
 		if err != nil {
 			return 0, err
 		}
@@ -118,75 +116,4 @@ func CpuActiveTotalTime(t cpu.TimesStat) (float64, float64) {
 	total := t.Total()
 	active := total - t.Idle
 	return active, total
-}
-
-// Hump to underline.
-// such as:
-// SaRRdDD --> sa_r_rd_dd |
-// UserAgent --> user_agent |
-// userAgent --> user_agent |
-func HumpToUnderline(s string) string {
-	lenStrAscii := len(s)
-	var upperIndex [][2]int
-	for i := 0; i < lenStrAscii; i++ {
-		w := s[i : i+1]
-		if w >= "A" && w <= "Z" {
-			pos := i
-			count := 1
-			for i++; i < lenStrAscii; i++ {
-				w1 := s[i : i+1]
-				if !(w1 >= "A" && w1 <= "Z") {
-					break
-				}
-				count++
-			}
-			upperIndex = append(upperIndex, [2]int{pos, count})
-		}
-	}
-	r := s
-	lenU := len(upperIndex)
-	for i := 0; i < lenU; i++ {
-		if i == 0 {
-			r = ""
-			r += s[0:upperIndex[i][0]]
-		}
-		if upperIndex[i][1] > 1 {
-			r += "_" + s[upperIndex[i][0]:upperIndex[i][0]+upperIndex[i][1]-1]
-		}
-		if i == lenU-1 {
-			if upperIndex[i][0]+upperIndex[i][1] == len(s) {
-				r += s[upperIndex[i][0]+upperIndex[i][1]-1:]
-			} else {
-				r += "_" + s[upperIndex[i][0]+upperIndex[i][1]-1:]
-			}
-			break
-		}
-		r += "_" + s[upperIndex[i][0]+upperIndex[i][1]-1:upperIndex[i+1][0]]
-	}
-	if r[0:1] == "_" {
-		r = r[1:]
-	}
-	return strings.ToLower(r)
-}
-
-// struct -> map
-func CPUStatStructToMap(m map[string]interface{}, s interface{}, prefix string) bool {
-	ok := true
-	defer func() {
-		recover()
-		ok = false
-	}()
-	t := reflect.TypeOf(s)
-	v := reflect.ValueOf(s)
-	if reflect.TypeOf(s).Kind() == reflect.Ptr {
-		t = t.Elem()
-		v = v.Elem()
-	}
-
-	for x := 0; x < t.NumField(); x++ {
-		if t.Field(x).Name != "CPU" {
-			m[prefix+HumpToUnderline(t.Field(x).Name)] = v.Field(x).Interface()
-		}
-	}
-	return ok
 }

@@ -143,7 +143,7 @@ func TestCollect(t *testing.T) {
 
 	t.Run("when url is array", func(t *testing.T) {
 		prom := &Input{
-			URL:              []string{"http://1", "http://2"},
+			URL:              []Url{"http://1", "http://2"},
 			MetricNameFilter: []string{"node_network_transmit_packets_total"},
 		}
 
@@ -159,16 +159,16 @@ func TestCollect(t *testing.T) {
 		prom.client = &http.Client{}
 
 		err := prom.Collect()
-		assert.Error(t, err)
+		assert.NoError(t, err)
 
 		prom.URL = "\n\r"
 		err = prom.Collect()
-		assert.Error(t, err)
+		assert.NoError(t, err)
 
 		prom.URL = "localhost"
 		prom.client.Transport = newTransportMock("xxxxxxxxx")
 		err = prom.Collect()
-		assert.Error(t, err)
+		assert.NoError(t, err)
 	})
 }
 

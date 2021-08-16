@@ -12,9 +12,7 @@ const (
 
 type containerMetricMeasurement struct{}
 
-func (c *containerMetricMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (c *containerMetricMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -29,8 +27,9 @@ func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 			"images_tag":        inputs.NewTagInfo("镜像 tag，例如 `1.21.0`"),
 			"container_type":    inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"state":             inputs.NewTagInfo(`运行状态，running`),
-			"pod_name":          inputs.NewTagInfo(`pod 名称`),
-			"pod_namesapce":     inputs.NewTagInfo(`pod 命名空间`),
+			"pod_name":          inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
+			"pod_namesapce":     inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"deployment":        inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 		},
 		Fields: map[string]interface{}{
 			"cpu_usage":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 占主机总量的使用率"},
@@ -51,14 +50,12 @@ func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 
 type containerObjectMeasurement struct{}
 
-func (c *containerObjectMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (c *containerObjectMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerName,
-		Desc: "容器对象数据（忽略 k8s pause 容器），数值型字段仅在容器处于 running 时存在，例如 cpu_usage 等",
+		Desc: "容器对象数据（忽略 k8s pause 容器），如果容器处于非 running 状态，则`cpu_usage`等指标将不存在",
 		Tags: map[string]interface{}{
 			"container_id":      inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"name":              inputs.NewTagInfo(`对象数据的指定 ID`),
@@ -71,8 +68,9 @@ func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"container_host":    inputs.NewTagInfo(`容器内部的主机名`),
 			"container_type":    inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"state":             inputs.NewTagInfo(`运行状态，running/exited/removed`),
-			"pod_name":          inputs.NewTagInfo(`pod 名称`),
-			"pod_namesapce":     inputs.NewTagInfo(`pod 命名空间`),
+			"pod_name":          inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
+			"pod_namesapce":     inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"deployment":        inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 		},
 		Fields: map[string]interface{}{
 			"process":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "容器进程列表，即运行命令`ps -ef`所得，内容为 JSON 字符串，格式是 map 数组"},
@@ -97,9 +95,7 @@ func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 
 type containerLogMeasurement struct{}
 
-func (c *containerLogMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (c *containerLogMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -110,9 +106,12 @@ func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 			"container_id":   inputs.NewTagInfo(`容器ID`),
 			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
+			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
+			"pod_namesapce":  inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
+			"service":        inputs.NewTagInfo(`服务名称`),
 		},
 		Fields: map[string]interface{}{
-			"service": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "服务名称"},
 			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志状态，info/emerg/alert/critical/error/warning/debug/OK"},
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
@@ -121,9 +120,7 @@ func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 
 type kubeletPodMetricMeasurement struct{}
 
-func (k *kubeletPodMetricMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (k *kubeletPodMetricMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (k *kubeletPodMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -155,14 +152,12 @@ func (k *kubeletPodMetricMeasurement) Info() *inputs.MeasurementInfo {
 
 type kubeletPodObjectMeasurement struct{}
 
-func (k *kubeletPodObjectMeasurement) LineProto() (*io.Point, error) {
-	return nil, nil
-}
+func (k *kubeletPodObjectMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
 func (k *kubeletPodObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubeletPodName,
-		Desc: "kubelet pod 对象数据（数值型字段仅在 pod 处于 Running 时存在，例如 cpu_usage 等）",
+		Desc: "kubelet pod 对象数据，如果 pod 处于非 Running 状态，则`cpu_usage`等指标将不存在",
 		Tags: map[string]interface{}{
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
 			"name":      inputs.NewTagInfo(`pod UID`),

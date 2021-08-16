@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -16,7 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
-	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/service"
+	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
 var (
@@ -57,6 +59,8 @@ var (
 
 	flagOffline = flag.Bool("offline", false, "offline install mode")
 	flagSrcs    = flag.String("srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of datakit and agent install files`)
+
+	flagProxy = flag.String("proxy", "", "http proxy http://ip:port for datakit")
 )
 
 const (
@@ -75,7 +79,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if _, err := os.Stat(olddir); err != nil {
-		l.Debugf("path %s not exists, ingored", olddir)
+		l.Debugf("deprecated install path %s not exists, ignored", olddir)
 		return
 	}
 
@@ -86,6 +90,28 @@ func mvOldDatakit(svc service.Service) {
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
 		l.Fatalf("move %s -> %s failed: %s", olddir, datakit.InstallDir, err.Error())
 	}
+}
+
+func filterEnvs(regex string) (res map[string]string) {
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		l.Fatalf("invalid regex: %s", err.Error())
+	}
+
+	res = map[string]string{}
+
+	envs := os.Environ()
+	for _, env := range envs {
+		if re.MatchString(env) {
+			l.Debugf("get env %s", env)
+			arr := strings.SplitN(env, "=", 2)
+			if len(arr) != 2 {
+				continue
+			}
+			res[arr[0]] = arr[1]
+		}
+	}
+	return
 }
 
 func main() {
@@ -129,6 +155,12 @@ func main() {
 	l.Info("stoping datakit...")
 	if err := service.Control(svc, "stop"); err != nil {
 		l.Warnf("stop service: %s, ignored", err.Error())
+	}
+
+	if *flagProxy != "" {
+		if _, err := url.Parse(*flagProxy); err != nil {
+			l.Warnf("bad proxy config expect http://ip:port given %s", *flagProxy)
+		}
 	}
 
 	// 迁移老版本 datakit 数据目录
@@ -238,4 +270,5 @@ Golang Version: %s
 	install.DatakitName = *flagDatakitName
 	install.EnableInputs = *flagEnableInputs
 	install.Namespace = *flagNamespace
+	install.Proxy = *flagProxy
 }
