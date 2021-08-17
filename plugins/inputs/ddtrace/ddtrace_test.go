@@ -126,7 +126,7 @@ func TestDDTraceSampleWithNoErrorNoIgnore(t *testing.T) {
 			return [][]*Span{spans}
 		}}
 	for i := 0; i < 30; i++ {
-		if err := parseDdtraceMsgpack(nil); err != nil {
+		if err := parseDdtraceMsgpack("", nil); err != nil {
 			panic(err.Error())
 		}
 	}
@@ -164,7 +164,7 @@ func TestDDTraceSampleWithError(t *testing.T) {
 			return [][]*Span{spans}
 		}}
 	for i := 0; i < 30; i++ {
-		if err := parseDdtraceMsgpack(nil); err != nil {
+		if err := parseDdtraceMsgpack("", nil); err != nil {
 			panic(err.Error())
 		}
 	}
@@ -203,7 +203,7 @@ func TestDDTraceSampleWithIgnoreTags(t *testing.T) {
 			return [][]*Span{spans}
 		}}
 	for i := 0; i < 30; i++ {
-		if err := parseDdtraceMsgpack(nil); err != nil {
+		if err := parseDdtraceMsgpack("", nil); err != nil {
 			panic(err.Error())
 		}
 	}
