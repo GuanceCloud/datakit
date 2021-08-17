@@ -50,7 +50,7 @@ func start() {
 	level := "low"
 	waitNum := 0
 	for {
-		percpu, err := getCPUPercent(time.Second * 3)
+		percpu, err := GetCPUPercent(time.Second * 3)
 		if err != nil {
 			l.Debug(err)
 			continue
@@ -92,7 +92,7 @@ func start() {
 	}
 }
 
-func getCPUPercent(interval time.Duration) (float64, error) {
+func GetCPUPercent(interval time.Duration) (float64, error) {
 	percent, err := cpu.Percent(interval, false)
 	if err != nil {
 		return 0, err
