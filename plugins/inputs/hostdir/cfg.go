@@ -1,11 +1,12 @@
 package hostdir
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 var (
@@ -16,16 +17,17 @@ var (
 	maxInterval = time.Second * 30
 	sample      = `
 [[inputs.hostdir]]
-  interval = "10s" 
-  exclude_patterns = [ #blacklist
-    "exe", 
-    "bin"
-  dir = ""  #directory to start collection(Must configure and This dir must be in this format under windows -- C:\\Users\\wl\\Desktop)
-]
+  interval = "10s"
+
+  # directory to collect
+  # Windows example: C:\\Users
+  # UNIX-like example: /usr/local/
+  dir = "" # required
+  exclude_patterns = [ "exe", "bin" ]
+
 [inputs.hostdir.tags]
   # some_tag = "some_value"
-  # more_tag = "some_other_value"
-`
+  # more_tag = "some_other_value"`
 )
 
 type Input struct {

@@ -157,7 +157,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: man gofmt lfparser vet
+deps: man gofmt lfparser #vet
 
 man:
 	@packr2 clean
