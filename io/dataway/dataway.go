@@ -591,13 +591,15 @@ func (dw *DataWayCfg) initDatawayCli(httpurl string) (*dataWayClient, error) {
 var proxyOnce sync.Once
 
 func (dw *DataWayCfg) initHttp() error {
-	if dw.HttpProxy != "" {
-		if pxurl, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
-			l.Errorf("parse http proxy failed err:", err.Error())
-		} else {
-			ihttp.DefTransport.Proxy = http.ProxyURL(pxurl)
+	proxyOnce.Do(func() {
+		if dw.HttpProxy != "" {
+			if pxurl, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
+				l.Errorf("parse http proxy failed err:", err.Error())
+			} else {
+				ihttp.DefTransport.Proxy = http.ProxyURL(pxurl)
+			}
 		}
-	}
+	})
 
 	dw.httpCli = &http.Client{
 		Transport: ihttp.DefTransport,
