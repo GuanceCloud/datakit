@@ -267,7 +267,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := reloadDatakit(FlagDatakitHost); err != nil {
-			fmt.Printf("Reload DataKit Failed\n")
+			fmt.Printf("Reload DataKit Failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 

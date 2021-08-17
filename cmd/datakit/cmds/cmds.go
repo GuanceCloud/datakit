@@ -33,6 +33,10 @@ var (
 
 type completer struct{}
 
+func SetLog() {
+	l = logger.SLogger("cmds")
+}
+
 func newCompleter() (*completer, error) {
 	return &completer{}, nil
 }

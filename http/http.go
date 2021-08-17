@@ -34,9 +34,7 @@ var (
 	reload    time.Time
 	reloadCnt int
 
-	stopCh   = make(chan interface{})
-	stopOkCh = make(chan interface{})
-	mtx      = sync.Mutex{}
+	mtx = sync.Mutex{}
 
 	dw        *dataway.DataWayCfg
 	extraTags = map[string]string{}
@@ -88,6 +86,7 @@ func Start(o *Option) {
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
 		HttpStart()
+		l.Info("http goroutine exit")
 		return nil
 	})
 }
@@ -216,9 +215,9 @@ func HttpStart() {
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 
 	// reload disabled under windows, syscall.Kill() not supported under windows
-	if runtime.GOOS != "windows" {
-		router.GET("/reload", func(c *gin.Context) { apiReload(c) })
-	}
+	//if runtime.GOOS != "windows" {
+	//	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
+	//}
 
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
 
@@ -256,7 +255,8 @@ func HttpStart() {
 	}
 
 	l.Debug("http server started")
-	<-stopCh
+	<-datakit.Exit.Wait()
+
 	l.Debug("stopping http server...")
 
 	if err := srv.Shutdown(context.Background()); err != nil {
@@ -274,16 +274,13 @@ func HttpStart() {
 		l.Infof("pprof stopped")
 	}
 
-	stopOkCh <- nil
-}
-
-func HttpStop() {
-	l.Info("trigger HTTP server to stopping...")
-	stopCh <- nil
+	return
 }
 
 func tryStartServer(srv *http.Server) {
 	retryCnt := 0
+
+	// TODO: test if port available
 
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)

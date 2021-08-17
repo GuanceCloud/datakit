@@ -100,14 +100,23 @@ var (
 	// goroutines caches  goroutine
 	goroutines = []*goroutine.Group{}
 	pidFile    = filepath.Join(InstallDir, ".pid")
+
+	l = logger.DefaultSLogger("datakit")
 )
+
+func SetLog() {
+	l = logger.SLogger("datakit")
+}
 
 // G create a groutine group, with namespace datakit
 func G(name string) *goroutine.Group {
-	var l = logger.SLogger(name)
+
+	l.Debugf("name: %s", name)
+
 	panicCb := func(b []byte) {
 		l.Errorf("%s", b)
 	}
+
 	gName := "datakit_" + name
 	opt := goroutine.Option{Name: gName, PanicTimes: 6, PanicCb: panicCb, PanicTimeout: 10 * time.Millisecond}
 	g := goroutine.NewGroup(opt)
@@ -122,6 +131,7 @@ func G(name string) *goroutine.Group {
 func GWait() {
 	for _, g := range goroutines {
 		// just ignore error
+		l.Infof("xxxxxxx")
 		_ = g.Wait()
 	}
 }
@@ -134,6 +144,18 @@ func Quit() {
 	WG.Wait()
 	GWait()
 	service.Stop()
+}
+
+func PID() (int, error) {
+	if x, err := ioutil.ReadFile(pidFile); err != nil {
+		return -1, err
+	} else {
+		if pid, err := strconv.ParseInt(string(x), 10, 32); err != nil {
+			return -1, err
+		} else {
+			return int(pid), nil
+		}
+	}
 }
 
 func SavePid() error {

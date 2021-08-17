@@ -149,6 +149,8 @@ func main() {
 
 	tryLoadConfig()
 
+	datakit.SetLog()
+
 	// This may throw `Unix syslog delivery error` within docker, so we just
 	// start the entry under docker.
 	if cmds.FlagDocker {
@@ -202,23 +204,24 @@ func run() {
 		case sig := <-signals:
 			if sig == syscall.SIGHUP {
 				l.Info("under signal SIGHUP, reloading...")
+				cmds.SetLog()
 				cmds.Reload()
 			} else {
 				l.Infof("get signal %v, wait & exit", sig)
-				dkhttp.HttpStop()
 				datakit.Quit()
 				l.Info("datakit exit.")
-				break
+				goto exit
 			}
 
 		case <-service.StopCh:
 			l.Infof("service stopping")
-			dkhttp.HttpStop()
 			datakit.Quit()
 			l.Info("datakit exit.")
-			break
+			goto exit
 		}
 	}
+exit:
+	time.Sleep(time.Second)
 }
 
 func tryLoadConfig() {
@@ -253,11 +256,10 @@ func doRun() error {
 		return err
 	}
 
-	dkhttp.Start(&dkhttp.Option{
-		//Bind:           config.Cfg.HTTPAPI.Listen,
-		//Disable404Page: config.Cfg.HTTPAPI.Disable404Page,
-		APIConfig: config.Cfg.HTTPAPI,
+	// FIXME: wait all inputs ok, then start http server
 
+	dkhttp.Start(&dkhttp.Option{
+		APIConfig:      config.Cfg.HTTPAPI,
 		GinLog:         config.Cfg.Logging.GinLog,
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
