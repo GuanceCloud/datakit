@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dktracer "gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 )
@@ -586,23 +588,20 @@ func (dw *DataWayCfg) initDatawayCli(httpurl string) (*dataWayClient, error) {
 	return cli, nil
 }
 
+var proxyOnce sync.Once
+
 func (dw *DataWayCfg) initHttp() error {
-	dw.httpCli = &http.Client{
-		Timeout: dw.TimeoutDuration,
+	if dw.HttpProxy != "" {
+		if pxurl, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
+			l.Errorf("parse http proxy failed err:", err.Error())
+		} else {
+			ihttp.DefTransport.Proxy = http.ProxyURL(pxurl)
+		}
 	}
 
-	if dw.HttpProxy != "" {
-		uri, err := url.ParseRequestURI(dw.HttpProxy)
-		if err != nil {
-			l.Error("parse url error: ", err)
-			return err
-		}
-
-		tr := &http.Transport{
-			Proxy: http.ProxyURL(uri),
-		}
-
-		dw.httpCli.Transport = tr
+	dw.httpCli = &http.Client{
+		Transport: ihttp.DefTransport,
+		Timeout:   dw.TimeoutDuration,
 	}
 
 	return nil
