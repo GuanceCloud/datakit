@@ -25,25 +25,34 @@ BLU="\033[34m"
 # Detect OS/Arch
 
 arch=
-case $(uname -p) in
-	x86_64)
+case $(uname -m) in
+
+	"x86_64")
 		arch="amd64"
 		;;
-	i386,i686)
+
+	"i386" | "i686")
 		arch="386"
 		;;
-	aarch64)
+
+	"aarch64")
 		arch="arm64"
 		;;
-	arm)
+
+	"arm" | "armv7l")
 		arch="arm"
+		;;
+
+	*)
+		printf "${RED}[E] Unknown arch $(uname -m) ${CLR}\n"
+		exit 1
 		;;
 esac
 
 os=
 if [[ "$OSTYPE" == "darwin"* ]]; then
 	if [[ $arch != "amd64" ]]; then # Darwin only support amd64
-		printf "${RED}Darwin only support amd64.${CLR}\n"
+		printf "${RED}[E] Darwin only support amd64.${CLR}\n"
 		exit 1;
 	fi
 
@@ -76,7 +85,7 @@ fi
 
 if [ ! "$dataway" ]; then # check dataway on new install
 	if [ ! "$upgrade" ]; then
-		printf "${RED}DataWay not set in DK_DATAWAY.${CLR}\n"
+		printf "${RED}[E] DataWay not set in DK_DATAWAY.${CLR}\n"
 		exit 1;
 	fi
 fi

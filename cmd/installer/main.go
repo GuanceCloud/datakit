@@ -160,16 +160,12 @@ DataKit: %s
 		}
 	}
 
-	downloadFiles()
-
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)
-	config.InitDirs()
 
-	// create install dir if not exists
-	if err := os.MkdirAll(datakit.InstallDir, 0775); err != nil {
-		l.Fatal(err)
-	}
+	downloadFiles() // download 过程直接覆盖已有安装
+
+	config.InitDirs()
 
 	if flagDKUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
