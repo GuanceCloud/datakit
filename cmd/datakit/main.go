@@ -207,6 +207,7 @@ func run() {
 				l.Infof("get signal %v, wait & exit", sig)
 				dkhttp.HttpStop()
 				datakit.Quit()
+				l.Info("datakit exit.")
 				break
 			}
 
@@ -214,11 +215,10 @@ func run() {
 			l.Infof("service stopping")
 			dkhttp.HttpStop()
 			datakit.Quit()
+			l.Info("datakit exit.")
 			break
 		}
 	}
-
-	l.Info("datakit exit.")
 }
 
 func tryLoadConfig() {
