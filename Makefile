@@ -80,7 +80,7 @@ local: deps
 testing: deps
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-release: desp
+release: deps
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 release_mac: deps
@@ -157,7 +157,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: man gofmt lfparser #vet
+deps: man gofmt lfparser vet
 
 man:
 	@packr2 clean

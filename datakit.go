@@ -97,15 +97,13 @@ const (
 )
 
 var (
-
 	// goroutines caches  goroutine
-	goroutines = []goroutine.Group{}
-
-	pidFile = filepath.Join(InstallDir, ".pid")
+	goroutines = []*goroutine.Group{}
+	pidFile    = filepath.Join(InstallDir, ".pid")
 )
 
 // G create a groutine group, with namespace datakit
-func G(name string) goroutine.Group {
+func G(name string) *goroutine.Group {
 	var l = logger.SLogger(name)
 	panicCb := func(b []byte) {
 		l.Errorf("%s", b)

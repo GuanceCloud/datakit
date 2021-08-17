@@ -2,9 +2,10 @@ package cmds
 
 import (
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"runtime"
 	"strings"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
@@ -41,6 +42,4 @@ func installExternal(service string) error {
 		return fmt.Errorf("Unsupport install %s(available plugins: %s)",
 			service, strings.Join(availablePlugins, "/"))
 	}
-
-	return nil
 }

@@ -95,7 +95,7 @@ func TestGetPromInput(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() { os.Remove(f) }()
 
-	pInput, err := GetPromInput(f)
+	pInput, err := getPromInput(f)
 
 	assert.NoError(t, err)
 
@@ -130,20 +130,20 @@ promhttp_metric_handler_requests_total{code="503"} 0
 	assert.NotEmpty(t, points)
 
 	t.Run("invalid path", func(t *testing.T) {
-		_, err := GetPromInput("invalid_path")
+		_, err := getPromInput("invalid_path")
 		assert.Error(t, err)
 	})
 
 	t.Run("invalid toml", func(t *testing.T) {
 		toml := `
-		
+
 	`
 		f := "test.toml"
 		err := ioutil.WriteFile(f, []byte(toml), 0666)
 		assert.NoError(t, err)
 		defer func() { os.Remove(f) }()
 
-		_, err = GetPromInput(f)
+		_, err = getPromInput(f)
 		assert.Error(t, err)
 
 	})
@@ -163,7 +163,7 @@ promhttp_metric_handler_requests_total{code="503"} 0
 	client.Transport = newTransportMock(mockResult)
 	input.SetClient(client)
 
-	err := ShowInput(input)
+	err := showInput(input)
 
 	assert.NoError(t, err)
 
