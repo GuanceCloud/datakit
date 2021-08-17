@@ -15,6 +15,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/file_collector"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostdir"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/iis"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/influxdb"
