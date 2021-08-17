@@ -193,7 +193,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 ### ddtrace 采样透传 tag
 
 | key          | value |
-| -----------  | ----- |
+| ------------ | ----- |
 | `_dd.origin` | `rum` |
 
 #### 关联 ddtrace 数据和容器对象
@@ -221,6 +221,13 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 - 此处 `rate/scope` 即最终的采样率，示例配置即采样 10%
 - 如果在 DataKit 上开启了采样率，就不要在 ddtrace 上再设置采样率，这可能导致双重采样，导致数据大面积缺失
 - 对 RUM 产生的 trace，这里的采样率不生效，建议在 [RUM 中设置采样率](https://www.yuque.com/dataflux/doc/eqs7v2#16fe8486)
+
+## 代码中使用 SetTag 注意事项
+
+- 打开 ddtrace 采集器配置文件(\[datakit 安装目录\]/datakit/conf.d/ddtrace),将 customer_tag_prefix 解注释并添加所需的前缀
+- 前缀中不要使用点(.)以免造成解析错误
+- 在用户代码中所有对 `span.SetTag(key, value)` 的调用需要给`key`参数添加配置文件中填写的前缀
+- 在开启了客户端采样的情况下添加了 tag 的 span 也有可能被舍弃
 
 ## 指标集
 

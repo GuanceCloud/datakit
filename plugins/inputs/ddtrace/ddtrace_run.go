@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/ugorji/go/codec"
@@ -78,17 +79,16 @@ func DdtraceTraceHandle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleDdtrace(w http.ResponseWriter, r *http.Request) error {
-	contentType := r.Header.Get("Content-Type")
-
+func handleDdtrace(resp http.ResponseWriter, req *http.Request) error {
+	contentType := req.Header.Get("Content-Type")
 	if contentType == "application/msgpack" {
-		return parseDdtraceMsgpack(r.Body)
+		return parseDdtraceMsgpack(customerTagPrefixes[req.URL.Path], req.Body)
 	} else {
 		return fmt.Errorf("ddtrace unsupported Content-Type: %s", contentType)
 	}
 }
 
-func parseDdtraceMsgpack(body io.ReadCloser) error {
+func parseDdtraceMsgpack(customerTagPrefix string, body io.ReadCloser) error {
 	ddspans, err := defDDTraceMock.unmarshalDdtraceMsgpack(body)
 	if err != nil {
 		return err
@@ -149,6 +149,16 @@ func parseDdtraceMsgpack(body io.ReadCloser) error {
 			tags[trace.TAG_HTTP_METHOD] = span.Meta["http.method"]
 			tags[trace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
 
+			// set ddtrace customer tags set by span.SetTga(key string, value interface{})
+			if customerTagPrefix != "" {
+				for k, v := range span.Meta {
+					if strings.HasPrefix(k, customerTagPrefix) {
+						tags[k] = v
+					}
+				}
+			}
+
+			// set ddtrace input customer tags
 			for k, v := range DdtraceTags {
 				tags[k] = v
 			}

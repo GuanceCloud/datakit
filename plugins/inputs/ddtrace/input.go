@@ -1,6 +1,8 @@
 package ddtrace
 
 import (
+	"strings"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -19,8 +21,8 @@ var (
 )
 
 var (
-	inputName                = "ddtrace"
-	traceDdtraceConfigSample = `
+	inputName           = "ddtrace"
+	ddtraceSampleConfig = `
 [[inputs.ddtrace]]
   # 此路由建议不要修改，以免跟其它路由冲突
   path = "/v0.4/traces"
@@ -66,20 +68,27 @@ var (
     ## only if all above rules mismatched, so that this pair shoud be empty.
     # [inputs.ddtrace.sample_configs.target]
 
-	## customer tags
+  ## Customer tag prefix used in client code like span.SetSpan([customer_tag_prefix]key, value)
+  ## ddtrace collector will not trim the prefix in order to avoid tags confliction. IT'S EMPTY STRING VALUE AS DEFAULT
+  ## indicates that no customer tag set up. DO NOT USE DOT(.) IN
+  # customer_tag_prefix = ""
+
+  ## customer tags
   # [inputs.ddtrace.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
     ## ...
 `
-	DdtraceTags map[string]string
-	log         = logger.DefaultSLogger(inputName)
+	DdtraceTags         map[string]string
+	customerTagPrefixes = map[string]string{}
+	log                 = logger.DefaultSLogger(inputName)
 )
 
 type Input struct {
-	Path             string                     `toml:"path"`
-	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs"`
-	Tags             map[string]string          `toml:"tags"`
+	Path              string                     `toml:"path"`
+	TraceSampleConfs  []*trace.TraceSampleConfig `toml:"sample_configs"`
+	CustomerTagPrefix string                     `toml:"customer_tag_prefix"`
+	Tags              map[string]string          `toml:"tags"`
 }
 
 func (_ *Input) Catalog() string {
@@ -87,7 +96,17 @@ func (_ *Input) Catalog() string {
 }
 
 func (_ *Input) SampleConfig() string {
-	return traceDdtraceConfigSample
+	return ddtraceSampleConfig
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (i *Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&DdtraceMeasurement{},
+	}
 }
 
 func (d *Input) Run() {
@@ -102,6 +121,13 @@ func (d *Input) Run() {
 			v.Scope = 100
 			log.Warnf("%s input tracing sample config [%d] invalid, reset to default.", inputName, k)
 		}
+	}
+
+	if d.CustomerTagPrefix != "" {
+		if strings.Contains(d.CustomerTagPrefix, ".") {
+			d.CustomerTagPrefix = strings.ReplaceAll(d.CustomerTagPrefix, ".", "_")
+		}
+		customerTagPrefixes[d.Path] = d.CustomerTagPrefix
 	}
 
 	if d.Tags != nil {
@@ -120,16 +146,6 @@ func (d *Input) RegHttpHandler() {
 	}
 	http.RegHttpHandler("POST", d.Path, DdtraceTraceHandle)
 	http.RegHttpHandler("PUT", d.Path, DdtraceTraceHandle)
-}
-
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
-
-func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&DdtraceMeasurement{},
-	}
 }
 
 func init() {
