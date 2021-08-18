@@ -54,7 +54,6 @@ func init() {
 	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
 	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
 	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
-	flag.BoolVar(&cmds.FlagReload, "reload", false, "reload datakit")
 	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
@@ -149,6 +148,8 @@ func main() {
 
 	tryLoadConfig()
 
+	datakit.SetLog()
+
 	// This may throw `Unix syslog delivery error` within docker, so we just
 	// start the entry under docker.
 	if cmds.FlagDocker {
@@ -200,25 +201,20 @@ func run() {
 		signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 		select {
 		case sig := <-signals:
-			if sig == syscall.SIGHUP {
-				l.Info("under signal SIGHUP, reloading...")
-				cmds.Reload()
-			} else {
-				l.Infof("get signal %v, wait & exit", sig)
-				dkhttp.HttpStop()
-				datakit.Quit()
-				break
-			}
+			l.Infof("get signal %v, wait & exit", sig)
+			datakit.Quit()
+			l.Info("datakit exit.")
+			goto exit
 
 		case <-service.StopCh:
 			l.Infof("service stopping")
-			dkhttp.HttpStop()
 			datakit.Quit()
-			break
+			l.Info("datakit exit.")
+			goto exit
 		}
 	}
-
-	l.Info("datakit exit.")
+exit:
+	time.Sleep(time.Second)
 }
 
 func tryLoadConfig() {
@@ -253,11 +249,10 @@ func doRun() error {
 		return err
 	}
 
-	dkhttp.Start(&dkhttp.Option{
-		//Bind:           config.Cfg.HTTPAPI.Listen,
-		//Disable404Page: config.Cfg.HTTPAPI.Disable404Page,
-		APIConfig: config.Cfg.HTTPAPI,
+	// FIXME: wait all inputs ok, then start http server
 
+	dkhttp.Start(&dkhttp.Option{
+		APIConfig:      config.Cfg.HTTPAPI,
 		GinLog:         config.Cfg.Logging.GinLog,
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",

@@ -334,22 +334,8 @@ func (c *Config) setupGlobalTags() error {
 func (c *Config) setLogging() {
 
 	// set global log root
-	if c.Logging.Log != "stdout" || c.Logging.Log != "" { // set log to disk file
-
-		l.Infof("set log to %s", c.Logging.Log)
-
-		if c.Logging.Rotate > 0 {
-			logger.MaxSize = c.Logging.Rotate
-		}
-
-		if err := logger.InitRoot(&logger.Option{
-			Path:  c.Logging.Log,
-			Level: c.Logging.Level,
-			Flags: logger.OPT_DEFAULT}); err != nil {
-			l.Errorf("set root log faile: %s", err.Error())
-		}
-	} else {
-
+	switch c.Logging.Log {
+	case "stdout", "":
 		l.Info("set log to stdout, rotate disabled")
 
 		optflags := (logger.OPT_DEFAULT | logger.OPT_STDOUT)
@@ -361,6 +347,19 @@ func (c *Config) setLogging() {
 			&logger.Option{
 				Level: c.Logging.Level,
 				Flags: optflags}); err != nil {
+			l.Errorf("set root log faile: %s", err.Error())
+		}
+	default:
+		l.Infof("set log to %s", c.Logging.Log)
+
+		if c.Logging.Rotate > 0 {
+			logger.MaxSize = c.Logging.Rotate
+		}
+
+		if err := logger.InitRoot(&logger.Option{
+			Path:  c.Logging.Log,
+			Level: c.Logging.Level,
+			Flags: logger.OPT_DEFAULT}); err != nil {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
 	}

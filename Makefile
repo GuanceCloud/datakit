@@ -74,29 +74,19 @@ endef
 lint:
 	@golangci-lint run --timeout 1h | tee check.err # https://golangci-lint.run/usage/install/#local-installation
 
-vet:
-	@go vet ./...
-
-test:
-	@GO111MODULE=off go test ./...
-
-gogenerate:
-	@cd io/logfilter/parser && make
-	@cd pipeline/parser && make
-
-local: man gofmt
+local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-testing: man
+testing: deps
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-release: man
+release: deps
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
-release_mac: man
+release_mac: deps
 	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
-testing_mac: man
+testing_mac: deps
 	$(call build,test, $(MAC_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 pub_local:
@@ -167,12 +157,23 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
+deps: man gofmt lfparser vet
+
 man:
 	@packr2 clean
 	@packr2
 
 gofmt:
 	@GO111MODULE=off go fmt ./...
+
+vet:
+	@go vet ./...
+
+test:
+	@GO111MODULE=off go test ./...
+
+lfparser:
+	@goyacc -o io/parser/gram_y.go io/parser/gram.y
 
 clean:
 	rm -rf build/*

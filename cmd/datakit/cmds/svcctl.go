@@ -2,13 +2,14 @@ package cmds
 
 import (
 	"fmt"
-	nhttp "net/http"
 	"os/exec"
 	"os/user"
 	"runtime"
+	"syscall"
 
 	"github.com/kardianos/service"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
@@ -114,17 +115,13 @@ func restartDatakit() error {
 }
 
 func reloadDatakit(host string) error {
-	client := &nhttp.Client{
-		CheckRedirect: func(req *nhttp.Request, via []*nhttp.Request) error {
-			return nhttp.ErrUseLastResponse
-		},
-	}
-	_, err := client.Get(fmt.Sprintf("http://%s/reload", host))
-	if err == nhttp.ErrUseLastResponse {
-		return nil
+
+	pid, err := datakit.PID()
+	if err != nil {
+		return err
 	}
 
-	return err
+	return syscall.Kill(pid, syscall.SIGHUP)
 }
 
 func uninstallDatakit() error {

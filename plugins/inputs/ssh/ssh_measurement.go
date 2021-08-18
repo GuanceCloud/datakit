@@ -1,9 +1,10 @@
 package ssh
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 type SshMeasurement struct {
@@ -29,7 +30,7 @@ func (s *SshMeasurement) Info() *inputs.MeasurementInfo {
 			"sftp_response_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "response time of sftp service"},
 		},
 		Tags: map[string]interface{}{
-			"host": inputs.TagInfo{"the host of ssh"},
+			"host": inputs.TagInfo{Desc: "the host of ssh"},
 		},
 	}
 }

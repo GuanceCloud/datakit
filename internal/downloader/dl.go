@@ -101,8 +101,6 @@ func doExtract(r io.Reader, to string) error {
 			l.Warnf("unexpected file %s", target)
 		}
 	}
-
-	return nil
 }
 
 func Download(from, to string, progress, downloadOnly bool) error {
@@ -137,8 +135,6 @@ func Download(from, to string, progress, downloadOnly bool) error {
 			return doExtract(io.TeeReader(resp.Body, progbar), to)
 		}
 	}
-
-	return nil
 }
 
 func doDownload(r io.Reader, to string) error {

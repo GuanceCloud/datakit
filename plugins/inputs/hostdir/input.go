@@ -1,13 +1,14 @@
 package hostdir
 
 import (
+	"runtime"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"runtime"
-	"time"
 )
 
 func (i *Input) SampleConfig() string {
@@ -20,7 +21,7 @@ func (i *Input) appendMeasurement(name string, tags map[string]string, fields ma
 }
 
 func (i *Input) Catalog() string {
-	return inputName
+	return "host"
 }
 
 func (i *Input) Collect() error {

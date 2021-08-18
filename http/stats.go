@@ -45,10 +45,6 @@ type DatakitStats struct {
 	Uptime  string `json:"uptime"`
 	OSArch  string `json:"os_arch"`
 
-	Reload     time.Time `json:"reload"`
-	ReloadCnt  int       `json:"reload_cnt"`
-	ReloadInfo string    `json:"reload_info"`
-
 	WithinDocker bool   `json:"docker"`
 	IOChanStat   string `json:"io_chan_stats"`
 	Elected      string `json:"elected"`
@@ -70,7 +66,6 @@ var (
 - 分支       : {{.Branch}}
 - 系统类型   : {{.OSArch}}
 - 容器运行   : {{.WithinDocker}}
-- Reload 次数: {{.ReloadInfo}}
 - IO 消耗统计: {{.IOChanStat}}
 - 自动更新   ：{{.AutoUpdate}}
 - 选举状态   ：{{.Elected}}
@@ -269,19 +264,12 @@ func GetStats() (*DatakitStats, error) {
 		Branch:         git.Branch,
 		Uptime:         fmt.Sprintf("%v", now.Sub(uptime)),
 		OSArch:         fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		ReloadCnt:      reloadCnt,
-		ReloadInfo:     "0",
 		WithinDocker:   datakit.Docker,
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
 		Elected:        election.Elected(),
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
-	}
-
-	if reloadCnt > 0 {
-		stats.Reload = reload
-		stats.ReloadInfo = fmt.Sprintf("%d(%s)", stats.ReloadCnt, humanize.RelTime(stats.Reload, now, "ago", ""))
 	}
 
 	var err error

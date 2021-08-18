@@ -57,3 +57,4 @@ plugins/input/kubernetes/pki/*
 plugins/input/kubernetes/cfg.conf
 data/*
 dk-installer
+y.output

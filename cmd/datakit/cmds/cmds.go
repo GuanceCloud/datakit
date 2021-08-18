@@ -33,6 +33,10 @@ var (
 
 type completer struct{}
 
+func SetLog() {
+	l = logger.SLogger("cmds")
+}
+
 func newCompleter() (*completer, error) {
 	return &completer{}, nil
 }
@@ -168,6 +172,4 @@ func doExtract(r io.Reader, to string) error {
 			l.Warnf("unexpected file %s", target)
 		}
 	}
-
-	return nil
 }

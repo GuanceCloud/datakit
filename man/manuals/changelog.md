@@ -16,6 +16,9 @@
 ### Breaking Changes
 
 - 非容器环境运行时，从环境变量 `ENV_HOSTNAME` 获取主机名的功能已移除（1.1.7-rc8 支持），可通过[主机名覆盖功能](datakit-install#987d5f91) 来实现
+- 从环境变量 `ENV_HOSTNAME` 获取主机名的功能已移除（1.1.7-rc8 支持），可通过[主机名覆盖功能](datakit-install#987d5f91) 来实现
+- 移除命令选项 `--reload`
+- 移除 DataKit API `/reload`，代之以 `/restart`
 
 ## 1.1.8-rc1.1(2021/08/13)
 
