@@ -55,11 +55,9 @@ endef
 export GIT_INFO
 
 define build
-	@echo "===== $(BIN) $(1) ===="
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
-	@mkdir -p git
-	@echo "$$GIT_INFO" > git/git.go
+	@echo "===== $(BIN) $(1) ===="
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
 		 -env $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	@tree -Csh -L 3 $(BUILD_DIR)
@@ -157,7 +155,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: man gofmt lfparser vet
+deps: prepare man gofmt lfparser vet 
 
 man:
 	@packr2 clean
@@ -174,6 +172,10 @@ test:
 
 lfparser:
 	@goyacc -o io/parser/gram_y.go io/parser/gram.y
+
+prepare:
+	@mkdir -p git
+	@echo "$$GIT_INFO" > git/git.go
 
 clean:
 	rm -rf build/*

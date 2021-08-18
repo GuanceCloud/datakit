@@ -5,11 +5,9 @@ import (
 	"os/exec"
 	"os/user"
 	"runtime"
-	"syscall"
 
 	"github.com/kardianos/service"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
@@ -112,16 +110,6 @@ func restartDatakit() error {
 	}
 
 	return nil
-}
-
-func reloadDatakit(host string) error {
-
-	pid, err := datakit.PID()
-	if err != nil {
-		return err
-	}
-
-	return syscall.Kill(pid, syscall.SIGHUP)
 }
 
 func uninstallDatakit() error {
