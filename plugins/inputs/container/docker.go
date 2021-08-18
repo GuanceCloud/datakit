@@ -116,7 +116,8 @@ func (d *dockerClient) Stop() {
 	return
 }
 
-func (d *dockerClient) Metric(ctx context.Context, in chan<- *job) {
+func (d *dockerClient) Metric(ctx context.Context, in chan<- []*job) {
+	var jobs []*job
 	fn := func(c types.Container) {
 		if ignoreCommand(c.Command) {
 			return
@@ -133,15 +134,19 @@ func (d *dockerClient) Metric(ctx context.Context, in chan<- *job) {
 		}
 
 		result.setMetric()
-		in <- result
+		jobs = append(jobs, result)
 	}
 
 	if err := d.do(ctx, fn, types.ContainerListOptions{All: containerAllForMetric}); err != nil {
 		l.Error(err)
+		return
 	}
+	l.Debugf("get len(%d) container metric", len(jobs))
+	in <- jobs
 }
 
-func (d *dockerClient) Object(ctx context.Context, in chan<- *job) {
+func (d *dockerClient) Object(ctx context.Context, in chan<- []*job) {
+	var jobs []*job
 	fn := func(c types.Container) {
 		if ignoreCommand(c.Command) {
 			return
@@ -178,12 +183,15 @@ func (d *dockerClient) Object(ctx context.Context, in chan<- *job) {
 		}
 
 		result.setObject()
-		in <- result
+		jobs = append(jobs, result)
 	}
 
 	if err := d.do(ctx, fn, types.ContainerListOptions{All: containerAllForObject}); err != nil {
 		l.Error(err)
+		return
 	}
+	l.Debugf("get len(%d) container object", len(jobs))
+	in <- jobs
 }
 
 func (d *dockerClient) do(ctx context.Context, processFunc func(types.Container), opt types.ContainerListOptions) error {

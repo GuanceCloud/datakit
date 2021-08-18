@@ -172,6 +172,8 @@ func (this *Input) buildClient() error {
 		l.Debug("use tls config")
 		goto end
 	}
+
+	l.Debug("not found https authority, token/tokenString/tls are empty")
 end:
 	if cli != nil {
 		this.client = cli

@@ -86,6 +86,7 @@ func (k *Kubernetes) Init() error {
 		ResponseHeaderTimeout: apiTimeoutDuration,
 	}
 
+	l.Debug("init k8s client success")
 	return nil
 }
 
@@ -93,7 +94,7 @@ func (k *Kubernetes) Stop() {
 	return
 }
 
-func (k *Kubernetes) Metric(ctx context.Context, in chan<- *job) {
+func (k *Kubernetes) Metric(ctx context.Context, in chan<- []*job) {
 	summary, err := k.getStatsSummary()
 	if err != nil {
 		l.Error(err)
@@ -102,6 +103,7 @@ func (k *Kubernetes) Metric(ctx context.Context, in chan<- *job) {
 
 	nodeName := summary.Node.NodeName
 
+	var jobs []*job
 	for _, podMetrics := range summary.Pods {
 		if k.ignorePodName(podMetrics.PodRef.Name) {
 			continue
@@ -113,13 +115,14 @@ func (k *Kubernetes) Metric(ctx context.Context, in chan<- *job) {
 		}
 		result.addTag("node_name", nodeName)
 		result.setMetric()
-		in <- result
+		jobs = append(jobs, result)
 	}
 
-	//l.Debugf("")
+	l.Debugf("get len(%d) k8s metric", len(jobs))
+	in <- jobs
 }
 
-func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
+func (k *Kubernetes) Object(ctx context.Context, in chan<- []*job) {
 	var summary *SummaryMetrics
 	var pods *Pods
 	var err error
@@ -138,6 +141,7 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
 
 	nodeName := summary.Node.NodeName
 
+	var jobs []*job
 	for _, item := range pods.Items {
 		if k.ignorePodName(item.Metadata.Name) {
 			continue
@@ -175,9 +179,11 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
 		}
 
 		result.setObject()
-		in <- result
+		jobs = append(jobs, result)
 	}
 
+	l.Debugf("get len(%d) k8s object/pod", len(jobs))
+	in <- jobs
 }
 
 func (k *Kubernetes) Logging(ctx context.Context) {
@@ -216,13 +222,13 @@ func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
 func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
 	var tags = make(map[string]string)
 	tags["name"] = item.Metadata.UID
-	tags["ready"] = fmt.Sprintf("%d/%d", item.Status.ContainerStatuses.Ready(), item.Status.ContainerStatuses.Length())
 	tags["state"] = item.Status.Phase
 
 	fields := map[string]interface{}{
-		"age":     item.Status.Age(),
-		"restart": item.Status.ContainerStatuses.RestartCount(),
-
+		"age":       item.Status.Age(),
+		"restart":   item.Status.ContainerStatuses.RestartCount(),
+		"ready":     item.Status.ContainerStatuses.Ready(),
+		"available": item.Status.ContainerStatuses.Length(),
 		// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
 		"df_label":            item.Metadata.LabelsJSON(),
 		"df_label_premission": "read_only",
