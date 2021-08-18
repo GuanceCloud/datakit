@@ -61,8 +61,9 @@ func (p *pod) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"ready":       fmt.Sprintf("%d/%d", containerReadyCount, containerAllCount),
 			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"ready":       containerReadyCount,
+			"availale":    containerAllCount,
 			"create_time": obj.CreationTimestamp.Time.Unix(),
 		}
 
@@ -105,22 +106,23 @@ func (*pod) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes pod 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("pod UID"),
-			"pod_name":     inputs.NewTagInfo("pod 名称"),
-			"node_name":    inputs.NewTagInfo("所在 node"),
-			"cluster_name": inputs.NewTagInfo("所在 cluster"),
-			"namespace":    inputs.NewTagInfo("所在命名空间"),
-			"phase":        inputs.NewTagInfo("所处阶段，Pending/Running/Succeeded/Failed/Unknown"),
-			"status":       inputs.NewTagInfo("当前状态"),
-			"qos_class":    inputs.NewTagInfo("QOS Class"),
+			"name":         inputs.NewTagInfo("UID"),
+			"pod_name":     inputs.NewTagInfo("Name must be unique within a namespace."),
+			"node_name":    inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
+			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
+			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"phase":        inputs.NewTagInfo("The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.(Pending/Running/Succeeded/Failed/Unknown)"),
+			"status":       inputs.NewTagInfo("Reason the container is not yet running."),
+			"qos_class":    inputs.NewTagInfo("The Quality of Service (QOS) classification assigned to the pod based on resource requirements"),
 		},
 		Fields: map[string]interface{}{
-			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "创建时间戳，精度为秒"},
-			"restarts":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "所有容器的重启次数"},
-			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "就绪"},
+			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
+			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(second)"},
+			"restarts":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted"},
+			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "TODO"},
+			"available":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "TODO"},
 			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
-			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
 }

@@ -69,14 +69,14 @@ func (*cluster) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes cluster 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("cluster UID"),
-			"cluster_name": inputs.NewTagInfo("cluster 名称"),
+			"name":         inputs.NewTagInfo("UID"),
+			"cluster_name": inputs.NewTagInfo("Name must be unique within a namespace."),
 		},
 		Fields: map[string]interface{}{
-			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "创建时间戳，精度为秒"},
+			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
+			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(second)"},
 			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
-			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 			// TODO:
 			// "pod_capacity":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},
 			// "pod_usage":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: ""},

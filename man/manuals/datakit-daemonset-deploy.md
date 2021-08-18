@@ -221,12 +221,6 @@ spec:
         - mountPath: /var/run/docker.sock
           name: docker-socket
           readOnly: true
-        - mountPath: /usr/local/datakit/conf.d/container/container.conf
-          name: datakit-conf
-          subPath: container.conf
-        - mountPath: /usr/local/datakit/conf.d/kubernetes/kubernetes.conf
-          name: datakit-conf
-          subPath: kubernetes.conf
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -272,95 +266,6 @@ spec:
     rollingUpdate:
       maxUnavailable: 1
     type: RollingUpdate
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: datakit-conf
-  namespace: datakit
-data:
-    #### container
-    container.conf: |-
-      [inputs.container]
-        endpoint = "unix:///var/run/docker.sock"
-        
-        enable_metric = false  
-        enable_object = true   
-        enable_logging = true  
-        
-        metric_interval = "10s"
-      
-        drop_tags = ["contaienr_id"]
-      
-        ## Examples:
-        ##    '''nginx*'''
-        ignore_image_name = []
-        ignore_container_name = []
-        
-        ## TLS Config
-        # tls_ca = "/path/to/ca.pem"
-        # tls_cert = "/path/to/cert.pem"
-        # tls_key = "/path/to/key.pem"
-        ## Use TLS but skip chain & host verification
-        # insecure_skip_verify = false
-        
-        [inputs.container.kubelet]
-          kubelet_url = "http://127.0.0.1:10255"
-          ignore_pod_name = []
-      
-          ## Use bearer token for authorization. ('bearer_token' takes priority)
-          ## If both of these are empty, we'll use the default serviceaccount:
-          ## at: /run/secrets/kubernetes.io/serviceaccount/token
-          # bearer_token = "/path/to/bearer/token"
-          ## OR
-          # bearer_token_string = "<your-token-string>"
-      
-          ## Optional TLS Config
-          # tls_ca = /path/to/ca.pem
-          # tls_cert = /path/to/cert.pem
-          # tls_key = /path/to/key.pem
-          ## Use TLS but skip chain & host verification
-          # insecure_skip_verify = false
-        
-        #[[inputs.container.log]]
-        #  match_by = "container-name"
-        #  match = [
-        #    '''<this-is-regexp''',
-        #  ]
-        #  source = "<your-source-name>"
-        #  service = "<your-service-name>"
-        #  pipeline = "<pipeline.p>"
-  
-        [inputs.container.tags]
-          # some_tag = "some_value"
-          # more_tag = "some_other_value"
-
-    #### kubernetes
-    kubernetes.conf: |-
-      [inputs.kubernetes]
-        ## URL for the Kubernetes API
-        url = "https://kubernets.default:443"
-        
-        ## metrics interval
-        interval = "60s"
-        
-        ## Authorization level:
-        ##   bearer_token -> bearer_token_string -> TLS
-        ## Use bearer token for authorization. ('bearer_token' takes priority)
-        ## linux at:   /run/secrets/kubernetes.io/serviceaccount/token
-        ## windows at: C:\var\run\secrets\kubernetes.io\serviceaccount\token
-        # bearer_token = '''/path/to/bearer/token'''
-        # bearer_token_string = "<your-token-string>"
-      
-        ## TLS Config
-        # tls_ca = "/path/to/ca.pem"
-        # tls_cert = "/path/to/cert.pem"
-        # tls_key = "/path/to/key.pem"
-        ## Use TLS but skip chain & host verification
-        # insecure_skip_verify = false
-        
-        [inputs.kubernetes.tags]
-        # some_tag = "some_value"
 ```
 
 > 注意：默认情况下，我们在该 yaml 中开启了如下采集器：

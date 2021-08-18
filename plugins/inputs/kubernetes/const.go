@@ -3,7 +3,9 @@ package kubernetes
 const sampleCfg = `
 [inputs.kubernetes]
   ## URL for the Kubernetes API
-  url = "https://kubernets_ip:6443"
+  ## daemonset at: "https://kubernetes.default:443"
+  ## host at:      "https://kubernetes_ip:6443"
+  url = "https://kubernetes.default:443"
   
   ## metrics interval
   interval = "60s"
@@ -13,7 +15,7 @@ const sampleCfg = `
   ## Use bearer token for authorization. ('bearer_token' takes priority)
   ## linux at:   /run/secrets/kubernetes.io/serviceaccount/token
   ## windows at: C:\var\run\secrets\kubernetes.io\serviceaccount\token
-  # bearer_token = '''/path/to/bearer/token'''
+  bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
   # bearer_token_string = "<your-token-string>"
 
   ## TLS Config
