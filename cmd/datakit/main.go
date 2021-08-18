@@ -54,7 +54,6 @@ func init() {
 	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
 	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
 	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
-	flag.BoolVar(&cmds.FlagReload, "reload", false, "reload datakit")
 	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
@@ -202,16 +201,10 @@ func run() {
 		signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 		select {
 		case sig := <-signals:
-			if sig == syscall.SIGHUP {
-				l.Info("under signal SIGHUP, reloading...")
-				cmds.SetLog()
-				cmds.Reload()
-			} else {
-				l.Infof("get signal %v, wait & exit", sig)
-				datakit.Quit()
-				l.Info("datakit exit.")
-				goto exit
-			}
+			l.Infof("get signal %v, wait & exit", sig)
+			datakit.Quit()
+			l.Info("datakit exit.")
+			goto exit
 
 		case <-service.StopCh:
 			l.Infof("service stopping")

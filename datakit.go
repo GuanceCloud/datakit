@@ -111,8 +111,6 @@ func SetLog() {
 // G create a groutine group, with namespace datakit
 func G(name string) *goroutine.Group {
 
-	l.Debugf("name: %s", name)
-
 	panicCb := func(b []byte) {
 		l.Errorf("%s", b)
 	}
@@ -131,7 +129,6 @@ func G(name string) *goroutine.Group {
 func GWait() {
 	for _, g := range goroutines {
 		// just ignore error
-		l.Infof("xxxxxxx")
 		_ = g.Wait()
 	}
 }

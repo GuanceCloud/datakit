@@ -39,7 +39,6 @@ var (
 	FlagStart,
 	FlagStop,
 	FlagRestart,
-	FlagReload,
 	FlagStatus,
 	FlagUninstall,
 	FlagReinstall bool
@@ -255,23 +254,6 @@ func RunCmds() {
 		}
 
 		fmt.Println("Restart DataKit OK")
-		os.Exit(0)
-	}
-
-	if FlagReload {
-		if runtime.GOOS == "windows" {
-			fmt.Println("unsupport under Windows")
-			os.Exit(-1)
-		}
-
-		setCmdRootLog(FlagCmdLogPath)
-
-		if err := reloadDatakit(FlagDatakitHost); err != nil {
-			fmt.Printf("Reload DataKit Failed: %s\n", err.Error())
-			os.Exit(-1)
-		}
-
-		fmt.Println("Reload DataKit OK")
 		os.Exit(0)
 	}
 

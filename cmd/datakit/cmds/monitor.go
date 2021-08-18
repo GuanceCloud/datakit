@@ -71,8 +71,6 @@ func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 		return nil, err
 	}
 
-	l.Debugf("stats.ReloadInfo: %s", ds.ReloadInfo)
-
 	mdtxt, err := ds.Markdown("", verbose)
 	if err != nil {
 		return nil, err

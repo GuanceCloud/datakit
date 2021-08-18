@@ -30,9 +30,7 @@ var (
 	ginReleaseMode = true
 	pprof          bool
 
-	uptime    = time.Now()
-	reload    time.Time
-	reloadCnt int
+	uptime = time.Now()
 
 	mtx = sync.Mutex{}
 
@@ -214,10 +212,7 @@ func HttpStart() {
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 
-	// reload disabled under windows, syscall.Kill() not supported under windows
-	//if runtime.GOOS != "windows" {
-	//	router.GET("/reload", func(c *gin.Context) { apiReload(c) })
-	//}
+	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
 
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
 
