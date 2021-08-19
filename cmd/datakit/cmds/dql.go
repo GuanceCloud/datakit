@@ -2,7 +2,6 @@ package cmds
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -28,14 +27,7 @@ var (
 	history    []string
 	MaxHistory = 5000
 
-	dqlcli = &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
+	dqlcli *http.Client
 )
 
 func dql(host string) {
@@ -53,6 +45,18 @@ func dql(host string) {
 		prompt.OptionPrefix("dql > "),
 		prompt.OptionHistory(history),
 	)
+
+	dqlcli = getcli()
+	dqlcli.Timeout = 30 * time.Second
+
+	//dqlcli = &http.Client{
+	//	Timeout: 30 * time.Second,
+	//	Transport: &http.Transport{
+	//		TLSClientConfig: &tls.Config{
+	//			InsecureSkipVerify: true,
+	//		},
+	//	},
+	//}
 
 	p.Run()
 }

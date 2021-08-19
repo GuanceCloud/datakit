@@ -32,6 +32,9 @@ func init() {
 	flag.BoolVar(&cmds.FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
 	flag.StringVar(&cmds.FlagUpdateLogFile, "update-log", "", "update history log file")
 
+	flag.StringVar(&cmds.FlagWorkDir, "work-dir", "", "set datakit work dir")
+	flag.BoolVar(&cmds.FlagDefConf, "default-main-conf", false, "get datakit default main configure")
+
 	// debug grok
 	flag.StringVar(&cmds.FlagPipeline, "pl", "", "pipeline script to test(name only, do not use file path)")
 	flag.BoolVar(&cmds.FlagGrokq, "grokq", false, "query groks interactively")
@@ -105,7 +108,6 @@ func setupFlags() {
 	// hidden flags
 	for _, f := range []string{
 		"TODO",
-		"check-update",
 		"man-version",
 		"export-integration",
 		"addr",
@@ -114,6 +116,8 @@ func setupFlags() {
 		"k8s-deploy",
 		"interactive",
 		"dump-samples",
+		//"work-dir",
+		//"default-main-conf",
 	} {
 		flag.CommandLine.MarkHidden(f)
 	}
@@ -150,17 +154,24 @@ func main() {
 
 	datakit.SetLog()
 
-	// This may throw `Unix syslog delivery error` within docker, so we just
-	// start the entry under docker.
 	if cmds.FlagDocker {
+		// This may throw `Unix syslog delivery error` within docker, so we just
+		// start the entry under docker.
 		run()
 	} else {
+
 		go cgroup.Run()
 		service.Entry = run
-		if err := service.StartService(); err != nil {
-			l.Errorf("start service failed: %s", err.Error())
-			return
+
+		if cmds.FlagWorkDir != "" { // debugging running, not start as service
+			run()
+		} else {
+			if err := service.StartService(); err != nil {
+				l.Errorf("start service failed: %s", err.Error())
+				return
+			}
 		}
+
 	}
 
 	l.Info("datakit exited")
@@ -169,6 +180,10 @@ func main() {
 func applyFlags() {
 
 	inputs.TODO = cmds.FlagTODO
+
+	if cmds.FlagWorkDir != "" {
+		datakit.SetWorkDir(cmds.FlagWorkDir)
+	}
 
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
@@ -233,10 +248,6 @@ func tryLoadConfig() {
 }
 
 func doRun() error {
-
-	for _, x := range os.Environ() {
-		l.Infof("get env %s", x)
-	}
 
 	io.Start()
 

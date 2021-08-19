@@ -235,18 +235,6 @@ func (i *inputHostList) MatchInput(input string) bool {
 	return false
 }
 
-func InitDirs() {
-	for _, dir := range []string{
-		datakit.DataDir,
-		datakit.ConfdDir,
-		datakit.PipelineDir,
-		datakit.PipelinePatternDir} {
-		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
-			l.Fatalf("create %s failed: %s", dir, err)
-		}
-	}
-}
-
 func (c *Config) InitCfg(p string) error {
 
 	if c.Hostname == "" {
@@ -350,7 +338,6 @@ func (c *Config) setLogging() {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
 	default:
-		l.Infof("set log to %s", c.Logging.Log)
 
 		if c.Logging.Rotate > 0 {
 			logger.MaxSize = c.Logging.Rotate
@@ -362,6 +349,8 @@ func (c *Config) setLogging() {
 			Flags: logger.OPT_DEFAULT}); err != nil {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
+
+		l.Infof("set root logger to %s ok", c.Logging.Log)
 	}
 }
 

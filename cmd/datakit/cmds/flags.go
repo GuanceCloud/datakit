@@ -3,6 +3,8 @@ package cmds
 import (
 	"fmt"
 	"io/ioutil"
+	nhttp "net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,6 +13,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -26,6 +29,9 @@ var (
 	FlagText string
 
 	FlagProm string
+
+	FlagDefConf bool
+	FlagWorkDir string
 
 	FlagMan bool
 	FlagIgnore,
@@ -70,9 +76,23 @@ var (
 
 func RunCmds() {
 
+	if FlagDefConf {
+		defconf := config.DefaultConfig()
+		fmt.Println(defconf.String())
+		os.Exit(0)
+	}
+
+	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
+		l.Fatalf("load config %s failed: %s", datakit.MainConfPath, err)
+	}
+
 	if FlagCheckUpdate { // 更新日志单独存放，不跟 cmd.log 一块
 		if FlagUpdateLogFile != "" {
-			if err := logger.SetGlobalRootLogger(FlagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
+
+			if err := logger.InitRoot(&logger.Option{
+				Path:  FlagUpdateLogFile,
+				Level: logger.DEBUG,
+				Flags: logger.OPT_DEFAULT}); err != nil {
 				l.Errorf("set root log faile: %s", err.Error())
 			}
 		}
@@ -304,4 +324,18 @@ func RunCmds() {
 
 		os.Exit(0)
 	}
+}
+
+func getcli() *nhttp.Client {
+	cli := &nhttp.Client{}
+	proxy := config.Cfg.DataWay.HttpProxy
+	if proxy != "" {
+		if u, err := url.Parse(proxy); err == nil {
+			cli.Transport = &nhttp.Transport{
+				Proxy: nhttp.ProxyURL(u),
+			}
+		}
+	}
+
+	return cli
 }

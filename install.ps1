@@ -129,13 +129,16 @@ if (Test-Path $installer) {
 }
 
 Import-Module bitstransfer
-start-bitstransfer -source $installer_url -destination $installer
+$dl_installer_action = "start-bitstransfer -source $installer_url -destination $installer"
+if ($proxy -ne "") {
+	$dl_installer_action = "start-bitstransfer -ProxyUsage Override -ProxyList $proxy -source $installer_url -destination $installer"
+}
 
-#$action = "$installer -env"
+Invoke-Expression $dl_installer_action
 
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade"
-} else {
+} else { # install new datakit
 	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --cloud-provider=${cloud_provider} --global-tags='${global_tags}'"
 	if ($install_only -ne "") {
 		$action = -join($action, " ", "--install-only")

@@ -114,18 +114,20 @@ DataKit: %s
 	}
 
 	if flagInstallLog == "" {
-		lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
-		if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
-			lopt |= logger.OPT_COLOR
-		}
-
-		if err := logger.SetGlobalRootLogger("", logger.DEBUG, lopt); err != nil {
-			l.Warnf("set root log failed: %s", err.Error())
+		if err := logger.InitRoot(
+			&logger.Option{
+				Level: logger.DEBUG,
+				Flags: logger.OPT_DEFAULT | logger.OPT_STDOUT}); err != nil {
+			l.Errorf("set root log faile: %s", err.Error())
 		}
 	} else {
 		l.Infof("set log file to %s", flagInstallLog)
-		if err := logger.SetGlobalRootLogger(flagInstallLog, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
-			l.Errorf("set root log failed: %s", err.Error())
+
+		if err := logger.InitRoot(&logger.Option{
+			Path:  flagInstallLog,
+			Level: logger.DEBUG,
+			Flags: logger.OPT_DEFAULT}); err != nil {
+			l.Errorf("set root log faile: %s", err.Error())
 		}
 	}
 
@@ -165,7 +167,7 @@ DataKit: %s
 
 	downloadFiles() // download 过程直接覆盖已有安装
 
-	config.InitDirs()
+	datakit.InitDirs()
 
 	if flagDKUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)

@@ -1,7 +1,6 @@
 package cmds
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,13 +11,17 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
 const (
-	winUpgradeCmd  = `$env:DK_UPGRADE="1"; Import-Module bitstransfer; start-bitstransfer -source %s -destination .install.ps1; powershell .install.ps1;`
-	unixUpgradeCmd = `DK_UPGRADE=1 bash -c "$(curl -L %s)"`
+	winUpgradeCmd      = `$env:DK_UPGRADE="1"; Import-Module bitstransfer; start-bitstransfer -source %s -destination .install.ps1; powershell .install.ps1;`
+	winUpgradeCmdProxy = `$env:HTTPS_PROXY="%s"; $env:DK_UPGRADE="1"; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTP_PROXY -source %s -destination .install.ps1; powershell .install.ps1;`
+
+	unixUpgradeCmd      = `DK_UPGRADE=1 bash -c "$(curl -L %s)"`
+	unixUpgradeCmdProxy = `HTTPS_PROXY="%s" DK_UPGRADE=1 bash -c "$(curl -x "%s" -L %s)"`
 )
 
 func checkUpdate(curverStr string, acceptRC bool) int {
@@ -83,19 +86,35 @@ ReleasedInputs: %s
 		l.Debugf("compare %s <=> %s", v, curver)
 		if k == "Testing" || version.IsNewVersion(v, curver, true) { // show version info, also show RC verison info
 			fmt.Println("---------------------------------------------------")
-			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
+			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
 				k, v.VersionString, v.Commit, v.ReleaseDate)
 
-			switch runtime.GOOS {
-			case "windows":
-				cmdWin := fmt.Sprintf(winUpgradeCmd, v.DownloadURL)
-				fmt.Printf("\nUpgrade:\n\t%s\n\n", cmdWin)
-			default:
-				cmd := fmt.Sprintf(unixUpgradeCmd, v.DownloadURL)
-				fmt.Printf("\nUpgrade:\n\t%s\n\n", cmd)
-			}
+			fmt.Println(getUpgradeCommand(v.DownloadURL))
 		}
 	}
+}
+
+func getUpgradeCommand(dlurl string) string {
+	upgradeFmt := ""
+	proxy := config.Cfg.DataWay.HttpProxy
+	switch runtime.GOOS {
+	case "windows":
+		if proxy != "" {
+			upgradeFmt = fmt.Sprintf(winUpgradeCmdProxy, proxy, dlurl)
+		} else {
+			upgradeFmt = fmt.Sprintf(winUpgradeCmd, dlurl)
+		}
+
+	default: // Linux/Mac
+
+		if proxy != "" {
+			upgradeFmt = fmt.Sprintf(unixUpgradeCmdProxy, proxy, proxy, dlurl)
+		} else {
+			upgradeFmt = fmt.Sprintf(unixUpgradeCmd, dlurl)
+		}
+	}
+
+	return upgradeFmt
 }
 
 func getLocalVersion(ver string) (*version.VerInfo, error) {
@@ -110,7 +129,15 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 }
 
 func getVersion(addr string) (*version.VerInfo, error) {
-	resp, err := nhttp.Get("http://" + path.Join(addr, "version"))
+
+	cli := getcli()
+
+	req, err := nhttp.NewRequest("GET", "http://"+path.Join(addr, "version"), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +167,6 @@ func getVersion(addr string) (*version.VerInfo, error) {
 
 func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, err error) {
 
-	nhttp.DefaultTransport.(*nhttp.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	res = map[string]*version.VerInfo{}
 
 	onlineVer, err := getVersion("static.dataflux.cn/datakit")

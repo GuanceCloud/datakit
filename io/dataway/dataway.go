@@ -49,10 +49,6 @@ type DataWayCfg struct {
 	DeprecatedURL string   `toml:"url,omitempty"`
 	URLs          []string `toml:"urls"`
 
-	DeprecatedHost   string `toml:"host,omitempty"`
-	DeprecatedScheme string `toml:"scheme,omitempty"`
-	DeprecatedToken  string `toml:"token,omitempty"`
-
 	HTTPTimeout     string        `toml:"timeout"`
 	TimeoutDuration time.Duration `toml:"-"`
 
@@ -66,6 +62,10 @@ type DataWayCfg struct {
 
 	MaxFails int `toml:"max_fail"`
 	ontest   bool
+
+	DeprecatedHost   string `toml:"host,omitempty"`
+	DeprecatedScheme string `toml:"scheme,omitempty"`
+	DeprecatedToken  string `toml:"token,omitempty"`
 }
 
 type Option func(cnf *DataWayCfg)
