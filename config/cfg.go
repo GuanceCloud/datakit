@@ -347,7 +347,7 @@ func (c *Config) setLogging() {
 			Path:  c.Logging.Log,
 			Level: c.Logging.Level,
 			Flags: logger.OPT_DEFAULT}); err != nil {
-			l.Errorf("set root log faile: %s", err.Error())
+			l.Panicf("set root log to %s faile: %s", c.Logging.Log, err.Error())
 		}
 
 		l.Infof("set root logger to %s ok", c.Logging.Log)
