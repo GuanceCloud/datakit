@@ -248,8 +248,6 @@ func (this *Input) buildDockerClient() error {
 	return nil
 }
 
-const defaultK8sURL = "http://localhost:10255"
-
 func (this *Input) buildK8sClient() error {
 	if this.Kubernetes == nil {
 		return nil
@@ -258,7 +256,9 @@ func (this *Input) buildK8sClient() error {
 	err := this.Kubernetes.Init()
 	if err != nil {
 		// 如果使用默认 k8s url，init() 失败将不会追究，忽略此错误避免影响到 container 采集
-		if this.Kubernetes.URL == defaultK8sURL {
+
+		if this.Kubernetes.URL == "http://127.0.0.1:10255" ||
+			this.Kubernetes.URL == "http://localhost:10255" {
 			// 此处将该指针置空，以示后续将不再采集 k8s
 			this.Kubernetes = nil
 			return nil
