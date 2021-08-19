@@ -32,6 +32,7 @@ var (
 		"dataway":                  "man/manuals/dataway.md",
 		"election":                 "man/manuals/election.md",
 		"pipeline":                 "man/manuals/pipeline.md",
+		"logging-pipeline-bench":   "man/manuals/logging-pipeline-bench.md",
 		"prometheus":               "man/manuals/prometheus.md",
 		"sec-checker":              "man/manuals/sec-checker.md",
 		"telegraf":                 "man/manuals/telegraf.md",
