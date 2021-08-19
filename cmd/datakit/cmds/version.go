@@ -17,15 +17,8 @@ import (
 )
 
 const (
-	winUpgradeCmd = `Import-Module bitstransfer; ` +
-		`start-bitstransfer -source %s -destination .dk-installer.exe; ` +
-		`.dk-installer.exe -upgrade; ` +
-		`rm .dk-installer.exe`
-	unixUpgradeCmd = `sudo -- sh -c ` +
-		`"curl %s -o dk-installer ` +
-		`&& chmod +x ./dk-installer ` +
-		`&& ./dk-installer -upgrade ` +
-		`&& rm -rf ./dk-installer"`
+	winUpgradeCmd  = `$env:DK_UPGRADE="1"; Import-Module bitstransfer; start-bitstransfer -source %s -destination .install.ps1; powershell .install.ps1;`
+	unixUpgradeCmd = `DK_UPGRADE=1 bash -c "$(curl -L %s)"`
 )
 
 func checkUpdate(curverStr string, acceptRC bool) int {
@@ -92,6 +85,7 @@ ReleasedInputs: %s
 			fmt.Println("---------------------------------------------------")
 			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n",
 				k, v.VersionString, v.Commit, v.ReleaseDate)
+
 			switch runtime.GOOS {
 			case "windows":
 				cmdWin := fmt.Sprintf(winUpgradeCmd, v.DownloadURL)
@@ -135,10 +129,11 @@ func getVersion(addr string) (*version.VerInfo, error) {
 	if err := ver.Parse(); err != nil {
 		return nil, err
 	}
-	ver.DownloadURL = fmt.Sprintf("https://%s/installer-%s-%s",
-		addr, runtime.GOOS, runtime.GOARCH)
+
+	ver.DownloadURL = fmt.Sprintf("https://%s/install.sh", addr)
+
 	if runtime.GOOS == "windows" {
-		ver.DownloadURL += ".exe"
+		ver.DownloadURL = fmt.Sprintf("https://%s/install.ps1", addr)
 	}
 	return &ver, nil
 }
