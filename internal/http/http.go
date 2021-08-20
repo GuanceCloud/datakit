@@ -3,41 +3,84 @@ package http
 import (
 	"net"
 	"net/http"
+	"net/url"
+	"runtime"
 	"strings"
 	"time"
 )
 
 var (
-	// HttpProxy    string
-	// proxyOnce    sync.Once
-	// proxyFunc    func(*http.Request) (*url.URL, error)
-	DefTransport = &http.Transport{
-		// Proxy: getProxyURL(),
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
+	DefTransport = defaultCliTransport(&Options{
+		DialTimeout:           30 * time.Second,
+		DialKeepAlive:         30 * time.Second,
 		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   45,
+		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: time.Second,
-	}
+	})
 )
 
-// func getProxyURL() func(req *http.Request) (*url.URL, error) {
-// 	proxyOnce.Do(func() {
-// 		if HttpProxy != "" {
-// 			if pxurl, err := url.ParseRequestURI(HttpProxy); err == nil {
-// 				proxyFunc = func(*http.Request) (*url.URL, error) {
-// 					return pxurl, nil
-// 				}
-// 			}
-// 		}
-// 	})
+type Options struct {
+	DialTimeout   time.Duration
+	DialKeepAlive time.Duration
 
-// 	return proxyFunc
-// }
+	MaxIdleConns          int
+	MaxIdleConnsPerHost   int
+	IdleConnTimeout       time.Duration
+	TLSHandshakeTimeout   time.Duration
+	ExpectContinueTimeout time.Duration
+	ProxyURL              *url.URL
+}
+
+func defaultCliTransport(opt *Options) *http.Transport {
+
+	var proxy func(*http.Request) (*url.URL, error)
+
+	if opt.ProxyURL != nil {
+		proxy = http.ProxyURL(opt.ProxyURL)
+	}
+
+	return &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   opt.DialTimeout,
+			KeepAlive: opt.DialKeepAlive,
+		}).DialContext,
+
+		Proxy: proxy,
+
+		MaxIdleConns: func() int {
+			if opt.MaxIdleConns == 0 {
+				return 100
+			} else {
+				return opt.MaxIdleConns
+			}
+		}(),
+		MaxIdleConnsPerHost: func() int {
+			if opt.MaxIdleConnsPerHost == 0 {
+				return runtime.NumGoroutine()
+			} else {
+				return opt.MaxIdleConnsPerHost
+			}
+		}(),
+
+		IdleConnTimeout:       opt.IdleConnTimeout,
+		TLSHandshakeTimeout:   opt.TLSHandshakeTimeout,
+		ExpectContinueTimeout: opt.ExpectContinueTimeout,
+	}
+}
+
+func HTTPCli(opt *Options) *http.Client {
+	if opt == nil {
+		return &http.Client{
+			Transport: DefTransport,
+		}
+	}
+
+	return &http.Client{
+		Transport: defaultCliTransport(opt),
+	}
+}
 
 func SendRequest(req *http.Request) (*http.Response, error) {
 	return (&http.Client{Transport: DefTransport}).Do(req)

@@ -3,7 +3,7 @@ package cmds
 import (
 	"fmt"
 	"io/ioutil"
-	nhttp "net/http"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -49,7 +50,7 @@ var (
 	FlagUninstall,
 	FlagReinstall bool
 
-	FlagDatakitHost string
+	FlagDatakitHost string // Deprecated
 
 	FlagDQL     bool
 	FlagRunDQL, // TODO: dump dql query result to specified CSV file
@@ -59,14 +60,15 @@ var (
 	FlagAddr       string
 	FlagInterval   time.Duration
 
-	FlagShowCloudInfo string
-	FlagIPInfo        string
-	FlagMonitor       bool
-	FlagCheckConfig   bool
-	FlagDocker        bool
-	FlagVVV           bool
-	FlagCmdLogPath    string
-	FlagDumpSamples   string
+	FlagShowCloudInfo    string
+	FlagIPInfo           string
+	FlagMonitor          bool
+	FlagCheckConfig      bool
+	FlagDocker           bool
+	FlagDisableSelfInput bool
+	FlagVVV              bool
+	FlagCmdLogPath       string
+	FlagDumpSamples      string
 )
 
 var (
@@ -115,13 +117,13 @@ func RunCmds() {
 
 	if FlagDQL {
 		setCmdRootLog(FlagCmdLogPath)
-		dql(FlagDatakitHost)
+		dql(config.Cfg.HTTPAPI.Listen)
 		os.Exit(0)
 	}
 
 	if FlagRunDQL != "" {
 		setCmdRootLog(FlagCmdLogPath)
-		datakitHost = FlagDatakitHost
+		datakitHost = config.Cfg.HTTPAPI.Listen
 		doDQL(FlagRunDQL)
 		os.Exit(0)
 	}
@@ -154,7 +156,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		cmdMonitor(FlagInterval, FlagDatakitHost, FlagVVV)
+		cmdMonitor(FlagInterval, FlagVVV)
 		os.Exit(0)
 	}
 
@@ -326,16 +328,24 @@ func RunCmds() {
 	}
 }
 
-func getcli() *nhttp.Client {
-	cli := &nhttp.Client{}
+func getcli() *http.Client {
 	proxy := config.Cfg.DataWay.HttpProxy
+
+	cliopt := &ihttp.Options{
+		DialTimeout:           30 * time.Second,
+		DialKeepAlive:         30 * time.Second,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   0, // default to runtime.NumGoroutines()
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: time.Second,
+	}
+
 	if proxy != "" {
 		if u, err := url.Parse(proxy); err == nil {
-			cli.Transport = &nhttp.Transport{
-				Proxy: nhttp.ProxyURL(u),
-			}
+			cliopt.ProxyURL = u
 		}
 	}
 
-	return cli
+	return ihttp.HTTPCli(cliopt)
 }

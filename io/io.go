@@ -22,6 +22,10 @@ var (
 	testAssert            = false
 	highFreqCleanInterval = time.Millisecond * 500
 	l                     = logger.DefaultSLogger("io")
+
+	DisableLogFilter   bool
+	DisableHeartbeat   bool
+	DisableDatawayList bool
 )
 
 type Option struct {
@@ -126,7 +130,9 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.CustomObject:
 	case datakit.Logging:
 		if x.dw.ClientsCount() == 1 {
-			pts = defLogfilter.filter(pts)
+			if !DisableLogFilter {
+				pts = defLogfilter.filter(pts)
+			}
 		} else {
 			// TODO: add multiple dataway config support
 			l.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
@@ -304,13 +310,16 @@ func (x *IO) StartIO(recoverable bool) {
 				x.cleanHighFreqIOData()
 
 			case <-heartBeatTick.C:
-				x.dw.HeartBeat()
+				if !DisableHeartbeat {
+					x.dw.HeartBeat()
+				}
 
 			case <-datawaylistTick.C:
-				x.dw.DatawayList()
+				if !DisableDatawayList {
+					x.dw.DatawayList()
+				}
 
 			case <-tick.C:
-				l.Debugf("chan stat: %s", ChanStat())
 				x.flushAll()
 
 			case <-datakit.Exit.Wait():
@@ -321,7 +330,9 @@ func (x *IO) StartIO(recoverable bool) {
 	})
 
 	// start log filter
-	defLogfilter.start()
+	if !DisableLogFilter {
+		defLogfilter.start()
+	}
 
 	l.Info("starting...")
 }
@@ -438,6 +449,7 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 	if testAssert {
 		return nil
 	}
+
 	if pts == nil {
 		return nil
 	}

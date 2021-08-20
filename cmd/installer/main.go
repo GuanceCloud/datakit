@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -82,20 +83,31 @@ func init() {
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "-download-only option removed")
 }
 
-func downloadFiles() {
+func downloadFiles() error {
 	dl.CurDownloading = "datakit"
-	if err := dl.Download(datakitUrl, datakit.InstallDir, true, false); err != nil {
-		l.Fatal(err)
+
+	cliopt := &ihttp.Options{}
+	u, err := url.Parse(flagProxy)
+	if err != nil {
+		return err
+	}
+	cliopt.ProxyURL = u
+
+	cli := ihttp.HTTPCli(cliopt)
+
+	if err := dl.Download(cli, datakitUrl, datakit.InstallDir, true, false); err != nil {
+		return err
 	}
 
 	fmt.Printf("\n")
 
 	dl.CurDownloading = "data"
-	if err := dl.Download(dataUrl, datakit.InstallDir, true, false); err != nil {
-		l.Fatal(err)
+	if err := dl.Download(cli, dataUrl, datakit.InstallDir, true, false); err != nil {
+		return err
 	}
 
 	fmt.Printf("\n")
+	return nil
 }
 
 func main() {
@@ -165,7 +177,9 @@ DataKit: %s
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)
 
-	downloadFiles() // download 过程直接覆盖已有安装
+	if err := downloadFiles(); err != nil { // download 过程直接覆盖已有安装
+		l.Fatalf("download failed: %s", err.Error())
+	}
 
 	datakit.InitDirs()
 

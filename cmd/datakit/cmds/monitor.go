@@ -7,17 +7,15 @@ import (
 	"net/http"
 	"time"
 
+	markdown "github.com/MichaelMure/go-term-markdown"
 	"golang.org/x/term"
 
-	markdown "github.com/MichaelMure/go-term-markdown"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
-func cmdMonitor(interval time.Duration, addrStr string, verbose bool) {
-	addr := "http://localhost:9529/stats"
-	if addrStr != "" {
-		addr = "http://" + addrStr + "/stats"
-	}
+func cmdMonitor(interval time.Duration, verbose bool) {
+	addr := fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen)
 
 	if interval < time.Second {
 		interval = time.Second

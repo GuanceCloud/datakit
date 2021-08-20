@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -79,6 +80,7 @@ type dataWayClient struct {
 	categoryURL map[string]string
 	ontest      bool
 	fails       int
+	dw          *DataWayCfg // reference
 }
 
 func (dw *DataWayCfg) String() string {
@@ -94,7 +96,7 @@ func (dw *DataWayCfg) String() string {
 	return strings.Join(arr, "\n")
 }
 
-func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz bool) error {
+func (dc *dataWayClient) send(category string, data []byte, gz bool) error {
 	dktracer.GlobalTracer.Start(tracer.WithLogger(&tracer.SimpleLogger{}))
 	defer dktracer.GlobalTracer.Stop()
 
@@ -129,7 +131,6 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 
 	if dc.ontest {
 		l.Debug("Datakit client on test")
-
 		return nil
 	}
 
@@ -140,7 +141,7 @@ func (dc *dataWayClient) send(cli *http.Client, category string, data []byte, gz
 	// inject span into http header
 	dktracer.GlobalTracer.Inject(span, req.Header)
 
-	resp, err := cli.Do(req)
+	resp, err := dc.dw.do(req)
 	if err != nil {
 		dktracer.GlobalTracer.SetTag(span, "http_client_do_error", err.Error())
 		l.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
@@ -215,39 +216,7 @@ func (dc *dataWayClient) getLogFilter(cli *http.Client) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func (dc *dataWayClient) run(method, tp string, cli *http.Client) ([]byte, error) {
-	url, ok := dc.categoryURL[tp]
-	if !ok {
-		return nil, fmt.Errorf(" %s API missing, should not been here", tp)
-	}
-
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := cli.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		l.Error(err)
-		return nil, err
-	}
-
-	switch resp.StatusCode / 100 {
-	case 2:
-		l.Debugf(" %s ok", url)
-		return body, nil
-	default:
-		return nil, fmt.Errorf("%s: %s", tp, string(body))
-	}
-}
-
-func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
+func (dc *dataWayClient) heartBeat(data []byte) error {
 	requrl, ok := dc.categoryURL[datakit.HeartBeat]
 	if !ok {
 		return fmt.Errorf("HeartBeat API missing, should not been here")
@@ -259,7 +228,7 @@ func (dc *dataWayClient) heartBeat(cli *http.Client, data []byte) error {
 		return nil
 	}
 
-	resp, err := cli.Do(req)
+	resp, err := dc.dw.do(req)
 	if err != nil {
 		return err
 	}
@@ -285,8 +254,17 @@ func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
 		return nil, fmt.Errorf("no DQL query URL available")
 	}
 
-	defer dw.httpCli.CloseIdleConnections()
-	return dw.httpCli.Post(requrl, "application/json", bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	return dw.do(req)
+}
+
+func (dw *DataWayCfg) do(req *http.Request) (*http.Response, error) {
+	l.Debugf("send request %s, proxy: %s", req.URL.String(), dw.HttpProxy)
+	return dw.httpCli.Do(req)
 }
 
 func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
@@ -381,7 +359,7 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 
 	for i, dc := range dw.dataWayClients {
 		l.Debugf("send to %dth dataway, %d:%d", i, dc.fails, dw.MaxFails)
-		// 判断fails
+		// 判断 fails
 		if dc.fails > dw.MaxFails && len(AvailableDataways) > 0 {
 			rand.Seed(time.Now().UnixNano())
 			index := rand.Intn(len(AvailableDataways))
@@ -397,7 +375,7 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 			dw.dataWayClients[i] = dc
 		}
 
-		if err := dc.send(dw.httpCli, category, data, gz); err != nil {
+		if err := dc.send(category, data, gz); err != nil {
 			return err
 		}
 	}
@@ -426,31 +404,37 @@ type dataways struct {
 }
 
 func (dw *DataWayCfg) DatawayList() error {
-	if dw.httpCli != nil {
-		defer dw.httpCli.CloseIdleConnections()
-	}
 
 	if len(dw.dataWayClients) == 0 {
-		l.Errorf(`dataway url empty`)
-		return fmt.Errorf("[error] dataway url empty")
+		return fmt.Errorf("no dataway available")
 	}
 
-	if dw.httpCli == nil {
-		if err := dw.initHttp(); err != nil {
-			return err
-		}
+	dc := dw.dataWayClients[0]
+	requrl, ok := dc.categoryURL[datakit.ListDataWay]
+	if !ok {
+		return fmt.Errorf("dataway list API not available")
 	}
 
-	res, err := dw.dataWayClients[0].run(`GET`, datakit.ListDataWay, dw.httpCli)
+	req, err := http.NewRequest("GET", requrl, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := dw.do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
 
 	var dws dataways
-	err = json.Unmarshal(res, &dws)
-	if err != nil {
-		l.Errorf(`%s, body: %s`, err, res)
+	if err := json.Unmarshal(body, &dws); err != nil {
+		l.Errorf(`%s, body: %s`, err, string(body))
 		return err
 	}
 
@@ -461,6 +445,7 @@ func (dw *DataWayCfg) DatawayList() error {
 }
 
 func (dw *DataWayCfg) HeartBeat() error {
+
 	if dw.httpCli != nil {
 		defer dw.httpCli.CloseIdleConnections()
 	}
@@ -484,7 +469,7 @@ func (dw *DataWayCfg) HeartBeat() error {
 	}
 
 	for _, dc := range dw.dataWayClients {
-		if err := dc.heartBeat(dw.httpCli, bodyByte); err != nil {
+		if err := dc.heartBeat(bodyByte); err != nil {
 			l.Errorf("heart beat send data error %v", err)
 		}
 	}
@@ -568,6 +553,7 @@ func (dw *DataWayCfg) initDatawayCli(httpurl string) (*dataWayClient, error) {
 		categoryURL: map[string]string{},
 		ontest:      dw.ontest,
 		proxy:       dw.HttpProxy,
+		dw:          dw, // reference
 	}
 
 	for _, api := range apis {
@@ -592,19 +578,28 @@ var proxyOnce sync.Once
 
 func (dw *DataWayCfg) initHttp() error {
 	proxyOnce.Do(func() {
-		if dw.HttpProxy != "" {
-			if pxurl, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
+
+		cliopts := &ihttp.Options{
+			DialTimeout:           dw.TimeoutDuration,
+			DialKeepAlive:         30 * time.Second,
+			MaxIdleConns:          100,
+			MaxIdleConnsPerHost:   runtime.NumGoroutine(),
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: time.Second,
+		}
+
+		if dw.HttpProxy != "" { // set proxy
+			if u, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
 				l.Errorf("parse http proxy failed err:", err.Error())
 			} else {
-				ihttp.DefTransport.Proxy = http.ProxyURL(pxurl)
+				cliopts.ProxyURL = u
+				l.Infof("set dataway proxy to %s ok", dw.HttpProxy)
 			}
 		}
-	})
 
-	dw.httpCli = &http.Client{
-		Transport: ihttp.DefTransport,
-		Timeout:   dw.TimeoutDuration,
-	}
+		dw.httpCli = ihttp.HTTPCli(cliopts)
+	})
 
 	return nil
 }
@@ -621,8 +616,12 @@ func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Respons
 		return nil, fmt.Errorf("no object labels URL available")
 	}
 
-	defer dw.httpCli.CloseIdleConnections()
-	return dw.httpCli.Post(requrl, "application/json", bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("delete object label error: %s", err.Error())
+	}
+
+	return dw.do(req)
 }
 
 // DeleteObjectLabels , dw api delete object labels
@@ -637,11 +636,11 @@ func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Respons
 		return nil, fmt.Errorf("no object labels URL available")
 	}
 
-	defer dw.httpCli.CloseIdleConnections()
 	rBody := bytes.NewReader(body)
 	req, err := http.NewRequest("DELETE", requrl, rBody)
 	if err != nil {
 		return nil, fmt.Errorf("delete object label error: %s", err.Error())
 	}
-	return dw.httpCli.Do(req)
+
+	return dw.do(req)
 }

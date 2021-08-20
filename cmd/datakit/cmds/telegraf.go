@@ -22,7 +22,10 @@ func InstallTelegraf(installDir string) error {
 
 	fmt.Printf("Start downloading Telegraf...\n")
 	curDownloading = "telegraf"
-	if err := dl.Download(url, installDir, false, false); err != nil {
+
+	cli := getcli()
+
+	if err := dl.Download(cli, url, installDir, false, false); err != nil {
 		return err
 	}
 

@@ -46,17 +46,7 @@ func dql(host string) {
 		prompt.OptionHistory(history),
 	)
 
-	dqlcli = getcli()
-	dqlcli.Timeout = 30 * time.Second
-
-	//dqlcli = &http.Client{
-	//	Timeout: 30 * time.Second,
-	//	Transport: &http.Transport{
-	//		TLSClientConfig: &tls.Config{
-	//			InsecureSkipVerify: true,
-	//		},
-	//	},
-	//}
+	dqlcli = &http.Client{}
 
 	p.Run()
 }
@@ -176,7 +166,7 @@ func doDQL(s string) {
 
 	j, err := json.Marshal(q)
 	if err != nil {
-		colorPrint("%s\n", color.FgRed, err.Error())
+		colorPrint(color.FgRed, "%s\n", err.Error())
 		return
 	}
 
@@ -186,19 +176,23 @@ func doDQL(s string) {
 		fmt.Sprintf("http://%s/v1/query/raw", datakitHost),
 		bytes.NewBuffer(j))
 	if err != nil {
-		colorPrint("%s\n", color.FgRed, err.Error())
+		colorPrint(color.FgRed, "http.NewRequest: %s\n", err.Error())
 		return
 	}
 
 	resp, err := dqlcli.Do(req)
 	if err != nil {
-		colorPrint("%s\n", color.FgRed, err.Error())
+		colorPrint(color.FgRed, "httpcli.Do: %s\n", err.Error())
 		return
+	}
+
+	for k, v := range resp.Header {
+		l.Debugf("%s: %v", k, v)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		colorPrint("%s\n", color.FgRed, err.Error())
+		colorPrint(color.FgRed, "ioutil.ReadAll: %s\n", err.Error())
 		return
 	}
 
@@ -211,11 +205,12 @@ func doDQL(s string) {
 		}{}
 
 		if err := json.Unmarshal(body, &r); err != nil {
-			colorPrint("%s\n", color.FgRed, err.Error())
+			colorPrint(color.FgRed, "json.Unmarshal: %s\n", err.Error())
+			colorPrint(color.FgRed, "body: %s\n", string(body))
 			return
 		}
 
-		colorPrint("[%s] %s\n", color.FgRed, r.Err, r.Msg)
+		colorPrint(color.FgRed, "[%s] %s\n", r.Err, r.Msg)
 		return
 	}
 
@@ -238,12 +233,12 @@ func show(body []byte) {
 	jd := json.NewDecoder(bytes.NewReader(body))
 	jd.UseNumber()
 	if err := jd.Decode(&r); err != nil {
-		colorPrint("%s\n", color.FgRed, err.Error())
+		colorPrint(color.FgRed, "%s\n", err.Error())
 		return
 	}
 
 	if r.Content == nil {
-		colorPrint("Empty result\n", color.FgRed)
+		colorPrint(color.FgRed, "Empty result\n")
 		return
 	}
 
@@ -262,11 +257,11 @@ func doShow(c *queryResult) {
 		if json.Valid([]byte(c.RawQuery)) {
 			var x map[string]interface{}
 			if err := json.Unmarshal([]byte(c.RawQuery), &x); err != nil {
-				colorPrint("%s\n", color.FgRed, err)
+				colorPrint(color.FgRed, "%s\n", err)
 			} else {
 				j, err := json.MarshalIndent(x, "", "    ")
 				if err != nil {
-					colorPrint("%s\n", color.FgRed, err)
+					colorPrint(color.FgRed, "%s\n", err)
 				} else {
 					output("---------\n")
 					output("explain:\n%s\n", string(j))
@@ -285,7 +280,7 @@ func prettyShow(resp *queryResult) int {
 	nrows := 0
 
 	if len(resp.Series) == 0 {
-		colorPrint("no data\n", color.FgYellow)
+		colorPrint(color.FgYellow, "no data\n")
 		return 0
 	}
 
@@ -406,7 +401,7 @@ func getMaxColWidth(r *models.Row) int {
 	return max
 }
 
-func colorPrint(fmtstr string, c color.Attribute, args ...interface{}) {
+func colorPrint(c color.Attribute, fmtstr string, args ...interface{}) {
 	color.Set(c)
 	output(fmtstr, args...)
 	color.Unset()

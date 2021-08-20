@@ -61,7 +61,7 @@ func init() {
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
 
-	flag.StringVarP(&cmds.FlagDatakitHost, "datakit-host", "H", "localhost:9529", "datakit HTTP host")
+	flag.StringVarP(&cmds.FlagDatakitHost, "datakit-host", "H", "localhost:9529", "specify datakit HTTP host(Deprecated)")
 
 	// DQL
 	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "query DQL interactively")
@@ -81,6 +81,11 @@ func init() {
 	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
 	flag.StringVar(&cmds.FlagDumpSamples, "dump-samples", "", "dump all inputs samples")
 	flag.BoolVar(&cmds.FlagDocker, "docker", false, "run within docker")
+
+	flag.BoolVar(&config.DisableSelfInput, "disable-self-input", false, "disable self input")
+	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
+	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
+	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
 }
 
 var (
@@ -113,11 +118,14 @@ func setupFlags() {
 		"addr",
 		"show-testing-version",
 		"update-log",
-		"k8s-deploy",
 		"interactive",
 		"dump-samples",
-		//"work-dir",
-		//"default-main-conf",
+		"work-dir",
+		"default-main-conf",
+		"disable-self-input",
+		"disable-dataway-list",
+		"disable-logfilter",
+		"disable-heartbeat",
 	} {
 		flag.CommandLine.MarkHidden(f)
 	}

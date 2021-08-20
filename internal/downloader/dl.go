@@ -3,7 +3,6 @@ package downloader
 import (
 	"archive/tar"
 	"compress/gzip"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -103,10 +102,7 @@ func doExtract(r io.Reader, to string) error {
 	}
 }
 
-func Download(from, to string, progress, downloadOnly bool) error {
-
-	// disable SSL verify for some bad client
-	cli := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+func Download(cli *http.Client, from, to string, progress, downloadOnly bool) error {
 
 	req, err := http.NewRequest("GET", from, nil)
 	if err != nil {

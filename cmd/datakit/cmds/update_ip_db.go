@@ -2,7 +2,6 @@ package cmds
 
 import (
 	"fmt"
-	nhttp "net/http"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
@@ -19,21 +18,14 @@ func updateIPDB(dkhost, addr string) error {
 
 	fmt.Printf("Start downloading data.tar.gz...\n")
 
+	cli := getcli()
+
 	curDownloading = "ipdb"
-	if err := dl.Download(addr, datakit.InstallDir, true, false); err != nil {
+	if err := dl.Download(cli, addr, datakit.InstallDir, true, false); err != nil {
 		return err
 	}
 
-	fmt.Printf("Download and decompress data.tar.gz successfully.\n")
-
-	_, err := nhttp.Get(fmt.Sprintf("http://%s/reload", dkhost))
-	if err != nil {
-		fmt.Printf("Reload datakit fail!\n")
-		fmt.Printf("You need restart datakit by `datakit --restart` to make effect.\n")
-		return nil
-	} else {
-		fmt.Printf("Update successfully.\n")
-	}
+	fmt.Printf("Download and decompress data.tar.gz successfully. Please restart datakit to load new IPDB\n")
 
 	return nil
 }
