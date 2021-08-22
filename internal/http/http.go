@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	DefTransport = defaultCliTransport(&Options{
+	defTransport = cliTransport(&Options{
 		DialTimeout:           30 * time.Second,
 		DialKeepAlive:         30 * time.Second,
 		MaxIdleConns:          100,
@@ -33,7 +33,7 @@ type Options struct {
 	ProxyURL              *url.URL
 }
 
-func defaultCliTransport(opt *Options) *http.Transport {
+func cliTransport(opt *Options) *http.Transport {
 
 	var proxy func(*http.Request) (*url.URL, error)
 
@@ -73,22 +73,22 @@ func defaultCliTransport(opt *Options) *http.Transport {
 func HTTPCli(opt *Options) *http.Client {
 	if opt == nil {
 		return &http.Client{
-			Transport: DefTransport,
+			Transport: defTransport,
 		}
 	}
 
 	return &http.Client{
-		Transport: defaultCliTransport(opt),
+		Transport: cliTransport(opt),
 	}
 }
 
 func SendRequest(req *http.Request) (*http.Response, error) {
-	return (&http.Client{Transport: DefTransport}).Do(req)
+	return (&http.Client{Transport: defTransport}).Do(req)
 }
 
 func SendRequestWithTimeout(req *http.Request, timeout time.Duration) (*http.Response, error) {
 	return (&http.Client{
-		Transport: DefTransport,
+		Transport: defTransport,
 		Timeout:   timeout,
 	}).Do(req)
 }
