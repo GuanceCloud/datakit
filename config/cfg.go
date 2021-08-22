@@ -151,8 +151,11 @@ type Config struct {
 
 	IntervalDeprecated string `toml:"interval,omitempty"`
 
-	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
-	InstallDate          time.Time `toml:"install_date,omitempty"`
+	DefaultEnabledInputs []string `toml:"default_enabled_inputs,omitempty"`
+
+	InstallDate time.Time `toml:"install_date,omitempty"`
+	UpgradeDate time.Time `toml:"upgrade_date,omitempty"`
+	InstallVer  string    `toml:"install_version,omitempty"`
 
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`

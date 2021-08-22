@@ -221,6 +221,10 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 	return
 }
 
+var (
+	confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
+)
+
 func initDatakitConfSample(name string, c inputs.Creator) error {
 	if name == "self" { //nolint:goconst
 		return nil
@@ -241,7 +245,11 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 		return fmt.Errorf("no sample available on collector %s", name)
 	}
 
-	if err := ioutil.WriteFile(cfgpath, []byte(sample), datakit.ConfPerm); err != nil {
+	// 在 conf-sample 头部增加一些指纹信息.
+	// 一般用户在编辑 conf 时，都是 copy 这个 sample 的。如果 sample 中带上指纹，
+	// 那么最终的配置上也会带上这可能便于后续的升级，即升级程序能识别某个 conf
+	// 的版本，进而进行指定的升级
+	if err := ioutil.WriteFile(cfgpath, append(confsampleFingerprint, []byte(sample)...), datakit.ConfPerm); err != nil {
 		l.Errorf("failed to create sample configure for collector %s: %s", name, err.Error())
 		return err
 	}

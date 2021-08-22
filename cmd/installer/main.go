@@ -87,11 +87,13 @@ func downloadFiles() error {
 	dl.CurDownloading = "datakit"
 
 	cliopt := &ihttp.Options{}
-	u, err := url.Parse(flagProxy)
-	if err != nil {
-		return err
+	if flagProxy != "" {
+		u, err := url.Parse(flagProxy)
+		if err != nil {
+			return err
+		}
+		cliopt.ProxyURL = u
 	}
-	cliopt.ProxyURL = u
 
 	cli := ihttp.HTTPCli(cliopt)
 
@@ -121,7 +123,7 @@ Build At: %s
 Golang Version: %s
 BaseUrl: %s
 DataKit: %s
-`, datakit.Version, git.BuildAt, git.Golang, datakitUrl, dataUrl)
+`, DataKitVersion, git.BuildAt, git.Golang, datakitUrl, dataUrl)
 		os.Exit(0)
 	}
 
@@ -286,6 +288,7 @@ func installNewDatakit(svc service.Service) {
 	mc.Namespace = flagNamespace
 	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", flagDatakitHTTPListen, flagDatakitHTTPPort)
 	mc.InstallDate = time.Now()
+	mc.InstallVer = DataKitVersion
 
 	if flagDatakitName != "" {
 		mc.Name = flagDatakitName
@@ -439,6 +442,9 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 	if c.DataWay != nil {
 		c.DataWay.HttpProxy = flagProxy
 	}
+
+	c.InstallVer = DataKitVersion
+	c.UpgradeDate = time.Now()
 
 	return c, nil
 }
