@@ -196,3 +196,7 @@ linux mount NFS [说明文档](https://linuxize.com/post/how-to-mount-an-nfs-sha
 {{$m.FieldsMarkdownTable}}
 
 {{ end }} 
+
+## 更多参考
+
+- pipeline 性能测试和对比[文档](logging-pipeline-bench)

@@ -34,9 +34,9 @@
 
 使用 Fluentd 对同样 10w 行日志进行采集，CPU 使用率在 3秒内从 43% 升至 77% 然后回落，可以预见此时已经处理结束。
 
-因 Fluentd 就有 metadate 缓存机制，分批次输出结果，所以无法确切得究竟耗时几何。
+因 Fluentd 存在 metadate 缓存机制，分批次输出结果，所以无法确切计算究竟耗时多少。
 
-Fluentd 的 pipeline 匹配模式过于单一，没有进行同数据源多格式的 pipeline（例如 nginx 只支持 access log 而不支持 error log）。
+Fluentd 的 pipeline 匹配模式单一，没有进行同数据源多格式的 pipeline（例如 nginx 只支持 access log 而不支持 error log）。
 
 ### 结论
 
