@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -82,20 +83,31 @@ func init() {
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "-download-only option removed")
 }
 
-func downloadFiles() {
+func downloadFiles() error {
 	dl.CurDownloading = "datakit"
-	if err := dl.Download(datakitUrl, datakit.InstallDir, true, false); err != nil {
-		l.Fatal(err)
+
+	cliopt := &ihttp.Options{}
+	u, err := url.Parse(flagProxy)
+	if err != nil {
+		return err
+	}
+	cliopt.ProxyURL = u
+
+	cli := ihttp.HTTPCli(cliopt)
+
+	if err := dl.Download(cli, datakitUrl, datakit.InstallDir, true, false); err != nil {
+		return err
 	}
 
 	fmt.Printf("\n")
 
 	dl.CurDownloading = "data"
-	if err := dl.Download(dataUrl, datakit.InstallDir, true, false); err != nil {
-		l.Fatal(err)
+	if err := dl.Download(cli, dataUrl, datakit.InstallDir, true, false); err != nil {
+		return err
 	}
 
 	fmt.Printf("\n")
+	return nil
 }
 
 func main() {
@@ -114,18 +126,20 @@ DataKit: %s
 	}
 
 	if flagInstallLog == "" {
-		lopt := logger.OPT_DEFAULT | logger.OPT_STDOUT
-		if runtime.GOOS != "windows" { // disable color on windows(some color not working under windows)
-			lopt |= logger.OPT_COLOR
-		}
-
-		if err := logger.SetGlobalRootLogger("", logger.DEBUG, lopt); err != nil {
-			l.Warnf("set root log failed: %s", err.Error())
+		if err := logger.InitRoot(
+			&logger.Option{
+				Level: logger.DEBUG,
+				Flags: logger.OPT_DEFAULT | logger.OPT_STDOUT}); err != nil {
+			l.Errorf("set root log faile: %s", err.Error())
 		}
 	} else {
 		l.Infof("set log file to %s", flagInstallLog)
-		if err := logger.SetGlobalRootLogger(flagInstallLog, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
-			l.Errorf("set root log failed: %s", err.Error())
+
+		if err := logger.InitRoot(&logger.Option{
+			Path:  flagInstallLog,
+			Level: logger.DEBUG,
+			Flags: logger.OPT_DEFAULT}); err != nil {
+			l.Errorf("set root log faile: %s", err.Error())
 		}
 	}
 
@@ -163,9 +177,11 @@ DataKit: %s
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)
 
-	downloadFiles() // download 过程直接覆盖已有安装
+	if err := downloadFiles(); err != nil { // download 过程直接覆盖已有安装
+		l.Fatalf("download failed: %s", err.Error())
+	}
 
-	config.InitDirs()
+	datakit.InitDirs()
 
 	if flagDKUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)

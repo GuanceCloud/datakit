@@ -14,6 +14,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var (
+	DisableSelfInput bool
+)
+
 func SearchDir(dir string, suffix string) []string {
 
 	fps := []string{}
@@ -102,7 +106,9 @@ func LoadInputsConfig(c *Config) error {
 		}
 	}
 
-	inputs.AddSelf()
+	if !DisableSelfInput {
+		inputs.AddSelf()
+	}
 
 	return nil
 }

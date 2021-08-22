@@ -8,9 +8,9 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/MichaelMure/go-term-markdown v0.1.3
-	github.com/aliyun/aliyun-oss-go-sdk v2.1.9+incompatible
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.10+incompatible
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
@@ -80,7 +80,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210801085853-2efd2cfc7023
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210819175148-5d0565ecd466
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210603111111-890a3501d71c
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e

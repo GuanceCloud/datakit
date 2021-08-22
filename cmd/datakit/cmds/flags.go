@@ -3,6 +3,8 @@ package cmds
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,6 +13,8 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -26,6 +30,9 @@ var (
 	FlagText string
 
 	FlagProm string
+
+	FlagDefConf bool
+	FlagWorkDir string
 
 	FlagMan bool
 	FlagIgnore,
@@ -43,7 +50,7 @@ var (
 	FlagUninstall,
 	FlagReinstall bool
 
-	FlagDatakitHost string
+	FlagDatakitHost string // Deprecated
 
 	FlagDQL     bool
 	FlagRunDQL, // TODO: dump dql query result to specified CSV file
@@ -53,14 +60,15 @@ var (
 	FlagAddr       string
 	FlagInterval   time.Duration
 
-	FlagShowCloudInfo string
-	FlagIPInfo        string
-	FlagMonitor       bool
-	FlagCheckConfig   bool
-	FlagDocker        bool
-	FlagVVV           bool
-	FlagCmdLogPath    string
-	FlagDumpSamples   string
+	FlagShowCloudInfo    string
+	FlagIPInfo           string
+	FlagMonitor          bool
+	FlagCheckConfig      bool
+	FlagDocker           bool
+	FlagDisableSelfInput bool
+	FlagVVV              bool
+	FlagCmdLogPath       string
+	FlagDumpSamples      string
 )
 
 var (
@@ -70,9 +78,23 @@ var (
 
 func RunCmds() {
 
+	if FlagDefConf {
+		defconf := config.DefaultConfig()
+		fmt.Println(defconf.String())
+		os.Exit(0)
+	}
+
+	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
+		l.Fatalf("load config %s failed: %s", datakit.MainConfPath, err)
+	}
+
 	if FlagCheckUpdate { // 更新日志单独存放，不跟 cmd.log 一块
 		if FlagUpdateLogFile != "" {
-			if err := logger.SetGlobalRootLogger(FlagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
+
+			if err := logger.InitRoot(&logger.Option{
+				Path:  FlagUpdateLogFile,
+				Level: logger.DEBUG,
+				Flags: logger.OPT_DEFAULT}); err != nil {
 				l.Errorf("set root log faile: %s", err.Error())
 			}
 		}
@@ -95,13 +117,13 @@ func RunCmds() {
 
 	if FlagDQL {
 		setCmdRootLog(FlagCmdLogPath)
-		dql(FlagDatakitHost)
+		dql(config.Cfg.HTTPAPI.Listen)
 		os.Exit(0)
 	}
 
 	if FlagRunDQL != "" {
 		setCmdRootLog(FlagCmdLogPath)
-		datakitHost = FlagDatakitHost
+		datakitHost = config.Cfg.HTTPAPI.Listen
 		doDQL(FlagRunDQL)
 		os.Exit(0)
 	}
@@ -134,7 +156,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		cmdMonitor(FlagInterval, FlagDatakitHost, FlagVVV)
+		cmdMonitor(FlagInterval, FlagVVV)
 		os.Exit(0)
 	}
 
@@ -304,4 +326,26 @@ func RunCmds() {
 
 		os.Exit(0)
 	}
+}
+
+func getcli() *http.Client {
+	proxy := config.Cfg.DataWay.HttpProxy
+
+	cliopt := &ihttp.Options{
+		DialTimeout:           30 * time.Second,
+		DialKeepAlive:         30 * time.Second,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   0, // default to runtime.NumGoroutines()
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: time.Second,
+	}
+
+	if proxy != "" {
+		if u, err := url.Parse(proxy); err == nil {
+			cliopt.ProxyURL = u
+		}
+	}
+
+	return ihttp.HTTPCli(cliopt)
 }

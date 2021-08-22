@@ -32,6 +32,9 @@ func init() {
 	flag.BoolVar(&cmds.FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
 	flag.StringVar(&cmds.FlagUpdateLogFile, "update-log", "", "update history log file")
 
+	flag.StringVar(&cmds.FlagWorkDir, "work-dir", "", "set datakit work dir")
+	flag.BoolVar(&cmds.FlagDefConf, "default-main-conf", false, "get datakit default main configure")
+
 	// debug grok
 	flag.StringVar(&cmds.FlagPipeline, "pl", "", "pipeline script to test(name only, do not use file path)")
 	flag.BoolVar(&cmds.FlagGrokq, "grokq", false, "query groks interactively")
@@ -58,7 +61,7 @@ func init() {
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
 
-	flag.StringVarP(&cmds.FlagDatakitHost, "datakit-host", "H", "localhost:9529", "datakit HTTP host")
+	flag.StringVarP(&cmds.FlagDatakitHost, "datakit-host", "H", "localhost:9529", "specify datakit HTTP host(Deprecated)")
 
 	// DQL
 	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "query DQL interactively")
@@ -78,6 +81,11 @@ func init() {
 	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
 	flag.StringVar(&cmds.FlagDumpSamples, "dump-samples", "", "dump all inputs samples")
 	flag.BoolVar(&cmds.FlagDocker, "docker", false, "run within docker")
+
+	flag.BoolVar(&config.DisableSelfInput, "disable-self-input", false, "disable self input")
+	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
+	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
+	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
 }
 
 var (
@@ -105,15 +113,19 @@ func setupFlags() {
 	// hidden flags
 	for _, f := range []string{
 		"TODO",
-		"check-update",
 		"man-version",
 		"export-integration",
 		"addr",
 		"show-testing-version",
 		"update-log",
-		"k8s-deploy",
 		"interactive",
 		"dump-samples",
+		"work-dir",
+		"default-main-conf",
+		"disable-self-input",
+		"disable-dataway-list",
+		"disable-logfilter",
+		"disable-heartbeat",
 	} {
 		flag.CommandLine.MarkHidden(f)
 	}
@@ -150,17 +162,24 @@ func main() {
 
 	datakit.SetLog()
 
-	// This may throw `Unix syslog delivery error` within docker, so we just
-	// start the entry under docker.
 	if cmds.FlagDocker {
+		// This may throw `Unix syslog delivery error` within docker, so we just
+		// start the entry under docker.
 		run()
 	} else {
+
 		go cgroup.Run()
 		service.Entry = run
-		if err := service.StartService(); err != nil {
-			l.Errorf("start service failed: %s", err.Error())
-			return
+
+		if cmds.FlagWorkDir != "" { // debugging running, not start as service
+			run()
+		} else {
+			if err := service.StartService(); err != nil {
+				l.Errorf("start service failed: %s", err.Error())
+				return
+			}
 		}
+
 	}
 
 	l.Info("datakit exited")
@@ -169,6 +188,10 @@ func main() {
 func applyFlags() {
 
 	inputs.TODO = cmds.FlagTODO
+
+	if cmds.FlagWorkDir != "" {
+		datakit.SetWorkDir(cmds.FlagWorkDir)
+	}
 
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
@@ -233,10 +256,6 @@ func tryLoadConfig() {
 }
 
 func doRun() error {
-
-	for _, x := range os.Environ() {
-		l.Infof("get env %s", x)
-	}
 
 	io.Start()
 

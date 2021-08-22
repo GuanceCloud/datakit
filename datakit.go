@@ -86,11 +86,42 @@ var (
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
 
+	pidFile = filepath.Join(InstallDir, ".pid")
+
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 )
+
+func SetWorkDir(dir string) {
+	InstallDir = dir
+
+	DataDir = filepath.Join(InstallDir, "data")
+	ConfdDir = filepath.Join(InstallDir, "conf.d")
+
+	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
+	MainConfPath = filepath.Join(ConfdDir, "datakit.conf")
+
+	PipelineDir = filepath.Join(InstallDir, "pipeline")
+	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
+	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
+	pidFile = filepath.Join(InstallDir, ".pid")
+
+	InitDirs()
+}
+
+func InitDirs() {
+	for _, dir := range []string{
+		DataDir,
+		ConfdDir,
+		PipelineDir,
+		PipelinePatternDir} {
+		if err := os.MkdirAll(dir, ConfPerm); err != nil {
+			l.Fatalf("create %s failed: %s", dir, err)
+		}
+	}
+}
 
 const (
 	ConfPerm = os.ModePerm
@@ -99,7 +130,6 @@ const (
 var (
 	// goroutines caches  goroutine
 	goroutines = []*goroutine.Group{}
-	pidFile    = filepath.Join(InstallDir, ".pid")
 
 	l = logger.DefaultSLogger("datakit")
 )
@@ -158,7 +188,7 @@ func PID() (int, error) {
 func SavePid() error {
 
 	if isRuning() {
-		return fmt.Errorf("DataKit still running")
+		return fmt.Errorf("DataKit still running, PID: %s", pidFile)
 	}
 
 	pid := os.Getpid()
