@@ -36,7 +36,6 @@ Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 
 Upgrade:
     DK_UPGRADE=1 bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
 
-
 # Windows
 
 $ datakit.exe --version
@@ -79,11 +78,8 @@ installer=https://static.dataflux.cn/datakit/installer-linux-amd64
 /usr/local/datakit/datakit --check-update --accept-rc-version --update-log $otalog
 
 if [[ $? == 42 ]]; then
- echo "update now..."
- sudo -- sh -c "curl ${installer} -o dk-installer &&
-	 chmod +x ./dk-installer &&
-	 ./dk-installer --upgrade --ota --install-log "${otalog}" &&
-	 rm -rf ./dk-installer"
+	echo "update now..."
+	DK_UPGRADE=1 bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
 fi
 ```
 
