@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 解决`Datakit`部署在无法访问`Internet`的内部网络环境需要使用代理服务器访问`Internet`。
 

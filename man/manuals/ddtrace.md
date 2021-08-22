@@ -31,6 +31,18 @@
 
 编辑 `conf.d/datakit.conf`，将 `listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）。此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `listen` 配置，直接使用 `http://localhost:9529` 即可。
 
+如果有 trace 数据发送给 DataKit，那么在 DataKit 的 `gin.log` 上能看到：
+
+```shell
+tail -f /var/log/datakit/gin.log
+[GIN] 2021/08/02 - 17:16:31 | 200 |     386.256µs |       127.0.0.1 | POST     "/v0.4/traces"
+[GIN] 2021/08/02 - 17:17:30 | 200 |     116.109µs |       127.0.0.1 | POST     "/v0.4/traces"
+[GIN] 2021/08/02 - 17:17:30 | 200 |     489.428µs |       127.0.0.1 | POST     "/v0.4/traces"
+...
+```
+
+> 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-how-to#44462aae)是看不到 ddtrace 的采集信息的。
+
 ## Python Flask 完整示例
 
 这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
@@ -224,14 +236,14 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 
 ## 代码中使用 SetTag 注意事项
 
-- 打开 ddtrace 采集器配置文件(\[datakit 安装目录\]/datakit/conf.d/ddtrace),将 customer_tag_prefix 解注释并添加所需的前缀
-- 前缀中不要使用点(.)以免造成解析错误
-- 在用户代码中所有对 `span.SetTag(key, value)` 的调用需要给`key`参数添加配置文件中填写的前缀
-- 在开启了客户端采样的情况下添加了 tag 的 span 也有可能被舍弃
+- 打开 ddtrace 采集器配置文件(`conf.d/ddtrace/ddtrace.conf`)，将 `customer_tag_prefix` 解注释并添加所需的前缀
+- 前缀中不要使用点(.)以免造成解析错误（@TNT: 代码做强制检查）
+- 在用户代码中所有对 `span.SetTag(key, value)` 的调用时，需在配置文件中，给 `key` 参数添加前缀匹配
+- 在开启了采样的情况下，部分添加了 tag 的 span 有可能被舍弃
 
 ## 指标集
 
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ```toml
  [inputs.{{.InputName}}.tags]
@@ -240,16 +252,23 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
   # ...
 ```
 
+## Tracing 数据
+
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
 
 ### `{{$m.Name}}`
 
-- 标签
+{{$m.Desc}}
+
+-  标签
 
 {{$m.TagsMarkdownTable}}
 
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}

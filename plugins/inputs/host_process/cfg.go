@@ -60,6 +60,7 @@ func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Desc: "采集进程指标数据,包括cpu内存使用率等",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeIByte, "Resident Set Size （常驻内存大小）"),
@@ -91,6 +92,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Desc: "采集进程对象的数据，包括进程名，cmd等",
+		Type: "object",
 		Fields: map[string]interface{}{
 			"message":          newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "进程详细信息"),
 			"start_time":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "进程启动时间"),

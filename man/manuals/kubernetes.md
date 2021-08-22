@@ -10,7 +10,7 @@ Kubernetes 集群对象数据采集
 
 ## 指标集
 
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]

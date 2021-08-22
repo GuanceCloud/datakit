@@ -30,17 +30,18 @@ var (
 		"datakit-update":           "man/manuals/datakit-update.md",
 		"datatypes":                "man/manuals/datatypes.md",
 		"dataway":                  "man/manuals/dataway.md",
+		"ddtrace-java":             "man/manuals/ddtrace-java.md",
+		"development":              "man/manuals/development.md",
 		"election":                 "man/manuals/election.md",
+		"kubernetes":               "man/manuals/kubernetes.md",
+		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
+		"kubernetes-x":             "man/manuals/kubernetes-x.md",
 		"pipeline":                 "man/manuals/pipeline.md",
 		"prometheus":               "man/manuals/prometheus.md",
+		"rum":                      "man/manuals/rum.md",
 		"sec-checker":              "man/manuals/sec-checker.md",
 		"telegraf":                 "man/manuals/telegraf.md",
-		"rum":                      "man/manuals/rum.md",
-		"ddtrace-java":             "man/manuals/ddtrace-java.md",
-		"kubernetes-x":             "man/manuals/kubernetes-x.md",
-		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
 		"why-no-data":              "man/manuals/why-no-data.md",
-		"development":              "man/manuals/development.md",
 	}
 	l = logger.DefaultSLogger("man")
 )

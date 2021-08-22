@@ -22,6 +22,7 @@ func (t *TraceMeasurement) LineProto() (*io.Point, error) {
 func (t *TraceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "",
+		Type: "tracing",
 		Fields: map[string]interface{}{
 			FIELD_PARENTID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The parent id of current span."},
 			FIELD_TRACEID:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Trace id."},
