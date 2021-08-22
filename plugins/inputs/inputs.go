@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -66,6 +67,10 @@ type ElectionInput interface {
 	Resume() error
 }
 
+type ReadEnv interface {
+	ReadEnv(map[string]string)
+}
+
 type Creator func() Input
 
 func Add(name string, creator Creator) {
@@ -114,10 +119,30 @@ func ResetInputs() {
 	InputsInfo = map[string][]*inputInfo{}
 }
 
+func getEnvs() map[string]string {
+
+	envs := map[string]string{}
+	for _, v := range os.Environ() {
+		arr := strings.SplitN(v, "=", 2)
+		if len(arr) != 2 {
+			continue
+		}
+
+		if strings.HasPrefix(arr[0], "ENV_") || strings.HasPrefix(arr[0], "DK_") {
+			envs[arr[0]] = arr[1]
+		}
+	}
+
+	return envs
+}
+
 func RunInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	g := datakit.G("inputs")
+
+	envs := getEnvs()
+
 	for name, arr := range InputsInfo {
 		for _, ii := range arr {
 			if ii.input == nil {
@@ -128,8 +153,13 @@ func RunInputs() error {
 			if inp, ok := ii.input.(HTTPInput); ok {
 				inp.RegHttpHandler()
 			}
+
 			if inp, ok := ii.input.(PipelineInput); ok {
 				inp.RunPipeline()
+			}
+
+			if inp, ok := ii.input.(ReadEnv); ok && datakit.Docker {
+				inp.ReadEnv(envs)
 			}
 
 			func(name string, ii *inputInfo) {
