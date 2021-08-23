@@ -98,7 +98,7 @@ exporter_url.<service>='off'
 
 示例:
 
-```
+```yaml
   #### dummy-server
   <dummy_server>.conf: |-
     [[inputs.prom]]
@@ -120,7 +120,7 @@ exporter_url.<service>='off'
 
 ### 完整部署 yaml 示例
 
-```
+```yaml
 apiVersion: v1
 kind: Namespace
 metadata:

@@ -35,7 +35,13 @@ GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
 GRANT replication client on *.*  to 'datakit'@'localhost';
 ```
 
->注意：以上创建、授权操作，均限定了 `datakit` 这个用户的只能在 MySQL 主机上（`localhost`）访问 MySQL，如果对 MySQL 进行远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问 MySQL），也可用特定的 DataKit 安装机器地址。
+以上创建、授权操作，均限定了 `datakit` 这个用户的只能在 MySQL 主机上（`localhost`）访问 MySQL，如果对 MySQL 进行远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问 MySQL），也可用特定的 DataKit 安装机器地址。
+
+> 注意，如用 `localhost` 时发现采集器有如下报错，需要将上面的 `localhost` 换成 `::1`
+
+```
+Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
+```
 
 ## 配置
 
