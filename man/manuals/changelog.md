@@ -2,20 +2,21 @@
 
 # DataKit 版本历史
 
-## 1.1.8-rc2(预计 2021/08/17 发布)
+## 1.1.8-rc2(预计 2021/08/24 发布)
 
 - [v]支持同步 Kubernetes labels 到各种对象上（pod/service/...）(#279)
-- [v]`datakit` 指标集增加数据丢失统计(#286)
-- [?][Kubernetes 集群自定义指标采集] 优化(#283)
+- [v]`datakit` 指标集增加数据丢弃指标(#286)
+- [v][Kubernetes 集群自定义指标采集] 优化(#283)
 - [v][ElasticSearch] 采集器完善(#275)
 - [?]日志采集器 truncat 优化(#271)
 - [v]新增[主机目录](hostdir)采集器(#264)
+- [v]ddtrace 支持多路由配置(#310)
+- [v]ddtrace 支持自定义 tag 提取(#316)
 - [v]调整 DataKit [安装形式](datakit-install)，[离线安装](datakit-offline-install)方式做了调整(#300)
 	- 调整之后，依然兼容之前老的安装方式
 
 ### Breaking Changes
 
-- 非容器环境运行时，从环境变量 `ENV_HOSTNAME` 获取主机名的功能已移除（1.1.7-rc8 支持），可通过[主机名覆盖功能](datakit-install#987d5f91) 来实现
 - 从环境变量 `ENV_HOSTNAME` 获取主机名的功能已移除（1.1.7-rc8 支持），可通过[主机名覆盖功能](datakit-install#987d5f91) 来实现
 - 移除命令选项 `--reload`
 - 移除 DataKit API `/reload`，代之以 `/restart`

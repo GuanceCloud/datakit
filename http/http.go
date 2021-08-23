@@ -10,7 +10,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -134,39 +133,6 @@ func page404(c *gin.Context) {
 	c.String(http.StatusNotFound, buf.String())
 }
 
-func corsMiddleware(c *gin.Context) {
-	allowHeaders := []string{
-		"Content-Type",
-		"Content-Length",
-		"Accept-Encoding",
-		"X-CSRF-Token",
-		"Authorization",
-		"accept",
-		"origin",
-		"Cache-Control",
-		"X-Requested-With",
-
-		// dataflux headers
-		"X-Token",
-		"X-Datakit-UUID",
-		"X-RP",
-		"X-Precision",
-		"X-Lua",
-	}
-
-	c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("origin"))
-	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
-	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-	if c.Request.Method == "OPTIONS" {
-		c.AbortWithStatus(http.StatusNoContent)
-		return
-	}
-
-	c.Next()
-}
-
 func HttpStart() {
 	gin.DisableConsoleColor()
 
@@ -198,7 +164,7 @@ func HttpStart() {
 	}))
 
 	router.Use(gin.Recovery())
-	router.Use(corsMiddleware)
+	router.Use(uhttp.CORSMiddleware)
 	if !apiConfig.Disable404Page {
 		router.NoRoute(page404)
 	}
@@ -208,20 +174,13 @@ func HttpStart() {
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c) })
 	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c) })
-
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
-
 	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
-
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
-
 	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
-
 	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
-
 	router.POST("/v1/object/labels", func(c *gin.Context) { apiCreateOrUpdateObjectLabel(c) })
-
 	router.DELETE("/v1/object/labels", func(c *gin.Context) { apiDeleteObjectLabel(c) })
 
 	srv := &http.Server{
@@ -291,4 +250,19 @@ func tryStartServer(srv *http.Server) {
 		}
 		time.Sleep(time.Second)
 	}
+}
+
+func checkToken(r *http.Request) error {
+	localTokens := dw.GetToken()
+	if len(localTokens) == 0 {
+		return ErrInvalidToken
+	}
+
+	tkn := r.URL.Query().Get("token")
+
+	if tkn == "" || tkn != localTokens[0] {
+		return ErrInvalidToken
+	}
+
+	return nil
 }

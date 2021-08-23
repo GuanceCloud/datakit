@@ -237,7 +237,7 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 ## 代码中使用 SetTag 注意事项
 
 - 打开 ddtrace 采集器配置文件(`conf.d/ddtrace/ddtrace.conf`)，将 `customer_tag_prefix` 解注释并添加所需的前缀
-- 前缀中不要使用点(.)以免造成解析错误（@TNT: 代码做强制检查）
+- 前缀中不能使用点(.)作为分隔符，以免造成解析错误
 - 在用户代码中所有对 `span.SetTag(key, value)` 的调用时，需在配置文件中，给 `key` 参数添加前缀匹配
 - 在开启了采样的情况下，部分添加了 tag 的 span 有可能被舍弃
 

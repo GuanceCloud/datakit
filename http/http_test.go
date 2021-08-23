@@ -1,12 +1,18 @@
 package http
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 func BenchmarkHandleWriteBody(b *testing.B) {
@@ -290,5 +296,74 @@ func TestParsePoint(t *testing.T) {
 				t.Log(pt.String())
 			}
 		}
+	}
+}
+
+func TestRestartAPI(t *testing.T) {
+
+	tokens := []string{
+		"http://1.2.3.4?token=tkn_abc123",
+		"http://4.3.2.1?token=tkn_abc456",
+	}
+
+	dw = &dataway.DataWayCfg{URLs: tokens}
+	if err := dw.Apply(); err != nil {
+		t.Error(err)
+	}
+
+	cases := []struct {
+		token string
+		fail  bool
+	}{
+		{
+			token: "tkn_abc123",
+			fail:  false,
+		},
+
+		{
+			token: "tkn_abc456",
+			fail:  true,
+		},
+
+		{
+			token: "",
+			fail:  true,
+		},
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := checkToken(r); err != nil {
+			w.WriteHeader(ErrInvalidToken.HttpCode)
+			json.NewEncoder(w).Encode(err)
+		} else {
+			w.WriteHeader(200)
+		}
+	}))
+
+	defer ts.Close()
+
+	time.Sleep(time.Second)
+
+	for _, tc := range cases {
+		resp, err := http.Post(fmt.Sprintf("%s?token=%s", ts.URL, tc.token), "", nil)
+		if err != nil {
+			t.Errorf("error: %s", err)
+			continue
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		resp.Body.Close()
+
+		if !tc.fail {
+			tu.Equals(t, 200, resp.StatusCode)
+		} else {
+			tu.Equals(t, ErrInvalidToken.HttpCode, resp.StatusCode)
+		}
+
+		t.Logf("resp: %s", string(body))
 	}
 }
