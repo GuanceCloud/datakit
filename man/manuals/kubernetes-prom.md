@@ -10,423 +10,102 @@
 
 该方案可以在 Kubernetes 集群中通过配置，采集集群中的自定义的 Pod 的 Exporter 数据。
 
-## 使用 demo
+目前只支持 Promtheus 格式的数据。
 
-### 场景
+通过在 Kubernetes Pod 添加指定的 Annotation，实现 Exporter 功能。Annotation 格式内容如下：
 
-通过 DataKit 采集 dummy-server（一组 pod）`:12345/metric` 端口暴露出来的指标（Prometheus Exporter 形式）。
+- Key 固定为 `datakit/prom.exporter`
+- Value 为 JSON 格式，示例如下：
 
-### 部署 demo Deployment
+```json
+{
+  "disable"            : false,
+  "url"                : "http://$IP:9100/metrics",
+  "source"             : "<your-service-name>",
+  "interval"           : "10s",
+  "measurement_name"   : "",
+  "measurement_prefix" : "",
+  "metric_name_filter" : [],
+  "metric_types"       : [
+    "counter",
+    "gauge"
+  ],
 
-dummy-server 服务是使用 deployment 部署的3个 pod 副本的服务，在该服务中，在每个 pod 上打上特征标记（label），如 `datakit: prom-dev`
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: dummy-exporter-deployment
-  labels:
-    app: dummy-exporter
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: dummy-exporter
-  template:
-    metadata:
-      labels:
-        app: dummy-exporter
-        datakit: prom-dev
-    spec:
-      containers:
-      - name: dummy-exporter
-        image: pubrepo.jiagouyun.com/demo/dummy-exporter:latest
-        ports:
-        - containerPort: 12345
+  "tags_ignore"  : [],
+  "measurements" : null,
+  "tags"         : {
+    "namespace"  : "$NAMESPACE",
+    "pod_name"   : "$PODNAME"
+  }
+}
 ```
 
-### 创建 pod 注解
+字段说明：
 
-通过上文定义的标签特征对 pod 添加注解（annotation）：
+- `url` 是必填项，建议使用 `$IP` 变量自动替换为 Pod IP
+- `source` 表示数据来源，建议填写成对应的服务名
+- `interval` 表示采集间隔时长
+- `tags` 为自定义 tags，默认添加 `namespace` 和 `pod_name` 两项
+- `disable` 可设置为 `true` 来关闭指标采集
+- 其余字段详情可对照 [Prom 指标采集](prom)
+- `measurements` 配置范例
+```json
+  "measurements": [
+    {
+      "name": "cpu",
+      "prefix": "cpu_"
+    },
+    {
+      "name": "mem",
+      "prefix": "mem_"
+    }
+  ]
+```
+
+- 如果被采集的服务开启了 TLS 认证，json 顶层中加上如下配置：
+
+```json
+{
+  "tls_open": true,
+  "tls_ca": "/on-datakit-host/path/to/ca.crt",
+  "tls_cert": "/on-datakit-host/path/to/peer.crt",
+  "tls_key": "/on-datakit-host/path/to/peer.key",
+}
+```
+
+JSON 中支持的通配符:
+
+- `$IP`：通配 Pod 的内网 IP，形如 `172.16.0.3`，无需额外配置
+- `$NAMESPACE`：Pod Namespace
+- `$PODNAME`：Pod Name
+
+## 操作过程
+
+假设 Pod 名称为 `dummy-abc`
+
+- 登录到 Kubernetes 所在主机
+- 复制上述 JSON 配置示例，将其写入文件（以 `/tmp/annotation.json` 文件名为例），按需修改配置参数
+- 添加 Annotation
 
 ```shell
-kubectl annotate --overwrite pods -l datakit exporter_url.dummy_server='http://$ip:12345/metric'
+conf=`echo $(cat /tmp/annotation.json)`;kubectl annotate --overwrite pods dummy-abc datakit/prom.exporter="$conf"
+```
+  终端打印 `pod/dummy-abc annotated` 表示添加成功，可以使用以下命令查看 Annotation 详情
 
-# 关闭指标采集
-kubectl annotate --overwrite pods -l datakit exporter_url.dummy_server='off'
+```shell
+kubectl get pod dummy-abc -o jsonpath='{.metadata.annotations}'
+``` 
+- 导出 Pod yaml
+
+```shell
+kubectl get pod dummy-abc -o yaml >> dummy-abc.yaml
+``` 
+- 使用新的 yaml 创建资源
+
+```shell
+kubectl apply -f dummy-abc.yaml
 ```
 
-**注意**
+至此，Annotation 已经添加完成。
 
-约定注解 key/value 数据格式规范：
-
-```
-exporter_url.<service>='http://$ip:<port>/<metric-path>'
-
-# 禁用 URL
-exporter_url.<service>='off'
-```
-
-变量说明:
-
-- `<service>`: 服务名，该配置要和下文中 prom 配置相统一，如 `dummy_server` 对应 `dummy_server.json`
-- `$ip`：通配 pod 的内网 IP，形如 `172.16.0.3`，无需额外配置
-- `<port>`: pod 中 exporter 的端口
-- `<metric-path>`: exporter 的路由, 如：`/metric`
-
-### 编写自定义 prom 配置
-
-详情参见 [prom 采集器](prom)
-
-### 修改 Kubernetes DaemonSet
-
-- 追加 MountPath
-
-注意：以下配置中变量内容，为上文创建 pod 注解中的 `service` 值保持一致
-
-示例:
-
-```yaml
-- mountPath: /usr/local/datakit/conf.d/prom/<dummy_server>.conf
-  name: datakit-conf
-  subPath: <dummy_server>.conf
-```
-
-- 追加编写的 ConfigMap
-
-注意：以下配置中变量内容，为上文创建 pod 注解中的`service`值保持一致
-
-示例:
-
-```yaml
-  #### dummy-server
-  <dummy_server>.conf: |-
-    [[inputs.prom]]
-      ## Exporter 地址
-      url = "/usr/local/datakit/data/exporter_urls/<dummy_server>.json"
-
-      # 默认只采集 counter 和 gauge 类型的指标
-      metric_types = ["counter", "gauge"]
-
-      ## 采集间隔
-      interval = "10s"
-
-      tags_ignore = ["pod"]
-
-      ## 自定义Tags
-      [inputs.prom.tags]
-        service = "dummy-exporter"
-```
-
-### 完整部署 yaml 示例
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: datakit
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: datakit
-rules:
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - clusterroles
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  - nodes/proxy
-  - namespaces
-  - pods
-  - services
-  - endpoints
-  - persistentvolumes
-  - persistentvolumeclaims
-  - ingresses
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - daemonsets
-  - statefulsets
-  - replicasets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - extensions
-  resources:
-  - ingresses
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  - cronjobs
-  verbs:
-  - get
-  - list
-  - watch
-- nonResourceURLs: ["/metrics"]
-  verbs: ["get"]
-
----
-
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: datakit
-  namespace: datakit
-
----
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: datakit
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: datakit
-subjects:
-- kind: ServiceAccount
-  name: datakit
-  namespace: datakit
-
----
-
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  labels:
-    app: daemonset-datakit
-  name: datakit
-  namespace: datakit
-spec:
-  revisionHistoryLimit: 10
-  selector:
-    matchLabels:
-      app: daemonset-datakit
-  template:
-    metadata:
-      labels:
-        app: daemonset-datakit
-    spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
-      containers:
-      - env:
-        - name: HOST_IP
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: status.hostIP
-        - name: NODE_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: spec.nodeName
-        - name: ENV_DATAWAY
-          value: https://openway.dataflux.cn?token=<your-token>
-        - name: ENV_GLOBAL_TAGS
-          value: host=__datakit_hostname,host_ip=__datakit_ip
-        - name: ENV_ENABLE_INPUTS
-          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
-        - name: ENV_ENABLE_ELECTION
-          value: enable
-        - name: ENV_HTTP_LISTEN
-          value: 0.0.0.0:9529
-        image: pubrepo.jiagouyun.com/datakit/datakit:{{.Version}}
-        imagePullPolicy: Always
-        name: datakit
-        ports:
-        - containerPort: 9529
-          hostPort: 9529
-          name: port
-          protocol: TCP
-        securityContext:
-          privileged: true
-        volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-socket
-          readOnly: true
-        - mountPath: /usr/local/datakit/conf.d/container/container.conf
-          name: datakit-conf
-          subPath: container.conf
-        - mountPath: /usr/local/datakit/conf.d/kubernetes/kubernetes.conf
-          name: datakit-conf
-          subPath: kubernetes.conf
-        - mountPath: /usr/local/datakit/conf.d/prom/dummy_server.conf
-          name: datakit-conf
-          subPath: dummy_server.conf
-        - mountPath: /host/proc
-          name: proc
-          readOnly: true
-        - mountPath: /host/dev
-          name: dev
-          readOnly: true
-        - mountPath: /host/sys
-          name: sys
-          readOnly: true
-        - mountPath: /rootfs
-          name: rootfs
-        workingDir: /usr/local/datakit
-      hostIPC: true
-      hostNetwork: true
-      hostPID: true
-      restartPolicy: Always
-      serviceAccount: datakit
-      serviceAccountName: datakit
-      volumes:
-      - configMap:
-          name: datakit-conf
-        name: datakit-conf
-      - hostPath:
-          path: /var/run/docker.sock
-        name: docker-socket
-      - hostPath:
-          path: /proc
-          type: ""
-        name: proc
-      - hostPath:
-          path: /dev
-          type: ""
-        name: dev
-      - hostPath:
-          path: /sys
-          type: ""
-        name: sys
-      - hostPath:
-          path: /
-          type: ""
-        name: rootfs
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
-    type: RollingUpdate
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: datakit-conf
-  namespace: datakit
-data:
-    #### container
-    container.conf: |-
-      [inputs.container]
-        endpoint = "unix:///var/run/docker.sock"
-        
-        enable_metric = false  
-        enable_object = true   
-        enable_logging = true  
-        
-        metric_interval = "10s"
-      
-        drop_tags = ["contaienr_id"]
-      
-        ## Examples:
-        ##    '''nginx*'''
-        ignore_image_name = []
-        ignore_container_name = []
-        
-        ## TLS Config
-        # tls_ca = "/path/to/ca.pem"
-        # tls_cert = "/path/to/cert.pem"
-        # tls_key = "/path/to/key.pem"
-        ## Use TLS but skip chain & host verification
-        # insecure_skip_verify = false
-        
-        [inputs.container.kubelet]
-          kubelet_url = "http://localhost:10255"
-          ignore_pod_name = []
-      
-          ## Use bearer token for authorization. ('bearer_token' takes priority)
-          ## If both of these are empty, we'll use the default serviceaccount:
-          ## at: /run/secrets/kubernetes.io/serviceaccount/token
-          # bearer_token = "/path/to/bearer/token"
-          ## OR
-          # bearer_token_string = "<your-token-string>"
-      
-          ## Optional TLS Config
-          # tls_ca = /path/to/ca.pem
-          # tls_cert = /path/to/cert.pem
-          # tls_key = /path/to/key.pem
-          ## Use TLS but skip chain & host verification
-          # insecure_skip_verify = false
-        
-        #[[inputs.container.log]]
-        #  match_by = "container-name"
-        #  match = [
-        #    '''<this-is-regexp''',
-        #  ]
-        #  source = "<your-source-name>"
-        #  service = "<your-service-name>"
-        #  pipeline = "<pipeline.p>"
-  
-        [inputs.container.tags]
-          # some_tag = "some_value"
-          # more_tag = "some_other_value"
-
-    #### kubernetes
-    kubernetes.conf: |-
-      [inputs.kubernetes]
-        ## URL for the Kubernetes API
-        url = "https://kubernetes.default:443"
-        
-        ## metrics interval
-        interval = "60s"
-        
-        ## Authorization level:
-        ##   bearer_token -> bearer_token_string -> TLS
-        ## Use bearer token for authorization. ('bearer_token' takes priority)
-        ## linux at:   /run/secrets/kubernetes.io/serviceaccount/token
-        ## windows at: C:\var\run\secrets\kubernetes.io\serviceaccount\token
-        bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
-        # bearer_token_string = "<your-token-string>"
-      
-        ## TLS Config
-        # tls_ca = "/path/to/ca.pem"
-        # tls_cert = "/path/to/cert.pem"
-        # tls_key = "/path/to/key.pem"
-        ## Use TLS but skip chain & host verification
-        # insecure_skip_verify = false
-        
-        [inputs.kubernetes.tags]
-        # some_tag = "some_value"
-
-    #### prom_dummy-exporter
-    dummy_server.conf: |-
-      [[inputs.prom]]
-        ## Exporter 地址
-        url = "/usr/local/datakit/data/exporter_urls/dummy_server.json"
-
-        # 默认只采集 counter 和 gauge 类型的指标
-        metric_types = ["counter", "gauge"]
-
-        measurement_name = "dummy_server"
-
-        ## 采集间隔
-        interval = "10s"
-
-        tags_ignore = ["pod"]
-
-        ## 自定义Tags
-        [inputs.prom.tags]
-          service = "dummy-exporter"
-```
+DataKit Kubernetes 会自动忽略相同配置（通配符替换之后的配置），避免重复采集。

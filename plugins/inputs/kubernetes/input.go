@@ -8,7 +8,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -41,6 +40,7 @@ type Input struct {
 
 	client       *client
 	resourceList []resource
+	exporterList []exporter
 
 	chPause chan bool
 	pause   bool
@@ -85,20 +85,22 @@ func (this *Input) Run() {
 				continue
 			}
 			this.gatherObject()
-
-			l.Debugf("exec discovery server")
-			if err := this.collectPodsExporter(); err != nil {
-				l.Errorf("%s discovery exec error %v", err)
-				io.FeedLastError(inputName, err.Error())
-			}
+			this.execExport()
 
 		case <-datakit.Exit.Wait():
+			this.Stop()
 			l.Info("kubernetes exit")
 			return
 
 		case this.pause = <-this.chPause:
 			// nil
 		}
+	}
+}
+
+func (this *Input) Stop() {
+	for _, exporter := range this.exporterList {
+		exporter.Stop()
 	}
 }
 
@@ -117,6 +119,7 @@ func (this *Input) setup() bool {
 			l.Error(err)
 			continue
 		}
+		this.buildExporters()
 
 		break
 	}
@@ -196,6 +199,16 @@ func (this *Input) buildResources() {
 		&job{client: this.client, tags: this.Tags},
 		&cronJob{client: this.client, tags: this.Tags},
 		// &pod{client: this.client, tags: this.Tags},
+	}
+}
+
+func (this *Input) buildExporters() {
+	this.exporterList = []exporter{&pod{client: this.client, tags: this.Tags}}
+}
+
+func (this *Input) execExport() {
+	for _, exporter := range this.exporterList {
+		exporter.Export()
 	}
 }
 

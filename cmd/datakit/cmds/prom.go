@@ -46,7 +46,7 @@ func promDebugger(configFile string) error {
 
 func getPromInput(configPath string) (*prom.Input, error) {
 	inputList, err := config.LoadInputConfigFile(configPath, func() inputs.Input {
-		return prom.NewProm("")
+		return prom.NewProm()
 	})
 	if err != nil {
 		fmt.Println(err.Error())
@@ -67,19 +67,16 @@ func getPromInput(configPath string) (*prom.Input, error) {
 
 func showInput(input *prom.Input) error {
 	// init client
-	err := input.InitClient()
-	if err != nil {
-		return err
-	}
-
-	// collect points
-	err = input.Collect()
+	err := input.Init()
 	if err != nil {
 		return err
 	}
 
 	// get collected points
-	points := input.GetCachedPoints()
+	points, err := input.Collect()
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("\n================= Line Protocol Points ==================\n\n")
 	// measurements collected
