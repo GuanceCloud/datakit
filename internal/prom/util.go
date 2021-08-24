@@ -10,7 +10,8 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func isValid(familyType dto.MetricType, name string, metricTypes []string, metricNameFilter []string) bool {
@@ -132,21 +133,10 @@ func getTags(labels []*dto.LabelPair, promTags, extraTags map[string]string, ign
 	return tags
 }
 
-func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string) ([]inputs.Measurement, error) {
-	var reader io.Reader
-	r, ok := text.(string)
-	if ok {
-		reader = strings.NewReader(r)
-	} else {
-		r, ok := text.(io.Reader)
-		if !ok {
-			return nil, fmt.Errorf("invalid text")
-		} else {
-			reader = r
-		}
-	}
+func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) ([]*iod.Point, error) {
+	var lastErr error
 	var parser expfmt.TextParser
-	metricFamilies, err := parser.TextToMetricFamilies(reader)
+	metricFamilies, err := parser.TextToMetricFamilies(in)
 	if err != nil {
 		return nil, err
 	}
@@ -158,16 +148,12 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 	measurementName := prom.MeasurementName
 	measurementPrefix := prom.MeasurementPrefix
 
-	collectTime := prom.collectTime
-	if collectTime.Unix() < 0 {
-		collectTime = time.Now()
-	}
-
-	points := []inputs.Measurement{}
+	var pts []*iod.Point
 
 	// iterate all metrics
 	for name, value := range metricFamilies {
 		familyType := value.GetType()
+
 		valid := isValid(familyType, name, metricTypes, metricNameFilter)
 		if !valid {
 			continue
@@ -196,14 +182,14 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				points = append(points, Measurement{
-					name:   measurementName,
-					tags:   tags,
-					fields: fields,
-					ts:     collectTime,
-				})
-
+				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				if err != nil {
+					lastErr = err
+				} else {
+					pts = append(pts, pt)
+				}
 			}
+
 		case dto.MetricType_UNTYPED:
 			for _, m := range metrics {
 				v := m.GetUntyped().GetValue()
@@ -217,14 +203,14 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				points = append(points, Measurement{
-					name:   measurementName,
-					tags:   tags,
-					fields: fields,
-					ts:     collectTime,
-				})
-
+				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				if err != nil {
+					lastErr = err
+				} else {
+					pts = append(pts, pt)
+				}
 			}
+
 		case dto.MetricType_COUNTER:
 			for _, m := range metrics {
 				fields := make(map[string]interface{})
@@ -237,12 +223,12 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				points = append(points, Measurement{
-					name:   measurementName,
-					tags:   tags,
-					fields: fields,
-					ts:     collectTime,
-				})
+				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				if err != nil {
+					lastErr = err
+				} else {
+					pts = append(pts, pt)
+				}
 			}
 		case dto.MetricType_SUMMARY:
 			for _, m := range metrics {
@@ -257,12 +243,12 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				points = append(points, Measurement{
-					name:   measurementName,
-					tags:   tags,
-					fields: fields,
-					ts:     collectTime,
-				})
+				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				if err != nil {
+					lastErr = err
+				} else {
+					pts = append(pts, pt)
+				}
 
 				for _, q := range quantiles {
 					quantile := q.GetQuantile() // 0 0.25 0.5 0.75 1
@@ -276,12 +262,12 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 
 					tags["quantile"] = fmt.Sprint(quantile)
 
-					points = append(points, Measurement{
-						name:   measurementName,
-						tags:   tags,
-						fields: fields,
-						ts:     collectTime,
-					})
+					pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+					if err != nil {
+						lastErr = err
+					} else {
+						pts = append(pts, pt)
+					}
 				}
 
 			}
@@ -298,13 +284,12 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				points = append(points, Measurement{
-					name:   measurementName,
-					tags:   tags,
-					fields: fields,
-					ts:     collectTime,
-				})
-
+				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				if err != nil {
+					lastErr = err
+				} else {
+					pts = append(pts, pt)
+				}
 				for _, b := range buckets {
 					count := b.GetCumulativeCount()
 					bond := b.GetUpperBound()
@@ -316,16 +301,16 @@ func PromText2Metrics(text interface{}, prom *Input, extraTags map[string]string
 					tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 					tags["le"] = fmt.Sprint(bond)
 
-					points = append(points, Measurement{
-						name:   measurementName,
-						tags:   tags,
-						fields: fields,
-						ts:     collectTime,
-					})
+					pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+					if err != nil {
+						lastErr = err
+					} else {
+						pts = append(pts, pt)
+					}
 				}
-
 			}
 		}
 	}
-	return points, nil
+
+	return pts, lastErr
 }
