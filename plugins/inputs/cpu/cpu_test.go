@@ -178,8 +178,8 @@ func TestSampleMeasurement(t *testing.T) {
 	}
 }
 
-func TestCoreTempAvg(t *testing.T) {
-	if _, err := CoreTempAvg(); err != nil {
+func TestCoreTemp(t *testing.T) {
+	if _, err := CoreTemp(); err != nil {
 		t.Error(err)
 	}
 }
