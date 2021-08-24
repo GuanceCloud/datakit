@@ -4,17 +4,17 @@
 
 ## 1.1.8-rc2(预计 2021/08/24 发布)
 
-- [v]支持同步 Kubernetes labels 到各种对象上（pod/service/...）(#279)
-- [v]`datakit` 指标集增加数据丢弃指标(#286)
-- [v][Kubernetes 集群自定义指标采集] 优化(#283)
-- [v][ElasticSearch] 采集器完善(#275)
-- [v]新增[主机目录](hostdir)采集器(#264)
-- [v][CPU](cpu) 采集器支持单个 CPU 指标采集(#317)
-- [v]ddtrace 支持多路由配置(#310)
-- [v]主机对象上报的采集器错误，只上报最近 30s(含)以内的错误(#318)
-- [v]禁用 Windows 下部分命令行帮助(#319)
-- [v]ddtrace 支持自定义 tag 提取(#316)
-- [v]调整 DataKit [安装形式](datakit-install)，[离线安装](datakit-offline-install)方式做了调整(#300)
+- 支持同步 Kubernetes labels 到各种对象上（pod/service/...）(#279)
+- `datakit` 指标集增加数据丢弃指标(#286)
+- [Kubernetes 集群自定义指标采集](kubernetes-prom) 优化(#283)
+- [ElasticSearch](elasticsearch) 采集器完善(#275)
+- 新增[主机目录](hostdir)采集器(#264)
+- [CPU](cpu) 采集器支持单个 CPU 指标采集(#317)
+- [ddtrace](ddtrace) 支持多路由配置(#310)
+- [ddtrace](ddtrace) 支持自定义 tag 提取(#316)
+- [主机对象](hostobject)上报的采集器错误，只上报最近 30s(含)以内的错误(#318)
+- 禁用 Windows 下部分命令行帮助(#319)
+- 调整 DataKit [安装形式](datakit-install)，[离线安装](datakit-offline-install)方式做了调整(#300)
 	- 调整之后，依然兼容之前老的安装方式
 
 ### Breaking Changes
