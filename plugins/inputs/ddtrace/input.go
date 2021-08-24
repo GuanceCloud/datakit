@@ -10,10 +10,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
-const (
-	defaultDdtracePath = "/v0.4/traces"
-)
-
+// used to set sample ratio
 var (
 	defRate     = 15
 	defScope    = 100
@@ -24,14 +21,15 @@ var (
 	inputName           = "ddtrace"
 	ddtraceSampleConfig = `
 [[inputs.ddtrace]]
-  # 此路由建议不要修改，以免跟其它路由冲突
-  path = "/v0.4/traces"
+  ## DDTrace Agent endpoints register by version respectively.
+  ## you can stop some patterns by remove them from the list but DO NOT MODIFY THESE PATTERNS.
+  # endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
   ## Tracing data sample config, [rate] and [scope] together determine how many trace sample data
   ## will be send to DataFlux workspace.
   ## Sub item in sample_configs list with priority 1.
   # [[inputs.ddtrace.sample_configs]]
-    ## Sample rate, how many tracing data will be sampled.
+    ## Sample rate, how many tracing data will be sampled
     # rate = 10
     ## Sample scope, the range that will consider to be covered by sample function.
     # scope = 100
@@ -53,7 +51,7 @@ var (
     # [inputs.ddtrace.sample_configs.target]
     # env = "dev"
 
-  ## ...
+    ## ...
 
   ## Sub item in sample_configs list with priority n.
   # [[inputs.ddtrace.sample_configs]]
@@ -68,27 +66,30 @@ var (
     ## only if all above rules mismatched, so that this pair shoud be empty.
     # [inputs.ddtrace.sample_configs.target]
 
-  ## Customer tag prefix used in client code like span.SetSpan([customer_tag_prefix]key, value)
-  ## ddtrace collector will not trim the prefix in order to avoid tags confliction. IT'S EMPTY STRING VALUE AS DEFAULT
-  ## indicates that no customer tag set up. DO NOT USE DOT(.) IN
-  # customer_tag_prefix = ""
+  ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
+  ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
+  ## IT'S EMPTY STRING VALUE AS DEFAULT indicates that no customer tag set up. DO NOT USE DOT(.) IN TAGS
+  # customer_tags = []
 
-  ## customer tags
+  ## tags is ddtrace configed key value pairs
   # [inputs.ddtrace.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
     ## ...
 `
-	DdtraceTags         map[string]string
-	customerTagPrefixes = map[string]string{}
-	log                 = logger.DefaultSLogger(inputName)
+	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
+	defEndpoints         = []string{v3, v4, v5}
+	customerTags         []string
+	ddTags               map[string]string
+	log                  = logger.DefaultSLogger(inputName)
 )
 
 type Input struct {
-	Path              string                     `toml:"path"`
-	TraceSampleConfs  []*trace.TraceSampleConfig `toml:"sample_configs"`
-	CustomerTagPrefix string                     `toml:"customer_tag_prefix"`
-	Tags              map[string]string          `toml:"tags"`
+	Path             string                     `toml:"path,omitempty"` // deprecated entry
+	Endpoints        []string                   `toml:"endpoints"`
+	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs"`
+	CustomerTags     []string                   `toml:"customer_tags"`
+	Tags             map[string]string          `toml:"tags"`
 }
 
 func (_ *Input) Catalog() string {
@@ -104,17 +105,16 @@ func (i *Input) AvailableArchs() []string {
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&DdtraceMeasurement{},
-	}
+	return []inputs.Measurement{&DdtraceMeasurement{}}
 }
 
-func (d *Input) Run() {
+func (i *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	sampleConfs = d.TraceSampleConfs
-	// check tracing sample config
+	sampleConfs = i.TraceSampleConfs
+
+	// validate tracing sample config
 	for k, v := range sampleConfs {
 		if v.Rate <= 0 || v.Scope < v.Rate {
 			v.Rate = 100
@@ -123,29 +123,43 @@ func (d *Input) Run() {
 		}
 	}
 
-	if d.CustomerTagPrefix != "" {
-		if strings.Contains(d.CustomerTagPrefix, ".") {
-			d.CustomerTagPrefix = strings.ReplaceAll(d.CustomerTagPrefix, ".", "_")
+	for k := range i.CustomerTags {
+		if strings.Contains(i.CustomerTags[k], ".") {
+			log.Warn("customer tag can not contains dot(.)")
+		} else {
+			customerTags = append(customerTags, i.CustomerTags[k])
 		}
-		customerTagPrefixes[d.Path] = d.CustomerTagPrefix
 	}
 
-	if d.Tags != nil {
-		DdtraceTags = d.Tags
-	}
-
-	if d != nil {
-		<-datakit.Exit.Wait()
-		log.Infof("%s input exit", inputName)
+	if i.Tags != nil {
+		ddTags = i.Tags
+	} else {
+		ddTags = map[string]string{}
 	}
 }
 
-func (d *Input) RegHttpHandler() {
-	if d.Path == "" {
-		d.Path = defaultDdtracePath
+func (i *Input) RegHttpHandler() {
+	if len(i.Endpoints) == 0 {
+		i.Endpoints = defEndpoints
 	}
-	http.RegHttpHandler("POST", d.Path, DdtraceTraceHandle)
-	http.RegHttpHandler("PUT", d.Path, DdtraceTraceHandle)
+
+	// // do not register /info in endpoints
+	// http.RegHttpHandler("GET", info, handleInfo)
+
+	for _, endpoint := range i.Endpoints {
+		switch endpoint {
+		case v3, v4, v5:
+			http.RegHttpHandler("POST", endpoint, handleTraces(endpoint))
+			http.RegHttpHandler("PUT", endpoint, handleTraces(endpoint))
+			log.Infof("pattern %s registered")
+		case v6:
+			http.RegHttpHandler("POST", endpoint, handleStats)
+			http.RegHttpHandler("PUT", endpoint, handleStats)
+			log.Infof("pattern %s registered")
+		default:
+			log.Errorf("unrecognized ddtrace agent endpoint")
+		}
+	}
 }
 
 func init() {

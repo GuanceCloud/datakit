@@ -242,7 +242,3 @@ func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
 
 	return data, nil
 }
-
-func GetFromPluginTag(tags map[string]string, tagName string) string {
-	return tags[tagName]
-}

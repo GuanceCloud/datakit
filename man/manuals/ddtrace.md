@@ -29,6 +29,12 @@
 {{.InputSample}}
 ```
 
+> 注意：不要修改这里的 `endpoints` 列表。
+
+```toml
+endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
+```
+
 编辑 `conf.d/datakit.conf`，将 `listen` 改为 `0.0.0.0:9529`（此处目的是开放外网访问，端口可选）。此时 ddtrace 的访问地址就是 `http://<datakit-ip>:9529`。如果 trace 数据来源就是 DataKit 本机，可不用修改 `listen` 配置，直接使用 `http://localhost:9529` 即可。
 
 如果有 trace 数据发送给 DataKit，那么在 DataKit 的 `gin.log` 上能看到：
@@ -208,6 +214,18 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 | ------------ | ----- |
 | `_dd.origin` | `rum` |
 
+### ddtrace 客户端代码 tag 上报
+
+客户端代码中使用`span.SetTag(key, value)`设置到 span 中的 key 需要在 ddtrace 配置文件中明确配置
+
+```toml
+customer_tags = []
+```
+
+注意，这些 tags 中不要包含英文字符 '.'，带 `.` 的 tag 会忽略掉
+
+customer_tags = ["order_id", "task_id"]
+
 #### 关联 ddtrace 数据和容器对象
 
 若需要链路数据和容器对象关联，可按照如下方式开启应用（一般情况下就是修改 Dockerfile 中的启动命令 `CMD`）。这里的 `$HOSTNAME` 环境变量会自动替换成对应容器中的主机名：
@@ -262,7 +280,7 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
