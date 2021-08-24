@@ -231,7 +231,7 @@ func (c *Input) getPipeline() *pipeline.Pipeline {
 func DefaultHostObject() *Input {
 	return &Input{
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
-		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Minute},
+		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
 		IOTimeout:                &datakit.Duration{Duration: 10 * time.Second},
 		IgnoreFS: []string{
 			"autofs",

@@ -50,8 +50,6 @@ var (
 	FlagUninstall,
 	FlagReinstall bool
 
-	FlagDatakitHost string // Deprecated
-
 	FlagDQL     bool
 	FlagRunDQL, // TODO: dump dql query result to specified CSV file
 	FlagCSV string
@@ -317,7 +315,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		if err := updateIPDB(FlagDatakitHost, FlagAddr); err != nil {
+		if err := updateIPDB(FlagAddr); err != nil {
 			fmt.Printf("Reload DataKit failed: %s\n", err)
 			os.Exit(-1)
 		}

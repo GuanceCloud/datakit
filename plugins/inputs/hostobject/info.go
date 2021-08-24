@@ -275,7 +275,7 @@ func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 			}
 
 			lastErr := s.LastErr
-			if ts > 0 && now.Sub(s.LastErrTS) > c.IgnoreInputsErrorsBefore.Duration { // ignore errors 30min ago
+			if ts > 0 && now.Sub(s.LastErrTS) > c.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
 				l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
 				lastErr = ""
 				ts = 0

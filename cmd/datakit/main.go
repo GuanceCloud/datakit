@@ -61,8 +61,6 @@ func init() {
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
 
-	flag.StringVarP(&cmds.FlagDatakitHost, "datakit-host", "H", "localhost:9529", "specify datakit HTTP host(Deprecated)")
-
 	// DQL
 	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "query DQL interactively")
 	flag.StringVar(&cmds.FlagRunDQL, "run-dql", "", "run single DQL")
@@ -73,30 +71,25 @@ func init() {
 	flag.DurationVar(&cmds.FlagInterval, "interval", time.Second*3, "auxiliary option, time interval")
 
 	// utils
-	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info              ( aliyun/tencent/aws)")
+	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flag.StringVar(&cmds.FlagIPInfo, "ipinfo", "", "show IP geo info")
-	flag.BoolVarP(&cmds.FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")
+
+	if runtime.GOOS != "windows" { // unsupported options under windows
+		flag.BoolVarP(&cmds.FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")
+		flag.BoolVar(&cmds.FlagDocker, "docker", false, "run within docker")
+	}
+
 	flag.BoolVar(&cmds.FlagCheckConfig, "check-config", false, "check inputs configure and main configure")
 	flag.BoolVar(&cmds.FlagVVV, "vvv", false, "more verbose info")
 	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
 	flag.StringVar(&cmds.FlagDumpSamples, "dump-samples", "", "dump all inputs samples")
-	flag.BoolVar(&cmds.FlagDocker, "docker", false, "run within docker")
 
 	flag.BoolVar(&config.DisableSelfInput, "disable-self-input", false, "disable self input")
 	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
 	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
 	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
+
 }
-
-var (
-
-	// deprecated
-	flagCmdDeprecated = flag.Bool("cmd", false, "run datakit under command line mode")
-
-	////////////////////////////////////////////////////////////
-	// Commands
-	////////////////////////////////////////////////////////////
-)
 
 var (
 	l = logger.DefaultSLogger("main")
@@ -107,8 +100,6 @@ var (
 )
 
 func setupFlags() {
-	// deprecated
-	flag.CommandLine.MarkDeprecated("cmd", "--cmd deprecated and not required")
 
 	// hidden flags
 	for _, f := range []string{

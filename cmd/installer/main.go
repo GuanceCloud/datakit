@@ -118,11 +118,11 @@ func main() {
 
 	if flagInfo {
 		fmt.Printf(`
-Version: %s
-Build At: %s
-Golang Version: %s
-BaseUrl: %s
-DataKit: %s
+Version        : %s
+Build At       : %s
+Golang Version : %s
+BaseUrl        : %s
+DataKit        : %s
 `, DataKitVersion, git.BuildAt, git.Golang, datakitUrl, dataUrl)
 		os.Exit(0)
 	}
