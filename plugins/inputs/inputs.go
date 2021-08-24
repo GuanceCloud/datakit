@@ -17,6 +17,7 @@ import (
 var (
 	Inputs     = map[string]Creator{}
 	InputsInfo = map[string][]*inputInfo{}
+	ConfigInfo = map[string]*Config{}
 
 	l           = logger.DefaultSLogger("inputs")
 	panicInputs = map[string]int{}
@@ -35,6 +36,17 @@ func GetElectionInputs() []ElectionInput {
 		}
 	}
 	return res
+}
+
+type ConfigPathStat struct {
+	Loaded int8   `json:"loaded"` // 0: 启动失败 1: 启动成功 2: 修改未加载
+	Path   string `json:"path"`
+}
+type Config struct {
+	ConfigPaths  []*ConfigPathStat `json:"config_paths"`
+	SampleConfig string            `json:"sample_config"`
+	Catalog      string            `json:"catalog"`
+	ConfigDir    string            `json:"config_dir"`
 }
 
 type Input interface {

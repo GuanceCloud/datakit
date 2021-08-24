@@ -38,6 +38,7 @@ type DatakitStats struct {
 	GoroutineStats  goroutine.Summary         `json:"goroutine_stats"`
 	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
 	AvailableInputs []string                  `json:"available_inputs"`
+	ConfigInfo      map[string]*inputs.Config `json:"config_info"`
 
 	Version string `json:"version"`
 	BuildAt string `json:"build_at"`
@@ -270,6 +271,7 @@ func GetStats() (*DatakitStats, error) {
 		Elected:        election.Elected(),
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
+		ConfigInfo:     inputs.ConfigInfo,
 	}
 
 	var err error

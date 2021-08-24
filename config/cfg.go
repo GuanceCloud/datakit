@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -164,6 +165,8 @@ type Config struct {
 	EnableElection         bool           `toml:"enable_election"`
 	IOCacheCountDeprecated int64          `toml:"io_cache_count,omitzero"`
 	Tracer                 *tracer.Tracer `toml:"tracer,omitempty"`
+
+	EnableDca bool `toml:"enable_dca"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -566,6 +569,10 @@ func (c *Config) LoadEnvs() error {
 		c.EnableElection = true
 	}
 
+	if v := datakit.GetEnv("ENV_ENABLE_DCA"); v != "" {
+		c.EnableDca = true
+	}
+
 	return nil
 }
 
@@ -726,4 +733,21 @@ func symlink(src, dst string) error {
 	}
 
 	return os.Symlink(src, dst)
+}
+
+func GetToken() string {
+	urls := Cfg.DataWay.URLs
+
+	if len(urls) > 0 {
+		url := urls[0] // only choose the first
+		reg := regexp.MustCompile(`.*token=(.*)$`)
+		if reg != nil {
+			result := reg.FindAllStringSubmatch(url, -1)
+			if len(result) > 0 && len(result[0]) > 1 {
+				return result[0][1]
+			}
+		}
+	}
+
+	return ""
 }

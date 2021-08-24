@@ -113,9 +113,41 @@ func LoadInputsConfig(c *Config) error {
 	return nil
 }
 
+// fp == "", add new when not exist, set ConfigPaths empty when exist
+func addConfigInfoPath(inputName string, fp string, loaded int8) {
+	if c, ok := inputs.ConfigInfo[inputName]; ok {
+		if len(fp) == 0 {
+			c.ConfigPaths = []*inputs.ConfigPathStat{} // set empty for reload datakit
+			return
+		}
+		for _, p := range c.ConfigPaths {
+			if p.Path == fp {
+				p.Loaded = loaded
+				return
+			}
+		}
+		c.ConfigPaths = append(c.ConfigPaths, &inputs.ConfigPathStat{Loaded: loaded, Path: fp})
+	} else {
+		creator, ok := inputs.Inputs[inputName]
+		if ok {
+			config := &inputs.Config{
+				ConfigPaths:  []*inputs.ConfigPathStat{},
+				SampleConfig: creator().SampleConfig(),
+				Catalog:      creator().Catalog(),
+				ConfigDir:    datakit.ConfdDir,
+			}
+			if len(fp) > 0 {
+				config.ConfigPaths = append(config.ConfigPaths, &inputs.ConfigPathStat{Loaded: loaded, Path: fp})
+			}
+			inputs.ConfigInfo[inputName] = config
+		}
+	}
+}
+
 func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
 
 	l.Debugf("search input cfg for %s", name)
+
 	list := searchDatakitInputCfg(c, inputcfgs, name, creator)
 
 	for _, i := range list {
@@ -135,6 +167,8 @@ func searchDatakitInputCfg(c *Config,
 
 	inputlist := []inputs.Input{}
 
+	addConfigInfoPath(name, "", 0) // init config info
+
 	for fp, tbl := range inputcfgs {
 		for field, node := range tbl.Fields {
 
@@ -143,6 +177,7 @@ func searchDatakitInputCfg(c *Config,
 				stbl, ok := node.(*ast.Table)
 				if !ok {
 					l.Warnf("ignore bad toml node for %s within %s", name, fp)
+					addConfigInfoPath(name, fp, 0)
 				} else {
 					for inputName, v := range stbl.Fields {
 						if inputName != name {
@@ -151,10 +186,15 @@ func searchDatakitInputCfg(c *Config,
 						lst, err := TryUnmarshal(v, inputName, creator)
 						if err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
+							addConfigInfoPath(name, fp, 0)
 							continue
 						}
 
 						l.Infof("load input %s from %s ok", inputName, fp)
+
+						// dca config path
+						addConfigInfoPath(name, fp, 1)
+
 						inputlist = append(inputlist, lst...)
 					}
 				}
