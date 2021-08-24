@@ -21,3 +21,8 @@ var resourceList = map[string]resource{
 	"job":        &job{},
 	"cronJob":    &cronJob{},
 }
+
+type exporter interface {
+	Export()
+	Stop()
+}

@@ -14,7 +14,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 )
 
-const defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
+const (
+	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
+)
 
 // Kubernetes represents the config object for the plugin
 type Kubernetes struct {
@@ -91,6 +93,7 @@ func (k *Kubernetes) Init() error {
 }
 
 func (k *Kubernetes) Stop() {
+	//TODO
 	return
 }
 
@@ -231,7 +234,7 @@ func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
 		"available": item.Status.ContainerStatuses.Length(),
 		// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
 		"df_label":            item.Metadata.LabelsJSON(),
-		"df_label_premission": "read_only",
+		"df_label_permission": "read_only",
 		"df_label_source":     "datakit",
 	}
 

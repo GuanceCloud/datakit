@@ -33,7 +33,6 @@ var (
 		"ddtrace-java":             "man/manuals/ddtrace-java.md",
 		"development":              "man/manuals/development.md",
 		"election":                 "man/manuals/election.md",
-		"kubernetes":               "man/manuals/kubernetes.md",
 		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
 		"kubernetes-x":             "man/manuals/kubernetes-x.md",
 		"pipeline":                 "man/manuals/pipeline.md",

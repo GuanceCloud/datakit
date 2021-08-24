@@ -4,7 +4,6 @@ const sampleCfg = `
 [inputs.kubernetes]
   ## URL for the Kubernetes API
   ## daemonset at: "https://kubernetes.default:443"
-  ## host at:      "https://kubernetes_ip:6443"
   url = "https://kubernetes.default:443"
   
   ## metrics interval

@@ -6,18 +6,11 @@
 
 # {{.InputName}}
 
-Kubernetes 集群对象数据采集
+采集 Kubernetes 集群指标数据和对象数据，上报到 DataFlux 中。
 
-## 指标集
+## 配置
 
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
-
-``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
+DataKit 访问 Kubernetes API 采集各项数据，DataKit 以[daemonset 方式安装和运行](datakit-daemonset-deploy)会自动开启 Kubernetes 采集。
 
 ## 指标
 
@@ -46,7 +39,6 @@ Kubernetes 集群对象数据采集
 {{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
-
 {{$m.Desc}}
 
 -  标签

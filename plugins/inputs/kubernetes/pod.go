@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -17,7 +18,8 @@ type pod struct {
 	client interface {
 		getPods() (*corev1.PodList, error)
 	}
-	tags map[string]string
+	tags         map[string]string
+	promExporter *PromExporter
 }
 
 func (p *pod) Gather() {
@@ -93,6 +95,37 @@ func (p *pod) Gather() {
 
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
+	}
+}
+
+const annotationExportKey = "datakit/prom.exporter"
+
+func (p *pod) Export() {
+	if p.promExporter == nil {
+		p.promExporter = NewPromExporter()
+	}
+
+	list, err := p.client.getPods()
+	if err != nil {
+		l.Errorf("failed of get pods resource: %s", err)
+		return
+	}
+
+	for _, obj := range list.Items {
+		config := obj.Annotations[annotationExportKey]
+		strings.ReplaceAll(config, "$IP", obj.Status.PodIP)
+		strings.ReplaceAll(config, "$NAMESPACE", obj.Namespace)
+		strings.ReplaceAll(config, "$PODNAME", obj.Name)
+
+		if err := p.promExporter.TryRun(config); err != nil {
+			l.Warn(err)
+		}
+	}
+}
+
+func (p *pod) Stop() {
+	if p.promExporter != nil {
+		p.promExporter.Stop()
 	}
 }
 

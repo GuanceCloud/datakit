@@ -70,6 +70,6 @@ func addLabelToFields(labels map[string]string, fields map[string]interface{}) {
 
 	// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
 	fields["df_label"] = labelsString
-	fields["df_label_premission"] = "read_only"
+	fields["df_label_permission"] = "read_only"
 	fields["df_label_source"] = "datakit"
 }
