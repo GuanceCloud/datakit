@@ -23,7 +23,7 @@ var (
 [[inputs.ddtrace]]
   ## DDTrace Agent endpoints register by version respectively.
   ## you can stop some patterns by remove them from the list but DO NOT MODIFY THESE PATTERNS.
-  # endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
+  endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
   ## Tracing data sample config, [rate] and [scope] together determine how many trace sample data
   ## will be send to DataFlux workspace.

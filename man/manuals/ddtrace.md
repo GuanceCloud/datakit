@@ -170,7 +170,6 @@ curl http://localhost:54322/stop
 ```python
 
 > T::SERVICE_A limit
-
 -----------------[ 1.SERVICE_A ]-----------------
 parent_id '14606556292855197324'
  resource 'flask.process_response'
@@ -205,34 +204,44 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 - 在 ddtrace.conf 中直接配置自定义标签。这种方式会影响**所有**发送给 DataKit tracing 服务的数据，需慎重考虑：
 
 ```toml
-{{.InputSample}}
+## tags is ddtrace configed key value pairs
+# [inputs.ddtrace.tags]
+	# some_tag = "some_value"
+	# more_tag = "some_other_value"
+	## ...
 ```
 
-### ddtrace 采样透传 tag
-
-| key          | value |
-| ------------ | ----- |
-| `_dd.origin` | `rum` |
-
-### ddtrace 客户端代码 tag 上报
-
-客户端代码中使用`span.SetTag(key, value)`设置到 span 中的 key 需要在 ddtrace 配置文件中明确配置
-
-```toml
-customer_tags = []
-```
-
-注意，这些 tags 中不要包含英文字符 '.'，带 `.` 的 tag 会忽略掉
-
-customer_tags = ["order_id", "task_id"]
-
-#### 关联 ddtrace 数据和容器对象
+<!--#### 关联 ddtrace 数据和容器对象
 
 若需要链路数据和容器对象关联，可按照如下方式开启应用（一般情况下就是修改 Dockerfile 中的启动命令 `CMD`）。这里的 `$HOSTNAME` 环境变量会自动替换成对应容器中的主机名：
 
 ```shell
 DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python your_app.py
 ```
+-->
+
+### 在代码中添加业务 tag
+
+在应用代码中，可通过诸如 `span.SetTag(some-tag-key, some-tag-value)`（不同语言方式不同） 这样的方式来设置业务自定义 tag。对于这些业务自定义 tag，可通过配置 `customer_tags` 来识别并提取：
+
+```toml
+customer_tags = []
+```
+
+注意，这些 tag-key 中不能包含英文字符 '.'，带 `.` 的 tag-key 会忽略掉，示例：
+
+```toml
+customer_tags = [
+	"order_id",
+	"task_id",
+	"some.invalid.key",  # 无效的 tag-key，DataKit 选择将其忽略
+]
+```
+
+#### 应用代码中添加业务 tag 注意事项
+
+- 务必在 `customer_tags` 中添加 tag-key 列表，否则 DataKit 不会进行业务 tag 的提取
+- 在开启了采样的情况下，部分添加了 tag 的 span 有可能被舍弃
 
 ### 设置 trace 数据采样率
 
@@ -252,23 +261,13 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 - 如果在 DataKit 上开启了采样率，就不要在 ddtrace 上再设置采样率，这可能导致双重采样，导致数据大面积缺失
 - 对 RUM 产生的 trace，这里的采样率不生效，建议在 [RUM 中设置采样率](https://www.yuque.com/dataflux/doc/eqs7v2#16fe8486)
 
-## 代码中使用 SetTag 注意事项
+#### ddtrace 采样透传 tag
 
-- 打开 ddtrace 采集器配置文件(`conf.d/ddtrace/ddtrace.conf`)，将 `customer_tag_prefix` 解注释并添加所需的前缀
-- 前缀中不能使用点(.)作为分隔符，以免造成解析错误
-- 在用户代码中所有对 `span.SetTag(key, value)` 的调用时，需在配置文件中，给 `key` 参数添加前缀匹配
-- 在开启了采样的情况下，部分添加了 tag 的 span 有可能被舍弃
+目前的采样会忽略带有如下 tag-value 的数据：
 
-## 指标集
-
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
-
-```toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
+| key          | value |
+| ------------ | ----- |
+| `_dd.origin` | `rum` |
 
 ## Tracing 数据
 

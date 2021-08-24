@@ -11,7 +11,7 @@
 - 新增[主机目录](hostdir)采集器(#264)
 - [CPU](cpu) 采集器支持单个 CPU 指标采集(#317)
 - [ddtrace](ddtrace) 支持多路由配置(#310)
-- [ddtrace](ddtrace) 支持自定义 tag 提取(#316)
+- [ddtrace](ddtrace#fb3a6e17) 支持自定义业务 tag 提取(#316)
 - [主机对象](hostobject)上报的采集器错误，只上报最近 30s(含)以内的错误(#318)
 - 禁用 Windows 下部分命令行帮助(#319)
 - 调整 DataKit [安装形式](datakit-install)，[离线安装](datakit-offline-install)方式做了调整(#300)
@@ -22,6 +22,7 @@
 - 从环境变量 `ENV_HOSTNAME` 获取主机名的功能已移除（1.1.7-rc8 支持），可通过[主机名覆盖功能](datakit-install#987d5f91) 来实现
 - 移除命令选项 `--reload`
 - 移除 DataKit API `/reload`，代之以 `/restart`
+- 由于调整了命令行选项，之前的查看 monitor 的命令，也需要 sudo 权限运行（因为要读取 datakit.conf 自动获取 DataKit 的配置）
 
 ---
 
