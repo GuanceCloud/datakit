@@ -40,6 +40,9 @@ var (
 	ginRotate = 32 // MB
 
 	g = datakit.G("http")
+
+	DcaToken  = ""
+	enableDca = false
 )
 
 const (
@@ -58,6 +61,7 @@ type Option struct {
 	GinRotate int
 	APIConfig *APIConfig
 	DataWay   *dataway.DataWayCfg
+	EnableDca bool
 
 	GinReleaseMode bool
 	PProf          bool
@@ -79,6 +83,7 @@ func Start(o *Option) {
 	ginRotate = o.GinRotate
 	apiConfig = o.APIConfig
 	dw = o.DataWay
+	enableDca = o.EnableDca
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
@@ -177,6 +182,23 @@ func HttpStart() {
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
+
+	// dca api
+	if enableDca {
+		router.GET("/v1/dca/stats", func(c *gin.Context) { dcaStats(c) })
+		router.GET("/v1/dca/inputDoc", func(c *gin.Context) { dcaInputDoc(c) })
+		router.GET("/v1/dca/reload", func(c *gin.Context) { dcaAuthMiddleware(dcaReload)(c) })
+		// conf
+		router.POST("/v1/dca/saveConfig", func(c *gin.Context) { dcaAuthMiddleware(dcaSaveConfig)(c) })
+		router.GET("/v1/dca/getConfig", func(c *gin.Context) { dcaAuthMiddleware(dcaGetConfig)(c) })
+		// pipelines
+		router.GET("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaGetPipelines)(c) })
+		router.GET("/v1/dca/pipelines/detail", func(c *gin.Context) { dcaAuthMiddleware(dcaGetPipelinesDetail)(c) })
+		router.POST("/v1/dca/pipelines/test", func(c *gin.Context) { dcaAuthMiddleware(dcaTestPipelines)(c) })
+		router.POST("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaCreatePipeline)(c) })
+		router.PATCH("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaUpdatePipeline)(c) })
+	}
+
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
 	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
 	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })

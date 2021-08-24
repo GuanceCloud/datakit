@@ -263,6 +263,7 @@ func doRun() error {
 
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
+		EnableDca:      config.Cfg.EnableDca,
 		GinLog:         config.Cfg.Logging.GinLog,
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",

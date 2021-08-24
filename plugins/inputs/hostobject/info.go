@@ -14,6 +14,7 @@ import (
 	memutil "github.com/shirou/gopsutil/mem"
 	netutil "github.com/shirou/gopsutil/net"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 
@@ -81,9 +82,17 @@ type (
 		cloudInfo  map[string]interface{}
 	}
 
+	HostConfig struct {
+		Ip         string `json:"ip"`
+		EnableDca  bool   `json:"enable_dca"`
+		HttpListen string `json:"http_listen"`
+		ApiToken   string `json:"api_token"`
+	}
+
 	HostObjectMessage struct {
 		Host       *HostInfo          `json:"host"`
 		Collectors []*CollectorStatus `json:"collectors,omitempty"`
+		Config     *HostConfig        `json:"config"`
 	}
 
 	CollectorStatus struct {
@@ -320,6 +329,8 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		return nil, fmt.Errorf("collector stats missing")
 	}
 
+	msg.Config = c.getHostConfig()
+
 	msg.Host = &HostInfo{
 		HostMeta:   getHostMeta(),
 		CPU:        getCPUInfo(),
@@ -350,4 +361,20 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	}
 
 	return &msg, nil
+}
+
+func (c *Input) getHostConfig() *HostConfig {
+	hostConfig := &HostConfig{}
+
+	ip, err := datakit.LocalIP()
+	if err == nil {
+		hostConfig.Ip = ip
+	}
+
+	hostConfig.EnableDca = config.Cfg.EnableDca
+
+	hostConfig.ApiToken = config.GetToken()
+	hostConfig.HttpListen = config.Cfg.HTTPAPI.Listen
+
+	return hostConfig
 }
