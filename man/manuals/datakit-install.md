@@ -79,7 +79,7 @@ $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitst
 DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>" bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
 
 # Windows
-$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
 俩种环境变量的设置格式为：

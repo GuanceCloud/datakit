@@ -21,7 +21,6 @@ var (
   bind = "0.0.0.0"
   ## default bind port
   port = 9530
-	proxy = false
 `
 	l = logger.DefaultSLogger(inputName)
 )
