@@ -41,6 +41,7 @@ var (
 		"sec-checker":              "man/manuals/sec-checker.md",
 		"telegraf":                 "man/manuals/telegraf.md",
 		"why-no-data":              "man/manuals/why-no-data.md",
+		"dca":                      "man/manuals/dca.md",
 	}
 	l = logger.DefaultSLogger("man")
 )
