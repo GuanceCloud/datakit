@@ -58,3 +58,4 @@ plugins/input/kubernetes/cfg.conf
 data/*
 dk-installer
 y.output
+/io/parser/gram_y.go
