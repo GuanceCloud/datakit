@@ -46,10 +46,11 @@ func TestNormal(t *testing.T) {
 
 	t.Run("panic catch", func(t *testing.T) {
 		isPanic := false
-		panicCb := func(buf []byte) {
+		panicCb := func(buf []byte) bool {
 			panicMsg := string(buf)
 			fmt.Println(panicMsg)
 			isPanic = true
+			return true
 		}
 		g := Group{
 			panicCb:    panicCb,

@@ -11,7 +11,8 @@ import (
 // A Group is a collection of goroutines working on subtasks that are part of
 // the same overall task.
 type Group struct {
-	panicCb      func([]byte)               // callback when panic
+	name         string
+	panicCb      func([]byte) bool          // callback when panic
 	postCb       func(error, time.Duration) // job finish callback
 	beforeCb     func()                     // job before callback
 	panicTimes   int8                       // max panic times
@@ -65,14 +66,16 @@ func (g *Group) do(f func(ctx context.Context) error) {
 	run = func() {
 		defer func() {
 			endTime = time.Now()
+
 			if r := recover(); r != nil {
+				var isPanicRetry bool = true
 				buf := make([]byte, 64<<10)
 				buf = buf[:runtime.Stack(buf, false)]
 				if g.panicCb != nil {
-					g.panicCb(buf)
+					isPanicRetry = g.panicCb(buf)
 				}
 
-				if panicTimes > 0 {
+				if isPanicRetry && panicTimes > 0 {
 					panicTimes--
 					if g.panicTimeout > 0 {
 						time.Sleep(g.panicTimeout)
@@ -154,4 +157,8 @@ func (g *Group) Wait() error {
 		g.cancel()
 	}
 	return g.err
+}
+
+func (g *Group) Name() string {
+	return g.name
 }
