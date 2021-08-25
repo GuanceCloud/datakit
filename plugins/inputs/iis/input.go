@@ -147,14 +147,16 @@ func (i *Input) Collect() error {
 	for mName, metricCounterMap := range PerfObjMetricMap {
 		ts := time.Now()
 		for objName := range metricCounterMap {
+
 			// measurement name -> instance name -> metric name -> counter query handle list index
-			indexMap := map[string]map[string]map[string]int{
-				mName: {}}
+			indexMap := map[string]map[string]map[string]int{mName: {}}
+
 			// counter name 被本地化，无法使用
 			instanceList, _, ret := pdh.PdhEnumObjectItems(objName)
 			if ret != uint32(windows.ERROR_SUCCESS) {
 				return fmt.Errorf("failed to enumerate the instance and counter of object %s", objName)
 			}
+
 			var pathList = make([]string, 0)
 			pathListIndex := 0
 			// instance
@@ -165,15 +167,6 @@ func (i *Input) Collect() error {
 					if metricName, ok := metricCounterMap[objName][key_counter]; ok {
 						// make full counter path
 						tmpCounterFullPath := pdh.MakeFullCounterPath(objName, instanceList[i], key_counter)
-						// if r := pdh.PdhValidatePath(tmpCounterFullPath); r != uint32(windows.ERROR_SUCCESS) {
-						// 	// Check full counter path
-						// 	l.Errorf("path %s invalid", tmpCounterFullPath)
-						// } else {
-						// 	// append to path list; save index
-						// 	pathList = append(pathList, tmpCounterFullPath)
-						// 	indexMap[mName][instanceList[i]][metricName] = pathListIndex
-						// 	pathListIndex += 1
-						// }
 						pathList = append(pathList, tmpCounterFullPath)
 
 						indexMap[mName][instanceList[i]][metricName] = pathListIndex

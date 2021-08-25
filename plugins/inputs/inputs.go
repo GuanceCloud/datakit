@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 var (
 	Inputs     = map[string]Creator{}
 	InputsInfo = map[string][]*inputInfo{}
+	ConfigInfo = map[string]*Config{}
 
 	l           = logger.DefaultSLogger("inputs")
 	panicInputs = map[string]int{}
@@ -34,6 +36,17 @@ func GetElectionInputs() []ElectionInput {
 		}
 	}
 	return res
+}
+
+type ConfigPathStat struct {
+	Loaded int8   `json:"loaded"` // 0: 启动失败 1: 启动成功 2: 修改未加载
+	Path   string `json:"path"`
+}
+type Config struct {
+	ConfigPaths  []*ConfigPathStat `json:"config_paths"`
+	SampleConfig string            `json:"sample_config"`
+	Catalog      string            `json:"catalog"`
+	ConfigDir    string            `json:"config_dir"`
 }
 
 type Input interface {
@@ -64,6 +77,10 @@ type InputV2 interface {
 type ElectionInput interface {
 	Pause() error
 	Resume() error
+}
+
+type ReadEnv interface {
+	ReadEnv(map[string]string)
 }
 
 type Creator func() Input
@@ -114,10 +131,30 @@ func ResetInputs() {
 	InputsInfo = map[string][]*inputInfo{}
 }
 
+func getEnvs() map[string]string {
+
+	envs := map[string]string{}
+	for _, v := range os.Environ() {
+		arr := strings.SplitN(v, "=", 2)
+		if len(arr) != 2 {
+			continue
+		}
+
+		if strings.HasPrefix(arr[0], "ENV_") || strings.HasPrefix(arr[0], "DK_") {
+			envs[arr[0]] = arr[1]
+		}
+	}
+
+	return envs
+}
+
 func RunInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	g := datakit.G("inputs")
+
+	envs := getEnvs()
+
 	for name, arr := range InputsInfo {
 		for _, ii := range arr {
 			if ii.input == nil {
@@ -128,8 +165,13 @@ func RunInputs() error {
 			if inp, ok := ii.input.(HTTPInput); ok {
 				inp.RegHttpHandler()
 			}
+
 			if inp, ok := ii.input.(PipelineInput); ok {
 				inp.RunPipeline()
+			}
+
+			if inp, ok := ii.input.(ReadEnv); ok && datakit.Docker {
+				inp.ReadEnv(envs)
 			}
 
 			func(name string, ii *inputInfo) {
@@ -203,7 +245,7 @@ func InputEnabled(name string) (n int) {
 	}
 
 	n = len(arr)
-	l.Debugf("name enabled %d", n)
+	l.Debugf("name %s enabled %d", name, n)
 	return
 }
 

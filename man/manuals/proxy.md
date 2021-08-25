@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 解决`Datakit`部署在无法访问`Internet`的内部网络环境需要使用代理服务器访问`Internet`。
 
@@ -43,7 +43,7 @@ curl -v -X POST http://127.0.0.1:8090/v1/write/metrics?token=TOKEN -d "proxy_tes
 ```
 [dataway]
 	# IP 和 Port 为 Nginx 代理服务的配置信息
-  urls = ["http://127.0.0.1:8090?token=TOKEN"]
+  urls = ["http://127.0.0.1:8090?token=<TOKEN>"]
 ```
 
 > 注意：Nginx 代理的情况下，到此即可，无需进行以下步骤。
@@ -65,15 +65,15 @@ curl -v -X POST http://127.0.0.1:8090/v1/write/metrics?token=TOKEN -d "proxy_tes
 - 通过发送 metrics 到工作空间测试
 
 ```shell
-curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v -X POST https://openway.dataflux.cn/v1/write/metrics?token=[your_token] -d "proxy_test,name=test c=123i"
+curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v -X POST https://openway.dataflux.cn/v1/write/metrics?token=<TOKEN> -d "proxy_test,name=test c=123i"
 ```
 
-如果代理服务器工作正常，[your_token]代表的工作空间将收到指标数据 "proxy_test,name=test c=123i"。
+如果代理服务器工作正常，工作空间将收到指标数据 `proxy_test,name=test c=123i`。
 
 - 通过测试 Dataway
 
 ```shell
-curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v https://openway.dataflux.cn/v1/write/metrics
+curl --proxy http://<proxy_server_ip>:<proxy_server_port> -v https://openway.dataflux.cn/v1/write/metric
 ```
 
 如果代理服务器工作正常，命令行中将收到 Dataway 返回的 HTML 数据。
@@ -85,7 +85,7 @@ curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v https://openway.dat
 ```toml
 [dataway]
   urls = ["https://openway.dataflux.cn?token=TOKEN"]
-  http_proxy = "http://<代理 DataKit IP>:9530"
+  http_proxy = "http://<proxy-ip>:<proxy-port>"
 ```
 
 配置好后，[重启 DataKit](datakit-how-to#147762ed)。

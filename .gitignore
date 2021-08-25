@@ -11,7 +11,6 @@ dist/
 old/
 *.tar.gz
 git/git.go
-install.sh
 *.log
 config.d/
 test/
@@ -58,3 +57,5 @@ plugins/input/kubernetes/pki/*
 plugins/input/kubernetes/cfg.conf
 data/*
 dk-installer
+y.output
+/io/parser/gram_y.go

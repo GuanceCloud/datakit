@@ -7,25 +7,18 @@ import (
 	"net/http"
 	"time"
 
+	markdown "github.com/MichaelMure/go-term-markdown"
 	"golang.org/x/term"
 
-	markdown "github.com/MichaelMure/go-term-markdown"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
-func CMDMonitor(intervalStr, addrStr string, verbose bool) {
-	addr := "http://localhost:9529/stats"
-	if addrStr != "" {
-		addr = "http://" + addrStr + "/stats"
-	}
+func cmdMonitor(interval time.Duration, verbose bool) {
+	addr := fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen)
 
-	interval := 3 * time.Second
-	if intervalStr != "" {
-		if du, err := time.ParseDuration(intervalStr); err == nil {
-			if du >= time.Second {
-				interval = du // only accept interval >= 1s
-			}
-		}
+	if interval < time.Second {
+		interval = time.Second
 	}
 
 	run := func() {
@@ -40,7 +33,7 @@ func CMDMonitor(intervalStr, addrStr string, verbose bool) {
 		}
 	}
 
-	run()
+	run() // run before sleep
 
 	tick := time.NewTicker(interval)
 	defer tick.Stop()
@@ -75,8 +68,6 @@ func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 	if err := json.Unmarshal(body, &ds); err != nil {
 		return nil, err
 	}
-
-	l.Debugf("stats.ReloadInfo: %s", ds.ReloadInfo)
 
 	mdtxt, err := ds.Markdown("", verbose)
 	if err != nil {

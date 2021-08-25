@@ -42,7 +42,7 @@ type Input struct {
 	Kubernetes *Kubernetes `toml:"kubelet"`
 	Logs       Logs        `toml:"log"`
 
-	in chan *job
+	in chan []*job
 
 	clients []collector
 
@@ -58,7 +58,7 @@ func newInput() *Input {
 		Endpoint:       dockerEndpoint,
 		Tags:           make(map[string]string),
 		metricDuration: minMetricDuration,
-		in:             make(chan *job, 64),
+		in:             make(chan []*job, 64),
 	}
 }
 
@@ -248,8 +248,6 @@ func (this *Input) buildDockerClient() error {
 	return nil
 }
 
-const defaultK8sURL = "http://127.0.0.1:10255"
-
 func (this *Input) buildK8sClient() error {
 	if this.Kubernetes == nil {
 		return nil
@@ -258,7 +256,9 @@ func (this *Input) buildK8sClient() error {
 	err := this.Kubernetes.Init()
 	if err != nil {
 		// 如果使用默认 k8s url，init() 失败将不会追究，忽略此错误避免影响到 container 采集
-		if this.Kubernetes.URL == defaultK8sURL {
+
+		if this.Kubernetes.URL == "http://127.0.0.1:10255" ||
+			this.Kubernetes.URL == "http://localhost:10255" {
 			// 此处将该指针置空，以示后续将不再采集 k8s
 			this.Kubernetes = nil
 			return nil
@@ -307,21 +307,23 @@ func (this *Input) doFeed() {
 		case <-datakit.Exit.Wait():
 			return
 
-		case in := <-this.in:
-			this.processTags(in.tags)
+		case jobs := <-this.in:
+			for _, job := range jobs {
+				this.processTags(job.tags)
 
-			pt, err := io.MakePoint(in.measurement, in.tags, in.fields, in.ts)
-			if err != nil {
-				l.Error(err)
-				continue
+				pt, err := io.MakePoint(job.measurement, job.tags, job.fields, job.ts)
+				if err != nil {
+					l.Error(err)
+					continue
+				}
+
+				if _, ok := cache[job.category]; !ok {
+					cache[job.category] = &data{}
+				}
+
+				cache[job.category].pts = append(cache[job.category].pts, pt)
+				cache[job.category].costs = append(cache[job.category].costs, job.cost)
 			}
-
-			if _, ok := cache[in.category]; !ok {
-				cache[in.category] = &data{}
-			}
-
-			cache[in.category].pts = append(cache[in.category].pts, pt)
-			cache[in.category].costs = append(cache[in.category].costs, in.cost)
 
 		case <-cleanTick.C:
 			for category, d := range cache {

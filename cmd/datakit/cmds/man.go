@@ -15,7 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func Man() {
+func cmdMan() {
 
 	switch runtime.GOOS {
 	case "windows":
@@ -46,7 +46,7 @@ func Man() {
 	p.Run()
 }
 
-func ExportMan(to, skipList, ver string) error {
+func exportMan(to, skipList, ver string) error {
 	if err := os.MkdirAll(to, 0600); err != nil {
 		return err
 	}

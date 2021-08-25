@@ -1,9 +1,10 @@
 package kafka
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 type KafkaMeasurement struct {
@@ -415,7 +416,7 @@ func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo {
 			"TotalQueueSize.Value":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{"jolokia agent url path"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 		},
 	}
 }
@@ -461,7 +462,7 @@ func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
 			"UnderReplicatedPartitions.Value": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 		},
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{"jolokia agent url path"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 		},
 	}
 }
@@ -500,7 +501,7 @@ func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{"jolokia agent url path"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 		},
 	}
 }
@@ -622,7 +623,7 @@ func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
 			"TotalTimeMs.Count":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 		},
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{"jolokia agent url path"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 		},
 	}
 }
@@ -781,7 +782,7 @@ func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{"jolokia agent url path"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 		},
 	}
 }
@@ -836,8 +837,8 @@ func (j *KafkaTopicMment) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{"jolokia agent url path"},
-			"topic":             inputs.TagInfo{"topic name"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+			"topic":             inputs.TagInfo{Desc: "topic name"},
 		},
 	}
 }
@@ -858,9 +859,9 @@ func (j *KafkaPartitionMment) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{"jolokia agent url path"},
-			"partition":         inputs.TagInfo{"partition number"},
-			"topic":             inputs.TagInfo{"topic name"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+			"partition":         inputs.TagInfo{Desc: "partition number"},
+			"topic":             inputs.TagInfo{Desc: "topic name"},
 		},
 	}
 }

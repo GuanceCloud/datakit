@@ -2,6 +2,36 @@
 
 # DataKit 版本历史
 
+## 1.1.8-rc2(2021/08/24 发布)
+
+- 支持同步 Kubernetes labels 到各种对象上（pod/service/...）(#279)
+- `datakit` 指标集增加数据丢弃指标(#286)
+- [Kubernetes 集群自定义指标采集](kubernetes-prom) 优化(#283)
+- [ElasticSearch](elasticsearch) 采集器完善(#275)
+- 新增[主机目录](hostdir)采集器(#264)
+- [CPU](cpu) 采集器支持单个 CPU 指标采集(#317)
+- [ddtrace](ddtrace) 支持多路由配置(#310)
+- [ddtrace](ddtrace#fb3a6e17) 支持自定义业务 tag 提取(#316)
+- [主机对象](hostobject)上报的采集器错误，只上报最近 30s(含)以内的错误(#318)
+- 禁用 Windows 下部分命令行帮助(#319)
+- 调整 DataKit [安装形式](datakit-install)，[离线安装](datakit-offline-install)方式做了调整(#300)
+	- 调整之后，依然兼容之前老的安装方式
+
+### Breaking Changes
+
+- 从环境变量 `ENV_HOSTNAME` 获取主机名的功能已移除（1.1.7-rc8 支持），可通过[主机名覆盖功能](datakit-install#987d5f91) 来实现
+- 移除命令选项 `--reload`
+- 移除 DataKit API `/reload`，代之以 `/restart`
+- 由于调整了命令行选项，之前的查看 monitor 的命令，也需要 sudo 权限运行（因为要读取 datakit.conf 自动获取 DataKit 的配置）
+
+---
+
+## 1.1.8-rc1.1(2021/08/13)
+
+- 修复 `ENV_HTTP_LISTEN` 无效问题，该问题导致容器部署（含 K8s DaemonSet 部署）时，HTTP 服务启动异常。
+
+---
+
 ## 1.1.8-rc1(2021/08/10)
 
 - 修复云同步开启时，无法上报主机对象的问题

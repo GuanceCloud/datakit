@@ -117,8 +117,6 @@ func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
 			if key == "name" {
 				if val == "" {
 					val = "unknown"
-				} else {
-					val = val
 				}
 				m.tags["name"] = val
 			} else {
