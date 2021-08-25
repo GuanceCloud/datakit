@@ -73,8 +73,8 @@ func CoreTemp() (map[string]float64, error) {
 			return nil, fmt.Errorf("no coretemp data or regexp error")
 		}
 	}
+
 	return nil, nil
-	// return nil, fmt.Errorf("os is not supported")
 }
 
 // cpu usage stat

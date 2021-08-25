@@ -181,10 +181,10 @@ $installer = "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit/
 $dw = "https://openway.dataflux.cn?token=$tkn"
 
 # 升级脚本
-Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -upgrade; rm .dk-installer.exe
+Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -upgrade; rm .dk-installer.exe
 
 # 安装脚本
-Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -dataway "$dw"; rm .dk-installer.exe
+Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -dataway "$dw"; rm .dk-installer.exe
 ```
 
 如果要执行 powershell 脚本（dk.ps1），在 Powershell 中执行如下命令：

@@ -58,6 +58,8 @@
   # ...
 ```
 
+>  注意：DataKit 启动后，`logfiles` 中配置的日志文件有新的日志产生才会采集上来，**老的日志数据是不会采集的**。
+
 ### match 使用说明
 
 设置正则表达式，符合此正则匹配的数据，被认为是一条新的日志数据，否则将其追加到上一条日志数据中。正则表达式文档[链接](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
@@ -196,3 +198,7 @@ linux mount NFS [说明文档](https://linuxize.com/post/how-to-mount-an-nfs-sha
 {{$m.FieldsMarkdownTable}}
 
 {{ end }} 
+
+## 更多参考
+
+- pipeline 性能测试和对比[文档](logging-pipeline-bench)

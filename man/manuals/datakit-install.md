@@ -53,7 +53,11 @@ sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 > Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell。按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择「以管理员身份运行」即可。
 
 ```powershell
+<<<<<<< HEAD
 $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+=======
+$env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+>>>>>>> master
 ```
 
 ### 额外支持的安装变量
@@ -74,7 +78,11 @@ $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitst
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
+<<<<<<< HEAD
 ```
+=======
+```shell
+>>>>>>> master
 # Linux/Mac
 DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>" bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
 

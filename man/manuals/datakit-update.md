@@ -52,7 +52,7 @@ ReleasedInputs: all
 Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
 
 Upgrade:
-    $env:DK_UPGRADE="1"; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+    $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
 > 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置。
