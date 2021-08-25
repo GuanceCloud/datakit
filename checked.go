@@ -21,6 +21,7 @@ var (
 		"qyt_all":    false,
 		"secureexec": false,
 		"demo":       false,
+		"hostdir":    false,
 
 		"activemqlog":            true,
 		"aliyunactiontrail":      true,

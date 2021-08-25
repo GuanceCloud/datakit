@@ -14,18 +14,17 @@ func TestProcessText(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		logs := newLogs(tc.in)
-		err := logs.pipeline(nil).
-			checkFieldsLength().
-			addStatus(false).
-			ignoreStatus(nil).
-			takeTime().
-			point("testing", nil).
-			error()
+		logs := NewLogs(tc.in)
+		err := logs.Pipeline(nil).
+			CheckFieldsLength().
+			AddStatus(false).
+			IgnoreStatus(nil).
+			TakeTime().
+			Point("testing", nil).Error()
 		if err != nil {
 			t.Error(err)
 		}
 
-		t.Log(logs.output())
+		t.Log(logs.Output())
 	}
 }

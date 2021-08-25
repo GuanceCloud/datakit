@@ -10,7 +10,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -30,13 +29,9 @@ var (
 	ginReleaseMode = true
 	pprof          bool
 
-	uptime    = time.Now()
-	reload    time.Time
-	reloadCnt int
+	uptime = time.Now()
 
-	stopCh   = make(chan interface{})
-	stopOkCh = make(chan interface{})
-	mtx      = sync.Mutex{}
+	mtx = sync.Mutex{}
 
 	dw        *dataway.DataWayCfg
 	extraTags = map[string]string{}
@@ -45,6 +40,9 @@ var (
 	ginRotate = 32 // MB
 
 	g = datakit.G("http")
+
+	DcaToken  = ""
+	enableDca = false
 )
 
 const (
@@ -63,6 +61,7 @@ type Option struct {
 	GinRotate int
 	APIConfig *APIConfig
 	DataWay   *dataway.DataWayCfg
+	EnableDca bool
 
 	GinReleaseMode bool
 	PProf          bool
@@ -84,10 +83,12 @@ func Start(o *Option) {
 	ginRotate = o.GinRotate
 	apiConfig = o.APIConfig
 	dw = o.DataWay
+	enableDca = o.EnableDca
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
 		HttpStart()
+		l.Info("http goroutine exit")
 		return nil
 	})
 }
@@ -137,39 +138,6 @@ func page404(c *gin.Context) {
 	c.String(http.StatusNotFound, buf.String())
 }
 
-func corsMiddleware(c *gin.Context) {
-	allowHeaders := []string{
-		"Content-Type",
-		"Content-Length",
-		"Accept-Encoding",
-		"X-CSRF-Token",
-		"Authorization",
-		"accept",
-		"origin",
-		"Cache-Control",
-		"X-Requested-With",
-
-		// dataflux headers
-		"X-Token",
-		"X-Datakit-UUID",
-		"X-RP",
-		"X-Precision",
-		"X-Lua",
-	}
-
-	c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("origin"))
-	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
-	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-	if c.Request.Method == "OPTIONS" {
-		c.AbortWithStatus(http.StatusNoContent)
-		return
-	}
-
-	c.Next()
-}
-
 func HttpStart() {
 	gin.DisableConsoleColor()
 
@@ -201,7 +169,7 @@ func HttpStart() {
 	}))
 
 	router.Use(gin.Recovery())
-	router.Use(corsMiddleware)
+	router.Use(uhttp.CORSMiddleware)
 	if !apiConfig.Disable404Page {
 		router.NoRoute(page404)
 	}
@@ -211,20 +179,31 @@ func HttpStart() {
 	// internal datakit stats API
 	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c) })
 	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c) })
-
 	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
+	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
 
-	// reload disabled under windows, syscall.Kill() not supported under windows
-	if runtime.GOOS != "windows" {
-		router.GET("/reload", func(c *gin.Context) { apiReload(c) })
+	// dca api
+	if enableDca {
+		router.GET("/v1/dca/stats", func(c *gin.Context) { dcaStats(c) })
+		router.GET("/v1/dca/inputDoc", func(c *gin.Context) { dcaInputDoc(c) })
+		router.GET("/v1/dca/reload", func(c *gin.Context) { dcaAuthMiddleware(dcaReload)(c) })
+		// conf
+		router.POST("/v1/dca/saveConfig", func(c *gin.Context) { dcaAuthMiddleware(dcaSaveConfig)(c) })
+		router.GET("/v1/dca/getConfig", func(c *gin.Context) { dcaAuthMiddleware(dcaGetConfig)(c) })
+		// pipelines
+		router.GET("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaGetPipelines)(c) })
+		router.GET("/v1/dca/pipelines/detail", func(c *gin.Context) { dcaAuthMiddleware(dcaGetPipelinesDetail)(c) })
+		router.POST("/v1/dca/pipelines/test", func(c *gin.Context) { dcaAuthMiddleware(dcaTestPipelines)(c) })
+		router.POST("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaCreatePipeline)(c) })
+		router.PATCH("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaUpdatePipeline)(c) })
 	}
 
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
-
 	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
-
 	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
+	router.POST("/v1/object/labels", func(c *gin.Context) { apiCreateOrUpdateObjectLabel(c) })
+	router.DELETE("/v1/object/labels", func(c *gin.Context) { apiDeleteObjectLabel(c) })
 
 	srv := &http.Server{
 		Addr:    apiConfig.Listen,
@@ -252,7 +231,8 @@ func HttpStart() {
 	}
 
 	l.Debug("http server started")
-	<-stopCh
+	<-datakit.Exit.Wait()
+
 	l.Debug("stopping http server...")
 
 	if err := srv.Shutdown(context.Background()); err != nil {
@@ -270,16 +250,13 @@ func HttpStart() {
 		l.Infof("pprof stopped")
 	}
 
-	stopOkCh <- nil
-}
-
-func HttpStop() {
-	l.Info("trigger HTTP server to stopping...")
-	stopCh <- nil
+	return
 }
 
 func tryStartServer(srv *http.Server) {
 	retryCnt := 0
+
+	// TODO: test if port available
 
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
@@ -295,4 +272,19 @@ func tryStartServer(srv *http.Server) {
 		}
 		time.Sleep(time.Second)
 	}
+}
+
+func checkToken(r *http.Request) error {
+	localTokens := dw.GetToken()
+	if len(localTokens) == 0 {
+		return ErrInvalidToken
+	}
+
+	tkn := r.URL.Query().Get("token")
+
+	if tkn == "" || tkn != localTokens[0] {
+		return ErrInvalidToken
+	}
+
+	return nil
 }

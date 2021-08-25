@@ -3,18 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
-	"sort"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
-	pr "github.com/shirou/gopsutil/v3/process"
 	flag "github.com/spf13/pflag"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -30,96 +25,101 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 )
 
-var (
-	flagVersion = flag.BoolP("version", "V", false, `show version info`)
-	flagDocker  = flag.Bool("docker", false, "run within docker")
+func init() {
+	flag.BoolVarP(&cmds.FlagVersion, "version", "V", false, `show version info`)
+	flag.BoolVar(&cmds.FlagCheckUpdate, "check-update", false, "check if new verison available")
+	flag.BoolVar(&cmds.FlagAcceptRCVersion, "accept-rc-version", false, "during update, accept RC version if available")
+	flag.BoolVar(&cmds.FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
+	flag.StringVar(&cmds.FlagUpdateLogFile, "update-log", "", "update history log file")
 
-	// deprecated
-	flagCmdDeprecated = flag.Bool("cmd", false, "run datakit under command line mode")
+	flag.StringVar(&cmds.FlagWorkDir, "work-dir", "", "set datakit work dir")
+	flag.BoolVar(&cmds.FlagDefConf, "default-main-conf", false, "get datakit default main configure")
 
-	////////////////////////////////////////////////////////////
-	// Commands
-	////////////////////////////////////////////////////////////
-	flagPipeline = flag.String("pl", "", "pipeline script to test(name only, do not use file path)")
-	flagGrokq    = flag.Bool("grokq", false, "query groks interactively")
-	flagText     = flag.String("txt", "", "text string for the pipeline or grok(json or raw text)")
-	flagProm     = flag.String("prom-conf", "", "prom config file to test")
+	// debug grok
+	flag.StringVar(&cmds.FlagPipeline, "pl", "", "pipeline script to test(name only, do not use file path)")
+	flag.BoolVar(&cmds.FlagGrokq, "grokq", false, "query groks interactively")
+	flag.StringVar(&cmds.FlagText, "txt", "", "text string for the pipeline or grok(json or raw text)")
+
+	flag.StringVar(&cmds.FlagProm, "prom-conf", "", "prom config file to test")
 
 	// manuals related
-	flagMan               = flag.Bool("man", false, "read manuals of inputs")
-	flagExportMan         = flag.String("export-manuals", "", "export all inputs and related manuals to specified path")
-	flagIgnore            = flag.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
-	flagExportIntegration = flag.String("export-integration", "", "export all integrations")
-	flagManVersion        = flag.String("man-version", datakit.Version, "specify manuals version")
-	flagTODO              = flag.String("TODO", "TODO", "set TODO")
-
-	flagK8sCfgPath  = flag.String("k8s-deploy", "", "generate k8s deploy config path (absolute path)")
-	flagInteractive = flag.Bool("interactive", false, "interactive generate k8s deploy config")
-
-	flagCheckUpdate         = flag.Bool("check-update", false, "check if new verison available")
-	flagAcceptRCVersion     = flag.Bool("accept-rc-version", false, "during update, accept RC version if available")
-	flagShowTestingVersions = flag.Bool("show-testing-version", false, "show testing versions on -version flag")
-
-	flagUpdateLogFile = flag.String("update-log", "", "update history log file")
+	flag.BoolVar(&cmds.FlagMan, "man", false, "read manuals of inputs")
+	flag.StringVar(&cmds.FlagExportMan, "export-manuals", "", "export all inputs and related manuals to specified path")
+	flag.StringVar(&cmds.FlagIgnore, "ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
+	flag.StringVar(&cmds.FlagExportIntegration, "export-integration", "", "export all integrations")
+	flag.StringVar(&cmds.FlagManVersion, "man-version", datakit.Version, "specify manuals version")
+	flag.StringVar(&cmds.FlagTODO, "TODO", "TODO", "set TODO")
 
 	// install 3rd-party kit
-	flagInstallExternal = flag.String("install", "", "install external tool/software")
+	flag.StringVar(&cmds.FlagInstallExternal, "install", "", "install external tool/software")
 
 	// managing service
-	flagStart     = flag.Bool("start", false, "start datakit")
-	flagStop      = flag.Bool("stop", false, "stop datakit")
-	flagRestart   = flag.Bool("restart", false, "restart datakit")
-	flagReload    = flag.Bool("reload", false, "reload datakit")
-	flagStatus    = flag.Bool("status", false, "show datakit service status")
-	flagUninstall = flag.Bool("uninstall", false, "uninstall datakit service(not delete DataKit files)")
-	flagReinstall = flag.Bool("reinstall", false, "re-install datakit service")
-
-	flagDatakitHost = flag.StringP("datakit-host", "H", "localhost:9529", "datakit HTTP host")
+	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
+	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
+	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
+	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
+	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
+	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
 
 	// DQL
-	flagDQL    = flag.BoolP("dql", "Q", false, "query DQL interactively")
-	flagRunDQL = flag.String("run-dql", "", "run single DQL")
+	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "query DQL interactively")
+	flag.StringVar(&cmds.FlagRunDQL, "run-dql", "", "run single DQL")
 
-	// partially update
-	flagUpdateIPDb = flag.Bool("update-ip-db", false, "update ip db")
-	flagAddr       = flag.StringP("addr", "A", "", "url path")
-	flagInterval   = flag.StringP("interval", "I", "", "auxiliary option, time interval")
+	// update online data
+	flag.BoolVar(&cmds.FlagUpdateIPDB, "update-ip-db", false, "update ip db")
+	flag.StringVarP(&cmds.FlagAddr, "addr", "A", "", "url path")
+	flag.DurationVar(&cmds.FlagInterval, "interval", time.Second*3, "auxiliary option, time interval")
 
 	// utils
-	flagShowCloudInfo = flag.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
-	flagIPInfo        = flag.String("ipinfo", "", "show IP geo info")
-	flagMonitor       = flag.BoolP("monitor", "M", false, "show monitor info of current datakit")
-	flagCheckConfig   = flag.Bool("check-config", false, "check inputs configure and main configure")
-	flagVVV           = flag.Bool("vvv", false, "more verbose info")
-	flagCmdLogPath    = flag.String("cmd-log", "/dev/null", "command line log path")
-	flagDumpSamples   = flag.String("dump-samples", "", "dump all inputs samples")
-)
+	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flag.StringVar(&cmds.FlagIPInfo, "ipinfo", "", "show IP geo info")
+
+	if runtime.GOOS != "windows" { // unsupported options under windows
+		flag.BoolVarP(&cmds.FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")
+		flag.BoolVar(&cmds.FlagDocker, "docker", false, "run within docker")
+	}
+
+	flag.BoolVar(&cmds.FlagCheckConfig, "check-config", false, "check inputs configure and main configure")
+	flag.BoolVar(&cmds.FlagVVV, "vvv", false, "more verbose info")
+	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
+	flag.StringVar(&cmds.FlagDumpSamples, "dump-samples", "", "dump all inputs samples")
+
+	flag.BoolVar(&config.DisableSelfInput, "disable-self-input", false, "disable self input")
+	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
+	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
+	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
+
+}
 
 var (
 	l = logger.DefaultSLogger("main")
 
+	// injected during building: -X
 	ReleaseType    = ""
 	ReleaseVersion = ""
 )
 
-const (
-	PID_FILENAME = ".pid"
-)
-
 func setupFlags() {
-	flag.CommandLine.MarkHidden("cmd") // deprecated
 
-	// internal using
-	flag.CommandLine.MarkHidden("TODO")
-	flag.CommandLine.MarkHidden("check-update")
-	flag.CommandLine.MarkHidden("man-version")
-	flag.CommandLine.MarkHidden("export-integration")
-	flag.CommandLine.MarkHidden("addr")
-	flag.CommandLine.MarkHidden("show-testing-version")
-	flag.CommandLine.MarkHidden("update-log")
-	flag.CommandLine.MarkHidden("k8s-deploy")
-	flag.CommandLine.MarkHidden("interactive")
-	flag.CommandLine.MarkHidden("dump-samples")
+	// hidden flags
+	for _, f := range []string{
+		"TODO",
+		"man-version",
+		"export-integration",
+		"addr",
+		"show-testing-version",
+		"update-log",
+		"interactive",
+		"dump-samples",
+		"work-dir",
+		"default-main-conf",
+		"disable-self-input",
+		"disable-dataway-list",
+		"disable-logfilter",
+		"disable-heartbeat",
+	} {
+		flag.CommandLine.MarkHidden(f)
+	}
 
 	if runtime.GOOS == "windows" {
 		flag.CommandLine.MarkHidden("reload")
@@ -129,7 +129,7 @@ func setupFlags() {
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
 
 	if runtime.GOOS == "windows" {
-		*flagCmdLogPath = "nul" // under windows, nul is /dev/null
+		cmds.FlagCmdLogPath = "nul" // under windows, nul is /dev/null
 	}
 }
 
@@ -144,27 +144,33 @@ func main() {
 	flag.Parse()
 	applyFlags()
 
-	if !checkIsRuning() {
-		savePid()
-		go rmPidFile()
-	} else {
-		l.Warn("datakit is already running")
-		os.Exit(0)
+	if err := datakit.SavePid(); err != nil {
+		fmt.Println(err.Error())
+		os.Exit(-1)
 	}
 
 	tryLoadConfig()
 
-	// This may throw `Unix syslog delivery error` within docker, so we just
-	// start the entry under docker.
-	if *flagDocker {
+	datakit.SetLog()
+
+	if cmds.FlagDocker {
+		// This may throw `Unix syslog delivery error` within docker, so we just
+		// start the entry under docker.
 		run()
 	} else {
+
 		go cgroup.Run()
 		service.Entry = run
-		if err := service.StartService(); err != nil {
-			l.Errorf("start service failed: %s", err.Error())
-			return
+
+		if cmds.FlagWorkDir != "" { // debugging running, not start as service
+			run()
+		} else {
+			if err := service.StartService(); err != nil {
+				l.Errorf("start service failed: %s", err.Error())
+				return
+			}
 		}
+
 	}
 
 	l.Info("datakit exited")
@@ -172,15 +178,22 @@ func main() {
 
 func applyFlags() {
 
-	inputs.TODO = *flagTODO
+	inputs.TODO = cmds.FlagTODO
+
+	if cmds.FlagWorkDir != "" {
+		datakit.SetWorkDir(cmds.FlagWorkDir)
+	}
 
 	datakit.EnableUncheckInputs = (ReleaseType == "all")
 
-	if *flagDocker {
+	if cmds.FlagDocker {
 		datakit.Docker = true
 	}
 
-	runDatakitWithCmds()
+	cmds.ReleaseVersion = ReleaseVersion
+	cmds.ReleaseType = ReleaseType
+
+	cmds.RunCmds()
 }
 
 func run() {
@@ -202,25 +215,20 @@ func run() {
 		signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
 		select {
 		case sig := <-signals:
-			if sig == syscall.SIGHUP {
-				l.Info("under signal SIGHUP, reloading...")
-				cmds.Reload()
-			} else {
-				l.Infof("get signal %v, wait & exit", sig)
-				dkhttp.HttpStop()
-				datakit.Quit()
-				break
-			}
+			l.Infof("get signal %v, wait & exit", sig)
+			datakit.Quit()
+			l.Info("datakit exit.")
+			goto exit
 
 		case <-service.StopCh:
 			l.Infof("service stopping")
-			dkhttp.HttpStop()
 			datakit.Quit()
-			break
+			l.Info("datakit exit.")
+			goto exit
 		}
 	}
-
-	l.Info("datakit exit.")
+exit:
+	time.Sleep(time.Second)
 }
 
 func tryLoadConfig() {
@@ -240,10 +248,6 @@ func tryLoadConfig() {
 
 func doRun() error {
 
-	for _, x := range os.Environ() {
-		l.Infof("get env %s", x)
-	}
-
 	io.Start()
 
 	if config.Cfg.EnableElection {
@@ -255,11 +259,11 @@ func doRun() error {
 		return err
 	}
 
-	dkhttp.Start(&dkhttp.Option{
-		//Bind:           config.Cfg.HTTPAPI.Listen,
-		//Disable404Page: config.Cfg.HTTPAPI.Disable404Page,
-		APIConfig: config.Cfg.HTTPAPI,
+	// FIXME: wait all inputs ok, then start http server
 
+	dkhttp.Start(&dkhttp.Option{
+		APIConfig:      config.Cfg.HTTPAPI,
+		EnableDca:      config.Cfg.EnableDca,
 		GinLog:         config.Cfg.Logging.GinLog,
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
@@ -271,331 +275,4 @@ func doRun() error {
 	time.Sleep(time.Second) // wait http server ok
 
 	return nil
-}
-
-func runDatakitWithCmds() {
-
-	if *flagCheckUpdate { // 更新日志单独存放，不跟 cmd.log 一块
-		if *flagUpdateLogFile != "" {
-			if err := logger.SetGlobalRootLogger(*flagUpdateLogFile, logger.DEBUG, logger.OPT_DEFAULT); err != nil {
-				l.Errorf("set root log faile: %s", err.Error())
-			}
-		}
-		ret := cmds.CheckUpdate(ReleaseVersion, *flagAcceptRCVersion)
-		os.Exit(ret)
-	}
-
-	if *flagVersion {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		cmds.ShowVersion(ReleaseVersion, ReleaseType, *flagShowTestingVersions)
-		os.Exit(0)
-	}
-
-	if *flagCheckConfig {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		cmds.CheckConfig()
-		os.Exit(0)
-	}
-
-	if *flagDQL {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		cmds.DQL(*flagDatakitHost)
-		os.Exit(0)
-	}
-
-	if *flagRunDQL != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		os.Exit(0)
-	}
-
-	if *flagShowCloudInfo != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		info, err := cmds.ShowCloudInfo(*flagShowCloudInfo)
-		if err != nil {
-			fmt.Printf("Get cloud info failed: %s\n", err.Error())
-			os.Exit(-1)
-		}
-
-		keys := []string{}
-		for k, _ := range info {
-			keys = append(keys, k)
-		}
-
-		sort.Strings(keys)
-		for _, k := range keys {
-			fmt.Printf("\t% 24s: %v\n", k, info[k])
-		}
-
-		os.Exit(0)
-	}
-
-	if *flagMonitor {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if runtime.GOOS == "windows" {
-			fmt.Println("unsupport under Windows")
-			os.Exit(-1)
-		}
-
-		cmds.CMDMonitor(*flagInterval, *flagDatakitHost, *flagVVV)
-		os.Exit(0)
-	}
-
-	if *flagIPInfo != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		x, err := cmds.IPInfo(*flagIPInfo)
-		if err != nil {
-			fmt.Printf("\t%v\n", err)
-		} else {
-			for k, v := range x {
-				fmt.Printf("\t% 8s: %s\n", k, v)
-			}
-		}
-
-		os.Exit(0)
-	}
-
-	if *flagDumpSamples != "" {
-		fpath := *flagDumpSamples
-
-		if err := os.MkdirAll(fpath, datakit.ConfPerm); err != nil {
-			panic(err)
-		}
-
-		for k, v := range inputs.Inputs {
-			sample := v().SampleConfig()
-			if err := ioutil.WriteFile(filepath.Join(fpath, k+".conf"),
-				[]byte(sample), datakit.ConfPerm); err != nil {
-				panic(err)
-			}
-		}
-		os.Exit(0)
-	}
-
-	if *flagCmdDeprecated {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		l.Warn("--cmd parameter has been discarded")
-	}
-
-	if *flagPipeline != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		cmds.PipelineDebugger(*flagPipeline, *flagText)
-		os.Exit(0)
-	}
-
-	if *flagProm != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		cmds.PromDebugger(*flagProm)
-		os.Exit(0)
-	}
-
-	if *flagGrokq {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		cmds.Grokq()
-		os.Exit(0)
-	}
-
-	if *flagMan {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		cmds.Man()
-		os.Exit(0)
-	}
-
-	if *flagK8sCfgPath != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if err := os.MkdirAll(*flagK8sCfgPath, datakit.ConfPerm); err != nil {
-			l.Errorf("invalid path %s", err.Error())
-			os.Exit(-1)
-		}
-
-		cmds.BuildK8sConfig("datakit-k8s-deploy", *flagK8sCfgPath, *flagInteractive)
-		os.Exit(0)
-	}
-
-	if *flagExportMan != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if err := cmds.ExportMan(*flagExportMan, *flagIgnore, *flagManVersion); err != nil {
-			l.Error(err)
-		}
-		os.Exit(0)
-	}
-
-	if *flagExportIntegration != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if err := cmds.ExportIntegration(*flagExportIntegration, *flagIgnore); err != nil {
-			l.Error(err)
-		}
-		os.Exit(0)
-	}
-
-	if *flagInstallExternal != "" {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		if err := cmds.InstallExternal(*flagInstallExternal); err != nil {
-			l.Error(err)
-		}
-		os.Exit(0)
-	}
-
-	if *flagStart {
-
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		if err := cmds.StartDatakit(); err != nil {
-			fmt.Printf("Start DataKit failed: %s\n", err)
-			os.Exit(-1)
-		}
-
-		fmt.Println("Start DataKit OK") // TODO: 需说明 PID 是多少
-		os.Exit(0)
-	}
-
-	if *flagStop {
-
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		if err := cmds.StopDatakit(); err != nil {
-			fmt.Printf("Stop DataKit failed: %s\n", err)
-			os.Exit(-1)
-		}
-
-		fmt.Println("Stop DataKit OK")
-		os.Exit(0)
-	}
-
-	if *flagRestart {
-
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		if err := cmds.RestartDatakit(); err != nil {
-			fmt.Printf("Restart DataKit failed: %s\n", err)
-			os.Exit(-1)
-		}
-
-		fmt.Println("Restart DataKit OK")
-		os.Exit(0)
-	}
-
-	if *flagReload {
-		if runtime.GOOS == "windows" {
-			fmt.Println("unsupport under Windows")
-			os.Exit(-1)
-		}
-
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		if err := cmds.ReloadDatakit(*flagDatakitHost); err != nil {
-			fmt.Printf("Reload DataKit Failed\n")
-			os.Exit(-1)
-		}
-
-		fmt.Println("Reload DataKit OK")
-		os.Exit(0)
-	}
-
-	if *flagStatus {
-
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		x, err := cmds.DatakitStatus()
-		if err != nil {
-			fmt.Printf("Get DataKit status failed: %s\n", err)
-			os.Exit(-1)
-		}
-		fmt.Println(x)
-		os.Exit(0)
-	}
-
-	if *flagUninstall {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if err := cmds.UninstallDatakit(); err != nil {
-			fmt.Printf("Get DataKit status failed: %s\n", err)
-			os.Exit(-1)
-		}
-		os.Exit(0)
-	}
-
-	if *flagReinstall {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-		if err := cmds.ReinstallDatakit(); err != nil {
-			fmt.Printf("Reinstall DataKit failed: %s\n", err)
-			os.Exit(-1)
-		}
-		os.Exit(0)
-	}
-
-	if *flagUpdateIPDb {
-		cmds.SetCmdRootLog(*flagCmdLogPath)
-
-		if runtime.GOOS == datakit.OSWindows {
-			fmt.Println("[E] not supported")
-			os.Exit(-1)
-		}
-
-		if err := cmds.UpdateIpDB(*flagDatakitHost, *flagAddr); err != nil {
-			fmt.Printf("Reload DataKit failed: %s\n", err)
-			os.Exit(-1)
-		}
-
-		fmt.Println("Update IPdb ok!")
-
-		os.Exit(0)
-	}
-}
-
-func checkIsRuning() bool {
-	var oidPid int64
-	var name string
-	var p *pr.Process
-
-	pidFile := filepath.Join(datakit.InstallDir, PID_FILENAME)
-	cont, err := ioutil.ReadFile(pidFile)
-
-	//pid文件不存在
-	if err != nil {
-		return false
-	}
-
-	oidPid, err = strconv.ParseInt(string(cont), 10, 32)
-	if err != nil {
-		return false
-	}
-
-	p, _ = pr.NewProcess(int32(oidPid))
-	name, _ = p.Name()
-
-	if name == getBinName() {
-		return true
-	}
-	return false
-}
-
-func getBinName() string {
-	bin := "datakit"
-
-	if runtime.GOOS == "windows" {
-		bin += ".exe"
-	}
-
-	return bin
-}
-
-func savePid() {
-	pid := os.Getpid()
-	pidFile := filepath.Join(datakit.InstallDir, PID_FILENAME)
-
-	err := ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), 0x666)
-	if err != nil {
-		l.Errorf("write %s %v", pidFile, err)
-	}
-}
-
-func rmPidFile() {
-	pidFile := filepath.Join(datakit.InstallDir, PID_FILENAME)
-
-	<-datakit.Exit.Wait()
-
-	err := os.Remove(pidFile)
-	if err != nil {
-		l.Errorf("remove %s %v", pidFile, err)
-	}
 }

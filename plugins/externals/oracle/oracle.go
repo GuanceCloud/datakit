@@ -397,7 +397,8 @@ func String(i interface{}) string {
 
 func WriteData(data []byte, urlPath string) error {
 	// dataway path
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
 	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
 
 	if err != nil {
@@ -406,8 +407,8 @@ func WriteData(data []byte, urlPath string) error {
 	}
 
 	httpReq = httpReq.WithContext(ctx)
-	tmctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+	tmctx, timeoutCancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer timeoutCancel()
 
 	resp, err := ctxhttp.Do(tmctx, http.DefaultClient, httpReq)
 	if err != nil {
@@ -430,7 +431,6 @@ func WriteData(data []byte, urlPath string) error {
 		l.Errorf("post to %s failed(HTTP: %d): %s", urlPath, resp.StatusCode, string(body))
 		return fmt.Errorf("post datakit failed")
 	}
-	return nil
 }
 
 const (

@@ -21,6 +21,9 @@ type node struct {
 }
 
 func (n *node) Gather() {
+	var start = time.Now()
+	var pts []*io.Point
+
 	list, err := n.client.getNodes()
 	if err != nil {
 		l.Errorf("failed of get nodes resource: %s", err)
@@ -45,16 +48,19 @@ func (n *node) Gather() {
 		}
 
 		addMapToFields("annotations", obj.Annotations, fields)
+		addLabelToFields(obj.Labels, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesNodeName, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := io.Feed(inputName, datakit.Object, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+			pts = append(pts, pt)
 		}
+	}
+
+	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+		l.Error(err)
 	}
 }
 
@@ -68,17 +74,17 @@ func (*node) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes node 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":         inputs.NewTagInfo("node UID"),
-			"node_name":    inputs.NewTagInfo("node 名称"),
-			"cluster_name": inputs.NewTagInfo("所在 cluster"),
-			"namespace":    inputs.NewTagInfo("所在命名空间"),
-			"status":       inputs.NewTagInfo("当期状态，Pending/Running/Terminated"),
+			"name":         inputs.NewTagInfo("UID"),
+			"node_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
+			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
+			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"status":       inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),
 		},
 		Fields: map[string]interface{}{
-			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"kubelet_version": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubelet 版本"},
+			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
+			"kubelet_version": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Kubelet Version reported by the node."},
 			"annotations":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
-			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 			// TODO:
 			// "schedulability":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "role":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},

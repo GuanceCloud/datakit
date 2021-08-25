@@ -1,10 +1,7 @@
 package build
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -16,10 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 
 	"github.com/dustin/go-humanize"
-)
-
-var (
-	installerExe string
 )
 
 type versionDesc struct {
@@ -64,34 +57,6 @@ func tarFiles(goos, goarch string) {
 	}
 }
 
-func getCurrentVersionInfo(url string) *versionDesc {
-
-	l.Infof("get current online version: %s", url)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	if resp.StatusCode != 200 {
-		l.Warn("get current online version failed, ignored")
-		return nil
-	}
-
-	defer resp.Body.Close()
-	info, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		l.Fatal(err)
-	}
-
-	l.Infof("current online version: %s", string(info))
-	var vd versionDesc
-	if err := json.Unmarshal(info, &vd); err != nil {
-		l.Fatal(err)
-	}
-	return &vd
-}
-
 func PubDatakit() {
 	start := time.Now()
 	var ak, sk, bucket, ossHost string
@@ -131,22 +96,20 @@ func PubDatakit() {
 		l.Fatal(err)
 	}
 
-	// 请求线上版本信息
-	url := fmt.Sprintf("http://%s.%s/%s/%s", bucket, ossHost, OSSPath, "version")
-	curVd := getCurrentVersionInfo(url)
-
 	// upload all build archs
 	archs := parseArchs(Archs)
 
 	ossfiles := map[string]string{
-		path.Join(PubDir, Release, "version"): path.Join(OSSPath, "version"),
+		path.Join(OSSPath, "version"):                                     path.Join(PubDir, Release, "version"),
+		path.Join(OSSPath, "install.sh"):                                  "install.sh",
+		path.Join(OSSPath, "install.ps1"):                                 "install.ps1",
+		path.Join(OSSPath, fmt.Sprintf("install-%s.sh", ReleaseVersion)):  "install.sh",
+		path.Join(OSSPath, fmt.Sprintf("install-%s.ps1", ReleaseVersion)): "install.ps1",
 	}
 
 	if Archs == "darwin/amd64" {
-		delete(ossfiles, path.Join(PubDir, Release, "version"))
+		delete(ossfiles, path.Join(OSSPath, "version"))
 	}
-
-	renameOssFiles := map[string]string{}
 
 	// tar files and collect OSS upload/backup info
 	for _, arch := range archs {
@@ -154,6 +117,7 @@ func PubDatakit() {
 			l.Warn("Not a darwin system, skip the upload of related files.")
 			continue
 		}
+
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
 			l.Fatalf("invalid arch %q", parts)
@@ -164,40 +128,20 @@ func PubDatakit() {
 
 		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, ReleaseVersion)
 
-		ossfiles[path.Join(PubDir, Release, gzName)] = path.Join(OSSPath, gzName)
-
-		if goos == "windows" {
+		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
+		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
+		if parts[0] == "windows" {
 			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
-
-			if curVd != nil && curVd.Version != ReleaseVersion {
-				renameOssFiles[path.Join(OSSPath, installerExe)] =
-					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, curVd.Version))
-			}
-
-		} else {
-			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
-
-			if curVd != nil && curVd.Version != ReleaseVersion {
-				renameOssFiles[path.Join(OSSPath, installerExe)] =
-					path.Join(OSSPath, fmt.Sprintf("installer-%s-%s-%s", goos, goarch, curVd.Version))
-			}
+			installerExeWithVer = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, ReleaseVersion)
 		}
 
-		ossfiles[path.Join(PubDir, Release, installerExe)] = path.Join(OSSPath, installerExe)
-	}
-
-	// backup old installer script online, make it possible to install old version if required
-	for k, v := range renameOssFiles {
-		if err := oc.Move(k, v); err != nil {
-			l.Debugf("backup %s -> %s failed: %s, ignored", k, v, err.Error())
-			continue
-		}
-
-		l.Debugf("backup %s -> %s ok", k, v)
+		ossfiles[path.Join(OSSPath, gzName)] = path.Join(PubDir, Release, gzName)
+		ossfiles[path.Join(OSSPath, installerExe)] = path.Join(PubDir, Release, installerExe)
+		ossfiles[path.Join(OSSPath, installerExeWithVer)] = path.Join(PubDir, Release, installerExe)
 	}
 
 	// test if all file ok before uploading
-	for k, _ := range ossfiles {
+	for _, k := range ossfiles {
 		if _, err := os.Stat(k); err != nil {
 			l.Fatal(err)
 		}
@@ -205,10 +149,10 @@ func PubDatakit() {
 
 	for k, v := range ossfiles {
 
-		fi, _ := os.Stat(k)
-		l.Debugf("upload %s(%s)...", k, humanize.Bytes(uint64(fi.Size())))
+		fi, _ := os.Stat(v)
+		l.Debugf("%s => %s(%s)...", v, k, humanize.Bytes(uint64(fi.Size())))
 
-		if err := oc.Upload(k, v); err != nil {
+		if err := oc.Upload(v, k); err != nil {
 			l.Fatal(err)
 		}
 	}

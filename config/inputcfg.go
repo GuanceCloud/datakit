@@ -14,6 +14,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var (
+	DisableSelfInput bool
+)
+
 func SearchDir(dir string, suffix string) []string {
 
 	fps := []string{}
@@ -102,14 +106,48 @@ func LoadInputsConfig(c *Config) error {
 		}
 	}
 
-	inputs.AddSelf()
+	if !DisableSelfInput {
+		inputs.AddSelf()
+	}
 
 	return nil
+}
+
+// fp == "", add new when not exist, set ConfigPaths empty when exist
+func addConfigInfoPath(inputName string, fp string, loaded int8) {
+	if c, ok := inputs.ConfigInfo[inputName]; ok {
+		if len(fp) == 0 {
+			c.ConfigPaths = []*inputs.ConfigPathStat{} // set empty for reload datakit
+			return
+		}
+		for _, p := range c.ConfigPaths {
+			if p.Path == fp {
+				p.Loaded = loaded
+				return
+			}
+		}
+		c.ConfigPaths = append(c.ConfigPaths, &inputs.ConfigPathStat{Loaded: loaded, Path: fp})
+	} else {
+		creator, ok := inputs.Inputs[inputName]
+		if ok {
+			config := &inputs.Config{
+				ConfigPaths:  []*inputs.ConfigPathStat{},
+				SampleConfig: creator().SampleConfig(),
+				Catalog:      creator().Catalog(),
+				ConfigDir:    datakit.ConfdDir,
+			}
+			if len(fp) > 0 {
+				config.ConfigPaths = append(config.ConfigPaths, &inputs.ConfigPathStat{Loaded: loaded, Path: fp})
+			}
+			inputs.ConfigInfo[inputName] = config
+		}
+	}
 }
 
 func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
 
 	l.Debugf("search input cfg for %s", name)
+
 	list := searchDatakitInputCfg(c, inputcfgs, name, creator)
 
 	for _, i := range list {
@@ -129,6 +167,8 @@ func searchDatakitInputCfg(c *Config,
 
 	inputlist := []inputs.Input{}
 
+	addConfigInfoPath(name, "", 0) // init config info
+
 	for fp, tbl := range inputcfgs {
 		for field, node := range tbl.Fields {
 
@@ -137,6 +177,7 @@ func searchDatakitInputCfg(c *Config,
 				stbl, ok := node.(*ast.Table)
 				if !ok {
 					l.Warnf("ignore bad toml node for %s within %s", name, fp)
+					addConfigInfoPath(name, fp, 0)
 				} else {
 					for inputName, v := range stbl.Fields {
 						if inputName != name {
@@ -145,10 +186,15 @@ func searchDatakitInputCfg(c *Config,
 						lst, err := TryUnmarshal(v, inputName, creator)
 						if err != nil {
 							l.Warnf("unmarshal input %s failed within %s: %s", inputName, fp, err.Error())
+							addConfigInfoPath(name, fp, 0)
 							continue
 						}
 
 						l.Infof("load input %s from %s ok", inputName, fp)
+
+						// dca config path
+						addConfigInfoPath(name, fp, 1)
+
 						inputlist = append(inputlist, lst...)
 					}
 				}
@@ -215,6 +261,10 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 	return
 }
 
+var (
+	confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
+)
+
 func initDatakitConfSample(name string, c inputs.Creator) error {
 	if name == "self" { //nolint:goconst
 		return nil
@@ -235,7 +285,11 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 		return fmt.Errorf("no sample available on collector %s", name)
 	}
 
-	if err := ioutil.WriteFile(cfgpath, []byte(sample), datakit.ConfPerm); err != nil {
+	// 在 conf-sample 头部增加一些指纹信息.
+	// 一般用户在编辑 conf 时，都是 copy 这个 sample 的。如果 sample 中带上指纹，
+	// 那么最终的配置上也会带上这可能便于后续的升级，即升级程序能识别某个 conf
+	// 的版本，进而进行指定的升级
+	if err := ioutil.WriteFile(cfgpath, append(confsampleFingerprint, []byte(sample)...), datakit.ConfPerm); err != nil {
 		l.Errorf("failed to create sample configure for collector %s: %s", name, err.Error())
 		return err
 	}

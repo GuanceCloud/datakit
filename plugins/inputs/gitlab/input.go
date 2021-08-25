@@ -138,7 +138,7 @@ func (this *Input) loadCfg() {
 }
 
 func (this *Input) gather() {
-	startTime := time.Now()
+	start := time.Now()
 
 	pts, err := this.gatherMetrics()
 	if err != nil {
@@ -146,9 +146,7 @@ func (this *Input) gather() {
 		return
 	}
 
-	cost := time.Since(startTime)
-
-	if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: cost}); err != nil {
+	if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
 	}
 }

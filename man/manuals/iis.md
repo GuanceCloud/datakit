@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 Microsoft IIS 采集器
 
@@ -25,9 +25,7 @@ Microsoft IIS 采集器
 
 配置好后，重启 DataKit 即可。
 
-## 指标集
-
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
   [inputs.{{.InputName}}.tags]
@@ -36,10 +34,13 @@ Microsoft IIS 采集器
     # ...
 ```
 
+## 指标
+
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}`
+{{if or (eq $m.Type "metric") (eq $m.Type "")}}
 
+### `{{$m.Name}}`
 {{$m.Desc}}
 
 -  标签
@@ -49,10 +50,11 @@ Microsoft IIS 采集器
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}
 
-### 日志采集
+## 日志
 
 如需采集 IIS 的日志，将配置中 log 相关的配置打开，如：
 

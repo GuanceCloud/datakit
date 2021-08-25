@@ -36,7 +36,14 @@ func InstallSecCheck(installDir string) error {
 	fmt.Printf("Start downloading install script...\n")
 
 	verUrl := BaseUrl + "install.sh"
-	resp, err := http.Get(verUrl)
+	cli := getcli()
+
+	req, err := http.NewRequest("GET", verUrl, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := cli.Do(req)
 	if err != nil {
 		return err
 	}
@@ -53,6 +60,7 @@ func InstallSecCheck(installDir string) error {
 		return fmt.Errorf("read response body %v", err)
 	}
 
+	// TODO: add network proxy option
 	cmd := exec.Command("/bin/bash", "-c", string(body))
 	x, err := cmd.CombinedOutput()
 	if err != nil {

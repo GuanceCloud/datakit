@@ -112,8 +112,6 @@ func TestElection(t *testing.T) {
 				break
 			}
 		}
-
-		t.Logf("election server exit")
 	}()
 
 	opt := &tu.HTTPServerOptions{ // mocked election API

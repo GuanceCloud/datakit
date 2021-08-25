@@ -91,8 +91,6 @@ DataKit 的配置均使用 [Toml 文件](https://toml.io/cn)，一个典型的�
 sudo datakit --restart
 ```
 
-> 注意：`--reload` 是不能使主配置更改生效的。
-
 #### HTTP 绑定端口
 
 出于安全考虑，DataKit 的 HTTP 服务默认绑定在 `localhost:9529` 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `listen` 字段，这样就能从其它主机上请求 DataKit 接口了：
@@ -386,10 +384,7 @@ man > Q               # 输入 Q 或 exit 退出
 datakit --stop
 datakit --start
 datakit --restart
-datakit --reload  # Windows 平台不支持 reload 操作，只能通过重启来生效
 ```
-
-> 注意：如果 DataKit *不是*默认绑定在 `localhost:9529` 或 `0.0.0.0:9529` 上，`--reload` 需稍作调整：`datakit --reload -H ip:port`
 
 #### 服务管理失败处理
 
@@ -436,7 +431,7 @@ datakit --reinstall
 sudo datakit --update-ip-db
 ```
 
-若 DataKit 在运行中，更新成功后会自动执行 Reload 操作
+若 DataKit 在运行中，更新成功后会自动更新 IP-DB 文件。
 
 ### DataKit 安装第三方软件
 

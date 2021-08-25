@@ -27,7 +27,7 @@ var (
 
 func LoadCfg(c *Config, mcp string) error {
 
-	InitDirs()
+	datakit.InitDirs()
 
 	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
 
@@ -58,7 +58,7 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
-	l.Infof("main cfg: %+#v", c)
+	l.Infof("main cfg: \n%s", c.String())
 
 	// clear all samples before loading
 	removeSamples()

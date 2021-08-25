@@ -60,7 +60,7 @@ const sampleCfg = `
   # insecure_skip_verify = false
   
   [inputs.container.kubelet]
-    kubelet_url = "http://127.0.0.1:10255"
+    kubelet_url = "http://localhost:10255"
     ignore_pod_name = []
 
     ## Use bearer token for authorization. ('bearer_token' takes priority)
