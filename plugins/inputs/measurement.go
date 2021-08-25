@@ -22,9 +22,10 @@ const (
 	// TODO:
 	// Prometheus metric types: https://prometheus.io/docs/concepts/metric_types/
 	// DataDog metricc types: https://docs.datadoghq.com/developers/metrics/types/?tab=count#metric-types
-	Gauge = "gauge"
-	Count = "count"
-	Rate  = "rate"
+	Gauge       = "gauge"
+	Count       = "count"
+	Rate        = "rate"
+	UnknownType = "unknown"
 	// add more...
 )
 

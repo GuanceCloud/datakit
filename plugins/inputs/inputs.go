@@ -219,10 +219,9 @@ func protectRunningInput(name string, ii *inputInfo) {
 		select {
 		case <-datakit.Exit.Wait(): // check if datakit exited now
 			return
-		default: // pass
+		default:
+			ii.Run()
 		}
-
-		ii.Run()
 	}
 
 	f(nil, nil)
