@@ -68,7 +68,7 @@ func init() {
 	// update online data
 	flag.BoolVar(&cmds.FlagUpdateIPDB, "update-ip-db", false, "update ip db")
 	flag.StringVarP(&cmds.FlagAddr, "addr", "A", "", "url path")
-	flag.DurationVar(&cmds.FlagInterval, "interval", time.Second*3, "auxiliary option, time interval")
+	flag.DurationVar(&cmds.FlagInterval, "interval", time.Second*5, "auxiliary option, time interval")
 
 	// utils
 	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
