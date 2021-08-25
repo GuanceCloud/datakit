@@ -6,6 +6,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -20,6 +21,7 @@ type ClientStat struct {
 	Uptime int64
 	OS     string
 	Arch   string
+	Proxy  string
 
 	NumGoroutines int64
 	HeapAlloc     int64
@@ -35,6 +37,11 @@ type ClientStat struct {
 	MaxHeapAlloc     int64
 	MaxHeapSys       int64
 	MaxHeapObjects   int64
+
+	CPUUsage float64
+
+	DroppedPointsTotal int64
+	DroppedPoints      int64
 }
 
 func setMax(prev, cur int64) int64 {
@@ -55,6 +62,9 @@ func setMin(prev, cur int64) int64 {
 
 func (s *ClientStat) Update() {
 	s.HostName = config.Cfg.Hostname
+	if config.Cfg.DataWay.HttpProxy != "" {
+		s.Proxy = config.Cfg.DataWay.HttpProxy
+	}
 
 	var memStatus runtime.MemStats
 	runtime.ReadMemStats(&memStatus)
@@ -75,6 +85,16 @@ func (s *ClientStat) Update() {
 
 	s.MaxHeapObjects = setMax(s.MaxHeapObjects, s.HeapObjects)
 	s.MinHeapObjects = setMin(s.MinHeapObjects, s.HeapObjects)
+
+	if u, err := cgroup.GetCPUPercent(3 * time.Second); err != nil {
+		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
+		s.CPUUsage = 0.0
+	} else {
+		s.CPUUsage = u
+	}
+
+	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
+	s.DroppedPointsTotal = io.DroppedTotal()
 }
 
 func (s *ClientStat) ToMetric() *io.Point {
@@ -91,6 +111,10 @@ func (s *ClientStat) ToMetric() *io.Point {
 		"host":    s.HostName,
 	}
 
+	if s.Proxy != "" {
+		tags["proxy"] = s.Proxy
+	}
+
 	fields := map[string]interface{}{
 		"pid":    s.PID,
 		"uptime": s.Uptime,
@@ -99,6 +123,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 		"heap_alloc":     s.HeapAlloc,
 		"heap_sys":       s.HeapSys,
 		"heap_objects":   s.HeapObjects,
+		"cpu_usage":      s.CPUUsage,
 
 		"min_num_goroutines": s.MinNumGoroutines,
 		"min_heap_alloc":     s.MinHeapAlloc,
@@ -109,6 +134,9 @@ func (s *ClientStat) ToMetric() *io.Point {
 		"max_heap_alloc":     s.MaxHeapAlloc,
 		"max_heap_sys":       s.MaxHeapSys,
 		"max_heap_objects":   s.MaxHeapObjects,
+
+		"dropped_points_total": s.DroppedPointsTotal,
+		"dropped_points":       s.DroppedPoints,
 	}
 
 	pt, err := io.MakePoint(measurement, tags, fields)

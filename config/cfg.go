@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -151,8 +152,11 @@ type Config struct {
 
 	IntervalDeprecated string `toml:"interval,omitempty"`
 
-	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
-	InstallDate          time.Time `toml:"install_date,omitempty"`
+	DefaultEnabledInputs []string `toml:"default_enabled_inputs,omitempty"`
+
+	InstallDate time.Time `toml:"install_date,omitempty"`
+	UpgradeDate time.Time `toml:"upgrade_date,omitempty"`
+	InstallVer  string    `toml:"install_version,omitempty"`
 
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
@@ -161,6 +165,8 @@ type Config struct {
 	EnableElection         bool           `toml:"enable_election"`
 	IOCacheCountDeprecated int64          `toml:"io_cache_count,omitzero"`
 	Tracer                 *tracer.Tracer `toml:"tracer,omitempty"`
+
+	EnableDca bool `toml:"enable_dca"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -233,18 +239,6 @@ func (i *inputHostList) MatchInput(input string) bool {
 	}
 
 	return false
-}
-
-func InitDirs() {
-	for _, dir := range []string{
-		datakit.DataDir,
-		datakit.ConfdDir,
-		datakit.PipelineDir,
-		datakit.PipelinePatternDir} {
-		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
-			l.Fatalf("create %s failed: %s", dir, err)
-		}
-	}
 }
 
 func (c *Config) InitCfg(p string) error {
@@ -334,22 +328,8 @@ func (c *Config) setupGlobalTags() error {
 func (c *Config) setLogging() {
 
 	// set global log root
-	if c.Logging.Log != "stdout" || c.Logging.Log != "" { // set log to disk file
-
-		l.Infof("set log to %s", c.Logging.Log)
-
-		if c.Logging.Rotate > 0 {
-			logger.MaxSize = c.Logging.Rotate
-		}
-
-		if err := logger.InitRoot(&logger.Option{
-			Path:  c.Logging.Log,
-			Level: c.Logging.Level,
-			Flags: logger.OPT_DEFAULT}); err != nil {
-			l.Errorf("set root log faile: %s", err.Error())
-		}
-	} else {
-
+	switch c.Logging.Log {
+	case "stdout", "":
 		l.Info("set log to stdout, rotate disabled")
 
 		optflags := (logger.OPT_DEFAULT | logger.OPT_STDOUT)
@@ -363,6 +343,20 @@ func (c *Config) setLogging() {
 				Flags: optflags}); err != nil {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
+	default:
+
+		if c.Logging.Rotate > 0 {
+			logger.MaxSize = c.Logging.Rotate
+		}
+
+		if err := logger.InitRoot(&logger.Option{
+			Path:  c.Logging.Log,
+			Level: c.Logging.Level,
+			Flags: logger.OPT_DEFAULT}); err != nil {
+			l.Panicf("set root log to %s faile: %s", c.Logging.Log, err.Error())
+		}
+
+		l.Infof("set root logger to %s ok", c.Logging.Log)
 	}
 }
 
@@ -448,13 +442,6 @@ func (c *Config) setHostname() error {
 	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
 		c.Hostname = v
 		l.Infof("set hostname to %s from config ENV_HOSTNAME", v)
-		return nil
-	}
-
-	// try get hostname from $env
-	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
-		c.Hostname = v
-		l.Infof("set hostname to %s from env ENV_HOSTNAME", v)
 		return nil
 	}
 
@@ -580,6 +567,10 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
 		c.EnableElection = true
+	}
+
+	if v := datakit.GetEnv("ENV_ENABLE_DCA"); v != "" {
+		c.EnableDca = true
 	}
 
 	return nil
@@ -742,4 +733,21 @@ func symlink(src, dst string) error {
 	}
 
 	return os.Symlink(src, dst)
+}
+
+func GetToken() string {
+	urls := Cfg.DataWay.URLs
+
+	if len(urls) > 0 {
+		url := urls[0] // only choose the first
+		reg := regexp.MustCompile(`.*token=(.*)$`)
+		if reg != nil {
+			result := reg.FindAllStringSubmatch(url, -1)
+			if len(result) > 0 && len(result[0]) > 1 {
+				return result[0][1]
+			}
+		}
+	}
+
+	return ""
 }

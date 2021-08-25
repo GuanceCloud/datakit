@@ -4,7 +4,7 @@
 - 发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
-# 简介
+# {{.InputName}}
 
 Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标，并将指标采集到 DataFlux ，帮助你监控分析 Postgresql 各种异常情况
 
@@ -24,7 +24,7 @@ Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标
 
 ## 指标集
 
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
 
 {{ range $i, $m := .Measurements }}
 

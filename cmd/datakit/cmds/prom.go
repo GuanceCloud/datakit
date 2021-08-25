@@ -15,7 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
-func PromDebugger(configFile string) error {
+func promDebugger(configFile string) error {
 	var configPath = configFile
 	if !path.IsAbs(configFile) {
 		currentDir, _ := os.Getwd()
@@ -27,14 +27,14 @@ func PromDebugger(configFile string) error {
 		}
 	}
 
-	input, err := GetPromInput(configPath)
+	input, err := getPromInput(configPath)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
 
-	err = ShowInput(input)
+	err = showInput(input)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
@@ -44,9 +44,9 @@ func PromDebugger(configFile string) error {
 
 }
 
-func GetPromInput(configPath string) (*prom.Input, error) {
+func getPromInput(configPath string) (*prom.Input, error) {
 	inputList, err := config.LoadInputConfigFile(configPath, func() inputs.Input {
-		return prom.NewProm("")
+		return prom.NewProm()
 	})
 	if err != nil {
 		fmt.Println(err.Error())
@@ -65,21 +65,18 @@ func GetPromInput(configPath string) (*prom.Input, error) {
 	return input, nil
 }
 
-func ShowInput(input *prom.Input) error {
+func showInput(input *prom.Input) error {
 	// init client
-	err := input.InitClient()
-	if err != nil {
-		return err
-	}
-
-	// collect points
-	err = input.Collect()
+	err := input.Init()
 	if err != nil {
 		return err
 	}
 
 	// get collected points
-	points := input.GetCachedPoints()
+	points, err := input.Collect()
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("\n================= Line Protocol Points ==================\n\n")
 	// measurements collected

@@ -338,10 +338,12 @@ func (i *Input) Collect() error {
 	for _, serv := range i.Servers {
 		func(s string) {
 			g.Go(func(ctx context.Context) error {
+				var clusterName string
+				var err error
 				url := i.nodeStatsURL(s)
 
 				// Always gather node stats
-				if err := i.gatherNodeStats(url); err != nil {
+				if clusterName, err = i.gatherNodeStats(url); err != nil {
 					return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 				}
 
@@ -363,11 +365,11 @@ func (i *Input) Collect() error {
 
 				if len(i.IndicesInclude) > 0 && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
 					if i.IndicesLevel != "shards" {
-						if err := i.gatherIndicesStats(s + "/" + strings.Join(i.IndicesInclude, ",") + "/_stats"); err != nil {
+						if err := i.gatherIndicesStats(s+"/"+strings.Join(i.IndicesInclude, ",")+"/_stats", clusterName); err != nil {
 							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					} else {
-						if err := i.gatherIndicesStats(s + "/" + strings.Join(i.IndicesInclude, ",") + "/_stats?level=shards"); err != nil {
+						if err := i.gatherIndicesStats(s+"/"+strings.Join(i.IndicesInclude, ",")+"/_stats?level=shards", clusterName); err != nil {
 							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					}
@@ -477,7 +479,7 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) gatherIndicesStats(url string) error {
+func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 	indicesStats := &struct {
 		Shards  map[string]interface{} `json:"_shards"`
 		All     map[string]interface{} `json:"_all"`
@@ -526,7 +528,7 @@ func (i *Input) gatherIndicesStats(url string) error {
 			}
 		}
 
-		tags := map[string]string{"index_name": "_all"}
+		tags := map[string]string{"index_name": "_all", "cluster_name": clusterName}
 		i.extendSelfTag(tags)
 
 		metric := &indicesStatsMeasurement{
@@ -545,7 +547,7 @@ func (i *Input) gatherIndicesStats(url string) error {
 
 	// Individual Indices stats
 	for id, index := range indicesStats.Indices {
-		indexTag := map[string]string{"index_name": id}
+		indexTag := map[string]string{"index_name": id, "cluster_name": clusterName}
 		stats := map[string]interface{}{
 			"primaries": index.Primaries,
 			"total":     index.Total,
@@ -641,14 +643,14 @@ func (i *Input) gatherIndicesStats(url string) error {
 	return nil
 }
 
-func (i *Input) gatherNodeStats(url string) error {
+func (i *Input) gatherNodeStats(url string) (string, error) {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
 	}{}
 
 	if err := i.gatherJSONData(url, nodeStats); err != nil {
-		return err
+		return "", err
 	}
 
 	for id, n := range nodeStats.Nodes {
@@ -689,7 +691,7 @@ func (i *Input) gatherNodeStats(url string) error {
 			// parse Json, ignoring strings and bools
 			err := f.FlattenJSON(p, s)
 			if err != nil {
-				return err
+				return "", err
 			}
 			for k, v := range f.Fields {
 				_, ok := nodeStatsFields[k]
@@ -713,7 +715,7 @@ func (i *Input) gatherNodeStats(url string) error {
 		}
 	}
 
-	return nil
+	return nodeStats.ClusterName, nil
 }
 
 func (i *Input) gatherClusterStats(url string) error {

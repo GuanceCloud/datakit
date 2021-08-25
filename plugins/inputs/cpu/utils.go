@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+	"strings"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/host"
@@ -45,31 +46,35 @@ func (c *CPUInfoTest) CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error) {
 	return nil, fmt.Errorf("")
 }
 
-func CoreTempAvg() (float64, error) {
+func CoreTemp() (map[string]float64, error) {
 	if runtime.GOOS == "linux" {
+		tempMap := map[string]float64{}
 		sensorTempStat, err := host.SensorsTemperatures()
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		regexpC, err := regexp.Compile(`coretemp_core[\d]+_input`)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		temp, count := 0.0, 0
 		for _, v := range sensorTempStat {
 			if regexpC.MatchString(v.SensorKey) {
 				temp += v.Temperature
 				count++
+				cpuId := strings.Replace(strings.Split(v.SensorKey, "_")[1], "core", "cpu", 1)
+				tempMap[cpuId] = v.Temperature
 			}
 		}
 		if count > 0 {
-			return temp / float64(count), nil
+			tempMap["cpu-total"] = temp / float64(count)
+			return tempMap, nil
 		} else {
-			return 0, fmt.Errorf("no coretemp data or regexp error")
+			return nil, fmt.Errorf("no coretemp data or regexp error")
 		}
 	}
-	return 0, fmt.Errorf("os is not supported")
-
+	return nil, nil
+	// return nil, fmt.Errorf("os is not supported")
 }
 
 // cpu usage stat

@@ -10,10 +10,15 @@ import (
 )
 
 type collector interface {
-	Metric(context.Context, chan<- *job)
-	Object(context.Context, chan<- *job)
+	Metric(context.Context, chan<- []*job)
+	Object(context.Context, chan<- []*job)
 	Logging(context.Context)
 	Stop()
+}
+
+type jobs struct {
+	j    []*job
+	cost time.Duration
 }
 
 type job struct {

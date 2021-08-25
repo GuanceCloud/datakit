@@ -24,6 +24,7 @@ func (m *tbMeasurement) LineProto() (*io.Point, error) {
 // 指定指标
 func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
+		Desc: "MySQL 表指标",
 		Name: "mysql_table_schema",
 		Fields: map[string]interface{}{
 			// status

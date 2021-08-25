@@ -53,7 +53,7 @@ func checkInputCfg(tpl *ast.Table, fp string) {
 	}
 }
 
-func CheckConfig() {
+func checkConfig() {
 	start := time.Now()
 	fps := config.SearchDir(datakit.ConfdDir, ".conf")
 

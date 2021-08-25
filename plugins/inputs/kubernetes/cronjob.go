@@ -21,6 +21,9 @@ type cronJob struct {
 }
 
 func (c *cronJob) Gather() {
+	var start = time.Now()
+	var pts []*io.Point
+
 	list, err := c.client.getCronJobs()
 	if err != nil {
 		l.Errorf("failed of get cronjobs resource: %s", err)
@@ -51,16 +54,19 @@ func (c *cronJob) Gather() {
 		}
 
 		addMapToFields("annotations", obj.Annotations, fields)
+		addLabelToFields(obj.Labels, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesCronJobName, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := io.Feed(inputName, datakit.Object, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+			pts = append(pts, pt)
 		}
+	}
+
+	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+		l.Error(err)
 	}
 }
 
@@ -74,17 +80,18 @@ func (*cronJob) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes cron job 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":          inputs.NewTagInfo("cronJob UID"),
-			"cron_job_name": inputs.NewTagInfo("cronJob 名称"),
-			"cluster_name":  inputs.NewTagInfo("所在 cluster"),
-			"namespace":     inputs.NewTagInfo("所在命名空间"),
+			"name":          inputs.NewTagInfo("UID"),
+			"cron_job_name": inputs.NewTagInfo("Name must be unique within a namespace."),
+			"cluster_name":  inputs.NewTagInfo("The name of the cluster which the object belongs to."),
+			"namespace":     inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
-			"active_jobs": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "活跃的 job 数量"},
-			"schedule":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "运行日程，例如 `*/1 * * * *`"},
-			"suspend":     &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "是否暂停"},
+			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
+			"schedule":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron"},
+			"active_jobs": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of pointers to currently running jobs."},
+			"suspend":     &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "This flag tells the controller to suspend subsequent executions, it does not apply to already started executions."},
 			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
-			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
 }

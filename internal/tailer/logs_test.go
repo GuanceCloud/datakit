@@ -30,15 +30,15 @@ func TestLogsAll(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		logs := newLogs(tc.text)
+		logs := NewLogs(tc.text)
 		logs.ts = ts
 
-		output := logs.pipeline(nil).
-			checkFieldsLength().
-			addStatus(false).
-			ignoreStatus(nil).
-			point(source, nil).
-			output()
+		output := logs.Pipeline(nil).
+			CheckFieldsLength().
+			AddStatus(false).
+			IgnoreStatus(nil).
+			Point(source, nil).
+			Output()
 
 		tu.Assert(t, output == tc.res,
 			"\nexpect: %s\n   got: %s",

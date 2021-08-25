@@ -14,33 +14,23 @@
 
 ## 获取安装命令
 
-登陆工作空间，点击左侧「集成」选择顶部「Datakit」，即可看到各种平台的安装命令。以 linux/amd64 平台为例，其命令大概如下：
+登陆工作空间，点击左侧「集成」选择顶部「Datakit」，即可看到各种平台的安装命令。
+
+> 注意，以下 Linux/Mac/Windows 安装程序，能自动识别硬件平台（arm/x86, 32bit/64bit），无需做硬件平台选择。
+
+### Linux/Mac
+
+命令大概如下：
 
 ```shell
-sudo -- sh -c 'curl https://static.dataflux.cn/datakit/installer-linux-amd64 -o dk-installer \
-	&& chmod +x ./dk-installer \
-	&& ./dk-installer -dataway "https://openway.dataflux.cn?token=TOKEN" \
-	&& rm -rf ./dk-installer'
+DK_DATAWAY=https://openway.dataflux.cn?token=<TOKEN> bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
 ```
-
->  注意：安装之前，请确保 9529 端口是否被占用。
-
-除了指定 DataWay 之外，`dk-installer` 额外支持如下安装选项（以下选项全平台支持）：
-
-- `-cloud-provider`：支持安装阶段填写云厂商(aliyun/aws/tencent)
-- `-namespace`：支持安装阶段指定命名空间(选举用)
-- `-global-tags`：支持安装阶段填写全局 tag，如 `project="abc",owner="张三"`（多个 tag 之间以英文逗号分隔）
-- `-listen`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
-- `-port`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
-- `-offline`：离线安装本地已有的 DataKit 安装包
-- `-download-only`：仅下载，不安装（离线安装时用）
-- `-proxy`：通过 Datakit 代理安装
 
 安装完成后，在终端会看到安装成功的提示。
 
-注意事项：
+#### Mac 安装注意事项
 
-- Mac 上安装时，如果安装/升级过程中出现
+Mac 上安装时，如果安装/升级过程中出现
 
 ```shell
 "launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
@@ -58,8 +48,49 @@ sudo launchctl enable system/datakit
 sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 ```
 
-- Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell
-  - 按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择 以管理员身份运行 即可
+### Windows
+
+> Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell。按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择「以管理员身份运行」即可。
+
+```powershell
+$env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+
+### 额外支持的安装变量
+
+安装脚本支持的环境变量如下（全平台支持）：
+
+- `DK_DATAWAY`：指定 dataway 地址，含 `TOKEN`
+- `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent`)
+- `DK_NAMESPACE`：支持安装阶段指定命名空间(选举用)
+- `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project=abc,owner=张三`（多个 tag 之间以英文逗号分隔）
+- `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
+- `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
+- `DK_INSTALL_ONLY`：仅安装，不运行
+- `DK_DEF_INPUTS`：默认开启的采集器列表，格式范例：`input1,input2,input3`
+- `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
+- `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.dataflux.cn/datakit`
+- `HTTPS_PROXY`：通过 Datakit 代理安装
+
+如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
+
+```
+# Linux/Mac
+DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>" bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
+
+# Windows
+$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+
+俩种环境变量的设置格式为：
+
+```shell
+# Windows: 多个环境变量之间以分号分割
+$env:NAME1="value1"; $env:Name2="value2"
+
+# Linux/Mac: 多个环境变量之间以空格分割
+NAME1="value1" NAME2="value2"
+```
 
 ## 如何应付不友好的主机名
 

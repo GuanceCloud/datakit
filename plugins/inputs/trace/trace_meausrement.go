@@ -22,6 +22,7 @@ func (t *TraceMeasurement) LineProto() (*io.Point, error) {
 func (t *TraceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "",
+		Type: "tracing",
 		Fields: map[string]interface{}{
 			FIELD_PARENTID: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The parent id of current span."},
 			FIELD_TRACEID:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Trace id."},
@@ -33,18 +34,18 @@ func (t *TraceMeasurement) Info() *inputs.MeasurementInfo {
 			FIELD_PID:      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The application process id."},
 		},
 		Tags: map[string]interface{}{
-			TAG_PROJECT:        &inputs.TagInfo{"project name"},
-			TAG_OPERATION:      &inputs.TagInfo{"span name"},
-			TAG_SERVICE:        &inputs.TagInfo{"service name"},
-			TAG_VERSION:        &inputs.TagInfo{"application version info"},
-			TAG_ENV:            &inputs.TagInfo{"application environment info"},
-			TAG_HTTP_METHOD:    &inputs.TagInfo{"http request method name"},
-			TAG_HTTP_CODE:      &inputs.TagInfo{"http response code"},
-			TAG_TYPE:           &inputs.TagInfo{"span  service type"},
-			TAG_ENDPOINT:       &inputs.TagInfo{"endpoint info"},
-			TAG_SPAN_STATUS:    &inputs.TagInfo{"span status"},
-			TAG_SPAN_TYPE:      &inputs.TagInfo{"span type"},
-			TAG_CONTAINER_HOST: &inputs.TagInfo{"container hostname"},
+			TAG_PROJECT:        &inputs.TagInfo{Desc: "project name"},
+			TAG_OPERATION:      &inputs.TagInfo{Desc: "span name"},
+			TAG_SERVICE:        &inputs.TagInfo{Desc: "service name"},
+			TAG_VERSION:        &inputs.TagInfo{Desc: "application version info"},
+			TAG_ENV:            &inputs.TagInfo{Desc: "application environment info"},
+			TAG_HTTP_METHOD:    &inputs.TagInfo{Desc: "http request method name"},
+			TAG_HTTP_CODE:      &inputs.TagInfo{Desc: "http response code"},
+			TAG_TYPE:           &inputs.TagInfo{Desc: "span  service type"},
+			TAG_ENDPOINT:       &inputs.TagInfo{Desc: "endpoint info"},
+			TAG_SPAN_STATUS:    &inputs.TagInfo{Desc: "span status"},
+			TAG_SPAN_TYPE:      &inputs.TagInfo{Desc: "span type"},
+			TAG_CONTAINER_HOST: &inputs.TagInfo{Desc: "container hostname"},
 		},
 	}
 }

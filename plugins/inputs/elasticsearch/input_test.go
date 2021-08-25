@@ -67,7 +67,7 @@ func TestGatherNodeStats(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherNodeStats(""); err != nil {
+	if _, err := es.gatherNodeStats(""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -216,13 +216,13 @@ func TestGatherClusterIndicesStats(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherIndicesStats(""); err != nil {
+	if err := es.gatherIndicesStats("", ""); err != nil {
 		t.Fatal(err)
 	}
 
 	AssertContainsTaggedFields(t, "elasticsearch_indices_stats",
 		clusterIndicesTotalExpected,
-		map[string]string{"index_name": "es"}, es.collectCache)
+		map[string]string{"index_name": "es", "cluster_name": ""}, es.collectCache)
 }
 
 // func TestGatherClusterIndiceShardsStats(t *testing.T) {
@@ -318,7 +318,7 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 	es.Local = true
 	es.client.Transport = newTransportMock(nodeStatsResponse)
 
-	if err := es.gatherNodeStats(""); err != nil {
+	if _, err := es.gatherNodeStats(""); err != nil {
 		t.Fatal(err)
 	}
 
