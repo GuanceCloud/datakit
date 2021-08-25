@@ -8,17 +8,17 @@ import (
 	"time"
 )
 
-func (s *input) setupUDPServer() {
+func (s *input) setupUDPServer() error {
 	address, err := net.ResolveUDPAddr(s.Protocol, s.ServiceAddress)
 	if err != nil {
 		l.Error(err)
-		return
+		return err
 	}
 
 	conn, err := net.ListenUDP(s.Protocol, address)
 	if err != nil {
 		l.Error(err)
-		return
+		return err
 	}
 
 	l.Infof("UDP listening on %q", conn.LocalAddr().String())
@@ -28,10 +28,10 @@ func (s *input) setupUDPServer() {
 	go func() {
 		defer s.wg.Done()
 		if err := s.udpListen(conn); err != nil {
-			l.Errorf("udpListen: %s", err.Error())
+			l.Warnf("udpListen: %s, ignored", err.Error())
 		}
 	}()
-	return
+	return nil
 }
 
 // udpListen starts listening for udp packets on the configured port.

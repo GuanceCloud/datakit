@@ -2,6 +2,7 @@ package statsd
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -267,7 +269,7 @@ func (s *input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (s *input) setup() {
+func (s *input) setup() error {
 	if s.ParseDataDogTags {
 		s.DataDogExtensions = true
 		l.Warn("'parse_data_dog_tags' config option is deprecated, please use 'datadog_extensions' instead")
@@ -311,12 +313,16 @@ func (s *input) setup() {
 	}
 
 	if s.isUDP() {
-		s.setupUDPServer()
+		if err := s.setupUDPServer(); err != nil {
+			return err
+		}
 	} else {
+		return fmt.Errorf("TCP not supported")
 		// TODO: not testing
 		// s.setupTCPServer()
 	}
 
+	l.Infof("starting %d parser worker...", parserGoRoutines)
 	for i := 1; i <= parserGoRoutines; i++ {
 		// Start the line parser
 		s.wg.Add(1)
@@ -325,6 +331,8 @@ func (s *input) setup() {
 			s.parser(idx)
 		}(i)
 	}
+
+	return nil
 }
 
 func (s *input) setupMmap() {
@@ -344,7 +352,20 @@ func (s *input) setupMmap() {
 func (s *input) Run() {
 	l = logger.SLogger(inputName)
 
-	s.setup()
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+		}
+
+		if err := s.setup(); err != nil {
+			io.FeedLastError(inputName, err.Error())
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		break
+	}
 
 	l.Infof("Started the statsd service on %q", s.ServiceAddress)
 	tick := time.NewTicker(time.Second * 10)
@@ -474,11 +495,11 @@ func (s *input) stop() {
 	s.Lock()
 	l.Infof("Stopping the statsd service")
 	close(s.done)
-	if s.isUDP() {
+	if s.isUDP() && s.UDPlistener != nil {
 		// Ignore the returned error as we cannot do anything about it anyway
 		//nolint:errcheck,revive
 		s.UDPlistener.Close()
-	} else {
+	} else if s.TCPlistener != nil {
 		// Ignore the returned error as we cannot do anything about it anyway
 		//nolint:errcheck,revive
 		s.TCPlistener.Close()
@@ -498,6 +519,7 @@ func (s *input) stop() {
 			conn.Close()
 		}
 	}
+
 	s.Unlock()
 
 	s.wg.Wait()
