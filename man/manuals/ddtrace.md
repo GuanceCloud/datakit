@@ -123,7 +123,7 @@ customer_tags = [
 - 如果在 DataKit 上开启了采样率，就不要在 ddtrace 上再设置采样率，这可能导致双重采样，导致数据大面积缺失
 - 对 RUM 产生的 trace，这里的采样率不生效，建议在 [RUM 中设置采样率](https://www.yuque.com/dataflux/doc/eqs7v2#16fe8486)
 
-#### ddtrace 采样透传 tag
+### ddtrace 采样透传 tag
 
 目前的采样会忽略带有如下 tag-value 的数据：
 
