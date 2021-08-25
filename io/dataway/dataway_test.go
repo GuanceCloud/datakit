@@ -12,7 +12,7 @@ func TestDataWayAPIs(t *testing.T) {
 
 	dw.Apply()
 
-	for _, c := range dw.dataWayClients {
+	for _, c := range dw.endPoints {
 		tu.Equals(t, len(apis), len(c.categoryURL))
 		for k, u := range c.categoryURL {
 			t.Logf("%s: %s", k, u)
@@ -144,7 +144,7 @@ func TestElectionHeartBeatURL(t *testing.T) {
 		}
 
 		urls := []string{}
-		for _, c := range dw.dataWayClients {
+		for _, c := range dw.endPoints {
 			urls = append(urls, c.categoryURL[datakit.ElectionHeartbeat])
 		}
 
@@ -182,7 +182,7 @@ func TestElectionURL(t *testing.T) {
 		}
 
 		urls := []string{}
-		for _, c := range dw.dataWayClients {
+		for _, c := range dw.endPoints {
 			urls = append(urls, c.categoryURL[datakit.Election])
 		}
 

@@ -1,9 +1,10 @@
 package jvm
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 type JvmMeasurement struct {
@@ -60,7 +61,7 @@ func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 			"Uptime": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total runtime."},
 		},
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{"jolokia agent url path"},
+			"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 		},
 	}
 }

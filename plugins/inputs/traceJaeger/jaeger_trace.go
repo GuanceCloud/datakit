@@ -68,15 +68,15 @@ func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 
 	project, ver, env := getExpandInfo(batch)
 	if project == "" {
-		project = trace.GetFromPluginTag(JaegerTags, trace.PROJECT)
+		project = JaegerTags[trace.PROJECT]
 	}
 
 	if ver == "" {
-		ver = trace.GetFromPluginTag(JaegerTags, trace.VERSION)
+		ver = JaegerTags[trace.VERSION]
 	}
 
 	if env == "" {
-		env = trace.GetFromPluginTag(JaegerTags, trace.ENV)
+		env = JaegerTags[trace.ENV]
 	}
 
 	for _, span := range batch.Spans {

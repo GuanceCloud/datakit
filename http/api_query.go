@@ -18,7 +18,9 @@ type SingleQuery struct {
 	MaxDuration          string              `json:"max_duration"`
 	OrderBy              []map[string]string `json:"orderby"`
 	Limit                int64               `json:"limit"`
+	SLimit               int64               `json:"slimit"`
 	Offset               int64               `json:"offset"`
+	SOffset              int64               `json:"soffset"`
 	DisableSlimit        bool                `json:"disable_slimit"`
 	DisableMultipleField bool                `json:"disable_multiple_field"`
 	SearchAfter          []interface{}       `json:"search_after"`
@@ -86,6 +88,10 @@ func apiQueryRaw(c *gin.Context) {
 		l.Errorf("DQLQuery: %s", err)
 		uhttp.HttpErr(c, err)
 		return
+	}
+
+	for k, v := range resp.Header {
+		l.Debugf("%s: %v", k, v)
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)

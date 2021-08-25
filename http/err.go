@@ -16,6 +16,7 @@ var (
 	ErrEmptyBody           = newErr(errors.New("empty body"), http.StatusBadRequest)
 	ErrReloadDatakitFailed = newErr(errors.New("reload datakit failed"), http.StatusInternalServerError)
 	ErrUploadFileErr       = newErr(errors.New("upload file failed"), http.StatusInternalServerError)
+	ErrInvalidToken        = newErr(errors.New("invalid token"), http.StatusForbidden)
 
 	// write body error
 	ErrInvalidJsonPoint = newErr(errors.New("invalid json point"), http.StatusBadRequest)

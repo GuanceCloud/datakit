@@ -7,7 +7,6 @@ import (
 
 	"github.com/containerd/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/shirou/gopsutil/cpu"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
@@ -50,7 +49,7 @@ func start() {
 	level := "low"
 	waitNum := 0
 	for {
-		percpu, err := getCPUPercent(time.Second * 3)
+		percpu, err := GetCPUPercent(time.Second * 3)
 		if err != nil {
 			l.Debug(err)
 			continue
@@ -90,15 +89,4 @@ func start() {
 		}
 		l.Debugf("switch to quota %.2f%%", float64(q)/float64(period)*100.0)
 	}
-}
-
-func getCPUPercent(interval time.Duration) (float64, error) {
-	percent, err := cpu.Percent(interval, false)
-	if err != nil {
-		return 0, err
-	}
-	if len(percent) < 0 {
-		return 0, nil
-	}
-	return percent[0] / 100, nil
 }

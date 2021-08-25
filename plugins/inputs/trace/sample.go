@@ -22,7 +22,7 @@ type TraceSampleConfig struct {
 	Target         map[string]string `toml:"target"`
 	Rate           int               `toml:"rate"`
 	Scope          int               `toml:"scope"`
-	IgnoreTagsList []string          `toml:ignore_tags_list`
+	IgnoreTagsList []string          `toml:"ignore_tags_list"`
 }
 
 func TraceSampleMatcher(confs []*TraceSampleConfig, tags map[string]string) *TraceSampleConfig {

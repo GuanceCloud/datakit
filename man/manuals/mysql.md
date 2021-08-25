@@ -35,7 +35,13 @@ GRANT SELECT ON mysql.user TO 'datakit'@'localhost';
 GRANT replication client on *.*  to 'datakit'@'localhost';
 ```
 
->注意：以上创建、授权操作，均限定了 `datakit` 这个用户的只能在 MySQL 主机上（`localhost`）访问 MySQL，如果对 MySQL 进行远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问 MySQL），也可用特定的 DataKit 安装机器地址。
+以上创建、授权操作，均限定了 `datakit` 这个用户的只能在 MySQL 主机上（`localhost`）访问 MySQL，如果对 MySQL 进行远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问 MySQL），也可用特定的 DataKit 安装机器地址。
+
+> 注意，如用 `localhost` 时发现采集器有如下报错，需要将上面的 `localhost` 换成 `::1`
+
+```
+Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
+```
 
 ## 配置
 
@@ -47,9 +53,7 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 
 配置好后，重启 DataKit 即可。
 
-## 指标集
-
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]
@@ -58,21 +62,7 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
   # ...
 ```
 
-{{ range $i, $m := .Measurements }}
-
-### `{{$m.Name}}`
-
--  标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
-
-{{ end }}
-
-## Binlog 开启
+### Binlog 开启
 
 默认情况下，MySQL binlog 是不开启的。如果要统计 binlog 大小，需要开启 MySQL 对应 binlog 功能：
 
@@ -83,7 +73,27 @@ SHOW VARIABLES LIKE 'log_bin';
 
 binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging)，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu)
 
-## 日志采集
+## 指标
+
+{{ range $i, $m := .Measurements }}
+
+{{if or (eq $m.Type "metric") (eq $m.Type "")}}
+
+### `{{$m.Name}}`
+{{$m.Desc}}
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志
 
 如需采集 MySQL 的日志，将配置中 log 相关的配置打开，如需要开启 MySQL 慢查询日志，需要开启慢查询日志，在 MySQL 中执行以下语句
 
@@ -102,11 +112,11 @@ set global log_queries_not_using_indexes = 'ON';
 
 > 注意：在使用日志采集时，需要将 DataKit 安装在 MySQL 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器
 
-## 日志 pipeline 功能切割字段说明
+MySQL 日志分为普通日志和慢日志两种。
 
-- Mysql 日志
+### MySQL 普通日志
 
-**日志原文**
+日志原文：
 
 ```
 2017-12-29T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%';
@@ -120,9 +130,9 @@ set global log_queries_not_using_indexes = 'ON';
 | `msg`    | `System table 'plugin' is expected to be transactional.` | 日志内容                     |
 | `time`   | `1514520249954078000`                                    | 纳秒时间戳（作为行协议时间） |
 
-- 慢查询日志
+### MySQL 慢查询日志
 
-**日志原文**
+日志原文：
 
 ```
 # Time: 2019-11-27T10:43:13.460744Z

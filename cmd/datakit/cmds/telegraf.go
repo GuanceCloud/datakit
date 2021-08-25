@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/install"
+	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
 
 const (
@@ -21,7 +21,11 @@ func InstallTelegraf(installDir string) error {
 	}
 
 	fmt.Printf("Start downloading Telegraf...\n")
-	if err := install.Download(url, installDir, false, false); err != nil {
+	curDownloading = "telegraf"
+
+	cli := getcli()
+
+	if err := dl.Download(cli, url, installDir, false, false); err != nil {
 		return err
 	}
 

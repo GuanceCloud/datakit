@@ -29,12 +29,13 @@ case $branch_name in
 		if [ -z $new_tag ]; then
 			echo "[E] new tag required to release production datakit, latest tag is ${latest_tag}"
 		else
-			# Release darwin version first
 			git tag -f $new_tag  &&
-			make release_mac     &&
-			make pub_release_mac &&
 
-			echo "[I] darwin prod release ok"
+			if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
+				make release_mac     &&
+				make pub_release_mac &&
+				echo "[I] darwin prod release ok"
+			fi
 
 			# Trigger CI to release other platforms
 			git push -f --tags   &&

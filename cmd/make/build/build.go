@@ -147,12 +147,6 @@ func Compile() {
 		compileArch(AppBin, goos, goarch, dir)
 		buildExternals(dir, goos, goarch)
 
-		if goos == "windows" {
-			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
-		} else {
-			installerExe = fmt.Sprintf("installer-%s-%s", goos, goarch)
-		}
-
 		buildInstaller(filepath.Join(PubDir, Release), goos, goarch)
 	}
 
@@ -201,6 +195,11 @@ type installInfo struct {
 func buildInstaller(outdir, goos, goarch string) {
 
 	l.Debugf("building %s-%s/installer...", goos, goarch)
+
+	installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
+	if goos == "windows" {
+		installerExe += ".exe"
+	}
 
 	args := []string{
 		"go", "build",

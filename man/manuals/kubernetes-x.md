@@ -43,7 +43,7 @@ kubectl apply path/to/your.yaml
 
 ## 指标集
 
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[[inputs.{{.InputName}}.tags]]` 另择 host 来命名。
 
 {{ range $i, $m := .Measurements }}
 
@@ -359,7 +359,7 @@ data:
         # insecure_skip_verify = false
         
         [inputs.container.kubelet]
-          kubelet_url = "http://127.0.0.1:10255"
+          kubelet_url = "http://localhost:10255"
           ignore_pod_name = []
       
           ## Use bearer token for authorization. ('bearer_token' takes priority)
@@ -393,7 +393,7 @@ data:
     kubernetes.conf: |-
       [inputs.kubernetes]
         ## URL for the Kubernetes API
-        url = "https://kubernets.default:443"
+        url = "https://kubernetes.default:443"
         
         ## metrics interval
         interval = "60s"
@@ -403,7 +403,7 @@ data:
         ## Use bearer token for authorization. ('bearer_token' takes priority)
         ## linux at:   /run/secrets/kubernetes.io/serviceaccount/token
         ## windows at: C:\var\run\secrets\kubernetes.io\serviceaccount\token
-        # bearer_token = '''/path/to/bearer/token'''
+        bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
         # bearer_token_string = "<your-token-string>"
       
         ## TLS Config
