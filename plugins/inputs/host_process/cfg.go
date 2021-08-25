@@ -98,6 +98,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"start_time":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "进程启动时间"),
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeIByte, "Resident Set Size （常驻内存大小）"),
+			"pid":              newOtherFieldInfo(inputs.Int, inputs.UnknownType, inputs.UnknownUnit, "进程id"),
 			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "cpu使用占比（%*100），进程自启动以来所占 CPU 百分比，该值相对会比较稳定（跟 top 的瞬时百分比不同）"),
 			"mem_used_percent": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "mem使用占比（%*100）"),
 			"open_files":       newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "open_files 个数(仅支持linux)"),
@@ -112,7 +113,6 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"host":         inputs.NewTagInfo("主机名"),
 			"state":        inputs.NewTagInfo("进程状态，暂不支持 windows"),
 			"process_name": inputs.NewTagInfo("进程名"),
-			"pid":          inputs.NewTagInfo("进程id"),
 		},
 	}
 }
