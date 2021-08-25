@@ -141,8 +141,14 @@ func SetLog() {
 // G create a groutine group, with namespace datakit
 func G(name string) *goroutine.Group {
 
-	panicCb := func(b []byte) {
+	panicCb := func(b []byte) bool {
 		l.Errorf("%s", b)
+		select {
+		case <-Exit.Wait(): // don't continue when exit
+			return false
+		default:
+			return true
+		}
 	}
 
 	gName := "datakit_" + name
@@ -160,7 +166,9 @@ func GWait() {
 	for _, g := range goroutines {
 		// just ignore error
 		_ = g.Wait()
+		l.Infof("goroutine Group %s exit", g.Name())
 	}
+	l.Info("all goroutine group exit successfully")
 }
 
 func Quit() {
