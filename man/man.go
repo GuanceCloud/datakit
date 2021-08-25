@@ -31,6 +31,7 @@ var (
 		"datatypes":                "man/manuals/datatypes.md",
 		"dataway":                  "man/manuals/dataway.md",
 		"ddtrace-java":             "man/manuals/ddtrace-java.md",
+		"ddtrace-python":           "man/manuals/ddtrace-python.md",
 		"development":              "man/manuals/development.md",
 		"election":                 "man/manuals/election.md",
 		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
