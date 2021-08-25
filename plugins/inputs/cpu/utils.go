@@ -70,11 +70,11 @@ func CoreTemp() (map[string]float64, error) {
 			tempMap["cpu-total"] = temp / float64(count)
 			return tempMap, nil
 		} else {
-			return nil, fmt.Errorf("no coretemp data or regexp error")
+			return nil, fmt.Errorf("no coretemp data")
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("os is not supported")
 }
 
 // cpu usage stat

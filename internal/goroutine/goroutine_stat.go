@@ -25,7 +25,7 @@ var mu sync.Mutex
 // Option provides the setup of a group
 type Option struct {
 	Name         string
-	PanicCb      func([]byte)
+	PanicCb      func([]byte) bool
 	PanicTimes   int8
 	PanicTimeout time.Duration
 }
@@ -75,6 +75,7 @@ func NewGroup(option Option) *Group {
 		name = option.Name
 	}
 	g := &Group{
+		name:         name,
 		panicCb:      option.PanicCb,
 		panicTimes:   option.PanicTimes,
 		panicTimeout: option.PanicTimeout,

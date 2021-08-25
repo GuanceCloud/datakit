@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/kodo/rtpanic"
 )
 
 var (
@@ -216,7 +216,12 @@ func protectRunningInput(name string, ii *inputInfo) {
 			}
 		}
 
-		ii.Run()
+		select {
+		case <-datakit.Exit.Wait(): // check if datakit exited now
+			return
+		default:
+			ii.Run()
+		}
 	}
 
 	f(nil, nil)
