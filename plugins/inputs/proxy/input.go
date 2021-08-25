@@ -32,8 +32,15 @@ type statistic struct {
 }
 
 type Input struct {
-	Bind string `toml:"bind"`
-	Port int    `toml:"port"`
+	Bind    string `toml:"bind"`
+	Port    int    `toml:"port"`
+	Verbose bool   `toml:"verbose"`
+}
+
+type proxyLogger struct{}
+
+func (pl *proxyLogger) Printf(format string, v ...interface{}) {
+	l.Infof(format, v...)
 }
 
 func (*Input) Catalog() string {
@@ -59,6 +66,8 @@ func (h *Input) Run() {
 	l.Infof("http proxy input started...")
 
 	proxy := goproxy.NewProxyHttpServer()
+	proxy.Verbose = h.Verbose
+	proxy.Logger = &proxyLogger{}
 	proxysrv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%v", h.Bind, h.Port),
 		Handler: proxy,

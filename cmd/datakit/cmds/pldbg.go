@@ -10,7 +10,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-func PipelineDebugger(plname, txt string) {
+func pipelineDebugger(plname, txt string) {
 	if txt == "" {
 		l.Fatal("-txt required")
 	}

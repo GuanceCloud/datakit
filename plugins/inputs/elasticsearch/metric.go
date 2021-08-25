@@ -116,7 +116,8 @@ func (m indicesStatsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_indices_stats",
 		Fields: indicesStatsFields,
 		Tags: map[string]interface{}{
-			"index_name": inputs.NewTagInfo("Name of the index."),
+			"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
+			"index_name":   inputs.NewTagInfo("Name of the index."),
 		},
 	}
 }

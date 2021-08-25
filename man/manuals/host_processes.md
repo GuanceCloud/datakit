@@ -28,9 +28,8 @@
 
 配置好后，重启 DataKit 即可。
 
-## 指标集
 
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]
@@ -39,10 +38,13 @@
   # ...
 ```
 
+## 指标
+
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}`
+{{if eq $m.Type "metric"}}
 
+### `{{$m.Name}}`
 {{$m.Desc}}
 
 -  标签
@@ -52,5 +54,26 @@
 - 指标列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 对象
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "object"}}
+
+### `{{$m.Name}}`
+{{$m.Desc}}
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}

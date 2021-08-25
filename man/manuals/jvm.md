@@ -85,7 +85,6 @@ DataKit 内置了 [statsd 采集器](statsd)，用于接收网络上发送过来
 
 ```shell
 java -javaagent:dd-java-agent.jar \
-	-XX:FlightRecorderOptions=stackdepth=256 \
 	-Ddd.profiling.enabled=true \
 	-Ddd.logs.injection=true \
 	-Ddd.trace.sample.rate=1 \
@@ -183,7 +182,7 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 
 ## 指标集
 
-以下所有指标集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
 ``` toml
  [inputs.{{.InputName}}.tags]

@@ -69,19 +69,19 @@ func postCb(name string, g *Group) func(error, time.Duration) {
 }
 
 // NewGroup create a custom group
-func NewGroup(option Option) Group {
+func NewGroup(option Option) *Group {
 	var name = "default"
 	if len(option.Name) > 0 {
 		name = option.Name
 	}
-	g := Group{
+	g := &Group{
 		panicCb:      option.PanicCb,
 		panicTimes:   option.PanicTimes,
 		panicTimeout: option.PanicTimeout,
 	}
 
-	g.postCb = postCb(name, &g)
-	g.beforeCb = beforeCb(name, &g)
+	g.postCb = postCb(name, g)
+	g.beforeCb = beforeCb(name, g)
 
 	return g
 }

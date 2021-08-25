@@ -14,7 +14,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 )
 
-const defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
+const (
+	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
+)
 
 // Kubernetes represents the config object for the plugin
 type Kubernetes struct {
@@ -86,14 +88,16 @@ func (k *Kubernetes) Init() error {
 		ResponseHeaderTimeout: apiTimeoutDuration,
 	}
 
+	l.Debug("init k8s client success")
 	return nil
 }
 
 func (k *Kubernetes) Stop() {
+	//TODO
 	return
 }
 
-func (k *Kubernetes) Metric(ctx context.Context, in chan<- *job) {
+func (k *Kubernetes) Metric(ctx context.Context, in chan<- []*job) {
 	summary, err := k.getStatsSummary()
 	if err != nil {
 		l.Error(err)
@@ -102,6 +106,7 @@ func (k *Kubernetes) Metric(ctx context.Context, in chan<- *job) {
 
 	nodeName := summary.Node.NodeName
 
+	var jobs []*job
 	for _, podMetrics := range summary.Pods {
 		if k.ignorePodName(podMetrics.PodRef.Name) {
 			continue
@@ -113,13 +118,14 @@ func (k *Kubernetes) Metric(ctx context.Context, in chan<- *job) {
 		}
 		result.addTag("node_name", nodeName)
 		result.setMetric()
-		in <- result
+		jobs = append(jobs, result)
 	}
 
-	//l.Debugf("")
+	l.Debugf("get len(%d) k8s metric", len(jobs))
+	in <- jobs
 }
 
-func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
+func (k *Kubernetes) Object(ctx context.Context, in chan<- []*job) {
 	var summary *SummaryMetrics
 	var pods *Pods
 	var err error
@@ -138,6 +144,7 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
 
 	nodeName := summary.Node.NodeName
 
+	var jobs []*job
 	for _, item := range pods.Items {
 		if k.ignorePodName(item.Metadata.Name) {
 			continue
@@ -175,9 +182,11 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- *job) {
 		}
 
 		result.setObject()
-		in <- result
+		jobs = append(jobs, result)
 	}
 
+	l.Debugf("get len(%d) k8s object/pod", len(jobs))
+	in <- jobs
 }
 
 func (k *Kubernetes) Logging(ctx context.Context) {
@@ -216,13 +225,17 @@ func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
 func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
 	var tags = make(map[string]string)
 	tags["name"] = item.Metadata.UID
-	tags["ready"] = fmt.Sprintf("%d/%d", item.Status.ContainerStatuses.Ready(), item.Status.ContainerStatuses.Length())
 	tags["state"] = item.Status.Phase
-	tags["labels"] = item.Metadata.LabelsJSON()
 
 	fields := map[string]interface{}{
-		"age":     item.Status.Age(),
-		"restart": item.Status.ContainerStatuses.RestartCount(),
+		"age":       item.Status.Age(),
+		"restart":   item.Status.ContainerStatuses.RestartCount(),
+		"ready":     item.Status.ContainerStatuses.Ready(),
+		"available": item.Status.ContainerStatuses.Length(),
+		// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
+		"df_label":            item.Metadata.LabelsJSON(),
+		"df_label_permission": "read_only",
+		"df_label_source":     "datakit",
 	}
 
 	return &job{measurement: kubeletPodName, tags: tags, fields: fields, ts: time.Now()}
@@ -430,11 +443,22 @@ type VolumeMetrics struct {
 }
 
 func (p PodItemMetadata) LabelsJSON() string {
-	j, err := json.Marshal(p.Labels)
-	if err != nil {
-		return "{}"
+	// empty array
+	labelsString := "[]"
+
+	if len(p.Labels) != 0 {
+		var lb []string
+		for k, v := range p.Labels {
+			lb = append(lb, k+":"+v)
+		}
+
+		b, err := json.Marshal(lb)
+		if err == nil {
+			labelsString = string(b)
+		}
 	}
-	return string(j)
+
+	return labelsString
 }
 
 func (p PodItemStatus) Age() int64 {

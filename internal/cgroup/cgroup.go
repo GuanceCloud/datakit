@@ -1,6 +1,9 @@
 package cgroup
 
 import (
+	"time"
+
+	"github.com/shirou/gopsutil/cpu"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
@@ -28,4 +31,15 @@ func Run() {
 	}
 
 	start()
+}
+
+func GetCPUPercent(interval time.Duration) (float64, error) {
+	percent, err := cpu.Percent(interval, false)
+	if err != nil {
+		return 0, err
+	}
+	if len(percent) < 0 {
+		return 0, nil
+	}
+	return percent[0] / 100, nil
 }

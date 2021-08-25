@@ -1,12 +1,11 @@
 package datakit
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	//"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func BenchmarkGzipString(b *testing.B) {
@@ -142,10 +141,10 @@ func BenchmarkGzipBytes(b *testing.B) {
 
 func TestDuration(t *testing.T) {
 	d := Duration{Duration: time.Second}
-	fmt.Println(d.UnitString(time.Second))
-	fmt.Println(d.UnitString(time.Nanosecond))
-	fmt.Println(d.UnitString(time.Microsecond))
-	fmt.Println(d.UnitString(time.Millisecond))
-	fmt.Println(d.UnitString(time.Minute))
-	fmt.Println(d.UnitString(time.Hour))
+	tu.Equals(t, "1s", d.UnitString(time.Second))
+	tu.Equals(t, "1000000000ns", d.UnitString(time.Nanosecond))
+	tu.Equals(t, "1000000mics", d.UnitString(time.Microsecond))
+	tu.Equals(t, "1000ms", d.UnitString(time.Millisecond))
+	tu.Equals(t, "0m", d.UnitString(time.Minute))
+	tu.Equals(t, "0h", d.UnitString(time.Hour))
 }

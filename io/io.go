@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -21,6 +22,10 @@ var (
 	testAssert            = false
 	highFreqCleanInterval = time.Millisecond * 500
 	l                     = logger.DefaultSLogger("io")
+
+	DisableLogFilter   bool
+	DisableHeartbeat   bool
+	DisableDatawayList bool
 )
 
 type Option struct {
@@ -63,6 +68,7 @@ type IO struct {
 
 	cacheCnt        int64
 	dynamicCacheCnt int64
+	droppedTotal    int64
 	fd              *os.File
 	outputFileSize  int64
 }
@@ -124,7 +130,9 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.CustomObject:
 	case datakit.Logging:
 		if x.dw.ClientsCount() == 1 {
-			pts = defLogfilter.filter(pts)
+			if !DisableLogFilter {
+				pts = defLogfilter.filter(pts)
+			}
 		} else {
 			// TODO: add multiple dataway config support
 			l.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
@@ -302,13 +310,16 @@ func (x *IO) StartIO(recoverable bool) {
 				x.cleanHighFreqIOData()
 
 			case <-heartBeatTick.C:
-				x.dw.HeartBeat()
+				if !DisableHeartbeat {
+					x.dw.HeartBeat()
+				}
 
 			case <-datawaylistTick.C:
-				x.dw.DatawayList()
+				if !DisableDatawayList {
+					x.dw.DatawayList()
+				}
 
 			case <-tick.C:
-				l.Debugf("chan stat: %s", ChanStat())
 				x.flushAll()
 
 			case <-datakit.Exit.Wait():
@@ -319,7 +330,9 @@ func (x *IO) StartIO(recoverable bool) {
 	})
 
 	// start log filter
-	defLogfilter.start()
+	if !DisableLogFilter {
+		defLogfilter.start()
+	}
 
 	l.Info("starting...")
 }
@@ -337,6 +350,7 @@ func (x *IO) flushAll() {
 		for k, _ := range x.cache {
 			x.cache[k] = nil
 		}
+		atomic.AddInt64(&x.droppedTotal, x.cacheCnt)
 		x.cacheCnt = 0
 	}
 	// dump dynamic cache pts
@@ -345,6 +359,7 @@ func (x *IO) flushAll() {
 		for k, _ := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
+		atomic.AddInt64(&x.droppedTotal, x.dynamicCacheCnt)
 		x.dynamicCacheCnt = 0
 	}
 }
@@ -434,6 +449,7 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 	if testAssert {
 		return nil
 	}
+
 	if pts == nil {
 		return nil
 	}
@@ -475,4 +491,8 @@ func (x *IO) fileOutput(body []byte) error {
 	}
 
 	return nil
+}
+
+func (x *IO) DroppedTotal() int64 {
+	return atomic.LoadInt64(&x.droppedTotal)
 }

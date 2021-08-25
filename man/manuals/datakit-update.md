@@ -19,6 +19,7 @@ DataKit 支持手动更新和自动更新两种方式。
 直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
 
 ```shell
+# Linux/Mac
 $ datakit --version
 
        Version: 1.1.6-rc0
@@ -26,22 +27,41 @@ $ datakit --version
         Branch: dk-api
  Build At(UTC): 2021-05-11 11:07:06
 Golang Version: go version go1.15.8 darwin/amd64
-      Uploader: tan-air.local/xxxxxxx/yyyyyyy
+      Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
 ReleasedInputs: all
 ---------------------------------------------------
 
-
-Online version available: 1.1.6-rc2, commit 85ff4854 (release at 2021-05-11 07:16:34)
+Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
 
 Upgrade:
-        sudo -- sh -c "curl https://static.dataflux.cn/datakit/installer-darwin-amd64 -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"
+    DK_UPGRADE=1 bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
+
+# Windows
+
+$ datakit.exe --version
+
+       Version: 1.1.6-rc0
+        Commit: d1f4604d
+        Branch: dk-api
+ Build At(UTC): 2021-05-11 11:07:06
+Golang Version: go version go1.15.8 darwin/amd64
+      Uploader: xxxxxxxxxxxxx/xxxxxxx/yyyyyyy
+ReleasedInputs: all
+---------------------------------------------------
+
+Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
+
+Upgrade:
+    $env:DK_UPGRADE="1"; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
+
+> 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置。
 
 ## 自动更新
 
 在 Linux 中，为便于 DataKit 实现自动更新，可通过 crontab 方式添加任务，实现定期更新。
 
-> 注：目前自动更新只支持 Linux。 
+> 注：目前自动更新只支持 Linux。
 
 ### 准备更新脚本
 
@@ -58,11 +78,8 @@ installer=https://static.dataflux.cn/datakit/installer-linux-amd64
 /usr/local/datakit/datakit --check-update --accept-rc-version --update-log $otalog
 
 if [[ $? == 42 ]]; then
- echo "update now..."
- sudo -- sh -c "curl ${installer}  -o dk-installer &&
-	 chmod +x ./dk-installer &&
-	 ./dk-installer --upgrade --ota --install-log "${otalog}" &&
-	 rm -rf ./dk-installer"
+	echo "update now..."
+	DK_UPGRADE=1 bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
 fi
 ```
 

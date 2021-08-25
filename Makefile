@@ -55,11 +55,9 @@ endef
 export GIT_INFO
 
 define build
-	@echo "===== $(BIN) $(1) ===="
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
-	@mkdir -p git
-	@echo "$$GIT_INFO" > git/git.go
+	@echo "===== $(BIN) $(1) ===="
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
 		 -env $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	@tree -Csh -L 3 $(BUILD_DIR)
@@ -74,29 +72,19 @@ endef
 lint:
 	@golangci-lint run --timeout 1h | tee check.err # https://golangci-lint.run/usage/install/#local-installation
 
-vet:
-	@go vet ./...
-
-test:
-	@GO111MODULE=off go test ./...
-
-gogenerate:
-	@cd io/logfilter/parser && make
-	@cd pipeline/parser && make
-
-local: man gofmt
+local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-testing: man
+testing: deps
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-release: man
+release: deps
 	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
-release_mac: man
+release_mac: deps
 	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
-testing_mac: man
+testing_mac: deps
 	$(call build,test, $(MAC_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 pub_local:
@@ -167,12 +155,27 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
+deps: prepare man gofmt lfparser vet 
+
 man:
 	@packr2 clean
 	@packr2
 
 gofmt:
 	@GO111MODULE=off go fmt ./...
+
+vet:
+	@go vet ./...
+
+test:
+	@GO111MODULE=off go test ./...
+
+lfparser:
+	@goyacc -o io/parser/gram_y.go io/parser/gram.y
+
+prepare:
+	@mkdir -p git
+	@echo "$$GIT_INFO" > git/git.go
 
 clean:
 	rm -rf build/*

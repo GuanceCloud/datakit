@@ -21,6 +21,9 @@ type replicaSet struct {
 }
 
 func (r *replicaSet) Gather() {
+	var start = time.Now()
+	var pts []*io.Point
+
 	list, err := r.client.getReplicaSets()
 	if err != nil {
 		l.Errorf("failed of get replicaSet resource: %s", err)
@@ -39,22 +42,26 @@ func (r *replicaSet) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":   int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
-			"ready": obj.Status.ReadyReplicas,
+			"age":       int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"ready":     obj.Status.ReadyReplicas,
+			"available": obj.Status.AvailableReplicas,
 		}
 
 		// addMapToFields("selectors", obj.Spec.Selector, fields)
 		addMapToFields("annotations", obj.Annotations, fields)
+		addLabelToFields(obj.Labels, fields)
 		addMessageToFields(tags, fields)
 
 		pt, err := io.MakePoint(kubernetesReplicaSetName, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
 		} else {
-			if err := io.Feed(inputName, datakit.Object, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+			pts = append(pts, pt)
 		}
+	}
+
+	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+		l.Error(err)
 	}
 }
 
@@ -68,16 +75,17 @@ func (*replicaSet) Info() *inputs.MeasurementInfo {
 		Desc: "Kubernetes replicaSet 对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"name":             inputs.NewTagInfo("replicaSet UID"),
-			"replica_set_name": inputs.NewTagInfo("replicaSet 名称"),
-			"cluster_name":     inputs.NewTagInfo("所在 cluster"),
-			"namespace":        inputs.NewTagInfo("所在命名空间"),
+			"name":             inputs.NewTagInfo("UID"),
+			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace."),
+			"cluster_name":     inputs.NewTagInfo("The name of the cluster which the object belongs to."),
+			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 		},
 		Fields: map[string]interface{}{
-			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "存活时长，单位为秒"},
-			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ready replicas"},
+			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
+			"ready":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of ready replicas for this replica set."},
+			"available":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
 			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
-			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "详情数据"},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 			//TODO:
 			// "selectors": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "current/desired":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
