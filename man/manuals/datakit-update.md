@@ -55,13 +55,21 @@ Upgrade:
     $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
-> 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置。
+> 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
+
+```shell
+# Linux/Mac
+HTTPS_PROXY=http://10.100.64.198:9530 DK_UPGRADE=1 ...
+
+# Windows
+$env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
+```
 
 ## 自动更新
 
 在 Linux 中，为便于 DataKit 实现自动更新，可通过 crontab 方式添加任务，实现定期更新。
 
-> 注：目前自动更新只支持 Linux。
+> 注：目前自动更新只支持 Linux，且暂不支持代理模式。
 
 ### 准备更新脚本
 
