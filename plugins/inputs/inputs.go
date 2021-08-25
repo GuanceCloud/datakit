@@ -2,7 +2,6 @@ package inputs
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"os"
 	"strings"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -180,7 +178,7 @@ func RunInputs() error {
 					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
 					l.Infof("starting input %s ...", name)
 
-					protectRunningInput(name, ii)
+					ii.Run()
 					l.Infof("input %s exited", name)
 					return nil
 				})
@@ -188,38 +186,6 @@ func RunInputs() error {
 		}
 	}
 	return nil
-}
-
-var (
-	MaxCrash = 6
-)
-
-func protectRunningInput(name string, ii *inputInfo) {
-	var f rtpanic.RecoverCallback
-	crashTime := []string{}
-
-	f = func(trace []byte, err error) {
-
-		defer rtpanic.Recover(f, nil)
-
-		if trace != nil {
-			l.Warnf("input %s panic err: %v", name, err)
-			l.Warnf("input %s panic trace:\n%s", name, string(trace))
-
-			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
-			addPanic(name)
-
-			if len(crashTime) >= MaxCrash {
-				l.Warnf("input %s crash %d times(at %+#v), exit now.",
-					name, len(crashTime), strings.Join(crashTime, "\n"))
-				return
-			}
-		}
-
-		ii.Run()
-	}
-
-	f(nil, nil)
 }
 
 func GetPanicCnt(name string) int {
