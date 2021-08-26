@@ -32,7 +32,7 @@ func init() {
 	flag.BoolVar(&cmds.FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
 	flag.StringVar(&cmds.FlagUpdateLogFile, "update-log", "", "update history log file")
 
-	flag.StringVar(&cmds.FlagWorkDir, "work-dir", "", "set datakit work dir")
+	flag.StringVar(&cmds.FlagWorkDir, "workdir", "", "set datakit work dir")
 	flag.BoolVar(&cmds.FlagDefConf, "default-main-conf", false, "get datakit default main configure")
 
 	// debug grok

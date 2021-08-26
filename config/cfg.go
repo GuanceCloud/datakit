@@ -58,7 +58,9 @@ func DefaultConfig() *Config {
 			FlushInterval:             "10s",
 		},
 
-		DataWay: &dataway.DataWayCfg{},
+		DataWay: &dataway.DataWayCfg{
+			URLs: []string{},
+		},
 
 		ProtectMode: true,
 
