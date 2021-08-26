@@ -331,6 +331,10 @@ func writeDefInputToMainCfg(mc *config.Config) {
 			l.Fatalf("failed to init hostobject conf: %s", err.Error())
 		} else {
 			cfgpath := filepath.Join(datakit.ConfdDir, "host", "hostobject.conf")
+			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, "host"), datakit.ConfPerm); err != nil {
+				l.Fatalf("failed to init hostobject conf: %s", err.Error())
+			}
+
 			if err := ioutil.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
 				l.Fatalf("failed to init hostobject conf: %s", err.Error())
 			}
