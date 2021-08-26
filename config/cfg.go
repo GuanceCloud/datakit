@@ -25,8 +25,6 @@ import (
 )
 
 var (
-	IntervalDuration = 10 * time.Second
-
 	Cfg = DefaultConfig()
 
 	l = logger.DefaultSLogger("config")
@@ -58,7 +56,9 @@ func DefaultConfig() *Config {
 			FlushInterval:             "10s",
 		},
 
-		DataWay: &dataway.DataWayCfg{},
+		DataWay: &dataway.DataWayCfg{
+			URLs: []string{},
+		},
 
 		ProtectMode: true,
 
@@ -409,15 +409,6 @@ func (c *Config) ApplyMainConfig() error {
 	// 此处不将 host 计入 c.GlobalTags，因为 c.GlobalTags 是读取的用户配置，而 host
 	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
 	dkio.SetExtraTags("host", c.Hostname)
-
-	if c.IntervalDeprecated != "" {
-		du, err := time.ParseDuration(c.IntervalDeprecated)
-		if err != nil {
-			l.Warnf("parse %s failed: %s, set default to 10s", c.IntervalDeprecated)
-			du = time.Second * 10
-		}
-		IntervalDuration = du
-	}
 
 	// remove deprecated UUID field in main configure
 	if c.UUIDDeprecated != "" {

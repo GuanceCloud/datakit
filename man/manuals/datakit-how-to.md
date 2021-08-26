@@ -28,7 +28,7 @@ DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 - Linux/Mac：`uname -r`
 - Windows：执行 `cmd` 命令（按住 Win键 + `r`，输入 `cmd` 回车），输入 `winver` 即可获取系统版本信息
 
-安装完成年后，DataKit 目录列表大概如下：
+安装完成以后，DataKit 目录列表大概如下：
 
 ```
 ├── [4.4K]  conf.d
@@ -130,9 +130,18 @@ DataKit 允许在 `datakit.conf` 中配置全局标签，这些标签会默认�
 
 #### 日志配置修改
 
-DataKit 默认日志等级为 `debug`。编辑 `conf.d/datakit.conf`，修改 `log_level`，将其置为 `debug` 即可看到更多日志（目前只支持 `debug/info` 两个级别）。`log_level` 置为 `debug` 后，`gin.log` 也会出现 HTTP 接口上的 access-log（前提是有 HTTP 请求发给 DataKit）
+DataKit 默认日志等级为 `info`。编辑 `conf.d/datakit.conf`，可修改日志等级：
 
-DataKit 默认会对日志进行分片，默认分片大小（`log_rotate`）为 32MB，总共 6 个分片（1 个当前写入分片加上 5 个切割分片，分片个数尚不支持配置）。如果嫌弃 DataKit 日志占用太多磁盘空间（最多 32 x 6 = 192MB），可减少 `log_rotate` 大小（比如改成 4，单位为 MB）。需要注意的是，gin.log 的大小不会自动做分片，故建议主配置中的 `log_level` 不要常年设置成 `debug` 级别。
+```toml
+[logging]
+	level = "debug" # 将 info 改成 debug
+```
+
+置为 `debug` 后，即可看到更多日志（目前只支持 `debug/info` 两个级别）。
+
+DataKit 默认会对日志进行分片，默认分片大小（`rotate`）为 32MB，总共 6 个分片（1 个当前写入分片加上 5 个切割分片，分片个数尚不支持配置）。如果嫌弃 DataKit 日志占用太多磁盘空间（最多 32 x 6 = 192MB），可减少 `rotate` 大小（比如改成 4，单位为 MB）。
+
+gin.log 也会按照同样的方式自动切割。
 
 ### 采集器配置文件
 

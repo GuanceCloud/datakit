@@ -114,9 +114,60 @@ TODO
 #### 安装 `make` 工具
 #### 安装 `tree` 工具
 
+## 本地调试
+
+DataKit 支持设定工作目录，目前默认的工作目录是 `/usr/local/datakit`（Windows 下为 `C:\Program Files\datakit`）。设定方式为：
+
+```shell
+datakit --work-dir path/to/workdir
+```
+
+- 将该命令做一个 alias，放到 ~/.bashrc 中：
+
+```shell
+echo 'alias dk="datakit --work-dir ~/datakit"' >> ~/.bashrc
+```
+
+大家可能直接在 DataKit 开发目录下启动 DataKit，可改一下 DataKit 启动文件，直接使用当前编译出来的 DataKit：
+
+```shell
+# Linux
+echo 'alias dk="./dist/datakit-linux-amd64/datakit --work-dir ~/datakit"' >> ~/.bashrc
+
+# Mac
+echo 'alias dk="./dist/datakit-darwin-amd64/datakit --work-dir ~/datakit"' >> ~/.bashrc
+
+# alias 生效
+source ~/.bashrc
+```
+
+- 通过 DataKit 创建一个 `datakit.conf`：
+
+```shell
+mkdir -p ~/datakit/conf.d && datakit --default-main-conf > ~/datakit/conf.d/datakit.conf
+```
+
+修改 `datakit.conf` 中的配置，如 token、日志配置（日志默认指向 /var/log/datakit/ 下，可改到其它地方）等，启动之后，DataKit 会自动创建各种目录。这样就能在一个主机上运行多个 datakit 实例：
+
+```shell
+$ dk
+2021-08-26T14:12:54.647+0800    DEBUG   config  config/load.go:55       apply main configure...
+2021-08-26T14:12:54.647+0800    INFO    config  config/cfg.go:361       set root logger to /tmp/datakit/log ok
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:   export GIN_MODE=release
+  - using code:  gin.SetMode(gin.ReleaseMode)
+
+	[GIN-debug] GET    /stats                    --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func1 (4 handlers)
+	[GIN-debug] GET    /monitor                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func2 (4 handlers)
+	[GIN-debug] GET    /man                      --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func3 (4 handlers)
+	[GIN-debug] GET    /man/:name                --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func4 (4 handlers)
+	[GIN-debug] GET    /restart                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func5 (4 handlers)
+	...
+```
+
 ## 安装、升级测试 
 
-Datakit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
+DataKit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
 
 大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
 

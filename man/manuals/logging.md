@@ -60,9 +60,21 @@
 
 >  注意：DataKit 启动后，`logfiles` 中配置的日志文件有新的日志产生才会采集上来，**老的日志数据是不会采集的**。
 
-### match 使用说明
+### 多行日志采集
 
-设置正则表达式，符合此正则匹配的数据，被认为是一条新的日志数据，否则将其追加到上一条日志数据中。正则表达式文档[链接](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
+通过识别多行日志的第一行特征，即可判定某行日志是不是一条新的日志。如果不符合这个特征，我们即认为当前行日志只是前一条多行日志的追加。
+
+举例说明一下，一般情况下，日志都是顶格写的，但有些日志文本不是顶格写的，比如程序崩溃时的调用栈日志，那么，对于这种日志文本，就是多行日志。
+
+在 DataKit 中，我们通过正则表达式来识别多行日志特征，正则匹配上的日志行，就是一条新的日志的开始，后续所有不匹配的日志行，都认为是这条新日志的追加，直到遇到另一行匹配正则的新日志为止。 
+
+在 `logging.conf` 中，修改如下配置：
+
+```toml
+match = '''这里填写具体的正则表达式''' # 注意，这里的正则俩边，建议分别加上三个「英文单引号」
+```
+
+日志采集器中使用的正则表达式风格[参考](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
 
 假定原数据为：
 
@@ -91,7 +103,7 @@ ZeroDivisionError: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
 ```
 
-### pipeline 配置和使用
+### Pipeline 配置和使用
 
 [Pipeline](pipeline) 主要用于切割非结构化的文本数据，或者用于从结构化的文本中（如 JSON）提取部分信息。
 
@@ -153,24 +165,20 @@ Pipeline 的几个注意事项：
 
 使用 glob 规则更方便地指定日志文件，以及自动发现和文件过滤。
 
-| 通配符   | 描述                               | 例子           | 匹配                       | 不匹配                      |
-| :--      | ---                                | ---            | ---                        | ----                        |
-| `*`      | 匹配任意数量的任何字符，包括无     | `Law*`         | Law, Laws, Lawyer          | GrokLaw, La, aw             |
-| `?`      | 匹配任何单个字符                   | `?at`          | Cat, cat, Bat, bat         | at                          |
-| `[abc]`  | 匹配括号中给出的一个字符           | `[CB]at`       | Cat, Bat                   | cat, bat                    |
-| `[a-z]`  | 匹配括号中给出的范围中的一个字符   | `Letter[0-9]`  | Letter0, Letter1 … Letter9 | Letters, Letter, Letter10   |
-| `[!abc]` | 匹配括号中未给出的一个字符         | `[!C]at`       | Bat, bat, cat              | Cat                         |
-| `[!a-z]` | 匹配不在括号内给定范围内的一个字符 | `Letter[!3-5]` | Letter1…                   | Letter3 … Letter5, Letterxx |
+| 通配符   | 描述                               | 正则示例       | 匹配示例                  | 不匹配                      |
+| :--      | ---                                | ---            | ---                       | ----                        |
+| `*`      | 匹配任意数量的任何字符，包括无     | `Law*`         | Law, Laws, Lawyer         | GrokLaw, La, aw             |
+| `?`      | 匹配任何单个字符                   | `?at`          | Cat, cat, Bat, bat        | at                          |
+| `[abc]`  | 匹配括号中给出的一个字符           | `[CB]at`       | Cat, Bat                  | cat, bat                    |
+| `[a-z]`  | 匹配括号中给出的范围中的一个字符   | `Letter[0-9]`  | Letter0, Letter1, Letter9 | Letters, Letter, Letter10   |
+| `[!abc]` | 匹配括号中未给出的一个字符         | `[!C]at`       | Bat, bat, cat             | Cat                         |
+| `[!a-z]` | 匹配不在括号内给定范围内的一个字符 | `Letter[!3-5]` | Letter1…                  | Letter3 … Letter5, Letterxx |
 
 另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。
 
 ## 远程文件采集方案
 
-### linux操作系统
-
-在 linux 系统进行远程日志文件采集，需要采用 `mount NFS` 方式，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
-
-linux mount NFS [说明文档](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/)。
+在 linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/)，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
 
 ## 指标集
 

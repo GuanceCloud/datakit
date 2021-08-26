@@ -439,6 +439,10 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 		c.OutputFileDeprecated = ""
 	}
 
+	if c.IntervalDeprecated != "" {
+		c.IntervalDeprecated = ""
+	}
+
 	if c.DataWay != nil {
 		c.DataWay.HttpProxy = flagProxy
 	}
