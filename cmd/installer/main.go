@@ -112,6 +112,7 @@ func downloadFiles() error {
 	return nil
 }
 
+//nolint:funlen,gocyclo
 func main() {
 
 	flag.Parse()

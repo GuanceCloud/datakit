@@ -74,6 +74,7 @@ var (
 	ReleaseType    string
 )
 
+//nolint:funlen,gocyclo
 func RunCmds() {
 
 	if FlagDefConf {

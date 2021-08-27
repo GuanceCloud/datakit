@@ -667,11 +667,11 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 	return cur
 }
 
-func CreateSymlinks() error {
+func CreateSymlinks() {
 
 	x := [][2]string{}
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		x = [][2]string{
 			{
 				filepath.Join(datakit.InstallDir, "datakit.exe"),
@@ -712,8 +712,6 @@ func CreateSymlinks() error {
 			l.Warnf("create datakit symlink: %s -> %s: %s, ignored", item[1], item[0], err.Error())
 		}
 	}
-
-	return nil
 }
 
 func symlink(src, dst string) error {

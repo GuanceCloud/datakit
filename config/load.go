@@ -44,7 +44,7 @@ func LoadCfg(c *Config, mcp string) error {
 		// 由于 datakit UUID 不再重要, 出错也不管了
 		_ = c.SetUUID()
 
-		_ = CreateSymlinks()
+		CreateSymlinks()
 
 	} else {
 		if err := c.LoadMainTOML(mcp); err != nil {

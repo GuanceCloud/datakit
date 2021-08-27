@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -87,9 +88,14 @@ func prepare() {
 	}
 }
 
+const (
+	LOCAL = "local"
+	ALL   = "all"
+)
+
 func parseArchs(s string) (archs []string) {
 	switch s {
-	case "all":
+	case ALL:
 
 		// read cmd-line env
 		if x := os.Getenv("ALL_ARCHS"); x != "" {
@@ -98,7 +104,7 @@ func parseArchs(s string) (archs []string) {
 			archs = OSArches
 		}
 
-	case "local":
+	case LOCAL:
 		if x := os.Getenv("LOCAL"); x != "" {
 			if x == "all" { // 指定 local 为 all，便于测试全平台编译/发布
 				archs = OSArches
@@ -130,7 +136,7 @@ func Compile() {
 		}
 
 		goos, goarch := parts[0], parts[1]
-		if goos == "darwin" && runtime.GOOS != "darwin" {
+		if goos == datakit.OSDarwin && runtime.GOOS != datakit.OSDarwin {
 			l.Warnf("skip build datakit under %s", archs[idx])
 			continue
 		}
@@ -155,14 +161,16 @@ func Compile() {
 	l.Infof("Done!(elapsed %v)", time.Since(start))
 }
 
+const winBinSuffix = ".exe"
+
 func compileArch(bin, goos, goarch, dir string) {
 
 	output := filepath.Join(dir, bin)
-	if goos == "windows" {
-		output += ".exe"
+	if goos == datakit.OSWindows {
+		output += winBinSuffix
 	}
 	cgoEnabled := "0"
-	if goos == "darwin" {
+	if goos == datakit.OSDarwin {
 		cgoEnabled = "1"
 	}
 
@@ -188,19 +196,13 @@ func compileArch(bin, goos, goarch, dir string) {
 	}
 }
 
-type installInfo struct {
-	Name         string
-	DownloadAddr string
-	Version      string
-}
-
 func buildInstaller(outdir, goos, goarch string) {
 
 	l.Debugf("building %s-%s/installer...", goos, goarch)
 
 	installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
-	if goos == "windows" {
-		installerExe += ".exe"
+	if goos == datakit.OSWindows {
+		installerExe += winBinSuffix
 	}
 
 	args := []string{

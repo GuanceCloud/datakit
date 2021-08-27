@@ -69,7 +69,7 @@ func buildExternals(outdir, goos, goarch string) {
 
 			switch osarch {
 			case "windows/amd64", "windows/386":
-				out = out + ".exe"
+				out += ".exe"
 			default: // pass
 			}
 
@@ -78,26 +78,28 @@ func buildExternals(outdir, goos, goarch string) {
 				"-o", filepath.Join(outdir, "externals", out),
 				"-ldflags",
 				"-w -s",
-				filepath.Join("plugins/externals", ex.name, ex.entry),
+				filepath.Join("plugins", "externals", ex.name, ex.entry),
 			}
 
-			env := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
+			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
 
-			msg, err := runEnv(args, env)
+			msg, err := runEnv(args, ex.envs)
 			if err != nil {
-				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
+					args, ex.envs, err, string(msg))
 			}
 
 		default: // for python, just copy source code into build dir
-			args := append(ex.buildArgs, filepath.Join(outdir, "externals"))
-			cmd := exec.Command(ex.buildCmd, args...) //nolint:gosec
+			ex.buildArgs = append(ex.buildArgs, filepath.Join(outdir, "externals"))
+			cmd := exec.Command(ex.buildCmd, ex.buildArgs...) //nolint:gosec
 			if ex.envs != nil {
 				cmd.Env = append(os.Environ(), ex.envs...)
 			}
 
 			res, err := cmd.CombinedOutput()
 			if err != nil {
-				l.Fatalf("failed to build python(%s %s): %s, err: %s", ex.buildCmd, strings.Join(args, " "), res, err.Error())
+				l.Fatalf("failed to build python(%s %s): %s, err: %s",
+					ex.buildCmd, strings.Join(ex.buildArgs, " "), res, err.Error())
 			}
 		}
 	}

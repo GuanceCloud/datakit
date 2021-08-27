@@ -276,6 +276,7 @@ func doShow(c *queryResult) {
 	output("---------\n%d rows, cost %s\n", rows, c.Cost)
 }
 
+//nolint:funlen,gocyclo
 func prettyShow(resp *queryResult) int {
 	nrows := 0
 
