@@ -44,9 +44,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -71,9 +71,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -98,9 +98,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -125,9 +125,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -149,9 +149,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -177,9 +177,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -205,9 +205,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -235,9 +235,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -258,9 +258,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"}, // allow redirect, should be 200
+						{Is: "200"}, // allow redirect, should be 200
 					},
 				},
 			},
@@ -280,9 +280,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "302"}, // disabled redirect, should be 302
+						{Is: "302"}, // disabled redirect, should be 302
 					},
 				},
 			},
@@ -299,7 +299,7 @@ var httpCases = []struct {
 			Name:       "_test_resp_time_less_10ms",
 			Frequency:  "1s",
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{ResponseTime: "10ms"},
+				{ResponseTime: "10ms"},
 			},
 		},
 	},
@@ -315,27 +315,27 @@ var httpCases = []struct {
 			Region:     "hangzhou",
 			Frequency:  "1s",
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					Header: map[string][]*dt.SuccessOption{
 
-						"Cache-Control": []*dt.SuccessOption{
-							&dt.SuccessOption{MatchRegex: `max-ag=\d`}, // expect fail: max-age
+						"Cache-Control": {
+							{MatchRegex: `max-ag=\d`}, // expect fail: max-age
 						},
-						"Server": []*dt.SuccessOption{
-							&dt.SuccessOption{Is: `Apache`}, // expect fail
+						"Server": {
+							{Is: `Apache`}, // expect fail
 						},
 
-						"Date": []*dt.SuccessOption{
-							&dt.SuccessOption{Contains: "GMT"}, // ok: Date always use GMT
+						"Date": {
+							{Contains: "GMT"}, // ok: Date always use GMT
 						},
-						"NotExistHeader1": []*dt.SuccessOption{
-							&dt.SuccessOption{NotMatchRegex: `.+`}, // ok
+						"NotExistHeader1": {
+							{NotMatchRegex: `.+`}, // ok
 						},
-						"NotExistHeader2": []*dt.SuccessOption{
-							&dt.SuccessOption{IsNot: `abc`}, // ok
+						"NotExistHeader2": {
+							{IsNot: `abc`}, // ok
 						},
-						"NotExistHeader3": []*dt.SuccessOption{
-							&dt.SuccessOption{NotContains: `def`}, // ok
+						"NotExistHeader3": {
+							{NotContains: `def`}, // ok
 						},
 					},
 				},
@@ -353,7 +353,7 @@ func prepareSSL(t *testing.T) {
 }
 
 func cleanTLSData() {
-	for k, _ := range tlsData {
+	for k := range tlsData {
 		os.Remove("." + k + ".pem")
 	}
 }
@@ -443,7 +443,7 @@ func proxyServer(t *testing.T) {
 	http.HandleFunc("/_test_with_proxy", func(w http.ResponseWriter, req *http.Request) {
 
 		t.Logf("proxied request comming")
-		for k, _ := range req.Header {
+		for k := range req.Header {
 			t.Logf("proxied header: %s: %s", k, req.Header.Get(k))
 		}
 
@@ -589,7 +589,7 @@ func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
 	})
 
 	r.GET("/_test_with_headers", func(c *gin.Context) {
-		for k, _ := range c.Request.Header {
+		for k := range c.Request.Header {
 			t.Logf("%s: %s", k, c.Request.Header.Get(k))
 		}
 

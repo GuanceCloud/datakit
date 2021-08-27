@@ -135,7 +135,7 @@ func RunCmds() {
 		}
 
 		keys := []string{}
-		for k, _ := range info {
+		for k := range info {
 			keys = append(keys, k)
 		}
 

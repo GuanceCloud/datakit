@@ -64,7 +64,7 @@ func StartUdpAgent(addr string) error {
 
 func parseJaegerUdp(data []byte) ([]*trace.TraceAdapter, error) {
 	thriftBuffer := thrift.NewTMemoryBufferLen(len(data))
-	if _, err := thriftBuffer.Write(data[:len(data)]); err != nil {
+	if _, err := thriftBuffer.Write(data[:]); err != nil {
 		log.Error("buffer write failed :%v,", err)
 		return nil, err
 	}

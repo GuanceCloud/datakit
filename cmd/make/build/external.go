@@ -24,7 +24,7 @@ type dkexternal struct {
 
 var (
 	externals = []*dkexternal{
-		&dkexternal{
+		{
 			// requirement: apt-get install gcc-multilib
 			name: "oracle",
 			lang: "go",

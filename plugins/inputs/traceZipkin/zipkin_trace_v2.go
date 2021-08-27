@@ -53,7 +53,7 @@ func parseZipkinJsonV2(octets []byte) error {
 		tAdapter.SpanID = fmt.Sprintf("%x", uint64(span.ID))
 
 		tAdapter.Status = trace.STATUS_OK
-		for tag, _ := range span.Tags {
+		for tag := range span.Tags {
 			if tag == "error" {
 				tAdapter.Status = trace.STATUS_ERR
 				break
@@ -143,7 +143,7 @@ func parseZipkinProtobufV2(octets []byte) error {
 		tAdapter.SpanID = fmt.Sprintf("%d", span.ID)
 
 		tAdapter.Status = trace.STATUS_OK
-		for tag, _ := range span.Tags {
+		for tag := range span.Tags {
 			if tag == "error" {
 				tAdapter.Status = trace.STATUS_ERR
 				break

@@ -24,11 +24,11 @@ func cmdMan() {
 	}
 
 	// load input-names
-	for k, _ := range inputs.Inputs {
+	for k := range inputs.Inputs {
 		suggestions = append(suggestions, prompt.Suggest{Text: k, Description: ""})
 	}
 
-	for k, _ := range man.OtherDocs {
+	for k := range man.OtherDocs {
 		suggestions = append(suggestions, prompt.Suggest{Text: k, Description: ""})
 	}
 
@@ -57,7 +57,7 @@ func exportMan(to, skipList, ver string) error {
 		skip[x] = true
 	}
 
-	for k, _ := range inputs.Inputs {
+	for k := range inputs.Inputs {
 		if skip[k] {
 			continue
 		}
@@ -76,7 +76,7 @@ func exportMan(to, skipList, ver string) error {
 		}
 	}
 
-	for k, _ := range man.OtherDocs {
+	for k := range man.OtherDocs {
 
 		if skip[k] {
 			continue

@@ -75,10 +75,10 @@ func DefaultConfig() *Config {
 		},
 
 		BlackList: []*inputHostList{
-			&inputHostList{Hosts: []string{}, Inputs: []string{}},
+			{Hosts: []string{}, Inputs: []string{}},
 		},
 		WhiteList: []*inputHostList{
-			&inputHostList{Hosts: []string{}, Inputs: []string{}},
+			{Hosts: []string{}, Inputs: []string{}},
 		},
 		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
 	}
@@ -673,34 +673,34 @@ func CreateSymlinks() error {
 
 	if runtime.GOOS == "windows" {
 		x = [][2]string{
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit.exe"),
 				`C:\WINDOWS\system32\datakit.exe`,
 			},
 		}
 	} else {
 		x = [][2]string{
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/local/bin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/local/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/bin/datakit",
 			},

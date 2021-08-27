@@ -158,7 +158,7 @@ func doDQL(s string) {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
 		Queries: []*dkhttp.SingleQuery{
-			&dkhttp.SingleQuery{
+			{
 				Query: s,
 			},
 		},
@@ -321,7 +321,7 @@ func prettyShow(resp *queryResult) int {
 					addSug(k)
 				}
 
-				for colIdx, _ := range s.Columns {
+				for colIdx := range s.Columns {
 					if disableNil && val[colIdx] == nil {
 						continue
 					}
@@ -386,7 +386,7 @@ func prettyShow(resp *queryResult) int {
 
 func getMaxColWidth(r *models.Row) int {
 	max := 0
-	for k, _ := range r.Tags {
+	for k := range r.Tags {
 		if len(k) > max {
 			max = len(k)
 		}

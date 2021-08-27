@@ -167,7 +167,7 @@ func (m *monitor) run() {
 	for {
 		select {
 		case <-tick.C:
-			for idx, _ := range execCfgs {
+			for idx := range execCfgs {
 				wg.Add(1)
 				go func(i int) {
 					defer wg.Done()
@@ -309,7 +309,7 @@ func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 	columns, _ := rows.Columns()
 	columnLength := len(columns)
 	cache := make([]interface{}, columnLength)
-	for idx, _ := range cache {
+	for idx := range cache {
 		var a interface{}
 		cache[idx] = &a
 	}
@@ -462,17 +462,17 @@ type ExecCfg struct {
 }
 
 var execCfgs = []*ExecCfg{
-	&ExecCfg{
+	{
 		sql:        oracle_process_sql,
 		metricName: "oracle_process",
 		tagsMap:    []string{"program"},
 	},
-	&ExecCfg{
+	{
 		sql:        oracle_system_sql,
 		metricName: "oracle_system",
 		tagsMap:    []string{},
 	},
-	&ExecCfg{
+	{
 		sql:        oracle_tablespace_sql,
 		metricName: "oracle_tablespace",
 		tagsMap:    []string{"tablespace_name"},

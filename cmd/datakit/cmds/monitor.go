@@ -37,7 +37,7 @@ func cmdMonitor(interval time.Duration, verbose bool) {
 
 	tick := time.NewTicker(interval)
 	defer tick.Stop()
-	for _ = range tick.C {
+	for range tick.C {
 		run()
 	}
 }

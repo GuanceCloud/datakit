@@ -162,7 +162,7 @@ man:
 	@packr2
 
 gofmt:
-	@GO111MODULE=off gofmt -s ./...
+	@GO111MODULE=off gofmt -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/")
 
 vet:
 	@go vet ./...

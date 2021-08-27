@@ -167,7 +167,7 @@ func do(txt string) {
 	}
 
 	for i := High_; i >= 0; i-- {
-		for ptn, _ := range matchedGroks[i] {
+		for ptn := range matchedGroks[i] {
 			fmt.Printf("\t%d %%{%s: ?}\n", i, ptn)
 		}
 	}

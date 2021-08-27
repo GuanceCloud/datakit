@@ -45,7 +45,7 @@ func (e *IndexExpr) String() string {
 	if e.Obj != nil {
 		x = e.Obj.String()
 	}
-	for i, _ := range e.Index {
+	for i := range e.Index {
 		x += fmt.Sprintf("[%d]", e.Index[i])
 	}
 
