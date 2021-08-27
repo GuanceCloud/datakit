@@ -134,7 +134,10 @@ enable = [
   [[issues.exclude-rules]]
   path = "_test\\.go"
   linters = [
-    "gomnd"
+    "gomnd",
+		"errcheck",
+		"dupl",
+		"gosec",
   ]
 
   [[issues.exclude-rules]]
@@ -144,11 +147,8 @@ enable = [
   text = "unnecessaryDefer:"
 
 [run]
+
 skip-dirs = [
-  #"test/testdata_etc",
-  #"internal/cache",
-  #"internal/renameio",
-  #"internal/robustio"
 ]
 
 timeout = "1h"

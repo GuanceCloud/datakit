@@ -69,8 +69,8 @@ define pub
 		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
-lint:
-	@golangci-lint run --timeout 1h | tee check.err # https://golangci-lint.run/usage/install/#local-installation
+lint: lint_deps
+	@golangci-lint run | tee check.err # https://golangci-lint.run/usage/install/#local-installation
 
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
@@ -155,7 +155,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser vet 
+deps: prepare man gofmt lfparser plparser vet 
 
 man:
 	@packr2 clean
@@ -172,6 +172,17 @@ test:
 
 lfparser:
 	@goyacc -o io/parser/gram_y.go io/parser/gram.y
+
+plparser:
+	@goyacc -o pipeline/parser/parser.y.go pipeline/parser/parser.y
+
+lint_deps: prepare man gofmt vet lfparser_disable_line plparser_disable_line
+
+lfparser_disable_line:
+	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y
+
+plparser_disable_line:
+	@goyacc -l -o pipeline/parser/parser.y.go pipeline/parser/parser.y
 
 prepare:
 	@mkdir -p git
