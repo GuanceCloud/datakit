@@ -24,15 +24,6 @@ type versionDesc struct {
 	Go       string `json:"go"`
 }
 
-func (vd *versionDesc) withoutGitCommit() string {
-	parts := strings.Split(vd.Version, "-")
-	if len(parts) != 3 {
-		l.Fatalf("version info not in v<x.x>-<n>-g<commit-id> format: %s", vd.Version)
-	}
-
-	return strings.Join(parts[:2], "-")
-}
-
 func tarFiles(goos, goarch string) {
 
 	gz := filepath.Join(PubDir, Release, fmt.Sprintf("%s-%s-%s-%s.tar.gz",

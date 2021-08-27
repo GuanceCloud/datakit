@@ -67,7 +67,7 @@ var (
 )
 
 func exportIntegration(to, ignore string) error {
-	if err := os.MkdirAll(to, 0600); err != nil {
+	if err := os.MkdirAll(to, os.ModePerm); err != nil {
 		return err
 	}
 

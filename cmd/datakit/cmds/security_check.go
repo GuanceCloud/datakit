@@ -48,7 +48,7 @@ func InstallSecCheck(installDir string) error {
 		return err
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status code %v", resp.StatusCode)
 	}
 
@@ -61,7 +61,7 @@ func InstallSecCheck(installDir string) error {
 	}
 
 	// TODO: add network proxy option
-	cmd := exec.Command("/bin/bash", "-c", string(body))
+	cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 	x, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Security Checker install failed: %s \n", string(x))

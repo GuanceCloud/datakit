@@ -48,7 +48,7 @@ func checkUpdate(curverStr string, acceptRC bool) int {
 	if ver != nil && version.IsNewVersion(ver, curver, acceptRC) {
 		l.Infof("New online version available: %s, commit %s (release at %s)",
 			ver.VersionString, ver.Commit, ver.ReleaseDate)
-		return 42
+		return 42 // nolint
 	} else {
 		if acceptRC {
 			l.Infof("Up to date(%s)", curver.VersionString)
@@ -81,10 +81,10 @@ ReleasedInputs: %s
 	}
 
 	for k, v := range vers {
-
-		// always show testing verison if showTestingVer is true
+		// always show testing version if showTestingVer is true
 		l.Debugf("compare %s <=> %s", v, curver)
-		if k == "Testing" || version.IsNewVersion(v, curver, true) { // show version info, also show RC verison info
+		// show version info, also show RC version info
+		if k == "Testing" || version.IsNewVersion(v, curver, true) {
 			fmt.Println("---------------------------------------------------")
 			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
 				k, v.VersionString, v.Commit, v.ReleaseDate)

@@ -36,7 +36,7 @@ var (
 )
 
 func runEnv(args, env []string) ([]byte, error) {
-	cmd := exec.Command(args[0], args[1:]...)
+	cmd := exec.Command(args[0], args[1:]...) //nolint:gosec
 	if env != nil {
 		cmd.Env = append(os.Environ(), env...)
 	}
@@ -80,7 +80,9 @@ func prepare() {
 		l.Fatal(err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(PubDir, Release, "version"), versionInfo, 0666); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(PubDir, Release, "version"),
+		versionInfo,
+		os.ModePerm); err != nil {
 		l.Fatal(err)
 	}
 }
@@ -120,7 +122,7 @@ func Compile() {
 
 	archs := parseArchs(Archs)
 
-	for idx, _ := range archs {
+	for idx := range archs {
 
 		parts := strings.Split(archs[idx], "/")
 		if len(parts) != 2 {
@@ -159,9 +161,9 @@ func compileArch(bin, goos, goarch, dir string) {
 	if goos == "windows" {
 		output += ".exe"
 	}
-	cgo_enabled := "0"
+	cgoEnabled := "0"
 	if goos == "darwin" {
-		cgo_enabled = "1"
+		cgoEnabled = "1"
 	}
 
 	args := []string{
@@ -176,7 +178,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"GOOS=" + goos,
 		"GOARCH=" + goarch,
 		`GO111MODULE=off`,
-		"CGO_ENABLED=" + cgo_enabled,
+		"CGO_ENABLED=" + cgoEnabled,
 	}
 
 	l.Debugf("building %s", fmt.Sprintf("%s-%s/%s", goos, goarch, bin))

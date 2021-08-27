@@ -20,7 +20,7 @@ func updateIPDB(addr string) error {
 
 	cli := getcli()
 
-	curDownloading = "ipdb"
+	dl.CurDownloading = "ipdb"
 	if err := dl.Download(cli, addr, datakit.InstallDir, true, false); err != nil {
 		return err
 	}

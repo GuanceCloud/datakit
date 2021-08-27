@@ -47,7 +47,7 @@ func cmdMan() {
 }
 
 func exportMan(to, skipList, ver string) error {
-	if err := os.MkdirAll(to, 0600); err != nil {
+	if err := os.MkdirAll(to, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -110,18 +110,21 @@ func runMan(txt string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	default:
-		x, err := man.BuildMarkdownManual(s, &man.Option{
-			WithCSS:                       false,
-			DisableMonofontOnTagFieldName: true,
-		})
+		x, err := man.BuildMarkdownManual(s,
+			&man.Option{
+				WithCSS:                       false,
+				DisableMonofontOnTagFieldName: true,
+			})
 
+		width := 80
+		leftPad := 6
 		if err != nil {
 			fmt.Printf("[E] %s\n", err.Error())
 		} else {
 			if len(x) == 0 {
 				fmt.Printf("[E] intput %s got no manual", s)
 			} else {
-				result := markdown.Render(string(x), 80, 6)
+				result := markdown.Render(string(x), width, leftPad)
 				fmt.Println(string(result))
 			}
 		}

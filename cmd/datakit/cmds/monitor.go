@@ -37,16 +37,13 @@ func cmdMonitor(interval time.Duration, verbose bool) {
 
 	tick := time.NewTicker(interval)
 	defer tick.Stop()
-	for {
-		select {
-		case <-tick.C:
-			run()
-		}
+	for _ = range tick.C {
+		run()
 	}
 }
 
 func doCMDMonitor(url string, verbose bool) ([]byte, error) {
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -58,14 +55,14 @@ func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode/100 != 2 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s", string(body))
 	}
 
 	ds := dkhttp.DatakitStats{
 		DisableMonofont: true,
 	}
-	if err := json.Unmarshal(body, &ds); err != nil {
+	if err = json.Unmarshal(body, &ds); err != nil {
 		return nil, err
 	}
 
@@ -76,19 +73,19 @@ func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 
 	width := 100
 	if term.IsTerminal(0) {
-		w, _, err := term.GetSize(0)
-		if err == nil {
-			width = w
+		if width, _, err = term.GetSize(0); err != nil {
+			width = 100
 		}
 	}
 
+	leftPad := 2
 	if err != nil {
 		return nil, err
 	} else {
 		if len(mdtxt) == 0 {
 			return nil, fmt.Errorf("no monitor info available")
 		} else {
-			result := markdown.Render(string(mdtxt), width, 2)
+			result := markdown.Render(string(mdtxt), width, leftPad)
 			return result, nil
 		}
 	}

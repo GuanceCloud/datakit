@@ -60,7 +60,7 @@ func loadHistory() {
 
 	histpath := filepath.Join(homedir, ".dql_history")
 
-	if _, err := os.Stat(histpath); err != nil {
+	if _, err = os.Stat(histpath); err != nil {
 		l.Warnf("history file %s not found", histpath)
 		return
 	}
@@ -94,7 +94,7 @@ func dumpHistory() {
 	}
 
 	if err := ioutil.WriteFile(filepath.Join(homedir, ".dql_history"),
-		[]byte(strings.Join(history, "\n")), 0644); err != nil {
+		[]byte(strings.Join(history, "\n")), os.ModePerm); err != nil {
 		l.Errorf("update history error: %s", err.Error())
 	}
 }
@@ -341,7 +341,7 @@ func prettyShow(resp *queryResult) int {
 								}
 
 								// convert ms to second
-								val[colIdx] = time.Unix(i/1000, 0)
+								val[colIdx] = time.Unix(i/1000, 0) //nolint
 							}
 						}
 
@@ -531,7 +531,7 @@ var (
 )
 
 func addSug(key string) {
-	if ok, _ := liveSug[key]; !ok {
+	if ok := liveSug[key]; !ok {
 		suggestions = append(suggestions, prompt.Suggest{
 			Text: key, Description: "",
 		})

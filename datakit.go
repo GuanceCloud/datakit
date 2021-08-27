@@ -196,7 +196,7 @@ func PID() (int, error) {
 func SavePid() error {
 
 	if isRuning() {
-		return fmt.Errorf("DataKit still running, PID: %s", pidFile)
+		return fmt.Errorf("datakit still running, PID: %s", pidFile)
 	}
 
 	pid := os.Getpid()
@@ -223,16 +223,13 @@ func isRuning() bool {
 	p, _ = process.NewProcess(int32(oidPid))
 	name, _ = p.Name()
 
-	if name == getBinName() {
-		return true
-	}
-	return false
+	return name == getBinName()
 }
 
 func getBinName() string {
 	bin := "datakit"
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == OSWindows {
 		bin += ".exe"
 	}
 
