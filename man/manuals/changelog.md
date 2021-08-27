@@ -40,6 +40,7 @@
 - [ddtrace](ddtrace) 支持多路由配置(#310)
 - [ddtrace](ddtrace#fb3a6e17) 支持自定义业务 tag 提取(#316)
 - [主机对象](hostobject)上报的采集器错误，只上报最近 30s(含)以内的错误(#318)
+- [DCA客户端](dca)发布
 - 禁用 Windows 下部分命令行帮助(#319)
 - 调整 DataKit [安装形式](datakit-install)，[离线安装](datakit-offline-install)方式做了调整(#300)
 	- 调整之后，依然兼容之前老的安装方式
