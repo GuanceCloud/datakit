@@ -348,6 +348,10 @@ func injectCloudProvider(p string) error {
 
 		conf := preEnableHostobjectInput(p)
 
+		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, "host"), datakit.ConfPerm); err != nil {
+			l.Fatalf("failed to init hostobject conf: %s", err.Error())
+		}
+
 		cfgpath := filepath.Join(datakit.ConfdDir, "host", "hostobject.conf")
 		if err := ioutil.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
 			return err
