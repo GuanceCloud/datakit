@@ -247,3 +247,45 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 # 然后再执行脚本
 powershell.exe .\dk.ps1
 ```
+
+## 关于代码规范
+
+这里不强调具体的代码规范，现有工具能帮助我们规范各自的代码习惯，目前引入 golint 工具，可单独检查现有代码：
+
+```golang
+make lint
+```
+
+在 check.err 中即可看到各种修改建议。对于误报，我们可以用 `//nolint` 来显式关闭：
+
+```golang
+// 显而易见，16 是最大的单字节 16 进制数，但 lint 中的 gomnd 会报错：
+// mnd: Magic number: 16, in <return> detected (gomnd)
+// 但此处可加后缀来屏蔽这个检查
+func digitVal(ch rune) int {
+	switch {
+	case '0' <= ch && ch <= '9':
+		return int(ch - '0')
+	case 'a' <= ch && ch <= 'f':
+		return int(ch - 'a' + 10)
+	case 'A' <= ch && ch <= 'F':
+		return int(ch - 'A' + 10)
+	}
+
+	// larger than any legal digit val
+	return 16 //nolint:gomnd
+}
+```
+
+> `nolint` 规则参见[这里](https://golangci-lint.run/usage/false-positives/)
+
+但我们不建议频繁加上 `//nolint:xxx,yyy` 来掩耳盗铃，如下几种情况可用 lint：
+
+- 中所众所周知的一些 magic number，比如 1024 表示 1K, 16 为最大的单字节 16
+- 一些确实无关的安全告警，比如要在代码中运行个命令，但命令参数是外面传入的，但既然 lint 工具有提及，就有必要考虑是否有可能的安全问题。
+
+```golang
+// cmd/datakit/cmds/monitor.go
+cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
+```
+- 其它可能确实需要关闭检查的地方，慎重对待

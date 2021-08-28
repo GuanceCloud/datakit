@@ -668,5 +668,7 @@ func digitVal(ch rune) int {
 	case 'A' <= ch && ch <= 'F':
 		return int(ch - 'A' + 10)
 	}
-	return 16 // larger than any legal digit val
+
+	// larger than any legal digit val
+	return 16 //nolint:gomnd
 }
