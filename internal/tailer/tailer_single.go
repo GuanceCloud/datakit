@@ -16,6 +16,8 @@ const (
 	defaultSleepDuration = time.Second
 	readBuffSize         = 1024 * 4
 	timeoutDuration      = time.Second * 3
+
+	firstMessage = "[DataKit-logging] First Message. filename: %s, source: %s"
 )
 
 type TailerSingle struct {
@@ -27,10 +29,8 @@ type TailerSingle struct {
 	mult     *Multiline
 	pipeline *pipeline.Pipeline
 
-	tags map[string]string
-
-	stop chan interface{}
-	err  error
+	tags   map[string]string
+	stopCh chan struct{}
 }
 
 func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
@@ -38,50 +38,57 @@ func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
 		return nil, fmt.Errorf("option cannot be null pointer")
 	}
 
-	t := &TailerSingle{opt: opt}
+	t := &TailerSingle{
+		stopCh: make(chan struct{}, 1),
+		opt:    opt,
+	}
 
-	t.decoder, t.err = encoding.NewDecoder(opt.CharacterEncoding)
-	t.mult, t.err = NewMultiline(opt.Match)
-	t.file, t.err = os.Open(filename)
-	if t.err != nil {
-		return nil, t.err
+	var err error
+	if opt.CharacterEncoding != "" {
+		t.decoder, err = encoding.NewDecoder(opt.CharacterEncoding)
+		if err != nil {
+			return nil, err
+		}
+	}
+	t.mult, err = NewMultiline(opt.Match)
+	if err != nil {
+		return nil, err
+	}
+
+	t.file, err = os.Open(filename)
+	if err != nil {
+		return nil, err
 	}
 
 	if !opt.FromBeginning {
 		if _, err := t.file.Seek(0, os.SEEK_END); err != nil {
-			return nil, t.err
+			return nil, err
 		}
 	}
 
 	if opt.Pipeline != "" {
-		p, err := pipeline.NewPipelineFromFile(opt.Pipeline)
-		if err == nil {
+		if p, err := pipeline.NewPipelineFromFile(opt.Pipeline); err != nil {
+			t.opt.log.Warnf("pipeline.NewPipelineFromFile error: %s, ignored", err)
+		} else {
 			t.pipeline = p
 		}
 	}
 
-	t.stop = make(chan interface{})
 	t.filename = t.file.Name()
 	t.tags = t.buildTags(opt.GlobalTags)
 
 	return t, nil
 }
 
-func (t *TailerSingle) Start() {
-	go t.forwardMessage()
+func (t *TailerSingle) Run() {
+	defer t.Close()
+	t.forwardMessage()
 }
 
-func (t *TailerSingle) Stop() {
-	select {
-	case <-t.stop:
-		// nil
-	default:
-		close(t.stop)
-	}
-
+func (t *TailerSingle) Close() {
 	t.file.Close()
-	t.opt.done <- t.filename
-	t.opt.log.Debugf("closing %s", t.filename)
+	t.stopCh <- struct{}{}
+	t.opt.log.Infof("closing %s", t.filename)
 }
 
 func (t *TailerSingle) forwardMessage() {
@@ -94,16 +101,22 @@ func (t *TailerSingle) forwardMessage() {
 	)
 	defer timeout.Stop()
 
+	// 上报一条标记数据，表示已启动成功
+	if err := feed(t.opt.InputName, t.opt.Source, t.tags,
+		fmt.Sprintf(firstMessage, t.filename, t.opt.Source)); err != nil {
+		t.opt.log.Warn(err)
+	}
+
 	for {
 		b.buf = b.buf[:0]
 
 		select {
-		case <-t.stop:
-			t.opt.log.Debugf("stop reading data from file %s", t.filename)
+		case <-t.stopCh:
+			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 		case <-timeout.C:
 			if err := t.processText(t.mult.Flush()); err != nil {
-				t.opt.log.Debug(err)
+				t.opt.log.Warn(err)
 			}
 		default:
 			// nil
@@ -111,7 +124,7 @@ func (t *TailerSingle) forwardMessage() {
 
 		b.buf, readNum, err = t.read()
 		if err != nil {
-			t.opt.log.Debugf("failed of read data from file %s", t.filename)
+			t.opt.log.Warnf("failed of read data from file %s", t.filename)
 			return
 		}
 		if readNum == 0 {
@@ -131,7 +144,7 @@ func (t *TailerSingle) forwardMessage() {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
 				err = feed(t.opt.InputName, t.opt.Source, t.tags, line)
 				if err != nil {
-					t.opt.log.Debug(err)
+					t.opt.log.Warn(err)
 				}
 			}
 
@@ -164,6 +177,17 @@ func (t *TailerSingle) processText(text string) error {
 		Error()
 
 	return err
+}
+
+func (t *TailerSingle) currentOffset() int64 {
+	if t.file == nil {
+		return -1
+	}
+	offset, err := t.file.Seek(0, os.SEEK_CUR)
+	if err != nil {
+		return -1
+	}
+	return offset
 }
 
 func (t *TailerSingle) read() ([]byte, int, error) {

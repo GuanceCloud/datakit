@@ -1,8 +1,8 @@
 package tailer
 
 import (
-	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -11,38 +11,27 @@ import (
 
 const (
 	// 定期寻找符合条件的新文件
-	scannsNewFileInterval = time.Second * 10
-
-	// 定期检查当前文件是否存在
-	checkFileExistInterval = time.Minute * 10
+	scanNewFileInterval = time.Second * 10
 
 	defaultSource = "default"
-
-	defaultMatch = `^\S`
 )
 
 type Option struct {
 	// 默认值是 $Source + `_log`
 	InputName string
-
 	// 数据来源，默认值为'default'
 	Source string
-
 	// service，默认值为 $Source
 	Service string
-
 	// pipeline脚本路径，如果为空则不使用pipeline
 	Pipeline string
-
 	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
 	// ex: "info"
 	//     "debug"
 	IgnoreStatus []string
-
 	// 是否从文件起始处开始读取
 	// 注意，如果打开此项，可能会导致大量数据重复
 	FromBeginning bool
-
 	// 解释文件内容时所使用的的字符编码，如果设置为空，将不进行转码处理
 	// ex: "utf-8"
 	//     "utf-16le"
@@ -52,25 +41,20 @@ type Option struct {
 	//     "none"
 	//     ""
 	CharacterEncoding string
-
 	// 匹配正则表达式
 	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
 	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
 	//
 	// 如果为空，则默认使用 ^\S 即匹配每行开始处非空白字符
 	Match string
-
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 	DisableAddStatusField bool
-
 	// 是否关闭高频IO
 	DisableHighFreqIODdata bool
-
 	// 添加tag
 	GlobalTags map[string]string
 
-	done chan string
-	log  *logger.Logger
+	log *logger.Logger
 }
 
 func (opt *Option) init() error {
@@ -86,16 +70,11 @@ func (opt *Option) init() error {
 		opt.InputName = opt.Source + "_log"
 	}
 
-	if opt.Match == "" {
-		opt.Match = defaultMatch
-	}
-
 	if opt.GlobalTags == nil {
 		opt.GlobalTags = make(map[string]string)
 	}
 
 	opt.GlobalTags["service"] = opt.Service
-	opt.done = make(chan string)
 	opt.log = logger.SLogger(opt.InputName)
 
 	var err error
@@ -106,40 +85,41 @@ func (opt *Option) init() error {
 }
 
 type Tailer struct {
-	opt     *Option
-	watcher *Watcher
+	opt *Option
 
-	pathNames       []string
-	ignorePathNames []string
+	fileList map[string]*TailerSingle
 
-	stop chan interface{}
+	filePatterns   []string
+	ignorePatterns []string
+
+	stop chan struct{}
+	mu   sync.Mutex
+	wg   sync.WaitGroup
 }
 
-func NewTailer(pathNames []string, opt *Option, ignorePathNames ...[]string) (*Tailer, error) {
-	if len(pathNames) == 0 {
-		return nil, fmt.Errorf("pathNames is empty")
+func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (*Tailer, error) {
+	if len(filePatterns) == 0 {
+		return nil, fmt.Errorf("filePatterns is empty")
 	}
 
 	t := Tailer{
-		opt:       opt,
-		pathNames: pathNames,
-		stop:      make(chan interface{}),
+		opt:          opt,
+		filePatterns: filePatterns,
+		ignorePatterns: func() []string {
+			if len(ignorePatterns) > 0 {
+				return ignorePatterns[0]
+			}
+			return nil
+		}(),
+		fileList: make(map[string]*TailerSingle),
+		stop:     make(chan struct{}),
 	}
 
 	if t.opt == nil {
 		t.opt = &Option{}
 	}
-	if len(ignorePathNames) > 0 {
-		t.ignorePathNames = ignorePathNames[0]
-	}
 
-	var err error
-	t.watcher, err = NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-
-	if err = t.opt.init(); err != nil {
+	if err := t.opt.init(); err != nil {
 		return nil, err
 	}
 
@@ -147,55 +127,88 @@ func NewTailer(pathNames []string, opt *Option, ignorePathNames ...[]string) (*T
 }
 
 func (t *Tailer) Start() {
-	ticker := time.NewTicker(scannsNewFileInterval)
+	ticker := time.NewTicker(scanNewFileInterval)
 	defer ticker.Stop()
 
-	ctx, watcherCancel := context.WithCancel(context.Background())
-	go t.watcher.Watching(ctx)
-
 	// 立即执行一次，而不是等到tick到达
-	t.do()
+	t.scan()
 
 	for {
 		select {
-		case name := <-t.opt.done:
-			t.watcher.Remove(name)
-			t.opt.log.Debugf("tailer %s exit", name)
 		case <-t.stop:
-			watcherCancel()
-			t.watcher.Close()
+			t.closeAll()
+			t.removeAll()
+			t.wg.Wait()
 			t.opt.log.Infof("waiting for all tailers to exit")
 			t.opt.log.Info("exit")
 			return
 
 		case <-ticker.C:
-			t.opt.log.Debugf("list of recivering: %v", t.watcher.List())
-			t.do()
+			t.scan()
+			t.opt.log.Debugf("list of recivering: %v", t.getFileList())
 		}
 	}
 }
 
-func (t *Tailer) do() {
-	fileList := NewFileList(t.pathNames).Ignore(t.ignorePathNames).List()
+func (t *Tailer) scan() {
+	filelist, err := NewProvider().SearchFiles(t.filePatterns).IgnoreFiles(t.ignorePatterns).Result()
+	if err != nil {
+		t.opt.log.Warn(err)
+	}
 
-	for _, filename := range fileList {
-		if exist := t.watcher.IsExist(filename); exist {
+	t.cleanExpriedFile(filelist)
+
+	for _, filename := range filelist {
+		if t.fileInFileList(filename) {
 			continue
 		}
+		t.wg.Add(1)
+		go func(filename string) {
+			defer t.wg.Done()
+			defer t.removeFromFileList(filename)
 
-		tl, err := NewTailerSingle(filename, t.opt)
-		if err != nil {
-			t.opt.log.Errorf("new tailer file %s error: %s", filename, err)
-			continue
+			tl, err := NewTailerSingle(filename, t.opt)
+			if err != nil {
+				t.opt.log.Errorf("new tailer file %s error: %s", filename, err)
+				return
+			}
+			t.addToFileList(filename, tl)
+			tl.Run()
+
+		}(filename)
+	}
+}
+
+// cleanExpriedFile 清除过期文件，过期的定义包括被 remove/rename/truncate 导致文件不可用，其中 truncate 必须小于文件当前的 offset
+// Tailer 已保存当前文件的列表（currentFileList），和函数参数 newFileList 比对，取 newFileList 对于 currentFileList 的差集，即为要被 clean 的对象
+func (t *Tailer) cleanExpriedFile(newFileList []string) {
+	for _, oldFilename := range t.getFileList() {
+		shouldClean := false
+
+		tl := t.getTailerSingle(oldFilename)
+		if tl != nil {
+			didRotate, err := DidRotate(tl.file, tl.currentOffset())
+			if err != nil {
+				t.opt.log.Warnf("didRotate error: %s", err)
+			}
+			if didRotate {
+				shouldClean = true
+			}
 		}
 
-		if err := t.watcher.Add(filename, tl); err != nil {
-			t.opt.log.Error("add watcher file %s error: %s", filename, err)
-			// add 失败将不运行此 tailer，避免出现未在册记录的行为
-			continue
-		}
+		func() {
+			for _, newFilename := range newFileList {
+				if oldFilename == newFilename {
+					return
+				}
+			}
+			shouldClean = true
+		}()
 
-		tl.Start()
+		if shouldClean {
+			t.closeFromFileList(oldFilename)
+			t.opt.log.Debugf("maybe file %s already not exist or truncate, exit", oldFilename)
+		}
 	}
 }
 
@@ -205,6 +218,73 @@ func (t *Tailer) Close() error {
 		// pass
 	default:
 		close(t.stop)
+	}
+	return nil
+}
+
+func (t *Tailer) addToFileList(filename string, tl *TailerSingle) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.fileList[filename] = tl
+	return nil
+}
+
+func (t *Tailer) removeFromFileList(filename string) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.fileList, filename)
+	return nil
+}
+
+func (t *Tailer) closeFromFileList(filename string) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	tl, ok := t.fileList[filename]
+	if !ok {
+		return nil
+	}
+	tl.Close()
+	return nil
+}
+
+func (t *Tailer) fileInFileList(filename string) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	_, ok := t.fileList[filename]
+	return ok
+}
+
+func (t *Tailer) getTailerSingle(filename string) *TailerSingle {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	tl := t.fileList[filename]
+	return tl
+}
+
+func (t *Tailer) getFileList() []string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var list []string
+	for filename := range t.fileList {
+		list = append(list, filename)
+	}
+	return list
+}
+
+func (t *Tailer) closeAll() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for _, tl := range t.fileList {
+		tl.Close()
+	}
+	return nil
+}
+
+func (t *Tailer) removeAll() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	for filename := range t.fileList {
+		delete(t.fileList, filename)
 	}
 	return nil
 }
