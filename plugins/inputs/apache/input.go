@@ -212,7 +212,7 @@ func (n *Input) parse(body io.Reader) error {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 5},
+			Interval: datakit.Duration{Duration: time.Second * 30},
 		}
 		return s
 	})
