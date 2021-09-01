@@ -106,6 +106,7 @@ var (
 		"nginx_upstream_check":   true,
 		"nginx_vts":              true,
 		"nginxlog":               true,
+		"nsq":                    false,
 		"oracle":                 true,
 		"oraclemonitor":          true,
 		"postgresql":             true,
