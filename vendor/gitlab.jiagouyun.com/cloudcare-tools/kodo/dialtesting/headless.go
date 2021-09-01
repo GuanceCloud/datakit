@@ -56,8 +56,11 @@ type HeadlessTask struct {
 	Labels          []string               `json:"labels,omitempty"`
 	AdvanceOptions  *HeadlessAdvanceOption `json:"advance_options_headless,omitempty"`
 	UpdateTime      int64                  `json:"update_time,omitempty"`
+	TimeOut         string                 `json:"time_out,omitempty"`
 
-	ticker *time.Ticker
+	ticker          *time.Ticker
+	timeOutDuration time.Duration
+	chromectx       context.Context
 
 	hasAddSpecialSteps bool
 	linedatas          string
@@ -114,6 +117,35 @@ func (t *HeadlessTask) Ticker() *time.Ticker {
 	return t.ticker
 }
 
+func NewChromedpCtx(disableCors bool, proxy string) *context.Context {
+	//t.chromectx =
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("disable-web-security", !disableCors),
+		chromedp.Flag("disable-gpu", true),
+	)
+
+	if proxy != `` {
+		opts = append(opts, chromedp.ProxyServer(proxy))
+	}
+
+	allocCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
+	chromeCtx, _ := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+
+	actions := []chromedp.Action{}
+	chromedp.Run(chromeCtx, actions...)
+
+	return &chromeCtx
+
+}
+
+func Cancel(ctx context.Context) {
+	chromedp.Cancel(ctx)
+}
+
+func (t *HeadlessTask) SetContext(ctx context.Context) {
+	t.chromectx = ctx
+}
+
 func (t *HeadlessTask) Class() string {
 	return ClassHeadless
 }
@@ -138,6 +170,22 @@ func (t *HeadlessTask) GetResults() (tags map[string]string, fields map[string]i
 	tags = map[string]string{
 		"name": t.Name,
 		"url":  t.URL,
+	}
+
+	disableCors := false
+
+	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil {
+		disableCors = t.AdvanceOptions.RequestOptions.DisableCors
+	}
+
+	proxy := ``
+	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil && t.AdvanceOptions.RequestOptions.Proxy != `` {
+		proxy = t.AdvanceOptions.RequestOptions.Proxy
+	}
+
+	fields = map[string]interface{}{
+		"disableCors": disableCors,
+		"proxy":       proxy,
 	}
 
 	return
@@ -176,25 +224,7 @@ func (t *HeadlessTask) Run() error {
 
 	t.Clear()
 
-	disableCors := false
-	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil {
-		disableCors = t.AdvanceOptions.RequestOptions.DisableCors
-	}
-
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("disable-web-security", !disableCors),
-		chromedp.Flag("disable-gpu", true),
-	)
-
-	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil && t.AdvanceOptions.RequestOptions.Proxy != `` {
-		opts = append(opts, chromedp.ProxyServer(t.AdvanceOptions.RequestOptions.Proxy))
-	}
-
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
-	defer cancel()
-
-	// create context
-	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	ctx, cancel := context.WithTimeout(t.chromectx, t.timeOutDuration)
 	defer cancel()
 
 	header := map[string]interface{}{}
@@ -267,10 +297,6 @@ func (t *HeadlessTask) Run() error {
 		}
 	}
 
-	// for _, action := range actions {
-	// 	log.Printf("headless start run actions: %+#v  %d  %v", action, len(actions), disableCors)
-	// }
-
 	err := chromedp.Run(ctx, actions...)
 	if err != nil {
 		return err
@@ -340,6 +366,13 @@ func (t *HeadlessTask) Init() error {
 	if err != nil {
 		return err
 	}
+
+	t.timeOutDuration, err = time.ParseDuration(t.TimeOut)
+	if err != nil {
+		log.Printf(`[warn] no set timeout, use task frequency`)
+		t.timeOutDuration = du
+	}
+
 	if t.ticker != nil {
 		t.ticker.Stop()
 	}

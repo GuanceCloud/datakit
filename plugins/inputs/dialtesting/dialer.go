@@ -75,14 +75,40 @@ func (d *dialer) run() error {
 
 			l.Debugf(`dialer run %+#v`, d)
 			d.testCnt++
-			//dialtesting start
-			//无论成功或失败，都要记录测试结果
-			err := d.task.Run()
-			if err != nil {
-				l.Errorf("task %s failed, %s", d.task.ID(), err.Error())
+
+			switch d.task.Class() {
+			case dt.ClassHeadless:
+				_, fs := d.task.GetResults()
+
+				disableCor, _ := fs[`disableCor`].(bool)
+				proxy, _ := fs[`proxy`].(string)
+				if disableCor != false || proxy != `` {
+					ctx := dt.NewChromedpCtx(disableCor, proxy)
+					d.task.SetContext(*ctx)
+					err := d.task.Run()
+					if err != nil {
+						l.Warn(err)
+					}
+					dt.Cancel(*ctx)
+				} else {
+					select {
+					case ctx := <-chromeCtxs:
+						d.task.SetContext(*ctx)
+
+						err := d.task.Run()
+						if err != nil {
+							l.Warn(err)
+						}
+						chromeCtxs <- ctx
+					}
+				}
+			default:
+				d.task.Run()
 			}
 
-			err = d.feedIO()
+			//dialtesting start
+			//无论成功或失败，都要记录测试结果
+			err := d.feedIO()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}

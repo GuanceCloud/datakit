@@ -3,6 +3,7 @@ module gitlab.jiagouyun.com/cloudcare-tools/datakit
 go 1.16
 
 require (
+	9fans.net/go v0.0.2 // indirect
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/BurntSushi/toml v0.3.1
@@ -10,17 +11,22 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/MichaelMure/go-term-markdown v0.1.3
+	github.com/alecthomas/gometalinter v3.0.0+incompatible // indirect
+	github.com/alecthomas/units v0.0.0-20201120081800-1786d5ef83d4 // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.10+incompatible
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
 	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/containerd v1.4.1 // indirect
+	github.com/davidrjenni/reftools v0.0.0-20201119194839-01cf781abd5b // indirect
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 	github.com/fatih/color v1.9.0
+	github.com/fatih/gomodifytags v1.13.0 // indirect
+	github.com/fatih/motion v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-ole/go-ole v1.2.4
@@ -34,14 +40,20 @@ require (
 	github.com/gofrs/flock v0.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jessevdk/go-flags v1.4.0
+	github.com/josharian/impl v1.0.0 // indirect
+	github.com/jstemmer/gotags v1.4.1 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/karrick/godirwalk v1.16.1 // indirect
+	github.com/keegancsmith/rpc v1.3.0 // indirect
+	github.com/klauspost/asmfmt v1.2.1 // indirect
+	github.com/koron/iferr v0.0.0-20180615142939-bb332a3b1d91 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.8.0
 	github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f
@@ -49,12 +61,16 @@ require (
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mattn/go-zglob v0.0.3
+	github.com/mdempsky/gocode v0.0.0-20200405233807-4acdcbdea79d // indirect
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mssola/user_agent v0.5.2
+	github.com/nicksnyder/go-i18n v1.10.1 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/openzipkin/zipkin-go v0.2.2
+	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.30.0
@@ -62,6 +78,7 @@ require (
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
+	github.com/rogpeppe/godef v1.1.2 // indirect
 	github.com/rs/xid v1.3.0 // indirect
 	github.com/sergi/go-diff v1.0.1-0.20180205163309-da645544ed44 // indirect
 	github.com/shirou/gopsutil v3.20.12+incompatible
@@ -69,6 +86,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/pflag v1.0.5
+	github.com/stamblerre/gocode v1.0.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.7.4
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
@@ -77,8 +95,9 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/yuin/goldmark v1.3.5
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
+	github.com/zmb3/gogetdoc v0.0.0-20190228002656-b37376c5da6a // indirect
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210819175148-5d0565ecd466
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210603111111-890a3501d71c
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
@@ -90,6 +109,7 @@ require (
 	google.golang.org/grpc v1.31.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.31.1
+	gopkg.in/alecthomas/kingpin.v3-unstable v3.0.0-20191105091915-95d230a53780 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
