@@ -86,7 +86,10 @@ func init() {
 func downloadFiles() error {
 	dl.CurDownloading = "datakit"
 
-	cliopt := &ihttp.Options{}
+	cliopt := &ihttp.Options{
+		InsecureSkipVerify: true, // ignore SSL error
+	}
+
 	if flagProxy != "" {
 		u, err := url.Parse(flagProxy)
 		if err != nil {

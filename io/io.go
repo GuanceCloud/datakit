@@ -173,6 +173,7 @@ func (x *IO) updateLastErr(e *lastErr) {
 	if !ok {
 		stat = &InputsStat{
 			First: time.Now(),
+			Last:  time.Now(),
 		}
 		x.inputstats[e.from] = stat
 	}

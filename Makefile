@@ -70,7 +70,8 @@ define pub
 endef
 
 lint: lint_deps
-	@golangci-lint run | tee check.err # https://golangci-lint.run/usage/install/#local-installation
+	@truncate -s 0 check.err
+	@golangci-lint run | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
 
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
@@ -179,9 +180,11 @@ plparser:
 lint_deps: prepare man gofmt vet lfparser_disable_line plparser_disable_line
 
 lfparser_disable_line:
+	@rm -rf io/parser/gram_y.go
 	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y
 
 plparser_disable_line:
+	@rm -rf pipeline/parser/parser.y.go
 	@goyacc -l -o pipeline/parser/parser.y.go pipeline/parser/parser.y
 
 prepare:

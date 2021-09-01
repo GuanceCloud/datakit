@@ -1,6 +1,7 @@
 package dialtesting
 
 import (
+	"context"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/json"
@@ -34,6 +35,8 @@ var (
 	l         = logger.DefaultSLogger(inputName)
 
 	MaxFails = 100
+
+	chromeCtxs chan *context.Context
 )
 
 const (
@@ -41,13 +44,21 @@ const (
 	RegionInfo  = "region"
 )
 
+var (
+	apiTasksNum      int
+	headlessTasksNum int
+	chromeCurCount   int
+)
+
 type Input struct {
-	Region       string `toml:"region,omitempty"`
-	RegionId     string `toml:"region_id"`
-	Server       string `toml:"server,omitempty"`
-	AK           string `toml:"ak"`
-	SK           string `toml:"sk"`
-	PullInterval string `toml:"pull_interval,omitempty"`
+	Region       string            `toml:"region,omitempty"`
+	RegionId     string            `toml:"region_id"`
+	Server       string            `toml:"server,omitempty"`
+	AK           string            `toml:"ak"`
+	SK           string            `toml:"sk"`
+	PullInterval string            `toml:"pull_interval,omitempty"`
+	TimeOut      *datakit.Duration `toml:"time_out,omitempty"` //单位为秒
+	Workers      int               `toml:"workers,omitempty"`
 	Tags         map[string]string
 
 	cli *http.Client
@@ -73,6 +84,8 @@ const sample = `
 
   pull_interval = "1m"
 
+  time_out = "1m"
+  workers = 6
   [inputs.dialtesting.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -97,6 +110,19 @@ func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
+func (i *Input) NewChromePool(total int) chan *context.Context {
+	if total == 0 {
+		total = 1
+	} //默认为1
+
+	p := make(chan *context.Context, total)
+	for i := 0; i < total; i++ {
+		p <- dt.NewChromedpCtx(false, ``)
+	}
+
+	return p
+}
+
 func (d *Input) Run() {
 
 	l = logger.SLogger(inputName)
@@ -104,10 +130,24 @@ func (d *Input) Run() {
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务
 
+	if d.Workers == 0 {
+		d.Workers = 6
+	}
+
+	chromeCtxs = make(chan *context.Context, d.Workers)
+
 	reqURL, err := url.Parse(d.Server)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
+	}
+
+	l.Debugf(`%+#v, %+#v`, d.cli, d.TimeOut)
+
+	if d.TimeOut == nil {
+		d.cli.Timeout = 60 * time.Second
+	} else {
+		d.cli.Timeout = d.TimeOut.Duration
 	}
 
 	switch reqURL.Scheme {
@@ -189,6 +229,30 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
+	}
+
+	switch t.Class() {
+	case dt.ClassHTTP:
+		apiTasksNum++
+	case dt.ClassHeadless: // chromedp 缓慢增加
+		headlessTasksNum++
+		if headlessTasksNum/3+1 > chromeCurCount && chromeCurCount < d.Workers {
+			chromeCtxs <- dt.NewChromedpCtx(false, ``)
+			chromeCurCount++
+			l.Debugf(`worker:%d, chromeCurCount:%d, tasks:%d`, d.Workers, chromeCurCount, headlessTasksNum)
+		}
+	case dt.ClassDNS:
+		// TODO
+	case dt.ClassTCP:
+		// TODO
+	case dt.ClassOther:
+		// TODO
+	case RegionInfo:
+		break
+		//no need dealwith
+	default:
+		l.Errorf("unknown task type")
+		break
 	}
 
 	dialer, err := newDialer(t, d.Tags)
@@ -392,8 +456,16 @@ func (d *Input) pullTask() ([]byte, error) {
 		return nil, err
 	}
 
-	return d.pullHTTPTask(reqURL, d.pos)
+	var res []byte
+	for i := 0; i <= 3; i++ {
+		statusCode := 0
+		res, statusCode, err = d.pullHTTPTask(reqURL, d.pos)
+		if statusCode/100 != 5 { //500 err 重试
+			break
+		}
+	}
 
+	return res, err
 }
 
 func signReq(req *http.Request, ak, sk string) {
@@ -412,7 +484,7 @@ func signReq(req *http.Request, ak, sk string) {
 	req.Header.Set("Authorization", fmt.Sprintf("DIAL_TESTING %s:%s", ak, reqSign))
 }
 
-func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
+func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error) {
 
 	reqURL.Path = "/v1/task/pull"
 	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", d.RegionId, sinceUs)
@@ -420,7 +492,7 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
-		return nil, err
+		return nil, 5, err
 	}
 
 	bodymd5 := fmt.Sprintf("%x", md5.Sum([]byte("")))
@@ -432,19 +504,19 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 	resp, err := d.cli.Do(req)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
-		return nil, err
+		return nil, 5, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
-		return nil, err
+		return nil, 0, err
 	}
 
 	defer resp.Body.Close()
 	switch resp.StatusCode / 100 {
 	case 2: // ok
-		return body, nil
+		return body, resp.StatusCode / 100, nil
 	default:
 		l.Warn("request %s failed(%s): %s", d.Server, resp.Status, string(body))
 		//error_code = kodo.RegionNotFoundOrDisabled, 停止掉所有任务
@@ -452,7 +524,7 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, error) {
 			//stop all
 			d.stopAlltask()
 		}
-		return nil, fmt.Errorf("pull task failed")
+		return nil, resp.StatusCode / 100, fmt.Errorf("pull task failed")
 	}
 
 }
@@ -471,10 +543,10 @@ func init() {
 			curTasks: map[string]*dialer{},
 			wg:       sync.WaitGroup{},
 			cli: &http.Client{
-				Timeout: 10 * time.Second,
+				Timeout: 30 * time.Second,
 				Transport: &http.Transport{
 					TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-					TLSHandshakeTimeout: 10 * time.Second,
+					TLSHandshakeTimeout: 30 * time.Second,
 					MaxIdleConns:        100,
 					MaxIdleConnsPerHost: 100,
 				},

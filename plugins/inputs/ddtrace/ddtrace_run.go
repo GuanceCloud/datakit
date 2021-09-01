@@ -80,8 +80,13 @@ func handleTraces(pattern string) http.HandlerFunc {
 		since := time.Now()
 		traces, err := decodeRequest(pattern, req)
 		if err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
+			if err == io.EOF {
+				log.Warn(err.Error())
+				resp.WriteHeader(http.StatusOK)
+			} else {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
+			}
 
 			return
 		}
