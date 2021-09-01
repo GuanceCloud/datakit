@@ -355,13 +355,7 @@ func getcli() *http.Client {
 	proxy := config.Cfg.DataWay.HttpProxy
 
 	cliopt := &ihttp.Options{
-		DialTimeout:           30 * time.Second,
-		DialKeepAlive:         30 * time.Second,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   0, // default to runtime.NumGoroutines()
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
+		InsecureSkipVerify: true,
 	}
 
 	if proxy != "" {

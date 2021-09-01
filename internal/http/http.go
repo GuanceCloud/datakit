@@ -1,6 +1,7 @@
 package http
 
 import (
+	"crypto/tls"
 	"net"
 	"net/http"
 	"net/url"
@@ -30,6 +31,7 @@ type Options struct {
 	IdleConnTimeout       time.Duration
 	TLSHandshakeTimeout   time.Duration
 	ExpectContinueTimeout time.Duration
+	InsecureSkipVerify    bool
 	ProxyURL              *url.URL
 }
 
@@ -43,8 +45,20 @@ func cliTransport(opt *Options) *http.Transport {
 
 	return &http.Transport{
 		DialContext: (&net.Dialer{
-			Timeout:   opt.DialTimeout,
-			KeepAlive: opt.DialKeepAlive,
+			Timeout: func() time.Duration {
+				if opt.DialTimeout > time.Duration(0) {
+					return opt.DialTimeout
+				} else {
+					return 30 * time.Second
+				}
+			}(),
+			KeepAlive: func() time.Duration {
+				if opt.DialKeepAlive > time.Duration(0) {
+					return opt.DialKeepAlive
+				} else {
+					return 30 * time.Second
+				}
+			}(),
 		}).DialContext,
 
 		Proxy: proxy,
@@ -56,6 +70,15 @@ func cliTransport(opt *Options) *http.Transport {
 				return opt.MaxIdleConns
 			}
 		}(),
+
+		TLSClientConfig: func() *tls.Config {
+			if opt.InsecureSkipVerify {
+				return &tls.Config{InsecureSkipVerify: true}
+			} else {
+				return &tls.Config{InsecureSkipVerify: false}
+			}
+		}(),
+
 		MaxIdleConnsPerHost: func() int {
 			if opt.MaxIdleConnsPerHost == 0 {
 				return runtime.NumGoroutine()
@@ -64,9 +87,29 @@ func cliTransport(opt *Options) *http.Transport {
 			}
 		}(),
 
-		IdleConnTimeout:       opt.IdleConnTimeout,
-		TLSHandshakeTimeout:   opt.TLSHandshakeTimeout,
-		ExpectContinueTimeout: opt.ExpectContinueTimeout,
+		IdleConnTimeout: func() time.Duration {
+			if opt.IdleConnTimeout > time.Duration(0) {
+				return opt.IdleConnTimeout
+			} else {
+				return 90 * time.Second
+			}
+		}(),
+
+		TLSHandshakeTimeout: func() time.Duration {
+			if opt.TLSHandshakeTimeout > time.Duration(0) {
+				return opt.TLSHandshakeTimeout
+			} else {
+				return 10 * time.Second
+			}
+		}(),
+
+		ExpectContinueTimeout: func() time.Duration {
+			if opt.ExpectContinueTimeout > time.Duration(0) {
+				return opt.ExpectContinueTimeout
+			} else {
+				return time.Second
+			}
+		}(),
 	}
 }
 
