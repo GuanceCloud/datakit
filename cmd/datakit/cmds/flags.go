@@ -207,7 +207,11 @@ func RunCmds() {
 	if FlagPipeline != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		pipelineDebugger(FlagPipeline, FlagText)
+		if err := pipelineDebugger(FlagPipeline, FlagText); err != nil {
+			fmt.Printf("[E] %s\n", err)
+			os.Exit(-1)
+		}
+
 		os.Exit(0)
 	}
 

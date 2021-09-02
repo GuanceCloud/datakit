@@ -70,7 +70,9 @@ func ipInfo(ip string) (map[string]string, error) {
 
 func setCmdRootLog(rl string) {
 
-	if err := logger.InitRoot(&logger.Option{Path: rl, Flags: logger.OPT_DEFAULT, Level: logger.DEBUG}); err != nil {
+	if err := logger.InitRoot(&logger.Option{Path: rl,
+		Flags: logger.OPT_DEFAULT,
+		Level: logger.DEBUG}); err != nil {
 		l.Error(err)
 		return
 	}
