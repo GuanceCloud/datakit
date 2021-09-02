@@ -26,7 +26,6 @@ var (
 type program struct{}
 
 func NewService() (service.Service, error) {
-
 	prog := &program{}
 
 	scfg := &service.Config{
@@ -51,13 +50,12 @@ func NewService() (service.Service, error) {
 }
 
 func StartService() error {
-
 	svc, err := NewService()
 	if err != nil {
 		return err
 	}
 
-	errch := make(chan error, 32)
+	errch := make(chan error, 32) //nolint:gomnd
 	slogger, err = svc.Logger(errch)
 	if err != nil {
 		return err

@@ -35,8 +35,8 @@ type Options struct {
 	ProxyURL              *url.URL
 }
 
+//nolint:gomnd
 func cliTransport(opt *Options) *http.Transport {
-
 	var proxy func(*http.Request) (*url.URL, error)
 
 	if opt.ProxyURL != nil {
@@ -48,16 +48,14 @@ func cliTransport(opt *Options) *http.Transport {
 			Timeout: func() time.Duration {
 				if opt.DialTimeout > time.Duration(0) {
 					return opt.DialTimeout
-				} else {
-					return 30 * time.Second
 				}
+				return 30 * time.Second
 			}(),
 			KeepAlive: func() time.Duration {
 				if opt.DialKeepAlive > time.Duration(0) {
 					return opt.DialKeepAlive
-				} else {
-					return 30 * time.Second
 				}
+				return 30 * time.Second
 			}(),
 		}).DialContext,
 
@@ -66,54 +64,48 @@ func cliTransport(opt *Options) *http.Transport {
 		MaxIdleConns: func() int {
 			if opt.MaxIdleConns == 0 {
 				return 100
-			} else {
-				return opt.MaxIdleConns
 			}
+			return opt.MaxIdleConns
 		}(),
 
 		TLSClientConfig: func() *tls.Config {
 			if opt.InsecureSkipVerify {
-				return &tls.Config{InsecureSkipVerify: true}
-			} else {
-				return &tls.Config{InsecureSkipVerify: false}
+				return &tls.Config{InsecureSkipVerify: true} //nolint:gosec
 			}
+			return &tls.Config{InsecureSkipVerify: false} //nolint:gosec
 		}(),
 
 		MaxIdleConnsPerHost: func() int {
 			if opt.MaxIdleConnsPerHost == 0 {
 				return runtime.NumGoroutine()
-			} else {
-				return opt.MaxIdleConnsPerHost
 			}
+			return opt.MaxIdleConnsPerHost
 		}(),
 
 		IdleConnTimeout: func() time.Duration {
 			if opt.IdleConnTimeout > time.Duration(0) {
 				return opt.IdleConnTimeout
-			} else {
-				return 90 * time.Second
 			}
+			return 90 * time.Second
 		}(),
 
 		TLSHandshakeTimeout: func() time.Duration {
 			if opt.TLSHandshakeTimeout > time.Duration(0) {
 				return opt.TLSHandshakeTimeout
-			} else {
-				return 10 * time.Second
 			}
+			return 10 * time.Second
 		}(),
 
 		ExpectContinueTimeout: func() time.Duration {
 			if opt.ExpectContinueTimeout > time.Duration(0) {
 				return opt.ExpectContinueTimeout
-			} else {
-				return time.Second
 			}
+			return time.Second
 		}(),
 	}
 }
 
-func HTTPCli(opt *Options) *http.Client {
+func Cli(opt *Options) *http.Client {
 	if opt == nil {
 		return &http.Client{
 			Transport: defTransport,

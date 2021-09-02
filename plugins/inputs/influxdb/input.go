@@ -46,7 +46,7 @@ type Input struct {
 	Interval datakit.Duration `toml:"interval"`
 
 	Log     *influxdbLog           `toml:"log"`
-	TlsConf *dknet.TlsClientConfig `toml:"tlsconf"`
+	TlsConf *dknet.TLSClientConfig `toml:"tlsconf"`
 	Tags    map[string]string      `toml:"tags"`
 
 	tail         *tailer.Tailer
@@ -134,7 +134,7 @@ func (i *Input) Run() {
 	var tlsCfg *tls.Config
 	if i.TlsConf != nil {
 		var err error
-		tlsCfg, err = i.TlsConf.TlsConfig()
+		tlsCfg, err = i.TlsConf.TLSConfig()
 		if err != nil {
 			l.Error(err)
 			io.FeedLastError(inputName, err.Error())

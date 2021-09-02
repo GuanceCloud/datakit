@@ -37,17 +37,17 @@ func RepairUTF8(s string) string {
 
 // ParseStringBytes reads the next type in the msgpack payload and
 // converts the BinType or the StrType in a valid string.
-func ParseStringBytes(bts []byte) (string, []byte, error) {
+func ParseStringBytes(data []byte) (str string, bts []byte, err error) {
+	bts = data
 	if msgp.IsNil(bts) {
-		bts, err := msgp.ReadNilBytes(bts)
-		return "", bts, err
+		bts, err = msgp.ReadNilBytes(bts)
+		return
 	}
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
 	var (
-		err error
-		i   []byte
+		i []byte
 	)
 	switch t {
 	case msgp.BinType:
@@ -55,29 +55,35 @@ func ParseStringBytes(bts []byte) (string, []byte, error) {
 	case msgp.StrType:
 		i, bts, err = msgp.ReadStringZC(bts)
 	default:
-		return "", bts, msgp.TypeError{Encoded: t, Method: msgp.StrType}
+		err = msgp.TypeError{Encoded: t, Method: msgp.StrType}
+		return
 	}
+
 	if err != nil {
-		return "", bts, err
+		return
 	}
+
 	if utf8.Valid(i) {
-		return string(i), bts, nil
+		str = string(i)
+		return
 	}
-	return RepairUTF8(msgp.UnsafeString(i)), bts, nil
+
+	str = RepairUTF8(msgp.UnsafeString(i))
+	return str, bts, nil
 }
 
 // ParseFloat64Bytes parses a float64 even if the sent value is an int64 or an uint64;
 // this is required because the encoding library could remove bytes from the encoded
 // payload to reduce the size, if they're not needed.
-func ParseFloat64Bytes(bts []byte) (float64, []byte, error) {
+func ParseFloat64Bytes(data []byte) (f float64, bts []byte, err error) {
+	bts = data
 	if msgp.IsNil(bts) {
-		bts, err := msgp.ReadNilBytes(bts)
-		return 0, bts, err
+		bts, err = msgp.ReadNilBytes(bts)
+		return
 	}
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	var err error
 	switch t {
 	case msgp.IntType:
 		var i int64
@@ -86,25 +92,25 @@ func ParseFloat64Bytes(bts []byte) (float64, []byte, error) {
 			return 0, bts, err
 		}
 
-		return float64(i), bts, nil
+		f = float64(i)
+		return
+
 	case msgp.UintType:
 		var i uint64
 		i, bts, err = msgp.ReadUint64Bytes(bts)
 		if err != nil {
 			return 0, bts, err
 		}
+		f = float64(i)
+		return
 
-		return float64(i), bts, nil
 	case msgp.Float64Type:
-		var f float64
 		f, bts, err = msgp.ReadFloat64Bytes(bts)
-		if err != nil {
-			return 0, bts, err
-		}
+		return
 
-		return f, bts, nil
 	default:
-		return 0, bts, msgp.TypeError{Encoded: t, Method: msgp.Float64Type}
+		err = msgp.TypeError{Encoded: t, Method: msgp.Float64Type}
+		return
 	}
 }
 
@@ -123,40 +129,40 @@ func CastInt64(v uint64) (int64, bool) {
 // ParseInt64Bytes parses an int64 even if the sent value is an uint64;
 // this is required because the encoding library could remove bytes from the encoded
 // payload to reduce the size, if they're not needed.
-func ParseInt64Bytes(bts []byte) (int64, []byte, error) {
+//nolint:dupl
+func ParseInt64Bytes(data []byte) (i int64, bts []byte, err error) { //nolint:gocritic
+	bts = data
+
 	if msgp.IsNil(bts) {
-		bts, err := msgp.ReadNilBytes(bts)
-		return 0, bts, err
+		bts, err = msgp.ReadNilBytes(bts)
+		return
 	}
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	var (
-		i   int64
-		u   uint64
-		err error
-	)
 	switch t {
 	case msgp.IntType:
 		i, bts, err = msgp.ReadInt64Bytes(bts)
-		if err != nil {
-			return 0, bts, err
-		}
-		return i, bts, nil
+		return
 	case msgp.UintType:
+		var u uint64
 		u, bts, err = msgp.ReadUint64Bytes(bts)
 		if err != nil {
-			return 0, bts, err
+			return
 		}
 
 		// force-cast
-		i, ok := CastInt64(u)
+		v, ok := CastInt64(u)
 		if !ok {
-			return 0, bts, errors.New("found uint64, overflows int64")
+			err = errors.New("found uint64, overflows int64")
+			return
 		}
-		return i, bts, nil
+		i = v
+
+		return
 	default:
-		return 0, bts, msgp.TypeError{Encoded: t, Method: msgp.IntType}
+		err = msgp.TypeError{Encoded: t, Method: msgp.IntType}
+		return
 	}
 }
 
@@ -165,35 +171,32 @@ func ParseInt64Bytes(bts []byte) (int64, []byte, error) {
 // may not have unsigned types. An example is early version of Java
 // (and so JRuby interpreter) that encodes uint64 as int64:
 // http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
-func ParseUint64Bytes(bts []byte) (uint64, []byte, error) {
+func ParseUint64Bytes(data []byte) (u uint64, bts []byte, err error) { //nolint:gocritic
+	bts = data
 	if msgp.IsNil(bts) {
-		bts, err := msgp.ReadNilBytes(bts)
-		return 0, bts, err
+		bts, err = msgp.ReadNilBytes(bts)
+		return
 	}
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	var (
-		i   int64
-		u   uint64
-		err error
-	)
 	switch t {
 	case msgp.UintType:
 		u, bts, err = msgp.ReadUint64Bytes(bts)
-		if err != nil {
-			return 0, bts, err
-		}
-		return u, bts, err
+
 	case msgp.IntType:
+		var i int64
 		i, bts, err = msgp.ReadInt64Bytes(bts)
 		if err != nil {
-			return 0, bts, err
+			return
 		}
-		return uint64(i), bts, nil
+		u = uint64(i)
+
 	default:
-		return 0, bts, msgp.TypeError{Encoded: t, Method: msgp.IntType}
+		err = msgp.TypeError{Encoded: t, Method: msgp.IntType}
 	}
+
+	return
 }
 
 // cast to int32 values that are int32 but that are sent in uint32
@@ -211,39 +214,39 @@ func CastInt32(v uint32) (int32, bool) {
 // ParseInt32Bytes parses an int32 even if the sent value is an uint32;
 // this is required because the encoding library could remove bytes from the encoded
 // payload to reduce the size, if they're not needed.
-func ParseInt32Bytes(bts []byte) (int32, []byte, error) {
+//nolint:dupl,gocritic
+func ParseInt32Bytes(data []byte) (i int32, bts []byte, err error) {
+	bts = data
 	if msgp.IsNil(bts) {
-		bts, err := msgp.ReadNilBytes(bts)
-		return 0, bts, err
+		bts, err = msgp.ReadNilBytes(bts)
+		return
 	}
+
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	var (
-		i   int32
-		u   uint32
-		err error
-	)
 	switch t {
 	case msgp.IntType:
 		i, bts, err = msgp.ReadInt32Bytes(bts)
-		if err != nil {
-			return 0, bts, err
-		}
-		return i, bts, nil
+		return
+
 	case msgp.UintType:
+		var u uint32
+
 		u, bts, err = msgp.ReadUint32Bytes(bts)
 		if err != nil {
-			return 0, bts, err
+			return
 		}
 
 		// force-cast
-		i, ok := CastInt32(u)
+		val, ok := CastInt32(u)
 		if !ok {
-			return 0, bts, errors.New("found uint32, overflows int32")
+			err = errors.New("found uint32, overflows int32")
 		}
-		return i, bts, nil
+		i = val
+		return
 	default:
-		return 0, bts, msgp.TypeError{Encoded: t, Method: msgp.IntType}
+		err = msgp.TypeError{Encoded: t, Method: msgp.IntType}
+		return
 	}
 }

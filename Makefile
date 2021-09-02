@@ -177,7 +177,7 @@ lfparser:
 plparser:
 	@goyacc -o pipeline/parser/parser.y.go pipeline/parser/parser.y
 
-lint_deps: prepare man gofmt vet lfparser_disable_line plparser_disable_line
+lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet 
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go

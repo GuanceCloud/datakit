@@ -41,5 +41,5 @@ func GetCPUPercent(interval time.Duration) (float64, error) {
 	if len(percent) < 0 {
 		return 0, nil
 	}
-	return percent[0] / 100, nil
+	return percent[0] / 100, nil //nolint:gomnd
 }

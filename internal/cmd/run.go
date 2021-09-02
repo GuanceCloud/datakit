@@ -34,9 +34,9 @@ func RunWithTimeout(timeout time.Duration, sudo bool, command string, args ...st
 	if !after.Stop() {
 		if err == nil {
 			return nil, fmt.Errorf("command %q process overtime", command)
-		} else {
-			return nil, err
 		}
+
+		return nil, err
 	}
 
 	output, err := ioutil.ReadAll(&buf)

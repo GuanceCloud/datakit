@@ -2,8 +2,8 @@
 
 package conntrack
 
-func ConntrackCollect() *ConntrackInfo {
-	info := &ConntrackInfo{
+func Collect() *Info {
+	info := &Info{
 		Current:       -1,
 		Limit:         -1,
 		Found:         -1,

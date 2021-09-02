@@ -124,7 +124,7 @@ type Input struct {
 	ColStatsDbs           []string               `toml:"col_stats_dbs"`
 	GatherTopStat         bool                   `toml:"gather_top_stat"`
 	EnableTls             bool                   `toml:"enable_tls"`
-	TlsConf               *dknet.TlsClientConfig `toml:"tlsconf"`
+	TlsConf               *dknet.TLSClientConfig `toml:"tlsconf"`
 	EnableMongodLog       bool                   `toml:"enable_mongod_log"`
 	Log                   *mongodblog            `toml:"log"`
 	Tags                  map[string]string      `toml:"tags"`
@@ -282,7 +282,7 @@ func (m *Input) gatherServer(server *Server) error {
 		}
 
 		if m.EnableTls && m.TlsConf != nil {
-			if tlsConfig, err := m.TlsConf.TlsConfig(); err != nil {
+			if tlsConfig, err := m.TlsConf.TLSConfig(); err != nil {
 				return err
 			} else {
 				dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
@@ -316,7 +316,7 @@ func init() {
 			ColStatsDbs:           []string{},
 			GatherTopStat:         true,
 			EnableTls:             false,
-			TlsConf: &dknet.TlsClientConfig{
+			TlsConf: &dknet.TLSClientConfig{
 				CaCerts:            []string{defTlsCaCert},
 				Cert:               defTlsCert,
 				CertKey:            defTlsCertKey,

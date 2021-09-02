@@ -98,7 +98,7 @@ func downloadFiles() error {
 		cliopt.ProxyURL = u
 	}
 
-	cli := ihttp.HTTPCli(cliopt)
+	cli := ihttp.Cli(cliopt)
 
 	if err := dl.Download(cli, datakitUrl, datakit.InstallDir, true, false); err != nil {
 		return err

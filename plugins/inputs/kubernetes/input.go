@@ -153,7 +153,7 @@ func (this *Input) buildClient() error {
 	}
 
 	if this.TLSCA != "" {
-		tlsconfig := net.TlsClientConfig{
+		tlsconfig := net.TLSClientConfig{
 			CaCerts:            []string{this.TLSCA},
 			Cert:               this.TLSCert,
 			CertKey:            this.TLSKey,
