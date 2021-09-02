@@ -6,10 +6,11 @@ import (
 
 func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
 	f, err := os.Open(file.Name())
-	defer f.Close()
 	if err != nil {
 		return false, err
 	}
+
+	defer f.Close()
 
 	fi1, err := f.Stat()
 	if err != nil {

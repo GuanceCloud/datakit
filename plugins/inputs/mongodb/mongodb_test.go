@@ -219,7 +219,7 @@ func TestTlsConnectCollect(t *testing.T) {
 		ColStatsDbs:           []string{""},
 		GatherTopStat:         true,
 		EnableTls:             true,
-		TlsConf: &net.TlsClientConfig{
+		TlsConf: &net.TLSClientConfig{
 			CaCerts:            []string{"/etc/ssl/certs/mongod.cert.pem"},
 			Cert:               "/etc/ssl/certs/mongo.pem",
 			CertKey:            "/etc/ssl/certs/mongo.key.pem",

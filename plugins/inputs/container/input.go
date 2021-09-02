@@ -212,7 +212,7 @@ func (this *Input) setup() bool {
 }
 
 func (this *Input) buildDockerClient() error {
-	t := net.TlsClientConfig{
+	t := net.TLSClientConfig{
 		CaCerts: func() []string {
 			if this.TLSCA == "" {
 				return nil
@@ -224,7 +224,7 @@ func (this *Input) buildDockerClient() error {
 		InsecureSkipVerify: this.InsecureSkipVerify,
 	}
 
-	tlsConfig, err := t.TlsConfig()
+	tlsConfig, err := t.TLSConfig()
 	if err != nil {
 		l.Error(err)
 		return err

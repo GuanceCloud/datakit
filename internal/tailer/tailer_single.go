@@ -20,7 +20,7 @@ const (
 	firstMessage = "[DataKit-logging] First Message. filename: %s, source: %s"
 )
 
-type TailerSingle struct {
+type Single struct {
 	opt      *Option
 	file     *os.File
 	filename string
@@ -33,12 +33,12 @@ type TailerSingle struct {
 	stopCh chan struct{}
 }
 
-func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
+func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	if opt == nil {
 		return nil, fmt.Errorf("option cannot be null pointer")
 	}
 
-	t := &TailerSingle{
+	t := &Single{
 		stopCh: make(chan struct{}, 1),
 		opt:    opt,
 	}
@@ -80,18 +80,21 @@ func NewTailerSingle(filename string, opt *Option) (*TailerSingle, error) {
 	return t, nil
 }
 
-func (t *TailerSingle) Run() {
+func (t *Single) Run() {
 	defer t.Close()
 	t.forwardMessage()
 }
 
-func (t *TailerSingle) Close() {
-	t.file.Close()
+func (t *Single) Close() {
+	if err := t.file.Close(); err != nil {
+		t.opt.log.Warnf("Close(): %s, ignored", err.Error())
+	}
+
 	t.stopCh <- struct{}{}
 	t.opt.log.Infof("closing %s", t.filename)
 }
 
-func (t *TailerSingle) forwardMessage() {
+func (t *Single) forwardMessage() {
 	var (
 		b       = &buffer{}
 		timeout = time.NewTicker(timeoutDuration)
@@ -102,7 +105,7 @@ func (t *TailerSingle) forwardMessage() {
 	defer timeout.Stop()
 
 	// 上报一条标记数据，表示已启动成功
-	if err := feed(t.opt.InputName, t.opt.Source, t.tags,
+	if err = feed(t.opt.InputName, t.opt.Source, t.tags,
 		fmt.Sprintf(firstMessage, t.filename, t.opt.Source)); err != nil {
 		t.opt.log.Warn(err)
 	}
@@ -115,7 +118,7 @@ func (t *TailerSingle) forwardMessage() {
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 		case <-timeout.C:
-			if err := t.processText(t.mult.Flush()); err != nil {
+			if err = t.processText(t.mult.Flush()); err != nil {
 				t.opt.log.Warn(err)
 			}
 		default:
@@ -139,11 +142,11 @@ func (t *TailerSingle) forwardMessage() {
 				continue
 			}
 
-			text, err := t.decode(line)
+			var text string
+			text, err = t.decode(line)
 			if err != nil {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				err = feed(t.opt.InputName, t.opt.Source, t.tags, line)
-				if err != nil {
+				if err = feed(t.opt.InputName, t.opt.Source, t.tags, line); err != nil {
 					t.opt.log.Warn(err)
 				}
 			}
@@ -161,7 +164,7 @@ func (t *TailerSingle) forwardMessage() {
 	}
 }
 
-func (t *TailerSingle) processText(text string) error {
+func (t *Single) processText(text string) error {
 	if text == "" {
 		return nil
 	}
@@ -179,7 +182,7 @@ func (t *TailerSingle) processText(text string) error {
 	return err
 }
 
-func (t *TailerSingle) currentOffset() int64 {
+func (t *Single) currentOffset() int64 {
 	if t.file == nil {
 		return -1
 	}
@@ -190,21 +193,23 @@ func (t *TailerSingle) currentOffset() int64 {
 	return offset
 }
 
-func (t *TailerSingle) read() ([]byte, int, error) {
-	buf := make([]byte, readBuffSize)
-	n, err := t.file.Read(buf)
+func (t *Single) read() (buf []byte, n int, err error) {
+	buf = make([]byte, readBuffSize)
+	n, err = t.file.Read(buf)
 	if err != nil && err != io.EOF {
-		t.opt.log.Debug(err)
+		t.opt.log.Warnf("Read(): %s, ignored", err.Error())
 		return nil, 0, err
 	}
-	return buf[:n], n, nil
+
+	buf = buf[:n]
+	return
 }
 
-func (t *TailerSingle) wait() {
+func (t *Single) wait() {
 	time.Sleep(defaultSleepDuration)
 }
 
-func (t *TailerSingle) buildTags(globalTags map[string]string) map[string]string {
+func (t *Single) buildTags(globalTags map[string]string) map[string]string {
 	var tags = make(map[string]string)
 	for k, v := range globalTags {
 		tags[k] = v
@@ -215,25 +220,18 @@ func (t *TailerSingle) buildTags(globalTags map[string]string) map[string]string
 	return tags
 }
 
-func (t *TailerSingle) decode(text string) (str string, err error) {
+func (t *Single) decode(text string) (str string, err error) {
 	if t.decoder == nil {
 		return text, nil
 	}
 	return t.decoder.String(text)
 }
 
-func (t *TailerSingle) multiline(text string) string {
+func (t *Single) multiline(text string) string {
 	if t.mult == nil {
 		return text
 	}
 	return t.mult.ProcessLine(text)
-}
-
-func (t *TailerSingle) multilineFlush() string {
-	if t.mult == nil {
-		return ""
-	}
-	return t.mult.Flush()
 }
 
 type buffer struct {

@@ -78,6 +78,10 @@ func (x *Logs) CheckFieldsLength() *Logs {
 	return x
 }
 
+const (
+	DEFAULT_INFO = "info"
+)
+
 var statusMap = map[string]string{
 	"f":        "emerg",
 	"emerg":    "emerg",
@@ -109,20 +113,20 @@ func (x *Logs) AddStatus(disable bool) *Logs {
 	// 不包含 status 字段
 	statusField, ok := x.fields["status"]
 	if !ok {
-		x.fields["status"] = "info"
+		x.fields["status"] = DEFAULT_INFO
 		return x
 	}
 
 	// status 类型必须是 string
 	statusStr, ok := statusField.(string)
 	if !ok {
-		x.fields["status"] = "info"
+		x.fields["status"] = DEFAULT_INFO
 		return x
 	}
 
 	// 查询 statusMap 枚举表并替换
 	if v, ok := statusMap[strings.ToLower(statusStr)]; !ok {
-		x.fields["status"] = "info"
+		x.fields["status"] = DEFAULT_INFO
 	} else {
 		x.fields["status"] = v
 	}

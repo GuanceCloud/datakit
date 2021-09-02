@@ -93,7 +93,7 @@ func (i *Input) Collect() error {
 
 	if runtime.GOOS == "linux" {
 		conntrackStat := conntrackutil.GetConntrackInfo()
-		filefdStat := filefdutil.GetFileFdInfo()
+
 		conntrackM := conntrackMeasurement{
 			name: metricNameConntrack,
 			fields: map[string]interface{}{
@@ -111,18 +111,25 @@ func (i *Input) Collect() error {
 			tags: tags,
 			ts:   ts,
 		}
-		filefdM := filefdMeasurement{
-			name: metricNameFilefd,
-			fields: map[string]interface{}{
-				"allocated": filefdStat.Allocated,
-				// "maximum":      filefdStat.Maximum,
-				"maximum_mega": filefdStat.MaximumMega,
-			},
-			tags: tags,
-			ts:   ts,
-		}
+
 		i.collectCache = append(i.collectCache, &conntrackM)
-		i.collectCache = append(i.collectCache, &filefdM)
+
+		filefdStat, err := filefdutil.GetFileFdInfo()
+		if err != nil {
+			l.Warnf("filefdutil.GetFileFdInfo(): %s, ignored", err.Error())
+		} else {
+			filefdM := filefdMeasurement{
+				name: metricNameFilefd,
+				fields: map[string]interface{}{
+					"allocated":    filefdStat.Allocated,
+					"maximum_mega": filefdStat.MaximumMega,
+				},
+				tags: tags,
+				ts:   ts,
+			}
+
+			i.collectCache = append(i.collectCache, &filefdM)
+		}
 	}
 
 	sysM := systemMeasurement{

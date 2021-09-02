@@ -216,7 +216,7 @@ func (dw *DataWayCfg) initHttp() error {
 			}
 		}
 
-		dw.httpCli = ihttp.HTTPCli(cliopts)
+		dw.httpCli = ihttp.Cli(cliopts)
 	})
 
 	return nil

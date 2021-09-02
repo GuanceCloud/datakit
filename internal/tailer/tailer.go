@@ -77,17 +77,21 @@ func (opt *Option) init() error {
 	opt.GlobalTags["service"] = opt.Service
 	opt.log = logger.SLogger(opt.InputName)
 
-	var err error
-	_, err = encoding.NewDecoder(opt.CharacterEncoding)
-	_, err = NewMultiline(opt.Match)
+	if _, err := encoding.NewDecoder(opt.CharacterEncoding); err != nil {
+		return err
+	}
 
-	return err
+	if _, err := NewMultiline(opt.Match); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type Tailer struct {
 	opt *Option
 
-	fileList map[string]*TailerSingle
+	fileList map[string]*Single
 
 	filePatterns   []string
 	ignorePatterns []string
@@ -111,7 +115,7 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 			}
 			return nil
 		}(),
-		fileList: make(map[string]*TailerSingle),
+		fileList: make(map[string]*Single),
 		stop:     make(chan struct{}),
 	}
 
@@ -138,8 +142,10 @@ func (t *Tailer) Start() {
 		case <-t.stop:
 			t.closeAll()
 			t.removeAll()
-			t.wg.Wait()
+
 			t.opt.log.Infof("waiting for all tailers to exit")
+			t.wg.Wait()
+
 			t.opt.log.Info("exit")
 			return
 
@@ -172,7 +178,9 @@ func (t *Tailer) scan() {
 				t.opt.log.Errorf("new tailer file %s error: %s", filename, err)
 				return
 			}
+
 			t.addToFileList(filename, tl)
+
 			tl.Run()
 
 		}(filename)
@@ -222,29 +230,27 @@ func (t *Tailer) Close() error {
 	return nil
 }
 
-func (t *Tailer) addToFileList(filename string, tl *TailerSingle) error {
+func (t *Tailer) addToFileList(filename string, tl *Single) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.fileList[filename] = tl
-	return nil
 }
 
-func (t *Tailer) removeFromFileList(filename string) error {
+func (t *Tailer) removeFromFileList(filename string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.fileList, filename)
-	return nil
 }
 
-func (t *Tailer) closeFromFileList(filename string) error {
+func (t *Tailer) closeFromFileList(filename string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	tl, ok := t.fileList[filename]
 	if !ok {
-		return nil
+		return
 	}
 	tl.Close()
-	return nil
+	return
 }
 
 func (t *Tailer) fileInFileList(filename string) bool {
@@ -254,7 +260,7 @@ func (t *Tailer) fileInFileList(filename string) bool {
 	return ok
 }
 
-func (t *Tailer) getTailerSingle(filename string) *TailerSingle {
+func (t *Tailer) getTailerSingle(filename string) *Single {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	tl := t.fileList[filename]
@@ -271,20 +277,18 @@ func (t *Tailer) getFileList() []string {
 	return list
 }
 
-func (t *Tailer) closeAll() error {
+func (t *Tailer) closeAll() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for _, tl := range t.fileList {
 		tl.Close()
 	}
-	return nil
 }
 
-func (t *Tailer) removeAll() error {
+func (t *Tailer) removeAll() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for filename := range t.fileList {
 		delete(t.fileList, filename)
 	}
-	return nil
 }

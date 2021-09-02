@@ -18,7 +18,6 @@ import (
 )
 
 func TestProxy(t *testing.T) {
-
 	tlsServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "hello, tls client")
 	}))
@@ -52,9 +51,10 @@ func TestProxy(t *testing.T) {
 		fail bool
 	}{
 		{
-			cli: HTTPCli(&Options{
+			cli: Cli(&Options{
 				InsecureSkipVerify: true,
 				ProxyURL: func() *url.URL {
+					//nolint:golint
 					if u, err := url.Parse("http://" + proxyAddr); err != nil {
 						t.Error(err)
 						return nil
@@ -66,15 +66,15 @@ func TestProxy(t *testing.T) {
 		},
 
 		{
-			cli: HTTPCli(&Options{
+			cli: Cli(&Options{
 				InsecureSkipVerify: false,
 				ProxyURL: func() *url.URL {
-					if u, err := url.Parse("http://" + proxyAddr); err != nil {
+					u, err := url.Parse("http://" + proxyAddr)
+					if err != nil { //nolint:golint
 						t.Error(err)
 						return nil
-					} else {
-						return u
 					}
+					return u
 				}(),
 			}),
 			fail: true,
@@ -114,13 +114,13 @@ func TestInsecureSkipVerify(t *testing.T) {
 		fail bool
 	}{
 		{
-			cli: HTTPCli(&Options{
+			cli: Cli(&Options{
 				InsecureSkipVerify: true,
 			}),
 		},
 
 		{
-			cli: HTTPCli(&Options{
+			cli: Cli(&Options{
 				InsecureSkipVerify: false,
 			}),
 			fail: true,
@@ -153,7 +153,6 @@ func hello(w http.ResponseWriter, req *http.Request) {
 }
 
 func TestClientTimeWait(t *testing.T) {
-
 	http.HandleFunc("/hello", hello)
 
 	server := &http.Server{
@@ -168,19 +167,15 @@ func TestClientTimeWait(t *testing.T) {
 
 	time.Sleep(time.Second) // wait server ok
 
-	//cli := http.Client{}
-
 	n := 10
 	wg := sync.WaitGroup{}
 	wg.Add(n)
 
 	for i := 0; i < n; i++ {
-
 		go func() {
-
 			defer wg.Done()
 
-			cli := HTTPCli(&Options{
+			cli := Cli(&Options{ // new fresh client
 				DialTimeout:           30 * time.Second,
 				DialKeepAlive:         30 * time.Second,
 				MaxIdleConns:          100,
@@ -197,7 +192,6 @@ func TestClientTimeWait(t *testing.T) {
 				}
 
 				resp, err := cli.Do(req)
-				//resp, err := SendRequest(req)
 				if err != nil {
 					t.Error(err)
 				}

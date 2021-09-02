@@ -21,31 +21,29 @@ type VerInfo struct {
 	build uint64
 }
 
-func (x *VerInfo) Compare(y *VerInfo) int {
-	if x == nil {
+func (vi *VerInfo) Compare(i *VerInfo) int {
+	if vi == nil {
 		return 1
 	}
 
-	a := x.major*1024*1024*1024 + x.minor*1024*1024 + x.min
-	b := y.major*1024*1024*1024 + y.minor*1024*1024 + y.min
+	a := vi.major*1024*1024*1024 + vi.minor*1024*1024 + vi.min
+	b := i.major*1024*1024*1024 + i.minor*1024*1024 + i.min
 
 	if a > b {
 		return 1
-	} else if a < 0 {
-		return -1
 	}
 
 	// same version number: 1.1.7
-	n := strings.Compare(x.rc, y.rc)
+	n := strings.Compare(vi.rc, i.rc)
 	if n > 0 {
 		return 1
 	} else if n < 0 {
 		return -1
 	}
 
-	if x.build > y.build {
+	if vi.build > i.build {
 		return 1
-	} else if x.build < y.build {
+	} else if vi.build < i.build {
 		return -1
 	}
 
@@ -58,39 +56,41 @@ func (vi *VerInfo) String() string {
 
 func (vi *VerInfo) parseNumbers(s string) error {
 	arr := strings.Split(s, ".")
-	if len(arr) != 3 {
+	if len(arr) != 3 { //nolint:gomnd
 		return fmt.Errorf("invalid number: %s", vi.VersionString)
 	}
 
 	var err error
 
-	vi.major, err = strconv.ParseUint(arr[0], 10, 64)
+	vi.major, err = strconv.ParseUint(arr[0], 10, 64) //nolint:gomnd
 	if err != nil {
 		return fmt.Errorf("invalid number: %s", arr[0])
 	}
 
-	vi.minor, err = strconv.ParseUint(arr[1], 10, 64)
+	vi.minor, err = strconv.ParseUint(arr[1], 10, 64) //nolint:gomnd
 	if err != nil {
 		return fmt.Errorf("invalid number: %s", arr[1])
 	}
 
-	if vi.minor > 1024 {
+	if vi.minor > 1024 { //nolint:gomnd
 		return fmt.Errorf("too large minor number: %d (should <=1024)", vi.minor)
 	}
 
-	vi.min, err = strconv.ParseUint(arr[2], 10, 64)
+	vi.min, err = strconv.ParseUint(arr[2], 10, 64) //nolint:gomnd
 	if err != nil {
 		return fmt.Errorf("invalid number: %s", arr[2])
 	}
 
-	if vi.min > 1024 {
+	if vi.min > 1024 { //nolint:gomnd
 		return fmt.Errorf("too large min number: %d (should <=1024)", vi.min)
 	}
 	return nil
 }
 
+//nolint:gomnd
 func (vi *VerInfo) Parse() error {
-	verstr := strings.TrimPrefix(vi.VersionString, "v") // older version has prefix `v', this crash semver.Parse()
+	// older version has prefix `v', this crash semver.Parse()
+	verstr := strings.TrimPrefix(vi.VersionString, "v")
 
 	parts := strings.Split(verstr, "-")
 	switch len(parts) {
@@ -102,7 +102,7 @@ func (vi *VerInfo) Parse() error {
 			vi.rc = parts[1]
 		}
 		return nil
-	case 4: //like 1.1.7-rc1-125-g40c4860c
+	case 4: // like 1.1.7-rc1-125-g40c4860c
 		if err := vi.parseNumbers(parts[0]); err != nil {
 			return err
 		}
@@ -121,13 +121,12 @@ func (vi *VerInfo) Parse() error {
 		return nil
 	}
 
-	return fmt.Errorf("unknown version string %s, expect format is `1.1.7-rc2' or `1.1.7-rc1-125-g40c4860c'", verstr)
+	return fmt.Errorf("unknown version string %s", verstr)
 }
 
 func IsNewVersion(newVer, curver *VerInfo, acceptRC bool) bool {
-
 	if newVer.Compare(curver) > 0 { // new version
-		if len(newVer.rc) == 0 { // no rc version
+		if newVer.rc == "" { // no rc version
 			return true
 		}
 

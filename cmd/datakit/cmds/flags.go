@@ -365,5 +365,5 @@ func getcli() *http.Client {
 		}
 	}
 
-	return ihttp.HTTPCli(cliopt)
+	return ihttp.Cli(cliopt)
 }

@@ -48,7 +48,7 @@ func newClientFromBearerTokenString(baseURL, token string) (*client, error) {
 	return newClient(restConfig)
 }
 
-func newClientFromTLS(baseURL string, tlsconfig *net.TlsClientConfig) (*client, error) {
+func newClientFromTLS(baseURL string, tlsconfig *net.TLSClientConfig) (*client, error) {
 	if baseURL == "" {
 		return nil, fmt.Errorf("invalid baseURL, cannot be empty")
 	}
@@ -61,7 +61,7 @@ func newClientFromTLS(baseURL string, tlsconfig *net.TlsClientConfig) (*client, 
 		return nil, fmt.Errorf("tlsconfig cacerts is empty")
 	}
 
-	_, err := tlsconfig.TlsConfig()
+	_, err := tlsconfig.TLSConfig()
 	if err != nil {
 		return nil, err
 	}

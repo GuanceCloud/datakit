@@ -121,14 +121,14 @@ func (this *Input) setup() bool {
 		time.Sleep(time.Second)
 
 		if this.TLSCA != "" {
-			tlsconfig := &net.TlsClientConfig{
+			tlsconfig := &net.TLSClientConfig{
 				CaCerts:            []string{this.TLSCA},
 				Cert:               this.TLSCert,
 				CertKey:            this.TLSKey,
 				InsecureSkipVerify: this.InsecureSkipVerify,
 			}
 
-			tc, err := tlsconfig.TlsConfig()
+			tc, err := tlsconfig.TLSConfig()
 			if err != nil {
 				l.Error(err)
 				continue
