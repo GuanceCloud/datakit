@@ -31,3 +31,13 @@ func TestMain(t *testing.T) {
 		}
 	}
 }
+
+func TestMan(t *testing.T) {
+	i := &Input{}
+	arr := i.SampleMeasurement()
+
+	for _, elem := range arr {
+		elem.LineProto()
+		elem.Info()
+	}
+}

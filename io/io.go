@@ -317,7 +317,11 @@ func (x *IO) StartIO(recoverable bool) {
 
 			case <-datawaylistTick.C:
 				if !DisableDatawayList {
-					x.dw.DatawayList()
+					dws, err := x.dw.DatawayList()
+					if err != nil {
+						l.Warnf("DatawayList(): %s, ignored", err)
+					}
+					dataway.AvailableDataways = dws
 				}
 
 			case <-tick.C:

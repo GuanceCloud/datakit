@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -89,10 +88,6 @@ func (dw *DataWayCfg) String() string {
 
 func (dw *DataWayCfg) ClientsCount() int {
 	return len(dw.endPoints)
-}
-
-type dataways struct {
-	Content []string `json:"content"`
 }
 
 func (dw *DataWayCfg) GetToken() []string {
@@ -192,32 +187,28 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 	return cli, nil
 }
 
-var proxyOnce sync.Once
-
 func (dw *DataWayCfg) initHttp() error {
-	proxyOnce.Do(func() {
 
-		cliopts := &ihttp.Options{
-			DialTimeout:           dw.TimeoutDuration,
-			DialKeepAlive:         30 * time.Second,
-			MaxIdleConns:          100,
-			MaxIdleConnsPerHost:   runtime.NumGoroutine(),
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: time.Second,
+	cliopts := &ihttp.Options{
+		DialTimeout:           dw.TimeoutDuration,
+		DialKeepAlive:         30 * time.Second,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: time.Second,
+	}
+
+	if dw.HttpProxy != "" { // set proxy
+		if u, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
+			l.Warnf("parse http proxy failed err: %s, ignored", err.Error())
+		} else {
+			cliopts.ProxyURL = u
+			l.Infof("set dataway proxy to %s ok", dw.HttpProxy)
 		}
+	}
 
-		if dw.HttpProxy != "" { // set proxy
-			if u, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
-				l.Errorf("parse http proxy failed err:", err.Error())
-			} else {
-				cliopts.ProxyURL = u
-				l.Infof("set dataway proxy to %s ok", dw.HttpProxy)
-			}
-		}
-
-		dw.httpCli = ihttp.Cli(cliopts)
-	})
+	dw.httpCli = ihttp.Cli(cliopts)
 
 	return nil
 }

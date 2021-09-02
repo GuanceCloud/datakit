@@ -22,8 +22,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 	if !ok {
 		// for dialtesting, there are user-defined url to post
 		if x, err := url.ParseRequestURI(category); err != nil {
-			l.Error(err)
-
 			return fmt.Errorf("invalid url %s", category)
 		} else {
 			l.Debugf("try use URL %+#v", x)
@@ -42,6 +40,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 	if gz {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
+
 	// append extra headers
 	for k, v := range ExtraHeaders {
 		req.Header.Set(k, v)
@@ -121,7 +120,7 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 	defer dw.httpCli.CloseIdleConnections()
 
 	for i, ep := range dw.endPoints {
-		l.Debugf("send to %dth dataway, %d:%d", i, ep.fails, dw.MaxFails)
+		l.Debugf("send to %dth dataway, fails: %d/%d", i, ep.fails, dw.MaxFails)
 		// 判断 fails
 		if ep.fails > dw.MaxFails && len(AvailableDataways) > 0 {
 			rand.Seed(time.Now().UnixNano())

@@ -179,45 +179,46 @@ func (dc *endPoint) heartBeat(data []byte) error {
 	return nil
 }
 
-func (dw *DataWayCfg) DatawayList() error {
+func (dw *DataWayCfg) DatawayList() ([]string, error) {
 
 	if len(dw.endPoints) == 0 {
-		return fmt.Errorf("no dataway available")
+		return nil, fmt.Errorf("no dataway available")
 	}
 
 	dc := dw.endPoints[0]
 	requrl, ok := dc.categoryURL[datakit.ListDataWay]
 	if !ok {
-		return fmt.Errorf("dataway list API not available")
+		return nil, fmt.Errorf("dataway list API not available")
 	}
 
 	req, err := http.NewRequest("GET", requrl, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := dw.sendReq(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		l.Error(err)
-		return err
+		return nil, err
+	}
+
+	type dataways struct {
+		Content []string `json:"content"`
 	}
 
 	var dws dataways
 	if err := json.Unmarshal(body, &dws); err != nil {
 		l.Errorf(`%s, body: %s`, err, string(body))
-		return err
+		return nil, err
 	}
 
-	AvailableDataways = dws.Content
-
-	l.Debugf(`avaliable dataways; %+#v`, AvailableDataways)
-	return nil
+	l.Debugf(`avaliable dataways; %+#v`, dws.Content)
+	return dws.Content, nil
 }
 
 func (dw *DataWayCfg) HeartBeat() error {
