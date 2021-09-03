@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	dataUrl = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/data.tar.gz"
+	dataURL = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/data.tar.gz"
 )
 
 func updateIPDB(addr string) error {
 	if addr == "" {
-		addr = dataUrl
+		addr = dataURL
 	}
 
 	fmt.Printf("Start downloading data.tar.gz...\n")
@@ -24,8 +24,6 @@ func updateIPDB(addr string) error {
 	if err := dl.Download(cli, addr, datakit.InstallDir, true, false); err != nil {
 		return err
 	}
-
-	fmt.Printf("Download and decompress data.tar.gz successfully. Please restart datakit to load new IPDB\n")
 
 	return nil
 }
