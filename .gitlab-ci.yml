@@ -15,6 +15,7 @@ build-testing:
   stage: deploy
   only:
     - testing.*
+    - testing
   script:
     # building && publish testing
     - make ci_notify
