@@ -51,6 +51,7 @@ func (this *logFilter) filter(pts []*Point) []*Point {
 			l.Error(err)
 			continue
 		}
+
 		if !this.conds.Eval(pt.Name(), pt.Tags(), fields) {
 			after = append(after, pt)
 		}

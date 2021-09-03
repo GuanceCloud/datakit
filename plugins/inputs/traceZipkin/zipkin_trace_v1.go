@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin/zipkinV1_core"
 	zipkincore "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin/zipkinV1_core"
 )
 
@@ -62,86 +62,56 @@ func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
 	if isFound {
 		return ts * 1000
 	}
+
 	return time.Now().UnixNano()
-}
-func parseZipkinJsonV1(octets []byte) error {
-	log.Debugf("->|%v|<-", string(octets))
-
-	spans := []*ZipkinSpanV1{}
-	if err := json.Unmarshal(octets, &spans); err != nil {
-		return err
-	}
-
-	adapterGroup := []*trace.TraceAdapter{}
-	for _, span := range spans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = "zipkin"
-
-		tAdapter.Duration = span.Duration * 1000
-		tAdapter.Start = span.Timestamp * 1000
-		if tAdapter.Start == 0 {
-			tAdapter.Start = getFirstTimestamp(span)
-		}
-
-		js, err := json.Marshal(span)
-		if err != nil {
-			return err
-		}
-		tAdapter.Content = string(js)
-
-		tAdapter.OperationName = span.Name
-		tAdapter.ParentID = span.ParentID
-		tAdapter.TraceID = span.TraceID
-		tAdapter.SpanID = span.ID
-
-		for _, ano := range span.Annotations {
-			if ano.Host != nil && ano.Host.ServiceName != "" {
-				tAdapter.ServiceName = ano.Host.ServiceName
-				break
-			}
-		}
-
-		if tAdapter.ServiceName == "" {
-			for _, bno := range span.BinaryAnnotations {
-				if bno.Host != nil && bno.Host.ServiceName != "" {
-					tAdapter.ServiceName = bno.Host.ServiceName
-					break
-				}
-			}
-		}
-
-		tAdapter.Status = trace.STATUS_OK
-		for _, bno := range span.BinaryAnnotations {
-			if bno != nil && bno.Key == "error" {
-				tAdapter.Status = trace.STATUS_ERR
-				break
-			}
-		}
-
-		if tAdapter.Duration == 0 {
-			tAdapter.Duration = getDurationByAno(span.Annotations)
-		}
-		tAdapter.Tags = ZipkinTags
-
-		// run tracing sample function
-		if conf := trace.TraceSampleMatcher(sampleConfs, tAdapter.Tags); conf != nil {
-			if trcid, err := strconv.ParseUint(tAdapter.TraceID, 10, 64); err == nil {
-				if !trace.IgnoreErrSampleMW(tAdapter.Status, trace.IgnoreTagsSampleMW(tAdapter.Tags, conf.IgnoreTagsList, trace.DefSampleFunc))(trcid, conf.Rate, conf.Scope) {
-					continue
-				}
-			} else {
-				log.Errorf("Parse uint64 trace id failed when doing tracing sample")
-			}
-		}
-
-		adapterGroup = append(adapterGroup, tAdapter)
-	}
-	trace.MkLineProto(adapterGroup, inputName)
-
-	return nil
 }
 
 func getDurationByAno(anos []*Annotation) int64 {
+	if len(anos) < 2 {
+		return 0
+	}
+
+	var startTs, stopTs int64
+	startTs = 0x7FFFFFFFFFFFFFFF
+	for _, ano := range anos {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp > stopTs {
+			stopTs = ano.Timestamp
+		}
+
+		if ano.Timestamp < startTs {
+			startTs = ano.Timestamp
+		}
+	}
+	if stopTs > startTs {
+		return (stopTs - startTs) * 1000
+	}
+	return 0
+}
+
+func getStartTimestamp(zs *zipkincore.Span) int64 {
+	var ts int64
+	var isFound bool
+	ts = 0x7FFFFFFFFFFFFFFF
+	for _, ano := range zs.Annotations {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp < ts {
+			isFound = true
+			ts = ano.Timestamp
+		}
+	}
+
+	if isFound {
+		return ts * 1000
+	}
+	return time.Now().UnixNano()
+}
+
+func getDurationThriftAno(anos []*zipkincore.Annotation) int64 {
 	if len(anos) < 2 {
 		return 0
 	}
@@ -172,7 +142,7 @@ func int2ip(i uint32) []byte {
 	return bs
 }
 
-func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
+func zipkinConvThriftToJson(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 	zc := &zipkincore.SpanJsonApater{}
 	zc.TraceID = uint64(z.TraceID)
 	zc.Name = z.Name
@@ -232,15 +202,45 @@ func zipkinConvThrift2Json(z *zipkincore.Span) *zipkincore.SpanJsonApater {
 	return zc
 }
 
-func parseZipkinThriftV1(octets []byte) error {
-	zspans, err := unmarshalZipkinThriftV1(octets)
-	if err != nil {
-		return err
+func unmarshalZipkinThriftV1(octets []byte) ([]*zipkincore.Span, error) {
+	buffer := thrift.NewTMemoryBuffer()
+	if _, err := buffer.Write(octets); err != nil {
+		return nil, err
 	}
 
-	adapterGroup := []*trace.TraceAdapter{}
+	transport := thrift.NewTBinaryProtocolTransport(buffer)
+	_, size, err := transport.ReadListBegin()
+	if err != nil {
+		return nil, err
+	}
+
+	spans := make([]*zipkincore.Span, 0)
+	for i := 0; i < size; i++ {
+		zs := &zipkincore.Span{}
+		if err = zs.Read(transport); err != nil {
+			return nil, err
+		}
+		spans = append(spans, zs)
+	}
+
+	if err = transport.ReadListEnd(); err != nil {
+		return nil, err
+	}
+
+	return spans, nil
+}
+
+func thriftSpansToAdapters(zspans []*zipkinV1_core.Span, filters ...zipkinThriftV1SpansFilter) ([]*trace.TraceAdapter, error) {
+	// run all filters
+	for _, filter := range filters {
+		if len(filter(zspans)) == 0 {
+			return nil, nil
+		}
+	}
+
+	var adapterGroup []*trace.TraceAdapter
 	for _, span := range zspans {
-		z := zipkinConvThrift2Json(span)
+		z := zipkinConvThriftToJson(span)
 		tAdapter := &trace.TraceAdapter{}
 		tAdapter.Source = "zipkin"
 
@@ -257,7 +257,7 @@ func parseZipkinThriftV1(octets []byte) error {
 
 		js, err := json.Marshal(z)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		tAdapter.Content = string(js)
 
@@ -295,96 +295,75 @@ func parseZipkinThriftV1(octets []byte) error {
 		if tAdapter.Duration == 0 {
 			tAdapter.Duration = getDurationThriftAno(span.Annotations)
 		}
-
-		tAdapter.Tags = ZipkinTags
-
-		// run tracing sample function
-		if conf := trace.TraceSampleMatcher(sampleConfs, tAdapter.Tags); conf != nil {
-			if trcid, err := strconv.ParseUint(tAdapter.TraceID, 10, 64); err == nil {
-				if !trace.IgnoreErrSampleMW(tAdapter.Status, trace.IgnoreTagsSampleMW(tAdapter.Tags, conf.IgnoreTagsList, trace.DefSampleFunc))(trcid, conf.Rate, conf.Scope) {
-					continue
-				}
-			} else {
-				log.Errorf("Parse uint64 trace id failed when doing tracing sample")
-			}
-		}
+		tAdapter.Tags = zipkinTags
 
 		adapterGroup = append(adapterGroup, tAdapter)
 	}
-	trace.MkLineProto(adapterGroup, inputName)
 
-	return nil
+	return adapterGroup, nil
 }
 
-func unmarshalZipkinThriftV1(octets []byte) ([]*zipkincore.Span, error) {
-	buffer := thrift.NewTMemoryBuffer()
-	if _, err := buffer.Write(octets); err != nil {
-		return nil, err
+func jsonV1SpansToAdapters(zspans []*ZipkinSpanV1, filters ...zipkinJsonV1SpansFilter) ([]*trace.TraceAdapter, error) {
+	// run all filters
+	for _, filter := range filters {
+		if len(filter(zspans)) == 0 {
+			return nil, nil
+		}
 	}
 
-	transport := thrift.NewTBinaryProtocolTransport(buffer)
-	_, size, err := transport.ReadListBegin()
-	if err != nil {
-		return nil, err
-	}
+	var adapterGroup []*trace.TraceAdapter
+	for _, span := range zspans {
+		tAdapter := &trace.TraceAdapter{}
+		tAdapter.Source = "zipkin"
 
-	spans := make([]*zipkincore.Span, 0)
-	for i := 0; i < size; i++ {
-		zs := &zipkincore.Span{}
-		if err = zs.Read(transport); err != nil {
+		tAdapter.Duration = span.Duration * 1000
+		tAdapter.Start = span.Timestamp * 1000
+		if tAdapter.Start == 0 {
+			tAdapter.Start = getFirstTimestamp(span)
+		}
+
+		js, err := json.Marshal(span)
+		if err != nil {
 			return nil, err
 		}
-		spans = append(spans, zs)
-	}
+		tAdapter.Content = string(js)
 
-	if err = transport.ReadListEnd(); err != nil {
-		return nil, err
-	}
+		tAdapter.OperationName = span.Name
+		tAdapter.ParentID = span.ParentID
+		tAdapter.TraceID = span.TraceID
+		tAdapter.SpanID = span.ID
 
-	return spans, nil
-}
-
-func getStartTimestamp(zs *zipkincore.Span) int64 {
-	var ts int64
-	var isFound bool
-	ts = 0x7FFFFFFFFFFFFFFF
-	for _, ano := range zs.Annotations {
-		if ano.Timestamp == 0 {
-			continue
-		}
-		if ano.Timestamp < ts {
-			isFound = true
-			ts = ano.Timestamp
-		}
-	}
-
-	if isFound {
-		return ts * 1000
-	}
-	return time.Now().UnixNano()
-}
-
-func getDurationThriftAno(anos []*zipkincore.Annotation) int64 {
-	if len(anos) < 2 {
-		return 0
-	}
-
-	var startTs, stopTs int64
-	startTs = 0x7FFFFFFFFFFFFFFF
-	for _, ano := range anos {
-		if ano.Timestamp == 0 {
-			continue
-		}
-		if ano.Timestamp > stopTs {
-			stopTs = ano.Timestamp
+		for _, ano := range span.Annotations {
+			if ano.Host != nil && ano.Host.ServiceName != "" {
+				tAdapter.ServiceName = ano.Host.ServiceName
+				break
+			}
 		}
 
-		if ano.Timestamp < startTs {
-			startTs = ano.Timestamp
+		if tAdapter.ServiceName == "" {
+			for _, bno := range span.BinaryAnnotations {
+				if bno.Host != nil && bno.Host.ServiceName != "" {
+					tAdapter.ServiceName = bno.Host.ServiceName
+					break
+				}
+			}
 		}
+
+		tAdapter.Status = trace.STATUS_OK
+		for _, bno := range span.BinaryAnnotations {
+			if bno != nil && bno.Key == "error" {
+				tAdapter.Status = trace.STATUS_ERR
+				break
+			}
+		}
+
+		if tAdapter.Duration == 0 {
+			tAdapter.Duration = getDurationByAno(span.Annotations)
+		}
+		tAdapter.Tags = zipkinTags
+
+		adapterGroup = append(adapterGroup, tAdapter)
 	}
-	if stopTs > startTs {
-		return (stopTs - startTs) * 1000
-	}
-	return 0
+
+	return adapterGroup, nil
 }

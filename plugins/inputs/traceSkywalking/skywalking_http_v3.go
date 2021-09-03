@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
-	"strconv"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
@@ -110,21 +108,27 @@ func handleSkyWalking(w http.ResponseWriter, r *http.Request, path string, body 
 	}
 }
 
-func skywalkToLineProto(sg *SkyWalkSegment) error {
-	adapterGroup := []*trace.TraceAdapter{}
-	for _, span := range sg.Spans {
+func swSegmentToAdapters(segment *SkyWalkSegment, filters ...swSegmentFilter) ([]*trace.TraceAdapter, error) {
+	// run all filters
+	for _, filter := range filters {
+		if filter(segment) == nil {
+			return nil, nil
+		}
+	}
+
+	var adapterGroup []*trace.TraceAdapter
+	for _, span := range segment.Spans {
 		tAdapter := &trace.TraceAdapter{}
 
 		tAdapter.Source = "skywalking"
-
 		tAdapter.Duration = (span.EndTime - span.StartTime) * 1000000
 		tAdapter.Start = span.StartTime * 1000000
 		js, err := json.Marshal(span)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		tAdapter.Content = string(js)
-		tAdapter.ServiceName = sg.Service
+		tAdapter.ServiceName = segment.Service
 		tAdapter.OperationName = span.OperationName
 		if span.SpanType == "Entry" {
 			if len(span.Refs) > 0 {
@@ -132,11 +136,11 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 					span.Refs[0].ParentSpanId)
 			}
 		} else {
-			tAdapter.ParentID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.ParentSpanId)
+			tAdapter.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
 		}
 
-		tAdapter.TraceID = sg.TraceId
-		tAdapter.SpanID = fmt.Sprintf("%s%d", sg.TraceSegmentId, span.SpanId)
+		tAdapter.TraceID = segment.TraceId
+		tAdapter.SpanID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId)
 		tAdapter.Status = trace.STATUS_OK
 		if span.IsError {
 			tAdapter.Status = trace.STATUS_ERR
@@ -149,59 +153,71 @@ func skywalkToLineProto(sg *SkyWalkSegment) error {
 			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		}
 		tAdapter.EndPoint = span.Peer
-		tAdapter.Tags = SkywalkingTagsV3
-
-		// run tracing sample function
-		if conf := trace.TraceSampleMatcher(sampleConfs, tAdapter.Tags); conf != nil {
-			if trcid, err := strconv.ParseUint(tAdapter.TraceID, 10, 64); err == nil {
-				if !trace.IgnoreErrSampleMW(tAdapter.Status, trace.IgnoreTagsSampleMW(tAdapter.Tags, conf.IgnoreTagsList, trace.DefSampleFunc))(trcid, conf.Rate, conf.Scope) {
-					continue
-				}
-			} else {
-				log.Errorf("Parse uint64 trace id failed when doing tracing sample")
-			}
-		}
+		tAdapter.Tags = skywalkingTagsV3
 
 		adapterGroup = append(adapterGroup, tAdapter)
 	}
-	trace.MkLineProto(adapterGroup, inputName)
+
+	return adapterGroup, nil
+}
+func handleSkyWalkSegment(w http.ResponseWriter, r *http.Request, body []byte) error {
+	var segment SkyWalkSegment
+	err := json.Unmarshal(body, &segment)
+	if err != nil {
+		return err
+	}
+
+	group, err := swSegmentToAdapters(&segment, swFilters...)
+	if err != nil {
+		log.Error(err)
+
+		return err
+	}
+
+	if len(group) != 0 {
+		trace.MkLineProto(group, inputName)
+	} else {
+		log.Debug("empty skywalk segment")
+	}
 
 	return nil
 }
-func handleSkyWalkSegment(w http.ResponseWriter, r *http.Request, body []byte) error {
-	var sg SkyWalkSegment
-	err := json.Unmarshal(body, &sg)
-	if err != nil {
-		return err
-	}
-
-	return skywalkToLineProto(&sg)
-}
 
 func handleSkyWalkSegments(w http.ResponseWriter, r *http.Request, body []byte) error {
-	var sgs []SkyWalkSegment
-	err := json.Unmarshal(body, &sgs)
+	var segments []SkyWalkSegment
+	err := json.Unmarshal(body, &segments)
 	if err != nil {
 		return err
 	}
 
-	for _, sg := range sgs {
-		err := skywalkToLineProto(&sg)
+	for _, segment := range segments {
+		group, err := swSegmentToAdapters(&segment, swFilters...)
 		if err != nil {
-			return nil
+			log.Error(err)
+
+			return err
+		}
+
+		if len(group) != 0 {
+			trace.MkLineProto(group, inputName)
+		} else {
+			log.Debug("empty skywalk segment")
 		}
 	}
+
 	return nil
 }
 
 func handleSkyWalkProperties(w http.ResponseWriter, r *http.Request, body []byte) error {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{}"))
+
 	return nil
 }
 
 func handleSkyWalkKeepAlive(w http.ResponseWriter, r *http.Request, body []byte) error {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{}"))
+
 	return nil
 }

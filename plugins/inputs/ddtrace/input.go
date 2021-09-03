@@ -1,6 +1,7 @@
 package ddtrace
 
 import (
+	"regexp"
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -8,13 +9,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
-)
-
-// used to set sample ratio
-var (
-	defRate     = 15
-	defScope    = 100
-	sampleConfs []*trace.TraceSampleConfig
 )
 
 var (
@@ -25,46 +19,20 @@ var (
   ## you can stop some patterns by remove them from the list but DO NOT MODIFY THESE PATTERNS.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
-  ## Tracing data sample config, [rate] and [scope] together determine how many trace sample data
+  ## Tracing data sample config, [rate] and [scope] together determine how many trace data
   ## will be send to DataFlux workspace.
-  ## Sub item in sample_configs list with priority 1.
-  # [[inputs.ddtrace.sample_configs]]
+  # [inputs.ddtrace.sample_config]
     ## Sample rate, how many tracing data will be sampled
     # rate = 10
-    ## Sample scope, the range that will consider to be covered by sample function.
+    ## Sample scope, the range to be covered in once sample action.
     # scope = 100
-    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
+    ## Ignore tags list, keys appear in this list is transparent to sample function which means every trace carrying this tag will bypass sample function.
     # ignore_tags_list = []
-    ## Sample target, program will search this [tag, value] pair for sampling purpose.
-    # [inputs.ddtrace.sample_configs.target]
-    # env = "prod"
 
-  ## Sub item in sample_configs list with priority 2.
-  # [[inputs.ddtrace.sample_configs]]
-    ## Sample rate, how many tracing data will be sampled.
-    # rate = 100
-    ## Sample scope, the range that will consider to be covered by sample function.
-    # scope = 1000
-    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
-    # ignore_tags_list = []
-    ## Sample target, program will search this [tag, value] pair for sampling purpose.
-    # [inputs.ddtrace.sample_configs.target]
-    # env = "dev"
-
-    ## ...
-
-  ## Sub item in sample_configs list with priority n.
-  # [[inputs.ddtrace.sample_configs]]
-    ## Sample rate, how many tracing data will be sampled.
-    # rate = 10
-    ## Sample scope, the range that will consider to be covered by sample function.
-    # scope = 100
-    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
-    # ignore_tags_list = []
-    ## Sample target, program will search this [tag, value] pair for sampling purpose.
-    ## As general, the last item in sample_configs list without [tag, value] pair will be used as default sample rule
-    ## only if all above rules mismatched, so that this pair shoud be empty.
-    # [inputs.ddtrace.sample_configs.target]
+  ## Ignore ddtrace resources list. List of strings
+  ## A list of regular expressions filter out certain resource name.
+  ## All entries must be double quoted and split by comma.
+  # ignore_resources = []
 
   ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
   ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
@@ -77,17 +45,28 @@ var (
     # more_tag = "some_other_value"
     ## ...
 `
+	customerKeys  []string
+	ddTags        map[string]string
+	defIgnoreTags = map[string]string{"_dd.origin": "rum"}
+	log           = logger.DefaultSLogger(inputName)
+)
+
+var (
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
 	defEndpoints         = []string{v3, v4, v5}
-	customerTags         []string
-	ddTags               map[string]string
-	log                  = logger.DefaultSLogger(inputName)
+	ignoreResources      []*regexp.Regexp
+	defRate              = 15
+	defScope             = 100
+	sampleConf           *trace.TraceSampleConfig
+	filters              []traceFilter
 )
 
 type Input struct {
 	Path             string                     `toml:"path,omitempty"` // deprecated entry
 	Endpoints        []string                   `toml:"endpoints"`
-	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs"`
+	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs,omitempty"` // deprecated in new issue
+	TraceSampleConf  *trace.TraceSampleConfig   `toml:"sample_config"`
+	IgnoreResources  []string                   `toml:"ignore_resources"`
 	CustomerTags     []string                   `toml:"customer_tags"`
 	Tags             map[string]string          `toml:"tags"`
 }
@@ -112,22 +91,33 @@ func (i *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	sampleConfs = i.TraceSampleConfs
-
-	// validate tracing sample config
-	for k, v := range sampleConfs {
-		if v.Rate <= 0 || v.Scope < v.Rate {
-			v.Rate = 100
-			v.Scope = 100
-			log.Warnf("%s input tracing sample config [%d] invalid, reset to default.", inputName, k)
+	for k := range i.IgnoreResources {
+		if reg, err := regexp.Compile(i.IgnoreResources[k]); err != nil {
+			log.Warnf("parse regular expression %q failed", i.IgnoreResources[k])
+			continue
+		} else {
+			ignoreResources = append(ignoreResources, reg)
 		}
+	}
+	if len(ignoreResources) != 0 {
+		filters = append(filters, filterOutResource)
+	}
+
+	sampleConf = i.TraceSampleConf
+	if sampleConf != nil {
+		if sampleConf.Rate <= 0 || sampleConf.Scope < sampleConf.Rate {
+			sampleConf.Rate = 100
+			sampleConf.Scope = 100
+			log.Warnf("input tracing sample config invalid, fallback to fully sampling.")
+		}
+		filters = append(filters, sample)
 	}
 
 	for k := range i.CustomerTags {
 		if strings.Contains(i.CustomerTags[k], ".") {
 			log.Warn("customer tag can not contains dot(.)")
 		} else {
-			customerTags = append(customerTags, i.CustomerTags[k])
+			customerKeys = append(customerKeys, i.CustomerTags[k])
 		}
 	}
 

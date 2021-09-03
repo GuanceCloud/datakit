@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -85,33 +84,49 @@ func (s *SkywalkingServerV2) Collect(tsc swV2.TraceSegmentReportService_CollectS
 		b, _ := json.Marshal(sgo)
 		log.Debugf("%#v\n", string(b))
 
-		if err := skywalkGrpcV2ToLineProto(sgo); err != nil {
+		group, err := upstmSegmentToAdapters(sgo, upstmFilters...)
+		if err != nil {
 			dkio.FeedLastError(inputName, err.Error())
 			log.Error(err)
+
+			return err
+		}
+
+		if len(group) != 0 {
+			trace.MkLineProto(group, inputName)
+		} else {
+			log.Debug("empty upstream segment")
 		}
 	}
 }
 
-func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
-	var service string
+func upstmSegmentToAdapters(segment *swV2.UpstreamSegment, filters ...upstmSegmentFilter) ([]*trace.TraceAdapter, error) {
+	// run all filters
+	for _, filter := range filters {
+		if filter(segment) == nil {
+			return nil, nil
+		}
+	}
 
-	traceId := sg.GlobalTraceIds[0].IdParts[2]
-	sgid := sg.Segment.TraceSegmentId.IdParts[2]
-	sid := sg.Segment.ServiceId
+	traceId := segment.GlobalTraceIds[0].IdParts[2]
+	sgid := segment.Segment.TraceSegmentId.IdParts[2]
+	sid := segment.Segment.ServiceId
 
 	sn, ok := RegService.Load(sid)
 	if !ok {
-		return fmt.Errorf("Service Id %v not registered", sid)
+		return nil, fmt.Errorf("Service Id %v not registered", sid)
 	}
+
+	var service string
 	switch sn.(type) {
 	case string:
 		service = sn.(string)
 	default:
-		return fmt.Errorf("Service Name wrong type")
+		return nil, fmt.Errorf("Service Name wrong type")
 	}
 
-	adapterGroup := []*trace.TraceAdapter{}
-	for _, span := range sg.Segment.Spans {
+	var adapterGroup []*trace.TraceAdapter
+	for _, span := range segment.Segment.Spans {
 		tAdapter := &trace.TraceAdapter{}
 
 		tAdapter.Source = "skywalking"
@@ -119,7 +134,7 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 		tAdapter.Start = span.StartTime * 1000000
 		js, err := json.Marshal(span)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		tAdapter.Content = string(js)
 		tAdapter.ServiceName = service
@@ -127,13 +142,13 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 		if tAdapter.OperationName == "" {
 			on, ok := RegEndpoint.Load(span.OperationNameId)
 			if !ok {
-				return fmt.Errorf("operation name %s null", tAdapter.OperationName)
+				return nil, fmt.Errorf("operation name %s null", tAdapter.OperationName)
 			}
 			switch on.(type) {
 			case string:
 				tAdapter.OperationName = on.(string)
 			default:
-				return fmt.Errorf("operation Name wrong type")
+				return nil, fmt.Errorf("operation Name wrong type")
 			}
 		}
 
@@ -157,24 +172,12 @@ func skywalkGrpcV2ToLineProto(sg *swV2.UpstreamSegment) error {
 			tAdapter.SpanType = trace.SPAN_TYPE_EXIT
 		}
 		tAdapter.EndPoint = span.Peer
-		tAdapter.Tags = SkywalkingTagsV2
-
-		// run tracing sample function
-		if conf := trace.TraceSampleMatcher(sampleConfs, tAdapter.Tags); conf != nil {
-			if trcid, err := strconv.ParseUint(tAdapter.TraceID, 10, 64); err == nil {
-				if !trace.IgnoreErrSampleMW(tAdapter.Status, trace.IgnoreTagsSampleMW(tAdapter.Tags, conf.IgnoreTagsList, trace.DefSampleFunc))(trcid, conf.Rate, conf.Scope) {
-					continue
-				}
-			} else {
-				log.Errorf("Parse uint64 trace id failed when doing tracing sample")
-			}
-		}
+		tAdapter.Tags = skywalkingTagsV2
 
 		adapterGroup = append(adapterGroup, tAdapter)
 	}
-	trace.MkLineProto(adapterGroup, inputName)
 
-	return nil
+	return adapterGroup, nil
 }
 
 func (s *SkywalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *register.Services) (*register.ServiceRegisterMapping, error) {
