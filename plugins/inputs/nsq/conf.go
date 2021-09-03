@@ -2,8 +2,13 @@ package nsq
 
 const sampleCfg = `
 [[inputs.nsq]]
+  ## NSQ Lookupd HTTP API endpoint
+  lookupd = "http://localhost:4161"
+
   ## NSQD HTTP API endpoint
-  endpoint = "http://localhost:4151"
+  ## example:
+  ##   ["http://localhost:4151"]
+  nsqd = []
   
   ## time units are "ms", "s", "m", "h"
   interval = "10s"
