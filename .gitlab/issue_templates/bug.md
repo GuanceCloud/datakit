@@ -8,7 +8,7 @@
 
 ## 如果是对应采集器（如 MySQL）问题，请给出对应采集器的配置文件
 
-## 如果可以，请给出 http://datakit-ip:9529/monitor 截图，便于排查问题
+## 如果可以，请给出 http://datakit-ip:9529/monitor （或者命令行 datakit -M --vvv）截图，便于排查问题
 
 ## 尽可能给出 DataKit 的 ERROR/WARN 日志
 
