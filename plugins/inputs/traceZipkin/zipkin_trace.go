@@ -1,11 +1,13 @@
 package traceZipkin
 
 import (
+	"encoding/json"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"net/http"
 	"runtime/debug"
 
+	zipkinmodel "github.com/openzipkin/zipkin-go/model"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
@@ -45,13 +47,36 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	var group []*trace.TraceAdapter
 	if reqInfo.ContentType == "application/x-thrift" {
-		return parseZipkinThriftV1(reqInfo.Body)
+		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
+			return err
+		} else {
+			group, err = thriftSpansToAdapters(zspans, zpkThriftV1Filters...)
+		}
 	} else if reqInfo.ContentType == "application/json" {
-		return parseZipkinJsonV1(reqInfo.Body)
+		zspans := []*ZipkinSpanV1{}
+		if err := json.Unmarshal(reqInfo.Body, &zspans); err != nil {
+			return err
+		} else {
+			group, err = jsonV1SpansToAdapters(zspans, zpkJsonV1Filters...)
+		}
 	} else {
 		return fmt.Errorf("Zipkin V1 unsupported Content-Type: %s", reqInfo.ContentType)
 	}
+	if err != nil {
+		log.Error(err)
+
+		return err
+	}
+
+	if len(group) != 0 {
+		trace.MkLineProto(group, inputName)
+	} else {
+		log.Debug("empty zipkin v1 spans")
+	}
+
+	return nil
 }
 
 func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
@@ -60,11 +85,34 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	var group []*trace.TraceAdapter
 	if reqInfo.ContentType == "application/x-protobuf" {
-		return parseZipkinProtobufV2(reqInfo.Body)
+		if zspans, err := parseZipkinProtobuf3(reqInfo.Body); err != nil {
+			return err
+		} else {
+			group, err = protobufSpansToAdapters(zspans, zpkProtoBufV2Filters...)
+		}
 	} else if reqInfo.ContentType == "application/json" {
-		return parseZipkinJsonV2(reqInfo.Body)
+		zspans := []*zipkinmodel.SpanModel{}
+		if err := json.Unmarshal(reqInfo.Body, &zspans); err != nil {
+			return err
+		} else {
+			group, err = parseZipkinJsonV2(zspans, zpkJsonV2Filters...)
+		}
 	} else {
 		return fmt.Errorf("Zipkin V2 unsupported Content-Type: %s", reqInfo.ContentType)
 	}
+	if err != nil {
+		log.Error(err)
+
+		return err
+	}
+
+	if len(group) != 0 {
+		trace.MkLineProto(group, inputName)
+	} else {
+		log.Debug("empty zipkin v2 spans")
+	}
+
+	return nil
 }

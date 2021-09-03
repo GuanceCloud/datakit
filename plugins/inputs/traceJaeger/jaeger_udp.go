@@ -58,7 +58,11 @@ func StartUdpAgent(addr string) error {
 		if err != nil {
 			continue
 		}
-		trace.MkLineProto(groups, inputName)
+		if len(groups) != 0 {
+			trace.MkLineProto(groups, inputName)
+		} else {
+			log.Debug("empty batch")
+		}
 	}
 }
 
@@ -66,6 +70,7 @@ func parseJaegerUdp(data []byte) ([]*trace.TraceAdapter, error) {
 	thriftBuffer := thrift.NewTMemoryBufferLen(len(data))
 	if _, err := thriftBuffer.Write(data[:]); err != nil {
 		log.Error("buffer write failed :%v,", err)
+
 		return nil, err
 	}
 
@@ -74,6 +79,7 @@ func parseJaegerUdp(data []byte) ([]*trace.TraceAdapter, error) {
 	_, _, _, err := thriftProtocol.ReadMessageBegin(context.TODO())
 	if err != nil {
 		log.Error("read message begin failed :%v,", err)
+
 		return nil, err
 	}
 
@@ -81,18 +87,26 @@ func parseJaegerUdp(data []byte) ([]*trace.TraceAdapter, error) {
 	err = batch.Read(context.TODO(), thriftProtocol)
 	if err != nil {
 		log.Error("read batch failed :%v,", err)
+
 		return nil, err
 	}
 
-	groups, err := processBatch(batch.Batch)
+	var filters []batchFilter
+	if len(sampleConfs) != 0 {
+		filters = append(filters, sample)
+	}
+
+	groups, err := batchToAdapters(batch.Batch, filters...)
 	if err != nil {
 		log.Error("process batch failed :%v,", err)
+
 		return nil, err
 	}
 
 	err = thriftProtocol.ReadMessageEnd(context.TODO())
 	if err != nil {
 		log.Error("read message end failed :%v,", err)
+
 		return nil, err
 	}
 

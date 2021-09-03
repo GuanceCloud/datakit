@@ -9,192 +9,11 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/openzipkin/zipkin-go/model"
 	zipkinmodel "github.com/openzipkin/zipkin-go/model"
 	zipkin_proto3 "github.com/openzipkin/zipkin-go/proto/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
-
-func parseZipkinJsonV2(octets []byte) error {
-	log.Debugf("->|%s|<-", string(octets))
-	spans := []*zipkinmodel.SpanModel{}
-	if err := json.Unmarshal(octets, &spans); err != nil {
-		return err
-	}
-
-	adapterGroup := []*trace.TraceAdapter{}
-	for _, span := range spans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = "zipkin"
-
-		tAdapter.Duration = int64(span.Duration)
-		tAdapter.Start = span.Timestamp.UnixNano()
-		sJson, err := json.Marshal(span)
-		if err != nil {
-			return err
-		}
-		tAdapter.Content = string(sJson)
-
-		if span.LocalEndpoint != nil {
-			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
-		}
-
-		tAdapter.OperationName = span.Name
-
-		if span.ParentID != nil {
-			tAdapter.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
-		}
-
-		if span.TraceID.High != 0 {
-			tAdapter.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
-		} else {
-			tAdapter.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
-		}
-
-		tAdapter.SpanID = fmt.Sprintf("%x", uint64(span.ID))
-
-		tAdapter.Status = trace.STATUS_OK
-		for tag := range span.Tags {
-			if tag == "error" {
-				tAdapter.Status = trace.STATUS_ERR
-				break
-			}
-		}
-
-		if span.RemoteEndpoint != nil {
-			if len(span.RemoteEndpoint.IPv4) != 0 {
-				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv4)
-			}
-
-			if len(span.RemoteEndpoint.IPv6) != 0 {
-				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv6)
-			}
-		}
-
-		//tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
-		//if span.RemoteEndpoint == nil {
-		//	if span.LocalEndpoint == nil {
-		//		tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
-		//	} else {
-		//		if len(span.LocalEndpoint.IPv4) == 0 && len(span.LocalEndpoint.IPv6) == 0 {
-		//			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
-		//		}
-		//	}
-		//}
-		if span.Kind == zipkinmodel.Undetermined {
-			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
-		} else {
-			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
-		}
-
-		tAdapter.Tags = ZipkinTags
-
-		// run tracing sample function
-		if conf := trace.TraceSampleMatcher(sampleConfs, tAdapter.Tags); conf != nil {
-			if trcid, err := strconv.ParseUint(tAdapter.TraceID, 10, 64); err == nil {
-				if !trace.IgnoreErrSampleMW(tAdapter.Status, trace.IgnoreTagsSampleMW(tAdapter.Tags, conf.IgnoreTagsList, trace.DefSampleFunc))(trcid, conf.Rate, conf.Scope) {
-					continue
-				}
-			} else {
-				log.Errorf("Parse uint64 trace id failed when doing tracing sample")
-			}
-		}
-
-		adapterGroup = append(adapterGroup, tAdapter)
-	}
-	trace.MkLineProto(adapterGroup, inputName)
-
-	return nil
-}
-
-func parseZipkinProtobufV2(octets []byte) error {
-	spans, err := parseZipkinProtobuf3(octets)
-	if err != nil {
-		return err
-	}
-
-	adapterGroup := []*trace.TraceAdapter{}
-	for _, span := range spans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = "zipkin"
-
-		tAdapter.Duration = int64(span.Duration)
-		tAdapter.Start = span.Timestamp.UnixNano()
-		sJson, err := json.Marshal(span)
-		if err != nil {
-			return err
-		}
-		tAdapter.Content = string(sJson)
-
-		if span.LocalEndpoint != nil {
-			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
-		}
-		tAdapter.OperationName = span.Name
-
-		if span.ParentID != nil {
-			tAdapter.ParentID = fmt.Sprintf("%d", *span.ParentID)
-		}
-
-		if span.TraceID.High != 0 {
-			tAdapter.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
-		} else {
-			tAdapter.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
-		}
-
-		tAdapter.SpanID = fmt.Sprintf("%d", span.ID)
-
-		tAdapter.Status = trace.STATUS_OK
-		for tag := range span.Tags {
-			if tag == "error" {
-				tAdapter.Status = trace.STATUS_ERR
-				break
-			}
-		}
-
-		if span.RemoteEndpoint != nil {
-			if len(span.RemoteEndpoint.IPv4) != 0 {
-				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv4)
-			}
-
-			if len(span.RemoteEndpoint.IPv6) != 0 {
-				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv6)
-			}
-		}
-
-		//tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
-		//if span.RemoteEndpoint == nil {
-		//	if span.LocalEndpoint == nil {
-		//		tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
-		//	} else {
-		//		if len(span.LocalEndpoint.IPv4) == 0 && len(span.LocalEndpoint.IPv6) == 0 {
-		//			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
-		//		}
-		//	}
-		//}
-		if span.Kind == zipkinmodel.Undetermined {
-			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
-		} else {
-			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
-		}
-
-		tAdapter.Tags = ZipkinTags
-
-		// run tracing sample function
-		if conf := trace.TraceSampleMatcher(sampleConfs, tAdapter.Tags); conf != nil {
-			if trcid, err := strconv.ParseUint(tAdapter.TraceID, 10, 64); err == nil {
-				if !trace.IgnoreErrSampleMW(tAdapter.Status, trace.IgnoreTagsSampleMW(tAdapter.Tags, conf.IgnoreTagsList, trace.DefSampleFunc))(trcid, conf.Rate, conf.Scope) {
-					continue
-				}
-			} else {
-				log.Errorf("Parse uint64 trace id failed when doing tracing sample")
-			}
-		}
-
-		adapterGroup = append(adapterGroup, tAdapter)
-	}
-	trace.MkLineProto(adapterGroup, inputName)
-
-	return nil
-}
 
 func parseZipkinProtobuf3(octets []byte) (zss []*zipkinmodel.SpanModel, err error) {
 	var listOfSpans zipkin_proto3.ListOfSpans
@@ -304,4 +123,144 @@ func protoAnnotationsToModelAnnotations(zpa []*zipkin_proto3.Annotation) (zma []
 		return nil
 	}
 	return zma
+}
+
+func protobufSpansToAdapters(zspans []*model.SpanModel, filters ...zipkinProtoBufV2SpansFilter) ([]*trace.TraceAdapter, error) {
+	// run all filters
+	for _, filter := range filters {
+		if len(filter(zspans)) == 0 {
+			return nil, nil
+		}
+	}
+
+	var adapterGroup []*trace.TraceAdapter
+	for _, span := range zspans {
+		tAdapter := &trace.TraceAdapter{}
+		tAdapter.Source = "zipkin"
+
+		tAdapter.Duration = int64(span.Duration)
+		tAdapter.Start = span.Timestamp.UnixNano()
+		sJson, err := json.Marshal(span)
+		if err != nil {
+			return nil, err
+		}
+		tAdapter.Content = string(sJson)
+
+		if span.LocalEndpoint != nil {
+			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
+		}
+		tAdapter.OperationName = span.Name
+
+		if span.ParentID != nil {
+			tAdapter.ParentID = fmt.Sprintf("%d", *span.ParentID)
+		}
+
+		if span.TraceID.High != 0 {
+			tAdapter.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
+		} else {
+			tAdapter.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
+		}
+
+		tAdapter.SpanID = fmt.Sprintf("%d", span.ID)
+
+		tAdapter.Status = trace.STATUS_OK
+		for tag, _ := range span.Tags {
+			if tag == "error" {
+				tAdapter.Status = trace.STATUS_ERR
+				break
+			}
+		}
+
+		if span.RemoteEndpoint != nil {
+			if len(span.RemoteEndpoint.IPv4) != 0 {
+				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv4)
+			}
+
+			if len(span.RemoteEndpoint.IPv6) != 0 {
+				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv6)
+			}
+		}
+
+		if span.Kind == zipkinmodel.Undetermined {
+			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
+		} else {
+			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
+		}
+		tAdapter.Tags = zipkinTags
+
+		adapterGroup = append(adapterGroup, tAdapter)
+	}
+
+	return adapterGroup, nil
+}
+
+func parseZipkinJsonV2(zspans []*zipkinmodel.SpanModel, filters ...zipkinJsonV2SpansFilter) ([]*trace.TraceAdapter, error) {
+	// run all filters
+	for _, filter := range filters {
+		if len(filter(zspans)) == 0 {
+			return nil, nil
+		}
+	}
+
+	var adapterGroup []*trace.TraceAdapter
+	for _, span := range zspans {
+		tAdapter := &trace.TraceAdapter{}
+		tAdapter.Source = "zipkin"
+
+		tAdapter.Duration = int64(span.Duration)
+		tAdapter.Start = span.Timestamp.UnixNano()
+		sJson, err := json.Marshal(span)
+		if err != nil {
+			return nil, err
+		}
+		tAdapter.Content = string(sJson)
+
+		if span.LocalEndpoint != nil {
+			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
+		}
+
+		tAdapter.OperationName = span.Name
+
+		if span.ParentID != nil {
+			tAdapter.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
+		}
+
+		if span.TraceID.High != 0 {
+			tAdapter.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
+		} else {
+			tAdapter.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
+		}
+
+		tAdapter.SpanID = fmt.Sprintf("%x", uint64(span.ID))
+
+		tAdapter.Status = trace.STATUS_OK
+		for tag, _ := range span.Tags {
+			if tag == "error" {
+				tAdapter.Status = trace.STATUS_ERR
+				break
+			}
+		}
+
+		if span.RemoteEndpoint != nil {
+			if len(span.RemoteEndpoint.IPv4) != 0 {
+				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv4)
+			}
+
+			if len(span.RemoteEndpoint.IPv6) != 0 {
+				tAdapter.EndPoint = fmt.Sprintf("%s", span.RemoteEndpoint.IPv6)
+			}
+		}
+
+		if span.Kind == zipkinmodel.Undetermined {
+			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
+		} else {
+			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
+		}
+
+		tAdapter.Tags = zipkinTags
+
+		adapterGroup = append(adapterGroup, tAdapter)
+	}
+
+	return adapterGroup, nil
 }

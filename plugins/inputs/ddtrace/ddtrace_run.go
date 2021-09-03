@@ -96,6 +96,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 			return
 		}
+		log.Debugf("show up all traces: %v", traces)
 
 		pts, err := tracesToPoints(traces)
 		if err != nil {
@@ -123,27 +124,15 @@ func handleStats(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-// TODO:
-func sample(traces Traces) Traces {
-	return nil
-}
-
-func mergeTags(ddTags map[string]string, customerTags []string, meta map[string]string, dest map[string]string) {
-	if dest == nil {
-		return
-	}
-
-	for k, v := range ddTags {
-		if _, ok := dest[k]; !ok {
-			dest[k] = v
-		}
-	}
-
-	for _, key := range customerTags {
+func extracteCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
+	var customerTags = map[string]string{}
+	for _, key := range customerKeys {
 		if value, ok := meta[key]; ok {
-			dest[key] = value
+			customerTags[key] = value
 		}
 	}
+
+	return customerTags
 }
 
 func decodeRequest(pattern string, req *http.Request) (Traces, error) {
@@ -175,9 +164,20 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 	return traces, err
 }
 
-func tracesToPoints(traces Traces) ([]*dkio.Point, error) {
-	pts := []*dkio.Point{}
+// tracesToPoints work as a adapter to convert traces to points.
+// parameter traces is raw traces, filters contains all the functional filters
+// like resource filter, sample.
+func tracesToPoints(traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
+	var pts []*dkio.Point
+NEXT_TRACE:
 	for _, trace := range traces {
+		// run all filters
+		for _, filter := range filters {
+			if len(filter(trace)) == 0 {
+				continue NEXT_TRACE
+			}
+		}
+
 		spanIds, parentIds := getSpanAndParentId(trace)
 		for _, span := range trace {
 			tags := make(map[string]string)
@@ -231,15 +231,9 @@ func tracesToPoints(traces Traces) ([]*dkio.Point, error) {
 			tags[itrace.TAG_HTTP_METHOD] = span.Meta["http.method"]
 			tags[itrace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
 
-			// merge tags
-			mergeTags(ddTags, customerTags, span.Meta, tags)
-
-			// run tracing sample function
-			if conf := itrace.TraceSampleMatcher(sampleConfs, tags); conf != nil {
-				log.Info(*conf)
-				if !itrace.IgnoreErrSampleMW(tags[itrace.TAG_SPAN_STATUS], itrace.IgnoreKVPairsSampleMW(span.Meta, map[string]string{"_dd.origin": "rum"}, itrace.IgnoreTagsSampleMW(tags, conf.IgnoreTagsList, itrace.DefSampleFunc)))(span.TraceID, conf.Rate, conf.Scope) {
-					continue
-				}
+			customerTags := extracteCustomerTags(customerKeys, span.Meta)
+			for k, v := range customerTags {
+				tags[k] = v
 			}
 
 			field[itrace.FIELD_RESOURCE] = span.Resource
