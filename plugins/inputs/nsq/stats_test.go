@@ -1,16 +1,13 @@
 package nsq
 
 import (
-	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 //nolint
-func TestGatherEndpoint(t *testing.T) {
+func TestStatsPoint(t *testing.T) {
 	cases := []struct {
 		body string
 	}{
@@ -22,55 +19,18 @@ func TestGatherEndpoint(t *testing.T) {
 		},
 	}
 
-	target := newStats(nil)
-	for _, tc := range cases {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, tc.body)
-		}))
+	st := newStats(nil)
 
-		err := newInput().gatherEndpoint(ts.URL, target)
+	for _, tc := range cases {
+		err := st.add([]byte(tc.body))
 		assert.NoError(t, err)
 	}
 
-	pts, err := target.makePoint()
+	pts, err := st.makePoint()
 	assert.NoError(t, err)
 
 	for _, pt := range pts {
 		t.Log(pt.String())
-	}
-}
 
-//nolint
-func TestNSQDList(t *testing.T) {
-	cases := []struct {
-		body string
-	}{
-		{
-			`{"producers":[{"remote_address":"172.19.0.4:55156","hostname":"5b44717bc03c","broadcast_address":"-http-address","tcp_port":4150,"http_port":4151,"version":"1.2.0","tombstones":[],"topics":[]},{"remote_address":"172.19.0.2:47644","hostname":"0927e72b938b","broadcast_address":"10.211.55.4","tcp_port":14150,"http_port":14151,"version":"1.2.0","tombstones":[false,false,false,false],"topics":["influx-data","df-trigger-metering","df-calculate-metering","df-billing"]},{"remote_address":"172.19.0.5:48006","hostname":"702d89de2a23","broadcast_address":"10.211.55.4","tcp_port":14154,"http_port":14155,"version":"1.2.0","tombstones":[false,false,false,false],"topics":["df-billing","df-trigger-metering","df-calculate-metering","influx-data"]}]}`,
-		},
-	}
-
-	for _, tc := range cases {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, tc.body)
-		}))
-
-		it := newInput()
-		err := it.updateEndpointListByLookupd(ts.URL)
-		assert.NoError(t, err)
-
-		for endpoint := range it.nsqdEndpointList {
-			t.Log(endpoint)
-		}
-	}
-}
-
-func TestMan(t *testing.T) {
-	i := &Input{}
-	arr := i.SampleMeasurement()
-
-	for _, elem := range arr {
-		elem.LineProto()
-		elem.Info()
 	}
 }
