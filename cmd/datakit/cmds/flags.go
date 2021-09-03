@@ -346,7 +346,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		fmt.Println("Update IPdb OK, please restart datakit to load new IPDB\n")
+		fmt.Println("Update IPdb OK, please restart datakit to load new IPDB")
 		os.Exit(0)
 	}
 }
