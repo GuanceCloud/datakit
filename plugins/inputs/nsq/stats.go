@@ -3,182 +3,104 @@ package nsq
 import (
 	"encoding/json"
 	"fmt"
-	"time"
+	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 type stats struct {
-	pts     []*io.Point
-	tags    map[string]string
-	lastErr error
-	host    string
+	mu sync.Mutex
+
+	// map["topic"]["channle"]*ChannelStats
+	topicCache map[string]map[string]*ChannelStats
+
+	tags map[string]string
+
+	//
+	//nodeCache map[string]
 }
 
-func newStats(serverhost string, tags map[string]string) *stats {
-	return &stats{host: serverhost, tags: tags}
-}
-
-func (s *stats) parse(body []byte) ([]*io.Point, error) {
-	var err error
-	data := &NSQStatsData{}
-	err = json.Unmarshal(body, data)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing response: %s", err)
+func newStats(tags map[string]string) *stats {
+	return &stats{
+		topicCache: make(map[string]map[string]*ChannelStats),
+		tags:       tags,
 	}
+}
+
+func (s *stats) add(body []byte) error {
+	data := &DataStats{}
+	if err := json.Unmarshal(body, data); err != nil {
+		return fmt.Errorf("error parsing response: %s", err)
+	}
+
 	// Data was not parsed correctly attempt to use old format.
 	if len(data.Version) < 1 {
-		wrapper := &NSQStats{}
-		err = json.Unmarshal(body, wrapper)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing response: %s", err)
+		wrapper := &GlobalStats{}
+		if err := json.Unmarshal(body, wrapper); err != nil {
+			return fmt.Errorf("error parsing response: %s", err)
 		}
 		data = &wrapper.Data
 	}
 
-	s.dataStats(data)
-	return s.result()
+	s.feedCache(data)
+	return nil
 }
 
-func (s *stats) result() ([]*io.Point, error) {
-	return s.pts, s.lastErr
-}
-
-func (s *stats) dataStats(data *NSQStatsData) {
-	tags := map[string]string{
-		"server_host":    s.host,
-		"server_version": data.Version,
-	}
-	for k, v := range s.tags {
-		tags[k] = v
-	}
-
-	fields := make(map[string]interface{})
-	if data.Health == "OK" {
-		fields["server_count"] = int64(1)
-	} else {
-		fields["server_count"] = int64(0)
-	}
-	fields["topic_count"] = int64(len(data.Topics))
-
-	if pt, err := io.MakePoint("nsq_server", tags, fields, time.Now()); err != nil {
-		s.lastErr = err
-	} else {
-		s.pts = append(s.pts, pt)
-	}
-
-	for _, t := range data.Topics {
-		s.topicStats(t, data.Version)
+func (s *stats) feedCache(data *DataStats) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, topic := range data.Topics {
+		if _, ok := s.topicCache[topic.Name]; !ok {
+			s.topicCache[topic.Name] = make(map[string]*ChannelStats)
+		}
+		for idx, channel := range topic.Channels {
+			c, ok := s.topicCache[topic.Name][channel.Name]
+			if !ok {
+				s.topicCache[topic.Name][channel.Name] = &topic.Channels[idx]
+			} else {
+				c.Merge(&topic.Channels[idx])
+			}
+		}
 	}
 }
 
-func (s *stats) topicStats(t TopicStats, version string) {
-	tags := map[string]string{
-		"server_host":    s.host,
-		"server_version": version,
-		"topic":          t.Name,
-	}
-	for k, v := range s.tags {
-		tags[k] = v
+func (s *stats) makePoint() ([]*io.Point, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var pts []*io.Point
+	var lastErr error
+
+	for topic, c := range s.topicCache {
+		for channel, channelStats := range c {
+			tags := map[string]string{
+				"topic":   topic,
+				"channel": channel,
+			}
+			for k, v := range s.tags {
+				tags[k] = v
+			}
+			fields := channelStats.ToMap()
+
+			pt, err := io.MakePoint("nsq_topics", tags, fields)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+			pts = append(pts, pt)
+		}
 	}
 
-	fields := map[string]interface{}{
-		"depth":         t.Depth,
-		"backend_depth": t.BackendDepth,
-		"message_count": t.MessageCount,
-		"channel_count": int64(len(t.Channels)),
-	}
-
-	if pt, err := io.MakePoint("nsq_topic", tags, fields, time.Now()); err != nil {
-		s.lastErr = err
-	} else {
-		s.pts = append(s.pts, pt)
-	}
-
-	for _, c := range t.Channels {
-		s.channelStats(c, version, t.Name)
-	}
+	return pts, lastErr
 }
 
-func (s *stats) channelStats(c ChannelStats, version, topic string) {
-	tags := map[string]string{
-		"server_host":    s.host,
-		"server_version": version,
-		"topic":          topic,
-		"channel":        c.Name,
-	}
-	for k, v := range s.tags {
-		tags[k] = v
-	}
-
-	fields := map[string]interface{}{
-		"depth":           c.Depth,
-		"backend_depth":   c.BackendDepth,
-		"in_flight_count": c.InFlightCount,
-		"deferred_count":  c.DeferredCount,
-		"message_count":   c.MessageCount,
-		"requeue_count":   c.RequeueCount,
-		"timeout_count":   c.TimeoutCount,
-		"client_count":    int64(len(c.Clients)),
-	}
-
-	if pt, err := io.MakePoint("nsq_channel", tags, fields, time.Now()); err != nil {
-		s.lastErr = err
-	} else {
-		s.pts = append(s.pts, pt)
-	}
-
-	for _, cl := range c.Clients {
-		s.clientStats(cl, version, topic, c.Name)
-	}
+type GlobalStats struct {
+	Code int64     `json:"status_code"`
+	Txt  string    `json:"status_txt"`
+	Data DataStats `json:"data"`
 }
 
-func (s *stats) clientStats(c ClientStats, version, topic, channel string) {
-	tags := map[string]string{
-		"server_host":    s.host,
-		"server_version": version,
-		"topic":          topic,
-		"channel":        channel,
-		"client_id":      c.ID,
-	}
-	for k, v := range s.tags {
-		tags[k] = v
-	}
-
-	if len(c.Name) > 0 {
-		tags["client_name"] = c.Name
-	}
-
-	fields := map[string]interface{}{
-		"client_hostname":   c.Hostname,
-		"client_version":    c.Version,
-		"client_address":    c.RemoteAddress,
-		"client_user_agent": c.UserAgent,
-		"ready_count":       c.ReadyCount,
-		"in_flight_count":   c.InFlightCount,
-		"message_count":     c.MessageCount,
-		"finish_count":      c.FinishCount,
-		"requeue_count":     c.RequeueCount,
-		// TODO
-		// "client_deflate":    strconv.FormatBool(c.Deflate),
-		// "client_tls":        strconv.FormatBool(c.TLS),
-		// "client_snappy":     strconv.FormatBool(c.Snappy),
-	}
-
-	if pt, err := io.MakePoint("nsq_client", tags, fields, time.Now()); err != nil {
-		s.lastErr = err
-	} else {
-		s.pts = append(s.pts, pt)
-	}
-}
-
-type NSQStats struct {
-	Code int64        `json:"status_code"`
-	Txt  string       `json:"status_txt"`
-	Data NSQStatsData `json:"data"`
-}
-
-type NSQStatsData struct {
+type DataStats struct {
 	Version   string       `json:"version"`
 	Health    string       `json:"health"`
 	StartTime int64        `json:"start_time"`
@@ -197,20 +119,43 @@ type TopicStats struct {
 
 // e2e_processing_latency is not modeled
 type ChannelStats struct {
-	Name          string        `json:"channel_name"`
-	Depth         int64         `json:"depth"`
-	BackendDepth  int64         `json:"backend_depth"`
-	InFlightCount int64         `json:"in_flight_count"`
-	DeferredCount int64         `json:"deferred_count"`
-	MessageCount  int64         `json:"message_count"`
-	RequeueCount  int64         `json:"requeue_count"`
-	TimeoutCount  int64         `json:"timeout_count"`
-	Paused        bool          `json:"paused"`
-	Clients       []ClientStats `json:"clients"`
+	Name          string `json:"channel_name"`
+	Depth         int64  `json:"depth"`
+	BackendDepth  int64  `json:"backend_depth"`
+	InFlightCount int64  `json:"in_flight_count"`
+	DeferredCount int64  `json:"deferred_count"`
+	MessageCount  int64  `json:"message_count"`
+	RequeueCount  int64  `json:"requeue_count"`
+	TimeoutCount  int64  `json:"timeout_count"`
+	Paused        bool   `json:"paused"`
+	//Clients       []ClientStats `json:"clients"`
+}
+
+func (c *ChannelStats) Merge(n *ChannelStats) {
+	c.Depth += n.Depth
+	c.BackendDepth += n.BackendDepth
+	c.InFlightCount += n.InFlightCount
+	c.DeferredCount += n.DeferredCount
+	c.MessageCount += n.MessageCount
+	c.RequeueCount += n.RequeueCount
+	c.TimeoutCount += n.TimeoutCount
+}
+
+func (c *ChannelStats) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"depth":           c.Depth,
+		"backend_depth":   c.BackendDepth,
+		"in_flight_count": c.InFlightCount,
+		"deferred_count":  c.DeferredCount,
+		"message_count":   c.MessageCount,
+		"requeue_count":   c.RequeueCount,
+		"timeout_count":   c.TimeoutCount,
+	}
 }
 
 type ClientStats struct {
-	Name                          string `json:"name"` // DEPRECATED 1.x+, still here as the structs are currently being shared for parsing v3.x and 1.x
+	// DEPRECATED 1.x+, still here as the structs are currently being shared for parsing v3.x and 1.x
+	Name                          string `json:"name"`
 	ID                            string `json:"client_id"`
 	Hostname                      string `json:"hostname"`
 	Version                       string `json:"version"`
