@@ -1,33 +1,22 @@
-### Is your proposal related to a problem?
-
+### 需求跟哪个问题有关?
 <!--
-  Provide a clear and concise description of what the problem is.
-  For example, "I'm always frustrated when..."
+	请详细、精确说明具体要解决的问题
 -->
 
-(Write your answer here.)
+(请在此说明)
 
-### Describe the solution you'd like
-
-<!--
-  Provide a clear and concise description of what you want to happen.
--->
-
-(Describe your proposed solution here.)
-
-### Describe alternatives you've considered
+### 你期望的解决方案是什么？
 
 <!--
-  Let us know about other solutions you've tried or researched.
+	请详细、精确说明你想要的效果
 -->
 
-(Write your answer here.)
+(请在此支招)
 
-### Additional context
+### 其它
 
 <!--
-  Is there anything else you can add about the proposal?
-  You might want to link to related issues here, if you haven't already.
+关于这个 feture request，有什么其它需要说明的，比如相关的 issue，参考资料等。
 -->
 
-(Write your answer here.)
+(此处增加更多说明便于大家理解「究竟要做什么」)
