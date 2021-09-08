@@ -39,12 +39,12 @@ var (
   # username = "username"
   # password = "pa$$word"
 
-  [inputs.solr.log]
-    # files = []
-    ## grok pipeline script path
-    # pipeline = "solr.p"
+  # [inputs.solr.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "solr.p"
 
- [inputs.solr.tags]
+  [inputs.solr.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
 
@@ -64,7 +64,7 @@ type solrlog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type Input struct {
@@ -122,7 +122,7 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)

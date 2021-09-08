@@ -35,10 +35,10 @@ var (
   ## Use SSL but skip chain & host verification
   # insecure_skip_verify = false
 
-  [inputs.jenkins.log]
-  #  files = []
-  # grok pipeline script path
-  #  pipeline = "jenkins.p"
+  # [inputs.jenkins.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "jenkins.p"
 
   [inputs.jenkins.tags]
   # some_tag = "some_value"
@@ -60,7 +60,7 @@ type jenkinslog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type Input struct {

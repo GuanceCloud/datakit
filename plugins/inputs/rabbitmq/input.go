@@ -46,7 +46,7 @@ func (n *Input) RunPipeline() {
 		Service:           "rabbitmq",
 		GlobalTags:        n.Tags,
 		CharacterEncoding: n.Log.CharacterEncoding,
-		Match:             n.Log.Match,
+		MultilineMatch:    n.Log.MultilineMatch,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
