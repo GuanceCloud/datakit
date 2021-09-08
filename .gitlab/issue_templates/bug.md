@@ -1,4 +1,4 @@
-## 问题描述
+## Bug 问题描述
 
 ## DataKit/操作系统版本信息（建议提供 datakit --version 的输出）
 
