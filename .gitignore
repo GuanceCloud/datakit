@@ -60,3 +60,4 @@ dk-installer
 y.output
 io/parser/gram_y.go
 pipeline/parser/parser.y.go
+/install_local.sh

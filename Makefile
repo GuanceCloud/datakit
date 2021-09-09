@@ -70,8 +70,8 @@ define pub
 endef
 
 lint: lint_deps
-	@truncate -s 0 check.err
-	@golangci-lint --version | tee -a check.err
+#	@truncate -s 0 check.err
+#	@golangci-lint --version | tee -a check.err
 	@golangci-lint run | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
 
 local: deps
@@ -157,7 +157,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser plparser vet 
+deps: prepare man gofmt lfparser plparser vet
 
 man:
 	@packr2 clean
@@ -176,9 +176,9 @@ lfparser:
 	@goyacc -o io/parser/gram_y.go io/parser/gram.y
 
 plparser:
-	@goyacc -o pipeline/parser/parser.y.go pipeline/parser/parser.y
+	@goyacc -o pipeline/parser/parser_y.go pipeline/parser/parser.y
 
-lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet 
+lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
