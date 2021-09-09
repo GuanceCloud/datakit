@@ -127,7 +127,7 @@ func (t *Single) forwardMessage() {
 
 		b.buf, readNum, err = t.read()
 		if err != nil {
-			t.opt.log.Warnf("failed of read data from file %s", t.filename)
+			t.opt.log.Warnf("failed of read data from file %s, error: %s", t.filename, err)
 			return
 		}
 		if readNum == 0 {
@@ -177,7 +177,7 @@ func (t *Single) processText(text string) error {
 		TakeTime().
 		Point(t.opt.Source, t.tags).
 		Feed(t.opt.InputName).
-		Error()
+		MergeErrs()
 
 	return err
 }
@@ -193,16 +193,17 @@ func (t *Single) currentOffset() int64 {
 	return offset
 }
 
-func (t *Single) read() (buf []byte, n int, err error) {
-	buf = make([]byte, readBuffSize)
-	n, err = t.file.Read(buf)
+func (t *Single) read() ([]byte, int, error) {
+	buf := make([]byte, readBuffSize)
+	n, err := t.file.Read(buf)
 	if err != nil && err != io.EOF {
-		t.opt.log.Warnf("Read(): %s, ignored", err.Error())
+		// an unexpected error occurred, stop the tailor
+		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
 
 	buf = buf[:n]
-	return
+	return buf, n, nil
 }
 
 func (t *Single) wait() {
