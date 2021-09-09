@@ -177,6 +177,17 @@ test:
 lfparser:
 	@goyacc -o io/parser/gram_y.go io/parser/gram.y
 
+plparser:
+	@goyacc -o pipeline/parser/parser_y.go pipeline/parser/parser.y
+
+lfparser_disable_line:
+	@rm -rf io/parser/gram_y.go
+	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y
+
+plparser_disable_line:
+	@rm -rf pipeline/parser/parser_y.go
+	@goyacc -l -o pipeline/parser/parser_y.go pipeline/parser/parser.y
+
 prepare:
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
