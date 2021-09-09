@@ -53,10 +53,10 @@ func TestMain(t *testing.T) {
 	// 最后一条message只有在新数据产生以后才会发送
 
 	var tailer = Input{
-		LogFiles:      []string{file.Name()},
-		FromBeginning: true,
-		Source:        "testing",
-		Match:         `^\d{4}-\d{2}-\d{2}`, // Match: `^\S`
+		LogFiles:       []string{file.Name()},
+		FromBeginning:  true,
+		Source:         "testing",
+		MultilineMatch: `^\d{4}-\d{2}-\d{2}`, // Match: `^\S`
 	}
 
 	var wg sync.WaitGroup

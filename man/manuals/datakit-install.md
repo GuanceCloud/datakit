@@ -74,11 +74,7 @@ $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
-<<<<<<< HEAD
-```
-=======
 ```shell
->>>>>>> master
 # Linux/Mac
 DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>" bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
 

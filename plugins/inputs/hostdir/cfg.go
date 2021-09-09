@@ -23,7 +23,9 @@ var (
   # Windows example: C:\\Users
   # UNIX-like example: /usr/local/
   dir = "" # required
-  exclude_patterns = [ "exe", "bin" ]
+
+	# optional, i.e., "*.exe", "*.so"
+  exclude_patterns = []
 
 [inputs.hostdir.tags]
   # some_tag = "some_value"

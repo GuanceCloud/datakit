@@ -50,7 +50,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 			return nil, err
 		}
 	}
-	t.mult, err = NewMultiline(opt.Match)
+	t.mult, err = NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines)
 	if err != nil {
 		return nil, err
 	}

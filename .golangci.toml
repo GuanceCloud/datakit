@@ -1,160 +1,105 @@
+[run]
+  timeout = "10m"
+  skip-files = []
+  skip-dirs = [
+    #"pkg/provider/kubernetes/crd/generated/",
+  ]
+
 [linters-settings]
 
-  [linters-settings.depguard]
-  list-type = "blacklist"
-  packages = [
-    # "github.com/sirupsen/logrus"
-  ]
-
-	[[linters-settings.depguard.packages-with-error-message]]
-	#"github.com/sirupsen/logrus" = "logging is allowed only by logutils.Log"
-
-  [linters-settings.dupl]
-  threshold = 100.0
-
-  #[linters-settings.exhaustive]
-  #default-signifies-exhaustive = false
-
-  [linters-settings.funlen]
-  lines = 100.0
-  statements = 50.0
-
-  [linters-settings.gci]
-  local-prefixes = "github.com/golangci/golangci-lint"
-
-  [linters-settings.goconst]
-  min-len = 2.0
-  min-occurrences = 2.0
-
-  [linters-settings.gocritic]
-  enabled-tags = [
-    "diagnostic",
-    "experimental",
-    "opinionated",
-    "performance",
-    "style"
-  ]
-  disabled-checks = [
-    "dupImport",
-    "ifElseChain",
-    "octalLiteral",
-    "whyNoLint",
-    "wrapperFunc"
-  ]
-
-  [linters-settings.gocyclo]
-  min-complexity = 15.0
-
-  [linters-settings.goimports]
-  local-prefixes = "github.com/golangci/golangci-lint"
+  [linters-settings.govet]
+    check-shadowing = false
 
   [linters-settings.golint]
-  min-confidence = 0.0
+    min-confidence = 0.0
 
-  [linters-settings.gomnd]
-
-    [linters-settings.gomnd.settings]
-
-      [linters-settings.gomnd.settings.mnd]
-      checks = "argument,case,condition,return"
-
-  [linters-settings.govet]
-  check-shadowing = true
-
-    [linters-settings.govet.settings]
-
-      [linters-settings.govet.settings.printf]
-      funcs = [
-        "(github.com/golangci/golangci-lint/pkg/logutils.Log).Infof",
-        "(github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf",
-        "(github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf",
-        "(github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf"
-      ]
-
-  [linters-settings.lll]
-  line-length = 140.0
+  [linters-settings.gocyclo]
+    min-complexity = 14.0
 
   [linters-settings.maligned]
-  suggest-new = true
+    suggest-new = true
+
+  [linters-settings.goconst]
+    min-len = 3.0
+    min-occurrences = 4.0
 
   [linters-settings.misspell]
-  locale = "US"
+    locale = "US"
 
-  [linters-settings.nolintlint]
-  allow-leading-space = true
-  allow-unused = false
-  require-explanation = false
-  require-specific = false
+  [linters-settings.funlen]
+    lines = 230 # default 60
+    statements = 120 # default 40
+
+  [linters-settings.forbidigo]
+    forbid = [
+      '^print(ln)?$',
+      '^spew\.Print(f|ln)?$',
+      '^spew\.Dump$',
+    ]
+
+  [linters-settings.depguard]
+    list-type = "blacklist"
+    include-go-root = false
+    packages = ["github.com/pkg/errors"]
+
+  [linters-settings.godox]
+    keywords = ["FIXME"]
+
+  [linters-settings.importas]
+    corev1 = "k8s.io/api/core/v1"
+    networkingv1beta1 = "k8s.io/api/networking/v1beta1"
+    extensionsv1beta1 = "k8s.io/api/extensions/v1beta1"
+    metav1 = "k8s.io/apimachinery/pkg/apis/meta/v1"
+    kubeerror = "k8s.io/apimachinery/pkg/api/errors"
+
+  [linters-settings.gomoddirectives]
+    replace-allow-list = [
+      "github.com/abbot/go-http-auth",
+      "github.com/go-check/check",
+      "github.com/gorilla/mux",
+      "github.com/mailgun/minheap",
+      "github.com/mailgun/multibuf",
+    ]
 
 [linters]
-disable-all = true
-enable = [
-  "bodyclose",
-  "deadcode",
-  "depguard",
-  "dogsled",
-  "dupl",
-  "errcheck",
-  #"exhaustive",
-  "funlen",
-  "gochecknoinits",
-  "goconst",
-  "gocritic",
-  "gocyclo",
-  "gofmt",
-  "goimports",
-  "golint",
-  "gomnd",
-  "goprintffuncname",
-  "gosec",
-  "gosimple",
-  "govet",
-  "ineffassign",
-  "interfacer",
-  "lll",
-  "misspell",
-  "nakedret",
-  #"noctx",
-  #"nolintlint",
-  "rowserrcheck",
-  "scopelint",
-  "staticcheck",
-  "structcheck",
-  "stylecheck",
-  "typecheck",
-  "unconvert",
-  "unparam",
-  "unused",
-  "varcheck",
-  "whitespace"
-]
+  enable-all = true
+  disable = [
+    "sqlclosecheck", # Not relevant (SQL)
+    "rowserrcheck", # Not relevant (SQL)
+    "lll", # Not relevant
+    "gocyclo", # FIXME must be fixed
+    "gocognit", # Too strict
+    "nestif", # Too many false-positive.
+    "prealloc", # Too many false-positive.
+    "makezero", # Not relevant
+    "dupl", # Too strict
+    "gosec", # Too strict
+    "gochecknoinits",
+    "gochecknoglobals",
+    "wsl", # Too strict
+    "nlreturn", # Not relevant
+    "gomnd", # Too strict
+    "stylecheck", # skip because report issues related to some generated files.
+    "testpackage", # Too strict
+    "tparallel", # Not relevant
+    "paralleltest", # Not relevant
+    "exhaustive", # Not relevant
+    "exhaustivestruct", # Not relevant
+    "goerr113", # Too strict
+    "wrapcheck", # Too strict
+    "noctx", # Too strict
+    "bodyclose", # Too many false-positive and panics.
+    "unparam", # Too strict
+    "godox", # Too strict
+		"nolintlint"
+  ]
 
 [issues]
-
-  [[issues.exclude-rules]]
-  path = "_test\\.go"
-  linters = [
-    "gomnd",
-		"errcheck",
-		"dupl",
-		"gosec",
+  exclude-use-default = false
+  max-per-linter = 0
+  max-same-issues = 0
+  exclude = [
   ]
-
-  [[issues.exclude-rules]]
-  linters = [
-    "gocritic"
-  ]
-  text = "unnecessaryDefer:"
-
-[run]
-
-skip-dirs = [
-]
-
-timeout = "1h"
-
-[service]
-golangci-lint-version = "1.23.x"
-prepare = [
-  "echo \"here I can run custom commands, but no preparation needed for this repo\""
-]
+ [[issues.exclude-rules]]
+    path = "(.+)_test.go"
+    linters = ["goconst", "funlen", "godot"]

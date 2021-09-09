@@ -14,21 +14,25 @@ import (
 var (
 	sample = `
 [[inputs.sqlserver]]
-	# your sqlserver host ,example ip:port
-	host = ""
-	# your sqlserver user,password
-	user = ""
-	password = ""
-	# ##(optional) collection interval, default is 10s
-	# interval = "10s"
-	[inputs.sqlserver.log]
-	#	files = []
-	#	# grok pipeline script path
-	#	pipeline = "sqlserver.p"
-	[inputs.sqlserver.tags]
-	# some_tag = "some_value"
-	# more_tag = "some_other_value"
-	# ...`
+  ## your sqlserver host ,example ip:port
+  host = ""
+
+  ## your sqlserver user,password
+  user = ""
+  password = ""
+
+  ## (optional) collection interval, default is 10s
+  interval = "10s"
+
+  # [inputs.sqlserver.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "sqlserver.p"
+
+  [inputs.sqlserver.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+`
 
 	pipeline = `
 grok(_,"%{TIMESTAMP_ISO8601:time} %{NOTSPACE:origin}\\s+%{GREEDYDATA:msg}")
@@ -70,7 +74,6 @@ type sqlserverlog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {

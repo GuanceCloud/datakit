@@ -20,10 +20,10 @@ const (
   ### Monitor Interval
   # interval = "15s"
 
-  [inputs.tomcat.log]
-    # files = []
-    ## grok pipeline script path
-    # pipeline = "tomcat.p"
+  # [inputs.tomcat.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "tomcat.p"
 
   [inputs.tomcat.tags]
   # some_tag = "some_value"
