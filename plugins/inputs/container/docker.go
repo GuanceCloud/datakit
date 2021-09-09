@@ -587,7 +587,7 @@ func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, str
 			TakeTime().
 			Point(source, tags).
 			Feed(inputName).
-			Error(); err != nil {
+			MergeErrs(); err != nil {
 			l.Error("logging gather failed, container_id: %s, container_name:%s, err: %s", err.Error())
 		}
 	}
