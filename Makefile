@@ -70,8 +70,8 @@ define pub
 endef
 
 lint: lint_deps
-#	@truncate -s 0 check.err
-#	@golangci-lint --version | tee -a check.err
+	@truncate -s 0 check.err
+	@golangci-lint --version | tee -a check.err
 	@golangci-lint run | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
 
 local: deps
@@ -182,11 +182,11 @@ lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
-	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y
+	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
 
 plparser_disable_line:
 	@rm -rf pipeline/parser/parser_y.go
-	@goyacc -l -o pipeline/parser/parser_y.go pipeline/parser/parser.y
+	@goyacc -l -o pipeline/parser/parser_y.go pipeline/parser/parser.y # use -l to disable `//line`
 
 prepare:
 	@mkdir -p git
