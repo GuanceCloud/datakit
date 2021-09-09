@@ -155,7 +155,11 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser vet 
+deps: prepare man gofmt lfparser plparser vet 
+
+plparser:
+	@rm -rf pipeline/parser/parser.y.go
+	@goyacc -o pipeline/parser/parser.y.go pipeline/parser/parser.y
 
 man:
 	@packr2 clean
