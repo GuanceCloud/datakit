@@ -515,7 +515,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 	for m, s := range indicesStats.All {
 		// parse Json, ignoring strings and bools
 		jsonParser := JSONFlattener{}
-		err := jsonParser.FullFlattenJSON(m+"_", s, true, true)
+		err := jsonParser.FullFlattenJSON(m, s, true, true)
 		if err != nil {
 			return err
 		}
