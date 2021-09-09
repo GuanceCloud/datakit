@@ -3,31 +3,40 @@ package nsq
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
+type topicChannels map[string]*ChannelStats
+
 type stats struct {
-	mu sync.Mutex
-
-	// map["topic"]["channle"]*ChannelStats
-	topicCache map[string]map[string]*ChannelStats
-
-	tags map[string]string
-
-	//
-	//nodeCache map[string]
+	topicCache map[string]topicChannels
+	nodeCache  map[string]*nodeStats
 }
 
-func newStats(tags map[string]string) *stats {
-	return &stats{
-		topicCache: make(map[string]map[string]*ChannelStats),
-		tags:       tags,
+type nodeStats struct {
+	Depth        int64
+	BackendDepth int64
+	MessageCount int64
+}
+
+func (n *nodeStats) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"depth":         n.Depth,
+		"backend_depth": n.BackendDepth,
+		"message_count": n.MessageCount,
 	}
 }
 
-func (s *stats) add(body []byte) error {
+func newStats() *stats {
+	return &stats{
+		topicCache: make(map[string]topicChannels),
+		nodeCache:  make(map[string]*nodeStats),
+	}
+}
+
+func (s *stats) add(nodeHost string, body []byte) error {
 	data := &DataStats{}
 	if err := json.Unmarshal(body, data); err != nil {
 		return fmt.Errorf("error parsing response: %s", err)
@@ -39,37 +48,47 @@ func (s *stats) add(body []byte) error {
 		if err := json.Unmarshal(body, wrapper); err != nil {
 			return fmt.Errorf("error parsing response: %s", err)
 		}
-		data = &wrapper.Data
+		data = wrapper.Data
 	}
 
-	s.feedCache(data)
+	// 为什么需要此处进行 feedCache，而不是直接 make point？
+	// 因为需要对多份数据进行整合
+	s.feedCache(nodeHost, data)
 	return nil
 }
 
-func (s *stats) feedCache(data *DataStats) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *stats) feedCache(host string, data *DataStats) {
 	for _, topic := range data.Topics {
 		if _, ok := s.topicCache[topic.Name]; !ok {
-			s.topicCache[topic.Name] = make(map[string]*ChannelStats)
+			s.topicCache[topic.Name] = make(topicChannels)
 		}
-		for idx, channel := range topic.Channels {
-			c, ok := s.topicCache[topic.Name][channel.Name]
-			if !ok {
-				s.topicCache[topic.Name][channel.Name] = &topic.Channels[idx]
+
+		for _, channel := range topic.Channels {
+			if c, ok := s.topicCache[topic.Name][channel.Name]; !ok {
+				s.topicCache[topic.Name][channel.Name] = channel
 			} else {
-				c.Merge(&topic.Channels[idx])
+				c.Merge(channel)
+			}
+
+			if n, ok := s.nodeCache[host]; !ok {
+				s.nodeCache[host] = &nodeStats{}
+			} else {
+				n.Depth += topic.Depth
+				n.BackendDepth += topic.BackendDepth
+				n.MessageCount += topic.MessageCount
 			}
 		}
 	}
 }
 
-func (s *stats) makePoint() ([]*io.Point, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
+func (s *stats) makePoint(addTags map[string]string, ts ...time.Time) ([]*io.Point, error) {
 	var pts []*io.Point
 	var lastErr error
+
+	tim := time.Now()
+	if len(ts) != 0 {
+		tim = ts[0]
+	}
 
 	for topic, c := range s.topicCache {
 		for channel, channelStats := range c {
@@ -77,12 +96,12 @@ func (s *stats) makePoint() ([]*io.Point, error) {
 				"topic":   topic,
 				"channel": channel,
 			}
-			for k, v := range s.tags {
+			for k, v := range addTags {
 				tags[k] = v
 			}
 			fields := channelStats.ToMap()
 
-			pt, err := io.MakePoint("nsq_topics", tags, fields)
+			pt, err := io.MakePoint("nsq_topics", tags, fields, tim)
 			if err != nil {
 				lastErr = err
 				continue
@@ -91,30 +110,47 @@ func (s *stats) makePoint() ([]*io.Point, error) {
 		}
 	}
 
+	for nodeHost, n := range s.nodeCache {
+		tags := map[string]string{
+			"server_host": nodeHost,
+		}
+		for k, v := range addTags {
+			tags[k] = v
+		}
+		fields := n.ToMap()
+
+		pt, err := io.MakePoint("nsq_nodes", tags, fields, tim)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		pts = append(pts, pt)
+	}
+
 	return pts, lastErr
 }
 
 type GlobalStats struct {
-	Code int64     `json:"status_code"`
-	Txt  string    `json:"status_txt"`
-	Data DataStats `json:"data"`
+	Code int64      `json:"status_code"`
+	Txt  string     `json:"status_txt"`
+	Data *DataStats `json:"data"`
 }
 
 type DataStats struct {
-	Version   string       `json:"version"`
-	Health    string       `json:"health"`
-	StartTime int64        `json:"start_time"`
-	Topics    []TopicStats `json:"topics"`
+	Version   string        `json:"version"`
+	Health    string        `json:"health"`
+	StartTime int64         `json:"start_time"`
+	Topics    []*TopicStats `json:"topics"`
 }
 
 // e2e_processing_latency is not modeled
 type TopicStats struct {
-	Name         string         `json:"topic_name"`
-	Depth        int64          `json:"depth"`
-	BackendDepth int64          `json:"backend_depth"`
-	MessageCount int64          `json:"message_count"`
-	Paused       bool           `json:"paused"`
-	Channels     []ChannelStats `json:"channels"`
+	Name         string          `json:"topic_name"`
+	Depth        int64           `json:"depth"`
+	BackendDepth int64           `json:"backend_depth"`
+	MessageCount int64           `json:"message_count"`
+	Paused       bool            `json:"paused"`
+	Channels     []*ChannelStats `json:"channels"`
 }
 
 // e2e_processing_latency is not modeled
@@ -127,8 +163,6 @@ type ChannelStats struct {
 	MessageCount  int64  `json:"message_count"`
 	RequeueCount  int64  `json:"requeue_count"`
 	TimeoutCount  int64  `json:"timeout_count"`
-	Paused        bool   `json:"paused"`
-	//Clients       []ClientStats `json:"clients"`
 }
 
 func (c *ChannelStats) Merge(n *ChannelStats) {
@@ -151,29 +185,4 @@ func (c *ChannelStats) ToMap() map[string]interface{} {
 		"requeue_count":   c.RequeueCount,
 		"timeout_count":   c.TimeoutCount,
 	}
-}
-
-type ClientStats struct {
-	// DEPRECATED 1.x+, still here as the structs are currently being shared for parsing v3.x and 1.x
-	Name                          string `json:"name"`
-	ID                            string `json:"client_id"`
-	Hostname                      string `json:"hostname"`
-	Version                       string `json:"version"`
-	RemoteAddress                 string `json:"remote_address"`
-	State                         int64  `json:"state"`
-	ReadyCount                    int64  `json:"ready_count"`
-	InFlightCount                 int64  `json:"in_flight_count"`
-	MessageCount                  int64  `json:"message_count"`
-	FinishCount                   int64  `json:"finish_count"`
-	RequeueCount                  int64  `json:"requeue_count"`
-	ConnectTime                   int64  `json:"connect_ts"`
-	SampleRate                    int64  `json:"sample_rate"`
-	Deflate                       bool   `json:"deflate"`
-	Snappy                        bool   `json:"snappy"`
-	UserAgent                     string `json:"user_agent"`
-	TLS                           bool   `json:"tls"`
-	TLSCipherSuite                string `json:"tls_cipher_suite"`
-	TLSVersion                    string `json:"tls_version"`
-	TLSNegotiatedProtocol         string `json:"tls_negotiated_protocol"`
-	TLSNegotiatedProtocolIsMutual bool   `json:"tls_negotiated_protocol_is_mutual"`
 }
