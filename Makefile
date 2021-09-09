@@ -69,8 +69,10 @@ define pub
 		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
-lint:
-	@golangci-lint run --timeout 1h | tee check.err # https://golangci-lint.run/usage/install/#local-installation
+lint: lint_deps
+	@truncate -s 0 check.err
+	@golangci-lint --version | tee -a check.err
+	@golangci-lint run | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
 
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
@@ -155,14 +157,14 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser vet 
+deps: prepare man gofmt lfparser plparser vet
 
 man:
 	@packr2 clean
 	@packr2
 
 gofmt:
-	@GO111MODULE=off go fmt ./...
+	@GO111MODULE=off gofmt -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/")
 
 vet:
 	@go vet ./...
@@ -176,13 +178,15 @@ lfparser:
 plparser:
 	@goyacc -o pipeline/parser/parser_y.go pipeline/parser/parser.y
 
+lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
+
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
-	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y
+	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
 
 plparser_disable_line:
 	@rm -rf pipeline/parser/parser_y.go
-	@goyacc -l -o pipeline/parser/parser_y.go pipeline/parser/parser.y
+	@goyacc -l -o pipeline/parser/parser_y.go pipeline/parser/parser.y # use -l to disable `//line`
 
 prepare:
 	@mkdir -p git
