@@ -49,7 +49,7 @@ func (n *Input) RunPipeline() {
 		GlobalTags:        n.Tags,
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
-		Match:             `^\[\w+ \w+ \d+`,
+		MultilineMatch:    `^\[\w+ \w+ \d+`,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)

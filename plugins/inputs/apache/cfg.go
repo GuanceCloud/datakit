@@ -33,9 +33,9 @@ var (
   ## Use TLS but skip chain & host verification
   insecure_skip_verify = false
 
-  [inputs.apache.log]
+  # [inputs.apache.log]
   # files = []
-  ## grok pipeline script path
+  # #grok pipeline script path
   # pipeline = "apache.p"
 
   [inputs.apache.tags]
@@ -97,7 +97,6 @@ type apachelog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
 }
 
 type Measurement struct {

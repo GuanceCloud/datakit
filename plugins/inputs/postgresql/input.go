@@ -29,35 +29,35 @@ var (
 
 const sampleConfig = `
 [[inputs.postgresql]]
-## 服务器地址
-# url格式
-# postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
-# 简单字符串格式
-# host=localhost user=pqgotest password=... sslmode=... dbname=app_production
-
-address = "postgres://postgres@localhost/test?sslmode=disable"
-
-## 配置采集的数据库，默认会采集所有的数据库，当同时设置ignored_databases和databases会忽略databases
-# ignored_databases = ["db1"]
-# databases = ["db1"]
-
-## 设置服务器Tag，默认是基于服务器地址生成
-# outputaddress = "db01"
-
-## 采集间隔
-# 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-interval = "10s"
-
-## 日志采集
-# [inputs.postgresql.log]
-# files = []
-# pipeline = "postgresql.p"
-
-## 自定义Tag
-[inputs.postgresql.tags]
-# some_tag = "some_value"
-# more_tag = "some_other_value"
-# ...
+  ## 服务器地址
+  # url格式
+  # postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
+  # 简单字符串格式
+  # host=localhost user=pqgotest password=... sslmode=... dbname=app_production
+  
+  address = "postgres://postgres@localhost/test?sslmode=disable"
+  
+  ## 配置采集的数据库，默认会采集所有的数据库，当同时设置ignored_databases和databases会忽略databases
+  # ignored_databases = ["db1"]
+  # databases = ["db1"]
+  
+  ## 设置服务器Tag，默认是基于服务器地址生成
+  # outputaddress = "db01"
+  
+  ## 采集间隔
+  # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  interval = "10s"
+  
+  ## 日志采集
+  # [inputs.postgresql.log]
+  # files = []
+  # pipeline = "postgresql.p"
+  
+  ## 自定义Tag
+  [inputs.postgresql.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
 `
 
 const pipelineCfg = `
@@ -121,7 +121,7 @@ type postgresqllog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type inputMeasurement struct {
@@ -362,7 +362,7 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)

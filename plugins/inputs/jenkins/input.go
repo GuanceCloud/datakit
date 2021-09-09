@@ -90,7 +90,7 @@ func (n *Input) RunPipeline() {
 		GlobalTags:        n.Tags,
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
-		Match:             `^\d{4}-\d{2}-\d{2}`,
+		MultilineMatch:             `^\d{4}-\d{2}-\d{2}`,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)

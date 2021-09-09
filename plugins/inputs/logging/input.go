@@ -45,7 +45,7 @@ const (
 
   ## The pattern should be a regexp. Note the use of '''this regexp'''
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  match = '''^\S'''
+  # multiline_match = '''^\S'''
 
   [inputs.logging.tags]
   # some_tag = "some_value"
@@ -54,18 +54,21 @@ const (
 )
 
 type Input struct {
-	LogFiles                []string          `toml:"logfiles"`
-	Ignore                  []string          `toml:"ignore"`
-	Source                  string            `toml:"source"`
-	Service                 string            `toml:"service"`
-	Pipeline                string            `toml:"pipeline"`
-	DeprecatedPipeline      string            `toml:"pipeline_path"`
-	DeprecatedFromBeginning bool              `toml:"from_beginning"`
-	IgnoreStatus            []string          `toml:"ignore_status"`
-	CharacterEncoding       string            `toml:"character_encoding"`
-	Match                   string            `toml:"match"`
-	Tags                    map[string]string `toml:"tags"`
-	FromBeginning           bool              `toml:"-"`
+	LogFiles          []string          `toml:"logfiles"`
+	Ignore            []string          `toml:"ignore"`
+	Source            string            `toml:"source"`
+	Service           string            `toml:"service"`
+	Pipeline          string            `toml:"pipeline"`
+	IgnoreStatus      []string          `toml:"ignore_status"`
+	CharacterEncoding string            `toml:"character_encoding"`
+	MultilineMatch    string            `toml:"multiline_match"`
+	MultilineMaxLines int               `toml:"multiline_maxlines"`
+	Tags              map[string]string `toml:"tags"`
+	FromBeginning     bool              `toml:"-"`
+
+	DeprecatedPipeline       string `toml:"pipeline_path"`
+	DeprecatedMultilineMatch string `toml:"match"`
+	DeprecatedFromBeginning  bool   `toml:"from_beginning"`
 
 	tailer *tailer.Tailer
 
@@ -87,6 +90,10 @@ func (this *Input) Run() {
 		this.Pipeline = this.DeprecatedPipeline
 	}
 
+	if this.MultilineMatch == "" && this.DeprecatedMultilineMatch != "" {
+		this.MultilineMatch = this.DeprecatedMultilineMatch
+	}
+
 	var pipelinePath string
 
 	if this.Pipeline == "" {
@@ -102,7 +109,8 @@ func (this *Input) Run() {
 		IgnoreStatus:      this.IgnoreStatus,
 		FromBeginning:     this.FromBeginning,
 		CharacterEncoding: this.CharacterEncoding,
-		Match:             this.Match,
+		MultilineMatch:    this.MultilineMatch,
+		MultilineMaxLines: this.MultilineMaxLines,
 		GlobalTags:        this.Tags,
 	}
 

@@ -3,11 +3,11 @@ package influxdb
 const (
 	sampleConfig = `
 [[inputs.influxdb]]
+  url = "http://localhost:8086/debug/vars"
+
   ## (optional) collect interval, default is 10 seconds
   interval = '10s'
   
-  url = "http://localhost:8086/debug/vars"
-
   ## Username and password to send using HTTP Basic Authentication.
   # username = ""
   # password = ""
@@ -17,16 +17,16 @@ const (
 
   ## (Optional) TLS connection config
   # [inputs.influxdb.tlsconf]
-    # ca_certs = ["/path/to/ca.pem"]
-    # cert = "/path/to/cert.pem"
-    # cert_key = "/path/to/key.pem"
-    ## Use TLS but skip chain & host verification
-    # insecure_skip_verify = false
+  # ca_certs = ["/path/to/ca.pem"]
+  # cert = "/path/to/cert.pem"
+  # cert_key = "/path/to/key.pem"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false
 
-  [inputs.influxdb.log]
-    files = []
-    ## grok pipeline script path
-    pipeline = "influxdb.p"
+  # [inputs.influxdb.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "influxdb.p"
 
   [inputs.influxdb.tags]
     # some_tag = "some_value"
