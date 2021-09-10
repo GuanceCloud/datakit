@@ -157,7 +157,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser plparser vet 
+deps: prepare man gofmt lfparser plparser vet
 
 man:
 	@packr2 clean
@@ -176,17 +176,17 @@ lfparser:
 	@goyacc -o io/parser/gram_y.go io/parser/gram.y
 
 plparser:
-	@goyacc -o pipeline/parser/parser.y.go pipeline/parser/parser.y
+	@goyacc -o pipeline/parser/parser_y.go pipeline/parser/parser.y
 
-lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet 
+lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
-	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y
+	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
 
 plparser_disable_line:
 	@rm -rf pipeline/parser/parser_y.go
-	@goyacc -l -o pipeline/parser/parser_y.go pipeline/parser/parser.y
+	@goyacc -l -o pipeline/parser/parser_y.go pipeline/parser/parser.y # use -l to disable `//line`
 
 prepare:
 	@mkdir -p git

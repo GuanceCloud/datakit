@@ -58,5 +58,7 @@ plugins/input/kubernetes/cfg.conf
 data/*
 dk-installer
 y.output
-io/parser/gram_y.go
+gram_y.go
+parser_y.go
 pipeline/parser/parser.y.go
+/install_local.sh

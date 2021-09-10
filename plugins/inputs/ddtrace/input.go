@@ -19,16 +19,6 @@ var (
   ## you can stop some patterns by remove them from the list but DO NOT MODIFY THESE PATTERNS.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
-  ## Tracing data sample config, [rate] and [scope] together determine how many trace data
-  ## will be send to DataFlux workspace.
-  # [inputs.ddtrace.sample_config]
-    ## Sample rate, how many tracing data will be sampled
-    # rate = 10
-    ## Sample scope, the range to be covered in once sample action.
-    # scope = 100
-    ## Ignore tags list, keys appear in this list is transparent to sample function which means every trace carrying this tag will bypass sample function.
-    # ignore_tags_list = []
-
   ## Ignore ddtrace resources list. List of strings
   ## A list of regular expressions filter out certain resource name.
   ## All entries must be double quoted and split by comma.
@@ -45,37 +35,34 @@ var (
     # more_tag = "some_other_value"
     ## ...
 `
-	customerKeys  []string
-	ddTags        map[string]string
-	defIgnoreTags = map[string]string{"_dd.origin": "rum"}
-	log           = logger.DefaultSLogger(inputName)
+	customerKeys []string
+	ddTags       map[string]string
+	log          = logger.DefaultSLogger(inputName)
 )
 
 var (
-	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
+	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats" //nolint: unused,deadcode,varcheck
 	defEndpoints         = []string{v3, v4, v5}
 	ignoreResources      []*regexp.Regexp
-	defRate              = 15
-	defScope             = 100
 	sampleConf           *trace.TraceSampleConfig
 	filters              []traceFilter
 )
 
 type Input struct {
-	Path             string                     `toml:"path,omitempty"` // deprecated entry
+	Path             string                     `toml:"path,omitempty"` // deprecated
 	Endpoints        []string                   `toml:"endpoints"`
-	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs,omitempty"` // deprecated in new issue
-	TraceSampleConf  *trace.TraceSampleConfig   `toml:"sample_config"`
+	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs,omitempty"` // deprecated
+	TraceSampleConf  *trace.TraceSampleConfig   `toml:"sample_config"`            // deprecated
 	IgnoreResources  []string                   `toml:"ignore_resources"`
 	CustomerTags     []string                   `toml:"customer_tags"`
 	Tags             map[string]string          `toml:"tags"`
 }
 
-func (_ *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (_ *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return ddtraceSampleConfig
 }
 
@@ -141,11 +128,11 @@ func (i *Input) RegHttpHandler() {
 		case v3, v4, v5:
 			http.RegHttpHandler("POST", endpoint, handleTraces(endpoint))
 			http.RegHttpHandler("PUT", endpoint, handleTraces(endpoint))
-			log.Infof("pattern %s registered")
+			log.Infof("pattern %s registered", endpoint)
 		case v6:
 			http.RegHttpHandler("POST", endpoint, handleStats)
 			http.RegHttpHandler("PUT", endpoint, handleStats)
-			log.Infof("pattern %s registered")
+			log.Infof("pattern %s registered", endpoint)
 		default:
 			log.Errorf("unrecognized ddtrace agent endpoint")
 		}
