@@ -22,14 +22,27 @@ const (
 	disableHighFreqIODdata = false
 )
 
+type errorList []error
+
+func (e errorList) Err() error {
+	if len(e) == 0 {
+		return nil
+	}
+	parts := make([]string, len(e))
+	for x, err := range e {
+		parts[x] = err.Error()
+	}
+	return fmt.Errorf(strings.Join(parts, "\n"))
+}
+
 type Logs struct {
 	text   string
 	fields map[string]interface{}
 	ts     time.Time
 	pt     *io.Point
 
-	ignoreLogs bool
-	errs       []error
+	skip bool
+	errs errorList
 }
 
 func NewLogs(text string) *Logs {
@@ -37,7 +50,7 @@ func NewLogs(text string) *Logs {
 }
 
 func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
-	if x.IsIgnored() {
+	if x.IsSkip() {
 		return x
 	}
 
@@ -66,7 +79,7 @@ func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
 // 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
 // 防止通过 pipeline 添加巨长字段的恶意行为
 func (x *Logs) CheckFieldsLength() *Logs {
-	if x.IsIgnored() {
+	if x.IsSkip() {
 		return x
 	}
 	for k, v := range x.fields {
@@ -117,7 +130,7 @@ var statusMap = map[string]string{
 
 // addStatus 添加默认status和status映射
 func (x *Logs) AddStatus(disable bool) *Logs {
-	if x.IsIgnored() || disable {
+	if x.IsSkip() || disable {
 		return x
 	}
 
@@ -146,7 +159,7 @@ func (x *Logs) AddStatus(disable bool) *Logs {
 
 // ignoreStatus 过滤指定status
 func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
-	if x.IsIgnored() || len(ignoreStatus) == 0 {
+	if x.IsSkip() || len(ignoreStatus) == 0 {
 		return x
 	}
 
@@ -156,17 +169,16 @@ func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
 	}
 	for _, ignore := range ignoreStatus {
 		if ignore == status {
-			x.ignoreLogs = true
+			x.skip = true
 			x.AddErr(fmt.Errorf("this fields has been ignored, status:%s", status))
 			return x
 		}
 	}
-
 	return x
 }
 
 func (x *Logs) TakeTime() *Logs {
-	if x.IsIgnored() {
+	if x.IsSkip() {
 		return x
 	}
 
@@ -189,7 +201,7 @@ func (x *Logs) TakeTime() *Logs {
 }
 
 func (x *Logs) Point(measurement string, tags map[string]string) *Logs {
-	if x.IsIgnored() {
+	if x.IsSkip() {
 		return x
 	}
 	pt, err := io.MakePoint(measurement, tags, x.fields, x.ts)
@@ -201,7 +213,7 @@ func (x *Logs) Point(measurement string, tags map[string]string) *Logs {
 }
 
 func (x *Logs) Feed(inputName string) *Logs {
-	if x.IsIgnored() {
+	if x.IsSkip() {
 		return x
 	}
 	if x.pt == nil {
@@ -226,19 +238,16 @@ func (x *Logs) Output() string {
 	return x.pt.String()
 }
 
-func (x *Logs) MergeErrs() error {
-	if len(x.errs) == 0 {
-		return nil
-	}
-	return fmt.Errorf("%v", x.errs)
+func (x *Logs) Err() error {
+	return x.errs.Err()
 }
 
 func (x *Logs) AddErr(err error) {
 	x.errs = append(x.errs, err)
 }
 
-func (x *Logs) IsIgnored() bool {
-	return x.ignoreLogs
+func (x *Logs) IsSkip() bool {
+	return x.skip
 }
 
 func feed(inputName, measurement string, tags map[string]string, message string) error {
