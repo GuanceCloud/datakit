@@ -22,12 +22,14 @@ CPU 采集器用于系统 CPU 使用率的采集
 
 配置好后，重启 DataKit 即可。
 
-支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+### 通过环境变量修改配置参数
 
-| 环境变量名                         | 对应的配置参数项     | 参数示例       |
-| :---                               | ---                  | ---            |
-| `ENV_INPUT_CPU_PERCPU`             | `percpu`             | `true`/`false` |
-| `ENV_INPUT_CPU_ENABLE_TEMPERATURE` | `enable_temperature` | `true`/`false` |
+支持以环境变量的方式修改配置参数（只在 Daemonset 方式运行时生效）：
+
+| 环境变量名                         | 对应的配置参数项     | 参数示例     |
+| :---                               | ---                  | ---          |
+| `ENV_INPUT_CPU_PERCPU`             | `percpu`             | `true/false` |
+| `ENV_INPUT_CPU_ENABLE_TEMPERATURE` | `enable_temperature` | `true/false` |
 
 ## 指标集
 

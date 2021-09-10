@@ -2,6 +2,7 @@ package skywalking
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -47,6 +48,15 @@ type Input struct {
 
 func (*Input) Catalog() string {
 	return inputName
+}
+
+func (i *Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (i *Input) SampleMeasurement() []inputs.Measurement {
+	// TODO
+	return nil
 }
 
 func (*Input) SampleConfig() string {
