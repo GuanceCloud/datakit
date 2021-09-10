@@ -99,7 +99,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 		}
 		log.Debugf("show up all traces: %v", traces)
 
-		pts, err := tracesToPoints(traces)
+		pts, err := tracesToPoints(traces, filters...)
 		if err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
