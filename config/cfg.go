@@ -75,10 +75,10 @@ func DefaultConfig() *Config {
 		},
 
 		BlackList: []*inputHostList{
-			&inputHostList{Hosts: []string{}, Inputs: []string{}},
+			{Hosts: []string{}, Inputs: []string{}},
 		},
 		WhiteList: []*inputHostList{
-			&inputHostList{Hosts: []string{}, Inputs: []string{}},
+			{Hosts: []string{}, Inputs: []string{}},
 		},
 		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
 	}
@@ -667,40 +667,40 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 	return cur
 }
 
-func CreateSymlinks() error {
+func CreateSymlinks() {
 
 	x := [][2]string{}
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		x = [][2]string{
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit.exe"),
 				`C:\WINDOWS\system32\datakit.exe`,
 			},
 		}
 	} else {
 		x = [][2]string{
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/local/bin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/local/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/bin/datakit",
 			},
@@ -712,8 +712,6 @@ func CreateSymlinks() error {
 			l.Warnf("create datakit symlink: %s -> %s: %s, ignored", item[1], item[0], err.Error())
 		}
 	}
-
-	return nil
 }
 
 func symlink(src, dst string) error {

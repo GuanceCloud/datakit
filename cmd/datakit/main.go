@@ -27,7 +27,7 @@ import (
 
 func init() {
 	flag.BoolVarP(&cmds.FlagVersion, "version", "V", false, `show version info`)
-	flag.BoolVar(&cmds.FlagCheckUpdate, "check-update", false, "check if new verison available")
+	flag.BoolVar(&cmds.FlagCheckUpdate, "check-update", false, "check if new version available")
 	flag.BoolVar(&cmds.FlagAcceptRCVersion, "accept-rc-version", false, "during update, accept RC version if available")
 	flag.BoolVar(&cmds.FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
 	flag.StringVar(&cmds.FlagUpdateLogFile, "update-log", "", "update history log file")

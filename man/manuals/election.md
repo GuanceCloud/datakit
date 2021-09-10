@@ -40,3 +40,4 @@ namespace = "dk-namespace-example"
 - [kubernetes](kubernetes)
 - [prom](prom)
 - [gitlab](gitlab)
+- [NSQ](nsq)

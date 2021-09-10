@@ -18,9 +18,10 @@ type StatInfo struct {
 }
 
 // stat cache the group statistic info
-var stat map[string]*StatInfo
-
-var mu sync.Mutex
+var (
+	stat = make(map[string]*StatInfo)
+	mu   sync.Mutex
+)
 
 // Option provides the setup of a group
 type Option struct {
@@ -30,7 +31,7 @@ type Option struct {
 	PanicTimeout time.Duration
 }
 
-func beforeCb(name string, g *Group) func() {
+func beforeCb(name string) func() {
 	return func() {
 		mu.Lock()
 		groupStat, ok := stat[name]
@@ -43,7 +44,7 @@ func beforeCb(name string, g *Group) func() {
 	}
 }
 
-func postCb(name string, g *Group) func(error, time.Duration) {
+func postCb(name string) func(error, time.Duration) {
 	return func(err error, costTime time.Duration) {
 		mu.Lock()
 		groupStat, ok := stat[name]
@@ -81,8 +82,8 @@ func NewGroup(option Option) *Group {
 		panicTimeout: option.PanicTimeout,
 	}
 
-	g.postCb = postCb(name, g)
-	g.beforeCb = beforeCb(name, g)
+	g.postCb = postCb(name)
+	g.beforeCb = beforeCb(name)
 
 	return g
 }
@@ -116,17 +117,17 @@ func GetStat() Summary {
 	costTime := time.Duration(0)
 
 	for k, v := range stat {
-		running_total := v.totalJobs - v.Total
+		runningTotal := v.totalJobs - v.Total
 		summary.Items[k] = RunningStatInfo{
 			Total:        v.Total,
-			RunningTotal: running_total,
+			RunningTotal: runningTotal,
 			CostTime:     fmt.Sprint(v.CostTime),
 			MinCostTime:  fmt.Sprint(v.MinCostTime),
 			MaxCostTime:  fmt.Sprint(v.MaxCostTime),
 			ErrCount:     v.ErrCount,
 		}
 		summary.Total += v.Total
-		summary.RunningTotal += running_total
+		summary.RunningTotal += runningTotal
 		costTime += v.CostTime
 	}
 
@@ -144,8 +145,4 @@ func GetStat() Summary {
 // GetInputName return the group name for each inputs
 func GetInputName(name string) string {
 	return "inputs_" + name
-}
-
-func init() {
-	stat = make(map[string]*StatInfo)
 }

@@ -33,7 +33,7 @@ type influxdbLog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type Input struct {
@@ -46,7 +46,7 @@ type Input struct {
 	Interval datakit.Duration `toml:"interval"`
 
 	Log     *influxdbLog           `toml:"log"`
-	TlsConf *dknet.TlsClientConfig `toml:"tlsconf"`
+	TlsConf *dknet.TLSClientConfig `toml:"tlsconf"`
 	Tags    map[string]string      `toml:"tags"`
 
 	tail         *tailer.Tailer
@@ -95,7 +95,7 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
@@ -134,7 +134,7 @@ func (i *Input) Run() {
 	var tlsCfg *tls.Config
 	if i.TlsConf != nil {
 		var err error
-		tlsCfg, err = i.TlsConf.TlsConfig()
+		tlsCfg, err = i.TlsConf.TLSConfig()
 		if err != nil {
 			l.Error(err)
 			io.FeedLastError(inputName, err.Error())

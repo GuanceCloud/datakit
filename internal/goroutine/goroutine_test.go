@@ -87,7 +87,7 @@ func TestGOMAXPROCS(t *testing.T) {
 	err := g.Wait()
 
 	assert.NoError(t, err)
-	assert.Greater(t, time.Since(now).Milliseconds(), int64(2000))
+	assert.GreaterOrEqual(t, time.Since(now).Milliseconds(), int64(2000))
 }
 
 func TestStat(t *testing.T) {
@@ -114,7 +114,6 @@ func TestStat(t *testing.T) {
 		assert.Equal(t, int64(1), v.ErrCount)
 		assert.Greater(t, v.CostTime, int64(3000000))
 	}
-
 }
 
 func TestNestGroup(t *testing.T) {

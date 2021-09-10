@@ -276,7 +276,7 @@ func HighFreqFeedEx(name, category, metric string,
 		return err
 	}
 
-	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, &Option{HighFreq: true})
+	return defaultIO.DoFeed([]*Point{{pt}}, category, name, &Option{HighFreq: true})
 }
 
 // Deprecated
@@ -302,7 +302,7 @@ func NamedFeedEx(name, category, metric string,
 		return err
 	}
 
-	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, nil)
+	return defaultIO.DoFeed([]*Point{{pt}}, category, name, nil)
 }
 
 func DroppedTotal() int64 {

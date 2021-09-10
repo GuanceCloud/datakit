@@ -68,8 +68,8 @@ func (g *Group) do(f func(ctx context.Context) error) {
 			endTime = time.Now()
 
 			if r := recover(); r != nil {
-				var isPanicRetry bool = true
-				buf := make([]byte, 64<<10)
+				isPanicRetry := true
+				buf := make([]byte, 1024) //nolint:gomnd
 				buf = buf[:runtime.Stack(buf, false)]
 				if g.panicCb != nil {
 					isPanicRetry = g.panicCb(buf)

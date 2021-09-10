@@ -60,7 +60,7 @@ func loadHistory() {
 
 	histpath := filepath.Join(homedir, ".dql_history")
 
-	if _, err := os.Stat(histpath); err != nil {
+	if _, err = os.Stat(histpath); err != nil {
 		l.Warnf("history file %s not found", histpath)
 		return
 	}
@@ -94,7 +94,7 @@ func dumpHistory() {
 	}
 
 	if err := ioutil.WriteFile(filepath.Join(homedir, ".dql_history"),
-		[]byte(strings.Join(history, "\n")), 0644); err != nil {
+		[]byte(strings.Join(history, "\n")), os.ModePerm); err != nil {
 		l.Errorf("update history error: %s", err.Error())
 	}
 }
@@ -158,7 +158,7 @@ func doDQL(s string) {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
 		Queries: []*dkhttp.SingleQuery{
-			&dkhttp.SingleQuery{
+			{
 				Query: s,
 			},
 		},
@@ -276,6 +276,7 @@ func doShow(c *queryResult) {
 	output("---------\n%d rows, cost %s\n", rows, c.Cost)
 }
 
+//nolint:funlen,gocyclo
 func prettyShow(resp *queryResult) int {
 	nrows := 0
 
@@ -321,7 +322,7 @@ func prettyShow(resp *queryResult) int {
 					addSug(k)
 				}
 
-				for colIdx, _ := range s.Columns {
+				for colIdx := range s.Columns {
 					if disableNil && val[colIdx] == nil {
 						continue
 					}
@@ -341,7 +342,7 @@ func prettyShow(resp *queryResult) int {
 								}
 
 								// convert ms to second
-								val[colIdx] = time.Unix(i/1000, 0)
+								val[colIdx] = time.Unix(i/1000, 0) //nolint
 							}
 						}
 
@@ -386,7 +387,7 @@ func prettyShow(resp *queryResult) int {
 
 func getMaxColWidth(r *models.Row) int {
 	max := 0
-	for k, _ := range r.Tags {
+	for k := range r.Tags {
 		if len(k) > max {
 			max = len(k)
 		}
@@ -531,7 +532,7 @@ var (
 )
 
 func addSug(key string) {
-	if ok, _ := liveSug[key]; !ok {
+	if ok := liveSug[key]; !ok {
 		suggestions = append(suggestions, prompt.Suggest{
 			Text: key, Description: "",
 		})

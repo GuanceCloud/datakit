@@ -3,6 +3,7 @@ package diskio
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -246,6 +247,19 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Infof("diskio input exit")
 			return
+		}
+	}
+}
+
+// ReadEnv, support envs：
+//   ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER : booler
+func (i *Input) ReadEnv(envs map[string]string) {
+	if skip, ok := envs["ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER"]; ok {
+		b, err := strconv.ParseBool(skip)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER to bool: %s, ignore", err)
+		} else {
+			i.SkipSerialNumber = b
 		}
 	}
 }

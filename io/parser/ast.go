@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
+)
+
+const (
+	Nil = "nil"
 )
 
 type Value interface {
@@ -91,7 +94,7 @@ type NilLiteral struct{}
 
 func (n *NilLiteral) Pos() *PositionRange { return nil }
 func (n *NilLiteral) String() string {
-	return "nil"
+	return Nil
 }
 
 type Limit struct {
@@ -287,7 +290,7 @@ func (n *Fill) MarshalJSON() ([]byte, error) {
 
 	switch n.FillType {
 	case FillNil:
-		return []byte(fmt.Sprintf(output1, "nil")), nil
+		return []byte(fmt.Sprintf(output1, Nil)), nil
 
 	case FillInt:
 		return []byte(fmt.Sprintf(output2, "integer", "integer_val", n.Int)), nil
@@ -331,13 +334,13 @@ func (n *Fill) String() string {
 func (n *Fill) StringInfluxql() string {
 	switch n.FillType {
 	case FillNil:
-		return "nil"
+		return Nil
 	case FillInt:
 		return fmt.Sprintf("%d", n.Int)
 	case FillFloat:
 		return fmt.Sprintf("%f", n.Float)
 	case FillStr:
-		return fmt.Sprintf("%s", n.Str)
+		return n.Str
 	case FillLinear:
 		return "linear"
 	case FillPrevious:
@@ -356,17 +359,22 @@ type FuncExpr struct {
 	//Pos   *PositionRange
 }
 
+const (
+	fillFuncArgs = 2
+)
+
 func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
+
 	switch strings.ToLower(n.Name) {
 	case "fill":
 		const typ = "(Nil,NumberLiteral,StringLiteral,PREVIOUS,LINEAR)"
 
-		if len(n.Param) != 2 {
-			err = fmt.Errorf("fill function only accept 2 paramter, left value and %s", typ)
+		if len(n.Param) != fillFuncArgs {
+			err = fmt.Errorf("fill function only accept 2 parameter, left value and %s", typ)
 			return
 		}
 
-		paramterErr := fmt.Errorf("unknown fill function paramter, only accept %s", typ)
+		paramErr := fmt.Errorf("unknown fill function parameter, only accept %s", typ)
 
 		switch v := n.Param[1].(type) {
 		case *Identifier:
@@ -376,7 +384,7 @@ func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
 			case "linear":
 				fill = &Fill{FillType: FillLinear}
 			default:
-				err = paramterErr
+				err = paramErr
 				return
 			}
 
@@ -394,7 +402,7 @@ func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
 			fill = &Fill{FillType: FillStr, Str: v.Val}
 
 		default:
-			err = paramterErr
+			err = paramErr
 			return
 		}
 
@@ -492,82 +500,6 @@ func (m *DFQuery) GroupByList() []string {
 		return nil
 	}
 	return m.GroupBy.ColumnList()
-}
-
-func (m *DFQuery) appendFrom(x interface{}) error {
-	switch v := x.(type) {
-	case string:
-		m.Names = append(m.Names, v)
-	case *Regex:
-		m.RegexNames = append(m.RegexNames, v)
-	default:
-		return fmt.Errorf("invalid metric %+#v", x)
-	}
-
-	return nil
-}
-
-func (m *DFQuery) checkingSemantic() ParseErrors {
-	const (
-		semanticErr       = `%s only accept %s, invalid paramter[%d] %s`
-		maxOutputErrorNum = 5
-	)
-
-	var errs ParseErrors
-	var errCnt int
-
-	for index, target := range m.Targets {
-		if target.Col == nil {
-			continue
-		}
-
-		switch target.Col.(type) {
-		case *FuncExpr,
-			*BinaryExpr,
-			*Identifier,
-			*CascadeFunctions,
-			*StaticCast,
-			*ParenExpr,
-			*Regex,
-			*Star:
-			continue
-		default:
-			log.Warnf("target type is %s", reflect.TypeOf(target.Col).String())
-			// next
-		}
-
-		if errCnt >= maxOutputErrorNum {
-			continue
-		}
-		errs = append(errs, ParseErr{
-			Err: fmt.Errorf(semanticErr, "Targets",
-				"function, binary exprssion and identifier", index, target.String()),
-		})
-		errCnt++
-	}
-
-	// FIXME:  It’s ugly!
-	errCnt = 0
-	if m.GroupBy != nil {
-		for index, node := range m.GroupBy.List {
-			switch node.(type) {
-			case *Identifier:
-				continue
-			default:
-				// next
-			}
-
-			if errCnt >= maxOutputErrorNum {
-				continue
-			}
-			errs = append(errs, ParseErr{
-				Err: fmt.Errorf(semanticErr, "GroupBy", "identifier", index, node.String()),
-			})
-			errCnt++
-		}
-	}
-
-	return errs
 }
 
 func (m *DFQuery) String() string {
@@ -777,7 +709,7 @@ func (e *NumberLiteral) IsPositiveInteger() bool {
 }
 
 func (e *NumberLiteral) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`%s`, e.String())), nil
+	return []byte(e.String()), nil
 }
 
 func (e *NumberLiteral) Type() ValueType     { return "" }
@@ -858,23 +790,23 @@ type OuterFuncs struct {
 	Funcs []*OuterFunc `json:"funcs,omitempty"`
 }
 
-func (ofunc *OuterFuncs) JSON() ([]byte, error) {
+func (ofuncs *OuterFuncs) JSON() ([]byte, error) {
 	// json.Marshal escaping < and >
 	// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(ofunc)
+	err := encoder.Encode(ofuncs)
 
 	// Encode() followed by a newline character
 	return buffer.Bytes(), err
 }
 
-func (ofunc *OuterFunc) String() string {
+func (ofuncs *OuterFunc) String() string {
 	return "outer func"
 }
 
-func (oFunc *OuterFunc) Pos() *PositionRange {
+func (ofuncs *OuterFunc) Pos() *PositionRange {
 	return nil
 }
 
@@ -883,7 +815,7 @@ func (ofuncs *OuterFuncs) String() string {
 	return "outer func"
 }
 
-func (oFuncs *OuterFuncs) Pos() *PositionRange {
+func (ofuncs *OuterFuncs) Pos() *PositionRange {
 	return nil
 }
 
@@ -921,6 +853,10 @@ func (x *WhereCondition) Eval(source string, tags map[string]string, fields map[
 			if !expr.Eval(source, tags, fields) {
 				return false
 			}
+
+		default:
+			log.Errorf("Eval only accept BinaryExpr")
+			return false
 		}
 	}
 
@@ -936,7 +872,7 @@ func (x *WhereCondition) String() string {
 	return "{" + strings.Join(arr, " and ") + "}"
 }
 
-func (d *WhereCondition) Pos() *PositionRange {
+func (x *WhereCondition) Pos() *PositionRange {
 	return nil
 }
 

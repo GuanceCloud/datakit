@@ -3,6 +3,7 @@ package cmds
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -21,7 +22,7 @@ func InstallTelegraf(installDir string) error {
 	}
 
 	fmt.Printf("Start downloading Telegraf...\n")
-	curDownloading = "telegraf"
+	dl.CurDownloading = "telegraf"
 
 	cli := getcli()
 
@@ -40,7 +41,7 @@ func InstallTelegraf(installDir string) error {
 		fmt.Println("Start telegraf by `cd /etc/telegraf`, `cp telegraf.conf.sample tg.conf`, and `telegraf --config tg.conf`\n", filepath.Join(installDir, DIR_NAME))
 	}
 
-	fmt.Printf("Vist https://www.influxdata.com/time-series-platform/telegraf/ for more infomation.\n")
+	fmt.Printf("Vist https://www.influxdata.com/time-series-platform/telegraf/ for more information.\n")
 
 	return nil
 }
@@ -53,5 +54,5 @@ func writeTelegrafSample(installDir string) error {
 		filePath = filepath.Join(installDir, DIR_NAME, "telegraf.conf.sample")
 	}
 
-	return ioutil.WriteFile(filePath, []byte(TelegrafConfTemplate), 0x666)
+	return ioutil.WriteFile(filePath, []byte(TelegrafConfTemplate), os.ModePerm)
 }

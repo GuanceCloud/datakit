@@ -23,7 +23,7 @@ func TestDialer(t *testing.T) {
 		Name:       "_test_resp_time_less_10ms",
 		Frequency:  "1s",
 		SuccessWhen: []*dt.HTTPSuccess{
-			&dt.HTTPSuccess{ResponseTime: "10ms"},
+			{ResponseTime: "10ms"},
 		},
 	}
 

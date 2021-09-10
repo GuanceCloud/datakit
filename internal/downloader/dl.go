@@ -35,7 +35,7 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 
 func (wc *writeCounter) PrintProgress() {
 	if wc.last > float64(wc.total)*0.01 || wc.current == wc.total { // update progress-bar each 1%
-		fmt.Printf("\r%s", strings.Repeat(" ", 36))
+		fmt.Printf("\r%s", strings.Repeat(" ", 36)) //nolint:gomnd
 		fmt.Printf("\rDownloading(% 7s)... %s/%s", CurDownloading, humanize.Bytes(wc.current), humanize.Bytes(wc.total))
 		wc.last = 0.0
 	}
@@ -62,12 +62,12 @@ func doExtract(r io.Reader, to string) error {
 			continue
 		}
 
-		target := filepath.Join(to, hdr.Name)
+		target := filepath.Join(to, hdr.Name) //nolint:gosec
 
 		switch hdr.Typeflag {
 		case tar.TypeDir:
 			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
+				if err := os.MkdirAll(target, os.ModePerm); err != nil {
 					l.Error(err)
 					return err
 				}
@@ -75,7 +75,7 @@ func doExtract(r io.Reader, to string) error {
 
 		case tar.TypeReg:
 
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {
 				l.Error(err)
 				return err
 			}
@@ -103,7 +103,6 @@ func doExtract(r io.Reader, to string) error {
 }
 
 func Download(cli *http.Client, from, to string, progress, downloadOnly bool) error {
-
 	req, err := http.NewRequest("GET", from, nil)
 	if err != nil {
 		l.Error(err)
@@ -124,18 +123,17 @@ func Download(cli *http.Client, from, to string, progress, downloadOnly bool) er
 
 	if downloadOnly {
 		return doDownload(io.TeeReader(resp.Body, progbar), to)
-	} else {
-		if !progress {
-			return doExtract(resp.Body, to)
-		} else {
-			return doExtract(io.TeeReader(resp.Body, progbar), to)
-		}
 	}
+
+	if !progress {
+		return doExtract(resp.Body, to)
+	}
+
+	return doExtract(io.TeeReader(resp.Body, progbar), to)
 }
 
 func doDownload(r io.Reader, to string) error {
-
-	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, 0644)
+	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return err
 	}

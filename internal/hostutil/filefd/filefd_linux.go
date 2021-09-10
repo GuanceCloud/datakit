@@ -22,7 +22,7 @@ func parseFileFDStats(filename string) (map[string]string, error) {
 		return nil, err
 	}
 	parts := bytes.Split(bytes.TrimSpace(content), []byte("\u0009"))
-	if len(parts) < 3 {
+	if len(parts) < 3 { //nolint:gomnd
 		return nil, fmt.Errorf("unexpected number of file stats in %q", filename)
 	}
 
@@ -35,14 +35,14 @@ func parseFileFDStats(filename string) (map[string]string, error) {
 	return fileFDStat, nil
 }
 
-func FileFdCollect() (map[string]int64, error) {
+func collect() (map[string]int64, error) {
 	info := make(map[string]int64)
 	fileFDStat, err := parseFileFDStats("/proc/sys/fs/file-nr")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get file-nr: %w", err)
 	}
 	for name, value := range fileFDStat {
-		v, err := strconv.ParseInt(value, 10, 64)
+		v, err := strconv.ParseInt(value, 10, 64) //nolint:gomnd
 		if err != nil {
 			return nil, fmt.Errorf("invalid value %s in file-nr: %w", value, err)
 		}

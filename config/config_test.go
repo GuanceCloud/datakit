@@ -350,22 +350,22 @@ global = "global config"
 
 func TestBlackWhiteList(t *testing.T) {
 	wlists := []*inputHostList{
-		&inputHostList{
+		{
 			Hosts:  []string{"host1", "host2"},
 			Inputs: []string{"input1", "input2"},
 		},
-		&inputHostList{
+		{
 			Hosts:  []string{"hostx", "hosty"},
 			Inputs: []string{"inputx", "inputy"},
 		},
 	}
 
 	blists := []*inputHostList{
-		&inputHostList{
+		{
 			Hosts:  []string{"host_3", "host_4"},
 			Inputs: []string{"input_3", "input_4"},
 		},
-		&inputHostList{
+		{
 			Hosts:  []string{"host_i", "host_j"},
 			Inputs: []string{"input_i", "input_j"},
 		},

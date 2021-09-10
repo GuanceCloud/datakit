@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 	"github.com/dustin/go-humanize"
 )
@@ -22,15 +23,6 @@ type versionDesc struct {
 	Branch   string `json:"branch"`
 	Commit   string `json:"commit"`
 	Go       string `json:"go"`
-}
-
-func (vd *versionDesc) withoutGitCommit() string {
-	parts := strings.Split(vd.Version, "-")
-	if len(parts) != 3 {
-		l.Fatalf("version info not in v<x.x>-<n>-g<commit-id> format: %s", vd.Version)
-	}
-
-	return strings.Join(parts[:2], "-")
 }
 
 func tarFiles(goos, goarch string) {
@@ -57,6 +49,7 @@ func tarFiles(goos, goarch string) {
 	}
 }
 
+//nolint:funlen,gocyclo
 func PubDatakit() {
 	start := time.Now()
 	var ak, sk, bucket, ossHost string
@@ -107,13 +100,13 @@ func PubDatakit() {
 		path.Join(OSSPath, fmt.Sprintf("install-%s.ps1", ReleaseVersion)): "install.ps1",
 	}
 
-	if Archs == "darwin/amd64" {
+	if Archs == datakit.OSArchDarwinAmd64 {
 		delete(ossfiles, path.Join(OSSPath, "version"))
 	}
 
 	// tar files and collect OSS upload/backup info
 	for _, arch := range archs {
-		if arch == "darwin/amd64" && runtime.GOOS != "darwin" {
+		if arch == datakit.OSArchDarwinAmd64 && runtime.GOOS != datakit.OSDarwin {
 			l.Warn("Not a darwin system, skip the upload of related files.")
 			continue
 		}
@@ -130,7 +123,7 @@ func PubDatakit() {
 
 		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
 		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
-		if parts[0] == "windows" {
+		if parts[0] == datakit.OSWindows {
 			installerExe = fmt.Sprintf("installer-%s-%s.exe", goos, goarch)
 			installerExeWithVer = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, ReleaseVersion)
 		}

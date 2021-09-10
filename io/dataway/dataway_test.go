@@ -1,6 +1,9 @@
 package dataway
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -49,12 +52,18 @@ func TestHeartBeat(t *testing.T) {
 }
 
 func TestListDataWay(t *testing.T) {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"content":[]}`)
+	}))
+	defer ts.Close()
+
 	cases := []struct {
 		urls []string
 		fail bool
 	}{
 		{
-			urls: []string{"http://abc.com"},
+			urls: []string{ts.URL},
 		},
 	}
 
@@ -67,34 +76,41 @@ func TestListDataWay(t *testing.T) {
 		err := dw.Apply()
 		tu.Equals(t, nil, err)
 
-		err = dw.DatawayList()
+		dws, err := dw.DatawayList()
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
-			t.Logf(`dataways: %+#v`, AvailableDataways)
+			t.Logf(`dataways: %+#v`, dws)
 			tu.Ok(t, err)
 		}
 	}
 }
 
 func TestSend(t *testing.T) {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "[httptest] ok")
+	}))
+	defer ts.Close()
+
 	cases := []struct {
 		urls     []string
 		category string
 		gz       bool
 		fail     bool
 	}{
-		{
-			urls:     []string{"http://abc.com"},
-			category: "http://user-defined-url.com?token=tkn_xyz",
-			gz:       true,
-		},
 
 		{
-			urls:     []string{"http://abc.com"},
+			urls:     []string{ts.URL},
 			category: "invalid-category",
 			gz:       true,
 			fail:     true,
+		},
+
+		{
+			urls:     []string{ts.URL},
+			category: ts.URL + "?token=abc123",
+			gz:       true,
 		},
 	}
 
@@ -102,12 +118,17 @@ func TestSend(t *testing.T) {
 		"dkid": "not-set",
 	}
 
-	for _, tc := range cases {
-		dw := &DataWayCfg{URLs: tc.urls, ontest: true}
-		err := dw.Apply()
-		tu.Equals(t, nil, err)
+	for idx, tc := range cases {
 
-		err = dw.Send(tc.category, nil, tc.gz)
+		t.Logf("===== case %d ======", idx)
+
+		dw := &DataWayCfg{URLs: tc.urls}
+		if err := dw.Apply(); err != nil {
+			t.Errorf("Apply: %s", err.Error())
+			continue
+		}
+
+		err := dw.Send(tc.category, []byte("abc123"), tc.gz)
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {

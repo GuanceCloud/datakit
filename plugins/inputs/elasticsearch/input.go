@@ -139,15 +139,14 @@ const sampleConfig = `
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
-# [inputs.elasticsearch.log]
-  #	files = []
-  ## grok pipeline script path
-  #  pipeline = "elasticsearch.p"
+  # [inputs.elasticsearch.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "elasticsearch.p"
 
-[inputs.elasticsearch.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
+  [inputs.elasticsearch.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 
 const pipelineCfg = `
@@ -205,7 +204,7 @@ type elasticsearchlog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type serverInfo struct {
@@ -403,7 +402,7 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
@@ -515,7 +514,7 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 	for m, s := range indicesStats.All {
 		// parse Json, ignoring strings and bools
 		jsonParser := JSONFlattener{}
-		err := jsonParser.FullFlattenJSON(m+"_", s, true, true)
+		err := jsonParser.FullFlattenJSON(m, s, true, true)
 		if err != nil {
 			return err
 		}

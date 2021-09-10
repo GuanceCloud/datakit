@@ -14,7 +14,10 @@ import (
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func isValid(familyType dto.MetricType, name string, metricTypes []string, metricNameFilter []string) bool {
+func isValid(familyType dto.MetricType,
+	name string,
+	metricTypes,
+	metricNameFilter []string) bool {
 	metricType := ""
 	typeValid := false
 	nameValid := false
@@ -67,7 +70,9 @@ func isValid(familyType dto.MetricType, name string, metricTypes []string, metri
 	return typeValid && nameValid
 }
 
-func getNames(name string, customMeasurementRules []Rule, measurementName, measurementPrefix string) (string, string) {
+//nolint:gocritic
+func getNames(name string, customMeasurementRules []Rule,
+	measurementName, measurementPrefix string) (string, string) {
 	// 1. check custom rules
 	if len(customMeasurementRules) > 0 {
 		for _, rule := range customMeasurementRules {
@@ -75,7 +80,7 @@ func getNames(name string, customMeasurementRules []Rule, measurementName, measu
 			if len(prefix) > 0 {
 				if strings.HasPrefix(name, prefix) {
 					ruleName := rule.Name
-					if len(ruleName) == 0 {
+					if ruleName == "" {
 						ruleName = strings.TrimRight(prefix, "_")
 					}
 					ruleName = measurementPrefix + ruleName
@@ -133,7 +138,11 @@ func getTags(labels []*dto.LabelPair, promTags, extraTags map[string]string, ign
 	return tags
 }
 
-func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) ([]*iod.Point, error) {
+//nolint:funlen,gocyclo
+// TODO: refact me
+func Text2Metrics(in io.Reader,
+	prom *Option,
+	extraTags map[string]string) ([]*iod.Point, error) {
 	var lastErr error
 	var parser expfmt.TextParser
 	metricFamilies, err := parser.TextToMetricFamilies(in)
@@ -153,17 +162,19 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 	// iterate all metrics
 	for name, value := range metricFamilies {
 		familyType := value.GetType()
+		var fieldName string
 
 		valid := isValid(familyType, name, metricTypes, metricNameFilter)
 		if !valid {
 			continue
 		}
 
-		measurementName, fieldName := getNames(name, customMeasurementRules, measurementName, measurementPrefix)
+		measurementName, fieldName = getNames(name,
+			customMeasurementRules, measurementName, measurementPrefix)
 
 		// set default name when measurementName is empty
-		if len(measurementName) == 0 {
-			measurementName = "prom"
+		if measurementName == "" {
+			measurementName = "prom" //nolint:goconst
 		}
 
 		metrics := value.GetMetric()

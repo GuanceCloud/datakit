@@ -33,6 +33,7 @@
 	- [数据库（中间件）]()
 		- [MySQL](mysql)
 		- [Oracle](oracle)
+		- [NSQ](nsq)
 		- [Redis](redis)
 		- [Memcached](memcached)
 		- [MongoDB](mongodb)

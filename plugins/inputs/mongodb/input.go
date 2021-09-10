@@ -81,11 +81,11 @@ var (
     # server_name = ""
 
   ## Mongod log
-  [inputs.mongodb.log]
-    ## Log file path check your mongodb config path usually under '/var/log/mongodb/mongod.log'.
-    # files = ["` + defMongodLogPath + `"]
-    ## Grok pipeline script file.
-    # pipeline = "` + defPipeline + `"
+  # [inputs.mongodb.log]
+  # #Log file path check your mongodb config path usually under '/var/log/mongodb/mongod.log'.
+  # files = ["` + defMongodLogPath + `"]
+  # #Grok pipeline script file.
+  # pipeline = "` + defPipeline + `"
 
   ## Customer tags, if set will be seen with every metric.
   [inputs.mongodb.tags]
@@ -111,7 +111,7 @@ type mongodblog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type Input struct {
@@ -124,7 +124,7 @@ type Input struct {
 	ColStatsDbs           []string               `toml:"col_stats_dbs"`
 	GatherTopStat         bool                   `toml:"gather_top_stat"`
 	EnableTls             bool                   `toml:"enable_tls"`
-	TlsConf               *dknet.TlsClientConfig `toml:"tlsconf"`
+	TlsConf               *dknet.TLSClientConfig `toml:"tlsconf"`
 	EnableMongodLog       bool                   `toml:"enable_mongod_log"`
 	Log                   *mongodblog            `toml:"log"`
 	Tags                  map[string]string      `toml:"tags"`
@@ -173,7 +173,7 @@ func (m *Input) RunPipeline() {
 		GlobalTags:        m.Tags,
 		IgnoreStatus:      m.Log.IgnoreStatus,
 		CharacterEncoding: m.Log.CharacterEncoding,
-		Match:             m.Log.Match,
+		MultilineMatch:    m.Log.MultilineMatch,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, m.Log.Pipeline)
@@ -282,7 +282,7 @@ func (m *Input) gatherServer(server *Server) error {
 		}
 
 		if m.EnableTls && m.TlsConf != nil {
-			if tlsConfig, err := m.TlsConf.TlsConfig(); err != nil {
+			if tlsConfig, err := m.TlsConf.TLSConfig(); err != nil {
 				return err
 			} else {
 				dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
@@ -316,7 +316,7 @@ func init() {
 			ColStatsDbs:           []string{},
 			GatherTopStat:         true,
 			EnableTls:             false,
-			TlsConf: &dknet.TlsClientConfig{
+			TlsConf: &dknet.TLSClientConfig{
 				CaCerts:            []string{defTlsCaCert},
 				Cert:               defTlsCert,
 				CertKey:            defTlsCertKey,

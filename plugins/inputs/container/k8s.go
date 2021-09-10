@@ -65,7 +65,7 @@ func (k *Kubernetes) Init() error {
 		}
 	}
 
-	t := net.TlsClientConfig{
+	t := net.TLSClientConfig{
 		CaCerts: func() []string {
 			if k.TLSCA == "" {
 				return nil
@@ -77,7 +77,7 @@ func (k *Kubernetes) Init() error {
 		InsecureSkipVerify: k.InsecureSkipVerify,
 	}
 
-	tlsConfig, err := t.TlsConfig()
+	tlsConfig, err := t.TLSConfig()
 	if err != nil {
 		return err
 	}

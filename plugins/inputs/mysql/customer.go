@@ -121,7 +121,7 @@ func (i *Input) query(sql string) ([]map[string]interface{}, error) {
 	columns, _ := rows.Columns()
 	columnLength := len(columns)
 	cache := make([]interface{}, columnLength)
-	for idx, _ := range cache {
+	for idx := range cache {
 		var a interface{}
 		cache[idx] = &a
 	}

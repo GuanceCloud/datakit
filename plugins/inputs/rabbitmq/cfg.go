@@ -42,10 +42,12 @@ var (
   # tls_key = "/xxx/key.key"
   ## Use TLS but skip chain & host verification
   insecure_skip_verify = false
-  [inputs.rabbitmq.log]
-  #  files = []
-  #  # grok pipeline script path
-  #  pipeline = "rabbitmq.p"
+
+  # [inputs.rabbitmq.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "rabbitmq.p"
+
   [inputs.rabbitmq.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -92,7 +94,7 @@ type rabbitmqlog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type OverviewResponse struct {

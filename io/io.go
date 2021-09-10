@@ -117,6 +117,10 @@ func SetTest() {
 }
 
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
+	if testAssert {
+		return nil
+	}
+
 	ch := x.in
 	if opt != nil && opt.HighFreq {
 		ch = x.in2
@@ -173,6 +177,7 @@ func (x *IO) updateLastErr(e *lastErr) {
 	if !ok {
 		stat = &InputsStat{
 			First: time.Now(),
+			Last:  time.Now(),
 		}
 		x.inputstats[e.from] = stat
 	}
@@ -316,7 +321,11 @@ func (x *IO) StartIO(recoverable bool) {
 
 			case <-datawaylistTick.C:
 				if !DisableDatawayList {
-					x.dw.DatawayList()
+					dws, err := x.dw.DatawayList()
+					if err != nil {
+						l.Warnf("DatawayList(): %s, ignored", err)
+					}
+					dataway.AvailableDataways = dws
 				}
 
 			case <-tick.C:
@@ -347,7 +356,7 @@ func (x *IO) flushAll() {
 	// dump cache pts
 	if x.CacheDumpThreshold > 0 && x.cacheCnt > x.CacheDumpThreshold {
 		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCount)
-		for k, _ := range x.cache {
+		for k := range x.cache {
 			x.cache[k] = nil
 		}
 		atomic.AddInt64(&x.droppedTotal, x.cacheCnt)
@@ -356,7 +365,7 @@ func (x *IO) flushAll() {
 	// dump dynamic cache pts
 	if x.DynamicCacheDumpThreshold > 0 && x.dynamicCacheCnt > x.DynamicCacheDumpThreshold {
 		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCount)
-		for k, _ := range x.dynamicCache {
+		for k := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
 		atomic.AddInt64(&x.droppedTotal, x.dynamicCacheCnt)

@@ -24,11 +24,11 @@ func cmdMan() {
 	}
 
 	// load input-names
-	for k, _ := range inputs.Inputs {
+	for k := range inputs.Inputs {
 		suggestions = append(suggestions, prompt.Suggest{Text: k, Description: ""})
 	}
 
-	for k, _ := range man.OtherDocs {
+	for k := range man.OtherDocs {
 		suggestions = append(suggestions, prompt.Suggest{Text: k, Description: ""})
 	}
 
@@ -47,7 +47,7 @@ func cmdMan() {
 }
 
 func exportMan(to, skipList, ver string) error {
-	if err := os.MkdirAll(to, 0600); err != nil {
+	if err := os.MkdirAll(to, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -57,7 +57,7 @@ func exportMan(to, skipList, ver string) error {
 		skip[x] = true
 	}
 
-	for k, _ := range inputs.Inputs {
+	for k := range inputs.Inputs {
 		if skip[k] {
 			continue
 		}
@@ -76,7 +76,7 @@ func exportMan(to, skipList, ver string) error {
 		}
 	}
 
-	for k, _ := range man.OtherDocs {
+	for k := range man.OtherDocs {
 
 		if skip[k] {
 			continue
@@ -110,18 +110,21 @@ func runMan(txt string) {
 		fmt.Println("Bye!")
 		os.Exit(0)
 	default:
-		x, err := man.BuildMarkdownManual(s, &man.Option{
-			WithCSS:                       false,
-			DisableMonofontOnTagFieldName: true,
-		})
+		x, err := man.BuildMarkdownManual(s,
+			&man.Option{
+				WithCSS:                       false,
+				DisableMonofontOnTagFieldName: true,
+			})
 
+		width := 80
+		leftPad := 6
 		if err != nil {
 			fmt.Printf("[E] %s\n", err.Error())
 		} else {
 			if len(x) == 0 {
 				fmt.Printf("[E] intput %s got no manual", s)
 			} else {
-				result := markdown.Render(string(x), 80, 6)
+				result := markdown.Render(string(x), width, leftPad)
 				fmt.Println(string(result))
 			}
 		}

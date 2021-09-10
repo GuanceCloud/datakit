@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -151,6 +152,39 @@ func (this *Input) Run() {
 	}
 }
 
+// ReadEnv, support envs：
+//   ENV_INPUT_CONTAINER_ENABLE_METRIC : booler
+//   ENV_INPUT_CONTAINER_ENABLE_OBJECT : booler
+//   ENV_INPUT_CONTAINER_ENABLE_LOGGING : booler
+func (this *Input) ReadEnv(envs map[string]string) {
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_METRIC"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_METRIC to bool: %s, ignore", err)
+		} else {
+			this.EnableMetric = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_OBJECT"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_OBJECT to bool: %s, ignore", err)
+		} else {
+			this.EnableObject = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_LOGGING"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_LOGGING to bool: %s, ignore", err)
+		} else {
+			this.EnableLogging = b
+		}
+	}
+}
+
 func (this *Input) setup() bool {
 	// 如果配置文件中使用默认 endpoint 且该文件不存在，说明其没有安装 docker（经测试，docker service 停止后，sock 文件依然存在）
 	// 此行为是为了应对 default_enabled_inputs 行为，避免在没有安装 docker 的主机上开启 input，然后无限 error
@@ -212,7 +246,7 @@ func (this *Input) setup() bool {
 }
 
 func (this *Input) buildDockerClient() error {
-	t := net.TlsClientConfig{
+	t := net.TLSClientConfig{
 		CaCerts: func() []string {
 			if this.TLSCA == "" {
 				return nil
@@ -224,7 +258,7 @@ func (this *Input) buildDockerClient() error {
 		InsecureSkipVerify: this.InsecureSkipVerify,
 	}
 
-	tlsConfig, err := t.TlsConfig()
+	tlsConfig, err := t.TLSConfig()
 	if err != nil {
 		l.Error(err)
 		return err

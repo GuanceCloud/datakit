@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
-	"strconv"
 
 	"github.com/uber/jaeger-client-go/thrift"
-	j "github.com/uber/jaeger-client-go/thrift-gen/jaeger"
+	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
@@ -49,36 +48,47 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 	transport := thrift.NewTBinaryProtocolConf(buffer, &thrift.TConfiguration{})
-	batch := &j.Batch{}
+	batch := &jaeger.Batch{}
 	if err := batch.Read(context.TODO(), transport); err != nil {
 		return err
 	}
 
-	groups, err := processBatch(batch)
+	group, err := batchToAdapters(batch, filters...)
 	if err != nil {
 		return err
 	}
 
-	trace.MkLineProto(groups, inputName)
+	if len(group) != 0 {
+		trace.MkLineProto(group, inputName)
+	} else {
+		log.Debug("empty batch")
+	}
+
 	return nil
 }
 
-func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
-	adapterGroup := []*trace.TraceAdapter{}
+func batchToAdapters(batch *jaeger.Batch, filters ...batchFilter) ([]*trace.TraceAdapter, error) {
+	// run all filters
+	for _, filter := range filters {
+		if filter(batch) == nil {
+			return nil, nil
+		}
+	}
 
 	project, ver, env := getExpandInfo(batch)
 	if project == "" {
-		project = JaegerTags[trace.PROJECT]
+		project = jaegerTags[trace.PROJECT]
 	}
 
 	if ver == "" {
-		ver = JaegerTags[trace.VERSION]
+		ver = jaegerTags[trace.VERSION]
 	}
 
 	if env == "" {
-		env = JaegerTags[trace.ENV]
+		env = jaegerTags[trace.ENV]
 	}
 
+	var adapterGroup []*trace.TraceAdapter
 	for _, span := range batch.Spans {
 		tAdapter := &trace.TraceAdapter{}
 		tAdapter.Source = "jaeger"
@@ -100,7 +110,8 @@ func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 			tAdapter.ParentID = fmt.Sprintf("%d", span.ParentSpanId)
 		}
 
-		tAdapter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+		// tAdapter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+		tAdapter.TraceID = trace.GetStringTraceId(span.TraceIdHigh, span.TraceIdLow)
 		tAdapter.SpanID = fmt.Sprintf("%d", span.SpanId)
 
 		tAdapter.Status = trace.STATUS_OK
@@ -110,18 +121,7 @@ func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 				break
 			}
 		}
-		tAdapter.Tags = JaegerTags
-
-		// run tracing sample function
-		if conf := trace.TraceSampleMatcher(sampleConfs, tAdapter.Tags); conf != nil {
-			if trcid, err := strconv.ParseUint(tAdapter.TraceID, 10, 64); err == nil {
-				if !trace.IgnoreErrSampleMW(tAdapter.Status, trace.IgnoreTagsSampleMW(tAdapter.Tags, conf.IgnoreTagsList, trace.DefSampleFunc))(trcid, conf.Rate, conf.Scope) {
-					continue
-				}
-			} else {
-				log.Errorf("Parse uint64 trace id failed when doing tracing sample")
-			}
-		}
+		tAdapter.Tags = jaegerTags
 
 		adapterGroup = append(adapterGroup, tAdapter)
 	}
@@ -129,7 +129,7 @@ func processBatch(batch *j.Batch) ([]*trace.TraceAdapter, error) {
 	return adapterGroup, nil
 }
 
-func getExpandInfo(batch *j.Batch) (project, ver, env string) {
+func getExpandInfo(batch *jaeger.Batch) (project, ver, env string) {
 	if batch.Process == nil {
 		return
 	}
@@ -139,33 +139,17 @@ func getExpandInfo(batch *j.Batch) (project, ver, env string) {
 		}
 
 		if tag.Key == trace.PROJECT {
-			project = fmt.Sprintf("%v", getTagValue(tag))
+			project = fmt.Sprintf("%v", getValueString(tag))
 		}
 
 		if tag.Key == trace.VERSION {
-			ver = fmt.Sprintf("%v", getTagValue(tag))
+			ver = fmt.Sprintf("%v", getValueString(tag))
 		}
 
 		if tag.Key == trace.ENV {
-			env = fmt.Sprintf("%v", getTagValue(tag))
+			env = fmt.Sprintf("%v", getValueString(tag))
 		}
 	}
-	return
-}
 
-func getTagValue(tag *j.Tag) interface{} {
-	switch tag.VType {
-	case j.TagType_STRING:
-		return *(tag.VStr)
-	case j.TagType_DOUBLE:
-		return *(tag.VDouble)
-	case j.TagType_BOOL:
-		return *(tag.VBool)
-	case j.TagType_LONG:
-		return *(tag.VLong)
-	case j.TagType_BINARY:
-		return tag.VBinary
-	default:
-		return nil
-	}
+	return
 }

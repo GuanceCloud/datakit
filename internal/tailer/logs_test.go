@@ -25,6 +25,7 @@ func TestLogsAll(t *testing.T) {
 	}{
 		{
 			"2021-06-30T16:25:27.394+0800    DEBUG   config  config/inputcfg.go:27   ignore dir /usr/local/datakit/conf.d/jvm",
+			//nolint:lll
 			`testing message="2021-06-30T16:25:27.394+0800    DEBUG   config  config/inputcfg.go:27   ignore dir /usr/local/datakit/conf.d/jvm",status="info" ` + timeStr,
 		},
 	}

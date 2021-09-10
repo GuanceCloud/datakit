@@ -70,13 +70,13 @@ type (
 	}
 
 	HostInfo struct {
-		HostMeta   *HostMetaInfo                `json:"meta"`
-		CPU        []*CPUInfo                   `json:"cpu"`
-		Mem        *MemInfo                     `json:"mem"`
-		Net        []*NetInfo                   `json:"net"`
-		Disk       []*DiskInfo                  `json:"disk"`
-		Conntrack  *conntrackutil.ConntrackInfo `json:"conntrack"`
-		FileFd     *filefdutil.FileFdInfo       `json:"filefd"`
+		HostMeta   *HostMetaInfo       `json:"meta"`
+		CPU        []*CPUInfo          `json:"cpu"`
+		Mem        *MemInfo            `json:"mem"`
+		Net        []*NetInfo          `json:"net"`
+		Disk       []*DiskInfo         `json:"disk"`
+		Conntrack  *conntrackutil.Info `json:"conntrack"`
+		FileFd     *filefdutil.Info    `json:"filefd"`
 		cpuPercent float64
 		load5      float64
 		cloudInfo  map[string]interface{}
@@ -331,6 +331,11 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 
 	msg.Config = c.getHostConfig()
 
+	fileFd, err := filefdutil.GetFileFdInfo()
+	if err != nil {
+		l.Warnf("filefdutil.GetFileFdInfo(): %s, ignored", err.Error())
+	}
+
 	msg.Host = &HostInfo{
 		HostMeta:   getHostMeta(),
 		CPU:        getCPUInfo(),
@@ -340,7 +345,7 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
 		Disk:       getDiskInfo(c.IgnoreFS),
 		Conntrack:  conntrackutil.GetConntrackInfo(),
-		FileFd:     filefdutil.GetFileFdInfo(),
+		FileFd:     fileFd,
 	}
 
 	// sync cloud extra fields

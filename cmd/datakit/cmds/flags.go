@@ -7,9 +7,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"time"
+
+	"github.com/fatih/color"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -80,6 +81,7 @@ func tryLoadMainCfg() {
 	}
 }
 
+//nolint:funlen,gocyclo
 func RunCmds() {
 
 	if FlagDefConf {
@@ -141,12 +143,12 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		info, err := showCloudInfo(FlagShowCloudInfo)
 		if err != nil {
-			fmt.Printf("Get cloud info failed: %s\n", err.Error())
+			colorPrint(color.FgRed, "[E] Get cloud info failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
 		keys := []string{}
-		for k, _ := range info {
+		for k := range info {
 			keys = append(keys, k)
 		}
 
@@ -161,10 +163,6 @@ func RunCmds() {
 	if FlagMonitor {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		if runtime.GOOS == "windows" {
-			fmt.Println("unsupport under Windows")
-			os.Exit(-1)
-		}
 
 		cmdMonitor(FlagInterval, FlagVVV)
 		os.Exit(0)
@@ -175,7 +173,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := ipInfo(FlagIPInfo)
 		if err != nil {
-			fmt.Printf("\t%v\n", err)
+			colorPrint(color.FgRed, "[E] get IP info failed: %s\n", err.Error())
 		} else {
 			for k, v := range x {
 				fmt.Printf("\t% 8s: %s\n", k, v)
@@ -206,7 +204,11 @@ func RunCmds() {
 	if FlagPipeline != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		pipelineDebugger(FlagPipeline, FlagText)
+		if err := pipelineDebugger(FlagPipeline, FlagText); err != nil {
+			colorPrint(color.FgRed, "[E] %s\n", err)
+			os.Exit(-1)
+		}
+
 		os.Exit(0)
 	}
 
@@ -262,7 +264,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := startDatakit(); err != nil {
-			fmt.Printf("Start DataKit failed: %s\n", err)
+			colorPrint(color.FgRed, "[E] start DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -276,7 +278,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := stopDatakit(); err != nil {
-			fmt.Printf("Stop DataKit failed: %s\n", err)
+			colorPrint(color.FgRed, "[E] stop DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -290,7 +292,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := restartDatakit(); err != nil {
-			fmt.Printf("Restart DataKit failed: %s\n", err)
+			colorPrint(color.FgRed, "[E] restart DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -304,7 +306,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := datakitStatus()
 		if err != nil {
-			fmt.Printf("Get DataKit status failed: %s\n", err)
+			colorPrint(color.FgRed, "[E] get DataKit status failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 		fmt.Println(x)
@@ -315,9 +317,11 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := uninstallDatakit(); err != nil {
-			fmt.Printf("Get DataKit status failed: %s\n", err)
+			colorPrint(color.FgRed, "[E] uninstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
+
+		fmt.Println("Uninstall DataKit OK")
 		os.Exit(0)
 	}
 
@@ -325,9 +329,11 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := reinstallDatakit(); err != nil {
-			fmt.Printf("Reinstall DataKit failed: %s\n", err)
+			colorPrint(color.FgRed, "[E] reinstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
+
+		fmt.Println("Reinstall DataKit OK")
 		os.Exit(0)
 	}
 
@@ -335,18 +341,12 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
-		if runtime.GOOS == datakit.OSWindows {
-			fmt.Println("[E] not supported")
-			os.Exit(-1)
-		}
-
 		if err := updateIPDB(FlagAddr); err != nil {
-			fmt.Printf("Reload DataKit failed: %s\n", err)
+			colorPrint(color.FgRed, "[E] update IPDB failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		fmt.Println("Update IPdb ok!")
-
+		fmt.Println("Update IPdb OK, please restart datakit to load new IPDB")
 		os.Exit(0)
 	}
 }
@@ -355,13 +355,7 @@ func getcli() *http.Client {
 	proxy := config.Cfg.DataWay.HttpProxy
 
 	cliopt := &ihttp.Options{
-		DialTimeout:           30 * time.Second,
-		DialKeepAlive:         30 * time.Second,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   0, // default to runtime.NumGoroutines()
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
+		InsecureSkipVerify: true,
 	}
 
 	if proxy != "" {
@@ -370,5 +364,5 @@ func getcli() *http.Client {
 		}
 	}
 
-	return ihttp.HTTPCli(cliopt)
+	return ihttp.Cli(cliopt)
 }

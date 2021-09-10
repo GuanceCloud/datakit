@@ -50,7 +50,7 @@ func (opt *Option) GetSource(defaultSource ...string) string {
 	if len(defaultSource) > 0 {
 		return defaultSource[0]
 	}
-	return "prom"
+	return "prom" //nolint:goconst
 }
 
 func (opt *Option) GetIntervalDuration() time.Duration {
@@ -90,14 +90,14 @@ func NewProm(opt *Option) (*Prom, error) {
 	p.SetClient(&http.Client{Timeout: httpTimeout})
 
 	if opt.TLSOpen {
-		tc := &net.TlsClientConfig{
+		tc := &net.TLSClientConfig{
 			CaCerts:            []string{opt.CacertFile},
 			Cert:               opt.CertFile,
 			CertKey:            opt.KeyFile,
 			InsecureSkipVerify: defaultInsecureSkipVerify,
 		}
 
-		tlsconfig, err := tc.TlsConfig()
+		tlsconfig, err := tc.TLSConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -124,5 +124,5 @@ func (p *Prom) Collect() ([]*io.Point, error) {
 	}
 	defer resp.Body.Close()
 
-	return PromText2Metrics(resp.Body, p.opt, p.opt.Tags)
+	return Text2Metrics(resp.Body, p.opt, p.opt.Tags)
 }

@@ -10,9 +10,10 @@ InfluxDB 采集器，用于采集 InfluxDB 的数据。
 
 ## 前置条件
 
-适用于 InfluxDB v1.x.
+InfluxDB 采集器仅适用于 InfluxDB v1.x, 对于 InfluxDB v2.x 需要使用 prom 采集器进行采集
 
-注：如需采集 InfluxDB v2.x 版本的数据可通过配置 **prom 采集器** 实现。示例如下：
+## 适用于 InfluxDB v2.x 的 prom 采集器配置示例
+
 ```toml
 [[inputs.prom]]
   ## Exporter 地址
@@ -60,7 +61,7 @@ InfluxDB 采集器，用于采集 InfluxDB 的数据。
 
 ```
 
-## 配置
+## InfluxDB 采集器配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 

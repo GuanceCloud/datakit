@@ -11,15 +11,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
+const (
 	inputName = "kubernetes"
 	catalog   = "kubernetes"
 
-	l = logger.DefaultSLogger("kubernetes")
-)
-
-const (
-	defaultMetricInterval = time.Minute * 1
+	minMetricInterval     = time.Minute * 1
 	defaultObjectInterval = time.Minute * 5
 )
 
@@ -46,6 +42,8 @@ type Input struct {
 	pause   bool
 }
 
+var l = logger.DefaultSLogger("kubernetes")
+
 func (this *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -53,14 +51,13 @@ func (this *Input) Run() {
 		return
 	}
 
-	metricTick := time.NewTicker(func() time.Duration {
-		dur, err := timex.ParseDuration(this.Interval)
-		if err != nil || dur < defaultMetricInterval {
-			l.Debug("use default metric interval: 60s")
-			return defaultMetricInterval
-		}
-		return dur
-	}())
+	dur, _ := timex.ParseDuration(this.Interval)
+	if dur < minMetricInterval {
+		l.Debug("use default metric interval: 60s")
+		dur = minMetricInterval
+	}
+
+	metricTick := time.NewTicker(dur)
 	defer metricTick.Stop()
 
 	objectTick := time.NewTicker(defaultObjectInterval)
@@ -156,19 +153,14 @@ func (this *Input) buildClient() error {
 	}
 
 	if this.TLSCA != "" {
-		t := net.TlsClientConfig{
-			CaCerts: func() []string {
-				if this.TLSCA == "" {
-					return nil
-				}
-				return []string{this.TLSCA}
-			}(),
+		tlsconfig := net.TLSClientConfig{
+			CaCerts:            []string{this.TLSCA},
 			Cert:               this.TLSCert,
 			CertKey:            this.TLSKey,
 			InsecureSkipVerify: this.InsecureSkipVerify,
 		}
 
-		cli, err = newClientFromTLS(this.URL, &t)
+		cli, err = newClientFromTLS(this.URL, &tlsconfig)
 		if err != nil {
 			return err
 		}

@@ -86,16 +86,20 @@ func init() {
 func downloadFiles() error {
 	dl.CurDownloading = "datakit"
 
-	cliopt := &ihttp.Options{}
+	cliopt := &ihttp.Options{
+		InsecureSkipVerify: true, // ignore SSL error
+	}
+
 	if flagProxy != "" {
 		u, err := url.Parse(flagProxy)
 		if err != nil {
 			return err
 		}
 		cliopt.ProxyURL = u
+		l.Infof("set proxy to %s ok", flagProxy)
 	}
 
-	cli := ihttp.HTTPCli(cliopt)
+	cli := ihttp.Cli(cliopt)
 
 	if err := dl.Download(cli, datakitUrl, datakit.InstallDir, true, false); err != nil {
 		return err
@@ -112,9 +116,12 @@ func downloadFiles() error {
 	return nil
 }
 
+//nolint:funlen,gocyclo
 func main() {
 
 	flag.Parse()
+
+	var err error
 
 	if flagInfo {
 		fmt.Printf(`
@@ -128,7 +135,7 @@ DataKit        : %s
 	}
 
 	if flagInstallLog == "" {
-		if err := logger.InitRoot(
+		if err = logger.InitRoot(
 			&logger.Option{
 				Level: logger.DEBUG,
 				Flags: logger.OPT_DEFAULT | logger.OPT_STDOUT}); err != nil {
@@ -137,7 +144,7 @@ DataKit        : %s
 	} else {
 		l.Infof("set log file to %s", flagInstallLog)
 
-		if err := logger.InitRoot(&logger.Option{
+		if err = logger.InitRoot(&logger.Option{
 			Path:  flagInstallLog,
 			Level: logger.DEBUG,
 			Flags: logger.OPT_DEFAULT}); err != nil {
@@ -159,7 +166,7 @@ DataKit        : %s
 	}
 
 	l.Info("stoping datakit...")
-	if err := service.Control(svc, "stop"); err != nil {
+	if err = service.Control(svc, "stop"); err != nil {
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
 
@@ -169,7 +176,7 @@ DataKit        : %s
 			flagProxy = "http://" + flagProxy
 		}
 
-		if _, err := url.Parse(flagProxy); err != nil {
+		if _, err = url.Parse(flagProxy); err != nil {
 			l.Warnf("bad proxy config expect http://ip:port given %s", flagProxy)
 		} else {
 			l.Infof("set proxy to %s", flagProxy)
@@ -179,7 +186,7 @@ DataKit        : %s
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)
 
-	if err := downloadFiles(); err != nil { // download 过程直接覆盖已有安装
+	if err = downloadFiles(); err != nil { // download 过程直接覆盖已有安装
 		l.Fatalf("download failed: %s", err.Error())
 	}
 
@@ -187,7 +194,7 @@ DataKit        : %s
 
 	if flagDKUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
-		if err := upgradeDatakit(svc); err != nil {
+		if err = upgradeDatakit(svc); err != nil {
 			l.Fatalf("upgrade datakit: %s, ignored", err.Error())
 		}
 	} else { // install new datakit
@@ -236,7 +243,7 @@ func upgradeDatakit(svc service.Service) error {
 	mc := config.Cfg
 
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
-		mc, _ = upgradeMainConfig(mc)
+		mc = upgradeMainConfig(mc)
 
 		if flagOTA {
 			l.Debugf("set auto update flag")
@@ -322,30 +329,10 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 	mc.EnableDefaultsInputs(flagEnableInputs)
 
-	switch flagCloudProvider {
-	case "aliyun", "tencent", "aws":
-
-		l.Infof("try set cloud provider to %s...", flagCloudProvider)
-
-		if conf, err := preEnableHostobjectInput(flagCloudProvider); err != nil {
-			l.Fatalf("failed to init hostobject conf: %s", err.Error())
-		} else {
-			cfgpath := filepath.Join(datakit.ConfdDir, "host", "hostobject.conf")
-			if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, "host"), datakit.ConfPerm); err != nil {
-				l.Fatalf("failed to init hostobject conf: %s", err.Error())
-			}
-
-			if err := ioutil.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
-				l.Fatalf("failed to init hostobject conf: %s", err.Error())
-			}
-		}
-
+	if err := injectCloudProvider(flagCloudProvider); err != nil {
+		l.Fatalf("failed to inject cloud-provider: %s", err.Error())
+	} else {
 		l.Infof("set cloud provider to %s ok", flagCloudProvider)
-
-	case "": //pass
-
-	default:
-		l.Warnf("unknown cloud provider %s, ignored", flagCloudProvider)
 	}
 
 	l.Debugf("main config:\n%s", mc.String())
@@ -356,7 +343,34 @@ func writeDefInputToMainCfg(mc *config.Config) {
 	}
 }
 
-func preEnableHostobjectInput(cloud string) ([]byte, error) {
+func injectCloudProvider(p string) error {
+
+	switch p {
+	case "aliyun", "tencent", "aws":
+
+		l.Infof("try set cloud provider to %s...", p)
+
+		conf := preEnableHostobjectInput(p)
+
+		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, "host"), datakit.ConfPerm); err != nil {
+			l.Fatalf("failed to init hostobject conf: %s", err.Error())
+		}
+
+		cfgpath := filepath.Join(datakit.ConfdDir, "host", "hostobject.conf")
+		if err := ioutil.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
+			return err
+		}
+
+	case "": //pass
+
+	default:
+		l.Warnf("unknown cloud provider %s, ignored", p)
+	}
+
+	return nil
+}
+
+func preEnableHostobjectInput(cloud string) []byte {
 	// I don't want to import hostobject input, cause the installer binary bigger
 	sample := []byte(`
 [inputs.hostobject]
@@ -382,10 +396,10 @@ func preEnableHostobjectInput(cloud string) ([]byte, error) {
 		[]byte(fmt.Sprintf(`  cloud_provider = "%s"`, cloud)),
 		-1)
 
-	return conf, nil
+	return conf
 }
 
-func upgradeMainConfig(c *config.Config) (*config.Config, error) {
+func upgradeMainConfig(c *config.Config) *config.Config {
 
 	if c.DataWay != nil {
 		c.DataWay.DeprecatedURL = ""
@@ -454,7 +468,7 @@ func upgradeMainConfig(c *config.Config) (*config.Config, error) {
 	c.InstallVer = DataKitVersion
 	c.UpgradeDate = time.Now()
 
-	return c, nil
+	return c
 }
 
 func getDataWayCfg() *dataway.DataWayCfg {

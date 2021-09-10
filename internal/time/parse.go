@@ -7,9 +7,11 @@ import (
 	"time"
 )
 
+//nolint:lll
 var durationRE = regexp.MustCompile("^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?(([0-9]+)ns)?$")
 
 // ParseDuration 支持更多时间单位的解析
+//nolint:gomnd
 func ParseDuration(s string) (time.Duration, error) {
 	switch s {
 	case "0":
@@ -43,5 +45,5 @@ func ParseDuration(s string) (time.Duration, error) {
 	f(14, time.Millisecond)        // ms
 	f(16, time.Microsecond)        // us
 	f(18, time.Nanosecond)         // ns
-	return time.Duration(du), nil
+	return du, nil
 }

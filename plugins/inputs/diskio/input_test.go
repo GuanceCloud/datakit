@@ -13,7 +13,7 @@ type IOCountersStat = disk.IOCountersStat
 
 var (
 	testData = map[string]IOCountersStat{
-		"loop0": IOCountersStat{
+		"loop0": {
 			ReadCount:        52,
 			MergedReadCount:  0,
 			WriteCount:       0,
@@ -29,7 +29,7 @@ var (
 			SerialNumber:     "",
 			Label:            "",
 		},
-		"loop1": IOCountersStat{
+		"loop1": {
 			ReadCount:        43,
 			MergedReadCount:  0,
 			WriteCount:       0,
@@ -45,7 +45,7 @@ var (
 			SerialNumber:     "",
 			Label:            "",
 		},
-		"sda": IOCountersStat{
+		"sda": {
 			ReadCount:        419,
 			MergedReadCount:  0,
 			WriteCount:       0,
@@ -61,7 +61,7 @@ var (
 			SerialNumber:     "",
 			Label:            "",
 		},
-		"sda1": IOCountersStat{
+		"sda1": {
 			ReadCount:        53,
 			MergedReadCount:  0,
 			WriteCount:       0,
@@ -77,7 +77,7 @@ var (
 			SerialNumber:     "",
 			Label:            "",
 		},
-		"sda2": IOCountersStat{
+		"sda2": {
 			ReadCount:        56,
 			MergedReadCount:  0,
 			WriteCount:       0,
@@ -93,7 +93,7 @@ var (
 			SerialNumber:     "",
 			Label:            "",
 		},
-		"sdb": IOCountersStat{
+		"sdb": {
 			ReadCount:        1000749,
 			MergedReadCount:  392242,
 			WriteCount:       552776,
@@ -109,7 +109,7 @@ var (
 			SerialNumber:     "",
 			Label:            "",
 		},
-		"sdb1": IOCountersStat{
+		"sdb1": {
 			ReadCount:        198,
 			MergedReadCount:  29,
 			WriteCount:       2,
@@ -125,7 +125,7 @@ var (
 			SerialNumber:     "",
 			Label:            "",
 		},
-		"sdb2": IOCountersStat{
+		"sdb2": {
 			ReadCount:        58,
 			MergedReadCount:  0,
 			WriteCount:       0,
@@ -141,7 +141,7 @@ var (
 			SerialNumber:     "",
 			Label:            "",
 		},
-		"sdb3": IOCountersStat{
+		"sdb3": {
 			ReadCount:        503575,
 			MergedReadCount:  253655,
 			WriteCount:       437354,

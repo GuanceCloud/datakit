@@ -6,10 +6,146 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/elazarl/goproxy"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
+
+func TestProxy(t *testing.T) {
+	tlsServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "hello, tls client")
+	}))
+
+	defer tlsServer.Close()
+
+	proxy := goproxy.NewProxyHttpServer()
+	proxy.Verbose = true
+
+	proxyAddr := "0.0.0.0:12345"
+
+	proxysrv := &http.Server{
+		Addr:    proxyAddr,
+		Handler: proxy,
+	}
+
+	go func() {
+		if err := proxysrv.ListenAndServe(); err != nil {
+			t.Logf("%s", err)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	defer proxysrv.Shutdown(ctx)
+
+	time.Sleep(time.Second) // wait proxy server OK
+
+	cases := []struct {
+		cli  *http.Client
+		fail bool
+	}{
+		{
+			cli: Cli(&Options{
+				InsecureSkipVerify: true,
+				ProxyURL: func() *url.URL {
+					//nolint:golint
+					if u, err := url.Parse("http://" + proxyAddr); err != nil {
+						t.Error(err)
+						return nil
+					} else {
+						return u
+					}
+				}(),
+			}),
+		},
+
+		{
+			cli: Cli(&Options{
+				InsecureSkipVerify: false,
+				ProxyURL: func() *url.URL {
+					u, err := url.Parse("http://" + proxyAddr)
+					if err != nil { //nolint:golint
+						t.Error(err)
+						return nil
+					}
+					return u
+				}(),
+			}),
+			fail: true,
+		},
+	}
+
+	t.Logf("https request: %s", tlsServer.URL)
+	for _, tc := range cases {
+		resp, err := tc.cli.Get(tlsServer.URL)
+		if tc.fail {
+			tu.NotOk(t, err, "")
+			t.Logf("error %s", err)
+			continue
+		} else {
+			tu.Ok(t, err)
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Error(err)
+			}
+
+			defer resp.Body.Close()
+			t.Logf("resp: %s", string(body))
+		}
+	}
+}
+
+func TestInsecureSkipVerify(t *testing.T) {
+	tlsServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "hello, tls client")
+	}))
+
+	defer tlsServer.Close()
+
+	cases := []struct {
+		cli  *http.Client
+		fail bool
+	}{
+		{
+			cli: Cli(&Options{
+				InsecureSkipVerify: true,
+			}),
+		},
+
+		{
+			cli: Cli(&Options{
+				InsecureSkipVerify: false,
+			}),
+			fail: true,
+		},
+	}
+
+	for _, tc := range cases {
+		resp, err := tc.cli.Get(tlsServer.URL)
+		if tc.fail {
+			tu.NotOk(t, err, "")
+			t.Logf("error %s", err)
+			continue
+		} else {
+			tu.Ok(t, err)
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Error(err)
+			}
+
+			defer resp.Body.Close()
+			t.Logf("resp: %s", string(body))
+		}
+	}
+}
 
 func hello(w http.ResponseWriter, req *http.Request) {
 	time.Sleep(time.Millisecond * 50)
@@ -17,7 +153,6 @@ func hello(w http.ResponseWriter, req *http.Request) {
 }
 
 func TestClientTimeWait(t *testing.T) {
-
 	http.HandleFunc("/hello", hello)
 
 	server := &http.Server{
@@ -32,19 +167,15 @@ func TestClientTimeWait(t *testing.T) {
 
 	time.Sleep(time.Second) // wait server ok
 
-	//cli := http.Client{}
-
-	n := 1000
+	n := 10
 	wg := sync.WaitGroup{}
 	wg.Add(n)
 
 	for i := 0; i < n; i++ {
-
 		go func() {
-
 			defer wg.Done()
 
-			cli := HTTPCli(&Options{
+			cli := Cli(&Options{ // new fresh client
 				DialTimeout:           30 * time.Second,
 				DialKeepAlive:         30 * time.Second,
 				MaxIdleConns:          100,
@@ -61,7 +192,6 @@ func TestClientTimeWait(t *testing.T) {
 				}
 
 				resp, err := cli.Do(req)
-				//resp, err := SendRequest(req)
 				if err != nil {
 					t.Error(err)
 				}
