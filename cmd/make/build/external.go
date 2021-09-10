@@ -41,6 +41,28 @@ var (
 			},
 		},
 
+		// &dkexternal{
+		// 	// requirement: apt-get install gcc-multilib
+		// 	name: "skywalkingGrpcV3",
+		// 	lang: "go",
+
+		// 	entry: "main.go",
+		// 	osarchs: map[string]bool{
+		// 		`linux/386`:     true,
+		// 		`linux/amd64`:   true,
+		// 		`linux/arm`:     true,
+		// 		`linux/arm64`:   true,
+		// 		`darwin/amd64`:  true,
+		// 		`windows/amd64`: true,
+		// 		`windows/386`:   true,
+		// 	},
+
+		// 	buildArgs: nil,
+		// 	envs: []string{
+		// 		"CGO_ENABLED=0",
+		// 	},
+		// },
+
 		// others...
 	}
 )
