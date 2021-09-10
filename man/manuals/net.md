@@ -22,6 +22,13 @@ net 采集器用于采集主机网络信息，如各网络接口的流量信息�
 
 配置好后，重启 DataKit 即可。
 
+支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+
+| 环境变量名                                | 对应的配置参数项            | 参数示例       |
+| :---                                      | ---                         | ---            |
+| `ENV_INPUT_NET_IGNORE_PROTOCOL_STATS`     | `ignore_protocol_stats`     | `true`/`false` |
+| `ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES` | `enable_virtual_interfaces` | `true`/`false` |
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：

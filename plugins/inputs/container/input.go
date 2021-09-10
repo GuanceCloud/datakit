@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -147,6 +148,39 @@ func (this *Input) Run() {
 					c.Logging(context.Background())
 				}
 			}
+		}
+	}
+}
+
+// ReadEnv, support envs：
+//   ENV_INPUT_CONTAINER_ENABLE_METRIC : booler
+//   ENV_INPUT_CONTAINER_ENABLE_OBJECT : booler
+//   ENV_INPUT_CONTAINER_ENABLE_LOGGING : booler
+func (this *Input) ReadEnv(envs map[string]string) {
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_METRIC"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_METRIC to bool: %s, ignore", err)
+		} else {
+			this.EnableMetric = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_OBJECT"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_OBJECT to bool: %s, ignore", err)
+		} else {
+			this.EnableObject = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_LOGGING"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_LOGGING to bool: %s, ignore", err)
+		} else {
+			this.EnableLogging = b
 		}
 	}
 }

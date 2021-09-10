@@ -3,7 +3,6 @@ package host_process
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -30,20 +29,6 @@ const (
 
 	pipelineSample = ``
 )
-
-type Input struct {
-	ProcessName    []string          `toml:"process_name,omitempty"`
-	ObjectInterval datakit.Duration  `toml:"object_interval,omitempty"`
-	RunTime        datakit.Duration  `toml:"min_run_time,omitempty"`
-	OpenMetric     bool              `toml:"open_metric,omitempty"`
-	MetricInterval datakit.Duration  `toml:"metric_interval,omitempty"`
-	Pipeline       string            `toml:"pipeline,omitempty"`
-	Tags           map[string]string `toml:"tags"`
-
-	lastErr error
-	re      string
-	isTest  bool
-}
 
 type ProcessMetric struct {
 	name   string
