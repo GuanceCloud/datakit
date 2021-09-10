@@ -3,6 +3,7 @@ package net
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -281,6 +282,29 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Infof("net input exit")
 			return
+		}
+	}
+}
+
+// ReadEnv, support envs：
+//   ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
+//   ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
+func (i *Input) ReadEnv(envs map[string]string) {
+	if ignore, ok := envs["ENV_INPUT_NET_IGNORE_PROTOCOL_STATS"]; ok {
+		b, err := strconv.ParseBool(ignore)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_NET_IGNORE_PROTOCOL_STATS to bool: %s, ignore", err)
+		} else {
+			i.IgnoreProtocolStats = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES to bool: %s, ignore", err)
+		} else {
+			i.EnableVirtualInterfaces = b
 		}
 	}
 }

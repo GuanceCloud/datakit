@@ -44,7 +44,6 @@ var (
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats" //nolint: unused,deadcode,varcheck
 	defEndpoints         = []string{v3, v4, v5}
 	ignoreResources      []*regexp.Regexp
-	sampleConf           *trace.TraceSampleConfig
 	filters              []traceFilter
 )
 
@@ -78,6 +77,7 @@ func (i *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
+	// add resource filter
 	for k := range i.IgnoreResources {
 		if reg, err := regexp.Compile(i.IgnoreResources[k]); err != nil {
 			log.Warnf("parse regular expression %q failed", i.IgnoreResources[k])
@@ -89,16 +89,8 @@ func (i *Input) Run() {
 	if len(ignoreResources) != 0 {
 		filters = append(filters, filterOutResource)
 	}
-
-	sampleConf = i.TraceSampleConf
-	if sampleConf != nil {
-		if sampleConf.Rate <= 0 || sampleConf.Scope < sampleConf.Rate {
-			sampleConf.Rate = 100
-			sampleConf.Scope = 100
-			log.Warnf("input tracing sample config invalid, fallback to fully sampling.")
-		}
-		filters = append(filters, sample)
-	}
+	// add sample filter
+	filters = append(filters, sample)
 
 	for k := range i.CustomerTags {
 		if strings.Contains(i.CustomerTags[k], ".") {
