@@ -5,10 +5,10 @@ const sampleCfg = `
   ## URL for the Kubernetes API
   ## daemonset at: "https://kubernetes.default:443"
   url = "https://kubernetes.default:443"
-  
+
   ## metrics interval
   interval = "60s"
-  
+
   ## Authorization level:
   ##   bearer_token -> bearer_token_string -> TLS
   ## Use bearer token for authorization. ('bearer_token' takes priority)
@@ -23,7 +23,7 @@ const sampleCfg = `
   # tls_key = "/path/to/key.pem"
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
-  
+
   [inputs.kubernetes.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
