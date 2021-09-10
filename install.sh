@@ -156,7 +156,7 @@ chmod +x $installer
 
 if [ "$upgrade" ]; then
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
-	$sudo_cmd $installer -upgrade | $sudo_cmd tee ${install_log}
+	$sudo_cmd $installer --upgrade --proxy="{proxy}" | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 	if [ "$install_only" ]; then

@@ -27,7 +27,9 @@ type Logs struct {
 	fields map[string]interface{}
 	ts     time.Time
 	pt     *io.Point
-	err    error
+
+	ignoreLogs bool
+	errs       []error
 }
 
 func NewLogs(text string) *Logs {
@@ -35,16 +37,28 @@ func NewLogs(text string) *Logs {
 }
 
 func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
-	if x.err != nil || p == nil {
+	if x.IsIgnored() {
+		return x
+	}
+
+	if p == nil {
 		x.fields["message"] = x.text
 		return x
 	}
 
-	x.fields, x.err = p.Run(x.text).Result()
+	fields, err := p.Run(x.text).Result()
+	if err != nil {
+		x.AddErr(err)
+	}
+
+	for k, v := range fields {
+		x.fields[k] = v
+	}
 
 	if len(x.fields) == 0 {
-		x.err = fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline")
+		x.AddErr(fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline"))
 	}
+
 	return x
 }
 
@@ -52,28 +66,25 @@ func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
 // 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
 // 防止通过 pipeline 添加巨长字段的恶意行为
 func (x *Logs) CheckFieldsLength() *Logs {
-	if x.err != nil {
+	if x.IsIgnored() {
 		return x
 	}
-
-	func() {
-		for k, v := range x.fields {
-			switch vv := v.(type) {
-			case string:
-				if len(vv) <= maxFieldsLength {
-					continue
-				}
-				if k == "message" {
-					x.fields[k] = vv[:maxFieldsLength]
-				} else {
-					x.err = fmt.Errorf("fields[%s], length=%d, out of maximum length", k, len(vv))
-					return
-				}
-			default:
-				// nil
-			}
+	for k, v := range x.fields {
+		vv, ok := v.(string)
+		if !ok {
+			continue
 		}
-	}()
+		if len(vv) <= maxFieldsLength {
+			continue
+		}
+
+		if k == "message" {
+			x.fields[k] = vv[:maxFieldsLength]
+		} else {
+			delete(x.fields, k)
+			x.AddErr(fmt.Errorf("discard fields[%s], length=%d, out of maximum length", k, len(vv)))
+		}
+	}
 
 	return x
 }
@@ -106,7 +117,7 @@ var statusMap = map[string]string{
 
 // addStatus 添加默认status和status映射
 func (x *Logs) AddStatus(disable bool) *Logs {
-	if x.err != nil || disable {
+	if x.IsIgnored() || disable {
 		return x
 	}
 
@@ -135,16 +146,19 @@ func (x *Logs) AddStatus(disable bool) *Logs {
 
 // ignoreStatus 过滤指定status
 func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
-	if x.err != nil || len(ignoreStatus) == 0 {
+	if x.IsIgnored() || len(ignoreStatus) == 0 {
 		return x
 	}
 
-	if status, ok := x.fields["status"].(string); ok {
-		for _, ignore := range ignoreStatus {
-			if ignore == status {
-				x.err = fmt.Errorf("this fields has been ignored, status:%s", status)
-				break
-			}
+	status, ok := x.fields["status"].(string)
+	if !ok {
+		return x
+	}
+	for _, ignore := range ignoreStatus {
+		if ignore == status {
+			x.ignoreLogs = true
+			x.AddErr(fmt.Errorf("this fields has been ignored, status:%s", status))
+			return x
 		}
 	}
 
@@ -152,7 +166,7 @@ func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
 }
 
 func (x *Logs) TakeTime() *Logs {
-	if x.err != nil {
+	if x.IsIgnored() {
 		return x
 	}
 
@@ -160,9 +174,9 @@ func (x *Logs) TakeTime() *Logs {
 	if v, ok := x.fields[pipelineTimeField]; ok {
 		nanots, ok := v.(int64)
 		if !ok {
-			x.err = fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
-				pipelineTimeField, v, reflect.TypeOf(v).String())
-			return x
+			x.ts = time.Now()
+			x.AddErr(fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
+				pipelineTimeField, v, reflect.TypeOf(v).String()))
 		}
 
 		x.ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
@@ -175,22 +189,33 @@ func (x *Logs) TakeTime() *Logs {
 }
 
 func (x *Logs) Point(measurement string, tags map[string]string) *Logs {
-	if x.err != nil {
+	if x.IsIgnored() {
 		return x
 	}
-	x.pt, x.err = io.MakePoint(measurement, tags, x.fields, x.ts)
+	pt, err := io.MakePoint(measurement, tags, x.fields, x.ts)
+	if err != nil {
+		x.AddErr(err)
+	}
+	x.pt = pt
 	return x
 }
 
 func (x *Logs) Feed(inputName string) *Logs {
-	if x.err != nil {
+	if x.IsIgnored() {
 		return x
 	}
-	x.err = io.Feed(inputName,
+	if x.pt == nil {
+		return x
+	}
+
+	err := io.Feed(inputName,
 		datakit.Logging,
 		[]*io.Point{x.pt},
 		&io.Option{HighFreq: disableHighFreqIODdata},
 	)
+	if err != nil {
+		x.AddErr(err)
+	}
 	return x
 }
 
@@ -201,8 +226,19 @@ func (x *Logs) Output() string {
 	return x.pt.String()
 }
 
-func (x *Logs) Error() error {
-	return x.err
+func (x *Logs) MergeErrs() error {
+	if len(x.errs) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%v", x.errs)
+}
+
+func (x *Logs) AddErr(err error) {
+	x.errs = append(x.errs, err)
+}
+
+func (x *Logs) IsIgnored() bool {
+	return x.ignoreLogs
 }
 
 func feed(inputName, measurement string, tags map[string]string, message string) error {

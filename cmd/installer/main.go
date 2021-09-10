@@ -96,6 +96,7 @@ func downloadFiles() error {
 			return err
 		}
 		cliopt.ProxyURL = u
+		l.Infof("set proxy to %s ok", flagProxy)
 	}
 
 	cli := ihttp.Cli(cliopt)

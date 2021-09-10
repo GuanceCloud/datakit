@@ -49,18 +49,18 @@ drop_origin_data()
 
 ```python
 [[inputs.logging]]
-	logfiles = ["/path/to/nginx/log"]
+    logfiles = ["/path/to/nginx/log"]
 
-	# required
-	source = "nginx"
-	from_beginning = false
+    # required
+    source = "nginx"
+    from_beginning = false
 
-	# 此处配置成 datakit 安装目录的相对路径，故所有脚本必须放在 /path/to/datakit/pipeline 目录下
-	# 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本（如 nginx -> nginx.p），
-	# 作为其默认 pipeline 配置
-	pipeline_ = "nginx.p"
+    # 此处配置成 datakit 安装目录的相对路径，故所有脚本必须放在 /path/to/datakit/pipeline 目录下
+    # 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本（如 nginx -> nginx.p），
+    # 作为其默认 pipeline 配置
+    pipeline_ = "nginx.p"
 
-	... # 其它配置
+    ... # 其它配置
 ```
 
 重启采集器，即可切割对应的日志。
@@ -121,11 +121,11 @@ _dklog_msg %{GREEDYDATA}
 $ ./datakit --cmd --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs):
 {
-	"code": "io/io.go:458",
-	"level": "DEBUG",
-	"module": "io",
-	"msg": "post cost 6.87021ms",
-	"time": 1610358231887000000
+    "code": "io/io.go:458",
+    "level": "DEBUG",
+    "module": "io",
+    "msg": "post cost 6.87021ms",
+    "time": 1610358231887000000
 }
 
 # 提取失败示例
@@ -177,24 +177,21 @@ Bye!
 示例:
 
 ```python
-# 待处理数据
-data = "21:13:14"
+# 待处理数据: "21:13:14"
 
 # pipline脚本
-script = `
 add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
 add_pattern("_minute", "(?:[0-5][0-9])")
 add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")
 add_pattern("time", "([^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second})([^0-9]?)")
-grok(_, "%{time}")`
-`
+grok(_, "%{time}")
 
 # 处理结果
 {
-	"hour":"12",
-	"minute":"13",
-	"second":"14",
-	"message":"21:13:14"
+    "hour":"12",
+    "minute":"13",
+    "second":"14",
+    "message":"21:13:14"
 }
 ```
 
@@ -215,24 +212,21 @@ grok(key, pattern)  # 对之前已经提取出来的某个 key，做再次 grok
 示例:
 
 ```python
-# 待处理数据
-data = "21:13:14"
+# 待处理数据: "21:13:14"
 
 # pipline脚本
-script = `
 add_pattern("_second", "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)")
 add_pattern("_minute", "(?:[0-5][0-9])")
 add_pattern("_hour", "(?:2[0123]|[01]?[0-9])")
 add_pattern("time", "([^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second})([^0-9]?)")
 grok(_, "%{time}")
-`
 
 # 处理结果
 {
-	"hour":"12",
-	"minute":"13",
-	"second":"14",
-	"message":"21:13:14"
+    "hour":"12",
+    "minute":"13",
+    "second":"14",
+    "message":"21:13:14"
 }
 ```
 
@@ -257,24 +251,21 @@ json(key, x.y)
 示例一:
 
 ```python
-# 待处理数据
-data = `{"info": {"age": 17, "name": "zhangsan", "height": 180}}`
+# 待处理数据: {"info": {"age": 17, "name": "zhangsan", "height": 180}}
 
 # 处理脚本
-script = `
 json(_, info, "zhangsan")
 json(zhangsan, name)
 json(zhangsan, age, "年龄")
-`
 
 # 处理结果
 {
-	"message": "{\"info\": {\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}}",
-	"zhangsan": {
-		"age": 17,
-		"height": 180,
-		"name": "zhangsan"
-	}
+    "message": "{\"info\": {\"age\": 17, \"name\": \"zhangsan\", \"height\": 180}}",
+    "zhangsan": {
+        "age": 17,
+        "height": 180,
+        "name": "zhangsan"
+    }
 }
 ```
 
@@ -282,38 +273,34 @@ json(zhangsan, age, "年龄")
 
 ```python
 # 待处理数据
-data = `{
-	"name": {"first": "Tom", "last": "Anderson"},
-	"age":37,
-	"children": ["Sara","Alex","Jack"],
-	"fav.movie": "Deer Hunter",
-	"friends": [
-		{"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
-		{"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
-		{"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
-]
-	}`
+#    data = {
+#        "name": {"first": "Tom", "last": "Anderson"},
+#        "age":37,
+#        "children": ["Sara","Alex","Jack"],
+#        "fav.movie": "Deer Hunter",
+#        "friends": [
+#            {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+#            {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+#            {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+#        ]
+#    }
 
 # 处理脚本
-script = `
 json(_, name) json(name, first)
-`
 ```
 
 示例三:
 
 ```python
 # 待处理数据
-data = `[
-	    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
-	    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
-	    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
-	]`
-
+#    [
+#            {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+#            {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+#            {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+#    ]
+    
 # 处理脚本, json数组处理
-script = `
 json(_, [0].nets[-1])
-`
 ```
 
 ### `json_all()`
@@ -328,90 +315,87 @@ json(_, [0].nets[-1])
 
 ```python
 # 待处理数据
-data = `
-{
-	"name": {"first": "Tom", "last": "Anderson"},
-	"age":37,
-	"身高": 180,
-	"children": ["Sara","Alex","Jack"],
-	"fav.movie": "Deer Hunter",
-	"friends": [
-		{"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
-		{"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
-		{"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
-	]
-}
-`
+#   {
+#       "name": {"first": "Tom", "last": "Anderson"},
+#       "age":37,
+#       "身高": 180,
+#       "children": ["Sara","Alex","Jack"],
+#       "fav.movie": "Deer Hunter",
+#       "friends": [
+#           {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+#           {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+#           {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
+#       ]
+#   }
+
 
 # 处理脚本
-script = `json_all()`
+json_all()
 
-会提取出如下对象
+# 将提取出如下数据
+
 {
-	"age": 37,
-	"身高": 180,
-	"children[0]": "Sara",
-	"children[1]": "Alex",
-	"children[2]": "Jack",
-	"fav.movie": "Deer Hunter",
-	"friends[0].age": 44,
-	"friends[0].first": "Dale",
-	"friends[0].last": "Murphy",
-	"friends[0].nets[0]": "ig",
-	"friends[0].nets[1]": "fb",
-	"friends[0].nets[2]": "tw",
-	"friends[1].age": 68,
-	"friends[1].first": "Roger",
-	"friends[1].last": "Craig",
-	"friends[1].nets[0]": "fb",
-	"friends[1].nets[1]": "tw",
-	"friends[2].age": 47,
-	"friends[2].first": "Jane",
-	"friends[2].last": "Murphy",
-	"friends[2].nets[0]": "ig",
-	"friends[2].nets[1]": "tw",
-	"name.first": "Tom",
-	"name.last": "Anderson"
+    "age"                : 37,
+    "身高"               : 180,
+    "children[0]"        : "Sara",
+    "children[1]"        : "Alex",
+    "children[2]"        : "Jack",
+    "fav.movie"          : "Deer Hunter",
+    "friends[0].age"     : 44,
+    "friends[0].first"   : "Dale",
+    "friends[0].last"    : "Murphy",
+    "friends[0].nets[0]" : "ig",
+    "friends[0].nets[1]" : "fb",
+    "friends[0].nets[2]" : "tw",
+    "friends[1].age"     : 68,
+    "friends[1].first"   : "Roger",
+    "friends[1].last"    : "Craig",
+    "friends[1].nets[0]" : "fb",
+    "friends[1].nets[1]" : "tw",
+    "friends[2].age"     : 47,
+    "friends[2].first"   : "Jane",
+    "friends[2].last"    : "Murphy",
+    "friends[2].nets[0]" : "ig",
+    "friends[2].nets[1]" : "tw",
+    "name.first"         : "Tom",
+    "name.last"          : "Anderson"
 }
 
-引用某个字段
-
+# 引用某个字段
 rename('年龄', age) # 将 age 重命名为 '年龄'
 
-# 将 `friends[2].nets[1]` 重命名为 'f2nets'
-# 注意：因为 friends[2].nets[1] 包含特殊的 json 路径字符，故需要用 `` 包围一下。
-rename('f2nets', `friends[2].nets[1]`) 
+# 将 `friends[2].nets[1]` 重命名为 'f2nets'（注意：因为 friends[2].nets[1] 包含特殊的 json 路径字符，故需要用 `` 包围一下）
+rename('f2nets', `friends[2].nets[1]`)
 rename('height', `身高`) # 身高因为是 Unicode 字符，需要 `` 包围一下 
 
 # 经过上面 rename 之后，对象变成如下样子
 
 {
-	"年龄": 37,
-	"height": 180,
-	"children[0]": "Sara",
-	"children[1]": "Alex",
-	"children[2]": "Jack",
-	"fav.movie": "Deer Hunter",
-	"friends[0].age": 44,
-	"friends[0].first": "Dale",
-	"friends[0].last": "Murphy",
-	"friends[0].nets[0]": "ig",
-	"friends[0].nets[1]": "fb",
-	"friends[0].nets[2]": "tw",
-	"friends[1].age": 68,
-	"friends[1].first": "Roger",
-	"friends[1].last": "Craig",
-	"friends[1].nets[0]": "fb",
-	"friends[1].nets[1]": "tw",
-	"friends[2].age": 47,
-	"friends[2].first": "Jane",
-	"friends[2].last": "Murphy",
-	"friends[2].nets[0]": "ig",
-	"f2nets": "tw",
-	"name.first": "Tom",
-	"name.last": "Anderson"
+    "年龄"               : 37,
+    "height"             : 180,
+    "children[0]"        : "Sara",
+    "children[1]"        : "Alex",
+    "children[2]"        : "Jack",
+    "fav.movie"          : "Deer Hunter",
+    "friends[0].age"     : 44,
+    "friends[0].first"   : "Dale",
+    "friends[0].last"    : "Murphy",
+    "friends[0].nets[0]" : "ig",
+    "friends[0].nets[1]" : "fb",
+    "friends[0].nets[2]" : "tw",
+    "friends[1].age"     : 68,
+    "friends[1].first"   : "Roger",
+    "friends[1].last"    : "Craig",
+    "friends[1].nets[0]" : "fb",
+    "friends[1].nets[1]" : "tw",
+    "friends[2].age"     : 47,
+    "friends[2].first"   : "Jane",
+    "friends[2].last"    : "Murphy",
+    "friends[2].nets[0]" : "ig",
+    "f2nets"             : "tw",
+    "name.first"         : "Tom",
+    "name.last"          : "Anderson"
 }
-
 ```
 
 ### `rename(new-key=required, old-key=required)`
@@ -431,11 +415,10 @@ rename('abc1', abc)
 示例：
 
 ```python
-# 待处理数据
-data = `{"info": {"age": 17, "name": "zhangsan", "height": 180}}`
+# 待处理数据: {"info": {"age": 17, "name": "zhangsan", "height": 180}}
 
 # 处理脚本
-script = `json(_, info.name, "姓名")`
+json(_, info.name, "姓名")
 
 # 处理结果
 {
@@ -458,11 +441,10 @@ script = `json(_, info.name, "姓名")`
 示例：
 
 ```python
-# 待处理数据
-data = `{"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"}`
+# 待处理数据: {"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"}
 
 # 处理脚本
-script = `json(_, url) url_decode(url)`
+json(_, url) url_decode(url)
 
 # 处理结果
 {
@@ -487,11 +469,10 @@ script = `json(_, url) url_decode(url)`
 示例：
 
 ```python
-# 待处理数据
-data = `{"ip":"116.228.89.206"}`
+# 待处理数据: {"ip":"116.228.89.206"}
 
 # 处理脚本
-script = `json(_, ip) geoip(ip)`
+json(_, ip) geoip(ip)
 
 # 处理结果
 {
@@ -530,11 +511,17 @@ Kitchen     = "3:04PM"
 示例:
 
 ```python
-# 待处理数据
-data = `{"a":{"timestamp": "1610960605000", "second":2},"age":47}`
+# 待处理数据: 
+#    {
+#        "a":{
+#            "timestamp": "1610960605000",
+#            "second":2
+#        },
+#        "age":47
+#    }
 
 # 处理脚本
-script = `json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')`
+json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')
 ```
 
 ### `expr(expr=required, key=required)`
@@ -572,13 +559,11 @@ expr(key1 * 2 + key3, result)
 示例:
 
 ```python
-# 待处理数据
-data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+# 待处理数据 {"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}
 
 # 处理脚本
-script = `json(_, a.second)
+json(_, a.second)
 expr(a.second*10+(2+3)*5, bb)
-`
 
 # 处理结果
 {
@@ -598,11 +583,10 @@ expr(a.second*10+(2+3)*5, bb)
 示例:
 
 ```python
-# 待处理数据
-data = `{"first": 1,"second":2,"thrid":"aBC","forth":true}`
+# 待处理数据: {"first": 1,"second":2,"thrid":"aBC","forth":true}
 
 # 处理脚本
-script = `json(_, first) cast(first, "str")`
+json(_, first) cast(first, "str")
 
 # 处理结果
 {
@@ -617,37 +601,34 @@ script = `json(_, first) cast(first, "str")`
 示例一:
 
 ```python
-# 待处理数据
-data = `{"http_status": 200, "code": "success"}`
+# 待处理数据: {"http_status": 200, "code": "success"}
 
-script = `json(_, http_status)
+json(_, http_status)
+
 # 如果字段 http_status 值在指定范围内，则将其值改为 "OK"
 group_between(http_status, [200, 300], "OK")
-# 如果字段 http_status 值在指定范围内，则新建 status 字段，其值为 "OK"
 `
 
 # 处理结果
 {
-	"http_status": "OK"
+    "http_status": "OK"
 }
 ```
 
 示例二:
 
 ```python
-# 待处理数据
-data = `{"http_status": 200, "code": "success"}`
+# 待处理数据: {"http_status": 200, "code": "success"}
 
-script = `json(_, http_status)
-# 如果字段 http_status 值在指定范围内，则将其值改为 "OK"
+json(_, http_status)
+
 # 如果字段 http_status 值在指定范围内，则新建 status 字段，其值为 "OK"
 group_between(http_status, [200, 300], "OK", status)
-`
 
 # 处理结果
 {
-	"http_status": 200,
-	"status": "OK"
+    "http_status": 200,
+    "status": "OK"
 }
 ```
 
@@ -678,11 +659,10 @@ group_in(log_level, ["error", "panic"], "not-ok", status)
 示例:
 
 ```python
-# 待处理数据
-data = `{"first": "hello","second":2,"thrid":"aBC","forth":true}`
+# 待处理数据: {"first": "hello","second":2,"thrid":"aBC","forth":true}
 
 # 处理脚本
-script = `json(_, first) uppercase(first, "1")`
+json(_, first) uppercase(first, "1")
 
 # 处理结果
 {
@@ -701,15 +681,14 @@ script = `json(_, first) uppercase(first, "1")`
 示例:
 
 ```python
-# 待处理数据
-data = `{"first": "HeLLo","second":2,"thrid":"aBC","forth":true}`
+# 待处理数据: {"first": "HeLLo","second":2,"thrid":"aBC","forth":true}
 
 # 处理脚本
-script = `json(_, first) lowercase(first)`
+json(_, first) lowercase(first)
 
 # 处理结果
 {
-	"first": "hello"
+    "first": "hello"
 }
 ```
 
@@ -725,15 +704,14 @@ script = `json(_, first) lowercase(first)`
 示例:
 
 ```python
-# 待处理数据
-data = `{"first": 1,"second":2,"thrid":"aBC","forth":true}`
+# 待处理数据: {"first": 1,"second":2,"thrid":"aBC","forth":true}
 
 # 处理脚本
-script = `json(_, first) json(_, second) nullif(first, "1")`
+json(_, first) json(_, second) nullif(first, "1")
 
 # 处理结果
 {
-	"second":2
+    "second":2
 }
 ```
 
@@ -750,16 +728,14 @@ script = `json(_, first) json(_, second) nullif(first, "1")`
 示例:
 
 ```python
-# 待处理数据
-data = `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+# 待处理数据: {"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}
 
 # 处理脚本
-script = `json(_, a.second)
+json(_, a.second)
 json(_, a.thrid)
 cast(a.second, "int")
 json(_, a.forth)
 strfmt(bb, "%v %s %v", a.second, a.thrid, a.forth)
-`
 ```
 
 ### `drop_origin_data()`
@@ -769,11 +745,10 @@ strfmt(bb, "%v %s %v", a.second, a.thrid, a.forth)
 示例:
 
 ```python
-# 待处理数据
-data = `{"age": 17, "name": "zhangsan", "height": 180}`
+# 待处理数据: {"age": 17, "name": "zhangsan", "height": 180}
 
 # 处理脚本
-script = `drop_origin_data()`
+drop_origin_data()
 
 # 结果集中删除message内容
 ```
@@ -789,11 +764,10 @@ script = `drop_origin_data()`
 示例:
 
 ```python
-# 待处理数据
-data = `{"age": 17, "name": "zhangsan", "height": 180}`
+# 待处理数据: {"age": 17, "name": "zhangsan", "height": 180}
 
 # 处理脚本
-script = `add_key(city, "shanghai")`
+add_key(city, "shanghai")
 
 # 处理结果
 {
@@ -839,10 +813,10 @@ JSON 提取示例:
 ```python
 # 原始 json
 {
-	"time":"06/Jan/2017:16:16:37 +0000",
-	"second":2,
-	"thrid":"abc",
-	"forth":true
+    "time":"06/Jan/2017:16:16:37 +0000",
+    "second":2,
+    "thrid":"abc",
+    "forth":true
 }
 
 # pipeline 脚本
@@ -893,17 +867,15 @@ rename("time", log_time)
 data = `{"age": 17, "name": "zhangsan", "height": 180}`
 
 # 处理脚本
-script = `
 json(_, age,)
 json(_, name)
 json(_, height)
 drop_key(height)
-`
 
 # 处理结果
 {
-	"age": 17,
-	"name": "zhangsan"
+    "age": 17,
+    "name": "zhangsan"
 }
 ```
 
@@ -923,11 +895,15 @@ drop_key(height)
 示例:
 
 ```python
-data = `{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36", "second":2,"thrid":"abc","forth":true}`
+# 待处理数据
+#    {
+#        "userAgent" : "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36",
+#        "second"    : 2,
+#        "thrid"     : "abc",
+#        "forth"     : true
+#    }
 
-script = `
 json(_, userAgent) user_agent(userAgent)
-`
 ```
 
 ### `parse_duration(key=required)`
@@ -1004,34 +980,17 @@ parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8") 结果 aa=158
 示例:
 
 ```python
-# demo1
-data = `{"str": "13789123014"}`
-
-script = `
+# 待处理数据 {"str": "13789123014"}
 json(_, str) cover(str, [8, 13])
-`
 
-# demo2
-data = `{"str": "13789123014"}`
-
-script = `
+# 待处理数据 {"str": "13789123014"}
 json(_, str) cover(str, [2, 4])
-`
 
-# demo3
-data = `{"str": "13789123014"}`
-
-script = `
+# 待处理数据 {"str": "13789123014"}
 json(_, str) cover(str, [1, 1])
-`
 
-# demo4
-data = `{"str": "小阿卡"}`
-
-script = `
+# 待处理数据 {"str": "小阿卡"}
 json(_, str) cover(str, [2, 2])
-`
-```
 
 ### `replace(key=required, regex=required, replaceStr=required)`
 
@@ -1047,33 +1006,19 @@ json(_, str) cover(str, [2, 2])
 示例:
 
 ```python
-# 电话号码
-data = `{"str": "13789123014"}`
+# 电话号码：{"str": "13789123014"}
+json(_, str)
+replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
 
-script = `
-json(_, str) replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
-`
-
-# 英文名
-data = `{"str": "zhang san"}`
-
-script = `
+# 英文名 {"str": "zhang san"}
 json(_, str) replace(str, "([a-z]*) \\w*", "$1 ***")
-`
 
-=======
-# 身份证号
-data = `{"str": "362201200005302565"}`
-
-script = `
+# 身份证号 {"str": "362201200005302565"}
 json(_, str) replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
 
-# 中文名
-data = `{"str": "小阿卡"}`
-
-script = `
-json(_, str) replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
-`
+# 中文名 {"str": "小阿卡"}
+json(_, str)
+replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
 ```
 
 ### grok 模式分类

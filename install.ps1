@@ -137,7 +137,7 @@ if ($proxy -ne "") {
 Invoke-Expression $dl_installer_action
 
 if ($upgrade -ne $null) { # upgrade
-	$action = "$installer -upgrade"
+	$action = "$installer -upgrade --proxy=${proxy}"
 } else { # install new datakit
 	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --cloud-provider=${cloud_provider} --global-tags='${global_tags}'"
 	if ($install_only -ne "") {
