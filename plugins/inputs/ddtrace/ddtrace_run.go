@@ -125,7 +125,7 @@ func handleStats(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-func extracteCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
+func extractCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
 	var customerTags = map[string]string{}
 	for _, key := range customerKeys {
 		if value, ok := meta[key]; ok {
@@ -233,8 +233,12 @@ NEXT_TRACE:
 			tags[itrace.TAG_HTTP_METHOD] = span.Meta["http.method"]
 			tags[itrace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
 
-			customerTags := extracteCustomerTags(customerKeys, span.Meta)
+			customerTags := extractCustomerTags(customerKeys, span.Meta)
 			for k, v := range customerTags {
+				tags[k] = v
+			}
+
+			for k, v := range ddTags {
 				tags[k] = v
 			}
 

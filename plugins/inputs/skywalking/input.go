@@ -1,8 +1,6 @@
 package skywalking
 
 import (
-	"fmt"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -14,14 +12,14 @@ var (
 	skywalkingConfigSample = `
 [[inputs.skywalking]]
   [inputs.skywalking.V2]
-    port = 11800
+    address = "localhost:11800"
     # [inputs.skywalking.V2.tags]
       # tag1 = "tag1"
       # tag2 = "tag2"
       # ...
 
   [inputs.skywalking.V3]
-    port = 13800
+    address = "localhost:13800"
     # [inputs.skywalking.V3.tags]
       # tag1 = "tag1"
       # tag2 = "tag2"
@@ -31,15 +29,15 @@ var (
 )
 
 var (
-	defSkyWalkingV2Port = 11800
+	defSkyWalkingV2Addr = "localhost:11800"
 	skywalkingV2Tags    map[string]string
-	defSkyWalkingV3Port = 13800
+	defSkyWalkingV3Addr = "localhost:13800"
 	skywalkingV3Tags    map[string]string
 )
 
 type Skywalking struct {
-	Port int32             `toml:"port"`
-	Tags map[string]string `toml:"tags"`
+	Address string            `toml:"address"`
+	Tags    map[string]string `toml:"tags"`
 }
 
 type Input struct {
@@ -63,22 +61,22 @@ func (i *Input) Run() {
 		if i.V2.Tags != nil {
 			skywalkingV2Tags = i.V2.Tags
 		}
-		if i.V2.Port <= 0 {
-			i.V2.Port = int32(defSkyWalkingV2Port)
+		if i.V2.Address == "" {
+			i.V2.Address = defSkyWalkingV2Addr
 		}
-		log.Debug("start skywalking grpc v2 server")
-		go skyWalkingV2ServerRun(fmt.Sprintf(":%d", i.V2.Port))
+		log.Info("start skywalking grpc v2 server")
+		go skyWalkingV2ServerRun(i.V2.Address)
 	}
 
 	if i.V3 != nil {
 		if i.V3.Tags != nil {
 			skywalkingV3Tags = i.V3.Tags
 		}
-		if i.V3.Port <= 0 {
-			i.V3.Port = int32(defSkyWalkingV3Port)
+		if i.V3.Address == "" {
+			i.V3.Address = defSkyWalkingV3Addr
 		}
 		log.Debug("start skywalking grpc v3 server")
-		go skyWalkingV3ServervRun(fmt.Sprintf(":%d", i.V3.Port))
+		go skyWalkingV3ServervRun(i.V3.Address)
 	}
 }
 
