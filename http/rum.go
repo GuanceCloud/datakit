@@ -34,6 +34,18 @@ func geoTags(srcip string) (tags map[string]string) {
 		l.Warnf("geo failed: %s, ignored", err)
 		return
 	} else {
+		switch ipInfo.Country_short { // #issue 354
+		case "TW":
+			ipInfo.Country_short = "CN"
+			ipInfo.Region = "Taiwan"
+		case "MO":
+			ipInfo.Country_short = "CN"
+			ipInfo.Region = "Macao"
+		case "HK":
+			ipInfo.Country_short = "CN"
+			ipInfo.Region = "Hong Kong"
+		}
+
 		// 无脑填充 geo 数据
 		tags = map[string]string{
 			"city":     ipInfo.City,
