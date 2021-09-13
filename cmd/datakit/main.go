@@ -65,7 +65,6 @@ func init() {
 	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "under DQL, query interactively")
 	flag.BoolVar(&cmds.FlagJSON, "json", false, "under DQL, output in json format")
 	flag.BoolVar(&cmds.FlagAutoJSON, "auto-json", false, "under DQL, pretty output string if it's JSON")
-	flag.BoolVar(&cmds.FlagIgnoreErr, "ignore-error", false, "under DQL, ignore any error and continue when running DQL query")
 	flag.StringVar(&cmds.FlagRunDQL, "run-dql", "", "run single DQL")
 	flag.StringVar(&cmds.FlagToken, "token", "", "query under specific token")
 

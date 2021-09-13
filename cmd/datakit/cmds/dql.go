@@ -253,26 +253,23 @@ func show(body []byte) {
 	}
 
 	for _, c := range r.Content {
-		if err := doShow(c); err != nil {
-			if FlagIgnoreErr {
-				return
-			}
-		}
+		doShow(c)
 	}
 }
 
-func doShow(c *queryResult) error {
+func doShow(c *queryResult) {
 	rows := 0
 
 	switch {
 	case FlagJSON:
 		j, err := json.MarshalIndent(c, "", defaultJsonIndent)
 		if err != nil {
-			return err
+			colorPrint(color.FgRed, "%s\n", err.Error())
+			return
 		}
 
 		if len(j) == 0 {
-			return nil
+			return
 		}
 
 		output("%s\n", j)
@@ -289,7 +286,7 @@ func doShow(c *queryResult) error {
 				j, err := json.MarshalIndent(x, "", "    ")
 				if err != nil {
 					colorPrint(color.FgRed, "%s\n", err)
-					return nil
+					return
 				}
 
 				colorPrint(color.FgGreen, "---------\n")
@@ -302,7 +299,7 @@ func doShow(c *queryResult) error {
 	}
 
 	colorPrint(color.FgGreen, "---------\n%d rows, %d series, cost %s\n", rows, len(c.Series), c.Cost)
-	return nil
+	return
 }
 
 // Not used
