@@ -29,6 +29,8 @@ type Single struct {
 	mult     *Multiline
 	pipeline *pipeline.Pipeline
 
+	readBuff []byte
+
 	tags   map[string]string
 	stopCh chan struct{}
 }
@@ -74,6 +76,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		}
 	}
 
+	t.readBuff = make([]byte, readBuffSize)
 	t.filename = t.file.Name()
 	t.tags = t.buildTags(opt.GlobalTags)
 
@@ -111,8 +114,6 @@ func (t *Single) forwardMessage() {
 	}
 
 	for {
-		b.buf = b.buf[:0]
-
 		select {
 		case <-t.stopCh:
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
@@ -177,7 +178,7 @@ func (t *Single) processText(text string) error {
 		TakeTime().
 		Point(t.opt.Source, t.tags).
 		Feed(t.opt.InputName).
-		MergeErrs()
+		Err()
 
 	return err
 }
@@ -194,16 +195,14 @@ func (t *Single) currentOffset() int64 {
 }
 
 func (t *Single) read() ([]byte, int, error) {
-	buf := make([]byte, readBuffSize)
-	n, err := t.file.Read(buf)
+	n, err := t.file.Read(t.readBuff)
 	if err != nil && err != io.EOF {
 		// an unexpected error occurred, stop the tailor
 		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
 
-	buf = buf[:n]
-	return buf, n, nil
+	return t.readBuff[:n], n, nil
 }
 
 func (t *Single) wait() {

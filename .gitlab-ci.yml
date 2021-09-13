@@ -14,7 +14,7 @@ stages:
 build-testing:
   stage: deploy
   only:
-    - testing.*
+    - testing
     - dev-.*
   script:
     # building && publish testing

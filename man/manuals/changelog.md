@@ -2,19 +2,19 @@
 
 # DataKit 版本历史
 
-## 1.1.8-rc3(预计2021/09/09)
+## 1.1.8-rc3(2021/09/10)
 
-- ddtrace 增加 resource 过滤功能(#328)
+- ddtrace 增加 [resource 过滤](ddtrace#224e2ccd)功能(#328)
 - 新增 [NSQ](nsq) 采集器(#312)
-- K8s daemonset 部署时，部分采集器支持通过环境变量来变更默认配置(#309)
-- 初步支持 SkyWalking(alpha)(#335)
+- K8s daemonset 部署时，部分采集器支持通过环境变量来变更默认配置，以[CPU为例](cpu#1b85f981)(#309)
+- 初步支持 [SkyWalkingV3](skywalking)(alpha)(#335)
 
 ### Bugs
 
-- RUM 采集器移除全文字段，减少网络开销(#349)
-- [日志采集器](logging)增加对 truncate 情况的处理(#271)
+- [RUM](rum) 采集器移除全文字段，减少网络开销(#349)
+- [日志采集器](logging)增加对文件 truncate 情况的处理(#271)
 - 日志字段切割错误字段兼容(#342)
-- 修复离线下载时可能出现的 TLS 错误(#330)
+- 修复[离线下载](datakit-offline-install)时可能出现的 TLS 错误(#330)
 
 ### 改进
 

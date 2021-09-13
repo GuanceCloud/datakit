@@ -25,13 +25,13 @@ var (
 [[inputs.disk]]
   ##(optional) collect interval, default is 10 seconds
   interval = '10s'
-  ##
+
   ## By default stats will be gathered for all mount points.
   ## Set mount_points will restrict the stats to only the specified mount points.
   # mount_points = ["/"]
+
   ## Ignore mount points by filesystem type.
   ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
-
 
   [inputs.disk.tags]
   # some_tag = "some_value"
@@ -166,6 +166,8 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	i.IgnoreFS = unique(i.IgnoreFS)
+
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
@@ -186,6 +188,28 @@ func (i *Input) Run() {
 			return
 		}
 	}
+}
+
+// ReadEnv, support envs：
+//   ENV_INPUT_DISK_IGNORE_FS : []string
+func (i *Input) ReadEnv(envs map[string]string) {
+	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
+		list := strings.Split(fsList, ",")
+		l.Debugf("add ignore_fs from ENV: %v", fsList)
+		i.IgnoreFS = append(i.IgnoreFS, list...)
+	}
+}
+
+func unique(strSlice []string) []string {
+	keys := make(map[string]interface{})
+	list := []string{}
+	for _, entry := range strSlice {
+		if _, ok := keys[entry]; !ok {
+			keys[entry] = nil
+			list = append(list, entry)
+		}
+	}
+	return list
 }
 
 func init() {

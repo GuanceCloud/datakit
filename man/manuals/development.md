@@ -88,31 +88,81 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 
 ## Windows/Mac/Liux 平台编译环境搭建
 
-### Windows
-
-TODO
-
-#### 安装 Golang
-#### 安装 packr2
-#### 安装 `make` 工具
-
 ### Linux
 
-TODO
-
 #### 安装 Golang
+
+当前 Go 版本 [1.16.4](https://golang.org/dl/go1.16.4.linux-amd64.tar.gz)
+
+#### CI 设置
+
+> 假定 go 安装在 /root/golang 目录下
+
+- 设置目录
+
+```
+# 创建 Go 项目路径
+mkdir /root/go
+```
+
+- 设置如下环境变量
+
+```
+export GO111MODULE=on
+# Set the GOPROXY environment variable
+export GOPRIVATE=gitlab.jiagouyun.com/*
+
+export GOPROXY=https://goproxy.io
+
+# 假定 golang 安装在 /root 目录下
+export GOROOT=/root/golang-1.16.4
+# 将 go 代码 clone 到 GOPATH 里面
+export GOPATH=/root/go
+export PATH=$GOROOT/bin:~/go/bin:$PATH
+```
+
+在 `~/.ossenv` 下创建一组环境变量，填写 OSS Access Key 以及 Secret Key，用于发布版本：
+
+```shell
+export RELEASE_OSS_ACCESS_KEY='LT**********************'
+export RELEASE_OSS_SECRET_KEY='Cz****************************'
+export RELEASE_OSS_BUCKET='zhuyun-static-files-production'
+export RELEASE_OSS_PATH=''
+export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
+```
+
 #### 安装 packr2
-#### 安装 `make` 工具
-#### 安装 `gcc-multilib`
+
+安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2)（可能需要翻墙）
+
+#### 安装常见工具
+
+- tree
+- make
+- [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
+- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation)
+- wget
+- docker
+- curl
+
+#### 安装第三方库
+
+- `gcc-multilib`
+
+```shell
+# Debian/Ubuntu
+sudo apt-get install -y gcc-multilib
+
+# Centos: TODO
+```
 
 ### Mac
 
 TODO
 
-#### 安装 Golang
-#### 安装 packr2
-#### 安装 `make` 工具
-#### 安装 `tree` 工具
+### Windows
+
+TODO
 
 ## 本地调试
 

@@ -22,6 +22,12 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 配置好后，重启 DataKit 即可。
 
+支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+
+| 环境变量名                                           | 对应的配置参数项                | 参数示例       |
+| :---                                                 | ---                             | ---            |
+| `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | `true`/`false` |
+
 ## 开启云同步
 
 如果 DataKit 所在的主机是云主机（目前支持阿里云、腾讯云以及 AWS），那么可通过 `cloud_provider` 标签开启云同步：

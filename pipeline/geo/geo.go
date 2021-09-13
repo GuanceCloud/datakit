@@ -3,14 +3,14 @@ package geo
 import (
 	"fmt"
 
-	ipL "github.com/ip2location/ip2location-go"
+	"github.com/ip2location/ip2location-go"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
-	Db = &ipL.DB{}
+	Db = &ip2location.DB{}
 	l  = logger.DefaultSLogger("geo")
 )
 
@@ -18,7 +18,7 @@ func SetLog() {
 	l = logger.SLogger("geo")
 }
 
-func Geo(ip string) (*ipL.IP2Locationrecord, error) {
+func Geo(ip string) (*ip2location.IP2Locationrecord, error) {
 	if Db == nil {
 		return nil, fmt.Errorf("ip2location db nil")
 	}
@@ -53,6 +53,6 @@ func LoadIPLib(f string) error {
 		return nil
 	}
 
-	Db, err = ipL.OpenDB(f)
+	Db, err = ip2location.OpenDB(f)
 	return err
 }

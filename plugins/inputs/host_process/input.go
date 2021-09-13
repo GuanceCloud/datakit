@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,34 +29,34 @@ var (
 	maxMetricInterval = time.Minute
 )
 
-func (_ *Input) Catalog() string {
-	return category
+type Input struct {
+	ProcessName    []string          `toml:"process_name,omitempty"`
+	ObjectInterval datakit.Duration  `toml:"object_interval,omitempty"`
+	RunTime        datakit.Duration  `toml:"min_run_time,omitempty"`
+	OpenMetric     bool              `toml:"open_metric,omitempty"`
+	MetricInterval datakit.Duration  `toml:"metric_interval,omitempty"`
+	Pipeline       string            `toml:"pipeline,omitempty"`
+	Tags           map[string]string `toml:"tags"`
+
+	lastErr error
+	re      string
+	isTest  bool
 }
 
-func (_ *Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) Catalog() string { return category }
 
-func (p *Input) PipelineConfig() map[string]string {
-	return map[string]string{
-		inputName: pipelineSample,
-	}
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
-func (_ *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
+func (*Input) PipelineConfig() map[string]string { return map[string]string{inputName: pipelineSample} }
 
-func (_ *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&ProcessMetric{},
-		&ProcessObject{},
-	}
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{&ProcessMetric{}, &ProcessObject{}}
 }
 
 // TODO
-func (*Input) RunPipeline() {
-}
+func (*Input) RunPipeline() {}
 
 func (p *Input) Run() {
 	l = logger.SLogger(inputName)
@@ -102,7 +103,19 @@ func (p *Input) Run() {
 			return
 		}
 	}
+}
 
+// ReadEnv, support envs：
+//   ENV_INPUT_OPEN_METRIC : booler
+func (i *Input) ReadEnv(envs map[string]string) {
+	if open, ok := envs["ENV_INPUT_OPEN_METRIC"]; ok {
+		b, err := strconv.ParseBool(open)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_OPEN_METRIC to bool: %s, ignore", err)
+		} else {
+			i.OpenMetric = b
+		}
+	}
 }
 
 func (p *Input) getProcesses() (processList []*pr.Process) {
