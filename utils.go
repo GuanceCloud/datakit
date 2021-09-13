@@ -47,7 +47,7 @@ func MonitProc(proc *os.Process, name string) error {
 			}
 
 			switch runtime.GOOS {
-			case "windows":
+			case OSWindows:
 
 			default:
 				if err := p.Signal(syscall.Signal(0)); err != nil {

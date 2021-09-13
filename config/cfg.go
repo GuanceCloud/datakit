@@ -84,7 +84,7 @@ func DefaultConfig() *Config {
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
 		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	}

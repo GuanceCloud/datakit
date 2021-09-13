@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -106,7 +107,7 @@ func getUpgradeCommand(dlurl string, showTesting bool) string {
 	baseURLEnv := ""
 
 	switch runtime.GOOS {
-	case "windows":
+	case datakit.OSWindows:
 		if proxy != "" {
 			upgradeCmd = fmt.Sprintf(winUpgradeCmdProxy, proxy, dlurl)
 		} else {
@@ -176,7 +177,7 @@ func getVersion(addr string) (*version.VerInfo, error) {
 
 	ver.DownloadURL = fmt.Sprintf("https://%s/install.sh", addr)
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		ver.DownloadURL = fmt.Sprintf("https://%s/install.ps1", addr)
 	}
 	return &ver, nil

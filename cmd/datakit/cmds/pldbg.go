@@ -22,12 +22,12 @@ func pipelineDebugger(plname, txt string) error {
 	start := time.Now()
 	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, plname))
 	if err != nil {
-		return fmt.Errorf("new pipeline failed: %s", err.Error())
+		return fmt.Errorf("new pipeline failed: %w", err)
 	}
 
 	res, err := pl.Run(txt).Result()
 	if err != nil {
-		return fmt.Errorf("run pipeline failed: %s", err.Error())
+		return fmt.Errorf("run pipeline failed: %w", err)
 	}
 
 	if len(res) == 0 {
@@ -35,7 +35,7 @@ func pipelineDebugger(plname, txt string) error {
 		return nil
 	}
 
-	j, err := json.MarshalIndent(res, "", "    ")
+	j, err := json.MarshalIndent(res, "", defaultJsonIndent)
 	if err != nil {
 		return err
 	}

@@ -78,7 +78,7 @@ func init() {
 	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flag.StringVar(&cmds.FlagIPInfo, "ipinfo", "", "show IP geo info")
 
-	if runtime.GOOS != "windows" { // unsupported options under windows
+	if runtime.GOOS != datakit.OSWindows { // unsupported options under windows
 		flag.BoolVarP(&cmds.FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")
 		flag.BoolVar(&cmds.FlagDocker, "docker", false, "run within docker")
 	}
@@ -125,14 +125,14 @@ func setupFlags() {
 		flag.CommandLine.MarkHidden(f)
 	}
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		flag.CommandLine.MarkHidden("reload")
 	}
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		cmds.FlagCmdLogPath = "nul" // under windows, nul is /dev/null
 	}
 }
