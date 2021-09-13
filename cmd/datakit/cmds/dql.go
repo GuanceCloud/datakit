@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,6 +29,14 @@ var (
 	MaxHistory = 5000
 
 	dqlcli *http.Client
+
+	// If any error, ignored all waining/error message,
+	// to keep output not polluted
+	ignoreErr = false
+)
+
+const (
+	dqlraw = "/v1/query/raw"
 )
 
 func dql(host string) {
@@ -141,7 +150,6 @@ func runDQL(txt string) {
 		return
 
 	default:
-
 		lines := []string{}
 		if strings.HasSuffix(s, "\\") {
 			lines = append(lines, strings.TrimSuffix(s, "\\"))
@@ -157,6 +165,7 @@ func doDQL(s string) {
 
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
+		Token:       FlagToken,
 		Queries: []*dkhttp.SingleQuery{
 			{
 				Query: s,
@@ -173,11 +182,14 @@ func doDQL(s string) {
 	l.Debugf("dql request: %s", string(j))
 
 	req, err := http.NewRequest("POST",
-		fmt.Sprintf("http://%s/v1/query/raw", datakitHost),
-		bytes.NewBuffer(j))
+		fmt.Sprintf("http://%s%s", datakitHost, dqlraw), bytes.NewBuffer(j))
 	if err != nil {
 		colorPrint(color.FgRed, "http.NewRequest: %s\n", err.Error())
 		return
+	}
+
+	if dqlcli == nil {
+		dqlcli = &http.Client{}
 	}
 
 	resp, err := dqlcli.Do(req)
@@ -243,14 +255,32 @@ func show(body []byte) {
 	}
 
 	for _, c := range r.Content {
-		doShow(c)
+		if err := doShow(c); err != nil {
+			if FlagIgnoreErr {
+				return
+			}
+		}
 	}
 }
 
-func doShow(c *queryResult) {
+func doShow(c *queryResult) error {
+
+	if FlagJSON {
+		j, err := json.MarshalIndent(c, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		if len(j) == 0 {
+			return nil
+		}
+
+		output("%s\n", j)
+
+		return nil
+	}
 
 	rows := 0
-
 	rows = prettyShow(c)
 
 	if c.RawQuery != "" {
@@ -262,18 +292,47 @@ func doShow(c *queryResult) {
 				j, err := json.MarshalIndent(x, "", "    ")
 				if err != nil {
 					colorPrint(color.FgRed, "%s\n", err)
-				} else {
-					output("---------\n")
-					output("explain:\n%s\n", string(j))
+					return nil
 				}
+
+				colorPrint(color.FgGreen, "---------\n")
+				colorPrint(color.FgGreen, "explain:\n%s\n", string(j))
 			}
 		} else {
-			output("---------\n")
-			output("explain: %s\n", c.RawQuery)
+			colorPrint(color.FgGreen, "---------\n")
+			colorPrint(color.FgGreen, "explain:%s\n", c.RawQuery)
 		}
 	}
 
-	output("---------\n%d rows, cost %s\n", rows, c.Cost)
+	colorPrint(color.FgGreen, "---------\n%d rows, cost %s\n", rows, c.Cost)
+	return nil
+}
+
+// Not used
+func sortColumns(r *models.Row) {
+	colMap := map[string]int{}
+	for i, col := range r.Columns {
+		if _, ok := colMap[col]; ok {
+			// duplicate colums(means tag/field with the same key)
+			// terminate sorting
+			return
+		}
+
+		colMap[col] = i
+	}
+
+	sort.Strings(r.Columns)
+	valArray := [][]interface{}{}
+	for _, col := range r.Columns {
+		vals := []interface{}{}
+		for _, v := range r.Values {
+			vals = append(vals, v[colMap[col]])
+		}
+
+		valArray = append(valArray, vals)
+	}
+
+	r.Values = valArray
 }
 
 //nolint:funlen,gocyclo
@@ -312,6 +371,7 @@ func prettyShow(resp *queryResult) int {
 
 		default:
 			colWidth := getMaxColWidth(s)
+
 			fmtStr := fmt.Sprintf("%%%ds%%s", colWidth)
 			for _, val := range s.Values {
 				nrows++
@@ -328,6 +388,7 @@ func prettyShow(resp *queryResult) int {
 					}
 
 					col := s.Columns[colIdx]
+
 					if _, ok := s.Tags[col]; !ok {
 						if col == "time" {
 
@@ -347,13 +408,13 @@ func prettyShow(resp *queryResult) int {
 						}
 
 						valFmt := ""
-						switch val[colIdx].(type) {
+						switch v := val[colIdx].(type) {
 						case time.Time:
 							valFmt = "%v\n"
 						case json.Number:
-							i, err := val[colIdx].(json.Number).Int64()
+							i, err := v.Int64()
 							if err != nil {
-								f, err := val[colIdx].(json.Number).Float64()
+								f, err := v.Float64()
 								if err != nil {
 									l.Warn(err)
 								} else {
@@ -367,6 +428,13 @@ func prettyShow(resp *queryResult) int {
 
 						case string:
 							valFmt = "'%s'\n"
+							if FlagAutoJSON {
+								dst := &bytes.Buffer{}
+								if err := json.Indent(dst, []byte(v), "", "  "); err == nil {
+									val[colIdx] = dst.String()
+									valFmt = "----- json -----\n" + "%s\n" + "----- end of json -----\n"
+								}
+							}
 						case bool:
 							valFmt = "%v\n"
 						default:
@@ -403,6 +471,11 @@ func getMaxColWidth(r *models.Row) int {
 }
 
 func colorPrint(c color.Attribute, fmtstr string, args ...interface{}) {
+
+	if FlagJSON { // under json mode, there should no color message(aka, error message)
+		return
+	}
+
 	color.Set(c)
 	output(fmtstr, args...)
 	color.Unset()
