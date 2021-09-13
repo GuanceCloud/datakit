@@ -51,9 +51,13 @@ var (
 	FlagUninstall,
 	FlagReinstall bool
 
-	FlagDQL     bool
-	FlagRunDQL, // TODO: dump dql query result to specified CSV file
+	FlagIgnoreErr bool
+	FlagDQL       bool
+	FlagJSON      bool
+	FlagAutoJSON  bool
+	FlagRunDQL,   // TODO: dump dql query result to specified CSV file
 	FlagCSV string
+	FlagToken string
 
 	FlagUpdateIPDB bool
 	FlagAddr       string
