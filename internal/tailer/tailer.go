@@ -50,6 +50,8 @@ type Option struct {
 	MultilineMatch string
 	//  多行匹配的最大行数，避免出现某一行过长导致程序爆栈。默认 1000
 	MultilineMaxLines int
+	// 是否删除文本中的ansi转义码，默认为false，即不删除
+	RemoveAnsiEscapeCodes bool
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 	DisableAddStatusField bool
 	// 是否关闭高频IO
