@@ -5,6 +5,9 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"unsafe"
+
+	"github.com/pborman/ansi"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -47,6 +50,21 @@ type Logs struct {
 
 func NewLogs(text string) *Logs {
 	return &Logs{text: text, fields: make(map[string]interface{})}
+}
+
+func (x *Logs) RemoveAnsiEscapeCodesOfText(remove bool) *Logs {
+	if x.IsSkip() || !remove {
+		return x
+	}
+
+	newText, err := ansi.Strip(String2Bytes(x.text))
+	if err != nil {
+		x.AddErr(fmt.Errorf("failed of remove color: %s", err))
+		return x
+	}
+
+	x.text = Bytes2String(newText)
+	return x
 }
 
 func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
@@ -128,7 +146,7 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-// addStatus 添加默认status和status映射
+// addStatus 添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 func (x *Logs) AddStatus(disable bool) *Logs {
 	if x.IsSkip() || disable {
 		return x
@@ -267,4 +285,16 @@ func feed(inputName, measurement string, tags map[string]string, message string)
 	)
 
 	return err
+}
+
+// String2Bytes convert string to bytes
+func String2Bytes(s string) []byte {
+	x := (*[2]uintptr)(unsafe.Pointer(&s))
+	h := [3]uintptr{x[0], x[1], x[1]}
+	return *(*[]byte)(unsafe.Pointer(&h))
+}
+
+// Bytes2String convert bytes to string
+func Bytes2String(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }

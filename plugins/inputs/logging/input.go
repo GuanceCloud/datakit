@@ -47,6 +47,9 @@ const (
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
   # multiline_match = '''^\S'''
 
+  ## removes ANSI escape codes from text strings
+  remove_ansi_escape_codes = false
+
   [inputs.logging.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -54,17 +57,18 @@ const (
 )
 
 type Input struct {
-	LogFiles          []string          `toml:"logfiles"`
-	Ignore            []string          `toml:"ignore"`
-	Source            string            `toml:"source"`
-	Service           string            `toml:"service"`
-	Pipeline          string            `toml:"pipeline"`
-	IgnoreStatus      []string          `toml:"ignore_status"`
-	CharacterEncoding string            `toml:"character_encoding"`
-	MultilineMatch    string            `toml:"multiline_match"`
-	MultilineMaxLines int               `toml:"multiline_maxlines"`
-	Tags              map[string]string `toml:"tags"`
-	FromBeginning     bool              `toml:"-"`
+	LogFiles              []string          `toml:"logfiles"`
+	Ignore                []string          `toml:"ignore"`
+	Source                string            `toml:"source"`
+	Service               string            `toml:"service"`
+	Pipeline              string            `toml:"pipeline"`
+	IgnoreStatus          []string          `toml:"ignore_status"`
+	CharacterEncoding     string            `toml:"character_encoding"`
+	MultilineMatch        string            `toml:"multiline_match"`
+	MultilineMaxLines     int               `toml:"multiline_maxlines"`
+	RemoveAnsiEscapeCodes bool              `toml:"remove_ansi_escape_codes"`
+	Tags                  map[string]string `toml:"tags"`
+	FromBeginning         bool              `toml:"-"`
 
 	DeprecatedPipeline       string `toml:"pipeline_path"`
 	DeprecatedMultilineMatch string `toml:"match"`
@@ -103,15 +107,16 @@ func (this *Input) Run() {
 	}
 
 	opt := &tailer.Option{
-		Source:            this.Source,
-		Service:           this.Service,
-		Pipeline:          pipelinePath,
-		IgnoreStatus:      this.IgnoreStatus,
-		FromBeginning:     this.FromBeginning,
-		CharacterEncoding: this.CharacterEncoding,
-		MultilineMatch:    this.MultilineMatch,
-		MultilineMaxLines: this.MultilineMaxLines,
-		GlobalTags:        this.Tags,
+		Source:                this.Source,
+		Service:               this.Service,
+		Pipeline:              pipelinePath,
+		IgnoreStatus:          this.IgnoreStatus,
+		FromBeginning:         this.FromBeginning,
+		CharacterEncoding:     this.CharacterEncoding,
+		MultilineMatch:        this.MultilineMatch,
+		MultilineMaxLines:     this.MultilineMaxLines,
+		RemoveAnsiEscapeCodes: this.RemoveAnsiEscapeCodes,
+		GlobalTags:            this.Tags,
 	}
 
 	var err error
