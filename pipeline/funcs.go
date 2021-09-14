@@ -228,11 +228,12 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Debugf("key `%v' not exist", key)
+		l.Warnf("key `%v' not exist", key)
 		return p, nil
 	}
 
 	if dic, err := GeoIpHandle(cont); err != nil {
+		l.Warnf("GeoIpHandle: %s, ignored", err)
 		return p, err
 	} else {
 		for k, v := range dic {

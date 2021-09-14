@@ -7,7 +7,7 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
@@ -26,7 +26,7 @@ var (
 func geoTags(srcip string) (tags map[string]string) {
 	tags = map[string]string{}
 
-	ipInfo, err := geo.Geo(srcip)
+	ipInfo, err := pipeline.Geo(srcip)
 
 	l.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
 

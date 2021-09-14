@@ -249,52 +249,6 @@ func TestUrlencodeFunc(t *testing.T) {
 	}
 }
 
-func TestGeoIpFunc(t *testing.T) {
-	var testCase = []*funcCase{
-		{
-			data:     `{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, ip) geoip(ip)`,
-			expected: "Shanghai",
-			key:      "city",
-			err:      nil,
-		},
-		{
-			data:     `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, ip) geoip(ip)`,
-			expected: "-",
-			key:      "city",
-			err:      nil,
-		},
-		{
-			data:     `{"ip":"", "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, "ip") geoip(ip)`,
-			expected: "unknown",
-			key:      "city",
-			err:      nil,
-		},
-		{
-			data:     `{"aa": {"ip":"116.228.89.206"}, "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, aa.ip) geoip("aa.ip")`,
-			expected: "Shanghai",
-			key:      "city",
-			err:      nil,
-		},
-	}
-
-	// geo.Init()
-
-	for _, tt := range testCase {
-		p, err := NewPipeline(tt.script)
-		assertEqual(t, err, p.lastErr)
-
-		p.Run(tt.data)
-
-		r, err := p.getContentStr(tt.key)
-
-		assertEqual(t, r, tt.expected)
-	}
-}
-
 func TestUserAgentFunc(t *testing.T) {
 	var testCase = []*funcCase{
 		{

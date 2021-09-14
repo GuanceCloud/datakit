@@ -268,7 +268,6 @@ func TestSetupDataway(t *testing.T) {
 			urls:   []string{"http://abc.com", "http://def.com?token=tkn_xyz"},
 			url:    "http://xyz.com",
 			expect: []string{"http://abc.com", "http://def.com?token=tkn_xyz"},
-			fail:   false,
 		},
 
 		{
@@ -285,8 +284,9 @@ func TestSetupDataway(t *testing.T) {
 		},
 
 		{
-			url:   "http://1024.com?token=tkn_xyz",
-			proxy: "invalid-proxy-to-1024.com", // ignored
+			url:    "http://1024.com?token=tkn_xyz",
+			expect: []string{"http://1024.com?token=tkn_xyz"},
+			proxy:  "invalid-proxy-to-1024.com", // ignored
 		},
 
 		{
