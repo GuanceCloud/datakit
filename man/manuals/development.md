@@ -169,26 +169,27 @@ TODO
 DataKit 支持设定工作目录，目前默认的工作目录是 `/usr/local/datakit`（Windows 下为 `C:\Program Files\datakit`）。设定方式为：
 
 ```shell
-datakit --work-dir path/to/workdir
+datakit --workdir path/to/workdir
 ```
 
 - 将该命令做一个 alias，放到 ~/.bashrc 中：
 
 ```shell
-echo 'alias dk="datakit --work-dir ~/datakit"' >> ~/.bashrc
+echo 'alias dk="datakit --workdir ~/datakit"' >> ~/.bashrc
 ```
 
 大家可能直接在 DataKit 开发目录下启动 DataKit，可改一下 DataKit 启动文件，直接使用当前编译出来的 DataKit：
 
 ```shell
 # Linux
-echo 'alias dk="./dist/datakit-linux-amd64/datakit --work-dir ~/datakit"' >> ~/.bashrc
+echo 'alias dk="./dist/datakit-linux-amd64/datakit --workdir ~/datakit"' >> ~/.bashrc
 
 # Mac
-echo 'alias dk="./dist/datakit-darwin-amd64/datakit --work-dir ~/datakit"' >> ~/.bashrc
+echo 'alias dk="./dist/datakit-darwin-amd64/datakit --workdir ~/datakit"' >> ~/.bash_profile
 
 # alias 生效
-source ~/.bashrc
+source ~/.bashrc       # Linux
+source ~/.bash_profile # Mac
 ```
 
 - 通过 DataKit 创建一个 `datakit.conf`：
@@ -197,7 +198,7 @@ source ~/.bashrc
 mkdir -p ~/datakit/conf.d && datakit --default-main-conf > ~/datakit/conf.d/datakit.conf
 ```
 
-修改 `datakit.conf` 中的配置，如 token、日志配置（日志默认指向 /var/log/datakit/ 下，可改到其它地方）等，启动之后，DataKit 会自动创建各种目录。这样就能在一个主机上运行多个 datakit 实例：
+修改 `datakit.conf` 中的配置，如 token、日志配置（日志默认指向 `/var/log/datakit/` 下，可改到其它地方）等，启动之后，DataKit 会自动创建各种目录。这样就能在一个主机上运行多个 datakit 实例：
 
 ```shell
 $ dk
