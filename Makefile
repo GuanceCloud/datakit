@@ -157,7 +157,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser plparser vet
+deps: prepare man gofmt lfparser plparser vet # TODO: add @lint and @test here
 
 man:
 	@packr2 clean
@@ -169,8 +169,17 @@ gofmt:
 vet:
 	@go vet ./...
 
-test:
-	@GO111MODULE=off go test ./...
+test: test_deps
+	@truncate -s 0 test.output
+	@echo "#####################" > test.output
+	@echo "#" $(DATE) >> test.output
+	@echo "#" $(GIT_VERSION) >> test.output
+	@echo "#####################" >> test.output
+	for pkg in `go list ./...`; do \
+		echo "# testing $$pkg..." >> test.output; \
+		GO111MODULE=off CGO_ENABLED=0 go test -timeout 30s -cover $$pkg |tee -a test.output; \
+		echo "######################" >> test.output; \
+	done
 
 lfparser:
 	@goyacc -o io/parser/gram_y.go io/parser/gram.y
@@ -179,6 +188,8 @@ plparser:
 	@goyacc -o pipeline/parser/parser_y.go pipeline/parser/parser.y
 
 lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
+
+test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go

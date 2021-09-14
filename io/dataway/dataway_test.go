@@ -286,8 +286,7 @@ func TestSetupDataway(t *testing.T) {
 
 		{
 			url:   "http://1024.com?token=tkn_xyz",
-			proxy: "invalid-proxy-to-1024.com",
-			fail:  true,
+			proxy: "invalid-proxy-to-1024.com", // ignored
 		},
 
 		{
@@ -307,6 +306,8 @@ func TestSetupDataway(t *testing.T) {
 	}
 
 	for i, tc := range cases {
+		t.Logf("case %d...", i)
+
 		dw := DataWayCfg{
 			DeprecatedURL: tc.url,
 			URLs:          tc.urls,
