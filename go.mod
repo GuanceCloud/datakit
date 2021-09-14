@@ -11,6 +11,8 @@ require (
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
+	github.com/chromedp/cdproto v0.0.0-20210910012206-68626162910d // indirect
+	github.com/chromedp/chromedp v0.7.4 // indirect
 	github.com/containerd/cgroups v1.0.1
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
@@ -43,6 +45,7 @@ require (
 	github.com/mssola/user_agent v0.5.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
+	github.com/pborman/ansi v1.0.0
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.30.0
@@ -65,11 +68,11 @@ require (
 	github.com/yuin/goldmark v1.3.5
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210819175148-5d0565ecd466
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210914091421-1080d4acb640
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/net v0.0.0-20210907225631-ff17edfbf26d
-	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
+	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
 	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect

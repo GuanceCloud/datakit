@@ -209,6 +209,7 @@ type EventRequestWillBeSentExtraInfo struct {
 	RequestID           RequestID                  `json:"requestId"`                     // Request identifier. Used to match this information to an existing requestWillBeSent event.
 	AssociatedCookies   []*BlockedCookieWithReason `json:"associatedCookies"`             // A list of cookies potentially associated to the requested URL. This includes both cookies sent with the request and the ones not sent; the latter are distinguished by having blockedReason field set.
 	Headers             Headers                    `json:"headers"`                       // Raw request headers as they will be sent over the wire.
+	ConnectTiming       *ConnectTiming             `json:"connectTiming"`                 // Connection timing information for the request.
 	ClientSecurityState *ClientSecurityState       `json:"clientSecurityState,omitempty"` // The client security state set for the request.
 }
 
@@ -224,6 +225,7 @@ type EventResponseReceivedExtraInfo struct {
 	BlockedCookies         []*BlockedSetCookieWithReason `json:"blockedCookies"`         // A list of cookies which were not stored from the response along with the corresponding reasons for blocking. The cookies here may not be valid due to syntax errors, which are represented by the invalid cookie line string instead of a proper cookie.
 	Headers                Headers                       `json:"headers"`                // Raw response headers as they were received over the wire.
 	ResourceIPAddressSpace IPAddressSpace                `json:"resourceIPAddressSpace"` // The IP address space of the resource. The address space can only be determined once the transport established the connection, so we can't send it in requestWillBeSentExtraInfo.
+	StatusCode             int64                         `json:"statusCode"`             // The status code of the response. This is useful in cases the request failed and no responseReceived event is triggered, which is the case for, e.g., CORS errors. This is also the correct status code for cached requests, where the status in responseReceived is a 200 and this will be 304.
 	HeadersText            string                        `json:"headersText,omitempty"`  // Raw response header text as it was received over the wire. The raw text may not always be available, such as in the case of HTTP/2 or QUIC.
 }
 
@@ -281,4 +283,19 @@ type EventSubresourceWebBundleInnerResponseError struct {
 	InnerRequestURL string    `json:"innerRequestURL"`           // URL of the subresource resource.
 	ErrorMessage    string    `json:"errorMessage"`              // Error message
 	BundleRequestID RequestID `json:"bundleRequestId,omitempty"` // Bundle request identifier. Used to match this information to another event. This made be absent in case when the instrumentation was enabled only after webbundle was parsed.
+}
+
+// EventReportingAPIReportAdded is sent whenever a new report is added. And
+// after 'enableReportingApi' for all existing reports.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Network#event-reportingApiReportAdded
+type EventReportingAPIReportAdded struct {
+	Report *ReportingAPIReport `json:"report"`
+}
+
+// EventReportingAPIReportUpdated [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Network#event-reportingApiReportUpdated
+type EventReportingAPIReportUpdated struct {
+	Report *ReportingAPIReport `json:"report"`
 }

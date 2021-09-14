@@ -171,6 +171,7 @@ func (t *Single) processText(text string) error {
 	}
 
 	err := NewLogs(text).
+		RemoveAnsiEscapeCodesOfText(t.opt.RemoveAnsiEscapeCodes).
 		Pipeline(t.pipeline).
 		CheckFieldsLength().
 		AddStatus(t.opt.DisableAddStatusField).
