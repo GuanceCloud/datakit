@@ -69,7 +69,15 @@ func showVersion(curverStr, releaseType string, showTestingVer bool) {
 Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
-`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, releaseType)
+     InstallAt: %s
+     UpgradeAt: %s
+`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader,
+		releaseType, config.Cfg.InstallDate, func() string {
+			if config.Cfg.UpgradeDate.Unix() < 0 {
+				return "not upgraded"
+			}
+			return fmt.Sprintf("%v", config.Cfg.UpgradeDate)
+		}())
 	vers, err := getOnlineVersions(showTestingVer)
 	if err != nil {
 		fmt.Printf("Get online version failed: \n%s\n", err.Error())
@@ -114,7 +122,7 @@ func getUpgradeCommand(dlurl string, showTesting bool) string {
 			upgradeCmd = fmt.Sprintf(winUpgradeCmd, dlurl)
 		}
 
-		baseURLEnv = fmt.Sprintf(`$env:DK_INSTALLER_BASE_URL="%s"; `, TestingBaseURL)
+		baseURLEnv = fmt.Sprintf(`$env:DK_INSTALLER_BASE_URL="https://%s"; `, TestingBaseURL)
 
 	default: // Linux/Mac
 
@@ -124,7 +132,7 @@ func getUpgradeCommand(dlurl string, showTesting bool) string {
 			upgradeCmd = fmt.Sprintf(unixUpgradeCmd, dlurl)
 		}
 
-		baseURLEnv = fmt.Sprintf(`DK_INSTALLER_BASE_URL="%s" `, TestingBaseURL)
+		baseURLEnv = fmt.Sprintf(`DK_INSTALLER_BASE_URL="https://%s" `, TestingBaseURL)
 	}
 
 	// for testing version upgrade command, we need to change the base URL
