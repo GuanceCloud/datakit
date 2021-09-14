@@ -37,22 +37,19 @@ const (
 	// https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L21
 	maxLineBytes = 16 * 1024
 
-	// ES value can be at most 32766 bytes long
-	maxFieldsLength = 32766
-
-	pipelineTimeField = "time"
-
-	useIOHighFreq = true
-
 	containerIDPrefix = "docker://"
+
+	loggingRemoveAnsiEscapeCodes = true
+	loggingDisableAddStatus      = false
 )
 
 type dockerClient struct {
 	client *docker.Client
 	K8s    *Kubernetes
 
-	IgnoreImageName     []string
-	IgnoreContainerName []string
+	IgnoreImageName              []string
+	IgnoreContainerName          []string
+	LoggingRemoveAnsiEscapeCodes bool
 
 	ProcessTags func(tags map[string]string)
 	Logs        Logs
@@ -581,9 +578,10 @@ func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, str
 		text := strings.TrimSpace(string(line))
 
 		if err := tailer.NewLogs(text).
+			RemoveAnsiEscapeCodesOfText(d.LoggingRemoveAnsiEscapeCodes).
 			Pipeline(pipe).
 			CheckFieldsLength().
-			AddStatus(false).
+			AddStatus(loggingDisableAddStatus).
 			TakeTime().
 			Point(source, tags).
 			Feed(inputName).

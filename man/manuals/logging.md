@@ -49,7 +49,10 @@
   ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
   ## 使用3个单引号 '''this-regexp''' 避免转义
   ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  match = '''^\S'''
+  # multiline_match = '''^\S'''
+
+  ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
+  remove_ansi_escape_codes = false
   
   # 自定义 tags
   [inputs.logging.tags]
