@@ -4,6 +4,7 @@ package iis
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -13,7 +14,21 @@ var (
 	metricNameAppPoolWas = "iis_app_pool_was"
 )
 
+// redefine them here for conf-sample checking
 type Input struct {
+	Interval datakit.Duration
+
+	Tags map[string]string
+
+	Log  *iisLog `toml:"log"`
+	tail *tailer.Tailer
+
+	collectCache []inputs.Measurement
+}
+
+type iisLog struct {
+	Files    []string `toml:"files"`
+	Pipeline string   `toml:"pipeline"`
 }
 
 func (i *Input) SampleConfig() string {

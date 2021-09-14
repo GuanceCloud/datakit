@@ -10,8 +10,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/fatih/color"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -66,6 +64,7 @@ var (
 	FlagIPInfo           string
 	FlagMonitor          bool
 	FlagCheckConfig      bool
+	FlagCheckSample      bool
 	FlagDocker           bool
 	FlagDisableSelfInput bool
 	FlagVVV              bool
@@ -126,6 +125,13 @@ func RunCmds() {
 		os.Exit(0)
 	}
 
+	if FlagCheckSample {
+		tryLoadMainCfg()
+		setCmdRootLog(FlagCmdLogPath)
+		checkSample()
+		os.Exit(0)
+	}
+
 	if FlagDQL {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
@@ -146,7 +152,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		info, err := showCloudInfo(FlagShowCloudInfo)
 		if err != nil {
-			colorPrint(color.FgRed, "[E] Get cloud info failed: %s\n", err.Error())
+			errorf("[E] Get cloud info failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -176,7 +182,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := ipInfo(FlagIPInfo)
 		if err != nil {
-			colorPrint(color.FgRed, "[E] get IP info failed: %s\n", err.Error())
+			errorf("[E] get IP info failed: %s\n", err.Error())
 		} else {
 			for k, v := range x {
 				fmt.Printf("\t% 8s: %s\n", k, v)
@@ -208,7 +214,7 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := pipelineDebugger(FlagPipeline, FlagText); err != nil {
-			colorPrint(color.FgRed, "[E] %s\n", err)
+			errorf("[E] %s\n", err)
 			os.Exit(-1)
 		}
 
@@ -267,7 +273,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := startDatakit(); err != nil {
-			colorPrint(color.FgRed, "[E] start DataKit failed: %s\n", err.Error())
+			errorf("[E] start DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -281,7 +287,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := stopDatakit(); err != nil {
-			colorPrint(color.FgRed, "[E] stop DataKit failed: %s\n", err.Error())
+			errorf("[E] stop DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -295,7 +301,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := restartDatakit(); err != nil {
-			colorPrint(color.FgRed, "[E] restart DataKit failed: %s\n", err.Error())
+			errorf("[E] restart DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -309,7 +315,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := datakitStatus()
 		if err != nil {
-			colorPrint(color.FgRed, "[E] get DataKit status failed: %s\n", err.Error())
+			errorf("[E] get DataKit status failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 		fmt.Println(x)
@@ -320,7 +326,7 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := uninstallDatakit(); err != nil {
-			colorPrint(color.FgRed, "[E] uninstall DataKit failed: %s\n", err.Error())
+			errorf("[E] uninstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -332,7 +338,7 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := reinstallDatakit(); err != nil {
-			colorPrint(color.FgRed, "[E] reinstall DataKit failed: %s\n", err.Error())
+			errorf("[E] reinstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -345,7 +351,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := updateIPDB(FlagAddr); err != nil {
-			colorPrint(color.FgRed, "[E] update IPDB failed: %s\n", err.Error())
+			errorf("[E] update IPDB failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 

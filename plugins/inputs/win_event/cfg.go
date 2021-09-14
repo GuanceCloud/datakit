@@ -5,10 +5,11 @@ package win_event
 import (
 	"bytes"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (

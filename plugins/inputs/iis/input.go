@@ -30,11 +30,6 @@ var (
 	l                    = logger.DefaultSLogger("iis")
 )
 
-type iisLog struct {
-	Files    []string `toml:"files"`
-	Pipeline string   `toml:"pipeline"`
-}
-
 type Input struct {
 	Interval datakit.Duration
 
@@ -44,6 +39,11 @@ type Input struct {
 	tail *tailer.Tailer
 
 	collectCache []inputs.Measurement
+}
+
+type iisLog struct {
+	Files    []string `toml:"files"`
+	Pipeline string   `toml:"pipeline"`
 }
 
 func (i *Input) Catalog() string {
