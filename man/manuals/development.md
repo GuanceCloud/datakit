@@ -339,3 +339,32 @@ func digitVal(ch rune) int {
 cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 ```
 - 其它可能确实需要关闭检查的地方，慎重对待
+
+## DataKit 辅助功能
+
+除了[官方文档](datakit-how-to#666de9ed)列出的部分辅助功能外，DataKit 还支持其它功能，这些主要在开发过程中使用。
+
+### 检查 sample config 是否正确
+
+```shell
+datakit --check-sample
+------------------------
+checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
+```
+
+### 导出文档
+
+将 DataKit 现有文档，导出到指定目录，同时指定文档版本，将文档中标记为 `TODO` 的用 `-` 代替，同时忽略采集器 `demo`
+
+```shell
+man_version=`git tag -l | sort -nr | head -n 1` # 获取最近发布的 tag 版本
+datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ignore demo
+```
+
+### 集成导出
+
+将集成内容导出到指定目录，一般这个目录是另一个 git-repo（当前是 [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git)）
+
+```shell
+datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
+```

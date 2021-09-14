@@ -51,7 +51,7 @@ func checkInputCfg(tpl *ast.Table, fp string) {
 							failed++
 						} else {
 							if FlagVVV {
-								infof("[OK] %s/%s\n", inputName, fp)
+								output("[OK] %s/%s\n", inputName, fp)
 							}
 							passed++
 						}
@@ -70,6 +70,8 @@ func checkSample() {
 		i := c()
 
 		if k == "self" {
+			warnf("[W] ignore self input\n")
+			ignored++
 			continue
 		}
 
