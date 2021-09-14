@@ -80,9 +80,10 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.0.0-20190813020757-36bff7324fb7
-	k8s.io/apimachinery v0.17.1
+	k8s.io/api v0.21.1
+	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v12.0.0+incompatible
+
 )
 
 replace github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
@@ -90,7 +91,7 @@ replace github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 // added for ddtrace
 replace (
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
-	k8s.io/api => k8s.io/api v0.21.1
+	k8s.io/api => k8s.io/api v0.20.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.5
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.5
 	k8s.io/apiserver => k8s.io/apiserver v0.20.5
