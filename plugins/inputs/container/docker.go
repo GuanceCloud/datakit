@@ -315,7 +315,7 @@ func (d *dockerClient) gatherSingleContainerStats(container types.Container) (ma
 	}
 	defer resp.Body.Close()
 
-	if resp.OSType == "windows" {
+	if resp.OSType == datakit.OSWindows {
 		return nil, nil
 	}
 

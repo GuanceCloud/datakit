@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 )
 
@@ -17,7 +18,7 @@ const (
 func InstallTelegraf(installDir string) error {
 	url := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/telegraf/" + fmt.Sprintf("telegraf-%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != datakit.OSWindows {
 		installDir = "/"
 	}
 
@@ -35,7 +36,7 @@ func InstallTelegraf(installDir string) error {
 	}
 
 	fmt.Printf("Install Telegraf successfully!\n")
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		fmt.Printf("Start telegraf by `cd %v`, `copy telegraf.conf.sample tg.conf`, and `telegraf.exe --config tg.conf`\n", filepath.Join(installDir, DIR_NAME))
 	} else {
 		fmt.Println("Start telegraf by `cd /etc/telegraf`, `cp telegraf.conf.sample tg.conf`, and `telegraf --config tg.conf`\n", filepath.Join(installDir, DIR_NAME))
