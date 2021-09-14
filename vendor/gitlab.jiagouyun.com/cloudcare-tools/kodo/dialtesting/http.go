@@ -6,7 +6,6 @@ package dialtesting
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -283,10 +282,6 @@ type HTTPAdvanceOption struct {
 
 type HTTPSecret struct {
 	NoSaveResponseBody bool `json:"not_save,omitempty"`
-}
-
-func (t *HTTPTask) SetContext(ctx context.Context) {
-
 }
 
 func (t *HTTPTask) Run() error {

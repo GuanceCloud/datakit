@@ -676,7 +676,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210914091421-1080d4acb640
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.opentelemetry.io/otel v0.19.0

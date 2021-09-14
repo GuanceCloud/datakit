@@ -396,7 +396,6 @@ github.com/containerd/containerd v1.3.2/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMX
 github.com/containerd/containerd v1.4.0-beta.2.0.20200729163537-40b22ef07410/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMXFTttgp+kVtyUA=
 github.com/containerd/containerd v1.4.1/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMXFTttgp+kVtyUA=
 github.com/containerd/containerd v1.4.3/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMXFTttgp+kVtyUA=
-github.com/containerd/containerd v1.4.9/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMXFTttgp+kVtyUA=
 github.com/containerd/containerd v1.5.0-beta.1/go.mod h1:5HfvG1V2FsKesEGQ17k5/T7V960Tmcumvqn8Mc+pCYQ=
 github.com/containerd/containerd v1.5.0-beta.3/go.mod h1:/wr9AVtEM7x9c+n0+stptlo/uBBoBORwEx6ardVcmKU=
 github.com/containerd/containerd v1.5.0-beta.4/go.mod h1:GmdgZd2zA2GYIBZ0w09ZvgqEq8EfBp/m3lcVZIvPHhI=
@@ -425,7 +424,6 @@ github.com/containerd/go-runc v0.0.0-20200220073739-7016d3ce2328/go.mod h1:PpyHr
 github.com/containerd/go-runc v0.0.0-20201020171139-16b287bc67d0/go.mod h1:cNU0ZbCgCQVZK4lgG3P+9tn9/PaJNmoDXPpoJhDR+Ok=
 github.com/containerd/go-runc v1.0.0/go.mod h1:cNU0ZbCgCQVZK4lgG3P+9tn9/PaJNmoDXPpoJhDR+Ok=
 github.com/containerd/imgcrypt v1.0.1/go.mod h1:mdd8cEPW7TPgNG4FpuP3sGBiQ7Yi/zak9TYCG3juvb0=
-github.com/containerd/imgcrypt v1.0.3/go.mod h1:v4X3p/H0lzcvVE0r7whbRYjYuK9Y2KEJnL08tXT63Is=
 github.com/containerd/imgcrypt v1.0.4-0.20210301171431-0ae5c75f59ba/go.mod h1:6TNsg0ctmizkrOgXRNQjAPFWpMYRWuiB6dSF4Pfa5SA=
 github.com/containerd/imgcrypt v1.1.1-0.20210312161619-7ed62a527887/go.mod h1:5AZJNI6sLHJljKuI9IHnw1pWqo/F0nGDOuR9zgTs7ow=
 github.com/containerd/imgcrypt v1.1.1/go.mod h1:xpLnwiQmEUJPvQoAapeb2SNCxz7Xr6PJrXQb0Dpc4ms=
@@ -452,7 +450,6 @@ github.com/containernetworking/cni v0.8.1/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ
 github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHVlzhJpcY6TQxn/fUyDDM=
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containers/ocicrypt v1.0.1/go.mod h1:MeJDzk1RJHv89LjsH0Sp5KTY3ZYkjXO/C+bKAeWFIrc=
-github.com/containers/ocicrypt v1.0.3/go.mod h1:CUBa+8MRNL/VkpxYIpaMtgn1WgXGyvPQj8jcy0EVG6g=
 github.com/containers/ocicrypt v1.1.0/go.mod h1:b8AOe0YR67uU8OqfVNcznfFpAzu3rdgUV4GP9qXPfu4=
 github.com/containers/ocicrypt v1.1.1/go.mod h1:Dm55fwWm1YZAjYRaJ94z2mfZikIyIN4B0oB3dj3jFxY=
 github.com/coredns/corefile-migration v1.0.10/go.mod h1:RMy/mXdeDlYwzt0vdMEJvT2hGJ2I86/eO0UdXmH9XNI=
@@ -789,7 +786,6 @@ github.com/gofrs/uuid v3.2.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRx
 github.com/gogo/googleapis v1.1.0/go.mod h1:gf4bu3Q80BeJ6H1S1vYPm8/ELATdvryBaNFGgqEef3s=
 github.com/gogo/googleapis v1.2.0/go.mod h1:Njal3psf3qN6dwBtQfUmBZh2ybovJ0tlu3o/AC7HYjU=
 github.com/gogo/googleapis v1.4.0/go.mod h1:5YRNX2z1oM5gXdAkurHa942MDgEJyk02w4OecKY87+c=
-github.com/gogo/protobuf v0.0.0-20190410021324-65acae22fc9/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.0/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.2.1/go.mod h1:hp+jE20tsWTFYpLwKvXlhS1hjn+gTNwPg2I6zVXpSg4=
@@ -1723,8 +1719,8 @@ github.com/zorkian/go-datadog-api v2.30.0+incompatible/go.mod h1:PkXwHX9CUQa/FpB
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210723090055-b88d7b9894d6/go.mod h1:nZnFgIQZ1gqErHISzQbhvT+3SO2aEQlQauc8mgamTmc=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210819175148-5d0565ecd466 h1:FZ7CHixvV6lNKcBey3Fpud3ReTXBFp+nFIXjMI9/sPI=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210819175148-5d0565ecd466/go.mod h1:nZnFgIQZ1gqErHISzQbhvT+3SO2aEQlQauc8mgamTmc=
-gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf h1:JkGUldFWLgAOM2VNCRBO1ta/w9wy+1Y/S8KrQXqqlH8=
-gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf/go.mod h1:PTWtUrRES73rNWeh0E5wCK8QilRQ1QY4vxzIgSGmZFM=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210914091421-1080d4acb640 h1:nhDl1EJizpPV64nZ6E8vGLv+lzFR7vE7mZk/Mkc/3eI=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210914091421-1080d4acb640/go.mod h1:PTWtUrRES73rNWeh0E5wCK8QilRQ1QY4vxzIgSGmZFM=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
@@ -2491,13 +2487,11 @@ k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd/go.mod h1:WOJ3KddDSol4tAG
 k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7/go.mod h1:wXW5VT87nVfh/iLV8FpR2uDvrFyomxbtb1KivDbvPTE=
 k8s.io/kube-proxy v0.20.5/go.mod h1:DBxEvwMdK9/dJHxY6+VCONxHzBMWeebPMQM0Icr0VfY=
 k8s.io/kube-scheduler v0.20.5/go.mod h1:oCOwGvakNU458nFM1jRC5rzp1USDOFBFoie0OAEN4I8=
-k8s.io/kube-state-metrics v1.5.0/go.mod h1:htAuttkdJ3UdQSyfJfwJrmfGNPJ9GO4ze++82c3CtVg=
 k8s.io/kube-state-metrics v1.9.7/go.mod h1:VmWbsdvz/+sCXfxG1RDdlMageJNST9Uo8vBwavSYBu0=
 k8s.io/kube-state-metrics/v2 v2.0.1-0.20210419063836-dfab196f138a/go.mod h1:xMhHSQr442H1qo1SGFBfAOZ32L+hDZ0aiiuwjiUH8Ys=
 k8s.io/kubectl v0.20.5/go.mod h1:mlNQgyV18D4XFt5BmfSkrxQNS+arT2pXDQxxnH5lMiw=
 k8s.io/kubelet v0.20.5/go.mod h1:iM18y0xm/1VlznuHFGBd9YVT9MM15TgEWJrJHrZ4mtQ=
 k8s.io/kubernetes v1.13.0/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
-k8s.io/kubernetes v1.15.0-alpha.0/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
 k8s.io/kubernetes v1.20.5/go.mod h1:aOH+RZJ0PFt6Y/G3vbR0zLeGURGW8X4aX9khigekwAo=
 k8s.io/legacy-cloud-providers v0.20.5/go.mod h1:YhCukXmwAh+PLncIZMMMIUD0wSZqw4UGukAKe6ZDMbI=
 k8s.io/metrics v0.20.5/go.mod h1:vsptOayjKWKWHvWR1vFQY++vxydzaEo/2+JC7kSDKPU=
@@ -2519,7 +2513,6 @@ rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
-sigs.k8s.io/controller-runtime v0.2.0-alpha.0/go.mod h1:HFAYoOh6XMV+jKF1UjFwrknPbowfyHEHHRdJMf2jMX8=
 sigs.k8s.io/controller-runtime v0.7.2/go.mod h1:pJ3YBrJiAqMAZKi6UVGuE98ZrroV1p+pIhoHsMm9wdU=
 sigs.k8s.io/kustomize v2.0.3+incompatible/go.mod h1:MkjgH3RdOWrievjo6c9T245dYlB5QeXV4WCbnt/PEpU=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e h1:4Z09Hglb792X0kfOBBJUPFEyvVfQWrYT/l8h5EKA6JQ=
