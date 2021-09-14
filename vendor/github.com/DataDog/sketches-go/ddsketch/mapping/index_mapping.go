@@ -6,7 +6,10 @@
 package mapping
 
 import (
+	"errors"
 	"fmt"
+
+	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
 	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
 )
 
@@ -19,10 +22,13 @@ type IndexMapping interface {
 	Equals(other IndexMapping) bool
 	Index(value float64) int
 	Value(index int) float64
+	LowerBound(index int) float64
 	RelativeAccuracy() float64
 	MinIndexableValue() float64
 	MaxIndexableValue() float64
 	ToProto() *sketchpb.IndexMapping
+	// Encode encodes a mapping and appends its content to the provided []byte.
+	Encode(b *[]byte)
 }
 
 // FromProto returns an Index mapping from the protobuf definition of it
@@ -37,4 +43,44 @@ func FromProto(m *sketchpb.IndexMapping) (IndexMapping, error) {
 	default:
 		return nil, fmt.Errorf("interpolation not supported: %d", m.Interpolation)
 	}
+}
+
+// Decode decodes a mapping and updates the provided []byte so that it starts
+// immediately after the encoded mapping.
+func Decode(b *[]byte, flag enc.Flag) (IndexMapping, error) {
+	switch flag {
+
+	case enc.FlagIndexMappingBaseLogarithmic:
+		gamma, indexOffset, err := decodeLogLikeIndexMapping(b)
+		if err != nil {
+			return nil, err
+		}
+		return NewLogarithmicMappingWithGamma(gamma, indexOffset)
+
+	case enc.FlagIndexMappingBaseLinear:
+		gamma, indexOffset, err := decodeLogLikeIndexMapping(b)
+		if err != nil {
+			return nil, err
+		}
+		return NewLinearlyInterpolatedMappingWithGamma(gamma, indexOffset)
+
+	case enc.FlagIndexMappingBaseCubic:
+		gamma, indexOffset, err := decodeLogLikeIndexMapping(b)
+		if err != nil {
+			return nil, err
+		}
+		return NewCubicallyInterpolatedMappingWithGamma(gamma, indexOffset)
+
+	default:
+		return nil, errors.New("unknown mapping")
+	}
+}
+
+func decodeLogLikeIndexMapping(b *[]byte) (gamma, indexOffset float64, err error) {
+	gamma, err = enc.DecodeFloat64LE(b)
+	if err != nil {
+		return
+	}
+	indexOffset, err = enc.DecodeFloat64LE(b)
+	return
 }

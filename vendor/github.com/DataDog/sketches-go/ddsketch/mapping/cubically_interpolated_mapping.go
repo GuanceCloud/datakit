@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 
+	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
 	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
 )
 
@@ -72,7 +73,11 @@ func (m *CubicallyInterpolatedMapping) Index(value float64) int {
 }
 
 func (m *CubicallyInterpolatedMapping) Value(index int) float64 {
-	return m.approximateInverseLog((float64(index)-m.normalizedIndexOffset)/m.multiplier) * (1 + m.relativeAccuracy)
+	return m.LowerBound(index) * (1 + m.relativeAccuracy)
+}
+
+func (m *CubicallyInterpolatedMapping) LowerBound(index int) float64 {
+	return m.approximateInverseLog((float64(index) - m.normalizedIndexOffset) / m.multiplier)
 }
 
 // Return an approximation of log(1) + Math.log(x) / Math.log(base(2)).
@@ -112,12 +117,22 @@ func (m *CubicallyInterpolatedMapping) RelativeAccuracy() float64 {
 	return m.relativeAccuracy
 }
 
+func (m *CubicallyInterpolatedMapping) gamma() float64 {
+	return math.Exp2(1 / m.multiplier)
+}
+
 func (m *CubicallyInterpolatedMapping) ToProto() *sketchpb.IndexMapping {
 	return &sketchpb.IndexMapping{
-		Gamma:         math.Exp2(1 / m.multiplier),
+		Gamma:         m.gamma(),
 		IndexOffset:   m.normalizedIndexOffset + m.approximateLog(1)*m.multiplier,
 		Interpolation: sketchpb.IndexMapping_CUBIC,
 	}
+}
+
+func (m *CubicallyInterpolatedMapping) Encode(b *[]byte) {
+	enc.EncodeFlag(b, enc.FlagIndexMappingBaseCubic)
+	enc.EncodeFloat64LE(b, m.gamma())
+	enc.EncodeFloat64LE(b, m.normalizedIndexOffset)
 }
 
 func (m *CubicallyInterpolatedMapping) string() string {
@@ -125,3 +140,5 @@ func (m *CubicallyInterpolatedMapping) string() string {
 	buffer.WriteString(fmt.Sprintf("relativeAccuracy: %v, multiplier: %v, normalizedIndexOffset: %v\n", m.relativeAccuracy, m.multiplier, m.normalizedIndexOffset))
 	return buffer.String()
 }
+
+var _ IndexMapping = (*CubicallyInterpolatedMapping)(nil)

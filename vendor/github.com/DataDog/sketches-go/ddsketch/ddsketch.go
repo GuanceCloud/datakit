@@ -9,6 +9,7 @@ import (
 	"errors"
 	"math"
 
+	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
 	"github.com/DataDog/sketches-go/ddsketch/mapping"
 	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
 	"github.com/DataDog/sketches-go/ddsketch/store"
@@ -19,6 +20,10 @@ type DDSketch struct {
 	positiveValueStore store.Store
 	negativeValueStore store.Store
 	zeroCount          float64
+}
+
+func NewDDSketchFromStoreProvider(indexMapping mapping.IndexMapping, storeProvider store.Provider) *DDSketch {
+	return NewDDSketch(indexMapping, storeProvider(), storeProvider())
 }
 
 func NewDDSketch(indexMapping mapping.IndexMapping, positiveValueStore store.Store, negativeValueStore store.Store) *DDSketch {
@@ -97,7 +102,15 @@ func (s *DDSketch) Copy() *DDSketch {
 		IndexMapping:       s.IndexMapping,
 		positiveValueStore: s.positiveValueStore.Copy(),
 		negativeValueStore: s.negativeValueStore.Copy(),
+		zeroCount:          s.zeroCount,
 	}
+}
+
+// Clear empties the sketch while allowing reusing already allocated memory.
+func (s *DDSketch) Clear() {
+	s.positiveValueStore.Clear()
+	s.negativeValueStore.Clear()
+	s.zeroCount = 0
 }
 
 // Return the value at the specified quantile. Return a non-nil error if the quantile is invalid
@@ -181,6 +194,36 @@ func (s *DDSketch) GetMinValue() (float64, error) {
 	}
 }
 
+// GetSum returns an approximation of the sum of the values that have been added to the sketch. If the
+// values that have been added to the sketch all have the same sign, the approximation error has
+// the relative accuracy guarantees of the mapping used for this sketch.
+func (s *DDSketch) GetSum() (sum float64) {
+	s.ForEach(func(value float64, count float64) (stop bool) {
+		sum += value * count
+		return false
+	})
+	return sum
+}
+
+// ForEach applies f on the bins of the sketches until f returns true.
+// There is no guarantee on the bin iteration order.
+func (s *DDSketch) ForEach(f func(value, count float64) (stop bool)) {
+	if s.zeroCount != 0 && f(0, s.zeroCount) {
+		return
+	}
+	stopped := false
+	s.positiveValueStore.ForEach(func(index int, count float64) bool {
+		stopped = f(s.IndexMapping.Value(index), count)
+		return stopped
+	})
+	if stopped {
+		return
+	}
+	s.negativeValueStore.ForEach(func(index int, count float64) bool {
+		return f(-s.IndexMapping.Value(index), count)
+	})
+}
+
 // Merges the other sketch into this one. After this operation, this sketch encodes the values that
 // were added to both this and the other sketches.
 func (s *DDSketch) MergeWith(other *DDSketch) error {
@@ -203,16 +246,180 @@ func (s *DDSketch) ToProto() *sketchpb.DDSketch {
 	}
 }
 
-// Builds a new instance of DDSketch based on the provided protobuf representation.
-func (s *DDSketch) FromProto(pb *sketchpb.DDSketch) (*DDSketch, error) {
+// FromProto builds a new instance of DDSketch based on the provided protobuf representation, using a Dense store.
+func FromProto(pb *sketchpb.DDSketch) (*DDSketch, error) {
+	return FromProtoWithStoreProvider(pb, store.DenseStoreConstructor)
+}
+
+func FromProtoWithStoreProvider(pb *sketchpb.DDSketch, storeProvider store.Provider) (*DDSketch, error) {
+	positiveValueStore := storeProvider()
+	store.MergeWithProto(positiveValueStore, pb.PositiveValues)
+	negativeValueStore := storeProvider()
+	store.MergeWithProto(negativeValueStore, pb.NegativeValues)
 	m, err := mapping.FromProto(pb.Mapping)
 	if err != nil {
 		return nil, err
 	}
 	return &DDSketch{
 		IndexMapping:       m,
-		positiveValueStore: store.FromProto(pb.PositiveValues),
-		negativeValueStore: store.FromProto(pb.NegativeValues),
+		positiveValueStore: positiveValueStore,
+		negativeValueStore: negativeValueStore,
 		zeroCount:          pb.ZeroCount,
 	}, nil
+}
+
+// Encode serializes the sketch and appends the serialized content to the provided []byte.
+// If the capacity of the provided []byte is large enough, Encode does not allocate memory space.
+// When the index mapping is known at the time of deserialization, omitIndexMapping can be set to true to avoid encoding it and to make the serialized content smaller.
+// The encoding format is described in the encoding/flag module.
+func (s *DDSketch) Encode(b *[]byte, omitIndexMapping bool) {
+	if s.zeroCount != 0 {
+		enc.EncodeFlag(b, enc.FlagZeroCountVarFloat)
+		enc.EncodeVarfloat64(b, s.zeroCount)
+	}
+
+	if !omitIndexMapping {
+		s.IndexMapping.Encode(b)
+	}
+
+	s.positiveValueStore.Encode(b, enc.FlagTypePositiveStore)
+	s.negativeValueStore.Encode(b, enc.FlagTypeNegativeStore)
+}
+
+// DecodeDDSketch deserializes a sketch.
+// Stores are built using storeProvider. The store type needs not match the
+// store that the serialized sketch initially used. However, using the same
+// store type may make decoding faster. In the absence of high performance
+// requirements, store.BufferedPaginatedStoreConstructor is a sound enough
+// choice of store provider.
+// To avoid memory allocations, it is possible to use a store provider that
+// reuses stores, by calling Clear() on previously used stores before providing
+// the store.
+// If the serialized content does not contain the index mapping, DecodeDDSketch
+// returns an error.
+func DecodeDDSketch(b []byte, storeProvider store.Provider) (*DDSketch, error) {
+	return DecodeDDSketchWithIndexMapping(b, storeProvider, nil)
+}
+
+// DecodeDDSketchWithIndexMapping deserializes a sketch.
+// Stores are built using storeProvider. The store type needs not match the
+// store that the serialized sketch initially used. However, using the same
+// store type may make decoding faster. In the absence of high performance
+// requirements, store.BufferedPaginatedStoreConstructor is a sound enough
+// choice of store provider.
+// To avoid memory allocations, it is possible to use a store provider that
+// reuses stores, by calling Clear() on previously used stores before providing
+// the store.
+// If the serialized content contains an index mapping that differs from the
+// provided one, DecodeDDSketchWithIndexMapping returns an error.
+func DecodeDDSketchWithIndexMapping(b []byte, storeProvider store.Provider, indexMapping mapping.IndexMapping) (*DDSketch, error) {
+	s := &DDSketch{
+		IndexMapping:       indexMapping,
+		positiveValueStore: storeProvider(),
+		negativeValueStore: storeProvider(),
+		zeroCount:          float64(0),
+	}
+	err := s.DecodeAndMergeWith(b)
+	return s, err
+}
+
+// DecodeAndMergeWith deserializes a sketch and merges its content in the
+// receiver sketch.
+// If the serialized content contains an index mapping that differs from the one
+// of the receiver, DecodeAndMergeWith returns an error.
+func (s *DDSketch) DecodeAndMergeWith(bb []byte) error {
+	b := &bb
+	for len(*b) > 0 {
+		flag, err := enc.DecodeFlag(b)
+		if err != nil {
+			return err
+		}
+		switch flag.Type() {
+		case enc.FlagTypePositiveStore:
+			s.positiveValueStore.DecodeAndMergeWith(b, flag.SubFlag())
+		case enc.FlagTypeNegativeStore:
+			s.negativeValueStore.DecodeAndMergeWith(b, flag.SubFlag())
+		case enc.FlagTypeIndexMapping:
+			decodedIndexMapping, err := mapping.Decode(b, flag)
+			if err != nil {
+				return err
+			}
+			if s.IndexMapping != nil && !s.IndexMapping.Equals(decodedIndexMapping) {
+				return errors.New("index mapping mismatch")
+			}
+			s.IndexMapping = decodedIndexMapping
+		default:
+			switch flag {
+
+			case enc.FlagZeroCountVarFloat:
+				decodedZeroCount, err := enc.DecodeVarfloat64(b)
+				if err != nil {
+					return err
+				}
+				s.zeroCount += decodedZeroCount
+
+			default:
+				return errors.New("unknown encoding flag")
+			}
+		}
+	}
+
+	if s.IndexMapping == nil {
+		return errors.New("missing index mapping")
+	}
+	return nil
+}
+
+// ChangeMapping changes the store to a new mapping.
+// it doesn't change s but returns a newly created sketch.
+// positiveStore and negativeStore must be different stores, and be empty when the function is called.
+// It is not the conversion that minimizes the loss in relative
+// accuracy, but it avoids artefacts like empty bins that make the histograms look bad.
+// scaleFactor allows to scale out / in all values. (changing units for eg)
+func (s *DDSketch) ChangeMapping(newMapping mapping.IndexMapping, positiveStore store.Store, negativeStore store.Store, scaleFactor float64) *DDSketch {
+	if scaleFactor == 1 && s.IndexMapping.Equals(newMapping) {
+		return s.Copy()
+	}
+	changeStoreMapping(s.IndexMapping, newMapping, s.positiveValueStore, positiveStore, scaleFactor)
+	changeStoreMapping(s.IndexMapping, newMapping, s.negativeValueStore, negativeStore, scaleFactor)
+	newSketch := NewDDSketch(newMapping, positiveStore, negativeStore)
+	newSketch.zeroCount = s.zeroCount
+	return newSketch
+}
+
+func changeStoreMapping(oldMapping, newMapping mapping.IndexMapping, oldStore, newStore store.Store, scaleFactor float64) {
+	oldStore.ForEach(func(index int, count float64) (stop bool) {
+		inLowerBound := oldMapping.LowerBound(index) * scaleFactor
+		inHigherBound := oldMapping.LowerBound(index+1) * scaleFactor
+		inSize := inHigherBound - inLowerBound
+		for outIndex := newMapping.Index(inLowerBound); newMapping.LowerBound(outIndex) < inHigherBound; outIndex++ {
+			outLowerBound := newMapping.LowerBound(outIndex)
+			outHigherBound := newMapping.LowerBound(outIndex + 1)
+			lowerIntersectionBound := math.Max(outLowerBound, inLowerBound)
+			higherIntersectionBound := math.Min(outHigherBound, inHigherBound)
+			intersectionSize := higherIntersectionBound - lowerIntersectionBound
+			proportion := intersectionSize / inSize
+			newStore.AddWithCount(outIndex, proportion*count)
+		}
+		return false
+	})
+}
+
+// Reweight multiplies all values from the sketch by w, but keeps the same global distribution.
+// w has to be strictly greater than 0.
+func (s *DDSketch) Reweight(w float64) error {
+	if w <= 0 {
+		return errors.New("can't reweight by a negative factor")
+	}
+	if w == 1 {
+		return nil
+	}
+	s.zeroCount *= w
+	if err := s.positiveValueStore.Reweight(w); err != nil {
+		return err
+	}
+	if err := s.negativeValueStore.Reweight(w); err != nil {
+		return err
+	}
+	return nil
 }

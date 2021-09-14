@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 
+	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
 	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
 )
 
@@ -41,12 +42,10 @@ func (s *DenseStore) Add(index int) {
 }
 
 func (s *DenseStore) AddBin(bin Bin) {
-	index := bin.Index()
-	count := bin.Count()
-	if count == 0 {
+	if bin.count == 0 {
 		return
 	}
-	s.AddWithCount(index, count)
+	s.AddWithCount(bin.index, bin.count)
 }
 
 func (s *DenseStore) AddWithCount(index int, count float64) {
@@ -78,7 +77,7 @@ func (s *DenseStore) extendRange(newMinIndex, newMaxIndex int) {
 
 	if s.IsEmpty() {
 		initialLength := s.getNewLength(newMinIndex, newMaxIndex)
-		s.bins = make([]float64, initialLength)
+		s.bins = append(s.bins, make([]float64, initialLength)...)
 		s.offset = newMinIndex
 		s.minIndex = newMinIndex
 		s.maxIndex = newMaxIndex
@@ -91,9 +90,7 @@ func (s *DenseStore) extendRange(newMinIndex, newMaxIndex int) {
 		// we may grow it before we actually reach the capacity.
 		newLength := s.getNewLength(newMinIndex, newMaxIndex)
 		if newLength > len(s.bins) {
-			tmpBins := make([]float64, newLength)
-			copy(tmpBins, s.bins)
-			s.bins = tmpBins
+			s.bins = append(s.bins, make([]float64, newLength-len(s.bins))...)
 		}
 		s.adjust(newMinIndex, newMaxIndex)
 	}
@@ -140,20 +137,23 @@ func (s *DenseStore) TotalCount() float64 {
 
 func (s *DenseStore) MinIndex() (int, error) {
 	if s.IsEmpty() {
-		return 0, errors.New("MinIndex of empty store is undefined.")
+		return 0, errUndefinedMinIndex
 	}
 	return s.minIndex, nil
 }
 
 func (s *DenseStore) MaxIndex() (int, error) {
 	if s.IsEmpty() {
-		return 0, errors.New("MaxIndex of empty store is undefined.")
+		return 0, errUndefinedMaxIndex
 	}
 	return s.maxIndex, nil
 }
 
 // Return the key for the value at rank
 func (s *DenseStore) KeyAtRank(rank float64) int {
+	if rank < 0 {
+		rank = 0
+	}
 	var n float64
 	for i, b := range s.bins {
 		n += b
@@ -197,6 +197,16 @@ func (s *DenseStore) Bins() <-chan Bin {
 	return ch
 }
 
+func (s *DenseStore) ForEach(f func(index int, count float64) (stop bool)) {
+	for idx := s.minIndex; idx <= s.maxIndex; idx++ {
+		if s.bins[idx-s.offset] > 0 {
+			if f(idx, s.bins[idx-s.offset]) {
+				return
+			}
+		}
+	}
+}
+
 func (s *DenseStore) Copy() Store {
 	bins := make([]float64, len(s.bins))
 	copy(bins, s.bins)
@@ -207,6 +217,13 @@ func (s *DenseStore) Copy() Store {
 		minIndex: s.minIndex,
 		maxIndex: s.maxIndex,
 	}
+}
+
+func (s *DenseStore) Clear() {
+	s.bins = s.bins[:0]
+	s.count = 0
+	s.minIndex = math.MaxInt32
+	s.maxIndex = math.MinInt32
 }
 
 func (s *DenseStore) string() string {
@@ -231,3 +248,37 @@ func (s *DenseStore) ToProto() *sketchpb.Store {
 		ContiguousBinIndexOffset: int32(s.minIndex),
 	}
 }
+
+func (s *DenseStore) Reweight(w float64) error {
+	if w <= 0 {
+		return errors.New("can't reweight by a negative factor")
+	}
+	if w == 1 {
+		return nil
+	}
+	s.count *= w
+	for idx := s.minIndex; idx <= s.maxIndex; idx++ {
+		s.bins[idx-s.offset] *= w
+	}
+	return nil
+}
+
+func (s *DenseStore) Encode(b *[]byte, t enc.FlagType) {
+	if s.IsEmpty() {
+		return
+	}
+	enc.EncodeFlag(b, enc.NewFlag(t, enc.BinEncodingContiguousCounts))
+	numBins := uint64(s.maxIndex-s.minIndex) + 1
+	enc.EncodeUvarint64(b, numBins)
+	enc.EncodeVarint64(b, int64(s.minIndex))
+	enc.EncodeVarint64(b, 1)
+	for index := s.minIndex; index <= s.maxIndex; index++ {
+		enc.EncodeVarfloat64(b, s.bins[index-s.offset])
+	}
+}
+
+func (s *DenseStore) DecodeAndMergeWith(b *[]byte, encodingMode enc.SubFlag) error {
+	return DecodeAndMergeWith(s, b, encodingMode)
+}
+
+var _ Store = (*DenseStore)(nil)

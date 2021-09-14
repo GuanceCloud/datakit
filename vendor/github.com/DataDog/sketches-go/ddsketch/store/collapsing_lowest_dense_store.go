@@ -5,7 +5,11 @@
 
 package store
 
-import "math"
+import (
+	"math"
+
+	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
+)
 
 // CollapsingLowestDenseStore is a dynamically growing contiguous (non-sparse) store.
 // The lower bins get combined so that the total number of bins do not exceed maxNumBins.
@@ -74,7 +78,7 @@ func (s *CollapsingLowestDenseStore) extendRange(newMinIndex, newMaxIndex int) {
 	newMaxIndex = max(newMaxIndex, s.maxIndex)
 	if s.IsEmpty() {
 		initialLength := s.getNewLength(newMinIndex, newMaxIndex)
-		s.bins = make([]float64, initialLength)
+		s.bins = append(s.bins, make([]float64, initialLength)...)
 		s.offset = newMinIndex
 		s.minIndex = newMinIndex
 		s.maxIndex = newMaxIndex
@@ -87,9 +91,7 @@ func (s *CollapsingLowestDenseStore) extendRange(newMinIndex, newMaxIndex int) {
 		// we may grow it before we actually reach the capacity.
 		newLength := s.getNewLength(newMinIndex, newMaxIndex)
 		if newLength > len(s.bins) {
-			tmpBins := make([]float64, newLength)
-			copy(tmpBins, s.bins)
-			s.bins = tmpBins
+			s.bins = append(s.bins, make([]float64, newLength-len(s.bins))...)
 		}
 		s.adjust(newMinIndex, newMaxIndex)
 	}
@@ -177,6 +179,17 @@ func (s *CollapsingLowestDenseStore) Copy() Store {
 		isCollapsed: s.isCollapsed,
 	}
 }
+
+func (s *CollapsingLowestDenseStore) Clear() {
+	s.DenseStore.Clear()
+	s.isCollapsed = false
+}
+
+func (s *CollapsingLowestDenseStore) DecodeAndMergeWith(r *[]byte, encodingMode enc.SubFlag) error {
+	return DecodeAndMergeWith(s, r, encodingMode)
+}
+
+var _ Store = (*CollapsingLowestDenseStore)(nil)
 
 func max(x, y int) int {
 	if x > y {

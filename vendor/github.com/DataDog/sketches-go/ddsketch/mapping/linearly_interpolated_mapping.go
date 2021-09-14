@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 
+	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
 	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
 )
 
@@ -64,7 +65,11 @@ func (m *LinearlyInterpolatedMapping) Index(value float64) int {
 }
 
 func (m *LinearlyInterpolatedMapping) Value(index int) float64 {
-	return m.approximateInverseLog((float64(index)-m.normalizedIndexOffset)/m.multiplier) * (1 + m.relativeAccuracy)
+	return m.LowerBound(index) * (1 + m.relativeAccuracy)
+}
+
+func (m *LinearlyInterpolatedMapping) LowerBound(index int) float64 {
+	return m.approximateInverseLog((float64(index) - m.normalizedIndexOffset) / m.multiplier)
 }
 
 // Return an approximation of log(1) + Math.log(x) / Math.log(2)}
@@ -98,13 +103,23 @@ func (m *LinearlyInterpolatedMapping) RelativeAccuracy() float64 {
 	return m.relativeAccuracy
 }
 
+func (m *LinearlyInterpolatedMapping) gamma() float64 {
+	return math.Exp2(1 / m.multiplier)
+}
+
 // Generates a protobuf representation of this LinearlyInterpolatedMapping.
 func (m *LinearlyInterpolatedMapping) ToProto() *sketchpb.IndexMapping {
 	return &sketchpb.IndexMapping{
-		Gamma:         math.Exp2(1 / m.multiplier),
+		Gamma:         m.gamma(),
 		IndexOffset:   m.normalizedIndexOffset + m.approximateLog(1)*m.multiplier,
 		Interpolation: sketchpb.IndexMapping_LINEAR,
 	}
+}
+
+func (m *LinearlyInterpolatedMapping) Encode(b *[]byte) {
+	enc.EncodeFlag(b, enc.FlagIndexMappingBaseLinear)
+	enc.EncodeFloat64LE(b, m.gamma())
+	enc.EncodeFloat64LE(b, m.normalizedIndexOffset+m.approximateLog(1)*m.multiplier)
 }
 
 func (m *LinearlyInterpolatedMapping) string() string {
@@ -120,3 +135,5 @@ func withinTolerance(x, y, tolerance float64) bool {
 		return math.Abs(x-y) <= tolerance*math.Max(math.Abs(x), math.Abs(y))
 	}
 }
+
+var _ IndexMapping = (*LinearlyInterpolatedMapping)(nil)

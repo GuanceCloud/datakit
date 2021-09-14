@@ -5,9 +5,7 @@
 
 package store
 
-import (
-	"errors"
-)
+import "errors"
 
 type Bin struct {
 	index int
@@ -21,10 +19,10 @@ func NewBin(index int, count float64) (*Bin, error) {
 	return &Bin{index: index, count: count}, nil
 }
 
-func (b *Bin) Index() int {
+func (b Bin) Index() int {
 	return b.index
 }
 
-func (b *Bin) Count() float64 {
+func (b Bin) Count() float64 {
 	return b.count
 }
