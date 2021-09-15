@@ -2,9 +2,33 @@ package mysql
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	//"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
+	//tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
+
+//func TestMockCollect(t *testing.T) {
+//	cases := []struct {
+//		i *Input
+//	}{
+//		{
+//			i: &Input{},
+//		},
+//	}
+//
+//	for _, tc := range cases {
+//		db, mock, err := sqlmock.New()
+//		tu.Ok(t, err)
+//
+//		defer db.Close()
+//
+//		tc.i.db = db
+//
+//		mock.ExpectBegin()
+//	}
+//}
 
 func TestCollect(t *testing.T) {
 	t.Run("true", func(t *testing.T) {

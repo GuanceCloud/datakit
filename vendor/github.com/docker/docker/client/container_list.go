@@ -11,7 +11,8 @@ import (
 )
 
 // ContainerList returns the list of containers in the docker host.
-func (cli *Client) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
+func (cli *Client) ContainerList(ctx context.Context,
+	options types.ContainerListOptions) ([]types.Container, error) {
 	query := url.Values{}
 
 	if options.All {
