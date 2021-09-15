@@ -40,7 +40,7 @@ const sampleCfg = `
   ## removes ANSI escape codes from text strings
   logging_remove_ansi_escape_codes = false
 
-  drop_tags = ["contaienr_id"]
+  drop_tags = ["container_id"]
 
   ## Examples:
   ##    '''nginx*'''
