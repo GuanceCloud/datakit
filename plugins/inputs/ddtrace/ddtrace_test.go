@@ -2,58 +2,131 @@ package ddtrace
 
 import (
 	"bytes"
-	"io/ioutil"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/DataDog/datadog-agent/pkg/trace/pb"
 	"github.com/DataDog/datadog-agent/pkg/trace/test/testutil"
+	"github.com/stretchr/testify/assert"
+	vmsgp "github.com/vmihailenco/msgpack/v4"
 )
 
-func TestTraceSample(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/v0.3/traces", "/v0.4/traces", "/v0.5/traces":
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				t.Error(err)
-			}
-			t.Logf("body: %d", len(body))
+var data = [2]interface{}{
+	0: []string{
+		0:  "baggage",
+		1:  "item",
+		2:  "elasticsearch.version",
+		3:  "7.0",
+		4:  "my-name",
+		5:  "X",
+		6:  "my-service",
+		7:  "my-resource",
+		8:  "_dd.sampling_rate_whatever",
+		9:  "value whatever",
+		10: "sql",
+	},
+	1: [][][12]interface{}{
+		{
+			{
+				6,
+				4,
+				7,
+				uint64(1),
+				uint64(2),
+				uint64(3),
+				int64(123),
+				int64(456),
+				1,
+				map[interface{}]interface{}{
+					8: 9,
+					0: 1,
+					2: 3,
+				},
+				map[interface{}]float64{
+					5: 1.2,
+				},
+				10,
+			},
+		},
+	},
+}
 
-		default:
-			t.Logf("url: %s", r.URL.Path)
-		}
-	}))
+func genRamTraces(maxLevels, masSpans, count int) pb.Traces {
+	traces := make(pb.Traces, count)
+	for i := range traces {
+		traces[i] = testutil.RandomTrace(maxLevels, masSpans)
+	}
 
-	defer ts.Close()
+	return traces
+}
 
-	data := msgpTraces(t, pb.Traces{
-		testutil.RandomTrace(10, 20),
-		testutil.RandomTrace(10, 20),
-		testutil.RandomTrace(10, 20),
-	})
+func TestTracesDecodeV3V4(t *testing.T) {
+	ramTraces := genRamTraces(10, 20, 10)
 
-	for _, e := range []string{
-		"/v0.3/traces",
-		"/v0.4/traces",
-		"/v0.5/traces",
-	} {
-
-		//t.Logf("body: %d", len(data))
-
-		resp, err := http.Post(ts.URL+e, "application/msgpack", bytes.NewReader(data))
+	tsrv := httptest.NewServer(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		traces, err := decodeRequest(req.URL.Path, req)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
+			resp.WriteHeader(http.StatusBadRequest)
 		}
-		_ = resp
+
+		for i := range traces {
+			for j := range traces[i] {
+				if !assert.EqualValues(t, ramTraces[i][j], traces[i][j]) {
+					err := errors.New(fmt.Sprintf("not equivalent span expect %v got %v", ramTraces[i][j], traces[i][j]))
+					t.Error(err)
+					resp.WriteHeader(http.StatusBadRequest)
+				}
+			}
+		}
+
+		resp.WriteHeader(http.StatusOK)
+	}))
+	defer tsrv.Close()
+
+	bts, err := ramTraces.MarshalMsg(nil)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, path := range []string{v3, v4} {
+		resp, err := http.Post(tsrv.URL+path, "application/msgpack", bytes.NewBuffer(bts))
+		if err != nil {
+			t.Error(err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Error(resp.Status)
+		}
 	}
 }
 
-func msgpTraces(t *testing.T, traces pb.Traces) []byte {
-	bts, err := traces.MarshalMsg(nil)
+func TestTracesDecodeV5(t *testing.T) {
+	tsrv := httptest.NewServer(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		traces, err := decodeRequest(req.URL.Path, req)
+		if err != nil {
+			t.Error(err)
+		}
+
+		for i := range traces {
+			for j := range traces[i] {
+				log.Info(traces[i][j])
+			}
+		}
+	}))
+	defer tsrv.Close()
+
+	bts, err := vmsgp.Marshal(data)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	return bts
+
+	resp, err := http.Post(tsrv.URL+v5, "application/msgpack", bytes.NewBuffer(bts))
+	if err != nil {
+		t.Error(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Error(err)
+	}
 }

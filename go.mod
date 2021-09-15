@@ -65,6 +65,7 @@ require (
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
+	github.com/vmihailenco/msgpack/v4 v4.3.12
 	github.com/yuin/goldmark v1.3.5
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210819175148-5d0565ecd466
