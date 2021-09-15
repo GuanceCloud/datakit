@@ -210,6 +210,25 @@ Pipeline 的几个注意事项：
 
 {{ end }} 
 
+### 日志的特殊字节码过滤
+
+日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
+
+此配置可能会影响日志的处理性能，基准测试结果如下：
+
+```
+goos: linux
+goarch: amd64
+pkg: gitlab.jiagouyun.com/cloudcare-tools/test
+cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
+BenchmarkRemoveAnsiCodes
+BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+PASS
+ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
+```
+
+每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
+
 ## 更多参考
 
 - pipeline 性能测试和对比[文档](logging-pipeline-bench)
