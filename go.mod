@@ -41,7 +41,7 @@ require (
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.8.0
-	github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f
+	github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
@@ -72,9 +72,9 @@ require (
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
-	github.com/yuin/goldmark v1.3.5
-	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210819175148-5d0565ecd466
+	github.com/yuin/goldmark v1.3.5 // indirect
+	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691 // indirect
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e

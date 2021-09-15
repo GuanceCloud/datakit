@@ -59,17 +59,16 @@ func geoTags(srcip string) (tags map[string]string) {
 	return
 }
 
-func handleRUMBody(body []byte, precision, srcip string, isjson bool) ([]*io.Point, error) {
-	extags := geoTags(srcip)
+func doHandleRUMBody(body []byte, precision string, isjson bool, extraTags map[string]string) ([]*io.Point, error) {
 
 	if isjson {
-		return jsonPoints(body, precision, extags)
+		return jsonPoints(body, precision, extraTags)
 	}
 
 	rumpts, err := lp.ParsePoints(body, &lp.Option{
 		Time:      time.Now(),
 		Precision: precision,
-		ExtraTags: extags,
+		ExtraTags: extraTags,
 		Strict:    true,
 
 		// 由于 RUM 数据需要分别处理，故用回调函数来区分
@@ -90,4 +89,8 @@ func handleRUMBody(body []byte, precision, srcip string, isjson bool) ([]*io.Poi
 	}
 
 	return io.WrapPoint(rumpts), nil
+}
+
+func handleRUMBody(body []byte, precision, srcip string, isjson bool) ([]*io.Point, error) {
+	return doHandleRUMBody(body, precision, isjson, geoTags(srcip))
 }

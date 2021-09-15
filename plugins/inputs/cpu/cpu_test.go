@@ -1,10 +1,13 @@
 package cpu
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/shirou/gopsutil/cpu"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestCpuActiveTotalTime(t *testing.T) {
@@ -123,26 +126,23 @@ func TestCollect(t *testing.T) {
 	timeStats := [][]cpu.TimesStat{
 		{lastT}, {nowT},
 	}
+
 	i := &Input{ps: &CPUInfoTest{timeStat: timeStats}}
 	if err := i.Collect(); err != nil {
 		t.Error(err)
 	} else if len(i.collectCache) != 0 {
-		t.Error("")
+		tu.Assert(t, 0 != len(i.collectCache), "")
 	}
+
 	if err := i.Collect(); err != nil {
 		t.Error(err)
 	} else if len(i.collectCache) != 1 {
-		t.Error("")
+		tu.Equals(t, 1, len(i.collectCache))
 	}
 
 	// tags
 	tags := i.collectCache[0].(*cpuMeasurement).tags
-	if tags["cpu"] != "cpu-total" {
-		t.Errorf("cpu:%s expected: cpu-total", tags["cpu"])
-	}
-	if tags["host"] != config.Cfg.Hostname {
-		t.Errorf("host name:%s expected: %s", tags["cpu"], config.Cfg.Hostname)
-	}
+	tu.Equals(t, "cpu-total", tags["cpu"])
 
 	// fields
 	fields := i.collectCache[0].(*cpuMeasurement).fields
@@ -165,9 +165,7 @@ func TestCollect(t *testing.T) {
 }
 
 func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {
-	if expected != actual {
-		t.Errorf("error: "+mName+" expected: %f \t actual %f", expected, actual)
-	}
+	tu.Assert(t, expected == actual, mName+" expected: %f, got %f", expected, actual)
 }
 
 func TestSampleMeasurement(t *testing.T) {
@@ -180,6 +178,11 @@ func TestSampleMeasurement(t *testing.T) {
 
 func TestCoreTemp(t *testing.T) {
 	if _, err := CoreTemp(); err != nil {
-		t.Error(err)
+		switch runtime.GOOS {
+		case datakit.OSWindows, datakit.OSDarwin:
+			tu.NotOk(t, err, "CoreTemp: mac/windows should not ok")
+		default:
+			tu.Ok(t, err)
+		}
 	}
 }
