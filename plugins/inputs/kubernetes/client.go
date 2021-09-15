@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -90,61 +91,59 @@ func newClient(restConfig *rest.Config) (*client, error) {
 }
 
 func (c *client) getClusters() (*rbacv1.ClusterRoleList, error) {
-	return c.RbacV1().ClusterRoles().List(metav1.ListOptions{})
+	return c.RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getPods() (*corev1.PodList, error) {
-	return c.CoreV1().Pods(c.namespace).List(metav1.ListOptions{})
+	return c.CoreV1().Pods(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getDeployments() (*appsv1.DeploymentList, error) {
-	return c.AppsV1().Deployments(c.namespace).List(metav1.ListOptions{})
+	return c.AppsV1().Deployments(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getReplicaSets() (*appsv1.ReplicaSetList, error) {
-	return c.AppsV1().ReplicaSets(c.namespace).List(metav1.ListOptions{})
+	return c.AppsV1().ReplicaSets(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getServices() (*corev1.ServiceList, error) {
-	return c.CoreV1().Services(c.namespace).List(metav1.ListOptions{})
+	return c.CoreV1().Services(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 func (c *client) getNodes() (*corev1.NodeList, error) {
-	return c.CoreV1().Nodes().List(metav1.ListOptions{})
+	return c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getJobs() (*batchv1.JobList, error) {
-	return c.BatchV1().Jobs(c.namespace).List(metav1.ListOptions{})
+	return c.BatchV1().Jobs(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getCronJobs() (*batchbetav1.CronJobList, error) {
-	return c.BatchV1beta1().CronJobs(c.namespace).List(metav1.ListOptions{})
+	return c.BatchV1beta1().CronJobs(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 
-///
-
 func (c *client) getEndpoints() (*corev1.EndpointsList, error) {
-	return c.CoreV1().Endpoints(c.namespace).List(metav1.ListOptions{})
+	return c.CoreV1().Endpoints(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getNamespaces() (*corev1.NamespaceList, error) {
-	return c.CoreV1().Namespaces().List(metav1.ListOptions{})
+	return c.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getDaemonSets() (*appsv1.DaemonSetList, error) {
-	return c.AppsV1().DaemonSets(c.namespace).List(metav1.ListOptions{})
+	return c.AppsV1().DaemonSets(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getStatefulSets() (*appsv1.StatefulSetList, error) {
-	return c.AppsV1().StatefulSets(c.namespace).List(metav1.ListOptions{})
+	return c.AppsV1().StatefulSets(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getIngress() (*v1beta1.IngressList, error) {
-	return c.ExtensionsV1beta1().Ingresses(c.namespace).List(metav1.ListOptions{})
+	return c.ExtensionsV1beta1().Ingresses(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
 func (c *client) getPersistentVolumes() (*corev1.PersistentVolumeList, error) {
-	return c.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
+	return c.CoreV1().PersistentVolumes().List(context.Background(), metav1.ListOptions{})
 }
 
 func (c *client) getPersistentVolumeClaims() (*corev1.PersistentVolumeClaimList, error) {
-	return c.CoreV1().PersistentVolumeClaims(c.namespace).List(metav1.ListOptions{})
+	return c.CoreV1().PersistentVolumeClaims(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
