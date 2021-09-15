@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the Apache License 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2021 Datadog, Inc.
+
 package encoding
 
 import (
@@ -44,11 +49,25 @@ var (
 
 	// SKETCH FEATURES
 
-	// Encodes the count of the zero bin
+	// Encodes the count of the zero bin.
 	// Encoding format:
 	// - [byte] flag
 	// - [varfloat64] count of the zero bin
 	FlagZeroCountVarFloat = NewFlag(flagTypeSketchFeatures, newSubFlag(1))
+
+	// Encode the total count.
+	// Encoding format:
+	// - [byte] flag
+	// - [varfloat64] total count
+	FlagCount = NewFlag(flagTypeSketchFeatures, newSubFlag(0x28))
+
+	// Encode the summary statistics.
+	// Encoding format:
+	// - [byte] flag
+	// - [float64LE] summary stat
+	FlagSum = NewFlag(flagTypeSketchFeatures, newSubFlag(0x21))
+	FlagMin = NewFlag(flagTypeSketchFeatures, newSubFlag(0x22))
+	FlagMax = NewFlag(flagTypeSketchFeatures, newSubFlag(0x23))
 
 	// INDEX MAPPING
 

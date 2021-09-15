@@ -1,19 +1,51 @@
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2020 Datadog, Inc.
+// Copyright 2021 Datadog, Inc.
 
 package ddsketch
 
 import (
 	"errors"
+	"io"
 	"math"
 
 	enc "github.com/DataDog/sketches-go/ddsketch/encoding"
 	"github.com/DataDog/sketches-go/ddsketch/mapping"
 	"github.com/DataDog/sketches-go/ddsketch/pb/sketchpb"
+	"github.com/DataDog/sketches-go/ddsketch/stat"
 	"github.com/DataDog/sketches-go/ddsketch/store"
 )
+
+var (
+	errEmptySketch error = errors.New("no such element exists")
+	errUnknownFlag error = errors.New("unknown encoding flag")
+)
+
+// Unexported to prevent usage and avoid the cost of dynamic dispatch
+type quantileSketch interface {
+	RelativeAccuracy() float64
+	IsEmpty() bool
+	GetCount() float64
+	GetSum() float64
+	GetMinValue() (float64, error)
+	GetMaxValue() (float64, error)
+	GetValueAtQuantile(quantile float64) (float64, error)
+	GetValuesAtQuantiles(quantiles []float64) ([]float64, error)
+	ForEach(f func(value, count float64) (stop bool))
+	Add(value float64) error
+	AddWithCount(value, count float64) error
+	// MergeWith
+	// ChangeMapping
+	Reweight(factor float64) error
+	Clear()
+	// Copy
+	Encode(b *[]byte, omitIndexMapping bool)
+	DecodeAndMergeWith(b []byte) error
+}
+
+var _ quantileSketch = (*DDSketch)(nil)
+var _ quantileSketch = (*DDSketchWithExactSummaryStatistics)(nil)
 
 type DDSketch struct {
 	mapping.IndexMapping
@@ -35,7 +67,11 @@ func NewDDSketch(indexMapping mapping.IndexMapping, positiveValueStore store.Sto
 }
 
 func NewDefaultDDSketch(relativeAccuracy float64) (*DDSketch, error) {
-	return LogUnboundedDenseDDSketch(relativeAccuracy)
+	m, err := mapping.NewDefaultMapping(relativeAccuracy)
+	if err != nil {
+		return nil, err
+	}
+	return NewDDSketchFromStoreProvider(m, store.DefaultProvider), nil
 }
 
 // Constructs an instance of DDSketch that offers constant-time insertion and whose size grows indefinitely
@@ -122,7 +158,7 @@ func (s *DDSketch) GetValueAtQuantile(quantile float64) (float64, error) {
 
 	count := s.GetCount()
 	if count == 0 {
-		return math.NaN(), errors.New("No such element exists")
+		return math.NaN(), errEmptySketch
 	}
 
 	rank := quantile * (count - 1)
@@ -295,24 +331,14 @@ func (s *DDSketch) Encode(b *[]byte, omitIndexMapping bool) {
 // To avoid memory allocations, it is possible to use a store provider that
 // reuses stores, by calling Clear() on previously used stores before providing
 // the store.
-// If the serialized content does not contain the index mapping, DecodeDDSketch
-// returns an error.
-func DecodeDDSketch(b []byte, storeProvider store.Provider) (*DDSketch, error) {
-	return DecodeDDSketchWithIndexMapping(b, storeProvider, nil)
-}
-
-// DecodeDDSketchWithIndexMapping deserializes a sketch.
-// Stores are built using storeProvider. The store type needs not match the
-// store that the serialized sketch initially used. However, using the same
-// store type may make decoding faster. In the absence of high performance
-// requirements, store.BufferedPaginatedStoreConstructor is a sound enough
-// choice of store provider.
-// To avoid memory allocations, it is possible to use a store provider that
-// reuses stores, by calling Clear() on previously used stores before providing
-// the store.
-// If the serialized content contains an index mapping that differs from the
-// provided one, DecodeDDSketchWithIndexMapping returns an error.
-func DecodeDDSketchWithIndexMapping(b []byte, storeProvider store.Provider, indexMapping mapping.IndexMapping) (*DDSketch, error) {
+// If the serialized data does not contain the index mapping, you need to
+// specify the index mapping that was used in the sketch that was encoded.
+// Otherwise, you can use nil and the index mapping will be decoded from the
+// serialized data.
+// It is possible to decode with this function an encoded
+// DDSketchWithExactSummaryStatistics, but the exact summary statistics will be
+// lost.
+func DecodeDDSketch(b []byte, storeProvider store.Provider, indexMapping mapping.IndexMapping) (*DDSketch, error) {
 	s := &DDSketch{
 		IndexMapping:       indexMapping,
 		positiveValueStore: storeProvider(),
@@ -328,6 +354,22 @@ func DecodeDDSketchWithIndexMapping(b []byte, storeProvider store.Provider, inde
 // If the serialized content contains an index mapping that differs from the one
 // of the receiver, DecodeAndMergeWith returns an error.
 func (s *DDSketch) DecodeAndMergeWith(bb []byte) error {
+	return s.decodeAndMergeWith(bb, func(b *[]byte, flag enc.Flag) error {
+		switch flag {
+		case enc.FlagCount, enc.FlagSum, enc.FlagMin, enc.FlagMax:
+			// Exact summary stats are ignored.
+			if len(*b) < 8 {
+				return io.EOF
+			}
+			*b = (*b)[8:]
+			return nil
+		default:
+			return errUnknownFlag
+		}
+	})
+}
+
+func (s *DDSketch) decodeAndMergeWith(bb []byte, fallbackDecode func(b *[]byte, flag enc.Flag) error) error {
 	b := &bb
 	for len(*b) > 0 {
 		flag, err := enc.DecodeFlag(b)
@@ -359,7 +401,10 @@ func (s *DDSketch) DecodeAndMergeWith(bb []byte) error {
 				s.zeroCount += decodedZeroCount
 
 			default:
-				return errors.New("unknown encoding flag")
+				err := fallbackDecode(b, flag)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -420,6 +465,242 @@ func (s *DDSketch) Reweight(w float64) error {
 	}
 	if err := s.negativeValueStore.Reweight(w); err != nil {
 		return err
+	}
+	return nil
+}
+
+// DDSketchWithExactSummaryStatistics returns exact count, sum, min and max, as
+// opposed to DDSketch, which may return approximate values for those
+// statistics. Because of the need to track them exactly, adding and merging
+// operations are slightly more exepensive than those of DDSketch.
+type DDSketchWithExactSummaryStatistics struct {
+	sketch            *DDSketch
+	summaryStatistics *stat.SummaryStatistics
+}
+
+func NewDefaultDDSketchWithExactSummaryStatistics(relativeAccuracy float64) (*DDSketchWithExactSummaryStatistics, error) {
+	sketch, err := NewDefaultDDSketch(relativeAccuracy)
+	if err != nil {
+		return nil, err
+	}
+	return &DDSketchWithExactSummaryStatistics{
+		sketch:            sketch,
+		summaryStatistics: stat.NewSummaryStatistics(),
+	}, nil
+}
+
+func NewDDSketchWithExactSummaryStatistics(mapping mapping.IndexMapping, storeProvider store.Provider) *DDSketchWithExactSummaryStatistics {
+	return &DDSketchWithExactSummaryStatistics{
+		sketch:            NewDDSketchFromStoreProvider(mapping, storeProvider),
+		summaryStatistics: stat.NewSummaryStatistics(),
+	}
+}
+
+func (s *DDSketchWithExactSummaryStatistics) RelativeAccuracy() float64 {
+	return s.sketch.RelativeAccuracy()
+}
+
+func (s *DDSketchWithExactSummaryStatistics) IsEmpty() bool {
+	return s.summaryStatistics.Count() == 0
+}
+
+func (s *DDSketchWithExactSummaryStatistics) GetCount() float64 {
+	return s.summaryStatistics.Count()
+}
+
+func (s *DDSketchWithExactSummaryStatistics) GetSum() float64 {
+	return s.summaryStatistics.Sum()
+}
+
+func (s *DDSketchWithExactSummaryStatistics) GetMinValue() (float64, error) {
+	if s.sketch.IsEmpty() {
+		return math.NaN(), errEmptySketch
+	}
+	return s.summaryStatistics.Min(), nil
+}
+
+func (s *DDSketchWithExactSummaryStatistics) GetMaxValue() (float64, error) {
+	if s.sketch.IsEmpty() {
+		return math.NaN(), errEmptySketch
+	}
+	return s.summaryStatistics.Max(), nil
+}
+
+func (s *DDSketchWithExactSummaryStatistics) GetValueAtQuantile(quantile float64) (float64, error) {
+	value, err := s.sketch.GetValueAtQuantile(quantile)
+	min := s.summaryStatistics.Min()
+	if value < min {
+		return min, err
+	}
+	max := s.summaryStatistics.Max()
+	if value > max {
+		return max, err
+	}
+	return value, err
+}
+
+func (s *DDSketchWithExactSummaryStatistics) GetValuesAtQuantiles(quantiles []float64) ([]float64, error) {
+	values, err := s.sketch.GetValuesAtQuantiles(quantiles)
+	min := s.summaryStatistics.Min()
+	max := s.summaryStatistics.Max()
+	for i := range values {
+		if values[i] < min {
+			values[i] = min
+		} else if values[i] > max {
+			values[i] = max
+		}
+	}
+	return values, err
+}
+
+func (s *DDSketchWithExactSummaryStatistics) ForEach(f func(value, count float64) (stop bool)) {
+	s.sketch.ForEach(f)
+}
+
+func (s *DDSketchWithExactSummaryStatistics) Clear() {
+	s.sketch.Clear()
+	s.summaryStatistics.Clear()
+}
+
+func (s *DDSketchWithExactSummaryStatistics) Add(value float64) error {
+	err := s.sketch.Add(value)
+	if err != nil {
+		return err
+	}
+	s.summaryStatistics.Add(value, 1)
+	return nil
+}
+
+func (s *DDSketchWithExactSummaryStatistics) AddWithCount(value, count float64) error {
+	if count == 0 {
+		return nil
+	}
+	err := s.sketch.AddWithCount(value, count)
+	if err != nil {
+		return err
+	}
+	s.summaryStatistics.Add(value, count)
+	return nil
+}
+
+func (s *DDSketchWithExactSummaryStatistics) MergeWith(o *DDSketchWithExactSummaryStatistics) error {
+	err := s.sketch.MergeWith(o.sketch)
+	if err != nil {
+		return err
+	}
+	s.summaryStatistics.MergeWith(o.summaryStatistics)
+	return nil
+}
+
+func (s *DDSketchWithExactSummaryStatistics) Copy() *DDSketchWithExactSummaryStatistics {
+	return &DDSketchWithExactSummaryStatistics{
+		sketch:            s.sketch.Copy(),
+		summaryStatistics: s.summaryStatistics.Copy(),
+	}
+}
+
+func (s *DDSketchWithExactSummaryStatistics) Reweight(factor float64) error {
+	err := s.sketch.Reweight(factor)
+	if err != nil {
+		return err
+	}
+	s.summaryStatistics.Reweight(factor)
+	return nil
+}
+
+func (s *DDSketchWithExactSummaryStatistics) ChangeMapping(newMapping mapping.IndexMapping, storeProvider store.Provider, scaleFactor float64) *DDSketchWithExactSummaryStatistics {
+	summaryStatisticsCopy := s.summaryStatistics.Copy()
+	summaryStatisticsCopy.Rescale(scaleFactor)
+	return &DDSketchWithExactSummaryStatistics{
+		sketch:            s.sketch.ChangeMapping(newMapping, storeProvider(), storeProvider(), scaleFactor),
+		summaryStatistics: summaryStatisticsCopy,
+	}
+}
+
+func (s *DDSketchWithExactSummaryStatistics) Encode(b *[]byte, omitIndexMapping bool) {
+	if s.summaryStatistics.Count() != 0 {
+		enc.EncodeFlag(b, enc.FlagCount)
+		enc.EncodeVarfloat64(b, s.summaryStatistics.Count())
+	}
+	if s.summaryStatistics.Sum() != 0 {
+		enc.EncodeFlag(b, enc.FlagSum)
+		enc.EncodeFloat64LE(b, s.summaryStatistics.Sum())
+	}
+	if s.summaryStatistics.Min() != math.Inf(1) {
+		enc.EncodeFlag(b, enc.FlagMin)
+		enc.EncodeFloat64LE(b, s.summaryStatistics.Min())
+	}
+	if s.summaryStatistics.Max() != math.Inf(-1) {
+		enc.EncodeFlag(b, enc.FlagMax)
+		enc.EncodeFloat64LE(b, s.summaryStatistics.Max())
+	}
+	s.sketch.Encode(b, omitIndexMapping)
+}
+
+// DecodeDDSketchWithExactSummaryStatistics deserializes a sketch.
+// Stores are built using storeProvider. The store type needs not match the
+// store that the serialized sketch initially used. However, using the same
+// store type may make decoding faster. In the absence of high performance
+// requirements, store.DefaultProvider is a sound enough choice of store
+// provider.
+// To avoid memory allocations, it is possible to use a store provider that
+// reuses stores, by calling Clear() on previously used stores before providing
+// the store.
+// If the serialized data does not contain the index mapping, you need to
+// specify the index mapping that was used in the sketch that was encoded.
+// Otherwise, you can use nil and the index mapping will be decoded from the
+// serialized data.
+// It is not possible to decode with this function an encoded DDSketch (unless
+// it is empty), because it does not track exact summary statistics
+func DecodeDDSketchWithExactSummaryStatistics(b []byte, storeProvider store.Provider, indexMapping mapping.IndexMapping) (*DDSketchWithExactSummaryStatistics, error) {
+	s := &DDSketchWithExactSummaryStatistics{
+		sketch: &DDSketch{
+			IndexMapping:       indexMapping,
+			positiveValueStore: storeProvider(),
+			negativeValueStore: storeProvider(),
+			zeroCount:          float64(0),
+		},
+		summaryStatistics: stat.NewSummaryStatistics(),
+	}
+	err := s.DecodeAndMergeWith(b)
+	return s, err
+}
+
+func (s *DDSketchWithExactSummaryStatistics) DecodeAndMergeWith(bb []byte) error {
+	err := s.sketch.decodeAndMergeWith(bb, func(b *[]byte, flag enc.Flag) error {
+		switch flag {
+		case enc.FlagCount:
+			count, err := enc.DecodeVarfloat64(b)
+			if err != nil {
+				return err
+			}
+			s.summaryStatistics.AddToCount(count)
+			return nil
+		case enc.FlagSum:
+			sum, err := enc.DecodeFloat64LE(b)
+			if err != nil {
+				return err
+			}
+			s.summaryStatistics.AddToSum(sum)
+			return nil
+		case enc.FlagMin, enc.FlagMax:
+			stat, err := enc.DecodeFloat64LE(b)
+			if err != nil {
+				return err
+			}
+			s.summaryStatistics.Add(stat, 0)
+			return nil
+		default:
+			return errUnknownFlag
+		}
+	})
+	if err != nil {
+		return err
+	}
+	// It is assumed that if the count is encoded, other exact summary
+	// statistics are encoded as well, which is the case if Encode is used.
+	if s.summaryStatistics.Count() == 0 && !s.sketch.IsEmpty() {
+		return errors.New("missing exact summary statistics")
 	}
 	return nil
 }

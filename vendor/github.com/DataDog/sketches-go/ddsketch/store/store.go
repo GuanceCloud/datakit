@@ -1,7 +1,7 @@
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2020 Datadog, Inc.
+// Copyright 2021 Datadog, Inc.
 
 package store
 
@@ -15,6 +15,7 @@ import (
 type Provider func() Store
 
 var (
+	DefaultProvider                   = Provider(BufferedPaginatedStoreConstructor)
 	DenseStoreConstructor             = Provider(func() Store { return NewDenseStore() })
 	BufferedPaginatedStoreConstructor = Provider(func() Store { return NewBufferedPaginatedStore() })
 	SparseStoreConstructor            = Provider(func() Store { return NewSparseStore() })
