@@ -8,7 +8,7 @@ import (
 func assertEqual(t *testing.T, a, b interface{}) {
 	t.Helper()
 	if a != b {
-		t.Errorf("Not Equal. %d %d", a, b)
+		t.Errorf("Not Equal. %v %v", a, b)
 	}
 }
 

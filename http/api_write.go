@@ -192,7 +192,10 @@ func handleWriteBody(body []byte,
 	}
 }
 
-func jsonPoints(body []byte, prec string, extags map[string]string, appIdWhiteList []string) ([]*io.Point, error) {
+func jsonPoints(body []byte,
+	prec string,
+	extags map[string]string,
+	appIdWhiteList []string) ([]*io.Point, error) {
 
 	var jps []jsonPoint
 	err := json.Unmarshal(body, &jps)

@@ -9,7 +9,7 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -28,7 +28,7 @@ var (
 func geoTags(srcip string) (tags map[string]string) {
 	tags = map[string]string{}
 
-	ipInfo, err := geo.Geo(srcip)
+	ipInfo, err := pipeline.Geo(srcip)
 
 	l.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
 
@@ -61,17 +61,20 @@ func geoTags(srcip string) (tags map[string]string) {
 	return
 }
 
-func handleRUMBody(body []byte, precision, srcip string, isjson bool, appIdWhiteList []string) ([]*io.Point, error) {
-	extags := geoTags(srcip)
+func doHandleRUMBody(body []byte,
+	precision string,
+	isjson bool,
+	extraTags map[string]string,
+	appIdWhiteList []string) ([]*io.Point, error) {
 
 	if isjson {
-		return jsonPoints(body, precision, extags, appIdWhiteList)
+		return jsonPoints(body, precision, extraTags, appIdWhiteList)
 	}
 
 	rumpts, err := lp.ParsePoints(body, &lp.Option{
 		Time:      time.Now(),
 		Precision: precision,
-		ExtraTags: extags,
+		ExtraTags: extraTags,
 		Strict:    true,
 
 		// 由于 RUM 数据需要分别处理，故用回调函数来区分
@@ -108,4 +111,12 @@ func contains(str string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func handleRUMBody(body []byte,
+	precision,
+	srcip string,
+	isjson bool,
+	list []string) ([]*io.Point, error) {
+	return doHandleRUMBody(body, precision, isjson, geoTags(srcip), list)
 }

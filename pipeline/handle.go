@@ -7,12 +7,11 @@ import (
 	"regexp"
 	"time"
 
-	// "github.com/GuilhermeCaruso/kair"
 	"github.com/araddon/dateparse"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
 	"github.com/tidwall/gjson"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -125,7 +124,7 @@ func UserAgentHandle(str string) (res map[string]interface{}) {
 }
 
 func GeoIpHandle(ip string) (map[string]string, error) {
-	record, err := geo.Geo(ip)
+	record, err := Geo(ip)
 	if err != nil {
 		return nil, err
 	}

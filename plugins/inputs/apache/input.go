@@ -69,6 +69,7 @@ func (n *Input) RunPipeline() {
 
 	go n.tail.Start()
 }
+
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("apache start")
@@ -87,9 +88,20 @@ func (n *Input) Run() {
 	for {
 		select {
 		case <-tick.C:
-			if err := n.getMetric(); err != nil {
+			m, err := n.getMetric()
+			if err != nil {
 				iod.FeedLastError(inputName, err.Error())
 			}
+
+			if m != nil {
+				if err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					[]inputs.Measurement{m},
+					&iod.Option{CollectCost: time.Since(n.start)}); err != nil {
+					l.Warnf("inputs.FeedMeasurement: %s, ignored", err)
+				}
+			}
+
 		case <-datakit.Exit.Wait():
 			if n.tail != nil {
 				n.tail.Close()
@@ -127,11 +139,11 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (n *Input) getMetric() error {
+func (n *Input) getMetric() (*Measurement, error) {
 	n.start = time.Now()
 	req, err := http.NewRequest("GET", n.Url, nil)
 	if err != nil {
-		return fmt.Errorf("error on new request to %s : %s", n.Url, err)
+		return nil, fmt.Errorf("error on new request to %s : %s", n.Url, err)
 	}
 
 	if len(n.Username) != 0 && len(n.Password) != 0 {
@@ -140,17 +152,17 @@ func (n *Input) getMetric() error {
 
 	resp, err := n.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error on request to %s : %s", n.Url, err)
+		return nil, fmt.Errorf("error on request to %s : %s", n.Url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s returned HTTP status %s", n.Url, resp.Status)
+		return nil, fmt.Errorf("%s returned HTTP status %s", n.Url, resp.Status)
 	}
 	return n.parse(resp.Body)
 }
 
-func (n *Input) parse(body io.Reader) error {
+func (n *Input) parse(body io.Reader) (*Measurement, error) {
 	sc := bufio.NewScanner(body)
 
 	tags := map[string]string{
@@ -160,7 +172,7 @@ func (n *Input) parse(body io.Reader) error {
 		tags[k] = v
 
 	}
-	metric := Measurement{
+	metric := &Measurement{
 		name:   inputName,
 		fields: map[string]interface{}{},
 		ts:     time.Now(),
@@ -204,9 +216,10 @@ func (n *Input) parse(body io.Reader) error {
 
 		}
 	}
+
 	metric.tags = tags
-	l.Debug(metric)
-	return inputs.FeedMeasurement(inputName, datakit.Metric, []inputs.Measurement{&metric}, &iod.Option{CollectCost: time.Since(n.start)})
+
+	return metric, nil
 }
 
 func init() {

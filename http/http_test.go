@@ -261,8 +261,7 @@ func TestRUMHandleBody(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Logf("----------- [%d] -----------", i)
-
-		pts, err := handleRUMBody(tc.body, tc.prec, "", tc.js, tc.appidWhiteList)
+		pts, err := doHandleRUMBody(tc.body, tc.prec, tc.js, nil, tc.appidWhiteList)
 
 		if tc.fail {
 			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)

@@ -287,7 +287,9 @@ func (c *Config) setupGlobalTags() error {
 		c.GlobalTags = map[string]string{}
 	}
 
-	delete(c.GlobalTags, "host") // delete host tag if configured
+	// Delete host tag if configured: you should not do this,
+	// use ENV_HOSTNAME in Config.Environments instead
+	delete(c.GlobalTags, "host")
 
 	// setup global tags
 	for k, v := range c.GlobalTags {

@@ -80,7 +80,7 @@ github.com/Microsoft/go-winio/pkg/guid
 # github.com/StackExchange/wmi v1.2.1
 ## explicit
 github.com/StackExchange/wmi
-# github.com/alecthomas/chroma v0.7.2-0.20200305040604-4f3623dce67a
+# github.com/alecthomas/chroma v0.7.1
 github.com/alecthomas/chroma
 github.com/alecthomas/chroma/formatters
 github.com/alecthomas/chroma/formatters/html
@@ -263,7 +263,7 @@ github.com/denisenkom/go-mssqldb/internal/querytext
 github.com/dgryski/go-rendezvous
 # github.com/disintegration/imaging v1.6.2
 github.com/disintegration/imaging
-# github.com/dlclark/regexp2 v1.2.0
+# github.com/dlclark/regexp2 v1.1.6
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
 # github.com/docker/distribution v2.7.1+incompatible
@@ -440,7 +440,6 @@ github.com/googleapis/gnostic/jsonschema
 github.com/googleapis/gnostic/openapiv2
 # github.com/gorilla/mux v1.8.0
 ## explicit
-github.com/gorilla/mux
 # github.com/grpc-ecosystem/grpc-gateway v1.16.0
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
@@ -490,9 +489,12 @@ github.com/kardianos/osext
 ## explicit
 github.com/kardianos/service
 # github.com/karrick/godirwalk v1.16.1
+## explicit
 github.com/karrick/godirwalk
 # github.com/kr/fs v0.1.0
 github.com/kr/fs
+# github.com/kr/text v0.2.0
+## explicit
 # github.com/kyokomi/emoji v2.1.0+incompatible
 github.com/kyokomi/emoji
 # github.com/leodido/go-urn v1.2.1
@@ -502,9 +504,6 @@ github.com/leodido/go-urn
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
-# github.com/litao91/goldmark-mathjax v0.0.0-20210217064022-a43cf739a50f
-## explicit
-github.com/litao91/goldmark-mathjax
 # github.com/lucasb-eyer/go-colorful v1.0.3
 github.com/lucasb-eyer/go-colorful
 # github.com/magiconair/properties v1.8.5
@@ -521,8 +520,10 @@ github.com/markbates/oncer
 # github.com/markbates/safe v1.0.1
 github.com/markbates/safe
 # github.com/mattn/go-colorable v0.1.8
+## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.13
+## explicit
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.10
 ## explicit
@@ -675,20 +676,6 @@ github.com/vmihailenco/msgpack/v4/codes
 github.com/vmihailenco/tagparser
 github.com/vmihailenco/tagparser/internal
 github.com/vmihailenco/tagparser/internal/parser
-# github.com/yuin/goldmark v1.3.5
-## explicit
-github.com/yuin/goldmark
-github.com/yuin/goldmark/ast
-github.com/yuin/goldmark/extension
-github.com/yuin/goldmark/extension/ast
-github.com/yuin/goldmark/parser
-github.com/yuin/goldmark/renderer
-github.com/yuin/goldmark/renderer/html
-github.com/yuin/goldmark/text
-github.com/yuin/goldmark/util
-# github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
-## explicit
-github.com/yuin/goldmark-highlighting
 # gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
