@@ -174,10 +174,8 @@ func tracesToPoints(traces Traces, filters ...traceFilter) ([]*dkio.Point, error
 NEXT_TRACE:
 	for _, trace := range traces {
 		// run all filters
-		for _, filter := range filters {
-			if len(filter(trace)) == 0 {
-				continue NEXT_TRACE
-			}
+		if runFiltersWithBreak(trace, filters...) == nil {
+			continue NEXT_TRACE
 		}
 
 		spanIds, parentIds := getSpanAndParentId(trace)
