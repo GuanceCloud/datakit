@@ -65,6 +65,7 @@ func DefaultConfig() *Config {
 		HTTPAPI: &dkhttp.APIConfig{
 			RUMOriginIPHeader: "X-Forwarded-For",
 			Listen:            "localhost:9529",
+			RUMAppIDWhiteList: []string{},
 		},
 
 		Logging: &LoggerCfg{

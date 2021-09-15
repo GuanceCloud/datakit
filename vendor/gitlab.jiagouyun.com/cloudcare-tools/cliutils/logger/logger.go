@@ -100,7 +100,6 @@ func doInitStdoutLogger() {
 }
 
 func Reset() {
-
 	mtx.Lock()
 	defer mtx.Unlock()
 	root = nil
@@ -108,6 +107,8 @@ func Reset() {
 	slogs = &sync.Map{}
 
 	defaultStdoutRootLogger = nil
+
+	totalSloggers = 0
 
 	doInitStdoutLogger()
 }

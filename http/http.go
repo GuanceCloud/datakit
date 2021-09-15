@@ -68,9 +68,10 @@ type Option struct {
 }
 
 type APIConfig struct {
-	RUMOriginIPHeader string `toml:"rum_origin_ip_header"`
-	Listen            string `toml:"listen"`
-	Disable404Page    bool   `toml:"disable_404page"`
+	RUMOriginIPHeader string   `toml:"rum_origin_ip_header"`
+	Listen            string   `toml:"listen"`
+	Disable404Page    bool     `toml:"disable_404page"`
+	RUMAppIDWhiteList []string `toml:"rum_app_id_white_list"`
 }
 
 func Start(o *Option) {
