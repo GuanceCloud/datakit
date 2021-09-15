@@ -532,7 +532,7 @@ github.com/yuin/goldmark/util
 # github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 ## explicit
 github.com/yuin/goldmark-highlighting
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210819175148-5d0565ecd466
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/go-nsq
