@@ -10,22 +10,14 @@ const (
 
 	// docker endpoint
 	dockerEndpoint = "unix:///var/run/docker.sock"
-
 	// docker sock 文件路径，用以判断主机是否已安装 docker 服务
 	dockerEndpointPath = "/var/run/docker.sock"
 
 	// Docker API 超时时间
 	apiTimeoutDuration = time.Second * 5
 
-	// 最小指标采集间隔
-	minMetricDuration = time.Second * 10
-
-	// 最大指标采集间隔
-	maxMetricDuration = time.Second * 60
-
 	// 对象采集间隔
 	objectDuration = time.Minute * 5
-
 	// 定时发现新日志源
 	loggingHitDuration = time.Second * 5
 
@@ -42,23 +34,27 @@ const sampleCfg = `
   enable_metric = false  
   enable_object = true   
   enable_logging = true  
-  
+
   metric_interval = "10s"
 
-  drop_tags = ["contaienr_id"]
+  ## removes ANSI escape codes from text strings
+  logging_remove_ansi_escape_codes = false
+
+  drop_tags = ["container_id"]
 
   ## Examples:
   ##    '''nginx*'''
   ignore_image_name = []
   ignore_container_name = []
-  
+
+
   ## TLS Config
   # tls_ca = "/path/to/ca.pem"
   # tls_cert = "/path/to/cert.pem"
   # tls_key = "/path/to/key.pem"
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
-  
+
   [inputs.container.kubelet]
     kubelet_url = "http://localhost:10255"
     ignore_pod_name = []

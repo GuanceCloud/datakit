@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/c-bata/go-prompt"
-	"github.com/fatih/color"
 	"github.com/influxdata/influxdb1-client/models"
 
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -28,6 +28,12 @@ var (
 	MaxHistory = 5000
 
 	dqlcli *http.Client
+
+	defaultJsonIndent = "  "
+)
+
+const (
+	dqlraw = "/v1/query/raw"
 )
 
 func dql(host string) {
@@ -141,7 +147,6 @@ func runDQL(txt string) {
 		return
 
 	default:
-
 		lines := []string{}
 		if strings.HasSuffix(s, "\\") {
 			lines = append(lines, strings.TrimSuffix(s, "\\"))
@@ -157,6 +162,7 @@ func doDQL(s string) {
 
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
+		Token:       FlagToken,
 		Queries: []*dkhttp.SingleQuery{
 			{
 				Query: s,
@@ -166,23 +172,26 @@ func doDQL(s string) {
 
 	j, err := json.Marshal(q)
 	if err != nil {
-		colorPrint(color.FgRed, "%s\n", err.Error())
+		errorf("%s\n", err.Error())
 		return
 	}
 
 	l.Debugf("dql request: %s", string(j))
 
 	req, err := http.NewRequest("POST",
-		fmt.Sprintf("http://%s/v1/query/raw", datakitHost),
-		bytes.NewBuffer(j))
+		fmt.Sprintf("http://%s%s", datakitHost, dqlraw), bytes.NewBuffer(j))
 	if err != nil {
-		colorPrint(color.FgRed, "http.NewRequest: %s\n", err.Error())
+		errorf("http.NewRequest: %s\n", err.Error())
 		return
+	}
+
+	if dqlcli == nil {
+		dqlcli = &http.Client{}
 	}
 
 	resp, err := dqlcli.Do(req)
 	if err != nil {
-		colorPrint(color.FgRed, "httpcli.Do: %s\n", err.Error())
+		errorf("httpcli.Do: %s\n", err.Error())
 		return
 	}
 
@@ -192,7 +201,7 @@ func doDQL(s string) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		colorPrint(color.FgRed, "ioutil.ReadAll: %s\n", err.Error())
+		errorf("ioutil.ReadAll: %s\n", err.Error())
 		return
 	}
 
@@ -205,12 +214,12 @@ func doDQL(s string) {
 		}{}
 
 		if err := json.Unmarshal(body, &r); err != nil {
-			colorPrint(color.FgRed, "json.Unmarshal: %s\n", err.Error())
-			colorPrint(color.FgRed, "body: %s\n", string(body))
+			errorf("json.Unmarshal: %s\n", err.Error())
+			errorf("body: %s\n", string(body))
 			return
 		}
 
-		colorPrint(color.FgRed, "[%s] %s\n", r.Err, r.Msg)
+		errorf("[%s] %s\n", r.Err, r.Msg)
 		return
 	}
 
@@ -233,12 +242,12 @@ func show(body []byte) {
 	jd := json.NewDecoder(bytes.NewReader(body))
 	jd.UseNumber()
 	if err := jd.Decode(&r); err != nil {
-		colorPrint(color.FgRed, "%s\n", err.Error())
+		errorf("%s\n", err.Error())
 		return
 	}
 
 	if r.Content == nil {
-		colorPrint(color.FgRed, "Empty result\n")
+		errorf("Empty result\n")
 		return
 	}
 
@@ -248,44 +257,202 @@ func show(body []byte) {
 }
 
 func doShow(c *queryResult) {
-
 	rows := 0
 
-	rows = prettyShow(c)
+	switch {
+	case FlagJSON:
+		j, err := json.MarshalIndent(c, "", defaultJsonIndent)
+		if err != nil {
+			errorf("%s\n", err.Error())
+			return
+		}
+
+		if len(j) == 0 {
+			return
+		}
+
+		output("%s\n", j)
+	default:
+		rows = prettyShow(c)
+	}
 
 	if c.RawQuery != "" {
 		if json.Valid([]byte(c.RawQuery)) {
 			var x map[string]interface{}
 			if err := json.Unmarshal([]byte(c.RawQuery), &x); err != nil {
-				colorPrint(color.FgRed, "%s\n", err)
+				errorf("%s\n", err)
 			} else {
 				j, err := json.MarshalIndent(x, "", "    ")
 				if err != nil {
-					colorPrint(color.FgRed, "%s\n", err)
-				} else {
-					output("---------\n")
-					output("explain:\n%s\n", string(j))
+					errorf("%s\n", err)
+					return
 				}
+
+				infof("---------\n")
+				infof("explain:\n%s\n", string(j))
 			}
 		} else {
-			output("---------\n")
-			output("explain: %s\n", c.RawQuery)
+			infof("---------\n")
+			infof("explain:%s\n", c.RawQuery)
 		}
 	}
 
-	output("---------\n%d rows, cost %s\n", rows, c.Cost)
+	infof("---------\n%d rows, %d series, cost %s\n", rows, len(c.Series), c.Cost)
+	return
 }
 
-//nolint:funlen,gocyclo
+// Not used
+func sortColumns(r *models.Row) {
+	colMap := map[string]int{}
+	for i, col := range r.Columns {
+		if _, ok := colMap[col]; ok {
+			// duplicate colums(means tag/field with the same key)
+			// terminate sorting
+			return
+		}
+
+		colMap[col] = i
+	}
+
+	sort.Strings(r.Columns)
+	valArray := [][]interface{}{}
+
+	for _, vals := range r.Values {
+		newVals := []interface{}{}
+		for _, col := range r.Columns {
+			newVals = append(newVals, vals[colMap[col]])
+		}
+
+		valArray = append(valArray, newVals)
+	}
+
+	r.Values = valArray
+}
+
+func showRow(r *models.Row) {
+
+	output("%d columns\n", len(r.Columns))
+
+	for i, col := range r.Columns {
+		if i < len(r.Columns)-1 {
+			output("%s, ", col)
+		} else {
+			output("%s\n", col)
+		}
+	}
+
+	output("%d values\n", len(r.Values))
+	for _, vals := range r.Values {
+
+		output("value width: %d\n", len(vals))
+		for i, v := range vals {
+			if i < len(vals)-1 {
+				output("%v, ", v)
+			} else {
+				output("%v\n", v)
+			}
+		}
+	}
+}
+
+// Not used
+func tableShow(resp *queryResult) int {
+	nrows := 0
+
+	if len(resp.Series) == 0 {
+		warnf("no data\n")
+		return 0
+	}
+
+	for _, row := range resp.Series {
+		sortColumns(row)
+		showRow(row)
+		nrows += len(row.Values)
+	}
+
+	return nrows
+}
+
+func prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
+
+	for colIdx := range s.Columns {
+		if disableNil && val[colIdx] == nil {
+			continue
+		}
+
+		col := s.Columns[colIdx]
+
+		if v, ok := s.Tags[col]; ok {
+			output(fmtStr+" %s\n", col, "#", v) // decorate tag key with a `#'
+			addSug(col)
+			continue
+		}
+
+		if col == "time" {
+			if _, ok := val[colIdx].(json.Number); !ok {
+				l.Error("invalid time: %v", val[colIdx])
+				val[colIdx] = fmt.Sprintf("%v", val[colIdx])
+			} else {
+				i, err := val[colIdx].(json.Number).Int64()
+				if err != nil {
+					l.Error("parse time failed: %v", err)
+					continue
+				}
+
+				// convert ms to second
+				val[colIdx] = time.Unix(i/1000, 0) //nolint
+			}
+		}
+
+		valFmt := ""
+		switch v := val[colIdx].(type) {
+		case time.Time:
+			valFmt = "%v\n"
+		case json.Number:
+			i, err := v.Int64()
+			if err != nil {
+				f, err := v.Float64()
+				if err != nil {
+					l.Warn(err)
+				} else {
+					valFmt = "%.6f\n"
+					val[colIdx] = f
+				}
+			} else {
+				val[colIdx] = i
+				valFmt = "%d\n"
+			}
+
+		case string:
+			valFmt = "'%s'\n"
+			if FlagAutoJSON {
+				dst := &bytes.Buffer{}
+				if err := json.Indent(dst, []byte(v), "", defaultJsonIndent); err == nil {
+					val[colIdx] = dst.String()
+					valFmt = "----- json -----\n" + "%s\n" + "----- end of json -----\n"
+				}
+			}
+		case bool:
+			valFmt = "%v\n"
+		default:
+			valFmt = "%v\n"
+			// pass
+		}
+
+		output(fmtStr+valFmt, col, " ", val[colIdx])
+		addSug(s.Columns[colIdx])
+	}
+}
+
 func prettyShow(resp *queryResult) int {
 	nrows := 0
 
 	if len(resp.Series) == 0 {
-		colorPrint(color.FgYellow, "no data\n")
+		warnf("no data\n")
 		return 0
 	}
 
-	for _, s := range resp.Series {
+	for si, s := range resp.Series {
 		switch len(s.Columns) {
 		case 1:
 
@@ -312,72 +479,13 @@ func prettyShow(resp *queryResult) int {
 
 		default:
 			colWidth := getMaxColWidth(s)
+			sortColumns(s)
+
 			fmtStr := fmt.Sprintf("%%%ds%%s", colWidth)
 			for _, val := range s.Values {
+				output("-----------------[ r%d.%s.s%d ]-----------------\n", nrows+1, s.Name, si+1)
 				nrows++
-				output("-----------------[ %d.%s ]-----------------\n", nrows, s.Name)
-
-				for k, v := range s.Tags {
-					output(fmtStr+" %s\n", k, "#", v)
-					addSug(k)
-				}
-
-				for colIdx := range s.Columns {
-					if disableNil && val[colIdx] == nil {
-						continue
-					}
-
-					col := s.Columns[colIdx]
-					if _, ok := s.Tags[col]; !ok {
-						if col == "time" {
-
-							if _, ok := val[colIdx].(json.Number); !ok {
-								l.Error("invalid time: %v", val[colIdx])
-								val[colIdx] = fmt.Sprintf("%v", val[colIdx])
-							} else {
-								i, err := val[colIdx].(json.Number).Int64()
-								if err != nil {
-									l.Error("parse time failed: %v", err)
-									continue
-								}
-
-								// convert ms to second
-								val[colIdx] = time.Unix(i/1000, 0) //nolint
-							}
-						}
-
-						valFmt := ""
-						switch val[colIdx].(type) {
-						case time.Time:
-							valFmt = "%v\n"
-						case json.Number:
-							i, err := val[colIdx].(json.Number).Int64()
-							if err != nil {
-								f, err := val[colIdx].(json.Number).Float64()
-								if err != nil {
-									l.Warn(err)
-								} else {
-									valFmt = "%.6f\n"
-									val[colIdx] = f
-								}
-							} else {
-								val[colIdx] = i
-								valFmt = "%d\n"
-							}
-
-						case string:
-							valFmt = "'%s'\n"
-						case bool:
-							valFmt = "%v\n"
-						default:
-							valFmt = "%v\n"
-							// pass
-						}
-
-						output(fmtStr+valFmt, col, " ", val[colIdx])
-					}
-					addSug(s.Columns[colIdx])
-				}
+				prettyShowRow(s, val, fmtStr)
 			}
 		}
 	}
@@ -400,16 +508,6 @@ func getMaxColWidth(r *models.Row) int {
 	}
 
 	return max
-}
-
-func colorPrint(c color.Attribute, fmtstr string, args ...interface{}) {
-	color.Set(c)
-	output(fmtstr, args...)
-	color.Unset()
-}
-
-func output(fmtstr string, args ...interface{}) {
-	fmt.Printf(fmtstr, args...)
 }
 
 var (

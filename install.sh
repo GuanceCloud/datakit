@@ -62,7 +62,7 @@ else
 fi
 
 # Select installer
-installer_base_url="https://static.dataflux.cn/datakit"
+installer_base_url="https://static.guance.com/datakit"
 if [ -n "$DK_INSTALLER_BASE_URL" ]; then
 	installer_base_url=$DK_INSTALLER_BASE_URL
 fi
@@ -156,7 +156,7 @@ chmod +x $installer
 
 if [ "$upgrade" ]; then
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
-	$sudo_cmd $installer -upgrade | $sudo_cmd tee ${install_log}
+	$sudo_cmd $installer --upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 	if [ "$install_only" ]; then

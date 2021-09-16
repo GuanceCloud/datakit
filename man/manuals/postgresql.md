@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标，并将指标采集到 DataFlux ，帮助你监控分析 Postgresql 各种异常情况
+Postgresql 采集器可以从 Postgresql 实例中采集实例运行状态指标，并将指标采集到观测云，帮助监控分析 Postgresql 各种异常情况
 
 ## 前置条件
 

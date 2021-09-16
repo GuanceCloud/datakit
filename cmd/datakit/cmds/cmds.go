@@ -1,14 +1,16 @@
 package cmds
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/c-bata/go-prompt"
+	"github.com/fatih/color"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -46,7 +48,7 @@ func ipInfo(ip string) (map[string]string, error) {
 
 	datadir := datakit.DataDir
 
-	if err := geo.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
+	if err := pipeline.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return nil, err
 	}
 
@@ -54,7 +56,7 @@ func ipInfo(ip string) (map[string]string, error) {
 		return nil, err
 	}
 
-	x, err := geo.Geo(ip)
+	x, err := pipeline.Geo(ip)
 	if err != nil {
 		return nil, err
 	}
@@ -82,4 +84,41 @@ func setCmdRootLog(rl string) {
 
 	l = logger.SLogger("cmds")
 	l.Infof("root log path set to %s", rl)
+}
+
+func infof(fmtstr string, args ...interface{}) {
+
+	if FlagJSON { // under json mode, there should no color message(aka, error message)
+		return
+	}
+
+	color.Set(color.FgGreen)
+	output(fmtstr, args...)
+	color.Unset()
+}
+
+func warnf(fmtstr string, args ...interface{}) {
+
+	if FlagJSON { // under json mode, there should no color message(aka, error message)
+		return
+	}
+
+	color.Set(color.FgYellow)
+	output(fmtstr, args...)
+	color.Unset()
+}
+
+func errorf(fmtstr string, args ...interface{}) {
+
+	if FlagJSON { // under json mode, there should no color message(aka, error message)
+		return
+	}
+
+	color.Set(color.FgRed)
+	output(fmtstr, args...)
+	color.Unset()
+}
+
+func output(fmtstr string, args ...interface{}) {
+	fmt.Printf(fmtstr, args...)
 }

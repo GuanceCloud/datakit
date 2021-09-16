@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
@@ -171,6 +172,29 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Infof("cpu input exit")
 			return
+		}
+	}
+}
+
+// ReadEnv, support envs：
+//   ENV_INPUT_CPU_PERCPU : booler
+//   ENV_INPUT_CPU_ENABLE_TEMPERATURE : booler
+func (i *Input) ReadEnv(envs map[string]string) {
+	if percpu, ok := envs["ENV_INPUT_CPU_PERCPU"]; ok {
+		b, err := strconv.ParseBool(percpu)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CPU_PERCPU to bool: %s, ignore", err)
+		} else {
+			i.PerCPU = b
+		}
+	}
+
+	if enableTemperature, ok := envs["ENV_INPUT_CPU_ENABLE_TEMPERATURE"]; ok {
+		b, err := strconv.ParseBool(enableTemperature)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CPU_ENABLE_TEMPERATURE to bool: %s, ignore", err)
+		} else {
+			i.EnableTemperature = b
 		}
 	}
 }

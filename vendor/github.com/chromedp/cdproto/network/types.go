@@ -520,6 +520,7 @@ type Request struct {
 	ReferrerPolicy   ReferrerPolicy            `json:"referrerPolicy"`             // The referrer policy of the request, as defined in https://www.w3.org/TR/referrer-policy/
 	IsLinkPreload    bool                      `json:"isLinkPreload,omitempty"`    // Whether is loaded via link preload.
 	TrustTokenParams *TrustTokenParams         `json:"trustTokenParams,omitempty"` // Set for requests when the TrustToken API is used. Contains the parameters passed by the developer (e.g. via "fetch") as understood by the backend.
+	IsSameSite       bool                      `json:"isSameSite,omitempty"`       // True if this resource request is considered to be the 'same site' as the request correspondinfg to the main frame.
 }
 
 // SignedCertificateTimestamp details of a signed certificate timestamp
@@ -918,10 +919,8 @@ type Response struct {
 	Status                      int64                       `json:"status"`                                // HTTP response status code.
 	StatusText                  string                      `json:"statusText"`                            // HTTP response status text.
 	Headers                     Headers                     `json:"headers"`                               // HTTP response headers.
-	HeadersText                 string                      `json:"headersText,omitempty"`                 // HTTP response headers text.
 	MimeType                    string                      `json:"mimeType"`                              // Resource mimeType as determined by the browser.
 	RequestHeaders              Headers                     `json:"requestHeaders,omitempty"`              // Refined HTTP request headers that were actually transmitted over the network.
-	RequestHeadersText          string                      `json:"requestHeadersText,omitempty"`          // HTTP request headers text.
 	ConnectionReused            bool                        `json:"connectionReused"`                      // Specifies whether physical connection was actually reused for this request.
 	ConnectionID                float64                     `json:"connectionId"`                          // Physical connection id that was actually used for this request.
 	RemoteIPAddress             string                      `json:"remoteIPAddress,omitempty"`             // Remote IP address.
@@ -1537,6 +1536,13 @@ func (t *IPAddressSpace) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }
 
+// ConnectTiming [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Network#type-ConnectTiming
+type ConnectTiming struct {
+	RequestTime float64 `json:"requestTime"` // Timing's requestTime is a baseline in seconds, while the other numbers are ticks in milliseconds relatively to this requestTime. Matches ResourceTiming's requestTime for the same request (but not for redirected requests).
+}
+
 // ClientSecurityState [no description].
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Network#type-ClientSecurityState
@@ -1618,9 +1624,9 @@ func (t CrossOriginEmbedderPolicyValue) String() string {
 
 // CrossOriginEmbedderPolicyValue values.
 const (
-	CrossOriginEmbedderPolicyValueNone                 CrossOriginEmbedderPolicyValue = "None"
-	CrossOriginEmbedderPolicyValueCorsOrCredentialless CrossOriginEmbedderPolicyValue = "CorsOrCredentialless"
-	CrossOriginEmbedderPolicyValueRequireCorp          CrossOriginEmbedderPolicyValue = "RequireCorp"
+	CrossOriginEmbedderPolicyValueNone           CrossOriginEmbedderPolicyValue = "None"
+	CrossOriginEmbedderPolicyValueCredentialless CrossOriginEmbedderPolicyValue = "Credentialless"
+	CrossOriginEmbedderPolicyValueRequireCorp    CrossOriginEmbedderPolicyValue = "RequireCorp"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -1638,8 +1644,8 @@ func (t *CrossOriginEmbedderPolicyValue) UnmarshalEasyJSON(in *jlexer.Lexer) {
 	switch CrossOriginEmbedderPolicyValue(in.String()) {
 	case CrossOriginEmbedderPolicyValueNone:
 		*t = CrossOriginEmbedderPolicyValueNone
-	case CrossOriginEmbedderPolicyValueCorsOrCredentialless:
-		*t = CrossOriginEmbedderPolicyValueCorsOrCredentialless
+	case CrossOriginEmbedderPolicyValueCredentialless:
+		*t = CrossOriginEmbedderPolicyValueCredentialless
 	case CrossOriginEmbedderPolicyValueRequireCorp:
 		*t = CrossOriginEmbedderPolicyValueRequireCorp
 
@@ -1669,6 +1675,82 @@ type CrossOriginEmbedderPolicyStatus struct {
 type SecurityIsolationStatus struct {
 	Coop *CrossOriginOpenerPolicyStatus   `json:"coop,omitempty"`
 	Coep *CrossOriginEmbedderPolicyStatus `json:"coep,omitempty"`
+}
+
+// ReportStatus the status of a Reporting API report.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Network#type-ReportStatus
+type ReportStatus string
+
+// String returns the ReportStatus as string value.
+func (t ReportStatus) String() string {
+	return string(t)
+}
+
+// ReportStatus values.
+const (
+	ReportStatusQueued           ReportStatus = "Queued"
+	ReportStatusPending          ReportStatus = "Pending"
+	ReportStatusMarkedForRemoval ReportStatus = "MarkedForRemoval"
+	ReportStatusSuccess          ReportStatus = "Success"
+)
+
+// MarshalEasyJSON satisfies easyjson.Marshaler.
+func (t ReportStatus) MarshalEasyJSON(out *jwriter.Writer) {
+	out.String(string(t))
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (t ReportStatus) MarshalJSON() ([]byte, error) {
+	return easyjson.Marshal(t)
+}
+
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *ReportStatus) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	switch ReportStatus(in.String()) {
+	case ReportStatusQueued:
+		*t = ReportStatusQueued
+	case ReportStatusPending:
+		*t = ReportStatusPending
+	case ReportStatusMarkedForRemoval:
+		*t = ReportStatusMarkedForRemoval
+	case ReportStatusSuccess:
+		*t = ReportStatusSuccess
+
+	default:
+		in.AddError(errors.New("unknown ReportStatus value"))
+	}
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (t *ReportStatus) UnmarshalJSON(buf []byte) error {
+	return easyjson.Unmarshal(buf, t)
+}
+
+// ReportID [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Network#type-ReportId
+type ReportID string
+
+// String returns the ReportID as string value.
+func (t ReportID) String() string {
+	return string(t)
+}
+
+// ReportingAPIReport an object representing a report generated by the
+// Reporting API.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Network#type-ReportingApiReport
+type ReportingAPIReport struct {
+	ID                ReportID            `json:"id"`
+	InitiatorURL      string              `json:"initiatorUrl"`      // The URL of the document that triggered the report.
+	Destination       string              `json:"destination"`       // The name of the endpoint group that should be used to deliver the report.
+	Type              string              `json:"type"`              // The type of the report (specifies the set of data that is contained in the report body).
+	Timestamp         *cdp.TimeSinceEpoch `json:"timestamp"`         // When the report was generated.
+	Depth             int64               `json:"depth"`             // How many uploads deep the related request was.
+	CompletedAttempts int64               `json:"completedAttempts"` // The number of delivery attempts made so far, not including an active attempt.
+	Body              easyjson.RawMessage `json:"body"`
+	Status            ReportStatus        `json:"status"`
 }
 
 // LoadNetworkResourcePageResult an object providing the result of a network

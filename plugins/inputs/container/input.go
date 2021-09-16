@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -26,8 +27,8 @@ type Input struct {
 	EnableObject  bool `toml:"enable_object"`
 	EnableLogging bool `toml:"enable_logging"`
 
-	MetricInterval string `toml:"metric_interval"`
-	metricDuration time.Duration
+	MetricInterval               timex.Duration `toml:"metric_interval"`
+	LoggingRemoveAnsiEscapeCodes bool           `toml:"logging_remove_ansi_escape_codes"`
 
 	IgnoreImageName     []string          `toml:"ignore_image_name"`
 	IgnoreContainerName []string          `toml:"ignore_container_name"`
@@ -55,24 +56,22 @@ type Input struct {
 
 func newInput() *Input {
 	return &Input{
-		Endpoint:       dockerEndpoint,
-		Tags:           make(map[string]string),
-		metricDuration: minMetricDuration,
-		in:             make(chan []*job, 64),
+		Endpoint: dockerEndpoint,
+		Tags:     make(map[string]string),
+		in:       make(chan []*job, 64),
 	}
 }
 
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
+func (*Input) SampleConfig() string { return sampleCfg }
 
-func (*Input) Catalog() string {
-	return catelog
-}
+func (*Input) Catalog() string { return catelog }
 
-func (*Input) PipelineConfig() map[string]string {
-	return nil
-}
+func (*Input) PipelineConfig() map[string]string { return nil }
+
+func (*Input) AvailableArchs() []string { return []string{datakit.OSLinux} }
+
+// TODO
+func (*Input) RunPipeline() {}
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -82,14 +81,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&kubeletPodMetricMeasurement{},
 		&kubeletPodObjectMeasurement{},
 	}
-}
-
-func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLinux}
-}
-
-// TODO
-func (*Input) RunPipeline() {
 }
 
 func (this *Input) Run() {
@@ -112,7 +103,7 @@ func (this *Input) Run() {
 		}
 	}
 
-	metricsTick := time.NewTicker(this.metricDuration)
+	metricsTick := time.NewTicker(this.MetricInterval.Duration)
 	defer metricsTick.Stop()
 
 	objectTick := time.NewTicker(objectDuration)
@@ -147,6 +138,49 @@ func (this *Input) Run() {
 					c.Logging(context.Background())
 				}
 			}
+		}
+	}
+}
+
+// ReadEnv, support envs：
+//   ENV_INPUT_CONTAINER_ENABLE_METRIC : booler
+//   ENV_INPUT_CONTAINER_ENABLE_OBJECT : booler
+//   ENV_INPUT_CONTAINER_ENABLE_LOGGING : booler
+//   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
+func (this *Input) ReadEnv(envs map[string]string) {
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_METRIC"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_METRIC to bool: %s, ignore", err)
+		} else {
+			this.EnableMetric = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_OBJECT"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_OBJECT to bool: %s, ignore", err)
+		} else {
+			this.EnableObject = b
+		}
+	}
+
+	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_LOGGING"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_LOGGING to bool: %s, ignore", err)
+		} else {
+			this.EnableLogging = b
+		}
+	}
+
+	if remove, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {
+		b, err := strconv.ParseBool(remove)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
+		} else {
+			this.LoggingRemoveAnsiEscapeCodes = b
 		}
 	}
 }
@@ -198,12 +232,6 @@ func (this *Input) setup() bool {
 		break
 	}
 
-	if dur, err := timex.ParseDuration(this.MetricInterval); err != nil {
-		l.Debug(err)
-	} else {
-		this.metricDuration = dur
-	}
-
 	if this.EnableMetric || this.EnableObject {
 		go this.doFeed()
 	}
@@ -235,8 +263,10 @@ func (this *Input) buildDockerClient() error {
 		l.Error(err)
 		return err
 	}
+
 	client.IgnoreImageName = this.IgnoreImageName
 	client.IgnoreContainerName = this.IgnoreContainerName
+	client.LoggingRemoveAnsiEscapeCodes = this.LoggingRemoveAnsiEscapeCodes
 	client.ProcessTags = this.processTags
 	client.Logs = this.Logs
 	if verifyIntegrityOfK8sConnect(this.Kubernetes) {

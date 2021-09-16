@@ -1,7 +1,7 @@
 package nsq
 
 type LookupNodes struct {
-	Producers []Producer `json:"producers"`
+	Producers []*Producer `json:"producers"`
 }
 
 type Producer struct {

@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
@@ -282,7 +281,7 @@ func debugNodesHelp(f *parser.FuncExpr, prev string) {
 func Init(datadir string) error {
 	l = logger.SLogger("pipeline")
 
-	if err := geo.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
+	if err := LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return err
 	}
 

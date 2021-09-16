@@ -50,6 +50,7 @@ var ddtraceSpanType = map[string]string{
 	"":              trace.SPAN_SERVICE_CUSTOM,
 }
 
+//nolint: tagliatelle
 type Span struct {
 	Service  string             `codec:"service" protobuf:"bytes,1,opt,name=service,proto3" json:"service" msg:"service"`                                                                                     // client code defined service name of span
 	Name     string             `codec:"name" protobuf:"bytes,2,opt,name=name,proto3" json:"name" msg:"name"`                                                                                                 // client code defined operation name of span
@@ -70,7 +71,7 @@ type Trace []*Span
 type Traces []Trace
 
 // TODO:
-func handleInfo(resp http.ResponseWriter, req *http.Request) {
+func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
@@ -80,7 +81,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 		since := time.Now()
 		traces, err := decodeRequest(pattern, req)
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				log.Warn(err.Error())
 				resp.WriteHeader(http.StatusOK)
 			} else {
@@ -98,7 +99,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 		}
 		log.Debugf("show up all traces: %v", traces)
 
-		pts, err := tracesToPoints(traces)
+		pts, err := tracesToPoints(traces, filters...)
 		if err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
@@ -107,7 +108,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 		}
 
 		if len(pts) != 0 {
-			if err = dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{CollectCost: time.Now().Sub(since), HighFreq: true}); err != nil {
+			if err = dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{CollectCost: time.Since(since), HighFreq: true}); err != nil {
 				dkio.FeedLastError(inputName, err.Error())
 			}
 		} else {
@@ -124,7 +125,7 @@ func handleStats(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-func extracteCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
+func extractCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
 	var customerTags = map[string]string{}
 	for _, key := range customerKeys {
 		if value, ok := meta[key]; ok {
@@ -167,15 +168,14 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 // tracesToPoints work as a adapter to convert traces to points.
 // parameter traces is raw traces, filters contains all the functional filters
 // like resource filter, sample.
+//nolint: cyclop
 func tracesToPoints(traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
 	var pts []*dkio.Point
 NEXT_TRACE:
 	for _, trace := range traces {
 		// run all filters
-		for _, filter := range filters {
-			if len(filter(trace)) == 0 {
-				continue NEXT_TRACE
-			}
+		if runFiltersWithBreak(trace, filters...) == nil {
+			continue NEXT_TRACE
 		}
 
 		spanIds, parentIds := getSpanAndParentId(trace)
@@ -186,7 +186,7 @@ NEXT_TRACE:
 			tm := &itrace.TraceMeasurement{}
 			tm.Name = "ddtrace"
 
-			spanType := ""
+			var spanType string
 			if span.ParentID == 0 {
 				spanType = itrace.SPAN_TYPE_ENTRY
 			} else {
@@ -231,8 +231,12 @@ NEXT_TRACE:
 			tags[itrace.TAG_HTTP_METHOD] = span.Meta["http.method"]
 			tags[itrace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
 
-			customerTags := extracteCustomerTags(customerKeys, span.Meta)
+			customerTags := extractCustomerTags(customerKeys, span.Meta)
 			for k, v := range customerTags {
+				tags[k] = v
+			}
+
+			for k, v := range ddTags {
 				tags[k] = v
 			}
 
@@ -287,6 +291,7 @@ func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
 
 // unmarshalTraceDictionary decodes a trace using the specification from the v0.5 endpoint.
 // For details, see the documentation for endpoint v0.5 in pkg/trace/api/version.go
+//nolint:cyclop
 func unmarshalTraceDictionary(bts []byte, out *Traces) error {
 	if out == nil {
 		return errors.New("nil pointer")
@@ -369,6 +374,7 @@ const spanPropertyCount = 12
 // unmarshalSpanDictionary decodes a span from the given decoder dc, looking up strings
 // in the given dictionary dict. For details, see the documentation for endpoint v0.5
 // in pkg/trace/api/version.go
+//nolint:cyclop
 func unmarshalSpanDictionary(bts []byte, dict []string, out *Span) ([]byte, error) {
 	if out == nil {
 		return nil, errors.New("nil pointer")

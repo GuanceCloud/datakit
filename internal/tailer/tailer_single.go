@@ -29,6 +29,8 @@ type Single struct {
 	mult     *Multiline
 	pipeline *pipeline.Pipeline
 
+	readBuff []byte
+
 	tags   map[string]string
 	stopCh chan struct{}
 }
@@ -50,7 +52,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 			return nil, err
 		}
 	}
-	t.mult, err = NewMultiline(opt.Match)
+	t.mult, err = NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +76,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		}
 	}
 
+	t.readBuff = make([]byte, readBuffSize)
 	t.filename = t.file.Name()
 	t.tags = t.buildTags(opt.GlobalTags)
 
@@ -111,8 +114,6 @@ func (t *Single) forwardMessage() {
 	}
 
 	for {
-		b.buf = b.buf[:0]
-
 		select {
 		case <-t.stopCh:
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
@@ -127,7 +128,7 @@ func (t *Single) forwardMessage() {
 
 		b.buf, readNum, err = t.read()
 		if err != nil {
-			t.opt.log.Warnf("failed of read data from file %s", t.filename)
+			t.opt.log.Warnf("failed of read data from file %s, error: %s", t.filename, err)
 			return
 		}
 		if readNum == 0 {
@@ -170,6 +171,7 @@ func (t *Single) processText(text string) error {
 	}
 
 	err := NewLogs(text).
+		RemoveAnsiEscapeCodesOfText(t.opt.RemoveAnsiEscapeCodes).
 		Pipeline(t.pipeline).
 		CheckFieldsLength().
 		AddStatus(t.opt.DisableAddStatusField).
@@ -177,7 +179,7 @@ func (t *Single) processText(text string) error {
 		TakeTime().
 		Point(t.opt.Source, t.tags).
 		Feed(t.opt.InputName).
-		Error()
+		Err()
 
 	return err
 }
@@ -193,16 +195,15 @@ func (t *Single) currentOffset() int64 {
 	return offset
 }
 
-func (t *Single) read() (buf []byte, n int, err error) {
-	buf = make([]byte, readBuffSize)
-	n, err = t.file.Read(buf)
+func (t *Single) read() ([]byte, int, error) {
+	n, err := t.file.Read(t.readBuff)
 	if err != nil && err != io.EOF {
-		t.opt.log.Warnf("Read(): %s, ignored", err.Error())
+		// an unexpected error occurred, stop the tailor
+		t.opt.log.Warnf("Unexpected error occurred while reading file: %s", err)
 		return nil, 0, err
 	}
 
-	buf = buf[:n]
-	return
+	return t.readBuff[:n], n, nil
 }
 
 func (t *Single) wait() {

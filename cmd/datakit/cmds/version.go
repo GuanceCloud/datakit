@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -68,7 +69,15 @@ func showVersion(curverStr, releaseType string, showTestingVer bool) {
 Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
-`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, releaseType)
+     InstallAt: %s
+     UpgradeAt: %s
+`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader,
+		releaseType, config.Cfg.InstallDate, func() string {
+			if config.Cfg.UpgradeDate.Unix() < 0 {
+				return "not upgraded"
+			}
+			return fmt.Sprintf("%v", config.Cfg.UpgradeDate)
+		}())
 	vers, err := getOnlineVersions(showTestingVer)
 	if err != nil {
 		fmt.Printf("Get online version failed: \n%s\n", err.Error())
@@ -89,32 +98,49 @@ ReleasedInputs: %s
 			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
 				k, v.VersionString, v.Commit, v.ReleaseDate)
 
-			fmt.Println(getUpgradeCommand(v.DownloadURL))
+			fmt.Println(getUpgradeCommand(v.DownloadURL, k == "Testing"))
 		}
 	}
 }
 
-func getUpgradeCommand(dlurl string) string {
-	upgradeFmt := ""
+const (
+	OnlineBaseURL  = "static.guance.com/datakit"
+	TestingBaseURL = "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit"
+)
+
+func getUpgradeCommand(dlurl string, showTesting bool) string {
+	upgradeCmd := ""
 	proxy := config.Cfg.DataWay.HttpProxy
+
+	baseURLEnv := ""
+
 	switch runtime.GOOS {
-	case "windows":
+	case datakit.OSWindows:
 		if proxy != "" {
-			upgradeFmt = fmt.Sprintf(winUpgradeCmdProxy, proxy, dlurl)
+			upgradeCmd = fmt.Sprintf(winUpgradeCmdProxy, proxy, dlurl)
 		} else {
-			upgradeFmt = fmt.Sprintf(winUpgradeCmd, dlurl)
+			upgradeCmd = fmt.Sprintf(winUpgradeCmd, dlurl)
 		}
+
+		baseURLEnv = fmt.Sprintf(`$env:DK_INSTALLER_BASE_URL="https://%s"; `, TestingBaseURL)
 
 	default: // Linux/Mac
 
 		if proxy != "" {
-			upgradeFmt = fmt.Sprintf(unixUpgradeCmdProxy, proxy, proxy, dlurl)
+			upgradeCmd = fmt.Sprintf(unixUpgradeCmdProxy, proxy, proxy, dlurl)
 		} else {
-			upgradeFmt = fmt.Sprintf(unixUpgradeCmd, dlurl)
+			upgradeCmd = fmt.Sprintf(unixUpgradeCmd, dlurl)
 		}
+
+		baseURLEnv = fmt.Sprintf(`DK_INSTALLER_BASE_URL="https://%s" `, TestingBaseURL)
 	}
 
-	return upgradeFmt
+	// for testing version upgrade command, we need to change the base URL
+	if showTesting && baseURLEnv != "" {
+		upgradeCmd = baseURLEnv + upgradeCmd
+	}
+
+	return upgradeCmd
 }
 
 func getLocalVersion(ver string) (*version.VerInfo, error) {
@@ -159,7 +185,7 @@ func getVersion(addr string) (*version.VerInfo, error) {
 
 	ver.DownloadURL = fmt.Sprintf("https://%s/install.sh", addr)
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		ver.DownloadURL = fmt.Sprintf("https://%s/install.ps1", addr)
 	}
 	return &ver, nil
@@ -169,7 +195,7 @@ func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, er
 
 	res = map[string]*version.VerInfo{}
 
-	onlineVer, err := getVersion("static.dataflux.cn/datakit")
+	onlineVer, err := getVersion(OnlineBaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +203,7 @@ func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, er
 	l.Debugf("online version: %s", onlineVer)
 
 	if showTestingVer {
-		testVer, err := getVersion("zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit")
+		testVer, err := getVersion(TestingBaseURL)
 		if err != nil {
 			return nil, err
 		}

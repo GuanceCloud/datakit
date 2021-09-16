@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-采集 Kafka 指标和日志上报到 DataFlux 中，帮助你监控分析 Kafka 各种异常情况
+采集 Kafka 指标和日志上报到观测云，帮助你监控分析 Kafka 各种异常情况
 
 ## 前置条件
 

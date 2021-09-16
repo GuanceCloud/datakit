@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-采集 GitLab 运行数据并以指标的方式上报到 DataFlux 中。
+采集 GitLab 运行数据并以指标的方式上报到观测云。
 
 ## 前置条件
 

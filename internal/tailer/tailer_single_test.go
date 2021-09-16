@@ -20,7 +20,8 @@ func TestProcessText(t *testing.T) {
 			AddStatus(false).
 			IgnoreStatus(nil).
 			TakeTime().
-			Point("testing", nil).Error()
+			Point("testing", nil).
+			Err()
 		if err != nil {
 			t.Error(err)
 		}

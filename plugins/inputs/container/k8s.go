@@ -283,10 +283,13 @@ func (k *Kubernetes) GetContainerPodName(id string) (string, error) {
 	if id == "" {
 		return "", fmt.Errorf("invalid containerID, cannot be empty")
 	}
+
 	pods, err := k.getPods()
+
 	if err != nil {
 		return "", err
 	}
+
 	return pods.GetContainerPodName(id), nil
 }
 
@@ -554,8 +557,9 @@ func (p *Pods) GetContainerPodName(id string) string {
 		if len(podMetadata.Status.ContainerStatuses) == 0 {
 			continue
 		}
-		for _, containerStauts := range podMetadata.Status.ContainerStatuses {
-			if containerStauts.ContainerID == id {
+
+		for _, x := range podMetadata.Status.ContainerStatuses {
+			if x.ContainerID == id {
 				return podMetadata.Metadata.Name
 			}
 		}

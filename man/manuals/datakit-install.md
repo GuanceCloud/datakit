@@ -8,9 +8,9 @@
 
 本文介绍 DataKit 的基本安装。
 
-## 注册/登陆 DataFlux 账号
+## 注册/登陆观测云
 
-浏览器访问 [DataFlux 注册入口](https://auth.dataflux.cn/redirectpage/register)，填写对应信息之后，即可[登陆 DataFlux](https://console.dataflux.cn/pageloading/login)
+浏览器访问 [观测云注册入口](https://auth.guance.com/redirectpage/register)，填写对应信息之后，即可[登陆观测云](https://console.guance.com/pageloading/login)
 
 ## 获取安装命令
 
@@ -23,7 +23,7 @@
 命令大概如下：
 
 ```shell
-DK_DATAWAY=https://openway.dataflux.cn?token=<TOKEN> bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
+DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
 安装完成后，在终端会看到安装成功的提示。
@@ -34,6 +34,8 @@ Mac 上安装时，如果安装/升级过程中出现
 
 ```shell
 "launchctl" failed with stderr: /Library/LaunchDaemons/cn.dataflux.datakit.plist: Service is disabled
+# 或者
+"launchctl" failed with stderr: /Library/LaunchDaemons/com.guance.datakit.plist: Service is disabled
 ```
 
 执行
@@ -46,6 +48,8 @@ sudo launchctl enable system/datakit
 
 ```shell
 sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+# 或者
+sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 ```
 
 ### Windows
@@ -53,7 +57,7 @@ sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
 > Windows 上安装需在 Powershell 命令行安装，且必须以管理员身份运行 Powershell。按下 Windows 键，输入 powershell 即可看到弹出的 powershell 图标，右键选择「以管理员身份运行」即可。
 
 ```powershell
-$env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+$env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
 ### 额外支持的安装变量
@@ -69,21 +73,17 @@ $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy
 - `DK_INSTALL_ONLY`：仅安装，不运行
 - `DK_DEF_INPUTS`：默认开启的采集器列表，格式范例：`input1,input2,input3`
 - `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
-- `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.dataflux.cn/datakit`
+- `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
 - `HTTPS_PROXY`：通过 Datakit 代理安装
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
-<<<<<<< HEAD
-```
-=======
 ```shell
->>>>>>> master
 # Linux/Mac
-DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>" bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
+DK_NAMESPACE="<namespace>" DK_DATAWAY="https://openway.guance.com?token=<TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 
 # Windows
-$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+$env:DK_NAMESPACE="<namespace>"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
 俩种环境变量的设置格式为：
@@ -98,7 +98,7 @@ NAME1="value1" NAME2="value2"
 
 ## 如何应付不友好的主机名
 
-由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用 DataFlux 带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。
+由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。
 
 在 `datakit.conf` 中，修改如下配置，DataKit 将读取 `ENV_HOSTNAME` 来覆盖当前的真实主机名：
 
