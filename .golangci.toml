@@ -91,7 +91,8 @@
     "bodyclose", # Too many false-positive and panics.
     "unparam", # Too strict
     "godox", # Too strict
-		"nolintlint"
+		"nolintlint",
+		"golint", # Too strict
   ]
 
 [issues]

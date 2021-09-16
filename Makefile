@@ -163,8 +163,9 @@ man:
 	@packr2 clean
 	@packr2
 
+# ignore files under vendor/.git/git
 gofmt:
-	@GO111MODULE=off gofmt -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/")
+	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/")
 
 vet:
 	@go vet ./...
@@ -187,7 +188,7 @@ lfparser:
 plparser:
 	@goyacc -o pipeline/parser/parser_y.go pipeline/parser/parser.y
 
-lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
+lint_deps: prepare gofmt lfparser_disable_line plparser_disable_line man vet 
 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
