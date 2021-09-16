@@ -29,7 +29,6 @@ func (_ *SelfInfo) SampleConfig() string {
 }
 
 func (s *SelfInfo) Run() {
-
 	tick := time.NewTicker(time.Second * 10)
 	defer tick.Stop()
 
@@ -37,7 +36,6 @@ func (s *SelfInfo) Run() {
 	l.Info("self input started...")
 
 	for {
-
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("self exit")

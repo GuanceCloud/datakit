@@ -5,7 +5,7 @@ import (
 )
 
 func TestProcessText(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		in string
 	}{
 		{

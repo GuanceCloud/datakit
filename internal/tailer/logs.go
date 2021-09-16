@@ -273,7 +273,6 @@ func feed(inputName, measurement string, tags map[string]string, message string)
 		tags,
 		map[string]interface{}{"message": message},
 		time.Now())
-
 	if err != nil {
 		return err
 	}

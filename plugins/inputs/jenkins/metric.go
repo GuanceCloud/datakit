@@ -2,9 +2,10 @@ package jenkins
 
 import (
 	"fmt"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 var fieldMap = map[string]string{

@@ -13,7 +13,6 @@ import (
 )
 
 func TestMetaGet(t *testing.T) {
-
 	cases := []struct {
 		body, expect string
 	}{

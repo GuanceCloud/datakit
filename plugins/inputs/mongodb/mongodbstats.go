@@ -641,6 +641,7 @@ type ShardHostStatLine struct {
 	Created    int64
 	Refreshing int64
 }
+
 type DbStatLine struct {
 	Name        string
 	Collections int64
@@ -652,6 +653,7 @@ type DbStatLine struct {
 	IndexSize   int64
 	Ok          int64
 }
+
 type ColStatLine struct {
 	Name           string
 	DbName         string
@@ -731,7 +733,7 @@ type StatLine struct {
 	// Document fields
 	DeletedD, InsertedD, ReturnedD, UpdatedD int64
 
-	//Commands fields
+	// Commands fields
 	AggregateCommandTotal, AggregateCommandFailed         int64
 	CountCommandTotal, CountCommandFailed                 int64
 	DeleteCommandTotal, DeleteCommandFailed               int64
@@ -1249,7 +1251,7 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 
 	if newStat.GlobalLock != nil {
 		hasWT := newStat.WiredTiger != nil && oldStat.WiredTiger != nil
-		//If we have wiredtiger stats, use those instead
+		// If we have wiredtiger stats, use those instead
 		if newStat.GlobalLock.CurrentQueue != nil {
 			if hasWT {
 				returnVal.QueuedReaders = newStat.GlobalLock.CurrentQueue.Readers + newStat.GlobalLock.ActiveClients.Readers - newStat.WiredTiger.Concurrent.Read.Out

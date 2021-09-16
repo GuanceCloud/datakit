@@ -37,7 +37,6 @@ func (m *mockGEO) Get(ip string) (*ip2location.IP2Locationrecord, error) {
 }
 
 func TestGeoIpFunc(t *testing.T) {
-
 	defaultGEO = &mockGEO{}
 
 	cases := []struct {
@@ -123,7 +122,6 @@ geoip(aa.ip)`,
 		t.Logf("case %d...", idx)
 
 		p, err := NewPipeline(tt.script)
-
 		if err != nil {
 			tu.Equals(t, err.Error(), p.lastErr)
 

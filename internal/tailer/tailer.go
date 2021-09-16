@@ -191,7 +191,6 @@ func (t *Tailer) scan() {
 			t.addToFileList(filename, tl)
 
 			tl.Run()
-
 		}(filename)
 	}
 }

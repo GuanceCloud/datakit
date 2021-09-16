@@ -19,9 +19,7 @@ const (
 	maxInterval = time.Minute * 20
 )
 
-var (
-	l = logger.DefaultSLogger(inputName)
-)
+var l = logger.DefaultSLogger(inputName)
 
 type tomcatlog struct {
 	Files             []string `toml:"files"`
@@ -60,6 +58,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&TomcatCacheM{},
 	}
 }
+
 func (i *Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName: pipelineCfg,
@@ -111,7 +110,6 @@ func (i *Input) Run() {
 				i.tail.Close()
 			}
 		}
-
 	}()
 	if d, err := time.ParseDuration(i.Interval); err != nil {
 		i.Interval = (time.Second * 10).String()

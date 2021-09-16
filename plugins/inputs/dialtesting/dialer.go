@@ -28,7 +28,6 @@ type dialer struct {
 }
 
 func (d *dialer) updateTask(t dt.Task) error {
-
 	select {
 	case <-d.updateCh: // if closed?
 		l.Warnf("task %s closed", d.task.ID())
@@ -47,7 +46,6 @@ func (d *dialer) stop() {
 }
 
 func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
-
 	return &dialer{
 		task:     t,
 		updateCh: make(chan dt.Task),
@@ -106,8 +104,8 @@ func (d *dialer) run() error {
 				d.task.Run()
 			}
 
-			//dialtesting start
-			//无论成功或失败，都要记录测试结果
+			// dialtesting start
+			// 无论成功或失败，都要记录测试结果
 			err := d.feedIO()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
@@ -126,7 +124,6 @@ func (d *dialer) run() error {
 }
 
 func (d *dialer) feedIO() error {
-
 	// 考虑到推送至不同的dataway地址
 	u, err := url.Parse(d.task.PostURLStr())
 	if err != nil {
@@ -142,7 +139,7 @@ func (d *dialer) feedIO() error {
 		return d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
 		return d.linedataFeed(urlStr, `ms`)
-	//TODO other class
+	// TODO other class
 	default:
 	}
 
@@ -150,7 +147,6 @@ func (d *dialer) feedIO() error {
 }
 
 func (d *dialer) doUpdateTask(t dt.Task) {
-
 	if err := t.Init(); err != nil {
 		l.Warn(err)
 		return
@@ -161,7 +157,6 @@ func (d *dialer) doUpdateTask(t dt.Task) {
 	}
 
 	d.task = t
-
 }
 
 type httpMeasurement struct {

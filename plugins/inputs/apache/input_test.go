@@ -53,7 +53,6 @@ func TestParse(t *testing.T) {
 }
 
 func TestGetMetric(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, testdata)
 	}))

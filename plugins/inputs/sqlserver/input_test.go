@@ -3,6 +3,7 @@ package sqlserver
 import "testing"
 import (
 	"fmt"
+
 	_ "github.com/denisenkom/go-mssqldb"
 )
 

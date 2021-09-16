@@ -116,7 +116,6 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 }
 
 func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
-
 	defer dw.httpCli.CloseIdleConnections()
 
 	for i, ep := range dw.endPoints {

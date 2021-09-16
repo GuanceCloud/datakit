@@ -251,7 +251,7 @@ func thriftSpansToAdapters(zspans []*zipkinV1_core.Span, filters ...zipkinThrift
 		if span.Timestamp != nil {
 			tAdapter.Start = (*span.Timestamp) * 1000
 		} else {
-			//tAdapter.TimestampUs = time.Now().UnixNano() / 1000
+			// tAdapter.TimestampUs = time.Now().UnixNano() / 1000
 			tAdapter.Start = getStartTimestamp(span)
 		}
 

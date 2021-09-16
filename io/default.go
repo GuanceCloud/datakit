@@ -210,7 +210,8 @@ func makePoint(name string,
 			ExtraTags: extags,
 			Strict:    true,
 			Time:      ts,
-			Precision: "n"})
+			Precision: "n",
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +272,8 @@ func HighFreqFeedEx(name, category, metric string,
 			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
-			Precision: "n"})
+			Precision: "n",
+		})
 	if err != nil {
 		return err
 	}
@@ -297,7 +299,8 @@ func NamedFeedEx(name, category, metric string,
 			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
-			Precision: "n"})
+			Precision: "n",
+		})
 	if err != nil {
 		return err
 	}

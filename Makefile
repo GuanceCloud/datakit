@@ -164,8 +164,9 @@ man:
 	@packr2
 
 # ignore files under vendor/.git/git
+# install gofumpt: go install mvdan.cc/gofumpt@latest
 gofmt:
-	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/")
+	@GO111MODULE=off gofumpt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/")
 
 vet:
 	@go vet ./...

@@ -13,14 +13,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	l = logger.DefaultSLogger(InputName)
-)
+var l = logger.DefaultSLogger(InputName)
 
 type Input struct {
-	Name  string `toml:"name,omitempty"`        //deprecated
-	Class string `toml:"class,omitempty"`       //deprecated
-	Desc  string `toml:"description,omitempty"` //deprecated
+	Name  string `toml:"name,omitempty"`        // deprecated
+	Class string `toml:"class,omitempty"`       // deprecated
+	Desc  string `toml:"description,omitempty"` // deprecated
 
 	Pipeline string            `toml:"pipeline,omitempty"`
 	Tags     map[string]string `toml:"tags,omitempty"`
@@ -63,7 +61,6 @@ const (
 func (*Input) RunPipeline() {}
 
 func (c *Input) Run() {
-
 	l = logger.SLogger(InputName)
 
 	c.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, c.Interval.Duration)
@@ -103,7 +100,6 @@ func (i *Input) ReadEnv(envs map[string]string) {
 }
 
 func (c *Input) singleCollect(n int) {
-
 	l.Debugf("start %d collecting...", n)
 
 	start := time.Now()
@@ -158,7 +154,6 @@ func (c *Input) AvailableArchs() []string {
 }
 
 func (c *Input) Collect() error {
-
 	message, err := c.getHostObjectMessage()
 	if err != nil {
 		return err
@@ -226,7 +221,6 @@ func (c *Input) Collect() error {
 }
 
 func (c *Input) getPipeline() *pipeline.Pipeline {
-
 	fname := c.Pipeline
 	if fname == "" {
 		fname = InputName + ".p"

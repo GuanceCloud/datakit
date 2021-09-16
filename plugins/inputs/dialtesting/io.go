@@ -40,7 +40,6 @@ func (d *dialer) linedataFeed(urlStr string, precision string) error {
 	return Feed(inputName, datakit.Logging, x, &io.Option{
 		HTTPHost: urlStr,
 	})
-
 }
 
 func (d *dialer) pointsFeed(urlStr string) error {
@@ -72,6 +71,5 @@ func (d *dialer) pointsFeed(urlStr string) error {
 }
 
 func Feed(name, category string, pts []*io.Point, opt *io.Option) error {
-
 	return io.Feed(name, category, pts, opt)
 }

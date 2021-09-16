@@ -214,7 +214,6 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 }
 
 func (c *Client) QueryEx(query string, propNames []string, connectServerArgs ...interface{}) ([]map[string]interface{}, error) {
-
 	lock.Lock()
 	defer lock.Unlock()
 	runtime.LockOSThread()
@@ -301,7 +300,6 @@ func (c *Client) QueryEx(query string, propNames []string, connectServerArgs ...
 
 			return nil
 		}()
-
 		if err != nil {
 			return nil, err
 		}
@@ -327,7 +325,6 @@ func (e *ErrFieldMismatch) Error() string {
 var timeType = reflect.TypeOf(time.Time{})
 
 func (c *Client) loadEntityEx(props []string, src *ole.IDispatch) (map[string]interface{}, error) {
-
 	fields := map[string]interface{}{}
 
 	if len(props) > 0 {
@@ -339,7 +336,7 @@ func (c *Client) loadEntityEx(props []string, src *ole.IDispatch) (map[string]in
 			}
 			defer prop.Clear()
 
-			if prop.VT == 0x1 { //VT_NULL
+			if prop.VT == 0x1 { // VT_NULL
 				continue
 			}
 
@@ -428,7 +425,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 		}
 		defer prop.Clear()
 
-		if prop.VT == 0x1 { //VT_NULL
+		if prop.VT == 0x1 { // VT_NULL
 			continue
 		}
 

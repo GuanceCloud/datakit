@@ -34,7 +34,7 @@ func addMessageToFields(tags map[string]string, fields map[string]interface{}) {
 		return
 	}
 
-	var temp = make(map[string]interface{})
+	temp := make(map[string]interface{})
 	for k, v := range tags {
 		temp[k] = v
 	}

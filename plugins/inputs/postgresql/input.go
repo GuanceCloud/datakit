@@ -171,11 +171,9 @@ func (*Input) PipelineConfig() map[string]string {
 }
 
 func (p *Input) SanitizedAddress() (sanitizedAddress string, err error) {
-	var (
-		canonicalizedAddress string
-	)
+	var canonicalizedAddress string
 
-	var kvMatcher, _ = regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+	kvMatcher, _ := regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 
 	if p.Outputaddress != "" {
 		return p.Outputaddress, nil
@@ -263,9 +261,7 @@ func (i *Input) getConnectionMetrics() error {
 }
 
 func (i *Input) Collect() error {
-	var (
-		err error
-	)
+	var err error
 
 	i.service.SetAddress(i.Address)
 	defer i.service.Stop()
@@ -344,7 +340,6 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 	}
 
 	return nil
-
 }
 
 func (i *Input) RunPipeline() {

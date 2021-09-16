@@ -11,7 +11,6 @@ import (
 )
 
 func TestParseData(t *testing.T) {
-
 	// 指定指标名的映射 map
 	if fc, err := DebugVarsDataParse2Point([]byte(dataInfluxDebugVars1v8),
 		MetricMap); err != nil {
@@ -64,7 +63,6 @@ func TestCollect(t *testing.T) {
 	if err := i.Collect(); err != nil {
 		i.collectCache = make([]inputs.Measurement, 0)
 	}
-
 }
 
 const (

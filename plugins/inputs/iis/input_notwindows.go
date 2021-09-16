@@ -33,7 +33,6 @@ type iisLog struct {
 
 func (i *Input) SampleConfig() string {
 	return sampleConfig
-
 }
 
 func (i *Input) Catalog() string {

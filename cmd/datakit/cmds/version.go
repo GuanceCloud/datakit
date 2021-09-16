@@ -26,7 +26,6 @@ const (
 )
 
 func checkUpdate(curverStr string, acceptRC bool) int {
-
 	l = logger.SLogger("ota-update")
 
 	l.Debugf("get online version...")
@@ -147,7 +146,8 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 	v := &version.VerInfo{
 		VersionString: strings.TrimPrefix(ver, "v"),
 		Commit:        git.Commit,
-		ReleaseDate:   git.BuildAt}
+		ReleaseDate:   git.BuildAt,
+	}
 	if err := v.Parse(); err != nil {
 		return nil, err
 	}
@@ -155,7 +155,6 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 }
 
 func getVersion(addr string) (*version.VerInfo, error) {
-
 	cli := getcli()
 
 	req, err := nhttp.NewRequest("GET", "http://"+path.Join(addr, "version"), nil)
@@ -192,7 +191,6 @@ func getVersion(addr string) (*version.VerInfo, error) {
 }
 
 func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, err error) {
-
 	res = map[string]*version.VerInfo{}
 
 	onlineVer, err := getVersion(OnlineBaseURL)

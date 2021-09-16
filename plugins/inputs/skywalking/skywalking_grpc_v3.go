@@ -1,13 +1,12 @@
 package skywalking
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
-
-	"context"
-	"encoding/json"
 
 	"google.golang.org/grpc"
 

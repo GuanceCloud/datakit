@@ -20,7 +20,6 @@ type Input struct {
 
 func (_ *Input) SampleConfig() string {
 	return sample
-
 }
 
 func (_ *Input) Catalog() string {

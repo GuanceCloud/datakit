@@ -5,7 +5,7 @@ import (
 )
 
 func TestParseImage(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		image          string
 		imageName      string
 		imageShortName string
@@ -54,7 +54,7 @@ func TestParseImage(t *testing.T) {
 }
 
 func TestRegexpMatchString(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		regexps []string
 		target  string
 		fail    bool

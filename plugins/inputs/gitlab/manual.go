@@ -5,9 +5,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type gitlabMeasurement struct{}
-type gitlabBaseMeasurement struct{}
-type gitlabHTTPMeasurement struct{}
+type (
+	gitlabMeasurement     struct{}
+	gitlabBaseMeasurement struct{}
+	gitlabHTTPMeasurement struct{}
+)
 
 func (*gitlabMeasurement) LineProto() (*io.Point, error)     { return nil, nil }
 func (*gitlabBaseMeasurement) LineProto() (*io.Point, error) { return nil, nil }

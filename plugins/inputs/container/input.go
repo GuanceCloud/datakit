@@ -16,9 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	l = logger.DefaultSLogger(inputName)
-)
+var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
 	Endpoint string `toml:"endpoint"`
@@ -327,7 +325,7 @@ func (this *Input) doFeed() {
 		pts   []*io.Point
 		costs []time.Duration
 	}
-	var cache = make(map[string]*data)
+	cache := make(map[string]*data)
 
 	cleanTick := time.NewTicker(time.Second * 3)
 	defer cleanTick.Stop()

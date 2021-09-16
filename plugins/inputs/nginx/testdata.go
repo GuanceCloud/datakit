@@ -1,7 +1,6 @@
 package nginx
 
-var (
-	vtsModelHandleData = `
+var vtsModelHandleData = `
 {
     "hostName": "tan-thinkpad-e450",
     "moduleVersion": "0.1.19.dev.91bdb14",
@@ -259,4 +258,3 @@ var (
         ]
     }
 }`
-)

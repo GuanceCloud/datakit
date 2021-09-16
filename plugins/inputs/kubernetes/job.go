@@ -21,7 +21,7 @@ type job struct {
 }
 
 func (j *job) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
 	list, err := j.client.getJobs()

@@ -17,7 +17,7 @@ func GenMapHash(data map[string]string) string {
 	}
 	sort.Sort(sort.StringSlice(keys))
 
-	var buf = bytes.NewBuffer(nil)
+	buf := bytes.NewBuffer(nil)
 	for _, key := range keys {
 		buf.WriteString(key)
 		buf.WriteString(data[key])

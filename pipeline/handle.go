@@ -181,7 +181,6 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 }
 
 func parseDatePattern(value string) (int64, error) {
-
 	for _, p := range datePattern {
 		// if match := p.pattern.MatchString(value); match {
 		if p.defaultYear {
@@ -207,7 +206,7 @@ func parseDatePattern(value string) (int64, error) {
 func TimestampHandle(p *Pipeline, value, tz string) (int64, error) {
 	var t time.Time
 	var err error
-	var timezone = time.Local
+	timezone := time.Local
 
 	// pattern match first
 	unix_time, err := parseDatePattern(value)
@@ -378,6 +377,7 @@ func parseDate(yy, mm, dd, hh, mi, ss, ns, zone string) int64 {
 func isAlpha(ch int32) bool {
 	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
 }
+
 func isDigit(ch int32) bool {
 	return ch >= '0' && ch <= '9'
 }

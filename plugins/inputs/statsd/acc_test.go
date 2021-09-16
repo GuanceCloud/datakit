@@ -96,7 +96,7 @@ func TestAddFields(t *testing.T) {
 	s.acc = acc
 
 	for _, tc := range cases {
-		acc.points = acc.points[:0] //clear cache
+		acc.points = acc.points[:0] // clear cache
 
 		s.MetricMapping = tc.mmap
 		s.DropTags = tc.dropTags

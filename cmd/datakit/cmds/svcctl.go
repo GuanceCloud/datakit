@@ -30,7 +30,6 @@ func isRoot() error {
 }
 
 func stopDatakit() error {
-
 	if err := isRoot(); err != nil {
 		return err
 	}
@@ -63,7 +62,6 @@ func stopDatakit() error {
 }
 
 func startDatakit() error {
-
 	if runtime.GOOS == datakit.OSWindows {
 		cmd := exec.Command("powershell", []string{"Start-Service", "datakit"}...)
 		return cmd.Run()
@@ -96,7 +94,6 @@ func startDatakit() error {
 }
 
 func restartDatakit() error {
-
 	if runtime.GOOS == datakit.OSWindows {
 		cmd := exec.Command("powershell", []string{"Restart-Service", "datakit"}...)
 		return cmd.Run()
@@ -142,7 +139,6 @@ func reinstallDatakit() error {
 }
 
 func datakitStatus() (string, error) {
-
 	if runtime.GOOS == datakit.OSWindows {
 		cmd := exec.Command("powershell", []string{"Get-Service", "datakit"}...)
 		res, err := cmd.CombinedOutput()

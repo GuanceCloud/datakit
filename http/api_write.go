@@ -182,8 +182,8 @@ func handleWriteBody(body []byte,
 			Time:      time.Now(),
 			ExtraTags: extags,
 			Strict:    true,
-			Precision: precision})
-
+			Precision: precision,
+		})
 		if err != nil {
 			return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
 		}

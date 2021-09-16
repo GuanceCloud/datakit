@@ -24,11 +24,12 @@
 package v3
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -676,20 +677,23 @@ func file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_rawD
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_goTypes = []interface{}{
-	(PoolType)(0),               // 0: PoolType
-	(GCPhrase)(0),               // 1: GCPhrase
-	(*JVMMetricCollection)(nil), // 2: JVMMetricCollection
-	(*JVMMetric)(nil),           // 3: JVMMetric
-	(*Memory)(nil),              // 4: Memory
-	(*MemoryPool)(nil),          // 5: MemoryPool
-	(*GC)(nil),                  // 6: GC
-	(*Thread)(nil),              // 7: Thread
-	(*v3.CPU)(nil),              // 8: CPU
-	(*v3.Commands)(nil),         // 9: Commands
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_msgTypes  = make([]protoimpl.MessageInfo, 6)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_goTypes   = []interface{}{
+		(PoolType)(0),               // 0: PoolType
+		(GCPhrase)(0),               // 1: GCPhrase
+		(*JVMMetricCollection)(nil), // 2: JVMMetricCollection
+		(*JVMMetric)(nil),           // 3: JVMMetric
+		(*Memory)(nil),              // 4: Memory
+		(*MemoryPool)(nil),          // 5: MemoryPool
+		(*GC)(nil),                  // 6: GC
+		(*Thread)(nil),              // 7: Thread
+		(*v3.CPU)(nil),              // 8: CPU
+		(*v3.Commands)(nil),         // 9: Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_depIdxs = []int32{
 	3, // 0: JVMMetricCollection.metrics:type_name -> JVMMetric
 	8, // 1: JVMMetric.cpu:type_name -> CPU

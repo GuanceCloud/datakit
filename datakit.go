@@ -116,7 +116,8 @@ func InitDirs() {
 		DataDir,
 		ConfdDir,
 		PipelineDir,
-		PipelinePatternDir} {
+		PipelinePatternDir,
+	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
@@ -140,7 +141,6 @@ func SetLog() {
 
 // G create a groutine group, with namespace datakit
 func G(name string) *goroutine.Group {
-
 	panicCb := func(b []byte) bool {
 		l.Errorf("%s", b)
 		select {
@@ -172,7 +172,6 @@ func GWait() {
 }
 
 func Quit() {
-
 	_ = os.Remove(pidFile)
 
 	Exit.Close()
@@ -194,7 +193,6 @@ func PID() (int, error) {
 }
 
 func SavePid() error {
-
 	if isRuning() {
 		return fmt.Errorf("datakit still running, PID: %s", pidFile)
 	}
@@ -209,7 +207,6 @@ func isRuning() bool {
 	var p *process.Process
 
 	cont, err := ioutil.ReadFile(pidFile)
-
 	// pid文件不存在
 	if err != nil {
 		return false

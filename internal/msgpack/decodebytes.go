@@ -46,9 +46,7 @@ func ParseStringBytes(data []byte) (str string, bts []byte, err error) {
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	var (
-		i []byte
-	)
+	var i []byte
 	switch t {
 	case msgp.BinType:
 		i, bts, err = msgp.ReadBytesZC(bts)

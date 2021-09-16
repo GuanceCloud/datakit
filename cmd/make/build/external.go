@@ -22,50 +22,48 @@ type dkexternal struct {
 	buildCmd string
 }
 
-var (
-	externals = []*dkexternal{
-		{
-			// requirement: apt-get install gcc-multilib
-			name: "oracle",
-			lang: "go",
+var externals = []*dkexternal{
+	{
+		// requirement: apt-get install gcc-multilib
+		name: "oracle",
+		lang: "go",
 
-			entry: "oracle.go",
-			osarchs: map[string]bool{
-				"linux/amd64": true,
-				"linux/386":   true,
-			},
-
-			buildArgs: nil,
-			envs: []string{
-				"CGO_ENABLED=1",
-			},
+		entry: "oracle.go",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+			"linux/386":   true,
 		},
 
-		// &dkexternal{
-		// 	// requirement: apt-get install gcc-multilib
-		// 	name: "skywalkingGrpcV3",
-		// 	lang: "go",
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=1",
+		},
+	},
 
-		// 	entry: "main.go",
-		// 	osarchs: map[string]bool{
-		// 		`linux/386`:     true,
-		// 		`linux/amd64`:   true,
-		// 		`linux/arm`:     true,
-		// 		`linux/arm64`:   true,
-		// 		`darwin/amd64`:  true,
-		// 		`windows/amd64`: true,
-		// 		`windows/386`:   true,
-		// 	},
+	// &dkexternal{
+	// 	// requirement: apt-get install gcc-multilib
+	// 	name: "skywalkingGrpcV3",
+	// 	lang: "go",
 
-		// 	buildArgs: nil,
-		// 	envs: []string{
-		// 		"CGO_ENABLED=0",
-		// 	},
-		// },
+	// 	entry: "main.go",
+	// 	osarchs: map[string]bool{
+	// 		`linux/386`:     true,
+	// 		`linux/amd64`:   true,
+	// 		`linux/arm`:     true,
+	// 		`linux/arm64`:   true,
+	// 		`darwin/amd64`:  true,
+	// 		`windows/amd64`: true,
+	// 		`windows/386`:   true,
+	// 	},
 
-		// others...
-	}
-)
+	// 	buildArgs: nil,
+	// 	envs: []string{
+	// 		"CGO_ENABLED=0",
+	// 	},
+	// },
+
+	// others...
+}
 
 func buildExternals(outdir, goos, goarch string) {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH

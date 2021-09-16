@@ -18,6 +18,7 @@ func gather4TestSearcher(i *Input, url string, v interface{}) error {
 func gather4TestNodeRqTimes(i *Input, url string, v interface{}) error {
 	return json.Unmarshal([]byte(nodeRqTimes7), v)
 }
+
 func gather4TestCoreRqTimes(i *Input, url string, v interface{}) error {
 	return json.Unmarshal([]byte(coreRqTimes7), v)
 }
@@ -127,7 +128,6 @@ func TestCollect(t *testing.T) {
 	i.gatherData = gatherDataFunc
 	i.Collect()
 	i.collectCache = make([]inputs.Measurement, 0)
-
 }
 
 func TestUrl(t *testing.T) {
@@ -158,5 +158,4 @@ func TestInstanceName(t *testing.T) {
 			}
 		}
 	}
-
 }

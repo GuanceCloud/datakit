@@ -24,10 +24,11 @@
 package common
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -283,14 +284,17 @@ func file_plugins_inputs_skywalking_v2_common_trace_common_proto_rawDescGZIP() [
 	return file_plugins_inputs_skywalking_v2_common_trace_common_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v2_common_trace_common_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_plugins_inputs_skywalking_v2_common_trace_common_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_plugins_inputs_skywalking_v2_common_trace_common_proto_goTypes = []interface{}{
-	(SpanType)(0),    // 0: skywalking.v2.SpanType
-	(RefType)(0),     // 1: skywalking.v2.RefType
-	(SpanLayer)(0),   // 2: skywalking.v2.SpanLayer
-	(*UniqueId)(nil), // 3: skywalking.v2.UniqueId
-}
+var (
+	file_plugins_inputs_skywalking_v2_common_trace_common_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+	file_plugins_inputs_skywalking_v2_common_trace_common_proto_msgTypes  = make([]protoimpl.MessageInfo, 1)
+	file_plugins_inputs_skywalking_v2_common_trace_common_proto_goTypes   = []interface{}{
+		(SpanType)(0),    // 0: skywalking.v2.SpanType
+		(RefType)(0),     // 1: skywalking.v2.RefType
+		(SpanLayer)(0),   // 2: skywalking.v2.SpanLayer
+		(*UniqueId)(nil), // 3: skywalking.v2.UniqueId
+	}
+)
+
 var file_plugins_inputs_skywalking_v2_common_trace_common_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type

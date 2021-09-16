@@ -33,5 +33,4 @@ func TestCollect(t *testing.T) {
 	if len(tmap) != 1 {
 		t.Error("Need to clear collectCache.")
 	}
-
 }

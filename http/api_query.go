@@ -46,7 +46,6 @@ func (q *QueryRaw) JSON() ([]byte, error) {
 }
 
 func apiQueryRaw(c *gin.Context) {
-
 	body, err := uhttp.GinRead(c)
 	if err != nil {
 		l.Errorf("GinRead: %s", err.Error())

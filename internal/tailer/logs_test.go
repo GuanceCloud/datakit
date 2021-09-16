@@ -19,7 +19,7 @@ var (
 func TestLogsAll(t *testing.T) {
 	const source = "testing"
 
-	var cases = []struct {
+	cases := []struct {
 		text string
 		res  string
 	}{
@@ -46,7 +46,7 @@ func TestLogsAll(t *testing.T) {
 }
 
 func TestRemoveAnsiColorOfText(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		text string
 		res  string
 	}{

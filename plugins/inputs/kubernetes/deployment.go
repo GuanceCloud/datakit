@@ -21,7 +21,7 @@ type deployment struct {
 }
 
 func (d *deployment) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
 	list, err := d.client.getDeployments()

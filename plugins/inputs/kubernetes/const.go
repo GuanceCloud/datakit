@@ -35,5 +35,5 @@ const (
 	defaultIntegerValue   int     = 0
 	defaultInteger32Value int32   = 0
 	defaultInteger64Value int64   = 0
-	defaultFloatValue     float64 = 0.0
+	defaultFloatValue     float64 = 0.0 //nolint:deadcode
 )

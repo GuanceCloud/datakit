@@ -356,7 +356,7 @@ func (n *Fill) Pos() *PositionRange { return nil } // TODO
 type FuncExpr struct {
 	Name  string `json:"name,omitempty"`
 	Param []Node `json:"param,omitempty"`
-	//Pos   *PositionRange
+	// Pos   *PositionRange
 }
 
 const (
@@ -364,7 +364,6 @@ const (
 )
 
 func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
-
 	switch strings.ToLower(n.Name) {
 	case "fill":
 		const typ = "(Nil,NumberLiteral,StringLiteral,PREVIOUS,LINEAR)"

@@ -180,7 +180,6 @@ func (dc *endPoint) heartBeat(data []byte) error {
 }
 
 func (dw *DataWayCfg) DatawayList() ([]string, error) {
-
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
 	}
@@ -222,7 +221,6 @@ func (dw *DataWayCfg) DatawayList() ([]string, error) {
 }
 
 func (dw *DataWayCfg) HeartBeat() error {
-
 	if dw.httpCli != nil {
 		defer dw.httpCli.CloseIdleConnections()
 	}

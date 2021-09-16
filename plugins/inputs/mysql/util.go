@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"database/sql"
+
 	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )

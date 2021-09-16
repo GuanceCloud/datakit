@@ -21,18 +21,16 @@ const (
 	FILE_SEPERATOR = " "
 )
 
-var (
-	IspValid = map[string]string{
-		"chinanet": "中国电信",
-		"cmcc":     "中国移动",
-		"unicom":   "中国联通",
-		"tietong":  "中国铁通",
-		"cernet":   "教育网",
-		"cstnet":   "科技网",
-		"drpeng":   "鹏博士",
-		"googlecn": "谷歌中国",
-	}
-)
+var IspValid = map[string]string{
+	"chinanet": "中国电信",
+	"cmcc":     "中国移动",
+	"unicom":   "中国联通",
+	"tietong":  "中国铁通",
+	"cernet":   "教育网",
+	"cstnet":   "科技网",
+	"drpeng":   "鹏博士",
+	"googlecn": "谷歌中国",
+}
 
 var (
 	l        = logger.DefaultSLogger("ip2isp")
@@ -90,7 +88,6 @@ func SearchIsp(ip string) string {
 }
 
 func Init(f string) error {
-
 	l = logger.SLogger("ip2isp")
 
 	l.Debugf("setup ipdb from %s", f)
@@ -143,12 +140,12 @@ func MergeIsp(from, to string) error {
 	for _, f := range files {
 		file := f.Name()
 
-		//去掉统计信息文件
+		// 去掉统计信息文件
 		if !strings.HasSuffix(file, ".txt") {
 			continue
 		}
 
-		//去掉ipv6文件
+		// 去掉ipv6文件
 		if strings.HasSuffix(file, "6.txt") {
 			continue
 		}

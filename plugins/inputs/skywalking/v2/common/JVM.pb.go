@@ -24,10 +24,11 @@
 package common
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -523,17 +524,20 @@ func file_plugins_inputs_skywalking_v2_common_JVM_proto_rawDescGZIP() []byte {
 	return file_plugins_inputs_skywalking_v2_common_JVM_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v2_common_JVM_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_plugins_inputs_skywalking_v2_common_JVM_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_plugins_inputs_skywalking_v2_common_JVM_proto_goTypes = []interface{}{
-	(PoolType)(0),      // 0: skywalking.v2.PoolType
-	(GCPhrase)(0),      // 1: skywalking.v2.GCPhrase
-	(*JVMMetric)(nil),  // 2: skywalking.v2.JVMMetric
-	(*Memory)(nil),     // 3: skywalking.v2.Memory
-	(*MemoryPool)(nil), // 4: skywalking.v2.MemoryPool
-	(*GC)(nil),         // 5: skywalking.v2.GC
-	(*CPU)(nil),        // 6: skywalking.v2.CPU
-}
+var (
+	file_plugins_inputs_skywalking_v2_common_JVM_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+	file_plugins_inputs_skywalking_v2_common_JVM_proto_msgTypes  = make([]protoimpl.MessageInfo, 4)
+	file_plugins_inputs_skywalking_v2_common_JVM_proto_goTypes   = []interface{}{
+		(PoolType)(0),      // 0: skywalking.v2.PoolType
+		(GCPhrase)(0),      // 1: skywalking.v2.GCPhrase
+		(*JVMMetric)(nil),  // 2: skywalking.v2.JVMMetric
+		(*Memory)(nil),     // 3: skywalking.v2.Memory
+		(*MemoryPool)(nil), // 4: skywalking.v2.MemoryPool
+		(*GC)(nil),         // 5: skywalking.v2.GC
+		(*CPU)(nil),        // 6: skywalking.v2.CPU
+	}
+)
+
 var file_plugins_inputs_skywalking_v2_common_JVM_proto_depIdxs = []int32{
 	6, // 0: skywalking.v2.JVMMetric.cpu:type_name -> skywalking.v2.CPU
 	3, // 1: skywalking.v2.JVMMetric.memory:type_name -> skywalking.v2.Memory

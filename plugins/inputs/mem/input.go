@@ -98,7 +98,8 @@ func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 			"write_back_tmp":  NewFieldInfoB("Memory used by FUSE for temporary writeback buffers. (Linux)"),
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "主机名"}},
+			"host": &inputs.TagInfo{Desc: "主机名"},
+		},
 	}
 }
 

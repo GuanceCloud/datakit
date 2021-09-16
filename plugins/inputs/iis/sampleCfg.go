@@ -13,6 +13,7 @@ const (
     pipeline = "iis.p"
 
 `
+	//nolint:deadcode
 	pipelineCfg = `
 grok(_, "%{TIMESTAMP_ISO8601:time} %{IP:server_ip} %{DATA:http_method} %{DATA:http_url} %{DATA:url_param} %{NUMBER:port} %{DATA:username} %{IP:client_ip} %{DATA:user_agent} %{DATA:referer} %{NUMBER:status_code} %{NUMBER:sub_status} %{NUMBER:win32_status} %{NUMBER:time_taken}")
 

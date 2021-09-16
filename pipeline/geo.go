@@ -8,9 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-var (
-	defaultGEO ipgeo
-)
+var defaultGEO ipgeo
 
 const (
 	ErrInvalidIP = "Invalid IP address"

@@ -10,7 +10,6 @@ import (
 )
 
 func TestCollect(t *testing.T) {
-
 	cases := []struct {
 		i  *Input
 		os string

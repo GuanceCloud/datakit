@@ -84,7 +84,7 @@ func labelToTags(label []*dto.LabelPair) map[string]string {
 	if len(label) == 0 {
 		return nil
 	}
-	var tags = make(map[string]string, len(label))
+	tags := make(map[string]string, len(label))
 	for _, lab := range label {
 		tags[lab.GetName()] = lab.GetValue()
 	}

@@ -4,6 +4,7 @@ package v3
 
 import (
 	context "context"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -72,12 +73,12 @@ type TraceSegmentReportServiceServer interface {
 }
 
 // UnimplementedTraceSegmentReportServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedTraceSegmentReportServiceServer struct {
-}
+type UnimplementedTraceSegmentReportServiceServer struct{}
 
 func (UnimplementedTraceSegmentReportServiceServer) Collect(TraceSegmentReportService_CollectServer) error {
 	return status.Errorf(codes.Unimplemented, "method Collect not implemented")
 }
+
 func (UnimplementedTraceSegmentReportServiceServer) mustEmbedUnimplementedTraceSegmentReportServiceServer() {
 }
 

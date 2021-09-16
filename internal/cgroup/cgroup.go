@@ -8,9 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-var (
-	l = logger.DefaultSLogger("cgroup")
-)
+var l = logger.DefaultSLogger("cgroup")
 
 func Run() {
 	l = logger.SLogger("cgroup")

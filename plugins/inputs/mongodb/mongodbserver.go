@@ -14,6 +14,7 @@ import (
 type oplogEntry struct {
 	Timestamp bson.MongoTimestamp `bson:"ts"`
 }
+
 type Server struct {
 	URL        *url.URL
 	Session    *mgo.Session

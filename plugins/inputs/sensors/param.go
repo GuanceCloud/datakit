@@ -1,17 +1,7 @@
 package sensors
 
 import (
-	"time"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-)
-
-var (
-	defCommand  = "sensors"
-	defPath     = "/usr/bin/sensors"
-	defInterval = datakit.Duration{Duration: 10 * time.Second}
-	defTimeout  = datakit.Duration{Duration: 3 * time.Second}
 )
 
 var (

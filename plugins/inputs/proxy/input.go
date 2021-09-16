@@ -25,12 +25,6 @@ var (
 	l = logger.DefaultSLogger(inputName)
 )
 
-type statistic struct {
-	delivered int64
-	previous  int64
-	reqcount  int
-}
-
 type Input struct {
 	Bind    string `toml:"bind"`
 	Port    int    `toml:"port"`

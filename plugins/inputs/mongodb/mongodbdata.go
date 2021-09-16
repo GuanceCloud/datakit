@@ -163,7 +163,6 @@ func (d *MongodbData) add(key string, val interface{}) {
 }
 
 func (d *MongodbData) append() {
-
 	now := time.Now()
 	d.collectCache = append(d.collectCache, &mongodbMeasurement{
 		name:   "mongodb",

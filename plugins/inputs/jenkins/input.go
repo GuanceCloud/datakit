@@ -119,7 +119,7 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 		return err
 	}
 
-	//req.SetBasicAuth(n.Username, n.Password)
+	// req.SetBasicAuth(n.Username, n.Password)
 
 	resp, err := n.client.Do(req)
 	if err != nil {

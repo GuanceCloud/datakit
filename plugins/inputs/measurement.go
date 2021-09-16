@@ -119,7 +119,6 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 }
 
 func (m *MeasurementInfo) TagsMarkdownTable() string {
-
 	if len(m.Tags) == 0 {
 		return "暂无"
 	}

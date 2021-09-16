@@ -49,7 +49,6 @@ func (fc *FileCollector) initFileCollector() error {
 
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
-
 		return err
 	}
 	fc.watch = watch
@@ -90,7 +89,6 @@ func (fc *FileCollector) initFileCollector() error {
 
 	}
 	return nil
-
 }
 
 func (fc *FileCollector) Run() {
@@ -128,7 +126,7 @@ func (fc *FileCollector) Run() {
 		select {
 		case ev := <-fc.watch.Events:
 			notifyTime := time.Now()
-			time.Sleep(time.Second) //Fixme            // 此处sleep一秒 为了剔除那些过渡文件 比如 vim ～结尾文件
+			time.Sleep(time.Second) // Fixme            // 此处sleep一秒 为了剔除那些过渡文件 比如 vim ～结尾文件
 			if ev.Op&fsnotify.Write == fsnotify.Write {
 				fc.WriteLogByWrite(ev, notifyTime)
 				continue
@@ -258,7 +256,7 @@ func (fc *FileCollector) LoadFile(u UploadInfo) error {
 	if err != nil {
 		return err
 	}
-	//防止同一个文件重复上传
+	// 防止同一个文件重复上传
 	if v, ok := fileInfoMap[u.filename]; ok {
 		if v == MD5 {
 			return nil

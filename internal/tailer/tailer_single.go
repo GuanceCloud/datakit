@@ -211,7 +211,7 @@ func (t *Single) wait() {
 }
 
 func (t *Single) buildTags(globalTags map[string]string) map[string]string {
-	var tags = make(map[string]string)
+	tags := make(map[string]string)
 	for k, v := range globalTags {
 		tags[k] = v
 	}

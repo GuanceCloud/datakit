@@ -104,9 +104,7 @@ type (
 	}
 )
 
-var (
-	collectorStatHist []*CollectorStatus
-)
+var collectorStatHist []*CollectorStatus
 
 func getHostMeta() *HostMetaInfo {
 	info, err := hostutil.Info()
@@ -116,7 +114,7 @@ func getHostMeta() *HostMetaInfo {
 	}
 
 	return &HostMetaInfo{
-		//HostName:        info.Hostname,
+		// HostName:        info.Hostname,
 		// 此处用户可能自定义 Hostname，如果用户不
 		// 定义 Hostname，那么 config.Cfg.Hostname == info.Hostname
 		HostName:        config.Cfg.Hostname,
@@ -131,7 +129,6 @@ func getHostMeta() *HostMetaInfo {
 }
 
 func getCPUPercent() float64 {
-
 	ps, err := cpuutil.Percent(0, false)
 	if err != nil || len(ps) == 0 {
 		l.Warnf("fail to get cpu percent: %s", err)
@@ -233,7 +230,6 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 }
 
 func getDiskInfo(ignoreFs []string) []*DiskInfo {
-
 	ps, err := diskutil.Partitions(true)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
@@ -267,7 +263,6 @@ func getDiskInfo(ignoreFs []string) []*DiskInfo {
 }
 
 func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
-
 	inputsStats, err := io.GetStats(c.IOTimeout.Duration) // get all inputs stats
 	if err != nil {
 		l.Warnf("fail to get inputs stats, %s", err)

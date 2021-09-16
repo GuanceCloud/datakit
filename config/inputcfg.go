@@ -14,12 +14,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	DisableSelfInput bool
-)
+var DisableSelfInput bool
 
 func SearchDir(dir string, suffix string) []string {
-
 	fps := []string{}
 
 	if err := filepath.Walk(dir, func(fp string, f os.FileInfo, err error) error {
@@ -42,7 +39,6 @@ func SearchDir(dir string, suffix string) []string {
 			fps = append(fps, fp)
 		}
 		return nil
-
 	}); err != nil {
 		l.Error(err)
 	}
@@ -52,7 +48,6 @@ func SearchDir(dir string, suffix string) []string {
 
 // load all inputs under @InstallDir/conf.d
 func LoadInputsConfig(c *Config) error {
-
 	inputs.Init()
 
 	availableInputCfgs := map[string]*ast.Table{}
@@ -145,7 +140,6 @@ func addConfigInfoPath(inputName string, fp string, loaded int8) {
 }
 
 func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
-
 	l.Debugf("search input cfg for %s", name)
 
 	list := searchDatakitInputCfg(c, inputcfgs, name, creator)
@@ -171,7 +165,6 @@ func searchDatakitInputCfg(c *Config,
 
 	for fp, tbl := range inputcfgs {
 		for field, node := range tbl.Fields {
-
 			switch field {
 			case "inputs": //nolint:goconst
 				stbl, ok := node.(*ast.Table)
@@ -209,7 +202,6 @@ func searchDatakitInputCfg(c *Config,
 }
 
 func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
-
 	for _, bl := range blists {
 		if bl.MatchHost(hostname) && bl.MatchInput(name) {
 			return true // 一旦上榜，无脑屏蔽
@@ -234,7 +226,6 @@ func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
 }
 
 func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
-
 	tbls := []*ast.Table{}
 
 	switch t := tbl.(type) {
@@ -261,9 +252,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 	return
 }
 
-var (
-	confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
-)
+var confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
 
 func initDatakitConfSample(name string, c inputs.Creator) error {
 	if name == "self" { //nolint:goconst
@@ -314,7 +303,6 @@ func initPluginSamples() error {
 }
 
 func initDefaultEnabledPlugins(c *Config) {
-
 	if len(c.DefaultEnabledInputs) == 0 {
 		l.Debug("no default inputs enabled")
 		return
@@ -341,7 +329,7 @@ func initDefaultEnabledPlugins(c *Config) {
 			continue
 		}
 
-		//check exist
+		// check exist
 		if _, err := os.Stat(fpath); err == nil {
 			continue
 		}
@@ -356,7 +344,6 @@ func initDefaultEnabledPlugins(c *Config) {
 }
 
 func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, error) {
-
 	tbl, err := ParseCfgFile(f)
 	if err != nil {
 		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
@@ -365,7 +352,6 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 	inputlist := []inputs.Input{}
 
 	for field, node := range tbl.Fields {
-
 		switch field {
 		case "inputs": //nolint:goconst
 			stbl, ok := node.(*ast.Table)
@@ -395,7 +381,6 @@ var deprecatedInputs = map[string]string{
 }
 
 func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {
-
 	res = map[string]string{}
 
 	for _, node := range tbl.Fields {

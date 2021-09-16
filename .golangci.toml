@@ -93,6 +93,7 @@
     "godox", # Too strict
 		"nolintlint",
 		"golint", # Too strict
+		"godot", # Too strict
   ]
 
 [issues]

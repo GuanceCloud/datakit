@@ -111,9 +111,7 @@ type Input struct {
 	Tags map[string]string `toml:"tags"`
 }
 
-var (
-	log = logger.DefaultSLogger(inputName)
-)
+var log = logger.DefaultSLogger(inputName)
 
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)

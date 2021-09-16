@@ -10,7 +10,6 @@ import (
 )
 
 func TestGetContainerPodName(t *testing.T) {
-
 	fakeResp := `
 {
 	"kind": "not-set",
@@ -52,7 +51,7 @@ func TestGetContainerPodName(t *testing.T) {
 		t.Error(err)
 	}
 
-	var cases = []struct {
+	cases := []struct {
 		id, expected string
 	}{
 		{
@@ -72,7 +71,7 @@ func TestGetContainerPodName(t *testing.T) {
 }
 
 func TestGetDeploymentFromPodName(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		podName, deploymentName string
 	}{
 		{

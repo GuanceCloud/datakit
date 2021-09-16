@@ -148,8 +148,7 @@ var (
 	catalogName = "prom"
 )
 
-type Input struct {
-}
+type Input struct{}
 
 func (i *Input) Run() {
 }

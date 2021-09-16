@@ -105,7 +105,7 @@ func (pe *PromExporter) do(p *prom.Prom) {
 		select {
 		case <-pe.ctx.Done():
 			l.Info("prom exit")
-			//return
+			// return
 			break
 
 		case <-tick.C:

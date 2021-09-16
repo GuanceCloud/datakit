@@ -100,7 +100,7 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 			continue
 		}
 
-		//cmdstat_get:calls=2,usec=16,usec_per_call=8.00
+		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		key, value := record[0], record[1]
 
 		if key == "master_repl_offset" {

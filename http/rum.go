@@ -92,7 +92,6 @@ func doHandleRUMBody(body []byte,
 			return p, nil
 		},
 	})
-
 	if err != nil {
 		l.Error(err)
 		return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())

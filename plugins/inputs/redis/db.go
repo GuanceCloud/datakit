@@ -100,7 +100,7 @@ func (m *dbMeasurement) parseInfoData(list string) error {
 			continue
 		}
 
-		//cmdstat_get:calls=2,usec=16,usec_per_call=8.00
+		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		db := parts[0]
 
 		m.tags["db_name"] = db

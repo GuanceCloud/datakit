@@ -46,7 +46,6 @@ func TestEnableDefaultsInputs(t *testing.T) {
 }
 
 func TestSetupGlobalTags(t *testing.T) {
-
 	localIP, err := datakit.LocalIP()
 	if err != nil {
 		t.Fatal(err)
@@ -173,7 +172,6 @@ func TestDefaultToml(t *testing.T) {
 }
 
 func TestLoadEnv(t *testing.T) {
-
 	cases := []struct {
 		envs   map[string]string
 		expect *Config
@@ -258,7 +256,6 @@ func TestLoadEnv(t *testing.T) {
 }
 
 func TestUnmarshalCfg(t *testing.T) {
-
 	cases := []struct {
 		raw  string
 		fail bool

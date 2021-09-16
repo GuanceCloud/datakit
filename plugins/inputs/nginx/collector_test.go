@@ -9,7 +9,6 @@ import (
 )
 
 func TestGetMetric(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/nginx_status":

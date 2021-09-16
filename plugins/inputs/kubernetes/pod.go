@@ -23,7 +23,7 @@ type pod struct {
 }
 
 func (p *pod) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
 	list, err := p.client.getPods()

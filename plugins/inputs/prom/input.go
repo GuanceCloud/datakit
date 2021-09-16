@@ -14,10 +14,6 @@ import (
 const (
 	inputName = "prom"
 	catalog   = "prom"
-
-	maxInterval     = 10 * time.Minute
-	defaultInterval = 10 * time.Minute
-	minInterval     = 3 * time.Second
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -116,7 +112,7 @@ func (i *Input) setup() bool {
 			l.Info("exit")
 			return true
 		default:
-			//nil
+			// nil
 		}
 
 		if err := i.Init(); err != nil {

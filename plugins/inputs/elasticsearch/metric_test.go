@@ -117,7 +117,6 @@ func TestElasticsearchMeasurement(t *testing.T) {
 	}
 
 	_, err := m.LineProto()
-
 	if err != nil {
 		t.Fatal(err)
 	}

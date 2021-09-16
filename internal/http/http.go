@@ -10,17 +10,15 @@ import (
 	"time"
 )
 
-var (
-	defTransport = cliTransport(&Options{
-		DialTimeout:           30 * time.Second,
-		DialKeepAlive:         30 * time.Second,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
-	})
-)
+var defTransport = cliTransport(&Options{
+	DialTimeout:           30 * time.Second,
+	DialKeepAlive:         30 * time.Second,
+	MaxIdleConns:          100,
+	MaxIdleConnsPerHost:   runtime.NumGoroutine(),
+	IdleConnTimeout:       90 * time.Second,
+	TLSHandshakeTimeout:   10 * time.Second,
+	ExpectContinueTimeout: time.Second,
+})
 
 type Options struct {
 	DialTimeout   time.Duration
@@ -130,7 +128,8 @@ func SendRequestWithTimeout(req *http.Request, timeout time.Duration) (*http.Res
 
 func RemoteAddr(req *http.Request) (ip, port string) {
 BREAKPOINT:
-	for _, h := range []string{"x-forwarded-for",
+	for _, h := range []string{
+		"x-forwarded-for",
 		"X-FORWARDED-FOR",
 		"X-Forwarded-For",
 		"x-real-ip",
@@ -138,7 +137,8 @@ BREAKPOINT:
 		"X-Real-Ip",
 		"proxy-client-ip",
 		"PROXY-CLIENT-IP",
-		"Proxy-Client-Ip"} {
+		"Proxy-Client-Ip",
+	} {
 		addrs := strings.Split(req.Header.Get(h), ",")
 		for _, addr := range addrs {
 			if ip, port, _ = net.SplitHostPort(addr); ip == "" {

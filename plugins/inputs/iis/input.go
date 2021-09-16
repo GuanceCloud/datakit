@@ -157,7 +157,7 @@ func (i *Input) Collect() error {
 				return fmt.Errorf("failed to enumerate the instance and counter of object %s", objName)
 			}
 
-			var pathList = make([]string, 0)
+			pathList := make([]string, 0)
 			pathListIndex := 0
 			// instance
 			for i := 0; i < len(instanceList); i++ {
@@ -183,8 +183,8 @@ func (i *Input) Collect() error {
 				return fmt.Errorf("object: %s, PdhOpenQuery return: %x", objName, ret)
 			}
 
-			var counterHandleList = make([]pdh.PDH_HCOUNTER, len(pathList))
-			var valueList = make([]interface{}, len(pathList))
+			counterHandleList := make([]pdh.PDH_HCOUNTER, len(pathList))
+			valueList := make([]interface{}, len(pathList))
 			for i := range pathList {
 				ret = pdh.PdhAddEnglishCounter(handle, pathList[i], 0, &counterHandle)
 				counterHandleList[i] = counterHandle

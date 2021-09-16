@@ -4,6 +4,7 @@ package v3
 
 import (
 	context "context"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -47,12 +48,12 @@ type CLRMetricReportServiceServer interface {
 }
 
 // UnimplementedCLRMetricReportServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedCLRMetricReportServiceServer struct {
-}
+type UnimplementedCLRMetricReportServiceServer struct{}
 
 func (UnimplementedCLRMetricReportServiceServer) Collect(context.Context, *CLRMetricCollection) (*v3.Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Collect not implemented")
 }
+
 func (UnimplementedCLRMetricReportServiceServer) mustEmbedUnimplementedCLRMetricReportServiceServer() {
 }
 

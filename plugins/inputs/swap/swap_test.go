@@ -30,7 +30,6 @@ func TestCollec(t *testing.T) {
 
 	actual := i.collectCacheLast1Ptr.(*swapMeasurement).fields
 	AssertFields(t, actual, expected)
-
 }
 
 func PSSwapStat4Test() (*mem.SwapMemoryStat, error) {

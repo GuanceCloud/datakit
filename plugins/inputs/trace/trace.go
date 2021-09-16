@@ -27,6 +27,7 @@ type TraceRepInfo struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 }
+
 type ZipkinTracer struct {
 	TraceReqInfo
 }
@@ -34,10 +35,10 @@ type ZipkinTracer struct {
 type TraceAdapter struct {
 	Source string // third part source name
 
-	//纳秒单位
+	// 纳秒单位
 	Duration int64
 
-	//纳秒单位
+	// 纳秒单位
 	Start   int64
 	Content string
 
@@ -107,9 +108,7 @@ const (
 	FIELD_PID      = "pid"
 )
 
-var (
-	log = logger.DefaultSLogger("trace")
-)
+var log = logger.DefaultSLogger("trace")
 
 func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 	tags := make(map[string]string)

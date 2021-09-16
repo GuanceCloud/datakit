@@ -85,7 +85,6 @@ func tryLoadMainCfg() {
 
 //nolint:funlen,gocyclo
 func RunCmds() {
-
 	if FlagDefConf {
 		defconf := config.DefaultConfig()
 		fmt.Println(defconf.String())
@@ -96,11 +95,11 @@ func RunCmds() {
 		tryLoadMainCfg()
 
 		if FlagUpdateLogFile != "" {
-
 			if err := logger.InitRoot(&logger.Option{
 				Path:  FlagUpdateLogFile,
 				Level: logger.DEBUG,
-				Flags: logger.OPT_DEFAULT}); err != nil {
+				Flags: logger.OPT_DEFAULT,
+			}); err != nil {
 				l.Errorf("set root log faile: %s", err.Error())
 			}
 		}

@@ -227,7 +227,6 @@ func TestGatherClusterIndicesStats(t *testing.T) {
 	AssertContainsTaggedFields(t, "elasticsearch_indices_stats",
 		clusterIndicesTotalExpected,
 		map[string]string{"index_name": "_all", "cluster_name": ""}, es.collectCache)
-
 }
 
 // func TestGatherClusterIndiceShardsStats(t *testing.T) {
@@ -296,7 +295,6 @@ func TestTlsConfig(t *testing.T) {
 	if err == nil {
 		t.Fail()
 	}
-
 }
 
 func TestGatherClusterStatsMaster(t *testing.T) {

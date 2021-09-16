@@ -12,10 +12,9 @@ const (
 	Unavailable = "-"
 )
 
-var (
-	cloudCli = &http.Client{Timeout: 100 * time.Millisecond}
-)
+var cloudCli = &http.Client{Timeout: 100 * time.Millisecond}
 
+//nolint:deadcode
 type synchronizer interface {
 	Sync() (map[string]interface{}, error)
 
@@ -33,7 +32,6 @@ type synchronizer interface {
 }
 
 func (x *Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
-
 	defer cloudCli.CloseIdleConnections()
 
 	switch provider {
@@ -55,7 +53,6 @@ func (x *Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 }
 
 func metaGet(metaURL string) (res string) {
-
 	res = Unavailable
 
 	req, err := http.NewRequest("GET", metaURL, nil)

@@ -16,7 +16,7 @@ import (
 )
 
 func promDebugger(configFile string) error {
-	var configPath = configFile
+	configPath := configFile
 	if !path.IsAbs(configFile) {
 		currentDir, _ := os.Getwd()
 		configPath = filepath.Join(currentDir, configFile)
@@ -28,7 +28,6 @@ func promDebugger(configFile string) error {
 	}
 
 	input, err := getPromInput(configPath)
-
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
@@ -41,7 +40,6 @@ func promDebugger(configFile string) error {
 	}
 
 	return nil
-
 }
 
 func getPromInput(configPath string) (*prom.Input, error) {

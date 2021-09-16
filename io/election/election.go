@@ -34,8 +34,6 @@ var (
 	l                = logger.DefaultSLogger("dk-election")
 	HTTPTimeout      = time.Second * 3
 	electionInterval = time.Second * 3
-
-	qch = make(chan int)
 )
 
 const (
@@ -68,7 +66,6 @@ func (x *candidate) run(namespace, id string, dw *dataway.DataWayCfg) {
 	l.Infof("get %d election inputs", len(x.plugins))
 
 	x.startElection()
-
 }
 
 func (x *candidate) startElection() {
@@ -97,7 +94,6 @@ func Elected() string {
 }
 
 func (x *candidate) runOnce() {
-
 	switch x.status {
 	case statusSuccess:
 		_ = x.keepalive()
@@ -131,7 +127,7 @@ func (x *candidate) keepalive() error {
 		return err
 	}
 
-	var e = electionResult{}
+	e := electionResult{}
 	if err := json.Unmarshal(body, &e); err != nil {
 		l.Error(err)
 		return err
@@ -164,14 +160,13 @@ type electionResult struct {
 }
 
 func (x *candidate) tryElection() error {
-
 	body, err := x.dw.Election(x.namespace, x.id)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
 
-	var e = electionResult{}
+	e := electionResult{}
 	if err := json.Unmarshal(body, &e); err != nil {
 		l.Error(err)
 		return nil

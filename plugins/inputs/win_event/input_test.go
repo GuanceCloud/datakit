@@ -7,14 +7,13 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	var bufferSize = 1 << 14
-	var w = Input{
+	bufferSize := 1 << 14
+	w := Input{
 		buf: make([]byte, bufferSize),
 	}
 	w.Query = query
 
 	w.Run()
-
 }
 
 func TestHandle(t *testing.T) {
@@ -71,6 +70,5 @@ func TestHandle(t *testing.T) {
 		} else {
 			fmt.Println(line.String())
 		}
-
 	}
 }

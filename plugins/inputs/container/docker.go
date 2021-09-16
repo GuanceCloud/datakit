@@ -39,8 +39,7 @@ const (
 
 	containerIDPrefix = "docker://"
 
-	loggingRemoveAnsiEscapeCodes = true
-	loggingDisableAddStatus      = false
+	loggingDisableAddStatus = false
 )
 
 type dockerClient struct {
@@ -96,15 +95,6 @@ func newDockerClient(host string, tlsConfig *tls.Config) (*dockerClient, error) 
 		containerLogList:     make(map[string]context.CancelFunc),
 		containerLogsOptions: containerLogsOptions,
 	}, nil
-}
-
-func newDockerClientFromEnv() (*dockerClient, error) {
-	client, err := docker.NewClientWithOpts(docker.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dockerClient{client: client}, nil
 }
 
 func (d *dockerClient) Stop() {
@@ -215,7 +205,7 @@ func (d *dockerClient) gather(container types.Container) (*job, error) {
 	startTime := time.Now()
 	tags := d.gatherContainerInfo(container)
 
-	var fields = make(map[string]interface{})
+	fields := make(map[string]interface{})
 	var err error
 
 	// 注意，此处如果没有 fields，构建 point 会失败
@@ -242,7 +232,7 @@ func (d *dockerClient) ignoreContainerName(name string) bool {
 
 func (d *dockerClient) gatherContainerInfo(container types.Container) map[string]string {
 	imageName, imageShortName, imageTag := ParseImage(container.Image)
-	var tags = map[string]string{
+	tags := map[string]string{
 		"state":            container.State,
 		"docker_image":     container.Image,
 		"image_name":       imageName,
@@ -277,7 +267,7 @@ func (d *dockerClient) gatherSingleContainerProcess(container types.Container) (
 			continue
 		}
 
-		var p = make(map[string]string)
+		p := make(map[string]string)
 
 		for idx, title := range top.Titles {
 			p[title] = proc[idx]
@@ -515,7 +505,6 @@ func (d *dockerClient) tailContainerLogs(ctx context.Context, container types.Co
 	} else {
 		return d.tailMultiplexed(ctx, logReader, container)
 	}
-
 }
 
 func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, stream string, container types.Container) error {
