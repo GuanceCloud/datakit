@@ -26,7 +26,7 @@ function Write-COutput($ForegroundColor) {
 # Detect variables
 ##########################
 
-$installer_base_url = "https://static.dataflux.cn/datakit"
+$installer_base_url = "https://static.guance.com/datakit"
 
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALLER_BASE_URL") 
 if ($x -ne $null) {

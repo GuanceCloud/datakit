@@ -20,11 +20,11 @@ Linux、Windows:
 ```
 USE master;
 GO
-CREATE LOGIN [DataFlux] WITH PASSWORD = N'yourpassword';
+CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
 GO
-GRANT VIEW SERVER STATE TO [DataFlux];
+GRANT VIEW SERVER STATE TO [guance];
 GO
-GRANT VIEW ANY DEFINITION TO [DataFlux];
+GRANT VIEW ANY DEFINITION TO [guance];
 GO
 ```
 
@@ -33,7 +33,7 @@ aliyun RDS SQL Server:
 ```
 USE master;
 GO
-CREATE LOGIN [DataFlux] WITH PASSWORD = N'yourpassword';
+CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
 GO
 
 ```

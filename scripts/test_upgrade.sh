@@ -4,6 +4,7 @@ os=darwin
 arch=amd64
 base="https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/installer-"
 new_version_url=https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/installer-${os}-${arch}
+token=$1
 
 truncate -s 0 result.out
 rm -rf stats
@@ -62,7 +63,7 @@ do
 
 	# try install old version
 	sudo -- sh -c \
-		"curl ${url} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -dataway https://openway.dataflux.cn?token=tkn_f2b9920f05d84d6bb5b14d9d39db1dd3 && rm -rf ./dk-installer";
+		"curl ${url} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -dataway https://openway.guance.com?token=$token && rm -rf ./dk-installer";
 
 	test_datakit_run_ok $ver
 

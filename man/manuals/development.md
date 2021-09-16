@@ -253,14 +253,14 @@ LOCAL=${osarch} VERSION=$ver make && LOCAL=${osarch} VERSION=$ver make pub_local
 
 ```shell
 user="zhangsan" # 改一下你的 oss bucket 目录
-tkn="<your-dataflux-token>"
+tkn="<your-guance-token>"
 
 # 几种不同的平台
 osarch="linux-amd64"
 #osarch="darwin-amd64"
 
 installer="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/${user}/datakit/installer-${osarch}"
-dw="https://openway.dataflux.cn?token=${tkn}"
+dw="https://openway.guance.com?token=${tkn}"
 
 # 升级脚本(linux/mac)
 sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"; exit 0
@@ -273,13 +273,13 @@ sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && .
 
 ```shell
 $user = "zhangsan"
-$tkn = "<your-dataflux-token>"
+$tkn = "<your-guance-token>"
 
 # 几种不同的平台
 $osarch = "windows-amd64"
 
 $installer = "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit/installer-$osarch.exe"
-$dw = "https://openway.dataflux.cn?token=$tkn"
+$dw = "https://openway.guance.com?token=$tkn"
 
 # 升级脚本
 Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -upgrade; rm .dk-installer.exe

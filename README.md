@@ -1,6 +1,6 @@
 # DataKit
 
-DataKit is collection agent for [DataFlux](https://dataflux.cn/)
+DataKit is collection agent for [DataFlux](https://guance.com/)
 
 # Build
 

@@ -18,7 +18,7 @@
 
 ```yaml
   - name: ENV_DATAWAY
-		value: https://openway.dataflux.cn?token=<your-token> # 此处填上具体 token
+		value: https://openway.guance.com?token=<your-token> # 此处填上具体 token
 ```
 
 ### 应用 yaml 配置
@@ -188,7 +188,7 @@ spec:
               apiVersion: v1
               fieldPath: spec.nodeName
         - name: ENV_DATAWAY
-          value: https://openway.dataflux.cn?token=<your-token>
+          value: https://openway.guance.com?token=<your-token>
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS
@@ -545,7 +545,7 @@ spec:
               apiVersion: v1
               fieldPath: spec.nodeName
         - name: ENV_DATAWAY
-          value: "https://openway.dataflux.cn?token=<your-token>"
+          value: "https://openway.guance.com?token=<your-token>"
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_ENABLE_INPUTS

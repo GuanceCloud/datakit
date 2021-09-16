@@ -95,7 +95,7 @@ ReleasedInputs: %s
 }
 
 const (
-	OnlineBaseURL  = "static.dataflux.cn/datakit"
+	OnlineBaseURL  = "static.guance.com/datakit"
 	TestingBaseURL = "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit"
 )
 
