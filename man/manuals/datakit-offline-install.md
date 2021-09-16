@@ -28,7 +28,7 @@
 增加环境变量 `HTTPS_PROXY="1.2.3.4:9530"`，安装命令如下：
 
 ```
-HTTPS_PROXY="http://1.2.3.4:9530" DK_DATAWAY=https://openway.dataflux.cn?token=<TOKEN> bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
+export HTTPS_PROXY=http://1.2.3.4:9530; DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
 ### Windows
@@ -36,7 +36,7 @@ HTTPS_PROXY="http://1.2.3.4:9530" DK_DATAWAY=https://openway.dataflux.cn?token=<
 增加环境变量 `$env:HTTPS_PROXY="1.2.3.4:9530"`，安装命令如下：
 
 ```shell
-$env:HTTPS_PROXY="1.2.3.4:9530"; $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTPS_PROXY -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+$env:HTTPS_PROXY="1.2.3.4:9530"; $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTPS_PROXY -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
 > 注意：其它安装参数设置，跟[正常安装](datakit-install) 无异。

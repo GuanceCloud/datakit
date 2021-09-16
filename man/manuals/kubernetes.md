@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-采集 Kubernetes 集群指标数据和对象数据，上报到 DataFlux 中。
+采集 Kubernetes 集群指标数据和对象数据，上报到观测云。
 
 ## 配置
 

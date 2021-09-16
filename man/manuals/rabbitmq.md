@@ -36,9 +36,9 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 - 创建 user，比如：
     
     ```shell
-    sudo rabbitmqctl add_user dataflux <SECRET>
-    sudo rabbitmqctl set_permissions  -p / dataflux "^aliveness-test$" "^amq\.default$" ".*"
-    sudo rabbitmqctl set_user_tags dataflux monitoring
+    sudo rabbitmqctl add_user guance <SECRET>
+    sudo rabbitmqctl set_permissions  -p / guance "^aliveness-test$" "^amq\.default$" ".*"
+    sudo rabbitmqctl set_user_tags guance monitoring
     ```
 
 ## 配置

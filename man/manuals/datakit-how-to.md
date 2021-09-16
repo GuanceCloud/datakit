@@ -455,9 +455,13 @@ Mac 下，可以用如下命令代替：
 ```shell
 # 启动 DataKit
 sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+# 或者
+sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 
 # 停止 DataKit
 sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+# 或者
+sudo launchctl unload -w /Library/LaunchDaemons/com.guance.datakit.plist
 ```
 
 #### 服务卸载以及重装
