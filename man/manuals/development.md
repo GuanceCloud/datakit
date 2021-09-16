@@ -141,6 +141,7 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 - make
 - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
 - [golangci-lint](https://golangci-lint.run/usage/install/#local-installation)
+- gofumpt: go install mvdan.cc/gofumpt@latest
 - wget
 - docker
 - curl
