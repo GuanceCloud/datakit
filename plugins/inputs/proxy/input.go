@@ -22,19 +22,18 @@ var (
   ## default bind port
   port = 9530
 `
-	l = logger.DefaultSLogger(inputName)
+	log = logger.DefaultSLogger(inputName)
 )
-
-type Input struct {
-	Bind    string `toml:"bind"`
-	Port    int    `toml:"port"`
-	Verbose bool   `toml:"verbose"`
-}
 
 type proxyLogger struct{}
 
 func (pl *proxyLogger) Printf(format string, v ...interface{}) {
-	l.Infof(format, v...)
+	log.Infof(format, v...)
+}
+
+type Input struct {
+	Bind string `toml:"bind"`
+	Port int    `toml:"port"`
 }
 
 func (*Input) Catalog() string {
@@ -49,30 +48,22 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		//&measurement{}
-	}
-}
-
 func (h *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("http proxy input started...")
+	log = logger.SLogger(inputName)
+	log.Infof("http proxy input started...")
 
 	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = h.Verbose
+	proxy.Verbose = false
 	proxy.Logger = &proxyLogger{}
 	proxysrv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%v", h.Bind, h.Port),
 		Handler: proxy,
 	}
 
-	go func(proxysvr *http.Server) {
-		l.Infof("http proxy server listening on %s", proxysrv.Addr)
-		if err := proxysrv.ListenAndServe(); err != http.ErrServerClosed {
-			l.Errorf("proxy server not gracefully shutdown, err :%v\n", err)
-		} else {
-			l.Error(err)
+	go func(proxysrv *http.Server) {
+		log.Infof("http proxy server listening on %s", proxysrv.Addr)
+		if err := proxysrv.ListenAndServe(); err != nil {
+			log.Error(err)
 		}
 	}(proxysrv)
 
@@ -81,9 +72,9 @@ func (h *Input) Run() {
 	defer cancel()
 
 	if err := proxysrv.Shutdown(ctx); nil != err {
-		l.Errorf("server shutdown failed, err: %v\n", err)
+		log.Errorf("server shutdown failed, err: %sn", err.Error())
 	} else {
-		l.Info("proxy server gracefully shutdown")
+		log.Info("proxy server gracefully shutdown")
 	}
 }
 
