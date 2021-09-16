@@ -70,7 +70,7 @@ drop_origin_data()
 如果在编写 pipeline 的过程中，可能编写 pipeline 或者 grok 时，需要调试，DataKit 提供了对应的调试工具。 进入 DataKit 安装目录，执行：
 
 ```shell
-./datakit --cmd --pl <pipeline-script-name.p> --txt <txt-to-be-pipelined>
+./datakit --pl <pipeline-script-name.p> --txt <txt-to-be-pipelined>
 ```
 
 参数说明：
@@ -118,7 +118,7 @@ _dklog_msg %{GREEDYDATA}
 
 ```Shell
 # 提取成功示例
-$ ./datakit --cmd --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ ./datakit --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs):
 {
     "code": "io/io.go:458",
@@ -129,7 +129,7 @@ Extracted data(cost: 421.705µs):
 }
 
 # 提取失败示例
-$ ./datakit --cmd --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
+$ ./datakit --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 No data extracted from pipeline
 ```
 
@@ -138,7 +138,7 @@ No data extracted from pipeline
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具：
 
 ```Shell
-$ ./datakit --cmd --grokq
+$ ./datakit --grokq
 grokq > Mon Jan 25 19:41:17 CST 2021   # 此处输入你希望匹配的文本
         2 %{DATESTAMP_OTHER: ?}        # 工具会给出对应对的建议，越靠前匹配月精确（权重也越大）。前面的数字表明权重。
         0 %{GREEDYDATA: ?}
