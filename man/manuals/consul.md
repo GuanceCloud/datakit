@@ -66,3 +66,5 @@ consul采集器用于采集consul相关的指标数据，目前只支持Promethe
 |        service_checks        |                    服务id和服务名能否对应上                   |gauge |int|
 
 
+## 日志采集
+如需采集consul的日志，需要在启动consul时需要

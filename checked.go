@@ -149,5 +149,6 @@ var (
 		"yarn":                   true,
 		"zabbix":                 true,
 		"zaplog":                 true,
+		"consul":				  true,
 	}
 )
