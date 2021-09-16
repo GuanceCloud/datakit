@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-采集 container 指标数据、对象数据和容器日志，以及当前主机上的 kubelet Pod 指标和对象，上报到 DataFlux 中。
+采集 container 指标数据、对象数据和容器日志，以及当前主机上的 kubelet Pod 指标和对象，上报到观测云。
 
 ## 前置条件
 

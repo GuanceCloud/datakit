@@ -62,7 +62,7 @@ else
 fi
 
 # Select installer
-installer_base_url="https://static.dataflux.cn/datakit"
+installer_base_url="https://static.guance.com/datakit"
 if [ -n "$DK_INSTALLER_BASE_URL" ]; then
 	installer_base_url=$DK_INSTALLER_BASE_URL
 fi

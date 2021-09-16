@@ -38,14 +38,14 @@ Ansible `install.yaml` 文件配置示例
   tasks:
   - name: install
     # 此处的 shell 为批量安装，通过指定 dataway 地址、默认开启的主机采集器(cpu,disk,mem)等，设置了 -global-tags host=__datakit_hostname 等
-    shell: DK_DATAWAY=https://openway.dataflux.cn?token=<TOKEN> bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
+    shell: DK_DATAWAY=https://openway.guance.com?token=<TOKEN> bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
     async: 120  # 代表了这个任务执行时间的上限值。即任务执行所用时间如果超出这个时间，则认为任务失败。此参数若未设置，则为同步执行 poll: 10 # 代表了任务异步执行时轮询的时间间隔，如果poll为0，就相当于一个不关心结果的任务
 
 - hosts: windows # 此处对应 host 配置文件中 Windows 机器
   gather_facts: no
   tasks:
   - name: install
-		win_shell: $env:DK_DATAWAY="https://openway.dataflux.cn?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+		win_shell: $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
     async: 120
     poll: 10
 ```

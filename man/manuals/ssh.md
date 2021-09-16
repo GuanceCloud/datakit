@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-监控 SSH/SFTP 服务，并把数据上报到 DataFlux 中
+监控 SSH/SFTP 服务，并把数据上报到观测云。
 
 ## 配置
 
