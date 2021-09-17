@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-采集 container 指标数据、对象数据和容器日志，以及当前主机上的 kubelet Pod 指标和对象，上报到 DataFlux 中。
+采集 container 指标数据、对象数据和容器日志，以及当前主机上的 kubelet Pod 指标和对象，上报到观测云。
 
 ## 前置条件
 
@@ -21,6 +21,15 @@
 ```
 
 注意，默认不开启指标采集。如有需要，请将 `enable_metric` 改为 `true` 并重启 DataKit。
+
+支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+
+| 环境变量名                                             | 对应的配置参数项                    | 参数示例       |
+| :---                                                   | ---                                 | ---            |
+| `ENV_INPUT_CONTAINER_ENABLE_METRIC`                    | `enable_metric`                     | `true`/`false` |
+| `ENV_INPUT_CONTAINER_ENABLE_OBJECT`                    | `enable_object`                     | `true`/`false` |
+| `ENV_INPUT_CONTAINER_ENABLE_LOGGING`                   | `enable_logging`                    | `true`/`false` |
+| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false` |
 
 ## 指标集
 
@@ -109,6 +118,25 @@
 | `i`  | `info`                      | `info`     |
 | `d`  | `debug`, `trace`, `verbose` | `debug`    |
 | `o`  | `s`, `OK`                   | `OK`       |
+
+### 容器日志的特殊字节码过滤
+
+容器日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `logging_remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
+
+此配置可能会影响日志的处理性能，基准测试结果如下：
+
+```
+goos: linux
+goarch: amd64
+pkg: gitlab.jiagouyun.com/cloudcare-tools/test
+cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
+BenchmarkRemoveAnsiCodes
+BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+PASS
+ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
+```
+
+每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
 
 ### kubelet 相关采集
 

@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并将指标采集到 DataFlux ，帮助你监控分析 Apache 各种异常情况
+Apache 采集器可以从 Apache 服务中采集请求数、连接数等，并将指标采集到观测云，帮助监控分析 Apache 各种异常情况。
 
 ## 前置条件
 

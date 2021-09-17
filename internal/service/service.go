@@ -37,7 +37,7 @@ func NewService() (service.Service, error) {
 	}
 
 	if runtime.GOOS == "darwin" {
-		scfg.Name = "cn.dataflux.datakit"
+		scfg.Name = "com.guance.datakit"
 	}
 
 	svc, err := service.New(prog, scfg)

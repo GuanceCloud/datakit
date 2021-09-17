@@ -5,16 +5,15 @@ import (
 	"regexp"
 )
 
-var maxLines = 30
-
 type Multiline struct {
 	enabled       bool
 	patternRegexp *regexp.Regexp
 	buff          bytes.Buffer
 	lines         int
+	maxLines      int
 }
 
-func NewMultiline(pattern string) (*Multiline, error) {
+func NewMultiline(pattern string, maxLines int) (*Multiline, error) {
 	enabled := false
 	var r *regexp.Regexp
 	var err error
@@ -29,6 +28,7 @@ func NewMultiline(pattern string) (*Multiline, error) {
 	return &Multiline{
 		enabled:       enabled,
 		patternRegexp: r,
+		maxLines:      maxLines,
 	}, nil
 }
 
@@ -48,7 +48,7 @@ func (m *Multiline) ProcessLine(text string) string {
 		m.buff.WriteString(text)
 		m.lines++
 
-		if m.lines >= maxLines {
+		if m.lines >= m.maxLines {
 			return m.Flush()
 		}
 		return ""

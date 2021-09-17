@@ -1,6 +1,6 @@
 # DataKit
 
-DataKit is collection agent for [DataFlux](https://dataflux.cn/)
+DataKit is collection agent for [DataFlux](https://guance.com/)
 
 # Build
 
@@ -28,8 +28,11 @@ make
 and is's possible to huild all release under Darwin:
 
 ```shell
-# build all os-arch platform under testing rule
+# build all os-arch platform under for release tesing release
 make testing
+
+# run test cases with -race/-cover/-bench, output duplicates to test.output
+make test
 ```
 
 All the output binary under `dist`:

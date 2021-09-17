@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-接收符合 ddtrace 协议格式的链路数据，并把数据经过统一转换成 DataFlux 的链路数据后上报到 DataFlux 中。
+接收符合 ddtrace 协议格式的链路数据，并把数据经过统一转换成观测云的链路格式，然后上报观测云。
 
 ## 前置条件
 
@@ -102,34 +102,6 @@ customer_tags = [
 
 - 务必在 `customer_tags` 中添加 tag-key 列表，否则 DataKit 不会进行业务 tag 的提取
 - 在开启了采样的情况下，部分添加了 tag 的 span 有可能被舍弃
-
-## tracing metrics 采样
-
-### 设置 trace 数据采样率
-
-默认每次调用都会产生 trace 数据，若不加以限制，会导致采集到数据量大，占用过多的存储，网络带宽等系统资源，可以通过设置采样率解决这一问题，修改 `{{.InputName}}.conf` ：
-
-```toml
-[inputs.ddtrace.sample_config]
-	## sample rate, how many will be sampled
-	rate = 10
-	## sample scope, the range to sample
-	scope = 100
-```
-
-说明：
-
-- 此处 `rate/scope` 即最终的采样率，示例配置即采样 10%
-- 如果在 DataKit 上开启了采样率，就不要在 ddtrace 上再设置采样率，这可能导致双重采样，导致数据大面积缺失
-- 对 RUM 产生的 trace，这里的采样率不生效，建议在 [RUM 中设置采样率](https://www.yuque.com/dataflux/doc/eqs7v2#16fe8486)
-
-### ddtrace 采样透传 tag
-
-目前的采样会忽略带有如下 tag-value 的数据：
-
-| key          | value |
-| ------------ | ----- |
-| `_dd.origin` | `rum` |
 
 ## Tracing 数据
 

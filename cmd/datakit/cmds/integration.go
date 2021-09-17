@@ -46,6 +46,7 @@ var (
 		"mysql":          "MySQL",
 		"net":            "Net",
 		"nginx":          "Nginx",
+		"nsq":            "NSQ",
 		"oracle":         "Oracle",
 		"postgresql":     "PostgreSQL",
 		"proxy":          "DataKit代理",

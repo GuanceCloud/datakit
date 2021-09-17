@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"sync"
+	"strconv"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -21,12 +21,14 @@ const (
 	inputName = "nsq"
 	catalog   = "nsq"
 
+	nsqdStatsPattern = "%s/stats?format=json"
+	lookupdPattern   = "%s/nodes"
+)
+
+var (
 	updateEndpointListInterval = time.Second * 30
 	minInterval                = time.Second * 3
 	defaultInterval            = time.Second * 10
-
-	nsqdStatsPattern = `%s/stats?format=json`
-	lookupdPattern   = `%s/nodes`
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -69,6 +71,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&nsqTopicMeasurement{},
+		&nsqNodesMeasurement{},
 	}
 }
 
@@ -96,7 +99,19 @@ func (this *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			this.gather()
+			start := time.Now()
+			pts, err := this.gather()
+			if err != nil {
+				l.Errorf("gather: %s, ignored", err)
+			}
+
+			if len(pts) == 0 {
+				continue
+			}
+
+			if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("io.Feed: %s, ignored", err)
+			}
 
 		case <-updateListTicker.C:
 			if this.pause {
@@ -118,20 +133,6 @@ func (this *Input) Run() {
 }
 
 func (this *Input) setup() bool {
-	var err error
-	this.duration, err = timex.ParseDuration(this.Interval)
-	if err != nil {
-		l.Warnf("parse duration error: %s", err)
-	}
-	if this.duration < minInterval {
-		this.duration = defaultInterval
-		l.Debugf("interval should large %s, got %s, use default interval %s", minInterval, this.Interval, defaultInterval)
-	}
-
-	if this.httpClient == nil {
-		this.httpClient = &http.Client{Timeout: 5 * time.Second}
-	}
-
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -142,104 +143,96 @@ func (this *Input) setup() bool {
 		}
 		time.Sleep(time.Second)
 
-		if this.TLSCA != "" {
-			tlsconfig := &net.TLSClientConfig{
-				CaCerts:            []string{this.TLSCA},
-				Cert:               this.TLSCert,
-				CertKey:            this.TLSKey,
-				InsecureSkipVerify: this.InsecureSkipVerify,
-			}
-
-			tc, err := tlsconfig.TLSConfig()
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-			this.httpClient.Transport = &http.Transport{TLSClientConfig: tc}
+		if err := this.setupDo(); err != nil {
+			continue
 		}
-
-		if this.isLookupd() {
-			u, err := buildURL(fmt.Sprintf(lookupdPattern, this.Lookupd))
-			if err != nil {
-				l.Error(err)
-				continue
-			}
-			this.lookupdEndpoint = u.String()
-			if err := this.updateEndpointListByLookupd(this.lookupdEndpoint); err != nil {
-				l.Error(err)
-			}
-		} else {
-			if len(this.NSQDs) == 0 {
-				l.Error("invalid nsqd endpoints")
-				continue
-			}
-			for _, n := range this.NSQDs {
-				u, err := buildURL(fmt.Sprintf(nsqdStatsPattern, n))
-				if err != nil {
-					l.Error(err)
-					continue
-				}
-				this.nsqdEndpointList[u.String()] = nil
-			}
-		}
-
 		break
 	}
 
 	return false
 }
 
+func (this *Input) setupDo() error {
+	if this.httpClient == nil {
+		this.httpClient = &http.Client{Timeout: 5 * time.Second}
+	}
+
+	if this.TLSCA != "" {
+		tlsconfig := &net.TLSClientConfig{
+			CaCerts:            []string{this.TLSCA},
+			Cert:               this.TLSCert,
+			CertKey:            this.TLSKey,
+			InsecureSkipVerify: this.InsecureSkipVerify,
+		}
+
+		tc, err := tlsconfig.TLSConfig()
+		if err != nil {
+			l.Errorf("compose TLS: %s", err)
+			return err
+		}
+		this.httpClient.Transport = &http.Transport{TLSClientConfig: tc}
+	}
+
+	if this.isLookupd() {
+		u, err := buildURL(fmt.Sprintf(lookupdPattern, this.Lookupd))
+		if err != nil {
+			l.Errorf("build URL: %s", err)
+			return err
+		}
+		this.lookupdEndpoint = u.String()
+		if err := this.updateEndpointListByLookupd(this.lookupdEndpoint); err != nil {
+			l.Error(err)
+			return err
+		}
+	} else {
+		if len(this.NSQDs) == 0 {
+			return fmt.Errorf("invalid nsqd endpoints")
+		}
+		for _, n := range this.NSQDs {
+			u, err := buildURL(fmt.Sprintf(nsqdStatsPattern, n))
+			if err != nil {
+				l.Errorf("build URL: %s", err)
+				return err
+			}
+			this.nsqdEndpointList[u.String()] = nil
+		}
+	}
+
+	var err error
+	this.duration, err = timex.ParseDuration(this.Interval)
+	if err != nil {
+		l.Warnf("parse duration error: %s", err)
+	}
+	if this.duration < minInterval {
+		this.duration = defaultInterval
+		l.Warnf("interval should large %s, got %s, use default interval %s", minInterval, this.Interval, defaultInterval)
+	}
+
+	return nil
+}
+
 func (this *Input) isLookupd() bool {
 	return this.Lookupd != ""
 }
 
-func (this *Input) gather() {
+func (this *Input) gather() ([]*io.Point, error) {
 	if len(this.nsqdEndpointList) == 0 {
-		return
+		l.Warn("endpoint list is empty")
+		return nil, nil
 	}
-	start := time.Now()
 
-	var wg sync.WaitGroup
+	st := newStats()
 
-	target := newStats(this.Tags)
 	for endpoint := range this.nsqdEndpointList {
-		wg.Add(1)
-		go func(e string) {
-			defer wg.Done()
-
-			if err := this.gatherEndpoint(e, target); err != nil {
-				l.Warn(err)
-			}
-		}(endpoint)
+		body, err := this.httpGet(endpoint)
+		if err != nil {
+			l.Errorf("httpGet: %s, ignored", err)
+			continue
+		}
+		st.add(getURLHost(endpoint), body)
 	}
 
-	wg.Wait()
-
-	pts, err := target.makePoint()
-	if err != nil {
-		l.Error(err)
-	}
-
-	if len(pts) == 0 {
-		return
-	}
-	if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
-		l.Error(err)
-	}
-}
-
-func (this *Input) gatherEndpoint(endpoint string, target *stats) error {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return err
-	}
-
-	body, err := this.httpGet(u.String())
-	if err != nil {
-		return err
-	}
-
-	return target.add(body)
+	return st.makePoint(this.Tags)
 }
 
 func (this *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
@@ -254,14 +247,15 @@ func (this *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
 		return fmt.Errorf("error parsing response: %s", err)
 	}
 
-	for idx := range lk.Producers {
-		addr := fmt.Sprintf("http://%s:%d", lk.Producers[idx].BroadcastAddress, lk.Producers[idx].HTTPPort)
-		endpoint, err := buildURL(fmt.Sprintf(nsqdStatsPattern, addr))
+	for _, p := range lk.Producers {
+		// TODO
+		// protocol 是否根据 TLS 配置决定使用 https/http ?
+		u, err := buildURL(fmt.Sprintf("http://"+nsqdStatsPattern, p.BroadcastAddress+":"+strconv.Itoa((p.HTTPPort))))
 		if err != nil {
-			l.Warn(err)
+			l.Warnf("build URL: %s", err)
 			continue
 		}
-		endpoints = append(endpoints, endpoint.String())
+		endpoints = append(endpoints, u.String())
 	}
 
 	for _, endpoint := range endpoints {
@@ -320,6 +314,14 @@ func buildURL(u string) (*url.URL, error) {
 		return nil, fmt.Errorf("unable to parse address '%s': %s", u, err)
 	}
 	return addr, nil
+}
+
+func getURLHost(urlStr string) string {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "unknown"
+	}
+	return u.Host
 }
 
 func init() {

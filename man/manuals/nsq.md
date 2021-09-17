@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-采集 NSQ 运行数据并以指标的方式上报到 DataFlux 中。
+采集 NSQ 运行数据并以指标的方式上报到观测云。
 
 ## 前置条件
 
@@ -21,6 +21,13 @@
 ```toml
 {{.InputSample}} 
 ```
+
+NSQ 采集器提供两种配置方式，分别为 `lookupd` 和 `nsqd`，具体说明如下：
+
+- `lookupd`：配置 NSQ 集群的 `lookupd` 地址，采集器会自动发现 NSQ Server 并采集数据，扩展性更佳
+- `nsqd`：配置固定的 NSQD 地址列表，采集器只会采集该列表的 NSQ Server 数据
+
+以上两种配置方式是互斥的，`lookupd` 优先级更高，推荐使用 `lookupd` 配置方式。
 
 配置好后，重启 DataKit 即可。
 

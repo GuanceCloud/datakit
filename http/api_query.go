@@ -66,13 +66,15 @@ func apiQueryRaw(c *gin.Context) {
 		return
 	}
 
-	tkns := dw.GetToken()
-	if len(tkns) == 0 {
-		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
-		return
-	}
+	if q.Token == "" {
+		tkns := dw.GetToken()
+		if len(tkns) == 0 {
+			uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
+			return
+		}
 
-	q.Token = tkns[0]
+		q.Token = tkns[0]
+	}
 
 	j, err := json.Marshal(q)
 	if err != nil {

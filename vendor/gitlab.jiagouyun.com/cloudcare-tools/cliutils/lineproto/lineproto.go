@@ -59,13 +59,15 @@ func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 			point = newPoint
 		}
 
+		if point == nil {
+			return nil, fmt.Errorf("line point is empty")
+		}
+
 		if err := checkPoint(point); err != nil {
 			return nil, err
 		}
 
-		if point != nil {
-			res = append(res, influxdb.NewPointFrom(point))
-		}
+		res = append(res, influxdb.NewPointFrom(point))
 	}
 
 	return res, nil

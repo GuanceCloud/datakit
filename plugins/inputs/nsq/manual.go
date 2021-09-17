@@ -13,7 +13,7 @@ func (*nsqTopicMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "nsq_topics",
-		Desc: "nsq 集群所有 topic 的指标",
+		Desc: "NSQ 集群所有 topic 的指标",
 		Tags: map[string]interface{}{
 			"topic":   inputs.NewTagInfo("topic 名称"),
 			"channel": inputs.NewTagInfo("channel 名称"),
@@ -26,6 +26,26 @@ func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 			"message_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "当前 channel 处理的消息总数量"},
 			"requeue_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "超时或者客户端发送 REQ 的消息数量"},
 			"timeout_count":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "超时未处理的消息数量"},
+		},
+	}
+}
+
+type nsqNodesMeasurement struct{}
+
+func (*nsqNodesMeasurement) LineProto() (*io.Point, error) { return nil, nil }
+
+//nolint
+func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "nsq_nodes",
+		Desc: "NSQ 集群所有 node 的指标",
+		Tags: map[string]interface{}{
+			"server_host": inputs.NewTagInfo("服务地址，即 `host:ip`"),
+		},
+		Fields: map[string]interface{}{
+			"depth":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "在当前 node 中未被消费的消息总数"},
+			"backend_depth": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "超出 men-queue-size 的未被消费的消息总数"},
+			"message_count": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "当前 node 处理的消息总数量"},
 		},
 	}
 }

@@ -57,7 +57,7 @@ func InstallSecCheck(installDir string) error {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read response body %v", err)
+		return fmt.Errorf("read response body %w", err)
 	}
 
 	// TODO: add network proxy option

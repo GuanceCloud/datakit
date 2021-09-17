@@ -15,7 +15,7 @@
 
 ```shell
 sudo docker run -d \
-	-v "/path/to/your/local/conf/dir":"/usr/local/cloudcare/dataflux/datakit/conf.d" \
+	-v "/path/to/your/local/conf/dir":"/usr/local/cloudcare/guance/datakit/conf.d" \
 	-e ENV_DATAWAY="${dataway}" \
 	-e ENV_WITHIN_DOCKER=1 \
 	-e ENV_ENABLE_INPUTS='cpu,mem,disk,diskio,swap,system,net' \

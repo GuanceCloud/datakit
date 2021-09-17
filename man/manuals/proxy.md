@@ -22,7 +22,7 @@ server {
   location / {
     root   /usr/share/nginx/html;
     index  index.html index.htm;
-    proxy_pass https://openway.dataflux.cn; # dataway地址
+    proxy_pass https://openway.guance.com; # dataway地址
   }
 }
 ```
@@ -65,7 +65,7 @@ curl -v -X POST http://127.0.0.1:8090/v1/write/metrics?token=TOKEN -d "proxy_tes
 - 通过发送 metrics 到工作空间测试
 
 ```shell
-curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v -X POST https://openway.dataflux.cn/v1/write/metrics?token=<TOKEN> -d "proxy_test,name=test c=123i"
+curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v -X POST https://openway.guance.com/v1/write/metrics?token=<TOKEN> -d "proxy_test,name=test c=123i"
 ```
 
 如果代理服务器工作正常，工作空间将收到指标数据 `proxy_test,name=test c=123i`。
@@ -73,7 +73,7 @@ curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v -X POST https://ope
 - 通过测试 Dataway
 
 ```shell
-curl --proxy http://<proxy_server_ip>:<proxy_server_port> -v https://openway.dataflux.cn/v1/write/metric
+curl --proxy http://<proxy_server_ip>:<proxy_server_port> -v https://openway.guance.com/v1/write/metric
 ```
 
 如果代理服务器工作正常，命令行中将收到 Dataway 返回的 HTML 数据。
@@ -84,7 +84,7 @@ curl --proxy http://<proxy_server_ip>:<proxy_server_port> -v https://openway.dat
 
 ```toml
 [dataway]
-  urls = ["https://openway.dataflux.cn?token=TOKEN"]
+  urls = ["https://openway.guance.com?token=TOKEN"]
   http_proxy = "http://<proxy-ip>:<proxy-port>"
 ```
 

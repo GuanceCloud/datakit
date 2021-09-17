@@ -2,6 +2,7 @@ package hostobject
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -59,8 +60,7 @@ const (
 )
 
 // TODO
-func (*Input) RunPipeline() {
-}
+func (*Input) RunPipeline() {}
 
 func (c *Input) Run() {
 
@@ -85,6 +85,19 @@ func (c *Input) Run() {
 			l.Debugf("start %d collecting...", n)
 			c.singleCollect(n)
 			n++
+		}
+	}
+}
+
+// ReadEnv, support envs：
+//   ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES: booler
+func (i *Input) ReadEnv(envs map[string]string) {
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES to bool: %s, ignore", err)
+		} else {
+			i.EnableNetVirtualInterfaces = b
 		}
 	}
 }

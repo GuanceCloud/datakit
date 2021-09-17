@@ -31,7 +31,7 @@ func LoadCfg(c *Config, mcp string) error {
 
 	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
 
-		if runtime.GOOS != "linux" && runtime.GOOS != "windows" {
+		if runtime.GOOS != datakit.OSWindows && runtime.GOOS != datakit.OSLinux {
 			return fmt.Errorf("docker mode not supported under %s", runtime.GOOS)
 		}
 

@@ -10,7 +10,7 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -46,6 +46,12 @@ func TestEnableDefaultsInputs(t *testing.T) {
 }
 
 func TestSetupGlobalTags(t *testing.T) {
+
+	localIP, err := datakit.LocalIP()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	cases := []struct {
 		tags   map[string]string
 		expect map[string]string
@@ -53,32 +59,41 @@ func TestSetupGlobalTags(t *testing.T) {
 	}{
 		{
 			tags: map[string]string{
-				"host": "__datakit_hostname",
+				"host": "__datakit_hostname", // ENV host dropped during setup
 				"ip":   "__datakit_ip",
 				"id":   "__datakit_id",
 				"uuid": "__datakit_uuid",
+			},
+			expect: map[string]string{
+				"ip": localIP,
 			},
 		},
 
 		{
 			tags: map[string]string{
-				"host": "$datakit_hostname",
+				"host": "$datakit_hostname", // ENV host dropped during setup
 				"ip":   "$datakit_ip",
 				"id":   "$datakit_id",
 				"uuid": "$datakit_uuid",
+			},
+			expect: map[string]string{
+				"ip": localIP,
 			},
 		},
 
 		{
 			tags: map[string]string{
 				"uuid": "some-uuid",
-				"host": "some-host",
+				"host": "some-host", // ENV host dropped during setup
 			},
-			expect: map[string]string{},
+
+			expect: map[string]string{
+				"uuid": "some-uuid",
+			},
 		},
 	}
 
-	for _, tc := range cases {
+	for idx, tc := range cases {
 		c := DefaultConfig()
 		for k, v := range tc.tags {
 			c.GlobalTags[k] = v
@@ -91,11 +106,11 @@ func TestSetupGlobalTags(t *testing.T) {
 			tu.Ok(t, err)
 		}
 
-		for k, v := range tc.tags {
+		for k, v := range c.GlobalTags {
 			if tc.expect == nil {
-				tu.Assert(t, v != c.GlobalTags[k], "`%s' != `%s'", v, c.GlobalTags[k])
+				tu.Assert(t, v != tc.expect[k], "[case %d] `%s' != `%s', global tags: %+#v", idx, v, tc.expect[k], c.GlobalTags)
 			} else {
-				tu.Assert(t, v == c.GlobalTags[k], "`%s' != `%s'", v, c.GlobalTags[k])
+				tu.Assert(t, v == tc.expect[k], "[case %d] `%s' != `%s', global tags: %+#v", idx, v, tc.expect[k], c.GlobalTags)
 			}
 		}
 	}
@@ -176,54 +191,69 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DISABLE_PROTECT_MODE":   "true",
 				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
 				"ENV_ENABLE_ELECTION":        "1",
-				"ENV_IO_CACHE_COUNT":         "-1234",
 				"ENV_DISABLE_404PAGE":        "on",
 			},
-			expect: &Config{
-				Name:    "testing-datakit",
-				DataWay: &dataway.DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}},
-				// HTTPListen:             "localhost:9559",
-				HTTPAPI: &dkhttp.APIConfig{RUMOriginIPHeader: "not-set"},
-				// LogLevel:               "debug",
-				EnablePProf: true,
-				Hostname:    "1024.coding",
-				// Disable404Page:         true,
-				IOCacheCountDeprecated: -1234,
-				ProtectMode:            false,
-				DefaultEnabledInputs:   []string{"cpu", "mem", "disk"},
-				EnableElection:         true,
-				GlobalTags: map[string]string{
+			expect: func() *Config {
+				cfg := DefaultConfig()
+
+				cfg.Name = "testing-datakit"
+				cfg.DataWay = &dataway.DataWayCfg{URLs: []string{"http://host1.org", "http://host2.com"}}
+
+				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
+				cfg.HTTPAPI.Listen = "localhost:9559"
+				cfg.HTTPAPI.Disable404Page = true
+
+				cfg.Logging.Level = "debug"
+
+				cfg.EnablePProf = true
+				cfg.Hostname = "1024.coding"
+				cfg.ProtectMode = false
+				cfg.DefaultEnabledInputs = []string{"cpu", "mem", "disk"}
+				cfg.EnableElection = true
+				cfg.GlobalTags = map[string]string{
 					"a": "b", "c": "d",
-				},
-			},
+				}
+				return cfg
+			}(),
 		},
 		{
 			envs: map[string]string{
 				"ENV_ENABLE_INPUTS": "cpu,mem,disk",
 			},
-			expect: &Config{
-				DefaultEnabledInputs: []string{"cpu", "mem", "disk"},
-			},
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.DefaultEnabledInputs = []string{"cpu", "mem", "disk"}
+				return cfg
+			}(),
 		},
 
 		{
 			envs: map[string]string{
 				"ENV_GLOBAL_TAGS": "cpu,mem,disk=sda",
 			},
-			expect: &Config{
-				GlobalTags: map[string]string{"disk": "sda"},
-			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.GlobalTags = map[string]string{"disk": "sda"}
+				return cfg
+			}(),
 		},
 	}
 
-	for _, tc := range cases {
-		c := &Config{}
+	for idx, tc := range cases {
+
+		t.Logf("case %d ...", idx)
+
+		c := DefaultConfig()
 		os.Clearenv()
 		for k, v := range tc.envs {
 			os.Setenv(k, v)
 		}
 		c.LoadEnvs()
-		tu.Equals(t, tc.expect.String(), c.String())
+
+		a := tc.expect.String()
+		b := c.String()
+		tu.Equals(t, a, b)
 	}
 }
 

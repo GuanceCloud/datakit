@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-采集文件尾部数据（类似命令行 `tail -f`），上报到 DataFlux 中。
+采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
 
 ## 配置
 
@@ -49,7 +49,10 @@
   ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
   ## 使用3个单引号 '''this-regexp''' 避免转义
   ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  match = '''^\S'''
+  # multiline_match = '''^\S'''
+
+  ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
+  remove_ansi_escape_codes = false
   
   # 自定义 tags
   [inputs.logging.tags]
@@ -206,6 +209,25 @@ Pipeline 的几个注意事项：
 {{$m.FieldsMarkdownTable}}
 
 {{ end }} 
+
+### 日志的特殊字节码过滤
+
+日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
+
+此配置可能会影响日志的处理性能，基准测试结果如下：
+
+```
+goos: linux
+goarch: amd64
+pkg: gitlab.jiagouyun.com/cloudcare-tools/test
+cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
+BenchmarkRemoveAnsiCodes
+BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+PASS
+ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
+```
+
+每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
 
 ## 更多参考
 

@@ -65,6 +65,7 @@ func DefaultConfig() *Config {
 		HTTPAPI: &dkhttp.APIConfig{
 			RUMOriginIPHeader: "X-Forwarded-For",
 			Listen:            "localhost:9529",
+			RUMAppIDWhiteList: []string{},
 		},
 
 		Logging: &LoggerCfg{
@@ -84,7 +85,7 @@ func DefaultConfig() *Config {
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
 		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	}
@@ -286,7 +287,9 @@ func (c *Config) setupGlobalTags() error {
 		c.GlobalTags = map[string]string{}
 	}
 
-	delete(c.GlobalTags, "host") // delete host tag if configured
+	// Delete host tag if configured: you should not do this,
+	// use ENV_HOSTNAME in Config.Environments instead
+	delete(c.GlobalTags, "host")
 
 	// setup global tags
 	for k, v := range c.GlobalTags {

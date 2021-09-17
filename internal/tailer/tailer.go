@@ -13,7 +13,8 @@ const (
 	// 定期寻找符合条件的新文件
 	scanNewFileInterval = time.Second * 10
 
-	defaultSource = "default"
+	defaultSource   = "default"
+	defaultMaxLines = 1000
 )
 
 type Option struct {
@@ -46,7 +47,11 @@ type Option struct {
 	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
 	//
 	// 如果为空，则默认使用 ^\S 即匹配每行开始处非空白字符
-	Match string
+	MultilineMatch string
+	//  多行匹配的最大行数，避免出现某一行过长导致程序爆栈。默认 1000
+	MultilineMaxLines int
+	// 是否删除文本中的ansi转义码，默认为false，即不删除
+	RemoveAnsiEscapeCodes bool
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 	DisableAddStatusField bool
 	// 是否关闭高频IO
@@ -74,6 +79,10 @@ func (opt *Option) init() error {
 		opt.GlobalTags = make(map[string]string)
 	}
 
+	if opt.MultilineMaxLines == 0 {
+		opt.MultilineMaxLines = defaultMaxLines
+	}
+
 	opt.GlobalTags["service"] = opt.Service
 	opt.log = logger.SLogger(opt.InputName)
 
@@ -81,7 +90,7 @@ func (opt *Option) init() error {
 		return err
 	}
 
-	if _, err := NewMultiline(opt.Match); err != nil {
+	if _, err := NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines); err != nil {
 		return err
 	}
 
