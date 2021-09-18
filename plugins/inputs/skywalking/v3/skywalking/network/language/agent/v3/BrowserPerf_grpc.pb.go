@@ -4,6 +4,7 @@ package v3
 
 import (
 	context "context"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -87,12 +88,12 @@ type BrowserPerfServiceServer interface {
 }
 
 // UnimplementedBrowserPerfServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedBrowserPerfServiceServer struct {
-}
+type UnimplementedBrowserPerfServiceServer struct{}
 
 func (UnimplementedBrowserPerfServiceServer) CollectPerfData(context.Context, *BrowserPerfData) (*v3.Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CollectPerfData not implemented")
 }
+
 func (UnimplementedBrowserPerfServiceServer) CollectErrorLogs(BrowserPerfService_CollectErrorLogsServer) error {
 	return status.Errorf(codes.Unimplemented, "method CollectErrorLogs not implemented")
 }

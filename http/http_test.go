@@ -16,7 +16,6 @@ import (
 )
 
 func BenchmarkHandleWriteBody(b *testing.B) {
-
 	body := []byte(`abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216
 abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 
@@ -26,7 +25,6 @@ abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 }
 
 func BenchmarkHandleJSONWriteBody(b *testing.B) {
-
 	body := []byte(`[
 			{
 				"measurement":"abc",
@@ -49,7 +47,7 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 }
 
 func TestHandleBody(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		body []byte
 		prec string
 		fail bool
@@ -166,8 +164,7 @@ test,t1=abc f1=1i,f2=2,f3="str"`),
 }
 
 func TestRUMHandleBody(t *testing.T) {
-
-	var cases = []struct {
+	cases := []struct {
 		body           []byte
 		prec           string
 		fail           bool
@@ -288,8 +285,7 @@ func TestRUMHandleBody(t *testing.T) {
 }
 
 func TestParsePoint(t *testing.T) {
-
-	var cases = []struct {
+	cases := []struct {
 		body []byte
 		prec string
 		npts int
@@ -346,7 +342,6 @@ func TestParsePoint(t *testing.T) {
 }
 
 func TestRestartAPI(t *testing.T) {
-
 	tokens := []string{
 		"http://1.2.3.4?token=tkn_abc123",
 		"http://4.3.2.1?token=tkn_abc456",

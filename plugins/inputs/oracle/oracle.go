@@ -55,6 +55,8 @@ type Input struct {
 func (i *Input) Run() {
 	// FIXME: 如果改成松散配置读取方式（只要是 .conf，直接读取并启动之）
 	// 这里得到 .Run() 方法要去掉。
+
+	l.Info("oracle started...")
 	i.ExernalInput.Run()
 }
 

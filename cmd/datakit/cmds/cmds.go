@@ -45,7 +45,6 @@ func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
 }
 
 func ipInfo(ip string) (map[string]string, error) {
-
 	datadir := datakit.DataDir
 
 	if err := pipeline.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
@@ -71,10 +70,11 @@ func ipInfo(ip string) (map[string]string, error) {
 }
 
 func setCmdRootLog(rl string) {
-
-	if err := logger.InitRoot(&logger.Option{Path: rl,
+	if err := logger.InitRoot(&logger.Option{
+		Path:  rl,
 		Flags: logger.OPT_DEFAULT,
-		Level: logger.DEBUG}); err != nil {
+		Level: logger.DEBUG,
+	}); err != nil {
 		l.Error(err)
 		return
 	}
@@ -87,7 +87,6 @@ func setCmdRootLog(rl string) {
 }
 
 func infof(fmtstr string, args ...interface{}) {
-
 	if FlagJSON { // under json mode, there should no color message(aka, error message)
 		return
 	}
@@ -98,7 +97,6 @@ func infof(fmtstr string, args ...interface{}) {
 }
 
 func warnf(fmtstr string, args ...interface{}) {
-
 	if FlagJSON { // under json mode, there should no color message(aka, error message)
 		return
 	}
@@ -109,7 +107,6 @@ func warnf(fmtstr string, args ...interface{}) {
 }
 
 func errorf(fmtstr string, args ...interface{}) {
-
 	if FlagJSON { // under json mode, there should no color message(aka, error message)
 		return
 	}

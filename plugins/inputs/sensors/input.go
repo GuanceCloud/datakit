@@ -41,7 +41,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (s *Input) Run() {
-
 	l = logger.SLogger(inputName)
 
 	l.Info("sensors input started")

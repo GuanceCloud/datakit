@@ -24,11 +24,12 @@
 package v3
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -527,16 +528,19 @@ func file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_rawDescG
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_goTypes = []interface{}{
-	(*Label)(nil),               // 0: Label
-	(*MeterBucketValue)(nil),    // 1: MeterBucketValue
-	(*MeterSingleValue)(nil),    // 2: MeterSingleValue
-	(*MeterHistogram)(nil),      // 3: MeterHistogram
-	(*MeterData)(nil),           // 4: MeterData
-	(*MeterDataCollection)(nil), // 5: MeterDataCollection
-	(*v3.Commands)(nil),         // 6: Commands
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_goTypes  = []interface{}{
+		(*Label)(nil),               // 0: Label
+		(*MeterBucketValue)(nil),    // 1: MeterBucketValue
+		(*MeterSingleValue)(nil),    // 2: MeterSingleValue
+		(*MeterHistogram)(nil),      // 3: MeterHistogram
+		(*MeterData)(nil),           // 4: MeterData
+		(*MeterDataCollection)(nil), // 5: MeterDataCollection
+		(*v3.Commands)(nil),         // 6: Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_depIdxs = []int32{
 	0, // 0: MeterSingleValue.labels:type_name -> Label
 	0, // 1: MeterHistogram.labels:type_name -> Label

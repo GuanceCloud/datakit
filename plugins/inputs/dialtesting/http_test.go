@@ -359,7 +359,6 @@ func cleanTLSData() {
 }
 
 func TestDialHTTP(t *testing.T) {
-
 	stopserver := make(chan interface{})
 
 	defer close(stopserver)
@@ -405,7 +404,6 @@ func TestDialHTTP(t *testing.T) {
 }
 
 func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
-
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
@@ -441,7 +439,6 @@ func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
 
 func proxyServer(t *testing.T) {
 	http.HandleFunc("/_test_with_proxy", func(w http.ResponseWriter, req *http.Request) {
-
 		t.Logf("proxied request comming")
 		for k := range req.Header {
 			t.Logf("proxied header: %s: %s", k, req.Header.Get(k))
@@ -453,7 +450,6 @@ func proxyServer(t *testing.T) {
 }
 
 func proxyHandler(target string, t *testing.T) gin.HandlerFunc {
-
 	remote, err := url.Parse(target)
 	if err != nil {
 		t.Error(err)
@@ -597,7 +593,6 @@ func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
 	})
 
 	r.POST("/_test_with_body", func(c *gin.Context) {
-
 		defer c.Request.Body.Close()
 		body, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
@@ -614,7 +609,6 @@ func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
 
 	if https {
 		r.GET("/_test_with_cert", func(c *gin.Context) {
-
 			t.Logf("request tls: %+#v", c.Request.TLS)
 			c.Data(http.StatusOK, ``, nil)
 		})

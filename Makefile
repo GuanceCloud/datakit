@@ -163,8 +163,10 @@ man:
 	@packr2 clean
 	@packr2
 
+# ignore files under vendor/.git/git
+# install gofumpt: go install mvdan.cc/gofumpt@latest
 gofmt:
-	@GO111MODULE=off gofmt -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/")
+	@GO111MODULE=off gofumpt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go")
 
 vet:
 	@go vet ./...
@@ -187,7 +189,7 @@ lfparser:
 plparser:
 	@goyacc -o pipeline/parser/parser_y.go pipeline/parser/parser.y
 
-lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
+lint_deps: prepare gofmt lfparser_disable_line plparser_disable_line man vet 
 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 

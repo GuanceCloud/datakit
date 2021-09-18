@@ -85,7 +85,7 @@ func (c *ClassQuery) ToSql() (string, error) {
 	sql := "SELECT "
 
 	if len(c.Metrics) == 0 {
-		//sql += "*"
+		// sql += "*"
 		return "", fmt.Errorf("no metric found in class %s", c.Class)
 	} else {
 		fields := []string{}

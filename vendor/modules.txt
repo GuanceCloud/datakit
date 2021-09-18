@@ -438,8 +438,6 @@ github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
 github.com/googleapis/gnostic/jsonschema
 github.com/googleapis/gnostic/openapiv2
-# github.com/gorilla/mux v1.8.0
-## explicit
 # github.com/grpc-ecosystem/grpc-gateway v1.16.0
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
@@ -489,12 +487,9 @@ github.com/kardianos/osext
 ## explicit
 github.com/kardianos/service
 # github.com/karrick/godirwalk v1.16.1
-## explicit
 github.com/karrick/godirwalk
 # github.com/kr/fs v0.1.0
 github.com/kr/fs
-# github.com/kr/text v0.2.0
-## explicit
 # github.com/kyokomi/emoji v2.1.0+incompatible
 github.com/kyokomi/emoji
 # github.com/leodido/go-urn v1.2.1
@@ -520,10 +515,8 @@ github.com/markbates/oncer
 # github.com/markbates/safe v1.0.1
 github.com/markbates/safe
 # github.com/mattn/go-colorable v0.1.8
-## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.13
-## explicit
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.10
 ## explicit

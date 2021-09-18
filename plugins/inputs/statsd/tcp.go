@@ -10,7 +10,6 @@ import (
 )
 
 func (s *input) setupTCPServer() {
-
 	address, err := net.ResolveTCPAddr("tcp", s.ServiceAddress)
 	if err != nil {
 		l.Error(err)

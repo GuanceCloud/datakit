@@ -170,7 +170,6 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 	}
 	for k, v := range n.Tags {
 		tags[k] = v
-
 	}
 	metric := &Measurement{
 		name:   inputName,

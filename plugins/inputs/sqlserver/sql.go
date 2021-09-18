@@ -52,7 +52,7 @@ SELECT
 	,REPLACE(@@SERVERNAME,''\'','':'') AS [sqlserver_host]
 	,DB_NAME(vfs.[database_id]) AS [database_name]
 	,COALESCE(mf.[physical_name],''RBPEX'') AS [physical_filename]	--RPBEX = Resilient Buffer Pool Extension
-	,COALESCE(mf.[name],''RBPEX'') AS [logical_filename]	--RPBEX = Resilient Buffer Pool Extension	
+	,COALESCE(mf.[name],''RBPEX'') AS [logical_filename]	--RPBEX = Resilient Buffer Pool Extension
 	,mf.[type_desc] AS [file_type]
 	,vfs.[io_stall_read_ms] AS [read_latency_ms]
 	,vfs.[num_of_reads] AS [reads]
@@ -304,8 +304,8 @@ INSERT INTO @PCounters SELECT * FROM PerfCounters;
 SELECT
 	 'sqlserver_performance' AS [measurement]
 	,REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host]
-	,pc.[object_name] 
-	,pc.[counter_name] 
+	,pc.[object_name]
+	,pc.[counter_name]
 	,CASE pc.[instance_name] WHEN '_Total' THEN 'Total' ELSE ISNULL(pc.[instance_name],'') END AS [instance]
 	,CAST(CASE WHEN pc.[cntr_type] = 537003264 AND pc1.[cntr_value] > 0 THEN (pc.[cntr_value] * 1.0) / (pc1.[cntr_value] * 1.0) * 100 ELSE pc.[cntr_value] END AS float(10)) AS [cntr_value]
 	,CAST(pc.[cntr_type] AS varchar(25)) AS [counter_type]
@@ -898,7 +898,7 @@ END
 
 DECLARE
 	@MajorMinorVersion AS int = CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),4) AS int)*100 + CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),3) AS int)
-	
+
 IF @MajorMinorVersion >= 1050 BEGIN
 	SELECT DISTINCT
 		'sqlserver_volumespace' AS [measurement]
@@ -913,6 +913,7 @@ IF @MajorMinorVersion >= 1050 BEGIN
 END
 `
 
+//nolint:deadcode
 const sqlServerRingBufferCPU string = `
 IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
 	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';

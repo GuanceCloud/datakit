@@ -36,7 +36,7 @@ func (gs Logs) Init() error {
 		}
 		switch g.MatchBy {
 		case logMatchByContainerName, logMatchByDeploymentName:
-			//nil
+			// nil
 		default:
 			return fmt.Errorf("invalind by %s, only accept %s and %s",
 				g.MatchBy, logMatchByContainerName, logMatchByDeploymentName)

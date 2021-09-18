@@ -93,7 +93,7 @@ func (k *Kubernetes) Init() error {
 }
 
 func (k *Kubernetes) Stop() {
-	//TODO
+	// TODO
 	return
 }
 
@@ -198,11 +198,11 @@ func (k *Kubernetes) ignorePodName(name string) bool {
 }
 
 func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
-	var tags = make(map[string]string)
+	tags := make(map[string]string)
 	tags["namespace"] = pod.PodRef.Namespace
 	tags["pod_name"] = pod.PodRef.Name
 
-	var fields = make(map[string]interface{})
+	fields := make(map[string]interface{})
 	fields["cpu_usage_nanocores"] = float64(pod.CPU.UsageNanoCores)
 	fields["cpu_usage_core_nanoseconds"] = float64(pod.CPU.UsageCoreNanoSeconds)
 	fields["memory_usage_bytes"] = float64(pod.Memory.UsageBytes)
@@ -223,7 +223,7 @@ func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
 }
 
 func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
-	var tags = make(map[string]string)
+	tags := make(map[string]string)
 	tags["name"] = item.Metadata.UID
 	tags["state"] = item.Status.Phase
 
@@ -285,7 +285,6 @@ func (k *Kubernetes) GetContainerPodName(id string) (string, error) {
 	}
 
 	pods, err := k.getPods()
-
 	if err != nil {
 		return "", err
 	}
@@ -305,7 +304,7 @@ func (k *Kubernetes) GetContainerDeploymentName(id string) (string, error) {
 }
 
 func (k *Kubernetes) LoadJson(url string, v interface{}) error {
-	var req, err = http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
@@ -529,7 +528,6 @@ func (n NetworkMetrics) TXErrors() int64 {
 func (c *CPUMetrics) Percent() (float64, error) {
 	if c.UsageNanoCores == 0 {
 		return -1, fmt.Errorf("cpu usageNanoCores cannot be zero")
-
 	}
 	// source link: https://github.com/kubernetes/heapster/issues/650#issuecomment-147795824
 	// cpu_usage_core_nanoseconds / (cpu_usage_nanocores * 1000000000) * 100

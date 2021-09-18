@@ -42,6 +42,7 @@ type ConfigPathStat struct {
 	Loaded int8   `json:"loaded"` // 0: 启动失败 1: 启动成功 2: 修改未加载
 	Path   string `json:"path"`
 }
+
 type Config struct {
 	ConfigPaths  []*ConfigPathStat `json:"config_paths"`
 	SampleConfig string            `json:"sample_config"`
@@ -57,12 +58,12 @@ type Input interface {
 }
 
 type HTTPInput interface {
-	//Input
+	// Input
 	RegHttpHandler()
 }
 
 type PipelineInput interface {
-	//Input
+	// Input
 	PipelineConfig() map[string]string
 	RunPipeline()
 }
@@ -132,7 +133,6 @@ func ResetInputs() {
 }
 
 func getEnvs() map[string]string {
-
 	envs := map[string]string{}
 	for _, v := range os.Environ() {
 		arr := strings.SplitN(v, "=", 2)
@@ -190,16 +190,13 @@ func RunInputs() error {
 	return nil
 }
 
-var (
-	MaxCrash = 6
-)
+var MaxCrash = 6
 
 func protectRunningInput(name string, ii *inputInfo) {
 	var f rtpanic.RecoverCallback
 	crashTime := []string{}
 
 	f = func(trace []byte, err error) {
-
 		defer rtpanic.Recover(f, nil)
 
 		if trace != nil {

@@ -25,8 +25,10 @@ import (
 
 var mask = regexp.MustCompile(`https?:\/\/\S+:\S+@`)
 
-const statsPath = "/_nodes/stats"
-const statsPathLocal = "/_nodes/_local/stats"
+const (
+	statsPath      = "/_nodes/stats"
+	statsPathLocal = "/_nodes/_local/stats"
+)
 
 type nodeStat struct {
 	Host       string            `json:"host"`
@@ -376,7 +378,6 @@ func (i *Input) Collect() error {
 				return nil
 			})
 		}(serv)
-
 	}
 
 	return g.Wait()
@@ -953,7 +954,6 @@ func (i *Input) getCatMaster(url string) (string, error) {
 		return "", fmt.Errorf("elasticsearch: Unable to retrieve master node information. API responded with status-code %d, expected %d", r.StatusCode, http.StatusOK)
 	}
 	response, err := ioutil.ReadAll(r.Body)
-
 	if err != nil {
 		return "", err
 	}

@@ -16,6 +16,7 @@ type TraceMeasurement struct {
 
 func (t *TraceMeasurement) LineProto() (*io.Point, error) {
 	data, err := io.MakePoint(t.Name, t.Tags, t.Fields, t.Ts)
+
 	return data, err
 }
 

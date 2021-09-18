@@ -13,9 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	moduleLogger *logger.Logger
-)
+var moduleLogger *logger.Logger
 
 func (_ *Instance) SampleConfig() string {
 	return sampleConfig
@@ -26,7 +24,6 @@ func (_ *Instance) Catalog() string {
 }
 
 func (ag *Instance) Run() {
-
 	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
@@ -46,7 +43,6 @@ func (ag *Instance) Run() {
 }
 
 func (r *Instance) run(ctx context.Context) error {
-
 	for {
 
 		select {

@@ -188,7 +188,6 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 }
 
 func (dw *DataWayCfg) initHttp() error {
-
 	cliopts := &ihttp.Options{
 		DialTimeout:           dw.TimeoutDuration,
 		DialKeepAlive:         30 * time.Second,

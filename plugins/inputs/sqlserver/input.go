@@ -151,7 +151,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 
 	for rows.Next() {
 		var columnVars []interface{}
-		//var fields = make(map[string]interface{})
+		// var fields = make(map[string]interface{})
 		// store the column name with its *interface{}
 		columnMap := make(map[string]*interface{})
 
@@ -170,11 +170,11 @@ func (n *Input) handRow(query string, ts time.Time) {
 			return
 		}
 		measurement := ""
-		var tags = make(map[string]string)
+		tags := make(map[string]string)
 		for k, v := range n.Tags {
 			tags[k] = v
 		}
-		var fields = make(map[string]interface{})
+		fields := make(map[string]interface{})
 		for header, val := range columnMap {
 			if str, ok := (*val).(string); ok {
 				if header == "measurement" {
@@ -201,7 +201,6 @@ func (n *Input) handRow(query string, ts time.Time) {
 		}
 		collectCache = append(collectCache, point)
 	}
-
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {

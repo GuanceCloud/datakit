@@ -100,7 +100,6 @@ func walkDir(path string, fileSize chan<- int64, regslice []string) {
 }
 
 func Startcollect(dir string, reslice []string) (int, int, int) {
-
 	fileSize := make(chan int64)
 
 	var sizeCount int64
@@ -117,7 +116,6 @@ func Startcollect(dir string, reslice []string) (int, int, int) {
 		sizeCount += size
 	}
 	return int(sizeCount), fileCount, Dir_count
-
 }
 
 func isreg(filename string, regslice []string) bool {

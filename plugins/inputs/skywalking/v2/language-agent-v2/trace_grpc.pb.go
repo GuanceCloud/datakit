@@ -4,6 +4,7 @@ package language_agent_v2
 
 import (
 	context "context"
+
 	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/common"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -72,12 +73,12 @@ type TraceSegmentReportServiceServer interface {
 }
 
 // UnimplementedTraceSegmentReportServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedTraceSegmentReportServiceServer struct {
-}
+type UnimplementedTraceSegmentReportServiceServer struct{}
 
 func (UnimplementedTraceSegmentReportServiceServer) Collect(TraceSegmentReportService_CollectServer) error {
 	return status.Errorf(codes.Unimplemented, "method Collect not implemented")
 }
+
 func (UnimplementedTraceSegmentReportServiceServer) mustEmbedUnimplementedTraceSegmentReportServiceServer() {
 }
 

@@ -52,7 +52,6 @@ func TestHeartBeat(t *testing.T) {
 }
 
 func TestListDataWay(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"content":[]}`)
 	}))
@@ -87,7 +86,6 @@ func TestListDataWay(t *testing.T) {
 }
 
 func TestSend(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "[httptest] ok")
 	}))

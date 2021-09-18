@@ -90,7 +90,7 @@ func (n *Input) RunPipeline() {
 		GlobalTags:        n.Tags,
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
-		MultilineMatch:             `^\d{4}-\d{2}-\d{2}`,
+		MultilineMatch:    `^\d{4}-\d{2}-\d{2}`,
 	}
 
 	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
@@ -119,7 +119,7 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 		return err
 	}
 
-	//req.SetBasicAuth(n.Username, n.Password)
+	// req.SetBasicAuth(n.Username, n.Password)
 
 	resp, err := n.client.Do(req)
 	if err != nil {

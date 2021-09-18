@@ -201,7 +201,7 @@ type Lexer struct {
 
 	// seriesDesc is set when a series description for the testing
 	// language is lexed.
-	//seriesDesc bool
+	// seriesDesc bool
 }
 
 func Lex(input string) *Lexer {
@@ -216,7 +216,6 @@ func Lex(input string) *Lexer {
 // Lexer entry
 ////////////////////////////////////////
 func lexStatements(l *Lexer) stateFn {
-
 	if strings.HasPrefix(l.input[l.pos:], lineComment) {
 		return lexLineComment
 	}
@@ -380,7 +379,6 @@ func lexStatements(l *Lexer) stateFn {
 
 // scan alphanumberic identifier, maybe keyword
 func lexKeywordOrIdentifier(l *Lexer) stateFn {
-
 __goon:
 	for {
 		switch r := l.next(); {
@@ -510,7 +508,6 @@ func lexEscape(l *Lexer) stateFn {
 }
 
 func lexString(l *Lexer) stateFn {
-
 __goon:
 	for {
 		switch l.next() {
@@ -552,7 +549,7 @@ func (l *Lexer) peek() rune {
 func (l *Lexer) emit(t ItemType) {
 	*l.itemp = Item{t, l.start, l.input[l.start:l.pos]}
 
-	//log.Debugf("emit: %+#v", l.itemp)
+	// log.Debugf("emit: %+#v", l.itemp)
 
 	l.start = l.pos
 	l.scannedItem = true

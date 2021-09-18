@@ -126,7 +126,7 @@ func handleStats(resp http.ResponseWriter, req *http.Request) {
 }
 
 func extractCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
-	var customerTags = map[string]string{}
+	customerTags := map[string]string{}
 	for _, key := range customerKeys {
 		if value, ok := meta[key]; ok {
 			customerTags[key] = value

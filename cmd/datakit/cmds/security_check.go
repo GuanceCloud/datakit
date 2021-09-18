@@ -14,14 +14,12 @@ const (
 	BaseUrl = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/security-checker/"
 )
 
-var (
-	SecCheckOsArch = map[string]bool{
-		datakit.OSArchLinuxArm:   true,
-		datakit.OSArchLinuxArm64: true,
-		datakit.OSArchLinuxAmd64: true,
-		datakit.OSArchLinux386:   true,
-	}
-)
+var SecCheckOsArch = map[string]bool{
+	datakit.OSArchLinuxArm:   true,
+	datakit.OSArchLinuxArm64: true,
+	datakit.OSArchLinuxAmd64: true,
+	datakit.OSArchLinux386:   true,
+}
 
 type SecCheckVersion struct {
 	Version string

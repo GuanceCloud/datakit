@@ -400,7 +400,6 @@ func WriteData(data []byte, urlPath string) error {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
 	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
-
 	if err != nil {
 		l.Errorf("[error] %s", err.Error())
 		return err

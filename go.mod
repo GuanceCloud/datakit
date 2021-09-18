@@ -37,18 +37,13 @@ require (
 	github.com/gofrs/flock v0.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/kardianos/service v1.0.0
-	github.com/karrick/godirwalk v1.16.1 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.10.0
-	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/mssola/user_agent v0.5.2

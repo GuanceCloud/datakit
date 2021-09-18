@@ -143,7 +143,7 @@ func TestDateParse(t *testing.T) {
 		panic(err.Error())
 	}
 	_ = loc
-	//time.Local = loc
+	// time.Local = loc
 
 	for _, dateExample := range cases {
 		tm, err := dateparse.ParseLocal(dateExample)

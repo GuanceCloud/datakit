@@ -24,11 +24,12 @@
 package v3
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -337,14 +338,17 @@ func file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_pro
 	return file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_goTypes = []interface{}{
-	(Protocol)(0),               // 0: Protocol
-	(*ServiceMeshMetric)(nil),   // 1: ServiceMeshMetric
-	(*MeshProbeDownstream)(nil), // 2: MeshProbeDownstream
-	(v3.DetectPoint)(0),         // 3: DetectPoint
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_msgTypes  = make([]protoimpl.MessageInfo, 2)
+	file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_goTypes   = []interface{}{
+		(Protocol)(0),               // 0: Protocol
+		(*ServiceMeshMetric)(nil),   // 1: ServiceMeshMetric
+		(*MeshProbeDownstream)(nil), // 2: MeshProbeDownstream
+		(v3.DetectPoint)(0),         // 3: DetectPoint
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_depIdxs = []int32{
 	0, // 0: ServiceMeshMetric.protocol:type_name -> Protocol
 	3, // 1: ServiceMeshMetric.detectPoint:type_name -> DetectPoint

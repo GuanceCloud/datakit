@@ -61,7 +61,6 @@ var (
 )
 
 func prepare() {
-
 	os.RemoveAll(BuildDir)
 	_ = os.MkdirAll(BuildDir, os.ModePerm)
 	_ = os.MkdirAll(filepath.Join(PubDir, Release), os.ModePerm)
@@ -164,7 +163,6 @@ func Compile() {
 const winBinSuffix = ".exe"
 
 func compileArch(bin, goos, goarch, dir string) {
-
 	output := filepath.Join(dir, bin)
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
@@ -197,7 +195,6 @@ func compileArch(bin, goos, goarch, dir string) {
 }
 
 func buildInstaller(outdir, goos, goarch string) {
-
 	l.Debugf("building %s-%s/installer...", goos, goarch)
 
 	installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)

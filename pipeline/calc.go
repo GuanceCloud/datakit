@@ -55,7 +55,7 @@ func binaryOp(lv, rv interface{}, opCode int) (val interface{}, err error) {
 	}()
 
 	switch opCode {
-	//四则运算
+	// 四则运算
 	case parser.ADD:
 		val, err = binaryAdd(lv, rv)
 	case parser.SUB:
@@ -67,7 +67,7 @@ func binaryOp(lv, rv interface{}, opCode int) (val interface{}, err error) {
 	case parser.MOD:
 		val, err = binaryMod(lv, rv)
 
-	//关系运算
+	// 关系运算
 	case parser.GTE:
 		val, err = binaryGte(lv, rv)
 	case parser.GT:
@@ -81,7 +81,7 @@ func binaryOp(lv, rv interface{}, opCode int) (val interface{}, err error) {
 	case parser.NEQ:
 		val, err = binaryNeq(lv, rv)
 
-		//逻辑运算
+		// 逻辑运算
 	case parser.AND:
 		val, err = binaryAnd(lv, rv)
 	case parser.OR:

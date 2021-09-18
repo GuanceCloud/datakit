@@ -24,11 +24,12 @@
 package language_agent_v2
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -669,20 +670,23 @@ func file_plugins_inputs_skywalking_v2_language_agent_v2_trace_proto_rawDescGZIP
 	return file_plugins_inputs_skywalking_v2_language_agent_v2_trace_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v2_language_agent_v2_trace_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_plugins_inputs_skywalking_v2_language_agent_v2_trace_proto_goTypes = []interface{}{
-	(*UpstreamSegment)(nil),           // 0: skywalking.v2.UpstreamSegment
-	(*SegmentObject)(nil),             // 1: skywalking.v2.SegmentObject
-	(*SegmentReference)(nil),          // 2: skywalking.v2.SegmentReference
-	(*SpanObjectV2)(nil),              // 3: skywalking.v2.SpanObjectV2
-	(*Log)(nil),                       // 4: skywalking.v2.Log
-	(*common.UniqueId)(nil),           // 5: skywalking.v2.UniqueId
-	(common.RefType)(0),               // 6: skywalking.v2.RefType
-	(common.SpanType)(0),              // 7: skywalking.v2.SpanType
-	(common.SpanLayer)(0),             // 8: skywalking.v2.SpanLayer
-	(*common.KeyStringValuePair)(nil), // 9: skywalking.v2.KeyStringValuePair
-	(*common.Commands)(nil),           // 10: skywalking.v2.Commands
-}
+var (
+	file_plugins_inputs_skywalking_v2_language_agent_v2_trace_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+	file_plugins_inputs_skywalking_v2_language_agent_v2_trace_proto_goTypes  = []interface{}{
+		(*UpstreamSegment)(nil),           // 0: skywalking.v2.UpstreamSegment
+		(*SegmentObject)(nil),             // 1: skywalking.v2.SegmentObject
+		(*SegmentReference)(nil),          // 2: skywalking.v2.SegmentReference
+		(*SpanObjectV2)(nil),              // 3: skywalking.v2.SpanObjectV2
+		(*Log)(nil),                       // 4: skywalking.v2.Log
+		(*common.UniqueId)(nil),           // 5: skywalking.v2.UniqueId
+		(common.RefType)(0),               // 6: skywalking.v2.RefType
+		(common.SpanType)(0),              // 7: skywalking.v2.SpanType
+		(common.SpanLayer)(0),             // 8: skywalking.v2.SpanLayer
+		(*common.KeyStringValuePair)(nil), // 9: skywalking.v2.KeyStringValuePair
+		(*common.Commands)(nil),           // 10: skywalking.v2.Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v2_language_agent_v2_trace_proto_depIdxs = []int32{
 	5,  // 0: skywalking.v2.UpstreamSegment.globalTraceIds:type_name -> skywalking.v2.UniqueId
 	1,  // 1: skywalking.v2.UpstreamSegment.segment:type_name -> skywalking.v2.SegmentObject

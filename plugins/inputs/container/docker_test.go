@@ -218,7 +218,6 @@ var (
 )
 
 func TestGatherDockerMetric(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, fakeResp)
 	}))
@@ -250,7 +249,6 @@ func TestGatherDockerMetric(t *testing.T) {
 }
 
 func TestGatherDockerMetric2(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, fakeRespMulti)
 	}))
@@ -277,7 +275,6 @@ func TestGatherDockerMetric2(t *testing.T) {
 		wg.Add(1)
 
 		go func(idx int, c types.Container) {
-
 			s1 := time.Now()
 			_, err := mock.gather(c)
 			if err != nil {
@@ -286,7 +283,6 @@ func TestGatherDockerMetric2(t *testing.T) {
 			t.Logf("[%d] ID: %s Cost: %s\n", idx, c.ID, time.Since(s1))
 
 			wg.Done()
-
 		}(index, container)
 	}
 

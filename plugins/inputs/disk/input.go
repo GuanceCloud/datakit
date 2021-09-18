@@ -53,25 +53,32 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "disk",
 		Fields: map[string]interface{}{
-			"total": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+			"total": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
 				Desc: "Total disk size in bytes",
 			},
-			"free": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+			"free": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
 				Desc: "Free disk size in bytes",
 			},
-			"used": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+			"used": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
 				Desc: "Used disk size in bytes",
 			},
-			"used_percent": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+			"used_percent": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 				Desc: "Used disk size in percent",
 			},
-			"inodes_total": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
+			"inodes_total": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
 				Desc: "Total inodes",
 			},
-			"inodes_free": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
+			"inodes_free": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
 				Desc: "Free inodes",
 			},
-			"inodes_used": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
+			"inodes_used": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
 				Desc: "Used inodes",
 			},
 		},

@@ -109,6 +109,7 @@ func (c *client) getReplicaSets() (*appsv1.ReplicaSetList, error) {
 func (c *client) getServices() (*corev1.ServiceList, error) {
 	return c.CoreV1().Services(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
+
 func (c *client) getNodes() (*corev1.NodeList, error) {
 	return c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 }
@@ -140,6 +141,7 @@ func (c *client) getStatefulSets() (*appsv1.StatefulSetList, error) {
 func (c *client) getIngress() (*v1beta1.IngressList, error) {
 	return c.ExtensionsV1beta1().Ingresses(c.namespace).List(context.Background(), metav1.ListOptions{})
 }
+
 func (c *client) getPersistentVolumes() (*corev1.PersistentVolumeList, error) {
 	return c.CoreV1().PersistentVolumes().List(context.Background(), metav1.ListOptions{})
 }

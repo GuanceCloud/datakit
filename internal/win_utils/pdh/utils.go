@@ -13,7 +13,7 @@ func MakeFullCounterPath(objectName, instance, counter string) string {
 }
 
 func BufferToStringList(bufferLength uint32, buffer []uint16) []string {
-	var dstList = make([]string, 0)
+	dstList := make([]string, 0)
 	if bufferLength < 2 {
 		return nil
 	} else {

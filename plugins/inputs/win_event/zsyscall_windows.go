@@ -23,10 +23,8 @@ const (
 	errnoERROR_IO_PENDING = 997
 )
 
-var (
-	//revive:disable-next-line:var-naming
-	errERROR_IO_PENDING error = syscall.Errno(errnoERROR_IO_PENDING)
-)
+//revive:disable-next-line:var-naming
+var errERROR_IO_PENDING error = syscall.Errno(errnoERROR_IO_PENDING)
 
 // EvtFormatMessageFlag defines the values that specify the message string from
 // the event to format.

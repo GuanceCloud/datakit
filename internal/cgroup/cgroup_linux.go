@@ -11,10 +11,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-var (
-	// 1 second
-	period = uint64(1000000) //nolint:gomnd
-)
+// 1 second
+var period = uint64(1000000) //nolint:gomnd
 
 const (
 	H = "high"
@@ -39,7 +37,8 @@ func start() {
 			CPU: &specs.LinuxCPU{
 				Period: &period,
 				Quota:  &quotaLow,
-			}})
+			},
+		})
 	if err != nil {
 		l.Errorf("failed of new cgroup: %s", err)
 		return
@@ -93,7 +92,8 @@ func start() {
 			CPU: &specs.LinuxCPU{
 				Period: &period,
 				Quota:  &q,
-			}})
+			},
+		})
 		if err != nil {
 			l.Warnf("failed of update cgroup: %s", err)
 			continue

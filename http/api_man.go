@@ -83,7 +83,6 @@ type manualTOC struct {
 
 // request manual table of conotents
 func apiManualTOC(c *gin.Context) {
-
 	toc := &manualTOC{
 		PageTitle: "DataKit文档列表",
 	}
@@ -130,7 +129,6 @@ func apiManualTOC(c *gin.Context) {
 }
 
 func apiManual(c *gin.Context) {
-
 	name := c.Param("name")
 	if name == "" {
 		c.Redirect(200, "/man")

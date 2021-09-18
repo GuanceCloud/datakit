@@ -54,6 +54,7 @@ func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
 func (j *JavaRuntimeMemt) LineProto() (*io.Point, error) {
 	return j.LineProto()
 }
+
 func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_runtime",
@@ -69,6 +70,7 @@ func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 func (j *JavaMemoryMemt) LineProto() (*io.Point, error) {
 	return j.LineProto()
 }
+
 func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_memory",
@@ -95,6 +97,7 @@ func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 func (j *JavaGcMemt) LineProto() (*io.Point, error) {
 	return j.LineProto()
 }
+
 func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_garbage_collector",
@@ -113,6 +116,7 @@ func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
 func (j *JavaLastGcMemt) LineProto() (*io.Point, error) {
 	return j.LineProto()
 }
+
 func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
@@ -120,6 +124,7 @@ func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
 func (j *JavaThreadMemt) LineProto() (*io.Point, error) {
 	return j.LineProto()
 }
+
 func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_threading",
@@ -139,6 +144,7 @@ func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
 func (j *JavaClassLoadMemt) LineProto() (*io.Point, error) {
 	return j.LineProto()
 }
+
 func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_class_loading",
@@ -157,6 +163,7 @@ func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 func (j *JavaMemoryPoolMemt) LineProto() (*io.Point, error) {
 	return j.LineProto()
 }
+
 func (j *JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_memory_pool",

@@ -24,11 +24,12 @@
 package register
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -1008,27 +1009,30 @@ func file_plugins_inputs_skywalking_v2_register_Register_proto_rawDescGZIP() []b
 	return file_plugins_inputs_skywalking_v2_register_Register_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v2_register_Register_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
-var file_plugins_inputs_skywalking_v2_register_Register_proto_goTypes = []interface{}{
-	(*Services)(nil),                         // 0: skywalking.v2.Services
-	(*Service)(nil),                          // 1: skywalking.v2.Service
-	(*ServiceRegisterMapping)(nil),           // 2: skywalking.v2.ServiceRegisterMapping
-	(*ServiceInstances)(nil),                 // 3: skywalking.v2.ServiceInstances
-	(*ServiceInstance)(nil),                  // 4: skywalking.v2.ServiceInstance
-	(*ServiceInstanceRegisterMapping)(nil),   // 5: skywalking.v2.ServiceInstanceRegisterMapping
-	(*NetAddresses)(nil),                     // 6: skywalking.v2.NetAddresses
-	(*NetAddressMapping)(nil),                // 7: skywalking.v2.NetAddressMapping
-	(*Endpoints)(nil),                        // 8: skywalking.v2.Endpoints
-	(*Endpoint)(nil),                         // 9: skywalking.v2.Endpoint
-	(*EndpointMapping)(nil),                  // 10: skywalking.v2.EndpointMapping
-	(*EndpointMappingElement)(nil),           // 11: skywalking.v2.EndpointMappingElement
-	(*ServiceAndNetworkAddressMappings)(nil), // 12: skywalking.v2.ServiceAndNetworkAddressMappings
-	(*ServiceAndNetworkAddressMapping)(nil),  // 13: skywalking.v2.ServiceAndNetworkAddressMapping
-	(*common.KeyStringValuePair)(nil),        // 14: skywalking.v2.KeyStringValuePair
-	(*common.KeyIntValuePair)(nil),           // 15: skywalking.v2.KeyIntValuePair
-	(common.DetectPoint)(0),                  // 16: skywalking.v2.DetectPoint
-	(*common.Commands)(nil),                  // 17: skywalking.v2.Commands
-}
+var (
+	file_plugins_inputs_skywalking_v2_register_Register_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+	file_plugins_inputs_skywalking_v2_register_Register_proto_goTypes  = []interface{}{
+		(*Services)(nil),                         // 0: skywalking.v2.Services
+		(*Service)(nil),                          // 1: skywalking.v2.Service
+		(*ServiceRegisterMapping)(nil),           // 2: skywalking.v2.ServiceRegisterMapping
+		(*ServiceInstances)(nil),                 // 3: skywalking.v2.ServiceInstances
+		(*ServiceInstance)(nil),                  // 4: skywalking.v2.ServiceInstance
+		(*ServiceInstanceRegisterMapping)(nil),   // 5: skywalking.v2.ServiceInstanceRegisterMapping
+		(*NetAddresses)(nil),                     // 6: skywalking.v2.NetAddresses
+		(*NetAddressMapping)(nil),                // 7: skywalking.v2.NetAddressMapping
+		(*Endpoints)(nil),                        // 8: skywalking.v2.Endpoints
+		(*Endpoint)(nil),                         // 9: skywalking.v2.Endpoint
+		(*EndpointMapping)(nil),                  // 10: skywalking.v2.EndpointMapping
+		(*EndpointMappingElement)(nil),           // 11: skywalking.v2.EndpointMappingElement
+		(*ServiceAndNetworkAddressMappings)(nil), // 12: skywalking.v2.ServiceAndNetworkAddressMappings
+		(*ServiceAndNetworkAddressMapping)(nil),  // 13: skywalking.v2.ServiceAndNetworkAddressMapping
+		(*common.KeyStringValuePair)(nil),        // 14: skywalking.v2.KeyStringValuePair
+		(*common.KeyIntValuePair)(nil),           // 15: skywalking.v2.KeyIntValuePair
+		(common.DetectPoint)(0),                  // 16: skywalking.v2.DetectPoint
+		(*common.Commands)(nil),                  // 17: skywalking.v2.Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v2_register_Register_proto_depIdxs = []int32{
 	1,  // 0: skywalking.v2.Services.services:type_name -> skywalking.v2.Service
 	14, // 1: skywalking.v2.Service.tags:type_name -> skywalking.v2.KeyStringValuePair

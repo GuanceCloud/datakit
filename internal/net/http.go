@@ -17,7 +17,8 @@ BREAKPOINT:
 		"X-Real-Ip",
 		"proxy-client-ip",
 		"PROXY-CLIENT-IP",
-		"Proxy-Client-Ip"} {
+		"Proxy-Client-Ip",
+	} {
 		addrs := strings.Split(req.Header.Get(h), ",")
 		for _, addr := range addrs {
 			if ip, port, _ = net.SplitHostPort(addr); ip == "" {

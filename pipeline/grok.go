@@ -14,12 +14,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-var (
-	grokCfg *vgrok.Grok
-)
+var grokCfg *vgrok.Grok
 
 func mergePattners(global, local map[string]string) map[string]string {
-	var p = make(map[string]string)
+	p := make(map[string]string)
 
 	for k, v := range global {
 		p[k] = v

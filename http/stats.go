@@ -103,18 +103,16 @@ var (
 ` + part1 + part2
 )
 
-var (
-	categoryMap = map[string]string{
-		datakit.MetricDeprecated: "M",
-		datakit.Metric:           "M",
-		datakit.KeyEvent:         "E",
-		datakit.Object:           "O",
-		datakit.Logging:          "L",
-		datakit.Tracing:          "T",
-		datakit.Rum:              "R",
-		datakit.Security:         "S",
-	}
-)
+var categoryMap = map[string]string{
+	datakit.MetricDeprecated: "M",
+	datakit.Metric:           "M",
+	datakit.KeyEvent:         "E",
+	datakit.Object:           "O",
+	datakit.Logging:          "L",
+	datakit.Tracing:          "T",
+	datakit.Rum:              "R",
+	datakit.Security:         "S",
+}
 
 func (x *DatakitStats) InputsConfTable() string {
 	const (
@@ -124,7 +122,7 @@ func (x *DatakitStats) InputsConfTable() string {
 `
 	)
 
-	var rowFmt = "|`%s`|%d|%d|"
+	rowFmt := "|`%s`|%d|%d|"
 	if x.DisableMonofont {
 		rowFmt = "|%s|%d|%d|"
 	}
@@ -147,7 +145,6 @@ func (x *DatakitStats) InputsConfTable() string {
 }
 
 func (x *DatakitStats) InputsStatsTable() string {
-
 	const (
 		tblHeader = `
 | 采集器 | 数据类型 | 频率   | 平均 IO 大小 | 总次数 | 点数  | 首次采集 | 最近采集 | 平均采集消耗 | 最大采集消耗 | 当前错误(时间) |
@@ -155,7 +152,7 @@ func (x *DatakitStats) InputsStatsTable() string {
 `
 	)
 
-	var rowFmt = "|`%s`|`%s`|%s|%d|%d|%d|%s|%s|%s|%s|`%s`(%s)|"
+	rowFmt := "|`%s`|`%s`|%s|%d|%d|%d|%s|%s|%s|%s|`%s`(%s)|"
 	if x.DisableMonofont {
 		rowFmt = "|%s|%s|%s|%d|%d|%d|%s|%s|%s|%s|%s(%s)|"
 	}
@@ -215,7 +212,6 @@ func (x *DatakitStats) InputsStatsTable() string {
 }
 
 func (x *DatakitStats) GoroutineStatTable() string {
-
 	const (
 		summaryFmt = `
 - 已完成: %d
@@ -229,7 +225,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 `
 	)
 
-	var rowFmt = "|%s|%d|%d|%s|%s|%s|%d|"
+	rowFmt := "|%s|%d|%d|%s|%s|%s|%d|"
 
 	rows := []string{}
 
@@ -257,7 +253,6 @@ func (x *DatakitStats) GoroutineStatTable() string {
 }
 
 func GetStats() (*DatakitStats, error) {
-
 	now := time.Now()
 	stats := &DatakitStats{
 		Version:        datakit.Version,
@@ -309,7 +304,6 @@ func GetStats() (*DatakitStats, error) {
 }
 
 func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
-
 	tmpl := monitorTmpl
 	if verbose {
 		tmpl = verboseMonitorTmpl
@@ -350,7 +344,7 @@ func apiGetDatakitMonitor(c *gin.Context) {
 
 	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.CompletePage
 	opts := html.RendererOptions{Flags: htmlFlags}
-	//opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
+	// opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
 	renderer := html.NewRenderer(opts)
 
 	out := markdown.ToHTML(mdbytes, psr, renderer)
@@ -359,7 +353,6 @@ func apiGetDatakitMonitor(c *gin.Context) {
 }
 
 func apiGetDatakitStats(c *gin.Context) {
-
 	s, err := GetStats()
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))

@@ -252,10 +252,7 @@ func testServer(addr string) error {
 }
 
 func TestHeadless(t *testing.T) {
-
-	var (
-		flagPort = flag.Int("port", 54321, "port")
-	)
+	flagPort := flag.Int("port", 54321, "port")
 	flag.Parse()
 
 	// start test server

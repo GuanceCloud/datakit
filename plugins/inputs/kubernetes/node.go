@@ -21,7 +21,7 @@ type node struct {
 }
 
 func (n *node) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
 	list, err := n.client.getNodes()

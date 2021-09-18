@@ -83,7 +83,7 @@ func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 func (i *Input) getTableSchema() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
-	var tableSchemaSql = `
+	tableSchemaSql := `
 	SELECT
         TABLE_SCHEMA,
         TABLE_NAME,

@@ -26,7 +26,6 @@ type versionDesc struct {
 }
 
 func tarFiles(goos, goarch string) {
-
 	gz := filepath.Join(PubDir, Release, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
 		AppName, goos, goarch, ReleaseVersion))
 	args := []string{

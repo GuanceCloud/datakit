@@ -27,7 +27,6 @@ type Input struct {
 }
 
 func (i *Input) Collect() error {
-
 	i.collectCache = []inputs.Measurement{
 		&demoMetric{
 			name: "demo",
@@ -50,7 +49,6 @@ func (i *Input) Collect() error {
 }
 
 func (i *Input) Run() {
-
 	l = logger.SLogger("demo")
 	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()

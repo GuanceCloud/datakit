@@ -9,19 +9,22 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"github.com/apache/thrift/lib/go/thrift"
 	"net"
 	"reflect"
+
+	"github.com/apache/thrift/lib/go/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)
-var _ = thrift.ZERO
-var _ = fmt.Printf
-var _ = context.Background
-var _ = reflect.DeepEqual
-var _ = bytes.Equal
+var (
+	_ = thrift.ZERO
+	_ = fmt.Printf
+	_ = context.Background
+	_ = reflect.DeepEqual
+	_ = bytes.Equal
+)
 
-//A subset of thrift base types, except BYTES.
+// A subset of thrift base types, except BYTES.
 type AnnotationType int64
 
 const (
@@ -149,6 +152,7 @@ func NewEndpoint() *Endpoint {
 func (p *Endpoint) GetIpv4() int32 {
 	return p.Ipv4
 }
+
 func (p *Endpoint) GetPort() int16 {
 	return p.Port
 }
@@ -162,6 +166,7 @@ var Endpoint_Ipv6_DEFAULT []byte
 func (p *Endpoint) GetIpv6() []byte {
 	return p.Ipv6
 }
+
 func (p *Endpoint) IsSetIpv6() bool {
 	return p.Ipv6 != nil
 }
@@ -396,6 +401,7 @@ func (p *Annotation) GetHost() *Endpoint {
 	}
 	return p.Host
 }
+
 func (p *Annotation) IsSetHost() bool {
 	return p.Host != nil
 }
@@ -615,6 +621,7 @@ func (p *BinaryAnnotation) GetHost() *Endpoint {
 	}
 	return p.Host
 }
+
 func (p *BinaryAnnotation) IsSetHost() bool {
 	return p.Host != nil
 }
@@ -956,6 +963,7 @@ func (p *Span) GetTraceIDHigh() int64 {
 	}
 	return *p.TraceIDHigh
 }
+
 func (p *Span) IsSetParentID() bool {
 	return p.ParentID != nil
 }

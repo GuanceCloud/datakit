@@ -75,7 +75,6 @@ type APIConfig struct {
 }
 
 func Start(o *Option) {
-
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
@@ -111,7 +110,6 @@ func SetGlobalTags(tags map[string]string) {
 }
 
 func page404(c *gin.Context) {
-
 	w := &welcome{
 		Version: datakit.Version,
 		BuildAt: git.BuildAt,
@@ -262,7 +260,6 @@ func tryStartServer(srv *http.Server) {
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
 		if err := srv.ListenAndServe(); err != nil {
-
 			if err != http.ErrServerClosed {
 				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				retryCnt++

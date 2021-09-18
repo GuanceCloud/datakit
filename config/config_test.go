@@ -120,7 +120,6 @@ func TestTomlParse2(t *testing.T) {
 }
 
 func TestTomlParse(t *testing.T) {
-
 	tomlParseCases := []struct {
 		in string
 	}{
@@ -182,7 +181,6 @@ func TestTomlParse(t *testing.T) {
 		}
 
 		for f, v := range tbl.Fields {
-
 			switch f {
 
 			default:
@@ -316,7 +314,6 @@ global = "global config"
 	t.Log(tbl.Source())
 
 	for f, v := range tbl.Fields {
-
 		switch f {
 
 		default:
@@ -383,7 +380,7 @@ func TestBlackWhiteList(t *testing.T) {
 }
 
 func TestLoadCfg(t *testing.T) {
-	var c = Config{}
+	c := Config{}
 	availableInputCfgs := map[string]*ast.Table{}
 	conf := map[string]string{
 		"1.conf": `[[inputs.aliyunobject]]
@@ -414,7 +411,6 @@ func TestLoadCfg(t *testing.T) {
 	for name, creator := range inputs.Inputs {
 		if err := doLoadInputConf(&c, name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
-
 		}
 	}
 	fmt.Println(inputs.InputsInfo)

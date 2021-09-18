@@ -57,7 +57,6 @@ func TestRenameFunc(t *testing.T) {
 }
 
 func TestExprFunc(t *testing.T) {
-
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 	script := `json(_, a.second)
 		cast(a.second, "int")
@@ -106,8 +105,8 @@ cast(a.second, "float")
 
 // a.second 为 float 类型
 func TestStringfFunc(t *testing.T) {
-	//js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
-	//script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
+	// js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	// script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
 	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
 	script := `json(_, a.second)
 		json(_, a.thrid)
@@ -209,5 +208,4 @@ func TestTimeParse(t *testing.T) {
 			t.Error(err)
 		}
 	}
-
 }

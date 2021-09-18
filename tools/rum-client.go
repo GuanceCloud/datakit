@@ -63,6 +63,8 @@ func main() {
 			continue
 		}
 
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			panic(err)
+		}
 	}
 }

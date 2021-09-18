@@ -21,7 +21,7 @@ type cronJob struct {
 }
 
 func (c *cronJob) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
 	list, err := c.client.getCronJobs()

@@ -19,7 +19,6 @@ var (
 )
 
 func checkInputCfg(tpl *ast.Table, fp string) {
-
 	var err error
 
 	if len(tpl.Fields) == 0 {
@@ -29,7 +28,6 @@ func checkInputCfg(tpl *ast.Table, fp string) {
 	}
 
 	for field, node := range tpl.Fields {
-
 		switch field {
 		default:
 			infof("[I] ignore config %s\n", fp)

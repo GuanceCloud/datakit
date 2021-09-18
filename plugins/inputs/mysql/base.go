@@ -255,7 +255,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "The number of physical writes of a key block from the MyISAM key cache to disk.",
 			},
 
-			//variables
+			// variables
 			"Key_buffer_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,

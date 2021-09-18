@@ -212,6 +212,7 @@ const (
 	TestNum = 10000
 )
 
+//nolint:deadcode
 func genConvertMap() map[string]string {
 	m := make(map[string]string)
 	for i := 0; i < len(data); i++ {

@@ -12,7 +12,6 @@ import (
 )
 
 func TestGetMetric(t *testing.T) {
-
 	opt := &testutil.HTTPServerOptions{
 		Bind: ":1234",
 		Exit: make(chan interface{}),

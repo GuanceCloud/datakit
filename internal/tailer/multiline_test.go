@@ -10,7 +10,7 @@ func TestMultiline(t *testing.T) {
 		panic(err)
 	}
 
-	var slows = [][]string{
+	slows := [][]string{
 		{
 			"# Time: 2021-05-31T11:15:26.043419Z",
 			"# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228",

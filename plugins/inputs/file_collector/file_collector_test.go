@@ -30,7 +30,6 @@ func TestFsnotify(t *testing.T) {
 			l.Fatal(err)
 		}
 		f.Close()
-
 	}()
 	select {
 	case ev := <-watch.Events:
@@ -38,7 +37,6 @@ func TestFsnotify(t *testing.T) {
 	}
 
 	_ = os.Remove(filepath.Join(dir, "123.txt"))
-
 }
 
 // func TestFsn_WriteLogByCreate(t *testing.T) {

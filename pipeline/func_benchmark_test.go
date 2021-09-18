@@ -183,7 +183,6 @@ func BenchmarkParseLog_tz(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		pl.Run(data)
 	}
-
 }
 
 func BenchmarkGrok(b *testing.B) {
@@ -203,7 +202,6 @@ grok(_, "%{IPORHOST:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%
 		pl.Run(data)
 		// b.Error(pl.Output)
 	}
-
 }
 
 func BenchmarkParseLogNginx(b *testing.B) {
@@ -269,7 +267,6 @@ func BenchmarkParseLogWithTfmt(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		pl.Run(data)
 	}
-
 }
 
 // default_time_with_fmt， timezone

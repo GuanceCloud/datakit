@@ -81,7 +81,6 @@ func loadHistory() {
 }
 
 func addHistory(s ...string) {
-
 	history = append(history, s...)
 	if len(history) > MaxHistory {
 		dumpHistory()
@@ -114,7 +113,6 @@ func updateHistoryOnExit() {
 }
 
 func runDQL(txt string) {
-
 	s := strings.Join(strings.Fields(strings.TrimSpace(txt)), " ")
 	if s == "" {
 		return
@@ -159,7 +157,6 @@ func runDQL(txt string) {
 }
 
 func doDQL(s string) {
-
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
 		Token:       FlagToken,
@@ -330,7 +327,6 @@ func sortColumns(r *models.Row) {
 }
 
 func showRow(r *models.Row) {
-
 	output("%d columns\n", len(r.Columns))
 
 	for i, col := range r.Columns {
@@ -356,6 +352,7 @@ func showRow(r *models.Row) {
 }
 
 // Not used
+//nolint:deadcode
 func tableShow(resp *queryResult) int {
 	nrows := 0
 
@@ -374,7 +371,6 @@ func tableShow(resp *queryResult) int {
 }
 
 func prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
-
 	for colIdx := range s.Columns {
 		if disableNil && val[colIdx] == nil {
 			continue

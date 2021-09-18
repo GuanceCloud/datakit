@@ -16,11 +16,6 @@ type collector interface {
 	Stop()
 }
 
-type jobs struct {
-	j    []*job
-	cost time.Duration
-}
-
 type job struct {
 	measurement string
 	tags        map[string]string
@@ -91,7 +86,7 @@ func (j *job) deleteField(key string) {
 }
 
 func (j *job) marshal() ([]byte, error) {
-	var temp = make(map[string]interface{}, len(j.tags)+len(j.fields))
+	temp := make(map[string]interface{}, len(j.tags)+len(j.fields))
 	for k, v := range j.tags {
 		temp[k] = v
 	}

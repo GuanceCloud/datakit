@@ -5,9 +5,7 @@ import (
 	"os"
 )
 
-var (
-	ErrInvalidPath = errors.New("provided path invalid")
-)
+var ErrInvalidPath = errors.New("provided path invalid")
 
 func IsFileExists(path string) bool {
 	finfo, err := os.Stat(path)

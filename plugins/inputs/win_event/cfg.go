@@ -105,7 +105,6 @@ type TimeCreated struct {
 }
 
 func DecodeUTF16(b []byte) ([]byte, error) {
-
 	if len(b)%2 != 0 {
 		return nil, fmt.Errorf("must have even length byte slice")
 	}

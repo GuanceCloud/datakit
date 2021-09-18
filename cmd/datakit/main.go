@@ -92,7 +92,6 @@ func init() {
 	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
 	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
 	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
-
 }
 
 var (
@@ -104,7 +103,6 @@ var (
 )
 
 func setupFlags() {
-
 	// hidden flags
 	for _, f := range []string{
 		"TODO",
@@ -181,7 +179,6 @@ func main() {
 }
 
 func applyFlags() {
-
 	inputs.TODO = cmds.FlagTODO
 
 	if cmds.FlagWorkDir != "" {
@@ -201,7 +198,6 @@ func applyFlags() {
 }
 
 func run() {
-
 	l.Info("datakit start...")
 	if err := doRun(); err != nil {
 		return
@@ -251,7 +247,6 @@ func tryLoadConfig() {
 }
 
 func doRun() error {
-
 	io.Start()
 
 	if config.Cfg.EnableElection {

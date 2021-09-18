@@ -46,9 +46,7 @@ const (
   # ...`
 )
 
-var (
-	l = logger.DefaultSLogger(inputName)
-)
+var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
 	Interval       interface{}
@@ -62,9 +60,7 @@ type Input struct {
 	Tags           map[string]string
 }
 
-var (
-	sshCfgErr = errors.New("both password and privateKeyFile missed")
-)
+var sshCfgErr = errors.New("both password and privateKeyFile missed")
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
@@ -199,7 +195,7 @@ func (i *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, e
 	for tag, tagV := range i.Tags {
 		tags[tag] = tagV
 	}
-	//ssh检查
+	// ssh检查
 	var sshRst bool
 	sshClient, err := ssh.Dial("tcp", i.Host, clientCfg)
 	if err == nil {
@@ -211,7 +207,7 @@ func (i *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, e
 	}
 	fields["ssh_check"] = sshRst
 
-	//sftp检查
+	// sftp检查
 	if i.SftpCheck {
 		var sftpRst bool
 		if err == nil {

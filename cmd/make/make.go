@@ -27,7 +27,6 @@ var (
 )
 
 func applyFlags() {
-
 	if *flagBuildISP {
 		curDir, _ := os.Getwd()
 

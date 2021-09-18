@@ -24,14 +24,11 @@ import (
 // --------------------------------------------------------------------
 // --------------------------- jolokia agent --------------------------
 const (
-	defaultInterval   = "60s"
 	MaxGatherInterval = 30 * time.Minute
 	MinGatherInterval = 1 * time.Second
 )
 
-var (
-	log = logger.DefaultSLogger("jolokia")
-)
+var log = logger.DefaultSLogger("jolokia")
 
 type JolokiaAgent struct {
 	DefaultFieldPrefix    string
@@ -1052,7 +1049,7 @@ func (c *Client) read(requests []ReadRequest) ([]ReadResponse, error) {
 
 	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		//err is not contained in returned error - it may contain sensitive data (password) which should not be logged
+		// err is not contained in returned error - it may contain sensitive data (password) which should not be logged
 		return nil, fmt.Errorf("unable to create new request for: '%s'", c.URL)
 	}
 

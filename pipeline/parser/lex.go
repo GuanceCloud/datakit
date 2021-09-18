@@ -167,7 +167,7 @@ type Lexer struct {
 
 	// seriesDesc is set when a series description for the testing
 	// language is lexed.
-	//seriesDesc bool
+	// seriesDesc bool
 }
 
 func Lex(input string) *Lexer {
@@ -182,7 +182,6 @@ func Lex(input string) *Lexer {
 // Lexer entry
 ////////////////////////////////////////
 func lexStatements(l *Lexer) stateFn {
-
 	if strings.HasPrefix(l.input[l.pos:], lineComment) {
 		return lexLineComment
 	}
@@ -325,7 +324,6 @@ func lexStatements(l *Lexer) stateFn {
 
 // scan alphanumberic identifier, maybe keyword
 func lexKeywordOrIdentifier(l *Lexer) stateFn {
-
 __goon:
 	for {
 		switch r := l.next(); {
@@ -336,7 +334,7 @@ __goon:
 			word := l.input[l.start:l.pos]
 
 			if kw, ok := keywords[strings.ToLower(word)]; ok {
-				//log.Debugf("emit keyword: %s", kw)
+				// log.Debugf("emit keyword: %s", kw)
 				l.emit(kw)
 			} else {
 				l.emit(ID)
@@ -450,7 +448,6 @@ func lexEscape(l *Lexer) stateFn {
 }
 
 func lexString(l *Lexer) stateFn {
-
 __goon:
 	for {
 		switch l.next() {
@@ -492,7 +489,7 @@ func (l *Lexer) peek() rune {
 func (l *Lexer) emit(t ItemType) {
 	*l.itemp = Item{t, l.start, l.input[l.start:l.pos]}
 
-	//log.Debugf("emit: %+#v", l.itemp)
+	// log.Debugf("emit: %+#v", l.itemp)
 
 	l.start = l.pos
 	l.scannedItem = true
@@ -567,27 +564,6 @@ func (l *Lexer) scanNumber() bool {
 	}
 
 	return false
-}
-
-func acceptRemainDuration(l *Lexer) bool {
-	if !l.accept("nusmhdwy") {
-		return false
-	}
-
-	// support for `ms/us/ns` unit, `hs`, `ys` will be caught and parse duration failed
-	l.accept("s")
-	for l.accept(DIGITS) { // next 2 chars can be another number then a unit:  3m47s
-		for l.accept(DIGITS) {
-		}
-
-		if !l.accept("nusmhdw") { // NOTE: `y` removed: `y` should always come first in duration string
-			return false
-		}
-
-		l.accept("s")
-	}
-
-	return !isAlphaNumeric(l.next())
 }
 
 ////////////////////////////////

@@ -2,9 +2,10 @@ package file_collector
 
 import (
 	"context"
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"time"
 )
 
 const (

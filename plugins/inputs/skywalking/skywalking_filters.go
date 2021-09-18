@@ -49,8 +49,9 @@ type upstmSegmentFilter func(segment *swV2.UpstreamSegment) *swV2.UpstreamSegmen
 // 	}
 // }
 
+//nolint:deadcode
 func convertKVTags(sktags []*common.KeyStringValuePair) map[string]string {
-	var tags = map[string]string{}
+	tags := map[string]string{}
 	for _, sktag := range sktags {
 		tags[sktag.Key] = sktag.Value
 	}
@@ -58,7 +59,7 @@ func convertKVTags(sktags []*common.KeyStringValuePair) map[string]string {
 	return tags
 }
 
-type swSegmentFilter func(segment *SkyWalkingSegment) *SkyWalkingSegment
+// type swSegmentFilter func(segment *SkyWalkingSegment) *SkyWalkingSegment
 
 // func swSegSample(segment *SkyWalkingSegment) *SkyWalkingSegment {
 // 	var rootSpan *SkyWalkingSpan
@@ -105,6 +106,7 @@ type swSegmentFilter func(segment *SkyWalkingSegment) *SkyWalkingSegment
 // 	}
 // }
 
+//nolint:deadcode
 func convertSkywalkTags(swtags []*SkyWalkingTag) map[string]string {
 	var tags map[string]string
 	for _, swtag := range swtags {
