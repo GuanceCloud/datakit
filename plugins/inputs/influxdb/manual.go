@@ -18,9 +18,7 @@ func (m *measurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-func (m *measurement) Info() *inputs.MeasurementInfo {
-	return nil
-}
+func (m *measurement) Info() *inputs.MeasurementInfo { return nil }
 
 type InfluxdbMemstatsM measurement
 
