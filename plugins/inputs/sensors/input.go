@@ -17,6 +17,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var (
+	defCommand  = "sensors"
+	defPath     = "/usr/bin/sensors"
+	defInterval = datakit.Duration{Duration: 10 * time.Second}
+	defTimeout  = datakit.Duration{Duration: 3 * time.Second}
+)
+
 type Input struct {
 	Path     string            `toml:"path"`
 	Interval datakit.Duration  `toml:"interval"`

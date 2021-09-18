@@ -5,7 +5,8 @@ import (
 )
 
 var (
-	inputName    = "sensors"
+	inputName = "sensors"
+
 	sampleConfig = `
 [[inputs.sensors]]
   ## Command path of 'senssor' usually under /usr/bin/sensors
