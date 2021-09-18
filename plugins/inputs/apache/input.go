@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/influxdata/telegraf/plugins/common/tls"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -19,20 +21,51 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func (_ *Input) SampleConfig() string {
-	return sample
+var _ inputs.ElectionInput = (*Input)(nil)
+
+var l = logger.DefaultSLogger(inputName)
+
+type Input struct {
+	Url      string            `toml:"url"`
+	Username string            `toml:"username,omitempty"`
+	Password string            `toml:"password,omitempty"`
+	Interval datakit.Duration  `toml:"interval,omitempty"`
+	Tags     map[string]string `toml:"tags,omitempty"`
+	Log      *struct {
+		Files             []string `toml:"files"`
+		Pipeline          string   `toml:"pipeline"`
+		IgnoreStatus      []string `toml:"ignore"`
+		CharacterEncoding string   `toml:"character_encoding"`
+	} `toml:"log"`
+
+	tls.ClientConfig
+
+	start        time.Time
+	tail         *tailer.Tailer
+	collectCache []inputs.Measurement
+	client       *http.Client
+	lastErr      error
+
+	pause   bool
+	pauseCh chan bool
 }
 
-func (_ *Input) Catalog() string {
-	return inputName
-}
-
-func (_ *Input) PipelineConfig() map[string]string {
-	pipelineMap := map[string]string{
-		"apache": pipeline,
+func newInput() *Input {
+	return &Input{
+		Interval: datakit.Duration{Duration: time.Second * 30},
+		pauseCh:  make(chan bool, 1),
 	}
-	return pipelineMap
 }
+
+func (*Input) SampleConfig() string { return sample }
+
+func (*Input) Catalog() string { return inputName }
+
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (*Input) SampleMeasurement() []inputs.Measurement { return []inputs.Measurement{&Measurement{}} }
+
+func (*Input) PipelineConfig() map[string]string { return map[string]string{"apache": pipeline} }
 
 func (n *Input) RunPipeline() {
 	if n.Log == nil || len(n.Log.Files) == 0 {
@@ -87,7 +120,20 @@ func (n *Input) Run() {
 
 	for {
 		select {
+		case <-datakit.Exit.Wait():
+			if n.tail != nil {
+				n.tail.Close()
+				l.Info("apache log exit")
+			}
+			l.Info("apache exit")
+			return
+
 		case <-tick.C:
+			if n.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+
 			m, err := n.getMetric()
 			if err != nil {
 				iod.FeedLastError(inputName, err.Error())
@@ -102,13 +148,8 @@ func (n *Input) Run() {
 				}
 			}
 
-		case <-datakit.Exit.Wait():
-			if n.tail != nil {
-				n.tail.Close()
-				l.Info("apache log exit")
-			}
-			l.Info("apache exit")
-			return
+		case n.pause = <-n.pauseCh:
+			// nil
 		}
 	}
 }
@@ -127,16 +168,6 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	}
 
 	return client, nil
-}
-
-func (_ *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
-
-func (n *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		&Measurement{},
-	}
 }
 
 func (n *Input) getMetric() (*Measurement, error) {
@@ -221,11 +252,30 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 	return metric, nil
 }
 
+func (n *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case n.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (n *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case n.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 30},
-		}
-		return s
+		return newInput()
 	})
 }
