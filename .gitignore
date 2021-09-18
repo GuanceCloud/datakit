@@ -60,5 +60,4 @@ test.conf
 test.go
 test.jso
 test.output
-test/
 y.output
