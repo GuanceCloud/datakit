@@ -3,6 +3,7 @@ package inputs
 import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apache"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cloudprober"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/consul"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/container"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cpu"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ddtrace"
@@ -51,9 +52,5 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tomcat"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceJaeger"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/consul"
-
-	// only windows
-=======
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/win_event"
 )

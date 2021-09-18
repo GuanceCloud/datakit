@@ -14,14 +14,13 @@ consul采集器用于采集consul相关的指标数据，目前只支持Promethe
 
 ## 配置
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 到`conf.d/prom`下并命名为 `prom.conf`。
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `consul.conf`。
 配置如下：
 ```toml
 {{.InputSample}}
 ```
 
 配置好后，重启 DataKit 即可。
-
 
 ## 指标集
 
@@ -38,6 +37,3 @@ consul采集器用于采集consul相关的指标数据，目前只支持Promethe
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
-
-
-

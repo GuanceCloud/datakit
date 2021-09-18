@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	inputName = "consul"
+	inputName    = "consul"
 	configSample = `
 [[inputs.prom]]
   ## Exporter 地址
@@ -56,10 +56,7 @@ drop_origin_data()
 `
 )
 
-type Input struct {
-
-}
-
+type Input struct{}
 
 func (i *Input) Catalog() string {
 	return "consul"
@@ -70,7 +67,6 @@ func (i *Input) SampleConfig() string {
 }
 
 func (i *Input) Run() {
-
 }
 
 func (i *Input) AvailableArchs() []string {
@@ -94,7 +90,6 @@ func (i *Input) PipelineConfig() map[string]string {
 }
 
 func (i *Input) RunPipeline() {
-
 }
 
 func init() {
@@ -102,4 +97,3 @@ func init() {
 		return &Input{}
 	})
 }
-
