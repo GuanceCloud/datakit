@@ -11,6 +11,18 @@ variables:
 stages:
   - deploy
 
+build-dev:
+  stage: deploy
+  only:
+    - /^dev-.*$/
+  script:
+    # only building 
+    - make ci_notify
+    - make testing
+    - make test_notify
+  tags:
+    - cloudcare-ft
+
 build-testing:
   stage: deploy
   only:
