@@ -5,6 +5,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cloudprober"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/consul"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/container"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/coredns"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cpu"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ddtrace"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/demo"
