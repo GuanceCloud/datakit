@@ -163,14 +163,18 @@ func (cw *connWatcher) OnStateChange(conn net.Conn, state http.ConnState) {
 	case http.StateNew:
 		atomic.AddInt64(&cw.nNew, 1)
 		atomic.AddInt64(&cw.nMax, 1)
+
 	case http.StateHijacked:
 		atomic.AddInt64(&cw.nHijacked, 1)
 		atomic.AddInt64(&cw.nNew, -1)
+
 	case http.StateClosed:
 		atomic.AddInt64(&cw.nNew, -1)
 		atomic.AddInt64(&cw.nClose, 1)
+
 	case http.StateIdle:
 		atomic.AddInt64(&cw.nIdle, 1)
+
 	case http.StateActive:
 		atomic.AddInt64(&cw.nActive, 1)
 	}
@@ -187,10 +191,12 @@ func (cw *connWatcher) String() string {
 
 func TestClientConnections(t *testing.T) {
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(time.Millisecond * 50)
 		fmt.Fprintf(w, "hello\n")
 	}))
+
+	ts.Start()
 
 	var cw connWatcher
 	ts.Config.ConnState = cw.OnStateChange
@@ -199,13 +205,13 @@ func TestClientConnections(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 
-	nclients := 10
+	nclients := 1
 	nreq := 1000
 
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			fmt.Printf("server: %s, clients: %d, cw: %s\n", ts.URL, nclients, cw.String())
+			fmt.Printf("[server: %s, clients: %d] cw: %s\n", ts.URL, nclients, cw.String())
 		}
 	}()
 
@@ -215,6 +221,16 @@ func TestClientConnections(t *testing.T) {
 			defer wg.Done()
 
 			cli := Cli(nil)
+
+			//cli := Cli(&Options{
+			//	DialTimeout:           30 * time.Second,
+			//	DialKeepAlive:         30 * time.Second,
+			//	MaxIdleConns:          100,
+			//	MaxIdleConnsPerHost:   runtime.NumGoroutine(),
+			//	IdleConnTimeout:       90 * time.Second,
+			//	TLSHandshakeTimeout:   10 * time.Second,
+			//	ExpectContinueTimeout: time.Second,
+			//})
 
 			for j := 0; j < nreq; j++ {
 				req, err := http.NewRequest("POST", fmt.Sprintf("%s/hello", ts.URL), nil)
@@ -234,7 +250,7 @@ func TestClientConnections(t *testing.T) {
 				}
 			}
 
-			cli.CloseIdleConnections()
+			//cli.CloseIdleConnections()
 		}()
 	}
 
