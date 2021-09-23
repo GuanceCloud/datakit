@@ -145,6 +145,9 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 - wget
 - docker
 - curl
+- clang: 版本 >= 10.0
+- llvm： 版本 >= 10.0
+- go-bindata: `apt install go-bindata`
 
 #### 安装第三方库
 
@@ -153,7 +156,7 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 ```shell
 # Debian/Ubuntu
 sudo apt-get install -y gcc-multilib
-
+sudo apt-get install -y linux-headers-$(uname -r)
 # Centos: TODO
 ```
 

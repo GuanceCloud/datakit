@@ -17,6 +17,7 @@ var (
 	apis = []string{
 		datakit.MetricDeprecated,
 		datakit.Metric,
+		datakit.Network,
 		datakit.KeyEvent,
 		datakit.Object,
 		datakit.CustomObject,

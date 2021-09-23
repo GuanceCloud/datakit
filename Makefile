@@ -40,6 +40,9 @@ NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADE
 CI_PASS_NOTIFY_MSG:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 触发的 DataKit CI 通过"}}')
 NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支($(BRANCH))提交代码，以免 CI 任务失败"}}')
 
+LINUX_RELEASE_VERSION = $(shell uname -r)
+
+
 define GIT_INFO
 //nolint
 package git
@@ -165,7 +168,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser plparser vet # TODO: add @lint and @test here
+deps: prepare man gofmt lfparser plparser  # TODO: add @lint and @test here
 
 man:
 	@packr2 clean

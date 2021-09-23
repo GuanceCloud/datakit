@@ -7,6 +7,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/DataDog/datadog-agent v0.0.0-20210914224445-7abd230002d9
 	github.com/DataDog/datadog-agent/pkg/util/winutil v0.31.0 // indirect
+	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/sketches-go v1.2.0 // indirect
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/StackExchange/wmi v1.2.1 // indirect
