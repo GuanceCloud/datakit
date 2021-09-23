@@ -42,7 +42,6 @@ NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)æ­£å
 
 LINUX_RELEASE_VERSION = $(shell uname -r)
 
-
 define GIT_INFO
 //nolint
 package git

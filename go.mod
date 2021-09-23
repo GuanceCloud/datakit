@@ -73,8 +73,6 @@ require (
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
-	//github.com/yuin/goldmark v1.3.5 // indirect
-	//github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691 // indirect
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf
 	go.uber.org/multierr v1.7.0 // indirect
