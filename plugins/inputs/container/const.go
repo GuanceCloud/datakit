@@ -81,6 +81,11 @@ const sampleCfg = `
   #  source = "<your-source-name>"
   #  service = "<your-service-name>"
   #  pipeline = "<pipeline.p>"
+  #  ##optional status: "emerg","alert","critical","error","warning","info","debug","OK"
+  #  ignore_status = []
+  #  ##optional encodings: "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+  #  character_encoding = ""
+  #  # multiline_match = '''^\S'''
   
   [inputs.container.tags]
     # some_tag = "some_value"

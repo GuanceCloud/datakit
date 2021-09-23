@@ -71,12 +71,31 @@
 
 日志采集配置项为 `[[inputs.container.log]]`，该项是数组配置，意即可以有多个 log 来处理采集到的容器日志，比如某个容器中既有 MySQL 日志，也有 Redis 日志，那么此时可能需要两个 log 来分别处理它们。
 
-- `match_by` 为匹配类型，只支持填写 `contianer-name` 和 `deployment-name`（注意是中横线）。例如该项为 `container_name`，则会以容器名进行后续的正则匹配，当匹配成功时使用此 `source` 和 pipeline
-- `match` 为匹配日志文本的正则表达式，该参数类型是字符串数组，只要任意一个正则匹配成功即可。未匹配的容器，其日志将执行默认处理方式。[正则表达式参见这里](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
+- `match_by`：
+   - 匹配类型，主要配置项，只支持填写 `contianer-name` 和 `deployment-name`（注意是中横线）。
+   - 例如该项为 `container_name`，则会以容器名进行后续的正则匹配。当匹配成功时使用此 `log` 各项参数配置（`source`、`pipeline`、`ignore_status`、`character_encoding` 和 `multiline_match`）
+- `match`：
+   - 匹配日志来源的正则表达式，如果 `match_by` 是 `container_name`，这里需要添加容器名的正则，用以在所有容器中找到一个或多个指定的容器。
+   - 该参数类型是字符串数组，只要任意一个正则匹配成功即可。
+   - 未匹配的容器，其日志将执行默认处理方式。
+   - [正则表达式参见这里](https://golang.org/pkg/regexp/syntax/#hdr-Syntax)
+
 >Tips：为保证此处正则表达式的正确书写，请务必将正则表达式用 `'''这里是一个正则表达式'''` 这种形式来配置（即两边用三个单引号来包围正则文本），否则可能导致正则转义问题。
-- `source` 指定数据来源，其值不可为空
-- `service` 指定该条日志的服务名，如果为空值，则使用 `source` 字段值
-- `pipeline` 只需写文件名即可，不需要写全路径，使用方式见 [Pipeline 文档](pipeline)。当此值为空值或该文件不存在时，将不使用 pipeline 功能
+- `source`：
+   - 指定数据来源，其值不可为空
+- `service`：
+   - 指定该条日志的服务名，如果为空值，则使用 `source` 字段值
+- `pipeline`：
+   - 指定 pipeline 文件，只需写文件名即可，不需要写全路径，使用方式见 [Pipeline 文档](pipeline)。
+   - 当此值为空值或该文件不存在时，将不使用 pipeline 功能
+- `ignore_status`：
+   - 忽略对应 `status` 数据，只能是 `"emerg","alert","critical","error","warning","info","debug","OK"`
+   - 例如填写 `["info"]`，在经过 pipeline 处理后，将丢弃所有 `status` 字段为 `info` 的数据
+- `character_encoding`：
+   - 选择字符编码，如果编码有误会导致数据无法查看。默认为空即可。
+   - 支持的编码有 `"utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""`
+- `multiline_match`：
+   - 设置正则表达式用以配置多行，例如 `^\d{4}-\d{2}-\d{2}` 行首匹配 `YYYY-MM-DD` 时间格式，和 `logging` 采集器的同名配置字段用法相同
 
 如果一个容器的 `container name` 和 `deployment` 分别匹配两个 log，会优先使用 `deployment` 所匹配的 log。例如容器的 `container name` 为 `containerAAA`，`deployment` 为 `deploymentAAA`，且配置如下：
 
@@ -87,6 +106,9 @@
   source = "dummy1"
   service = "dummy1"
   pipeline = "dummy1.p"
+  ignore_status = []
+  character_encoding = ""
+  # multiline_match = '''^\S'''
 
 [[inputs.container.log]]
   match_by = "deployment-name"
@@ -94,11 +116,14 @@
   source = "dummy2"
   service = "dummy2"
   pipeline = "dummy2.p"
+  ignore_status = []
+  character_encoding = ""
+  # multiline_match = '''^\S'''
 ```
 
 此时该容器能够匹配两个 log，优先使用第二个 `deployment`。
 
-#### 日志切割注意事项
+### 日志切割注意事项
 
 使用 pipeline 功能时，如果切割成功，则：
 
