@@ -106,6 +106,7 @@ var (
 var categoryMap = map[string]string{
 	datakit.MetricDeprecated: "M",
 	datakit.Metric:           "M",
+	datakit.Network:          "N",
 	datakit.KeyEvent:         "E",
 	datakit.Object:           "O",
 	datakit.Logging:          "L",

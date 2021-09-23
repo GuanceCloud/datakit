@@ -39,7 +39,21 @@ var externals = []*dkexternal{
 			"CGO_ENABLED=1",
 		},
 	},
+	{
+		// requirement: apt install clang llvm linux-headers-$(uname -r)
+		name: "net_ebpf",
+		lang: "makefile",
 
+		entry: "Makefile",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+		},
+
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=1",
+		},
+	},
 	// &dkexternal{
 	// 	// requirement: apt-get install gcc-multilib
 	// 	name: "skywalkingGrpcV3",
@@ -108,7 +122,20 @@ func buildExternals(outdir, goos, goarch string) {
 				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
 					args, ex.envs, err, string(msg))
 			}
+		case "makefile", "Makefile":
+			args := []string{
+				"make",
+				"--file=" + filepath.Join("plugins", "externals", ex.name, ex.entry),
+				"OUTPATH=" + filepath.Join(outdir, "externals", out),
+				"BASEPATH=" + "plugins/externals/" + ex.name,
+			}
 
+			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
+			msg, err := runEnv(args, ex.envs)
+			if err != nil {
+				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
+					args, ex.envs, err, string(msg))
+			}
 		default: // for python, just copy source code into build dir
 			ex.buildArgs = append(ex.buildArgs, filepath.Join(outdir, "externals"))
 			cmd := exec.Command(ex.buildCmd, ex.buildArgs...) //nolint:gosec

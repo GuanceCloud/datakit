@@ -37,6 +37,7 @@ const (
 	// categories
 	MetricDeprecated  = "/v1/write/metrics"
 	Metric            = "/v1/write/metric"
+	Network           = "/v1/write/network"
 	KeyEvent          = "/v1/write/keyevent"
 	Object            = "/v1/write/object"
 	CustomObject      = "/v1/write/custom_object"

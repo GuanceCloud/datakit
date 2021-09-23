@@ -130,6 +130,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	switch category {
 	case datakit.MetricDeprecated:
 	case datakit.Metric:
+	case datakit.Network:
 	case datakit.KeyEvent:
 	case datakit.Object:
 	case datakit.CustomObject:
