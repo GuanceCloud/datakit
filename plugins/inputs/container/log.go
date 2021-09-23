@@ -20,11 +20,14 @@ const (
 type Logs []Log
 
 type Log struct {
-	MatchBy  string   `toml:"match_by"`
-	Match    []string `toml:"match"`
-	Source   string   `toml:"source"`
-	Service  string   `toml:"service"`
-	Pipeline string   `toml:"pipeline"`
+	MatchBy           string   `toml:"match_by"`
+	Match             []string `toml:"match"`
+	Source            string   `toml:"source"`
+	Service           string   `toml:"service"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore_status"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	MultilineMatch    string   `toml:"multiline_match"`
 
 	pattern []*regexp.Regexp
 }
