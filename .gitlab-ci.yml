@@ -19,7 +19,7 @@ build-dev:
     # only building 
     - make ci_notify
     - make testing
-    - make test_notify
+    - make ci_pass_notify
   tags:
     - cloudcare-ft
 
