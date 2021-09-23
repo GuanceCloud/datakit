@@ -2,9 +2,16 @@ package io
 
 import (
 	"encoding/base64"
+	"fmt"
 	"math/rand"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 func randomPoints(out chan *Point, count int) {
@@ -49,4 +56,58 @@ func BenchmarkBuildBody(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		defaultIO.buildBody(pts)
 	}
+}
+
+func TestIODatawaySending(t *testing.T) {
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "{}") // datakit expect json response
+	}))
+
+	var cw ihttp.ConnWatcher
+	ts.Config.ConnState = cw.OnStateChange
+
+	ts.Start()
+
+	testdw := &dataway.DataWayCfg{URLs: []string{ts.URL + "?tkn=tkn_TestIODatawaySending"}}
+	if err := testdw.Apply(); err != nil {
+		t.Fatal(err)
+	}
+
+	cacheCnt := 10
+
+	ConfigDefaultIO(SetDataway(testdw), SetMaxCacheCount(int64(cacheCnt)))
+
+	go func() {
+		Start() // start IO
+	}()
+
+	time.Sleep(time.Second) // required
+
+	npts := 0
+	fmt.Println("feed points...")
+	cache := []*Point{}
+	for {
+		for i := 0; i < cacheCnt; i++ {
+			pt, err := makePoint("TestIODatawaySending",
+				nil, nil, map[string]interface{}{
+					"f1": 3.14,
+				})
+			cache = append(cache, pt)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			npts++
+		}
+
+		Feed("TestIODatawaySending", datakit.Metric, cache, nil)
+		if npts > 10000 {
+			break
+		}
+		cache = cache[:0]
+		time.Sleep(time.Second * 1)
+	}
+
+	t.Logf("cw: %s", cw.String())
 }

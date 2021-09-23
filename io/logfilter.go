@@ -73,7 +73,7 @@ func (this *logFilter) start() {
 				l.Info("log filter exits")
 				break EXIT
 			case <-tick.C:
-				l.Debugf("### enter log filter refresh routine, status: %q", this.status.String())
+				//l.Debugf("### enter log filter refresh routine, status: %q", this.status.String())
 				if err := this.refreshRules(); err != nil {
 					l.Error(err.Error())
 				}
@@ -94,7 +94,6 @@ func (this *logFilter) refreshRules() error {
 	if err != nil {
 		return err
 	}
-	l.Debug(string(body))
 
 	if len(body) == 0 {
 		this.status = filter_released
