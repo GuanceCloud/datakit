@@ -537,8 +537,10 @@ var (
 		{Text: "tracing::", Description: "Tracing namespace"},
 		{Text: "rum::", Description: "RUM namespace"},
 		{Text: "security::", Description: "Security namespace"},
+		{Text: "network::", Description: "eBPF-network namespace"},
 
 		{Text: "M::", Description: "metric namespace"},
+		{Text: "N::", Description: "eBPF-network namespace"},
 		{Text: "O::", Description: "object namespace"},
 		{Text: "CO::", Description: "custom object namespace"},
 		{Text: "E::", Description: "event namespace"},
@@ -571,6 +573,9 @@ var (
 		{Text: "show_security_source()", Description: "show security categories, same as show_security_category()"},
 		{Text: "show_security_category()", Description: "show security categories"},
 		{Text: "show_security_field()", Description: "show security fields"},
+
+		{Text: "show_network_source()", Description: "show eBPF network source"},
+		{Text: "show_network_field()", Description: "show eBPF network fields"},
 
 		{Text: "avg()", Description: ""},
 		{Text: "bottom()", Description: ""},
