@@ -186,7 +186,6 @@ func (cw *connWatcher) String() string {
 }
 
 func TestClientConnections(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(time.Millisecond * 50)
 		fmt.Fprintf(w, "hello\n")
