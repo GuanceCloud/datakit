@@ -1,6 +1,7 @@
 package solr
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
 	minInterval = time.Second * 5
@@ -83,6 +86,9 @@ type Input struct {
 	collectCache []inputs.Measurement
 	gatherData   GatherData
 	m            sync.Mutex
+
+	pause   bool
+	pauseCh chan bool
 }
 
 func (i *Input) appendM(m inputs.Measurement) {
@@ -163,7 +169,19 @@ func (i *Input) Run() {
 	defer tick.Stop()
 	for {
 		select {
+		case <-datakit.Exit.Wait():
+			if i.tail != nil {
+				i.tail.Close()
+				l.Info("solr log exit")
+			}
+			l.Infof("solr input exit")
+			return
+
 		case <-tick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
 			start := time.Now()
 			if err := i.Collect(); err == nil {
 				if feedErr := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
@@ -174,13 +192,9 @@ func (i *Input) Run() {
 				logError(err)
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
-		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("solr log exit")
-			}
-			l.Infof("solr input exit")
-			return
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
 	}
 }
@@ -251,12 +265,35 @@ func (i *Input) Collect() error {
 	return nil
 }
 
+func (i *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			HTTPTimeout: datakit.Duration{Duration: time.Second * 5},
 			Interval:    datakit.Duration{Duration: time.Second * 10},
 			gatherData:  gatherDataFunc,
+			pauseCh:     make(chan bool, 1),
 		}
 	})
 }

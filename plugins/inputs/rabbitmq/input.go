@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,24 +14,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func (_ *Input) SampleConfig() string {
-	return sample
-}
+var _ inputs.ElectionInput = (*Input)(nil)
 
-func (_ *Input) Catalog() string {
-	return inputName
-}
+func (*Input) SampleConfig() string { return sample }
 
-func (_ *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
+func (*Input) Catalog() string { return inputName }
 
-func (_ *Input) PipelineConfig() map[string]string {
-	pipelineMap := map[string]string{
-		"rabbitmq": pipelineCfg,
-	}
-	return pipelineMap
-}
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (*Input) PipelineConfig() map[string]string { return map[string]string{"rabbitmq": pipelineCfg} }
 
 func (n *Input) RunPipeline() {
 	if n.Log == nil || len(n.Log.Files) == 0 {
@@ -84,7 +76,20 @@ func (n *Input) Run() {
 
 	for {
 		select {
+		case <-datakit.Exit.Wait():
+			if n.tail != nil {
+				n.tail.Close()
+				l.Info("rabbitmq log exit")
+			}
+			l.Info("rabbitmq exit")
+			return
+
 		case <-tick.C:
+			if n.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+
 			n.getMetric()
 			if len(collectCache) > 0 {
 				err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
@@ -99,13 +104,9 @@ func (n *Input) Run() {
 				io.FeedLastError(inputName, n.lastErr.Error())
 				n.lastErr = nil
 			}
-		case <-datakit.Exit.Wait():
-			if n.tail != nil {
-				n.tail.Close()
-				l.Info("rabbitmq log exit")
-			}
-			l.Info("rabbitmq exit")
-			return
+
+		case n.pause = <-n.pauseCh:
+			// nil
 		}
 	}
 }
@@ -134,10 +135,33 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (n *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case n.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (n *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case n.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
+			pauseCh:  make(chan bool, 1),
 		}
 		return s
 	})

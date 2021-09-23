@@ -18,6 +18,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 const (
 	maxInterval = 15 * time.Minute
 	minInterval = 10 * time.Second
@@ -71,8 +73,8 @@ type Input struct {
 
 	Charset string `toml:"charset"`
 
-	Timeout         string        `toml:"connect_timeout"`
-	timeoutDuration time.Duration `toml:"-"`
+	Timeout         string `toml:"connect_timeout"`
+	timeoutDuration time.Duration
 
 	Tls *tls `toml:"tls"`
 
@@ -87,12 +89,16 @@ type Input struct {
 	InnoDB  bool           `toml:"innodb"`
 	Log     *mysqllog      `toml:"log"`
 
-	start      time.Time                `toml:"-"`
-	db         *sql.DB                  `toml:"-"`
-	response   []map[string]interface{} `toml:"-"`
-	tail       *tailer.Tailer           `toml:"-"`
-	err        error
-	collectors []func() ([]inputs.Measurement, error) `toml:"-"`
+	start      time.Time
+	db         *sql.DB
+	response   []map[string]interface{}
+	tail       *tailer.Tailer
+	collectors []func() ([]inputs.Measurement, error)
+
+	err error
+
+	pause   bool
+	pauseCh chan bool
 }
 
 func (i *Input) getDsnString() string {
@@ -341,10 +347,6 @@ func (i *Input) Run() {
 
 	for {
 		select {
-		case <-tick.C:
-			l.Debugf("mysql input gathering...")
-			i.start = time.Now()
-			i.Collect()
 		case <-datakit.Exit.Wait():
 			if i.tail != nil {
 				i.tail.Close()
@@ -352,6 +354,18 @@ func (i *Input) Run() {
 			}
 			l.Info("mysql exit")
 			return
+
+		case <-tick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+			l.Debugf("mysql input gathering...")
+			i.start = time.Now()
+			i.Collect()
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
 	}
 }
@@ -359,6 +373,8 @@ func (i *Input) Run() {
 func (i *Input) Catalog() string { return catalogName }
 
 func (i *Input) SampleConfig() string { return configSample }
+
+func (i *Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -370,12 +386,34 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+func (i *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{Timeout: "10s"}
+		return &Input{
+			Tags:    make(map[string]string),
+			Timeout: "10s",
+			pauseCh: make(chan bool, 1),
+		}
 	})
 }

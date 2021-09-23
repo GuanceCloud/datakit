@@ -1,7 +1,6 @@
 package influxdb
 
-const (
-	sampleConfig = `
+const sampleConfig = `
 [[inputs.influxdb]]
   url = "http://localhost:8086/debug/vars"
 
@@ -32,5 +31,3 @@ const (
     # some_tag = "some_value"
     # more_tag = "some_other_value"
 `
-	pipelineCfg = ``
-)

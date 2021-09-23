@@ -17,6 +17,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 const (
 	maxInterval = 30 * time.Minute
 	minInterval = 15 * time.Second
@@ -59,6 +61,9 @@ type Input struct {
 	tail              *tailer.Tailer                         `toml:"-"`
 	start             time.Time                              `toml:"-"`
 	collectors        []func() ([]inputs.Measurement, error) `toml:"-"`
+
+	pause   bool
+	pauseCh chan bool
 }
 
 func (i *Input) initCfg() error {
@@ -267,11 +272,6 @@ func (i *Input) Run() {
 
 	for {
 		select {
-		case <-tick.C:
-			l.Debugf("redis input gathering...")
-			i.start = time.Now()
-			i.Collect()
-
 		case <-datakit.Exit.Wait():
 			if i.tail != nil {
 				i.tail.Close()
@@ -279,19 +279,29 @@ func (i *Input) Run() {
 			}
 			l.Info("redis exit")
 			return
+
+		case <-tick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+			l.Debugf("redis input gathering...")
+			i.start = time.Now()
+			i.Collect()
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
 	}
 }
 
-func (i *Input) Catalog() string { return catalogName }
+func (*Input) Catalog() string { return catalogName }
 
-func (i *Input) SampleConfig() string { return configSample }
+func (*Input) SampleConfig() string { return configSample }
 
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&infoMeasurement{},
 		&clientMeasurement{},
@@ -301,8 +311,33 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (i *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{Timeout: "10s"}
+		return &Input{
+			Timeout: "10s",
+			pauseCh: make(chan bool, 1),
+		}
 	})
 }
