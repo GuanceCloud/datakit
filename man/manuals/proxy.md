@@ -6,49 +6,12 @@
 
 # {{.InputName}}
 
-解决`Datakit`部署在无法访问`Internet`的内部网络环境需要使用代理服务器访问`Internet`。
+当 Datakit 无法访问外网时，可在内网部署一个代理将流量发送出来。本文提供俩种实现方式：
 
-- Nginx 反向代理服务
-- Datakit 内置正向代理服务
+- 通过 DataKit 内置的正向代理服务
+- 通过 Nginx 反向代理服务
 
-## Nginx 反向代理配置
-
-- 配置 `Nginx` 代理服务
-
-```
-server {
-  listen       8090;
-
-  location / {
-    root   /usr/share/nginx/html;
-    index  index.html index.htm;
-    proxy_pass https://openway.guance.com; # dataway地址
-  }
-}
-```
-
-- 加载新配置及测试
-
-```
-nginx -t # 测试配置
-nginx -s reload # reload配置
-
-curl -v -X POST http://127.0.0.1:8090/v1/write/metrics?token=TOKEN -d "proxy_test_nginx,name=test c=123i"
-```
-
-- 配置 `Datakit` 代理服务
-
-进入 DataKit 安装目录下的 `conf.d/` 目录，配置 `datakit.conf` 中的代理服务。如下：
-
-```
-[dataway]
-	# IP 和 Port 为 Nginx 代理服务的配置信息
-  urls = ["http://127.0.0.1:8090?token=<TOKEN>"]
-```
-
-> 注意：Nginx 代理的情况下，到此即可，无需进行以下步骤。
-
-## Datakit 代理
+## DataKit 代理
 
 挑选网络中的一个能访问外网的 DataKit，作为代理，配置其代理设置。
 
@@ -65,18 +28,10 @@ curl -v -X POST http://127.0.0.1:8090/v1/write/metrics?token=TOKEN -d "proxy_tes
 - 通过发送 metrics 到工作空间测试
 
 ```shell
-curl --proxy http://[proxy_server_ip]:[proxy_server_port] -v -X POST https://openway.guance.com/v1/write/metrics?token=<TOKEN> -d "proxy_test,name=test c=123i"
+curl -x <PROXY_IP:PROXY_PORT> -v -X POST https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test,name=test c=123i"
 ```
 
 如果代理服务器工作正常，工作空间将收到指标数据 `proxy_test,name=test c=123i`。
-
-- 通过测试 Dataway
-
-```shell
-curl --proxy http://<proxy_server_ip>:<proxy_server_port> -v https://openway.guance.com/v1/write/metric
-```
-
-如果代理服务器工作正常，命令行中将收到 Dataway 返回的 HTML 数据。
 
 - 设置 _被代理 Datakit_ 的代理模式
 
@@ -85,7 +40,50 @@ curl --proxy http://<proxy_server_ip>:<proxy_server_port> -v https://openway.gua
 ```toml
 [dataway]
   urls = ["https://openway.guance.com?token=TOKEN"]
-  http_proxy = "http://<proxy-ip>:<proxy-port>"
+  http_proxy = "http://<PROXY_IP:PROXY_PORT>"
 ```
 
 配置好后，[重启 DataKit](datakit-how-to#147762ed)。
+
+## Nginx 反向代理配置
+
+- 配置 `Nginx` 代理服务
+
+```
+server {
+  listen       8090;
+
+  location / {
+    root   /usr/share/nginx/html;
+    index  index.html index.htm;
+
+    // 注意：这里不要用 HTTP。暂不支持如果使用 HTTPS
+    proxy_pass http://openway.guance.com; # dataway地址
+  }
+
+  // ... 其它配置
+}
+```
+
+- 加载新配置及测试
+
+```shell
+nginx -t        # 测试配置
+nginx -s reload # reload配置
+```
+
+- 配置 `Datakit` 代理服务
+
+进入 DataKit 安装目录下的 `conf.d/` 目录，配置 `datakit.conf` 中的代理服务。如下：
+
+```toml
+[dataway]
+	# IP 和 Port 为 Nginx 代理服务的配置信息
+  urls = ["http://127.0.0.1:8090?token=<TOKEN>"]
+```
+
+在被代理机器上，测试代理是否正常：
+
+```shell
+curl -v -x <NGINX-IP:PORT> -X POST http://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test_nginx,name=test c=123i"
+```

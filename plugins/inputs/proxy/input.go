@@ -48,6 +48,10 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return nil
+}
+
 func (h *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("http proxy input started...")
