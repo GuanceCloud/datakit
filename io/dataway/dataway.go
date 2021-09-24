@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"runtime"
 	"strings"
 	"time"
 
@@ -189,26 +188,21 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 }
 
 func (dw *DataWayCfg) initHttp() error {
-	cliopts := &ihttp.Options{
-		DialTimeout:           dw.TimeoutDuration,
-		DialKeepAlive:         30 * time.Second,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
-	}
-
 	if dw.HttpProxy != "" { // set proxy
+		cliopts := &ihttp.Options{
+			DialTimeout: dw.TimeoutDuration,
+		}
+
 		if u, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
 			l.Warnf("parse http proxy failed err: %s, ignored", err.Error())
 		} else {
 			cliopts.ProxyURL = u
 			l.Infof("set dataway proxy to %s ok", dw.HttpProxy)
 		}
+	} else {
+		dw.httpCli = ihttp.Cli(nil)
+		l.Debugf("httpCli: %p", dw.httpCli.Transport)
 	}
-
-	dw.httpCli = ihttp.Cli(cliopts)
 
 	return nil
 }

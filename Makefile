@@ -216,5 +216,10 @@ prepare:
 	@echo "$$GIT_INFO" > git/git.go
 
 clean:
-	rm -rf build/*
-	rm -rf $(PUB_DIR)/*
+	@rm -rf build/*
+	@rm -rf io/parser/gram_y.go
+	@rm -rf io/parser/gram.y.go
+	@rm -rf pipeline/parser/parser.y.go
+	@rm -rf pipeline/parser/parser_y.go
+	@rm -rf check.err
+	@rm -rf $(PUB_DIR)/*

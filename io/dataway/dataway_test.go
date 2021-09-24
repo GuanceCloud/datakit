@@ -8,6 +8,7 @@ import (
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 )
 
 func TestDataWayAPIs(t *testing.T) {
@@ -330,4 +331,58 @@ func TestSetupDataway(t *testing.T) {
 
 		t.Logf(dw.String())
 	}
+}
+
+func TestDatawayConnections(t *testing.T) {
+	cases := []struct {
+		dwCount int
+		reqCnt  int
+	}{
+		{
+			2,
+			10000,
+		},
+	}
+
+	for _, tc := range cases {
+		for i := 0; i < tc.dwCount; i++ {
+			runTestDatawayConnections(t, tc.reqCnt)
+		}
+	}
+}
+
+func runTestDatawayConnections(t *testing.T, nreq int) {
+	t.Helper()
+	i := 0
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "{}") // datakit expect json response
+	}))
+
+	var cw ihttp.ConnWatcher
+	ts.Config.ConnState = cw.OnStateChange
+
+	ts.Start()
+	defer ts.Close()
+
+	dw := &DataWayCfg{URLs: []string{ts.URL}}
+	if err := dw.Apply(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("dw: %+#v", dw)
+
+	for {
+		if err := dw.Send("/v1/write/metric", []byte("abc123"), false); err != nil {
+			t.Fatal(err)
+		}
+
+		i++
+		if i > nreq {
+			break
+		}
+	}
+
+	t.Logf("cw: %s", cw.String())
+	tu.Assert(t, cw.Max == 1, "single dataway should only 1 http client")
 }

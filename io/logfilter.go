@@ -94,7 +94,6 @@ func (this *logFilter) refreshRules() error {
 	if err != nil {
 		return err
 	}
-	l.Debug(string(body))
 
 	if len(body) == 0 {
 		this.status = filter_released
