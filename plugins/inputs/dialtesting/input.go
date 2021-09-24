@@ -109,19 +109,6 @@ func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) NewChromePool(total int) chan *context.Context {
-	if total == 0 {
-		total = 1
-	} // 默认为1
-
-	p := make(chan *context.Context, total)
-	for i := 0; i < total; i++ {
-		p <- dt.NewChromedpCtx(false, ``)
-	}
-
-	return p
-}
-
 func (d *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -228,12 +215,12 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	case dt.ClassHTTP:
 		apiTasksNum++
 	case dt.ClassHeadless: // chromedp 缓慢增加
-		headlessTasksNum++
-		if headlessTasksNum/3+1 > chromeCurCount && chromeCurCount < d.Workers {
-			chromeCtxs <- dt.NewChromedpCtx(false, ``)
-			chromeCurCount++
-			l.Debugf(`worker:%d, chromeCurCount:%d, tasks:%d`, d.Workers, chromeCurCount, headlessTasksNum)
-		}
+		//headlessTasksNum++
+		//if headlessTasksNum/3+1 > chromeCurCount && chromeCurCount < d.Workers {
+		//	chromeCtxs <- dt.NewChromedpCtx(false, ``)
+		//	chromeCurCount++
+		//	l.Debugf(`worker:%d, chromeCurCount:%d, tasks:%d`, d.Workers, chromeCurCount, headlessTasksNum)
+		//}
 	case dt.ClassDNS:
 		// TODO
 	case dt.ClassTCP:

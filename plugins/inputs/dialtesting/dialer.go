@@ -76,30 +76,30 @@ func (d *dialer) run() error {
 
 			switch d.task.Class() {
 			case dt.ClassHeadless:
-				_, fs := d.task.GetResults()
+				//_, fs := d.task.GetResults()
 
-				disableCor, _ := fs[`disableCor`].(bool)
-				proxy, _ := fs[`proxy`].(string)
-				if disableCor != false || proxy != `` {
-					ctx := dt.NewChromedpCtx(disableCor, proxy)
-					d.task.SetContext(*ctx)
-					err := d.task.Run()
-					if err != nil {
-						l.Warn(err)
-					}
-					dt.Cancel(*ctx)
-				} else {
-					select {
-					case ctx := <-chromeCtxs:
-						d.task.SetContext(*ctx)
+				//disableCor, _ := fs[`disableCor`].(bool)
+				//proxy, _ := fs[`proxy`].(string)
+				//if disableCor != false || proxy != `` {
+				//	ctx := dt.NewChromedpCtx(disableCor, proxy)
+				//	d.task.SetContext(*ctx)
+				//	err := d.task.Run()
+				//	if err != nil {
+				//		l.Warn(err)
+				//	}
+				//	dt.Cancel(*ctx)
+				//} else {
+				//	select {
+				//	case ctx := <-chromeCtxs:
+				//		d.task.SetContext(*ctx)
 
-						err := d.task.Run()
-						if err != nil {
-							l.Warn(err)
-						}
-						chromeCtxs <- ctx
-					}
-				}
+				//		err := d.task.Run()
+				//		if err != nil {
+				//			l.Warn(err)
+				//		}
+				//		chromeCtxs <- ctx
+				//	}
+				//}
 			default:
 				d.task.Run()
 			}
