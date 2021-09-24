@@ -295,7 +295,6 @@ type ParseErr struct {
 }
 
 func (e *ParseErr) Error() string {
-
 	if e.Pos == nil {
 		return fmt.Sprintf("%s", e.Err)
 	}

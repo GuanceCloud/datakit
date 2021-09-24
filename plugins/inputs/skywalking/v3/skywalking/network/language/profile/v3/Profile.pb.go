@@ -24,11 +24,12 @@
 package v3
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -381,14 +382,17 @@ func file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_rawDescGZIP()
 	return file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_goTypes = []interface{}{
-	(*ProfileTaskCommandQuery)(nil), // 0: ProfileTaskCommandQuery
-	(*ThreadSnapshot)(nil),          // 1: ThreadSnapshot
-	(*ThreadStack)(nil),             // 2: ThreadStack
-	(*ProfileTaskFinishReport)(nil), // 3: ProfileTaskFinishReport
-	(*v3.Commands)(nil),             // 4: Commands
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+	file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_goTypes  = []interface{}{
+		(*ProfileTaskCommandQuery)(nil), // 0: ProfileTaskCommandQuery
+		(*ThreadSnapshot)(nil),          // 1: ThreadSnapshot
+		(*ThreadStack)(nil),             // 2: ThreadStack
+		(*ProfileTaskFinishReport)(nil), // 3: ProfileTaskFinishReport
+		(*v3.Commands)(nil),             // 4: Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_depIdxs = []int32{
 	2, // 0: ThreadSnapshot.stack:type_name -> ThreadStack
 	0, // 1: ProfileTask.getProfileTaskCommands:input_type -> ProfileTaskCommandQuery

@@ -6,7 +6,7 @@ import (
 )
 
 func TestParseDuration(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		du     string
 		expect time.Duration
 		fail   bool

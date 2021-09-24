@@ -52,7 +52,7 @@ func TestMain(t *testing.T) {
 
 	// 最后一条message只有在新数据产生以后才会发送
 
-	var tailer = Input{
+	tailer := Input{
 		LogFiles:       []string{file.Name()},
 		FromBeginning:  true,
 		Source:         "testing",

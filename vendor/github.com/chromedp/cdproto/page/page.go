@@ -395,6 +395,36 @@ func (p *GetManifestIconsParams) Do(ctx context.Context) (primaryIcon []byte, er
 	return dec, nil
 }
 
+// GetAppIDParams returns the unique (PWA) app id.
+type GetAppIDParams struct{}
+
+// GetAppID returns the unique (PWA) app id.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-getAppId
+func GetAppID() *GetAppIDParams {
+	return &GetAppIDParams{}
+}
+
+// GetAppIDReturns return values.
+type GetAppIDReturns struct {
+	AppID string `json:"appId,omitempty"` // Only returns a value if the feature flag 'WebAppEnableManifestId' is enabled
+}
+
+// Do executes Page.getAppId against the provided context.
+//
+// returns:
+//   appID - Only returns a value if the feature flag 'WebAppEnableManifestId' is enabled
+func (p *GetAppIDParams) Do(ctx context.Context) (appID string, err error) {
+	// execute
+	var res GetAppIDReturns
+	err = cdp.Execute(ctx, CommandGetAppID, nil, &res)
+	if err != nil {
+		return "", err
+	}
+
+	return res.AppID, nil
+}
+
 // GetFrameTreeParams returns present frame tree structure.
 type GetFrameTreeParams struct{}
 
@@ -1107,6 +1137,43 @@ func (p *GetPermissionsPolicyStateParams) Do(ctx context.Context) (states []*Per
 	return res.States, nil
 }
 
+// GetOriginTrialsParams get Origin Trials on given frame.
+type GetOriginTrialsParams struct {
+	FrameID cdp.FrameID `json:"frameId"`
+}
+
+// GetOriginTrials get Origin Trials on given frame.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Page#method-getOriginTrials
+//
+// parameters:
+//   frameID
+func GetOriginTrials(frameID cdp.FrameID) *GetOriginTrialsParams {
+	return &GetOriginTrialsParams{
+		FrameID: frameID,
+	}
+}
+
+// GetOriginTrialsReturns return values.
+type GetOriginTrialsReturns struct {
+	OriginTrials []*cdp.OriginTrial `json:"originTrials,omitempty"`
+}
+
+// Do executes Page.getOriginTrials against the provided context.
+//
+// returns:
+//   originTrials
+func (p *GetOriginTrialsParams) Do(ctx context.Context) (originTrials []*cdp.OriginTrial, err error) {
+	// execute
+	var res GetOriginTrialsReturns
+	err = cdp.Execute(ctx, CommandGetOriginTrials, p, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res.OriginTrials, nil
+}
+
 // SetFontFamiliesParams set generic font families.
 type SetFontFamiliesParams struct {
 	FontFamilies *FontFamilies `json:"fontFamilies"` // Specifies font families to set. If a font family is not specified, it won't be changed.
@@ -1562,6 +1629,7 @@ const (
 	CommandGetAppManifest                      = "Page.getAppManifest"
 	CommandGetInstallabilityErrors             = "Page.getInstallabilityErrors"
 	CommandGetManifestIcons                    = "Page.getManifestIcons"
+	CommandGetAppID                            = "Page.getAppId"
 	CommandGetFrameTree                        = "Page.getFrameTree"
 	CommandGetLayoutMetrics                    = "Page.getLayoutMetrics"
 	CommandGetNavigationHistory                = "Page.getNavigationHistory"
@@ -1579,6 +1647,7 @@ const (
 	CommandSetAdBlockingEnabled                = "Page.setAdBlockingEnabled"
 	CommandSetBypassCSP                        = "Page.setBypassCSP"
 	CommandGetPermissionsPolicyState           = "Page.getPermissionsPolicyState"
+	CommandGetOriginTrials                     = "Page.getOriginTrials"
 	CommandSetFontFamilies                     = "Page.setFontFamilies"
 	CommandSetFontSizes                        = "Page.setFontSizes"
 	CommandSetDocumentContent                  = "Page.setDocumentContent"

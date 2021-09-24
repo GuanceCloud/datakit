@@ -36,14 +36,14 @@ var (
 	skywalkingV3Tags    map[string]string
 )
 
-type Skywalking struct {
+type SkyWalkingConfig struct {
 	Address string            `toml:"address"`
 	Tags    map[string]string `toml:"tags"`
 }
 
 type Input struct {
-	V2 *Skywalking `toml:"V2"`
-	V3 *Skywalking `toml:"V3"`
+	V2 *SkyWalkingConfig `toml:"V2"`
+	V3 *SkyWalkingConfig `toml:"V3"`
 }
 
 func (*Input) Catalog() string {

@@ -49,7 +49,10 @@
   ## 符合此正则匹配的数据，将被认定为有效数据，否则会累积追加到上一条有效数据的末尾
   ## 使用3个单引号 '''this-regexp''' 避免转义
   ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  match = '''^\S'''
+  # multiline_match = '''^\S'''
+
+  ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
+  remove_ansi_escape_codes = false
   
   # 自定义 tags
   [inputs.logging.tags]
@@ -176,10 +179,6 @@ Pipeline 的几个注意事项：
 
 另需说明，除上述 glob 标准规则外，采集器也支持 `**` 进行递归地文件遍历，如示例配置所示。
 
-## 远程文件采集方案
-
-在 linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/)，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
-
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -207,6 +206,35 @@ Pipeline 的几个注意事项：
 
 {{ end }} 
 
-## 更多参考
+## 常见问题
+
+### 远程文件采集方案
+
+在 linux 上，可通过 [NFS 方式](https://linuxize.com/post/how-to-mount-an-nfs-share-in-linux/)，将日志所在主机的文件路径，挂载到 DataKit 主机下，logging 采集器配置对应日志路径即可。
+
+### 日志的特殊字节码过滤
+
+日志可能会包含一些不可读的字节码（比如终端输出的颜色等），可以将 `remove_ansi_escape_codes` 设置为 `true` 对其删除过滤。
+
+此配置可能会影响日志的处理性能，基准测试结果如下：
+
+```
+goos: linux
+goarch: amd64
+pkg: gitlab.jiagouyun.com/cloudcare-tools/test
+cpu: Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz
+BenchmarkRemoveAnsiCodes
+BenchmarkRemoveAnsiCodes-8        636033              1616 ns/op
+PASS
+ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
+```
+
+每一条文本的处理耗时增加 `1616 ns` 不等。如果不开启此功能将无额外损耗。
+
+### MacOS 日志采集器报错 `operation not permitted`
+
+在 MacOS 中，因为系统安全策略的原因，DataKit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection)。
+
+### 更多参考
 
 - pipeline 性能测试和对比[文档](logging-pipeline-bench)

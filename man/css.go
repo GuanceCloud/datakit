@@ -1,7 +1,6 @@
 package man
 
-var (
-	MarkdownCSS = `
+var MarkdownCSS = `
 <style>
 div {
   border: 1px solid gray;
@@ -41,4 +40,3 @@ pre code {
 }
 
 </style>`
-)

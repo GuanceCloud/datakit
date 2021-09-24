@@ -16,7 +16,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
@@ -25,18 +24,15 @@ type Pipeline struct {
 	Content  string
 	Output   map[string]interface{}
 	lastErr  error
-	patterns map[string]string //存放自定义patterns
+	patterns map[string]string // 存放自定义patterns
 	ast      *parser.Ast
 	grok     *vgrok.Grok
 	timezone map[string]*time.Location
 }
 
-var (
-	l = logger.DefaultSLogger("pipeline")
-)
+var l = logger.DefaultSLogger("pipeline")
 
 func NewPipelineByScriptPath(path string) (*Pipeline, error) {
-
 	scriptPath := filepath.Join(datakit.PipelineDir, path)
 	data, err := ioutil.ReadFile(scriptPath)
 	if err != nil {
@@ -106,23 +102,21 @@ func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
 }
 
 func (p *Pipeline) Run(data string) *Pipeline {
-
 	p.Content = data
 	p.Output = make(map[string]interface{})
 	p.Output["message"] = data
 
-	//防止脚本解析错误
+	// 防止脚本解析错误
 	if p.ast == nil || len(p.ast.Functions) == 0 {
 		return p
 	}
 
-	//错误状态复位
+	// 错误状态复位
 	p.lastErr = nil
 
 	var f rtpanic.RecoverCallback
 
 	f = func(trace []byte, err error) {
-
 		defer rtpanic.Recover(f, nil)
 
 		if trace != nil {
@@ -252,7 +246,6 @@ func (p *Pipeline) setContent(k, v interface{}) error {
 }
 
 func (pl *Pipeline) parseScript(script string) error {
-
 	node, err := parser.ParsePipeline(script)
 	if err != nil {
 		return err
@@ -282,7 +275,7 @@ func debugNodesHelp(f *parser.FuncExpr, prev string) {
 func Init(datadir string) error {
 	l = logger.SLogger("pipeline")
 
-	if err := geo.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
+	if err := LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return err
 	}
 

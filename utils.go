@@ -47,7 +47,7 @@ func MonitProc(proc *os.Process, name string) error {
 			}
 
 			switch runtime.GOOS {
-			case "windows":
+			case OSWindows:
 
 			default:
 				if err := p.Signal(syscall.Signal(0)); err != nil {
@@ -187,7 +187,7 @@ func (s *Size) UnmarshalTOML(b []byte) error {
 }
 
 func NumberFormat(str string) string {
-	//1,234.0
+	// 1,234.0
 	arr := strings.Split(str, ".")
 	if len(arr) == 0 {
 		return str
@@ -209,7 +209,6 @@ func NumberFormat(str string) string {
 }
 
 func GZipStr(str string) ([]byte, error) {
-
 	var z bytes.Buffer
 	zw := gzip.NewWriter(&z)
 	_, err := io.WriteString(zw, str)
@@ -233,15 +232,12 @@ func GZip(data []byte) ([]byte, error) {
 	return z.Bytes(), nil
 }
 
-var (
-	dnsdests = []string{
-		`114.114.114.114:80`,
-		`8.8.8.8:80`,
-	}
-)
+var dnsdests = []string{
+	`114.114.114.114:80`,
+	`8.8.8.8:80`,
+}
 
 func LocalIP() (string, error) {
-
 	for _, dest := range dnsdests {
 		conn, err := net.DialTimeout("udp", dest, time.Second)
 		if err == nil {
@@ -304,7 +300,6 @@ func FileExist(filename string) bool {
 }
 
 func CheckExcluded(item string, blacklist, whitelist []string) bool {
-
 	for _, v := range blacklist {
 		if v == item {
 			return true

@@ -71,7 +71,7 @@ func TestNormal(t *testing.T) {
 }
 
 func TestGOMAXPROCS(t *testing.T) {
-	var sleep1s = func(ctx context.Context) error {
+	sleep1s := func(ctx context.Context) error {
 		time.Sleep(time.Second)
 		return nil
 	}

@@ -2,9 +2,10 @@ package redis
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
-	"testing"
 	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -175,7 +176,6 @@ func TestGetInfo(t *testing.T) {
 			fmt.Println("point line =====>", point.String())
 		}
 	}
-
 }
 
 func TestCollectInfoMeasurement(t *testing.T) {

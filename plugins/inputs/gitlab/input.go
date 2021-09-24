@@ -11,6 +11,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 const (
 	inputName = "gitlab"
 	catalog   = "gitlab"
@@ -145,7 +147,7 @@ func (this *Input) gatherMetrics() ([]*io.Point, error) {
 	var points []*io.Point
 
 	for _, m := range metrics {
-		var measurement = inputName
+		measurement := inputName
 
 		// 非常粗暴的筛选方式
 		if len(m.tags) == 0 {

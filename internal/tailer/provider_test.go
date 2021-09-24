@@ -7,7 +7,7 @@ import (
 )
 
 func TestIgnoreFiles(t *testing.T) {
-	var testcases = []struct {
+	testcases := []struct {
 		ignore, in, out []string
 		fail            bool
 	}{

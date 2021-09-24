@@ -220,7 +220,6 @@ func cmpint(op ItemType, l, r int64) bool {
 }
 
 func cmpfloat(op ItemType, l, r float64) bool {
-
 	switch op {
 	case GTE:
 		return l >= r
@@ -288,7 +287,6 @@ func (e *BinaryExpr) singleEval(source string, tags map[string]string, fields ma
 		switch e.Op {
 		case IN:
 			for _, item := range arr {
-
 				if name == "source" {
 					if binEval(EQ, source, item) {
 						return true
@@ -312,7 +310,6 @@ func (e *BinaryExpr) singleEval(source string, tags map[string]string, fields ma
 		case NOTIN:
 			// XXX: if x in @arr, then return false
 			for _, item := range arr {
-
 				if name == "source" {
 					if binEval(EQ, source, item) {
 						return false

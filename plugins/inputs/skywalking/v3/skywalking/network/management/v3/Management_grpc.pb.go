@@ -4,6 +4,7 @@ package v3
 
 import (
 	context "context"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -66,12 +67,12 @@ type ManagementServiceServer interface {
 }
 
 // UnimplementedManagementServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedManagementServiceServer struct {
-}
+type UnimplementedManagementServiceServer struct{}
 
 func (UnimplementedManagementServiceServer) ReportInstanceProperties(context.Context, *InstanceProperties) (*v3.Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportInstanceProperties not implemented")
 }
+
 func (UnimplementedManagementServiceServer) KeepAlive(context.Context, *InstancePingPkg) (*v3.Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeepAlive not implemented")
 }

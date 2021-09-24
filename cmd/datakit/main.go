@@ -62,8 +62,11 @@ func init() {
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
 
 	// DQL
-	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "query DQL interactively")
+	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "under DQL, query interactively")
+	flag.BoolVar(&cmds.FlagJSON, "json", false, "under DQL, output in json format")
+	flag.BoolVar(&cmds.FlagAutoJSON, "auto-json", false, "under DQL, pretty output string if it's JSON")
 	flag.StringVar(&cmds.FlagRunDQL, "run-dql", "", "run single DQL")
+	flag.StringVar(&cmds.FlagToken, "token", "", "query under specific token")
 
 	// update online data
 	flag.BoolVar(&cmds.FlagUpdateIPDB, "update-ip-db", false, "update ip db")
@@ -74,12 +77,13 @@ func init() {
 	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flag.StringVar(&cmds.FlagIPInfo, "ipinfo", "", "show IP geo info")
 
-	if runtime.GOOS != "windows" { // unsupported options under windows
+	if runtime.GOOS != datakit.OSWindows { // unsupported options under windows
 		flag.BoolVarP(&cmds.FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")
 		flag.BoolVar(&cmds.FlagDocker, "docker", false, "run within docker")
 	}
 
 	flag.BoolVar(&cmds.FlagCheckConfig, "check-config", false, "check inputs configure and main configure")
+	flag.BoolVar(&cmds.FlagCheckSample, "check-sample", false, "check inputs configure samples")
 	flag.BoolVar(&cmds.FlagVVV, "vvv", false, "more verbose info")
 	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
 	flag.StringVar(&cmds.FlagDumpSamples, "dump-samples", "", "dump all inputs samples")
@@ -88,7 +92,6 @@ func init() {
 	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
 	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
 	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
-
 }
 
 var (
@@ -100,7 +103,6 @@ var (
 )
 
 func setupFlags() {
-
 	// hidden flags
 	for _, f := range []string{
 		"TODO",
@@ -121,14 +123,14 @@ func setupFlags() {
 		flag.CommandLine.MarkHidden(f)
 	}
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		flag.CommandLine.MarkHidden("reload")
 	}
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		cmds.FlagCmdLogPath = "nul" // under windows, nul is /dev/null
 	}
 }
@@ -177,7 +179,6 @@ func main() {
 }
 
 func applyFlags() {
-
 	inputs.TODO = cmds.FlagTODO
 
 	if cmds.FlagWorkDir != "" {
@@ -197,7 +198,6 @@ func applyFlags() {
 }
 
 func run() {
-
 	l.Info("datakit start...")
 	if err := doRun(); err != nil {
 		return
@@ -247,7 +247,6 @@ func tryLoadConfig() {
 }
 
 func doRun() error {
-
 	io.Start()
 
 	if config.Cfg.EnableElection {

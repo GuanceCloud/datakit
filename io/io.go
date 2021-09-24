@@ -41,6 +41,7 @@ type lastErr struct {
 	from, err string
 	ts        time.Time
 }
+
 type IO struct {
 	FeedChanSize              int
 	HighFreqFeedChanSize      int
@@ -129,6 +130,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	switch category {
 	case datakit.MetricDeprecated:
 	case datakit.Metric:
+	case datakit.Network:
 	case datakit.KeyEvent:
 	case datakit.Object:
 	case datakit.CustomObject:
@@ -242,7 +244,6 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 }
 
 func (x *IO) cleanHighFreqIOData() {
-
 	if len(x.in2) > 0 {
 		l.Debugf("clean %d cache on high-freq-chan", len(x.in2))
 	}
@@ -484,7 +485,6 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 }
 
 func (x *IO) fileOutput(body []byte) error {
-
 	if _, err := x.fd.Write(append(body, '\n')); err != nil {
 		l.Error(err)
 		return err

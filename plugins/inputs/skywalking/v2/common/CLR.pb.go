@@ -24,10 +24,11 @@
 package common
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -322,13 +323,16 @@ func file_plugins_inputs_skywalking_v2_common_CLR_proto_rawDescGZIP() []byte {
 	return file_plugins_inputs_skywalking_v2_common_CLR_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v2_common_CLR_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_plugins_inputs_skywalking_v2_common_CLR_proto_goTypes = []interface{}{
-	(*CLRMetric)(nil), // 0: skywalking.v2.CLRMetric
-	(*ClrGC)(nil),     // 1: skywalking.v2.ClrGC
-	(*ClrThread)(nil), // 2: skywalking.v2.ClrThread
-	(*CPU)(nil),       // 3: skywalking.v2.CPU
-}
+var (
+	file_plugins_inputs_skywalking_v2_common_CLR_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+	file_plugins_inputs_skywalking_v2_common_CLR_proto_goTypes  = []interface{}{
+		(*CLRMetric)(nil), // 0: skywalking.v2.CLRMetric
+		(*ClrGC)(nil),     // 1: skywalking.v2.ClrGC
+		(*ClrThread)(nil), // 2: skywalking.v2.ClrThread
+		(*CPU)(nil),       // 3: skywalking.v2.CPU
+	}
+)
+
 var file_plugins_inputs_skywalking_v2_common_CLR_proto_depIdxs = []int32{
 	3, // 0: skywalking.v2.CLRMetric.cpu:type_name -> skywalking.v2.CPU
 	1, // 1: skywalking.v2.CLRMetric.gc:type_name -> skywalking.v2.ClrGC

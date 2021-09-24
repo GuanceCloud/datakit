@@ -65,6 +65,7 @@ func DefaultConfig() *Config {
 		HTTPAPI: &dkhttp.APIConfig{
 			RUMOriginIPHeader: "X-Forwarded-For",
 			Listen:            "localhost:9529",
+			RUMAppIDWhiteList: []string{},
 		},
 
 		Logging: &LoggerCfg{
@@ -84,7 +85,7 @@ func DefaultConfig() *Config {
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
 		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	}
@@ -242,7 +243,6 @@ func (i *inputHostList) MatchInput(input string) bool {
 }
 
 func (c *Config) InitCfg(p string) error {
-
 	if c.Hostname == "" {
 		c.setHostname()
 	}
@@ -286,11 +286,12 @@ func (c *Config) setupGlobalTags() error {
 		c.GlobalTags = map[string]string{}
 	}
 
-	delete(c.GlobalTags, "host") // delete host tag if configured
+	// Delete host tag if configured: you should not do this,
+	// use ENV_HOSTNAME in Config.Environments instead
+	delete(c.GlobalTags, "host")
 
 	// setup global tags
 	for k, v := range c.GlobalTags {
-
 		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
 		// by using `__` as prefix, avoid escaping `$` in Powershell and shell
 
@@ -326,7 +327,6 @@ func (c *Config) setupGlobalTags() error {
 }
 
 func (c *Config) setLogging() {
-
 	// set global log root
 	switch c.Logging.Log {
 	case "stdout", "":
@@ -340,7 +340,8 @@ func (c *Config) setLogging() {
 		if err := logger.InitRoot(
 			&logger.Option{
 				Level: c.Logging.Level,
-				Flags: optflags}); err != nil {
+				Flags: optflags,
+			}); err != nil {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
 	default:
@@ -352,7 +353,8 @@ func (c *Config) setLogging() {
 		if err := logger.InitRoot(&logger.Option{
 			Path:  c.Logging.Log,
 			Level: c.Logging.Level,
-			Flags: logger.OPT_DEFAULT}); err != nil {
+			Flags: logger.OPT_DEFAULT,
+		}); err != nil {
 			l.Panicf("set root log to %s faile: %s", c.Logging.Log, err.Error())
 		}
 
@@ -361,7 +363,6 @@ func (c *Config) setLogging() {
 }
 
 func (c *Config) ApplyMainConfig() error {
-
 	c.setLogging()
 
 	l = logger.SLogger("config")
@@ -428,7 +429,6 @@ func (c *Config) ApplyMainConfig() error {
 }
 
 func (c *Config) setHostname() error {
-
 	// try get hostname from configure
 	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
 		c.Hostname = v
@@ -616,7 +616,6 @@ func emptyDir(fp string) bool {
 
 // remove all xxx.conf.sample
 func removeSamples() {
-
 	l.Debugf("searching samples under %s", datakit.ConfdDir)
 
 	fps := SearchDir(datakit.ConfdDir, ".conf.sample")
@@ -644,7 +643,6 @@ func removeSamples() {
 }
 
 func MoveDeprecatedCfg() {
-
 	if _, err := os.Stat(datakit.MainConfPathDeprecated); err == nil {
 		if err := os.Rename(datakit.MainConfPathDeprecated, datakit.MainConfPath); err != nil {
 			l.Fatal("move deprecated main configure failed: %s", err.Error())
@@ -668,7 +666,6 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 }
 
 func CreateSymlinks() {
-
 	x := [][2]string{}
 
 	if runtime.GOOS == datakit.OSWindows {
@@ -715,7 +712,6 @@ func CreateSymlinks() {
 }
 
 func symlink(src, dst string) error {
-
 	l.Debugf("remove link %s...", dst)
 	if err := os.Remove(dst); err != nil {
 		l.Warnf("%s, ignored", err)

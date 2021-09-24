@@ -57,12 +57,12 @@ type Input struct {
 	AK           string            `toml:"ak"`
 	SK           string            `toml:"sk"`
 	PullInterval string            `toml:"pull_interval,omitempty"`
-	TimeOut      *datakit.Duration `toml:"time_out,omitempty"` //单位为秒
+	TimeOut      *datakit.Duration `toml:"time_out,omitempty"` // 单位为秒
 	Workers      int               `toml:"workers,omitempty"`
 	Tags         map[string]string
 
 	cli *http.Client
-	//class string
+	// class string
 
 	curTasks map[string]*dialer
 	wg       sync.WaitGroup
@@ -103,7 +103,6 @@ func (dt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&httpMeasurement{},
 	}
-
 }
 
 func (i *Input) AvailableArchs() []string {
@@ -113,7 +112,7 @@ func (i *Input) AvailableArchs() []string {
 func (i *Input) NewChromePool(total int) chan *context.Context {
 	if total == 0 {
 		total = 1
-	} //默认为1
+	} // 默认为1
 
 	p := make(chan *context.Context, total)
 	for i := 0; i < total; i++ {
@@ -124,7 +123,6 @@ func (i *Input) NewChromePool(total int) chan *context.Context {
 }
 
 func (d *Input) Run() {
-
 	l = logger.SLogger(inputName)
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
@@ -166,11 +164,9 @@ func (d *Input) Run() {
 }
 
 func (d *Input) doServerTask() {
-
 	var f rtpanic.RecoverCallback
 
 	f = func(stack []byte, err error) {
-
 		defer rtpanic.Recover(f, nil)
 
 		du, err := time.ParseDuration(d.PullInterval)
@@ -207,11 +203,9 @@ func (d *Input) doServerTask() {
 	}
 
 	f(nil, nil)
-
 }
 
 func (d *Input) doLocalTask(path string) {
-
 	j, err := d.getLocalJsonTasks(path)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
@@ -224,7 +218,6 @@ func (d *Input) doLocalTask(path string) {
 }
 
 func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
-
 	//
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
@@ -249,7 +242,7 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 		// TODO
 	case RegionInfo:
 		break
-		//no need dealwith
+		// no need dealwith
 	default:
 		l.Errorf("unknown task type")
 		break
@@ -269,11 +262,9 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	}(t.ID())
 
 	return dialer, nil
-
 }
 
 func protectedRun(d *dialer) {
-
 	crashcnt := 0
 	var f rtpanic.RecoverCallback
 	f = func(trace []byte, err error) {
@@ -305,7 +296,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 	}
 
 	for k, arr := range resp.Content {
-
 		switch k {
 		case RegionInfo:
 			for k, v := range arr.(map[string]interface{}) {
@@ -349,7 +339,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 				// TODO
 			case RegionInfo:
 				break
-				//no need dealwith
+				// no need dealwith
 			default:
 				l.Errorf("unknown task type: %s", k)
 				break
@@ -401,20 +391,19 @@ func (d *Input) dispatchTasks(j []byte) error {
 			}
 		}
 
-		//case dt.ClassHeadless:
+		// case dt.ClassHeadless:
 	}
 	return nil
 }
 
 func (d *Input) getLocalJsonTasks(path string) ([]byte, error) {
-
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
 	}
 
-	//转化结构，json结构转成与kodo服务一样的格式
+	// 转化结构，json结构转成与kodo服务一样的格式
 	var resp map[string][]interface{}
 	if err := json.Unmarshal(data, &resp); err != nil {
 		l.Error(err)
@@ -460,7 +449,7 @@ func (d *Input) pullTask() ([]byte, error) {
 	for i := 0; i <= 3; i++ {
 		statusCode := 0
 		res, statusCode, err = d.pullHTTPTask(reqURL, d.pos)
-		if statusCode/100 != 5 { //500 err 重试
+		if statusCode/100 != 5 { // 500 err 重试
 			break
 		}
 	}
@@ -469,7 +458,6 @@ func (d *Input) pullTask() ([]byte, error) {
 }
 
 func signReq(req *http.Request, ak, sk string) {
-
 	so := &uhttp.SignOption{
 		AuthorizationType: AuthorizationType,
 		SignHeaders:       SignHeaders,
@@ -485,7 +473,6 @@ func signReq(req *http.Request, ak, sk string) {
 }
 
 func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error) {
-
 	reqURL.Path = "/v1/task/pull"
 	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", d.RegionId, sinceUs)
 
@@ -519,14 +506,13 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 		return body, resp.StatusCode / 100, nil
 	default:
 		l.Warn("request %s failed(%s): %s", d.Server, resp.Status, string(body))
-		//error_code = kodo.RegionNotFoundOrDisabled, 停止掉所有任务
+		// error_code = kodo.RegionNotFoundOrDisabled, 停止掉所有任务
 		if strings.Contains(string(body), `kodo.RegionNotFoundOrDisabled`) {
-			//stop all
+			// stop all
 			d.stopAlltask()
 		}
 		return nil, resp.StatusCode / 100, fmt.Errorf("pull task failed")
 	}
-
 }
 
 func (d *Input) stopAlltask() {

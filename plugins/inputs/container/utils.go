@@ -1,11 +1,8 @@
 package container
 
 import (
-	"fmt"
-	"reflect"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/docker/docker/api/types"
 )
@@ -48,91 +45,6 @@ func ParseImage(image string) (string, string, string) {
 	}
 
 	return imageName, shortName, imageVersion
-}
-
-func takeTime(fields map[string]interface{}) (ts time.Time, err error) {
-	// time should be nano-second
-	if v, ok := fields[pipelineTimeField]; ok {
-		nanots, ok := v.(int64)
-		if !ok {
-			err = fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
-				pipelineTimeField, v, reflect.TypeOf(v).String())
-			return
-		}
-
-		ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
-		delete(fields, pipelineTimeField)
-	} else {
-		ts = time.Now()
-	}
-
-	return
-}
-
-// checkFieldsLength 指定字段长度 "小于等于" maxlength
-func checkFieldsLength(fields map[string]interface{}, maxlength int) error {
-	for k, v := range fields {
-		switch vv := v.(type) {
-		// FIXME:
-		// need  "case []byte" ?
-		case string:
-			if len(vv) <= maxlength {
-				continue
-			}
-			if k == "message" {
-				fields[k] = vv[:maxlength]
-			} else {
-				return fmt.Errorf("fields: %s, length=%d, out of maximum length", k, len(vv))
-			}
-		default:
-			// nil
-		}
-	}
-	return nil
-}
-
-var statusMap = map[string]string{
-	"f":        "emerg",
-	"emerg":    "emerg",
-	"a":        "alert",
-	"alert":    "alert",
-	"c":        "critical",
-	"critical": "critical",
-	"e":        "error",
-	"error":    "error",
-	"w":        "warning",
-	"warning":  "warning",
-	"i":        "info",
-	"info":     "info",
-	"d":        "debug",
-	"trace":    "debug",
-	"verbose":  "debug",
-	"debug":    "debug",
-	"o":        "OK",
-	"s":        "OK",
-	"ok":       "OK",
-}
-
-func addStatus(fields map[string]interface{}) {
-	// map 有 "status" 字段
-	statusField, ok := fields["status"]
-	if !ok {
-		fields["status"] = "info"
-		return
-	}
-	// "status" 类型必须是 string
-	statusStr, ok := statusField.(string)
-	if !ok {
-		fields["status"] = "info"
-		return
-	}
-
-	// 查询 statusMap 枚举表并替换
-	if v, ok := statusMap[strings.ToLower(statusStr)]; !ok {
-		fields["status"] = "info"
-	} else {
-		fields["status"] = v
-	}
 }
 
 func regexpMatchString(regexps []string, src string) bool {

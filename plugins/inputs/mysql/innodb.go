@@ -430,7 +430,7 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 func (i *Input) getInnodb() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
-	var globalInnodbSql = `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
+	globalInnodbSql := `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
 
 	// run query
 	rows, err := i.db.Query(globalInnodbSql)

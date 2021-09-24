@@ -4,6 +4,7 @@ package register
 
 import (
 	context "context"
+
 	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/common"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -47,8 +48,7 @@ type ServiceInstancePingServer interface {
 }
 
 // UnimplementedServiceInstancePingServer must be embedded to have forward compatible implementations.
-type UnimplementedServiceInstancePingServer struct {
-}
+type UnimplementedServiceInstancePingServer struct{}
 
 func (UnimplementedServiceInstancePingServer) DoPing(context.Context, *ServiceInstancePingPkg) (*common.Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoPing not implemented")

@@ -23,10 +23,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 var mask = regexp.MustCompile(`https?:\/\/\S+:\S+@`)
 
-const statsPath = "/_nodes/stats"
-const statsPathLocal = "/_nodes/_local/stats"
+const (
+	statsPath      = "/_nodes/stats"
+	statsPathLocal = "/_nodes/_local/stats"
+)
 
 type nodeStat struct {
 	Host       string            `json:"host"`
@@ -169,21 +173,28 @@ default_time(time)
 `
 
 type Input struct {
-	Interval                   string            `toml:"interval"`
-	Local                      bool              `toml:"local"`
-	Servers                    []string          `toml:"servers"`
-	HTTPTimeout                Duration          `toml:"http_timeout"`
-	ClusterHealth              bool              `toml:"cluster_health"`
-	ClusterHealthLevel         string            `toml:"cluster_health_level"`
-	ClusterStats               bool              `toml:"cluster_stats"`
-	ClusterStatsOnlyFromMaster bool              `toml:"cluster_stats_only_from_master"`
-	IndicesInclude             []string          `toml:"indices_include"`
-	IndicesLevel               string            `toml:"indices_level"`
-	NodeStats                  []string          `toml:"node_stats"`
-	Username                   string            `toml:"username"`
-	Password                   string            `toml:"password"`
-	Log                        *elasticsearchlog `toml:"log"`
-	Tags                       map[string]string `toml:"tags"`
+	Interval                   string   `toml:"interval"`
+	Local                      bool     `toml:"local"`
+	Servers                    []string `toml:"servers"`
+	HTTPTimeout                Duration `toml:"http_timeout"`
+	ClusterHealth              bool     `toml:"cluster_health"`
+	ClusterHealthLevel         string   `toml:"cluster_health_level"`
+	ClusterStats               bool     `toml:"cluster_stats"`
+	ClusterStatsOnlyFromMaster bool     `toml:"cluster_stats_only_from_master"`
+	IndicesInclude             []string `toml:"indices_include"`
+	IndicesLevel               string   `toml:"indices_level"`
+	NodeStats                  []string `toml:"node_stats"`
+	Username                   string   `toml:"username"`
+	Password                   string   `toml:"password"`
+	Log                        *struct {
+		Files             []string `toml:"files"`
+		Pipeline          string   `toml:"pipeline"`
+		IgnoreStatus      []string `toml:"ignore"`
+		CharacterEncoding string   `toml:"character_encoding"`
+		MultilineMatch    string   `toml:"multiline_match"`
+	} `toml:"log"`
+
+	Tags map[string]string `toml:"tags"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
@@ -197,14 +208,9 @@ type Input struct {
 	tail            *tailer.Tailer
 
 	collectCache []inputs.Measurement
-}
 
-type elasticsearchlog struct {
-	Files             []string `toml:"files"`
-	Pipeline          string   `toml:"pipeline"`
-	IgnoreStatus      []string `toml:"ignore"`
-	CharacterEncoding string   `toml:"character_encoding"`
-	MultilineMatch    string   `toml:"multiline_match"`
+	pause   bool
+	pauseCh chan bool
 }
 
 type serverInfo struct {
@@ -221,6 +227,7 @@ func NewElasticsearch() *Input {
 		HTTPTimeout:                Duration{Duration: time.Second * 5},
 		ClusterStatsOnlyFromMaster: true,
 		ClusterHealthLevel:         "indices",
+		pauseCh:                    make(chan bool, 1),
 	}
 }
 
@@ -376,7 +383,6 @@ func (i *Input) Collect() error {
 				return nil
 			})
 		}(serv)
-
 	}
 
 	return g.Wait()
@@ -460,6 +466,10 @@ func (i *Input) Run() {
 			return
 
 		case <-tick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
@@ -474,6 +484,9 @@ func (i *Input) Run() {
 					i.collectCache = i.collectCache[:0]
 				}
 			}
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
 	}
 }
@@ -953,7 +966,6 @@ func (i *Input) getCatMaster(url string) (string, error) {
 		return "", fmt.Errorf("elasticsearch: Unable to retrieve master node information. API responded with status-code %d, expected %d", r.StatusCode, http.StatusOK)
 	}
 	response, err := ioutil.ReadAll(r.Body)
-
 	if err != nil {
 		return "", err
 	}
@@ -961,6 +973,28 @@ func (i *Input) getCatMaster(url string) (string, error) {
 	masterID := strings.Split(string(response), " ")[0]
 
 	return masterID, nil
+}
+
+func (i *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
 }
 
 func init() {

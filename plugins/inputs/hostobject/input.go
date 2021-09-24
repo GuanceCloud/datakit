@@ -13,14 +13,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	l = logger.DefaultSLogger(InputName)
-)
+var l = logger.DefaultSLogger(InputName)
 
 type Input struct {
-	Name  string `toml:"name,omitempty"`        //deprecated
-	Class string `toml:"class,omitempty"`       //deprecated
-	Desc  string `toml:"description,omitempty"` //deprecated
+	Name  string `toml:"name,omitempty"`        // deprecated
+	Class string `toml:"class,omitempty"`       // deprecated
+	Desc  string `toml:"description,omitempty"` // deprecated
 
 	Pipeline string            `toml:"pipeline,omitempty"`
 	Tags     map[string]string `toml:"tags,omitempty"`
@@ -63,7 +61,6 @@ const (
 func (*Input) RunPipeline() {}
 
 func (c *Input) Run() {
-
 	l = logger.SLogger(InputName)
 
 	c.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, c.Interval.Duration)
@@ -103,7 +100,6 @@ func (i *Input) ReadEnv(envs map[string]string) {
 }
 
 func (c *Input) singleCollect(n int) {
-
 	l.Debugf("start %d collecting...", n)
 
 	start := time.Now()
@@ -130,9 +126,11 @@ func (x *hostMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: hostObjMeasurementName,
 		Desc: "主机对象数据采集如下数据",
+		Tags: map[string]interface{}{
+			"os": &inputs.TagInfo{Desc: "主机操作系统类型"},
+		},
 		Fields: map[string]interface{}{
 			"message":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "主机所有信息汇总"},
-			"os":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "主机操作系统类型"},
 			"start_time":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "主机启动时间（Unix 时间戳）"},
 			"datakit_ver":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "采集器版本"},
 			"cpu_usage":        &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 使用率"},
@@ -158,7 +156,6 @@ func (c *Input) AvailableArchs() []string {
 }
 
 func (c *Input) Collect() error {
-
 	message, err := c.getHostObjectMessage()
 	if err != nil {
 		return err
@@ -174,7 +171,6 @@ func (c *Input) Collect() error {
 		name: hostObjMeasurementName,
 		fields: map[string]interface{}{
 			"message":          string(messageData),
-			"os":               message.Host.HostMeta.OS,
 			"start_time":       message.Host.HostMeta.BootTime,
 			"datakit_ver":      datakit.Version,
 			"cpu_usage":        message.Host.cpuPercent,
@@ -185,6 +181,7 @@ func (c *Input) Collect() error {
 
 		tags: map[string]string{
 			"name": message.Host.HostMeta.HostName,
+			"os":   message.Host.HostMeta.OS,
 		},
 	}
 
@@ -226,7 +223,6 @@ func (c *Input) Collect() error {
 }
 
 func (c *Input) getPipeline() *pipeline.Pipeline {
-
 	fname := c.Pipeline
 	if fname == "" {
 		fname = InputName + ".p"

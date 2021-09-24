@@ -1,12 +1,12 @@
 package rabbitmq
 
 import (
+	"fmt"
+	"net/url"
 	"time"
 
-	"fmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"net/url"
 )
 
 func getQueues(n *Input) {

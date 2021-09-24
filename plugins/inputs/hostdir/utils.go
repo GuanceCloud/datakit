@@ -2,7 +2,6 @@ package hostdir
 
 import (
 	"fmt"
-	"github.com/shirou/gopsutil/disk"
 	"io/ioutil"
 	"log"
 	"os"
@@ -13,13 +12,17 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/shirou/gopsutil/disk"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var Dir_count int
 
 func GetFileSystemType(path string) (string, error) {
 	ptr := 0
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		info, err := disk.Partitions(true)
 		if err != nil {
 			return "unknown", fmt.Errorf("error get windows disk information:%s", err)
@@ -97,7 +100,6 @@ func walkDir(path string, fileSize chan<- int64, regslice []string) {
 }
 
 func Startcollect(dir string, reslice []string) (int, int, int) {
-
 	fileSize := make(chan int64)
 
 	var sizeCount int64
@@ -114,7 +116,6 @@ func Startcollect(dir string, reslice []string) (int, int, int) {
 		sizeCount += size
 	}
 	return int(sizeCount), fileCount, Dir_count
-
 }
 
 func isreg(filename string, regslice []string) bool {

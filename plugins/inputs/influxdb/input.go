@@ -19,6 +19,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 const (
 	minInterval      = time.Second * 5
 	maxInterval      = time.Minute * 10
@@ -27,14 +29,6 @@ const (
 )
 
 var l = logger.DefaultSLogger("influxdb")
-
-type influxdbLog struct {
-	Files             []string `toml:"files"`
-	Pipeline          string   `toml:"pipeline"`
-	IgnoreStatus      []string `toml:"ignore"`
-	CharacterEncoding string   `toml:"character_encoding"`
-	MultilineMatch    string   `toml:"multiline_match"`
-}
 
 type Input struct {
 	URL string `toml:"url"`
@@ -45,24 +39,42 @@ type Input struct {
 	Timeout  datakit.Duration `toml:"timeout"`
 	Interval datakit.Duration `toml:"interval"`
 
-	Log     *influxdbLog           `toml:"log"`
+	Log *struct {
+		Files             []string `toml:"files"`
+		Pipeline          string   `toml:"pipeline"`
+		IgnoreStatus      []string `toml:"ignore"`
+		CharacterEncoding string   `toml:"character_encoding"`
+		MultilineMatch    string   `toml:"multiline_match"`
+	} `toml:"log"`
+
 	TlsConf *dknet.TLSClientConfig `toml:"tlsconf"`
 	Tags    map[string]string      `toml:"tags"`
 
 	tail         *tailer.Tailer
 	client       *http.Client
 	collectCache []inputs.Measurement
+
+	pause   bool
+	pauseCh chan bool
 }
 
-func (i *Input) Catalog() string {
-	return "influxdb"
+func newInput() *Input {
+	return &Input{
+		Interval: datakit.Duration{Duration: time.Second * 15},
+		Timeout:  datakit.Duration{Duration: time.Second * 5},
+		pauseCh:  make(chan bool, 1),
+	}
 }
 
-func (i *Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) Catalog() string { return "influxdb" }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleConfig() string { return sampleConfig }
+
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (*Input) PipelineConfig() map[string]string { return nil }
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&InfluxdbCqM{},
 		&InfluxdbDatabaseM{},
@@ -116,17 +128,6 @@ func (i *Input) RunPipeline() {
 	go i.tail.Start()
 }
 
-func (i *Input) PipelineConfig() map[string]string {
-	pipelineMap := map[string]string{
-		inputName: pipelineCfg,
-	}
-	return pipelineMap
-}
-
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
-
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("influxdb input started")
@@ -157,7 +158,20 @@ func (i *Input) Run() {
 	defer tick.Stop()
 	for {
 		select {
+		case <-datakit.Exit.Wait():
+			if i.tail != nil {
+				i.tail.Close()
+				l.Info("solr log exit")
+			}
+			l.Infof("influxdb input exit")
+			return
+
 		case <-tick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+
 			start := time.Now()
 			if err := i.Collect(); err == nil {
 				if feedErr := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
@@ -170,13 +184,9 @@ func (i *Input) Run() {
 				io.FeedLastError(inputName, err.Error())
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
-		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("solr log exit")
-			}
-			l.Infof("influxdb input exit")
-			return
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
 	}
 }
@@ -234,11 +244,30 @@ func (i *Input) Collect() error {
 	return nil
 }
 
+func (i *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Interval: datakit.Duration{Duration: time.Second * 15},
-			Timeout:  datakit.Duration{Duration: time.Second * 5},
-		}
+		return newInput()
 	})
 }

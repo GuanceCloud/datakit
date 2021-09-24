@@ -937,6 +937,7 @@ const nodeStatsResponse = `
 }
 `
 
+//nolint:deadcode
 const nodeStatsResponseJVMProcess = `
 {
   "cluster_name": "es-testcluster",
@@ -1287,6 +1288,7 @@ var nodestatsExpected = map[string]interface{}{
 	"breakers_parent_estimated_size_in_bytes":           float64(0),
 }
 
+//nolint:deadcode
 var nodestatsOsExpected = map[string]interface{}{
 	"load_average_0":           float64(0.01),
 	"load_average_1":           float64(0.04),
@@ -1302,6 +1304,7 @@ var nodestatsOsExpected = map[string]interface{}{
 	"mem_used_in_bytes":        float64(1621868544),
 }
 
+//nolint:deadcode
 var nodestatsProcessExpected = map[string]interface{}{
 	"mem_total_virtual_in_bytes": float64(4747890688),
 	"timestamp":                  float64(1436460392945),
@@ -1312,6 +1315,7 @@ var nodestatsProcessExpected = map[string]interface{}{
 	"cpu_user_in_millis":         float64(13610),
 }
 
+//nolint:deadcode
 var nodestatsJvmExpected = map[string]interface{}{
 	"timestamp":                                     float64(1436460392945),
 	"uptime_in_millis":                              float64(202245),
@@ -1347,6 +1351,7 @@ var nodestatsJvmExpected = map[string]interface{}{
 	"buffer_pools_mapped_total_capacity_in_bytes":   float64(0),
 }
 
+//nolint:deadcode
 var nodestatsThreadPoolExpected = map[string]interface{}{
 	"merge_threads":                 float64(6),
 	"merge_queue":                   float64(4),
@@ -1452,6 +1457,7 @@ var nodestatsThreadPoolExpected = map[string]interface{}{
 	"flush_completed":               float64(3),
 }
 
+//nolint:deadcode
 var nodestatsFsExpected = map[string]interface{}{
 	"data_0_total_in_bytes":     float64(19507089408),
 	"data_0_free_in_bytes":      float64(16909316096),
@@ -1462,6 +1468,7 @@ var nodestatsFsExpected = map[string]interface{}{
 	"total_total_in_bytes":      float64(19507089408),
 }
 
+//nolint:deadcode
 var nodestatsTransportExpected = map[string]interface{}{
 	"server_open":      float64(13),
 	"rx_count":         float64(6),
@@ -1470,11 +1477,13 @@ var nodestatsTransportExpected = map[string]interface{}{
 	"tx_size_in_bytes": float64(1380),
 }
 
+//nolint:deadcode
 var nodestatsHTTPExpected = map[string]interface{}{
 	"current_open": float64(3),
 	"total_opened": float64(3),
 }
 
+//nolint:deadcode
 var nodestatsBreakersExpected = map[string]interface{}{
 	"fielddata_estimated_size_in_bytes": float64(0),
 	"fielddata_overhead":                float64(1.03),
@@ -1490,6 +1499,7 @@ var nodestatsBreakersExpected = map[string]interface{}{
 	"parent_estimated_size_in_bytes":    float64(0),
 }
 
+//nolint:deadcode
 const clusterStatsResponse = `
 {
    "host":"ip-10-0-1-214",
@@ -1659,6 +1669,7 @@ const clusterStatsResponse = `
 }
 `
 
+//nolint:deadcode
 var clusterstatsExpected = map[string]interface{}{
 	"indices_completion_size_in_bytes":                  float64(0),
 	"indices_count":                                     float64(1),
@@ -1753,6 +1764,7 @@ var clusterstatsExpected = map[string]interface{}{
 	"nodes_plugins_2_version":                           "7bd5b4b",
 }
 
+//nolint:deadcode
 var clusterstatsIndicesExpected = map[string]interface{}{
 	"completion_size_in_bytes":                  float64(0),
 	"count":                                     float64(1),
@@ -1800,6 +1812,7 @@ var clusterstatsIndicesExpected = map[string]interface{}{
 	"store_throttle_time_in_millis":             float64(0),
 }
 
+//nolint:deadcode
 var clusterstatsNodesExpected = map[string]interface{}{
 	"count_client":                      float64(0),
 	"count_data_only":                   float64(0),
@@ -1850,10 +1863,13 @@ var clusterstatsNodesExpected = map[string]interface{}{
 	"plugins_2_version":                 "7bd5b4b",
 }
 
+//nolint:deadcode
 const IsMasterResult = "SDFsfSDFsdfFSDSDfSFDSDF 10.206.124.66 10.206.124.66 test.host.com "
 
+//nolint:deadcode
 const IsNotMasterResult = "junk 10.206.124.66 10.206.124.66 test.junk.com "
 
+//nolint:deadcode
 const clusterIndicesResponse = `
 {
   "_shards": {
@@ -2362,6 +2378,7 @@ const clusterIndicesResponse = `
   }
 }`
 
+//nolint:deadcode
 const dateStampedIndicesResponse = `
 {
   "_shards": {
@@ -4364,6 +4381,7 @@ const dateStampedIndicesResponse = `
   }
 }`
 
+//nolint:deadcode
 var clusterIndicesExpected = map[string]interface{}{
 	"completion_size_in_bytes":               float64(0),
 	"docs_count":                             float64(999),
@@ -4455,6 +4473,7 @@ var clusterIndicesExpected = map[string]interface{}{
 	"warmer_total_time_in_millis":            float64(0),
 }
 
+//nolint:deadcode
 var clusterIndicesPrimariesExpected = map[string]interface{}{
 	"primaries_completion_size_in_bytes":               float64(0),
 	"primaries_docs_count":                             float64(999),
@@ -4568,6 +4587,7 @@ var clusterIndicesTotalExpected = map[string]interface{}{
 	"total_store_size_in_bytes":           float64(535000),
 }
 
+//nolint:deadcode
 const clusterIndicesShardsResponse = `
 {
   "_shards": {
@@ -6038,6 +6058,7 @@ const clusterIndicesShardsResponse = `
   }
 }`
 
+//nolint:deadcode
 var clusterIndicesPrimaryShardsExpected = map[string]interface{}{
 	"commit_generation":                      float64(4),
 	"commit_num_docs":                        float64(340),
@@ -6136,6 +6157,7 @@ var clusterIndicesPrimaryShardsExpected = map[string]interface{}{
 	"warmer_total_time_in_millis":            float64(0),
 }
 
+//nolint:deadcode
 var clusterIndicesReplicaShardsExpected = map[string]interface{}{
 	"commit_generation":                      float64(5),
 	"commit_num_docs":                        float64(352),

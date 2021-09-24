@@ -118,7 +118,6 @@ func downloadFiles() error {
 
 //nolint:funlen,gocyclo
 func main() {
-
 	flag.Parse()
 
 	var err error
@@ -138,7 +137,8 @@ DataKit        : %s
 		if err = logger.InitRoot(
 			&logger.Option{
 				Level: logger.DEBUG,
-				Flags: logger.OPT_DEFAULT | logger.OPT_STDOUT}); err != nil {
+				Flags: logger.OPT_DEFAULT | logger.OPT_STDOUT,
+			}); err != nil {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
 	} else {
@@ -147,7 +147,8 @@ DataKit        : %s
 		if err = logger.InitRoot(&logger.Option{
 			Path:  flagInstallLog,
 			Level: logger.DEBUG,
-			Flags: logger.OPT_DEFAULT}); err != nil {
+			Flags: logger.OPT_DEFAULT,
+		}); err != nil {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
 	}
@@ -235,7 +236,6 @@ func promptReferences() {
 }
 
 func upgradeDatakit(svc service.Service) error {
-
 	if err := service.Control(svc, "stop"); err != nil {
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
@@ -270,7 +270,6 @@ func upgradeDatakit(svc service.Service) error {
 }
 
 func installNewDatakit(svc service.Service) {
-
 	if err := service.Control(svc, "uninstall"); err != nil {
 		l.Warnf("uninstall service: %s, ignored", err.Error())
 	}
@@ -315,8 +314,7 @@ var (
 )
 
 func writeDefInputToMainCfg(mc *config.Config) {
-
-	var hostInputs = defaultHostInputs
+	hostInputs := defaultHostInputs
 	if runtime.GOOS == datakit.OSLinux {
 		hostInputs = defaultHostInputsWithLinux
 	}
@@ -344,7 +342,6 @@ func writeDefInputToMainCfg(mc *config.Config) {
 }
 
 func injectCloudProvider(p string) error {
-
 	switch p {
 	case "aliyun", "tencent", "aws":
 
@@ -361,7 +358,7 @@ func injectCloudProvider(p string) error {
 			return err
 		}
 
-	case "": //pass
+	case "": // pass
 
 	default:
 		l.Warnf("unknown cloud provider %s, ignored", p)
@@ -400,7 +397,6 @@ func preEnableHostobjectInput(cloud string) []byte {
 }
 
 func upgradeMainConfig(c *config.Config) *config.Config {
-
 	if c.DataWay != nil {
 		c.DataWay.DeprecatedURL = ""
 	}

@@ -80,7 +80,6 @@ func TestGatherServer(t *testing.T) {
 
 	err = memcached.gatherServer("invalid url", false)
 	assert.NotNil(t, err)
-
 }
 
 func createTcpServer(t *testing.T, serverChan chan<- int8) {

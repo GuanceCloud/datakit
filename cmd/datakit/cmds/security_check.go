@@ -14,14 +14,12 @@ const (
 	BaseUrl = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/security-checker/"
 )
 
-var (
-	SecCheckOsArch = map[string]bool{
-		datakit.OSArchLinuxArm:   true,
-		datakit.OSArchLinuxArm64: true,
-		datakit.OSArchLinuxAmd64: true,
-		datakit.OSArchLinux386:   true,
-	}
-)
+var SecCheckOsArch = map[string]bool{
+	datakit.OSArchLinuxArm:   true,
+	datakit.OSArchLinuxArm64: true,
+	datakit.OSArchLinuxAmd64: true,
+	datakit.OSArchLinux386:   true,
+}
 
 type SecCheckVersion struct {
 	Version string
@@ -57,7 +55,7 @@ func InstallSecCheck(installDir string) error {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read response body %v", err)
+		return fmt.Errorf("read response body %w", err)
 	}
 
 	// TODO: add network proxy option

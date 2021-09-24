@@ -6,43 +6,41 @@ import (
 	"github.com/shirou/gopsutil/mem"
 )
 
-var (
-	vmStat = &mem.VirtualMemoryStat{
-		Total:          8106131456,
-		Available:      992485376,
-		Used:           6509629440,
-		Free:           267042816,
-		Active:         6045421568,
-		Inactive:       1150640128,
-		Slab:           436809728,
-		Wired:          134,
-		Buffers:        71581696,
-		Cached:         1257877504,
-		Shared:         300285952,
-		CommitLimit:    6200545280,
-		CommittedAS:    21432737792,
-		Dirty:          40763392,
-		HighFree:       0,
-		HighTotal:      0,
-		HugePageSize:   2097152,
-		HugePagesFree:  0,
-		HugePagesTotal: 0,
-		LowFree:        0,
-		LowTotal:       0,
-		Mapped:         373067776,
-		PageTables:     63610880,
-		SReclaimable:   163459072,
-		SUnreclaim:     273350656,
-		SwapCached:     21561344,
-		SwapFree:       667676672,
-		SwapTotal:      2147479552,
-		VMallocChunk:   0,
-		VMallocTotal:   35184372087808,
-		VMallocUsed:    49729536,
-		Writeback:      0,
-		WritebackTmp:   0,
-	}
-)
+var vmStat = &mem.VirtualMemoryStat{
+	Total:          8106131456,
+	Available:      992485376,
+	Used:           6509629440,
+	Free:           267042816,
+	Active:         6045421568,
+	Inactive:       1150640128,
+	Slab:           436809728,
+	Wired:          134,
+	Buffers:        71581696,
+	Cached:         1257877504,
+	Shared:         300285952,
+	CommitLimit:    6200545280,
+	CommittedAS:    21432737792,
+	Dirty:          40763392,
+	HighFree:       0,
+	HighTotal:      0,
+	HugePageSize:   2097152,
+	HugePagesFree:  0,
+	HugePagesTotal: 0,
+	LowFree:        0,
+	LowTotal:       0,
+	Mapped:         373067776,
+	PageTables:     63610880,
+	SReclaimable:   163459072,
+	SUnreclaim:     273350656,
+	SwapCached:     21561344,
+	SwapFree:       667676672,
+	SwapTotal:      2147479552,
+	VMallocChunk:   0,
+	VMallocTotal:   35184372087808,
+	VMallocUsed:    49729536,
+	Writeback:      0,
+	WritebackTmp:   0,
+}
 
 func VirtualMemoryStat4Test() (*mem.VirtualMemoryStat, error) {
 	return vmStat, nil
@@ -50,7 +48,7 @@ func VirtualMemoryStat4Test() (*mem.VirtualMemoryStat, error) {
 
 func TestMemCollect(t *testing.T) {
 	i := &Input{vmStat: VirtualMemoryStat4Test}
-	i.platform = "linux" //runtime.GOOS
+	i.platform = "linux" // runtime.GOOS
 	i.Collect()
 	collect := i.collectCache[0].(*memMeasurement).fields
 
@@ -89,7 +87,6 @@ func TestMemCollect(t *testing.T) {
 	assertEqualUint64(t, vmStat.VMallocUsed, collect["vmalloc_used"].(uint64), "vmalloc_used")
 	assertEqualUint64(t, vmStat.Writeback, collect["write_back"].(uint64), "write_back")
 	assertEqualUint64(t, vmStat.WritebackTmp, collect["write_back_tmp"].(uint64), "write_back_tmp")
-
 }
 
 func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {

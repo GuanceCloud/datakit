@@ -10,7 +10,7 @@ type qinputStats struct {
 }
 
 type InputsStat struct {
-	//Name      string    `json:"name"`
+	// Name      string    `json:"name"`
 	Category  string    `json:"category"`
 	Frequency string    `json:"frequency,omitempty"`
 	AvgSize   int64     `json:"avg_size"`

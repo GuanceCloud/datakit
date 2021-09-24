@@ -2,10 +2,11 @@ package file_collector
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"time"
 )
 
 var fileCollector = &FileCollector{
@@ -16,7 +17,6 @@ var fileCollector = &FileCollector{
 func Handle(c *gin.Context) {
 	t := time.Now()
 	fileHeader, err := c.FormFile("file")
-
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(http.ErrBadReq, err.Error()))
 		return

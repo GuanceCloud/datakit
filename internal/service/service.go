@@ -41,7 +41,6 @@ func NewService() (service.Service, error) {
 	}
 
 	svc, err := service.New(prog, scfg)
-
 	if err != nil {
 		return nil, err
 	}

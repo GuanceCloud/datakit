@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
@@ -25,7 +26,6 @@ const (
 )
 
 func checkUpdate(curverStr string, acceptRC bool) int {
-
 	l = logger.SLogger("ota-update")
 
 	l.Debugf("get online version...")
@@ -68,7 +68,15 @@ func showVersion(curverStr, releaseType string, showTestingVer bool) {
 Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
-`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, releaseType)
+     InstallAt: %s
+     UpgradeAt: %s
+`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader,
+		releaseType, config.Cfg.InstallDate, func() string {
+			if config.Cfg.UpgradeDate.Unix() < 0 {
+				return "not upgraded"
+			}
+			return fmt.Sprintf("%v", config.Cfg.UpgradeDate)
+		}())
 	vers, err := getOnlineVersions(showTestingVer)
 	if err != nil {
 		fmt.Printf("Get online version failed: \n%s\n", err.Error())
@@ -106,14 +114,14 @@ func getUpgradeCommand(dlurl string, showTesting bool) string {
 	baseURLEnv := ""
 
 	switch runtime.GOOS {
-	case "windows":
+	case datakit.OSWindows:
 		if proxy != "" {
 			upgradeCmd = fmt.Sprintf(winUpgradeCmdProxy, proxy, dlurl)
 		} else {
 			upgradeCmd = fmt.Sprintf(winUpgradeCmd, dlurl)
 		}
 
-		baseURLEnv = fmt.Sprintf(`$env:DK_INSTALLER_BASE_URL="%s"; `, TestingBaseURL)
+		baseURLEnv = fmt.Sprintf(`$env:DK_INSTALLER_BASE_URL="https://%s"; `, TestingBaseURL)
 
 	default: // Linux/Mac
 
@@ -123,7 +131,7 @@ func getUpgradeCommand(dlurl string, showTesting bool) string {
 			upgradeCmd = fmt.Sprintf(unixUpgradeCmd, dlurl)
 		}
 
-		baseURLEnv = fmt.Sprintf(`DK_INSTALLER_BASE_URL="%s" `, TestingBaseURL)
+		baseURLEnv = fmt.Sprintf(`DK_INSTALLER_BASE_URL="https://%s" `, TestingBaseURL)
 	}
 
 	// for testing version upgrade command, we need to change the base URL
@@ -138,7 +146,8 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 	v := &version.VerInfo{
 		VersionString: strings.TrimPrefix(ver, "v"),
 		Commit:        git.Commit,
-		ReleaseDate:   git.BuildAt}
+		ReleaseDate:   git.BuildAt,
+	}
 	if err := v.Parse(); err != nil {
 		return nil, err
 	}
@@ -146,7 +155,6 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 }
 
 func getVersion(addr string) (*version.VerInfo, error) {
-
 	cli := getcli()
 
 	req, err := nhttp.NewRequest("GET", "http://"+path.Join(addr, "version"), nil)
@@ -176,14 +184,13 @@ func getVersion(addr string) (*version.VerInfo, error) {
 
 	ver.DownloadURL = fmt.Sprintf("https://%s/install.sh", addr)
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		ver.DownloadURL = fmt.Sprintf("https://%s/install.ps1", addr)
 	}
 	return &ver, nil
 }
 
 func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, err error) {
-
 	res = map[string]*version.VerInfo{}
 
 	onlineVer, err := getVersion(OnlineBaseURL)

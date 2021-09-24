@@ -320,7 +320,6 @@ func dcaInputDoc(c *gin.Context) {
 	}
 
 	md, err := man.BuildMarkdownManual(inputName, &man.Option{})
-
 	if err != nil {
 		l.Error(err)
 		context.fail(dcaError{ErrorCode: "record.not.exist", ErrorMsg: "record not exist", Code: http.StatusNotFound})
@@ -381,7 +380,6 @@ func dcaGetPipelines(c *gin.Context) {
 	context := getContext(c)
 
 	allFiles, err := ioutil.ReadDir(datakit.PipelineDir)
-
 	if err != nil {
 		context.fail()
 		return
@@ -496,7 +494,6 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 	}
 
 	res, err := pl.Run(text).Result()
-
 	if err != nil {
 		return "", err
 	}
@@ -519,7 +516,6 @@ func dcaTestPipelines(c *gin.Context) {
 	body := map[string]string{}
 
 	err := getBody(c, &body)
-
 	if err != nil {
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "parameter format error"})
 		return

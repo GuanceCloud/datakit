@@ -1,10 +1,8 @@
 package io
 
-//import "gitlab.jiagouyun.com/cloudcare-tools/datakit"
+// import "gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
-var (
-	defLogFilterMock logFilterMock = &prodLogFilterMock{}
-)
+var defLogFilterMock logFilterMock = &prodLogFilterMock{}
 
 type logFilterMock interface {
 	getLogFilter() ([]byte, error)

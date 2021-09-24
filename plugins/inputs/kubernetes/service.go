@@ -21,7 +21,7 @@ type service struct {
 }
 
 func (s *service) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
 	list, err := s.client.getServices()

@@ -8,6 +8,8 @@ import (
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/host"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 type CPUStatInfo interface {
@@ -47,7 +49,7 @@ func (c *CPUInfoTest) CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error) {
 }
 
 func CoreTemp() (map[string]float64, error) {
-	if runtime.GOOS == "linux" {
+	if runtime.GOOS == datakit.OSLinux {
 		tempMap := map[string]float64{}
 		sensorTempStat, err := host.SensorsTemperatures()
 		if err != nil {

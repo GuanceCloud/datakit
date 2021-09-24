@@ -126,7 +126,7 @@ func handleStats(resp http.ResponseWriter, req *http.Request) {
 }
 
 func extractCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
-	var customerTags = map[string]string{}
+	customerTags := map[string]string{}
 	for _, key := range customerKeys {
 		if value, ok := meta[key]; ok {
 			customerTags[key] = value
@@ -174,10 +174,8 @@ func tracesToPoints(traces Traces, filters ...traceFilter) ([]*dkio.Point, error
 NEXT_TRACE:
 	for _, trace := range traces {
 		// run all filters
-		for _, filter := range filters {
-			if len(filter(trace)) == 0 {
-				continue NEXT_TRACE
-			}
+		if runFiltersWithBreak(trace, filters...) == nil {
+			continue NEXT_TRACE
 		}
 
 		spanIds, parentIds := getSpanAndParentId(trace)

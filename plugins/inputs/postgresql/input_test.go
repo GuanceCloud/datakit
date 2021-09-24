@@ -60,6 +60,7 @@ func (m *MockCollectRows) Columns() ([]string, error) {
 	}
 	return []string{}, nil
 }
+
 func (m *MockCollectRows) Next() bool {
 	isCall := !m.calledNext
 	m.calledNext = true
@@ -144,7 +145,6 @@ func TestCollect(t *testing.T) {
 		columnMapError: 1,
 	}
 	assert.Error(t, input.Collect())
-
 }
 
 func TestParseUrl(t *testing.T) {
@@ -165,7 +165,6 @@ func TestParseUrl(t *testing.T) {
 	parsedUri, err = parseURL("postgres://postgres@localhost:8888/test?sslmode=disable")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, parsedUri)
-
 }
 
 func TestInput(t *testing.T) {
@@ -206,12 +205,11 @@ func TestInput(t *testing.T) {
 		err = input.executeQuery("")
 		assert.Error(t, err)
 
-		//when accRow() error
+		// when accRow() error
 		input.service = &MockCollectService{}
 		input.Address = "postgres://:888localhost"
 		err = input.executeQuery("")
 		assert.Error(t, err)
-
 	})
 }
 
@@ -234,7 +232,6 @@ func TestSanitizedAddress(t *testing.T) {
 	transAddress, err = input.SanitizedAddress()
 	assert.Error(t, err)
 	assert.Equal(t, transAddress, "")
-
 }
 
 type DbMock struct{}
@@ -253,8 +250,7 @@ func (DbMock) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return nil, nil
 }
 
-type errorMock struct {
-}
+type errorMock struct{}
 
 func (e errorMock) Error() string {
 	return "error"
@@ -336,7 +332,6 @@ func TestService(t *testing.T) {
 			assert.Nil(t, res)
 		})
 	})
-
 }
 
 func TestTime(t *testing.T) {
@@ -345,5 +340,4 @@ func TestTime(t *testing.T) {
 	fmt.Println(ti.UnixNano())
 
 	fmt.Println("ok")
-
 }

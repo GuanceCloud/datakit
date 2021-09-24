@@ -99,6 +99,7 @@ var (
 		"mysqlog":                true,
 		"neo4j":                  true,
 		"net":                    true,
+		"net_ebpf":               true,
 		"nfsstat":                true,
 		"nginx_plus_api":         true,
 		"nginx_plus":             true,
@@ -149,5 +150,6 @@ var (
 		"yarn":                   true,
 		"zabbix":                 true,
 		"zaplog":                 true,
+		"consul":                 true,
 	}
 )

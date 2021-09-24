@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 func TestLogsAll(t *testing.T) {
 	const source = "testing"
 
-	var cases = []struct {
+	cases := []struct {
 		text string
 		res  string
 	}{
@@ -41,8 +41,28 @@ func TestLogsAll(t *testing.T) {
 			Point(source, nil).
 			Output()
 
-		tu.Assert(t, output == tc.res,
-			"\nexpect: %s\n   got: %s",
-			tc.res, output)
+		assert.Equal(t, tc.res, output)
+	}
+}
+
+func TestRemoveAnsiColorOfText(t *testing.T) {
+	cases := []struct {
+		text string
+		res  string
+	}{
+		{
+			"\u001b[1m\u001b[38;5;231mHello World\u001b[0m\u001b[22m",
+			"Hello World",
+		},
+		{
+			"a\033[4A\033[4Abc",
+			"abc",
+		},
+	}
+
+	for _, tc := range cases {
+		logs := NewLogs(tc.text)
+		logs.RemoveAnsiEscapeCodesOfText(true)
+		assert.Equal(t, tc.res, logs.text)
 	}
 }

@@ -12,7 +12,6 @@
 *.pyc
 *.rpm
 *.tar.gz
-*.test
 *.yaml
 *.zip
 **build/
@@ -60,5 +59,4 @@ test.conf
 test.go
 test.jso
 test.output
-test/
 y.output

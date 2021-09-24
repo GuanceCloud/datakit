@@ -5,10 +5,11 @@ package win_event
 import (
 	"bytes"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -104,7 +105,6 @@ type TimeCreated struct {
 }
 
 func DecodeUTF16(b []byte) ([]byte, error) {
-
 	if len(b)%2 != 0 {
 		return nil, fmt.Errorf("must have even length byte slice")
 	}

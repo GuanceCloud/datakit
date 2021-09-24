@@ -71,7 +71,6 @@ func (n *Input) getMetric() {
 		l.Error(err.Error())
 		n.lastErr = err
 	}
-
 }
 
 func (n *Input) parse(reader io.Reader) ([]inputs.Measurement, error) {

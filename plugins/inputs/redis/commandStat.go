@@ -85,7 +85,7 @@ func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
 			m.tags[key] = value
 		}
 
-		//cmdstat_get:calls=2,usec=16,usec_per_call=8.00
+		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		method := parts[0]
 
 		m.tags["method"] = method

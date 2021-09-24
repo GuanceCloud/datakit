@@ -52,7 +52,7 @@ func sample(batch *jaeger.Batch) *jaeger.Batch {
 }
 
 func convertTags(jtags []*jaeger.Tag) map[string]string {
-	var tags = map[string]string{}
+	tags := map[string]string{}
 	for _, jtag := range jtags {
 		tags[jtag.Key] = fmt.Sprintf("%v", getValueString(jtag))
 	}

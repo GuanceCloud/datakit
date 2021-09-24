@@ -41,6 +41,9 @@ type Input struct {
 	lastErr error
 
 	collectCache []inputs.Measurement
+
+	pause   bool
+	pauseCh chan bool
 }
 
 type NginxVTSResponse struct {

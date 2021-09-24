@@ -21,7 +21,7 @@ type cluster struct {
 }
 
 func (c *cluster) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
 	list, err := c.client.getClusters()

@@ -52,7 +52,7 @@ func zpkThriftV1Sample(zspans []*zipkinV1_core.Span) []*zipkinV1_core.Span {
 }
 
 func convertZipkinBinaryAnnotationToTags(annos []*zipkinV1_core.BinaryAnnotation) map[string]string {
-	var tags = map[string]string{}
+	tags := map[string]string{}
 	for _, anno := range annos {
 		tags[anno.Key] = string(anno.Value)
 	}
@@ -108,7 +108,7 @@ func zpkJsonV1Sample(zspans []*ZipkinSpanV1) []*ZipkinSpanV1 {
 }
 
 func convertBinaryAnnotationToTags(annos []*BinaryAnnotation) map[string]string {
-	var tags = map[string]string{}
+	tags := map[string]string{}
 	for _, anno := range annos {
 		tags[anno.Key] = string(anno.Value)
 	}

@@ -16,9 +16,7 @@ const (
 	inputName       = "kafka"
 )
 
-var (
-	l = logger.DefaultSLogger(inputName)
-)
+var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
 	inputs.JolokiaAgent

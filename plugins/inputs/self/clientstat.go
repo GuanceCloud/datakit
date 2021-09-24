@@ -10,9 +10,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-var (
-	StartTime time.Time
-)
+var StartTime time.Time
 
 type ClientStat struct {
 	HostName string
@@ -98,7 +96,6 @@ func (s *ClientStat) Update() {
 }
 
 func (s *ClientStat) ToMetric() *io.Point {
-
 	s.Uptime = int64(time.Now().Sub(StartTime) / time.Second)
 
 	measurement := "datakit"

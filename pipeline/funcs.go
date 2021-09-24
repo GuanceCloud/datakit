@@ -9,42 +9,39 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 type PipelineFunc func(p *Pipeline, node parser.Node) (*Pipeline, error)
 
-var (
-	funcsMap = map[string]PipelineFunc{
-		"add_key":               Addkey,
-		"add_pattern":           AddPattern,
-		"cast":                  Cast,
-		"datetime":              DateTime,
-		"default_time":          DefaultTime,
-		"default_time_with_fmt": DefaultTimeWithFmt,
-		"drop_key":              Dropkey,
-		"drop_origin_data":      DropOriginData,
-		"expr":                  Expr,
-		"geoip":                 GeoIp,
-		"grok":                  Grok,
-		"group_between":         Group,
-		"group_in":              GroupIn,
-		"json":                  Json,
-		"json_all":              JsonAll,
-		"lowercase":             Lowercase,
-		"nullif":                NullIf,
-		"rename":                Rename,
-		"strfmt":                Strfmt,
-		"uppercase":             Uppercase,
-		"url_decode":            UrlDecode,
-		"user_agent":            UserAgent,
-		"parse_duration":        ParseDuration,
-		"parse_date":            ParseDate,
-		"cover":                 Dz,
-		"replace":               Replace,
-	}
-)
+var funcsMap = map[string]PipelineFunc{
+	"add_key":               Addkey,
+	"add_pattern":           AddPattern,
+	"cast":                  Cast,
+	"datetime":              DateTime,
+	"default_time":          DefaultTime,
+	"default_time_with_fmt": DefaultTimeWithFmt,
+	"drop_key":              Dropkey,
+	"drop_origin_data":      DropOriginData,
+	"expr":                  Expr,
+	"geoip":                 GeoIp,
+	"grok":                  Grok,
+	"group_between":         Group,
+	"group_in":              GroupIn,
+	"json":                  Json,
+	"json_all":              JsonAll,
+	"lowercase":             Lowercase,
+	"nullif":                NullIf,
+	"rename":                Rename,
+	"strfmt":                Strfmt,
+	"uppercase":             Uppercase,
+	"url_decode":            UrlDecode,
+	"user_agent":            UserAgent,
+	"parse_duration":        ParseDuration,
+	"parse_date":            ParseDate,
+	"cover":                 Dz,
+	"replace":               Replace,
+}
 
 func Json(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
@@ -228,11 +225,12 @@ func GeoIp(p *Pipeline, node parser.Node) (*Pipeline, error) {
 
 	cont, err := p.getContentStr(key)
 	if err != nil {
-		l.Debugf("key `%v' not exist", key)
+		l.Warnf("key `%v' not exist", key)
 		return p, nil
 	}
 
 	if dic, err := GeoIpHandle(cont); err != nil {
+		l.Warnf("GeoIpHandle: %s, ignored", err)
 		return p, err
 	} else {
 		for k, v := range dic {
@@ -763,7 +761,7 @@ func DefaultTimeWithFmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	var goTimeFmt string
 	var tz string
 	var t time.Time
-	var timezone = time.Local
+	timezone := time.Local
 
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) < 2 {
@@ -812,7 +810,6 @@ func DefaultTimeWithFmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 				p.setTimezone(tz, timezone)
 			}
 		}
-
 	}
 
 	if err == nil {
@@ -1022,36 +1019,6 @@ func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	}
 
 	return p, nil
-}
-
-func getGjsonResult(data, id string) interface{} {
-	g := gjson.Get(data, id)
-	switch g.Type {
-	case gjson.Null:
-		return nil
-
-	case gjson.False:
-		return false
-
-	case gjson.Number:
-		if strings.Contains(g.Raw, ".") {
-			return g.Float()
-		} else {
-			return g.Int()
-		}
-
-	case gjson.String:
-		return g.String()
-
-	case gjson.True:
-		return true
-
-	case gjson.JSON:
-		return g.Raw
-
-	default:
-		return nil
-	}
 }
 
 func Dz(p *Pipeline, node parser.Node) (*Pipeline, error) {

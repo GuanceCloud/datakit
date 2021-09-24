@@ -11,6 +11,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 const (
 	inputName = "kubernetes"
 	catalog   = "kubernetes"
@@ -247,7 +249,7 @@ func (*Input) SampleConfig() string { return sampleCfg }
 func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	var res = []inputs.Measurement{
+	res := []inputs.Measurement{
 		&kubernetesMetric{},
 	}
 	for _, resource := range resourceList {

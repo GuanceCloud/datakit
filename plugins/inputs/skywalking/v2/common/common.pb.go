@@ -24,10 +24,11 @@
 package common
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -403,16 +404,19 @@ func file_plugins_inputs_skywalking_v2_common_common_proto_rawDescGZIP() []byte 
 	return file_plugins_inputs_skywalking_v2_common_common_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v2_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_plugins_inputs_skywalking_v2_common_common_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_plugins_inputs_skywalking_v2_common_common_proto_goTypes = []interface{}{
-	(DetectPoint)(0),           // 0: skywalking.v2.DetectPoint
-	(*KeyStringValuePair)(nil), // 1: skywalking.v2.KeyStringValuePair
-	(*KeyIntValuePair)(nil),    // 2: skywalking.v2.KeyIntValuePair
-	(*CPU)(nil),                // 3: skywalking.v2.CPU
-	(*Commands)(nil),           // 4: skywalking.v2.Commands
-	(*Command)(nil),            // 5: skywalking.v2.Command
-}
+var (
+	file_plugins_inputs_skywalking_v2_common_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_plugins_inputs_skywalking_v2_common_common_proto_msgTypes  = make([]protoimpl.MessageInfo, 5)
+	file_plugins_inputs_skywalking_v2_common_common_proto_goTypes   = []interface{}{
+		(DetectPoint)(0),           // 0: skywalking.v2.DetectPoint
+		(*KeyStringValuePair)(nil), // 1: skywalking.v2.KeyStringValuePair
+		(*KeyIntValuePair)(nil),    // 2: skywalking.v2.KeyIntValuePair
+		(*CPU)(nil),                // 3: skywalking.v2.CPU
+		(*Commands)(nil),           // 4: skywalking.v2.Commands
+		(*Command)(nil),            // 5: skywalking.v2.Command
+	}
+)
+
 var file_plugins_inputs_skywalking_v2_common_common_proto_depIdxs = []int32{
 	5, // 0: skywalking.v2.Commands.commands:type_name -> skywalking.v2.Command
 	1, // 1: skywalking.v2.Command.args:type_name -> skywalking.v2.KeyStringValuePair

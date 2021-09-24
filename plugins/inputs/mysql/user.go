@@ -118,12 +118,12 @@ func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 func (i *Input) getUserData() ([]inputs.Measurement, error) {
 	var resData []inputs.Measurement
 
-	var filterMap = map[string]bool{
+	filterMap := map[string]bool{
 		"mysql.session": true,
 		"mysql.sys":     true,
 	}
 
-	var userSql = `select DISTINCT(user) from mysql.user`
+	userSql := `select DISTINCT(user) from mysql.user`
 
 	if len(i.Users) > 0 {
 		var arr []string
@@ -186,13 +186,13 @@ var filterMetric = map[string]bool{
 func (i *Input) getUserStatus(user string) ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
-	var userQuerySql = `
+	userQuerySql := `
 	select VARIABLE_NAME, VARIABLE_VALUE
 	from performance_schema.status_by_user
 	where user='%s';
 	`
 
-	var userConnSql = `select USER, CURRENT_CONNECTIONS, TOTAL_CONNECTIONS
+	userConnSql := `select USER, CURRENT_CONNECTIONS, TOTAL_CONNECTIONS
 	from performance_schema.users
 	where user = '%s';
     `

@@ -76,7 +76,7 @@ func sample(traceId uint64, rate, scope int) bool {
 }
 
 func MergeTags(data ...map[string]string) map[string]string {
-	var merged = map[string]string{}
+	merged := map[string]string{}
 	for _, tags := range data {
 		for k, v := range tags {
 			merged[k] = v

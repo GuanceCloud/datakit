@@ -26,7 +26,7 @@ func (e EscapeError) Error() string {
 }
 
 func TestJsonFunc(t *testing.T) {
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 		{
 			data: `{
 			  "name": {"first": "Tom", "last": "Anderson"},
@@ -73,7 +73,6 @@ func TestJsonFunc(t *testing.T) {
 }
 
 func TestDefaultTimeFunc(t *testing.T) {
-
 	// {
 	// 	data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
 	// 	script:   `json(_, a.time) default_time(a.time)`,
@@ -82,7 +81,7 @@ func TestDefaultTimeFunc(t *testing.T) {
 	// 	err:      nil,
 	// },
 
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 
 		//{
 		//	data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
@@ -147,11 +146,11 @@ func TestDefaultTimeFunc(t *testing.T) {
 		//},
 
 		{
-			//data:     `{"a":{"time":"Tue Mar 16 14:02:37 2021"}}`,
-			//script:   `json(_, a.time) default_time(a.time)`,
-			//expected: int64(time.Second * 1615874557),
-			//key:      "a.time",
-			//err:      nil,
+			// data:     `{"a":{"time":"Tue Mar 16 14:02:37 2021"}}`,
+			// script:   `json(_, a.time) default_time(a.time)`,
+			// expected: int64(time.Second * 1615874557),
+			// key:      "a.time",
+			// err:      nil,
 
 			data:     `{"a":{"time":"Wed Mar 17 15:40:49 CST 2021"}}`,
 			script:   `json(_, a.time) default_time(a.time)`,
@@ -184,7 +183,7 @@ func TestDefaultTimeFunc(t *testing.T) {
 }
 
 func TestUrlencodeFunc(t *testing.T) {
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 		{
 			data:     `{"url[0]":"+%3F%26%3D%23%2B%25%21%3C%3E%23%22%7B%7D%7C%5C%5E%5B%5D%60%E2%98%BA%09%3A%2F%40%24%27%28%29%2A%2C%3B","second":2}`,
 			script:   "json(_, `url[0]`) url_decode(`url[0]`)",
@@ -249,54 +248,8 @@ func TestUrlencodeFunc(t *testing.T) {
 	}
 }
 
-func TestGeoIpFunc(t *testing.T) {
-	var testCase = []*funcCase{
-		{
-			data:     `{"ip":"116.228.89.206", "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, ip) geoip(ip)`,
-			expected: "Shanghai",
-			key:      "city",
-			err:      nil,
-		},
-		{
-			data:     `{"ip":"192.168.0.1", "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, ip) geoip(ip)`,
-			expected: "-",
-			key:      "city",
-			err:      nil,
-		},
-		{
-			data:     `{"ip":"", "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, "ip") geoip(ip)`,
-			expected: "unknown",
-			key:      "city",
-			err:      nil,
-		},
-		{
-			data:     `{"aa": {"ip":"116.228.89.206"}, "second":2,"thrid":"abc","forth":true}`,
-			script:   `json(_, aa.ip) geoip("aa.ip")`,
-			expected: "Shanghai",
-			key:      "city",
-			err:      nil,
-		},
-	}
-
-	// geo.Init()
-
-	for _, tt := range testCase {
-		p, err := NewPipeline(tt.script)
-		assertEqual(t, err, p.lastErr)
-
-		p.Run(tt.data)
-
-		r, err := p.getContentStr(tt.key)
-
-		assertEqual(t, r, tt.expected)
-	}
-}
-
 func TestUserAgentFunc(t *testing.T) {
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 		{
 			data:     `{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36", "second":2,"thrid":"abc","forth":true}`,
 			script:   `json(_, userAgent) user_agent(userAgent)`,
@@ -340,7 +293,7 @@ func TestUserAgentFunc(t *testing.T) {
 }
 
 func TestDatetimeFunc(t *testing.T) {
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 		{
 			data:     `{"a":{"timestamp": "1610960605", "second":2},"age":47}`,
 			script:   `json(_, a.timestamp) datetime(a.timestamp, 's', 'RFC3339')`,
@@ -370,7 +323,7 @@ func TestDatetimeFunc(t *testing.T) {
 }
 
 func TestGroupFunc(t *testing.T) {
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [200, 400], false, newkey)`,
@@ -449,7 +402,7 @@ func TestGroupFunc(t *testing.T) {
 }
 
 func TestGroupInFunc(t *testing.T) {
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 		{
 			data:     `{"status": true,"age":"47"}`,
 			script:   `json(_, status) group_in(status, [true], "ok", "newkey")`,
@@ -507,7 +460,7 @@ func TestGroupInFunc(t *testing.T) {
 }
 
 func TestNullIfFunc(t *testing.T) {
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 		{
 			data:     `{"a":{"first": 1,"second":2,"thrid":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, "1")`,
@@ -707,7 +660,7 @@ func TestParseDate(t *testing.T) {
 }
 
 func TestJsonAllFunc(t *testing.T) {
-	var testCase = []*funcCase{
+	testCase := []*funcCase{
 		{
 			data: `{
 			  "name": {"first": "Tom", "last": "Anderson"},

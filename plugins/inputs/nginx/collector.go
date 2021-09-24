@@ -143,7 +143,6 @@ func (n *Input) getVTSMetric() {
 }
 
 func (n *Input) handVTSResponse(r io.Reader) {
-
 	body, err := ioutil.ReadAll(r)
 	if err != nil {
 		l.Errorf(err.Error())
@@ -168,7 +167,6 @@ func (n *Input) handVTSResponse(r io.Reader) {
 	n.makeServerZoneLine(vtsResp, t)
 	n.makeUpstreamZoneLine(vtsResp, t)
 	n.makeCacheZoneLine(vtsResp, t)
-
 }
 
 func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
@@ -192,7 +190,6 @@ func (n *Input) makeConnectionsLine(vtsResp NginxVTSResponse, t time.Time) {
 		ts:     t,
 	}
 	n.collectCache = append(n.collectCache, metric)
-
 }
 
 func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
@@ -221,7 +218,6 @@ func (n *Input) makeServerZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 		}
 		n.collectCache = append(n.collectCache, metric)
 	}
-
 }
 
 func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
@@ -253,7 +249,6 @@ func (n *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, t time.Time) {
 			n.collectCache = append(n.collectCache, metric)
 		}
 	}
-
 }
 
 func (n *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, t time.Time) {

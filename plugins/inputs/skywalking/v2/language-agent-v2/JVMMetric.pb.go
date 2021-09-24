@@ -24,11 +24,12 @@
 package language_agent_v2
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -147,12 +148,15 @@ func file_plugins_inputs_skywalking_v2_language_agent_v2_JVMMetric_proto_rawDesc
 	return file_plugins_inputs_skywalking_v2_language_agent_v2_JVMMetric_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v2_language_agent_v2_JVMMetric_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_plugins_inputs_skywalking_v2_language_agent_v2_JVMMetric_proto_goTypes = []interface{}{
-	(*JVMMetricCollection)(nil), // 0: skywalking.v2.JVMMetricCollection
-	(*common.JVMMetric)(nil),    // 1: skywalking.v2.JVMMetric
-	(*common.Commands)(nil),     // 2: skywalking.v2.Commands
-}
+var (
+	file_plugins_inputs_skywalking_v2_language_agent_v2_JVMMetric_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+	file_plugins_inputs_skywalking_v2_language_agent_v2_JVMMetric_proto_goTypes  = []interface{}{
+		(*JVMMetricCollection)(nil), // 0: skywalking.v2.JVMMetricCollection
+		(*common.JVMMetric)(nil),    // 1: skywalking.v2.JVMMetric
+		(*common.Commands)(nil),     // 2: skywalking.v2.Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v2_language_agent_v2_JVMMetric_proto_depIdxs = []int32{
 	1, // 0: skywalking.v2.JVMMetricCollection.metrics:type_name -> skywalking.v2.JVMMetric
 	0, // 1: skywalking.v2.JVMMetricReportService.collect:input_type -> skywalking.v2.JVMMetricCollection

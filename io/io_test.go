@@ -44,8 +44,6 @@ func assemblePoints(count int) []*Point {
 	return pts
 }
 
-var temp *body
-
 func BenchmarkBuildBody(b *testing.B) {
 	pts := assemblePoints(10000)
 	for i := 0; i < b.N; i++ {

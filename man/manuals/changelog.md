@@ -2,6 +2,38 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc0(2021/09/23)
+
+- [日志采集器](logging)增加特殊字符（如颜色字符）过滤功能（默认关闭）(#351)
+- [完善容器日志采集](container#6a1b31bb)，同步更多现有普通日志采集器功能（多行匹配/日志等级过滤/字符编码等）(#340)
+- [主机对象](hostobject)采集器字段微调(#348)
+- 新增如下几个采集器
+	- [eBPF-network](net_ebpf)(alpha)(#148)
+	- [Consul](consul)(#303)
+	- [etcd](etcd)(#304)
+	- [CoreDNS](etcd)(#305)
+- 选举功能已经覆盖到如下采集器：(#288)
+	- [Kubernetes](kubernetes)
+	- [Prom](prom)
+	- [Gitlab](gitlab)
+	- [NSQ](nsq)
+	- [Apache](apache)
+	- [InfluxDB](influxdb)
+	- [Elasticsearch](elasticsearch)
+	- [MongoDB](mongodb)
+	- [MySQL](mysql)
+	- [Nginx](nginx)
+	- [PostgreSQL](postgresql)
+	- [RabbitMQ](rabbitmq)
+	- [Redis](redis)
+	- [Solr](solr)
+
+<!--
+- [DCA](dca) 相关功能完善
+	- 独立端口分离(#341)
+	- 远程重启功能调整(#345)
+	- 白名单功能(#244) -->
+
 ## 1.1.8-rc3(2021/09/10)
 
 - ddtrace 增加 [resource 过滤](ddtrace#224e2ccd)功能(#328)

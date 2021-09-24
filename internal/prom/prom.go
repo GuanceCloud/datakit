@@ -86,7 +86,7 @@ func NewProm(opt *Option) (*Prom, error) {
 		return nil, fmt.Errorf("invalid URL, cannot be empty")
 	}
 
-	var p = Prom{opt: opt}
+	p := Prom{opt: opt}
 	p.SetClient(&http.Client{Timeout: httpTimeout})
 
 	if opt.TLSOpen {

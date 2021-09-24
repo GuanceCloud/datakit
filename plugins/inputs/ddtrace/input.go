@@ -70,13 +70,15 @@ func (i *Input) AvailableArchs() []string {
 }
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&DdtraceMeasurement{}}
+	return []inputs.Measurement{&DDTraceMeasurement{}}
 }
 
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
+	// rare traces penetration
+	filters = append(filters, rare)
 	// add resource filter
 	for k := range i.IgnoreResources {
 		if reg, err := regexp.Compile(i.IgnoreResources[k]); err != nil {
@@ -87,7 +89,7 @@ func (i *Input) Run() {
 		}
 	}
 	if len(ignoreResources) != 0 {
-		filters = append(filters, filterOutResource)
+		filters = append(filters, checkResource)
 	}
 	// add sample filter
 	filters = append(filters, sample)

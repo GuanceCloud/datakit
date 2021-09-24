@@ -90,7 +90,6 @@ func (p *Input) Run() {
 					return
 				}
 			}
-
 		}()
 	}
 
@@ -141,7 +140,6 @@ func (p *Input) getProcesses() (processList []*pr.Process) {
 }
 
 func getUser(ps *pr.Process) string {
-
 	username, err := ps.Username()
 	if err != nil {
 		uid, err := ps.Uids()
@@ -231,7 +229,6 @@ func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, mes
 	}
 
 	return username, state, name, fields, message
-
 }
 
 func (p *Input) WriteObject() {
@@ -331,7 +328,6 @@ func (p *Input) WriteObject() {
 		io.FeedLastError(inputName, p.lastErr.Error())
 		p.lastErr = nil
 	}
-
 }
 
 func (p *Input) WriteMetric() {

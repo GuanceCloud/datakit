@@ -71,7 +71,8 @@ func (s *input) udpListen(conn *net.UDPConn) error {
 			case s.in <- job{
 				Buffer: b,
 				Time:   time.Now(),
-				Addr:   addr.IP.String()}:
+				Addr:   addr.IP.String(),
+			}:
 			default:
 				s.drops++
 				if s.drops == 1 || s.AllowedPendingMessages == 0 || s.drops%s.AllowedPendingMessages == 0 {

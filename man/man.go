@@ -71,7 +71,6 @@ type Option struct {
 }
 
 func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
-
 	var p *Params
 
 	css := MarkdownCSS

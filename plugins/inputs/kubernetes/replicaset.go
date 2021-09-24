@@ -21,7 +21,7 @@ type replicaSet struct {
 }
 
 func (r *replicaSet) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
 	list, err := r.client.getReplicaSets()
@@ -86,7 +86,7 @@ func (*replicaSet) Info() *inputs.MeasurementInfo {
 			"available":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
 			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
-			//TODO:
+			// TODO:
 			// "selectors": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "current/desired":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},

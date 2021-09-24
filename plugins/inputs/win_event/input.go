@@ -7,14 +7,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"strings"
+	"syscall"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/windows"
-	"strings"
-	"syscall"
-	"time"
 )
 
 func (_ *Input) SampleConfig() string {
@@ -59,7 +60,6 @@ func (w *Input) Run() {
 			start := time.Now()
 			events, err := w.fetchEvents(w.subscription)
 			if err != nil {
-
 				switch {
 				case err == ERROR_NO_MORE_ITEMS:
 					continue

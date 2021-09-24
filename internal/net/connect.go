@@ -12,7 +12,7 @@ func RawConnect(host, port string, timeout time.Duration) error {
 		return err
 	}
 	if conn != nil {
-		defer conn.Close()
+		defer conn.Close() //nolint:errcheck
 		return nil
 	}
 	return nil

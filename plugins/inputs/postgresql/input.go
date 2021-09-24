@@ -21,6 +21,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 var (
 	inputName   = "postgresql"
 	catalogName = "db"
@@ -30,7 +32,7 @@ var (
 const sampleConfig = `
 [[inputs.postgresql]]
   ## 服务器地址
-  # url格式
+  # URI格式
   # postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
   # 简单字符串格式
   # host=localhost user=pqgotest password=... sslmode=... dbname=app_production
@@ -114,6 +116,9 @@ type Input struct {
 	tail         *tailer.Tailer
 	duration     time.Duration
 	collectCache []inputs.Measurement
+
+	pause   bool
+	pauseCh chan bool
 }
 
 type postgresqllog struct {
@@ -171,11 +176,9 @@ func (*Input) PipelineConfig() map[string]string {
 }
 
 func (p *Input) SanitizedAddress() (sanitizedAddress string, err error) {
-	var (
-		canonicalizedAddress string
-	)
+	var canonicalizedAddress string
 
-	var kvMatcher, _ = regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+	kvMatcher, _ := regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 
 	if p.Outputaddress != "" {
 		return p.Outputaddress, nil
@@ -263,9 +266,7 @@ func (i *Input) getConnectionMetrics() error {
 }
 
 func (i *Input) Collect() error {
-	var (
-		err error
-	)
+	var err error
 
 	i.service.SetAddress(i.Address)
 	defer i.service.Stop()
@@ -344,7 +345,6 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 	}
 
 	return nil
-
 }
 
 func (i *Input) RunPipeline() {
@@ -413,6 +413,11 @@ func (i *Input) Run() {
 			return
 
 		case <-tick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
@@ -427,7 +432,32 @@ func (i *Input) Run() {
 				}
 				i.collectCache = i.collectCache[:0]
 			}
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
+	}
+}
+
+func (i *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
@@ -480,6 +510,7 @@ func parseURL(uri string) (string, error) {
 func NewInput(service Service) *Input {
 	input := &Input{
 		Interval: "10s",
+		pauseCh:  make(chan bool, 1),
 	}
 	input.service = service
 	return input

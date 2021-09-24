@@ -50,7 +50,7 @@ func newTransportMock(body string) http.RoundTripper {
 }
 
 func TestProm(t *testing.T) {
-	var testcases = []struct {
+	testcases := []struct {
 		in   *Option
 		fail bool
 	}{

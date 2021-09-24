@@ -10,7 +10,6 @@ import (
 
 // create or update object labels
 func apiCreateOrUpdateObjectLabel(c *gin.Context) {
-
 	// 1) get request body
 	// 2) reroute to dataway
 	body, err := uhttp.GinRead(c)

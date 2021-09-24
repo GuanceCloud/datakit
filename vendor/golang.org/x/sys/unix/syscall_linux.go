@@ -38,6 +38,13 @@ func Creat(path string, mode uint32) (fd int, err error) {
 	return Open(path, O_CREAT|O_WRONLY|O_TRUNC, mode)
 }
 
+func EpollCreate(size int) (fd int, err error) {
+	if size <= 0 {
+		return -1, EINVAL
+	}
+	return EpollCreate1(0)
+}
+
 //sys	FanotifyInit(flags uint, event_f_flags uint) (fd int, err error)
 //sys	fanotifyMark(fd int, flags uint, mask uint64, dirFd int, pathname *byte) (err error)
 
@@ -2287,6 +2294,9 @@ type RemoteIovec struct {
 
 //sys	ProcessVMReadv(pid int, localIov []Iovec, remoteIov []RemoteIovec, flags uint) (n int, err error) = SYS_PROCESS_VM_READV
 //sys	ProcessVMWritev(pid int, localIov []Iovec, remoteIov []RemoteIovec, flags uint) (n int, err error) = SYS_PROCESS_VM_WRITEV
+
+//sys	PidfdOpen(pid int, flags int) (fd int, err error) = SYS_PIDFD_OPEN
+//sys	PidfdGetfd(pidfd int, targetfd int, flags int) (fd int, err error) = SYS_PIDFD_GETFD
 
 /*
  * Unimplemented

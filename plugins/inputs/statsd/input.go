@@ -34,9 +34,7 @@ const (
 	catalog   = "statsd"
 )
 
-var (
-	l = logger.DefaultSLogger("statsd")
-)
+var l = logger.DefaultSLogger("statsd")
 
 // Statsd allows the importing of statsd and dogstatsd data.
 type input struct {

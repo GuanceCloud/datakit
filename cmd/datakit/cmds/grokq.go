@@ -106,7 +106,6 @@ var (
 )
 
 func grokq() {
-
 	var err error
 	G, err = grok.NewWithConfig(&grok.Config{
 		SkipDefaultPatterns: false,
@@ -144,7 +143,6 @@ func run(txt string) {
 }
 
 func do(txt string) {
-
 	matchedGroks := [High_ + 1]map[string]interface{}{}
 
 	for _, ptn := range patternPrevList {

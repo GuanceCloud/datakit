@@ -76,7 +76,7 @@ func parseJaegerUdp(data []byte) ([]*trace.TraceAdapter, error) {
 
 	protocolFactory := thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
 	thriftProtocol := protocolFactory.GetProtocol(thriftBuffer)
-	_, _, _, err := thriftProtocol.ReadMessageBegin(context.TODO())
+	_, _, _, err := thriftProtocol.ReadMessageBegin(context.TODO()) //nolint:dogsled
 	if err != nil {
 		log.Error("read message begin failed :%v,", err)
 

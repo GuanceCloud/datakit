@@ -88,6 +88,7 @@ func zipkinSpanIDToModelSpanID(spanId []byte) (zid *zipkinmodel.ID, blank bool, 
 	zid_ := zipkinmodel.ID(u64)
 	return &zid_, false, nil
 }
+
 func microsToTime(us uint64) time.Time {
 	return time.Unix(0, int64(us*1e3)).UTC()
 }
@@ -164,7 +165,7 @@ func protobufSpansToAdapters(zspans []*model.SpanModel, filters ...zipkinProtoBu
 		tAdapter.SpanID = fmt.Sprintf("%d", span.ID)
 
 		tAdapter.Status = trace.STATUS_OK
-		for tag, _ := range span.Tags {
+		for tag := range span.Tags {
 			if tag == "error" {
 				tAdapter.Status = trace.STATUS_ERR
 				break
@@ -234,7 +235,7 @@ func parseZipkinJsonV2(zspans []*zipkinmodel.SpanModel, filters ...zipkinJsonV2S
 		tAdapter.SpanID = fmt.Sprintf("%x", uint64(span.ID))
 
 		tAdapter.Status = trace.STATUS_OK
-		for tag, _ := range span.Tags {
+		for tag := range span.Tags {
 			if tag == "error" {
 				tAdapter.Status = trace.STATUS_ERR
 				break

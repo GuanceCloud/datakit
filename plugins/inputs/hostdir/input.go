@@ -28,7 +28,7 @@ func (i *Input) Collect() error {
 	timeNow := time.Now()
 	var tags map[string]string
 	path := i.Dir
-	if i.platform == "windows" {
+	if i.platform == datakit.OSWindows {
 		filesystem, err := GetFileSystemType(path)
 		if err != nil {
 			return err

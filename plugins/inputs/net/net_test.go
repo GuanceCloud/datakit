@@ -4,40 +4,56 @@ import (
 	"net"
 	"runtime"
 	"testing"
-	"time"
 
 	psNet "github.com/shirou/gopsutil/net"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
-// TODO
 func TestCollect(t *testing.T) {
-	i := &Input{
-		netIO:            NetIOCounters4Test,
-		netProto:         NetProtoCounters4Test,
-		netVirtualIfaces: NetVirtualInterfaces4Test}
-	i.Interfaces = nil
-	i.EnableVirtualInterfaces = true
-	i.IgnoreProtocolStats = true
+	cases := []struct {
+		i  *Input
+		os string
+	}{
+		{
+			i: &Input{
+				netIO:                   NetIOCounters4Test,
+				netProto:                NetProtoCounters4Test,
+				netVirtualIfaces:        NetVirtualInterfaces4Test,
+				Interfaces:              nil,
+				EnableVirtualInterfaces: true,
+				IgnoreProtocolStats:     true,
+			},
+		},
 
-	for x := 0; x < 6; x++ {
-		time.Sleep(time.Second)
-		if err := i.Collect(); err != nil {
+		{
+			os: "linux",
+			i: &Input{
+				netIO:                   NetIOCounters4Test,
+				netProto:                NetProtoCounters4Test,
+				netVirtualIfaces:        NetVirtualInterfaces4Test,
+				Interfaces:              []string{"eth.*", "wlp3s0", "docke[a-z]+\\d+"},
+				EnableVirtualInterfaces: false,
+				IgnoreProtocolStats:     false,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+
+		if runtime.GOOS != tc.os && tc.os != "" {
+			continue
+		}
+
+		if err := tc.i.Collect(); err != nil {
 			t.Errorf("Error collecting network statistics: %s", err)
 		}
-	}
-	if len(i.collectCache) != 4 {
-		t.Errorf("Need to clear collectCache")
-	}
 
-	i.Interfaces = []string{"eth.*", "wlp3s0", "docke[a-z]+\\d+"}
-
-	// linux only, collect protocol stats test
-	if runtime.GOOS == "linux" {
-		i.EnableVirtualInterfaces = false
-		i.IgnoreProtocolStats = false
-		i.Collect()
-		time.Sleep(time.Second)
-		i.Collect()
+		tu.Assert(t, len(tc.i.collectCache) > 0, "no data collected")
+		for _, m := range tc.i.collectCache {
+			p, err := m.LineProto()
+			tu.Ok(t, err)
+			t.Logf(p.String())
+		}
 	}
 }
 

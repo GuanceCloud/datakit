@@ -71,7 +71,7 @@ func postCb(name string) func(error, time.Duration) {
 
 // NewGroup create a custom group
 func NewGroup(option Option) *Group {
-	var name = "default"
+	name := "default"
 	if len(option.Name) > 0 {
 		name = option.Name
 	}

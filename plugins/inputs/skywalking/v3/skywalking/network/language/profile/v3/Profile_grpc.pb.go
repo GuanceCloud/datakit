@@ -4,6 +4,7 @@ package v3
 
 import (
 	context "context"
+
 	v3 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -100,15 +101,16 @@ type ProfileTaskServer interface {
 }
 
 // UnimplementedProfileTaskServer must be embedded to have forward compatible implementations.
-type UnimplementedProfileTaskServer struct {
-}
+type UnimplementedProfileTaskServer struct{}
 
 func (UnimplementedProfileTaskServer) GetProfileTaskCommands(context.Context, *ProfileTaskCommandQuery) (*v3.Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProfileTaskCommands not implemented")
 }
+
 func (UnimplementedProfileTaskServer) CollectSnapshot(ProfileTask_CollectSnapshotServer) error {
 	return status.Errorf(codes.Unimplemented, "method CollectSnapshot not implemented")
 }
+
 func (UnimplementedProfileTaskServer) ReportTaskFinish(context.Context, *ProfileTaskFinishReport) (*v3.Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportTaskFinish not implemented")
 }

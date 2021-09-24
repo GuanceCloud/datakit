@@ -1,4 +1,4 @@
-// +build !windows
+//+build !windows
 
 package win_event
 
@@ -7,12 +7,19 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+type EvtHandle uintptr
+
 type Input struct {
+	Query string            `toml:"xpath_query"`
+	Tags  map[string]string `toml:"tags,omitempty"`
+
+	subscription EvtHandle
+	buf          []byte
+	collectCache []inputs.Measurement
 }
 
 func (_ *Input) SampleConfig() string {
 	return sample
-
 }
 
 func (_ *Input) Catalog() string {

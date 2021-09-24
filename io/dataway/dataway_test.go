@@ -52,7 +52,6 @@ func TestHeartBeat(t *testing.T) {
 }
 
 func TestListDataWay(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"content":[]}`)
 	}))
@@ -87,7 +86,6 @@ func TestListDataWay(t *testing.T) {
 }
 
 func TestSend(t *testing.T) {
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "[httptest] ok")
 	}))
@@ -268,7 +266,6 @@ func TestSetupDataway(t *testing.T) {
 			urls:   []string{"http://abc.com", "http://def.com?token=tkn_xyz"},
 			url:    "http://xyz.com",
 			expect: []string{"http://abc.com", "http://def.com?token=tkn_xyz"},
-			fail:   false,
 		},
 
 		{
@@ -285,9 +282,9 @@ func TestSetupDataway(t *testing.T) {
 		},
 
 		{
-			url:   "http://1024.com?token=tkn_xyz",
-			proxy: "invalid-proxy-to-1024.com",
-			fail:  true,
+			url:    "http://1024.com?token=tkn_xyz",
+			expect: []string{"http://1024.com?token=tkn_xyz"},
+			proxy:  "invalid-proxy-to-1024.com", // ignored
 		},
 
 		{
@@ -307,6 +304,8 @@ func TestSetupDataway(t *testing.T) {
 	}
 
 	for i, tc := range cases {
+		t.Logf("case %d...", i)
+
 		dw := DataWayCfg{
 			DeprecatedURL: tc.url,
 			URLs:          tc.urls,

@@ -61,7 +61,6 @@ func (_ *ExernalInput) SampleConfig() string {
 }
 
 func (ex *ExernalInput) precheck() error {
-
 	ex.duration = time.Second * 10
 	if ex.Interval != "" {
 		du, err := time.ParseDuration(ex.Interval)

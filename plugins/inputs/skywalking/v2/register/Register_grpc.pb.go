@@ -4,6 +4,7 @@ package register
 
 import (
 	context "context"
+
 	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/common"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -91,21 +92,24 @@ type RegisterServer interface {
 }
 
 // UnimplementedRegisterServer must be embedded to have forward compatible implementations.
-type UnimplementedRegisterServer struct {
-}
+type UnimplementedRegisterServer struct{}
 
 func (UnimplementedRegisterServer) DoServiceRegister(context.Context, *Services) (*ServiceRegisterMapping, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoServiceRegister not implemented")
 }
+
 func (UnimplementedRegisterServer) DoServiceInstanceRegister(context.Context, *ServiceInstances) (*ServiceInstanceRegisterMapping, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoServiceInstanceRegister not implemented")
 }
+
 func (UnimplementedRegisterServer) DoEndpointRegister(context.Context, *Endpoints) (*EndpointMapping, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoEndpointRegister not implemented")
 }
+
 func (UnimplementedRegisterServer) DoNetworkAddressRegister(context.Context, *NetAddresses) (*NetAddressMapping, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoNetworkAddressRegister not implemented")
 }
+
 func (UnimplementedRegisterServer) DoServiceAndNetworkAddressMappingRegister(context.Context, *ServiceAndNetworkAddressMappings) (*common.Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoServiceAndNetworkAddressMappingRegister not implemented")
 }

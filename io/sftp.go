@@ -21,7 +21,7 @@ type SFTPClient struct {
 }
 
 func NewSFTPClient(user, password, host, path string, port int) (*SFTPClient, error) {
-	var sc = &SFTPClient{
+	sc := &SFTPClient{
 		User:       user,
 		Password:   password,
 		Host:       host,

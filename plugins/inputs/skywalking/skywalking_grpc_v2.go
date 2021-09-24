@@ -26,12 +26,12 @@ var (
 )
 
 var (
-	RegService     = &sync.Map{} //key: id,           value: serviceName
-	RegServiceRev  = &sync.Map{} //key: serviceName,  value: id
-	RegInstance    = &sync.Map{} //key: id,           value: instanceUUID
-	RegInstanceRev = &sync.Map{} //key: instanceUUID, value: id
-	RegEndpoint    = &sync.Map{} //key: id,           value: endpointName
-	RegEndpointRev = &sync.Map{} //key: endpointName, value: id
+	RegService     = &sync.Map{} // key: id,           value: serviceName
+	RegServiceRev  = &sync.Map{} // key: serviceName,  value: id
+	RegInstance    = &sync.Map{} // key: id,           value: instanceUUID
+	RegInstanceRev = &sync.Map{} // key: instanceUUID, value: id
+	RegEndpoint    = &sync.Map{} // key: id,           value: endpointName
+	RegEndpointRev = &sync.Map{} // key: endpointName, value: id
 )
 
 func GenGlobalId(startCnt int32) func() int32 {
