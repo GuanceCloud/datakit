@@ -188,7 +188,6 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 }
 
 func (dw *DataWayCfg) initHttp() error {
-
 	if dw.HttpProxy != "" { // set proxy
 		cliopts := &ihttp.Options{
 			DialTimeout: dw.TimeoutDuration,

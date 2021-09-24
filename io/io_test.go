@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -59,7 +60,6 @@ func BenchmarkBuildBody(b *testing.B) {
 }
 
 func TestIODatawaySending(t *testing.T) {
-
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "{}") // datakit expect json response
 	}))
@@ -106,8 +106,8 @@ func TestIODatawaySending(t *testing.T) {
 			break
 		}
 		cache = cache[:0]
-		time.Sleep(time.Second * 1)
 	}
 
 	t.Logf("cw: %s", cw.String())
+	tu.Assert(t, cw.Max == 1, "single dataway should only 1 HTTP client, but got %d", cw.Max)
 }

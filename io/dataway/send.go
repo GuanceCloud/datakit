@@ -51,9 +51,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 
 	// start trace span from request context
 	span, _ := dktracer.GlobalTracer.StartSpanFromContext(req.Context(),
-		"datakit.dataway.send",
-		req.RequestURI,
-		ext.SpanTypeHTTP)
+		"datakit.dataway.send", req.RequestURI, ext.SpanTypeHTTP)
 	defer dktracer.GlobalTracer.FinishSpan(span, tracer.WithFinishTime(time.Now()))
 
 	// inject span into http header
@@ -61,7 +59,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 
 	postbeg := time.Now()
 	resp, err := dc.dw.sendReq(req)
-
 	if err != nil {
 		dktracer.GlobalTracer.SetTag(span, "http_client_do_error", err.Error())
 		l.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
@@ -118,8 +115,6 @@ func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 }
 
 func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
-	defer dw.httpCli.CloseIdleConnections()
-
 	for i, ep := range dw.endPoints {
 		l.Debugf("send to %dth dataway, fails: %d/%d", i, ep.fails, dw.MaxFails)
 		// 判断 fails

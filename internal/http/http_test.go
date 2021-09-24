@@ -164,7 +164,7 @@ func runTestClientConnections(t *testing.T, nclients int, defaultOpts, closeIdle
 
 	wg := sync.WaitGroup{}
 
-	nreq := 100
+	nreq := 1000
 
 	wg.Add(nclients)
 	for i := 0; i < nclients; i++ {
@@ -193,10 +193,10 @@ func runTestClientConnections(t *testing.T, nclients int, defaultOpts, closeIdle
 				if err := resp.Body.Close(); err != nil {
 					t.Error(err)
 				}
-			}
 
-			if closeIdleManually {
-				cli.CloseIdleConnections()
+				if closeIdleManually {
+					cli.CloseIdleConnections()
+				}
 			}
 		}()
 	}
@@ -206,7 +206,7 @@ func runTestClientConnections(t *testing.T, nclients int, defaultOpts, closeIdle
 	t.Logf("[server: %s, clients: %d, defaultOptions: %v, closeIdleManually: %v]\ncw: %s\n",
 		ts.URL, nclients, defaultOpts, closeIdleManually, cw.String())
 
-	if defaultOpts {
+	if defaultOpts || closeIdleManually {
 		tu.Assert(t, cw.nMax > int64(nclients), "by using default transport, %d should > %d", cw.nMax, nclients)
 	} else {
 		tu.Assert(t, cw.nMax == int64(nclients), "by using specified transport, %d shoudl == %d", cw.nMax, nclients)
@@ -227,6 +227,12 @@ func TestClientConnections(t *testing.T) {
 
 		{
 			10,
+			false,
+			true,
+		},
+
+		{
+			10,
 			true,
 			false,
 		},
@@ -235,6 +241,12 @@ func TestClientConnections(t *testing.T) {
 			1,
 			false,
 			false,
+		},
+
+		{
+			1,
+			false,
+			true,
 		},
 
 		{
