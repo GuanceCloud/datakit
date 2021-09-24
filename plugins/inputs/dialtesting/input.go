@@ -44,11 +44,7 @@ const (
 	RegionInfo  = "region"
 )
 
-var (
-	apiTasksNum      int
-	headlessTasksNum int
-	chromeCurCount   int
-)
+var apiTasksNum int
 
 type Input struct {
 	Region       string            `toml:"region,omitempty"`
@@ -205,7 +201,6 @@ func (d *Input) doLocalTask(path string) {
 }
 
 func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
-	//
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -215,12 +210,7 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	case dt.ClassHTTP:
 		apiTasksNum++
 	case dt.ClassHeadless: // chromedp 缓慢增加
-		//headlessTasksNum++
-		//if headlessTasksNum/3+1 > chromeCurCount && chromeCurCount < d.Workers {
-		//	chromeCtxs <- dt.NewChromedpCtx(false, ``)
-		//	chromeCurCount++
-		//	l.Debugf(`worker:%d, chromeCurCount:%d, tasks:%d`, d.Workers, chromeCurCount, headlessTasksNum)
-		//}
+		return nil, fmt.Errorf("headless task deprecated")
 	case dt.ClassDNS:
 		// TODO
 	case dt.ClassTCP:
@@ -316,21 +306,33 @@ func (d *Input) dispatchTasks(j []byte) error {
 			switch k {
 			case dt.ClassHTTP:
 				t = &dt.HTTPTask{}
-			case dt.ClassHeadless:
-				t = &dt.HeadlessTask{}
 			case dt.ClassDNS:
 				// TODO
+				l.Warnf("DNS task deprecated, ignored")
+				continue
 			case dt.ClassTCP:
 				// TODO
+				l.Warnf("TCP task deprecated, ignored")
+				continue
 			case dt.ClassOther:
 				// TODO
+				l.Warnf("OTHER task deprecated, ignored")
+				continue
 			case RegionInfo:
 				break
+			case dt.ClassHeadless:
+				l.Warnf("headless task deprecated, ignored")
+				continue
 				// no need dealwith
 			default:
 				l.Errorf("unknown task type: %s", k)
 				break
 			}
+
+			if t == nil {
+				continue
+			}
+
 			if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
 				l.Errorf(`%s`, err.Error())
 				return err
@@ -359,9 +361,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 				if strings.ToLower(t.Status()) == dt.StatusStop {
 					delete(d.curTasks, t.ID())
 				}
-
 			} else { // create new task
-
 				if strings.ToLower(t.Status()) == dt.StatusStop {
 					l.Warnf(`%s status is stop, exit ignore`, t.ID())
 					continue
@@ -374,11 +374,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 				} else {
 					d.curTasks[t.ID()] = dialer
 				}
-
 			}
 		}
-
-		// case dt.ClassHeadless:
 	}
 	return nil
 }
