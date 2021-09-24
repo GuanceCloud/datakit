@@ -11,6 +11,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 const (
 	inputName = "kubernetes"
 	catalog   = "kubernetes"

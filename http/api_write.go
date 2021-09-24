@@ -62,6 +62,7 @@ func apiWrite(c *gin.Context) {
 
 	switch category {
 	case datakit.Metric,
+		datakit.Network,
 		datakit.Logging,
 		datakit.Object,
 		datakit.Tracing,

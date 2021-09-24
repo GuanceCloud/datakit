@@ -87,6 +87,9 @@ type Input struct {
 	lastErr error
 	start   time.Time
 	wg      sync.WaitGroup
+
+	pause   bool
+	pauseCh chan bool
 }
 
 type rabbitmqlog struct {

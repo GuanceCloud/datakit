@@ -16,6 +16,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -36,6 +37,8 @@ const (
 	// docker code:
 	// https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L21
 	maxLineBytes = 16 * 1024
+
+	multilineMaxLines = 1000
 
 	containerIDPrefix = "docker://"
 
@@ -515,32 +518,47 @@ func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, str
 		name       = tags["container_name"]
 		deployment = tags["deployment"]
 
-		pipe *pipeline.Pipeline
-		err  error
-
-		source = func() string {
-			// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试使用它的 deployment name
-			if tags["container_type"] == "kubernetes" && deployment != "" {
-				return deployment
-			}
-			return name
-		}()
-		service = name
+		ln = &logsOption{
+			source: func() string {
+				// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试使用它的 deployment name
+				if tags["container_type"] == "kubernetes" && deployment != "" {
+					return deployment
+				}
+				return name
+			}(),
+			service: name,
+		}
 	)
 
 	l.Debugf("matched name:%s deployment:%s", name, deployment)
 
 	if n := d.Logs.MatchName(deployment, name); n != -1 {
-		pipe, err = pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, d.Logs[n].Pipeline))
-		if err != nil {
-			l.Debugf("new pipeline error: %s", err)
+		l.Debug("log match success, containerName:%s deploymentName:%s", name, deployment)
+		if err := ln.setPipeline(filepath.Join(datakit.PipelineDir, d.Logs[n].Pipeline)); err != nil {
+			l.Warnf("container_name:%s new pipeline error: %s", name, err)
+		} else {
+			l.Debug("container_name:%s new pipeline success, path:%s", name, d.Logs[n].Pipeline)
 		}
-		source = d.Logs[n].Source
-		service = d.Logs[n].Service
+
+		if err := ln.setDecoder(d.Logs[n].CharacterEncoding); err != nil {
+			l.Warnf("container_name:%s new decoder error: %s", name, err)
+		} else {
+			l.Debug("container_name:%s new decoder success, characterEncoding:%s", name, d.Logs[n].CharacterEncoding)
+		}
+
+		if err := ln.setMultiline(d.Logs[n].MultilineMatch, multilineMaxLines); err != nil {
+			l.Warnf("container_name:%s new multiline error: %s", name, err)
+		} else {
+			l.Debug("container_name:%s new multiline success, multiline_match:%s", name, d.Logs[n].MultilineMatch)
+		}
+
+		ln.source = d.Logs[n].Source
+		ln.service = d.Logs[n].Service
+		ln.ignoreStatus = d.Logs[n].IgnoreStatus
 	}
 
 	tags["stream"] = stream
-	tags["service"] = service
+	tags["service"] = ln.service
 
 	r := bufio.NewReaderSize(reader, maxLineBytes)
 
@@ -564,15 +582,24 @@ func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, str
 			continue
 		}
 
-		text := strings.TrimSpace(string(line))
+		text, err := ln.decode(string(line))
+		if err != nil {
+			l.Warnf("decode error: %s, ignored", err)
+		}
+
+		text = ln.multiline(strings.TrimSpace(text))
+		if text == "" {
+			continue
+		}
 
 		if err := tailer.NewLogs(text).
 			RemoveAnsiEscapeCodesOfText(d.LoggingRemoveAnsiEscapeCodes).
-			Pipeline(pipe).
+			Pipeline(ln.pipe).
 			CheckFieldsLength().
 			AddStatus(loggingDisableAddStatus).
+			IgnoreStatus(ln.ignoreStatus).
 			TakeTime().
-			Point(source, tags).
+			Point(ln.source, tags).
 			Feed(inputName).
 			Err(); err != nil {
 			l.Error("logging gather failed, container_id: %s, container_name:%s, err: %s", err.Error())
@@ -614,4 +641,61 @@ func (d *dockerClient) tailMultiplexed(ctx context.Context, src io.ReadCloser, c
 // ignoreCommand 忽略 k8s pod 的 init container
 func ignoreCommand(command string) bool {
 	return command == "/pause"
+}
+
+type logsOption struct {
+	source       string
+	service      string
+	pipe         *pipeline.Pipeline
+	decoder      *encoding.Decoder
+	mult         *tailer.Multiline
+	ignoreStatus []string
+}
+
+func (ln *logsOption) setPipeline(path string) error {
+	p, err := pipeline.NewPipelineFromFile(path)
+	if err != nil {
+		return err
+	}
+	ln.pipe = p
+	return nil
+}
+
+func (ln *logsOption) setDecoder(characterEncoding string) error {
+	if characterEncoding == "" {
+		return nil
+	}
+	d, err := encoding.NewDecoder(characterEncoding)
+	if err != nil {
+		return err
+	}
+	ln.decoder = d
+	return nil
+}
+
+func (ln *logsOption) setMultiline(match string, maxLines int) error {
+	if match == "" {
+		return nil
+	}
+
+	mult, err := tailer.NewMultiline(match, maxLines)
+	if err != nil {
+		return err
+	}
+	ln.mult = mult
+	return nil
+}
+
+func (ln *logsOption) decode(text string) (str string, err error) {
+	if ln.decoder == nil {
+		return text, nil
+	}
+	return ln.decoder.String(text)
+}
+
+func (ln *logsOption) multiline(text string) string {
+	if ln.mult == nil {
+		return text
+	}
+	return ln.mult.ProcessLine(text)
 }

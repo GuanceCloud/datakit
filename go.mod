@@ -7,6 +7,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/DataDog/datadog-agent v0.0.0-20210914224445-7abd230002d9
 	github.com/DataDog/datadog-agent/pkg/util/winutil v0.31.0 // indirect
+	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/sketches-go v1.2.0 // indirect
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/StackExchange/wmi v1.2.1 // indirect
@@ -72,8 +73,6 @@ require (
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
-	//github.com/yuin/goldmark v1.3.5 // indirect
-	//github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691 // indirect
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf
 	go.uber.org/multierr v1.7.0 // indirect

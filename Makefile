@@ -37,7 +37,10 @@ UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))"}}')
 NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))"}}')
+CI_PASS_NOTIFY_MSG:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 触发的 DataKit CI 通过"}}')
 NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支($(BRANCH))提交代码，以免 CI 任务失败"}}')
+
+LINUX_RELEASE_VERSION = $(shell uname -r)
 
 define GIT_INFO
 //nolint
@@ -130,6 +133,13 @@ pub_release:
 pub_release_mac:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
+
+ci_pass_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		-H 'Content-Type: application/json' \
+		-d '$(CI_PASS_NOTIFY_MSG)'
+
 test_notify:
 	@curl \
 		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
@@ -157,7 +167,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser plparser vet # TODO: add @lint and @test here
+deps: prepare man gofmt lfparser plparser  # TODO: add @lint and @test here
 
 man:
 	@packr2 clean

@@ -58,6 +58,22 @@ github.com/DataDog/datadog-agent/pkg/util/log
 github.com/DataDog/datadog-agent/pkg/util/winutil
 # github.com/DataDog/datadog-go v4.8.2+incompatible
 github.com/DataDog/datadog-go/statsd
+# github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
+## explicit
+github.com/DataDog/ebpf
+github.com/DataDog/ebpf/asm
+github.com/DataDog/ebpf/internal
+github.com/DataDog/ebpf/internal/btf
+github.com/DataDog/ebpf/internal/unix
+github.com/DataDog/ebpf/manager
+github.com/DataDog/ebpf/perf
+# github.com/DataDog/gopsutil v0.0.0-20210826200402-bbfc5b0ae6e9
+github.com/DataDog/gopsutil/cpu
+github.com/DataDog/gopsutil/host
+github.com/DataDog/gopsutil/internal/common
+github.com/DataDog/gopsutil/mem
+github.com/DataDog/gopsutil/net
+github.com/DataDog/gopsutil/process
 # github.com/DataDog/sketches-go v1.2.0
 ## explicit
 github.com/DataDog/sketches-go/ddsketch
@@ -122,6 +138,8 @@ github.com/apache/thrift/lib/go/thrift
 # github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 ## explicit
 github.com/araddon/dateparse
+# github.com/avast/retry-go v2.7.0+incompatible
+github.com/avast/retry-go
 # github.com/aws/aws-sdk-go v1.40.43
 ## explicit
 github.com/aws/aws-sdk-go/aws
@@ -308,6 +326,10 @@ github.com/eliukblau/pixterm/pkg/ansimage
 # github.com/fatih/color v1.12.0
 ## explicit
 github.com/fatih/color
+# github.com/florianl/go-tc v0.2.0
+github.com/florianl/go-tc
+github.com/florianl/go-tc/core
+github.com/florianl/go-tc/internal/unix
 # github.com/fsnotify/fsnotify v1.5.1
 ## explicit
 github.com/fsnotify/fsnotify
@@ -428,6 +450,12 @@ github.com/gomarkdown/markdown
 github.com/gomarkdown/markdown/ast
 github.com/gomarkdown/markdown/html
 github.com/gomarkdown/markdown/parser
+# github.com/google/go-cmp v0.5.6
+github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/internal/diff
+github.com/google/go-cmp/cmp/internal/flags
+github.com/google/go-cmp/cmp/internal/function
+github.com/google/go-cmp/cmp/internal/value
 # github.com/google/gofuzz v1.2.0
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
@@ -442,6 +470,10 @@ github.com/googleapis/gnostic/openapiv2
 github.com/grpc-ecosystem/grpc-gateway/internal
 github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
+# github.com/hashicorp/errwrap v1.0.0
+github.com/hashicorp/errwrap
+# github.com/hashicorp/go-multierror v1.1.1
+github.com/hashicorp/go-multierror
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast
@@ -479,6 +511,8 @@ github.com/jessevdk/go-flags
 github.com/jmespath/go-jmespath
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
+# github.com/josharian/native v0.0.0-20200817173448-b6b71def0850
+github.com/josharian/native
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
 # github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
@@ -525,6 +559,11 @@ github.com/mattn/go-runewidth
 github.com/mattn/go-tty
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/mdlayher/netlink v1.4.1
+github.com/mdlayher/netlink
+github.com/mdlayher/netlink/nlenc
+# github.com/mdlayher/socket v0.0.0-20210307095302-262dc9984e00
+github.com/mdlayher/socket
 # github.com/mitchellh/mapstructure v1.4.2
 ## explicit
 github.com/mitchellh/mapstructure
@@ -615,6 +654,8 @@ github.com/shirou/gopsutil/v3/internal/common
 github.com/shirou/gopsutil/v3/mem
 github.com/shirou/gopsutil/v3/net
 github.com/shirou/gopsutil/v3/process
+# github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
+github.com/shirou/w32
 # github.com/sirupsen/logrus v1.8.1
 github.com/sirupsen/logrus
 # github.com/spf13/afero v1.6.0
@@ -658,6 +699,11 @@ github.com/uber/jaeger-client-go/thrift-gen/zipkincore
 # github.com/ugorji/go/codec v1.2.6
 ## explicit
 github.com/ugorji/go/codec
+# github.com/vishvananda/netlink v1.1.1-0.20210508154835-66ddd91f7ddd
+github.com/vishvananda/netlink
+github.com/vishvananda/netlink/nl
+# github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f
+github.com/vishvananda/netns
 # github.com/vjeantet/grok v1.0.0
 ## explicit
 github.com/vjeantet/grok
@@ -742,6 +788,7 @@ golang.org/x/mobile/asset
 golang.org/x/mobile/internal/mobileinit
 # golang.org/x/net v0.0.0-20210913180222-943fd674d43e
 ## explicit
+golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html

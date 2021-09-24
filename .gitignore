@@ -12,7 +12,6 @@
 *.pyc
 *.rpm
 *.tar.gz
-*.test
 *.yaml
 *.zip
 **build/

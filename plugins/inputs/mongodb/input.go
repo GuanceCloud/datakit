@@ -21,6 +21,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 var (
 	defInterval      = datakit.Duration{Duration: 10 * time.Second}
 	defMongoUrl      = "mongodb://127.0.0.1:27017"
@@ -128,25 +130,20 @@ type Input struct {
 	EnableMongodLog       bool                   `toml:"enable_mongod_log"`
 	Log                   *mongodblog            `toml:"log"`
 	Tags                  map[string]string      `toml:"tags"`
-	mongos                map[string]*Server
-	tail                  *tailer.Tailer
+
+	mongos  map[string]*Server
+	tail    *tailer.Tailer
+	pause   bool
+	pauseCh chan bool
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return inputName }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
-func (*Input) PipelineConfig() map[string]string {
-	return map[string]string{"mongod": pipelineConfig}
-}
+func (*Input) PipelineConfig() map[string]string { return map[string]string{"mongod": pipelineConfig} }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
-}
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -203,19 +200,26 @@ func (m *Input) Run() {
 	tick := time.NewTicker(m.Interval.Duration)
 	for {
 		select {
-		case <-tick.C:
-			if err := m.gather(); err != nil {
-				l.Error(err.Error())
-				io.FeedLastError(inputName, err.Error())
-			}
 		case <-datakit.Exit.Wait():
 			if m.tail != nil {
 				m.tail.Close()
 				l.Info("mongodb log exits")
 			}
 			l.Info("mongodb input exits")
-
 			return
+
+		case <-tick.C:
+			if m.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+			if err := m.gather(); err != nil {
+				l.Error(err.Error())
+				io.FeedLastError(inputName, err.Error())
+			}
+
+		case m.pause = <-m.pauseCh:
+			// nil
 		}
 	}
 }
@@ -304,6 +308,28 @@ func (m *Input) gatherServer(server *Server) error {
 	return server.gatherData(m.GatherReplicaSetStats, m.GatherClusterStats, m.GatherPerDbStats, m.GatherPerColStats, m.ColStatsDbs, m.GatherTopStat)
 }
 
+func (m *Input) Pause() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case m.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (m *Input) Resume() error {
+	tick := time.NewTicker(time.Second * 5)
+	defer tick.Stop()
+	select {
+	case m.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
@@ -325,6 +351,7 @@ func init() {
 			EnableMongodLog: false,
 			Log:             &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
 			mongos:          make(map[string]*Server),
+			pauseCh:         make(chan bool, 1),
 		}
 	})
 }
