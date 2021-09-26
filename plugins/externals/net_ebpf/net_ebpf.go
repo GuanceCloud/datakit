@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/DataDog/ebpf/manager"
@@ -27,6 +28,8 @@ type Option struct {
 
 	Log      string `long:"log" description:"log path"`
 	LogLevel string `long:"log-level" description:"log file" default:"info"`
+
+	Tags string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
 
 	Service string `long:"service" description:"service" default:"net_ebpf"`
 }
@@ -51,14 +54,29 @@ func init() {
 		fmt.Println("Parse error:", err)
 		return
 	}
-	if opt.HostName == "" {
+
+	optTags := strings.Split(opt.Tags, ";")
+	for _, item := range optTags {
+		tagArr := strings.Split(item, "=")
+
+		if len(tagArr) == 2 {
+			tagKey := strings.Trim(tagArr[0], " ")
+			tagVal := strings.Trim(tagArr[1], " ")
+			if tagKey != "" {
+				gTags[tagKey] = tagVal
+			}
+		}
+	}
+
+	if opt.HostName == "" && gTags["host"] == "" {
 		if gTags["host"], err = os.Hostname(); err != nil {
 			l.Error(err)
 			gTags["host"] = "no-value"
 		}
-	} else {
+	} else if opt.HostName != "" {
 		gTags["host"] = opt.HostName
 	}
+
 	gTags["service"] = opt.Service
 
 	datakitPostURL = fmt.Sprintf("http://%s%s?input="+inputName, opt.DataKitAPIServer, datakit.Network)

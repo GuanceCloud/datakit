@@ -49,7 +49,7 @@ type Conninfo struct {
 func GuessTcp(ebpfMapGuess *ebpf.Map) (*OffsetGuessC, error) {
 	ctx := context.Background()
 	defer ctx.Done()
-	serverPort, err := runTcpServer(ctx, listen_ipv4)
+	serverPort, err := runTcpServer(ctx, "tcp", listen_ipv4)
 	if err != nil {
 		return nil, err
 	}
@@ -146,8 +146,8 @@ func NewConstEditor(offsetGuess *OffsetGuessC) []manager.ConstantEditor {
 	}
 }
 
-func runTcpServer(ctx context.Context, addr string) (uint16, error) {
-	l, err := net.Listen("tcp", addr+":0")
+func runTcpServer(ctx context.Context, network, address string) (uint16, error) {
+	l, err := net.Listen(network, address+":0")
 	if err != nil {
 		return 0, err
 	}

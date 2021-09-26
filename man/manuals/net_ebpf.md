@@ -9,7 +9,14 @@
 net_ebpf 采集器，采集主机网络 tcp、udp 连接信息
 
 ## 前置条件
-Linux Kernel Version >= v4.9
+
+Linux Kernel Version >= 4.9.0,
+可使用命令 `uname -r` 查看，如：
+
+```sh
+$ uname -r 
+5.11.0-25-generic
+```
 
 ## 配置
 
