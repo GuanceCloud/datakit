@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -248,8 +249,6 @@ func HttpStart() {
 		}
 		l.Infof("pprof stopped")
 	}
-
-	return
 }
 
 func tryStartServer(srv *http.Server) {
@@ -260,7 +259,7 @@ func tryStartServer(srv *http.Server) {
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
 		if err := srv.ListenAndServe(); err != nil {
-			if err != http.ErrServerClosed {
+			if !errors.As(err, &http.ErrServerClosed) {
 				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				retryCnt++
 			} else {

@@ -287,7 +287,6 @@ func dcaSaveConfig(c *gin.Context) {
 					Path:   param.Path,
 				})
 			}
-
 		} else { // add new info
 			if creator, ok := inputs.Inputs[param.InputName]; ok {
 				inputs.ConfigInfo[param.InputName] = &inputs.Config{
@@ -515,14 +514,12 @@ func dcaTestPipelines(c *gin.Context) {
 
 	body := map[string]string{}
 
-	err := getBody(c, &body)
-	if err != nil {
+	if err := getBody(c, &body); err != nil {
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "parameter format error"})
 		return
 	}
 
 	text, ok := body["text"]
-
 	if !ok {
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "parameter 'text' is required"})
 		return

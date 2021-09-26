@@ -109,8 +109,8 @@ type Summary struct {
 }
 
 // GetStat return the group summary
-func GetStat() Summary {
-	summary := Summary{
+func GetStat() *Summary {
+	summary := &Summary{
 		Items: make(map[string]RunningStatInfo),
 	}
 

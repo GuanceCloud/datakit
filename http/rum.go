@@ -35,30 +35,28 @@ func geoTags(srcip string) (tags map[string]string) {
 	if err != nil {
 		l.Warnf("geo failed: %s, ignored", err)
 		return
-	} else {
-		switch ipInfo.Country_short { // #issue 354
-		case "TW":
-			ipInfo.Country_short = "CN"
-			ipInfo.Region = "Taiwan"
-		case "MO":
-			ipInfo.Country_short = "CN"
-			ipInfo.Region = "Macao"
-		case "HK":
-			ipInfo.Country_short = "CN"
-			ipInfo.Region = "Hong Kong"
-		}
-
-		// 无脑填充 geo 数据
-		tags = map[string]string{
-			"city":     ipInfo.City,
-			"province": ipInfo.Region,
-			"country":  ipInfo.Country_short,
-			"isp":      ip2isp.SearchIsp(srcip),
-			"ip":       srcip,
-		}
 	}
 
-	return
+	switch ipInfo.Country_short { // #issue 354
+	case "TW":
+		ipInfo.Country_short = "CN"
+		ipInfo.Region = "Taiwan"
+	case "MO":
+		ipInfo.Country_short = "CN"
+		ipInfo.Region = "Macao"
+	case "HK":
+		ipInfo.Country_short = "CN"
+		ipInfo.Region = "Hong Kong"
+	}
+
+	// 无脑填充 geo 数据
+	tags = map[string]string{
+		"city":     ipInfo.City,
+		"province": ipInfo.Region,
+		"country":  ipInfo.Country_short,
+		"isp":      ip2isp.SearchIsp(srcip),
+		"ip":       srcip,
+	}
 }
 
 func doHandleRUMBody(body []byte,
@@ -66,7 +64,6 @@ func doHandleRUMBody(body []byte,
 	isjson bool,
 	extraTags map[string]string,
 	appIdWhiteList []string) ([]*io.Point, error) {
-
 	if isjson {
 		return jsonPoints(body, precision, extraTags, appIdWhiteList)
 	}

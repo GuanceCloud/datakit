@@ -20,8 +20,7 @@ func apiRestart(c *gin.Context) {
 	svc, err := dkservice.NewService()
 	if err != nil {
 		uhttp.HttpErr(c,
-			fmt.Errorf("new %s service failed: %s",
-				runtime.GOOS, err.Error()))
+			fmt.Errorf("new %s service failed: %w", runtime.GOOS, err))
 		return
 	}
 

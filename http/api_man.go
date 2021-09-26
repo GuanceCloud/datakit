@@ -125,7 +125,6 @@ func apiManualTOC(c *gin.Context) {
 		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
 		return
 	}
-	return
 }
 
 func apiManual(c *gin.Context) {

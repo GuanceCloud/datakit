@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -137,11 +138,10 @@ func apiWrite(c *gin.Context) {
 
 		pts, err = handleRUMBody(body, precision, srcip, isjson, apiConfig.RUMAppIDWhiteList)
 		// appid不在白名单中，当前 http 请求直接返回
-		if err == ErrRUMAppIdNotInWhiteList {
+		if errors.As(err, &ErrRUMAppIdNotInWhiteList) {
 			uhttp.HttpErr(c, err)
 			return
 		}
-
 	} else {
 		extags := extraTags
 		if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
@@ -173,7 +173,6 @@ func handleWriteBody(body []byte,
 	isJson bool,
 	appIdWhiteList []string,
 ) ([]*io.Point, error) {
-
 	switch isJson {
 	case true:
 		return jsonPoints(body, precision, extags, appIdWhiteList)
@@ -197,7 +196,6 @@ func jsonPoints(body []byte,
 	prec string,
 	extags map[string]string,
 	appIdWhiteList []string) ([]*io.Point, error) {
-
 	var jps []jsonPoint
 	err := json.Unmarshal(body, &jps)
 	if err != nil {
@@ -213,7 +211,7 @@ func jsonPoints(body []byte,
 		} else {
 			tags := p.Tags()
 			if len(tags) == 0 {
-				return nil, fmt.Errorf("invalid tags, is emtpy")
+				return nil, fmt.Errorf("empty tags")
 			}
 			if !contains(tags[rumMetricAppID], appIdWhiteList) {
 				return nil, ErrRUMAppIdNotInWhiteList
