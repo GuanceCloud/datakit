@@ -15,7 +15,7 @@ func parseFileFDStats(filename string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {

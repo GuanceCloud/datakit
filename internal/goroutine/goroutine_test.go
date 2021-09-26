@@ -106,7 +106,9 @@ func TestStat(t *testing.T) {
 		return nil
 	})
 
-	g.Wait()
+	if err := g.Wait(); err != nil {
+		t.Error(err)
+	}
 
 	for k, v := range stat {
 		assert.Equal(t, k, "default")

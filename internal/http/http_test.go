@@ -42,7 +42,7 @@ func TestProxy(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	defer proxysrv.Shutdown(ctx)
+	defer proxysrv.Shutdown(ctx) //nolint:errcheck
 
 	time.Sleep(time.Second) // wait proxy server OK
 
@@ -96,7 +96,7 @@ func TestProxy(t *testing.T) {
 				t.Error(err)
 			}
 
-			defer resp.Body.Close()
+			defer resp.Body.Close() //nolint:errcheck
 			t.Logf("resp: %s", string(body))
 		}
 	}
@@ -107,7 +107,7 @@ func TestInsecureSkipVerify(t *testing.T) {
 		fmt.Fprint(w, "hello, tls client")
 	}))
 
-	defer tlsServer.Close()
+	defer tlsServer.Close() //nolint:errcheck
 
 	cases := []struct {
 		cli  *http.Client
@@ -141,7 +141,7 @@ func TestInsecureSkipVerify(t *testing.T) {
 				t.Error(err)
 			}
 
-			defer resp.Body.Close()
+			defer resp.Body.Close() //nolint:errcheck
 			t.Logf("resp: %s", string(body))
 		}
 	}
@@ -188,7 +188,7 @@ func runTestClientConnections(t *testing.T, nclients int, defaultOpts, closeIdle
 					t.Error(err)
 				}
 
-				io.Copy(ioutil.Discard, resp.Body)
+				io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
 
 				if err := resp.Body.Close(); err != nil {
 					t.Error(err)
@@ -209,7 +209,7 @@ func runTestClientConnections(t *testing.T, nclients int, defaultOpts, closeIdle
 	if defaultOpts || closeIdleManually {
 		tu.Assert(t, cw.Max > int64(nclients), "by using default transport, %d should > %d", cw.Max, nclients)
 	} else {
-		tu.Assert(t, cw.Max == int64(nclients), "by using specified transport, %d shoudl == %d", cw.Max, nclients)
+		tu.Assert(t, cw.Max == int64(nclients), "by using specified transport, %d should == %d", cw.Max, nclients)
 	}
 }
 
@@ -310,7 +310,7 @@ func TestClientTimeWait(t *testing.T) {
 					t.Error(err)
 				}
 
-				io.Copy(ioutil.Discard, resp.Body)
+				io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
 
 				if err := resp.Body.Close(); err != nil {
 					t.Error(err)

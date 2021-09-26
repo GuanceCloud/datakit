@@ -59,7 +59,7 @@ func (x *Logs) RemoveAnsiEscapeCodesOfText(remove bool) *Logs {
 
 	newText, err := ansi.Strip(String2Bytes(x.text))
 	if err != nil {
-		x.AddErr(fmt.Errorf("failed of remove color: %s", err))
+		x.AddErr(fmt.Errorf("failed of remove color: %w", err))
 		return x
 	}
 

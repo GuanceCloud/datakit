@@ -50,7 +50,7 @@ func RunWithTimeout(timeout time.Duration, sudo bool, command string, args ...st
 // Command line parse errors are denoted by the exit code having the 0 bit set.
 // All other errors are drive/communication errors and should be ignored.
 func ExitStatus(err error) (int, error) {
-	if exiterr, ok := err.(*exec.ExitError); ok {
+	if exiterr, ok := err.(*exec.ExitError); ok { //nolint:errorlint
 		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 			return status.ExitStatus(), nil
 		}

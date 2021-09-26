@@ -17,12 +17,11 @@ var (
 )
 
 type Input struct {
-	EatCPU bool `toml:"eat_cpu"`
-	Tags   map[string]string
-
 	collectCache    []inputs.Measurement
 	collectObjCache []inputs.Measurement
+	Tags            map[string]string
 	chpause         chan bool
+	EatCPU          bool `toml:"eat_cpu"`
 	paused          bool
 }
 

@@ -16,25 +16,25 @@ type Rule struct {
 }
 
 type Option struct {
-	Disabel           bool     `toml:"disble"`
+	MetricTypes       []string `toml:"metric_types"`
+	MetricNameFilter  []string `toml:"metric_name_filter"`
+	Measurements      []Rule   `json:"measurements"`
+	TagsIgnore        []string `toml:"tags_ignore"`
 	Source            string   `toml:"source"`
 	Interval          string   `toml:"interval"`
 	URL               string   `toml:"url"`
-	MetricTypes       []string `toml:"metric_types"`
-	MetricNameFilter  []string `toml:"metric_name_filter"`
 	MeasurementPrefix string   `toml:"measurement_prefix"`
 	MeasurementName   string   `toml:"measurement_name"`
-	Measurements      []Rule   `json:"measurements"`
 
-	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Tags       map[string]string `toml:"tags"`
-	TagsIgnore []string          `toml:"tags_ignore"`
-
+	Tags     map[string]string `toml:"tags"`
 	interval time.Duration
+
+	TLSOpen bool `toml:"tls_open"`
+	Disabel bool `toml:"disble"`
 }
 
 const defaultInterval = time.Second * 10

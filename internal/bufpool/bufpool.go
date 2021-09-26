@@ -12,7 +12,11 @@ var pool = sync.Pool{
 }
 
 func GetBuffer() *bytes.Buffer {
-	buf := pool.Get().(*bytes.Buffer)
+	buf, ok := pool.Get().(*bytes.Buffer)
+	if !ok {
+		return nil
+	}
+
 	buf.Reset()
 
 	return buf

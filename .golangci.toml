@@ -16,6 +16,9 @@
   [linters-settings.gocyclo]
     min-complexity = 14.0
 
+  [linters-settings.cyclo]
+    min-complexity = 14.0
+
   [linters-settings.maligned]
     suggest-new = true
 
@@ -94,6 +97,12 @@
 		"nolintlint",
 		"golint", # Too strict
 		"godot", # Too strict
+		"gci", # Too strict
+		"tagliatelle", # Too strict
+
+		# 权且放开他们
+		"revive",
+		"cyclop",
   ]
 
 [issues]

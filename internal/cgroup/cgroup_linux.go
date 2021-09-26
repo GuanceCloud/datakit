@@ -19,6 +19,7 @@ const (
 	L = "low"
 )
 
+//nolint:cyclop
 func start() {
 	// config.Cfg.Cgroup 是百分比
 	high := config.Cfg.Cgroup.CPUMax * float64(runtime.NumCPU()) / 100 //nolint:gomnd

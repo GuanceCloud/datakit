@@ -11,22 +11,24 @@ import (
 // A Group is a collection of goroutines working on subtasks that are part of
 // the same overall task.
 type Group struct {
-	name         string
-	panicCb      func([]byte) bool          // callback when panic
-	postCb       func(error, time.Duration) // job finish callback
-	beforeCb     func()                     // job before callback
-	panicTimes   int8                       // max panic times
-	panicTimeout time.Duration              // time duration between panicCb call
-	err          error
+	chs []func(ctx context.Context) error
+
+	name string
+	err  error
+	ctx  context.Context
+
+	panicCb  func([]byte) bool          // callback when panic
+	postCb   func(error, time.Duration) // job finish callback
+	beforeCb func()                     // job before callback
+
+	panicTimeout time.Duration // time duration between panicCb call
+	ch           chan func(ctx context.Context) error
+	cancel       func()
 	wg           sync.WaitGroup
-	errOnce      sync.Once
 
+	errOnce    sync.Once
 	workerOnce sync.Once
-	ch         chan func(ctx context.Context) error
-	chs        []func(ctx context.Context) error
-
-	ctx    context.Context
-	cancel func()
+	panicTimes int8 // max panic times
 }
 
 // WithContext create a Group.
