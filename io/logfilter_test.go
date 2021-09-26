@@ -22,15 +22,14 @@ func (*debugLogFilterMock) preparePoints(pts []*Point) []*Point {
 	influxPts, err := lp.ParsePoints(debugPoints, nil)
 	if err != nil {
 		l.Error(err)
-		pts = nil
 	}
 
-	pts = []*Point{}
+	newpts := []*Point{}
 	for _, pt := range influxPts {
-		pts = append(pts, &Point{Point: pt})
+		newpts = append(newpts, &Point{Point: pt})
 	}
 
-	return pts
+	return newpts
 }
 
 func TestLogFilter(t *testing.T) {
@@ -75,11 +74,12 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 
 	time.Sleep(3 * time.Second)
 
-	if defLogfilter.status == filter_released {
+	switch defLogfilter.status {
+	case filter_released:
 		l.Info("log filter released")
-	} else if defLogfilter.status == filter_refreshed {
+	case filter_refreshed:
 		l.Info("log filter refreshed")
-	} else {
+	default:
 		l.Info("log filter status unknow")
 	}
 
@@ -92,11 +92,13 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 
 	debugFilterRules = []byte(`{"content": []}`)
 	time.Sleep(3 * time.Second)
-	if defLogfilter.status == filter_released {
+
+	switch defLogfilter.status {
+	case filter_released:
 		l.Info("log filter released")
-	} else if defLogfilter.status == filter_refreshed {
+	case filter_refreshed:
 		l.Info("log filter refreshed")
-	} else {
+	default:
 		l.Info("log filter status unknow")
 	}
 

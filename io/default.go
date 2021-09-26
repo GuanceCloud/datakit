@@ -189,7 +189,6 @@ func MakePointWithoutGlobalTags(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-
 	return makePoint(name, tags, nil, fields, t...)
 }
 
@@ -197,7 +196,6 @@ func makePoint(name string,
 	tags, extags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]
@@ -259,7 +257,6 @@ func HighFreqFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) error {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]
@@ -286,7 +283,6 @@ func NamedFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) error {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]

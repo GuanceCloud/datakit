@@ -19,9 +19,9 @@ type Value interface {
 
 type ValueType string
 
-///////////////////////////////////////
+//
 // Node
-///////////////////////////////////////
+//
 type Node interface {
 	String() string
 	Pos() *PositionRange
@@ -411,7 +411,7 @@ func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
 		val = n
 	}
 
-	return
+	return //nolint:nakedret
 }
 
 func (n *FuncExpr) String() string {
@@ -445,29 +445,29 @@ type Helper struct {
 }
 
 type DFQuery struct { // impl Node
-	Namespace string `json:"namespace,omitempty"`
 
 	// data source
-	Names      []string `json:"names,omitempty"`
-	RegexNames []*Regex `json:"regex_names,omitempty"`
+	Names          []string  `json:"names,omitempty"`
+	RegexNames     []*Regex  `json:"regex_names,omitempty"`
+	Targets        []*Target `json:"targets,omitempty"`
+	WhereCondition []Node    `json:"where_condition,omitempty"`
 
-	Anonymous bool `json:"-"`
+	Namespace string `json:"namespace,omitempty"`
 
 	Subquery *DFQuery `json:"subquery,omitempty"`
 
-	Targets        []*Target    `json:"targets,omitempty"`
-	WhereCondition []Node       `json:"where_condition,omitempty"`
-	GroupBy        *GroupBy     `json:"groupby,omitempty"`
-	OrderBy        *OrderBy     `json:"orderby,omitempty"`
-	Limit          *Limit       `json:"limit,omitempty"`
-	Offset         *Offset      `json:"offset,omitempty"`
-	SLimit         *SLimit      `json:"slimit,omitempty"`
-	SOffset        *SOffset     `json:"soffset,omitempty"`
-	TimeZone       *TimeZone    `json:"timezone,omitempty"`
-	SearchAfter    *SearchAfter `json:"search_after,omitempty"` // search_after
-	Highlight      bool         `json:"highlight,omitempty"`
+	GroupBy     *GroupBy     `json:"groupby,omitempty"`
+	OrderBy     *OrderBy     `json:"orderby,omitempty"`
+	Limit       *Limit       `json:"limit,omitempty"`
+	Offset      *Offset      `json:"offset,omitempty"`
+	SLimit      *SLimit      `json:"slimit,omitempty"`
+	SOffset     *SOffset     `json:"soffset,omitempty"`
+	TimeZone    *TimeZone    `json:"timezone,omitempty"`
+	SearchAfter *SearchAfter `json:"search_after,omitempty"` // search_after
+	Helper      *Helper      `json:"-"`
 
-	Helper *Helper `json:"-"`
+	Anonymous bool `json:"-"`
+	Highlight bool `json:"highlight,omitempty"`
 }
 
 func (m *DFQuery) JSON() ([]byte, error) {
@@ -635,9 +635,9 @@ func (n *TimeResolution) String() string {
 
 func (n *TimeResolution) Pos() *PositionRange { return nil /* TODO */ }
 
-///////////////////////////////////////
+//
 // Expr
-///////////////////////////////////////
+//
 type Expr interface {
 	Node
 	Type() ValueType
@@ -769,9 +769,9 @@ func (e *StaticCast) Pos() *PositionRange { return nil } // TODO
 func (e *StaticCast) DQLExpr()            {}             // not used
 func (e *StaticCast) Type() ValueType     { return "" }
 
-///////////////////////////////////////
+//
 // stmt
-///////////////////////////////////////
+//
 type Statement interface {
 	Node
 	DQLStmt() // not used
@@ -894,7 +894,6 @@ func (x WhereConditions) String() string {
 func (x WhereConditions) Eval(source string,
 	tags map[string]string,
 	fields map[string]interface{}) bool {
-
 	for _, item := range x {
 		switch c := item.(type) {
 		case *WhereCondition:

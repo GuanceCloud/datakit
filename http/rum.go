@@ -57,6 +57,7 @@ func geoTags(srcip string) (tags map[string]string) {
 		"isp":      ip2isp.SearchIsp(srcip),
 		"ip":       srcip,
 	}
+	return
 }
 
 func doHandleRUMBody(body []byte,

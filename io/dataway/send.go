@@ -55,7 +55,9 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 	defer dktracer.GlobalTracer.FinishSpan(span, tracer.WithFinishTime(time.Now()))
 
 	// inject span into http header
-	dktracer.GlobalTracer.Inject(span, req.Header)
+	if err := dktracer.GlobalTracer.Inject(span, req.Header); err != nil {
+		l.Warnf("GlobalTracer.Inject: %s, ignored", err.Error())
+	}
 
 	postbeg := time.Now()
 	resp, err := dc.dw.sendReq(req)
@@ -66,7 +68,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
