@@ -62,7 +62,7 @@ const (
 	datakitBin = "datakit"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
 	flag.BoolVar(&flagInstallOnly, "install-only", false, "install only, not start")
 	flag.BoolVar(&flagOTA, "ota", false, "auto update")

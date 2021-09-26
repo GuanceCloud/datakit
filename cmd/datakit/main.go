@@ -24,7 +24,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits
 	flag.BoolVarP(&cmds.FlagVersion, "version", "V", false, `show version info`)
 	flag.BoolVar(&cmds.FlagCheckUpdate, "check-update", false, "check if new version available")
 	flag.BoolVar(&cmds.FlagAcceptRCVersion, "accept-rc-version", false, "during update, accept RC version if available")
@@ -254,7 +254,6 @@ func doRun() error {
 	}
 
 	// FIXME: wait all inputs ok, then start http server
-
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
 		EnableDca:      config.Cfg.EnableDca,

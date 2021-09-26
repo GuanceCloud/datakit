@@ -2,8 +2,8 @@
   timeout = "10m"
   skip-files = []
   skip-dirs = [
-		"pipeline",
-		"plugins",
+		#"pipeline",
+		#"plugins",
   ]
 
 [linters-settings]
@@ -15,6 +15,9 @@
     min-confidence = 0.0
 
   [linters-settings.gocyclo]
+    min-complexity = 14.0
+
+  [linters-settings.gocognit]
     min-complexity = 14.0
 
   [linters-settings.cyclo]
@@ -71,8 +74,6 @@
     #"sqlclosecheck", # Not relevant (SQL)
     #"rowserrcheck", # Not relevant (SQL)
     #"lll", # Not relevant
-    #"gocyclo", # FIXME must be fixed
-    #"gocognit", # Too strict
     #"makezero", # Not relevant
     #"gochecknoinits",
     #"stylecheck", # skip because report issues related to some generated files.
@@ -103,7 +104,8 @@
 		"golint", # Too strict
 		"stylecheck", # 太啰嗦了，临时关下
     "dupl", # 还不允许有相似代码
-
+    "gocyclo", # FIXME must be fixed
+    "gocognit", # 代码太复杂
 
 		"cyclop",
 		"gomoddirectives", # used `replace' in go.mod 

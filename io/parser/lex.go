@@ -121,9 +121,7 @@ var (
 	}
 )
 
-func init() {
-	log = logger.SLogger("logfilter-parser")
-
+func init() { //nolint:gochecknoinits
 	// Add keywords to Item type strings.
 	for s, ty := range keywords {
 		ItemTypeStr[ty] = s
