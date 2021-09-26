@@ -124,13 +124,13 @@ func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMa
 				}
 
 				connFullStats = connStatsRecord.mergeWithClosedLastActive(connInfo, connFullStats)
-				if ConnFilter(connInfo, connFullStats) {
+				if ConnNotNeedToFilter(connInfo, connFullStats) {
 					connResult.result[connInfo] = connFullStats
 				}
 			}
 			// 收集当前周期处于关闭状态的连接
 			for k, v := range connStatsRecord.closedConns {
-				if ConnFilter(k, v) {
+				if ConnNotNeedToFilter(k, v) {
 					connResult.result[k] = v
 				}
 			}
