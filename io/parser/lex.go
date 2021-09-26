@@ -48,8 +48,8 @@ func (i ItemType) IsKeyword() bool  { return i > keywordsStart && i < keywordsEn
 
 type ItemType int
 
-func (it *ItemType) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, reflect.ValueOf(it))), nil
+func (i *ItemType) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, reflect.ValueOf(i))), nil
 }
 
 const (

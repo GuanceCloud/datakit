@@ -298,7 +298,7 @@ func (p *parser) recover(errp *error) {
 }
 
 func (p *parser) addParseErr(pr *PositionRange, err error) {
-	p.errs = append(p.errs, ParseErr{
+	p.errs = append(p.errs, ParseError{
 		Pos:   pr,
 		Err:   err,
 		Query: p.lex.input,
@@ -399,16 +399,16 @@ func newParser(input string) *parser {
 
 // end of yylex.(*parser).newXXXX
 
-type ParseErrors []ParseErr
+type ParseErrors []ParseError
 
-type ParseErr struct {
+type ParseError struct {
 	Pos        *PositionRange
 	Err        error
 	Query      string
 	LineOffset int
 }
 
-func (e *ParseErr) Error() string {
+func (e *ParseError) Error() string {
 	if e.Pos == nil {
 		return fmt.Sprintf("%s", e.Err)
 	}

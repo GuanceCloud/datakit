@@ -305,7 +305,6 @@ func TestBlackWhiteList(t *testing.T) {
 }
 
 func TestLoadCfg(t *testing.T) {
-	c := Config{}
 	availableInputCfgs := map[string]*ast.Table{}
 	conf := map[string]string{
 		"1.conf": `[[inputs.aliyunobject]]
@@ -333,7 +332,7 @@ func TestLoadCfg(t *testing.T) {
 	}
 
 	for name, creator := range inputs.Inputs {
-		if err := doLoadInputConf(&c, name, creator, availableInputCfgs); err != nil {
+		if err := doLoadInputConf(name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 		}
 	}

@@ -1,3 +1,5 @@
+// Datakit global settings
+
 package datakit
 
 import (

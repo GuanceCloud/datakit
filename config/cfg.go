@@ -1,3 +1,5 @@
+// Datakit configure modules
+
 package config
 
 import (

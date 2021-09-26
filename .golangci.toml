@@ -20,7 +20,7 @@
   [linters-settings.cyclo]
     min-complexity = 14.0
 
-  [linters-settings.fieldalignment]
+  [linters-settings.maligned]
     suggest-new = true
 
   [linters-settings.goconst]
@@ -68,43 +68,47 @@
 [linters]
   enable-all = true
   disable = [
-    "sqlclosecheck", # Not relevant (SQL)
-    "rowserrcheck", # Not relevant (SQL)
-    "lll", # Not relevant
-    "gocyclo", # FIXME must be fixed
-    "gocognit", # Too strict
-    "nestif", # Too many false-positive.
-    "prealloc", # Too many false-positive.
-    "makezero", # Not relevant
-    "dupl", # Too strict
-    "gosec", # Too strict
-    "gochecknoinits",
-    "gochecknoglobals",
-    "wsl", # Too strict
-    "nlreturn", # Not relevant
-    "gomnd", # Too strict
-    "stylecheck", # skip because report issues related to some generated files.
-    "testpackage", # Too strict
-    "tparallel", # Not relevant
-    "paralleltest", # Not relevant
-    "exhaustive", # Not relevant
-    "exhaustivestruct", # Not relevant
-    "goerr113", # Too strict
-    "wrapcheck", # Too strict
-    "noctx", # Too strict
-    "bodyclose", # Too many false-positive and panics.
-    "unparam", # Too strict
-    "godox", # Too strict
-		"nolintlint",
-		"golint", # Too strict
-		"godot", # Too strict
-		"gci", # Too strict
-		"tagliatelle", # Too strict
+    #"sqlclosecheck", # Not relevant (SQL)
+    #"rowserrcheck", # Not relevant (SQL)
+    #"lll", # Not relevant
+    #"gocyclo", # FIXME must be fixed
+    #"gocognit", # Too strict
+    #"makezero", # Not relevant
+    #"gochecknoinits",
+    #"stylecheck", # skip because report issues related to some generated files.
+    #"tparallel", # Not relevant
+    #"goerr113", # Too strict
+    #"bodyclose", # Too many false-positive and panics.
+    #"godox", # Too strict
+		#"godot", # Too strict
+		#"gci", # Too strict
 
 		# 权且放开他们
-		"revive",
+    "testpackage",  # Too strict
+    "wrapcheck",    # 不便于错误处理
+		"tagliatelle",  # 跟现有 json tag 命名方式
+    "paralleltest", # 可开启，改动范围较大
+    "noctx",        # 要求 HTTP 请求都用 context 形式，改动较大
+    "nlreturn", # 要求 return 语句前有一个空行
+    "gomnd", # 不放过任何一个魔术数
+    "wsl", # 更好代码分段(if/switch 语句)
+    "prealloc", # Too many false-positive.
+    "nestif", # Too many false-positive.
+		"goerr113", # 不能 fmt.Errorf/errors.New
+    "gochecknoglobals", # 不能搞全局变量
+    "exhaustivestruct", # 结构体初始化字段是否完整
+    "exhaustive", # Not relevant
+		"lll", # 行太长
+    "gosec", # Too strict
+		"golint", # Too strict
+		"stylecheck", # 太啰嗦了，临时关下
+    "dupl", # 还不允许有相似代码
+
+
 		"cyclop",
 		"gomoddirectives", # used `replace' in go.mod 
+		"nolintlint",
+		"revive",
   ]
 
 [issues]

@@ -1,4 +1,5 @@
-//nolint:gocyclo
+// Loading datakit configures
+
 package config
 
 import (
@@ -70,7 +71,7 @@ func LoadCfg(c *Config, mcp string) error {
 	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))
 	initDefaultEnabledPlugins(c)
 
-	if err := LoadInputsConfig(c); err != nil {
+	if err := LoadInputsConfig(); err != nil {
 		l.Error(err)
 		return err
 	}

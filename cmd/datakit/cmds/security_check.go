@@ -28,7 +28,7 @@ type SecCheckVersion struct {
 func InstallSecCheck(installDir string) error {
 	osArch := runtime.GOOS + "/" + runtime.GOARCH
 	if _, ok := SecCheckOsArch[osArch]; !ok {
-		return fmt.Errorf("Security Checker not support in %v\n", osArch)
+		return fmt.Errorf("security Checker not support in %v\n", osArch)
 	}
 
 	fmt.Printf("Start downloading install script...\n")

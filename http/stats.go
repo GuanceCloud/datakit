@@ -302,7 +302,7 @@ func GetStats() (*DatakitStats, error) {
 	return stats, nil
 }
 
-func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
+func (x *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 	tmpl := monitorTmpl
 	if verbose {
 		tmpl = verboseMonitorTmpl
@@ -314,11 +314,11 @@ func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 	}
 
 	if css != "" {
-		ds.CSS = css
+		x.CSS = css
 	}
 
 	var buf bytes.Buffer
-	if err := temp.Execute(&buf, ds); err != nil {
+	if err := temp.Execute(&buf, x); err != nil {
 		return nil, fmt.Errorf("execute markdown template failed: %w", err)
 	}
 

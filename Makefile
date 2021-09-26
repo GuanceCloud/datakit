@@ -75,7 +75,7 @@ endef
 lint: lint_deps
 	@truncate -s 0 check.err
 	@golangci-lint --version | tee -a check.err
-	@golangci-lint run | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
+	@golangci-lint run --fix | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
 
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
@@ -167,7 +167,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser plparser lint  # TODO: add @lint and @test here
+deps: prepare man gofmt lfparser plparser # TODO: add @lint and @test here
 
 man:
 	@packr2 clean

@@ -47,7 +47,7 @@ func SearchDir(dir string, suffix string) []string {
 }
 
 // load all inputs under @InstallDir/conf.d
-func LoadInputsConfig(c *Config) error {
+func LoadInputsConfig() error {
 	inputs.Init()
 
 	availableInputCfgs := map[string]*ast.Table{}
@@ -94,7 +94,7 @@ func LoadInputsConfig(c *Config) error {
 			continue
 		}
 
-		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
+		if err := doLoadInputConf(name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
 		}
@@ -138,10 +138,10 @@ func addConfigInfoPath(inputName string, fp string, loaded int8) {
 	}
 }
 
-func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
+func doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
 	l.Debugf("search input cfg for %s", name)
 
-	list := searchDatakitInputCfg(c, inputcfgs, name, creator)
+	list := searchDatakitInputCfg(inputcfgs, name, creator)
 
 	for _, i := range list {
 		if err := inputs.AddInput(name, i); err != nil {
@@ -153,8 +153,7 @@ func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs m
 	return nil
 }
 
-func searchDatakitInputCfg(c *Config,
-	inputcfgs map[string]*ast.Table,
+func searchDatakitInputCfg(inputcfgs map[string]*ast.Table,
 	name string,
 	creator inputs.Creator) []inputs.Input {
 	inputlist := []inputs.Input{}
