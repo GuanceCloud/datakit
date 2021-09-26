@@ -18,7 +18,7 @@ func TestInitCfg(t *testing.T) {
 	c := DefaultConfig()
 
 	tomlfile := ".main.toml"
-	defer os.Remove(tomlfile)
+	defer os.Remove(tomlfile) //nolint:errcheck
 	tu.Equals(t, nil, c.InitCfg(tomlfile))
 }
 
@@ -168,7 +168,7 @@ func TestDefaultToml(t *testing.T) {
 		l.Fatalf("encode main configure failed: %s", err.Error())
 	}
 
-	t.Logf("%s", string(buf.Bytes()))
+	t.Logf("%s", buf.String())
 }
 
 func TestLoadEnv(t *testing.T) {
@@ -239,15 +239,18 @@ func TestLoadEnv(t *testing.T) {
 	}
 
 	for idx, tc := range cases {
-
 		t.Logf("case %d ...", idx)
 
 		c := DefaultConfig()
 		os.Clearenv()
 		for k, v := range tc.envs {
-			os.Setenv(k, v)
+			if err := os.Setenv(k, v); err != nil {
+				t.Fatal(err)
+			}
 		}
-		c.LoadEnvs()
+		if err := c.LoadEnvs(); err != nil {
+			t.Error(err)
+		}
 
 		a := tc.expect.String()
 		b := c.String()
@@ -324,11 +327,10 @@ hostname = "should-not-set"`,
 	tomlfile := ".main.toml"
 
 	defer func() {
-		os.Remove(tomlfile)
+		os.Remove(tomlfile) //nolint:errcheck
 	}()
 
 	for _, tc := range cases {
-
 		c := DefaultConfig()
 
 		if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0600); err != nil {
@@ -345,6 +347,8 @@ hostname = "should-not-set"`,
 
 		t.Logf("hostname: %s", c.Hostname)
 
-		os.Remove(tomlfile)
+		if err := os.Remove(tomlfile); err != nil {
+			t.Error(err)
+		}
 	}
 }

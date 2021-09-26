@@ -17,8 +17,7 @@ import (
 )
 
 func cmdMan() {
-	switch runtime.GOOS {
-	case datakit.OSWindows:
+	if runtime.GOOS == datakit.OSWindows {
 		fmt.Println("\n[E] --man do not support Windows")
 		return
 	}
@@ -77,7 +76,6 @@ func exportMan(to, skipList, ver string) error {
 	}
 
 	for k := range man.OtherDocs {
-
 		if skip[k] {
 			continue
 		}

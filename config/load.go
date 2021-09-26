@@ -29,7 +29,6 @@ func LoadCfg(c *Config, mcp string) error {
 	datakit.InitDirs()
 
 	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
-
 		if runtime.GOOS != datakit.OSWindows && runtime.GOOS != datakit.OSLinux {
 			return fmt.Errorf("docker mode not supported under %s", runtime.GOOS)
 		}
@@ -44,11 +43,8 @@ func LoadCfg(c *Config, mcp string) error {
 		_ = c.SetUUID()
 
 		CreateSymlinks()
-
-	} else {
-		if err := c.LoadMainTOML(mcp); err != nil {
-			return err
-		}
+	} else if err := c.LoadMainTOML(mcp); err != nil {
+		return err
 	}
 
 	l.Debugf("apply main configure...")
@@ -99,11 +95,13 @@ func feedEnvs(data []byte) []byte {
 		}
 
 		var envvar []byte
-		if parameter[1] != nil {
+
+		switch {
+		case parameter[1] != nil:
 			envvar = parameter[1]
-		} else if parameter[2] != nil {
+		case parameter[2] != nil:
 			envvar = parameter[2]
-		} else {
+		default:
 			continue
 		}
 
@@ -122,8 +120,8 @@ func feedEnvs(data []byte) []byte {
 func ParseCfgFile(f string) (*ast.Table, error) {
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
-		l.Error(err)
-		return nil, fmt.Errorf("read config %s failed: %s", f, err.Error())
+		l.Errorf("ioutil.ReadFile: %s", err.Error())
+		return nil, fmt.Errorf("read config %s failed: %w", f, err)
 	}
 
 	data = feedEnvs(data)

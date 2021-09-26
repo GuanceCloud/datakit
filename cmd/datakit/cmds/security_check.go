@@ -52,7 +52,7 @@ func InstallSecCheck(installDir string) error {
 
 	fmt.Printf("Download install script successfully.\n")
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("read response body %w", err)

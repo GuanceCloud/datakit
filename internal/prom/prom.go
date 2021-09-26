@@ -122,7 +122,7 @@ func (p *Prom) Collect() ([]*io.Point, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	return Text2Metrics(resp.Body, p.opt, p.opt.Tags)
 }

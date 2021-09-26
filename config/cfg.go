@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -119,53 +120,51 @@ type LoggerCfg struct {
 }
 
 type Config struct {
-	UUID           string `toml:"-"`
-	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
+	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
+	InstallDate          time.Time `toml:"install_date,omitempty"`
+	UpgradeDate          time.Time `toml:"upgrade_date,omitempty"`
+
+	BlackList []*inputHostList `toml:"black_lists,omitempty"`
+	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
+
+	UUID string `toml:"-"`
 
 	Name      string `toml:"name,omitempty"`
 	Hostname  string `toml:"-"`
 	Namespace string `toml:"namespace"`
 
-	IOConf *IOConfig `toml:"io"`
-
-	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
-
 	// http config: TODO: merge into APIConfig
-	HTTPBindDeprecated       string            `toml:"http_server_addr,omitempty"`
-	HTTPListenDeprecated     string            `toml:"http_listen,omitempty"`
-	Disable404PageDeprecated bool              `toml:"disable_404page,omitempty"`
-	HTTPAPI                  *dkhttp.APIConfig `toml:"http_api"`
+	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
+	HTTPListenDeprecated string `toml:"http_listen,omitempty"`
+	IntervalDeprecated   string `toml:"interval,omitempty"`
+	OutputFileDeprecated string `toml:"output_file,omitempty"`
+	UUIDDeprecated       string `toml:"uuid,omitempty"` // deprecated
 
 	// logging config
-	LogDeprecated       string     `toml:"log,omitempty"`
-	LogLevelDeprecated  string     `toml:"log_level,omitempty"`
-	LogRotateDeprecated int        `toml:"log_rotate,omitzero"`
-	GinLogDeprecated    string     `toml:"gin_log,omitempty"`
-	Logging             *LoggerCfg `toml:"logging"`
+	LogDeprecated      string `toml:"log,omitempty"`
+	LogLevelDeprecated string `toml:"log_level,omitempty"`
+	GinLogDeprecated   string `toml:"gin_log,omitempty"`
+
+	InstallVer string `toml:"install_version,omitempty"`
+
+	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
+	IOConf  *IOConfig           `toml:"io"`
+	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
+	Logging *LoggerCfg          `toml:"logging"`
+
+	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
+	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
 	GlobalTags   map[string]string `toml:"global_tags"`
 	Environments map[string]string `toml:"environments"`
+	Cgroup       *Cgroup           `toml:"cgroup"`
+	Tracer       *tracer.Tracer    `toml:"tracer,omitempty"`
 
-	OutputFileDeprecated string `toml:"output_file,omitempty"`
+	EnablePProf              bool `toml:"enable_pprof,omitempty"`
+	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
+	ProtectMode              bool `toml:"protect_mode"`
 
-	EnablePProf bool `toml:"enable_pprof,omitempty"`
-	ProtectMode bool `toml:"protect_mode"`
-
-	IntervalDeprecated string `toml:"interval,omitempty"`
-
-	DefaultEnabledInputs []string `toml:"default_enabled_inputs,omitempty"`
-
-	InstallDate time.Time `toml:"install_date,omitempty"`
-	UpgradeDate time.Time `toml:"upgrade_date,omitempty"`
-	InstallVer  string    `toml:"install_version,omitempty"`
-
-	BlackList []*inputHostList `toml:"black_lists,omitempty"`
-	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
-	Cgroup    *Cgroup          `toml:"cgroup"`
-
-	EnableElection         bool           `toml:"enable_election"`
-	IOCacheCountDeprecated int64          `toml:"io_cache_count,omitzero"`
-	Tracer                 *tracer.Tracer `toml:"tracer,omitempty"`
+	EnableElection bool `toml:"enable_election"`
 
 	EnableDca bool `toml:"enable_dca"`
 
@@ -244,17 +243,17 @@ func (i *inputHostList) MatchInput(input string) bool {
 
 func (c *Config) InitCfg(p string) error {
 	if c.Hostname == "" {
-		c.setHostname()
+		if err := c.setHostname(); err != nil {
+			return err
+		}
 	}
 
 	if mcdata, err := datakit.TomlMarshal(c); err != nil {
 		l.Errorf("TomlMarshal(): %s", err.Error())
 		return err
-	} else {
-		if err := ioutil.WriteFile(p, mcdata, datakit.ConfPerm); err != nil {
-			l.Errorf("error creating %s: %s", p, err)
-			return err
-		}
+	} else if err := ioutil.WriteFile(p, mcdata, datakit.ConfPerm); err != nil {
+		l.Errorf("error creating %s: %s", p, err)
+		return err
 	}
 
 	return nil
@@ -298,7 +297,9 @@ func (c *Config) setupGlobalTags() error {
 		switch strings.ToLower(v) {
 		case `__datakit_hostname`, `$datakit_hostname`:
 			if c.Hostname == "" {
-				c.setHostname()
+				if err := c.setHostname(); err != nil {
+					return err
+				}
 			}
 
 			c.GlobalTags[k] = c.Hostname
@@ -521,7 +522,6 @@ func (c *Config) LoadEnvs() error {
 
 	// 多个 dataway 支持 ',' 分割
 	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
-
 		if c.DataWay == nil {
 			c.DataWay = &dataway.DataWayCfg{}
 		}
@@ -558,10 +558,8 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_DEFAULT_ENABLED_INPUTS"); v != "" {
 		c.DefaultEnabledInputs = strings.Split(v, ",")
-	} else {
-		if v := datakit.GetEnv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
-			c.DefaultEnabledInputs = strings.Split(v, ",")
-		}
+	} else if v := datakit.GetEnv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
+		c.DefaultEnabledInputs = strings.Split(v, ",")
 	}
 
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
@@ -611,15 +609,10 @@ func emptyDir(fp string) bool {
 		return false
 	}
 
-	defer fd.Close()
+	defer fd.Close() //nolint:errcheck
 
 	_, err = fd.ReadDir(1)
-	switch err {
-	case io.EOF:
-		return true
-	default:
-		return false
-	}
+	return errors.Is(err, io.EOF)
 }
 
 // remove all xxx.conf.sample
@@ -674,7 +667,7 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 }
 
 func CreateSymlinks() {
-	x := [][2]string{}
+	var x [][2]string
 
 	if runtime.GOOS == datakit.OSWindows {
 		x = [][2]string{

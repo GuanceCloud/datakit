@@ -53,7 +53,7 @@ func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s", string(body))

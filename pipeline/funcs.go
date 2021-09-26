@@ -1012,8 +1012,7 @@ func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		val = nil
 	}
 
-	err := p.setContent(key, val)
-	if err != nil {
+	if err := p.setContent(key, val); err != nil {
 		l.Warn(err)
 		return p, nil
 	}

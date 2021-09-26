@@ -211,12 +211,11 @@ func NumberFormat(str string) string {
 func GZipStr(str string) ([]byte, error) {
 	var z bytes.Buffer
 	zw := gzip.NewWriter(&z)
-	_, err := io.WriteString(zw, str)
-	if err != nil {
+	if _, err := io.WriteString(zw, str); err != nil {
 		return nil, err
 	}
-	zw.Flush()
-	zw.Close()
+	zw.Flush() //nolint:errcheck
+	zw.Close() //nolint:errcheck
 	return z.Bytes(), nil
 }
 
@@ -227,8 +226,8 @@ func GZip(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	zw.Flush()
-	zw.Close()
+	zw.Flush() //nolint:errcheck
+	zw.Close() //nolint:errcheck
 	return z.Bytes(), nil
 }
 
@@ -241,8 +240,12 @@ func LocalIP() (string, error) {
 	for _, dest := range dnsdests {
 		conn, err := net.DialTimeout("udp", dest, time.Second)
 		if err == nil {
-			defer conn.Close()
-			localAddr := conn.LocalAddr().(*net.UDPAddr)
+			defer conn.Close() //nolint:errcheck
+			localAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+			if !ok {
+				return "", fmt.Errorf("expect net.UDPAddr")
+			}
+
 			return localAddr.IP.String(), nil
 		}
 	}

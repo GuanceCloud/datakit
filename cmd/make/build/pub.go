@@ -42,8 +42,7 @@ func tarFiles(goos, goarch string) {
 	cmd.Stderr = os.Stderr
 
 	l.Debugf("tar %s...", gz)
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		l.Fatal(err)
 	}
 }
@@ -140,7 +139,6 @@ func PubDatakit() {
 	}
 
 	for k, v := range ossfiles {
-
 		fi, _ := os.Stat(v)
 		l.Debugf("%s => %s(%s)...", v, k, humanize.Bytes(uint64(fi.Size())))
 

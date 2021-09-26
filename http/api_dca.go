@@ -29,7 +29,7 @@ var dcaErrorMessage = map[string]string{
 
 func getBody(c *gin.Context, data interface{}) error {
 	body, err := ioutil.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
+	defer c.Request.Body.Close() //nolint:errcheck
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,9 @@ func dcaGetConfig(c *gin.Context) {
 // save config
 func dcaSaveConfig(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
+
+	defer c.Request.Body.Close() //nolint:errcheck
+
 	context := &dcaContext{c: c}
 	if err != nil {
 		l.Error(err)
@@ -287,19 +289,17 @@ func dcaSaveConfig(c *gin.Context) {
 					Path:   param.Path,
 				})
 			}
-		} else { // add new info
-			if creator, ok := inputs.Inputs[param.InputName]; ok {
-				inputs.ConfigInfo[param.InputName] = &inputs.Config{
-					ConfigPaths: []*inputs.ConfigPathStat{
-						{
-							Loaded: int8(2),
-							Path:   param.Path,
-						},
+		} else if creator, ok := inputs.Inputs[param.InputName]; ok { // add new info
+			inputs.ConfigInfo[param.InputName] = &inputs.Config{
+				ConfigPaths: []*inputs.ConfigPathStat{
+					{
+						Loaded: int8(2),
+						Path:   param.Path,
 					},
-					SampleConfig: creator().SampleConfig(),
-					Catalog:      creator().Catalog(),
-					ConfigDir:    datakit.ConfdDir,
-				}
+				},
+				SampleConfig: creator().SampleConfig(),
+				Catalog:      creator().Catalog(),
+				ConfigDir:    datakit.ConfdDir,
 			}
 		}
 	}

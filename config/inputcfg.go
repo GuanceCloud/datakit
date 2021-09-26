@@ -56,7 +56,6 @@ func LoadInputsConfig(c *Config) error {
 	l.Debugf("loading %d conf...", len(confs))
 
 	for _, fp := range confs {
-
 		l.Debugf("loading conf %s...", fp)
 
 		if filepath.Base(fp) == "datakit.conf" {
@@ -158,7 +157,6 @@ func searchDatakitInputCfg(c *Config,
 	inputcfgs map[string]*ast.Table,
 	name string,
 	creator inputs.Creator) []inputs.Input {
-
 	inputlist := []inputs.Input{}
 
 	addConfigInfoPath(name, "", 0) // init config info
@@ -226,13 +224,13 @@ func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
 }
 
 func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
-	tbls := []*ast.Table{}
+	var tbls []*ast.Table
 
 	switch t := tbl.(type) {
 	case []*ast.Table:
-		tbls = tbl.([]*ast.Table)
+		tbls = t
 	case *ast.Table:
-		tbls = append(tbls, tbl.(*ast.Table))
+		tbls = append(tbls, t)
 	default:
 		err = fmt.Errorf("invalid toml format on %s: %v", name, t)
 		return
@@ -289,7 +287,6 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 // Creata datakit input plugin's configures if not exists
 func initPluginSamples() error {
 	for name, create := range inputs.Inputs {
-
 		if !datakit.Enabled(name) {
 			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
 			continue
@@ -309,7 +306,6 @@ func initDefaultEnabledPlugins(c *Config) {
 	}
 
 	for _, name := range c.DefaultEnabledInputs {
-
 		l.Debugf("init default input %s conf...", name)
 
 		var fpath, sample string
@@ -346,7 +342,7 @@ func initDefaultEnabledPlugins(c *Config) {
 func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, error) {
 	tbl, err := ParseCfgFile(f)
 	if err != nil {
-		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
+		return nil, fmt.Errorf("parse conf failed: %w", err)
 	}
 
 	inputlist := []inputs.Input{}
@@ -359,7 +355,7 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 				for inputName, v := range stbl.Fields {
 					inputlist, err = TryUnmarshal(v, inputName, creator)
 					if err != nil {
-						return nil, fmt.Errorf("unmarshal input failed, %s", err.Error())
+						return nil, fmt.Errorf("unmarshal input failed, %w", err)
 					}
 				}
 			}
@@ -367,7 +363,7 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 		default: // compatible with old version: no [[inputs.xxx]] header
 			inputlist, err = TryUnmarshal(node, "", creator)
 			if err != nil {
-				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
+				return nil, fmt.Errorf("unmarshal input failed: %w", err)
 			}
 		}
 	}

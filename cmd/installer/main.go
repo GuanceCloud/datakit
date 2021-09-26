@@ -172,7 +172,6 @@ DataKit        : %s
 	}
 
 	if flagProxy != "" {
-
 		if !strings.HasPrefix(flagProxy, "http") {
 			flagProxy = "http://" + flagProxy
 		}
@@ -388,10 +387,9 @@ func preEnableHostobjectInput(cloud string) []byte {
 # more_tag = "some_other_value"
 # ...`)
 
-	conf := bytes.Replace(sample,
+	conf := bytes.ReplaceAll(sample,
 		[]byte(`# cloud_provider = "aliyun"`),
-		[]byte(fmt.Sprintf(`  cloud_provider = "%s"`, cloud)),
-		-1)
+		[]byte(fmt.Sprintf(`  cloud_provider = "%s"`, cloud)))
 
 	return conf
 }

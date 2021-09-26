@@ -120,11 +120,9 @@ func setupFlags() {
 		"disable-logfilter",
 		"disable-heartbeat",
 	} {
-		flag.CommandLine.MarkHidden(f)
-	}
-
-	if runtime.GOOS == datakit.OSWindows {
-		flag.CommandLine.MarkHidden("reload")
+		if err := flag.CommandLine.MarkHidden(f); err != nil {
+			l.Warnf("CommandLine.MarkHidden: %s, ignored", err)
+		}
 	}
 
 	flag.CommandLine.SortFlags = false
@@ -160,19 +158,15 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
-
 		go cgroup.Run()
 		service.Entry = run
 
 		if cmds.FlagWorkDir != "" { // debugging running, not start as service
 			run()
-		} else {
-			if err := service.StartService(); err != nil {
-				l.Errorf("start service failed: %s", err.Error())
-				return
-			}
+		} else if err := service.StartService(); err != nil {
+			l.Errorf("start service failed: %s", err.Error())
+			return
 		}
-
 	}
 
 	l.Info("datakit exited")
@@ -247,7 +241,9 @@ func tryLoadConfig() {
 }
 
 func doRun() error {
-	io.Start()
+	if err := io.Start(); err != nil {
+		return err
+	}
 
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)

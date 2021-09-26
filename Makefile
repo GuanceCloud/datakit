@@ -167,7 +167,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser plparser  # TODO: add @lint and @test here
+deps: prepare man gofmt lfparser plparser lint  # TODO: add @lint and @test here
 
 man:
 	@packr2 clean

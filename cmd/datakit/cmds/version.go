@@ -108,10 +108,8 @@ const (
 )
 
 func getUpgradeCommand(dlurl string, showTesting bool) string {
-	upgradeCmd := ""
 	proxy := config.Cfg.DataWay.HttpProxy
-
-	baseURLEnv := ""
+	var upgradeCmd, baseURLEnv string
 
 	switch runtime.GOOS {
 	case datakit.OSWindows:
@@ -167,7 +165,7 @@ func getVersion(addr string) (*version.VerInfo, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	infobody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

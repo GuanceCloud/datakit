@@ -88,9 +88,7 @@ func apiManualTOC(c *gin.Context) {
 	}
 
 	for k, v := range inputs.Inputs {
-		switch v().(type) {
-		case inputs.InputV2:
-
+		if _, ok := v().(inputs.InputV2); ok {
 			// test if doc available
 			if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
 				l.Warn(err)

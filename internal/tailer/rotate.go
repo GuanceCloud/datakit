@@ -10,7 +10,7 @@ func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
 		return false, err
 	}
 
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	fi1, err := f.Stat()
 	if err != nil {

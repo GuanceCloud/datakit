@@ -101,7 +101,7 @@ func apiQueryRaw(c *gin.Context) {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	c.Data(resp.StatusCode, "application/json", respBody)
 }
