@@ -207,9 +207,9 @@ func runTestClientConnections(t *testing.T, nclients int, defaultOpts, closeIdle
 		ts.URL, nclients, defaultOpts, closeIdleManually, cw.String())
 
 	if defaultOpts || closeIdleManually {
-		tu.Assert(t, cw.nMax > int64(nclients), "by using default transport, %d should > %d", cw.nMax, nclients)
+		tu.Assert(t, cw.Max > int64(nclients), "by using default transport, %d should > %d", cw.Max, nclients)
 	} else {
-		tu.Assert(t, cw.nMax == int64(nclients), "by using specified transport, %d shoudl == %d", cw.nMax, nclients)
+		tu.Assert(t, cw.Max == int64(nclients), "by using specified transport, %d shoudl == %d", cw.Max, nclients)
 	}
 }
 
