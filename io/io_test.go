@@ -55,7 +55,9 @@ func assemblePoints(count int) []*Point {
 func BenchmarkBuildBody(b *testing.B) {
 	pts := assemblePoints(10000)
 	for i := 0; i < b.N; i++ {
-		defaultIO.buildBody(pts)
+		if _, err := defaultIO.buildBody(pts); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -79,7 +81,9 @@ func TestIODatawaySending(t *testing.T) {
 	ConfigDefaultIO(SetDataway(testdw), SetMaxCacheCount(int64(cacheCnt)))
 
 	go func() {
-		Start() // start IO
+		if err := Start(); err != nil { // start IO
+			t.Error(err)
+		}
 	}()
 
 	time.Sleep(time.Second) // required
@@ -101,7 +105,9 @@ func TestIODatawaySending(t *testing.T) {
 			npts++
 		}
 
-		Feed("TestIODatawaySending", datakit.Metric, cache, nil)
+		if err := Feed("TestIODatawaySending", datakit.Metric, cache, nil); err != nil {
+			t.Fatal(err)
+		}
 		if npts > 10000 {
 			break
 		}

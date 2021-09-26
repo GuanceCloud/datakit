@@ -127,7 +127,7 @@ func (m *SolrSearcher) Info() *inputs.MeasurementInfo {
 
 // ----------------------- newFieldInfo ----------------
 
-// count
+// count.
 func newFieldInfoCount(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Int,
@@ -137,7 +137,7 @@ func newFieldInfoCount(desc string) *inputs.FieldInfo {
 	}
 }
 
-// 吞吐量
+// 吞吐量.
 func newFieldInfoRPS(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -147,7 +147,7 @@ func newFieldInfoRPS(desc string) *inputs.FieldInfo {
 	}
 }
 
-// 时间 ms
+// 时间 ms.
 func newFieldInfoFloatMS(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -157,7 +157,7 @@ func newFieldInfoFloatMS(desc string) *inputs.FieldInfo {
 	}
 }
 
-// 时间 ms
+// 时间 ms.
 func newFieldInfoIntMS(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Int,
@@ -185,7 +185,7 @@ func newFieldInfoByte(desc string) *inputs.FieldInfo {
 	}
 }
 
-// percent %
+// percent %.
 func newFieldInfoPercent(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,

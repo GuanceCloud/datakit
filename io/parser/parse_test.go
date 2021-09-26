@@ -179,39 +179,6 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
-		//{
-		//	in: `{
-		//		a > 0, c < 5 || d < 2}`,
-		//	//in: "{a > 0}",
-		//	expected: &WhereCondition{
-		//		conditions: []Node{
-		//			&BinaryExpr{
-		//				Op: AND,
-		//				LHS: &BinaryExpr{
-		//					Op:  GT,
-		//					LHS: &Identifier{Name: "a"},
-		//					RHS: &NumberLiteral{IsInt: true, Int: 0},
-		//				},
-
-		//				RHS: &BinaryExpr{
-		//					Op: OR,
-		//					LHS: &BinaryExpr{
-
-		//						Op:  LT,
-		//						LHS: &Identifier{Name: "c"},
-		//						RHS: &NumberLiteral{IsInt: true, Int: 5},
-		//					},
-
-		//					RHS: &BinaryExpr{
-		//						Op:  LT,
-		//						LHS: &Identifier{Name: "d"},
-		//						RHS: &NumberLiteral{IsInt: true, Int: 2},
-		//					},
-		//				},
-		//			},
-		//		},
-		//	},
-		//},
 	}
 
 	for _, tc := range cases {
@@ -230,7 +197,10 @@ func TestParse(t *testing.T) {
 		switch v := p.parseResult.(type) {
 		case WhereConditions:
 
-			exp := tc.expected.(WhereConditions)
+			exp, ok := tc.expected.(WhereConditions)
+			if !ok {
+				t.Fatal("not WhereConditions")
+			}
 
 			x := exp.String()
 			y := v.String()

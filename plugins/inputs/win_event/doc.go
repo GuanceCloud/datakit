@@ -26,7 +26,7 @@ func (_ *Input) Catalog() string {
 	return "windows"
 }
 
-// TODO
+// TODO.
 func (*Input) RunPipeline() {
 }
 

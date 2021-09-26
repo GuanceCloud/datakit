@@ -173,7 +173,7 @@ func (c *ConnStatsRecord) updateLastActive(activeConnInfo ConnectionInfo, active
 }
 
 // 返回合并结果(与已关闭的和上一周期未关闭的);
-// 调用此方法将更新/删除 record 中的 Map: lastActiveConns, closedConns 的元素
+// 调用此方法将更新/删除 record 中的 Map: lastActiveConns, closedConns 的元素.
 func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, connFullStats ConnFullStats) ConnFullStats {
 	if v, ok := c.closedConns[connInfo]; ok {
 		// closed
@@ -206,7 +206,7 @@ func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, con
 	return connFullStats
 }
 
-// fullConn = connStats op("+", "-", ...) fullConn;
+// fullConn = connStats op("+", "-", ...) fullConn;.
 func statsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnFullStats {
 	switch op {
 	case "+":

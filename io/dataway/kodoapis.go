@@ -42,7 +42,7 @@ func (dc *endPoint) getLogFilter() ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("getLogFilter failed with status code %d", resp.StatusCode)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	return ioutil.ReadAll(resp.Body)
 }
@@ -99,7 +99,7 @@ func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	switch resp.StatusCode / 100 {
 	case 2:
 		l.Debugf("election %s ok", requrl)
@@ -143,7 +143,7 @@ func (dw *DataWayCfg) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	switch resp.StatusCode / 100 {
 	case 2:
 		return body, nil
@@ -159,6 +159,9 @@ func (dc *endPoint) heartBeat(data []byte) error {
 	}
 
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
 
 	if dc.ontest {
 		return nil
@@ -169,7 +172,7 @@ func (dc *endPoint) heartBeat(data []byte) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode >= 400 {
 		err := fmt.Errorf("heart beat resp err: %+#v", resp)
@@ -199,7 +202,7 @@ func (dw *DataWayCfg) DatawayList() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -216,7 +219,7 @@ func (dw *DataWayCfg) DatawayList() ([]string, error) {
 		return nil, err
 	}
 
-	l.Debugf(`avaliable dataways; %+#v`, dws.Content)
+	l.Debugf(`available dataways; %+#v`, dws.Content)
 	return dws.Content, nil
 }
 
@@ -239,20 +242,20 @@ func (dw *DataWayCfg) HeartBeat() error {
 
 	bodyByte, err := json.Marshal(body)
 	if err != nil {
-		err := fmt.Errorf("[error] heartbeat json marshal err:%s", err.Error())
+		err := fmt.Errorf("[error] heartbeat json marshal err: %w", err)
 		return err
 	}
 
 	for _, dc := range dw.endPoints {
 		if err := dc.heartBeat(bodyByte); err != nil {
-			l.Errorf("heart beat send data error %v", err)
+			return err
 		}
 	}
 
 	return nil
 }
 
-// UpsertObjectLabels , dw api create or update object labels
+// UpsertObjectLabels , dw api create or update object labels.
 func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
@@ -266,13 +269,13 @@ func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Respons
 
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, fmt.Errorf("delete object label error: %s", err.Error())
+		return nil, fmt.Errorf("delete object label error: %w", err)
 	}
 
 	return dw.sendReq(req)
 }
 
-// DeleteObjectLabels , dw api delete object labels
+// DeleteObjectLabels , dw api delete object labels.
 func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
@@ -287,7 +290,7 @@ func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Respons
 	rBody := bytes.NewReader(body)
 	req, err := http.NewRequest("DELETE", requrl, rBody)
 	if err != nil {
-		return nil, fmt.Errorf("delete object label error: %s", err.Error())
+		return nil, fmt.Errorf("delete object label error: %w", err)
 	}
 
 	return dw.sendReq(req)

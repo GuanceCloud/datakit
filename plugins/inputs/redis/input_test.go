@@ -6,8 +6,6 @@ import (
 
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
-	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	// "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var redisInfo = `

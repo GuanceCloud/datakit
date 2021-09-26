@@ -14,7 +14,6 @@ import (
 
 	"github.com/c-bata/go-prompt"
 	"github.com/influxdata/influxdb1-client/models"
-
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
@@ -202,7 +201,7 @@ func doDQL(s string) {
 		return
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode/100 != 2 {
 		r := struct {
@@ -295,10 +294,9 @@ func doShow(c *queryResult) {
 	}
 
 	infof("---------\n%d rows, %d series, cost %s\n", rows, len(c.Series), c.Cost)
-	return
 }
 
-// Not used
+// Not used.
 func sortColumns(r *models.Row) {
 	colMap := map[string]int{}
 	for i, col := range r.Columns {
@@ -326,6 +324,7 @@ func sortColumns(r *models.Row) {
 	r.Values = valArray
 }
 
+//nolint:deadcode,unused
 func showRow(r *models.Row) {
 	output("%d columns\n", len(r.Columns))
 
@@ -339,7 +338,6 @@ func showRow(r *models.Row) {
 
 	output("%d values\n", len(r.Values))
 	for _, vals := range r.Values {
-
 		output("value width: %d\n", len(vals))
 		for i, v := range vals {
 			if i < len(vals)-1 {
@@ -352,7 +350,7 @@ func showRow(r *models.Row) {
 }
 
 // Not used
-//nolint:deadcode
+//nolint:deadcode,unused
 func tableShow(resp *queryResult) int {
 	nrows := 0
 
@@ -464,9 +462,8 @@ func prettyShow(resp *queryResult) int {
 					continue
 				}
 
-				switch val[0].(type) {
-				case string:
-					addSug(val[0].(string))
+				if str, ok := val[0].(string); ok {
+					addSug(str)
 				}
 
 				output("%s\n", val[0])

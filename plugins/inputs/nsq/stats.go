@@ -143,7 +143,7 @@ type DataStats struct {
 	Topics    []*TopicStats `json:"topics"`
 }
 
-// e2e_processing_latency is not modeled
+// e2e_processing_latency is not modeled.
 type TopicStats struct {
 	Name         string          `json:"topic_name"`
 	Depth        int64           `json:"depth"`
@@ -153,7 +153,7 @@ type TopicStats struct {
 	Channels     []*ChannelStats `json:"channels"`
 }
 
-// e2e_processing_latency is not modeled
+// e2e_processing_latency is not modeled.
 type ChannelStats struct {
 	Name          string `json:"channel_name"`
 	Depth         int64  `json:"depth"`

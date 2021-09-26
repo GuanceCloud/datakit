@@ -29,7 +29,7 @@ var dcaErrorMessage = map[string]string{
 
 func getBody(c *gin.Context, data interface{}) error {
 	body, err := ioutil.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
+	defer c.Request.Body.Close() //nolint:errcheck
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (d *dcaContext) fail(errors ...dcaError) {
 	d.send(response)
 }
 
-// dca reload
+// dca reload.
 func dcaReload(c *gin.Context) {
 	context := getContext(c)
 	context.success()
@@ -175,7 +175,7 @@ type saveConfigParam struct {
 	InputName string `json:"inputName"`
 }
 
-// auth middleware
+// auth middleware.
 func dcaAuthMiddleware(f func(*gin.Context)) func(*gin.Context) {
 	return func(c *gin.Context) {
 		tokens := c.Request.Header["X-Token"]
@@ -213,10 +213,12 @@ func dcaGetConfig(c *gin.Context) {
 	context.success(string(content))
 }
 
-// save config
+// save config.
 func dcaSaveConfig(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
-	defer c.Request.Body.Close()
+
+	defer c.Request.Body.Close() //nolint:errcheck
+
 	context := &dcaContext{c: c}
 	if err != nil {
 		l.Error(err)
@@ -287,20 +289,17 @@ func dcaSaveConfig(c *gin.Context) {
 					Path:   param.Path,
 				})
 			}
-
-		} else { // add new info
-			if creator, ok := inputs.Inputs[param.InputName]; ok {
-				inputs.ConfigInfo[param.InputName] = &inputs.Config{
-					ConfigPaths: []*inputs.ConfigPathStat{
-						{
-							Loaded: int8(2),
-							Path:   param.Path,
-						},
+		} else if creator, ok := inputs.Inputs[param.InputName]; ok { // add new info
+			inputs.ConfigInfo[param.InputName] = &inputs.Config{
+				ConfigPaths: []*inputs.ConfigPathStat{
+					{
+						Loaded: int8(2),
+						Path:   param.Path,
 					},
-					SampleConfig: creator().SampleConfig(),
-					Catalog:      creator().Catalog(),
-					ConfigDir:    datakit.ConfdDir,
-				}
+				},
+				SampleConfig: creator().SampleConfig(),
+				Catalog:      creator().Catalog(),
+				ConfigDir:    datakit.ConfdDir,
 			}
 		}
 	}
@@ -515,14 +514,12 @@ func dcaTestPipelines(c *gin.Context) {
 
 	body := map[string]string{}
 
-	err := getBody(c, &body)
-	if err != nil {
+	if err := getBody(c, &body); err != nil {
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "parameter format error"})
 		return
 	}
 
 	text, ok := body["text"]
-
 	if !ok {
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "parameter 'text' is required"})
 		return

@@ -61,7 +61,7 @@ type ReadResponse struct {
 //   "target": {
 //     "url: "service:jmx:rmi:///jndi/rmi://target:9010/jmxrmi"
 //   }
-// }
+// }.
 type jolokiaRequest struct {
 	Type      string         `json:"type"`
 	Mbean     string         `json:"mbean"`
@@ -88,7 +88,7 @@ type jolokiaTarget struct {
 //   "value": 1214083,
 //   "timestamp": 1488059309,
 //   "status": 200
-// }
+// }.
 type jolokiaResponse struct {
 	Request jolokiaRequest `json:"request"`
 	Value   interface{}    `json:"value"`

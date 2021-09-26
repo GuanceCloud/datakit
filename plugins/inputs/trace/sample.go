@@ -20,7 +20,7 @@ type TraceSampleConfig struct {
 	IgnoreTagsList []string          `toml:"ignore_tags_list"`
 }
 
-// TraceSampleMatcher return sample config assgined by ddtrace config
+// TraceSampleMatcher return sample config assgined by ddtrace config.
 func SampleConfMatcher(confs []*TraceSampleConfig, tags map[string]string) *TraceSampleConfig {
 	var conf *TraceSampleConfig
 	for _, conf = range confs {

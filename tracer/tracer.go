@@ -1,3 +1,5 @@
+// Datakit trace manager
+
 package tracer
 
 import (

@@ -223,7 +223,7 @@ func RunCmds() {
 	if FlagProm != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		promDebugger(FlagProm)
+		promDebugger(FlagProm) //nolint:errcheck
 		os.Exit(0)
 	}
 
@@ -267,7 +267,6 @@ func RunCmds() {
 	}
 
 	if FlagStart {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
@@ -281,7 +280,6 @@ func RunCmds() {
 	}
 
 	if FlagStop {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
@@ -309,7 +307,6 @@ func RunCmds() {
 	}
 
 	if FlagStatus {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := datakitStatus()

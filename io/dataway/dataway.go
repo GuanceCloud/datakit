@@ -39,26 +39,24 @@ var (
 )
 
 type DataWayCfg struct {
-	DeprecatedURL string   `toml:"url,omitempty"`
-	URLs          []string `toml:"urls"`
-
-	HTTPTimeout     string        `toml:"timeout"`
-	TimeoutDuration time.Duration `toml:"-"`
-
-	Proxy     bool   `toml:"proxy,omitempty"`
-	HttpProxy string `toml:"http_proxy"`
-
+	URLs      []string `toml:"urls"`
 	endPoints []*endPoint
-	httpCli   *http.Client
 
-	Hostname string `toml:"-"`
-
-	MaxFails int `toml:"max_fail"`
-	ontest   bool
-
+	DeprecatedURL    string `toml:"url,omitempty"`
+	HTTPTimeout      string `toml:"timeout"`
+	HttpProxy        string `toml:"http_proxy"`
+	Hostname         string `toml:"-"`
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`
+
+	TimeoutDuration time.Duration `toml:"-"`
+	httpCli         *http.Client
+
+	MaxFails int `toml:"max_fail"`
+
+	Proxy  bool `toml:"proxy,omitempty"`
+	ontest bool
 }
 
 type endPoint struct {

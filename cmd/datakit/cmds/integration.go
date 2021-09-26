@@ -6,9 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type integration struct {

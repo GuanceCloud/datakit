@@ -11,7 +11,6 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
@@ -25,7 +24,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits
 	flag.BoolVarP(&cmds.FlagVersion, "version", "V", false, `show version info`)
 	flag.BoolVar(&cmds.FlagCheckUpdate, "check-update", false, "check if new version available")
 	flag.BoolVar(&cmds.FlagAcceptRCVersion, "accept-rc-version", false, "during update, accept RC version if available")
@@ -97,7 +96,7 @@ func init() {
 var (
 	l = logger.DefaultSLogger("main")
 
-	// injected during building: -X
+	// injected during building: -X.
 	ReleaseType    = ""
 	ReleaseVersion = ""
 )
@@ -120,11 +119,9 @@ func setupFlags() {
 		"disable-logfilter",
 		"disable-heartbeat",
 	} {
-		flag.CommandLine.MarkHidden(f)
-	}
-
-	if runtime.GOOS == datakit.OSWindows {
-		flag.CommandLine.MarkHidden("reload")
+		if err := flag.CommandLine.MarkHidden(f); err != nil {
+			l.Warnf("CommandLine.MarkHidden: %s, ignored", err)
+		}
 	}
 
 	flag.CommandLine.SortFlags = false
@@ -160,19 +157,15 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
-
 		go cgroup.Run()
 		service.Entry = run
 
 		if cmds.FlagWorkDir != "" { // debugging running, not start as service
 			run()
-		} else {
-			if err := service.StartService(); err != nil {
-				l.Errorf("start service failed: %s", err.Error())
-				return
-			}
+		} else if err := service.StartService(); err != nil {
+			l.Errorf("start service failed: %s", err.Error())
+			return
 		}
-
 	}
 
 	l.Info("datakit exited")
@@ -247,7 +240,9 @@ func tryLoadConfig() {
 }
 
 func doRun() error {
-	io.Start()
+	if err := io.Start(); err != nil {
+		return err
+	}
 
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
@@ -259,7 +254,6 @@ func doRun() error {
 	}
 
 	// FIXME: wait all inputs ok, then start http server
-
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
 		EnableDca:      config.Cfg.EnableDca,

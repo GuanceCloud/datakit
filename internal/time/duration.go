@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-// Duration just wraps time.Duration
+// Duration just wraps time.Duration.
 type Duration struct {
 	Duration time.Duration
 }
 
-// UnmarshalTOML parses the duration from the TOML config file
+// UnmarshalTOML parses the duration from the TOML config file.
 func (d *Duration) UnmarshalTOML(b []byte) error {
 	b = bytes.Trim(b, "'")
 

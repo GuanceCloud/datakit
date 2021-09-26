@@ -35,7 +35,6 @@ func promTextToMetrics(data io.Reader) ([]*samplePoint, error) {
 		}
 
 		switch metric.GetType() {
-
 		case dto.MetricType_COUNTER:
 			pts = append(pts, prom.counter(name, metric.Metric)...)
 

@@ -1,3 +1,5 @@
+// tool to build datakit
+
 package main
 
 import (
@@ -32,7 +34,9 @@ func applyFlags() {
 
 		inputIPDir := filepath.Join(curDir, "china-operator-ip")
 		ip2ispFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.txt")
-		os.Remove(ip2ispFile)
+		if err := os.Remove(ip2ispFile); err != nil {
+			l.Warnf("os.Remove: %s, ignored", err.Error())
+		}
 
 		if err := ip2isp.MergeIsp(inputIPDir, ip2ispFile); err != nil {
 			l.Errorf("MergeIsp failed: %v", err)
@@ -46,7 +50,10 @@ func applyFlags() {
 			l.Errorf("%v not exist, you can download from `https://lite.ip2location.com/download?id=9`", inputFile)
 			os.Exit(0)
 		}
-		os.Remove(ip2ispFile)
+
+		if err := os.Remove(ip2ispFile); err != nil {
+			l.Warnf("os.Remove: %s, ignored", err.Error())
+		}
 
 		if err := ip2isp.BuildContryCity(inputFile, outputFile); err != nil {
 			l.Errorf("BuildContryCity failed: %v", err)

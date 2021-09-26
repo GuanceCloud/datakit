@@ -43,7 +43,6 @@ func TestParseName(t *testing.T) {
 	s.Templates = []string{}
 
 	for _, tc := range cases {
-
 		s.MetricSeparator = tc.sep
 
 		name, fields, tags := s.parseName(tc.in)

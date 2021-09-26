@@ -14,7 +14,9 @@ import (
 func TestDataWayAPIs(t *testing.T) {
 	dw := DataWayCfg{URLs: []string{"https://abc.com?token=tkn_abc"}}
 
-	dw.Apply()
+	if err := dw.Apply(); err != nil {
+		t.Fatal(err)
+	}
 
 	for _, c := range dw.endPoints {
 		tu.Equals(t, len(apis), len(c.categoryURL))
@@ -118,7 +120,6 @@ func TestSend(t *testing.T) {
 	}
 
 	for idx, tc := range cases {
-
 		t.Logf("===== case %d ======", idx)
 
 		dw := &DataWayCfg{URLs: tc.urls}

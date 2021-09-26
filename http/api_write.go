@@ -2,13 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -22,7 +22,7 @@ type jsonPoint struct {
 	Time        int64                  `json:"time,omitempty"`
 }
 
-// convert json point to real point
+// convert json point to real point.
 func (jp *jsonPoint) pt(prec string, extags map[string]string) (*io.Point, error) {
 	if prec == "" || prec == "n" {
 		prec = "ns"
@@ -137,11 +137,10 @@ func apiWrite(c *gin.Context) {
 
 		pts, err = handleRUMBody(body, precision, srcip, isjson, apiConfig.RUMAppIDWhiteList)
 		// appid不在白名单中，当前 http 请求直接返回
-		if err == ErrRUMAppIdNotInWhiteList {
+		if errors.As(err, &ErrRUMAppIdNotInWhiteList) {
 			uhttp.HttpErr(c, err)
 			return
 		}
-
 	} else {
 		extags := extraTags
 		if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
@@ -173,7 +172,6 @@ func handleWriteBody(body []byte,
 	isJson bool,
 	appIdWhiteList []string,
 ) ([]*io.Point, error) {
-
 	switch isJson {
 	case true:
 		return jsonPoints(body, precision, extags, appIdWhiteList)
@@ -197,7 +195,6 @@ func jsonPoints(body []byte,
 	prec string,
 	extags map[string]string,
 	appIdWhiteList []string) ([]*io.Point, error) {
-
 	var jps []jsonPoint
 	err := json.Unmarshal(body, &jps)
 	if err != nil {
@@ -213,7 +210,7 @@ func jsonPoints(body []byte,
 		} else {
 			tags := p.Tags()
 			if len(tags) == 0 {
-				return nil, fmt.Errorf("invalid tags, is emtpy")
+				return nil, fmt.Errorf("empty tags")
 			}
 			if !contains(tags[rumMetricAppID], appIdWhiteList) {
 				return nil, ErrRUMAppIdNotInWhiteList

@@ -10,28 +10,28 @@ import (
 var (
 	// Device Model:     APPLE SSD SM256E
 	// Product:              HUH721212AL5204
-	// Model Number: TS128GMTE850
+	// Model Number: TS128GMTE850.
 	modelInfo = regexp.MustCompile("^(Device Model|Product|Model Number):\\s+(.*)$")
-	// Serial Number:    S0X5NZBC422720
+	// Serial Number:    S0X5NZBC422720.
 	serialInfo = regexp.MustCompile("(?i)^Serial Number:\\s+(.*)$")
-	// LU WWN Device Id: 5 002538 655584d30
+	// LU WWN Device Id: 5 002538 655584d30.
 	wwnInfo = regexp.MustCompile("^LU WWN Device Id:\\s+(.*)$")
-	// User Capacity:    251,000,193,024 bytes [251 GB]
+	// User Capacity:    251,000,193,024 bytes [251 GB].
 	userCapacityInfo = regexp.MustCompile("^User Capacity:\\s+([0-9,]+)\\s+bytes.*$")
-	// SMART support is: Enabled
+	// SMART support is: Enabled.
 	smartEnabledInfo = regexp.MustCompile("^SMART support is:\\s+(\\w+)$")
 	// SMART overall-health self-assessment test result: PASSED
 	// SMART Health Status: OK
-	// PASSED, FAILED, UNKNOWN
+	// PASSED, FAILED, UNKNOWN.
 	smartOverallHealth = regexp.MustCompile("^(SMART overall-health self-assessment test result|SMART Health Status):\\s+(\\w+).*$")
 
-	// sasNvmeAttr is a SAS or NVME SMART attribute
+	// sasNvmeAttr is a SAS or NVME SMART attribute.
 	sasNvmeAttr = regexp.MustCompile(`^([^:]+):\s+(.+)$`)
 
 	// ID# ATTRIBUTE_NAME          FLAGS    VALUE WORST THRESH FAIL RAW_VALUE
 	//   1 Raw_Read_Error_Rate     -O-RC-   200   200   000    -    0
 	//   5 Reallocated_Sector_Ct   PO--CK   100   100   000    -    0
-	// 192 Power-Off_Retract_Count -O--C-   097   097   000    -    14716
+	// 192 Power-Off_Retract_Count -O--C-   097   097   000    -    14716.
 	attribute = regexp.MustCompile("^\\s*([0-9]+)\\s(\\S+)\\s+([-P][-O][-S][-R][-C][-K])\\s+([0-9]+)\\s+([0-9]+)\\s+([0-9-]+)\\s+([-\\w]+)\\s+([\\w\\+\\.]+).*$")
 
 	//  Additional Smart Log for NVME device:nvme0 namespace-id:ffffffff
@@ -52,7 +52,7 @@ var deviceFieldIds = map[string]string{
 	"199": "udma_crc_errors",
 }
 
-// to obtain metrics from smartctl
+// to obtain metrics from smartctl.
 var sasNvmeAttributes = map[string]struct {
 	ID    string
 	Name  string
@@ -239,7 +239,7 @@ func parseTemperatureSensor(key string, fields map[string]interface{}, str strin
 	return nil
 }
 
-// to obtain Intel specific metrics from nvme-cli
+// to obtain Intel specific metrics from nvme-cli.
 var intelAttributes = map[string]struct {
 	ID    string
 	Name  string

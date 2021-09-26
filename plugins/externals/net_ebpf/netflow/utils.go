@@ -237,6 +237,7 @@ func swapU16(v uint16) uint16 {
 	tmp |= (v & 0xff00) >> 8
 	return tmp
 }
+
 func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
 	var ip [8]uint16
 	for x := 0; x < 4; x++ {
@@ -303,7 +304,7 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 
 // 聚合 src port 为临时端口(32768 ~ 60999)的连接,
 // 被聚合的端口号被设置为
-// cat /proc/sys/net/ipv4/ip_local_port_range
+// cat /proc/sys/net/ipv4/ip_local_port_range.
 func connMerge(preResult *ConnResult) {
 	resultTmpConn := map[ConnectionInfo]ConnFullStats{}
 	if len(preResult.result) < 1 {

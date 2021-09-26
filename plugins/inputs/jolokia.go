@@ -15,14 +15,13 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 // --------------------------------------------------------------------
-// --------------------------- jolokia agent --------------------------
+// --------------------------- jolokia agent --------------------------.
 const (
 	MaxGatherInterval = 30 * time.Minute
 	MinGatherInterval = 1 * time.Second
@@ -823,7 +822,7 @@ func (pb *pointBuilder) applySubstitutions(mbean string, fieldMap map[string]int
 }
 
 // makePropertyMap returns a the mbean property-key list as
-// a dictionary. foo:x=y becomes map[string]string { "x": "y" }
+// a dictionary. foo:x=y becomes map[string]string { "x": "y" }.
 func makePropertyMap(mbean, metricMbean string) map[string]string {
 	props := make(map[string]string)
 	object := strings.SplitN(mbean, ":", 2)
@@ -902,7 +901,7 @@ func makeSubstitutionList(mbean string) []string {
 	return subs
 }
 
-// mbean 里的 * 替换为 (.*) 并编译正则表达式, 贪婪匹配
+// mbean 里的 * 替换为 (.*) 并编译正则表达式, 贪婪匹配.
 func makeTagValueRegexMap(mbean string) (string, map[string]*regexp.Regexp) {
 	subs := make(map[string]*regexp.Regexp)
 	object := strings.SplitN(mbean, ":", 2)
@@ -929,7 +928,7 @@ func makeTagValueRegexMap(mbean string) (string, map[string]*regexp.Regexp) {
 }
 
 // ------------------------------------------------------------------------------
-// ------------------------------------ client ----------------------------------
+// ------------------------------------ client ----------------------------------.
 type Client struct {
 	URL    string
 	client *http.Client
@@ -978,7 +977,7 @@ type ReadResponse struct {
 //   "target": {
 //     "url: "service:jmx:rmi:///jndi/rmi://target:9010/jmxrmi"
 //   }
-// }
+// }.
 type jolokiaRequest struct {
 	Type      string         `json:"type"`
 	Mbean     string         `json:"mbean"`
@@ -1005,7 +1004,7 @@ type jolokiaTarget struct {
 //   "value": 1214083,
 //   "timestamp": 1488059309,
 //   "status": 200
-// }
+// }.
 type jolokiaResponse struct {
 	Request jolokiaRequest `json:"request"`
 	Value   interface{}    `json:"value"`

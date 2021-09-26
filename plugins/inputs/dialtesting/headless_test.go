@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
@@ -259,7 +258,6 @@ func TestHeadless(t *testing.T) {
 	go testServer(fmt.Sprintf(":%d", *flagPort))
 
 	for i, c := range headlessCases {
-
 		// if i != 4 {
 		// 	continue
 		// }

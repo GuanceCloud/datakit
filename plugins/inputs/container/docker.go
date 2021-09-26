@@ -13,16 +13,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/docker/api/types"
+	docker "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-
-	"github.com/docker/docker/api/types"
-	docker "github.com/docker/docker/client"
 )
 
 // 日志 source 选择
@@ -63,12 +61,12 @@ type dockerClient struct {
 	wg sync.WaitGroup
 }
 
-/*This file is inherited from telegraf docker input plugin*/
+/*This file is inherited from telegraf docker input plugin.*/
 var (
 	version        = "1.24"
 	defaultHeaders = map[string]string{"User-Agent": "engine-api-cli-1.0"}
 
-	// 容器日志的连接参数
+	// 容器日志的连接参数.
 	containerLogsOptions = types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
@@ -638,7 +636,7 @@ func (d *dockerClient) tailMultiplexed(ctx context.Context, src io.ReadCloser, c
 	return err
 }
 
-// ignoreCommand 忽略 k8s pod 的 init container
+// ignoreCommand 忽略 k8s pod 的 init container.
 func ignoreCommand(command string) bool {
 	return command == "/pause"
 }

@@ -236,7 +236,6 @@ func (i *Input) Run() {
 			if err := i.Collect(); err == nil {
 				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-
 					l.Error(errFeed)
 					io.FeedLastError(inputName, errFeed.Error())
 				}

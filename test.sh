@@ -10,5 +10,6 @@ truncate -s 0 test.output
 for pkg in "${all[@]}"
 do
 	echo "testing $pkg" | tee -a test.output
-	GO111MODULE=off CGO_ENABLED=0 go test -cover $pkg |tee -a test.output
+	#GO111MODULE=off CGO_ENABLED=0 go test -cover $pkg |tee -a test.output
+	GO111MODULE=off CGO_ENABLED=1 go test -cover $pkg |tee -a test.output
 done

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	vgrok "github.com/vjeantet/grok"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )

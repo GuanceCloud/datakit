@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/kardianos/service"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -63,19 +62,19 @@ const (
 	datakitBin = "datakit"
 )
 
-func init() {
-	flag.BoolVar(&flagDKUpgrade, "upgrade", false, ``)
-	flag.BoolVar(&flagInstallOnly, "install-only", false, "install only                                                                                                                                                                                                                                                                                                                     , not start")
+func init() { //nolint:gochecknoinits
+	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
+	flag.BoolVar(&flagInstallOnly, "install-only", false, "install only, not start")
 	flag.BoolVar(&flagOTA, "ota", false, "auto update")
-	flag.StringVar(&flagDataway, "dataway", "", `address of dataway                                                                                                                                                                          ( http://IP:Port?token                                                                                                        = xxx) , port default 9528`)
-	flag.StringVar(&flagEnableInputs, "enable-inputs", "", `default enable inputs                                                                                                                                                                 ( comma splited                                                                                                                            , example: cpu                                                                                                                                , mem                     , disk)`)
-	flag.StringVar(&flagDatakitName, "name", "", `specify DataKit name                                                                                                                                                                                                                                                                                                             , example: prod-env-datakit`)
-	flag.StringVar(&flagGlobalTags, "global-tags", "", `enable global tags                                                                                                                                                                                                                                                                                                               , example: host                                                                                                          = __datakit_hostname , ip     = __datakit_ip`)
+	flag.StringVar(&flagDataway, "dataway", "", "address of dataway ( http://IP:Port?token= xxx) , port default 9528")
+	flag.StringVar(&flagEnableInputs, "enable-inputs", "", "default enable inputs( comma splited, example:cpu,mem,disk)")
+	flag.StringVar(&flagDatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
+	flag.StringVar(&flagGlobalTags, "global-tags", "", "enable global tags, example: host= __datakit_hostname,ip= __datakit_ip")
 	flag.StringVar(&flagProxy, "proxy", "", "http proxy http://ip:port for datakit")
 	flag.StringVar(&flagDatakitHTTPListen, "listen", "localhost", "datakit HTTP listen")
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
-	flag.StringVar(&flagCloudProvider, "cloud-provider", "", "specify cloud provider                                                                                                                                                               ( accept aliyun/tencent/aws)")
+	flag.StringVar(&flagCloudProvider, "cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 
@@ -172,7 +171,6 @@ DataKit        : %s
 	}
 
 	if flagProxy != "" {
-
 		if !strings.HasPrefix(flagProxy, "http") {
 			flagProxy = "http://" + flagProxy
 		}
@@ -388,10 +386,9 @@ func preEnableHostobjectInput(cloud string) []byte {
 # more_tag = "some_other_value"
 # ...`)
 
-	conf := bytes.Replace(sample,
+	conf := bytes.ReplaceAll(sample,
 		[]byte(`# cloud_provider = "aliyun"`),
-		[]byte(fmt.Sprintf(`  cloud_provider = "%s"`, cloud)),
-		-1)
+		[]byte(fmt.Sprintf(`  cloud_provider = "%s"`, cloud)))
 
 	return conf
 }

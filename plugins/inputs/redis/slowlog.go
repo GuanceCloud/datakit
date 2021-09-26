@@ -40,7 +40,7 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) getSlowData() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 	var maxSlowEntries int

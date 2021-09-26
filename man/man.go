@@ -1,3 +1,5 @@
+// Datakit document manager
+
 package man
 
 import (

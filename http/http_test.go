@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -20,7 +19,9 @@ func BenchmarkHandleWriteBody(b *testing.B) {
 abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 
 	for n := 0; n < b.N; n++ {
-		handleWriteBody(body, "s", nil, false, nil)
+		if _, err := handleWriteBody(body, "s", nil, false, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -42,7 +43,9 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 			]`)
 
 	for n := 0; n < b.N; n++ {
-		handleWriteBody(body, "s", nil, true, nil)
+		if _, err := handleWriteBody(body, "s", nil, true, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -375,13 +378,15 @@ func TestRestartAPI(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := checkToken(r); err != nil {
 			w.WriteHeader(ErrInvalidToken.HttpCode)
-			json.NewEncoder(w).Encode(err)
+			if err := json.NewEncoder(w).Encode(err); err != nil {
+				t.Error(err)
+			}
 		} else {
 			w.WriteHeader(200)
 		}
 	}))
 
-	defer ts.Close()
+	defer ts.Close() //nolint:errcheck
 
 	time.Sleep(time.Second)
 
@@ -397,7 +402,7 @@ func TestRestartAPI(t *testing.T) {
 			t.Error(err)
 			continue
 		}
-		resp.Body.Close()
+		resp.Body.Close() //nolint:errcheck
 
 		if !tc.fail {
 			tu.Equals(t, 200, resp.StatusCode)

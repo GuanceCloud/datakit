@@ -25,7 +25,7 @@ func createHTTPClient(timeout datakit.Duration) *http.Client {
 	return client
 }
 
-// log error
+// log error.
 func logError(err error) {
 	if err != nil {
 		l.Error(err)
@@ -64,7 +64,7 @@ const (
 	TimeCompare
 )
 
-// cache
+// cache.
 func whichMesaurement(k string) string {
 	regex_cache, _ := regexp.Compile(prefix_regex_cache)
 	regex_requesttimes, _ := regexp.Compile(prefix_regex_requesttimes)
@@ -82,7 +82,7 @@ func whichMesaurement(k string) string {
 }
 
 // 根据 server url 生成 instance name， 使用正则匹配域名/ip和端口。
-// 如 localhost_8983, 127.0.0.1_8983
+// 如 localhost_8983, 127.0.0.1_8983.
 func instanceName(serv string) (string, error) {
 	var err error
 	instanceName := ""
@@ -101,7 +101,7 @@ func instanceName(serv string) (string, error) {
 
 type GatherData func(i *Input, url string, v interface{}) error
 
-// gather data
+// gather data.
 func gatherDataFunc(i *Input, url string, v interface{}) error {
 	req, reqErr := http.NewRequest(http.MethodGet, url, nil)
 	if reqErr != nil {

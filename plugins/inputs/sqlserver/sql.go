@@ -1,7 +1,9 @@
 package sqlserver
 
 import (
-	_ "github.com/denisenkom/go-mssqldb" // go-mssqldb initialization
+
+	// go-mssqldb initialization
+	_ "github.com/denisenkom/go-mssqldb"
 )
 
 // The SQL scripts assemble the correct query based the version of SQL Server
