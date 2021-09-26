@@ -9,12 +9,11 @@ import (
 	"net"
 	"sync"
 
-	"google.golang.org/grpc"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/common"
 	swV2 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/language-agent-v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v2/register"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	"google.golang.org/grpc"
 )
 
 var (

@@ -18,7 +18,7 @@ const (
 	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
-// Kubernetes represents the config object for the plugin
+// Kubernetes represents the config object for the plugin.
 type Kubernetes struct {
 	URL           string   `toml:"kubelet_url"`
 	IgnorePodName []string `toml:"ignore_pod_name"`

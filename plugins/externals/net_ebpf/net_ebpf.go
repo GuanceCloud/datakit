@@ -44,7 +44,7 @@ const (
 	inputName = "netflow"
 )
 
-// init
+// init.
 func init() {
 	_, err := flags.Parse(&opt)
 	if err != nil {

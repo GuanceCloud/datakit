@@ -132,7 +132,6 @@ func (i *Input) Collect() error {
 			}
 		}
 		i.appendMeasurement(inputName, tags, fields, time_now)
-
 	}
 	// last cputimes stats
 	i.lastStats = make(map[string]cpu.TimesStat)

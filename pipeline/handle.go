@@ -11,7 +11,6 @@ import (
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
 	"github.com/tidwall/gjson"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 

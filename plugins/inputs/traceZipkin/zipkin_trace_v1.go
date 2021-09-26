@@ -9,7 +9,6 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin/zipkinV1_core"
 	zipkincore "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin/zipkinV1_core"
 )
 
@@ -230,7 +229,7 @@ func unmarshalZipkinThriftV1(octets []byte) ([]*zipkincore.Span, error) {
 	return spans, nil
 }
 
-func thriftSpansToAdapters(zspans []*zipkinV1_core.Span, filters ...zipkinThriftV1SpansFilter) ([]*trace.TraceAdapter, error) {
+func thriftSpansToAdapters(zspans []*zipkincore.Span, filters ...zipkinThriftV1SpansFilter) ([]*trace.TraceAdapter, error) {
 	// run all filters
 	for _, filter := range filters {
 		if len(filter(zspans)) == 0 {

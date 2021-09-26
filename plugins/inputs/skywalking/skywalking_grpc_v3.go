@@ -8,12 +8,11 @@ import (
 	"io"
 	"net"
 
-	"google.golang.org/grpc"
-
 	common "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3"
 	lang "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/language/agent/v3"
 	mgment "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/management/v3"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	"google.golang.org/grpc"
 )
 
 func skyWalkingV3ServervRun(addr string) {

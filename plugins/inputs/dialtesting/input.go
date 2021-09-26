@@ -14,7 +14,6 @@ import (
 	"time"
 
 	//	"github.com/jinzhu/copier"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -316,7 +315,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 	}
 
 	for k, arr := range resp.Content {
-
 		l.Debugf(`class: %s`, k)
 
 		if k == RegionInfo {
@@ -358,7 +356,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 			l.Debugf(`%+#v id: %s`, d.curTasks[t.ID()], t.ID())
 
 			if dialer, ok := d.curTasks[t.ID()]; ok { // update task
-
 				if dialer.failCnt >= MaxFails {
 					l.Warnf(`failed %d times,ignore`, dialer.failCnt)
 					delete(d.curTasks, t.ID())
@@ -372,7 +369,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 				if strings.ToLower(t.Status()) == dt.StatusStop {
 					delete(d.curTasks, t.ID())
 				}
-
 			} else { // create new task
 
 				if strings.ToLower(t.Status()) == dt.StatusStop {
@@ -387,7 +383,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 				} else {
 					d.curTasks[t.ID()] = dialer
 				}
-
 			}
 		}
 

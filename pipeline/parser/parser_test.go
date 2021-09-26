@@ -86,7 +86,7 @@ var parseCases = []*parseCase{
 		},
 	},
 
-	// case: embeded functions
+	// case: embedded functions
 	{
 		in: `f1(g(f2("abc"), 123), 1,2,3)`,
 

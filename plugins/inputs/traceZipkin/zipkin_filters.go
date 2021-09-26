@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/openzipkin/zipkin-go/model"
-	zipkinmodel "github.com/openzipkin/zipkin-go/model"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin/zipkinV1_core"
 )
@@ -156,10 +155,10 @@ func zpkProtoBufV2Sample(zspans []*model.SpanModel) []*model.SpanModel {
 	}
 }
 
-type zipkinJsonV2SpansFilter func([]*zipkinmodel.SpanModel) []*zipkinmodel.SpanModel
+type zipkinJsonV2SpansFilter func([]*model.SpanModel) []*model.SpanModel
 
-func zpkJsonV2Sample(zspans []*zipkinmodel.SpanModel) []*zipkinmodel.SpanModel {
-	var rootSpan *zipkinmodel.SpanModel
+func zpkJsonV2Sample(zspans []*model.SpanModel) []*model.SpanModel {
+	var rootSpan *model.SpanModel
 	for _, span := range zspans {
 		if span.ParentID == nil {
 			rootSpan = span

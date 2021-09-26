@@ -9,9 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-
 	"github.com/prometheus/prometheus/util/strutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var log = logger.DefaultSLogger("parser")
@@ -346,7 +345,7 @@ func (p *parser) newFunc(fname string, args []Node) *FuncExpr {
 	return agg
 }
 
-// impl Lex interface
+// impl Lex interface.
 func (p *parser) Lex(lval *yySymType) int {
 	var typ ItemType
 
@@ -435,7 +434,7 @@ func (e *ParseError) Error() string {
 	return fmt.Sprintf("%s parse error: %s", posStr, e.Err)
 }
 
-// impl Error() interface
+// impl Error() interface.
 func (errs ParseErrors) Error() string {
 	var errArray []string
 	for _, err := range errs {

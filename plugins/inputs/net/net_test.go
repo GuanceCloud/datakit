@@ -39,7 +39,6 @@ func TestCollect(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		if runtime.GOOS != tc.os && tc.os != "" {
 			continue
 		}

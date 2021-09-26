@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -65,7 +64,7 @@ func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 	return []inputs.Measurement{m}, nil
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (m *replicaMeasurement) getData() error {
 	ctx := context.Background()
 	list, err := m.client.Info(ctx, "commandstats").Result()
@@ -79,7 +78,7 @@ func (m *replicaMeasurement) getData() error {
 	return nil
 }
 
-// 解析返回
+// 解析返回.
 func (m *replicaMeasurement) parseInfoData(list string) error {
 	var masterDownSeconds, masterOffset, slaveOffset float64
 	var masterStatus, slaveID, ip, port string
@@ -164,7 +163,7 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 	return nil
 }
 
-// 提交数据
+// 提交数据.
 func (m *replicaMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {

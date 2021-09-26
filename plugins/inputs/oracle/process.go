@@ -14,12 +14,12 @@ type processMeasurement struct {
 	ts     time.Time
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *processMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
 func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_process",
@@ -71,12 +71,12 @@ type tablespaceMeasurement struct {
 	ts     time.Time
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *tablespaceMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
 func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_tablespace",
@@ -128,12 +128,12 @@ type systemMeasurement struct {
 	ts     time.Time
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *systemMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_system",

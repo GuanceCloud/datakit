@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

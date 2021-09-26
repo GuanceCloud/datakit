@@ -74,7 +74,7 @@ func TestJsonFunc(t *testing.T) {
 
 func TestDefaultTimeFunc(t *testing.T) {
 	// {
-	// 	data:     `{"a":{"time":"","second":2,"thrid":"abc","forth":true},"age":47}`,
+	// 	data:     `{"a":{"time":"","second":2,"third":"abc","forth":true},"age":47}`,
 	// 	script:   `json(_, a.time) default_time(a.time)`,
 	// 	expected: nil,
 	// 	key:      "a.time",
@@ -84,28 +84,28 @@ func TestDefaultTimeFunc(t *testing.T) {
 	testCase := []*funcCase{
 
 		//{
-		//	data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"thrid":"abc","forth":true},"age":47}`,
+		//	data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"third":"abc","forth":true},"age":47}`,
 		//	script:   `json(_, a.time) default_time(a.time)`,
 		//	expected: int64(1557832300164000000),
 		//	key:      "a.time",
 		//	err:      nil,
 		//},
 		//{
-		//	data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"thrid":"abc","forth":true},"age":47}`,
+		//	data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"third":"abc","forth":true},"age":47}`,
 		//	script:   `json(_, a.time) default_time(a.time)`,
 		//	expected: int64(1483719397000000000),
 		//	key:      "a.time",
 		//	err:      nil,
 		//},
 		//{
-		//	data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"thrid":"abc","forth":true},"age":47}`,
+		//	data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"third":"abc","forth":true},"age":47}`,
 		//	script:   `json(_, a.time) default_time(a.time)`,
 		//	expected: int64(1418682000000000000),
 		//	key:      "a.time",
 		//	err:      nil,
 		//},
 		//{
-		//	data:     `{"a":{"time":"171113 14:14:20","second":2,"thrid":"abc","forth":true},"age":47}`,
+		//	data:     `{"a":{"time":"171113 14:14:20","second":2,"third":"abc","forth":true},"age":47}`,
 		//	script:   `json(_, a.time) default_time(a.time)`,
 		//	expected: int64(1510582460000000000),
 		//	key:      "a.time",
@@ -251,7 +251,7 @@ func TestUrlencodeFunc(t *testing.T) {
 func TestUserAgentFunc(t *testing.T) {
 	testCase := []*funcCase{
 		{
-			data:     `{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36", "second":2,"thrid":"abc","forth":true}`,
+			data:     `{"userAgent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36", "second":2,"third":"abc","forth":true}`,
 			script:   `json(_, userAgent) user_agent(userAgent)`,
 			expected: "Windows 7",
 			key:      "os",
@@ -462,56 +462,56 @@ func TestGroupInFunc(t *testing.T) {
 func TestNullIfFunc(t *testing.T) {
 	testCase := []*funcCase{
 		{
-			data:     `{"a":{"first": 1,"second":2,"thrid":"aBC","forth":true},"age":47}`,
+			data:     `{"a":{"first": 1,"second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, "1")`,
 			expected: float64(1),
 			key:      "a.first",
 			err:      nil,
 		},
 		{
-			data:     `{"a":{"first": "1","second":2,"thrid":"aBC","forth":true},"age":47}`,
+			data:     `{"a":{"first": "1","second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, 1)`,
 			expected: "1",
 			key:      "a.first",
 			err:      nil,
 		},
 		{
-			data:     `{"a":{"first": "","second":2,"thrid":"aBC","forth":true},"age":47}`,
+			data:     `{"a":{"first": "","second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, "")`,
 			expected: nil,
 			key:      "a.first",
 			err:      nil,
 		},
 		{
-			data:     `{"a":{"first": null,"second":2,"thrid":"aBC","forth":true},"age":47}`,
+			data:     `{"a":{"first": null,"second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, nil)`,
 			expected: nil,
 			key:      "a.first",
 			err:      nil,
 		},
 		{
-			data:     `{"a":{"first": true,"second":2,"thrid":"aBC","forth":true},"age":47}`,
+			data:     `{"a":{"first": true,"second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, true)`,
 			expected: nil,
 			key:      "a.first",
 			err:      nil,
 		},
 		{
-			data:     `{"a":{"first": 2.3, "second":2,"thrid":"aBC","forth":true},"age":47}`,
+			data:     `{"a":{"first": 2.3, "second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, 2.3)`,
 			expected: nil,
 			key:      "a.first",
 			err:      nil,
 		},
 		{
-			data:     `{"a":{"first": 2,"second":2,"thrid":"aBC","forth":true},"age":47}`,
+			data:     `{"a":{"first": 2,"second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, 2, "newkey")`,
 			expected: nil,
 			key:      "newkey",
 			err:      nil,
 		},
 		{
-			data:     `{"a":{"first":"2.3","second":2,"thrid":"aBC","forth":true},"age":47}`,
+			data:     `{"a":{"first":"2.3","second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, "2.3", "newkey")`,
 			expected: nil,
 			key:      "newkey",

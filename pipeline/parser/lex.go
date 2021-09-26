@@ -180,14 +180,13 @@ func Lex(input string) *Lexer {
 
 ////////////////////////////////////////
 // Lexer entry
-////////////////////////////////////////
+////////////////////////////////////////.
 func lexStatements(l *Lexer) stateFn {
 	if strings.HasPrefix(l.input[l.pos:], lineComment) {
 		return lexLineComment
 	}
 
 	switch r := l.next(); {
-
 	case r == ',':
 		l.emit(COMMA)
 
@@ -322,7 +321,7 @@ func lexStatements(l *Lexer) stateFn {
 // Other state functions
 ////////////////////////////////////////
 
-// scan alphanumberic identifier, maybe keyword
+// scan alphanumberic identifier, maybe keyword.
 func lexKeywordOrIdentifier(l *Lexer) stateFn {
 __goon:
 	for {
@@ -468,7 +467,7 @@ __goon:
 
 ////////////////////////////////////////////
 // lexer tool functions
-////////////////////////////////////////////
+////////////////////////////////////////////.
 func (l *Lexer) next() rune {
 	if int(l.pos) >= len(l.input) {
 		l.width = 0
@@ -568,7 +567,7 @@ func (l *Lexer) scanNumber() bool {
 
 ////////////////////////////////
 // helpers
-////////////////////////////////
+////////////////////////////////.
 func isAlphaNumeric(r rune) bool { return isAlpha(r) || isDigit(r) }
 func isAlpha(r rune) bool        { return r == '_' || ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') }
 func isDigit(r rune) bool        { return '0' <= r && r <= '9' }

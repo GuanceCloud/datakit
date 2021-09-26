@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -205,7 +204,7 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-// 获取base指标
+// 获取base指标.
 func (i *Input) collectBaseMeasurement() ([]inputs.Measurement, error) {
 	m := &baseMeasurement{
 		i:       i,
@@ -243,22 +242,22 @@ func (i *Input) collectBaseMeasurement() ([]inputs.Measurement, error) {
 	return nil, nil
 }
 
-// 获取innodb指标
+// 获取innodb指标.
 func (i *Input) collectInnodbMeasurement() ([]inputs.Measurement, error) {
 	return i.getInnodb()
 }
 
-// 获取tableSchema指标
+// 获取tableSchema指标.
 func (i *Input) collectTableSchemaMeasurement() ([]inputs.Measurement, error) {
 	return i.getTableSchema()
 }
 
-// 获取用户指标
+// 获取用户指标.
 func (i *Input) collectUserMeasurement() ([]inputs.Measurement, error) {
 	return i.getUserData()
 }
 
-// 获取schema指标
+// 获取schema指标.
 func (i *Input) collectSchemaMeasurement() ([]inputs.Measurement, error) {
 	x, err := i.getSchemaSize()
 	if err != nil {
@@ -313,7 +312,6 @@ func (i *Input) Run() {
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	for { // try until init OK
-
 		select {
 		case <-datakit.Exit.Wait():
 			return

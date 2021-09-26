@@ -258,7 +258,7 @@ func U32BEToIPv6(addr [4]uint32) string {
 // 规则: 1. 过滤源 IP 和目标 IP 相同的连接;
 // 3. 过滤 loopback
 // 2. 过滤一个采集周期内的无数据收发的连接；
-// 需过滤，函数返回 False
+// 需过滤，函数返回 False.
 func ConnFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 	// 过滤同 IP 地址的连接，适用于 UDP 和 TCP
 	if connAddrIsIPv4(conn.Meta) {
@@ -290,7 +290,7 @@ func ConnFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 
 // 聚合 src port 为临时端口(32768 ~ 60999)的连接,
 // 被聚合的端口号被设置为
-// cat /proc/sys/net/ipv4/ip_local_port_range
+// cat /proc/sys/net/ipv4/ip_local_port_range.
 func connMerge(preResult *ConnResult) {
 	resultTmpConn := map[ConnectionInfo]ConnFullStats{}
 	if len(preResult.result) < 1 {

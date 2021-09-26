@@ -106,6 +106,7 @@
     "dupl", # 还不允许有相似代码
     "gocyclo", # FIXME must be fixed
     "gocognit", # 代码太复杂
+		"goimports",
 
 		"cyclop",
 		"gomoddirectives", # used `replace' in go.mod 

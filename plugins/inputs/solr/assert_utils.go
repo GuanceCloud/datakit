@@ -7,7 +7,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// The incoming parameters expectMeasurement and actualMeasurement need to be sorted in advance
+// The incoming parameters expectMeasurement and actualMeasurement need to be sorted in advance.
 func AssertMeasurement(t *testing.T, expectMeasurement []inputs.Measurement, actualMeasurement []inputs.Measurement, flag int) {
 	lenE := len(expectMeasurement)
 	lenA := len(actualMeasurement)

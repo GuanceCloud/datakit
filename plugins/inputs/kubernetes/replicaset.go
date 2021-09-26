@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 const kubernetesReplicaSetName = "kubernetes_replica_sets"

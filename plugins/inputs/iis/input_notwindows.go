@@ -14,7 +14,7 @@ var (
 	metricNameAppPoolWas = "iis_app_pool_was"
 )
 
-// redefine them here for conf-sample checking
+// redefine them here for conf-sample checking.
 type Input struct {
 	Interval datakit.Duration
 
@@ -39,7 +39,7 @@ func (i *Input) Catalog() string {
 	return "iis"
 }
 
-// TODO
+// TODO.
 func (*Input) RunPipeline() {
 }
 

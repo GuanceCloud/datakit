@@ -29,7 +29,7 @@ const (
 	// add more...
 )
 
-// units
+// units.
 const (
 	UnknownUnit = "-"
 
@@ -40,7 +40,7 @@ const (
 
 	NCount = "count"
 
-	// time units
+	// time units.
 	DurationNS     = "nsec"
 	DurationUS     = "usec"
 	DurationMS     = "msec"

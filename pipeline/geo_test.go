@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/ip2location/ip2location-go"
-
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
@@ -48,7 +47,7 @@ func TestGeoIpFunc(t *testing.T) {
 		fail bool
 	}{
 		{
-			data: `{"ip":"1.2.3.4-something", "second":2,"thrid":"abc","forth":true}`,
+			data: `{"ip":"1.2.3.4-something", "second":2,"third":"abc","forth":true}`,
 			script: `
 json(_, ip)
 geoip(ip)`,
@@ -62,7 +61,7 @@ geoip(ip)`,
 		},
 
 		{
-			data: `{"ip":"unknown-city", "second":2,"thrid":"abc","forth":true}`,
+			data: `{"ip":"unknown-city", "second":2,"third":"abc","forth":true}`,
 			script: `
 json(_, ip)
 geoip(ip)`,
@@ -75,7 +74,7 @@ geoip(ip)`,
 		},
 
 		{
-			data: `{"aa": {"ip":"116.228.89.xxx"}, "second":2,"thrid":"abc","forth":true}`,
+			data: `{"aa": {"ip":"116.228.89.xxx"}, "second":2,"third":"abc","forth":true}`,
 			script: `
 json(_, aa.ip)
 geoip(aa.ip)`,
@@ -89,7 +88,7 @@ geoip(aa.ip)`,
 		},
 
 		{
-			data: `{"aa": {"ip":"unknown-region"}, "second":2,"thrid":"abc","forth":true}`,
+			data: `{"aa": {"ip":"unknown-region"}, "second":2,"third":"abc","forth":true}`,
 			script: `
 json(_, aa.ip)
 geoip(aa.ip)`,
@@ -103,7 +102,7 @@ geoip(aa.ip)`,
 		},
 
 		{
-			data: `{"aa": {"ip":"unknown-country-short"}, "second":2,"thrid":"abc","forth":true}`,
+			data: `{"aa": {"ip":"unknown-country-short"}, "second":2,"third":"abc","forth":true}`,
 			script: `
 json(_, aa.ip)
 geoip(aa.ip)`,
@@ -118,7 +117,6 @@ geoip(aa.ip)`,
 	}
 
 	for idx, tt := range cases {
-
 		t.Logf("case %d...", idx)
 
 		p, err := NewPipeline(tt.script)
@@ -143,7 +141,6 @@ geoip(aa.ip)`,
 		t.Logf("output %+#v", p.Output)
 
 		for k, v := range tt.expected {
-
 			r, err := p.getContentStr(k)
 			tu.Ok(t, err)
 

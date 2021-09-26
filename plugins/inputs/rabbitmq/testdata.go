@@ -266,7 +266,7 @@ var (
             "q4": 28,
             "target_ram_count": "infinity"
         },
-        "consumer_utilisation": null,
+        "consumer_utilization": null,
         "consumers": 0,
         "durable": true,
         "exclusive": false,

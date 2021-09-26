@@ -70,18 +70,18 @@ type ServerStatus struct {
 	TCMallocStats      *TCMallocStats         `bson:"tcmalloc"`
 }
 
-// DbStats stores stats from all dbs
+// DbStats stores stats from all dbs.
 type DbStats struct {
 	Dbs []Db
 }
 
-// Db represent a single DB
+// Db represent a single DB.
 type Db struct {
 	Name        string
 	DbStatsData *DbStatsData
 }
 
-// DbStatsData stores stats from a db
+// DbStatsData stores stats from a db.
 type DbStatsData struct {
 	Db          string      `bson:"db"`
 	Collections int64       `bson:"collections"`
@@ -115,23 +115,23 @@ type ColStatsData struct {
 	Ok             int64   `bson:"ok"`
 }
 
-// ReplSetStats stores information from replSetGetStatus
+// ReplSetStats stores information from replSetGetStatus.
 type ReplSetStats struct {
 	Members []ReplSetMember `bson:"members"`
 	MyState int64           `bson:"myState"`
 }
 
-// ClusterStats stores information related to the whole cluster
+// ClusterStats stores information related to the whole cluster.
 type ClusterStats struct {
 	JumboChunksCount int64
 }
 
-// OplogStatus stores information from getReplicationInfo
+// OplogStatus stores information from getReplicationInfo.
 type OplogStats struct {
 	TimeDiff int64
 }
 
-// ReplSetMember stores information related to a replica set member
+// ReplSetMember stores information related to a replica set member.
 type ReplSetMember struct {
 	Name       string    `bson:"name"`
 	State      int64     `bson:"state"`
@@ -205,7 +205,7 @@ type ConcurrentTransStats struct {
 	TotalTickets int64 `bson:"totalTickets"`
 }
 
-// AssertsStats stores information related to assertions raised since the MongoDB process started
+// AssertsStats stores information related to assertions raised since the MongoDB process started.
 type AssertsStats struct {
 	Regular   int64 `bson:"regular"`
 	Warning   int64 `bson:"warning"`
@@ -353,20 +353,20 @@ type OpcountStats struct {
 	Command int64 `bson:"command"`
 }
 
-// OpLatenciesStats stores information related to operation latencies for the database as a whole
+// OpLatenciesStats stores information related to operation latencies for the database as a whole.
 type OpLatenciesStats struct {
 	Reads    *LatencyStats `bson:"reads"`
 	Writes   *LatencyStats `bson:"writes"`
 	Commands *LatencyStats `bson:"commands"`
 }
 
-// LatencyStats lists total latency in microseconds and count of operations, enabling you to obtain an average
+// LatencyStats lists total latency in microseconds and count of operations, enabling you to obtain an average.
 type LatencyStats struct {
 	Latency int64 `bson:"latency"`
 	Ops     int64 `bson:"ops"`
 }
 
-// MetricsStats stores information related to metrics
+// MetricsStats stores information related to metrics.
 type MetricsStats struct {
 	TTL           *TTLStats           `bson:"ttl"`
 	Cursor        *CursorStats        `bson:"cursor"`
@@ -416,7 +416,7 @@ type CommandsStatsValue struct {
 	Total  int64 `bson:"total"`
 }
 
-// OpenCursorStats stores information related to open cursor metrics
+// OpenCursorStats stores information related to open cursor metrics.
 type OpenCursorStats struct {
 	NoTimeout int64 `bson:"noTimeout"`
 	Pinned    int64 `bson:"pinned"`
@@ -424,19 +424,19 @@ type OpenCursorStats struct {
 }
 
 // OperationStats stores information related to query operations
-// using special operation types
+// using special operation types.
 type OperationStats struct {
 	ScanAndOrder   int64 `bson:"scanAndOrder"`
 	WriteConflicts int64 `bson:"writeConflicts"`
 }
 
-// QueryExecutorStats stores information related to query execution
+// QueryExecutorStats stores information related to query execution.
 type QueryExecutorStats struct {
 	Scanned        int64 `bson:"scanned"`
 	ScannedObjects int64 `bson:"scannedObjects"`
 }
 
-// ReplStats stores information related to replication process
+// ReplStats stores information related to replication process.
 type ReplStats struct {
 	Apply    *ReplApplyStats    `bson:"apply"`
 	Buffer   *ReplBufferStats   `bson:"buffer"`
@@ -444,33 +444,33 @@ type ReplStats struct {
 	Network  *ReplNetworkStats  `bson:"network"`
 }
 
-// ReplApplyStats stores information related to oplog application process
+// ReplApplyStats stores information related to oplog application process.
 type ReplApplyStats struct {
 	Batches *BasicStats `bson:"batches"`
 	Ops     int64       `bson:"ops"`
 }
 
-// ReplBufferStats stores information related to oplog buffer
+// ReplBufferStats stores information related to oplog buffer.
 type ReplBufferStats struct {
 	Count     int64 `bson:"count"`
 	SizeBytes int64 `bson:"sizeBytes"`
 }
 
-// ReplExecutorStats stores information related to replication executor
+// ReplExecutorStats stores information related to replication executor.
 type ReplExecutorStats struct {
 	Pool             map[string]int64 `bson:"pool"`
 	Queues           map[string]int64 `bson:"queues"`
 	UnsignaledEvents int64            `bson:"unsignaledEvents"`
 }
 
-// ReplNetworkStats stores information related to network usage by replication process
+// ReplNetworkStats stores information related to network usage by replication process.
 type ReplNetworkStats struct {
 	Bytes    int64       `bson:"bytes"`
 	GetMores *BasicStats `bson:"getmores"`
 	Ops      int64       `bson:"ops"`
 }
 
-// BasicStats stores information about an operation
+// BasicStats stores information about an operation.
 type BasicStats struct {
 	Num         int64 `bson:"num"`
 	TotalMillis int64 `bson:"totalMillis"`
@@ -502,19 +502,19 @@ type ExtraInfo struct {
 	PageFaults *int64 `bson:"page_faults"`
 }
 
-// TCMallocStats stores information related to TCMalloc memory allocator metrics
+// TCMallocStats stores information related to TCMalloc memory allocator metrics.
 type TCMallocStats struct {
 	Generic  *GenericTCMAllocStats  `bson:"generic"`
 	TCMalloc *DetailedTCMallocStats `bson:"tcmalloc"`
 }
 
-// GenericTCMAllocStats stores generic TCMalloc memory allocator metrics
+// GenericTCMAllocStats stores generic TCMalloc memory allocator metrics.
 type GenericTCMAllocStats struct {
 	CurrentAllocatedBytes int64 `bson:"current_allocated_bytes"`
 	HeapSize              int64 `bson:"heap_size"`
 }
 
-// DetailedTCMallocStats stores detailed TCMalloc memory allocator metrics
+// DetailedTCMallocStats stores detailed TCMalloc memory allocator metrics.
 type DetailedTCMallocStats struct {
 	PageheapFreeBytes            int64 `bson:"pageheap_free_bytes"`
 	PageheapUnmappedBytes        int64 `bson:"pageheap_unmapped_bytes"`
@@ -535,7 +535,7 @@ type DetailedTCMallocStats struct {
 	SpinLockTotalDelayNanos      int64 `bson:"spinlock_total_delay_ns"`
 }
 
-// StorageStats stores information related to record allocations
+// StorageStats stores information related to record allocations.
 type StorageStats struct {
 	FreelistSearchBucketExhausted int64 `bson:"freelist.search.bucketExhausted"`
 	FreelistSearchRequests        int64 `bson:"freelist.search.requests"`
