@@ -13,12 +13,11 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
-	// envVarRe is a regex to find environment variables in the config file
+	// envVarRe is a regex to find environment variables in the config file.
 	envVarRe      = regexp.MustCompile(`\$\{(\w+)\}|\$(\w+)`)
 	envVarEscaper = strings.NewReplacer(
 		`"`, `\"`,

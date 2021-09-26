@@ -32,7 +32,7 @@ type Group struct {
 }
 
 // WithContext create a Group.
-// given function from Go will receive this context,
+// given function from Go will receive this context,.
 func WithContext(ctx context.Context) *Group {
 	return &Group{ctx: ctx}
 }

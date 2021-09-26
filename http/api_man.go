@@ -9,7 +9,6 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -81,7 +80,7 @@ type manualTOC struct {
 	OtherDocs  []string
 }
 
-// request manual table of conotents
+// request manual table of conotents.
 func apiManualTOC(c *gin.Context) {
 	toc := &manualTOC{
 		PageTitle: "DataKit文档列表",

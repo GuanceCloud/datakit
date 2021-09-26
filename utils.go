@@ -110,12 +110,12 @@ func SleepContext(ctx context.Context, duration time.Duration) error {
 	}
 }
 
-// Duration just wraps time.Duration
+// Duration just wraps time.Duration.
 type Duration struct {
 	Duration time.Duration
 }
 
-// UnmarshalTOML parses the duration from the TOML config file
+// UnmarshalTOML parses the duration from the TOML config file.
 func (d *Duration) UnmarshalTOML(b []byte) error {
 	b = bytes.Trim(b, "'")
 
@@ -168,7 +168,7 @@ func (d *Duration) UnitString(unit time.Duration) string {
 	}
 }
 
-// Size just wraps an int64
+// Size just wraps an int64.
 type Size struct {
 	Size int64
 }

@@ -255,7 +255,7 @@ func (dw *DataWayCfg) HeartBeat() error {
 	return nil
 }
 
-// UpsertObjectLabels , dw api create or update object labels
+// UpsertObjectLabels , dw api create or update object labels.
 func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")
@@ -275,7 +275,7 @@ func (dw *DataWayCfg) UpsertObjectLabels(tkn string, body []byte) (*http.Respons
 	return dw.sendReq(req)
 }
 
-// DeleteObjectLabels , dw api delete object labels
+// DeleteObjectLabels , dw api delete object labels.
 func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")

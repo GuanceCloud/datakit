@@ -17,7 +17,6 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -617,7 +616,7 @@ func emptyDir(fp string) bool {
 	return errors.Is(err, io.EOF)
 }
 
-// remove all xxx.conf.sample
+// remove all xxx.conf.sample.
 func removeSamples() {
 	l.Debugf("searching samples under %s", datakit.ConfdDir)
 

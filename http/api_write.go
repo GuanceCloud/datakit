@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -23,7 +22,7 @@ type jsonPoint struct {
 	Time        int64                  `json:"time,omitempty"`
 }
 
-// convert json point to real point
+// convert json point to real point.
 func (jp *jsonPoint) pt(prec string, extags map[string]string) (*io.Point, error) {
 	if prec == "" || prec == "n" {
 		prec = "ns"

@@ -10,7 +10,6 @@ import (
 
 	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/c-bata/go-prompt"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"

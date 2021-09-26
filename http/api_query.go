@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
-
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 

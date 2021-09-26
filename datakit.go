@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -36,7 +35,7 @@ const (
 
 	CommonChanCap = 32
 
-	// categories
+	// categories.
 	MetricDeprecated  = "/v1/write/metrics"
 	Metric            = "/v1/write/metric"
 	Network           = "/v1/write/network"
@@ -132,7 +131,7 @@ const (
 )
 
 var (
-	// goroutines caches  goroutine
+	// goroutines caches  goroutine.
 	goroutines = []*goroutine.Group{}
 
 	l = logger.DefaultSLogger("datakit")
@@ -142,7 +141,7 @@ func SetLog() {
 	l = logger.SLogger("datakit")
 }
 
-// G create a groutine group, with namespace datakit
+// G create a groutine group, with namespace datakit.
 func G(name string) *goroutine.Group {
 	panicCb := func(b []byte) bool {
 		l.Errorf("%s", b)
@@ -164,7 +163,7 @@ func G(name string) *goroutine.Group {
 	return g
 }
 
-// GWait wait all goroutine group exit
+// GWait wait all goroutine group exit.
 func GWait() {
 	for _, g := range goroutines {
 		// just ignore error

@@ -14,7 +14,6 @@ import (
 
 	"github.com/c-bata/go-prompt"
 	"github.com/influxdata/influxdb1-client/models"
-
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
@@ -297,7 +296,7 @@ func doShow(c *queryResult) {
 	infof("---------\n%d rows, %d series, cost %s\n", rows, len(c.Series), c.Cost)
 }
 
-// Not used
+// Not used.
 func sortColumns(r *models.Row) {
 	colMap := map[string]int{}
 	for i, col := range r.Columns {

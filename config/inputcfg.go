@@ -9,7 +9,6 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -46,7 +45,7 @@ func SearchDir(dir string, suffix string) []string {
 	return fps
 }
 
-// load all inputs under @InstallDir/conf.d
+// load all inputs under @InstallDir/conf.d.
 func LoadInputsConfig() error {
 	inputs.Init()
 
@@ -107,7 +106,7 @@ func LoadInputsConfig() error {
 	return nil
 }
 
-// fp == "", add new when not exist, set ConfigPaths empty when exist
+// fp == "", add new when not exist, set ConfigPaths empty when exist.
 func addConfigInfoPath(inputName string, fp string, loaded int8) {
 	if c, ok := inputs.ConfigInfo[inputName]; ok {
 		if len(fp) == 0 {
@@ -283,7 +282,7 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 	return nil
 }
 
-// Creata datakit input plugin's configures if not exists
+// Creata datakit input plugin's configures if not exists.
 func initPluginSamples() error {
 	for name, create := range inputs.Inputs {
 		if !datakit.Enabled(name) {

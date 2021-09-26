@@ -20,7 +20,7 @@ type Value interface {
 type ValueType string
 
 //
-// Node
+// Node.
 //
 type Node interface {
 	String() string
@@ -254,15 +254,15 @@ func getFuncArgList(nl NodeList) FuncArgList {
 	return res
 }
 
-// SearchAfter 深度分页
+// SearchAfter 深度分页.
 type SearchAfter struct {
 	Vals []interface{} `json:"vals,omitempty"`
 }
 
-// Pos pos
+// Pos pos.
 func (sa *SearchAfter) Pos() *PositionRange { return nil }
 
-// String string
+// String string.
 func (sa *SearchAfter) String() string {
 	return fmt.Sprintf("%v", sa.Vals)
 }
@@ -424,7 +424,7 @@ func (n *FuncExpr) String() string {
 
 func (n *FuncExpr) Pos() *PositionRange { return nil } // TODO
 
-// stmt
+// stmt.
 type ESTRes struct {
 	Alias           map[string]string // 别名信息
 	SortFields      []string          // 返回字段有序列表
@@ -439,7 +439,7 @@ type ESTRes struct {
 	HighlightFields []string          // 高亮字段
 }
 
-// Helper tranlate中间结果
+// Helper tranlate中间结果.
 type Helper struct {
 	ESTResPtr *ESTRes // es translate，当结果转为influxdb结构使用
 }
@@ -482,7 +482,7 @@ func (m *DFQuery) JSON() ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-// IsAllTargets, 未指定 target 或为手动填写 "*"，即 ALL，like SELECT * FROM XX
+// IsAllTargets, 未指定 target 或为手动填写 "*"，即 ALL，like SELECT * FROM XX.
 func (m *DFQuery) IsAllTargets() bool {
 	return m.IsMatchTargetsNum(0)
 }
@@ -636,7 +636,7 @@ func (n *TimeResolution) String() string {
 func (n *TimeResolution) Pos() *PositionRange { return nil /* TODO */ }
 
 //
-// Expr
+// Expr.
 //
 type Expr interface {
 	Node
@@ -770,14 +770,14 @@ func (e *StaticCast) DQLExpr()            {}             // not used
 func (e *StaticCast) Type() ValueType     { return "" }
 
 //
-// stmt
+// stmt.
 //
 type Statement interface {
 	Node
 	DQLStmt() // not used
 }
 
-// OuterFunc outerFunc
+// OuterFunc outerFunc.
 type OuterFunc struct {
 	Func         *FuncExpr     `json:"func,omitempty"`
 	FuncArgVals  []interface{} `json:"func_arg_vals,omitempty"`
@@ -818,7 +818,7 @@ func (ofuncs *OuterFuncs) Pos() *PositionRange {
 	return nil
 }
 
-// DeleteFunc delete info
+// DeleteFunc delete info.
 type DeleteFunc struct {
 	// (1) dql语句;
 	// (2) es indexName, 索引名称不包含wsid，例如: rum, log等;

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

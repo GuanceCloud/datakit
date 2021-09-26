@@ -75,6 +75,11 @@ endef
 lint: lint_deps
 	@truncate -s 0 check.err
 	@golangci-lint --version | tee -a check.err
+	@golangci-lint run | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
+
+lint_fix: lint_deps
+	@truncate -s 0 check.err
+	@golangci-lint --version | tee -a check.err
 	@golangci-lint run --fix | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
 
 local: deps

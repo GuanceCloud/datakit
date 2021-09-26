@@ -5,7 +5,6 @@ import (
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
@@ -97,7 +96,7 @@ func init() {
 var (
 	l = logger.DefaultSLogger("main")
 
-	// injected during building: -X
+	// injected during building: -X.
 	ReleaseType    = ""
 	ReleaseVersion = ""
 )

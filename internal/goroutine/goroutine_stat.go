@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// StatInfo represents each group statistic info
+// StatInfo represents each group statistic info.
 type StatInfo struct {
 	Total       int64         `json:"finished_goroutines"`
 	CostTime    time.Duration `json:"total_cost_time"`
@@ -17,13 +17,13 @@ type StatInfo struct {
 	totalJobs   int64         // total jobs containing non-finished jobs
 }
 
-// stat cache the group statistic info
+// stat cache the group statistic info.
 var (
 	stat = make(map[string]*StatInfo)
 	mu   sync.Mutex
 )
 
-// Option provides the setup of a group
+// Option provides the setup of a group.
 type Option struct {
 	Name         string
 	PanicCb      func([]byte) bool
@@ -69,7 +69,7 @@ func postCb(name string) func(error, time.Duration) {
 	}
 }
 
-// NewGroup create a custom group
+// NewGroup create a custom group.
 func NewGroup(option Option) *Group {
 	name := "default"
 	if len(option.Name) > 0 {
@@ -88,7 +88,7 @@ func NewGroup(option Option) *Group {
 	return g
 }
 
-// RunningStatInfo represents each running group information
+// RunningStatInfo represents each running group information.
 type RunningStatInfo struct {
 	Total        int64  `json:"finished_goroutines"`
 	RunningTotal int64  `json:"running_goroutines"`
@@ -98,7 +98,7 @@ type RunningStatInfo struct {
 	ErrCount     int64  `json:"err_count"`
 }
 
-// Summary represents the total statistic information
+// Summary represents the total statistic information.
 type Summary struct {
 	Total        int64  `json:"finished_goroutines"`
 	RunningTotal int64  `json:"running_goroutines"`
@@ -108,7 +108,7 @@ type Summary struct {
 	Items map[string]RunningStatInfo
 }
 
-// GetStat return the group summary
+// GetStat return the group summary.
 func GetStat() *Summary {
 	summary := &Summary{
 		Items: make(map[string]RunningStatInfo),
@@ -142,7 +142,7 @@ func GetStat() *Summary {
 	return summary
 }
 
-// GetInputName return the group name for each inputs
+// GetInputName return the group name for each inputs.
 func GetInputName(name string) string {
 	return "inputs_" + name
 }

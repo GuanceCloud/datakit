@@ -16,7 +16,7 @@ import (
 )
 
 // RepairUTF8 ensures all characters in s are UTF-8 by replacing non-UTF-8 characters
-// with the replacement char �
+// with the replacement char �.
 func RepairUTF8(s string) string {
 	in := strings.NewReader(s)
 	var out bytes.Buffer

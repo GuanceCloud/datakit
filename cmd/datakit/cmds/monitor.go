@@ -8,10 +8,9 @@ import (
 	"time"
 
 	markdown "github.com/MichaelMure/go-term-markdown"
-	"golang.org/x/term"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"golang.org/x/term"
 )
 
 func cmdMonitor(interval time.Duration, verbose bool) {

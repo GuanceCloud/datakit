@@ -10,10 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
-	"github.com/dustin/go-humanize"
 )
 
 type versionDesc struct {

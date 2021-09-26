@@ -137,7 +137,7 @@ func (d *dcaContext) fail(errors ...dcaError) {
 	d.send(response)
 }
 
-// dca reload
+// dca reload.
 func dcaReload(c *gin.Context) {
 	context := getContext(c)
 	context.success()
@@ -175,7 +175,7 @@ type saveConfigParam struct {
 	InputName string `json:"inputName"`
 }
 
-// auth middleware
+// auth middleware.
 func dcaAuthMiddleware(f func(*gin.Context)) func(*gin.Context) {
 	return func(c *gin.Context) {
 		tokens := c.Request.Header["X-Token"]
@@ -213,7 +213,7 @@ func dcaGetConfig(c *gin.Context) {
 	context.success(string(content))
 }
 
-// save config
+// save config.
 func dcaSaveConfig(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 

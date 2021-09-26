@@ -17,13 +17,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/natefinch/lumberjack.v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (

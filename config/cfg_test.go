@@ -8,7 +8,6 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
@@ -333,7 +332,7 @@ hostname = "should-not-set"`,
 	for _, tc := range cases {
 		c := DefaultConfig()
 
-		if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0600); err != nil {
+		if err := ioutil.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
 			t.Fatal(err)
 		}
 

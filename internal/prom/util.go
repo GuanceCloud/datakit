@@ -10,7 +10,6 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 

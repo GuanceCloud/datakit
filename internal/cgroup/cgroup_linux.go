@@ -7,11 +7,10 @@ import (
 
 	"github.com/containerd/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-// 1 second
+// 1 second.
 var period = uint64(1000000) //nolint:gomnd
 
 const (

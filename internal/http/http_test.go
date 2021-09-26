@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/elazarl/goproxy"
-
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 

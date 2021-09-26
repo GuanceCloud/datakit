@@ -8,14 +8,13 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestEmptyDir(t *testing.T) {
 	dirname := "test123"
-	if err := os.MkdirAll(dirname, 0600); err != nil {
+	if err := os.MkdirAll(dirname, 0o600); err != nil {
 		t.Fatal(err)
 	}
 

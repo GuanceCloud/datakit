@@ -258,7 +258,7 @@ func (x *IO) cleanHighFreqIOData() {
 
 func (x *IO) init() error {
 	if x.OutputFile != "" {
-		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 		if err != nil {
 			l.Error(err)
 			return err

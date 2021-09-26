@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kardianos/service"
-
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
