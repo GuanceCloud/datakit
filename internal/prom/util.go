@@ -10,15 +10,12 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func isValid(familyType dto.MetricType,
-	name string,
-	metricTypes,
-	metricNameFilter []string) bool {
-	metricType := ""
+//nolint:cyclop
+func isValid(familyType dto.MetricType, name string, metricTypes, metricNameFilter []string) bool {
+	var metricType string
 	typeValid := false
 	nameValid := false
 
@@ -138,8 +135,8 @@ func getTags(labels []*dto.LabelPair, promTags, extraTags map[string]string, ign
 	return tags
 }
 
-//nolint:funlen,gocyclo
 // TODO: refact me
+//nolint:funlen,gocyclo,cyclop
 func Text2Metrics(in io.Reader,
 	prom *Option,
 	extraTags map[string]string) ([]*iod.Point, error) {
@@ -280,7 +277,6 @@ func Text2Metrics(in io.Reader,
 						pts = append(pts, pt)
 					}
 				}
-
 			}
 		case dto.MetricType_HISTOGRAM:
 			for _, m := range metrics {

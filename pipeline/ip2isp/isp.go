@@ -10,15 +10,14 @@ import (
 	"strconv"
 	"strings"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
 	IpV4_Len       = 4
-	FILE_SEPERATOR = " "
+	FILE_SEPARATOR = " "
 )
 
 var IspValid = map[string]string{
@@ -107,7 +106,7 @@ func Init(f string) error {
 
 	scanner := bufio.NewScanner(fd)
 	for scanner.Scan() {
-		contents := strings.Split(scanner.Text(), FILE_SEPERATOR)
+		contents := strings.Split(scanner.Text(), FILE_SEPARATOR)
 		if len(contents) != 2 {
 			continue
 		}
@@ -163,7 +162,7 @@ func MergeIsp(from, to string) error {
 
 		scanner := bufio.NewScanner(fd)
 		for scanner.Scan() {
-			c := fmt.Sprintf("%v%v%v", scanner.Text(), FILE_SEPERATOR, isp)
+			c := fmt.Sprintf("%v%v%v", scanner.Text(), FILE_SEPARATOR, isp)
 			content = append(content, c)
 		}
 	}

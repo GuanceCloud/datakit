@@ -6,7 +6,6 @@ import (
 
 	//"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
-	// tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 //func TestMockCollect(t *testing.T) {

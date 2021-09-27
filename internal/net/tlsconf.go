@@ -62,11 +62,11 @@ func makeCertPool(certFiles []string) (*x509.CertPool, error) {
 	for _, certFile := range certFiles {
 		pem, err := ioutil.ReadFile(certFile)
 		if err != nil {
-			return nil, fmt.Errorf("could not read certificate %q: %v", certFile, err)
+			return nil, fmt.Errorf("could not read certificate %q: %w", certFile, err)
 		}
 
 		if ok := pool.AppendCertsFromPEM(pem); !ok {
-			return nil, fmt.Errorf("could not parse any PEM certificates %q: %v", certFile, err)
+			return nil, fmt.Errorf("could not parse any PEM certificates %q: %w", certFile, err)
 		}
 	}
 
@@ -76,7 +76,7 @@ func makeCertPool(certFiles []string) (*x509.CertPool, error) {
 func loadCertificate(config *tls.Config, certFile, keyFile string) error {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		return fmt.Errorf("could not load keypair %s:%s: %v", certFile, keyFile, err)
+		return fmt.Errorf("could not load keypair %s:%s: %w", certFile, keyFile, err)
 	}
 
 	config.Certificates = []tls.Certificate{cert}

@@ -189,7 +189,6 @@ func MakePointWithoutGlobalTags(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-
 	return makePoint(name, tags, nil, fields, t...)
 }
 
@@ -197,7 +196,6 @@ func makePoint(name string,
 	tags, extags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]
@@ -226,7 +224,7 @@ func MakePoint(name string,
 	return makePoint(name, tags, extraTags, fields, t...)
 }
 
-// Deprecated
+// Deprecated.
 func MakeMetric(name string,
 	tags map[string]string,
 	fields map[string]interface{},
@@ -239,7 +237,7 @@ func MakeMetric(name string,
 	return []byte(p.Point.String()), nil
 }
 
-// Deprecated
+// Deprecated.
 func NamedFeed(data []byte, category, name string) error {
 	pts, err := lp.ParsePoints(data, nil)
 	if err != nil {
@@ -254,12 +252,11 @@ func NamedFeed(data []byte, category, name string) error {
 	return defaultIO.DoFeed(x, category, name, nil)
 }
 
-// Deprecated
+// Deprecated.
 func HighFreqFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) error {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]
@@ -281,12 +278,11 @@ func HighFreqFeedEx(name, category, metric string,
 	return defaultIO.DoFeed([]*Point{{pt}}, category, name, &Option{HighFreq: true})
 }
 
-// Deprecated
+// Deprecated.
 func NamedFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) error {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]

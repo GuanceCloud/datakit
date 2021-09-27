@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -211,7 +210,7 @@ type Queue struct {
 	MessageStats         `json:"message_stats"`
 	Memory               int64   `json:"memory"`
 	Consumers            int64   `json:"consumers"`
-	ConsumerUtilisation  float64 `json:"consumer_utilisation"`
+	ConsumerUtilisation  float64 `json:"consumer_utilization"`
 	HeadMessageTimestamp int64   `json:"head_message_timestamp"`
 	Name                 string
 	Node                 string

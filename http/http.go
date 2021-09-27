@@ -1,8 +1,11 @@
+// datakit HTTP server
+
 package http
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -14,13 +17,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/natefinch/lumberjack.v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
@@ -248,8 +250,6 @@ func HttpStart() {
 		}
 		l.Infof("pprof stopped")
 	}
-
-	return
 }
 
 func tryStartServer(srv *http.Server) {
@@ -260,7 +260,7 @@ func tryStartServer(srv *http.Server) {
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
 		if err := srv.ListenAndServe(); err != nil {
-			if err != http.ErrServerClosed {
+			if !errors.As(err, &http.ErrServerClosed) {
 				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				retryCnt++
 			} else {

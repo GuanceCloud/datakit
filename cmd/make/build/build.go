@@ -61,7 +61,10 @@ var (
 )
 
 func prepare() {
-	os.RemoveAll(BuildDir)
+	if err := os.RemoveAll(BuildDir); err != nil {
+		l.Warnf("os.RemoveAll: %s, ignored", err.Error())
+	}
+
 	_ = os.MkdirAll(BuildDir, os.ModePerm)
 	_ = os.MkdirAll(filepath.Join(PubDir, Release), os.ModePerm)
 
@@ -128,7 +131,6 @@ func Compile() {
 	archs := parseArchs(Archs)
 
 	for idx := range archs {
-
 		parts := strings.Split(archs[idx], "/")
 		if len(parts) != 2 {
 			l.Fatalf("invalid arch %q", parts)

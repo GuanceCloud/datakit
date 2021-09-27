@@ -2,7 +2,6 @@ package net
 
 import (
 	"testing"
-	//"time"
 )
 
 // FIXME: 提供更好的测试方式，不能假设机器上有任何端口，测试代码自己开端口供测试

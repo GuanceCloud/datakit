@@ -3,6 +3,7 @@ package downloader
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -41,6 +42,7 @@ func (wc *writeCounter) PrintProgress() {
 	}
 }
 
+//nolint:cyclop
 func doExtract(r io.Reader, to string) error {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
@@ -48,17 +50,22 @@ func doExtract(r io.Reader, to string) error {
 		return err
 	}
 
-	defer gzr.Close()
+	defer gzr.Close() //nolint:errcheck
+
 	tr := tar.NewReader(gzr)
 	for {
 		hdr, err := tr.Next()
-		switch {
-		case err == io.EOF:
+
+		if errors.Is(err, io.EOF) {
 			return nil
-		case err != nil:
+		}
+
+		if err != nil {
 			l.Error(err)
 			return err
-		case hdr == nil:
+		}
+
+		if hdr == nil {
 			continue
 		}
 
@@ -116,7 +123,7 @@ func Download(cli *http.Client, from, to string, progress, downloadOnly bool) er
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	progbar := &writeCounter{
 		total: uint64(resp.ContentLength),
 	}

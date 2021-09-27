@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -171,7 +170,7 @@ func (i *Input) collectBigKeyMeasurement() ([]inputs.Measurement, error) {
 	return i.getData(keys)
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
 	ctx := context.Background()
 	list, err := i.client.ClientList(ctx).Result()
@@ -183,7 +182,7 @@ func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
 	return i.parseClientData(list)
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) collectCommandMeasurement() ([]inputs.Measurement, error) {
 	ctx := context.Background()
 	list, err := i.client.Info(ctx, "commandstats").Result()

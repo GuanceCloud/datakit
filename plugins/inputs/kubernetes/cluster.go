@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	rbacv1 "k8s.io/api/rbac/v1"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 const kubernetesClusterName = "kubernetes_clusters"

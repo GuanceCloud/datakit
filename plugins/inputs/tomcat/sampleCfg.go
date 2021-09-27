@@ -64,7 +64,7 @@ const (
 
 	pipelineCfg = `
 # juli OneLineFormatter format
-# cataline / host-manager / localhost / manager log 
+# catiline / host-manager / localhost / manager log 
 add_pattern("olf_time", "%{MONTHDAY}-%{MONTH}-%{YEAR} %{TIME}")
 grok(_, "%{olf_time:time} %{LOGLEVEL:status} \\[%{NOTSPACE:thread_name}\\] %{NOTSPACE:report_source} %{GREEDYDATA:msg}")
   

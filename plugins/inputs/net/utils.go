@@ -48,7 +48,7 @@ func (f *InterfaceFilter) Match(s string) bool {
 	return false
 }
 
-// 通过正则过滤网络接口
+// 通过正则过滤网络接口.
 func FilterInterface(netio []psNet.IOCountersStat, interfaces []net.Interface,
 	exprs []string, enableVirtual bool, netVIfaces NetVirtualIfaces,
 ) (map[string]psNet.IOCountersStat, error) {

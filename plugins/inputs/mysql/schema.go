@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -18,12 +17,12 @@ type schemaMeasurement struct {
 	ts     time.Time
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *schemaMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
 func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_schema",
@@ -53,7 +52,7 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) getSchemaSize() ([]inputs.Measurement, error) {
 	querySizePerschemaSql := `
 		SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb

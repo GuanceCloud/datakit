@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	batchbetav1 "k8s.io/api/batch/v1beta1"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	batchbetav1 "k8s.io/api/batch/v1beta1"
 )
 
 const kubernetesCronJobName = "kubernetes_cron_jobs"

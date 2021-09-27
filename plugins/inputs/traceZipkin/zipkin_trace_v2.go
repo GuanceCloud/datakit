@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/openzipkin/zipkin-go/model"
 	zipkinmodel "github.com/openzipkin/zipkin-go/model"
 	zipkin_proto3 "github.com/openzipkin/zipkin-go/proto/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
@@ -126,7 +125,7 @@ func protoAnnotationsToModelAnnotations(zpa []*zipkin_proto3.Annotation) (zma []
 	return zma
 }
 
-func protobufSpansToAdapters(zspans []*model.SpanModel, filters ...zipkinProtoBufV2SpansFilter) ([]*trace.TraceAdapter, error) {
+func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel, filters ...zipkinProtoBufV2SpansFilter) ([]*trace.TraceAdapter, error) {
 	// run all filters
 	for _, filter := range filters {
 		if len(filter(zspans)) == 0 {

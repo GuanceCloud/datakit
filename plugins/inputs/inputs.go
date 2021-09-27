@@ -68,7 +68,7 @@ type PipelineInput interface {
 	RunPipeline()
 }
 
-// new input interface got extra interfaces, for better documentation
+// new input interface got extra interfaces, for better documentation.
 type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement

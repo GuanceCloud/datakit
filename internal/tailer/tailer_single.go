@@ -97,6 +97,7 @@ func (t *Single) Close() {
 	t.opt.log.Infof("closing %s", t.filename)
 }
 
+//nolint:cyclop
 func (t *Single) forwardMessage() {
 	var (
 		b       = &buffer{}

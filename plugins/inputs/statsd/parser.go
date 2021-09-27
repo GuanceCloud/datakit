@@ -23,7 +23,6 @@ func (s *input) parser(idx int) error {
 			lines := strings.Split(in.Buffer.String(), "\n")
 			s.bufPool.Put(in.Buffer)
 			for _, line := range lines {
-
 				line = strings.TrimSpace(line)
 				l.Debugf("statsd line: %s", line)
 
@@ -40,7 +39,7 @@ func (s *input) parser(idx int) error {
 }
 
 // parseStatsdLine will parse the given statsd line, validating it as it goes.
-// If the line is valid, it will be cached for the next call to Gather()
+// If the line is valid, it will be cached for the next call to Gather().
 func (s *input) parseStatsdLine(line string) error {
 	lineTags := make(map[string]string)
 	if s.DataDogExtensions {
@@ -186,7 +185,7 @@ func (s *input) parseStatsdLine(line string) error {
 // parseName parses the given bucket name with the list of bucket maps in the
 // config file. If there is a match, it will parse the name of the metric and
 // map of tags.
-// Return values are (<name>, <field>, <tags>)
+// Return values are (<name>, <field>, <tags>).
 func (s *input) parseName(bucket string) (string, string, map[string]string) {
 	s.Lock()
 	defer s.Unlock()
@@ -230,7 +229,7 @@ func (s *input) parseName(bucket string) (string, string, map[string]string) {
 	return name, field, tags
 }
 
-// Parse the key,value out of a string that looks like "key=value"
+// Parse the key,value out of a string that looks like "key=value".
 func parseKeyValue(keyvalue string) (string, string) {
 	var key, val string
 

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"

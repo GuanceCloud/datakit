@@ -17,12 +17,11 @@ var (
 )
 
 type Input struct {
-	EatCPU bool `toml:"eat_cpu"`
-	Tags   map[string]string
-
 	collectCache    []inputs.Measurement
 	collectObjCache []inputs.Measurement
+	Tags            map[string]string
 	chpause         chan bool
+	EatCPU          bool `toml:"eat_cpu"`
 	paused          bool
 }
 
@@ -60,7 +59,6 @@ func (i *Input) Run() {
 	}
 
 	for {
-
 		n++
 
 		select {
@@ -81,7 +79,6 @@ func (i *Input) Run() {
 			if err := i.Collect(); err != nil {
 				l.Error(err)
 			} else {
-
 				inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
 

@@ -12,7 +12,6 @@ import (
 	"github.com/shirou/gopsutil/host"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -55,7 +54,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&ProcessMetric{}, &ProcessObject{}}
 }
 
-// TODO
+// TODO.
 func (*Input) RunPipeline() {}
 
 func (p *Input) Run() {
@@ -301,7 +300,6 @@ func (p *Input) WriteObject() {
 				} else {
 					l.Errorf("[error] process run pipeline err:%s", err.Error())
 				}
-
 			} else {
 				l.Errorf("[error] process new pipeline err:%s", err.Error())
 			}

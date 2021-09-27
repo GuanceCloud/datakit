@@ -57,7 +57,7 @@ const (
 	hostObjMeasurementName = "HOST"
 )
 
-// TODO
+// TODO.
 func (*Input) RunPipeline() {}
 
 func (c *Input) Run() {

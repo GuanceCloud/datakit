@@ -105,8 +105,6 @@ type iodata struct {
 	category, name string
 	opt            *Option
 	pts            []*Point
-	url            string
-	isProxy        bool
 }
 
 func TestOutput() {
@@ -260,7 +258,7 @@ func (x *IO) cleanHighFreqIOData() {
 
 func (x *IO) init() error {
 	if x.OutputFile != "" {
-		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
 		if err != nil {
 			l.Error(err)
 			return err
@@ -317,7 +315,9 @@ func (x *IO) StartIO(recoverable bool) {
 
 			case <-heartBeatTick.C:
 				if !DisableHeartbeat {
-					x.dw.HeartBeat()
+					if err := x.dw.HeartBeat(); err != nil {
+						l.Warnf("dw.HeartBeat: %s, ignored", err.Error())
+					}
 				}
 
 			case <-datawaylistTick.C:
@@ -470,7 +470,9 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 	}
 	for _, body := range bodies {
 		if x.OutputFile != "" {
-			x.fileOutput(body.buf)
+			if err := x.fileOutput(body.buf); err != nil {
+				l.Error("fileOutput: %s, ignored", err.Error())
+			}
 			continue
 		}
 
@@ -486,14 +488,12 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 
 func (x *IO) fileOutput(body []byte) error {
 	if _, err := x.fd.Write(append(body, '\n')); err != nil {
-		l.Error(err)
 		return err
 	}
 
 	x.outputFileSize += int64(len(body))
 	if x.outputFileSize > 4*1024*1024 {
 		if err := x.fd.Truncate(0); err != nil {
-			l.Error(err)
 			return err
 		}
 		x.outputFileSize = 0

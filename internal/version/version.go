@@ -115,7 +115,7 @@ func (vi *VerInfo) Parse() error {
 
 		vi.build, err = strconv.ParseUint(parts[2], 10, 64)
 		if err != nil {
-			return fmt.Errorf("invalid build number %s: %s", parts[2], err.Error())
+			return fmt.Errorf("invalid build number %s: %w", parts[2], err)
 		}
 
 		return nil

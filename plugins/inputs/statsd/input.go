@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -146,7 +145,7 @@ type job struct {
 	Addr string
 }
 
-// One statsd metric, form is <bucket>:<value>|<mtype>|@<samplerate>
+// One statsd metric, form is <bucket>:<value>|<mtype>|@<samplerate>.
 type metric struct {
 	name       string
 	field      string

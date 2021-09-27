@@ -13,12 +13,10 @@ import (
 	loadutil "github.com/shirou/gopsutil/load"
 	memutil "github.com/shirou/gopsutil/mem"
 	netutil "github.com/shirou/gopsutil/net"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -240,7 +238,6 @@ func getDiskInfo(ignoreFs []string) []*DiskInfo {
 	fstypeExcludeSet, _ := DiskIgnoreFs(ignoreFs)
 
 	for _, p := range ps {
-
 		if _, ok := fstypeExcludeSet[p.Fstype]; ok {
 			continue
 		}
@@ -272,7 +269,6 @@ func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 	now := time.Now()
 	for name := range inputs.InputsInfo {
 		if s, ok := inputsStats[name]; ok {
-
 			ts := s.LastErrTS.Unix()
 			if ts < 0 {
 				ts = 0
@@ -349,7 +345,6 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		if err != nil {
 			l.Warnf("sync cloud info failed: %v, ignored", err)
 		} else {
-
 			j, err := json.Marshal(info)
 			if err != nil {
 				l.Warn(err)

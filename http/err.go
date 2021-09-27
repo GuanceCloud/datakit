@@ -19,7 +19,7 @@ var (
 	ErrInvalidToken           = newErr(errors.New("invalid token"), http.StatusForbidden)
 	ErrRUMAppIdNotInWhiteList = newErr(errors.New("RUM app_id not in the white list"), http.StatusForbidden)
 
-	// write body error
+	// write body error.
 	ErrInvalidJsonPoint = newErr(errors.New("invalid json point"), http.StatusBadRequest)
 	ErrInvalidLinePoint = newErr(errors.New("invalid line point"), http.StatusBadRequest)
 )

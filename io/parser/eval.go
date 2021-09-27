@@ -13,7 +13,6 @@ func (p *ParenExpr) Eval(source string, tags map[string]string, fields map[strin
 	}
 
 	switch expr := p.Param.(type) {
-
 	case Evaluable:
 		return expr.Eval(source, tags, fields)
 	default:
@@ -78,7 +77,7 @@ func toFloat64(f interface{}) float64 {
 	case float32:
 		return float64(v)
 	case float64:
-		return float64(v)
+		return v
 	default:
 		log.Panic("should not been here")
 		return 0.0
@@ -96,7 +95,7 @@ func toInt64(i interface{}) int64 {
 	case int32:
 		return int64(v)
 	case int64:
-		return int64(v)
+		return v
 	case uint:
 		return int64(v)
 	case uint8:
@@ -352,7 +351,7 @@ func (e *BinaryExpr) singleEval(source string, tags map[string]string, fields ma
 		}
 
 	default:
-		log.Errorf("unkown LHS type, expect Identifier, got `%s'", reflect.TypeOf(e.LHS).String())
+		log.Errorf("unknown LHS type, expect Identifier, got `%s'", reflect.TypeOf(e.LHS).String())
 	}
 	return false
 }

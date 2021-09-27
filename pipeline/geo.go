@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ip2location/ip2location-go"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

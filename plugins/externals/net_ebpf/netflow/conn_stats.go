@@ -66,13 +66,32 @@ func connIPv4Type(addr uint32) string {
 	if (ip[0] == 10) ||
 		((ip[0] == 172) && (ip[1] >= 16) && (ip[1] <= 31)) ||
 		((ip[0] == 192) && (ip[1] == 168)) {
+		// 10.0.0.0/8; 172.16.0.0/12; 192.168.0.0/16
 		return "private"
 	}
 	if ip[0] > 223 && ip[0] <= 239 {
 		return "multicast"
 	}
 	if ip[0] == 127 {
+		// 127.0.0.0/8
 		return "loopback"
+	}
+
+	return "other"
+}
+
+func connIPv6Type(addr [4]uint32) string {
+	ip := U32BEToIPv6Array(addr)
+
+	if (ip[0]|ip[1]|ip[2]|ip[3]|ip[4]|ip[5]|ip[6]) == 0 &&
+		ip[7] == 1 { // ::1/128
+		return "loopback"
+	}
+	if ip[0]&0xfe00 == 0xfc00 { // fc00::/7
+		return "private"
+	}
+	if ip[0]&0xff00 == 0xff00 { // ff00::/8
+		return "multicast"
 	}
 
 	return "other"
@@ -154,7 +173,7 @@ func (c *ConnStatsRecord) updateLastActive(activeConnInfo ConnectionInfo, active
 }
 
 // 返回合并结果(与已关闭的和上一周期未关闭的);
-// 调用此方法将更新/删除 record 中的 Map: lastActiveConns, closedConns 的元素
+// 调用此方法将更新/删除 record 中的 Map: lastActiveConns, closedConns 的元素.
 func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, connFullStats ConnFullStats) ConnFullStats {
 	if v, ok := c.closedConns[connInfo]; ok {
 		// closed
@@ -187,7 +206,7 @@ func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, con
 	return connFullStats
 }
 
-// fullConn = connStats op("+", "-", ...) fullConn;
+// fullConn = connStats op("+", "-", ...) fullConn;.
 func statsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnFullStats {
 	switch op {
 	case "+":

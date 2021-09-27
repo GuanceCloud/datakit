@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

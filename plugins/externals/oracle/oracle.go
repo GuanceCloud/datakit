@@ -18,10 +18,9 @@ import (
 	_ "github.com/godror/godror"
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"github.com/jessevdk/go-flags"
-	"golang.org/x/net/context/ctxhttp"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 type Option struct {
@@ -38,7 +37,7 @@ type Option struct {
 
 	Log      string   `long:"log" description:"log path"`
 	LogLevel string   `long:"log-level" description:"log file" default:"info"`
-	Query    []string `long:"query" description:"custom query arrary"`
+	Query    []string `long:"query" description:"custom query array"`
 }
 
 var (
@@ -210,7 +209,6 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 	}
 
 	for _, item := range response {
-
 		tags := map[string]string{}
 
 		tags["oracle_service"] = m.serviceName

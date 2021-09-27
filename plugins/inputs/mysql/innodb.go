@@ -15,12 +15,12 @@ type innodbMeasurement struct {
 	ts     time.Time
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *innodbMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
 func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_innodb",
@@ -426,7 +426,7 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) getInnodb() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 

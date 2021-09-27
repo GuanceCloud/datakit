@@ -71,7 +71,7 @@ func (i *Input) getKeys() ([]string, error) {
 	return res, nil
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) getData(resKeys []string) ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 

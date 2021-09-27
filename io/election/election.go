@@ -88,7 +88,7 @@ func (x *candidate) startElection() {
 	})
 }
 
-// 此处暂不考虑互斥性，只用于状态展示
+// 此处暂不考虑互斥性，只用于状态展示.
 func Elected() string {
 	return defaultCandidate.status
 }

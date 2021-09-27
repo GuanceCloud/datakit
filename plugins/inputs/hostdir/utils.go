@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/shirou/gopsutil/disk"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 

@@ -9,12 +9,12 @@ import (
 )
 
 type Gauge struct {
+	Time    time.Time
 	Name    string
 	Count   int
-	Code    byte
 	Score   float64
+	Code    byte
 	Checked bool
-	Ts      time.Time
 }
 
 func RamGauage() *Gauge {
@@ -24,7 +24,7 @@ func RamGauage() *Gauge {
 		Code:    byte(rand.Intn(128)),
 		Score:   rand.Float64(),
 		Checked: rand.Int()%2 == 0,
-		Ts:      time.Now(),
+		Time:    time.Now(),
 	}
 }
 

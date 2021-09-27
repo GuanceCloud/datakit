@@ -74,7 +74,7 @@ func (s *input) tcpListen(listener *net.TCPListener) error {
 	}
 }
 
-// handler handles a single TCP Connection
+// handler handles a single TCP Connection.
 func (s *input) handler(conn *net.TCPConn, id string) {
 	// connection cleanup function
 	defer func() {
@@ -131,7 +131,7 @@ func (s *input) handler(conn *net.TCPConn, id string) {
 	}
 }
 
-// refuser refuses a TCP connection
+// refuser refuses a TCP connection.
 func (s *input) refuser(conn *net.TCPConn) {
 	// Ignore the returned error as we cannot do anything about it anyway
 	//nolint:errcheck,revive
@@ -140,14 +140,14 @@ func (s *input) refuser(conn *net.TCPConn) {
 	l.Warn("Maximum TCP Connections reached, you may want to adjust max_tcp_connections")
 }
 
-// forget a TCP connection
+// forget a TCP connection.
 func (s *input) forget(id string) {
 	s.cleanup.Lock()
 	defer s.cleanup.Unlock()
 	delete(s.conns, id)
 }
 
-// remember a TCP connection
+// remember a TCP connection.
 func (s *input) remember(id string, conn *net.TCPConn) {
 	s.cleanup.Lock()
 	defer s.cleanup.Unlock()

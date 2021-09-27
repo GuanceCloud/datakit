@@ -189,7 +189,6 @@ func (i *Input) Collect() error {
 	filteredInterface, err := FilterInterface(netio, interfaces, i.Interfaces, i.EnableVirtualInterfaces, i.netVirtualIfaces)
 
 	for name, ioStat := range filteredInterface {
-
 		tags := map[string]string{
 			"interface": ioStat.Name,
 		}
@@ -240,7 +239,6 @@ func (i *Input) Collect() error {
 						fields[pname+"_"+sname+"/sec"] = (v.(int64) - value) / (ts.Unix() - i.lastTime.Unix())
 					}
 				}
-
 			}
 		}
 		tags := map[string]string{

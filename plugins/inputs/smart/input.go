@@ -189,7 +189,7 @@ func (s *Input) gather() error {
 	return nil
 }
 
-// Scan for S.M.A.R.T. devices from smartctl
+// Scan for S.M.A.R.T. devices from smartctl.
 func (s *Input) scanDevices(ignoreExcludes bool, scanArgs ...string) ([]string, error) {
 	output, err := cmd.RunWithTimeout(s.Timeout.Duration, s.UseSudo, s.SmartCtlPath, scanArgs...)
 	if err != nil {
@@ -243,7 +243,7 @@ func (s *Input) getCustomerTags() map[string]string {
 	return tags
 }
 
-// Get info and attributes for each S.M.A.R.T. device
+// Get info and attributes for each S.M.A.R.T. device.
 func (s *Input) getAttributes(devices []string) {
 	start := time.Now()
 

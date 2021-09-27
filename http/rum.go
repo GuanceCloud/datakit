@@ -5,7 +5,6 @@ import (
 	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -25,40 +24,38 @@ var (
 	rumMetricAppID = "app_id"
 )
 
-func geoTags(srcip string) (tags map[string]string) {
-	tags = map[string]string{}
-
+func geoTags(srcip string) map[string]string {
 	ipInfo, err := pipeline.Geo(srcip)
 
 	l.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
 
 	if err != nil {
 		l.Warnf("geo failed: %s, ignored", err)
-		return
-	} else {
-		switch ipInfo.Country_short { // #issue 354
-		case "TW":
-			ipInfo.Country_short = "CN"
-			ipInfo.Region = "Taiwan"
-		case "MO":
-			ipInfo.Country_short = "CN"
-			ipInfo.Region = "Macao"
-		case "HK":
-			ipInfo.Country_short = "CN"
-			ipInfo.Region = "Hong Kong"
-		}
-
-		// 无脑填充 geo 数据
-		tags = map[string]string{
-			"city":     ipInfo.City,
-			"province": ipInfo.Region,
-			"country":  ipInfo.Country_short,
-			"isp":      ip2isp.SearchIsp(srcip),
-			"ip":       srcip,
-		}
+		return nil
 	}
 
-	return
+	switch ipInfo.Country_short { // #issue 354
+	case "TW":
+		ipInfo.Country_short = "CN"
+		ipInfo.Region = "Taiwan"
+	case "MO":
+		ipInfo.Country_short = "CN"
+		ipInfo.Region = "Macao"
+	case "HK":
+		ipInfo.Country_short = "CN"
+		ipInfo.Region = "Hong Kong"
+	}
+
+	// 无脑填充 geo 数据
+	tags := map[string]string{
+		"city":     ipInfo.City,
+		"province": ipInfo.Region,
+		"country":  ipInfo.Country_short,
+		"isp":      ip2isp.SearchIsp(srcip),
+		"ip":       srcip,
+	}
+
+	return tags
 }
 
 func doHandleRUMBody(body []byte,
@@ -66,7 +63,6 @@ func doHandleRUMBody(body []byte,
 	isjson bool,
 	extraTags map[string]string,
 	appIdWhiteList []string) ([]*io.Point, error) {
-
 	if isjson {
 		return jsonPoints(body, precision, extraTags, appIdWhiteList)
 	}

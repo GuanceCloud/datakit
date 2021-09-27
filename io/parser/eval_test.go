@@ -1,7 +1,6 @@
 package parser
 
 import (
-	//"reflect"
 	"testing"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"

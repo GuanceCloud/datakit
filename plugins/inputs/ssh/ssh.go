@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -218,7 +217,6 @@ func (i *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, e
 				t1 := time.Now()
 				sftp_client.Getwd()
 				fields["sftp_response_time"] = getMsInterval(time.Since(t1))
-
 			} else {
 				sftpRst = false
 				fields["sftp_err"] = err.Error()

@@ -183,7 +183,6 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 			continue
 		}
 		pts = append(pts, pt)
-
 	}
 
 	if err := dkio.Feed(pluginName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
@@ -231,7 +230,6 @@ func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-
 	} else {
 		data, err = ioutil.ReadAll(body)
 		if err != nil {

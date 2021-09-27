@@ -23,7 +23,8 @@ func TestConnFilter(t *testing.T) {
 			conn: ConnectionInfo{
 				Saddr: [4]uint32{0, 0, 0, 0x0100007F},
 				Daddr: [4]uint32{0, 0, 0, 0x0100007F},
-				Meta:  CONN_L3_IPv4,
+				Sport: 1, Dport: 1,
+				Meta: CONN_L3_IPv4,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
@@ -36,6 +37,7 @@ func TestConnFilter(t *testing.T) {
 		{
 			conn: ConnectionInfo{
 				Saddr: [4]uint32{0, 0, 0, 0x0101007F},
+				Sport: 1, Dport: 1,
 				Daddr: [4]uint32{0, 0, 0, 0x0100007F},
 				Meta:  CONN_L3_IPv4,
 			},
@@ -51,7 +53,8 @@ func TestConnFilter(t *testing.T) {
 			conn: ConnectionInfo{
 				Saddr: [4]uint32{0, 0, 0, 0x01010080},
 				Daddr: [4]uint32{0, 0, 0, 0x0100007F},
-				Meta:  CONN_L3_IPv4,
+				Sport: 1, Dport: 1,
+				Meta: CONN_L3_IPv4,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
@@ -65,7 +68,8 @@ func TestConnFilter(t *testing.T) {
 			conn: ConnectionInfo{
 				Saddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
 				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
-				Meta:  CONN_L3_IPv6,
+				Sport: 1, Dport: 1,
+				Meta: CONN_L3_IPv6,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
@@ -79,7 +83,8 @@ func TestConnFilter(t *testing.T) {
 			conn: ConnectionInfo{
 				Saddr: [4]uint32{0, 0, 0xffff0000, 0x0101008F},
 				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
-				Meta:  CONN_L3_IPv6,
+				Sport: 1, Dport: 1,
+				Meta: CONN_L3_IPv6,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
@@ -93,7 +98,8 @@ func TestConnFilter(t *testing.T) {
 			conn: ConnectionInfo{
 				Saddr: [4]uint32{0, 0, 0xffff0000, 0x0101008F},
 				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
-				Meta:  CONN_L3_IPv6,
+				Sport: 1, Dport: 1,
+				Meta: CONN_L3_IPv6,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
@@ -103,10 +109,24 @@ func TestConnFilter(t *testing.T) {
 			},
 			result: true,
 		},
+		{
+			conn: ConnectionInfo{
+				Saddr: [4]uint32{0, 0, 0, 0},
+				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
+				Meta:  CONN_L3_IPv6,
+			},
+			connStats: ConnFullStats{
+				Stats: ConnectionStats{
+					Recv_bytes: 1,
+					Sent_bytes: 0,
+				},
+			},
+			result: false,
+		},
 	}
 
 	for k := 0; k < len(cases); k++ {
-		if cases[k].result == !ConnFilter(cases[k].conn, cases[k].connStats) {
+		if cases[k].result != ConnNotNeedToFilter(cases[k].conn, cases[k].connStats) {
 			t.Errorf("test case %d", k)
 		}
 	}
@@ -743,6 +763,24 @@ func TestIPv4Type(t *testing.T) {
 	}
 	for k, v := range cases {
 		assert.Equal(t, v, connIPv4Type(k))
+	}
+}
+
+func TestIPv6Type(t *testing.T) {
+	cases := map[[4]uint32]string{
+		// fc01::
+		{0x000001fc, 0, 0, 0}: "private",
+		// fd00::
+		{0x000000fd, 0, 0, 0}: "private",
+		// ff01::
+		{0x000001ff, 0, 0, 0}: "multicast",
+		// ::1
+		{0, 0, 0, 0x01000000}: "loopback",
+		// 2004:0400::
+		{0x00040420, 0, 0, 0}: "other",
+	}
+	for k, v := range cases {
+		assert.Equal(t, v, connIPv6Type(k))
 	}
 }
 

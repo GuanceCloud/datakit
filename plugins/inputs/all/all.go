@@ -56,6 +56,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceJaeger"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin"
 
-	// only windows
+	// only windows.
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/win_event"
 )

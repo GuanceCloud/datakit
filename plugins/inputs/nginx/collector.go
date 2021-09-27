@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// 默认 http stub status module 模块的数据
+// 默认 http stub status module 模块的数据.
 func (n *Input) getStubStatusModuleMetric() {
 	resp, err := n.client.Get(n.Url)
 	if err != nil {
