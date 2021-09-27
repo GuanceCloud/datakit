@@ -132,7 +132,7 @@ func newFieldInfoCount(desc string) *inputs.FieldInfo {
 	}
 }
 
-// float unkonwn unit.
+// float unknown unit.
 func newFieldInfoFloatUnknown(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
