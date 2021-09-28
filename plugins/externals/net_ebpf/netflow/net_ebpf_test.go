@@ -12,8 +12,8 @@ import (
 )
 
 type caseConnT struct {
-	conn      ConnectionInfo
 	connStats ConnFullStats
+	conn      ConnectionInfo
 	result    bool
 }
 
@@ -354,7 +354,11 @@ func TestConvConn2M(t *testing.T) {
 	}
 	for _, v := range cases {
 		connR.result[v.conn] = v.connStats
-		m := convConn2M(v.conn, v.connStats, v.name, v.tags, v.ts).(*measurement)
+		m, ok := convConn2M(v.conn, v.connStats, v.name, v.tags, v.ts).(*measurement)
+		if !ok {
+			t.Error("conv failed")
+			continue
+		}
 		delete(m.fields, "message")
 		if len(m.fields) != len(v.result.fields) {
 			t.Error("fields length not equal")

@@ -15,7 +15,8 @@ const (
 	patchK = 0
 )
 
-// version == "", auto to get.
+// If the value of the parameter "version" is an empty string,
+// it will be automatically obtained.
 func checkLinuxKernelVesion(version string) (bool, error) {
 	var err error
 	kVersionStr := version

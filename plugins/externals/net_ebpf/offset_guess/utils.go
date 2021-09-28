@@ -1,3 +1,5 @@
+// +build linux
+
 package offset_guess
 
 // #include "../c/offset_guess/offset.h"
@@ -15,10 +17,40 @@ import (
 	"github.com/DataDog/ebpf/manager"
 	"golang.org/x/sys/unix"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/c"
 )
 
 type OffsetGuessC C.struct_offset_guess
+
+const PROCNAMLEN = 18 // Maximum length of process name
+
+const (
+	GUESS_SK_NUM = iota + 1
+	GUESS_INET_SPORT
+	GUESS_SK_FAMILY
+	GUESS_SK_RCV_SADDR
+	GUESS_SK_DADDR
+	GUESS_SK_DPORT
+	GUESS_TCP_SK_SRTT_US
+	GUESS_TCP_SK_MDEV_US
+	GUESS_FLOWI4_SADDR
+	GUESS_FLOWI4_DADDR
+	GUESS_FLOWI4_SPORT
+	GUESS_FLOWI4_DPORT
+	GUESS_FLOWI6_SADDR
+	GUESS_FLOWI6_DADDR
+	GUESS_FLOWI6_SPORT
+	GUESS_FLOWI6_DPORT
+	GUESS_SKADDR_SIN_PORT
+	GUESS_SKADRR6_SIN6_PORT
+)
+
+var l = logger.DefaultSLogger("net_ebpf")
+
+func SetLogger(nl *logger.Logger) {
+	l = nl
+}
 
 func NewGuessManger() (*manager.Manager, error) {
 	m := &manager.Manager{
@@ -37,10 +69,8 @@ func NewGuessManger() (*manager.Manager, error) {
 	}
 	if buf, err := dkebpf.Asset("offset_guess.o"); err != nil {
 		return nil, err
-	} else {
-		if err := m.InitWithOptions((bytes.NewReader(buf)), m_opts); err != nil {
-			return nil, err
-		}
+	} else if err := m.InitWithOptions((bytes.NewReader(buf)), m_opts); err != nil {
+		return nil, err
 	}
 	return m, nil
 }
@@ -85,9 +115,11 @@ func newGuessStatus() OffsetGuessC {
 	for i := 0; i < PROCNAMLEN-1 && i < len(proc_name); i++ {
 		proc_name_c[i] = C.__u8(proc_name[i])
 	}
+
 	status := OffsetGuessC{
 		process_name: proc_name_c,
 	}
+
 	return status
 }
 
@@ -117,6 +149,33 @@ func copyOffset(src *OffsetGuessC, dst *OffsetGuessC) {
 	dst.offset_skaddr6_sin6_port = src.offset_skaddr6_sin6_port
 }
 
-func setConnType(status *OffsetGuessC, meta uint32) {
-	status.conn_type = C.__u32(meta)
+func try_guess(status *OffsetGuessC, conn *Conninfo, guessWhich int) bool {
+	switch guessWhich {
+	case GUESS_SK_NUM:
+	case GUESS_INET_SPORT:
+	case GUESS_SK_FAMILY:
+	case GUESS_SK_RCV_SADDR:
+	case GUESS_SK_DADDR:
+	case GUESS_SK_DPORT:
+	case GUESS_TCP_SK_SRTT_US:
+		if conn.Rtt != uint32(status.rtt) {
+			status.offset_tcp_sk_srtt_us++
+			return false
+		}
+	case GUESS_TCP_SK_MDEV_US:
+		if conn.Rtt_var != uint32(status.rtt_var) {
+			status.offset_tcp_sk_mdev_us++
+			return false
+		}
+	case GUESS_FLOWI4_SADDR:
+	case GUESS_FLOWI4_DADDR:
+	case GUESS_FLOWI4_SPORT:
+	case GUESS_FLOWI4_DPORT:
+	case GUESS_FLOWI6_SADDR:
+	case GUESS_FLOWI6_DADDR:
+	case GUESS_FLOWI6_SPORT:
+	case GUESS_FLOWI6_DPORT:
+	case GUESS_SKADDR_SIN_PORT:
+	}
+	return true
 }

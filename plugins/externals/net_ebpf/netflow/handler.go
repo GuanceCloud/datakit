@@ -56,10 +56,8 @@ func closedEventHandler(cpu int, data []byte, perfmap *manager.PerfMap, manager 
 	connStatsRecord.updateClosedUseEvent(event)
 }
 
-// 在扫描 connStatMap 时锁定资源 connStatsRecord
-// duration 介于 10s ～ 30min, 若非，默认设为 30s.
-func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map,
-	interval time.Duration, gTags map[string]string) {
+// 在扫描 connStatMap 时锁定资源 connStatsRecord.
+func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map, interval time.Duration, gTags map[string]string) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -150,7 +148,9 @@ func FeedHandler(ctx context.Context, datakitPostURL string) {
 		case result := <-resultCh:
 			connMerge(result)
 			collectCache := convertConn2Measurement(result, inputName)
-			FeedMeasurement(collectCache, datakitPostURL)
+			if err := FeedMeasurement(collectCache, datakitPostURL); err != nil {
+				l.Error(err)
+			}
 		case <-ctx.Done():
 			return
 		}

@@ -57,6 +57,11 @@ type Input interface {
 	// add more...
 }
 
+type Instance interface {
+	Input
+	Stop()
+}
+
 type HTTPInput interface {
 	// Input
 	RegHttpHandler()

@@ -46,13 +46,13 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 			"source":      inputs.TagInfo{Desc: "固定值: netflow"},
 		},
 		Fields: map[string]interface{}{
-			"bytes_read":     newFInfInt("读取字节数", inputs.SizeByte),
-			"bytes_written":  newFInfInt("写入字节数", inputs.SizeByte),
-			"retransmits":    newFInfInt("重传次数", inputs.NCount),
-			"rtt":            newFInfInt("TCP Latency", inputs.DurationUS),
-			"rtt_var":        newFInfInt("TCP Jitter", inputs.DurationUS),
-			"tcp_closed":     newFInfInt("TCP 关闭次数", inputs.NCount),
-			"tcp_establised": newFInfInt("TCP 建立连接次数", inputs.NCount),
+			"bytes_read":      newFInfInt("读取字节数", inputs.SizeByte),
+			"bytes_written":   newFInfInt("写入字节数", inputs.SizeByte),
+			"retransmits":     newFInfInt("重传次数", inputs.NCount),
+			"rtt":             newFInfInt("TCP Latency", inputs.DurationUS),
+			"rtt_var":         newFInfInt("TCP Jitter", inputs.DurationUS),
+			"tcp_closed":      newFInfInt("TCP 关闭次数", inputs.NCount),
+			"tcp_established": newFInfInt("TCP 建立连接次数", inputs.NCount),
 		},
 	}
 }
