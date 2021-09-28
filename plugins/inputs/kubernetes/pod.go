@@ -17,8 +17,8 @@ type pod struct {
 	client interface {
 		getPods() (*corev1.PodList, error)
 	}
-	tags         map[string]string
-	promExporter *PromExporter
+	tags      map[string]string
+	discovery *Discovery
 }
 
 func (p *pod) Gather() {
@@ -97,11 +97,11 @@ func (p *pod) Gather() {
 	}
 }
 
-const annotationExportKey = "datakit/prom.exporter"
+const annotationExportKey = "datakit/prom.instances"
 
 func (p *pod) Export() {
-	if p.promExporter == nil {
-		p.promExporter = NewPromExporter()
+	if p.discovery == nil {
+		p.discovery = NewDiscovery()
 	}
 
 	list, err := p.client.getPods()
@@ -110,23 +110,26 @@ func (p *pod) Export() {
 		return
 	}
 
-	for _, obj := range list.Items {
-		config := obj.Annotations[annotationExportKey]
-		strings.ReplaceAll(config, "$IP", obj.Status.PodIP)
-		strings.ReplaceAll(config, "$NAMESPACE", obj.Namespace)
-		strings.ReplaceAll(config, "$PODNAME", obj.Name)
+	p.run(list)
+}
 
-		if err := p.promExporter.TryRun(config); err != nil {
+func (p *pod) run(list *corev1.PodList) {
+	for _, obj := range list.Items {
+		config, ok := obj.Annotations[annotationExportKey]
+		if !ok {
+			continue
+		}
+		config = strings.ReplaceAll(config, "$IP", obj.Status.PodIP)
+		config = strings.ReplaceAll(config, "$NAMESPACE", obj.Namespace)
+		config = strings.ReplaceAll(config, "$PODNAME", obj.Name)
+
+		if err := p.discovery.TryRun("prom", config); err != nil {
 			l.Warn(err)
 		}
 	}
 }
 
-func (p *pod) Stop() {
-	if p.promExporter != nil {
-		p.promExporter.Stop()
-	}
-}
+func (*pod) Stop() {}
 
 func (*pod) Resource() { /*empty interface*/ }
 

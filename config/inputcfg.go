@@ -343,7 +343,22 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 		return nil, fmt.Errorf("parse conf failed: %w", err)
 	}
 
-	inputlist := []inputs.Input{}
+	return parseTableToInputs(tbl, creator)
+}
+
+func LoadInputConfig(data string, creator inputs.Creator) ([]inputs.Input, error) {
+	tbl, err := toml.Parse([]byte(data))
+	if err != nil {
+		l.Errorf("parse toml %s failed", data)
+		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
+	}
+
+	return parseTableToInputs(tbl, creator)
+}
+
+func parseTableToInputs(tbl *ast.Table, creator inputs.Creator) ([]inputs.Input, error) {
+	var inputlist []inputs.Input
+	var err error
 
 	for field, node := range tbl.Fields {
 		switch field {
