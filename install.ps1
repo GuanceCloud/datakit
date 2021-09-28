@@ -108,6 +108,31 @@ if ($x -ne $null) {
 	Write-COutput yellow "* set install only"
 }
 
+$dca_white_list=
+$x = [Environment]::GetEnvironmentVariable("DK_DCA_WHITE_LIST") 
+if ($x -ne $null) {
+	$dca_white_list = $x
+	Write-COutput yellow "* set DCA white list $x"
+}
+
+$dca_listen=""
+$x = [Environment]::GetEnvironmentVariable("DK_DCA_LISTEN") 
+if ($x -ne $null) {
+	$dca_listen = $x
+	Write-COutput yellow "* set DCA server listen address and port"
+}
+
+$dca_enable=
+$x = [Environment]::GetEnvironmentVariable("DK_DCA_ENABLE") 
+if ($x -ne $null) {
+	$dca_enable = $x
+	Write-COutput yellow "* enable DCA server"
+	if ($dca_white_list -eq $null) {
+		Write-COutput red "DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!"
+		Exit
+	}
+}
+
 ##########################
 # Detect arch 32 or 64
 ##########################
@@ -139,7 +164,7 @@ Invoke-Expression $dl_installer_action
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade --proxy=${proxy}"
 } else { # install new datakit
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --cloud-provider=${cloud_provider} --global-tags='${global_tags}'"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list"
 	if ($install_only -ne "") {
 		$action = -join($action, " ", "--install-only")
 	}
@@ -153,7 +178,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue $installer
 Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
 
 # clean envs
-$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HTTP_LISTEN","DK_INSTALL_ONLY"
+$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST"
 foreach ($env in $optional_envs) {
 	Remove-Item -ErrorAction SilentlyContinue Env:$env
 }

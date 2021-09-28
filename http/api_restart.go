@@ -2,12 +2,9 @@ package http
 
 import (
 	"fmt"
-	"runtime"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kardianos/service"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
-	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
 func apiRestart(c *gin.Context) {
@@ -16,19 +13,12 @@ func apiRestart(c *gin.Context) {
 		return
 	}
 
-	svc, err := dkservice.NewService()
+	err := restartDataKit()
 	if err != nil {
 		uhttp.HttpErr(c,
-			fmt.Errorf("new %s service failed: %w", runtime.GOOS, err))
+			fmt.Errorf("restart datakit failed: %s", err.Error()))
 		return
 	}
 
-	l.Info("new datakit servier ok...")
-
 	ErrOK.HttpBody(c, nil)
-
-	l.Info("stoping datakit...")
-	if err := service.Control(svc, "restart"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
-	}
 }

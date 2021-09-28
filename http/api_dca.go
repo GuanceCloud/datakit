@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -14,10 +15,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/toml"
-	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -140,20 +139,29 @@ func (d *dcaContext) fail(errors ...dcaError) {
 // dca reload.
 func dcaReload(c *gin.Context) {
 	context := getContext(c)
-	context.success()
-
-	svc, err := dkservice.NewService()
+	err := restartDataKit()
 	if err != nil {
-		l.Errorf("new %s service failed: %s",
-			runtime.GOOS, err.Error())
+		l.Error(err)
+		context.fail(dcaError{ErrorCode: "system.restart.error", ErrorMsg: "restart datakit error"})
 		return
 	}
 
-	l.Info("new datakit servier ok...")
+	context.success()
+}
 
-	if err := service.Control(svc, "restart"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
+func restartDataKit() error {
+	bin := "datakit"
+	if runtime.GOOS == "windows" {
+		bin = bin + ".exe"
 	}
+	program := filepath.Join(datakit.InstallDir, bin)
+	l.Info("apiRestart", program)
+	cmd := exec.Command(program, "--api-restart")
+	err := cmd.Start()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func dcaStats(c *gin.Context) {
@@ -168,6 +176,12 @@ func dcaStats(c *gin.Context) {
 	context.success(s)
 }
 
+func dcaDefault(c *gin.Context) {
+	context := dcaContext{c: c}
+
+	context.fail(dcaError{Code: 404, ErrorCode: "route.not.found", ErrorMsg: "route not found"})
+}
+
 type saveConfigParam struct {
 	Path      string `json:"path"`
 	Config    string `json:"config"`
@@ -175,24 +189,24 @@ type saveConfigParam struct {
 	InputName string `json:"inputName"`
 }
 
-// auth middleware.
-func dcaAuthMiddleware(f func(*gin.Context)) func(*gin.Context) {
-	return func(c *gin.Context) {
-		tokens := c.Request.Header["X-Token"]
-		context := &dcaContext{c: c}
-		if len(tokens) == 0 {
-			context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
-			return
-		}
-
-		token := tokens[0]
-		localTokens := dw.GetToken()
-		if len(token) == 0 || len(localTokens) == 0 || (token != localTokens[0]) {
-			context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
-			return
-		}
-		f(c)
+// auth middleware
+func dcaAuthMiddleware(c *gin.Context) {
+	tokens := c.Request.Header["X-Token"]
+	context := &dcaContext{c: c}
+	if len(tokens) == 0 {
+		context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
+		c.Abort()
+		return
 	}
+
+	token := tokens[0]
+	localTokens := dw.GetToken()
+	if len(token) == 0 || len(localTokens) == 0 || (token != localTokens[0]) {
+		context.fail(dcaError{Code: 401, ErrorCode: "auth.failed", ErrorMsg: "auth failed"})
+		c.Abort()
+		return
+	}
+	c.Next()
 }
 
 func dcaGetConfig(c *gin.Context) {
@@ -320,8 +334,9 @@ func dcaInputDoc(c *gin.Context) {
 
 	md, err := man.BuildMarkdownManual(inputName, &man.Option{})
 	if err != nil {
-		l.Error(err)
-		context.fail(dcaError{ErrorCode: "record.not.exist", ErrorMsg: "record not exist", Code: http.StatusNotFound})
+		l.Warn(err)
+		// context.fail(dcaError{ErrorCode: "record.not.exist", ErrorMsg: "record not exist", Code: http.StatusNotFound})
+		context.success("")
 		return
 	}
 

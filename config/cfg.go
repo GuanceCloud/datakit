@@ -70,6 +70,11 @@ func DefaultConfig() *Config {
 			RUMAppIDWhiteList: []string{},
 		},
 
+		DCAConfig: &dkhttp.DCAConfig{
+			Enable:    false,
+			Listen:    "0.0.0.0:9531",
+			WhiteList: []string{},
+		},
 		Logging: &LoggerCfg{
 			Level:  "info",
 			Rotate: 32,
@@ -141,6 +146,9 @@ type Config struct {
 	OutputFileDeprecated string `toml:"output_file,omitempty"`
 	UUIDDeprecated       string `toml:"uuid,omitempty"` // deprecated
 
+	// DCA config
+	DCAConfig *dkhttp.DCAConfig `toml:"dca"`
+
 	// logging config
 	LogDeprecated      string `toml:"log,omitempty"`
 	LogLevelDeprecated string `toml:"log_level,omitempty"`
@@ -166,8 +174,6 @@ type Config struct {
 	ProtectMode              bool `toml:"protect_mode"`
 
 	EnableElection bool `toml:"enable_election"`
-
-	EnableDca bool `toml:"enable_dca"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
@@ -571,10 +577,6 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
 		c.EnableElection = true
-	}
-
-	if v := datakit.GetEnv("ENV_ENABLE_DCA"); v != "" {
-		c.EnableDca = true
 	}
 
 	return nil
