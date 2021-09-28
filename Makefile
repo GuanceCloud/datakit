@@ -226,5 +226,7 @@ clean:
 	@rm -rf io/parser/gram.y.go
 	@rm -rf pipeline/parser/parser.y.go
 	@rm -rf pipeline/parser/parser_y.go
+	@rm -rf pipeline/parser/gram.y.go
+	@rm -rf pipeline/parser/gram_y.go
 	@rm -rf check.err
 	@rm -rf $(PUB_DIR)/*

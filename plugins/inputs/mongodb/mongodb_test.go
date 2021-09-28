@@ -18,7 +18,6 @@ func TestGatherServerStats(t *testing.T) {
 		GatherPerColStats:     false,
 		ColStatsDbs:           []string{"local"},
 		GatherTopStat:         false,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -57,7 +56,6 @@ func TestGatherCluster(t *testing.T) {
 		GatherPerColStats:     false,
 		ColStatsDbs:           []string{""},
 		GatherTopStat:         false,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -96,7 +94,6 @@ func TestGatherPerDbStats(t *testing.T) {
 		GatherPerColStats:     false,
 		ColStatsDbs:           []string{},
 		GatherTopStat:         false,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -139,7 +136,6 @@ func TestGatherCollection(t *testing.T) {
 		GatherPerColStats:     true,
 		ColStatsDbs:           []string{"admin", "local", "config"},
 		GatherTopStat:         false,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -178,7 +174,6 @@ func TestGatherTop(t *testing.T) {
 		GatherPerColStats:     false,
 		ColStatsDbs:           []string{"admin", "local", "config"},
 		GatherTopStat:         true,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -218,8 +213,7 @@ func TestTlsConnectCollect(t *testing.T) {
 		GatherPerColStats:     true,
 		ColStatsDbs:           []string{""},
 		GatherTopStat:         true,
-		EnableTls:             true,
-		TlsConf: &net.TLSClientConfig{
+		TLSClientConfig: net.TLSClientConfig{
 			CaCerts:            []string{"/etc/ssl/certs/mongod.cert.pem"},
 			Cert:               "/etc/ssl/certs/mongo.pem",
 			CertKey:            "/etc/ssl/certs/mongo.key.pem",

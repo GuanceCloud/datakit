@@ -13,10 +13,6 @@ import (
 )
 
 func (dw *DataWayCfg) GetLogFilter() ([]byte, error) {
-	if dw.httpCli != nil {
-		defer dw.httpCli.CloseIdleConnections()
-	}
-
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("[error] dataway url empty")
 	}
@@ -39,12 +35,19 @@ func (dc *endPoint) getLogFilter() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("getLogFilter failed with status code %d", resp.StatusCode)
 	}
-	defer resp.Body.Close() //nolint:errcheck
 
-	return ioutil.ReadAll(resp.Body)
+	return body, nil
 }
 
 func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
@@ -83,8 +86,6 @@ func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
 	} else {
 		return nil, fmt.Errorf("token missing")
 	}
-
-	defer dw.httpCli.CloseIdleConnections()
 
 	l.Debugf("election sending %s", requrl)
 	resp, err := dw.httpCli.Post(requrl, "", nil)
@@ -127,8 +128,6 @@ func (dw *DataWayCfg) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 	} else {
 		return nil, fmt.Errorf("token missing")
 	}
-
-	defer dw.httpCli.CloseIdleConnections()
 
 	l.Debugf("election sending heartbeat %s", requrl)
 	resp, err := dw.httpCli.Post(requrl, "", nil)
@@ -224,10 +223,6 @@ func (dw *DataWayCfg) DatawayList() ([]string, error) {
 }
 
 func (dw *DataWayCfg) HeartBeat() error {
-	if dw.httpCli != nil {
-		defer dw.httpCli.CloseIdleConnections()
-	}
-
 	body := map[string]interface{}{
 		"dk_uuid":   dw.Hostname, // 暂用 hostname 代之, 后将弃用该字段
 		"heartbeat": time.Now().Unix(),

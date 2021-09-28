@@ -485,22 +485,28 @@ func (c *Config) LoadEnvs() error {
 		c.IOConf = &IOConfig{}
 	}
 
-	for _, envkey := range []string{"ENV_MAX_CACHE_COUNT", "ENV_CACHE_DUMP_THRESHOLD", "ENV_MAX_DYNAMIC_CACHE_COUNT", "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD"} {
+	for _, envkey := range []string{
+		"ENV_MAX_CACHE_COUNT",
+		"ENV_CACHE_DUMP_THRESHOLD",
+		"ENV_MAX_DYNAMIC_CACHE_COUNT",
+		"ENV_DYNAMIC_CACHE_DUMP_THRESHOLD",
+	} {
 		if v := datakit.GetEnv(envkey); v != "" {
 			value, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				l.Errorf("invalid env key value pair [%s:%s]", envkey, v)
-			} else {
-				switch envkey {
-				case "ENV_MAX_CACHE_COUNT":
-					c.IOConf.MaxCacheCount = value
-				case "ENV_CACHE_DUMP_THRESHOLD":
-					c.IOConf.CacheDumpThreshold = value
-				case "ENV_MAX_DYNAMIC_CACHE_COUNT":
-					c.IOConf.MaxDynamicCacheCount = value
-				case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
-					c.IOConf.DynamicCacheDumpThreshold = value
-				}
+				l.Errorf("invalid env key value pair [%s:%s], ignored", envkey, v)
+				continue
+			}
+
+			switch envkey {
+			case "ENV_MAX_CACHE_COUNT":
+				c.IOConf.MaxCacheCount = value
+			case "ENV_CACHE_DUMP_THRESHOLD":
+				c.IOConf.CacheDumpThreshold = value
+			case "ENV_MAX_DYNAMIC_CACHE_COUNT":
+				c.IOConf.MaxDynamicCacheCount = value
+			case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
+				c.IOConf.DynamicCacheDumpThreshold = value
 			}
 		}
 	}

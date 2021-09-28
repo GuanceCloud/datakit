@@ -43,6 +43,12 @@ func LoadCfg(c *Config, mcp string) error {
 		_ = c.SetUUID()
 
 		CreateSymlinks()
+
+		// We need a datakit.conf in docker mode when run datakit commands.
+		// See cmd/datakit/cmds/flags.go
+		if err := c.InitCfg(datakit.MainConfPath); err != nil {
+			l.Warnf("InitCfg: %s, ignored", err.Error())
+		}
 	} else if err := c.LoadMainTOML(mcp); err != nil {
 		return err
 	}
