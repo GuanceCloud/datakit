@@ -199,22 +199,37 @@ test: test_deps
 	done
 
 lfparser:
+	@rm -rf io/parser/gram_y.go
+	@rm -rf io/parser/gram.y.go
+	@rm -rf io/parser/parser.y.go
+	@rm -rf io/parser/parser_y.go
 	@goyacc -o io/parser/gram_y.go io/parser/gram.y
 
 plparser:
-	@goyacc -o pipeline/parser/parser_y.go pipeline/parser/parser.y
+	@rm -rf pipeline/parser/gram_y.go
+	@rm -rf pipeline/parser/gram.y.go
+	@rm -rf pipeline/parser/parser.y.go
+	@rm -rf pipeline/parser/parser_y.go
+	@goyacc -o pipeline/parser/gram_y.go pipeline/parser/gram.y
 
 lint_deps: prepare gofmt lfparser_disable_line plparser_disable_line man vet 
 
+lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
+	@rm -rf io/parser/gram.y.go
+	@rm -rf io/parser/parser.y.go
+	@rm -rf io/parser/parser_y.go
 	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
 
 plparser_disable_line:
+	@rm -rf pipeline/parser/gram_y.go
+	@rm -rf pipeline/parser/gram.y.go
+	@rm -rf pipeline/parser/parser.y.go
 	@rm -rf pipeline/parser/parser_y.go
-	@goyacc -l -o pipeline/parser/parser_y.go pipeline/parser/parser.y # use -l to disable `//line`
+	@goyacc -l -o pipeline/parser/gram_y.go pipeline/parser/gram.y # use -l to disable `//line`
 
 prepare:
 	@mkdir -p git
