@@ -160,7 +160,7 @@ func (t *Single) forwardMessage() {
 
 			err = t.processText(text)
 			if err != nil {
-				t.opt.log.Debug(err)
+				t.opt.log.Warnf("failed of text process, err: %s", err)
 			}
 		}
 	}
