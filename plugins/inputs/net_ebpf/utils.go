@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	// major.minor.patch  (linux kernel version)
+	// major.minor.patch  (linux kernel version).
 	majorK = 4
 	minorK = 9
 	patchK = 0
 )
 
-// version == "", auto to get
+// version == "", auto to get.
 func checkLinuxKernelVesion(version string) (bool, error) {
 	var err error
 	kVersionStr := version

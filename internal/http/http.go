@@ -16,8 +16,8 @@ func DefTransport() *http.Transport {
 	return newCliTransport(&Options{
 		DialTimeout:           30 * time.Second,
 		DialKeepAlive:         30 * time.Second,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   runtime.NumGoroutine(),
+		MaxIdleConns:          5,
+		MaxIdleConnsPerHost:   4, // runtime.NumGoroutine(),
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: time.Second,

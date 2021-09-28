@@ -370,7 +370,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 					delete(d.curTasks, t.ID())
 				}
 			} else { // create new task
-
 				if strings.ToLower(t.Status()) == dt.StatusStop {
 					l.Warnf(`%s status is stop, exit ignore`, t.ID())
 					continue
