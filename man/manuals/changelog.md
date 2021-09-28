@@ -9,6 +9,7 @@
 - 修复 DataKit/DataWay 之间连接数泄露问题(#290)
 - 修复容器模式下 [DataKit 各种子命令](datakit-how-to#666de9ed)无法执行的问题(#375)
 - 修复日志采集器因 Pipeline 错误丢失原始数据的问题(#376)
+- 完善 DataKit 端 [DCA](dca) 相关功能，支持在安装阶段[开启 DCA 功能](datakit-install#f9858758)。
 - 下线浏览器拨测功能
 
 ---
