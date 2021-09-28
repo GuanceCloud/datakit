@@ -1,3 +1,5 @@
+// +build linux
+
 package netflow
 
 // #include "../c/netflow/conn_stats.h"

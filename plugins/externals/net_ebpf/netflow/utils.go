@@ -85,11 +85,10 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 	}
 	if buf, err := dkebpf.Asset("netflow.o"); err != nil {
 		return nil, err
-	} else {
-		if err := m.InitWithOptions((bytes.NewReader(buf)), m_opts); err != nil {
-			return nil, err
-		}
+	} else if err := m.InitWithOptions((bytes.NewReader(buf)), m_opts); err != nil {
+		return nil, err
 	}
+
 	return m, nil
 }
 
@@ -112,7 +111,7 @@ func WriteData(data []byte, urlPath string) error {
 		l.Errorf("[error] %s", err.Error())
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -226,16 +225,13 @@ func U32BEToIPv4Array(addr uint32) [4]uint8 {
 	var ip [4]uint8
 	for x := 0; x < 4; x++ {
 		ip[x] = uint8(addr & 0xff)
-		addr = addr >> 8
+		addr >>= 8
 	}
 	return ip
 }
 
 func swapU16(v uint16) uint16 {
-	tmp := uint16(0)
-	tmp |= (v & 0x00ff) << 8
-	tmp |= (v & 0xff00) >> 8
-	return tmp
+	return ((v & 0x00ff) << 8) | ((v & 0xff00) >> 8)
 }
 
 func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
