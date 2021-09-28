@@ -186,21 +186,21 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 }
 
 func (dw *DataWayCfg) initHttp() error {
-	if dw.HttpProxy != "" { // set proxy
-		cliopts := &ihttp.Options{
-			DialTimeout: dw.TimeoutDuration,
-		}
+	cliopts := &ihttp.Options{
+		DialTimeout: dw.TimeoutDuration,
+	}
 
+	if dw.HttpProxy != "" { // set proxy
 		if u, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
 			l.Warnf("parse http proxy failed err: %s, ignored", err.Error())
 		} else {
 			cliopts.ProxyURL = u
 			l.Infof("set dataway proxy to %s ok", dw.HttpProxy)
 		}
-	} else {
-		dw.httpCli = ihttp.Cli(nil)
-		l.Debugf("httpCli: %p", dw.httpCli.Transport)
 	}
+
+	dw.httpCli = ihttp.Cli(cliopts)
+	l.Debugf("httpCli: %p", dw.httpCli.Transport)
 
 	return nil
 }
