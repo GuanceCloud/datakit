@@ -79,7 +79,7 @@ var (
 
 func tryLoadMainCfg() {
 	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
-		l.Fatalf("load config %s failed: %s", datakit.MainConfPath, err)
+		l.Warnf("load config %s failed: %s, ignore", datakit.MainConfPath, err)
 	}
 }
 

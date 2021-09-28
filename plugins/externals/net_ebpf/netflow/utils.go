@@ -270,7 +270,7 @@ func U32BEToIPv6(addr [4]uint32) string {
 // 2. 过滤 loopback ip 的连接;
 // 3. 过滤一个采集周期内的无数据收发的连接;
 // 4. 过滤端口 为 0 或 ip address 为 :: or 0.0.0.0 的连接;
-// 需过滤，函数返回 False
+// 需过滤，函数返回 False.
 func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 	if (conn.Saddr[0]|conn.Saddr[1]|conn.Saddr[2]|conn.Saddr[3]) == 0 ||
 		(conn.Daddr[0]|conn.Daddr[1]|conn.Daddr[2]|conn.Daddr[3]) == 0 ||

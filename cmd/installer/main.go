@@ -254,6 +254,11 @@ func upgradeDatakit(svc service.Service) error {
 		return err
 	}
 
+	// build datakit main config
+	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
+		l.Fatalf("failed to init datakit main config: %s", err.Error())
+	}
+
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
 			return err
@@ -300,6 +305,11 @@ func installNewDatakit(svc service.Service) {
 
 	writeDefInputToMainCfg(mc)
 
+	// build datakit main config
+	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
+		l.Fatalf("failed to init datakit main config: %s", err.Error())
+	}
+
 	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("install service: %s, ignored", err.Error())
@@ -332,11 +342,6 @@ func writeDefInputToMainCfg(mc *config.Config) {
 	}
 
 	l.Debugf("main config:\n%s", mc.String())
-
-	// build datakit main config
-	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
-		l.Fatalf("failed to init datakit main config: %s", err.Error())
-	}
 }
 
 func injectCloudProvider(p string) error {

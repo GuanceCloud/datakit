@@ -71,7 +71,9 @@ func TestIODatawaySending(t *testing.T) {
 
 	ts.Start()
 
-	testdw := &dataway.DataWayCfg{URLs: []string{ts.URL + "?tkn=tkn_TestIODatawaySending"}}
+	testdw := &dataway.DataWayCfg{
+		URLs: []string{ts.URL + "?tkn=tkn_TestIODatawaySending"},
+	}
 	if err := testdw.Apply(); err != nil {
 		t.Fatal(err)
 	}

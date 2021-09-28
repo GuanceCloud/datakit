@@ -1,7 +1,5 @@
 package io
 
-// import "gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
 var defLogFilterMock logFilterMock = &prodLogFilterMock{}
 
 type logFilterMock interface {

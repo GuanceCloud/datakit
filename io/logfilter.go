@@ -89,7 +89,6 @@ func (this *logFilter) refreshRules() error {
 			l.Error(err)
 		}
 	}()
-
 	body, err := defLogFilterMock.getLogFilter()
 	if err != nil {
 		return err

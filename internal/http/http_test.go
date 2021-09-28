@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,8 +14,30 @@ import (
 	"time"
 
 	"github.com/elazarl/goproxy"
+	"github.com/gin-gonic/gin"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
+
+var reqs = map[string]string{
+	datakit.MetricDeprecated:  "POST",
+	datakit.Metric:            "POST",
+	datakit.Network:           "POST",
+	datakit.KeyEvent:          "POST",
+	datakit.Object:            "POST",
+	datakit.CustomObject:      "POST",
+	datakit.Logging:           "POST",
+	datakit.LogFilter:         "GET",
+	datakit.Tracing:           "POST",
+	datakit.Rum:               "POST",
+	datakit.Security:          "POST",
+	datakit.HeartBeat:         "POST",
+	datakit.Election:          "POST",
+	datakit.ElectionHeartbeat: "POST",
+	datakit.QueryRaw:          "POST",
+	datakit.ListDataWay:       "GET",
+	datakit.ObjectLabel:       "POST",
+}
 
 func TestProxy(t *testing.T) {
 	tlsServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -146,117 +169,150 @@ func TestInsecureSkipVerify(t *testing.T) {
 	}
 }
 
-func runTestClientConnections(t *testing.T, nclients int, defaultOpts, closeIdleManually bool) {
+func httpGinServer(t *testing.T, host string) *http.Server {
 	t.Helper()
+	router := gin.New()
 
-	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(time.Millisecond * 5)
-		fmt.Fprintf(w, "hello\n")
-	}))
+	for u, m := range reqs {
+		if m == "GET" {
+			router.GET(u, func(c *gin.Context) {})
+		} else {
+			router.POST(u, func(c *gin.Context) {})
+		}
+	}
 
-	ts.Start()
+	srv := &http.Server{
+		Addr:    host,
+		Handler: router,
+	}
 
-	var cw ConnWatcher
-	ts.Config.ConnState = cw.OnStateChange
+	retryCnt := 0
+	go func() {
+		for {
+			if err := srv.ListenAndServe(); err != nil {
+				if !errors.As(err, &http.ErrServerClosed) {
+					t.Errorf("start server at %s failed: %s, retrying(%d)...",
+						srv.Addr, err.Error(), retryCnt)
+					retryCnt++
+				} else {
+					t.Logf("server(%s) stopped on: %s", srv.Addr, err.Error())
+					break
+				}
+			}
+			time.Sleep(time.Second)
+		}
+	}()
+	return srv
+}
 
-	defer ts.Close()
+func runTestClientConnections(t *testing.T, host string, tc *testClientConnectionsCase) {
+	t.Helper()
 
 	wg := sync.WaitGroup{}
 
-	nreq := 1000
+	nreq := 100
 
-	wg.Add(nclients)
-	for i := 0; i < nclients; i++ {
+	wg.Add(tc.nclients)
+	for i := 0; i < tc.nclients; i++ {
 		go func() {
 			defer wg.Done()
 			var cli *http.Client
-			if defaultOpts {
+			if tc.defaultOptions {
 				cli = &http.Client{}
 			} else {
 				cli = Cli(nil)
 			}
 
 			for j := 0; j < nreq; j++ {
-				req, err := http.NewRequest("POST", fmt.Sprintf("%s/hello", ts.URL), nil)
-				if err != nil {
-					t.Error(err)
-				}
+				for u, m := range reqs {
+					req, err := http.NewRequest(m, host+u, nil)
+					if err != nil {
+						t.Error(err)
+					}
 
-				resp, err := cli.Do(req)
-				if err != nil {
-					t.Error(err)
-				}
+					resp, err := cli.Do(req)
+					if err != nil {
+						t.Error(err)
+					}
 
-				io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
-
-				if err := resp.Body.Close(); err != nil {
-					t.Error(err)
-				}
-
-				if closeIdleManually {
-					cli.CloseIdleConnections()
+					if resp != nil {
+						io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+						if err := resp.Body.Close(); err != nil {
+							t.Error(err)
+						}
+					}
+					if tc.closeIdleManually {
+						cli.CloseIdleConnections()
+					}
 				}
 			}
 		}()
 	}
 
 	wg.Wait()
+}
 
-	t.Logf("[server: %s, clients: %d, defaultOptions: %v, closeIdleManually: %v]\ncw: %s\n",
-		ts.URL, nclients, defaultOpts, closeIdleManually, cw.String())
-
-	if defaultOpts || closeIdleManually {
-		tu.Assert(t, cw.Max > int64(nclients), "by using default transport, %d should > %d", cw.Max, nclients)
-	} else {
-		tu.Assert(t, cw.Max == int64(nclients), "by using specified transport, %d should == %d", cw.Max, nclients)
-	}
+type testClientConnectionsCase struct {
+	nclients          int
+	defaultOptions    bool
+	closeIdleManually bool
+	ginServer         bool
 }
 
 func TestClientConnections(t *testing.T) {
-	cases := []struct {
-		nclients          int
-		defaultOptions    bool
-		closeIdleManually bool
-	}{
-		{
-			10,
-			false,
-			false,
-		},
+	cases := []testClientConnectionsCase{
+		{10, false, false, true},
+		{10, false, true, true},
+		{10, true, false, true},
+		{1, false, false, true},
+		{1, false, true, true},
+		{4, true, false, true},
 
-		{
-			10,
-			false,
-			true,
-		},
-
-		{
-			10,
-			true,
-			false,
-		},
-
-		{
-			1,
-			false,
-			false,
-		},
-
-		{
-			1,
-			false,
-			true,
-		},
-
-		{
-			4,
-			true,
-			false,
-		},
+		{10, false, false, false},
+		{10, false, true, false},
+		{10, true, false, false},
+		{1, false, false, false},
+		{1, false, true, false},
+		{4, true, false, false},
 	}
 
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(time.Millisecond * 5)
+			fmt.Fprintf(w, "{}")
+		}))
+
+	ts.Start()
+	ginHost := "0.0.0.0:12345"
+	ginserver := httpGinServer(t, ginHost)
+
+	time.Sleep(time.Second) // wait HTTP server...
+
 	for _, tc := range cases {
-		runTestClientConnections(t, tc.nclients, tc.defaultOptions, tc.closeIdleManually)
+		var cw ConnWatcher
+
+		host := ts.URL
+		if tc.ginServer {
+			host = "http://" + ginHost
+			ginserver.ConnState = cw.OnStateChange
+		} else {
+			ts.Config.ConnState = cw.OnStateChange
+		}
+
+		runTestClientConnections(t, host, &tc)
+
+		t.Logf("[server: %s, gin: %v, clients: %d, defaultOptions: %v, closeIdleManually: %v]\ncw: %s\n",
+			ts.URL, tc.ginServer, tc.nclients, tc.defaultOptions, tc.closeIdleManually, cw.String())
+
+		if tc.defaultOptions || tc.closeIdleManually {
+			tu.Assert(t, cw.Max >= int64(tc.nclients),
+				"by using default transport, %d should > %d",
+				cw.Max, tc.nclients)
+		} else {
+			tu.Assert(t, cw.Max <= int64(tc.nclients),
+				"by using specified transport, %d should == %d",
+				cw.Max, tc.nclients)
+		}
 	}
 }
 
@@ -299,20 +355,22 @@ func TestClientTimeWait(t *testing.T) {
 			})
 
 			for j := 0; j < 1; j++ {
-				req, err := http.NewRequest("GET", "http://:8090/hello", nil)
-				if err != nil {
-					t.Error(err)
-				}
+				for u, m := range reqs {
+					req, err := http.NewRequest(m, "http://:8090"+u, nil)
+					if err != nil {
+						t.Error(err)
+					}
 
-				resp, err := cli.Do(req)
-				if err != nil {
-					t.Error(err)
-				}
+					resp, err := cli.Do(req)
+					if err != nil {
+						t.Error(err)
+					}
 
-				io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+					io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
 
-				if err := resp.Body.Close(); err != nil {
-					t.Error(err)
+					if err := resp.Body.Close(); err != nil {
+						t.Error(err)
+					}
 				}
 			}
 
