@@ -10,6 +10,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -85,6 +86,9 @@ func applyFlags() {
 	case "release":
 		l.Debug("under release, only checked inputs released")
 		build.ReleaseType = "checked"
+		if !version.IsValidReleaseVersion(build.ReleaseVersion) {
+			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3-rc0", build.ReleaseVersion)
+		}
 	default:
 		l.Debug("under non-release, all inputs released")
 		build.ReleaseType = "all"

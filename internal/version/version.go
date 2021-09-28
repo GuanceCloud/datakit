@@ -137,3 +137,13 @@ func IsNewVersion(newVer, curver *VerInfo, acceptRC bool) bool {
 
 	return false
 }
+
+func IsValidReleaseVersion(releaseVer string) bool {
+	ver := &VerInfo{VersionString: releaseVer}
+	err := ver.Parse()
+	if err == nil && ver.build == 0 { // new version
+		return true
+	}
+
+	return false
+}
