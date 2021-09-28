@@ -27,16 +27,21 @@ func SetLogger(nl *logger.Logger) {
 }
 
 func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, error) {
+	// 部分 kretprobe 类型程序需设置 maxactive， https://www.kernel.org/doc/Documentation/kprobes.txt.
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
 				Section: "kprobe/sockfd_lookup_light",
 			}, {
-				Section: "kretprobe/sockfd_lookup_light",
+				Section: "kretprobe/sockfd_lookup_light", KProbeMaxActive: 128,
+			}, {
+				Section: "kprobe/do_sendfile",
+			}, {
+				Section: "kretprobe/do_sendfile", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/tcp_set_state",
 			}, {
-				Section: "kretprobe/inet_csk_accept",
+				Section: "kretprobe/inet_csk_accept", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/inet_csk_listen_stop",
 			}, {
@@ -52,15 +57,15 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 			}, {
 				Section: "kprobe/udp_recvmsg",
 			}, {
-				Section: "kretprobe/udp_recvmsg",
+				Section: "kretprobe/udp_recvmsg", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/inet_bind",
 			}, {
-				Section: "kretprobe/inet_bind",
+				Section: "kretprobe/inet_bind", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/inet6_bind",
 			}, {
-				Section: "kretprobe/inet6_bind",
+				Section: "kretprobe/inet6_bind", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/udp_destroy_sock",
 			},

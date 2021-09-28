@@ -86,4 +86,12 @@ struct bpf_map_def SEC("maps/bpfmap_sockfd_inverted") bpfmap_sockfd_inverted = {
     .max_entries = 65536,
 };
 
+// key: pig_tgid, value: sock ptr
+struct bpf_map_def SEC("maps/bpfmap_tmp_sendfile") bpfmap_tmp_sendfile = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(__u64),
+    .value_size = sizeof(struct sock *),
+    .max_entries = 65536,
+};
+
 #endif // !__BPFMAP_H

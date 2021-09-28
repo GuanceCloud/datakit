@@ -56,8 +56,7 @@ func NewGuessManger() (*manager.Manager, error) {
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
-				Section:         "kprobe/tcp_rcv_established",
-				KProbeMaxActive: 128,
+				Section: "kprobe/tcp_rcv_established",
 			},
 		},
 	}

@@ -60,9 +60,48 @@ int kretprobe__sockfd_lookup_light(struct pt_regs *ctx)
     return 0;
 }
 
+SEC("kprobe/do_sendfile")
+int kprobe__do_sendfile(struct pt_regs *ctx)
+{
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    __u32 fdout = (int)PT_REGS_PARM1(ctx);
+    struct pid_fd pidfd = {
+        .pid = pid_tgid >> 32,
+        .fd = fdout,
+    };
+    struct sock **skpp = bpf_map_lookup_elem(&bpfmap_sockfd, &pidfd);
+    if (skpp == NULL)
+    {
+        return 0;
+    }
+    struct sock *sk = *skpp;
+    bpf_map_update_elem(&bpfmap_tmp_sendfile, &pid_tgid, &sk, BPF_ANY);
+    return 0;
+}
+
+SEC("kretprobe/do_sendfile")
+int kretprobe__do_sendfile(struct pt_regs *ctx)
+{
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    __u64 ktime_ns = bpf_ktime_get_ns();
+    struct sock **skpp = (struct sock **)bpf_map_lookup_elem(&bpfmap_tmp_sendfile, &pid_tgid);
+    if (skpp == NULL)
+    {
+        return 0;
+    }
+    struct connection_info conninf = {};
+    if (read_connection_info(*skpp, &conninf, pid_tgid, CONN_L4_TCP) == 0)
+    {
+        size_t sent = (size_t)PT_REGS_RC(ctx);
+        update_conn_stats(&conninf, sent, 0, ktime_ns, CONN_DIRECTION_AUTO, 0, 0, -1);
+    }
+    bpf_map_delete_elem(&bpfmap_tmp_sendfile, &pid_tgid);
+    return 0;
+}
+
 // ===============================================
 
-// TCP_ESTABLISHED
+// TCP_ESTABLISHED, TCP_CLOSE
 SEC("kprobe/tcp_set_state")
 int kprobe__tcp_set_state(struct pt_regs *ctx)
 {
@@ -79,6 +118,7 @@ int kprobe__tcp_set_state(struct pt_regs *ctx)
         struct connection_tcp_stats tcpstats = {};
         __builtin_memset(&tcpstats, 0, sizeof(struct connection_tcp_stats));
         tcpstats.state_transitions = (1 << state);
+        read_tcp_rtt(sk, &tcpstats);
         update_tcp_stats(conninf, tcpstats);
     }
     return 0;
@@ -146,6 +186,20 @@ SEC("kprobe/tcp_close")
 int kprobe__tcp_close(struct pt_regs *ctx)
 {
     struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+
+    if (sk == NULL)
+    {
+        return 0;
+    }
+
+    // clear bpfmap_sockfd
+    struct pid_fd *pidfd = bpf_map_lookup_elem(&bpfmap_sockfd_inverted, &sk);
+    if (pidfd != NULL)
+    {
+        bpf_map_delete_elem(&bpfmap_sockfd, pidfd);
+        bpf_map_delete_elem(&bpfmap_sockfd_inverted, &sk);
+    }
+
     __u64 pid_tgid = bpf_get_current_pid_tgid();
 
     struct connection_info conn;
@@ -233,7 +287,7 @@ int kprobe__tcp_cleanup_buf(struct pt_regs *ctx, struct sock *sk_)
 
     struct connection_tcp_stats tcp_stats = {};
     __builtin_memset(&tcp_stats, 0, sizeof(struct connection_tcp_stats));
-
+    read_tcp_rtt(sk, &tcp_stats);
     update_tcp_stats(conn_info, tcp_stats);
 
     __u64 ts = bpf_ktime_get_ns();
