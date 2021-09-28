@@ -85,10 +85,6 @@ func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
 		x.fields[k] = v
 	}
 
-	if len(x.fields) == 0 {
-		x.AddErr(fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline"))
-	}
-
 	return x
 }
 
@@ -206,6 +202,7 @@ func (x *Logs) TakeTime() *Logs {
 			x.ts = time.Now()
 			x.AddErr(fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
 				pipelineTimeField, v, reflect.TypeOf(v).String()))
+			return x
 		}
 
 		x.ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
@@ -221,6 +218,12 @@ func (x *Logs) Point(measurement string, tags map[string]string) *Logs {
 	if x.IsSkip() {
 		return x
 	}
+
+	if len(x.fields) == 0 {
+		x.AddErr(fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline"))
+		return x
+	}
+
 	pt, err := io.MakePoint(measurement, tags, x.fields, x.ts)
 	if err != nil {
 		x.AddErr(err)
