@@ -45,6 +45,7 @@ var (
 	FlagStart,
 	FlagStop,
 	FlagRestart,
+	FlagApiRestart,
 	FlagStatus,
 	FlagUninstall,
 	FlagReinstall bool
@@ -352,6 +353,14 @@ func RunCmds() {
 		}
 
 		fmt.Println("Update IPdb OK, please restart datakit to load new IPDB")
+		os.Exit(0)
+	}
+
+	if FlagApiRestart {
+		tryLoadMainCfg()
+		logPath := config.Cfg.Logging.Log
+		setCmdRootLog(logPath)
+		apiRestart()
 		os.Exit(0)
 	}
 }

@@ -125,6 +125,25 @@ if [ -n "$DK_INSTALL_ONLY" ]; then
 	install_only=$DK_INSTALL_ONLY
 fi
 
+dca_white_list=""
+if [ -n "$DK_DCA_WHITE_LIST" ]; then
+	dca_white_list=$DK_DCA_WHITE_LIST
+fi
+
+dca_listen=""
+if [ -n "$DK_DCA_LISTEN" ]; then
+	dca_listen=$DK_DCA_LISTEN
+fi
+
+dca_enable=""
+if [ -n "$DK_DCA_ENABLE" ]; then
+	dca_enable=$DK_DCA_ENABLE
+	if [ -z "$dca_white_list" ]; then
+		printf "${RED}[E] DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!${CLR}\n"
+		exit 1;
+	fi
+fi
+
 if [ -n "$HTTP_PROXY" ]; then
 	proxy=$HTTP_PROXY
 fi
@@ -168,6 +187,9 @@ else
 			--listen="${http_listen}"            \
 			--port="${http_port}"                \
 			--proxy="${proxy}"                   \
+			--dca-enable="${dca_enable}"				 \
+			--dca-listen="${dca_listen}"				 \
+			--dca-white-list="${dca_white_list}"	\
 			--install_only | $sudo_cmd tee ${install_log}
 	else
 		$sudo_cmd $installer                   \
@@ -177,6 +199,9 @@ else
 			--namespace="${namespace}"           \
 			--listen="${http_listen}"            \
 			--port="${http_port}"                \
+			--dca-enable="${dca_enable}"				 \
+			--dca-listen="${dca_listen}"				 \
+			--dca-white-list="${dca_white_list}"	\
 			--proxy="${proxy}" | $sudo_cmd tee ${install_log}
 	fi
 fi
