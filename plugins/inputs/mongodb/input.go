@@ -35,6 +35,7 @@ var (
 
 var (
 	inputName    = "mongodb"
+	catalogName  = "db"
 	sampleConfig = `
 [[inputs.mongodb]]
   ## Gathering interval
@@ -66,20 +67,13 @@ var (
   ## When true, collect top command stats.
   # gather_top_stat = true
 
-  ## Optional TLS Config, enabled if true.
-  # enable_tls = false
-
-  ## Optional local Mongod log input config, enabled if true.
-  # enable_mongod_log = false
-
   ## TLS connection config
-  [inputs.mongodb.tlsconf]
-    # ca_certs = ["` + defTlsCaCert + `"]
-    # cert = "` + defTlsCert + `"
-    # cert_key = "` + defTlsCertKey + `"
-    ## Use TLS but skip chain & host verification
-    # insecure_skip_verify = true
-    # server_name = ""
+  # ca_certs = ["` + defTlsCaCert + `"]
+  # cert = "` + defTlsCert + `"
+  # cert_key = "` + defTlsCertKey + `"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = true
+  # server_name = ""
 
   ## Mongod log
   # [inputs.mongodb.log]
@@ -116,19 +110,17 @@ type mongodblog struct {
 }
 
 type Input struct {
-	Interval              datakit.Duration       `toml:"interval"`
-	Servers               []string               `toml:"servers"`
-	GatherReplicaSetStats bool                   `toml:"gather_replica_set_stats"`
-	GatherClusterStats    bool                   `toml:"gather_cluster_stats"`
-	GatherPerDbStats      bool                   `toml:"gather_per_db_stats"`
-	GatherPerColStats     bool                   `toml:"gather_per_col_stats"`
-	ColStatsDbs           []string               `toml:"col_stats_dbs"`
-	GatherTopStat         bool                   `toml:"gather_top_stat"`
-	EnableTls             bool                   `toml:"enable_tls"`
-	TlsConf               *dknet.TLSClientConfig `toml:"tlsconf"`
-	EnableMongodLog       bool                   `toml:"enable_mongod_log"`
-	Log                   *mongodblog            `toml:"log"`
-	Tags                  map[string]string      `toml:"tags"`
+	Interval              datakit.Duration `toml:"interval"`
+	Servers               []string         `toml:"servers"`
+	GatherReplicaSetStats bool             `toml:"gather_replica_set_stats"`
+	GatherClusterStats    bool             `toml:"gather_cluster_stats"`
+	GatherPerDbStats      bool             `toml:"gather_per_db_stats"`
+	GatherPerColStats     bool             `toml:"gather_per_col_stats"`
+	ColStatsDbs           []string         `toml:"col_stats_dbs"`
+	GatherTopStat         bool             `toml:"gather_top_stat"`
+	dknet.TLSClientConfig
+	Log  *mongodblog       `toml:"log"`
+	Tags map[string]string `toml:"tags"`
 
 	mongos  map[string]*Server
 	tail    *tailer.Tailer
@@ -136,7 +128,7 @@ type Input struct {
 	pauseCh chan bool
 }
 
-func (*Input) Catalog() string { return inputName }
+func (*Input) Catalog() string { return catalogName }
 
 func (*Input) SampleConfig() string { return sampleConfig }
 
@@ -155,7 +147,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (m *Input) RunPipeline() {
-	if !m.EnableMongodLog || m.Log == nil || len(m.Log.Files) == 0 {
+	if m.Log == nil || len(m.Log.Files) == 0 {
 		return
 	}
 
@@ -284,13 +276,12 @@ func (m *Input) gatherServer(server *Server) error {
 			return fmt.Errorf("unable to parse URL %q: %s", dialAddrs[0], err.Error())
 		}
 
-		if m.EnableTls && m.TlsConf != nil {
-			if tlsConfig, err := m.TlsConf.TLSConfig(); err != nil {
-				return err
-			} else {
-				dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-					return tls.Dial("tcp", addr.String(), tlsConfig)
-				}
+		if tlsConfig, err := m.TLSConfig(); err != nil {
+			return err
+		} else if tlsConfig != nil {
+			// TLS is configured
+			dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+				return tls.Dial("tcp", addr.String(), tlsConfig)
 			}
 		}
 
@@ -340,17 +331,9 @@ func init() {
 			GatherPerColStats:     true,
 			ColStatsDbs:           []string{},
 			GatherTopStat:         true,
-			EnableTls:             false,
-			TlsConf: &dknet.TLSClientConfig{
-				CaCerts:            []string{defTlsCaCert},
-				Cert:               defTlsCert,
-				CertKey:            defTlsCertKey,
-				InsecureSkipVerify: true,
-			},
-			EnableMongodLog: false,
-			Log:             &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
-			mongos:          make(map[string]*Server),
-			pauseCh:         make(chan bool, 1),
+			Log:                   &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
+			mongos:                make(map[string]*Server),
+			pauseCh:               make(chan bool, 1),
 		}
 	})
 }
