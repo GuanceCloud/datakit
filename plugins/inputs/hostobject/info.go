@@ -15,6 +15,7 @@ import (
 	netutil "github.com/shirou/gopsutil/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -81,10 +82,10 @@ type (
 	}
 
 	HostConfig struct {
-		Ip         string `json:"ip"`
-		EnableDca  bool   `json:"enable_dca"`
-		HttpListen string `json:"http_listen"`
-		ApiToken   string `json:"api_token"`
+		Ip         string          `json:"ip"`
+		DCAConfig  *http.DCAConfig `json:"dca_config"`
+		HttpListen string          `json:"http_listen"`
+		ApiToken   string          `json:"api_token"`
 	}
 
 	HostObjectMessage struct {
@@ -366,7 +367,7 @@ func (c *Input) getHostConfig() *HostConfig {
 		hostConfig.Ip = ip
 	}
 
-	hostConfig.EnableDca = config.Cfg.EnableDca
+	hostConfig.DCAConfig = config.Cfg.DCAConfig
 
 	hostConfig.ApiToken = config.GetToken()
 	hostConfig.HttpListen = config.Cfg.HTTPAPI.Listen

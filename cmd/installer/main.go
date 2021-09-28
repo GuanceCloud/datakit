@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -45,6 +46,7 @@ var (
 	flagInfo,
 	flagOTA bool
 	flagDataway,
+	flagDCAEnable,
 	flagEnableInputs,
 	flagDatakitName,
 	flagGlobalTags,
@@ -52,6 +54,8 @@ var (
 	flagDatakitHTTPListen,
 	flagNamespace,
 	flagInstallLog,
+	flagDCAListen,
+	flagDCAWhiteList,
 	flagCloudProvider string
 	flagDatakitHTTPPort int
 
@@ -66,6 +70,9 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
 	flag.BoolVar(&flagInstallOnly, "install-only", false, "install only, not start")
 	flag.BoolVar(&flagOTA, "ota", false, "auto update")
+	flag.StringVar(&flagDCAEnable, "dca-enable", "", "enable DCA")
+	flag.StringVar(&flagDCAListen, "dca-listen", "0.0.0.0:9531", "DCA listen address and port")
+	flag.StringVar(&flagDCAWhiteList, "dca-white-list", "", "DCA white list")
 	flag.StringVar(&flagDataway, "dataway", "", "address of dataway ( http://IP:Port?token= xxx) , port default 9528")
 	flag.StringVar(&flagEnableInputs, "enable-inputs", "", "default enable inputs( comma splited, example:cpu,mem,disk)")
 	flag.StringVar(&flagDatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
@@ -190,6 +197,31 @@ DataKit        : %s
 	}
 
 	datakit.InitDirs()
+
+	if flagDCAListen != "" {
+		config.Cfg.DCAConfig.Listen = flagDCAListen
+	}
+
+	if flagDCAWhiteList != "" {
+		config.Cfg.DCAConfig.WhiteList = strings.Split(flagDCAWhiteList, ",")
+	}
+
+	if flagDCAEnable != "" {
+		config.Cfg.DCAConfig.Enable = true
+
+		// check white list whether is empty or invalid
+		if len(config.Cfg.DCAConfig.WhiteList) == 0 {
+			l.Fatalf("DCA service is enabled, but white list is empty! ")
+		}
+		for _, cidr := range config.Cfg.DCAConfig.WhiteList {
+			_, _, err := net.ParseCIDR(cidr)
+			if err != nil {
+				if net.ParseIP(cidr) == nil {
+					l.Fatalf("DCA white list set error: invalid ip, %s", cidr)
+				}
+			}
+		}
+	}
 
 	if flagDKUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)

@@ -56,6 +56,7 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
 	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
 	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
+	flag.BoolVar(&cmds.FlagApiRestart, "api-restart", false, "restart datakit for api only")
 	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
@@ -117,6 +118,7 @@ func setupFlags() {
 		"disable-dataway-list",
 		"disable-logfilter",
 		"disable-heartbeat",
+		"api-restart",
 	} {
 		if err := flag.CommandLine.MarkHidden(f); err != nil {
 			l.Warnf("CommandLine.MarkHidden: %s, ignored", err)
@@ -255,7 +257,7 @@ func doRun() error {
 	// FIXME: wait all inputs ok, then start http server
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
-		EnableDca:      config.Cfg.EnableDca,
+		DCAConfig:      config.Cfg.DCAConfig,
 		GinLog:         config.Cfg.Logging.GinLog,
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",

@@ -6,10 +6,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 )
 
 const body = `
@@ -46,6 +47,29 @@ func TestPod(t *testing.T) {
 								"datakit/prom.instances": `
 									[[inputs.prom]]
 									  url = "$IP"
+									  source = "prom"
+									  metric_types = ["counter", "gauge"]
+									  measurement_prefix = ""
+									  interval = "10s"
+									  [inputs.prom.tags]
+									  # some_tag = "some_value"
+									  # more_tag = "some_other_value"
+									  `,
+							},
+						},
+						Status: corev1.PodStatus{
+							PodIP: ts.URL,
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test_name",
+							Namespace: "test_namespace",
+							// 无效的 url 字段名
+							Annotations: map[string]string{
+								"datakit/prom.instances": `
+									[[inputs.prom]]
+									  invalid_url = "$IP"
 									  source = "prom"
 									  metric_types = ["counter", "gauge"]
 									  measurement_prefix = ""
