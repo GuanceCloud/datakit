@@ -388,6 +388,11 @@ func TestDialHTTP(t *testing.T) {
 			continue
 		}
 
+		tags, fields := c.t.GetResults()
+
+		t.Logf("tags: %+#v", tags)
+		t.Logf("fields: %+#v", fields)
+
 		reasons := c.t.CheckResult()
 		if len(reasons) != c.reasonCnt {
 			t.Errorf("case %s expect %d reasons, but got %d reasons:\n\t%s",

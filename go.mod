@@ -5,6 +5,7 @@ go 1.16
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 	github.com/BurntSushi/toml v0.3.1
+	github.com/ClickHouse/clickhouse-go v1.4.3 // indirect
 	github.com/DataDog/datadog-agent v0.0.0-20210914224445-7abd230002d9
 	github.com/DataDog/datadog-agent/pkg/util/winutil v0.31.0 // indirect
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
@@ -44,6 +45,7 @@ require (
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/kardianos/service v1.0.0
+	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c // indirect
 	github.com/lib/pq v1.10.0
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
@@ -74,7 +76,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210818074822-5341861c9cbf
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5 // indirect

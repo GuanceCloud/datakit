@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -43,11 +44,7 @@ const (
 	RegionInfo  = "region"
 )
 
-var (
-	apiTasksNum      int
-	headlessTasksNum int
-	chromeCurCount   int
-)
+var apiTasksNum int
 
 type Input struct {
 	Region       string            `toml:"region,omitempty"`
@@ -108,19 +105,6 @@ func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) NewChromePool(total int) chan *context.Context {
-	if total == 0 {
-		total = 1
-	} // 默认为1
-
-	p := make(chan *context.Context, total)
-	for i := 0; i < total; i++ {
-		p <- dt.NewChromedpCtx(false, ``)
-	}
-
-	return p
-}
-
 func (d *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -173,7 +157,7 @@ func (d *Input) doServerTask() {
 			l.Warnf("invalid frequency: %s, use default", d.PullInterval)
 			du = time.Minute
 		}
-		if du > 24*time.Hour || du < time.Minute {
+		if du > 24*time.Hour || du < time.Second*10 {
 			l.Warnf("invalid frequency: %s, use default", d.PullInterval)
 			du = time.Minute
 		}
@@ -184,13 +168,17 @@ func (d *Input) doServerTask() {
 		for {
 			select {
 			case <-tick.C:
+
+				l.Debug("try pull tasks...")
 				j, err := d.pullTask()
 				if err != nil {
-					l.Warnf(`%s,ignore`, err.Error())
-					continue
+					l.Warnf(`pullTask: %s, ignore`, err.Error())
+				} else {
+					l.Debug("try dispatch tasks...")
+					if err := d.dispatchTasks(j); err != nil {
+						l.Warnf("dispatchTasks: %s, ignored", err.Error())
+					}
 				}
-				l.Debugf(`task: %s %v`, string(j), d.pos)
-				d.dispatchTasks(j)
 
 			case <-datakit.Exit.Wait():
 				l.Info("exit")
@@ -217,7 +205,6 @@ func (d *Input) doLocalTask(path string) {
 }
 
 func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
-	//
 	if err := t.Init(); err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -226,13 +213,8 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	switch t.Class() {
 	case dt.ClassHTTP:
 		apiTasksNum++
-	case dt.ClassHeadless: // chromedp 缓慢增加
-		headlessTasksNum++
-		if headlessTasksNum/3+1 > chromeCurCount && chromeCurCount < d.Workers {
-			chromeCtxs <- dt.NewChromedpCtx(false, ``)
-			chromeCurCount++
-			l.Debugf(`worker:%d, chromeCurCount:%d, tasks:%d`, d.Workers, chromeCurCount, headlessTasksNum)
-		}
+	case dt.ClassHeadless:
+		return nil, fmt.Errorf("headless task deprecated")
 	case dt.ClassDNS:
 		// TODO
 	case dt.ClassTCP:
@@ -246,6 +228,8 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 		l.Errorf("unknown task type")
 		break
 	}
+
+	l.Debugf("input tags: %+#v", d.Tags)
 
 	dialer, err := newDialer(t, d.Tags)
 	if err != nil {
@@ -266,6 +250,9 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 func protectedRun(d *dialer) {
 	crashcnt := 0
 	var f rtpanic.RecoverCallback
+
+	l.Infof("task %s(%s) starting...", d.task.ID(), d.class)
+
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
@@ -290,67 +277,107 @@ func (d *Input) dispatchTasks(j []byte) error {
 	var resp taskPullResp
 
 	if err := json.Unmarshal(j, &resp); err != nil {
-		l.Error(err)
+		l.Errorf("json.Unmarshal: %s", err.Error())
 		return err
 	}
+
+	l.Debugf(`dispatching %d tasks...`, len(resp.Content))
 
 	for k, arr := range resp.Content {
 		switch k {
 		case RegionInfo:
 			for k, v := range arr.(map[string]interface{}) {
-				switch v.(type) {
+				switch v_ := v.(type) {
 				case bool:
-					if v.(bool) {
+					if v_ {
 						d.Tags[k] = `true`
 					} else {
 						d.Tags[k] = `false`
 					}
+
+				case string:
+					if v_ != "name" && v_ != "status" {
+						d.Tags[k] = v_
+					} else {
+						l.Debugf("ignore tag %s:%s from region info", k, v_)
+					}
 				default:
-					d.Tags[k] = v.(string)
+					l.Warnf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())
 				}
 			}
 
 		default:
+			l.Debugf("pass %s", k)
 		}
 	}
 
-	for k, arr := range resp.Content {
+	for k, x := range resp.Content {
 		l.Debugf(`class: %s`, k)
 
 		if k == RegionInfo {
 			continue
 		}
 
-		for _, j := range arr.([]interface{}) {
+		arr, ok := x.([]interface{})
+
+		if !ok {
+			l.Warnf("invalid resp.Content, expect []interface{}, got %s", reflect.TypeOf(x).String())
+			continue
+		}
+
+		if k == dt.ClassHeadless {
+			l.Debugf("ignore %d headless tasks", len(arr))
+			continue
+		}
+
+		for _, data := range arr {
 			var t dt.Task
 
 			switch k {
 			case dt.ClassHTTP:
 				t = &dt.HTTPTask{}
-			case dt.ClassHeadless:
-				t = &dt.HeadlessTask{}
 			case dt.ClassDNS:
 				// TODO
+				l.Warnf("DNS task deprecated, ignored")
+				continue
 			case dt.ClassTCP:
 				// TODO
+				l.Warnf("TCP task deprecated, ignored")
+				continue
 			case dt.ClassOther:
 				// TODO
+				l.Warnf("OTHER task deprecated, ignored")
+				continue
 			case RegionInfo:
 				break
-				// no need dealwith
 			default:
 				l.Errorf("unknown task type: %s", k)
 				break
 			}
-			if err := json.Unmarshal([]byte(j.(string)), &t); err != nil {
-				l.Errorf(`%s`, err.Error())
+
+			if t == nil {
+				l.Warn("empty task, ignored")
+				continue
+			}
+
+			j, ok := data.(string)
+			if !ok {
+				l.Warnf("invalid task data, expect string, got %s", reflect.TypeOf(data).String())
+				continue
+			}
+
+			if err := json.Unmarshal([]byte(j), &t); err != nil {
+				l.Errorf(`json.Unmarshal: %s`, err.Error())
 				return err
 			}
+
+			l.Debugf("unmarshal task: %+#v", t)
 
 			// update dialer pos
 			ts := t.UpdateTimeUs()
 			if d.pos < ts {
 				d.pos = ts
+				l.Debugf("update position to %d", d.pos)
 			}
 
 			l.Debugf(`%+#v id: %s`, d.curTasks[t.ID()], t.ID())
@@ -384,8 +411,6 @@ func (d *Input) dispatchTasks(j []byte) error {
 				}
 			}
 		}
-
-		// case dt.ClassHeadless:
 	}
 	return nil
 }
@@ -448,6 +473,8 @@ func (d *Input) pullTask() ([]byte, error) {
 		}
 	}
 
+	l.Debugf("task body: %s", string(res))
+
 	return res, err
 }
 
@@ -500,7 +527,6 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 		return body, resp.StatusCode / 100, nil
 	default:
 		l.Warn("request %s failed(%s): %s", d.Server, resp.Status, string(body))
-		// error_code = kodo.RegionNotFoundOrDisabled, 停止掉所有任务
 		if strings.Contains(string(body), `kodo.RegionNotFoundOrDisabled`) {
 			// stop all
 			d.stopAlltask()
