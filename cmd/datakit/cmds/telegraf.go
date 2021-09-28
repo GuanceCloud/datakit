@@ -16,7 +16,8 @@ const (
 )
 
 func InstallTelegraf(installDir string) error {
-	url := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/telegraf/" + fmt.Sprintf("telegraf-%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+	url := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/telegraf/" +
+		fmt.Sprintf("telegraf-%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 
 	if runtime.GOOS != datakit.OSWindows {
 		installDir = "/"

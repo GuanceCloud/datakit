@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchbetav1 "k8s.io/api/batch/v1beta1"
@@ -13,11 +14,8 @@ import (
 	v1beta1 "k8s.io/api/extensions/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 type client struct {

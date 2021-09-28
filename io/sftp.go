@@ -70,7 +70,7 @@ func (sc *SFTPClient) SFTPUPLoad(remoteFilePath string, reader io.Reader) error 
 	if err != nil {
 		return err
 	}
-	defer remoteFile.Close()
+	defer remoteFile.Close() //nolint:errcheck
 	if _, err := io.Copy(remoteFile, reader); err != nil {
 		return err
 	}

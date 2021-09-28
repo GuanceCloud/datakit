@@ -28,12 +28,10 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 			requrl = category
 		}
 	}
-	l.Debugf("request %s", requrl)
 
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
 	if err != nil {
 		l.Error(err)
-
 		return err
 	}
 
@@ -52,12 +50,16 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 	}
 
 	// start trace span from request context
-	span, _ := dktracer.GlobalTracer.StartSpanFromContext(req.Context(), "datakit.dataway.send", req.RequestURI, ext.SpanTypeHTTP)
+	span, _ := dktracer.GlobalTracer.StartSpanFromContext(req.Context(),
+		"datakit.dataway.send", req.RequestURI, ext.SpanTypeHTTP)
 	defer dktracer.GlobalTracer.FinishSpan(span, tracer.WithFinishTime(time.Now()))
 
 	// inject span into http header
-	dktracer.GlobalTracer.Inject(span, req.Header)
+	if err := dktracer.GlobalTracer.Inject(span, req.Header); err != nil {
+		l.Warnf("GlobalTracer.Inject: %s, ignored", err.Error())
+	}
 
+	postbeg := time.Now()
 	resp, err := dc.dw.sendReq(req)
 	if err != nil {
 		dktracer.GlobalTracer.SetTag(span, "http_client_do_error", err.Error())
@@ -66,7 +68,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	respbody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -76,7 +78,6 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 		return err
 	}
 
-	postbeg := time.Now()
 	switch resp.StatusCode / 100 {
 	case 2:
 		dc.fails = 0
@@ -111,13 +112,11 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 }
 
 func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
-	l.Debugf("send request %s, proxy: %s", req.URL.String(), dw.HttpProxy)
+	l.Debugf("send request %s, proxy: %s, dwcli: %p", req.URL.String(), dw.HttpProxy, dw.httpCli.Transport)
 	return dw.httpCli.Do(req)
 }
 
 func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
-	defer dw.httpCli.CloseIdleConnections()
-
 	for i, ep := range dw.endPoints {
 		l.Debugf("send to %dth dataway, fails: %d/%d", i, ep.fails, dw.MaxFails)
 		// 判断 fails

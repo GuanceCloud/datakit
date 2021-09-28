@@ -78,7 +78,6 @@ func (fc *FileCollector) initFileCollector() error {
 			return err
 		}
 		fc.OssClient.Cli = oc
-
 	} else if fc.SftpClient != nil {
 		fc.UploadType = "sftp"
 		sc, err := fc.SftpClient.GetSFTPClient()
@@ -86,7 +85,6 @@ func (fc *FileCollector) initFileCollector() error {
 			return err
 		}
 		fc.SftpClient.Cli = sc
-
 	}
 	return nil
 }
@@ -150,7 +148,6 @@ func (fc *FileCollector) Run() {
 			return
 		case err := <-fc.watch.Errors:
 			l.Errorf("[error] file_collector err:%s", err.Error()) // 此处 error 日志记录即可
-
 		}
 	}
 }
@@ -302,7 +299,7 @@ func FileCopy(f *os.File, tmpPath string) error {
 		return err
 	}
 
-	err := os.MkdirAll(filepath.Dir(tmpPath), 0777)
+	err := os.MkdirAll(filepath.Dir(tmpPath), 0o777)
 	if err != nil {
 		return err
 	}

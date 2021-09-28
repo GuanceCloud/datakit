@@ -10,7 +10,7 @@ func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
 		return false, err
 	}
 
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	fi1, err := f.Stat()
 	if err != nil {
@@ -19,7 +19,7 @@ func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
 
 	fi2, err := file.Stat()
 	if err != nil {
-		return true, nil
+		return true, nil //nolint:nilerr
 	}
 
 	recreated := !os.SameFile(fi1, fi2)

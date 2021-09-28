@@ -10,10 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
-	"github.com/dustin/go-humanize"
 )
 
 type versionDesc struct {
@@ -42,8 +41,7 @@ func tarFiles(goos, goarch string) {
 	cmd.Stderr = os.Stderr
 
 	l.Debugf("tar %s...", gz)
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		l.Fatal(err)
 	}
 }
@@ -140,7 +138,6 @@ func PubDatakit() {
 	}
 
 	for k, v := range ossfiles {
-
 		fi, _ := os.Stat(v)
 		l.Debugf("%s => %s(%s)...", v, k, humanize.Bytes(uint64(fi.Size())))
 

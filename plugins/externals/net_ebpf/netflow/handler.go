@@ -56,11 +56,8 @@ func closedEventHandler(cpu int, data []byte, perfmap *manager.PerfMap, manager 
 	connStatsRecord.updateClosedUseEvent(event)
 }
 
-// 在扫描 connStatMap 时锁定资源 connStatsRecord
-// duration 介于 10s ～ 30min, 若非，默认设为 30s
-func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map,
-	interval time.Duration, gTags map[string]string) {
-
+// 在扫描 connStatMap 时锁定资源 connStatsRecord.
+func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map, interval time.Duration, gTags map[string]string) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -124,13 +121,13 @@ func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMa
 				}
 
 				connFullStats = connStatsRecord.mergeWithClosedLastActive(connInfo, connFullStats)
-				if ConnFilter(connInfo, connFullStats) {
+				if ConnNotNeedToFilter(connInfo, connFullStats) {
 					connResult.result[connInfo] = connFullStats
 				}
 			}
 			// 收集当前周期处于关闭状态的连接
 			for k, v := range connStatsRecord.closedConns {
-				if ConnFilter(k, v) {
+				if ConnNotNeedToFilter(k, v) {
 					connResult.result[k] = v
 				}
 			}
@@ -144,14 +141,16 @@ func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMa
 	}
 }
 
-// 接收一个周期内采集的全部连接, 并发送至 DataKit
+// 接收一个周期内采集的全部连接, 并发送至 DataKit.
 func FeedHandler(ctx context.Context, datakitPostURL string) {
 	for {
 		select {
 		case result := <-resultCh:
 			connMerge(result)
 			collectCache := convertConn2Measurement(result, inputName)
-			FeedMeasurement(collectCache, datakitPostURL)
+			if err := FeedMeasurement(collectCache, datakitPostURL); err != nil {
+				l.Error(err)
+			}
 		case <-ctx.Done():
 			return
 		}

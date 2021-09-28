@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
+//nolint:lll
 const (
 	winUpgradeCmd      = `$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source %s -destination .install.ps1; powershell .install.ps1;`
 	winUpgradeCmdProxy = `$env:HTTPS_PROXY="%s"; $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTP_PROXY -source %s -destination .install.ps1; powershell .install.ps1;`
@@ -108,10 +109,8 @@ const (
 )
 
 func getUpgradeCommand(dlurl string, showTesting bool) string {
-	upgradeCmd := ""
 	proxy := config.Cfg.DataWay.HttpProxy
-
-	baseURLEnv := ""
+	var upgradeCmd, baseURLEnv string
 
 	switch runtime.GOOS {
 	case datakit.OSWindows:
@@ -167,7 +166,7 @@ func getVersion(addr string) (*version.VerInfo, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	infobody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

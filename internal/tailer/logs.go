@@ -8,20 +8,19 @@ import (
 	"unsafe"
 
 	"github.com/pborman/ansi"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
-	// pipeline关键字段
+	// pipeline关键字段.
 	pipelineTimeField = "time"
 
-	// ES value can be at most 32766 bytes long
+	// ES value can be at most 32766 bytes long.
 	maxFieldsLength = 32766
 
-	// 不使用高频IO
+	// 不使用高频IO.
 	disableHighFreqIODdata = false
 )
 
@@ -59,7 +58,7 @@ func (x *Logs) RemoveAnsiEscapeCodesOfText(remove bool) *Logs {
 
 	newText, err := ansi.Strip(String2Bytes(x.text))
 	if err != nil {
-		x.AddErr(fmt.Errorf("failed of remove color: %s", err))
+		x.AddErr(fmt.Errorf("failed of remove color: %w", err))
 		return x
 	}
 
@@ -86,16 +85,12 @@ func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
 		x.fields[k] = v
 	}
 
-	if len(x.fields) == 0 {
-		x.AddErr(fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline"))
-	}
-
 	return x
 }
 
 // checkFieldsLength 检查数据是否过长
 // 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
-// 防止通过 pipeline 添加巨长字段的恶意行为
+// 防止通过 pipeline 添加巨长字段的恶意行为.
 func (x *Logs) CheckFieldsLength() *Logs {
 	if x.IsSkip() {
 		return x
@@ -146,7 +141,7 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-// addStatus 添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
+// addStatus 添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'.
 func (x *Logs) AddStatus(disable bool) *Logs {
 	if x.IsSkip() || disable {
 		return x
@@ -175,7 +170,7 @@ func (x *Logs) AddStatus(disable bool) *Logs {
 	return x
 }
 
-// ignoreStatus 过滤指定status
+// ignoreStatus 过滤指定status.
 func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
 	if x.IsSkip() || len(ignoreStatus) == 0 {
 		return x
@@ -207,6 +202,7 @@ func (x *Logs) TakeTime() *Logs {
 			x.ts = time.Now()
 			x.AddErr(fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
 				pipelineTimeField, v, reflect.TypeOf(v).String()))
+			return x
 		}
 
 		x.ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
@@ -222,6 +218,12 @@ func (x *Logs) Point(measurement string, tags map[string]string) *Logs {
 	if x.IsSkip() {
 		return x
 	}
+
+	if len(x.fields) == 0 {
+		x.AddErr(fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline"))
+		return x
+	}
+
 	pt, err := io.MakePoint(measurement, tags, x.fields, x.ts)
 	if err != nil {
 		x.AddErr(err)
@@ -286,14 +288,14 @@ func feed(inputName, measurement string, tags map[string]string, message string)
 	return err
 }
 
-// String2Bytes convert string to bytes
+// String2Bytes convert string to bytes.
 func String2Bytes(s string) []byte {
 	x := (*[2]uintptr)(unsafe.Pointer(&s))
 	h := [3]uintptr{x[0], x[1], x[1]}
 	return *(*[]byte)(unsafe.Pointer(&h))
 }
 
-// Bytes2String convert bytes to string
+// Bytes2String convert bytes to string.
 func Bytes2String(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }

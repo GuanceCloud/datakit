@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -19,12 +18,12 @@ type baseMeasurement struct {
 	resData map[string]interface{}
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *baseMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql",
@@ -502,7 +501,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (m *baseMeasurement) getStatus() error {
 	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
 	rows, err := m.i.db.Query(globalStatusSql)
@@ -528,7 +527,7 @@ func (m *baseMeasurement) getStatus() error {
 	return nil
 }
 
-// variables data
+// variables data.
 func (m *baseMeasurement) getVariables() error {
 	variablesSql := "SHOW GLOBAL VARIABLES;"
 	rows, err := m.i.db.Query(variablesSql)
@@ -551,7 +550,7 @@ func (m *baseMeasurement) getVariables() error {
 	return nil
 }
 
-// log stats
+// log stats.
 func (m *baseMeasurement) getLogStats() error {
 	logSql := "SHOW BINARY LOGS;"
 	rows, err := m.i.db.Query(logSql)
@@ -581,7 +580,7 @@ func (m *baseMeasurement) getLogStats() error {
 	return nil
 }
 
-// 提交数据
+// 提交数据.
 func (m *baseMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {

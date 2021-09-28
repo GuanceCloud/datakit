@@ -9,7 +9,6 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -46,8 +45,8 @@ func SearchDir(dir string, suffix string) []string {
 	return fps
 }
 
-// load all inputs under @InstallDir/conf.d
-func LoadInputsConfig(c *Config) error {
+// load all inputs under @InstallDir/conf.d.
+func LoadInputsConfig() error {
 	inputs.Init()
 
 	availableInputCfgs := map[string]*ast.Table{}
@@ -56,7 +55,6 @@ func LoadInputsConfig(c *Config) error {
 	l.Debugf("loading %d conf...", len(confs))
 
 	for _, fp := range confs {
-
 		l.Debugf("loading conf %s...", fp)
 
 		if filepath.Base(fp) == "datakit.conf" {
@@ -95,7 +93,7 @@ func LoadInputsConfig(c *Config) error {
 			continue
 		}
 
-		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
+		if err := doLoadInputConf(name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
 			return err
 		}
@@ -108,7 +106,7 @@ func LoadInputsConfig(c *Config) error {
 	return nil
 }
 
-// fp == "", add new when not exist, set ConfigPaths empty when exist
+// fp == "", add new when not exist, set ConfigPaths empty when exist.
 func addConfigInfoPath(inputName string, fp string, loaded int8) {
 	if c, ok := inputs.ConfigInfo[inputName]; ok {
 		if len(fp) == 0 {
@@ -139,10 +137,10 @@ func addConfigInfoPath(inputName string, fp string, loaded int8) {
 	}
 }
 
-func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
+func doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
 	l.Debugf("search input cfg for %s", name)
 
-	list := searchDatakitInputCfg(c, inputcfgs, name, creator)
+	list := searchDatakitInputCfg(inputcfgs, name, creator)
 
 	for _, i := range list {
 		if err := inputs.AddInput(name, i); err != nil {
@@ -154,11 +152,9 @@ func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs m
 	return nil
 }
 
-func searchDatakitInputCfg(c *Config,
-	inputcfgs map[string]*ast.Table,
+func searchDatakitInputCfg(inputcfgs map[string]*ast.Table,
 	name string,
 	creator inputs.Creator) []inputs.Input {
-
 	inputlist := []inputs.Input{}
 
 	addConfigInfoPath(name, "", 0) // init config info
@@ -226,13 +222,13 @@ func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
 }
 
 func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
-	tbls := []*ast.Table{}
+	var tbls []*ast.Table
 
 	switch t := tbl.(type) {
 	case []*ast.Table:
-		tbls = tbl.([]*ast.Table)
+		tbls = t
 	case *ast.Table:
-		tbls = append(tbls, tbl.(*ast.Table))
+		tbls = append(tbls, t)
 	default:
 		err = fmt.Errorf("invalid toml format on %s: %v", name, t)
 		return
@@ -286,10 +282,9 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 	return nil
 }
 
-// Creata datakit input plugin's configures if not exists
+// Creata datakit input plugin's configures if not exists.
 func initPluginSamples() error {
 	for name, create := range inputs.Inputs {
-
 		if !datakit.Enabled(name) {
 			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
 			continue
@@ -309,7 +304,6 @@ func initDefaultEnabledPlugins(c *Config) {
 	}
 
 	for _, name := range c.DefaultEnabledInputs {
-
 		l.Debugf("init default input %s conf...", name)
 
 		var fpath, sample string
@@ -346,10 +340,25 @@ func initDefaultEnabledPlugins(c *Config) {
 func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, error) {
 	tbl, err := ParseCfgFile(f)
 	if err != nil {
+		return nil, fmt.Errorf("parse conf failed: %w", err)
+	}
+
+	return parseTableToInputs(tbl, creator)
+}
+
+func LoadInputConfig(data string, creator inputs.Creator) ([]inputs.Input, error) {
+	tbl, err := toml.Parse([]byte(data))
+	if err != nil {
+		l.Errorf("parse toml %s failed", data)
 		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
 	}
 
-	inputlist := []inputs.Input{}
+	return parseTableToInputs(tbl, creator)
+}
+
+func parseTableToInputs(tbl *ast.Table, creator inputs.Creator) ([]inputs.Input, error) {
+	var inputlist []inputs.Input
+	var err error
 
 	for field, node := range tbl.Fields {
 		switch field {
@@ -359,7 +368,7 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 				for inputName, v := range stbl.Fields {
 					inputlist, err = TryUnmarshal(v, inputName, creator)
 					if err != nil {
-						return nil, fmt.Errorf("unmarshal input failed, %s", err.Error())
+						return nil, fmt.Errorf("unmarshal input failed, %w", err)
 					}
 				}
 			}
@@ -367,7 +376,7 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 		default: // compatible with old version: no [[inputs.xxx]] header
 			inputlist, err = TryUnmarshal(node, "", creator)
 			if err != nil {
-				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
+				return nil, fmt.Errorf("unmarshal input failed: %w", err)
 			}
 		}
 	}

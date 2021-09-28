@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,12 +19,12 @@ type customerMeasurement struct {
 	ts     time.Time
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *customerMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
 func (m *customerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_customer",
@@ -59,7 +58,6 @@ func (i *Input) customSchemaMeasurement() ([]inputs.Measurement, error) {
 
 func (i *Input) handleResponse(qy *customQuery,
 	resMap []map[string]interface{}) ([]inputs.Measurement, error) {
-
 	ms := []inputs.Measurement{}
 
 	for _, item := range resMap {

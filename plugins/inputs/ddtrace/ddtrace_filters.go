@@ -9,7 +9,7 @@ import (
 
 // traceFilter will determine whether a trace should be drop or not,
 // return nil Trace if the trace data dropped,
-// return true will tell runFilterWithBreak to break out loop early
+// return true will tell runFilterWithBreak to break out loop early.
 type traceFilter func(Trace) (Trace, bool)
 
 func runFiltersWithBreak(trace Trace, filters ...traceFilter) Trace {
@@ -31,7 +31,7 @@ func runFiltersWithBreak(trace Trace, filters ...traceFilter) Trace {
 
 var present = make(map[string]time.Time)
 
-// service resource env
+// service resource env.
 func rare(trace Trace) (Trace, bool) {
 	var rootSpan *Span
 	for i := range trace {

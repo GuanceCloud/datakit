@@ -62,7 +62,7 @@ func (gs Logs) Init() error {
 	return nil
 }
 
-// Match 如果匹配成功则返回该项下标，否则返回 -1
+// Match 如果匹配成功则返回该项下标，否则返回 -1.
 func (gs Logs) Match(by, str string) (index int) {
 	if str == "" {
 		return -1

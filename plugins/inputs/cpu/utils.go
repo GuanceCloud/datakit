@@ -8,7 +8,6 @@ import (
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/host"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -23,7 +22,7 @@ type CPUInfoTest struct {
 	index    int
 }
 
-// collect cpu time
+// collect cpu time.
 func (c *CPUInfo) CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error) {
 	var cpuTimes []cpu.TimesStat
 	PerTotal := [2]bool{perCPU, totalCPU}
@@ -79,7 +78,7 @@ func CoreTemp() (map[string]float64, error) {
 	return nil, fmt.Errorf("os is not supported")
 }
 
-// cpu usage stat
+// cpu usage stat.
 type UsageStat struct {
 	CPU       string
 	User      float64
@@ -95,7 +94,7 @@ type UsageStat struct {
 	Total     float64
 }
 
-// calculate cpu usage
+// calculate cpu usage.
 func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64) (*UsageStat, error) {
 	if nowT.CPU != lastT.CPU {
 		err := fmt.Errorf("warning. Not the same CPU. CPU:%s %s", nowT.CPU, lastT.CPU)
@@ -118,7 +117,7 @@ func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64)
 	return c, nil
 }
 
-// return cpu active, total time
+// return cpu active, total time.
 func CpuActiveTotalTime(t cpu.TimesStat) (float64, float64) {
 	total := t.Total()
 	active := total - t.Idle

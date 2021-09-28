@@ -8,10 +8,9 @@ import (
 	"time"
 
 	markdown "github.com/MichaelMure/go-term-markdown"
-	"golang.org/x/term"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"golang.org/x/term"
 )
 
 func cmdMonitor(interval time.Duration, verbose bool) {
@@ -53,7 +52,7 @@ func doCMDMonitor(url string, verbose bool) ([]byte, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s", string(body))

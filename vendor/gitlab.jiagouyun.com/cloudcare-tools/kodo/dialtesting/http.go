@@ -6,7 +6,6 @@ package dialtesting
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -285,12 +284,7 @@ type HTTPSecret struct {
 	NoSaveResponseBody bool `json:"not_save,omitempty"`
 }
 
-func (t *HTTPTask) SetContext(ctx context.Context) {
-
-}
-
 func (t *HTTPTask) Run() error {
-
 	t.Clear()
 
 	var t1, connect, dns, tlsHandshake time.Time
@@ -339,7 +333,7 @@ func (t *HTTPTask) Run() error {
 	t.reqStart = time.Now()
 	t.resp, err = t.cli.Do(t.req)
 	if t.resp != nil {
-		defer t.resp.Body.Close()
+		defer t.resp.Body.Close() //nolint:errcheck
 	}
 
 	if err != nil {
@@ -448,7 +442,6 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 }
 
 func (t *HTTPTask) Init() error {
-
 	// setup frequency
 	du, err := time.ParseDuration(t.Frequency)
 	if err != nil {
@@ -502,7 +495,8 @@ func (t *HTTPTask) Init() error {
 			TLSClientConfig: &tls.Config{
 				RootCAs:            caCertPool,
 				Certificates:       []tls.Certificate{cert},
-				InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError},
+				InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError,
+			},
 		}
 	}
 

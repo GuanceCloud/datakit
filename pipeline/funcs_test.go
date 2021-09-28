@@ -57,7 +57,7 @@ func TestRenameFunc(t *testing.T) {
 }
 
 func TestExprFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
 	script := `json(_, a.second)
 		cast(a.second, "int")
 		expr(a.second*10+(2+3)*5, bb)
@@ -76,7 +76,7 @@ func TestExprFunc(t *testing.T) {
 }
 
 func TestCastFloat2IntFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
 	script := `json(_, a.first)
 cast(a.first, "int")
 `
@@ -90,7 +90,7 @@ cast(a.first, "int")
 }
 
 func TestCastInt2FloatFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
 	script := `json(_, a.second)
 cast(a.second, "float")
 `
@@ -105,9 +105,9 @@ cast(a.second, "float")
 
 // a.second 为 float 类型
 func TestStringfFunc(t *testing.T) {
-	// js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	// js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
 	// script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
-	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
 	script := `json(_, a.second)
 		json(_, a.thrid)
 		json(_, a.forth)
@@ -123,7 +123,7 @@ func TestStringfFunc(t *testing.T) {
 }
 
 func TestUppercaseFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"abc","forth":true},"age":47}`
+	js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
 	script := `json(_, a.thrid)
 uppercase(a.thrid)
 `
@@ -137,7 +137,7 @@ uppercase(a.thrid)
 }
 
 func TestLowercaseFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	js := `{"a":{"first":2.3,"second":2,"third":"aBC","forth":true},"age":47}`
 	script := `json(_, a.thrid)
 lowercase(a.thrid)
 `
@@ -151,7 +151,7 @@ lowercase(a.thrid)
 }
 
 func TestAddkeyFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	js := `{"a":{"first":2.3,"second":2,"third":"aBC","forth":true},"age":47}`
 	script := `add_key(aa, 3)
 `
 	p, err := NewPipeline(script)
@@ -163,7 +163,7 @@ func TestAddkeyFunc(t *testing.T) {
 }
 
 func TestDropkeyFunc(t *testing.T) {
-	js := `{"a":{"first":2.3,"second":2,"thrid":"aBC","forth":true},"age":47}`
+	js := `{"a":{"first":2.3,"second":2,"third":"aBC","forth":true},"age":47}`
 	script := `json(_, a.thrid)
 json(_, a.first)
 drop_key(a.thrid)

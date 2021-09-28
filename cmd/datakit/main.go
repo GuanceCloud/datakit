@@ -11,7 +11,6 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
@@ -25,7 +24,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits
 	flag.BoolVarP(&cmds.FlagVersion, "version", "V", false, `show version info`)
 	flag.BoolVar(&cmds.FlagCheckUpdate, "check-update", false, "check if new version available")
 	flag.BoolVar(&cmds.FlagAcceptRCVersion, "accept-rc-version", false, "during update, accept RC version if available")
@@ -57,6 +56,7 @@ func init() {
 	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
 	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
 	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
+	flag.BoolVar(&cmds.FlagApiRestart, "api-restart", false, "restart datakit for api only")
 	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
@@ -97,7 +97,7 @@ func init() {
 var (
 	l = logger.DefaultSLogger("main")
 
-	// injected during building: -X
+	// injected during building: -X.
 	ReleaseType    = ""
 	ReleaseVersion = ""
 )
@@ -111,20 +111,18 @@ func setupFlags() {
 		"addr",
 		"show-testing-version",
 		"update-log",
-		"interactive",
 		"dump-samples",
-		"work-dir",
+		"workdir",
 		"default-main-conf",
 		"disable-self-input",
 		"disable-dataway-list",
 		"disable-logfilter",
 		"disable-heartbeat",
+		"api-restart",
 	} {
-		flag.CommandLine.MarkHidden(f)
-	}
-
-	if runtime.GOOS == datakit.OSWindows {
-		flag.CommandLine.MarkHidden("reload")
+		if err := flag.CommandLine.MarkHidden(f); err != nil {
+			l.Warnf("CommandLine.MarkHidden: %s, ignored", err)
+		}
 	}
 
 	flag.CommandLine.SortFlags = false
@@ -160,19 +158,15 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
-
 		go cgroup.Run()
 		service.Entry = run
 
 		if cmds.FlagWorkDir != "" { // debugging running, not start as service
 			run()
-		} else {
-			if err := service.StartService(); err != nil {
-				l.Errorf("start service failed: %s", err.Error())
-				return
-			}
+		} else if err := service.StartService(); err != nil {
+			l.Errorf("start service failed: %s", err.Error())
+			return
 		}
-
 	}
 
 	l.Info("datakit exited")
@@ -247,7 +241,9 @@ func tryLoadConfig() {
 }
 
 func doRun() error {
-	io.Start()
+	if err := io.Start(); err != nil {
+		return err
+	}
 
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
@@ -259,10 +255,9 @@ func doRun() error {
 	}
 
 	// FIXME: wait all inputs ok, then start http server
-
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
-		EnableDca:      config.Cfg.EnableDca,
+		DCAConfig:      config.Cfg.DCAConfig,
 		GinLog:         config.Cfg.Logging.GinLog,
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",

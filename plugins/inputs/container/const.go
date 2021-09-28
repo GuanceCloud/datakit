@@ -8,20 +8,20 @@ const (
 	inputName = "container"
 	catelog   = "container"
 
-	// docker endpoint
+	// docker endpoint.
 	dockerEndpoint = "unix:///var/run/docker.sock"
-	// docker sock 文件路径，用以判断主机是否已安装 docker 服务
+	// docker sock 文件路径，用以判断主机是否已安装 docker 服务.
 	dockerEndpointPath = "/var/run/docker.sock"
 
-	// Docker API 超时时间
+	// Docker API 超时时间.
 	apiTimeoutDuration = time.Second * 5
 
-	// 对象采集间隔
+	// 对象采集间隔.
 	objectDuration = time.Minute * 5
-	// 定时发现新日志源
+	// 定时发现新日志源.
 	loggingHitDuration = time.Second * 5
 
-	// 是否采集全部容器，包括未在运行的
+	// 是否采集全部容器，包括未在运行的.
 	containerAllForMetric  = false
 	containerAllForObject  = true
 	containerAllForLogging = false

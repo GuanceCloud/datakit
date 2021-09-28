@@ -1,3 +1,5 @@
+// +build linux
+
 package offset_guess
 
 import (
@@ -15,8 +17,6 @@ import (
 )
 
 const (
-	PROCNAMLEN = 18
-
 	CONN_L3_MASK = 0xFF // 0xFF
 	CONN_L3_IPv4 = 0x00 // 0x00
 	CONN_L3_IPv6 = 0x01 // 0x01
@@ -46,36 +46,48 @@ type Conninfo struct {
 	Rtt_var uint32
 }
 
-func GuessTcp(ebpfMapGuess *ebpf.Map) (*OffsetGuessC, error) {
+// guess the offset of the structure field, such as tcp_sock.srtt_us.
+func GuessTCP(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, error) {
 	ctx := context.Background()
 	defer ctx.Done()
-	serverPort, err := runTcpServer(ctx, listen_ipv4)
+
+	tcp4ServerPort, err := runTCPServer(ctx, "tcp4", listen_ipv4)
 	if err != nil {
 		return nil, err
 	}
-	serverAddr := fmt.Sprintf("%s:%d", listen_ipv4, serverPort)
+	serverAddr := fmt.Sprintf("%s:%d", listen_ipv4, tcp4ServerPort)
 
 	conninfo := Conninfo{
-		Dport: serverPort,
+		Dport: tcp4ServerPort,
 		Daddr: listen_ipv4_arr,
 		Meta:  CONN_L4_TCP | CONN_L3_IPv4,
 	}
+
 	newStatus := newGuessStatus()
+
 	newStatus.meta = _Ctype_uint(conninfo.Meta)
+
+	if guessed != nil {
+		copyOffset(guessed, &newStatus)
+	}
+
 	rtt_ok := 0
 	rttvar_ok := 0
 	for {
-		conn, err := net.Dial("tcp", serverAddr)
+		conn, err := net.Dial("tcp4", serverAddr)
 		if err != nil {
-			conn.Close()
+			if err := conn.Close(); err != nil {
+				return nil, err
+			}
 			return nil, err
 		}
 		time.Sleep(time.Millisecond * 5)
 		tcpConn, ok := conn.(*net.TCPConn)
 		if !ok {
 			return nil, fmt.Errorf("conv conn to tcp conn")
-		} else {
-			tcpConn.SetLinger(0)
+		}
+		if err := tcpConn.SetLinger(0); err != nil {
+			return nil, err
 		}
 
 		sport, err := strconv.Atoi(strings.Split(tcpConn.LocalAddr().String(), ":")[1])
@@ -103,33 +115,39 @@ func GuessTcp(ebpfMapGuess *ebpf.Map) (*OffsetGuessC, error) {
 			continue
 		}
 
-		if conninfo.Rtt != uint32(statusAct.rtt) {
-			statusAct.offset_tcp_sk_srtt_us++
-			rtt_ok = 0
-		} else {
+		if try_guess(statusAct, &conninfo, GUESS_TCP_SK_SRTT_US) {
 			rtt_ok++
+		} else {
+			rtt_ok = 0
 		}
 
-		if conninfo.Rtt_var != uint32(statusAct.rtt_var) {
-			statusAct.offset_tcp_sk_mdev_us++
-			rttvar_ok = 0
-		} else {
+		if try_guess(statusAct, &conninfo, GUESS_TCP_SK_MDEV_US) {
 			rttvar_ok++
+		} else {
+			rttvar_ok = 0
 		}
+
 		if rtt_ok > MINSUCCESS && rttvar_ok > MINSUCCESS {
-			return statusAct, nil
+			newStatus = newGuessStatus()
+			copyOffset(statusAct, &newStatus)
+			return &newStatus, nil
 		}
 		if statusAct.offset_tcp_sk_srtt_us > MAXOFFSET || statusAct.offset_tcp_sk_mdev_us > MAXOFFSET {
 			break
 		}
 		newStatus = newGuessStatus()
 		copyOffset(statusAct, &newStatus)
-		connFile.Close()
-		conn.Close()
+		if err = connFile.Close(); err != nil {
+			return nil, err
+		}
+		if err = conn.Close(); err != nil {
+			return nil, err
+		}
 		time.Sleep(time.Millisecond * 5)
-		updateMapGuessStatus(ebpfMapGuess, &newStatus)
+		if err = updateMapGuessStatus(ebpfMapGuess, &newStatus); err != nil {
+			return nil, err
+		}
 	}
-
 	return nil, fmt.Errorf("failed")
 }
 
@@ -146,26 +164,31 @@ func NewConstEditor(offsetGuess *OffsetGuessC) []manager.ConstantEditor {
 	}
 }
 
-func runTcpServer(ctx context.Context, addr string) (uint16, error) {
-	l, err := net.Listen("tcp", addr+":0")
+func runTCPServer(ctx context.Context, network, address string) (uint16, error) {
+	netListen, err := net.Listen(network, address+":0")
 	if err != nil {
 		return 0, err
 	}
-	serverPort, err := strconv.Atoi(strings.Split(l.Addr().String(), ":")[1])
+	serverPort, err := strconv.Atoi(strings.Split(netListen.Addr().String(), ":")[1])
 	if err != nil {
 		return 0, err
 	}
+
 	go func() {
 		<-ctx.Done()
-		l.Close()
+		err := netListen.Close()
+		l.Error(err)
 	}()
+
 	go func() {
 		for {
-			conn, err := l.Accept()
+			conn, err := netListen.Accept()
 			if err != nil {
 				return
 			}
-			conn.Close()
+			if err = conn.Close(); err != nil {
+				l.Error(err)
+			}
 		}
 	}()
 

@@ -16,7 +16,6 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -33,28 +32,27 @@ type enabledInput struct {
 }
 
 type DatakitStats struct {
-	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
-	IoStats         io.IoStat                 `json:"io_stats"`
-	GoroutineStats  goroutine.Summary         `json:"goroutine_stats"`
-	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
-	AvailableInputs []string                  `json:"available_inputs"`
-	ConfigInfo      map[string]*inputs.Config `json:"config_info"`
+	GoroutineStats  *goroutine.Summary `json:"goroutine_stats"`
+	EnabledInputs   []*enabledInput    `json:"enabled_inputs"`
+	AvailableInputs []string           `json:"available_inputs"`
 
-	Version string `json:"version"`
-	BuildAt string `json:"build_at"`
-	Branch  string `json:"branch"`
-	Uptime  string `json:"uptime"`
-	OSArch  string `json:"os_arch"`
+	Version    string `json:"version"`
+	BuildAt    string `json:"build_at"`
+	Branch     string `json:"branch"`
+	Uptime     string `json:"uptime"`
+	OSArch     string `json:"os_arch"`
+	IOChanStat string `json:"io_chan_stats"`
+	Elected    string `json:"elected"`
+	CSS        string `json:"-"`
 
-	WithinDocker bool   `json:"docker"`
-	IOChanStat   string `json:"io_chan_stats"`
-	Elected      string `json:"elected"`
-	AutoUpdate   bool   `json:"auto_update"`
+	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
+	IoStats     io.IoStat                 `json:"io_stats"`
+	ConfigInfo  map[string]*inputs.Config `json:"config_info"`
 
+	WithinDocker bool `json:"docker"`
+	AutoUpdate   bool `json:"auto_update"`
 	// markdown options
 	DisableMonofont bool `json:"-"`
-
-	CSS string `json:"-"`
 }
 
 var (
@@ -167,7 +165,6 @@ func (x *DatakitStats) InputsStatsTable() string {
 	rows := []string{}
 
 	for k, s := range x.InputsStats {
-
 		firstIO := humanize.RelTime(s.First, now, "ago", "")
 		lastIO := humanize.RelTime(s.Last, now, "ago", "")
 
@@ -304,7 +301,7 @@ func GetStats() (*DatakitStats, error) {
 	return stats, nil
 }
 
-func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
+func (x *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 	tmpl := monitorTmpl
 	if verbose {
 		tmpl = verboseMonitorTmpl
@@ -312,16 +309,16 @@ func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 
 	temp, err := template.New("").Parse(tmpl)
 	if err != nil {
-		return nil, fmt.Errorf("parse markdown template failed: %s", err.Error())
+		return nil, fmt.Errorf("parse markdown template failed: %w", err)
 	}
 
 	if css != "" {
-		ds.CSS = css
+		x.CSS = css
 	}
 
 	var buf bytes.Buffer
-	if err := temp.Execute(&buf, ds); err != nil {
-		return nil, fmt.Errorf("execute markdown template failed: %s", err.Error())
+	if err := temp.Execute(&buf, x); err != nil {
+		return nil, fmt.Errorf("execute markdown template failed: %w", err)
 	}
 
 	return buf.Bytes(), nil

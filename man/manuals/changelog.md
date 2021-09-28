@@ -2,6 +2,18 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc1(2021/09/28)
+
+- 完善 Kubernetes 生态下 [Prometheus 类指标采集](kubernetes-prom)(#368/#347)
+- [eBPF-network](net_ebpf) 优化
+- 修复 DataKit/DataWay 之间连接数泄露问题(#290)
+- 修复容器模式下 [DataKit 各种子命令](datakit-how-to#666de9ed)无法执行的问题(#375)
+- 修复日志采集器因 Pipeline 错误丢失原始数据的问题(#376)
+- 完善 DataKit 端 [DCA](dca) 相关功能，支持在安装阶段[开启 DCA 功能](datakit-install#f9858758)。
+- 下线浏览器拨测功能
+
+---
+
 ## 1.1.9-rc0(2021/09/23)
 
 - [日志采集器](logging)增加特殊字符（如颜色字符）过滤功能（默认关闭）(#351)
@@ -11,7 +23,7 @@
 	- [eBPF-network](net_ebpf)(alpha)(#148)
 	- [Consul](consul)(#303)
 	- [etcd](etcd)(#304)
-	- [CoreDNS](etcd)(#305)
+	- [CoreDNS](coredns)(#305)
 - 选举功能已经覆盖到如下采集器：(#288)
 	- [Kubernetes](kubernetes)
 	- [Prom](prom)

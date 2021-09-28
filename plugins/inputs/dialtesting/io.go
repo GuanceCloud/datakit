@@ -44,12 +44,14 @@ func (d *dialer) linedataFeed(urlStr string, precision string) error {
 
 func (d *dialer) pointsFeed(urlStr string) error {
 	// 获取此次任务执行的基本信息
-	tags := map[string]string{}
-	fields := map[string]interface{}{}
-	tags, fields = d.task.GetResults()
+	tags, fields := d.task.GetResults()
 
 	for k, v := range d.tags {
-		tags[k] = v
+		if _, ok := tags[k]; !ok {
+			tags[k] = v
+		} else {
+			l.Warnf("ignore dialer tag %s: %s", k, v)
+		}
 	}
 
 	data, err := io.MakePoint(d.task.MetricName(), tags, fields, time.Now())

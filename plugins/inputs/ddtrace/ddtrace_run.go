@@ -10,44 +10,42 @@ import (
 	"time"
 
 	"github.com/tinylib/msgp/msgp"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var ddtraceSpanType = map[string]string{
-	"cache":         trace.SPAN_SERVICE_CACHE,
-	"cassandra":     trace.SPAN_SERVICE_DB,
-	"elasticsearch": trace.SPAN_SERVICE_DB,
-	"grpc":          trace.SPAN_SERVICE_CUSTOM,
-	"http":          trace.SPAN_SERVICE_WEB,
-	"mongodb":       trace.SPAN_SERVICE_DB,
-	"redis":         trace.SPAN_SERVICE_CACHE,
-	"sql":           trace.SPAN_SERVICE_DB,
-	"template":      trace.SPAN_SERVICE_CUSTOM,
-	"test":          trace.SPAN_SERVICE_CUSTOM,
-	"web":           trace.SPAN_SERVICE_WEB,
-	"worker":        trace.SPAN_SERVICE_CUSTOM,
-	"memcached":     trace.SPAN_SERVICE_CACHE,
-	"leveldb":       trace.SPAN_SERVICE_DB,
-	"dns":           trace.SPAN_SERVICE_CUSTOM,
-	"queue":         trace.SPAN_SERVICE_CUSTOM,
-	"consul":        trace.SPAN_SERVICE_APP,
-	"rpc":           trace.SPAN_SERVICE_CUSTOM,
-	"soap":          trace.SPAN_SERVICE_CUSTOM,
-	"db":            trace.SPAN_SERVICE_DB,
-	"hibernate":     trace.SPAN_SERVICE_CUSTOM,
-	"aerospike":     trace.SPAN_SERVICE_DB,
-	"datanucleus":   trace.SPAN_SERVICE_CUSTOM,
-	"graphql":       trace.SPAN_SERVICE_CUSTOM,
-	"custom":        trace.SPAN_SERVICE_CUSTOM,
-	"benchmark":     trace.SPAN_SERVICE_CUSTOM,
-	"build":         trace.SPAN_SERVICE_CUSTOM,
-	"":              trace.SPAN_SERVICE_CUSTOM,
+	"cache":         itrace.SPAN_SERVICE_CACHE,
+	"cassandra":     itrace.SPAN_SERVICE_DB,
+	"elasticsearch": itrace.SPAN_SERVICE_DB,
+	"grpc":          itrace.SPAN_SERVICE_CUSTOM,
+	"http":          itrace.SPAN_SERVICE_WEB,
+	"mongodb":       itrace.SPAN_SERVICE_DB,
+	"redis":         itrace.SPAN_SERVICE_CACHE,
+	"sql":           itrace.SPAN_SERVICE_DB,
+	"template":      itrace.SPAN_SERVICE_CUSTOM,
+	"test":          itrace.SPAN_SERVICE_CUSTOM,
+	"web":           itrace.SPAN_SERVICE_WEB,
+	"worker":        itrace.SPAN_SERVICE_CUSTOM,
+	"memcached":     itrace.SPAN_SERVICE_CACHE,
+	"leveldb":       itrace.SPAN_SERVICE_DB,
+	"dns":           itrace.SPAN_SERVICE_CUSTOM,
+	"queue":         itrace.SPAN_SERVICE_CUSTOM,
+	"consul":        itrace.SPAN_SERVICE_APP,
+	"rpc":           itrace.SPAN_SERVICE_CUSTOM,
+	"soap":          itrace.SPAN_SERVICE_CUSTOM,
+	"db":            itrace.SPAN_SERVICE_DB,
+	"hibernate":     itrace.SPAN_SERVICE_CUSTOM,
+	"aerospike":     itrace.SPAN_SERVICE_DB,
+	"datanucleus":   itrace.SPAN_SERVICE_CUSTOM,
+	"graphql":       itrace.SPAN_SERVICE_CUSTOM,
+	"custom":        itrace.SPAN_SERVICE_CUSTOM,
+	"benchmark":     itrace.SPAN_SERVICE_CUSTOM,
+	"build":         itrace.SPAN_SERVICE_CUSTOM,
+	"":              itrace.SPAN_SERVICE_CUSTOM,
 }
 
 //nolint: tagliatelle
@@ -70,7 +68,7 @@ type Trace []*Span
 
 type Traces []Trace
 
-// TODO:
+// TODO:.
 func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
@@ -119,7 +117,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 	}
 }
 
-// TODO:
+// TODO:.
 func handleStats(resp http.ResponseWriter, req *http.Request) {
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)

@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	"github.com/kardianos/service"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )

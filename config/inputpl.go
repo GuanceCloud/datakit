@@ -23,8 +23,7 @@ func initPluginPipeline() error {
 	}
 
 	for name, c := range inputs.Inputs {
-		switch v := c().(type) {
-		case inputs.PipelineInput:
+		if v, ok := c().(inputs.PipelineInput); ok {
 			ps := v.PipelineConfig()
 
 			for k, v := range ps {

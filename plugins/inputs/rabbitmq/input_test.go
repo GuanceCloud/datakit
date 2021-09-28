@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+
 	//"fmt"
 	"net/http"
 	"net/http/httptest"

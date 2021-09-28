@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -72,7 +71,7 @@ func (i *Input) collectDBMeasurement() ([]inputs.Measurement, error) {
 	return []inputs.Measurement{m}, nil
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (m *dbMeasurement) getData() error {
 	ctx := context.Background()
 	list, err := m.client.Info(ctx, "Keyspace").Result()
@@ -83,7 +82,7 @@ func (m *dbMeasurement) getData() error {
 	return m.parseInfoData(list)
 }
 
-// 解析返回结果
+// 解析返回结果.
 func (m *dbMeasurement) parseInfoData(list string) error {
 	rdr := strings.NewReader(list)
 
@@ -119,7 +118,7 @@ func (m *dbMeasurement) parseInfoData(list string) error {
 	return nil
 }
 
-// 提交数据
+// 提交数据.
 func (m *dbMeasurement) submit() ([]inputs.Measurement, error) {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {

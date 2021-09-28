@@ -70,6 +70,9 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy 
 - `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project=abc,owner=张三`（多个 tag 之间以英文逗号分隔）
 - `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
 - `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
+- `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
+- `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认`0.0.0.0:9531`）
+- `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
 - `DK_INSTALL_ONLY`：仅安装，不运行
 - `DK_DEF_INPUTS`：默认开启的采集器列表，格式范例：`input1,input2,input3`
 - `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）

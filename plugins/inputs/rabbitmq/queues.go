@@ -30,7 +30,7 @@ func getQueues(n *Input) {
 
 		fields := map[string]interface{}{
 			"consumers":                    queue.Consumers,
-			"consumer_utilisation":         queue.ConsumerUtilisation,
+			"consumer_utilization":         queue.ConsumerUtilisation,
 			"memory":                       queue.Memory,
 			"head_message_timestamp":       queue.HeadMessageTimestamp,
 			"messages":                     queue.Messages,
@@ -91,7 +91,7 @@ func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 		Name: QueueMetric,
 		Fields: map[string]interface{}{
 			"consumers":                    newCountFieldInfo("The ratio of time that a queue's consumers can take new messages"),
-			"consumer_utilisation":         newRateFieldInfo("Number of consumers"),
+			"consumer_utilization":         newRateFieldInfo("Number of consumers"),
 			"head_message_timestamp":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "Timestamp of the head message of the queue Shown as millisecond"),
 			"memory":                       newByteFieldInfo("Bytes of memory consumed by the Erlang process associated with the queue, including stack, heap and internal structures"),
 			"message":                      newCountFieldInfo("Count of the total messages in the queue"),

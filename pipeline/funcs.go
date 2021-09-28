@@ -385,7 +385,6 @@ func Strfmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func ParseDuration(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 1 {
-
 		l.Warn("parse_duration(): invalid param")
 
 		return nil, fmt.Errorf("func %s expect 1 arg", funcExpr.Name)
@@ -429,7 +428,6 @@ func ParseDuration(p *Pipeline, node parser.Node) (*Pipeline, error) {
 func ParseDate(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	funcExpr := node.(*parser.FuncExpr)
 	if len(funcExpr.Param) != 9 {
-
 		l.Warn("parse_duration(): invalid param")
 
 		return nil, fmt.Errorf("func %s expect 1 arg", funcExpr.Name)
@@ -821,7 +819,6 @@ func DefaultTimeWithFmt(p *Pipeline, node parser.Node) (*Pipeline, error) {
 			timeStr, goTimeFmt, tz, err)
 		return p, err
 	} else {
-
 		// l.Debugf("parse `%s' -> %v(nano: %d)", timeStr, t, t.UnixNano())
 		p.setContent(key, t.UnixNano())
 
@@ -1012,8 +1009,7 @@ func Addkey(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		val = nil
 	}
 
-	err := p.setContent(key, val)
-	if err != nil {
+	if err := p.setContent(key, val); err != nil {
 		l.Warn(err)
 		return p, nil
 	}

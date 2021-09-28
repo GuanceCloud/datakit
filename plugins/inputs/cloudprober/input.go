@@ -110,7 +110,6 @@ func (n *Input) parse(reader io.Reader) ([]inputs.Measurement, error) {
 				measurement.fields[metricName] = metric.Untyped.GetValue()
 			case "HISTOGRAM":
 				measurement.fields[metricName] = metric.Histogram.GetSampleCount()
-
 			}
 			collector = append(collector, measurement)
 		}

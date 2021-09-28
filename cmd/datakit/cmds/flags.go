@@ -45,6 +45,7 @@ var (
 	FlagStart,
 	FlagStop,
 	FlagRestart,
+	FlagApiRestart,
 	FlagStatus,
 	FlagUninstall,
 	FlagReinstall bool
@@ -79,7 +80,7 @@ var (
 
 func tryLoadMainCfg() {
 	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
-		l.Fatalf("load config %s failed: %s", datakit.MainConfPath, err)
+		l.Warnf("load config %s failed: %s, ignore", datakit.MainConfPath, err)
 	}
 }
 
@@ -223,7 +224,7 @@ func RunCmds() {
 	if FlagProm != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		promDebugger(FlagProm)
+		promDebugger(FlagProm) //nolint:errcheck
 		os.Exit(0)
 	}
 
@@ -267,7 +268,6 @@ func RunCmds() {
 	}
 
 	if FlagStart {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
@@ -281,7 +281,6 @@ func RunCmds() {
 	}
 
 	if FlagStop {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
@@ -309,7 +308,6 @@ func RunCmds() {
 	}
 
 	if FlagStatus {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := datakitStatus()
@@ -355,6 +353,14 @@ func RunCmds() {
 		}
 
 		fmt.Println("Update IPdb OK, please restart datakit to load new IPDB")
+		os.Exit(0)
+	}
+
+	if FlagApiRestart {
+		tryLoadMainCfg()
+		logPath := config.Cfg.Logging.Log
+		setCmdRootLog(logPath)
+		apiRestart()
 		os.Exit(0)
 	}
 }

@@ -14,7 +14,7 @@ const (
 	TimeCompare
 )
 
-// The incoming parameters expectMeasurement and actualMeasurement need to be sorted in advance
+// The incoming parameters expectMeasurement and actualMeasurement need to be sorted in advance.
 func AssertMeasurement(t *testing.T, expectMeasurement []*diskioMeasurement, actualMeasurement []inputs.Measurement, flag int) {
 	// 取长度最短的
 	lenE := len(expectMeasurement)

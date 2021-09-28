@@ -27,7 +27,7 @@ type DiskIO func(names ...string) (map[string]disk.IOCountersStat, error)
 // 	return m, err
 // }
 
-// 正则过滤
+// 正则过滤.
 type DevicesFilter struct {
 	filters []*regexp.Regexp
 }

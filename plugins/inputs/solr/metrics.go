@@ -17,7 +17,7 @@ const (
 )
 
 // SEARCH(select) and UPDATE(update) request times/errors/timeout
-// Use map instead, fields need to be filtered
+// Use map instead, fields need to be filtered.
 type RequestTimesStats struct {
 	Count     int64   `json:"count"`
 	RateMean  float64 `json:"meanRate"`

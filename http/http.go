@@ -1,8 +1,11 @@
+// datakit HTTP server
+
 package http
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -14,13 +17,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/natefinch/lumberjack.v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
@@ -36,13 +38,13 @@ var (
 	dw        *dataway.DataWayCfg
 	extraTags = map[string]string{}
 	apiConfig *APIConfig
+	dcaConfig *DCAConfig
 
 	ginRotate = 32 // MB
 
 	g = datakit.G("http")
 
-	DcaToken  = ""
-	enableDca = false
+	DcaToken = ""
 )
 
 const (
@@ -61,7 +63,7 @@ type Option struct {
 	GinRotate int
 	APIConfig *APIConfig
 	DataWay   *dataway.DataWayCfg
-	EnableDca bool
+	DCAConfig *DCAConfig
 
 	GinReleaseMode bool
 	PProf          bool
@@ -83,7 +85,7 @@ func Start(o *Option) {
 	ginRotate = o.GinRotate
 	apiConfig = o.APIConfig
 	dw = o.DataWay
-	enableDca = o.EnableDca
+	dcaConfig = o.DCAConfig
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
@@ -91,6 +93,15 @@ func Start(o *Option) {
 		l.Info("http goroutine exit")
 		return nil
 	})
+
+	// DCA server
+	if dcaConfig.Enable {
+		g.Go(func(ctx context.Context) error {
+			dcaHttpStart()
+			l.Info("DCA http goroutine exit")
+			return nil
+		})
+	}
 }
 
 type welcome struct {
@@ -182,22 +193,6 @@ func HttpStart() {
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
 
-	// dca api
-	if enableDca {
-		router.GET("/v1/dca/stats", func(c *gin.Context) { dcaStats(c) })
-		router.GET("/v1/dca/inputDoc", func(c *gin.Context) { dcaInputDoc(c) })
-		router.GET("/v1/dca/reload", func(c *gin.Context) { dcaAuthMiddleware(dcaReload)(c) })
-		// conf
-		router.POST("/v1/dca/saveConfig", func(c *gin.Context) { dcaAuthMiddleware(dcaSaveConfig)(c) })
-		router.GET("/v1/dca/getConfig", func(c *gin.Context) { dcaAuthMiddleware(dcaGetConfig)(c) })
-		// pipelines
-		router.GET("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaGetPipelines)(c) })
-		router.GET("/v1/dca/pipelines/detail", func(c *gin.Context) { dcaAuthMiddleware(dcaGetPipelinesDetail)(c) })
-		router.POST("/v1/dca/pipelines/test", func(c *gin.Context) { dcaAuthMiddleware(dcaTestPipelines)(c) })
-		router.POST("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaCreatePipeline)(c) })
-		router.PUT("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaUpdatePipeline)(c) })
-	}
-
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
 	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
 	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
@@ -248,8 +243,6 @@ func HttpStart() {
 		}
 		l.Infof("pprof stopped")
 	}
-
-	return
 }
 
 func tryStartServer(srv *http.Server) {
@@ -260,7 +253,7 @@ func tryStartServer(srv *http.Server) {
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
 		if err := srv.ListenAndServe(); err != nil {
-			if err != http.ErrServerClosed {
+			if !errors.As(err, &http.ErrServerClosed) {
 				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				retryCnt++
 			} else {

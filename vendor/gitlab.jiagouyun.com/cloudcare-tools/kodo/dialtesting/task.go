@@ -1,7 +1,6 @@
 package dialtesting
 
 import (
-	"context"
 	"time"
 )
 
@@ -40,7 +39,6 @@ type Task interface {
 	SetAk(string)
 	SetStatus(string)
 	SetUpdateTime(int64)
-	SetContext(ctx context.Context)
 
 	Ticker() *time.Ticker
 }

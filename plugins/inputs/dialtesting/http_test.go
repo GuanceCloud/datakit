@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
@@ -346,7 +345,7 @@ var httpCases = []struct {
 
 func prepareSSL(t *testing.T) {
 	for k, v := range tlsData {
-		if err := ioutil.WriteFile("."+k+".pem", v, 0644); err != nil {
+		if err := ioutil.WriteFile("."+k+".pem", v, 0o644); err != nil {
 			t.Error(err)
 		}
 	}
@@ -371,7 +370,6 @@ func TestDialHTTP(t *testing.T) {
 	time.Sleep(time.Second) // wait servers ok
 
 	for _, c := range httpCases {
-
 		if err := c.t.Init(); err != nil {
 			if c.fail == false {
 				t.Errorf("case %s failed: %s", c.t.Name, err)
@@ -389,6 +387,11 @@ func TestDialHTTP(t *testing.T) {
 			}
 			continue
 		}
+
+		tags, fields := c.t.GetResults()
+
+		t.Logf("tags: %+#v", tags)
+		t.Logf("fields: %+#v", fields)
 
 		reasons := c.t.CheckResult()
 		if len(reasons) != c.reasonCnt {
@@ -439,7 +442,7 @@ func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
 
 func proxyServer(t *testing.T) {
 	http.HandleFunc("/_test_with_proxy", func(w http.ResponseWriter, req *http.Request) {
-		t.Logf("proxied request comming")
+		t.Logf("proxied request coming")
 		for k := range req.Header {
 			t.Logf("proxied header: %s: %s", k, req.Header.Get(k))
 		}

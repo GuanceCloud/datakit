@@ -10,7 +10,6 @@ import (
 	"math"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/DataDog/ebpf/manager"
@@ -28,16 +27,21 @@ func SetLogger(nl *logger.Logger) {
 }
 
 func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, error) {
+	// 部分 kretprobe 类型程序需设置 maxactive， https://www.kernel.org/doc/Documentation/kprobes.txt.
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
 				Section: "kprobe/sockfd_lookup_light",
 			}, {
-				Section: "kretprobe/sockfd_lookup_light",
+				Section: "kretprobe/sockfd_lookup_light", KProbeMaxActive: 128,
+			}, {
+				Section: "kprobe/do_sendfile",
+			}, {
+				Section: "kretprobe/do_sendfile", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/tcp_set_state",
 			}, {
-				Section: "kretprobe/inet_csk_accept",
+				Section: "kretprobe/inet_csk_accept", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/inet_csk_listen_stop",
 			}, {
@@ -53,15 +57,15 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 			}, {
 				Section: "kprobe/udp_recvmsg",
 			}, {
-				Section: "kretprobe/udp_recvmsg",
+				Section: "kretprobe/udp_recvmsg", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/inet_bind",
 			}, {
-				Section: "kretprobe/inet_bind",
+				Section: "kretprobe/inet_bind", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/inet6_bind",
 			}, {
-				Section: "kretprobe/inet6_bind",
+				Section: "kretprobe/inet6_bind", KProbeMaxActive: 128,
 			}, {
 				Section: "kprobe/udp_destroy_sock",
 			},
@@ -86,11 +90,10 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 	}
 	if buf, err := dkebpf.Asset("netflow.o"); err != nil {
 		return nil, err
-	} else {
-		if err := m.InitWithOptions((bytes.NewReader(buf)), m_opts); err != nil {
-			return nil, err
-		}
+	} else if err := m.InitWithOptions((bytes.NewReader(buf)), m_opts); err != nil {
+		return nil, err
 	}
+
 	return m, nil
 }
 
@@ -113,7 +116,7 @@ func WriteData(data []byte, urlPath string) error {
 		l.Errorf("[error] %s", err.Error())
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -184,8 +187,8 @@ func convConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 		m.tags["src_ip"] = U32BEToIPv6(k.Saddr)
 		m.tags["dst_ip"] = U32BEToIPv6(k.Daddr)
 
-		m.tags["src_ip_type"] = "other"
-		m.tags["dst_ip_type"] = "other"
+		m.tags["src_ip_type"] = connIPv6Type(k.Saddr)
+		m.tags["dst_ip_type"] = connIPv6Type(k.Daddr)
 
 		m.tags["family"] = "IPv6"
 	}
@@ -223,11 +226,24 @@ func convConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 	return &m
 }
 
-func U32BEToIPv4Array(addr uint32) [4]int {
-	var ip [4]int
+func U32BEToIPv4Array(addr uint32) [4]uint8 {
+	var ip [4]uint8
 	for x := 0; x < 4; x++ {
-		ip[x] = int(addr & 0xff)
-		addr = addr >> 8
+		ip[x] = uint8(addr & 0xff)
+		addr >>= 8
+	}
+	return ip
+}
+
+func swapU16(v uint16) uint16 {
+	return ((v & 0x00ff) << 8) | ((v & 0xff00) >> 8)
+}
+
+func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
+	var ip [8]uint16
+	for x := 0; x < 4; x++ {
+		ip[(x * 2)] = swapU16(uint16(addr[x] & 0xffff))         // uint32 低16位
+		ip[(x*2)+1] = swapU16(uint16((addr[x] >> 16) & 0xffff)) //	高16位
 	}
 	return ip
 }
@@ -239,11 +255,7 @@ func U32BEToIPv4(addr uint32) string {
 
 func U32BEToIPv6(addr [4]uint32) string {
 	// addr byte order: big endian
-	var ip [8]int
-	for x := 1; x < 4; x++ {
-		ip[(x * 2)] = int(addr[x] & 0xffff)         // uint32 低16位
-		ip[(x*2)+1] = int((addr[x] >> 16) & 0xffff) //	高16位
-	}
+	ip := U32BEToIPv6Array(addr)
 	ipStr := fmt.Sprintf("%x:%x:%x:%x:%x:%x",
 		ip[0], ip[1], ip[2], ip[3], ip[4], ip[5])
 	// IPv4-mapped IPv6 address
@@ -256,27 +268,30 @@ func U32BEToIPv6(addr [4]uint32) string {
 }
 
 // 规则: 1. 过滤源 IP 和目标 IP 相同的连接;
-// 3. 过滤 loopback
-// 2. 过滤一个采集周期内的无数据收发的连接；
-// 需过滤，函数返回 False
-func ConnFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
-	// 过滤同 IP 地址的连接，适用于 UDP 和 TCP
-	if connAddrIsIPv4(conn.Meta) {
-		saddr := U32BEToIPv4(conn.Saddr[3])
-		daddr := U32BEToIPv4(conn.Daddr[3])
-		if strings.EqualFold(saddr, daddr) {
-			return false
-		} else if strings.Split(saddr, ".")[0] == "127" && strings.Split(daddr, ".")[0] == "127" {
+// 2. 过滤 loopback ip 的连接;
+// 3. 过滤一个采集周期内的无数据收发的连接;
+// 4. 过滤端口 为 0 或 ip address 为 :: or 0.0.0.0 的连接;
+// 需过滤，函数返回 False.
+func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
+	if (conn.Saddr[0]|conn.Saddr[1]|conn.Saddr[2]|conn.Saddr[3]) == 0 ||
+		(conn.Daddr[0]|conn.Daddr[1]|conn.Daddr[2]|conn.Daddr[3]) == 0 ||
+		conn.Sport == 0 || conn.Dport == 0 {
+		return false
+	}
+	if connAddrIsIPv4(conn.Meta) { // IPv4
+		saddr := U32BEToIPv4Array(conn.Saddr[3])
+		daddr := U32BEToIPv4Array(conn.Daddr[3])
+		if saddr == daddr {
 			return false
 		}
-	} else {
-		for x := 0; x < 4; x++ {
-			if conn.Daddr[x] != conn.Saddr[x] {
-				break
-			}
-			if x == 3 {
-				return false
-			}
+		if saddr[0] == 127 && daddr[0] == 127 { // 127.0.0.0/8
+			return false
+		}
+	} else { // IPv6
+		saddr := U32BEToIPv6Array(conn.Saddr)
+		daddr := U32BEToIPv6Array(conn.Daddr)
+		if saddr == daddr { // 同地址，包含 loopback ::1/128
+			return false
 		}
 	}
 
@@ -290,7 +305,7 @@ func ConnFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 
 // 聚合 src port 为临时端口(32768 ~ 60999)的连接,
 // 被聚合的端口号被设置为
-// cat /proc/sys/net/ipv4/ip_local_port_range
+// cat /proc/sys/net/ipv4/ip_local_port_range.
 func connMerge(preResult *ConnResult) {
 	resultTmpConn := map[ConnectionInfo]ConnFullStats{}
 	if len(preResult.result) < 1 {

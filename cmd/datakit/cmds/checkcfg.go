@@ -5,7 +5,6 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -60,7 +59,7 @@ func checkInputCfg(tpl *ast.Table, fp string) {
 	}
 }
 
-// check samples of every inputs
+// check samples of every inputs.
 func checkSample() {
 	start := time.Now()
 

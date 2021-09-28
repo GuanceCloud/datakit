@@ -25,7 +25,6 @@ func TestParseData(t *testing.T) {
 					t.Error(err)
 				}
 			}
-
 		}
 	}
 

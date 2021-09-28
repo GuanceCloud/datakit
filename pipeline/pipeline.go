@@ -12,7 +12,6 @@ import (
 	influxm "github.com/influxdata/influxdb1-client/models"
 	conv "github.com/spf13/cast"
 	vgrok "github.com/vjeantet/grok"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -62,7 +61,7 @@ func NewPipelineFromFile(filename string) (*Pipeline, error) {
 	return NewPipeline(string(b))
 }
 
-// PointToJSON, line protocol point to pipeline JSON
+// PointToJSON, line protocol point to pipeline JSON.
 func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
 	defer func() {
 		r := recover()

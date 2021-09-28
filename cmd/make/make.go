@@ -1,3 +1,5 @@
+// tool to build datakit
+
 package main
 
 import (
@@ -8,6 +10,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -32,7 +35,9 @@ func applyFlags() {
 
 		inputIPDir := filepath.Join(curDir, "china-operator-ip")
 		ip2ispFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.txt")
-		os.Remove(ip2ispFile)
+		if err := os.Remove(ip2ispFile); err != nil {
+			l.Warnf("os.Remove: %s, ignored", err.Error())
+		}
 
 		if err := ip2isp.MergeIsp(inputIPDir, ip2ispFile); err != nil {
 			l.Errorf("MergeIsp failed: %v", err)
@@ -46,7 +51,10 @@ func applyFlags() {
 			l.Errorf("%v not exist, you can download from `https://lite.ip2location.com/download?id=9`", inputFile)
 			os.Exit(0)
 		}
-		os.Remove(ip2ispFile)
+
+		if err := os.Remove(ip2ispFile); err != nil {
+			l.Warnf("os.Remove: %s, ignored", err.Error())
+		}
 
 		if err := ip2isp.BuildContryCity(inputFile, outputFile); err != nil {
 			l.Errorf("BuildContryCity failed: %v", err)
@@ -78,6 +86,9 @@ func applyFlags() {
 	case "release":
 		l.Debug("under release, only checked inputs released")
 		build.ReleaseType = "checked"
+		if !version.IsValidReleaseVersion(build.ReleaseVersion) {
+			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3-rc0", build.ReleaseVersion)
+		}
 	default:
 		l.Debug("under non-release, all inputs released")
 		build.ReleaseType = "all"

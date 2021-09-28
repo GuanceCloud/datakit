@@ -231,7 +231,7 @@ func NewElasticsearch() *Input {
 	}
 }
 
-// perform status mapping
+// perform status mapping.
 func mapHealthStatusToCode(s string) int {
 	switch strings.ToLower(s) {
 	case "green":
@@ -244,7 +244,7 @@ func mapHealthStatusToCode(s string) int {
 	return 0
 }
 
-// perform shard status mapping
+// perform shard status mapping.
 func mapShardStatusToCode(s string) int {
 	switch strings.ToUpper(s) {
 	case "UNASSIGNED":
@@ -761,7 +761,6 @@ func (i *Input) gatherClusterStats(url string) error {
 				allFields[k] = v
 			}
 		}
-
 	}
 
 	i.extendSelfTag(tags)

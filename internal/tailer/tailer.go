@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	// 定期寻找符合条件的新文件
+	// 定期寻找符合条件的新文件.
 	scanNewFileInterval = time.Second * 10
 
 	defaultSource   = "default"
@@ -18,6 +18,11 @@ const (
 )
 
 type Option struct {
+	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
+	// ex: "info"
+	//     "debug"
+	IgnoreStatus []string
+
 	// 默认值是 $Source + `_log`
 	InputName string
 	// 数据来源，默认值为'default'
@@ -26,13 +31,6 @@ type Option struct {
 	Service string
 	// pipeline脚本路径，如果为空则不使用pipeline
 	Pipeline string
-	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
-	// ex: "info"
-	//     "debug"
-	IgnoreStatus []string
-	// 是否从文件起始处开始读取
-	// 注意，如果打开此项，可能会导致大量数据重复
-	FromBeginning bool
 	// 解释文件内容时所使用的的字符编码，如果设置为空，将不进行转码处理
 	// ex: "utf-8"
 	//     "utf-16le"
@@ -50,16 +48,20 @@ type Option struct {
 	MultilineMatch string
 	//  多行匹配的最大行数，避免出现某一行过长导致程序爆栈。默认 1000
 	MultilineMaxLines int
+
+	log *logger.Logger
+
+	// 添加tag
+	GlobalTags map[string]string
+	// 是否从文件起始处开始读取
+	// 注意，如果打开此项，可能会导致大量数据重复
+	FromBeginning bool
 	// 是否删除文本中的ansi转义码，默认为false，即不删除
 	RemoveAnsiEscapeCodes bool
 	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
 	DisableAddStatusField bool
 	// 是否关闭高频IO
 	DisableHighFreqIODdata bool
-	// 添加tag
-	GlobalTags map[string]string
-
-	log *logger.Logger
 }
 
 func (opt *Option) init() error {
@@ -196,7 +198,7 @@ func (t *Tailer) scan() {
 }
 
 // cleanExpriedFile 清除过期文件，过期的定义包括被 remove/rename/truncate 导致文件不可用，其中 truncate 必须小于文件当前的 offset
-// Tailer 已保存当前文件的列表（currentFileList），和函数参数 newFileList 比对，取 newFileList 对于 currentFileList 的差集，即为要被 clean 的对象
+// Tailer 已保存当前文件的列表（currentFileList），和函数参数 newFileList 比对，取 newFileList 对于 currentFileList 的差集，即为要被 clean 的对象.
 func (t *Tailer) cleanExpriedFile(newFileList []string) {
 	for _, oldFilename := range t.getFileList() {
 		shouldClean := false
@@ -258,7 +260,6 @@ func (t *Tailer) closeFromFileList(filename string) {
 		return
 	}
 	tl.Close()
-	return
 }
 
 func (t *Tailer) fileInFileList(filename string) bool {

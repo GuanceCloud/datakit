@@ -14,66 +14,34 @@
 
 通过在 Kubernetes Pod 添加指定的 Annotation，实现 Exporter 功能。Annotation 格式内容如下：
 
-- Key 固定为 `datakit/prom.exporter`
-- Value 为 JSON 格式，示例如下：
+- Key 固定为 `datakit/prom.instances`
+- Value 为 [prom 采集器](prom)完整配置，例如：
 
-```json
-{
-  "disable"            : false,
-  "url"                : "http://$IP:9100/metrics",
-  "source"             : "<your-service-name>",
-  "interval"           : "10s",
-  "measurement_name"   : "",
-  "measurement_prefix" : "",
-  "metric_name_filter" : [],
-  "metric_types"       : [
-    "counter",
-    "gauge"
-  ],
+```toml
+[[inputs.prom]]
+  ## Exporter 地址
+  url = "http://$IP:9100/metrics"
 
-  "tags_ignore"  : [],
-  "measurements" : null,
-  "tags"         : {
-    "namespace"  : "$NAMESPACE",
-    "pod_name"   : "$PODNAME"
-  }
-}
+  source = "<your-service-name>"
+  metric_types = ["counter", "gauge"]
+  # metric_name_filter = ["cpu"]
+  # measurement_prefix = ""
+  # measurement_name = "prom"
+
+  interval = "10s"
+
+  #tags_ignore = ["xxxx"]
+
+  #[[inputs.prom.measurements]]
+  # prefix = "cpu_"
+  # name = "cpu"
+
+  [inputs.prom.tags]
+  namespace = "$NAMESPACE"
+  pod_name = "$PODNAME"
 ```
 
-字段说明：
-
-- `url` 是必填项，建议使用 `$IP` 变量自动替换为 Pod IP
-- `source` 表示数据来源，建议填写成对应的服务名
-- `interval` 表示采集间隔时长
-- `tags` 为自定义 tags，默认添加 `namespace` 和 `pod_name` 两项
-- `disable` 可设置为 `true` 来关闭指标采集
-- 其余字段详情可对照 [Prom 指标采集](prom)
-- `measurements` 配置范例
-```json
-  "measurements": [
-    {
-      "name": "cpu",
-      "prefix": "cpu_"
-    },
-    {
-      "name": "mem",
-      "prefix": "mem_"
-    }
-  ]
-```
-
-- 如果被采集的服务开启了 TLS 认证，json 顶层中加上如下配置：
-
-```json
-{
-  "tls_open": true,
-  "tls_ca": "/on-datakit-host/path/to/ca.crt",
-  "tls_cert": "/on-datakit-host/path/to/peer.crt",
-  "tls_key": "/on-datakit-host/path/to/peer.key",
-}
-```
-
-JSON 中支持的通配符:
+配置文件支持通配符：
 
 - `$IP`：通配 Pod 的内网 IP，形如 `172.16.0.3`，无需额外配置
 - `$NAMESPACE`：Pod Namespace
@@ -84,22 +52,33 @@ JSON 中支持的通配符:
 假设 Pod 名称为 `dummy-abc`
 
 - 登录到 Kubernetes 所在主机
-- 复制上述 JSON 配置示例，将其写入文件（以 `/tmp/annotation.json` 文件名为例），按需修改配置参数
-- 添加 Annotation
 
-```shell
-conf=`echo $(cat /tmp/annotation.json)`;kubectl annotate --overwrite pods dummy-abc datakit/prom.exporter="$conf"
+- 打开 `dummy-abc.yaml`，添加 Annotation 规范如下：
+
 ```
-  终端打印 `pod/dummy-abc annotated` 表示添加成功，可以使用以下命令查看 Annotation 详情
-
-```shell
-kubectl get pod dummy-abc -o jsonpath='{.metadata.annotations}'
-``` 
-- 导出 Pod yaml
-
-```shell
-kubectl get pod dummy-abc -o yaml >> dummy-abc.yaml
-``` 
+annotations:
+  datakit/prom.instances: |
+    [[inputs.prom]]
+      url = "http://$IP:9100/metrics"
+    
+      source = "<your-service-name>"
+      metric_types = ["counter", "gauge"]
+      # metric_name_filter = ["cpu"]
+      # measurement_prefix = ""
+      # measurement_name = "prom"
+    
+      interval = "10s"
+    
+      # tags_ignore = ["xxxx"]
+    
+      #[[inputs.prom.measurements]]
+      # prefix = "cpu_"
+      # name = "cpu"
+    
+      [inputs.prom.tags]
+      namespace = "$NAMESPACE"
+      pod_name = "$PODNAME"
+```
 - 使用新的 yaml 创建资源
 
 ```shell

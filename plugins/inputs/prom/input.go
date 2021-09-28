@@ -11,7 +11,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
+var (
+	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.Instance      = (*Input)(nil)
+)
 
 const (
 	inputName = "prom"
@@ -43,6 +46,8 @@ type Input struct {
 	pm      *prom.Prom
 	chPause chan bool
 	pause   bool
+
+	stopCh chan interface{}
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -52,6 +57,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
 func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) Catalog() string { return catalog }
+
+func (i *Input) Stop() { i.stopCh <- nil }
 
 func (i *Input) getSource() string {
 	source := inputName
@@ -73,16 +80,23 @@ func (i *Input) Run() {
 
 	source := i.pm.Option().GetSource()
 
+	l.Info("prom start")
+
 	for {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("prom exit")
 			return
 
+		case <-i.stopCh:
+			l.Info("prom stop")
+			return
+
 		case <-tick.C:
 			if i.pause {
 				continue
 			}
+			l.Info(i.pm.Option().URL)
 
 			start := time.Now()
 			pts, err := i.pm.Collect()
@@ -185,6 +199,7 @@ func (i *Input) Resume() error {
 func NewProm() *Input {
 	return &Input{
 		chPause: make(chan bool, 1),
+		stopCh:  make(chan interface{}, 1),
 	}
 }
 

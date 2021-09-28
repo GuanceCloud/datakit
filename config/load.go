@@ -1,4 +1,5 @@
-//nolint:gocyclo
+// Loading datakit configures
+
 package config
 
 import (
@@ -12,12 +13,11 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var (
-	// envVarRe is a regex to find environment variables in the config file
+	// envVarRe is a regex to find environment variables in the config file.
 	envVarRe      = regexp.MustCompile(`\$\{(\w+)\}|\$(\w+)`)
 	envVarEscaper = strings.NewReplacer(
 		`"`, `\"`,
@@ -29,7 +29,6 @@ func LoadCfg(c *Config, mcp string) error {
 	datakit.InitDirs()
 
 	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
-
 		if runtime.GOOS != datakit.OSWindows && runtime.GOOS != datakit.OSLinux {
 			return fmt.Errorf("docker mode not supported under %s", runtime.GOOS)
 		}
@@ -45,10 +44,13 @@ func LoadCfg(c *Config, mcp string) error {
 
 		CreateSymlinks()
 
-	} else {
-		if err := c.LoadMainTOML(mcp); err != nil {
-			return err
+		// We need a datakit.conf in docker mode when run datakit commands.
+		// See cmd/datakit/cmds/flags.go
+		if err := c.InitCfg(datakit.MainConfPath); err != nil {
+			l.Warnf("InitCfg: %s, ignored", err.Error())
 		}
+	} else if err := c.LoadMainTOML(mcp); err != nil {
+		return err
 	}
 
 	l.Debugf("apply main configure...")
@@ -74,7 +76,7 @@ func LoadCfg(c *Config, mcp string) error {
 	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))
 	initDefaultEnabledPlugins(c)
 
-	if err := LoadInputsConfig(c); err != nil {
+	if err := LoadInputsConfig(); err != nil {
 		l.Error(err)
 		return err
 	}
@@ -99,11 +101,13 @@ func feedEnvs(data []byte) []byte {
 		}
 
 		var envvar []byte
-		if parameter[1] != nil {
+
+		switch {
+		case parameter[1] != nil:
 			envvar = parameter[1]
-		} else if parameter[2] != nil {
+		case parameter[2] != nil:
 			envvar = parameter[2]
-		} else {
+		default:
 			continue
 		}
 
@@ -122,8 +126,8 @@ func feedEnvs(data []byte) []byte {
 func ParseCfgFile(f string) (*ast.Table, error) {
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
-		l.Error(err)
-		return nil, fmt.Errorf("read config %s failed: %s", f, err.Error())
+		l.Errorf("ioutil.ReadFile: %s", err.Error())
+		return nil, fmt.Errorf("read config %s failed: %w", f, err)
 	}
 
 	data = feedEnvs(data)

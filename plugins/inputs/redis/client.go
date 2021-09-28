@@ -79,7 +79,7 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 解析返回结果
+// 解析返回结果.
 func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 	rdr := strings.NewReader(list)
@@ -137,7 +137,7 @@ func (i *Input) parseClientData(list string) ([]inputs.Measurement, error) {
 	return collectCache, nil
 }
 
-// 提交数据
+// 提交数据.
 func (m *clientMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {

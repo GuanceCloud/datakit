@@ -60,7 +60,6 @@ type HeadlessTask struct {
 
 	ticker          *time.Ticker
 	timeOutDuration time.Duration
-	chromectx       context.Context
 
 	hasAddSpecialSteps bool
 	linedatas          string
@@ -117,41 +116,12 @@ func (t *HeadlessTask) Ticker() *time.Ticker {
 	return t.ticker
 }
 
-func NewChromedpCtx(disableCors bool, proxy string) *context.Context {
-	//t.chromectx =
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("disable-web-security", !disableCors),
-		chromedp.Flag("disable-gpu", true),
-	)
-
-	if proxy != `` {
-		opts = append(opts, chromedp.ProxyServer(proxy))
-	}
-
-	allocCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
-	chromeCtx, _ := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
-
-	actions := []chromedp.Action{}
-	chromedp.Run(chromeCtx, actions...)
-
-	return &chromeCtx
-
-}
-
-func Cancel(ctx context.Context) {
-	chromedp.Cancel(ctx)
-}
-
-func (t *HeadlessTask) SetContext(ctx context.Context) {
-	t.chromectx = ctx
-}
-
 func (t *HeadlessTask) Class() string {
 	return ClassHeadless
 }
 
 func (t *HeadlessTask) MetricName() string {
-	return `` //TODO
+	return `` // TODO
 }
 
 func (t *HeadlessTask) PostURLStr() string {
@@ -170,22 +140,6 @@ func (t *HeadlessTask) GetResults() (tags map[string]string, fields map[string]i
 	tags = map[string]string{
 		"name": t.Name,
 		"url":  t.URL,
-	}
-
-	disableCors := false
-
-	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil {
-		disableCors = t.AdvanceOptions.RequestOptions.DisableCors
-	}
-
-	proxy := ``
-	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil && t.AdvanceOptions.RequestOptions.Proxy != `` {
-		proxy = t.AdvanceOptions.RequestOptions.Proxy
-	}
-
-	fields = map[string]interface{}{
-		"disableCors": disableCors,
-		"proxy":       proxy,
 	}
 
 	return
@@ -221,10 +175,30 @@ func (t *HeadlessTask) Check() error {
 }
 
 func (t *HeadlessTask) Run() error {
-
 	t.Clear()
 
-	ctx, cancel := context.WithTimeout(t.chromectx, t.timeOutDuration)
+	disableCors := false
+	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil {
+		disableCors = t.AdvanceOptions.RequestOptions.DisableCors
+	}
+
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("disable-web-security", !disableCors),
+		chromedp.Flag("disable-gpu", true),
+	)
+
+	if t.AdvanceOptions != nil && t.AdvanceOptions.RequestOptions != nil && t.AdvanceOptions.RequestOptions.Proxy != `` {
+		opts = append(opts, chromedp.ProxyServer(t.AdvanceOptions.RequestOptions.Proxy))
+	}
+
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer cancel()
+
+	// create context
+	chromeContext, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	defer cancel()
+
+	ctx, cancel := context.WithTimeout(chromeContext, t.timeOutDuration)
 	defer cancel()
 
 	header := map[string]interface{}{}
@@ -292,7 +266,7 @@ func (t *HeadlessTask) Run() error {
 			}
 			actions = append(actions, chromedp.Sleep(ts))
 
-		case `click`, `sendkeys`, `screenshot`: //TODO
+		case `click`, `sendkeys`, `screenshot`: // TODO
 		default:
 		}
 	}
@@ -303,6 +277,8 @@ func (t *HeadlessTask) Run() error {
 	}
 
 	t.linedatas = strings.Join(res, "\n")
+
+	chromedp.Cancel(ctx) //nolint:errcheck
 
 	return nil
 }
@@ -332,11 +308,12 @@ const insertjs = `(function (h, o, u, n, d) {
     })
   })`
 
-const getdata = `window.DATAFLUX_RUM_HEADLESS && DATAFLUX_RUM_HEADLESS.getInternalData()`
-const waitid = `#testheadless`
+const (
+	getdata = `window.DATAFLUX_RUM_HEADLESS && DATAFLUX_RUM_HEADLESS.getInternalData()`
+	waitid  = `#testheadless`
+)
 
 func (t *HeadlessTask) rumSpecialSteps() {
-
 	t.Steps = append(t.Steps, &RecordedSteps{
 		ActionName:    `insertjs`,
 		ActionContent: insertjs,
@@ -360,7 +337,6 @@ func (t *HeadlessTask) CheckResult() (reasons []string) {
 }
 
 func (t *HeadlessTask) Init() error {
-
 	// setup frequency
 	du, err := time.ParseDuration(t.Frequency)
 	if err != nil {
@@ -382,7 +358,7 @@ func (t *HeadlessTask) Init() error {
 		return nil
 	}
 
-	//当前headless主要做browse rum 性能指标采集
+	// 当前headless主要做browse rum 性能指标采集
 	if !t.hasAddSpecialSteps {
 		t.rumSpecialSteps()
 	}
