@@ -15,8 +15,14 @@ import (
 	"github.com/jessevdk/go-flags"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/netflow"
 	dkoffsetguess "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/offset_guess"
+)
+
+const (
+	minInterval = time.Second * 10
+	maxInterval = time.Minute * 30
 )
 
 type Option struct {
@@ -47,7 +53,6 @@ const (
 	inputName = "netflow"
 )
 
-// init.
 func init() {
 	_, err := flags.Parse(&opt)
 	if err != nil {
@@ -79,31 +84,33 @@ func init() {
 
 	gTags["service"] = opt.Service
 
-	datakitPostURL = fmt.Sprintf("http://%s%s?input="+inputName, opt.DataKitAPIServer, datakit.Network)
-
 	if opt.Log == "" {
 		opt.Log = filepath.Join(datakit.InstallDir, "externals", "net_ebpf.log")
 	}
+}
 
+func main() {
 	log_opt := logger.Option{
 		Path:  opt.Log,
 		Level: opt.LogLevel,
 		Flags: logger.OPT_DEFAULT,
 	}
+
 	if err := logger.InitRoot(&log_opt); err != nil {
 		l.Errorf("set root log faile: %s", err.Error())
 	}
+
 	l = logger.SLogger("net_ebpf")
 
+	// duration 介于 10s ～ 30min，若非，默认设为 30s.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
-		interval = tmp
+		interval = config.ProtectedInterval(minInterval, maxInterval, tmp)
 		l.Debug("interval: ", opt.Interval)
 	} else {
-		l.Error(err)
+		interval = time.Second * 30
 	}
-}
 
-func main() {
+	datakitPostURL = fmt.Sprintf("http://%s%s?input="+inputName, opt.DataKitAPIServer, datakit.Network)
 	offset, err := getOffset()
 	l.Info(offset)
 	if err != nil {
@@ -149,6 +156,7 @@ func main() {
 }
 
 func getOffset() (*dkoffsetguess.OffsetGuessC, error) {
+	dkoffsetguess.SetLogger(l)
 	bpfManger, err := dkoffsetguess.NewGuessManger()
 	if err != nil {
 		return nil, err
@@ -165,7 +173,8 @@ func getOffset() (*dkoffsetguess.OffsetGuessC, error) {
 			l.Error(err)
 			continue
 		}
-		status, err := dkoffsetguess.GuessTcp(mapG)
+		status, err := dkoffsetguess.GuessTCP(mapG, nil)
+
 		if err != nil {
 			l.Error(err)
 			continue

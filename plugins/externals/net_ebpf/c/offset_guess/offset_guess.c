@@ -8,9 +8,7 @@
 
 static __always_inline void swap_u16(__u16 *v)
 {
-    __u16 tmpv = *v & 0xFF;
-    *v >>= 8;
-    *v |= tmpv << 8;
+    *v = ((*v & 0x00FF) << 8) | ((*v & 0xFF00) >> 8);
 }
 
 static __always_inline int skipConn(struct offset_guess *status)
