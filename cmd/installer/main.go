@@ -242,7 +242,9 @@ DataKit        : %s
 		l.Infof("only install service %s, NOT started", dkservice.ServiceName)
 	}
 
-	config.CreateSymlinks()
+	if err := config.CreateSymlinks(); err != nil {
+		l.Errorf("CreateSymlinks: %s", err.Error())
+	}
 
 	if flagDKUpgrade {
 		l.Info(":) Upgrade Success!")
