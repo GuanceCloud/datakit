@@ -9,7 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// redefine here for sample checking on non-linux platform
+// redefine here for sample checking on non-linux platform.
 type Input struct {
 	Path     string            `toml:"path"`
 	Interval datakit.Duration  `toml:"interval"`

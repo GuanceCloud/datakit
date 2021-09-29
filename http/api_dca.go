@@ -189,7 +189,7 @@ type saveConfigParam struct {
 	InputName string `json:"inputName"`
 }
 
-// auth middleware
+// auth middleware.
 func dcaAuthMiddleware(c *gin.Context) {
 	tokens := c.Request.Header["X-Token"]
 	context := &dcaContext{c: c}

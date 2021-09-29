@@ -6,11 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const body = `
