@@ -28,7 +28,7 @@
 - 通过发送 metrics 到工作空间测试
 
 ```shell
-curl -x <PROXY_IP:PROXY_PORT> -v -X POST https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test,name=test c=123i"
+curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test,name=test c=123i"
 ```
 
 如果代理服务器工作正常，工作空间将收到指标数据 `proxy_test,name=test c=123i`。
@@ -39,8 +39,8 @@ curl -x <PROXY_IP:PROXY_PORT> -v -X POST https://openway.guance.com/v1/write/met
 
 ```toml
 [dataway]
-  urls = ["https://openway.guance.com?token=TOKEN"]
-  http_proxy = "http://<PROXY_IP:PROXY_PORT>"
+  urls = ["https://openway.guance.com?token=<YOUR-TOKEN>"]
+  http_proxy = "http://<PROXY-IP:PROXY-PORT>"
 ```
 
 配置好后，[重启 DataKit](datakit-how-to#147762ed)。
@@ -57,7 +57,7 @@ server {
     root   /usr/share/nginx/html;
     index  index.html index.htm;
 
-    // 注意：这里不要用 HTTP。暂不支持如果使用 HTTPS
+    // 注意：这里不要用 https, 暂不支持
     proxy_pass http://openway.guance.com; # dataway地址
   }
 
@@ -78,12 +78,12 @@ nginx -s reload # reload配置
 
 ```toml
 [dataway]
-	# IP 和 Port 为 Nginx 代理服务的配置信息
-  urls = ["http://127.0.0.1:8090?token=<TOKEN>"]
+  urls = ["https://openway.guance.com?token=TOKEN"]
+  http_proxy = "http://<NGINX-IP:NGINX-PORT>"
 ```
 
 在被代理机器上，测试代理是否正常：
 
 ```shell
-curl -v -x <NGINX-IP:PORT> -X POST http://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test_nginx,name=test c=123i"
+curl -v -x <NGINX-IP:NGINX-PORT> -X POST http://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test_nginx,name=test c=123i"
 ```
