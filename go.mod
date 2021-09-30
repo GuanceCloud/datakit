@@ -33,6 +33,7 @@ require (
 	github.com/go-redis/redis/v8 v8.8.0
 	github.com/go-redis/redismock/v8 v8.0.6
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gobuffalo/logger v1.0.4 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.1
 	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.17.0
@@ -78,14 +79,14 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5 // indirect
 	golang.org/x/net v0.0.0-20210913180222-943fd674d43e
-	golang.org/x/sys v0.0.0-20210915083310-ed5796bab164
-	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
+	golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	golang.org/x/tools v0.1.6 // indirect
+	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/genproto v0.0.0-20210909211513-a8c4777a87af // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
