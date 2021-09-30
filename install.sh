@@ -44,6 +44,7 @@ case $(uname -m) in
 		;;
 
 	*)
+		# shellcheck disable=SC2059
 		printf "${RED}[E] Unknown arch $(uname -m) ${CLR}\n"
 		exit 1
 		;;
@@ -52,6 +53,7 @@ esac
 os=
 if [[ "$OSTYPE" == "darwin"* ]]; then
 	if [[ $arch != "amd64" ]]; then # Darwin only support amd64
+		# shellcheck disable=SC2059
 		printf "${RED}[E] Darwin only support amd64.${CLR}\n"
 		exit 1;
 	fi
@@ -68,6 +70,7 @@ if [ -n "$DK_INSTALLER_BASE_URL" ]; then
 fi
 
 installer_file="installer-${os}-${arch}"
+# shellcheck disable=SC2059
 printf "${BLU} Detect installer ${installer_file}${CLR}\n"
 
 installer_url="${installer_base_url}/${installer_file}"
@@ -85,6 +88,7 @@ fi
 
 if [ ! "$dataway" ]; then # check dataway on new install
 	if [ ! "$upgrade" ]; then
+		# shellcheck disable=SC2059
 		printf "${RED}[E] DataWay not set in DK_DATAWAY.${CLR}\n"
 		exit 1;
 	fi
@@ -92,6 +96,7 @@ fi
 
 def_inputs=
 if [ -n "$DK_DEF_INPUTS" ]; then
+	# shellcheck disable=SC2034
 	def_inputs=$DK_DEF_INPUTS
 fi
 
@@ -152,6 +157,12 @@ if [ -n "$HTTPS_PROXY" ]; then
 	proxy=$HTTPS_PROXY
 fi
 
+env_hostname=
+if [ -n "$DK_HOSTNAME" ]; then
+  # shellcheck disable=SC2034
+  env_hostname=$DK_HOSTNAME
+fi
+
 install_log=/var/log/datakit/install.log
 if [ -n "$DK_INSTALL_LOG" ]; then
 	install_log=$DK_INSTALL_LOG
@@ -160,13 +171,16 @@ fi
 ##################
 # Try install...
 ##################
+# shellcheck disable=SC2059
 printf "${BLU}\n* Downloading installer ${installer}\n${CLR}"
 
 rm -rf $installer
 
 if [ "$proxy" ]; then # add proxy for curl
+	# shellcheck disable=SC2086
 	curl -x "$proxy" --fail --progress-bar $installer_url > $installer
 else
+	# shellcheck disable=SC2086
 	curl --fail --progress-bar $installer_url > $installer
 fi
 
@@ -174,8 +188,9 @@ fi
 chmod +x $installer
 
 if [ "$upgrade" ]; then
+	# shellcheck disable=SC2059
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
-	$sudo_cmd $installer --upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
+    $sudo_cmd $installer --upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 	if [ "$install_only" ]; then
@@ -187,9 +202,10 @@ else
 			--listen="${http_listen}"            \
 			--port="${http_port}"                \
 			--proxy="${proxy}"                   \
+			--env_hostname="${DK_HOSTNAME}"      \
 			--dca-enable="${dca_enable}"				 \
 			--dca-listen="${dca_listen}"				 \
-			--dca-white-list="${dca_white_list}"	\
+			--dca-white-list="${dca_white_list}" \
 			--install_only | $sudo_cmd tee ${install_log}
 	else
 		$sudo_cmd $installer                   \
@@ -199,6 +215,7 @@ else
 			--namespace="${namespace}"           \
 			--listen="${http_listen}"            \
 			--port="${http_port}"                \
+			--env_hostname="${DK_HOSTNAME}"      \
 			--dca-enable="${dca_enable}"				 \
 			--dca-listen="${dca_listen}"				 \
 			--dca-white-list="${dca_white_list}"	\
