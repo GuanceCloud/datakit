@@ -55,7 +55,28 @@ tls_open = false
 # 自定义指标集名称配置优先measurement_name配置项
 
 [[inputs.prom.measurements]]
-	prefix = "coredns_"
+	prefix = "coredns_acl_"
+	name = "coredns_acl"
+[[inputs.prom.measurements]]
+	prefix = "coredns_cache_"
+	name = "coredns_cache"
+[[inputs.prom.measurements]]
+	prefix = "coredns_dnssec_"
+	name = "coredns_dnssec"
+[[inputs.prom.measurements]]
+	prefix = "coredns_forward_"
+	name = "coredns_forward"
+[[inputs.prom.measurements]]
+	prefix = "coredns_grpc_"
+	name = "coredns_grpc"
+[[inputs.prom.measurements]]
+	prefix = "coredns_hosts_"
+	name = "coredns_hosts"
+[[inputs.prom.measurements]]
+	prefix = "coredns_template_"
+	name = "coredns_template"
+[[inputs.prom.measurements]]
+	prefix = "coredns_dns_"
 	name = "coredns"
 `
 )
