@@ -123,7 +123,7 @@ func (i *Input) AvailableArchs() []string {
 }
 
 func (i *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
 	case i.chpause <- true:
 		return nil
@@ -133,7 +133,7 @@ func (i *Input) Pause() error {
 }
 
 func (i *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
 	case i.chpause <- false:
 		return nil
@@ -146,7 +146,7 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			paused:  false,
-			chpause: make(chan bool),
+			chpause: make(chan bool, inputs.ElectionPauseChannelLength),
 		}
 	})
 }

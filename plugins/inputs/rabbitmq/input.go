@@ -136,7 +136,7 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (n *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
 	case n.pauseCh <- true:
@@ -147,7 +147,7 @@ func (n *Input) Pause() error {
 }
 
 func (n *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
 	case n.pauseCh <- false:
@@ -161,7 +161,7 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
-			pauseCh:  make(chan bool, 1),
+			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 		}
 		return s
 	})

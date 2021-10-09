@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -311,7 +312,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
 	case i.pauseCh <- true:
@@ -322,7 +323,7 @@ func (i *Input) Pause() error {
 }
 
 func (i *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
 	case i.pauseCh <- false:
@@ -336,7 +337,7 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Timeout: "10s",
-			pauseCh: make(chan bool, 1),
+			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
 		}
 	})
 }

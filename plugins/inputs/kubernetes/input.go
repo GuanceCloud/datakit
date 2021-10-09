@@ -65,22 +65,25 @@ func (this *Input) Run() {
 	objectTick := time.NewTicker(defaultObjectInterval)
 	defer objectTick.Stop()
 
-	// 首先运行一次采集
-	this.gatherMetric()
-	this.gatherObject()
+	if !this.pause {
+		l.Info("first collection")
+		this.gatherMetric()
+		this.execExport()
+		this.gatherObject()
+	}
 
 	for {
 		select {
 		case <-metricTick.C:
 			if this.pause {
-				l.Debugf("not leader, skipped")
+				l.Debugf("not leader, skipped (metrics)")
 				continue
 			}
 			this.gatherMetric()
 
 		case <-objectTick.C:
 			if this.pause {
-				l.Debugf("not leader, skipped")
+				l.Debugf("not leader, skipped (object)")
 				continue
 			}
 			this.gatherObject()
@@ -223,7 +226,7 @@ func (this *Input) gatherMetric() {
 }
 
 func (this *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
 	case this.chPause <- true:
 		return nil
@@ -233,7 +236,7 @@ func (this *Input) Pause() error {
 }
 
 func (this *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
 	case this.chPause <- false:
 		return nil
@@ -262,7 +265,7 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Tags:    make(map[string]string),
-			chPause: make(chan bool, 1),
+			chPause: make(chan bool, inputs.ElectionPauseChannelLength),
 		}
 	})
 }

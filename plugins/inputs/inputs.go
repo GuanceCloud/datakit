@@ -14,6 +14,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
+const (
+	ElectionPauseTimeout       = time.Second * 15
+	ElectionResumeTimeout      = time.Second * 15
+	ElectionPauseChannelLength = 8
+)
+
 var (
 	Inputs     = map[string]Creator{}
 	InputsInfo = map[string][]*inputInfo{}

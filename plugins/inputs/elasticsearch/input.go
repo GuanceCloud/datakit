@@ -222,12 +222,14 @@ func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
 }
 
+var maxPauseCh = inputs.ElectionPauseChannelLength
+
 func NewElasticsearch() *Input {
 	return &Input{
 		HTTPTimeout:                Duration{Duration: time.Second * 5},
 		ClusterStatsOnlyFromMaster: true,
 		ClusterHealthLevel:         "indices",
-		pauseCh:                    make(chan bool, 1),
+		pauseCh:                    make(chan bool, maxPauseCh),
 	}
 }
 
@@ -975,7 +977,7 @@ func (i *Input) getCatMaster(url string) (string, error) {
 }
 
 func (i *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
 	case i.pauseCh <- true:
@@ -986,7 +988,7 @@ func (i *Input) Pause() error {
 }
 
 func (i *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
 	case i.pauseCh <- false:
