@@ -25,6 +25,7 @@ func (c *TLSClientConfig) TLSConfig() (*tls.Config, error) {
 	//     * peer certificate authorities,
 	//     * disabled security, or
 	//     * an SNI server name.
+
 	if len(c.CaCerts) == 0 &&
 		c.CertKey == "" &&
 		c.Cert == "" &&
