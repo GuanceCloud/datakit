@@ -14,7 +14,7 @@ CoreDNS 采集器用于采集 CoreDNS 相关的指标数据。
 
 ## 配置
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 到 `conf.d/prom` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 到 `conf.d/{{.Catalog}}` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```toml
 {{.InputSample}} 

@@ -13,6 +13,6 @@ Thank you to the following **GIANTS**:
 
 * [github.com/sirupsen/logrus](https://godoc.org/github.com/sirupsen/logrus)
 
-* [golang.org/x/crypto](https://godoc.org/golang.org/x/crypto)
+* [golang.org/x/term](https://godoc.org/golang.org/x/term)
 
 * [golang.org/x/sys](https://godoc.org/golang.org/x/sys)

@@ -42,7 +42,9 @@ func LoadCfg(c *Config, mcp string) error {
 		// 由于 datakit UUID 不再重要, 出错也不管了
 		_ = c.SetUUID()
 
-		CreateSymlinks()
+		if err := CreateSymlinks(); err != nil {
+			l.Warnf("CreateSymlinks: %s, ignored", err)
+		}
 
 		// We need a datakit.conf in docker mode when run datakit commands.
 		// See cmd/datakit/cmds/flags.go

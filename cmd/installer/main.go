@@ -38,7 +38,7 @@ var (
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion))
-
+	flagHostName string
 	flagDKUpgrade,
 	flagInstallOnly,
 	flagOffline, // deprecated
@@ -81,10 +81,10 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagDatakitHTTPListen, "listen", "localhost", "datakit HTTP listen")
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
+	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
 	flag.StringVar(&flagCloudProvider, "cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
-
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "-download-only option removed")
 }
@@ -242,7 +242,9 @@ DataKit        : %s
 		l.Infof("only install service %s, NOT started", dkservice.ServiceName)
 	}
 
-	config.CreateSymlinks()
+	if err := config.CreateSymlinks(); err != nil {
+		l.Errorf("CreateSymlinks: %s", err.Error())
+	}
 
 	if flagDKUpgrade {
 		l.Info(":) Upgrade Success!")

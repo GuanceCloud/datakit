@@ -51,10 +51,12 @@ type Input struct {
 	pauseCh chan bool
 }
 
+var maxPauseCh = inputs.ElectionPauseChannelLength
+
 func newInput() *Input {
 	return &Input{
 		Tags:       make(map[string]string),
-		pauseCh:    make(chan bool, 1),
+		pauseCh:    make(chan bool, maxPauseCh),
 		duration:   time.Second * 10,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
@@ -88,7 +90,7 @@ func (this *Input) Run() {
 }
 
 func (this *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
 	case this.pauseCh <- true:
@@ -99,7 +101,7 @@ func (this *Input) Pause() error {
 }
 
 func (this *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
 	case this.pauseCh <- false:

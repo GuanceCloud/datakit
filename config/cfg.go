@@ -675,7 +675,7 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 	return cur
 }
 
-func CreateSymlinks() {
+func CreateSymlinks() error {
 	var x [][2]string
 
 	if runtime.GOOS == datakit.OSWindows {
@@ -714,11 +714,25 @@ func CreateSymlinks() {
 		}
 	}
 
+	ok := 0
 	for _, item := range x {
+		if err := os.MkdirAll(filepath.Dir(item[1]), os.ModePerm); err != nil {
+			l.Warnf("create dir %s failed: %s, ignored", err.Error())
+			continue
+		}
+
 		if err := symlink(item[0], item[1]); err != nil {
 			l.Warnf("create datakit symlink: %s -> %s: %s, ignored", item[1], item[0], err.Error())
+			continue
 		}
+		ok++
 	}
+
+	if ok == 0 {
+		return fmt.Errorf("create symlink failed")
+	}
+
+	return nil
 }
 
 func symlink(src, dst string) error {

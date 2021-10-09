@@ -93,6 +93,13 @@ if ($x -ne $null) {
 	$proxy = $x
 	Write-COutput green "* set Proxy to $x" 
 }
+$env_hostname=""
+$x = [Environment]::GetEnvironmentVariable("DK_HOSTNAME")
+if ($x -ne $null) {
+    $env_hostname=$x
+    Write-COutput green "* set hostname to $x"
+}
+
 
 $global_tags=""
 $x = [Environment]::GetEnvironmentVariable("DK_GLOBAL_TAGS") 
@@ -164,7 +171,7 @@ Invoke-Expression $dl_installer_action
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade --proxy=${proxy}"
 } else { # install new datakit
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list"
 	if ($install_only -ne "") {
 		$action = -join($action, " ", "--install-only")
 	}
@@ -178,7 +185,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue $installer
 Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
 
 # clean envs
-$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST"
+$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST"
 foreach ($env in $optional_envs) {
 	Remove-Item -ErrorAction SilentlyContinue Env:$env
 }

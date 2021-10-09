@@ -62,9 +62,25 @@ var (
 		"ConnsAsyncWriting":   "conns_async_writing",
 		"ConnsAsyncKeepAlive": "conns_async_keep_alive",
 		"ConnsAsyncClosing":   "conns_async_closing",
+		"Scoreboard":          "scoreboard",
 	}
 	tagMap = map[string]string{
 		"ServerVersion": "server_version",
 		"ServerMPM":     "server_mpm",
 	}
+)
+
+// scoreboard metrics
+const (
+	WaitingForConnection = "waiting_for_connection"
+	StartingUp           = "starting_up"
+	ReadingRequest       = "reading_request"
+	SendingReply         = "sending_reply"
+	KeepAlive            = "keepalive"
+	DNSLookup            = "dns_lookup"
+	ClosingConnection    = "closing_connection"
+	Logging              = "logging"
+	GracefullyFinishing  = "gracefully_finishing"
+	IdleCleanup          = "idle_cleanup"
+	OpenSlot             = "open_slot"
 )

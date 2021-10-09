@@ -257,50 +257,56 @@ LOCAL=${osarch} VERSION=$ver make && LOCAL=${osarch} VERSION=$ver make pub_local
 升级/安装 shell 脚本：
 
 ```shell
-user="zhangsan" # 改一下你的 oss bucket 目录
-tkn="<your-guance-token>"
+user="zhangsan" # 改一下你的 oss bucket 子目录
+token="<YOUR-TOKEN>"
 
 # 几种不同的平台
 osarch="linux-amd64"
 #osarch="darwin-amd64"
+#osarch="windows-amd64"
 
-installer="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/${user}/datakit/installer-${osarch}"
+installer="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit/install.sh"
+
 dw="https://openway.guance.com?token=${tkn}"
 
-# 升级脚本(linux/mac)
-sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"; exit 0
-
 # 安装脚本(linux/mac)
-sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -dataway $dw && rm -rf ./dk-installer"; exit 0
+DK_INSTALLER_BASE_URL=https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit \
+DK_DATAWAY=https://openway.guance.com?token=$token \
+bash -c "$(curl -L $installer)"
+
+# 升级脚本(linux/mac)
+DK_INSTALLER_BASE_URL=https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit \
+DK_UPGRADE=1 \
+bash -c "$(curl -L $installer)"
 ```
 
 升级/安装 powershell 脚本：
 
 ```shell
 $user = "zhangsan"
-$tkn = "<your-guance-token>"
 
 # 几种不同的平台
 $osarch = "windows-amd64"
+#osarch="linux/amd64"
+#osarch="darwin/amd64"
 
-$installer = "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit/installer-$osarch.exe"
-$dw = "https://openway.guance.com?token=$tkn"
-
-# 升级脚本
-Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -upgrade; rm .dk-installer.exe
+$installer="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit/install.ps1"
 
 # 安装脚本
-Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -dataway "$dw"; rm .dk-installer.exe
-```
+$env:DK_INSTALLER_BASE_URL="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit";
+$env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>";
+Set-ExecutionPolicy Bypass -scope Process -Force;
+Import-Module bitstransfer;
+start-bitstransfer -source $installer -destination .install.ps1;
+powershell .install.ps1;
 
-如果要执行 powershell 脚本（dk.ps1），在 Powershell 中执行如下命令：
-
-```shell
-# 修改 powershell 执行权限
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
-
-# 然后再执行脚本
-powershell.exe .\dk.ps1
+# 升级脚本
+$env:DK_INSTALLER_BASE_URL="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit";
+$env:DK_UPGRADE="1";
+Set-ExecutionPolicy Bypass -scope Process -Force;
+Import-Module bitstransfer;
+start-bitstransfer -source $installer -destination .install.ps1;
+powershell .install.ps1;
 ```
 
 ## 关于代码规范
@@ -336,7 +342,7 @@ func digitVal(ch rune) int {
 
 但我们不建议频繁加上 `//nolint:xxx,yyy` 来掩耳盗铃，如下几种情况可用 lint：
 
-- 中所众所周知的一些 magic number，比如 1024 表示 1K, 16 为最大的单字节 16
+- 中所众所周知的一些 magic number，比如 1024 表示 1K, 16 为最大的单字节值
 - 一些确实无关的安全告警，比如要在代码中运行个命令，但命令参数是外面传入的，但既然 lint 工具有提及，就有必要考虑是否有可能的安全问题。
 
 ```golang
