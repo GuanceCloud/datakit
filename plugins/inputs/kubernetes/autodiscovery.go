@@ -41,6 +41,8 @@ func (d *Discovery) TryRun(name, cfg string) error {
 
 	d.addList(md5str)
 
+	l.Infof("discovery: add %s inputs, len %d", name, len(inputList))
+
 	g := datakit.G("kubernetes-autodiscovery")
 	for _, ii := range inputList {
 		if ii == nil {
@@ -51,9 +53,9 @@ func (d *Discovery) TryRun(name, cfg string) error {
 		func(name string, ii inputs.Input) {
 			g.Go(func(ctx context.Context) error {
 				time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
-				l.Infof("starting input %s ...", name)
+				l.Infof("discovery: starting input %s ...", name)
 				ii.Run()
-				l.Infof("input %s exited", name)
+				l.Infof("discovery: input %s exited", name)
 				return nil
 			})
 		}(name, ii)

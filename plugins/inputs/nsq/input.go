@@ -55,11 +55,13 @@ type Input struct {
 	pause   bool
 }
 
+var maxPauseCh = inputs.ElectionPauseChannelLength
+
 func newInput() *Input {
 	return &Input{
 		Tags:             make(map[string]string),
 		nsqdEndpointList: make(map[string]interface{}),
-		pauseCh:          make(chan bool, 1),
+		pauseCh:          make(chan bool, maxPauseCh),
 		httpClient:       &http.Client{Timeout: 5 * time.Second},
 	}
 }
@@ -289,7 +291,7 @@ func (this *Input) httpGet(u string) ([]byte, error) {
 }
 
 func (this *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
 	case this.pauseCh <- true:
@@ -300,7 +302,7 @@ func (this *Input) Pause() error {
 }
 
 func (this *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
 	case this.pauseCh <- false:

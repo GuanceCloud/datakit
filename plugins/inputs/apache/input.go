@@ -49,10 +49,12 @@ type Input struct {
 	pauseCh chan bool
 }
 
+var maxPauseCh = inputs.ElectionPauseChannelLength
+
 func newInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 30},
-		pauseCh:  make(chan bool, 1),
+		pauseCh:  make(chan bool, maxPauseCh),
 	}
 }
 
@@ -229,18 +231,18 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 				}
 				metric.fields[fieldKey] = value
 			case "Scoreboard":
-				scoreboard := map[string]int {
+				scoreboard := map[string]int{
 					WaitingForConnection: 0,
-					StartingUp: 0,
-					ReadingRequest: 0,
-					SendingReply: 0,
-					KeepAlive: 0,
-					DNSLookup: 0,
-					ClosingConnection: 0,
-					Logging: 0,
-					GracefullyFinishing: 0,
-					IdleCleanup: 0,
-					OpenSlot: 0,
+					StartingUp:           0,
+					ReadingRequest:       0,
+					SendingReply:         0,
+					KeepAlive:            0,
+					DNSLookup:            0,
+					ClosingConnection:    0,
+					Logging:              0,
+					GracefullyFinishing:  0,
+					IdleCleanup:          0,
+					OpenSlot:             0,
 				}
 				for _, c := range part {
 					switch c {
@@ -292,7 +294,7 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 }
 
 func (n *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
 	case n.pauseCh <- true:
@@ -303,7 +305,7 @@ func (n *Input) Pause() error {
 }
 
 func (n *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
 	case n.pauseCh <- false:

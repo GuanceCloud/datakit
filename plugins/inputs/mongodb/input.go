@@ -11,13 +11,14 @@ import (
 	"sync"
 	"time"
 
+	"gopkg.in/mgo.v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gopkg.in/mgo.v2"
 )
 
 var _ inputs.ElectionInput = (*Input)(nil)
@@ -299,7 +300,7 @@ func (m *Input) gatherServer(server *Server) error {
 }
 
 func (m *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
 	case m.pauseCh <- true:
@@ -310,7 +311,7 @@ func (m *Input) Pause() error {
 }
 
 func (m *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
 	case m.pauseCh <- false:
@@ -333,7 +334,7 @@ func init() {
 			GatherTopStat:         true,
 			Log:                   &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
 			mongos:                make(map[string]*Server),
-			pauseCh:               make(chan bool, 1),
+			pauseCh:               make(chan bool, inputs.ElectionPauseChannelLength),
 		}
 	})
 }
