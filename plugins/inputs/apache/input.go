@@ -228,7 +228,49 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 					continue
 				}
 				metric.fields[fieldKey] = value
-
+			case "Scoreboard":
+				scoreboard := map[string]int {
+					WaitingForConnection: 0,
+					StartingUp: 0,
+					ReadingRequest: 0,
+					SendingReply: 0,
+					KeepAlive: 0,
+					DNSLookup: 0,
+					ClosingConnection: 0,
+					Logging: 0,
+					GracefullyFinishing: 0,
+					IdleCleanup: 0,
+					OpenSlot: 0,
+				}
+				for _, c := range part {
+					switch c {
+					case '_':
+						scoreboard[WaitingForConnection]++
+					case 'S':
+						scoreboard[StartingUp]++
+					case 'R':
+						scoreboard[ReadingRequest]++
+					case 'W':
+						scoreboard[SendingReply]++
+					case 'K':
+						scoreboard[KeepAlive]++
+					case 'D':
+						scoreboard[DNSLookup]++
+					case 'C':
+						scoreboard[ClosingConnection]++
+					case 'L':
+						scoreboard[Logging]++
+					case 'G':
+						scoreboard[GracefullyFinishing]++
+					case 'I':
+						scoreboard[IdleCleanup]++
+					case '.':
+						scoreboard[OpenSlot]++
+					}
+				}
+				for k, v := range scoreboard {
+					metric.fields[k] = v
+				}
 			default:
 				value, err := strconv.ParseInt(part, 10, 64)
 				if err != nil {
@@ -244,7 +286,6 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 			}
 		}
 	}
-
 	metric.tags = tags
 
 	return metric, nil
