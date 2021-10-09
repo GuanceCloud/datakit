@@ -94,9 +94,10 @@ func (i *Input) Run() {
 
 		case <-tick.C:
 			if i.pause {
+				l.Debugf("not leader, skipped")
 				continue
 			}
-			l.Info(i.pm.Option().URL)
+			l.Debugf("collect URL %s", i.pm.Option().URL)
 
 			start := time.Now()
 			pts, err := i.pm.Collect()
@@ -107,6 +108,7 @@ func (i *Input) Run() {
 			}
 
 			if len(pts) == 0 {
+				l.Debug("len(points) is zero")
 				continue
 			}
 
@@ -177,7 +179,7 @@ func (i *Input) Collect() ([]*io.Point, error) {
 }
 
 func (i *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
 	case i.chPause <- true:
 		return nil
@@ -187,7 +189,7 @@ func (i *Input) Pause() error {
 }
 
 func (i *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
 	case i.chPause <- false:
 		return nil
@@ -196,10 +198,12 @@ func (i *Input) Resume() error {
 	}
 }
 
+var maxPauseCh = inputs.ElectionPauseChannelLength
+
 func NewProm() *Input {
 	return &Input{
-		chPause: make(chan bool, 1),
 		stopCh:  make(chan interface{}, 1),
+		chPause: make(chan bool, maxPauseCh),
 	}
 }
 

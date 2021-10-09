@@ -68,3 +68,18 @@ var (
 		"ServerMPM":     "server_mpm",
 	}
 )
+
+// scoreboard metrics
+const (
+	WaitingForConnection = "waiting_for_connection"
+	StartingUp           = "starting_up"
+	ReadingRequest       = "reading_request"
+	SendingReply         = "sending_reply"
+	KeepAlive            = "keepalive"
+	DNSLookup            = "dns_lookup"
+	ClosingConnection    = "closing_connection"
+	Logging              = "logging"
+	GracefullyFinishing  = "gracefully_finishing"
+	IdleCleanup          = "idle_cleanup"
+	OpenSlot             = "open_slot"
+)

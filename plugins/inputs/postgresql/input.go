@@ -440,7 +440,7 @@ func (i *Input) Run() {
 }
 
 func (i *Input) Pause() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
 	case i.pauseCh <- true:
@@ -451,7 +451,7 @@ func (i *Input) Pause() error {
 }
 
 func (i *Input) Resume() error {
-	tick := time.NewTicker(time.Second * 5)
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
 	case i.pauseCh <- false:
@@ -507,10 +507,12 @@ func parseURL(uri string) (string, error) {
 	return strings.Join(kvs, " "), nil
 }
 
+var maxPauseCh = inputs.ElectionPauseChannelLength
+
 func NewInput(service Service) *Input {
 	input := &Input{
 		Interval: "10s",
-		pauseCh:  make(chan bool, 1),
+		pauseCh:  make(chan bool, maxPauseCh),
 	}
 	input.service = service
 	return input
