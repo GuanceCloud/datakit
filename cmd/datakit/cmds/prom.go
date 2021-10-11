@@ -2,11 +2,14 @@ package cmds
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	"github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -71,7 +74,13 @@ func showInput(input *prom.Input) error {
 	}
 
 	// get collected points
-	points, err := input.Collect()
+	Url, _ := url.Parse(input.URL)
+	var points []*io.Point
+	if Url.Scheme == "http" || Url.Scheme == "https" {
+		points, err = input.Collect()
+	} else {
+		points, err = input.DebugCollect()
+	}
 	if err != nil {
 		return err
 	}

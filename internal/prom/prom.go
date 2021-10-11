@@ -3,6 +3,7 @@ package prom
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -125,4 +126,11 @@ func (p *Prom) Collect() ([]*io.Point, error) {
 	defer resp.Body.Close() //nolint:errcheck
 
 	return Text2Metrics(resp.Body, p.opt, p.opt.Tags)
+}
+
+func (p *Prom) DebugCollect() ([]*io.Point, error) {
+	fileName := p.opt.URL
+	f, _ := os.OpenFile(fileName, os.O_RDONLY, 0600)
+	defer f.Close()
+	return Text2Metrics(f, p.opt, p.opt.Tags)
 }

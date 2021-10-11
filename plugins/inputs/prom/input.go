@@ -176,6 +176,13 @@ func (i *Input) Collect() ([]*io.Point, error) {
 	return i.pm.Collect()
 }
 
+func (i *Input) DebugCollect() ([]*io.Point, error) {
+	if i.pm == nil {
+		return nil, nil
+	}
+	return i.pm.DebugCollect()
+}
+
 func (i *Input) Pause() error {
 	tick := time.NewTicker(time.Second * 5)
 	select {
