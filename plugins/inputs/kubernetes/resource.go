@@ -20,6 +20,7 @@ var resourceList = map[string]resource{
 	"node":       &node{},
 	"job":        &job{},
 	"cronJob":    &cronJob{},
+	"event":      &event{},
 }
 
 type exporter interface {
