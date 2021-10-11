@@ -115,8 +115,8 @@ pub_testing_win_img:
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
+
 
 pub_release_win_img:
 	# release to pub hub
@@ -129,8 +129,7 @@ pub_release_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
-	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
@@ -212,9 +211,9 @@ plparser:
 	@rm -rf pipeline/parser/parser_y.go
 	@goyacc -o pipeline/parser/gram_y.go pipeline/parser/gram.y
 
-lint_deps: prepare gofmt lfparser_disable_line plparser_disable_line man vet 
+lint_deps: prepare gofmt lfparser_disable_line plparser_disable_line man vet
 
-lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet 
+lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lfparser_disable_line:

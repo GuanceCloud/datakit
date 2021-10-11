@@ -16,7 +16,7 @@ build-dev:
   only:
     - /^dev-.*$/
   script:
-    # only building 
+    # only building
     - make ci_notify
     - make testing
     - make ci_pass_notify
