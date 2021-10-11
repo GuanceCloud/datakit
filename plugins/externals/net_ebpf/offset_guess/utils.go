@@ -152,6 +152,10 @@ func try_guess(status *OffsetGuessC, conn *Conninfo, guessWhich int) bool {
 	switch guessWhich {
 	case GUESS_SK_NUM:
 	case GUESS_INET_SPORT:
+		if conn.Sport != uint16(status.sport) {
+			status.offset_inet_sport++
+			return false
+		}
 	case GUESS_SK_FAMILY:
 	case GUESS_SK_RCV_SADDR:
 	case GUESS_SK_DADDR:

@@ -101,12 +101,14 @@ int kretprobe__do_sendfile(struct pt_regs *ctx)
 
 // ===============================================
 
-// TCP_ESTABLISHED, TCP_CLOSE
+// TCP_ESTABLISHED；
+// 记录 TCP_CLOSE 后将导致 kprobe__tcp_close 清除的 tcp 连接信息被重新写入 bpfmap,
+// https://elixir.bootlin.com/linux/latest/source/net/ipv4/tcp.c#L2707 .
 SEC("kprobe/tcp_set_state")
 int kprobe__tcp_set_state(struct pt_regs *ctx)
 {
     __u8 state = (__u8)PT_REGS_PARM2(ctx);
-    if ((state == TCP_ESTABLISHED) || (state == TCP_CLOSE))
+    if (state == TCP_ESTABLISHED)
     {
         struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
         __u64 pid_tgid = bpf_get_current_pid_tgid();

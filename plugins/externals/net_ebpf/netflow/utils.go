@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"os"
 	"sort"
 	"time"
 
@@ -76,7 +77,10 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 					Name: "bpfmap_closed_event",
 				},
 				PerfMapOptions: manager.PerfMapOptions{
-					DataHandler: closedEventHandler,
+					// sizeof(connection_closed_info) > 112 Byte, pagesize ~= 4k,
+					// if cpus = 8, 5 conn/per connection_closed_info
+					PerfRingBufferSize: 32 * os.Getpagesize(),
+					DataHandler:        ClosedEventHandler,
 				},
 			},
 		},
@@ -151,17 +155,19 @@ func FeedMeasurement(measurements *[]inputs.Measurement, path string) error {
 	return nil
 }
 
-func convertConn2Measurement(connR *ConnResult, name string) *[]inputs.Measurement {
+func ConvertConn2Measurement(connR *ConnResult, name string) *[]inputs.Measurement {
 	collectCache := []inputs.Measurement{}
 
 	for k, v := range connR.result {
-		m := convConn2M(k, v, name, connR.tags, connR.ts)
-		collectCache = append(collectCache, m)
+		if ConnNotNeedToFilter(k, v) {
+			m := ConvConn2M(k, v, name, connR.tags, connR.ts)
+			collectCache = append(collectCache, m)
+		}
 	}
 	return &collectCache
 }
 
-func convConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]string, ts time.Time) inputs.Measurement {
+func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]string, ts time.Time) inputs.Measurement {
 	m := measurement{
 		name:   name,
 		tags:   map[string]string{},
@@ -235,15 +241,15 @@ func U32BEToIPv4Array(addr uint32) [4]uint8 {
 	return ip
 }
 
-func swapU16(v uint16) uint16 {
+func SwapU16(v uint16) uint16 {
 	return ((v & 0x00ff) << 8) | ((v & 0xff00) >> 8)
 }
 
 func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
 	var ip [8]uint16
 	for x := 0; x < 4; x++ {
-		ip[(x * 2)] = swapU16(uint16(addr[x] & 0xffff))         // uint32 低16位
-		ip[(x*2)+1] = swapU16(uint16((addr[x] >> 16) & 0xffff)) //	高16位
+		ip[(x * 2)] = SwapU16(uint16(addr[x] & 0xffff))         // uint32 低16位
+		ip[(x*2)+1] = SwapU16(uint16((addr[x] >> 16) & 0xffff)) //	高16位
 	}
 	return ip
 }
@@ -295,8 +301,8 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 		}
 	}
 
-	// 过滤无数据收发的连接
-	if connStats.Stats.Recv_bytes == 0 && connStats.Stats.Sent_bytes == 0 {
+	// 过滤上一周期的无变化的连接
+	if connStats.Stats.Recv_bytes == 0 && connStats.Stats.Sent_bytes == 0 && connStats.TotalClosed == 0 && connStats.TotalEstablished == 0 {
 		return false
 	}
 
@@ -305,8 +311,9 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 
 // 聚合 src port 为临时端口(32768 ~ 60999)的连接,
 // 被聚合的端口号被设置为
-// cat /proc/sys/net/ipv4/ip_local_port_range.
-func connMerge(preResult *ConnResult) {
+// cat /proc/sys/net/ipv4/ip_local_port_range
+// 一个连接多个 pid (如 ssh 服务)，视为建立一次.
+func MergeConns(preResult *ConnResult) {
 	resultTmpConn := map[ConnectionInfo]ConnFullStats{}
 	if len(preResult.result) < 1 {
 		return
@@ -318,6 +325,66 @@ func connMerge(preResult *ConnResult) {
 		connInfoList = append(connInfoList, k)
 	}
 	sort.Sort(connInfoList)
+
+	// 多 pid 处理
+	head := 0
+	tail := 0
+	haveClosed := false
+	for k := 0; k < len(connInfoList); k++ {
+		if !connProtocolIsTCP(connInfoList[k].Meta) {
+			continue
+		}
+		if ConnCmpNoPid(connInfoList[k], connInfoList[head]) {
+			tail = k
+			continue
+		}
+
+		if tail > head {
+			connNotLastActiveIndex := -1
+
+			rtt0IndexArr := []int{}
+			rttNot0Index := -1
+
+			for i := head; i <= tail; i++ {
+				if preResult.result[connInfoList[i]].TcpStats.Rtt > 0 {
+					rttNot0Index = i
+				} else {
+					rtt0IndexArr = append(rtt0IndexArr, i)
+				}
+
+				if preResult.result[connInfoList[i]].TotalClosed > 0 {
+					haveClosed = true
+				} else if preResult.result[connInfoList[i]].TotalEstablished > 0 {
+					if connNotLastActiveIndex < 0 {
+						connNotLastActiveIndex = i
+					}
+					v := preResult.result[connInfoList[i]]
+					v.TotalEstablished = 0
+					preResult.result[connInfoList[i]] = v
+				}
+			}
+
+			if !haveClosed && connNotLastActiveIndex > 0 {
+				v := preResult.result[connInfoList[head]]
+				v.TotalEstablished = 1
+				preResult.result[connInfoList[head]] = v
+			}
+
+			if rttNot0Index >= 0 {
+				for _, j := range rtt0IndexArr {
+					v := preResult.result[connInfoList[j]]
+					v.TcpStats.Rtt = preResult.result[connInfoList[rttNot0Index]].TcpStats.Rtt
+					v.TcpStats.Rtt_var = preResult.result[connInfoList[rttNot0Index]].TcpStats.Rtt_var
+					preResult.result[connInfoList[j]] = v
+				}
+			}
+		}
+
+		head = k
+		tail = head
+		haveClosed = false
+	}
+
 	connRecord := map[ConnectionInfo]bool{}
 	lastIndex := -1
 	for k := 0; k < len(connInfoList); k++ {
@@ -328,9 +395,9 @@ func connMerge(preResult *ConnResult) {
 			lastIndex = k
 			resultTmpConn[connInfoList[k]] = preResult.result[connInfoList[k]]
 			delete(preResult.result, connInfoList[k])
-		} else if connCmpNoSPort(connInfoList[lastIndex], connInfoList[k]) {
+		} else if ConnCmpNoSPort(connInfoList[lastIndex], connInfoList[k]) {
 			connRecord[connInfoList[lastIndex]] = true
-			resultTmpConn[connInfoList[lastIndex]] = statsTCPOp("+", resultTmpConn[connInfoList[lastIndex]],
+			resultTmpConn[connInfoList[lastIndex]] = StatsTCPOp("+", resultTmpConn[connInfoList[lastIndex]],
 				preResult.result[connInfoList[k]].Stats, preResult.result[connInfoList[k]].TcpStats)
 
 			connfull := resultTmpConn[connInfoList[lastIndex]]
@@ -352,9 +419,15 @@ func connMerge(preResult *ConnResult) {
 	}
 }
 
-func connCmpNoSPort(expected, actual ConnectionInfo) bool {
+func ConnCmpNoSPort(expected, actual ConnectionInfo) bool {
 	expected.Sport = 0
 	actual.Sport = 0
+	return expected == actual
+}
+
+func ConnCmpNoPid(expected, actual ConnectionInfo) bool {
+	expected.Pid = 0
+	actual.Pid = 0
 	return expected == actual
 }
 
@@ -376,11 +449,6 @@ func (l ConnInfoList) Less(i, j int) bool {
 	// transport (tcp)
 	if metaI&CONN_L4_MASK != metaJ&CONN_L4_MASK {
 		return metaI&CONN_L4_MASK == CONN_L4_TCP
-	}
-
-	// pid
-	if l[i].Pid != l[j].Pid {
-		return l[i].Pid < l[j].Pid
 	}
 
 	// src ip, dst ip
@@ -418,6 +486,11 @@ func (l ConnInfoList) Less(i, j int) bool {
 	// src port
 	if l[i].Sport != l[j].Sport {
 		return l[i].Sport < l[j].Sport
+	}
+
+	// pid
+	if l[i].Pid != l[j].Pid {
+		return l[i].Pid < l[j].Pid
 	}
 
 	// all equal
