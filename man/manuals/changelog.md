@@ -2,6 +2,13 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc1.1(2021/10/09)
+
+- 修复 Kubernetes 选举问题(#389)
+- 修复 MongoDB 配置兼容性问题
+
+---
+
 ## 1.1.9-rc1(2021/09/28)
 
 - 完善 Kubernetes 生态下 [Prometheus 类指标采集](kubernetes-prom)(#368/#347)
