@@ -69,7 +69,7 @@ var (
 	}
 )
 
-// scoreboard metrics
+// scoreboard metrics.
 const (
 	WaitingForConnection = "waiting_for_connection"
 	StartingUp           = "starting_up"
