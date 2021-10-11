@@ -354,7 +354,7 @@ func TestConvConn2M(t *testing.T) {
 	}
 	for _, v := range cases {
 		connR.result[v.conn] = v.connStats
-		m, ok := convConn2M(v.conn, v.connStats, v.name, v.tags, v.ts).(*measurement)
+		m, ok := ConvConn2M(v.conn, v.connStats, v.name, v.tags, v.ts).(*measurement)
 		if !ok {
 			t.Error("conv failed")
 			continue
@@ -381,7 +381,7 @@ func TestConvConn2M(t *testing.T) {
 			}
 		}
 	}
-	assert.Equal(t, len(cases), len(*convertConn2Measurement(&connR, inputName)))
+	assert.Equal(t, len(cases), len(*ConvertConn2Measurement(&connR, inputName)))
 }
 
 type caseStatsOp struct {
@@ -455,7 +455,7 @@ func TestStatsOp(t *testing.T) {
 	}
 
 	for k, v := range cases.resultMap {
-		r := statsTCPOp(k, cases.fullStats, cases.connStats, cases.tcpStats)
+		r := StatsTCPOp(k, cases.fullStats, cases.connStats, cases.tcpStats)
 		assert.Equal(t, v.Stats.Direction, r.Stats.Direction, "direction", k)
 		assert.Equal(t, v.Stats.Recv_bytes, r.Stats.Recv_bytes, "recv_bytes", k)
 		assert.Equal(t, v.Stats.Sent_bytes, r.Stats.Sent_bytes, "sent_bytes", k)
@@ -580,7 +580,7 @@ func TestRecord(t *testing.T) {
 	}
 	data := *(*[]byte)(unsafe.Pointer(&eventStructMock))
 
-	closedEventHandler(1, data, nil, nil)
+	ClosedEventHandler(1, data, nil, nil)
 	assert.Equal(t, 1, len(connStatsRecord.lastActiveConns))
 	assert.Equal(t, 1, len(connStatsRecord.closedConns))
 	connInfo := ConnectionInfo{
@@ -595,7 +595,7 @@ func TestRecord(t *testing.T) {
 
 	// ===================================
 	// 一个已关闭连接的再次建立，并被关闭，接收 closed event，调用 closedEventHandler
-	closedEventHandler(1, data, nil, nil)
+	ClosedEventHandler(1, data, nil, nil)
 	connClosedFullStatsResult2 := ConnFullStats{
 		Stats: ConnectionStats{
 			Sent_bytes: 1,
@@ -672,7 +672,7 @@ func TestRecord(t *testing.T) {
 		cap:  int(unsafe.Sizeof(closedEvent)),
 	}
 	data = *(*[]byte)(unsafe.Pointer(&eventStructMock))
-	closedEventHandler(1, data, nil, nil)
+	ClosedEventHandler(1, data, nil, nil)
 	assert.Equal(t, 1, len(connStatsRecord.lastActiveConns))
 	assert.Equal(t, 2, len(connStatsRecord.closedConns))
 	assert.Equal(t, connClosedFullStatsResult, connStatsRecord.closedConns[connInfo])
@@ -742,8 +742,8 @@ func TestConnMeta(t *testing.T) {
 func TestDirection(t *testing.T) {
 	assert.Equal(t, "incoming", connDirection2Str(CONN_DIRECTION_INCOMING))
 	assert.Equal(t, "outgoing", connDirection2Str(CONN_DIRECTION_OUTGOING))
-	assert.Equal(t, "unknown", connDirection2Str(CONN_DIRECTION_AUTO))
-	assert.Equal(t, "unknown", connDirection2Str(CONN_DIRECTION_UNKNOWN))
+	assert.Equal(t, "outgoing", connDirection2Str(CONN_DIRECTION_AUTO))
+	assert.Equal(t, "outgoing", connDirection2Str(CONN_DIRECTION_UNKNOWN))
 }
 
 func TestIPv4Type(t *testing.T) {
@@ -950,7 +950,7 @@ func TestConnMerge(t *testing.T) {
 			},
 		},
 	}
-	connMerge(&preResult)
+	MergeConns(&preResult)
 	if len(preResult.result) != len(result.result) {
 		t.Error("len not equal")
 	}

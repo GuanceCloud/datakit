@@ -30,7 +30,7 @@ type Option struct {
 
 	HostName string `long:"hostname" description:"host name"`
 
-	Interval string `long:"interval" description:"gather interval" default:"30s"`
+	Interval string `long:"interval" description:"gather interval" default:"60s"`
 
 	Log      string `long:"log" description:"log path"`
 	LogLevel string `long:"log-level" description:"log file" default:"info"`
@@ -102,6 +102,8 @@ func main() {
 
 	l = logger.SLogger("net_ebpf")
 
+	dknetflow.SetLogger(l)
+
 	// duration 介于 10s ～ 30min，若非，默认设为 30s.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
 		interval = config.ProtectedInterval(minInterval, maxInterval, tmp)
@@ -112,7 +114,9 @@ func main() {
 
 	datakitPostURL = fmt.Sprintf("http://%s%s?input="+inputName, opt.DataKitAPIServer, datakit.Network)
 	offset, err := getOffset()
-	l.Info(offset)
+
+	l.Debug(offset)
+
 	if err != nil {
 		l.Error(err)
 		return
@@ -129,6 +133,7 @@ func main() {
 	// Start the manager
 	if err := bpfManger.Start(); err != nil {
 		l.Fatal(err)
+		return
 	} else {
 		l.Info("network tracer(net_ebpf) starting ...")
 	}
@@ -150,6 +155,7 @@ func main() {
 
 	go dknetflow.FeedHandler(ctx, datakitPostURL)
 	go dknetflow.ConnCollectHanllder(ctx, connStatsMap, tcpStatsMap, interval, gTags)
+	go dknetflow.BPFMapCleanupHandler(ctx, connStatsMap, tcpStatsMap)
 
 	<-signaIterrrupt
 	l.Info("network tracer(net_ebpf) exit")

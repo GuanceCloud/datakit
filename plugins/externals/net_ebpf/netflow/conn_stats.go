@@ -56,7 +56,9 @@ func connDirection2Str(direction uint8) string {
 	case CONN_DIRECTION_OUTGOING:
 		return "outgoing"
 	default:
-		return "unknown"
+		// netflow.c 中的 kprobe__tcp_close 不判断进出口流量，
+		// 若该连接只触发此函数，direction 值为 0.
+		return "outgoing"
 	}
 }
 
@@ -105,8 +107,6 @@ type ConnFullStats struct {
 	TotalEstablished int64
 	// RttCount         int64
 	// RttAvgNs         float64
-	// TotalByteSent    int64
-	// TotalByteRecv    int64
 }
 
 type ConnStatsRecord struct {
@@ -133,11 +133,11 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents ConncetionClosedInfo
 		if connProtocolIsTCP(closedEvents.Info.Meta) {
 			connLastActive.TotalEstablished = 0
 			connLastActive.TotalClosed = 1
-			connLastActive = statsTCPOp("-", connLastActive, closedEvents.Stats, closedEvents.Tcp_stats)
+			connLastActive = StatsTCPOp("-", connLastActive, closedEvents.Stats, closedEvents.Tcp_stats)
 		} else {
-			connLastActive = statsOp("-", connLastActive, closedEvents.Stats)
+			connLastActive = StatsOp("-", connLastActive, closedEvents.Stats)
 		}
-		delete(c.lastActiveConns, closedEvents.Info)
+		c.deleteLastActive(closedEvents.Info)
 		// save to closedConns
 
 		c.closedConns[closedEvents.Info] = connLastActive
@@ -147,9 +147,9 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents ConncetionClosedInfo
 		if connProtocolIsTCP(closedEvents.Info.Meta) {
 			connClosed.TotalClosed += 1
 			connClosed.TotalEstablished += 1
-			connClosed = statsTCPOp("+", connClosed, closedEvents.Stats, closedEvents.Tcp_stats)
+			connClosed = StatsTCPOp("+", connClosed, closedEvents.Stats, closedEvents.Tcp_stats)
 		} else {
-			connClosed = statsOp("+", connClosed, closedEvents.Stats)
+			connClosed = StatsOp("+", connClosed, closedEvents.Stats)
 		}
 		c.closedConns[closedEvents.Info] = connClosed
 	} else {
@@ -172,42 +172,54 @@ func (c *ConnStatsRecord) updateLastActive(activeConnInfo ConnectionInfo, active
 	c.lastActiveConns[activeConnInfo] = activeConnFullStats
 }
 
+func (c *ConnStatsRecord) readLastActive(conninfo ConnectionInfo) (ConnFullStats, bool) {
+	v, ok := c.lastActiveConns[conninfo]
+	return v, ok
+}
+
+func (c *ConnStatsRecord) deleteLastActive(conninfo ConnectionInfo) {
+	delete(c.lastActiveConns, conninfo)
+}
+
 // 返回合并结果(与已关闭的和上一周期未关闭的);
 // 调用此方法将更新/删除 record 中的 Map: lastActiveConns, closedConns 的元素.
 func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, connFullStats ConnFullStats) ConnFullStats {
 	if v, ok := c.closedConns[connInfo]; ok {
 		// closed
 		if connProtocolIsTCP(connInfo.Meta) {
-			v = statsTCPOp("+", v, connFullStats.Stats, connFullStats.TcpStats)
+			v = StatsTCPOp("+", v, connFullStats.Stats, connFullStats.TcpStats)
 			v.TotalEstablished += 1
 		} else {
-			v = statsOp("+", v, connFullStats.Stats)
-			c.updateLastActive(connInfo, connFullStats) // 将当前 active 拷贝至 lastActiveConns 中
+			v = StatsOp("+", v, connFullStats.Stats)
 		}
-		delete(c.closedConns, connInfo) // 移除当前周期内当前连接连接建立后关闭的信息
+		c.updateLastActive(connInfo, connFullStats) // 将当前 active 拷贝至 lastActiveConns 中
+		delete(c.closedConns, connInfo)             // 移除当前周期内当前连接连接建立后关闭的信息
 		return v
-	} else if v, ok := c.lastActiveConns[connInfo]; ok {
+	} else if v, ok := c.readLastActive(connInfo); ok {
 		// last active
 		if connProtocolIsTCP(connInfo.Meta) {
-			v = statsTCPOp("-", v, connFullStats.Stats, connFullStats.TcpStats)
-			v.TotalEstablished = 0
+			v = StatsTCPOp("-", v, connFullStats.Stats, connFullStats.TcpStats)
 			v.TotalEstablished = 0
 		} else {
-			v = statsOp("-", v, connFullStats.Stats)
+			v = StatsOp("-", v, connFullStats.Stats)
 		}
 		c.updateLastActive(connInfo, connFullStats)
-
 		return v
+	} else {
+		if connProtocolIsTCP(connInfo.Meta) {
+			// 在 net_ebpf 启动前建立的连接无法记录 TCP_ESTABLISHED,
+			// 不依据 TCP_ESTABLISHED 判断连接是否建立，
+			// 存在于 bpfmap_conn_stats 的连接视为未关闭的连接
+			// if connFullStats.TcpStats.State_transitions>>TCP_ESTABLISHED == 1 .
+			connFullStats.TotalEstablished = 1
+		}
+		c.updateLastActive(connInfo, connFullStats)
+		return connFullStats
 	}
-	c.updateLastActive(connInfo, connFullStats)
-	if connProtocolIsTCP(connInfo.Meta) {
-		connFullStats.TotalEstablished = 1
-	}
-	return connFullStats
 }
 
 // fullConn = connStats op("+", "-", ...) fullConn;.
-func statsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnFullStats {
+func StatsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnFullStats {
 	switch op {
 	case "+":
 		fullConn.Stats.Sent_bytes += connStats.Sent_bytes
@@ -234,9 +246,9 @@ func statsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnF
 }
 
 // op: 操作符; fullConn: 被保存的一个连接统计信息; connStat: 新的连接统计信息; tcpstats: TC统计信息
-func statsTCPOp(op string, fullConn ConnFullStats, connStats ConnectionStats,
+func StatsTCPOp(op string, fullConn ConnFullStats, connStats ConnectionStats,
 	tcpstats ConnectionTcpStats) ConnFullStats {
-	fullConn = statsOp(op, fullConn, connStats)
+	fullConn = StatsOp(op, fullConn, connStats)
 	switch op {
 	case "+":
 		fullConn.TcpStats.Retransmits += tcpstats.Retransmits

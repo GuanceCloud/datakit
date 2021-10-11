@@ -20,6 +20,13 @@ static __always_inline __u64 load_offset_rtt_var()
     return var;
 }
 
+static __always_inline __u64 load_offset_inet_sport()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_inet_sport", var);
+    return var;
+}
+
 // param direction: connetction direction, automatic judgment | incoming | outgoing | unknown
 // param count_typpe: packet count type, 1: init, 2:increment
 static __always_inline void update_conn_stats(struct connection_info *conn, size_t sent_bytes, size_t recv_bytes, u64 ts, int direction,
@@ -149,21 +156,21 @@ static __always_inline void remove_from_conn_map(struct connection_info conn_inf
         __u32 pid = conn_info.pid;
         conn_info.pid = 0;
         tcp_sts = bpf_map_lookup_elem(&bpfmap_conn_tcp_stats, &conn_info);
-        bpf_map_delete_elem(&bpfmap_conn_tcp_stats, &conn_info);
         if (tcp_sts != NULL)
         {
             event->conn_tcp_stats = *tcp_sts;
             event->conn_tcp_stats.state_transitions |= (1 << TCP_CLOSE);
         }
+        bpf_map_delete_elem(&bpfmap_conn_tcp_stats, &conn_info);
         conn_info.pid = pid;
     }
 
     struct connection_stats *conn_sts = bpf_map_lookup_elem(&bpfmap_conn_stats, &conn_info);
-    bpf_map_delete_elem(&bpfmap_conn_stats, &conn_info);
     if (conn_sts != NULL)
     {
         event->conn_stats = *conn_sts;
     }
+    bpf_map_delete_elem(&bpfmap_conn_stats, &conn_info);
 }
 
 static __always_inline void send_conn_closed_event(struct pt_regs *ctx, struct connection_closed_info event, __u64 cpu)
@@ -205,7 +212,9 @@ static __always_inline __u16 read_sock_src_port(struct sock *sk)
     bpf_probe_read(&sport, sizeof(sport), &sk->sk_num);
     if (sport == 0)
     {
-        bpf_probe_read(&sport, sizeof(sport), &inet_sk(sk)->inet_sport);
+        // bpf_probe_read(&sport, sizeof(sport), &inet_sk(sk)->inet_sport);
+        __u64 offset_inet_sport = load_offset_inet_sport();
+        bpf_probe_read(&sport, sizeof(sport), (__u8 *)sk + offset_inet_sport);
         swap_u16(&sport); // default in little endian system
     }
     return sport;
@@ -261,13 +270,7 @@ static __always_inline int read_connection_info(struct sock *sk, struct connecti
     // read sport and dport
     conn_info->sport = read_sock_src_port(sk);
     bpf_probe_read(&conn_info->dport, sizeof(conn_info->dport), &sk->sk_dport);
-    // bpf_printk("%x %x", sk, &sk->sk_dport);
     swap_u16(&conn_info->dport);
-    // __u16 tmp = 0;
-    // bpf_probe_read(&tmp, sizeof(conn_info->dport), (char *)sk + 928);
-    // swap_u16(&tmp);
-
-    // bpf_printk("%d %d\n", (int)conn_info->dport, (int)tmp);
 
     if ((conn_info->sport | conn_info->dport) == 0)
     {

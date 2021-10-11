@@ -55,8 +55,11 @@ static __always_inline int read_conn_info(__u8 *sk, struct offset_guess *status)
         // src ip
         bpf_probe_read(&status->daddr + 3, sizeof(__be32), sk + status->offset_sk_daddr);
         bpf_probe_read(&status->saddr + 4, sizeof(__be32), sk + status->offset_sk_rcv_saddr);
-        bpf_probe_read(&status->dport, sizeof(__u16), sk + status->offset_sk_dport);
-        swap_u16(&status->dport);
+
+        // bpf_probe_read(&status->dport, sizeof(__u16), sk + status->offset_sk_dport);
+        // swap_u16(&status->dport);
+        bpf_probe_read(&status->sport, sizeof(__u16), sk + status->offset_inet_sport);
+        swap_u16(&status->sport);
     }
     else
     {
