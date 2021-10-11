@@ -62,6 +62,7 @@ var (
 		"ConnsAsyncWriting":   "conns_async_writing",
 		"ConnsAsyncKeepAlive": "conns_async_keep_alive",
 		"ConnsAsyncClosing":   "conns_async_closing",
+		"Scoreboard":          "scoreboard",
 	}
 	tagMap = map[string]string{
 		"ServerVersion": "server_version",

@@ -44,7 +44,7 @@ func (dc *endPoint) getLogFilter() ([]byte, error) {
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("getLogFilter failed with status code %d", resp.StatusCode)
+		return nil, fmt.Errorf("getLogFilter failed with status code %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	return body, nil

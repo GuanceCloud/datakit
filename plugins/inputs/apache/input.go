@@ -288,7 +288,6 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 			}
 		}
 	}
-
 	metric.tags = tags
 
 	return metric, nil
