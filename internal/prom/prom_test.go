@@ -87,3 +87,42 @@ func TestProm(t *testing.T) {
 		}
 	}
 }
+
+func TestProm_DebugCollect(t *testing.T) {
+	testcases := []struct {
+		in   *Option
+		fail bool
+	}{
+		{
+			in:   &Option{},
+			fail: true,
+		},
+
+		{
+			in:   &Option{URL: "http://127.0.0.1:9100/metrics"},
+			fail: false,
+		},
+	}
+
+	for _, tc := range testcases {
+		p, err := NewProm(tc.in)
+		if tc.fail && assert.Error(t, err) {
+			continue
+		} else {
+			assert.NoError(t, err)
+		}
+
+		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
+
+		pts, err := p.DebugCollect()
+		if tc.fail && assert.Error(t, err) {
+			continue
+		} else {
+			assert.NoError(t, err)
+		}
+
+		for _, pt := range pts {
+			t.Log(pt.String())
+		}
+	}
+}
