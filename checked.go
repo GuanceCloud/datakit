@@ -151,5 +151,6 @@ var (
 		"zabbix":                 true,
 		"zaplog":                 true,
 		"consul":                 true,
+		"prom_remote_write":      true,
 	}
 )
