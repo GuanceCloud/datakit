@@ -2,6 +2,20 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc2(2021/10/12)
+
+- 新增[采集器](prom_remote_write)支持 Prometheus Remote Write 将数据同步给 DataKit(#381)
+- 修复 Mac 因安全策略导致安装失败问题(#379)
+- [prom 采集器](prom) 调试工具支持从本地文件调试数据切割(#378)
+- 修复 [etcd 采集器](etcd)数据问题(#377)
+- DataKit Docker 镜像增加 arm64 架构支持(#365)
+- 安装阶段新增环境变量 `ENV_HOSTNAME` [支持](datakit-install#f9858758)(#334)
+- [Apache 采集器](apache) 增加更多指标采集 (#329)
+- DataKit API 新增接口 [`/v1/workspace`](apis) 以获取工作空间信息，同时支持命令行参数[获取工作空间信息]()(324)
+- Kubernetes 新增[event 数据采集]()(#296)
+- [DCA beta](dca) 版本发布
+---
+
 ## 1.1.9-rc1.1(2021/10/09)
 
 - 修复 Kubernetes 选举问题(#389)

@@ -39,6 +39,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oracle"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/postgresql"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom_remote_write"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/proxy"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rabbitmq"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/redis"

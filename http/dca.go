@@ -124,14 +124,20 @@ func dcaHttpStart() {
 func whiteListCheck(c *gin.Context) {
 	isValid := true
 	context := dcaContext{c: c}
-	clientRawIp := c.ClientIP()
+	clientIp := net.ParseIP(c.ClientIP())
 	whiteList := dcaConfig.WhiteList
+
+	// ignore loopback
+	if clientIp.IsLoopback() {
+		l.Debugf("loopback ip: %s, ignore check whitelist", clientIp)
+		c.Next()
+		return
+	}
 
 	if len(whiteList) > 0 {
 		isValid = false
 		for _, v := range whiteList {
-			l.Debugf("check cidr %s, client ip: %s", v, clientRawIp)
-			clientIp := net.ParseIP(clientRawIp)
+			l.Debugf("check cidr %s, client ip: %s", v, clientIp)
 			_, ipNet, err := net.ParseCIDR(v)
 			if err != nil {
 				ip := net.ParseIP(v)
