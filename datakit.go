@@ -141,7 +141,7 @@ func SetLog() {
 	l = logger.SLogger("datakit")
 }
 
-// G create a groutine group, with namespace datakit.
+// G create a goroutine group, with namespace datakit.
 func G(name string) *goroutine.Group {
 	panicCb := func(b []byte) bool {
 		l.Errorf("%s", b)

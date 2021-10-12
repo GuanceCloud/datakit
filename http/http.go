@@ -53,9 +53,9 @@ const (
 	INPUT              = "input"
 	IGNORE_GLOBAL_TAGS = "ignore_global_tags"
 	CATEGORY           = "category"
-
-	DEFAULT_PRECISION = "n"
-	DEFAULT_INPUT     = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
+	VERSION            = "version"
+	DEFAULT_PRECISION  = "n"
+	DEFAULT_INPUT      = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
 )
 
 type Option struct {
@@ -194,6 +194,7 @@ func HttpStart() {
 	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
 
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
+	router.POST("/v1/lasterror", func(c *gin.Context) { apiGetDatakitLastError(c) })
 	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
 	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
 	router.POST("/v1/object/labels", func(c *gin.Context) { apiCreateOrUpdateObjectLabel(c) })

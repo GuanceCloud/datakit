@@ -19,6 +19,7 @@
 | `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                      |
 | `input`              | string | false    | `datakit` | 数据源名称                                         |
 | `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag            |
+| `version`            | string | false    | 无        | 当前采集器的版本号                                |
 
 HTTP body 支持行协议以及 JSON 俩种形式。
 
@@ -159,6 +160,21 @@ HTTP/1.1 200 OK
 		"version":"1.1.6-rc0",
 		"uptime":"1.022205003s"
 	}
+}
+```
+## `/v1/lasterror`
+
+用于上报外部采集器的错误
+
+### 示例
+
+```
+POST /v1/lasterror HTTP/1.1
+Content-Type: application/json
+
+{ 
+	"input":"redis",
+	"err":"Cache avalanche"
 }
 ```
 

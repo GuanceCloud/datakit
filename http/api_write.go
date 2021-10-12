@@ -55,6 +55,7 @@ func (jp *jsonPoint) pt(prec string, extags map[string]string) (*io.Point, error
 func apiWrite(c *gin.Context) {
 	var body []byte
 	var err error
+	var version string
 
 	input := DEFAULT_INPUT
 
@@ -88,6 +89,10 @@ func apiWrite(c *gin.Context) {
 	precision := DEFAULT_PRECISION
 	if x := c.Query(PRECISION); x != "" {
 		precision = x
+	}
+
+	if x := c.Query(VERSION); x != "" {
+		version = x
 	}
 
 	switch precision {
@@ -157,7 +162,7 @@ func apiWrite(c *gin.Context) {
 
 	l.Debugf("received %d(%s) points from %s", len(pts), category, input)
 
-	err = io.Feed(input, category, pts, &io.Option{HighFreq: true})
+	err = io.Feed(input, category, pts, &io.Option{HighFreq: true, Version: version})
 
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))

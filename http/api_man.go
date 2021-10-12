@@ -80,7 +80,7 @@ type manualTOC struct {
 	OtherDocs  []string
 }
 
-// request manual table of conotents.
+// request manual table of contents.
 func apiManualTOC(c *gin.Context) {
 	toc := &manualTOC{
 		PageTitle: "DataKit文档列表",
