@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchbetav1 "k8s.io/api/batch/v1beta1"
@@ -15,7 +14,10 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 type client struct {
@@ -146,4 +148,8 @@ func (c *client) getPersistentVolumes() (*corev1.PersistentVolumeList, error) {
 
 func (c *client) getPersistentVolumeClaims() (*corev1.PersistentVolumeClaimList, error) {
 	return c.CoreV1().PersistentVolumeClaims(c.namespace).List(context.Background(), metav1.ListOptions{})
+}
+
+func (c *client) getEvent() (kubev1core.EventInterface, error) {
+	return c.CoreV1().Events(c.namespace), nil
 }
