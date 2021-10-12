@@ -255,6 +255,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	for _, resource := range resourceList {
 		res = append(res, resource)
 	}
+
 	return res
 }
 
