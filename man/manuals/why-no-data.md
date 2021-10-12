@@ -1,6 +1,6 @@
 {{.CSS}}
 
-- 发布日期：{{.ReleaseDate}}
+- 文档发布日期：{{.ReleaseDate}}
 
 # 观测云无数据排查
 

@@ -2,8 +2,8 @@
 
 # DataKit Control App (DCA)
 
-- 版本：0.0.1 (alpha)
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：0.0.1 (alpha)
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`windows/amd64,windows/386,darwin/amd64`
 
 ## 简介

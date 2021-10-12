@@ -121,7 +121,7 @@ export GOPATH=/root/go
 export PATH=$GOROOT/bin:~/go/bin:$PATH
 ```
 
-在 `~/.ossenv` 下创建一组环境变量，填写 OSS Access Key 以及 Secret Key，用于发布版本：
+在 `~/.ossenv` 下创建一组环境变量，填写 OSS Access Key 以及 Secret Key，用于版本发布：
 
 ```shell
 export RELEASE_OSS_ACCESS_KEY='LT**********************'

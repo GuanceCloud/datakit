@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 # DataKit 选举
@@ -37,17 +37,17 @@ namespace = "dk-namespace-example"
 
 目前支持选举的采集器列表如下：
 
-- [kubernetes](kubernetes)
-- [prom](prom)
-- [gitlab](gitlab)
+- [Kubernetes](kubernetes)
+- [Prometheus 指标采集](prom)
+- [Gitlab](gitlab)
 - [NSQ](nsq)
-- [apache](apache)
-- [influxdb](influxdb)
-- [elasticsearch](elasticsearch)
-- [mongodb](mongodb)
-- [mysql](mysql)
-- [nginx](nginx)
-- [postgresql](postgresql)
-- [rabbitmq](rabbitmq)
-- [redis](redis)
-- [solr](solr)
+- [Apache](apache)
+- [InfluxDB](influxdb)
+- [ElasticSearch](elasticsearch)
+- [MongoDB](mongodb)
+- [MySQL](mysql)
+- [Nginx](nginx)
+- [PostgreSQL](postgresql)
+- [RabbitMQ](rabbitmq)
+- [Redis](redis)
+- [Solr](solr)
