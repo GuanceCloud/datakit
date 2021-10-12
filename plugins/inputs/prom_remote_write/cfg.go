@@ -13,7 +13,7 @@ const (
 	sample    = `
 [[inputs.prom_remote_write]]
   ## Path to listen to.
-  path = "/receive"
+  path = "/prom_remote_write"
 
   ## accepted methods
   methods = ["PUT", "POST"]

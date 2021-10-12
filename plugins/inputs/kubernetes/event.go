@@ -114,7 +114,6 @@ func (e *event) feedEvent(item *kubeapi.Event) error {
 
 	msg, err := json.Marshal(tags)
 	if err != nil {
-
 	}
 	delete(tags, "message")
 

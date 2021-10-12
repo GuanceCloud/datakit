@@ -23,7 +23,7 @@ var l = logger.DefaultSLogger(inputName)
 const (
 	body                   = "body"
 	query                  = "query"
-	defaultRemoteWritePath = "/receive"
+	defaultRemoteWritePath = "/prom_remote_write"
 )
 
 type Input struct {

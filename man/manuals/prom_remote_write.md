@@ -1,20 +1,20 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 # {{.InputName}}
 
-监听prometheus remote write数据，上报到观测云。
+监听 Prometheus Remote Write 数据，上报到观测云。
 
 ## 前置条件
 
-开启prometheus remote write功能，在prometheus.yml下添加如下配置：
+开启 Prometheus Remote Write 功能，在 prometheus.yml 添加如下配置：
 
 ```yml
 remote_write:
- - url: "http://localhost:9529/receive"
+ - url: "http://<datakit-ip>:9529/prom_remote_write"
 ```
 
 ## 配置
@@ -27,21 +27,4 @@ remote_write:
 
 ## 指标集
 
-指标集以prometheus为准。
-
-{{ range $i, $m := .Measurements }}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
-
-{{ end }}
-
+指标集以 Prometheus 发送过来的指标集为准。
