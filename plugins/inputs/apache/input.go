@@ -229,18 +229,18 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 				}
 				metric.fields[fieldKey] = value
 			case "Scoreboard":
-				scoreboard := map[string]int {
+				scoreboard := map[string]int{
 					WaitingForConnection: 0,
-					StartingUp: 0,
-					ReadingRequest: 0,
-					SendingReply: 0,
-					KeepAlive: 0,
-					DNSLookup: 0,
-					ClosingConnection: 0,
-					Logging: 0,
-					GracefullyFinishing: 0,
-					IdleCleanup: 0,
-					OpenSlot: 0,
+					StartingUp:           0,
+					ReadingRequest:       0,
+					SendingReply:         0,
+					KeepAlive:            0,
+					DNSLookup:            0,
+					ClosingConnection:    0,
+					Logging:              0,
+					GracefullyFinishing:  0,
+					IdleCleanup:          0,
+					OpenSlot:             0,
 				}
 				for _, c := range part {
 					switch c {
