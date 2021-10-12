@@ -25,7 +25,7 @@ DataKit 访问 Kubernetes API 采集各项数据，DataKit 以[daemonset 方式�
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -45,7 +45,27 @@ DataKit 访问 Kubernetes API 采集各项数据，DataKit 以[daemonset 方式�
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+{{$m.Desc}}
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

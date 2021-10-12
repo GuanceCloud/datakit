@@ -114,6 +114,7 @@ func (e *event) feedEvent(item *kubeapi.Event) error {
 
 	msg, err := json.Marshal(tags)
 	if err != nil {
+		return err
 	}
 	delete(tags, "message")
 
@@ -136,7 +137,7 @@ func (*event) LineProto() (*io.Point, error) { return nil, nil }
 
 func (*event) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: kubernetesPodName,
+		Name: kubernetesEventName,
 		Desc: "Kubernetes event 日志数据",
 		Type: "logging",
 		Tags: map[string]interface{}{
