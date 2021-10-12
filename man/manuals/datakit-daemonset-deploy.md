@@ -104,6 +104,7 @@ rules:
   - nodes/proxy
   - namespaces
   - pods
+  - events
   - services
   - endpoints
   - persistentvolumes
