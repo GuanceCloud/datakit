@@ -5,7 +5,7 @@
 - 操作系统：Ubuntu 20.04.2 LTS
 - CPU：Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
 - 内存：16GB  Speed 2133 MT/s
-- DataKit 版本：1.1.8-rc1
+- DataKit：1.1.8-rc1
 - 日志文本（nginx access log）： 
 ```
 172.17.0.1 - - [06/Jan/2017:16:16:37 +0000] "GET /datadoghq/company?test=var1%20Pl HTTP/1.1" 401 612 "http://www.perdu.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-"
