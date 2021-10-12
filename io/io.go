@@ -31,7 +31,7 @@ var (
 type Option struct {
 	CollectCost time.Duration
 	HighFreq    bool
-
+	Version     string
 	HTTPHost    string
 	PostTimeout time.Duration
 	Sample      func(points []*Point) []*Point
@@ -210,6 +210,7 @@ func (x *IO) updateStats(d *iodata) {
 	stat.AvgSize = (stat.Total) / stat.Count
 
 	if d.opt != nil {
+		stat.Version = d.opt.Version
 		stat.totalCost += d.opt.CollectCost
 		stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
 		if d.opt.CollectCost > stat.MaxCollectCost {

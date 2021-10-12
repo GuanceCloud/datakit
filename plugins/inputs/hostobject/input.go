@@ -177,6 +177,7 @@ func (c *Input) Collect() error {
 			"mem_used_percent": message.Host.Mem.usedPercent,
 			"load":             message.Host.load5,
 			"state":            "online",
+			"Scheck":           message.Collectors[0].Version,
 		},
 
 		tags: map[string]string{
