@@ -36,7 +36,7 @@ COMMITER := $(shell git log -1 --pretty=format:'%an')
 UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
 NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION)/$(GIT_BRANCH))"}}')
-NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION)/$(GIT_BRANCH)))"}}')
+NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION)/$(GIT_BRANCH))"}}')
 CI_PASS_NOTIFY_MSG:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 触发的 DataKit CI 通过"}}')
 NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支[$(GIT_BRANCH)]提交代码，以免 CI 任务失败"}}')
 
