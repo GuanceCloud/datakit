@@ -74,6 +74,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy 
 - `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认`0.0.0.0:9531`）
 - `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
 - `DK_INSTALL_ONLY`：仅安装，不运行
+- `DK_HOSTNAME`:支持安装阶段自定义配置主机名
 - `DK_DEF_INPUTS`：默认开启的采集器列表，格式范例：`input1,input2,input3`
 - `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
 - `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
@@ -99,7 +100,7 @@ $env:NAME1="value1"; $env:Name2="value2"
 NAME1="value1" NAME2="value2"
 ```
 
-## 如何应付不友好的主机名
+#### 如何应付不友好的主机名
 
 由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。
 
