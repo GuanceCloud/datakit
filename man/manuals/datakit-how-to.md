@@ -429,7 +429,7 @@ man > Q               # 输入 Q 或 exit 退出
 ```
 ### 查看工作空间信息
 
-为便于大家在服务端查看工作空间信息，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
+为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
 
 ```shell
 datakit --workspaceinfo
