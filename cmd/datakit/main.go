@@ -76,6 +76,7 @@ func init() { //nolint:gochecknoinits
 	// utils
 	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flag.StringVar(&cmds.FlagIPInfo, "ipinfo", "", "show IP geo info")
+	flag.BoolVar(&cmds.FlagWorkspaceInfo, "workspace-info", false, "show workspace info")
 
 	if runtime.GOOS != datakit.OSWindows { // unsupported options under windows
 		flag.BoolVarP(&cmds.FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")

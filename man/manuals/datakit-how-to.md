@@ -427,7 +427,35 @@ man > mysql
 (显示 MySQL 采集文档)
 man > Q               # 输入 Q 或 exit 退出
 ```
+### 查看工作空间信息
 
+为便于大家在服务端查看工作空间信息，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
+
+```shell
+datakit --workspaceinfo
+{
+  "token": {
+    "ws_uuid": "wksp_2dc431d6693711eb8ff97aeee04b54af",
+    "bill_state": "normal",
+    "ver_type": "pay",
+    "token": "tkn_2dc438b6693711eb8ff97aeee04b54af",
+    "db_uuid": "ifdb_c0fss9qc8kg4gj9bjjag",
+    "status": 0,
+    "creator": "",
+    "expire_at": -1,
+    "create_at": 0,
+    "update_at": 0,
+    "delete_at": 0
+  },
+  "data_usage": {
+    "data_metric": 96966,
+    "data_logging": 3253,
+    "data_tracing": 2868,
+    "data_rum": 0,
+    "is_over_usage": false
+  }
+}
+```
 ### DataKit 服务管理
 
 可直接使用如下命令直接管理 DataKit：

@@ -29,6 +29,7 @@ var (
 		datakit.Election,
 		datakit.ElectionHeartbeat,
 		datakit.QueryRaw,
+		datakit.Workspace,
 		datakit.ListDataWay,
 		datakit.ObjectLabel,
 	}

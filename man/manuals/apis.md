@@ -162,6 +162,7 @@ HTTP/1.1 200 OK
 	}
 }
 ```
+
 ## `/v1/lasterror`
 
 用于上报外部采集器的错误
@@ -177,7 +178,45 @@ Content-Type: application/json
 	"err":"Cache avalanche"
 }
 ```
+## `/v1/workspace`
 
+查看工作空间信息及数据配额信息
+
+### 示例
+
+```http
+GET /v1/worksapce HTTP/1.1
+
+HTTP/1.1 200 OK
+
+{
+  "content":
+  [
+    {
+      "token": {
+        "ws_uuid": "wksp_2dc431d6693711eb8ff97aeee04b54af",
+        "bill_state": "normal",
+        "ver_type": "pay",
+        "token": "tkn_2dc438b6693711eb8ff97aeee04b54af",
+        "db_uuid": "ifdb_c0fss9qc8kg4gj9bjjag",
+        "status": 0,
+        "creator": "",
+        "expire_at": -1,
+        "create_at": 0,
+        "update_at": 0,
+        "delete_at": 0
+      },
+      "data_usage": {
+        "data_metric": 96966,
+        "data_logging": 3253,
+        "data_tracing": 2868,
+        "data_rum": 0,
+        "is_over_usage": false
+      }
+    }
+  ]
+}
+```
 ## `/v1/query/raw`
 
 使用 DQL 进行数据查询（只能查询该 DataKit 所在的工作空间的数据）
