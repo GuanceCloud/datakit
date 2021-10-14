@@ -87,7 +87,10 @@
 		- [IIS](iis)
 
 	- [其它数据接入]()
-		- [Prometheus 数据接入](prom)
+		- [Prometheus 数据接入]()
+			- [Prometheus Exportor 数据采集](prom)
+			- [Prometheus Remote Write 支持](prom_remote_write)
+
 		- [Statsd 数据接入](statsd)
 		- [Cloudprober 接入](cloudprober)
 		- [Telegraf 数据接入](telegraf)

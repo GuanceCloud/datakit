@@ -418,28 +418,28 @@ func TestRestartAPI(t *testing.T) {
 func TestApiGetDatakitLastError(t *testing.T) {
 	const uri string = "/v1/lasterror"
 	fakeErrors := []struct {
-		em errMessage
+		em   errMessage
 		fail bool
 	}{
 		{
-			 errMessage{
-				 Input:      "fakeCPU",
-				 ErrContent: "cpu has broken down",
-			 },
-			 false,
-		},{
+			errMessage{
+				Input:      "fakeCPU",
+				ErrContent: "cpu has broken down",
+			},
+			false,
+		}, {
 			errMessage{
 				Input:      "",
 				ErrContent: "xxx broken down",
 			},
 			true,
-		},{
+		}, {
 			errMessage{
 				Input:      "fakeMem",
 				ErrContent: "",
 			},
 			true,
-		},{
+		}, {
 			errMessage{
 				Input:      "",
 				ErrContent: "",
