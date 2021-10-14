@@ -458,7 +458,7 @@ func (c *Config) setHostname() error {
 		l.Errorf("get hostname failed: %s", err.Error())
 		return err
 	}
-
+	l.Infof("here is hostname:%s", c.Hostname)
 	c.Hostname = hn
 	l.Infof("set hostname to %s", hn)
 	return nil

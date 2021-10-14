@@ -159,7 +159,6 @@ fi
 
 env_hostname=
 if [ -n "$DK_HOSTNAME" ]; then
-  # shellcheck disable=SC2034
   env_hostname=$DK_HOSTNAME
 fi
 
@@ -202,7 +201,7 @@ else
 			--listen="${http_listen}"            \
 			--port="${http_port}"                \
 			--proxy="${proxy}"                   \
-			--env_hostname="${DK_HOSTNAME}"      \
+			--env_hostname="${env_hostname}"      \
 			--dca-enable="${dca_enable}"				 \
 			--dca-listen="${dca_listen}"				 \
 			--dca-white-list="${dca_white_list}" \
@@ -215,12 +214,11 @@ else
 			--namespace="${namespace}"           \
 			--listen="${http_listen}"            \
 			--port="${http_port}"                \
-			--env_hostname="${DK_HOSTNAME}"      \
+			--env_hostname="${env_hostname}"      \
 			--dca-enable="${dca_enable}"				 \
 			--dca-listen="${dca_listen}"				 \
 			--dca-white-list="${dca_white_list}"	\
 			--proxy="${proxy}" | $sudo_cmd tee ${install_log}
 	fi
 fi
-
 rm -rf $installer
