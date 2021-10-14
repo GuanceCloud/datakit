@@ -50,6 +50,24 @@ func (dc *endPoint) getLogFilter() ([]byte, error) {
 	return body, nil
 }
 
+func (dw *DataWayCfg) WorkspaceQuery(body []byte) (*http.Response, error) {
+	if len(dw.endPoints) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.endPoints[0]
+	requrl, ok := dc.categoryURL[datakit.Workspace]
+	if !ok {
+		return nil, fmt.Errorf("no workspace query URL available")
+	}
+	l.Debugf("NewRequest: %s", requrl)
+	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	return dw.sendReq(req)
+}
+
 func (dw *DataWayCfg) DQLQuery(body []byte) (*http.Response, error) {
 	if len(dw.endPoints) == 0 {
 		return nil, fmt.Errorf("no dataway available")

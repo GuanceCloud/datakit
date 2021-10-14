@@ -55,7 +55,8 @@ var (
 	FlagAutoJSON bool
 	FlagRunDQL,  // TODO: dump dql query result to specified CSV file
 	FlagCSV string
-	FlagToken string
+	FlagToken         string
+	FlagWorkspaceInfo bool
 
 	FlagUpdateIPDB bool
 	FlagAddr       string
@@ -147,6 +148,17 @@ func RunCmds() {
 		os.Exit(0)
 	}
 
+	if FlagWorkspaceInfo {
+		tryLoadMainCfg()
+		setCmdRootLog(FlagCmdLogPath)
+		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
+		body, err := doWorkspace(requrl)
+		if err != nil {
+			errorf("get worksapceInfo fail %s\n", err.Error())
+		}
+		outputWorkspaceInfo(body)
+		os.Exit(0)
+	}
 	if FlagShowCloudInfo != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)

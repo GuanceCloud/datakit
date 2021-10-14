@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -193,6 +194,7 @@ func HttpStart() {
 	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
 	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
 
+	router.GET("/v1/workspace", func(c *gin.Context) { apiWorkspace(c) })
 	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
 	router.POST("/v1/lasterror", func(c *gin.Context) { apiGetDatakitLastError(c) })
 	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
@@ -249,7 +251,20 @@ func HttpStart() {
 func tryStartServer(srv *http.Server) {
 	retryCnt := 0
 
-	// TODO: test if port available
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		default:
+		}
+
+		if portInUse(srv.Addr) {
+			l.Warnf("start server at %s ,Port is already used", srv.Addr)
+		} else {
+			break
+		}
+		time.Sleep(time.Second)
+	}
 
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
@@ -264,6 +279,16 @@ func tryStartServer(srv *http.Server) {
 		}
 		time.Sleep(time.Second)
 	}
+}
+
+func portInUse(addr string) bool {
+	timeout := time.Millisecond * 100
+	conn, err := net.DialTimeout("tcp", addr, timeout)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+	return true
 }
 
 func checkToken(r *http.Request) error {
