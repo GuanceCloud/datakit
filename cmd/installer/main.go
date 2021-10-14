@@ -198,31 +198,6 @@ DataKit        : %s
 
 	datakit.InitDirs()
 
-	if flagDCAListen != "" {
-		config.Cfg.DCAConfig.Listen = flagDCAListen
-	}
-
-	if flagDCAWhiteList != "" {
-		config.Cfg.DCAConfig.WhiteList = strings.Split(flagDCAWhiteList, ",")
-	}
-
-	if flagDCAEnable != "" {
-		config.Cfg.DCAConfig.Enable = true
-
-		// check white list whether is empty or invalid
-		if len(config.Cfg.DCAConfig.WhiteList) == 0 {
-			l.Fatalf("DCA service is enabled, but white list is empty! ")
-		}
-		for _, cidr := range config.Cfg.DCAConfig.WhiteList {
-			_, _, err := net.ParseCIDR(cidr)
-			if err != nil {
-				if net.ParseIP(cidr) == nil {
-					l.Fatalf("DCA white list set error: invalid ip, %s", cidr)
-				}
-			}
-		}
-	}
-
 	if flagDKUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
 		if err = upgradeDatakit(svc); err != nil {
@@ -318,6 +293,35 @@ func installNewDatakit(svc service.Service) {
 	if flagOTA {
 		l.Debugf("set auto update flag")
 		mc.AutoUpdate = flagOTA
+	}
+	if flagDCAListen != "" {
+		config.Cfg.DCAConfig.Listen = flagDCAListen
+	}
+
+	if flagDCAWhiteList != "" {
+		config.Cfg.DCAConfig.WhiteList = strings.Split(flagDCAWhiteList, ",")
+	}
+
+	if flagDCAEnable != "" {
+		config.Cfg.DCAConfig.Enable = true
+
+		// check white list whether is empty or invalid
+		if len(config.Cfg.DCAConfig.WhiteList) == 0 {
+			l.Fatalf("DCA service is enabled, but white list is empty! ")
+		}
+		for _, cidr := range config.Cfg.DCAConfig.WhiteList {
+			_, _, err := net.ParseCIDR(cidr)
+			if err != nil {
+				if net.ParseIP(cidr) == nil {
+					l.Fatalf("DCA white list set error: invalid ip, %s", cidr)
+				}
+			}
+		}
+	}
+
+	if flagHostName != "" {
+		l.Debugf("set ENV_HOSTNAME to %s", flagHostName)
+		mc.Environments["ENV_HOSTNAME"] = flagHostName
 	}
 
 	// accept any install options

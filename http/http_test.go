@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -411,5 +412,65 @@ func TestRestartAPI(t *testing.T) {
 		}
 
 		t.Logf("resp: %s", string(body))
+	}
+}
+
+func TestApiGetDatakitLastError(t *testing.T) {
+	const uri string = "/v1/lasterror"
+	fakeErrors := []struct {
+		em errMessage
+		fail bool
+	}{
+		{
+			 errMessage{
+				 Input:      "fakeCPU",
+				 ErrContent: "cpu has broken down",
+			 },
+			 false,
+		},{
+			errMessage{
+				Input:      "",
+				ErrContent: "xxx broken down",
+			},
+			true,
+		},{
+			errMessage{
+				Input:      "fakeMem",
+				ErrContent: "",
+			},
+			true,
+		},{
+			errMessage{
+				Input:      "",
+				ErrContent: "",
+			},
+			true,
+		},
+	}
+
+	for _, fakeError := range fakeErrors {
+		body, err := json.Marshal(fakeError.em)
+		if err != nil {
+			t.Errorf("json marshal failed:%s", err)
+		}
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", uri, bytes.NewReader(body))
+		if err != nil {
+			t.Errorf("create newrequest failed:%s", err)
+		}
+
+		em, err := doApiGetDatakitLastError(req, rr)
+		if err != nil {
+			if fakeError.fail {
+				t.Logf("expect error: %s", err)
+				continue
+			} else {
+				t.Errorf("api test failed:%s", err)
+			}
+		}
+
+		tu.Equals(t, fakeError.em.ErrContent, em.ErrContent)
+		tu.Equals(t, fakeError.em.Input, em.Input)
 	}
 }
