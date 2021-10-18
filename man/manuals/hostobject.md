@@ -146,6 +146,8 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `flags` | 状态位（可能多个） | []string |
 | `ip4`   | IPv4 地址          | string   |
 | `ip6`   | IPv6 地址          | string   |
+| `ip4_all`| 所有 IPv4 地址     | []string |
+| `ip6_all`| 所有 IPv6 地址     | []string |
 
 #### `host.disk`
 
