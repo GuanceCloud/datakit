@@ -417,60 +417,66 @@ func TestRestartAPI(t *testing.T) {
 
 func TestApiGetDatakitLastError(t *testing.T) {
 	const uri string = "/v1/lasterror"
-	fakeErrors := []struct {
-		em   errMessage
+
+
+	cases := []struct{
+		body []byte
 		fail bool
 	}{
 		{
-			errMessage{
-				Input:      "fakeCPU",
-				ErrContent: "cpu has broken down",
-			},
+			[]byte(`{"input":"fakeCPU","err_content":"cpu has broken down"}`),
 			false,
-		}, {
-			errMessage{
-				Input:      "",
-				ErrContent: "xxx broken down",
-			},
+		},
+		{
+			[]byte(`{"input":"fakeCPU","err_content":""}`),
 			true,
-		}, {
-			errMessage{
-				Input:      "fakeMem",
-				ErrContent: "",
-			},
+		},
+		{
+			[]byte(`{"input":"","err_content":"cpu has broken down"}`),
 			true,
-		}, {
-			errMessage{
-				Input:      "",
-				ErrContent: "",
-			},
+		},
+		{
+			[]byte(`{"input":"","err_content":""}`),
+			true,
+		},
+		{
+			[]byte(`{"":"fakeCPU","err_content":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(`{"input":"fakeCPU","":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(`{"":"fakeCPU","":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(``),
 			true,
 		},
 	}
 
-	for _, fakeError := range fakeErrors {
-		body, err := json.Marshal(fakeError.em)
-		if err != nil {
-			t.Errorf("json marshal failed:%s", err)
-		}
-
+	for _, fakeError:=range cases{
+		fakeEM:=errMessage{}
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest("POST", uri, bytes.NewReader(body))
+		req, err := http.NewRequest("POST", uri, bytes.NewReader(fakeError.body))
 		if err != nil {
 			t.Errorf("create newrequest failed:%s", err)
 		}
-
 		em, err := doApiGetDatakitLastError(req, rr)
-		if err != nil {
-			if fakeError.fail {
+		if err!=nil{
+			if fakeError.fail{
 				t.Logf("expect error: %s", err)
 				continue
-			} else {
-				t.Errorf("api test failed:%s", err)
 			}
+			t.Errorf("api test failed:%s", err)
 		}
-
-		tu.Equals(t, fakeError.em.ErrContent, em.ErrContent)
-		tu.Equals(t, fakeError.em.Input, em.Input)
+		err=json.Unmarshal(fakeError.body,&fakeEM)
+		if err!=nil{
+			t.Errorf("json.Unmarshal: %s", err)
+		}
+		tu.Equals(t, fakeEM.ErrContent, em.ErrContent)
+		tu.Equals(t, fakeEM.Input, em.Input)
 	}
 }
