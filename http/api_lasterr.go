@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
 // errMessage 错误信息
 type errMessage struct {
 	Input      string `json:"input"`
