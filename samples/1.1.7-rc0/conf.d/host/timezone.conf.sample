@@ -1,0 +1,10 @@
+### interval   : monitor interval, the default value is "60s".
+### metricsName: the name of metric, default is "timezone"
+
+[inputs.timezone]
+  interval    = "60s"
+  metricsName = "timezone"
+  [inputs.timezone.tags]
+#    tag1 = "tag1"
+#    tag2 = "tag2"
+#    tagn = "tagn"

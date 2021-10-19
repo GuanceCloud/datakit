@@ -1,0 +1,21 @@
+# {"version": "1.1.8-rc2.3", "desc": "do NOT edit this line"}
+
+[[inputs.external]]
+
+	# 外部采集器名称
+	name = 'some-external-inputs'  # required
+
+	# 是否以后台方式运行外部采集器
+	daemon = false
+
+	# 如果以非 daemon 方式运行外部采集器，则以该间隔多次运行外部采集器
+	#interval = '10s'
+
+	# 运行外部采集器所需的环境变量
+	#envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
+
+	# 外部采集器可执行程序路径(尽可能写绝对路径)
+	cmd = "python" # required
+
+	args = []
+	

@@ -1,0 +1,16 @@
+# {"version": "1.1.9-rc1", "desc": "do NOT edit this line"}
+
+[[inputs.sensors]]
+  ## Command path of 'senssor' usually under /usr/bin/sensors
+  # path = "/usr/bin/senssors"
+
+  ## Gathering interval
+  # interval = "10s"
+
+  ## Command timeout
+  # timeout = "3s"
+
+  ## Customer tags, if set will be seen with every metric.
+  [inputs.sensors.tags]
+    # "key1" = "value1"
+    # "key2" = "value2"

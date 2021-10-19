@@ -1,0 +1,25 @@
+
+[[inputs.httpProb]]
+    bind = "0.0.0.0"
+	port = 9530
+
+	# log source(required)
+	source = "xxx-app"
+
+    # global tags
+    [inputs.httpProb.tags]
+    # tag1 = val1
+    # tag2 = val2
+
+    [[inputs.httpProb.url]]
+    # uri or uri_regex
+    # uri = "/"         # regist all routes
+    # uri_regex = "/*"
+    drop_body = false
+    # pipeline = "all_route.p" # datakit/pipeline/all_route.p
+
+	[[inputs.httpProb.url]]
+    # uri = "/user/info"
+    # uri_regex = "/user/info/*"
+    drop_body = false
+    # pipeline = "user_info.p" # datakit/pipeline/user_info.p
