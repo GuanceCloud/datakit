@@ -56,6 +56,8 @@ type (
 		Flags        []string `json:"flags"` // e.g., FlagUp, FlagLoopback, FlagMulticast
 		IP4          string   `json:"ip4"`
 		IP6          string   `json:"ip6"`
+		IP4All       []string `json:"ip4_all"`
+		IP6All       []string `json:"ip6_all"`
 		Addrs        []string `json:"-"`
 	}
 
@@ -96,7 +98,7 @@ type (
 	CollectorStatus struct {
 		Name        string `json:"name"`
 		Count       int64  `json:"count"`
-		Version     string `json:"version，omitempty"`
+		Version     string `json:"version,omitempty"`
 		LastTime    int64  `json:"last_time,omitempty"`
 		LastErr     string `json:"last_err,omitempty"`
 		LastErrTime int64  `json:"last_err_time,omitempty"`
@@ -219,8 +221,10 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 			}
 			if ip.To4() != nil {
 				i.IP4 = ad.Addr
+				i.IP4All = append(i.IP4All, ad.Addr)
 			} else if ip.To16() != nil {
 				i.IP6 = ad.Addr
+				i.IP6All = append(i.IP6All, ad.Addr)
 			}
 		}
 		infos = append(infos, i)

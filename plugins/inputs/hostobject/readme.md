@@ -65,6 +65,8 @@
 | mtu | int | MTU |
 | ip4 | string | ip4地址 |
 | ip6 | string | ip6地址 |
+| ip4_all | []string | 所有ip4地址 |
+| ip6_all | []string | 所有ip6地址 |
 | mac | string | MAC地址 |
 | flags | string | 接口属性 |
 
