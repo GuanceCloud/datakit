@@ -175,7 +175,7 @@ Content-Type: application/json
 
 { 
 	"input":"redis",
-	"err":"Cache avalanche"
+	"err_content":"Cache avalanche"
 }
 ```
 ## `/v1/workspace`
