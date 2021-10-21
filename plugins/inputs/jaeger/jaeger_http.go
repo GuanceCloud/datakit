@@ -1,4 +1,4 @@
-package traceJaeger
+package jaeger
 
 import (
 	"context"
@@ -9,36 +9,35 @@ import (
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
-func JaegerTraceHandle(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("trace handle with path: %s", r.URL.Path)
+func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
+	log.Debugf("trace handle with path: %s", req.URL.Path)
 	defer func() {
+		resp.WriteHeader(http.StatusOK)
 		if r := recover(); r != nil {
 			log.Errorf("Stack crash: %v", r)
 			log.Errorf("Stack info :%s", string(debug.Stack()))
 		}
 	}()
 
-	if err := handleJaegerTrace(w, r); err != nil {
-		io.FeedLastError(inputName, err.Error())
-		log.Errorf("%v", err)
-	}
-}
-
-func handleJaegerTrace(w http.ResponseWriter, r *http.Request) error {
-	reqInfo, err := trace.ParseHttpReq(r)
+	reqInfo, err := trace.ParseHttpReq(req)
 	if err != nil {
-		return err
+		log.Error(err.Error())
+
+		return
 	}
 
 	if reqInfo.ContentType != "application/x-thrift" {
-		return fmt.Errorf("Jeager unsupported Content-Type: %s", reqInfo.ContentType)
+		log.Errorf("Jeager unsupported Content-Type: %s", reqInfo.ContentType)
+
+		return
 	}
 
-	return parseJaegerThrift(reqInfo.Body)
+	if err = parseJaegerThrift(reqInfo.Body); err != nil {
+		log.Error(err.Error())
+	}
 }
 
 func parseJaegerThrift(octets []byte) error {
@@ -52,7 +51,7 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	group, err := batchToAdapters(batch, filters...)
+	group, err := batchToAdapters(batch)
 	if err != nil {
 		return err
 	}
@@ -66,14 +65,7 @@ func parseJaegerThrift(octets []byte) error {
 	return nil
 }
 
-func batchToAdapters(batch *jaeger.Batch, filters ...batchFilter) ([]*trace.TraceAdapter, error) {
-	// run all filters
-	for _, filter := range filters {
-		if filter(batch) == nil {
-			return nil, nil
-		}
-	}
-
+func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 	project, ver, env := getExpandInfo(batch)
 	if project == "" {
 		project = jaegerTags[trace.PROJECT]
@@ -151,4 +143,21 @@ func getExpandInfo(batch *jaeger.Batch) (project, ver, env string) {
 	}
 
 	return
+}
+
+func getValueString(tag *jaeger.Tag) interface{} {
+	switch tag.VType {
+	case jaeger.TagType_STRING:
+		return *(tag.VStr)
+	case jaeger.TagType_DOUBLE:
+		return *(tag.VDouble)
+	case jaeger.TagType_BOOL:
+		return *(tag.VBool)
+	case jaeger.TagType_LONG:
+		return *(tag.VLong)
+	case jaeger.TagType_BINARY:
+		return tag.VBinary
+	default:
+		return nil
+	}
 }

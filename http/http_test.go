@@ -418,8 +418,7 @@ func TestRestartAPI(t *testing.T) {
 func TestApiGetDatakitLastError(t *testing.T) {
 	const uri string = "/v1/lasterror"
 
-
-	cases := []struct{
+	cases := []struct {
 		body []byte
 		fail bool
 	}{
@@ -457,23 +456,23 @@ func TestApiGetDatakitLastError(t *testing.T) {
 		},
 	}
 
-	for _, fakeError:=range cases{
-		fakeEM:=errMessage{}
+	for _, fakeError := range cases {
+		fakeEM := errMessage{}
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest("POST", uri, bytes.NewReader(fakeError.body))
 		if err != nil {
 			t.Errorf("create newrequest failed:%s", err)
 		}
 		em, err := doApiGetDatakitLastError(req, rr)
-		if err!=nil{
-			if fakeError.fail{
+		if err != nil {
+			if fakeError.fail {
 				t.Logf("expect error: %s", err)
 				continue
 			}
 			t.Errorf("api test failed:%s", err)
 		}
-		err=json.Unmarshal(fakeError.body,&fakeEM)
-		if err!=nil{
+		err = json.Unmarshal(fakeError.body, &fakeEM)
+		if err != nil {
 			t.Errorf("json.Unmarshal: %s", err)
 		}
 		tu.Equals(t, fakeEM.ErrContent, em.ErrContent)

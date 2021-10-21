@@ -387,6 +387,8 @@ func parseTableToInputs(tbl *ast.Table, creator inputs.Creator) ([]inputs.Input,
 var deprecatedInputs = map[string]string{
 	"dockerlog":         "docker",
 	"docker_containers": "docker",
+	"traceSkywalking":   "skywalking",
+	"traceJaeger":       "jaeger",
 }
 
 func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {

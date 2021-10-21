@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	inputName              = "skywalking"
-	skywalkingConfigSample = `
+	inputName    = "skywalking"
+	sampleConfig = `
 [[inputs.skywalking]]
   [inputs.skywalking.V2]
     address = "localhost:11800"
@@ -60,7 +60,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) SampleConfig() string {
-	return skywalkingConfigSample
+	return sampleConfig
 }
 
 func (i *Input) Run() {
