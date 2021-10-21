@@ -239,7 +239,6 @@ spec:
           name: rootfs
         workingDir: /usr/local/datakit
       hostIPC: true
-      hostNetwork: true
       hostPID: true
       restartPolicy: Always
       serviceAccount: datakit
