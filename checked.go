@@ -139,7 +139,7 @@ var (
 		"tidb":                   true,
 		"timezone":               true,
 		"tomcat":                 true,
-		"traceJaeger":            true,
+		"jaeger":                 true,
 		"tracerouter":            true,
 		"traceZipkin":            true,
 		"traefik":                true,
