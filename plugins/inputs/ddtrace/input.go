@@ -16,7 +16,8 @@ var (
 	ddtraceSampleConfig = `
 [[inputs.ddtrace]]
   ## DDTrace Agent endpoints register by version respectively.
-  ## you can stop some patterns by remove them from the list but DO NOT MODIFY THESE PATTERNS.
+  ## Endpoints can be skipped listen by remove them from the list.
+  ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
   ## Ignore ddtrace resources list. List of strings
@@ -42,16 +43,15 @@ var (
 
 var (
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats" //nolint: unused,deadcode,varcheck
-	defEndpoints         = []string{v3, v4, v5}
 	ignoreResources      []*regexp.Regexp
 	filters              []traceFilter
 )
 
 type Input struct {
-	Path             string                     `toml:"path,omitempty"` // deprecated
-	Endpoints        []string                   `toml:"endpoints"`
+	Path             string                     `toml:"path,omitempty"`           // deprecated
 	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs,omitempty"` // deprecated
 	TraceSampleConf  *trace.TraceSampleConfig   `toml:"sample_config"`            // deprecated
+	Endpoints        []string                   `toml:"endpoints"`
 	IgnoreResources  []string                   `toml:"ignore_resources"`
 	CustomerTags     []string                   `toml:"customer_tags"`
 	Tags             map[string]string          `toml:"tags"`
@@ -110,13 +110,6 @@ func (i *Input) Run() {
 }
 
 func (i *Input) RegHttpHandler() {
-	if len(i.Endpoints) == 0 {
-		i.Endpoints = defEndpoints
-	}
-
-	// // do not register /info in endpoints
-	// http.RegHttpHandler("GET", info, handleInfo)
-
 	for _, endpoint := range i.Endpoints {
 		switch endpoint {
 		case v3, v4, v5:

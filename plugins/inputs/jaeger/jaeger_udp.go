@@ -1,4 +1,4 @@
-package traceJaeger
+package jaeger
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
-func StartUdpAgent(addr string) error {
+func StartUDPAgent(addr string) error {
 	data := make([]byte, 65535)
 
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
@@ -23,16 +23,16 @@ func StartUdpAgent(addr string) error {
 		return err
 	}
 
-	log.Infof("jaeger udp agent %v start", addr)
+	log.Infof("Jaeger UDP agent listening on %s", addr)
 
-	// 循环读取消息
+	// receiving loop
 	for {
 		select {
 		case <-datakit.Exit.Wait():
 			udpConn.Close()
 			log.Infof("jaeger udp agent closed")
-			return nil
 
+			return nil
 		default:
 		}
 
@@ -44,16 +44,16 @@ func StartUdpAgent(addr string) error {
 
 		n, addr, err := udpConn.ReadFromUDP(data[:])
 		if err != nil {
+			log.Debug(err.Error())
 			continue
-		} else {
-			log.Debugf("Read from udp server:%s %d bytes", addr, n)
 		}
+		log.Debugf("Read from udp server:%s %d bytes", addr, n)
 
 		if n <= 0 {
 			continue
 		}
 
-		groups, err := parseJaegerUdp(data[:n])
+		groups, err := parseJaegerUDP(data[:n])
 		if err != nil {
 			continue
 		}
@@ -65,7 +65,7 @@ func StartUdpAgent(addr string) error {
 	}
 }
 
-func parseJaegerUdp(data []byte) ([]*trace.TraceAdapter, error) {
+func parseJaegerUDP(data []byte) ([]*trace.TraceAdapter, error) {
 	thriftBuffer := thrift.NewTMemoryBufferLen(len(data))
 	if _, err := thriftBuffer.Write(data[:]); err != nil {
 		log.Error("buffer write failed :%v,", err)
@@ -90,12 +90,7 @@ func parseJaegerUdp(data []byte) ([]*trace.TraceAdapter, error) {
 		return nil, err
 	}
 
-	var filters []batchFilter
-	if len(sampleConfs) != 0 {
-		filters = append(filters, sample)
-	}
-
-	groups, err := batchToAdapters(batch.Batch, filters...)
+	groups, err := batchToAdapters(batch.Batch)
 	if err != nil {
 		log.Error("process batch failed :%v,", err)
 

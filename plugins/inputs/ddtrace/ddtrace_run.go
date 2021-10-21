@@ -117,7 +117,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 	}
 }
 
-// TODO:.
+// TODO:
 func handleStats(resp http.ResponseWriter, req *http.Request) {
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
