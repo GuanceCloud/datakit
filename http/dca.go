@@ -86,18 +86,18 @@ func dcaHttpStart() {
 
 	router.NoRoute(dcaDefault)
 
-	router.GET("/v1/dca/stats", func(c *gin.Context) { dcaStats(c) })
-	router.GET("/v1/dca/inputDoc", func(c *gin.Context) { dcaInputDoc(c) })
-	router.GET("/v1/dca/reload", func(c *gin.Context) { dcaReload(c) })
+	router.GET("/v1/dca/stats", dcaStats)
+	router.GET("/v1/dca/inputDoc", dcaInputDoc)
+	router.GET("/v1/dca/reload", dcaReload)
 	// conf
-	router.POST("/v1/dca/saveConfig", func(c *gin.Context) { dcaSaveConfig(c) })
-	router.GET("/v1/dca/getConfig", func(c *gin.Context) { dcaGetConfig(c) })
+	router.POST("/v1/dca/saveConfig", dcaSaveConfig)
+	router.GET("/v1/dca/getConfig", dcaGetConfig)
 	// pipelines
-	router.GET("/v1/dca/pipelines", func(c *gin.Context) { dcaGetPipelines(c) })
-	router.GET("/v1/dca/pipelines/detail", func(c *gin.Context) { dcaGetPipelinesDetail(c) })
-	router.POST("/v1/dca/pipelines/test", func(c *gin.Context) { dcaTestPipelines(c) })
-	router.POST("/v1/dca/pipelines", func(c *gin.Context) { dcaCreatePipeline(c) })
-	router.PATCH("/v1/dca/pipelines", func(c *gin.Context) { dcaUpdatePipeline(c) })
+	router.GET("/v1/dca/pipelines", dcaGetPipelines)
+	router.GET("/v1/dca/pipelines/detail", dcaGetPipelinesDetail)
+	router.POST("/v1/dca/pipelines/test", dcaTestPipelines)
+	router.POST("/v1/dca/pipelines", dcaCreatePipeline)
+	router.PATCH("/v1/dca/pipelines", dcaUpdatePipeline)
 
 	srv := &http.Server{
 		Addr:    dcaConfig.Listen,
