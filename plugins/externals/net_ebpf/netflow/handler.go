@@ -9,6 +9,7 @@ import (
 	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/shirou/gopsutil/host"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dns"
 	"golang.org/x/net/context"
 )
 
@@ -28,7 +29,29 @@ const (
 	inputName = "netflow"
 )
 
-func ClosedEventHandler(cpu int, data []byte, perfmap *manager.PerfMap, manager *manager.Manager) {
+func Run(ctx context.Context, bpfManger *manager.Manager, datakitPostURL string, gTags map[string]string, interval time.Duration) error {
+	connStatsMap, found, err := bpfManger.GetMap("bpfmap_conn_stats")
+	if err != nil || !found {
+		return err
+	}
+
+	tcpStatsMap, found, err := bpfManger.GetMap("bpfmap_conn_tcp_stats")
+	if err != nil || !found {
+		return err
+	}
+
+	go feedHandler(ctx, datakitPostURL)
+	go connCollectHanllder(ctx, connStatsMap, tcpStatsMap, interval, gTags)
+	go bpfMapCleanupHandler(ctx, connStatsMap, tcpStatsMap)
+	if tp, err := dns.NewTPacketDNS(); err != nil {
+		return err
+	} else {
+		go dnsRecord.Gather(ctx, tp)
+	}
+	return nil
+}
+
+func closedEventHandler(cpu int, data []byte, perfmap *manager.PerfMap, manager *manager.Manager) {
 	eventC := (*ConncetionClosedInfoC)(unsafe.Pointer(&data[0]))
 	event := ConncetionClosedInfo{
 		Info: ConnectionInfo{
@@ -60,7 +83,7 @@ func ClosedEventHandler(cpu int, data []byte, perfmap *manager.PerfMap, manager 
 }
 
 // 在扫描 connStatMap 时锁定资源 connStatsRecord.
-func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map, interval time.Duration, gTags map[string]string) {
+func connCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map, interval time.Duration, gTags map[string]string) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -160,7 +183,7 @@ func ConnCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMa
 }
 
 // 接收一个周期内采集的全部连接, 并发送至 DataKit.
-func FeedHandler(ctx context.Context, datakitPostURL string) {
+func feedHandler(ctx context.Context, datakitPostURL string) {
 	for {
 		select {
 		case result := <-resultCh:
@@ -177,7 +200,7 @@ func FeedHandler(ctx context.Context, datakitPostURL string) {
 
 var cleanupCh = make(chan *[]ConnectionInfo)
 
-func BPFMapCleanupHandler(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map) {
+func bpfMapCleanupHandler(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map) {
 	for {
 		select {
 		case cl := <-cleanupCh:

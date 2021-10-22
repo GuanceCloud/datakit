@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"sort"
@@ -16,12 +17,16 @@ import (
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/c"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dns"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/net/context/ctxhttp"
 	"golang.org/x/sys/unix"
 )
 
 var l = logger.DefaultSLogger("net_ebpf")
+
+var dnsRecord = dns.NewDNSRecord()
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
@@ -80,7 +85,7 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 					// sizeof(connection_closed_info) > 112 Byte, pagesize ~= 4k,
 					// if cpus = 8, 5 conn/per connection_closed_info
 					PerfRingBufferSize: 32 * os.Getpagesize(),
-					DataHandler:        ClosedEventHandler,
+					DataHandler:        closedEventHandler,
 				},
 			},
 		},
@@ -181,28 +186,32 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 	m.tags["source"] = "netflow"
 	m.tags["status"] = "info"
 	m.tags["pid"] = fmt.Sprint(k.Pid)
-	if connAddrIsIPv4(k.Meta) {
-		m.tags["src_ip"] = U32BEToIPv4(k.Saddr[3])
-		m.tags["dst_ip"] = U32BEToIPv4(k.Daddr[3])
 
+	isV6 := false
+	if connAddrIsIPv4(k.Meta) {
 		m.tags["src_ip_type"] = connIPv4Type(k.Saddr[3])
 		m.tags["dst_ip_type"] = connIPv4Type(k.Daddr[3])
-
 		m.tags["family"] = "IPv4"
 	} else {
-		m.tags["src_ip"] = U32BEToIPv6(k.Saddr)
-		m.tags["dst_ip"] = U32BEToIPv6(k.Daddr)
-
 		m.tags["src_ip_type"] = connIPv6Type(k.Saddr)
 		m.tags["dst_ip_type"] = connIPv6Type(k.Daddr)
-
 		m.tags["family"] = "IPv6"
+		isV6 = true
 	}
+
+	m.tags["src_ip"] = U32BEToIp(k.Saddr, isV6).String()
+
+	dst_ip := U32BEToIp(k.Daddr, isV6)
+	m.tags["dst_ip"] = dst_ip.String()
+
+	m.tags["dst_domain"] = dnsRecord.LookupAddr(dst_ip)
+
 	if k.Sport == math.MaxUint32 {
 		m.tags["src_port"] = "*"
 	} else {
 		m.tags["src_port"] = fmt.Sprintf("%d", k.Sport)
 	}
+
 	m.tags["dst_port"] = fmt.Sprintf("%d", k.Dport)
 
 	m.fields["bytes_read"] = int64(v.Stats.Recv_bytes)
@@ -221,12 +230,12 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 	m.tags["direction"] = connDirection2Str(v.Stats.Direction)
 
 	if connProtocolIsTCP(k.Meta) {
-		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s:%s r/w: %d/%d e/c: %d/%d re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
-			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
+		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
+			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
 			m.fields["tcp_established"], m.fields["tcp_closed"], m.fields["retransmits"], float64(v.TcpStats.Rtt)/1000., float64(v.TcpStats.Rtt_var)/1000, m.tags["transport"], m.tags["direction"]))
 	} else {
-		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s:%s r/w: %d/%d (%s, %s)",
-			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
+		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d (%s, %s)",
+			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
 			m.tags["transport"], m.tags["direction"]))
 	}
 	return &m
@@ -254,23 +263,20 @@ func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
 	return ip
 }
 
-func U32BEToIPv4(addr uint32) string {
-	ip := U32BEToIPv4Array(addr)
-	return fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
-}
-
-func U32BEToIPv6(addr [4]uint32) string {
-	// addr byte order: big endian
-	ip := U32BEToIPv6Array(addr)
-	ipStr := fmt.Sprintf("%x:%x:%x:%x:%x:%x",
-		ip[0], ip[1], ip[2], ip[3], ip[4], ip[5])
-	// IPv4-mapped IPv6 address
-	if ipStr == "0:0:0:0:0:ffff" {
-		ipStr += ":" + U32BEToIPv4(addr[3])
+func U32BEToIp(addr [4]uint32, isIPv6 bool) net.IP {
+	ip := net.IP{}
+	if !isIPv6 {
+		v4 := U32BEToIPv4Array(addr[3])
+		for _, v := range v4 {
+			ip = append(ip, byte(v))
+		}
 	} else {
-		ipStr += fmt.Sprintf(":%x:%x", ip[6], ip[7])
+		v6 := U32BEToIPv6Array(addr)
+		for _, v := range v6 {
+			ip = append(ip, byte((v&0xff00)>>8), byte(v&0x00ff))
+		}
 	}
-	return ipStr
+	return ip
 }
 
 // 规则: 1. 过滤源 IP 和目标 IP 相同的连接;

@@ -330,10 +330,10 @@ func TestConvConn2M(t *testing.T) {
 					"source":      inputName,
 					"status":      "info",
 					"pid":         "1222",
-					"src_ip":      "0:0:0:0:0:ffff:127.0.1.1",
+					"src_ip":      "127.0.1.1",
 					"src_port":    "8080",
 					"src_ip_type": "other",
-					"dst_ip":      "0:0:0:0:0:ffff:127.0.0.1",
+					"dst_ip":      "127.0.0.1",
 					"dst_port":    "23456",
 					"dst_ip_type": "other",
 					"transport":   "tcp",
@@ -363,6 +363,7 @@ func TestConvConn2M(t *testing.T) {
 		if len(m.fields) != len(v.result.fields) {
 			t.Error("fields length not equal")
 		}
+		delete(m.tags, "dst_domain")
 		if len(m.tags) != len(v.result.tags) {
 			t.Error("tags length not equal")
 		}
@@ -580,7 +581,7 @@ func TestRecord(t *testing.T) {
 	}
 	data := *(*[]byte)(unsafe.Pointer(&eventStructMock))
 
-	ClosedEventHandler(1, data, nil, nil)
+	closedEventHandler(1, data, nil, nil)
 	assert.Equal(t, 1, len(connStatsRecord.lastActiveConns))
 	assert.Equal(t, 1, len(connStatsRecord.closedConns))
 	connInfo := ConnectionInfo{
@@ -595,7 +596,7 @@ func TestRecord(t *testing.T) {
 
 	// ===================================
 	// 一个已关闭连接的再次建立，并被关闭，接收 closed event，调用 closedEventHandler
-	ClosedEventHandler(1, data, nil, nil)
+	closedEventHandler(1, data, nil, nil)
 	connClosedFullStatsResult2 := ConnFullStats{
 		Stats: ConnectionStats{
 			Sent_bytes: 1,
@@ -672,7 +673,7 @@ func TestRecord(t *testing.T) {
 		cap:  int(unsafe.Sizeof(closedEvent)),
 	}
 	data = *(*[]byte)(unsafe.Pointer(&eventStructMock))
-	ClosedEventHandler(1, data, nil, nil)
+	closedEventHandler(1, data, nil, nil)
 	assert.Equal(t, 1, len(connStatsRecord.lastActiveConns))
 	assert.Equal(t, 2, len(connStatsRecord.closedConns))
 	assert.Equal(t, connClosedFullStatsResult, connStatsRecord.closedConns[connInfo])
@@ -767,6 +768,29 @@ func TestIPv4Type(t *testing.T) {
 	}
 	for k, v := range cases {
 		assert.Equal(t, v, connIPv4Type(k))
+	}
+}
+
+func TestU32BE2NETIp(t *testing.T) {
+	cases := map[uint32]string{
+		uint32(0x10AC):     "172.16.0.0",
+		uint32(0x7F):       "127.0.0.0",
+		uint32(0x04030265): "101.2.3.4",
+	}
+	for k, v := range cases {
+		addr := [4]uint32{0, 0, 0, k}
+		netip := U32BEToIp(addr, false)
+		assert.Equal(t, netip.String(), v)
+	}
+
+	casesv6 := map[[4]uint32]string{
+		{0x11aa00fe, 0, 0, 0}:      "fe00:aa11::",
+		{0xef00, 0, 0, 0xaabbfeda}: "ef::dafe:bbaa",
+	}
+
+	for k, v := range casesv6 {
+		netip := U32BEToIp(k, true)
+		assert.Equal(t, netip.String(), v)
 	}
 }
 
