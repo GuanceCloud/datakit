@@ -188,19 +188,19 @@ func HttpStart() {
 	applyHTTPRoute(router)
 
 	// internal datakit stats API
-	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c) })
-	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c) })
-	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
-	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
-	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
+	router.GET("/stats", apiGetDatakitStats)
+	router.GET("/monitor", apiGetDatakitMonitor)
+	router.GET("/man", apiManualTOC)
+	router.GET("/man/:name", apiManual)
+	router.GET("/restart", apiRestart)
 
-	router.GET("/v1/workspace", func(c *gin.Context) { apiWorkspace(c) })
-	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
-	router.POST("/v1/lasterror", func(c *gin.Context) { apiGetDatakitLastError(c) })
-	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
-	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
-	router.POST("/v1/object/labels", func(c *gin.Context) { apiCreateOrUpdateObjectLabel(c) })
-	router.DELETE("/v1/object/labels", func(c *gin.Context) { apiDeleteObjectLabel(c) })
+	router.GET("/v1/workspace", apiWorkspace)
+	router.GET("/v1/ping", apiPing)
+	router.POST("/v1/lasterror", apiGetDatakitLastError)
+	router.POST("/v1/write/:category", apiWrite)
+	router.POST("/v1/query/raw", apiQueryRaw)
+	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
+	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
 	srv := &http.Server{
 		Addr:    apiConfig.Listen,
