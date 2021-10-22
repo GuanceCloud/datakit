@@ -12,7 +12,6 @@ import (
 
 // read dir samples, check if sample is marshable by current release
 func TestConfSample(t *testing.T) {
-
 	_, filename, _, _ := runtime.Caller(0)
 
 	// jump to ../samples

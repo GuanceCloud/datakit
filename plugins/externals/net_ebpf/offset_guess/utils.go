@@ -160,6 +160,11 @@ func try_guess(status *OffsetGuessC, conn *Conninfo, guessWhich int) bool {
 	case GUESS_SK_RCV_SADDR:
 	case GUESS_SK_DADDR:
 	case GUESS_SK_DPORT:
+		if conn.Dport != uint16(status.dport) {
+			status.offset_sk_dport++
+			status.offset_sk_num = status.offset_sk_dport + 2 // +sizeof(__be16)
+			return false
+		}
 	case GUESS_TCP_SK_SRTT_US:
 		if conn.Rtt != uint32(status.rtt) {
 			status.offset_tcp_sk_srtt_us++
