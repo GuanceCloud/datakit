@@ -79,6 +79,8 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy 
 - `DK_UPGRADE`：升级到最新版本（注：一旦开启该选项，其它选项均无效）
 - `DK_INSTALLER_BASE_URL`：可选择不同环境的安装脚本，默认为 `https://static.guance.com/datakit`
 - `HTTPS_PROXY`：通过 Datakit 代理安装
+- `DK_PROXY_TYPE`：代理类型。选项有: "datakit" 或 "nginx"，均为小写
+- `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 

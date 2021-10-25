@@ -267,7 +267,7 @@ osarch="linux-amd64"
 
 installer="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit/install.sh"
 
-dw="https://openway.guance.com?token=${tkn}"
+dw="https://openway.guance.com?token=${token}"
 
 # 安装脚本(linux/mac)
 DK_INSTALLER_BASE_URL=https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit \
