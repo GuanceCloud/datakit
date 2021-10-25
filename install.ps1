@@ -22,11 +22,47 @@ function Write-COutput($ForegroundColor) {
     $host.UI.RawUI.ForegroundColor = $fc
 }
 
+# https://gist.github.com/markembling/173887
+# usage: remove-host $file $args[1]
+function remove-host([string]$filename, [string]$hostname) {
+	$c = Get-Content $filename
+	$newLines = @()
+
+	foreach ($line in $c) {
+		$bits = [regex]::Split($line, "\t+")
+		if ($bits.count -eq 2) {
+			if ($bits[1] -ne $hostname) {
+				$newLines += $line
+			}
+		} else {
+			$newLines += $line
+		}
+	}
+
+	# Write file
+	Clear-Content $filename
+	foreach ($line in $newLines) {
+		$line | Out-File -encoding ASCII -append $filename
+	}
+}
+
 ##########################
 # Detect variables
 ##########################
 
 $installer_base_url = "https://static.guance.com/datakit"
+
+$domain = @(
+    "static.guance.com"
+    "openway.guance.com"
+    "dflux-dial.guance.com"
+
+    "static.dataflux.cn"
+    "openway.dataflux.cn"
+    "dflux-dial.dataflux.cn"
+
+    "zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com"
+)
 
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALLER_BASE_URL") 
 if ($x -ne $null) {
@@ -93,13 +129,39 @@ if ($x -ne $null) {
 	$proxy = $x
 	Write-COutput green "* set Proxy to $x" 
 }
+
+# check nginx proxy
+$proxy_type=""
+$x = [Environment]::GetEnvironmentVariable("DK_PROXY_TYPE")
+if ($x -ne $null) {
+	$proxy_type = $x
+	$proxy_type.ToLower()
+	Write-COutput green "* found Proxy Type: $proxy_type"
+	if ($proxy_type -eq "nginx") {
+		# env DK_NGINX_IP has highest priority on proxy level
+		$x = ""
+        $x = [Environment]::GetEnvironmentVariable("DK_NGINX_IP")
+        if ($x -ne $null -or $x -ne "") {
+            $proxy = $x
+            Write-COutput green "* got nginx Proxy $proxy"
+
+            # 更新 hosts
+            foreach ( $node in $domain )
+            {
+                remove-host $env:windir\System32\drivers\etc\hosts $node
+                Add-Content -Path $env:windir\System32\drivers\etc\hosts -Value "`n$proxy`t$node" -Force
+            }
+		    $proxy=""
+        }
+	}
+}
+
 $env_hostname=""
 $x = [Environment]::GetEnvironmentVariable("DK_HOSTNAME")
 if ($x -ne $null) {
     $env_hostname=$x
     Write-COutput green "* set hostname to $x"
 }
-
 
 $global_tags=""
 $x = [Environment]::GetEnvironmentVariable("DK_GLOBAL_TAGS") 
@@ -154,7 +216,7 @@ $installer=".dk-installer.exe"
 ##########################
 # try install...
 ##########################
-Write-COutput green "* Downloading $insntaller_url..."
+Write-COutput green "* Downloading $installer_url..."
 
 if (Test-Path $installer) {
 	Remove-Item $installer
