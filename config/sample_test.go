@@ -3,7 +3,6 @@ package config
 import (
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
 	"github.com/influxdata/toml/ast"
@@ -22,9 +21,6 @@ func TestConfSample(t *testing.T) {
 
 		t.Logf("testing %s", s)
 
-		// samples/$version/...
-		version := strings.Split(s, "/")[2]
-
 		asttbl, err := ParseCfgFile(s)
 		if err != nil {
 			t.Fatalf("ParseCfgFile: %s", err.Error())
@@ -35,7 +31,7 @@ func TestConfSample(t *testing.T) {
 		case "datakit.conf":
 			mc := DefaultConfig()
 			if err := mc.LoadMainTOML(s); err != nil {
-				t.Fatalf("unmarshal main cfg failed for version %s: %s", version, err.Error())
+				t.Fatalf("unmarshal main cfg failed for %s: %s", s, err.Error())
 			}
 
 		default:
@@ -45,20 +41,19 @@ func TestConfSample(t *testing.T) {
 				case "inputs": //nolint:goconst
 					stbl, ok := node.(*ast.Table)
 					if !ok {
-						t.Fatalf("[%s] found invalid input from %s: expect ast.Table", version, s)
+						t.Fatalf("found invalid input from %s: expect ast.Table", s)
 					} else {
 						for inputName, v := range stbl.Fields {
 							if creator, ok := inputs.Inputs[inputName]; !ok {
-								t.Logf("[%s] ignore input %s from %s", version, s, inputName)
+								t.Logf("ignore input %s from %s", s, inputName)
 								continue
 							} else {
 								if _, err := TryUnmarshal(v, inputName, creator); err != nil {
-									t.Fatalf("[%s] unmarshal input %s failed within %s: %s",
-										version, inputName, s, err.Error())
+									t.Fatalf("unmarshal input %s failed within %s: %s", inputName, s, err.Error())
 									continue
 								}
 
-								t.Logf("[%s] unmarshal input %s from %s ok", version, inputName, s)
+								t.Logf("unmarshal input %s from %s ok", inputName, s)
 							}
 						}
 					}

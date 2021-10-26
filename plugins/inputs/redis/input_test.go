@@ -375,7 +375,7 @@ func TestCollectReplicaMeasurement(t *testing.T) {
 	}
 }
 
-//此处测试，无法测试db没配置的情况，需要make 替换二进制测试
+// 此处测试，无法测试db没配置的情况，需要make 替换二进制测试
 func TestInput_ParseInfoData(t *testing.T) {
 	input := &Input{
 		Host: "127.0.0.1",

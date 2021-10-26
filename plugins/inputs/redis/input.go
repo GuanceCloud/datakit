@@ -78,7 +78,7 @@ func (i *Input) initCfg() error {
 	client := redis.NewClient(&redis.Options{
 		Addr:     i.Addr,
 		Password: i.Password, // no password set
-		DB:       i.DB,     // use default DB
+		DB:       i.DB,       // use default DB
 	})
 
 	if i.SlowlogMaxLen == 0 {
