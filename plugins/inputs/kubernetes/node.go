@@ -31,11 +31,15 @@ func (n *node) Gather() {
 
 	for _, obj := range list.Items {
 		tags := map[string]string{
-			"name":         fmt.Sprintf("%v", obj.UID),
-			"node_name":    obj.Name,
-			"cluster_name": obj.ClusterName,
-			"namespace":    obj.Namespace,
-			"status":       fmt.Sprintf("%v", obj.Status.Phase),
+			"name":      fmt.Sprintf("%v", obj.UID),
+			"node_name": obj.Name,
+			"status":    fmt.Sprintf("%v", obj.Status.Phase),
+		}
+		if obj.ClusterName != "" {
+			tags["cluster_name"] = obj.ClusterName
+		}
+		if obj.Namespace != "" {
+			tags["namespace"] = obj.Namespace
 		}
 		for k, v := range n.tags {
 			tags[k] = v
@@ -56,6 +60,11 @@ func (n *node) Gather() {
 		} else {
 			pts = append(pts, pt)
 		}
+	}
+
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
 	}
 
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
