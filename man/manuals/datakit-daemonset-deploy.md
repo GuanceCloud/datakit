@@ -149,6 +149,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: datakit-service
+  namespace: datakit
 spec:
   selector:
     app: daemonset-datakit
