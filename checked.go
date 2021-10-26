@@ -91,6 +91,7 @@ var (
 		"kubernetes":             true,
 		"lighttpd":               true,
 		"logging":                true,
+		"logstreaming":           true,
 		"mem":                    true,
 		"memcached":              true,
 		"mongodb_oplog":          true,

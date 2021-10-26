@@ -130,6 +130,7 @@ if ($x -ne $null) {
 	Write-COutput green "* set Proxy to $x" 
 }
 
+
 # check nginx proxy
 $proxy_type=""
 $x = [Environment]::GetEnvironmentVariable("DK_PROXY_TYPE")
@@ -155,6 +156,7 @@ if ($x -ne $null) {
         }
 	}
 }
+
 
 $env_hostname=""
 $x = [Environment]::GetEnvironmentVariable("DK_HOSTNAME")

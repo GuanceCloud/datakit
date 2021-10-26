@@ -309,6 +309,30 @@ Tips：
 关于 DQL 执行，DataKit 支持如下一些额外选项：
 
 - `--run-dql`：单次执行一条查询语句：`datakit --run-dql 'cpu limit 1'`
+- `--csv`:仅在--run-dql命令下，支持输入指定目录下的csv文件并将查询结果导出到该文件中
+
+```shell
+datakit --run-dql 'O::HOST:(os, message)' --csv="/path/to/xxx.csv"
+datakit --run-dql 'O::HOST:(os, message)' --csv /path/to/xxx.csv
+```
+
+- `--force`:通过--csv指定目录文件后，若报错为指定文件已经存在，可用该命令强制覆盖
+
+```shell
+#文件已存在示例
+datakit --run-dql 'O::HOST:(os, message)' --csv="/path/to/xxx.csv" 
+prepareCsv: file /path/to/xxx.csv exists
+
+#可通过--force 强制覆盖
+datakit --run-dql 'O::HOST:(os, message)' --csv="/path/to/xxx.csv" --force
+```
+
+- `--vvv`:在--run-dql模式并通过--csv指定了目录情况下，默认终端不显示查询结果，可通过--vvv显示查询结果
+
+```shell
+datakit --run-dql 'O::HOST:(os, message)' --csv="/path/to/xxx.csv" --vvv
+```
+
 - `--json`：以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等
 
 ```shell

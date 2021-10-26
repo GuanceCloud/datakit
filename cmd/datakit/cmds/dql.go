@@ -2,6 +2,7 @@ package cmds
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -22,9 +23,8 @@ var (
 
 	disableNil  = false
 	echoExplain = false
-
-	history    []string
-	MaxHistory = 5000
+	history     []string
+	MaxHistory  = 5000
 
 	dqlcli *http.Client
 
@@ -34,6 +34,12 @@ var (
 const (
 	dqlraw = "/v1/query/raw"
 )
+
+type dqlResp struct {
+	ErrorCode string         `json:"error_code"`
+	Message   string         `json:"message"`
+	Content   []*queryResult `json:"content"`
+}
 
 func dql(host string) {
 	datakitHost = host
@@ -151,11 +157,136 @@ func runDQL(txt string) {
 			lines = append(lines, s)
 		}
 
-		doDQL(strings.Join(lines, "\n"))
+		resp := doDQL(strings.Join(lines, "\n"))
+		show(resp)
 	}
 }
 
-func doDQL(s string) {
+// runSingleDQL Perform a single DQL query statement
+func runSingleDQL(s string) {
+	if FlagCSV != "" {
+		if err := prepareCsv(); err != nil {
+			errorf("prepareCsv: %s", err)
+			return
+		}
+	}
+
+	resp := doDQL(s)
+
+	if resp == nil {
+		errorf("Empty result\n")
+		return
+	}
+
+	if FlagCSV != "" {
+		if len(resp) > 1 {
+			errorf("CSV export only support single DQL.\n")
+			return
+		}
+
+		if err := writeToCsv(resp[0].Series, FlagCSV); err != nil {
+			errorf("writeToCsv:%s", err)
+			return
+		}
+	}
+
+	if (FlagCSV != "" && FlagVVV) || FlagCSV == "" {
+		show(resp)
+	}
+}
+
+// prepareCsv Judging whether the file exists, create a directory if there is no existence
+func prepareCsv() error {
+	f, err := os.Stat(FlagCSV)
+	if err == nil {
+		if f.IsDir() {
+			return fmt.Errorf("the specified path is a directory")
+		}
+
+		if !FlagForce {
+			return fmt.Errorf("file %s exists", FlagCSV)
+		}
+	} else {
+		if err = os.MkdirAll(filepath.Dir(FlagCSV), os.ModePerm); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// convertStrings Convert Interface arrays to String array which in the query result
+func convertStrings(value []interface{}) []string {
+	res := []string{}
+	for k, v := range value {
+		if v == nil {
+			res = append(res, "")
+			continue
+		}
+		switch v.(type) {
+		case string:
+			res = append(res, v.(string))
+
+		case json.Number:
+			res = append(res, fmt.Sprintf("%s", v))
+
+		case time.Time:
+			i, err := v.(json.Number).Int64()
+			if err != nil {
+				l.Error("parse time failed: %v", err)
+				continue
+			}
+			v = time.Unix(i/1000, 0)
+			res = append(res, fmt.Sprintf("%s", v))
+
+		case bool:
+			res = append(res, fmt.Sprintf("%s", v))
+
+		default:
+			warnf("unknown key value, %s:%v", k, v)
+		}
+	}
+	return res
+}
+
+// writeToCsv Format the query results and write to CSV files
+func writeToCsv(series []*models.Row, csvPath string) error {
+	csvFile, err := os.OpenFile(csvPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer csvFile.Close()
+
+	writer := csv.NewWriter(csvFile)
+
+	sortColumns(series[0])
+
+	columns := []string{"name"}
+	columns = append(columns, series[0].Columns...)
+	if err := writer.Write(columns); err != nil {
+		l.Errorf("write file failed:%s", err)
+	}
+
+	for _, serial := range series {
+		sortColumns(serial)
+
+		for k := range serial.Values {
+			values := []string{serial.Name}
+			res := convertStrings(serial.Values[k])
+			values = append(values, res...)
+			if err := writer.Write(values); err != nil {
+				l.Errorf("write file failed:%s", err)
+			}
+		}
+	}
+
+	writer.Flush()
+	if err = writer.Error(); err != nil {
+		warnf("writer flush failed,error: %s", err)
+	}
+	return nil
+}
+
+func doDQL(s string) []*queryResult {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
 		Token:       FlagToken,
@@ -169,7 +300,7 @@ func doDQL(s string) {
 	j, err := json.Marshal(q)
 	if err != nil {
 		errorf("%s\n", err.Error())
-		return
+		return nil
 	}
 
 	l.Debugf("dql request: %s", string(j))
@@ -178,7 +309,7 @@ func doDQL(s string) {
 		fmt.Sprintf("http://%s%s", datakitHost, dqlraw), bytes.NewBuffer(j))
 	if err != nil {
 		errorf("http.NewRequest: %s\n", err.Error())
-		return
+		return nil
 	}
 
 	if dqlcli == nil {
@@ -188,7 +319,7 @@ func doDQL(s string) {
 	resp, err := dqlcli.Do(req)
 	if err != nil {
 		errorf("httpcli.Do: %s\n", err.Error())
-		return
+		return nil
 	}
 
 	for k, v := range resp.Header {
@@ -198,11 +329,10 @@ func doDQL(s string) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		errorf("ioutil.ReadAll: %s\n", err.Error())
-		return
+		return nil
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
-
 	if resp.StatusCode/100 != 2 {
 		r := struct {
 			Err string `json:"error_code"`
@@ -212,14 +342,24 @@ func doDQL(s string) {
 		if err := json.Unmarshal(body, &r); err != nil {
 			errorf("json.Unmarshal: %s\n", err.Error())
 			errorf("body: %s\n", string(body))
-			return
+			return nil
 		}
 
 		errorf("[%s] %s\n", r.Err, r.Msg)
-		return
+		return nil
 	}
-
-	show(body)
+	r := dqlResp{}
+	l.Debugf("json content:%s", string(body))
+	jd := json.NewDecoder(bytes.NewReader(body))
+	jd.UseNumber()
+	l.Debugf(string(body) + "\n")
+	if err := jd.Decode(&r); err != nil {
+		errorf("%s\n", err.Error())
+		return nil
+	}
+	content, _ := json.Marshal(r.Content)
+	l.Debugf("json content:%s", string(content))
+	return r.Content
 }
 
 type queryResult struct {
@@ -228,26 +368,13 @@ type queryResult struct {
 	Cost     string        `json:"cost,omitempty"`
 }
 
-func show(body []byte) {
-	r := struct {
-		ErrorCode string         `json:"error_code"`
-		Message   string         `json:"message"`
-		Content   []*queryResult `json:"content"`
-	}{}
-
-	jd := json.NewDecoder(bytes.NewReader(body))
-	jd.UseNumber()
-	if err := jd.Decode(&r); err != nil {
-		errorf("%s\n", err.Error())
-		return
-	}
-
-	if r.Content == nil {
+func show(content []*queryResult) {
+	if content == nil {
 		errorf("Empty result\n")
 		return
 	}
-
-	for _, c := range r.Content {
+	for _, c := range content {
+		l.Debugf("connent len: %d", len(content))
 		doShow(c)
 	}
 }
@@ -475,6 +602,7 @@ func prettyShow(resp *queryResult) int {
 			sortColumns(s)
 
 			fmtStr := fmt.Sprintf("%%%ds%%s", colWidth)
+
 			for _, val := range s.Values {
 				output("-----------------[ r%d.%s.s%d ]-----------------\n", nrows+1, s.Name, si+1)
 				nrows++

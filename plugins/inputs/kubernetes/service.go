@@ -33,9 +33,13 @@ func (s *service) Gather() {
 		tags := map[string]string{
 			"name":         fmt.Sprintf("%v", obj.UID),
 			"service_name": obj.Name,
-			"cluster_name": obj.ClusterName,
-			"namespace":    obj.Namespace,
 			"type":         fmt.Sprintf("%v", obj.Spec.Type),
+		}
+		if obj.ClusterName != "" {
+			tags["cluster_name"] = obj.ClusterName
+		}
+		if obj.Namespace != "" {
+			tags["namespace"] = obj.Namespace
 		}
 		for k, v := range s.tags {
 			tags[k] = v
@@ -63,6 +67,11 @@ func (s *service) Gather() {
 		} else {
 			pts = append(pts, pt)
 		}
+	}
+
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
 	}
 
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
