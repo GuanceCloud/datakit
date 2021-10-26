@@ -151,7 +151,7 @@ func (this *Input) SampleConfig() string {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLinux}
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
