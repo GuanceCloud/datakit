@@ -48,10 +48,11 @@ curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/met
 ## Nginx 正向代理配置
 
 代理 HTTPS 流量这里 nginx 采用 4 层的透明代理方式，即需要:
-1. 一台可以访问外网的 nginx 的透明代理服务器
-2. datakit 所在的客户机使用 hosts 文件进行域名配置
 
-- 配置 `Nginx` 代理服务
+- 一台可以访问外网的 nginx 的透明代理服务器
+- datakit 所在的客户机使用 hosts 文件进行域名配置
+
+### 配置 `Nginx` 代理服务
 
 ```
 # 代理 HTTPS
@@ -64,6 +65,10 @@ stream {
         proxy_connect_timeout 10s;
         proxy_pass $ssl_preread_server_name:$server_port;
     }
+}
+
+http {
+    ...
 }
 ```
 
@@ -94,14 +99,14 @@ http {
 }
 ```
 
-- 加载新配置及测试
+### 加载新配置及测试
 
 ```shell
 nginx -t        # 测试配置
 nginx -s reload # reload配置
 ```
 
-- 配置 `Datakit` 被代理机器上的域名
+### 配置 `Datakit` 被代理机器上的域名
 
 下面假设 `192.168.1.66` 是 nginx 透明代理服务器的 IP 地址。
 
