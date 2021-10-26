@@ -50,17 +50,17 @@ func (*Input) Catalog() string {
 	return inputName
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) SampleConfig() string {
+	return sampleConfig
+}
+
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
-	// TODO
+// TODO:
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return nil
-}
-
-func (*Input) SampleConfig() string {
-	return sampleConfig
 }
 
 func (i *Input) Run() {

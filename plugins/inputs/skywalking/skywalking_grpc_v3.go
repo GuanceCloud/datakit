@@ -47,15 +47,21 @@ func (s *SkyWalkingServerV3) Collect(tsc lang.TraceSegmentReportService_CollectS
 
 	for {
 		segobj, err := tsc.Recv()
-		if errors.Is(err, io.EOF) {
-			return tsc.SendAndClose(&common.Commands{})
-		}
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return tsc.SendAndClose(&common.Commands{})
+			}
+			log.Error(err.Error())
+
 			return err
 		}
 
+		log.Debug("segment received")
+
 		group, err := segobjToAdapters(segobj)
 		if err != nil {
+			log.Error(err.Error())
+
 			return err
 		}
 
