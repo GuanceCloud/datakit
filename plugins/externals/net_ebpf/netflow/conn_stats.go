@@ -123,6 +123,14 @@ func (c *ConnStatsRecord) initCache() {
 	c.lastTs = time.Now()
 }
 
+func newConnStatsRecord() *ConnStatsRecord {
+	return &ConnStatsRecord{
+		closedConns:     make(map[ConnectionInfo]ConnFullStats),
+		lastActiveConns: make(map[ConnectionInfo]ConnFullStats),
+		lastTs:          time.Now(),
+	}
+}
+
 func (c *ConnStatsRecord) clearClosedConnsCache() {
 	c.closedConns = make(map[ConnectionInfo]ConnFullStats)
 }

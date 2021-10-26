@@ -268,12 +268,12 @@ func U32BEToIp(addr [4]uint32, isIPv6 bool) net.IP {
 	if !isIPv6 {
 		v4 := U32BEToIPv4Array(addr[3])
 		for _, v := range v4 {
-			ip = append(ip, byte(v))
+			ip = append(ip, v)
 		}
 	} else {
 		v6 := U32BEToIPv6Array(addr)
 		for _, v := range v6 {
-			ip = append(ip, byte((v&0xff00)>>8), byte(v&0x00ff))
+			ip = append(ip, byte((v&0xff00)>>8), byte(v&0x00ff)) // SwapU16(v)
 		}
 	}
 	return ip
@@ -315,10 +315,69 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 	return true
 }
 
+type ConnTCPWithoutPidStats struct {
+	TcpStats         ConnectionTcpStats
+	TotalEstablished int64
+	TotalClosed      int64
+	Pids             map[uint32]bool
+}
+
+type ConnTCPWithoutPid struct {
+	Conns map[ConnectionInfo]ConnTCPWithoutPidStats
+}
+
+func (cwp *ConnTCPWithoutPid) CleanupConns() {
+	needCleanup := []ConnectionInfo{}
+	for k, v := range cwp.Conns {
+		if v.TotalClosed == v.TotalEstablished {
+			needCleanup = append(needCleanup, k)
+		}
+	}
+	for _, k := range needCleanup {
+		delete(cwp.Conns, k)
+	}
+}
+
+func (cwp *ConnTCPWithoutPid) Update(conn ConnectionInfo, fullStats ConnFullStats) ConnFullStats {
+	pid := conn.Pid
+	conn.Pid = 0
+	result := fullStats
+	if v, ok := cwp.Conns[conn]; ok {
+		if _, ok := v.Pids[pid]; !ok {
+			v.Pids[pid] = false // 首次记录
+		}
+		if len(v.Pids) > 1 && result.TotalEstablished > 0 { // 复数个 pid
+			if !v.Pids[pid] { // 对首次记录的 pid 对应的连接次数进行处理
+				if result.TotalEstablished > 0 {
+					result.TotalEstablished -= 1
+				}
+			}
+		}
+		v.Pids[pid] = true
+		v.TotalClosed += result.TotalClosed
+		v.TotalEstablished += result.TotalEstablished
+		cwp.Conns[conn] = v
+	} else {
+		cwp.Conns[conn] = ConnTCPWithoutPidStats{
+			Pids:             map[uint32]bool{pid: true},
+			TotalEstablished: result.TotalEstablished,
+			TotalClosed:      result.TotalClosed,
+		}
+	}
+	return result
+}
+
+func newConnTCPWithoutPid() *ConnTCPWithoutPid {
+	return &ConnTCPWithoutPid{
+		Conns: make(map[ConnectionInfo]ConnTCPWithoutPidStats),
+	}
+}
+
+var connTCPWithoutPid = newConnTCPWithoutPid()
+
 // 聚合 src port 为临时端口(32768 ~ 60999)的连接,
 // 被聚合的端口号被设置为
-// cat /proc/sys/net/ipv4/ip_local_port_range
-// 一个连接多个 pid (如 ssh 服务)，视为建立一次.
+// cat /proc/sys/net/ipv4/ip_local_port_range.
 func MergeConns(preResult *ConnResult) {
 	resultTmpConn := map[ConnectionInfo]ConnFullStats{}
 	if len(preResult.result) < 1 {
@@ -327,70 +386,13 @@ func MergeConns(preResult *ConnResult) {
 
 	connInfoList := ConnInfoList{}
 
-	for k := range preResult.result {
+	for k, v := range preResult.result {
 		connInfoList = append(connInfoList, k)
+		r := connTCPWithoutPid.Update(k, v)
+		preResult.result[k] = r
 	}
+	connTCPWithoutPid.CleanupConns()
 	sort.Sort(connInfoList)
-
-	// 多 pid 处理
-	head := 0
-	tail := 0
-	haveClosed := false
-	for k := 0; k < len(connInfoList); k++ {
-		if !connProtocolIsTCP(connInfoList[k].Meta) {
-			continue
-		}
-		if ConnCmpNoPid(connInfoList[k], connInfoList[head]) {
-			tail = k
-			continue
-		}
-
-		if tail > head {
-			connNotLastActiveIndex := -1
-
-			rtt0IndexArr := []int{}
-			rttNot0Index := -1
-
-			for i := head; i <= tail; i++ {
-				if preResult.result[connInfoList[i]].TcpStats.Rtt > 0 {
-					rttNot0Index = i
-				} else {
-					rtt0IndexArr = append(rtt0IndexArr, i)
-				}
-
-				if preResult.result[connInfoList[i]].TotalClosed > 0 {
-					haveClosed = true
-				} else if preResult.result[connInfoList[i]].TotalEstablished > 0 {
-					if connNotLastActiveIndex < 0 {
-						connNotLastActiveIndex = i
-					}
-					v := preResult.result[connInfoList[i]]
-					v.TotalEstablished = 0
-					preResult.result[connInfoList[i]] = v
-				}
-			}
-
-			if !haveClosed && connNotLastActiveIndex > 0 {
-				v := preResult.result[connInfoList[head]]
-				v.TotalEstablished = 1
-				preResult.result[connInfoList[head]] = v
-			}
-
-			if rttNot0Index >= 0 {
-				for _, j := range rtt0IndexArr {
-					v := preResult.result[connInfoList[j]]
-					v.TcpStats.Rtt = preResult.result[connInfoList[rttNot0Index]].TcpStats.Rtt
-					v.TcpStats.Rtt_var = preResult.result[connInfoList[rttNot0Index]].TcpStats.Rtt_var
-					preResult.result[connInfoList[j]] = v
-				}
-			}
-		}
-
-		head = k
-		tail = head
-		haveClosed = false
-	}
-
 	connRecord := map[ConnectionInfo]bool{}
 	lastIndex := -1
 	for k := 0; k < len(connInfoList); k++ {

@@ -3,7 +3,10 @@
 package netflow
 
 import (
+	"fmt"
 	"math"
+	"net"
+	"sort"
 	"testing"
 	"time"
 	"unsafe"
@@ -985,4 +988,219 @@ func TestConnMerge(t *testing.T) {
 			assert.Equal(t, v, vp)
 		}
 	}
+}
+
+func TestConnSort(t *testing.T) {
+	connListResult := ConnInfoList{}
+	conn, _ := newConn(CONN_L3_IPv4|CONN_L4_TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 111)
+	connListResult = append(connListResult, *conn)
+	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 222)
+	connListResult = append(connListResult, *conn)
+	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 333)
+	connListResult = append(connListResult, *conn)
+	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "2.2.2.3", "7.1.1.1", 80, 51121, 345)
+	connListResult = append(connListResult, *conn)
+	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "2.2.2.3", "8.1.1.1", 80, 53322, 345)
+	connListResult = append(connListResult, *conn)
+	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "2.2.2.3", "8.2.1.1", 80, 53322, 345)
+	connListResult = append(connListResult, *conn)
+	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_UDP, "2.2.2.3", "8.2.1.1", 5353, 5353, 3456)
+	connListResult = append(connListResult, *conn)
+	conn, _ = newConn(CONN_L3_IPv6|CONN_L4_TCP, "fe80::", "::ff", 80, 53322, 3457)
+	connListResult = append(connListResult, *conn)
+	conn, _ = newConn(CONN_L3_IPv6|CONN_L4_UDP, "fe80::", "::ff", 5353, 5353, 3456)
+	connListResult = append(connListResult, *conn)
+
+	connList := connListResult // swap item
+	connList[4], connList[1] = connList[1], connList[4]
+	connList[2], connList[3] = connList[3], connList[2]
+	connList[5], connList[6] = connList[6], connList[5]
+	connList[0], connList[8] = connList[8], connList[0]
+
+	sort.Sort(connList) // sort
+	for k, conn := range connList {
+		if connListResult[k] != conn {
+			t.Errorf(conn.String())
+		}
+	}
+}
+
+func TestMultiPidConns(t *testing.T) {
+	connList := []ConnectionInfo{}
+	fullStatsList := []ConnFullStats{}
+
+	connBase, _ := newConn(CONN_L3_IPv4|CONN_L4_TCP, "1.1.1.1", "2.2.2.2", 80, 52211, 1)
+	fullStatsBase := newFullStats(CONN_L3_IPv4|CONN_L4_TCP, 0, 0, 0, 0)
+
+	// case 1:
+	// 0s: e(pid1), e(pid2)
+	// 60s: -(pid2)
+	// 120s: e/c(pid3)
+
+	conn := *connBase
+	fullStats := *fullStatsBase
+
+	conn.Pid = 1
+	fullStats.TotalEstablished = 1
+	fullStats.TotalClosed = 0
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	conn.Pid = 2
+	fullStats.TotalEstablished = 1
+	fullStats.TotalClosed = 0
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	conn.Pid = 2
+	fullStats.TotalEstablished = 0
+	fullStats.TotalClosed = 0
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	conn.Pid = 3
+	fullStats.TotalEstablished = 1
+	fullStats.TotalClosed = 1
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	ecResult := [][2]int64{ // i0:e , i1:c
+		{1, 0}, {0, 0}, {0, 0}, {0, 1},
+	}
+	if len(ecResult) != len(fullStatsList) || len(fullStatsList) != len(connList) {
+		t.Error("Check your code")
+	}
+	var connTCPWithoutPid = newConnTCPWithoutPid()
+	i := 0
+	for k := range connList {
+		v := connTCPWithoutPid.Update(connList[k], fullStatsList[k])
+		assert.Equal(t, v.TotalEstablished, ecResult[i][0], "established")
+		assert.Equal(t, v.TotalClosed, ecResult[i][1], "closed")
+		i++
+	}
+
+	// case 2:
+	// 0s: e(pid1), e(pid2), e/c(pid3), e(pid4)
+	connList = []ConnectionInfo{}
+	fullStatsList = []ConnFullStats{}
+	conn.Pid = 1
+	fullStats.TotalEstablished = 1
+	fullStats.TotalClosed = 0
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	conn.Pid = 2
+	fullStats.TotalEstablished = 1
+	fullStats.TotalClosed = 0
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	conn.Pid = 3
+	fullStats.TotalEstablished = 1
+	fullStats.TotalClosed = 1
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	conn.Pid = 4
+	fullStats.TotalEstablished = 1
+	fullStats.TotalClosed = 0
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	ecResult = [][2]int64{ // i0:e , i1:c
+		{1, 0}, {0, 0}, {0, 1}, {0, 0},
+	}
+	if len(ecResult) != len(fullStatsList) || len(fullStatsList) != len(connList) {
+		t.Error("Check your code")
+	}
+	connTCPWithoutPid.CleanupConns()
+	i = 0
+	for k := range connList {
+		v := connTCPWithoutPid.Update(connList[k], fullStatsList[k])
+		assert.Equal(t, v.TotalEstablished, ecResult[i][0], "established")
+		assert.Equal(t, v.TotalClosed, ecResult[i][1], "closed")
+		i++
+	}
+
+	// case 3:
+	// 0s: e(pid1)
+	// 60s: 0(pid1)
+	// 120s: e2/c2(pid1)
+	// 180s: c1(pid1)
+	connList = []ConnectionInfo{}
+	fullStatsList = []ConnFullStats{}
+	conn.Pid = 1
+
+	fullStats.TotalEstablished = 1
+	fullStats.TotalClosed = 0
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	fullStats.TotalEstablished = 0
+	fullStats.TotalClosed = 0
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	fullStats.TotalEstablished = 2
+	fullStats.TotalClosed = 2
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	fullStats.TotalEstablished = 0
+	fullStats.TotalClosed = 1
+	connList = append(connList, conn)
+	fullStatsList = append(fullStatsList, fullStats)
+
+	ecResult = [][2]int64{ // i0:e , i1:c
+		{1, 0}, {0, 0}, {2, 2}, {0, 1},
+	}
+	if len(ecResult) != len(fullStatsList) || len(fullStatsList) != len(connList) {
+		t.Error("Check your code")
+	}
+	connTCPWithoutPid.CleanupConns()
+	i = 0
+	for k := range connList {
+		v := connTCPWithoutPid.Update(connList[k], fullStatsList[k])
+		assert.Equal(t, v.TotalEstablished, ecResult[i][0], "established")
+		assert.Equal(t, v.TotalClosed, ecResult[i][1], "closed")
+		i++
+	}
+	connTCPWithoutPid.CleanupConns()
+	if len(connTCPWithoutPid.Conns) != 0 {
+		t.Error("len(connTCPWithoutPid.Conns)", len(connTCPWithoutPid.Conns))
+	}
+}
+
+func newConn(meta uint32, sip, dip string, sport, dport uint32, pid uint32) (*ConnectionInfo, error) {
+	srcip := net.ParseIP(sip).To16() // 16 bytes
+	dstip := net.ParseIP(dip).To16()
+	if srcip == nil || dstip == nil {
+		return nil, fmt.Errorf("parse ip failed")
+	}
+
+	conn := ConnectionInfo{
+		Saddr: *(*[4]uint32)(unsafe.Pointer(&srcip[0])),
+		Daddr: *(*[4]uint32)(unsafe.Pointer(&dstip[0])),
+		Sport: sport,
+		Dport: dport,
+		Pid:   pid,
+		Meta:  meta,
+	}
+
+	return &conn, nil
+}
+
+func newFullStats(meta uint32, sent_bytes, recv_bytes uint64, tcp_established, tcp_closed int64) *ConnFullStats {
+	fullStats := ConnFullStats{
+		Stats: ConnectionStats{
+			Sent_bytes: sent_bytes,
+			Recv_bytes: recv_bytes,
+		},
+	}
+
+	if connProtocolIsTCP(meta) {
+		fullStats.TotalClosed = tcp_closed
+		fullStats.TotalEstablished = tcp_established
+	}
+	return &fullStats
 }

@@ -23,7 +23,7 @@ const connExpirationInterval = 8 * 3600 // 8 * 3600s
 
 var resultCh = make(chan *ConnResult)
 
-var connStatsRecord = ConnStatsRecord{}
+var connStatsRecord = newConnStatsRecord()
 
 const (
 	inputName = "netflow"
@@ -42,7 +42,7 @@ func Run(ctx context.Context, bpfManger *manager.Manager, datakitPostURL string,
 
 	go feedHandler(ctx, datakitPostURL)
 	go connCollectHanllder(ctx, connStatsMap, tcpStatsMap, interval, gTags)
-	go bpfMapCleanupHandler(ctx, connStatsMap, tcpStatsMap)
+	go bpfMapCleanupHandler(ctx, connStatsMap)
 	if tp, err := dns.NewTPacketDNS(); err != nil {
 		return err
 	} else {
@@ -162,7 +162,6 @@ func connCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMa
 				connResult.result[connInfo] = connFullStats
 			}
 			if len(connsNeedCleanup) > 0 {
-
 				for _, conn := range connsNeedCleanup {
 					connStatsRecord.deleteLastActive(conn)
 				}
@@ -200,7 +199,7 @@ func feedHandler(ctx context.Context, datakitPostURL string) {
 
 var cleanupCh = make(chan *[]ConnectionInfo)
 
-func bpfMapCleanupHandler(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMap *ebpf.Map) {
+func bpfMapCleanupHandler(ctx context.Context, connStatsMap *ebpf.Map) {
 	for {
 		select {
 		case cl := <-cleanupCh:
@@ -223,8 +222,4 @@ func bpfMapCleanupHandler(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsM
 			return
 		}
 	}
-}
-
-func init() {
-	connStatsRecord.initCache()
 }
