@@ -33,8 +33,12 @@ func (d *deployment) Gather() {
 		tags := map[string]string{
 			"name":            fmt.Sprintf("%v", obj.UID),
 			"deployment_name": obj.Name,
-			"cluster_name":    obj.ClusterName,
-			"namespace":       obj.Namespace,
+		}
+		if obj.ClusterName != "" {
+			tags["cluster_name"] = obj.ClusterName
+		}
+		if obj.Namespace != "" {
+			tags["namespace"] = obj.Namespace
 		}
 		for k, v := range d.tags {
 			tags[k] = v
@@ -71,6 +75,11 @@ func (d *deployment) Gather() {
 		} else {
 			pts = append(pts, pt)
 		}
+	}
+
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
 	}
 
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
