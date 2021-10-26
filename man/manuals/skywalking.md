@@ -17,9 +17,9 @@
 java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 ```
 
-## 配置 skywalking
+## 配置 SkyWalking
 
-打开文件 /path/to/skywalking/agent/config/agent.config 进行配置
+打开文件 /path_to_skywalking_agent/config/agent.config 进行配置
 
 ```conf
 # The service name in UI

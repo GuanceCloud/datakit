@@ -2,6 +2,7 @@ package jaeger
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
@@ -24,7 +25,8 @@ var (
     # ...
 `
 	jaegerTags map[string]string
-	log        = logger.DefaultSLogger(inputName)
+	log                       = logger.DefaultSLogger(inputName)
+	_          inputs.InputV2 = &Input{}
 )
 
 type Input struct {
@@ -42,6 +44,15 @@ func (*Input) Catalog() string {
 
 func (*Input) SampleConfig() string {
 	return sampleConfig
+}
+
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+// TODO:
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return nil
 }
 
 func (t *Input) Run() {
