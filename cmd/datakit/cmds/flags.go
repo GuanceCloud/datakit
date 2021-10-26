@@ -54,10 +54,11 @@ var (
 	FlagJSON     bool
 	FlagAutoJSON bool
 	FlagForce    bool
-	FlagCSV      string
-	FlagRunDQL,  // TODO: dump dql query result to specified CSV file
 
-	FlagToken string
+	FlagRunDQL,
+	FlagCSV string
+
+	FlagToken         string
 	FlagWorkspaceInfo bool
 
 	FlagUpdateIPDB bool

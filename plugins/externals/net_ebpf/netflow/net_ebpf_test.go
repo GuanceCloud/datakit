@@ -1070,7 +1070,7 @@ func TestMultiPidConns(t *testing.T) {
 	if len(ecResult) != len(fullStatsList) || len(fullStatsList) != len(connList) {
 		t.Error("Check your code")
 	}
-	var connTCPWithoutPid = newConnTCPWithoutPid()
+	connTCPWithoutPid := newConnTCPWithoutPid()
 	i := 0
 	for k := range connList {
 		v := connTCPWithoutPid.Update(connList[k], fullStatsList[k])

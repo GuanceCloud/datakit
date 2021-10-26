@@ -306,50 +306,33 @@ Tips：
 
 > 注：Windows 下，请在 Powershell 中执行 `datakit --dql` 或 `datakit -Q`
 
-关于 DQL 执行，DataKit 支持如下一些额外选项：
+#### 单次执行 DQL 查询
 
-- `--run-dql`：单次执行一条查询语句：`datakit --run-dql 'cpu limit 1'`
-- `--csv`:仅在--run-dql命令下，支持输入指定目录下的csv文件并将查询结果导出到该文件中
-
-```shell
-datakit --run-dql 'O::HOST:(os, message)' --csv="/path/to/xxx.csv"
-datakit --run-dql 'O::HOST:(os, message)' --csv /path/to/xxx.csv
-```
-
-- `--force`:通过--csv指定目录文件后，若报错为指定文件已经存在，可用该命令强制覆盖
+关于 DQL 查询，DataKit 支持运行单条 DQL 语句的功能：
 
 ```shell
-#文件已存在示例
-datakit --run-dql 'O::HOST:(os, message)' --csv="/path/to/xxx.csv" 
-prepareCsv: file /path/to/xxx.csv exists
+# 单次执行一条查询语句
+datakit --run-dql 'cpu limit 1'
 
-#可通过--force 强制覆盖
-datakit --run-dql 'O::HOST:(os, message)' --csv="/path/to/xxx.csv" --force
+# 将执行结果写入 CSV 文件
+datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv"
+
+# 强制覆盖已有 CSV 文件
+datakit --run-dql 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
+
+# 将结果写入 CSV 的同时，在终端也显示查询结果
+datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
 ```
 
-- `--vvv`:在--run-dql模式并通过--csv指定了目录情况下，默认终端不显示查询结果，可通过--vvv显示查询结果
+#### DQL 查询结果 JSON 化
 
-```shell
-datakit --run-dql 'O::HOST:(os, message)' --csv="/path/to/xxx.csv" --vvv
-```
-
-- `--json`：以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等
+以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等（以保证 JSON 可直接解析）
 
 ```shell
 datakit --run-dql 'O::HOST:(os, message)' --json
 datakit -Q --json
-```
 
-- `--token`：通过指定不同的 Token 来查询其它工作空间的数据
-
-```shell
-datakit --run-dql 'O::HOST:(os, message)' --token tkn_<another-token>
-datakit -Q --token tkn_<another-token>
-```
-
-- `--auto-json`：DQL 查询的结果，如果字段值是 JSON 字符串，则自动做 JSON 美化
-
-```shell
+# 如果字段值是 JSON 字符串，则自动做 JSON 美化（注意：JSON 模式下（即 --json），`--auto-json` 选项无效）
 datakit --run-dql 'O::HOST:(os, message)' --auto-json
 -----------------[ r1.HOST.s1 ]-----------------
 message ----- json -----  # JSON 开始处有明显标志，此处 message 为字段名
@@ -372,7 +355,14 @@ message ----- json -----  # JSON 开始处有明显标志，此处 message 为�
 8 rows, 1 series, cost 4ms
 ```
 
-> 注意：JSON 模式下，`--auto-json` 选项无效。
+#### 查询特定工作空间的数据
+
+通过指定不同的 Token 来查询其它工作空间的数据：
+
+```shell
+datakit --run-dql 'O::HOST:(os, message)' --token <your-token>
+datakit -Q --token <your-token>
+```
 
 ### 查看 DataKit 运行情况
 
