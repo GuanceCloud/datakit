@@ -291,18 +291,20 @@ func TestCollectSlowlogMeasurement(t *testing.T) {
 
 func TestCollectBigKeyMeasurement(t *testing.T) {
 	input := &Input{
-		Host:     "127.0.0.1",
-		Port:     6379,
-		Password: "dev",
-		Service:  "dev-test",
-		Tags:     make(map[string]string),
-		Keys:     []string{"queue"},
-		DB:       1,
+		Host: "127.0.0.1",
+		Port: 6379,
+		// Password: "dev",
+		// Service:  "dev-test",
+		Tags: make(map[string]string),
+		Keys: []string{"myhash"},
+		DB:   1,
+		DBS:  []int{-1},
 	}
 
 	input.initCfg()
 
 	resData, err := input.collectBigKeyMeasurement()
+	fmt.Println(resData)
 	if err != nil {
 		assert.Error(t, err, "collect data err")
 	}
@@ -319,13 +321,14 @@ func TestCollectBigKeyMeasurement(t *testing.T) {
 
 func TestCollectDBMeasurement(t *testing.T) {
 	input := &Input{
-		Host:     "127.0.0.1",
-		Port:     6379,
-		Password: "dev",
-		Service:  "dev-test",
-		Tags:     make(map[string]string),
-		Keys:     []string{"queue"},
-		DB:       1,
+		Host: "127.0.0.1",
+		Port: 6379,
+		// Password: "dev",
+		// Service:  "dev-test",
+		Tags: make(map[string]string),
+		Keys: []string{"queue"},
+		DB:   0,
+		DBS:  []int{2},
 	}
 
 	input.initCfg()
@@ -334,7 +337,6 @@ func TestCollectDBMeasurement(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err, "collect data err")
 	}
-
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
@@ -373,16 +375,44 @@ func TestCollectReplicaMeasurement(t *testing.T) {
 	}
 }
 
+//此处测试，无法测试db没配置的情况，需要make 替换二进制测试
+func TestInput_ParseInfoData(t *testing.T) {
+	input := &Input{
+		Host: "127.0.0.1",
+		Port: 6379,
+		// Password: "dev",
+		// Service:  "dev-test",
+		Tags: make(map[string]string),
+		Keys: []string{"queue"},
+		DB:   0,
+		DBS:  []int{},
+	}
+	resData, err := input.ParseInfoData("# Keyspace\ndb0:keys=8,expires=0,avg_ttl=0\ndb1:keys=5,expires=0,avg_ttl=0")
+	if err != nil {
+		assert.Error(t, err, "parse data err")
+	}
+
+	for _, pt := range resData {
+		point, err := pt.LineProto()
+		if err != nil {
+			t.Log("error =======>", err)
+		} else {
+			t.Log("point line =====>", point.String())
+		}
+	}
+}
+
 func TestCollect(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
 		input := &Input{
-			Host:     "127.0.0.1",
-			Port:     6379,
-			Password: "dev",
-			Service:  "dev-test",
-			Tags:     make(map[string]string),
-			Keys:     []string{"queue"},
-			DB:       1,
+			Host: "127.0.0.1",
+			Port: 6379,
+			// Password: "dev",
+			// Service:  "dev-test",
+			Tags: make(map[string]string),
+			Keys: []string{"queue"},
+			DB:   0,
+			DBS:  []int{-1},
 		}
 
 		input.initCfg()
@@ -391,13 +421,13 @@ func TestCollect(t *testing.T) {
 
 	t.Run("error", func(t *testing.T) {
 		input := &Input{
-			Host:     "127.0.0.1",
-			Port:     6379,
-			Password: "test",
-			Service:  "dev-test",
-			Tags:     make(map[string]string),
-			Keys:     []string{"queue"},
-			DB:       1,
+			Host: "127.0.0.1",
+			Port: 6379,
+			// Password: "test",
+			// Service:  "dev-test",
+			Tags: make(map[string]string),
+			Keys: []string{"myhash"},
+			DB:   1,
 		}
 
 		input.initCfg()

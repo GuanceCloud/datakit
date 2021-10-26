@@ -17,7 +17,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-var Dir_count int
+// 并发用到的channel数据类型
+type dataChan struct {
+	fileSize int64
+	dirCount int64
+}
 
 func GetFileSystemType(path string) (string, error) {
 	ptr := 0
@@ -81,40 +85,48 @@ func dirents(path string) ([]os.FileInfo, bool) {
 	return entries, true
 }
 
-func walkDir(path string, fileSize chan<- int64, regslice []string) {
+func walkDir(path string, chans chan dataChan, regslice []string) {
 	var flag bool
 	entries, _ := dirents(path)
 	for _, e := range entries {
 		if e.IsDir() {
-			Dir_count++
-			walkDir(filepath.Join(path, e.Name()), fileSize, regslice)
+			chans <- dataChan{
+				dirCount: 1,
+			}
+			walkDir(filepath.Join(path, e.Name()), chans, regslice)
 		} else {
 			flag = false
 			flag = isreg(filepath.Join(path, e.Name()), regslice)
 			if !flag {
-				fileSize <- e.Size()
+				chans <- dataChan{
+					fileSize: e.Size(),
+				}
 			}
 		}
 	}
 }
 
 func Startcollect(dir string, reslice []string) (int, int, int) {
-	fileSize := make(chan int64)
-
+	mychan := make(chan dataChan)
 	var sizeCount int64
 
 	var fileCount int
 
-	//*dirCount = 0
+	var dirNum int64
+	dirNum = 0
+
 	go func() {
-		walkDir(dir, fileSize, reslice)
-		defer close(fileSize)
+		walkDir(dir, mychan, reslice)
+		defer close(mychan)
 	}()
-	for size := range fileSize {
+
+	for count := range mychan {
 		fileCount++
-		sizeCount += size
+		sizeCount += count.fileSize
+		dirNum += count.dirCount
 	}
-	return int(sizeCount), fileCount, Dir_count
+
+	return int(sizeCount), fileCount, int(dirNum)
 }
 
 func isreg(filename string, regslice []string) bool {
