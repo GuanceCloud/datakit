@@ -229,20 +229,11 @@ func convertStrings(value []interface{}) []string {
 		case json.Number:
 			res = append(res, fmt.Sprintf("%s", v))
 
-		case time.Time:
-			i, err := v.(json.Number).Int64()
-			if err != nil {
-				l.Error("parse time failed: %v", err)
-				continue
-			}
-			v = time.Unix(i/1000, 0)
-			res = append(res, fmt.Sprintf("%s", v))
-
 		case bool:
 			res = append(res, fmt.Sprintf("%s", v))
 
 		default:
-			warnf("unknown key value, %s:%v", k, v)
+			warnf("unknown key value, %v:%v", k, v)
 		}
 	}
 	return res
