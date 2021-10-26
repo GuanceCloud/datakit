@@ -18,6 +18,8 @@ type Parser struct {
 	MeasurementName   string   `toml:"measurement_name"`
 }
 
+// Parse parses given byte as protocol buffer. it performs necessary
+// metric filtering and prefixing, and returns parsed measurements.
 func (p *Parser) Parse(buf []byte) ([]inputs.Measurement, error) {
 	var err error
 	var metrics []inputs.Measurement
@@ -66,6 +68,7 @@ func (p *Parser) Parse(buf []byte) ([]inputs.Measurement, error) {
 			}
 		}
 	}
+
 	return metrics, err
 }
 

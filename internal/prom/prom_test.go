@@ -114,7 +114,7 @@ func TestProm_DebugCollect(t *testing.T) {
 
 		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
 
-		pts, err := p.DebugCollect()
+		pts, err := p.CollectFromFile()
 		if tc.fail && assert.Error(t, err) {
 			continue
 		} else {

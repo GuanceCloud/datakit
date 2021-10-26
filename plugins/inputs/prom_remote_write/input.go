@@ -6,15 +6,18 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 
 	"github.com/golang/snappy"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -36,6 +39,7 @@ type Input struct {
 	HTTPHeaderTags map[string]string `toml:"http_header_tags"`
 	Tags           map[string]string `toml:"tags"`
 	TagsIgnore     []string          `toml:"tags_ignore"`
+	Output         string            `toml:"output"`
 	Parser
 }
 
@@ -62,6 +66,8 @@ func (h *Input) Run() {
 	}
 }
 
+// ServeHTTP accepts prometheus remote writing, then parses received
+// metrics, and sends them to datakit io or local disk file.
 func (h *Input) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	handler := h.serveWrite
 
@@ -118,6 +124,17 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// If h.Output is configured, data is written to disk file path specified by h.Output.
+	// Data will no more be written to datakit io.
+	if h.Output != "" {
+		err := h.writeFile(bytes)
+		if err != nil {
+			l.Warnf("fail to write data to file: %v", err)
+		}
+		res.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	metrics, err := h.Parse(bytes)
 	if err != nil {
 		l.Debugf("parse error: %s", err.Error())
@@ -126,6 +143,8 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 		}
 		return
 	}
+
+	// Add HTTP header tags and custom tags.
 	for i := range metrics {
 		m := metrics[i].(*Measurement)
 		for headerName, measurementName := range h.HTTPHeaderTags {
@@ -134,24 +153,47 @@ func (h *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 				m.tags[measurementName] = headerValues
 			}
 		}
-		for k, v := range h.Tags {
-			m.tags[k] = v
-		}
-		for _, t := range h.TagsIgnore {
-			if _, has := m.tags[t]; has {
-				delete(m.tags, t)
-			}
+		h.AddAndIgnoreTags(m)
+	}
+	if len(metrics) > 0 {
+		if err := inputs.FeedMeasurement(inputName,
+			datakit.Metric,
+			metrics,
+			&iod.Option{CollectCost: time.Since(t)}); err != nil {
+			l.Warnf("inputs.FeedMeasurement: %s, ignored", err)
 		}
 	}
-
-	if err := inputs.FeedMeasurement(inputName,
-		datakit.Metric,
-		metrics,
-		&iod.Option{CollectCost: time.Since(t)}); err != nil {
-		l.Warnf("inputs.FeedMeasurement: %s, ignored", err)
-	}
-
 	res.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Input) AddAndIgnoreTags(m *Measurement) {
+	for k, v := range h.Tags {
+		m.tags[k] = v
+	}
+	for _, t := range h.TagsIgnore {
+		if _, has := m.tags[t]; has {
+			delete(m.tags, t)
+		}
+	}
+}
+
+// writeFile writes data to path specified by h.Output.
+// If file already exists, simply truncate it.
+func (h *Input) writeFile(data []byte) error {
+	fp := h.Output
+	if !path.IsAbs(fp) {
+		dir := datakit.InstallDir
+		fp = filepath.Join(dir, fp)
+	}
+	f, err := os.Create(fp)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *Input) collectBody(res http.ResponseWriter, req *http.Request) ([]byte, bool) {
@@ -259,7 +301,7 @@ func (h *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func newInput() *Input {
+func NewInput() *Input {
 	i := Input{
 		Methods:    []string{"POST", "PUT"},
 		DataSource: body,
@@ -269,6 +311,6 @@ func newInput() *Input {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return newInput()
+		return NewInput()
 	})
 }
