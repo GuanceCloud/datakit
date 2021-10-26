@@ -12,15 +12,17 @@
 - [source code](https://github.com/jaegertracing/jaeger)
 - [client download](https://github.com/jaegertracing/jaeger-client-go/releases)
 
-！！！Golang 客户端 lib 用户注意
+## 配置
 
-```code
-import "github.com/uber/jaeger-client-go"
+进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+
+```toml
+{{.InputSample}}
 ```
 
-## Sample Code for Golang
+## Golang 示例
 
-```code
+```Golang
 package main
 
 import (
@@ -68,18 +70,4 @@ func main() {
 		time.Sleep(time.Second)
 	}
 }
-```
-
-## 配置
-
-！！！注意不要修改配置文件中的 endpoint 除非 Jaeger 客户端中的配置也做了对应配置
-
-```toml
-endpoint = "/apis/traces"
-```
-
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-
-```toml
-{{.InputSample}}
-```
+``` 

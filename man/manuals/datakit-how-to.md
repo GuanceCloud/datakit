@@ -323,15 +323,21 @@ datakit --run-dql 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
 # 将结果写入 CSV 的同时，在终端也显示查询结果
 datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
 ```
+
+导出的 CSV 文件样式示例：
+
 ```shell
-#导出的csv文件样式示例
-datakit --run-dql 'M::mem[1m]' --csv="path/to/your.csv" 
 name,active,available,available_percent,free,host,time
 mem,2016870400,2079637504,24.210166931152344,80498688,achen.local,1635242524385
 mem,2007961600,2032476160,23.661136627197266,30900224,achen.local,1635242534385
 mem,2014437376,2077097984,24.18060302734375,73502720,achen.local,1635242544382
 ```
-注意：第一列是查询的采集器名，之后各列是该采集器对应的各项数据，且当查询结果为null时，写入csv文件为空列
+
+注意：
+
+- 第一列是查询的指标集名称
+- 之后各列是该采集器对应的各项数据
+- 当字段为空时，对应列也为空
 
 #### DQL 查询结果 JSON 化
 
