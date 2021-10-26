@@ -108,9 +108,6 @@ rules:
   - events
   - services
   - endpoints
-  - persistentvolumes
-  - persistentvolumeclaims
-  - ingresses
   verbs:
   - get
   - list
@@ -122,14 +119,6 @@ rules:
   - daemonsets
   - statefulsets
   - replicasets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - extensions
-  resources:
-  - ingresses
   verbs:
   - get
   - list
@@ -153,6 +142,20 @@ kind: ServiceAccount
 metadata:
   name: datakit
   namespace: datakit
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: datakit-service
+spec:
+  selector:
+    app: daemonset-datakit
+  ports:
+    - protocol: TCP
+      port: 9529
+      targetPort: 9529
 
 ---
 

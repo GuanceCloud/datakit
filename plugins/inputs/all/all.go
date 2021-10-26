@@ -29,6 +29,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kube_state_metric"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logging"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logstreaming"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mem"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/memcached"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodb"
