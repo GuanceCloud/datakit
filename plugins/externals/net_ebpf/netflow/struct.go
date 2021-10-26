@@ -4,6 +4,7 @@ package netflow
 
 // #include "../c/netflow/conn_stats.h"
 import "C"
+import "fmt"
 
 type ConnectionInfoC C.struct_connection_info
 
@@ -21,6 +22,10 @@ type ConnectionInfo struct {
 	Pid   uint32
 	Netns uint32
 	Meta  uint32
+}
+
+func (conn *ConnectionInfo) String() string {
+	return fmt.Sprintf("%s:%d -> %s:%d, pid:%d, tcp:%t", U32BEToIp(conn.Saddr, true), conn.Sport, U32BEToIp(conn.Daddr, true), conn.Dport, conn.Pid, connProtocolIsTCP(conn.Meta))
 }
 
 type ConnectionStats struct {

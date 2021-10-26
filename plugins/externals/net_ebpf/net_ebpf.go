@@ -180,7 +180,7 @@ func feedLastErrorLoop(err error, ch chan os.Signal) {
 	}
 }
 
-// init opt, dkutil.DataKitAPIServer, datakitPostURL
+// init opt, dkutil.DataKitAPIServer, datakitPostURL.
 func parseFlags() (*Option, map[string]string, error) {
 	opt := Option{}
 	gTags := map[string]string{}

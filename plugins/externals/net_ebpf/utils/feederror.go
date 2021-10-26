@@ -31,6 +31,8 @@ func FeedLastError(extnlErr ExternalLastErr) error {
 	if err != nil {
 		return err
 	}
+	defer rsp.Body.Close()
+
 	if rsp.StatusCode != http.StatusOK {
 		return fmt.Errorf("lastErrPostURL, http status code: %d", rsp.StatusCode)
 	}
