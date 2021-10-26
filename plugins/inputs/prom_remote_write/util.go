@@ -2,6 +2,8 @@ package prom_remote_write
 
 import "regexp"
 
+// isValid checks whether a metric name is valid by
+// checking whether it matches any pattern in p.MetricNameFilter
 func (p *Parser) isValid(name string) bool {
 	metricNameFilter := p.MetricNameFilter
 	nameValid := false

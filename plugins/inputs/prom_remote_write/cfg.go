@@ -18,9 +18,14 @@ const (
   ## accepted methods
   methods = ["PUT", "POST"]
 
-  ## Part of the request to consume.  Available options are "body" and
-  ## "query".
+  ## Part of the request to consume.  Available options are "body" and "query".
   # data_source = "body"
+
+  ## output source
+  # specify this to output collected metrics to local file
+  # if not specified, metrics is sent to datakit io
+  # if specified, you can use 'datakit --prom-conf /path/to/this/conf' to debug collected data
+  # output = "/abs/path/file"
 
   ## metric name filter
   # regex is supported
@@ -36,7 +41,7 @@ const (
   # metric is named by the first divided field, the remaining field is used as the current metric name
   # metric name will not be divided if measurement_name is configured
   # measurement_prefix will be added to the start of measurement_name
-  # measurement_name = "prom"
+  # measurement_name = "prom_remote_write"
 
   ## tags to ignore
   # tags_ignore = ["xxxx"]
@@ -52,10 +57,10 @@ const (
   ## Optional setting to map http headers into tags
   ## If the http header is not present on the request, no corresponding tag will be added
   ## If multiple instances of the http header are present, only the first value will be used
-  [inputs.prom_remote_write.http_header_tags]
+  # [inputs.prom_remote_write.http_header_tags]
   # HTTP_HEADER = "TAG_NAME"
 
-  ## 自定义Tags
+  ## custom tags
   [inputs.prom_remote_write.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
