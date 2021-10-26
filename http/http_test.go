@@ -364,12 +364,10 @@ func TestRestartAPI(t *testing.T) {
 			token: "tkn_abc123",
 			fail:  false,
 		},
-
 		{
 			token: "tkn_abc456",
 			fail:  true,
 		},
-
 		{
 			token: "",
 			fail:  true,
