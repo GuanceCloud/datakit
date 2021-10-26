@@ -12,7 +12,7 @@
 - [DataKit 选举支持](election)
 - [DataKit API](apis)
 - [DataKit 整体架构简介](datakit-arch)
-- [DCA 客户端(alpha)](dca)
+- [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
 - [如何排查无数据问题](why-no-data)
 - [采集器]()
