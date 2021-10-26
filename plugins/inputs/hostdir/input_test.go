@@ -1,7 +1,6 @@
 package hostdir
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 	"testing"
@@ -14,5 +13,5 @@ func TestInput_Collect(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 	}
-	fmt.Println(i.collectCache[0])
+	t.Log(i.collectCache[0])
 }

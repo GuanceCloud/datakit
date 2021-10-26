@@ -35,3 +35,12 @@ func Conv(val interface{}, Datatype string) (interface{}, error) {
 
 	return res, err
 }
+
+func IsSlicesHave(s []int, index int) bool {
+	for _, i := range s {
+		if i == index {
+			return true
+		}
+	}
+	return false
+}
