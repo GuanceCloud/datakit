@@ -20,7 +20,11 @@ function updateHosts() {
                 # iterate over the line numbers on which matches were found
                 while read -r line_number; do
                     # replace the text of each line with the desired host entry
-                    sudo sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+                    if [[ "$OSTYPE" == "darwin"* ]]; then
+                        sudo sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+                    else
+                        sudo sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
+                    fi
                 done <<< "$matches_in_hosts"
             else
                 echo "$host_entry" | sudo tee -a /etc/hosts > /dev/null
