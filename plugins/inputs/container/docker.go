@@ -54,8 +54,7 @@ type dockerClient struct {
 	ProcessTags func(tags map[string]string)
 	Logs        Logs
 
-	containerLogsOptions types.ContainerLogsOptions
-	containerLogList     map[string]context.CancelFunc
+	containerLogList map[string]context.CancelFunc
 
 	mu sync.Mutex
 	wg sync.WaitGroup
@@ -92,9 +91,8 @@ func newDockerClient(host string, tlsConfig *tls.Config) (*dockerClient, error) 
 	}
 
 	return &dockerClient{
-		client:               client,
-		containerLogList:     make(map[string]context.CancelFunc),
-		containerLogsOptions: containerLogsOptions,
+		client:           client,
+		containerLogList: make(map[string]context.CancelFunc),
 	}, nil
 }
 
