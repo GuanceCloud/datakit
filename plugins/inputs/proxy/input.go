@@ -1,3 +1,4 @@
+// Package proxy used to proxy HTTP request for no-public-network datakits.
 package proxy
 
 import (
@@ -81,7 +82,7 @@ func (h *Input) Run() {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

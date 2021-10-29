@@ -45,7 +45,7 @@ func (r *replicaSet) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":       int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":       int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"ready":     obj.Status.ReadyReplicas,
 			"available": obj.Status.AvailableReplicas,
 		}
@@ -73,10 +73,12 @@ func (r *replicaSet) Gather() {
 	}
 }
 
+//nolint:unused
 func (*replicaSet) resource() { /*empty interface*/ }
 
 func (*replicaSet) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*replicaSet) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesReplicaSetName,

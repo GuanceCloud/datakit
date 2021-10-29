@@ -10,7 +10,6 @@ import (
 )
 
 type clientMeasurement struct {
-	i       *Input
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}

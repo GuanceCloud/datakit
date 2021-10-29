@@ -1,3 +1,4 @@
+// Package statsd serve a UDP/TCP(not used) server to handle statsd metrics.
 package statsd
 
 import (
@@ -495,11 +496,16 @@ func (s *input) stop() {
 	if s.isUDP() && s.UDPlistener != nil {
 		// Ignore the returned error as we cannot do anything about it anyway
 		//nolint:errcheck,revive
-		s.UDPlistener.Close()
+		if err := s.UDPlistener.Close(); err != nil {
+			l.Warnf("Close: %s, ignored", err)
+		}
 	} else if s.TCPlistener != nil {
 		// Ignore the returned error as we cannot do anything about it anyway
 		//nolint:errcheck,revive
-		s.TCPlistener.Close()
+		if err := s.TCPlistener.Close(); err != nil {
+			l.Warnf("Close: %s, ignored", err)
+		}
+
 		// Close all open TCP connections
 		//  - get all conns from the s.conns map and put into slice
 		//  - this is so the forget() function doesnt conflict with looping
@@ -513,7 +519,9 @@ func (s *input) stop() {
 		for _, conn := range conns {
 			// Ignore the returned error as we cannot do anything about it anyway
 			//nolint:errcheck,revive
-			conn.Close()
+			if err := conn.Close(); err != nil {
+				l.Warnf("Close: %s, ignored", err)
+			}
 		}
 	}
 
@@ -580,7 +588,7 @@ func defaultInput() *input {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

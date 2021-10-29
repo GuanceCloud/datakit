@@ -1,3 +1,4 @@
+// Package apache collects Apache metrics.
 package apache
 
 import (
@@ -25,7 +26,7 @@ var _ inputs.ElectionInput = (*Input)(nil)
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
-	Url      string            `toml:"url"`
+	URL      string            `toml:"url"`
 	Username string            `toml:"username,omitempty"`
 	Password string            `toml:"password,omitempty"`
 	Interval datakit.Duration  `toml:"interval,omitempty"`
@@ -39,11 +40,9 @@ type Input struct {
 
 	tls.ClientConfig
 
-	start        time.Time
-	tail         *tailer.Tailer
-	collectCache []inputs.Measurement
-	client       *http.Client
-	lastErr      error
+	start  time.Time
+	tail   *tailer.Tailer
+	client *http.Client
 
 	pause   bool
 	pauseCh chan bool
@@ -109,7 +108,7 @@ func (n *Input) Run() {
 	l.Info("apache start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	client, err := n.createHttpClient()
+	client, err := n.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] apache init client err:%s", err.Error())
 		return
@@ -155,7 +154,7 @@ func (n *Input) Run() {
 	}
 }
 
-func (n *Input) createHttpClient() (*http.Client, error) {
+func (n *Input) createHTTPClient() (*http.Client, error) {
 	tlsCfg, err := n.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
@@ -173,9 +172,9 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 
 func (n *Input) getMetric() (*Measurement, error) {
 	n.start = time.Now()
-	req, err := http.NewRequest("GET", n.Url, nil)
+	req, err := http.NewRequest("GET", n.URL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error on new request to %s : %s", n.Url, err)
+		return nil, fmt.Errorf("error on new request to %s : %w", n.URL, err)
 	}
 
 	if len(n.Username) != 0 && len(n.Password) != 0 {
@@ -184,12 +183,12 @@ func (n *Input) getMetric() (*Measurement, error) {
 
 	resp, err := n.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error on request to %s : %s", n.Url, err)
+		return nil, fmt.Errorf("error on request to %s : %w", n.URL, err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s returned HTTP status %s", n.Url, resp.Status)
+		return nil, fmt.Errorf("%s returned HTTP status %s", n.URL, resp.Status)
 	}
 	return n.parse(resp.Body)
 }
@@ -198,7 +197,7 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 	sc := bufio.NewScanner(body)
 
 	tags := map[string]string{
-		"url": n.Url,
+		"url": n.URL,
 	}
 	for k, v := range n.Tags {
 		tags[k] = v
@@ -213,7 +212,7 @@ func (n *Input) parse(body io.Reader) (*Measurement, error) {
 		line := sc.Text()
 		if strings.Contains(line, ":") {
 			parts := strings.SplitN(line, ":", 2)
-			key, part := strings.Replace(parts[0], " ", "", -1), strings.TrimSpace(parts[1])
+			key, part := strings.ReplaceAll(parts[0], " ", ""), strings.TrimSpace(parts[1])
 			if tagKey, ok := tagMap[key]; ok {
 				tags[tagKey] = part
 			}
@@ -315,7 +314,7 @@ func (n *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
 	})

@@ -172,7 +172,7 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 	return defaultIO.DoFeed(pts, category, name, opt)
 }
 
-func FeedLastError(inputName string, err string) error {
+func FeedLastError(inputName string, err string) {
 	select {
 	case defaultIO.inLastErr <- &lastErr{
 		from: inputName,
@@ -182,7 +182,6 @@ func FeedLastError(inputName string, err string) error {
 	case <-datakit.Exit.Wait():
 		l.Warnf("%s feed last error skipped on global exit", inputName)
 	}
-	return nil
 }
 
 func MakePointWithoutGlobalTags(name string,
@@ -224,7 +223,7 @@ func MakePoint(name string,
 	return makePoint(name, tags, extraTags, fields, t...)
 }
 
-// Deprecated.
+// MakeMetric Deprecated.
 func MakeMetric(name string,
 	tags map[string]string,
 	fields map[string]interface{},
@@ -237,7 +236,7 @@ func MakeMetric(name string,
 	return []byte(p.Point.String()), nil
 }
 
-// Deprecated.
+// NamedFeed Deprecated.
 func NamedFeed(data []byte, category, name string) error {
 	pts, err := lp.ParsePoints(data, nil)
 	if err != nil {
@@ -252,7 +251,7 @@ func NamedFeed(data []byte, category, name string) error {
 	return defaultIO.DoFeed(x, category, name, nil)
 }
 
-// Deprecated.
+// HighFreqFeedEx Deprecated.
 func HighFreqFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
@@ -278,7 +277,7 @@ func HighFreqFeedEx(name, category, metric string,
 	return defaultIO.DoFeed([]*Point{{pt}}, category, name, &Option{HighFreq: true})
 }
 
-// Deprecated.
+// NamedFeedEx Deprecated.
 func NamedFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},

@@ -1,3 +1,4 @@
+// Package election implements DataFlux central election client.
 package election
 
 import (
@@ -88,7 +89,7 @@ func (x *candidate) startElection() {
 	})
 }
 
-// 此处暂不考虑互斥性，只用于状态展示.
+// Elected 此处暂不考虑互斥性，只用于状态展示.
 func Elected() string {
 	return defaultCandidate.status
 }
@@ -153,8 +154,8 @@ type electionResult struct {
 	Content struct {
 		Status       string `json:"status"`
 		Namespace    string `json:"namespace,omitempty"`
-		Id           string `json:"id"`
-		IncumbencyId string `json:"incumbency_id,omitempty"`
+		ID           string `json:"id"`
+		IncumbencyID string `json:"incumbency_id,omitempty"`
 		ErrorMsg     string `json:"error_msg,omitempty"`
 	} `json:"content"`
 }

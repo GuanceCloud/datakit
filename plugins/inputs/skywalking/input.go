@@ -1,3 +1,4 @@
+// Package skywalking handle SkyWalking tracing metrics.
 package skywalking
 
 import (
@@ -58,8 +59,8 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-// TODO:
 func (*Input) SampleMeasurement() []inputs.Measurement {
+	// TODO
 	return nil
 }
 
@@ -90,16 +91,16 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) RegHttpHandler() {
+func (i *Input) RegHTTPHandler() {
 	if i.V3 != nil {
-		http.RegHttpHandler("POST", "/v3/segment", ihttp.ProtectedHandlerFunc(handleSkyWalkingSegment, log))
-		http.RegHttpHandler("POST", "/v3/segments", ihttp.ProtectedHandlerFunc(handleSkyWalkingSegments, log))
-		http.RegHttpHandler("POST", "/v3/management/reportProperties", handleSkyWalkingProperties)
-		http.RegHttpHandler("POST", "/v3/management/keepAlive", handleSkyWalkingKeepAlive)
+		http.RegHTTPHandler("POST", "/v3/segment", ihttp.ProtectedHandlerFunc(handleSkyWalkingSegment, log))
+		http.RegHTTPHandler("POST", "/v3/segments", ihttp.ProtectedHandlerFunc(handleSkyWalkingSegments, log))
+		http.RegHTTPHandler("POST", "/v3/management/reportProperties", handleSkyWalkingProperties)
+		http.RegHTTPHandler("POST", "/v3/management/keepAlive", handleSkyWalkingKeepAlive)
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

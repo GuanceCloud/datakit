@@ -1,3 +1,4 @@
+// Package memcached collects memcached metrics.
 package memcached
 
 import (
@@ -51,6 +52,7 @@ func (m inputMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
@@ -120,25 +122,27 @@ func (i *Input) gatherServer(address string, unix bool) error {
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
+		defer conn.Close() //nolint:errcheck
 	} else {
 		_, _, err = net.SplitHostPort(address)
 		if err != nil {
-			address = address + ":11211"
+			address += ":11211"
 		}
 
 		conn, err = net.DialTimeout("tcp", address, defaultTimeout)
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
+		defer conn.Close() //nolint:errcheck
 	}
 
 	if conn == nil {
 		return fmt.Errorf("failed to create net connection")
 	}
 
-	conn.SetDeadline(time.Now().Add(defaultTimeout))
+	if err := conn.SetDeadline(time.Now().Add(defaultTimeout)); err != nil {
+		l.Errorf("conn.SetDeadline: %s", err)
+	}
 
 	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
@@ -217,9 +221,9 @@ func (i *Input) Run() {
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
-		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
+		l.Errorf("invalid interval, %w", err)
 	} else if duration <= 0 {
-		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
+		l.Error("invalid interval, cannot be less than zero")
 	}
 
 	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
@@ -227,30 +231,33 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.duration)
 
 	for {
+		start := time.Now()
+		if err := i.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(i.collectCache) > 0 {
+			err := inputs.FeedMeasurement(inputName,
+				datakit.Metric,
+				i.collectCache,
+				&io.Option{CollectCost: time.Since(start)})
+			if err != nil {
+				l.Errorf("FeedMeasurement: %s", err.Error())
+			}
+			i.collectCache = i.collectCache[:0]
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("memcached exit")
 			return
 		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
-			}
-
-			if len(i.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
-				if err != nil {
-					io.FeedLastError(inputName, err.Error())
-					l.Error(err.Error())
-				}
-				i.collectCache = i.collectCache[:0]
-			}
 		}
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

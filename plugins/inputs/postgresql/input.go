@@ -1,3 +1,4 @@
+// Package postgresql collects PostgreSQL metrics.
 package postgresql
 
 import (
@@ -29,6 +30,7 @@ var (
 	l           = logger.DefaultSLogger(inputName)
 )
 
+//nolint:lll
 const sampleConfig = `
 [[inputs.postgresql]]
   ## 服务器地址
@@ -36,25 +38,25 @@ const sampleConfig = `
   # postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
   # 简单字符串格式
   # host=localhost user=pqgotest password=... sslmode=... dbname=app_production
-  
+
   address = "postgres://postgres@localhost/test?sslmode=disable"
-  
+
   ## 配置采集的数据库，默认会采集所有的数据库，当同时设置ignored_databases和databases会忽略databases
   # ignored_databases = ["db1"]
   # databases = ["db1"]
-  
+
   ## 设置服务器Tag，默认是基于服务器地址生成
   # outputaddress = "db01"
-  
+
   ## 采集间隔
   # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
-  
+
   ## 日志采集
   # [inputs.postgresql.log]
   # files = []
   # pipeline = "postgresql.p"
-  
+
   ## 自定义Tag
   [inputs.postgresql.tags]
   # some_tag = "some_value"
@@ -62,6 +64,7 @@ const sampleConfig = `
   # ...
 `
 
+//nolint:lll
 const pipelineCfg = `
 add_pattern("log_date", "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}%{SPACE}%{HOUR}:%{MINUTE}:%{SECOND}%{SPACE}(?:CST|UTC)")
 add_pattern("status", "(LOG|ERROR|FATAL|PANIC|WARNING|NOTICE|INFO)")
@@ -140,6 +143,7 @@ func (m inputMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
@@ -175,21 +179,21 @@ func (*Input) PipelineConfig() map[string]string {
 	}
 }
 
-func (p *Input) SanitizedAddress() (sanitizedAddress string, err error) {
+func (i *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	var canonicalizedAddress string
 
-	kvMatcher, _ := regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+	kvMatcher := regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 
-	if p.Outputaddress != "" {
-		return p.Outputaddress, nil
+	if i.Outputaddress != "" {
+		return i.Outputaddress, nil
 	}
 
-	if strings.HasPrefix(p.Address, "postgres://") || strings.HasPrefix(p.Address, "postgresql://") {
-		if canonicalizedAddress, err = parseURL(p.Address); err != nil {
+	if strings.HasPrefix(i.Address, "postgres://") || strings.HasPrefix(i.Address, "postgresql://") {
+		if canonicalizedAddress, err = parseURL(i.Address); err != nil {
 			return sanitizedAddress, err
 		}
 	} else {
-		canonicalizedAddress = p.Address
+		canonicalizedAddress = i.Address
 	}
 
 	sanitizedAddress = kvMatcher.ReplaceAllString(canonicalizedAddress, "")
@@ -207,7 +211,7 @@ func (i *Input) executeQuery(query string) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	if columns, err = rows.Columns(); err != nil {
 		return err
@@ -227,7 +231,8 @@ func (i *Input) executeQuery(query string) error {
 	return nil
 }
 
-func (i *Input) getDbMetrics() error {
+func (i *Input) getDBMetrics() error {
+	//nolint:lll
 	query := `
 	SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size
 	FROM pg_stat_database psd
@@ -255,6 +260,7 @@ func (i *Input) getBgwMetrics() error {
 }
 
 func (i *Input) getConnectionMetrics() error {
+	//nolint:lll
 	query := `
 		WITH max_con AS (SELECT setting::float FROM pg_settings WHERE name = 'max_connections')
 		SELECT MAX(setting) AS max_connections, SUM(numbackends)/MAX(setting) AS percent_usage_connections
@@ -269,7 +275,7 @@ func (i *Input) Collect() error {
 	var err error
 
 	i.service.SetAddress(i.Address)
-	defer i.service.Stop()
+	defer i.service.Stop() //nolint:errcheck
 	err = i.service.Start()
 	if err != nil {
 		return err
@@ -279,7 +285,7 @@ func (i *Input) Collect() error {
 
 	// collect db metrics
 	g.Go(func(ctx context.Context) error {
-		err := i.getDbMetrics()
+		err := i.getDBMetrics()
 		return err
 	})
 
@@ -393,9 +399,9 @@ func (i *Input) Run() {
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
-		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
+		l.Error("invalid interval, %s", err.Error())
 	} else if duration <= 0 {
-		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
+		l.Error("invalid interval, cannot be less than zero")
 	}
 
 	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
@@ -518,9 +524,9 @@ func NewInput(service Service) *Input {
 	return input
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		service := &SqlService{
+		service := &SQLService{
 			MaxIdle:     1,
 			MaxOpen:     1,
 			MaxLifetime: time.Duration(0),

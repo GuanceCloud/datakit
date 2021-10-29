@@ -1,3 +1,4 @@
+// Package rabbitmq collects rabbitmq metrics.
 package rabbitmq
 
 import (
@@ -51,8 +52,8 @@ func (n *Input) RunPipeline() {
 	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt, n.Log.IgnoreStatus)
 	if err != nil {
+		l.Errorf("NewTailer: %s", err)
 		io.FeedLastError(inputName, err.Error())
-		l.Error(err)
 		return
 	}
 
@@ -64,7 +65,7 @@ func (n *Input) Run() {
 	l.Info("rabbitmq start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	client, err := n.createHttpClient()
+	client, err := n.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] rabbitmq init client err:%s", err.Error())
 		return
@@ -75,6 +76,28 @@ func (n *Input) Run() {
 	defer tick.Stop()
 
 	for {
+		if !n.pause {
+			n.getMetric()
+
+			if n.lastErr != nil {
+				io.FeedLastError(inputName, n.lastErr.Error())
+				n.lastErr = nil
+			}
+
+			if len(collectCache) > 0 {
+				if err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					collectCache,
+					&io.Option{CollectCost: time.Since(n.start)}); err != nil {
+					l.Errorf("FeedMeasurement: %s", err.Error())
+				}
+
+				collectCache = collectCache[:0]
+			}
+		} else {
+			l.Debugf("not leader, skipped")
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			if n.tail != nil {
@@ -85,25 +108,6 @@ func (n *Input) Run() {
 			return
 
 		case <-tick.C:
-			if n.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-
-			n.getMetric()
-			if len(collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
-				collectCache = collectCache[:0]
-				if err != nil {
-					n.lastErr = err
-					l.Errorf(err.Error())
-					continue
-				}
-			}
-			if n.lastErr != nil {
-				io.FeedLastError(inputName, n.lastErr.Error())
-				n.lastErr = nil
-			}
 
 		case n.pause = <-n.pauseCh:
 			// nil
@@ -157,7 +161,7 @@ func (n *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},

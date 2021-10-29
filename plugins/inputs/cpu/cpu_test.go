@@ -9,7 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-func TestCpuActiveTotalTime(t *testing.T) {
+func TestCPUActiveTotalTime(t *testing.T) {
 	cputime := cpu.TimesStat{
 		CPU:       "cpu-total",
 		User:      17105.0, // delta -5.0
@@ -24,7 +24,7 @@ func TestCpuActiveTotalTime(t *testing.T) {
 		GuestNice: 0.0,
 	}
 
-	active, total := CpuActiveTotalTime(cputime)
+	active, total := CPUActiveTotalTime(cputime)
 	if total != cputime.Total() {
 		t.Errorf("error: The CPU total time should be %.2f, but now it's %.2f", cputime.Total(), total)
 	}
@@ -74,8 +74,8 @@ func TestCalculateUsage(t *testing.T) {
 		GuestNice: 0.0,
 	}
 
-	_, nowTotal := CpuActiveTotalTime(nowT)
-	_, lastTotal := CpuActiveTotalTime(lastT)
+	_, nowTotal := CPUActiveTotalTime(nowT)
+	_, lastTotal := CPUActiveTotalTime(lastT)
 	totalDelta := nowTotal - lastTotal
 
 	if _, err := CalculateUsage(nowTCpu0, lastT, totalDelta); err == nil {
@@ -146,8 +146,8 @@ func TestCollect(t *testing.T) {
 	// fields
 	fields := i.collectCache[0].(*cpuMeasurement).fields
 
-	active, nowTotal := CpuActiveTotalTime(nowT)
-	lastActive, lastTotal := CpuActiveTotalTime(lastT)
+	active, nowTotal := CPUActiveTotalTime(nowT)
+	lastActive, lastTotal := CPUActiveTotalTime(lastT)
 	totalDelta := nowTotal - lastTotal
 
 	assertEqualFloat64(t, 100*(nowT.User-lastT.User-(nowT.Guest-lastT.Guest))/totalDelta, fields["usage_user"].(float64), "usage_user")
@@ -164,6 +164,7 @@ func TestCollect(t *testing.T) {
 }
 
 func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {
+	t.Helper()
 	tu.Assert(t, expected == actual, mName+" expected: %f, got %f", expected, actual)
 }
 

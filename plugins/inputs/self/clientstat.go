@@ -1,3 +1,4 @@
+// Package self collect datakit self metrics.
 package self
 
 import (
@@ -60,8 +61,8 @@ func setMin(prev, cur int64) int64 {
 
 func (s *ClientStat) Update() {
 	s.HostName = config.Cfg.Hostname
-	if config.Cfg.DataWay.HttpProxy != "" {
-		s.Proxy = config.Cfg.DataWay.HttpProxy
+	if config.Cfg.DataWay.HTTPProxy != "" {
+		s.Proxy = config.Cfg.DataWay.HTTPProxy
 	}
 
 	var memStatus runtime.MemStats
@@ -96,7 +97,7 @@ func (s *ClientStat) Update() {
 }
 
 func (s *ClientStat) ToMetric() *io.Point {
-	s.Uptime = int64(time.Now().Sub(StartTime) / time.Second)
+	s.Uptime = int64(time.Since(StartTime) / time.Second)
 
 	measurement := "datakit"
 

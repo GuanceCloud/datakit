@@ -49,7 +49,11 @@ func VirtualMemoryStat4Test() (*mem.VirtualMemoryStat, error) {
 func TestMemCollect(t *testing.T) {
 	i := &Input{vmStat: VirtualMemoryStat4Test}
 	i.platform = "linux" // runtime.GOOS
-	i.Collect()
+
+	if err := i.Collect(); err != nil {
+		t.Error(err)
+	}
+
 	collect := i.collectCache[0].(*memMeasurement).fields
 
 	assertEqualFloat64(t, 100*float64(vmStat.Used)/float64(vmStat.Total), collect["used_percent"].(float64), "used_percent")
@@ -90,12 +94,14 @@ func TestMemCollect(t *testing.T) {
 }
 
 func assertEqualFloat64(t *testing.T, expected, actual float64, mName string) {
+	t.Helper()
 	if expected != actual {
 		t.Errorf("error: "+mName+" expected: %f \t actual %f", expected, actual)
 	}
 }
 
 func assertEqualUint64(t *testing.T, expected, actual uint64, mName string) {
+	t.Helper()
 	if expected != actual {
 		t.Errorf("error: "+mName+" expected: %d \t actual %d", expected, actual)
 	}

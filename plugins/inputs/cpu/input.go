@@ -1,3 +1,4 @@
+// Package cpu collect CPU metrics.
 package cpu
 
 import (
@@ -72,7 +73,7 @@ func (i *Input) Collect() error {
 	// totalCPU only
 	cpuTimes, err := i.ps.CPUTimes(i.PerCPU, true)
 	if err != nil {
-		return fmt.Errorf("error gather cpu stats: %s", err)
+		return fmt.Errorf("error gather cpu stats: %w", err)
 	}
 
 	var coreTemp map[string]float64
@@ -86,7 +87,7 @@ func (i *Input) Collect() error {
 		}
 	}
 
-	time_now := time.Now()
+	now := time.Now()
 	for _, cts := range cpuTimes {
 		tags := map[string]string{
 			"cpu": cts.CPU,
@@ -95,13 +96,13 @@ func (i *Input) Collect() error {
 			tags[k] = v
 		}
 
-		_, total := CpuActiveTotalTime(cts)
+		_, total := CPUActiveTotalTime(cts)
 
 		lastCts, ok := i.lastStats[cts.CPU]
 		if !ok {
 			continue
 		}
-		_, lastTotal := CpuActiveTotalTime(lastCts)
+		_, lastTotal := CPUActiveTotalTime(lastCts)
 		totalDelta := total - lastTotal
 		if totalDelta < 0 {
 			l.Warn("error: current total cpu time less than previous total cpu time")
@@ -131,7 +132,7 @@ func (i *Input) Collect() error {
 				fields["core_temperature"] = v
 			}
 		}
-		i.appendMeasurement(inputName, tags, fields, time_now)
+		i.appendMeasurement(inputName, tags, fields, now)
 	}
 	// last cputimes stats
 	i.lastStats = make(map[string]cpu.TimesStat)
@@ -147,27 +148,32 @@ func (i *Input) Run() {
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
-	i.Collect() // gather lastSats
-	time.Sleep(time.Second * 10)
+	if err := i.Collect(); err != nil { // gather lastSats
+		l.Errorf("Collect: %s", err.Error())
+	}
+
+	time.Sleep(i.Interval.Duration)
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
 	for {
+		start := time.Now()
+		if err := i.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(i.collectCache) > 0 {
+			if err := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
+				&io.Option{CollectCost: time.Since((start))}); err != nil {
+				l.Errorf("FeedMeasurement: %s", err)
+			}
+		}
+		i.collectCache = make([]inputs.Measurement, 0)
+
 		select {
 		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err != nil {
-				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
-			}
-			if len(i.collectCache) > 0 {
-				if err := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since((start))}); err != nil {
-					io.FeedLastError(inputName, err.Error())
-				}
-			}
-			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
 			l.Infof("cpu input exit")
 			return
@@ -175,7 +181,7 @@ func (i *Input) Run() {
 	}
 }
 
-// ReadEnv, support envs：
+// ReadEnv support envs：
 //   ENV_INPUT_CPU_PERCPU : booler
 //   ENV_INPUT_CPU_ENABLE_TEMPERATURE : booler
 func (i *Input) ReadEnv(envs map[string]string) {
@@ -198,7 +204,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			ps:                &CPUInfo{},

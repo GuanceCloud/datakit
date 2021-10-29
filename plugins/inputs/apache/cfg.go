@@ -9,6 +9,7 @@ const (
 	minInterval = time.Second
 	maxInterval = time.Second * 30
 
+	//nolint:lll
 	sample = `
 [[inputs.apache]]
   url = "http://127.0.0.1/server-status?auto"
@@ -36,6 +37,7 @@ const (
   # ... `
 
 	// 此处 ip_or_host 可能存在 `127.0.0.1:80 127.0.0.1` 和 `127.0.0.1`	，使用 GREEDYDATA.
+	//nolint:lll
 	pipeline = `
 # access log
 grok(_,"%{GREEDYDATA:ip_or_host} - - \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{NUMBER:http_code} ")

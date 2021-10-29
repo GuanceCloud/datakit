@@ -2,7 +2,6 @@ package jenkins
 
 import (
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
@@ -64,7 +63,7 @@ type jenkinslog struct {
 }
 
 type Input struct {
-	Url             string            `toml:"url"`
+	URL             string            `toml:"url"`
 	Key             string            `toml:"key"`
 	Interval        datakit.Duration  `toml:"interval"`
 	ResponseTimeout datakit.Duration  `toml:"response_timeout"`
@@ -79,7 +78,6 @@ type Input struct {
 	tail  *tailer.Tailer
 
 	lastErr      error
-	wg           sync.WaitGroup
 	collectCache []inputs.Measurement
 }
 

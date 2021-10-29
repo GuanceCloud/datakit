@@ -151,6 +151,8 @@ func parseDataDogTags(tags map[string]string, message string) {
 		return
 	}
 
+	const TrueVal = "true"
+
 	start, i := 0, 0
 	var k string
 	var inVal bool // check if we are parsing the value part of the tag
@@ -158,13 +160,13 @@ func parseDataDogTags(tags map[string]string, message string) {
 		if message[i] == ',' {
 			if k == "" {
 				k = message[start:i]
-				tags[k] = "true" // this is because influx doesn't support empty tags
+				tags[k] = TrueVal // this is because influx doesn't support empty tags
 				start = i + 1
 				continue
 			}
 			v := message[start:i]
 			if v == "" {
-				v = "true"
+				v = TrueVal
 			}
 			tags[k] = v
 			start = i + 1
@@ -176,7 +178,7 @@ func parseDataDogTags(tags map[string]string, message string) {
 		}
 	}
 	if k == "" && start < i+1 {
-		tags[message[start:i+1]] = "true"
+		tags[message[start:i+1]] = TrueVal
 	}
 	// grab the last value
 	if k != "" {
@@ -184,6 +186,6 @@ func parseDataDogTags(tags map[string]string, message string) {
 			tags[k] = message[start : i+1]
 			return
 		}
-		tags[k] = "true"
+		tags[k] = TrueVal
 	}
 }

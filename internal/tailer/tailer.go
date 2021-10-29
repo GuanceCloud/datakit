@@ -1,3 +1,4 @@
+// Package tailer wraps logging file collection
 package tailer
 
 import (
@@ -230,14 +231,13 @@ func (t *Tailer) cleanExpriedFile(newFileList []string) {
 	}
 }
 
-func (t *Tailer) Close() error {
+func (t *Tailer) Close() {
 	select {
 	case <-t.stop:
 		// pass
 	default:
 		close(t.stop)
 	}
-	return nil
 }
 
 func (t *Tailer) addToFileList(filename string, tl *Single) {

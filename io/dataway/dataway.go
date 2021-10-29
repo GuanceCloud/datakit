@@ -1,3 +1,4 @@
+// Package dataway implement all dataway API request.
 package dataway
 
 import (
@@ -45,7 +46,7 @@ type DataWayCfg struct {
 
 	DeprecatedURL    string `toml:"url,omitempty"`
 	HTTPTimeout      string `toml:"timeout"`
-	HttpProxy        string `toml:"http_proxy"`
+	HTTPProxy        string `toml:"http_proxy"`
 	Hostname         string `toml:"-"`
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
@@ -131,7 +132,7 @@ func (dw *DataWayCfg) Apply() error {
 
 	dw.TimeoutDuration = timeout
 
-	if err := dw.initHttp(); err != nil {
+	if err := dw.initHTTP(); err != nil {
 		return err
 	}
 
@@ -164,7 +165,7 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 		host:        u.Host,
 		categoryURL: map[string]string{},
 		ontest:      dw.ontest,
-		proxy:       dw.HttpProxy,
+		proxy:       dw.HTTPProxy,
 		dw:          dw, // reference
 	}
 
@@ -186,17 +187,17 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 	return cli, nil
 }
 
-func (dw *DataWayCfg) initHttp() error {
+func (dw *DataWayCfg) initHTTP() error {
 	cliopts := &ihttp.Options{
 		DialTimeout: dw.TimeoutDuration,
 	}
 
-	if dw.HttpProxy != "" { // set proxy
-		if u, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
+	if dw.HTTPProxy != "" { // set proxy
+		if u, err := url.ParseRequestURI(dw.HTTPProxy); err != nil {
 			l.Warnf("parse http proxy failed err: %s, ignored", err.Error())
 		} else {
 			cliopts.ProxyURL = u
-			l.Infof("set dataway proxy to %s ok", dw.HttpProxy)
+			l.Infof("set dataway proxy to %s ok", dw.HTTPProxy)
 		}
 	}
 

@@ -20,11 +20,11 @@ type SelfInfo struct {
 	stat *ClientStat
 }
 
-func (_ *SelfInfo) Catalog() string {
+func (*SelfInfo) Catalog() string {
 	return "self"
 }
 
-func (_ *SelfInfo) SampleConfig() string {
+func (*SelfInfo) SampleConfig() string {
 	return ``
 }
 
@@ -48,7 +48,7 @@ func (s *SelfInfo) Run() {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	StartTime = time.Now()
 	inputs.Add(inputName, func() inputs.Input {
 		return &SelfInfo{

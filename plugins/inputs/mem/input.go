@@ -1,3 +1,4 @@
+// Package mem collects host memory metrics.
 package mem
 
 import (
@@ -53,7 +54,7 @@ func (m *memMeasurement) LineProto() (*io.Point, error) {
 }
 
 // https://man7.org/linux/man-pages/man5/proc.5.html
-
+//nolint:lll
 func (m *memMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
@@ -107,7 +108,7 @@ func (i *Input) Collect() error {
 	i.collectCache = make([]inputs.Measurement, 0)
 	vm, err := i.vmStat()
 	if err != nil {
-		return fmt.Errorf("error getting virtual memory info: %s", err)
+		return fmt.Errorf("error getting virtual memory info: %w", err)
 	}
 
 	fields := map[string]interface{}{
@@ -173,20 +174,23 @@ func (i *Input) Run() {
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
+
 	for {
+		start := time.Now()
+		if err := i.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(i.collectCache) > 0 {
+			if err := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("FeedMeasurement: %s", err)
+			}
+		}
+
 		select {
 		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error())
-					l.Error(errFeed)
-				}
-			} else {
-				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
-			}
 		case <-datakit.Exit.Wait():
 			l.Infof("memory input exit")
 			return
@@ -212,7 +216,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			platform: runtime.GOOS,

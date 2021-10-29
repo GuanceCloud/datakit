@@ -9,13 +9,13 @@ import (
 
 type ConversionFunc func(value sql.RawBytes) (interface{}, error)
 
-func Conv(val interface{}, Datatype string) (interface{}, error) {
+func Conv(val interface{}, datatype string) (interface{}, error) {
 	var (
 		res interface{}
 		err error
 	)
 
-	switch Datatype {
+	switch datatype {
 	case inputs.Float:
 		res, err = cast.ToFloat64E(val)
 	case inputs.Int:

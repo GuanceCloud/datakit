@@ -72,18 +72,11 @@ define pub
 		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
-lint: lint_deps
-	@truncate -s 0 check.err
-	@golangci-lint --version | tee -a check.err
-	@golangci-lint run | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
-
-fix_lint: lint_deps
-	@truncate -s 0 check.err
-	@golangci-lint --version | tee -a check.err
-	@golangci-lint run --fix | tee -a check.err # https://golangci-lint.run/usage/install/#local-installation
-
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
+
+build: prepare man gofmt lfparser_disable_line plparser_disable_line
+	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 testing: deps
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
@@ -115,8 +108,8 @@ pub_testing_win_img:
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
-
+	@sudo docker buildx build --platform linux/arm64,linux/amd64 \
+		-t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
 pub_release_win_img:
 	# release to pub hub
@@ -129,14 +122,14 @@ pub_release_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
+	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t \
+		pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_release_mac:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
-
 
 ci_pass_notify:
 	@curl \
@@ -171,7 +164,7 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser plparser # TODO: add @lint and @test here
+deps: prepare man gofmt lfparser_disable_line plparser_disable_line lint_with_exit
 
 man:
 	@packr2 clean
@@ -185,7 +178,8 @@ gofmt:
 vet:
 	@go vet ./...
 
-test: test_deps
+# all testing
+at: test_deps
 	@truncate -s 0 test.output
 	@echo "#####################" | tee -a test.output
 	@echo "#" $(DATE) | tee -a test.output
@@ -193,28 +187,22 @@ test: test_deps
 	@echo "#####################" | tee -a test.output
 	for pkg in `go list ./...`; do \
 		echo "# testing $$pkg..." | tee -a test.output; \
-		GO111MODULE=off CGO_ENABLED=1 go test -race -timeout 30s -cover -benchmem -bench . $$pkg |tee -a test.output; \
+		GO111MODULE=off CGO_ENABLED=1 go test -race -timeout 30s \
+			-cover -benchmem -bench . $$pkg | tee -a test.output; \
 		echo "######################" | tee -a test.output; \
 	done
 
-lfparser:
-	@rm -rf io/parser/gram_y.go
-	@rm -rf io/parser/gram.y.go
-	@rm -rf io/parser/parser.y.go
-	@rm -rf io/parser/parser_y.go
-	@goyacc -o io/parser/gram_y.go io/parser/gram.y
-
-plparser:
-	@rm -rf pipeline/parser/gram_y.go
-	@rm -rf pipeline/parser/gram.y.go
-	@rm -rf pipeline/parser/parser.y.go
-	@rm -rf pipeline/parser/parser_y.go
-	@goyacc -o pipeline/parser/gram_y.go pipeline/parser/gram.y
-
-lint_deps: prepare gofmt lfparser_disable_line plparser_disable_line man vet
-
-lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
+
+lint:
+	@truncate -s 0 lint.err
+	@golangci-lint --version 
+	@golangci-lint run --fix | tee -a lint.err
+
+lint_with_exit:
+	@truncate -s 0 lint.err
+	@golangci-lint --version 
+	@golangci-lint run --fix
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go

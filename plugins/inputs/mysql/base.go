@@ -24,7 +24,8 @@ func (m *baseMeasurement) LineProto() (*io.Point, error) {
 }
 
 // 指定指标.
-func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
+//nolint:lll
+func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "mysql",
 		Fields: map[string]interface{}{
@@ -503,18 +504,23 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 
 // 数据源获取数据.
 func (m *baseMeasurement) getStatus() error {
-	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
-	rows, err := m.i.db.Query(globalStatusSql)
+	globalStatusSQL := "SHOW /*!50002 GLOBAL */ STATUS;"
+	rows, err := m.i.db.Query(globalStatusSQL)
 	if err != nil {
 		l.Errorf("query error %v", err)
 		return err
 	}
 
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return err
+	}
 
 	for rows.Next() {
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
 			// error (todo)
@@ -529,17 +535,22 @@ func (m *baseMeasurement) getStatus() error {
 
 // variables data.
 func (m *baseMeasurement) getVariables() error {
-	variablesSql := "SHOW GLOBAL VARIABLES;"
-	rows, err := m.i.db.Query(variablesSql)
+	variablesSQL := "SHOW GLOBAL VARIABLES;"
+	rows, err := m.i.db.Query(variablesSQL)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return err
+	}
 
 	for rows.Next() {
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
 			continue
@@ -552,18 +563,23 @@ func (m *baseMeasurement) getVariables() error {
 
 // log stats.
 func (m *baseMeasurement) getLogStats() error {
-	logSql := "SHOW BINARY LOGS;"
-	rows, err := m.i.db.Query(logSql)
+	logSQL := "SHOW BINARY LOGS;"
+	rows, err := m.i.db.Query(logSQL)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return err
+	}
 
 	var binaryLogSpace int64
 	for rows.Next() {
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
 			l.Warnf("rows.Scan(): %s, ignored", err.Error())

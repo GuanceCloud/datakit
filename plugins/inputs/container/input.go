@@ -1,3 +1,4 @@
+// Package container collect container metrics/loggings/objects.
 package container
 
 import (
@@ -5,7 +6,6 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -45,9 +45,6 @@ type Input struct {
 
 	clients []collector
 
-	wg sync.WaitGroup
-	mu sync.Mutex
-
 	DepercatedLog            DepercatedLog `toml:"logfilter"`
 	DeprecatedPodNameRewrite []string      `toml:"pod_name_write"`
 }
@@ -68,8 +65,9 @@ func (*Input) PipelineConfig() map[string]string { return nil }
 
 func (*Input) AvailableArchs() []string { return []string{datakit.OSLinux} }
 
-// TODO.
-func (*Input) RunPipeline() {}
+func (*Input) RunPipeline() {
+	// TODO.
+}
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -81,27 +79,27 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (this *Input) Run() {
+func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if this.setup() {
+	if i.setup() {
 		return
 	}
 	l.Info("container input startd")
 
-	if this.EnableObject {
-		for _, c := range this.clients {
-			c.Object(context.Background(), this.in)
+	if i.EnableObject {
+		for _, c := range i.clients {
+			c.Object(context.Background(), i.in)
 		}
 	}
 
-	if this.EnableLogging {
-		for _, c := range this.clients {
+	if i.EnableLogging {
+		for _, c := range i.clients {
 			c.Logging(context.Background())
 		}
 	}
 
-	metricsTick := time.NewTicker(this.MetricInterval.Duration)
+	metricsTick := time.NewTicker(i.MetricInterval.Duration)
 	defer metricsTick.Stop()
 
 	objectTick := time.NewTicker(objectDuration)
@@ -117,22 +115,22 @@ func (this *Input) Run() {
 			return
 
 		case <-metricsTick.C:
-			if this.EnableMetric {
-				for _, c := range this.clients {
-					c.Metric(context.Background(), this.in)
+			if i.EnableMetric {
+				for _, c := range i.clients {
+					c.Metric(context.Background(), i.in)
 				}
 			}
 
 		case <-objectTick.C:
-			if this.EnableObject {
-				for _, c := range this.clients {
-					c.Object(context.Background(), this.in)
+			if i.EnableObject {
+				for _, c := range i.clients {
+					c.Object(context.Background(), i.in)
 				}
 			}
 
 		case <-loggingTick.C:
-			if this.EnableLogging {
-				for _, c := range this.clients {
+			if i.EnableLogging {
+				for _, c := range i.clients {
 					c.Logging(context.Background())
 				}
 			}
@@ -140,18 +138,18 @@ func (this *Input) Run() {
 	}
 }
 
-// ReadEnv, support envs：
+// ReadEnv support envs：
 //   ENV_INPUT_CONTAINER_ENABLE_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_OBJECT : booler
 //   ENV_INPUT_CONTAINER_ENABLE_LOGGING : booler
 //   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
-func (this *Input) ReadEnv(envs map[string]string) {
+func (i *Input) ReadEnv(envs map[string]string) {
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_METRIC"]; ok {
 		b, err := strconv.ParseBool(enable)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_METRIC to bool: %s, ignore", err)
 		} else {
-			this.EnableMetric = b
+			i.EnableMetric = b
 		}
 	}
 
@@ -160,7 +158,7 @@ func (this *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_OBJECT to bool: %s, ignore", err)
 		} else {
-			this.EnableObject = b
+			i.EnableObject = b
 		}
 	}
 
@@ -169,7 +167,7 @@ func (this *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_LOGGING to bool: %s, ignore", err)
 		} else {
-			this.EnableLogging = b
+			i.EnableLogging = b
 		}
 	}
 
@@ -178,15 +176,15 @@ func (this *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
 		} else {
-			this.LoggingRemoveAnsiEscapeCodes = b
+			i.LoggingRemoveAnsiEscapeCodes = b
 		}
 	}
 }
 
-func (this *Input) setup() bool {
+func (i *Input) setup() bool {
 	// 如果配置文件中使用默认 endpoint 且该文件不存在，说明其没有安装 docker（经测试，docker service 停止后，sock 文件依然存在）
 	// 此行为是为了应对 default_enabled_inputs 行为，避免在没有安装 docker 的主机上开启 input，然后无限 error
-	if this.Endpoint == dockerEndpoint {
+	if i.Endpoint == dockerEndpoint {
 		_, staterr := os.Stat(dockerEndpointPath)
 		if os.IsNotExist(staterr) {
 			l.Infof("check defaultEndpoint: %s is not exist, maybe docker.service is not installed, exit", dockerEndpointPath)
@@ -207,22 +205,22 @@ func (this *Input) setup() bool {
 
 		time.Sleep(time.Second)
 
-		if err = this.verifyIgnoreRegexps(); err != nil {
+		if err = i.verifyIgnoreRegexps(); err != nil {
 			l.Error(err)
 			continue
 		}
 
-		if err = this.buildK8sClient(); err != nil {
+		if err = i.buildK8sClient(); err != nil {
 			l.Error(err)
 			continue
 		}
 
-		if err = this.buildDockerClient(); err != nil {
+		if err = i.buildDockerClient(); err != nil {
 			l.Error(err)
 			continue
 		}
 
-		if err = this.initLogs(); err != nil {
+		if err = i.initLogs(); err != nil {
 			l.Error(err)
 			continue
 		}
@@ -230,24 +228,24 @@ func (this *Input) setup() bool {
 		break
 	}
 
-	if this.EnableMetric || this.EnableObject {
-		go this.doFeed()
+	if i.EnableMetric || i.EnableObject {
+		go i.doFeed()
 	}
 
 	return false
 }
 
-func (this *Input) buildDockerClient() error {
+func (i *Input) buildDockerClient() error {
 	t := net.TLSClientConfig{
 		CaCerts: func() []string {
-			if this.TLSCA == "" {
+			if i.TLSCA == "" {
 				return nil
 			}
-			return []string{this.TLSCA}
+			return []string{i.TLSCA}
 		}(),
-		Cert:               this.TLSCert,
-		CertKey:            this.TLSKey,
-		InsecureSkipVerify: this.InsecureSkipVerify,
+		Cert:               i.TLSCert,
+		CertKey:            i.TLSKey,
+		InsecureSkipVerify: i.InsecureSkipVerify,
 	}
 
 	tlsConfig, err := t.TLSConfig()
@@ -256,62 +254,61 @@ func (this *Input) buildDockerClient() error {
 		return err
 	}
 
-	client, err := newDockerClient(this.Endpoint, tlsConfig)
+	client, err := newDockerClient(i.Endpoint, tlsConfig)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
 
-	client.IgnoreImageName = this.IgnoreImageName
-	client.IgnoreContainerName = this.IgnoreContainerName
-	client.LoggingRemoveAnsiEscapeCodes = this.LoggingRemoveAnsiEscapeCodes
-	client.ProcessTags = this.processTags
-	client.Logs = this.Logs
-	if verifyIntegrityOfK8sConnect(this.Kubernetes) {
-		client.K8s = this.Kubernetes
+	client.IgnoreImageName = i.IgnoreImageName
+	client.IgnoreContainerName = i.IgnoreContainerName
+	client.LoggingRemoveAnsiEscapeCodes = i.LoggingRemoveAnsiEscapeCodes
+	client.ProcessTags = i.processTags
+	client.Logs = i.Logs
+	if verifyIntegrityOfK8sConnect(i.Kubernetes) {
+		client.K8s = i.Kubernetes
 	}
 
-	this.clients = append(this.clients, client)
+	i.clients = append(i.clients, client)
 
 	return nil
 }
 
-func (this *Input) buildK8sClient() error {
-	if this.Kubernetes == nil {
+func (i *Input) buildK8sClient() error {
+	if i.Kubernetes == nil {
 		return nil
 	}
 
-	err := this.Kubernetes.Init()
-	if err != nil {
+	if err := i.Kubernetes.Init(); err != nil {
 		// 如果使用默认 k8s url，init() 失败将不会追究，忽略此错误避免影响到 container 采集
 
-		if this.Kubernetes.URL == "http://127.0.0.1:10255" ||
-			this.Kubernetes.URL == "http://localhost:10255" {
-			// 此处将该指针置空，以示后续将不再采集 k8s
-			this.Kubernetes = nil
+		if i.Kubernetes.URL == "http://127.0.0.1:10255" ||
+			i.Kubernetes.URL == "http://localhost:10255" {
+			// NOTE: 此处将该指针置空，以示后续将不再采集 k8s
+			i.Kubernetes = nil
 			return nil
 		}
 		// 如果该 k8s url 并非默认值，则说明该值是一个经过配置的、预期可用的 url，不可再忽略此报错
 		return err
 	}
 
-	this.clients = append(this.clients, this.Kubernetes)
+	i.clients = append(i.clients, i.Kubernetes)
 
 	return nil
 }
 
-func (this *Input) initLogs() error {
-	return this.Logs.Init()
+func (i *Input) initLogs() error {
+	return i.Logs.Init()
 }
 
-func (this *Input) verifyIgnoreRegexps() error {
-	for _, n := range this.IgnoreImageName {
+func (i *Input) verifyIgnoreRegexps() error {
+	for _, n := range i.IgnoreImageName {
 		if _, err := regexp.Compile(n); err != nil {
 			return err
 		}
 	}
 
-	for _, n := range this.IgnoreContainerName {
+	for _, n := range i.IgnoreContainerName {
 		if _, err := regexp.Compile(n); err != nil {
 			return err
 		}
@@ -320,7 +317,7 @@ func (this *Input) verifyIgnoreRegexps() error {
 	return nil
 }
 
-func (this *Input) doFeed() {
+func (i *Input) doFeed() {
 	type data = struct {
 		pts   []*io.Point
 		costs []time.Duration
@@ -335,9 +332,9 @@ func (this *Input) doFeed() {
 		case <-datakit.Exit.Wait():
 			return
 
-		case jobs := <-this.in:
+		case jobs := <-i.in:
 			for _, job := range jobs {
-				this.processTags(job.tags)
+				i.processTags(job.tags)
 
 				pt, err := io.MakePoint(job.measurement, job.tags, job.fields, job.ts)
 				if err != nil {
@@ -387,21 +384,19 @@ func (this *Input) doFeed() {
 	}
 }
 
-func (this *Input) processTags(tags map[string]string) {
-	for _, key := range this.DropTags {
-		if _, ok := tags[key]; ok {
-			delete(tags, key)
-		}
+func (i *Input) processTags(tags map[string]string) {
+	for _, key := range i.DropTags {
+		delete(tags, key)
 	}
 
-	for k, v := range this.Tags {
+	for k, v := range i.Tags {
 		if _, ok := tags[k]; !ok {
 			tags[k] = v
 		}
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
 	})

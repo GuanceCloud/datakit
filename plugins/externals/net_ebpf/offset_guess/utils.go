@@ -148,6 +148,7 @@ func copyOffset(src *OffsetGuessC, dst *OffsetGuessC) {
 	dst.offset_skaddr6_sin6_port = src.offset_skaddr6_sin6_port
 }
 
+//nolint:gocyclo
 func try_guess(status *OffsetGuessC, conn *Conninfo, guessWhich int) bool {
 	switch guessWhich {
 	case GUESS_SK_NUM:

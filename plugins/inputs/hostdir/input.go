@@ -1,3 +1,4 @@
+// Package hostdir collect directory metrics.
 package hostdir
 
 import (
@@ -81,26 +82,28 @@ func (i *Input) Run() {
 	l.Infof("hostdir input started")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
-	isfirstRun := true
 	defer tick.Stop()
+
 	for {
+		i.collectCache = make([]inputs.Measurement, 0)
+
+		start := time.Now()
+		if err := i.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(i.collectCache) > 0 {
+			if err := inputs.FeedMeasurement(metricName,
+				datakit.Metric,
+				i.collectCache,
+				&io.Option{CollectCost: time.Since((start))}); err != nil {
+				l.Errorf("FeedMeasurement: %s", err)
+			}
+		}
+
 		select {
 		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since((start))}); errFeed != nil {
-					if !isfirstRun {
-						io.FeedLastError(inputName, errFeed.Error())
-					} else {
-						isfirstRun = false
-					}
-				}
-			} else {
-				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
-			}
-			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
 			l.Infof("hostdir input exit")
 			return
@@ -118,7 +121,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 5},

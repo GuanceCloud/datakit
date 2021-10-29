@@ -1,5 +1,4 @@
-// Datakit configure modules
-
+// Package config manage datakit's configurations, include all inputs TOML configure.
 package config
 
 import (
@@ -206,7 +205,7 @@ func (c *Config) SetUUID() error {
 }
 
 func (c *Config) LoadMainTOML(p string) error {
-	cfgdata, err := ioutil.ReadFile(p)
+	cfgdata, err := ioutil.ReadFile(filepath.Clean(p))
 	if err != nil {
 		l.Errorf("read main cfg %s failed: %s", p, err.Error())
 		return err
@@ -604,7 +603,7 @@ func CreateUUIDFile(f, uuid string) error {
 }
 
 func LoadUUID(f string) (string, error) {
-	if data, err := ioutil.ReadFile(f); err != nil {
+	if data, err := ioutil.ReadFile(filepath.Clean(f)); err != nil {
 		return "", err
 	} else {
 		return string(data), nil
@@ -612,13 +611,13 @@ func LoadUUID(f string) (string, error) {
 }
 
 func emptyDir(fp string) bool {
-	fd, err := os.Open(fp)
+	fd, err := os.Open(filepath.Clean(fp))
 	if err != nil {
 		l.Error(err)
 		return false
 	}
 
-	defer fd.Close() //nolint:errcheck
+	defer fd.Close() //nolint:errcheck,gosec
 
 	_, err = fd.ReadDir(1)
 	return errors.Is(err, io.EOF)

@@ -62,9 +62,9 @@ func doHandleRUMBody(body []byte,
 	precision string,
 	isjson bool,
 	extraTags map[string]string,
-	appIdWhiteList []string) ([]*io.Point, error) {
+	appIDWhiteList []string) ([]*io.Point, error) {
 	if isjson {
-		return jsonPoints(body, precision, extraTags, appIdWhiteList)
+		return jsonPoints(body, precision, extraTags, appIDWhiteList)
 	}
 
 	rumpts, err := lp.ParsePoints(body, &lp.Option{
@@ -77,8 +77,8 @@ func doHandleRUMBody(body []byte,
 		Callback: func(p influxm.Point) (influxm.Point, error) {
 			name := string(p.Name())
 
-			if !contains(p.Tags().GetString(rumMetricAppID), appIdWhiteList) {
-				return nil, ErrRUMAppIdNotInWhiteList
+			if !contains(p.Tags().GetString(rumMetricAppID), appIDWhiteList) {
+				return nil, ErrRUMAppIDNotInWhiteList
 			}
 
 			if _, ok := rumMetricNames[name]; !ok {

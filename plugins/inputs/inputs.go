@@ -1,3 +1,4 @@
+// Package inputs manage all input's interfaces.
 package inputs
 
 import (
@@ -34,8 +35,7 @@ func GetElectionInputs() []ElectionInput {
 	res := []ElectionInput{}
 	for k, arr := range InputsInfo {
 		for _, x := range arr {
-			switch y := x.input.(type) {
-			case ElectionInput:
+			if y, ok := x.input.(ElectionInput); ok {
 				l.Debugf("find election inputs %s", k)
 				res = append(res, y)
 			}
@@ -70,7 +70,7 @@ type Instance interface {
 
 type HTTPInput interface {
 	// Input
-	RegHttpHandler()
+	RegHTTPHandler()
 }
 
 type PipelineInput interface {
@@ -79,7 +79,7 @@ type PipelineInput interface {
 	RunPipeline()
 }
 
-// new input interface got extra interfaces, for better documentation.
+// InputV2 new input interface got extra interfaces, for better documentation.
 type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement
@@ -122,19 +122,19 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-func AddInput(name string, input Input) error {
+func AddInput(name string, input Input) {
 	mtx.Lock()
 	defer mtx.Unlock()
 
 	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
 
 	l.Debugf("add input %s, total %d", name, len(InputsInfo[name]))
-	return nil
 }
 
 func AddSelf() {
-	self, _ := Inputs["self"]
-	AddInput("self", self())
+	if i, ok := Inputs["self"]; ok {
+		AddInput("self", i())
+	}
 }
 
 func ResetInputs() {
@@ -174,7 +174,7 @@ func RunInputs() error {
 			}
 
 			if inp, ok := ii.input.(HTTPInput); ok {
-				inp.RegHttpHandler()
+				inp.RegHTTPHandler()
 			}
 
 			if inp, ok := ii.input.(PipelineInput); ok {
@@ -188,7 +188,7 @@ func RunInputs() error {
 			func(name string, ii *inputInfo) {
 				g.Go(func(ctx context.Context) error {
 					// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
-					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
+					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
 					l.Infof("starting input %s ...", name)
 
 					protectRunningInput(name, ii)

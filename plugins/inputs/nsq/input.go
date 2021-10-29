@@ -1,3 +1,4 @@
+// Package nsq collects NSQ metrics.
 package nsq
 
 import (
@@ -79,14 +80,14 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (this *Input) Run() {
+func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if this.setup() {
+	if i.setup() {
 		return
 	}
 
-	gatherTicker := time.NewTicker(this.duration)
+	gatherTicker := time.NewTicker(i.duration)
 	defer gatherTicker.Stop()
 
 	updateListTicker := time.NewTicker(updateEndpointListInterval)
@@ -99,12 +100,12 @@ func (this *Input) Run() {
 			return
 
 		case <-gatherTicker.C:
-			if this.pause {
+			if i.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
 			start := time.Now()
-			pts, err := this.gather()
+			pts, err := i.gather()
 			if err != nil {
 				l.Errorf("gather: %s, ignored", err)
 			}
@@ -118,25 +119,25 @@ func (this *Input) Run() {
 			}
 
 		case <-updateListTicker.C:
-			if this.pause {
+			if i.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			if this.isLookupd() {
-				if err := this.updateEndpointListByLookupd(this.lookupdEndpoint); err != nil {
+			if i.isLookupd() {
+				if err := i.updateEndpointListByLookupd(i.lookupdEndpoint); err != nil {
 					l.Error(err)
 					continue
 				}
-				l.Debugf("nsqd endpoint list: %v", this.nsqdEndpointList)
+				l.Debugf("nsqd endpoint list: %v", i.nsqdEndpointList)
 			}
 
-		case this.pause = <-this.pauseCh:
+		case i.pause = <-i.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (this *Input) setup() bool {
+func (i *Input) setup() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -147,7 +148,7 @@ func (this *Input) setup() bool {
 		}
 		time.Sleep(time.Second)
 
-		if err := this.setupDo(); err != nil {
+		if err := i.setupDo(); err != nil {
 			continue
 		}
 		break
@@ -156,17 +157,17 @@ func (this *Input) setup() bool {
 	return false
 }
 
-func (this *Input) setupDo() error {
-	if this.httpClient == nil {
-		this.httpClient = &http.Client{Timeout: 5 * time.Second}
+func (i *Input) setupDo() error {
+	if i.httpClient == nil {
+		i.httpClient = &http.Client{Timeout: 5 * time.Second}
 	}
 
-	if this.TLSCA != "" {
+	if i.TLSCA != "" {
 		tlsconfig := &net.TLSClientConfig{
-			CaCerts:            []string{this.TLSCA},
-			Cert:               this.TLSCert,
-			CertKey:            this.TLSKey,
-			InsecureSkipVerify: this.InsecureSkipVerify,
+			CaCerts:            []string{i.TLSCA},
+			Cert:               i.TLSCert,
+			CertKey:            i.TLSKey,
+			InsecureSkipVerify: i.InsecureSkipVerify,
 		}
 
 		tc, err := tlsconfig.TLSConfig()
@@ -174,73 +175,78 @@ func (this *Input) setupDo() error {
 			l.Errorf("compose TLS: %s", err)
 			return err
 		}
-		this.httpClient.Transport = &http.Transport{TLSClientConfig: tc}
+		i.httpClient.Transport = &http.Transport{TLSClientConfig: tc}
 	}
 
-	if this.isLookupd() {
-		u, err := buildURL(fmt.Sprintf(lookupdPattern, this.Lookupd))
+	if i.isLookupd() {
+		u, err := buildURL(fmt.Sprintf(lookupdPattern, i.Lookupd))
 		if err != nil {
 			l.Errorf("build URL: %s", err)
 			return err
 		}
-		this.lookupdEndpoint = u.String()
-		if err := this.updateEndpointListByLookupd(this.lookupdEndpoint); err != nil {
+		i.lookupdEndpoint = u.String()
+		if err := i.updateEndpointListByLookupd(i.lookupdEndpoint); err != nil {
 			l.Error(err)
 			return err
 		}
 	} else {
-		if len(this.NSQDs) == 0 {
+		if len(i.NSQDs) == 0 {
 			return fmt.Errorf("invalid nsqd endpoints")
 		}
-		for _, n := range this.NSQDs {
+		for _, n := range i.NSQDs {
 			u, err := buildURL(fmt.Sprintf(nsqdStatsPattern, n))
 			if err != nil {
 				l.Errorf("build URL: %s", err)
 				return err
 			}
-			this.nsqdEndpointList[u.String()] = nil
+			i.nsqdEndpointList[u.String()] = nil
 		}
 	}
 
 	var err error
-	this.duration, err = timex.ParseDuration(this.Interval)
+	i.duration, err = timex.ParseDuration(i.Interval)
 	if err != nil {
 		l.Warnf("parse duration error: %s", err)
 	}
-	if this.duration < minInterval {
-		this.duration = defaultInterval
-		l.Warnf("interval should large %s, got %s, use default interval %s", minInterval, this.Interval, defaultInterval)
+	if i.duration < minInterval {
+		i.duration = defaultInterval
+		l.Warnf("interval should large %s, got %s, use default interval %s",
+			minInterval, i.Interval, defaultInterval)
 	}
 
 	return nil
 }
 
-func (this *Input) isLookupd() bool {
-	return this.Lookupd != ""
+func (i *Input) isLookupd() bool {
+	return i.Lookupd != ""
 }
 
-func (this *Input) gather() ([]*io.Point, error) {
-	if len(this.nsqdEndpointList) == 0 {
+func (i *Input) gather() ([]*io.Point, error) {
+	if len(i.nsqdEndpointList) == 0 {
 		l.Warn("endpoint list is empty")
 		return nil, nil
 	}
 
 	st := newStats()
 
-	for endpoint := range this.nsqdEndpointList {
-		body, err := this.httpGet(endpoint)
+	for endpoint := range i.nsqdEndpointList {
+		body, err := i.httpGet(endpoint)
 		if err != nil {
 			l.Errorf("httpGet: %s, ignored", err)
 			continue
 		}
-		st.add(getURLHost(endpoint), body)
+
+		if err := st.add(getURLHost(endpoint), body); err != nil {
+			l.Errorf("st.add: %s, ignored", err.Error())
+			continue
+		}
 	}
 
-	return st.makePoint(this.Tags)
+	return st.makePoint(i.Tags)
 }
 
-func (this *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
-	body, err := this.httpGet(lookupdEndpoint)
+func (i *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
+	body, err := i.httpGet(lookupdEndpoint)
 	if err != nil {
 		return err
 	}
@@ -248,7 +254,7 @@ func (this *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
 	var endpoints []string
 	lk := &LookupNodes{}
 	if err := json.Unmarshal(body, lk); err != nil {
-		return fmt.Errorf("error parsing response: %s", err)
+		return fmt.Errorf("error parsing response: %w", err)
 	}
 
 	for _, p := range lk.Producers {
@@ -263,20 +269,20 @@ func (this *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
 	}
 
 	for _, endpoint := range endpoints {
-		if _, ok := this.nsqdEndpointList[endpoint]; !ok {
-			this.nsqdEndpointList[endpoint] = nil
+		if _, ok := i.nsqdEndpointList[endpoint]; !ok {
+			i.nsqdEndpointList[endpoint] = nil
 		}
 	}
 
 	return nil
 }
 
-func (this *Input) httpGet(u string) ([]byte, error) {
-	r, err := this.httpClient.Get(u)
+func (i *Input) httpGet(u string) ([]byte, error) {
+	r, err := i.httpClient.Get(u)
 	if err != nil {
-		return nil, fmt.Errorf("error while polling %s: %s", u, err)
+		return nil, fmt.Errorf("error while polling %s: %w", u, err)
 	}
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s returned HTTP status %s", u, r.Status)
@@ -284,28 +290,28 @@ func (this *Input) httpGet(u string) ([]byte, error) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, fmt.Errorf(`error reading body: %s`, err)
+		return nil, fmt.Errorf(`error reading body: %w`, err)
 	}
 
 	return body, nil
 }
 
-func (this *Input) Pause() error {
+func (i *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case this.pauseCh <- true:
+	case i.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (this *Input) Resume() error {
+func (i *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case this.pauseCh <- false:
+	case i.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -315,7 +321,7 @@ func (this *Input) Resume() error {
 func buildURL(u string) (*url.URL, error) {
 	addr, err := url.Parse(u)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse address '%s': %s", u, err)
+		return nil, fmt.Errorf("unable to parse address '%s': %w", u, err)
 	}
 	return addr, nil
 }
@@ -328,7 +334,7 @@ func getURLHost(urlStr string) string {
 	return u.Host
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
 	})

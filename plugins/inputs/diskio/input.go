@@ -1,3 +1,4 @@
+// Package diskio collet disk IO metrics.
 package diskio
 
 import (
@@ -64,7 +65,12 @@ var (
   # more_tag = "some_other_value"`
 )
 
-type diskioMeasurement measurement
+type diskioMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
 
 func (m *diskioMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
@@ -97,6 +103,16 @@ func (m *diskioMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
+//nolint:unused,structcheck
+type diskInfoCache struct {
+	// Unix Nano timestamp of the last modification of the device.
+	// This value is used to invalidate the cache
+	modifiedAt int64
+
+	udevDataPath string
+	values       map[string]string
+}
+
 type Input struct {
 	Interval         datakit.Duration
 	Devices          []string
@@ -110,7 +126,7 @@ type Input struct {
 	lastTime     time.Time
 	diskIO       DiskIO
 
-	infoCache    map[string]diskInfoCache
+	infoCache    map[string]diskInfoCache //nolint:structcheck,unused
 	deviceFilter *DevicesFilter
 }
 
@@ -143,7 +159,7 @@ func (i *Input) Collect() error {
 	// disk io stat
 	diskio, err := i.diskIO([]string{}...)
 	if err != nil {
-		return fmt.Errorf("error getting disk io info: %s", err.Error())
+		return fmt.Errorf("error getting disk io info: %w", err)
 	}
 
 	ts := time.Now()
@@ -228,21 +244,27 @@ func (i *Input) Run() {
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
+
 	for {
+		start := time.Now()
+		i.collectCache = make([]inputs.Measurement, 0)
+		if err := i.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(i.collectCache) > 0 {
+			if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
+				&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+				l.Errorf("FeedMeasurement: %s", errFeed)
+
+				io.FeedLastError(inputName, errFeed.Error())
+			}
+		}
+
 		select {
 		case <-tick.C:
-			start := time.Now()
-			i.collectCache = make([]inputs.Measurement, 0)
-			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					l.Error(errFeed)
-					io.FeedLastError(inputName, errFeed.Error())
-				}
-			} else {
-				l.Error(err)
-				io.FeedLastError(inputName, err.Error())
-			}
 		case <-datakit.Exit.Wait():
 			l.Infof("diskio input exit")
 			return
@@ -250,7 +272,7 @@ func (i *Input) Run() {
 	}
 }
 
-// ReadEnv, support envs：
+// ReadEnv support envs：
 //   ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER : booler
 func (i *Input) ReadEnv(envs map[string]string) {
 	if skip, ok := envs["ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER"]; ok {
@@ -326,7 +348,7 @@ func (i *Input) diskTags(devName string) map[string]string {
 	return tags
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			diskIO:   disk.IOCounters,

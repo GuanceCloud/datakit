@@ -46,7 +46,7 @@ func (s *service) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":                     int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":                     int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"cluster_ip":              obj.Spec.ClusterIP,
 			"external_name":           obj.Spec.ExternalName,
 			"external_traffic_policy": fmt.Sprintf("%v", obj.Spec.ExternalTrafficPolicy),
@@ -83,6 +83,7 @@ func (*service) Resource() { /*empty interface*/ }
 
 func (*service) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*service) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesServiceName,

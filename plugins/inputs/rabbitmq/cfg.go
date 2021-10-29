@@ -70,7 +70,7 @@ const (
 )
 
 type Input struct {
-	Url      string            `toml:"url"`
+	URL      string            `toml:"url"`
 	Username string            `toml:"username"`
 	Password string            `toml:"password"`
 	Interval datakit.Duration  `toml:"interval"`
@@ -170,38 +170,37 @@ type Exchange struct {
 }
 
 type Node struct {
-	Name string
-
+	Name                     string
+	DiskFreeAlarm            bool    `json:"disk_free_alarm"`
+	MemAlarm                 bool    `json:"mem_alarm"`
+	Running                  bool    `json:"running"`
 	DiskFree                 int64   `json:"disk_free"`
 	DiskFreeLimit            int64   `json:"disk_free_limit"`
-	DiskFreeAlarm            bool    `json:"disk_free_alarm"`
 	FdTotal                  int64   `json:"fd_total"`
 	FdUsed                   int64   `json:"fd_used"`
 	MemLimit                 int64   `json:"mem_limit"`
 	MemUsed                  int64   `json:"mem_used"`
-	MemAlarm                 bool    `json:"mem_alarm"`
 	ProcTotal                int64   `json:"proc_total"`
 	ProcUsed                 int64   `json:"proc_used"`
 	RunQueue                 int64   `json:"run_queue"`
 	SocketsTotal             int64   `json:"sockets_total"`
 	SocketsUsed              int64   `json:"sockets_used"`
-	Running                  bool    `json:"running"`
 	Uptime                   int64   `json:"uptime"`
 	MnesiaDiskTxCount        int64   `json:"mnesia_disk_tx_count"`
-	MnesiaDiskTxCountDetails Details `json:"mnesia_disk_tx_count_details"`
-	MnesiaRamTxCount         int64   `json:"mnesia_ram_tx_count"`
-	MnesiaRamTxCountDetails  Details `json:"mnesia_ram_tx_count_details"`
+	MnesiaRAMTxCount         int64   `json:"mnesia_ram_tx_count"`
 	GcNum                    int64   `json:"gc_num"`
-	GcNumDetails             Details `json:"gc_num_details"`
-	GcBytesReclaimed         int64   `json:"gc_bytes_reclaimed"`
-	GcBytesReclaimedDetails  Details `json:"gc_bytes_reclaimed_details"`
-	IoReadAvgTime            int64   `json:"io_read_avg_time"`
-	IoReadAvgTimeDetails     Details `json:"io_read_avg_time_details"`
-	IoReadBytes              int64   `json:"io_read_bytes"`
-	IoReadBytesDetails       Details `json:"io_read_bytes_details"`
 	IoWriteAvgTime           int64   `json:"io_write_avg_time"`
-	IoWriteAvgTimeDetails    Details `json:"io_write_avg_time_details"`
 	IoWriteBytes             int64   `json:"io_write_bytes"`
+	IoReadBytes              int64   `json:"io_read_bytes"`
+	GcBytesReclaimed         int64   `json:"gc_bytes_reclaimed"`
+	IoReadAvgTime            int64   `json:"io_read_avg_time"`
+	GcNumDetails             Details `json:"gc_num_details"`
+	MnesiaRAMTxCountDetails  Details `json:"mnesia_ram_tx_count_details"`
+	MnesiaDiskTxCountDetails Details `json:"mnesia_disk_tx_count_details"`
+	GcBytesReclaimedDetails  Details `json:"gc_bytes_reclaimed_details"`
+	IoReadAvgTimeDetails     Details `json:"io_read_avg_time_details"`
+	IoReadBytesDetails       Details `json:"io_read_bytes_details"`
+	IoWriteAvgTimeDetails    Details `json:"io_write_avg_time_details"`
 	IoWriteBytesDetails      Details `json:"io_write_bytes_details"`
 }
 
@@ -220,7 +219,7 @@ type Queue struct {
 	IdleSince            string `json:"idle_since"`
 }
 
-func (n *Input) createHttpClient() (*http.Client, error) {
+func (n *Input) createHTTPClient() (*http.Client, error) {
 	tlsCfg, err := n.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
@@ -237,7 +236,7 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 }
 
 func (n *Input) requestJSON(u string, target interface{}) error {
-	u = fmt.Sprintf("%s%s", n.Url, u)
+	u = fmt.Sprintf("%s%s", n.URL, u)
 
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -251,10 +250,8 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 		return err
 	}
 
-	defer resp.Body.Close()
-	json.NewDecoder(resp.Body).Decode(target)
-
-	return nil
+	defer resp.Body.Close() //nolint:errcheck
+	return json.NewDecoder(resp.Body).Decode(target)
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {
@@ -275,10 +272,10 @@ func newRateFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
-func newOtherFieldInfo(datatype, Type, unit, desc string) *inputs.FieldInfo {
+func newOtherFieldInfo(datatype, ftype, unit, desc string) *inputs.FieldInfo { //nolint:unparam
 	return &inputs.FieldInfo{
 		DataType: datatype,
-		Type:     Type,
+		Type:     ftype,
 		Unit:     unit,
 		Desc:     desc,
 	}

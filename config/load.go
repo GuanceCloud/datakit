@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -124,7 +125,7 @@ func feedEnvs(data []byte) []byte {
 }
 
 func ParseCfgFile(f string) (*ast.Table, error) {
-	data, err := ioutil.ReadFile(f)
+	data, err := ioutil.ReadFile(filepath.Clean(f))
 	if err != nil {
 		l.Errorf("ioutil.ReadFile: %s", err.Error())
 		return nil, fmt.Errorf("read config %s failed: %w", f, err)

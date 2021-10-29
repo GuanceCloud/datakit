@@ -33,10 +33,9 @@ var (
 )
 
 type Input struct {
-	Dir             string `toml:"dir"`
-	file_size       string
-	dir_count       string
-	file_count      string
+	Dir string `toml:"dir"`
+	// file_size string
+	// file_count      string
 	ExcludePatterns []string         `toml:"exclude_patterns"`
 	Interval        datakit.Duration `toml:"interval"`
 	collectCache    []inputs.Measurement

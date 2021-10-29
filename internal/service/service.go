@@ -1,5 +1,4 @@
-// Datakit service manager
-
+// Package service is datakit's service manager
 package service
 
 import (

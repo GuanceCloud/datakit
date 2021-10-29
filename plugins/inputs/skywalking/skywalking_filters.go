@@ -49,7 +49,7 @@ type upstmSegmentFilter func(segment *swV2.UpstreamSegment) *swV2.UpstreamSegmen
 // 	}
 // }
 
-//nolint:deadcode
+//nolint:deadcode,unused
 func convertKVTags(sktags []*common.KeyStringValuePair) map[string]string {
 	tags := map[string]string{}
 	for _, sktag := range sktags {
@@ -106,9 +106,9 @@ func convertKVTags(sktags []*common.KeyStringValuePair) map[string]string {
 // 	}
 // }
 
-//nolint:deadcode
+//nolint:deadcode,unused
 func convertSkywalkTags(swtags []*SkyWalkingTag) map[string]string {
-	var tags map[string]string
+	tags := map[string]string{}
 	for _, swtag := range swtags {
 		tags[swtag.Key] = fmt.Sprintf("%v", swtag.Value)
 	}

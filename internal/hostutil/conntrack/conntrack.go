@@ -1,3 +1,4 @@
+// Package conntrack wrap host network collection stats
 package conntrack
 
 type Info struct {

@@ -88,7 +88,7 @@ func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
 	return x
 }
 
-// checkFieldsLength 检查数据是否过长
+// CheckFieldsLength 检查数据是否过长
 // 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
 // 防止通过 pipeline 添加巨长字段的恶意行为.
 func (x *Logs) CheckFieldsLength() *Logs {
@@ -116,7 +116,7 @@ func (x *Logs) CheckFieldsLength() *Logs {
 }
 
 const (
-	DEFAULT_INFO = "info"
+	DefaultStatus = "info"
 )
 
 var statusMap = map[string]string{
@@ -141,7 +141,7 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-// addStatus 添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'.
+// AddStatus 添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'.
 func (x *Logs) AddStatus(disable bool) *Logs {
 	if x.IsSkip() || disable {
 		return x
@@ -150,27 +150,27 @@ func (x *Logs) AddStatus(disable bool) *Logs {
 	// 不包含 status 字段
 	statusField, ok := x.fields["status"]
 	if !ok {
-		x.fields["status"] = DEFAULT_INFO
+		x.fields["status"] = DefaultStatus
 		return x
 	}
 
 	// status 类型必须是 string
 	statusStr, ok := statusField.(string)
 	if !ok {
-		x.fields["status"] = DEFAULT_INFO
+		x.fields["status"] = DefaultStatus
 		return x
 	}
 
 	// 查询 statusMap 枚举表并替换
 	if v, ok := statusMap[strings.ToLower(statusStr)]; !ok {
-		x.fields["status"] = DEFAULT_INFO
+		x.fields["status"] = DefaultStatus
 	} else {
 		x.fields["status"] = v
 	}
 	return x
 }
 
-// ignoreStatus 过滤指定status.
+// IgnoreStatus 过滤指定status.
 func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
 	if x.IsSkip() || len(ignoreStatus) == 0 {
 		return x
@@ -289,6 +289,7 @@ func feed(inputName, measurement string, tags map[string]string, message string)
 }
 
 // String2Bytes convert string to bytes.
+//nolint:gosec
 func String2Bytes(s string) []byte {
 	x := (*[2]uintptr)(unsafe.Pointer(&s))
 	h := [3]uintptr{x[0], x[1], x[1]}
@@ -296,6 +297,7 @@ func String2Bytes(s string) []byte {
 }
 
 // Bytes2String convert bytes to string.
+//nolint:gosec
 func Bytes2String(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }

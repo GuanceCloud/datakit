@@ -1,3 +1,4 @@
+// Package influxdb collects InfluxDB metrics.
 package influxdb
 
 import (
@@ -47,7 +48,7 @@ type Input struct {
 		MultilineMatch    string   `toml:"multiline_match"`
 	} `toml:"log"`
 
-	TlsConf *dknet.TLSClientConfig `toml:"tlsconf"`
+	TLSConf *dknet.TLSClientConfig `toml:"tlsconf"`
 	Tags    map[string]string      `toml:"tags"`
 
 	tail         *tailer.Tailer
@@ -132,12 +133,15 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
+
 	l.Infof("influxdb input started")
+
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	var tlsCfg *tls.Config
-	if i.TlsConf != nil {
+
+	if i.TLSConf != nil {
 		var err error
-		tlsCfg, err = i.TlsConf.TLSConfig()
+		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
 			l.Error(err)
 			io.FeedLastError(inputName, err.Error())
@@ -149,16 +153,34 @@ func (i *Input) Run() {
 
 	i.client = &http.Client{
 		Transport: &http.Transport{
-			ResponseHeaderTimeout: time.Duration(i.Timeout.Duration),
+			ResponseHeaderTimeout: i.Timeout.Duration,
 			TLSClientConfig:       tlsCfg,
 		},
-		Timeout: time.Duration(i.Timeout.Duration),
+		Timeout: i.Timeout.Duration,
 	}
 
 	tick := time.NewTicker(i.Interval.Duration)
 
 	defer tick.Stop()
 	for {
+		if !i.pause {
+			start := time.Now()
+			if err := i.Collect(); err != nil {
+				l.Errorf("Collect: %s", err)
+				io.FeedLastError(inputName, err.Error())
+			}
+
+			if len(i.collectCache) > 0 {
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
+					l.Errorf("FeedMeasurement: %s", err)
+				}
+				i.collectCache = make([]inputs.Measurement, 0)
+			}
+		} else {
+			l.Debugf("not leader, skipped")
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			if i.tail != nil {
@@ -169,23 +191,6 @@ func (i *Input) Run() {
 			return
 
 		case <-tick.C:
-			if i.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if feedErr := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); feedErr != nil {
-					l.Error(feedErr)
-					io.FeedLastError(inputName, feedErr.Error())
-				}
-			} else {
-				l.Error(err)
-				io.FeedLastError(inputName, err.Error())
-			}
-			i.collectCache = make([]inputs.Measurement, 0)
 
 		case i.pause = <-i.pauseCh:
 			// nil
@@ -209,7 +214,7 @@ func (i *Input) Collect() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("influxdb: API responded with status-code %d, URL: %s, Resp: %s", resp.StatusCode, i.URL, resp.Body)
 	}
@@ -268,7 +273,7 @@ func (i *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
 	})

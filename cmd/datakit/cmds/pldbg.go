@@ -35,7 +35,7 @@ func pipelineDebugger(plname, txt string) error {
 		return nil
 	}
 
-	j, err := json.MarshalIndent(res, "", defaultJsonIndent)
+	j, err := json.MarshalIndent(res, "", defaultJSONIndent)
 	if err != nil {
 		return err
 	}

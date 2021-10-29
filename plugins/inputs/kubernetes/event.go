@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	kubeapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubewatch "k8s.io/apimachinery/pkg/watch"
 	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const kubernetesEventName = "kubernetes_events"
@@ -45,7 +44,8 @@ func (e *event) Watch() {
 
 		resourceVersion := events.ResourceVersion
 
-		watcher, err := e.client.Watch(context.Background(), metav1.ListOptions{Watch: true, ResourceVersion: resourceVersion})
+		watcher, err := e.client.Watch(context.Background(),
+			metav1.ListOptions{Watch: true, ResourceVersion: resourceVersion})
 		if err != nil {
 			l.Errorf("Failed to start watch for new events: %v", err)
 			time.Sleep(time.Second)
@@ -78,6 +78,8 @@ func (e *event) Watch() {
 						if err := e.feedEvent(event); err != nil {
 							l.Error("Failed to parse event: %v", err)
 						}
+					case kubewatch.Bookmark, kubewatch.Error:
+						l.Info("ignore type %s", watchUpdate.Type)
 					case kubewatch.Deleted:
 						// Deleted events are silently ignored.
 					default:
@@ -135,6 +137,7 @@ func (*event) Resource() { /*empty interface*/ }
 
 func (*event) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*event) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesEventName,

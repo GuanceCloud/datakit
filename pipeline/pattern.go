@@ -1,6 +1,7 @@
-// copy from https://raw.githubusercontent.com/vjeantet/grok/master/patterns.go
 package pipeline
 
+// GlobalPatterns copy from https://raw.githubusercontent.com/vjeantet/grok/master/patterns.go
+// nolint:lll
 var GlobalPatterns = map[string]string{
 	"USERNAME":             `[a-zA-Z0-9._-]+`,
 	"USER":                 `%{USERNAME}`,

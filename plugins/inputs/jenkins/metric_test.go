@@ -17,7 +17,7 @@ func TestGetMetric(t *testing.T) {
 		Routes: map[string]func(*gin.Context){
 			"/metrics/:key/metrics": func(c *gin.Context) {
 				c.Writer.Header().Set("Content-Type", "application/json")
-				c.Writer.Write([]byte(s))
+				c.Writer.Write([]byte(s)) //nolint:errcheck
 			},
 		},
 	}
@@ -34,7 +34,7 @@ func TestGetMetric(t *testing.T) {
 	time.Sleep(time.Second)
 
 	n := Input{
-		Url:      "http://127.0.0.1:1234",
+		URL:      "http://127.0.0.1:1234",
 		Key:      "ccc",
 		Interval: datakit.Duration{Duration: time.Second * 1},
 	}

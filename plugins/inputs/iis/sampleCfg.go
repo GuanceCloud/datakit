@@ -1,3 +1,4 @@
+//nolint:lll
 package iis
 
 const (
@@ -10,9 +11,8 @@ const (
   [inputs.iis.log]
     files = []
     ## grok pipeline script path
-    pipeline = "iis.p"
+    pipeline = "iis.p"`
 
-`
 	//nolint:deadcode
 	pipelineCfg = `
 grok(_, "%{TIMESTAMP_ISO8601:time} %{IP:server_ip} %{DATA:http_method} %{DATA:http_url} %{DATA:url_param} %{NUMBER:port} %{DATA:username} %{IP:client_ip} %{DATA:user_agent} %{DATA:referer} %{NUMBER:status_code} %{NUMBER:sub_status} %{NUMBER:win32_status} %{NUMBER:time_taken}")
@@ -32,7 +32,5 @@ nullif(url_param, "-")
 nullif(username, "-")
 nullif(referer, "-")
 
-default_time(time, "UTC")
-
-`
+default_time(time, "UTC")`
 )

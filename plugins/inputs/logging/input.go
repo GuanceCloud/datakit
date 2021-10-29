@@ -1,3 +1,4 @@
+// Package logging collects host logging data.
 package logging
 
 import (
@@ -86,67 +87,67 @@ func (*Input) RunPipeline() {
 	// nil
 }
 
-func (this *Input) Run() {
+func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	// 兼容旧版配置 pipeline_path
-	if this.Pipeline == "" && this.DeprecatedPipeline != "" {
-		this.Pipeline = this.DeprecatedPipeline
+	if i.Pipeline == "" && i.DeprecatedPipeline != "" {
+		i.Pipeline = i.DeprecatedPipeline
 	}
 
-	if this.MultilineMatch == "" && this.DeprecatedMultilineMatch != "" {
-		this.MultilineMatch = this.DeprecatedMultilineMatch
+	if i.MultilineMatch == "" && i.DeprecatedMultilineMatch != "" {
+		i.MultilineMatch = i.DeprecatedMultilineMatch
 	}
 
 	var pipelinePath string
 
-	if this.Pipeline == "" {
-		pipelinePath = filepath.Join(datakit.PipelineDir, this.Source+".p")
+	if i.Pipeline == "" {
+		pipelinePath = filepath.Join(datakit.PipelineDir, i.Source+".p")
 	} else {
-		pipelinePath = filepath.Join(datakit.PipelineDir, this.Pipeline)
+		pipelinePath = filepath.Join(datakit.PipelineDir, i.Pipeline)
 	}
 
 	opt := &tailer.Option{
-		Source:                this.Source,
-		Service:               this.Service,
+		Source:                i.Source,
+		Service:               i.Service,
 		Pipeline:              pipelinePath,
-		IgnoreStatus:          this.IgnoreStatus,
-		FromBeginning:         this.FromBeginning,
-		CharacterEncoding:     this.CharacterEncoding,
-		MultilineMatch:        this.MultilineMatch,
-		MultilineMaxLines:     this.MultilineMaxLines,
-		RemoveAnsiEscapeCodes: this.RemoveAnsiEscapeCodes,
-		GlobalTags:            this.Tags,
+		IgnoreStatus:          i.IgnoreStatus,
+		FromBeginning:         i.FromBeginning,
+		CharacterEncoding:     i.CharacterEncoding,
+		MultilineMatch:        i.MultilineMatch,
+		MultilineMaxLines:     i.MultilineMaxLines,
+		RemoveAnsiEscapeCodes: i.RemoveAnsiEscapeCodes,
+		GlobalTags:            i.Tags,
 	}
 
 	var err error
-	this.tailer, err = tailer.NewTailer(this.LogFiles, opt, this.Ignore)
+	i.tailer, err = tailer.NewTailer(i.LogFiles, opt, i.Ignore)
 	if err != nil {
 		l.Error(err)
 		return
 	}
 
-	go this.tailer.Start()
+	go i.tailer.Start()
 
 	// 阻塞在此，用以关闭 tailer 资源
 	<-datakit.Exit.Wait()
-	this.Stop()
-	l.Infof("%s exit", this.inputName)
+	i.Stop()
+	l.Infof("%s exit", i.inputName)
 }
 
-func (this *Input) Stop() {
-	this.tailer.Close()
+func (i *Input) Stop() {
+	i.tailer.Close() //nolint:errcheck
 }
 
-func (this *Input) PipelineConfig() map[string]string {
+func (i *Input) PipelineConfig() map[string]string {
 	return nil
 }
 
-func (this *Input) Catalog() string {
+func (i *Input) Catalog() string {
 	return "log"
 }
 
-func (this *Input) SampleConfig() string {
+func (i *Input) SampleConfig() string {
 	return sampleCfg
 }
 
@@ -167,11 +168,12 @@ type loggingMeasurement struct {
 	ts     time.Time
 }
 
-func (this *loggingMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(this.name, this.tags, this.fields, this.ts)
+func (i *loggingMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(i.name, i.tags, i.fields, i.ts)
 }
 
-func (this *loggingMeasurement) Info() *inputs.MeasurementInfo {
+//nolint:lll
+func (i *loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "logging 日志采集",
 		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
@@ -187,7 +189,7 @@ func (this *loggingMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Tags:      make(map[string]string),

@@ -66,7 +66,7 @@ func (p *pod) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":         int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"ready":       containerReadyCount,
 			"availale":    containerAllCount,
 			"create_time": obj.CreationTimestamp.Time.Unix(),
@@ -144,6 +144,7 @@ func (*pod) Resource() { /*empty interface*/ }
 
 func (*pod) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*pod) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesPodName,

@@ -1,3 +1,4 @@
+// Package mongodb collects MongoDB metrics.
 package mongodb
 
 import (
@@ -24,10 +25,10 @@ var _ inputs.ElectionInput = (*Input)(nil)
 
 var (
 	defInterval      = datakit.Duration{Duration: 10 * time.Second}
-	defMongoUrl      = "mongodb://127.0.0.1:27017"
-	defTlsCaCert     = "/etc/ssl/certs/mongod.cert.pem"
-	defTlsCert       = "/etc/ssl/certs/mongo.cert.pem"
-	defTlsCertKey    = "/etc/ssl/certs/mongo.key.pem"
+	defMongoURL      = "mongodb://127.0.0.1:27017"
+	defTLSCaCert     = "/etc/ssl/certs/mongod.cert.pem"
+	defTLSCert       = "/etc/ssl/certs/mongo.cert.pem"
+	defTLSCertKey    = "/etc/ssl/certs/mongo.key.pem"
 	defMongodLogPath = "/var/log/mongodb/mongod.log"
 	defPipeline      = "mongod.p"
 	defTags          map[string]string
@@ -46,7 +47,7 @@ var (
   ## For example:
   ##   mongodb://user:auth_key@10.10.3.30:27017,
   ##   mongodb://10.10.3.33:18832,
-  # servers = ["` + defMongoUrl + `"]
+  # servers = ["` + defMongoURL + `"]
 
   ## When true, collect replica set stats
   # gather_replica_set_stats = false
@@ -68,9 +69,9 @@ var (
   # gather_top_stat = true
 
   ## TLS connection config
-  # ca_certs = ["` + defTlsCaCert + `"]
-  # cert = "` + defTlsCert + `"
-  # cert_key = "` + defTlsCertKey + `"
+  # ca_certs = ["` + defTLSCaCert + `"]
+  # cert = "` + defTLSCert + `"
+  # cert_key = "` + defTLSCertKey + `"
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = true
   # server_name = ""
@@ -114,12 +115,12 @@ type Input struct {
 	Servers               []string         `toml:"servers"`
 	GatherReplicaSetStats bool             `toml:"gather_replica_set_stats"`
 	GatherClusterStats    bool             `toml:"gather_cluster_stats"`
-	GatherPerDbStats      bool             `toml:"gather_per_db_stats"`
+	GatherPerDBStats      bool             `toml:"gather_per_db_stats"`
 	GatherPerColStats     bool             `toml:"gather_per_col_stats"`
-	ColStatsDbs           []string         `toml:"col_stats_dbs"`
+	ColStatsDBs           []string         `toml:"col_stats_dbs"`
 	GatherTopStat         bool             `toml:"gather_top_stat"`
 
-	TlsConf *dknet.TLSClientConfig `toml:"tlsconf"` // deprecated
+	TLSConf *dknet.TLSClientConfig `toml:"tlsconf"` // deprecated
 	dknet.TLSClientConfig
 
 	Log  *mongodblog       `toml:"log"`
@@ -142,7 +143,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&mongodbMeasurement{},
-		&mongodbDbMeasurement{},
+		&mongodbDBMeasurement{},
 		&mongodbColMeasurement{},
 		&mongodbShardMeasurement{},
 		&mongodbTopMeasurement{},
@@ -177,7 +178,8 @@ func (m *Input) RunPipeline() {
 	var err error
 	m.tail, err = tailer.NewTailer(m.Log.Files, opt)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("NewTailer: %s", err)
+
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
@@ -196,7 +198,7 @@ func (m *Input) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			if m.tail != nil {
-				m.tail.Close()
+				m.tail.Close() //nolint:errcheck
 				l.Info("mongodb log exits")
 			}
 			l.Info("mongodb input exits")
@@ -208,7 +210,8 @@ func (m *Input) Run() {
 				continue
 			}
 			if err := m.gather(); err != nil {
-				l.Error(err.Error())
+				l.Errorf("gather: %s", err.Error())
+
 				io.FeedLastError(inputName, err.Error())
 			}
 
@@ -230,7 +233,7 @@ func (m *Input) getMongoServer(url *url.URL) *Server {
 // Returns one of the errors encountered while gather stats (if any).
 func (m *Input) gather() error {
 	if len(m.Servers) == 0 {
-		return m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoUrl}))
+		return m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoURL}))
 	}
 
 	var wg sync.WaitGroup
@@ -276,10 +279,10 @@ func (m *Input) gatherServer(server *Server) error {
 
 		dialInfo, err := mgo.ParseURL(dialAddrs[0])
 		if err != nil {
-			return fmt.Errorf("unable to parse URL %q: %s", dialAddrs[0], err.Error())
+			return fmt.Errorf("unable to parse URL %q: %w", dialAddrs[0], err)
 		}
 
-		tlscnf := m.TlsConf // prefer deprecated TLS conf
+		tlscnf := m.TLSConf // prefer deprecated TLS conf
 		if tlscnf == nil {
 			tlscnf = &m.TLSClientConfig
 		}
@@ -298,12 +301,17 @@ func (m *Input) gatherServer(server *Server) error {
 
 		sess, err := mgo.DialWithInfo(dialInfo)
 		if err != nil {
-			return fmt.Errorf("unable to connect to MongoDB: %s", err.Error())
+			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		server.Session = sess
 	}
 
-	return server.gatherData(m.GatherReplicaSetStats, m.GatherClusterStats, m.GatherPerDbStats, m.GatherPerColStats, m.ColStatsDbs, m.GatherTopStat)
+	return server.gatherData(m.GatherReplicaSetStats,
+		m.GatherClusterStats,
+		m.GatherPerDBStats,
+		m.GatherPerColStats,
+		m.ColStatsDBs,
+		m.GatherTopStat)
 }
 
 func (m *Input) Pause() error {
@@ -328,16 +336,16 @@ func (m *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval:              defInterval,
-			Servers:               []string{defMongoUrl},
+			Servers:               []string{defMongoURL},
 			GatherReplicaSetStats: false,
 			GatherClusterStats:    false,
-			GatherPerDbStats:      true,
+			GatherPerDBStats:      true,
 			GatherPerColStats:     true,
-			ColStatsDbs:           []string{},
+			ColStatsDBs:           []string{},
 			GatherTopStat:         true,
 			Log:                   &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
 			mongos:                make(map[string]*Server),

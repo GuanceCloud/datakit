@@ -1,5 +1,4 @@
-// Datakit document manager
-
+// Package man manages all datakit documents
 package man
 
 import (

@@ -46,7 +46,7 @@ func (n *node) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":             int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":             int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"kubelet_version": obj.Status.NodeInfo.KubeletVersion,
 		}
 
@@ -76,6 +76,7 @@ func (*node) Resource() { /*empty interface*/ }
 
 func (*node) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*node) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesNodeName,

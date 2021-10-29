@@ -1,3 +1,4 @@
+// Package disk collect host disk metrics.
 package disk
 
 import (
@@ -49,6 +50,7 @@ func (m *diskMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "disk",
@@ -103,7 +105,9 @@ type Input struct {
 	diskStats            PSDiskStats
 }
 
-func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
+func (i *Input) appendMeasurement(name string,
+	tags map[string]string,
+	fields map[string]interface{}, ts time.Time) {
 	tmp := &diskMeasurement{name: name, tags: tags, fields: fields, ts: ts}
 	i.collectCache = append(i.collectCache, tmp)
 	i.collectCacheLast1Ptr = tmp
@@ -131,7 +135,7 @@ func (i *Input) Collect() error {
 	i.collectCache = make([]inputs.Measurement, 0)
 	disks, partitions, err := i.diskStats.FilterUsage(i.MountPoints, i.IgnoreFS)
 	if err != nil {
-		return fmt.Errorf("error getting disk usage info: %s", err)
+		return fmt.Errorf("error getting disk usage info: %w", err)
 	}
 	ts := time.Now()
 	for index, du := range disks {
@@ -142,23 +146,23 @@ func (i *Input) Collect() error {
 		mountOpts := parseOptions(partitions[index].Opts)
 		tags := map[string]string{
 			"path":   du.Path,
-			"device": strings.Replace(partitions[index].Device, "/dev/", "", -1),
+			"device": strings.ReplaceAll(partitions[index].Device, "/dev/", ""),
 			"fstype": du.Fstype,
 			"mode":   mountOpts.Mode(),
 		}
 		for k, v := range i.Tags {
 			tags[k] = v
 		}
-		var used_percent float64
+		var usedPercent float64
 		if du.Used+du.Free > 0 {
-			used_percent = float64(du.Used) /
+			usedPercent = float64(du.Used) /
 				(float64(du.Used) + float64(du.Free)) * 100
 		}
 		fields := map[string]interface{}{
 			"total":        du.Total,
 			"free":         du.Free,
 			"used":         du.Used,
-			"used_percent": used_percent,
+			"used_percent": usedPercent,
 			"inodes_total": du.InodesTotal,
 			"inodes_free":  du.InodesFree,
 			"inodes_used":  du.InodesUsed,
@@ -177,19 +181,23 @@ func (i *Input) Run() {
 
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
+
 	for {
+		start := time.Now()
+		if err := i.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(i.collectCache) > 0 {
+			if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
+				&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+				io.FeedLastError(inputName, errFeed.Error())
+			}
+		}
+
 		select {
 		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error())
-				}
-			} else {
-				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
-			}
 		case <-datakit.Exit.Wait():
 			l.Infof("disk input exit")
 			return
@@ -197,7 +205,7 @@ func (i *Input) Run() {
 	}
 }
 
-// ReadEnv, support envs：
+// ReadEnv support envs：
 //   ENV_INPUT_DISK_IGNORE_FS : []string
 func (i *Input) ReadEnv(envs map[string]string) {
 	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
@@ -219,7 +227,7 @@ func unique(strSlice []string) []string {
 	return list
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			diskStats: &PSDisk{},

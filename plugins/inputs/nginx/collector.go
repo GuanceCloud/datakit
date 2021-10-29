@@ -14,15 +14,15 @@ import (
 
 // 默认 http stub status module 模块的数据.
 func (n *Input) getStubStatusModuleMetric() {
-	resp, err := n.client.Get(n.Url)
+	resp, err := n.client.Get(n.URL)
 	if err != nil {
-		l.Errorf("error making HTTP request to %s: %s", n.Url, err)
+		l.Errorf("error making HTTP request to %s: %s", n.URL, err)
 		n.lastErr = err
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
-		n.lastErr = fmt.Errorf("%s returned HTTP status %s", n.Url, resp.Status)
+		n.lastErr = fmt.Errorf("%s returned HTTP status %s", n.URL, resp.Status)
 		return
 	}
 	r := bufio.NewReader(resp.Body)
@@ -96,7 +96,7 @@ func (n *Input) getStubStatusModuleMetric() {
 		return
 	}
 
-	tags := getTags(n.Url)
+	tags := getTags(n.URL)
 	for k, v := range n.Tags {
 		tags[k] = v
 	}
@@ -121,16 +121,16 @@ func (n *Input) getStubStatusModuleMetric() {
 }
 
 func (n *Input) getVTSMetric() {
-	resp, err := n.client.Get(n.Url)
+	resp, err := n.client.Get(n.URL)
 	if err != nil {
-		l.Errorf("error making HTTP request to %s: %s", n.Url, err)
+		l.Errorf("error making HTTP request to %s: %s", n.URL, err)
 		n.lastErr = err
 		return
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
-		l.Errorf("%s returned HTTP status %s", n.Url, resp.Status)
+		l.Errorf("%s returned HTTP status %s", n.URL, resp.Status)
 		return
 	}
 	contentType := strings.Split(resp.Header.Get("Content-Type"), ";")[0]
@@ -138,7 +138,7 @@ func (n *Input) getVTSMetric() {
 	case "application/json":
 		n.handVTSResponse(resp.Body)
 	default:
-		l.Errorf("%s returned unexpected content type %s", n.Url, contentType)
+		l.Errorf("%s returned unexpected content type %s", n.URL, contentType)
 	}
 }
 
@@ -154,7 +154,7 @@ func (n *Input) handVTSResponse(r io.Reader) {
 		return
 	}
 	t := time.Unix(0, vtsResp.Now*1000000)
-	vtsResp.tags = getTags(n.Url)
+	vtsResp.tags = getTags(n.URL)
 
 	vtsResp.tags["host"] = vtsResp.HostName
 	vtsResp.tags["nginx_version"] = vtsResp.Version

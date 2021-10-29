@@ -1,3 +1,4 @@
+// Package net collects host network metrics.
 package net
 
 import (
@@ -68,7 +69,7 @@ type netMeasurement struct {
 // https://tools.ietf.org/html/rfc1213#page-48
 // https://www.kernel.org/doc/html/latest/networking/snmp_counter.html
 // https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l178
-
+//nolint:lll
 func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: netMetricName,
@@ -137,14 +138,15 @@ func (m *netMeasurement) LineProto() (*io.Point, error) {
 
 type Input struct {
 	Interval                datakit.Duration
-	IgnoreProtocolStats     bool
 	Interfaces              []string
 	EnableVirtualInterfaces bool
+	IgnoreProtocolStats     bool
 	Tags                    map[string]string
 
-	collectCache     []inputs.Measurement
-	lastStats        map[string]psNet.IOCountersStat
-	lastProtoStats   []psNet.ProtoCountersStat
+	collectCache   []inputs.Measurement
+	lastStats      map[string]psNet.IOCountersStat
+	lastProtoStats []psNet.ProtoCountersStat
+
 	lastTime         time.Time
 	netIO            NetIO
 	netProto         NetProto
@@ -179,14 +181,18 @@ func (i *Input) Collect() error {
 	ts := time.Now()
 	netio, err := NetIOCounters()
 	if err != nil {
-		return fmt.Errorf("error getting net io info: %s", err)
+		return fmt.Errorf("error getting net io info: %w", err)
 	}
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		return fmt.Errorf("error getting net interfaces info: %s", err)
+		return fmt.Errorf("error getting net interfaces info: %w", err)
 	}
 
-	filteredInterface, err := FilterInterface(netio, interfaces, i.Interfaces, i.EnableVirtualInterfaces, i.netVirtualIfaces)
+	filteredInterface, err := FilterInterface(netio,
+		interfaces,
+		i.Interfaces,
+		i.EnableVirtualInterfaces,
+		i.netVirtualIfaces)
 
 	for name, ioStat := range filteredInterface {
 		tags := map[string]string{
@@ -284,7 +290,7 @@ func (i *Input) Run() {
 	}
 }
 
-// ReadEnv, support envs：
+// ReadEnv support envs：
 //   ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
 //   ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
 func (i *Input) ReadEnv(envs map[string]string) {
@@ -307,7 +313,7 @@ func (i *Input) ReadEnv(envs map[string]string) {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			netIO:            NetIOCounters,

@@ -46,7 +46,7 @@ type Conninfo struct {
 	Rtt_var uint32
 }
 
-// guess the offset of the structure field, such as tcp_sock.srtt_us.
+// GuessTCP guess the offset of the structure field, such as tcp_sock.srtt_us.
 func GuessTCP(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, error) {
 	ctx := context.Background()
 	defer ctx.Done()
@@ -146,9 +146,14 @@ func GuessTCP(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, err
 			copyOffset(statusAct, &newStatus)
 			return &newStatus, nil
 		}
-		if statusAct.offset_tcp_sk_srtt_us > MAXOFFSET || statusAct.offset_tcp_sk_mdev_us > MAXOFFSET || statusAct.offset_inet_sport > MAXOFFSET || statusAct.offset_sk_dport > MAXOFFSET {
+
+		if statusAct.offset_tcp_sk_srtt_us > MAXOFFSET ||
+			statusAct.offset_tcp_sk_mdev_us > MAXOFFSET ||
+			statusAct.offset_inet_sport > MAXOFFSET ||
+			statusAct.offset_sk_dport > MAXOFFSET {
 			break
 		}
+
 		newStatus = newGuessStatus()
 		copyOffset(statusAct, &newStatus)
 		if err = connFile.Close(); err != nil {

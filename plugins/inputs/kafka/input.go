@@ -1,3 +1,4 @@
+// Package kafka collect kafka metrics
 package kafka
 
 import (
@@ -77,7 +78,8 @@ func (i *Input) RunPipeline() {
 	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("NewTailer: %s", err)
+
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
@@ -85,7 +87,7 @@ func (i *Input) RunPipeline() {
 	go i.tail.Start()
 }
 
-func (_ *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName: pipelineCfg,
 	}
@@ -112,7 +114,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

@@ -15,6 +15,7 @@ import (
 
 	"github.com/c-bata/go-prompt"
 	"github.com/influxdata/influxdb1-client/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
@@ -28,7 +29,7 @@ var (
 
 	dqlcli *http.Client
 
-	defaultJsonIndent = "  "
+	defaultJSONIndent = "  "
 )
 
 const (
@@ -76,7 +77,7 @@ func loadHistory() {
 		return
 	}
 
-	data, err := ioutil.ReadFile(histpath)
+	data, err := ioutil.ReadFile(filepath.Clean(histpath))
 	if err != nil {
 		l.Warnf("read history failed: %s", err.Error())
 		return
@@ -162,7 +163,7 @@ func runDQL(txt string) {
 	}
 }
 
-// runSingleDQL Perform a single DQL query statement
+// runSingleDQL Perform a single DQL query statement.
 func runSingleDQL(s string) {
 	if FlagCSV != "" {
 		if err := prepareCsv(); err != nil {
@@ -195,7 +196,7 @@ func runSingleDQL(s string) {
 	}
 }
 
-// prepareCsv Judging whether the file exists, create a directory if there is no existence
+// prepareCsv Judging whether the file exists, create a directory if there is no existence.
 func prepareCsv() error {
 	f, err := os.Stat(FlagCSV)
 	if err == nil {
@@ -206,15 +207,13 @@ func prepareCsv() error {
 		if !FlagForce {
 			return fmt.Errorf("file %s exists", FlagCSV)
 		}
-	} else {
-		if err = os.MkdirAll(filepath.Dir(FlagCSV), os.ModePerm); err != nil {
-			return err
-		}
+	} else if err = os.MkdirAll(filepath.Dir(FlagCSV), os.ModePerm); err != nil {
+		return err
 	}
 	return nil
 }
 
-// convertStrings Convert Interface arrays to String array which in the query result
+// convertStrings Convert Interface arrays to String array which in the query result.
 func convertStrings(value []interface{}) []string {
 	res := []string{}
 	for k, v := range value {
@@ -222,30 +221,31 @@ func convertStrings(value []interface{}) []string {
 			res = append(res, "")
 			continue
 		}
-		switch v.(type) {
+		switch x := v.(type) {
 		case string:
-			res = append(res, v.(string))
+			res = append(res, x)
 
 		case json.Number:
-			res = append(res, fmt.Sprintf("%s", v))
+			res = append(res, x.String())
 
 		case bool:
-			res = append(res, fmt.Sprintf("%s", v))
+			res = append(res, fmt.Sprintf("%v", x))
 
 		default:
-			warnf("unknown key value, %v:%v", k, v)
+			warnf("unknown key value, %d:%v", k, x)
 		}
 	}
 	return res
 }
 
-// writeToCsv Format the query results and write to CSV files
+// writeToCsv Format the query results and write to CSV files.
 func writeToCsv(series []*models.Row, csvPath string) error {
-	csvFile, err := os.OpenFile(csvPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	csvFile, err := os.OpenFile(filepath.Clean(csvPath),
+		os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	defer csvFile.Close()
+	defer csvFile.Close() //nolint:errcheck,gosec
 
 	writer := csv.NewWriter(csvFile)
 
@@ -280,12 +280,16 @@ func writeToCsv(series []*models.Row, csvPath string) error {
 func doDQL(s string) []*queryResult {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
-		Token:       FlagToken,
+		Token:       config.GetToken(),
 		Queries: []*dkhttp.SingleQuery{
 			{
 				Query: s,
 			},
 		},
+	}
+
+	if FlagToken != "" {
+		q.Token = FlagToken
 	}
 
 	j, err := json.Marshal(q)
@@ -375,7 +379,7 @@ func doShow(c *queryResult) {
 
 	switch {
 	case FlagJSON:
-		j, err := json.MarshalIndent(c, "", defaultJsonIndent)
+		j, err := json.MarshalIndent(c, "", defaultJSONIndent)
 		if err != nil {
 			errorf("%s\n", err.Error())
 			return
@@ -539,9 +543,9 @@ func prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
 			valFmt = "'%s'\n"
 			if FlagAutoJSON {
 				dst := &bytes.Buffer{}
-				if err := json.Indent(dst, []byte(v), "", defaultJsonIndent); err == nil {
+				if err := json.Indent(dst, []byte(v), "", defaultJSONIndent); err == nil {
 					val[colIdx] = dst.String()
-					valFmt = "----- json -----\n" + "%s\n" + "----- end of json -----\n"
+					valFmt = "<<<<< json \n" + "%s\n" + ">>>>> end of json\n"
 				}
 			}
 		case bool:

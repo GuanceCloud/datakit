@@ -1,3 +1,4 @@
+// Package io implements datakits data transfer among inputs.
 package io
 
 import (
@@ -115,6 +116,7 @@ func SetTest() {
 	testAssert = true
 }
 
+//nolint:gocyclo
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	if testAssert {
 		return nil
@@ -237,7 +239,8 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) || (x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
+	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) ||
+		(x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
 		x.flushAll()
 	}
 }
@@ -259,7 +262,7 @@ func (x *IO) cleanHighFreqIOData() {
 
 func (x *IO) init() error {
 	if x.OutputFile != "" {
-		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
 		if err != nil {
 			l.Error(err)
 			return err

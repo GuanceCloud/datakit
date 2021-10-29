@@ -23,7 +23,7 @@ type ngxlog struct {
 }
 
 type Input struct {
-	Url             string            `toml:"url"`
+	URL             string            `toml:"url"`
 	Interval        datakit.Duration  `toml:"interval"`
 	ResponseTimeout datakit.Duration  `toml:"response_timeout"`
 	UseVts          bool              `toml:"use_vts"`

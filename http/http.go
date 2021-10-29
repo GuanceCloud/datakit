@@ -1,5 +1,4 @@
-// datakit HTTP server
-
+// Package http is datakit's HTTP server
 package http
 
 import (
@@ -11,10 +10,11 @@ import (
 	"io"
 	"net"
 	"net/http"
+
+	// nolint:gosec
 	_ "net/http/pprof"
 	"os"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -30,11 +30,9 @@ var (
 	l              = logger.DefaultSLogger("http")
 	ginLog         string
 	ginReleaseMode = true
-	pprof          bool
+	enablePprof    bool
 
 	uptime = time.Now()
-
-	mtx = sync.Mutex{}
 
 	dw        *dataway.DataWayCfg
 	extraTags = map[string]string{}
@@ -48,6 +46,7 @@ var (
 	DcaToken = ""
 )
 
+//nolint:stylecheck
 const (
 	LOGGING_SROUCE     = "source"
 	PRECISION          = "precision"
@@ -81,7 +80,7 @@ func Start(o *Option) {
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
-	pprof = o.PProf
+	enablePprof = o.PProf
 	ginReleaseMode = o.GinReleaseMode
 	ginRotate = o.GinRotate
 	apiConfig = o.APIConfig
@@ -90,7 +89,7 @@ func Start(o *Option) {
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
-		HttpStart()
+		HTTPStart()
 		l.Info("http goroutine exit")
 		return nil
 	})
@@ -98,7 +97,7 @@ func Start(o *Option) {
 	// DCA server
 	if dcaConfig.Enable {
 		g.Go(func(ctx context.Context) error {
-			dcaHttpStart()
+			dcaHTTPStart()
 			l.Info("DCA http goroutine exit")
 			return nil
 		})
@@ -149,7 +148,7 @@ func page404(c *gin.Context) {
 	c.String(http.StatusNotFound, buf.String())
 }
 
-func HttpStart() {
+func HTTPStart() {
 	gin.DisableConsoleColor()
 
 	if ginReleaseMode {
@@ -215,7 +214,7 @@ func HttpStart() {
 
 	// start pprof if enabled
 	var pprofSrv *http.Server
-	if pprof {
+	if enablePprof {
 		pprofSrv = &http.Server{
 			Addr: ":6060",
 		}
@@ -238,7 +237,7 @@ func HttpStart() {
 		l.Info("http server shutdown ok")
 	}
 
-	if pprof {
+	if enablePprof {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := pprofSrv.Shutdown(ctx); err != nil {
@@ -287,7 +286,7 @@ func portInUse(addr string) bool {
 	if err != nil {
 		return false
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck
 	return true
 }
 

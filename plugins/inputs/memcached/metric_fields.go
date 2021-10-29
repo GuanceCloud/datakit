@@ -2,6 +2,7 @@ package memcached
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
+//nolint:lll
 var memFields = map[string]interface{}{
 	"accepting_conns":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Whether or not server is accepting conns"},
 	"auth_cmds":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of authentication commands handled, success or failure"},

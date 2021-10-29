@@ -46,9 +46,9 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb a
 	time.Sleep(3 * time.Second)
 
 	switch defLogfilter.status {
-	case filter_released:
+	case filterReleased:
 		l.Info("log filter released")
-	case filter_refreshed:
+	case filterRefreshed:
 		l.Info("log filter refreshed")
 	default:
 		l.Info("log filter status unknow")
@@ -76,9 +76,9 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 	time.Sleep(3 * time.Second)
 
 	switch defLogfilter.status {
-	case filter_released:
+	case filterReleased:
 		l.Info("log filter released")
-	case filter_refreshed:
+	case filterRefreshed:
 		l.Info("log filter refreshed")
 	default:
 		l.Info("log filter status unknow")
@@ -95,9 +95,9 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 	time.Sleep(3 * time.Second)
 
 	switch defLogfilter.status {
-	case filter_released:
+	case filterReleased:
 		l.Info("log filter released")
-	case filter_refreshed:
+	case filterRefreshed:
 		l.Info("log filter refreshed")
 	default:
 		l.Info("log filter status unknow")
@@ -111,7 +111,7 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	defInterval = time.Second
 	defLogFilterMock = &debugLogFilterMock{}
 }
