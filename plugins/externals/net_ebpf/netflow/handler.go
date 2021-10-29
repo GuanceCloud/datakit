@@ -52,11 +52,11 @@ func Run(ctx context.Context, bpfManger *manager.Manager, datakitPostURL string,
 }
 
 func closedEventHandler(cpu int, data []byte, perfmap *manager.PerfMap, manager *manager.Manager) {
-	eventC := (*ConncetionClosedInfoC)(unsafe.Pointer(&data[0]))
+	eventC := (*ConncetionClosedInfoC)(unsafe.Pointer(&data[0])) //nolint:gosec
 	event := ConncetionClosedInfo{
 		Info: ConnectionInfo{
-			Saddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))),
-			Daddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.daddr))),
+			Saddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))), //nolint:gosec
+			Daddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.daddr))), //nolint:gosec
 			Sport: uint32(eventC.conn_info.sport),
 			Dport: uint32(eventC.conn_info.dport),
 			Pid:   uint32(eventC.conn_info.pid),
@@ -113,10 +113,10 @@ func connCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMa
 			}
 
 			// 收集未关闭的连接信息, 并与记录的关闭连接和上一采集周期未关闭的连接进行合并
-			for iter.Next(unsafe.Pointer(&connInfoC), unsafe.Pointer(&connStatsC)) {
+			for iter.Next(unsafe.Pointer(&connInfoC), unsafe.Pointer(&connStatsC)) { //nolint:gosec
 				connInfo := ConnectionInfo{
-					Saddr: (*(*[4]uint32)(unsafe.Pointer(&connInfoC.saddr))),
-					Daddr: (*(*[4]uint32)(unsafe.Pointer(&connInfoC.daddr))),
+					Saddr: (*(*[4]uint32)(unsafe.Pointer(&connInfoC.saddr))), //nolint:gosec
+					Daddr: (*(*[4]uint32)(unsafe.Pointer(&connInfoC.daddr))), //nolint:gosec
 					Sport: uint32(connInfoC.sport),
 					Dport: uint32(connInfoC.dport),
 					Pid:   uint32(connInfoC.pid),
@@ -141,7 +141,9 @@ func connCollectHanllder(ctx context.Context, connStatsMap *ebpf.Map, tcpStatsMa
 				if connProtocolIsTCP(connInfo.Meta) {
 					pid := connInfoC.pid
 					connInfoC.pid = _Ctype_uint(0)
-					if err := tcpStatsMap.Lookup(unsafe.Pointer(&connInfoC), unsafe.Pointer(&tcpStatsC)); err == nil {
+					if err := tcpStatsMap.Lookup(
+						unsafe.Pointer(&connInfoC),               //nolint:gosec
+						unsafe.Pointer(&tcpStatsC)); err == nil { //nolint:gosec
 						connFullStats.TcpStats = ConnectionTcpStats{
 							State_transitions: uint16(tcpStatsC.state_transitions),
 							Retransmits:       int32(tcpStatsC.retransmits),
@@ -205,15 +207,15 @@ func bpfMapCleanupHandler(ctx context.Context, connStatsMap *ebpf.Map) {
 		case cl := <-cleanupCh:
 			for _, v := range *cl {
 				c := ConnectionInfoC{
-					saddr: (*(*[4]_Ctype_uint)(unsafe.Pointer(&v.Saddr))),
-					daddr: (*(*[4]_Ctype_uint)(unsafe.Pointer(&v.Daddr))),
+					saddr: (*(*[4]_Ctype_uint)(unsafe.Pointer(&v.Saddr))), //nolint:gosec
+					daddr: (*(*[4]_Ctype_uint)(unsafe.Pointer(&v.Daddr))), //nolint:gosec
 					sport: _Ctype_ushort(v.Sport),
 					dport: _Ctype_ushort(v.Dport),
 					pid:   _Ctype_uint(v.Pid),
 					netns: _Ctype_uint(v.Netns),
 					meta:  _Ctype_uint(v.Meta),
 				}
-				err := connStatsMap.Delete(unsafe.Pointer(&c))
+				err := connStatsMap.Delete(unsafe.Pointer(&c)) //nolint:gosec
 				if err != nil {
 					l.Error(err)
 				}

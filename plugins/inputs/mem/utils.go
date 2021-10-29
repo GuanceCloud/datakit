@@ -11,7 +11,7 @@ func VirtualMemoryStat() (*mem.VirtualMemoryStat, error) {
 	return mem.VirtualMemory()
 }
 
-// ibyte data type.
+// NewFieldInfoB new ibyte data type.
 func NewFieldInfoB(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
@@ -21,7 +21,7 @@ func NewFieldInfoB(desc string) *inputs.FieldInfo {
 	}
 }
 
-// precent.
+// NewFieldInfoP new precent filed.
 func NewFieldInfoP(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
@@ -31,7 +31,7 @@ func NewFieldInfoP(desc string) *inputs.FieldInfo {
 	}
 }
 
-// count.
+// NewFieldInfoC new count field.
 func NewFieldInfoC(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,

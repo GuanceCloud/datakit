@@ -32,11 +32,6 @@ func TestParseName(t *testing.T) {
 			sep: "_",
 			out: "us_west_cpu_load",
 		},
-
-		//{
-		//	in:  `jvm.non_heap_memory_init:7667712`,
-		//	out: "",
-		//},
 	}
 
 	s := defaultInput()

@@ -1,3 +1,4 @@
+// Package solr collects solr metrics.
 package solr
 
 import (
@@ -52,6 +53,7 @@ var (
   # more_tag = "some_other_value"
 
 `
+	//nolint:lll
 	pipelineCfg = `
 add_pattern("solrReporter","(?:[.\\w\\d]+)")
 add_pattern("solrParams", "(?:[A-Za-z0-9$.+!*'|(){},~@#%&/=:;_?\\-\\[\\]<>]*)")
@@ -211,7 +213,7 @@ func (i *Input) Collect() error {
 			defer wg.Done()
 			ts := time.Now()
 			resp := Response{}
-			if err := i.gatherData(i, UrlAll(s), &resp); err != nil {
+			if err := i.gatherData(i, URLAll(s), &resp); err != nil {
 				logError(err)
 				return
 			}
@@ -287,7 +289,7 @@ func (i *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			HTTPTimeout: datakit.Duration{Duration: time.Second * 5},

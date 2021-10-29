@@ -1,3 +1,4 @@
+// Package nginx collects NGINX metrics.
 package nginx
 
 import (
@@ -46,6 +47,7 @@ var (
 	# more_tag = "some_other_value"
 	# ...`
 
+	//nolint:lll
 	pipelineCfg = `
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
 
@@ -81,15 +83,15 @@ default_time(time)
 `
 )
 
-func (_ *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sample
 }
 
-func (_ *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (_ *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		"nginx": pipelineCfg,
 	}
@@ -133,7 +135,7 @@ func (n *Input) Run() {
 	l.Info("nginx start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	client, err := n.createHttpClient()
+	client, err := n.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] nginx init client err:%s", err.Error())
 		return
@@ -161,7 +163,10 @@ func (n *Input) Run() {
 
 			n.getMetric()
 			if len(n.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					n.collectCache,
+					&io.Option{CollectCost: time.Since(n.start)})
 				n.collectCache = n.collectCache[:0]
 				if err != nil {
 					n.lastErr = err
@@ -189,7 +194,7 @@ func (n *Input) getMetric() {
 	}
 }
 
-func (n *Input) createHttpClient() (*http.Client, error) {
+func (n *Input) createHTTPClient() (*http.Client, error) {
 	tlsCfg, err := n.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
@@ -209,7 +214,7 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (_ *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
@@ -244,7 +249,7 @@ func (n *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},

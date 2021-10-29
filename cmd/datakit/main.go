@@ -56,7 +56,7 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
 	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
 	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
-	flag.BoolVar(&cmds.FlagApiRestart, "api-restart", false, "restart datakit for api only")
+	flag.BoolVar(&cmds.FlagAPIRestart, "api-restart", false, "restart datakit for api only")
 	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
@@ -257,7 +257,7 @@ func doRun() error {
 		return err
 	}
 
-	// FIXME: wait all inputs ok, then start http server
+	// NOTE: Should we wait all inputs ok, then start http server?
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
 		DCAConfig:      config.Cfg.DCAConfig,

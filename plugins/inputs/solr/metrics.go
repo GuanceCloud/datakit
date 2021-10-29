@@ -11,12 +11,13 @@ import (
 // ------------------- stats struct --------------------
 
 const (
-	prefix_searcher           = "SEARCHER.searcher."
-	prefix_regex_requesttimes = "(QUERY|UPDATE)\\./.*\\.requestTimes"
-	prefix_regex_cache        = "CACHE\\.searcher\\.(document|queryResult|filter)Cache"
+	prefixSearcher          = "SEARCHER.searcher."
+	prefixRegexRequesttimes = "(QUERY|UPDATE)\\./.*\\.requestTimes"
+	prefixRegexCache        = "CACHE\\.searcher\\.(document|queryResult|filter)Cache"
 )
 
-// SEARCH(select) and UPDATE(update) request times/errors/timeout
+// RequestTimesStats request times/errors/timeout
+//    SEARCH(select) and UPDATE(update)
 // Use map instead, fields need to be filtered.
 type RequestTimesStats struct {
 	Count     int64   `json:"count"`
@@ -48,8 +49,8 @@ type CacheStats struct {
 	Lookups             int64   `json:"lookups"`
 	Size                int64   `json:"size"`
 	Warmup              int64   `json:"warmupTime"`
-	MaxRamMB            int64   `json:"maxRamMB"`
-	RamBytesUsed        int64   `json:"ramBytesUsed"`
+	MaxRAMInMB          int64   `json:"maxRamMB"`
+	RAMBytesUsed        int64   `json:"ramBytesUsed"`
 }
 
 type SearcherStats struct {
@@ -90,47 +91,47 @@ type RequestTimesResp struct {
 // --------------------- solr v6.6 + -------------------
 // ----------------------- request url -----------------
 
-func UrlSearcher(server string) string {
-	path := "solr/admin/metrics"
+const (
+	adminMetric = "solr/admin/metrics"
+)
+
+func URLSearcher(server string) string {
 	param := [][2]string{
 		{"group", "core"},
 		{"wt", "json"},
-		{"prefix", prefix_searcher},
+		{"prefix", prefixSearcher},
 	}
-	return urljoin(server, path, param)
+	return urljoin(server, adminMetric, param)
 }
 
-func UrlRequestTimes(server string) string {
-	path := "solr/admin/metrics"
+func URLRequestTimes(server string) string {
 	param := [][2]string{
 		{"group", "core"},
 		{"wt", "json"},
-		{"regex", prefix_regex_requesttimes},
+		{"regex", prefixRegexRequesttimes},
 	}
-	return urljoin(server, path, param)
+	return urljoin(server, adminMetric, param)
 }
 
-func UrlCache(server string) string {
-	path := "solr/admin/metrics"
+func URLCache(server string) string {
 	param := [][2]string{
 		{"group", "core"},
 		{"wt", "json"},
-		{"regex", prefix_regex_cache},
+		{"regex", prefixRegexCache},
 	}
-	return urljoin(server, path, param)
+	return urljoin(server, adminMetric, param)
 }
 
-func UrlAll(server string) string {
-	path := "solr/admin/metrics"
+func URLAll(server string) string {
 	param := [][2]string{
 		{"group", "core"},
 		{"group", "node"},
 		{"wt", "json"},
-		{"prefix", prefix_searcher},
-		{"regex", prefix_regex_cache},
-		{"regex", prefix_regex_requesttimes},
+		{"prefix", prefixSearcher},
+		{"regex", prefixRegexCache},
+		{"regex", prefixRegexRequesttimes},
 	}
-	return urljoin(server, path, param)
+	return urljoin(server, adminMetric, param)
 }
 
 // --------------------- solr v6.6 + -------------------
@@ -193,8 +194,8 @@ func (i *Input) gatherSolrCache(k string, v json.RawMessage, commTags map[string
 		"lookups":              cacheStat.Lookups,
 		"size":                 cacheStat.Size,
 		"warmup":               cacheStat.Warmup,
-		"max_ram":              cacheStat.MaxRamMB,
-		"ram_bytes_used":       cacheStat.RamBytesUsed,
+		"max_ram":              cacheStat.MaxRAMInMB,
+		"ram_bytes_used":       cacheStat.RAMBytesUsed,
 	}
 	i.appendM(&SolrCache{
 		name:   metricNameCache,

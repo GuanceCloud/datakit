@@ -67,7 +67,7 @@ func (rs *RunningStats) AddValue(v float64) {
 		rs.perc = append(rs.perc, v)
 	} else {
 		// Reached limit, choose random index to overwrite in the percentile array
-		rs.perc[rand.Intn(len(rs.perc))] = v
+		rs.perc[rand.Intn(len(rs.perc))] = v //nolint:gosec
 	}
 }
 

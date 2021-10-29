@@ -1,3 +1,4 @@
+//nolint:lll
 package trace
 
 import (
@@ -11,11 +12,11 @@ type TraceMeasurement struct {
 	Name   string
 	Tags   map[string]string
 	Fields map[string]interface{}
-	Ts     time.Time
+	TS     time.Time
 }
 
 func (t *TraceMeasurement) LineProto() (*io.Point, error) {
-	data, err := io.MakePoint(t.Name, t.Tags, t.Fields, t.Ts)
+	data, err := io.MakePoint(t.Name, t.Tags, t.Fields, t.TS)
 
 	return data, err
 }

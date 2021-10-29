@@ -1,3 +1,4 @@
+// Package tomcat collect Tomcat metrics.
 package tomcat
 
 import (
@@ -94,7 +95,7 @@ func (i *Input) RunPipeline() {
 	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("NewTailer: %s", err)
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
@@ -107,7 +108,7 @@ func (i *Input) Run() {
 		for {
 			<-datakit.Exit.Wait()
 			if i.tail != nil {
-				i.tail.Close()
+				i.tail.Close() //nolint:errcheck
 			}
 		}
 	}()
@@ -122,7 +123,7 @@ func (i *Input) Run() {
 	i.JolokiaAgent.Collect()
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		i := &Input{}
 		return i

@@ -1,5 +1,4 @@
-// Datakit trace manager
-
+// Package tracer implement datakit self tracer
 package tracer
 
 import (

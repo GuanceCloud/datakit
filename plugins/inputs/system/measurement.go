@@ -14,6 +14,7 @@ type measurement struct {
 	ts     time.Time
 }
 
+//nolint:lll
 func (m *measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
@@ -28,6 +29,7 @@ func (m *conntrackMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *conntrackMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameConntrack,
@@ -56,6 +58,7 @@ func (m *filefdMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *filefdMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameFilefd,
@@ -73,6 +76,7 @@ func (m *filefdMeasurement) Info() *inputs.MeasurementInfo {
 
 type systemMeasurement measurement
 
+//nolint:lll
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameSystem,

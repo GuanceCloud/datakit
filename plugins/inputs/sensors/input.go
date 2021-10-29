@@ -67,7 +67,8 @@ func (s *Input) Run() {
 		select {
 		case <-tick.C:
 			if err = s.gather(); err != nil {
-				l.Error(err.Error())
+				l.Errorf("gather: %s", err.Error())
+
 				io.FeedLastError(inputName, err.Error())
 				continue
 			}
@@ -91,7 +92,10 @@ func (s *Input) gather() error {
 	if cache, err := s.parse(string(output)); err != nil {
 		return err
 	} else {
-		return inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)})
+		return inputs.FeedMeasurement(inputName,
+			datakit.Metric,
+			cache,
+			&io.Option{CollectCost: time.Since(start)})
 	}
 }
 
@@ -111,6 +115,7 @@ func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 		fields = make(map[string]interface{})
 		cache  []inputs.Measurement
 	)
+
 	for _, line := range lines {
 		if line == "" {
 			cache = append(cache, &sensorsMeasurement{
@@ -121,42 +126,46 @@ func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 			})
 			tags = s.getCustomerTags()
 			fields = make(map[string]interface{})
-		} else {
-			if strings.Contains(line, ":") {
-				parts := strings.Split(line, ":")
-				if strings.HasSuffix(line, ":") {
-					if len(fields) != 0 {
-						cache = append(cache, &sensorsMeasurement{
-							name:   inputName,
-							tags:   tags,
-							fields: fields,
-							ts:     time.Now(),
-						})
+			continue
+		}
 
-						tmp := make(map[string]string)
-						for k, v := range tags {
-							tmp[k] = v
-						}
-						tags = tmp
-						fields = make(map[string]interface{})
-					}
-					tags["feature"] = strings.ToLower(strings.Replace(strings.TrimSpace(parts[0]), " ", "_", -1))
-				} else if strings.HasPrefix(parts[0], " ") {
-					if value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err != nil {
-						log.Println(err.Error())
+		if !strings.Contains(line, ":") {
+			tags["chip"] = line
+			continue
+		}
 
-						return nil, err
-					} else {
-						fields[strings.ToLower(strings.TrimSpace(parts[0]))] = value
-					}
-				} else {
-					tags[strings.ToLower(parts[0])] = strings.TrimSpace(parts[1])
+		parts := strings.Split(line, ":")
+		switch {
+		case strings.HasSuffix(line, ":"):
+			if len(fields) != 0 {
+				cache = append(cache, &sensorsMeasurement{
+					name:   inputName,
+					tags:   tags,
+					fields: fields,
+					ts:     time.Now(),
+				})
+
+				tmp := make(map[string]string)
+				for k, v := range tags {
+					tmp[k] = v
 				}
-			} else {
-				tags["chip"] = line
+				tags = tmp
+				fields = make(map[string]interface{})
 			}
+			tags["feature"] = strings.ToLower(strings.ReplaceAll(strings.TrimSpace(parts[0]), " ", "_"))
+		case strings.HasPrefix(parts[0], " "):
+			if value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err != nil {
+				log.Println(err.Error())
+
+				return nil, err
+			} else {
+				fields[strings.ToLower(strings.TrimSpace(parts[0]))] = value
+			}
+		default:
+			tags[strings.ToLower(parts[0])] = strings.TrimSpace(parts[1])
 		}
 	}
+
 	if len(fields) != 0 {
 		cache = append(cache, &sensorsMeasurement{name: inputName, tags: tags, fields: fields, ts: time.Now()})
 	}
@@ -164,7 +173,7 @@ func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 	return cache, nil
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Path:     defPath,

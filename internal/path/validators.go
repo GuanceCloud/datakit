@@ -1,3 +1,4 @@
+// Package path wrap basic path functions.
 package path
 
 import (

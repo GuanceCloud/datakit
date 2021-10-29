@@ -1,3 +1,4 @@
+// Package downloader wrap HTTP download function
 package downloader
 
 import (
@@ -88,7 +89,7 @@ func doExtract(r io.Reader, to string) error {
 			}
 
 			// TODO: lock file before extracting, to avoid `text file busy` error
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
+			f, err := os.OpenFile(filepath.Clean(target), os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
 			if err != nil {
 				l.Error(err)
 				return err
@@ -140,7 +141,7 @@ func Download(cli *http.Client, from, to string, progress, downloadOnly bool) er
 }
 
 func doDownload(r io.Reader, to string) error {
-	f, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	f, err := os.OpenFile(filepath.Clean(to), os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return err
 	}

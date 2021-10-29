@@ -1,3 +1,5 @@
+// Package consul collect consul metrics by using input prom
+//nolint:lll
 package consul
 
 import (
@@ -90,7 +92,7 @@ func (i *Input) PipelineConfig() map[string]string {
 func (i *Input) RunPipeline() {
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

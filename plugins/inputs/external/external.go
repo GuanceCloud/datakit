@@ -1,3 +1,4 @@
+// Package external wraps all external command to collect various metrics
 package external
 
 import (
@@ -52,11 +53,11 @@ type ExernalInput struct {
 	duration time.Duration `toml:"-"`
 }
 
-func (_ *ExernalInput) Catalog() string {
+func (*ExernalInput) Catalog() string {
 	return "external"
 }
 
-func (_ *ExernalInput) SampleConfig() string {
+func (*ExernalInput) SampleConfig() string {
 	return configSample
 }
 
@@ -78,7 +79,7 @@ func (ex *ExernalInput) precheck() error {
 }
 
 func (ex *ExernalInput) start() error {
-	ex.cmd = exec.Command(ex.Cmd, ex.Args...)
+	ex.cmd = exec.Command(ex.Cmd, ex.Args...) //nolint:gosec
 	if ex.Envs != nil {
 		ex.cmd.Env = ex.Envs
 	}
@@ -120,13 +121,16 @@ func (ex *ExernalInput) Run() {
 
 	if ex.Daemon {
 		for {
-			if err := ex.start(); err != nil {
+			if err := ex.start(); err != nil { // start failed, retry
 				time.Sleep(time.Second)
+				continue
 			}
 			break
 		}
 
-		datakit.MonitProc(ex.cmd.Process, ex.Name) // blocking here...
+		if err := datakit.MonitProc(ex.cmd.Process, ex.Name); err != nil { // blocking here...
+			l.Errorf("datakit.MonitProc: %s", err.Error())
+		}
 		return
 	}
 
@@ -137,7 +141,7 @@ func (ex *ExernalInput) Run() {
 	for {
 		select {
 		case <-tick.C:
-			ex.start()
+			_ = ex.start() //nolint:errcheck
 		case <-datakit.Exit.Wait():
 			l.Infof("external input %s exiting", ex.Name)
 			return
@@ -145,7 +149,7 @@ func (ex *ExernalInput) Run() {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &ExernalInput{}
 	})

@@ -1,3 +1,4 @@
+// Package coredns collect coreDNS metrics by using input prom
 package coredns
 
 import (
@@ -100,7 +101,7 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&AclMeasurement{},
+		&ACLMeasurement{},
 		&CacheMeasurement{},
 		&DNSSecMeasurement{},
 		&ForwardMeasurement{},
@@ -111,7 +112,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

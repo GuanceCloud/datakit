@@ -17,11 +17,11 @@ import (
 )
 
 var (
-	NetAddrIdGen   = GenGlobalId(10000)
-	ServiceIdGen   = GenGlobalId(20000)
-	InstanceIdGen  = GenGlobalId(30000)
-	EndpointIdGen  = GenGlobalId(40000)
-	SerialNumIdGen = GenGlobalId(50000)
+	NetAddrIDGen   = GenGlobalID(10000)
+	ServiceIDGen   = GenGlobalID(20000)
+	InstanceIDGen  = GenGlobalID(30000)
+	EndpointIDGen  = GenGlobalID(40000)
+	SerialNumIDGen = GenGlobalID(50000)
 )
 
 var (
@@ -33,17 +33,17 @@ var (
 	RegEndpointRev = &sync.Map{} // key: endpointName, value: id
 )
 
-func GenGlobalId(startCnt int32) func() int32 {
-	var id int32 = startCnt
+func GenGlobalID(startCnt int32) func() int32 {
+	id := startCnt
 	var mutex sync.Mutex
 
 	return func() int32 {
-		var rtnId int32
+		var rtnID int32
 		mutex.Lock()
 		id += 1
-		rtnId = id
+		rtnID = id
 		mutex.Unlock()
-		return rtnId
+		return rtnID
 	}
 }
 
@@ -102,7 +102,8 @@ func (*SkyWalkingServerV2) Collect(tsc swV2.TraceSegmentReportService_CollectSer
 	}
 }
 
-func upstmSegmentToAdapters(segment *swV2.UpstreamSegment, filters ...upstmSegmentFilter) ([]*trace.TraceAdapter, error) {
+func upstmSegmentToAdapters(segment *swV2.UpstreamSegment,
+	filters ...upstmSegmentFilter) ([]*trace.TraceAdapter, error) {
 	// run all filters
 	for _, filter := range filters {
 		if filter(segment) == nil {
@@ -111,22 +112,22 @@ func upstmSegmentToAdapters(segment *swV2.UpstreamSegment, filters ...upstmSegme
 	}
 
 	var (
-		traceId = segment.GlobalTraceIds[0].IdParts[2]
+		traceID = segment.GlobalTraceIds[0].IdParts[2]
 		sgid    = segment.Segment.TraceSegmentId.IdParts[2]
-		sid     = segment.Segment.ServiceId
+		sid     = segment.Segment.ServiceId //nolint:stylecheck
 	)
 
 	sn, ok := RegService.Load(sid)
 	if !ok {
-		return nil, fmt.Errorf("Service Id %v not registered", sid)
+		return nil, fmt.Errorf("service id %v not registered", sid)
 	}
 
 	var service string
-	switch sn.(type) {
+	switch x := sn.(type) {
 	case string:
-		service = sn.(string)
+		service = x
 	default:
-		return nil, fmt.Errorf("Service Name wrong type")
+		return nil, fmt.Errorf("service name wrong type")
 	}
 
 	var group []*trace.TraceAdapter
@@ -146,9 +147,9 @@ func upstmSegmentToAdapters(segment *swV2.UpstreamSegment, filters ...upstmSegme
 			if !ok {
 				return nil, fmt.Errorf("operation name %s null", adapter.OperationName)
 			}
-			switch on.(type) {
+			switch x := on.(type) {
 			case string:
-				adapter.OperationName = on.(string)
+				adapter.OperationName = x
 			default:
 				return nil, fmt.Errorf("operation Name wrong type")
 			}
@@ -160,19 +161,25 @@ func upstmSegmentToAdapters(segment *swV2.UpstreamSegment, filters ...upstmSegme
 			adapter.ParentID = fmt.Sprintf("%v%v", sgid, span.ParentSpanId)
 		}
 
-		adapter.TraceID = fmt.Sprintf("%d", traceId)
+		adapter.TraceID = fmt.Sprintf("%d", traceID)
 		adapter.SpanID = fmt.Sprintf("%v%v", sgid, span.SpanId)
 		adapter.Status = trace.STATUS_OK
 		if span.IsError {
 			adapter.Status = trace.STATUS_ERR
 		}
-		if span.SpanType == common.SpanType_Entry {
+
+		switch span.SpanType {
+		case common.SpanType_Entry:
 			adapter.SpanType = trace.SPAN_TYPE_ENTRY
-		} else if span.SpanType == common.SpanType_Local {
+		case common.SpanType_Local:
 			adapter.SpanType = trace.SPAN_TYPE_LOCAL
-		} else {
+		case common.SpanType_Exit:
+			adapter.SpanType = trace.SPAN_TYPE_EXIT
+		default:
+			log.Warnf("unknown span type %d, use SPAN_TYPE_EXIT", span.SpanType)
 			adapter.SpanType = trace.SPAN_TYPE_EXIT
 		}
+
 		adapter.EndPoint = span.Peer
 		adapter.Tags = skywalkingV2Tags
 
@@ -186,7 +193,8 @@ type SkyWalkingRegisterServerV2 struct {
 	register.UnimplementedRegisterServer
 }
 
-func (*SkyWalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *register.Services) (*register.ServiceRegisterMapping, error) {
+func (*SkyWalkingRegisterServerV2) DoServiceRegister(ctx context.Context,
+	r *register.Services) (*register.ServiceRegisterMapping, error) {
 	var (
 		sid       interface{}
 		serviceID int32
@@ -196,13 +204,13 @@ func (*SkyWalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *reg
 	for _, s := range r.Services {
 		service := s.ServiceName
 		if sid, ok = RegServiceRev.Load(service); !ok {
-			sid = ServiceIdGen()
+			sid = ServiceIDGen()
 			RegService.Store(sid, service)
 			RegServiceRev.Store(service, sid)
 		}
-		switch sid.(type) {
+		switch x := sid.(type) {
 		case int32:
-			serviceID = sid.(int32)
+			serviceID = x
 		default:
 			log.Errorf("serviceID wrong type")
 		}
@@ -214,7 +222,8 @@ func (*SkyWalkingRegisterServerV2) DoServiceRegister(ctx context.Context, r *reg
 	return &serMap, nil
 }
 
-func (*SkyWalkingRegisterServerV2) DoServiceInstanceRegister(ctx context.Context, r *register.ServiceInstances) (*register.ServiceInstanceRegisterMapping, error) {
+func (*SkyWalkingRegisterServerV2) DoServiceInstanceRegister(ctx context.Context,
+	r *register.ServiceInstances) (*register.ServiceInstanceRegisterMapping, error) {
 	var (
 		ok            bool
 		serInstanceID int32
@@ -222,21 +231,23 @@ func (*SkyWalkingRegisterServerV2) DoServiceInstanceRegister(ctx context.Context
 	)
 	for _, sin := range r.Instances {
 		uuid := sin.InstanceUUID
-		sid := sin.ServiceId
+		sid := sin.ServiceId //nolint:stylecheck
 		if _, ok = RegInstanceRev.Load(uuid); !ok {
-			serInstanceID = InstanceIdGen()
+			serInstanceID = InstanceIDGen()
 			RegInstance.Store(serInstanceID, uuid)
 			RegInstanceRev.Store(uuid, serInstanceID)
 		}
 		kp := &common.KeyIntValuePair{Key: uuid, Value: serInstanceID}
 		regMap.ServiceInstances = append(regMap.ServiceInstances, kp)
-		log.Infof("DoServiceInstanceRegister serviceID: %v uuid: %v instanceID: %v\n", sid, uuid, serInstanceID)
+		log.Infof("DoServiceInstanceRegister serviceID: %v uuid: %v instanceID: %v\n",
+			sid, uuid, serInstanceID)
 	}
 
 	return &regMap, nil
 }
 
-func (*SkyWalkingRegisterServerV2) DoEndpointRegister(ctx context.Context, r *register.Endpoints) (*register.EndpointMapping, error) {
+func (*SkyWalkingRegisterServerV2) DoEndpointRegister(ctx context.Context,
+	r *register.Endpoints) (*register.EndpointMapping, error) {
 	var (
 		epid       interface{}
 		ok         bool
@@ -245,39 +256,45 @@ func (*SkyWalkingRegisterServerV2) DoEndpointRegister(ctx context.Context, r *re
 	)
 	for _, v := range r.Endpoints {
 		r := register.EndpointMappingElement{}
-		sid := v.ServiceId
+		sid := v.ServiceId //nolint:stylecheck
 		eName := v.EndpointName
 		from := v.From
 
 		if epid, ok = RegEndpointRev.Load(eName); !ok {
-			epid = EndpointIdGen()
+			epid = EndpointIDGen()
 			RegEndpoint.Store(epid, eName)
 			RegEndpointRev.Store(eName, epid)
 		}
-		switch epid.(type) {
+
+		switch x := epid.(type) {
 		case int32:
-			endpointID = epid.(int32)
+			endpointID = x
 		default:
 			log.Errorf("endpointId wrong type")
 		}
 
 		r.EndpointName = eName
-		r.ServiceId = sid
+		r.ServiceId = sid //nolint:stylecheck
 		r.From = from
 		r.EndpointId = endpointID
-		log.Infof("DoEndpointRegister serviceID=%v endpontName=%v from=%v endpointID=%v\n", r.ServiceId, r.EndpointName, r.From, r.EndpointId)
+		log.Infof("DoEndpointRegister serviceID=%v endpontName=%v from=%v endpointID=%v\n",
+			r.ServiceId, //nolint:stylecheck
+			r.EndpointName,
+			r.From,
+			r.EndpointId) //nolint:stylecheck
 		reg.Elements = append(reg.Elements, &r)
 	}
 
 	return &reg, nil
 }
 
-func (*SkyWalkingRegisterServerV2) DoNetworkAddressRegister(ctx context.Context, r *register.NetAddresses) (*register.NetAddressMapping, error) {
+func (*SkyWalkingRegisterServerV2) DoNetworkAddressRegister(ctx context.Context,
+	r *register.NetAddresses) (*register.NetAddressMapping, error) {
 	reg := register.NetAddressMapping{}
 	for _, addr := range r.Addresses {
 		kp := common.KeyIntValuePair{}
 		kp.Key = addr
-		kp.Value = NetAddrIdGen()
+		kp.Value = NetAddrIDGen()
 		reg.AddressIds = append(reg.AddressIds, &kp)
 		log.Infof("DoNetworkAddressRegister addr: %v id: %v", addr, kp.Value)
 	}
@@ -285,7 +302,8 @@ func (*SkyWalkingRegisterServerV2) DoNetworkAddressRegister(ctx context.Context,
 	return &reg, nil
 }
 
-func (*SkyWalkingRegisterServerV2) DoServiceAndNetworkAddressMappingRegister(ctx context.Context, r *register.ServiceAndNetworkAddressMappings) (*common.Commands, error) {
+func (*SkyWalkingRegisterServerV2) DoServiceAndNetworkAddressMappingRegister(ctx context.Context,
+	r *register.ServiceAndNetworkAddressMappings) (*common.Commands, error) {
 	return new(common.Commands), nil
 }
 
@@ -293,7 +311,8 @@ type SkywalkingJVMMetricServerV2 struct {
 	swV2.UnimplementedJVMMetricReportServiceServer
 }
 
-func (*SkywalkingJVMMetricServerV2) Collect(ctx context.Context, jvm *swV2.JVMMetricCollection) (*common.Commands, error) {
+func (*SkywalkingJVMMetricServerV2) Collect(ctx context.Context,
+	jvm *swV2.JVMMetricCollection) (*common.Commands, error) {
 	cmds := &common.Commands{}
 	log.Debugf("JVMMetricReportService %v", jvm.ServiceInstanceId)
 
@@ -304,13 +323,14 @@ type SkywalkingPingServerV2 struct {
 	register.UnimplementedServiceInstancePingServer
 }
 
-func (*SkywalkingPingServerV2) DoPing(ctx context.Context, r *register.ServiceInstancePingPkg) (*common.Commands, error) {
+func (*SkywalkingPingServerV2) DoPing(ctx context.Context,
+	r *register.ServiceInstancePingPkg) (*common.Commands, error) {
 	cmds := &common.Commands{}
 	if _, ok := RegInstanceRev.Load(r.ServiceInstanceUUID); !ok {
 		cmd := &common.Command{Command: "ServiceMetadataReset"}
 		kv := &common.KeyStringValuePair{
 			Key:   "SerialNumber",
-			Value: fmt.Sprintf("%v", SerialNumIdGen()),
+			Value: fmt.Sprintf("%v", SerialNumIDGen()),
 		}
 		cmd.Args = append(cmd.Args, kv)
 		cmds.Commands = append(cmds.Commands, cmd)

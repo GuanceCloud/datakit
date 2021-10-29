@@ -1,8 +1,6 @@
 package rabbitmq
 
 import (
-
-	//"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,14 +25,14 @@ func TestGetMetric(t *testing.T) {
 		}
 	}))
 
-	defer ts.Close()
+	defer ts.Close() //nolint:errcheck
 
 	n := &Input{
-		Url: ts.URL,
+		URL: ts.URL,
 	}
-	cli, err := n.createHttpClient()
+	cli, err := n.createHTTPClient()
 	if err != nil {
-		l.Fatal(err)
+		t.Fatal(err)
 	}
 	n.client = cli
 
@@ -49,26 +47,31 @@ func TestGetMetric(t *testing.T) {
 }
 
 func nodeHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(nodeHandleData))
+	w.Write([]byte(nodeHandleData)) //nolint:errcheck
 }
 
 func queueHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(queueHandleData))
+	w.Write([]byte(queueHandleData)) //nolint:errcheck
 }
 
 func overviewHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(overviewHandleData))
+	w.Write([]byte(overviewHandleData)) //nolint:errcheck
 }
 
 func exchangeHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(exchangeHandleData))
+	w.Write([]byte(exchangeHandleData)) //nolint:errcheck
 }
 
 func bindingHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(bindingHandleData))
+	w.Write([]byte(bindingHandleData)) //nolint:errcheck
 }

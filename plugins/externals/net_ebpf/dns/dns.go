@@ -1,3 +1,5 @@
+// +build linux
+//nolint:typecheck
 package dns
 
 import (
@@ -10,7 +12,6 @@ import (
 	"github.com/google/gopacket/afpacket"
 	"github.com/google/gopacket/layers"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-
 	"golang.org/x/net/bpf"
 )
 
@@ -95,7 +96,7 @@ type DNSRecord struct {
 	record map[string][2]interface{}
 }
 
-func (c *DNSRecord) LookupAddr(ip net.IP) string {
+func (c *DNSRecord) LookupAddr(ip net.IP) string { //nolint:interfacer
 	c.Lock()
 	defer c.Unlock()
 

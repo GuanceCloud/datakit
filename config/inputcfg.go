@@ -45,7 +45,7 @@ func SearchDir(dir string, suffix string) []string {
 	return fps
 }
 
-// load all inputs under @InstallDir/conf.d.
+// LoadInputsConfig load all inputs under @InstallDir/conf.d.
 func LoadInputsConfig(suffix string) error {
 	inputs.Init()
 
@@ -143,10 +143,7 @@ func doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*
 	list := searchDatakitInputCfg(inputcfgs, name, creator)
 
 	for _, i := range list {
-		if err := inputs.AddInput(name, i); err != nil {
-			l.Error("add %s failed: %v", name, err)
-			continue
-		}
+		inputs.AddInput(name, i)
 	}
 
 	return nil
@@ -248,6 +245,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 	return
 }
 
+//nolint:lll
 var confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
 
 func initDatakitConfSample(name string, c inputs.Creator) error {
@@ -350,7 +348,7 @@ func LoadInputConfig(data string, creator inputs.Creator) ([]inputs.Input, error
 	tbl, err := toml.Parse([]byte(data))
 	if err != nil {
 		l.Errorf("parse toml %s failed", data)
-		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
+		return nil, fmt.Errorf("[error] parse conf failed: %w", err)
 	}
 
 	return parseTableToInputs(tbl, creator)

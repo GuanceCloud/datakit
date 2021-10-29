@@ -1,7 +1,7 @@
+// Package system collect system level metrics
 package system
 
 import (
-	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -147,17 +147,16 @@ func (i *Input) Collect() error {
 	}
 
 	users, err := host.Users()
-	if err == nil {
-		sysM.fields["n_users"] = len(users)
-	} else if os.IsNotExist(err) {
-		l.Debugf("Reading users: %s", err.Error())
-	} else if os.IsPermission(err) {
-		l.Debug(err.Error())
+	if err != nil {
+		l.Warnf("Users: %s, ignored", err.Error())
 	}
+	sysM.fields["n_users"] = len(users)
+
 	uptime, err := host.Uptime()
-	if err == nil {
-		sysM.fields["uptime"] = uptime
+	if err != nil {
+		l.Warnf("Uptime: %s, ignored", err.Error())
 	}
+	sysM.fields["uptime"] = uptime
 
 	i.collectCache = append(i.collectCache, &sysM)
 
@@ -171,20 +170,21 @@ func (i *Input) Run() {
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 	for {
+		start := time.Now()
+		if err := i.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(i.collectCache) > 0 {
+			if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("FeedMeasurement: %s", err)
+			}
+		}
+
 		select {
 		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error())
-					l.Error(errFeed)
-				}
-				// i.collectCache = make([]inputs.Measurement, 0)
-			} else {
-				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
-			}
 		case <-datakit.Exit.Wait():
 			l.Infof("system input exit")
 			return
@@ -192,7 +192,7 @@ func (i *Input) Run() {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},

@@ -1,3 +1,4 @@
+// Package utils wraps eBPF-network utils.
 package utils
 
 import (
@@ -31,7 +32,8 @@ func FeedLastError(extnlErr ExternalLastErr) error {
 	if err != nil {
 		return err
 	}
-	defer rsp.Body.Close()
+
+	defer rsp.Body.Close() //nolint:errcheck
 
 	if rsp.StatusCode != http.StatusOK {
 		return fmt.Errorf("lastErrPostURL, http status code: %d", rsp.StatusCode)

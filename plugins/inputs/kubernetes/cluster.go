@@ -41,7 +41,7 @@ func (c *cluster) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":         int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"create_time": obj.CreationTimestamp.Time.Unix(),
 		}
 
@@ -69,6 +69,7 @@ func (c *cluster) Gather() {
 
 func (*cluster) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*cluster) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesClusterName,

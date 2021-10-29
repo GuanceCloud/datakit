@@ -19,7 +19,9 @@ func TestCollect(t *testing.T) {
 		diskStats: &PSDisk{},
 	}
 	for x := 0; x < 5; x++ {
-		i.Collect()
+		if err := i.Collect(); err != nil {
+			t.Error(err)
+		}
 		time.Sleep(time.Second * 1)
 	}
 	if len(i.collectCache) < 1 {
@@ -27,7 +29,12 @@ func TestCollect(t *testing.T) {
 	}
 	tmap := map[string]bool{}
 	for _, v := range i.collectCache {
-		m := v.(*diskMeasurement)
+		m, ok := v.(*diskMeasurement)
+		if !ok {
+			t.Error("v expect to be *diskMeasurement")
+			continue
+		}
+
 		tmap[m.ts.String()] = true
 	}
 	if len(tmap) != 1 {

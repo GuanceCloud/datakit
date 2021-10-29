@@ -93,6 +93,7 @@ var (
     }
 ]`
 
+	//nolint:lll
 	overviewHandleData = `
 {
     "cluster_name": "rabbit@tan-ThinkPad-E450",

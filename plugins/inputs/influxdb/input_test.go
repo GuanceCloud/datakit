@@ -53,10 +53,10 @@ func TestCollect(t *testing.T) {
 	}
 	i.client = &http.Client{
 		Transport: &http.Transport{
-			ResponseHeaderTimeout: time.Duration(i.Timeout.Duration),
+			ResponseHeaderTimeout: i.Timeout.Duration,
 			TLSClientConfig:       nil,
 		},
-		Timeout: time.Duration(i.Timeout.Duration),
+		Timeout: i.Timeout.Duration,
 	}
 	i.URL = "http://localhost:8086/debug/vars"
 	if err := i.Collect(); err != nil {

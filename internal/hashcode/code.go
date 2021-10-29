@@ -1,7 +1,10 @@
+// Package hashcode wrap internal hashing functions
 package hashcode
 
 import (
 	"bytes"
+
+	// nolint:gosec
 	"crypto/md5"
 	"sort"
 )
@@ -24,7 +27,7 @@ func GenMapHash(data map[string]string) string {
 		buf.WriteString(data[key])
 	}
 
-	checksum := md5.Sum(buf.Bytes())
+	checksum := md5.Sum(buf.Bytes()) //nolint:gosec
 
 	return string(checksum[:])
 }

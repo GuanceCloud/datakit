@@ -18,7 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dns"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/net/context/ctxhttp"
 	"golang.org/x/sys/unix"
@@ -399,11 +398,13 @@ func MergeConns(preResult *ConnResult) {
 		if !isEphemeralPort(connInfoList[k].Sport) {
 			continue
 		}
-		if lastIndex < 0 {
+
+		switch {
+		case lastIndex < 0:
 			lastIndex = k
 			resultTmpConn[connInfoList[k]] = preResult.result[connInfoList[k]]
 			delete(preResult.result, connInfoList[k])
-		} else if ConnCmpNoSPort(connInfoList[lastIndex], connInfoList[k]) {
+		case ConnCmpNoSPort(connInfoList[lastIndex], connInfoList[k]):
 			connRecord[connInfoList[lastIndex]] = true
 			resultTmpConn[connInfoList[lastIndex]] = StatsTCPOp("+", resultTmpConn[connInfoList[lastIndex]],
 				preResult.result[connInfoList[k]].Stats, preResult.result[connInfoList[k]].TcpStats)
@@ -414,11 +415,12 @@ func MergeConns(preResult *ConnResult) {
 			resultTmpConn[connInfoList[lastIndex]] = connfull
 
 			delete(preResult.result, connInfoList[k])
-		} else {
+		default:
 			k--
 			lastIndex = -1
 		}
 	}
+
 	for k, v := range resultTmpConn {
 		if _, ok := connRecord[k]; ok {
 			k.Sport = math.MaxUint32

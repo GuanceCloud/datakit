@@ -1,3 +1,4 @@
+// Package swap collect host swap metrics.
 package swap
 
 import (
@@ -116,7 +117,7 @@ func (i *Input) Collect() error {
 	swap, err := i.swapStat()
 	ts := time.Now()
 	if err != nil {
-		return fmt.Errorf("error getting swap memory info: %s", err)
+		return fmt.Errorf("error getting swap memory info: %w", err)
 	}
 
 	fields := map[string]interface{}{
@@ -164,7 +165,7 @@ func (i *Input) Run() {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			swapStat: PSSwapStat,

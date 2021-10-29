@@ -1,3 +1,4 @@
+// Package ip2isp append ISP info to IP address
 package ip2isp
 
 import (
@@ -16,8 +17,8 @@ import (
 )
 
 const (
-	IpV4_Len       = 4
-	FILE_SEPARATOR = " "
+	IPV4Len       = 4
+	FileSeparator = " "
 )
 
 var IspValid = map[string]string{
@@ -33,10 +34,10 @@ var IspValid = map[string]string{
 
 var (
 	l        = logger.DefaultSLogger("ip2isp")
-	Ip2IspDb = map[string]string{}
+	IP2ISPDB = map[string]string{}
 )
 
-func ParseIpCIDR(ipCidr string) (string, error) {
+func ParseIPCIDR(ipCidr string) (string, error) {
 	var err error
 	var cidrLen int64 = 32
 
@@ -49,7 +50,7 @@ func ParseIpCIDR(ipCidr string) (string, error) {
 	}
 
 	ipBytes := strings.Split(ipCidrs[0], ".")
-	if len(ipBytes) != IpV4_Len {
+	if len(ipBytes) != IPV4Len {
 		return "", fmt.Errorf("invalid ip address")
 	}
 	ipBitStr := ""
@@ -72,14 +73,14 @@ func ParseIpCIDR(ipCidr string) (string, error) {
 }
 
 func SearchIsp(ip string) string {
-	if len(Ip2IspDb) == 0 {
+	if len(IP2ISPDB) == 0 {
 		return "unknown"
 	}
 
 	for i := 32; i > 0; i-- {
 		ipCidr := fmt.Sprintf("%s/%v", ip, i)
-		ipBitStr, _ := ParseIpCIDR(ipCidr)
-		if v, ok := Ip2IspDb[ipBitStr]; ok {
+		ipBitStr, _ := ParseIPCIDR(ipCidr)
+		if v, ok := IP2ISPDB[ipBitStr]; ok {
 			return v
 		}
 	}
@@ -98,20 +99,20 @@ func Init(f string) error {
 		return nil
 	}
 
-	fd, err := os.Open(f)
+	fd, err := os.Open(filepath.Clean(f))
 	if err != nil {
 		return err
 	}
-	defer fd.Close()
+	defer fd.Close() //nolint:errcheck,gosec
 
 	scanner := bufio.NewScanner(fd)
 	for scanner.Scan() {
-		contents := strings.Split(scanner.Text(), FILE_SEPARATOR)
+		contents := strings.Split(scanner.Text(), FileSeparator)
 		if len(contents) != 2 {
 			continue
 		}
 
-		ipBitStr, err := ParseIpCIDR(contents[0])
+		ipBitStr, err := ParseIPCIDR(contents[0])
 		if err != nil {
 			continue
 		}
@@ -119,7 +120,7 @@ func Init(f string) error {
 	}
 
 	if len(m) != 0 {
-		Ip2IspDb = m
+		IP2ISPDB = m
 		l.Infof("found new %d rules", len(m))
 	} else {
 		l.Infof("no rules founded")
@@ -154,15 +155,15 @@ func MergeIsp(from, to string) error {
 			continue
 		}
 
-		fd, err := os.Open(filepath.Join(from, file))
+		fd, err := os.Open(filepath.Clean(filepath.Join(from, file)))
 		if err != nil {
 			return err
 		}
-		defer fd.Close()
+		defer fd.Close() //nolint:errcheck,gosec
 
 		scanner := bufio.NewScanner(fd)
 		for scanner.Scan() {
-			c := fmt.Sprintf("%v%v%v", scanner.Text(), FILE_SEPARATOR, isp)
+			c := fmt.Sprintf("%v%v%v", scanner.Text(), FileSeparator, isp)
 			content = append(content, c)
 		}
 	}
@@ -174,11 +175,11 @@ func BuildContryCity(csvFile, outputFile string) error {
 	d := make(map[string]map[string][]string)
 	found := make(map[string]uint8)
 
-	f, err := os.Open(csvFile)
+	f, err := os.Open(filepath.Clean(csvFile))
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck,gosec
 
 	w := csv.NewReader(f)
 	data, err := w.ReadAll()

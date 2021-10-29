@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"context"
+
+	// nolint:gosec
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -52,7 +54,7 @@ func (d *Discovery) TryRun(name, cfg string) error {
 
 		func(name string, ii inputs.Input) {
 			g.Go(func(ctx context.Context) error {
-				time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
+				time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
 				l.Infof("discovery: starting input %s ...", name)
 				ii.Run()
 				l.Infof("discovery: input %s exited", name)
@@ -68,7 +70,7 @@ func (d *Discovery) IsExist(config string) (bool, string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	h := md5.New()
+	h := md5.New() //nolint:gosec
 	h.Write([]byte(config))
 	md5Str := hex.EncodeToString(h.Sum(nil))
 	_, exist := d.list[md5Str]

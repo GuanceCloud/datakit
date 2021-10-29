@@ -1,3 +1,4 @@
+// Package jenkins collects Jenkins metrics.
 package jenkins
 
 import (
@@ -16,15 +17,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func (_ *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sample
 }
 
-func (_ *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (_ *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		"jenkins": pipelineCfg,
 	}
@@ -36,7 +37,7 @@ func (n *Input) Run() {
 	l.Info("jenkins start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	client, err := n.createHttpClient()
+	client, err := n.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] jenkins init client err:%s", err.Error())
 		return
@@ -52,7 +53,10 @@ func (n *Input) Run() {
 			n.start = time.Now()
 			n.getPluginMetric()
 			if len(n.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					n.collectCache,
+					&io.Option{CollectCost: time.Since(n.start)})
 				n.collectCache = n.collectCache[:0]
 				if err != nil {
 					n.lastErr = err
@@ -112,7 +116,7 @@ func (n *Input) RunPipeline() {
 }
 
 func (n *Input) requestJSON(u string, target interface{}) error {
-	u = fmt.Sprintf("%s%s", n.Url, u)
+	u = fmt.Sprintf("%s%s", n.URL, u)
 
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -125,17 +129,16 @@ func (n *Input) requestJSON(u string, target interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("response err:%+#v", resp)
 	}
-	json.NewDecoder(resp.Body).Decode(target)
 
-	return nil
+	return json.NewDecoder(resp.Body).Decode(target)
 }
 
-func (n *Input) createHttpClient() (*http.Client, error) {
+func (n *Input) createHTTPClient() (*http.Client, error) {
 	tlsCfg, err := n.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
@@ -155,7 +158,7 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (_ *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
@@ -165,7 +168,7 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 30},

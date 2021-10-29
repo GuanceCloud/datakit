@@ -9,7 +9,6 @@ import (
 type parseCase struct {
 	in       string
 	expected *Ast
-	err      string
 	fail     bool
 }
 
@@ -198,6 +197,7 @@ func TestParser(t *testing.T) {
 }
 
 func runCases(t *testing.T, cases []*parseCase) {
+	t.Helper()
 	for idx := len(cases) - 1; idx >= 0; idx-- {
 		tc := cases[idx]
 		node, err := ParsePipeline(tc.in)

@@ -1,3 +1,4 @@
+// Package sensors collect hardware sensor metrics.
 package sensors
 
 import (

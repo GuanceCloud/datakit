@@ -1,3 +1,4 @@
+// Package kubernetes collects k8s metrics/objects.
 package kubernetes
 
 import (
@@ -25,17 +26,17 @@ type Input struct {
 	URL      string `toml:"url"`
 	Interval string `toml:"interval"`
 
-	BearerToken        string `toml:"bearer_token"`
-	BearerTokenString  string `toml:"bearer_token_string"`
-	TLSCA              string `toml:"tls_ca"`
-	TLSCert            string `toml:"tls_cert"`
-	TLSKey             string `toml:"tls_key"`
-	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
-
-	Tags map[string]string `toml:"tags"`
+	BearerToken       string `toml:"bearer_token"`
+	BearerTokenString string `toml:"bearer_token_string"`
+	TLSCA             string `toml:"tls_ca"`
+	TLSCert           string `toml:"tls_cert"`
+	TLSKey            string `toml:"tls_key"`
 
 	DepercatedTimeout string `toml:"timeout"`
 
+	InsecureSkipVerify bool `toml:"insecure_skip_verify"`
+
+	Tags         map[string]string `toml:"tags"`
 	client       *client
 	resourceList []resource
 	exporterList []exporter
@@ -46,14 +47,14 @@ type Input struct {
 
 var l = logger.DefaultSLogger("kubernetes")
 
-func (this *Input) Run() {
+func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if this.setup() {
+	if i.setup() {
 		return
 	}
 
-	dur, _ := timex.ParseDuration(this.Interval)
+	dur, _ := timex.ParseDuration(i.Interval)
 	if dur < minMetricInterval {
 		l.Debug("use default metric interval: 60s")
 		dur = minMetricInterval
@@ -65,48 +66,48 @@ func (this *Input) Run() {
 	objectTick := time.NewTicker(defaultObjectInterval)
 	defer objectTick.Stop()
 
-	if !this.pause {
+	if !i.pause {
 		l.Info("first collection")
-		this.gatherMetric()
-		this.execExport()
-		this.gatherObject()
+		i.gatherMetric()
+		i.execExport()
+		i.gatherObject()
 	}
 
 	for {
 		select {
 		case <-metricTick.C:
-			if this.pause {
+			if i.pause {
 				l.Debugf("not leader, skipped (metrics)")
 				continue
 			}
-			this.gatherMetric()
+			i.gatherMetric()
 
 		case <-objectTick.C:
-			if this.pause {
+			if i.pause {
 				l.Debugf("not leader, skipped (object)")
 				continue
 			}
-			this.gatherObject()
-			this.execExport()
+			i.gatherObject()
+			i.execExport()
 
 		case <-datakit.Exit.Wait():
-			this.Stop()
+			i.Stop()
 			l.Info("kubernetes exit")
 			return
 
-		case this.pause = <-this.chPause:
+		case i.pause = <-i.chPause:
 			// nil
 		}
 	}
 }
 
-func (this *Input) Stop() {
-	for _, exporter := range this.exporterList {
+func (i *Input) Stop() {
+	for _, exporter := range i.exporterList {
 		exporter.Stop()
 	}
 }
 
-func (this *Input) setup() bool {
+func (i *Input) setup() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -117,30 +118,30 @@ func (this *Input) setup() bool {
 		}
 		time.Sleep(time.Second)
 
-		if err := this.buildClient(); err != nil {
+		if err := i.buildClient(); err != nil {
 			l.Error(err)
 			continue
 		}
-		this.buildExporters()
+		i.buildExporters()
 
 		break
 	}
 
-	this.buildResources()
+	i.buildResources()
 
 	return false
 }
 
-func (this *Input) buildClient() error {
+func (i *Input) buildClient() error {
 	var cli *client
 	var err error
 
-	if this.URL == "" {
+	if i.URL == "" {
 		return fmt.Errorf("invalid k8s url, cannot be empty")
 	}
 
-	if this.BearerToken != "" {
-		cli, err = newClientFromBearerToken(this.URL, this.BearerToken)
+	if i.BearerToken != "" {
+		cli, err = newClientFromBearerToken(i.URL, i.BearerToken)
 		if err != nil {
 			return err
 		}
@@ -148,8 +149,8 @@ func (this *Input) buildClient() error {
 		goto end
 	}
 
-	if this.BearerTokenString != "" {
-		cli, err = newClientFromBearerTokenString(this.URL, this.BearerTokenString)
+	if i.BearerTokenString != "" {
+		cli, err = newClientFromBearerTokenString(i.URL, i.BearerTokenString)
 		if err != nil {
 			return err
 		}
@@ -157,15 +158,15 @@ func (this *Input) buildClient() error {
 		goto end
 	}
 
-	if this.TLSCA != "" {
+	if i.TLSCA != "" {
 		tlsconfig := net.TLSClientConfig{
-			CaCerts:            []string{this.TLSCA},
-			Cert:               this.TLSCert,
-			CertKey:            this.TLSKey,
-			InsecureSkipVerify: this.InsecureSkipVerify,
+			CaCerts:            []string{i.TLSCA},
+			Cert:               i.TLSCert,
+			CertKey:            i.TLSKey,
+			InsecureSkipVerify: i.InsecureSkipVerify,
 		}
 
-		cli, err = newClientFromTLS(this.URL, &tlsconfig)
+		cli, err = newClientFromTLS(i.URL, &tlsconfig)
 		if err != nil {
 			return err
 		}
@@ -176,69 +177,69 @@ func (this *Input) buildClient() error {
 	l.Debug("not found https authority, token/tokenString/tls are empty")
 end:
 	if cli != nil {
-		this.client = cli
+		i.client = cli
 		return nil
 	}
 
 	return fmt.Errorf("failed of build client")
 }
 
-func (this *Input) buildResources() {
-	this.resourceList = []resource{
+func (i *Input) buildResources() {
+	i.resourceList = []resource{
 		// metric
-		&kubernetesMetric{client: this.client, tags: this.Tags},
+		&kubernetesMetric{client: i.client, tags: i.Tags},
 		// object
-		&cluster{client: this.client, tags: this.Tags},
-		&deployment{client: this.client, tags: this.Tags},
-		&replicaSet{client: this.client, tags: this.Tags},
-		&service{client: this.client, tags: this.Tags},
-		&node{client: this.client, tags: this.Tags},
-		&job{client: this.client, tags: this.Tags},
-		&cronJob{client: this.client, tags: this.Tags},
-		// &pod{client: this.client, tags: this.Tags},
+		&cluster{client: i.client, tags: i.Tags},
+		&deployment{client: i.client, tags: i.Tags},
+		&replicaSet{client: i.client, tags: i.Tags},
+		&service{client: i.client, tags: i.Tags},
+		&node{client: i.client, tags: i.Tags},
+		&job{client: i.client, tags: i.Tags},
+		&cronJob{client: i.client, tags: i.Tags},
+		// &pod{client: i.client, tags: i.Tags},
 	}
 }
 
-func (this *Input) buildExporters() {
-	this.exporterList = []exporter{&pod{client: this.client, tags: this.Tags}}
+func (i *Input) buildExporters() {
+	i.exporterList = []exporter{&pod{client: i.client, tags: i.Tags}}
 }
 
-func (this *Input) execExport() {
-	for _, exporter := range this.exporterList {
+func (i *Input) execExport() {
+	for _, exporter := range i.exporterList {
 		exporter.Export()
 	}
 }
 
-func (this *Input) gatherObject() {
-	if len(this.resourceList) < 2 {
+func (i *Input) gatherObject() {
+	if len(i.resourceList) < 2 {
 		return
 	}
-	for _, resource := range this.resourceList[1:] {
+	for _, resource := range i.resourceList[1:] {
 		resource.Gather()
 	}
 }
 
-func (this *Input) gatherMetric() {
-	if len(this.resourceList) == 0 {
+func (i *Input) gatherMetric() {
+	if len(i.resourceList) == 0 {
 		return
 	}
-	this.resourceList[0].Gather()
+	i.resourceList[0].Gather()
 }
 
-func (this *Input) Pause() error {
+func (i *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
-	case this.chPause <- true:
+	case i.chPause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (this *Input) Resume() error {
+func (i *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
-	case this.chPause <- false:
+	case i.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -262,7 +263,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return res
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Tags:    make(map[string]string),

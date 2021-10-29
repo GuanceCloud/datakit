@@ -1,3 +1,4 @@
+// Package mysql collect MySQL metrics
 package mysql
 
 import (
@@ -31,19 +32,9 @@ var (
 )
 
 type tls struct {
-	TlsKey  string `toml:"tls_key"`
-	TlsCert string `toml:"tls_cert"`
-	TlsCA   string `toml:"tls_ca"`
-}
-
-type options struct {
-	Replication             bool `toml:"replication"`
-	GaleraCluster           bool `toml:"galera_cluster"`
-	ExtraStatusMetrics      bool `toml:"extra_status_metrics"`
-	ExtraInnodbMetrics      bool `toml:"extra_innodb_metrics"`
-	DisableInnodbMetrics    bool `toml:"disable_innodb_metrics"`
-	SchemaSizeMetrics       bool `toml:"schema_size_metrics"`
-	ExtraPerformanceMetrics bool `toml:"extra_performance_metrics"`
+	TLSKey  string `toml:"tls_key"`
+	TLSCert string `toml:"tls_cert"`
+	TLSCA   string `toml:"tls_ca"`
 }
 
 type customQuery struct {
@@ -75,22 +66,21 @@ type Input struct {
 	Timeout         string `toml:"connect_timeout"`
 	timeoutDuration time.Duration
 
-	Tls *tls `toml:"tls"`
+	TLS *tls `toml:"tls"`
 
 	Service  string `toml:"service"`
 	Interval datakit.Duration
 
 	Tags map[string]string `toml:"tags"`
 
-	options *options       `toml:"options"`
-	Query   []*customQuery `toml:"custom_queries"`
-	Addr    string         `toml:"-"`
-	InnoDB  bool           `toml:"innodb"`
-	Log     *mysqllog      `toml:"log"`
+	Query  []*customQuery `toml:"custom_queries"`
+	Addr   string         `toml:"-"`
+	InnoDB bool           `toml:"innodb"`
+	Log    *mysqllog      `toml:"log"`
 
-	start      time.Time
-	db         *sql.DB
-	response   []map[string]interface{}
+	start time.Time
+	db    *sql.DB
+	// response   []map[string]interface{}
 	tail       *tailer.Tailer
 	collectors []func() ([]inputs.Measurement, error)
 
@@ -174,14 +164,14 @@ func (i *Input) globalTag() {
 	i.Tags["service_name"] = i.Service
 }
 
-func (i *Input) Collect() error {
+func (i *Input) Collect() {
 	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
 	defer cancel()
 
 	if err := i.db.PingContext(ctx); err != nil {
 		l.Errorf("connect error %v", err)
 		io.FeedLastError(inputName, err.Error())
-		return err
+		return
 	}
 
 	for idx, f := range i.collectors {
@@ -190,18 +180,18 @@ func (i *Input) Collect() error {
 		if ms, err := f(); err != nil {
 			io.FeedLastError(inputName, err.Error())
 		} else {
-			if len(ms) > 0 {
-				if err := inputs.FeedMeasurement(inputName,
-					datakit.Metric,
-					ms,
-					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-					l.Error(err)
-				}
+			if len(ms) == 0 {
+				continue
+			}
+
+			if err := inputs.FeedMeasurement(inputName,
+				datakit.Metric,
+				ms,
+				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+				l.Error(err)
 			}
 		}
 	}
-
-	return nil
 }
 
 // 获取base指标.
@@ -311,23 +301,29 @@ func (i *Input) Run() {
 	l = logger.SLogger("mysql")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
-	for { // try until init OK
-		select {
-		case <-datakit.Exit.Wait():
-			return
-		default:
-		}
+	tick := time.NewTicker(i.Interval.Duration)
+	defer tick.Stop()
 
+	// Try until init OK.
+	for {
 		if err := i.initCfg(); err != nil {
 			io.FeedLastError(inputName, err.Error())
-			time.Sleep(time.Second)
 		} else {
 			break
 		}
-	}
 
-	tick := time.NewTicker(i.Interval.Duration)
-	defer tick.Stop()
+		select {
+		case <-datakit.Exit.Wait():
+
+			if i.tail != nil {
+				i.tail.Close() //nolint:errcheck
+			}
+			l.Info("mysql exit")
+
+			return
+		case <-tick.C:
+		}
+	}
 
 	l.Infof("collecting each %v", i.Interval.Duration)
 
@@ -344,23 +340,22 @@ func (i *Input) Run() {
 	}
 
 	for {
+		if i.pause {
+			l.Debugf("not leader, skipped")
+			continue
+		}
+		l.Debugf("mysql input gathering...")
+		i.start = time.Now()
+		i.Collect()
+
 		select {
 		case <-datakit.Exit.Wait():
 			if i.tail != nil {
 				i.tail.Close()
-				l.Info("mysql log exit")
 			}
 			l.Info("mysql exit")
 			return
-
 		case <-tick.C:
-			if i.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-			l.Debugf("mysql input gathering...")
-			i.start = time.Now()
-			i.Collect()
 
 		case i.pause = <-i.pauseCh:
 			// nil
@@ -406,7 +401,7 @@ func (i *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Tags:    make(map[string]string),

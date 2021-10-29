@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -101,7 +102,6 @@ func newDockerClient(host string, tlsConfig *tls.Config) (*dockerClient, error) 
 func (d *dockerClient) Stop() {
 	d.cancelTails()
 	d.wg.Wait()
-	return
 }
 
 func (d *dockerClient) Metric(ctx context.Context, in chan<- []*job) {
@@ -182,7 +182,9 @@ func (d *dockerClient) Object(ctx context.Context, in chan<- []*job) {
 	in <- jobs
 }
 
-func (d *dockerClient) do(ctx context.Context, processFunc func(types.Container), opt types.ContainerListOptions) error {
+func (d *dockerClient) do(ctx context.Context,
+	processFunc func(types.Container),
+	opt types.ContainerListOptions) error {
 	cList, err := d.client.ContainerList(ctx, opt)
 	if err != nil {
 		l.Error(err)
@@ -301,7 +303,7 @@ func (d *dockerClient) gatherSingleContainerStats(container types.Container) (ma
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.OSType == datakit.OSWindows {
 		return nil, nil
@@ -322,7 +324,8 @@ func (d *dockerClient) calculateContainerStats(v *types.StatsJSON) map[string]in
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
 
 	return map[string]interface{}{
-		"cpu_usage":          calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
+		"cpu_usage": calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage,
+			v.PreCPUStats.SystemUsage, v), /*float64*/
 		"cpu_delta":          calculateCPUDelta(v),
 		"cpu_system_delta":   calculateCPUSystemDelta(v),
 		"cpu_numbers":        calculateCPUNumbers(v),
@@ -338,11 +341,11 @@ func (d *dockerClient) calculateContainerStats(v *types.StatsJSON) map[string]in
 }
 
 func (d *dockerClient) getContainerHostname(id string) (string, error) {
-	containerJson, err := d.client.ContainerInspect(context.TODO(), id)
+	containerJSON, err := d.client.ContainerInspect(context.TODO(), id)
 	if err != nil {
 		return "", err
 	}
-	return containerJson.Config.Hostname, nil
+	return containerJSON.Config.Hostname, nil
 }
 
 func getContainerName(names []string) string {
@@ -352,6 +355,7 @@ func getContainerName(names []string) string {
 	return "invalidContainerName"
 }
 
+// nolint:lll
 // contianerIsFromKubernetes 判断该容器是否由kubernetes创建
 // 所有kubernetes启动的容器的containerNamePrefix都是k8s，依据链接如下
 // https://github.com/rootsongjc/kubernetes-handbook/blob/master/practice/monitor.md#%E5%AE%B9%E5%99%A8%E7%9A%84%E5%91%BD%E5%90%8D%E8%A7%84%E5%88%99
@@ -360,22 +364,19 @@ func contianerIsFromKubernetes(containerName string) bool {
 	return strings.HasPrefix(containerName, kubernetesContainerNamePrefix)
 }
 
-//
-////////////////////////////////////// LOGGING ////////////////////////////////////////////////
-//
-
-func (d *dockerClient) addToContainerList(containerID string, cancel context.CancelFunc) error {
+// ---------------------------
+// LOGGING
+// ---------------------------.
+func (d *dockerClient) addToContainerList(containerID string, cancel context.CancelFunc) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.containerLogList[containerID] = cancel
-	return nil
 }
 
-func (d *dockerClient) removeFromContainerList(containerID string) error {
+func (d *dockerClient) removeFromContainerList(containerID string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	delete(d.containerLogList, containerID)
-	return nil
 }
 
 func (d *dockerClient) containerInContainerList(containerID string) bool {
@@ -385,13 +386,12 @@ func (d *dockerClient) containerInContainerList(containerID string) bool {
 	return ok
 }
 
-func (d *dockerClient) cancelTails() error {
+func (d *dockerClient) cancelTails() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for _, cancel := range d.containerLogList {
 		cancel()
 	}
-	return nil
 }
 
 func (d *dockerClient) hasTTY(ctx context.Context, container types.Container) (bool, error) {
@@ -438,11 +438,14 @@ func (d *dockerClient) Logging(ctx context.Context) {
 			defer d.wg.Done()
 			defer d.removeFromContainerList(container.ID)
 
-			err = d.tailContainerLogs(ctx, container)
-			if err != nil && err != context.Canceled {
-				l.Error(err)
-				iod.FeedLastError(inputName, fmt.Sprintf("failed of gather logging, restart this container logging, name:%s ID:%s error: %s",
-					getContainerName(container.Names), container.ID, err))
+			if err := d.tailContainerLogs(ctx, container); err != nil {
+				if !errors.Is(err, context.Canceled) {
+					l.Errorf("tailContainerLogs: %s", err)
+
+					iod.FeedLastError(inputName,
+						fmt.Sprintf("failed of gather logging, restart this container logging, name: %s ID:%s, error: %s",
+							getContainerName(container.Names), container.ID, err))
+				}
 			}
 		}(container)
 	}
@@ -508,8 +511,11 @@ func (d *dockerClient) tailContainerLogs(ctx context.Context, container types.Co
 	}
 }
 
-func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, stream string, container types.Container) error {
-	defer reader.Close()
+func (d *dockerClient) tailStream(ctx context.Context,
+	reader io.ReadCloser,
+	stream string,
+	container types.Container) error {
+	defer reader.Close() //nolint:errcheck
 
 	var (
 		tags       = d.getContainerTags(container)
@@ -628,12 +634,29 @@ func (d *dockerClient) tailMultiplexed(ctx context.Context, src io.ReadCloser, c
 		}
 	}()
 
+	defer func() {
+		wg.Wait()
+
+		if err := outWriter.Close(); err != nil {
+			l.Warnf("Close: %s", err)
+		}
+
+		if err := errWriter.Close(); err != nil {
+			l.Warnf("Close: %s", err)
+		}
+
+		if err := src.Close(); err != nil {
+			l.Warnf("Close: %s", err)
+		}
+	}()
+
 	_, err := stdcopy.StdCopy(outWriter, errWriter, src)
-	outWriter.Close()
-	errWriter.Close()
-	src.Close()
-	wg.Wait()
-	return err
+	if err != nil {
+		l.Warnf("StdCopy: %s", err)
+		return err
+	}
+
+	return nil
 }
 
 // ignoreCommand 忽略 k8s pod 的 init container.

@@ -5,16 +5,11 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/sys/unix"
 )
-
-type diskInfoCache struct {
-	modifiedAt   int64 // Unix Nano timestamp of the last modification of the device. This value is used to invalidate the cache
-	udevDataPath string
-	values       map[string]string
-}
 
 var udevPath = "/run/udev/data"
 
@@ -37,8 +32,8 @@ func (i *Input) diskInfo(devName string) (map[string]string, error) {
 		return ic.values, nil
 	}
 
-	major := unix.Major(uint64(stat.Rdev))
-	minor := unix.Minor(uint64(stat.Rdev))
+	major := unix.Major(stat.Rdev)
+	minor := unix.Minor(stat.Rdev)
 	udevDataPath := fmt.Sprintf("%s/b%d:%d", udevPath, major, minor)
 
 	di := map[string]string{}
@@ -49,11 +44,11 @@ func (i *Input) diskInfo(devName string) (map[string]string, error) {
 		values:       di,
 	}
 
-	f, err := os.Open(udevDataPath)
+	f, err := os.Open(filepath.Clean(udevDataPath))
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck,gosec
 
 	scnr := bufio.NewScanner(f)
 	var devlinks bytes.Buffer

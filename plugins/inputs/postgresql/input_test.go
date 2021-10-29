@@ -24,14 +24,14 @@ type MockCollectService struct {
 
 func (m *MockCollectService) GetColumnMap(row scanner, columns []string) (map[string]*interface{}, error) {
 	if m.columnMapError == 1 {
-		return nil, errorMock{}
+		return nil, mockError{}
 	}
 	return m.mockData, nil
 }
 
 func (m *MockCollectService) Query(query string) (Rows, error) {
 	if query == "-1" {
-		return nil, errorMock{}
+		return nil, mockError{}
 	}
 	rows := &MockCollectRows{
 		columnError: m.columnError,
@@ -42,7 +42,7 @@ func (m *MockCollectService) Query(query string) (Rows, error) {
 func (m *MockCollectService) Stop() error { return nil }
 func (m *MockCollectService) Start() error {
 	if m.startError == 1 {
-		return errorMock{}
+		return mockError{}
 	}
 	return nil
 }
@@ -56,7 +56,7 @@ type MockCollectRows struct {
 func (m *MockCollectRows) Close() error { return nil }
 func (m *MockCollectRows) Columns() ([]string, error) {
 	if m.columnError == 1 {
-		return nil, errorMock{}
+		return nil, mockError{}
 	}
 	return []string{}, nil
 }
@@ -171,7 +171,11 @@ func TestInput(t *testing.T) {
 	input := &Input{}
 	sampleMeasurements := input.SampleMeasurement()
 	assert.Greater(t, len(sampleMeasurements), 0)
-	m := sampleMeasurements[0].(*inputMeasurement)
+	m, ok := sampleMeasurements[0].(*inputMeasurement)
+	if !ok {
+		t.Error("expect to be *inputMeasurement")
+		return
+	}
 
 	assert.Equal(t, m.Info().Name, inputName)
 
@@ -245,14 +249,14 @@ func (DbMock) Close() error {
 
 func (DbMock) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	if query == "-1" {
-		return nil, errorMock{}
+		return nil, mockError{}
 	}
 	return nil, nil
 }
 
-type errorMock struct{}
+type mockError struct{}
 
-func (e errorMock) Error() string {
+func (e mockError) Error() string {
 	return "error"
 }
 
@@ -264,7 +268,7 @@ func (r RowScanner) Scan(dest ...interface{}) error {
 	for i := 0; i < len(r.data); i++ {
 		d, ok := dest[i].(*interface{})
 		if r.data[i] == -1 { // mock error
-			return errorMock{}
+			return mockError{}
 		}
 		if ok {
 			*d = r.data[i]
@@ -274,12 +278,12 @@ func (r RowScanner) Scan(dest ...interface{}) error {
 }
 
 func TestService(t *testing.T) {
-	s := &SqlService{
+	s := &SQLService{
 		MaxIdle:     1,
 		MaxOpen:     1,
 		MaxLifetime: time.Duration(0),
 	}
-	s.Open = func(dbType, connStr string) (Db, error) {
+	s.Open = func(dbType, connStr string) (DB, error) {
 		db := &DbMock{}
 		return db, nil
 	}
@@ -287,9 +291,9 @@ func TestService(t *testing.T) {
 	err := s.Start()
 	assert.Nil(t, err)
 
-	s.Open = func(dbType, connStr string) (Db, error) {
+	s.Open = func(dbType, connStr string) (DB, error) {
 		db := &DbMock{}
-		return db, errorMock{}
+		return db, mockError{}
 	}
 	err = s.Start()
 	assert.NotNil(t, err)

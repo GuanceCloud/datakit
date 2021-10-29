@@ -461,7 +461,7 @@ func TestApiGetDatakitLastError(t *testing.T) {
 		if err != nil {
 			t.Errorf("create newrequest failed:%s", err)
 		}
-		em, err := doApiGetDatakitLastError(req, rr)
+		em, err := doAPIGetDatakitLastError(req, rr)
 		if err != nil {
 			if fakeError.fail {
 				t.Logf("expect error: %s", err)

@@ -248,7 +248,7 @@ func (dw *DataWayCfg) HeartBeat() error {
 	}
 
 	if dw.httpCli == nil {
-		if err := dw.initHttp(); err != nil {
+		if err := dw.initHTTP(); err != nil {
 			return err
 		}
 	}

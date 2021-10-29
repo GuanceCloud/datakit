@@ -48,7 +48,7 @@ var ddtraceSpanType = map[string]string{
 	"":              itrace.SPAN_SERVICE_CUSTOM,
 }
 
-//nolint: tagliatelle
+//nolint:lll
 type Span struct {
 	Service  string             `codec:"service" protobuf:"bytes,1,opt,name=service,proto3" json:"service" msg:"service"`                                                                                     // client code defined service name of span
 	Name     string             `codec:"name" protobuf:"bytes,2,opt,name=name,proto3" json:"name" msg:"name"`                                                                                                 // client code defined operation name of span
@@ -106,8 +106,14 @@ func handleTraces(pattern string) http.HandlerFunc {
 		}
 
 		if len(pts) != 0 {
-			if err = dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{CollectCost: time.Since(since), HighFreq: true}); err != nil {
-				dkio.FeedLastError(inputName, err.Error())
+			if err = dkio.Feed(inputName,
+				datakit.Tracing,
+				pts,
+				&dkio.Option{
+					CollectCost: time.Since(since),
+					HighFreq:    true,
+				}); err != nil {
+				log.Errorf("Feed: %s", err.Error())
 			}
 		} else {
 			log.Debugf("empty points")
@@ -117,7 +123,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 	}
 }
 
-// TODO:
+// TODO:.
 func handleStats(resp http.ResponseWriter, req *http.Request) {
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
@@ -176,7 +182,7 @@ NEXT_TRACE:
 			continue NEXT_TRACE
 		}
 
-		spanIds, parentIds := getSpanAndParentId(trace)
+		spanIds, parentIds := getSpanAndParentID(trace)
 		for _, span := range trace {
 			tags := make(map[string]string)
 			field := make(map[string]interface{})
@@ -256,7 +262,7 @@ NEXT_TRACE:
 
 			tm.Tags = tags
 			tm.Fields = field
-			tm.Ts = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
+			tm.TS = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
 
 			pt, err := tm.LineProto()
 			if err != nil {
@@ -270,9 +276,9 @@ NEXT_TRACE:
 	return pts, nil
 }
 
-func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
+func getSpanAndParentID(spans []*Span) (map[uint64]string, map[uint64]string) {
 	spanID := make(map[uint64]string)
-	parentId := make(map[uint64]string)
+	parentID := make(map[uint64]string)
 	for _, span := range spans {
 		if span == nil {
 			continue
@@ -280,11 +286,11 @@ func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
 
 		spanID[span.SpanID] = span.Service
 		if span.ParentID != 0 {
-			parentId[span.ParentID] = ""
+			parentID[span.ParentID] = ""
 		}
 	}
 
-	return spanID, parentId
+	return spanID, parentID
 }
 
 // unmarshalTraceDictionary decodes a trace using the specification from the v0.5 endpoint.

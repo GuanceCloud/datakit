@@ -94,7 +94,6 @@ func (k *Kubernetes) Init() error {
 
 func (k *Kubernetes) Stop() {
 	// TODO
-	return
 }
 
 func (k *Kubernetes) Metric(ctx context.Context, in chan<- []*job) {
@@ -107,12 +106,13 @@ func (k *Kubernetes) Metric(ctx context.Context, in chan<- []*job) {
 	nodeName := summary.Node.NodeName
 
 	var jobs []*job
-	for _, podMetrics := range summary.Pods {
+	for i := range summary.Pods {
+		podMetrics := &summary.Pods[i]
 		if k.ignorePodName(podMetrics.PodRef.Name) {
 			continue
 		}
 
-		result := k.gatherPodMetrics(&podMetrics)
+		result := k.gatherPodMetrics(podMetrics)
 		if result == nil {
 			return
 		}
@@ -145,12 +145,13 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- []*job) {
 	nodeName := summary.Node.NodeName
 
 	var jobs []*job
-	for _, item := range pods.Items {
+	for i := range pods.Items {
+		item := &pods.Items[i]
 		if k.ignorePodName(item.Metadata.Name) {
 			continue
 		}
 
-		result := k.gatherPodObject(&item)
+		result := k.gatherPodObject(item)
 		if result == nil {
 			return
 		}
@@ -189,9 +190,7 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- []*job) {
 	in <- jobs
 }
 
-func (k *Kubernetes) Logging(ctx context.Context) {
-	return
-}
+func (k *Kubernetes) Logging(ctx context.Context) {}
 
 func (k *Kubernetes) ignorePodName(name string) bool {
 	return regexpMatchString(k.IgnorePodName, name)
@@ -252,7 +251,7 @@ func (k *Kubernetes) findPodMetricsByUID(uid string, summary *SummaryMetrics) *P
 
 func (k *Kubernetes) getPods() (*Pods, error) {
 	var pods Pods
-	err := k.LoadJson(fmt.Sprintf("%s/pods", k.URL), &pods)
+	err := k.LoadJSON(fmt.Sprintf("%s/pods", k.URL), &pods)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +260,7 @@ func (k *Kubernetes) getPods() (*Pods, error) {
 
 func (k *Kubernetes) getStatsSummary() (*SummaryMetrics, error) {
 	var summary SummaryMetrics
-	err := k.LoadJson(fmt.Sprintf("%s/stats/summary", k.URL), &summary)
+	err := k.LoadJSON(fmt.Sprintf("%s/stats/summary", k.URL), &summary)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +302,7 @@ func (k *Kubernetes) GetContainerDeploymentName(id string) (string, error) {
 	return pods.GetContainerDeploymentName(id), nil
 }
 
-func (k *Kubernetes) LoadJson(url string, v interface{}) error {
+func (k *Kubernetes) LoadJSON(url string, v interface{}) error {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
@@ -314,9 +313,9 @@ func (k *Kubernetes) LoadJson(url string, v interface{}) error {
 
 	resp, err = k.roundTripper.RoundTrip(req)
 	if err != nil {
-		return fmt.Errorf("error making HTTP request to %s: %s", url, err)
+		return fmt.Errorf("error making HTTP request to %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%s returned HTTP status %s", url, resp.Status)
@@ -324,7 +323,7 @@ func (k *Kubernetes) LoadJson(url string, v interface{}) error {
 
 	err = json.NewDecoder(resp.Body).Decode(v)
 	if err != nil {
-		return fmt.Errorf(`Error parsing response: %s`, err)
+		return fmt.Errorf(`error parsing response: %w`, err)
 	}
 
 	return nil
@@ -332,7 +331,7 @@ func (k *Kubernetes) LoadJson(url string, v interface{}) error {
 
 type Pods struct {
 	Kind       string    `json:"kind"`
-	ApiVersion string    `json:"apiVersion"`
+	APIVersion string    `json:"apiVersion"`
 	Items      []PodItem `json:"items"`
 }
 

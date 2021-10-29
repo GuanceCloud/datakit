@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchbetav1 "k8s.io/api/batch/v1beta1"
@@ -14,10 +16,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 type client struct {
@@ -30,7 +29,7 @@ func newClientFromBearerToken(baseURL, path string) (*client, error) {
 		return nil, fmt.Errorf("invalid baseURL, cannot be empty")
 	}
 
-	token, err := ioutil.ReadFile(path)
+	token, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +61,7 @@ func newClientFromTLS(baseURL string, tlsconfig *net.TLSClientConfig) (*client, 
 		return nil, fmt.Errorf("tlsconfig cacerts is empty")
 	}
 
-	_, err := tlsconfig.TLSConfig()
-	if err != nil {
+	if _, err := tlsconfig.TLSConfig(); err != nil {
 		return nil, err
 	}
 
@@ -140,16 +138,4 @@ func (c *client) getStatefulSets() (*appsv1.StatefulSetList, error) {
 
 func (c *client) getIngress() (*v1beta1.IngressList, error) {
 	return c.ExtensionsV1beta1().Ingresses(c.namespace).List(context.Background(), metav1.ListOptions{})
-}
-
-func (c *client) getPersistentVolumes() (*corev1.PersistentVolumeList, error) {
-	return c.CoreV1().PersistentVolumes().List(context.Background(), metav1.ListOptions{})
-}
-
-func (c *client) getPersistentVolumeClaims() (*corev1.PersistentVolumeClaimList, error) {
-	return c.CoreV1().PersistentVolumeClaims(c.namespace).List(context.Background(), metav1.ListOptions{})
-}
-
-func (c *client) getEvent() (kubev1core.EventInterface, error) {
-	return c.CoreV1().Events(c.namespace), nil
 }

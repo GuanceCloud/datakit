@@ -45,7 +45,7 @@ func (c *cronJob) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":         int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"schedule":    obj.Spec.Schedule,
 			"active_jobs": len(obj.Status.Active),
 		}
@@ -82,6 +82,7 @@ func (*cronJob) Resource() { /*empty interface*/ }
 
 func (*cronJob) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*cronJob) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesCronJobName,

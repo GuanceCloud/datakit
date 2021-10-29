@@ -78,11 +78,12 @@ func TestRegexpMatchString(t *testing.T) {
 
 	for idx, tc := range cases {
 		matchRes := regexpMatchString(tc.regexps, tc.target)
-		if matchRes && !tc.fail {
+		switch {
+		case matchRes && !tc.fail:
 			t.Logf("[ OK ] index: %d \n", idx)
-		} else if matchRes {
+		case matchRes:
 			t.Logf("[ ERROR ] index: %d\n", idx)
-		} else {
+		default:
 			t.Logf("[ OK ] index: %d\n", idx)
 		}
 	}

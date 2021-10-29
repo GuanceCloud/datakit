@@ -1,3 +1,4 @@
+// Package elasticsearch Collect ElasticSearch metrics.
 package elasticsearch
 
 import (
@@ -92,6 +93,7 @@ type indexStat struct {
 	Shards    map[string][]interface{} `json:"shards"`
 }
 
+//nolint:lll
 const sampleConfig = `
 [[inputs.elasticsearch]]
   ## Elasticsearch服务器配置
@@ -153,6 +155,7 @@ const sampleConfig = `
     # more_tag = "some_other_value"
 `
 
+//nolint:lll
 const pipelineCfg = `
 # Elasticsearch_search_query
 grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[i.s.s.(query|fetch)%{SPACE}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\]\\[%{INT}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
@@ -371,13 +374,22 @@ func (i *Input) Collect() error {
 					}
 				}
 
-				if len(i.IndicesInclude) > 0 && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
+				if len(i.IndicesInclude) > 0 &&
+					(i.serverInfo[s].isMaster() ||
+						!i.ClusterStatsOnlyFromMaster ||
+						!i.Local) {
 					if i.IndicesLevel != "shards" {
-						if err := i.gatherIndicesStats(s+"/"+strings.Join(i.IndicesInclude, ",")+"/_stats", clusterName); err != nil {
+						if err := i.gatherIndicesStats(s+
+							"/"+
+							strings.Join(i.IndicesInclude, ",")+
+							"/_stats", clusterName); err != nil {
 							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					} else {
-						if err := i.gatherIndicesStats(s+"/"+strings.Join(i.IndicesInclude, ",")+"/_stats?level=shards", clusterName); err != nil {
+						if err := i.gatherIndicesStats(s+
+							"/"+
+							strings.Join(i.IndicesInclude, ",")+
+							"/_stats?level=shards", clusterName); err != nil {
 							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					}
@@ -436,10 +448,10 @@ func (i *Input) Run() {
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
-		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
+		l.Error("invalid interval, %s", err.Error())
 		return
 	} else if duration <= 0 {
-		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
+		l.Error("invalid interval, cannot be less than zero")
 		return
 	}
 
@@ -476,15 +488,16 @@ func (i *Input) Run() {
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
-			} else {
-				if len(i.collectCache) > 0 {
-					err := inputs.FeedMeasurement("elasticsearch", datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
-					if err != nil {
-						io.FeedLastError(inputName, err.Error())
-						l.Errorf(err.Error())
-					}
-					i.collectCache = i.collectCache[:0]
+			} else if len(i.collectCache) > 0 {
+				err := inputs.FeedMeasurement("elasticsearch",
+					datakit.Metric,
+					i.collectCache,
+					&io.Option{CollectCost: time.Since(start)})
+				if err != nil {
+					io.FeedLastError(inputName, err.Error())
+					l.Errorf(err.Error())
 				}
+				i.collectCache = i.collectCache[:0]
 			}
 
 		case i.pause = <-i.pauseCh:
@@ -693,6 +706,9 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 			"breakers":    n.Breakers,
 		}
 
+		//nolint:lll
+		const cols = `fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes`
+
 		now := time.Now()
 		allFields := make(map[string]interface{})
 		for p, s := range stats {
@@ -712,10 +728,10 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 				val := v
 				// transform bytes to gigabytes
 				if p == "fs" {
-					if strings.Contains("fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes", filedName) {
+					if strings.Contains(cols, filedName) {
 						if value, ok := v.(float64); ok {
 							val = value / (1024 * 1024 * 1024)
-							filedName = strings.Replace(filedName, "in_bytes", "in_gigabytes", -1)
+							filedName = strings.ReplaceAll(filedName, "in_bytes", "in_gigabytes")
 						}
 					}
 				}
@@ -940,7 +956,7 @@ func (i *Input) gatherJSONData(url string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 	if r.StatusCode != http.StatusOK {
 		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
 		// to let the underlying transport close the connection and re-establish a new one for
@@ -970,11 +986,12 @@ func (i *Input) getCatMaster(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 	if r.StatusCode != http.StatusOK {
 		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
 		// to let the underlying transport close the connection and re-establish a new one for
 		// future calls.
+		//nolint:lll
 		return "", fmt.Errorf("elasticsearch: Unable to retrieve master node information. API responded with status-code %d, expected %d", r.StatusCode, http.StatusOK)
 	}
 	response, err := ioutil.ReadAll(r.Body)
@@ -1009,7 +1026,7 @@ func (i *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return NewElasticsearch()
 	})

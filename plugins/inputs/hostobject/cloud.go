@@ -14,7 +14,7 @@ const (
 
 var cloudCli = &http.Client{Timeout: 100 * time.Millisecond}
 
-//nolint:deadcode
+//nolint:deadcode,unused
 type synchronizer interface {
 	Sync() (map[string]interface{}, error)
 
@@ -31,7 +31,7 @@ type synchronizer interface {
 	ZoneID() string
 }
 
-func (x *Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
+func (*Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 	defer cloudCli.CloseIdleConnections()
 
 	switch provider {
@@ -72,7 +72,7 @@ func metaGet(metaURL string) (res string) {
 		return
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	x, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Warnf("read response %s: %s", metaURL, err)
@@ -80,6 +80,6 @@ func metaGet(metaURL string) (res string) {
 	}
 
 	// 避免 meta 接口返回多行数据
-	res = string(bytes.Replace(x, []byte{'\n'}, []byte{' '}, -1))
+	res = string(bytes.ReplaceAll(x, []byte{'\n'}, []byte{' '}))
 	return
 }

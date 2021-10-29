@@ -109,7 +109,7 @@ func main() {
 	} else {
 		l.Info("network tracer(net_ebpf) starting ...")
 	}
-	defer bpfManger.Stop(manager.CleanAll)
+	defer bpfManger.Stop(manager.CleanAll) //nolint:errcheck
 
 	ctx := context.Background()
 	defer ctx.Done()
@@ -134,10 +134,13 @@ func getOffset() (*dkoffsetguess.OffsetGuessC, error) {
 	if err := bpfManger.Start(); err != nil {
 		return nil, err
 	}
-	defer bpfManger.Stop(manager.CleanAll)
-	bpfManger.GetProgramSpec(manager.ProbeIdentificationPair{
-		Section: "",
-	})
+
+	defer bpfManger.Stop(manager.CleanAll) //nolint:errcheck
+
+	if _, _, err := bpfManger.GetProgramSpec(manager.ProbeIdentificationPair{Section: ""}); err != nil {
+		l.Errorf("GetProgramSpec: %s, ignored", err.Error())
+	}
+
 	for i := 0; i < 10; i++ {
 		mapG, err := dkoffsetguess.BpfMapGuessInit(bpfManger)
 		if err != nil {

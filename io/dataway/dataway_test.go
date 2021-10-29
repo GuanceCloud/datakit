@@ -311,7 +311,7 @@ func TestSetupDataway(t *testing.T) {
 		dw := DataWayCfg{
 			DeprecatedURL: tc.url,
 			URLs:          tc.urls,
-			HttpProxy:     tc.proxy,
+			HTTPProxy:     tc.proxy,
 			Proxy:         tc.proxy != "",
 		}
 

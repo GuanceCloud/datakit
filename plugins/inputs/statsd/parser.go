@@ -12,26 +12,32 @@ import (
 // parser monitors the s.in channel, if there is a packet ready, it parses the
 // packet into statsd strings and then calls parseStatsdLine, which parses a
 // single statsd metric into a struct.
-func (s *input) parser(idx int) error {
+func (s *input) parser(idx int) {
 	for {
 		select {
 		case <-s.done:
-			return nil
+			return
 
 		case in := <-s.in:
 
 			lines := strings.Split(in.Buffer.String(), "\n")
+
 			s.bufPool.Put(in.Buffer)
+
 			for _, line := range lines {
 				line = strings.TrimSpace(line)
-				l.Debugf("statsd line: %s", line)
+				l.Debugf("[%d] statsd line: %s", idx, line)
 
 				switch {
 				case line == "":
 				case s.DataDogExtensions && strings.HasPrefix(line, "_e"):
-					_ = s.parseEventMessage(in.Time, line, in.Addr)
+					if err := s.parseEventMessage(in.Time, line, in.Addr); err != nil {
+						l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
+					}
 				default:
-					_ = s.parseStatsdLine(line)
+					if err := s.parseStatsdLine(line); err != nil {
+						l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
+					}
 				}
 			}
 		}
@@ -219,8 +225,8 @@ func (s *input) parseName(bucket string) (string, string, map[string]string) {
 	}
 
 	if s.ConvertNames {
-		name = strings.Replace(name, ".", "_", -1)
-		name = strings.Replace(name, "-", "__", -1)
+		name = strings.ReplaceAll(name, ".", "_")
+		name = strings.ReplaceAll(name, "-", "__")
 	}
 	if field == "" {
 		field = defaultFieldName

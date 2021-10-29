@@ -32,8 +32,8 @@ var (
 
 	DataKitBaseURL = ""
 	DataKitVersion = ""
-	dataUrl        = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
-	datakitUrl     = "https://" + path.Join(DataKitBaseURL,
+	dataURL        = "https://" + path.Join(DataKitBaseURL, "data.tar.gz")
+	datakitURL     = "https://" + path.Join(DataKitBaseURL,
 		fmt.Sprintf("datakit-%s-%s-%s.tar.gz",
 			runtime.GOOS,
 			runtime.GOARCH,
@@ -73,16 +73,28 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagDCAEnable, "dca-enable", "", "enable DCA")
 	flag.StringVar(&flagDCAListen, "dca-listen", "0.0.0.0:9531", "DCA listen address and port")
 	flag.StringVar(&flagDCAWhiteList, "dca-white-list", "", "DCA white list")
-	flag.StringVar(&flagDataway, "dataway", "", "address of dataway ( http://IP:Port?token= xxx) , port default 9528")
-	flag.StringVar(&flagEnableInputs, "enable-inputs", "", "default enable inputs( comma splited, example:cpu,mem,disk)")
+	flag.StringVar(&flagDataway,
+		"dataway",
+		"",
+		"address of dataway ( http://IP:Port?token= xxx) , port default 9528")
+	flag.StringVar(&flagEnableInputs,
+		"enable-inputs",
+		"",
+		"default enable inputs( comma splited, example:cpu,mem,disk)")
 	flag.StringVar(&flagDatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
-	flag.StringVar(&flagGlobalTags, "global-tags", "", "enable global tags, example: host= __datakit_hostname,ip= __datakit_ip")
+	flag.StringVar(&flagGlobalTags,
+		"global-tags",
+		"",
+		"enable global tags, example: host= __datakit_hostname,ip= __datakit_ip")
 	flag.StringVar(&flagProxy, "proxy", "", "http proxy http://ip:port for datakit")
 	flag.StringVar(&flagDatakitHTTPListen, "listen", "localhost", "datakit HTTP listen")
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
-	flag.StringVar(&flagCloudProvider, "cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
+	flag.StringVar(&flagCloudProvider,
+		"cloud-provider",
+		"",
+		"specify cloud provider(accept aliyun/tencent/aws)")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
@@ -107,14 +119,14 @@ func downloadFiles() error {
 
 	cli := ihttp.Cli(cliopt)
 
-	if err := dl.Download(cli, datakitUrl, datakit.InstallDir, true, false); err != nil {
+	if err := dl.Download(cli, datakitURL, datakit.InstallDir, true, false); err != nil {
 		return err
 	}
 
 	fmt.Printf("\n")
 
 	dl.CurDownloading = "data"
-	if err := dl.Download(cli, dataUrl, datakit.InstallDir, true, false); err != nil {
+	if err := dl.Download(cli, dataURL, datakit.InstallDir, true, false); err != nil {
 		return err
 	}
 
@@ -135,7 +147,7 @@ Build At       : %s
 Golang Version : %s
 BaseUrl        : %s
 DataKit        : %s
-`, DataKitVersion, git.BuildAt, git.Golang, datakitUrl, dataUrl)
+`, DataKitVersion, git.BuildAt, git.Golang, datakitURL, dataURL)
 		os.Exit(0)
 	}
 
@@ -355,14 +367,35 @@ func installNewDatakit(svc service.Service) {
 }
 
 var (
-	defaultHostInputs          = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes"}
-	defaultHostInputsWithLinux = []string{"cpu", "disk", "diskio", "mem", "swap", "system", "hostobject", "net", "host_processes", "container"}
+	defaultHostInputs = []string{
+		"cpu",
+		"disk",
+		"diskio",
+		"mem",
+		"swap",
+		"system",
+		"hostobject",
+		"net",
+		"host_processes",
+	}
+	defaultHostInputsForLinux = []string{
+		"cpu",
+		"disk",
+		"diskio",
+		"mem",
+		"swap",
+		"system",
+		"hostobject",
+		"net",
+		"host_processes",
+		"container",
+	}
 )
 
 func writeDefInputToMainCfg(mc *config.Config) {
 	hostInputs := defaultHostInputs
 	if runtime.GOOS == datakit.OSLinux {
-		hostInputs = defaultHostInputsWithLinux
+		hostInputs = defaultHostInputsForLinux
 	}
 
 	if flagEnableInputs == "" {
@@ -498,7 +531,7 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	}
 
 	if c.DataWay != nil {
-		c.DataWay.HttpProxy = flagProxy
+		c.DataWay.HTTPProxy = flagProxy
 	}
 
 	c.InstallVer = DataKitVersion
@@ -518,7 +551,7 @@ func getDataWayCfg() *dataway.DataWayCfg {
 
 		if flagProxy != "" {
 			l.Debugf("set proxy to %s", flagProxy)
-			dw.HttpProxy = flagProxy
+			dw.HTTPProxy = flagProxy
 		}
 	} else {
 		l.Fatal("should not been here")

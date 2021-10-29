@@ -1,3 +1,4 @@
+// Package prom scrape prometheus exportor metrics.
 package prom
 
 import (
@@ -23,7 +24,7 @@ const (
 
 // defaultMaxFileSize is the default maximum response body size, in bytes.
 // If the response body is over this size, we will simply discard its content instead of writing it to disk.
-// 32 MB
+// 32 MB.
 const defaultMaxFileSize int64 = 32 * 1024 * 1024
 
 var l = logger.DefaultSLogger(inputName)
@@ -66,14 +67,6 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 func (*Input) Catalog() string { return catalog }
 
 func (i *Input) Stop() { i.stopCh <- nil }
-
-func (i *Input) getSource() string {
-	source := inputName
-	if i.Source != "" {
-		source = i.Source
-	}
-	return source
-}
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
@@ -119,8 +112,9 @@ func (i *Input) Run() {
 			start := time.Now()
 			pts, err := i.pm.Collect()
 			if err != nil {
+				l.Errorf("Collect: %s", err)
+
 				io.FeedLastError(source, err.Error())
-				l.Error(err)
 				continue
 			}
 
@@ -129,9 +123,13 @@ func (i *Input) Run() {
 				continue
 			}
 
-			if err := io.Feed(source, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+			if err := io.Feed(source,
+				datakit.Metric,
+				pts,
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("Feed: %s", err)
+
 				io.FeedLastError(source, err.Error())
-				l.Error(err)
 			}
 
 		case i.pause = <-i.chPause:
@@ -234,7 +232,7 @@ func NewProm() *Input {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return NewProm()
 	})

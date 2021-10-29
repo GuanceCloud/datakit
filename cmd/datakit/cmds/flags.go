@@ -45,7 +45,7 @@ var (
 	FlagStart,
 	FlagStop,
 	FlagRestart,
-	FlagApiRestart,
+	FlagAPIRestart,
 	FlagStatus,
 	FlagUninstall,
 	FlagReinstall bool
@@ -236,7 +236,10 @@ func RunCmds() {
 	if FlagProm != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		promDebugger(FlagProm) //nolint:errcheck
+		if err := promDebugger(FlagProm); err != nil {
+			l.Errorf("promDebugger: %s", err)
+		}
+
 		os.Exit(0)
 	}
 
@@ -368,7 +371,7 @@ func RunCmds() {
 		os.Exit(0)
 	}
 
-	if FlagApiRestart {
+	if FlagAPIRestart {
 		tryLoadMainCfg()
 		logPath := config.Cfg.Logging.Log
 		setCmdRootLog(logPath)
@@ -378,7 +381,7 @@ func RunCmds() {
 }
 
 func getcli() *http.Client {
-	proxy := config.Cfg.DataWay.HttpProxy
+	proxy := config.Cfg.DataWay.HTTPProxy
 
 	cliopt := &ihttp.Options{
 		InsecureSkipVerify: true,

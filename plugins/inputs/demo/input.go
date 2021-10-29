@@ -1,3 +1,6 @@
+// Package demo explains `what should you do' when adding new inputs into datakit.
+// Except that, we still adding some new testsing features to this input, such as
+// election/cgroup and so on.
 package demo
 
 import (
@@ -17,12 +20,11 @@ var (
 )
 
 type Input struct {
-	collectCache    []inputs.Measurement
-	collectObjCache []inputs.Measurement
-	Tags            map[string]string
-	chpause         chan bool
-	EatCPU          bool `toml:"eat_cpu"`
-	paused          bool
+	collectCache []inputs.Measurement
+	Tags         map[string]string
+	chpause      chan bool
+	EatCPU       bool `toml:"eat_cpu"`
+	paused       bool
 }
 
 func (i *Input) Collect() error {
@@ -79,11 +81,12 @@ func (i *Input) Run() {
 			if err := i.Collect(); err != nil {
 				l.Error(err)
 			} else {
-				inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)})
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
+					l.Errorf("FeedMeasurement: %s", err.Error())
+				}
 
-				i.collectCache = i.collectCache[:0] // NOTE: do not forget to clean cache
-
+				i.collectCache = i.collectCache[:0] // Do not forget to clean cache
 				io.FeedLastError(inputName, "mocked error from demo input")
 			}
 
@@ -142,7 +145,7 @@ func (i *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			paused:  false,
@@ -155,7 +158,7 @@ func eatCPU(n int) {
 	for i := 0; i < n; i++ {
 		l.Debugf("start eat_cpu: %d", i)
 		go func() {
-			for {
+			for { //nolint:staticcheck
 			}
 		}()
 	}
