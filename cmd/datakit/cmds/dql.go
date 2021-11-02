@@ -158,8 +158,10 @@ func runDQL(txt string) {
 			lines = append(lines, s)
 		}
 
-		resp := doDQL(strings.Join(lines, "\n"))
-		show(resp)
+		resp, err := doDQL(strings.Join(lines, "\n"))
+		if err == nil {
+			show(resp)
+		}
 	}
 }
 
@@ -172,10 +174,8 @@ func runSingleDQL(s string) {
 		}
 	}
 
-	resp := doDQL(s)
-
-	if resp == nil {
-		errorf("Empty result\n")
+	resp, err := doDQL(s)
+	if err != nil {
 		return
 	}
 
@@ -277,7 +277,7 @@ func writeToCsv(series []*models.Row, csvPath string) error {
 	return nil
 }
 
-func doDQL(s string) []*queryResult {
+func doDQL(s string) ([]*queryResulta, error) {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
 		Token:       config.GetToken(),
@@ -295,7 +295,7 @@ func doDQL(s string) []*queryResult {
 	j, err := json.Marshal(q)
 	if err != nil {
 		errorf("%s\n", err.Error())
-		return nil
+		return nil, err
 	}
 
 	l.Debugf("dql request: %s", string(j))
@@ -304,7 +304,7 @@ func doDQL(s string) []*queryResult {
 		fmt.Sprintf("http://%s%s", datakitHost, dqlraw), bytes.NewBuffer(j))
 	if err != nil {
 		errorf("http.NewRequest: %s\n", err.Error())
-		return nil
+		return nil, err
 	}
 
 	if dqlcli == nil {
@@ -314,17 +314,13 @@ func doDQL(s string) []*queryResult {
 	resp, err := dqlcli.Do(req)
 	if err != nil {
 		errorf("httpcli.Do: %s\n", err.Error())
-		return nil
-	}
-
-	for k, v := range resp.Header {
-		l.Debugf("%s: %v", k, v)
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		errorf("ioutil.ReadAll: %s\n", err.Error())
-		return nil
+		return nil, err
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
@@ -337,24 +333,27 @@ func doDQL(s string) []*queryResult {
 		if err := json.Unmarshal(body, &r); err != nil {
 			errorf("json.Unmarshal: %s\n", err.Error())
 			errorf("body: %s\n", string(body))
-			return nil
+			return nil, err
 		}
 
+		l.Warnf("body: %s", string(body))
+
 		errorf("[%s] %s\n", r.Err, r.Msg)
-		return nil
+		return nil, fmt.Errorf("%s", r.Err)
 	}
+
 	r := dqlResp{}
-	l.Debugf("json content:%s", string(body))
+
 	jd := json.NewDecoder(bytes.NewReader(body))
 	jd.UseNumber()
-	l.Debugf(string(body) + "\n")
+
 	if err := jd.Decode(&r); err != nil {
 		errorf("%s\n", err.Error())
-		return nil
+		return nil, err
 	}
 	content, _ := json.Marshal(r.Content)
 	l.Debugf("json content:%s", string(content))
-	return r.Content
+	return r.Content, nil
 }
 
 type queryResult struct {
