@@ -277,7 +277,7 @@ func writeToCsv(series []*models.Row, csvPath string) error {
 	return nil
 }
 
-func doDQL(s string) ([]*queryResulta, error) {
+func doDQL(s string) ([]*queryResult, error) {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
 		Token:       config.GetToken(),
