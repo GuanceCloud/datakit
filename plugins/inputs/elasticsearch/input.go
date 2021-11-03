@@ -708,9 +708,20 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 				return "", err
 			}
 			for k, v := range f.Fields {
-				_, ok := nodeStatsFields[k]
+				filedName := k
+				val := v
+				// transform bytes to gigabytes
+				if p == "fs" {
+					if strings.Contains("fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes", filedName) {
+						if value, ok := v.(float64); ok {
+							val = value / (1024 * 1024 * 1024)
+							filedName = strings.Replace(filedName, "in_bytes", "in_gigabytes", -1)
+						}
+					}
+				}
+				_, ok := nodeStatsFields[filedName]
 				if ok {
-					allFields[k] = v
+					allFields[filedName] = val
 				}
 			}
 		}

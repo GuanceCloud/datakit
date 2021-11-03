@@ -41,14 +41,18 @@ func (p *pod) Gather() {
 		}
 
 		tags := map[string]string{
-			"name":         fmt.Sprintf("%v", obj.UID),
-			"pod_name":     obj.Name,
-			"cluster_name": obj.ClusterName,
-			"node_name":    obj.Spec.NodeName,
-			"phase":        fmt.Sprintf("%v", obj.Status.Phase),
-			"qos_class":    fmt.Sprintf("%v", obj.Status.QOSClass),
-			"namespace":    obj.Namespace,
-			"status":       fmt.Sprintf("%v", obj.Status.Phase),
+			"name":      fmt.Sprintf("%v", obj.UID),
+			"pod_name":  obj.Name,
+			"node_name": obj.Spec.NodeName,
+			"phase":     fmt.Sprintf("%v", obj.Status.Phase),
+			"qos_class": fmt.Sprintf("%v", obj.Status.QOSClass),
+			"status":    fmt.Sprintf("%v", obj.Status.Phase),
+		}
+		if obj.ClusterName != "" {
+			tags["cluster_name"] = obj.ClusterName
+		}
+		if obj.Namespace != "" {
+			tags["namespace"] = obj.Namespace
 		}
 		for k, v := range p.tags {
 			tags[k] = v
@@ -90,6 +94,11 @@ func (p *pod) Gather() {
 		} else {
 			pts = append(pts, pt)
 		}
+	}
+
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
 	}
 
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {

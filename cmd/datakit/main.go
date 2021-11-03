@@ -64,9 +64,11 @@ func init() { //nolint:gochecknoinits
 	// DQL
 	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "under DQL, query interactively")
 	flag.BoolVar(&cmds.FlagJSON, "json", false, "under DQL, output in json format")
+	flag.BoolVar(&cmds.FlagForce, "force", false, "Mandatory modification")
 	flag.BoolVar(&cmds.FlagAutoJSON, "auto-json", false, "under DQL, pretty output string if it's JSON")
 	flag.StringVar(&cmds.FlagRunDQL, "run-dql", "", "run single DQL")
 	flag.StringVar(&cmds.FlagToken, "token", "", "query under specific token")
+	flag.StringVar(&cmds.FlagCSV, "csv", "", "Specify the directory")
 
 	// update online data
 	flag.BoolVar(&cmds.FlagUpdateIPDB, "update-ip-db", false, "update ip db")
@@ -76,6 +78,7 @@ func init() { //nolint:gochecknoinits
 	// utils
 	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flag.StringVar(&cmds.FlagIPInfo, "ipinfo", "", "show IP geo info")
+	flag.BoolVar(&cmds.FlagWorkspaceInfo, "workspace-info", false, "show workspace info")
 
 	if runtime.GOOS != datakit.OSWindows { // unsupported options under windows
 		flag.BoolVarP(&cmds.FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")

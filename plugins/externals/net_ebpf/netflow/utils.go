@@ -8,19 +8,25 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"net"
 	"net/http"
+	"os"
 	"sort"
 	"time"
 
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/c"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dns"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/net/context/ctxhttp"
 	"golang.org/x/sys/unix"
 )
 
 var l = logger.DefaultSLogger("net_ebpf")
+
+var dnsRecord = dns.NewDNSRecord()
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
@@ -76,7 +82,10 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 					Name: "bpfmap_closed_event",
 				},
 				PerfMapOptions: manager.PerfMapOptions{
-					DataHandler: closedEventHandler,
+					// sizeof(connection_closed_info) > 112 Byte, pagesize ~= 4k,
+					// if cpus = 8, 5 conn/per connection_closed_info
+					PerfRingBufferSize: 32 * os.Getpagesize(),
+					DataHandler:        closedEventHandler,
 				},
 			},
 		},
@@ -151,17 +160,19 @@ func FeedMeasurement(measurements *[]inputs.Measurement, path string) error {
 	return nil
 }
 
-func convertConn2Measurement(connR *ConnResult, name string) *[]inputs.Measurement {
+func ConvertConn2Measurement(connR *ConnResult, name string) *[]inputs.Measurement {
 	collectCache := []inputs.Measurement{}
 
 	for k, v := range connR.result {
-		m := convConn2M(k, v, name, connR.tags, connR.ts)
-		collectCache = append(collectCache, m)
+		if ConnNotNeedToFilter(k, v) {
+			m := ConvConn2M(k, v, name, connR.tags, connR.ts)
+			collectCache = append(collectCache, m)
+		}
 	}
 	return &collectCache
 }
 
-func convConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]string, ts time.Time) inputs.Measurement {
+func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]string, ts time.Time) inputs.Measurement {
 	m := measurement{
 		name:   name,
 		tags:   map[string]string{},
@@ -175,28 +186,32 @@ func convConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 	m.tags["source"] = "netflow"
 	m.tags["status"] = "info"
 	m.tags["pid"] = fmt.Sprint(k.Pid)
-	if connAddrIsIPv4(k.Meta) {
-		m.tags["src_ip"] = U32BEToIPv4(k.Saddr[3])
-		m.tags["dst_ip"] = U32BEToIPv4(k.Daddr[3])
 
+	isV6 := false
+	if connAddrIsIPv4(k.Meta) {
 		m.tags["src_ip_type"] = connIPv4Type(k.Saddr[3])
 		m.tags["dst_ip_type"] = connIPv4Type(k.Daddr[3])
-
 		m.tags["family"] = "IPv4"
 	} else {
-		m.tags["src_ip"] = U32BEToIPv6(k.Saddr)
-		m.tags["dst_ip"] = U32BEToIPv6(k.Daddr)
-
 		m.tags["src_ip_type"] = connIPv6Type(k.Saddr)
 		m.tags["dst_ip_type"] = connIPv6Type(k.Daddr)
-
 		m.tags["family"] = "IPv6"
+		isV6 = true
 	}
+
+	m.tags["src_ip"] = U32BEToIp(k.Saddr, isV6).String()
+
+	dst_ip := U32BEToIp(k.Daddr, isV6)
+	m.tags["dst_ip"] = dst_ip.String()
+
+	m.tags["dst_domain"] = dnsRecord.LookupAddr(dst_ip)
+
 	if k.Sport == math.MaxUint32 {
 		m.tags["src_port"] = "*"
 	} else {
 		m.tags["src_port"] = fmt.Sprintf("%d", k.Sport)
 	}
+
 	m.tags["dst_port"] = fmt.Sprintf("%d", k.Dport)
 
 	m.fields["bytes_read"] = int64(v.Stats.Recv_bytes)
@@ -215,12 +230,12 @@ func convConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 	m.tags["direction"] = connDirection2Str(v.Stats.Direction)
 
 	if connProtocolIsTCP(k.Meta) {
-		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s:%s r/w: %d/%d e/c: %d/%d re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
-			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
+		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
+			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
 			m.fields["tcp_established"], m.fields["tcp_closed"], m.fields["retransmits"], float64(v.TcpStats.Rtt)/1000., float64(v.TcpStats.Rtt_var)/1000, m.tags["transport"], m.tags["direction"]))
 	} else {
-		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s:%s r/w: %d/%d (%s, %s)",
-			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
+		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d (%s, %s)",
+			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
 			m.tags["transport"], m.tags["direction"]))
 	}
 	return &m
@@ -235,36 +250,33 @@ func U32BEToIPv4Array(addr uint32) [4]uint8 {
 	return ip
 }
 
-func swapU16(v uint16) uint16 {
+func SwapU16(v uint16) uint16 {
 	return ((v & 0x00ff) << 8) | ((v & 0xff00) >> 8)
 }
 
 func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
 	var ip [8]uint16
 	for x := 0; x < 4; x++ {
-		ip[(x * 2)] = swapU16(uint16(addr[x] & 0xffff))         // uint32 低16位
-		ip[(x*2)+1] = swapU16(uint16((addr[x] >> 16) & 0xffff)) //	高16位
+		ip[(x * 2)] = SwapU16(uint16(addr[x] & 0xffff))         // uint32 低16位
+		ip[(x*2)+1] = SwapU16(uint16((addr[x] >> 16) & 0xffff)) //	高16位
 	}
 	return ip
 }
 
-func U32BEToIPv4(addr uint32) string {
-	ip := U32BEToIPv4Array(addr)
-	return fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
-}
-
-func U32BEToIPv6(addr [4]uint32) string {
-	// addr byte order: big endian
-	ip := U32BEToIPv6Array(addr)
-	ipStr := fmt.Sprintf("%x:%x:%x:%x:%x:%x",
-		ip[0], ip[1], ip[2], ip[3], ip[4], ip[5])
-	// IPv4-mapped IPv6 address
-	if ipStr == "0:0:0:0:0:ffff" {
-		ipStr += ":" + U32BEToIPv4(addr[3])
+func U32BEToIp(addr [4]uint32, isIPv6 bool) net.IP {
+	ip := net.IP{}
+	if !isIPv6 {
+		v4 := U32BEToIPv4Array(addr[3])
+		for _, v := range v4 {
+			ip = append(ip, v)
+		}
 	} else {
-		ipStr += fmt.Sprintf(":%x:%x", ip[6], ip[7])
+		v6 := U32BEToIPv6Array(addr)
+		for _, v := range v6 {
+			ip = append(ip, byte((v&0xff00)>>8), byte(v&0x00ff)) // SwapU16(v)
+		}
 	}
-	return ipStr
+	return ip
 }
 
 // 规则: 1. 过滤源 IP 和目标 IP 相同的连接;
@@ -295,18 +307,78 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 		}
 	}
 
-	// 过滤无数据收发的连接
-	if connStats.Stats.Recv_bytes == 0 && connStats.Stats.Sent_bytes == 0 {
+	// 过滤上一周期的无变化的连接
+	if connStats.Stats.Recv_bytes == 0 && connStats.Stats.Sent_bytes == 0 && connStats.TotalClosed == 0 && connStats.TotalEstablished == 0 {
 		return false
 	}
 
 	return true
 }
 
+type ConnTCPWithoutPidStats struct {
+	TcpStats         ConnectionTcpStats
+	TotalEstablished int64
+	TotalClosed      int64
+	Pids             map[uint32]bool
+}
+
+type ConnTCPWithoutPid struct {
+	Conns map[ConnectionInfo]ConnTCPWithoutPidStats
+}
+
+func (cwp *ConnTCPWithoutPid) CleanupConns() {
+	needCleanup := []ConnectionInfo{}
+	for k, v := range cwp.Conns {
+		if v.TotalClosed == v.TotalEstablished {
+			needCleanup = append(needCleanup, k)
+		}
+	}
+	for _, k := range needCleanup {
+		delete(cwp.Conns, k)
+	}
+}
+
+func (cwp *ConnTCPWithoutPid) Update(conn ConnectionInfo, fullStats ConnFullStats) ConnFullStats {
+	pid := conn.Pid
+	conn.Pid = 0
+	result := fullStats
+	if v, ok := cwp.Conns[conn]; ok {
+		if _, ok := v.Pids[pid]; !ok {
+			v.Pids[pid] = false // 首次记录
+		}
+		if len(v.Pids) > 1 && result.TotalEstablished > 0 { // 复数个 pid
+			if !v.Pids[pid] { // 对首次记录的 pid 对应的连接次数进行处理
+				if result.TotalEstablished > 0 {
+					result.TotalEstablished -= 1
+				}
+			}
+		}
+		v.Pids[pid] = true
+		v.TotalClosed += result.TotalClosed
+		v.TotalEstablished += result.TotalEstablished
+		cwp.Conns[conn] = v
+	} else {
+		cwp.Conns[conn] = ConnTCPWithoutPidStats{
+			Pids:             map[uint32]bool{pid: true},
+			TotalEstablished: result.TotalEstablished,
+			TotalClosed:      result.TotalClosed,
+		}
+	}
+	return result
+}
+
+func newConnTCPWithoutPid() *ConnTCPWithoutPid {
+	return &ConnTCPWithoutPid{
+		Conns: make(map[ConnectionInfo]ConnTCPWithoutPidStats),
+	}
+}
+
+var connTCPWithoutPid = newConnTCPWithoutPid()
+
 // 聚合 src port 为临时端口(32768 ~ 60999)的连接,
 // 被聚合的端口号被设置为
 // cat /proc/sys/net/ipv4/ip_local_port_range.
-func connMerge(preResult *ConnResult) {
+func MergeConns(preResult *ConnResult) {
 	resultTmpConn := map[ConnectionInfo]ConnFullStats{}
 	if len(preResult.result) < 1 {
 		return
@@ -314,9 +386,12 @@ func connMerge(preResult *ConnResult) {
 
 	connInfoList := ConnInfoList{}
 
-	for k := range preResult.result {
+	for k, v := range preResult.result {
 		connInfoList = append(connInfoList, k)
+		r := connTCPWithoutPid.Update(k, v)
+		preResult.result[k] = r
 	}
+	connTCPWithoutPid.CleanupConns()
 	sort.Sort(connInfoList)
 	connRecord := map[ConnectionInfo]bool{}
 	lastIndex := -1
@@ -328,9 +403,9 @@ func connMerge(preResult *ConnResult) {
 			lastIndex = k
 			resultTmpConn[connInfoList[k]] = preResult.result[connInfoList[k]]
 			delete(preResult.result, connInfoList[k])
-		} else if connCmpNoSPort(connInfoList[lastIndex], connInfoList[k]) {
+		} else if ConnCmpNoSPort(connInfoList[lastIndex], connInfoList[k]) {
 			connRecord[connInfoList[lastIndex]] = true
-			resultTmpConn[connInfoList[lastIndex]] = statsTCPOp("+", resultTmpConn[connInfoList[lastIndex]],
+			resultTmpConn[connInfoList[lastIndex]] = StatsTCPOp("+", resultTmpConn[connInfoList[lastIndex]],
 				preResult.result[connInfoList[k]].Stats, preResult.result[connInfoList[k]].TcpStats)
 
 			connfull := resultTmpConn[connInfoList[lastIndex]]
@@ -352,9 +427,15 @@ func connMerge(preResult *ConnResult) {
 	}
 }
 
-func connCmpNoSPort(expected, actual ConnectionInfo) bool {
+func ConnCmpNoSPort(expected, actual ConnectionInfo) bool {
 	expected.Sport = 0
 	actual.Sport = 0
+	return expected == actual
+}
+
+func ConnCmpNoPid(expected, actual ConnectionInfo) bool {
+	expected.Pid = 0
+	actual.Pid = 0
 	return expected == actual
 }
 
@@ -376,11 +457,6 @@ func (l ConnInfoList) Less(i, j int) bool {
 	// transport (tcp)
 	if metaI&CONN_L4_MASK != metaJ&CONN_L4_MASK {
 		return metaI&CONN_L4_MASK == CONN_L4_TCP
-	}
-
-	// pid
-	if l[i].Pid != l[j].Pid {
-		return l[i].Pid < l[j].Pid
 	}
 
 	// src ip, dst ip
@@ -418,6 +494,11 @@ func (l ConnInfoList) Less(i, j int) bool {
 	// src port
 	if l[i].Sport != l[j].Sport {
 		return l[i].Sport < l[j].Sport
+	}
+
+	// pid
+	if l[i].Pid != l[j].Pid {
+		return l[i].Pid < l[j].Pid
 	}
 
 	// all equal

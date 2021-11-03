@@ -9,7 +9,10 @@ const (
 	inputName    = "etcd"
 	configSample = `
 [[inputs.prom]]
-  ## Exporter 地址
+  ## Exporter地址或者文件路径（Exporter地址要加上网络协议http或者https）
+  ## 文件路径各个操作系统下不同
+  ## Windows example: C:\\Users
+  ## UNIX-like example: /usr/local/
   url = "http://127.0.0.1:2379/metrics"
 
 	## 采集器别名
@@ -23,7 +26,7 @@ const (
   ## 指标名称过滤
   # 支持正则，可以配置多个，即满足其中之一即可
   # 如果为空，则不进行过滤
-  metric_name_filter = ["^etcd_server","^etcd_network"]
+  metric_name_filter = ["etcd_server_proposals","etcd_server_leader","etcd_server_has","etcd_network_client"]
 
   ## 指标集名称前缀
   # 配置此项，可以给指标集名称添加前缀
@@ -85,7 +88,8 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&Measurement{},
+		&NetworkMeasurement{},
+		&ServerMeasurement{},
 	}
 }
 

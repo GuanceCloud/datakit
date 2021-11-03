@@ -119,7 +119,10 @@ type Input struct {
 	GatherPerColStats     bool             `toml:"gather_per_col_stats"`
 	ColStatsDbs           []string         `toml:"col_stats_dbs"`
 	GatherTopStat         bool             `toml:"gather_top_stat"`
+
+	TlsConf *dknet.TLSClientConfig `toml:"tlsconf"` // deprecated
 	dknet.TLSClientConfig
+
 	Log  *mongodblog       `toml:"log"`
 	Tags map[string]string `toml:"tags"`
 
@@ -277,7 +280,12 @@ func (m *Input) gatherServer(server *Server) error {
 			return fmt.Errorf("unable to parse URL %q: %s", dialAddrs[0], err.Error())
 		}
 
-		if tlsConfig, err := m.TLSConfig(); err != nil {
+		tlscnf := m.TlsConf // prefer deprecated TLS conf
+		if tlscnf == nil {
+			tlscnf = &m.TLSClientConfig
+		}
+
+		if tlsConfig, err := tlscnf.TLSConfig(); err != nil {
 			return err
 		} else if tlsConfig != nil {
 			// TLS is configured

@@ -1,0 +1,16 @@
+# {"version": "1.1.9-rc2", "desc": "do NOT edit this line"}
+
+[[inputs.skywalking]]
+  [inputs.skywalking.V2]
+    address = "localhost:11800"
+    # [inputs.skywalking.V2.tags]
+      # tag1 = "tag1"
+      # tag2 = "tag2"
+      # ...
+
+  [inputs.skywalking.V3]
+    address = "localhost:13800"
+    # [inputs.skywalking.V3.tags]
+      # tag1 = "tag1"
+      # tag2 = "tag2"
+      # ...

@@ -43,6 +43,7 @@ type Input struct {
 	Port              int           `toml:"port"`
 	UnixSocketPath    string        `toml:"unix_socket_path"`
 	DB                int           `toml:"db"`
+	DBS               []int         `toml:"dbs"`
 	Password          string        `toml:"password"`
 	Timeout           string        `toml:"connect_timeout"`
 	timeoutDuration   time.Duration `toml:"-"`
@@ -125,7 +126,6 @@ func (i *Input) Collect() error {
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -262,8 +262,8 @@ func (i *Input) Run() {
 		i.collectInfoMeasurement,
 		i.collectClientMeasurement,
 		i.collectCommandMeasurement,
-		i.collectDBMeasurement,
 		i.collectSlowlogMeasurement,
+		i.collectDBMeasurement,
 	}
 
 	if len(i.Keys) > 0 {
@@ -338,6 +338,7 @@ func init() {
 		return &Input{
 			Timeout: "10s",
 			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
+			DB:      -1,
 		}
 	})
 }

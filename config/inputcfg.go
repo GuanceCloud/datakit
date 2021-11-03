@@ -46,11 +46,11 @@ func SearchDir(dir string, suffix string) []string {
 }
 
 // load all inputs under @InstallDir/conf.d.
-func LoadInputsConfig() error {
+func LoadInputsConfig(suffix string) error {
 	inputs.Init()
 
 	availableInputCfgs := map[string]*ast.Table{}
-	confs := SearchDir(datakit.ConfdDir, ".conf")
+	confs := SearchDir(datakit.ConfdDir, suffix)
 
 	l.Debugf("loading %d conf...", len(confs))
 
@@ -387,6 +387,8 @@ func parseTableToInputs(tbl *ast.Table, creator inputs.Creator) ([]inputs.Input,
 var deprecatedInputs = map[string]string{
 	"dockerlog":         "docker",
 	"docker_containers": "docker",
+	"traceSkywalking":   "skywalking",
+	"traceJaeger":       "jaeger",
 }
 
 func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {

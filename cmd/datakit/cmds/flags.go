@@ -53,9 +53,13 @@ var (
 	FlagDQL      bool
 	FlagJSON     bool
 	FlagAutoJSON bool
-	FlagRunDQL,  // TODO: dump dql query result to specified CSV file
+	FlagForce    bool
+
+	FlagRunDQL,
 	FlagCSV string
-	FlagToken string
+
+	FlagToken         string
+	FlagWorkspaceInfo bool
 
 	FlagUpdateIPDB bool
 	FlagAddr       string
@@ -110,16 +114,13 @@ func RunCmds() {
 
 	if FlagVersion {
 		tryLoadMainCfg()
-
 		setCmdRootLog(FlagCmdLogPath)
-
 		showVersion(ReleaseVersion, ReleaseType, FlagShowTestingVersions)
 		os.Exit(0)
 	}
 
 	if FlagCheckConfig {
 		tryLoadMainCfg()
-
 		setCmdRootLog(FlagCmdLogPath)
 		checkConfig()
 		os.Exit(0)
@@ -143,10 +144,21 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		datakitHost = config.Cfg.HTTPAPI.Listen
-		doDQL(FlagRunDQL)
+		runSingleDQL(FlagRunDQL)
 		os.Exit(0)
 	}
 
+	if FlagWorkspaceInfo {
+		tryLoadMainCfg()
+		setCmdRootLog(FlagCmdLogPath)
+		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
+		body, err := doWorkspace(requrl)
+		if err != nil {
+			errorf("get worksapceInfo fail %s\n", err.Error())
+		}
+		outputWorkspaceInfo(body)
+		os.Exit(0)
+	}
 	if FlagShowCloudInfo != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)

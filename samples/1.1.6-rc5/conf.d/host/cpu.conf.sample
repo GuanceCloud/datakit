@@ -1,0 +1,8 @@
+
+[[inputs.cpu]]
+  # Collect interval, default is 10 seconds(optional)
+  interval = '10s'
+
+  # Extra tags (optional)
+  [inputs.cpu.tags]
+    # tag1 = "a"

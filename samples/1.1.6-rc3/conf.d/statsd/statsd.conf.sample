@@ -1,0 +1,22 @@
+### You need to configure an [[inputs.statsd]] for each statsd service to be monitored.
+### interval: monitor interval, the default value is "60s".
+### host: statsd service ip:port, if "127.0.0.1", default port is 8126.
+### metricsName: the name of metric, default is "statsd"
+
+#[[inputs.statsd]]
+#	interval    = "60s"
+#	host        = "127.0.0.1:8126"
+#	metricsName = "statsd"
+#	[inputs.statsd.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"
+
+#[[inputs.statsd]]
+#	interval    = "60s"
+#	host        = "127.0.0.1:8126"
+#	metricsName = "statsd"
+#	[inputs.statsd.tags]
+#		tag1 = "tag1"
+#		tag2 = "tag2"
+#		tag3 = "tag3"

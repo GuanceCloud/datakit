@@ -20,6 +20,27 @@ static __always_inline __u64 load_offset_rtt_var()
     return var;
 }
 
+static __always_inline __u64 load_offset_inet_sport()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_inet_sport", var);
+    return var;
+}
+
+static __always_inline __u64 load_offset_sk_sport()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_sk_num", var);
+    return var;
+}
+
+static __always_inline __u64 load_offset_sk_dport()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_sk_dport", var);
+    return var;
+}
+
 // param direction: connetction direction, automatic judgment | incoming | outgoing | unknown
 // param count_typpe: packet count type, 1: init, 2:increment
 static __always_inline void update_conn_stats(struct connection_info *conn, size_t sent_bytes, size_t recv_bytes, u64 ts, int direction,
@@ -149,21 +170,21 @@ static __always_inline void remove_from_conn_map(struct connection_info conn_inf
         __u32 pid = conn_info.pid;
         conn_info.pid = 0;
         tcp_sts = bpf_map_lookup_elem(&bpfmap_conn_tcp_stats, &conn_info);
-        bpf_map_delete_elem(&bpfmap_conn_tcp_stats, &conn_info);
         if (tcp_sts != NULL)
         {
             event->conn_tcp_stats = *tcp_sts;
             event->conn_tcp_stats.state_transitions |= (1 << TCP_CLOSE);
         }
+        bpf_map_delete_elem(&bpfmap_conn_tcp_stats, &conn_info);
         conn_info.pid = pid;
     }
 
     struct connection_stats *conn_sts = bpf_map_lookup_elem(&bpfmap_conn_stats, &conn_info);
-    bpf_map_delete_elem(&bpfmap_conn_stats, &conn_info);
     if (conn_sts != NULL)
     {
         event->conn_stats = *conn_sts;
     }
+    bpf_map_delete_elem(&bpfmap_conn_stats, &conn_info);
 }
 
 static __always_inline void send_conn_closed_event(struct pt_regs *ctx, struct connection_closed_info event, __u64 cpu)
@@ -202,10 +223,14 @@ static __always_inline bool is_ipv4_mapped_ipv6(__u32 saddr[4], __u32 daddr[4])
 static __always_inline __u16 read_sock_src_port(struct sock *sk)
 {
     __u16 sport = 0;
-    bpf_probe_read(&sport, sizeof(sport), &sk->sk_num);
+    // sport: sk->sk_num
+    __u64 offset_sk_num = load_offset_sk_sport();
+    bpf_probe_read(&sport, sizeof(sport), (__u8 *)sk + offset_sk_num);
     if (sport == 0)
     {
-        bpf_probe_read(&sport, sizeof(sport), &inet_sk(sk)->inet_sport);
+        // sport: &inet_sk(sk)->inet_sport
+        __u64 offset_inet_sport = load_offset_inet_sport();
+        bpf_probe_read(&sport, sizeof(sport), (__u8 *)sk + offset_inet_sport);
         swap_u16(&sport); // default in little endian system
     }
     return sport;
@@ -221,9 +246,6 @@ static __always_inline void read_tcp_segment_counts(struct sock *skp, __u32 *pac
 static __always_inline int read_connection_info(struct sock *sk, struct connection_info *conn_info,
                                                 __u64 pid_tgid, enum ConnLayerP l4_p)
 {
-    // reset connection_info struct
-    // __builtin_memset(conn_info, 0, sizeof(*conn_info));
-
     // read L4 protocol, pid
     conn_info->meta = (conn_info->meta & ~CONN_L4_MASK) | l4_p;
     conn_info->pid = pid_tgid >> 32;
@@ -247,10 +269,6 @@ static __always_inline int read_connection_info(struct sock *sk, struct connecti
         conn_info->meta = (conn_info->meta & ~CONN_L3_MASK) | CONN_L3_IPv6;
         in6addr_to_u32arr(conn_info->saddr, &sk->sk_v6_rcv_saddr);
         in6addr_to_u32arr(conn_info->daddr, &sk->sk_v6_daddr);
-        // if (is_ipv4_mapped_ipv6(conn_info->saddr, conn_info->daddr))
-        // {
-        //     conn_info->meta = (conn_info->meta & ~CONN_L3_MASK) | CONN_L3_IPv4;
-        // }
         if ((conn_info->saddr[0] | conn_info->saddr[1] | conn_info->saddr[2] | conn_info->saddr[3] |
              conn_info->daddr[0] | conn_info->daddr[1] | conn_info->daddr[2] | conn_info->daddr[3]) == 0)
         {
@@ -259,15 +277,13 @@ static __always_inline int read_connection_info(struct sock *sk, struct connecti
     }
 
     // read sport and dport
-    conn_info->sport = read_sock_src_port(sk);
-    bpf_probe_read(&conn_info->dport, sizeof(conn_info->dport), &sk->sk_dport);
-    // bpf_printk("%x %x", sk, &sk->sk_dport);
-    swap_u16(&conn_info->dport);
-    // __u16 tmp = 0;
-    // bpf_probe_read(&tmp, sizeof(conn_info->dport), (char *)sk + 928);
-    // swap_u16(&tmp);
 
-    // bpf_printk("%d %d\n", (int)conn_info->dport, (int)tmp);
+    conn_info->sport = read_sock_src_port(sk);
+
+    // dport: sk->sk_dport
+    __u64 offset_sk_dport = load_offset_sk_dport();
+    bpf_probe_read(&conn_info->dport, sizeof(conn_info->dport), (__u8 *)sk + offset_sk_dport);
+    swap_u16(&conn_info->dport);
 
     if ((conn_info->sport | conn_info->dport) == 0)
     {
@@ -281,9 +297,9 @@ static __always_inline int read_tcp_rtt(struct sock *sk, struct connection_tcp_s
 {
     __u32 srtt_us = 0;
     __u32 mdev_us = 0;
-    // bpf_probe_read(&srtt_us, sizeof(srtt_us), &tcp_sk(sk)->srtt_us);
-    // bpf_probe_read(&mdev_us, sizeof(mdev_us), &tcp_sk(sk)->mdev_us);
 
+    // rtt: &tcp_sk(sk)->srtt_us
+    // rtt_var: &tcp_sk(sk)->mdev_us
     __u64 offset_rtt = load_offset_rtt();
     __u64 offset_rtt_var = load_offset_rtt_var();
 

@@ -9,11 +9,11 @@ import (
 
 func TestGetSlowlog(t *testing.T) {
 	input := &Input{
-		Host:     "127.0.0.1",
-		Port:     6379,
-		Password: "dev",
-		Service:  "dev-test",
-		Tags:     make(map[string]string),
+		Host: "127.0.0.1",
+		Port: 6379,
+		// Password: "dev",
+		// Service:  "dev-test",
+		Tags: make(map[string]string),
 	}
 
 	err := input.initCfg()

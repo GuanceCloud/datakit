@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -363,12 +364,10 @@ func TestRestartAPI(t *testing.T) {
 			token: "tkn_abc123",
 			fail:  false,
 		},
-
 		{
 			token: "tkn_abc456",
 			fail:  true,
 		},
-
 		{
 			token: "",
 			fail:  true,
@@ -411,5 +410,70 @@ func TestRestartAPI(t *testing.T) {
 		}
 
 		t.Logf("resp: %s", string(body))
+	}
+}
+
+func TestApiGetDatakitLastError(t *testing.T) {
+	const uri string = "/v1/lasterror"
+
+	cases := []struct {
+		body []byte
+		fail bool
+	}{
+		{
+			[]byte(`{"input":"fakeCPU","err_content":"cpu has broken down"}`),
+			false,
+		},
+		{
+			[]byte(`{"input":"fakeCPU","err_content":""}`),
+			true,
+		},
+		{
+			[]byte(`{"input":"","err_content":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(`{"input":"","err_content":""}`),
+			true,
+		},
+		{
+			[]byte(`{"":"fakeCPU","err_content":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(`{"input":"fakeCPU","":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(`{"":"fakeCPU","":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(``),
+			true,
+		},
+	}
+
+	for _, fakeError := range cases {
+		fakeEM := errMessage{}
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", uri, bytes.NewReader(fakeError.body))
+		if err != nil {
+			t.Errorf("create newrequest failed:%s", err)
+		}
+		em, err := doApiGetDatakitLastError(req, rr)
+		if err != nil {
+			if fakeError.fail {
+				t.Logf("expect error: %s", err)
+				continue
+			}
+			t.Errorf("api test failed:%s", err)
+		}
+		err = json.Unmarshal(fakeError.body, &fakeEM)
+		if err != nil {
+			t.Errorf("json.Unmarshal: %s", err)
+		}
+		tu.Equals(t, fakeEM.ErrContent, em.ErrContent)
+		tu.Equals(t, fakeEM.Input, em.Input)
 	}
 }

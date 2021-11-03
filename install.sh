@@ -2,7 +2,46 @@
 # Wed Aug 11 11:35:28 CST 2021
 # Author: tanb@jiagouyun.com
 
+# https://stackoverflow.com/questions/19339248/append-line-to-etc-hosts-file-with-shell-script/37824076
+# usage: updateHosts ip domain1 domain2 domain3 ...
+function updateHosts() {
+    for n in $@
+    do
+        if [ "$n" != "$1" ]; then
+            # echo $n
+            ip_address=$1
+            host_name=$n
+            # find existing instances in the host file and save the line numbers
+            matches_in_hosts="$(grep -n $host_name /etc/hosts | cut -f1 -d:)"
+            host_entry="${ip_address} ${host_name}"
+
+            if [ ! -z "$matches_in_hosts" ]
+            then
+                # iterate over the line numbers on which matches were found
+                while read -r line_number; do
+                    # replace the text of each line with the desired host entry
+                    sudo sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+                done <<< "$matches_in_hosts"
+            else
+                echo "$host_entry" | sudo tee -a /etc/hosts > /dev/null
+            fi
+        fi
+    done
+}
+
 set -e
+
+domain=(
+    "static.guance.com"
+    "openway.guance.com"
+    "dflux-dial.guance.com"
+
+    "static.dataflux.cn"
+    "openway.dataflux.cn"
+    "dflux-dial.dataflux.cn"
+
+    "zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com"
+)
 
 # detect root user
 if [ "$(echo "UID")" = "0" ]; then
@@ -52,9 +91,9 @@ esac
 
 os=
 if [[ "$OSTYPE" == "darwin"* ]]; then
-	if [[ $arch != "amd64" ]]; then # Darwin only support amd64
+	if [[ $arch != "amd64" ]] && [[ $arch != "arm64" ]]; then # Darwin only support amd64 and arm64, for arm64, use amd64 instead
 		# shellcheck disable=SC2059
-		printf "${RED}[E] Darwin only support amd64.${CLR}\n"
+		printf "${RED}[E] Darwin only support amd64/arm64.${CLR}\n"
 		exit 1;
 	fi
 
@@ -157,9 +196,31 @@ if [ -n "$HTTPS_PROXY" ]; then
 	proxy=$HTTPS_PROXY
 fi
 
+# check nginx proxy
+proxy_type=""
+if [ -n "$DK_PROXY_TYPE" ]; then
+	proxy_type=$DK_PROXY_TYPE
+	proxy_type=$(echo $proxy_type | tr '[:upper:]' '[:lower:]') # to lowercase
+	printf "${BLU}\n* found Proxy Type: $proxy_type${CLR}\n"
+
+	if [ "$proxy_type" == "nginx" ]; then
+		# env DK_NGINX_IP has highest priority on proxy level
+		if [ -n "$DK_NGINX_IP" ]; then
+		    proxy=$DK_NGINX_IP
+		    if [ "$proxy" != "" ]; then
+			    printf "${BLU}\n* got nginx Proxy: $proxy${CLR}\n"
+
+				for i in ${domain[@]}; do
+				    updateHosts "$proxy" "$i"
+                done
+			fi
+			proxy=""
+		fi
+	fi
+fi
+
 env_hostname=
 if [ -n "$DK_HOSTNAME" ]; then
-  # shellcheck disable=SC2034
   env_hostname=$DK_HOSTNAME
 fi
 
@@ -202,7 +263,7 @@ else
 			--listen="${http_listen}"            \
 			--port="${http_port}"                \
 			--proxy="${proxy}"                   \
-			--env_hostname="${DK_HOSTNAME}"      \
+			--env_hostname="${env_hostname}"      \
 			--dca-enable="${dca_enable}"				 \
 			--dca-listen="${dca_listen}"				 \
 			--dca-white-list="${dca_white_list}" \
@@ -215,12 +276,11 @@ else
 			--namespace="${namespace}"           \
 			--listen="${http_listen}"            \
 			--port="${http_port}"                \
-			--env_hostname="${DK_HOSTNAME}"      \
+			--env_hostname="${env_hostname}"      \
 			--dca-enable="${dca_enable}"				 \
 			--dca-listen="${dca_listen}"				 \
 			--dca-white-list="${dca_white_list}"	\
 			--proxy="${proxy}" | $sudo_cmd tee ${install_log}
 	fi
 fi
-
 rm -rf $installer

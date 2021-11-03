@@ -1,0 +1,54 @@
+# {"version": "1.1.9-rc0", "desc": "do NOT edit this line"}
+
+[[inputs.mysql]]
+  host = "localhost"
+  user = "datakit"
+  pass = "<PASS>"
+  port = 3306
+  # sock = "<SOCK>"
+  # charset = "utf8"
+  
+  ## @param connect_timeout - number - optional - default: 10s
+  # connect_timeout = "10s"
+  
+  ## Deprecated
+  # service = "<SERVICE>"
+  
+  interval = "10s"
+  
+  ## @param inno_db
+  innodb = true
+  
+  ## table_schema
+  tables = []
+  
+  ## user
+  users = []
+  
+  # [inputs.mysql.log]
+  # #required, glob logfiles
+  # files = ["/var/log/mysql/*.log"]
+  
+  ## glob filteer
+  #ignore = [""]
+  
+  ## optional encodings:
+  ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+  #character_encoding = ""
+  
+  ## The pattern should be a regexp. Note the use of '''this regexp'''
+  ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+  #match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
+  
+  ## grok pipeline script path
+  #pipeline = "mysql.p"
+  
+  # [[inputs.mysql.custom_queries]]
+  #   sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
+  #   metric = "xxxx"
+  #   tagKeys = ["column1", "column1"]
+  #   fieldKeys = ["column3", "column1"]
+  
+  [inputs.mysql.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"

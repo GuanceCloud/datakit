@@ -2,8 +2,15 @@ package prom
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -23,12 +30,13 @@ type Option struct {
 	Source            string   `toml:"source"`
 	Interval          string   `toml:"interval"`
 	URL               string   `toml:"url"`
+	Output            string   `toml:"output"`
+	MaxFileSize       int64    `toml:"max_file_size"`
 	MeasurementPrefix string   `toml:"measurement_prefix"`
 	MeasurementName   string   `toml:"measurement_name"`
-
-	CacertFile string `toml:"tls_ca"`
-	CertFile   string `toml:"tls_cert"`
-	KeyFile    string `toml:"tls_key"`
+	CacertFile        string   `toml:"tls_ca"`
+	CertFile          string   `toml:"tls_cert"`
+	KeyFile           string   `toml:"tls_key"`
 
 	Tags     map[string]string `toml:"tags"`
 	interval time.Duration
@@ -125,4 +133,60 @@ func (p *Prom) Collect() ([]*io.Point, error) {
 	defer resp.Body.Close() //nolint:errcheck
 
 	return Text2Metrics(resp.Body, p.opt, p.opt.Tags)
+}
+
+// CollectFromFile collects metrics from local file.
+// If both Output and URL is configured as local file path,
+// preference is given to p.opt.Output other than p.opt.URL.
+func (p *Prom) CollectFromFile() ([]*io.Point, error) {
+	var f *os.File
+	if p.opt.Output != "" {
+		f, _ = os.OpenFile(p.opt.Output, os.O_RDONLY, 0600)
+	} else {
+		fileName := p.opt.URL
+		f, _ = os.OpenFile(fileName, os.O_RDONLY, 0600)
+	}
+	defer f.Close()
+	return Text2Metrics(f, p.opt, p.opt.Tags)
+}
+
+// WriteFile collects data from p.opt.URL then writes it to p.opt.Output.
+// WriteFile will only be called when Output is configured.
+func (p *Prom) WriteFile() error {
+	// If url is configured as local path file, prom does not collect from it.
+	Url, _ := url.Parse(p.opt.URL)
+	if Url.Scheme != "http" && Url.Scheme != "https" {
+		return fmt.Errorf("url is neither http nor https")
+	}
+
+	resp, err := p.client.Get(p.opt.URL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.ContentLength > p.opt.MaxFileSize {
+		return fmt.Errorf("content length is too large to handle")
+	}
+	fp := p.opt.Output
+	if !path.IsAbs(fp) {
+		fp = filepath.Join(datakit.InstallDir, fp)
+	}
+	// truncate if file exists
+	f, err := os.Create(fp)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if int64(len(data)) > p.opt.MaxFileSize {
+		return fmt.Errorf("content length is too large to handle")
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
+	return nil
 }

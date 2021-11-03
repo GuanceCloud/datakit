@@ -1,12 +1,12 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 # {{.InputName}}
 
-## 下载 skywalking 客户端（目前支持版本：8.3.0）
+## 下载 skywalking 客户端（目前支持版本为 8.3.0）
 
 - skywalking-java agent [DataFlux 下载](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/plugins/skywalking-agent-8.3.0.tar.gz)（推荐）
 - skywlking-java-apm [官方下载](https://archive.apache.org/dist/skywalking/8.3.0/apache-skywalking-apm-8.3.0.tar.gz)
@@ -17,9 +17,9 @@
 java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 ```
 
-## 配置 skywalking
+## 配置 SkyWalking
 
-打开文件 /path/to/skywalking/agent/config/agent.config 进行配置
+打开文件 /path_to_skywalking_agent/config/agent.config 进行配置
 
 ```conf
 # The service name in UI

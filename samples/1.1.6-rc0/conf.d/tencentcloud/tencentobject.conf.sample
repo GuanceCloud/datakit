@@ -1,0 +1,62 @@
+
+#[[inputs.tencentobject]]
+# ## @param - tencent cloud authorization informations - string - required
+# region_id = ''
+# access_key_id = ''
+# access_key_secret = ''
+
+# ## @param - collection interval - string - optional - default: 5m
+# interval = '5m'
+
+# ## @param - custom tags - [list of key:value element] - optional
+#[inputs.tencentobject.tags]
+# key1 = 'val1'
+
+
+#[inputs.tencentobject.cvm]
+
+# ## @param - [list of cvm instanceid] - optional
+#instanceids = ['']
+
+# ## @param - [list of excluded cvm instanceid] - optional
+#exclude_instanceids = ['']
+
+# ## @param - custom tags - [list of key:value element] - optional
+#[inputs.tencentobject.cvm.tags]
+# key1 = 'val1'
+
+#[inputs.tencentobject.cos]
+
+# ## @param - [list of buckets] - optional
+#buckets = ['']
+
+# ## @param - [list of excluded buckets] - optional
+#exclude_buckets = ['']
+
+# ## @param - custom tags - [list of key:value element] - optional
+#[inputs.tencentobject.cos.tags]
+# key1 = 'val1'
+
+#[inputs.tencentobject.clb]
+
+# ## @param - [list of clb instanceid] - optional
+#instanceids = ['']
+
+# ## @param - [list of excluded clb instanceid] - optional
+#exclude_instanceids = ['']
+
+# ## @param - custom tags for clb object - [list of key:value element] - optional
+#[inputs.tencentobject.clb.tags]
+# key1 = 'val1'
+
+#[inputs.tencentobject.cdb]
+
+# ## @param - [list of instanceid] - optional
+#db_instanceids = ['']
+
+# ## @param - [list of excluded instanceid] - optional
+#exclude_db_instanceids = ['']
+
+# ## @param - custom tags for this object - [list of key:value element] - optional
+#[inputs.tencentobject.cdb.tags]
+# key1 = 'val1'

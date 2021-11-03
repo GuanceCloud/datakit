@@ -1,0 +1,36 @@
+# {"version": "1.1.8-rc3", "desc": "do NOT edit this line"}
+
+[[inputs.logging]]
+  ## required
+  logfiles = [
+    "/var/log/syslog",
+    "/var/log/message",
+  ]
+
+  ## glob filteer
+  ignore = [""]
+
+  ## your logging source, if it's empty, use 'default'
+  source = ""
+
+  ## add service tag, if it's empty, use $source.
+  service = ""
+
+  ## grok pipeline script path
+  pipeline = ""
+
+  ## optional status:
+  ##   "emerg","alert","critical","error","warning","info","debug","OK"
+  ignore_status = []
+
+  ## optional encodings:
+  ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+  character_encoding = ""
+
+  ## The pattern should be a regexp. Note the use of '''this regexp'''
+  ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+  # multiline_match = '''^\S'''
+
+  [inputs.logging.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"

@@ -2,6 +2,36 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc3(2021/10/26)
+
+- 优化 [Redis 采集器](redis) DB 配置方式(#395)
+- 修复 [Kubernetes](kubernetes) 采集器 tag 取值为空的问题(#409)
+- 安装过程修复 Mac M1 芯片支持(#407)
+- [eBPF-network](net_ebpf) 修复连接数统计错误问题(#387)
+- 日志采集新增[日志数据获取方式](logstreaming)，支持 [Fluentd/Logstash 等数据接入](logstreaming)(#394/#392/#391)
+- [ElasticSearch](elasticsearch) 采集器增加更多指标采集(#386)
+- APM 增加 [Jaeger 数据](jaeger)接入(#383)
+- [Prometheus Remote Write](prom_remote_write)采集器支持数据切割调试
+- 优化 [Nginx 代理](proxy)功能
+- DQL 查询结果支持 [CSV 文件导出](datakit-how-to)
+
+---
+
+## 1.1.9-rc2(2021/10/14)
+
+- 新增[采集器](prom_remote_write)支持 Prometheus Remote Write 将数据同步给 DataKit(#381)
+- 新增[Kubernetes Event 数据采集](kubernetes#49edf2c4)(#296)
+- 修复 Mac 因安全策略导致安装失败问题(#379)
+- [prom 采集器](prom) 调试工具支持从本地文件调试数据切割(#378)
+- 修复 [etcd 采集器](etcd)数据问题(#377)
+- DataKit Docker 镜像增加 arm64 架构支持(#365)
+- 安装阶段新增环境变量 `DK_HOSTNAME` [支持](datakit-install#f9858758)(#334)
+- [Apache 采集器](apache) 增加更多指标采集 (#329)
+- DataKit API 新增接口 [`/v1/workspace`](apis#2a24dd46) 以获取工作空间信息(#324)
+	- 支持 DataKit 通过命令行参数[获取工作空间信息](datakit-how-to#88b4967d)
+
+---
+
 ## 1.1.9-rc1.1(2021/10/09)
 
 - 修复 Kubernetes 选举问题(#389)
@@ -38,7 +68,7 @@
 	- [NSQ](nsq)
 	- [Apache](apache)
 	- [InfluxDB](influxdb)
-	- [Elasticsearch](elasticsearch)
+	- [ElasticSearch](elasticsearch)
 	- [MongoDB](mongodb)
 	- [MySQL](mysql)
 	- [Nginx](nginx)

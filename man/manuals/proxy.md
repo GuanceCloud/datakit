@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 # {{.InputName}}
@@ -45,45 +45,113 @@ curl -x <PROXY-IP:PROXY-PORT> -v -X POST https://openway.guance.com/v1/write/met
 
 配置好后，[重启 DataKit](datakit-how-to#147762ed)。
 
-## Nginx 反向代理配置
+## Nginx 正向代理配置
 
-- 配置 `Nginx` 代理服务
+代理 HTTPS 流量这里 nginx 采用 4 层的透明代理方式，即需要:
+
+- 一台可以访问外网的 nginx 的透明代理服务器
+- datakit 所在的客户机使用 hosts 文件进行域名配置
+
+### 配置 `Nginx` 代理服务
 
 ```
-server {
-  listen       8090;
+# 代理 HTTPS
+stream {
+    # resolver 114.114.114.114;
+    # resolver_timeout 30s;
+    server {
+        listen 443;
+        ssl_preread on;
+        proxy_connect_timeout 10s;
+        proxy_pass $ssl_preread_server_name:$server_port;
+    }
+}
 
-  location / {
-    root   /usr/share/nginx/html;
-    index  index.html index.htm;
-
-    // 注意：这里不要用 https, 暂不支持
-    proxy_pass http://openway.guance.com; # dataway地址
-  }
-
-  // ... 其它配置
+http {
+    ...
 }
 ```
 
-- 加载新配置及测试
+代理 HTTP 流量这里 nginx 采用 7 层的透明代理方式(如果不需要代理 HTTP 这段可以跳过):
+
+```
+# 代理 HTTP
+http {
+    # resolver 114.114.114.114;
+    # resolver_timeout 30s;
+    server {
+        listen 80;
+        location / {
+            proxy_pass http://$http_host$request_uri;    # 配置正向代理参数
+            proxy_set_header Host $http_host;            # 解决如果 URL 中带 "." 后 nginx 503 错误
+            proxy_buffers 256 4k;                        # 配置缓存大小
+            proxy_max_temp_file_size 0;                  # 关闭磁盘缓存读写减少 I/O
+            proxy_connect_timeout 30;                    # 代理连接超时时间
+            proxy_cache_valid 200 302 10m;
+            proxy_cache_valid 301 1h;
+            proxy_cache_valid any 1m;                    # 配置代理服务器缓存时间
+            proxy_send_timeout 60;
+            proxy_read_timeout 60;
+        }
+    }
+
+    // ... 其它配置
+}
+```
+
+### 加载新配置及测试
 
 ```shell
 nginx -t        # 测试配置
 nginx -s reload # reload配置
 ```
 
-- 配置 `Datakit` 代理服务
+### 配置 `Datakit` 被代理机器上的域名
 
-进入 DataKit 安装目录下的 `conf.d/` 目录，配置 `datakit.conf` 中的代理服务。如下：
+下面假设 `192.168.1.66` 是 nginx 透明代理服务器的 IP 地址。
 
-```toml
-[dataway]
-  urls = ["https://openway.guance.com?token=TOKEN"]
-  http_proxy = "http://<NGINX-IP:NGINX-PORT>"
+```sh
+$ sudo vi /etc/hosts
+
+192.168.1.66 static.guance.com
+192.168.1.66 openway.guance.com
+192.168.1.66 dflux-dial.guance.com
+
+192.168.1.66 static.dataflux.cn
+192.168.1.66 openway.dataflux.cn
+192.168.1.66 dflux-dial.dataflux.cn
+
+192.168.1.66 zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com
 ```
 
 在被代理机器上，测试代理是否正常：
 
+Linux/Unix:
+
 ```shell
-curl -v -x <NGINX-IP:NGINX-PORT> -X POST http://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN> -d "proxy_test_nginx,name=test c=123i"
+curl -H "application/x-www-form-urlencoded; param=value" \
+  -d 'proxy_test_nginx,name=test c=123i' \
+  "https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN>"
+```
+
+PowerShell:
+
+```PowerShell
+curl -uri 'https://openway.guance.com/v1/write/metrics?token=<YOUR-TOKEN>' -Headers @{"param"="value"} -ContentType 'application/x-www-form-urlencoded' -body 'proxy_test_nginx,name=test c=123i' -method 'POST'
+```
+
+注意: PowerShell 有的机器上会报 `curl : 请求被中止: 未能创建 SSL/TLS 安全通道。` 的错误，这是因为服务端证书加密版本号在本地默认不被支持造成的，可以通过命令 `[Net.ServicePointManager]::SecurityProtocol` 查看支持的协议。如果想要本地支持可以做以下操作:
+
+```PowerShell
+# 64 bit PowerShell
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\.NetFramework\v4.0.30319' -Name 'SchUseStrongCrypto' -Value '1' -Type DWord
+
+# 32 bit PowerShell
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\.NetFramework\v4.0.30319' -Name 'SchUseStrongCrypto' -Value '1' -Type DWord
+```
+
+关闭 PowerShell 窗口，打开一个新的 PowerShell 窗口，执行以下代码查看支持的协议:
+
+```PowerShell
+[Net.ServicePointManager]::SecurityProtocol
 ```

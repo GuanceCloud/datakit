@@ -1,0 +1,33 @@
+
+[inputs.docker]
+  # Docker Endpoint
+  # To use TCP, set endpoint = "tcp://[ip]:[port]"
+  # To use environment variables (ie, docker-machine), set endpoint = "ENV"
+  endpoint = "unix:///var/run/docker.sock"
+  
+  collect_metric = true
+  collect_object = true
+  collect_logging = true
+  
+  # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  collect_metric_interval = "10s"
+  collect_object_interval = "5m"
+  
+  # Is all containers, Return all containers. By default, only running containers are shown.
+  include_exited = false
+  
+  ## Optional TLS Config
+  # tls_ca = "/path/to/ca.pem"
+  # tls_cert = "/path/to/cert.pem"
+  # tls_key = "/path/to/key.pem"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = false
+  
+  #[[inputs.docker.log_option]]
+    # container_name_match = "<regexp-container-name>"
+    # source = "<your-source>"
+    # service = "<your-service>"
+    # pipeline = "<this-is-pipeline>"
+  
+  [inputs.docker.tags]
+    # tags1 = "value1"

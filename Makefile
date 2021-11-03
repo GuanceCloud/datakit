@@ -31,14 +31,14 @@ GIT_VERSION := $(shell git describe --always --tags)
 DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
-BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMITER := $(shell git log -1 --pretty=format:'%an')
 UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
-NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))"}}')
-NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))"}}')
+NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION)/$(GIT_BRANCH))"}}')
+NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION)/$(GIT_BRANCH))"}}')
 CI_PASS_NOTIFY_MSG:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 触发的 DataKit CI 通过"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支($(BRANCH))提交代码，以免 CI 任务失败"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支[$(GIT_BRANCH)]提交代码，以免 CI 任务失败"}}')
 
 LINUX_RELEASE_VERSION = $(shell uname -r)
 
@@ -115,8 +115,8 @@ pub_testing_win_img:
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
+
 
 pub_release_win_img:
 	# release to pub hub
@@ -129,8 +129,7 @@ pub_release_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
-	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
@@ -212,9 +211,9 @@ plparser:
 	@rm -rf pipeline/parser/parser_y.go
 	@goyacc -o pipeline/parser/gram_y.go pipeline/parser/gram.y
 
-lint_deps: prepare gofmt lfparser_disable_line plparser_disable_line man vet 
+lint_deps: prepare gofmt lfparser_disable_line plparser_disable_line man vet
 
-lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet 
+lint_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lfparser_disable_line:

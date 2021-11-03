@@ -166,12 +166,12 @@ func Text2Metrics(in io.Reader,
 			continue
 		}
 
-		measurementName, fieldName = getNames(name,
+		msName, fieldName := getNames(name,
 			customMeasurementRules, measurementName, measurementPrefix)
 
 		// set default name when measurementName is empty
-		if measurementName == "" {
-			measurementName = "prom" //nolint:goconst
+		if msName == "" {
+			msName = "prom" //nolint:goconst
 		}
 
 		metrics := value.GetMetric()
@@ -190,7 +190,7 @@ func Text2Metrics(in io.Reader,
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -211,7 +211,7 @@ func Text2Metrics(in io.Reader,
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -231,7 +231,7 @@ func Text2Metrics(in io.Reader,
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -251,7 +251,7 @@ func Text2Metrics(in io.Reader,
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -270,7 +270,7 @@ func Text2Metrics(in io.Reader,
 
 					tags["quantile"] = fmt.Sprint(quantile)
 
-					pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+					pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 					if err != nil {
 						lastErr = err
 					} else {
@@ -291,7 +291,7 @@ func Text2Metrics(in io.Reader,
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -308,7 +308,7 @@ func Text2Metrics(in io.Reader,
 					tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 					tags["le"] = fmt.Sprint(bond)
 
-					pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+					pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 					if err != nil {
 						lastErr = err
 					} else {

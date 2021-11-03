@@ -31,8 +31,10 @@ func (c *cluster) Gather() {
 
 	for _, obj := range list.Items {
 		tags := map[string]string{
-			"name":         fmt.Sprintf("%v", obj.UID),
-			"cluster_name": obj.Name,
+			"name": fmt.Sprintf("%v", obj.UID),
+		}
+		if obj.Name != "" {
+			tags["cluster_name"] = obj.Name
 		}
 		for k, v := range c.tags {
 			tags[k] = v
@@ -53,6 +55,11 @@ func (c *cluster) Gather() {
 		} else {
 			pts = append(pts, pt)
 		}
+	}
+
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
 	}
 
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {

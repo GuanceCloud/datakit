@@ -1,0 +1,155 @@
+
+#[[inputs.aliyunobject]]
+# ## @param - aliyun authorization informations - string - required
+# region_id = ''
+# access_key_id = ''
+# access_key_secret = ''
+
+# ## @param - collection interval - string - optional - default: 5m
+# interval = '5m'
+
+
+# ##(optional)
+#[inputs.aliyunobject.ecs]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_ecs.p"
+	# ##(optional) list of ecs instanceid
+	#instanceids = ['']
+	
+	# ##(optional) list of excluded ecs instanceid
+	#exclude_instanceids = ['']
+
+# ##(optional)
+#[inputs.aliyunobject.slb]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+
+	#pipeline = "aliyun_slb.p"
+	# ##(optional) list of slb instanceid
+	#instanceids = ['']
+	
+	# ##(optional) list of excluded slb instanceid
+	#exclude_instanceids = ['']
+
+# ##(optional)
+#[inputs.aliyunobject.oss]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_oss.p"
+	# ##(optional) list of oss buckets
+	#buckets = []
+	
+	# ##(optional) list of excluded oss instanceid
+	#exclude_buckets = []
+
+# ##(optional)
+#[inputs.aliyunobject.rds]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	
+	#pipeline = "aliyun_rds.p"
+	# ##(optional) list of rds instanceid
+	#db_instanceids = []
+	
+	# ##(optional) list of excluded rds instanceid
+	#exclude_db_instanceids = []
+
+# ##(optional)
+#[inputs.aliyunobject.redis]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_redis.p"
+	# ##(optional) list of redis instanceid
+	#instanceids = []
+	# ##(optional) list of excluded redis instanceid
+	#exclude_instanceids = []
+	# ## @param - custom tags for redis object - [list of key:value element] - optional
+	
+
+# ##(optional)
+#[inputs.aliyunobject.cdn]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_cdn.p"
+	# ##(optional) list of cdn DomainName
+	#domainNames = []
+	# ##(optional) list of excluded cdn exclude_domainNames
+	#exclude_domainNames = []
+
+# ##(optional)
+#[inputs.aliyunobject.waf]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_waf.p"
+	# ## @param - custom tags for waf object - [list of key:value element] - optional
+	
+
+# ##(optional)
+#[inputs.aliyunobject.elasticsearch]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_elasticsearch.p"
+	# ##(optional) list of elasticsearch instanceid
+	#instanceids = []
+	# ##(optional) list of excluded elasticsearch instanceid
+	#exclude_instanceids = []
+
+# ##(optional)
+#[inputs.aliyunobject.influxdb]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_influxdb.p"
+	
+	# ##(optional) list of influxdb instanceid
+	#instanceids = []
+	
+	# ##(optional) list of excluded influxdb instanceid
+	#exclude_instanceids = []
+
+# ##(optional)
+#[inputs.aliyunobject.rocketmq]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_rocketmq.p"
+	
+	# ##(optional) list of rocketmq instanceid
+	#instanceids = []
+	
+	# ##(optional) list of excluded rocketmq instanceid
+	#exclude_instanceids = []
+
+# ##(optional)
+#[inputs.aliyunobject.domain]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_domain.p"
+	# ##(optional) list of Domain instanceid
+	#instanceids = []
+	
+	# ##(optional) list of excluded Domain instanceid
+	#exclude_instanceids = []
+
+# ##(optional)
+#[inputs.aliyunobject.mongodb]
+	# ##(optional) ignore this object, default is false
+	#disable = false
+	# ##(optional) pipeline script path
+	#pipeline = "aliyun_mongodb.p"
+	
+	# ##(optional) list of mongodb instanceid
+	#db_instanceids = []
+	
+	# ##(optional) list of excluded mongodb instanceid
+	#exclude_db_instanceids = []

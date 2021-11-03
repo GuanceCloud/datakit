@@ -19,7 +19,6 @@ import (
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type (
@@ -57,6 +56,8 @@ type (
 		Flags        []string `json:"flags"` // e.g., FlagUp, FlagLoopback, FlagMulticast
 		IP4          string   `json:"ip4"`
 		IP6          string   `json:"ip6"`
+		IP4All       []string `json:"ip4_all"`
+		IP6All       []string `json:"ip6_all"`
 		Addrs        []string `json:"-"`
 	}
 
@@ -97,6 +98,7 @@ type (
 	CollectorStatus struct {
 		Name        string `json:"name"`
 		Count       int64  `json:"count"`
+		Version     string `json:"version,omitempty"`
 		LastTime    int64  `json:"last_time,omitempty"`
 		LastErr     string `json:"last_err,omitempty"`
 		LastErrTime int64  `json:"last_err_time,omitempty"`
@@ -219,8 +221,10 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 			}
 			if ip.To4() != nil {
 				i.IP4 = ad.Addr
+				i.IP4All = append(i.IP4All, ad.Addr)
 			} else if ip.To16() != nil {
 				i.IP6 = ad.Addr
+				i.IP6All = append(i.IP6All, ad.Addr)
 			}
 		}
 		infos = append(infos, i)
@@ -268,32 +272,28 @@ func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 	}
 
 	now := time.Now()
-	for name := range inputs.InputsInfo {
-		if s, ok := inputsStats[name]; ok {
-			ts := s.LastErrTS.Unix()
-			if ts < 0 {
-				ts = 0
-			}
-
-			lastErr := s.LastErr
-			if ts > 0 && now.Sub(s.LastErrTS) > c.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
-				l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
-				lastErr = ""
-				ts = 0
-			}
-
-			res = append(res, &CollectorStatus{
-				Name:        name,
-				Count:       s.Count,
-				LastTime:    s.Last.Unix(),
-				LastErr:     lastErr,
-				LastErrTime: ts,
-			})
-		} else {
-			res = append(res, &CollectorStatus{Count: 0, Name: name})
+	for name, s := range inputsStats {
+		ts := s.LastErrTS.Unix()
+		if ts < 0 {
+			ts = 0
 		}
-	}
 
+		lastErr := s.LastErr
+		if ts > 0 && now.Sub(s.LastErrTS) > c.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
+			l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
+			lastErr = ""
+			ts = 0
+		}
+
+		res = append(res, &CollectorStatus{
+			Name:        name,
+			Count:       s.Count,
+			LastTime:    s.Last.Unix(),
+			LastErr:     lastErr,
+			LastErrTime: ts,
+			Version:     s.Version,
+		})
+	}
 	return
 }
 

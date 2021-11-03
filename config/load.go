@@ -78,7 +78,7 @@ func LoadCfg(c *Config, mcp string) error {
 	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))
 	initDefaultEnabledPlugins(c)
 
-	if err := LoadInputsConfig(); err != nil {
+	if err := LoadInputsConfig(".conf"); err != nil {
 		l.Error(err)
 		return err
 	}
@@ -94,8 +94,6 @@ func feedEnvs(data []byte) []byte {
 	data = trimBOM(data)
 
 	parameters := envVarRe.FindAllSubmatch(data, -1)
-
-	l.Debugf("parameters: %s", parameters)
 
 	for _, parameter := range parameters {
 		if len(parameter) != 3 {

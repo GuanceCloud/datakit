@@ -1,0 +1,22 @@
+
+[[inputs.apache]]
+	url = "http://127.0.0.1/server-status?auto"
+	# ##(optional) collection interval, default is 30s
+	# interval = "30s"
+	
+	# username = ""
+	# password = ""
+
+	## Optional TLS Config
+	# tls_ca = "/xxx/ca.pem"
+	# tls_cert = "/xxx/cert.cer"
+	# tls_key = "/xxx/key.key"
+	## Use TLS but skip chain & host verification
+	insecure_skip_verify = false
+
+	[inputs.apache.log]
+	#	files = []
+	#	# grok pipeline script path
+	#	pipeline = "nginx.p"
+	[inputs.apache.tags]
+	# a = "b"

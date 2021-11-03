@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 # DataKit 入门简介
@@ -306,26 +306,48 @@ Tips：
 
 > 注：Windows 下，请在 Powershell 中执行 `datakit --dql` 或 `datakit -Q`
 
-关于 DQL 执行，DataKit 支持如下一些额外选项：
+#### 单次执行 DQL 查询
 
-- `--run-dql`：单次执行一条查询语句：`datakit --run-dql 'cpu limit 1'`
-- `--json`：以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等
+关于 DQL 查询，DataKit 支持运行单条 DQL 语句的功能：
+
+```shell
+# 单次执行一条查询语句
+datakit --run-dql 'cpu limit 1'
+
+# 将执行结果写入 CSV 文件
+datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv"
+
+# 强制覆盖已有 CSV 文件
+datakit --run-dql 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
+
+# 将结果写入 CSV 的同时，在终端也显示查询结果
+datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
+```
+
+导出的 CSV 文件样式示例：
+
+```shell
+name,active,available,available_percent,free,host,time
+mem,2016870400,2079637504,24.210166931152344,80498688,achen.local,1635242524385
+mem,2007961600,2032476160,23.661136627197266,30900224,achen.local,1635242534385
+mem,2014437376,2077097984,24.18060302734375,73502720,achen.local,1635242544382
+```
+
+注意：
+
+- 第一列是查询的指标集名称
+- 之后各列是该采集器对应的各项数据
+- 当字段为空时，对应列也为空
+
+#### DQL 查询结果 JSON 化
+
+以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等（以保证 JSON 可直接解析）
 
 ```shell
 datakit --run-dql 'O::HOST:(os, message)' --json
 datakit -Q --json
-```
 
-- `--token`：通过指定不同的 Token 来查询其它工作空间的数据
-
-```shell
-datakit --run-dql 'O::HOST:(os, message)' --token tkn_<another-token>
-datakit -Q --token tkn_<another-token>
-```
-
-- `--auto-json`：DQL 查询的结果，如果字段值是 JSON 字符串，则自动做 JSON 美化
-
-```shell
+# 如果字段值是 JSON 字符串，则自动做 JSON 美化（注意：JSON 模式下（即 --json），`--auto-json` 选项无效）
 datakit --run-dql 'O::HOST:(os, message)' --auto-json
 -----------------[ r1.HOST.s1 ]-----------------
 message ----- json -----  # JSON 开始处有明显标志，此处 message 为字段名
@@ -348,7 +370,14 @@ message ----- json -----  # JSON 开始处有明显标志，此处 message 为�
 8 rows, 1 series, cost 4ms
 ```
 
-> 注意：JSON 模式下，`--auto-json` 选项无效。
+#### 查询特定工作空间的数据
+
+通过指定不同的 Token 来查询其它工作空间的数据：
+
+```shell
+datakit --run-dql 'O::HOST:(os, message)' --token <your-token>
+datakit -Q --token <your-token>
+```
 
 ### 查看 DataKit 运行情况
 
@@ -427,7 +456,35 @@ man > mysql
 (显示 MySQL 采集文档)
 man > Q               # 输入 Q 或 exit 退出
 ```
+### 查看工作空间信息
 
+为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
+
+```shell
+datakit --workspaceinfo
+{
+  "token": {
+    "ws_uuid": "wksp_2dc431d6693711eb8ff97aeee04b54af",
+    "bill_state": "normal",
+    "ver_type": "pay",
+    "token": "tkn_2dc438b6693711eb8ff97aeee04b54af",
+    "db_uuid": "ifdb_c0fss9qc8kg4gj9bjjag",
+    "status": 0,
+    "creator": "",
+    "expire_at": -1,
+    "create_at": 0,
+    "update_at": 0,
+    "delete_at": 0
+  },
+  "data_usage": {
+    "data_metric": 96966,
+    "data_logging": 3253,
+    "data_tracing": 2868,
+    "data_rum": 0,
+    "is_over_usage": false
+  }
+}
+```
 ### DataKit 服务管理
 
 可直接使用如下命令直接管理 DataKit：

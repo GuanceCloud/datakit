@@ -1,0 +1,11 @@
+
+[[inputs.gitlab]]
+    ## param type: string - default: http://127.0.0.1:80/-/metrics
+    prometheus_url = "http://127.0.0.1:80/-/metrics"
+
+    ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
+    interval = "10s"
+
+    ## param type: map object, string to string
+    [inputs.gitlab.tags]
+    #tag1 = "value1"

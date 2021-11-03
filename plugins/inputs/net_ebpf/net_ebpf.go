@@ -2,13 +2,16 @@ package net_ebpf
 
 import (
 	"fmt"
+	"regexp"
 	"runtime"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
 
@@ -51,6 +54,23 @@ loop:
 	}
 
 	l.Infof("net_ebpf input started")
+	if matchHost, err := regexp.Compile("--hostname"); err == nil {
+		haveHostNameArg := false
+		for _, arg := range i.ExernalInput.Args {
+			haveHostNameArg = matchHost.MatchString(arg)
+			if haveHostNameArg {
+				break
+			}
+		}
+		if !haveHostNameArg {
+			if env_hostname, ok := config.Cfg.Environments["ENV_HOSTNAME"]; ok && env_hostname != "" {
+				i.ExernalInput.Args = append(i.ExernalInput.Args, "--hostname", env_hostname)
+			}
+		}
+	} else {
+		l.Error(err)
+	}
+
 	i.ExernalInput.Run()
 	l.Infof("net_ebpf input exit")
 }

@@ -15,7 +15,7 @@ static __always_inline int skipConn(struct offset_guess *status)
 {
     char actual[PROCNAMELEN];
     bpf_get_current_comm(actual, PROCNAMELEN);
-    // __u64 pid_tgid = bpf_get_current_pid_tgid();
+    // process name only 
     for (int i = 0; i < PROCNAMELEN - 1; i++)
     {
         if (actual[i] != status->process_name[i])
@@ -24,8 +24,6 @@ static __always_inline int skipConn(struct offset_guess *status)
         }
     }
     return 1;
-
-    // return pid_tgid == status->pid_tgid ? 0 : 1;
 }
 
 static __always_inline int read_offset(struct offset_guess *dst)
@@ -55,8 +53,11 @@ static __always_inline int read_conn_info(__u8 *sk, struct offset_guess *status)
         // src ip
         bpf_probe_read(&status->daddr + 3, sizeof(__be32), sk + status->offset_sk_daddr);
         bpf_probe_read(&status->saddr + 4, sizeof(__be32), sk + status->offset_sk_rcv_saddr);
+
         bpf_probe_read(&status->dport, sizeof(__u16), sk + status->offset_sk_dport);
         swap_u16(&status->dport);
+        bpf_probe_read(&status->sport, sizeof(__u16), sk + status->offset_inet_sport);
+        swap_u16(&status->sport);
     }
     else
     {

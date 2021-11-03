@@ -91,6 +91,7 @@ var (
 		"kubernetes":             true,
 		"lighttpd":               true,
 		"logging":                true,
+		"logstreaming":           true,
 		"mem":                    true,
 		"memcached":              true,
 		"mongodb_oplog":          true,
@@ -139,7 +140,7 @@ var (
 		"tidb":                   true,
 		"timezone":               true,
 		"tomcat":                 true,
-		"traceJaeger":            true,
+		"jaeger":                 true,
 		"tracerouter":            true,
 		"traceZipkin":            true,
 		"traefik":                true,
@@ -151,5 +152,6 @@ var (
 		"zabbix":                 true,
 		"zaplog":                 true,
 		"consul":                 true,
+		"prom_remote_write":      true,
 	}
 )

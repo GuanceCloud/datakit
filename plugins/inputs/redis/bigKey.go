@@ -31,6 +31,11 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Desc:     "Key length",
 			},
+			/*"key": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type: inputs.String,
+				Desc: "monitor key",
+			},*/
 		},
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
@@ -67,7 +72,6 @@ func (i *Input) getKeys() ([]string, error) {
 			}
 		}
 	}
-
 	return res, nil
 }
 

@@ -1,0 +1,7 @@
+
+#[[inputs.aliyunddos]]
+#  accessKeyId = ''
+#  accessKeySecret = ''
+#  region = "cn-hangzhou"
+#  ## 采集的频度，默认值(24h)
+#  interval = "24h"

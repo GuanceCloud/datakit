@@ -1,0 +1,5 @@
+
+[[inputs.system]]
+	## no sample need here
+	[inputs.system.tags]
+		# tag1 = "a"

@@ -1,0 +1,16 @@
+[[inputs.dialtesting]]
+	# require，默认值为default
+	region = "default"
+
+	#  中心任务存储的服务地址，或本地json 文件全路径
+	server = "files:///your/dir/json-file-name"
+
+	# 若server配为中心任务服务地址时，需要配置相应的ak或者sk
+	ak = ""
+	sk = ""
+
+	pull_interval = "1m"
+
+	[inputs.dialtesting.tags]
+	# 各种可能的 tag
+	

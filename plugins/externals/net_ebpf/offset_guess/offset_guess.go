@@ -73,6 +73,8 @@ func GuessTCP(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, err
 
 	rtt_ok := 0
 	rttvar_ok := 0
+	inet_sport_ok := 0
+	sk_dport_ok := 0
 	for {
 		conn, err := net.Dial("tcp4", serverAddr)
 		if err != nil {
@@ -115,6 +117,18 @@ func GuessTCP(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, err
 			continue
 		}
 
+		if try_guess(statusAct, &conninfo, GUESS_INET_SPORT) {
+			inet_sport_ok++
+		} else {
+			inet_sport_ok = 0
+		}
+
+		if try_guess(statusAct, &conninfo, GUESS_SK_DPORT) {
+			sk_dport_ok++
+		} else {
+			sk_dport_ok = 0
+		}
+
 		if try_guess(statusAct, &conninfo, GUESS_TCP_SK_SRTT_US) {
 			rtt_ok++
 		} else {
@@ -127,12 +141,12 @@ func GuessTCP(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, err
 			rttvar_ok = 0
 		}
 
-		if rtt_ok > MINSUCCESS && rttvar_ok > MINSUCCESS {
+		if rtt_ok > MINSUCCESS && rttvar_ok > MINSUCCESS && inet_sport_ok > MINSUCCESS && sk_dport_ok > MINSUCCESS {
 			newStatus = newGuessStatus()
 			copyOffset(statusAct, &newStatus)
 			return &newStatus, nil
 		}
-		if statusAct.offset_tcp_sk_srtt_us > MAXOFFSET || statusAct.offset_tcp_sk_mdev_us > MAXOFFSET {
+		if statusAct.offset_tcp_sk_srtt_us > MAXOFFSET || statusAct.offset_tcp_sk_mdev_us > MAXOFFSET || statusAct.offset_inet_sport > MAXOFFSET || statusAct.offset_sk_dport > MAXOFFSET {
 			break
 		}
 		newStatus = newGuessStatus()
@@ -160,6 +174,18 @@ func NewConstEditor(offsetGuess *OffsetGuessC) []manager.ConstantEditor {
 		{
 			Name:  "offset_tcp_sk_mdev_us",
 			Value: uint64(offsetGuess.offset_tcp_sk_mdev_us),
+		},
+		{
+			Name:  "offset_inet_sport",
+			Value: uint64(offsetGuess.offset_inet_sport),
+		},
+		{
+			Name:  "offset_sk_dport",
+			Value: uint64(offsetGuess.offset_sk_dport),
+		},
+		{
+			Name:  "offset_sk_num",
+			Value: uint64(offsetGuess.offset_sk_num),
 		},
 	}
 }

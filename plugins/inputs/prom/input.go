@@ -21,6 +21,11 @@ const (
 	catalog   = "prom"
 )
 
+// defaultMaxFileSize is the default maximum response body size, in bytes.
+// If the response body is over this size, we will simply discard its content instead of writing it to disk.
+// 32 MB
+const defaultMaxFileSize int64 = 32 * 1024 * 1024
+
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
@@ -33,6 +38,8 @@ type Input struct {
 	MeasurementPrefix string      `toml:"measurement_prefix"`
 	MeasurementName   string      `toml:"measurement_name"`
 	Measurements      []prom.Rule `json:"measurements"`
+	Output            string      `toml:"output"`
+	maxFileSize       int64       `toml:"max_file_size"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
@@ -99,6 +106,16 @@ func (i *Input) Run() {
 			}
 			l.Debugf("collect URL %s", i.pm.Option().URL)
 
+			// If Output is configured, data is written to local file specified by Output.
+			// Data will no more be written to datakit io.
+			if i.Output != "" {
+				err := i.pm.WriteFile()
+				if err != nil {
+					l.Debugf(err.Error())
+				}
+				continue
+			}
+
 			start := time.Now()
 			pts, err := i.pm.Collect()
 			if err != nil {
@@ -160,6 +177,8 @@ func (i *Input) Init() error {
 		KeyFile:           i.KeyFile,
 		Tags:              i.Tags,
 		TagsIgnore:        i.TagsIgnore,
+		Output:            i.Output,
+		MaxFileSize:       i.maxFileSize,
 	}
 
 	pm, err := prom.NewProm(opt)
@@ -176,6 +195,13 @@ func (i *Input) Collect() ([]*io.Point, error) {
 		return nil, nil
 	}
 	return i.pm.Collect()
+}
+
+func (i *Input) CollectFromFile() ([]*io.Point, error) {
+	if i.pm == nil {
+		return nil, nil
+	}
+	return i.pm.CollectFromFile()
 }
 
 func (i *Input) Pause() error {
@@ -202,8 +228,9 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewProm() *Input {
 	return &Input{
-		stopCh:  make(chan interface{}, 1),
-		chPause: make(chan bool, maxPauseCh),
+		stopCh:      make(chan interface{}, 1),
+		chPause:     make(chan bool, maxPauseCh),
+		maxFileSize: defaultMaxFileSize,
 	}
 }
 

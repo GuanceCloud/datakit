@@ -25,6 +25,11 @@ func (m *slowlogMeasurement) LineProto() (*io.Point, error) {
 func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_slowlog",
+		Tags: map[string]interface{}{
+			"server": &inputs.TagInfo{
+				Desc: "server",
+			},
+		},
 		Fields: map[string]interface{}{
 			"command": &inputs.FieldInfo{
 				DataType: inputs.String,

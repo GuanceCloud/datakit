@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
 # DaemonSet 安装 DataKit 
@@ -61,17 +61,21 @@ kubectl get pod -n datakit
 
 | 环境变量名称                 | 默认值                     | 是否必须 | 说明                                                                                                               |
 | ---------                    | ---                        | ------   | ----                                                                                                               |
-| `ENV_DATAWAY`                | 无                         | 是       | 可配置多个 dataway，以英文逗号分割，如 `https://openway.guance.com?token=xxx,https://openway.guance.com?token=yyy` |
-| `ENV_GLOBAL_TAGS`            | 无                         | 否       | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                                                     |
-| `ENV_LOG_LEVEL`              | `info`                     | 否       | 可选值 `info/debug`                                                                                                |
-| `ENV_LOG`                    | `/var/log/datakit/log`     | 否       | 如果改成 `stdout`，日志将不写文件，而是终端输出                                                                    |
-| `ENV_GIN_LOG`                | `/var/log/datakit/gin.log` | 否       | 如果改成 `stdout`，日志将不写文件，而是终端输出                                                                    |
-| `ENV_HTTP_LISTEN`            | `localhost:9529`           | 否       | 可修改改地址，使得外部可以调用 [DataKit 接口](apis)                                                                |
-| `ENV_RUM_ORIGIN_IP_HEADER`   | `X-Forwarded-For`          | 否       | RUM 专用                                                                                                           |
-| `ENV_DISABLE_404PAGE`        | 无                         | 否       | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）                                                               |
-| `ENV_DEFAULT_ENABLED_INPUTS` | 无                         | 否       | 默认开启采集器列表，以英文逗号分割，如 `cpu,mem,disk`                                                              |
-| `ENV_ENABLE_ELECTION`        | 默认不开启                 | 否       | 开启[选举](election)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                   |
-| `ENV_NAMESPACE`              | 无                         | 否       | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`                  |
+| ENV_DATAWAY                | 无                         | 是       | 可配置多个 dataway，以英文逗号分割，如 `https://openway.guance.com?token=xxx,https://openway.guance.com?token=yyy` |
+| ENV_GLOBAL_TAGS            | 无                         | 否       | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                                                     |
+| ENV_LOG_LEVEL              | `info`                     | 否       | 可选值 `info/debug`                                                                                                |
+| ENV_LOG                    | `/var/log/datakit/log`     | 否       | 如果改成 `stdout`，日志将不写文件，而是终端输出                                                                    |
+| ENV_GIN_LOG                | `/var/log/datakit/gin.log` | 否       | 如果改成 `stdout`，日志将不写文件，而是终端输出                                                                    |
+| ENV_HTTP_LISTEN            | `localhost:9529`           | 否       | 可修改改地址，使得外部可以调用 [DataKit 接口](apis)                                                                |
+| ENV_RUM_ORIGIN_IP_HEADER   | `X-Forwarded-For`          | 否       | RUM 专用                                                                                                           |
+| ENV_DISABLE_404PAGE        | 无                         | 否       | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）                                                               |
+| ENV_DEFAULT_ENABLED_INPUTS | 无                         | 否       | 默认开启采集器列表，以英文逗号分割，如 `cpu,mem,disk`。                                                              |
+| ENV_ENABLE_ELECTION        | 默认不开启                 | 否       | 开启[选举](election)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                   |
+| ENV_NAMESPACE              | 无                         | 否       | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`                  |
+| ENV_HOSTNAME              | 无                         | 否       | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`                  |
+
+
+> 注意，`ENV_ENABLE_INPUTS` 已被弃用（但仍有效），建议使用 `ENV_DEFAULT_ENABLED_INPUTS`。如果俩个环境变量同时指定，则**只有后者生效**。
 
 ### yaml 配置
 
@@ -101,11 +105,9 @@ rules:
   - nodes/proxy
   - namespaces
   - pods
+  - events
   - services
   - endpoints
-  - persistentvolumes
-  - persistentvolumeclaims
-  - ingresses
   verbs:
   - get
   - list
@@ -117,14 +119,6 @@ rules:
   - daemonsets
   - statefulsets
   - replicasets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - extensions
-  resources:
-  - ingresses
   verbs:
   - get
   - list
@@ -148,6 +142,21 @@ kind: ServiceAccount
 metadata:
   name: datakit
   namespace: datakit
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: datakit-service
+  namespace: datakit
+spec:
+  selector:
+    app: daemonset-datakit
+  ports:
+    - protocol: TCP
+      port: 9529
+      targetPort: 9529
 
 ---
 
@@ -201,7 +210,7 @@ spec:
           value: https://openway.guance.com?token=<your-token> # 此处填上 dataway 真实地址
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
-        - name: ENV_ENABLE_INPUTS
+        - name: ENV_DEFAULT_ENABLED_INPUTS
           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
         - name: ENV_ENABLE_ELECTION
           value: enable
@@ -234,7 +243,6 @@ spec:
           name: rootfs
         workingDir: /usr/local/datakit
       hostIPC: true
-      hostNetwork: true
       hostPID: true
       restartPolicy: Always
       serviceAccount: datakit
@@ -285,6 +293,6 @@ spec:
 如需开启更多其它采集器，如开启 ddtrace，直接在如下配置中追加即可。当然也可以将某些采集器从这个列表中删掉。
 
 ```yaml
-        - name: ENV_ENABLE_INPUTS
+        - name: ENV_DEFAULT_ENABLED_INPUTS
           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
 ```
