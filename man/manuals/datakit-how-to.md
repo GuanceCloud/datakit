@@ -422,6 +422,8 @@ datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/
 No data extracted from pipeline
 ```
 
+> 注意：由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 field），不宜有日志采集器以及 Datakit 全局配置的 tag 字段，如 `source`、`service`、`host` 等字段，不然行协议构建会报错：`same key xxx in tag and field`。
+
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
