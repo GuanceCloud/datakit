@@ -38,13 +38,19 @@ var (
 			runtime.GOOS,
 			runtime.GOARCH,
 			DataKitVersion))
+	l = logger.DefaultSLogger("installer")
+)
+
+// Installer flags.
+var (
 	flagHostName string
 	flagDKUpgrade,
 	flagInstallOnly,
-	flagOffline, // deprecated
-	flagDownloadOnly, // deprecated
+	flagOffline,
+	flagDownloadOnly,
 	flagInfo,
 	flagOTA bool
+
 	flagDataway,
 	flagDCAEnable,
 	flagEnableInputs,
@@ -56,10 +62,9 @@ var (
 	flagInstallLog,
 	flagDCAListen,
 	flagDCAWhiteList,
+	flagSrc,
 	flagCloudProvider string
 	flagDatakitHTTPPort int
-
-	l = logger.DefaultSLogger("installer")
 )
 
 const (
@@ -73,18 +78,11 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagDCAEnable, "dca-enable", "", "enable DCA")
 	flag.StringVar(&flagDCAListen, "dca-listen", "0.0.0.0:9531", "DCA listen address and port")
 	flag.StringVar(&flagDCAWhiteList, "dca-white-list", "", "DCA white list")
-	flag.StringVar(&flagDataway,
-		"dataway",
-		"",
-		"address of dataway ( http://IP:Port?token= xxx) , port default 9528")
+	flag.StringVar(&flagDataway, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&flagEnableInputs,
-		"enable-inputs",
-		"",
-		"default enable inputs( comma splited, example:cpu,mem,disk)")
+		"enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
 	flag.StringVar(&flagDatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
-	flag.StringVar(&flagGlobalTags,
-		"global-tags",
-		"",
+	flag.StringVar(&flagGlobalTags, "global-tags", "",
 		"enable global tags, example: host= __datakit_hostname,ip= __datakit_ip")
 	flag.StringVar(&flagProxy, "proxy", "", "http proxy http://ip:port for datakit")
 	flag.StringVar(&flagDatakitHTTPListen, "listen", "localhost", "datakit HTTP listen")
@@ -92,16 +90,19 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
 	flag.StringVar(&flagCloudProvider,
-		"cloud-provider",
-		"",
-		"specify cloud provider(accept aliyun/tencent/aws)")
+		"cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
+	flag.StringVar(&flagSrc, "srcs",
+		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
+			runtime.GOOS, runtime.GOARCH, DataKitVersion),
+		`local path of install files`)
+
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
-	flag.BoolVar(&flagDownloadOnly, "download-only", false, "-download-only option removed")
+	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
 }
 
-func downloadFiles() error {
+func downloadFiles(to string) error {
 	dl.CurDownloading = "datakit"
 
 	cliopt := &ihttp.Options{
@@ -119,14 +120,14 @@ func downloadFiles() error {
 
 	cli := ihttp.Cli(cliopt)
 
-	if err := dl.Download(cli, datakitURL, datakit.InstallDir, true, false); err != nil {
+	if err := dl.Download(cli, datakitURL, to, true, flagDownloadOnly); err != nil {
 		return err
 	}
 
 	fmt.Printf("\n")
 
 	dl.CurDownloading = "data"
-	if err := dl.Download(cli, dataURL, datakit.InstallDir, true, false); err != nil {
+	if err := dl.Download(cli, dataURL, to, true, flagDownloadOnly); err != nil {
 		return err
 	}
 
@@ -134,23 +135,10 @@ func downloadFiles() error {
 	return nil
 }
 
-//nolint:funlen,gocyclo
-func main() {
-	flag.Parse()
-
+func applyFlags() {
 	var err error
 
-	if flagInfo {
-		fmt.Printf(`
-Version        : %s
-Build At       : %s
-Golang Version : %s
-BaseUrl        : %s
-DataKit        : %s
-`, DataKitVersion, git.BuildAt, git.Golang, datakitURL, dataURL)
-		os.Exit(0)
-	}
-
+	// set logging
 	if flagInstallLog == "" {
 		if err = logger.InitRoot(
 			&logger.Option{
@@ -173,6 +161,59 @@ DataKit        : %s
 
 	l = logger.SLogger("installer")
 
+	if flagDownloadOnly {
+		if err = downloadFiles(""); err != nil { // download 过程直接覆盖已有安装
+			l.Fatalf("download failed: %s", err.Error())
+		}
+		os.Exit(0)
+	}
+
+	if flagSrc != "" && flagOffline {
+		for _, f := range strings.Split(flagSrc, ",") {
+			fd, err := os.Open(filepath.Clean(f))
+			if err != nil {
+				l.Fatalf("Open: %s", err)
+			}
+
+			if err := dl.Extract(fd, datakit.InstallDir); err != nil {
+				l.Fatalf("Extract: %s", err)
+			} else if err := fd.Close(); err != nil {
+				l.Warnf("Close: %s, ignored", err)
+			}
+		}
+
+		// NOTE: continue to install/upgrade
+	}
+
+	if flagProxy != "" {
+		if !strings.HasPrefix(flagProxy, "http") {
+			flagProxy = "http://" + flagProxy
+		}
+
+		if _, err = url.Parse(flagProxy); err != nil {
+			l.Warnf("bad proxy config expect http://ip:port given %s", flagProxy)
+		} else {
+			l.Infof("set proxy to %s", flagProxy)
+		}
+	}
+}
+
+func main() {
+	flag.Parse()
+
+	if flagInfo {
+		fmt.Printf(`
+Version        : %s
+Build At       : %s
+Golang Version : %s
+BaseUrl        : %s
+DataKit        : %s
+`, DataKitVersion, git.BuildAt, git.Golang, datakitURL, dataURL)
+		os.Exit(0)
+	}
+
+	var err error
+
 	dkservice.ServiceExecutable = filepath.Join(datakit.InstallDir, datakitBin)
 	if runtime.GOOS == datakit.OSWindows {
 		dkservice.ServiceExecutable += ".exe"
@@ -189,23 +230,15 @@ DataKit        : %s
 		l.Warnf("stop service: %s, ignored", err.Error())
 	}
 
-	if flagProxy != "" {
-		if !strings.HasPrefix(flagProxy, "http") {
-			flagProxy = "http://" + flagProxy
-		}
-
-		if _, err = url.Parse(flagProxy); err != nil {
-			l.Warnf("bad proxy config expect http://ip:port given %s", flagProxy)
-		} else {
-			l.Infof("set proxy to %s", flagProxy)
-		}
-	}
+	applyFlags()
 
 	// 迁移老版本 datakit 数据目录
 	mvOldDatakit(svc)
 
-	if err = downloadFiles(); err != nil { // download 过程直接覆盖已有安装
-		l.Fatalf("download failed: %s", err.Error())
+	if !flagOffline {
+		if err = downloadFiles(datakit.InstallDir); err != nil { // download 过程直接覆盖已有安装
+			l.Fatalf("download failed: %s", err.Error())
+		}
 	}
 
 	datakit.InitDirs()
