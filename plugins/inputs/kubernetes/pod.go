@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -106,8 +107,6 @@ func (p *pod) Gather() {
 	}
 }
 
-const annotationExportKey = "datakit/prom.instances"
-
 func (p *pod) Export() {
 	if p.discovery == nil {
 		p.discovery = NewDiscovery()
@@ -122,16 +121,19 @@ func (p *pod) Export() {
 	p.run(list)
 }
 
+const (
+	annotationPromExport  = "datakit/prom.instances"
+	annotationPromIPIndex = "datakit/prom.instances.ip_index"
+)
+
 func (p *pod) run(list *corev1.PodList) {
-	for _, obj := range list.Items {
-		config, ok := obj.Annotations[annotationExportKey]
+	for idx, obj := range list.Items {
+		config, ok := obj.Annotations[annotationPromExport]
 		if !ok {
 			continue
 		}
-		config = strings.ReplaceAll(config, "$IP", obj.Status.PodIP)
-		config = strings.ReplaceAll(config, "$NAMESPACE", obj.Namespace)
-		config = strings.ReplaceAll(config, "$PODNAME", obj.Name)
 
+		config = complatePromConfig(config, &list.Items[idx])
 		if err := p.discovery.TryRun("prom", config); err != nil {
 			l.Warn(err)
 		}
@@ -170,4 +172,31 @@ func (*pod) Info() *inputs.MeasurementInfo {
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
+}
+
+func complatePromConfig(config string, podObj *corev1.Pod) string {
+	podIP := podObj.Status.PodIP
+
+	func() {
+		indexStr, ok := podObj.Annotations[annotationPromIPIndex]
+		if !ok {
+			return
+		}
+		idx, err := strconv.Atoi(indexStr)
+		if err != nil {
+			l.Warnf("annotation prom.ip_index parse err: %s", err)
+			return
+		}
+		if !(0 <= idx && idx < len(podObj.Status.PodIPs)) {
+			l.Warnf("annotation prom.ip_index %d outrange, len(PodIPs) %d", idx, len(podObj.Status.PodIPs))
+			return
+		}
+		podIP = podObj.Status.PodIPs[idx].IP
+	}()
+
+	config = strings.ReplaceAll(config, "$IP", podIP)
+	config = strings.ReplaceAll(config, "$NAMESPACE", podObj.Namespace)
+	config = strings.ReplaceAll(config, "$PODNAME", podObj.Name)
+
+	return config
 }
