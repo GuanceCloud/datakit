@@ -55,13 +55,32 @@ DQL 覆盖面较为全面，相比于 PromQL 只能用于查找 Prometheuse 中�
 - 安全巡检数据
 - ...
 
-随着业务功能不断拓展，DQL 将封装更多不同的查询引擎（目前支持 InfluxDB 以及 ElasticSearch 俩种）。其基本语法结构如下：
+随着业务功能不断拓展，DQL 将封装更多不同的查询引擎（目前支持 InfluxDB 以及 ElasticSearch 两种）。其基本语法结构如下：
+
+```python
+namespace::measurement:(field-or-tag-list) { where-conditions } [time-range] BY-clause ORDER-BY-clause
+```
+
+如：
 
 ```
-metric::cpu:(usage_system, usage_user) { host = 'ubuntu-testing' } [2d:1d:1h]
+metric::cpu:(usage_system, usage_user) { usage_idle > 0.9 } [2d:1d:1h] BY hostname
 ```
 
 此处，`metric` 指定了要查询时序数据（可简单理解成 MySQL 中的一个 DB），而 `cpu` 就是其中的一种指标集（类似于 MySQL 中的 Table），并且指定查找其中的两个字段 `usage_system` 和 `usage_user`；接着，`{...}` 中的表示过滤条件，最后 `[...]` 表示查询的时间范围：前天到昨天一段时间内，以 1h 为聚合间隔。
+
+更多示例：
+
+```
+# 查询 K8s 中的 pod 对象（object）
+object::kubelet_pod:(name, age) { cpu_usage > 30.0 } [10m] BY namespace
+
+# 查找名为 my_service 应用的日志（message 字段）
+logging::my_service:(message) [1d]
+
+# 查看应用性能追踪（T 即 tracing）中，持续时间 > 1000us 的 span 数据，并且按照 operation 来分组
+T::my_service { duration > 1000 } [10m] BY operation
+```
 
 ## 横向对比
 
@@ -88,6 +107,19 @@ metric::cpu:(usage_system, usage_user) { host = 'ubuntu-testing' } [2d:1d:1h]
 # DQL
 L::dev {cluster='ops-tools1', job='query=frontend', message != match("out of order"), (duraton > 30s OR stataus_code != 201)}
 
-# PromQL
+# PromQL（PromQL 不支持普通意义上的 OR 过滤）
 http_requests_total{cluster='ops-tools1', job!='query=frontend', duration > 30s}
+```
+
+### 带聚合的查询以及过滤
+
+```python
+# LogQL
+sum by (org_id) ({source="ops-tools",container="app-dev"} |= "metrics.go" | logfmt | unwrap bytes_processed [1m])
+
+# PromQL
+histogram_quantile(0.9, sum by (job, le) (rate(http_request_duration_seconds_bucket[10m])))
+
+# DQL（注意，ops-tools 两边需加上 ``，不然被解析成减法表达式）
+L::`ops-tools`:(bytes_processed) {filename = "metrics.go", container="app-dev"} [2m] BY sum(orig_id)
 ```
