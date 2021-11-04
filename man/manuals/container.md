@@ -42,21 +42,65 @@
   # ...
 ```
 
+## 指标
+
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}`
+{{if eq $m.Type "metric"}}
 
+### `{{$m.Name}}`
 {{$m.Desc}}
 
 -  标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
-{{ end }} 
+{{ end }}
+
+## 对象
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "object"}}
+
+### `{{$m.Name}}`
+{{$m.Desc}}
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+{{$m.Desc}}
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
 
 ### 标签定制和删除
 
@@ -99,7 +143,7 @@
 
 如果一个容器的 `container name` 和 `deployment` 分别匹配两个 log，会优先使用 `deployment` 所匹配的 log。例如容器的 `container name` 为 `containerAAA`，`deployment` 为 `deploymentAAA`，且配置如下：
 
-```
+```toml
 [[inputs.container.log]]
   match_by = "container-name"
   match = ['''container*''']

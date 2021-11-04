@@ -69,11 +69,18 @@ func ipInfo(ip string) (map[string]string, error) {
 }
 
 func setCmdRootLog(rl string) {
-	if err := logger.InitRoot(&logger.Option{
+	lopt := &logger.Option{
 		Path:  rl,
 		Flags: logger.OPT_DEFAULT,
 		Level: logger.DEBUG,
-	}); err != nil {
+	}
+
+	if rl == "stdout" {
+		lopt.Path = ""
+		lopt.Flags = logger.OPT_DEFAULT | logger.OPT_STDOUT
+	}
+
+	if err := logger.InitRoot(lopt); err != nil {
 		l.Error(err)
 		return
 	}
@@ -82,7 +89,7 @@ func setCmdRootLog(rl string) {
 	config.SetLog()
 
 	l = logger.SLogger("cmds")
-	l.Infof("root log path set to %s", rl)
+	l.Infof("root log set to %s", rl)
 }
 
 func infof(fmtstr string, args ...interface{}) {
