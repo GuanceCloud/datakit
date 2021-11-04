@@ -46,6 +46,8 @@ type Input struct {
 	InsecureSkipVerify bool              `toml:"insecure_skip_verify"`
 	Tags               map[string]string `toml:"tags"`
 
+	EndpointDeprecated []string `toml:"endpoints,omitempty"`
+
 	lookupdEndpoint  string
 	nsqdEndpointList map[string]interface{}
 

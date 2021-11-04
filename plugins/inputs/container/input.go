@@ -45,8 +45,9 @@ type Input struct {
 
 	clients []collector
 
-	DepercatedLog            DepercatedLog `toml:"logfilter"`
-	DeprecatedPodNameRewrite []string      `toml:"pod_name_write"`
+	LogDepercated            DepercatedLog `toml:"logfilter,omitempty"`
+	PodNameRewriteDeprecated []string      `toml:"pod_name_write,omitempty"`
+	PodnameRewriteDeprecated []string      `toml:"pod_name_rewrite,omitempty"`
 }
 
 func newInput() *Input {

@@ -26,6 +26,8 @@ var _ inputs.ElectionInput = (*Input)(nil)
 var l = logger.DefaultSLogger(inputName)
 
 type Input struct {
+	URLsDeprecated []string `toml:"urls,omitempty"`
+
 	URL      string            `toml:"url"`
 	Username string            `toml:"username,omitempty"`
 	Password string            `toml:"password,omitempty"`

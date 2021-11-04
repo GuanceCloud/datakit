@@ -34,7 +34,7 @@ func SearchDir(dir string, suffix string) []string {
 			return nil
 		}
 
-		if strings.HasSuffix(f.Name(), suffix) {
+		if suffix == "" || strings.HasSuffix(f.Name(), suffix) {
 			fps = append(fps, fp)
 		}
 		return nil

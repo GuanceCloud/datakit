@@ -36,7 +36,10 @@ type Input struct {
 
 	InsecureSkipVerify bool `toml:"insecure_skip_verify"`
 
-	Tags         map[string]string `toml:"tags"`
+	Tags map[string]string `toml:"tags"`
+
+	KubeAPIServerURLDeprecated string `toml:"kube_apiserver_url,omitempty"`
+
 	client       *client
 	resourceList []resource
 	exporterList []exporter

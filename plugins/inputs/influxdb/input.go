@@ -32,8 +32,9 @@ const (
 var l = logger.DefaultSLogger("influxdb")
 
 type Input struct {
-	URL string `toml:"url"`
+	URLsDeprecated []string `toml:"urls,omitempty"`
 
+	URL      string `toml:"url"`
 	Username string `toml:"username"`
 	Password string `toml:"password"`
 

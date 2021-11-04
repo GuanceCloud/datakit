@@ -67,6 +67,7 @@ var (
 
 	FlagShowCloudInfo    string
 	FlagIPInfo           string
+	FlagConfigDir        string
 	FlagMonitor          bool
 	FlagCheckConfig      bool
 	FlagCheckSample      bool
@@ -120,9 +121,16 @@ func RunCmds() {
 	}
 
 	if FlagCheckConfig {
-		tryLoadMainCfg()
+		confdir := FlagConfigDir
+		if confdir == "" {
+			tryLoadMainCfg()
+			confdir = datakit.ConfdDir
+		}
+
 		setCmdRootLog(FlagCmdLogPath)
-		checkConfig()
+		if err := checkConfig(confdir, ""); err != nil {
+			os.Exit(-1)
+		}
 		os.Exit(0)
 	}
 

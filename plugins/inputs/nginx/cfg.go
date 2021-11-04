@@ -23,6 +23,8 @@ type ngxlog struct {
 }
 
 type Input struct {
+	URLsDeprecated []string `toml:"urls,omitempty"`
+
 	URL             string            `toml:"url"`
 	Interval        datakit.Duration  `toml:"interval"`
 	ResponseTimeout datakit.Duration  `toml:"response_timeout"`

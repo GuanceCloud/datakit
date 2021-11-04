@@ -87,6 +87,7 @@ func init() { //nolint:gochecknoinits
 	}
 
 	flag.BoolVar(&cmds.FlagCheckConfig, "check-config", false, "check inputs configure and main configure")
+	flag.StringVar(&cmds.FlagConfigDir, "config-dir", "", "check configures under specified path")
 	flag.BoolVar(&cmds.FlagCheckSample, "check-sample", false, "check inputs configure samples")
 	flag.BoolVar(&cmds.FlagVVV, "vvv", false, "more verbose info")
 	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")

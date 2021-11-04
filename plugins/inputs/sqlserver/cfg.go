@@ -63,6 +63,9 @@ type Input struct {
 	Tags     map[string]string `toml:"tags"`
 	Log      *sqlserverlog     `toml:"log"`
 
+	QueryVersionDeprecated int      `toml:"query_version,omitempty"`
+	ExcludeQuery           []string `toml:"exclude_query,omitempty"`
+
 	lastErr error
 	tail    *tailer.Tailer
 	start   time.Time

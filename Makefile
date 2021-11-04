@@ -155,6 +155,10 @@ ci_notify:
 		-H 'Content-Type: application/json' \
 		-d '$(NOTIFY_CI)'
 
+test_conf_compatible:
+	./dist/datakit-linux-amd64/datakit --check-config --config-dir samples
+	./dist/datakit-linux-amd64/datakit --check-sample
+
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git

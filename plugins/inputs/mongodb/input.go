@@ -121,6 +121,9 @@ type Input struct {
 	GatherTopStat         bool             `toml:"gather_top_stat"`
 
 	TLSConf *dknet.TLSClientConfig `toml:"tlsconf"` // deprecated
+
+	EnableTLSDeprecated bool `toml:"enable_tls,omitempty"`
+
 	dknet.TLSClientConfig
 
 	Log  *mongodblog       `toml:"log"`

@@ -36,6 +36,8 @@ type redislog struct {
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
 	MultilineMatch    string   `toml:"multiline_match"`
+
+	MatchDeprecated string `toml:"match,omitempty"`
 }
 
 type Input struct {
@@ -57,6 +59,9 @@ type Input struct {
 	Keys              []string          `toml:"keys"`
 	DBS               []int             `toml:"dbs"`
 	Log               *redislog         `toml:"log"`
+
+	MatchDeprecated   string   `toml:"match,omitempty"`
+	ServersDeprecated []string `toml:"servers,omitempty"`
 
 	timeoutDuration time.Duration
 

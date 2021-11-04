@@ -34,6 +34,9 @@ func (pl *proxyLogger) Printf(format string, v ...interface{}) {
 type Input struct {
 	Bind string `toml:"bind"`
 	Port int    `toml:"port"`
+
+	PathDeprecated   string `toml:"path,omitempty"`
+	WSBindDeprecated string `toml:"ws_bind,omitempty"`
 }
 
 func (*Input) Catalog() string {
