@@ -115,6 +115,8 @@ type Input struct {
 	Tags             map[string]string `toml:"tags"`
 	Log              *postgresqllog    `toml:"log"`
 
+	MaxLifetimeDeprecated string `toml:"max_lifetime,omitempty"`
+
 	service      Service
 	tail         *tailer.Tailer
 	duration     time.Duration

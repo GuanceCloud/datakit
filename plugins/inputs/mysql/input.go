@@ -50,6 +50,8 @@ type mysqllog struct {
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
 	MultilineMatch    string   `toml:"multiline_match"`
+
+	MatchDeprecated string `toml:"match,omitempty"`
 }
 
 type Input struct {
@@ -77,6 +79,8 @@ type Input struct {
 	Addr   string         `toml:"-"`
 	InnoDB bool           `toml:"innodb"`
 	Log    *mysqllog      `toml:"log"`
+
+	MatchDeprecated string `toml:"match,omitempty"`
 
 	start time.Time
 	db    *sql.DB

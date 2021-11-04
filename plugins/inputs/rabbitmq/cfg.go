@@ -77,6 +77,9 @@ type Input struct {
 	Log      *rabbitmqlog      `toml:"log"`
 	Tags     map[string]string `toml:"tags"`
 
+	QueueNameIncludeDeprecated []string `toml:"queue_name_include,omitempty"`
+	QueueNameExcludeDeprecated []string `toml:"queue_name_exclude,omitempty"`
+
 	tls.ClientConfig
 
 	// HTTP client

@@ -56,7 +56,14 @@ drop_origin_data()
 `
 )
 
-type Input struct{}
+type Input struct { // keep compatible with old version's conf
+	TokenDeprecated      string `toml:"token,omitempty"`
+	AddressDeprecated    string `toml:"address,omitempty"`
+	SchemeDeprecated     string `toml:"scheme,omitempty"`
+	UsernameDeprecated   string `toml:"username,omitempty"`
+	PasswordDeprecated   string `toml:"password,omitempty"`
+	DatacenterDeprecated string `toml:"datacenter,omitempty"`
+}
 
 func (i *Input) Catalog() string {
 	return "consul"
