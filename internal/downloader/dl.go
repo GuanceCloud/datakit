@@ -43,8 +43,9 @@ func (wc *writeCounter) PrintProgress() {
 	}
 }
 
+// Extract unzip files from @r to directory @to.
 //nolint:cyclop
-func doExtract(r io.Reader, to string) error {
+func Extract(r io.Reader, to string) error {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		l.Error(err)
@@ -130,14 +131,17 @@ func Download(cli *http.Client, from, to string, progress, downloadOnly bool) er
 	}
 
 	if downloadOnly {
+		if to == "" {
+			to = filepath.Base(from)
+		}
 		return doDownload(io.TeeReader(resp.Body, progbar), to)
 	}
 
 	if !progress {
-		return doExtract(resp.Body, to)
+		return Extract(resp.Body, to)
 	}
 
-	return doExtract(io.TeeReader(resp.Body, progbar), to)
+	return Extract(io.TeeReader(resp.Body, progbar), to)
 }
 
 func doDownload(r io.Reader, to string) error {
