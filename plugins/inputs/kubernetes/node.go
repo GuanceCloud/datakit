@@ -41,6 +41,9 @@ func (n *node) Gather() {
 		if obj.Namespace != "" {
 			tags["namespace"] = obj.Namespace
 		}
+		if ip := datakit.GetEnv("HOST_IP"); ip != "" {
+			tags["node_ip"] = ip
+		}
 		for k, v := range n.tags {
 			tags[k] = v
 		}
@@ -85,6 +88,7 @@ func (*node) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("UID"),
 			"node_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
+			"node_ip":      inputs.NewTagInfo("Node IP"),
 			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
 			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"status":       inputs.NewTagInfo("NodePhase is the recently observed lifecycle phase of the node. (Pending/Running/Terminated)"),
