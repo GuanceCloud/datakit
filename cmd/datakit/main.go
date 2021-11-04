@@ -11,6 +11,7 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
@@ -241,6 +242,8 @@ func tryLoadConfig() {
 	}
 
 	l = logger.SLogger("main")
+
+	l.Infof("datakit run ID: %s", cliutils.XID("dkrun_"))
 }
 
 func doRun() error {
