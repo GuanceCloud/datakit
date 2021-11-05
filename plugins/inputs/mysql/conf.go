@@ -27,6 +27,9 @@ const (
   ## user
   users = []
 
+  ## 开启数据库性能指标采集
+  # dbm = false
+
   # [inputs.mysql.log]
   # #required, glob logfiles
   # files = ["/var/log/mysql/*.log"]
@@ -50,6 +53,14 @@ const (
   #   metric = "xxxx"
   #   tagKeys = ["column1", "column1"]
   #   fieldKeys = ["column3", "column1"]
+  
+  ## 监控指标配置
+  [inputs.mysql.dbm_metric]
+    enabled = true
+  
+  ## 监控采样配置
+  [inputs.mysql.dbm_sample]
+    enabled = true  
 
   [inputs.mysql.tags]
     # some_tag = "some_value"
