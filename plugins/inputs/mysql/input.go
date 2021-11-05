@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -21,8 +22,9 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	maxInterval = 15 * time.Minute
-	minInterval = 10 * time.Second
+	maxInterval   = 15 * time.Minute
+	minInterval   = 10 * time.Second
+	dbmMetricName = "database_performance"
 )
 
 var (
@@ -55,13 +57,16 @@ type mysqllog struct {
 }
 
 type Input struct {
-	Host   string   `toml:"host"`
-	Port   int      `toml:"port"`
-	User   string   `toml:"user"`
-	Pass   string   `toml:"pass"`
-	Sock   string   `toml:"sock"`
-	Tables []string `toml:"tables"`
-	Users  []string `toml:"users"`
+	Host      string    `toml:"host"`
+	Port      int       `toml:"port"`
+	User      string    `toml:"user"`
+	Pass      string    `toml:"pass"`
+	Sock      string    `toml:"sock"`
+	Tables    []string  `toml:"tables"`
+	Users     []string  `toml:"users"`
+	Dbm       bool      `toml:"dbm"`
+	DbmMetric dbmMetric `toml:"dbm_metric"`
+	DbmSample dbmSample `toml:"dbm_sample"`
 
 	Charset string `toml:"charset"`
 
@@ -92,6 +97,9 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	dbmCache       map[string]dbmRow
+	dbmSampleCache dbmSampleCache
 }
 
 func (i *Input) getDsnString() string {
@@ -160,7 +168,15 @@ func (i *Input) initCfg() error {
 	}
 
 	i.globalTag()
+	if i.Dbm {
+		i.initDbm()
+	}
 	return nil
+}
+
+func (i *Input) initDbm() {
+	i.dbmSampleCache.explainCache.Size = 1000 // max size
+	i.dbmSampleCache.explainCache.TTL = 60    // 60 second to live
 }
 
 func (i *Input) globalTag() {
@@ -194,6 +210,50 @@ func (i *Input) Collect() {
 				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
 				l.Error(err)
 			}
+		}
+	}
+
+	if i.Dbm && (i.DbmMetric.Enabled || i.DbmSample.Enabled) {
+		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql_dbm")})
+		if i.DbmMetric.Enabled {
+			g.Go(func(ctx context.Context) error {
+				ms, err := i.collectStatementMetrics()
+				if err != nil {
+					return err
+				}
+				if len(ms) > 0 {
+					if err := inputs.FeedMeasurement(dbmMetricName,
+						datakit.Logging,
+						ms,
+						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+						l.Error(err)
+					}
+				}
+				return nil
+			})
+		}
+		if i.DbmSample.Enabled {
+			g.Go(func(ctx context.Context) error {
+				ms, err := i.collectStatementSamples()
+				if err != nil {
+					return err
+				}
+				if len(ms) > 0 {
+					if err := inputs.FeedMeasurement(dbmMetricName,
+						datakit.Logging,
+						ms,
+						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+						l.Error(err)
+					}
+				}
+				return nil
+			})
+		}
+
+		err := g.Wait()
+		if err != nil {
+			l.Errorf("mysql dmb collect error: %v", err)
+			io.FeedLastError(inputName, err.Error())
 		}
 	}
 }
@@ -264,6 +324,16 @@ func (i *Input) collectSchemaMeasurement() ([]inputs.Measurement, error) {
 	}
 
 	return append(x, y...), nil
+}
+
+// dbm metric.
+func (i *Input) collectStatementMetrics() ([]inputs.Measurement, error) {
+	return i.getDbmMetric()
+}
+
+// dbm sample.
+func (i *Input) collectStatementSamples() ([]inputs.Measurement, error) {
+	return i.getDbmSample()
 }
 
 func (i *Input) RunPipeline() {
@@ -380,6 +450,8 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&innodbMeasurement{},
 		&tbMeasurement{},
 		&userMeasurement{},
+		&dbmStateMeasurement{},
+		&dbmSampleMeasurement{},
 	}
 }
 

@@ -1,7 +1,7 @@
-### 简介
+## 简介
 `Postgresql`采集，参考datadog指标，是基于`sql`查询的方式来获取相关指标。
 
-### 配置
+## 配置
 ```
 [[inputs.postgresql]]
 ## 服务器地址
@@ -29,6 +29,21 @@ interval = "10s"
 
 ```
 
-### 指标集
+## 指标集
 指标集名称为`postgresql`
 指标来源的表有`pg_stat_database`, `pg_stat_bgwriter`
+
+## 数据库性能指标采集
+
+### 前置条件
+
+修改 `postgresql.conf`，配置以下参数：
+
+```
+shared_preload_libraries = 'pg_stat_statements'
+pg_stat_statements.max = 10000
+pg_stat_statements.track = all
+
+track_activity_query_size = 4096
+
+```
