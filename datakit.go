@@ -53,6 +53,7 @@ const (
 	Workspace         = "/v1/workspace"
 	ListDataWay       = "/v1/list/dataway"
 	ObjectLabel       = "/v1/object/labels" // object label
+	LogUpload         = "/v1/log"
 )
 
 var (

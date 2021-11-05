@@ -97,6 +97,8 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
 	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
 	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
+
+	flag.BoolVar(&cmds.FlagUploadLog, "upload-log", false, "upload log")
 }
 
 var (

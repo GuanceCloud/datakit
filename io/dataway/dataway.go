@@ -33,6 +33,7 @@ var (
 		datakit.Workspace,
 		datakit.ListDataWay,
 		datakit.ObjectLabel,
+		datakit.LogUpload,
 	}
 
 	ExtraHeaders      = map[string]string{}

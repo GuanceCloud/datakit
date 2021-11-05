@@ -76,6 +76,8 @@ var (
 	FlagVVV              bool
 	FlagCmdLogPath       string
 	FlagDumpSamples      string
+
+	FlagUploadLog bool
 )
 
 var (
@@ -384,6 +386,17 @@ func RunCmds() {
 		logPath := config.Cfg.Logging.Log
 		setCmdRootLog(logPath)
 		apiRestart()
+		os.Exit(0)
+	}
+
+	if FlagUploadLog {
+		tryLoadMainCfg()
+		fmt.Println("Upload log start")
+		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
+			errorf("[E] upload log failed : %s\n", err.Error())
+			os.Exit(-1)
+		}
+		fmt.Println("Upload successfully!")
 		os.Exit(0)
 	}
 }
