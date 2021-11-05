@@ -13,6 +13,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 const (
 	minInterval = time.Second
 	maxInterval = time.Minute
@@ -207,11 +209,19 @@ func (i *Input) Run() {
 
 // ReadEnv support envs：
 //   ENV_INPUT_DISK_IGNORE_FS : []string
+//   ENV_INPUT_DISK_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
 		list := strings.Split(fsList, ",")
 		l.Debugf("add ignore_fs from ENV: %v", fsList)
 		i.IgnoreFS = append(i.IgnoreFS, list...)
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_DISK_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
+		}
 	}
 }
 
@@ -232,6 +242,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			diskStats: &PSDisk{},
 			Interval:  datakit.Duration{Duration: time.Second * 10},
+			Tags:      make(map[string]string),
 		}
 	})
 }

@@ -12,6 +12,12 @@
 
 DataKit 访问 Kubernetes API 采集各项数据，DataKit 以[daemonset 方式安装和运行](datakit-daemonset-deploy)会自动开启 Kubernetes 采集。
 
+支持以环境变量的方式定制参数
+
+| 环境变量名           | 对应的配置参数项 | 参数示例                                                     |
+| :---                 | ---              | ---                                                          |
+| `ENV_INPUT_K8S_TAGS` | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+
 ## 指标
 
 {{ range $i, $m := .Measurements }}

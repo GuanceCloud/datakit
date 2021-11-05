@@ -16,6 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 const (
 	minInterval = time.Second
 	maxInterval = time.Minute
@@ -274,6 +276,7 @@ func (i *Input) Run() {
 
 // ReadEnv support envs：
 //   ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER : booler
+//   ENV_INPUT_DISKIO_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if skip, ok := envs["ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER"]; ok {
 		b, err := strconv.ParseBool(skip)
@@ -281,6 +284,13 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER to bool: %s, ignore", err)
 		} else {
 			i.SkipSerialNumber = b
+		}
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_DISKIO_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
 		}
 	}
 }
@@ -353,6 +363,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			diskIO:   disk.IOCounters,
 			Interval: datakit.Duration{Duration: time.Second * 10},
+			Tags:     make(map[string]string),
 		}
 	})
 }

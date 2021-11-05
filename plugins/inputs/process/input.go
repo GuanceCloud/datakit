@@ -21,6 +21,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 var (
 	l                 = logger.DefaultSLogger(inputName)
 	minObjectInterval = time.Minute * 5
@@ -111,14 +113,33 @@ func (p *Input) Run() {
 }
 
 // ReadEnv support envs：
-//   ENV_INPUT_OPEN_METRIC : booler
+//   ENV_INPUT_OPEN_METRIC : booler   // deprecated
+//   ENV_INPUT_HOST_PROCESSES_OPEN_METRIC : booler
+//   ENV_INPUT_HOST_PROCESSES_TAGS : "a=b,c=d"
 func (p *Input) ReadEnv(envs map[string]string) {
+	// deprecated
 	if open, ok := envs["ENV_INPUT_OPEN_METRIC"]; ok {
 		b, err := strconv.ParseBool(open)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_OPEN_METRIC to bool: %s, ignore", err)
 		} else {
 			p.OpenMetric = b
+		}
+	}
+
+	if open, ok := envs["ENV_INPUT_HOST_PROCESSES_OPEN_METRIC"]; ok {
+		b, err := strconv.ParseBool(open)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOST_PROCESSES_OPEN_METRIC to bool: %s, ignore", err)
+		} else {
+			p.OpenMetric = b
+		}
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_PROCESSES_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			p.Tags[k] = v
 		}
 	}
 }
@@ -387,6 +408,7 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			ObjectInterval: datakit.Duration{Duration: 5 * time.Minute},
 			MetricInterval: datakit.Duration{Duration: 30 * time.Second},
+			Tags:           make(map[string]string),
 		}
 	})
 }

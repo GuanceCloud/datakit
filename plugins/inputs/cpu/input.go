@@ -14,6 +14,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 const (
 	minInterval = time.Second
 	maxInterval = time.Minute
@@ -184,6 +186,7 @@ func (i *Input) Run() {
 // ReadEnv support envs：
 //   ENV_INPUT_CPU_PERCPU : booler
 //   ENV_INPUT_CPU_ENABLE_TEMPERATURE : booler
+//   ENV_INPUT_CPU_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if percpu, ok := envs["ENV_INPUT_CPU_PERCPU"]; ok {
 		b, err := strconv.ParseBool(percpu)
@@ -202,6 +205,13 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.EnableTemperature = b
 		}
 	}
+
+	if tagsStr, ok := envs["ENV_INPUT_CPU_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
+		}
+	}
 }
 
 func init() { //nolint:gochecknoinits
@@ -210,6 +220,7 @@ func init() { //nolint:gochecknoinits
 			ps:                &CPUInfo{},
 			Interval:          datakit.Duration{Duration: time.Second * 10},
 			EnableTemperature: true,
+			Tags:              make(map[string]string),
 		}
 	})
 }

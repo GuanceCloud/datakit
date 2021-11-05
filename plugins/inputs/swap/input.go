@@ -12,6 +12,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 const (
 	minInterval = time.Second
 	maxInterval = time.Minute
@@ -165,11 +167,23 @@ func (i *Input) Run() {
 	}
 }
 
+// ReadEnv support envs：
+//   ENV_INPUT_SWAP_TAGS : "a=b,c=d"
+func (i *Input) ReadEnv(envs map[string]string) {
+	if tagsStr, ok := envs["ENV_INPUT_SWAP_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
+		}
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			swapStat: PSSwapStat,
 			Interval: datakit.Duration{Duration: time.Second * 10},
+			Tags:     make(map[string]string),
 		}
 	})
 }

@@ -10,13 +10,14 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var l = logger.DefaultSLogger(inputName)
+var _ inputs.ReadEnv = (*Input)(nil)
 
 type Input struct {
 	Endpoint string `toml:"endpoint"`
@@ -49,6 +50,8 @@ type Input struct {
 	PodNameRewriteDeprecated []string      `toml:"pod_name_write,omitempty"`
 	PodnameRewriteDeprecated []string      `toml:"pod_name_rewrite,omitempty"`
 }
+
+var l = logger.DefaultSLogger(inputName)
 
 func newInput() *Input {
 	return &Input{
@@ -144,6 +147,7 @@ func (i *Input) Run() {
 //   ENV_INPUT_CONTAINER_ENABLE_OBJECT : booler
 //   ENV_INPUT_CONTAINER_ENABLE_LOGGING : booler
 //   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
+//   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_METRIC"]; ok {
 		b, err := strconv.ParseBool(enable)
@@ -178,6 +182,13 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
 		} else {
 			i.LoggingRemoveAnsiEscapeCodes = b
+		}
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_CONTAINER_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
 		}
 	}
 }
