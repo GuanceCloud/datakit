@@ -184,6 +184,10 @@ func FeedLastError(inputName string, err string) {
 	}
 }
 
+func SelfError(err string) {
+	FeedLastError(datakit.DatakitInputName, err)
+}
+
 func MakePointWithoutGlobalTags(name string,
 	tags map[string]string,
 	fields map[string]interface{},

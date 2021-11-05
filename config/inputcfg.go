@@ -45,12 +45,19 @@ func SearchDir(dir string, suffix string) []string {
 	return fps
 }
 
-// LoadInputsConfig load all inputs under @InstallDir/conf.d.
-func LoadInputsConfig(suffix string) error {
-	inputs.Init()
+func GetGitRepoDir(cloneDirName string) (string, error) {
+	if cloneDirName == "" {
+		// you shouldn't be here, check before you call this function.
+		return "", fmt.Errorf("git_repo_clone_dir_empty")
+	}
+	return filepath.Join(datakit.GitReposDir, cloneDirName), nil
+}
 
+// LoadInputsConfigEx load all inputs under @InstallDir/conf.d.
+func LoadInputsConfigEx(confRootPath string) map[string]*ast.Table {
 	availableInputCfgs := map[string]*ast.Table{}
-	confs := SearchDir(datakit.ConfdDir, suffix)
+
+	confs := SearchDir(confRootPath, ".conf")
 
 	l.Debugf("loading %d conf...", len(confs))
 
@@ -83,27 +90,7 @@ func LoadInputsConfig(suffix string) error {
 		availableInputCfgs[fp] = tbl
 	}
 
-	// reset inputs(for reloading)
-	l.Debug("reset inputs")
-	inputs.ResetInputs()
-
-	for name, creator := range inputs.Inputs {
-		if !datakit.Enabled(name) {
-			l.Debugf("ignore unchecked input %s", name)
-			continue
-		}
-
-		if err := doLoadInputConf(name, creator, availableInputCfgs); err != nil {
-			l.Errorf("load %s config failed: %v, ignored", name, err)
-			return err
-		}
-	}
-
-	if !DisableSelfInput {
-		inputs.AddSelf()
-	}
-
-	return nil
+	return availableInputCfgs
 }
 
 // fp == "", add new when not exist, set ConfigPaths empty when exist.
@@ -249,7 +236,7 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 var confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
 
 func initDatakitConfSample(name string, c inputs.Creator) error {
-	if name == "self" { //nolint:goconst
+	if name == datakit.DatakitInputName {
 		return nil
 	}
 

@@ -611,6 +611,54 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 例如 `cpu_max` 为 `40.0`，8 核心 CPU 满负载使用率为 `800%`，则 DataKit 能使用的最大 CPU 资源是 `800% * 40% = 320%` 左右，是占全局 CPU 资源的 40%，而非单核心 CPU 的 40%。
 
 
+### Datakit 使用 git 管理配置文件
+
+Datakit 支持使用 git 来管理配置文件。在 `datakit.conf` 中增加下面的 `git_repos` 段即可，支持数组形式，即支持多个 git，这些 clone 下来的配置文件会在 datakit 安装目录下的 `gitrepos` 目录下，即类似于下面这种结构（下面以 git repo `cfgs` 举例）:
+
+```
+├── datakit
+├── gitrepos
+│   └── cfgs
+│       ├── cpu.conf
+│       ├── nginx.conf
+│       └── nginx.p
+```
+
+#### `git_repos` 段说明
+
+字段解释:
+- pull_interval: 定时拉取的间隔。
+- enable: 是否启用。（`true`/`false`）
+- url: 管理配置文件的远程 git repo 地址。
+- ssh_private_key_path: 本地 PrivateKey 的全路径。
+- ssh_private_key_password: 本地 PrivateKey 的使用密码。
+- branch: 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。
+
+>温馨提示: HTTP 协议的 git 地址仅支持用户名和密码形式，SSH 协议的仅支持 private key 形式。
+
+示例:
+
+```conf
+[git_repos]
+  pull_interval = "1m"
+
+  [[git_repos.repo]]
+    enable = true
+    url = "http://username:password@github.com/username/repository.git"
+
+  [[git_repos.repo]]
+    enable = false # 不启用
+    url = "git@github.com:username/repository.git" # 支持的一种形式
+    # url = "ssh://git@gitlab.website.com:9000/username/repository.git" # 支持的另一种形式
+    ssh_private_key_path = "/Users/username/.ssh/id_rsa"
+    ssh_private_key_password = "passwd"
+    branch = "master"
+```
+
+#### 安装时以环境变量传入
+
+在安装时，可以使用环境变量传入的形式写入配置文件，兔除自己手动编辑的烦恼。详情参见 datakit 安装文档。
+
 ### 其它命令
 
 - 查看云属性数据

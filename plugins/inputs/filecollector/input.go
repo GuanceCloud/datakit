@@ -155,22 +155,48 @@ func (fc *FileCollector) Run() {
 				continue
 			}
 		case <-datakit.Exit.Wait():
+			fc.exit()
 			l.Info("file_collector exit")
-			if err := fc.watch.Close(); err != nil {
-				l.Warnf("Close: %s", err)
-			}
-
-			fc.cancelFun()
 			return
+
+		case <-fc.semStop.Wait():
+			fc.exit()
+			l.Info("file_collector return")
+
+			if fc.semStopCompleted != nil {
+				fc.semStopCompleted.Close()
+			}
+			return
+
 		case err := <-fc.watch.Errors:
 			l.Errorf("[error] file_collector err:%s", err.Error()) // 此处 error 日志记录即可
 		}
 	}
 }
 
+func (fc *FileCollector) exit() {
+	if err := fc.watch.Close(); err != nil {
+		l.Warnf("Close: %s", err)
+	}
+
+	fc.cancelFun()
+}
+
+func (fc *FileCollector) Terminate() {
+	if fc.semStop != nil {
+		fc.semStop.Close()
+
+		// wait stop completed
+		if fc.semStopCompleted != nil {
+			for range fc.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
 func (fc *FileCollector) handUpload() {
 	tick := time.NewTicker(time.Second * 2)
-
 	defer tick.Stop()
 
 	for {
@@ -188,9 +214,14 @@ func (fc *FileCollector) handUpload() {
 
 		case <-datakit.Exit.Wait():
 			l.Info("file_collector upload exit")
+			fc.uploadExit()
+			return
+		case <-fc.semStop.Wait():
+			l.Info("file_collector upload return")
+			fc.uploadExit()
 
-			if err := fc.watch.Close(); err != nil {
-				l.Warnf("Close: %s", err)
+			if fc.semStopCompleted != nil {
+				fc.semStopCompleted.Close()
 			}
 			return
 		case <-tick.C:
@@ -204,6 +235,12 @@ func (fc *FileCollector) handUpload() {
 	}
 }
 
+func (fc *FileCollector) uploadExit() {
+	if err := fc.watch.Close(); err != nil {
+		l.Warnf("Close: %s", err)
+	}
+}
+
 func (fc *FileCollector) handFail() {
 	for {
 		select {
@@ -211,6 +248,13 @@ func (fc *FileCollector) handFail() {
 			return
 		case <-datakit.Exit.Wait():
 			l.Info("file_collector handfail exit")
+			return
+		case <-fc.semStop.Wait():
+			l.Info("file_collector handfail return")
+
+			if fc.semStopCompleted != nil {
+				fc.semStopCompleted.Close()
+			}
 			return
 		case u := <-fails:
 			_, err := os.Stat(u.filename)

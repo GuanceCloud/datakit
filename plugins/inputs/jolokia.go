@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -53,10 +54,20 @@ type JolokiaAgent struct {
 
 	Tags  map[string]string `toml:"-"`
 	Types map[string]string `toml:"-"`
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (j *JolokiaAgent) Collect() {
 	log = logger.SLogger("jolokia")
+
+	if j.semStop == nil {
+		j.semStop = cliutils.NewSem()
+	}
+	if j.semStopCompleted == nil {
+		j.semStopCompleted = cliutils.NewSem()
+	}
 
 	if j.L == nil {
 		j.L = log
@@ -94,6 +105,27 @@ func (j *JolokiaAgent) Collect() {
 		case <-datakit.Exit.Wait():
 			j.L.Infof("input %s exit", j.PluginName)
 			return
+
+		case <-j.semStop.Wait():
+			j.L.Infof("input %s return", j.PluginName)
+
+			if j.semStopCompleted != nil {
+				j.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (j *JolokiaAgent) Terminate() {
+	if j.semStop != nil {
+		j.semStop.Close()
+
+		// wait stop completed
+		if j.semStopCompleted != nil {
+			for range j.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }

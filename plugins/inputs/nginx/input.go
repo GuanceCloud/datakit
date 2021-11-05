@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -98,6 +98,16 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+func (n *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: n.Log.Pipeline,
+		},
+	}
+}
+
 func (n *Input) RunPipeline() {
 	if n.Log == nil || len(n.Log.Files) == 0 {
 		return
@@ -108,19 +118,22 @@ func (n *Input) RunPipeline() {
 	}
 
 	opt := &tailer.Option{
-		Source:     "nginx",
-		Service:    "nginx",
+		Source:     inputName,
+		Service:    inputName,
 		GlobalTags: n.Tags,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
+	pl, err := config.GetPipelinePath(n.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -148,11 +161,17 @@ func (n *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if n.tail != nil {
-				n.tail.Close()
-				l.Info("nginx log exit")
-			}
+			n.exit()
 			l.Info("nginx exit")
+			return
+
+		case <-n.semStop.Wait():
+			n.exit()
+			l.Info("nginx return")
+
+			if n.semStopCompleted != nil {
+				n.semStopCompleted.Close()
+			}
 			return
 
 		case <-tick.C:
@@ -181,6 +200,26 @@ func (n *Input) Run() {
 
 		case n.pause = <-n.pauseCh:
 			// nil
+		}
+	}
+}
+
+func (n *Input) exit() {
+	if n.tail != nil {
+		n.tail.Close()
+		l.Info("nginx log exit")
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+
+		// wait stop completed
+		if n.semStopCompleted != nil {
+			for range n.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -254,6 +293,9 @@ func init() { //nolint:gochecknoinits
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
 			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 		return s
 	})

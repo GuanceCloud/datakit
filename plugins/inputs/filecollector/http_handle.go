@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
@@ -12,6 +13,9 @@ import (
 var fileCollector = &FileCollector{
 	maxSize:       32 * 1024 * 1024,
 	MaxUploadSize: "32M",
+
+	semStop:          cliutils.NewSem(),
+	semStopCompleted: cliutils.NewSem(),
 }
 
 func Handle(c *gin.Context) {

@@ -2,11 +2,12 @@
 package logging
 
 import (
-	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -79,75 +80,103 @@ type Input struct {
 
 	// 在输出 log 内容时，区分是 tailf 还是 logging
 	inputName string
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 var l = logger.DefaultSLogger(inputName)
 
-func (*Input) RunPipeline() {
-	// nil
-}
-
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	// 兼容旧版配置 pipeline_path
-	if i.Pipeline == "" && i.DeprecatedPipeline != "" {
-		i.Pipeline = i.DeprecatedPipeline
+	if ipt.Pipeline == "" && ipt.DeprecatedPipeline != "" {
+		ipt.Pipeline = ipt.DeprecatedPipeline
 	}
 
-	if i.MultilineMatch == "" && i.DeprecatedMultilineMatch != "" {
-		i.MultilineMatch = i.DeprecatedMultilineMatch
+	if ipt.MultilineMatch == "" && ipt.DeprecatedMultilineMatch != "" {
+		ipt.MultilineMatch = ipt.DeprecatedMultilineMatch
 	}
 
 	var pipelinePath string
 
-	if i.Pipeline == "" {
-		pipelinePath = filepath.Join(datakit.PipelineDir, i.Source+".p")
-	} else {
-		pipelinePath = filepath.Join(datakit.PipelineDir, i.Pipeline)
+	if ipt.Pipeline == "" {
+		ipt.Pipeline = ipt.Source + ".p"
 	}
 
-	opt := &tailer.Option{
-		Source:                i.Source,
-		Service:               i.Service,
-		Pipeline:              pipelinePath,
-		IgnoreStatus:          i.IgnoreStatus,
-		FromBeginning:         i.FromBeginning,
-		CharacterEncoding:     i.CharacterEncoding,
-		MultilineMatch:        i.MultilineMatch,
-		MultilineMaxLines:     i.MultilineMaxLines,
-		RemoveAnsiEscapeCodes: i.RemoveAnsiEscapeCodes,
-		GlobalTags:            i.Tags,
-	}
-
-	var err error
-	i.tailer, err = tailer.NewTailer(i.LogFiles, opt, i.Ignore)
+	pipelinePath, err := config.GetPipelinePath(ipt.Pipeline)
 	if err != nil {
 		l.Error(err)
 		return
 	}
 
-	go i.tailer.Start()
+	opt := &tailer.Option{
+		Source:                ipt.Source,
+		Service:               ipt.Service,
+		Pipeline:              pipelinePath,
+		IgnoreStatus:          ipt.IgnoreStatus,
+		FromBeginning:         ipt.FromBeginning,
+		CharacterEncoding:     ipt.CharacterEncoding,
+		MultilineMatch:        ipt.MultilineMatch,
+		MultilineMaxLines:     ipt.MultilineMaxLines,
+		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
+		GlobalTags:            ipt.Tags,
+	}
 
-	// 阻塞在此，用以关闭 tailer 资源
-	<-datakit.Exit.Wait()
-	i.Stop()
-	l.Infof("%s exit", i.inputName)
+	ipt.tailer, err = tailer.NewTailer(ipt.LogFiles, opt, ipt.Ignore)
+	if err != nil {
+		l.Error(err)
+		return
+	}
+
+	go ipt.tailer.Start()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.exit()
+			l.Infof("%s exit", ipt.inputName)
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Infof("%s return", ipt.inputName)
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+		}
+	}
 }
 
-func (i *Input) Stop() {
-	i.tailer.Close() //nolint:errcheck
+func (ipt *Input) exit() {
+	ipt.Stop()
 }
 
-func (i *Input) PipelineConfig() map[string]string {
-	return nil
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
 }
 
-func (i *Input) Catalog() string {
+func (ipt *Input) Stop() {
+	ipt.tailer.Close()
+}
+
+func (*Input) Catalog() string {
 	return "log"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleCfg
 }
 
@@ -168,12 +197,12 @@ type loggingMeasurement struct {
 	ts     time.Time
 }
 
-func (i *loggingMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(i.name, i.tags, i.fields, i.ts)
+func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(ipt.name, ipt.tags, ipt.fields, ipt.ts)
 }
 
 //nolint:lll
-func (i *loggingMeasurement) Info() *inputs.MeasurementInfo {
+func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "logging 日志采集",
 		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
@@ -194,12 +223,18 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: inputName,
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 	inputs.Add(deprecatedInputName, func() inputs.Input {
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: deprecatedInputName,
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 }

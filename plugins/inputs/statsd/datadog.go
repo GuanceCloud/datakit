@@ -23,7 +23,7 @@ const (
 
 var uncommenter = strings.NewReplacer("\\n", "\n")
 
-func (s *input) parseEventMessage(now time.Time, message string, defaultHostname string) error {
+func (ipt *input) parseEventMessage(now time.Time, message string, defaultHostname string) error {
 	// _e{title.length,text.length}:title|text
 	//  [
 	//   |d:date_happened
@@ -89,7 +89,7 @@ func (s *input) parseEventMessage(now time.Time, message string, defaultHostname
 	fields["priority"] = priorityNormal
 	ts := now
 	if len(message) < 2 {
-		s.acc.addFields(name, fields, tags, ts)
+		ipt.acc.addFields(name, fields, tags, ts)
 		return nil
 	}
 
@@ -142,7 +142,7 @@ func (s *input) parseEventMessage(now time.Time, message string, defaultHostname
 		delete(tags, "host")
 		tags["source"] = host
 	}
-	s.acc.addFields(name, fields, tags, ts)
+	ipt.acc.addFields(name, fields, tags, ts)
 	return nil
 }
 

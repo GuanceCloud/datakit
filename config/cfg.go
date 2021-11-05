@@ -20,6 +20,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	dktracer "gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
@@ -88,6 +90,17 @@ func DefaultConfig() *Config {
 			{Hosts: []string{}, Inputs: []string{}},
 		},
 		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
+
+		GitRepos: &GitRepost{
+			PullInterval: "1m",
+			Repos: []*GitRepository{
+				{
+					Enable: false, URL: "",
+					SSHPrivateKeyPath: "", SSHPrivateKeyPassword: "",
+					Branch: "master",
+				},
+			},
+		},
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
@@ -122,6 +135,19 @@ type LoggerCfg struct {
 	Level        string `toml:"level"`
 	DisableColor bool   `toml:"disable_color"`
 	Rotate       int    `toml:"rotate,omitzero"`
+}
+
+type GitRepository struct {
+	Enable                bool   `toml:"enable"`
+	URL                   string `toml:"url"`
+	SSHPrivateKeyPath     string `toml:"ssh_private_key_path"`
+	SSHPrivateKeyPassword string `toml:"ssh_private_key_password"`
+	Branch                string `toml:"branch"`
+}
+
+type GitRepost struct {
+	PullInterval string           `toml:"pull_interval"`
+	Repos        []*GitRepository `toml:"repo"`
 }
 
 type Config struct {
@@ -178,6 +204,8 @@ type Config struct {
 	AutoUpdate bool `toml:"auto_update,omitempty"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
+
+	GitRepos *GitRepost `toml:"git_repos"`
 }
 
 func (c *Config) String() string {
@@ -438,6 +466,32 @@ func (c *Config) ApplyMainConfig() error {
 		}
 
 		l.Info("refresh main configure ok")
+	}
+
+	mExistCloneDirs := make(map[string]struct{})
+
+	for _, v := range c.GitRepos.Repos {
+		if !v.Enable {
+			continue
+		}
+		v.URL = dkstring.TrimString(v.URL)
+		if v.URL == "" {
+			continue
+		}
+		repoName, err := path.GetGitPureName(v.URL)
+		if err != nil {
+			continue
+		}
+		// check repeat
+		if _, ok := mExistCloneDirs[repoName]; ok {
+			continue
+		}
+		mExistCloneDirs[repoName] = struct{}{}
+		clonePath, err := GetGitRepoDir(repoName)
+		if err != nil {
+			continue
+		}
+		datakit.GetReposConfDirs = append(datakit.GetReposConfDirs, clonePath)
 	}
 
 	return nil

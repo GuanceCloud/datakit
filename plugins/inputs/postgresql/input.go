@@ -7,12 +7,12 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -124,6 +124,9 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type postgresqllog struct {
@@ -169,7 +172,7 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&inputMeasurement{},
 	}
@@ -181,21 +184,31 @@ func (*Input) PipelineConfig() map[string]string {
 	}
 }
 
-func (i *Input) SanitizedAddress() (sanitizedAddress string, err error) {
+func (ipt *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: ipt.Log.Pipeline,
+		},
+	}
+}
+
+func (ipt *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	var canonicalizedAddress string
 
 	kvMatcher := regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 
-	if i.Outputaddress != "" {
-		return i.Outputaddress, nil
+	if ipt.Outputaddress != "" {
+		return ipt.Outputaddress, nil
 	}
 
-	if strings.HasPrefix(i.Address, "postgres://") || strings.HasPrefix(i.Address, "postgresql://") {
-		if canonicalizedAddress, err = parseURL(i.Address); err != nil {
+	if strings.HasPrefix(ipt.Address, "postgres://") || strings.HasPrefix(ipt.Address, "postgresql://") {
+		if canonicalizedAddress, err = parseURL(ipt.Address); err != nil {
 			return sanitizedAddress, err
 		}
 	} else {
-		canonicalizedAddress = i.Address
+		canonicalizedAddress = ipt.Address
 	}
 
 	sanitizedAddress = kvMatcher.ReplaceAllString(canonicalizedAddress, "")
@@ -203,13 +216,13 @@ func (i *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	return sanitizedAddress, err
 }
 
-func (i *Input) executeQuery(query string) error {
+func (ipt *Input) executeQuery(query string) error {
 	var (
 		columns []string
 		err     error
 	)
 
-	rows, err := i.service.Query(query)
+	rows, err := ipt.service.Query(query)
 	if err != nil {
 		return err
 	}
@@ -220,11 +233,11 @@ func (i *Input) executeQuery(query string) error {
 	}
 
 	for rows.Next() {
-		columnMap, err := i.service.GetColumnMap(rows, columns)
+		columnMap, err := ipt.service.GetColumnMap(rows, columns)
 		if err != nil {
 			return err
 		}
-		err = i.accRow(columnMap)
+		err = ipt.accRow(columnMap)
 		if err != nil {
 			return err
 		}
@@ -233,7 +246,7 @@ func (i *Input) executeQuery(query string) error {
 	return nil
 }
 
-func (i *Input) getDBMetrics() error {
+func (ipt *Input) getDBMetrics() error {
 	//nolint:lll
 	query := `
 	SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size
@@ -242,26 +255,26 @@ func (i *Input) getDBMetrics() error {
 	WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
 	AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
 	`
-	if len(i.IgnoredDatabases) != 0 {
-		query += fmt.Sprintf(` AND psd.datname NOT IN ('%s')`, strings.Join(i.IgnoredDatabases, "','"))
-	} else if len(i.Databases) != 0 {
-		query += fmt.Sprintf(` AND psd.datname IN ('%s')`, strings.Join(i.Databases, "','"))
+	if len(ipt.IgnoredDatabases) != 0 {
+		query += fmt.Sprintf(` AND psd.datname NOT IN ('%s')`, strings.Join(ipt.IgnoredDatabases, "','"))
+	} else if len(ipt.Databases) != 0 {
+		query += fmt.Sprintf(` AND psd.datname IN ('%s')`, strings.Join(ipt.Databases, "','"))
 	}
 
-	err := i.executeQuery(query)
+	err := ipt.executeQuery(query)
 
 	return err
 }
 
-func (i *Input) getBgwMetrics() error {
+func (ipt *Input) getBgwMetrics() error {
 	query := `
 		select * FROM pg_stat_bgwriter
 	`
-	err := i.executeQuery(query)
+	err := ipt.executeQuery(query)
 	return err
 }
 
-func (i *Input) getConnectionMetrics() error {
+func (ipt *Input) getConnectionMetrics() error {
 	//nolint:lll
 	query := `
 		WITH max_con AS (SELECT setting::float FROM pg_settings WHERE name = 'max_connections')
@@ -269,16 +282,16 @@ func (i *Input) getConnectionMetrics() error {
 		FROM pg_stat_database, max_con
 	`
 
-	err := i.executeQuery(query)
+	err := ipt.executeQuery(query)
 	return err
 }
 
-func (i *Input) Collect() error {
+func (ipt *Input) Collect() error {
 	var err error
 
-	i.service.SetAddress(i.Address)
-	defer i.service.Stop() //nolint:errcheck
-	err = i.service.Start()
+	ipt.service.SetAddress(ipt.Address)
+	defer ipt.service.Stop() //nolint:errcheck
+	err = ipt.service.Start()
 	if err != nil {
 		return err
 	}
@@ -287,36 +300,36 @@ func (i *Input) Collect() error {
 
 	// collect db metrics
 	g.Go(func(ctx context.Context) error {
-		err := i.getDBMetrics()
+		err := ipt.getDBMetrics()
 		return err
 	})
 
 	// collect bgwriter
 	g.Go(func(ctx context.Context) error {
-		err := i.getBgwMetrics()
+		err := ipt.getBgwMetrics()
 		return err
 	})
 
 	// connection
 	g.Go(func(ctx context.Context) error {
-		err := i.getConnectionMetrics()
+		err := ipt.getConnectionMetrics()
 		return err
 	})
 
 	return g.Wait()
 }
 
-func (i *Input) accRow(columnMap map[string]*interface{}) error {
+func (ipt *Input) accRow(columnMap map[string]*interface{}) error {
 	var tagAddress string
-	tagAddress, err := i.SanitizedAddress()
+	tagAddress, err := ipt.SanitizedAddress()
 	if err != nil {
 		return err
 	}
 
 	tags := map[string]string{"server": tagAddress, "db": "postgres"}
 
-	if i.Tags != nil {
-		for k, v := range i.Tags {
+	if ipt.Tags != nil {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 	}
@@ -344,7 +357,7 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 		}
 	}
 	if len(fields) > 0 {
-		i.collectCache = append(i.collectCache, &inputMeasurement{
+		ipt.collectCache = append(ipt.collectCache, &inputMeasurement{
 			name:   inputName,
 			fields: fields,
 			tags:   tags,
@@ -355,40 +368,44 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 	return nil
 }
 
-func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = inputName + ".p" // use default
+	if ipt.Log.Pipeline == "" {
+		ipt.Log.Pipeline = inputName + ".p" // use default
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		GlobalTags:        i.Tags,
-		IgnoreStatus:      i.Log.IgnoreStatus,
-		CharacterEncoding: i.Log.CharacterEncoding,
-		MultilineMatch:    i.Log.MultilineMatch,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
+		MultilineMatch:    ipt.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(ipt.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
-	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
 
-	go i.tail.Start()
+	go ipt.tail.Start()
 }
 
 const (
@@ -396,73 +413,100 @@ const (
 	minInterval = 1 * time.Second
 )
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	duration, err := time.ParseDuration(i.Interval)
+	duration, err := time.ParseDuration(ipt.Interval)
 	if err != nil {
 		l.Error("invalid interval, %s", err.Error())
 	} else if duration <= 0 {
 		l.Error("invalid interval, cannot be less than zero")
 	}
 
-	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
+	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
-	tick := time.NewTicker(i.duration)
+	tick := time.NewTicker(ipt.duration)
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("postgresql log exit")
-			}
+			ipt.exit()
 			l.Info("postgresql exit")
 			return
 
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("postgresql return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+
 		case <-tick.C:
-			if i.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
 
 			start := time.Now()
-			if err := i.Collect(); err != nil {
+			if err := ipt.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			}
 
-			if len(i.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
+			if len(ipt.collectCache) > 0 {
+				err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
+					&io.Option{CollectCost: time.Since(start)})
 				if err != nil {
 					io.FeedLastError(inputName, err.Error())
 					l.Error(err.Error())
 				}
-				i.collectCache = i.collectCache[:0]
+				ipt.collectCache = ipt.collectCache[:0]
 			}
 
-		case i.pause = <-i.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
+		l.Info("postgresql log exit")
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case i.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -521,6 +565,9 @@ func NewInput(service Service) *Input {
 	input := &Input{
 		Interval: "10s",
 		pauseCh:  make(chan bool, maxPauseCh),
+
+		semStop:          cliutils.NewSem(),
+		semStopCompleted: cliutils.NewSem(),
 	}
 	input.service = service
 	return input

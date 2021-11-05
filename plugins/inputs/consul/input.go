@@ -4,6 +4,7 @@ package consul
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -39,6 +40,12 @@ const (
   ## 采集间隔 "ns", "us" (or "µs"), "ms", "s", "m", "h"
   interval = "10s"
 
+  [[inputs.prom.log]]
+     pipeline = "consul.p"
+     files = ["", ""]
+     source = "consul"
+     service = "consul"
+
   ## 自定义指标集名称
   # 可以将包含前缀prefix的指标归为一类指标集
   # 自定义指标集名称配置优先measurement_name配置项
@@ -57,6 +64,8 @@ drop_origin_data()
 )
 
 type Input struct { // keep compatible with old version's conf
+	Log *inputs.XLog `toml:"log"`
+
 	TokenDeprecated      string `toml:"token,omitempty"`
 	AddressDeprecated    string `toml:"address,omitempty"`
 	SchemeDeprecated     string `toml:"scheme,omitempty"`
@@ -65,22 +74,22 @@ type Input struct { // keep compatible with old version's conf
 	DatacenterDeprecated string `toml:"datacenter,omitempty"`
 }
 
-func (i *Input) Catalog() string {
-	return "consul"
+func (*Input) Catalog() string {
+	return inputName
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return configSample
 }
 
-func (i *Input) Run() {
+func (*Input) Run() {
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&HostMeasurement{},
 		&ServiceMeasurement{},
@@ -89,14 +98,24 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"consul": pipelineCfg,
+		inputName: pipelineCfg,
 	}
 	return pipelineMap
 }
 
-func (i *Input) RunPipeline() {
+func (ipt *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: ipt.Log.Pipeline,
+		},
+	}
+}
+
+func (*Input) RunPipeline() {
 }
 
 func init() { //nolint:gochecknoinits

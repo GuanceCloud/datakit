@@ -7,12 +7,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -48,6 +48,9 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -56,6 +59,9 @@ func newInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 30},
 		pauseCh:  make(chan bool, maxPauseCh),
+
+		semStop:          cliutils.NewSem(),
+		semStopCompleted: cliutils.NewSem(),
 	}
 }
 
@@ -68,6 +74,16 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 func (*Input) SampleMeasurement() []inputs.Measurement { return []inputs.Measurement{&Measurement{}} }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"apache": pipeline} }
+
+func (n *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: n.Log.Pipeline,
+		},
+	}
+}
 
 func (n *Input) RunPipeline() {
 	if n.Log == nil || len(n.Log.Files) == 0 {
@@ -87,14 +103,18 @@ func (n *Input) RunPipeline() {
 		MultilineMatch:    `^\[\w+ \w+ \d+`,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
+	pl, err := config.GetPipelinePath(n.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		iod.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -123,11 +143,17 @@ func (n *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if n.tail != nil {
-				n.tail.Close()
-				l.Info("apache log exit")
-			}
+			n.exit()
 			l.Info("apache exit")
+			return
+
+		case <-n.semStop.Wait():
+			n.exit()
+			l.Info("apache return")
+
+			if n.semStopCompleted != nil {
+				n.semStopCompleted.Close()
+			}
 			return
 
 		case <-tick.C:
@@ -152,6 +178,26 @@ func (n *Input) Run() {
 
 		case n.pause = <-n.pauseCh:
 			// nil
+		}
+	}
+}
+
+func (n *Input) exit() {
+	if n.tail != nil {
+		n.tail.Close()
+		l.Info("apache log exit")
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+
+		// wait stop completed
+		if n.semStopCompleted != nil {
+			for range n.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }

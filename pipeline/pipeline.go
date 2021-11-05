@@ -15,7 +15,6 @@ import (
 	vgrok "github.com/vjeantet/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
@@ -32,9 +31,8 @@ type Pipeline struct {
 
 var l = logger.DefaultSLogger("pipeline")
 
-func NewPipelineByScriptPath(path string) (*Pipeline, error) {
-	scriptPath := filepath.Join(datakit.PipelineDir, path)
-	data, err := ioutil.ReadFile(filepath.Clean(scriptPath))
+func NewPipelineByScriptPath(scriptFullPath string) (*Pipeline, error) {
+	data, err := ioutil.ReadFile(filepath.Clean(scriptFullPath))
 	if err != nil {
 		return nil, err
 	}

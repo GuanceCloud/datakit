@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -107,15 +108,36 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Infof("hostdir input exit")
 			return
+
+		case <-i.semStop.Wait():
+			l.Infof("hostdir input return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
+			return
 		}
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+
+		// wait stop completed
+		if i.semStopCompleted != nil {
+			for range i.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&Measurement{},
 	}
@@ -126,6 +148,9 @@ func init() { //nolint:gochecknoinits
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 5},
 			platform: runtime.GOOS,
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 		return s
 	})

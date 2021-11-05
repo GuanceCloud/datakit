@@ -7,6 +7,7 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -67,7 +68,7 @@ func checkSample() {
 	for k, c := range inputs.Inputs {
 		i := c()
 
-		if k == "self" {
+		if k == datakit.DatakitInputName {
 			warnf("[W] ignore self input\n")
 			ignored++
 			continue

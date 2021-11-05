@@ -9,6 +9,7 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/load"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -49,21 +50,24 @@ type Input struct {
 	Tags      map[string]string
 
 	collectCache []inputs.Measurement
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleCfg
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&systemMeasurement{},
 		&conntrackMeasurement{},
@@ -71,9 +75,9 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) Collect() error {
+func (ipt *Input) Collect() error {
 	// clear collectCache
-	i.collectCache = make([]inputs.Measurement, 0)
+	ipt.collectCache = make([]inputs.Measurement, 0)
 
 	ts := time.Now()
 
@@ -88,7 +92,7 @@ func (i *Input) Collect() error {
 	}
 
 	tags := map[string]string{}
-	for k, v := range i.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
 
@@ -113,7 +117,7 @@ func (i *Input) Collect() error {
 			ts:   ts,
 		}
 
-		i.collectCache = append(i.collectCache, &conntrackM)
+		ipt.collectCache = append(ipt.collectCache, &conntrackM)
 
 		filefdStat, err := filefdutil.GetFileFdInfo()
 		if err != nil {
@@ -129,7 +133,7 @@ func (i *Input) Collect() error {
 				ts:   ts,
 			}
 
-			i.collectCache = append(i.collectCache, &filefdM)
+			ipt.collectCache = append(ipt.collectCache, &filefdM)
 		}
 	}
 
@@ -160,26 +164,26 @@ func (i *Input) Collect() error {
 	}
 	sysM.fields["uptime"] = uptime
 
-	i.collectCache = append(i.collectCache, &sysM)
+	ipt.collectCache = append(ipt.collectCache, &sysM)
 
 	return err
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("system input started")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-	tick := time.NewTicker(i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 	for {
 		start := time.Now()
-		if err := i.Collect(); err != nil {
+		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
 			io.FeedLastError(inputName, err.Error())
 		}
 
-		if len(i.collectCache) > 0 {
-			if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
+		if len(ipt.collectCache) > 0 {
+			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
 				&io.Option{CollectCost: time.Since(start)}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err)
 			}
@@ -188,19 +192,40 @@ func (i *Input) Run() {
 		select {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
-			l.Infof("system input exit")
+			l.Info("system input exit")
 			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("system input return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
 
 // ReadEnv support envs：
 //   ENV_INPUT_SYSTEM_TAGS : "a=b,c=d"
-func (i *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_SYSTEM_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
-			i.Tags[k] = v
+			ipt.Tags[k] = v
 		}
 	}
 }
@@ -209,7 +234,10 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
-			Tags:     make(map[string]string),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+			Tags:             make(map[string]string),
 		}
 	})
 }

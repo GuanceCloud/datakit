@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -25,10 +26,13 @@ type Input struct {
 	chpause      chan bool
 	EatCPU       bool `toml:"eat_cpu"`
 	paused       bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
-func (i *Input) Collect() error {
-	i.collectCache = []inputs.Measurement{
+func (ipt *Input) Collect() error {
+	ipt.collectCache = []inputs.Measurement{
 		&demoMetric{
 			name: "demo",
 			tags: map[string]string{"tag_a": "a", "tag_b": "b"},
@@ -49,14 +53,14 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger("demo")
 	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
 
 	n := 0
 
-	if i.EatCPU {
+	if ipt.EatCPU {
 		eatCPU(runtime.NumCPU())
 	}
 
@@ -64,12 +68,12 @@ func (i *Input) Run() {
 		n++
 
 		select {
-		case i.paused = <-i.chpause:
-			l.Debugf("demo paused? %v", i.paused)
+		case ipt.paused = <-ipt.chpause:
+			l.Debugf("demo paused? %v", ipt.paused)
 
 		case <-tick.C:
 
-			if i.paused {
+			if ipt.paused {
 				l.Debugf("paused")
 				continue
 			}
@@ -78,27 +82,52 @@ func (i *Input) Run() {
 
 			l.Debugf("demo input gathering...")
 			start := time.Now()
-			if err := i.Collect(); err != nil {
+			if err := ipt.Collect(); err != nil {
 				l.Error(err)
 			} else {
-				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
 					&io.Option{CollectCost: time.Since(start), HighFreq: (n%2 == 0)}); err != nil {
 					l.Errorf("FeedMeasurement: %s", err.Error())
 				}
 
-				i.collectCache = i.collectCache[:0] // Do not forget to clean cache
+				ipt.collectCache = ipt.collectCache[:0] // Do not forget to clean cache
 				io.FeedLastError(inputName, "mocked error from demo input")
 			}
 
 		case <-datakit.Exit.Wait():
-			close(i.chpause)
+			ipt.exit()
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
 			return
 		}
 	}
 }
 
-func (i *Input) Catalog() string { return "testing" }
-func (i *Input) SampleConfig() string {
+func (ipt *Input) exit() {
+	close(ipt.chpause)
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+func (*Input) Catalog() string { return "testing" }
+func (*Input) SampleConfig() string {
 	return `
 [inputs.demo]
   ## 这里是一些测试配置
@@ -112,7 +141,7 @@ func (i *Input) SampleConfig() string {
 `
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&demoMetric{},
 		&demoMetric2{},
@@ -121,24 +150,24 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
-	case i.chpause <- true:
+	case ipt.chpause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
-	case i.chpause <- false:
+	case ipt.chpause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -150,6 +179,9 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			paused:  false,
 			chpause: make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 }

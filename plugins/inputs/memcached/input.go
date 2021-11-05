@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -69,6 +70,9 @@ type Input struct {
 
 	duration     time.Duration
 	collectCache []inputs.Measurement
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (*Input) Catalog() string {
@@ -83,7 +87,7 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&inputMeasurement{},
 	}
@@ -252,13 +256,38 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("memcached exit")
 			return
+
+		case <-i.semStop.Wait():
+			l.Info("memcached return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
+			return
+
 		case <-tick.C:
+		}
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+
+		// wait stop completed
+		if i.semStopCompleted != nil {
+			for range i.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+		}
 	})
 }

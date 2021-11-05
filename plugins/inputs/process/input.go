@@ -13,6 +13,7 @@ import (
 	"github.com/shirou/gopsutil/host"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -43,22 +44,19 @@ type Input struct {
 	lastErr error
 	re      string
 	isTest  bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (*Input) Catalog() string { return category }
 
 func (*Input) SampleConfig() string { return sampleConfig }
 
-func (*Input) PipelineConfig() map[string]string { return map[string]string{inputName: pipelineSample} }
-
 func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&ProcessMetric{}, &ProcessObject{}}
-}
-
-func (*Input) RunPipeline() {
-	// TODO
 }
 
 func (p *Input) Run() {
@@ -96,6 +94,14 @@ func (p *Input) Run() {
 				case <-datakit.Exit.Wait():
 					l.Info("process write metric exit")
 					return
+
+				case <-p.semStop.Wait():
+					l.Info("process write metric return")
+
+					if p.semStopCompleted != nil {
+						p.semStopCompleted.Close()
+					}
+					return
 				}
 			}
 		}()
@@ -108,6 +114,27 @@ func (p *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("process write object exit")
 			return
+
+		case <-p.semStop.Wait():
+			l.Info("process write object return")
+
+			if p.semStopCompleted != nil {
+				p.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (p *Input) Terminate() {
+	if p.semStop != nil {
+		p.semStop.Close()
+
+		// wait stop completed
+		if p.semStopCompleted != nil {
+			for range p.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -318,7 +345,12 @@ func (p *Input) WriteObject() {
 		}
 
 		if p.Pipeline != "" {
-			pipe, err := pipeline.NewPipelineByScriptPath(p.Pipeline)
+			plPath, err := config.GetPipelinePath(p.Pipeline)
+			if err != nil {
+				l.Errorf("[error] process get pipeline err:%s", err.Error())
+				continue
+			}
+			pipe, err := pipeline.NewPipelineByScriptPath(plPath)
 			if err == nil {
 				pipeMap, err := pipe.Run(string(m)).Result()
 				if err == nil {
@@ -408,7 +440,10 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			ObjectInterval: datakit.Duration{Duration: 5 * time.Minute},
 			MetricInterval: datakit.Duration{Duration: 30 * time.Second},
-			Tags:           make(map[string]string),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+			Tags:             make(map[string]string),
 		}
 	})
 }
