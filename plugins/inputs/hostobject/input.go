@@ -14,6 +14,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 var l = logger.DefaultSLogger(InputName)
 
 type Input struct {
@@ -90,6 +92,7 @@ func (i *Input) Run() {
 
 // ReadEnv support envs：
 //   ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES: booler
+//   ENV_INPUT_HOSTOBJECT_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES"]; ok {
 		b, err := strconv.ParseBool(enable)
@@ -97,6 +100,13 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES to bool: %s, ignore", err)
 		} else {
 			i.EnableNetVirtualInterfaces = b
+		}
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_HOSTOBJECT_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
 		}
 	}
 }
@@ -253,6 +263,7 @@ func DefaultHostObject() *Input {
 			"aufs",
 			"squashfs",
 		},
+		Tags: make(map[string]string),
 	}
 }
 

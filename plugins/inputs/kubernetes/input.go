@@ -7,12 +7,16 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
+var (
+	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.ReadEnv       = (*Input)(nil)
+)
 
 const (
 	inputName = "kubernetes"
@@ -264,6 +268,17 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 
 	return res
+}
+
+// ReadEnv support envs：
+//   ENV_INPUT_K8S_TAGS : "a=b,c=d"
+func (i *Input) ReadEnv(envs map[string]string) {
+	if tagsStr, ok := envs["ENV_INPUT_K8S_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
+		}
+	}
 }
 
 func init() { //nolint:gochecknoinits

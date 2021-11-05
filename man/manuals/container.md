@@ -24,12 +24,13 @@
 
 支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
 
-| 环境变量名                                             | 对应的配置参数项                    | 参数示例       |
-| :---                                                   | ---                                 | ---            |
-| `ENV_INPUT_CONTAINER_ENABLE_METRIC`                    | `enable_metric`                     | `true`/`false` |
-| `ENV_INPUT_CONTAINER_ENABLE_OBJECT`                    | `enable_object`                     | `true`/`false` |
-| `ENV_INPUT_CONTAINER_ENABLE_LOGGING`                   | `enable_logging`                    | `true`/`false` |
-| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false` |
+| 环境变量名                                             | 对应的配置参数项                    | 参数示例                                                     |
+| :---                                                   | ---                                 | ---                                                          |
+| `ENV_INPUT_CONTAINER_ENABLE_METRIC`                    | `enable_metric`                     | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_ENABLE_OBJECT`                    | `enable_object`                     | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_ENABLE_LOGGING`                   | `enable_logging`                    | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
 
 ## 指标集
 

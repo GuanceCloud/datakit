@@ -16,6 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ReadEnv = (*Input)(nil)
+
 const (
 	minInterval = time.Second
 	maxInterval = time.Minute
@@ -293,6 +295,7 @@ func (i *Input) Run() {
 // ReadEnv support envs：
 //   ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
 //   ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
+//   ENV_INPUT_NET_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if ignore, ok := envs["ENV_INPUT_NET_IGNORE_PROTOCOL_STATS"]; ok {
 		b, err := strconv.ParseBool(ignore)
@@ -311,6 +314,13 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.EnableVirtualInterfaces = b
 		}
 	}
+
+	if tagsStr, ok := envs["ENV_INPUT_NET_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
+		}
+	}
 }
 
 func init() { //nolint:gochecknoinits
@@ -320,6 +330,7 @@ func init() { //nolint:gochecknoinits
 			netProto:         psNet.ProtoCounters,
 			netVirtualIfaces: NetVirtualInterfaces,
 			Interval:         datakit.Duration{Duration: time.Second * 10},
+			Tags:             make(map[string]string),
 		}
 	})
 }
