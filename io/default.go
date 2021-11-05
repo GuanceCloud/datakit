@@ -71,6 +71,12 @@ func SetOutputFile(output string) IOOption {
 	}
 }
 
+func SetOutputFileInput(outputFileInputs []string) IOOption {
+	return func(io *IO) {
+		io.OutputFileInput = outputFileInputs
+	}
+}
+
 func SetDataway(dw *dataway.DataWayCfg) IOOption {
 	return func(io *IO) {
 		io.dw = dw

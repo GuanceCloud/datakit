@@ -52,6 +52,7 @@ type IO struct {
 	DynamicCacheDumpThreshold int64
 	FlushInterval             time.Duration
 	OutputFile                string
+	OutputFileInput           []string
 
 	dw *dataway.DataWayCfg
 
@@ -221,6 +222,15 @@ func (x *IO) updateStats(d *iodata) {
 	}
 }
 
+func (x *IO) ifMatchOutputFileInput(feedName string) bool {
+	for _, v := range x.OutputFileInput {
+		if v == feedName {
+			return true
+		}
+	}
+	return false
+}
+
 func (x *IO) cacheData(d *iodata, tryClean bool) {
 	if d == nil {
 		l.Warn("get empty data, ignored")
@@ -237,6 +247,20 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 	} else {
 		x.cache[d.category] = append(x.cache[d.category], d.pts...)
 		x.cacheCnt += int64(len(d.pts))
+	}
+
+	bodies, err := x.buildBody(d.pts)
+	if err != nil {
+		l.Errorf("build iodata bodies failed: %s", err)
+	}
+	for _, body := range bodies {
+		if x.OutputFile != "" {
+			if len(x.OutputFileInput) == 0 || x.ifMatchOutputFileInput(d.name) {
+				if err := x.fileOutput(body.buf); err != nil {
+					l.Error("fileOutput: %s, ignored", err.Error())
+				}
+			}
+		}
 	}
 
 	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) ||
@@ -473,13 +497,6 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 		return err
 	}
 	for _, body := range bodies {
-		if x.OutputFile != "" {
-			if err := x.fileOutput(body.buf); err != nil {
-				l.Error("fileOutput: %s, ignored", err.Error())
-			}
-			continue
-		}
-
 		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
 			return err
 		}

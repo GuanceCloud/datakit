@@ -55,6 +55,7 @@ func DefaultConfig() *Config {
 			MaxDynamicCacheCount:      1024,
 			DynamicCacheDumpThreshold: 512,
 			FlushInterval:             "10s",
+			OutputFileInputs:          []string{},
 		},
 
 		DataWay: &dataway.DataWayCfg{
@@ -106,14 +107,15 @@ type Cgroup struct {
 }
 
 type IOConfig struct {
-	FeedChanSize              int    `toml:"feed_chan_size"`
-	HighFreqFeedChanSize      int    `toml:"high_frequency_feed_chan_size"`
-	MaxCacheCount             int64  `toml:"max_cache_count"`
-	CacheDumpThreshold        int64  `toml:"cache_dump_threshold"`
-	MaxDynamicCacheCount      int64  `toml:"max_dynamic_cache_count"`
-	DynamicCacheDumpThreshold int64  `toml:"dynamic_cache_dump_threshold"`
-	FlushInterval             string `toml:"flush_interval"`
-	OutputFile                string `toml:"output_file"`
+	FeedChanSize              int      `toml:"feed_chan_size"`
+	HighFreqFeedChanSize      int      `toml:"high_frequency_feed_chan_size"`
+	MaxCacheCount             int64    `toml:"max_cache_count"`
+	CacheDumpThreshold        int64    `toml:"cache_dump_threshold"`
+	MaxDynamicCacheCount      int64    `toml:"max_dynamic_cache_count"`
+	DynamicCacheDumpThreshold int64    `toml:"dynamic_cache_dump_threshold"`
+	FlushInterval             string   `toml:"flush_interval"`
+	OutputFile                string   `toml:"output_file"`
+	OutputFileInputs          []string `toml:"output_file_inputs"`
 }
 
 type LoggerCfg struct {
@@ -411,6 +413,7 @@ func (c *Config) ApplyMainConfig() error {
 			dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold),
 			dkio.SetFlushInterval(c.IOConf.FlushInterval),
 			dkio.SetOutputFile(c.IOConf.OutputFile),
+			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
 			dkio.SetDataway(c.DataWay))
 	}
 
