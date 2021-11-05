@@ -65,7 +65,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy 
 安装脚本支持的环境变量如下（全平台支持）：
 
 - `DK_DATAWAY`：指定 dataway 地址，含 `TOKEN`
-- `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent`)
+- `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
 - `DK_NAMESPACE`：支持安装阶段指定命名空间(选举用)
 - `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project=abc,owner=张三`（多个 tag 之间以英文逗号分隔）
 - `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）

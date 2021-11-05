@@ -46,40 +46,64 @@ func (*Input) SyncCloudInfo(provider string) (map[string]interface{}, error) {
 	case "tencent":
 		p := &tencent{baseURL: "http://metadata.tencentyun.com/latest/meta-data"}
 		return p.Sync()
-
+	case "azure":
+		p := &azure{baseURL: "http://169.254.169.254/metadata/instance"}
+		return p.Sync()
+	case "hwcloud":
+		p := &hwcloud{baseURL: "http://169.254.169.254/latest/meta-data"}
+		return p.Sync()
 	default:
 		return nil, fmt.Errorf("unknown cloud_provider: %s", provider)
 	}
 }
 
 func metaGet(metaURL string) (res string) {
-	res = Unavailable
-
-	req, err := http.NewRequest("GET", metaURL, nil)
-	if err != nil {
-		l.Warn(err)
+	if x := metadataGet(metaURL); x != nil {
+		// 避免 meta 接口返回多行数据
+		res = string(bytes.ReplaceAll(x, []byte{'\n'}, []byte{' '}))
 		return
 	}
 
+	return Unavailable
+}
+
+func clientDo(req *http.Request, metaURL string) []byte {
 	resp, err := cloudCli.Do(req)
 	if err != nil {
 		l.Warn(err)
-		return
+		return nil
 	}
 
 	if resp.StatusCode != 200 {
 		l.Warnf("request %s: status code %d", metaURL, resp.StatusCode)
-		return
+		return nil
 	}
-
 	defer resp.Body.Close() //nolint:errcheck
-	x, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		l.Warnf("read response %s: %s", metaURL, err)
-		return
+		return nil
+	}
+	return body
+}
+
+func metadataGet(metaURL string) []byte {
+	req, err := http.NewRequest("GET", metaURL, nil)
+	if err != nil {
+		l.Warn(err)
+		return nil
 	}
 
-	// 避免 meta 接口返回多行数据
-	res = string(bytes.ReplaceAll(x, []byte{'\n'}, []byte{' '}))
-	return
+	return clientDo(req, metaURL)
+}
+
+func metadataGetByHeader(metaURL string) []byte {
+	req, err := http.NewRequest("GET", metaURL, nil)
+	if err != nil {
+		l.Warn(err)
+		return nil
+	}
+	req.Header.Set("Metadata", "true")
+
+	return clientDo(req, metaURL)
 }
