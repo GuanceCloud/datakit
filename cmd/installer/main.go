@@ -450,7 +450,7 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 func injectCloudProvider(p string) error {
 	switch p {
-	case "aliyun", "tencent", "aws":
+	case "aliyun", "tencent", "aws", "hwcloud", "azure":
 
 		l.Infof("try set cloud provider to %s...", p)
 
