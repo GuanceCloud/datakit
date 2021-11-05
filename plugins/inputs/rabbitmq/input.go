@@ -4,9 +4,9 @@ package rabbitmq
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -25,6 +25,16 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"rabbitmq": pipelineCfg} }
 
+func (n *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: n.Log.Pipeline,
+		},
+	}
+}
+
 func (n *Input) RunPipeline() {
 	if n.Log == nil || len(n.Log.Files) == 0 {
 		return
@@ -42,14 +52,18 @@ func (n *Input) RunPipeline() {
 		MultilineMatch:    n.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
+	pl, err := config.GetPipelinePath(n.Log.Pipeline)
+	if err != nil {
+		io.FeedLastError(inputName, err.Error())
+		l.Error(err)
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt, n.Log.IgnoreStatus)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
@@ -100,17 +114,43 @@ func (n *Input) Run() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			if n.tail != nil {
-				n.tail.Close()
-				l.Info("rabbitmq log exit")
-			}
+			n.exit()
 			l.Info("rabbitmq exit")
+			return
+
+		case <-n.semStop.Wait():
+			n.exit()
+			l.Info("rabbitmq return")
+
+			if n.semStopCompleted != nil {
+				n.semStopCompleted.Close()
+			}
 			return
 
 		case <-tick.C:
 
 		case n.pause = <-n.pauseCh:
 			// nil
+		}
+	}
+}
+
+func (n *Input) exit() {
+	if n.tail != nil {
+		n.tail.Close()
+		l.Info("rabbitmq log exit")
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+
+		// wait stop completed
+		if n.semStopCompleted != nil {
+			for range n.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -166,6 +206,9 @@ func init() { //nolint:gochecknoinits
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
 			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 		return s
 	})

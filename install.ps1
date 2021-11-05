@@ -202,6 +202,41 @@ if ($x -ne $null) {
 	}
 }
 
+$git_url=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_URL")
+if ($x -ne $null) {
+	$git_url = $x
+	Write-COutput yellow "* set git url"
+}
+
+$git_key_path=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_KEY_PATH")
+if ($x -ne $null) {
+	$git_key_path = $x
+	Write-COutput yellow "* set git private key path"
+}
+
+$git_key_pw=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_KEY_PW")
+if ($x -ne $null) {
+	$git_key_pw = $x
+	Write-COutput yellow "* set git private key password"
+}
+
+$git_branch=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_BRANCH")
+if ($x -ne $null) {
+	$git_branch = $x
+	Write-COutput yellow "* set git branch"
+}
+
+$git_pull_interval=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_INTERVAL")
+if ($x -ne $null) {
+	$git_pull_interval = $x
+	Write-COutput yellow "* set git interval"
+}
+
 ##########################
 # Detect arch 32 or 64
 ##########################
@@ -233,7 +268,7 @@ Invoke-Expression $dl_installer_action
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade --proxy=${proxy}"
 } else { # install new datakit
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}'"
 	if ($install_only -ne "") {
 		$action = -join($action, " ", "--install-only")
 	}
@@ -247,7 +282,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue $installer
 Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
 
 # clean envs
-$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST"
+$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST","DK_PROXY_TYPE","DK_NGINX_IP","DK_GIT_URL","DK_GIT_KEY_PATH","DK_GIT_KEY_PW","DK_GIT_BRANCH","DK_GIT_INTERVAL"
 foreach ($env in $optional_envs) {
 	Remove-Item -ErrorAction SilentlyContinue Env:$env
 }

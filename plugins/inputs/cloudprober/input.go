@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/common/expfmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -49,6 +50,27 @@ func (n *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("cloudprober exit")
 			return
+
+		case <-n.semStop.Wait():
+			l.Info("cloudprober return")
+
+			if n.semStopCompleted != nil {
+				n.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+
+		// wait stop completed
+		if n.semStopCompleted != nil {
+			for range n.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -150,6 +172,9 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 5},
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 		return s
 	})

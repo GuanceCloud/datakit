@@ -9,20 +9,20 @@ import (
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 )
 
-// parser monitors the s.in channel, if there is a packet ready, it parses the
+// parser monitors the ipt.in channel, if there is a packet ready, it parses the
 // packet into statsd strings and then calls parseStatsdLine, which parses a
 // single statsd metric into a struct.
-func (s *input) parser(idx int) {
+func (ipt *input) parser(idx int) {
 	for {
 		select {
-		case <-s.done:
+		case <-ipt.done:
 			return
 
-		case in := <-s.in:
+		case in := <-ipt.in:
 
 			lines := strings.Split(in.Buffer.String(), "\n")
 
-			s.bufPool.Put(in.Buffer)
+			ipt.bufPool.Put(in.Buffer)
 
 			for _, line := range lines {
 				line = strings.TrimSpace(line)
@@ -30,12 +30,12 @@ func (s *input) parser(idx int) {
 
 				switch {
 				case line == "":
-				case s.DataDogExtensions && strings.HasPrefix(line, "_e"):
-					if err := s.parseEventMessage(in.Time, line, in.Addr); err != nil {
+				case ipt.DataDogExtensions && strings.HasPrefix(line, "_e"):
+					if err := ipt.parseEventMessage(in.Time, line, in.Addr); err != nil {
 						l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
 					}
 				default:
-					if err := s.parseStatsdLine(line); err != nil {
+					if err := ipt.parseStatsdLine(line); err != nil {
 						l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
 					}
 				}
@@ -46,9 +46,9 @@ func (s *input) parser(idx int) {
 
 // parseStatsdLine will parse the given statsd line, validating it as it goes.
 // If the line is valid, it will be cached for the next call to Gather().
-func (s *input) parseStatsdLine(line string) error {
+func (ipt *input) parseStatsdLine(line string) error {
 	lineTags := make(map[string]string)
-	if s.DataDogExtensions {
+	if ipt.DataDogExtensions {
 		recombinedSegments := make([]string, 0)
 		// datadog tags look like this:
 		// users.online:1|c|@0.5|#country:china,environment:production
@@ -152,7 +152,7 @@ func (s *input) parseStatsdLine(line string) error {
 		}
 
 		// Parse the name & tags from bucket
-		m.name, m.field, m.tags = s.parseName(m.bucket)
+		m.name, m.field, m.tags = ipt.parseName(m.bucket)
 		switch m.mtype {
 		case "c":
 			m.tags["metric_type"] = "counter"
@@ -182,7 +182,7 @@ func (s *input) parseStatsdLine(line string) error {
 		tg = append(tg, m.name)
 		m.hash = strings.Join(tg, "")
 
-		s.aggregate(m)
+		ipt.aggregate(m)
 	}
 
 	return nil
@@ -192,9 +192,9 @@ func (s *input) parseStatsdLine(line string) error {
 // config file. If there is a match, it will parse the name of the metric and
 // map of tags.
 // Return values are (<name>, <field>, <tags>).
-func (s *input) parseName(bucket string) (string, string, map[string]string) {
-	s.Lock()
-	defer s.Unlock()
+func (ipt *input) parseName(bucket string) (string, string, map[string]string) {
+	ipt.Lock()
+	defer ipt.Unlock()
 	tags := make(map[string]string)
 
 	bucketparts := strings.Split(bucket, ",")
@@ -211,12 +211,12 @@ func (s *input) parseName(bucket string) (string, string, map[string]string) {
 	var field string
 	name := bucketparts[0]
 
-	p := s.graphiteParser
+	p := ipt.graphiteParser
 	var err error
 
-	if p == nil || s.graphiteParser.Separator != s.MetricSeparator {
-		p, err = graphite.NewGraphiteParser(s.MetricSeparator, s.Templates, nil)
-		s.graphiteParser = p
+	if p == nil || ipt.graphiteParser.Separator != ipt.MetricSeparator {
+		p, err = graphite.NewGraphiteParser(ipt.MetricSeparator, ipt.Templates, nil)
+		ipt.graphiteParser = p
 	}
 
 	if err == nil {
@@ -224,7 +224,7 @@ func (s *input) parseName(bucket string) (string, string, map[string]string) {
 		name, tags, field, _ = p.ApplyTemplate(name)
 	}
 
-	if s.ConvertNames {
+	if ipt.ConvertNames {
 		name = strings.ReplaceAll(name, ".", "_")
 		name = strings.ReplaceAll(name, "-", "__")
 	}

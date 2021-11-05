@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -45,46 +46,49 @@ type Input struct {
 
 	lastStats map[string]cpu.TimesStat
 	ps        CPUStatInfo
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
-func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
+func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
 	tmp := &cpuMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
-	i.collectCacheLast1Ptr = tmp
+	ipt.collectCache = append(ipt.collectCache, tmp)
+	ipt.collectCacheLast1Ptr = tmp
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleCfg
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&cpuMeasurement{},
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) Collect() error {
+func (ipt *Input) Collect() error {
 	// totalCPU only
-	cpuTimes, err := i.ps.CPUTimes(i.PerCPU, true)
+	cpuTimes, err := ipt.ps.CPUTimes(ipt.PerCPU, true)
 	if err != nil {
 		return fmt.Errorf("error gather cpu stats: %w", err)
 	}
 
 	var coreTemp map[string]float64
-	if i.EnableTemperature {
+	if ipt.EnableTemperature {
 		var errTemp error
 		coreTemp, errTemp = CoreTemp()
 		if errTemp != nil {
 			l.Warn("failed to collect core temperature data: ", errTemp)
-			i.EnableTemperature = false
+			ipt.EnableTemperature = false
 			l.Warn("skip core temperature data collection")
 		}
 	}
@@ -94,13 +98,13 @@ func (i *Input) Collect() error {
 		tags := map[string]string{
 			"cpu": cts.CPU,
 		}
-		for k, v := range i.Tags {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 
 		_, total := CPUActiveTotalTime(cts)
 
-		lastCts, ok := i.lastStats[cts.CPU]
+		lastCts, ok := ipt.lastStats[cts.CPU]
 		if !ok {
 			continue
 		}
@@ -134,51 +138,72 @@ func (i *Input) Collect() error {
 				fields["core_temperature"] = v
 			}
 		}
-		i.appendMeasurement(inputName, tags, fields, now)
+		ipt.appendMeasurement(inputName, tags, fields, now)
 	}
 	// last cputimes stats
-	i.lastStats = make(map[string]cpu.TimesStat)
+	ipt.lastStats = make(map[string]cpu.TimesStat)
 	for _, cts := range cpuTimes {
-		i.lastStats[cts.CPU] = cts
+		ipt.lastStats[cts.CPU] = cts
 	}
 	return nil
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("cpu input started")
 
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
-	if err := i.Collect(); err != nil { // gather lastSats
+	if err := ipt.Collect(); err != nil { // gather lastSats
 		l.Errorf("Collect: %s", err.Error())
 	}
 
-	time.Sleep(i.Interval.Duration)
+	time.Sleep(ipt.Interval.Duration)
 
-	tick := time.NewTicker(i.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
 	for {
 		start := time.Now()
-		if err := i.Collect(); err != nil {
+		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
 			io.FeedLastError(inputName, err.Error())
 		}
 
-		if len(i.collectCache) > 0 {
-			if err := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
+		if len(ipt.collectCache) > 0 {
+			if err := inputs.FeedMeasurement(metricName, datakit.Metric, ipt.collectCache,
 				&io.Option{CollectCost: time.Since((start))}); err != nil {
 				l.Errorf("FeedMeasurement: %s", err)
 			}
 		}
-		i.collectCache = make([]inputs.Measurement, 0)
+		ipt.collectCache = make([]inputs.Measurement, 0)
 
 		select {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
 			l.Infof("cpu input exit")
 			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("cpu input return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -186,14 +211,13 @@ func (i *Input) Run() {
 // ReadEnv support envs：
 //   ENV_INPUT_CPU_PERCPU : booler
 //   ENV_INPUT_CPU_ENABLE_TEMPERATURE : booler
-//   ENV_INPUT_CPU_TAGS : "a=b,c=d"
-func (i *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	if percpu, ok := envs["ENV_INPUT_CPU_PERCPU"]; ok {
 		b, err := strconv.ParseBool(percpu)
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CPU_PERCPU to bool: %s, ignore", err)
 		} else {
-			i.PerCPU = b
+			ipt.PerCPU = b
 		}
 	}
 
@@ -202,14 +226,14 @@ func (i *Input) ReadEnv(envs map[string]string) {
 		if err != nil {
 			l.Warnf("parse ENV_INPUT_CPU_ENABLE_TEMPERATURE to bool: %s, ignore", err)
 		} else {
-			i.EnableTemperature = b
+			ipt.EnableTemperature = b
 		}
 	}
 
 	if tagsStr, ok := envs["ENV_INPUT_CPU_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
-			i.Tags[k] = v
+			ipt.Tags[k] = v
 		}
 	}
 }
@@ -220,7 +244,10 @@ func init() { //nolint:gochecknoinits
 			ps:                &CPUInfo{},
 			Interval:          datakit.Duration{Duration: time.Second * 10},
 			EnableTemperature: true,
-			Tags:              make(map[string]string),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+			Tags:             make(map[string]string),
 		}
 	})
 }

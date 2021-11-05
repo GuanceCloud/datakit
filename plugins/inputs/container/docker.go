@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +17,7 @@ import (
 	docker "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dkcfg "gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -536,7 +536,12 @@ func (d *dockerClient) tailStream(ctx context.Context,
 
 	if n := d.Logs.MatchName(deployment, name); n != -1 {
 		l.Debug("log match success, containerName:%s deploymentName:%s", name, deployment)
-		if err := ln.setPipeline(filepath.Join(datakit.PipelineDir, d.Logs[n].Pipeline)); err != nil {
+		pPath, err := dkcfg.GetPipelinePath(d.Logs[n].Pipeline)
+		if err != nil {
+			l.Errorf("container_name:%s new pipeline error: %s", name, err)
+			return err
+		}
+		if err := ln.setPipeline(pPath); err != nil {
 			l.Warnf("container_name:%s new pipeline error: %s", name, err)
 		} else {
 			l.Debug("container_name:%s new pipeline success, path:%s", name, d.Logs[n].Pipeline)

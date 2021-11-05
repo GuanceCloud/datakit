@@ -1,3 +1,4 @@
+//go:build windows && amd64
 // +build windows,amd64
 
 package iis
@@ -5,9 +6,9 @@ package iis
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -39,6 +40,9 @@ type Input struct {
 	tail *tailer.Tailer
 
 	collectCache []inputs.Measurement
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type iisLog struct {
@@ -77,7 +81,13 @@ func (i *Input) RunPipeline() {
 		GlobalTags: i.Tags,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
@@ -94,11 +104,21 @@ func (i *Input) RunPipeline() {
 	}
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineConfig := map[string]string{
 		inputName: pipelineCfg,
 	}
 	return pipelineConfig
+}
+
+func (n *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: n.Log.Pipeline,
+		},
+	}
 }
 
 func (i *Input) AvailableArchs() []string {
@@ -133,12 +153,38 @@ func (i *Input) Run() {
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Infof("iis logging exit")
-			}
+			i.exit()
 			l.Infof("iis input exit")
 			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Infof("iis input return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (n *Input) exit() {
+	if n.tail != nil {
+		n.tail.Close()
+		l.Infof("iis logging exit")
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+
+		// wait stop completed
+		if n.semStopCompleted != nil {
+			for range n.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -255,6 +301,9 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval: datakit.Duration{Duration: time.Second * 15},
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 }

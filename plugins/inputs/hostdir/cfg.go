@@ -3,6 +3,7 @@ package hostdir
 import (
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -41,6 +42,9 @@ type Input struct {
 	collectCache    []inputs.Measurement
 	Tags            map[string]string `toml:"tags"`
 	platform        string
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type Measurement struct {

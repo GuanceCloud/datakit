@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -49,6 +50,9 @@ type FileCollector struct {
 	maxSize   int64
 	ctx       context.Context
 	cancelFun context.CancelFunc
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type UploadInfo struct {

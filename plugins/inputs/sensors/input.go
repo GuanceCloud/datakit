@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package sensors
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
@@ -29,6 +31,9 @@ type Input struct {
 	Interval datakit.Duration  `toml:"interval"`
 	Timeout  datakit.Duration  `toml:"timeout"`
 	Tags     map[string]string `toml:"tags"`
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (*Input) Catalog() string {
@@ -47,49 +52,69 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&sensorsMeasurement{}}
 }
 
-func (s *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("sensors input started")
 
 	var err error
-	if s.Path == "" || !path.IsFileExists(s.Path) {
-		if s.Path, err = exec.LookPath(defCommand); err != nil {
+	if ipt.Path == "" || !path.IsFileExists(ipt.Path) {
+		if ipt.Path, err = exec.LookPath(defCommand); err != nil {
 			l.Errorf("Can not find executable sensor command, install 'lm-sensors' first.")
 
 			return
 		}
-		l.Info("Command fallback to %q due to invalide path provided in 'sensors' input", s.Path)
+		l.Info("Command fallback to %q due to invalide path provided in 'sensors' input", ipt.Path)
 	}
 
-	tick := time.NewTicker(s.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	for {
 		select {
 		case <-tick.C:
-			if err = s.gather(); err != nil {
+			if err = ipt.gather(); err != nil {
 				l.Errorf("gather: %s", err.Error())
-
 				io.FeedLastError(inputName, err.Error())
 				continue
 			}
 		case <-datakit.Exit.Wait():
-			l.Info("sensors input exits")
+			l.Info("sensors input exit")
 
+			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("sensors input return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
 			return
 		}
 	}
 }
 
-func (s *Input) gather() error {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+func (ipt *Input) gather() error {
 	start := time.Now()
-	output, err := cmd.RunWithTimeout(s.Timeout.Duration, false, s.Path, "-u")
+	output, err := cmd.RunWithTimeout(ipt.Timeout.Duration, false, ipt.Path, "-u")
 	if err != nil {
 		l.Errorf("Command process failed: %q", output)
 
 		return err
 	}
 
-	if cache, err := s.parse(string(output)); err != nil {
+	if cache, err := ipt.parse(string(output)); err != nil {
 		return err
 	} else {
 		return inputs.FeedMeasurement(inputName,
@@ -99,19 +124,19 @@ func (s *Input) gather() error {
 	}
 }
 
-func (s *Input) getCustomerTags() map[string]string {
+func (ipt *Input) getCustomerTags() map[string]string {
 	tags := make(map[string]string)
-	for k, v := range s.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
 
 	return tags
 }
 
-func (s *Input) parse(output string) ([]inputs.Measurement, error) {
+func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
 	var (
 		lines  = strings.Split(strings.TrimSpace(output), "\n")
-		tags   = s.getCustomerTags()
+		tags   = ipt.getCustomerTags()
 		fields = make(map[string]interface{})
 		cache  []inputs.Measurement
 	)
@@ -124,7 +149,7 @@ func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 				fields: fields,
 				ts:     time.Now(),
 			})
-			tags = s.getCustomerTags()
+			tags = ipt.getCustomerTags()
 			fields = make(map[string]interface{})
 			continue
 		}
@@ -179,6 +204,9 @@ func init() { //nolint:gochecknoinits
 			Path:     defPath,
 			Interval: defInterval,
 			Timeout:  defTimeout,
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 }

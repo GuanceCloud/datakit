@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -51,6 +52,9 @@ type ExernalInput struct {
 
 	cmd      *exec.Cmd     `toml:"-"`
 	duration time.Duration `toml:"-"`
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (*ExernalInput) Catalog() string {
@@ -145,12 +149,36 @@ func (ex *ExernalInput) Run() {
 		case <-datakit.Exit.Wait():
 			l.Infof("external input %s exiting", ex.Name)
 			return
+
+		case <-ex.semStop.Wait():
+			l.Infof("external input %s return", ex.Name)
+
+			if ex.semStopCompleted != nil {
+				ex.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (ex *ExernalInput) Terminate() {
+	if ex.semStop != nil {
+		ex.semStop.Close()
+
+		// wait stop completed
+		if ex.semStopCompleted != nil {
+			for range ex.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &ExernalInput{}
+		return &ExernalInput{
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+		}
 	})
 }

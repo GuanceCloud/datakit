@@ -7,13 +7,14 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -133,17 +134,32 @@ type Input struct {
 	tail    *tailer.Tailer
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (*Input) Catalog() string { return catalogName }
 
 func (*Input) SampleConfig() string { return sampleConfig }
 
-func (*Input) PipelineConfig() map[string]string { return map[string]string{"mongod": pipelineConfig} }
+func (*Input) PipelineConfig() map[string]string {
+	return map[string]string{inputName: pipelineConfig}
+}
 
-func (*Input) AvailableArchs() []string { return datakit.AllArch }
+func (m *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: m.Log.Pipeline,
+		},
+	}
+}
 
-func (*Input) SampleMeasurement() []inputs.Measurement {
+func (m *Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (m *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&mongodbMeasurement{},
 		&mongodbDBMeasurement{},
@@ -171,14 +187,18 @@ func (m *Input) RunPipeline() {
 		MultilineMatch:    m.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, m.Log.Pipeline)
+	pl, err := config.GetPipelinePath(m.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	m.tail, err = tailer.NewTailer(m.Log.Files, opt)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
@@ -200,11 +220,17 @@ func (m *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if m.tail != nil {
-				m.tail.Close() //nolint:errcheck
-				l.Info("mongodb log exits")
+			m.exit()
+			l.Info("mongodb input exit")
+			return
+
+		case <-m.semStop.Wait():
+			m.exit()
+			l.Info("mongodb input return")
+
+			if m.semStopCompleted != nil {
+				m.semStopCompleted.Close()
 			}
-			l.Info("mongodb input exits")
 			return
 
 		case <-tick.C:
@@ -214,12 +240,31 @@ func (m *Input) Run() {
 			}
 			if err := m.gather(); err != nil {
 				l.Errorf("gather: %s", err.Error())
-
 				io.FeedLastError(inputName, err.Error())
 			}
 
 		case m.pause = <-m.pauseCh:
 			// nil
+		}
+	}
+}
+
+func (m *Input) exit() {
+	if m.tail != nil {
+		m.tail.Close()
+		l.Info("mongodb log exits")
+	}
+}
+
+func (m *Input) Terminate() {
+	if m.semStop != nil {
+		m.semStop.Close()
+
+		// wait stop completed
+		if m.semStopCompleted != nil {
+			for range m.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -353,6 +398,9 @@ func init() { //nolint:gochecknoinits
 			Log:                   &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
 			mongos:                make(map[string]*Server),
 			pauseCh:               make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 }

@@ -105,7 +105,7 @@ func dcaHTTPStart() {
 	}
 
 	g.Go(func(ctx context.Context) error {
-		tryStartServer(srv)
+		tryStartServer(srv, false, nil, nil)
 		l.Info("DCA server exit")
 		return nil
 	})

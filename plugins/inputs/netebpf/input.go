@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -23,9 +24,12 @@ var (
 
 type Input struct {
 	external.ExernalInput
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	tick := time.NewTicker(time.Second * 60)
 	defer tick.Stop()
@@ -53,7 +57,15 @@ loop:
 				break loop
 			}
 		case <-datakit.Exit.Wait():
-			l.Infof("net_ebpf input exit")
+			l.Info("net_ebpf input exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("net_ebpf input return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
 			return
 		}
 	}
@@ -61,7 +73,7 @@ loop:
 	l.Infof("net_ebpf input started")
 	matchHost := regexp.MustCompile("--hostname")
 	haveHostNameArg := false
-	for _, arg := range i.ExernalInput.Args {
+	for _, arg := range ipt.ExernalInput.Args {
 		haveHostNameArg = matchHost.MatchString(arg)
 		if haveHostNameArg {
 			break
@@ -69,30 +81,46 @@ loop:
 	}
 	if !haveHostNameArg {
 		if envHostname, ok := config.Cfg.Environments["ENV_HOSTNAME"]; ok && envHostname != "" {
-			i.ExernalInput.Args = append(i.ExernalInput.Args, "--hostname", envHostname)
+			ipt.ExernalInput.Args = append(ipt.ExernalInput.Args, "--hostname", envHostname)
 		}
 	}
 
-	i.ExernalInput.Run()
+	ipt.ExernalInput.Run()
 	l.Infof("net_ebpf input exit")
 }
 
-func (i *Input) Catalog() string { return catalogName }
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 
-func (i *Input) SampleConfig() string { return configSample }
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) Catalog() string { return catalogName }
+
+func (*Input) SampleConfig() string { return configSample }
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&ConnStatsM{},
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSArchLinuxAmd64}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+		}
 	})
 }

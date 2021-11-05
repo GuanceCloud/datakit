@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -50,6 +51,9 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -60,6 +64,9 @@ func newInput() *Input {
 		pauseCh:    make(chan bool, maxPauseCh),
 		duration:   time.Second * 10,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
+
+		semStop:          cliutils.NewSem(),
+		semStopCompleted: cliutils.NewSem(),
 	}
 }
 
@@ -77,6 +84,14 @@ func (ipt *Input) Run() {
 			l.Info("exit")
 			return
 
+		case <-ipt.semStop.Wait():
+			l.Info("gitlab return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+
 		case <-ticker.C:
 			if ipt.pause {
 				l.Debugf("not leader, skipped")
@@ -86,6 +101,19 @@ func (ipt *Input) Run() {
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
+		}
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }

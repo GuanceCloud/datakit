@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -105,37 +106,40 @@ type Input struct {
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr inputs.Measurement
 	diskStats            PSDiskStats
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
-func (i *Input) appendMeasurement(name string,
+func (ipt *Input) appendMeasurement(name string,
 	tags map[string]string,
 	fields map[string]interface{}, ts time.Time) {
 	tmp := &diskMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
-	i.collectCacheLast1Ptr = tmp
+	ipt.collectCache = append(ipt.collectCache, tmp)
+	ipt.collectCacheLast1Ptr = tmp
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&diskMeasurement{},
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) Collect() error {
-	i.collectCache = make([]inputs.Measurement, 0)
-	disks, partitions, err := i.diskStats.FilterUsage(i.MountPoints, i.IgnoreFS)
+func (ipt *Input) Collect() error {
+	ipt.collectCache = make([]inputs.Measurement, 0)
+	disks, partitions, err := ipt.diskStats.FilterUsage(ipt.MountPoints, ipt.IgnoreFS)
 	if err != nil {
 		return fmt.Errorf("error getting disk usage info: %w", err)
 	}
@@ -152,7 +156,7 @@ func (i *Input) Collect() error {
 			"fstype": du.Fstype,
 			"mode":   mountOpts.Mode(),
 		}
-		for k, v := range i.Tags {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 		var usedPercent float64
@@ -169,30 +173,30 @@ func (i *Input) Collect() error {
 			"inodes_free":  du.InodesFree,
 			"inodes_used":  du.InodesUsed,
 		}
-		i.appendMeasurement(metricName, tags, fields, ts)
+		ipt.appendMeasurement(metricName, tags, fields, ts)
 	}
 
 	return nil
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-	i.IgnoreFS = unique(i.IgnoreFS)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	ipt.IgnoreFS = unique(ipt.IgnoreFS)
 
-	tick := time.NewTicker(i.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
 	for {
 		start := time.Now()
-		if err := i.Collect(); err != nil {
+		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
 			io.FeedLastError(inputName, err.Error())
 		}
 
-		if len(i.collectCache) > 0 {
-			if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
+		if len(ipt.collectCache) > 0 {
+			if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, ipt.collectCache,
 				&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 				io.FeedLastError(inputName, errFeed.Error())
 			}
@@ -203,24 +207,44 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Infof("disk input exit")
 			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("disk input return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
 
 // ReadEnv support envs：
 //   ENV_INPUT_DISK_IGNORE_FS : []string
-//   ENV_INPUT_DISK_TAGS : "a=b,c=d"
-func (i *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
 		list := strings.Split(fsList, ",")
 		l.Debugf("add ignore_fs from ENV: %v", fsList)
-		i.IgnoreFS = append(i.IgnoreFS, list...)
+		ipt.IgnoreFS = append(ipt.IgnoreFS, list...)
 	}
 
 	if tagsStr, ok := envs["ENV_INPUT_DISK_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
-			i.Tags[k] = v
+			ipt.Tags[k] = v
 		}
 	}
 }
@@ -242,7 +266,10 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			diskStats: &PSDisk{},
 			Interval:  datakit.Duration{Duration: time.Second * 10},
-			Tags:      make(map[string]string),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+			Tags:             make(map[string]string),
 		}
 	})
 }

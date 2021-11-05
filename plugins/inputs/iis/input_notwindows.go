@@ -52,7 +52,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineConfig := map[string]string{
 		inputName: pipelineCfg,
 	}

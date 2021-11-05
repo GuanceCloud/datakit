@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -73,6 +73,9 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (i *Input) initCfg() error {
@@ -112,11 +115,21 @@ func (i *Input) initCfg() error {
 	return nil
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"redis": pipelineCfg,
+		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: i.Log.Pipeline,
+		},
+	}
 }
 
 func (i *Input) Collect() error {
@@ -227,14 +240,18 @@ func (i *Input) RunPipeline() {
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error("NewTailer: %s", err)
@@ -258,6 +275,11 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			return
+		case <-i.semStop.Wait():
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
 			return
 		case <-tick.C:
 		}
@@ -294,16 +316,42 @@ func (i *Input) Run() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close() //nolint:errcheck
-				l.Info("redis log exit")
-			}
+			i.exit()
 			l.Info("redis exit")
+			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("redis return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
 			return
 
 		case <-tick.C:
 		case i.pause = <-i.pauseCh:
 			// nil
+		}
+	}
+}
+
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("redis log exit")
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+
+		// wait stop completed
+		if i.semStopCompleted != nil {
+			for range i.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -352,6 +400,9 @@ func init() { //nolint:gochecknoinits
 			Timeout: "10s",
 			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
 			DB:      -1,
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 }

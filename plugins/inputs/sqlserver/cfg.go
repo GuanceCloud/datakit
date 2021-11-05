@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -70,6 +71,9 @@ type Input struct {
 	tail    *tailer.Tailer
 	start   time.Time
 	db      *sql.DB
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type sqlserverlog struct {

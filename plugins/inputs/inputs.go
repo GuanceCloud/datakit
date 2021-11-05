@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
 const (
@@ -77,6 +78,14 @@ type PipelineInput interface {
 	// Input
 	PipelineConfig() map[string]string
 	RunPipeline()
+	GetPipeline() []*tailer.Option
+}
+
+type XLog struct {
+	Files    []string `toml:"files"`
+	Pipeline string   `toml:"pipeline"`
+	Source   string   `toml:"source"`
+	Service  string   `toml:"service"`
 }
 
 // InputV2 new input interface got extra interfaces, for better documentation.
@@ -93,6 +102,10 @@ type ElectionInput interface {
 
 type ReadEnv interface {
 	ReadEnv(map[string]string)
+}
+
+type Stoppable interface {
+	Terminate()
 }
 
 type Creator func() Input
@@ -132,8 +145,8 @@ func AddInput(name string, input Input) {
 }
 
 func AddSelf() {
-	if i, ok := Inputs["self"]; ok {
-		AddInput("self", i())
+	if i, ok := Inputs[datakit.DatakitInputName]; ok {
+		AddInput(datakit.DatakitInputName, i())
 	}
 }
 
@@ -159,7 +172,7 @@ func getEnvs() map[string]string {
 	return envs
 }
 
-func RunInputs() error {
+func RunInputs(isReload bool) error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	g := datakit.G("inputs")
@@ -171,6 +184,12 @@ func RunInputs() error {
 			if ii.input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
 				continue
+			}
+
+			if isReload {
+				if _, ok := ii.input.(Stoppable); !ok {
+					continue
+				}
 			}
 
 			if inp, ok := ii.input.(HTTPInput); ok {
@@ -196,6 +215,25 @@ func RunInputs() error {
 					return nil
 				})
 			}(name, ii)
+		}
+	}
+	return nil
+}
+
+func StopInputs() error {
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	for name, arr := range InputsInfo {
+		for _, ii := range arr {
+			if ii.input == nil {
+				l.Debugf("skip non-datakit-input %s", name)
+				continue
+			}
+
+			if inp, ok := ii.input.(Stoppable); ok {
+				inp.Terminate()
+			}
 		}
 	}
 	return nil

@@ -81,6 +81,11 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy 
 - `HTTPS_PROXY`：通过 Datakit 代理安装
 - `DK_PROXY_TYPE`：代理类型。选项有: "datakit" 或 "nginx"，均为小写
 - `DK_NGINX_IP`：代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者
+- `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
+- `DK_GIT_KEY_PATH`: 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）
+- `DK_GIT_KEY_PW`: 本地 PrivateKey 的使用密码。（如 `passwd`）
+- `DK_GIT_BRANCH`: 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。
+- `DK_GIT_INTERVAL`: 定时拉取的间隔。（如 `1m`）
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 

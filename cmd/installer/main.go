@@ -62,6 +62,11 @@ var (
 	flagInstallLog,
 	flagDCAListen,
 	flagDCAWhiteList,
+	flagGitURL,
+	flagGitKeyPath,
+	flagGitKeyPW,
+	flagGitBranch,
+	flagGitPullInterval,
 	flagSrc,
 	flagCloudProvider string
 	flagDatakitHTTPPort int
@@ -91,6 +96,11 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
 	flag.StringVar(&flagCloudProvider,
 		"cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
+	flag.StringVar(&flagGitURL, "git-url", "", "git repo url")
+	flag.StringVar(&flagGitKeyPath, "git-key-path", "", "git repo access private key path")
+	flag.StringVar(&flagGitKeyPW, "git-key-pw", "", "git repo access private use password")
+	flag.StringVar(&flagGitBranch, "git-branch", "", "git repo branch name")
+	flag.StringVar(&flagGitPullInterval, "git-pull-interval", "", "git repo pull interval")
 	flag.StringVar(&flagSrc, "srcs",
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
@@ -384,6 +394,21 @@ func installNewDatakit(svc service.Service) {
 
 	if flagDatakitName != "" {
 		mc.Name = flagDatakitName
+	}
+
+	if flagGitURL != "" {
+		mc.GitRepos = &config.GitRepost{
+			PullInterval: flagGitPullInterval,
+			Repos: []*config.GitRepository{
+				{
+					Enable:                true,
+					URL:                   flagGitURL,
+					SSHPrivateKeyPath:     flagGitKeyPath,
+					SSHPrivateKeyPassword: flagGitKeyPW,
+					Branch:                flagGitBranch,
+				}, // GitRepository
+			}, // Repos
+		} // GitRepost
 	}
 
 	writeDefInputToMainCfg(mc)

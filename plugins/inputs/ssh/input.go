@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -58,62 +59,65 @@ type Input struct {
 	PrivateKeyFile string
 	MetricsName    string
 	Tags           map[string]string
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 var errSSHCfg = errors.New("both password and privateKeyFile missed")
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
-	if i.Host == "" {
+	if ipt.Host == "" {
 		l.Errorf("host configuration missed")
 		return
 	}
 
-	if i.MetricsName == "" {
-		i.MetricsName = inputName
+	if ipt.MetricsName == "" {
+		ipt.MetricsName = inputName
 	}
 
-	if i.Interval == nil {
-		i.Interval = defaultInterval
+	if ipt.Interval == nil {
+		ipt.Interval = defaultInterval
 	}
 
 	reg := regexp.MustCompile(`:\d{1,5}$`)
-	if !reg.MatchString(i.Host) {
-		i.Host += ":22"
+	if !reg.MatchString(ipt.Host) {
+		ipt.Host += ":22"
 	}
 
 	l.Infof("ssh input started...")
-	i.gather()
+	ipt.gather()
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return SSHConfigSample
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&SSHMeasurement{},
 	}
 }
 
-func (i *Input) getSSHClientConfig() (*ssh.ClientConfig, error) {
+func (ipt *Input) getSSHClientConfig() (*ssh.ClientConfig, error) {
 	var auth []ssh.AuthMethod
 
 	switch {
-	case i.Password != "":
+	case ipt.Password != "":
 		auth = []ssh.AuthMethod{
-			ssh.Password(i.Password),
+			ssh.Password(ipt.Password),
 		}
-	case i.PrivateKeyFile != "":
-		secretCont, err := ioutil.ReadFile(i.PrivateKeyFile)
+	case ipt.PrivateKeyFile != "":
+		secretCont, err := ioutil.ReadFile(ipt.PrivateKeyFile)
 		if err != nil {
 			return nil, err
 		}
@@ -133,17 +137,17 @@ func (i *Input) getSSHClientConfig() (*ssh.ClientConfig, error) {
 	}
 
 	return &ssh.ClientConfig{
-		User:            i.UserName,
+		User:            ipt.UserName,
 		Auth:            auth,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec
 	}, nil
 }
 
-func (i *Input) gather() {
+func (ipt *Input) gather() {
 	var d time.Duration
 	var err error
 
-	switch x := i.Interval.(type) {
+	switch x := ipt.Interval.(type) {
 	case int64:
 		d = time.Duration(x) * time.Second
 	case string:
@@ -163,7 +167,7 @@ func (i *Input) gather() {
 
 	var clientCfg *ssh.ClientConfig
 	for {
-		clientCfg, err = i.getSSHClientConfig()
+		clientCfg, err = ipt.getSSHClientConfig()
 		if err != nil {
 			l.Errorf("SshClientConfig err: %s", err.Error())
 		} else {
@@ -181,7 +185,7 @@ func (i *Input) gather() {
 
 	for {
 		start := time.Now()
-		collectCache, err := i.getMetrics(clientCfg)
+		collectCache, err := ipt.getMetrics(clientCfg)
 		if err != nil {
 			l.Errorf("getMetrics: %s", err.Error())
 			io.FeedLastError(inputName, err.Error())
@@ -200,21 +204,42 @@ func (i *Input) gather() {
 		case <-datakit.Exit.Wait():
 			l.Infof("input %v exit", inputName)
 			return
+
+		case <-ipt.semStop.Wait():
+			l.Infof("input %v return", inputName)
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
 		}
 	}
 }
 
-func (i *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, error) {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, error) {
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
 
-	tags["host"] = i.Host
-	for tag, tagV := range i.Tags {
+	tags["host"] = ipt.Host
+	for tag, tagV := range ipt.Tags {
 		tags[tag] = tagV
 	}
 	// ssh检查
 	var sshRst bool
-	sshClient, err := ssh.Dial("tcp", i.Host, clientCfg)
+	sshClient, err := ssh.Dial("tcp", ipt.Host, clientCfg)
 	if err == nil {
 		sshRst = true
 		defer sshClient.Close() //nolint:errcheck
@@ -225,7 +250,7 @@ func (i *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, e
 	fields["ssh_check"] = sshRst
 
 	// sftp检查
-	if i.SftpCheck {
+	if ipt.SftpCheck {
 		var sftpRst bool
 		if err == nil {
 			sftpClient, err := sftp.NewClient(sshClient)
@@ -251,7 +276,7 @@ func (i *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]inputs.Measurement, e
 	}
 
 	pt := &SSHMeasurement{
-		i.MetricsName,
+		ipt.MetricsName,
 		tags,
 		fields,
 		time.Now(),
@@ -267,7 +292,9 @@ func getMsInterval(d time.Duration) float64 {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		i := &Input{}
-		return i
+		return &Input{
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+		}
 	})
 }

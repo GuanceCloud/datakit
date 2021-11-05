@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
@@ -258,8 +259,13 @@ func doRun() error {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
-	if err := inputs.RunInputs(); err != nil {
+	if err := inputs.RunInputs(false); err != nil {
 		l.Error("error running inputs: %v", err)
+		return err
+	}
+
+	if err := gitrepo.StartPull(); err != nil {
+		l.Errorf("gitrepo.StartPull failed: %v", err)
 		return err
 	}
 

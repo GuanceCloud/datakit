@@ -1,3 +1,4 @@
+//go:build !test
 // +build !test
 
 package postgresql
@@ -113,7 +114,7 @@ func TestCollect(t *testing.T) {
 	input.service = &MockCollectService{
 		mockData: getMockData(mockFields),
 	}
-	input.Tags = map[string]string{"self": "self"}
+	input.Tags = map[string]string{datakit.DatakitInputName: datakit.DatakitInputName}
 	err = input.Collect()
 	assert.NoError(t, err)
 	assert.Greater(t, len(input.collectCache), 0, "input collectCache should has at least one measurement")
@@ -124,7 +125,7 @@ func TestCollect(t *testing.T) {
 	trueFields := getTrueData(mockFields)
 	assert.True(t, reflect.DeepEqual(trueFields, fields))
 	tags := points.Tags()
-	assert.Equal(t, tags["self"], "self")
+	assert.Equal(t, tags[datakit.DatakitInputName], datakit.DatakitInputName)
 	assert.Equal(t, tags["db"], "datname")
 
 	// work correctly when set IgnoredDatabases and Databases
