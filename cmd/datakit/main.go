@@ -259,14 +259,16 @@ func doRun() error {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
-	if err := inputs.RunInputs(false); err != nil {
-		l.Error("error running inputs: %v", err)
-		return err
-	}
-
-	if err := gitrepo.StartPull(); err != nil {
-		l.Errorf("gitrepo.StartPull failed: %v", err)
-		return err
+	if config.GitHasEnabled() {
+		if err := gitrepo.StartPull(); err != nil {
+			l.Errorf("gitrepo.StartPull failed: %v", err)
+			return err
+		}
+	} else {
+		if err := inputs.RunInputs(false); err != nil {
+			l.Error("error running inputs: %v", err)
+			return err
+		}
 	}
 
 	// NOTE: Should we wait all inputs ok, then start http server?

@@ -816,3 +816,15 @@ func GetToken() string {
 
 	return ""
 }
+
+func GitHasEnabled() bool {
+	hasEnable := false
+	for _, v := range Cfg.GitRepos.Repos {
+		if v.Enable {
+			hasEnable = true
+			break
+		}
+	}
+
+	return hasEnable
+}
