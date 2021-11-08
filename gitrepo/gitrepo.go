@@ -41,18 +41,6 @@ const (
 
 func StartPull() error {
 	runGit.Do(func() {
-		hasEnable := false
-		for _, v := range config.Cfg.GitRepos.Repos {
-			if v.Enable {
-				hasEnable = true
-				break
-			}
-		}
-
-		if !hasEnable {
-			return
-		}
-
 		l = logger.SLogger("gitrepo")
 		g := datakit.G("gitrepo")
 
