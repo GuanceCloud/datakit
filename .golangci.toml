@@ -3,7 +3,7 @@
   issues-exit-code = 1
   skip-files = []
   skip-dirs = [
-    "plugins/externals/net_ebpf",
+    #"plugins/externals/net_ebpf",
   ]
 
 [linters-settings]

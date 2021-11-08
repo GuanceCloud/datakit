@@ -195,10 +195,12 @@ int kprobe__tcp_close(struct pt_regs *ctx)
     }
 
     // clear bpfmap_sockfd
-    struct pid_fd *pidfd = bpf_map_lookup_elem(&bpfmap_sockfd_inverted, &sk);
+    struct pid_fd *pidfd = (struct pid_fd *)bpf_map_lookup_elem(&bpfmap_sockfd_inverted, &sk);
     if (pidfd != NULL)
     {
-        bpf_map_delete_elem(&bpfmap_sockfd, pidfd);
+        struct pid_fd pf = {};                             // for linux4.4
+        bpf_probe_read(&pf, sizeof(struct pid_fd), pidfd); // for linux4.4
+        bpf_map_delete_elem(&bpfmap_sockfd, &pf);
         bpf_map_delete_elem(&bpfmap_sockfd_inverted, &sk);
     }
 
@@ -221,44 +223,91 @@ int kprobe__tcp_close(struct pt_regs *ctx)
 SEC("kprobe/tcp_retransmit_skb")
 int kprobe__tcp_retransmit_skb(struct pt_regs *ctx)
 {
-    struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
-    int segs = (int)PT_REGS_PARM3(ctx);
-    struct connection_info conn = {};
-    read_connection_info(sk, &conn, 0, CONN_L4_TCP);
-    update_tcp_retransmit(conn, segs);
+    // https://elixir.bootlin.com/linux/v4.6.7/source/include/net/tcp.h#L537
+    int pre_4_7_0 = pre_kernel_4_7_0();
+    if (pre_4_7_0 == 0)
+    {
+
+        struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+        int segs = (int)PT_REGS_PARM3(ctx);
+        struct connection_info conn = {};
+        read_connection_info(sk, &conn, 0, CONN_L4_TCP);
+        update_tcp_retransmit(conn, segs);
+    }
+    else
+    {
+        struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+        struct connection_info conn = {};
+        read_connection_info(sk, &conn, 0, CONN_L4_TCP);
+        update_tcp_retransmit(conn, 1);
+    }
     return 0;
 }
 
 SEC("kprobe/tcp_sendmsg")
-int kprobe__tcp_sendmsg(struct pt_regs *ctx, struct sock *skp_)
+int kprobe__tcp_sendmsg(struct pt_regs *ctx)
 {
 
-    struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
-    size_t size = (size_t)PT_REGS_PARM3(ctx);
-
-    __u64 pid_tgid = bpf_get_current_pid_tgid();
-
-    // init connection info struct
-    struct connection_info conn_info = {};
-    if (read_connection_info(sk, &conn_info, pid_tgid, CONN_L4_TCP) != 0)
+    // https://elixir.bootlin.com/linux/v4.0/source/include/net/tcp.h#L352
+    int pre_4_1_0 = pre_kernel_4_1_0();
+    if (pre_4_1_0 == 0)
     {
-        return 0;
+        struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+        size_t size = (size_t)PT_REGS_PARM3(ctx);
+
+        __u64 pid_tgid = bpf_get_current_pid_tgid();
+
+        // init connection info struct
+        struct connection_info conn_info = {};
+        if (read_connection_info(sk, &conn_info, pid_tgid, CONN_L4_TCP) != 0)
+        {
+            return 0;
+        }
+
+        // packets in & out
+        __u32 packets_in = 0;
+        __u32 packets_out = 0;
+        read_tcp_segment_counts(sk, &packets_in, &packets_out);
+
+        __u64 ts = bpf_ktime_get_ns();
+
+        struct connection_tcp_stats tcp_stats = {};
+        __builtin_memset(&tcp_stats, 0, sizeof(struct connection_tcp_stats));
+
+        read_tcp_rtt(sk, &tcp_stats);
+        update_tcp_stats(conn_info, tcp_stats);
+
+        update_conn_stats(&conn_info, size, 0, ts, CONN_DIRECTION_AUTO, packets_out, packets_in, 1);
     }
+    else
+    {
+        struct sock *sk = (struct sock *)PT_REGS_PARM2(ctx);
+        size_t size = (size_t)PT_REGS_PARM4(ctx);
 
-    // packets in & out
-    __u32 packets_in = 0;
-    __u32 packets_out = 0;
-    read_tcp_segment_counts(sk, &packets_in, &packets_out);
+        __u64 pid_tgid = bpf_get_current_pid_tgid();
 
-    __u64 ts = bpf_ktime_get_ns();
+        // init connection info struct
+        struct connection_info conn_info = {};
+        if (read_connection_info(sk, &conn_info, pid_tgid, CONN_L4_TCP) != 0)
+        {
+            return 0;
+        }
 
-    struct connection_tcp_stats tcp_stats = {};
-    __builtin_memset(&tcp_stats, 0, sizeof(struct connection_tcp_stats));
+        // packets in & out
+        __u32 packets_in = 0;
+        __u32 packets_out = 0;
+        read_tcp_segment_counts(sk, &packets_in, &packets_out);
 
-    read_tcp_rtt(sk, &tcp_stats);
-    update_tcp_stats(conn_info, tcp_stats);
+        __u64 ts = bpf_ktime_get_ns();
 
-    update_conn_stats(&conn_info, size, 0, ts, CONN_DIRECTION_AUTO, packets_out, packets_in, 1);
+        struct connection_tcp_stats tcp_stats = {};
+        __builtin_memset(&tcp_stats, 0, sizeof(struct connection_tcp_stats));
+
+        read_tcp_rtt(sk, &tcp_stats);
+        update_tcp_stats(conn_info, tcp_stats);
+
+        update_conn_stats(&conn_info, size, 0, ts, CONN_DIRECTION_AUTO, packets_out, packets_in, 1);
+    }
 
     return 0;
 }
@@ -266,7 +315,7 @@ int kprobe__tcp_sendmsg(struct pt_regs *ctx, struct sock *skp_)
 // The function tcp_cleanup_rbuf is called by functions such as
 // tcp_read_sock and tcp_recvmsg
 SEC("kprobe/tcp_cleanup_rbuf")
-int kprobe__tcp_cleanup_buf(struct pt_regs *ctx, struct sock *sk_)
+int kprobe__tcp_cleanup_buf(struct pt_regs *ctx)
 {
     struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
     int copied = (int)PT_REGS_PARM2(ctx);
@@ -310,15 +359,23 @@ int kprobe__ip_make_skb(struct pt_regs *ctx)
     struct connection_info conninf = {};
     if (read_connection_info(sk, &conninf, pid_tgid, CONN_L4_UDP) != 0)
     {
+        __u64 offset_flowi4_daddr = load_offset_flowi4_daddr();
+        __u64 offset_flowi4_saddr = load_offset_flowi4_saddr();
+
         struct flowi4 *fl4 = (struct flowi4 *)PT_REGS_PARM2(ctx);
-        bpf_probe_read(&conninf.saddr + 3, sizeof(__be32), &fl4->saddr);
-        bpf_probe_read(&conninf.daddr + 3, sizeof(__be32), &fl4->daddr);
+        // saddr: fl4->saddr, daddr: fl4->daddr
+        bpf_probe_read(conninf.saddr + 3, sizeof(__be32), (__u8 *)fl4 + offset_flowi4_saddr);
+        bpf_probe_read(conninf.daddr + 3, sizeof(__be32), (__u8 *)fl4 + offset_flowi4_daddr);
         if ((conninf.saddr[3] | conninf.daddr[3]) == 0)
         {
             return 0;
         }
-        bpf_probe_read(&conninf.sport, sizeof(__be16), &fl4->fl4_sport);
-        bpf_probe_read(&conninf.dport, sizeof(__be16), &fl4->fl4_dport);
+
+        __u64 offset_flowi4_dport = load_offset_flowi4_dport();
+        __u64 offset_flowi4_sport = load_offset_flowi4_sport();
+        // sport: fl4->fl4_sport, dport: fl4->fl4_dport
+        bpf_probe_read(&conninf.sport, sizeof(__be16), (__u8 *)fl4 + offset_flowi4_sport);
+        bpf_probe_read(&conninf.dport, sizeof(__be16), (__u8 *)fl4 + offset_flowi4_dport);
         if ((conninf.sport | conninf.dport) == 0)
         {
             return 0;
@@ -333,56 +390,125 @@ int kprobe__ip_make_skb(struct pt_regs *ctx)
 SEC("kprobe/ip6_make_skb")
 int kprobe__ip6_make_skb(struct pt_regs *ctx)
 {
-    __u64 ts = bpf_ktime_get_ns();
-    struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
-    size_t size = (size_t)PT_REGS_PARM4(ctx);
-    __u64 pid_tgid = bpf_get_current_pid_tgid();
-    size -= sizeof(struct udphdr);
-    struct connection_info conn;
-    __builtin_memset(&conn, 0, sizeof(conn));
-    if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_UDP) != 0)
+    // https://elixir.bootlin.com/linux/v4.6.7/source/net/ipv6/ip6_output.c#L1743
+    int pre_4_7_0 = pre_kernel_4_7_0();
+    if (pre_4_7_0 == 0)
     {
-        struct flowi6 *fl6 = (struct flowi6 *)PT_REGS_PARM7(ctx);
-        bpf_probe_read(&conn.saddr, sizeof(__u32) * 4, (&fl6->daddr)->in6_u.u6_addr8);
-        bpf_probe_read(&conn.daddr, sizeof(__u32) * 4, (&fl6->saddr)->in6_u.u6_addr8);
-        if (((conn.saddr[0] | conn.saddr[1] | conn.saddr[2] | conn.saddr[3]) |
-             (conn.daddr[0] | conn.daddr[1] | conn.daddr[2] | conn.daddr[3])) == 0)
+        __u64 ts = bpf_ktime_get_ns();
+        struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+        size_t size = (size_t)PT_REGS_PARM4(ctx);
+        __u64 pid_tgid = bpf_get_current_pid_tgid();
+        size -= sizeof(struct udphdr);
+        struct connection_info conn;
+        __builtin_memset(&conn, 0, sizeof(conn));
+        if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_UDP) != 0)
         {
-            return 0;
+            __u64 offset_flowi6_daddr = load_offset_flowi6_daddr();
+            __u64 offset_flowi6_saddr = load_offset_flowi6_saddr();
+            struct flowi6 *fl6 = (struct flowi6 *)PT_REGS_PARM7(ctx);
+            bpf_probe_read(&conn.daddr, sizeof(__u32) * 4, (__u8 *)fl6 + offset_flowi6_daddr);
+            bpf_probe_read(&conn.saddr, sizeof(__u32) * 4, (__u8 *)fl6 + offset_flowi6_saddr);
+            if (((conn.saddr[0] | conn.saddr[1] | conn.saddr[2] | conn.saddr[3]) |
+                 (conn.daddr[0] | conn.daddr[1] | conn.daddr[2] | conn.daddr[3])) == 0)
+            {
+                return 0;
+            }
+            __u64 offset_flowi6_dport = load_offset_flowi6_dport();
+            __u64 offset_flowi6_sport = load_offset_flowi6_sport();
+            bpf_probe_read(&conn.dport, sizeof(__u32), (__u8 *)fl6 + offset_flowi6_dport);
+            bpf_probe_read(&conn.sport, sizeof(__u32), (__u8 *)fl6 + offset_flowi6_sport);
+            swap_u16(&conn.sport);
+            swap_u16(&conn.dport);
+            update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
         }
-        bpf_probe_read(&conn.sport, sizeof(__u32), &fl6->fl6_sport);
-        bpf_probe_read(&conn.dport, sizeof(__u32), &fl6->fl6_dport);
-        swap_u16(&conn.sport);
-        swap_u16(&conn.dport);
-        update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
     }
+    else
+    {
+        __u64 ts = bpf_ktime_get_ns();
+        struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+        size_t size = (size_t)PT_REGS_PARM4(ctx);
+        __u64 pid_tgid = bpf_get_current_pid_tgid();
+        size -= sizeof(struct udphdr);
+        struct connection_info conn;
+        __builtin_memset(&conn, 0, sizeof(conn));
+        if (read_connection_info(sk, &conn, pid_tgid, CONN_L4_UDP) != 0)
+        {
+            __u64 offset_flowi6_daddr = load_offset_flowi6_daddr();
+            __u64 offset_flowi6_saddr = load_offset_flowi6_saddr();
+            struct flowi6 *fl6 = (struct flowi6 *)PT_REGS_PARM9(ctx);
+            bpf_probe_read(&conn.daddr, sizeof(__u32) * 4, (__u8 *)fl6 + offset_flowi6_daddr);
+            bpf_probe_read(&conn.saddr, sizeof(__u32) * 4, (__u8 *)fl6 + offset_flowi6_saddr);
+            if (((conn.saddr[0] | conn.saddr[1] | conn.saddr[2] | conn.saddr[3]) |
+                 (conn.daddr[0] | conn.daddr[1] | conn.daddr[2] | conn.daddr[3])) == 0)
+            {
+                return 0;
+            }
+            __u64 offset_flowi6_dport = load_offset_flowi6_dport();
+            __u64 offset_flowi6_sport = load_offset_flowi6_sport();
+            bpf_probe_read(&conn.dport, sizeof(__u32), (__u8 *)fl6 + offset_flowi6_dport);
+            bpf_probe_read(&conn.sport, sizeof(__u32), (__u8 *)fl6 + offset_flowi6_sport);
+            swap_u16(&conn.sport);
+            swap_u16(&conn.dport);
+            update_conn_stats(&conn, size, 0, ts, CONN_DIRECTION_AUTO, 1, 0, 2);
+        }
+    }
+
     return 0;
 }
 
 SEC("kprobe/udp_recvmsg")
 int kprobe__udp_recvmsg(struct pt_regs *ctx)
 {
-    __u64 pid_tgid = bpf_get_current_pid_tgid();
-    struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
-    struct msghdr *msg = (struct msghdr *)PT_REGS_PARM2(ctx);
-    int flag = (int)PT_REGS_PARM5(ctx);
-    if (flag & MSG_PEEK)
+    // https://elixir.bootlin.com/linux/v4.0/source/net/ipv4/udp.c#L1257
+    int pre_4_1_0 = pre_kernel_4_1_0();
+    if (pre_4_1_0 == 0)
     {
-        return 0;
+        __u64 pid_tgid = bpf_get_current_pid_tgid();
+        struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+        struct msghdr *msg = (struct msghdr *)PT_REGS_PARM2(ctx);
+        int flag = (int)PT_REGS_PARM5(ctx);
+        if (flag & MSG_PEEK)
+        {
+            return 0;
+        }
+        struct udp_revcmsg_tmp rcvd = {
+            .sk = NULL,
+            .msg = NULL,
+        };
+        if (sk != NULL)
+        {
+            bpf_probe_read(&rcvd.sk, sizeof(struct sock *), &sk);
+        }
+        if (msg != NULL)
+        {
+            bpf_probe_read(&rcvd.msg, sizeof(struct msghdr *), &msg);
+        }
+        bpf_map_update_elem(&bpf_map_tmp_udprecvmsg, &pid_tgid, &rcvd, BPF_ANY);
     }
-    struct udp_revcmsg_tmp rcvd = {
-        .sk = NULL,
-        .msg = NULL,
-    };
-    if (sk != NULL)
+    else
     {
-        bpf_probe_read(&rcvd.sk, sizeof(struct sock *), &sk);
+        __u64 pid_tgid = bpf_get_current_pid_tgid();
+        struct sock *sk = (struct sock *)PT_REGS_PARM2(ctx);
+        struct msghdr *msg = (struct msghdr *)PT_REGS_PARM3(ctx);
+        int flag = (int)PT_REGS_PARM6(ctx);
+        if (flag & MSG_PEEK)
+        {
+            return 0;
+        }
+        struct udp_revcmsg_tmp rcvd = {
+            .sk = NULL,
+            .msg = NULL,
+        };
+        if (sk != NULL)
+        {
+            bpf_probe_read(&rcvd.sk, sizeof(struct sock *), &sk);
+        }
+        if (msg != NULL)
+        {
+            bpf_probe_read(&rcvd.msg, sizeof(struct msghdr *), &msg);
+        }
+        bpf_map_update_elem(&bpf_map_tmp_udprecvmsg, &pid_tgid, &rcvd, BPF_ANY);
     }
-    if (msg != NULL)
-    {
-        bpf_probe_read(&rcvd.msg, sizeof(struct msghdr *), &msg);
-    }
-    bpf_map_update_elem(&bpf_map_tmp_udprecvmsg, &pid_tgid, &rcvd, BPF_ANY);
     return 0;
 }
 

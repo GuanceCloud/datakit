@@ -1,4 +1,4 @@
-// +build linux
+// +build linux, ebpf
 
 package main
 
@@ -16,10 +16,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dns"
+	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dnsflow"
+	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/feed"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/netflow"
-	dkoffsetguess "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/offset_guess"
-	dkutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/utils"
+	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/offset"
 )
 
 const (
@@ -61,17 +61,17 @@ func main() {
 		feedLastErrorLoop(err, signaIterrrupt)
 		return
 	}
-	dkutil.DataKitAPIServer = opt.DataKitAPIServer
+	dkfeed.DataKitAPIServer = opt.DataKitAPIServer
 
-	datakitPostURL := fmt.Sprintf("http://%s%s?input="+inputName, dkutil.DataKitAPIServer, datakit.Network)
+	datakitPostURL := fmt.Sprintf("http://%s%s?input="+inputName, dkfeed.DataKitAPIServer, datakit.Network)
 
-	log_opt := logger.Option{
+	logOpt := logger.Option{
 		Path:  opt.Log,
 		Level: opt.LogLevel,
 		Flags: logger.OPT_DEFAULT,
 	}
 
-	if err := logger.InitRoot(&log_opt); err != nil {
+	if err := logger.InitRoot(&logOpt); err != nil {
 		l.Errorf("set root log faile: %s", err.Error())
 	}
 
@@ -79,6 +79,7 @@ func main() {
 
 	dknetflow.SetLogger(l)
 	dkdns.SetLogger(l)
+	dkoffset.SetLogger(l)
 
 	// duration 介于 10s ～ 30min，若非，默认设为 30s.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
@@ -95,9 +96,9 @@ func main() {
 	}
 	l.Debug(offset)
 
-	constEditor := dkoffsetguess.NewConstEditor(offset)
-
-	bpfManger, err := dknetflow.NewNetFlowManger(constEditor)
+	constEditor := dkoffset.NewConstEditor(offset)
+	netflowTracer := dknetflow.NewNetFlowTracer()
+	bpfManger, err := dknetflow.NewNetFlowManger(constEditor, netflowTracer.ClosedEventHandler)
 	if err != nil {
 		feedLastErrorLoop(err, signaIterrrupt)
 		return
@@ -111,10 +112,22 @@ func main() {
 	}
 	defer bpfManger.Stop(manager.CleanAll) //nolint:errcheck
 
-	ctx := context.Background()
-	defer ctx.Done()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	err = dknetflow.Run(ctx, bpfManger, datakitPostURL, gTags, interval)
+	dnsRecord := dkdns.NewDNSRecord()
+
+	dknetflow.SetDNSRecord(dnsRecord)
+
+	if tp, err := dkdns.NewTPacketDNS(); err != nil {
+		l.Error(err)
+	} else {
+		defer tp.Close()
+		dnsTracer := dkdns.NewDNSFlowTracer()
+		go dnsTracer.Run(ctx, tp, gTags, dnsRecord, datakitPostURL)
+	}
+
+	err = netflowTracer.Run(ctx, bpfManger, datakitPostURL, gTags, interval)
 	if err != nil {
 		feedLastErrorLoop(err, signaIterrrupt)
 		return
@@ -124,9 +137,8 @@ func main() {
 	l.Info("network tracer(net_ebpf) exit")
 }
 
-func getOffset() (*dkoffsetguess.OffsetGuessC, error) {
-	dkoffsetguess.SetLogger(l)
-	bpfManger, err := dkoffsetguess.NewGuessManger()
+func getOffset() (*dkoffset.OffsetGuessC, error) {
+	bpfManger, err := dkoffset.NewGuessManger()
 	if err != nil {
 		return nil, err
 	}
@@ -134,22 +146,18 @@ func getOffset() (*dkoffsetguess.OffsetGuessC, error) {
 	if err := bpfManger.Start(); err != nil {
 		return nil, err
 	}
-
+	loopCount := 5
 	defer bpfManger.Stop(manager.CleanAll) //nolint:errcheck
-
-	if _, _, err := bpfManger.GetProgramSpec(manager.ProbeIdentificationPair{Section: ""}); err != nil {
-		l.Errorf("GetProgramSpec: %s, ignored", err.Error())
-	}
-
-	for i := 0; i < 10; i++ {
-		mapG, err := dkoffsetguess.BpfMapGuessInit(bpfManger)
+	for i := 0; i < loopCount; i++ {
+		mapG, err := dkoffset.BpfMapGuessInit(bpfManger)
 		if err != nil {
-			l.Error(err)
-			continue
+			return nil, err
 		}
-		status, err := dkoffsetguess.GuessTCP(mapG, nil)
-
+		status, err := dkoffset.GuessOffset(mapG, nil)
 		if err != nil {
+			if i == loopCount-1 {
+				return nil, err
+			}
 			l.Error(err)
 			continue
 		} else {
@@ -162,11 +170,11 @@ func getOffset() (*dkoffsetguess.OffsetGuessC, error) {
 func feedLastErrorLoop(err error, ch chan os.Signal) {
 	l.Error(err)
 
-	extLastErr := dkutil.ExternalLastErr{
+	extLastErr := dkfeed.ExternalLastErr{
 		Input:      inputName,
 		ErrContent: err.Error(),
 	}
-	if err := dkutil.FeedLastError(extLastErr); err != nil {
+	if err := dkfeed.FeedLastError(extLastErr); err != nil {
 		l.Error(err)
 	}
 
@@ -174,7 +182,7 @@ func feedLastErrorLoop(err error, ch chan os.Signal) {
 	for {
 		select {
 		case <-ticker.C:
-			if err := dkutil.FeedLastError(extLastErr); err != nil {
+			if err := dkfeed.FeedLastError(extLastErr); err != nil {
 				l.Error(err)
 			}
 		case <-ch:

@@ -60,6 +60,42 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+type DNSStatsM measurement
+
+func (m *DNSStatsM) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
+func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "dnsflow",
+		Tags: map[string]interface{}{
+			"host":      inputs.TagInfo{Desc: "host name"},
+			"src_ip":    inputs.TagInfo{Desc: "DNS client address"},
+			"src_port":  inputs.TagInfo{Desc: "DNS client port"},
+			"dst_ip":    inputs.TagInfo{Desc: "DNS server address"},
+			"dst_port":  inputs.TagInfo{Desc: "DNS server port"},
+			"transport": inputs.TagInfo{Desc: "传输协议 (udp/tcp)"},
+			"family":    inputs.TagInfo{Desc: "TCP/IP 协议族 (IPv4/IPv6)"},
+		},
+		Fields: map[string]interface{}{
+			"timeout": newFInfBool("DNS 请求超时", inputs.UnknownUnit),
+			"rcode": newFInfInt("DNS 响应码: 0 - NoError, 1 - FormErr, 2 - ServFail, "+
+				"3 - NXDomain, 4 - NotImp, 5 - Refused, ...", inputs.UnknownUnit),
+			"resp_time": newFInfInt("DNS 请求的响应时间间隔", inputs.DurationNS),
+		},
+	}
+}
+
+func newFInfBool(desc, unit string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		Type:     inputs.Gauge,
+		DataType: inputs.Bool,
+		Unit:     unit,
+		Desc:     desc,
+	}
+}
+
 func newFInfInt(desc, unit string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,

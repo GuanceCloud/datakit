@@ -1,4 +1,4 @@
-// +build linux
+// +build linux, ebpf
 
 package netflow
 
@@ -27,12 +27,12 @@ func TestConnFilter(t *testing.T) {
 				Saddr: [4]uint32{0, 0, 0, 0x0100007F},
 				Daddr: [4]uint32{0, 0, 0, 0x0100007F},
 				Sport: 1, Dport: 1,
-				Meta: CONN_L3_IPv4,
+				Meta: ConnL3IPv4,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Recv_bytes: 1,
-					Sent_bytes: 1,
+					RecvBytes: 1,
+					SentBytes: 1,
 				},
 			},
 			result: false,
@@ -42,12 +42,12 @@ func TestConnFilter(t *testing.T) {
 				Saddr: [4]uint32{0, 0, 0, 0x0101007F},
 				Sport: 1, Dport: 1,
 				Daddr: [4]uint32{0, 0, 0, 0x0100007F},
-				Meta:  CONN_L3_IPv4,
+				Meta:  ConnL3IPv4,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Recv_bytes: 0,
-					Sent_bytes: 0,
+					RecvBytes: 0,
+					SentBytes: 0,
 				},
 			},
 			result: false,
@@ -57,12 +57,12 @@ func TestConnFilter(t *testing.T) {
 				Saddr: [4]uint32{0, 0, 0, 0x01010080},
 				Daddr: [4]uint32{0, 0, 0, 0x0100007F},
 				Sport: 1, Dport: 1,
-				Meta: CONN_L3_IPv4,
+				Meta: ConnL3IPv4,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Recv_bytes: 1,
-					Sent_bytes: 0,
+					RecvBytes: 1,
+					SentBytes: 0,
 				},
 			},
 			result: true,
@@ -72,12 +72,12 @@ func TestConnFilter(t *testing.T) {
 				Saddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
 				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
 				Sport: 1, Dport: 1,
-				Meta: CONN_L3_IPv6,
+				Meta: ConnL3IPv6,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Recv_bytes: 1,
-					Sent_bytes: 1,
+					RecvBytes: 1,
+					SentBytes: 1,
 				},
 			},
 			result: false,
@@ -87,12 +87,12 @@ func TestConnFilter(t *testing.T) {
 				Saddr: [4]uint32{0, 0, 0xffff0000, 0x0101008F},
 				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
 				Sport: 1, Dport: 1,
-				Meta: CONN_L3_IPv6,
+				Meta: ConnL3IPv6,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Recv_bytes: 0,
-					Sent_bytes: 0,
+					RecvBytes: 0,
+					SentBytes: 0,
 				},
 			},
 			result: false,
@@ -102,12 +102,12 @@ func TestConnFilter(t *testing.T) {
 				Saddr: [4]uint32{0, 0, 0xffff0000, 0x0101008F},
 				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
 				Sport: 1, Dport: 1,
-				Meta: CONN_L3_IPv6,
+				Meta: ConnL3IPv6,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Recv_bytes: 1,
-					Sent_bytes: 0,
+					RecvBytes: 1,
+					SentBytes: 0,
 				},
 			},
 			result: true,
@@ -116,12 +116,12 @@ func TestConnFilter(t *testing.T) {
 			conn: ConnectionInfo{
 				Saddr: [4]uint32{0, 0, 0, 0},
 				Daddr: [4]uint32{0, 0, 0xffff0000, 0x0100007F},
-				Meta:  CONN_L3_IPv6,
+				Meta:  ConnL3IPv6,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Recv_bytes: 1,
-					Sent_bytes: 0,
+					RecvBytes: 1,
+					SentBytes: 0,
 				},
 			},
 			result: false,
@@ -159,18 +159,18 @@ func TestConvConn2M(t *testing.T) {
 				Sport: 8080,
 				Dport: 23456,
 				Pid:   1222,
-				Meta:  CONN_L4_TCP | CONN_L3_IPv4,
+				Meta:  ConnL4TCP | ConnL3IPv4,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Sent_bytes: 1,
-					Recv_bytes: 1,
-					Direction:  CONN_DIRECTION_INCOMING,
+					SentBytes: 1,
+					RecvBytes: 1,
+					Direction: ConnDirectionIncoming,
 				},
-				TcpStats: ConnectionTcpStats{
+				TCPStats: ConnectionTCPStats{
 					Retransmits: 0,
 					Rtt:         189000,
-					Rtt_var:     20000,
+					RttVar:      20000,
 				},
 				TotalClosed:      1,
 				TotalEstablished: 0,
@@ -212,18 +212,18 @@ func TestConvConn2M(t *testing.T) {
 				Sport: 8080,
 				Dport: 23456,
 				Pid:   1222,
-				Meta:  CONN_L4_UDP | CONN_L3_IPv4,
+				Meta:  ConnL4UDP | ConnL3IPv4,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Sent_bytes: 1,
-					Recv_bytes: 1,
-					Direction:  CONN_DIRECTION_INCOMING,
+					SentBytes: 1,
+					RecvBytes: 1,
+					Direction: ConnDirectionIncoming,
 				},
-				TcpStats: ConnectionTcpStats{
+				TCPStats: ConnectionTCPStats{
 					Retransmits: 0,
 					Rtt:         189000,
-					Rtt_var:     20000,
+					RttVar:      20000,
 				},
 				TotalClosed:      1,
 				TotalEstablished: 0,
@@ -260,18 +260,18 @@ func TestConvConn2M(t *testing.T) {
 				Sport: math.MaxUint32,
 				Dport: 23456,
 				Pid:   1222,
-				Meta:  CONN_L4_UDP | CONN_L3_IPv4,
+				Meta:  ConnL4UDP | ConnL3IPv4,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Sent_bytes: 1,
-					Recv_bytes: 1,
-					Direction:  CONN_DIRECTION_INCOMING,
+					SentBytes: 1,
+					RecvBytes: 1,
+					Direction: ConnDirectionIncoming,
 				},
-				TcpStats: ConnectionTcpStats{
+				TCPStats: ConnectionTCPStats{
 					Retransmits: 0,
 					Rtt:         189000,
-					Rtt_var:     20000,
+					RttVar:      20000,
 				},
 				TotalClosed:      1,
 				TotalEstablished: 0,
@@ -308,18 +308,18 @@ func TestConvConn2M(t *testing.T) {
 				Sport: 8080,
 				Dport: 23456,
 				Pid:   1222,
-				Meta:  CONN_L4_TCP | CONN_L3_IPv6,
+				Meta:  ConnL4TCP | ConnL3IPv6,
 			},
 			connStats: ConnFullStats{
 				Stats: ConnectionStats{
-					Sent_bytes: 1,
-					Recv_bytes: 1,
-					Direction:  CONN_DIRECTION_INCOMING,
+					SentBytes: 1,
+					RecvBytes: 1,
+					Direction: ConnDirectionIncoming,
 				},
-				TcpStats: ConnectionTcpStats{
+				TCPStats: ConnectionTCPStats{
 					Retransmits: 0,
 					Rtt:         189000,
-					Rtt_var:     20000,
+					RttVar:      20000,
 				},
 				TotalClosed:      1,
 				TotalEstablished: 0,
@@ -385,13 +385,13 @@ func TestConvConn2M(t *testing.T) {
 			}
 		}
 	}
-	assert.Equal(t, len(cases), len(*ConvertConn2Measurement(&connR, inputName)))
+	assert.Equal(t, len(cases), len(ConvertConn2Measurement(&connR, inputName)))
 }
 
 type caseStatsOp struct {
 	fullStats ConnFullStats
 	connStats ConnectionStats
-	tcpStats  ConnectionTcpStats
+	tcpStats  ConnectionTCPStats
 	resultMap map[string]ConnFullStats
 }
 
@@ -400,59 +400,59 @@ func TestStatsOp(t *testing.T) {
 
 		fullStats: ConnFullStats{
 			Stats: ConnectionStats{
-				Sent_bytes:   1,
-				Recv_bytes:   1,
-				Sent_packets: 1,
-				Recv_packets: 1,
-				Direction:    CONN_DIRECTION_UNKNOWN,
+				SentBytes:   1,
+				RecvBytes:   1,
+				SentPackets: 1,
+				RecvPackets: 1,
+				Direction:   ConnDirectionUnknown,
 			},
-			TcpStats: ConnectionTcpStats{
+			TCPStats: ConnectionTCPStats{
 				Retransmits: 1,
 				Rtt:         189000,
-				Rtt_var:     20000,
+				RttVar:      20000,
 			},
 			TotalClosed:      1,
 			TotalEstablished: 0,
 		},
 		connStats: ConnectionStats{
-			Sent_bytes:   10,
-			Recv_bytes:   20,
-			Sent_packets: 10,
-			Recv_packets: 20,
-			Direction:    CONN_DIRECTION_INCOMING,
+			SentBytes:   10,
+			RecvBytes:   20,
+			SentPackets: 10,
+			RecvPackets: 20,
+			Direction:   ConnDirectionIncoming,
 		},
-		tcpStats: ConnectionTcpStats{
+		tcpStats: ConnectionTCPStats{
 			Retransmits: 2,
 			Rtt:         180000,
-			Rtt_var:     30000,
+			RttVar:      30000,
 		},
 		resultMap: map[string]ConnFullStats{
 			"+": {
 				Stats: ConnectionStats{
-					Sent_bytes:   11,
-					Recv_bytes:   21,
-					Sent_packets: 11,
-					Recv_packets: 21,
-					Direction:    CONN_DIRECTION_INCOMING,
+					SentBytes:   11,
+					RecvBytes:   21,
+					SentPackets: 11,
+					RecvPackets: 21,
+					Direction:   ConnDirectionIncoming,
 				},
-				TcpStats: ConnectionTcpStats{
+				TCPStats: ConnectionTCPStats{
 					Retransmits: 3,
 					Rtt:         180000,
-					Rtt_var:     30000,
+					RttVar:      30000,
 				},
 			},
 			"-": {
 				Stats: ConnectionStats{
-					Sent_bytes:   9,
-					Recv_bytes:   19,
-					Sent_packets: 9,
-					Recv_packets: 19,
-					Direction:    CONN_DIRECTION_INCOMING,
+					SentBytes:   9,
+					RecvBytes:   19,
+					SentPackets: 9,
+					RecvPackets: 19,
+					Direction:   ConnDirectionIncoming,
 				},
-				TcpStats: ConnectionTcpStats{
+				TCPStats: ConnectionTCPStats{
 					Retransmits: 1,
 					Rtt:         180000,
-					Rtt_var:     30000,
+					RttVar:      30000,
 				},
 			},
 		},
@@ -461,26 +461,26 @@ func TestStatsOp(t *testing.T) {
 	for k, v := range cases.resultMap {
 		r := StatsTCPOp(k, cases.fullStats, cases.connStats, cases.tcpStats)
 		assert.Equal(t, v.Stats.Direction, r.Stats.Direction, "direction", k)
-		assert.Equal(t, v.Stats.Recv_bytes, r.Stats.Recv_bytes, "recv_bytes", k)
-		assert.Equal(t, v.Stats.Sent_bytes, r.Stats.Sent_bytes, "sent_bytes", k)
-		assert.Equal(t, v.Stats.Recv_packets, r.Stats.Recv_packets, "recv_packets", k)
-		assert.Equal(t, v.Stats.Sent_packets, r.Stats.Sent_packets, "sent_packets", k)
+		assert.Equal(t, v.Stats.RecvBytes, r.Stats.RecvBytes, "recv_bytes", k)
+		assert.Equal(t, v.Stats.SentBytes, r.Stats.SentBytes, "sent_bytes", k)
+		assert.Equal(t, v.Stats.RecvPackets, r.Stats.RecvPackets, "recv_packets", k)
+		assert.Equal(t, v.Stats.SentPackets, r.Stats.SentPackets, "sent_packets", k)
 
-		assert.Equal(t, v.TcpStats.Retransmits, r.TcpStats.Retransmits, "retransmits", k)
-		assert.Equal(t, v.TcpStats.Rtt, r.TcpStats.Rtt, "rtt", k)
-		assert.Equal(t, v.TcpStats.Rtt_var, r.TcpStats.Rtt_var, "rtt_var", k)
+		assert.Equal(t, v.TCPStats.Retransmits, r.TCPStats.Retransmits, "retransmits", k)
+		assert.Equal(t, v.TCPStats.Rtt, r.TCPStats.Rtt, "rtt", k)
+		assert.Equal(t, v.TCPStats.RttVar, r.TCPStats.RttVar, "rtt_var", k)
 	}
 }
 
 func TestRecord(t *testing.T) {
-	connStatsRecord.initCache()
+	netflowTracer := NewNetFlowTracer()
 	conninfo := ConnectionInfo{
 		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
 		Daddr: [4]uint32{0, 0, 0, 0x0100007F},
 		Sport: 8080,
 		Dport: 23456,
 		Pid:   1222,
-		Meta:  CONN_L4_TCP | CONN_L3_IPv4,
+		Meta:  ConnL4TCP | ConnL3IPv4,
 	}
 	conninfo2 := ConnectionInfo{
 		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
@@ -488,7 +488,7 @@ func TestRecord(t *testing.T) {
 		Sport: 8080,
 		Dport: 23456,
 		Pid:   1222,
-		Meta:  CONN_L4_TCP | CONN_L3_IPv4,
+		Meta:  ConnL4TCP | ConnL3IPv4,
 	}
 	conninfo3 := ConnectionInfo{
 		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
@@ -496,19 +496,19 @@ func TestRecord(t *testing.T) {
 		Sport: 8088,
 		Dport: 3456,
 		Pid:   1233,
-		Meta:  CONN_L4_TCP | CONN_L3_IPv4,
+		Meta:  ConnL4TCP | ConnL3IPv4,
 	}
 
 	connFullStats := ConnFullStats{
 		Stats: ConnectionStats{
-			Sent_bytes: 1,
-			Recv_bytes: 1,
-			Direction:  CONN_DIRECTION_INCOMING,
+			SentBytes: 1,
+			RecvBytes: 1,
+			Direction: ConnDirectionIncoming,
 		},
-		TcpStats: ConnectionTcpStats{
+		TCPStats: ConnectionTCPStats{
 			Retransmits: 0,
 			Rtt:         189000,
-			Rtt_var:     20000,
+			RttVar:      20000,
 		},
 		TotalClosed:      0,
 		TotalEstablished: 1,
@@ -516,28 +516,28 @@ func TestRecord(t *testing.T) {
 
 	connFullStatsResult := ConnFullStats{
 		Stats: ConnectionStats{
-			Sent_bytes: 1,
-			Recv_bytes: 1,
-			Direction:  CONN_DIRECTION_INCOMING,
+			SentBytes: 1,
+			RecvBytes: 1,
+			Direction: ConnDirectionIncoming,
 		},
-		TcpStats: ConnectionTcpStats{
+		TCPStats: ConnectionTCPStats{
 			Retransmits: 0,
 			Rtt:         189000,
-			Rtt_var:     20000,
+			RttVar:      20000,
 		},
 		TotalClosed:      0,
 		TotalEstablished: 0,
 	}
 
 	// test updateLastActive, 设定上一周期存在两个未关闭的连接
-	connStatsRecord.updateLastActive(conninfo, connFullStats)
-	assert.Equal(t, connStatsRecord.lastActiveConns[conninfo], connFullStatsResult)
-	connStatsRecord.updateLastActive(conninfo2, connFullStats)
-	assert.Equal(t, connStatsRecord.lastActiveConns[conninfo], connFullStatsResult)
-	assert.Equal(t, 2, len(connStatsRecord.lastActiveConns))
+	netflowTracer.connStatsRecord.updateLastActive(conninfo, connFullStats)
+	assert.Equal(t, netflowTracer.connStatsRecord.lastActiveConns[conninfo], connFullStatsResult)
+	netflowTracer.connStatsRecord.updateLastActive(conninfo2, connFullStats)
+	assert.Equal(t, netflowTracer.connStatsRecord.lastActiveConns[conninfo], connFullStatsResult)
+	assert.Equal(t, 2, len(netflowTracer.connStatsRecord.lastActiveConns))
 
 	// ==================================================================
-	// 存在一个上一周期未关闭的连接，接收到一个 closed event，调用 closedEventHandler
+	// 存在一个上一周期未关闭的连接，接收到一个 closed event，调用 ClosedEventHandler
 
 	closedEvent := ConncetionClosedInfoC{
 		conn_info: _Ctype_struct_connection_info{
@@ -546,12 +546,12 @@ func TestRecord(t *testing.T) {
 			sport: 8080,
 			dport: 23456,
 			pid:   1222,
-			meta:  _Ctype_uint(CONN_L4_TCP | CONN_L3_IPv4),
+			meta:  _Ctype_uint(ConnL4TCP | ConnL3IPv4),
 		},
 		conn_stats: _Ctype_struct_connection_stats{
 			sent_bytes: 1,
 			recv_bytes: 1,
-			direction:  CONN_DIRECTION_INCOMING,
+			direction:  ConnDirectionIncoming,
 		},
 		conn_tcp_stats: _Ctype_struct_connection_tcp_stats{
 			retransmits: 0,
@@ -561,14 +561,14 @@ func TestRecord(t *testing.T) {
 	}
 	connClosedFullStatsResult := ConnFullStats{
 		Stats: ConnectionStats{
-			Sent_bytes: 0,
-			Recv_bytes: 0,
-			Direction:  CONN_DIRECTION_INCOMING,
+			SentBytes: 0,
+			RecvBytes: 0,
+			Direction: ConnDirectionIncoming,
 		},
-		TcpStats: ConnectionTcpStats{
+		TCPStats: ConnectionTCPStats{
 			Retransmits: 0,
 			Rtt:         189000,
-			Rtt_var:     20000,
+			RttVar:      20000,
 		},
 		TotalClosed:      1,
 		TotalEstablished: 0,
@@ -584,39 +584,43 @@ func TestRecord(t *testing.T) {
 	}
 	data := *(*[]byte)(unsafe.Pointer(&eventStructMock))
 
-	closedEventHandler(1, data, nil, nil)
-	assert.Equal(t, 1, len(connStatsRecord.lastActiveConns))
-	assert.Equal(t, 1, len(connStatsRecord.closedConns))
+	netflowTracer.ClosedEventHandler(1, data, nil, nil)
+	event := <-netflowTracer.closedEventCh
+	netflowTracer.connStatsRecord.updateClosedUseEvent(event)
+	assert.Equal(t, 1, len(netflowTracer.connStatsRecord.lastActiveConns))
+	assert.Equal(t, 1, len(netflowTracer.connStatsRecord.closedConns))
 	connInfo := ConnectionInfo{
 		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
 		Daddr: [4]uint32{0, 0, 0, 0x0100007F},
 		Sport: 8080,
 		Dport: 23456,
 		Pid:   1222,
-		Meta:  CONN_L4_TCP | CONN_L3_IPv4,
+		Meta:  ConnL4TCP | ConnL3IPv4,
 	}
-	assert.Equal(t, connClosedFullStatsResult, connStatsRecord.closedConns[connInfo])
+	assert.Equal(t, connClosedFullStatsResult, netflowTracer.connStatsRecord.closedConns[connInfo])
 
 	// ===================================
 	// 一个已关闭连接的再次建立，并被关闭，接收 closed event，调用 closedEventHandler
-	closedEventHandler(1, data, nil, nil)
+	netflowTracer.ClosedEventHandler(1, data, nil, nil)
+	event = <-netflowTracer.closedEventCh
+	netflowTracer.connStatsRecord.updateClosedUseEvent(event)
 	connClosedFullStatsResult2 := ConnFullStats{
 		Stats: ConnectionStats{
-			Sent_bytes: 1,
-			Recv_bytes: 1,
-			Direction:  CONN_DIRECTION_INCOMING,
+			SentBytes: 1,
+			RecvBytes: 1,
+			Direction: ConnDirectionIncoming,
 		},
-		TcpStats: ConnectionTcpStats{
+		TCPStats: ConnectionTCPStats{
 			Retransmits: 0,
 			Rtt:         189000,
-			Rtt_var:     20000,
+			RttVar:      20000,
 		},
 		TotalClosed:      2,
 		TotalEstablished: 1,
 	}
-	assert.Equal(t, 1, len(connStatsRecord.lastActiveConns))
-	assert.Equal(t, 1, len(connStatsRecord.closedConns))
-	assert.Equal(t, connClosedFullStatsResult2, connStatsRecord.closedConns[connInfo])
+	assert.Equal(t, 1, len(netflowTracer.connStatsRecord.lastActiveConns))
+	assert.Equal(t, 1, len(netflowTracer.connStatsRecord.closedConns))
+	assert.Equal(t, connClosedFullStatsResult2, netflowTracer.connStatsRecord.closedConns[connInfo])
 
 	// =================================
 	// 一个本周期内建立后关闭的连接，调用 closedEventHandler, 首次记录
@@ -629,12 +633,12 @@ func TestRecord(t *testing.T) {
 			sport: 8080,
 			dport: 23456,
 			pid:   1222,
-			meta:  _Ctype_uint(CONN_L4_TCP | CONN_L3_IPv4),
+			meta:  _Ctype_uint(ConnL4TCP | ConnL3IPv4),
 		},
 		conn_stats: _Ctype_struct_connection_stats{
 			sent_bytes: 1,
 			recv_bytes: 1,
-			direction:  CONN_DIRECTION_INCOMING,
+			direction:  ConnDirectionIncoming,
 		},
 		conn_tcp_stats: _Ctype_struct_connection_tcp_stats{
 			retransmits: 0,
@@ -645,14 +649,14 @@ func TestRecord(t *testing.T) {
 
 	connClosedFullStatsResult = ConnFullStats{
 		Stats: ConnectionStats{
-			Sent_bytes: 1,
-			Recv_bytes: 1,
-			Direction:  CONN_DIRECTION_INCOMING,
+			SentBytes: 1,
+			RecvBytes: 1,
+			Direction: ConnDirectionIncoming,
 		},
-		TcpStats: ConnectionTcpStats{
+		TCPStats: ConnectionTCPStats{
 			Retransmits: 0,
 			Rtt:         189000,
-			Rtt_var:     20000,
+			RttVar:      20000,
 		},
 		TotalClosed:      1,
 		TotalEstablished: 1,
@@ -664,7 +668,7 @@ func TestRecord(t *testing.T) {
 		Sport: 8080,
 		Dport: 23456,
 		Pid:   1222,
-		Meta:  CONN_L4_TCP | CONN_L3_IPv4,
+		Meta:  ConnL4TCP | ConnL3IPv4,
 	}
 	eventStructMock = struct {
 		addr uintptr
@@ -676,48 +680,50 @@ func TestRecord(t *testing.T) {
 		cap:  int(unsafe.Sizeof(closedEvent)),
 	}
 	data = *(*[]byte)(unsafe.Pointer(&eventStructMock))
-	closedEventHandler(1, data, nil, nil)
-	assert.Equal(t, 1, len(connStatsRecord.lastActiveConns))
-	assert.Equal(t, 2, len(connStatsRecord.closedConns))
-	assert.Equal(t, connClosedFullStatsResult, connStatsRecord.closedConns[connInfo])
+	netflowTracer.ClosedEventHandler(1, data, nil, nil)
+	event = <-netflowTracer.closedEventCh
+	netflowTracer.connStatsRecord.updateClosedUseEvent(event)
+	assert.Equal(t, 1, len(netflowTracer.connStatsRecord.lastActiveConns))
+	assert.Equal(t, 2, len(netflowTracer.connStatsRecord.closedConns))
+	assert.Equal(t, connClosedFullStatsResult, netflowTracer.connStatsRecord.closedConns[connInfo])
 
 	// ================================
 	// 模拟从 bpfmap 中获取当前 active 的连接，并 merge 记录的 lastActive、closed
 
 	// 存在于 lastActiveConns, stats op = "-"
-	connFullStats.Stats.Recv_bytes += 1
-	ar := connStatsRecord.mergeWithClosedLastActive(conninfo2, connFullStats)
+	connFullStats.Stats.RecvBytes += 1
+	ar := netflowTracer.connStatsRecord.mergeWithClosedLastActive(conninfo2, connFullStats)
 	er := ConnFullStats{
 		Stats: ConnectionStats{
-			Sent_bytes: 0,
-			Recv_bytes: 1,
-			Direction:  CONN_DIRECTION_INCOMING,
+			SentBytes: 0,
+			RecvBytes: 1,
+			Direction: ConnDirectionIncoming,
 		},
-		TcpStats: ConnectionTcpStats{
+		TCPStats: ConnectionTCPStats{
 			Retransmits: 0,
 			Rtt:         189000,
-			Rtt_var:     20000,
+			RttVar:      20000,
 		},
 		TotalClosed:      0,
 		TotalEstablished: 0,
 	}
 	assert.Equal(t, er, ar)
-	connFullStats.Stats.Recv_bytes -= 1
+	connFullStats.Stats.RecvBytes -= 1
 
 	// =================
 
 	// 存在于 closedConns, stats op = "+"
-	ar = connStatsRecord.mergeWithClosedLastActive(conninfo, connFullStats)
+	ar = netflowTracer.connStatsRecord.mergeWithClosedLastActive(conninfo, connFullStats)
 	er = ConnFullStats{
 		Stats: ConnectionStats{
-			Sent_bytes: 2,
-			Recv_bytes: 2,
-			Direction:  CONN_DIRECTION_INCOMING,
+			SentBytes: 2,
+			RecvBytes: 2,
+			Direction: ConnDirectionIncoming,
 		},
-		TcpStats: ConnectionTcpStats{
+		TCPStats: ConnectionTCPStats{
 			Retransmits: 0,
 			Rtt:         189000,
-			Rtt_var:     20000,
+			RttVar:      20000,
 		},
 		TotalClosed:      2,
 		TotalEstablished: 2,
@@ -726,28 +732,28 @@ func TestRecord(t *testing.T) {
 
 	// ================
 	// 首次建立
-	ar = connStatsRecord.mergeWithClosedLastActive(conninfo3, connFullStats)
+	ar = netflowTracer.connStatsRecord.mergeWithClosedLastActive(conninfo3, connFullStats)
 	er = connFullStats
 	assert.Equal(t, er, ar)
 }
 
 func TestConnMeta(t *testing.T) {
 	var meta uint32
-	meta = CONN_L3_IPv4 | CONN_L4_TCP
+	meta = ConnL3IPv4 | ConnL4TCP
 	assert.Equal(t, true, connAddrIsIPv4(meta))
 	assert.Equal(t, true, connProtocolIsTCP(meta))
 
-	meta = meta&(^CONN_L3_MASK) | CONN_L3_IPv6
+	meta = meta&(^ConnL3Mask) | ConnL3IPv6
 	assert.Equal(t, false, connAddrIsIPv4(meta))
-	meta = meta&(^CONN_L4_MASK) | CONN_L4_UDP
+	meta = meta&(^ConnL4Mask) | ConnL4UDP
 	assert.Equal(t, false, connProtocolIsTCP(meta))
 }
 
 func TestDirection(t *testing.T) {
-	assert.Equal(t, "incoming", connDirection2Str(CONN_DIRECTION_INCOMING))
-	assert.Equal(t, "outgoing", connDirection2Str(CONN_DIRECTION_OUTGOING))
-	assert.Equal(t, "outgoing", connDirection2Str(CONN_DIRECTION_AUTO))
-	assert.Equal(t, "outgoing", connDirection2Str(CONN_DIRECTION_UNKNOWN))
+	assert.Equal(t, "incoming", connDirection2Str(ConnDirectionIncoming))
+	assert.Equal(t, "outgoing", connDirection2Str(ConnDirectionOutgoing))
+	assert.Equal(t, "outgoing", connDirection2Str(ConnDirectionAuto))
+	assert.Equal(t, "outgoing", connDirection2Str(ConnDirectionUnknown))
 }
 
 func TestIPv4Type(t *testing.T) {
@@ -782,7 +788,7 @@ func TestU32BE2NETIp(t *testing.T) {
 	}
 	for k, v := range cases {
 		addr := [4]uint32{0, 0, 0, k}
-		netip := U32BEToIp(addr, false)
+		netip := U32BEToIP(addr, false)
 		assert.Equal(t, netip.String(), v)
 	}
 
@@ -792,7 +798,7 @@ func TestU32BE2NETIp(t *testing.T) {
 	}
 
 	for k, v := range casesv6 {
-		netip := U32BEToIp(k, true)
+		netip := U32BEToIP(k, true)
 		assert.Equal(t, netip.String(), v)
 	}
 }
@@ -823,16 +829,16 @@ func TestConnMerge(t *testing.T) {
 				Sport: 1000,
 				Daddr: [4]uint32{0, 0, 0, 0x01},
 				Dport: 101,
-				Meta:  CONN_L3_IPv4 | CONN_L4_TCP,
+				Meta:  ConnL3IPv4 | ConnL4TCP,
 				Pid:   10000,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 10,
-					Recv_bytes: 20,
+					SentBytes: 10,
+					RecvBytes: 20,
 				},
-				TcpStats: ConnectionTcpStats{
-					Rtt:     100 * 1000,
-					Rtt_var: 200 * 1000,
+				TCPStats: ConnectionTCPStats{
+					Rtt:    100 * 1000,
+					RttVar: 200 * 1000,
 				},
 				TotalClosed:      1,
 				TotalEstablished: 2,
@@ -841,16 +847,16 @@ func TestConnMerge(t *testing.T) {
 				Sport: math.MaxUint32,
 				Daddr: [4]uint32{0, 0, 0, 0x01},
 				Dport: 101,
-				Meta:  CONN_L3_IPv4 | CONN_L4_TCP,
+				Meta:  ConnL3IPv4 | ConnL4TCP,
 				Pid:   10000,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 20,
-					Recv_bytes: 40,
+					SentBytes: 20,
+					RecvBytes: 40,
 				},
-				TcpStats: ConnectionTcpStats{
-					Rtt:     100 * 1000,
-					Rtt_var: 200 * 1000,
+				TCPStats: ConnectionTCPStats{
+					Rtt:    100 * 1000,
+					RttVar: 200 * 1000,
 				},
 				TotalClosed:      2,
 				TotalEstablished: 3,
@@ -859,24 +865,24 @@ func TestConnMerge(t *testing.T) {
 				Sport: 42234,
 				Daddr: [4]uint32{0, 0, 0, 0x02},
 				Dport: 201,
-				Meta:  CONN_L3_IPv4 | CONN_L4_UDP,
+				Meta:  ConnL3IPv4 | ConnL4UDP,
 				Pid:   10001,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 10,
-					Recv_bytes: 20,
+					SentBytes: 10,
+					RecvBytes: 20,
 				},
 			}, { // ipv6 udp
 				Saddr: [4]uint32{0x01, 0, 0, 0x02},
 				Sport: math.MaxUint32,
 				Daddr: [4]uint32{0x01, 0, 0, 0x02},
 				Dport: 201,
-				Meta:  CONN_L3_IPv6 | CONN_L4_UDP,
+				Meta:  ConnL3IPv6 | ConnL4UDP,
 				Pid:   10001,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 20,
-					Recv_bytes: 40,
+					SentBytes: 20,
+					RecvBytes: 40,
 				},
 			},
 		},
@@ -888,16 +894,16 @@ func TestConnMerge(t *testing.T) {
 				Sport: 41234,
 				Daddr: [4]uint32{0, 0, 0, 0x01},
 				Dport: 101,
-				Meta:  CONN_L3_IPv4 | CONN_L4_TCP,
+				Meta:  ConnL3IPv4 | ConnL4TCP,
 				Pid:   10000,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 10,
-					Recv_bytes: 20,
+					SentBytes: 10,
+					RecvBytes: 20,
 				},
-				TcpStats: ConnectionTcpStats{
-					Rtt:     100 * 1000,
-					Rtt_var: 200 * 1000,
+				TCPStats: ConnectionTCPStats{
+					Rtt:    100 * 1000,
+					RttVar: 200 * 1000,
 				},
 				TotalClosed:      1,
 				TotalEstablished: 1,
@@ -906,16 +912,16 @@ func TestConnMerge(t *testing.T) {
 				Sport: 41235,
 				Daddr: [4]uint32{0, 0, 0, 0x01},
 				Dport: 101,
-				Meta:  CONN_L3_IPv4 | CONN_L4_TCP,
+				Meta:  ConnL3IPv4 | ConnL4TCP,
 				Pid:   10000,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 10,
-					Recv_bytes: 20,
+					SentBytes: 10,
+					RecvBytes: 20,
 				},
-				TcpStats: ConnectionTcpStats{
-					Rtt:     100 * 1000,
-					Rtt_var: 200 * 1000,
+				TCPStats: ConnectionTCPStats{
+					Rtt:    100 * 1000,
+					RttVar: 200 * 1000,
 				},
 				TotalClosed:      1,
 				TotalEstablished: 2,
@@ -924,16 +930,16 @@ func TestConnMerge(t *testing.T) {
 				Sport: 1000,
 				Daddr: [4]uint32{0, 0, 0, 0x01},
 				Dport: 101,
-				Meta:  CONN_L3_IPv4 | CONN_L4_TCP,
+				Meta:  ConnL3IPv4 | ConnL4TCP,
 				Pid:   10000,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 10,
-					Recv_bytes: 20,
+					SentBytes: 10,
+					RecvBytes: 20,
 				},
-				TcpStats: ConnectionTcpStats{
-					Rtt:     100 * 1000,
-					Rtt_var: 200 * 1000,
+				TCPStats: ConnectionTCPStats{
+					Rtt:    100 * 1000,
+					RttVar: 200 * 1000,
 				},
 				TotalClosed:      1,
 				TotalEstablished: 2,
@@ -942,24 +948,24 @@ func TestConnMerge(t *testing.T) {
 				Sport: 42234,
 				Daddr: [4]uint32{0, 0, 0, 0x02},
 				Dport: 201,
-				Meta:  CONN_L3_IPv4 | CONN_L4_UDP,
+				Meta:  ConnL3IPv4 | ConnL4UDP,
 				Pid:   10001,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 10,
-					Recv_bytes: 20,
+					SentBytes: 10,
+					RecvBytes: 20,
 				},
 			}, { // ipv6 udp
 				Saddr: [4]uint32{0x01, 0, 0, 0x02},
 				Sport: 42234,
 				Daddr: [4]uint32{0x01, 0, 0, 0x02},
 				Dport: 201,
-				Meta:  CONN_L3_IPv6 | CONN_L4_UDP,
+				Meta:  ConnL3IPv6 | ConnL4UDP,
 				Pid:   10001,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 10,
-					Recv_bytes: 20,
+					SentBytes: 10,
+					RecvBytes: 20,
 				},
 			},
 			{ // ipv6 udp
@@ -967,12 +973,12 @@ func TestConnMerge(t *testing.T) {
 				Sport: 42235,
 				Daddr: [4]uint32{0x01, 0, 0, 0x02},
 				Dport: 201,
-				Meta:  CONN_L3_IPv6 | CONN_L4_UDP,
+				Meta:  ConnL3IPv6 | ConnL4UDP,
 				Pid:   10001,
 			}: {
 				Stats: ConnectionStats{
-					Sent_bytes: 10,
-					Recv_bytes: 20,
+					SentBytes: 10,
+					RecvBytes: 20,
 				},
 			},
 		},
@@ -992,23 +998,23 @@ func TestConnMerge(t *testing.T) {
 
 func TestConnSort(t *testing.T) {
 	connListResult := ConnInfoList{}
-	conn, _ := newConn(CONN_L3_IPv4|CONN_L4_TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 111)
+	conn, _ := newConn(ConnL3IPv4|ConnL4TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 111)
 	connListResult = append(connListResult, *conn)
-	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 222)
+	conn, _ = newConn(ConnL3IPv4|ConnL4TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 222)
 	connListResult = append(connListResult, *conn)
-	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 333)
+	conn, _ = newConn(ConnL3IPv4|ConnL4TCP, "1.1.1.2", "5.2.2.2", 22, 31122, 333)
 	connListResult = append(connListResult, *conn)
-	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "2.2.2.3", "7.1.1.1", 80, 51121, 345)
+	conn, _ = newConn(ConnL3IPv4|ConnL4TCP, "2.2.2.3", "7.1.1.1", 80, 51121, 345)
 	connListResult = append(connListResult, *conn)
-	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "2.2.2.3", "8.1.1.1", 80, 53322, 345)
+	conn, _ = newConn(ConnL3IPv4|ConnL4TCP, "2.2.2.3", "8.1.1.1", 80, 53322, 345)
 	connListResult = append(connListResult, *conn)
-	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_TCP, "2.2.2.3", "8.2.1.1", 80, 53322, 345)
+	conn, _ = newConn(ConnL3IPv4|ConnL4TCP, "2.2.2.3", "8.2.1.1", 80, 53322, 345)
 	connListResult = append(connListResult, *conn)
-	conn, _ = newConn(CONN_L3_IPv4|CONN_L4_UDP, "2.2.2.3", "8.2.1.1", 5353, 5353, 3456)
+	conn, _ = newConn(ConnL3IPv4|ConnL4UDP, "2.2.2.3", "8.2.1.1", 5353, 5353, 3456)
 	connListResult = append(connListResult, *conn)
-	conn, _ = newConn(CONN_L3_IPv6|CONN_L4_TCP, "fe80::", "::ff", 80, 53322, 3457)
+	conn, _ = newConn(ConnL3IPv6|ConnL4TCP, "fe80::", "::ff", 80, 53322, 3457)
 	connListResult = append(connListResult, *conn)
-	conn, _ = newConn(CONN_L3_IPv6|CONN_L4_UDP, "fe80::", "::ff", 5353, 5353, 3456)
+	conn, _ = newConn(ConnL3IPv6|ConnL4UDP, "fe80::", "::ff", 5353, 5353, 3456)
 	connListResult = append(connListResult, *conn)
 
 	connList := connListResult // swap item
@@ -1029,8 +1035,8 @@ func TestMultiPidConns(t *testing.T) {
 	connList := []ConnectionInfo{}
 	fullStatsList := []ConnFullStats{}
 
-	connBase, _ := newConn(CONN_L3_IPv4|CONN_L4_TCP, "1.1.1.1", "2.2.2.2", 80, 52211, 1)
-	fullStatsBase := newFullStats(CONN_L3_IPv4|CONN_L4_TCP, 0, 0, 0, 0)
+	connBase, _ := newConn(ConnL3IPv4|ConnL4TCP, "1.1.1.1", "2.2.2.2", 80, 52211, 1)
+	fullStatsBase := newFullStats(ConnL3IPv4|ConnL4TCP, 0, 0, 0, 0)
 
 	// case 1:
 	// 0s: e(pid1), e(pid2)
@@ -1193,8 +1199,8 @@ func newConn(meta uint32, sip, dip string, sport, dport uint32, pid uint32) (*Co
 func newFullStats(meta uint32, sent_bytes, recv_bytes uint64, tcp_established, tcp_closed int64) *ConnFullStats {
 	fullStats := ConnFullStats{
 		Stats: ConnectionStats{
-			Sent_bytes: sent_bytes,
-			Recv_bytes: recv_bytes,
+			SentBytes: sent_bytes,
+			RecvBytes: recv_bytes,
 		},
 	}
 
