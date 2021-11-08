@@ -6,13 +6,14 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -21,8 +22,9 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	maxInterval = 15 * time.Minute
-	minInterval = 10 * time.Second
+	maxInterval   = 15 * time.Minute
+	minInterval   = 10 * time.Second
+	dbmMetricName = "database_performance"
 )
 
 var (
@@ -50,16 +52,21 @@ type mysqllog struct {
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
 	MultilineMatch    string   `toml:"multiline_match"`
+
+	MatchDeprecated string `toml:"match,omitempty"`
 }
 
 type Input struct {
-	Host   string   `toml:"host"`
-	Port   int      `toml:"port"`
-	User   string   `toml:"user"`
-	Pass   string   `toml:"pass"`
-	Sock   string   `toml:"sock"`
-	Tables []string `toml:"tables"`
-	Users  []string `toml:"users"`
+	Host      string    `toml:"host"`
+	Port      int       `toml:"port"`
+	User      string    `toml:"user"`
+	Pass      string    `toml:"pass"`
+	Sock      string    `toml:"sock"`
+	Tables    []string  `toml:"tables"`
+	Users     []string  `toml:"users"`
+	Dbm       bool      `toml:"dbm"`
+	DbmMetric dbmMetric `toml:"dbm_metric"`
+	DbmSample dbmSample `toml:"dbm_sample"`
 
 	Charset string `toml:"charset"`
 
@@ -78,6 +85,8 @@ type Input struct {
 	InnoDB bool           `toml:"innodb"`
 	Log    *mysqllog      `toml:"log"`
 
+	MatchDeprecated string `toml:"match,omitempty"`
+
 	start time.Time
 	db    *sql.DB
 	// response   []map[string]interface{}
@@ -88,6 +97,12 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
+
+	dbmCache       map[string]dbmRow
+	dbmSampleCache dbmSampleCache
 }
 
 func (i *Input) getDsnString() string {
@@ -123,11 +138,21 @@ func (i *Input) getDsnString() string {
 	return cfg.FormatDSN()
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"mysql": pipelineCfg,
+		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: i.Log.Pipeline,
+		},
+	}
 }
 
 func (i *Input) initCfg() error {
@@ -156,7 +181,15 @@ func (i *Input) initCfg() error {
 	}
 
 	i.globalTag()
+	if i.Dbm {
+		i.initDbm()
+	}
 	return nil
+}
+
+func (i *Input) initDbm() {
+	i.dbmSampleCache.explainCache.Size = 1000 // max size
+	i.dbmSampleCache.explainCache.TTL = 60    // 60 second to live
 }
 
 func (i *Input) globalTag() {
@@ -190,6 +223,50 @@ func (i *Input) Collect() {
 				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
 				l.Error(err)
 			}
+		}
+	}
+
+	if i.Dbm && (i.DbmMetric.Enabled || i.DbmSample.Enabled) {
+		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql_dbm")})
+		if i.DbmMetric.Enabled {
+			g.Go(func(ctx context.Context) error {
+				ms, err := i.collectStatementMetrics()
+				if err != nil {
+					return err
+				}
+				if len(ms) > 0 {
+					if err := inputs.FeedMeasurement(dbmMetricName,
+						datakit.Logging,
+						ms,
+						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+						l.Error(err)
+					}
+				}
+				return nil
+			})
+		}
+		if i.DbmSample.Enabled {
+			g.Go(func(ctx context.Context) error {
+				ms, err := i.collectStatementSamples()
+				if err != nil {
+					return err
+				}
+				if len(ms) > 0 {
+					if err := inputs.FeedMeasurement(dbmMetricName,
+						datakit.Logging,
+						ms,
+						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+						l.Error(err)
+					}
+				}
+				return nil
+			})
+		}
+
+		err := g.Wait()
+		if err != nil {
+			l.Errorf("mysql dmb collect error: %v", err)
+			io.FeedLastError(inputName, err.Error())
 		}
 	}
 }
@@ -262,6 +339,16 @@ func (i *Input) collectSchemaMeasurement() ([]inputs.Measurement, error) {
 	return append(x, y...), nil
 }
 
+// dbm metric.
+func (i *Input) collectStatementMetrics() ([]inputs.Measurement, error) {
+	return i.getDbmMetric()
+}
+
+// dbm sample.
+func (i *Input) collectStatementSamples() ([]inputs.Measurement, error) {
+	return i.getDbmSample()
+}
+
 func (i *Input) RunPipeline() {
 	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
@@ -279,14 +366,18 @@ func (i *Input) RunPipeline() {
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)
 	if err != nil {
 		l.Error(err)
@@ -321,6 +412,11 @@ func (i *Input) Run() {
 			l.Info("mysql exit")
 
 			return
+		case <-i.semStop.Wait():
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
+			return
 		case <-tick.C:
 		}
 	}
@@ -350,11 +446,19 @@ func (i *Input) Run() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-			}
+			i.exit()
 			l.Info("mysql exit")
 			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("mysql return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
+			return
+
 		case <-tick.C:
 
 		case i.pause = <-i.pauseCh:
@@ -363,19 +467,41 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) Catalog() string { return catalogName }
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("mysql log exit")
+	}
+}
 
-func (i *Input) SampleConfig() string { return configSample }
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 
-func (i *Input) AvailableArchs() []string { return datakit.AllArch }
+		// wait stop completed
+		if i.semStopCompleted != nil {
+			for range i.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) Catalog() string { return catalogName }
+
+func (*Input) SampleConfig() string { return configSample }
+
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&baseMeasurement{},
 		&schemaMeasurement{},
 		&innodbMeasurement{},
 		&tbMeasurement{},
 		&userMeasurement{},
+		&dbmStateMeasurement{},
+		&dbmSampleMeasurement{},
 	}
 }
 
@@ -407,6 +533,9 @@ func init() { //nolint:gochecknoinits
 			Tags:    make(map[string]string),
 			Timeout: "10s",
 			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 }

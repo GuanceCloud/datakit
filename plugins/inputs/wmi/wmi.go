@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package wmi
@@ -27,6 +28,21 @@ func (ag *Instance) Run() {
 	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				ag.exit()
+				return
+			case <-n.semStop.Wait():
+				ag.exit()
+
+				if n.semStopCompleted != nil {
+					n.semStopCompleted.Close()
+				}
+				return
+			default:
+			}
+		}
 		<-datakit.Exit.Wait()
 		ag.cancelFun()
 	}()
@@ -40,6 +56,23 @@ func (ag *Instance) Run() {
 	}
 
 	ag.run(ag.ctx)
+}
+
+func (_ *Input) exit() {
+	ag.cancelFun()
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+
+		// wait stop completed
+		if n.semStopCompleted != nil {
+			for range n.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
 }
 
 func (r *Instance) run(ctx context.Context) error {
@@ -117,6 +150,8 @@ func (r *Instance) run(ctx context.Context) error {
 func NewAgent() *Instance {
 	ac := &Instance{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+	ac.semStop = cliutils.NewSem()
+	ac.semStopCompleted = cliutils.NewSem()
 	return ac
 }
 

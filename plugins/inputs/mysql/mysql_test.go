@@ -1,7 +1,9 @@
 package mysql
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -285,4 +287,104 @@ func TestUserMeasurement(t *testing.T) {
 			t.Log(point.String())
 		}
 	}
+}
+
+func TestDbmStatement(t *testing.T) {
+	input := &Input{
+		Host: "127.0.0.1",
+		Port: 3306,
+		User: "root",
+		Pass: "123456",
+		Tags: make(map[string]string),
+	}
+
+	err := input.initCfg()
+	assert.NoError(t, err)
+
+	ms, err := input.getDbmMetric()
+
+	assert.NoError(t, err)
+	assert.Equal(t, len(ms), 0)
+
+	time.Sleep(5 * time.Second)
+	ms, err = input.getDbmMetric()
+
+	assert.GreaterOrEqual(t, len(ms), 0)
+	assert.NoError(t, err)
+}
+
+func TestDbmStatementSamples(t *testing.T) {
+	test := assert.New(t)
+	input := &Input{
+		Host:      "127.0.0.1",
+		Port:      3307,
+		User:      "root",
+		Pass:      "123456",
+		Tags:      make(map[string]string),
+		Dbm:       true,
+		DbmMetric: dbmMetric{Enabled: true},
+		DbmSample: dbmSample{Enabled: true},
+	}
+
+	err := input.initCfg()
+	test.NoError(err)
+
+	ms, err := input.getDbmSample()
+	test.GreaterOrEqual(len(ms), 0)
+	test.NoError(err)
+	time.Sleep(5 * time.Second)
+
+	ms, err = input.getDbmSample()
+	test.NoError(err)
+	test.GreaterOrEqual(len(ms), 0)
+}
+
+func TestUtil(t *testing.T) {
+	input := &Input{
+		Host: "127.0.0.1",
+		Port: 3306,
+		User: "root",
+		Pass: "123456",
+		Tags: make(map[string]string),
+	}
+
+	err := input.initCfg()
+	assert.NoError(t, err)
+
+	t.Run("mysqlVersion", func(t *testing.T) {
+		version, err := getVersion(input.db)
+		assert.NoError(t, err)
+
+		// mock
+		versions := []string{"5.6.36", "5.6.36a"}
+		for _, v := range versions {
+			version.version = v
+			assert.True(t, version.versionCompatible([]int{5, 6, 36}))
+			assert.True(t, version.versionCompatible([]int{4, 6, 36}))
+			assert.False(t, version.versionCompatible([]int{6, 6, 36}))
+			assert.True(t, version.versionCompatible([]int{5, 4, 36}))
+			assert.False(t, version.versionCompatible([]int{5, 7, 36}))
+			assert.True(t, version.versionCompatible([]int{5, 6, 35}))
+			assert.False(t, version.versionCompatible([]int{5, 6, 37}))
+		}
+	})
+
+	t.Run("canExplain", func(t *testing.T) {
+		assert.True(t, canExplain("select * from demo"))
+		assert.False(t, canExplain("alter table"))
+	})
+
+	t.Run("cacheLimit", func(t *testing.T) {
+		cache := cacheLimit{
+			Size: 5,
+			TTL:  10,
+		}
+		for i := 0; i < 5; i++ {
+			key := fmt.Sprintf("key-%v", i)
+			assert.True(t, cache.Acquire(key))
+		}
+		assert.False(t, cache.Acquire("key"))
+		time.Sleep(15 * time.Second)
+		assert.True(t, cache.Acquire("key"))
+	})
 }

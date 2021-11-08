@@ -264,8 +264,8 @@ func getDiskInfo(ignoreFs []string) []*DiskInfo {
 	return infos
 }
 
-func (i *Input) getEnabledInputs() (res []*CollectorStatus) {
-	inputsStats, err := io.GetStats(i.IOTimeout.Duration) // get all inputs stats
+func (ipt *Input) getEnabledInputs() (res []*CollectorStatus) {
+	inputsStats, err := io.GetStats(ipt.IOTimeout.Duration) // get all inputs stats
 	if err != nil {
 		l.Warnf("fail to get inputs stats, %s", err)
 		return
@@ -279,7 +279,7 @@ func (i *Input) getEnabledInputs() (res []*CollectorStatus) {
 		}
 
 		lastErr := s.LastErr
-		if ts > 0 && now.Sub(s.LastErrTS) > i.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
+		if ts > 0 && now.Sub(s.LastErrTS) > ipt.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
 			l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
 			lastErr = ""
 			ts = 0
@@ -298,10 +298,10 @@ func (i *Input) getEnabledInputs() (res []*CollectorStatus) {
 	return res
 }
 
-func (i *Input) getHostObjectMessage() (*HostObjectMessage, error) {
+func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
 
-	stat := i.getEnabledInputs()
+	stat := ipt.getEnabledInputs()
 
 	// NOTE: 由于获取采集器的运行情况信息时，io 模块可能较忙，导致获取不到
 	// 故此处缓存一下历史，以免在 message 字段中采集器信息字段(collectors)
@@ -335,15 +335,15 @@ func (i *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		cpuPercent: getCPUPercent(),
 		load5:      getLoad5(),
 		Mem:        getMemInfo(),
-		Net:        getNetInfo(i.EnableNetVirtualInterfaces),
-		Disk:       getDiskInfo(i.IgnoreFS),
+		Net:        getNetInfo(ipt.EnableNetVirtualInterfaces),
+		Disk:       getDiskInfo(ipt.IgnoreFS),
 		Conntrack:  conntrackutil.GetConntrackInfo(),
 		FileFd:     fileFd,
 	}
 
 	// sync cloud extra fields
-	if v, ok := i.Tags["cloud_provider"]; ok {
-		info, err := i.SyncCloudInfo(v)
+	if v, ok := ipt.Tags["cloud_provider"]; ok {
+		info, err := ipt.SyncCloudInfo(v)
 		if err != nil {
 			l.Warnf("sync cloud info failed: %v, ignored", err)
 		} else {

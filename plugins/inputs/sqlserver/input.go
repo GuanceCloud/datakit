@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -34,6 +34,16 @@ func (*Input) PipelineConfig() map[string]string {
 		inputName: pipeline,
 	}
 	return pipelineMap
+}
+
+func (n *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: n.Log.Pipeline,
+		},
+	}
 }
 
 func (n *Input) initDB() error {
@@ -67,14 +77,18 @@ func (n *Input) RunPipeline() {
 		MultilineMatch:    `^\d{4}-\d{2}-\d{2}`,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
+	pl, err := config.GetPipelinePath(n.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -106,6 +120,8 @@ func (n *Input) Run() {
 		select {
 		case <-tick.C:
 		case <-datakit.Exit.Wait():
+			l.Info("sqlserver exit")
+			return
 		}
 	}
 
@@ -141,6 +157,35 @@ func (n *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("sqlserver exit")
 			return
+
+		case <-n.semStop.Wait():
+			n.exit()
+			l.Info("sqlserver return")
+
+			if n.semStopCompleted != nil {
+				n.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (n *Input) exit() {
+	if n.tail != nil {
+		n.tail.Close()
+		l.Info("sqlserver log exit")
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+
+		// wait stop completed
+		if n.semStopCompleted != nil {
+			for range n.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
@@ -242,6 +287,9 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 		return s
 	})

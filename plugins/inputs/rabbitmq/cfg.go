@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -77,6 +78,9 @@ type Input struct {
 	Log      *rabbitmqlog      `toml:"log"`
 	Tags     map[string]string `toml:"tags"`
 
+	QueueNameIncludeDeprecated []string `toml:"queue_name_include,omitempty"`
+	QueueNameExcludeDeprecated []string `toml:"queue_name_exclude,omitempty"`
+
 	tls.ClientConfig
 
 	// HTTP client
@@ -89,6 +93,9 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type rabbitmqlog struct {

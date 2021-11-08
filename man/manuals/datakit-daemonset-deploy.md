@@ -213,6 +213,8 @@ spec:
           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
         - name: ENV_ENABLE_ELECTION
           value: enable
+        - name: ENV_LOG
+          value: stdout
         - name: ENV_HTTP_LISTEN
           value: 0.0.0.0:9529
         image: pubrepo.jiagouyun.com/datakit/datakit:{{.Version}}

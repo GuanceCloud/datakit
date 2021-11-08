@@ -1,4 +1,5 @@
-//+build windows
+//go:build windows
+// +build windows
 
 package winevent
 
@@ -11,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -40,11 +42,11 @@ func (w *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (w *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger("win event log")
 	var err error
 
-	w.subscription, err = w.evtSubscribe("", w.Query)
+	ipt.subscription, err = ipt.evtSubscribe("", ipt.Query)
 	if err != nil {
 		io.FeedLastError(inputName, err.Error())
 		return
@@ -55,10 +57,19 @@ func (w *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("win event exit")
 			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("win event return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+
 		default:
 			time.Sleep(time.Millisecond * 1)
 			start := time.Now()
-			events, err := w.fetchEvents(w.subscription)
+			events, err := ipt.fetchEvents(ipt.subscription)
 			if err != nil {
 				switch {
 				case err == ERROR_NO_MORE_ITEMS:
@@ -70,15 +81,28 @@ func (w *Input) Run() {
 				}
 			}
 			for _, event := range events {
-				w.handleEvent(event)
+				ipt.handleEvent(event)
 			}
-			if len(w.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Logging, w.collectCache, &io.Option{CollectCost: time.Since(start)})
+			if len(ipt.collectCache) > 0 {
+				err := inputs.FeedMeasurement(inputName, datakit.Logging, ipt.collectCache, &io.Option{CollectCost: time.Since(start)})
 				if err != nil {
 					l.Error(err.Error())
 					io.FeedLastError(inputName, err.Error())
 				}
-				w.collectCache = w.collectCache[:0]
+				ipt.collectCache = ipt.collectCache[:0]
+			}
+		}
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+
+		// wait stop completed
+		if n.semStopCompleted != nil {
+			for range n.semStopCompleted.Wait() {
+				return
 			}
 		}
 	}
@@ -317,10 +341,12 @@ func openPublisherMetadata(
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{
+		return &Input{
 			buf:   make([]byte, 1<<14),
 			Query: query,
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
-		return s
 	})
 }

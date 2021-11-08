@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -44,6 +45,9 @@ var (
 	g = datakit.G("http")
 
 	DcaToken = ""
+
+	semReload          *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload signal
+	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
 )
 
 //nolint:stylecheck
@@ -201,13 +205,15 @@ func HTTPStart() {
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
+	refreshRebootSem()
+
 	srv := &http.Server{
 		Addr:    apiConfig.Listen,
 		Handler: router,
 	}
 
 	g.Go(func(ctx context.Context) error {
-		tryStartServer(srv)
+		tryStartServer(srv, true, semReload, semReloadCompleted)
 		l.Info("http server exit")
 		return nil
 	})
@@ -220,41 +226,88 @@ func HTTPStart() {
 		}
 
 		g.Go(func(ctx context.Context) error {
-			tryStartServer(pprofSrv)
+			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
 			l.Info("pprof server exit")
 			return nil
 		})
 	}
 
 	l.Debug("http server started")
-	<-datakit.Exit.Wait()
 
-	l.Debug("stopping http server...")
+	stopFunc := func() {
+		if err := srv.Shutdown(context.Background()); err != nil {
+			l.Errorf("Failed of http server shutdown, err: %s", err.Error())
+		} else {
+			l.Info("http server shutdown ok")
+		}
 
-	if err := srv.Shutdown(context.Background()); err != nil {
-		l.Errorf("Failed of http server shutdown, err: %s", err.Error())
-	} else {
-		l.Info("http server shutdown ok")
+		if enablePprof {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := pprofSrv.Shutdown(ctx); err != nil {
+				l.Error(err)
+			}
+			l.Infof("pprof stopped")
+		}
 	}
 
-	if enablePprof {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := pprofSrv.Shutdown(ctx); err != nil {
-			l.Error(err)
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			stopFunc()
+			return
+		case <-semReload.Wait():
+			l.Info("[HttpServer] reload detected")
+			stopFunc()
+			if semReloadCompleted != nil {
+				semReloadCompleted.Close()
+			}
+			return
 		}
-		l.Infof("pprof stopped")
 	}
 }
 
-func tryStartServer(srv *http.Server) {
+func refreshRebootSem() {
+	semReload = cliutils.NewSem()
+	semReloadCompleted = cliutils.NewSem()
+}
+
+func ReloadTheNormalServer() {
+	if semReload != nil {
+		semReload.Close()
+
+		// wait stop completed
+		if semReloadCompleted != nil {
+			for range semReloadCompleted.Wait() {
+				l.Info("[HttpServer] reload stopped")
+				go HTTPStart()
+				return
+			}
+		}
+	}
+}
+
+func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadCompleted *cliutils.Sem) {
 	retryCnt := 0
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			l.Info("tryStartServer exit")
 			return
 		default:
+			if canReload && semReload != nil {
+				select {
+				case <-semReload.Wait():
+					l.Info("tryStartServer reload detected")
+
+					if semReloadCompleted != nil {
+						semReloadCompleted.Close()
+					}
+					return
+				default:
+				}
+			}
 		}
 
 		if portInUse(srv.Addr) {

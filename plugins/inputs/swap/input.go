@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	minInterval = time.Second
@@ -86,35 +89,38 @@ type Input struct {
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr inputs.Measurement
 	swapStat             SwapStat
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
-func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
+func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
 	tmp := &swapMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
-	i.collectCacheLast1Ptr = tmp
+	ipt.collectCache = append(ipt.collectCache, tmp)
+	ipt.collectCacheLast1Ptr = tmp
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleCfg
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&swapMeasurement{},
 	}
 }
 
-func (i *Input) Collect() error {
-	i.collectCache = make([]inputs.Measurement, 0)
-	swap, err := i.swapStat()
+func (ipt *Input) Collect() error {
+	ipt.collectCache = make([]inputs.Measurement, 0)
+	swap, err := ipt.swapStat()
 	ts := time.Now()
 	if err != nil {
 		return fmt.Errorf("error getting swap memory info: %w", err)
@@ -130,26 +136,26 @@ func (i *Input) Collect() error {
 		"out": swap.Sout,
 	}
 	tags := map[string]string{}
-	for k, v := range i.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
-	i.appendMeasurement(metricName, tags, fields, ts)
+	ipt.appendMeasurement(metricName, tags, fields, ts)
 
 	return nil
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("system input started")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-	tick := time.NewTicker(i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 	for {
 		select {
 		case <-tick.C:
 			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
+			if err := ipt.Collect(); err == nil {
+				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, ipt.collectCache,
 					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
 					io.FeedLastError(inputName, errFeed.Error())
 					l.Error(errFeed)
@@ -161,6 +167,38 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Infof("system input exit")
 			return
+
+		case <-ipt.semStop.Wait():
+			l.Infof("system input return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+// ReadEnv support envs：
+//   ENV_INPUT_SWAP_TAGS : "a=b,c=d"
+func (ipt *Input) ReadEnv(envs map[string]string) {
+	if tagsStr, ok := envs["ENV_INPUT_SWAP_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			ipt.Tags[k] = v
 		}
 	}
 }
@@ -170,6 +208,10 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			swapStat: PSSwapStat,
 			Interval: datakit.Duration{Duration: time.Second * 10},
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+			Tags:             make(map[string]string),
 		}
 	})
 }

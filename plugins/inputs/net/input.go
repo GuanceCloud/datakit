@@ -9,12 +9,15 @@ import (
 	"time"
 
 	psNet "github.com/shirou/gopsutil/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	minInterval = time.Second
@@ -151,6 +154,9 @@ type Input struct {
 	netIO            NetIO
 	netProto         NetProto
 	netVirtualIfaces NetVirtualIfaces
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
@@ -284,15 +290,36 @@ func (i *Input) Run() {
 				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			l.Infof("net input exit")
+			l.Info("net input exit")
+			return
+		case <-i.semStop.Wait():
+			l.Info("net input return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
 			return
 		}
 	}
 }
 
-// ReadEnv support envs：
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+
+		// wait stop completed
+		if i.semStopCompleted != nil {
+			for range i.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+// ReadEnv , support envs：
 //   ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
 //   ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
+//   ENV_INPUT_NET_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if ignore, ok := envs["ENV_INPUT_NET_IGNORE_PROTOCOL_STATS"]; ok {
 		b, err := strconv.ParseBool(ignore)
@@ -311,6 +338,13 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.EnableVirtualInterfaces = b
 		}
 	}
+
+	if tagsStr, ok := envs["ENV_INPUT_NET_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
+		}
+	}
 }
 
 func init() { //nolint:gochecknoinits
@@ -320,6 +354,10 @@ func init() { //nolint:gochecknoinits
 			netProto:         psNet.ProtoCounters,
 			netVirtualIfaces: NetVirtualInterfaces,
 			Interval:         datakit.Duration{Duration: time.Second * 10},
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+			Tags:             make(map[string]string),
 		}
 	})
 }

@@ -20,7 +20,11 @@ function updateHosts() {
                 # iterate over the line numbers on which matches were found
                 while read -r line_number; do
                     # replace the text of each line with the desired host entry
-                    sudo sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+                    if [[ "$OSTYPE" == "darwin"* ]]; then
+                        sudo sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+                    else
+                        sudo sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
+                    fi
                 done <<< "$matches_in_hosts"
             else
                 echo "$host_entry" | sudo tee -a /etc/hosts > /dev/null
@@ -229,6 +233,31 @@ if [ -n "$DK_INSTALL_LOG" ]; then
 	install_log=$DK_INSTALL_LOG
 fi
 
+git_url=""
+if [ -n "$DK_GIT_URL" ]; then
+	git_url=$DK_GIT_URL
+fi
+
+git_key_path=""
+if [ -n "$DK_GIT_KEY_PATH" ]; then
+	git_key_path=$DK_GIT_KEY_PATH
+fi
+
+git_key_pw=""
+if [ -n "$DK_GIT_KEY_PW" ]; then
+	git_key_pw=$DK_GIT_KEY_PW
+fi
+
+git_branch=""
+if [ -n "$DK_GIT_BRANCH" ]; then
+	git_branch=$DK_GIT_BRANCH
+fi
+
+git_pull_interval=""
+if [ -n "$DK_GIT_INTERVAL" ]; then
+	git_pull_interval=$DK_GIT_INTERVAL
+fi
+
 ##################
 # Try install...
 ##################
@@ -267,6 +296,11 @@ else
 			--dca-enable="${dca_enable}"				 \
 			--dca-listen="${dca_listen}"				 \
 			--dca-white-list="${dca_white_list}" \
+			--git-url="${git_url}" \
+			--git-key-path="${git_key_path}" \
+			--git-key-pw="${git_key_pw}" \
+			--git-branch="${git_branch}" \
+			--git-pull-interval="${git_pull_interval}" \
 			--install_only | $sudo_cmd tee ${install_log}
 	else
 		$sudo_cmd $installer                   \
@@ -280,6 +314,11 @@ else
 			--dca-enable="${dca_enable}"				 \
 			--dca-listen="${dca_listen}"				 \
 			--dca-white-list="${dca_white_list}"	\
+			--git-url="${git_url}" \
+			--git-key-path="${git_key_path}" \
+			--git-key-pw="${git_key_pw}" \
+			--git-branch="${git_branch}" \
+			--git-pull-interval="${git_pull_interval}" \
 			--proxy="${proxy}" | $sudo_cmd tee ${install_log}
 	fi
 fi

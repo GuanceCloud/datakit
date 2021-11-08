@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -56,6 +57,9 @@ type Input struct {
 	pause   bool
 
 	stopCh chan interface{}
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -66,19 +70,19 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) Catalog() string { return catalog }
 
-func (i *Input) Stop() { i.stopCh <- nil }
+func (ipt *Input) Stop() { ipt.stopCh <- nil }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if i.setup() {
+	if ipt.setup() {
 		return
 	}
 
-	tick := time.NewTicker(i.pm.Option().GetIntervalDuration())
+	tick := time.NewTicker(ipt.pm.Option().GetIntervalDuration())
 	defer tick.Stop()
 
-	source := i.pm.Option().GetSource()
+	source := ipt.pm.Option().GetSource()
 
 	l.Info("prom start")
 
@@ -88,21 +92,29 @@ func (i *Input) Run() {
 			l.Info("prom exit")
 			return
 
-		case <-i.stopCh:
+		case <-ipt.semStop.Wait():
+			l.Info("prom return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+
+		case <-ipt.stopCh:
 			l.Info("prom stop")
 			return
 
 		case <-tick.C:
-			if i.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			l.Debugf("collect URL %s", i.pm.Option().URL)
+			l.Debugf("collect URL %s", ipt.pm.Option().URL)
 
 			// If Output is configured, data is written to local file specified by Output.
 			// Data will no more be written to datakit io.
-			if i.Output != "" {
-				err := i.pm.WriteFile()
+			if ipt.Output != "" {
+				err := ipt.pm.WriteFile()
 				if err != nil {
 					l.Debugf(err.Error())
 				}
@@ -110,7 +122,7 @@ func (i *Input) Run() {
 			}
 
 			start := time.Now()
-			pts, err := i.pm.Collect()
+			pts, err := ipt.pm.Collect()
 			if err != nil {
 				l.Errorf("Collect: %s", err)
 
@@ -132,13 +144,26 @@ func (i *Input) Run() {
 				io.FeedLastError(source, err.Error())
 			}
 
-		case i.pause = <-i.chPause:
+		case ipt.pause = <-ipt.chPause:
 			// nil
 		}
 	}
 }
 
-func (i *Input) setup() bool {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+func (ipt *Input) setup() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -148,7 +173,7 @@ func (i *Input) setup() bool {
 			// nil
 		}
 
-		if err := i.Init(); err != nil {
+		if err := ipt.Init(); err != nil {
 			continue
 		} else {
 			break
@@ -158,25 +183,25 @@ func (i *Input) setup() bool {
 	return false
 }
 
-func (i *Input) Init() error {
+func (ipt *Input) Init() error {
 	// toml 不支持匿名字段的 marshal，JSON 支持
 	opt := &prom.Option{
-		Source:            i.Source,
-		Interval:          i.Interval,
-		URL:               i.URL,
-		MetricTypes:       i.MetricTypes,
-		MetricNameFilter:  i.MetricNameFilter,
-		MeasurementPrefix: i.MeasurementPrefix,
-		MeasurementName:   i.MeasurementName,
-		Measurements:      i.Measurements,
-		TLSOpen:           i.TLSOpen,
-		CacertFile:        i.CacertFile,
-		CertFile:          i.CertFile,
-		KeyFile:           i.KeyFile,
-		Tags:              i.Tags,
-		TagsIgnore:        i.TagsIgnore,
-		Output:            i.Output,
-		MaxFileSize:       i.maxFileSize,
+		Source:            ipt.Source,
+		Interval:          ipt.Interval,
+		URL:               ipt.URL,
+		MetricTypes:       ipt.MetricTypes,
+		MetricNameFilter:  ipt.MetricNameFilter,
+		MeasurementPrefix: ipt.MeasurementPrefix,
+		MeasurementName:   ipt.MeasurementName,
+		Measurements:      ipt.Measurements,
+		TLSOpen:           ipt.TLSOpen,
+		CacertFile:        ipt.CacertFile,
+		CertFile:          ipt.CertFile,
+		KeyFile:           ipt.KeyFile,
+		Tags:              ipt.Tags,
+		TagsIgnore:        ipt.TagsIgnore,
+		Output:            ipt.Output,
+		MaxFileSize:       ipt.maxFileSize,
 	}
 
 	pm, err := prom.NewProm(opt)
@@ -184,38 +209,38 @@ func (i *Input) Init() error {
 		l.Error(err)
 		return err
 	}
-	i.pm = pm
+	ipt.pm = pm
 	return nil
 }
 
-func (i *Input) Collect() ([]*io.Point, error) {
-	if i.pm == nil {
+func (ipt *Input) Collect() ([]*io.Point, error) {
+	if ipt.pm == nil {
 		return nil, nil
 	}
-	return i.pm.Collect()
+	return ipt.pm.Collect()
 }
 
-func (i *Input) CollectFromFile() ([]*io.Point, error) {
-	if i.pm == nil {
+func (ipt *Input) CollectFromFile() ([]*io.Point, error) {
+	if ipt.pm == nil {
 		return nil, nil
 	}
-	return i.pm.CollectFromFile()
+	return ipt.pm.CollectFromFile()
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
-	case i.chPause <- true:
+	case ipt.chPause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
-	case i.chPause <- false:
+	case ipt.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -229,6 +254,9 @@ func NewProm() *Input {
 		stopCh:      make(chan interface{}, 1),
 		chPause:     make(chan bool, maxPauseCh),
 		maxFileSize: defaultMaxFileSize,
+
+		semStop:          cliutils.NewSem(),
+		semStopCompleted: cliutils.NewSem(),
 	}
 }
 

@@ -3,10 +3,10 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -20,7 +20,11 @@ func pipelineDebugger(plname, txt string) error {
 	}
 
 	start := time.Now()
-	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, plname))
+	plPath, err := config.GetPipelinePath(plname)
+	if err != nil {
+		return fmt.Errorf("get pipeline failed: %w", err)
+	}
+	pl, err := pipeline.NewPipelineFromFile(plPath)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}

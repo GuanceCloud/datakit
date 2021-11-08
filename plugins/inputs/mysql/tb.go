@@ -111,7 +111,7 @@ func (i *Input) getTableSchema() ([]inputs.Measurement, error) {
 	}
 
 	// run query
-	l.Info("tableSchema sql,", tableSchemaSQL)
+	l.Debug("tableSchema sql,", tableSchemaSQL)
 	rows, err := i.db.Query(tableSchemaSQL)
 	if err != nil {
 		l.Errorf("query %s error %v", tableSchemaSQL, err)

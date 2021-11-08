@@ -8,15 +8,18 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var l = logger.DefaultSLogger(inputName)
+var _ inputs.ReadEnv = (*Input)(nil)
 
 type Input struct {
 	Endpoint string `toml:"endpoint"`
@@ -45,15 +48,24 @@ type Input struct {
 
 	clients []collector
 
-	DepercatedLog            DepercatedLog `toml:"logfilter"`
-	DeprecatedPodNameRewrite []string      `toml:"pod_name_write"`
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
+
+	LogDepercated            DepercatedLog `toml:"logfilter,omitempty"`
+	PodNameRewriteDeprecated []string      `toml:"pod_name_write,omitempty"`
+	PodnameRewriteDeprecated []string      `toml:"pod_name_rewrite,omitempty"`
 }
+
+var l = logger.DefaultSLogger(inputName)
 
 func newInput() *Input {
 	return &Input{
 		Endpoint: dockerEndpoint,
 		Tags:     make(map[string]string),
 		in:       make(chan []*job, 64),
+
+		semStop:          cliutils.NewSem(),
+		semStopCompleted: cliutils.NewSem(),
 	}
 }
 
@@ -62,6 +74,18 @@ func (*Input) SampleConfig() string { return sampleCfg }
 func (*Input) Catalog() string { return catelog }
 
 func (*Input) PipelineConfig() map[string]string { return nil }
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	var opts []*tailer.Option
+	for _, v := range i.Logs {
+		opts = append(opts, &tailer.Option{
+			Source:   v.Source,
+			Service:  v.Service,
+			Pipeline: v.Pipeline,
+		})
+	}
+	return opts
+}
 
 func (*Input) AvailableArchs() []string { return []string{datakit.OSLinux} }
 
@@ -114,6 +138,14 @@ func (i *Input) Run() {
 			l.Info("container exit success")
 			return
 
+		case <-i.semStop.Wait():
+			l.Info("container exit return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
+			return
+
 		case <-metricsTick.C:
 			if i.EnableMetric {
 				for _, c := range i.clients {
@@ -138,11 +170,25 @@ func (i *Input) Run() {
 	}
 }
 
-// ReadEnv support envs：
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+
+		// wait stop completed
+		if i.semStopCompleted != nil {
+			for range i.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+// ReadEnv , support envs：
 //   ENV_INPUT_CONTAINER_ENABLE_METRIC : booler
 //   ENV_INPUT_CONTAINER_ENABLE_OBJECT : booler
 //   ENV_INPUT_CONTAINER_ENABLE_LOGGING : booler
 //   ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES : booler
+//   ENV_INPUT_CONTAINER_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if enable, ok := envs["ENV_INPUT_CONTAINER_ENABLE_METRIC"]; ok {
 		b, err := strconv.ParseBool(enable)
@@ -177,6 +223,13 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES to bool: %s, ignore", err)
 		} else {
 			i.LoggingRemoveAnsiEscapeCodes = b
+		}
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_CONTAINER_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
 		}
 	}
 }

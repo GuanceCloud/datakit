@@ -71,6 +71,12 @@ func SetOutputFile(output string) IOOption {
 	}
 }
 
+func SetOutputFileInput(outputFileInputs []string) IOOption {
+	return func(io *IO) {
+		io.OutputFileInput = outputFileInputs
+	}
+}
+
 func SetDataway(dw *dataway.DataWayCfg) IOOption {
 	return func(io *IO) {
 		io.dw = dw
@@ -182,6 +188,10 @@ func FeedLastError(inputName string, err string) {
 	case <-datakit.Exit.Wait():
 		l.Warnf("%s feed last error skipped on global exit", inputName)
 	}
+}
+
+func SelfError(err string) {
+	FeedLastError(datakit.DatakitInputName, err)
 }
 
 func MakePointWithoutGlobalTags(name string,

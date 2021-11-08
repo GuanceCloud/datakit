@@ -53,6 +53,9 @@ const (
 	Workspace         = "/v1/workspace"
 	ListDataWay       = "/v1/list/dataway"
 	ObjectLabel       = "/v1/object/labels" // object label
+	LogUpload         = "/v1/log"
+
+	DatakitInputName = "self"
 )
 
 var (
@@ -88,6 +91,9 @@ var (
 	DataDir  = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
 
+	GitReposDir      = filepath.Join(InstallDir, "gitrepos")
+	GetReposConfDirs []string // git repos conf search dirs
+
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
 
@@ -113,6 +119,8 @@ func SetWorkDir(dir string) {
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
 
+	GitReposDir = filepath.Join(InstallDir, "gitrepos")
+
 	InitDirs()
 }
 
@@ -122,6 +130,7 @@ func InitDirs() {
 		ConfdDir,
 		PipelineDir,
 		PipelinePatternDir,
+		GitReposDir,
 	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)

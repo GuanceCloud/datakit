@@ -5,14 +5,19 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
+var (
+	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.ReadEnv       = (*Input)(nil)
+)
 
 const (
 	inputName = "kubernetes"
@@ -36,25 +41,31 @@ type Input struct {
 
 	InsecureSkipVerify bool `toml:"insecure_skip_verify"`
 
-	Tags         map[string]string `toml:"tags"`
+	Tags map[string]string `toml:"tags"`
+
+	KubeAPIServerURLDeprecated string `toml:"kube_apiserver_url,omitempty"`
+
 	client       *client
 	resourceList []resource
 	exporterList []exporter
 
 	chPause chan bool
 	pause   bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 var l = logger.DefaultSLogger("kubernetes")
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if i.setup() {
+	if ipt.setup() {
 		return
 	}
 
-	dur, _ := timex.ParseDuration(i.Interval)
+	dur, _ := timex.ParseDuration(ipt.Interval)
 	if dur < minMetricInterval {
 		l.Debug("use default metric interval: 60s")
 		dur = minMetricInterval
@@ -66,48 +77,74 @@ func (i *Input) Run() {
 	objectTick := time.NewTicker(defaultObjectInterval)
 	defer objectTick.Stop()
 
-	if !i.pause {
+	if !ipt.pause {
 		l.Info("first collection")
-		i.gatherMetric()
-		i.execExport()
-		i.gatherObject()
+		ipt.gatherMetric()
+		ipt.execExport()
+		ipt.gatherObject()
 	}
 
 	for {
 		select {
 		case <-metricTick.C:
-			if i.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped (metrics)")
 				continue
 			}
-			i.gatherMetric()
+			ipt.gatherMetric()
 
 		case <-objectTick.C:
-			if i.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped (object)")
 				continue
 			}
-			i.gatherObject()
-			i.execExport()
+			ipt.gatherObject()
+			ipt.execExport()
 
 		case <-datakit.Exit.Wait():
-			i.Stop()
+			ipt.exit()
 			l.Info("kubernetes exit")
 			return
 
-		case i.pause = <-i.chPause:
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("kubernetes return")
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+
+		case ipt.pause = <-ipt.chPause:
 			// nil
 		}
 	}
 }
 
-func (i *Input) Stop() {
-	for _, exporter := range i.exporterList {
+func (ipt *Input) exit() {
+	ipt.Stop()
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
+	}
+}
+
+func (ipt *Input) Stop() {
+	for _, exporter := range ipt.exporterList {
 		exporter.Stop()
 	}
 }
 
-func (i *Input) setup() bool {
+func (ipt *Input) setup() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -118,30 +155,30 @@ func (i *Input) setup() bool {
 		}
 		time.Sleep(time.Second)
 
-		if err := i.buildClient(); err != nil {
+		if err := ipt.buildClient(); err != nil {
 			l.Error(err)
 			continue
 		}
-		i.buildExporters()
+		ipt.buildExporters()
 
 		break
 	}
 
-	i.buildResources()
+	ipt.buildResources()
 
 	return false
 }
 
-func (i *Input) buildClient() error {
+func (ipt *Input) buildClient() error {
 	var cli *client
 	var err error
 
-	if i.URL == "" {
+	if ipt.URL == "" {
 		return fmt.Errorf("invalid k8s url, cannot be empty")
 	}
 
-	if i.BearerToken != "" {
-		cli, err = newClientFromBearerToken(i.URL, i.BearerToken)
+	if ipt.BearerToken != "" {
+		cli, err = newClientFromBearerToken(ipt.URL, ipt.BearerToken)
 		if err != nil {
 			return err
 		}
@@ -149,8 +186,8 @@ func (i *Input) buildClient() error {
 		goto end
 	}
 
-	if i.BearerTokenString != "" {
-		cli, err = newClientFromBearerTokenString(i.URL, i.BearerTokenString)
+	if ipt.BearerTokenString != "" {
+		cli, err = newClientFromBearerTokenString(ipt.URL, ipt.BearerTokenString)
 		if err != nil {
 			return err
 		}
@@ -158,15 +195,15 @@ func (i *Input) buildClient() error {
 		goto end
 	}
 
-	if i.TLSCA != "" {
+	if ipt.TLSCA != "" {
 		tlsconfig := net.TLSClientConfig{
-			CaCerts:            []string{i.TLSCA},
-			Cert:               i.TLSCert,
-			CertKey:            i.TLSKey,
-			InsecureSkipVerify: i.InsecureSkipVerify,
+			CaCerts:            []string{ipt.TLSCA},
+			Cert:               ipt.TLSCert,
+			CertKey:            ipt.TLSKey,
+			InsecureSkipVerify: ipt.InsecureSkipVerify,
 		}
 
-		cli, err = newClientFromTLS(i.URL, &tlsconfig)
+		cli, err = newClientFromTLS(ipt.URL, &tlsconfig)
 		if err != nil {
 			return err
 		}
@@ -177,69 +214,69 @@ func (i *Input) buildClient() error {
 	l.Debug("not found https authority, token/tokenString/tls are empty")
 end:
 	if cli != nil {
-		i.client = cli
+		ipt.client = cli
 		return nil
 	}
 
 	return fmt.Errorf("failed of build client")
 }
 
-func (i *Input) buildResources() {
-	i.resourceList = []resource{
+func (ipt *Input) buildResources() {
+	ipt.resourceList = []resource{
 		// metric
-		&kubernetesMetric{client: i.client, tags: i.Tags},
+		&kubernetesMetric{client: ipt.client, tags: ipt.Tags},
 		// object
-		&cluster{client: i.client, tags: i.Tags},
-		&deployment{client: i.client, tags: i.Tags},
-		&replicaSet{client: i.client, tags: i.Tags},
-		&service{client: i.client, tags: i.Tags},
-		&node{client: i.client, tags: i.Tags},
-		&job{client: i.client, tags: i.Tags},
-		&cronJob{client: i.client, tags: i.Tags},
-		// &pod{client: i.client, tags: i.Tags},
+		&cluster{client: ipt.client, tags: ipt.Tags},
+		&deployment{client: ipt.client, tags: ipt.Tags},
+		&replicaSet{client: ipt.client, tags: ipt.Tags},
+		&service{client: ipt.client, tags: ipt.Tags},
+		&node{client: ipt.client, tags: ipt.Tags},
+		&job{client: ipt.client, tags: ipt.Tags},
+		&cronJob{client: ipt.client, tags: ipt.Tags},
+		// &pod{client: ipt.client, tags: ipt.Tags},
 	}
 }
 
-func (i *Input) buildExporters() {
-	i.exporterList = []exporter{&pod{client: i.client, tags: i.Tags}}
+func (ipt *Input) buildExporters() {
+	ipt.exporterList = []exporter{&pod{client: ipt.client, tags: ipt.Tags}}
 }
 
-func (i *Input) execExport() {
-	for _, exporter := range i.exporterList {
+func (ipt *Input) execExport() {
+	for _, exporter := range ipt.exporterList {
 		exporter.Export()
 	}
 }
 
-func (i *Input) gatherObject() {
-	if len(i.resourceList) < 2 {
+func (ipt *Input) gatherObject() {
+	if len(ipt.resourceList) < 2 {
 		return
 	}
-	for _, resource := range i.resourceList[1:] {
+	for _, resource := range ipt.resourceList[1:] {
 		resource.Gather()
 	}
 }
 
-func (i *Input) gatherMetric() {
-	if len(i.resourceList) == 0 {
+func (ipt *Input) gatherMetric() {
+	if len(ipt.resourceList) == 0 {
 		return
 	}
-	i.resourceList[0].Gather()
+	ipt.resourceList[0].Gather()
 }
 
-func (i *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
-	case i.chPause <- true:
+	case ipt.chPause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (i *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
-	case i.chPause <- false:
+	case ipt.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -263,11 +300,25 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return res
 }
 
+// ReadEnv support envs：
+//   ENV_INPUT_K8S_TAGS : "a=b,c=d"
+func (ipt *Input) ReadEnv(envs map[string]string) {
+	if tagsStr, ok := envs["ENV_INPUT_K8S_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			ipt.Tags[k] = v
+		}
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Tags:    make(map[string]string),
 			chPause: make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
 		}
 	})
 }

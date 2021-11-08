@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -63,10 +64,16 @@ type Input struct {
 	Tags     map[string]string `toml:"tags"`
 	Log      *sqlserverlog     `toml:"log"`
 
+	QueryVersionDeprecated int      `toml:"query_version,omitempty"`
+	ExcludeQuery           []string `toml:"exclude_query,omitempty"`
+
 	lastErr error
 	tail    *tailer.Tailer
 	start   time.Time
 	db      *sql.DB
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type sqlserverlog struct {

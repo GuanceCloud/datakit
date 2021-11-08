@@ -10,7 +10,7 @@ MySQL 指标采集，收集以下数据：
 
 - MySQL global status 基础数据采集
 - Scheam 相关数据
-- InnoDB 相关指标 
+- InnoDB 相关指标
 - 支持自定义查询数据采集
 
 ## 前置条件
@@ -55,7 +55,7 @@ Error 1045: Access denied for user 'datakit'@'::1' (using password: YES)
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
-``` toml
+```toml
  [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -73,6 +73,125 @@ SHOW VARIABLES LIKE 'log_bin';
 
 binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging)，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu)
 
+### 数据库性能指标采集
+
+数据库性能指标来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。
+
+**配置**
+
+如需开启，需要执行以下步骤。
+
+- 修改配置文件，开启监控采集
+
+```toml
+[[inputs.mysql]]
+
+## 开启数据库性能指标采集
+dbm = true
+
+...
+
+## 监控指标配置
+[inputs.mysql.dbm_metric]
+  enabled = true
+  
+## 监控采样配置
+[inputs.mysql.dbm_sample]
+  enabled = true  
+...
+
+```
+
+- MySQL配置
+
+修改配置文件(如`mysql.conf`)，开启 `MySQL Performance Schema`， 并配置相关参数：
+
+```
+[mysqld]
+performance_schema = on
+max_digest_length = 4096
+performance_schema_max_digest_length = 4096
+performance_schema_max_sql_text_length = 4096
+performance-schema-consumer-events-statements-current = on
+performance-schema-consumer-events-statements-history-long = on
+performance-schema-consumer-events-statements-history = on
+
+```
+
+- 账号配置
+
+账号授权
+
+```
+GRANT REPLICATION CLIENT ON *.* TO datakit@'%' WITH MAX_USER_CONNECTIONS 5;
+GRANT PROCESS ON *.* TO datakit@'%';
+```
+
+创建数据库
+
+```
+CREATE SCHEMA IF NOT EXISTS datakit;
+GRANT EXECUTE ON datakit.* to datakit@'%';
+GRANT CREATE TEMPORARY TABLES ON datakit.* TO datakit@'%';
+```
+
+创建存储过程 `explain_statement`，用于获取 sql 执行计划
+
+```
+DELIMITER $$
+CREATE PROCEDURE datakit.explain_statement(IN query TEXT)
+    SQL SECURITY DEFINER
+BEGIN
+    SET @explain := CONCAT('EXPLAIN FORMAT=json ', query);
+    PREPARE stmt FROM @explain;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+END $$
+DELIMITER ;
+```
+
+为需要采集执行计划的数据库单独创建存储过程（可选）
+
+```
+DELIMITER $$
+CREATE PROCEDURE <数据库名称>.explain_statement(IN query TEXT)
+    SQL SECURITY DEFINER
+BEGIN
+    SET @explain := CONCAT('EXPLAIN FORMAT=json ', query);
+    PREPARE stmt FROM @explain;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+END $$
+DELIMITER ;
+GRANT EXECUTE ON PROCEDURE <数据库名称>.explain_statement TO datakit@'%';
+```
+
+- `consumers`配置
+
+方法一（推荐）：通过 `DataKit` 动态配置 `performance_schema.events_statements_*`，需要创建以下存储过程：
+
+```
+DELIMITER $$
+CREATE PROCEDURE datakit.enable_events_statements_consumers()
+    SQL SECURITY DEFINER
+BEGIN
+    UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
+END $$
+DELIMITER ;
+
+GRANT EXECUTE ON PROCEDURE datakit.enable_events_statements_consumers TO datakit@'%';
+```
+
+方法二：手动配置 `consumers`
+
+```
+UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
+```
+
+**采集的指标**
+
+性能指标根据`service`划分为两类，即`mysql_dbm_metric`和`mysql_dbm_sample`，存储在【日志】中，具体介绍见后续指标列表部分。
+
 ## 指标
 
 {{ range $i, $m := .Measurements }}
@@ -80,9 +199,10 @@ binlog 开启，参见[这个问答](https://stackoverflow.com/questions/4068238
 {{if or (eq $m.Type "metric") (eq $m.Type "")}}
 
 ### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -107,7 +227,7 @@ set global log_queries_not_using_indexes = 'ON';
 ```python
 [inputs.mysql.log]
     # 填入绝对路径
-    files = ["/var/log/mysql/*.log"] 
+    files = ["/var/log/mysql/*.log"]
 ```
 
 > 注意：在使用日志采集时，需要将 DataKit 安装在 MySQL 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器
@@ -125,7 +245,7 @@ MySQL 日志分为普通日志和慢日志两种。
 切割后的字段列表如下：
 
 | 字段名   | 字段值                                                   | 说明                         |
-| ---      | ---                                                      | ---                          |
+| -------- | -------------------------------------------------------- | ---------------------------- |
 | `status` | `Warning`                                                | 日志级别                     |
 | `msg`    | `System table 'plugin' is expected to be transactional.` | 日志内容                     |
 | `time`   | `1514520249954078000`                                    | 纳秒时间戳（作为行协议时间） |
@@ -147,16 +267,16 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5
 切割后的字段列表如下：
 
 | 字段名              | 字段值                                                                                      | 说明                           |
-| ---                 | ---                                                                                         | ---                            |
+| ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------ |
 | `bytes_sent`        | `123456`                                                                                    | 发送字节数                     |
 | `db_host`           | `localhost`                                                                                 | hostname                       |
 | `db_ip`             | `1.2.3.4`                                                                                   | ip                             |
-| `db_slow_statement` | `SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5` | 慢查询sql                      |
+| `db_slow_statement` | `SET timestamp=1574851393;\nSELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5` | 慢查询 sql                     |
 | `db_user`           | `root[root]`                                                                                | 用户                           |
 | `lock_time`         | `0.000184`                                                                                  | 锁时间                         |
-| `query_id`          | `35`                                                                                        | 查询id                         |
-| `query_time`        | `0.2l4922`                                                                                  | SQL执行所消耗的时间            |
+| `query_id`          | `35`                                                                                        | 查询 id                        |
+| `query_time`        | `0.2l4922`                                                                                  | SQL 执行所消耗的时间           |
 | `rows_examined`     | `72`                                                                                        | 为了返回查询的数据所读取的行数 |
 | `rows_sent`         | `248832`                                                                                    | 查询返回的行数                 |
-| `thread_id`         | `55`                                                                                        | 线程id                         |
+| `thread_id`         | `55`                                                                                        | 线程 id                        |
 | `time`              | `1514520249954078000`                                                                       | 纳秒时间戳（作为行协议时间）   |

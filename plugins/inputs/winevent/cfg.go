@@ -1,4 +1,5 @@
-//+build windows
+//go:build windows
+// +build windows
 
 package winevent
 
@@ -8,6 +9,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -41,6 +43,9 @@ type Input struct {
 	subscription EvtHandle
 	buf          []byte
 	collectCache []inputs.Measurement
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type Event struct {

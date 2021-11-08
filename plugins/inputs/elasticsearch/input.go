@@ -8,13 +8,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -214,6 +214,9 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type serverInfo struct {
@@ -233,6 +236,9 @@ func NewElasticsearch() *Input {
 		ClusterStatsOnlyFromMaster: true,
 		ClusterHealthLevel:         "indices",
 		pauseCh:                    make(chan bool, maxPauseCh),
+
+		semStop:          cliutils.NewSem(),
+		semStopCompleted: cliutils.NewSem(),
 	}
 }
 
@@ -283,6 +289,16 @@ func (*Input) PipelineConfig() map[string]string {
 		"elasticsearch": pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: i.Log.Pipeline,
+		},
+	}
 }
 
 func (i *Input) extendSelfTag(tags map[string]string) {
@@ -425,14 +441,18 @@ func (i *Input) RunPipeline() {
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -472,11 +492,17 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("elasticsearch log exit")
-			}
+			i.exit()
 			l.Info("elasticsearch exit")
+			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("elasticsearch return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
 			return
 
 		case <-tick.C:
@@ -502,6 +528,26 @@ func (i *Input) Run() {
 
 		case i.pause = <-i.pauseCh:
 			// nil
+		}
+	}
+}
+
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("elasticsearch log exit")
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+
+		// wait stop completed
+		if i.semStopCompleted != nil {
+			for range i.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }

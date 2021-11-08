@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/elazarl/goproxy"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -34,6 +35,12 @@ func (pl *proxyLogger) Printf(format string, v ...interface{}) {
 type Input struct {
 	Bind string `toml:"bind"`
 	Port int    `toml:"port"`
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
+
+	PathDeprecated   string `toml:"path,omitempty"`
+	WSBindDeprecated string `toml:"ws_bind,omitempty"`
 }
 
 func (*Input) Catalog() string {
@@ -52,7 +59,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return nil
 }
 
-func (h *Input) Run() {
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("http proxy input started...")
 
@@ -60,7 +67,7 @@ func (h *Input) Run() {
 	proxy.Verbose = false
 	proxy.Logger = &proxyLogger{}
 	proxysrv := &http.Server{
-		Addr:    fmt.Sprintf("%s:%v", h.Bind, h.Port),
+		Addr:    fmt.Sprintf("%s:%v", ipt.Bind, ipt.Port),
 		Handler: proxy,
 	}
 
@@ -71,19 +78,52 @@ func (h *Input) Run() {
 		}
 	}(proxysrv)
 
-	<-datakit.Exit.Wait()
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	stopFunc := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
 
-	if err := proxysrv.Shutdown(ctx); nil != err {
-		log.Errorf("server shutdown failed, err: %sn", err.Error())
-	} else {
-		log.Info("proxy server gracefully shutdown")
+		if err := proxysrv.Shutdown(ctx); nil != err {
+			log.Errorf("server shutdown failed, err: %sn", err.Error())
+		} else {
+			log.Info("proxy server gracefully shutdown")
+		}
+	}
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			stopFunc()
+			return
+
+		case <-ipt.semStop.Wait():
+			stopFunc()
+
+			if ipt.semStopCompleted != nil {
+				ipt.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+
+		// wait stop completed
+		if ipt.semStopCompleted != nil {
+			for range ipt.semStopCompleted.Wait() {
+				return
+			}
+		}
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+		}
 	})
 }

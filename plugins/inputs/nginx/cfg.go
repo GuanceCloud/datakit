@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -23,6 +24,8 @@ type ngxlog struct {
 }
 
 type Input struct {
+	URLsDeprecated []string `toml:"urls,omitempty"`
+
 	URL             string            `toml:"url"`
 	Interval        datakit.Duration  `toml:"interval"`
 	ResponseTimeout datakit.Duration  `toml:"response_timeout"`
@@ -43,6 +46,9 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
 type NginxVTSResponse struct {

@@ -9,12 +9,15 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/disk"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	minInterval = time.Second
@@ -128,21 +131,24 @@ type Input struct {
 
 	infoCache    map[string]diskInfoCache //nolint:structcheck,unused
 	deviceFilter *DevicesFilter
+
+	semStop          *cliutils.Sem // start stop signal
+	semStopCompleted *cliutils.Sem // stop completed signal
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&diskioMeasurement{},
 	}
@@ -268,12 +274,34 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Infof("diskio input exit")
 			return
+
+		case <-i.semStop.Wait():
+			l.Info("diskio input return")
+
+			if i.semStopCompleted != nil {
+				i.semStopCompleted.Close()
+			}
+			return
+		}
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+
+		// wait stop completed
+		if i.semStopCompleted != nil {
+			for range i.semStopCompleted.Wait() {
+				return
+			}
 		}
 	}
 }
 
 // ReadEnv support envs：
 //   ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER : booler
+//   ENV_INPUT_DISKIO_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if skip, ok := envs["ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER"]; ok {
 		b, err := strconv.ParseBool(skip)
@@ -281,6 +309,13 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_DISKIO_SKIP_SERIAL_NUMBER to bool: %s, ignore", err)
 		} else {
 			i.SkipSerialNumber = b
+		}
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_DISKIO_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
 		}
 	}
 }
@@ -353,6 +388,10 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			diskIO:   disk.IOCounters,
 			Interval: datakit.Duration{Duration: time.Second * 10},
+
+			semStop:          cliutils.NewSem(),
+			semStopCompleted: cliutils.NewSem(),
+			Tags:             make(map[string]string),
 		}
 	})
 }
