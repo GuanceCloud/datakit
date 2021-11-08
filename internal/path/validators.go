@@ -33,7 +33,7 @@ func IsDir(path string) bool {
 
 // PathIsPureFileName returns whether the path is only has filename, no path stuff
 // test/AA => false
-// AA => true
+// AA => true.
 func PathIsPureFileName(s string) bool {
 	return filepath.Dir(s) == "." && filepath.Base(s) == s
 }

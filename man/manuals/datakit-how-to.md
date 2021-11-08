@@ -602,7 +602,7 @@ sudo datakit --install sec-checker  # 该命名即将废弃
 
 配置好后，重启 DataKit 即可。
 
-#### CPU使用率说明
+#### CPU 使用率说明
 
 DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用的 CPU 资源。假设现在 CPU 使用率较高，DataKit 可能会将自身限制在 `cpu_min` 值以下，反之 CPU 较为空闲时，可能会将限制调整到 `cpu_max`。
 
@@ -611,53 +611,46 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 例如 `cpu_max` 为 `40.0`，8 核心 CPU 满负载使用率为 `800%`，则 DataKit 能使用的最大 CPU 资源是 `800% * 40% = 320%` 左右，是占全局 CPU 资源的 40%，而非单核心 CPU 的 40%。
 
 
-### Datakit 使用 git 管理配置文件
+### 上传 DataKit 运行日志
 
-Datakit 支持使用 git 来管理配置文件。在 `datakit.conf` 中增加下面的 `git_repos` 段即可，支持数组形式，即支持多个 git，这些 clone 下来的配置文件会在 datakit 安装目录下的 `gitrepos` 目录下，即类似于下面这种结构（下面以 git repo `cfgs` 举例）:
+排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
 
-```
-├── datakit
-├── gitrepos
-│   └── cfgs
-│       ├── cpu.conf
-│       ├── nginx.conf
-│       └── nginx.p
+```shell
+sudo datakit --upload-log
+log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # 将这个路径信息发送给我们工程师即可
 ```
 
-#### `git_repos` 段说明
+运行命令后，会将日志目录下的所有日志文件进行打包压缩，然后上传至指定的存储。我们的工程师会根据上传日志的主机名以及 Token 传找到对应文件，进而排查 DataKit 问题。
 
-字段解释:
-- pull_interval: 定时拉取的间隔。
-- enable: 是否启用。（`true`/`false`）
-- url: 管理配置文件的远程 git repo 地址。
-- ssh_private_key_path: 本地 PrivateKey 的全路径。
-- ssh_private_key_password: 本地 PrivateKey 的使用密码。
-- branch: 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。
+### Datakit 使用 Git 管理配置文件
 
->温馨提示: HTTP 协议的 git 地址仅支持用户名和密码形式，SSH 协议的仅支持 private key 形式。
+在安装时，即可指定 Git 配置仓库，详情参考 [datakit 安装文档](datakit-install#f9858758)。
 
-示例:
+#### 手动修改 git 配置
+
+Datakit 支持使用 git 来管理配置文件。示例如下：
 
 ```conf
 [git_repos]
-  pull_interval = "1m"
+  pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
 
   [[git_repos.repo]]
     enable = true
     url = "http://username:password@github.com/username/repository.git"
 
-  [[git_repos.repo]]
-    enable = false # 不启用
+  [[git_repos.repo]] # 第二个 git-repo
+    enable = false   # 不启用该 repo
+
     url = "git@github.com:username/repository.git" # 支持的一种形式
     # url = "ssh://git@gitlab.website.com:9000/username/repository.git" # 支持的另一种形式
+
     ssh_private_key_path = "/Users/username/.ssh/id_rsa"
     ssh_private_key_password = "passwd"
-    branch = "master"
+
+    branch = "master" # 指定 git branch
 ```
 
-#### 安装时以环境变量传入
-
-在安装时，可以使用环境变量传入的形式写入配置文件，兔除自己手动编辑的烦恼。详情参见 datakit 安装文档。
+> Tips: HTTP(s) 协议的 git 地址**仅支持用户名和密码**形式，SSH 协议的仅支持 private key 形式。
 
 ### 其它命令
 

@@ -29,7 +29,7 @@ func TestGitURL(t *testing.T) {
 }
 
 func TestGitClone(t *testing.T) {
-	var urls = []string{
+	urls := []string{
 		// gitee or gitlab, same
 		"git@gitee.com:chuanwan/learn-blog.git",
 		"https://gitee.com/chuanwan/learn-blog.git",
