@@ -119,6 +119,8 @@ func SetWorkDir(dir string) {
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
 
+	GitReposDir = filepath.Join(InstallDir, "gitrepos")
+
 	InitDirs()
 }
 
