@@ -48,7 +48,7 @@ domain=(
 )
 
 # detect root user
-if [ "$(echo "UID")" = "0" ]; then
+if [ "$(echo "$UID")" = "0" ]; then
 	sudo_cmd=''
 else
 	sudo_cmd='sudo'
