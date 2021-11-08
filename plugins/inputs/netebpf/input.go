@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/shirou/gopsutil/host"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -49,9 +50,13 @@ loop:
 
 			if ok, err := checkLinuxKernelVesion(""); err != nil || !ok {
 				if err != nil {
+					if p, _, v, err := host.PlatformInformation(); err == nil {
+						if checkIsCentos76Ubuntu1604(p, v) {
+							break loop
+						}
+					}
 					l.Errorf("checkLinuxKernelVesion: %s", err)
 				}
-
 				io.FeedLastError(inputName, err.Error())
 			} else {
 				break loop
@@ -109,6 +114,7 @@ func (*Input) SampleConfig() string { return configSample }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&ConnStatsM{},
+		&DNSStatsM{},
 	}
 }
 

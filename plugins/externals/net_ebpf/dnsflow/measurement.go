@@ -1,6 +1,6 @@
 // +build linux, ebpf
 
-package netflow
+package dnsflow
 
 import (
 	"time"

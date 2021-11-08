@@ -1,2 +1,2 @@
-// Package netflow collects eBPF-network metrics
+// Package netflow collects eBPF-network netflow metrics
 package netflow
