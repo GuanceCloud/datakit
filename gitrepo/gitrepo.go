@@ -41,6 +41,18 @@ const (
 
 func StartPull() error {
 	runGit.Do(func() {
+		hasEnable := false
+		for _, v := range config.Cfg.GitRepos.Repos {
+			if v.Enable {
+				hasEnable = true
+				break
+			}
+		}
+
+		if !hasEnable {
+			return
+		}
+
 		l = logger.SLogger("gitrepo")
 		g := datakit.G("gitrepo")
 
@@ -73,6 +85,9 @@ func pullMain(cg *config.GitRepost) error {
 		case <-tick.C:
 			l.Debug("triggered")
 			for _, v := range cg.Repos {
+				if !v.Enable {
+					continue
+				}
 				if err = pullCore(v); err != nil {
 					tip := fmt.Sprintf("[gitrepo] failed: %v", err)
 					l.Error(tip)
