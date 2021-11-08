@@ -94,13 +94,19 @@ func getLogFile() (string, error) {
 		return fileName, err
 	}
 	if info.IsDir() {
+		logNamePrefix := logName
+		parts := strings.Split(logName, ".")
+		partsLen := len(parts)
+		if partsLen > 1 {
+			logNamePrefix = strings.Join(parts[0:partsLen-1], ".")
+		}
 		fileInfos, err := file.Readdir(-1)
 		if err != nil {
 			return fileName, err
 		}
 		for _, fi := range fileInfos {
 			name := fi.Name()
-			if !strings.Contains(name, logName) && (!strings.HasSuffix(name, ".log")) {
+			if !strings.HasPrefix(name, logNamePrefix) {
 				continue
 			}
 			f, err := os.Open(file.Name() + "/" + fi.Name())
@@ -139,27 +145,13 @@ func getLogFile() (string, error) {
 
 func getHostName() string {
 	var hostName string
-	// 1. from env [DK_HOSTNAME]
-	for _, env := range os.Environ() {
-		arr := strings.SplitN(env, "=", 2)
-		if len(arr) != 2 {
-			continue
-		}
-		if arr[0] == "DK_HOSTNAME" {
-			hostName = arr[1]
-			break
-		}
-	}
-	if len(hostName) > 0 {
-		return hostName
-	}
 
-	// 2. from datakit.conf
+	// 1. from datakit.conf
 	if customHostName, ok := config.Cfg.Environments["ENV_HOSTNAME"]; ok {
 		hostName = customHostName
 	}
 
-	// 3. default: os.Hostname()
+	// 2. default: os.Hostname()
 	if len(hostName) == 0 {
 		osHostName, err := os.Hostname()
 		if err == nil && len(osHostName) > 0 {

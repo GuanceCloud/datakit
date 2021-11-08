@@ -79,7 +79,6 @@ func pullMain(cg *config.GitRepost) error {
 					io.SelfError(tip)
 				}
 			}
-
 		} // select
 	} // for
 }
@@ -226,7 +225,6 @@ func pullCore(c *config.GitRepository) error {
 			l.Errorf("Checkout failed: %v", err)
 			return err
 		}
-
 	} else {
 		// clone a new one
 		l.Debug("PlainClone start")
