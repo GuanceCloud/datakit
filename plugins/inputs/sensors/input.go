@@ -82,7 +82,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Info("sensors input return")
 			return
-
 		}
 	}
 }

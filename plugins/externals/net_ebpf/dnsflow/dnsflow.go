@@ -354,7 +354,9 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 		case <-ctx.Done():
 			return
 		case m := <-mCh:
-			if err := dkfeed.FeedMeasurement(m, feedAddr); err != nil {
+			if len(m) == 0 {
+				l.Warn("dnsflow: no data")
+			} else if err := dkfeed.FeedMeasurement(m, feedAddr); err != nil {
 				l.Error(err)
 			}
 		}

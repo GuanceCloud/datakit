@@ -295,7 +295,6 @@ func (i *Input) Run() {
 		case <-i.semStop.Wait():
 			l.Info("net input return")
 			return
-
 		}
 	}
 }

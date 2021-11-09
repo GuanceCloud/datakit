@@ -67,7 +67,6 @@ loop:
 		case <-ipt.semStop.Wait():
 			l.Info("net_ebpf input return")
 			return
-
 		}
 	}
 

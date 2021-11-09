@@ -156,7 +156,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Info("smart input return")
 			return
-
 		}
 	}
 }

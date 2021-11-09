@@ -152,7 +152,6 @@ func (ex *ExernalInput) Run() {
 		case <-ex.semStop.Wait():
 			l.Infof("external input %s return", ex.Name)
 			return
-
 		}
 	}
 }

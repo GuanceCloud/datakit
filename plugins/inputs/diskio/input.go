@@ -277,7 +277,6 @@ func (i *Input) Run() {
 		case <-i.semStop.Wait():
 			l.Info("diskio input return")
 			return
-
 		}
 	}
 }

@@ -112,7 +112,6 @@ func (i *Input) Run() {
 		case <-i.semStop.Wait():
 			l.Infof("hostdir input return")
 			return
-
 		}
 	}
 }

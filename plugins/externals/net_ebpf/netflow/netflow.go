@@ -216,7 +216,9 @@ func (tracer *NetFlowTracer) feedHandler(ctx context.Context, datakitPostURL str
 		case result := <-tracer.resultCh:
 			MergeConns(result)
 			collectCache := ConvertConn2Measurement(result, inputName)
-			if err := dkfeed.FeedMeasurement(collectCache, datakitPostURL); err != nil {
+			if len(collectCache) == 0 {
+				l.Warn("netflow: no data")
+			} else if err := dkfeed.FeedMeasurement(collectCache, datakitPostURL); err != nil {
 				l.Error(err)
 			}
 		case <-ctx.Done():
