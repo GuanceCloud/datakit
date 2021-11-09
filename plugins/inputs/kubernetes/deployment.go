@@ -1,20 +1,21 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	appsv1 "k8s.io/api/apps/v1"
+	kubev1apps "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
 const kubernetesDeploymentName = "kubernetes_deployments"
 
 type deployment struct {
 	client interface {
-		getDeployments() (*appsv1.DeploymentList, error)
+		getDeployments() kubev1apps.DeploymentInterface
 	}
 	tags map[string]string
 }
@@ -23,7 +24,7 @@ func (d *deployment) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := d.client.getDeployments()
+	list, err := d.client.getDeployments().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get deployments resource: %s", err)
 		return

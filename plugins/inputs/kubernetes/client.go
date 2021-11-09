@@ -1,21 +1,20 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
-	batchbetav1 "k8s.io/api/batch/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	kubev1apps "k8s.io/client-go/kubernetes/typed/apps/v1"
+	kubev1batch "k8s.io/client-go/kubernetes/typed/batch/v1"
+	kubev1batchbeta1 "k8s.io/client-go/kubernetes/typed/batch/v1beta1"
+	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	kubev1extensionsbeta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	kubev1rbac "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -88,54 +87,56 @@ func newClient(restConfig *rest.Config) (*client, error) {
 	}, nil
 }
 
-func (c *client) getClusters() (*rbacv1.ClusterRoleList, error) {
-	return c.RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{})
+var metav1ListOption = metav1.ListOptions{}
+
+func (c *client) getDeployments() kubev1apps.DeploymentInterface {
+	return c.AppsV1().Deployments(c.namespace)
 }
 
-func (c *client) getPods() (*corev1.PodList, error) {
-	return c.CoreV1().Pods(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getDaemonSets() kubev1apps.DaemonSetInterface {
+	return c.AppsV1().DaemonSets(c.namespace)
 }
 
-func (c *client) getDeployments() (*appsv1.DeploymentList, error) {
-	return c.AppsV1().Deployments(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getReplicaSets() kubev1apps.ReplicaSetInterface {
+	return c.AppsV1().ReplicaSets(c.namespace)
 }
 
-func (c *client) getReplicaSets() (*appsv1.ReplicaSetList, error) {
-	return c.AppsV1().ReplicaSets(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getStatefulSets() kubev1apps.StatefulSetInterface {
+	return c.AppsV1().StatefulSets(c.namespace)
 }
 
-func (c *client) getServices() (*corev1.ServiceList, error) {
-	return c.CoreV1().Services(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getJobs() kubev1batch.JobInterface {
+	return c.BatchV1().Jobs(c.namespace)
 }
 
-func (c *client) getNodes() (*corev1.NodeList, error) {
-	return c.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+func (c *client) getCronJobs() kubev1batchbeta1.CronJobInterface {
+	return c.BatchV1beta1().CronJobs(c.namespace)
 }
 
-func (c *client) getJobs() (*batchv1.JobList, error) {
-	return c.BatchV1().Jobs(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getEndpoints() kubev1core.EndpointsInterface {
+	return c.CoreV1().Endpoints(c.namespace)
 }
 
-func (c *client) getCronJobs() (*batchbetav1.CronJobList, error) {
-	return c.BatchV1beta1().CronJobs(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getServices() kubev1core.ServiceInterface {
+	return c.CoreV1().Services(c.namespace)
 }
 
-func (c *client) getEndpoints() (*corev1.EndpointsList, error) {
-	return c.CoreV1().Endpoints(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getNodes() kubev1core.NodeInterface {
+	return c.CoreV1().Nodes()
 }
 
-func (c *client) getNamespaces() (*corev1.NamespaceList, error) {
-	return c.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+func (c *client) getNamespaces() kubev1core.NamespaceInterface {
+	return c.CoreV1().Namespaces()
 }
 
-func (c *client) getDaemonSets() (*appsv1.DaemonSetList, error) {
-	return c.AppsV1().DaemonSets(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getPods(namespace string) kubev1core.PodInterface {
+	return c.CoreV1().Pods(namespace)
 }
 
-func (c *client) getStatefulSets() (*appsv1.StatefulSetList, error) {
-	return c.AppsV1().StatefulSets(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getClusters() kubev1rbac.ClusterRoleInterface {
+	return c.RbacV1().ClusterRoles()
 }
 
-func (c *client) getIngress() (*v1beta1.IngressList, error) {
-	return c.ExtensionsV1beta1().Ingresses(c.namespace).List(context.Background(), metav1.ListOptions{})
+func (c *client) getIngress() kubev1extensionsbeta1.IngressInterface {
+	return c.ExtensionsV1beta1().Ingresses(c.namespace)
 }

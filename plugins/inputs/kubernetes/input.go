@@ -57,14 +57,14 @@ type Input struct {
 
 var l = logger.DefaultSLogger("kubernetes")
 
-func (ipt *Input) Run() {
+func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if ipt.setup() {
+	if i.setup() {
 		return
 	}
 
-	dur, _ := timex.ParseDuration(ipt.Interval)
+	dur, _ := timex.ParseDuration(i.Interval)
 	if dur < minMetricInterval {
 		l.Debug("use default metric interval: 60s")
 		dur = minMetricInterval
@@ -76,63 +76,65 @@ func (ipt *Input) Run() {
 	objectTick := time.NewTicker(defaultObjectInterval)
 	defer objectTick.Stop()
 
-	if !ipt.pause {
+	if !i.pause {
 		l.Info("first collection")
-		ipt.gatherMetric()
-		ipt.execExport()
-		ipt.gatherObject()
+		i.gatherMetric()
+		i.gatherObject()
 	}
+	// 执行 export 不受全局 election 影响
+	i.execExport()
 
 	for {
 		select {
 		case <-metricTick.C:
-			if ipt.pause {
+			if i.pause {
 				l.Debugf("not leader, skipped (metrics)")
 				continue
 			}
-			ipt.gatherMetric()
+			i.gatherMetric()
 
 		case <-objectTick.C:
-			if ipt.pause {
+			i.execExport()
+			if i.pause {
 				l.Debugf("not leader, skipped (object)")
 				continue
 			}
-			ipt.gatherObject()
-			ipt.execExport()
+			i.gatherObject()
+			i.execExport()
 
 		case <-datakit.Exit.Wait():
-			ipt.exit()
+			i.exit()
 			l.Info("kubernetes exit")
 			return
 
-		case <-ipt.semStop.Wait():
-			ipt.exit()
+		case <-i.semStop.Wait():
+			i.exit()
 			l.Info("kubernetes return")
 			return
 
-		case ipt.pause = <-ipt.chPause:
+		case i.pause = <-i.chPause:
 			// nil
 		}
 	}
 }
 
-func (ipt *Input) exit() {
-	ipt.Stop()
+func (i *Input) exit() {
+	i.Stop()
 }
 
-func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
-func (ipt *Input) Stop() {
-	for _, exporter := range ipt.exporterList {
+func (i *Input) Stop() {
+	for _, exporter := range i.exporterList {
 		exporter.Stop()
 	}
 }
 
-func (ipt *Input) setup() bool {
+func (i *Input) setup() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -143,30 +145,30 @@ func (ipt *Input) setup() bool {
 		}
 		time.Sleep(time.Second)
 
-		if err := ipt.buildClient(); err != nil {
+		if err := i.buildClient(); err != nil {
 			l.Error(err)
 			continue
 		}
-		ipt.buildExporters()
+		i.buildExporters()
 
 		break
 	}
 
-	ipt.buildResources()
+	i.buildResources()
 
 	return false
 }
 
-func (ipt *Input) buildClient() error {
+func (i *Input) buildClient() error {
 	var cli *client
 	var err error
 
-	if ipt.URL == "" {
+	if i.URL == "" {
 		return fmt.Errorf("invalid k8s url, cannot be empty")
 	}
 
-	if ipt.BearerToken != "" {
-		cli, err = newClientFromBearerToken(ipt.URL, ipt.BearerToken)
+	if i.BearerToken != "" {
+		cli, err = newClientFromBearerToken(i.URL, i.BearerToken)
 		if err != nil {
 			return err
 		}
@@ -174,8 +176,8 @@ func (ipt *Input) buildClient() error {
 		goto end
 	}
 
-	if ipt.BearerTokenString != "" {
-		cli, err = newClientFromBearerTokenString(ipt.URL, ipt.BearerTokenString)
+	if i.BearerTokenString != "" {
+		cli, err = newClientFromBearerTokenString(i.URL, i.BearerTokenString)
 		if err != nil {
 			return err
 		}
@@ -183,15 +185,15 @@ func (ipt *Input) buildClient() error {
 		goto end
 	}
 
-	if ipt.TLSCA != "" {
+	if i.TLSCA != "" {
 		tlsconfig := net.TLSClientConfig{
-			CaCerts:            []string{ipt.TLSCA},
-			Cert:               ipt.TLSCert,
-			CertKey:            ipt.TLSKey,
-			InsecureSkipVerify: ipt.InsecureSkipVerify,
+			CaCerts:            []string{i.TLSCA},
+			Cert:               i.TLSCert,
+			CertKey:            i.TLSKey,
+			InsecureSkipVerify: i.InsecureSkipVerify,
 		}
 
-		cli, err = newClientFromTLS(ipt.URL, &tlsconfig)
+		cli, err = newClientFromTLS(i.URL, &tlsconfig)
 		if err != nil {
 			return err
 		}
@@ -202,69 +204,69 @@ func (ipt *Input) buildClient() error {
 	l.Debug("not found https authority, token/tokenString/tls are empty")
 end:
 	if cli != nil {
-		ipt.client = cli
+		i.client = cli
 		return nil
 	}
 
 	return fmt.Errorf("failed of build client")
 }
 
-func (ipt *Input) buildResources() {
-	ipt.resourceList = []resource{
+func (i *Input) buildResources() {
+	i.resourceList = []resource{
 		// metric
-		&kubernetesMetric{client: ipt.client, tags: ipt.Tags},
+		&kubernetesMetric{client: i.client, tags: i.Tags},
 		// object
-		&cluster{client: ipt.client, tags: ipt.Tags},
-		&deployment{client: ipt.client, tags: ipt.Tags},
-		&replicaSet{client: ipt.client, tags: ipt.Tags},
-		&service{client: ipt.client, tags: ipt.Tags},
-		&node{client: ipt.client, tags: ipt.Tags},
-		&job{client: ipt.client, tags: ipt.Tags},
-		&cronJob{client: ipt.client, tags: ipt.Tags},
-		// &pod{client: ipt.client, tags: ipt.Tags},
+		&cluster{client: i.client, tags: i.Tags},
+		&deployment{client: i.client, tags: i.Tags},
+		&replicaSet{client: i.client, tags: i.Tags},
+		&service{client: i.client, tags: i.Tags},
+		&node{client: i.client, tags: i.Tags},
+		&job{client: i.client, tags: i.Tags},
+		&cronJob{client: i.client, tags: i.Tags},
+		// &pod{client: i.client, tags: i.Tags},
 	}
 }
 
-func (ipt *Input) buildExporters() {
-	ipt.exporterList = []exporter{&pod{client: ipt.client, tags: ipt.Tags}}
+func (i *Input) buildExporters() {
+	i.exporterList = []exporter{&pod{client: i.client, tags: i.Tags}}
 }
 
-func (ipt *Input) execExport() {
-	for _, exporter := range ipt.exporterList {
+func (i *Input) execExport() {
+	for _, exporter := range i.exporterList {
 		exporter.Export()
 	}
 }
 
-func (ipt *Input) gatherObject() {
-	if len(ipt.resourceList) < 2 {
+func (i *Input) gatherObject() {
+	if len(i.resourceList) < 2 {
 		return
 	}
-	for _, resource := range ipt.resourceList[1:] {
+	for _, resource := range i.resourceList[1:] {
 		resource.Gather()
 	}
 }
 
-func (ipt *Input) gatherMetric() {
-	if len(ipt.resourceList) == 0 {
+func (i *Input) gatherMetric() {
+	if len(i.resourceList) == 0 {
 		return
 	}
-	ipt.resourceList[0].Gather()
+	i.resourceList[0].Gather()
 }
 
-func (ipt *Input) Pause() error {
+func (i *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
-	case ipt.chPause <- true:
+	case i.chPause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (ipt *Input) Resume() error {
+func (i *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
-	case ipt.chPause <- false:
+	case i.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -290,11 +292,11 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 // ReadEnv support envs：
 //   ENV_INPUT_K8S_TAGS : "a=b,c=d"
-func (ipt *Input) ReadEnv(envs map[string]string) {
+func (i *Input) ReadEnv(envs map[string]string) {
 	if tagsStr, ok := envs["ENV_INPUT_K8S_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
-			ipt.Tags[k] = v
+			i.Tags[k] = v
 		}
 	}
 }

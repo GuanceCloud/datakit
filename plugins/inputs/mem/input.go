@@ -203,7 +203,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Infof("memory input return")
 			return
-
 		}
 	}
 }

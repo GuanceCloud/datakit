@@ -1,20 +1,21 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	corev1 "k8s.io/api/core/v1"
+	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const kubernetesServiceName = "kubernetes_services"
 
 type service struct {
 	client interface {
-		getServices() (*corev1.ServiceList, error)
+		getServices() kubev1core.ServiceInterface
 	}
 	tags map[string]string
 }
@@ -23,7 +24,7 @@ func (s *service) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := s.client.getServices()
+	list, err := s.client.getServices().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get services resource: %s", err)
 		return

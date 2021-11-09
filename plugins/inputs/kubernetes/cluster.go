@@ -1,20 +1,21 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	rbacv1 "k8s.io/api/rbac/v1"
+	kubev1rbac "k8s.io/client-go/kubernetes/typed/rbac/v1"
 )
 
 const kubernetesClusterName = "kubernetes_clusters"
 
 type cluster struct {
 	client interface {
-		getClusters() (*rbacv1.ClusterRoleList, error)
+		getClusters() kubev1rbac.ClusterRoleInterface
 	}
 	tags map[string]string
 }
@@ -23,7 +24,7 @@ func (c *cluster) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := c.client.getClusters()
+	list, err := c.client.getClusters().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get clusters resource: %s", err)
 		return

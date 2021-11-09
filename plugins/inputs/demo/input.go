@@ -100,7 +100,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			ipt.exit()
 			return
-
 		}
 	}
 }

@@ -1,23 +1,28 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	corev1 "k8s.io/api/core/v1"
+	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const kubernetesPodName = "kubernetes_pods"
 
+type podclient interface {
+	getPods(namespace string) kubev1core.PodInterface
+}
+
 type pod struct {
-	client interface {
-		getPods() (*corev1.PodList, error)
-	}
+	client    podclient
 	tags      map[string]string
 	discovery *Discovery
 }
@@ -26,7 +31,7 @@ func (p *pod) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := p.client.getPods()
+	list, err := p.client.getPods("").List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get pods resource: %s", err)
 		return
@@ -112,7 +117,9 @@ func (p *pod) Export() {
 		p.discovery = NewDiscovery()
 	}
 
-	list, err := p.client.getPods()
+	l.Debug("k8s export")
+
+	list, err := p.client.getPods("").List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get pods resource: %s", err)
 		return
@@ -124,19 +131,53 @@ func (p *pod) Export() {
 const (
 	annotationPromExport  = "datakit/prom.instances"
 	annotationPromIPIndex = "datakit/prom.instances.ip_index"
+
+	annotationPodLogging = "datakit/pod.logging"
 )
 
 func (p *pod) run(list *corev1.PodList) {
 	for idx, obj := range list.Items {
-		config, ok := obj.Annotations[annotationPromExport]
-		if !ok {
-			continue
-		}
+		func() {
+			config, ok := obj.Annotations[annotationPromExport]
+			if !ok {
+				return
+			}
+			l.Info("k8s export, find prom export")
+			if !shouldForkInput(obj.Spec.NodeName) {
+				l.Debugf("should not fork input, pod-nodeName:%s", obj.Spec.NodeName)
+				return
+			}
 
-		config = complatePromConfig(config, &list.Items[idx])
-		if err := p.discovery.TryRun("prom", config); err != nil {
-			l.Warn(err)
-		}
+			config = complatePromConfig(config, &list.Items[idx])
+			if err := p.discovery.TryRun("prom", config); err != nil {
+				l.Warn(err)
+			}
+		}()
+
+		func() {
+			config, ok := obj.Annotations[annotationPodLogging]
+			if !ok {
+				return
+			}
+			l.Infof("k8s export, find podlogging, namespace:%s, UID:%s", obj.Namespace, string(obj.UID))
+			exist, md5Str := p.discovery.IsExist(string(obj.UID))
+			if exist {
+				return
+			}
+
+			podlog := podlogging{}
+			if err := toml.Unmarshal([]byte(config), &podlog); err != nil {
+				l.Errorf("podlogging config unmarshal err: %s", err)
+				return
+			}
+
+			p.discovery.addList(md5Str)
+
+			go func(namespace, name string) {
+				l.Infof("discovery: add pod-logging, namespace:%s, podName:%s", namespace, name)
+				podlog.run(p.client, namespace, name)
+			}(obj.Namespace, obj.Name)
+		}()
 	}
 }
 

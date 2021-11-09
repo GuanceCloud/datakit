@@ -1,20 +1,21 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	appsv1 "k8s.io/api/apps/v1"
+	kubev1apps "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
 const kubernetesReplicaSetName = "kubernetes_replica_sets"
 
 type replicaSet struct {
 	client interface {
-		getReplicaSets() (*appsv1.ReplicaSetList, error)
+		getReplicaSets() kubev1apps.ReplicaSetInterface
 	}
 	tags map[string]string
 }
@@ -23,7 +24,7 @@ func (r *replicaSet) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := r.client.getReplicaSets()
+	list, err := r.client.getReplicaSets().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get replicaSet resource: %s", err)
 		return

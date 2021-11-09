@@ -1,20 +1,21 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	batchv1 "k8s.io/api/batch/v1"
+	kubev1batch "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
 
 const kubernetesJobName = "kubernetes_jobs"
 
 type job struct {
 	client interface {
-		getJobs() (*batchv1.JobList, error)
+		getJobs() kubev1batch.JobInterface
 	}
 	tags map[string]string
 }
@@ -23,7 +24,7 @@ func (j *job) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := j.client.getJobs()
+	list, err := j.client.getJobs().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get jobs resource: %s", err)
 		return

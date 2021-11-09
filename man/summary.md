@@ -62,6 +62,7 @@
     - [Kubernetes](kubernetes)
     - [Kubernetes 扩展指标采集](kubernetes-x)
     - [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
+    - [Kubernetes pod 日志采集](kubernetes-podlogging)
 
   - [Java]()
 
