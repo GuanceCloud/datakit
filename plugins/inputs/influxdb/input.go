@@ -59,9 +59,7 @@ type Input struct {
 	pause   bool
 	pauseCh chan bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
-
+	semStop *cliutils.Sem // start stop signal
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -72,8 +70,7 @@ func newInput() *Input {
 		Timeout:  datakit.Duration{Duration: time.Second * 5},
 		pauseCh:  make(chan bool, maxPauseCh),
 
-		semStop:          cliutils.NewSem(),
-		semStopCompleted: cliutils.NewSem(),
+		semStop: cliutils.NewSem(),
 	}
 }
 
@@ -212,10 +209,6 @@ func (i *Input) Run() {
 		case <-i.semStop.Wait():
 			i.exit()
 			l.Infof("influxdb input return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -236,13 +229,6 @@ func (i *Input) exit() {
 func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
-
-		// wait stop completed
-		if i.semStopCompleted != nil {
-			for range i.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 

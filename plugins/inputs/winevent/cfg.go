@@ -44,8 +44,7 @@ type Input struct {
 	buf          []byte
 	collectCache []inputs.Measurement
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type Event struct {

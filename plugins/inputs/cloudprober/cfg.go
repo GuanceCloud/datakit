@@ -45,8 +45,7 @@ type Input struct {
 	start   time.Time
 	lastErr error
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type Measurement struct {

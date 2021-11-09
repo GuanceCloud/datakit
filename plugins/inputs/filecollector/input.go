@@ -162,10 +162,6 @@ func (fc *FileCollector) Run() {
 		case <-fc.semStop.Wait():
 			fc.exit()
 			l.Info("file_collector return")
-
-			if fc.semStopCompleted != nil {
-				fc.semStopCompleted.Close()
-			}
 			return
 
 		case err := <-fc.watch.Errors:
@@ -185,13 +181,6 @@ func (fc *FileCollector) exit() {
 func (fc *FileCollector) Terminate() {
 	if fc.semStop != nil {
 		fc.semStop.Close()
-
-		// wait stop completed
-		if fc.semStopCompleted != nil {
-			for range fc.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -216,14 +205,12 @@ func (fc *FileCollector) handUpload() {
 			l.Info("file_collector upload exit")
 			fc.uploadExit()
 			return
+
 		case <-fc.semStop.Wait():
 			l.Info("file_collector upload return")
 			fc.uploadExit()
-
-			if fc.semStopCompleted != nil {
-				fc.semStopCompleted.Close()
-			}
 			return
+
 		case <-tick.C:
 			if len(lines) > 0 {
 				if err := io.NamedFeed([]byte(strings.Join(lines, "\n")), datakit.Logging, inputName); err != nil {
@@ -246,16 +233,15 @@ func (fc *FileCollector) handFail() {
 		select {
 		case <-fc.ctx.Done():
 			return
+
 		case <-datakit.Exit.Wait():
 			l.Info("file_collector handfail exit")
 			return
+
 		case <-fc.semStop.Wait():
 			l.Info("file_collector handfail return")
-
-			if fc.semStopCompleted != nil {
-				fc.semStopCompleted.Close()
-			}
 			return
+
 		case u := <-fails:
 			_, err := os.Stat(u.filename)
 			if err != nil {

@@ -132,8 +132,7 @@ type Input struct {
 	infoCache    map[string]diskInfoCache //nolint:structcheck,unused
 	deviceFilter *DevicesFilter
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) AvailableArchs() []string {
@@ -277,11 +276,8 @@ func (i *Input) Run() {
 
 		case <-i.semStop.Wait():
 			l.Info("diskio input return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -289,13 +285,6 @@ func (i *Input) Run() {
 func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
-
-		// wait stop completed
-		if i.semStopCompleted != nil {
-			for range i.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -389,9 +378,8 @@ func init() { //nolint:gochecknoinits
 			diskIO:   disk.IOCounters,
 			Interval: datakit.Duration{Duration: time.Second * 10},
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
-			Tags:             make(map[string]string),
+			semStop: cliutils.NewSem(),
+			Tags:    make(map[string]string),
 		}
 	})
 }

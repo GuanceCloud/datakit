@@ -14,8 +14,7 @@ var fileCollector = &FileCollector{
 	maxSize:       32 * 1024 * 1024,
 	MaxUploadSize: "32M",
 
-	semStop:          cliutils.NewSem(),
-	semStopCompleted: cliutils.NewSem(),
+	semStop: cliutils.NewSem(),
 }
 
 func Handle(c *gin.Context) {

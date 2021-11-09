@@ -260,7 +260,9 @@ func HTTPStart() {
 			l.Info("[HttpServer] reload detected")
 			stopFunc()
 			if semReloadCompleted != nil {
+				l.Debug("[HttpServer] before reload completed")
 				semReloadCompleted.Close()
+				l.Debug("[HttpServer] after reload completed")
 			}
 			return
 		}
@@ -278,11 +280,12 @@ func ReloadTheNormalServer() {
 
 		// wait stop completed
 		if semReloadCompleted != nil {
-			for range semReloadCompleted.Wait() {
-				l.Info("[HttpServer] reload stopped")
-				go HTTPStart()
-				return
-			}
+			l.Debug("[HttpServer] check wait")
+
+			<-semReloadCompleted.Wait()
+			l.Info("[HttpServer] reload stopped")
+			go HTTPStart()
+			return
 		}
 	}
 }

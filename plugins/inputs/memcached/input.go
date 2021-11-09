@@ -71,8 +71,7 @@ type Input struct {
 	duration     time.Duration
 	collectCache []inputs.Measurement
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string {
@@ -259,10 +258,6 @@ func (i *Input) Run() {
 
 		case <-i.semStop.Wait():
 			l.Info("memcached return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -273,21 +268,13 @@ func (i *Input) Run() {
 func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
-
-		// wait stop completed
-		if i.semStopCompleted != nil {
-			for range i.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

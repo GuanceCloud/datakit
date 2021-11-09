@@ -45,8 +45,7 @@ type Input struct {
 	re      string
 	isTest  bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string { return category }
@@ -97,10 +96,6 @@ func (p *Input) Run() {
 
 				case <-p.semStop.Wait():
 					l.Info("process write metric return")
-
-					if p.semStopCompleted != nil {
-						p.semStopCompleted.Close()
-					}
 					return
 				}
 			}
@@ -117,10 +112,6 @@ func (p *Input) Run() {
 
 		case <-p.semStop.Wait():
 			l.Info("process write object return")
-
-			if p.semStopCompleted != nil {
-				p.semStopCompleted.Close()
-			}
 			return
 		}
 	}
@@ -129,13 +120,6 @@ func (p *Input) Run() {
 func (p *Input) Terminate() {
 	if p.semStop != nil {
 		p.semStop.Close()
-
-		// wait stop completed
-		if p.semStopCompleted != nil {
-			for range p.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -441,9 +425,8 @@ func init() { //nolint:gochecknoinits
 			ObjectInterval: datakit.Duration{Duration: 5 * time.Minute},
 			MetricInterval: datakit.Duration{Duration: 30 * time.Second},
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
-			Tags:             make(map[string]string),
+			semStop: cliutils.NewSem(),
+			Tags:    make(map[string]string),
 		}
 	})
 }

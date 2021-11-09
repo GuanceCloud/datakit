@@ -20,8 +20,7 @@ var (
 type SelfInfo struct {
 	stat *ClientStat
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*SelfInfo) Catalog() string {
@@ -47,10 +46,6 @@ func (si *SelfInfo) Run() {
 
 		case <-si.semStop.Wait():
 			l.Info("self return")
-
-			if si.semStopCompleted != nil {
-				si.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -64,13 +59,6 @@ func (si *SelfInfo) Run() {
 func (si *SelfInfo) Terminate() {
 	if si.semStop != nil {
 		si.semStop.Close()
-
-		// wait stop completed
-		if si.semStopCompleted != nil {
-			for range si.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -83,8 +71,7 @@ func init() { //nolint:gochecknoinits
 				Arch: runtime.GOARCH,
 				PID:  os.Getpid(),
 			},
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

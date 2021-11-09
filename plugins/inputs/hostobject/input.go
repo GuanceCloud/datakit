@@ -40,8 +40,7 @@ type Input struct {
 
 	collectData *hostMeasurement
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (ipt *Input) Catalog() string {
@@ -78,10 +77,6 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			l.Infof("%s return on sem", InputName)
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -95,13 +90,6 @@ func (ipt *Input) Run() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -262,9 +250,8 @@ func DefaultHostObject() *Input {
 			"aufs",
 			"squashfs",
 		},
-		semStop:          cliutils.NewSem(),
-		semStopCompleted: cliutils.NewSem(),
-		Tags:             make(map[string]string),
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
 	}
 }
 

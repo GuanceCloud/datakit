@@ -81,8 +81,7 @@ type Input struct {
 	lastErr      error
 	collectCache []inputs.Measurement
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {

@@ -26,8 +26,7 @@ var (
 type Input struct {
 	external.ExernalInput
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (ipt *Input) Run() {
@@ -67,11 +66,8 @@ loop:
 
 		case <-ipt.semStop.Wait():
 			l.Info("net_ebpf input return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 
@@ -97,13 +93,6 @@ loop:
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -125,8 +114,7 @@ func (*Input) AvailableArchs() []string {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

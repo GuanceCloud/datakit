@@ -58,8 +58,7 @@ type Input struct {
 	pauseCh chan bool
 	pause   bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -71,8 +70,7 @@ func newInput() *Input {
 		pauseCh:          make(chan bool, maxPauseCh),
 		httpClient:       &http.Client{Timeout: 5 * time.Second},
 
-		semStop:          cliutils.NewSem(),
-		semStopCompleted: cliutils.NewSem(),
+		semStop: cliutils.NewSem(),
 	}
 }
 
@@ -110,10 +108,6 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			l.Info("nsq return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
 
 		case <-gatherTicker.C:
@@ -157,13 +151,6 @@ func (ipt *Input) Run() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 

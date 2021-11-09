@@ -41,8 +41,7 @@ type Input struct {
 
 	collectCache []inputs.Measurement
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type iisLog struct {
@@ -160,11 +159,8 @@ func (i *Input) Run() {
 		case <-i.semStop.Wait():
 			i.exit()
 			l.Infof("iis input return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -179,13 +175,6 @@ func (n *Input) exit() {
 func (n *Input) Terminate() {
 	if n.semStop != nil {
 		n.semStop.Close()
-
-		// wait stop completed
-		if n.semStopCompleted != nil {
-			for range n.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -302,8 +291,7 @@ func init() {
 		return &Input{
 			Interval: datakit.Duration{Duration: time.Second * 15},
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

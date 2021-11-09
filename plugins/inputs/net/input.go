@@ -155,8 +155,7 @@ type Input struct {
 	netProto         NetProto
 	netVirtualIfaces NetVirtualIfaces
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
@@ -292,13 +291,11 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("net input exit")
 			return
+
 		case <-i.semStop.Wait():
 			l.Info("net input return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -306,13 +303,6 @@ func (i *Input) Run() {
 func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
-
-		// wait stop completed
-		if i.semStopCompleted != nil {
-			for range i.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -355,9 +345,8 @@ func init() { //nolint:gochecknoinits
 			netVirtualIfaces: NetVirtualInterfaces,
 			Interval:         datakit.Duration{Duration: time.Second * 10},
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
-			Tags:             make(map[string]string),
+			semStop: cliutils.NewSem(),
+			Tags:    make(map[string]string),
 		}
 	})
 }

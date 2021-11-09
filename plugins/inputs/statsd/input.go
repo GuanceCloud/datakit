@@ -140,8 +140,7 @@ type input struct {
 	// A pool of byte slices to handle parsing
 	bufPool sync.Pool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type job struct {
@@ -383,10 +382,6 @@ func (ipt *input) Run() {
 		case <-ipt.semStop.Wait():
 			ipt.exit()
 			l.Info("statsd return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -403,13 +398,6 @@ func (ipt *input) exit() {
 func (ipt *input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -617,8 +605,7 @@ func defaultInput() *input {
 		DeleteSets:             true,
 		DeleteTimings:          true,
 
-		semStop:          cliutils.NewSem(),
-		semStopCompleted: cliutils.NewSem(),
+		semStop: cliutils.NewSem(),
 	}
 }
 
