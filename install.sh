@@ -86,24 +86,30 @@ case $(uname -m) in
 		arch="arm"
 		;;
 
+	"arm64")
+		arch="arm64"
+		;;
+
 	*)
 		# shellcheck disable=SC2059
-		printf "${RED}[E] Unknown arch $(uname -m) ${CLR}\n"
+		printf "${RED}[E] Unsupport arch $(uname -m) ${CLR}\n"
 		exit 1
 		;;
 esac
 
-os=
+os="linux"
+
 if [[ "$OSTYPE" == "darwin"* ]]; then
-	if [[ $arch != "amd64" ]] && [[ $arch != "arm64" ]]; then # Darwin only support amd64 and arm64, for arm64, use amd64 instead
+	if [[ $arch != "amd64" ]] && [[ $arch != "arm64" ]]; then # Darwin only support amd64 and arm64
 		# shellcheck disable=SC2059
 		printf "${RED}[E] Darwin only support amd64/arm64.${CLR}\n"
 		exit 1;
 	fi
 
 	os="darwin"
-else
-	os="linux"
+
+	# NOTE: under darwin, for arm64 and amd64, both use amd64
+	arch="amd64"
 fi
 
 # Select installer
