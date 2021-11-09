@@ -188,7 +188,9 @@ func pullCore(c *config.GitRepository) error {
 		}
 
 		ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+		defer func() {
+			cancel()
+		}()
 		// Pull the latest changes from the origin remote and merge into the current branch
 		err = w.PullContext(ctxNew, &git.PullOptions{
 			RemoteName:      "origin",
@@ -236,7 +238,9 @@ func pullCore(c *config.GitRepository) error {
 		l.Debug("PlainClone start")
 
 		ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+		defer func() {
+			cancel()
+		}()
 		if _, err := git.PlainCloneContext(ctxNew, clonePath, false, &git.CloneOptions{
 			// The intended use of a GitHub personal access token is in replace of your password
 			// because access tokens can easily be revoked.
@@ -257,9 +261,11 @@ func pullCore(c *config.GitRepository) error {
 			isFirst = false
 		}
 
-		ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if err = ReloadCore(ctxNew); err != nil {
+		ctxNew, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer func() {
+			cancel()
+		}()
+		if err = reloadCore(ctxNew); err != nil {
 			return err
 		}
 	}
@@ -268,51 +274,71 @@ func pullCore(c *config.GitRepository) error {
 	return nil
 }
 
-func ReloadCore(ctx context.Context) error {
-	l.Debug("before ReloadCheckInputCfg")
+func reloadCore(ctx context.Context) error {
+	round := 0
+	for {
+		select {
+		case <-ctx.Done():
+			l.Error("reload_timeout")
+			return fmt.Errorf("reload_timeout")
+		default:
+			switch round {
+			case 0:
+				l.Debug("before ReloadCheckInputCfg")
 
-	iputs, err := config.ReloadCheckInputCfg()
-	if err != nil {
-		l.Errorf("ReloadCheckInputCfg failed: %v", err)
-		return err
-	}
+				iputs, err := config.ReloadCheckInputCfg()
+				if err != nil {
+					l.Errorf("ReloadCheckInputCfg failed: %v", err)
+					return err
+				}
 
-	l.Debug("before ReloadCheckPipelineCfg")
+				l.Debug("before ReloadCheckPipelineCfg")
 
-	opt, err := config.ReloadCheckPipelineCfg(iputs)
-	if err != nil {
-		if opt != nil {
-			l.Errorf("ReloadCheckPipelineCfg failed: %v => Source: %s, Service: %s, Pipeline: %s",
-				err, opt.Source, opt.Service, opt.Pipeline)
-		} else {
-			l.Errorf("ReloadCheckPipelineCfg failed: %v", err)
+				opt, err := config.ReloadCheckPipelineCfg(iputs)
+				if err != nil {
+					if opt != nil {
+						l.Errorf("ReloadCheckPipelineCfg failed: %v => Source: %s, Service: %s, Pipeline: %s",
+							err, opt.Source, opt.Service, opt.Pipeline)
+					} else {
+						l.Errorf("ReloadCheckPipelineCfg failed: %v", err)
+					}
+					return err
+				}
+
+			case 1:
+				l.Debug("before StopInputs")
+
+				if err := inputs.StopInputs(); err != nil {
+					l.Errorf("StopInputs failed: %v", err)
+					return err
+				}
+
+			case 2:
+				l.Debug("before ReloadInputConfig")
+
+				if err := config.ReloadInputConfig(); err != nil {
+					l.Errorf("ReloadInputConfig failed: %v", err)
+					return err
+				}
+
+			case 3:
+				l.Debug("before RunInputs")
+
+				if err := inputs.RunInputs(true); err != nil {
+					l.Errorf("RunInputs failed: %v", err)
+					return err
+				}
+
+			case 4:
+				l.Debug("before ReloadTheNormalServer")
+
+				httpd.ReloadTheNormalServer()
+			}
 		}
-		return err
+
+		round++
+		if round > 4 {
+			return nil
+		}
 	}
-
-	l.Debug("before StopInputs")
-
-	if err = inputs.StopInputs(); err != nil {
-		l.Errorf("StopInputs failed: %v", err)
-		return err
-	}
-
-	l.Debug("before ReloadInputConfig")
-
-	if err = config.ReloadInputConfig(); err != nil {
-		l.Errorf("ReloadInputConfig failed: %v", err)
-		return err
-	}
-
-	l.Debug("before RunInputs")
-
-	if err = inputs.RunInputs(true); err != nil {
-		l.Errorf("RunInputs failed: %v", err)
-		return err
-	}
-
-	l.Debug("before ReloadTheNormalServer")
-
-	httpd.ReloadTheNormalServer()
-	return nil
 }

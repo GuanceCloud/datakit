@@ -251,8 +251,8 @@ type CheckedInputCfgResult struct {
 	AvailableInputs []inputs.Input
 }
 
-func (r *CheckedInputCfgResult) IsPerfect() bool {
-	return r.Failed == 0 && r.Unknown == 0 && r.Ignored == 0
+func (r *CheckedInputCfgResult) Runnable() bool {
+	return r.Failed == 0
 }
 
 func ReloadCheckInputCfg() ([]inputs.Input, error) {
@@ -278,11 +278,11 @@ func CheckInputCfgEx(rootPath, suffix string) ([]inputs.Input, error) {
 	for _, fp := range fps {
 		tpl, err := ParseCfgFile(fp)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %s", err, fp)
 		} else {
 			res := getCheckInputCfgResult(tpl)
-			if !res.IsPerfect() {
-				return nil, fmt.Errorf("input_cfg_invalid")
+			if !res.Runnable() {
+				return nil, fmt.Errorf("input_cfg_invalid: %s", fp)
 			}
 			availableInputs = append(availableInputs, res.AvailableInputs...)
 		}
