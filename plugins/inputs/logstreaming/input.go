@@ -1,3 +1,4 @@
+// Package logstreaming handle remote logging data.
 package logstreaming
 
 import (
@@ -55,9 +56,9 @@ func (*Input) Run() {
 	l.Info("register logstreaming router")
 }
 
-func (this *Input) RegHttpHandler() {
+func (i *Input) RegHTTPHandler() {
 	l = logger.SLogger(inputName)
-	dhttp.RegHttpHandler("POST", "/v1/write/logstreaming", ihttp.ProtectedHandlerFunc(this.handleLogstreaming, l))
+	dhttp.RegHTTPHandler("POST", "/v1/write/logstreaming", ihttp.ProtectedHandlerFunc(i.handleLogstreaming, l))
 }
 
 type Result struct {
@@ -70,7 +71,7 @@ const (
 	statusFail    = "fail"
 )
 
-func (this *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) {
+func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) {
 	var (
 		urlstr       = req.URL.String()
 		queries      = req.URL.Query()
@@ -85,7 +86,7 @@ func (this *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Reques
 		err    error
 	)
 
-	if !this.IgnoreURLTags {
+	if !i.IgnoreURLTags {
 		extraTags["ip_or_hostname"] = req.URL.Hostname()
 		extraTags["service"] = completeService(source, queries.Get("service"))
 	}
@@ -167,7 +168,10 @@ func (this *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Reques
 	if err != nil {
 		l.Errorf("marshal reuslt err: %s", err)
 	}
-	resp.Write(resultBody)
+
+	if _, err := resp.Write(resultBody); err != nil {
+		l.Warnf("Write: %s, ignored", err.Error())
+	}
 }
 
 func completeSource(source string) string {
@@ -211,12 +215,13 @@ func getPipelinePool(pipelinePath string) *sync.Pool {
 			l.Error(err)
 			return nil
 		}
-	}
-	// 依然无法在 sync map 中找到该 pipeline pool
-	p, ok = pipelineMap.Load(pipelinePath)
-	if !ok {
-		l.Errorf("unreachable, invalid pool store")
-		return nil
+
+		// 依然无法在 sync map 中找到该 pipeline pool
+		p, ok = pipelineMap.Load(pipelinePath)
+		if !ok {
+			l.Errorf("unreachable, invalid pool store")
+			return nil
+		}
 	}
 
 	pool, ok := p.(sync.Pool)
@@ -231,7 +236,7 @@ func getPipelinePool(pipelinePath string) *sync.Pool {
 func addPipelineToPool(pipelinePath string) error {
 	p, err := pipeline.NewPipelineFromFile(pipelinePath)
 	if err != nil {
-		return fmt.Errorf("failed of new pipeline %s, ignore, err: %s", pipelinePath, err)
+		return fmt.Errorf("failed of new pipeline %s, ignore, err: %w", pipelinePath, err)
 	}
 
 	l.Debugf("add pipeline to pool: %s", pipelinePath)
@@ -244,7 +249,7 @@ func addPipelineToPool(pipelinePath string) error {
 	return nil
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})
@@ -252,9 +257,10 @@ func init() {
 
 type logstreamingMeasurement struct{}
 
-func (this *logstreamingMeasurement) LineProto() (*io.Point, error) { return nil, nil }
+func (*logstreamingMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
-func (this *logstreamingMeasurement) Info() *inputs.MeasurementInfo {
+//nolint:lll
+func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Type: "logging",
 		Name: "logstreaming 日志接收",

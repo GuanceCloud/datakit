@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -248,7 +249,7 @@ func (dw *DataWayCfg) HeartBeat() error {
 	}
 
 	if dw.httpCli == nil {
-		if err := dw.initHttp(); err != nil {
+		if err := dw.initHTTP(); err != nil {
 			return err
 		}
 	}
@@ -306,5 +307,25 @@ func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Respons
 		return nil, fmt.Errorf("delete object label error: %w", err)
 	}
 
+	return dw.sendReq(req)
+}
+
+func (dw *DataWayCfg) UploadLog(r io.Reader, hostName string) (*http.Response, error) {
+	if len(dw.endPoints) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.endPoints[0]
+	reqURL, ok := dc.categoryURL[datakit.LogUpload]
+	if !ok {
+		return nil, fmt.Errorf("no file upload URL available")
+	}
+
+	req, err := http.NewRequest("POST", reqURL, r)
+	if err != nil {
+		return nil, fmt.Errorf("upload failed: %w", err)
+	}
+
+	req.Header.Add("Host-Name", hostName)
 	return dw.sendReq(req)
 }

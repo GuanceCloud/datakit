@@ -15,7 +15,7 @@ type measurement struct {
 }
 
 type (
-	AclMeasurement      struct{ measurement }
+	ACLMeasurement      struct{ measurement }
 	CacheMeasurement    struct{ measurement }
 	DNSSecMeasurement   struct{ measurement }
 	ForwardMeasurement  struct{ measurement }
@@ -29,7 +29,7 @@ func (m *measurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-func (m *AclMeasurement) Info() *inputs.MeasurementInfo {
+func (m *ACLMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_acl",
 		Fields: map[string]interface{}{

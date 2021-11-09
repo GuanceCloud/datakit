@@ -46,7 +46,7 @@ func TestWorkspaceQuery(t *testing.T) {
 
 	for _, tc := range cases {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(tc.bodyStr))
+			w.Write([]byte(tc.bodyStr)) //nolint:errcheck
 		}))
 		result, err := doWorkspace(ts.URL)
 		if err != nil {

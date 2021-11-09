@@ -26,6 +26,7 @@ func (m *InfluxdbMemstatsM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbMemstatsM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "memstats",
@@ -71,6 +72,7 @@ func (m *InfluxdbRuntimeM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbRuntimeM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "runtime",
@@ -103,6 +105,7 @@ func (m *InfluxdbQueryExecutorM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbQueryExecutorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "queryExecutor",
@@ -125,6 +128,7 @@ func (m *InfluxdbDatabaseM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbDatabaseM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "database",
@@ -145,6 +149,7 @@ func (m *InfluxdbShardM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbShardM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "shard",
@@ -180,6 +185,7 @@ func (m *InfluxdbTsm1EngineM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbTsm1EngineM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_engine",
@@ -238,6 +244,7 @@ func (m *InfluxdbTsm1CacheM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbTsm1CacheM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_cache",
@@ -271,6 +278,7 @@ func (m *InfluxdbTsm1FilestoreM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbTsm1FilestoreM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_filestore",
@@ -297,6 +305,7 @@ func (m *InfluxdbTsm1WalM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbTsm1WalM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "tsm1_wal",
@@ -324,6 +333,7 @@ func (m *InfluxdbWriteM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbWriteM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "write",
@@ -350,6 +360,7 @@ func (m *InfluxdbSubscriberM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbSubscriberM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "subscriber",
@@ -370,6 +381,7 @@ func (m *InfluxdbCqM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbCqM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "cq",
@@ -389,6 +401,7 @@ func (m *InfluxdbHttpdM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *InfluxdbHttpdM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNamePrefix + "httpd",

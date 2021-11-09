@@ -7,15 +7,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
 func parseFileFDStats(filename string) (map[string]string, error) {
-	file, err := os.Open(filename)
+	file, err := os.Open(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close() //nolint:errcheck
+	defer file.Close() //nolint:errcheck,gosec
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {

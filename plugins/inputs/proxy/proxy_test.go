@@ -10,7 +10,7 @@ import (
 func TestProxyServer(t *testing.T) {
 	var pts []*io.Point
 	for i := 0; i < 100; i++ {
-		pts = append(pts, &io.Point{Point: testutils.RamPoint("test_point", 10, 30)})
+		pts = append(pts, &io.Point{Point: testutils.RandPoint("test_point", 10, 30)})
 	}
 
 	for _, pt := range pts {

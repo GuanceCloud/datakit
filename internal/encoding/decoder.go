@@ -1,3 +1,4 @@
+// Package encoding wrap internal charset encoding/decoding functions
 package encoding
 
 import (

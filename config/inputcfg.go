@@ -34,7 +34,7 @@ func SearchDir(dir string, suffix string) []string {
 			return nil
 		}
 
-		if strings.HasSuffix(f.Name(), suffix) {
+		if suffix == "" || strings.HasSuffix(f.Name(), suffix) {
 			fps = append(fps, fp)
 		}
 		return nil
@@ -45,12 +45,19 @@ func SearchDir(dir string, suffix string) []string {
 	return fps
 }
 
-// load all inputs under @InstallDir/conf.d.
-func LoadInputsConfig(suffix string) error {
-	inputs.Init()
+func GetGitRepoDir(cloneDirName string) (string, error) {
+	if cloneDirName == "" {
+		// you shouldn't be here, check before you call this function.
+		return "", fmt.Errorf("git_repo_clone_dir_empty")
+	}
+	return filepath.Join(datakit.GitReposDir, cloneDirName), nil
+}
 
+// LoadInputsConfigEx load all inputs under @InstallDir/conf.d.
+func LoadInputsConfigEx(confRootPath string) map[string]*ast.Table {
 	availableInputCfgs := map[string]*ast.Table{}
-	confs := SearchDir(datakit.ConfdDir, suffix)
+
+	confs := SearchDir(confRootPath, ".conf")
 
 	l.Debugf("loading %d conf...", len(confs))
 
@@ -83,27 +90,7 @@ func LoadInputsConfig(suffix string) error {
 		availableInputCfgs[fp] = tbl
 	}
 
-	// reset inputs(for reloading)
-	l.Debug("reset inputs")
-	inputs.ResetInputs()
-
-	for name, creator := range inputs.Inputs {
-		if !datakit.Enabled(name) {
-			l.Debugf("ignore unchecked input %s", name)
-			continue
-		}
-
-		if err := doLoadInputConf(name, creator, availableInputCfgs); err != nil {
-			l.Errorf("load %s config failed: %v, ignored", name, err)
-			return err
-		}
-	}
-
-	if !DisableSelfInput {
-		inputs.AddSelf()
-	}
-
-	return nil
+	return availableInputCfgs
 }
 
 // fp == "", add new when not exist, set ConfigPaths empty when exist.
@@ -143,10 +130,7 @@ func doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*
 	list := searchDatakitInputCfg(inputcfgs, name, creator)
 
 	for _, i := range list {
-		if err := inputs.AddInput(name, i); err != nil {
-			l.Error("add %s failed: %v", name, err)
-			continue
-		}
+		inputs.AddInput(name, i)
 	}
 
 	return nil
@@ -248,10 +232,11 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 	return
 }
 
+//nolint:lll
 var confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
 
 func initDatakitConfSample(name string, c inputs.Creator) error {
-	if name == "self" { //nolint:goconst
+	if name == datakit.DatakitInputName {
 		return nil
 	}
 
@@ -350,7 +335,7 @@ func LoadInputConfig(data string, creator inputs.Creator) ([]inputs.Input, error
 	tbl, err := toml.Parse([]byte(data))
 	if err != nil {
 		l.Errorf("parse toml %s failed", data)
-		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
+		return nil, fmt.Errorf("[error] parse conf failed: %w", err)
 	}
 
 	return parseTableToInputs(tbl, creator)

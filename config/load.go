@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -14,6 +15,11 @@ import (
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
@@ -78,9 +84,61 @@ func LoadCfg(c *Config, mcp string) error {
 	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))
 	initDefaultEnabledPlugins(c)
 
-	if err := LoadInputsConfig(".conf"); err != nil {
-		l.Error(err)
-		return err
+	return ReloadInputConfig()
+}
+
+func GetConfRootPaths() []string {
+	var confRootPath *[]string
+	if len(datakit.GetReposConfDirs) != 0 {
+		confRootPath = &datakit.GetReposConfDirs
+	} else {
+		confRootPath = &[]string{datakit.ConfdDir}
+	}
+	return *confRootPath
+}
+
+func ReloadInputConfig() error {
+	confRootPath := GetConfRootPaths()
+
+	var confTables []map[string]*ast.Table
+
+	for _, v := range confRootPath {
+		m := LoadInputsConfigEx(v)
+		if len(m) != 0 {
+			confTables = append(confTables, m)
+		}
+	}
+
+	return ReloadInputTables(confTables)
+}
+
+func ReloadInputTables(confTables []map[string]*ast.Table) error {
+	if len(confTables) == 0 {
+		return nil
+	}
+
+	inputs.Init()
+
+	// reset inputs(for reloading)
+	l.Debug("reset inputs")
+	inputs.ResetInputs()
+
+	for _, v := range confTables {
+		for name, creator := range inputs.Inputs {
+			if !datakit.Enabled(name) {
+				l.Debugf("ignore unchecked input %s", name)
+				continue
+			}
+
+			if err := doLoadInputConf(name, creator, v); err != nil {
+				l.Errorf("load %s config failed: %v, ignored", name, err)
+				return err
+			}
+		}
+	}
+
+	if !DisableSelfInput {
+		inputs.AddSelf()
 	}
 
 	return nil
@@ -124,7 +182,7 @@ func feedEnvs(data []byte) []byte {
 }
 
 func ParseCfgFile(f string) (*ast.Table, error) {
-	data, err := ioutil.ReadFile(f)
+	data, err := ioutil.ReadFile(filepath.Clean(f))
 	if err != nil {
 		l.Errorf("ioutil.ReadFile: %s", err.Error())
 		return nil, fmt.Errorf("read config %s failed: %w", f, err)
@@ -139,4 +197,138 @@ func ParseCfgFile(f string) (*ast.Table, error) {
 	}
 
 	return tbl, nil
+}
+
+func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
+	for _, v := range iputs {
+		if inp, ok := v.(inputs.PipelineInput); ok {
+			opts := inp.GetPipeline()
+			for _, vv := range opts {
+				if vv.Pipeline == "" {
+					return nil, fmt.Errorf("pipeline_empty")
+				}
+				pFullPath, err := GetPipelinePath(vv.Pipeline)
+				if err != nil {
+					return nil, err
+				}
+				pl, err := pipeline.NewPipelineByScriptPath(pFullPath)
+				if err != nil {
+					return vv, err
+				}
+				if pl == nil {
+					return vv, fmt.Errorf("pipeline_file_error")
+				}
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func GetPipelinePath(pipeLineName string) (string, error) {
+	if pipeLineName == "" {
+		// you shouldn't be here, check before you call this function.
+		return "", fmt.Errorf("pipeline_empty")
+	}
+
+	pipeLineName = dkstring.TrimString(pipeLineName)
+
+	if path.PathIsPureFileName(pipeLineName) {
+		// eg. AA
+		return filepath.Join(datakit.PipelineDir, pipeLineName), nil
+	}
+
+	// eg. test/AA
+	return filepath.Join(datakit.GitReposDir, pipeLineName), nil
+}
+
+type CheckedInputCfgResult struct {
+	Failed  int
+	Unknown int
+	Passed  int
+	Ignored int
+
+	AvailableInputs []inputs.Input
+}
+
+func (r *CheckedInputCfgResult) Runnable() bool {
+	return r.Failed == 0
+}
+
+func ReloadCheckInputCfg() ([]inputs.Input, error) {
+	var availableInputs []inputs.Input
+	confRootPath := GetConfRootPaths()
+	confSuffix := ".conf"
+
+	for _, v := range confRootPath {
+		iputs, err := CheckInputCfgEx(v, confSuffix)
+		if err != nil {
+			return nil, err
+		}
+		availableInputs = append(availableInputs, iputs...)
+	}
+
+	return availableInputs, nil
+}
+
+func CheckInputCfgEx(rootPath, suffix string) ([]inputs.Input, error) {
+	var availableInputs []inputs.Input
+	fps := SearchDir(rootPath, suffix)
+
+	for _, fp := range fps {
+		tpl, err := ParseCfgFile(fp)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", err, fp)
+		} else {
+			res := getCheckInputCfgResult(tpl)
+			if !res.Runnable() {
+				return nil, fmt.Errorf("input_cfg_invalid: %s", fp)
+			}
+			availableInputs = append(availableInputs, res.AvailableInputs...)
+		}
+	}
+
+	return availableInputs, nil
+}
+
+func getCheckInputCfgResult(tpl *ast.Table) *CheckedInputCfgResult {
+	res := CheckedInputCfgResult{}
+
+	if len(tpl.Fields) == 0 {
+		res.Failed++
+		return &res
+	}
+
+	for field, node := range tpl.Fields {
+		switch field {
+		default:
+			// not input
+			res.Ignored++
+			return &res
+
+		case "inputs": //nolint:goconst
+			stbl, ok := node.(*ast.Table)
+			if !ok {
+				// bad toml node
+				res.Failed++
+			} else {
+				for inputName, v := range stbl.Fields {
+					if c, ok := inputs.Inputs[inputName]; !ok {
+						// unknown input
+						res.Unknown++
+					} else {
+						iputs, err := TryUnmarshal(v, inputName, c)
+						if err != nil {
+							res.Failed++
+							continue
+						}
+						res.Passed++
+						res.AvailableInputs = append(res.AvailableInputs, iputs...)
+					} // if c, ok := inputs.Inputs[inputName];
+				} // for inputName, v := range stbl.Fields
+			} // stbl, ok := node.(*ast.Table)
+		} // switch field
+	} // for field, node := range tpl.Fields
+
+	return &res
 }

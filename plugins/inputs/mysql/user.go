@@ -22,6 +22,7 @@ func (m *userMeasurement) LineProto() (*io.Point, error) {
 }
 
 // 指定指标.
+//nolint:lll
 func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL 用户指标",
@@ -123,7 +124,7 @@ func (i *Input) getUserData() ([]inputs.Measurement, error) {
 		"mysql.sys":     true,
 	}
 
-	userSql := `select DISTINCT(user) from mysql.user`
+	userSQL := `select DISTINCT(user) from mysql.user`
 
 	if len(i.Users) > 0 {
 		var arr []string
@@ -132,16 +133,16 @@ func (i *Input) getUserData() ([]inputs.Measurement, error) {
 		}
 
 		filterStr := strings.Join(arr, ",")
-		userSql = fmt.Sprintf("%s where user in (%s);", userSql, filterStr)
+		userSQL = fmt.Sprintf("%s where user in (%s);", userSQL, filterStr)
 	}
 
 	// run query
-	rows, err := i.db.Query(userSql)
+	rows, err := i.db.Query(userSQL)
 	if err != nil {
-		l.Errorf("query %v error %v", userSql, err)
+		l.Errorf("query %v error %v", userSQL, err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	for rows.Next() {
 		var user string
@@ -186,13 +187,13 @@ var filterMetric = map[string]bool{
 func (i *Input) getUserStatus(user string) ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
-	userQuerySql := `
+	userQuerySQL := `
 	select VARIABLE_NAME, VARIABLE_VALUE
 	from performance_schema.status_by_user
 	where user='%s';
 	`
 
-	userConnSql := `select USER, CURRENT_CONNECTIONS, TOTAL_CONNECTIONS
+	userConnSQL := `select USER, CURRENT_CONNECTIONS, TOTAL_CONNECTIONS
 	from performance_schema.users
 	where user = '%s';
     `
@@ -211,12 +212,12 @@ func (i *Input) getUserStatus(user string) ([]inputs.Measurement, error) {
 	m.tags["user"] = user
 
 	// run query
-	rows, err := i.db.Query(fmt.Sprintf(userQuerySql, user))
+	rows, err := i.db.Query(fmt.Sprintf(userQuerySQL, user))
 	if err != nil {
-		l.Errorf("query %v error %v", userQuerySql, err)
+		l.Errorf("query %v error %v", userQuerySQL, err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	for rows.Next() {
 		var (
@@ -236,16 +237,23 @@ func (i *Input) getUserStatus(user string) ([]inputs.Measurement, error) {
 		key := strings.ToLower(item)
 
 		if _, ok := filterMetric[key]; ok {
-			m.fields[key], err = Conv(value, inputs.Int)
+			if m.fields[key], err = Conv(value, inputs.Int); err != nil {
+				l.Warnf("convert '%s: %v' to int failed: %s, ignored", key, value, err.Error())
+			}
 		}
 	}
 
-	rows, err = i.db.Query(fmt.Sprintf(userConnSql, user))
+	rows, err = i.db.Query(fmt.Sprintf(userConnSQL, user))
 	if err != nil {
-		l.Errorf("query %v error %v", userConnSql, err)
+		l.Errorf("query %v error %v", userConnSQL, err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return nil, err
+	}
 
 	for rows.Next() {
 		var (

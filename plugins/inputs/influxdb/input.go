@@ -1,3 +1,4 @@
+// Package influxdb collects InfluxDB metrics.
 package influxdb
 
 import (
@@ -6,10 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"reflect"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -31,8 +32,9 @@ const (
 var l = logger.DefaultSLogger("influxdb")
 
 type Input struct {
-	URL string `toml:"url"`
+	URLsDeprecated []string `toml:"urls,omitempty"`
 
+	URL      string `toml:"url"`
 	Username string `toml:"username"`
 	Password string `toml:"password"`
 
@@ -47,7 +49,7 @@ type Input struct {
 		MultilineMatch    string   `toml:"multiline_match"`
 	} `toml:"log"`
 
-	TlsConf *dknet.TLSClientConfig `toml:"tlsconf"`
+	TLSConf *dknet.TLSClientConfig `toml:"tlsconf"`
 	Tags    map[string]string      `toml:"tags"`
 
 	tail         *tailer.Tailer
@@ -56,6 +58,8 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -65,6 +69,8 @@ func newInput() *Input {
 		Interval: datakit.Duration{Duration: time.Second * 15},
 		Timeout:  datakit.Duration{Duration: time.Second * 5},
 		pauseCh:  make(chan bool, maxPauseCh),
+
+		semStop: cliutils.NewSem(),
 	}
 }
 
@@ -75,6 +81,16 @@ func (*Input) SampleConfig() string { return sampleConfig }
 func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) PipelineConfig() map[string]string { return nil }
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: i.Log.Pipeline,
+		},
+	}
+}
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -112,14 +128,18 @@ func (i *Input) RunPipeline() {
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -132,12 +152,15 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
+
 	l.Infof("influxdb input started")
+
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	var tlsCfg *tls.Config
-	if i.TlsConf != nil {
+
+	if i.TLSConf != nil {
 		var err error
-		tlsCfg, err = i.TlsConf.TLSConfig()
+		tlsCfg, err = i.TLSConf.TLSConfig()
 		if err != nil {
 			l.Error(err)
 			io.FeedLastError(inputName, err.Error())
@@ -149,47 +172,63 @@ func (i *Input) Run() {
 
 	i.client = &http.Client{
 		Transport: &http.Transport{
-			ResponseHeaderTimeout: time.Duration(i.Timeout.Duration),
+			ResponseHeaderTimeout: i.Timeout.Duration,
 			TLSClientConfig:       tlsCfg,
 		},
-		Timeout: time.Duration(i.Timeout.Duration),
+		Timeout: i.Timeout.Duration,
 	}
 
 	tick := time.NewTicker(i.Interval.Duration)
 
 	defer tick.Stop()
 	for {
+		if !i.pause {
+			start := time.Now()
+			if err := i.Collect(); err != nil {
+				l.Errorf("Collect: %s", err)
+				io.FeedLastError(inputName, err.Error())
+			}
+
+			if len(i.collectCache) > 0 {
+				if err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
+					&io.Option{CollectCost: time.Since(start)}); err != nil {
+					l.Errorf("FeedMeasurement: %s", err)
+				}
+				i.collectCache = make([]inputs.Measurement, 0)
+			}
+		} else {
+			l.Debugf("not leader, skipped")
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("solr log exit")
-			}
+			i.exit()
 			l.Infof("influxdb input exit")
 			return
 
-		case <-tick.C:
-			if i.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Infof("influxdb input return")
+			return
 
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if feedErr := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); feedErr != nil {
-					l.Error(feedErr)
-					io.FeedLastError(inputName, feedErr.Error())
-				}
-			} else {
-				l.Error(err)
-				io.FeedLastError(inputName, err.Error())
-			}
-			i.collectCache = make([]inputs.Measurement, 0)
+		case <-tick.C:
 
 		case i.pause = <-i.pauseCh:
 			// nil
 		}
+	}
+}
+
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("solr log exit")
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
@@ -209,7 +248,7 @@ func (i *Input) Collect() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("influxdb: API responded with status-code %d, URL: %s, Resp: %s", resp.StatusCode, i.URL, resp.Body)
 	}
@@ -268,7 +307,7 @@ func (i *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
 	})

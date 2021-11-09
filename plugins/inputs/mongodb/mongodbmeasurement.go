@@ -1,3 +1,4 @@
+//nolint:lll
 package mongodb
 
 import (
@@ -192,18 +193,18 @@ func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type mongodbDbMeasurement struct {
+type mongodbDBMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
 }
 
-func (m *mongodbDbMeasurement) LineProto() (*io.Point, error) {
+func (m *mongodbDBMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-func (m *mongodbDbMeasurement) Info() *inputs.MeasurementInfo {
+func (m *mongodbDBMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mongodb_db_stats",
 		Tags: map[string]interface{}{

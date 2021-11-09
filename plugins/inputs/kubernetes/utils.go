@@ -5,13 +5,12 @@ import (
 	"strings"
 )
 
-func addMapToFields(key string, value map[string]string, fields map[string]interface{}) {
+func addMapToFields(key string, value map[string]string, fields map[string]interface{}) { //nolint:unparam
 	if fields == nil {
 		return
 	}
 
-	if value == nil || len(value) == 0 {
-		// 如果该 map 为空，则对应值为空字符串，否则在 json 序列化为 "null"
+	if len(value) == 0 { // 如果该 map 为空，则对应值为空字符串，否则在 json 序列化为 "null"
 		fields[key] = defaultStringValue
 		return
 	}

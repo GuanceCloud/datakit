@@ -1,3 +1,4 @@
+// Package cgroup wraps Linux cgroup functions.
 package cgroup
 
 import (

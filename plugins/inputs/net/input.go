@@ -1,3 +1,4 @@
+// Package net collects host network metrics.
 package net
 
 import (
@@ -8,12 +9,15 @@ import (
 	"time"
 
 	psNet "github.com/shirou/gopsutil/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	minInterval = time.Second
@@ -68,7 +72,7 @@ type netMeasurement struct {
 // https://tools.ietf.org/html/rfc1213#page-48
 // https://www.kernel.org/doc/html/latest/networking/snmp_counter.html
 // https://sourceforge.net/p/net-tools/code/ci/master/tree/statistics.c#l178
-
+//nolint:lll
 func (m *netMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: netMetricName,
@@ -137,18 +141,21 @@ func (m *netMeasurement) LineProto() (*io.Point, error) {
 
 type Input struct {
 	Interval                datakit.Duration
-	IgnoreProtocolStats     bool
 	Interfaces              []string
 	EnableVirtualInterfaces bool
+	IgnoreProtocolStats     bool
 	Tags                    map[string]string
 
-	collectCache     []inputs.Measurement
-	lastStats        map[string]psNet.IOCountersStat
-	lastProtoStats   []psNet.ProtoCountersStat
+	collectCache   []inputs.Measurement
+	lastStats      map[string]psNet.IOCountersStat
+	lastProtoStats []psNet.ProtoCountersStat
+
 	lastTime         time.Time
 	netIO            NetIO
 	netProto         NetProto
 	netVirtualIfaces NetVirtualIfaces
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
@@ -179,14 +186,18 @@ func (i *Input) Collect() error {
 	ts := time.Now()
 	netio, err := NetIOCounters()
 	if err != nil {
-		return fmt.Errorf("error getting net io info: %s", err)
+		return fmt.Errorf("error getting net io info: %w", err)
 	}
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		return fmt.Errorf("error getting net interfaces info: %s", err)
+		return fmt.Errorf("error getting net interfaces info: %w", err)
 	}
 
-	filteredInterface, err := FilterInterface(netio, interfaces, i.Interfaces, i.EnableVirtualInterfaces, i.netVirtualIfaces)
+	filteredInterface, err := FilterInterface(netio,
+		interfaces,
+		i.Interfaces,
+		i.EnableVirtualInterfaces,
+		i.netVirtualIfaces)
 
 	for name, ioStat := range filteredInterface {
 		tags := map[string]string{
@@ -278,15 +289,26 @@ func (i *Input) Run() {
 				l.Error(err)
 			}
 		case <-datakit.Exit.Wait():
-			l.Infof("net input exit")
+			l.Info("net input exit")
+			return
+
+		case <-i.semStop.Wait():
+			l.Info("net input return")
 			return
 		}
 	}
 }
 
-// ReadEnv, support envs：
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
+}
+
+// ReadEnv , support envs：
 //   ENV_INPUT_NET_IGNORE_PROTOCOL_STATS : booler
 //   ENV_INPUT_NET_ENABLE_VIRTUAL_INTERFACES : booler
+//   ENV_INPUT_NET_TAGS : "a=b,c=d"
 func (i *Input) ReadEnv(envs map[string]string) {
 	if ignore, ok := envs["ENV_INPUT_NET_IGNORE_PROTOCOL_STATS"]; ok {
 		b, err := strconv.ParseBool(ignore)
@@ -305,15 +327,25 @@ func (i *Input) ReadEnv(envs map[string]string) {
 			i.EnableVirtualInterfaces = b
 		}
 	}
+
+	if tagsStr, ok := envs["ENV_INPUT_NET_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			i.Tags[k] = v
+		}
+	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			netIO:            NetIOCounters,
 			netProto:         psNet.ProtoCounters,
 			netVirtualIfaces: NetVirtualInterfaces,
 			Interval:         datakit.Duration{Duration: time.Second * 10},
+
+			semStop: cliutils.NewSem(),
+			Tags:    make(map[string]string),
 		}
 	})
 }

@@ -18,6 +18,7 @@ func (m *Performance) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *Performance) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_performance",
@@ -44,6 +45,7 @@ func (m *WaitStatsCategorized) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_waitstats",
@@ -74,6 +76,7 @@ func (m *DatabaseIO) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_database_io",
@@ -109,6 +112,7 @@ func (m *ServerProperties) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *ServerProperties) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver",
@@ -139,6 +143,7 @@ func (m *Schedulers) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *Schedulers) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_schedulers",
@@ -178,6 +183,7 @@ func (m *VolumeSpace) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_volumespace",

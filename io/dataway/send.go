@@ -87,7 +87,9 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 
 	case 4:
 		dc.fails = 0
-		dktracer.GlobalTracer.SetTag(span, "http_request_400_error", fmt.Errorf("%d: %s", resp.StatusCode, http.StatusText(resp.StatusCode)))
+		dktracer.GlobalTracer.SetTag(span, "http_request_400_error",
+			fmt.Errorf("%d: %s", resp.StatusCode, http.StatusText(resp.StatusCode)))
+
 		l.Warnf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
 			len(data),
 			requrl,
@@ -98,7 +100,9 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 
 	case 5:
 		dc.fails++
-		dktracer.GlobalTracer.SetTag(span, "http_request_500_error", fmt.Errorf("%d: %s", resp.StatusCode, http.StatusText(resp.StatusCode)))
+		dktracer.GlobalTracer.SetTag(span, "http_request_500_error",
+			fmt.Errorf("%d: %s", resp.StatusCode, http.StatusText(resp.StatusCode)))
+
 		l.Errorf("[%d] post %d to %s failed(HTTP: %s): %s, cost %v", dc.fails,
 			len(data),
 			requrl,
@@ -112,7 +116,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 }
 
 func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
-	l.Debugf("send request %s, proxy: %s, dwcli: %p", req.URL.String(), dw.HttpProxy, dw.httpCli.Transport)
+	l.Debugf("send request %s, proxy: %s, dwcli: %p", req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport)
 	return dw.httpCli.Do(req)
 }
 
@@ -122,7 +126,7 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 		// 判断 fails
 		if ep.fails > dw.MaxFails && len(AvailableDataways) > 0 {
 			rand.Seed(time.Now().UnixNano())
-			index := rand.Intn(len(AvailableDataways))
+			index := rand.Intn(len(AvailableDataways)) //nolint:gosec
 
 			var err error
 			url := fmt.Sprintf(`%s?%s`, AvailableDataways[index], ep.urlValues.Encode())

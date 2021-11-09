@@ -1,3 +1,4 @@
+// Package jaeger handle Jaeger tracing metrics.
 package jaeger
 
 import (
@@ -31,7 +32,7 @@ var (
 
 type Input struct {
 	Path             string                     `toml:"path"`           // deprecated
-	UdpAgent         string                     `toml:"udp_agent"`      // deprecated
+	UDPAgent         string                     `toml:"udp_agent"`      // deprecated
 	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs"` // deprecated
 	Endpoint         string                     `toml:"endpoint"`
 	Address          string                     `toml:"address"`
@@ -50,8 +51,8 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-// TODO:
 func (*Input) SampleMeasurement() []inputs.Measurement {
+	// No predefined measurement available here
 	return nil
 }
 
@@ -64,17 +65,19 @@ func (t *Input) Run() {
 	}
 
 	if t.Address != "" {
-		StartUDPAgent(t.Address)
+		if err := StartUDPAgent(t.Address); err != nil {
+			log.Errorf("StartUDPAgent: %s", err)
+		}
 	}
 }
 
-func (t *Input) RegHttpHandler() {
+func (t *Input) RegHTTPHandler() {
 	if t.Endpoint != "" {
-		http.RegHttpHandler("POST", t.Endpoint, JaegerTraceHandle)
+		http.RegHTTPHandler("POST", t.Endpoint, JaegerTraceHandle)
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

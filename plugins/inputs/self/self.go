@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -12,27 +13,29 @@ import (
 )
 
 var (
-	inputName = "self"
-	l         = logger.DefaultSLogger("self")
+	inputName = datakit.DatakitInputName
+	l         = logger.DefaultSLogger(inputName)
 )
 
 type SelfInfo struct {
 	stat *ClientStat
+
+	semStop *cliutils.Sem // start stop signal
 }
 
-func (_ *SelfInfo) Catalog() string {
-	return "self"
+func (*SelfInfo) Catalog() string {
+	return inputName
 }
 
-func (_ *SelfInfo) SampleConfig() string {
+func (*SelfInfo) SampleConfig() string {
 	return ``
 }
 
-func (s *SelfInfo) Run() {
+func (si *SelfInfo) Run() {
 	tick := time.NewTicker(time.Second * 10)
 	defer tick.Stop()
 
-	l = logger.SLogger("self")
+	l = logger.SLogger(inputName)
 	l.Info("self input started...")
 
 	for {
@@ -40,15 +43,26 @@ func (s *SelfInfo) Run() {
 		case <-datakit.Exit.Wait():
 			l.Info("self exit")
 			return
+
+		case <-si.semStop.Wait():
+			l.Info("self return")
+			return
+
 		case <-tick.C:
-			s.stat.Update()
-			pt := s.stat.ToMetric()
+			si.stat.Update()
+			pt := si.stat.ToMetric()
 			_ = io.Feed(inputName, datakit.Metric, []*io.Point{pt}, nil)
 		}
 	}
 }
 
-func init() {
+func (si *SelfInfo) Terminate() {
+	if si.semStop != nil {
+		si.semStop.Close()
+	}
+}
+
+func init() { //nolint:gochecknoinits
 	StartTime = time.Now()
 	inputs.Add(inputName, func() inputs.Input {
 		return &SelfInfo{
@@ -57,6 +71,7 @@ func init() {
 				Arch: runtime.GOARCH,
 				PID:  os.Getpid(),
 			},
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

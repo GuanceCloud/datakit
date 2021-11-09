@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	BaseUrl = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/security-checker/"
+	BaseURL = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/security-checker/"
 )
 
 var SecCheckOsArch = map[string]bool{
@@ -28,15 +28,15 @@ type SecCheckVersion struct {
 func InstallSecCheck(installDir string) error {
 	osArch := runtime.GOOS + "/" + runtime.GOARCH
 	if _, ok := SecCheckOsArch[osArch]; !ok {
-		return fmt.Errorf("security Checker not support in %v\n", osArch)
+		return fmt.Errorf("security checker not support in %v", osArch)
 	}
 
 	fmt.Printf("Start downloading install script...\n")
 
-	verUrl := BaseUrl + "install.sh"
+	verURL := BaseURL + "install.sh"
 	cli := getcli()
 
-	req, err := http.NewRequest("GET", verUrl, nil)
+	req, err := http.NewRequest("GET", verURL, nil)
 	if err != nil {
 		return err
 	}

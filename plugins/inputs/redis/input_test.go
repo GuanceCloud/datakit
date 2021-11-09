@@ -1,11 +1,9 @@
 package redis
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/go-redis/redismock/v8"
-	"github.com/stretchr/testify/assert"
 )
 
 var redisInfo = `
@@ -163,15 +161,15 @@ func TestGetInfo(t *testing.T) {
 
 	resData, err := input.collectInfoMeasurement()
 	if err != nil {
-		t.Log("collect data err", err)
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Logf(point.String())
 		}
 	}
 }
@@ -188,7 +186,7 @@ func TestCollectInfoMeasurement(t *testing.T) {
 
 	err := input.initCfg()
 	if err != nil {
-		t.Log("init cfg err", err)
+		t.Error(err)
 		return
 	}
 
@@ -200,9 +198,9 @@ func TestCollectInfoMeasurement(t *testing.T) {
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -216,19 +214,21 @@ func TestCollectClientMeasurement(t *testing.T) {
 		Tags:     make(map[string]string),
 	}
 
-	input.initCfg()
+	if err := input.initCfg(); err != nil {
+		t.Error(err)
+	}
 
 	resData, err := input.collectClientMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -242,19 +242,21 @@ func TestCollectCommandMeasurement(t *testing.T) {
 		Tags:     make(map[string]string),
 	}
 
-	input.initCfg()
+	if err := input.initCfg(); err != nil {
+		t.Error(err)
+	}
 
 	resData, err := input.collectCommandMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -276,15 +278,15 @@ func TestCollectSlowlogMeasurement(t *testing.T) {
 
 	resData, err := input.collectSlowlogMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -301,20 +303,22 @@ func TestCollectBigKeyMeasurement(t *testing.T) {
 		DBS:  []int{-1},
 	}
 
-	input.initCfg()
+	if err := input.initCfg(); err != nil {
+		t.Error(err)
+	}
 
 	resData, err := input.collectBigKeyMeasurement()
-	fmt.Println(resData)
+	t.Log(resData)
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -331,18 +335,20 @@ func TestCollectDBMeasurement(t *testing.T) {
 		DBS:  []int{2},
 	}
 
-	input.initCfg()
+	if err := input.initCfg(); err != nil {
+		t.Error(err)
+	}
 
 	resData, err := input.collectDBMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -358,19 +364,21 @@ func TestCollectReplicaMeasurement(t *testing.T) {
 		DB:       1,
 	}
 
-	input.initCfg()
+	if err := input.initCfg(); err != nil {
+		t.Error(err)
+	}
 
 	resData, err := input.collectReplicaMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Logf("point line =====> %s", point.String())
 		}
 	}
 }
@@ -389,7 +397,7 @@ func TestInput_ParseInfoData(t *testing.T) {
 	}
 	resData, err := input.ParseInfoData("# Keyspace\ndb0:keys=8,expires=0,avg_ttl=0\ndb1:keys=5,expires=0,avg_ttl=0")
 	if err != nil {
-		assert.Error(t, err, "parse data err")
+		t.Error(t, err, "parse data err")
 	}
 
 	for _, pt := range resData {
@@ -415,8 +423,12 @@ func TestCollect(t *testing.T) {
 			DBS:  []int{-1},
 		}
 
-		input.initCfg()
-		input.Collect()
+		if err := input.initCfg(); err != nil {
+			t.Error(err)
+		}
+		if err := input.Collect(); err != nil {
+			t.Error(err)
+		}
 	})
 
 	t.Run("error", func(t *testing.T) {
@@ -430,34 +442,11 @@ func TestCollect(t *testing.T) {
 			DB:   1,
 		}
 
-		input.initCfg()
-		input.Collect()
+		if err := input.initCfg(); err != nil {
+			t.Error(err)
+		}
+		if err := input.Collect(); err != nil {
+			t.Error(err)
+		}
 	})
 }
-
-// func TestRun(t *testing.T) {
-// 	input := &Input{
-// 		Host:     "127.0.0.1",
-// 		Port:     6379,
-// 		Password: "dev",
-// 		Service:  "dev-test",
-// 		Tags:     make(map[string]string),
-// 		Keys:     []string{"queue"},
-// 		DB:       1,
-// 		Log:      &redislog{},
-// 	}
-
-// 	input.Run()
-// }
-
-// func TestLoadCfg(t *testing.T) {
-// 	arr, err := config.LoadInputConfigFile("./redis.conf", func() inputs.Input {
-// 		return &Input{}
-// 	})
-
-// 	if err != nil {
-// 		t.Fatalf("%s", err)
-// 	}
-
-// 	arr[0].(*Input).Run()
-// }

@@ -84,11 +84,11 @@ debug_go: buildexec
 
 # /dist/net_ebpf
 buildexec:
-	go build -o $(OUTPATH) $(BASEPATH)/net_ebpf.go
+	go build -tags="ebpf" -o $(OUTPATH) $(BASEPATH)/net_ebpf.go
 
 # /dist/offset_guess
 build_guess:
-	go build -o $(OUTPATH) $(BASEPATH)/net_ebpf.go
+	go build -tags="ebpf" -o $(OUTPATH) $(BASEPATH)/net_ebpf.go
 
 clean:
 	rm dist/*

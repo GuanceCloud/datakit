@@ -46,6 +46,7 @@ func Calc(expr interface{}, p *Pipeline) (interface{}, error) {
 	}
 }
 
+//nolint:gocyclo
 func binaryOp(lv, rv interface{}, opCode int) (val interface{}, err error) {
 	defer func() {
 		r := recover()
@@ -90,7 +91,7 @@ func binaryOp(lv, rv interface{}, opCode int) (val interface{}, err error) {
 	default:
 		err = fmt.Errorf("opcode %v unsupported", opCode)
 	}
-	return
+	return //nolint:nakedret
 }
 
 func binaryAdd(lv, rv interface{}) (interface{}, error) {

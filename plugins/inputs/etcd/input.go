@@ -1,3 +1,4 @@
+// Package etcd collect etcd metrics by using input prom.
 package etcd
 
 import (
@@ -65,7 +66,7 @@ const (
   # token_file = "/tmp/token"
 
   ## 自定义Tags
- 
+
 `
 )
 
@@ -93,7 +94,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

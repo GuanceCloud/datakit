@@ -23,7 +23,7 @@ const (
 
 var uncommenter = strings.NewReplacer("\\n", "\n")
 
-func (s *input) parseEventMessage(now time.Time, message string, defaultHostname string) error {
+func (ipt *input) parseEventMessage(now time.Time, message string, defaultHostname string) error {
 	// _e{title.length,text.length}:title|text
 	//  [
 	//   |d:date_happened
@@ -89,7 +89,7 @@ func (s *input) parseEventMessage(now time.Time, message string, defaultHostname
 	fields["priority"] = priorityNormal
 	ts := now
 	if len(message) < 2 {
-		s.acc.addFields(name, fields, tags, ts)
+		ipt.acc.addFields(name, fields, tags, ts)
 		return nil
 	}
 
@@ -142,7 +142,7 @@ func (s *input) parseEventMessage(now time.Time, message string, defaultHostname
 		delete(tags, "host")
 		tags["source"] = host
 	}
-	s.acc.addFields(name, fields, tags, ts)
+	ipt.acc.addFields(name, fields, tags, ts)
 	return nil
 }
 
@@ -151,6 +151,8 @@ func parseDataDogTags(tags map[string]string, message string) {
 		return
 	}
 
+	const TrueVal = "true"
+
 	start, i := 0, 0
 	var k string
 	var inVal bool // check if we are parsing the value part of the tag
@@ -158,13 +160,13 @@ func parseDataDogTags(tags map[string]string, message string) {
 		if message[i] == ',' {
 			if k == "" {
 				k = message[start:i]
-				tags[k] = "true" // this is because influx doesn't support empty tags
+				tags[k] = TrueVal // this is because influx doesn't support empty tags
 				start = i + 1
 				continue
 			}
 			v := message[start:i]
 			if v == "" {
-				v = "true"
+				v = TrueVal
 			}
 			tags[k] = v
 			start = i + 1
@@ -176,7 +178,7 @@ func parseDataDogTags(tags map[string]string, message string) {
 		}
 	}
 	if k == "" && start < i+1 {
-		tags[message[start:i+1]] = "true"
+		tags[message[start:i+1]] = TrueVal
 	}
 	// grab the last value
 	if k != "" {
@@ -184,6 +186,6 @@ func parseDataDogTags(tags map[string]string, message string) {
 			tags[k] = message[start : i+1]
 			return
 		}
-		tags[k] = "true"
+		tags[k] = TrueVal
 	}
 }

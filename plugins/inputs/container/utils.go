@@ -7,12 +7,11 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
-// Adapts some of the logic from the actual Docker library's image parsing
+// ParseImage adapts some of the logic from the actual Docker library's image parsing
 // routines:
 // https://github.com/docker/distribution/blob/release/2.7/reference/normalize.go
 func ParseImage(image string) (string, string, string) {
-	domain := ""
-	remainder := ""
+	var domain, remainder string
 
 	i := strings.IndexRune(image, '/')
 
@@ -22,7 +21,7 @@ func ParseImage(image string) (string, string, string) {
 		domain, remainder = image[:i], image[i+1:]
 	}
 
-	imageName := ""
+	var imageName string
 	imageVersion := "unknown"
 
 	i = strings.LastIndex(remainder, ":")
@@ -98,9 +97,9 @@ func calculateBlockIO(blkio types.BlkioStats) (int64, int64) {
 		}
 		switch bioEntry.Op[0] {
 		case 'r', 'R':
-			blkRead = blkRead + int64(bioEntry.Value)
+			blkRead += int64(bioEntry.Value)
 		case 'w', 'W':
-			blkWrite = blkWrite + int64(bioEntry.Value)
+			blkWrite += int64(bioEntry.Value)
 		}
 	}
 	return blkRead, blkWrite

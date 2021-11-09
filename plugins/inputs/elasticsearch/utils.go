@@ -92,20 +92,24 @@ func (f *JSONFlattener) FullFlattenJSON(
 			}
 			err := f.FullFlattenJSON(fieldkey, v, convertString, convertBool)
 			if err != nil {
-				return nil
+				return err
 			}
 		}
 	case float64:
 		f.Fields[fieldname] = t
 	case string:
 		if convertString {
-			f.Fields[fieldname] = v.(string)
+			if x, ok := v.(string); ok {
+				f.Fields[fieldname] = x
+			}
 		} else {
 			return nil
 		}
 	case bool:
 		if convertBool {
-			f.Fields[fieldname] = v.(bool)
+			if x, ok := v.(bool); ok {
+				f.Fields[fieldname] = x
+			}
 		} else {
 			return nil
 		}

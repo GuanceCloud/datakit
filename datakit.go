@@ -1,5 +1,4 @@
-// Datakit global settings
-
+// Package datakit defined all datakit's global settings
 package datakit
 
 import (
@@ -54,6 +53,9 @@ const (
 	Workspace         = "/v1/workspace"
 	ListDataWay       = "/v1/list/dataway"
 	ObjectLabel       = "/v1/object/labels" // object label
+	LogUpload         = "/v1/log"
+
+	DatakitInputName = "self"
 )
 
 var (
@@ -78,13 +80,19 @@ var (
 	}
 
 	AllOS   = []string{OSWindows, OSLinux, OSDarwin}
-	AllArch = []string{OSArchWinAmd64, OSArchWin386, OSArchLinuxArm, OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64}
+	AllArch = []string{
+		OSArchWinAmd64, OSArchWin386, OSArchLinuxArm,
+		OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64,
+	}
 
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}
 
 	DataDir  = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
+
+	GitReposDir      = filepath.Join(InstallDir, "gitrepos")
+	GetReposConfDirs []string // git repos conf search dirs
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
@@ -111,6 +119,8 @@ func SetWorkDir(dir string) {
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
 
+	GitReposDir = filepath.Join(InstallDir, "gitrepos")
+
 	InitDirs()
 }
 
@@ -120,6 +130,7 @@ func InitDirs() {
 		ConfdDir,
 		PipelineDir,
 		PipelinePatternDir,
+		GitReposDir,
 	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
@@ -184,7 +195,7 @@ func Quit() {
 }
 
 func PID() (int, error) {
-	if x, err := ioutil.ReadFile(pidFile); err != nil {
+	if x, err := ioutil.ReadFile(filepath.Clean(pidFile)); err != nil {
 		return -1, err
 	} else {
 		if pid, err := strconv.ParseInt(string(x), 10, 32); err != nil {
@@ -209,7 +220,7 @@ func isRuning() bool {
 	var name string
 	var p *process.Process
 
-	cont, err := ioutil.ReadFile(pidFile)
+	cont, err := ioutil.ReadFile(filepath.Clean(pidFile))
 	// pid文件不存在
 	if err != nil {
 		return false

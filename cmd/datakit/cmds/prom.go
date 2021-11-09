@@ -10,17 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/influxdata/toml/ast"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom_remote_write"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
 	"github.com/influxdata/influxdb1-client/models"
+	"github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
+	pr "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/promremote"
 )
 
 func promDebugger(configFile string) error {
@@ -69,7 +66,11 @@ func collectorName(file string) (string, error) {
 		return "", err
 	}
 	it := table.Fields["inputs"]
-	tbl := it.(*ast.Table)
+	tbl, ok := it.(*ast.Table)
+	if !ok {
+		return "", fmt.Errorf("expect to be *ast.Table")
+	}
+
 	for k := range tbl.Fields {
 		return k, nil
 	}
@@ -77,9 +78,9 @@ func collectorName(file string) (string, error) {
 }
 
 // getPromRemoteWriteInput constructs a prom_remote_write.Input by given config file.
-func getPromRemoteWriteInput(configPath string) (*prom_remote_write.Input, error) {
+func getPromRemoteWriteInput(configPath string) (*pr.Input, error) {
 	inputList, err := config.LoadInputConfigFile(configPath, func() inputs.Input {
-		return prom_remote_write.NewInput()
+		return pr.NewInput()
 	})
 	if err != nil {
 		return nil, err
@@ -88,7 +89,7 @@ func getPromRemoteWriteInput(configPath string) (*prom_remote_write.Input, error
 		return nil, fmt.Errorf("should test only one prom_remote_write config, now get %v", len(inputList))
 	}
 
-	input, ok := inputList[0].(*prom_remote_write.Input)
+	input, ok := inputList[0].(*pr.Input)
 
 	if !ok {
 		return nil, fmt.Errorf("invalid prom_remote_write instance")
@@ -100,13 +101,13 @@ func getPromRemoteWriteInput(configPath string) (*prom_remote_write.Input, error
 // showPromRemoteWriteInput reads raw data file specified by prom_remote_write.Input.Output,
 // performs metric filtering and prefixing, and adds/ignores tags based on configuration.
 // parsed metrics are at last passed to printResult.
-func showPromRemoteWriteInput(input *prom_remote_write.Input) error {
+func showPromRemoteWriteInput(input *pr.Input) error {
 	fp := input.Output
 	if !path.IsAbs(fp) {
 		dir := datakit.InstallDir
 		fp = filepath.Join(dir, fp)
 	}
-	file, err := os.Open(fp)
+	file, err := os.Open(filepath.Clean(fp))
 	if err != nil {
 		return err
 	}
@@ -120,7 +121,11 @@ func showPromRemoteWriteInput(input *prom_remote_write.Input) error {
 	}
 	var points []*io.Point
 	for _, m := range measurements {
-		mm := m.(*prom_remote_write.Measurement)
+		mm, ok := m.(*pr.Measurement)
+		if !ok {
+			return fmt.Errorf("expect to be *prom_remote_write.Measurement")
+		}
+
 		input.AddAndIgnoreTags(mm)
 		p, err := mm.LineProto()
 		if err != nil {
@@ -159,9 +164,13 @@ func showPromInput(input *prom.Input) error {
 	}
 
 	// get collected points
-	Url, _ := url.Parse(input.URL)
+	u, err := url.Parse(input.URL)
+	if err != nil {
+		return err
+	}
+
 	var points []*io.Point
-	if input.Output != "" || Url.Scheme != "http" && Url.Scheme != "https" {
+	if input.Output != "" || u.Scheme != "http" && u.Scheme != "https" {
 		points, err = input.CollectFromFile()
 	} else {
 		points, err = input.Collect()

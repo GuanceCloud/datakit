@@ -1,3 +1,4 @@
+//nolint:lll
 package jvm
 
 import (
@@ -43,8 +44,7 @@ type JavaMemoryPoolMemt struct {
 }
 
 func (j *JvmMeasurement) LineProto() (*io.Point, error) {
-	data, err := io.MakePoint(j.name, j.tags, j.fields, j.ts)
-	return data, err
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
@@ -52,7 +52,7 @@ func (j *JvmMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaRuntimeMemt) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
@@ -68,7 +68,7 @@ func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaMemoryMemt) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
@@ -95,7 +95,7 @@ func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaGcMemt) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
@@ -114,7 +114,7 @@ func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaLastGcMemt) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
@@ -122,7 +122,7 @@ func (j *JavaLastGcMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaThreadMemt) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
@@ -142,7 +142,7 @@ func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaClassLoadMemt) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
@@ -161,7 +161,7 @@ func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 }
 
 func (j *JavaMemoryPoolMemt) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {

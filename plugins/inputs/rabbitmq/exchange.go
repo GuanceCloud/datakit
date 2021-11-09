@@ -23,7 +23,7 @@ func getExchange(n *Input) {
 		}
 
 		tags := map[string]string{
-			"url":           n.Url,
+			"url":           n.URL,
 			"exchange_name": exchange.Name,
 			"type":          exchange.Type,
 			"vhost":         exchange.Vhost,
@@ -74,6 +74,7 @@ func (m *ExchangeMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: ExchangeMetric,

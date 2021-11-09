@@ -1,3 +1,4 @@
+// Package gitlab collect GitLab metrics
 package gitlab
 
 import (
@@ -5,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -33,7 +35,7 @@ const (
 
 var l = logger.DefaultSLogger(inputName)
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
 	})
@@ -49,6 +51,8 @@ type Input struct {
 
 	pause   bool
 	pauseCh chan bool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -59,15 +63,17 @@ func newInput() *Input {
 		pauseCh:    make(chan bool, maxPauseCh),
 		duration:   time.Second * 10,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
+
+		semStop: cliutils.NewSem(),
 	}
 }
 
-func (this *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	this.loadCfg()
+	ipt.loadCfg()
 
-	ticker := time.NewTicker(this.duration)
+	ticker := time.NewTicker(ipt.duration)
 	defer ticker.Stop()
 
 	for {
@@ -76,54 +82,64 @@ func (this *Input) Run() {
 			l.Info("exit")
 			return
 
+		case <-ipt.semStop.Wait():
+			l.Info("gitlab return")
+			return
+
 		case <-ticker.C:
-			if this.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			this.gather()
+			ipt.gather()
 
-		case this.pause = <-this.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (this *Input) Pause() error {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case this.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (this *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case this.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
-func (this *Input) loadCfg() {
-	dur, err := time.ParseDuration(this.Interval)
+func (ipt *Input) loadCfg() {
+	dur, err := time.ParseDuration(ipt.Interval)
 	if err != nil {
 		l.Warnf("parse interval error (use default 10s): %s", err)
 		return
 	}
-	this.duration = dur
+	ipt.duration = dur
 }
 
-func (this *Input) gather() {
+func (ipt *Input) gather() {
 	start := time.Now()
 
-	pts, err := this.gatherMetrics()
+	pts, err := ipt.gatherMetrics()
 	if err != nil {
 		l.Error(err)
 		return
@@ -134,12 +150,12 @@ func (this *Input) gather() {
 	}
 }
 
-func (this *Input) gatherMetrics() ([]*io.Point, error) {
-	resp, err := this.httpClient.Get(this.URL)
+func (ipt *Input) gatherMetrics() ([]*io.Point, error) {
+	resp, err := ipt.httpClient.Get(ipt.URL)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	metrics, err := promTextToMetrics(resp.Body)
 	if err != nil {
@@ -159,7 +175,7 @@ func (this *Input) gatherMetrics() ([]*io.Point, error) {
 			measurement = inputName + "_http"
 		}
 
-		for k, v := range this.Tags {
+		for k, v := range ipt.Tags {
 			m.tags[k] = v
 		}
 

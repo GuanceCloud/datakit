@@ -64,25 +64,11 @@ func (j *job) addTag(key string, value string) {
 	j.tags[key] = value
 }
 
-func (j *job) deleteTag(key string) {
-	if j.tags == nil {
-		return
-	}
-	delete(j.tags, key)
-}
-
 func (j *job) addField(key string, value interface{}) {
 	if j.fields == nil {
 		return
 	}
 	j.fields[key] = value
-}
-
-func (j *job) deleteField(key string) {
-	if j.fields == nil {
-		return
-	}
-	delete(j.fields, key)
 }
 
 func (j *job) marshal() ([]byte, error) {

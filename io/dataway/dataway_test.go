@@ -2,8 +2,10 @@ package dataway
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -311,7 +313,7 @@ func TestSetupDataway(t *testing.T) {
 		dw := DataWayCfg{
 			DeprecatedURL: tc.url,
 			URLs:          tc.urls,
-			HttpProxy:     tc.proxy,
+			HTTPProxy:     tc.proxy,
 			Proxy:         tc.proxy != "",
 		}
 
@@ -386,4 +388,23 @@ func runTestDatawayConnections(t *testing.T, nreq int) {
 
 	t.Logf("cw: %s", cw.String())
 	tu.Assert(t, cw.Max == 1, "single dataway should only 1 http client")
+}
+
+func TestUploadLog(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "OK")
+	}))
+	defer ts.Close()
+
+	dw := &DataWayCfg{URLs: []string{ts.URL}}
+	if err := dw.Apply(); err != nil {
+		t.Errorf("Apply: %s", err.Error())
+	}
+	rBody := strings.NewReader("aaaaaaaaaaaaa")
+	resp, err := dw.UploadLog(rBody, "host")
+	tu.Ok(t, err)
+	defer resp.Body.Close() //nolint:errcheck
+	respBody, err := ioutil.ReadAll(resp.Body)
+	tu.Ok(t, err)
+	tu.Assert(t, string(respBody) == "OK", "assert failed")
 }

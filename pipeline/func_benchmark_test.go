@@ -11,19 +11,18 @@ import (
 //  时间解析补充函数
 func BenchmarkParseDatePattern(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		parseDatePattern("Tue May 18 06:25:05.176170 2021")
+		if _, err := parseDatePattern("Tue May 18 06:25:05.176170 2021"); err != nil {
+			b.Error(err)
+		}
 	}
 }
-
-// match string
-// func BenchmarkMatch(b *testing.B) {
-// 	c, _ := regexp.Compile(p.pattern)
-// }
 
 // dataparse库
 func BenchmarkDateparseParseIn(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		dateparse.ParseIn("2017-12-29T12:33:33.095243Z", nil)
+		if _, err := dateparse.ParseIn("2017-12-29T12:33:33.095243Z", nil); err != nil {
+			b.Error(err)
+		}
 	}
 }
 
@@ -31,7 +30,9 @@ func BenchmarkDateparseParseIn(b *testing.B) {
 func BenchmarkDateparseParseInTZ(b *testing.B) {
 	tz, _ := time.LoadLocation("Asia/Shanghai")
 	for n := 0; n < b.N; n++ {
-		dateparse.ParseIn("2017-12-29T12:33:33.095243Z", tz)
+		if _, err := dateparse.ParseIn("2017-12-29T12:33:33.095243Z", tz); err != nil {
+			b.Error(err)
+		}
 	}
 }
 
@@ -186,7 +187,7 @@ func BenchmarkParseLog_tz(b *testing.B) {
 }
 
 func BenchmarkGrok(b *testing.B) {
-	script := `	
+	script := `
 #grok(_, "%{IPV6:client_ip}")
 #grok(_, "%{IPV6:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{URIPATHPARAM:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
 grok(_, "%{IPORHOST:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")

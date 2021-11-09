@@ -15,7 +15,6 @@ func TestGetMetric(t *testing.T) {
 			httpModelHandle(w, r)
 		case "/status/format/json":
 			vtsModelHandle(w, r)
-
 		default:
 			t.Errorf("unexpected url: %s", r.URL.Path)
 		}
@@ -28,21 +27,21 @@ func TestGetMetric(t *testing.T) {
 	}{
 		{
 			i: &Input{
-				Url:    ts.URL + "/nginx_status",
+				URL:    ts.URL + "/nginx_status",
 				UseVts: false,
 			},
 		},
 
 		{
 			i: &Input{
-				Url:    ts.URL + "/status/format/json",
+				URL:    ts.URL + "/status/format/json",
 				UseVts: true,
 			},
 		},
 	}
 
 	for _, tc := range cases {
-		client, err := tc.i.createHttpClient()
+		client, err := tc.i.createHTTPClient()
 		if err != nil {
 			l.Errorf("[error] nginx init client err:%s", err.Error())
 			return
@@ -66,6 +65,7 @@ func TestGetMetric(t *testing.T) {
 }
 
 func httpModelHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "text/plain")
 	resp := `
 Active connections: 2
@@ -73,10 +73,11 @@ server accepts handled requests
  12 12 444
 Reading: 0 Writing: 1 Waiting: 1
 `
-	w.Write([]byte(resp))
+	w.Write([]byte(resp)) //nolint:errcheck
 }
 
 func vtsModelHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(vtsModelHandleData))
+	w.Write([]byte(vtsModelHandleData)) //nolint:errcheck
 }

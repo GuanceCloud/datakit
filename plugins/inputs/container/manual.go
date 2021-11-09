@@ -14,6 +14,7 @@ type containerMetricMeasurement struct{}
 
 func (c *containerMetricMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerName,
@@ -53,6 +54,7 @@ type containerObjectMeasurement struct{}
 
 func (c *containerObjectMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerName,
@@ -99,6 +101,7 @@ type containerLogMeasurement struct{}
 
 func (c *containerLogMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "日志数据",
@@ -125,6 +128,7 @@ type kubeletPodMetricMeasurement struct{}
 
 func (k *kubeletPodMetricMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (k *kubeletPodMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubeletPodName,
@@ -158,6 +162,7 @@ type kubeletPodObjectMeasurement struct{}
 
 func (k *kubeletPodObjectMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (k *kubeletPodObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubeletPodName,

@@ -1,3 +1,4 @@
+// Package disk collect host disk metrics.
 package disk
 
 import (
@@ -5,12 +6,15 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	minInterval = time.Second
@@ -49,6 +53,7 @@ func (m *diskMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "disk",
@@ -101,37 +106,41 @@ type Input struct {
 	collectCache         []inputs.Measurement
 	collectCacheLast1Ptr inputs.Measurement
 	diskStats            PSDiskStats
+
+	semStop *cliutils.Sem // start stop signal
 }
 
-func (i *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
+func (ipt *Input) appendMeasurement(name string,
+	tags map[string]string,
+	fields map[string]interface{}, ts time.Time) {
 	tmp := &diskMeasurement{name: name, tags: tags, fields: fields, ts: ts}
-	i.collectCache = append(i.collectCache, tmp)
-	i.collectCacheLast1Ptr = tmp
+	ipt.collectCache = append(ipt.collectCache, tmp)
+	ipt.collectCacheLast1Ptr = tmp
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&diskMeasurement{},
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) Collect() error {
-	i.collectCache = make([]inputs.Measurement, 0)
-	disks, partitions, err := i.diskStats.FilterUsage(i.MountPoints, i.IgnoreFS)
+func (ipt *Input) Collect() error {
+	ipt.collectCache = make([]inputs.Measurement, 0)
+	disks, partitions, err := ipt.diskStats.FilterUsage(ipt.MountPoints, ipt.IgnoreFS)
 	if err != nil {
-		return fmt.Errorf("error getting disk usage info: %s", err)
+		return fmt.Errorf("error getting disk usage info: %w", err)
 	}
 	ts := time.Now()
 	for index, du := range disks {
@@ -142,68 +151,89 @@ func (i *Input) Collect() error {
 		mountOpts := parseOptions(partitions[index].Opts)
 		tags := map[string]string{
 			"path":   du.Path,
-			"device": strings.Replace(partitions[index].Device, "/dev/", "", -1),
+			"device": strings.ReplaceAll(partitions[index].Device, "/dev/", ""),
 			"fstype": du.Fstype,
 			"mode":   mountOpts.Mode(),
 		}
-		for k, v := range i.Tags {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
-		var used_percent float64
+		var usedPercent float64
 		if du.Used+du.Free > 0 {
-			used_percent = float64(du.Used) /
+			usedPercent = float64(du.Used) /
 				(float64(du.Used) + float64(du.Free)) * 100
 		}
 		fields := map[string]interface{}{
 			"total":        du.Total,
 			"free":         du.Free,
 			"used":         du.Used,
-			"used_percent": used_percent,
+			"used_percent": usedPercent,
 			"inodes_total": du.InodesTotal,
 			"inodes_free":  du.InodesFree,
 			"inodes_used":  du.InodesUsed,
 		}
-		i.appendMeasurement(metricName, tags, fields, ts)
+		ipt.appendMeasurement(metricName, tags, fields, ts)
 	}
 
 	return nil
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-	i.IgnoreFS = unique(i.IgnoreFS)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	ipt.IgnoreFS = unique(ipt.IgnoreFS)
 
-	tick := time.NewTicker(i.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
+
 	for {
+		start := time.Now()
+		if err := ipt.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(ipt.collectCache) > 0 {
+			if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, ipt.collectCache,
+				&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
+				io.FeedLastError(inputName, errFeed.Error())
+			}
+		}
+
 		select {
 		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(metricName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error())
-				}
-			} else {
-				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
-			}
 		case <-datakit.Exit.Wait():
 			l.Infof("disk input exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("disk input return")
 			return
 		}
 	}
 }
 
-// ReadEnv, support envs：
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+// ReadEnv support envs：
 //   ENV_INPUT_DISK_IGNORE_FS : []string
-func (i *Input) ReadEnv(envs map[string]string) {
+func (ipt *Input) ReadEnv(envs map[string]string) {
 	if fsList, ok := envs["ENV_INPUT_DISK_IGNORE_FS"]; ok {
 		list := strings.Split(fsList, ",")
 		l.Debugf("add ignore_fs from ENV: %v", fsList)
-		i.IgnoreFS = append(i.IgnoreFS, list...)
+		ipt.IgnoreFS = append(ipt.IgnoreFS, list...)
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_DISK_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			ipt.Tags[k] = v
+		}
 	}
 }
 
@@ -219,11 +249,14 @@ func unique(strSlice []string) []string {
 	return list
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			diskStats: &PSDisk{},
 			Interval:  datakit.Duration{Duration: time.Second * 10},
+
+			semStop: cliutils.NewSem(),
+			Tags:    make(map[string]string),
 		}
 	})
 }

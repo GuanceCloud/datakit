@@ -22,6 +22,7 @@ type ValueType string
 //
 // Node.
 //
+
 type Node interface {
 	String() string
 	Pos() *PositionRange
@@ -424,7 +425,6 @@ func (n *FuncExpr) String() string {
 
 func (n *FuncExpr) Pos() *PositionRange { return nil } // TODO
 
-// stmt.
 type ESTRes struct {
 	Alias           map[string]string // 别名信息
 	SortFields      []string          // 返回字段有序列表
@@ -482,7 +482,7 @@ func (m *DFQuery) JSON() ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-// IsAllTargets, 未指定 target 或为手动填写 "*"，即 ALL，like SELECT * FROM XX.
+// IsAllTargets 未指定 target 或为手动填写 "*"，即 ALL，like SELECT * FROM XX.
 func (m *DFQuery) IsAllTargets() bool {
 	return m.IsMatchTargetsNum(0)
 }
@@ -584,8 +584,7 @@ func (n *Target) String() string {
 
 	if n.Fill != nil {
 		fillFn := &FuncExpr{
-			// FIXME: support upper and lower
-			Name:  "fill",
+			Name:  "fill", // TODO: support upper and lower
 			Param: []Node{n.Col, n.Fill},
 		}
 		return fillFn.String()
@@ -635,9 +634,6 @@ func (n *TimeResolution) String() string {
 
 func (n *TimeResolution) Pos() *PositionRange { return nil /* TODO */ }
 
-//
-// Expr.
-//
 type Expr interface {
 	Node
 	Type() ValueType
@@ -689,13 +685,13 @@ type ParenExpr struct {
 	Param Node `json:"paren"`
 }
 
-func (e *ParenExpr) Type() ValueType     { return "" }  // TODO
-func (e *ParenExpr) Pos() *PositionRange { return nil } // TODO
-func (e *ParenExpr) String() string {
-	return fmt.Sprintf("(%s)", e.Param.String())
+func (*ParenExpr) Type() ValueType     { return "" }  // TODO
+func (*ParenExpr) Pos() *PositionRange { return nil } // TODO
+func (p *ParenExpr) String() string {
+	return fmt.Sprintf("(%s)", p.Param.String())
 }
 
-func (e *ParenExpr) DQLExpr() {} // not used
+func (*ParenExpr) DQLExpr() {} // not used
 
 type NumberLiteral struct {
 	IsInt bool
@@ -770,8 +766,9 @@ func (e *StaticCast) DQLExpr()            {}             // not used
 func (e *StaticCast) Type() ValueType     { return "" }
 
 //
-// stmt.
+// various stmt definition.
 //
+
 type Statement interface {
 	Node
 	DQLStmt() // not used

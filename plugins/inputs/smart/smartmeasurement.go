@@ -18,6 +18,7 @@ func (s *smartMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(s.name, s.tags, s.fields, s.ts)
 }
 
+//nolint:lll
 func (s *smartMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
