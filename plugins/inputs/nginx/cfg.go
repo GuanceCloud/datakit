@@ -47,8 +47,7 @@ type Input struct {
 	pause   bool
 	pauseCh chan bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type NginxVTSResponse struct {

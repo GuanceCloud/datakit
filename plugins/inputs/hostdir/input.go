@@ -111,11 +111,8 @@ func (i *Input) Run() {
 
 		case <-i.semStop.Wait():
 			l.Infof("hostdir input return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -123,13 +120,6 @@ func (i *Input) Run() {
 func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
-
-		// wait stop completed
-		if i.semStopCompleted != nil {
-			for range i.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -149,8 +139,7 @@ func init() { //nolint:gochecknoinits
 			Interval: datakit.Duration{Duration: time.Second * 5},
 			platform: runtime.GOOS,
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 		return s
 	})

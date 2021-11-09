@@ -48,8 +48,7 @@ type Input struct {
 
 	clients []collector
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 
 	LogDepercated            DepercatedLog `toml:"logfilter,omitempty"`
 	PodNameRewriteDeprecated []string      `toml:"pod_name_write,omitempty"`
@@ -64,8 +63,7 @@ func newInput() *Input {
 		Tags:     make(map[string]string),
 		in:       make(chan []*job, 64),
 
-		semStop:          cliutils.NewSem(),
-		semStopCompleted: cliutils.NewSem(),
+		semStop: cliutils.NewSem(),
 	}
 }
 
@@ -140,10 +138,6 @@ func (i *Input) Run() {
 
 		case <-i.semStop.Wait():
 			l.Info("container exit return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
 
 		case <-metricsTick.C:
@@ -173,13 +167,6 @@ func (i *Input) Run() {
 func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
-
-		// wait stop completed
-		if i.semStopCompleted != nil {
-			for range i.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 

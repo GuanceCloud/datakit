@@ -161,11 +161,8 @@ func (n *Input) Run() {
 		case <-n.semStop.Wait():
 			n.exit()
 			l.Info("sqlserver return")
-
-			if n.semStopCompleted != nil {
-				n.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -180,13 +177,6 @@ func (n *Input) exit() {
 func (n *Input) Terminate() {
 	if n.semStop != nil {
 		n.semStop.Close()
-
-		// wait stop completed
-		if n.semStopCompleted != nil {
-			for range n.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -288,8 +278,7 @@ func init() { //nolint:gochecknoinits
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 		return s
 	})

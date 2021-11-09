@@ -51,8 +51,7 @@ type FileCollector struct {
 	ctx       context.Context
 	cancelFun context.CancelFunc
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type UploadInfo struct {

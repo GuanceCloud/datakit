@@ -33,13 +33,11 @@ func (ag *Instance) Run() {
 			case <-datakit.Exit.Wait():
 				ag.exit()
 				return
+
 			case <-n.semStop.Wait():
 				ag.exit()
-
-				if n.semStopCompleted != nil {
-					n.semStopCompleted.Close()
-				}
 				return
+
 			default:
 			}
 		}
@@ -65,13 +63,6 @@ func (_ *Input) exit() {
 func (n *Input) Terminate() {
 	if n.semStop != nil {
 		n.semStop.Close()
-
-		// wait stop completed
-		if n.semStopCompleted != nil {
-			for range n.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -151,7 +142,6 @@ func NewAgent() *Instance {
 	ac := &Instance{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
 	ac.semStop = cliutils.NewSem()
-	ac.semStopCompleted = cliutils.NewSem()
 	return ac
 }
 

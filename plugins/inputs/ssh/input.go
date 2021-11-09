@@ -60,8 +60,7 @@ type Input struct {
 	MetricsName    string
 	Tags           map[string]string
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 var errSSHCfg = errors.New("both password and privateKeyFile missed")
@@ -207,11 +206,8 @@ func (ipt *Input) gather() {
 
 		case <-ipt.semStop.Wait():
 			l.Infof("input %v return", inputName)
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -219,13 +215,6 @@ func (ipt *Input) gather() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -293,8 +282,7 @@ func getMsInterval(d time.Duration) float64 {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

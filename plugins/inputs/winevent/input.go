@@ -60,10 +60,6 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			l.Info("win event return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
 
 		default:
@@ -98,13 +94,6 @@ func (ipt *Input) Run() {
 func (n *Input) Terminate() {
 	if n.semStop != nil {
 		n.semStop.Close()
-
-		// wait stop completed
-		if n.semStopCompleted != nil {
-			for range n.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -345,8 +334,7 @@ func init() {
 			buf:   make([]byte, 1<<14),
 			Query: query,
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

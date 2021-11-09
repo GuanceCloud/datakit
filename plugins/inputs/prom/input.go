@@ -58,8 +58,7 @@ type Input struct {
 
 	stopCh chan interface{}
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -94,10 +93,6 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			l.Info("prom return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
 
 		case <-ipt.stopCh:
@@ -153,13 +148,6 @@ func (ipt *Input) Run() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -255,8 +243,7 @@ func NewProm() *Input {
 		chPause:     make(chan bool, maxPauseCh),
 		maxFileSize: defaultMaxFileSize,
 
-		semStop:          cliutils.NewSem(),
-		semStopCompleted: cliutils.NewSem(),
+		semStop: cliutils.NewSem(),
 	}
 }
 

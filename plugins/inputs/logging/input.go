@@ -81,8 +81,7 @@ type Input struct {
 	// 在输出 log 内容时，区分是 tailf 还是 logging
 	inputName string
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 var l = logger.DefaultSLogger(inputName)
@@ -142,11 +141,8 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			ipt.exit()
 			l.Infof("%s return", ipt.inputName)
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -158,13 +154,6 @@ func (ipt *Input) exit() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -224,8 +213,7 @@ func init() { //nolint:gochecknoinits
 			Tags:      make(map[string]string),
 			inputName: inputName,
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 	inputs.Add(deprecatedInputName, func() inputs.Input {
@@ -233,8 +221,7 @@ func init() { //nolint:gochecknoinits
 			Tags:      make(map[string]string),
 			inputName: deprecatedInputName,
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

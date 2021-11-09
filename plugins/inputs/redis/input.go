@@ -74,8 +74,7 @@ type Input struct {
 	pause   bool
 	pauseCh chan bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (i *Input) initCfg() error {
@@ -277,9 +276,6 @@ func (i *Input) Run() {
 		case <-datakit.Exit.Wait():
 			return
 		case <-i.semStop.Wait():
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
 		case <-tick.C:
 		}
@@ -323,10 +319,6 @@ func (i *Input) Run() {
 		case <-i.semStop.Wait():
 			i.exit()
 			l.Info("redis return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -346,13 +338,6 @@ func (i *Input) exit() {
 func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
-
-		// wait stop completed
-		if i.semStopCompleted != nil {
-			for range i.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -401,8 +386,7 @@ func init() { //nolint:gochecknoinits
 			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
 			DB:      -1,
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

@@ -121,10 +121,6 @@ func (n *Input) Run() {
 		case <-n.semStop.Wait():
 			n.exit()
 			l.Info("rabbitmq return")
-
-			if n.semStopCompleted != nil {
-				n.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -145,13 +141,6 @@ func (n *Input) exit() {
 func (n *Input) Terminate() {
 	if n.semStop != nil {
 		n.semStop.Close()
-
-		// wait stop completed
-		if n.semStopCompleted != nil {
-			for range n.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -207,8 +196,7 @@ func init() { //nolint:gochecknoinits
 			Interval: datakit.Duration{Duration: time.Second * 10},
 			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 		return s
 	})

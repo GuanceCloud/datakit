@@ -49,8 +49,7 @@ type Input struct {
 	pause   bool
 	pauseCh chan bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -60,8 +59,7 @@ func newInput() *Input {
 		Interval: datakit.Duration{Duration: time.Second * 30},
 		pauseCh:  make(chan bool, maxPauseCh),
 
-		semStop:          cliutils.NewSem(),
-		semStopCompleted: cliutils.NewSem(),
+		semStop: cliutils.NewSem(),
 	}
 }
 
@@ -150,10 +148,6 @@ func (n *Input) Run() {
 		case <-n.semStop.Wait():
 			n.exit()
 			l.Info("apache return")
-
-			if n.semStopCompleted != nil {
-				n.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -192,13 +186,6 @@ func (n *Input) exit() {
 func (n *Input) Terminate() {
 	if n.semStop != nil {
 		n.semStop.Close()
-
-		// wait stop completed
-		if n.semStopCompleted != nil {
-			for range n.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 

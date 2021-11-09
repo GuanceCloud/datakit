@@ -52,8 +52,7 @@ type Input struct {
 	chPause chan bool
 	pause   bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 var l = logger.DefaultSLogger("kubernetes")
@@ -109,10 +108,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			ipt.exit()
 			l.Info("kubernetes return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
 
 		case ipt.pause = <-ipt.chPause:
@@ -128,13 +123,6 @@ func (ipt *Input) exit() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -317,8 +305,7 @@ func init() { //nolint:gochecknoinits
 			Tags:    make(map[string]string),
 			chPause: make(chan bool, inputs.ElectionPauseChannelLength),
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

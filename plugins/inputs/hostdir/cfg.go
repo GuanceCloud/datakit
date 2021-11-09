@@ -43,8 +43,7 @@ type Input struct {
 	Tags            map[string]string `toml:"tags"`
 	platform        string
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type Measurement struct {

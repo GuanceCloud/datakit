@@ -125,8 +125,7 @@ type Input struct {
 	pause   bool
 	pauseCh chan bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type postgresqllog struct {
@@ -437,10 +436,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			ipt.exit()
 			l.Info("postgresql return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -481,13 +476,6 @@ func (ipt *Input) exit() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -566,8 +554,7 @@ func NewInput(service Service) *Input {
 		Interval: "10s",
 		pauseCh:  make(chan bool, maxPauseCh),
 
-		semStop:          cliutils.NewSem(),
-		semStopCompleted: cliutils.NewSem(),
+		semStop: cliutils.NewSem(),
 	}
 	input.service = service
 	return input

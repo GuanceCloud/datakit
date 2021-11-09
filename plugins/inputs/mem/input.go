@@ -44,8 +44,7 @@ type Input struct {
 	vmStat   VMStat
 	platform string
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 type memMeasurement struct {
@@ -203,11 +202,8 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			l.Infof("memory input return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -215,13 +211,6 @@ func (ipt *Input) Run() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -261,9 +250,8 @@ func init() { //nolint:gochecknoinits
 			vmStat:   VirtualMemoryStat,
 			Interval: datakit.Duration{Duration: time.Second * 10},
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
-			Tags:             make(map[string]string),
+			semStop: cliutils.NewSem(),
+			Tags:    make(map[string]string),
 		}
 	})
 }

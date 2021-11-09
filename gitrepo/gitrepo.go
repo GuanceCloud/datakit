@@ -27,8 +27,9 @@ import (
 )
 
 var (
-	l      = logger.DefaultSLogger("gitrepo")
-	runGit sync.Once
+	l       = logger.DefaultSLogger("gitrepo")
+	runGit  sync.Once
+	isFirst = true
 )
 
 const (
@@ -186,8 +187,10 @@ func pullCore(c *config.GitRepository) error {
 			return err
 		}
 
+		ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
 		// Pull the latest changes from the origin remote and merge into the current branch
-		err = w.Pull(&git.PullOptions{
+		err = w.PullContext(ctxNew, &git.PullOptions{
 			RemoteName:      "origin",
 			ReferenceName:   plumbing.NewBranchReferenceName(c.Branch),
 			Auth:            authMethod,
@@ -232,7 +235,9 @@ func pullCore(c *config.GitRepository) error {
 		// clone a new one
 		l.Debug("PlainClone start")
 
-		if _, err := git.PlainClone(clonePath, false, &git.CloneOptions{
+		ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if _, err := git.PlainCloneContext(ctxNew, clonePath, false, &git.CloneOptions{
 			// The intended use of a GitHub personal access token is in replace of your password
 			// because access tokens can easily be revoked.
 			// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
@@ -243,64 +248,71 @@ func pullCore(c *config.GitRepository) error {
 			l.Errorf("PlainClone failed: %v", err)
 			return err
 		}
-
-		// if bIsUseAuthUserNamePassword {
-		// 	// only http needs change dir name
-		// 	gitPureName, err := path.GetGitPureName(c.URL)
-		// 	if gitPureName == "" {
-		// 		l.Errorf("GetGitPureName failed: %v, url = %s", err, c.URL)
-		// 		return fmt.Errorf("url_parse_pure_failed")
-		// 	}
-		// 	if gitPureName != repoName {
-		// 		// change dir name
-		// 		oldName := filepath.Join(datakit.GitReposDir, gitPureName)
-		// 		newName := filepath.Join(datakit.GitReposDir, repoName)
-		// 		if err := os.Rename(oldName, newName); err != nil {
-		// 			l.Errorf("Rename failed: %v, old = %s, new = %s", err, oldName, newName)
-		// 			return err
-		// 		}
-		// 	}
-		// }
 	}
 
-	if isUpdate {
+	if isUpdate || isFirst {
 		l.Info("reload")
 
-		iputs, err := config.ReloadCheckInputCfg()
-		if err != nil {
-			l.Errorf("ReloadCheckInputCfg failed: %v", err)
-			return err
+		if isFirst {
+			isFirst = false
 		}
 
-		opt, err := config.ReloadCheckPipelineCfg(iputs)
-		if err != nil {
-			if opt != nil {
-				l.Errorf("ReloadCheckPipelineCfg failed: %v => Source: %s, Service: %s, Pipeline: %s",
-					err, opt.Source, opt.Service, opt.Pipeline)
-			} else {
-				l.Errorf("ReloadCheckPipelineCfg failed: %v", err)
-			}
+		ctxNew, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err = ReloadCore(ctxNew); err != nil {
 			return err
 		}
-
-		if err = inputs.StopInputs(); err != nil {
-			l.Errorf("StopInputs failed: %v", err)
-			return err
-		}
-
-		if err = config.ReloadInputConfig(); err != nil {
-			l.Errorf("ReloadInputConfig failed: %v", err)
-			return err
-		}
-
-		if err = inputs.RunInputs(true); err != nil {
-			l.Errorf("RunInputs failed: %v", err)
-			return err
-		}
-
-		httpd.ReloadTheNormalServer()
 	}
 
 	l.Debug("completed")
+	return nil
+}
+
+func ReloadCore(ctx context.Context) error {
+	l.Debug("before ReloadCheckInputCfg")
+
+	iputs, err := config.ReloadCheckInputCfg()
+	if err != nil {
+		l.Errorf("ReloadCheckInputCfg failed: %v", err)
+		return err
+	}
+
+	l.Debug("before ReloadCheckPipelineCfg")
+
+	opt, err := config.ReloadCheckPipelineCfg(iputs)
+	if err != nil {
+		if opt != nil {
+			l.Errorf("ReloadCheckPipelineCfg failed: %v => Source: %s, Service: %s, Pipeline: %s",
+				err, opt.Source, opt.Service, opt.Pipeline)
+		} else {
+			l.Errorf("ReloadCheckPipelineCfg failed: %v", err)
+		}
+		return err
+	}
+
+	l.Debug("before StopInputs")
+
+	if err = inputs.StopInputs(); err != nil {
+		l.Errorf("StopInputs failed: %v", err)
+		return err
+	}
+
+	l.Debug("before ReloadInputConfig")
+
+	if err = config.ReloadInputConfig(); err != nil {
+		l.Errorf("ReloadInputConfig failed: %v", err)
+		return err
+	}
+
+	l.Debug("before RunInputs")
+
+	if err = inputs.RunInputs(true); err != nil {
+		l.Errorf("RunInputs failed: %v", err)
+		return err
+	}
+
+	l.Debug("before ReloadTheNormalServer")
+
+	httpd.ReloadTheNormalServer()
 	return nil
 }

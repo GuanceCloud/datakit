@@ -51,8 +51,7 @@ type Input struct {
 
 	collectCache []inputs.Measurement
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string {
@@ -197,11 +196,8 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			l.Info("system input return")
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -209,13 +205,6 @@ func (ipt *Input) Run() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -235,9 +224,8 @@ func init() { //nolint:gochecknoinits
 		return &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
-			Tags:             make(map[string]string),
+			semStop: cliutils.NewSem(),
+			Tags:    make(map[string]string),
 		}
 	})
 }

@@ -477,3 +477,28 @@ func TestApiGetDatakitLastError(t *testing.T) {
 		tu.Equals(t, fakeEM.Input, em.Input)
 	}
 }
+
+// go test -v -run ^TestReloadServer$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
+func TestReloadServer(t *testing.T) {
+	t.Log("start HTTPStart")
+
+	apiConfig = &APIConfig{
+		RUMOriginIPHeader: "X-Forwarded-For",
+		Listen:            "localhost:9529",
+		Disable404Page:    false,
+	}
+
+	go HTTPStart()
+
+	t.Log("start sleep")
+
+	time.Sleep(5 * time.Second)
+
+	t.Log("start reload")
+
+	ReloadTheNormalServer()
+
+	t.Log("start loop")
+
+	time.Sleep(60 * time.Second)
+}

@@ -98,8 +98,7 @@ type Input struct {
 	pause   bool
 	pauseCh chan bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 
 	dbmCache       map[string]dbmRow
 	dbmSampleCache dbmSampleCache
@@ -412,11 +411,10 @@ func (i *Input) Run() {
 			l.Info("mysql exit")
 
 			return
+
 		case <-i.semStop.Wait():
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
+
 		case <-tick.C:
 		}
 	}
@@ -453,10 +451,6 @@ func (i *Input) Run() {
 		case <-i.semStop.Wait():
 			i.exit()
 			l.Info("mysql return")
-
-			if i.semStopCompleted != nil {
-				i.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -477,13 +471,6 @@ func (i *Input) exit() {
 func (i *Input) Terminate() {
 	if i.semStop != nil {
 		i.semStop.Close()
-
-		// wait stop completed
-		if i.semStopCompleted != nil {
-			for range i.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -534,8 +521,7 @@ func init() { //nolint:gochecknoinits
 			Timeout: "10s",
 			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

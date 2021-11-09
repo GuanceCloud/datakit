@@ -27,8 +27,7 @@ type Input struct {
 	EatCPU       bool `toml:"eat_cpu"`
 	paused       bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (ipt *Input) Collect() error {
@@ -100,11 +99,8 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			ipt.exit()
-
-			if ipt.semStopCompleted != nil {
-				ipt.semStopCompleted.Close()
-			}
 			return
+
 		}
 	}
 }
@@ -116,13 +112,6 @@ func (ipt *Input) exit() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
-
-		// wait stop completed
-		if ipt.semStopCompleted != nil {
-			for range ipt.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -180,8 +169,7 @@ func init() { //nolint:gochecknoinits
 			paused:  false,
 			chpause: make(chan bool, inputs.ElectionPauseChannelLength),
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

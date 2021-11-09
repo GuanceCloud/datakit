@@ -135,8 +135,7 @@ type Input struct {
 	pause   bool
 	pauseCh chan bool
 
-	semStop          *cliutils.Sem // start stop signal
-	semStopCompleted *cliutils.Sem // stop completed signal
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -227,10 +226,6 @@ func (m *Input) Run() {
 		case <-m.semStop.Wait():
 			m.exit()
 			l.Info("mongodb input return")
-
-			if m.semStopCompleted != nil {
-				m.semStopCompleted.Close()
-			}
 			return
 
 		case <-tick.C:
@@ -259,13 +254,6 @@ func (m *Input) exit() {
 func (m *Input) Terminate() {
 	if m.semStop != nil {
 		m.semStop.Close()
-
-		// wait stop completed
-		if m.semStopCompleted != nil {
-			for range m.semStopCompleted.Wait() {
-				return
-			}
-		}
 	}
 }
 
@@ -399,8 +387,7 @@ func init() { //nolint:gochecknoinits
 			mongos:                make(map[string]*Server),
 			pauseCh:               make(chan bool, inputs.ElectionPauseChannelLength),
 
-			semStop:          cliutils.NewSem(),
-			semStopCompleted: cliutils.NewSem(),
+			semStop: cliutils.NewSem(),
 		}
 	})
 }
