@@ -197,7 +197,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Info("system input return")
 			return
-
 		}
 	}
 }

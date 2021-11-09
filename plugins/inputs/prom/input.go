@@ -3,20 +3,19 @@ package prom
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	_ inputs.ElectionInput = (*Input)(nil)
-	_ inputs.Instance      = (*Input)(nil)
-)
+var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
 	inputName = "prom"
@@ -24,7 +23,7 @@ const (
 )
 
 // defaultMaxFileSize is the default maximum response body size, in bytes.
-// If the response body is over this size, we will simply discard its content instead of writing it to disk.
+// If the response body is over i size, we will simply discard its content instead of writing it to disk.
 // 32 MB.
 const defaultMaxFileSize int64 = 32 * 1024 * 1024
 
@@ -52,10 +51,12 @@ type Input struct {
 	TagsIgnore     []string          `toml:"tags_ignore"`
 	DeprecatedAuth map[string]string `toml:"auth"`
 
-	pm      *prom.Prom
+	pm *prom.Prom
+
 	chPause chan bool
 	pause   bool
 
+	url    *url.URL
 	stopCh chan interface{}
 
 	semStop *cliutils.Sem // start stop signal
@@ -69,19 +70,17 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) Catalog() string { return catalog }
 
-func (ipt *Input) Stop() { ipt.stopCh <- nil }
-
-func (ipt *Input) Run() {
+func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if ipt.setup() {
+	if i.setup() {
 		return
 	}
 
-	tick := time.NewTicker(ipt.pm.Option().GetIntervalDuration())
+	tick := time.NewTicker(i.pm.Option().GetIntervalDuration())
 	defer tick.Stop()
 
-	source := ipt.pm.Option().GetSource()
+	source := i.pm.Option().GetSource()
 
 	l.Info("prom start")
 
@@ -91,25 +90,25 @@ func (ipt *Input) Run() {
 			l.Info("prom exit")
 			return
 
-		case <-ipt.semStop.Wait():
+		case <-i.semStop.Wait():
 			l.Info("prom return")
 			return
 
-		case <-ipt.stopCh:
+		case <-i.stopCh:
 			l.Info("prom stop")
 			return
 
 		case <-tick.C:
-			if ipt.pause {
+			if i.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			l.Debugf("collect URL %s", ipt.pm.Option().URL)
+			l.Debugf("collect URL %s", i.pm.Option().URL)
 
 			// If Output is configured, data is written to local file specified by Output.
 			// Data will no more be written to datakit io.
-			if ipt.Output != "" {
-				err := ipt.pm.WriteFile()
+			if i.Output != "" {
+				err := i.pm.WriteFile()
 				if err != nil {
 					l.Debugf(err.Error())
 				}
@@ -117,16 +116,24 @@ func (ipt *Input) Run() {
 			}
 
 			start := time.Now()
-			pts, err := ipt.pm.Collect()
+			pts, err := i.pm.Collect()
 			if err != nil {
 				l.Errorf("Collect: %s", err)
-
 				io.FeedLastError(source, err.Error())
+
+				// Try testing the connect
+				if i.url != nil {
+					if err := net.RawConnect(i.url.Hostname(), i.url.Port(), time.Second*3); err != nil {
+						l.Errorf("failed to connect to %s:%s, %s, exit", i.url.Hostname(), i.url.Port(), err)
+						return
+					}
+				}
+
 				continue
 			}
 
 			if len(pts) == 0 {
-				l.Debug("len(points) is zero")
+				l.Debug("len(points) is 0")
 				continue
 			}
 
@@ -139,19 +146,19 @@ func (ipt *Input) Run() {
 				io.FeedLastError(source, err.Error())
 			}
 
-		case ipt.pause = <-ipt.chPause:
+		case i.pause = <-i.chPause:
 			// nil
 		}
 	}
 }
 
-func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
-func (ipt *Input) setup() bool {
+func (i *Input) setup() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -161,7 +168,7 @@ func (ipt *Input) setup() bool {
 			// nil
 		}
 
-		if err := ipt.Init(); err != nil {
+		if err := i.Init(); err != nil {
 			continue
 		} else {
 			break
@@ -171,25 +178,31 @@ func (ipt *Input) setup() bool {
 	return false
 }
 
-func (ipt *Input) Init() error {
+func (i *Input) Init() error {
+	u, err := url.Parse(i.URL)
+	if err != nil {
+		return err
+	}
+	i.url = u
+
 	// toml 不支持匿名字段的 marshal，JSON 支持
 	opt := &prom.Option{
-		Source:            ipt.Source,
-		Interval:          ipt.Interval,
-		URL:               ipt.URL,
-		MetricTypes:       ipt.MetricTypes,
-		MetricNameFilter:  ipt.MetricNameFilter,
-		MeasurementPrefix: ipt.MeasurementPrefix,
-		MeasurementName:   ipt.MeasurementName,
-		Measurements:      ipt.Measurements,
-		TLSOpen:           ipt.TLSOpen,
-		CacertFile:        ipt.CacertFile,
-		CertFile:          ipt.CertFile,
-		KeyFile:           ipt.KeyFile,
-		Tags:              ipt.Tags,
-		TagsIgnore:        ipt.TagsIgnore,
-		Output:            ipt.Output,
-		MaxFileSize:       ipt.maxFileSize,
+		Source:            i.Source,
+		Interval:          i.Interval,
+		URL:               i.URL,
+		MetricTypes:       i.MetricTypes,
+		MetricNameFilter:  i.MetricNameFilter,
+		MeasurementPrefix: i.MeasurementPrefix,
+		MeasurementName:   i.MeasurementName,
+		Measurements:      i.Measurements,
+		TLSOpen:           i.TLSOpen,
+		CacertFile:        i.CacertFile,
+		CertFile:          i.CertFile,
+		KeyFile:           i.KeyFile,
+		Tags:              i.Tags,
+		TagsIgnore:        i.TagsIgnore,
+		Output:            i.Output,
+		MaxFileSize:       i.maxFileSize,
 	}
 
 	pm, err := prom.NewProm(opt)
@@ -197,38 +210,39 @@ func (ipt *Input) Init() error {
 		l.Error(err)
 		return err
 	}
-	ipt.pm = pm
+	i.pm = pm
+
 	return nil
 }
 
-func (ipt *Input) Collect() ([]*io.Point, error) {
-	if ipt.pm == nil {
+func (i *Input) Collect() ([]*io.Point, error) {
+	if i.pm == nil {
 		return nil, nil
 	}
-	return ipt.pm.Collect()
+	return i.pm.Collect()
 }
 
-func (ipt *Input) CollectFromFile() ([]*io.Point, error) {
-	if ipt.pm == nil {
+func (i *Input) CollectFromFile() ([]*io.Point, error) {
+	if i.pm == nil {
 		return nil, nil
 	}
-	return ipt.pm.CollectFromFile()
+	return i.pm.CollectFromFile()
 }
 
-func (ipt *Input) Pause() error {
+func (i *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
-	case ipt.chPause <- true:
+	case i.chPause <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (ipt *Input) Resume() error {
+func (i *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	select {
-	case ipt.chPause <- false:
+	case i.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)

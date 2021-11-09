@@ -207,7 +207,6 @@ func (ipt *Input) gather() {
 		case <-ipt.semStop.Wait():
 			l.Infof("input %v return", inputName)
 			return
-
 		}
 	}
 }

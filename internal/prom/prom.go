@@ -154,7 +154,11 @@ func (p *Prom) CollectFromFile() ([]*io.Point, error) {
 // WriteFile will only be called when Output is configured.
 func (p *Prom) WriteFile() error {
 	// If url is configured as local path file, prom does not collect from it.
-	u, _ := url.Parse(p.opt.URL)
+	u, err := url.Parse(p.opt.URL)
+	if err != nil {
+		return fmt.Errorf("url parse error, %w", err)
+	}
+
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return fmt.Errorf("url is neither http nor https")
 	}

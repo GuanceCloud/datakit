@@ -142,7 +142,6 @@ func (ipt *Input) Run() {
 			ipt.exit()
 			l.Infof("%s return", ipt.inputName)
 			return
-
 		}
 	}
 }

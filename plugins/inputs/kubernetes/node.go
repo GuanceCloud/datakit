@@ -1,20 +1,21 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	corev1 "k8s.io/api/core/v1"
+	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const kubernetesNodeName = "kubernetes_nodes"
 
 type node struct {
 	client interface {
-		getNodes() (*corev1.NodeList, error)
+		getNodes() kubev1core.NodeInterface
 	}
 	tags map[string]string
 }
@@ -23,7 +24,7 @@ func (n *node) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := n.client.getNodes()
+	list, err := n.client.getNodes().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get nodes resource: %s", err)
 		return

@@ -162,7 +162,6 @@ func (n *Input) Run() {
 			n.exit()
 			l.Info("sqlserver return")
 			return
-
 		}
 	}
 }

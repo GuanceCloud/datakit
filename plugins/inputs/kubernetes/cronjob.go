@@ -1,20 +1,21 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	batchbetav1 "k8s.io/api/batch/v1beta1"
+	kubev1batchbeta1 "k8s.io/client-go/kubernetes/typed/batch/v1beta1"
 )
 
 const kubernetesCronJobName = "kubernetes_cron_jobs"
 
 type cronJob struct {
 	client interface {
-		getCronJobs() (*batchbetav1.CronJobList, error)
+		getCronJobs() kubev1batchbeta1.CronJobInterface
 	}
 	tags map[string]string
 }
@@ -23,7 +24,7 @@ func (c *cronJob) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := c.client.getCronJobs()
+	list, err := c.client.getCronJobs().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get cronjobs resource: %s", err)
 		return
