@@ -20,7 +20,7 @@ type TraceSampleConfig struct {
 	IgnoreTagsList []string          `toml:"ignore_tags_list"`
 }
 
-// TraceSampleMatcher return sample config assgined by ddtrace config.
+// SampleConfMatcher return sample config assgined by ddtrace config.
 func SampleConfMatcher(confs []*TraceSampleConfig, tags map[string]string) *TraceSampleConfig {
 	var conf *TraceSampleConfig
 	for _, conf = range confs {
@@ -71,8 +71,8 @@ func SampleIgnoreTags(tags map[string]string, ignore map[string]string) bool {
 	return false
 }
 
-func sample(traceId uint64, rate, scope int) bool {
-	return (traceId % uint64(scope)) < uint64(rate)
+func sample(traceID uint64, rate, scope int) bool {
+	return (traceID % uint64(scope)) < uint64(rate)
 }
 
 func MergeTags(data ...map[string]string) map[string]string {
@@ -86,7 +86,7 @@ func MergeTags(data ...map[string]string) map[string]string {
 	return merged
 }
 
-func GetTraceId(high, low int64) int64 {
+func GetTraceID(high, low int64) int64 {
 	temp := low
 	for temp != 0 {
 		high *= 10
@@ -96,6 +96,6 @@ func GetTraceId(high, low int64) int64 {
 	return high + low
 }
 
-func GetStringTraceId(high, low int64) string {
+func GetStringTraceID(high, low int64) string {
 	return fmt.Sprintf("%d%d", high, low)
 }

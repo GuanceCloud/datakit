@@ -1,3 +1,4 @@
+// Package io implements datakits data transfer among inputs.
 package io
 
 import (
@@ -51,6 +52,7 @@ type IO struct {
 	DynamicCacheDumpThreshold int64
 	FlushInterval             time.Duration
 	OutputFile                string
+	OutputFileInput           []string
 
 	dw *dataway.DataWayCfg
 
@@ -115,6 +117,7 @@ func SetTest() {
 	testAssert = true
 }
 
+//nolint:gocyclo
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	if testAssert {
 		return nil
@@ -219,6 +222,15 @@ func (x *IO) updateStats(d *iodata) {
 	}
 }
 
+func (x *IO) ifMatchOutputFileInput(feedName string) bool {
+	for _, v := range x.OutputFileInput {
+		if v == feedName {
+			return true
+		}
+	}
+	return false
+}
+
 func (x *IO) cacheData(d *iodata, tryClean bool) {
 	if d == nil {
 		l.Warn("get empty data, ignored")
@@ -237,7 +249,22 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) || (x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
+	bodies, err := x.buildBody(d.pts)
+	if err != nil {
+		l.Errorf("build iodata bodies failed: %s", err)
+	}
+	for _, body := range bodies {
+		if x.OutputFile != "" {
+			if len(x.OutputFileInput) == 0 || x.ifMatchOutputFileInput(d.name) {
+				if err := x.fileOutput(body.buf); err != nil {
+					l.Error("fileOutput: %s, ignored", err.Error())
+				}
+			}
+		}
+	}
+
+	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) ||
+		(x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
 		x.flushAll()
 	}
 }
@@ -259,7 +286,7 @@ func (x *IO) cleanHighFreqIOData() {
 
 func (x *IO) init() error {
 	if x.OutputFile != "" {
-		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
 		if err != nil {
 			l.Error(err)
 			return err
@@ -470,13 +497,6 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 		return err
 	}
 	for _, body := range bodies {
-		if x.OutputFile != "" {
-			if err := x.fileOutput(body.buf); err != nil {
-				l.Error("fileOutput: %s, ignored", err.Error())
-			}
-			continue
-		}
-
 		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
 			return err
 		}

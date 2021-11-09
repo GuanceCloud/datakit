@@ -1,11 +1,10 @@
-// +build linux
+// +build linux, ebpf
 
 package netflow
 
 import (
 	"time"
 
-	_ "github.com/godror/godror"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )

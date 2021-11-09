@@ -1,3 +1,4 @@
+// Package http wraps http related functions
 package http
 
 import (

@@ -25,9 +25,9 @@ type SkyWalkingLog struct {
 
 type SkyWalkingRef struct {
 	RefType                  int
-	TraceId                  string
-	ParentTraceSegmentId     string
-	ParentSpanId             int
+	TraceID                  string
+	ParentTraceSegmentID     string
+	ParentSpanID             int
 	ParentService            string
 	ParentServiceInstance    string
 	ParentEndpoint           string
@@ -35,15 +35,15 @@ type SkyWalkingRef struct {
 }
 
 type SkyWalkingSpan struct {
-	SpanId        uint64           `json:"spanId"`
-	ParentSpanId  int64            `json:"parentSpanId"`
+	SpanID        uint64           `json:"spanId"`
+	ParentSpanID  int64            `json:"parentSpanId"`
 	StartTime     int64            `json:"startTime"`
 	EndTime       int64            `json:"endTime"`
 	OperationName string           `json:"operationName"`
 	Peer          string           `json:"peer"`
 	SpanType      string           `json:"spanType"`
 	SpanLayer     string           `json:"spanLayer"`
-	ComponentId   uint64           `json:"componentId"`
+	ComponentID   uint64           `json:"componentId"`
 	IsError       bool             `json:"isError"`
 	Logs          []*SkyWalkingLog `json:"logs,omitempty"`
 	Tags          []*SkyWalkingTag `json:"tags,omitempty"`
@@ -51,15 +51,15 @@ type SkyWalkingSpan struct {
 }
 
 type SkyWalkingSegment struct {
-	TraceId         string
-	TraceSegmentId  string
+	TraceID         string
+	TraceSegmentID  string
 	Service         string
 	ServiceInstance string
 	Spans           []*SkyWalkingSpan
 }
 
 func handleSkyWalkingSegment(resp http.ResponseWriter, req *http.Request) {
-	reqInfo, err := trace.ParseHttpReq(req)
+	reqInfo, err := trace.ParseHTTPReq(req)
 	if err != nil {
 		log.Debug(err)
 		resp.WriteHeader(http.StatusBadRequest)
@@ -92,7 +92,7 @@ func handleSkyWalkingSegment(resp http.ResponseWriter, req *http.Request) {
 }
 
 func handleSkyWalkingSegments(resp http.ResponseWriter, req *http.Request) {
-	reqInfo, err := trace.ParseHttpReq(req)
+	reqInfo, err := trace.ParseHTTPReq(req)
 	if err != nil {
 		log.Debug(err)
 		resp.WriteHeader(http.StatusBadRequest)
@@ -109,8 +109,9 @@ func handleSkyWalkingSegments(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	var group []*trace.TraceAdapter
-	for _, segment := range segments {
-		group, err = segmentToAdapters(&segment)
+	for i := range segments {
+		segment := &segments[i]
+		group, err = segmentToAdapters(segment)
 		if err != nil {
 			log.Debug(err)
 			resp.WriteHeader(http.StatusBadRequest)
@@ -151,26 +152,29 @@ func segmentToAdapters(segment *SkyWalkingSegment) ([]*trace.TraceAdapter, error
 		tAdapter.OperationName = span.OperationName
 		if span.SpanType == "Entry" {
 			if len(span.Refs) > 0 {
-				tAdapter.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
-					span.Refs[0].ParentSpanId)
+				tAdapter.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentID,
+					span.Refs[0].ParentSpanID)
 			}
 		} else {
-			tAdapter.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
+			tAdapter.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentID, span.ParentSpanID)
 		}
 
-		tAdapter.TraceID = segment.TraceId
-		tAdapter.SpanID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId)
+		tAdapter.TraceID = segment.TraceID
+		tAdapter.SpanID = fmt.Sprintf("%s%d", segment.TraceSegmentID, span.SpanID)
 		tAdapter.Status = trace.STATUS_OK
 		if span.IsError {
 			tAdapter.Status = trace.STATUS_ERR
 		}
-		if span.SpanType == "Entry" {
+
+		switch span.SpanType {
+		case "Entry":
 			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
-		} else if span.SpanType == "Exit" {
+		case "Exit":
 			tAdapter.SpanType = trace.SPAN_TYPE_EXIT
-		} else {
+		default:
 			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		}
+
 		tAdapter.EndPoint = span.Peer
 		tAdapter.Tags = skywalkingV3Tags
 

@@ -7,7 +7,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Db interface {
+type DB interface {
 	SetMaxOpenConns(int)
 	SetMaxIdleConns(int)
 	SetConnMaxLifetime(time.Duration)
@@ -15,19 +15,19 @@ type Db interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
-type SqlService struct {
+type SQLService struct {
 	Address     string
 	MaxIdle     int
 	MaxOpen     int
 	MaxLifetime time.Duration
-	DB          Db
-	Open        func(string, string) (Db, error)
+	DB          DB
+	Open        func(string, string) (DB, error)
 }
 
-func (p *SqlService) Start() (err error) {
+func (p *SQLService) Start() (err error) {
 	open := p.Open
 	if open == nil {
-		open = func(dbType, connStr string) (Db, error) {
+		open = func(dbType, connStr string) (DB, error) {
 			db, err := sql.Open(dbType, connStr)
 			return db, err
 		}
@@ -38,41 +38,46 @@ func (p *SqlService) Start() (err error) {
 		p.Address = localhost
 	}
 
-	connectionString := p.Address
-
-	if p.DB, err = open("postgres", connectionString); err != nil {
-		l.Error("connect error: ", connectionString)
+	if p.DB, err = open("postgres", p.Address); err != nil {
+		l.Error("connect error: ", p.Address)
 		return err
 	}
 
 	p.DB.SetMaxOpenConns(p.MaxIdle)
 	p.DB.SetMaxIdleConns(p.MaxIdle)
-	p.DB.SetConnMaxLifetime(time.Duration(p.MaxLifetime))
+	p.DB.SetConnMaxLifetime(p.MaxLifetime)
 
 	return nil
 }
 
-func (p *SqlService) Stop() error {
+func (p *SQLService) Stop() error {
 	if p.DB != nil {
-		p.DB.Close()
+		if err := p.DB.Close(); err != nil {
+			l.Warnf("Close: %s", err)
+		}
 	}
 	return nil
 }
 
-func (p *SqlService) Query(query string) (Rows, error) {
+func (p *SQLService) Query(query string) (Rows, error) {
 	rows, err := p.DB.Query(query)
+
 	if err != nil {
 		return nil, err
 	} else {
+		if err := rows.Err(); err != nil {
+			l.Errorf("rows.Err: %s", err)
+		}
+
 		return rows, nil
 	}
 }
 
-func (p *SqlService) SetAddress(address string) {
+func (p *SQLService) SetAddress(address string) {
 	p.Address = address
 }
 
-func (p *SqlService) GetColumnMap(row scanner, columns []string) (map[string]*interface{}, error) {
+func (p *SQLService) GetColumnMap(row scanner, columns []string) (map[string]*interface{}, error) {
 	var columnVars []interface{}
 
 	columnMap := make(map[string]*interface{})
@@ -85,8 +90,7 @@ func (p *SqlService) GetColumnMap(row scanner, columns []string) (map[string]*in
 		columnVars = append(columnVars, columnMap[columns[i]])
 	}
 
-	err := row.Scan(columnVars...)
-	if err != nil {
+	if err := row.Scan(columnVars...); err != nil {
 		return nil, err
 	}
 	return columnMap, nil

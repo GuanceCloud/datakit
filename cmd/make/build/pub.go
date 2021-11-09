@@ -35,7 +35,7 @@ func tarFiles(goos, goarch string) {
 		filepath.Join(BuildDir, fmt.Sprintf("%s-%s-%s", AppName, goos, goarch)), `.`,
 	}
 
-	cmd := exec.Command("tar", args...)
+	cmd := exec.Command("tar", args...) //nolint:gosec
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

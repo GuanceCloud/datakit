@@ -9,9 +9,8 @@ import (
 func TestInput_Collect(t *testing.T) {
 	str, _ := os.Getwd()
 	i := Input{Dir: str, platform: runtime.GOOS}
-	err := i.Collect()
-	if err != nil {
-		t.Log(err)
+	if err := i.Collect(); err != nil {
+		t.Error(err)
 	}
 	t.Log(i.collectCache[0])
 }

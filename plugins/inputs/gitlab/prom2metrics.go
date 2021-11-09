@@ -40,6 +40,13 @@ func promTextToMetrics(data io.Reader) ([]*samplePoint, error) {
 
 		case dto.MetricType_HISTOGRAM:
 			pts = append(pts, prom.histogram(name, metric.Metric)...)
+
+		case dto.MetricType_GAUGE:
+			l.Debugf("ignore gauge")
+		case dto.MetricType_SUMMARY:
+			l.Debugf("ignore summary")
+		case dto.MetricType_UNTYPED:
+			l.Debugf("ignore untyped")
 		}
 	}
 

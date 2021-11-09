@@ -3,31 +3,10 @@ package mysql
 import (
 	"fmt"
 	"testing"
+	"time"
 
-	//"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
-
-//func TestMockCollect(t *testing.T) {
-//	cases := []struct {
-//		i *Input
-//	}{
-//		{
-//			i: &Input{},
-//		},
-//	}
-//
-//	for _, tc := range cases {
-//		db, mock, err := sqlmock.New()
-//		tu.Ok(t, err)
-//
-//		defer db.Close()
-//
-//		tc.i.db = db
-//
-//		mock.ExpectBegin()
-//	}
-//}
 
 func TestCollect(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
@@ -39,7 +18,10 @@ func TestCollect(t *testing.T) {
 			Tags: make(map[string]string),
 		}
 
-		input.initCfg()
+		if err := input.initCfg(); err != nil {
+			t.Error(err)
+		}
+
 		input.Collect()
 	})
 
@@ -52,7 +34,10 @@ func TestCollect(t *testing.T) {
 			Tags: make(map[string]string),
 		}
 
-		input.initCfg()
+		if err := input.initCfg(); err != nil {
+			t.Error(err)
+		}
+
 		input.Collect()
 	})
 }
@@ -79,7 +64,7 @@ func TestRun(t *testing.T) {
 	}
 
 	if err := input.initCfg(); err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	input.Collect()
@@ -95,22 +80,21 @@ func TestInnodbCollect(t *testing.T) {
 			Tags: make(map[string]string),
 		}
 
-		err := input.initCfg()
-		if err != nil {
-			assert.Error(t, err, "collect data err")
+		if err := input.initCfg(); err != nil {
+			t.Error(err)
 		}
 
 		resData, err := input.collectInnodbMeasurement()
 		if err != nil {
-			assert.Error(t, err, "collect data err")
+			t.Error(err)
 		}
 
 		for _, pt := range resData {
 			point, err := pt.LineProto()
 			if err != nil {
-				fmt.Println("error =======>", err)
+				t.Error(err)
 			} else {
-				fmt.Println("point line =====>", point.String())
+				t.Log(point.String())
 			}
 		}
 	})
@@ -128,33 +112,25 @@ func TestBaseCollect(t *testing.T) {
 
 		err := input.initCfg()
 		if err != nil {
-			assert.Error(t, err, "collect data err")
+			t.Error(err)
 		}
 
 		resData, err := input.collectBaseMeasurement()
 		if err != nil {
-			assert.Error(t, err, "collect data err")
+			t.Error(err)
 		}
 
 		for _, pt := range resData {
 			point, err := pt.LineProto()
 			if err != nil {
-				fmt.Println("error =======>", err)
+				t.Error(err)
 			} else {
-				fmt.Println("point line =====>", point.String())
+				t.Log(point.String())
 			}
 		}
 	})
 
 	t.Run("bin log on", func(t *testing.T) {
-		// input := &Input{
-		// 	Host: "rm-bp15268nefz6870hg.mysql.rds.aliyuncs.com",
-		// 	Port: 3306,
-		// 	User: "cc_monitor",
-		// 	Pass: "Zyadmin123",
-		// 	Tags: make(map[string]string),
-		// }
-
 		input := &Input{
 			Host: "rm-bp15268nefz6870hg.mysql.rds.aliyuncs.com",
 			Port: 3306,
@@ -165,20 +141,20 @@ func TestBaseCollect(t *testing.T) {
 
 		err := input.initCfg()
 		if err != nil {
-			assert.Error(t, err, "collect data err")
+			t.Error(err)
 		}
 
 		resData, err := input.collectBaseMeasurement()
 		if err != nil {
-			assert.Error(t, err, "collect data err")
+			t.Error(err)
 		}
 
 		for _, pt := range resData {
 			point, err := pt.LineProto()
 			if err != nil {
-				fmt.Println("error =======>", err)
+				t.Error(err)
 			} else {
-				fmt.Println("point line =====>", point.String())
+				t.Log(point.String())
 			}
 		}
 	})
@@ -195,20 +171,20 @@ func TestSchemaCollect(t *testing.T) {
 
 	err := input.initCfg()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	resData, err := input.collectSchemaMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -226,20 +202,20 @@ func TestTbSchemaCollect(t *testing.T) {
 
 	err := input.initCfg()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	resData, err := input.collectTableSchemaMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -264,20 +240,20 @@ func TestCustomSchemaMeasurement(t *testing.T) {
 
 	err := input.initCfg()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	resData, err := input.customSchemaMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
 }
@@ -295,20 +271,120 @@ func TestUserMeasurement(t *testing.T) {
 
 	err := input.initCfg()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	resData, err := input.collectUserMeasurement()
 	if err != nil {
-		assert.Error(t, err, "collect data err")
+		t.Error(err)
 	}
 
 	for _, pt := range resData {
 		point, err := pt.LineProto()
 		if err != nil {
-			fmt.Println("error =======>", err)
+			t.Error(err)
 		} else {
-			fmt.Println("point line =====>", point.String())
+			t.Log(point.String())
 		}
 	}
+}
+
+func TestDbmStatement(t *testing.T) {
+	input := &Input{
+		Host: "127.0.0.1",
+		Port: 3306,
+		User: "root",
+		Pass: "123456",
+		Tags: make(map[string]string),
+	}
+
+	err := input.initCfg()
+	assert.NoError(t, err)
+
+	ms, err := input.getDbmMetric()
+
+	assert.NoError(t, err)
+	assert.Equal(t, len(ms), 0)
+
+	time.Sleep(5 * time.Second)
+	ms, err = input.getDbmMetric()
+
+	assert.GreaterOrEqual(t, len(ms), 0)
+	assert.NoError(t, err)
+}
+
+func TestDbmStatementSamples(t *testing.T) {
+	test := assert.New(t)
+	input := &Input{
+		Host:      "127.0.0.1",
+		Port:      3307,
+		User:      "root",
+		Pass:      "123456",
+		Tags:      make(map[string]string),
+		Dbm:       true,
+		DbmMetric: dbmMetric{Enabled: true},
+		DbmSample: dbmSample{Enabled: true},
+	}
+
+	err := input.initCfg()
+	test.NoError(err)
+
+	ms, err := input.getDbmSample()
+	test.GreaterOrEqual(len(ms), 0)
+	test.NoError(err)
+	time.Sleep(5 * time.Second)
+
+	ms, err = input.getDbmSample()
+	test.NoError(err)
+	test.GreaterOrEqual(len(ms), 0)
+}
+
+func TestUtil(t *testing.T) {
+	input := &Input{
+		Host: "127.0.0.1",
+		Port: 3306,
+		User: "root",
+		Pass: "123456",
+		Tags: make(map[string]string),
+	}
+
+	err := input.initCfg()
+	assert.NoError(t, err)
+
+	t.Run("mysqlVersion", func(t *testing.T) {
+		version, err := getVersion(input.db)
+		assert.NoError(t, err)
+
+		// mock
+		versions := []string{"5.6.36", "5.6.36a"}
+		for _, v := range versions {
+			version.version = v
+			assert.True(t, version.versionCompatible([]int{5, 6, 36}))
+			assert.True(t, version.versionCompatible([]int{4, 6, 36}))
+			assert.False(t, version.versionCompatible([]int{6, 6, 36}))
+			assert.True(t, version.versionCompatible([]int{5, 4, 36}))
+			assert.False(t, version.versionCompatible([]int{5, 7, 36}))
+			assert.True(t, version.versionCompatible([]int{5, 6, 35}))
+			assert.False(t, version.versionCompatible([]int{5, 6, 37}))
+		}
+	})
+
+	t.Run("canExplain", func(t *testing.T) {
+		assert.True(t, canExplain("select * from demo"))
+		assert.False(t, canExplain("alter table"))
+	})
+
+	t.Run("cacheLimit", func(t *testing.T) {
+		cache := cacheLimit{
+			Size: 5,
+			TTL:  10,
+		}
+		for i := 0; i < 5; i++ {
+			key := fmt.Sprintf("key-%v", i)
+			assert.True(t, cache.Acquire(key))
+		}
+		assert.False(t, cache.Acquire("key"))
+		time.Sleep(15 * time.Second)
+		assert.True(t, cache.Acquire("key"))
+	})
 }

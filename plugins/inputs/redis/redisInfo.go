@@ -26,6 +26,7 @@ func (m *infoMeasurement) LineProto() (*io.Point, error) {
 }
 
 // 指定指标.
+//nolint:lll,funlen
 func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_info",

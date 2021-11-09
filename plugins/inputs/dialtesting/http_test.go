@@ -344,6 +344,7 @@ var httpCases = []struct {
 }
 
 func prepareSSL(t *testing.T) {
+	t.Helper()
 	for k, v := range tlsData {
 		if err := ioutil.WriteFile("."+k+".pem", v, 0o644); err != nil {
 			t.Error(err)
@@ -353,7 +354,7 @@ func prepareSSL(t *testing.T) {
 
 func cleanTLSData() {
 	for k := range tlsData {
-		os.Remove("." + k + ".pem")
+		os.Remove("." + k + ".pem") //nolint:errcheck
 	}
 }
 
@@ -397,23 +398,22 @@ func TestDialHTTP(t *testing.T) {
 		if len(reasons) != c.reasonCnt {
 			t.Errorf("case %s expect %d reasons, but got %d reasons:\n\t%s",
 				c.t.Name, c.reasonCnt, len(reasons), strings.Join(reasons, "\n\t"))
-		} else {
-			if len(reasons) > 0 {
-				t.Logf("case %s reasons:\n\t%s",
-					c.t.Name, strings.Join(reasons, "\n\t"))
-			}
+		} else if len(reasons) > 0 {
+			t.Logf("case %s reasons:\n\t%s",
+				c.t.Name, strings.Join(reasons, "\n\t"))
 		}
 	}
 }
 
 func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
+	t.Helper()
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
 	gin.DisableConsoleColor()
 	r.Use(gin.Recovery())
 
-	addTestingRoutes(r, https, t)
+	addTestingRoutes(t, r, https)
 
 	// start HTTP server
 	srv := &http.Server{
@@ -441,6 +441,7 @@ func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
 }
 
 func proxyServer(t *testing.T) {
+	t.Helper()
 	http.HandleFunc("/_test_with_proxy", func(w http.ResponseWriter, req *http.Request) {
 		t.Logf("proxied request coming")
 		for k := range req.Header {
@@ -449,10 +450,13 @@ func proxyServer(t *testing.T) {
 
 		fmt.Fprintf(w, "ok")
 	})
-	http.ListenAndServe("localhost:54322", nil)
+	if err := http.ListenAndServe("localhost:54322", nil); err != nil {
+		t.Error(err)
+	}
 }
 
-func proxyHandler(target string, t *testing.T) gin.HandlerFunc {
+func proxyHandler(t *testing.T, target string) gin.HandlerFunc {
+	t.Helper()
 	remote, err := url.Parse(target)
 	if err != nil {
 		t.Error(err)
@@ -461,14 +465,12 @@ func proxyHandler(target string, t *testing.T) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		director := func(req *http.Request) {
-			req = c.Request
+			c.Request.URL.Scheme = remote.Scheme
+			c.Request.URL.Host = remote.Host
+			c.Request.URL.RawQuery = remote.RawQuery
 
-			req.URL.Scheme = remote.Scheme
-			req.URL.Host = remote.Host
-			req.URL.RawQuery = remote.RawQuery
-
-			req.Header["X-proxy-header"] = []string{c.Request.Header.Get("X-proxy-header")}
-			delete(req.Header, "X-proxy-header")
+			c.Request.Header["X-proxy-header"] = []string{c.Request.Header.Get("X-proxy-header")}
+			delete(c.Request.Header, "X-proxy-header")
 		}
 		proxy := &httputil.ReverseProxy{Director: director}
 		proxy.ServeHTTP(c.Writer, c.Request)
@@ -545,7 +547,8 @@ HHrpiTXtbrUfbKX2TEk3DSevJ9EZEuewxALtsaRQgX4WyHlxpYDXNSjag04Nn+/x
 -----END PRIVATE KEY-----`),
 }
 
-func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
+func addTestingRoutes(t *testing.T, r *gin.Engine, https bool) {
+	t.Helper()
 	r.GET("/_test_resp_time_less_10ms", func(c *gin.Context) {
 		time.Sleep(time.Millisecond * 11)
 		c.Data(http.StatusOK, ``, nil)
@@ -596,7 +599,7 @@ func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
 	})
 
 	r.POST("/_test_with_body", func(c *gin.Context) {
-		defer c.Request.Body.Close()
+		defer c.Request.Body.Close() //nolint:errcheck
 		body, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			t.Error(err)
@@ -608,7 +611,7 @@ func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
 	})
 
 	r.GET("/_test_with_proxy",
-		proxyHandler("http://localhost:54322/_test_with_proxy" /*url must be the same*/, t))
+		proxyHandler(t, "http://localhost:54322/_test_with_proxy" /*url must be the same*/))
 
 	if https {
 		r.GET("/_test_with_cert", func(c *gin.Context) {

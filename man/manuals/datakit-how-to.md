@@ -422,6 +422,8 @@ datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/
 No data extracted from pipeline
 ```
 
+> 注意：由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 field），不宜有日志采集器以及 Datakit 全局配置的 tag 字段，如 `source`、`service`、`host` 等字段，不然行协议构建会报错：`same key xxx in tag and field`。
+
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
@@ -600,7 +602,7 @@ sudo datakit --install sec-checker  # 该命名即将废弃
 
 配置好后，重启 DataKit 即可。
 
-#### CPU使用率说明
+#### CPU 使用率说明
 
 DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用的 CPU 资源。假设现在 CPU 使用率较高，DataKit 可能会将自身限制在 `cpu_min` 值以下，反之 CPU 较为空闲时，可能会将限制调整到 `cpu_max`。
 
@@ -608,6 +610,47 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 
 例如 `cpu_max` 为 `40.0`，8 核心 CPU 满负载使用率为 `800%`，则 DataKit 能使用的最大 CPU 资源是 `800% * 40% = 320%` 左右，是占全局 CPU 资源的 40%，而非单核心 CPU 的 40%。
 
+
+### 上传 DataKit 运行日志
+
+排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
+
+```shell
+sudo datakit --upload-log
+log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # 将这个路径信息发送给我们工程师即可
+```
+
+运行命令后，会将日志目录下的所有日志文件进行打包压缩，然后上传至指定的存储。我们的工程师会根据上传日志的主机名以及 Token 传找到对应文件，进而排查 DataKit 问题。
+
+### Datakit 使用 Git 管理配置文件
+
+在安装时，即可指定 Git 配置仓库，详情参考 [datakit 安装文档](datakit-install#f9858758)。
+
+#### 手动修改 git 配置
+
+Datakit 支持使用 git 来管理配置文件。示例如下：
+
+```conf
+[git_repos]
+  pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
+
+  [[git_repos.repo]]
+    enable = true
+    url = "http://username:password@github.com/username/repository.git"
+
+  [[git_repos.repo]] # 第二个 git-repo
+    enable = false   # 不启用该 repo
+
+    url = "git@github.com:username/repository.git" # 支持的一种形式
+    # url = "ssh://git@gitlab.website.com:9000/username/repository.git" # 支持的另一种形式
+
+    ssh_private_key_path = "/Users/username/.ssh/id_rsa"
+    ssh_private_key_password = "passwd"
+
+    branch = "master" # 指定 git branch
+```
+
+> Tips: HTTP(s) 协议的 git 地址**仅支持用户名和密码**形式，SSH 协议的仅支持 private key 形式。
 
 ### 其它命令
 

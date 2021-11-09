@@ -27,6 +27,7 @@ require (
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gin-gonic/gin v1.7.2
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-ole/go-ole v1.2.5
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
 	github.com/go-redis/redis/v8 v8.8.0
@@ -46,7 +47,7 @@ require (
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
-	github.com/jessevdk/go-flags v1.4.0
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.10.0
 	github.com/mattn/go-runewidth v0.0.10 // indirect
@@ -58,7 +59,7 @@ require (
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.30.0
+	github.com/prometheus/common v0.32.1
 	github.com/prometheus/procfs v0.7.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -76,7 +77,8 @@ require (
 	github.com/ugorji/go/codec v1.2.6
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a
+	github.com/whilp/git-urls v1.0.0
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211103011013-f9fe04158e06
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
@@ -85,6 +87,7 @@ require (
 	golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
+	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/genproto v0.0.0-20210909211513-a8c4777a87af // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1

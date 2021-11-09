@@ -174,7 +174,9 @@ func TestMan(t *testing.T) {
 	arr := i.SampleMeasurement()
 
 	for _, elem := range arr {
-		elem.LineProto()
+		if _, err := elem.LineProto(); err != nil {
+			t.Error(err)
+		}
 		elem.Info()
 	}
 }

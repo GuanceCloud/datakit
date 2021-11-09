@@ -109,7 +109,7 @@ const (
 )
 
 func getUpgradeCommand(dlurl string, showTesting bool) string {
-	proxy := config.Cfg.DataWay.HttpProxy
+	proxy := config.Cfg.DataWay.HTTPProxy
 	var upgradeCmd, baseURLEnv string
 
 	switch runtime.GOOS {

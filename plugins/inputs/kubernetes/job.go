@@ -1,20 +1,21 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	batchv1 "k8s.io/api/batch/v1"
+	kubev1batch "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
 
 const kubernetesJobName = "kubernetes_jobs"
 
 type job struct {
 	client interface {
-		getJobs() (*batchv1.JobList, error)
+		getJobs() kubev1batch.JobInterface
 	}
 	tags map[string]string
 }
@@ -23,7 +24,7 @@ func (j *job) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := j.client.getJobs()
+	list, err := j.client.getJobs().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get jobs resource: %s", err)
 		return
@@ -45,7 +46,7 @@ func (j *job) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":       int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":       int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"active":    obj.Status.Active,
 			"succeeded": obj.Status.Succeeded,
 			"failed":    obj.Status.Failed,
@@ -101,6 +102,7 @@ func (*job) Resource() { /*empty interface*/ }
 
 func (*job) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*job) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesJobName,
@@ -123,9 +125,10 @@ func (*job) Info() *inputs.MeasurementInfo {
 			"active_deadline": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Specifies the duration in seconds relative to the startTime that the job may be active before the system tries to terminate it"},
 			"annotations":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
 			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
+
 			// TODO:
 			// "pod_statuses":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-			//"duration":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+			// "duration":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},
 	}
 }

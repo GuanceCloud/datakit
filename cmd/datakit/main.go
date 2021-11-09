@@ -11,10 +11,12 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
@@ -56,7 +58,7 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
 	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
 	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
-	flag.BoolVar(&cmds.FlagApiRestart, "api-restart", false, "restart datakit for api only")
+	flag.BoolVar(&cmds.FlagAPIRestart, "api-restart", false, "restart datakit for api only")
 	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
@@ -86,6 +88,7 @@ func init() { //nolint:gochecknoinits
 	}
 
 	flag.BoolVar(&cmds.FlagCheckConfig, "check-config", false, "check inputs configure and main configure")
+	flag.StringVar(&cmds.FlagConfigDir, "config-dir", "", "check configures under specified path")
 	flag.BoolVar(&cmds.FlagCheckSample, "check-sample", false, "check inputs configure samples")
 	flag.BoolVar(&cmds.FlagVVV, "vvv", false, "more verbose info")
 	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
@@ -95,6 +98,8 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
 	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
 	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
+
+	flag.BoolVar(&cmds.FlagUploadLog, "upload-log", false, "upload log")
 }
 
 var (
@@ -241,6 +246,8 @@ func tryLoadConfig() {
 	}
 
 	l = logger.SLogger("main")
+
+	l.Infof("datakit run ID: %s", cliutils.XID("dkrun_"))
 }
 
 func doRun() error {
@@ -252,12 +259,19 @@ func doRun() error {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
-	if err := inputs.RunInputs(); err != nil {
-		l.Error("error running inputs: %v", err)
-		return err
+	if config.GitHasEnabled() {
+		if err := gitrepo.StartPull(); err != nil {
+			l.Errorf("gitrepo.StartPull failed: %v", err)
+			return err
+		}
+	} else {
+		if err := inputs.RunInputs(false); err != nil {
+			l.Error("error running inputs: %v", err)
+			return err
+		}
 	}
 
-	// FIXME: wait all inputs ok, then start http server
+	// NOTE: Should we wait all inputs ok, then start http server?
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
 		DCAConfig:      config.Cfg.DCAConfig,

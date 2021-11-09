@@ -3,25 +3,18 @@ package etcd
 import (
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	metricName  = inputName
-	l           = logger.DefaultSLogger(inputName)
-	minInterval = time.Second
-	maxInterval = time.Second * 30
-	sample      = ``
-)
+type ServerMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
 
-type (
-	ServerMeasurement  Measurement
-	NetworkMeasurement Measurement
-)
-
-type Measurement struct {
+type NetworkMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}

@@ -14,6 +14,7 @@ type cpuMeasurement struct {
 	ts     time.Time
 }
 
+//nolint:lll
 func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 	// see https://man7.org/linux/man-pages/man5/proc.5.html
 	return &inputs.MeasurementInfo{

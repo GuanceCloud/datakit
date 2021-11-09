@@ -1,20 +1,21 @@
+// Package prom scrape prometheus exportor metrics.
 package prom
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	_ inputs.ElectionInput = (*Input)(nil)
-	_ inputs.Instance      = (*Input)(nil)
-)
+var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
 	inputName = "prom"
@@ -22,8 +23,8 @@ const (
 )
 
 // defaultMaxFileSize is the default maximum response body size, in bytes.
-// If the response body is over this size, we will simply discard its content instead of writing it to disk.
-// 32 MB
+// If the response body is over i size, we will simply discard its content instead of writing it to disk.
+// 32 MB.
 const defaultMaxFileSize int64 = 32 * 1024 * 1024
 
 var l = logger.DefaultSLogger(inputName)
@@ -50,11 +51,15 @@ type Input struct {
 	TagsIgnore     []string          `toml:"tags_ignore"`
 	DeprecatedAuth map[string]string `toml:"auth"`
 
-	pm      *prom.Prom
+	pm *prom.Prom
+
 	chPause chan bool
 	pause   bool
 
+	url    *url.URL
 	stopCh chan interface{}
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) SampleConfig() string { return sampleCfg }
@@ -64,16 +69,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
 func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) Catalog() string { return catalog }
-
-func (i *Input) Stop() { i.stopCh <- nil }
-
-func (i *Input) getSource() string {
-	source := inputName
-	if i.Source != "" {
-		source = i.Source
-	}
-	return source
-}
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
@@ -93,6 +88,10 @@ func (i *Input) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("prom exit")
+			return
+
+		case <-i.semStop.Wait():
+			l.Info("prom return")
 			return
 
 		case <-i.stopCh:
@@ -119,24 +118,43 @@ func (i *Input) Run() {
 			start := time.Now()
 			pts, err := i.pm.Collect()
 			if err != nil {
+				l.Errorf("Collect: %s", err)
 				io.FeedLastError(source, err.Error())
-				l.Error(err)
+
+				// Try testing the connect
+				if i.url != nil {
+					if err := net.RawConnect(i.url.Hostname(), i.url.Port(), time.Second*3); err != nil {
+						l.Errorf("failed to connect to %s:%s, %s, exit", i.url.Hostname(), i.url.Port(), err)
+						return
+					}
+				}
+
 				continue
 			}
 
 			if len(pts) == 0 {
-				l.Debug("len(points) is zero")
+				l.Debug("len(points) is 0")
 				continue
 			}
 
-			if err := io.Feed(source, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+			if err := io.Feed(source,
+				datakit.Metric,
+				pts,
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("Feed: %s", err)
+
 				io.FeedLastError(source, err.Error())
-				l.Error(err)
 			}
 
 		case i.pause = <-i.chPause:
 			// nil
 		}
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
@@ -161,6 +179,12 @@ func (i *Input) setup() bool {
 }
 
 func (i *Input) Init() error {
+	u, err := url.Parse(i.URL)
+	if err != nil {
+		return err
+	}
+	i.url = u
+
 	// toml 不支持匿名字段的 marshal，JSON 支持
 	opt := &prom.Option{
 		Source:            i.Source,
@@ -187,6 +211,7 @@ func (i *Input) Init() error {
 		return err
 	}
 	i.pm = pm
+
 	return nil
 }
 
@@ -231,10 +256,12 @@ func NewProm() *Input {
 		stopCh:      make(chan interface{}, 1),
 		chPause:     make(chan bool, maxPauseCh),
 		maxFileSize: defaultMaxFileSize,
+
+		semStop: cliutils.NewSem(),
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return NewProm()
 	})

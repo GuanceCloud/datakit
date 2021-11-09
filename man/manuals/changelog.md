@@ -2,6 +2,27 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc4(预计2021/11/09)
+
+- 支持[通过 Git 来管理]() datakit 的各种 conf（`datakit.conf` 除外）以及 Pipeline(#366)
+- 支持[全离线安装]()(#421)
+- eBPF-network
+     - 增加[DNS 数据采集]()(#418)
+     - 增强内核适配性，内核版本要求已降低至 Linux 4.4+(#416)
+- 增强数据调试功能，采集到的数据支持写入本地文件，同时发送到中心(#415)
+- K8s 环境中，默认开启的采集器支持通过环境变量注入 tags，详见各个默认开启的采集器文档(#408)
+- DataKit 支持[一键上传日志]()(#405)
+- MySQL 采集器增加[SQL 语句执行性能指标]()(#382)
+- 修复安装脚本中 root 用户设定的 bug(#430)
+- 增强 Kubernetes 采集器：
+	- 添加通过 Annotation 配置 [Pod 日志采集](kubernetes-podlogging)(#380)
+	- 增加更多 Annotation key，[支持多 IP 情况]()(#419)
+	- 支持采集 Node IP(#411)
+	- 优化 Annotation 在采集器配置中的使用(#380)
+- 云同步增加华为云与微软云支持(#265)
+
+------
+
 ## 1.1.9-rc3(2021/10/26)
 
 - 优化 [Redis 采集器](redis) DB 配置方式(#395)
@@ -12,8 +33,8 @@
 - [ElasticSearch](elasticsearch) 采集器增加更多指标采集(#386)
 - APM 增加 [Jaeger 数据](jaeger)接入(#383)
 - [Prometheus Remote Write](prom_remote_write)采集器支持数据切割调试
-- 优化 [Nginx 代理](proxy)功能
-- DQL 查询结果支持 [CSV 文件导出](datakit-how-to)
+- 优化 [Nginx 代理](proxy#a64f44d8)功能
+- DQL 查询结果支持 [CSV 文件导出](datakit-how-to#2368bf1d)
 
 ---
 

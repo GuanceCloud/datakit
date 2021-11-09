@@ -87,7 +87,7 @@ func outputWorkspaceInfo(body []byte) {
 		errorf("json.Unmarshal:%s\n", err)
 	}
 	for _, content := range r.Content {
-		j, err := json.MarshalIndent(content, "", defaultJsonIndent)
+		j, err := json.MarshalIndent(content, "", defaultJSONIndent)
 		if err != nil {
 			errorf("json.MarshalIndent %s\n", err.Error())
 		}

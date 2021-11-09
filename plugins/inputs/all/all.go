@@ -1,3 +1,4 @@
+// Package inputs wraps all inputs implements
 package inputs
 
 import (
@@ -15,9 +16,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/file_collector"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/filecollector"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/host_process"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostdir"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/iis"
@@ -25,8 +25,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jaeger"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jenkins"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sextra"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafka"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kube_state_metric"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kubernetes"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logging"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logstreaming"
@@ -35,13 +35,14 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodb"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysql"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/net"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/net_ebpf"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netebpf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginx"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nsq"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oracle"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/postgresql"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/process"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom_remote_write"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/promremote"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/proxy"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/rabbitmq"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/redis"
@@ -56,8 +57,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/swap"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/system"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/tomcat"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/traceZipkin"
 
 	// only windows.
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/win_event"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/winevent"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin"
 )

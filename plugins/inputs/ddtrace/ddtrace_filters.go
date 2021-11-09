@@ -44,7 +44,11 @@ func rare(trace Trace) (Trace, bool) {
 		return trace, false
 	}
 
-	checksum := hashcode.GenMapHash(map[string]string{"service": rootSpan.Service, "resource": rootSpan.Resource, "env": rootSpan.Meta[itrace.ENV]})
+	checksum := hashcode.GenMapHash(map[string]string{
+		"service":  rootSpan.Service,
+		"resource": rootSpan.Resource,
+		"env":      rootSpan.Meta[itrace.ENV],
+	})
 	if then, ok := present[checksum]; !ok || time.Since(then) >= time.Hour {
 		present[checksum] = time.Now()
 

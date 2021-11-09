@@ -49,7 +49,7 @@ func (gs Logs) Init() error {
 		for _, match := range g.Match {
 			pattern, err := regexp.Compile(match)
 			if err != nil {
-				return fmt.Errorf("config match index[%d], error: %s", idx, err)
+				return fmt.Errorf("config match index[%d], error: %w", idx, err)
 			}
 			gs[idx].pattern = append(gs[idx].pattern, pattern)
 		}

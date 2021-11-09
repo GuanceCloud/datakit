@@ -1,5 +1,4 @@
-// datakit HTTP server
-
+// Package http is datakit's HTTP server
 package http
 
 import (
@@ -11,13 +10,15 @@ import (
 	"io"
 	"net"
 	"net/http"
+
+	// nolint:gosec
 	_ "net/http/pprof"
 	"os"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -30,11 +31,9 @@ var (
 	l              = logger.DefaultSLogger("http")
 	ginLog         string
 	ginReleaseMode = true
-	pprof          bool
+	enablePprof    bool
 
 	uptime = time.Now()
-
-	mtx = sync.Mutex{}
 
 	dw        *dataway.DataWayCfg
 	extraTags = map[string]string{}
@@ -46,8 +45,12 @@ var (
 	g = datakit.G("http")
 
 	DcaToken = ""
+
+	semReload          *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload signal
+	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
 )
 
+//nolint:stylecheck
 const (
 	LOGGING_SROUCE     = "source"
 	PRECISION          = "precision"
@@ -81,7 +84,7 @@ func Start(o *Option) {
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
-	pprof = o.PProf
+	enablePprof = o.PProf
 	ginReleaseMode = o.GinReleaseMode
 	ginRotate = o.GinRotate
 	apiConfig = o.APIConfig
@@ -90,7 +93,7 @@ func Start(o *Option) {
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
-		HttpStart()
+		HTTPStart()
 		l.Info("http goroutine exit")
 		return nil
 	})
@@ -98,7 +101,7 @@ func Start(o *Option) {
 	// DCA server
 	if dcaConfig.Enable {
 		g.Go(func(ctx context.Context) error {
-			dcaHttpStart()
+			dcaHTTPStart()
 			l.Info("DCA http goroutine exit")
 			return nil
 		})
@@ -149,7 +152,7 @@ func page404(c *gin.Context) {
 	c.String(http.StatusNotFound, buf.String())
 }
 
-func HttpStart() {
+func HTTPStart() {
 	gin.DisableConsoleColor()
 
 	if ginReleaseMode {
@@ -202,60 +205,112 @@ func HttpStart() {
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
+	refreshRebootSem()
+
 	srv := &http.Server{
 		Addr:    apiConfig.Listen,
 		Handler: router,
 	}
 
 	g.Go(func(ctx context.Context) error {
-		tryStartServer(srv)
+		tryStartServer(srv, true, semReload, semReloadCompleted)
 		l.Info("http server exit")
 		return nil
 	})
 
 	// start pprof if enabled
 	var pprofSrv *http.Server
-	if pprof {
+	if enablePprof {
 		pprofSrv = &http.Server{
 			Addr: ":6060",
 		}
 
 		g.Go(func(ctx context.Context) error {
-			tryStartServer(pprofSrv)
+			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
 			l.Info("pprof server exit")
 			return nil
 		})
 	}
 
 	l.Debug("http server started")
-	<-datakit.Exit.Wait()
 
-	l.Debug("stopping http server...")
+	stopFunc := func() {
+		if err := srv.Shutdown(context.Background()); err != nil {
+			l.Errorf("Failed of http server shutdown, err: %s", err.Error())
+		} else {
+			l.Info("http server shutdown ok")
+		}
 
-	if err := srv.Shutdown(context.Background()); err != nil {
-		l.Errorf("Failed of http server shutdown, err: %s", err.Error())
-	} else {
-		l.Info("http server shutdown ok")
+		if enablePprof {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := pprofSrv.Shutdown(ctx); err != nil {
+				l.Error(err)
+			}
+			l.Infof("pprof stopped")
+		}
 	}
 
-	if pprof {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := pprofSrv.Shutdown(ctx); err != nil {
-			l.Error(err)
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			stopFunc()
+			return
+		case <-semReload.Wait():
+			l.Info("[HttpServer] reload detected")
+			stopFunc()
+			if semReloadCompleted != nil {
+				l.Debug("[HttpServer] before reload completed")
+				semReloadCompleted.Close()
+				l.Debug("[HttpServer] after reload completed")
+			}
+			return
 		}
-		l.Infof("pprof stopped")
 	}
 }
 
-func tryStartServer(srv *http.Server) {
+func refreshRebootSem() {
+	semReload = cliutils.NewSem()
+	semReloadCompleted = cliutils.NewSem()
+}
+
+func ReloadTheNormalServer() {
+	if semReload != nil {
+		semReload.Close()
+
+		// wait stop completed
+		if semReloadCompleted != nil {
+			l.Debug("[HttpServer] check wait")
+
+			<-semReloadCompleted.Wait()
+			l.Info("[HttpServer] reload stopped")
+			go HTTPStart()
+			return
+		}
+	}
+}
+
+func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadCompleted *cliutils.Sem) {
 	retryCnt := 0
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			l.Info("tryStartServer exit")
 			return
 		default:
+			if canReload && semReload != nil {
+				select {
+				case <-semReload.Wait():
+					l.Info("tryStartServer reload detected")
+
+					if semReloadCompleted != nil {
+						semReloadCompleted.Close()
+					}
+					return
+				default:
+				}
+			}
 		}
 
 		if portInUse(srv.Addr) {
@@ -287,7 +342,7 @@ func portInUse(addr string) bool {
 	if err != nil {
 		return false
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck
 	return true
 }
 

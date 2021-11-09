@@ -219,7 +219,7 @@ var (
 
 func TestGatherDockerMetric(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, fakeResp)
+		fmt.Fprint(w, fakeResp)
 	}))
 
 	defer ts.Close()
@@ -250,7 +250,7 @@ func TestGatherDockerMetric(t *testing.T) {
 
 func TestGatherDockerMetric2(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, fakeRespMulti)
+		fmt.Fprint(w, fakeRespMulti)
 	}))
 
 	defer ts.Close()

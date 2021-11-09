@@ -6,7 +6,15 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/disk"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+)
+
+const (
+	fieldCompare = 1 << iota
+	nameCompare
+	tagCompare
+	timeCompare
 )
 
 type IOCountersStat = disk.IOCountersStat
@@ -251,6 +259,63 @@ func TestF(t *testing.T) {
 	for _, x := range tagname {
 		collectCache = append(collectCache, i.collectCache[tagindex[x]])
 	}
-	AssertMeasurement(t, result, collectCache, FieldCompare+TagCompare+NameCompare)
-	// TODO TestDiskInfo
+	assertMeasurement(t, result, collectCache, fieldCompare+tagCompare+nameCompare)
+
+	// TODO: TestDiskInfo
+}
+
+func assertMeasurement(t *testing.T, expectMeasurement []*diskioMeasurement, actualMeasurement []inputs.Measurement, flag int) {
+	t.Helper()
+	// 取长度最短的
+	lenE := len(expectMeasurement)
+	lenA := len(actualMeasurement)
+	if lenE != lenA {
+		t.Errorf("The number of objects does not match. Expect:%d  Actual:%d", lenE, lenA)
+	}
+	count := lenE
+	if count > lenA {
+		count = lenA
+	}
+
+	for i := 0; i < count; i++ {
+		expect := expectMeasurement[i]
+		actual, ok := actualMeasurement[i].(*diskioMeasurement)
+		if !ok {
+			t.Error("expect *diskioMeasurement")
+		}
+
+		if (flag & fieldCompare) == fieldCompare {
+			for key, valueE := range expect.fields {
+				valueA, ok := actual.fields[key]
+				if !ok {
+					t.Errorf("The expected field does not exist: %s", key)
+					continue
+				}
+				assert.Equal(t, valueE, valueA, "Field: "+key)
+			}
+		}
+
+		if (flag & nameCompare) == nameCompare {
+			if expect.name != actual.name {
+				t.Errorf("The expected measurement name is %s, the actual is %s", expect.name, actual.name)
+			}
+		}
+
+		if (flag & tagCompare) == tagCompare {
+			for kE, vE := range expect.tags {
+				vA, ok := actual.tags[kE]
+				if !ok {
+					t.Errorf("The expected field does not exist: %s", kE)
+					continue
+				}
+				assert.Equal(t, vE, vA, "Tag: "+kE)
+			}
+		}
+
+		if (flag & timeCompare) == timeCompare {
+			if expect.ts != actual.ts {
+				t.Error("The expected time is ", expect.ts.String(), ", the actual is ", actual.ts.String())
+			}
+		}
+	}
 }
