@@ -628,35 +628,37 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 
 #### 手动修改 git 配置
 
-Datakit 支持使用 git 来管理配置文件。示例如下：
+Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下：
 
 ```conf
 [git_repos]
   pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
 
   [[git_repos.repo]]
-    enable = true
-    url = "http://username:password@github.com/username/repository.git"
-
-  [[git_repos.repo]] # 第二个 git-repo
     enable = false   # 不启用该 repo
 
-    url = "git@github.com:username/repository.git" # 支持的一种形式
-    # url = "ssh://git@gitlab.website.com:9000/username/repository.git" # 支持的另一种形式
+		# Git 地址的三种形式
+    url = "http://username:password@github.com/username/repository.git"
+    # url = "git@github.com:username/repository.git"
+    # url = "ssh://git@gitlab.website.com:9000/username/repository.git"
 
+		# 如果是 ssh 形式，需填写如下俩配置
     ssh_private_key_path = "/Users/username/.ssh/id_rsa"
     ssh_private_key_password = "passwd"
 
     branch = "master" # 指定 git branch
 ```
 
-> Tips: HTTP(s) 协议的 git 地址**仅支持用户名和密码**形式，SSH 协议的仅支持 private key 形式。
+注意：
+
+- HTTP(s) 协议的 git 地址**仅支持用户名和密码**形式，SSH 协议的仅支持 private key 形式。
+- 开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（但 datakit.conf 继续生效）。DataKit 随带的 pipeline 依然有效。
 
 ### 其它命令
 
 - 查看云属性数据
 
-如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
+如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws/hwcloud/azure` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
 
 ```shell
 datakit --show-cloud-info aws
