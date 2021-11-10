@@ -4,7 +4,7 @@
 
 ## 1.1.9-rc4(2021/11/09)
 
-- 支持[通过 Git 来管理]() 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
+- 支持[通过 Git 来管理](datakit-how-to#9ca4d8d0) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
 - 支持[全离线安装](datakit-offline-install#7f3c40b6)(#421)
 <!--
 - eBPF-network

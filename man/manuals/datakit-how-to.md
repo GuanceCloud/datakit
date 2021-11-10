@@ -637,22 +637,45 @@ Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下�
   [[git_repos.repo]]
     enable = false   # 不启用该 repo
 
-		# Git 地址的三种形式
-    url = "http://username:password@github.com/username/repository.git"
-    # url = "git@github.com:username/repository.git"
-    # url = "ssh://git@gitlab.website.com:9000/username/repository.git"
+    ###########################################
+		# Git 地址支持的三种协议：http/git/ssh
+    ###########################################
+    url = "http://username:password@github.com/path/to/repository.git"
 
-		# 如果是 ssh 形式，需填写如下俩配置
-    ssh_private_key_path = "/Users/username/.ssh/id_rsa"
-    ssh_private_key_password = "passwd"
+		# 以下两种协议(git/ssh)，需配置 key-path 以及 key-password
+    # url = "git@github.com:path/to/repository.git"
+    # url = "ssh://git@github.com:9000/path/to/repository.git"
+    # ssh_private_key_path = "/Users/username/.ssh/id_rsa"
+    # ssh_private_key_password = "<YOUR-PASSSWORD>"
 
     branch = "master" # 指定 git branch
 ```
 
-注意：
+注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（但 datakit.conf 继续生效）。DataKit 随带的 pipeline 依然有效。
 
-- HTTP(s) 协议的 git 地址**仅支持用户名和密码**形式，SSH 协议的仅支持 private key 形式。
-- 开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（但 datakit.conf 继续生效）。DataKit 随带的 pipeline 依然有效。
+#### 应用 Git 管理的 Pipeline
+
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用。
+
+当使用 DataKit 自带的 Pipeline 时，一般是不带任何前缀路径的， 如：
+
+```toml
+[[inputs.nginx]]
+    ...
+    [inputs.nginx.log]
+    ...
+    pipeline = "nginx.p" # 对应加载 <DataKit 安装目录>/pipeline/nginx.p 文件
+```
+
+当使用 Git 管理的 Pipeline，因为 Clone 下来的文件，都是在特定的文件夹中，故 Pipeline 的配置也会带上对应的路径前缀：
+
+```toml
+[[inputs.nginx]]
+    ...
+    [inputs.nginx.log]
+    ...
+    pipeline = "myconfs/nginx.p" # 对应加载 <DataKit 安装目录>/gitrepos/myconfs/nginx.p 文件
+```
 
 ### 其它命令
 
