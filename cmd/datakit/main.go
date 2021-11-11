@@ -106,8 +106,8 @@ var (
 	l = logger.DefaultSLogger("main")
 
 	// injected during building: -X.
-	ReleaseType    = ""
-	ReleaseVersion = ""
+	InputsReleaseType = ""
+	ReleaseVersion    = ""
 )
 
 func setupFlags() {
@@ -187,14 +187,14 @@ func applyFlags() {
 		datakit.SetWorkDir(cmds.FlagWorkDir)
 	}
 
-	datakit.EnableUncheckInputs = (ReleaseType == "all")
+	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
 
 	if cmds.FlagDocker {
 		datakit.Docker = true
 	}
 
 	cmds.ReleaseVersion = ReleaseVersion
-	cmds.ReleaseType = ReleaseType
+	cmds.InputsReleaseType = InputsReleaseType
 
 	cmds.RunCmds()
 }

@@ -62,8 +62,12 @@ func checkInputCfg(tpl *ast.Table, fp string) {
 }
 
 // check samples of every inputs.
-func checkSample() {
+func checkSample() error {
 	start := time.Now()
+	failed = 0
+	unknown = 0
+	passed = 0
+	ignored = 0
 
 	for k, c := range inputs.Inputs {
 		i := c()
@@ -88,11 +92,21 @@ func checkSample() {
 		len(inputs.Inputs), ignored, passed, failed, unknown)
 
 	infof("cost %v\n", time.Since(start))
+
+	if failed > 0 {
+		return fmt.Errorf("load %d sample failed", failed)
+	}
+	return nil
 }
 
 func checkConfig(dir, suffix string) error {
 	start := time.Now()
 	fps := config.SearchDir(dir, suffix)
+
+	failed = 0
+	unknown = 0
+	passed = 0
+	ignored = 0
 
 	for _, fp := range fps {
 		tpl, err := config.ParseCfgFile(fp)
