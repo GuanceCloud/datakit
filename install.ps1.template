@@ -50,7 +50,7 @@ function remove-host([string]$filename, [string]$hostname) {
 # Detect variables
 ##########################
 
-$installer_base_url = "https://static.guance.com/datakit"
+$installer_base_url = "https://{{.InstallBaseURL}}"
 
 $domain = @(
     "static.guance.com"
@@ -63,12 +63,6 @@ $domain = @(
 
     "zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com"
 )
-
-$x = [Environment]::GetEnvironmentVariable("DK_INSTALLER_BASE_URL") 
-if ($x -ne $null) {
-	$installer_base_url = $x
-	Write-COutput green ("* set base URL to $installer_base_url")
-}
 
 $x = [Environment]::GetEnvironmentVariable("DK_UPGRADE") 
 if ($x -ne $null) {

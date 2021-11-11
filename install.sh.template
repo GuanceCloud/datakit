@@ -113,10 +113,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 # Select installer
-installer_base_url="https://static.guance.com/datakit"
-if [ -n "$DK_INSTALLER_BASE_URL" ]; then
-	installer_base_url=$DK_INSTALLER_BASE_URL
-fi
+installer_base_url="https://{{.InstallBaseURL}}"
 
 installer_file="installer-${os}-${arch}"
 # shellcheck disable=SC2059

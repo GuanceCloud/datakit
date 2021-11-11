@@ -16,6 +16,12 @@ func TestCompare(t *testing.T) {
 	}{
 
 		{
+			v1:         "1.1.7-rc7.1_foo-bar", // with tags
+			v2:         "1.1.7-rc7",
+			newVersion: true,
+		},
+
+		{
 			v1:         "1.1.7-rc7.1",
 			v2:         "1.1.7-rc7",
 			newVersion: true,
@@ -48,6 +54,24 @@ func TestCompare(t *testing.T) {
 			sameVersion: true,
 		},
 
+		{ // version tag not comapred
+			v1:          "1.1.7-rc1-126-g40c4860c_bar",
+			v2:          "1.1.7-rc1-126-g40c4860c_foo",
+			sameVersion: true,
+		},
+
+		{
+			v1:         "1.1.7-rc1-126-g40c4860c__", // invalid tag, ignored
+			v2:         "1.1.7-rc1",
+			newVersion: true,
+		},
+
+		{
+			v1:         "1.1.7-rc1-126-g40c4860c_tag_with_unerscore",
+			v2:         "1.1.7-rc1",
+			newVersion: true,
+		},
+
 		{
 			v1:         "1.1.7-rc1-126-g40c4860c",
 			v2:         "1.1.7-rc1",
@@ -73,6 +97,11 @@ func TestCompare(t *testing.T) {
 
 		{
 			v1:   "2.1.7.0-rc1-126-g40c4860c", // invalid version string
+			fail: true,
+		},
+
+		{
+			v1:   "2.1.7_rc1-126-g40c4860c_foo-bar", // invalid version string
 			fail: true,
 		},
 

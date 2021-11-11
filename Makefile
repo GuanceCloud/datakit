@@ -15,7 +15,7 @@ TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/da
 # export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
 # export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
 # 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
-LOCAL_DOWNLOAD_ADDR = "${LOCAL_OSS_ADDR}"
+LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
 
 PUB_DIR = dist
 BUILD_DIR = dist
@@ -24,23 +24,21 @@ BIN = datakit
 NAME = datakit
 ENTRY = cmd/datakit/main.go
 
-LOCAL_ARCHS = "local"
-DEFAULT_ARCHS = "all"
-MAC_ARCHS = "darwin/amd64"
-GIT_VERSION := $(shell git describe --always --tags)
-DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
-GOVERSION := $(shell go version)
-COMMIT := $(shell git rev-parse --short HEAD)
-GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-COMMITER := $(shell git log -1 --pretty=format:'%an')
-UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
+LOCAL_ARCHS:="local"
+DEFAULT_ARCHS:="all"
+MAC_ARCHS:="darwin/amd64"
+DINGDING_TOKEN:=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87
+GIT_VERSION?=$(shell git describe --always --tags)
+DATE:=$(shell date -u +'%Y-%m-%d %H:%M:%S')
+GOVERSION:=$(shell go version)
+COMMIT:=$(shell git rev-parse --short HEAD)
+GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
+COMMITER:=$(shell git log -1 --pretty=format:'%an')
+UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
 
-NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION)/$(GIT_BRANCH))"}}')
-NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION)/$(GIT_BRANCH))"}}')
-CI_PASS_NOTIFY_MSG:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 触发的 DataKit CI 通过"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支[$(GIT_BRANCH)]提交代码，以免 CI 任务失败"}}')
-
-LINUX_RELEASE_VERSION = $(shell uname -r)
+#####################
+# Large strings
+#####################
 
 define GIT_INFO
 //nolint
@@ -51,24 +49,74 @@ const (
 	Version  string = "$(GIT_VERSION)"
 	Golang   string = "$(GOVERSION)"
 	Commit   string = "$(COMMIT)"
-	Branch   string = "$(BRANCH)"
+	Branch   string = "$(GIT_BRANCH)"
 	Uploader string = "$(UPLOADER)"
 );
 endef
 export GIT_INFO
 
+define LOCAL_NOTIFY_MSG
+{
+	"msgtype": "text",
+	"text": {
+		"content": "$(UPLOADER) 「私自」发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：\nDK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：\n$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：\nDK_UPGRADE=1 bash -c \"$$(curl -L https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：\n$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;"
+	}
+}
+endef
+export LOCAL_NOTIFY_MSG
+
+define TESTING_NOTIFY_MSG
+{
+	"msgtype": "text",
+	"text": {
+		"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(TEST_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TEST_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：DK_UPGRADE=1 bash -c \"$$(curl -L https://$(TEST_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TEST_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;"
+	}
+}
+endef
+export TESTING_NOTIFY_MSG
+
+define CI_PASS_NOTIFY_MSG
+{
+	"msgtype": "text",
+	"text": {
+		"content": "$(UPLOADER) 触发的 DataKit CI 通过"
+	}
+}
+endef
+export CI_PASS_NOTIFY_MSG
+
+define NOTIFY_MSG_RELEASE
+{
+	"msgtype": "text",
+	"text": {
+		"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))"
+	}
+}
+endef
+export NOTIFY_MSG_RELEASE
+
+define NOTIFY_CI
+{ "msgtype": "text", "text": { "content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支[$(GIT_BRANCH)]提交代码，以免 CI 任务失败" }}
+endef
+export NOTIFY_CI
+
+LINUX_RELEASE_VERSION = $(shell uname -r)
+
 define build
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@echo "===== $(BIN) $(1) ===="
-	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		 -env $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
+	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
+		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
+		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	@tree -Csh -L 3 $(BUILD_DIR)
 endef
 
 define pub
 	@echo "publish $(1) $(NAME) ..."
-	@GO111MODULE=off go run cmd/make/make.go -pub -env $(1) -pub-dir $(PUB_DIR) -name $(NAME) -download-addr $(2) \
+	@GO111MODULE=off go run cmd/make/make.go \
+		-pub -release $(1) -pub-dir $(PUB_DIR) \
+		-name $(NAME) -download-addr $(2) \
 		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
@@ -76,28 +124,28 @@ local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
 build: prepare man gofmt lfparser_disable_line plparser_disable_line
-	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
+	$(call build, test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 testing: deps
-	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
+	$(call build, test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
-release: deps
-	$(call build,release, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
+production: deps
+	$(call build, production, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 release_mac: deps
-	$(call build,release, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
+	$(call build, production, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
 
 testing_mac: deps
-	$(call build,test, $(MAC_ARCHS), $(TEST_DOWNLOAD_ADDR))
+	$(call build, test, $(MAC_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 pub_local:
-	$(call pub,local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
+	$(call pub, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
 pub_testing:
-	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+	$(call pub, testing,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_testing_mac:
-	$(call pub,test,$(TEST_DOWNLOAD_ADDR),$(MAC_ARCHS))
+	$(call pub, testing,$(TEST_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 pub_testing_win_img:
 	@mkdir -p embed/windows-amd64
@@ -118,44 +166,50 @@ pub_release_win_img:
 	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
 	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
 
-pub_release_img:
+pub_production_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t \
 		pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
-pub_release:
-	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+pub_production:
+	$(call pub,production,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_release_mac:
-	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
+	$(call pub,production,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 ci_pass_notify:
 	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
 		-H 'Content-Type: application/json' \
-		-d '$(CI_PASS_NOTIFY_MSG)'
+		-d "$$CI_PASS_NOTIFY_MSG"
 
 test_notify:
 	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
 		-H 'Content-Type: application/json' \
-		-d '$(NOTIFY_MSG_TEST)'
+		-d "$$TESTING_NOTIFY_MSG"
 
-release_notify:
+local_notify:
 	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=5109b365f7be669c45c5677418a1c2fe7d5251485a09f514131177b203ed785f' \
+		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
 		-H 'Content-Type: application/json' \
-		-d '$(NOTIFY_MSG_RELEASE)'
+		-d "$$LOCAL_NOTIFY_MSG"
+
+production_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
+		-H 'Content-Type: application/json' \
+		-d "$$NOTIFY_MSG_RELEASE"
 
 ci_notify:
 	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
 		-H 'Content-Type: application/json' \
-		-d '$(NOTIFY_CI)'
+		-d "$$NOTIFY_CI"
 
-test_conf_compatible:
+check_conf_compatible:
 	./dist/datakit-linux-amd64/datakit --check-config --config-dir samples
 	./dist/datakit-linux-amd64/datakit --check-sample
 
