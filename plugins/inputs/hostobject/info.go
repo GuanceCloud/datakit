@@ -19,6 +19,7 @@ import (
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 )
 
 type (
@@ -77,11 +78,15 @@ type (
 		Disk       []*DiskInfo         `json:"disk"`
 		Conntrack  *conntrackutil.Info `json:"conntrack"`
 		FileFd     *filefdutil.Info    `json:"filefd"`
+		Election   *ElectionInfo       `json:"election"`
 		cpuPercent float64
 		load5      float64
 		cloudInfo  map[string]interface{}
 	}
-
+	ElectionInfo struct {
+		Namespace string `json:"namespace"`
+		Elected   string `json:"elected"`
+	}
 	HostConfig struct {
 		IP         string          `json:"ip"`
 		DCAConfig  *http.DCAConfig `json:"dca_config"`
@@ -339,6 +344,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		Disk:       getDiskInfo(ipt.IgnoreFS),
 		Conntrack:  conntrackutil.GetConntrackInfo(),
 		FileFd:     fileFd,
+		Election:   getElectionInfo(),
 	}
 
 	// sync cloud extra fields
@@ -374,4 +380,15 @@ func getHostConfig() *HostConfig {
 	hostConfig.HTTPListen = config.Cfg.HTTPAPI.Listen
 
 	return hostConfig
+}
+
+func getElectionInfo() *ElectionInfo {
+	electionInfo := &ElectionInfo{}
+	if config.Cfg.EnableElection {
+		elected, namespace := election.Elected()
+		electionInfo.Elected = elected
+		electionInfo.Namespace = namespace
+		return electionInfo
+	}
+	return nil
 }
