@@ -73,6 +73,12 @@ func applyFlags() {
 
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
+	switch *flagRelease {
+	case build.ReleaseProduction, build.ReleaseLocal, build.ReleaseTesting:
+	default:
+		l.Fatalf("invalid release type: %s", *flagRelease)
+	}
+
 	build.ReleaseType = *flagRelease
 
 	// override git.Version

@@ -1,12 +1,12 @@
-.PHONY: default test local man
+.PHONY: default testing local man
 
 default: local
 
 # 正式环境
-RELEASE_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
+PRODUCTION_DOWNLOAD_ADDR = zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit
 
 # 测试环境
-TEST_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
+TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit
 
 # 本地环境: 需配置环境变量，便于完整测试采集器的发布、更新等流程
 # export LOCAL_OSS_ACCESS_KEY='<your-oss-AK>'
@@ -69,7 +69,7 @@ define TESTING_NOTIFY_MSG
 {
 	"msgtype": "text",
 	"text": {
-		"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(TEST_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TEST_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：DK_UPGRADE=1 bash -c \"$$(curl -L https://$(TEST_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TEST_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;"
+		"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：DK_UPGRADE=1 bash -c \"$$(curl -L https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;"
 	}
 }
 endef
@@ -124,60 +124,60 @@ local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
 build: prepare man gofmt lfparser_disable_line plparser_disable_line
-	$(call build, test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
+	$(call build, testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
 
 testing: deps
-	$(call build, test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
+	$(call build, testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
 
 production: deps
-	$(call build, production, $(DEFAULT_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
+	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
 
 release_mac: deps
-	$(call build, production, $(MAC_ARCHS), $(RELEASE_DOWNLOAD_ADDR))
+	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
 
 testing_mac: deps
-	$(call build, test, $(MAC_ARCHS), $(TEST_DOWNLOAD_ADDR))
+	$(call build, testing, $(MAC_ARCHS), $(TESTING_DOWNLOAD_ADDR))
 
 pub_local:
 	$(call pub, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
 pub_testing:
-	$(call pub, testing,$(TEST_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+	$(call pub, testing,$(TESTING_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_testing_mac:
-	$(call pub, testing,$(TEST_DOWNLOAD_ADDR),$(MAC_ARCHS))
+	$(call pub, testing,$(TESTING_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 pub_testing_win_img:
 	@mkdir -p embed/windows-amd64
-	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(TESTING_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
 
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
-	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(TESTING_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker buildx build --platform linux/arm64,linux/amd64 \
 		-t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
 pub_release_win_img:
 	# release to pub hub
 	@mkdir -p embed/windows-amd64
-	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(PRODUCTION_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
 	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
 
 pub_production_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
-	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
+	@wget --quiet -O - "https://$(PRODUCTION_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t \
 		pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
 pub_production:
-	$(call pub,production,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_release_mac:
-	$(call pub,production,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
+	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 ci_pass_notify:
 	@curl \
