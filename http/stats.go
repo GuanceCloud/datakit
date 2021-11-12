@@ -253,6 +253,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 
 func GetStats(du time.Duration) (*DatakitStats, error) {
 	now := time.Now()
+	elected, _ := election.Elected()
 	stats := &DatakitStats{
 		Version:        datakit.Version,
 		BuildAt:        git.BuildAt,
@@ -262,7 +263,7 @@ func GetStats(du time.Duration) (*DatakitStats, error) {
 		WithinDocker:   datakit.Docker,
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
-		Elected:        election.Elected(),
+		Elected:        elected,
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
 		ConfigInfo:     inputs.ConfigInfo,

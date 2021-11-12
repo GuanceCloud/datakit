@@ -90,8 +90,8 @@ func (x *candidate) startElection() {
 }
 
 // Elected 此处暂不考虑互斥性，只用于状态展示.
-func Elected() string {
-	return defaultCandidate.status
+func Elected() (string, string) {
+	return defaultCandidate.status, defaultCandidate.namespace
 }
 
 func (x *candidate) runOnce() {
