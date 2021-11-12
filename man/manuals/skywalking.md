@@ -6,10 +6,11 @@
 
 # {{.InputName}}
 
-## 下载 skywalking 客户端（目前支持版本为 8.3.0）
+## 下载 SkyWalking
 
-- skywalking-java agent [DataFlux 下载](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/plugins/skywalking-agent-8.3.0.tar.gz)（推荐）
-- skywlking-java-apm [官方下载](https://archive.apache.org/dist/skywalking/8.3.0/apache-skywalking-apm-8.3.0.tar.gz)
+注意：APM v8.8.3 目前存在不兼容问题无法使用。开发测试版本有 APM v8.5.0 v8.6.0 v8.7.0
+
+- skywlking-java-apm [官方下载](https://skywalking.apache.org/downloads/)
 
 ## 在 Java 应用中添加 skywalking 支持
 
@@ -25,7 +26,7 @@ java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 # The service name in UI
 agent.service_name=${SW_AGENT_NAME:your-service-name}
 # Backend service addresses.
-collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skywalking-port>}
+collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skywalking-agent-port>}
 ```
 
 ## 配置
