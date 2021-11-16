@@ -59,7 +59,6 @@ func (he *HttpError) Error() string {
 }
 
 func (he *HttpError) HttpBodyPretty(c *gin.Context, body interface{}) {
-
 	if body == nil {
 		c.Status(he.HttpCode)
 		return
@@ -100,7 +99,6 @@ func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 }
 
 func HttpErr(c *gin.Context, err error) {
-
 	switch err.(type) {
 	case *HttpError:
 		he := err.(*HttpError)

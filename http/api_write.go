@@ -166,7 +166,7 @@ func apiWrite(c *gin.Context) {
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 	} else {
-		ErrOK.HttpBody(c, nil)
+		OK.HttpBody(c, nil)
 	}
 }
 
