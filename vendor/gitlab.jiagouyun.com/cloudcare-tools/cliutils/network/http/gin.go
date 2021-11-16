@@ -11,33 +11,58 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
-func CORSMiddleware(c *gin.Context) {
-	allowHeaders := []string{
-		"Content-Type",
-		"Content-Length",
-		"Accept-Encoding",
-		"X-CSRF-Token",
-		"Authorization",
-		"accept",
-		"origin",
-		"Cache-Control",
-		"X-Requested-With",
+const (
+	XAgentIp       = `X-Agent-Ip`
+	XAgentUID      = `X-Agent-Uid`
+	XCQRP          = `X-CQ-RP`
+	XDatakitInfo   = `X-Datakit-Info`
+	XDatakitUUID   = "X-Datakit-UUID" // deprecated
+	XDBUUID        = `X-DB-UUID`
+	XDomainName    = `X-Domain-Name`
+	XLua           = "X-Lua"
+	XPrecision     = "X-Precision"
+	XRP            = "X-RP"
+	XSource        = `X-Source`
+	XTableName     = `X-Table-Name`
+	XToken         = "X-Token"
+	XTraceId       = "X-Trace-Id"
+	XVersion       = `X-Version`
+	XWorkspaceUUID = `X-Workspace-UUID`
+)
 
-		// dataflux headers
-		"X-Token",
-		"X-Datakit-UUID",
-		"X-RP",
-		"X-Precision",
-		"X-Lua",
+var (
+	allowHeaders = strings.Join(
+		[]string{
+			"Content-Type",
+			"Content-Length",
+			"Accept-Encoding",
+			"X-CSRF-Token",
+			"Authorization",
+			"accept",
+			"origin",
+			"Cache-Control",
+			"X-Requested-With",
+
+			// dataflux headers
+			XToken,
+			XDatakitUUID,
+			XRP,
+			XPrecision,
+			XLua}, ", ")
+)
+
+func CORSMiddleware(c *gin.Context) {
+	allowOrigin := c.GetHeader("origin")
+	if allowOrigin == "" {
+		allowOrigin = "*"
 	}
 
-	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	c.Writer.Header().Set("Access-Control-Allow-Origin", allowOrigin)
 	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
+	c.Writer.Header().Set("Access-Control-Allow-Headers", allowHeaders)
 	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	if c.Request.Method == "OPTIONS" {
@@ -52,13 +77,13 @@ func TraceIDMiddleware(c *gin.Context) {
 	if c.Request.Method == `OPTIONS` {
 		c.Next()
 	} else {
-		tid := c.Request.Header.Get("X-Trace-ID")
+		tid := c.Request.Header.Get(XTraceId)
 		if tid == "" {
 			tid = cliutils.XID(`trace_`)
-			c.Request.Header.Set("X-Trace-ID", tid)
+			c.Request.Header.Set(XTraceId, tid)
 		}
 
-		c.Writer.Header().Set("X-Trace-ID", tid)
+		c.Writer.Header().Set(XTraceId, tid)
 		c.Next()
 	}
 }
@@ -94,7 +119,6 @@ func (w bodyLoggerWriter) Write(b []byte) (int, error) {
 }
 
 func RequestLoggerMiddleware(c *gin.Context) {
-
 	w := &bodyLoggerWriter{
 		ResponseWriter: c.Writer,
 		body:           bytes.NewBufferString(``),
@@ -106,11 +130,9 @@ func RequestLoggerMiddleware(c *gin.Context) {
 	code := c.Writer.Status()
 	switch code / 200 {
 	case 1:
-		tid := c.Writer.Header().Get("X-Trace-ID")
+		tid := c.Writer.Header().Get(XTraceId)
 		log.Printf("[debug][%s] %s %s %d", tid, c.Request.Method, c.Request.URL, code)
-
 	default:
-
 		log.Printf("[warn] %s %s %d, RemoteAddr: %s, Request: [%s], Body: %s",
 			c.Request.Method, c.Request.URL, code, c.Request.RemoteAddr, FormatRequest(c.Request), w.body.String())
 	}
@@ -127,6 +149,7 @@ func GinReadWithMD5(c *gin.Context) (buf []byte, md5str string, err error) {
 	if c.Request.Header.Get("Content-Encoding") == "gzip" {
 		buf, err = Unzip(buf)
 	}
+
 	return
 }
 
@@ -139,6 +162,7 @@ func GinRead(c *gin.Context) (buf []byte, err error) {
 	if c.Request.Header.Get("Content-Encoding") == "gzip" {
 		buf, err = Unzip(buf)
 	}
+
 	return
 }
 
