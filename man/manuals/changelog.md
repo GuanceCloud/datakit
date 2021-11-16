@@ -12,8 +12,8 @@
 - [ElasticSearch](elasticsearch) 采集器增加更多指标采集(#386)
 - APM 增加 [Jaeger 数据](jaeger)接入(#383)
 - [Prometheus Remote Write](prom_remote_write)采集器支持数据切割调试
-- 优化 [Nginx 代理](proxy)功能
-- DQL 查询结果支持 [CSV 文件导出](datakit-how-to)
+- 优化 [Nginx 代理](proxy#a64f44d8)功能
+- DQL 查询结果支持 [CSV 文件导出](datakit-how-to#2368bf1d)
 
 ---
 
