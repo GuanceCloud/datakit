@@ -2,6 +2,130 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc4(2021/11/09)
+
+- 支持[通过 Git 来管理](datakit-how-to#9ca4d8d0) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
+- 支持[全离线安装](datakit-offline-install#7f3c40b6)(#421)
+<!--
+- eBPF-network
+     - 增加[DNS 数据采集]()(#418)
+     - 增强内核适配性，内核版本要求已降低至 Linux 4.4+(#416) -->
+- 增强数据调试功能，采集到的数据支持写入本地文件，同时发送到中心(#415)
+- K8s 环境中，默认开启的采集器支持通过环境变量注入 tags，详见各个默认开启的采集器文档(#408)
+- DataKit 支持[一键上传日志](datakit-how-to#0b4d9e46)(#405)
+<!-- - MySQL 采集器增加[SQL 语句执行性能指标]()(#382) -->
+- 修复安装脚本中 root 用户设定的 bug(#430)
+- 增强 Kubernetes 采集器：
+	- 添加通过 Annotation 配置 [Pod 日志采集](kubernetes-podlogging)(#380)
+	- 增加更多 Annotation key，[支持多 IP 情况](kubernetes-prom#b8ba2a9e)(#419)
+	- 支持采集 Node IP(#411)
+	- 优化 Annotation 在采集器配置中的使用(#380)
+- 云同步增加[华为云与微软云支持](hostobject#031406b2)(#265)
+
+------
+
+## 1.1.9-rc3(2021/10/26)
+
+- 优化 [Redis 采集器](redis) DB 配置方式(#395)
+- 修复 [Kubernetes](kubernetes) 采集器 tag 取值为空的问题(#409)
+- 安装过程修复 Mac M1 芯片支持(#407)
+- [eBPF-network](net_ebpf) 修复连接数统计错误问题(#387)
+- 日志采集新增[日志数据获取方式](logstreaming)，支持 [Fluentd/Logstash 等数据接入](logstreaming)(#394/#392/#391)
+- [ElasticSearch](elasticsearch) 采集器增加更多指标采集(#386)
+- APM 增加 [Jaeger 数据](jaeger)接入(#383)
+- [Prometheus Remote Write](prom_remote_write)采集器支持数据切割调试
+- 优化 [Nginx 代理](proxy#a64f44d8)功能
+- DQL 查询结果支持 [CSV 文件导出](datakit-how-to#2368bf1d)
+
+---
+
+## 1.1.9-rc2(2021/10/14)
+
+- 新增[采集器](prom_remote_write)支持 Prometheus Remote Write 将数据同步给 DataKit(#381)
+- 新增[Kubernetes Event 数据采集](kubernetes#49edf2c4)(#296)
+- 修复 Mac 因安全策略导致安装失败问题(#379)
+- [prom 采集器](prom) 调试工具支持从本地文件调试数据切割(#378)
+- 修复 [etcd 采集器](etcd)数据问题(#377)
+- DataKit Docker 镜像增加 arm64 架构支持(#365)
+- 安装阶段新增环境变量 `DK_HOSTNAME` [支持](datakit-install#f9858758)(#334)
+- [Apache 采集器](apache) 增加更多指标采集 (#329)
+- DataKit API 新增接口 [`/v1/workspace`](apis#2a24dd46) 以获取工作空间信息(#324)
+	- 支持 DataKit 通过命令行参数[获取工作空间信息](datakit-how-to#88b4967d)
+
+---
+
+## 1.1.9-rc1.1(2021/10/09)
+
+- 修复 Kubernetes 选举问题(#389)
+- 修复 MongoDB 配置兼容性问题
+
+---
+
+## 1.1.9-rc1(2021/09/28)
+
+- 完善 Kubernetes 生态下 [Prometheus 类指标采集](kubernetes-prom)(#368/#347)
+- [eBPF-network](net_ebpf) 优化
+- 修复 DataKit/DataWay 之间连接数泄露问题(#290)
+- 修复容器模式下 [DataKit 各种子命令](datakit-how-to#666de9ed)无法执行的问题(#375)
+- 修复日志采集器因 Pipeline 错误丢失原始数据的问题(#376)
+- 完善 DataKit 端 [DCA](dca) 相关功能，支持在安装阶段[开启 DCA 功能](datakit-install#f9858758)。
+- 下线浏览器拨测功能
+
+---
+
+## 1.1.9-rc0(2021/09/23)
+
+- [日志采集器](logging)增加特殊字符（如颜色字符）过滤功能（默认关闭）(#351)
+- [完善容器日志采集](container#6a1b31bb)，同步更多现有普通日志采集器功能（多行匹配/日志等级过滤/字符编码等）(#340)
+- [主机对象](hostobject)采集器字段微调(#348)
+- 新增如下几个采集器
+	- [eBPF-network](net_ebpf)(alpha)(#148)
+	- [Consul](consul)(#303)
+	- [etcd](etcd)(#304)
+	- [CoreDNS](coredns)(#305)
+- 选举功能已经覆盖到如下采集器：(#288)
+	- [Kubernetes](kubernetes)
+	- [Prom](prom)
+	- [Gitlab](gitlab)
+	- [NSQ](nsq)
+	- [Apache](apache)
+	- [InfluxDB](influxdb)
+	- [ElasticSearch](elasticsearch)
+	- [MongoDB](mongodb)
+	- [MySQL](mysql)
+	- [Nginx](nginx)
+	- [PostgreSQL](postgresql)
+	- [RabbitMQ](rabbitmq)
+	- [Redis](redis)
+	- [Solr](solr)
+
+<!--
+- [DCA](dca) 相关功能完善
+	- 独立端口分离(#341)
+	- 远程重启功能调整(#345)
+	- 白名单功能(#244) -->
+
+----
+
+## 1.1.8-rc3(2021/09/10)
+
+- ddtrace 增加 [resource 过滤](ddtrace#224e2ccd)功能(#328)
+- 新增 [NSQ](nsq) 采集器(#312)
+- K8s daemonset 部署时，部分采集器支持通过环境变量来变更默认配置，以[CPU为例](cpu#1b85f981)(#309)
+- 初步支持 [SkyWalkingV3](skywalking)(alpha)(#335)
+
+### Bugs
+
+- [RUM](rum) 采集器移除全文字段，减少网络开销(#349)
+- [日志采集器](logging)增加对文件 truncate 情况的处理(#271)
+- 日志字段切割错误字段兼容(#342)
+- 修复[离线下载](datakit-offline-install)时可能出现的 TLS 错误(#330)
+
+### 改进
+
+- 日志采集器一旦配置成功，则触发一条通知日志，表明对应文件的日志采集已经开启(#323)
+
+---
 
 ## 1.1.8-rc2.4(2021/08/26)
 

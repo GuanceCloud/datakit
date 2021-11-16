@@ -8,12 +8,10 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestMetaGet(t *testing.T) {
-
 	cases := []struct {
 		body, expect string
 	}{

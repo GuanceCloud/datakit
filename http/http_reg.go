@@ -9,12 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ResetHttpRoute() {
-	mtx.Lock()
-	defer mtx.Unlock()
-	httpRouteList = make(map[string]*httpRouteInfo)
-}
-
 type httpRouteInfo struct {
 	Method  string
 	Path    string
@@ -23,10 +17,11 @@ type httpRouteInfo struct {
 
 var httpRouteList = make(map[string]*httpRouteInfo)
 
-func RegHttpHandler(method, path string, handler http.HandlerFunc) {
+func RegHTTPHandler(method, path string, handler http.HandlerFunc) {
 	method = strings.ToUpper(method)
 	if _, ok := httpRouteList[method+path]; ok {
-		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists", method, path, getFunctionName(handler, '/'))
+		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists",
+			method, path, getFunctionName(handler, '/'))
 	} else {
 		httpRouteList[method+path] = &httpRouteInfo{
 			Method:  method,
@@ -39,7 +34,8 @@ func RegHttpHandler(method, path string, handler http.HandlerFunc) {
 func RegGinHandler(method, path string, handler gin.HandlerFunc) {
 	method = strings.ToUpper(method)
 	if _, ok := httpRouteList[method+path]; ok {
-		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists", method, path, getFunctionName(handler, '/'))
+		l.Warnf("failed to register %s %s by handler %s to HTTP server because of exists",
+			method, path, getFunctionName(handler, '/'))
 	} else {
 		httpRouteList[method+path] = &httpRouteInfo{
 			Method:  method,

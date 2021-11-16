@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
+)
+
+const (
+	Nil = "nil"
 )
 
 type Value interface {
@@ -16,9 +19,10 @@ type Value interface {
 
 type ValueType string
 
-///////////////////////////////////////
-// Node
-///////////////////////////////////////
+//
+// Node.
+//
+
 type Node interface {
 	String() string
 	Pos() *PositionRange
@@ -91,7 +95,7 @@ type NilLiteral struct{}
 
 func (n *NilLiteral) Pos() *PositionRange { return nil }
 func (n *NilLiteral) String() string {
-	return "nil"
+	return Nil
 }
 
 type Limit struct {
@@ -251,15 +255,15 @@ func getFuncArgList(nl NodeList) FuncArgList {
 	return res
 }
 
-// SearchAfter 深度分页
+// SearchAfter 深度分页.
 type SearchAfter struct {
 	Vals []interface{} `json:"vals,omitempty"`
 }
 
-// Pos pos
+// Pos pos.
 func (sa *SearchAfter) Pos() *PositionRange { return nil }
 
-// String string
+// String string.
 func (sa *SearchAfter) String() string {
 	return fmt.Sprintf("%v", sa.Vals)
 }
@@ -287,7 +291,7 @@ func (n *Fill) MarshalJSON() ([]byte, error) {
 
 	switch n.FillType {
 	case FillNil:
-		return []byte(fmt.Sprintf(output1, "nil")), nil
+		return []byte(fmt.Sprintf(output1, Nil)), nil
 
 	case FillInt:
 		return []byte(fmt.Sprintf(output2, "integer", "integer_val", n.Int)), nil
@@ -331,13 +335,13 @@ func (n *Fill) String() string {
 func (n *Fill) StringInfluxql() string {
 	switch n.FillType {
 	case FillNil:
-		return "nil"
+		return Nil
 	case FillInt:
 		return fmt.Sprintf("%d", n.Int)
 	case FillFloat:
 		return fmt.Sprintf("%f", n.Float)
 	case FillStr:
-		return fmt.Sprintf("%s", n.Str)
+		return n.Str
 	case FillLinear:
 		return "linear"
 	case FillPrevious:
@@ -353,20 +357,24 @@ func (n *Fill) Pos() *PositionRange { return nil } // TODO
 type FuncExpr struct {
 	Name  string `json:"name,omitempty"`
 	Param []Node `json:"param,omitempty"`
-	//Pos   *PositionRange
+	// Pos   *PositionRange
 }
+
+const (
+	fillFuncArgs = 2
+)
 
 func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
 	switch strings.ToLower(n.Name) {
 	case "fill":
 		const typ = "(Nil,NumberLiteral,StringLiteral,PREVIOUS,LINEAR)"
 
-		if len(n.Param) != 2 {
-			err = fmt.Errorf("fill function only accept 2 paramter, left value and %s", typ)
+		if len(n.Param) != fillFuncArgs {
+			err = fmt.Errorf("fill function only accept 2 parameter, left value and %s", typ)
 			return
 		}
 
-		paramterErr := fmt.Errorf("unknown fill function paramter, only accept %s", typ)
+		paramErr := fmt.Errorf("unknown fill function parameter, only accept %s", typ)
 
 		switch v := n.Param[1].(type) {
 		case *Identifier:
@@ -376,7 +384,7 @@ func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
 			case "linear":
 				fill = &Fill{FillType: FillLinear}
 			default:
-				err = paramterErr
+				err = paramErr
 				return
 			}
 
@@ -394,7 +402,7 @@ func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
 			fill = &Fill{FillType: FillStr, Str: v.Val}
 
 		default:
-			err = paramterErr
+			err = paramErr
 			return
 		}
 
@@ -404,7 +412,7 @@ func (n *FuncExpr) SplitFill() (val Node, fill *Fill, err error) {
 		val = n
 	}
 
-	return
+	return //nolint:nakedret
 }
 
 func (n *FuncExpr) String() string {
@@ -417,7 +425,6 @@ func (n *FuncExpr) String() string {
 
 func (n *FuncExpr) Pos() *PositionRange { return nil } // TODO
 
-// stmt
 type ESTRes struct {
 	Alias           map[string]string // 别名信息
 	SortFields      []string          // 返回字段有序列表
@@ -432,35 +439,35 @@ type ESTRes struct {
 	HighlightFields []string          // 高亮字段
 }
 
-// Helper tranlate中间结果
+// Helper tranlate中间结果.
 type Helper struct {
 	ESTResPtr *ESTRes // es translate，当结果转为influxdb结构使用
 }
 
 type DFQuery struct { // impl Node
-	Namespace string `json:"namespace,omitempty"`
 
 	// data source
-	Names      []string `json:"names,omitempty"`
-	RegexNames []*Regex `json:"regex_names,omitempty"`
+	Names          []string  `json:"names,omitempty"`
+	RegexNames     []*Regex  `json:"regex_names,omitempty"`
+	Targets        []*Target `json:"targets,omitempty"`
+	WhereCondition []Node    `json:"where_condition,omitempty"`
 
-	Anonymous bool `json:"-"`
+	Namespace string `json:"namespace,omitempty"`
 
 	Subquery *DFQuery `json:"subquery,omitempty"`
 
-	Targets        []*Target    `json:"targets,omitempty"`
-	WhereCondition []Node       `json:"where_condition,omitempty"`
-	GroupBy        *GroupBy     `json:"groupby,omitempty"`
-	OrderBy        *OrderBy     `json:"orderby,omitempty"`
-	Limit          *Limit       `json:"limit,omitempty"`
-	Offset         *Offset      `json:"offset,omitempty"`
-	SLimit         *SLimit      `json:"slimit,omitempty"`
-	SOffset        *SOffset     `json:"soffset,omitempty"`
-	TimeZone       *TimeZone    `json:"timezone,omitempty"`
-	SearchAfter    *SearchAfter `json:"search_after,omitempty"` // search_after
-	Highlight      bool         `json:"highlight,omitempty"`
+	GroupBy     *GroupBy     `json:"groupby,omitempty"`
+	OrderBy     *OrderBy     `json:"orderby,omitempty"`
+	Limit       *Limit       `json:"limit,omitempty"`
+	Offset      *Offset      `json:"offset,omitempty"`
+	SLimit      *SLimit      `json:"slimit,omitempty"`
+	SOffset     *SOffset     `json:"soffset,omitempty"`
+	TimeZone    *TimeZone    `json:"timezone,omitempty"`
+	SearchAfter *SearchAfter `json:"search_after,omitempty"` // search_after
+	Helper      *Helper      `json:"-"`
 
-	Helper *Helper `json:"-"`
+	Anonymous bool `json:"-"`
+	Highlight bool `json:"highlight,omitempty"`
 }
 
 func (m *DFQuery) JSON() ([]byte, error) {
@@ -475,7 +482,7 @@ func (m *DFQuery) JSON() ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-// IsAllTargets, 未指定 target 或为手动填写 "*"，即 ALL，like SELECT * FROM XX
+// IsAllTargets 未指定 target 或为手动填写 "*"，即 ALL，like SELECT * FROM XX.
 func (m *DFQuery) IsAllTargets() bool {
 	return m.IsMatchTargetsNum(0)
 }
@@ -492,82 +499,6 @@ func (m *DFQuery) GroupByList() []string {
 		return nil
 	}
 	return m.GroupBy.ColumnList()
-}
-
-func (m *DFQuery) appendFrom(x interface{}) error {
-	switch v := x.(type) {
-	case string:
-		m.Names = append(m.Names, v)
-	case *Regex:
-		m.RegexNames = append(m.RegexNames, v)
-	default:
-		return fmt.Errorf("invalid metric %+#v", x)
-	}
-
-	return nil
-}
-
-func (m *DFQuery) checkingSemantic() ParseErrors {
-	const (
-		semanticErr       = `%s only accept %s, invalid paramter[%d] %s`
-		maxOutputErrorNum = 5
-	)
-
-	var errs ParseErrors
-	var errCnt int
-
-	for index, target := range m.Targets {
-		if target.Col == nil {
-			continue
-		}
-
-		switch target.Col.(type) {
-		case *FuncExpr,
-			*BinaryExpr,
-			*Identifier,
-			*CascadeFunctions,
-			*StaticCast,
-			*ParenExpr,
-			*Regex,
-			*Star:
-			continue
-		default:
-			log.Warnf("target type is %s", reflect.TypeOf(target.Col).String())
-			// next
-		}
-
-		if errCnt >= maxOutputErrorNum {
-			continue
-		}
-		errs = append(errs, ParseErr{
-			Err: fmt.Errorf(semanticErr, "Targets",
-				"function, binary exprssion and identifier", index, target.String()),
-		})
-		errCnt++
-	}
-
-	// FIXME:  It’s ugly!
-	errCnt = 0
-	if m.GroupBy != nil {
-		for index, node := range m.GroupBy.List {
-			switch node.(type) {
-			case *Identifier:
-				continue
-			default:
-				// next
-			}
-
-			if errCnt >= maxOutputErrorNum {
-				continue
-			}
-			errs = append(errs, ParseErr{
-				Err: fmt.Errorf(semanticErr, "GroupBy", "identifier", index, node.String()),
-			})
-			errCnt++
-		}
-	}
-
-	return errs
 }
 
 func (m *DFQuery) String() string {
@@ -653,8 +584,7 @@ func (n *Target) String() string {
 
 	if n.Fill != nil {
 		fillFn := &FuncExpr{
-			// FIXME: support upper and lower
-			Name:  "fill",
+			Name:  "fill", // TODO: support upper and lower
 			Param: []Node{n.Col, n.Fill},
 		}
 		return fillFn.String()
@@ -704,9 +634,6 @@ func (n *TimeResolution) String() string {
 
 func (n *TimeResolution) Pos() *PositionRange { return nil /* TODO */ }
 
-///////////////////////////////////////
-// Expr
-///////////////////////////////////////
 type Expr interface {
 	Node
 	Type() ValueType
@@ -758,13 +685,13 @@ type ParenExpr struct {
 	Param Node `json:"paren"`
 }
 
-func (e *ParenExpr) Type() ValueType     { return "" }  // TODO
-func (e *ParenExpr) Pos() *PositionRange { return nil } // TODO
-func (e *ParenExpr) String() string {
-	return fmt.Sprintf("(%s)", e.Param.String())
+func (*ParenExpr) Type() ValueType     { return "" }  // TODO
+func (*ParenExpr) Pos() *PositionRange { return nil } // TODO
+func (p *ParenExpr) String() string {
+	return fmt.Sprintf("(%s)", p.Param.String())
 }
 
-func (e *ParenExpr) DQLExpr() {} // not used
+func (*ParenExpr) DQLExpr() {} // not used
 
 type NumberLiteral struct {
 	IsInt bool
@@ -777,7 +704,7 @@ func (e *NumberLiteral) IsPositiveInteger() bool {
 }
 
 func (e *NumberLiteral) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`%s`, e.String())), nil
+	return []byte(e.String()), nil
 }
 
 func (e *NumberLiteral) Type() ValueType     { return "" }
@@ -838,15 +765,16 @@ func (e *StaticCast) Pos() *PositionRange { return nil } // TODO
 func (e *StaticCast) DQLExpr()            {}             // not used
 func (e *StaticCast) Type() ValueType     { return "" }
 
-///////////////////////////////////////
-// stmt
-///////////////////////////////////////
+//
+// various stmt definition.
+//
+
 type Statement interface {
 	Node
 	DQLStmt() // not used
 }
 
-// OuterFunc outerFunc
+// OuterFunc outerFunc.
 type OuterFunc struct {
 	Func         *FuncExpr     `json:"func,omitempty"`
 	FuncArgVals  []interface{} `json:"func_arg_vals,omitempty"`
@@ -858,23 +786,23 @@ type OuterFuncs struct {
 	Funcs []*OuterFunc `json:"funcs,omitempty"`
 }
 
-func (ofunc *OuterFuncs) JSON() ([]byte, error) {
+func (ofuncs *OuterFuncs) JSON() ([]byte, error) {
 	// json.Marshal escaping < and >
 	// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(ofunc)
+	err := encoder.Encode(ofuncs)
 
 	// Encode() followed by a newline character
 	return buffer.Bytes(), err
 }
 
-func (ofunc *OuterFunc) String() string {
+func (ofuncs *OuterFunc) String() string {
 	return "outer func"
 }
 
-func (oFunc *OuterFunc) Pos() *PositionRange {
+func (ofuncs *OuterFunc) Pos() *PositionRange {
 	return nil
 }
 
@@ -883,11 +811,11 @@ func (ofuncs *OuterFuncs) String() string {
 	return "outer func"
 }
 
-func (oFuncs *OuterFuncs) Pos() *PositionRange {
+func (ofuncs *OuterFuncs) Pos() *PositionRange {
 	return nil
 }
 
-// DeleteFunc delete info
+// DeleteFunc delete info.
 type DeleteFunc struct {
 	// (1) dql语句;
 	// (2) es indexName, 索引名称不包含wsid，例如: rum, log等;
@@ -921,6 +849,10 @@ func (x *WhereCondition) Eval(source string, tags map[string]string, fields map[
 			if !expr.Eval(source, tags, fields) {
 				return false
 			}
+
+		default:
+			log.Errorf("Eval only accept BinaryExpr")
+			return false
 		}
 	}
 
@@ -936,7 +868,7 @@ func (x *WhereCondition) String() string {
 	return "{" + strings.Join(arr, " and ") + "}"
 }
 
-func (d *WhereCondition) Pos() *PositionRange {
+func (x *WhereCondition) Pos() *PositionRange {
 	return nil
 }
 
@@ -959,7 +891,6 @@ func (x WhereConditions) String() string {
 func (x WhereConditions) Eval(source string,
 	tags map[string]string,
 	fields map[string]interface{}) bool {
-
 	for _, item := range x {
 		switch c := item.(type) {
 		case *WhereCondition:

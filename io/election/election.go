@@ -1,3 +1,4 @@
+// Package election implements DataFlux central election client.
 package election
 
 import (
@@ -34,8 +35,6 @@ var (
 	l                = logger.DefaultSLogger("dk-election")
 	HTTPTimeout      = time.Second * 3
 	electionInterval = time.Second * 3
-
-	qch = make(chan int)
 )
 
 const (
@@ -68,7 +67,6 @@ func (x *candidate) run(namespace, id string, dw *dataway.DataWayCfg) {
 	l.Infof("get %d election inputs", len(x.plugins))
 
 	x.startElection()
-
 }
 
 func (x *candidate) startElection() {
@@ -91,13 +89,12 @@ func (x *candidate) startElection() {
 	})
 }
 
-// 此处暂不考虑互斥性，只用于状态展示
+// Elected 此处暂不考虑互斥性，只用于状态展示.
 func Elected() string {
 	return defaultCandidate.status
 }
 
 func (x *candidate) runOnce() {
-
 	switch x.status {
 	case statusSuccess:
 		_ = x.keepalive()
@@ -131,7 +128,7 @@ func (x *candidate) keepalive() error {
 		return err
 	}
 
-	var e = electionResult{}
+	e := electionResult{}
 	if err := json.Unmarshal(body, &e); err != nil {
 		l.Error(err)
 		return err
@@ -157,21 +154,20 @@ type electionResult struct {
 	Content struct {
 		Status       string `json:"status"`
 		Namespace    string `json:"namespace,omitempty"`
-		Id           string `json:"id"`
-		IncumbencyId string `json:"incumbency_id,omitempty"`
+		ID           string `json:"id"`
+		IncumbencyID string `json:"incumbency_id,omitempty"`
 		ErrorMsg     string `json:"error_msg,omitempty"`
 	} `json:"content"`
 }
 
 func (x *candidate) tryElection() error {
-
 	body, err := x.dw.Election(x.namespace, x.id)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
 
-	var e = electionResult{}
+	e := electionResult{}
 	if err := json.Unmarshal(body, &e); err != nil {
 		l.Error(err)
 		return nil

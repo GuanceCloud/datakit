@@ -11,11 +11,12 @@ import (
 	"time"
 
 	flag "github.com/spf13/pflag"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
@@ -25,9 +26,9 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits
 	flag.BoolVarP(&cmds.FlagVersion, "version", "V", false, `show version info`)
-	flag.BoolVar(&cmds.FlagCheckUpdate, "check-update", false, "check if new verison available")
+	flag.BoolVar(&cmds.FlagCheckUpdate, "check-update", false, "check if new version available")
 	flag.BoolVar(&cmds.FlagAcceptRCVersion, "accept-rc-version", false, "during update, accept RC version if available")
 	flag.BoolVar(&cmds.FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
 	flag.StringVar(&cmds.FlagUpdateLogFile, "update-log", "", "update history log file")
@@ -57,13 +58,19 @@ func init() {
 	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
 	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
 	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
+	flag.BoolVar(&cmds.FlagAPIRestart, "api-restart", false, "restart datakit for api only")
 	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
 
 	// DQL
-	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "query DQL interactively")
+	flag.BoolVarP(&cmds.FlagDQL, "dql", "Q", false, "under DQL, query interactively")
+	flag.BoolVar(&cmds.FlagJSON, "json", false, "under DQL, output in json format")
+	flag.BoolVar(&cmds.FlagForce, "force", false, "Mandatory modification")
+	flag.BoolVar(&cmds.FlagAutoJSON, "auto-json", false, "under DQL, pretty output string if it's JSON")
 	flag.StringVar(&cmds.FlagRunDQL, "run-dql", "", "run single DQL")
+	flag.StringVar(&cmds.FlagToken, "token", "", "query under specific token")
+	flag.StringVar(&cmds.FlagCSV, "csv", "", "Specify the directory")
 
 	// update online data
 	flag.BoolVar(&cmds.FlagUpdateIPDB, "update-ip-db", false, "update ip db")
@@ -73,13 +80,16 @@ func init() {
 	// utils
 	flag.StringVar(&cmds.FlagShowCloudInfo, "show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flag.StringVar(&cmds.FlagIPInfo, "ipinfo", "", "show IP geo info")
+	flag.BoolVar(&cmds.FlagWorkspaceInfo, "workspace-info", false, "show workspace info")
 
-	if runtime.GOOS != "windows" { // unsupported options under windows
+	if runtime.GOOS != datakit.OSWindows { // unsupported options under windows
 		flag.BoolVarP(&cmds.FlagMonitor, "monitor", "M", false, "show monitor info of current datakit")
 		flag.BoolVar(&cmds.FlagDocker, "docker", false, "run within docker")
 	}
 
 	flag.BoolVar(&cmds.FlagCheckConfig, "check-config", false, "check inputs configure and main configure")
+	flag.StringVar(&cmds.FlagConfigDir, "config-dir", "", "check configures under specified path")
+	flag.BoolVar(&cmds.FlagCheckSample, "check-sample", false, "check inputs configure samples")
 	flag.BoolVar(&cmds.FlagVVV, "vvv", false, "more verbose info")
 	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
 	flag.StringVar(&cmds.FlagDumpSamples, "dump-samples", "", "dump all inputs samples")
@@ -89,18 +99,18 @@ func init() {
 	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
 	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
 
+	flag.BoolVar(&cmds.FlagUploadLog, "upload-log", false, "upload log")
 }
 
 var (
 	l = logger.DefaultSLogger("main")
 
-	// injected during building: -X
+	// injected during building: -X.
 	ReleaseType    = ""
 	ReleaseVersion = ""
 )
 
 func setupFlags() {
-
 	// hidden flags
 	for _, f := range []string{
 		"TODO",
@@ -109,26 +119,24 @@ func setupFlags() {
 		"addr",
 		"show-testing-version",
 		"update-log",
-		"interactive",
 		"dump-samples",
-		"work-dir",
+		"workdir",
 		"default-main-conf",
 		"disable-self-input",
 		"disable-dataway-list",
 		"disable-logfilter",
 		"disable-heartbeat",
+		"api-restart",
 	} {
-		flag.CommandLine.MarkHidden(f)
-	}
-
-	if runtime.GOOS == "windows" {
-		flag.CommandLine.MarkHidden("reload")
+		if err := flag.CommandLine.MarkHidden(f); err != nil {
+			l.Warnf("CommandLine.MarkHidden: %s, ignored", err)
+		}
 	}
 
 	flag.CommandLine.SortFlags = false
 	flag.ErrHelp = errors.New("") // disable `pflag: help requested`
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		cmds.FlagCmdLogPath = "nul" // under windows, nul is /dev/null
 	}
 }
@@ -158,26 +166,21 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
-
 		go cgroup.Run()
 		service.Entry = run
 
 		if cmds.FlagWorkDir != "" { // debugging running, not start as service
 			run()
-		} else {
-			if err := service.StartService(); err != nil {
-				l.Errorf("start service failed: %s", err.Error())
-				return
-			}
+		} else if err := service.StartService(); err != nil {
+			l.Errorf("start service failed: %s", err.Error())
+			return
 		}
-
 	}
 
 	l.Info("datakit exited")
 }
 
 func applyFlags() {
-
 	inputs.TODO = cmds.FlagTODO
 
 	if cmds.FlagWorkDir != "" {
@@ -197,7 +200,6 @@ func applyFlags() {
 }
 
 func run() {
-
 	l.Info("datakit start...")
 	if err := doRun(); err != nil {
 		return
@@ -244,26 +246,35 @@ func tryLoadConfig() {
 	}
 
 	l = logger.SLogger("main")
+
+	l.Infof("datakit run ID: %s", cliutils.XID("dkrun_"))
 }
 
 func doRun() error {
-
-	io.Start()
+	if err := io.Start(); err != nil {
+		return err
+	}
 
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
-	if err := inputs.RunInputs(); err != nil {
-		l.Error("error running inputs: %v", err)
-		return err
+	if config.GitHasEnabled() {
+		if err := gitrepo.StartPull(); err != nil {
+			l.Errorf("gitrepo.StartPull failed: %v", err)
+			return err
+		}
+	} else {
+		if err := inputs.RunInputs(false); err != nil {
+			l.Error("error running inputs: %v", err)
+			return err
+		}
 	}
 
-	// FIXME: wait all inputs ok, then start http server
-
+	// NOTE: Should we wait all inputs ok, then start http server?
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
-		EnableDca:      config.Cfg.EnableDca,
+		DCAConfig:      config.Cfg.DCAConfig,
 		GinLog:         config.Cfg.Logging.GinLog,
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",

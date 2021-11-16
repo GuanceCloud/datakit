@@ -16,12 +16,13 @@ type tbMeasurement struct {
 	ts     time.Time
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *tbMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
+//nolint:lll
 func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL 表指标",
@@ -79,11 +80,11 @@ func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) getTableSchema() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
-	var tableSchemaSql = `
+	tableSchemaSQL := `
 	SELECT
         TABLE_SCHEMA,
         TABLE_NAME,
@@ -106,17 +107,17 @@ func (i *Input) getTableSchema() ([]inputs.Measurement, error) {
 		}
 
 		filterStr := strings.Join(arr, ",")
-		tableSchemaSql = fmt.Sprintf("%s and TABLE_NAME in (%s);", tableSchemaSql, filterStr)
+		tableSchemaSQL = fmt.Sprintf("%s and TABLE_NAME in (%s);", tableSchemaSQL, filterStr)
 	}
 
 	// run query
-	l.Info("tableSchema sql,", tableSchemaSql)
-	rows, err := i.db.Query(tableSchemaSql)
+	l.Debug("tableSchema sql,", tableSchemaSQL)
+	rows, err := i.db.Query(tableSchemaSQL)
 	if err != nil {
-		l.Errorf("query %s error %v", tableSchemaSql, err)
+		l.Errorf("query %s error %v", tableSchemaSQL, err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	for rows.Next() {
 		m := &tbMeasurement{

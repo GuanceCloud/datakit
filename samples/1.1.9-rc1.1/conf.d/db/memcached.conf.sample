@@ -1,0 +1,15 @@
+# {"version": "1.1.9-rc1.1", "desc": "do NOT edit this line"}
+
+[[inputs.memcached]]
+  ## 服务器地址，可支持多个
+  servers = ["localhost:11211"]
+  # unix_sockets = ["/var/run/memcached.sock"]
+
+  ## 采集间隔
+  # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  interval = "10s"
+
+[inputs.memcached.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...

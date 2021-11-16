@@ -18,7 +18,7 @@ const (
 	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
-// Kubernetes represents the config object for the plugin
+// Kubernetes represents the config object for the plugin.
 type Kubernetes struct {
 	URL           string   `toml:"kubelet_url"`
 	IgnorePodName []string `toml:"ignore_pod_name"`
@@ -65,7 +65,7 @@ func (k *Kubernetes) Init() error {
 		}
 	}
 
-	t := net.TlsClientConfig{
+	t := net.TLSClientConfig{
 		CaCerts: func() []string {
 			if k.TLSCA == "" {
 				return nil
@@ -77,7 +77,7 @@ func (k *Kubernetes) Init() error {
 		InsecureSkipVerify: k.InsecureSkipVerify,
 	}
 
-	tlsConfig, err := t.TlsConfig()
+	tlsConfig, err := t.TLSConfig()
 	if err != nil {
 		return err
 	}
@@ -93,8 +93,7 @@ func (k *Kubernetes) Init() error {
 }
 
 func (k *Kubernetes) Stop() {
-	//TODO
-	return
+	// TODO
 }
 
 func (k *Kubernetes) Metric(ctx context.Context, in chan<- []*job) {
@@ -107,12 +106,13 @@ func (k *Kubernetes) Metric(ctx context.Context, in chan<- []*job) {
 	nodeName := summary.Node.NodeName
 
 	var jobs []*job
-	for _, podMetrics := range summary.Pods {
+	for i := range summary.Pods {
+		podMetrics := &summary.Pods[i]
 		if k.ignorePodName(podMetrics.PodRef.Name) {
 			continue
 		}
 
-		result := k.gatherPodMetrics(&podMetrics)
+		result := k.gatherPodMetrics(podMetrics)
 		if result == nil {
 			return
 		}
@@ -145,12 +145,13 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- []*job) {
 	nodeName := summary.Node.NodeName
 
 	var jobs []*job
-	for _, item := range pods.Items {
+	for i := range pods.Items {
+		item := &pods.Items[i]
 		if k.ignorePodName(item.Metadata.Name) {
 			continue
 		}
 
-		result := k.gatherPodObject(&item)
+		result := k.gatherPodObject(item)
 		if result == nil {
 			return
 		}
@@ -189,20 +190,18 @@ func (k *Kubernetes) Object(ctx context.Context, in chan<- []*job) {
 	in <- jobs
 }
 
-func (k *Kubernetes) Logging(ctx context.Context) {
-	return
-}
+func (k *Kubernetes) Logging(ctx context.Context) {}
 
 func (k *Kubernetes) ignorePodName(name string) bool {
 	return regexpMatchString(k.IgnorePodName, name)
 }
 
 func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
-	var tags = make(map[string]string)
+	tags := make(map[string]string)
 	tags["namespace"] = pod.PodRef.Namespace
 	tags["pod_name"] = pod.PodRef.Name
 
-	var fields = make(map[string]interface{})
+	fields := make(map[string]interface{})
 	fields["cpu_usage_nanocores"] = float64(pod.CPU.UsageNanoCores)
 	fields["cpu_usage_core_nanoseconds"] = float64(pod.CPU.UsageCoreNanoSeconds)
 	fields["memory_usage_bytes"] = float64(pod.Memory.UsageBytes)
@@ -223,7 +222,7 @@ func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
 }
 
 func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
-	var tags = make(map[string]string)
+	tags := make(map[string]string)
 	tags["name"] = item.Metadata.UID
 	tags["state"] = item.Status.Phase
 
@@ -252,7 +251,7 @@ func (k *Kubernetes) findPodMetricsByUID(uid string, summary *SummaryMetrics) *P
 
 func (k *Kubernetes) getPods() (*Pods, error) {
 	var pods Pods
-	err := k.LoadJson(fmt.Sprintf("%s/pods", k.URL), &pods)
+	err := k.LoadJSON(fmt.Sprintf("%s/pods", k.URL), &pods)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +260,7 @@ func (k *Kubernetes) getPods() (*Pods, error) {
 
 func (k *Kubernetes) getStatsSummary() (*SummaryMetrics, error) {
 	var summary SummaryMetrics
-	err := k.LoadJson(fmt.Sprintf("%s/stats/summary", k.URL), &summary)
+	err := k.LoadJSON(fmt.Sprintf("%s/stats/summary", k.URL), &summary)
 	if err != nil {
 		return nil, err
 	}
@@ -283,10 +282,12 @@ func (k *Kubernetes) GetContainerPodName(id string) (string, error) {
 	if id == "" {
 		return "", fmt.Errorf("invalid containerID, cannot be empty")
 	}
+
 	pods, err := k.getPods()
 	if err != nil {
 		return "", err
 	}
+
 	return pods.GetContainerPodName(id), nil
 }
 
@@ -301,8 +302,8 @@ func (k *Kubernetes) GetContainerDeploymentName(id string) (string, error) {
 	return pods.GetContainerDeploymentName(id), nil
 }
 
-func (k *Kubernetes) LoadJson(url string, v interface{}) error {
-	var req, err = http.NewRequest("GET", url, nil)
+func (k *Kubernetes) LoadJSON(url string, v interface{}) error {
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
@@ -312,9 +313,9 @@ func (k *Kubernetes) LoadJson(url string, v interface{}) error {
 
 	resp, err = k.roundTripper.RoundTrip(req)
 	if err != nil {
-		return fmt.Errorf("error making HTTP request to %s: %s", url, err)
+		return fmt.Errorf("error making HTTP request to %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%s returned HTTP status %s", url, resp.Status)
@@ -322,7 +323,7 @@ func (k *Kubernetes) LoadJson(url string, v interface{}) error {
 
 	err = json.NewDecoder(resp.Body).Decode(v)
 	if err != nil {
-		return fmt.Errorf(`Error parsing response: %s`, err)
+		return fmt.Errorf(`error parsing response: %w`, err)
 	}
 
 	return nil
@@ -330,7 +331,7 @@ func (k *Kubernetes) LoadJson(url string, v interface{}) error {
 
 type Pods struct {
 	Kind       string    `json:"kind"`
-	ApiVersion string    `json:"apiVersion"`
+	APIVersion string    `json:"apiVersion"`
 	Items      []PodItem `json:"items"`
 }
 
@@ -526,7 +527,6 @@ func (n NetworkMetrics) TXErrors() int64 {
 func (c *CPUMetrics) Percent() (float64, error) {
 	if c.UsageNanoCores == 0 {
 		return -1, fmt.Errorf("cpu usageNanoCores cannot be zero")
-
 	}
 	// source link: https://github.com/kubernetes/heapster/issues/650#issuecomment-147795824
 	// cpu_usage_core_nanoseconds / (cpu_usage_nanocores * 1000000000) * 100
@@ -554,8 +554,9 @@ func (p *Pods) GetContainerPodName(id string) string {
 		if len(podMetadata.Status.ContainerStatuses) == 0 {
 			continue
 		}
-		for _, containerStauts := range podMetadata.Status.ContainerStatuses {
-			if containerStauts.ContainerID == id {
+
+		for _, x := range podMetadata.Status.ContainerStatuses {
+			if x.ContainerID == id {
 				return podMetadata.Metadata.Name
 			}
 		}

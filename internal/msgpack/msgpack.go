@@ -1,3 +1,4 @@
+// Package msgpack wraps msgpack related functions.
 package msgpack
 
 import (

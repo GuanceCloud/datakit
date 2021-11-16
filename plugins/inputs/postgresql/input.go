@@ -1,3 +1,4 @@
+// Package postgresql collects PostgreSQL metrics.
 package postgresql
 
 import (
@@ -6,12 +7,12 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -21,45 +22,49 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 var (
 	inputName   = "postgresql"
 	catalogName = "db"
 	l           = logger.DefaultSLogger(inputName)
 )
 
+//nolint:lll
 const sampleConfig = `
 [[inputs.postgresql]]
-## 服务器地址
-# url格式
-# postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
-# 简单字符串格式
-# host=localhost user=pqgotest password=... sslmode=... dbname=app_production
+  ## 服务器地址
+  # URI格式
+  # postgres://[pqgotest[:password]]@localhost[/dbname]?sslmode=[disable|verify-ca|verify-full]
+  # 简单字符串格式
+  # host=localhost user=pqgotest password=... sslmode=... dbname=app_production
 
-address = "postgres://postgres@localhost/test?sslmode=disable"
+  address = "postgres://postgres@localhost/test?sslmode=disable"
 
-## 配置采集的数据库，默认会采集所有的数据库，当同时设置ignored_databases和databases会忽略databases
-# ignored_databases = ["db1"]
-# databases = ["db1"]
+  ## 配置采集的数据库，默认会采集所有的数据库，当同时设置ignored_databases和databases会忽略databases
+  # ignored_databases = ["db1"]
+  # databases = ["db1"]
 
-## 设置服务器Tag，默认是基于服务器地址生成
-# outputaddress = "db01"
+  ## 设置服务器Tag，默认是基于服务器地址生成
+  # outputaddress = "db01"
 
-## 采集间隔
-# 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
-interval = "10s"
+  ## 采集间隔
+  # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  interval = "10s"
 
-## 日志采集
-# [inputs.postgresql.log]
-# files = []
-# pipeline = "postgresql.p"
+  ## 日志采集
+  # [inputs.postgresql.log]
+  # files = []
+  # pipeline = "postgresql.p"
 
-## 自定义Tag
-[inputs.postgresql.tags]
-# some_tag = "some_value"
-# more_tag = "some_other_value"
-# ...
+  ## 自定义Tag
+  [inputs.postgresql.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
 `
 
+//nolint:lll
 const pipelineCfg = `
 add_pattern("log_date", "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}%{SPACE}%{HOUR}:%{MINUTE}:%{SECOND}%{SPACE}(?:CST|UTC)")
 add_pattern("status", "(LOG|ERROR|FATAL|PANIC|WARNING|NOTICE|INFO)")
@@ -110,10 +115,17 @@ type Input struct {
 	Tags             map[string]string `toml:"tags"`
 	Log              *postgresqllog    `toml:"log"`
 
+	MaxLifetimeDeprecated string `toml:"max_lifetime,omitempty"`
+
 	service      Service
 	tail         *tailer.Tailer
 	duration     time.Duration
 	collectCache []inputs.Measurement
+
+	pause   bool
+	pauseCh chan bool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 type postgresqllog struct {
@@ -121,7 +133,7 @@ type postgresqllog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type inputMeasurement struct {
@@ -135,6 +147,7 @@ func (m inputMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
@@ -158,7 +171,7 @@ func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&inputMeasurement{},
 	}
@@ -170,23 +183,31 @@ func (*Input) PipelineConfig() map[string]string {
 	}
 }
 
-func (p *Input) SanitizedAddress() (sanitizedAddress string, err error) {
-	var (
-		canonicalizedAddress string
-	)
+func (ipt *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: ipt.Log.Pipeline,
+		},
+	}
+}
 
-	var kvMatcher, _ = regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+func (ipt *Input) SanitizedAddress() (sanitizedAddress string, err error) {
+	var canonicalizedAddress string
 
-	if p.Outputaddress != "" {
-		return p.Outputaddress, nil
+	kvMatcher := regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+
+	if ipt.Outputaddress != "" {
+		return ipt.Outputaddress, nil
 	}
 
-	if strings.HasPrefix(p.Address, "postgres://") || strings.HasPrefix(p.Address, "postgresql://") {
-		if canonicalizedAddress, err = parseURL(p.Address); err != nil {
+	if strings.HasPrefix(ipt.Address, "postgres://") || strings.HasPrefix(ipt.Address, "postgresql://") {
+		if canonicalizedAddress, err = parseURL(ipt.Address); err != nil {
 			return sanitizedAddress, err
 		}
 	} else {
-		canonicalizedAddress = p.Address
+		canonicalizedAddress = ipt.Address
 	}
 
 	sanitizedAddress = kvMatcher.ReplaceAllString(canonicalizedAddress, "")
@@ -194,28 +215,28 @@ func (p *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	return sanitizedAddress, err
 }
 
-func (i *Input) executeQuery(query string) error {
+func (ipt *Input) executeQuery(query string) error {
 	var (
 		columns []string
 		err     error
 	)
 
-	rows, err := i.service.Query(query)
+	rows, err := ipt.service.Query(query)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	if columns, err = rows.Columns(); err != nil {
 		return err
 	}
 
 	for rows.Next() {
-		columnMap, err := i.service.GetColumnMap(rows, columns)
+		columnMap, err := ipt.service.GetColumnMap(rows, columns)
 		if err != nil {
 			return err
 		}
-		err = i.accRow(columnMap)
+		err = ipt.accRow(columnMap)
 		if err != nil {
 			return err
 		}
@@ -224,7 +245,8 @@ func (i *Input) executeQuery(query string) error {
 	return nil
 }
 
-func (i *Input) getDbMetrics() error {
+func (ipt *Input) getDBMetrics() error {
+	//nolint:lll
 	query := `
 	SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size
 	FROM pg_stat_database psd
@@ -232,44 +254,43 @@ func (i *Input) getDbMetrics() error {
 	WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
 	AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
 	`
-	if len(i.IgnoredDatabases) != 0 {
-		query += fmt.Sprintf(` AND psd.datname NOT IN ('%s')`, strings.Join(i.IgnoredDatabases, "','"))
-	} else if len(i.Databases) != 0 {
-		query += fmt.Sprintf(` AND psd.datname IN ('%s')`, strings.Join(i.Databases, "','"))
+	if len(ipt.IgnoredDatabases) != 0 {
+		query += fmt.Sprintf(` AND psd.datname NOT IN ('%s')`, strings.Join(ipt.IgnoredDatabases, "','"))
+	} else if len(ipt.Databases) != 0 {
+		query += fmt.Sprintf(` AND psd.datname IN ('%s')`, strings.Join(ipt.Databases, "','"))
 	}
 
-	err := i.executeQuery(query)
+	err := ipt.executeQuery(query)
 
 	return err
 }
 
-func (i *Input) getBgwMetrics() error {
+func (ipt *Input) getBgwMetrics() error {
 	query := `
 		select * FROM pg_stat_bgwriter
 	`
-	err := i.executeQuery(query)
+	err := ipt.executeQuery(query)
 	return err
 }
 
-func (i *Input) getConnectionMetrics() error {
+func (ipt *Input) getConnectionMetrics() error {
+	//nolint:lll
 	query := `
 		WITH max_con AS (SELECT setting::float FROM pg_settings WHERE name = 'max_connections')
 		SELECT MAX(setting) AS max_connections, SUM(numbackends)/MAX(setting) AS percent_usage_connections
 		FROM pg_stat_database, max_con
 	`
 
-	err := i.executeQuery(query)
+	err := ipt.executeQuery(query)
 	return err
 }
 
-func (i *Input) Collect() error {
-	var (
-		err error
-	)
+func (ipt *Input) Collect() error {
+	var err error
 
-	i.service.SetAddress(i.Address)
-	defer i.service.Stop()
-	err = i.service.Start()
+	ipt.service.SetAddress(ipt.Address)
+	defer ipt.service.Stop() //nolint:errcheck
+	err = ipt.service.Start()
 	if err != nil {
 		return err
 	}
@@ -278,36 +299,36 @@ func (i *Input) Collect() error {
 
 	// collect db metrics
 	g.Go(func(ctx context.Context) error {
-		err := i.getDbMetrics()
+		err := ipt.getDBMetrics()
 		return err
 	})
 
 	// collect bgwriter
 	g.Go(func(ctx context.Context) error {
-		err := i.getBgwMetrics()
+		err := ipt.getBgwMetrics()
 		return err
 	})
 
 	// connection
 	g.Go(func(ctx context.Context) error {
-		err := i.getConnectionMetrics()
+		err := ipt.getConnectionMetrics()
 		return err
 	})
 
 	return g.Wait()
 }
 
-func (i *Input) accRow(columnMap map[string]*interface{}) error {
+func (ipt *Input) accRow(columnMap map[string]*interface{}) error {
 	var tagAddress string
-	tagAddress, err := i.SanitizedAddress()
+	tagAddress, err := ipt.SanitizedAddress()
 	if err != nil {
 		return err
 	}
 
 	tags := map[string]string{"server": tagAddress, "db": "postgres"}
 
-	if i.Tags != nil {
-		for k, v := range i.Tags {
+	if ipt.Tags != nil {
+		for k, v := range ipt.Tags {
 			tags[k] = v
 		}
 	}
@@ -335,7 +356,7 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 		}
 	}
 	if len(fields) > 0 {
-		i.collectCache = append(i.collectCache, &inputMeasurement{
+		ipt.collectCache = append(ipt.collectCache, &inputMeasurement{
 			name:   inputName,
 			fields: fields,
 			tags:   tags,
@@ -344,43 +365,46 @@ func (i *Input) accRow(columnMap map[string]*interface{}) error {
 	}
 
 	return nil
-
 }
 
-func (i *Input) RunPipeline() {
-	if i.Log == nil || len(i.Log.Files) == 0 {
+func (ipt *Input) RunPipeline() {
+	if ipt.Log == nil || len(ipt.Log.Files) == 0 {
 		return
 	}
 
-	if i.Log.Pipeline == "" {
-		i.Log.Pipeline = inputName + ".p" // use default
+	if ipt.Log.Pipeline == "" {
+		ipt.Log.Pipeline = inputName + ".p" // use default
 	}
 
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
-		GlobalTags:        i.Tags,
-		IgnoreStatus:      i.Log.IgnoreStatus,
-		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		GlobalTags:        ipt.Tags,
+		IgnoreStatus:      ipt.Log.IgnoreStatus,
+		CharacterEncoding: ipt.Log.CharacterEncoding,
+		MultilineMatch:    ipt.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(ipt.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
-	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
+	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
 
-	go i.tail.Start()
+	go ipt.tail.Start()
 }
 
 const (
@@ -388,46 +412,92 @@ const (
 	minInterval = 1 * time.Second
 )
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	duration, err := time.ParseDuration(i.Interval)
+	duration, err := time.ParseDuration(ipt.Interval)
 	if err != nil {
-		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
+		l.Error("invalid interval, %s", err.Error())
 	} else if duration <= 0 {
-		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
+		l.Error("invalid interval, cannot be less than zero")
 	}
 
-	i.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
+	ipt.duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
-	tick := time.NewTicker(i.duration)
+	tick := time.NewTicker(ipt.duration)
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("postgresql log exit")
-			}
+			ipt.exit()
 			l.Info("postgresql exit")
 			return
 
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("postgresql return")
+			return
+
 		case <-tick.C:
+			if ipt.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
+
 			start := time.Now()
-			if err := i.Collect(); err != nil {
+			if err := ipt.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
 			}
 
-			if len(i.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
+			if len(ipt.collectCache) > 0 {
+				err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
+					&io.Option{CollectCost: time.Since(start)})
 				if err != nil {
 					io.FeedLastError(inputName, err.Error())
 					l.Error(err.Error())
 				}
-				i.collectCache = i.collectCache[:0]
+				ipt.collectCache = ipt.collectCache[:0]
 			}
+
+		case ipt.pause = <-ipt.pauseCh:
+			// nil
 		}
+	}
+}
+
+func (ipt *Input) exit() {
+	if ipt.tail != nil {
+		ipt.tail.Close()
+		l.Info("postgresql log exit")
+	}
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func (ipt *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (ipt *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
@@ -477,17 +547,22 @@ func parseURL(uri string) (string, error) {
 	return strings.Join(kvs, " "), nil
 }
 
+var maxPauseCh = inputs.ElectionPauseChannelLength
+
 func NewInput(service Service) *Input {
 	input := &Input{
 		Interval: "10s",
+		pauseCh:  make(chan bool, maxPauseCh),
+
+		semStop: cliutils.NewSem(),
 	}
 	input.service = service
 	return input
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		service := &SqlService{
+		service := &SQLService{
 			MaxIdle:     1,
 			MaxOpen:     1,
 			MaxLifetime: time.Duration(0),

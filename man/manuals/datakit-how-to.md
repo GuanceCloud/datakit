@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 # DataKit 入门简介
@@ -17,11 +17,11 @@
 DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
 
-| 操作系统                            | 架构                | 安装路径                                                                                     |
-| ---------                           | ---                 | ------                                                                                       |
-| Linux 内核 2.6.23 或更高版本        | amd64/386/arm/arm64 | `/usr/local/datakit`                                                      |
-| macOS 10.11 或更高版本              | amd64               | `/usr/local/datakit`                                                      |
-| Windows 7, Server 2008R2 或更高版本 | amd64/386           | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
+| 操作系统                                                                  | 架构                | 安装路径                                                                   |
+| ---------                                                                 | ---                 | ------                                                                     |
+| Linux 内核 2.6.23 或更高版本                                              | amd64/386/arm/arm64 | `/usr/local/datakit`                                                       |
+| macOS 10.12 或更高版本([原因](https://github.com/golang/go/issues/25633)) | amd64               | `/usr/local/datakit`                                                       |
+| Windows 7, Server 2008R2 或更高版本                                       | amd64/386           | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
 
 > Tips：查看内核版本
 
@@ -273,26 +273,26 @@ datakit -h
 
 ### 查询 DQL
 
-DataKit 支持以交互式方式执行 DQL 查询：
+DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit 自带语句补全功能：
 
 ```shell
 datakit --dql      # 或者 datakit -Q
 dql > cpu limit 1
 -----------------[ 1.cpu ]-----------------
-            time 2021-06-23 10:06:03 +0800 CST
              cpu 'cpu-total'
             host 'tan-air.local'
-     usage_guest 0
-usage_guest_nice 0
-      usage_idle 56.928839
-    usage_iowait 0
+            time 2021-06-23 10:06:03 +0800 CST
        usage_irq 0
+      usage_idle 56.928839
       usage_nice 0
-   usage_softirq 0
-     usage_steal 0
-    usage_system 23.245943
-     usage_total 43.071161
       usage_user 19.825218
+     usage_guest 0
+     usage_steal 0
+     usage_total 43.071161
+    usage_iowait 0
+    usage_system 23.245943
+   usage_softirq 0
+usage_guest_nice 0
 ---------
 1 rows, cost 13.55119ms
 ```
@@ -301,10 +301,83 @@ Tips：
 
 - 输入 `echo_explain` 即可看到后端查询语句
 - 为避免显示太多 `nil` 查询结果，可通过 `disable_nil/enable_nil` 来开关
-- 支持查询语句模糊搜，如 `echo_explain` 只需要输入 `echo` 或 `exp` 即可弹出提示，通过 `Tab` 即可选择下拉提示
+- 支持查询语句模糊搜，如 `echo_explain` 只需要输入 `echo` 或 `exp` 即可弹出提示，**通过 `Tab` 即可选择下拉提示**
 - DataKit 会自动保存前面多次运行的 DQL 查询历史（最大 5000 条），可通过上下方向键来选择
 
 > 注：Windows 下，请在 Powershell 中执行 `datakit --dql` 或 `datakit -Q`
+
+#### 单次执行 DQL 查询
+
+关于 DQL 查询，DataKit 支持运行单条 DQL 语句的功能：
+
+```shell
+# 单次执行一条查询语句
+datakit --run-dql 'cpu limit 1'
+
+# 将执行结果写入 CSV 文件
+datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv"
+
+# 强制覆盖已有 CSV 文件
+datakit --run-dql 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
+
+# 将结果写入 CSV 的同时，在终端也显示查询结果
+datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
+```
+
+导出的 CSV 文件样式示例：
+
+```shell
+name,active,available,available_percent,free,host,time
+mem,2016870400,2079637504,24.210166931152344,80498688,achen.local,1635242524385
+mem,2007961600,2032476160,23.661136627197266,30900224,achen.local,1635242534385
+mem,2014437376,2077097984,24.18060302734375,73502720,achen.local,1635242544382
+```
+
+注意：
+
+- 第一列是查询的指标集名称
+- 之后各列是该采集器对应的各项数据
+- 当字段为空时，对应列也为空
+
+#### DQL 查询结果 JSON 化
+
+以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等（以保证 JSON 可直接解析）
+
+```shell
+datakit --run-dql 'O::HOST:(os, message)' --json
+datakit -Q --json
+
+# 如果字段值是 JSON 字符串，则自动做 JSON 美化（注意：JSON 模式下（即 --json），`--auto-json` 选项无效）
+datakit --run-dql 'O::HOST:(os, message)' --auto-json
+-----------------[ r1.HOST.s1 ]-----------------
+message ----- json -----  # JSON 开始处有明显标志，此处 message 为字段名
+{
+  "host": {
+    "meta": {
+      "host_name": "www",
+  ....                    # 此处省略长文本
+  "config": {
+    "ip": "10.100.64.120",
+    "enable_dca": false,
+    "http_listen": "localhost:9529",
+    "api_token": "tkn_f2b9920f05d84d6bb5b14d9d39db1dd3"
+  }
+}
+----- end of json -----   # JSON 结束处有明显标志
+     os 'darwin'
+   time 2021-09-13 16:56:22 +0800 CST
+---------
+8 rows, 1 series, cost 4ms
+```
+
+#### 查询特定工作空间的数据
+
+通过指定不同的 Token 来查询其它工作空间的数据：
+
+```shell
+datakit --run-dql 'O::HOST:(os, message)' --token <your-token>
+datakit -Q --token <your-token>
+```
 
 ### 查看 DataKit 运行情况
 
@@ -349,6 +422,8 @@ datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/
 No data extracted from pipeline
 ```
 
+> 注意：由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 field），不宜有日志采集器以及 Datakit 全局配置的 tag 字段，如 `source`、`service`、`host` 等字段，不然行协议构建会报错：`same key xxx in tag and field`。
+
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
@@ -383,7 +458,35 @@ man > mysql
 (显示 MySQL 采集文档)
 man > Q               # 输入 Q 或 exit 退出
 ```
+### 查看工作空间信息
 
+为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
+
+```shell
+datakit --workspaceinfo
+{
+  "token": {
+    "ws_uuid": "wksp_2dc431d6693711eb8ff97aeee04b54af",
+    "bill_state": "normal",
+    "ver_type": "pay",
+    "token": "tkn_2dc438b6693711eb8ff97aeee04b54af",
+    "db_uuid": "ifdb_c0fss9qc8kg4gj9bjjag",
+    "status": 0,
+    "creator": "",
+    "expire_at": -1,
+    "create_at": 0,
+    "update_at": 0,
+    "delete_at": 0
+  },
+  "data_usage": {
+    "data_metric": 96966,
+    "data_logging": 3253,
+    "data_tracing": 2868,
+    "data_rum": 0,
+    "is_over_usage": false
+  }
+}
+```
 ### DataKit 服务管理
 
 可直接使用如下命令直接管理 DataKit：
@@ -411,9 +514,13 @@ Mac 下，可以用如下命令代替：
 ```shell
 # 启动 DataKit
 sudo launchctl load -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+# 或者
+sudo launchctl load -w /Library/LaunchDaemons/com.guance.datakit.plist
 
 # 停止 DataKit
 sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist
+# 或者
+sudo launchctl unload -w /Library/LaunchDaemons/com.guance.datakit.plist
 ```
 
 #### 服务卸载以及重装
@@ -495,7 +602,7 @@ sudo datakit --install sec-checker  # 该命名即将废弃
 
 配置好后，重启 DataKit 即可。
 
-#### CPU使用率说明
+#### CPU 使用率说明
 
 DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用的 CPU 资源。假设现在 CPU 使用率较高，DataKit 可能会将自身限制在 `cpu_min` 值以下，反之 CPU 较为空闲时，可能会将限制调整到 `cpu_max`。
 
@@ -504,11 +611,77 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 例如 `cpu_max` 为 `40.0`，8 核心 CPU 满负载使用率为 `800%`，则 DataKit 能使用的最大 CPU 资源是 `800% * 40% = 320%` 左右，是占全局 CPU 资源的 40%，而非单核心 CPU 的 40%。
 
 
+### 上传 DataKit 运行日志
+
+排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
+
+```shell
+sudo datakit --upload-log
+log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # 将这个路径信息发送给我们工程师即可
+```
+
+运行命令后，会将日志目录下的所有日志文件进行打包压缩，然后上传至指定的存储。我们的工程师会根据上传日志的主机名以及 Token 传找到对应文件，进而排查 DataKit 问题。
+
+### Datakit 使用 Git 管理配置文件
+
+在安装时，即可指定 Git 配置仓库，详情参考 [datakit 安装文档](datakit-install#f9858758)。
+
+#### 手动修改 git 配置
+
+Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下：
+
+```conf
+[git_repos]
+  pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
+
+  [[git_repos.repo]]
+    enable = false   # 不启用该 repo
+
+    ###########################################
+		# Git 地址支持的三种协议：http/git/ssh
+    ###########################################
+    url = "http://username:password@github.com/path/to/repository.git"
+
+		# 以下两种协议(git/ssh)，需配置 key-path 以及 key-password
+    # url = "git@github.com:path/to/repository.git"
+    # url = "ssh://git@github.com:9000/path/to/repository.git"
+    # ssh_private_key_path = "/Users/username/.ssh/id_rsa"
+    # ssh_private_key_password = "<YOUR-PASSSWORD>"
+
+    branch = "master" # 指定 git branch
+```
+
+注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（但 datakit.conf 继续生效）。DataKit 随带的 pipeline 依然有效。
+
+#### 应用 Git 管理的 Pipeline
+
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用。
+
+当使用 DataKit 自带的 Pipeline 时，一般是不带任何前缀路径的， 如：
+
+```toml
+[[inputs.nginx]]
+    ...
+    [inputs.nginx.log]
+    ...
+    pipeline = "nginx.p" # 对应加载 <DataKit 安装目录>/pipeline/nginx.p 文件
+```
+
+当使用 Git 管理的 Pipeline，因为 Clone 下来的文件，都是在特定的文件夹中，故 Pipeline 的配置也会带上对应的路径前缀：
+
+```toml
+[[inputs.nginx]]
+    ...
+    [inputs.nginx.log]
+    ...
+    pipeline = "myconfs/nginx.p" # 对应加载 <DataKit 安装目录>/gitrepos/myconfs/nginx.p 文件
+```
+
 ### 其它命令
 
 - 查看云属性数据
 
-如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
+如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws/hwcloud/azure` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
 
 ```shell
 datakit --show-cloud-info aws

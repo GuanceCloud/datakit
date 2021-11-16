@@ -1,3 +1,4 @@
+// Package build implement datakit build & release functions.
 package build
 
 import (
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
@@ -36,7 +38,7 @@ var (
 )
 
 func runEnv(args, env []string) ([]byte, error) {
-	cmd := exec.Command(args[0], args[1:]...)
+	cmd := exec.Command(args[0], args[1:]...) //nolint:gosec
 	if env != nil {
 		cmd.Env = append(os.Environ(), env...)
 	}
@@ -60,8 +62,10 @@ var (
 )
 
 func prepare() {
+	if err := os.RemoveAll(BuildDir); err != nil {
+		l.Warnf("os.RemoveAll: %s, ignored", err.Error())
+	}
 
-	os.RemoveAll(BuildDir)
 	_ = os.MkdirAll(BuildDir, os.ModePerm)
 	_ = os.MkdirAll(filepath.Join(PubDir, Release), os.ModePerm)
 
@@ -80,14 +84,21 @@ func prepare() {
 		l.Fatal(err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(PubDir, Release, "version"), versionInfo, 0666); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(PubDir, Release, "version"),
+		versionInfo,
+		os.ModePerm); err != nil {
 		l.Fatal(err)
 	}
 }
 
+const (
+	LOCAL = "local"
+	ALL   = "all"
+)
+
 func parseArchs(s string) (archs []string) {
 	switch s {
-	case "all":
+	case ALL:
 
 		// read cmd-line env
 		if x := os.Getenv("ALL_ARCHS"); x != "" {
@@ -96,7 +107,7 @@ func parseArchs(s string) (archs []string) {
 			archs = OSArches
 		}
 
-	case "local":
+	case LOCAL:
 		if x := os.Getenv("LOCAL"); x != "" {
 			if x == "all" { // 指定 local 为 all，便于测试全平台编译/发布
 				archs = OSArches
@@ -120,15 +131,14 @@ func Compile() {
 
 	archs := parseArchs(Archs)
 
-	for idx, _ := range archs {
-
+	for idx := range archs {
 		parts := strings.Split(archs[idx], "/")
 		if len(parts) != 2 {
 			l.Fatalf("invalid arch %q", parts)
 		}
 
 		goos, goarch := parts[0], parts[1]
-		if goos == "darwin" && runtime.GOOS != "darwin" {
+		if goos == datakit.OSDarwin && runtime.GOOS != datakit.OSDarwin {
 			l.Warnf("skip build datakit under %s", archs[idx])
 			continue
 		}
@@ -153,15 +163,16 @@ func Compile() {
 	l.Infof("Done!(elapsed %v)", time.Since(start))
 }
 
-func compileArch(bin, goos, goarch, dir string) {
+const winBinSuffix = ".exe"
 
+func compileArch(bin, goos, goarch, dir string) {
 	output := filepath.Join(dir, bin)
-	if goos == "windows" {
-		output += ".exe"
+	if goos == datakit.OSWindows {
+		output += winBinSuffix
 	}
-	cgo_enabled := "0"
-	if goos == "darwin" {
-		cgo_enabled = "1"
+	cgoEnabled := "0"
+	if goos == datakit.OSDarwin {
+		cgoEnabled = "1"
 	}
 
 	args := []string{
@@ -176,7 +187,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"GOOS=" + goos,
 		"GOARCH=" + goarch,
 		`GO111MODULE=off`,
-		"CGO_ENABLED=" + cgo_enabled,
+		"CGO_ENABLED=" + cgoEnabled,
 	}
 
 	l.Debugf("building %s", fmt.Sprintf("%s-%s/%s", goos, goarch, bin))
@@ -186,19 +197,12 @@ func compileArch(bin, goos, goarch, dir string) {
 	}
 }
 
-type installInfo struct {
-	Name         string
-	DownloadAddr string
-	Version      string
-}
-
 func buildInstaller(outdir, goos, goarch string) {
-
 	l.Debugf("building %s-%s/installer...", goos, goarch)
 
 	installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
-	if goos == "windows" {
-		installerExe += ".exe"
+	if goos == datakit.OSWindows {
+		installerExe += winBinSuffix
 	}
 
 	args := []string{

@@ -2,13 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -22,7 +22,7 @@ type jsonPoint struct {
 	Time        int64                  `json:"time,omitempty"`
 }
 
-// convert json point to real point
+// convert json point to real point.
 func (jp *jsonPoint) pt(prec string, extags map[string]string) (*io.Point, error) {
 	if prec == "" || prec == "n" {
 		prec = "ns"
@@ -55,6 +55,7 @@ func (jp *jsonPoint) pt(prec string, extags map[string]string) (*io.Point, error
 func apiWrite(c *gin.Context) {
 	var body []byte
 	var err error
+	var version string
 
 	input := DEFAULT_INPUT
 
@@ -62,6 +63,7 @@ func apiWrite(c *gin.Context) {
 
 	switch category {
 	case datakit.Metric,
+		datakit.Network,
 		datakit.Logging,
 		datakit.Object,
 		datakit.Tracing,
@@ -89,6 +91,10 @@ func apiWrite(c *gin.Context) {
 		precision = x
 	}
 
+	if x := c.Query(VERSION); x != "" {
+		version = x
+	}
+
 	switch precision {
 	case "h", "m", "s", "ms", "u", "n":
 	default:
@@ -99,7 +105,7 @@ func apiWrite(c *gin.Context) {
 
 	body, err = uhttp.GinRead(c)
 	if err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
+		uhttp.HttpErr(c, uhttp.Error(ErrHTTPReadErr, err.Error()))
 		return
 	}
 
@@ -134,16 +140,19 @@ func apiWrite(c *gin.Context) {
 			}
 		}
 
-		pts, err = handleRUMBody(body, precision, srcip, isjson)
-
+		pts, err = handleRUMBody(body, precision, srcip, isjson, apiConfig.RUMAppIDWhiteList)
+		// appid不在白名单中，当前 http 请求直接返回
+		if errors.As(err, &ErrRUMAppIDNotInWhiteList) {
+			uhttp.HttpErr(c, err)
+			return
+		}
 	} else {
 		extags := extraTags
 		if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
 			extags = nil
 		}
 
-		pts, err = handleWriteBody(body, precision,
-			extags, isjson)
+		pts, err = handleWriteBody(body, precision, extags, isjson, apiConfig.RUMAppIDWhiteList)
 		if err != nil {
 			uhttp.HttpErr(c, err)
 			return
@@ -152,7 +161,7 @@ func apiWrite(c *gin.Context) {
 
 	l.Debugf("received %d(%s) points from %s", len(pts), category, input)
 
-	err = io.Feed(input, category, pts, &io.Option{HighFreq: true})
+	err = io.Feed(input, category, pts, &io.Option{HighFreq: true, Version: version})
 
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
@@ -164,20 +173,19 @@ func apiWrite(c *gin.Context) {
 func handleWriteBody(body []byte,
 	precision string,
 	extags map[string]string,
-	isJson bool) ([]*io.Point, error) {
-
-	switch isJson {
+	isJSON bool,
+	appIDWhiteList []string) ([]*io.Point, error) {
+	switch isJSON {
 	case true:
-
-		return jsonPoints(body, precision, extags)
+		return jsonPoints(body, precision, extags, appIDWhiteList)
 
 	default:
 		pts, err := lp.ParsePoints(body, &lp.Option{
 			Time:      time.Now(),
 			ExtraTags: extags,
 			Strict:    true,
-			Precision: precision})
-
+			Precision: precision,
+		})
 		if err != nil {
 			return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
 		}
@@ -186,21 +194,31 @@ func handleWriteBody(body []byte,
 	}
 }
 
-func jsonPoints(body []byte, prec string, extags map[string]string) ([]*io.Point, error) {
-
+func jsonPoints(body []byte,
+	prec string,
+	extags map[string]string,
+	appIDWhiteList []string) ([]*io.Point, error) {
 	var jps []jsonPoint
 	err := json.Unmarshal(body, &jps)
 	if err != nil {
 		l.Error(err)
-		return nil, ErrInvalidJsonPoint
+		return nil, ErrInvalidJSONPoint
 	}
 
 	var pts []*io.Point
 	for _, jp := range jps {
 		if p, err := jp.pt(prec, extags); err != nil {
 			l.Error(err)
-			return nil, uhttp.Error(ErrInvalidJsonPoint, err.Error())
+			return nil, uhttp.Error(ErrInvalidJSONPoint, err.Error())
 		} else {
+			tags := p.Tags()
+			if len(tags) == 0 {
+				return nil, fmt.Errorf("empty tags")
+			}
+			if !contains(tags[rumMetricAppID], appIDWhiteList) {
+				return nil, ErrRUMAppIDNotInWhiteList
+			}
+
 			pts = append(pts, p)
 		}
 	}

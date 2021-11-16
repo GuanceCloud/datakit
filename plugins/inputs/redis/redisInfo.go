@@ -3,10 +3,10 @@ package redis
 import (
 	"bufio"
 	"context"
-	"github.com/go-redis/redis/v8"
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -20,12 +20,13 @@ type infoMeasurement struct {
 	resData map[string]interface{}
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *infoMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
+//nolint:lll,funlen
 func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_info",
@@ -333,7 +334,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (m *infoMeasurement) getData() error {
 	start := time.Now()
 	ctx := context.Background()
@@ -356,7 +357,7 @@ func (m *infoMeasurement) getData() error {
 	return nil
 }
 
-// 解析返回结果
+// 解析返回结果.
 func (m *infoMeasurement) parseInfoData(info string) error {
 	rdr := strings.NewReader(info)
 
@@ -382,7 +383,7 @@ func (m *infoMeasurement) parseInfoData(info string) error {
 	return nil
 }
 
-// 提交数据
+// 提交数据.
 func (m *infoMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {

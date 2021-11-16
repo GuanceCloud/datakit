@@ -1,3 +1,4 @@
+// Package trace wrap all APM related protocol converion functions.
 package trace
 
 import (
@@ -27,6 +28,7 @@ type TraceRepInfo struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 }
+
 type ZipkinTracer struct {
 	TraceReqInfo
 }
@@ -34,10 +36,10 @@ type ZipkinTracer struct {
 type TraceAdapter struct {
 	Source string // third part source name
 
-	//纳秒单位
+	// 纳秒单位
 	Duration int64
 
-	//纳秒单位
+	// 纳秒单位
 	Start   int64
 	Content string
 
@@ -55,13 +57,14 @@ type TraceAdapter struct {
 	EndPoint       string
 	Type           string
 	Pid            string
-	HttpMethod     string
-	HttpStatusCode string
+	HTTPMethod     string
+	HTTPStatusCode string
 	ContainerHost  string
 
 	Tags map[string]string
 }
 
+//nolint:stylecheck
 const (
 	SPAN_TYPE_ENTRY = "entry"
 	SPAN_TYPE_LOCAL = "local"
@@ -107,9 +110,7 @@ const (
 	FIELD_PID      = "pid"
 )
 
-var (
-	log = logger.DefaultSLogger("trace")
-)
+var log = logger.DefaultSLogger("trace")
 
 func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 	tags := make(map[string]string)
@@ -120,8 +121,8 @@ func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 	tags[TAG_SERVICE] = tAdpt.ServiceName
 	tags[TAG_VERSION] = tAdpt.Version
 	tags[TAG_ENV] = tAdpt.Env
-	tags[TAG_HTTP_METHOD] = tAdpt.HttpMethod
-	tags[TAG_HTTP_CODE] = tAdpt.HttpStatusCode
+	tags[TAG_HTTP_METHOD] = tAdpt.HTTPMethod
+	tags[TAG_HTTP_CODE] = tAdpt.HTTPStatusCode
 
 	if tAdpt.Type != "" {
 		tags[TAG_TYPE] = tAdpt.Type
@@ -184,7 +185,6 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 			continue
 		}
 		pts = append(pts, pt)
-
 	}
 
 	if err := dkio.Feed(pluginName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
@@ -192,7 +192,7 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 	}
 }
 
-func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
+func ParseHTTPReq(r *http.Request) (*TraceReqInfo, error) {
 	var body []byte
 	var err error
 	req := &TraceReqInfo{}
@@ -202,42 +202,38 @@ func ParseHttpReq(r *http.Request) (*TraceReqInfo, error) {
 	req.ContentType = r.Header.Get("Content-Type")
 	contentEncoding := r.Header.Get("Content-Encoding")
 
+	defer r.Body.Close() //nolint:errcheck
+
 	body, err = ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Body.Close()
 
-	if contentEncoding == "gzip" {
-		body, err = ReadCompressed(bytes.NewReader(body), true)
+	switch contentEncoding {
+	case "gzip":
+		body, err = ReadCompressed(body)
 		if err != nil {
 			return req, err
 		}
+	default:
 	}
+
 	req.Body = body
 	return req, err
 }
 
-func ReadCompressed(body *bytes.Reader, isGzip bool) ([]byte, error) {
+func ReadCompressed(body []byte) ([]byte, error) {
 	var data []byte
 	var err error
 
-	if isGzip {
-		reader, err := gzip.NewReader(body)
-		if err != nil {
-			return nil, err
-		}
+	reader, err := gzip.NewReader(bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
 
-		data, err = ioutil.ReadAll(reader)
-		if err != nil {
-			return nil, err
-		}
-
-	} else {
-		data, err = ioutil.ReadAll(body)
-		if err != nil {
-			return nil, err
-		}
+	data, err = ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
 	}
 
 	return data, nil

@@ -9,9 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-
 	"github.com/prometheus/prometheus/util/strutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 var log = logger.DefaultSLogger("parser")
@@ -45,7 +44,7 @@ func (e *IndexExpr) String() string {
 	if e.Obj != nil {
 		x = e.Obj.String()
 	}
-	for i, _ := range e.Index {
+	for i := range e.Index {
 		x += fmt.Sprintf("[%d]", e.Index[i])
 	}
 
@@ -224,7 +223,6 @@ type parser struct {
 
 	inject    ItemType
 	injecting bool
-	context   interface{}
 }
 
 func (p *parser) InjectItem(typ ItemType) {
@@ -286,19 +284,21 @@ func (p *parser) unexpected(context string, expected string) {
 }
 
 func (p *parser) recover(errp *error) {
-	e := recover()
+	e := recover() //nolint:ifshort
 	if _, ok := e.(runtime.Error); ok {
-		buf := make([]byte, 64<<10) // 64k
+		buf := make([]byte, 4<<10) // 4KB
 		buf = buf[:runtime.Stack(buf, false)]
 		fmt.Fprintf(os.Stderr, "parser panic: %v\n%s", e, buf)
 		*errp = errUnexpected
 	} else if e != nil {
-		*errp = e.(error)
+		if x, ok := e.(error); ok {
+			*errp = x
+		}
 	}
 }
 
 func (p *parser) addParseErr(pr *PositionRange, err error) {
-	p.errs = append(p.errs, ParseErr{
+	p.errs = append(p.errs, ParseError{
 		Pos:   pr,
 		Err:   err,
 		Query: p.lex.input,
@@ -346,7 +346,7 @@ func (p *parser) newFunc(fname string, args []Node) *FuncExpr {
 	return agg
 }
 
-// impl Lex interface
+// impl Lex interface.
 func (p *parser) Lex(lval *yySymType) int {
 	var typ ItemType
 
@@ -385,7 +385,11 @@ func (p *parser) Lex(lval *yySymType) int {
 func (p *parser) Error(e string) {}
 
 func newParser(input string) *parser {
-	p := parserPool.Get().(*parser)
+	p, ok := parserPool.Get().(*parser)
+	if !ok {
+		log.Warnf("p expect to be *parser")
+		return nil
+	}
 
 	p.injecting = false
 	p.errs = nil
@@ -399,17 +403,16 @@ func newParser(input string) *parser {
 
 // end of yylex.(*parser).newXXXX
 
-type ParseErrors []ParseErr
+type ParseErrors []ParseError
 
-type ParseErr struct {
+type ParseError struct {
 	Pos        *PositionRange
 	Err        error
 	Query      string
 	LineOffset int
 }
 
-func (e *ParseErr) Error() string {
-
+func (e *ParseError) Error() string {
 	if e.Pos == nil {
 		return fmt.Sprintf("%s", e.Err)
 	}
@@ -436,7 +439,7 @@ func (e *ParseErr) Error() string {
 	return fmt.Sprintf("%s parse error: %s", posStr, e.Err)
 }
 
-// impl Error() interface
+// Error impl Error() interface.
 func (errs ParseErrors) Error() string {
 	var errArray []string
 	for _, err := range errs {
@@ -455,6 +458,10 @@ type PositionRange struct {
 
 func ParsePipeline(input string) (res Node, err error) {
 	p := newParser(input)
+	if p == nil {
+		return nil, fmt.Errorf("got nil parser, should not been here")
+	}
+
 	defer parserPool.Put(p)
 	defer p.recover(&err)
 

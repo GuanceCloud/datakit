@@ -1,12 +1,12 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 # {{.InputName}}
 
-进程采集器可以对系统中各种运行的进程进行实施监控， 获取、分析进程运行时各项指标，包括内存使用率、占用CPU时间、进程当前状态等，并根据进程运行时的各项指标信息，用户可以在 DataFlux 中配置相关告警，使用户了解进程的状态，在进程发生故障时，可以及时对发生故障的进程进行维护
+进程采集器可以对系统中各种运行的进程进行实施监控， 获取、分析进程运行时各项指标，包括内存使用率、占用CPU时间、进程当前状态等，并根据进程运行时的各项指标信息，用户可以在观测云中配置相关告警，使用户了解进程的状态，在进程发生故障时，可以及时对发生故障的进程进行维护
 
 ## 前置条件
 
@@ -28,6 +28,14 @@
 
 配置好后，重启 DataKit 即可。
 
+支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+
+| 环境变量名                             | 对应的配置参数项 | 参数示例                                                     |
+| :---                                   | ---              | ---                                                          |
+| `ENV_INPUT_HOST_PROCESSES_OPEN_METRIC` | `open_metric`    | `true`/`false`                                               |
+| `ENV_INPUT_HOST_PROCESSES_TAGS`        | `tags`           | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+
+## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
@@ -37,8 +45,6 @@
   # more_tag = "some_other_value"
   # ...
 ```
-
-## 指标
 
 {{ range $i, $m := .Measurements }}
 

@@ -29,7 +29,6 @@ type accumulator struct {
 }
 
 func (a *accumulator) addFields(name string, fields map[string]interface{}, tags map[string]string, ts time.Time) {
-
 	for k, v := range a.ref.Tags {
 		tags[k] = v // may override tags in real-data
 	}

@@ -4,7 +4,6 @@ import (
 	"math"
 
 	"github.com/spf13/cast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -17,13 +16,13 @@ func Cast(num float64) int {
 	return int(num + math.Copysign(0.5, num))
 }
 
-func Conv(val interface{}, Datatype string) (interface{}, error) {
+func Conv(val interface{}, datatype string) (interface{}, error) {
 	var (
 		res interface{}
 		err error
 	)
 
-	switch Datatype {
+	switch datatype {
 	case inputs.Float:
 		res, err = cast.ToFloat64E(val)
 	case inputs.Int:
@@ -35,4 +34,13 @@ func Conv(val interface{}, Datatype string) (interface{}, error) {
 	}
 
 	return res, err
+}
+
+func IsSlicesHave(s []int, index int) bool {
+	for _, i := range s {
+		if i == index {
+			return true
+		}
+	}
+	return false
 }

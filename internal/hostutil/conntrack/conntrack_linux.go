@@ -5,6 +5,7 @@ package conntrack
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -23,19 +24,19 @@ type conntrackStatistics struct {
 }
 
 func readIntFromFile(path string) (int64, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return 0, err
 	}
-	value, err := strconv.ParseInt(strings.TrimSpace(string(data)), 10, 64)
+	value, err := strconv.ParseInt(strings.TrimSpace(string(data)), 10, 64) //nolint:gomnd
 	if err != nil {
 		return 0, err
 	}
 	return value, nil
 }
 
-func ConntrackCollect() *ConntrackInfo {
-	info := &ConntrackInfo{}
+func Collect() *Info {
+	info := &Info{}
 
 	value, err := readIntFromFile("/proc/sys/net/netfilter/nf_conntrack_count")
 	if err != nil {

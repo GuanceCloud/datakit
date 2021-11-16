@@ -3,59 +3,71 @@ package mysql
 const (
 	configSample = `
 [[inputs.mysql]]
-    host = "localhost"
-    user = "datakit"
-    pass = "<PASS>"
-    port = 3306
-    # sock = "<SOCK>"
-    # charset = "utf8"
+  host = "localhost"
+  user = "datakit"
+  pass = "<PASS>"
+  port = 3306
+  # sock = "<SOCK>"
+  # charset = "utf8"
 
-    ## @param connect_timeout - number - optional - default: 10s
-    # connect_timeout = "10s"
+  ## @param connect_timeout - number - optional - default: 10s
+  # connect_timeout = "10s"
 
-    ## Deprecated
-    # service = "<SERVICE>"
+  ## Deprecated
+  # service = "<SERVICE>"
 
-    interval = "10s"
+  interval = "10s"
 
-    ## @param inno_db
-    innodb = true
+  ## @param inno_db
+  innodb = true
 
-    ## table_schema
-    tables = []
+  ## table_schema
+  tables = []
 
-    ## user
-    users = []
+  ## user
+  users = []
 
-    [inputs.mysql.log]
-    ## required, glob logfiles
-    #files = ["/var/log/mysql/*.log"]
+  ## 开启数据库性能指标采集
+  # dbm = false
 
-    ## glob filteer
-    #ignore = [""]
+  # [inputs.mysql.log]
+  # #required, glob logfiles
+  # files = ["/var/log/mysql/*.log"]
 
-    ## optional encodings:
-    ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-    #character_encoding = ""
+  ## glob filteer
+  #ignore = [""]
 
-    ## The pattern should be a regexp. Note the use of '''this regexp'''
-    ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-    #match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
+  ## optional encodings:
+  ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
+  #character_encoding = ""
 
-    ## grok pipeline script path
-    #pipeline = "mysql.p"
+  ## The pattern should be a regexp. Note the use of '''this regexp'''
+  ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+  #match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
 
-    # [[inputs.mysql.custom_queries]]
-    #     sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
-    #     metric = "xxxx"
-    #     tagKeys = ["column1", "column1"]
-    #     fieldKeys = ["column3", "column1"]
+  ## grok pipeline script path
+  #pipeline = "mysql.p"
 
-    [inputs.mysql.tags]
-        # service = "MySQL"
-        # some_tag = "some_value"
-        # more_tag = "some_other_value"`
+  # [[inputs.mysql.custom_queries]]
+  #   sql = "SELECT foo, COUNT(*) FROM table.events GROUP BY foo"
+  #   metric = "xxxx"
+  #   tagKeys = ["column1", "column1"]
+  #   fieldKeys = ["column3", "column1"]
+  
+  ## 监控指标配置
+  [inputs.mysql.dbm_metric]
+    enabled = true
+  
+  ## 监控采样配置
+  [inputs.mysql.dbm_sample]
+    enabled = true  
 
+  [inputs.mysql.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+`
+
+	//nolint:lll
 	pipelineCfg = `
 grok(_, "%{TIMESTAMP_ISO8601:time}\\s+%{INT:thread_id}\\s+%{WORD:operation}\\s+%{GREEDYDATA:raw_query}")
 grok(_, "%{TIMESTAMP_ISO8601:time} %{INT:thread_id} \\[%{NOTSPACE:status}\\] %{GREEDYDATA:msg}")

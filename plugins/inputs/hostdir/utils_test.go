@@ -8,6 +8,7 @@ import (
 
 func TestStartcollect(t *testing.T) {
 	str, _ := os.Getwd()
+	t.Log(str)
 	a, b, c := Startcollect(str, []string{})
 	t.Log(a, b, c)
 }

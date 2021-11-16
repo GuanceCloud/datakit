@@ -5,25 +5,23 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type schemaMeasurement struct {
-	client *sql.DB
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *schemaMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
+// 指定指标.
 func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_schema",
@@ -53,19 +51,24 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) getSchemaSize() ([]inputs.Measurement, error) {
-	querySizePerschemaSql := `
+	querySizePerschemaSQL := `
 		SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb
 		FROM     information_schema.tables
 		GROUP BY table_schema;
 	`
-	rows, err := i.db.Query(querySizePerschemaSql)
+	rows, err := i.db.Query(querySizePerschemaSQL)
 	if err != nil {
 		l.Error(err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return nil, err
+	}
 
 	ms := []inputs.Measurement{}
 
@@ -81,7 +84,7 @@ func (i *Input) getSchemaSize() ([]inputs.Measurement, error) {
 		}
 
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
 			l.Error(err)
@@ -103,18 +106,24 @@ func (i *Input) getSchemaSize() ([]inputs.Measurement, error) {
 }
 
 func (i *Input) getQueryExecTimePerSchema() ([]inputs.Measurement, error) {
-	queryExecPerTimeSql := `
+	queryExecPerTimeSQL := `
 	SELECT schema_name, ROUND((SUM(sum_timer_wait) / SUM(count_star)) / 1000000) AS avg_us
 	FROM performance_schema.events_statements_summary_by_digest
 	WHERE schema_name IS NOT NULL
 	GROUP BY schema_name;
 	`
-	rows, err := i.db.Query(queryExecPerTimeSql)
+	rows, err := i.db.Query(queryExecPerTimeSQL)
 	if err != nil {
 		l.Error(err)
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return nil, err
+	}
 
 	ms := []inputs.Measurement{}
 
@@ -130,7 +139,7 @@ func (i *Input) getQueryExecTimePerSchema() ([]inputs.Measurement, error) {
 		}
 
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
 			l.Error(err)

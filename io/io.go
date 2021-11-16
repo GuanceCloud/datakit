@@ -1,3 +1,4 @@
+// Package io implements datakits data transfer among inputs.
 package io
 
 import (
@@ -31,7 +32,7 @@ var (
 type Option struct {
 	CollectCost time.Duration
 	HighFreq    bool
-
+	Version     string
 	HTTPHost    string
 	PostTimeout time.Duration
 	Sample      func(points []*Point) []*Point
@@ -41,6 +42,7 @@ type lastErr struct {
 	from, err string
 	ts        time.Time
 }
+
 type IO struct {
 	FeedChanSize              int
 	HighFreqFeedChanSize      int
@@ -50,6 +52,7 @@ type IO struct {
 	DynamicCacheDumpThreshold int64
 	FlushInterval             time.Duration
 	OutputFile                string
+	OutputFileInput           []string
 
 	dw *dataway.DataWayCfg
 
@@ -104,8 +107,6 @@ type iodata struct {
 	category, name string
 	opt            *Option
 	pts            []*Point
-	url            string
-	isProxy        bool
 }
 
 func TestOutput() {
@@ -116,7 +117,12 @@ func SetTest() {
 	testAssert = true
 }
 
+//nolint:gocyclo
 func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
+	if testAssert {
+		return nil
+	}
+
 	ch := x.in
 	if opt != nil && opt.HighFreq {
 		ch = x.in2
@@ -125,6 +131,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	switch category {
 	case datakit.MetricDeprecated:
 	case datakit.Metric:
+	case datakit.Network:
 	case datakit.KeyEvent:
 	case datakit.Object:
 	case datakit.CustomObject:
@@ -173,6 +180,7 @@ func (x *IO) updateLastErr(e *lastErr) {
 	if !ok {
 		stat = &InputsStat{
 			First: time.Now(),
+			Last:  time.Now(),
 		}
 		x.inputstats[e.from] = stat
 	}
@@ -205,12 +213,22 @@ func (x *IO) updateStats(d *iodata) {
 	stat.AvgSize = (stat.Total) / stat.Count
 
 	if d.opt != nil {
+		stat.Version = d.opt.Version
 		stat.totalCost += d.opt.CollectCost
 		stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
 		if d.opt.CollectCost > stat.MaxCollectCost {
 			stat.MaxCollectCost = d.opt.CollectCost
 		}
 	}
+}
+
+func (x *IO) ifMatchOutputFileInput(feedName string) bool {
+	for _, v := range x.OutputFileInput {
+		if v == feedName {
+			return true
+		}
+	}
+	return false
 }
 
 func (x *IO) cacheData(d *iodata, tryClean bool) {
@@ -231,13 +249,27 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) || (x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
+	bodies, err := x.buildBody(d.pts)
+	if err != nil {
+		l.Errorf("build iodata bodies failed: %s", err)
+	}
+	for _, body := range bodies {
+		if x.OutputFile != "" {
+			if len(x.OutputFileInput) == 0 || x.ifMatchOutputFileInput(d.name) {
+				if err := x.fileOutput(body.buf); err != nil {
+					l.Error("fileOutput: %s, ignored", err.Error())
+				}
+			}
+		}
+	}
+
+	if (tryClean && x.MaxCacheCount > 0 && x.cacheCnt > x.MaxCacheCount) ||
+		(x.MaxDynamicCacheCount > 0 && x.dynamicCacheCnt > x.MaxDynamicCacheCount) {
 		x.flushAll()
 	}
 }
 
 func (x *IO) cleanHighFreqIOData() {
-
 	if len(x.in2) > 0 {
 		l.Debugf("clean %d cache on high-freq-chan", len(x.in2))
 	}
@@ -254,7 +286,7 @@ func (x *IO) cleanHighFreqIOData() {
 
 func (x *IO) init() error {
 	if x.OutputFile != "" {
-		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
 		if err != nil {
 			l.Error(err)
 			return err
@@ -311,12 +343,18 @@ func (x *IO) StartIO(recoverable bool) {
 
 			case <-heartBeatTick.C:
 				if !DisableHeartbeat {
-					x.dw.HeartBeat()
+					if err := x.dw.HeartBeat(); err != nil {
+						l.Warnf("dw.HeartBeat: %s, ignored", err.Error())
+					}
 				}
 
 			case <-datawaylistTick.C:
 				if !DisableDatawayList {
-					x.dw.DatawayList()
+					dws, err := x.dw.DatawayList()
+					if err != nil {
+						l.Warnf("DatawayList(): %s, ignored", err)
+					}
+					dataway.AvailableDataways = dws
 				}
 
 			case <-tick.C:
@@ -347,7 +385,7 @@ func (x *IO) flushAll() {
 	// dump cache pts
 	if x.CacheDumpThreshold > 0 && x.cacheCnt > x.CacheDumpThreshold {
 		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCount)
-		for k, _ := range x.cache {
+		for k := range x.cache {
 			x.cache[k] = nil
 		}
 		atomic.AddInt64(&x.droppedTotal, x.cacheCnt)
@@ -356,7 +394,7 @@ func (x *IO) flushAll() {
 	// dump dynamic cache pts
 	if x.DynamicCacheDumpThreshold > 0 && x.dynamicCacheCnt > x.DynamicCacheDumpThreshold {
 		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCount)
-		for k, _ := range x.dynamicCache {
+		for k := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
 		atomic.AddInt64(&x.droppedTotal, x.dynamicCacheCnt)
@@ -459,11 +497,6 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 		return err
 	}
 	for _, body := range bodies {
-		if x.OutputFile != "" {
-			x.fileOutput(body.buf)
-			continue
-		}
-
 		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
 			return err
 		}
@@ -475,16 +508,13 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 }
 
 func (x *IO) fileOutput(body []byte) error {
-
 	if _, err := x.fd.Write(append(body, '\n')); err != nil {
-		l.Error(err)
 		return err
 	}
 
 	x.outputFileSize += int64(len(body))
 	if x.outputFileSize > 4*1024*1024 {
 		if err := x.fd.Truncate(0); err != nil {
-			l.Error(err)
 			return err
 		}
 		x.outputFileSize = 0

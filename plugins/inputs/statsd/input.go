@@ -1,3 +1,4 @@
+// Package statsd serve a UDP/TCP(not used) server to handle statsd metrics.
 package statsd
 
 import (
@@ -9,7 +10,7 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -34,9 +35,7 @@ const (
 	catalog   = "statsd"
 )
 
-var (
-	l = logger.DefaultSLogger("statsd")
-)
+var l = logger.DefaultSLogger("statsd")
 
 // Statsd allows the importing of statsd and dogstatsd data.
 type input struct {
@@ -140,6 +139,8 @@ type input struct {
 
 	// A pool of byte slices to handle parsing
 	bufPool sync.Pool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 type job struct {
@@ -148,7 +149,7 @@ type job struct {
 	Addr string
 }
 
-// One statsd metric, form is <bucket>:<value>|<mtype>|@<samplerate>
+// One statsd metric, form is <bucket>:<value>|<mtype>|@<samplerate>.
 type metric struct {
 	name       string
 	field      string
@@ -253,67 +254,67 @@ const sampleConfig = `
   # some_tag = "some_value"
   # more_tag = "some_other_value"`
 
-func (s *input) SampleConfig() string {
+func (ipt *input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (s *input) Catalog() string {
+func (ipt *input) Catalog() string {
 	return catalog
 }
 
-func (s *input) SampleMeasurement() []inputs.Measurement {
+func (ipt *input) SampleMeasurement() []inputs.Measurement {
 	return nil
 }
 
-func (s *input) AvailableArchs() []string {
+func (ipt *input) AvailableArchs() []string {
 	return datakit.AllOS
 }
 
-func (s *input) setup() error {
-	if s.ParseDataDogTags {
-		s.DataDogExtensions = true
+func (ipt *input) setup() error {
+	if ipt.ParseDataDogTags {
+		ipt.DataDogExtensions = true
 		l.Warn("'parse_data_dog_tags' config option is deprecated, please use 'datadog_extensions' instead")
 	}
 
-	s.acc = &accumulator{ref: s}
+	ipt.acc = &accumulator{ref: ipt}
 
 	// Make data structures
-	s.gauges = make(map[string]cachedgauge)
-	s.counters = make(map[string]cachedcounter)
-	s.sets = make(map[string]cachedset)
-	s.timings = make(map[string]cachedtimings)
-	s.distributions = make([]cacheddistributions, 0)
+	ipt.gauges = make(map[string]cachedgauge)
+	ipt.counters = make(map[string]cachedcounter)
+	ipt.sets = make(map[string]cachedset)
+	ipt.timings = make(map[string]cachedtimings)
+	ipt.distributions = make([]cacheddistributions, 0)
 
-	s.Lock()
-	defer s.Unlock()
+	ipt.Lock()
+	defer ipt.Unlock()
 
-	s.in = make(chan job, s.AllowedPendingMessages)
-	s.done = make(chan struct{})
-	s.accept = make(chan bool, s.MaxTCPConnections)
-	s.conns = make(map[string]*net.TCPConn)
-	s.bufPool = sync.Pool{
+	ipt.in = make(chan job, ipt.AllowedPendingMessages)
+	ipt.done = make(chan struct{})
+	ipt.accept = make(chan bool, ipt.MaxTCPConnections)
+	ipt.conns = make(map[string]*net.TCPConn)
+	ipt.bufPool = sync.Pool{
 		New: func() interface{} {
 			return new(bytes.Buffer)
 		},
 	}
-	for i := 0; i < s.MaxTCPConnections; i++ {
-		s.accept <- true
+	for i := 0; i < ipt.MaxTCPConnections; i++ {
+		ipt.accept <- true
 	}
 
-	if s.ConvertNames {
+	if ipt.ConvertNames {
 		l.Warn("'convert_names' config option is deprecated, please use 'metric_separator' instead")
 	}
 
-	if s.MetricSeparator == "" {
-		s.MetricSeparator = defaultSeparator
+	if ipt.MetricSeparator == "" {
+		ipt.MetricSeparator = defaultSeparator
 	}
 
-	if len(s.MetricMapping) > 0 {
-		s.setupMmap()
+	if len(ipt.MetricMapping) > 0 {
+		ipt.setupMmap()
 	}
 
-	if s.isUDP() {
-		if err := s.setupUDPServer(); err != nil {
+	if ipt.isUDP() {
+		if err := ipt.setupUDPServer(); err != nil {
 			return err
 		}
 	} else {
@@ -325,31 +326,31 @@ func (s *input) setup() error {
 	l.Infof("starting %d parser worker...", parserGoRoutines)
 	for i := 1; i <= parserGoRoutines; i++ {
 		// Start the line parser
-		s.wg.Add(1)
+		ipt.wg.Add(1)
 		go func(idx int) {
-			defer s.wg.Done()
-			s.parser(idx)
+			defer ipt.wg.Done()
+			ipt.parser(idx)
 		}(i)
 	}
 
 	return nil
 }
 
-func (s *input) setupMmap() {
-	s.mmap = map[string]string{}
+func (ipt *input) setupMmap() {
+	ipt.mmap = map[string]string{}
 
-	for _, mm := range s.MetricMapping {
+	for _, mm := range ipt.MetricMapping {
 		arr := strings.SplitN(mm, ":", 2)
 		if len(arr) != 2 {
 			l.Warnf("invalid MetricMapping: %s, ignored", mm)
 			continue
 		}
 
-		s.mmap[arr[0]] = arr[1]
+		ipt.mmap[arr[0]] = arr[1]
 	}
 }
 
-func (s *input) Run() {
+func (ipt *input) Run() {
 	l = logger.SLogger(inputName)
 
 	for {
@@ -359,7 +360,7 @@ func (s *input) Run() {
 		default:
 		}
 
-		if err := s.setup(); err != nil {
+		if err := ipt.setup(); err != nil {
 			io.FeedLastError(inputName, err.Error())
 			time.Sleep(time.Second * 5)
 			continue
@@ -367,43 +368,59 @@ func (s *input) Run() {
 		break
 	}
 
-	l.Infof("Started the statsd service on %q", s.ServiceAddress)
+	l.Infof("Started the statsd service on %q", ipt.ServiceAddress)
 	tick := time.NewTicker(time.Second * 10)
 	defer tick.Stop()
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			s.stop()
+			ipt.exit()
 			l.Info("statsd exited")
 			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("statsd return")
+			return
+
 		case <-tick.C:
 			l.Debugf("try gathering...")
-			s.gather()
+			ipt.gather()
 		}
+	}
+}
+
+func (ipt *input) exit() {
+	ipt.stop()
+}
+
+func (ipt *input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
 // aggregate takes in a metric. It then
 // aggregates and caches the current value(s). It does not deal with the
 // Delete* options, because those are dealt with in the Gather function.
-func (s *input) aggregate(m metric) {
-	s.Lock()
-	defer s.Unlock()
+func (ipt *input) aggregate(m metric) {
+	ipt.Lock()
+	defer ipt.Unlock()
 
 	switch m.mtype {
 	case "d":
-		if s.DataDogExtensions && s.DataDogDistributions {
+		if ipt.DataDogExtensions && ipt.DataDogDistributions {
 			cached := cacheddistributions{
 				name:  m.name,
 				value: m.floatvalue,
 				tags:  m.tags,
 			}
-			s.distributions = append(s.distributions, cached)
+			ipt.distributions = append(ipt.distributions, cached)
 		}
 	case "ms", "h":
 		// Check if the measurement exists
-		cached, ok := s.timings[m.hash]
+		cached, ok := ipt.timings[m.hash]
 		if !ok {
 			cached = cachedtimings{
 				name:   m.name,
@@ -416,7 +433,7 @@ func (s *input) aggregate(m metric) {
 		field, ok := cached.fields[m.field]
 		if !ok {
 			field = RunningStats{
-				PercLimit: s.PercentileLimit,
+				PercLimit: ipt.PercentileLimit,
 			}
 		}
 		if m.samplerate > 0 {
@@ -427,11 +444,11 @@ func (s *input) aggregate(m metric) {
 			field.AddValue(m.floatvalue)
 		}
 		cached.fields[m.field] = field
-		cached.expiresAt = time.Now().Add(s.MaxTTL.Duration)
-		s.timings[m.hash] = cached
+		cached.expiresAt = time.Now().Add(ipt.MaxTTL.Duration)
+		ipt.timings[m.hash] = cached
 	case "c":
 		// check if the measurement exists
-		cached, ok := s.counters[m.hash]
+		cached, ok := ipt.counters[m.hash]
 		if !ok {
 			cached = cachedcounter{
 				name:   m.name,
@@ -445,11 +462,11 @@ func (s *input) aggregate(m metric) {
 			cached.fields[m.field] = int64(0)
 		}
 		cached.fields[m.field] = cached.fields[m.field].(int64) + m.intvalue
-		cached.expiresAt = time.Now().Add(s.MaxTTL.Duration)
-		s.counters[m.hash] = cached
+		cached.expiresAt = time.Now().Add(ipt.MaxTTL.Duration)
+		ipt.counters[m.hash] = cached
 	case "g":
 		// check if the measurement exists
-		cached, ok := s.gauges[m.hash]
+		cached, ok := ipt.gauges[m.hash]
 		if !ok {
 			cached = cachedgauge{
 				name:   m.name,
@@ -468,11 +485,11 @@ func (s *input) aggregate(m metric) {
 			cached.fields[m.field] = m.floatvalue
 		}
 
-		cached.expiresAt = time.Now().Add(s.MaxTTL.Duration)
-		s.gauges[m.hash] = cached
+		cached.expiresAt = time.Now().Add(ipt.MaxTTL.Duration)
+		ipt.gauges[m.hash] = cached
 	case "s":
 		// check if the measurement exists
-		cached, ok := s.sets[m.hash]
+		cached, ok := ipt.sets[m.hash]
 		if !ok {
 			cached = cachedset{
 				name:   m.name,
@@ -486,84 +503,91 @@ func (s *input) aggregate(m metric) {
 			cached.fields[m.field] = make(map[string]bool)
 		}
 		cached.fields[m.field][m.strvalue] = true
-		cached.expiresAt = time.Now().Add(s.MaxTTL.Duration)
-		s.sets[m.hash] = cached
+		cached.expiresAt = time.Now().Add(ipt.MaxTTL.Duration)
+		ipt.sets[m.hash] = cached
 	}
 }
 
-func (s *input) stop() {
-	s.Lock()
+func (ipt *input) stop() {
+	ipt.Lock()
 	l.Infof("Stopping the statsd service")
-	close(s.done)
-	if s.isUDP() && s.UDPlistener != nil {
+	close(ipt.done)
+	if ipt.isUDP() && ipt.UDPlistener != nil {
 		// Ignore the returned error as we cannot do anything about it anyway
 		//nolint:errcheck,revive
-		s.UDPlistener.Close()
-	} else if s.TCPlistener != nil {
+		if err := ipt.UDPlistener.Close(); err != nil {
+			l.Warnf("Close: %s, ignored", err)
+		}
+	} else if ipt.TCPlistener != nil {
 		// Ignore the returned error as we cannot do anything about it anyway
 		//nolint:errcheck,revive
-		s.TCPlistener.Close()
+		if err := ipt.TCPlistener.Close(); err != nil {
+			l.Warnf("Close: %s, ignored", err)
+		}
+
 		// Close all open TCP connections
 		//  - get all conns from the s.conns map and put into slice
 		//  - this is so the forget() function doesnt conflict with looping
 		//    over the s.conns map
 		var conns []*net.TCPConn
-		s.cleanup.Lock()
-		for _, conn := range s.conns {
+		ipt.cleanup.Lock()
+		for _, conn := range ipt.conns {
 			conns = append(conns, conn)
 		}
-		s.cleanup.Unlock()
+		ipt.cleanup.Unlock()
 		for _, conn := range conns {
 			// Ignore the returned error as we cannot do anything about it anyway
 			//nolint:errcheck,revive
-			conn.Close()
+			if err := conn.Close(); err != nil {
+				l.Warnf("Close: %s, ignored", err)
+			}
 		}
 	}
 
-	s.Unlock()
+	ipt.Unlock()
 
-	s.wg.Wait()
+	ipt.wg.Wait()
 
-	s.Lock()
-	close(s.in)
-	l.Infof("Stopped listener service on %q", s.ServiceAddress)
-	s.Unlock()
+	ipt.Lock()
+	close(ipt.in)
+	l.Infof("Stopped listener service on %q", ipt.ServiceAddress)
+	ipt.Unlock()
 }
 
 // IsUDP returns true if the protocol is UDP, false otherwise.
-func (s *input) isUDP() bool {
-	return strings.HasPrefix(s.Protocol, "udp")
+func (ipt *input) isUDP() bool {
+	return strings.HasPrefix(ipt.Protocol, "udp")
 }
 
-func (s *input) expireCachedMetrics() {
+func (ipt *input) expireCachedMetrics() {
 	// If Max TTL wasn't configured, skip expiration.
-	if s.MaxTTL.Duration == 0 {
+	if ipt.MaxTTL.Duration == 0 {
 		return
 	}
 
 	now := time.Now()
 
-	for key, cached := range s.gauges {
+	for key, cached := range ipt.gauges {
 		if now.After(cached.expiresAt) {
-			delete(s.gauges, key)
+			delete(ipt.gauges, key)
 		}
 	}
 
-	for key, cached := range s.sets {
+	for key, cached := range ipt.sets {
 		if now.After(cached.expiresAt) {
-			delete(s.sets, key)
+			delete(ipt.sets, key)
 		}
 	}
 
-	for key, cached := range s.timings {
+	for key, cached := range ipt.timings {
 		if now.After(cached.expiresAt) {
-			delete(s.timings, key)
+			delete(ipt.timings, key)
 		}
 	}
 
-	for key, cached := range s.counters {
+	for key, cached := range ipt.counters {
 		if now.After(cached.expiresAt) {
-			delete(s.counters, key)
+			delete(ipt.counters, key)
 		}
 	}
 }
@@ -580,10 +604,12 @@ func defaultInput() *input {
 		DeleteGauges:           true,
 		DeleteSets:             true,
 		DeleteTimings:          true,
+
+		semStop: cliutils.NewSem(),
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

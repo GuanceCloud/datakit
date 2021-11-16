@@ -71,7 +71,7 @@ func TestNormal(t *testing.T) {
 }
 
 func TestGOMAXPROCS(t *testing.T) {
-	var sleep1s = func(ctx context.Context) error {
+	sleep1s := func(ctx context.Context) error {
 		time.Sleep(time.Second)
 		return nil
 	}
@@ -87,7 +87,7 @@ func TestGOMAXPROCS(t *testing.T) {
 	err := g.Wait()
 
 	assert.NoError(t, err)
-	assert.Greater(t, time.Since(now).Milliseconds(), int64(2000))
+	assert.GreaterOrEqual(t, time.Since(now).Milliseconds(), int64(2000))
 }
 
 func TestStat(t *testing.T) {
@@ -106,7 +106,9 @@ func TestStat(t *testing.T) {
 		return nil
 	})
 
-	g.Wait()
+	if err := g.Wait(); err != nil {
+		t.Error(err)
+	}
 
 	for k, v := range stat {
 		assert.Equal(t, k, "default")
@@ -114,7 +116,6 @@ func TestStat(t *testing.T) {
 		assert.Equal(t, int64(1), v.ErrCount)
 		assert.Greater(t, v.CostTime, int64(3000000))
 	}
-
 }
 
 func TestNestGroup(t *testing.T) {

@@ -31,13 +31,16 @@ GIT_VERSION := $(shell git describe --always --tags)
 DATE := $(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION := $(shell go version)
 COMMIT := $(shell git rev-parse --short HEAD)
-BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMITER := $(shell git log -1 --pretty=format:'%an')
 UPLOADER:= $(shell hostname)/${USER}/${COMMITER}
 
-NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))"}}')
-NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))"}}')
-NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支($(BRANCH))提交代码，以免 CI 任务失败"}}')
+NOTIFY_MSG_RELEASE:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION)/$(GIT_BRANCH))"}}')
+NOTIFY_MSG_TEST:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION)/$(GIT_BRANCH))"}}')
+CI_PASS_NOTIFY_MSG:=$(shell echo '{"msgtype": "text","text": {"content": "$(UPLOADER) 触发的 DataKit CI 通过"}}')
+NOTIFY_CI:=$(shell echo '{"msgtype": "text","text": {"content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支[$(GIT_BRANCH)]提交代码，以免 CI 任务失败"}}')
+
+LINUX_RELEASE_VERSION = $(shell uname -r)
 
 define GIT_INFO
 //nolint
@@ -69,11 +72,11 @@ define pub
 		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
-lint:
-	@golangci-lint run --timeout 1h | tee check.err # https://golangci-lint.run/usage/install/#local-installation
-
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
+
+build: prepare man gofmt lfparser_disable_line plparser_disable_line
+	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
 
 testing: deps
 	$(call build,test, $(DEFAULT_ARCHS), $(TEST_DOWNLOAD_ADDR))
@@ -105,8 +108,8 @@ pub_testing_win_img:
 pub_testing_img:
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(TEST_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+	@sudo docker buildx build --platform linux/arm64,linux/amd64 \
+		-t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
 pub_release_win_img:
 	# release to pub hub
@@ -119,14 +122,20 @@ pub_release_img:
 	# release to pub hub
 	@mkdir -p embed/linux-amd64
 	@wget --quiet -O - "https://$(RELEASE_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) .
-	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION)
+	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t \
+		pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
 
 pub_release:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
 pub_release_mac:
 	$(call pub,release,$(RELEASE_DOWNLOAD_ADDR),$(MAC_ARCHS))
+
+ci_pass_notify:
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=245327454760c3587f40b98bdd44f125c5d81476a7e348a2cc15d7b339984c87' \
+		-H 'Content-Type: application/json' \
+		-d '$(CI_PASS_NOTIFY_MSG)'
 
 test_notify:
 	@curl \
@@ -146,6 +155,10 @@ ci_notify:
 		-H 'Content-Type: application/json' \
 		-d '$(NOTIFY_CI)'
 
+test_conf_compatible:
+	./dist/datakit-linux-amd64/datakit --check-config --config-dir samples
+	./dist/datakit-linux-amd64/datakit --check-sample
+
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
@@ -155,28 +168,71 @@ endef
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser vet 
+deps: prepare man gofmt lfparser_disable_line plparser_disable_line lint_with_exit
 
 man:
 	@packr2 clean
 	@packr2
 
+# ignore files under vendor/.git/git
+# install gofumpt: go install mvdan.cc/gofumpt@latest
 gofmt:
-	@GO111MODULE=off go fmt ./...
+	@GO111MODULE=off gofumpt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go")
 
 vet:
 	@go vet ./...
 
-test:
-	@GO111MODULE=off go test ./...
+# all testing
+at: test_deps
+	@truncate -s 0 test.output
+	@echo "#####################" | tee -a test.output
+	@echo "#" $(DATE) | tee -a test.output
+	@echo "#" $(GIT_VERSION) | tee -a test.output
+	@echo "#####################" | tee -a test.output
+	for pkg in `go list ./...`; do \
+		echo "# testing $$pkg..." | tee -a test.output; \
+		GO111MODULE=off CGO_ENABLED=1 go test -race -timeout 30s \
+			-cover -benchmem -bench . $$pkg | tee -a test.output; \
+		echo "######################" | tee -a test.output; \
+	done
 
-lfparser:
-	@goyacc -o io/parser/gram_y.go io/parser/gram.y
+test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
+
+lint:
+	@truncate -s 0 lint.err
+	@golangci-lint --version 
+	@golangci-lint run --fix | tee -a lint.err
+
+lint_with_exit:
+	@truncate -s 0 lint.err
+	@golangci-lint --version 
+	@golangci-lint run --fix
+
+lfparser_disable_line:
+	@rm -rf io/parser/gram_y.go
+	@rm -rf io/parser/gram.y.go
+	@rm -rf io/parser/parser.y.go
+	@rm -rf io/parser/parser_y.go
+	@goyacc -l -o io/parser/gram_y.go io/parser/gram.y # use -l to disable `//line`
+
+plparser_disable_line:
+	@rm -rf pipeline/parser/gram_y.go
+	@rm -rf pipeline/parser/gram.y.go
+	@rm -rf pipeline/parser/parser.y.go
+	@rm -rf pipeline/parser/parser_y.go
+	@goyacc -l -o pipeline/parser/gram_y.go pipeline/parser/gram.y # use -l to disable `//line`
 
 prepare:
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
 
 clean:
-	rm -rf build/*
-	rm -rf $(PUB_DIR)/*
+	@rm -rf build/*
+	@rm -rf io/parser/gram_y.go
+	@rm -rf io/parser/gram.y.go
+	@rm -rf pipeline/parser/parser.y.go
+	@rm -rf pipeline/parser/parser_y.go
+	@rm -rf pipeline/parser/gram.y.go
+	@rm -rf pipeline/parser/gram_y.go
+	@rm -rf check.err
+	@rm -rf $(PUB_DIR)/*

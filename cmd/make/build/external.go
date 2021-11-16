@@ -22,94 +22,62 @@ type dkexternal struct {
 	buildCmd string
 }
 
-var (
-	externals = []*dkexternal{
-		&dkexternal{
-			// requirement: apt-get install gcc-multilib
-			name: "oracle",
-			lang: "go",
+var externals = []*dkexternal{
+	{
+		// requirement: apt-get install gcc-multilib
+		name: "oracle",
+		lang: "go",
 
-			entry: "oracle.go",
-			osarchs: map[string]bool{
-				"linux/amd64": true,
-				"linux/386":   true,
-			},
-
-			buildArgs: nil,
-			envs: []string{
-				"CGO_ENABLED=1",
-			},
+		entry: "oracle.go",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+			"linux/386":   true,
 		},
 
-		/*
-			&dkexternal{
-				name: "csv",
-				osarchs: map[string]bool{
-					`linux/386`:     true,
-					`linux/amd64`:   true,
-					`linux/arm`:     true,
-					`linux/arm64`:   true,
-					`darwin/amd64`:  true,
-					`windows/amd64`: true,
-					`windows/386`:   true,
-				},
-				buildArgs: []string{"plugins/externals/csv/build.sh"},
-				buildCmd:  "bash",
-			},
-			&dkexternal{
-				name: "ansible",
-				osarchs: map[string]bool{
-					`linux/386`:     true,
-					`linux/amd64`:   true,
-					`linux/arm`:     true,
-					`linux/arm64`:   true,
-					`darwin/amd64`:  true,
-					`windows/amd64`: true,
-					`windows/386`:   true,
-				},
-				buildArgs: []string{"plugins/externals/ansible/build.sh"},
-				buildCmd:  "bash",
-			},
-			&dkexternal{
-				name: "qyt_all",
-				osarchs: map[string]bool{
-					`linux/386`:     true,
-					`linux/amd64`:   true,
-					`linux/arm`:     true,
-					`linux/arm64`:   true,
-					`darwin/amd64`:  true,
-					`windows/amd64`: true,
-					`windows/386`:   true,
-				},
-				buildArgs: []string{"plugins/externals/qyt_all/build.sh"},
-				buildCmd:  "bash",
-			},
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=1",
+		},
+	},
+	{
+		// requirement: apt install clang llvm linux-headers-$(uname -r)
+		name: "net_ebpf",
+		lang: "makefile",
 
-				&dkexternal{
-					// requirement: apt-get install gcc-multilib
-					name: "skywalkingGrpcV3",
-					lang: "go",
+		entry: "Makefile",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+		},
 
-					entry: "main.go",
-					osarchs: map[string]bool{
-						`linux/386`:     true,
-						`linux/amd64`:   true,
-						`linux/arm`:     true,
-						`linux/arm64`:   true,
-						`darwin/amd64`:  true,
-						`windows/amd64`: true,
-						`windows/386`:   true,
-					},
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=1",
+		},
+	},
+	// &dkexternal{
+	// 	// requirement: apt-get install gcc-multilib
+	// 	name: "skywalkingGrpcV3",
+	// 	lang: "go",
 
-					buildArgs: nil,
-					envs: []string{
-						"CGO_ENABLED=0",
-					},
-				}, */
+	// 	entry: "main.go",
+	// 	osarchs: map[string]bool{
+	// 		`linux/386`:     true,
+	// 		`linux/amd64`:   true,
+	// 		`linux/arm`:     true,
+	// 		`linux/arm64`:   true,
+	// 		`darwin/amd64`:  true,
+	// 		`windows/amd64`: true,
+	// 		`windows/386`:   true,
+	// 	},
 
-		// others...
-	}
-)
+	// 	buildArgs: nil,
+	// 	envs: []string{
+	// 		"CGO_ENABLED=0",
+	// 	},
+	// },
+
+	// others...
+}
 
 func buildExternals(outdir, goos, goarch string) {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
@@ -135,7 +103,7 @@ func buildExternals(outdir, goos, goarch string) {
 
 			switch osarch {
 			case "windows/amd64", "windows/386":
-				out = out + ".exe"
+				out += ".exe"
 			default: // pass
 			}
 
@@ -144,26 +112,41 @@ func buildExternals(outdir, goos, goarch string) {
 				"-o", filepath.Join(outdir, "externals", out),
 				"-ldflags",
 				"-w -s",
-				filepath.Join("plugins/externals", ex.name, ex.entry),
+				filepath.Join("plugins", "externals", ex.name, ex.entry),
 			}
 
-			env := append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
+			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
 
-			msg, err := runEnv(args, env)
+			msg, err := runEnv(args, ex.envs)
 			if err != nil {
-				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
+					args, ex.envs, err, string(msg))
+			}
+		case "makefile", "Makefile":
+			args := []string{
+				"make",
+				"--file=" + filepath.Join("plugins", "externals", ex.name, ex.entry),
+				"OUTPATH=" + filepath.Join(outdir, "externals", out),
+				"BASEPATH=" + "plugins/externals/" + ex.name,
 			}
 
+			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
+			msg, err := runEnv(args, ex.envs)
+			if err != nil {
+				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
+					args, ex.envs, err, string(msg))
+			}
 		default: // for python, just copy source code into build dir
-			args := append(ex.buildArgs, filepath.Join(outdir, "externals"))
-			cmd := exec.Command(ex.buildCmd, args...)
+			ex.buildArgs = append(ex.buildArgs, filepath.Join(outdir, "externals"))
+			cmd := exec.Command(ex.buildCmd, ex.buildArgs...) //nolint:gosec
 			if ex.envs != nil {
 				cmd.Env = append(os.Environ(), ex.envs...)
 			}
 
 			res, err := cmd.CombinedOutput()
 			if err != nil {
-				l.Fatalf("failed to build python(%s %s): %s, err: %s", ex.buildCmd, strings.Join(args, " "), res, err.Error())
+				l.Fatalf("failed to build python(%s %s): %s, err: %s",
+					ex.buildCmd, strings.Join(ex.buildArgs, " "), res, err.Error())
 			}
 		}
 	}

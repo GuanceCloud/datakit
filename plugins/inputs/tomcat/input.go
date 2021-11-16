@@ -1,8 +1,8 @@
+// Package tomcat collect Tomcat metrics.
 package tomcat
 
 import (
 	"os"
-	"path/filepath"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -19,16 +19,14 @@ const (
 	maxInterval = time.Minute * 20
 )
 
-var (
-	l = logger.DefaultSLogger(inputName)
-)
+var l = logger.DefaultSLogger(inputName)
 
 type tomcatlog struct {
 	Files             []string `toml:"files"`
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type Input struct {
@@ -39,19 +37,19 @@ type Input struct {
 	tail *tailer.Tailer
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return tomcatSampleCfg
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&TomcatGlobalRequestProcessorM{},
 		&TomcatJspMonitorM{},
@@ -60,11 +58,22 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&TomcatCacheM{},
 	}
 }
-func (i *Input) PipelineConfig() map[string]string {
+
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: i.Log.Pipeline,
+		},
+	}
 }
 
 func (i *Input) RunPipeline() {
@@ -82,20 +91,24 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("NewTailer: %s", err)
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
@@ -108,10 +121,9 @@ func (i *Input) Run() {
 		for {
 			<-datakit.Exit.Wait()
 			if i.tail != nil {
-				i.tail.Close()
+				i.tail.Close() //nolint:errcheck
 			}
 		}
-
 	}()
 	if d, err := time.ParseDuration(i.Interval); err != nil {
 		i.Interval = (time.Second * 10).String()
@@ -124,7 +136,7 @@ func (i *Input) Run() {
 	i.JolokiaAgent.Collect()
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		i := &Input{}
 		return i

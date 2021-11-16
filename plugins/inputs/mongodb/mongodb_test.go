@@ -14,11 +14,10 @@ func TestGatherServerStats(t *testing.T) {
 		Servers:               []string{"mongodb://127.0.0.1:27017"},
 		GatherReplicaSetStats: false,
 		GatherClusterStats:    false,
-		GatherPerDbStats:      false,
+		GatherPerDBStats:      false,
 		GatherPerColStats:     false,
-		ColStatsDbs:           []string{"local"},
+		ColStatsDBs:           []string{"local"},
 		GatherTopStat:         false,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -30,7 +29,7 @@ func TestGatherServerStats(t *testing.T) {
 		if srv.lastResult != nil {
 			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			data.AddDefaultStats()
-			data.AddDbStats()
+			data.AddDBStats()
 			data.AddColStats()
 			data.AddShardHostStats()
 			data.AddTopStats()
@@ -53,11 +52,10 @@ func TestGatherCluster(t *testing.T) {
 		Servers:               []string{"mongodb://127.0.0.1:27017"},
 		GatherReplicaSetStats: false,
 		GatherClusterStats:    true,
-		GatherPerDbStats:      false,
+		GatherPerDBStats:      false,
 		GatherPerColStats:     false,
-		ColStatsDbs:           []string{""},
+		ColStatsDBs:           []string{""},
 		GatherTopStat:         false,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -69,7 +67,7 @@ func TestGatherCluster(t *testing.T) {
 		if srv.lastResult != nil {
 			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			data.AddDefaultStats()
-			data.AddDbStats()
+			data.AddDBStats()
 			data.AddColStats()
 			data.AddShardHostStats()
 			data.AddTopStats()
@@ -86,17 +84,16 @@ func TestGatherCluster(t *testing.T) {
 	}
 }
 
-func TestGatherPerDbStats(t *testing.T) {
+func TestGatherPerDBStats(t *testing.T) {
 	input := &Input{
 		Interval:              datakit.Duration{Duration: 3 * time.Second},
 		Servers:               []string{"mongodb://127.0.0.1:27017"},
 		GatherReplicaSetStats: false,
 		GatherClusterStats:    false,
-		GatherPerDbStats:      true,
+		GatherPerDBStats:      true,
 		GatherPerColStats:     false,
-		ColStatsDbs:           []string{},
+		ColStatsDBs:           []string{},
 		GatherTopStat:         false,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -108,7 +105,7 @@ func TestGatherPerDbStats(t *testing.T) {
 		if srv.lastResult != nil {
 			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			// data.AddDefaultStats()
-			data.AddDbStats()
+			data.AddDBStats()
 			data.AddColStats()
 			data.AddShardHostStats()
 			data.AddTopStats()
@@ -126,8 +123,7 @@ func TestGatherPerDbStats(t *testing.T) {
 }
 
 // TODO: add testing gathering sharded conn pool
-func TestGathertShard(t *testing.T) {
-}
+func TestGathertShard(t *testing.T) {}
 
 func TestGatherCollection(t *testing.T) {
 	input := &Input{
@@ -135,11 +131,10 @@ func TestGatherCollection(t *testing.T) {
 		Servers:               []string{"mongodb://127.0.0.1:27017"},
 		GatherReplicaSetStats: false,
 		GatherClusterStats:    false,
-		GatherPerDbStats:      false,
+		GatherPerDBStats:      false,
 		GatherPerColStats:     true,
-		ColStatsDbs:           []string{"admin", "local", "config"},
+		ColStatsDBs:           []string{"admin", "local", "config"},
 		GatherTopStat:         false,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -151,7 +146,7 @@ func TestGatherCollection(t *testing.T) {
 		if srv.lastResult != nil {
 			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			// data.AddDefaultStats()
-			data.AddDbStats()
+			data.AddDBStats()
 			data.AddColStats()
 			data.AddShardHostStats()
 			data.AddTopStats()
@@ -174,11 +169,10 @@ func TestGatherTop(t *testing.T) {
 		Servers:               []string{"mongodb://127.0.0.1:27017"},
 		GatherReplicaSetStats: false,
 		GatherClusterStats:    true,
-		GatherPerDbStats:      false,
+		GatherPerDBStats:      false,
 		GatherPerColStats:     false,
-		ColStatsDbs:           []string{"admin", "local", "config"},
+		ColStatsDBs:           []string{"admin", "local", "config"},
 		GatherTopStat:         true,
-		EnableTls:             false,
 		mongos:                make(map[string]*Server),
 	}
 	err := input.gather()
@@ -190,7 +184,7 @@ func TestGatherTop(t *testing.T) {
 		if srv.lastResult != nil {
 			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			// data.AddDefaultStats()
-			data.AddDbStats()
+			data.AddDBStats()
 			data.AddColStats()
 			data.AddShardHostStats()
 			data.AddTopStats()
@@ -214,12 +208,11 @@ func TestTlsConnectCollect(t *testing.T) {
 		Servers:               []string{"mongodb://10.200.7.21:27017"},
 		GatherReplicaSetStats: true,
 		GatherClusterStats:    true,
-		GatherPerDbStats:      true,
+		GatherPerDBStats:      true,
 		GatherPerColStats:     true,
-		ColStatsDbs:           []string{""},
+		ColStatsDBs:           []string{""},
 		GatherTopStat:         true,
-		EnableTls:             true,
-		TlsConf: &net.TlsClientConfig{
+		TLSClientConfig: net.TLSClientConfig{
 			CaCerts:            []string{"/etc/ssl/certs/mongod.cert.pem"},
 			Cert:               "/etc/ssl/certs/mongo.pem",
 			CertKey:            "/etc/ssl/certs/mongo.key.pem",
@@ -237,7 +230,7 @@ func TestTlsConnectCollect(t *testing.T) {
 		if srv.lastResult != nil {
 			data := NewMongodbData(NewStatLine(*srv.lastResult, *srv.lastResult, srv.URL.Host, true, 1), map[string]string{"hostname": srv.URL.Host})
 			data.AddDefaultStats()
-			data.AddDbStats()
+			data.AddDBStats()
 			data.AddColStats()
 			data.AddShardHostStats()
 			data.AddTopStats()

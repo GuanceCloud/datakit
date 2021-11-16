@@ -5,7 +5,7 @@ import (
 )
 
 func TestParseImage(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		image          string
 		imageName      string
 		imageShortName string
@@ -54,7 +54,7 @@ func TestParseImage(t *testing.T) {
 }
 
 func TestRegexpMatchString(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		regexps []string
 		target  string
 		fail    bool
@@ -78,11 +78,12 @@ func TestRegexpMatchString(t *testing.T) {
 
 	for idx, tc := range cases {
 		matchRes := regexpMatchString(tc.regexps, tc.target)
-		if matchRes && !tc.fail {
+		switch {
+		case matchRes && !tc.fail:
 			t.Logf("[ OK ] index: %d \n", idx)
-		} else if matchRes {
+		case matchRes:
 			t.Logf("[ ERROR ] index: %d\n", idx)
-		} else {
+		default:
 			t.Logf("[ OK ] index: %d\n", idx)
 		}
 	}

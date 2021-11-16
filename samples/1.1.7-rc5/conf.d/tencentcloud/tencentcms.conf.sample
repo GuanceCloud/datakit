@@ -1,0 +1,31 @@
+
+#[[inputs.tencentcms]]
+#access_key_id = ""
+#access_key_secret = ""
+
+# ##See: https://cloud.tencent.com/document/product/213/6091
+#region_id = 'ap-shanghai'
+
+
+#[[inputs.tencentcms.namespace]]
+#	name='QCE/CVM'
+
+#   ## Metrics to Pull (Required), See: https://cloud.tencent.com/document/api/248/30384
+#	[inputs.tencentcms.namespace.metrics]
+#	names = [
+#		"CPUUsage",
+#	]
+
+#     ## dimensions can be used to query the specified resource, which is a collection of key-value forms.
+#     ## each metric may have its own dimensions, See: https://cloud.tencent.com/document/api/248/30384
+#     ## name is metric name, value is json
+#	[[inputs.tencentcms.namespace.metrics.dimensions]]
+#		name = "CPUUsage"
+#		value = '''
+#		[
+#			{"Dimensions":
+#			[
+#				{ "Name": "InstanceId", "Value": "ins-9bpjauir" }
+#			]
+#			}
+#		]'''

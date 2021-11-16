@@ -71,6 +71,12 @@ func SetOutputFile(output string) IOOption {
 	}
 }
 
+func SetOutputFileInput(outputFileInputs []string) IOOption {
+	return func(io *IO) {
+		io.OutputFileInput = outputFileInputs
+	}
+}
+
 func SetDataway(dw *dataway.DataWayCfg) IOOption {
 	return func(io *IO) {
 		io.dw = dw
@@ -172,7 +178,7 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 	return defaultIO.DoFeed(pts, category, name, opt)
 }
 
-func FeedLastError(inputName string, err string) error {
+func FeedLastError(inputName string, err string) {
 	select {
 	case defaultIO.inLastErr <- &lastErr{
 		from: inputName,
@@ -182,14 +188,16 @@ func FeedLastError(inputName string, err string) error {
 	case <-datakit.Exit.Wait():
 		l.Warnf("%s feed last error skipped on global exit", inputName)
 	}
-	return nil
+}
+
+func SelfError(err string) {
+	FeedLastError(datakit.DatakitInputName, err)
 }
 
 func MakePointWithoutGlobalTags(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-
 	return makePoint(name, tags, nil, fields, t...)
 }
 
@@ -197,7 +205,6 @@ func makePoint(name string,
 	tags, extags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]
@@ -210,7 +217,8 @@ func makePoint(name string,
 			ExtraTags: extags,
 			Strict:    true,
 			Time:      ts,
-			Precision: "n"})
+			Precision: "n",
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +233,7 @@ func MakePoint(name string,
 	return makePoint(name, tags, extraTags, fields, t...)
 }
 
-// Deprecated
+// MakeMetric Deprecated.
 func MakeMetric(name string,
 	tags map[string]string,
 	fields map[string]interface{},
@@ -238,7 +246,7 @@ func MakeMetric(name string,
 	return []byte(p.Point.String()), nil
 }
 
-// Deprecated
+// NamedFeed Deprecated.
 func NamedFeed(data []byte, category, name string) error {
 	pts, err := lp.ParsePoints(data, nil)
 	if err != nil {
@@ -253,12 +261,11 @@ func NamedFeed(data []byte, category, name string) error {
 	return defaultIO.DoFeed(x, category, name, nil)
 }
 
-// Deprecated
+// HighFreqFeedEx Deprecated.
 func HighFreqFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) error {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]
@@ -271,20 +278,20 @@ func HighFreqFeedEx(name, category, metric string,
 			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
-			Precision: "n"})
+			Precision: "n",
+		})
 	if err != nil {
 		return err
 	}
 
-	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, &Option{HighFreq: true})
+	return defaultIO.DoFeed([]*Point{{pt}}, category, name, &Option{HighFreq: true})
 }
 
-// Deprecated
+// NamedFeedEx Deprecated.
 func NamedFeedEx(name, category, metric string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) error {
-
 	var ts time.Time
 	if len(t) > 0 {
 		ts = t[0]
@@ -297,12 +304,13 @@ func NamedFeedEx(name, category, metric string,
 			ExtraTags: extraTags,
 			Strict:    true,
 			Time:      ts,
-			Precision: "n"})
+			Precision: "n",
+		})
 	if err != nil {
 		return err
 	}
 
-	return defaultIO.DoFeed([]*Point{&Point{pt}}, category, name, nil)
+	return defaultIO.DoFeed([]*Point{{pt}}, category, name, nil)
 }
 
 func DroppedTotal() int64 {

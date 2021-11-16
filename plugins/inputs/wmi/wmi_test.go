@@ -50,7 +50,6 @@ func TestLoadCfg(t *testing.T) {
 }
 
 func TestQuerySysInfo(t *testing.T) {
-
 	var q ClassQuery
 	q.Class = `Win32_LogicalDisk`
 
@@ -79,7 +78,6 @@ func TestQuerySysInfo(t *testing.T) {
 }
 
 func TestSvr(t *testing.T) {
-
 	ag := NewAgent()
 
 	data, err := ioutil.ReadFile("./test.conf")

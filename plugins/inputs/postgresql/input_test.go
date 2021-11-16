@@ -1,3 +1,4 @@
+//go:build !test
 // +build !test
 
 package postgresql
@@ -24,14 +25,14 @@ type MockCollectService struct {
 
 func (m *MockCollectService) GetColumnMap(row scanner, columns []string) (map[string]*interface{}, error) {
 	if m.columnMapError == 1 {
-		return nil, errorMock{}
+		return nil, mockError{}
 	}
 	return m.mockData, nil
 }
 
 func (m *MockCollectService) Query(query string) (Rows, error) {
 	if query == "-1" {
-		return nil, errorMock{}
+		return nil, mockError{}
 	}
 	rows := &MockCollectRows{
 		columnError: m.columnError,
@@ -42,7 +43,7 @@ func (m *MockCollectService) Query(query string) (Rows, error) {
 func (m *MockCollectService) Stop() error { return nil }
 func (m *MockCollectService) Start() error {
 	if m.startError == 1 {
-		return errorMock{}
+		return mockError{}
 	}
 	return nil
 }
@@ -56,10 +57,11 @@ type MockCollectRows struct {
 func (m *MockCollectRows) Close() error { return nil }
 func (m *MockCollectRows) Columns() ([]string, error) {
 	if m.columnError == 1 {
-		return nil, errorMock{}
+		return nil, mockError{}
 	}
 	return []string{}, nil
 }
+
 func (m *MockCollectRows) Next() bool {
 	isCall := !m.calledNext
 	m.calledNext = true
@@ -112,7 +114,7 @@ func TestCollect(t *testing.T) {
 	input.service = &MockCollectService{
 		mockData: getMockData(mockFields),
 	}
-	input.Tags = map[string]string{"self": "self"}
+	input.Tags = map[string]string{datakit.DatakitInputName: datakit.DatakitInputName}
 	err = input.Collect()
 	assert.NoError(t, err)
 	assert.Greater(t, len(input.collectCache), 0, "input collectCache should has at least one measurement")
@@ -123,7 +125,7 @@ func TestCollect(t *testing.T) {
 	trueFields := getTrueData(mockFields)
 	assert.True(t, reflect.DeepEqual(trueFields, fields))
 	tags := points.Tags()
-	assert.Equal(t, tags["self"], "self")
+	assert.Equal(t, tags[datakit.DatakitInputName], datakit.DatakitInputName)
 	assert.Equal(t, tags["db"], "datname")
 
 	// work correctly when set IgnoredDatabases and Databases
@@ -144,7 +146,6 @@ func TestCollect(t *testing.T) {
 		columnMapError: 1,
 	}
 	assert.Error(t, input.Collect())
-
 }
 
 func TestParseUrl(t *testing.T) {
@@ -165,14 +166,17 @@ func TestParseUrl(t *testing.T) {
 	parsedUri, err = parseURL("postgres://postgres@localhost:8888/test?sslmode=disable")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, parsedUri)
-
 }
 
 func TestInput(t *testing.T) {
 	input := &Input{}
 	sampleMeasurements := input.SampleMeasurement()
 	assert.Greater(t, len(sampleMeasurements), 0)
-	m := sampleMeasurements[0].(*inputMeasurement)
+	m, ok := sampleMeasurements[0].(*inputMeasurement)
+	if !ok {
+		t.Error("expect to be *inputMeasurement")
+		return
+	}
 
 	assert.Equal(t, m.Info().Name, inputName)
 
@@ -206,12 +210,11 @@ func TestInput(t *testing.T) {
 		err = input.executeQuery("")
 		assert.Error(t, err)
 
-		//when accRow() error
+		// when accRow() error
 		input.service = &MockCollectService{}
 		input.Address = "postgres://:888localhost"
 		err = input.executeQuery("")
 		assert.Error(t, err)
-
 	})
 }
 
@@ -234,7 +237,6 @@ func TestSanitizedAddress(t *testing.T) {
 	transAddress, err = input.SanitizedAddress()
 	assert.Error(t, err)
 	assert.Equal(t, transAddress, "")
-
 }
 
 type DbMock struct{}
@@ -248,15 +250,14 @@ func (DbMock) Close() error {
 
 func (DbMock) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	if query == "-1" {
-		return nil, errorMock{}
+		return nil, mockError{}
 	}
 	return nil, nil
 }
 
-type errorMock struct {
-}
+type mockError struct{}
 
-func (e errorMock) Error() string {
+func (e mockError) Error() string {
 	return "error"
 }
 
@@ -268,7 +269,7 @@ func (r RowScanner) Scan(dest ...interface{}) error {
 	for i := 0; i < len(r.data); i++ {
 		d, ok := dest[i].(*interface{})
 		if r.data[i] == -1 { // mock error
-			return errorMock{}
+			return mockError{}
 		}
 		if ok {
 			*d = r.data[i]
@@ -278,12 +279,12 @@ func (r RowScanner) Scan(dest ...interface{}) error {
 }
 
 func TestService(t *testing.T) {
-	s := &SqlService{
+	s := &SQLService{
 		MaxIdle:     1,
 		MaxOpen:     1,
 		MaxLifetime: time.Duration(0),
 	}
-	s.Open = func(dbType, connStr string) (Db, error) {
+	s.Open = func(dbType, connStr string) (DB, error) {
 		db := &DbMock{}
 		return db, nil
 	}
@@ -291,9 +292,9 @@ func TestService(t *testing.T) {
 	err := s.Start()
 	assert.Nil(t, err)
 
-	s.Open = func(dbType, connStr string) (Db, error) {
+	s.Open = func(dbType, connStr string) (DB, error) {
 		db := &DbMock{}
-		return db, errorMock{}
+		return db, mockError{}
 	}
 	err = s.Start()
 	assert.NotNil(t, err)
@@ -336,7 +337,6 @@ func TestService(t *testing.T) {
 			assert.Nil(t, res)
 		})
 	})
-
 }
 
 func TestTime(t *testing.T) {
@@ -345,5 +345,4 @@ func TestTime(t *testing.T) {
 	fmt.Println(ti.UnixNano())
 
 	fmt.Println("ok")
-
 }

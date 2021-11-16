@@ -1,3 +1,4 @@
+// Package jvm collects JVM metrics.
 package jvm
 
 import (
@@ -111,9 +112,7 @@ type Input struct {
 	Tags map[string]string `toml:"tags"`
 }
 
-var (
-	log = logger.DefaultSLogger(inputName)
-)
+var log = logger.DefaultSLogger(inputName)
 
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)
@@ -136,7 +135,6 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&JavaRuntimeMemt{},
 		&JavaMemoryMemt{},
 		&JavaGcMemt{},
-		//&JavaLastGcMemt{},
 		&JavaThreadMemt{},
 		&JavaClassLoadMemt{},
 		&JavaMemoryPoolMemt{},
@@ -147,7 +145,7 @@ func (i *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

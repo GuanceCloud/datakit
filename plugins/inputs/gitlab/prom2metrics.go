@@ -35,12 +35,18 @@ func promTextToMetrics(data io.Reader) ([]*samplePoint, error) {
 		}
 
 		switch metric.GetType() {
-
 		case dto.MetricType_COUNTER:
 			pts = append(pts, prom.counter(name, metric.Metric)...)
 
 		case dto.MetricType_HISTOGRAM:
 			pts = append(pts, prom.histogram(name, metric.Metric)...)
+
+		case dto.MetricType_GAUGE:
+			l.Debugf("ignore gauge")
+		case dto.MetricType_SUMMARY:
+			l.Debugf("ignore summary")
+		case dto.MetricType_UNTYPED:
+			l.Debugf("ignore untyped")
 		}
 	}
 
@@ -84,7 +90,7 @@ func labelToTags(label []*dto.LabelPair) map[string]string {
 	if len(label) == 0 {
 		return nil
 	}
-	var tags = make(map[string]string, len(label))
+	tags := make(map[string]string, len(label))
 	for _, lab := range label {
 		tags[lab.GetName()] = lab.GetValue()
 	}

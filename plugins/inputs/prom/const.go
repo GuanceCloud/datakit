@@ -8,6 +8,18 @@ const sampleCfg = `
   ## 采集器别名
   source = "prom"
 
+  ## 采集数据输出源
+  # 配置此项，可以将采集到的数据写到本地文件而不将数据打到中心
+  # 之后可以直接用 datakit --prom-conf /path/to/this/conf 命令对本地保存的指标集进行调试
+  # 如果已经将url配置为本地文件路径，则--prom-conf优先调试output路径的数据
+  # output = "/abs/path/to/file"
+
+  ## 采集数据大小上限，单位为字节
+  # 将数据输出到本地文件时，可以设置采集数据大小上限
+  # 如果采集数据的大小超过了此上限，则采集的数据将被丢弃
+  # 采集数据大小上限默认设置为32MB
+  # max_file_size = 0
+
   ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary
   # 默认只采集 counter 和 gauge 类型的指标
   # 如果为空，则不进行过滤

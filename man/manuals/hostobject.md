@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 # {{.InputName}}
@@ -22,13 +22,20 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 配置好后，重启 DataKit 即可。
 
+支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
+
+| 环境变量名                                           | 对应的配置参数项                | 参数示例                                                     |
+| :---                                                 | ---                             | ---                                                          |
+| `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | `true`/`false`                                               |
+| `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+
 ## 开启云同步
 
-如果 DataKit 所在的主机是云主机（目前支持阿里云、腾讯云以及 AWS），那么可通过 `cloud_provider` 标签开启云同步：
+如果 DataKit 所在的主机是云主机（目前支持阿里云/腾讯云/AWS/华为云/微软云），那么可通过 `cloud_provider` 标签开启云同步：
 
 ```toml
 [inputs.hostobject.tags]
-	# 此处目前支持 aliyun/tencent/aws 三种
+	# 此处目前支持 aliyun/tencent/aws/hwcloud/azure 几种
 	cloud_provider = "aliyun"
 ```
 
@@ -140,6 +147,8 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `flags` | 状态位（可能多个） | []string |
 | `ip4`   | IPv4 地址          | string   |
 | `ip6`   | IPv6 地址          | string   |
+| `ip4_all`| 所有 IPv4 地址     | []string |
+| `ip6_all`| 所有 IPv6 地址     | []string |
 
 #### `host.disk`
 

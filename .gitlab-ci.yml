@@ -11,14 +11,30 @@ variables:
 stages:
   - deploy
 
+build-dev:
+  stage: deploy
+  only:
+    - /^dev-.*$/
+    - /^iss-.*$/
+  script:
+    # only building
+    - make ci_notify
+    - make testing
+    - make test_conf_compatible
+    - make ci_pass_notify
+  tags:
+    - cloudcare-ft
+
 build-testing:
   stage: deploy
   only:
-    - testing.*
+    - testing
+    - /^testing-.*$/
   script:
     # building && publish testing
     - make ci_notify
     - make testing
+    - make test_conf_compatible
     - make pub_testing
     - make pub_testing_img
     - make test_notify
@@ -32,6 +48,7 @@ build-release:
   script:
     - make ci_notify
     - make release
+    - make test_conf_compatible
     - make pub_release
     - make pub_release_img
     - make release_notify

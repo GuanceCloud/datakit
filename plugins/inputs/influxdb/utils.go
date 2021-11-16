@@ -72,51 +72,54 @@ func DebugVarsDataParse2Point(respBody []byte,
 		}
 		keyStr := kList[index]
 		index++
-		if keyStr == "memstats" {
+
+		switch keyStr {
+		case "system", "cmdline":
+			l.Debugf("ignore key %s", keyStr)
+		case "memstats":
 			p := Memstats{}
 			if err := json.Unmarshal(dataMap[keyStr], &p); err != nil {
 				return nil, fmt.Errorf("parse memstats failed")
-			} else {
-				numGC, _ := strconv.Atoi(fmt.Sprintf("%.0f", p.NumGC))
-				point = Point{
-					Name: "memstats",
-					Tags: map[string]string{},
-					Values: map[string]interface{}{
-						"Alloc":         p.Alloc,
-						"TotalAlloc":    p.TotalAlloc,
-						"Sys":           p.Sys,
-						"Lookups":       p.Lookups,
-						"Mallocs":       p.Mallocs,
-						"Frees":         p.Frees,
-						"HeapAlloc":     p.HeapAlloc,
-						"HeapSys":       p.HeapSys,
-						"HeapIdle":      p.HeapIdle,
-						"HeapInuse":     p.HeapInuse,
-						"HeapReleased":  p.HeapReleased,
-						"HeapObjects":   p.HeapObjects,
-						"StackInuse":    p.StackInuse,
-						"StackSys":      p.StackSys,
-						"MSpanInuse":    p.MSpanInuse,
-						"MSpanSys":      p.MSpanSys,
-						"MCacheInuse":   p.MCacheInuse,
-						"MCacheSys":     p.MCacheSys,
-						"BuckHashSys":   p.BuckHashSys,
-						"GCSys":         p.GCSys,
-						"OtherSys":      p.OtherSys,
-						"NextGC":        p.NextGC,
-						"LastGC":        p.LastGC,
-						"PauseTotalNs":  p.PauseTotalNs,
-						"PauseNs":       p.PauseNs[(numGC+255)%256],
-						"NumGC":         p.NumGC,
-						"NumForcedGC":   p.NumForcedGC,
-						"GCCPUFraction": p.GCCPUFraction,
-					},
-				}
 			}
-		} else if keyStr == "system" || keyStr == "cmdline" {
-		} else {
+
+			numGC, _ := strconv.Atoi(fmt.Sprintf("%.0f", p.NumGC))
+			point = Point{
+				Name: "memstats",
+				Tags: map[string]string{},
+				Values: map[string]interface{}{
+					"Alloc":         p.Alloc,
+					"TotalAlloc":    p.TotalAlloc,
+					"Sys":           p.Sys,
+					"Lookups":       p.Lookups,
+					"Mallocs":       p.Mallocs,
+					"Frees":         p.Frees,
+					"HeapAlloc":     p.HeapAlloc,
+					"HeapSys":       p.HeapSys,
+					"HeapIdle":      p.HeapIdle,
+					"HeapInuse":     p.HeapInuse,
+					"HeapReleased":  p.HeapReleased,
+					"HeapObjects":   p.HeapObjects,
+					"StackInuse":    p.StackInuse,
+					"StackSys":      p.StackSys,
+					"MSpanInuse":    p.MSpanInuse,
+					"MSpanSys":      p.MSpanSys,
+					"MCacheInuse":   p.MCacheInuse,
+					"MCacheSys":     p.MCacheSys,
+					"BuckHashSys":   p.BuckHashSys,
+					"GCSys":         p.GCSys,
+					"OtherSys":      p.OtherSys,
+					"NextGC":        p.NextGC,
+					"LastGC":        p.LastGC,
+					"PauseTotalNs":  p.PauseTotalNs,
+					"PauseNs":       p.PauseNs[(numGC+255)%256],
+					"NumGC":         p.NumGC,
+					"NumForcedGC":   p.NumForcedGC,
+					"GCCPUFraction": p.GCCPUFraction,
+				},
+			}
+		default:
 			if err := json.Unmarshal(dataMap[keyStr], &point); err != nil {
-				return nil, err //
+				return nil, err
 			}
 		}
 

@@ -1,0 +1,58 @@
+# {"version": "1.1.8-rc2.3", "desc": "do NOT edit this line"}
+
+[[inputs.ddtrace]]
+  ## DDTrace Agent endpoints register by version respectively.
+  ## you can stop some patterns by remove them from the list but DO NOT MODIFY THESE PATTERNS.
+  endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
+
+  ## Tracing data sample config, [rate] and [scope] together determine how many trace sample data
+  ## will be send to DataFlux workspace.
+  ## Sub item in sample_configs list with priority 1.
+  # [[inputs.ddtrace.sample_configs]]
+    ## Sample rate, how many tracing data will be sampled
+    # rate = 10
+    ## Sample scope, the range that will consider to be covered by sample function.
+    # scope = 100
+    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
+    # ignore_tags_list = []
+    ## Sample target, program will search this [tag, value] pair for sampling purpose.
+    # [inputs.ddtrace.sample_configs.target]
+    # env = "prod"
+
+  ## Sub item in sample_configs list with priority 2.
+  # [[inputs.ddtrace.sample_configs]]
+    ## Sample rate, how many tracing data will be sampled.
+    # rate = 100
+    ## Sample scope, the range that will consider to be covered by sample function.
+    # scope = 1000
+    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
+    # ignore_tags_list = []
+    ## Sample target, program will search this [tag, value] pair for sampling purpose.
+    # [inputs.ddtrace.sample_configs.target]
+    # env = "dev"
+
+    ## ...
+
+  ## Sub item in sample_configs list with priority n.
+  # [[inputs.ddtrace.sample_configs]]
+    ## Sample rate, how many tracing data will be sampled.
+    # rate = 10
+    ## Sample scope, the range that will consider to be covered by sample function.
+    # scope = 100
+    ## Ignore tags list, tags appear in this list is transparent to sample function that means will always be sampled.
+    # ignore_tags_list = []
+    ## Sample target, program will search this [tag, value] pair for sampling purpose.
+    ## As general, the last item in sample_configs list without [tag, value] pair will be used as default sample rule
+    ## only if all above rules mismatched, so that this pair shoud be empty.
+    # [inputs.ddtrace.sample_configs.target]
+
+  ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
+  ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
+  ## IT'S EMPTY STRING VALUE AS DEFAULT indicates that no customer tag set up. DO NOT USE DOT(.) IN TAGS
+  # customer_tags = []
+
+  ## tags is ddtrace configed key value pairs
+  # [inputs.ddtrace.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+    ## ...

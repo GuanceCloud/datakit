@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package wmi
@@ -13,9 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	moduleLogger *logger.Logger
-)
+var moduleLogger *logger.Logger
 
 func (_ *Instance) SampleConfig() string {
 	return sampleConfig
@@ -26,10 +25,22 @@ func (_ *Instance) Catalog() string {
 }
 
 func (ag *Instance) Run() {
-
 	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				ag.exit()
+				return
+
+			case <-n.semStop.Wait():
+				ag.exit()
+				return
+
+			default:
+			}
+		}
 		<-datakit.Exit.Wait()
 		ag.cancelFun()
 	}()
@@ -45,8 +56,17 @@ func (ag *Instance) Run() {
 	ag.run(ag.ctx)
 }
 
-func (r *Instance) run(ctx context.Context) error {
+func (_ *Input) exit() {
+	ag.cancelFun()
+}
 
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+	}
+}
+
+func (r *Instance) run(ctx context.Context) error {
 	for {
 
 		select {
@@ -121,6 +141,7 @@ func (r *Instance) run(ctx context.Context) error {
 func NewAgent() *Instance {
 	ac := &Instance{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+	ac.semStop = cliutils.NewSem()
 	return ac
 }
 

@@ -1,30 +1,30 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
-
-	rbacv1 "k8s.io/api/rbac/v1"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	kubev1rbac "k8s.io/client-go/kubernetes/typed/rbac/v1"
 )
 
 const kubernetesClusterName = "kubernetes_clusters"
 
 type cluster struct {
 	client interface {
-		getClusters() (*rbacv1.ClusterRoleList, error)
+		getClusters() kubev1rbac.ClusterRoleInterface
 	}
 	tags map[string]string
 }
 
 func (c *cluster) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
-	list, err := c.client.getClusters()
+	list, err := c.client.getClusters().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get clusters resource: %s", err)
 		return
@@ -32,15 +32,17 @@ func (c *cluster) Gather() {
 
 	for _, obj := range list.Items {
 		tags := map[string]string{
-			"name":         fmt.Sprintf("%v", obj.UID),
-			"cluster_name": obj.Name,
+			"name": fmt.Sprintf("%v", obj.UID),
+		}
+		if obj.Name != "" {
+			tags["cluster_name"] = obj.Name
 		}
 		for k, v := range c.tags {
 			tags[k] = v
 		}
 
 		fields := map[string]interface{}{
-			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":         int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"create_time": obj.CreationTimestamp.Time.Unix(),
 		}
 
@@ -56,6 +58,11 @@ func (c *cluster) Gather() {
 		}
 	}
 
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
+	}
+
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
 	}
@@ -63,6 +70,7 @@ func (c *cluster) Gather() {
 
 func (*cluster) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*cluster) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesClusterName,

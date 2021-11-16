@@ -25,10 +25,6 @@ func (i *Item) PositionRange() *PositionRange {
 	}
 }
 
-func (i *Item) lexStr() string {
-	return fmt.Sprintf("% 6d %02d %s", i.Typ, i.Pos, i.String())
-}
-
 func (i Item) String() string {
 	switch {
 	case i.Typ == EOF:
@@ -52,15 +48,15 @@ func (i ItemType) IsKeyword() bool  { return i > keywordsStart && i < keywordsEn
 
 type ItemType int
 
-func (it *ItemType) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, reflect.ValueOf(it))), nil
+func (i *ItemType) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, reflect.ValueOf(i))), nil
 }
 
 const (
 	eof         = -1
 	lineComment = "#"
-	DIGITS      = "0123456789"
-	HEX_DIGITS  = "0123456789abcdefABCDEF"
+	Digits      = "0123456789"
+	HexDigits   = "0123456789abcdefABCDEF"
 )
 
 var (
@@ -125,9 +121,7 @@ var (
 	}
 )
 
-func init() {
-	log = logger.SLogger("logfilter-parser")
-
+func init() { //nolint:gochecknoinits
 	// Add keywords to Item type strings.
 	for s, ty := range keywords {
 		ItemTypeStr[ty] = s
@@ -201,7 +195,7 @@ type Lexer struct {
 
 	// seriesDesc is set when a series description for the testing
 	// language is lexed.
-	//seriesDesc bool
+	// seriesDesc bool
 }
 
 func Lex(input string) *Lexer {
@@ -212,17 +206,15 @@ func Lex(input string) *Lexer {
 	return l
 }
 
-////////////////////////////////////////
-// Lexer entry
-////////////////////////////////////////
+//
+// Lexer entry.
+//
 func lexStatements(l *Lexer) stateFn {
-
 	if strings.HasPrefix(l.input[l.pos:], lineComment) {
 		return lexLineComment
 	}
 
 	switch r := l.next(); {
-
 	case r == '.':
 		l.emit(DOT)
 
@@ -357,6 +349,7 @@ func lexStatements(l *Lexer) stateFn {
 		l.emit(RIGHT_BRACKET)
 
 	case r == eof:
+		//nolint:gocritic
 		if l.parenDepth != 0 {
 			return l.errorf("unclosed left parenthesis")
 		} else if l.bracketDepth != 0 {
@@ -374,13 +367,12 @@ func lexStatements(l *Lexer) stateFn {
 	return lexStatements
 }
 
-////////////////////////////////////////
+//
 // Other state functions
-////////////////////////////////////////
+//
 
-// scan alphanumberic identifier, maybe keyword
+// scan alphanumberic identifier, maybe keyword.
 func lexKeywordOrIdentifier(l *Lexer) stateFn {
-
 __goon:
 	for {
 		switch r := l.next(); {
@@ -510,7 +502,6 @@ func lexEscape(l *Lexer) stateFn {
 }
 
 func lexString(l *Lexer) stateFn {
-
 __goon:
 	for {
 		switch l.next() {
@@ -529,9 +520,9 @@ __goon:
 	return lexStatements
 }
 
-////////////////////////////////////////////
-// lexer tool functions
-////////////////////////////////////////////
+//
+// lexer tool functions.
+//
 func (l *Lexer) next() rune {
 	if int(l.pos) >= len(l.input) {
 		l.width = 0
@@ -552,7 +543,7 @@ func (l *Lexer) peek() rune {
 func (l *Lexer) emit(t ItemType) {
 	*l.itemp = Item{t, l.start, l.input[l.start:l.pos]}
 
-	//log.Debugf("emit: %+#v", l.itemp)
+	// log.Debugf("emit: %+#v", l.itemp)
 
 	l.start = l.pos
 	l.scannedItem = true
@@ -606,9 +597,9 @@ func (l *Lexer) cur() string {
 }
 
 func (l *Lexer) scanNumber() bool {
-	digs := DIGITS
+	digs := Digits
 	if l.accept("0") && l.accept("xX") {
-		digs = HEX_DIGITS
+		digs = HexDigits
 	}
 
 	l.acceptRun(digs)
@@ -618,7 +609,7 @@ func (l *Lexer) scanNumber() bool {
 
 	if l.accept("eE") { // scientific notation
 		l.accept("+-")
-		l.acceptRun(DIGITS)
+		l.acceptRun(Digits)
 	}
 
 	// next things should not be alphanumberic
@@ -636,8 +627,8 @@ func acceptRemainDuration(l *Lexer) bool {
 
 	// support for `ms/us/ns` unit, `hs`, `ys` will be caught and parse duration failed
 	l.accept("s")
-	for l.accept(DIGITS) { // next 2 chars can be another number then a unit:  3m47s
-		for l.accept(DIGITS) {
+	for l.accept(Digits) { // next 2 chars can be another number then a unit:  3m47s
+		for l.accept(Digits) {
 		}
 
 		if !l.accept("nusmhdw") { // NOTE: `y` removed: `y` should always come first in duration string
@@ -650,9 +641,9 @@ func acceptRemainDuration(l *Lexer) bool {
 	return !isAlphaNumeric(l.next())
 }
 
-////////////////////////////////
-// helpers
-////////////////////////////////
+//
+// helpers.
+//
 func isAlphaNumeric(r rune) bool { return isAlpha(r) || isDigit(r) }
 func isAlpha(r rune) bool        { return r == '_' || ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') }
 func isDigit(r rune) bool        { return '0' <= r && r <= '9' }
@@ -668,5 +659,7 @@ func digitVal(ch rune) int {
 	case 'A' <= ch && ch <= 'F':
 		return int(ch - 'A' + 10)
 	}
-	return 16 // larger than any legal digit val
+
+	// larger than any legal digit val
+	return 16 //nolint:gomnd
 }

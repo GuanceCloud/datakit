@@ -1,30 +1,30 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
-
-	batchbetav1 "k8s.io/api/batch/v1beta1"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	kubev1batchbeta1 "k8s.io/client-go/kubernetes/typed/batch/v1beta1"
 )
 
 const kubernetesCronJobName = "kubernetes_cron_jobs"
 
 type cronJob struct {
 	client interface {
-		getCronJobs() (*batchbetav1.CronJobList, error)
+		getCronJobs() kubev1batchbeta1.CronJobInterface
 	}
 	tags map[string]string
 }
 
 func (c *cronJob) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
-	list, err := c.client.getCronJobs()
+	list, err := c.client.getCronJobs().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get cronjobs resource: %s", err)
 		return
@@ -34,15 +34,19 @@ func (c *cronJob) Gather() {
 		tags := map[string]string{
 			"name":          fmt.Sprintf("%v", obj.UID),
 			"cron_job_name": obj.Name,
-			"cluster_name":  obj.ClusterName,
-			"namespace":     obj.Namespace,
+		}
+		if obj.ClusterName != "" {
+			tags["cluster_name"] = obj.ClusterName
+		}
+		if obj.Namespace != "" {
+			tags["namespace"] = obj.Namespace
 		}
 		for k, v := range c.tags {
 			tags[k] = v
 		}
 
 		fields := map[string]interface{}{
-			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":         int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"schedule":    obj.Spec.Schedule,
 			"active_jobs": len(obj.Status.Active),
 		}
@@ -65,6 +69,11 @@ func (c *cronJob) Gather() {
 		}
 	}
 
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
+	}
+
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
 	}
@@ -74,6 +83,7 @@ func (*cronJob) Resource() { /*empty interface*/ }
 
 func (*cronJob) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*cronJob) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesCronJobName,

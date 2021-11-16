@@ -1,3 +1,4 @@
+// Package man manages all datakit documents
 package man
 
 import (
@@ -35,6 +36,7 @@ var (
 		"development":              "man/manuals/development.md",
 		"election":                 "man/manuals/election.md",
 		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
+		"kubernetes-podlogging":    "man/manuals/kubernetes-podlogging.md",
 		"kubernetes-x":             "man/manuals/kubernetes-x.md",
 		"pipeline":                 "man/manuals/pipeline.md",
 		"logging-pipeline-bench":   "man/manuals/logging-pipeline-bench.md",
@@ -71,7 +73,6 @@ type Option struct {
 }
 
 func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
-
 	var p *Params
 
 	css := MarkdownCSS

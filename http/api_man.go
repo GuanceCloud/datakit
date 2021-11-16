@@ -9,7 +9,6 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -81,17 +80,14 @@ type manualTOC struct {
 	OtherDocs  []string
 }
 
-// request manual table of conotents
+// request manual table of contents.
 func apiManualTOC(c *gin.Context) {
-
 	toc := &manualTOC{
 		PageTitle: "DataKit文档列表",
 	}
 
 	for k, v := range inputs.Inputs {
-		switch v().(type) {
-		case inputs.InputV2:
-
+		if _, ok := v().(inputs.InputV2); ok {
 			// test if doc available
 			if _, err := man.BuildMarkdownManual(k, &man.Option{WithCSS: true}); err != nil {
 				l.Warn(err)
@@ -126,11 +122,9 @@ func apiManualTOC(c *gin.Context) {
 		c.Data(http.StatusInternalServerError, "", []byte(err.Error()))
 		return
 	}
-	return
 }
 
 func apiManual(c *gin.Context) {
-
 	name := c.Param("name")
 	if name == "" {
 		c.Redirect(200, "/man")

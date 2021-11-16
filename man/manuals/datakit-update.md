@@ -1,8 +1,8 @@
 
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 # 简介
@@ -34,7 +34,7 @@ ReleasedInputs: all
 Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
 
 Upgrade:
-    DK_UPGRADE=1 bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
+    DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 
 # Windows
 
@@ -52,7 +52,7 @@ ReleasedInputs: all
 Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
 
 Upgrade:
-    $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.dataflux.cn/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+    $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
 > 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
@@ -80,14 +80,14 @@ $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
 # Update DataKit if new version available
 
 otalog=/usr/local/datakit/ota-update.log
-installer=https://static.dataflux.cn/datakit/installer-linux-amd64
+installer=https://static.guance.com/datakit/installer-linux-amd64
 
 # 注意：如果不希望更新 RC 版本的 DataKit，可移除 `--accept-rc-version`
 /usr/local/datakit/datakit --check-update --accept-rc-version --update-log $otalog
 
 if [[ $? == 42 ]]; then
 	echo "update now..."
-	DK_UPGRADE=1 bash -c "$(curl -L https://static.dataflux.cn/datakit/install.sh)"
+	DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 fi
 ```
 

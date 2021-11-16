@@ -10,46 +10,45 @@ import (
 	"time"
 
 	"github.com/tinylib/msgp/msgp"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var ddtraceSpanType = map[string]string{
-	"cache":         trace.SPAN_SERVICE_CACHE,
-	"cassandra":     trace.SPAN_SERVICE_DB,
-	"elasticsearch": trace.SPAN_SERVICE_DB,
-	"grpc":          trace.SPAN_SERVICE_CUSTOM,
-	"http":          trace.SPAN_SERVICE_WEB,
-	"mongodb":       trace.SPAN_SERVICE_DB,
-	"redis":         trace.SPAN_SERVICE_CACHE,
-	"sql":           trace.SPAN_SERVICE_DB,
-	"template":      trace.SPAN_SERVICE_CUSTOM,
-	"test":          trace.SPAN_SERVICE_CUSTOM,
-	"web":           trace.SPAN_SERVICE_WEB,
-	"worker":        trace.SPAN_SERVICE_CUSTOM,
-	"memcached":     trace.SPAN_SERVICE_CACHE,
-	"leveldb":       trace.SPAN_SERVICE_DB,
-	"dns":           trace.SPAN_SERVICE_CUSTOM,
-	"queue":         trace.SPAN_SERVICE_CUSTOM,
-	"consul":        trace.SPAN_SERVICE_APP,
-	"rpc":           trace.SPAN_SERVICE_CUSTOM,
-	"soap":          trace.SPAN_SERVICE_CUSTOM,
-	"db":            trace.SPAN_SERVICE_DB,
-	"hibernate":     trace.SPAN_SERVICE_CUSTOM,
-	"aerospike":     trace.SPAN_SERVICE_DB,
-	"datanucleus":   trace.SPAN_SERVICE_CUSTOM,
-	"graphql":       trace.SPAN_SERVICE_CUSTOM,
-	"custom":        trace.SPAN_SERVICE_CUSTOM,
-	"benchmark":     trace.SPAN_SERVICE_CUSTOM,
-	"build":         trace.SPAN_SERVICE_CUSTOM,
-	"":              trace.SPAN_SERVICE_CUSTOM,
+	"cache":         itrace.SPAN_SERVICE_CACHE,
+	"cassandra":     itrace.SPAN_SERVICE_DB,
+	"elasticsearch": itrace.SPAN_SERVICE_DB,
+	"grpc":          itrace.SPAN_SERVICE_CUSTOM,
+	"http":          itrace.SPAN_SERVICE_WEB,
+	"mongodb":       itrace.SPAN_SERVICE_DB,
+	"redis":         itrace.SPAN_SERVICE_CACHE,
+	"sql":           itrace.SPAN_SERVICE_DB,
+	"template":      itrace.SPAN_SERVICE_CUSTOM,
+	"test":          itrace.SPAN_SERVICE_CUSTOM,
+	"web":           itrace.SPAN_SERVICE_WEB,
+	"worker":        itrace.SPAN_SERVICE_CUSTOM,
+	"memcached":     itrace.SPAN_SERVICE_CACHE,
+	"leveldb":       itrace.SPAN_SERVICE_DB,
+	"dns":           itrace.SPAN_SERVICE_CUSTOM,
+	"queue":         itrace.SPAN_SERVICE_CUSTOM,
+	"consul":        itrace.SPAN_SERVICE_APP,
+	"rpc":           itrace.SPAN_SERVICE_CUSTOM,
+	"soap":          itrace.SPAN_SERVICE_CUSTOM,
+	"db":            itrace.SPAN_SERVICE_DB,
+	"hibernate":     itrace.SPAN_SERVICE_CUSTOM,
+	"aerospike":     itrace.SPAN_SERVICE_DB,
+	"datanucleus":   itrace.SPAN_SERVICE_CUSTOM,
+	"graphql":       itrace.SPAN_SERVICE_CUSTOM,
+	"custom":        itrace.SPAN_SERVICE_CUSTOM,
+	"benchmark":     itrace.SPAN_SERVICE_CUSTOM,
+	"build":         itrace.SPAN_SERVICE_CUSTOM,
+	"":              itrace.SPAN_SERVICE_CUSTOM,
 }
 
+//nolint:lll
 type Span struct {
 	Service  string             `codec:"service" protobuf:"bytes,1,opt,name=service,proto3" json:"service" msg:"service"`                                                                                     // client code defined service name of span
 	Name     string             `codec:"name" protobuf:"bytes,2,opt,name=name,proto3" json:"name" msg:"name"`                                                                                                 // client code defined operation name of span
@@ -69,8 +68,8 @@ type Trace []*Span
 
 type Traces []Trace
 
-// TODO:
-func handleInfo(resp http.ResponseWriter, req *http.Request) {
+// TODO:.
+func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
@@ -80,8 +79,13 @@ func handleTraces(pattern string) http.HandlerFunc {
 		since := time.Now()
 		traces, err := decodeRequest(pattern, req)
 		if err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
+			if errors.Is(err, io.EOF) {
+				log.Warn(err.Error())
+				resp.WriteHeader(http.StatusOK)
+			} else {
+				log.Error(err.Error())
+				resp.WriteHeader(http.StatusBadRequest)
+			}
 
 			return
 		}
@@ -91,8 +95,9 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 			return
 		}
+		log.Debugf("show up all traces: %v", traces)
 
-		pts, err := tracesToPoints(traces)
+		pts, err := tracesToPoints(traces, filters...)
 		if err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
@@ -101,8 +106,14 @@ func handleTraces(pattern string) http.HandlerFunc {
 		}
 
 		if len(pts) != 0 {
-			if err = dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{CollectCost: time.Now().Sub(since), HighFreq: true}); err != nil {
-				dkio.FeedLastError(inputName, err.Error())
+			if err = dkio.Feed(inputName,
+				datakit.Tracing,
+				pts,
+				&dkio.Option{
+					CollectCost: time.Since(since),
+					HighFreq:    true,
+				}); err != nil {
+				log.Errorf("Feed: %s", err.Error())
 			}
 		} else {
 			log.Debugf("empty points")
@@ -112,33 +123,21 @@ func handleTraces(pattern string) http.HandlerFunc {
 	}
 }
 
-// TODO:
+// TODO:.
 func handleStats(resp http.ResponseWriter, req *http.Request) {
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-// TODO:
-func sample(traces Traces) Traces {
-	return nil
-}
-
-func mergeTags(ddTags map[string]string, customerTags []string, meta map[string]string, dest map[string]string) {
-	if dest == nil {
-		return
-	}
-
-	for k, v := range ddTags {
-		if _, ok := dest[k]; !ok {
-			dest[k] = v
-		}
-	}
-
-	for _, key := range customerTags {
+func extractCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
+	customerTags := map[string]string{}
+	for _, key := range customerKeys {
 		if value, ok := meta[key]; ok {
-			dest[key] = value
+			customerTags[key] = value
 		}
 	}
+
+	return customerTags
 }
 
 func decodeRequest(pattern string, req *http.Request) (Traces, error) {
@@ -170,10 +169,20 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 	return traces, err
 }
 
-func tracesToPoints(traces Traces) ([]*dkio.Point, error) {
-	pts := []*dkio.Point{}
+// tracesToPoints work as a adapter to convert traces to points.
+// parameter traces is raw traces, filters contains all the functional filters
+// like resource filter, sample.
+//nolint: cyclop
+func tracesToPoints(traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
+	var pts []*dkio.Point
+NEXT_TRACE:
 	for _, trace := range traces {
-		spanIds, parentIds := getSpanAndParentId(trace)
+		// run all filters
+		if runFiltersWithBreak(trace, filters...) == nil {
+			continue NEXT_TRACE
+		}
+
+		spanIds, parentIds := getSpanAndParentID(trace)
 		for _, span := range trace {
 			tags := make(map[string]string)
 			field := make(map[string]interface{})
@@ -181,7 +190,7 @@ func tracesToPoints(traces Traces) ([]*dkio.Point, error) {
 			tm := &itrace.TraceMeasurement{}
 			tm.Name = "ddtrace"
 
-			spanType := ""
+			var spanType string
 			if span.ParentID == 0 {
 				spanType = itrace.SPAN_TYPE_ENTRY
 			} else {
@@ -226,15 +235,13 @@ func tracesToPoints(traces Traces) ([]*dkio.Point, error) {
 			tags[itrace.TAG_HTTP_METHOD] = span.Meta["http.method"]
 			tags[itrace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
 
-			// merge tags
-			mergeTags(ddTags, customerTags, span.Meta, tags)
+			customerTags := extractCustomerTags(customerKeys, span.Meta)
+			for k, v := range customerTags {
+				tags[k] = v
+			}
 
-			// run tracing sample function
-			if conf := itrace.TraceSampleMatcher(sampleConfs, tags); conf != nil {
-				log.Info(*conf)
-				if !itrace.IgnoreErrSampleMW(tags[itrace.TAG_SPAN_STATUS], itrace.IgnoreKVPairsSampleMW(span.Meta, map[string]string{"_dd.origin": "rum"}, itrace.IgnoreTagsSampleMW(tags, conf.IgnoreTagsList, itrace.DefSampleFunc)))(span.TraceID, conf.Rate, conf.Scope) {
-					continue
-				}
+			for k, v := range ddTags {
+				tags[k] = v
 			}
 
 			field[itrace.FIELD_RESOURCE] = span.Resource
@@ -255,7 +262,7 @@ func tracesToPoints(traces Traces) ([]*dkio.Point, error) {
 
 			tm.Tags = tags
 			tm.Fields = field
-			tm.Ts = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
+			tm.TS = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
 
 			pt, err := tm.LineProto()
 			if err != nil {
@@ -269,9 +276,9 @@ func tracesToPoints(traces Traces) ([]*dkio.Point, error) {
 	return pts, nil
 }
 
-func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
+func getSpanAndParentID(spans []*Span) (map[uint64]string, map[uint64]string) {
 	spanID := make(map[uint64]string)
-	parentId := make(map[uint64]string)
+	parentID := make(map[uint64]string)
 	for _, span := range spans {
 		if span == nil {
 			continue
@@ -279,15 +286,16 @@ func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
 
 		spanID[span.SpanID] = span.Service
 		if span.ParentID != 0 {
-			parentId[span.ParentID] = ""
+			parentID[span.ParentID] = ""
 		}
 	}
 
-	return spanID, parentId
+	return spanID, parentID
 }
 
 // unmarshalTraceDictionary decodes a trace using the specification from the v0.5 endpoint.
 // For details, see the documentation for endpoint v0.5 in pkg/trace/api/version.go
+//nolint:cyclop
 func unmarshalTraceDictionary(bts []byte, out *Traces) error {
 	if out == nil {
 		return errors.New("nil pointer")
@@ -370,6 +378,7 @@ const spanPropertyCount = 12
 // unmarshalSpanDictionary decodes a span from the given decoder dc, looking up strings
 // in the given dictionary dict. For details, see the documentation for endpoint v0.5
 // in pkg/trace/api/version.go
+//nolint:cyclop
 func unmarshalSpanDictionary(bts []byte, dict []string, out *Span) ([]byte, error) {
 	if out == nil {
 		return nil, errors.New("nil pointer")

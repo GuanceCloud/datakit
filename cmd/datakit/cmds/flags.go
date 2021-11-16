@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"time"
 
@@ -46,13 +45,21 @@ var (
 	FlagStart,
 	FlagStop,
 	FlagRestart,
+	FlagAPIRestart,
 	FlagStatus,
 	FlagUninstall,
 	FlagReinstall bool
 
-	FlagDQL     bool
-	FlagRunDQL, // TODO: dump dql query result to specified CSV file
+	FlagDQL      bool
+	FlagJSON     bool
+	FlagAutoJSON bool
+	FlagForce    bool
+
+	FlagRunDQL,
 	FlagCSV string
+
+	FlagToken         string
+	FlagWorkspaceInfo bool
 
 	FlagUpdateIPDB bool
 	FlagAddr       string
@@ -60,13 +67,17 @@ var (
 
 	FlagShowCloudInfo    string
 	FlagIPInfo           string
+	FlagConfigDir        string
 	FlagMonitor          bool
 	FlagCheckConfig      bool
+	FlagCheckSample      bool
 	FlagDocker           bool
 	FlagDisableSelfInput bool
 	FlagVVV              bool
 	FlagCmdLogPath       string
 	FlagDumpSamples      string
+
+	FlagUploadLog bool
 )
 
 var (
@@ -76,12 +87,12 @@ var (
 
 func tryLoadMainCfg() {
 	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
-		l.Fatalf("load config %s failed: %s", datakit.MainConfPath, err)
+		l.Warnf("load config %s failed: %s, ignore", datakit.MainConfPath, err)
 	}
 }
 
+//nolint:funlen,gocyclo
 func RunCmds() {
-
 	if FlagDefConf {
 		defconf := config.DefaultConfig()
 		fmt.Println(defconf.String())
@@ -92,11 +103,11 @@ func RunCmds() {
 		tryLoadMainCfg()
 
 		if FlagUpdateLogFile != "" {
-
 			if err := logger.InitRoot(&logger.Option{
 				Path:  FlagUpdateLogFile,
 				Level: logger.DEBUG,
-				Flags: logger.OPT_DEFAULT}); err != nil {
+				Flags: logger.OPT_DEFAULT,
+			}); err != nil {
 				l.Errorf("set root log faile: %s", err.Error())
 			}
 		}
@@ -106,18 +117,29 @@ func RunCmds() {
 
 	if FlagVersion {
 		tryLoadMainCfg()
-
 		setCmdRootLog(FlagCmdLogPath)
-
 		showVersion(ReleaseVersion, ReleaseType, FlagShowTestingVersions)
 		os.Exit(0)
 	}
 
 	if FlagCheckConfig {
-		tryLoadMainCfg()
+		confdir := FlagConfigDir
+		if confdir == "" {
+			tryLoadMainCfg()
+			confdir = datakit.ConfdDir
+		}
 
 		setCmdRootLog(FlagCmdLogPath)
-		checkConfig()
+		if err := checkConfig(confdir, ""); err != nil {
+			os.Exit(-1)
+		}
+		os.Exit(0)
+	}
+
+	if FlagCheckSample {
+		tryLoadMainCfg()
+		setCmdRootLog(FlagCmdLogPath)
+		checkSample()
 		os.Exit(0)
 	}
 
@@ -132,21 +154,32 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		datakitHost = config.Cfg.HTTPAPI.Listen
-		doDQL(FlagRunDQL)
+		runSingleDQL(FlagRunDQL)
 		os.Exit(0)
 	}
 
+	if FlagWorkspaceInfo {
+		tryLoadMainCfg()
+		setCmdRootLog(FlagCmdLogPath)
+		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
+		body, err := doWorkspace(requrl)
+		if err != nil {
+			errorf("get worksapceInfo fail %s\n", err.Error())
+		}
+		outputWorkspaceInfo(body)
+		os.Exit(0)
+	}
 	if FlagShowCloudInfo != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		info, err := showCloudInfo(FlagShowCloudInfo)
 		if err != nil {
-			fmt.Printf("Get cloud info failed: %s\n", err.Error())
+			errorf("[E] Get cloud info failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
 		keys := []string{}
-		for k, _ := range info {
+		for k := range info {
 			keys = append(keys, k)
 		}
 
@@ -161,10 +194,6 @@ func RunCmds() {
 	if FlagMonitor {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		if runtime.GOOS == "windows" {
-			fmt.Println("unsupport under Windows")
-			os.Exit(-1)
-		}
 
 		cmdMonitor(FlagInterval, FlagVVV)
 		os.Exit(0)
@@ -175,7 +204,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := ipInfo(FlagIPInfo)
 		if err != nil {
-			fmt.Printf("\t%v\n", err)
+			errorf("[E] get IP info failed: %s\n", err.Error())
 		} else {
 			for k, v := range x {
 				fmt.Printf("\t% 8s: %s\n", k, v)
@@ -206,14 +235,21 @@ func RunCmds() {
 	if FlagPipeline != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		pipelineDebugger(FlagPipeline, FlagText)
+		if err := pipelineDebugger(FlagPipeline, FlagText); err != nil {
+			errorf("[E] %s\n", err)
+			os.Exit(-1)
+		}
+
 		os.Exit(0)
 	}
 
 	if FlagProm != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		promDebugger(FlagProm)
+		if err := promDebugger(FlagProm); err != nil {
+			l.Errorf("promDebugger: %s", err)
+		}
+
 		os.Exit(0)
 	}
 
@@ -257,12 +293,11 @@ func RunCmds() {
 	}
 
 	if FlagStart {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := startDatakit(); err != nil {
-			fmt.Printf("Start DataKit failed: %s\n", err)
+			errorf("[E] start DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -271,12 +306,11 @@ func RunCmds() {
 	}
 
 	if FlagStop {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := stopDatakit(); err != nil {
-			fmt.Printf("Stop DataKit failed: %s\n", err)
+			errorf("[E] stop DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -290,7 +324,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := restartDatakit(); err != nil {
-			fmt.Printf("Restart DataKit failed: %s\n", err)
+			errorf("[E] restart DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
@@ -299,12 +333,11 @@ func RunCmds() {
 	}
 
 	if FlagStatus {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		x, err := datakitStatus()
 		if err != nil {
-			fmt.Printf("Get DataKit status failed: %s\n", err)
+			errorf("[E] get DataKit status failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 		fmt.Println(x)
@@ -315,9 +348,11 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := uninstallDatakit(); err != nil {
-			fmt.Printf("Get DataKit status failed: %s\n", err)
+			errorf("[E] uninstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
+
+		fmt.Println("Uninstall DataKit OK")
 		os.Exit(0)
 	}
 
@@ -325,9 +360,11 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := reinstallDatakit(); err != nil {
-			fmt.Printf("Reinstall DataKit failed: %s\n", err)
+			errorf("[E] reinstall DataKit failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
+
+		fmt.Println("Reinstall DataKit OK")
 		os.Exit(0)
 	}
 
@@ -335,33 +372,40 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
-		if runtime.GOOS == datakit.OSWindows {
-			fmt.Println("[E] not supported")
-			os.Exit(-1)
-		}
-
 		if err := updateIPDB(FlagAddr); err != nil {
-			fmt.Printf("Reload DataKit failed: %s\n", err)
+			errorf("[E] update IPDB failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
 
-		fmt.Println("Update IPdb ok!")
+		fmt.Println("Update IPdb OK, please restart datakit to load new IPDB")
+		os.Exit(0)
+	}
 
+	if FlagAPIRestart {
+		tryLoadMainCfg()
+		logPath := config.Cfg.Logging.Log
+		setCmdRootLog(logPath)
+		apiRestart()
+		os.Exit(0)
+	}
+
+	if FlagUploadLog {
+		tryLoadMainCfg()
+		fmt.Println("Upload log start")
+		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
+			errorf("[E] upload log failed : %s\n", err.Error())
+			os.Exit(-1)
+		}
+		fmt.Println("Upload successfully!")
 		os.Exit(0)
 	}
 }
 
 func getcli() *http.Client {
-	proxy := config.Cfg.DataWay.HttpProxy
+	proxy := config.Cfg.DataWay.HTTPProxy
 
 	cliopt := &ihttp.Options{
-		DialTimeout:           30 * time.Second,
-		DialKeepAlive:         30 * time.Second,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   0, // default to runtime.NumGoroutines()
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
+		InsecureSkipVerify: true,
 	}
 
 	if proxy != "" {
@@ -370,5 +414,5 @@ func getcli() *http.Client {
 		}
 	}
 
-	return ihttp.HTTPCli(cliopt)
+	return ihttp.Cli(cliopt)
 }

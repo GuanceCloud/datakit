@@ -9,17 +9,14 @@ import (
 	"strings"
 
 	vgrok "github.com/vjeantet/grok"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-var (
-	grokCfg *vgrok.Grok
-)
+var grokCfg *vgrok.Grok
 
 func mergePattners(global, local map[string]string) map[string]string {
-	var p = make(map[string]string)
+	p := make(map[string]string)
 
 	for k, v := range global {
 		p[k] = v
@@ -30,9 +27,6 @@ func mergePattners(global, local map[string]string) map[string]string {
 			p[k] = v
 			continue
 		}
-		// FIXME:
-		// GlobalPatterns 已经在 AddPattern() 添加过一次，此处逻辑重复
-		// l.Warnf("can not overwrite global pattern `%s'", k)
 	}
 
 	return p
@@ -50,7 +44,7 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 		p.grok = g
 	}
 
-	funcExpr := node.(*parser.FuncExpr)
+	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return p, fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
@@ -97,7 +91,7 @@ func Grok(p *Pipeline, node parser.Node) (*Pipeline, error) {
 }
 
 func AddPattern(p *Pipeline, node parser.Node) (*Pipeline, error) {
-	funcExpr := node.(*parser.FuncExpr)
+	funcExpr := fexpr(node)
 	if funcExpr.RunOk {
 		return p, nil
 	}
@@ -136,13 +130,6 @@ func AddPattern(p *Pipeline, node parser.Node) (*Pipeline, error) {
 	p.patterns[name] = pattern
 	p.grok = nil
 
-	//g, err := createGrok(p.patterns)
-	//if err != nil {
-	//	l.Warn(err)
-	//	return p, nil
-	//}
-	//p.grok = g
-
 	return p, nil
 }
 
@@ -172,7 +159,7 @@ func loadPatterns() error {
 func readPatternsFromDir(path string) (map[string]string, error) {
 	if fi, err := os.Stat(path); err == nil {
 		if fi.IsDir() {
-			path = path + "/*"
+			path += "/*"
 		}
 	} else {
 		return nil, fmt.Errorf("invalid path : %s", path)
@@ -182,7 +169,7 @@ func readPatternsFromDir(path string) (map[string]string, error) {
 
 	patterns := make(map[string]string)
 	for _, fileName := range files {
-		file, err := os.Open(fileName)
+		file, err := os.Open(filepath.Clean(fileName))
 		if err != nil {
 			return patterns, err
 		}
@@ -197,7 +184,9 @@ func readPatternsFromDir(path string) (map[string]string, error) {
 			}
 		}
 
-		file.Close()
+		if err := file.Close(); err != nil {
+			l.Warnf("Close: %s, ignored", err.Error())
+		}
 	}
 
 	return patterns, nil

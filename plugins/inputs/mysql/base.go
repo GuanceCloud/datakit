@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/spf13/cast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -19,13 +18,14 @@ type baseMeasurement struct {
 	resData map[string]interface{}
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *baseMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
-func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
+// 指定指标.
+//nolint:lll
+func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "mysql",
 		Fields: map[string]interface{}{
@@ -255,7 +255,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "The number of physical writes of a key block from the MyISAM key cache to disk.",
 			},
 
-			//variables
+			// variables
 			"Key_buffer_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -502,20 +502,25 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (m *baseMeasurement) getStatus() error {
-	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
-	rows, err := m.i.db.Query(globalStatusSql)
+	globalStatusSQL := "SHOW /*!50002 GLOBAL */ STATUS;"
+	rows, err := m.i.db.Query(globalStatusSQL)
 	if err != nil {
 		l.Errorf("query error %v", err)
 		return err
 	}
 
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return err
+	}
 
 	for rows.Next() {
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
 			// error (todo)
@@ -528,19 +533,24 @@ func (m *baseMeasurement) getStatus() error {
 	return nil
 }
 
-// variables data
+// variables data.
 func (m *baseMeasurement) getVariables() error {
-	variablesSql := "SHOW GLOBAL VARIABLES;"
-	rows, err := m.i.db.Query(variablesSql)
+	variablesSQL := "SHOW GLOBAL VARIABLES;"
+	rows, err := m.i.db.Query(variablesSQL)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return err
+	}
 
 	for rows.Next() {
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
 			continue
@@ -551,20 +561,25 @@ func (m *baseMeasurement) getVariables() error {
 	return nil
 }
 
-// log stats
+// log stats.
 func (m *baseMeasurement) getLogStats() error {
-	logSql := "SHOW BINARY LOGS;"
-	rows, err := m.i.db.Query(logSql)
+	logSQL := "SHOW BINARY LOGS;"
+	rows, err := m.i.db.Query(logSQL)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return err
+	}
 
 	var binaryLogSpace int64
 	for rows.Next() {
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 
 		if err = rows.Scan(&key, val); err != nil {
 			l.Warnf("rows.Scan(): %s, ignored", err.Error())
@@ -581,7 +596,7 @@ func (m *baseMeasurement) getLogStats() error {
 	return nil
 }
 
-// 提交数据
+// 提交数据.
 func (m *baseMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {

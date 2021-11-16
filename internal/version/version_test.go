@@ -6,6 +6,7 @@ import (
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
+//nolint:funlen
 func TestCompare(t *testing.T) {
 	cases := []struct {
 		v1, v2      string

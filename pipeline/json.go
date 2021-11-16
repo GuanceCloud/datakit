@@ -3,8 +3,9 @@ package pipeline
 import (
 	"encoding/json"
 	"fmt"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"reflect"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 func GsonGet(s string, node interface{}) (interface{}, error) {

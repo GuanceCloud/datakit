@@ -1,30 +1,30 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
-
-	corev1 "k8s.io/api/core/v1"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const kubernetesServiceName = "kubernetes_services"
 
 type service struct {
 	client interface {
-		getServices() (*corev1.ServiceList, error)
+		getServices() kubev1core.ServiceInterface
 	}
 	tags map[string]string
 }
 
 func (s *service) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
-	list, err := s.client.getServices()
+	list, err := s.client.getServices().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get services resource: %s", err)
 		return
@@ -34,16 +34,20 @@ func (s *service) Gather() {
 		tags := map[string]string{
 			"name":         fmt.Sprintf("%v", obj.UID),
 			"service_name": obj.Name,
-			"cluster_name": obj.ClusterName,
-			"namespace":    obj.Namespace,
 			"type":         fmt.Sprintf("%v", obj.Spec.Type),
+		}
+		if obj.ClusterName != "" {
+			tags["cluster_name"] = obj.ClusterName
+		}
+		if obj.Namespace != "" {
+			tags["namespace"] = obj.Namespace
 		}
 		for k, v := range s.tags {
 			tags[k] = v
 		}
 
 		fields := map[string]interface{}{
-			"age":                     int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":                     int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"cluster_ip":              obj.Spec.ClusterIP,
 			"external_name":           obj.Spec.ExternalName,
 			"external_traffic_policy": fmt.Sprintf("%v", obj.Spec.ExternalTrafficPolicy),
@@ -66,6 +70,11 @@ func (s *service) Gather() {
 		}
 	}
 
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
+	}
+
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
 	}
@@ -75,6 +84,7 @@ func (*service) Resource() { /*empty interface*/ }
 
 func (*service) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*service) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesServiceName,

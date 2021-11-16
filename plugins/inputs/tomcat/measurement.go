@@ -28,6 +28,7 @@ type TomcatServletM struct{ measurement }
 
 type TomcatCacheM struct{ measurement }
 
+//nolint:lll
 func (m *TomcatGlobalRequestProcessorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "tomcat_global_request_processor",
@@ -46,6 +47,7 @@ func (m *TomcatGlobalRequestProcessorM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+//nolint:lll
 func (m *TomcatJspMonitorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "tomcat_jsp_monitor",
@@ -64,6 +66,7 @@ func (m *TomcatJspMonitorM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+//nolint:lll
 func (m *TomcatThreadPoolM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "tomcat_thread_pool",
@@ -80,6 +83,7 @@ func (m *TomcatThreadPoolM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+//nolint:lll
 func (m *TomcatServletM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "tomcat_servlet",
@@ -99,6 +103,7 @@ func (m *TomcatServletM) Info() *inputs.MeasurementInfo {
 	}
 }
 
+//nolint:lll
 func (m *TomcatCacheM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "",

@@ -28,7 +28,6 @@ type dialer struct {
 }
 
 func (d *dialer) updateTask(t dt.Task) error {
-
 	select {
 	case <-d.updateCh: // if closed?
 		l.Warnf("task %s closed", d.task.ID())
@@ -46,15 +45,14 @@ func (d *dialer) stop() {
 	}
 }
 
-func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
-
+func newDialer(t dt.Task, ts map[string]string) *dialer {
 	return &dialer{
 		task:     t,
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
 		tags:     ts,
 		class:    t.Class(),
-	}, nil
+	}
 }
 
 func (d *dialer) run() error {
@@ -75,14 +73,17 @@ func (d *dialer) run() error {
 
 			l.Debugf(`dialer run %+#v`, d)
 			d.testCnt++
-			//dialtesting start
-			//无论成功或失败，都要记录测试结果
-			err := d.task.Run()
-			if err != nil {
-				l.Errorf("task %s failed, %s", d.task.ID(), err.Error())
+
+			switch d.task.Class() {
+			case dt.ClassHeadless:
+				return fmt.Errorf("headless task deprecated")
+			default:
+				_ = d.task.Run() //nolint:errcheck
 			}
 
-			err = d.feedIO()
+			// dialtesting start
+			// 无论成功或失败，都要记录测试结果
+			err := d.feedIO()
 			if err != nil {
 				l.Warnf("io feed failed, %s", err.Error())
 			}
@@ -100,7 +101,6 @@ func (d *dialer) run() error {
 }
 
 func (d *dialer) feedIO() error {
-
 	// 考虑到推送至不同的dataway地址
 	u, err := url.Parse(d.task.PostURLStr())
 	if err != nil {
@@ -108,15 +108,15 @@ func (d *dialer) feedIO() error {
 		return err
 	}
 
-	u.Path = u.Path + datakit.Logging // `/v1/write/logging`
+	u.Path += datakit.Logging // `/v1/write/logging`
 
 	urlStr := u.String()
 	switch d.task.Class() {
 	case dt.ClassHTTP:
 		return d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
-		return d.linedataFeed(urlStr, `ms`)
-	//TODO other class
+		return fmt.Errorf("headless task deprecated")
+	// TODO other class
 	default:
 	}
 
@@ -124,7 +124,6 @@ func (d *dialer) feedIO() error {
 }
 
 func (d *dialer) doUpdateTask(t dt.Task) {
-
 	if err := t.Init(); err != nil {
 		l.Warn(err)
 		return
@@ -135,7 +134,6 @@ func (d *dialer) doUpdateTask(t dt.Task) {
 	}
 
 	d.task = t
-
 }
 
 type httpMeasurement struct {
@@ -149,6 +147,7 @@ func (m *httpMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "http_dial_testing",

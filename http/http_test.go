@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,23 +11,22 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
 func BenchmarkHandleWriteBody(b *testing.B) {
-
 	body := []byte(`abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216
 abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 
 	for n := 0; n < b.N; n++ {
-		handleWriteBody(body, "s", nil, false)
+		if _, err := handleWriteBody(body, "s", nil, false, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
 func BenchmarkHandleJSONWriteBody(b *testing.B) {
-
 	body := []byte(`[
 			{
 				"measurement":"abc",
@@ -44,12 +44,14 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 			]`)
 
 	for n := 0; n < b.N; n++ {
-		handleWriteBody(body, "s", nil, true)
+		if _, err := handleWriteBody(body, "s", nil, true, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
 func TestHandleBody(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		body []byte
 		prec string
 		fail bool
@@ -130,7 +132,7 @@ test,t1=abc f1=1i,f2=2,f3="str"`),
 	}
 
 	for i, tc := range cases {
-		pts, err := handleWriteBody(tc.body, tc.prec, tc.tags, tc.js)
+		pts, err := handleWriteBody(tc.body, tc.prec, tc.tags, tc.js, nil)
 
 		if tc.fail {
 			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
@@ -166,15 +168,14 @@ test,t1=abc f1=1i,f2=2,f3="str"`),
 }
 
 func TestRUMHandleBody(t *testing.T) {
-
-	var cases = []struct {
-		body []byte
-		prec string
-		fail bool
-		js   bool
-		npts int
+	cases := []struct {
+		body           []byte
+		prec           string
+		fail           bool
+		js             bool
+		npts           int
+		appidWhiteList []string
 	}{
-
 		{
 			body: []byte(`[{
 "measurement": "error",
@@ -185,14 +186,60 @@ func TestRUMHandleBody(t *testing.T) {
 			js:   true,
 		},
 
+		// 有效的 app_id
+		{
+			body: []byte(`[{
+"measurement": "error",
+"tags": {"app_id": "appid01"},
+"fields": {"f1": 1.0, "f2": 2}
+}]`),
+			npts:           1,
+			js:             true,
+			appidWhiteList: []string{"appid01"},
+		},
+
+		// 无效的 app_id
+		{
+			body: []byte(`[{
+"measurement": "error",
+"tags": {"app_id": "appid01"},
+"fields": {"f1": 1.0, "f2": 2}
+}]`),
+			npts:           1,
+			js:             true,
+			appidWhiteList: []string{"appid02"},
+			fail:           true,
+		},
+
+		// 无效的JSON，没有 tags
+		{
+			body: []byte(`[{
+"measurement": "error",
+"fields": {"f1": 1.0, "f2": 2}
+}]`),
+			npts:           1,
+			js:             true,
+			appidWhiteList: []string{"appid02"},
+			fail:           true,
+		},
+
+		// 有效的 app_id
 		{
 			prec: "ms",
-			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			view,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130000
-			resource,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130000
-			long_task,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
-			action,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
-			npts: 5,
+			body: []byte(`error,app_id=appid01,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			npts:           2,
+			appidWhiteList: []string{"appid01"},
+		},
+
+		// 无效的 app_id
+		{
+			prec: "ms",
+			body: []byte(`error,app_id=appid01,t2=tag2 f1=1.0,f2=2i,f3="abc"
+			action,app_id=appid01,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"`),
+			npts:           2,
+			appidWhiteList: []string{"appid02"},
+			fail:           true,
 		},
 
 		{
@@ -214,7 +261,8 @@ func TestRUMHandleBody(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		pts, err := handleRUMBody(tc.body, tc.prec, "", tc.js)
+		t.Logf("----------- [%d] -----------", i)
+		pts, err := doHandleRUMBody(tc.body, tc.prec, tc.js, nil, tc.appidWhiteList)
 
 		if tc.fail {
 			tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
@@ -229,7 +277,6 @@ func TestRUMHandleBody(t *testing.T) {
 
 		tu.Equals(t, tc.npts, len(pts))
 
-		t.Logf("----------- [%d] -----------", i)
 		for _, pt := range pts {
 			lp := pt.String()
 			t.Logf("\t%s", lp)
@@ -242,8 +289,7 @@ func TestRUMHandleBody(t *testing.T) {
 }
 
 func TestParsePoint(t *testing.T) {
-
-	var cases = []struct {
+	cases := []struct {
 		body []byte
 		prec string
 		npts int
@@ -300,7 +346,6 @@ func TestParsePoint(t *testing.T) {
 }
 
 func TestRestartAPI(t *testing.T) {
-
 	tokens := []string{
 		"http://1.2.3.4?token=tkn_abc123",
 		"http://4.3.2.1?token=tkn_abc456",
@@ -319,12 +364,10 @@ func TestRestartAPI(t *testing.T) {
 			token: "tkn_abc123",
 			fail:  false,
 		},
-
 		{
 			token: "tkn_abc456",
 			fail:  true,
 		},
-
 		{
 			token: "",
 			fail:  true,
@@ -334,13 +377,15 @@ func TestRestartAPI(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := checkToken(r); err != nil {
 			w.WriteHeader(ErrInvalidToken.HttpCode)
-			json.NewEncoder(w).Encode(err)
+			if err := json.NewEncoder(w).Encode(err); err != nil {
+				t.Error(err)
+			}
 		} else {
 			w.WriteHeader(200)
 		}
 	}))
 
-	defer ts.Close()
+	defer ts.Close() //nolint:errcheck
 
 	time.Sleep(time.Second)
 
@@ -356,7 +401,7 @@ func TestRestartAPI(t *testing.T) {
 			t.Error(err)
 			continue
 		}
-		resp.Body.Close()
+		resp.Body.Close() //nolint:errcheck
 
 		if !tc.fail {
 			tu.Equals(t, 200, resp.StatusCode)
@@ -366,4 +411,94 @@ func TestRestartAPI(t *testing.T) {
 
 		t.Logf("resp: %s", string(body))
 	}
+}
+
+func TestApiGetDatakitLastError(t *testing.T) {
+	const uri string = "/v1/lasterror"
+
+	cases := []struct {
+		body []byte
+		fail bool
+	}{
+		{
+			[]byte(`{"input":"fakeCPU","err_content":"cpu has broken down"}`),
+			false,
+		},
+		{
+			[]byte(`{"input":"fakeCPU","err_content":""}`),
+			true,
+		},
+		{
+			[]byte(`{"input":"","err_content":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(`{"input":"","err_content":""}`),
+			true,
+		},
+		{
+			[]byte(`{"":"fakeCPU","err_content":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(`{"input":"fakeCPU","":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(`{"":"fakeCPU","":"cpu has broken down"}`),
+			true,
+		},
+		{
+			[]byte(``),
+			true,
+		},
+	}
+
+	for _, fakeError := range cases {
+		fakeEM := errMessage{}
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", uri, bytes.NewReader(fakeError.body))
+		if err != nil {
+			t.Errorf("create newrequest failed:%s", err)
+		}
+		em, err := doAPIGetDatakitLastError(req, rr)
+		if err != nil {
+			if fakeError.fail {
+				t.Logf("expect error: %s", err)
+				continue
+			}
+			t.Errorf("api test failed:%s", err)
+		}
+		err = json.Unmarshal(fakeError.body, &fakeEM)
+		if err != nil {
+			t.Errorf("json.Unmarshal: %s", err)
+		}
+		tu.Equals(t, fakeEM.ErrContent, em.ErrContent)
+		tu.Equals(t, fakeEM.Input, em.Input)
+	}
+}
+
+// go test -v -run ^TestReloadServer$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
+func TestReloadServer(t *testing.T) {
+	t.Log("start HTTPStart")
+
+	apiConfig = &APIConfig{
+		RUMOriginIPHeader: "X-Forwarded-For",
+		Listen:            "localhost:9529",
+		Disable404Page:    false,
+	}
+
+	go HTTPStart()
+
+	t.Log("start sleep")
+
+	time.Sleep(5 * time.Second)
+
+	t.Log("start reload")
+
+	ReloadTheNormalServer()
+
+	t.Log("start loop")
+
+	time.Sleep(60 * time.Second)
 }

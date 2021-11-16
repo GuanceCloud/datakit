@@ -13,14 +13,12 @@ import (
 	loadutil "github.com/shirou/gopsutil/load"
 	memutil "github.com/shirou/gopsutil/mem"
 	netutil "github.com/shirou/gopsutil/net"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type (
@@ -58,6 +56,8 @@ type (
 		Flags        []string `json:"flags"` // e.g., FlagUp, FlagLoopback, FlagMulticast
 		IP4          string   `json:"ip4"`
 		IP6          string   `json:"ip6"`
+		IP4All       []string `json:"ip4_all"`
+		IP6All       []string `json:"ip6_all"`
 		Addrs        []string `json:"-"`
 	}
 
@@ -70,23 +70,23 @@ type (
 	}
 
 	HostInfo struct {
-		HostMeta   *HostMetaInfo                `json:"meta"`
-		CPU        []*CPUInfo                   `json:"cpu"`
-		Mem        *MemInfo                     `json:"mem"`
-		Net        []*NetInfo                   `json:"net"`
-		Disk       []*DiskInfo                  `json:"disk"`
-		Conntrack  *conntrackutil.ConntrackInfo `json:"conntrack"`
-		FileFd     *filefdutil.FileFdInfo       `json:"filefd"`
+		HostMeta   *HostMetaInfo       `json:"meta"`
+		CPU        []*CPUInfo          `json:"cpu"`
+		Mem        *MemInfo            `json:"mem"`
+		Net        []*NetInfo          `json:"net"`
+		Disk       []*DiskInfo         `json:"disk"`
+		Conntrack  *conntrackutil.Info `json:"conntrack"`
+		FileFd     *filefdutil.Info    `json:"filefd"`
 		cpuPercent float64
 		load5      float64
 		cloudInfo  map[string]interface{}
 	}
 
 	HostConfig struct {
-		Ip         string `json:"ip"`
-		EnableDca  bool   `json:"enable_dca"`
-		HttpListen string `json:"http_listen"`
-		ApiToken   string `json:"api_token"`
+		IP         string          `json:"ip"`
+		DCAConfig  *http.DCAConfig `json:"dca_config"`
+		HTTPListen string          `json:"http_listen"`
+		APIToken   string          `json:"api_token"`
 	}
 
 	HostObjectMessage struct {
@@ -98,15 +98,14 @@ type (
 	CollectorStatus struct {
 		Name        string `json:"name"`
 		Count       int64  `json:"count"`
+		Version     string `json:"version,omitempty"`
 		LastTime    int64  `json:"last_time,omitempty"`
 		LastErr     string `json:"last_err,omitempty"`
 		LastErrTime int64  `json:"last_err_time,omitempty"`
 	}
 )
 
-var (
-	collectorStatHist []*CollectorStatus
-)
+var collectorStatHist []*CollectorStatus
 
 func getHostMeta() *HostMetaInfo {
 	info, err := hostutil.Info()
@@ -116,7 +115,7 @@ func getHostMeta() *HostMetaInfo {
 	}
 
 	return &HostMetaInfo{
-		//HostName:        info.Hostname,
+		// HostName:        info.Hostname,
 		// 此处用户可能自定义 Hostname，如果用户不
 		// 定义 Hostname，那么 config.Cfg.Hostname == info.Hostname
 		HostName:        config.Cfg.Hostname,
@@ -131,7 +130,6 @@ func getHostMeta() *HostMetaInfo {
 }
 
 func getCPUPercent() float64 {
-
 	ps, err := cpuutil.Percent(0, false)
 	if err != nil || len(ps) == 0 {
 		l.Warnf("fail to get cpu percent: %s", err)
@@ -223,8 +221,10 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 			}
 			if ip.To4() != nil {
 				i.IP4 = ad.Addr
+				i.IP4All = append(i.IP4All, ad.Addr)
 			} else if ip.To16() != nil {
 				i.IP6 = ad.Addr
+				i.IP6All = append(i.IP6All, ad.Addr)
 			}
 		}
 		infos = append(infos, i)
@@ -233,7 +233,6 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 }
 
 func getDiskInfo(ignoreFs []string) []*DiskInfo {
-
 	ps, err := diskutil.Partitions(true)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
@@ -244,7 +243,6 @@ func getDiskInfo(ignoreFs []string) []*DiskInfo {
 	fstypeExcludeSet, _ := DiskIgnoreFs(ignoreFs)
 
 	for _, p := range ps {
-
 		if _, ok := fstypeExcludeSet[p.Fstype]; ok {
 			continue
 		}
@@ -266,49 +264,44 @@ func getDiskInfo(ignoreFs []string) []*DiskInfo {
 	return infos
 }
 
-func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
-
-	inputsStats, err := io.GetStats(c.IOTimeout.Duration) // get all inputs stats
+func (ipt *Input) getEnabledInputs() (res []*CollectorStatus) {
+	inputsStats, err := io.GetStats(ipt.IOTimeout.Duration) // get all inputs stats
 	if err != nil {
 		l.Warnf("fail to get inputs stats, %s", err)
 		return
 	}
 
 	now := time.Now()
-	for name := range inputs.InputsInfo {
-		if s, ok := inputsStats[name]; ok {
-
-			ts := s.LastErrTS.Unix()
-			if ts < 0 {
-				ts = 0
-			}
-
-			lastErr := s.LastErr
-			if ts > 0 && now.Sub(s.LastErrTS) > c.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
-				l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
-				lastErr = ""
-				ts = 0
-			}
-
-			res = append(res, &CollectorStatus{
-				Name:        name,
-				Count:       s.Count,
-				LastTime:    s.Last.Unix(),
-				LastErr:     lastErr,
-				LastErrTime: ts,
-			})
-		} else {
-			res = append(res, &CollectorStatus{Count: 0, Name: name})
+	for name, s := range inputsStats {
+		ts := s.LastErrTS.Unix()
+		if ts < 0 {
+			ts = 0
 		}
+
+		lastErr := s.LastErr
+		if ts > 0 && now.Sub(s.LastErrTS) > ipt.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
+			l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
+			lastErr = ""
+			ts = 0
+		}
+
+		res = append(res, &CollectorStatus{
+			Name:        name,
+			Count:       s.Count,
+			LastTime:    s.Last.Unix(),
+			LastErr:     lastErr,
+			LastErrTime: ts,
+			Version:     s.Version,
+		})
 	}
 
-	return
+	return res
 }
 
-func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
+func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
 
-	stat := c.getEnabledInputs()
+	stat := ipt.getEnabledInputs()
 
 	// NOTE: 由于获取采集器的运行情况信息时，io 模块可能较忙，导致获取不到
 	// 故此处缓存一下历史，以免在 message 字段中采集器信息字段(collectors)
@@ -329,7 +322,12 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		return nil, fmt.Errorf("collector stats missing")
 	}
 
-	msg.Config = c.getHostConfig()
+	msg.Config = getHostConfig()
+
+	fileFd, err := filefdutil.GetFileFdInfo()
+	if err != nil {
+		l.Warnf("filefdutil.GetFileFdInfo(): %s, ignored", err.Error())
+	}
 
 	msg.Host = &HostInfo{
 		HostMeta:   getHostMeta(),
@@ -337,19 +335,18 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		cpuPercent: getCPUPercent(),
 		load5:      getLoad5(),
 		Mem:        getMemInfo(),
-		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
-		Disk:       getDiskInfo(c.IgnoreFS),
+		Net:        getNetInfo(ipt.EnableNetVirtualInterfaces),
+		Disk:       getDiskInfo(ipt.IgnoreFS),
 		Conntrack:  conntrackutil.GetConntrackInfo(),
-		FileFd:     filefdutil.GetFileFdInfo(),
+		FileFd:     fileFd,
 	}
 
 	// sync cloud extra fields
-	if v, ok := c.Tags["cloud_provider"]; ok {
-		info, err := c.SyncCloudInfo(v)
+	if v, ok := ipt.Tags["cloud_provider"]; ok {
+		info, err := ipt.SyncCloudInfo(v)
 		if err != nil {
 			l.Warnf("sync cloud info failed: %v, ignored", err)
 		} else {
-
 			j, err := json.Marshal(info)
 			if err != nil {
 				l.Warn(err)
@@ -363,18 +360,18 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	return &msg, nil
 }
 
-func (c *Input) getHostConfig() *HostConfig {
+func getHostConfig() *HostConfig {
 	hostConfig := &HostConfig{}
 
 	ip, err := datakit.LocalIP()
 	if err == nil {
-		hostConfig.Ip = ip
+		hostConfig.IP = ip
 	}
 
-	hostConfig.EnableDca = config.Cfg.EnableDca
+	hostConfig.DCAConfig = config.Cfg.DCAConfig
 
-	hostConfig.ApiToken = config.GetToken()
-	hostConfig.HttpListen = config.Cfg.HTTPAPI.Listen
+	hostConfig.APIToken = config.GetToken()
+	hostConfig.HTTPListen = config.Cfg.HTTPAPI.Listen
 
 	return hostConfig
 }

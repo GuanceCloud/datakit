@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -14,21 +15,25 @@ import (
 var (
 	sample = `
 [[inputs.sqlserver]]
-	# your sqlserver host ,example ip:port
-	host = ""
-	# your sqlserver user,password
-	user = ""
-	password = ""
-	# ##(optional) collection interval, default is 10s
-	# interval = "10s"
-	[inputs.sqlserver.log]
-	#	files = []
-	#	# grok pipeline script path
-	#	pipeline = "sqlserver.p"
-	[inputs.sqlserver.tags]
-	# some_tag = "some_value"
-	# more_tag = "some_other_value"
-	# ...`
+  ## your sqlserver host ,example ip:port
+  host = ""
+
+  ## your sqlserver user,password
+  user = ""
+  password = ""
+
+  ## (optional) collection interval, default is 10s
+  interval = "10s"
+
+  # [inputs.sqlserver.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "sqlserver.p"
+
+  [inputs.sqlserver.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+`
 
 	pipeline = `
 grok(_,"%{TIMESTAMP_ISO8601:time} %{NOTSPACE:origin}\\s+%{GREEDYDATA:msg}")
@@ -59,10 +64,15 @@ type Input struct {
 	Tags     map[string]string `toml:"tags"`
 	Log      *sqlserverlog     `toml:"log"`
 
+	QueryVersionDeprecated int      `toml:"query_version,omitempty"`
+	ExcludeQuery           []string `toml:"exclude_query,omitempty"`
+
 	lastErr error
 	tail    *tailer.Tailer
 	start   time.Time
 	db      *sql.DB
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 type sqlserverlog struct {
@@ -70,7 +80,6 @@ type sqlserverlog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {

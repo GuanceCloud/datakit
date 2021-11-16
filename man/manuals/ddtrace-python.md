@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
 ## Python Flask 完整示例
@@ -9,9 +9,14 @@
 这里以 Python 中常用的 Webserver Flask 应用为例。示例中 `SERVICE_A` 提供 HTTP 服务，并且调用 `SERVICE_B` HTTP 服务。
 
 ```shell
-# 先安装 flask 包
+# 安装 flask 包
 pip install flask
+
+# 安装 ddtrace python 包以及 ddtrace-run 工具
+pip install ddtrace
 ```
+
+以下是示例代码。
 
 ```python
 # -*- encoding: utf8 -*-

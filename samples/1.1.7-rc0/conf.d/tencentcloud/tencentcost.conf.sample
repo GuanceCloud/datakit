@@ -1,0 +1,22 @@
+
+#[[inputs.tencentcost]]
+
+# ##(required) authentic info
+#access_key_id = ''
+#access_key_secret = ''
+
+# ##(required) do not less then one miniute
+#transaction_interval = '5m'
+
+# ##(required) do not less then one miniute
+#order_interval = '5m'
+
+# ##(required) do not less then one miniute
+#bill_interval = '5m'
+
+# ##(optional) whether collect the history data of last year
+#collect_history_data = false
+
+# ##(optional)
+#[inputs.tencentcost.tags]
+#key1 = "val1"

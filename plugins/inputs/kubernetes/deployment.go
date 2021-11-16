@@ -1,30 +1,30 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
-
-	appsv1 "k8s.io/api/apps/v1"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	kubev1apps "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
 const kubernetesDeploymentName = "kubernetes_deployments"
 
 type deployment struct {
 	client interface {
-		getDeployments() (*appsv1.DeploymentList, error)
+		getDeployments() kubev1apps.DeploymentInterface
 	}
 	tags map[string]string
 }
 
 func (d *deployment) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
-	list, err := d.client.getDeployments()
+	list, err := d.client.getDeployments().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get deployments resource: %s", err)
 		return
@@ -34,15 +34,19 @@ func (d *deployment) Gather() {
 		tags := map[string]string{
 			"name":            fmt.Sprintf("%v", obj.UID),
 			"deployment_name": obj.Name,
-			"cluster_name":    obj.ClusterName,
-			"namespace":       obj.Namespace,
+		}
+		if obj.ClusterName != "" {
+			tags["cluster_name"] = obj.ClusterName
+		}
+		if obj.Namespace != "" {
+			tags["namespace"] = obj.Namespace
 		}
 		for k, v := range d.tags {
 			tags[k] = v
 		}
 
 		fields := map[string]interface{}{
-			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":         int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"up_dated":    obj.Status.UpdatedReplicas,
 			"ready":       obj.Status.ReadyReplicas,
 			"available":   obj.Status.AvailableReplicas,
@@ -74,6 +78,11 @@ func (d *deployment) Gather() {
 		}
 	}
 
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
+	}
+
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
 	}
@@ -83,6 +92,7 @@ func (*deployment) Resource() { /*empty interface*/ }
 
 func (*deployment) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*deployment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesDeploymentName,

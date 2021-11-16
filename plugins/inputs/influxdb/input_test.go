@@ -11,7 +11,6 @@ import (
 )
 
 func TestParseData(t *testing.T) {
-
 	// 指定指标名的映射 map
 	if fc, err := DebugVarsDataParse2Point([]byte(dataInfluxDebugVars1v8),
 		MetricMap); err != nil {
@@ -26,7 +25,6 @@ func TestParseData(t *testing.T) {
 					t.Error(err)
 				}
 			}
-
 		}
 	}
 
@@ -55,16 +53,15 @@ func TestCollect(t *testing.T) {
 	}
 	i.client = &http.Client{
 		Transport: &http.Transport{
-			ResponseHeaderTimeout: time.Duration(i.Timeout.Duration),
+			ResponseHeaderTimeout: i.Timeout.Duration,
 			TLSClientConfig:       nil,
 		},
-		Timeout: time.Duration(i.Timeout.Duration),
+		Timeout: i.Timeout.Duration,
 	}
 	i.URL = "http://localhost:8086/debug/vars"
 	if err := i.Collect(); err != nil {
 		i.collectCache = make([]inputs.Measurement, 0)
 	}
-
 }
 
 const (

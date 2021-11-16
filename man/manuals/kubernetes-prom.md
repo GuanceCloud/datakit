@@ -1,111 +1,108 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：Linux
 
 # Kubernetes 集群中自定义 Exporter 指标采集
 
 ## 介绍
 
-该方案可以在 Kubernetes 集群中通过配置，采集集群中的自定义的 Pod 的 Exporter 数据。
+本文档介绍如何采集 Kubernetes 集群中自定义 Pod 暴露出来的 Prometheus 指标。
 
-目前只支持 Promtheus 格式的数据。
+需要在 Kubernetes deployment 上添加特定的 template annotations，来采集由其创建的 Pod 暴露出来的指标。Annotation 要求如下：
 
-通过在 Kubernetes Pod 添加指定的 Annotation，实现 Exporter 功能。Annotation 格式内容如下：
+- Key 为固定的 `datakit/prom.instances`
+- Value 为 [prom 采集器](prom)完整配置，例如：
 
-- Key 固定为 `datakit/prom.exporter`
-- Value 为 JSON 格式，示例如下：
+```toml
+[[inputs.prom]]
+  ## Exporter 地址
+  url = "http://$IP:9100/metrics"
 
-```json
-{
-  "disable"            : false,
-  "url"                : "http://$IP:9100/metrics",
-  "source"             : "<your-service-name>",
-  "interval"           : "10s",
-  "measurement_name"   : "",
-  "measurement_prefix" : "",
-  "metric_name_filter" : [],
-  "metric_types"       : [
-    "counter",
-    "gauge"
-  ],
+  source = "<your-service-name>"
+  metric_types = ["counter", "gauge"]
 
-  "tags_ignore"  : [],
-  "measurements" : null,
-  "tags"         : {
-    "namespace"  : "$NAMESPACE",
-    "pod_name"   : "$PODNAME"
-  }
-}
+  measurement_name = "prom"
+  # metric_name_filter = ["cpu"]
+  # measurement_prefix = ""
+  #tags_ignore = ["xxxx"]
+
+  interval = "10s"
+
+  #[[inputs.prom.measurements]]
+  # prefix = "cpu_"
+  # name = "cpu"
+
+  [inputs.prom.tags]
+  namespace = "$NAMESPACE"
+  pod_name = "$PODNAME"
 ```
 
-字段说明：
+其中支持如下几个通配符：
 
-- `url` 是必填项，建议使用 `$IP` 变量自动替换为 Pod IP
-- `source` 表示数据来源，建议填写成对应的服务名
-- `interval` 表示采集间隔时长
-- `tags` 为自定义 tags，默认添加 `namespace` 和 `pod_name` 两项
-- `disable` 可设置为 `true` 来关闭指标采集
-- 其余字段详情可对照 [Prom 指标采集](prom)
-- `measurements` 配置范例
-```json
-  "measurements": [
-    {
-      "name": "cpu",
-      "prefix": "cpu_"
-    },
-    {
-      "name": "mem",
-      "prefix": "mem_"
-    }
-  ]
-```
-
-- 如果被采集的服务开启了 TLS 认证，json 顶层中加上如下配置：
-
-```json
-{
-  "tls_open": true,
-  "tls_ca": "/on-datakit-host/path/to/ca.crt",
-  "tls_cert": "/on-datakit-host/path/to/peer.crt",
-  "tls_key": "/on-datakit-host/path/to/peer.key",
-}
-```
-
-JSON 中支持的通配符:
-
-- `$IP`：通配 Pod 的内网 IP，形如 `172.16.0.3`，无需额外配置
+- `$IP`：通配 Pod 的内网 IP
 - `$NAMESPACE`：Pod Namespace
 - `$PODNAME`：Pod Name
 
+### 选择指定Pod IP
+
+某些情况下， Pod 上会存在多个 IP，此时仅仅通过 `$IP` 来获取 Exporter 地址是不准确的。支持通过配置 Annotation 选择 Pod IP。
+
+- Key 为固定的 `datakit/prom.instances.ip_index`
+- Value 是自然数，例如 `0` `1` `2` 等，是要使用的 IP 在整个 IP 数组（Pod IPs）中的位置下标。
+
+如果没有此 Annotation Key，则使用默认 Pod IP。
+
 ## 操作过程
 
-假设 Pod 名称为 `dummy-abc`
-
 - 登录到 Kubernetes 所在主机
-- 复制上述 JSON 配置示例，将其写入文件（以 `/tmp/annotation.json` 文件名为例），按需修改配置参数
-- 添加 Annotation
 
-```shell
-conf=`echo $(cat /tmp/annotation.json)`;kubectl annotate --overwrite pods dummy-abc datakit/prom.exporter="$conf"
+- 打开 `deployment.yaml`，添加 template annotations 示例如下：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prom-deployment
+  labels:
+    app: prom
+spec:
+  template:
+    metadata:
+      labels:
+        app: prom
+      annotations:
+        datakit/prom.instances.ip_index: 2
+        datakit/prom.instances: |
+          [[inputs.prom]]
+            url = "http://$IP:9100/metrics"
+          
+            source = "<your-service-name>"
+            metric_types = ["counter", "gauge"]
+            # metric_name_filter = ["cpu"]
+            # measurement_prefix = ""
+            # measurement_name = "prom"
+          
+            interval = "10s"
+          
+            # tags_ignore = ["xxxx"]
+          
+            #[[inputs.prom.measurements]]
+            # prefix = "cpu_"
+            # name = "cpu"
+          
+            [inputs.prom.tags]
+            namespace = "$NAMESPACE"
+            pod_name = "$PODNAME"
 ```
-  终端打印 `pod/dummy-abc annotated` 表示添加成功，可以使用以下命令查看 Annotation 详情
 
-```shell
-kubectl get pod dummy-abc -o jsonpath='{.metadata.annotations}'
-``` 
-- 导出 Pod yaml
+> 注意， `annotations` 一定添加在 `template` 字段下，这样 deployment.yaml 创建的 Pod 才会携带 `datakit/prom.instances`。
 
-```shell
-kubectl get pod dummy-abc -o yaml >> dummy-abc.yaml
-``` 
 - 使用新的 yaml 创建资源
 
 ```shell
-kubectl apply -f dummy-abc.yaml
+kubectl apply -f deployment.yaml
 ```
 
-至此，Annotation 已经添加完成。
-
-DataKit Kubernetes 会自动忽略相同配置（通配符替换之后的配置），避免重复采集。
+至此，Annotation 已经添加完成。DataKit 稍后会读取到 Pod 的 Annotation，并采集 `url` 上暴露出来的指标。

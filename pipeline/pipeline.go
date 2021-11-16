@@ -1,3 +1,4 @@
+// Package pipeline implement datakit's logging pipeline.
 package pipeline
 
 import (
@@ -12,11 +13,8 @@ import (
 	influxm "github.com/influxdata/influxdb1-client/models"
 	conv "github.com/spf13/cast"
 	vgrok "github.com/vjeantet/grok"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/geo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
@@ -25,20 +23,16 @@ type Pipeline struct {
 	Content  string
 	Output   map[string]interface{}
 	lastErr  error
-	patterns map[string]string //存放自定义patterns
+	patterns map[string]string // 存放自定义patterns
 	ast      *parser.Ast
 	grok     *vgrok.Grok
 	timezone map[string]*time.Location
 }
 
-var (
-	l = logger.DefaultSLogger("pipeline")
-)
+var l = logger.DefaultSLogger("pipeline")
 
-func NewPipelineByScriptPath(path string) (*Pipeline, error) {
-
-	scriptPath := filepath.Join(datakit.PipelineDir, path)
-	data, err := ioutil.ReadFile(scriptPath)
+func NewPipelineByScriptPath(scriptFullPath string) (*Pipeline, error) {
+	data, err := ioutil.ReadFile(filepath.Clean(scriptFullPath))
 	if err != nil {
 		return nil, err
 	}
@@ -59,14 +53,14 @@ func NewPipeline(script string) (*Pipeline, error) {
 }
 
 func NewPipelineFromFile(filename string) (*Pipeline, error) {
-	b, err := ioutil.ReadFile(filename)
+	b, err := ioutil.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
 	return NewPipeline(string(b))
 }
 
-// PointToJSON, line protocol point to pipeline JSON
+// RunPoint line protocol point to pipeline JSON.
 func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
 	defer func() {
 		r := recover()
@@ -106,23 +100,21 @@ func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
 }
 
 func (p *Pipeline) Run(data string) *Pipeline {
-
 	p.Content = data
 	p.Output = make(map[string]interface{})
 	p.Output["message"] = data
 
-	//防止脚本解析错误
+	// 防止脚本解析错误
 	if p.ast == nil || len(p.ast.Functions) == 0 {
 		return p
 	}
 
-	//错误状态复位
+	// 错误状态复位
 	p.lastErr = nil
 
 	var f rtpanic.RecoverCallback
 
-	f = func(trace []byte, err error) {
-
+	f = func(trace []byte, _ error) {
 		defer rtpanic.Recover(f, nil)
 
 		if trace != nil {
@@ -139,9 +131,8 @@ func (p *Pipeline) Run(data string) *Pipeline {
 				return
 			}
 
-			_, err = plf(p, fn)
-			if err != nil {
-				p.lastErr = fmt.Errorf("Run func %v: %v", fn.Name, err)
+			if _, err := plf(p, fn); err != nil {
+				p.lastErr = fmt.Errorf("Run func %v: %w", fn.Name, err)
 				return
 			}
 		}
@@ -205,7 +196,7 @@ func (p *Pipeline) getContentStr(key interface{}) (string, error) {
 		return "", err
 	}
 
-	switch v := reflect.ValueOf(c); v.Kind() {
+	switch v := reflect.ValueOf(c); v.Kind() { //nolint:exhaustive
 	case reflect.Map:
 		res, err := json.Marshal(v.Interface())
 		return string(res), err
@@ -214,12 +205,11 @@ func (p *Pipeline) getContentStr(key interface{}) (string, error) {
 	}
 }
 
-func (p *Pipeline) setTimezone(k string, v *time.Location) error {
+func (p *Pipeline) setTimezone(k string, v *time.Location) {
 	if p.timezone == nil {
 		p.timezone = make(map[string]*time.Location)
 	}
 	p.timezone[k] = v
-	return nil
 }
 
 func (p *Pipeline) setContent(k, v interface{}) error {
@@ -251,8 +241,7 @@ func (p *Pipeline) setContent(k, v interface{}) error {
 	return nil
 }
 
-func (pl *Pipeline) parseScript(script string) error {
-
+func (p *Pipeline) parseScript(script string) error {
 	node, err := parser.ParsePipeline(script)
 	if err != nil {
 		return err
@@ -260,7 +249,7 @@ func (pl *Pipeline) parseScript(script string) error {
 
 	switch ast := node.(type) {
 	case *parser.Ast:
-		pl.ast = ast
+		p.ast = ast
 	default:
 		return fmt.Errorf("should not been here")
 	}
@@ -268,21 +257,10 @@ func (pl *Pipeline) parseScript(script string) error {
 	return nil
 }
 
-func debugNodesHelp(f *parser.FuncExpr, prev string) {
-	for _, node := range f.Param {
-		switch v := node.(type) {
-		case *parser.FuncExpr:
-			debugNodesHelp(v, prev+"    ")
-		default:
-			l.Debugf("%v%v", prev+"    |", node)
-		}
-	}
-}
-
 func Init(datadir string) error {
 	l = logger.SLogger("pipeline")
 
-	if err := geo.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
+	if err := LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return err
 	}
 

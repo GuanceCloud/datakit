@@ -9,7 +9,6 @@ import (
 type parseCase struct {
 	in       string
 	expected *Ast
-	err      string
 	fail     bool
 }
 
@@ -20,7 +19,7 @@ var parseCases = []*parseCase{
 		in: `f([2].x[3])`,
 		expected: &Ast{
 			Functions: []*FuncExpr{
-				&FuncExpr{
+				{
 					Name: `f`,
 					Param: []Node{
 						&AttrExpr{
@@ -46,7 +45,7 @@ var parseCases = []*parseCase{
 		in: `f(x.y[1][2].z)`,
 		expected: &Ast{
 			Functions: []*FuncExpr{
-				&FuncExpr{
+				{
 					Name: `f`,
 					Param: []Node{
 						&AttrExpr{
@@ -73,26 +72,26 @@ var parseCases = []*parseCase{
 
 		expected: &Ast{
 			Functions: []*FuncExpr{
-				&FuncExpr{
+				{
 					Name: `f1`,
 				},
-				&FuncExpr{
+				{
 					Name: `f2`,
 				},
-				&FuncExpr{
+				{
 					Name: `f3`,
 				},
 			},
 		},
 	},
 
-	// case: embeded functions
+	// case: embedded functions
 	{
 		in: `f1(g(f2("abc"), 123), 1,2,3)`,
 
 		expected: &Ast{
 			Functions: []*FuncExpr{
-				&FuncExpr{
+				{
 					Name: "f1",
 					Param: []Node{
 						&FuncExpr{
@@ -120,7 +119,7 @@ var parseCases = []*parseCase{
 		in: `avg(x.y.z, 1,2,3, p68, re("cd"), pqa)`,
 		expected: &Ast{
 			Functions: []*FuncExpr{
-				&FuncExpr{
+				{
 					Name: "avg",
 					Param: []Node{
 
@@ -150,7 +149,7 @@ var parseCases = []*parseCase{
 		in: `json(_, x.y[1].z)`,
 		expected: &Ast{
 			Functions: []*FuncExpr{
-				&FuncExpr{
+				{
 					Name: "json",
 					Param: []Node{
 						&Identifier{Name: "_"},
@@ -175,7 +174,7 @@ var parseCases = []*parseCase{
 		in: `json(_, x.y.z)`,
 		expected: &Ast{
 			Functions: []*FuncExpr{
-				&FuncExpr{
+				{
 					Name: "json",
 					Param: []Node{
 						&Identifier{Name: "_"},
@@ -198,6 +197,7 @@ func TestParser(t *testing.T) {
 }
 
 func runCases(t *testing.T, cases []*parseCase) {
+	t.Helper()
 	for idx := len(cases) - 1; idx >= 0; idx-- {
 		tc := cases[idx]
 		node, err := ParsePipeline(tc.in)

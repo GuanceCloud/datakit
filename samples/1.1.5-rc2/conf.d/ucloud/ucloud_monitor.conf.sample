@@ -1,0 +1,33 @@
+
+#(required)
+#[[inputs.ucloud_monitor]]
+
+#(required)
+#public_key = ''
+
+#(required)
+#private_key = ''
+
+#(required)
+#region = ''
+
+#(required)
+#zone = ''
+
+#(optional) use the default project if empty. sub account must not be empty
+#project_id = ''
+
+#(required)
+#[[inputs.ucloud_monitor.resource]]
+
+# ##(required) resource type
+#resource_type = ''
+
+# ##(required) should be none-empty expect for 'sharebandwidth'(default use the first available resource id)
+#resource_id = ''
+
+# ##(optional)
+#interval='5m'
+
+# ##(required) names of metric to collect
+#metrics=[]

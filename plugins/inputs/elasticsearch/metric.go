@@ -1,3 +1,4 @@
+//nolint:lll
 package elasticsearch
 
 import (
@@ -117,7 +118,7 @@ func (m indicesStatsMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: indicesStatsFields,
 		Tags: map[string]interface{}{
 			"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
-			"index_name":   inputs.NewTagInfo("Name of the index."),
+			"index_name":   inputs.NewTagInfo("Name of the index. The name '_all' target all data streams and indices in a cluster."),
 		},
 	}
 }

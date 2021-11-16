@@ -1,3 +1,4 @@
+// Package mongodb collects MongoDB metrics.
 package mongodb
 
 import (
@@ -6,27 +7,29 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"gopkg.in/mgo.v2"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gopkg.in/mgo.v2"
 )
+
+var _ inputs.ElectionInput = (*Input)(nil)
 
 var (
 	defInterval      = datakit.Duration{Duration: 10 * time.Second}
-	defMongoUrl      = "mongodb://127.0.0.1:27017"
-	defTlsCaCert     = "/etc/ssl/certs/mongod.cert.pem"
-	defTlsCert       = "/etc/ssl/certs/mongo.cert.pem"
-	defTlsCertKey    = "/etc/ssl/certs/mongo.key.pem"
+	defMongoURL      = "mongodb://127.0.0.1:27017"
+	defTLSCaCert     = "/etc/ssl/certs/mongod.cert.pem"
+	defTLSCert       = "/etc/ssl/certs/mongo.cert.pem"
+	defTLSCertKey    = "/etc/ssl/certs/mongo.key.pem"
 	defMongodLogPath = "/var/log/mongodb/mongod.log"
 	defPipeline      = "mongod.p"
 	defTags          map[string]string
@@ -34,6 +37,7 @@ var (
 
 var (
 	inputName    = "mongodb"
+	catalogName  = "db"
 	sampleConfig = `
 [[inputs.mongodb]]
   ## Gathering interval
@@ -44,7 +48,7 @@ var (
   ## For example:
   ##   mongodb://user:auth_key@10.10.3.30:27017,
   ##   mongodb://10.10.3.33:18832,
-  # servers = ["` + defMongoUrl + `"]
+  # servers = ["` + defMongoURL + `"]
 
   ## When true, collect replica set stats
   # gather_replica_set_stats = false
@@ -65,27 +69,20 @@ var (
   ## When true, collect top command stats.
   # gather_top_stat = true
 
-  ## Optional TLS Config, enabled if true.
-  # enable_tls = false
-
-  ## Optional local Mongod log input config, enabled if true.
-  # enable_mongod_log = false
-
   ## TLS connection config
-  [inputs.mongodb.tlsconf]
-    # ca_certs = ["` + defTlsCaCert + `"]
-    # cert = "` + defTlsCert + `"
-    # cert_key = "` + defTlsCertKey + `"
-    ## Use TLS but skip chain & host verification
-    # insecure_skip_verify = true
-    # server_name = ""
+  # ca_certs = ["` + defTLSCaCert + `"]
+  # cert = "` + defTLSCert + `"
+  # cert_key = "` + defTLSCertKey + `"
+  ## Use TLS but skip chain & host verification
+  # insecure_skip_verify = true
+  # server_name = ""
 
   ## Mongod log
-  [inputs.mongodb.log]
-    ## Log file path check your mongodb config path usually under '/var/log/mongodb/mongod.log'.
-    # files = ["` + defMongodLogPath + `"]
-    ## Grok pipeline script file.
-    # pipeline = "` + defPipeline + `"
+  # [inputs.mongodb.log]
+  # #Log file path check your mongodb config path usually under '/var/log/mongodb/mongod.log'.
+  # files = ["` + defMongodLogPath + `"]
+  # #Grok pipeline script file.
+  # pipeline = "` + defPipeline + `"
 
   ## Customer tags, if set will be seen with every metric.
   [inputs.mongodb.tags]
@@ -111,47 +108,60 @@ type mongodblog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type Input struct {
-	Interval              datakit.Duration       `toml:"interval"`
-	Servers               []string               `toml:"servers"`
-	GatherReplicaSetStats bool                   `toml:"gather_replica_set_stats"`
-	GatherClusterStats    bool                   `toml:"gather_cluster_stats"`
-	GatherPerDbStats      bool                   `toml:"gather_per_db_stats"`
-	GatherPerColStats     bool                   `toml:"gather_per_col_stats"`
-	ColStatsDbs           []string               `toml:"col_stats_dbs"`
-	GatherTopStat         bool                   `toml:"gather_top_stat"`
-	EnableTls             bool                   `toml:"enable_tls"`
-	TlsConf               *dknet.TlsClientConfig `toml:"tlsconf"`
-	EnableMongodLog       bool                   `toml:"enable_mongod_log"`
-	Log                   *mongodblog            `toml:"log"`
-	Tags                  map[string]string      `toml:"tags"`
-	mongos                map[string]*Server
-	tail                  *tailer.Tailer
+	Interval              datakit.Duration `toml:"interval"`
+	Servers               []string         `toml:"servers"`
+	GatherReplicaSetStats bool             `toml:"gather_replica_set_stats"`
+	GatherClusterStats    bool             `toml:"gather_cluster_stats"`
+	GatherPerDBStats      bool             `toml:"gather_per_db_stats"`
+	GatherPerColStats     bool             `toml:"gather_per_col_stats"`
+	ColStatsDBs           []string         `toml:"col_stats_dbs"`
+	GatherTopStat         bool             `toml:"gather_top_stat"`
+
+	TLSConf *dknet.TLSClientConfig `toml:"tlsconf"` // deprecated
+
+	EnableTLSDeprecated bool `toml:"enable_tls,omitempty"`
+
+	dknet.TLSClientConfig
+
+	Log  *mongodblog       `toml:"log"`
+	Tags map[string]string `toml:"tags"`
+
+	mongos  map[string]*Server
+	tail    *tailer.Tailer
+	pause   bool
+	pauseCh chan bool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
-func (*Input) Catalog() string {
-	return inputName
-}
+func (*Input) Catalog() string { return catalogName }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) PipelineConfig() map[string]string {
-	return map[string]string{"mongod": pipelineConfig}
+	return map[string]string{inputName: pipelineConfig}
 }
 
-func (*Input) AvailableArchs() []string {
-	return datakit.AllArch
+func (m *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: m.Log.Pipeline,
+		},
+	}
 }
 
-func (*Input) SampleMeasurement() []inputs.Measurement {
+func (m *Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (m *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&mongodbMeasurement{},
-		&mongodbDbMeasurement{},
+		&mongodbDBMeasurement{},
 		&mongodbColMeasurement{},
 		&mongodbShardMeasurement{},
 		&mongodbTopMeasurement{},
@@ -159,7 +169,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (m *Input) RunPipeline() {
-	if !m.EnableMongodLog || m.Log == nil || len(m.Log.Files) == 0 {
+	if m.Log == nil || len(m.Log.Files) == 0 {
 		return
 	}
 
@@ -173,20 +183,25 @@ func (m *Input) RunPipeline() {
 		GlobalTags:        m.Tags,
 		IgnoreStatus:      m.Log.IgnoreStatus,
 		CharacterEncoding: m.Log.CharacterEncoding,
-		Match:             m.Log.Match,
+		MultilineMatch:    m.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, m.Log.Pipeline)
+	pl, err := config.GetPipelinePath(m.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	m.tail, err = tailer.NewTailer(m.Log.Files, opt)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("NewTailer: %s", err)
+
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
@@ -203,20 +218,42 @@ func (m *Input) Run() {
 	tick := time.NewTicker(m.Interval.Duration)
 	for {
 		select {
+		case <-datakit.Exit.Wait():
+			m.exit()
+			l.Info("mongodb input exit")
+			return
+
+		case <-m.semStop.Wait():
+			m.exit()
+			l.Info("mongodb input return")
+			return
+
 		case <-tick.C:
+			if m.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
 			if err := m.gather(); err != nil {
-				l.Error(err.Error())
+				l.Errorf("gather: %s", err.Error())
 				io.FeedLastError(inputName, err.Error())
 			}
-		case <-datakit.Exit.Wait():
-			if m.tail != nil {
-				m.tail.Close()
-				l.Info("mongodb log exits")
-			}
-			l.Info("mongodb input exits")
 
-			return
+		case m.pause = <-m.pauseCh:
+			// nil
 		}
+	}
+}
+
+func (m *Input) exit() {
+	if m.tail != nil {
+		m.tail.Close()
+		l.Info("mongodb log exits")
+	}
+}
+
+func (m *Input) Terminate() {
+	if m.semStop != nil {
+		m.semStop.Close()
 	}
 }
 
@@ -232,7 +269,7 @@ func (m *Input) getMongoServer(url *url.URL) *Server {
 // Returns one of the errors encountered while gather stats (if any).
 func (m *Input) gather() error {
 	if len(m.Servers) == 0 {
-		return m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoUrl}))
+		return m.gatherServer(m.getMongoServer(&url.URL{Host: defMongoURL}))
 	}
 
 	var wg sync.WaitGroup
@@ -278,16 +315,20 @@ func (m *Input) gatherServer(server *Server) error {
 
 		dialInfo, err := mgo.ParseURL(dialAddrs[0])
 		if err != nil {
-			return fmt.Errorf("unable to parse URL %q: %s", dialAddrs[0], err.Error())
+			return fmt.Errorf("unable to parse URL %q: %w", dialAddrs[0], err)
 		}
 
-		if m.EnableTls && m.TlsConf != nil {
-			if tlsConfig, err := m.TlsConf.TlsConfig(); err != nil {
-				return err
-			} else {
-				dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-					return tls.Dial("tcp", addr.String(), tlsConfig)
-				}
+		tlscnf := m.TLSConf // prefer deprecated TLS conf
+		if tlscnf == nil {
+			tlscnf = &m.TLSClientConfig
+		}
+
+		if tlsConfig, err := tlscnf.TLSConfig(); err != nil {
+			return err
+		} else if tlsConfig != nil {
+			// TLS is configured
+			dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+				return tls.Dial("tcp", addr.String(), tlsConfig)
 			}
 		}
 
@@ -296,35 +337,57 @@ func (m *Input) gatherServer(server *Server) error {
 
 		sess, err := mgo.DialWithInfo(dialInfo)
 		if err != nil {
-			return fmt.Errorf("unable to connect to MongoDB: %s", err.Error())
+			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		server.Session = sess
 	}
 
-	return server.gatherData(m.GatherReplicaSetStats, m.GatherClusterStats, m.GatherPerDbStats, m.GatherPerColStats, m.ColStatsDbs, m.GatherTopStat)
+	return server.gatherData(m.GatherReplicaSetStats,
+		m.GatherClusterStats,
+		m.GatherPerDBStats,
+		m.GatherPerColStats,
+		m.ColStatsDBs,
+		m.GatherTopStat)
 }
 
-func init() {
+func (m *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case m.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (m *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case m.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval:              defInterval,
-			Servers:               []string{defMongoUrl},
+			Servers:               []string{defMongoURL},
 			GatherReplicaSetStats: false,
 			GatherClusterStats:    false,
-			GatherPerDbStats:      true,
+			GatherPerDBStats:      true,
 			GatherPerColStats:     true,
-			ColStatsDbs:           []string{},
+			ColStatsDBs:           []string{},
 			GatherTopStat:         true,
-			EnableTls:             false,
-			TlsConf: &dknet.TlsClientConfig{
-				CaCerts:            []string{defTlsCaCert},
-				Cert:               defTlsCert,
-				CertKey:            defTlsCertKey,
-				InsecureSkipVerify: true,
-			},
-			EnableMongodLog: false,
-			Log:             &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
-			mongos:          make(map[string]*Server),
+			Log:                   &mongodblog{Files: []string{defMongodLogPath}, Pipeline: defPipeline},
+			mongos:                make(map[string]*Server),
+			pauseCh:               make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

@@ -22,11 +22,47 @@ function Write-COutput($ForegroundColor) {
     $host.UI.RawUI.ForegroundColor = $fc
 }
 
+# https://gist.github.com/markembling/173887
+# usage: remove-host $file $args[1]
+function remove-host([string]$filename, [string]$hostname) {
+	$c = Get-Content $filename
+	$newLines = @()
+
+	foreach ($line in $c) {
+		$bits = [regex]::Split($line, "\t+")
+		if ($bits.count -eq 2) {
+			if ($bits[1] -ne $hostname) {
+				$newLines += $line
+			}
+		} else {
+			$newLines += $line
+		}
+	}
+
+	# Write file
+	Clear-Content $filename
+	foreach ($line in $newLines) {
+		$line | Out-File -encoding ASCII -append $filename
+	}
+}
+
 ##########################
 # Detect variables
 ##########################
 
-$installer_base_url = "https://static.dataflux.cn/datakit"
+$installer_base_url = "https://static.guance.com/datakit"
+
+$domain = @(
+    "static.guance.com"
+    "openway.guance.com"
+    "dflux-dial.guance.com"
+
+    "static.dataflux.cn"
+    "openway.dataflux.cn"
+    "dflux-dial.dataflux.cn"
+
+    "zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com"
+)
 
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALLER_BASE_URL") 
 if ($x -ne $null) {
@@ -94,6 +130,39 @@ if ($x -ne $null) {
 	Write-COutput green "* set Proxy to $x" 
 }
 
+# check nginx proxy
+$proxy_type=""
+$x = [Environment]::GetEnvironmentVariable("DK_PROXY_TYPE")
+if ($x -ne $null) {
+	$proxy_type = $x
+	$proxy_type.ToLower()
+	Write-COutput green "* found Proxy Type: $proxy_type"
+	if ($proxy_type -eq "nginx") {
+		# env DK_NGINX_IP has highest priority on proxy level
+		$x = ""
+        $x = [Environment]::GetEnvironmentVariable("DK_NGINX_IP")
+        if ($x -ne $null -or $x -ne "") {
+            $proxy = $x
+            Write-COutput green "* got nginx Proxy $proxy"
+
+            # 更新 hosts
+            foreach ( $node in $domain )
+            {
+                remove-host $env:windir\System32\drivers\etc\hosts $node
+                Add-Content -Path $env:windir\System32\drivers\etc\hosts -Value "`n$proxy`t$node" -Force
+            }
+		    $proxy=""
+        }
+	}
+}
+
+$env_hostname=""
+$x = [Environment]::GetEnvironmentVariable("DK_HOSTNAME")
+if ($x -ne $null) {
+    $env_hostname=$x
+    Write-COutput green "* set hostname to $x"
+}
+
 $global_tags=""
 $x = [Environment]::GetEnvironmentVariable("DK_GLOBAL_TAGS") 
 if ($x -ne $null) {
@@ -106,6 +175,66 @@ $x = [Environment]::GetEnvironmentVariable("DK_INSTALL_ONLY")
 if ($x -ne $null) {
 	$install_only = $x
 	Write-COutput yellow "* set install only"
+}
+
+$dca_white_list=
+$x = [Environment]::GetEnvironmentVariable("DK_DCA_WHITE_LIST") 
+if ($x -ne $null) {
+	$dca_white_list = $x
+	Write-COutput yellow "* set DCA white list $x"
+}
+
+$dca_listen=""
+$x = [Environment]::GetEnvironmentVariable("DK_DCA_LISTEN") 
+if ($x -ne $null) {
+	$dca_listen = $x
+	Write-COutput yellow "* set DCA server listen address and port"
+}
+
+$dca_enable=
+$x = [Environment]::GetEnvironmentVariable("DK_DCA_ENABLE") 
+if ($x -ne $null) {
+	$dca_enable = $x
+	Write-COutput yellow "* enable DCA server"
+	if ($dca_white_list -eq $null) {
+		Write-COutput red "DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!"
+		Exit
+	}
+}
+
+$git_url=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_URL")
+if ($x -ne $null) {
+	$git_url = $x
+	Write-COutput yellow "* set git url"
+}
+
+$git_key_path=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_KEY_PATH")
+if ($x -ne $null) {
+	$git_key_path = $x
+	Write-COutput yellow "* set git private key path"
+}
+
+$git_key_pw=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_KEY_PW")
+if ($x -ne $null) {
+	$git_key_pw = $x
+	Write-COutput yellow "* set git private key password"
+}
+
+$git_branch=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_BRANCH")
+if ($x -ne $null) {
+	$git_branch = $x
+	Write-COutput yellow "* set git branch"
+}
+
+$git_pull_interval=""
+$x = [Environment]::GetEnvironmentVariable("DK_GIT_INTERVAL")
+if ($x -ne $null) {
+	$git_pull_interval = $x
+	Write-COutput yellow "* set git interval"
 }
 
 ##########################
@@ -122,7 +251,7 @@ $installer=".dk-installer.exe"
 ##########################
 # try install...
 ##########################
-Write-COutput green "* Downloading $insntaller_url..."
+Write-COutput green "* Downloading $installer_url..."
 
 if (Test-Path $installer) {
 	Remove-Item $installer
@@ -137,9 +266,9 @@ if ($proxy -ne "") {
 Invoke-Expression $dl_installer_action
 
 if ($upgrade -ne $null) { # upgrade
-	$action = "$installer -upgrade"
+	$action = "$installer -upgrade --proxy=${proxy}"
 } else { # install new datakit
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --cloud-provider=${cloud_provider} --global-tags='${global_tags}'"
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}'"
 	if ($install_only -ne "") {
 		$action = -join($action, " ", "--install-only")
 	}
@@ -153,7 +282,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue $installer
 Remove-Item -Force -ErrorAction SilentlyContinue .\installer.ps1
 
 # clean envs
-$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HTTP_LISTEN","DK_INSTALL_ONLY"
+$optional_envs="DK_DATAWAY","DK_UPGRADE","HTTP_PROXY","HTTP_PROXY","DK_HTTP_PORT","DK_HOSTNAME","DK_HTTP_LISTEN","DK_INSTALL_ONLY","DK_DCA_ENABLE","DK_DCA_WHITE_LIST","DK_PROXY_TYPE","DK_NGINX_IP","DK_GIT_URL","DK_GIT_KEY_PATH","DK_GIT_KEY_PW","DK_GIT_BRANCH","DK_GIT_INTERVAL"
 foreach ($env in $optional_envs) {
 	Remove-Item -ErrorAction SilentlyContinue Env:$env
 }

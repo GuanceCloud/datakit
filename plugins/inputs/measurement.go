@@ -29,7 +29,7 @@ const (
 	// add more...
 )
 
-// units
+// units.
 const (
 	UnknownUnit = "-"
 
@@ -40,7 +40,7 @@ const (
 
 	NCount = "count"
 
-	// time units
+	// time units.
 	DurationNS     = "nsec"
 	DurationUS     = "usec"
 	DurationMS     = "msec"
@@ -119,7 +119,6 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 }
 
 func (m *MeasurementInfo) TagsMarkdownTable() string {
-
 	if len(m.Tags) == 0 {
 		return "暂无"
 	}

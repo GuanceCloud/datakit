@@ -1,10 +1,10 @@
 {{.CSS}}
 
-- 发布日期：{{.ReleaseDate}}
+- 文档发布日期：{{.ReleaseDate}}
 
-# DataFlux 无数据排查
+# 观测云无数据排查
 
-大家在部署完数据采集之后（通过 DataKit 或 Function 采集），有时候在 DataFlux 的页面上看不到对应的数据更新，每次排查起来都心力憔悴，为了缓解这一状况，可按照如下的一些步骤，来逐步围歼「为啥没有数据」这一问题。
+大家在部署完数据采集之后（通过 DataKit 或 Function 采集），有时候在观测云的页面上看不到对应的数据更新，每次排查起来都心力憔悴，为了缓解这一状况，可按照如下的一些步骤，来逐步围歼「为啥没有数据」这一问题。
 
 ## 检查 DataWay 连接是否正常
 
@@ -15,19 +15,19 @@ curl http[s]://your-dataway-addr:port
 对 SAAS 而言，一般这样：
 
 ```shell
-curl https://openway.dataflux.cn
+curl https://openway.guance.com
 ```
 
 如果得到如下结果，则表示网络是有问题的：
 
 ```
-curl: (6) Could not resolve host: openway.dataflux.cn
+curl: (6) Could not resolve host: openway.guance.com
 ```
 
 如果发现如下这样的错误日志，则说明跟 DataWay 的连接出现了一些问题，可能是防火墙做了限制：
 
 ```shell
-request url https://openway.dataflux.cn/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
+request url https://openway.guance.com/v1/write/xxx/token=tkn_xxx failed:  ... context deadline exceeded...
 ```
 
 ## 检查机器时间
@@ -47,7 +47,7 @@ Wed Jul 21 08:22:32 UTC 2021
 
 这是因为，前者是中国东八区时间，后者是格林威治时间，两者相差 8 小时，但实际上，这两个时间的时间戳是一样的。
 
-如果当前系统的时间跟你的手机时间相差甚远，特别是，它如果超前了，那么 DataFlux 上是看不到这些「将来」的数据的。
+如果当前系统的时间跟你的手机时间相差甚远，特别是，它如果超前了，那么观测云上是看不到这些「将来」的数据的。
 
 另外，如果时间滞后，你会看到一些老数据，不要以为发生了灵异事件，事实上，极有可能是 DataKit 所在机器的时间还停留在过去。
 

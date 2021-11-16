@@ -310,7 +310,6 @@ func PdhEnumObjectItems(objectName string) (instanceList []string, counterList [
 	counterList = BufferToStringList(counterListLength, counterListBuffer)
 
 	return instanceList, counterList, uint32(ret)
-
 }
 
 // Validates a path. Will return ERROR_SUCCESS when ok, or PDH_CSTATUS_BAD_COUNTERNAME when the path is

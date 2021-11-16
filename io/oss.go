@@ -19,7 +19,7 @@ type OSSClient struct {
 }
 
 func NewOSSClient(endpoint, ak, sk, bucket string) (*OSSClient, error) {
-	var oc = &OSSClient{
+	oc := &OSSClient{
 		EndPoint:        endpoint,
 		AccessKeyID:     ak,
 		AccessKeySecret: sk,

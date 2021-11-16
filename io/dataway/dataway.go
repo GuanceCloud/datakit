@@ -1,12 +1,11 @@
+// Package dataway implement all dataway API request.
 package dataway
 
 import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -18,6 +17,7 @@ var (
 	apis = []string{
 		datakit.MetricDeprecated,
 		datakit.Metric,
+		datakit.Network,
 		datakit.KeyEvent,
 		datakit.Object,
 		datakit.CustomObject,
@@ -30,8 +30,10 @@ var (
 		datakit.Election,
 		datakit.ElectionHeartbeat,
 		datakit.QueryRaw,
+		datakit.Workspace,
 		datakit.ListDataWay,
 		datakit.ObjectLabel,
+		datakit.LogUpload,
 	}
 
 	ExtraHeaders      = map[string]string{}
@@ -40,26 +42,24 @@ var (
 )
 
 type DataWayCfg struct {
-	DeprecatedURL string   `toml:"url,omitempty"`
-	URLs          []string `toml:"urls"`
-
-	HTTPTimeout     string        `toml:"timeout"`
-	TimeoutDuration time.Duration `toml:"-"`
-
-	Proxy     bool   `toml:"proxy,omitempty"`
-	HttpProxy string `toml:"http_proxy"`
-
+	URLs      []string `toml:"urls"`
 	endPoints []*endPoint
-	httpCli   *http.Client
 
-	Hostname string `toml:"-"`
-
-	MaxFails int `toml:"max_fail"`
-	ontest   bool
-
+	DeprecatedURL    string `toml:"url,omitempty"`
+	HTTPTimeout      string `toml:"timeout"`
+	HTTPProxy        string `toml:"http_proxy"`
+	Hostname         string `toml:"-"`
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`
+
+	TimeoutDuration time.Duration `toml:"-"`
+	httpCli         *http.Client
+
+	MaxFails int `toml:"max_fail"`
+
+	Proxy  bool `toml:"proxy,omitempty"`
+	ontest bool
 }
 
 type endPoint struct {
@@ -89,10 +89,6 @@ func (dw *DataWayCfg) String() string {
 
 func (dw *DataWayCfg) ClientsCount() int {
 	return len(dw.endPoints)
-}
-
-type dataways struct {
-	Content []string `json:"content"`
 }
 
 func (dw *DataWayCfg) GetToken() []string {
@@ -137,7 +133,7 @@ func (dw *DataWayCfg) Apply() error {
 
 	dw.TimeoutDuration = timeout
 
-	if err := dw.initHttp(); err != nil {
+	if err := dw.initHTTP(); err != nil {
 		return err
 	}
 
@@ -170,7 +166,7 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 		host:        u.Host,
 		categoryURL: map[string]string{},
 		ontest:      dw.ontest,
-		proxy:       dw.HttpProxy,
+		proxy:       dw.HTTPProxy,
 		dw:          dw, // reference
 	}
 
@@ -192,32 +188,22 @@ func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 	return cli, nil
 }
 
-var proxyOnce sync.Once
+func (dw *DataWayCfg) initHTTP() error {
+	cliopts := &ihttp.Options{
+		DialTimeout: dw.TimeoutDuration,
+	}
 
-func (dw *DataWayCfg) initHttp() error {
-	proxyOnce.Do(func() {
-
-		cliopts := &ihttp.Options{
-			DialTimeout:           dw.TimeoutDuration,
-			DialKeepAlive:         30 * time.Second,
-			MaxIdleConns:          100,
-			MaxIdleConnsPerHost:   runtime.NumGoroutine(),
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: time.Second,
+	if dw.HTTPProxy != "" { // set proxy
+		if u, err := url.ParseRequestURI(dw.HTTPProxy); err != nil {
+			l.Warnf("parse http proxy failed err: %s, ignored", err.Error())
+		} else {
+			cliopts.ProxyURL = u
+			l.Infof("set dataway proxy to %s ok", dw.HTTPProxy)
 		}
+	}
 
-		if dw.HttpProxy != "" { // set proxy
-			if u, err := url.ParseRequestURI(dw.HttpProxy); err != nil {
-				l.Errorf("parse http proxy failed err:", err.Error())
-			} else {
-				cliopts.ProxyURL = u
-				l.Infof("set dataway proxy to %s ok", dw.HttpProxy)
-			}
-		}
-
-		dw.httpCli = ihttp.HTTPCli(cliopts)
-	})
+	dw.httpCli = ihttp.Cli(cliopts)
+	l.Debugf("httpCli: %p", dw.httpCli.Transport)
 
 	return nil
 }

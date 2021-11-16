@@ -7,19 +7,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestGetMetric(t *testing.T) {
-
 	opt := &testutil.HTTPServerOptions{
 		Bind: ":1234",
 		Exit: make(chan interface{}),
 		Routes: map[string]func(*gin.Context){
 			"/metrics/:key/metrics": func(c *gin.Context) {
 				c.Writer.Header().Set("Content-Type", "application/json")
-				c.Writer.Write([]byte(s))
+				c.Writer.Write([]byte(s)) //nolint:errcheck
 			},
 		},
 	}
@@ -36,7 +34,7 @@ func TestGetMetric(t *testing.T) {
 	time.Sleep(time.Second)
 
 	n := Input{
-		Url:      "http://127.0.0.1:1234",
+		URL:      "http://127.0.0.1:1234",
 		Key:      "ccc",
 		Interval: datakit.Duration{Duration: time.Second * 1},
 	}

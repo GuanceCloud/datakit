@@ -4,13 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/md5"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"os"
-	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -50,7 +47,7 @@ func MonitProc(proc *os.Process, name string) error {
 			}
 
 			switch runtime.GOOS {
-			case "windows":
+			case OSWindows:
 
 			default:
 				if err := p.Signal(syscall.Signal(0)); err != nil {
@@ -113,12 +110,12 @@ func SleepContext(ctx context.Context, duration time.Duration) error {
 	}
 }
 
-// Duration just wraps time.Duration
+// Duration just wraps time.Duration.
 type Duration struct {
 	Duration time.Duration
 }
 
-// UnmarshalTOML parses the duration from the TOML config file
+// UnmarshalTOML parses the duration from the TOML config file.
 func (d *Duration) UnmarshalTOML(b []byte) error {
 	b = bytes.Trim(b, "'")
 
@@ -171,7 +168,7 @@ func (d *Duration) UnitString(unit time.Duration) string {
 	}
 }
 
-// Size just wraps an int64
+// Size just wraps an int64.
 type Size struct {
 	Size int64
 }
@@ -190,7 +187,7 @@ func (s *Size) UnmarshalTOML(b []byte) error {
 }
 
 func NumberFormat(str string) string {
-	//1,234.0
+	// 1,234.0
 	arr := strings.Split(str, ".")
 	if len(arr) == 0 {
 		return str
@@ -212,15 +209,19 @@ func NumberFormat(str string) string {
 }
 
 func GZipStr(str string) ([]byte, error) {
-
 	var z bytes.Buffer
 	zw := gzip.NewWriter(&z)
-	_, err := io.WriteString(zw, str)
-	if err != nil {
+	if _, err := io.WriteString(zw, str); err != nil {
 		return nil, err
 	}
-	zw.Flush()
-	zw.Close()
+
+	if err := zw.Flush(); err != nil {
+		return nil, err
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
 	return z.Bytes(), nil
 }
 
@@ -231,25 +232,31 @@ func GZip(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	zw.Flush()
-	zw.Close()
+	if err := zw.Flush(); err != nil {
+		return nil, err
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
 	return z.Bytes(), nil
 }
 
-var (
-	dnsdests = []string{
-		`114.114.114.114:80`,
-		`8.8.8.8:80`,
-	}
-)
+var dnsdests = []string{
+	`114.114.114.114:80`,
+	`8.8.8.8:80`,
+}
 
 func LocalIP() (string, error) {
-
 	for _, dest := range dnsdests {
 		conn, err := net.DialTimeout("udp", dest, time.Second)
 		if err == nil {
-			defer conn.Close()
-			localAddr := conn.LocalAddr().(*net.UDPAddr)
+			defer conn.Close() //nolint:errcheck
+			localAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+			if !ok {
+				return "", fmt.Errorf("expect net.UDPAddr")
+			}
+
 			return localAddr.IP.String(), nil
 		}
 	}
@@ -301,95 +308,12 @@ func TomlMarshal(v interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func TomlMd5(v interface{}) (string, error) {
-	b, err := TomlMarshal(v)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%x", md5.Sum(b)), nil
-}
-
 func FileExist(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil || os.IsExist(err)
 }
 
-func Struct2JsonOfOneDepth(obj interface{}) (result string, err error) {
-
-	val := reflect.ValueOf(obj)
-
-	kd := val.Kind()
-	if kd == reflect.Ptr {
-		if val.IsNil() {
-			err = fmt.Errorf("must not be a nil pointer")
-			return
-		}
-		val = val.Elem()
-		kd = val.Kind()
-	}
-
-	if kd != reflect.Struct {
-		err = fmt.Errorf("must be a Struct")
-		return
-	}
-
-	typ := reflect.TypeOf(val.Interface())
-
-	content := map[string]interface{}{}
-
-	num := val.NumField()
-
-	for i := 0; i < num; i++ {
-		if typ.Field(i).Tag.Get("json") == "" {
-			continue
-		}
-		key := typ.Field(i).Name
-		v := val.Field(i)
-
-		if v.Kind() == reflect.Ptr {
-			if v.IsNil() {
-				continue
-			}
-			v = v.Elem()
-		}
-
-		switch v.Kind() {
-		case reflect.Slice, reflect.Map, reflect.Interface:
-			if v.IsNil() {
-				continue
-			}
-		}
-
-		switch v.Kind() {
-		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.String:
-			content[key] = v.Interface()
-		case reflect.Slice, reflect.Array, reflect.Map, reflect.Struct:
-			if jdata, e := json.Marshal(v.Interface()); e != nil {
-				err = e
-				return
-			} else {
-				content[key] = string(jdata)
-			}
-		}
-	}
-
-	if len(content) == 0 {
-		return
-	}
-
-	var jsondata []byte
-	if jsondata, err = json.Marshal(content); err != nil {
-		return
-	} else {
-		result = string(jsondata)
-	}
-
-	return
-}
-
 func CheckExcluded(item string, blacklist, whitelist []string) bool {
-
 	for _, v := range blacklist {
 		if v == item {
 			return true

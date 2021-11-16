@@ -1,3 +1,4 @@
+// Package inputs manage all input's interfaces.
 package inputs
 
 import (
@@ -12,6 +13,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+)
+
+const (
+	ElectionPauseTimeout       = time.Second * 15
+	ElectionResumeTimeout      = time.Second * 15
+	ElectionPauseChannelLength = 8
 )
 
 var (
@@ -28,8 +36,7 @@ func GetElectionInputs() []ElectionInput {
 	res := []ElectionInput{}
 	for k, arr := range InputsInfo {
 		for _, x := range arr {
-			switch y := x.input.(type) {
-			case ElectionInput:
+			if y, ok := x.input.(ElectionInput); ok {
 				l.Debugf("find election inputs %s", k)
 				res = append(res, y)
 			}
@@ -42,6 +49,7 @@ type ConfigPathStat struct {
 	Loaded int8   `json:"loaded"` // 0: 启动失败 1: 启动成功 2: 修改未加载
 	Path   string `json:"path"`
 }
+
 type Config struct {
 	ConfigPaths  []*ConfigPathStat `json:"config_paths"`
 	SampleConfig string            `json:"sample_config"`
@@ -57,17 +65,25 @@ type Input interface {
 }
 
 type HTTPInput interface {
-	//Input
-	RegHttpHandler()
+	// Input
+	RegHTTPHandler()
 }
 
 type PipelineInput interface {
-	//Input
+	// Input
 	PipelineConfig() map[string]string
 	RunPipeline()
+	GetPipeline() []*tailer.Option
 }
 
-// new input interface got extra interfaces, for better documentation
+type XLog struct {
+	Files    []string `toml:"files"`
+	Pipeline string   `toml:"pipeline"`
+	Source   string   `toml:"source"`
+	Service  string   `toml:"service"`
+}
+
+// InputV2 new input interface got extra interfaces, for better documentation.
 type InputV2 interface {
 	Input
 	SampleMeasurement() []Measurement
@@ -81,6 +97,10 @@ type ElectionInput interface {
 
 type ReadEnv interface {
 	ReadEnv(map[string]string)
+}
+
+type Stoppable interface {
+	Terminate()
 }
 
 type Creator func() Input
@@ -110,19 +130,19 @@ func (ii *inputInfo) Run() {
 	}
 }
 
-func AddInput(name string, input Input) error {
+func AddInput(name string, input Input) {
 	mtx.Lock()
 	defer mtx.Unlock()
 
 	InputsInfo[name] = append(InputsInfo[name], &inputInfo{input: input})
 
 	l.Debugf("add input %s, total %d", name, len(InputsInfo[name]))
-	return nil
 }
 
 func AddSelf() {
-	self, _ := Inputs["self"]
-	AddInput("self", self())
+	if i, ok := Inputs[datakit.DatakitInputName]; ok {
+		AddInput(datakit.DatakitInputName, i())
+	}
 }
 
 func ResetInputs() {
@@ -132,7 +152,6 @@ func ResetInputs() {
 }
 
 func getEnvs() map[string]string {
-
 	envs := map[string]string{}
 	for _, v := range os.Environ() {
 		arr := strings.SplitN(v, "=", 2)
@@ -148,7 +167,7 @@ func getEnvs() map[string]string {
 	return envs
 }
 
-func RunInputs() error {
+func RunInputs(isReload bool) error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	g := datakit.G("inputs")
@@ -162,8 +181,14 @@ func RunInputs() error {
 				continue
 			}
 
+			if isReload {
+				if _, ok := ii.input.(Stoppable); !ok {
+					continue
+				}
+			}
+
 			if inp, ok := ii.input.(HTTPInput); ok {
-				inp.RegHttpHandler()
+				inp.RegHTTPHandler()
 			}
 
 			if inp, ok := ii.input.(PipelineInput); ok {
@@ -177,7 +202,7 @@ func RunInputs() error {
 			func(name string, ii *inputInfo) {
 				g.Go(func(ctx context.Context) error {
 					// NOTE: 让每个采集器间歇运行，防止每个采集器扎堆启动，导致主机资源消耗出现规律性的峰值
-					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second))))
+					time.Sleep(time.Duration(rand.Int63n(int64(10 * time.Second)))) //nolint:gosec
 					l.Infof("starting input %s ...", name)
 
 					protectRunningInput(name, ii)
@@ -190,16 +215,32 @@ func RunInputs() error {
 	return nil
 }
 
-var (
-	MaxCrash = 6
-)
+func StopInputs() error {
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	for name, arr := range InputsInfo {
+		for _, ii := range arr {
+			if ii.input == nil {
+				l.Debugf("skip non-datakit-input %s", name)
+				continue
+			}
+
+			if inp, ok := ii.input.(Stoppable); ok {
+				inp.Terminate()
+			}
+		}
+	}
+	return nil
+}
+
+var MaxCrash = 6
 
 func protectRunningInput(name string, ii *inputInfo) {
 	var f rtpanic.RecoverCallback
 	crashTime := []string{}
 
 	f = func(trace []byte, err error) {
-
 		defer rtpanic.Recover(f, nil)
 
 		if trace != nil {
