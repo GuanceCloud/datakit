@@ -61,11 +61,13 @@ func (dw *DataWayCfg) WorkspaceQuery(body []byte) (*http.Response, error) {
 	if !ok {
 		return nil, fmt.Errorf("no workspace query URL available")
 	}
-	l.Debugf("NewRequest: %s", requrl)
+
+	log.Debugf("NewRequest: %s", requrl)
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
+
 	return dw.sendReq(req)
 }
 
@@ -106,26 +108,26 @@ func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
 		return nil, fmt.Errorf("token missing")
 	}
 
-	l.Debugf("election sending %s", requrl)
+	log.Debugf("election sending %s", requrl)
 	resp, err := dw.httpCli.Post(requrl, "", nil)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return nil, err
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
 	switch resp.StatusCode / 100 {
 	case 2:
-		l.Debugf("election %s ok", requrl)
+		log.Debugf("election %s ok", requrl)
 		return body, nil
 	default:
-		l.Debugf("election failed: %d", resp.StatusCode)
+		log.Debugf("election failed: %d", resp.StatusCode)
 		return nil, fmt.Errorf("election failed: %s", string(body))
 	}
 }
@@ -148,16 +150,16 @@ func (dw *DataWayCfg) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 		return nil, fmt.Errorf("token missing")
 	}
 
-	l.Debugf("election sending heartbeat %s", requrl)
+	log.Debugf("election sending heartbeat %s", requrl)
 	resp, err := dw.httpCli.Post(requrl, "", nil)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return nil, err
 	}
 
@@ -233,11 +235,11 @@ func (dw *DataWayCfg) DatawayList() ([]string, error) {
 
 	var dws dataways
 	if err := json.Unmarshal(body, &dws); err != nil {
-		l.Errorf(`%s, body: %s`, err, string(body))
+		log.Errorf(`%s, body: %s`, err, string(body))
 		return nil, err
 	}
 
-	l.Debugf(`available dataways; %+#v`, dws.Content)
+	log.Debugf(`available dataways; %+#v`, dws.Content)
 	return dws.Content, nil
 }
 

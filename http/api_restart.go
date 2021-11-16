@@ -18,5 +18,5 @@ func apiRestart(c *gin.Context) {
 		return
 	}
 
-	ErrOK.HttpBody(c, nil)
+	OK.HttpBody(c, nil)
 }

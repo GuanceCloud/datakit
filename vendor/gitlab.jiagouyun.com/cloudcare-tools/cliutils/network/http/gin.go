@@ -15,37 +15,29 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
-var (
-	allowHeaders = strings.Join(
-		[]string{
-			"Content-Type",
-			"Content-Length",
-			"Accept-Encoding",
-			"X-CSRF-Token",
-			"Authorization",
-			"accept",
-			"origin",
-			"Cache-Control",
-			"X-Requested-With",
-
-			// dataflux headers
-			"X-Token",
-			"X-Datakit-UUID",
-			"X-RP",
-			"X-Precision",
-			"X-Lua"}, ", ")
-)
-
 func CORSMiddleware(c *gin.Context) {
+	allowHeaders := []string{
+		"Content-Type",
+		"Content-Length",
+		"Accept-Encoding",
+		"X-CSRF-Token",
+		"Authorization",
+		"accept",
+		"origin",
+		"Cache-Control",
+		"X-Requested-With",
 
-	allowOrigin := c.GetHeader("origin")
-	if allowOrigin == "" {
-		allowOrigin = "*"
+		// dataflux headers
+		"X-Token",
+		"X-Datakit-UUID",
+		"X-RP",
+		"X-Precision",
+		"X-Lua",
 	}
 
-	c.Writer.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-	c.Writer.Header().Set("Access-Control-Allow-Headers", allowHeaders)
+	c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
 	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	if c.Request.Method == "OPTIONS" {
