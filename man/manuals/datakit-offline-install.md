@@ -65,7 +65,7 @@ $env:DK_PROXY_TYPE="nginx"; $env:DK_NGINX_IP="1.2.3.4"; $env:DK_DATAWAY="https:/
 
 当环境完全没有外网的情况下，只能通过移动硬盘（U 盘）等方式。
 
-## 下载安装包
+### 下载安装包
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
 
