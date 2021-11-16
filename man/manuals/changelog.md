@@ -2,6 +2,12 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc4.1(2021/11/16)
+
+- 修复 Kubernetes Pod 采集 namespace 命名空间问题(#439)
+
+-----
+
 ## 1.1.9-rc4(2021/11/09)
 
 - 支持[通过 Git 来管理](datakit-how-to#9ca4d8d0) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
