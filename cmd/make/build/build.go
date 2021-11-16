@@ -1,3 +1,4 @@
+// Package build implement datakit build & release functions.
 package build
 
 import (

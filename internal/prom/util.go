@@ -135,7 +135,7 @@ func getTags(labels []*dto.LabelPair, promTags, extraTags map[string]string, ign
 	return tags
 }
 
-// TODO: refact me
+// Text2Metrics convert prometheuse body to line protocol point(TODO refact me)
 //nolint:funlen,gocyclo,cyclop
 func Text2Metrics(in io.Reader,
 	prom *Option,

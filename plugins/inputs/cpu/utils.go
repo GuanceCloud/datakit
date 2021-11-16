@@ -22,7 +22,7 @@ type CPUInfoTest struct {
 	index    int
 }
 
-// collect cpu time.
+// CPUTimes collect cpu time.
 func (c *CPUInfo) CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error) {
 	var cpuTimes []cpu.TimesStat
 	PerTotal := [2]bool{perCPU, totalCPU}
@@ -47,6 +47,8 @@ func (c *CPUInfoTest) CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error) {
 	return nil, fmt.Errorf("")
 }
 
+var coreTempRegex = regexp.MustCompile(`coretemp_core[\d]+_input`)
+
 func CoreTemp() (map[string]float64, error) {
 	if runtime.GOOS == datakit.OSLinux {
 		tempMap := map[string]float64{}
@@ -54,17 +56,14 @@ func CoreTemp() (map[string]float64, error) {
 		if err != nil {
 			return nil, err
 		}
-		regexpC, err := regexp.Compile(`coretemp_core[\d]+_input`)
-		if err != nil {
-			return nil, err
-		}
+
 		temp, count := 0.0, 0
 		for _, v := range sensorTempStat {
-			if regexpC.MatchString(v.SensorKey) {
+			if coreTempRegex.MatchString(v.SensorKey) {
 				temp += v.Temperature
 				count++
-				cpuId := strings.Replace(strings.Split(v.SensorKey, "_")[1], "core", "cpu", 1)
-				tempMap[cpuId] = v.Temperature
+				cpuID := strings.Replace(strings.Split(v.SensorKey, "_")[1], "core", "cpu", 1)
+				tempMap[cpuID] = v.Temperature
 			}
 		}
 		if count > 0 {
@@ -78,7 +77,6 @@ func CoreTemp() (map[string]float64, error) {
 	return nil, fmt.Errorf("os is not supported")
 }
 
-// cpu usage stat.
 type UsageStat struct {
 	CPU       string
 	User      float64
@@ -94,7 +92,7 @@ type UsageStat struct {
 	Total     float64
 }
 
-// calculate cpu usage.
+// CalculateUsage calculate cpu usage.
 func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64) (*UsageStat, error) {
 	if nowT.CPU != lastT.CPU {
 		err := fmt.Errorf("warning. Not the same CPU. CPU:%s %s", nowT.CPU, lastT.CPU)
@@ -117,8 +115,8 @@ func CalculateUsage(nowT cpu.TimesStat, lastT cpu.TimesStat, totalDelta float64)
 	return c, nil
 }
 
-// return cpu active, total time.
-func CpuActiveTotalTime(t cpu.TimesStat) (float64, float64) {
+// CPUActiveTotalTime return cpu active, total time.
+func CPUActiveTotalTime(t cpu.TimesStat) (float64, float64) {
 	total := t.Total()
 	active := total - t.Idle
 	return active, total

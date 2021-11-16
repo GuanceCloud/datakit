@@ -8,8 +8,8 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[filter_released-1]
-	_ = x[filter_refreshed-2]
+	_ = x[filterReleased-1]
+	_ = x[filterRefreshed-2]
 }
 
 const _logFilterStatus_name = "filter_releasedfilter_refreshed"

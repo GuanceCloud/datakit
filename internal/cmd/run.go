@@ -1,3 +1,4 @@
+// Package cmd wraps command functions.
 package cmd
 
 import (
@@ -14,7 +15,7 @@ func RunWithTimeout(timeout time.Duration, sudo bool, command string, args ...st
 		args = append([]string{"-n", command}, args...)
 		command = "sudo"
 	}
-	cmd := exec.Command(command, args...)
+	cmd := exec.Command(command, args...) //nolint:gosec
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
@@ -47,8 +48,7 @@ func RunWithTimeout(timeout time.Duration, sudo bool, command string, args ...st
 	return output, cmderr
 }
 
-// ExitStatus: Command line parse errors are denoted by the exit code having the 0 bit set.
-// All other errors are drive/communication errors and should be ignored.
+// ExitStatus check cmd errors.
 func ExitStatus(err error) (int, error) {
 	if exiterr, ok := err.(*exec.ExitError); ok { //nolint:errorlint
 		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {

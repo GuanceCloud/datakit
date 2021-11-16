@@ -101,13 +101,19 @@ func segobjToAdapters(segment *lang.SegmentObject) ([]*trace.TraceAdapter, error
 		if span.IsError {
 			adapter.Status = trace.STATUS_ERR
 		}
-		if span.SpanType == lang.SpanType_Entry {
+
+		switch span.SpanType {
+		case lang.SpanType_Entry:
 			adapter.SpanType = trace.SPAN_TYPE_ENTRY
-		} else if span.SpanType == lang.SpanType_Local {
+		case lang.SpanType_Local:
 			adapter.SpanType = trace.SPAN_TYPE_LOCAL
-		} else {
+		case lang.SpanType_Exit:
+			adapter.SpanType = trace.SPAN_TYPE_EXIT
+		default:
+			log.Warnf("unknown span type %d, use SPAN_TYPE_EXIT", span.SpanType)
 			adapter.SpanType = trace.SPAN_TYPE_EXIT
 		}
+
 		adapter.EndPoint = span.Peer
 		adapter.Tags = skywalkingV3Tags
 
@@ -121,7 +127,8 @@ type SkyWalkingManagementServerV3 struct {
 	mgment.UnimplementedManagementServiceServer
 }
 
-func (*SkyWalkingManagementServerV3) ReportInstanceProperties(ctx context.Context, mng *mgment.InstanceProperties) (*common.Commands, error) {
+func (*SkyWalkingManagementServerV3) ReportInstanceProperties(ctx context.Context,
+	mng *mgment.InstanceProperties) (*common.Commands, error) {
 	var kvpStr string
 	cmd := &common.Commands{}
 
@@ -133,7 +140,8 @@ func (*SkyWalkingManagementServerV3) ReportInstanceProperties(ctx context.Contex
 	return cmd, nil
 }
 
-func (*SkyWalkingManagementServerV3) KeepAlive(ctx context.Context, ping *mgment.InstancePingPkg) (*common.Commands, error) {
+func (*SkyWalkingManagementServerV3) KeepAlive(ctx context.Context,
+	ping *mgment.InstancePingPkg) (*common.Commands, error) {
 	cmd := &common.Commands{}
 	log.Debugf("KeepAlive service:%v instance:%v", ping.Service, ping.ServiceInstance)
 
@@ -144,7 +152,8 @@ type SkyWalkingJVMMetricReportServerV3 struct {
 	lang.UnimplementedJVMMetricReportServiceServer
 }
 
-func (*SkyWalkingJVMMetricReportServerV3) Collect(ctx context.Context, jvm *lang.JVMMetricCollection) (*common.Commands, error) {
+func (*SkyWalkingJVMMetricReportServerV3) Collect(ctx context.Context,
+	jvm *lang.JVMMetricCollection) (*common.Commands, error) {
 	cmd := &common.Commands{}
 	log.Debugf("JVMMetricReportService service:%v instance:%v", jvm.Service, jvm.ServiceInstance)
 

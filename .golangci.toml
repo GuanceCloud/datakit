@@ -1,9 +1,9 @@
 [run]
   timeout = "10m"
+  issues-exit-code = 1
   skip-files = []
   skip-dirs = [
-        #"pipeline",
-        #"plugins",
+    #"plugins/externals/net_ebpf",
   ]
 
 [linters-settings]
@@ -52,6 +52,9 @@
   [linters-settings.godox]
     keywords = ["FIXME"]
 
+  [linters-settings.wsl]
+    allow-assign-and-anything = true
+
   [linters-settings.importas]
     corev1 = "k8s.io/api/core/v1"
     networkingv1beta1 = "k8s.io/api/networking/v1beta1"
@@ -71,19 +74,6 @@
 [linters]
   enable-all = true
   disable = [
-    #"sqlclosecheck", # Not relevant (SQL)
-    #"rowserrcheck", # Not relevant (SQL)
-    #"lll", # Not relevant
-    #"makezero", # Not relevant
-    #"gochecknoinits",
-    #"stylecheck", # skip because report issues related to some generated files.
-    #"tparallel", # Not relevant
-    #"goerr113", # Too strict
-    #"bodyclose", # Too many false-positive and panics.
-    #"godox", # Too strict
-    #"godot", # Too strict
-    #"gci", # Too strict
-
     # 权且放开他们
     "testpackage",  # Too strict
     "wrapcheck",    # 不便于错误处理
@@ -92,21 +82,22 @@
     "noctx",        # 要求 HTTP 请求都用 context 形式，改动较大
     "nlreturn", # 要求 return 语句前有一个空行
     "gomnd", # 不放过任何一个魔术数
-    "wsl", # 更好代码分段(if/switch 语句)
+    "wsl", # 更好代码分段
     "prealloc", # Too many false-positive.
     "nestif", # Too many false-positive.
     "goerr113", # 不能 fmt.Errorf/errors.New
     "gochecknoglobals", # 不能搞全局变量
     "exhaustivestruct", # 结构体初始化字段是否完整
-    "exhaustive", # Not relevant
-    "lll", # 行太长
-    "gosec", # Too strict
     "golint", # Too strict
-    #"stylecheck", # 太啰嗦了，临时关下
+    "interfacer",
+    "scopelint", # obsoluted: https://github.com/kyoh86/scopelint#obsoleted
+
+    # 代码太复杂
+    "gocognit",
+    "gocyclo", 
+
     "dupl", # 还不允许有相似代码
-    "gocyclo", # FIXME must be fixed
-    "gocognit", # 代码太复杂
-    "goimports",
+    "maligned", # deprecated: https://github.com/mdempsky/maligned
 
     "cyclop",
     "gomoddirectives", # used `replace' in go.mod 
@@ -118,8 +109,8 @@
   exclude-use-default = false
   max-per-linter = 0
   max-same-issues = 0
-  exclude = [
-  ]
+  exclude = []
+
  [[issues.exclude-rules]]
     path = "(.+)_test.go"
-    linters = ["goconst", "funlen", "godot"]
+    linters = ["goconst", "funlen", "godot", "lll", "gosec", "stylecheck", "wsl"]

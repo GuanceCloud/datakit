@@ -45,10 +45,14 @@ Scoreboard: W_________________________________________________..................
 func TestParse(t *testing.T) {
 	body := strings.NewReader(testdata)
 	n := Input{}
-	n.parse(body)
+	if _, err := n.parse(body); err != nil {
+		t.Error(err)
+	}
 
 	var m Measurement
-	m.LineProto()
+	if _, err := m.LineProto(); err != nil {
+		t.Error(err)
+	}
 	m.Info()
 }
 
@@ -60,10 +64,10 @@ func TestGetMetric(t *testing.T) {
 	defer ts.Close()
 
 	n := Input{
-		Url: ts.URL + "/server_status",
+		URL: ts.URL + "/server_status",
 	}
 
-	client, err := n.createHttpClient()
+	client, err := n.createHTTPClient()
 	tu.Ok(t, err)
 	n.client = client
 

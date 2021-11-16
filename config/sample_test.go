@@ -11,14 +11,13 @@ import (
 
 // read dir samples, check if sample is marshable by current release
 func TestConfSample(t *testing.T) {
-	_, filename, _, _ := runtime.Caller(0)
+	_, filename, _, _ := runtime.Caller(0) //nolint:dogsled
 
 	// jump to ../samples
 	samplePath := filepath.Join(filepath.Dir(filepath.Dir(filename)), "samples")
 
 	samples := SearchDir(samplePath, "")
 	for _, s := range samples {
-
 		t.Logf("testing %s", s)
 
 		asttbl, err := ParseCfgFile(s)

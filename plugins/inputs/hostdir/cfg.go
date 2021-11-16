@@ -3,6 +3,7 @@ package hostdir
 import (
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -33,15 +34,16 @@ var (
 )
 
 type Input struct {
-	Dir             string `toml:"dir"`
-	file_size       string
-	dir_count       string
-	file_count      string
+	Dir string `toml:"dir"`
+	// file_size string
+	// file_count      string
 	ExcludePatterns []string         `toml:"exclude_patterns"`
 	Interval        datakit.Duration `toml:"interval"`
 	collectCache    []inputs.Measurement
 	Tags            map[string]string `toml:"tags"`
 	platform        string
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 type Measurement struct {

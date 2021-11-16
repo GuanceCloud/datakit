@@ -55,8 +55,8 @@ func (i *ItemType) MarshalJSON() ([]byte, error) {
 const (
 	eof         = -1
 	lineComment = "#"
-	DIGITS      = "0123456789"
-	HEX_DIGITS  = "0123456789abcdefABCDEF"
+	Digits      = "0123456789"
+	HexDigits   = "0123456789abcdefABCDEF"
 )
 
 var (
@@ -597,9 +597,9 @@ func (l *Lexer) cur() string {
 }
 
 func (l *Lexer) scanNumber() bool {
-	digs := DIGITS
+	digs := Digits
 	if l.accept("0") && l.accept("xX") {
-		digs = HEX_DIGITS
+		digs = HexDigits
 	}
 
 	l.acceptRun(digs)
@@ -609,7 +609,7 @@ func (l *Lexer) scanNumber() bool {
 
 	if l.accept("eE") { // scientific notation
 		l.accept("+-")
-		l.acceptRun(DIGITS)
+		l.acceptRun(Digits)
 	}
 
 	// next things should not be alphanumberic
@@ -627,8 +627,8 @@ func acceptRemainDuration(l *Lexer) bool {
 
 	// support for `ms/us/ns` unit, `hs`, `ys` will be caught and parse duration failed
 	l.accept("s")
-	for l.accept(DIGITS) { // next 2 chars can be another number then a unit:  3m47s
-		for l.accept(DIGITS) {
+	for l.accept(Digits) { // next 2 chars can be another number then a unit:  3m47s
+		for l.accept(Digits) {
 		}
 
 		if !l.accept("nusmhdw") { // NOTE: `y` removed: `y` should always come first in duration string

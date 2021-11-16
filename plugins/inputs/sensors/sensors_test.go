@@ -85,32 +85,34 @@ func TestParseLogic(t *testing.T) {
 			entries = append(entries, entry{tags: tags, fields: fields})
 			tags = make(map[string]string)
 			fields = make(map[string]interface{})
-		} else {
-			if strings.Contains(line, ":") {
-				parts := strings.Split(line, ":")
-				if strings.HasSuffix(line, ":") {
-					if len(fields) != 0 {
-						entries = append(entries, entry{tags: tags, fields: fields})
-						tmp := make(map[string]string)
-						for k, v := range tags {
-							tmp[k] = v
-						}
-						tags = tmp
-						fields = make(map[string]interface{})
+			continue
+		}
+
+		if strings.Contains(line, ":") {
+			parts := strings.Split(line, ":")
+			switch {
+			case strings.HasSuffix(line, ":"):
+				if len(fields) != 0 {
+					entries = append(entries, entry{tags: tags, fields: fields})
+					tmp := make(map[string]string)
+					for k, v := range tags {
+						tmp[k] = v
 					}
-					tags["feature"] = strings.ToLower(strings.Replace(strings.TrimSpace(parts[0]), " ", "_", -1))
-				} else if strings.HasPrefix(parts[0], " ") {
-					if value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err != nil {
-						log.Println(err.Error())
-					} else {
-						fields[strings.ToLower(strings.TrimSpace(parts[0]))] = value
-					}
-				} else {
-					tags[strings.ToLower(parts[0])] = strings.TrimSpace(parts[1])
+					tags = tmp
+					fields = make(map[string]interface{})
 				}
-			} else {
-				tags["chip"] = line
+				tags["feature"] = strings.ToLower(strings.ReplaceAll(strings.TrimSpace(parts[0]), " ", "_"))
+			case strings.HasPrefix(parts[0], " "):
+				if value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err != nil {
+					log.Println(err.Error())
+				} else {
+					fields[strings.ToLower(strings.TrimSpace(parts[0]))] = value
+				}
+			default:
+				tags[strings.ToLower(parts[0])] = strings.TrimSpace(parts[1])
 			}
+		} else {
+			tags["chip"] = line
 		}
 	}
 	entries = append(entries, entry{tags: tags, fields: fields})
@@ -135,11 +137,12 @@ func TestParse(t *testing.T) {
 	}
 	for _, v := range ms {
 		log.Println("$$$$$$")
-		tmp := v.(*sensorsMeasurement)
-		log.Println(tmp.name)
-		log.Println(tmp.tags)
-		log.Println(tmp.fields)
-		log.Println(tmp.ts)
+		tmp, ok := v.(*sensorsMeasurement)
+		if !ok {
+			t.Error("expect sensorsMeasurement")
+		}
+
+		t.Logf("%+#v", tmp)
 	}
 }
 

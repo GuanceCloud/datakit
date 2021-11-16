@@ -20,7 +20,7 @@ func getQueues(n *Input) {
 	ts := time.Now()
 	for _, queue := range Queues {
 		tags := map[string]string{
-			"url":        n.Url,
+			"url":        n.URL,
 			"queue_name": queue.Name,
 			"node_name":  queue.Node,
 		}
@@ -86,6 +86,7 @@ func (m *QueueMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *QueueMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: QueueMetric,

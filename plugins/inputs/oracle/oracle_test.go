@@ -15,8 +15,11 @@ func TestRun(t *testing.T) {
 		t.Fatalf("%s", err)
 	}
 
-	o := arr[0].(*Input)
-	t.Log("args ====>", o.Args)
+	o, ok := arr[0].(*Input)
+	if !ok {
+		t.Error("expect *Input")
+	}
 
+	t.Log("args ====>", o.Args)
 	o.Run()
 }

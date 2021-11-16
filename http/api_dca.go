@@ -140,9 +140,8 @@ func (d *dcaContext) fail(errors ...dcaError) {
 // dca reload.
 func dcaReload(c *gin.Context) {
 	context := getContext(c)
-	err := restartDataKit()
-	if err != nil {
-		l.Error(err)
+	if err := restartDataKit(); err != nil {
+		l.Error("restartDataKit: %s", err)
 		context.fail(dcaError{ErrorCode: "system.restart.error", ErrorMsg: "restart datakit error"})
 		return
 	}
@@ -153,16 +152,12 @@ func dcaReload(c *gin.Context) {
 func restartDataKit() error {
 	bin := "datakit"
 	if runtime.GOOS == "windows" {
-		bin = bin + ".exe"
+		bin += ".exe"
 	}
 	program := filepath.Join(datakit.InstallDir, bin)
 	l.Info("apiRestart", program)
-	cmd := exec.Command(program, "--api-restart")
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
-	return nil
+	cmd := exec.Command(program, "--api-restart") //nolint:gosec
+	return cmd.Start()
 }
 
 func dcaStats(c *gin.Context) {
@@ -219,7 +214,7 @@ func dcaGetConfig(c *gin.Context) {
 		return
 	}
 
-	content, err := ioutil.ReadFile(path)
+	content, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Error(err)
 		context.fail(dcaError{ErrorCode: "invalid.path", ErrorMsg: "invalid path"})
@@ -430,7 +425,7 @@ func dcaGetPipelinesDetail(c *gin.Context) {
 
 	path := filepath.Join(datakit.PipelineDir, fileName)
 
-	contentBytes, err := ioutil.ReadFile(path)
+	contentBytes, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Error(err)
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: fmt.Sprintf("param %s is not valid", fileName)})
@@ -456,7 +451,10 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 	pipeline := pipelineInfo{}
 	err := getBody(c, &pipeline)
 	if err != nil {
-		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "make sure parameter is in correct format"})
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  "make sure parameter is in correct format",
+		})
 		return
 	}
 
@@ -464,7 +462,10 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 	filePath = filepath.Join(datakit.PipelineDir, fileName)
 
 	if len(pipeline.Content) == 0 {
-		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "'content' should not be empty"})
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  "'content' should not be empty",
+		})
 		return
 	}
 
@@ -476,14 +477,20 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 		}
 	} else { // new pipeline
 		if path.IsFileExists(filePath) {
-			context.fail(dcaError{ErrorCode: "param.invalid.duplicate", ErrorMsg: fmt.Sprintf("current name '%s' is duplicate", pipeline.FileName)})
+			context.fail(dcaError{
+				ErrorCode: "param.invalid.duplicate",
+				ErrorMsg:  fmt.Sprintf("current name '%s' is duplicate", pipeline.FileName),
+			})
 			return
 		}
 	}
 
 	// only save or update custom pipeline!
 	if !isValidCustomPipelineName(fileName) {
-		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "fileName is not valid custom pipeline name"})
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  "fileName is not valid custom pipeline name",
+		})
 		return
 	}
 

@@ -1,3 +1,4 @@
+// Package filefd wrap opened files stats
 package filefd
 
 type Info struct {

@@ -223,7 +223,6 @@ type parser struct {
 
 	inject    ItemType
 	injecting bool
-	context   interface{}
 }
 
 func (p *parser) InjectItem(typ ItemType) {
@@ -285,14 +284,16 @@ func (p *parser) unexpected(context string, expected string) {
 }
 
 func (p *parser) recover(errp *error) {
-	e := recover()
+	e := recover() //nolint:ifshort
 	if _, ok := e.(runtime.Error); ok {
-		buf := make([]byte, 64<<10) // 64k
+		buf := make([]byte, 4<<10) // 4KB
 		buf = buf[:runtime.Stack(buf, false)]
 		fmt.Fprintf(os.Stderr, "parser panic: %v\n%s", e, buf)
 		*errp = errUnexpected
 	} else if e != nil {
-		*errp = e.(error)
+		if x, ok := e.(error); ok {
+			*errp = x
+		}
 	}
 }
 
@@ -384,7 +385,11 @@ func (p *parser) Lex(lval *yySymType) int {
 func (p *parser) Error(e string) {}
 
 func newParser(input string) *parser {
-	p := parserPool.Get().(*parser)
+	p, ok := parserPool.Get().(*parser)
+	if !ok {
+		log.Warnf("p expect to be *parser")
+		return nil
+	}
 
 	p.injecting = false
 	p.errs = nil
@@ -434,7 +439,7 @@ func (e *ParseError) Error() string {
 	return fmt.Sprintf("%s parse error: %s", posStr, e.Err)
 }
 
-// impl Error() interface.
+// Error impl Error() interface.
 func (errs ParseErrors) Error() string {
 	var errArray []string
 	for _, err := range errs {
@@ -453,6 +458,10 @@ type PositionRange struct {
 
 func ParsePipeline(input string) (res Node, err error) {
 	p := newParser(input)
+	if p == nil {
+		return nil, fmt.Errorf("got nil parser, should not been here")
+	}
+
 	defer parserPool.Put(p)
 	defer p.recover(&err)
 

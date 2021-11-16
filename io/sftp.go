@@ -46,7 +46,7 @@ func (sc *SFTPClient) GetSFTPClient() (*sftp.Client, error) {
 		User:            sc.User,
 		Auth:            []ssh.AuthMethod{ssh.Password(sc.Password)},
 		Timeout:         30 * time.Second,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec
 	}
 	// connet to ssh
 	addr := fmt.Sprintf("%s:%d", sc.Host, sc.Port)

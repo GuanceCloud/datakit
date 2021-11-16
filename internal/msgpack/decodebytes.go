@@ -47,7 +47,7 @@ func ParseStringBytes(data []byte) (str string, bts []byte, err error) {
 	t := msgp.NextType(bts)
 
 	var i []byte
-	switch t {
+	switch t { //nolint:exhaustive
 	case msgp.BinType:
 		i, bts, err = msgp.ReadBytesZC(bts)
 	case msgp.StrType:
@@ -82,7 +82,7 @@ func ParseFloat64Bytes(data []byte) (f float64, bts []byte, err error) {
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	switch t {
+	switch t { //nolint:exhaustive
 	case msgp.IntType:
 		var i int64
 		i, bts, err = msgp.ReadInt64Bytes(bts)
@@ -112,7 +112,7 @@ func ParseFloat64Bytes(data []byte) (f float64, bts []byte, err error) {
 	}
 }
 
-// cast to int64 values that are int64 but that are sent in uint64
+// CastInt64 cast to int64 values that are int64 but that are sent in uint64
 // over the wire. Set to 0 if they overflow the MaxInt64 size. This
 // cast should be used ONLY while decoding int64 values that are
 // sent as uint64 to reduce the payload size, otherwise the approach
@@ -138,7 +138,7 @@ func ParseInt64Bytes(data []byte) (i int64, bts []byte, err error) { //nolint:go
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	switch t {
+	switch t { //nolint:exhaustive
 	case msgp.IntType:
 		i, bts, err = msgp.ReadInt64Bytes(bts)
 		return
@@ -178,7 +178,7 @@ func ParseUint64Bytes(data []byte) (u uint64, bts []byte, err error) { //nolint:
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	switch t {
+	switch t { //nolint:exhaustive
 	case msgp.UintType:
 		u, bts, err = msgp.ReadUint64Bytes(bts)
 
@@ -197,7 +197,7 @@ func ParseUint64Bytes(data []byte) (u uint64, bts []byte, err error) { //nolint:
 	return
 }
 
-// cast to int32 values that are int32 but that are sent in uint32
+// CastInt32 cast to int32 values that are int32 but that are sent in uint32
 // over the wire. Set to 0 if they overflow the MaxInt32 size. This
 // cast should be used ONLY while decoding int32 values that are
 // sent as uint32 to reduce the payload size, otherwise the approach
@@ -223,7 +223,7 @@ func ParseInt32Bytes(data []byte) (i int32, bts []byte, err error) {
 	// read the generic representation type without decoding
 	t := msgp.NextType(bts)
 
-	switch t {
+	switch t { //nolint:exhaustive
 	case msgp.IntType:
 		i, bts, err = msgp.ReadInt32Bytes(bts)
 		return
@@ -242,6 +242,7 @@ func ParseInt32Bytes(data []byte) (i int32, bts []byte, err error) {
 			err = errors.New("found uint32, overflows int32")
 		}
 		i = val
+
 		return
 	default:
 		err = msgp.TypeError{Encoded: t, Method: msgp.IntType}

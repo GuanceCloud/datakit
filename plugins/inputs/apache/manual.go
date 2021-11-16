@@ -18,6 +18,7 @@ func (m *Measurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
@@ -62,10 +63,10 @@ func newCountFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
-func newOtherFieldInfo(datatype, Type, unit, desc string) *inputs.FieldInfo {
+func newOtherFieldInfo(datatype, ftype, unit, desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: datatype,
-		Type:     Type,
+		Type:     ftype,
 		Unit:     unit,
 		Desc:     desc,
 	}

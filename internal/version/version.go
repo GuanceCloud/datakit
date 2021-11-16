@@ -1,3 +1,4 @@
+// Package version implements datakit's version parsing/compare
 package version
 
 import (

@@ -214,8 +214,14 @@ func GZipStr(str string) ([]byte, error) {
 	if _, err := io.WriteString(zw, str); err != nil {
 		return nil, err
 	}
-	zw.Flush() //nolint:errcheck
-	zw.Close() //nolint:errcheck
+
+	if err := zw.Flush(); err != nil {
+		return nil, err
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
 	return z.Bytes(), nil
 }
 
@@ -226,8 +232,13 @@ func GZip(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	zw.Flush() //nolint:errcheck
-	zw.Close() //nolint:errcheck
+	if err := zw.Flush(); err != nil {
+		return nil, err
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
 	return z.Bytes(), nil
 }
 

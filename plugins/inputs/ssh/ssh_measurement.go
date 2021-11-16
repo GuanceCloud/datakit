@@ -7,19 +7,20 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type SshMeasurement struct {
+type SSHMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
 	ts     time.Time
 }
 
-func (s *SshMeasurement) LineProto() (*io.Point, error) {
+func (s *SSHMeasurement) LineProto() (*io.Point, error) {
 	data, err := io.MakePoint(s.name, s.tags, s.fields, s.ts)
 	return data, err
 }
 
-func (s *SshMeasurement) Info() *inputs.MeasurementInfo {
+//nolint:lll
+func (s *SSHMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Fields: map[string]interface{}{

@@ -1,7 +1,7 @@
-### 简介
+## 简介
 mysql指标采集，参考datadog提供的指标，提供默认指标收集和用户自定义查询
 
-### 配置
+## 配置
 再扩展自定义sql,数据采集功能
 ```
 [[inputs.mysqlMonitor]]
@@ -148,7 +148,7 @@ mysql指标采集，参考datadog提供的指标，提供默认指标收集和�
         extra_performance_metrics = false 
 ```
 
-###  收集指标
+##  收集指标
 | 指标 | 单位 | 类型 | 标签 | 描述 | 指标源 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
 | mysql.info.schema.size |  |  |  | Size of schemas in MiB |  |  |
@@ -354,3 +354,80 @@ db size
 主从相关
 
 
+
+## 数据库监控指标采集
+### Metric
+
+**`mysql_dbm_metric`**
+
+- 标签(tag)
+
+| 名称 |描述|
+|--|--|
+|digest_text| The text of the normalized statement digest.|
+|digest| The digest hash value computed from the original normalized statement. |
+|query_signature| The MD5 hash value computed from digest_text|
+|schema_name|The schema name|
+|server| The server address|
+
+
+
+
+- 指标(field)
+
+| 字段名 |类型|说明|
+|--|--|--|
+|sum_timer_wait|nanosecond | The total query execution time per normalized query and schema.|
+|count_star|count | The total count of executed queries per normalized query and schema.|
+|sum_errors|count | The total count of queries run with an error per normalized query and schema.|
+|sum_lock_time| nanosecond| The total time spent waiting on locks per normalized query and schema.|
+|sum_rows_sent|count |The number of rows sent per normalized query and schema. |
+|sum_select_scan|count | The total count of full table scans on the first table per normalized query and schema.|
+|sum_no_index_used|count | The total count of queries which do not use an index per normalized query and schema.|
+|sum_rows_affected|count | The number of rows mutated per normalized query and schema.|
+|sum_rows_examined| count| The number of rows examined per normalized query and schema.|
+|sum_select_full_join|count |The total count of full table scans on a joined table per normalized query and schema. |
+|sum_no_good_index_used|count |The total count of queries which used a sub-optimal index per normalized query and schema. |
+
+
+**`mysql_dbm_sample`**
+
+- 标签(tag)
+
+|名称|描述|
+|--|--|
+|current_schema | The name of the current schema.|
+|plan_definition | The plan definition of JSON format.|
+|plan_signature | The hash value computed from plan definition.|
+|query_signature | The hash value computed from digest_text.|
+|resource_hash |The hash value computed from sql text.|
+|query_truncated |It indicates whether the query is truncated.|
+|network_client_ip | The ip address of the client|
+|digest | The digest hash value computed from the original normalized statement. |
+|digest_text | The text of the normalized statement digest.|
+|processlist_db | The name of the database.|
+|processlist_user | The user name of the client.|
+
+
+- 指标(field)
+
+| 字段名 |类型|说明|
+|--|--|--|
+|timestamp |millisecond| The timestamp when then the event ends.|
+|duration |nanosecond|Value in nanoseconds of the event's duration.|
+|lock_time_ns | nanosecond|Time in nanoseconds spent waiting for locks. |
+|no_good_index_used |int |0 if a good index was found for the statement, 1 if no good index was found.|
+|no_index_used | int  | 0 if the statement performed a table scan with an index, 1 if without an index.|
+|rows_affected | count| Number of rows the statement affected.|
+|rows_examined | count | Number of rows read during the statement's execution.|
+|rows_sent | count |Number of rows returned. |
+|select_full_join | count | Number of joins performed by the statement which did not use an index.|
+|select_full_range_join | count |Number of joins performed by the statement which used a range search of the int first table. |
+|select_range | count |Number of joins performed by the statement which used a range of the first table. |
+|select_range_check | count |Number of joins without keys performed by the statement that check for key usage after int each row. |
+|select_scan | count | Number of joins performed by the statement which used a full scan of the first table.|
+|sort_merge_passes | count |Number of merge passes by the sort algorithm performed by the statement. |
+|sort_range | count | Number of sorts performed by the statement which used a range.|
+|sort_rows | count |Number of rows sorted by the statement. |
+|sort_scan | count | Number of sorts performed by the statement which used a full table scan.|
+|timer_wait_ns | nanosecond |Value in nanoseconds of the event's duration |

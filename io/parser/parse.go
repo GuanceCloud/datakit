@@ -267,7 +267,7 @@ func (e *ParseError) Error() string {
 	return fmt.Sprintf("%s parse error: %s", posStr, e.Err)
 }
 
-// impl Error() interface.
+// Error impl Error() interface.
 func (errs ParseErrors) Error() string {
 	var errArray []string
 	for _, err := range errs {

@@ -57,7 +57,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		return nil, err
 	}
 
-	t.file, err = os.Open(filename)
+	t.file, err = os.Open(filename) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}

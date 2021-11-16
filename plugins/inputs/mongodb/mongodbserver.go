@@ -1,12 +1,10 @@
 package mongodb
 
 import (
-	"fmt"
 	"net/url"
-	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/charset"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -29,14 +27,6 @@ func (s *Server) getDefaultTags() map[string]string {
 	}
 
 	return tags
-}
-
-func (s *Server) authLog(err error) {
-	if strings.Contains(err.Error(), "not authorized") {
-		l.Debug(err.Error())
-	} else {
-		l.Error(err.Error())
-	}
 }
 
 func (s *Server) gatherServerStats() (*ServerStatus, error) {
@@ -133,8 +123,8 @@ func (s *Server) gatherShardConnPoolStats() (*ShardStats, error) {
 	return shardStats, nil
 }
 
-func (s *Server) gatherDbStats(name string) (*Db, error) {
-	stats := &DbStatsData{}
+func (s *Server) gatherDBStats(name string) (*DB, error) {
+	stats := &DBStatsData{}
 	err := s.Session.DB(name).Run(bson.D{
 		{
 			Name:  "dbStats",
@@ -145,25 +135,25 @@ func (s *Server) gatherDbStats(name string) (*Db, error) {
 		return nil, err
 	}
 
-	return &Db{
+	return &DB{
 		Name:        name,
-		DbStatsData: stats,
+		DBStatsData: stats,
 	}, nil
 }
 
-func (s *Server) gatherCollectionStats(colStatsDbs []string) (*ColStats, error) {
+func (s *Server) gatherCollectionStats(colStatsDBs []string) (*ColStats, error) {
 	dbNames, err := s.Session.DatabaseNames()
 	if err != nil {
 		return nil, err
 	}
 
-	dbNames = charset.Intersect(dbNames, colStatsDbs)
+	dbNames = strarr.Intersect(dbNames, colStatsDBs)
 	results := &ColStats{}
 	for _, dbName := range dbNames {
 		var colls []string
 		colls, err = s.Session.DB(dbName).CollectionNames()
 		if err != nil {
-			l.Errorf("Error getting collection names: %q", err.Error())
+			l.Errorf("Error getting collection names: %s", err)
 			continue
 		}
 
@@ -176,13 +166,13 @@ func (s *Server) gatherCollectionStats(colStatsDbs []string) (*ColStats, error) 
 				},
 			}, colStatLine)
 			if err != nil {
-				s.authLog(fmt.Errorf("error getting col stats from %q: %v", colName, err))
+				l.Errorf("error getting col stats from %q: %w", colName, err)
 				continue
 			}
 
 			collection := &Collection{
 				Name:         colName,
-				DbName:       dbName,
+				DBName:       dbName,
 				ColStatsData: colStatLine,
 			}
 			results.Collections = append(results.Collections, *collection)
@@ -207,7 +197,12 @@ func (s *Server) gatherTopStatData() (*TopStats, error) {
 	return topStats, nil
 }
 
-func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool, gatherPerDbStats bool, gatherPerColStats bool, colStatsDbs []string, gatherTopStat bool) error {
+func (s *Server) gatherData(gatherReplicaSetStats bool,
+	gatherClusterStats bool,
+	gatherPerDBStats bool,
+	gatherPerColStats bool,
+	colStatsDBs []string,
+	gatherTopStat bool) error {
 	start := time.Now()
 
 	s.Session.SetMode(mgo.Eventual, true)
@@ -227,12 +222,12 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 	)
 	if gatherReplicaSetStats {
 		if ReplSetStats, err = s.gatherReplSetStats(); err != nil {
-			l.Debugf("Unable to gather replica set status: %q", err.Error())
+			l.Debugf("Unable to gather replica set status: %w", err)
 		}
 		// Gather the oplog if we are a member of a replica set. Non-replica set members do not have the oplog collections.
 		if ReplSetStats != nil {
 			if oplogStats, err = s.gatherOplogStats(); err != nil {
-				s.authLog(fmt.Errorf("Unable to get oplog stats: %q", err.Error()))
+				l.Errorf("Unable to get oplog stats: %w", err)
 			}
 		}
 	}
@@ -241,39 +236,39 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 	if gatherClusterStats {
 		status, err := s.gatherClusterStats()
 		if err != nil {
-			l.Debugf("Unable to gather cluster status: %q", err.Error())
+			l.Debugf("Unable to gather cluster status: %w", err)
 		}
 		clusterStats = status
 	}
 
 	shardStats, err := s.gatherShardConnPoolStats()
 	if err != nil {
-		s.authLog(fmt.Errorf("Unable to gather shard connection pool stats: %q", err.Error()))
+		l.Warnf("Unable to gather shard connection pool stats: %w", err)
 	}
 
-	dbStats := &DbStats{}
-	if gatherPerDbStats {
+	dbStats := &DBStats{}
+	if gatherPerDBStats {
 		dbNames, err := s.Session.DatabaseNames()
 		if err != nil {
-			l.Debugf("Unable to get database names: %q", err.Error())
+			l.Debugf("Unable to get database names: %w", err)
 
 			return err
 		}
 
 		for _, dbName := range dbNames {
-			db, err := s.gatherDbStats(dbName)
+			db, err := s.gatherDBStats(dbName)
 			if err != nil {
-				l.Debugf("Error getting db stats from %q: %q", dbName, err.Error())
+				l.Debugf("Error getting db stats from %s: %w", dbName, err)
 			}
-			dbStats.Dbs = append(dbStats.Dbs, *db)
+			dbStats.DBs = append(dbStats.DBs, *db)
 		}
 	}
 
 	var collectionStats *ColStats
 	if gatherPerColStats {
-		stats, err := s.gatherCollectionStats(colStatsDbs)
+		stats, err := s.gatherCollectionStats(colStatsDBs)
 		if err != nil {
-			l.Debugf("Unable to gather collection stats: %q", err.Error())
+			l.Debugf("Unable to gather collection stats: %w", err)
 
 			return err
 		}
@@ -284,7 +279,7 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 	if gatherTopStat {
 		topStats, err := s.gatherTopStatData()
 		if err != nil {
-			l.Debugf("Unable to gather top stat data: %q", err.Error())
+			l.Debugf("Unable to gather top stat data: %w", err)
 
 			return err
 		}
@@ -297,7 +292,7 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 		OplogStats:   oplogStats,
 		ClusterStats: clusterStats,
 		ShardStats:   shardStats,
-		DbStats:      dbStats,
+		DBStats:      dbStats,
 		ColStats:     collectionStats,
 		TopStats:     topStatData,
 	}
@@ -313,11 +308,11 @@ func (s *Server) gatherData(gatherReplicaSetStats bool, gatherClusterStats bool,
 		data := NewMongodbData(NewStatLine(*s.lastResult, *result, s.URL.Host, true, durationInSeconds), s.getDefaultTags())
 		data.AddDefaultStats()
 		data.AddShardHostStats()
-		data.AddDbStats()
+		data.AddDBStats()
 		data.AddColStats()
 		data.AddTopStats()
 		data.append()
-		data.flush(time.Now().Sub(start))
+		data.flush(time.Since(start))
 	}
 
 	s.lastResult = result

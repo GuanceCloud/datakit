@@ -6,29 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-
 	"github.com/influxdata/influxdb1-client/models"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
-
-var (
-	flagCSV   = "/Users/macbook/go/datakit/x.csv"
-	flagForce = true
-)
-
-func TestWriteToCsv(t *testing.T) {
-	series := []*models.Row{}
-	body, _ := os.ReadFile("test.json")
-	_ = json.Unmarshal(body, &series)
-	file, err := os.OpenFile(flagCSV, os.O_WRONLY|os.O_APPEND, os.ModePerm)
-	if err != nil {
-		t.Fatalf("err:%v", err)
-	}
-	if err := writeToCsv(series, flagCSV); err != nil {
-		t.Fatalf("err:%v", err)
-	}
-	defer file.Close()
-}
 
 func TestConvertToString(t *testing.T) {
 	series := []*models.Row{}

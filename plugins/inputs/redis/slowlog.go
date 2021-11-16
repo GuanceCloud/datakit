@@ -2,7 +2,8 @@ package redis
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -22,6 +23,7 @@ func (m *slowlogMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_slowlog",
@@ -48,8 +50,7 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 // 数据源获取数据.
 func (i *Input) getSlowData() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
-	var maxSlowEntries int
-	maxSlowEntries = i.SlowlogMaxLen
+	maxSlowEntries := i.SlowlogMaxLen
 
 	ctx := context.Background()
 	slowlogs, err := i.client.Do(ctx, "SLOWLOG", "GET", maxSlowEntries).Result()
@@ -58,11 +59,11 @@ func (i *Input) getSlowData() ([]inputs.Measurement, error) {
 		return nil, err
 	}
 
-	var maxTs int64
+	var maxTS int64
 	for _, slowlog := range slowlogs.([]interface{}) {
 		if entry, ok := slowlog.([]interface{}); ok {
 			if entry == nil || len(entry) != 6 {
-				return nil, errors.New("slowlog get protocol error")
+				return nil, fmt.Errorf("protocol error: slowlog expect 6 fields, got %+#v", entry)
 			}
 
 			m := &slowlogMeasurement{
@@ -78,18 +79,34 @@ func (i *Input) getSlowData() ([]inputs.Measurement, error) {
 				m.tags[k] = v
 			}
 
-			startTime := entry[1].(int64)
+			var startTime int64
+			if x, isi64 := entry[1].(int64); isi64 {
+				startTime = x
+			} else {
+				return nil, fmt.Errorf("startTime expect int64, got %s", reflect.TypeOf(entry[1]).String())
+			}
+
+			if !ok {
+				return nil, fmt.Errorf("%v expect to be int64", entry[1])
+			}
+
 			if startTime <= m.lastTimestampSeen["server"] {
 				continue
 			}
 
-			if startTime > maxTs {
-				maxTs = startTime
+			if startTime > maxTS {
+				maxTS = startTime
 			}
-			duration := entry[2].(int64)
+
+			var duration int64
+			if x, isi64 := entry[2].(int64); isi64 {
+				duration = x
+			} else {
+				return nil, fmt.Errorf("duration expect int64, got %s", reflect.TypeOf(entry[2]).String())
+			}
 
 			var command string
-			if obj, ok := entry[3].([]interface{}); ok {
+			if obj, isok := entry[3].([]interface{}); isok {
 				for _, arg := range obj {
 					command += arg.(string) + " "
 				}
@@ -103,7 +120,7 @@ func (i *Input) getSlowData() ([]inputs.Measurement, error) {
 			collectCache = append(collectCache, m)
 
 			addr := m.tags["server"]
-			m.lastTimestampSeen[addr] = maxTs
+			m.lastTimestampSeen[addr] = maxTS
 		}
 	}
 	return collectCache, nil

@@ -29,7 +29,9 @@ func StartUDPAgent(addr string) error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			udpConn.Close()
+			if err := udpConn.Close(); err != nil {
+				log.Warnf("Close: %s", err)
+			}
 			log.Infof("jaeger udp agent closed")
 
 			return nil
@@ -42,7 +44,7 @@ func StartUDPAgent(addr string) error {
 			continue
 		}
 
-		n, addr, err := udpConn.ReadFromUDP(data[:])
+		n, addr, err := udpConn.ReadFromUDP(data)
 		if err != nil {
 			log.Debug(err.Error())
 			continue
@@ -67,7 +69,7 @@ func StartUDPAgent(addr string) error {
 
 func parseJaegerUDP(data []byte) ([]*trace.TraceAdapter, error) {
 	thriftBuffer := thrift.NewTMemoryBufferLen(len(data))
-	if _, err := thriftBuffer.Write(data[:]); err != nil {
+	if _, err := thriftBuffer.Write(data); err != nil {
 		log.Error("buffer write failed :%v,", err)
 
 		return nil, err

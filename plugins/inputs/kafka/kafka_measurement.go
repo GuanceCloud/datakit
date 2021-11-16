@@ -47,15 +47,15 @@ type KafkaPartitionMment struct {
 }
 
 func (j *KafkaMeasurement) LineProto() (*io.Point, error) {
-	data, err := io.MakePoint(j.name, j.tags, j.fields, j.ts)
-	return data, err
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
 func (j *KafkaControllerMment) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
-func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo {
+//nolint:lll
+func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "kafka_controller",
 		Fields: map[string]interface{}{
@@ -422,9 +422,10 @@ func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaReplicaMment) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kafka_replica_manager",
@@ -468,9 +469,10 @@ func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaPurgatoryMment) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kafka_purgatory",
@@ -507,9 +509,10 @@ func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaClientMment) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *KafkaClientMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_client",
@@ -519,9 +522,10 @@ func (j *KafkaClientMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaRequestMment) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kafka_request",
@@ -629,9 +633,10 @@ func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaTopicsMment) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kafka_topics",
@@ -788,9 +793,10 @@ func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaTopicMment) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *KafkaTopicMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kafka_topic",
@@ -844,9 +850,10 @@ func (j *KafkaTopicMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaPartitionMment) LineProto() (*io.Point, error) {
-	return j.LineProto()
+	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *KafkaPartitionMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "kafka_partition",
