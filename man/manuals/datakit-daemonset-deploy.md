@@ -73,7 +73,6 @@ kubectl get pod -n datakit
 | ENV_NAMESPACE              | 无                         | 否       | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`                  |
 | ENV_HOSTNAME               | 无                         | 否       | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`                  |
 
-
 > 注意，`ENV_ENABLE_INPUTS` 已被弃用（但仍有效），建议使用 `ENV_DEFAULT_ENABLED_INPUTS`。如果俩个环境变量同时指定，则**只有后者生效**。
 
 ### yaml 配置
