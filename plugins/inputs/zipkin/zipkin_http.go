@@ -7,8 +7,8 @@ import (
 	"runtime/debug"
 
 	zipkinmodel "github.com/openzipkin/zipkin-go/model"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
