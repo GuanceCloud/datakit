@@ -8,8 +8,8 @@ import (
 	"io"
 	"net"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 	"google.golang.org/grpc"
 )
 

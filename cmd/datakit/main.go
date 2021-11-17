@@ -20,6 +20,7 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -143,7 +144,6 @@ func setupFlags() {
 
 func main() {
 	datakit.Version = ReleaseVersion
-
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
 	}
@@ -159,6 +159,9 @@ func main() {
 
 	tryLoadConfig()
 
+	tracer.Start()
+	defer tracer.Stop()
+
 	datakit.SetLog()
 
 	if cmds.FlagDocker {
@@ -168,11 +171,11 @@ func main() {
 	} else {
 		go cgroup.Run()
 		service.Entry = run
-
 		if cmds.FlagWorkDir != "" { // debugging running, not start as service
 			run()
 		} else if err := service.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
+
 			return
 		}
 	}

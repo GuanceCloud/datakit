@@ -13,8 +13,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var ddtraceSpanType = map[string]string{
@@ -253,7 +253,6 @@ NEXT_TRACE:
 			if v, ok := span.Metrics["system.pid"]; ok {
 				field[itrace.FIELD_PID] = fmt.Sprintf("%v", v)
 			}
-
 			if buf, err := json.Marshal(span); err != nil {
 				return nil, err
 			} else {
@@ -263,13 +262,11 @@ NEXT_TRACE:
 			tm.Tags = tags
 			tm.Fields = field
 			tm.TS = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
-
-			pt, err := tm.LineProto()
-			if err != nil {
+			if pt, err := tm.LineProto(); err != nil {
 				return nil, err
+			} else {
+				pts = append(pts, pt)
 			}
-
-			pts = append(pts, pt)
 		}
 	}
 
