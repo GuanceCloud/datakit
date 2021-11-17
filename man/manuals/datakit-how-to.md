@@ -463,7 +463,7 @@ man > Q               # 输入 Q 或 exit 退出
 为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
 
 ```shell
-datakit --workspaceinfo
+datakit --workspace-info
 {
   "token": {
     "ws_uuid": "wksp_2dc431d6693711eb8ff97aeee04b54af",
