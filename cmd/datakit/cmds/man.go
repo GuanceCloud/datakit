@@ -44,7 +44,7 @@ func cmdMan() {
 	p.Run()
 }
 
-func exportMan(to, skipList, ver string) error {
+func exportMan(to, skipList, ver string, disableMono bool) error {
 	if err := os.MkdirAll(to, os.ModePerm); err != nil {
 		return err
 	}
@@ -60,7 +60,13 @@ func exportMan(to, skipList, ver string) error {
 			continue
 		}
 
-		data, err := man.BuildMarkdownManual(k, &man.Option{ManVersion: ver, WithCSS: false, IgnoreMissing: true})
+		data, err := man.BuildMarkdownManual(k,
+			&man.Option{
+				ManVersion:                    ver,
+				WithCSS:                       false,
+				IgnoreMissing:                 true,
+				DisableMonofontOnTagFieldName: disableMono,
+			})
 		if err != nil {
 			return err
 		}
