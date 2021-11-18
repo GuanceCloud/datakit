@@ -33,7 +33,7 @@ var (
 	FlagDefConf bool
 	FlagWorkDir string
 
-	FlagMan bool
+	FlagDisableTFMono, FlagMan bool
 	FlagIgnore,
 	FlagExportMan,
 	FlagExportIntegration,
@@ -270,7 +270,10 @@ func RunCmds() {
 
 	if FlagExportMan != "" {
 		setCmdRootLog(FlagCmdLogPath)
-		if err := exportMan(FlagExportMan, FlagIgnore, FlagManVersion); err != nil {
+		if err := exportMan(FlagExportMan,
+			FlagIgnore,
+			FlagManVersion,
+			FlagDisableTFMono); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)

@@ -580,12 +580,21 @@ func (c *Config) LoadEnvs() error {
 		c.GlobalTags = ParseGlobalTags(v)
 	}
 
+	// set logging
 	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
 		c.Logging.Level = v
 	}
 
 	if v := datakit.GetEnv("ENV_LOG"); v != "" {
 		c.Logging.Log = v
+	}
+
+	if v := datakit.GetEnv("ENV_GIN_LOG"); v != "" {
+		c.Logging.GinLog = v
+	}
+
+	if v := datakit.GetEnv("ENV_DISABLE_LOG_COLOR"); v != "" {
+		c.Logging.DisableColor = true
 	}
 
 	// 多个 dataway 支持 ',' 分割
@@ -604,8 +613,19 @@ func (c *Config) LoadEnvs() error {
 		c.Name = v
 	}
 
+	// HTTP server setting
 	if v := datakit.GetEnv("ENV_HTTP_LISTEN"); v != "" {
 		c.HTTPAPI.Listen = v
+	}
+
+	// DCA settings
+	if v := datakit.GetEnv("ENV_DCA_LISTEN"); v != "" {
+		c.DCAConfig.Enable = true
+		c.DCAConfig.Listen = v
+	}
+
+	if v := datakit.GetEnv("ENV_DCA_WHITE_LIST"); v != "" {
+		c.DCAConfig.WhiteList = strings.Split(v, ",")
 	}
 
 	if v := datakit.GetEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {

@@ -43,6 +43,8 @@ group_between(status_code, [200, 300], "HTTP_OK", "http_status")
 drop_origin_data()
 ```
 
+> 注意，切割过程中，需避免[可能出现的跟 tag key 重名的问题](datakit-how-to#5cf855c0)
+
 - 第二步：配置对应的采集器来使用上面的 pipeline
 
 以 logging 采集器为例，配置字段 `pipeline_path` 即可，注意，这里配置的是 pipeline 的脚本名称，而不是路径。所有这里引用的 pipeline 脚本，必须存放在 `<DataKit 安装目录/pipeline>` 目录下：
