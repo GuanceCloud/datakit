@@ -436,11 +436,11 @@ func (i *Input) Run() {
 	for {
 		if i.pause {
 			l.Debugf("not leader, skipped")
-			continue
+		} else {
+			l.Debugf("mysql input gathering...")
+			i.start = time.Now()
+			i.Collect()
 		}
-		l.Debugf("mysql input gathering...")
-		i.start = time.Now()
-		i.Collect()
 
 		select {
 		case <-datakit.Exit.Wait():
