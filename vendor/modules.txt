@@ -821,7 +821,7 @@ github.com/vmihailenco/tagparser/internal/parser
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211103011013-f9fe04158e06
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v1.0.0
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/go-nsq
@@ -946,7 +946,8 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
+# golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
+## explicit
 golang.org/x/time/rate
 # golang.org/x/tools v0.1.7
 ## explicit
