@@ -2,6 +2,15 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc4.2(2021/11/18)
+
+- 紧急修复(#446)
+	- 修复 Kubernetes 模式下 stdout 日志输出 level 异常
+	- 修复选举模式下，未选举上的 MySQL 采集器死循环问题
+	- DaemonSet 文档补全
+
+----
+
 ## 1.1.9-rc4.1(2021/11/16)
 
 - 修复 Kubernetes Pod 采集 namespace 命名空间问题(#439)
