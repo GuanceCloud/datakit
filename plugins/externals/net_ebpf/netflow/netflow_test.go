@@ -1,4 +1,5 @@
-// +build linux, ebpf
+//go:build (linux && ignore) || ebpf
+// +build linux,ignore ebpf
 
 package netflow
 
@@ -397,7 +398,6 @@ type caseStatsOp struct {
 
 func TestStatsOp(t *testing.T) {
 	cases := caseStatsOp{
-
 		fullStats: ConnFullStats{
 			Stats: ConnectionStats{
 				SentBytes:   1,
@@ -626,7 +626,6 @@ func TestRecord(t *testing.T) {
 	// 一个本周期内建立后关闭的连接，调用 closedEventHandler, 首次记录
 
 	closedEvent = ConncetionClosedInfoC{
-
 		conn_info: _Ctype_struct_connection_info{
 			saddr: [4]_Ctype_uint{0, 0, 0, 0x0101007F},
 			daddr: [4]_Ctype_uint{0, 0, 0, 0x0200007F},

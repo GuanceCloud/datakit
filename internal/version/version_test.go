@@ -14,7 +14,6 @@ func TestCompare(t *testing.T) {
 		sameVersion bool
 		fail        bool
 	}{
-
 		{
 			v1:         "1.1.7-rc7.1_foo-bar", // with tags
 			v2:         "1.1.7-rc7",

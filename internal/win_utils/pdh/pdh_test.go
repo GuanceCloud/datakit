@@ -1,3 +1,4 @@
+//go:build windows && amd64
 // +build windows,amd64
 
 package pdh
@@ -14,7 +15,6 @@ func TestGetDataThrPDH(t *testing.T) {
 		"APP_POOL_WAS": true,
 	}
 	for objName := range objNameList {
-
 		// Enum the instance and counter of object
 		instanceList, counterList, ret := PdhEnumObjectItems(objName)
 		if ret != uint32(windows.ERROR_SUCCESS) {

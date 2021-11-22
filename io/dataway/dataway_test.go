@@ -102,7 +102,6 @@ func TestSend(t *testing.T) {
 		gz       bool
 		fail     bool
 	}{
-
 		{
 			urls:     []string{ts.URL},
 			category: "invalid-category",
