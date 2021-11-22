@@ -86,7 +86,7 @@ func whichMesaurement(k string) string {
 func instanceName(serv string) (string, error) {
 	var err error
 	instanceName := ""
-	r, err := regexp.Compile(regexURLPort)
+	r, err := regexp.Compile(regexURLPort) //nolint:gocritic
 	if err != nil {
 		return "", err
 	}

@@ -108,7 +108,10 @@ func (i *Input) query(sql string) ([]map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close() //nolint:errcheck
+	defer func() {
+		_ = rows.Close() //nolint:errcheck
+		_ = rows.Err()   //nolint:errcheck
+	}()
 
 	columns, _ := rows.Columns()
 	columnLength := len(columns)

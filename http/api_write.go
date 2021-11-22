@@ -75,7 +75,7 @@ func apiWrite(c *gin.Context) {
 	case datakit.Rum:
 		input = "rum"
 	case datakit.Security:
-		input = "sechecker"
+		input = "scheck"
 	default:
 		l.Debugf("invalid category: %s", category)
 		uhttp.HttpErr(c, ErrInvalidCategory)

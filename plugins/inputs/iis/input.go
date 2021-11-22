@@ -64,7 +64,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-// TODO
+// RunPipeline TODO.
 func (i *Input) RunPipeline() {
 	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
@@ -110,12 +110,12 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineConfig
 }
 
-func (n *Input) GetPipeline() []*tailer.Option {
+func (i *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
 			Source:   inputName,
 			Service:  inputName,
-			Pipeline: n.Log.Pipeline,
+			Pipeline: i.Log.Pipeline,
 		},
 	}
 }
@@ -160,21 +160,20 @@ func (i *Input) Run() {
 			i.exit()
 			l.Infof("iis input return")
 			return
-
 		}
 	}
 }
 
-func (n *Input) exit() {
-	if n.tail != nil {
-		n.tail.Close()
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
 		l.Infof("iis logging exit")
 	}
 }
 
-func (n *Input) Terminate() {
-	if n.semStop != nil {
-		n.semStop.Close()
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
@@ -182,7 +181,6 @@ func (i *Input) Collect() error {
 	for mName, metricCounterMap := range PerfObjMetricMap {
 		ts := time.Now()
 		for objName := range metricCounterMap {
-
 			// measurement name -> instance name -> metric name -> counter query handle list index
 			indexMap := map[string]map[string]map[string]int{mName: {}}
 
@@ -197,11 +195,10 @@ func (i *Input) Collect() error {
 			// instance
 			for i := 0; i < len(instanceList); i++ {
 				indexMap[mName][instanceList[i]] = map[string]int{}
-				// counter
-				for key_counter := range metricCounterMap[objName] {
-					if metricName, ok := metricCounterMap[objName][key_counter]; ok {
+				for keyCounter := range metricCounterMap[objName] {
+					if metricName, ok := metricCounterMap[objName][keyCounter]; ok {
 						// make full counter path
-						tmpCounterFullPath := pdh.MakeFullCounterPath(objName, instanceList[i], key_counter)
+						tmpCounterFullPath := pdh.MakeFullCounterPath(objName, instanceList[i], keyCounter)
 						pathList = append(pathList, tmpCounterFullPath)
 
 						indexMap[mName][instanceList[i]][metricName] = pathListIndex
@@ -286,7 +283,7 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-func init() {
+func init() { // nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval: datakit.Duration{Duration: time.Second * 15},

@@ -142,7 +142,10 @@ func (i *Input) getUserData() ([]inputs.Measurement, error) {
 		l.Errorf("query %v error %v", userSQL, err)
 		return nil, err
 	}
-	defer rows.Close() //nolint:errcheck
+	defer func() {
+		_ = rows.Close() //nolint:errcheck
+		_ = rows.Err()   //nolint:errcheck
+	}()
 
 	for rows.Next() {
 		var user string
@@ -217,7 +220,10 @@ func (i *Input) getUserStatus(user string) ([]inputs.Measurement, error) {
 		l.Errorf("query %v error %v", userQuerySQL, err)
 		return nil, err
 	}
-	defer rows.Close() //nolint:errcheck
+	defer func() {
+		_ = rows.Close() //nolint:errcheck
+		_ = rows.Err()   //nolint:errcheck
+	}()
 
 	for rows.Next() {
 		var (
@@ -243,26 +249,30 @@ func (i *Input) getUserStatus(user string) ([]inputs.Measurement, error) {
 		}
 	}
 
-	rows, err = i.db.Query(fmt.Sprintf(userConnSQL, user))
+	// two different 'rows'and 'rows.Close()' cannot exist in a method at the same time.
+	rows1, err := i.db.Query(fmt.Sprintf(userConnSQL, user))
 	if err != nil {
 		l.Errorf("query %v error %v", userConnSQL, err)
 		return nil, err
 	}
-	defer rows.Close() //nolint:errcheck
+	defer func() {
+		_ = rows1.Close() //nolint:errcheck
+		_ = rows1.Err()   //nolint:errcheck
+	}()
 
-	if err := rows.Err(); err != nil {
+	if err := rows1.Err(); err != nil {
 		l.Errorf("rows.Err: %s", err)
 		return nil, err
 	}
 
-	for rows.Next() {
+	for rows1.Next() {
 		var (
 			curUser   string
 			curConn   int
 			totalConn int
 		)
 
-		err = rows.Scan(
+		err = rows1.Scan(
 			&curUser,
 			&curConn,
 			&totalConn,
