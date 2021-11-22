@@ -152,7 +152,7 @@ func apiWrite(c *gin.Context) {
 			extags = nil
 		}
 
-		pts, err = handleWriteBody(body, precision, extags, isjson, apiConfig.RUMAppIDWhiteList)
+		pts, err = handleWriteBody(body, precision, extags, isjson)
 		if err != nil {
 			uhttp.HttpErr(c, err)
 			return
@@ -173,11 +173,10 @@ func apiWrite(c *gin.Context) {
 func handleWriteBody(body []byte,
 	precision string,
 	extags map[string]string,
-	isJSON bool,
-	appIDWhiteList []string) ([]*io.Point, error) {
+	isJSON bool) ([]*io.Point, error) {
 	switch isJSON {
 	case true:
-		return jsonPoints(body, precision, extags, appIDWhiteList)
+		return jsonPoints(body, precision, extags)
 
 	default:
 		pts, err := lp.ParsePoints(body, &lp.Option{
@@ -196,8 +195,7 @@ func handleWriteBody(body []byte,
 
 func jsonPoints(body []byte,
 	prec string,
-	extags map[string]string,
-	appIDWhiteList []string) ([]*io.Point, error) {
+	extags map[string]string) ([]*io.Point, error) {
 	var jps []jsonPoint
 	err := json.Unmarshal(body, &jps)
 	if err != nil {
@@ -211,14 +209,6 @@ func jsonPoints(body []byte,
 			l.Error(err)
 			return nil, uhttp.Error(ErrInvalidJSONPoint, err.Error())
 		} else {
-			tags := p.Tags()
-			if len(tags) == 0 {
-				return nil, fmt.Errorf("empty tags")
-			}
-			if !contains(tags[rumMetricAppID], appIDWhiteList) {
-				return nil, ErrRUMAppIDNotInWhiteList
-			}
-
 			pts = append(pts, p)
 		}
 	}
