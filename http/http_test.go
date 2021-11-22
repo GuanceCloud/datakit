@@ -59,7 +59,6 @@ func TestHandleBody(t *testing.T) {
 		npts int
 		tags map[string]string
 	}{
-
 		{
 			body: []byte(`[
 			{

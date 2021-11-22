@@ -48,8 +48,10 @@
 // Tiago Carvalho <sugoiuguu@tfwno.gf>
 // wsf01 <wf1337@sina.com>
 
+//go:build windows && amd64
 // +build windows,amd64
 
+// nolint  内含windows特定常量及方法,告警太多
 package pdh
 
 import (
@@ -59,7 +61,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// PDH error codes, which can be returned by all Pdh* functions. Taken from mingw-w64 pdhmsg.h
+// PDH error codes, which can be returned by all Pdh* functions. Taken from mingw-w64 pdhmsg.h.
 const (
 	PDH_CSTATUS_VALID_DATA                     = 0x00000000 // The returned data is valid.
 	PDH_CSTATUS_NEW_DATA                       = 0x00000001 // The return data value is valid and different from the last sample.
@@ -72,7 +74,7 @@ const (
 	PDH_CALC_NEGATIVE_DENOMINATOR              = 0x800007D6
 	PDH_CALC_NEGATIVE_TIMEBASE                 = 0x800007D7
 	PDH_CALC_NEGATIVE_VALUE                    = 0x800007D8
-	PDH_DIALOG_CANCELLED                       = 0x800007D9
+	PDH_DIALOG_CANCELED                        = 0x800007D9
 	PDH_END_OF_LOG_FILE                        = 0x800007DA
 	PDH_ASYNC_QUERY_TIMEOUT                    = 0x800007DB
 	PDH_CANNOT_SET_DEFAULT_REALTIME_DATASOURCE = 0x800007DC
@@ -170,48 +172,48 @@ type (
 	PDH_HCOUNTER windows.Handle // counter handle
 )
 
-// Union specialization for double values
+// Union specialization for double values.
 type PDH_FMT_COUNTERVALUE_DOUBLE struct {
 	CStatus     uint32 // Counter status
 	DoubleValue float64
 }
 
-// Union specialization for 64 bit integer values
+// Union specialization for 64 bit integer values.
 type PDH_FMT_COUNTERVALUE_LARGE struct {
 	CStatus    uint32
 	LargeValue int64
 }
 
-// Union specialization for long values
+// Union specialization for long values.
 type PDH_FMT_COUNTERVALUE_LONG struct {
 	CStatus   uint32
 	LongValue int32
-	padding   [4]byte
+	padding   [4]byte //nolint:structcheck
 }
 
-// Union specialization for double values, used by PdhGetFormattedCounterArrayDouble()
+// Union specialization for double values, used by PdhGetFormattedCounterArrayDouble().
 type PDH_FMT_COUNTERVALUE_ITEM_DOUBLE struct {
 	SzName   *uint16 // pointer to a string
 	FmtValue PDH_FMT_COUNTERVALUE_DOUBLE
 }
 
-// Union specialization for 'large' values, used by PdhGetFormattedCounterArrayLarge()
+// Union specialization for 'large' values, used by PdhGetFormattedCounterArrayLarge().
 type PDH_FMT_COUNTERVALUE_ITEM_LARGE struct {
 	SzName   *uint16 // pointer to a string
 	FmtValue PDH_FMT_COUNTERVALUE_LARGE
 }
 
-// Union specialization for long values, used by PdhGetFormattedCounterArrayLong()
+// Union specialization for long values, used by PdhGetFormattedCounterArrayLong().
 type PDH_FMT_COUNTERVALUE_ITEM_LONG struct {
 	SzName   *uint16 // pointer to a string
 	FmtValue PDH_FMT_COUNTERVALUE_LONG
 }
 
 var (
-	// Library
+	// Library.
 	libpdhDll *windows.LazyDLL
 
-	// Functions
+	// Functions.
 	pdh_AddCounterW               *windows.LazyProc
 	pdh_AddEnglishCounterW        *windows.LazyProc
 	pdh_CloseQuery                *windows.LazyProc
@@ -451,7 +453,7 @@ func PdhGetFormattedCounterValueLarge(hCounter PDH_HCOUNTER, lpdwType *uint32, p
 //
 // BUG(krpors): Testing this function on multiple systems yielded inconsistent results. For instance,
 // the pValue.LongValue kept the value '192' on test system A, but on B this was '0', while the padding
-// bytes of the struct got the correct value. Until someone can figure out this behaviour, prefer to use
+// bytes of the struct got the correct value. Until someone can figure out this behavior, prefer to use
 // the Double or Large counterparts instead. These functions provide actually the same data, except in
 // a different, working format.
 func PdhGetFormattedCounterValueLong(hCounter PDH_HCOUNTER, lpdwType *uint32, pValue *PDH_FMT_COUNTERVALUE_LONG) uint32 {
@@ -470,7 +472,7 @@ func PdhGetFormattedCounterValueLong(hCounter PDH_HCOUNTER, lpdwType *uint32, pV
 //
 //	okPath := "\\Process(*)\\% Processor Time" // notice the wildcard * character
 //
-//	// ommitted all necessary stuff ...
+//	// omitted all necessary stuff ...
 //
 //	var bufSize uint32
 //	var bufCount uint32

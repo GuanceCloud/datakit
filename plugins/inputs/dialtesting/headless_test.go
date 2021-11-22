@@ -17,7 +17,6 @@ var headlessCases = []struct {
 	fail      bool
 	reasonCnt int
 }{
-
 	{
 		fail:      false,
 		reasonCnt: 0,

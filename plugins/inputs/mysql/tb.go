@@ -117,7 +117,10 @@ func (i *Input) getTableSchema() ([]inputs.Measurement, error) {
 		l.Errorf("query %s error %v", tableSchemaSQL, err)
 		return nil, err
 	}
-	defer rows.Close() //nolint:errcheck
+	defer func() {
+		_ = rows.Close() //nolint:errcheck
+		_ = rows.Err()   //nolint:errcheck
+	}()
 
 	for rows.Next() {
 		m := &tbMeasurement{

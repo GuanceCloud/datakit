@@ -13,7 +13,6 @@ func TestParse(t *testing.T) {
 		expected interface{}
 		fail     bool
 	}{
-
 		{
 			in: `{abc notin [1.1,1.2,1.3] and (a > 1 || c< 0)}`,
 			expected: WhereConditions{
@@ -105,7 +104,6 @@ func TestParse(t *testing.T) {
 				&WhereCondition{
 					conditions: []Node{
 						&BinaryExpr{
-
 							Op: AND,
 
 							LHS: &BinaryExpr{
@@ -116,11 +114,9 @@ func TestParse(t *testing.T) {
 
 							RHS: &ParenExpr{
 								Param: &BinaryExpr{
-
 									Op: AND,
 
 									LHS: &BinaryExpr{
-
 										Op:  IN,
 										LHS: &Identifier{Name: "aaaa"},
 										RHS: &NodeList{
@@ -147,7 +143,6 @@ func TestParse(t *testing.T) {
 			in: `{source = 'http_dial_testing' and  aaaa in ['aaaa44', 'gaga']  and  city in ['北京'] }`,
 			expected: WhereConditions{
 				&WhereCondition{
-
 					conditions: []Node{
 						&BinaryExpr{
 							Op: AND,
