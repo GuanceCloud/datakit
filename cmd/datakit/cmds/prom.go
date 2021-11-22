@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-	"github.com/influxdata/toml/ast"
+	tomlAst "github.com/influxdata/toml/ast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -66,9 +66,9 @@ func collectorName(file string) (string, error) {
 		return "", err
 	}
 	it := table.Fields["inputs"]
-	tbl, ok := it.(*ast.Table)
+	tbl, ok := it.(*tomlAst.Table)
 	if !ok {
-		return "", fmt.Errorf("expect to be *ast.Table")
+		return "", fmt.Errorf("expect to be *tomlAst.Table")
 	}
 
 	for k := range tbl.Fields {
