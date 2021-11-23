@@ -536,15 +536,18 @@ func (d *dockerClient) tailStream(ctx context.Context,
 
 	if n := d.Logs.MatchName(deployment, name); n != -1 {
 		l.Debug("log match success, containerName:%s deploymentName:%s", name, deployment)
-		pPath, err := dkcfg.GetPipelinePath(d.Logs[n].Pipeline)
-		if err != nil {
-			l.Errorf("container_name:%s new pipeline error: %s", name, err)
-			return err
-		}
-		if err := ln.setPipeline(pPath); err != nil {
-			l.Warnf("container_name:%s new pipeline error: %s", name, err)
-		} else {
-			l.Debug("container_name:%s new pipeline success, path:%s", name, d.Logs[n].Pipeline)
+
+		if d.Logs[n].Pipeline != "" {
+			pPath, err := dkcfg.GetPipelinePath(d.Logs[n].Pipeline)
+			if err != nil {
+				l.Errorf("container_name:%s new pipeline error: %s", name, err)
+				return err
+			}
+			if err := ln.setPipeline(pPath); err != nil {
+				l.Warnf("container_name:%s new pipeline error: %s", name, err)
+			} else {
+				l.Debug("container_name:%s new pipeline success, path:%s", name, d.Logs[n].Pipeline)
+			}
 		}
 
 		if err := ln.setDecoder(d.Logs[n].CharacterEncoding); err != nil {
