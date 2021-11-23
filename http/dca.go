@@ -13,6 +13,10 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var ignoreAuthURI = []string{
+	"/v1/rum/sourcemap",
+}
+
 type DCAConfig struct {
 	Enable    bool     `toml:"enable" json:"enable"`
 	Listen    string   `toml:"listen" json:"listen"`
@@ -68,7 +72,7 @@ func dcaHTTPStart() {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
@@ -99,12 +103,16 @@ func dcaHTTPStart() {
 	router.POST("/v1/dca/pipelines", dcaCreatePipeline)
 	router.PATCH("/v1/dca/pipelines", dcaUpdatePipeline)
 
+	router.POST("/v1/rum/sourcemap", dcaUploadSourcemap)
+	router.DELETE("/v1/rum/sourcemap", dcaDeleteSourcemap)
+
 	srv := &http.Server{
 		Addr:    dcaConfig.Listen,
 		Handler: router,
 	}
 
 	g.Go(func(ctx context.Context) error {
+		loadSourcemapFile()
 		tryStartServer(srv, false, nil, nil)
 		l.Info("DCA server exit")
 		return nil
