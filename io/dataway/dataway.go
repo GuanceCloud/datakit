@@ -38,7 +38,7 @@ var (
 
 	ExtraHeaders      = map[string]string{}
 	AvailableDataways = []string{}
-	l                 = logger.DefaultSLogger("dataway")
+	log               = logger.DefaultSLogger("dataway")
 )
 
 type DataWayCfg struct {
@@ -106,7 +106,7 @@ func (dw *DataWayCfg) GetToken() []string {
 }
 
 func (dw *DataWayCfg) Apply() error {
-	l = logger.SLogger("dataway")
+	log = logger.SLogger("dataway")
 
 	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
 	// 避免俩边配置了同样的 dataway, 造成数据混乱
@@ -142,7 +142,7 @@ func (dw *DataWayCfg) Apply() error {
 	for _, httpurl := range dw.URLs {
 		ep, err := dw.initEndpoint(httpurl)
 		if err != nil {
-			l.Errorf("init dataway url %s failed: %s", httpurl, err.Error())
+			log.Errorf("init dataway url %s failed: %s", httpurl, err.Error())
 			return err
 		}
 
@@ -155,7 +155,7 @@ func (dw *DataWayCfg) Apply() error {
 func (dw *DataWayCfg) initEndpoint(httpurl string) (*endPoint, error) {
 	u, err := url.ParseRequestURI(httpurl)
 	if err != nil {
-		l.Errorf("parse dataway url %s failed: %s", httpurl, err.Error())
+		log.Errorf("parse dataway url %s failed: %s", httpurl, err.Error())
 		return nil, err
 	}
 
@@ -195,15 +195,15 @@ func (dw *DataWayCfg) initHTTP() error {
 
 	if dw.HTTPProxy != "" { // set proxy
 		if u, err := url.ParseRequestURI(dw.HTTPProxy); err != nil {
-			l.Warnf("parse http proxy failed err: %s, ignored", err.Error())
+			log.Warnf("parse http proxy failed err: %s, ignored", err.Error())
 		} else {
 			cliopts.ProxyURL = u
-			l.Infof("set dataway proxy to %s ok", dw.HTTPProxy)
+			log.Infof("set dataway proxy to %s ok", dw.HTTPProxy)
 		}
 	}
 
 	dw.httpCli = ihttp.Cli(cliopts)
-	l.Debugf("httpCli: %p", dw.httpCli.Transport)
+	log.Debugf("httpCli: %p", dw.httpCli.Transport)
 
 	return nil
 }

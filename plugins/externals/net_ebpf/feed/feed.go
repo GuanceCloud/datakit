@@ -44,7 +44,7 @@ func FeedLastError(extnlErr ExternalLastErr) error {
 		return fmt.Errorf("lastErrPostURL, http status code: %d", rsp.StatusCode)
 	}
 
-	return fmt.Errorf("%s %d", lastErrPostURL, rsp.StatusCode)
+	return nil
 }
 
 func WriteData(data []byte, urlPath string) error {
@@ -82,6 +82,9 @@ func WriteData(data []byte, urlPath string) error {
 func FeedMeasurement(measurements []inputs.Measurement, path string) error {
 	lines := [][]byte{}
 	for _, m := range measurements {
+		if m == nil {
+			continue
+		}
 		if pt, err := m.LineProto(); err != nil {
 			return err
 		} else {

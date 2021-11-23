@@ -1,8 +1,11 @@
-//+build windows
+//go:build windows
+// +build windows
 
 package winevent
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 )
 

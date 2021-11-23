@@ -49,9 +49,11 @@ var _ quantileSketch = (*DDSketchWithExactSummaryStatistics)(nil)
 
 type DDSketch struct {
 	mapping.IndexMapping
-	positiveValueStore store.Store
-	negativeValueStore store.Store
-	zeroCount          float64
+	positiveValueStore        store.Store
+	negativeValueStore        store.Store
+	zeroCount                 float64
+	minIndexableAbsoluteValue float64
+	maxIndexableValue         float64
 }
 
 func NewDDSketchFromStoreProvider(indexMapping mapping.IndexMapping, storeProvider store.Provider) *DDSketch {
@@ -60,9 +62,11 @@ func NewDDSketchFromStoreProvider(indexMapping mapping.IndexMapping, storeProvid
 
 func NewDDSketch(indexMapping mapping.IndexMapping, positiveValueStore store.Store, negativeValueStore store.Store) *DDSketch {
 	return &DDSketch{
-		IndexMapping:       indexMapping,
-		positiveValueStore: positiveValueStore,
-		negativeValueStore: negativeValueStore,
+		IndexMapping:              indexMapping,
+		positiveValueStore:        positiveValueStore,
+		negativeValueStore:        negativeValueStore,
+		minIndexableAbsoluteValue: indexMapping.MinIndexableValue(),
+		maxIndexableValue:         indexMapping.MaxIndexableValue(),
 	}
 }
 
@@ -115,16 +119,16 @@ func (s *DDSketch) Add(value float64) error {
 
 // Adds a value to the sketch with a float64 count.
 func (s *DDSketch) AddWithCount(value, count float64) error {
-	if value < -s.MaxIndexableValue() || value > s.MaxIndexableValue() {
+	if value < -s.maxIndexableValue || value > s.maxIndexableValue {
 		return errors.New("The input value is outside the range that is tracked by the sketch.")
 	}
 	if count < 0 {
 		return errors.New("The count cannot be negative.")
 	}
 
-	if value > s.MinIndexableValue() {
+	if value > s.minIndexableAbsoluteValue {
 		s.positiveValueStore.AddWithCount(s.Index(value), count)
-	} else if value < -s.MinIndexableValue() {
+	} else if value < -s.minIndexableAbsoluteValue {
 		s.negativeValueStore.AddWithCount(s.Index(-value), count)
 	} else {
 		s.zeroCount += count
@@ -135,10 +139,12 @@ func (s *DDSketch) AddWithCount(value, count float64) error {
 // Return a (deep) copy of this sketch.
 func (s *DDSketch) Copy() *DDSketch {
 	return &DDSketch{
-		IndexMapping:       s.IndexMapping,
-		positiveValueStore: s.positiveValueStore.Copy(),
-		negativeValueStore: s.negativeValueStore.Copy(),
-		zeroCount:          s.zeroCount,
+		IndexMapping:              s.IndexMapping,
+		positiveValueStore:        s.positiveValueStore.Copy(),
+		negativeValueStore:        s.negativeValueStore.Copy(),
+		zeroCount:                 s.zeroCount,
+		minIndexableAbsoluteValue: s.minIndexableAbsoluteValue,
+		maxIndexableValue:         s.maxIndexableValue,
 	}
 }
 
@@ -297,10 +303,12 @@ func FromProtoWithStoreProvider(pb *sketchpb.DDSketch, storeProvider store.Provi
 		return nil, err
 	}
 	return &DDSketch{
-		IndexMapping:       m,
-		positiveValueStore: positiveValueStore,
-		negativeValueStore: negativeValueStore,
-		zeroCount:          pb.ZeroCount,
+		IndexMapping:              m,
+		positiveValueStore:        positiveValueStore,
+		negativeValueStore:        negativeValueStore,
+		zeroCount:                 pb.ZeroCount,
+		minIndexableAbsoluteValue: m.MinIndexableValue(),
+		maxIndexableValue:         m.MaxIndexableValue(),
 	}, nil
 }
 
@@ -412,6 +420,8 @@ func (s *DDSketch) decodeAndMergeWith(bb []byte, fallbackDecode func(b *[]byte, 
 	if s.IndexMapping == nil {
 		return errors.New("missing index mapping")
 	}
+	s.minIndexableAbsoluteValue = s.IndexMapping.MinIndexableValue()
+	s.maxIndexableValue = s.IndexMapping.MaxIndexableValue()
 	return nil
 }
 

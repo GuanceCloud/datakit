@@ -17,7 +17,6 @@ var cloudCli = &http.Client{Timeout: 100 * time.Millisecond}
 //nolint:deadcode,unused
 type synchronizer interface {
 	Sync() (map[string]interface{}, error)
-
 	Description() string
 	InstanceID() string
 	InstanceName() string

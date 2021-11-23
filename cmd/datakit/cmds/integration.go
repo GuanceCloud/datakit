@@ -62,6 +62,7 @@ var titles = map[string]string{
 	"tomcat":         "Tomcat",
 	"prom":           "Prometheus 数据接入",
 	"windows_event":  "Windows 事件",
+	"pythond":        "Python 采集器",
 }
 
 func exportIntegration(to, ignore string) error {

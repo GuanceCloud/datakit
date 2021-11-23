@@ -11,7 +11,7 @@ variables:
 stages:
   - deploy
 
-build-dev:
+release-nothing-only-build:
   stage: deploy
   only:
     - /^dev-.*$/
@@ -19,13 +19,13 @@ build-dev:
   script:
     # only building
     - make ci_notify
-    - make testing
-    - make test_conf_compatible
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make check_conf_compatible
     - make ci_pass_notify
   tags:
     - cloudcare-ft
 
-build-testing:
+release-testing:
   stage: deploy
   only:
     - testing
@@ -33,24 +33,24 @@ build-testing:
   script:
     # building && publish testing
     - make ci_notify
-    - make testing
-    - make test_conf_compatible
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make check_conf_compatible
     - make pub_testing
     - make pub_testing_img
     - make test_notify
   tags:
     - cloudcare-ft
 
-build-release:
+release-production:
   stage: deploy
   only:
     - master
   script:
     - make ci_notify
-    - make release
-    - make test_conf_compatible
-    - make pub_release
-    - make pub_release_img
-    - make release_notify
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make check_conf_compatible
+    - make pub_production
+    - make pub_production_img
+    - make production_notify
   tags:
     - cloudcare-ft

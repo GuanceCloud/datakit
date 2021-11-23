@@ -637,7 +637,6 @@ func (n *TimeResolution) Pos() *PositionRange { return nil /* TODO */ }
 type Expr interface {
 	Node
 	Type() ValueType
-
 	DQLExpr()
 }
 

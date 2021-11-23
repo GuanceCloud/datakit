@@ -18,12 +18,12 @@ var (
 	flagBinary       = flag.String("binary", "", "binary name to build")
 	flagName         = flag.String("name", *flagBinary, "same as -binary")
 	flagBuildDir     = flag.String("build-dir", "build", "output of build files")
-	flagMain         = flag.String(`main`, `main.go`, `binary build entry`)
+	flagMain         = flag.String("main", `main.go`, `binary build entry`)
 	flagDownloadAddr = flag.String("download-addr", "", "")
 	flagPubDir       = flag.String("pub-dir", "pub", "")
 	flagArchs        = flag.String("archs", "local", "os archs")
-	flagEnv          = flag.String(`env`, ``, `build for local/test/preprod/release`)
-	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/release/preprod`)
+	flagRelease      = flag.String("release", "", `build for local/testing/production`)
+	flagPub          = flag.Bool("pub", false, `publish binaries to OSS: local/testing/production`)
 	flagBuildISP     = flag.Bool("build-isp", false, "generate ISP data")
 
 	l = logger.DefaultSLogger("make")
@@ -71,28 +71,35 @@ func applyFlags() {
 	build.AppName = *flagName
 	build.Archs = *flagArchs
 
-	build.Release = *flagEnv
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
+	switch *flagRelease {
+	case build.ReleaseProduction, build.ReleaseLocal, build.ReleaseTesting:
+	default:
+		l.Fatalf("invalid release type: %s", *flagRelease)
+	}
+
+	build.ReleaseType = *flagRelease
 
 	// override git.Version
 	if x := os.Getenv("VERSION"); x != "" {
 		build.ReleaseVersion = x
 	}
 
-	l.Infof("use version %s", build.ReleaseVersion)
-
-	switch *flagEnv {
-	case "release":
+	switch *flagRelease {
+	case build.ReleaseProduction:
 		l.Debug("under release, only checked inputs released")
-		build.ReleaseType = "checked"
+		build.InputsReleaseType = "checked"
 		if !version.IsValidReleaseVersion(build.ReleaseVersion) {
 			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3-rc0", build.ReleaseVersion)
 		}
+
 	default:
 		l.Debug("under non-release, all inputs released")
-		build.ReleaseType = "all"
+		build.InputsReleaseType = "all"
 	}
+
+	l.Infof("use version %s", build.ReleaseVersion)
 
 	if *flagPub {
 		build.PubDatakit()

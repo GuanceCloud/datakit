@@ -22,8 +22,6 @@ type LogarithmicMapping struct {
 	relativeAccuracy      float64
 	multiplier            float64
 	normalizedIndexOffset float64
-	minIndexableValue     float64
-	maxIndexableValue     float64
 }
 
 func NewLogarithmicMapping(relativeAccuracy float64) (*LogarithmicMapping, error) {
@@ -34,7 +32,6 @@ func NewLogarithmicMapping(relativeAccuracy float64) (*LogarithmicMapping, error
 		relativeAccuracy: relativeAccuracy,
 		multiplier:       1 / math.Log1p(2*relativeAccuracy/(1-relativeAccuracy)),
 	}
-	m.updateIndexableValues()
 	return m, nil
 }
 
@@ -47,7 +44,6 @@ func NewLogarithmicMappingWithGamma(gamma, indexOffset float64) (*LogarithmicMap
 		multiplier:            1 / math.Log(gamma),
 		normalizedIndexOffset: indexOffset,
 	}
-	m.updateIndexableValues()
 	return m, nil
 }
 
@@ -78,19 +74,14 @@ func (m *LogarithmicMapping) LowerBound(index int) float64 {
 }
 
 func (m *LogarithmicMapping) MinIndexableValue() float64 {
-	return m.minIndexableValue
-}
-
-func (m *LogarithmicMapping) MaxIndexableValue() float64 {
-	return m.maxIndexableValue
-}
-
-func (m *LogarithmicMapping) updateIndexableValues() {
-	m.minIndexableValue = math.Max(
+	return math.Max(
 		math.Exp((math.MinInt32-m.normalizedIndexOffset)/m.multiplier+1), // so that index >= MinInt32
 		minNormalFloat64*(1+m.relativeAccuracy)/(1-m.relativeAccuracy),
 	)
-	m.maxIndexableValue = math.Min(
+}
+
+func (m *LogarithmicMapping) MaxIndexableValue() float64 {
+	return math.Min(
 		math.Exp((math.MaxInt32-m.normalizedIndexOffset)/m.multiplier-1), // so that index <= MaxInt32
 		math.Exp(expOverflow)/(1+m.relativeAccuracy),                     // so that math.Exp does not overflow
 	)

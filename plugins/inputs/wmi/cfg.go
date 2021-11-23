@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package wmi
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
@@ -28,13 +30,14 @@ const (
 #key1 = "val1"
 
 #[[inputs.wmi.query]]
-#	##(required) the name of the WMI class. see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
+#	##(required) the name of the WMI class. 
+#	see: https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
 #	class = 'Win32_LogicalDisk'
 
 #	##(optional) collect interval of this class，use global interval if not set
 #	interval='1m'
 
-#	##(required) property names of wmi class, you can optinally specify alias as field name.
+#	##(required) property names of wmi class, you can optimally specify alias as field name.
 #	metrics = [
 #		['DeviceID'],
 #		['FileSystem', 'disk_filesystem']
@@ -66,10 +69,10 @@ type (
 
 		ctx       context.Context
 		cancelFun context.CancelFunc
+		semStop   *cliutils.Sem
+		mode      string
 
-		mode string
-
-		testError error
+		testError error //nolint:structcheck,unused
 	}
 )
 
@@ -77,11 +80,11 @@ func (ag *Instance) isTest() bool {
 	return ag.mode == "test"
 }
 
-func (ag *Instance) isDebug() bool {
+func (ag *Instance) isDebug() bool { // //nolint:unused
 	return ag.mode == "debug"
 }
 
-func (c *ClassQuery) ToSql() (string, error) {
+func (c *ClassQuery) ToSQL() (string, error) {
 	sql := "SELECT "
 
 	if len(c.Metrics) == 0 {

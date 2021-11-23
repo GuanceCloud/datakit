@@ -7,8 +7,9 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
+var OK = newErr(nil, http.StatusOK)
+
 var (
-	ErrOK                     = newErr(nil, http.StatusOK)
 	ErrBadReq                 = newErr(errors.New("bad request"), http.StatusBadRequest)
 	ErrInvalidCategory        = newErr(errors.New("invalid category"), http.StatusBadRequest)
 	ErrInvalidPrecision       = newErr(errors.New("invalid precision"), http.StatusBadRequest)

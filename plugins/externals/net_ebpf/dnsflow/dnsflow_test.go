@@ -1,3 +1,4 @@
-// +build linux, ebpf
+//go:build (linux && ignore) || ebpf
+// +build linux,ignore ebpf
 
 package dnsflow
