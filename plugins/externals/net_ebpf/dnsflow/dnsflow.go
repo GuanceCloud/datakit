@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"reflect"
 	"sync"
 	"time"
 
@@ -30,13 +29,13 @@ func SetLogger(nl *logger.Logger) {
 
 type DNSParser struct {
 	*gopacket.DecodingLayerParser
-	layers []gopacket.LayerType
-	eth    *layers.Ethernet
-	ipv4   *layers.IPv4
-	ipv6   *layers.IPv6
-	udp    *layers.UDP
-	tcp    *layers.TCP
-	dns    *layers.DNS
+	layers     []gopacket.LayerType
+	eth        *layers.Ethernet
+	ipv4       *layers.IPv4
+	ipv6       *layers.IPv6
+	udp        *layers.UDP
+	tcpSupport *tcpWithDNSSupport
+	dns        *layers.DNS
 }
 
 func NewDNSParse() DNSParser {
@@ -44,12 +43,13 @@ func NewDNSParse() DNSParser {
 	var ipv4 layers.IPv4
 	var ipv6 layers.IPv6
 	var udp layers.UDP
-	var tcp layers.TCP
+	var tcpSupport tcpWithDNSSupport
 	var dns layers.DNS
+
 	l := []gopacket.DecodingLayer{
 		&eth,
 		&ipv4, &ipv6,
-		&udp, &tcp,
+		&udp, &tcpSupport,
 		&dns,
 	}
 
@@ -58,7 +58,7 @@ func NewDNSParse() DNSParser {
 		[]gopacket.LayerType{},
 		&eth,
 		&ipv4, &ipv6,
-		&udp, &tcp,
+		&udp, &tcpSupport,
 		&dns,
 	}
 }
@@ -123,40 +123,43 @@ func ReadPacketInfoFromDNSParser(ts time.Time, dnsParser *DNSParser) (*DNSPacket
 		TS: ts,
 	}
 	if dnsParser == nil {
-		return nil, fmt.Errorf("*DnsParser: nil")
-	}
-	if dnsParser.dns != nil {
-		pinfo.Key.TransactionID = dnsParser.dns.ID
-		pinfo.QR = dnsParser.dns.QR
-		pinfo.RCODE = uint8(dnsParser.dns.ResponseCode)
-		pinfo.Answers = dnsParser.dns.Answers
-	} else {
-		return nil, fmt.Errorf("*DnsParser.dns: nil")
+		return nil, fmt.Errorf("DnsParser: nil")
 	}
 
-	switch {
-	case dnsParser.udp != nil:
-		pinfo.Key.IsUDP = true
-		pinfo.Key.ClientPort = uint16(dnsParser.udp.SrcPort)
-		pinfo.Key.ServerPort = uint16(dnsParser.udp.DstPort)
-	case dnsParser.tcp != nil:
-		pinfo.Key.IsUDP = false
-		pinfo.Key.ClientPort = uint16(dnsParser.udp.SrcPort)
-		pinfo.Key.ServerPort = uint16(dnsParser.udp.DstPort)
-	default:
-		return nil, fmt.Errorf("*DnsParser.udp and *DnsParser.tcpS: nil")
+	haveDNSLayer := false
+	for _, layer := range dnsParser.layers {
+		switch layer {
+		case layers.LayerTypeUDP:
+			pinfo.Key.IsUDP = true
+			pinfo.Key.ClientPort = uint16(dnsParser.udp.SrcPort)
+			pinfo.Key.ServerPort = uint16(dnsParser.udp.DstPort)
+		case layers.LayerTypeTCP:
+			pinfo.Key.IsUDP = false
+			pinfo.Key.ClientPort = uint16(dnsParser.tcpSupport.tcp.SrcPort)
+			pinfo.Key.ServerPort = uint16(dnsParser.tcpSupport.tcp.DstPort)
+		case layers.LayerTypeIPv4:
+			pinfo.Key.IsV4 = true
+			pinfo.Key.ClientIP = dnsParser.ipv4.SrcIP.String()
+			pinfo.Key.ServerIP = dnsParser.ipv4.DstIP.String()
+		case layers.LayerTypeIPv6:
+			pinfo.Key.IsV4 = false
+			pinfo.Key.ClientIP = dnsParser.ipv6.SrcIP.String()
+			pinfo.Key.ServerIP = dnsParser.ipv6.DstIP.String()
+		case layers.LayerTypeDNS:
+			pinfo.Key.TransactionID = dnsParser.dns.ID
+			pinfo.QR = dnsParser.dns.QR
+			pinfo.RCODE = uint8(dnsParser.dns.ResponseCode)
+			pinfo.Answers = dnsParser.dns.Answers
+			haveDNSLayer = true
+		case gopacket.LayerTypeDecodeFailure, gopacket.LayerTypeFragment,
+			gopacket.LayerTypePayload, gopacket.LayerTypeZero:
+		default:
+		}
 	}
 
-	if dnsParser.ipv4 != nil {
-		pinfo.Key.IsV4 = true
-		pinfo.Key.ClientIP = dnsParser.ipv4.SrcIP.String()
-		pinfo.Key.ServerIP = dnsParser.ipv4.DstIP.String()
-	} else if dnsParser.ipv6 != nil {
-		pinfo.Key.IsV4 = false
-		pinfo.Key.ClientIP = dnsParser.ipv6.SrcIP.String()
-		pinfo.Key.ServerIP = dnsParser.ipv6.DstIP.String()
+	if !haveDNSLayer {
+		return nil, fmt.Errorf("no dns layer")
 	}
-
 	if pinfo.QR {
 		pinfo.Key.ClientPort, pinfo.Key.ServerPort = pinfo.Key.ServerPort, pinfo.Key.ClientPort
 		pinfo.Key.ClientIP, pinfo.Key.ServerIP = pinfo.Key.ServerIP, pinfo.Key.ClientIP
@@ -175,16 +178,17 @@ type DNSStats struct {
 
 type DNSStatsRecord struct {
 	sync.Mutex
-	statsMap          map[DNSQAKey]DNSStats
-	gTag              map[string]string
-	finishedStatsList [][2]interface{}
+	statsMap       map[DNSQAKey]DNSStats
+	gTag           map[string]string
+	finishedStatsM []inputs.Measurement
 }
 
 func (s *DNSStatsRecord) addDNSStats(packetInfo *DNSPacketInfo, dnsRecord *DNSRecord) {
 	s.Lock()
 	defer s.Unlock()
-	if s.finishedStatsList == nil {
-		s.finishedStatsList = make([][2]interface{}, 0)
+
+	if s.finishedStatsM == nil {
+		s.finishedStatsM = make([]inputs.Measurement, 0)
 	}
 
 	stats, ok := s.statsMap[packetInfo.Key]
@@ -205,35 +209,14 @@ func (s *DNSStatsRecord) addDNSStats(packetInfo *DNSPacketInfo, dnsRecord *DNSRe
 			stats.RCODE = packetInfo.RCODE
 			stats.Timeout = false
 			delete(s.statsMap, packetInfo.Key)
-			if dnsRecord != nil {
+			if dnsRecord != nil && stats.RCODE == 0 {
 				dnsRecord.addRecord(packetInfo)
 			}
 		} else {
 			return
 		}
 	}
-	s.finishedStatsList = append(s.finishedStatsList, [2]interface{}{packetInfo.Key, stats})
-}
-
-func (s *DNSStatsRecord) Dump() []inputs.Measurement {
-	s.Lock()
-	defer s.Unlock()
-	m := []inputs.Measurement{}
-	for _, kv := range s.finishedStatsList {
-		k, ok := kv[0].(DNSQAKey)
-		if !ok {
-			l.Warn("type %s", reflect.TypeOf(k))
-			continue
-		}
-		v, ok := kv[1].(DNSStats)
-		if !ok {
-			l.Warn("type %s", reflect.TypeOf(v))
-			continue
-		}
-		m = append(m, s.Conv2M(k, v))
-	}
-	s.finishedStatsList = make([][2]interface{}, 0)
-	return m
+	s.finishedStatsM = append(s.finishedStatsM, s.Conv2M(packetInfo.Key, stats))
 }
 
 func (s *DNSStatsRecord) Conv2M(key DNSQAKey, stats DNSStats) *measurement {
@@ -246,6 +229,7 @@ func (s *DNSStatsRecord) Conv2M(key DNSQAKey, stats DNSStats) *measurement {
 	for k, v := range s.gTag {
 		m.tags[k] = v
 	}
+	m.tags["source"] = "dnsflow"
 	m.tags["src_ip"] = key.ClientIP
 	m.tags["src_port"] = fmt.Sprintf("%d", key.ClientPort)
 	m.tags["dst_ip"] = key.ServerIP
@@ -263,11 +247,10 @@ func (s *DNSStatsRecord) Conv2M(key DNSQAKey, stats DNSStats) *measurement {
 	m.fields["timeout"] = stats.Timeout
 	m.fields["rcode"] = stats.RCODE
 	m.fields["resp_time"] = stats.RespTime.Nanoseconds()
-	l.Debug(m.fields, m.tags)
 	return &m
 }
 
-const DNSTIMEOUT = time.Second * 5
+const DNSTIMEOUT = time.Second * 6
 
 func (s *DNSStatsRecord) CheckTimeout(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 15)
@@ -279,7 +262,7 @@ func (s *DNSStatsRecord) CheckTimeout(ctx context.Context) {
 				if !v.Responded && time.Since(v.TS) > DNSTIMEOUT {
 					v.Responded = true
 					v.Timeout = true
-					s.finishedStatsList = append(s.finishedStatsList, [2]interface{}{k, v})
+					s.finishedStatsM = append(s.finishedStatsM, s.Conv2M(k, v))
 				}
 			}
 			s.Unlock()
@@ -294,48 +277,54 @@ type DNSFlowTracer struct {
 }
 
 func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacket, ch chan *DNSPacketInfo) {
-	dnsParser := NewDNSParse()
 	for {
+		dnsParser := NewDNSParse()
+
 		d, _, err := tp.ZeroCopyReadPacketData()
 		if err != nil {
-			l.Error(err)
 			continue
 		}
 
-		err = dnsParser.DecodeLayers(d, &dnsParser.layers)
-		if err != nil {
-			l.Error(err)
+		if err := dnsParser.DecodeLayers(d, &dnsParser.layers); err != nil {
 			continue
 		}
+
 		pinfo, err := ReadPacketInfoFromDNSParser(time.Now(), &dnsParser)
 		if err != nil {
-			l.Error(err)
 			continue
 		}
+
 		select {
 		case <-ctx.Done():
 			return
 		case ch <- pinfo:
 		default:
-			l.Error("pinfoCh full")
+			l.Debug("pinfoCh full")
 		}
 	}
 }
 
 func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag map[string]string,
 	dnsRecord *DNSRecord, feedAddr string) {
+	defer tp.Close()
 	tracer.dnsStats.gTag = gTag
-	mCh := make(chan []inputs.Measurement, 64)
-	pInfoCh := make(chan *DNSPacketInfo, 64)
+	mCh := make(chan []inputs.Measurement)
+	pInfoCh := make(chan *DNSPacketInfo, 512)
 
 	go tracer.readPacket(ctx, tp, pInfoCh)
 	go tracer.dnsStats.CheckTimeout(ctx)
 	go func() {
-		t := time.NewTicker(time.Second * 60)
+		t := time.NewTicker(time.Second * 30)
 		for {
 			select {
 			case <-t.C:
-				mCh <- tracer.dnsStats.Dump()
+				select {
+				case mCh <- tracer.dnsStats.finishedStatsM:
+					tracer.dnsStats.finishedStatsM = make([]inputs.Measurement, 0)
+				default:
+					l.Warn("mCh full, drop data")
+				}
+
 			case pinfo := <-pInfoCh:
 				serverIP := net.ParseIP(pinfo.Key.ServerIP)
 				if serverIP == nil {
@@ -356,7 +345,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 			return
 		case m := <-mCh:
 			if len(m) == 0 {
-				l.Warn("dnsflow: no data")
+				l.Debug("dnsflow: no data")
 			} else if err := dkfeed.FeedMeasurement(m, feedAddr); err != nil {
 				l.Error(err)
 			}
@@ -367,8 +356,8 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 func NewDNSFlowTracer() DNSFlowTracer {
 	return DNSFlowTracer{
 		dnsStats: DNSStatsRecord{
-			statsMap:          map[DNSQAKey]DNSStats{},
-			finishedStatsList: [][2]interface{}{},
+			statsMap:       map[DNSQAKey]DNSStats{},
+			finishedStatsM: make([]inputs.Measurement, 0),
 		},
 	}
 }

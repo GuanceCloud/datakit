@@ -84,7 +84,9 @@ func (tracer *NetFlowTracer) ClosedEventHandler(cpu int, data []byte,
 			RttVar:           uint32(eventC.conn_tcp_stats.rtt_var),
 		},
 	}
-	tracer.closedEventCh <- &event
+	if IPPortFilterIn(&event.Info) {
+		tracer.closedEventCh <- &event
+	}
 }
 
 func (tracer *NetFlowTracer) bpfMapCleanup(cl []ConnectionInfo, connStatsMap *ebpf.Map) {
@@ -146,6 +148,10 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 					Pid:   uint32(connInfoC.pid),
 					Netns: uint32(connInfoC.netns),
 					Meta:  uint32(connInfoC.meta),
+				}
+
+				if !IPPortFilterIn(&connInfo) {
+					continue
 				}
 
 				connStats := ConnectionStats{

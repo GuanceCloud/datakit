@@ -20,6 +20,9 @@ func (c *DNSRecord) LookupAddr(ip net.IP) string {
 	c.RLock()
 	defer c.RUnlock()
 
+	if ip == nil {
+		return ""
+	}
 	ipStr := ip.String()
 	v, ok := c.record[ipStr]
 	if !ok {
@@ -37,12 +40,21 @@ func (c *DNSRecord) addRecord(packetInfo *DNSPacketInfo) {
 	c.Lock()
 	defer c.Unlock()
 	for _, answer := range packetInfo.Answers {
-		switch answer.Type { //nolint:exhaustive
+		switch answer.Type {
 		case layers.DNSTypeA, layers.DNSTypeAAAA:
+			if answer.IP == nil || answer.Name == nil {
+				continue
+			}
 			c.record[answer.IP.String()] = [2]interface{}{
 				string(answer.Name),
 				packetInfo.TS.Add(time.Second * time.Duration(answer.TTL)),
 			}
+		case layers.DNSTypeCNAME, layers.DNSTypeHINFO, layers.DNSTypeMB,
+			layers.DNSTypeMD, layers.DNSTypeMF, layers.DNSTypeMG,
+			layers.DNSTypeMINFO, layers.DNSTypeMR, layers.DNSTypeMX,
+			layers.DNSTypeNS, layers.DNSTypeNULL, layers.DNSTypeOPT,
+			layers.DNSTypePTR, layers.DNSTypeSOA, layers.DNSTypeSRV,
+			layers.DNSTypeTXT, layers.DNSTypeURI, layers.DNSTypeWKS:
 		default:
 		}
 	}

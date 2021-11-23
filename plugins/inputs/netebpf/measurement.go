@@ -77,6 +77,7 @@ func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
 			"dst_port":  inputs.TagInfo{Desc: "DNS server port"},
 			"transport": inputs.TagInfo{Desc: "传输协议 (udp/tcp)"},
 			"family":    inputs.TagInfo{Desc: "TCP/IP 协议族 (IPv4/IPv6)"},
+			"source":    inputs.TagInfo{Desc: "固定值: dnsflow"},
 		},
 		Fields: map[string]interface{}{
 			"timeout": newFInfBool("DNS 请求超时", inputs.UnknownUnit),
