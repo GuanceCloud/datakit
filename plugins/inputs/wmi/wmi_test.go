@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package wmi
@@ -60,7 +61,7 @@ func TestQuerySysInfo(t *testing.T) {
 	// 	{`FileSystem`},
 	// }
 
-	sql, err := q.ToSql()
+	sql, err := q.ToSQL()
 	if err != nil {
 		t.Error(err)
 	}

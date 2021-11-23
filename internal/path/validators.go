@@ -51,6 +51,18 @@ func GetGitPureName(gitURL string) (string, error) {
 	return strings.TrimSuffix(fileName, ext), nil
 }
 
+func GetParentDirName(str string) string {
+	dir := filepath.Dir(str)
+	return filepath.Base(dir)
+}
+
+// GetPureNameFromExt returns ab.py to ab.
+func GetPureNameFromExt(name string) string {
+	ext := filepath.Ext(name)
+	nm := filepath.Base(name)
+	return strings.TrimSuffix(nm, ext)
+}
+
 // func GetExecutePath() (string, error) {
 // 	ex, err := os.Executable()
 // 	if err != nil {

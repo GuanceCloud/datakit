@@ -18,10 +18,12 @@
 
 syntax = "proto3";
 
+package skywalking.v3;
+
 option java_multiple_files = true;
 option java_package = "org.apache.skywalking.apm.network.common.v3";
 option csharp_namespace = "SkyWalking.NetworkProtocol.V3";
-option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/common/v3";
+option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile";
 
 message KeyStringValuePair {
   string key = 1;

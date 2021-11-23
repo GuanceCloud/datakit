@@ -32,7 +32,7 @@ type IndexMapping interface {
 }
 
 func NewDefaultMapping(relativeAccuracy float64) (IndexMapping, error) {
-	return NewCubicallyInterpolatedMapping(relativeAccuracy)
+	return NewLogarithmicMapping(relativeAccuracy)
 }
 
 // FromProto returns an Index mapping from the protobuf definition of it

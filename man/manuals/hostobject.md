@@ -98,6 +98,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 		"disk": ...,
 		"conntrack": ...,
 		"filefd": ...,
+        "election": ...,
 		},
 
 	"collectors": [ # 各个采集器的运行情况
@@ -158,6 +159,16 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `total`      | 磁盘总大小   | int    |
 | `mountpoint` | 挂载点       | string |
 | `fstype`     | 文件系统类型 | string |
+
+#### `host.election`
+
+> 注意：当配置文件中 `enable_election`选项关闭时，该字段为null
+
+| 字段名       | 描述         | 类型   |
+| ---          | ----         |:---:   |
+| `elected`     | 选举状态      | string |
+| `namespace`     | 选举空间      | string |
+
 
 #### `host.conntrack`
 

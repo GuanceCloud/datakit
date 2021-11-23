@@ -18,10 +18,12 @@
 
 syntax = "proto3";
 
+package skywalking.v3;
+
 option java_multiple_files = true;
 option java_package = "org.apache.skywalking.apm.network.management.v3";
 option csharp_namespace = "SkyWalking.NetworkProtocol.V3";
-option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/management/v3";
+option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile";
 
 import "plugins/inputs/skywalking/v3/proto/common/Common.proto";
 
@@ -29,6 +31,7 @@ import "plugins/inputs/skywalking/v3/proto/common/Common.proto";
 service ManagementService {
   // Report custom properties of a service instance.
   rpc reportInstanceProperties(InstanceProperties) returns (Commands) {}
+
   // Keep the instance alive in the backend analysis.
   // Only recommend to do separate keepAlive report when no trace and metrics
   // needs to be reported. Otherwise, it is duplicated.

@@ -217,7 +217,7 @@ Version        : %s
 Build At       : %s
 Golang Version : %s
 BaseUrl        : %s
-DataKit        : %s
+Data           : %s
 `, DataKitVersion, git.BuildAt, git.Golang, datakitURL, dataURL)
 		os.Exit(0)
 	}

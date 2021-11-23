@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/openzipkin/zipkin-go/model"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
 )
 

@@ -33,7 +33,7 @@ var (
 	FlagDefConf bool
 	FlagWorkDir string
 
-	FlagMan bool
+	FlagDisableTFMono, FlagMan bool
 	FlagIgnore,
 	FlagExportMan,
 	FlagExportIntegration,
@@ -81,8 +81,8 @@ var (
 )
 
 var (
-	ReleaseVersion string
-	ReleaseType    string
+	ReleaseVersion    string
+	InputsReleaseType string
 )
 
 func tryLoadMainCfg() {
@@ -118,7 +118,7 @@ func RunCmds() {
 	if FlagVersion {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		showVersion(ReleaseVersion, ReleaseType, FlagShowTestingVersions)
+		showVersion(ReleaseVersion, InputsReleaseType, FlagShowTestingVersions)
 		os.Exit(0)
 	}
 
@@ -139,7 +139,9 @@ func RunCmds() {
 	if FlagCheckSample {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		checkSample()
+		if err := checkSample(); err != nil {
+			os.Exit(-1)
+		}
 		os.Exit(0)
 	}
 
@@ -268,7 +270,10 @@ func RunCmds() {
 
 	if FlagExportMan != "" {
 		setCmdRootLog(FlagCmdLogPath)
-		if err := exportMan(FlagExportMan, FlagIgnore, FlagManVersion); err != nil {
+		if err := exportMan(FlagExportMan,
+			FlagIgnore,
+			FlagManVersion,
+			FlagDisableTFMono); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
