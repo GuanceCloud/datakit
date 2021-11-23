@@ -1177,6 +1177,31 @@ func TestMultiPidConns(t *testing.T) {
 	}
 }
 
+func TestIPPortFilterIn(t *testing.T) {
+	cases := map[ConnectionInfo]bool{}
+	c, _ := newConn(ConnL3IPv4, "127.1.0.1", "1.1.1.1", 1, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv4, "12.1.0.1", "127.0.0.1", 1, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv4, "12.1.0.1", "12.0.0.1", 0, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv4, "12.1.0.1", "12.0.0.1", 1, 0, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv4, "12.1.0.1", "12.0.0.1", 1, 1, 1)
+	cases[*c] = true
+	c, _ = newConn(ConnL3IPv6, "2::1", "::1", 1, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv6, "::1", "2::1", 1, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv6, "2::1", "2::1", 1, 1, 1)
+	cases[*c] = true
+	for k, v := range cases {
+		if IPPortFilterIn(&k) != v {
+			t.Error(k)
+		}
+	}
+}
+
 func newConn(meta uint32, sip, dip string, sport, dport uint32, pid uint32) (*ConnectionInfo, error) {
 	srcip := net.ParseIP(sip).To16() // 16 bytes
 	dstip := net.ParseIP(dip).To16()
