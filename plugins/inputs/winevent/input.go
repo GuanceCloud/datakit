@@ -8,11 +8,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/tomarrell/wrapcheck/wrapcheck/testdata/ignore_pkg_errors/src/github.com/pkg/errors"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
