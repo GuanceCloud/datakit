@@ -213,6 +213,20 @@ gin.log 也会按照同样的方式自动切割。
 
 以 MySQL 为例，如果 MySQL 不在 DataKit 所在机器，肯定希望这个 `host` 标签是被采集的 MySQL 的真实主机名（或云数据库的其它标识字段），而非 DataKit 所在的主机名。此时可在 `[inputs.mysql.tags]` 中手动增加 `host = "<your-mysql-real-hostname>"`，以此来屏蔽 DataKit 默认追加的 `host` 标签。在 DataKit 看来，如果采集到的数据中就带有 `host` 标签，那么就不再追加 DataKit 所在主机的 host 信息了。
 
+### DataKit 启用磁盘缓存
+
+在 DataKit 中，可以通过磁盘缓存方式来避免某些情况下的数据丢失：
+
+- DataKit 重启
+- 因大量数据发送失败而导致的数据清空
+
+进入 DataKit 安装目录下的 `conf.d` 目录，修改 `datakit.conf` 配置文件，将 `[io]` 模块中的 `enable_cache` 设置为 `true`，示例如下：
+
+```toml
+[io]
+	enable_cache = true
+```
+
 ### DataKit 限制运行资源
 
 通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），仅支持 Linux 操作系统。

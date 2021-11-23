@@ -20,7 +20,7 @@
 
 具体的使用可以参见源代码文件 `datakit/python.d/core/demo.py`:
 
-```py
+```python
 from datakit_framework import DataKitFramework
 
 class Demo(DataKitFramework):
@@ -38,13 +38,13 @@ class Demo(DataKitFramework):
                 {
                     "measurement": "abc",
                     "tags": {
-                    "t1": "b",
-                    "t2": "d"
+                      "t1": "b",
+                      "t2": "d"
                     },
                     "fields": {
-                    "f1": 123,
-                    "f2": 3.4,
-                    "f3": "strval"
+                      "f1": 123,
+                      "f2": 3.4,
+                      "f3": "strval"
                     },
                     # "time": 1624550216 # you don't need this
                 },
@@ -52,13 +52,13 @@ class Demo(DataKitFramework):
                 {
                     "measurement": "def",
                     "tags": {
-                    "t1": "b",
-                    "t2": "d"
+                      "t1": "b",
+                      "t2": "d"
                     },
                     "fields": {
-                    "f1": 123,
-                    "f2": 3.4,
-                    "f3": "strval"
+                      "f1": 123,
+                      "f2": 3.4,
+                      "f3": "strval"
                     },
                     # "time": 1624550216 # you don't need this
                 }
@@ -94,11 +94,9 @@ class Demo(DataKitFramework):
 
 ## 完整示例
 
-第一步：写一个类，继承 `DataKitFramework`，我们实现调用 datakit SDK 的 ping 功能并打印在 `/Users/mac/Desktop/1.txt` 文件里面。
+第一步：写一个类，继承 `DataKitFramework`，我们实现调用 datakit SDK 的 ping 功能并打印在 `/Users/mac/Desktop/1.txt` 文件里面：
 
-`test.py`:
-
-```py
+```python
 from datakit_framework import DataKitFramework
 
 class Demo(DataKitFramework):
@@ -119,26 +117,26 @@ class Demo(DataKitFramework):
             {
                 "measurement": "abc",
                 "tags": {
-                "t1": "b",
-                "t2": "d"
+                  "t1": "b",
+                  "t2": "d"
                 },
                 "fields": {
-                "f1": 123,
-                "f2": 3.4,
-                "f3": "strval"
+                  "f1": 123,
+                  "f2": 3.4,
+                  "f3": "strval"
                 },
                 "time": 1624550216
             },
             {
                 "measurement": "def",
                 "tags": {
-                "t1": "b",
-                "t2": "d"
+                  "t1": "b",
+                  "t2": "d"
                 },
                 "fields": {
-                "f1": 123,
-                "f2": 3.4,
-                "f3": "strval"
+                  "f1": 123,
+                  "f2": 3.4,
+                  "f3": "strval"
                 },
                 "time": 1624550216
             }
@@ -160,20 +158,20 @@ class Demo(DataKitFramework):
 ```conf
 [[inputs.pythond]]
 
-	# Python 采集器名称
-	name = 'some-python-inputs'  # required
+  # Python 采集器名称
+  name = 'some-python-inputs'  # required
 
-	# 运行 Python 采集器所需的环境变量
-	#envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
+  # 运行 Python 采集器所需的环境变量
+  #envs = ['LD_LIBRARY_PATH=/path/to/lib:$LD_LIBRARY_PATH',]
 
-	# Python 采集器可执行程序路径(尽可能写绝对路径)
-	cmd = "python3" # required. python3 is recommended.
+  # Python 采集器可执行程序路径(尽可能写绝对路径)
+  cmd = "python3" # required. python3 is recommended.
 
-	# 用户脚本的相对路径(填写文件夹，填好后该文件夹下一级目录的模块和 py 文件都将得到应用)
-	dirs = ["mytest"]
+  # 用户脚本的相对路径(填写文件夹，填好后该文件夹下一级目录的模块和 py 文件都将得到应用)
+  dirs = ["mytest"]
 ```
 
-第四步: 重启 datakit:
+第四步: 重启 DataKit:
 
 ```shell
 sudo datakit --restart

@@ -2,9 +2,23 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc5(2021/11/23)
+
+- 增加 [pythond(alpha)](pythond) ，便于用 Python3 编写自定义采集器(#367)
+<!-- - 支持 source map 文件处理，便于 RUM 采集器收集 JavaScript 调用栈信息(#266) -->
+- [SkyWalking V3](skywalking) 已支持到 8.5.0/8.6.0/8.7.0 三个版本(#385)
+- DataKit 初步支持[磁盘数据缓存(alpha)](datakit-conf-how-to#9dc84d15)(#420)
+- DataKit 支持选举状态上报(#427)
+- DataKit 支持 scheck 状态上报(#428)
+- 调整 DataKit 使用入门文档，新的分类更便于找到具体文档
+
+----
+
 ## 1.1.9-rc4.3(2021/11/19)
 
 - 修复容器日志采集器因 pipeline 配置失当无法启动的问题
+
+----
 
 ## 1.1.9-rc4.2(2021/11/18)
 
