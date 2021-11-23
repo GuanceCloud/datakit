@@ -94,6 +94,9 @@ var (
 	GitReposDir      = filepath.Join(InstallDir, "gitrepos")
 	GetReposConfDirs []string // git repos conf search dirs
 
+	PythonDDir    = filepath.Join(InstallDir, "python.d")
+	PythonCoreDir = filepath.Join(PythonDDir, "core")
+
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
 
@@ -120,6 +123,8 @@ func SetWorkDir(dir string) {
 	pidFile = filepath.Join(InstallDir, ".pid")
 
 	GitReposDir = filepath.Join(InstallDir, "gitrepos")
+	PythonDDir = filepath.Join(InstallDir, "python.d")
+	PythonCoreDir = filepath.Join(PythonDDir, "core")
 
 	InitDirs()
 }

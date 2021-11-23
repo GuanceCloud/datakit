@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -18,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/includefiles/pythond"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tracer"
@@ -254,6 +257,27 @@ func tryLoadConfig() {
 	l.Infof("datakit run ID: %s", cliutils.XID("dkrun_"))
 }
 
+func initPythonCore() error {
+	// remove core dir
+	if err := os.RemoveAll(datakit.PythonCoreDir); err != nil {
+		return err
+	}
+
+	// generate new core dir
+	if err := os.MkdirAll(datakit.PythonCoreDir, datakit.ConfPerm); err != nil {
+		return err
+	}
+
+	for k, v := range pythond.PythonDCoreFiles {
+		bFile := filepath.Join(datakit.PythonCoreDir, k)
+		if err := ioutil.WriteFile(bFile, []byte(v), datakit.ConfPerm); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func doRun() error {
 	if err := io.Start(); err != nil {
 		return err
@@ -261,6 +285,11 @@ func doRun() error {
 
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
+	}
+
+	if err := initPythonCore(); err != nil {
+		l.Errorf("initPythonCore failed: %v", err)
+		return err
 	}
 
 	if config.GitHasEnabled() {

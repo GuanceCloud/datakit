@@ -65,8 +65,8 @@ ul.a {
 `
 
 	headerScript = []byte(`<link rel="stylesheet"
-      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css">
-<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
+      href="//cdn.bootcdn.net/ajax/libs/highlight.js/10.7.2/styles/default.min.css">
+<script src="//cdn.bootcdn.net/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', (event) => {
     hljs.highlightAll();
