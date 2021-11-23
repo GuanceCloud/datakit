@@ -43,7 +43,7 @@ group_between(status_code, [200, 300], "HTTP_OK", "http_status")
 drop_origin_data()
 ```
 
-> 注意，切割过程中，需避免[可能出现的跟 tag key 重名的问题](datakit-how-to#5cf855c0)
+> 注意，切割过程中，需避免[可能出现的跟 tag key 重名的问题](datakit-pl-how-to#5cf855c0)
 
 - 第二步：配置对应的采集器来使用上面的 pipeline
 

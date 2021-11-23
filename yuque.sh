@@ -17,6 +17,7 @@ else
 fi
 
 sudo dist/datakit-${os}-amd64/datakit \
+	--cmd-log stdout \
 	--ignore demo \
 	--export-manuals .docs \
 	--man-version $man_version \

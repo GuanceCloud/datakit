@@ -87,16 +87,19 @@ func exportMan(to, skipList, ver string, disableMono bool) error {
 
 		data, err := man.BuildMarkdownManual(k, &man.Option{ManVersion: ver, WithCSS: false})
 		if err != nil {
-			return err
+			l.Fatalf("BuildMarkdownManual: %s", err)
 		}
 
 		if len(data) == 0 {
+			l.Warnf("no data in %s, ignored", k)
 			continue
 		}
 
 		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), data, os.ModePerm); err != nil {
 			return err
 		}
+
+		l.Infof("export %s to %s ok", k+".md", to)
 	}
 
 	return nil
