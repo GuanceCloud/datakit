@@ -1159,8 +1159,7 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 	}
 
 	returnVal.Time = newMongo.SampleTime
-	returnVal.IsMongos =
-		newStat.ShardCursorType != nil || strings.HasPrefix(newStat.Process, MongosProcess)
+	returnVal.IsMongos = newStat.ShardCursorType != nil || strings.HasPrefix(newStat.Process, MongosProcess)
 
 	// BEGIN code modification
 	if oldStat.Mem.Supported.(bool) {
@@ -1198,8 +1197,7 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 
 	if oldStat.ExtraInfo != nil && newStat.ExtraInfo != nil &&
 		oldStat.ExtraInfo.PageFaults != nil && newStat.ExtraInfo.PageFaults != nil {
-		returnVal.Faults, returnVal.FaultsCnt =
-			diff(*(newStat.ExtraInfo.PageFaults), *(oldStat.ExtraInfo.PageFaults), sampleSecs)
+		returnVal.Faults, returnVal.FaultsCnt = diff(*(newStat.ExtraInfo.PageFaults), *(oldStat.ExtraInfo.PageFaults), sampleSecs)
 	}
 	if !returnVal.IsMongos && oldStat.Locks != nil {
 		globalCheck, hasGlobal := oldStat.Locks["Global"]
