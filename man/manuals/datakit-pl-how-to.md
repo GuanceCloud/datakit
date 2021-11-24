@@ -50,6 +50,56 @@ Bye!
 
 > 注：Windows 下，请在 Powershell 中执行调试。
 
+### 完整 Pipeline 示例
+
+这里以 DataKit 自身的日志切割为例。DataKit 自身的日志形式如下：
+
+```
+2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
+```
+
+编写对应 pipeline：
+
+```python
+# pipeline for datakit log
+# Mon Jan 11 10:42:41 CST 2021
+# auth: tanb
+
+grok(_, '%{_dklog_date:log_time}%{SPACE}%{_dklog_level:level}%{SPACE}%{_dklog_mod:module}%{SPACE}%{_dklog_source_file:code}%{SPACE}%{_dklog_msg:msg}')
+rename("time", log_time) # 将 log_time 重名命名为 time
+default_time(time)       # 将 time 字段作为输出数据的时间戳
+drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
+```
+
+这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下（**注意，用户自定义 pattern 如果需要全局生效，必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下**）:
+
+```Shell
+$ cat pipeline/pattern/datakit
+# 注意：自定义的这些 pattern，命名最好加上特定的前缀，以免跟内置的命名冲突（内置 pattern 名称不允许覆盖）
+# 自定义 pattern 格式为：
+#    <pattern-name><空格><具体 pattern 组合>
+_dklog_date %{YEAR}-%{MONTHNUM}-%{MONTHDAY}T%{HOUR}:%{MINUTE}:%{SECOND}%{INT}
+_dklog_level (DEBUG|INFO|WARN|ERROR|FATAL)
+_dklog_mod %{WORD}
+_dklog_source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
+_dklog_msg %{GREEDYDATA}
+```
+
+现在 pipeline 以及其引用的 pattern 都有了，就能通过 DataKit 内置的 pipeline 调试工具，对这一行日志进行切割：
+
+```Shell
+# 提取成功示例
+$ ./datakit --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+Extracted data(cost: 421.705µs):
+{
+    "code": "io/io.go:458",
+    "level": "DEBUG",
+    "module": "io",
+    "msg": "post cost 6.87021ms",
+    "time": 1610358231887000000
+}
+```
+
 ### Pipeline 字段命名注意事项
 
 由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 Field），不宜有任何 tag 字段，这些 Tag 包含如下几类：
