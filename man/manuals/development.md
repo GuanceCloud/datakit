@@ -277,7 +277,7 @@ cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 
 ## DataKit 辅助功能
 
-除了[官方文档](datakit-how-to#666de9ed)列出的部分辅助功能外，DataKit 还支持其它功能，这些主要在开发过程中使用。
+除了[官方文档](datakit-tools-how-to)列出的部分辅助功能外，DataKit 还支持其它功能，这些主要在开发过程中使用。
 
 ### 检查 sample config 是否正确
 

@@ -55,107 +55,50 @@ drop_origin_data()
 
     # required
     source = "nginx"
-    from_beginning = false
 
-    # 此处配置成 datakit 安装目录的相对路径，故所有脚本必须放在 /path/to/datakit/pipeline 目录下
-    # 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名的脚本（如 nginx -> nginx.p），
-    # 作为其默认 pipeline 配置
-    pipeline_ = "nginx.p"
+    # 所有脚本必须放在 /path/to/datakit/pipeline 目录下
+    # 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名
+    # 的脚本（如 nginx -> nginx.p），作为其默认 pipeline 配置
+    pipeline = "nginx.p"
 
     ... # 其它配置
 ```
 
-重启采集器，即可切割对应的日志。
+重启采集器，即可切割对应的日志。关于 Pipeline 编写、调试以及注意事项，参见[这里](datakit-pl-how-to)。
 
-### 在 datakit 中调试 pipeline
+## Grok 模式分类
 
-如果在编写 pipeline 的过程中，可能编写 pipeline 或者 grok 时，需要调试，DataKit 提供了对应的调试工具。 进入 DataKit 安装目录，执行：
+DataKit 中 grok 模式可以分为两类：全局模式与局部模式，`pattern` 目录下的模式文件都是全局模式，所有 pipeline 脚本都可使用，而在 pipeline 脚本中通过 `add_pattern()` 函数新增的模式属于局部模式，只针对当前 pipeline 脚本有效。
 
-```shell
-./datakit --pl <pipeline-script-name.p> --txt <txt-to-be-pipelined>
-```
+当 DataKit 内置模式不能满足所有用户需求，用户可以自行在 pipeline 目录中增加模式文件来扩充。若自定义模式是全局级别，则需在 `pattern` 目录中新建一个文件并把模式添加进去，不要在已有内置模式文件中添加或修改，因为datakit启动过程会把内置模式文件覆盖掉。
 
-参数说明：
+### 添加局部模式
 
-- `cmd`: DataKit 命令模式
-- `pl`: pipeline 文件名（即 DataKit 安装目录下 pipeline 里面的脚本），你只能调试这个目录下的 pipeline 脚本
-- `txt`: 欲提取的原始文本，可以是 json 或纯文本（这里不是文件路径，直接传文本过来）
-
-示例：
-
-这里以 datakit 自身的日志切割为例。DataKit 自身的日志形式如下：
-
-```
-2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms
-```
-
-编写对应 pipeline：
+grok 本质是预定义一些正则表达式来进行文本匹配提取，并且给预定义的正则表达式进行命名，方便使用与嵌套引用扩展出无数个新模式。比如 DataKit 有 3 个如下内置模式：
 
 ```python
-# pipeline for datakit log
-# Mon Jan 11 10:42:41 CST 2021
-# auth: tanb
-
-grok(_, '%{_dklog_date:log_time}%{SPACE}%{_dklog_level:level}%{SPACE}%{_dklog_mod:module}%{SPACE}%{_dklog_source_file:code}%{SPACE}%{_dklog_msg:msg}')
-rename("time", log_time) # 将 log_time 重名命名为 time
-default_time(time)       # 将 time 字段作为输出数据的时间戳
-drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
+_second (?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)    #匹配秒数，_second为模式名
+_minute (?:[0-5][0-9])                            #匹配分钟数，_minute为模式名
+_hour (?:2[0123]|[01]?[0-9])                      #匹配年份，_hour为模式名
 ```
 
-这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下（**注意，用户自定义 pattern 如果需要全局生效，必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下**）:
+基于上面三个内置模式，可以扩展出自己内置模式且命名为 `time`:
 
-```Shell
-$ cat pipeline/pattern/datakit
-# 注意：自定义的这些 pattern，命名最好加上特定的前缀，以免跟内置的命名冲突（内置 pattern 名称不允许覆盖）
-# 自定义 pattern 格式为：
-#    <pattern-name><空格><具体 pattern 组合>
-_dklog_date %{YEAR}-%{MONTHNUM}-%{MONTHDAY}T%{HOUR}:%{MINUTE}:%{SECOND}%{INT}
-_dklog_level (DEBUG|INFO|WARN|ERROR|FATAL)
-_dklog_mod %{WORD}
-_dklog_source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
-_dklog_msg %{GREEDYDATA}
+```python
+# 把 time 加到 pattern 目录下文件中，此模式为全局模式，任何地方都能引用 time
+time ([^0-9]?)%{hour:hour}:%{minute:minute}(?::%{second:second})([^0-9]?)
+
+# 也可以通过 add_pattern() 添加到 pipeline 文件中，则此模式变为局部模式，只有当前 pipeline 脚本能使用 time
+add_pattern(time, "([^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second})([^0-9]?)")
+
+# 通过 grok 提取原始输入中的时间字段。假定输入为 12:30:59，则提取到 {"hour": 12, "minute": 30, "second": 59}
+grok(_, %{time})
 ```
 
-现在 pipeline 以及其引用的 pattern 都有了，就能通过 DataKit 内置的 pipeline 调试工具，对这一行日志进行切割：
+注意：
 
-```Shell
-# 提取成功示例
-$ ./datakit --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
-Extracted data(cost: 421.705µs):
-{
-    "code": "io/io.go:458",
-    "level": "DEBUG",
-    "module": "io",
-    "msg": "post cost 6.87021ms",
-    "time": 1610358231887000000
-}
-
-# 提取失败示例
-$ ./datakit --pl dklog_pl.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
-No data extracted from pipeline
-```
-
-### 利用 `grokq` 辅助 pipeline 编写
-
-由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具：
-
-```Shell
-$ ./datakit --grokq
-grokq > Mon Jan 25 19:41:17 CST 2021   # 此处输入你希望匹配的文本
-        2 %{DATESTAMP_OTHER: ?}        # 工具会给出对应对的建议，越靠前匹配月精确（权重也越大）。前面的数字表明权重。
-        0 %{GREEDYDATA: ?}
-
-grokq > 2021-01-25T18:37:22.016+0800
-        4 %{TIMESTAMP_ISO8601: ?}      # 此处的 ? 表示你需要用一个字段来命名匹配到的文本
-        0 %{NOTSPACE: ?}
-        0 %{PROG: ?}
-        0 %{SYSLOGPROG: ?}
-        0 %{GREEDYDATA: ?}             # 像 GREEDYDATA 这种范围很广的 pattern，权重都较低
-                                       # 权重越高，匹配的精确度越大
-
-grokq > Q                              # Q 或 exit 退出
-Bye!
-```
+- 相同模式名以脚本级优先（即局部模式覆盖全局模式）
+- pipeline 脚本中，`add_pattern()` 需在 `grok()` 函数前面调用，否则会导致第一条数据提取失败。
 
 ## 脚本函数
 
@@ -167,8 +110,9 @@ Bye!
 - 以下提到的所有 `key` 参数，都指已经过初次提取（通过 `grok()` 或 `json()`）之后，生成的 `key`
 - 待处理json的路径，支持标识符的写法，不能使用字符串，如果是生成新key，需要使用字符串
 
-### `add_pattern(name=required, pattern=required)`
+### `add_pattern()`
 
+函数原型：`add_pattern(name=required, pattern=required)`
 函数说明: 创建自定义 grok 模式。
 
 参数:
@@ -197,8 +141,9 @@ grok(_, "%{time}")
 }
 ```
 
-### `grok(input=required, pattern=required)`
+### `grok()`
 
+函数原型：`grok(input=required, pattern=required)`
 函数说明: 通过 `pattern` 提取文本串 `input` 中的内容。
 
 参数:
@@ -232,8 +177,9 @@ grok(_, "%{time}")
 }
 ```
 
-### `json(input=required, jsonPath=required, newkey=optional)`
+### `json()`
 
+函数原型：`json(input=required, jsonPath=required, newkey=optional)`
 函数说明: 提取 json 中的指定字段，并可将其命名成新的字段。
 
 参数:
@@ -307,6 +253,7 @@ json(_, [0].nets[-1])
 
 ### `json_all()`
 
+函数原型：`json_all()`
 函数说明：提取 json 中的所有字段，所有层次均被拉平。
 
 参数：
@@ -400,8 +347,9 @@ rename('height', `身高`) # 身高因为是 Unicode 字符，需要 `` 包围�
 }
 ```
 
-### `rename(new-key=required, old-key=required)`
+### `rename()`
 
+函数原型：`rename(new-key=required, old-key=required)`
 函数说明: 将已提取的字段重新命名
 
 参数:
@@ -433,8 +381,9 @@ json(_, info.name, "姓名")
 }
 ```
 
-### `url_decode(key=required)`
+### `url_decode()`
 
+函数原型：`url_decode(key=required)`
 函数说明: 将已提取 `key` 中的 URL 解析成明文
 
 参数:
@@ -455,8 +404,9 @@ json(_, url) url_decode(url)
 }
 ```
 
-### `geoip(key=required)`
+### `geoip()`
 
+函数原型：`geoip(key=required)`
 函数说明: 在 IP 上追加更对 geo 信息。 `geoip()` 会额外产生多个字段，如：
 
 - `isp`: 运营商
@@ -486,8 +436,9 @@ json(_, ip) geoip(ip)
 }
 ```
 
-### `datetime(key=required, precision=required, fmt=required)`
+### `datetime()`
 
+函数原型：`datetime(key=required, precision=required, fmt=required)`
 函数说明: 将时间戳转成指定日期格式
 
 函数参数
@@ -526,8 +477,9 @@ Kitchen     = "3:04PM"
 json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')
 ```
 
-### `expr(expr=required, key=required)`
+### `expr()`
 
+函数原型：`expr(expr=required, key=required)`
 函数说明: 计算表达式 expr 的值，并将计算结果写入 `key`
 
 支持的表达式操作符：
@@ -573,7 +525,9 @@ expr(a.second*10+(2+3)*5, bb)
 }
 ```
 
-### `cast(key=required, type=required)`
+### `cast()`
+
+函数原型：`cast(key=required, type=required)`
 
 函数说明: 将 key 值转换拆成指定类型
 
@@ -596,8 +550,9 @@ json(_, first) cast(first, "str")
 }
 ```
 
-### `group_between(key=required, between=required, new-value=required, new-key=optional)`
+### `group_between()`
 
+函数原型：`group_between(key=required, between=required, new-value=required, new-key=optional)`
 函数说明： 如果 `key` 值在指定范围 `between` 内（注意：只能是单个区间，如 `[0,100]`），则可创建一个新字段，并赋予新值。若不提供新字段，则覆盖原字段值
 
 示例一:
@@ -634,9 +589,10 @@ group_between(http_status, [200, 300], "OK", status)
 }
 ```
 
-### `group_in(key=required, in=required, new-value=required, new-key=optional)`
+### `group_in()`
 
-如果 `key` 值在列表 `in` 中，则可创建一个新字段，并赋予新值。若不提供新字段，则覆盖原字段值
+函数原型：`group_in(key=required, in=required, new-value=required, new-key=optional)`
+函数说明：如果 `key` 值在列表 `in` 中，则可创建一个新字段，并赋予新值。若不提供新字段，则覆盖原字段值
 
 示例:
 
@@ -648,15 +604,14 @@ group_in(log_level, ["info", "debug"], "OK")
 group_in(log_level, ["error", "panic"], "not-ok", status)
 ```
 
-### `uppercase(key=required)`
+### `uppercase()`
 
+函数原型：`uppercase(key=required)`
 函数说明: 将已提取 key 中内容转换成大写
 
 函数参数
 
-- `key`: 指定已提取的待转换字段名
-
-将 key 内容转成大写
+- `key`: 指定已提取的待转换字段名，将 `key` 内容转成大写
 
 示例:
 
@@ -672,7 +627,9 @@ json(_, first) uppercase(first, "1")
 }
 ```
 
-### `lowercase(key=required)`
+### `lowercase()`
+
+函数原型：`lowercase(key=required)`
 
 函数说明: 将已提取 key 中内容转换成小写
 
@@ -694,7 +651,9 @@ json(_, first) lowercase(first)
 }
 ```
 
-### `nullif(key=required, value=required)`
+### `nullif()`
+
+函数原型：`nullif(key=required, value=required)`
 
 函数说明: 若已提取 `key` 指定的字段内容等于 `value` 值，则删除此字段
 
@@ -717,7 +676,9 @@ json(_, first) json(_, second) nullif(first, "1")
 }
 ```
 
-### `strfmt(key=required, fmt=required, key1=optional, key2, ...)`
+### `strfmt()`
+
+函数原型：`strfmt(key=required, fmt=required, key1=optional, key2, ...)`
 
 函数说明: 对已提取 `key1,key2...` 指定的字段内容根据 `fmt` 进行格式化，并把格式化后的内容写入 `key` 字段中
 
@@ -742,6 +703,8 @@ strfmt(bb, "%v %s %v", a.second, a.thrid, a.forth)
 
 ### `drop_origin_data()`
 
+函数原型：`drop_origin_data()`
+
 函数说明: 丢弃初始化文本，否则初始文本放在 message 字段中
 
 示例:
@@ -755,7 +718,9 @@ drop_origin_data()
 # 结果集中删除message内容
 ```
 
-### `add_key(key-name=required, key-value=required)`
+### `add_key()`
+
+函数原型：`add_key(key-name=required, key-value=required)`
 
 函数说明: 增加一个字段
 
@@ -780,7 +745,9 @@ add_key(city, "shanghai")
 }
 ```
 
-### `default_time(key=required, timezone=optional)`
+### `default_time()`
+
+函数原型：`default_time(key=required, timezone=optional)`
 
 函数说明: 以提取的某个字段作为最终数据的时间戳
 
@@ -855,7 +822,9 @@ rename("time", log_time)
 }
 ```
 
-### `drop_key(key=required)`
+### `drop_key()`
+
+函数原型：`drop_key(key=required)`
 
 函数说明: 删除已提取字段
 
@@ -881,7 +850,9 @@ drop_key(height)
 }
 ```
 
-### `user_agent(key=required)`
+### `user_agent()`
+
+函数原型：`user_agent(key=required)`
 
 函数说明: 对指定字段上获取客户端信息
 
@@ -908,7 +879,9 @@ drop_key(height)
 json(_, userAgent) user_agent(userAgent)
 ```
 
-### `parse_duration(key=required)`
+### `parse_duration()`
+
+函数原型：`parse_duration(key=required)`
 
 函数说明: 如果 `key` 的值是一个 golang 的 duration 字符串（如 `123ms`），则自动将 `key` 解析成纳秒为单位的整数
 
@@ -939,7 +912,9 @@ parse_duration(abc) # 结果 abc = -2300000000
 
 ```
 
-### `parse_date(new-key=required, yy=require, MM=require, dd=require, hh=require, mm=require, ss=require, ms=require, zone=require)`
+### `parse_date()`
+
+函数原型：`parse_date(new-key=required, yy=require, MM=require, dd=require, hh=require, mm=require, ss=require, ms=require, zone=require)`
 
 函数说明: 将传入的日期字段各部分的值转化为时间戳
 
@@ -967,9 +942,10 @@ parse_date(aa, "2021", "12", "12", "10", "10", "34", "100", "Asia/Shanghai") # �
 parse_date(aa, "20", "February", "12", "10", "10", "34", "", "+8") 结果 aa=1581473434000000000
 ```
 
-### `cover(key=required, range=require)`
+### `cover()`
 
-函数说明: 对指定字段上获取的字符串数据按索引范围进行数据脱敏处理
+函数原型：`cover(key=required, range=require)`
+函数说明: 对指定字段上获取的字符串数据，按范围进行数据脱敏处理
 
 函数参数
 
@@ -993,8 +969,11 @@ json(_, str) cover(str, [1, 1])
 
 # 待处理数据 {"str": "小阿卡"}
 json(_, str) cover(str, [2, 2])
+```
 
-### `replace(key=required, regex=required, replaceStr=required)`
+### `replace()`
+
+函数原型：`replace(key=required, regex=required, replaceStr=required)`
 
 函数说明: 对指定字段上获取的字符串数据按正则进行替换
 
@@ -1004,7 +983,6 @@ json(_, str) cover(str, [2, 2])
 - `regex`: 正则表达式
 - `replaceStr`: 替换的字符串
 
-
 示例:
 
 ```python
@@ -1013,47 +991,14 @@ json(_, str)
 replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
 
 # 英文名 {"str": "zhang san"}
-json(_, str) replace(str, "([a-z]*) \\w*", "$1 ***")
+json(_, str)
+replace(str, "([a-z]*) \\w*", "$1 ***")
 
 # 身份证号 {"str": "362201200005302565"}
-json(_, str) replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
+json(_, str)
+replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
 
 # 中文名 {"str": "小阿卡"}
 json(_, str)
 replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
-```
-
-### grok 模式分类
-
-DataKit 中 grok 模式可以分为两类：全局模式与局部模式，`pattern` 目录下的模式文件都是全局模式，所有 pipeline 脚本都可使用，而在 pipeline 脚本中通过 `add_pattern()` 函数新增的模式属于局部模式，只针对当前 pipeline 脚本有效。
-
-当 DataKit 内置模式不能满足所有用户需求，用户可以自行在 pipeline 目录中增加模式文件来扩充。若自定义模式是全局级别，则需在 `pattern` 目录中新建一个文件并把模式添加进去，不要在已有内置模式文件中添加或修改，因为datakit启动过程会把内置模式文件覆盖掉。
-
-### 添加局部模式
-
-grok 本质是预定义一些正则表达式来进行文本匹配提取，并且给预定义的正则表达式进行命名，方便使用与嵌套引用扩展出无数个新模式。比如 DataKit 有 3 个如下内置模式：
-
-```python
-_second (?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)    #匹配秒数，_second为模式名
-_minute (?:[0-5][0-9])                            #匹配分钟数，_minute为模式名
-_hour (?:2[0123]|[01]?[0-9])                      #匹配年份，_hour为模式名
-```
-
-基于上面三个内置模式，可以扩展出自己内置模式且命名为 `time`:
-
-```python
-# 把 time 加到 pattern 目录下文件中，此模式为全局模式，任何地方都能引用 time
-time ([^0-9]?)%{hour:hour}:%{minute:minute}(?::%{second:second})([^0-9]?)
-
-# 也可以通过 add_pattern() 添加到 pipeline 文件中，则此模式变为局部模式，只有当前 pipeline 脚本能使用 time
-add_pattern(time, "([^0-9]?)%{HOUR:hour}:%{MINUTE:minute}(?::%{SECOND:second})([^0-9]?)")
-
-# 通过 grok 提取原始输入中的时间字段。假定输入为 12:30:59，则提取到 {"hour": 12, "minute": 30, "second": 59}
-grok(_, %{time})
-```
-
-注意：
-
-- 相同模式名以脚本级优先（即局部模式覆盖全局模式）
-- pipeline 脚本中，`add_pattern()` 需在 `grok()` 函数前面调用，否则会导致第一条数据提取失败。
-
+``` 
