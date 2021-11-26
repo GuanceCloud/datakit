@@ -95,16 +95,16 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 			return
 		}
+
 		log.Debugf("show up all traces: %v", traces)
 
-		pts, err := tracesToPoints(traces, filters...)
+		pts, err := tracesToPoints(req, traces, filters...)
 		if err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
 
 			return
 		}
-
 		if len(pts) != 0 {
 			if err = dkio.Feed(inputName,
 				datakit.Tracing,
@@ -173,17 +173,24 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 // parameter traces is raw traces, filters contains all the functional filters
 // like resource filter, sample.
 //nolint: cyclop
-func tracesToPoints(traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
+func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
 	var pts []*dkio.Point
-NEXT_TRACE:
 	for _, trace := range traces {
+		if trace == nil || len(trace) == 0 {
+			log.Warnf("got empty trace, request headers: %v", req.Header)
+			continue
+		}
 		// run all filters
 		if runFiltersWithBreak(trace, filters...) == nil {
-			continue NEXT_TRACE
+			continue
 		}
 
 		spanIds, parentIds := getSpanAndParentID(trace)
 		for _, span := range trace {
+			if span == nil {
+				log.Warnf("got nil span, request headers: %v", req.Header)
+				continue
+			}
 			tags := make(map[string]string)
 			field := make(map[string]interface{})
 
