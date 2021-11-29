@@ -34,16 +34,18 @@ func (dc *endPoint) getLogFilter() ([]byte, error) {
 
 	resp, err := dc.dw.sendReq(req)
 	if err != nil {
-		return nil, err
-	}
+		log.Error(err.Error())
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
 		return nil, err
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err.Error())
 
+		return nil, err
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("getLogFilter failed with status code %d, body: %s", resp.StatusCode, string(body))
 	}

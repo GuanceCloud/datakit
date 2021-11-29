@@ -1228,8 +1228,8 @@ google.golang.org/protobuf v1.26.0-rc.1/go.mod h1:jlhhOSvTdKEhbULTjvd4ARK9grFBp0
 google.golang.org/protobuf v1.26.0/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
 google.golang.org/protobuf v1.27.1 h1:SnqbnDw1V7RiZcXPx5MEeqPv2s79L9i7BJUlG/+RurQ=
 google.golang.org/protobuf v1.27.1/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
-gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.15 h1:vs08H2Bez5Dk6fm9Sj38YK/z30UTWeJa8m+fkPBz0/8=
-gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.15/go.mod h1:sxFF5v+R56bO5bE/mN0K39GXaODxNiMrUM9K9xSjs+Q=
+gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17 h1:+FLF3KjV2Syb0WlJ60dYTww7aPOJmOA5l0/Kg4AtkSo=
+gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17/go.mod h1:sxFF5v+R56bO5bE/mN0K39GXaODxNiMrUM9K9xSjs+Q=
 gopkg.in/airbrake/gobrake.v2 v2.0.9/go.mod h1:/h5ZAUhDkGaJfjzjKLSjv6zCL6O0LLBxU4K+aSYdM/U=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
