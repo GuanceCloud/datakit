@@ -324,12 +324,9 @@ func (x *IO) StartIO(recoverable bool) {
 			select {
 			case d := <-x.in:
 				x.cacheData(d, true)
-
 			case e := <-x.inLastErr:
 				x.updateLastErr(e)
-
 			case q := <-x.qstatsCh:
-
 				res := dumpStats(x.inputstats)
 				select {
 				case <-q.ch:
@@ -337,17 +334,14 @@ func (x *IO) StartIO(recoverable bool) {
 				case q.ch <- res: // XXX: reference
 					l.Debugf("qid(%s) response ok", q.qid)
 				}
-
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()
-
 			case <-heartBeatTick.C:
 				if !DisableHeartbeat {
 					if err := x.dw.HeartBeat(); err != nil {
 						l.Warnf("dw.HeartBeat: %s, ignored", err.Error())
 					}
 				}
-
 			case <-datawaylistTick.C:
 				if !DisableDatawayList {
 					dws, err := x.dw.DatawayList()
@@ -356,10 +350,8 @@ func (x *IO) StartIO(recoverable bool) {
 					}
 					dataway.AvailableDataways = dws
 				}
-
 			case <-tick.C:
 				x.flushAll()
-
 			case <-datakit.Exit.Wait():
 				l.Info("io exit on exit")
 				return nil
