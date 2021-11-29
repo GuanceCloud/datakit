@@ -174,7 +174,7 @@ func (p *pod) run(list *corev1.PodList) {
 			p.discovery.addList(md5Str)
 
 			go func(namespace, name string) {
-				l.Infof("discovery: add pod-logging, namespace:%s, podName:%s", namespace, name)
+				l.Infof("discovery: add podlogging, namespace:%s, podName:%s", namespace, name)
 				podlog.run(p.client, namespace, name)
 			}(obj.Namespace, obj.Name)
 		}()
