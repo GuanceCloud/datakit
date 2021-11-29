@@ -122,4 +122,4 @@ NAME1="value1" NAME2="value2"
 
 其它相关链接：
 
-- 关于 DataKit 的基本使用，参考 [DataKit 使用入门](datakit-how-to)
+- 关于 DataKit 的基本使用，参考 [DataKit 使用入门](datakit-service-how-to)

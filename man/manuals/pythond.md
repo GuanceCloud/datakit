@@ -94,18 +94,14 @@ class Demo(DataKitFramework):
 
 ## 完整示例
 
-第一步：写一个类，继承 `DataKitFramework`，我们实现调用 datakit SDK 的 ping 功能并打印在 `/Users/mac/Desktop/1.txt` 文件里面：
+第一步：写一个类，继承 `DataKitFramework`:
 
 ```python
 from datakit_framework import DataKitFramework
 
-class Demo(DataKitFramework):
-    '''
-    用户编写的Class
-    继承DataKitFramework，并覆盖__name，实现run()
-    '''
-    __name = 'Demo'
-    interval = 5 # triggered interval seconds.
+class MyTest(DataKitFramework):
+    __name = 'MyTest'
+    interval = 10 # triggered interval seconds.
 
     # if your datakit ip is 127.0.0.1 and port is 9529, you won't need use this,
     # just comment it.
@@ -113,36 +109,43 @@ class Demo(DataKitFramework):
     #     super().__init__(ip = '127.0.0.1', port = 9529)
 
     def run(self):
+        print("MyTest")
         data = [
-            {
-                "measurement": "abc",
-                "tags": {
-                  "t1": "b",
-                  "t2": "d"
+                {
+                    "measurement": "abc",
+                    "tags": {
+                      "t1": "b",
+                      "t2": "d"
+                    },
+                    "fields": {
+                      "f1": 123,
+                      "f2": 3.4,
+                      "f3": "strval"
+                    },
+                    # "time": 1624550216 # you don't need this
                 },
-                "fields": {
-                  "f1": 123,
-                  "f2": 3.4,
-                  "f3": "strval"
-                },
-                "time": 1624550216
-            },
-            {
-                "measurement": "def",
-                "tags": {
-                  "t1": "b",
-                  "t2": "d"
-                },
-                "fields": {
-                  "f1": 123,
-                  "f2": 3.4,
-                  "f3": "strval"
-                },
-                "time": 1624550216
-            }
-        ]
 
-        return self.report(data) # you must call self.report here
+                {
+                    "measurement": "def",
+                    "tags": {
+                      "t1": "b",
+                      "t2": "d"
+                    },
+                    "fields": {
+                      "f1": 123,
+                      "f2": 3.4,
+                      "f3": "strval"
+                    },
+                    # "time": 1624550216 # you don't need this
+                }
+            ]
+
+        in_data = {
+            'M':data,
+            'input': "datakitpy"
+        }
+
+        return self.report(in_data) # you must call self.report here
 ```
 
 第二步：我们这里不开启 git repo 功能。将 `test.py` 放到 `python.d` 的 `mytest` 文件夹下:
