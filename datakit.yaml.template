@@ -23,6 +23,7 @@ rules:
   - nodes/proxy
   - namespaces
   - pods
+  - pods/log
   - events
   - services
   - endpoints
