@@ -53,6 +53,13 @@ const sampleCfg = `
   # tls_cert = "/tmp/peer.crt"
   # tls_key = "/tmp/peer.key"
 
+  ## 自定义认证方式，目前仅支持 Bearer Token
+  # token 和 token_file: 仅需配置其中一项即可
+  # [inputs.prom.auth]
+  # type = "bearer_token"
+  # token = "xxxxxxxx"
+  # token_file = "/tmp/token"
+
   ## 自定义指标集名称
   # 可以将包含前缀prefix的指标归为一类指标集
   # 自定义指标集名称配置优先measurement_name配置项
