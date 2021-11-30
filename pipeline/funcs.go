@@ -114,9 +114,7 @@ func JSON(p *Pipeline, node parser.Node) (*Pipeline, error) {
 }
 
 func JSONAll(p *Pipeline, node parser.Node) (*Pipeline, error) {
-	out := JSONParse(p.Content)
-	p.Output = out
-
+	l.Warnf("warning:json_all is disabled")
 	return p, nil
 }
 

@@ -154,7 +154,6 @@ func (p *Pipeline) Result() (map[string]interface{}, error) {
 			p.Output[k] = string(str)
 		}
 	}
-
 	return p.Output, p.lastErr
 }
 
