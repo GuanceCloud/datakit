@@ -7,6 +7,9 @@ import (
 	"regexp"
 	"time"
 
+	// import time/tzdata for timezone parsing.
+	_ "time/tzdata"
+
 	"github.com/araddon/dateparse"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
@@ -213,8 +216,18 @@ func TimestampHandle(p *Pipeline, value, tz string) (int64, error) {
 		if tzCache, ok := p.timezone[tz]; ok {
 			timezone = tzCache
 		} else {
-			if timezone, err = time.LoadLocation(tz); err != nil {
-				return 0, err
+			timezone, err = time.LoadLocation(tz)
+			if err != nil {
+				// If it fails to parse timezone from given string tz,
+				// try to parse tz as '+x' or '-x'.
+				if zz, ok := timezoneList[tz]; ok {
+					timezone, err = time.LoadLocation(zz)
+					if err != nil {
+						return 0, err
+					}
+				} else {
+					return 0, err
+				}
 			}
 
 			p.setTimezone(tz, timezone)

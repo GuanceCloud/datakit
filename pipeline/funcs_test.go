@@ -3,6 +3,8 @@ package pipeline
 import (
 	"testing"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 func assertEqual(t *testing.T, a, b interface{}) {
@@ -207,5 +209,139 @@ func TestTimeParse(t *testing.T) {
 		} else {
 			t.Error(err)
 		}
+	}
+}
+
+func TestDefaultTime(t *testing.T) {
+	cases := []struct {
+		name              string
+		time              string
+		timezone          string
+		expectedTimestamp int64
+	}{
+		// test different timezones
+		{
+			name:              "normal",
+			time:              "2017-12-29T12:33:33.095243Z",
+			timezone:          "Asia/Shanghai",
+			expectedTimestamp: 1514522013095243000,
+		},
+		{
+			name:              "normal",
+			time:              "2017-12-29T12:33:33.095243Z",
+			timezone:          "+8",
+			expectedTimestamp: 1514522013095243000,
+		},
+		{
+			name:              "normal",
+			time:              "2017-12-29T12:33:33.095243Z",
+			timezone:          "MST",
+			expectedTimestamp: 1514576013095243000,
+		},
+		{
+			name:              "normal",
+			time:              "2017-12-29T12:33:33.095243Z",
+			timezone:          "America/Los_Angeles",
+			expectedTimestamp: 1514579613095243000,
+		},
+		{
+			name:              "normal",
+			time:              "2021-11-29 09:42:42.927",
+			timezone:          "Asia/Shanghai",
+			expectedTimestamp: 1638150162927000000,
+		},
+		{
+			name:              "normal",
+			time:              "2021-11-29 09:42:42.927",
+			timezone:          "America/Chicago",
+			expectedTimestamp: 1638200562927000000,
+		},
+		{
+			name:              "normal",
+			time:              "2021-11-29 09:42:42.927",
+			timezone:          "UTC",
+			expectedTimestamp: 1638178962927000000,
+		},
+		{
+			name:              "normal",
+			time:              "2021/11/29 09:42:42.927",
+			timezone:          "Europe/London",
+			expectedTimestamp: 1638178962927000000,
+		},
+		{
+			name:              "normal",
+			time:              "2021/11/29 09:42:42.927",
+			timezone:          "+0",
+			expectedTimestamp: 1638178962927000000,
+		},
+		{
+			name:              "normal",
+			time:              "2021-11-29 09:42:42.927 +0000 UTC",
+			timezone:          "",
+			expectedTimestamp: 1638178962927000000,
+		},
+		// test different formats
+		{
+			name:              "normal",
+			time:              "Mon 20 Sep 2021 09:42:42",
+			timezone:          "MST",
+			expectedTimestamp: 1632156162000000000,
+		},
+		{
+			name:              "normal",
+			time:              "2015-09-30 18:48:56.35272715 +0000 UTC",
+			timezone:          "",
+			expectedTimestamp: 1443638936352727150,
+		},
+		{
+			name:              "normal",
+			time:              "2015-09-30 18:48:56.35272715 +0900 UTC",
+			timezone:          "",
+			expectedTimestamp: 1443606536352727150,
+		},
+		{
+			name:              "normal",
+			time:              "2021-11-29 13:36:56.352",
+			timezone:          "UTC",
+			expectedTimestamp: 1638193016352000000,
+		},
+		{
+			name:              "normal",
+			time:              "2021年11月29日 13:36:56.352",
+			timezone:          "UTC",
+			expectedTimestamp: 1638193016352000000,
+		},
+		{
+			name:              "normal",
+			time:              "2021-11-29T12:00:11.986+0800",
+			timezone:          "UTC",
+			expectedTimestamp: 1638158411986000000,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			pl := &Pipeline{
+				Output: map[string]interface{}{
+					"time": tc.time,
+				},
+				ast: &parser.Ast{
+					Functions: []*parser.FuncExpr{
+						{
+							Name: "default_time",
+							Param: []parser.Node{
+								&parser.Identifier{Name: "time"},
+								&parser.StringLiteral{Val: tc.timezone},
+							},
+						},
+					},
+				},
+			}
+			p, err := DefaultTime(pl, pl.ast.Functions[0])
+			if err != nil {
+				t.Error(err)
+			}
+			assertEqual(t, p.Output["time"], tc.expectedTimestamp)
+		})
 	}
 }
