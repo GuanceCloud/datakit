@@ -49,12 +49,15 @@ func TestRenameFunc(t *testing.T) {
 		rename(newhour, hour)
 	`
 	p, err := NewPipeline(script)
+
 	assertEqual(t, err, nil)
 
 	p.Run("12:13:14")
+
 	assertEqual(t, p.lastErr, nil)
 
 	r, _ := p.getContentStr("newhour")
+
 	assertEqual(t, r, "12")
 }
 
@@ -174,6 +177,7 @@ drop_key(a.thrid)
 	assertEqual(t, err, nil)
 
 	p.Run(js)
+
 	v, _ := p.getContentStr("a.first")
 	assertEqual(t, v, "2.3")
 }
