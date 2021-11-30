@@ -107,6 +107,7 @@ func shouldForkInput(nodeName string) bool {
 	return datakit.GetEnv("NODE_NAME") == nodeName
 }
 
+// podlogging config example
 /*
 ## your logging source, if it's empty, use 'default'
 source = ""
@@ -149,11 +150,14 @@ func (p *podlogging) run(client podclient, namespace, podName string) {
 	if p.Service == "" {
 		p.Service = p.Source
 	}
-
 	if p.Pipeline != "" {
 		path, _ := config.GetPipelinePath(p.Pipeline)
 		p.pipe, _ = pipeline.NewPipelineFromFile(path)
 	}
+	if len(p.Tags) == 0 {
+		p.Tags = make(map[string]string)
+	}
+	p.Tags["service"] = p.Service
 
 	req := client.getPods(namespace).GetLogs(podName, &corev1.PodLogOptions{
 		Follow:    true,

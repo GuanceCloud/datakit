@@ -38,6 +38,7 @@ type Option struct {
 	CertFile          string   `toml:"tls_cert"`
 	KeyFile           string   `toml:"tls_key"`
 
+	Auth     map[string]string `toml:"auth"`
 	Tags     map[string]string `toml:"tags"`
 	interval time.Duration
 
@@ -98,11 +99,18 @@ func NewProm(opt *Option) (*Prom, error) {
 	p.SetClient(&http.Client{Timeout: httpTimeout})
 
 	if opt.TLSOpen {
+		caCerts := []string{}
+		insecureSkipVerify := defaultInsecureSkipVerify
+		if len(opt.CacertFile) != 0 {
+			caCerts = append(caCerts, opt.CacertFile)
+		} else {
+			insecureSkipVerify = true
+		}
 		tc := &net.TLSClientConfig{
-			CaCerts:            []string{opt.CacertFile},
+			CaCerts:            caCerts,
 			Cert:               opt.CertFile,
 			CertKey:            opt.KeyFile,
-			InsecureSkipVerify: defaultInsecureSkipVerify,
+			InsecureSkipVerify: insecureSkipVerify,
 		}
 
 		tlsconfig, err := tc.TLSConfig()
@@ -125,8 +133,42 @@ func (p *Prom) SetClient(cli *http.Client) {
 	p.client = cli
 }
 
+func (p *Prom) GetReq(url string) (*http.Request, error) {
+	var (
+		req *http.Request
+		err error
+	)
+
+	if len(p.opt.Auth) > 0 {
+		if authType, ok := p.opt.Auth["type"]; ok {
+			if authFunc, ok := AuthMaps[authType]; ok {
+				req, err = authFunc(p.opt.Auth, url)
+			} else {
+				req, err = http.NewRequest("GET", url, nil)
+			}
+		}
+	} else {
+		req, err = http.NewRequest("GET", url, nil)
+	}
+	return req, err
+}
+
+func (p *Prom) Request(url string) (*http.Response, error) {
+	req, err := p.GetReq(url)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := p.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 func (p *Prom) Collect() ([]*io.Point, error) {
-	resp, err := p.client.Get(p.opt.URL)
+	resp, err := p.Request(p.opt.URL)
 	if err != nil {
 		return nil, err
 	}

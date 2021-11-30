@@ -24,7 +24,6 @@ agent.pid
 cfg.json
 china-operator-ip
 cmd/installer/bin/
-conf.d/
 config.d/
 config.json
 data/*

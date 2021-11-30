@@ -112,9 +112,6 @@ func (ipt *logFilter) refreshRules() error {
 		return nil
 	}
 
-	ipt.Lock()
-	defer ipt.Unlock()
-
 	// compare and refresh
 	if newRules := strings.Join(rules.Content, ";"); newRules != ipt.rules {
 		conds := parser.GetConds(newRules)
