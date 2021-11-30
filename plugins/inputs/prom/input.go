@@ -47,9 +47,9 @@ type Input struct {
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Tags           map[string]string `toml:"tags"`
-	TagsIgnore     []string          `toml:"tags_ignore"`
-	DeprecatedAuth map[string]string `toml:"auth"`
+	Tags       map[string]string `toml:"tags"`
+	TagsIgnore []string          `toml:"tags_ignore"`
+	Auth       map[string]string `toml:"auth"`
 
 	pm *prom.Prom
 
@@ -203,6 +203,7 @@ func (i *Input) Init() error {
 		TagsIgnore:        i.TagsIgnore,
 		Output:            i.Output,
 		MaxFileSize:       i.maxFileSize,
+		Auth:              i.Auth,
 	}
 
 	pm, err := prom.NewProm(opt)

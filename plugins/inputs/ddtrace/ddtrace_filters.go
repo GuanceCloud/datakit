@@ -13,12 +13,6 @@ import (
 type traceFilter func(Trace) (Trace, bool)
 
 func runFiltersWithBreak(trace Trace, filters ...traceFilter) Trace {
-	if len(trace) == 0 {
-		log.Debug("empty trace")
-
-		return nil
-	}
-
 	var abort bool
 	for _, filter := range filters {
 		if trace, abort = filter(trace); abort || trace == nil {

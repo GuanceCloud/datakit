@@ -7,10 +7,12 @@ import (
 	"regexp"
 	"time"
 
+	// import time/tzdata for timezone parsing.
+	_ "time/tzdata"
+
 	"github.com/araddon/dateparse"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
-	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -213,8 +215,18 @@ func TimestampHandle(p *Pipeline, value, tz string) (int64, error) {
 		if tzCache, ok := p.timezone[tz]; ok {
 			timezone = tzCache
 		} else {
-			if timezone, err = time.LoadLocation(tz); err != nil {
-				return 0, err
+			timezone, err = time.LoadLocation(tz)
+			if err != nil {
+				// If it fails to parse timezone from given string tz,
+				// try to parse tz as '+x' or '-x'.
+				if zz, ok := timezoneList[tz]; ok {
+					timezone, err = time.LoadLocation(zz)
+					if err != nil {
+						return 0, err
+					}
+				} else {
+					return 0, err
+				}
 			}
 
 			p.setTimezone(tz, timezone)
@@ -248,7 +260,7 @@ var dateFormatStr = map[string]string{
 	"StampNano":   time.StampNano,
 }
 
-func JSONParse(jsonStr string) map[string]interface{} {
+/*func JSONParse(jsonStr string) map[string]interface{} {
 	res := make(map[string]interface{})
 	jsonObj := gjson.Parse(jsonStr)
 
@@ -262,9 +274,9 @@ func JSONParse(jsonStr string) map[string]interface{} {
 	}
 
 	return res
-}
+}*/
 
-func parseJSON2Map(obj gjson.Result, res map[string]interface{}, prefix string) {
+/*func parseJSON2Map(obj gjson.Result, res map[string]interface{}, prefix string) {
 	if isObject(obj) {
 		for key, value := range obj.Map() {
 			if prefix != "" {
@@ -295,8 +307,8 @@ func isObject(obj gjson.Result) bool {
 
 func isArray(obj gjson.Result) bool {
 	return obj.IsArray()
-}
-
+}.
+*/
 func parseDate(yy, mm, dd, hh, mi, ss, ns, zone string) int64 {
 	// 参数类型判断及转化(todo)
 	var yyi, ddi, hi, mii, ssi, nsi int

@@ -34,6 +34,6 @@ require (
 	go.mongodb.org/mongo-driver v1.7.2
 	go.uber.org/zap v1.15.0
 	golang.org/x/sys v0.0.0-20211015200801-69063c4bb744
-	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.15
+	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )

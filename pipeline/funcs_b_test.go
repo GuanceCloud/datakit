@@ -60,6 +60,7 @@ func TestJsonFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
+
 		assertEqual(t, err, nil)
 
 		assert.Equal(t, r, tt.expected)
@@ -715,7 +716,6 @@ func TestDz(t *testing.T) {
 		assertEqual(t, err, p.lastErr)
 
 		p.Run(tt.data)
-
 		r, err := p.getContentStr(tt.key)
 		assertEqual(t, err, nil)
 

@@ -147,7 +147,7 @@ github.com/alecthomas/chroma/lexers/w
 github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
 github.com/alecthomas/chroma/styles
-# github.com/aliyun/aliyun-oss-go-sdk v2.1.10+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/apache/thrift v0.13.0
@@ -813,7 +813,7 @@ github.com/vmihailenco/tagparser/internal/parser
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v1.0.1-0.20211118092836-6dd3d41ef44f
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v1.0.2-0.20211125032423-38ba53a361dd
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
@@ -922,8 +922,6 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.1.7
-## explicit
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
@@ -1028,7 +1026,7 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
-# gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.15
+# gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17
 ## explicit
 gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace
 gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext
