@@ -504,6 +504,7 @@ func (c *Config) setHostname() error {
 	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
 		c.Hostname = v
 		l.Infof("set hostname to %s from config ENV_HOSTNAME", v)
+		datakit.DatakitHostName = c.Hostname
 		return nil
 	}
 
@@ -515,6 +516,7 @@ func (c *Config) setHostname() error {
 	}
 	l.Infof("here is hostname:%s", c.Hostname)
 	c.Hostname = hn
+	datakit.DatakitHostName = c.Hostname
 	l.Infof("set hostname to %s", hn)
 	return nil
 }
