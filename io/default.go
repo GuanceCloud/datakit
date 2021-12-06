@@ -11,6 +11,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
+//nolint:stylecheck
+const (
+	MAX_TAGS   = 256
+	MAX_FIELDS = 1024
+)
+
 var (
 	extraTags = map[string]string{}
 	defaultIO = &IO{
@@ -22,6 +28,23 @@ var (
 		DynamicCacheDumpThreshold: 512,
 		FlushInterval:             10 * time.Second,
 	}
+
+	// For object(O::), `class' is the field ES will create from measurement name,
+	// so disabled `class' in both tag/field keys.
+	// For logging(L::), `source` ES also create the field from measurement name,
+	// disabled in tag/field keys too.
+	disabledTags = []string{
+		"class",
+		"source",
+	}
+
+	disabledFields = []string{
+		"class",
+		"source",
+	}
+
+	__maxTags   = MAX_TAGS   //nolint:stylecheck
+	__maxFields = MAX_FIELDS //nolint:stylecheck
 )
 
 type IOOption func(io *IO)
@@ -212,13 +235,16 @@ func makePoint(name string,
 		ts = time.Now().UTC()
 	}
 
-	p, err := lp.MakeLineProtoPoint(name, tags, fields,
-		&lp.Option{
-			ExtraTags: extags,
-			Strict:    true,
-			Time:      ts,
-			Precision: "n",
-		})
+	p, err := lp.MakeLineProtoPoint(name, tags, fields, &lp.Option{
+		ExtraTags:         extags,
+		Time:              ts,
+		Strict:            true,
+		Precision:         "n",
+		MaxTags:           __maxTags,
+		MaxFields:         __maxFields,
+		DisabledTagKeys:   disabledTags,
+		DisabledFieldKeys: disabledFields,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,15 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc6(2021/11/30)
+
+- 针对 Pipeline 做了一点紧急修复：
+	- 移除 `json_all()` 函数，这个函数对于异常的 json 有严重的数据问题，故选择禁用之(#457)
+	- 修正 `default_time()` 函数时区设置问题(#434)
+- 解决 [prom](prom) 采集器在 Kubernetes 环境下 HTTPS 访问问题(#447)
+- DataKit DaemonSet 安装的 [yaml 文件](https://static.guance.com/datakit/datakit.yaml) 公网可直接下载
+---
+
 ## 1.1.9-rc5.1(2021/11/26)
 
 - 修复 ddtrace 采集器因脏数据挂掉的问题
