@@ -24,11 +24,10 @@ const (
 
 import os
 import sys
-import json
 from string import Template
 import logging
 from logging.handlers import RotatingFileHandler
-import urllib.request
+import requests
 
 logger = logging.getLogger('pythond_framework')
 
@@ -61,7 +60,7 @@ class DataKitFramework(object):
 
     def test(self):
         print("log_name = ", self.log_name)
-        mylog("123")
+        mylog("789")
 
     def report(self, data):
         M = ""
@@ -146,15 +145,6 @@ class DataKitFramework(object):
         }
         return self.http_post_json(base_url, raw_data)
 
-    def pretty_json(self, obj):
-        if obj is None or obj == b'' or obj == "":
-            return ""
-        return json.dumps(json.loads(obj), indent=4, sort_keys=True)
-
-    def construct_json(self, obj):
-        json_data = json.dumps(obj)
-        return bytes(json_data, 'utf8')
-
     def http_post_json(self, url, raw_data):
         return self.http_post_data_core(url, raw_data, 'POST', True)
 
@@ -163,26 +153,30 @@ class DataKitFramework(object):
 
     def http_post_data_core(self, url, raw_data, method, is_json):
         headers = {}
+        send_data = bytes()
         if is_json is True:
-            json_data = self.construct_json(raw_data)
             headers = {"Content-Type":"application/json"}
-            req = urllib.request.Request(url=url, headers=headers, data=json_data, method=method)
         else:
-            bytes_data = bytes(str(raw_data),'utf8')
-            req = urllib.request.Request(url=url, data=bytes_data, method=method)
+            send_data = bytes(str(raw_data),'utf8')
         
-        html = ""
+        html = requests.Response()
         try:
-            response = urllib.request.urlopen(req)
-            html = response.read()
-        except urllib.error.HTTPError:
-            mylog("HTTP Error")
+            if method == 'POST':
+                if is_json is True:
+                    html = requests.post(url=url, headers=headers, json=raw_data)
+                else:
+                    html = requests.post(url=url, headers=headers, data=send_data)
+            elif method == 'GET':
+                if is_json is True:
+                    html = requests.get(url=url, params=send_data)
+                else:
+                    html = requests.get(url=url, params=send_data)
+        except requests.exceptions.RequestException as e:
+            mylog("requests.RequestException:", e.strerror)
         except:
             mylog("Unexpected error:", sys.exc_info()[0])
-        
-        if html == "":
-            return
-        return self.pretty_json(html)
+
+        return html.text
 
 def init_log():
     log_path = os.path.join(os.path.expanduser('~'), "_datakit_pythond_framework_" + DataKitFramework.log_name + "_.log")

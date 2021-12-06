@@ -68,6 +68,8 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
+	DatakitHostName = "" // 默认为空
+
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: `C:\Program Files\datakit`,
 		OSArchWin386:   `C:\Program Files (x86)\datakit`,
