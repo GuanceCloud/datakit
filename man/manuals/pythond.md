@@ -12,7 +12,31 @@
 
 ### Python 环境
 
-目前处于 alpha 阶段，只兼容 Python 3+。
+目前处于 alpha 阶段，<strong>同时兼容 Python 2.7+ 和 Python 3+<strong>。
+
+需要安装以下依赖库:
+
+- requests
+
+安装方法如下:
+
+```shell
+# python2
+python -m pip install requests
+
+# python3
+python3 -m pip install requests
+```
+
+上述的安装需要安装 pip，如果你没有，可以参考以下方法(源自: [这里](https://pip.pypa.io/en/stable/installation/)):
+
+```shell
+# Linux/MacOS
+python -m ensurepip --upgrade
+
+# Windows
+py -m ensurepip --upgrade
+```
 
 ### 编写用户自定义脚本
 
