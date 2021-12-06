@@ -231,6 +231,21 @@ if [ -n "$DK_HOSTNAME" ]; then
   env_hostname=$DK_HOSTNAME
 fi
 
+limit_cpumax=30
+if [ -n "$DK_LIMIT_CPUMAX" ]; then
+  limit_cpumax=$DK_LIMIT_CPUMAX
+fi
+
+limit_cpumin=5
+if [ -n "$DK_LIMIT_CPUMIN" ]; then
+  limit_cpumin=$DK_LIMIT_CPUMIN
+fi
+
+cgroup_enabled=true
+if [ -n "$DK_CGROUP_ENABLED" ]; then
+  cgroup_enabled=$DK_CGROUP_ENABLED
+fi
+
 install_log=/var/log/datakit/install.log
 if [ -n "$DK_INSTALL_LOG" ]; then
 	install_log=$DK_INSTALL_LOG
@@ -303,6 +318,9 @@ else
 			--git-key-path="${git_key_path}" \
 			--git-key-pw="${git_key_pw}" \
 			--git-branch="${git_branch}" \
+			--limit-cpumax="${limit_cpumax}" \
+            --limit-cpumin="${limit_cpumin}" \
+            --cgroup-enabled="${cgroup_enabled}" \
 			--git-pull-interval="${git_pull_interval}" \
 			--install_only | $sudo_cmd tee ${install_log}
 	else
@@ -321,6 +339,9 @@ else
 			--git-key-path="${git_key_path}" \
 			--git-key-pw="${git_key_pw}" \
 			--git-branch="${git_branch}" \
+			--limit-cpumax="${limit_cpumax}" \
+            --limit-cpumin="${limit_cpumin}" \
+            --cgroup-enabled="${cgroup_enabled}" \
 			--git-pull-interval="${git_pull_interval}" \
 			--proxy="${proxy}" | $sudo_cmd tee ${install_log}
 	fi

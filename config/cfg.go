@@ -89,7 +89,7 @@ func DefaultConfig() *Config {
 		WhiteList: []*inputHostList{
 			{Hosts: []string{}, Inputs: []string{}},
 		},
-		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
+		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
 
 		Tracer: &tracer.Tracer{TraceEnabled: false},
 
