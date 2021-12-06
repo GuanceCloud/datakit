@@ -78,7 +78,7 @@ func doHandleRUMBody(body []byte,
 	extraTags map[string]string,
 	appIDWhiteList []string) ([]*io.Point, error) {
 	if isjson {
-		rumpts, err := jsonPoints(body, precision, extraTags)
+		rumpts, err := jsonPoints(body, &lp.Option{Precision: precision, ExtraTags: extraTags})
 		if err != nil {
 			return nil, err
 		}

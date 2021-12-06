@@ -29,7 +29,7 @@ func BenchmarkHandleWriteBody(b *testing.B) {
 abc,t1=b,t2=d f1=123,f2=3.4,f3="strval" 1624550216`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := handleWriteBody(body, "s", nil, false); err != nil {
+		if _, err := handleWriteBody(body, false, &lp.Option{Precision: "s"}); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -53,7 +53,7 @@ func BenchmarkHandleJSONWriteBody(b *testing.B) {
 			]`)
 
 	for n := 0; n < b.N; n++ {
-		if _, err := handleWriteBody(body, "s", nil, true); err != nil {
+		if _, err := handleWriteBody(body, true, &lp.Option{Precision: "s"}); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -68,7 +68,36 @@ func TestHandleBody(t *testing.T) {
 		js   bool
 		npts int
 		tags map[string]string
+		opt  *lp.Option
 	}{
+		{
+			name: `[json]tag exceed limit`,
+			opt: &lp.Option{
+				MaxTags: 1,
+			},
+			body: []byte(`[
+			{
+				"measurement":"abc",
+				"fields": {"f1": 123, "f2": 3.4, "f3": "strval"},
+				"tags": {"t1": "abc", "t2": "def"}
+			}
+			]`),
+			fail: true,
+			js:   true,
+		},
+
+		{
+			name: `[json] invalid field key with .`,
+			body: []byte(`[
+			{
+				"measurement":"abc",
+				"fields": {"f1": 123, "f.2": 3.4, "f3": "strval"}
+			}
+			]`),
+			fail: true,
+			js:   true,
+		},
+
 		{
 			name: `invalid field`,
 			body: []byte(`[
@@ -114,14 +143,14 @@ func TestHandleBody(t *testing.T) {
 				"time":1624550216
 			}
 			]`),
-			prec: "s",
+			opt:  &lp.Option{Precision: `s`},
 			npts: 2,
 			js:   true,
 		},
 
 		{
 			name: `raw point body with/wthout timestamp`,
-			prec: "s",
+			opt:  &lp.Option{Precision: `s`},
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
 			view,t1=tag2,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
 			resource,t1=tag3,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
@@ -148,7 +177,7 @@ test,t1=abc f1=1i,f2=2,f3="str"`),
 
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			pts, err := handleWriteBody(tc.body, tc.prec, tc.tags, tc.js)
+			pts, err := handleWriteBody(tc.body, tc.js, tc.opt)
 
 			if tc.fail {
 				tu.NotOk(t, err, "case[%d] expect fail, but ok", i)
@@ -503,6 +532,7 @@ func TestApiGetDatakitLastError(t *testing.T) {
 }
 
 // go test -v -run ^TestReloadServer$ gitlab.jiagouyun.com/cloudcare-tools/datakit/http
+/*
 func TestReloadServer(t *testing.T) {
 	t.Log("start HTTPStart")
 
@@ -525,7 +555,7 @@ func TestReloadServer(t *testing.T) {
 	t.Log("start loop")
 
 	time.Sleep(60 * time.Second)
-}
+} */
 
 func TestHandleSourcemap(t *testing.T) {
 	bodyStr := `resource,sdk_name=df_web_rum_sdk,sdk_version=2.0.15,app_id=appid_e6208285ab6947dbaef25d1f1e4749bd,env=production,version=1.0.0,userid=5499c5f6-9b35-43dc-b752-d291a4677b07,session_id=e0e08c94-3096-419e-8eae-1273d045153c,session_type=user,is_signin=F,os=Mac\ OS,os_version=10.14.6,os_version_major=10,browser=Chrome,browser_version=95.0.4638.69,browser_version_major=95,screen_size=2560*1440,network_type=4g,view_id=6f272fe3-5ab1-430c-98b4-45d3d091126c,view_referrer=http://localhost:5500/dist/,view_url=http://localhost:5500/dist/,view_host=localhost:5500,view_path=/dist/,view_path_group=/dist/,view_url_query={},resource_url=https://static.dataflux.cn/browser-sdk/v2/dataflux-rum.js,resource_url_host=static.dataflux.cn,resource_url_path=/browser-sdk/v2/dataflux-rum.js,resource_url_path_group=/browser-sdk/?/dataflux-rum.js,resource_url_query={},resource_type=js,resource_status=200,resource_status_group=2xx,resource_method=GET duration=0 1636524705407
