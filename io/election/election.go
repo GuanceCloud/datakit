@@ -44,11 +44,11 @@ const (
 )
 
 type candidate struct {
-	status        string
-	id, namespace string
-	dw            *dataway.DataWayCfg
-	plugins       []inputs.ElectionInput
-
+	status                         string
+	id, namespace                  string
+	dw                             *dataway.DataWayCfg
+	plugins                        []inputs.ElectionInput
+	ElectedTime                    time.Time
 	nElected, nHeartbeat, nOffline int
 }
 
@@ -92,6 +92,9 @@ func (x *candidate) startElection() {
 // Elected 此处暂不考虑互斥性，只用于状态展示.
 func Elected() (string, string) {
 	return defaultCandidate.status, defaultCandidate.namespace
+}
+func GetElectedTime() time.Time {
+	return defaultCandidate.ElectedTime
 }
 
 func (x *candidate) runOnce() {
@@ -183,6 +186,7 @@ func (x *candidate) tryElection() error {
 		x.resumePlugins()
 		x.nElected++
 		x.nHeartbeat = 0
+		x.ElectedTime = time.Now()
 	default:
 		l.Warnf("unknown election status: %s", e.Content.Status)
 	}
