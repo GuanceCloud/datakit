@@ -239,7 +239,7 @@ if ([Environment]::Is64BitProcess -ne [Environment]::Is64BitOperatingSystem) {
 	$arch="i386"
 }
 
-$installer_url = "$installer_base_url/installer-windows-$arch.exe"
+$installer_url = "$installer_base_url/installer-windows-$arch-{{.Version}}.exe"
 $installer=".dk-installer.exe"
 
 ##########################
