@@ -2,6 +2,8 @@ package elasticsearch
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestIndicesStatsShardsMeasurement(t *testing.T) {
@@ -86,11 +88,43 @@ func TestNodeStatsMeasurement(t *testing.T) {
 		elasticsearchMeasurement: elasticsearchMeasurement{
 			name: "nodeStatsMeasurement",
 			tags: make(map[string]string),
+			fields: func() map[string]interface{} {
+				x := map[string]interface{}{}
+				for k, v := range nodeStatsFields {
+					switch _v := v.(type) {
+					case *inputs.FieldInfo:
+						switch _v.DataType {
+						case inputs.Float:
+							x[k] = 1.23
+						case inputs.Int:
+							x[k] = 123
+						case inputs.String:
+							x[k] = "abc123"
+						case inputs.Bool:
+							x[k] = false
+						default:
+							t.Errorf("invalid data field for field: %s", k)
+						}
+
+					default:
+						t.Errorf("expect *inputs.FieldInfo")
+					}
+				}
+				return x
+			}(),
 		},
 	}
+
 	if info := m.Info(); info.Name != "elasticsearch_node_stats" {
 		t.Fatal("Info name invalid")
 	}
+
+	pt, err := m.LineProto()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(pt.String())
 }
 
 func TestElasticsearchMeasurement(t *testing.T) {

@@ -28,13 +28,23 @@ func TestMakePoint(t *testing.T) {
 		},
 
 		{
-			tname:  "metric with point in t/f key",
+			tname:  "metric with point in field key",
 			name:   "abc",
 			mtype:  datakit.Metric,
 			ts:     time.Unix(0, 123),
 			t:      map[string]string{"t1": "tval1"},
 			f:      map[string]interface{}{"f.1": 12},
 			expect: "abc,t1=tval1 f.1=12i 123",
+		},
+
+		{
+			tname:  "metric with point in tag key",
+			name:   "abc",
+			mtype:  datakit.Metric,
+			ts:     time.Unix(0, 123),
+			t:      map[string]string{"t.1": "tval1"},
+			f:      map[string]interface{}{"f1": 12},
+			expect: "abc,t.1=tval1 f1=12i 123",
 		},
 
 		{

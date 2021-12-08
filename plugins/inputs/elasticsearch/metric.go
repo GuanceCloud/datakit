@@ -40,16 +40,7 @@ func (m nodeStatsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_node_stats",
 		Fields: nodeStatsFields,
-		Tags: map[string]interface{}{
-			"cluster_name":                     inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
-			"node_attribute_ml.enabled":        inputs.NewTagInfo("Set to true (default) to enable machine learning APIs on the node."),
-			"node_attribute_ml.machine_memory": inputs.NewTagInfo("The machine’s memory that machine learning may use for running analytics processes."),
-			"node_attribute_ml.max_open_jobs":  inputs.NewTagInfo("The maximum number of jobs that can run simultaneously on a node."),
-			"node_attribute_xpack.installed":   inputs.NewTagInfo("Show whether xpack is installed."),
-			"node_host":                        inputs.NewTagInfo("Network host for the node, based on the network.host setting."),
-			"node_id":                          inputs.NewTagInfo("The id for the node."),
-			"node_name":                        inputs.NewTagInfo("Human-readable identifier for the node."),
-		},
+		Tags:   nodeStatsTags,
 	}
 }
 
@@ -61,11 +52,7 @@ func (m clusterStatsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_cluster_stats",
 		Fields: clusterStatsFields,
-		Tags: map[string]interface{}{
-			"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the cluster.name setting."),
-			"node_name":    inputs.NewTagInfo("Name of the node."),
-			"status":       inputs.NewTagInfo("Health status of the cluster, based on the state of its primary and replica shards."),
-		},
+		Tags:   clusterStatsTags,
 	}
 }
 
@@ -77,9 +64,7 @@ func (m clusterHealthMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_cluster_health",
 		Fields: clusterHealthFields,
-		Tags: map[string]interface{}{
-			"name": inputs.NewTagInfo("Name of the cluster."),
-		},
+		Tags:   clusterHealthTags,
 	}
 }
 
@@ -91,10 +76,7 @@ func (m clusterHealthIndicesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_cluster_health_indices",
 		Fields: clusterHealthIndicesFields,
-		Tags: map[string]interface{}{
-			"name":  inputs.NewTagInfo("Name of the cluster."),
-			"index": inputs.NewTagInfo("Name of the index."),
-		},
+		Tags:   clusterHealthIndicesTags,
 	}
 }
 
@@ -106,6 +88,7 @@ func (m indicesStatsShardsTotalMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_indices_stats_shards_total",
 		Fields: indicesStatsShardsTotalFields,
+		// No tags.
 	}
 }
 
@@ -117,10 +100,7 @@ func (m indicesStatsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_indices_stats",
 		Fields: indicesStatsFields,
-		Tags: map[string]interface{}{
-			"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
-			"index_name":   inputs.NewTagInfo("Name of the index. The name '_all' target all data streams and indices in a cluster."),
-		},
+		Tags:   indicesStatsTags,
 	}
 }
 
@@ -132,11 +112,6 @@ func (m indicesStatsShardsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_indices_stats_shards",
 		Fields: indicesStatsShardsFields,
-		Tags: map[string]interface{}{
-			"index_name": inputs.NewTagInfo("Name of the index."),
-			"node_name":  inputs.NewTagInfo("Name of the node."),
-			"shard_name": inputs.NewTagInfo("Name of the shard."),
-			"type":       inputs.NewTagInfo("Type of the shard."),
-		},
+		Tags:   indicesStatsShardsTags,
 	}
 }
