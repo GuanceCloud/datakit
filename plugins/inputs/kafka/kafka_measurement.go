@@ -47,7 +47,7 @@ type KafkaPartitionMment struct {
 }
 
 func (j *KafkaMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.MakePoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
 }
 
 func (j *KafkaControllerMment) LineProto() (*io.Point, error) {

@@ -15,22 +15,22 @@ import (
 )
 
 const (
-	XAgentIp       = `X-Agent-Ip`
-	XAgentUID      = `X-Agent-Uid`
-	XCQRP          = `X-CQ-RP`
-	XDatakitInfo   = `X-Datakit-Info`
+	XAgentIP       = "X-Agent-Ip"
+	XAgentUID      = "X-Agent-Uid"
+	XCQRP          = "X-CQ-RP"
+	XDatakitInfo   = "X-Datakit-Info"
 	XDatakitUUID   = "X-Datakit-UUID" // deprecated
-	XDBUUID        = `X-DB-UUID`
-	XDomainName    = `X-Domain-Name`
+	XDBUUID        = "X-DB-UUID"
+	XDomainName    = "X-Domain-Name"
 	XLua           = "X-Lua"
 	XPrecision     = "X-Precision"
 	XRP            = "X-RP"
-	XSource        = `X-Source`
-	XTableName     = `X-Table-Name`
+	XSource        = "X-Source"
+	XTableName     = "X-Table-Name"
 	XToken         = "X-Token"
 	XTraceId       = "X-Trace-Id"
-	XVersion       = `X-Version`
-	XWorkspaceUUID = `X-Workspace-UUID`
+	XVersion       = "X-Version"
+	XWorkspaceUUID = "X-Workspace-UUID"
 )
 
 var (

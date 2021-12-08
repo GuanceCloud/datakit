@@ -201,9 +201,10 @@ func MakePointWithoutGlobalTags(name string,
 	return makePoint(name, tags, nil, fields, t...)
 }
 
-func makePoint(name string,
+func doMakePoint(name string,
 	tags, extags map[string]string,
 	fields map[string]interface{},
+	opt *lp.Option,
 	t ...time.Time) (*Point, error) {
 	var ts time.Time
 	if len(t) > 0 {
@@ -212,13 +213,7 @@ func makePoint(name string,
 		ts = time.Now().UTC()
 	}
 
-	p, err := lp.MakeLineProtoPoint(name, tags, fields,
-		&lp.Option{
-			ExtraTags: extags,
-			Strict:    true,
-			Time:      ts,
-			Precision: "n",
-		})
+	p, err := lp.MakeLineProtoPoint(name, tags, fields, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -226,11 +221,40 @@ func makePoint(name string,
 	return &Point{Point: p}, nil
 }
 
+func MakeTypedPoint(name, ptype string,
+	tags map[string]string,
+	fields map[string]interface{},
+	t ...time.Time) {
+
+	opt := lp.Option{
+		ExtraTags: extags,
+		Strict:    true,
+		Time:      ts,
+		Precision: "n",
+	}
+
+	switch ptype {
+	case datakit.Metric:
+		opt.IsMetric = true
+	default: // pass
+	}
+
+	return doMakePoint(name, tags, extraTags, fields, opt, t...)
+}
+
 func MakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-	return makePoint(name, tags, extraTags, fields, t...)
+
+	opt := lp.Option{
+		ExtraTags: extags,
+		Strict:    true,
+		Time:      ts,
+		Precision: "n",
+	}
+
+	return doMakePoint(name, tags, extraTags, fields, opt, t...)
 }
 
 // MakeMetric Deprecated.

@@ -51,13 +51,16 @@ func tarFiles(goos, goarch string) {
 func generateInstallScript() error {
 	x := struct {
 		InstallBaseURL string
+		Version        string
 	}{
 		InstallBaseURL: DownloadAddr,
+		Version:        ReleaseVersion,
 	}
 
 	for k, v := range map[string]string{
-		"install.sh.template":  "install.sh",
-		"install.ps1.template": "install.ps1",
+		"install.sh.template":   "install.sh",
+		"install.ps1.template":  "install.ps1",
+		"datakit.yaml.template": "datakit.yaml",
 	} {
 		txt, err := ioutil.ReadFile(filepath.Clean(k))
 		if err != nil {
@@ -138,10 +141,12 @@ func PubDatakit() {
 	ossfiles := map[string]string{
 		path.Join(OSSPath, "version"): path.Join(PubDir, ReleaseType, "version"),
 
-		path.Join(OSSPath, "install.sh"):                                  "install.sh",
-		path.Join(OSSPath, "install.ps1"):                                 "install.ps1",
-		path.Join(OSSPath, fmt.Sprintf("install-%s.sh", ReleaseVersion)):  "install.sh",
-		path.Join(OSSPath, fmt.Sprintf("install-%s.ps1", ReleaseVersion)): "install.ps1",
+		path.Join(OSSPath, "datakit.yaml"):                                 "datakit.yaml",
+		path.Join(OSSPath, "install.sh"):                                   "install.sh",
+		path.Join(OSSPath, "install.ps1"):                                  "install.ps1",
+		path.Join(OSSPath, fmt.Sprintf("datakit-%s.yaml", ReleaseVersion)): "datakit.yaml",
+		path.Join(OSSPath, fmt.Sprintf("install-%s.sh", ReleaseVersion)):   "install.sh",
+		path.Join(OSSPath, fmt.Sprintf("install-%s.ps1", ReleaseVersion)):  "install.ps1",
 	}
 
 	if Archs == datakit.OSArchDarwinAmd64 {

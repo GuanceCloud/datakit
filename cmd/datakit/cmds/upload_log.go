@@ -67,6 +67,7 @@ func uploadLog(urls []string) error {
 	}
 }
 
+// getLogFile: get the zip log path.
 func getLogFile() (string, error) {
 	var fileName string
 	logPath := config.Cfg.Logging.Log
