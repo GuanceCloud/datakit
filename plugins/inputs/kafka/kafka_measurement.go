@@ -3,6 +3,7 @@ package kafka
 import (
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -47,11 +48,11 @@ type KafkaPartitionMment struct {
 }
 
 func (j *KafkaMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
 }
 
 func (j *KafkaControllerMment) LineProto() (*io.Point, error) {
-	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
+	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
 }
 
 //nolint:lll
