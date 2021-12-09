@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -111,47 +112,48 @@ cast(a.second, "float")
 // a.second 为 float 类型
 func TestStringfFunc(t *testing.T) {
 	// js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
-	// script := `stringf(bb, "%d %s %v", a.second, a.thrid, a.forth);`
 	js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
 	script := `json(_, a.second)
-		json(_, a.thrid)
+		json(_, a.third)
 		json(_, a.forth)
 		cast(a.second, "int")
-		strfmt(bb, "%d %s %v", a.second, a.thrid, a.forth)
+		strfmt(bb, "%d %s %v", a.second, a.third, a.forth)
 	`
 	p, err := NewPipeline(script)
-	assertEqual(t, err, nil)
+	tu.Assert(t, err == nil, "")
 
 	p.Run(js)
+
+	t.Logf("%+#v", p.Output)
 	v, _ := p.getContent("bb")
-	assertEqual(t, v, "2 abc true")
+	tu.Equals(t, "2 abc true", v)
 }
 
 func TestUppercaseFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"third":"abc","forth":true},"age":47}`
-	script := `json(_, a.thrid)
-uppercase(a.thrid)
+	script := `json(_, a.third)
+uppercase(a.third)
 `
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)
 
 	p.Run(js)
 
-	v, _ := p.getContent("a.thrid")
+	v, _ := p.getContent("a.third")
 	assertEqual(t, v, "ABC")
 }
 
 func TestLowercaseFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"third":"aBC","forth":true},"age":47}`
-	script := `json(_, a.thrid)
-lowercase(a.thrid)
+	script := `json(_, a.third)
+lowercase(a.third)
 `
 	p, err := NewPipeline(script)
 	t.Log(err)
 	assertEqual(t, err, nil)
 
 	p.Run(js)
-	v, _ := p.getContentStr("a.thrid")
+	v, _ := p.getContentStr("a.third")
 	assertEqual(t, v, "abc")
 }
 
@@ -169,9 +171,9 @@ func TestAddkeyFunc(t *testing.T) {
 
 func TestDropkeyFunc(t *testing.T) {
 	js := `{"a":{"first":2.3,"second":2,"third":"aBC","forth":true},"age":47}`
-	script := `json(_, a.thrid)
+	script := `json(_, a.third)
 json(_, a.first)
-drop_key(a.thrid)
+drop_key(a.third)
 `
 	p, err := NewPipeline(script)
 	assertEqual(t, err, nil)

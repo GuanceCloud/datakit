@@ -2,7 +2,6 @@
 package self
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"runtime"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 )
 
 var StartTime time.Time
