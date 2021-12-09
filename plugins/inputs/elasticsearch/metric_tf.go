@@ -13,7 +13,7 @@ var elasticsearchMeasurementFields = map[string]interface{}{
 	"timed_out":                       &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "timed_out"},
 }
 
-// nodeStats
+// nodeStats.
 var nodeStatsTags = map[string]interface{}{
 	"cluster_name":                     inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
 	"node_attribute_ml.enabled":        inputs.NewTagInfo("Set to true (default) to enable machine learning APIs on the node."),
@@ -74,7 +74,7 @@ var nodeStatsFields = map[string]interface{}{
 	"fs_total_total_in_gigabytes":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeIByte, Desc: "Total size (in gigabytes) of all file stores."},
 }
 
-// clusterStats
+// clusterStats.
 var clusterStatsTags = map[string]interface{}{
 	"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the cluster.name setting."),
 	"node_name":    inputs.NewTagInfo("Name of the node."),
@@ -85,7 +85,7 @@ var clusterStatsFields = map[string]interface{}{
 	"nodes_process_open_file_descriptors_avg": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Average number of concurrently open file descriptors. Returns -1 if not supported."},
 }
 
-// clusterHealth
+// clusterHealth.
 var clusterHealthTags = map[string]interface{}{
 	"name": inputs.NewTagInfo("Name of the cluster."),
 }
@@ -101,7 +101,7 @@ var clusterHealthFields = map[string]interface{}{
 	"unassigned_shards":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are unassigned to a node."},
 }
 
-// clusterHealthIndices
+// clusterHealthIndices.
 var clusterHealthIndicesTags = map[string]interface{}{
 	"name":  inputs.NewTagInfo("Name of the cluster."),
 	"index": inputs.NewTagInfo("Name of the index."),
@@ -120,14 +120,14 @@ var clusterHealthIndicesFields = map[string]interface{}{
 }
 
 // indicesStatsShardsTotal
-// NOTE: no tags
+// NOTE: no tags.
 var indicesStatsShardsTotalFields = map[string]interface{}{
 	"failed":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of failed indexing operations"},
 	"successful": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of successful operations"},
 	"total":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of total operations"},
 }
 
-// indicesStats
+// indicesStats.
 var indicesStatsTags = map[string]interface{}{
 	"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
 	"index_name":   inputs.NewTagInfo("Name of the index. The name '_all' target all data streams and indices in a cluster."),
@@ -155,7 +155,7 @@ var indicesStatsFields = map[string]interface{}{
 	"total_store_size_in_bytes":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeIByte, Desc: "Total size, in bytes, of all shards assigned to selected nodes."},
 }
 
-// indicesStatsShards
+// indicesStatsShards.
 var indicesStatsShardsTags = map[string]interface{}{
 	"index_name": inputs.NewTagInfo("Name of the index."),
 	"node_name":  inputs.NewTagInfo("Name of the node."),

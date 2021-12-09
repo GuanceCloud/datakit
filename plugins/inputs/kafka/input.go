@@ -120,7 +120,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&KafkaControllerMment{},
 		&KafkaReplicaMment{},
 		&KafkaPurgatoryMment{},
-		&KafkaClientMment{},
 		&KafkaRequestMment{},
 		&KafkaTopicsMment{},
 		&KafkaTopicMment{},

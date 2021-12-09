@@ -3,24 +3,52 @@ package io
 import (
 	"time"
 
+	"github.com/influxdata/influxdb1-client/models"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+)
+
+var (
+	// no set.
+	DisabledTagKeys   []string                                 = nil
+	DisabledFieldKeys []string                                 = nil
+	Callback          func(models.Point) (models.Point, error) = nil
+
+	Strict           = true
+	MaxTags   int    = 256
+	MaxFields int    = 1024
+	Precision string = "n"
 )
 
 func SetExtraTags(k, v string) {
 	extraTags[k] = v
 }
 
+func lpOpt(withGlobalTags bool) *lp.Option {
+	globalTags := extraTags
+	if withGlobalTags {
+		globalTags = nil
+	}
+
+	return &lp.Option{
+		Strict:    true,
+		Precision: "n",
+		ExtraTags: globalTags,
+		MaxTags:   MaxTags,
+		MaxFields: MaxFields,
+
+		// not set
+		DisabledTagKeys:   nil,
+		DisabledFieldKeys: nil,
+		Callback:          nil,
+	}
+}
+
 func MakePointWithoutGlobalTags(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-	opt := &lp.Option{
-		Strict:    true,
-		Precision: "n",
-	}
-
-	return doMakePoint(name, tags, fields, opt, t...)
+	return doMakePoint(name, tags, fields, lpOpt(true), t...)
 }
 
 func doMakePoint(name string,
@@ -48,11 +76,7 @@ func MakeTypedPoint(name, ptype string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-	opt := &lp.Option{
-		Strict:    true,
-		Precision: "n",
-		ExtraTags: extraTags,
-	}
+	opt := lpOpt(false)
 
 	switch ptype {
 	case datakit.Metric:
@@ -67,13 +91,7 @@ func MakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-	opt := &lp.Option{
-		Strict:    true,
-		Precision: "n",
-		ExtraTags: extraTags,
-	}
-
-	return doMakePoint(name, tags, fields, opt, t...)
+	return doMakePoint(name, tags, fields, lpOpt(false), t...)
 }
 
 // MakeMetric Deprecated.
@@ -102,56 +120,4 @@ func NamedFeed(data []byte, category, name string) error {
 	}
 
 	return defaultIO.DoFeed(x, category, name, nil)
-}
-
-// HighFreqFeedEx Deprecated.
-func HighFreqFeedEx(name, category, metric string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) error {
-	var ts time.Time
-	if len(t) > 0 {
-		ts = t[0]
-	} else {
-		ts = time.Now().UTC()
-	}
-
-	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
-		&lp.Option{
-			ExtraTags: extraTags,
-			Strict:    true,
-			Time:      ts,
-			Precision: "n",
-		})
-	if err != nil {
-		return err
-	}
-
-	return defaultIO.DoFeed([]*Point{{pt}}, category, name, &Option{HighFreq: true})
-}
-
-// NamedFeedEx Deprecated.
-func NamedFeedEx(name, category, metric string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) error {
-	var ts time.Time
-	if len(t) > 0 {
-		ts = t[0]
-	} else {
-		ts = time.Now().UTC()
-	}
-
-	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
-		&lp.Option{
-			ExtraTags: extraTags,
-			Strict:    true,
-			Time:      ts,
-			Precision: "n",
-		})
-	if err != nil {
-		return err
-	}
-
-	return defaultIO.DoFeed([]*Point{{pt}}, category, name, nil)
 }
