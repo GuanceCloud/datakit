@@ -538,7 +538,7 @@ func TestReloadServer(t *testing.T) {
 
 	apiConfig = &APIConfig{
 		RUMOriginIPHeader: "X-Forwarded-For",
-		Listen:            "localhost:9529",
+		Listen:            "localhost:54321",
 		Disable404Page:    false,
 	}
 

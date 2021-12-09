@@ -47,9 +47,7 @@ func (n *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (n *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Info("jenkins start")
+func (n *Input) setup() {
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	client, err := n.createHTTPClient()
@@ -58,6 +56,13 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
+}
+
+func (n *Input) Run() {
+	l = logger.SLogger(inputName)
+	l.Info("jenkins start")
+
+	n.setup()
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
