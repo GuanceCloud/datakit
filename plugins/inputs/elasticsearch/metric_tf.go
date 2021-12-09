@@ -5,6 +5,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+//
+var elasticsearchMeasurementFields = map[string]interface{}{
+	"active_shards_percent_as_number": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "active shards percent"},
+	"active_primary_shards":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "active primary shards"},
+	"status":                          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "status"},
+	"timed_out":                       &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "timed_out"},
+}
+
 // nodeStats
 var nodeStatsTags = map[string]interface{}{
 	"cluster_name":                     inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
@@ -111,6 +119,8 @@ var clusterHealthIndicesFields = map[string]interface{}{
 	"unassigned_shards":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are unassigned to a node."},
 }
 
+// indicesStatsShardsTotal
+// NOTE: no tags
 var indicesStatsShardsTotalFields = map[string]interface{}{
 	"failed":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of failed indexing operations"},
 	"successful": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of successful operations"},
