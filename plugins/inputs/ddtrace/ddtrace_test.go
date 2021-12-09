@@ -1,9 +1,12 @@
+//go:build linux && darwin
+// +build linux,darwin
+
 package ddtrace
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -76,8 +79,7 @@ func TestTracesDecodeV3V4(t *testing.T) {
 		for i := range traces {
 			for j := range traces[i] {
 				if !assert.EqualValues(t, ramTraces[i][j], traces[i][j]) {
-					err := errors.New(fmt.Sprintf("not equivalent span expect %v got %v", ramTraces[i][j], traces[i][j]))
-					t.Error(err)
+					t.Errorf("not equivalent span expect %v got %v", ramTraces[i][j], traces[i][j])
 					resp.WriteHeader(http.StatusBadRequest)
 				}
 			}
@@ -91,11 +93,18 @@ func TestTracesDecodeV3V4(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	for _, path := range []string{v3, v4} {
 		resp, err := http.Post(tsrv.URL+path, "application/msgpack", bytes.NewBuffer(bts))
 		if err != nil {
 			t.Error(err)
+		} else {
+			if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+				t.Error(err)
+			}
+			defer resp.Body.Close() //nolint:errcheck
 		}
+
 		if resp.StatusCode != http.StatusOK {
 			t.Error(resp.Status)
 		}
@@ -115,17 +124,24 @@ func TestTracesDecodeV5(t *testing.T) {
 			}
 		}
 	}))
-	defer tsrv.Close()
+
+	defer tsrv.Close() //nolint:errcheck
 
 	bts, err := vmsgp.Marshal(data)
 	if err != nil {
 		t.Error(err)
 	}
 
-	resp, err := http.Post(tsrv.URL+v5, "application/msgpack", bytes.NewBuffer(bts))
+	resp, err := http.Post(tsrv.URL+v5, "application/msgpack", bytes.NewBuffer(bts)) //nolint:bodyclose
 	if err != nil {
 		t.Error(err)
+	} else {
+		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+			t.Error(err)
+		}
+		defer resp.Body.Close() //nolint:errcheck
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		t.Error(err)
 	}

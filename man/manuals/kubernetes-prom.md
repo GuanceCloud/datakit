@@ -45,6 +45,15 @@
 - `$NAMESPACE`：Pod Namespace
 - `$PODNAME`：Pod Name
 
+### 选择指定Pod IP
+
+某些情况下， Pod 上会存在多个 IP，此时仅仅通过 `$IP` 来获取 Exporter 地址是不准确的。支持通过配置 Annotation 选择 Pod IP。
+
+- Key 为固定的 `datakit/prom.instances.ip_index`
+- Value 是自然数，例如 `0` `1` `2` 等，是要使用的 IP 在整个 IP 数组（Pod IPs）中的位置下标。
+
+如果没有此 Annotation Key，则使用默认 Pod IP。
+
 ## 操作过程
 
 - 登录到 Kubernetes 所在主机
@@ -64,6 +73,7 @@ spec:
       labels:
         app: prom
       annotations:
+        datakit/prom.instances.ip_index: 2
         datakit/prom.instances: |
           [[inputs.prom]]
             url = "http://$IP:9100/metrics"

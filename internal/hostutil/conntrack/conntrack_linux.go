@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package conntrack
@@ -5,6 +6,7 @@ package conntrack
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -23,7 +25,7 @@ type conntrackStatistics struct {
 }
 
 func readIntFromFile(path string) (int64, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return 0, err
 	}

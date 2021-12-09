@@ -101,11 +101,12 @@ func (dk *PSDisk) FilterUsage(mountPointFilter []string, fstypeExclude []string,
 type MountOptions []string
 
 func (opts MountOptions) Mode() string {
-	if opts.exists("rw") {
+	switch {
+	case opts.exists("rw"):
 		return "rw"
-	} else if opts.exists("ro") {
+	case opts.exists("ro"):
 		return "ro"
-	} else {
+	default:
 		return "unknown"
 	}
 }

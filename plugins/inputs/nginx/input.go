@@ -1,12 +1,13 @@
+// Package nginx collects NGINX metrics.
 package nginx
 
 import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -46,6 +47,7 @@ var (
 	# more_tag = "some_other_value"
 	# ...`
 
+	//nolint:lll
 	pipelineCfg = `
 add_pattern("date2", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
 
@@ -81,19 +83,29 @@ default_time(time)
 `
 )
 
-func (_ *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sample
 }
 
-func (_ *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (_ *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		"nginx": pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (n *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: n.Log.Pipeline,
+		},
+	}
 }
 
 func (n *Input) RunPipeline() {
@@ -106,19 +118,22 @@ func (n *Input) RunPipeline() {
 	}
 
 	opt := &tailer.Option{
-		Source:     "nginx",
-		Service:    "nginx",
+		Source:     inputName,
+		Service:    inputName,
 		GlobalTags: n.Tags,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
+	pl, err := config.GetPipelinePath(n.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -133,7 +148,7 @@ func (n *Input) Run() {
 	l.Info("nginx start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	client, err := n.createHttpClient()
+	client, err := n.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] nginx init client err:%s", err.Error())
 		return
@@ -146,11 +161,13 @@ func (n *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if n.tail != nil {
-				n.tail.Close()
-				l.Info("nginx log exit")
-			}
+			n.exit()
 			l.Info("nginx exit")
+			return
+
+		case <-n.semStop.Wait():
+			n.exit()
+			l.Info("nginx return")
 			return
 
 		case <-tick.C:
@@ -161,7 +178,10 @@ func (n *Input) Run() {
 
 			n.getMetric()
 			if len(n.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, n.collectCache, &io.Option{CollectCost: time.Since(n.start)})
+				err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					n.collectCache,
+					&io.Option{CollectCost: time.Since(n.start)})
 				n.collectCache = n.collectCache[:0]
 				if err != nil {
 					n.lastErr = err
@@ -180,6 +200,19 @@ func (n *Input) Run() {
 	}
 }
 
+func (n *Input) exit() {
+	if n.tail != nil {
+		n.tail.Close()
+		l.Info("nginx log exit")
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
+	}
+}
+
 func (n *Input) getMetric() {
 	n.start = time.Now()
 	if n.UseVts {
@@ -189,7 +222,7 @@ func (n *Input) getMetric() {
 	}
 }
 
-func (n *Input) createHttpClient() (*http.Client, error) {
+func (n *Input) createHTTPClient() (*http.Client, error) {
 	tlsCfg, err := n.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
@@ -209,7 +242,7 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (_ *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
@@ -244,11 +277,13 @@ func (n *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
 			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop: cliutils.NewSem(),
 		}
 		return s
 	})

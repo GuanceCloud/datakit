@@ -18,16 +18,18 @@
 
 syntax = "proto3";
 
+package skywalking.v3;
+
 option java_multiple_files = true;
 option java_package = "org.apache.skywalking.apm.network.language.agent.v3";
 option csharp_namespace = "SkyWalking.NetworkProtocol.V3";
-option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/language/agent/v3";
+option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile";
 
 import "plugins/inputs/skywalking/v3/proto/common/Common.proto";
 
 // Define the JVM metrics report service.
 service JVMMetricReportService {
-  rpc collect(JVMMetricCollection) returns (Commands);
+  rpc collect(JVMMetricCollection) returns (Commands) {}
 }
 
 message JVMMetricCollection {
@@ -43,6 +45,7 @@ message JVMMetric {
   repeated MemoryPool memoryPool = 4;
   repeated GC gc = 5;
   Thread thread = 6;
+  Class clazz = 7;
 }
 
 message Memory {
@@ -81,8 +84,22 @@ enum GCPhrase {
   OLD = 1;
 }
 
+// See:
+// https://docs.oracle.com/javase/8/docs/api/java/lang/management/ThreadMXBean.html
 message Thread {
   int64 liveCount = 1;
   int64 daemonCount = 2;
   int64 peakCount = 3;
+  int64 runnableStateThreadCount = 4;
+  int64 blockedStateThreadCount = 5;
+  int64 waitingStateThreadCount = 6;
+  int64 timedWaitingStateThreadCount = 7;
+}
+
+// See:
+// https://docs.oracle.com/javase/8/docs/api/java/lang/management/ClassLoadingMXBean.html
+message Class {
+  int64 loadedClassCount = 1;
+  int64 totalUnloadedClassCount = 2;
+  int64 totalLoadedClassCount = 3;
 }

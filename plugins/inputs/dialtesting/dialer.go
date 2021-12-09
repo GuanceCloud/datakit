@@ -45,14 +45,14 @@ func (d *dialer) stop() {
 	}
 }
 
-func newDialer(t dt.Task, ts map[string]string) (*dialer, error) {
+func newDialer(t dt.Task, ts map[string]string) *dialer {
 	return &dialer{
 		task:     t,
 		updateCh: make(chan dt.Task),
 		initTime: time.Now(),
 		tags:     ts,
 		class:    t.Class(),
-	}, nil
+	}
 }
 
 func (d *dialer) run() error {
@@ -78,7 +78,7 @@ func (d *dialer) run() error {
 			case dt.ClassHeadless:
 				return fmt.Errorf("headless task deprecated")
 			default:
-				d.task.Run()
+				_ = d.task.Run() //nolint:errcheck
 			}
 
 			// dialtesting start
@@ -108,7 +108,7 @@ func (d *dialer) feedIO() error {
 		return err
 	}
 
-	u.Path = u.Path + datakit.Logging // `/v1/write/logging`
+	u.Path += datakit.Logging // `/v1/write/logging`
 
 	urlStr := u.String()
 	switch d.task.Class() {
@@ -147,6 +147,7 @@ func (m *httpMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "http_dial_testing",

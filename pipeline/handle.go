@@ -7,10 +7,12 @@ import (
 	"regexp"
 	"time"
 
+	// import time/tzdata for timezone parsing.
+	_ "time/tzdata"
+
 	"github.com/araddon/dateparse"
 	"github.com/mssola/user_agent"
 	conv "github.com/spf13/cast"
-	"github.com/tidwall/gjson"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -122,7 +124,7 @@ func UserAgentHandle(str string) (res map[string]interface{}) {
 	return res
 }
 
-func GeoIpHandle(ip string) (map[string]string, error) {
+func GeoIPHandle(ip string) (map[string]string, error) {
 	record, err := Geo(ip)
 	if err != nil {
 		return nil, err
@@ -181,7 +183,6 @@ func GroupInHandle(value interface{}, set []interface{}) bool {
 
 func parseDatePattern(value string) (int64, error) {
 	for _, p := range datePattern {
-		// if match := p.pattern.MatchString(value); match {
 		if p.defaultYear {
 			ty := time.Now()
 			year := ty.Year()
@@ -190,14 +191,11 @@ func parseDatePattern(value string) (int64, error) {
 
 		// 默认定义的规则能匹配，不匹配的则由 dataparse 处理
 		if tm, err := time.Parse(p.goFmt, value); err != nil {
-			// l.Errorf("time.Parse(): %s", err)
-			return 0, nil
+			return 0, err
 		} else {
-			unix_time := tm.UnixNano()
-			// l.Debugf("parse `%s` -> %v(nano: %d)", value, tm, tm.UnixNano())
-			return unix_time, nil
+			unixTime := tm.UnixNano()
+			return unixTime, nil
 		}
-		// }
 	}
 	return 0, nil
 }
@@ -208,34 +206,40 @@ func TimestampHandle(p *Pipeline, value, tz string) (int64, error) {
 	timezone := time.Local
 
 	// pattern match first
-	unix_time, err := parseDatePattern(value)
-	if unix_time > 0 && err == nil {
-		return unix_time, err
+	unixTime, err := parseDatePattern(value)
+	if unixTime > 0 && err == nil {
+		return unixTime, nil
 	}
 
 	if tz != "" {
-		if timezone_cache, ok := p.timezone[tz]; ok {
-			timezone = timezone_cache
+		if tzCache, ok := p.timezone[tz]; ok {
+			timezone = tzCache
 		} else {
 			timezone, err = time.LoadLocation(tz)
-			if err == nil {
-				p.setTimezone(tz, timezone)
+			if err != nil {
+				// If it fails to parse timezone from given string tz,
+				// try to parse tz as '+x' or '-x'.
+				if zz, ok := timezoneList[tz]; ok {
+					timezone, err = time.LoadLocation(zz)
+					if err != nil {
+						return 0, err
+					}
+				} else {
+					return 0, err
+				}
 			}
+
+			p.setTimezone(tz, timezone)
 		}
 	}
 
-	if err == nil {
-		t, err = dateparse.ParseIn(value, timezone)
-	}
-
-	if err != nil {
+	if t, err = dateparse.ParseIn(value, timezone); err != nil {
 		return 0, err
-	} else {
-		// l.Debugf("parse `%s' -> %v(nano: %d)", value, t, t.UnixNano())
 	}
 
-	unix_time = t.UnixNano()
-	return unix_time, nil
+	l.Debugf("parse `%s' -> %v(nano: %d)", value, t, t.UnixNano())
+
+	return t.UnixNano(), nil
 }
 
 var dateFormatStr = map[string]string{
@@ -256,36 +260,38 @@ var dateFormatStr = map[string]string{
 	"StampNano":   time.StampNano,
 }
 
-func JsonParse(jsonStr string) map[string]interface{} {
+/*func JSONParse(jsonStr string) map[string]interface{} {
 	res := make(map[string]interface{})
 	jsonObj := gjson.Parse(jsonStr)
 
 	if isObject(jsonObj) {
-		parseJson2Map(jsonObj, res, "")
+		parseJSON2Map(jsonObj, res, "")
 	} else if isArray(jsonObj) {
 		for idx, obj := range jsonObj.Array() {
 			key := fmt.Sprintf("[%d]", idx)
-			parseJson2Map(obj, res, key)
+			parseJSON2Map(obj, res, key)
 		}
 	}
 
 	return res
-}
+}*/
 
-func parseJson2Map(obj gjson.Result, res map[string]interface{}, prefix string) {
+/*func parseJSON2Map(obj gjson.Result, res map[string]interface{}, prefix string) {
 	if isObject(obj) {
 		for key, value := range obj.Map() {
 			if prefix != "" {
 				key = prefix + "." + key
 			}
-			if isObject(value) {
-				parseJson2Map(value, res, key)
-			} else if isArray(value) {
+
+			switch {
+			case isObject(value):
+				parseJSON2Map(value, res, key)
+			case isArray(value):
 				for idx, v := range value.Array() {
 					fullkey := key + "[" + fmt.Sprintf("%d", idx) + "]"
-					parseJson2Map(v, res, fullkey)
+					parseJSON2Map(v, res, fullkey)
 				}
-			} else {
+			default:
 				res[key] = value.Value()
 				continue
 			}
@@ -301,8 +307,8 @@ func isObject(obj gjson.Result) bool {
 
 func isArray(obj gjson.Result) bool {
 	return obj.IsArray()
-}
-
+}.
+*/
 func parseDate(yy, mm, dd, hh, mi, ss, ns, zone string) int64 {
 	// 参数类型判断及转化(todo)
 	var yyi, ddi, hi, mii, ssi, nsi int
@@ -355,8 +361,7 @@ func parseDate(yy, mm, dd, hh, mi, ss, ns, zone string) int64 {
 	}
 
 	tz, err := time.LoadLocation(zone)
-	if err == nil {
-	} else {
+	if err != nil {
 		if zz, ok := timezoneList[zone]; ok {
 			tz, err = time.LoadLocation(zz)
 			if err != nil {

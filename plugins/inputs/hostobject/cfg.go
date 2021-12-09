@@ -23,5 +23,4 @@ const (
 # more_tag = "some_other_value"
 # ...
 `
-	pipelineSample = ``
 )

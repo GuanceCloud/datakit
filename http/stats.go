@@ -145,6 +145,7 @@ func (x *DatakitStats) InputsConfTable() string {
 
 func (x *DatakitStats) InputsStatsTable() string {
 	const (
+		//nolint:lll
 		tblHeader = `
 | 采集器 | 数据类型 | 频率   | 平均 IO 大小 | 总次数 | 点数  | 首次采集 | 最近采集 | 平均采集消耗 | 最大采集消耗 | 当前错误(时间) |
 | ----   | :----:   | :----: | :----:       | :----: | :---: | :----:   | :---:    | :----:       | :---:        | :----:         |
@@ -252,6 +253,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 
 func GetStats(du time.Duration) (*DatakitStats, error) {
 	now := time.Now()
+	elected, _ := election.Elected()
 	stats := &DatakitStats{
 		Version:        datakit.Version,
 		BuildAt:        git.BuildAt,
@@ -261,7 +263,7 @@ func GetStats(du time.Duration) (*DatakitStats, error) {
 		WithinDocker:   datakit.Docker,
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
-		Elected:        election.Elected(),
+		Elected:        elected,
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
 		ConfigInfo:     inputs.ConfigInfo,

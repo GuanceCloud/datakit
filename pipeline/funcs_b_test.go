@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -10,12 +9,10 @@ import (
 )
 
 type funcCase struct {
-	desc     string
 	data     string
 	script   string
 	expected interface{}
 	key      string
-	err      error
 	fail     bool
 }
 
@@ -42,7 +39,6 @@ func TestJsonFunc(t *testing.T) {
 			script:   `json(_, name) json(name, first)`,
 			expected: "Tom",
 			key:      "first",
-			err:      nil,
 		},
 		{
 			data: `[
@@ -53,7 +49,6 @@ func TestJsonFunc(t *testing.T) {
 			script:   `json(_, [0].nets[-1])`,
 			expected: "tw",
 			key:      "[0].nets[-1]",
-			err:      nil,
 		},
 	}
 
@@ -66,104 +61,79 @@ func TestJsonFunc(t *testing.T) {
 
 		r, err := p.getContentStr(tt.key)
 
-		fmt.Println("======>", p.Output)
+		assertEqual(t, err, nil)
 
 		assert.Equal(t, r, tt.expected)
 	}
 }
 
 func TestDefaultTimeFunc(t *testing.T) {
-	// {
-	// 	data:     `{"a":{"time":"","second":2,"third":"abc","forth":true},"age":47}`,
-	// 	script:   `json(_, a.time) default_time(a.time)`,
-	// 	expected: nil,
-	// 	key:      "a.time",
-	// 	err:      nil,
-	// },
-
 	testCase := []*funcCase{
-
-		//{
-		//	data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"third":"abc","forth":true},"age":47}`,
-		//	script:   `json(_, a.time) default_time(a.time)`,
-		//	expected: int64(1557832300164000000),
-		//	key:      "a.time",
-		//	err:      nil,
-		//},
-		//{
-		//	data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"third":"abc","forth":true},"age":47}`,
-		//	script:   `json(_, a.time) default_time(a.time)`,
-		//	expected: int64(1483719397000000000),
-		//	key:      "a.time",
-		//	err:      nil,
-		//},
-		//{
-		//	data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"third":"abc","forth":true},"age":47}`,
-		//	script:   `json(_, a.time) default_time(a.time)`,
-		//	expected: int64(1418682000000000000),
-		//	key:      "a.time",
-		//	err:      nil,
-		//},
-		//{
-		//	data:     `{"a":{"time":"171113 14:14:20","second":2,"third":"abc","forth":true},"age":47}`,
-		//	script:   `json(_, a.time) default_time(a.time)`,
-		//	expected: int64(1510582460000000000),
-		//	key:      "a.time",
-		//	err:      nil,
-		//},
-
-		//{
-		//	data:     `{"str":"2021/02/27 - 08:11:46"}`,
-		//	script:   `json(_, str) default_time(str)`,
-		//	expected: int64(1614413506000000000),
-		//	key:      "str",
-		//	err:      nil,
-		//},
-
-		//{
-		//	data:     `{"a":{"time":"2021-03-15 13:50:47,000"}}`,
-		//	script:   `json(_, a.time) default_time(a.time)`,
-		//	expected: int64(1615787447000000000),
-		//	key:      "a.time",
-		//	err:      nil,
-		//},
-
-		//{
-		//	//data:     `{"a":{"time":"2021-03-15 13:50:47,000 UTC"}}`,
-		//	data:     `{"a":{"time":"2021-03-15 13:50:47,000"}}`,
-		//	script:   `json(_, a.time) default_time(a.time)`,
-		//	expected: int64(1615787447000000000),
-		//	key:      "a.time",
-		//	err:      nil,
-		//},
-
-		//{
-		//	data:     `{"a":{"time":"15 Mar 06:20:12.000"}}`,
-		//	script:   `json(_, a.time) default_time(a.time)`,
-		//	expected: int64(time.Second * 1615789212),
-		//	key:      "a.time",
-		//	err:      nil,
-		//},
+		{
+			data:     `{"a":{"time":"14 May 2019 19:11:40.164","second":2,"third":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1557832300164000000),
+			key:      "a.time",
+		},
+		{
+			data:     `{"a":{"time":"06/Jan/2017:16:16:37 +0000","second":2,"third":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1483719397000000000),
+			key:      "a.time",
+		},
+		{
+			data:     `{"a":{"time":"2014-12-16 06:20:00 UTC","second":2,"third":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1418682000000000000),
+			key:      "a.time",
+		},
+		{
+			data:     `{"a":{"time":"171113 14:14:20","second":2,"third":"abc","forth":true},"age":47}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1510582460000000000),
+			key:      "a.time",
+		},
 
 		{
-			// data:     `{"a":{"time":"Tue Mar 16 14:02:37 2021"}}`,
-			// script:   `json(_, a.time) default_time(a.time)`,
-			// expected: int64(time.Second * 1615874557),
-			// key:      "a.time",
-			// err:      nil,
+			data:     `{"str":"2021/02/27 - 08:11:46"}`,
+			script:   `json(_, str) default_time(str)`,
+			expected: int64(1614413506000000000),
+			key:      "str",
+		},
 
+		{
+			data:     `{"a":{"time":"2021-03-15 13:50:47,000"}}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1615787447000000000),
+			key:      "a.time",
+		},
+
+		{
+			// data:     `{"a":{"time":"2021-03-15 13:50:47,000 UTC"}}`,
+			data:     `{"a":{"time":"2021-03-15 13:50:47,000"}}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(1615787447000000000),
+			key:      "a.time",
+		},
+
+		{
+			data:     `{"a":{"time":"15 Mar 06:20:12.000"}}`,
+			script:   `json(_, a.time) default_time(a.time)`,
+			expected: int64(time.Second * 1615789212),
+			key:      "a.time",
+		},
+
+		{
 			data:     `{"a":{"time":"Wed Mar 17 15:40:49 CST 2021"}}`,
 			script:   `json(_, a.time) default_time(a.time)`,
 			expected: int64(time.Second * 1615966849),
 			key:      "a.time",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"time":"Wed Mar 17 15:40:49 CST 2021"}}`,
 			script:   `json(_, a.time) default_time(a.time, "Asia/Shanghai")`,
 			expected: int64(time.Second * 1615966849),
 			key:      "a.time",
-			err:      nil,
 		},
 	}
 
@@ -176,6 +146,8 @@ func TestDefaultTimeFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContent(tt.key)
+		assertEqual(t, err, nil)
+
 		ok := assert.Equal(t, r, tt.expected)
 
 		t.Logf("[passed? %v]out: %s <> %v", ok, tt.data, p.Output)
@@ -189,49 +161,42 @@ func TestUrlencodeFunc(t *testing.T) {
 			script:   "json(_, `url[0]`) url_decode(`url[0]`)",
 			expected: " ?&=#+%!<>#\"{}|\\^[]`☺\t:/@$'()*,;",
 			key:      "url[0]",
-			err:      nil,
 		},
 		{
 			data:     `{"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95","second":2}`,
 			script:   `json(_, url) url_decode(url)`,
 			expected: `http://www.baidu.com/s?wd=测试`,
 			key:      "url",
-			err:      nil,
 		},
 		{
 			data:     `{"url":"","second":2}`,
 			script:   `json(_, url) url_decode(url)`,
 			expected: ``,
 			key:      "url",
-			err:      nil,
 		},
 		{
 			data:     `{"url":"+%3F%26%3D%23%2B%25%21%3C%3E%23%22%7B%7D%7C%5C%5E%5B%5D%60%E2%98%BA%09%3A%2F%40%24%27%28%29%2A%2C%3B","second":2}`,
 			script:   `json(_, url) url_decode(url)`,
 			expected: " ?&=#+%!<>#\"{}|\\^[]`☺\t:/@$'()*,;",
 			key:      "url",
-			err:      nil,
 		},
 		{
 			data:     `{"url":"+%3F%26%3D%23%2B%25%21%3C%3E%23%22%7B%7D%7C%5C%5E%5B%5D%60%E2%98%BA%09%3A%2F%40%24%27%28%29%2A%2C%3B","second":2}`,
 			script:   `json(_, url) url_decode("url", "aaa")`,
 			expected: "+%3F%26%3D%23%2B%25%21%3C%3E%23%22%7B%7D%7C%5C%5E%5B%5D%60%E2%98%BA%09%3A%2F%40%24%27%28%29%2A%2C%3B",
 			key:      "url",
-			err:      nil,
 		},
 		{
 			data:     `{"aa":{"url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"},"second":2}`,
 			script:   `json(_, aa.url) url_decode(aa.url)`,
 			expected: `http://www.baidu.com/s?wd=测试`,
 			key:      "aa.url",
-			err:      nil,
 		},
 		{
 			data:     `{"aa":{"aa.url":"http%3a%2f%2fwww.baidu.com%2fs%3fwd%3d%e6%b5%8b%e8%af%95"},"second":2}`,
 			script:   "json(_, aa.`aa.url`) url_decode(aa.`aa.url`)",
 			expected: `http://www.baidu.com/s?wd=测试`,
 			key:      "aa.aa.url",
-			err:      nil,
 		},
 	}
 
@@ -243,6 +208,7 @@ func TestUrlencodeFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
+		assertEqual(t, err, nil)
 
 		assertEqual(t, r, tt.expected)
 	}
@@ -255,28 +221,24 @@ func TestUserAgentFunc(t *testing.T) {
 			script:   `json(_, userAgent) user_agent(userAgent)`,
 			expected: "Windows 7",
 			key:      "os",
-			err:      nil,
 		},
 		{
 			data:     `{"userAgent":"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"}`,
 			script:   `json(_, userAgent) user_agent(userAgent)`,
 			expected: "Googlebot",
 			key:      "browser",
-			err:      nil,
 		},
 		{
 			data:     `{"userAgent":"Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25 (compatible; Googlebot/2.1; +http://www.google.com/bot.html"}`,
 			script:   `json(_, userAgent) user_agent(userAgent)`,
 			expected: "",
 			key:      "engine",
-			err:      nil,
 		},
 		{
 			data:     `{"userAgent":"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)"}`,
 			script:   `json(_, userAgent) user_agent(userAgent)`,
 			expected: "bingbot",
 			key:      "browser",
-			err:      nil,
 		},
 	}
 
@@ -287,6 +249,7 @@ func TestUserAgentFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
+		assertEqual(t, err, nil)
 
 		assertEqual(t, r, tt.expected)
 	}
@@ -299,14 +262,12 @@ func TestDatetimeFunc(t *testing.T) {
 			script:   `json(_, a.timestamp) datetime(a.timestamp, 's', 'RFC3339')`,
 			expected: "2021-01-18T17:03:25+08:00",
 			key:      "a.timestamp",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"timestamp": "1610960605000", "second":2},"age":47}`,
 			script:   `json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')`,
 			expected: "2021-01-18T17:03:25+08:00",
 			key:      "a.timestamp",
-			err:      nil,
 		},
 	}
 
@@ -317,6 +278,7 @@ func TestDatetimeFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
+		assertEqual(t, err, nil)
 
 		assertEqual(t, r, tt.expected)
 	}
@@ -329,63 +291,54 @@ func TestGroupFunc(t *testing.T) {
 			script:   `json(_, status) group_between(status, [200, 400], false, newkey)`,
 			expected: false,
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [200, 400], 10, newkey)`,
 			expected: int64(10),
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [, 400], "ok", newkey)`,
 			expected: nil,
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [200, 400], "ok", newkey)`,
 			expected: "ok",
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [200, 299], "ok")`,
 			expected: "ok",
 			key:      "status",
-			err:      nil,
 		},
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [299, 200], "ok")`,
 			expected: float64(200),
 			key:      "status",
-			err:      nil,
 		},
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [299, 200], "ok", newkey)`,
 			expected: float64(200),
 			key:      "status",
-			err:      nil,
 		},
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [200, 299], "ok", newkey)`,
 			expected: "ok",
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": 200,"age":47}`,
 			script:   `json(_, status) group_between(status, [300, 400], "ok", newkey)`,
 			expected: nil,
 			key:      "newkey",
-			err:      nil,
 		},
 	}
 
@@ -396,6 +349,7 @@ func TestGroupFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContent(tt.key)
+		assertEqual(t, err, nil)
 
 		assertEqual(t, r, tt.expected)
 	}
@@ -408,42 +362,36 @@ func TestGroupInFunc(t *testing.T) {
 			script:   `json(_, status) group_in(status, [true], "ok", "newkey")`,
 			expected: "ok",
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": true,"age":"47"}`,
 			script:   `json(_, status) group_in(status, [true], "ok", "newkey")`,
 			expected: "ok",
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": "aa","age":"47"}`,
 			script:   `json(_, status) group_in(status, [], "ok")`,
 			expected: "aa",
 			key:      "status",
-			err:      nil,
 		},
 		{
 			data:     `{"status": "aa","age":"47"}`,
 			script:   `json(_, status) group_in(status, ["aa"], "ok", "newkey")`,
 			expected: "ok",
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": "test","age":"47"}`,
 			script:   `json(_, status) group_in(status, [200, 47, "test"], "ok", newkey)`,
 			expected: "ok",
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"status": "test","age":"47"}`,
 			script:   `json(_, status) group_in(status, [200, "test"], "ok")`,
 			expected: "ok",
 			key:      "status",
-			err:      nil,
 		},
 	}
 
@@ -454,6 +402,7 @@ func TestGroupInFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
+		assertEqual(t, err, nil)
 
 		assertEqual(t, r, tt.expected)
 	}
@@ -466,56 +415,48 @@ func TestNullIfFunc(t *testing.T) {
 			script:   `json(_, a.first) nullif(a.first, "1")`,
 			expected: float64(1),
 			key:      "a.first",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"first": "1","second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, 1)`,
 			expected: "1",
 			key:      "a.first",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"first": "","second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, "")`,
 			expected: nil,
 			key:      "a.first",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"first": null,"second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, nil)`,
 			expected: nil,
 			key:      "a.first",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"first": true,"second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, true)`,
 			expected: nil,
 			key:      "a.first",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"first": 2.3, "second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, 2.3)`,
 			expected: nil,
 			key:      "a.first",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"first": 2,"second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, 2, "newkey")`,
 			expected: nil,
 			key:      "newkey",
-			err:      nil,
 		},
 		{
 			data:     `{"a":{"first":"2.3","second":2,"third":"aBC","forth":true},"age":47}`,
 			script:   `json(_, a.first) nullif(a.first, "2.3", "newkey")`,
 			expected: nil,
 			key:      "newkey",
-			err:      nil,
 		},
 	}
 
@@ -526,6 +467,7 @@ func TestNullIfFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContent(tt.key)
+		assertEqual(t, err, nil)
 
 		assertEqual(t, r, tt.expected)
 	}
@@ -611,6 +553,7 @@ func TestParseDuration(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContent(tt.key)
+		assertEqual(t, err, nil)
 
 		if !tt.fail {
 			assertEqual(t, r, tt.expected)
@@ -652,6 +595,7 @@ func TestParseDate(t *testing.T) {
 
 		p.Run(tt.data)
 		r, err := p.getContent(tt.key)
+		assertEqual(t, err, nil)
 
 		if !tt.fail {
 			assertEqual(t, r, tt.expected)
@@ -676,7 +620,6 @@ func TestJsonAllFunc(t *testing.T) {
 			script:   `json_all()`,
 			expected: "Sara",
 			key:      "children[0]",
-			err:      nil,
 		},
 		{
 			data: `[
@@ -687,7 +630,6 @@ func TestJsonAllFunc(t *testing.T) {
 			script:   `json_all()`,
 			expected: "Dale",
 			key:      "[0].first",
-			err:      nil,
 		},
 	}
 
@@ -698,6 +640,7 @@ func TestJsonAllFunc(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
+		assertEqual(t, err, nil)
 
 		assertEqual(t, r, tt.expected)
 	}
@@ -723,6 +666,7 @@ func TestJsonAllFunc(t *testing.T) {
 	p.Run(js)
 
 	r, err := p.getContent("children[0]")
+	assertEqual(t, err, nil)
 
 	assertEqual(t, r, "Sara")
 }
@@ -772,10 +716,8 @@ func TestDz(t *testing.T) {
 		assertEqual(t, err, p.lastErr)
 
 		p.Run(tt.data)
-
 		r, err := p.getContentStr(tt.key)
-
-		fmt.Println("=======>", r)
+		assertEqual(t, err, nil)
 
 		if !tt.fail {
 			assertEqual(t, r, tt.expected)
@@ -818,8 +760,7 @@ func TestReplace(t *testing.T) {
 		p.Run(tt.data)
 
 		r, err := p.getContentStr(tt.key)
-
-		fmt.Println("res =====>", r)
+		assertEqual(t, err, nil)
 
 		if !tt.fail {
 			assertEqual(t, r, tt.expected)

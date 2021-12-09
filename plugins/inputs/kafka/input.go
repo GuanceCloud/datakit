@@ -1,11 +1,12 @@
+// Package kafka collect kafka metrics
 package kafka
 
 import (
 	"os"
-	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -67,17 +68,22 @@ func (i *Input) RunPipeline() {
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
-		l.Error(err)
+		l.Errorf("NewTailer: %s", err)
+
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
@@ -85,26 +91,35 @@ func (i *Input) RunPipeline() {
 	go i.tail.Start()
 }
 
-func (_ *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName: pipelineCfg,
 	}
 	return pipelineMap
 }
 
-func (i *Input) Catalog() string      { return inputName }
-func (i *Input) SampleConfig() string { return kafkaConfSample }
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: i.Log.Pipeline,
+		},
+	}
+}
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) Catalog() string      { return inputName }
+func (*Input) SampleConfig() string { return kafkaConfSample }
+
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&KafkaControllerMment{},
 		&KafkaReplicaMment{},
 		&KafkaPurgatoryMment{},
-		&KafkaClientMment{},
 		&KafkaRequestMment{},
 		&KafkaTopicsMment{},
 		&KafkaTopicMment{},
@@ -112,7 +127,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

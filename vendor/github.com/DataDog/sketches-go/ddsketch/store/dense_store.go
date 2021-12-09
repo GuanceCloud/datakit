@@ -267,13 +267,58 @@ func (s *DenseStore) Encode(b *[]byte, t enc.FlagType) {
 	if s.IsEmpty() {
 		return
 	}
-	enc.EncodeFlag(b, enc.NewFlag(t, enc.BinEncodingContiguousCounts))
+
+	denseEncodingSize := 0
 	numBins := uint64(s.maxIndex-s.minIndex) + 1
+	denseEncodingSize += enc.Uvarint64Size(numBins)
+	denseEncodingSize += enc.Varint64Size(int64(s.minIndex))
+	denseEncodingSize += enc.Varint64Size(1)
+
+	sparseEncodingSize := 0
+	numNonEmptyBins := uint64(0)
+
+	previousIndex := s.minIndex
+	for index := s.minIndex; index <= s.maxIndex; index++ {
+		count := s.bins[index-s.offset]
+		countVarFloat64Size := enc.Varfloat64Size(count)
+		denseEncodingSize += countVarFloat64Size
+		if count != 0 {
+			numNonEmptyBins++
+			sparseEncodingSize += enc.Varint64Size(int64(index - previousIndex))
+			sparseEncodingSize += countVarFloat64Size
+			previousIndex = index
+		}
+	}
+	sparseEncodingSize += enc.Uvarint64Size(numNonEmptyBins)
+
+	if denseEncodingSize <= sparseEncodingSize {
+		s.encodeDensely(b, t, numBins)
+	} else {
+		s.encodeSparsely(b, t, numNonEmptyBins)
+	}
+}
+
+func (s *DenseStore) encodeDensely(b *[]byte, t enc.FlagType, numBins uint64) {
+	enc.EncodeFlag(b, enc.NewFlag(t, enc.BinEncodingContiguousCounts))
 	enc.EncodeUvarint64(b, numBins)
 	enc.EncodeVarint64(b, int64(s.minIndex))
 	enc.EncodeVarint64(b, 1)
 	for index := s.minIndex; index <= s.maxIndex; index++ {
 		enc.EncodeVarfloat64(b, s.bins[index-s.offset])
+	}
+}
+
+func (s *DenseStore) encodeSparsely(b *[]byte, t enc.FlagType, numNonEmptyBins uint64) {
+	enc.EncodeFlag(b, enc.NewFlag(t, enc.BinEncodingIndexDeltasAndCounts))
+	enc.EncodeUvarint64(b, numNonEmptyBins)
+	previousIndex := 0
+	for index := s.minIndex; index <= s.maxIndex; index++ {
+		count := s.bins[index-s.offset]
+		if count != 0 {
+			enc.EncodeVarint64(b, int64(index-previousIndex))
+			enc.EncodeVarfloat64(b, count)
+			previousIndex = index
+		}
 	}
 }
 

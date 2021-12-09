@@ -18,6 +18,7 @@ func (m *demoLog) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *demoLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo-log",

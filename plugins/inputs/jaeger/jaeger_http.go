@@ -9,7 +9,7 @@ import (
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
@@ -22,7 +22,7 @@ func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	reqInfo, err := trace.ParseHttpReq(req)
+	reqInfo, err := trace.ParseHTTPReq(req)
 	if err != nil {
 		log.Error(err.Error())
 
@@ -89,11 +89,11 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 
 		tAdapter.Duration = span.Duration * 1000
 		tAdapter.Start = span.StartTime * 1000
-		sJson, err := json.Marshal(span)
+		sJSON, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(sJson)
+		tAdapter.Content = string(sJSON)
 
 		tAdapter.ServiceName = batch.Process.ServiceName
 		tAdapter.OperationName = span.OperationName
@@ -102,7 +102,7 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 		}
 
 		// tAdapter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
-		tAdapter.TraceID = trace.GetStringTraceId(span.TraceIdHigh, span.TraceIdLow)
+		tAdapter.TraceID = trace.GetStringTraceID(span.TraceIdHigh, span.TraceIdLow)
 		tAdapter.SpanID = fmt.Sprintf("%d", span.SpanId)
 
 		tAdapter.Status = trace.STATUS_OK

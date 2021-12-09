@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 // traceFilter will determine whether a trace should be drop or not,
@@ -13,12 +13,6 @@ import (
 type traceFilter func(Trace) (Trace, bool)
 
 func runFiltersWithBreak(trace Trace, filters ...traceFilter) Trace {
-	if len(trace) == 0 {
-		log.Debug("empty trace")
-
-		return nil
-	}
-
 	var abort bool
 	for _, filter := range filters {
 		if trace, abort = filter(trace); abort || trace == nil {
@@ -44,7 +38,11 @@ func rare(trace Trace) (Trace, bool) {
 		return trace, false
 	}
 
-	checksum := hashcode.GenMapHash(map[string]string{"service": rootSpan.Service, "resource": rootSpan.Resource, "env": rootSpan.Meta[itrace.ENV]})
+	checksum := hashcode.GenMapHash(map[string]string{
+		"service":  rootSpan.Service,
+		"resource": rootSpan.Resource,
+		"env":      rootSpan.Meta[itrace.ENV],
+	})
 	if then, ok := present[checksum]; !ok || time.Since(then) >= time.Hour {
 		present[checksum] = time.Now()
 

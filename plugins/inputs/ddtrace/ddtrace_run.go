@@ -13,8 +13,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var ddtraceSpanType = map[string]string{
@@ -48,7 +48,7 @@ var ddtraceSpanType = map[string]string{
 	"":              itrace.SPAN_SERVICE_CUSTOM,
 }
 
-//nolint: tagliatelle
+//nolint:lll
 type Span struct {
 	Service  string             `codec:"service" protobuf:"bytes,1,opt,name=service,proto3" json:"service" msg:"service"`                                                                                     // client code defined service name of span
 	Name     string             `codec:"name" protobuf:"bytes,2,opt,name=name,proto3" json:"name" msg:"name"`                                                                                                 // client code defined operation name of span
@@ -95,19 +95,25 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 			return
 		}
+
 		log.Debugf("show up all traces: %v", traces)
 
-		pts, err := tracesToPoints(traces, filters...)
+		pts, err := tracesToPoints(req, traces, filters...)
 		if err != nil {
 			log.Error(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
 
 			return
 		}
-
 		if len(pts) != 0 {
-			if err = dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{CollectCost: time.Since(since), HighFreq: true}); err != nil {
-				dkio.FeedLastError(inputName, err.Error())
+			if err = dkio.Feed(inputName,
+				datakit.Tracing,
+				pts,
+				&dkio.Option{
+					CollectCost: time.Since(since),
+					HighFreq:    true,
+				}); err != nil {
+				log.Errorf("Feed: %s", err.Error())
 			}
 		} else {
 			log.Debugf("empty points")
@@ -117,7 +123,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 	}
 }
 
-// TODO:
+// TODO:.
 func handleStats(resp http.ResponseWriter, req *http.Request) {
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
@@ -167,17 +173,24 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 // parameter traces is raw traces, filters contains all the functional filters
 // like resource filter, sample.
 //nolint: cyclop
-func tracesToPoints(traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
+func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
 	var pts []*dkio.Point
-NEXT_TRACE:
 	for _, trace := range traces {
+		if trace == nil || len(trace) == 0 {
+			log.Warnf("got empty trace, request headers: %v", req.Header)
+			continue
+		}
 		// run all filters
 		if runFiltersWithBreak(trace, filters...) == nil {
-			continue NEXT_TRACE
+			continue
 		}
 
-		spanIds, parentIds := getSpanAndParentId(trace)
+		spanIds, parentIds := getSpanAndParentID(trace)
 		for _, span := range trace {
+			if span == nil {
+				log.Warnf("got nil span, request headers: %v", req.Header)
+				continue
+			}
 			tags := make(map[string]string)
 			field := make(map[string]interface{})
 
@@ -247,7 +260,6 @@ NEXT_TRACE:
 			if v, ok := span.Metrics["system.pid"]; ok {
 				field[itrace.FIELD_PID] = fmt.Sprintf("%v", v)
 			}
-
 			if buf, err := json.Marshal(span); err != nil {
 				return nil, err
 			} else {
@@ -256,23 +268,21 @@ NEXT_TRACE:
 
 			tm.Tags = tags
 			tm.Fields = field
-			tm.Ts = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
-
-			pt, err := tm.LineProto()
-			if err != nil {
+			tm.TS = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
+			if pt, err := tm.LineProto(); err != nil {
 				return nil, err
+			} else {
+				pts = append(pts, pt)
 			}
-
-			pts = append(pts, pt)
 		}
 	}
 
 	return pts, nil
 }
 
-func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
+func getSpanAndParentID(spans []*Span) (map[uint64]string, map[uint64]string) {
 	spanID := make(map[uint64]string)
-	parentId := make(map[uint64]string)
+	parentID := make(map[uint64]string)
 	for _, span := range spans {
 		if span == nil {
 			continue
@@ -280,11 +290,11 @@ func getSpanAndParentId(spans []*Span) (map[uint64]string, map[uint64]string) {
 
 		spanID[span.SpanID] = span.Service
 		if span.ParentID != 0 {
-			parentId[span.ParentID] = ""
+			parentID[span.ParentID] = ""
 		}
 	}
 
-	return spanID, parentId
+	return spanID, parentID
 }
 
 // unmarshalTraceDictionary decodes a trace using the specification from the v0.5 endpoint.

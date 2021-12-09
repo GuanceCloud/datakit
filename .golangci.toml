@@ -1,125 +1,114 @@
 [run]
-  timeout = "10m"
-  skip-files = []
-  skip-dirs = [
-        #"pipeline",
-        #"plugins",
-  ]
+timeout = "10m"
+issues-exit-code = 1
+skip-files = []
+skip-dirs = []
 
 [linters-settings]
 
-  [linters-settings.govet]
-    check-shadowing = false
+[linters-settings.govet]
+check-shadowing = false
 
-  [linters-settings.golint]
-    min-confidence = 0.0
+[linters-settings.golint]
+min-confidence = 0.0
 
-  [linters-settings.gocyclo]
-    min-complexity = 14.0
+[linters-settings.gocyclo]
+min-complexity = 14.0
 
-  [linters-settings.gocognit]
-    min-complexity = 14.0
+[linters-settings.gocognit]
+min-complexity = 14.0
 
-  [linters-settings.cyclo]
-    min-complexity = 14.0
+[linters-settings.cyclo]
+min-complexity = 14.0
 
-  [linters-settings.maligned]
-    suggest-new = true
+[linters-settings.maligned]
+suggest-new = true
 
-  [linters-settings.goconst]
-    min-len = 3.0
-    min-occurrences = 4.0
+[linters-settings.goconst]
+min-len = 3.0
+min-occurrences = 4.0
 
-  [linters-settings.misspell]
-    locale = "US"
+[linters-settings.misspell]
+locale = "US"
 
-  [linters-settings.funlen]
-    lines = 230 # default 60
-    statements = 120 # default 40
+[linters-settings.funlen]
+lines = 230      # default 60
+statements = 150 # default 40
 
-  [linters-settings.forbidigo]
-    forbid = [
-      '^print(ln)?$',
-      '^spew\.Print(f|ln)?$',
-      '^spew\.Dump$',
-    ]
+[linters-settings.forbidigo]
+forbid = ['^print(ln)?$', '^spew\.Print(f|ln)?$', '^spew\.Dump$']
 
-  [linters-settings.depguard]
-    list-type = "blacklist"
-    include-go-root = false
-    packages = ["github.com/pkg/errors"]
+[linters-settings.depguard]
+list-type = "blacklist"
+include-go-root = false
+packages = ["github.com/pkg/errors"]
 
-  [linters-settings.godox]
-    keywords = ["FIXME"]
+[linters-settings.godox]
+keywords = ["FIXME"]
 
-  [linters-settings.importas]
-    corev1 = "k8s.io/api/core/v1"
-    networkingv1beta1 = "k8s.io/api/networking/v1beta1"
-    extensionsv1beta1 = "k8s.io/api/extensions/v1beta1"
-    metav1 = "k8s.io/apimachinery/pkg/apis/meta/v1"
-    kubeerror = "k8s.io/apimachinery/pkg/api/errors"
+[linters-settings.wsl]
+allow-assign-and-anything = true
 
-  [linters-settings.gomoddirectives]
-    replace-allow-list = [
-      "github.com/abbot/go-http-auth",
-      "github.com/go-check/check",
-      "github.com/gorilla/mux",
-      "github.com/mailgun/minheap",
-      "github.com/mailgun/multibuf",
-    ]
+[linters-settings.importas]
+corev1 = "k8s.io/api/core/v1"
+networkingv1beta1 = "k8s.io/api/networking/v1beta1"
+extensionsv1beta1 = "k8s.io/api/extensions/v1beta1"
+metav1 = "k8s.io/apimachinery/pkg/apis/meta/v1"
+kubeerror = "k8s.io/apimachinery/pkg/api/errors"
+
+[linters-settings.gomoddirectives]
+replace-allow-list = [
+  "github.com/abbot/go-http-auth",
+  "github.com/go-check/check",
+  "github.com/gorilla/mux",
+  "github.com/mailgun/minheap",
+  "github.com/mailgun/multibuf",
+]
+
+[linters-settings.lll]
+line-length = 150
+tab-width = 2
 
 [linters]
-  enable-all = true
-  disable = [
-    #"sqlclosecheck", # Not relevant (SQL)
-    #"rowserrcheck", # Not relevant (SQL)
-    #"lll", # Not relevant
-    #"makezero", # Not relevant
-    #"gochecknoinits",
-    #"stylecheck", # skip because report issues related to some generated files.
-    #"tparallel", # Not relevant
-    #"goerr113", # Too strict
-    #"bodyclose", # Too many false-positive and panics.
-    #"godox", # Too strict
-    #"godot", # Too strict
-    #"gci", # Too strict
+enable-all = true
+disable = [
+  # 权且放开他们
+  "testpackage",      # Too strict
+  "wrapcheck",        # 不便于错误处理
+  "tagliatelle",      # 跟现有 json tag 命名方式
+  "paralleltest",     # 可开启，改动范围较大
+  "noctx",            # 要求 HTTP 请求都用 context 形式，改动较大
+  "nlreturn",         # 要求 return 语句前有一个空行
+  "gomnd",            # 不放过任何一个魔术数
+  "wsl",              # 更好代码分段
+  "prealloc",         # Too many false-positive.
+  "nestif",           # Too many false-positive.
+  "goerr113",         # 不能 fmt.Errorf/errors.New
+  "gochecknoglobals", # 不能搞全局变量
+  "exhaustivestruct", # 结构体初始化字段是否完整
+  "golint",           # Too strict
+  "interfacer",
+  "scopelint",        # obsoluted: https://github.com/kyoh86/scopelint#obsoleted
 
-    # 权且放开他们
-    "testpackage",  # Too strict
-    "wrapcheck",    # 不便于错误处理
-    "tagliatelle",  # 跟现有 json tag 命名方式
-    "paralleltest", # 可开启，改动范围较大
-    "noctx",        # 要求 HTTP 请求都用 context 形式，改动较大
-    "nlreturn", # 要求 return 语句前有一个空行
-    "gomnd", # 不放过任何一个魔术数
-    "wsl", # 更好代码分段(if/switch 语句)
-    "prealloc", # Too many false-positive.
-    "nestif", # Too many false-positive.
-    "goerr113", # 不能 fmt.Errorf/errors.New
-    "gochecknoglobals", # 不能搞全局变量
-    "exhaustivestruct", # 结构体初始化字段是否完整
-    "exhaustive", # Not relevant
-    "lll", # 行太长
-    "gosec", # Too strict
-    "golint", # Too strict
-    #"stylecheck", # 太啰嗦了，临时关下
-    "dupl", # 还不允许有相似代码
-    "gocyclo", # FIXME must be fixed
-    "gocognit", # 代码太复杂
-    "goimports",
+  # 代码太复杂
+  "gocognit",
+  "gocyclo",
 
-    "cyclop",
-    "gomoddirectives", # used `replace' in go.mod 
-    "nolintlint",
-    "revive",
-  ]
+  "dupl",     # 还不允许有相似代码
+  "maligned", # deprecated: https://github.com/mdempsky/maligned
+
+  "cyclop",
+  "gomoddirectives", # used `replace' in go.mod
+  "nolintlint",
+  "revive",
+]
 
 [issues]
-  exclude-use-default = false
-  max-per-linter = 0
-  max-same-issues = 0
-  exclude = [
-  ]
- [[issues.exclude-rules]]
-    path = "(.+)_test.go"
-    linters = ["goconst", "funlen", "godot"]
+exclude-use-default = false
+max-per-linter = 0
+max-same-issues = 0
+exclude = []
+
+[[issues.exclude-rules]]
+path = "(.+)_test.go"
+linters = ["goconst", "funlen", "godot", "lll", "gosec", "stylecheck", "wsl"]

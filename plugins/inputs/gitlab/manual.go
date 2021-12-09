@@ -15,6 +15,7 @@ func (*gitlabMeasurement) LineProto() (*io.Point, error)     { return nil, nil }
 func (*gitlabBaseMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 func (*gitlabHTTPMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*gitlabMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab",
@@ -50,6 +51,7 @@ func (*gitlabMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
+//nolint:lll
 func (*gitlabBaseMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_base",
@@ -65,6 +67,7 @@ func (*gitlabBaseMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
+//nolint:lll
 func (*gitlabHTTPMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_http",

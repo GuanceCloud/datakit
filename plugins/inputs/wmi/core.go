@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package wmi
@@ -7,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -19,8 +19,6 @@ import (
 	"github.com/go-ole/go-ole/oleutil"
 )
 
-var l = log.New(os.Stdout, "", log.LstdFlags)
-
 var (
 	ErrInvalidEntityType = errors.New("wmi: invalid entity type")
 	// ErrNilCreateObject is the error returned if CreateObject returns nil even
@@ -29,11 +27,11 @@ var (
 	lock               sync.Mutex
 )
 
-// S_FALSE is returned by CoInitializeEx if it was already called on this thread.
-const S_FALSE = 0x00000001
+// SFalse is returned by CoInitializeEx if it was already called on this thread.
+const SFalse = 0x00000001
 
 // QueryNamespace invokes Query with the given namespace on the local machine.
-func QueryNamespace(query string, dst interface{}, namespace string) error {
+func QueryNamespace(query string, dst interface{}, namespace string) error { //nolint
 	return Query(query, dst, nil, namespace)
 }
 
@@ -87,7 +85,7 @@ type Client struct {
 	SWbemServicesClient *SWbemServices
 }
 
-// DefaultClient is the default Client and is used by Query, QueryNamespace
+// DefaultClient is the default Client and is used by Query, QueryNamespace.
 var DefaultClient = &Client{}
 
 // Query runs the WQL query and appends the values to dst.
@@ -118,8 +116,8 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 
 	err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
 	if err != nil {
-		oleCode := err.(*ole.OleError).Code()
-		if oleCode != ole.S_OK && oleCode != S_FALSE {
+		oleCode := err.(*ole.OleError).Code() //nolint:errorlint
+		if oleCode != ole.S_OK && oleCode != SFalse {
 			return err
 		}
 	}
@@ -145,7 +143,7 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 		return err
 	}
 	service := serviceRaw.ToIDispatch()
-	defer serviceRaw.Clear()
+	defer serviceRaw.Clear() //nolint:errcheck
 
 	// result is a SWBemObjectSet
 	resultRaw, err := oleutil.CallMethod(service, "ExecQuery", query)
@@ -153,7 +151,7 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 		return err
 	}
 	result := resultRaw.ToIDispatch()
-	defer resultRaw.Clear()
+	defer resultRaw.Clear() //nolint:errcheck
 
 	count, err := oleInt64(result, "Count")
 	if err != nil {
@@ -164,7 +162,7 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 	if err != nil {
 		return err
 	}
-	defer enumProperty.Clear()
+	defer enumProperty.Clear() //nolint:errcheck
 
 	enum, err := enumProperty.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
 	if err != nil {
@@ -191,10 +189,10 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 
 			ev := reflect.New(elemType)
 			if err = c.loadEntity(ev.Interface(), item); err != nil {
-				if _, ok := err.(*ErrFieldMismatch); ok {
+				if _, ok := err.(*FieldMismatchError); ok { //nolint:errorlint
 					// We continue loading entities even in the face of field mismatch errors.
 					// If we encounter any other error, that other error is returned. Otherwise,
-					// an ErrFieldMismatch is returned.
+					// an FieldMismatchError is returned.
 					errFieldMismatch = err
 				} else {
 					return err
@@ -213,7 +211,8 @@ func (c *Client) Query(query string, dst interface{}, connectServerArgs ...inter
 	return errFieldMismatch
 }
 
-func (c *Client) QueryEx(query string, propNames []string, connectServerArgs ...interface{}) ([]map[string]interface{}, error) {
+func (c *Client) QueryEx(query string, propNames []string,
+	connectServerArgs ...interface{}) ([]map[string]interface{}, error) {
 	lock.Lock()
 	defer lock.Unlock()
 	runtime.LockOSThread()
@@ -221,9 +220,13 @@ func (c *Client) QueryEx(query string, propNames []string, connectServerArgs ...
 
 	err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
 	if err != nil {
-		oleCode := err.(*ole.OleError).Code()
-		if oleCode != ole.S_OK && oleCode != S_FALSE {
-			return nil, err
+		var oerr *ole.OleError
+		if errors.As(err, &oerr) {
+			oe := err.(*ole.OleError) //nolint:forcetypeassert,errorlint
+			oleCode := oe.Code()
+			if oleCode != ole.S_OK && oleCode != SFalse {
+				return nil, err
+			}
 		}
 	}
 	defer ole.CoUninitialize()
@@ -248,7 +251,7 @@ func (c *Client) QueryEx(query string, propNames []string, connectServerArgs ...
 		return nil, err
 	}
 	service := serviceRaw.ToIDispatch()
-	defer serviceRaw.Clear()
+	defer serviceRaw.Clear() //nolint:errcheck
 
 	// result is a SWBemObjectSet
 	resultRaw, err := oleutil.CallMethod(service, "ExecQuery", query)
@@ -256,7 +259,7 @@ func (c *Client) QueryEx(query string, propNames []string, connectServerArgs ...
 		return nil, err
 	}
 	result := resultRaw.ToIDispatch()
-	defer resultRaw.Clear()
+	defer resultRaw.Clear() //nolint:errcheck
 
 	count, err := oleInt64(result, "Count")
 	if err != nil {
@@ -268,7 +271,7 @@ func (c *Client) QueryEx(query string, propNames []string, connectServerArgs ...
 	if err != nil {
 		return nil, err
 	}
-	defer enumProperty.Clear()
+	defer enumProperty.Clear() //nolint:errcheck
 
 	enum, err := enumProperty.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
 	if err != nil {
@@ -307,24 +310,24 @@ func (c *Client) QueryEx(query string, propNames []string, connectServerArgs ...
 	return fieldsArr, nil
 }
 
-// ErrFieldMismatch is returned when a field is to be loaded into a different
+// FieldMismatchError is returned when a field is to be loaded into a different
 // type than the one it was stored from, or when a field is missing or
 // unexported in the destination struct.
 // StructType is the type of the struct pointed to by the destination argument.
-type ErrFieldMismatch struct {
+type FieldMismatchError struct {
 	StructType reflect.Type
 	FieldName  string
 	Reason     string
 }
 
-func (e *ErrFieldMismatch) Error() string {
+func (e *FieldMismatchError) Error() string {
 	return fmt.Sprintf("wmi: cannot load field %q into a %q: %s",
 		e.FieldName, e.StructType, e.Reason)
 }
 
 var timeType = reflect.TypeOf(time.Time{})
 
-func (c *Client) loadEntityEx(props []string, src *ole.IDispatch) (map[string]interface{}, error) {
+func (c *Client) loadEntityEx(props []string, src *ole.IDispatch) (map[string]interface{}, error) { //nolint:unparam
 	fields := map[string]interface{}{}
 
 	if len(props) > 0 {
@@ -334,7 +337,7 @@ func (c *Client) loadEntityEx(props []string, src *ole.IDispatch) (map[string]in
 				log.Printf("W! fail to get property %s", n)
 				continue
 			}
-			defer prop.Clear()
+			//	defer prop.Clear() //nolint:errcheck
 
 			if prop.VT == 0x1 { // VT_NULL
 				continue
@@ -358,41 +361,42 @@ func (c *Client) loadEntityEx(props []string, src *ole.IDispatch) (map[string]in
 			default:
 				log.Printf("unknown data type")
 			}
+			_ = prop.Clear()
 		}
-	} else {
-		// oleutil.ForEach(src, func(v *ole.VARIANT) error {
-		// 	defer v.Clear()
-
-		// 	if v.VT == 0x1 { //VT_NULL
-		// 		return nil
-		// 	}
-
-		// 	switch val := v.Value().(type) {
-		// 	case int8, int16, int32, int64, int:
-		// 		v := reflect.ValueOf(val).Int()
-		// 		fields[n] = v
-		// 	case uint8, uint16, uint32, uint64:
-		// 		v := reflect.ValueOf(val).Uint()
-		// 		fields[n] = v
-		// 	case bool:
-		// 		fields[n] = val
-		// 	case string:
-		// 		fields[n] = val
-		// 	case float32:
-		// 		fields[n] = float64(val)
-		// 	case float64:
-		// 		fields[n] = val
-		// 	default:
-		// 		log.Printf("unknown data type")
-		// 	}
-		// 	return nil
-		// })
 	}
+	// oleutil.ForEach(src, func(v *ole.VARIANT) error {
+	// 	defer v.Clear()
+
+	// 	if v.VT == 0x1 { //VT_NULL
+	// 		return nil
+	// 	}
+
+	// 	switch val := v.Value().(type) {
+	// 	case int8, int16, int32, int64, int:
+	// 		v := reflect.ValueOf(val).Int()
+	// 		fields[n] = v
+	// 	case uint8, uint16, uint32, uint64:
+	// 		v := reflect.ValueOf(val).Uint()
+	// 		fields[n] = v
+	// 	case bool:
+	// 		fields[n] = val
+	// 	case string:
+	// 		fields[n] = val
+	// 	case float32:
+	// 		fields[n] = float64(val)
+	// 	case float64:
+	// 		fields[n] = val
+	// 	default:
+	// 		log.Printf("unknown data type")
+	// 	}
+	// 	return nil
+	// })
 
 	return fields, nil
 }
 
 // loadEntity loads a SWbemObject into a struct pointer.
+// nolint
 func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismatch error) {
 	v := reflect.ValueOf(dst).Elem()
 	for i := 0; i < v.NumField(); i++ {
@@ -406,7 +410,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 		}
 		n := v.Type().Field(i).Name
 		if !f.CanSet() {
-			return &ErrFieldMismatch{
+			return &FieldMismatchError{
 				StructType: of.Type(),
 				FieldName:  n,
 				Reason:     "CanSet() is false",
@@ -415,7 +419,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 		prop, err := oleutil.GetProperty(src, n)
 		if err != nil {
 			if !c.AllowMissingFields {
-				errFieldMismatch = &ErrFieldMismatch{
+				errFieldMismatch = &FieldMismatchError{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "no such struct field",
@@ -423,7 +427,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			}
 			continue
 		}
-		defer prop.Clear()
+		defer prop.Clear() //nolint:errcheck
 
 		if prop.VT == 0x1 { // VT_NULL
 			continue
@@ -438,7 +442,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				f.SetUint(uint64(v))
 			default:
-				return &ErrFieldMismatch{
+				return &FieldMismatchError{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "not an integer class",
@@ -452,7 +456,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				f.SetUint(v)
 			default:
-				return &ErrFieldMismatch{
+				return &FieldMismatchError{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "not an integer class",
@@ -496,7 +500,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			case reflect.Bool:
 				f.SetBool(val)
 			default:
-				return &ErrFieldMismatch{
+				return &FieldMismatchError{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "not a bool",
@@ -507,7 +511,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 			case reflect.Float32:
 				f.SetFloat(float64(val))
 			default:
-				return &ErrFieldMismatch{
+				return &FieldMismatchError{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     "not a Float32",
@@ -550,7 +554,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 						f.Set(fArr)
 					}
 				default:
-					return &ErrFieldMismatch{
+					return &FieldMismatchError{
 						StructType: of.Type(),
 						FieldName:  n,
 						Reason:     fmt.Sprintf("unsupported slice type (%T)", val),
@@ -564,7 +568,7 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 					}
 					break
 				}
-				return &ErrFieldMismatch{
+				return &FieldMismatchError{
 					StructType: of.Type(),
 					FieldName:  n,
 					Reason:     fmt.Sprintf("unsupported type (%T)", val),
@@ -592,7 +596,7 @@ func checkMultiArg(v reflect.Value) (m multiArgType, elemType reflect.Type) {
 		return multiArgTypeInvalid, nil
 	}
 	elemType = v.Type().Elem()
-	switch elemType.Kind() {
+	switch elemType.Kind() { //nolint:exhaustive
 	case reflect.Struct:
 		return multiArgTypeStruct, elemType
 	case reflect.Ptr:
@@ -600,6 +604,7 @@ func checkMultiArg(v reflect.Value) (m multiArgType, elemType reflect.Type) {
 		if elemType.Kind() == reflect.Struct {
 			return multiArgTypeStructPtr, elemType
 		}
+	default:
 	}
 	return multiArgTypeInvalid, nil
 }
@@ -609,9 +614,9 @@ func oleInt64(item *ole.IDispatch, prop string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer v.Clear()
+	defer v.Clear() //nolint:errcheck
 
-	i := int64(v.Val)
+	i := v.Val
 	return i, nil
 }
 

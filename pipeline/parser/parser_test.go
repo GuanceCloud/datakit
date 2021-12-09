@@ -9,12 +9,10 @@ import (
 type parseCase struct {
 	in       string
 	expected *Ast
-	err      string
 	fail     bool
 }
 
 var parseCases = []*parseCase{
-
 	// case:
 	{
 		in: `f([2].x[3])`,
@@ -123,7 +121,6 @@ var parseCases = []*parseCase{
 				{
 					Name: "avg",
 					Param: []Node{
-
 						&AttrExpr{
 							Obj: &Identifier{Name: "x"},
 							Attr: &AttrExpr{
@@ -198,6 +195,7 @@ func TestParser(t *testing.T) {
 }
 
 func runCases(t *testing.T, cases []*parseCase) {
+	t.Helper()
 	for idx := len(cases) - 1; idx >= 0; idx-- {
 		tc := cases[idx]
 		node, err := ParsePipeline(tc.in)

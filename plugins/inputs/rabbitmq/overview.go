@@ -22,7 +22,7 @@ func getOverview(n *Input) {
 		return
 	}
 	tags := map[string]string{
-		"url":              n.Url,
+		"url":              n.URL,
 		"cluster_name":     overview.ClusterName,
 		"rabbitmq_version": overview.Version,
 	}
@@ -79,6 +79,7 @@ func (m *OverviewMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *OverviewMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: OverviewMetric,

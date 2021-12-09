@@ -81,7 +81,7 @@ func getBinName() string {
 }
 
 func runCmd(bin string, args ...string) (string, error) {
-	cmd := exec.Command(bin, args...)
+	cmd := exec.Command(bin, args...) //nolint:gosec
 	out, err := cmd.CombinedOutput()
 	return strings.TrimSpace(string(out)), err
 }

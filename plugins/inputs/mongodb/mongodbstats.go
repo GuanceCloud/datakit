@@ -34,7 +34,7 @@ type MongoStatus struct {
 	OplogStats   *OplogStats
 	ClusterStats *ClusterStats
 	ShardStats   *ShardStats
-	DbStats      *DbStats
+	DBStats      *DBStats
 	ColStats     *ColStats
 	TopStats     *TopStats
 	SampleTime   time.Time
@@ -70,20 +70,20 @@ type ServerStatus struct {
 	TCMallocStats      *TCMallocStats         `bson:"tcmalloc"`
 }
 
-// DbStats stores stats from all dbs.
-type DbStats struct {
-	Dbs []Db
+// DBStats stores stats from all dbs.
+type DBStats struct {
+	DBs []DB
 }
 
-// Db represent a single DB.
-type Db struct {
+// DB represent a single DB.
+type DB struct {
 	Name        string
-	DbStatsData *DbStatsData
+	DBStatsData *DBStatsData
 }
 
-// DbStatsData stores stats from a db.
-type DbStatsData struct {
-	Db          string      `bson:"db"`
+// DBStatsData stores stats from a db.
+type DBStatsData struct {
+	DB          string      `bson:"db"`
 	Collections int64       `bson:"collections"`
 	Objects     int64       `bson:"objects"`
 	AvgObjSize  float64     `bson:"avgObjSize"`
@@ -101,7 +101,7 @@ type ColStats struct {
 
 type Collection struct {
 	Name         string
-	DbName       string
+	DBName       string
 	ColStatsData *ColStatsData
 }
 
@@ -126,7 +126,7 @@ type ClusterStats struct {
 	JumboChunksCount int64
 }
 
-// OplogStatus stores information from getReplicationInfo.
+// OplogStats stores information from getReplicationInfo.
 type OplogStats struct {
 	TimeDiff int64
 }
@@ -642,7 +642,7 @@ type ShardHostStatLine struct {
 	Refreshing int64
 }
 
-type DbStatLine struct {
+type DBStatLine struct {
 	Name        string
 	Collections int64
 	Objects     int64
@@ -656,7 +656,7 @@ type DbStatLine struct {
 
 type ColStatLine struct {
 	Name           string
-	DbName         string
+	DBName         string
 	Count          int64
 	Size           int64
 	AvgObjSize     float64
@@ -825,7 +825,7 @@ type StatLine struct {
 	JumboChunksCount int64
 
 	// DB stats field
-	DbStatsLines []DbStatLine
+	DBStatsLines []DBStatLine
 
 	// Col Stats field
 	ColStatsLines []ColStatLine
@@ -911,6 +911,7 @@ func diff(newVal, oldVal, sampleTime int64) (int64, int64) {
 }
 
 // NewStatLine constructs a StatLine object from two MongoStatus objects.
+// nolint:funlen
 func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSecs int64) *StatLine {
 	oldStat := *oldMongo.ServerStatus
 	newStat := *newMongo.ServerStatus
@@ -1002,14 +1003,19 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 	if newStat.Metrics != nil && oldStat.Metrics != nil {
 		if newStat.Metrics.TTL != nil && oldStat.Metrics.TTL != nil {
 			returnVal.Passes, returnVal.PassesCnt = diff(newStat.Metrics.TTL.Passes, oldStat.Metrics.TTL.Passes, sampleSecs)
-			returnVal.DeletedDocuments, returnVal.DeletedDocumentsCnt = diff(newStat.Metrics.TTL.DeletedDocuments, oldStat.Metrics.TTL.DeletedDocuments, sampleSecs)
+			returnVal.DeletedDocuments, returnVal.DeletedDocumentsCnt = diff(newStat.Metrics.TTL.DeletedDocuments,
+				oldStat.Metrics.TTL.DeletedDocuments, sampleSecs)
 		}
 		if newStat.Metrics.Cursor != nil && oldStat.Metrics.Cursor != nil {
-			returnVal.TimedOutC, returnVal.TimedOutCCnt = diff(newStat.Metrics.Cursor.TimedOut, oldStat.Metrics.Cursor.TimedOut, sampleSecs)
+			returnVal.TimedOutC, returnVal.TimedOutCCnt = diff(newStat.Metrics.Cursor.TimedOut,
+				oldStat.Metrics.Cursor.TimedOut, sampleSecs)
 			if newStat.Metrics.Cursor.Open != nil && oldStat.Metrics.Cursor.Open != nil {
-				returnVal.NoTimeoutC, returnVal.NoTimeoutCCnt = diff(newStat.Metrics.Cursor.Open.NoTimeout, oldStat.Metrics.Cursor.Open.NoTimeout, sampleSecs)
-				returnVal.PinnedC, returnVal.PinnedCCnt = diff(newStat.Metrics.Cursor.Open.Pinned, oldStat.Metrics.Cursor.Open.Pinned, sampleSecs)
-				returnVal.TotalC, returnVal.TotalCCnt = diff(newStat.Metrics.Cursor.Open.Total, oldStat.Metrics.Cursor.Open.Total, sampleSecs)
+				returnVal.NoTimeoutC, returnVal.NoTimeoutCCnt = diff(newStat.Metrics.Cursor.Open.NoTimeout,
+					oldStat.Metrics.Cursor.Open.NoTimeout, sampleSecs)
+				returnVal.PinnedC, returnVal.PinnedCCnt = diff(newStat.Metrics.Cursor.Open.Pinned,
+					oldStat.Metrics.Cursor.Open.Pinned, sampleSecs)
+				returnVal.TotalC, returnVal.TotalCCnt = diff(newStat.Metrics.Cursor.Open.Total,
+					oldStat.Metrics.Cursor.Open.Total, sampleSecs)
 			}
 		}
 		if newStat.Metrics.Document != nil {
@@ -1100,19 +1106,27 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 	}
 
 	if newStat.OpcountersRepl != nil && oldStat.OpcountersRepl != nil {
-		returnVal.InsertR, returnVal.InsertRCnt = diff(newStat.OpcountersRepl.Insert, oldStat.OpcountersRepl.Insert, sampleSecs)
-		returnVal.QueryR, returnVal.QueryRCnt = diff(newStat.OpcountersRepl.Query, oldStat.OpcountersRepl.Query, sampleSecs)
-		returnVal.UpdateR, returnVal.UpdateRCnt = diff(newStat.OpcountersRepl.Update, oldStat.OpcountersRepl.Update, sampleSecs)
-		returnVal.DeleteR, returnVal.DeleteRCnt = diff(newStat.OpcountersRepl.Delete, oldStat.OpcountersRepl.Delete, sampleSecs)
-		returnVal.GetMoreR, returnVal.GetMoreRCnt = diff(newStat.OpcountersRepl.GetMore, oldStat.OpcountersRepl.GetMore, sampleSecs)
-		returnVal.CommandR, returnVal.CommandRCnt = diff(newStat.OpcountersRepl.Command, oldStat.OpcountersRepl.Command, sampleSecs)
+		returnVal.InsertR, returnVal.InsertRCnt = diff(newStat.OpcountersRepl.Insert,
+			oldStat.OpcountersRepl.Insert, sampleSecs)
+		returnVal.QueryR, returnVal.QueryRCnt = diff(newStat.OpcountersRepl.Query,
+			oldStat.OpcountersRepl.Query, sampleSecs)
+		returnVal.UpdateR, returnVal.UpdateRCnt = diff(newStat.OpcountersRepl.Update,
+			oldStat.OpcountersRepl.Update, sampleSecs)
+		returnVal.DeleteR, returnVal.DeleteRCnt = diff(newStat.OpcountersRepl.Delete,
+			oldStat.OpcountersRepl.Delete, sampleSecs)
+		returnVal.GetMoreR, returnVal.GetMoreRCnt = diff(newStat.OpcountersRepl.GetMore,
+			oldStat.OpcountersRepl.GetMore, sampleSecs)
+		returnVal.CommandR, returnVal.CommandRCnt = diff(newStat.OpcountersRepl.Command,
+			oldStat.OpcountersRepl.Command, sampleSecs)
 	}
 
 	returnVal.CacheDirtyPercent = -1
 	returnVal.CacheUsedPercent = -1
 	if newStat.WiredTiger != nil {
-		returnVal.CacheDirtyPercent = float64(newStat.WiredTiger.Cache.TrackedDirtyBytes) / float64(newStat.WiredTiger.Cache.MaxBytesConfigured)
-		returnVal.CacheUsedPercent = float64(newStat.WiredTiger.Cache.CurrentCachedBytes) / float64(newStat.WiredTiger.Cache.MaxBytesConfigured)
+		returnVal.CacheDirtyPercent = float64(newStat.WiredTiger.Cache.TrackedDirtyBytes) /
+			float64(newStat.WiredTiger.Cache.MaxBytesConfigured)
+		returnVal.CacheUsedPercent = float64(newStat.WiredTiger.Cache.CurrentCachedBytes) /
+			float64(newStat.WiredTiger.Cache.MaxBytesConfigured)
 
 		returnVal.TrackedDirtyBytes = newStat.WiredTiger.Cache.TrackedDirtyBytes
 		returnVal.CurrentCachedBytes = newStat.WiredTiger.Cache.CurrentCachedBytes
@@ -1137,14 +1151,15 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 		returnVal.FlushesTotalTime = newStat.WiredTiger.Transaction.TransCheckpointsTotalTimeMsecs * int64(time.Millisecond)
 	}
 	if newStat.WiredTiger != nil && oldStat.WiredTiger != nil {
-		returnVal.Flushes, returnVal.FlushesCnt = diff(newStat.WiredTiger.Transaction.TransCheckpoints, oldStat.WiredTiger.Transaction.TransCheckpoints, sampleSecs)
+		returnVal.Flushes, returnVal.FlushesCnt = diff(newStat.WiredTiger.Transaction.TransCheckpoints,
+			oldStat.WiredTiger.Transaction.TransCheckpoints, sampleSecs)
 	} else if newStat.BackgroundFlushing != nil && oldStat.BackgroundFlushing != nil {
-		returnVal.Flushes, returnVal.FlushesCnt = diff(newStat.BackgroundFlushing.Flushes, oldStat.BackgroundFlushing.Flushes, sampleSecs)
+		returnVal.Flushes, returnVal.FlushesCnt = diff(newStat.BackgroundFlushing.Flushes,
+			oldStat.BackgroundFlushing.Flushes, sampleSecs)
 	}
 
 	returnVal.Time = newMongo.SampleTime
-	returnVal.IsMongos =
-		newStat.ShardCursorType != nil || strings.HasPrefix(newStat.Process, MongosProcess)
+	returnVal.IsMongos = newStat.ShardCursorType != nil || strings.HasPrefix(newStat.Process, MongosProcess)
 
 	// BEGIN code modification
 	if oldStat.Mem.Supported.(bool) {
@@ -1166,13 +1181,14 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 			returnVal.ReplSetName = setName
 		}
 		// BEGIN code modification
-		if newStat.Repl.IsMaster.(bool) {
+		switch {
+		case newStat.Repl.IsMaster.(bool):
 			returnVal.NodeType = "PRI"
-		} else if newStat.Repl.Secondary != nil && newStat.Repl.Secondary.(bool) {
+		case newStat.Repl.Secondary != nil && newStat.Repl.Secondary.(bool):
 			returnVal.NodeType = "SEC"
-		} else if newStat.Repl.ArbiterOnly != nil && newStat.Repl.ArbiterOnly.(bool) {
+		case newStat.Repl.ArbiterOnly != nil && newStat.Repl.ArbiterOnly.(bool):
 			returnVal.NodeType = "ARB"
-		} else {
+		default:
 			returnVal.NodeType = "UNK"
 		} // END code modification
 	} else if returnVal.IsMongos {
@@ -1193,12 +1209,18 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 			// Check if it's a 3.0+ MMAP server so we can still compute collection locks
 			collectionCheck, hasCollection := oldStat.Locks["Collection"]
 			if hasCollection && collectionCheck.AcquireWaitCount != nil {
-				readWaitCountDiff := newStat.Locks["Collection"].AcquireWaitCount.Read - oldStat.Locks["Collection"].AcquireWaitCount.Read
-				readTotalCountDiff := newStat.Locks["Collection"].AcquireCount.Read - oldStat.Locks["Collection"].AcquireCount.Read
-				writeWaitCountDiff := newStat.Locks["Collection"].AcquireWaitCount.Write - oldStat.Locks["Collection"].AcquireWaitCount.Write
-				writeTotalCountDiff := newStat.Locks["Collection"].AcquireCount.Write - oldStat.Locks["Collection"].AcquireCount.Write
-				readAcquireTimeDiff := newStat.Locks["Collection"].TimeAcquiringMicros.Read - oldStat.Locks["Collection"].TimeAcquiringMicros.Read
-				writeAcquireTimeDiff := newStat.Locks["Collection"].TimeAcquiringMicros.Write - oldStat.Locks["Collection"].TimeAcquiringMicros.Write
+				readWaitCountDiff := newStat.Locks["Collection"].AcquireWaitCount.Read -
+					oldStat.Locks["Collection"].AcquireWaitCount.Read
+				readTotalCountDiff := newStat.Locks["Collection"].AcquireCount.Read -
+					oldStat.Locks["Collection"].AcquireCount.Read
+				writeWaitCountDiff := newStat.Locks["Collection"].AcquireWaitCount.Write -
+					oldStat.Locks["Collection"].AcquireWaitCount.Write
+				writeTotalCountDiff := newStat.Locks["Collection"].AcquireCount.Write -
+					oldStat.Locks["Collection"].AcquireCount.Write
+				readAcquireTimeDiff := newStat.Locks["Collection"].TimeAcquiringMicros.Read -
+					oldStat.Locks["Collection"].TimeAcquiringMicros.Read
+				writeAcquireTimeDiff := newStat.Locks["Collection"].TimeAcquiringMicros.Write -
+					oldStat.Locks["Collection"].TimeAcquiringMicros.Write
 				returnVal.CollectionLocks = &CollectionLockStatus{
 					ReadAcquireWaitsPercentage:  percentageInt64(readWaitCountDiff, readTotalCountDiff),
 					WriteAcquireWaitsPercentage: percentageInt64(writeWaitCountDiff, writeTotalCountDiff),
@@ -1254,8 +1276,12 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 		// If we have wiredtiger stats, use those instead
 		if newStat.GlobalLock.CurrentQueue != nil {
 			if hasWT {
-				returnVal.QueuedReaders = newStat.GlobalLock.CurrentQueue.Readers + newStat.GlobalLock.ActiveClients.Readers - newStat.WiredTiger.Concurrent.Read.Out
-				returnVal.QueuedWriters = newStat.GlobalLock.CurrentQueue.Writers + newStat.GlobalLock.ActiveClients.Writers - newStat.WiredTiger.Concurrent.Write.Out
+				returnVal.QueuedReaders = newStat.GlobalLock.CurrentQueue.Readers +
+					newStat.GlobalLock.ActiveClients.Readers -
+					newStat.WiredTiger.Concurrent.Read.Out
+				returnVal.QueuedWriters = newStat.GlobalLock.CurrentQueue.Writers +
+					newStat.GlobalLock.ActiveClients.Writers -
+					newStat.WiredTiger.Concurrent.Write.Out
 				if returnVal.QueuedReaders < 0 {
 					returnVal.QueuedReaders = 0
 				}
@@ -1340,16 +1366,16 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 		returnVal.OplogStats = newMongo.OplogStats
 	}
 
-	if newMongo.DbStats != nil {
-		newDbStats := *newMongo.DbStats
-		for _, db := range newDbStats.Dbs {
-			dbStatsData := db.DbStatsData
+	if newMongo.DBStats != nil {
+		newDBStats := *newMongo.DBStats
+		for _, db := range newDBStats.DBs {
+			dbStatsData := db.DBStatsData
 			// mongos doesn't have the db key, so setting the db name
-			if dbStatsData.Db == "" {
-				dbStatsData.Db = db.Name
+			if dbStatsData.DB == "" {
+				dbStatsData.DB = db.Name
 			}
-			dbStatLine := &DbStatLine{
-				Name:        dbStatsData.Db,
+			dbStatLine := &DBStatLine{
+				Name:        dbStatsData.DB,
 				Collections: dbStatsData.Collections,
 				Objects:     dbStatsData.Objects,
 				AvgObjSize:  dbStatsData.AvgObjSize,
@@ -1359,7 +1385,7 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 				IndexSize:   dbStatsData.IndexSize,
 				Ok:          dbStatsData.Ok,
 			}
-			returnVal.DbStatsLines = append(returnVal.DbStatsLines, *dbStatLine)
+			returnVal.DBStatsLines = append(returnVal.DBStatsLines, *dbStatLine)
 		}
 	}
 
@@ -1372,7 +1398,7 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 			}
 			colStatLine := &ColStatLine{
 				Name:           colStatsData.Collection,
-				DbName:         col.DbName,
+				DBName:         col.DBName,
 				Count:          colStatsData.Count,
 				Size:           colStatsData.Size,
 				AvgObjSize:     colStatsData.AvgObjSize,

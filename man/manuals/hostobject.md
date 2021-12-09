@@ -24,17 +24,18 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
 
-| 环境变量名                                           | 对应的配置参数项                | 参数示例       |
-| :---                                                 | ---                             | ---            |
-| `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | `true`/`false` |
+| 环境变量名                                           | 对应的配置参数项                | 参数示例                                                     |
+| :---                                                 | ---                             | ---                                                          |
+| `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | `true`/`false`                                               |
+| `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
 
 ## 开启云同步
 
-如果 DataKit 所在的主机是云主机（目前支持阿里云、腾讯云以及 AWS），那么可通过 `cloud_provider` 标签开启云同步：
+如果 DataKit 所在的主机是云主机（目前支持阿里云/腾讯云/AWS/华为云/微软云），那么可通过 `cloud_provider` 标签开启云同步：
 
 ```toml
 [inputs.hostobject.tags]
-	# 此处目前支持 aliyun/tencent/aws 三种
+	# 此处目前支持 aliyun/tencent/aws/hwcloud/azure 几种
 	cloud_provider = "aliyun"
 ```
 
@@ -97,6 +98,7 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 		"disk": ...,
 		"conntrack": ...,
 		"filefd": ...,
+        "election": ...,
 		},
 
 	"collectors": [ # 各个采集器的运行情况
@@ -157,6 +159,16 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `total`      | 磁盘总大小   | int    |
 | `mountpoint` | 挂载点       | string |
 | `fstype`     | 文件系统类型 | string |
+
+#### `host.election`
+
+> 注意：当配置文件中 `enable_election`选项关闭时，该字段为null
+
+| 字段名       | 描述         | 类型   |
+| ---          | ----         |:---:   |
+| `elected`     | 选举状态      | string |
+| `namespace`     | 选举空间      | string |
+
 
 #### `host.conntrack`
 

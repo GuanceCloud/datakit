@@ -44,7 +44,7 @@ func cmdMan() {
 	p.Run()
 }
 
-func exportMan(to, skipList, ver string) error {
+func exportMan(to, skipList, ver string, disableMono bool) error {
 	if err := os.MkdirAll(to, os.ModePerm); err != nil {
 		return err
 	}
@@ -60,7 +60,13 @@ func exportMan(to, skipList, ver string) error {
 			continue
 		}
 
-		data, err := man.BuildMarkdownManual(k, &man.Option{ManVersion: ver, WithCSS: false, IgnoreMissing: true})
+		data, err := man.BuildMarkdownManual(k,
+			&man.Option{
+				ManVersion:                    ver,
+				WithCSS:                       false,
+				IgnoreMissing:                 true,
+				DisableMonofontOnTagFieldName: disableMono,
+			})
 		if err != nil {
 			return err
 		}
@@ -81,16 +87,19 @@ func exportMan(to, skipList, ver string) error {
 
 		data, err := man.BuildMarkdownManual(k, &man.Option{ManVersion: ver, WithCSS: false})
 		if err != nil {
-			return err
+			l.Fatalf("BuildMarkdownManual: %s", err)
 		}
 
 		if len(data) == 0 {
+			l.Warnf("no data in %s, ignored", k)
 			continue
 		}
 
 		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), data, os.ModePerm); err != nil {
 			return err
 		}
+
+		l.Infof("export %s to %s ok", k+".md", to)
 	}
 
 	return nil

@@ -1,6 +1,8 @@
 package cmds
 
 import (
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/influxdata/toml"
@@ -21,8 +23,8 @@ func checkInputCfg(tpl *ast.Table, fp string) {
 	var err error
 
 	if len(tpl.Fields) == 0 {
-		warnf("[E] no content in %s\n", fp)
-		failed++
+		warnf("[W] no content in %s\n", fp)
+		ignored++
 		return
 	}
 
@@ -60,13 +62,17 @@ func checkInputCfg(tpl *ast.Table, fp string) {
 }
 
 // check samples of every inputs.
-func checkSample() {
+func checkSample() error {
 	start := time.Now()
+	failed = 0
+	unknown = 0
+	passed = 0
+	ignored = 0
 
 	for k, c := range inputs.Inputs {
 		i := c()
 
-		if k == "self" {
+		if k == datakit.DatakitInputName {
 			warnf("[W] ignore self input\n")
 			ignored++
 			continue
@@ -86,16 +92,26 @@ func checkSample() {
 		len(inputs.Inputs), ignored, passed, failed, unknown)
 
 	infof("cost %v\n", time.Since(start))
+
+	if failed > 0 {
+		return fmt.Errorf("load %d sample failed", failed)
+	}
+	return nil
 }
 
-func checkConfig() {
+func checkConfig(dir, suffix string) error {
 	start := time.Now()
-	fps := config.SearchDir(datakit.ConfdDir, ".conf")
+	fps := config.SearchDir(dir, suffix)
+
+	failed = 0
+	unknown = 0
+	passed = 0
+	ignored = 0
 
 	for _, fp := range fps {
 		tpl, err := config.ParseCfgFile(fp)
 		if err != nil {
-			errorf("[E] failed to parse %s: %s", fp, err.Error())
+			errorf("[E] failed to parse %s: %s, %s", fp, err.Error(), reflect.TypeOf(err))
 			failed++
 		} else {
 			checkInputCfg(tpl, fp)
@@ -107,4 +123,10 @@ func checkConfig() {
 		len(fps), ignored, passed, failed, unknown)
 
 	infof("cost %v\n", time.Since(start))
+
+	if failed > 0 {
+		return fmt.Errorf("load %d conf failed", failed)
+	}
+
+	return nil
 }

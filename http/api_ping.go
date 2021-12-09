@@ -14,5 +14,5 @@ type ping struct {
 }
 
 func apiPing(c *gin.Context) {
-	ErrOK.HttpBody(c, &ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(uptime))})
+	OK.HttpBody(c, &ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(uptime))})
 }

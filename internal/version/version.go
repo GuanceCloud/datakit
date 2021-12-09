@@ -1,3 +1,4 @@
+// Package version implements datakit's version parsing/compare
 package version
 
 import (
@@ -19,6 +20,7 @@ type VerInfo struct {
 	min   uint64
 	rc    string
 	build uint64
+	tag   string
 }
 
 func (vi *VerInfo) Compare(i *VerInfo) int {
@@ -89,8 +91,13 @@ func (vi *VerInfo) parseNumbers(s string) error {
 
 //nolint:gomnd
 func (vi *VerInfo) Parse() error {
+	arr := strings.Split(vi.VersionString, "_")
+	if len(arr) >= 2 {
+		vi.tag = arr[1]
+	}
+
 	// older version has prefix `v', this crash semver.Parse()
-	verstr := strings.TrimPrefix(vi.VersionString, "v")
+	verstr := strings.TrimPrefix(arr[0], "v")
 
 	parts := strings.Split(verstr, "-")
 	switch len(parts) {
@@ -121,7 +128,7 @@ func (vi *VerInfo) Parse() error {
 		return nil
 	}
 
-	return fmt.Errorf("unknown version string %s", verstr)
+	return fmt.Errorf("invalid version string %s", vi.VersionString)
 }
 
 func IsNewVersion(newVer, curver *VerInfo, acceptRC bool) bool {

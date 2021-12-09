@@ -3,21 +3,27 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
 
 	flag "github.com/spf13/pflag"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/includefiles/pythond"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -44,6 +50,7 @@ func init() { //nolint:gochecknoinits
 	// manuals related
 	flag.BoolVar(&cmds.FlagMan, "man", false, "read manuals of inputs")
 	flag.StringVar(&cmds.FlagExportMan, "export-manuals", "", "export all inputs and related manuals to specified path")
+	flag.BoolVar(&cmds.FlagDisableTFMono, "disable-tf-mono", false, "use normal font on tag/field")
 	flag.StringVar(&cmds.FlagIgnore, "ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flag.StringVar(&cmds.FlagExportIntegration, "export-integration", "", "export all integrations")
 	flag.StringVar(&cmds.FlagManVersion, "man-version", datakit.Version, "specify manuals version")
@@ -56,7 +63,7 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&cmds.FlagStart, "start", false, "start datakit")
 	flag.BoolVar(&cmds.FlagStop, "stop", false, "stop datakit")
 	flag.BoolVar(&cmds.FlagRestart, "restart", false, "restart datakit")
-	flag.BoolVar(&cmds.FlagApiRestart, "api-restart", false, "restart datakit for api only")
+	flag.BoolVar(&cmds.FlagAPIRestart, "api-restart", false, "restart datakit for api only")
 	flag.BoolVar(&cmds.FlagStatus, "status", false, "show datakit service status")
 	flag.BoolVar(&cmds.FlagUninstall, "uninstall", false, "uninstall datakit service(not delete DataKit files)")
 	flag.BoolVar(&cmds.FlagReinstall, "reinstall", false, "re-install datakit service")
@@ -86,6 +93,7 @@ func init() { //nolint:gochecknoinits
 	}
 
 	flag.BoolVar(&cmds.FlagCheckConfig, "check-config", false, "check inputs configure and main configure")
+	flag.StringVar(&cmds.FlagConfigDir, "config-dir", "", "check configures under specified path")
 	flag.BoolVar(&cmds.FlagCheckSample, "check-sample", false, "check inputs configure samples")
 	flag.BoolVar(&cmds.FlagVVV, "vvv", false, "more verbose info")
 	flag.StringVar(&cmds.FlagCmdLogPath, "cmd-log", "/dev/null", "command line log path")
@@ -95,14 +103,16 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&io.DisableDatawayList, "disable-dataway-list", false, "disable list available dataway")
 	flag.BoolVar(&io.DisableLogFilter, "disable-logfilter", false, "disable logfilter")
 	flag.BoolVar(&io.DisableHeartbeat, "disable-heartbeat", false, "disable heartbeat")
+
+	flag.BoolVar(&cmds.FlagUploadLog, "upload-log", false, "upload log")
 }
 
 var (
 	l = logger.DefaultSLogger("main")
 
 	// injected during building: -X.
-	ReleaseType    = ""
-	ReleaseVersion = ""
+	InputsReleaseType = ""
+	ReleaseVersion    = ""
 )
 
 func setupFlags() {
@@ -138,7 +148,6 @@ func setupFlags() {
 
 func main() {
 	datakit.Version = ReleaseVersion
-
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
 	}
@@ -154,6 +163,9 @@ func main() {
 
 	tryLoadConfig()
 
+	tracer.Start()
+	defer tracer.Stop()
+
 	datakit.SetLog()
 
 	if cmds.FlagDocker {
@@ -163,11 +175,11 @@ func main() {
 	} else {
 		go cgroup.Run()
 		service.Entry = run
-
 		if cmds.FlagWorkDir != "" { // debugging running, not start as service
 			run()
 		} else if err := service.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
+
 			return
 		}
 	}
@@ -182,14 +194,14 @@ func applyFlags() {
 		datakit.SetWorkDir(cmds.FlagWorkDir)
 	}
 
-	datakit.EnableUncheckInputs = (ReleaseType == "all")
+	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
 
 	if cmds.FlagDocker {
 		datakit.Docker = true
 	}
 
 	cmds.ReleaseVersion = ReleaseVersion
-	cmds.ReleaseType = ReleaseType
+	cmds.InputsReleaseType = InputsReleaseType
 
 	cmds.RunCmds()
 }
@@ -241,6 +253,29 @@ func tryLoadConfig() {
 	}
 
 	l = logger.SLogger("main")
+
+	l.Infof("datakit run ID: %s", cliutils.XID("dkrun_"))
+}
+
+func initPythonCore() error {
+	// remove core dir
+	if err := os.RemoveAll(datakit.PythonCoreDir); err != nil {
+		return err
+	}
+
+	// generate new core dir
+	if err := os.MkdirAll(datakit.PythonCoreDir, datakit.ConfPerm); err != nil {
+		return err
+	}
+
+	for k, v := range pythond.PythonDCoreFiles {
+		bFile := filepath.Join(datakit.PythonCoreDir, k)
+		if err := ioutil.WriteFile(bFile, []byte(v), datakit.ConfPerm); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func doRun() error {
@@ -252,12 +287,24 @@ func doRun() error {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
-	if err := inputs.RunInputs(); err != nil {
-		l.Error("error running inputs: %v", err)
+	if err := initPythonCore(); err != nil {
+		l.Errorf("initPythonCore failed: %v", err)
 		return err
 	}
 
-	// FIXME: wait all inputs ok, then start http server
+	if config.GitHasEnabled() {
+		if err := gitrepo.StartPull(); err != nil {
+			l.Errorf("gitrepo.StartPull failed: %v", err)
+			return err
+		}
+	} else {
+		if err := inputs.RunInputs(false); err != nil {
+			l.Error("error running inputs: %v", err)
+			return err
+		}
+	}
+
+	// NOTE: Should we wait all inputs ok, then start http server?
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
 		DCAConfig:      config.Cfg.DCAConfig,

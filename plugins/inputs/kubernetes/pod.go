@@ -1,22 +1,28 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	corev1 "k8s.io/api/core/v1"
+	kubev1core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const kubernetesPodName = "kubernetes_pods"
 
+type podclient interface {
+	getPods(namespace string) kubev1core.PodInterface
+}
+
 type pod struct {
-	client interface {
-		getPods() (*corev1.PodList, error)
-	}
+	client    podclient
 	tags      map[string]string
 	discovery *Discovery
 }
@@ -25,7 +31,7 @@ func (p *pod) Gather() {
 	start := time.Now()
 	var pts []*io.Point
 
-	list, err := p.client.getPods()
+	list, err := p.client.getPods("").List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get pods resource: %s", err)
 		return
@@ -66,7 +72,7 @@ func (p *pod) Gather() {
 		}
 
 		fields := map[string]interface{}{
-			"age":         int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":         int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"ready":       containerReadyCount,
 			"availale":    containerAllCount,
 			"create_time": obj.CreationTimestamp.Time.Unix(),
@@ -106,14 +112,14 @@ func (p *pod) Gather() {
 	}
 }
 
-const annotationExportKey = "datakit/prom.instances"
-
 func (p *pod) Export() {
 	if p.discovery == nil {
 		p.discovery = NewDiscovery()
 	}
 
-	list, err := p.client.getPods()
+	l.Debug("k8s export")
+
+	list, err := p.client.getPods("").List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get pods resource: %s", err)
 		return
@@ -122,19 +128,56 @@ func (p *pod) Export() {
 	p.run(list)
 }
 
-func (p *pod) run(list *corev1.PodList) {
-	for _, obj := range list.Items {
-		config, ok := obj.Annotations[annotationExportKey]
-		if !ok {
-			continue
-		}
-		config = strings.ReplaceAll(config, "$IP", obj.Status.PodIP)
-		config = strings.ReplaceAll(config, "$NAMESPACE", obj.Namespace)
-		config = strings.ReplaceAll(config, "$PODNAME", obj.Name)
+const (
+	annotationPromExport  = "datakit/prom.instances"
+	annotationPromIPIndex = "datakit/prom.instances.ip_index"
 
-		if err := p.discovery.TryRun("prom", config); err != nil {
-			l.Warn(err)
-		}
+	annotationPodLogging = "datakit/pod.logging"
+)
+
+func (p *pod) run(list *corev1.PodList) {
+	for idx, obj := range list.Items {
+		func() {
+			config, ok := obj.Annotations[annotationPromExport]
+			if !ok {
+				return
+			}
+			l.Info("k8s export, find prom export")
+			if !shouldForkInput(obj.Spec.NodeName) {
+				l.Debugf("should not fork input, pod-nodeName:%s", obj.Spec.NodeName)
+				return
+			}
+
+			config = complatePromConfig(config, &list.Items[idx])
+			if err := p.discovery.TryRun("prom", config); err != nil {
+				l.Warn(err)
+			}
+		}()
+
+		func() {
+			config, ok := obj.Annotations[annotationPodLogging]
+			if !ok {
+				return
+			}
+			l.Infof("k8s export, find podlogging, namespace:%s, UID:%s", obj.Namespace, string(obj.UID))
+			exist, md5Str := p.discovery.IsExist(string(obj.UID))
+			if exist {
+				return
+			}
+
+			podlog := podlogging{}
+			if err := toml.Unmarshal([]byte(config), &podlog); err != nil {
+				l.Errorf("podlogging config unmarshal err: %s", err)
+				return
+			}
+
+			p.discovery.addList(md5Str)
+
+			go func(namespace, name string) {
+				l.Infof("discovery: add podlogging, namespace:%s, podName:%s", namespace, name)
+				podlog.run(p.client, namespace, name)
+			}(obj.Namespace, obj.Name)
+		}()
 	}
 }
 
@@ -144,6 +187,7 @@ func (*pod) Resource() { /*empty interface*/ }
 
 func (*pod) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*pod) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesPodName,
@@ -169,4 +213,31 @@ func (*pod) Info() *inputs.MeasurementInfo {
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
 		},
 	}
+}
+
+func complatePromConfig(config string, podObj *corev1.Pod) string {
+	podIP := podObj.Status.PodIP
+
+	func() {
+		indexStr, ok := podObj.Annotations[annotationPromIPIndex]
+		if !ok {
+			return
+		}
+		idx, err := strconv.Atoi(indexStr)
+		if err != nil {
+			l.Warnf("annotation prom.ip_index parse err: %s", err)
+			return
+		}
+		if !(0 <= idx && idx < len(podObj.Status.PodIPs)) {
+			l.Warnf("annotation prom.ip_index %d outrange, len(PodIPs) %d", idx, len(podObj.Status.PodIPs))
+			return
+		}
+		podIP = podObj.Status.PodIPs[idx].IP
+	}()
+
+	config = strings.ReplaceAll(config, "$IP", podIP)
+	config = strings.ReplaceAll(config, "$NAMESPACE", podObj.Namespace)
+	config = strings.ReplaceAll(config, "$PODNAME", podObj.Name)
+
+	return config
 }

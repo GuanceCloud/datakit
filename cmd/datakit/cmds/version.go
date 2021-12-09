@@ -98,7 +98,7 @@ ReleasedInputs: %s
 			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
 				k, v.VersionString, v.Commit, v.ReleaseDate)
 
-			fmt.Println(getUpgradeCommand(v.DownloadURL, k == "Testing"))
+			fmt.Println(getUpgradeCommand(v.DownloadURL))
 		}
 	}
 }
@@ -108,9 +108,9 @@ const (
 	TestingBaseURL = "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit"
 )
 
-func getUpgradeCommand(dlurl string, showTesting bool) string {
-	proxy := config.Cfg.DataWay.HttpProxy
-	var upgradeCmd, baseURLEnv string
+func getUpgradeCommand(dlurl string) string {
+	proxy := config.Cfg.DataWay.HTTPProxy
+	var upgradeCmd string
 
 	switch runtime.GOOS {
 	case datakit.OSWindows:
@@ -120,8 +120,6 @@ func getUpgradeCommand(dlurl string, showTesting bool) string {
 			upgradeCmd = fmt.Sprintf(winUpgradeCmd, dlurl)
 		}
 
-		baseURLEnv = fmt.Sprintf(`$env:DK_INSTALLER_BASE_URL="https://%s"; `, TestingBaseURL)
-
 	default: // Linux/Mac
 
 		if proxy != "" {
@@ -129,13 +127,6 @@ func getUpgradeCommand(dlurl string, showTesting bool) string {
 		} else {
 			upgradeCmd = fmt.Sprintf(unixUpgradeCmd, dlurl)
 		}
-
-		baseURLEnv = fmt.Sprintf(`DK_INSTALLER_BASE_URL="https://%s" `, TestingBaseURL)
-	}
-
-	// for testing version upgrade command, we need to change the base URL
-	if showTesting && baseURLEnv != "" {
-		upgradeCmd = baseURLEnv + upgradeCmd
 	}
 
 	return upgradeCmd

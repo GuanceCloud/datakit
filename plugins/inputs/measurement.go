@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"testing"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -176,4 +177,40 @@ func sortMapKey(m map[string]interface{}) (res []string) {
 	}
 	sort.Strings(res)
 	return
+}
+
+// used to test all measurements tags/fields
+func BuildTags(t *testing.T, ti map[string]interface{}) map[string]string {
+	t.Helper()
+	x := map[string]string{}
+	for k := range ti {
+		x[k] = k + "-tag-val"
+	}
+	return x
+}
+
+func BuildFields(t *testing.T, fi map[string]interface{}) map[string]interface{} {
+	t.Helper()
+	x := map[string]interface{}{}
+	for k, v := range fi {
+		switch _v := v.(type) {
+		case *FieldInfo:
+			switch _v.DataType {
+			case Float:
+				x[k] = 1.23
+			case Int:
+				x[k] = 123
+			case String:
+				x[k] = "abc123"
+			case Bool:
+				x[k] = false
+			default:
+				t.Errorf("invalid data field for field: %s", k)
+			}
+
+		default:
+			t.Errorf("expect *FieldInfo")
+		}
+	}
+	return x
 }

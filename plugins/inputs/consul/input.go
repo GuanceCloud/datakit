@@ -1,7 +1,10 @@
+// Package consul collect consul metrics by using input prom
+//nolint:lll
 package consul
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -54,24 +57,33 @@ drop_origin_data()
 `
 )
 
-type Input struct{}
+type Input struct { // keep compatible with old version's conf
+	Log *inputs.XLog `toml:"log"`
 
-func (i *Input) Catalog() string {
-	return "consul"
+	TokenDeprecated      string `toml:"token,omitempty"`
+	AddressDeprecated    string `toml:"address,omitempty"`
+	SchemeDeprecated     string `toml:"scheme,omitempty"`
+	UsernameDeprecated   string `toml:"username,omitempty"`
+	PasswordDeprecated   string `toml:"password,omitempty"`
+	DatacenterDeprecated string `toml:"datacenter,omitempty"`
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) Catalog() string {
+	return inputName
+}
+
+func (*Input) SampleConfig() string {
 	return configSample
 }
 
-func (i *Input) Run() {
+func (*Input) Run() {
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&HostMeasurement{},
 		&ServiceMeasurement{},
@@ -80,17 +92,27 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"consul": pipelineCfg,
+		inputName: pipelineCfg,
 	}
 	return pipelineMap
 }
 
-func (i *Input) RunPipeline() {
+func (ipt *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: ipt.Log.Pipeline,
+		},
+	}
 }
 
-func init() {
+func (*Input) RunPipeline() {
+}
+
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

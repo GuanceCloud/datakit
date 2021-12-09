@@ -5,13 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type commandMeasurement struct {
-	client  *redis.Client
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
@@ -23,6 +21,7 @@ func (m *commandMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_command_stat",

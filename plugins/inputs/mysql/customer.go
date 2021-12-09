@@ -46,18 +46,12 @@ func (i *Input) customSchemaMeasurement() ([]inputs.Measurement, error) {
 			return nil, err
 		}
 
-		x, err := i.handleResponse(item, resMap)
-		if err != nil {
-			return nil, err
-		}
-
-		ms = append(ms, x...)
+		ms = append(ms, i.handleResponse(item, resMap)...)
 	}
 	return ms, nil
 }
 
-func (i *Input) handleResponse(qy *customQuery,
-	resMap []map[string]interface{}) ([]inputs.Measurement, error) {
+func (i *Input) handleResponse(qy *customQuery, resMap []map[string]interface{}) []inputs.Measurement {
 	ms := []inputs.Measurement{}
 
 	for _, item := range resMap {
@@ -106,7 +100,7 @@ func (i *Input) handleResponse(qy *customQuery,
 		}
 	}
 
-	return ms, nil
+	return ms
 }
 
 func (i *Input) query(sql string) ([]map[string]interface{}, error) {
@@ -114,7 +108,10 @@ func (i *Input) query(sql string) ([]map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close() //nolint:errcheck
+		_ = rows.Err()   //nolint:errcheck
+	}()
 
 	columns, _ := rows.Columns()
 	columnLength := len(columns)
@@ -137,7 +134,11 @@ func (i *Input) query(sql string) ([]map[string]interface{}, error) {
 
 				switch vType.String() {
 				case "int64":
-					item[key] = val.(int64)
+					if v, ok := val.(int64); ok {
+						item[key] = v
+					} else {
+						l.Warn("expect int64, ignored")
+					}
 				case "string":
 					var data interface{}
 					data, err := strconv.ParseFloat(val.(string), 64)
@@ -146,11 +147,15 @@ func (i *Input) query(sql string) ([]map[string]interface{}, error) {
 					}
 					item[key] = data
 				case "time.Time":
-					item[key] = val.(time.Time)
+					if v, ok := val.(time.Time); ok {
+						item[key] = v
+					} else {
+						l.Warn("expect time.Time, ignored")
+					}
 				case "[]uint8":
 					item[key] = string(val.([]uint8))
 				default:
-					return nil, fmt.Errorf("unsupport data type '%s' now\n", vType)
+					return nil, fmt.Errorf("unsupport data type '%s'", vType)
 				}
 			}
 		}

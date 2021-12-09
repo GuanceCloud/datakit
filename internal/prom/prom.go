@@ -1,3 +1,4 @@
+// Package prom used to parsing promemetheuse exportor metrics.
 package prom
 
 import (
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -38,6 +38,7 @@ type Option struct {
 	CertFile          string   `toml:"tls_cert"`
 	KeyFile           string   `toml:"tls_key"`
 
+	Auth     map[string]string `toml:"auth"`
 	Tags     map[string]string `toml:"tags"`
 	interval time.Duration
 
@@ -98,11 +99,18 @@ func NewProm(opt *Option) (*Prom, error) {
 	p.SetClient(&http.Client{Timeout: httpTimeout})
 
 	if opt.TLSOpen {
+		caCerts := []string{}
+		insecureSkipVerify := defaultInsecureSkipVerify
+		if len(opt.CacertFile) != 0 {
+			caCerts = append(caCerts, opt.CacertFile)
+		} else {
+			insecureSkipVerify = true
+		}
 		tc := &net.TLSClientConfig{
-			CaCerts:            []string{opt.CacertFile},
+			CaCerts:            caCerts,
 			Cert:               opt.CertFile,
 			CertKey:            opt.KeyFile,
-			InsecureSkipVerify: defaultInsecureSkipVerify,
+			InsecureSkipVerify: insecureSkipVerify,
 		}
 
 		tlsconfig, err := tc.TLSConfig()
@@ -125,8 +133,42 @@ func (p *Prom) SetClient(cli *http.Client) {
 	p.client = cli
 }
 
+func (p *Prom) GetReq(url string) (*http.Request, error) {
+	var (
+		req *http.Request
+		err error
+	)
+
+	if len(p.opt.Auth) > 0 {
+		if authType, ok := p.opt.Auth["type"]; ok {
+			if authFunc, ok := AuthMaps[authType]; ok {
+				req, err = authFunc(p.opt.Auth, url)
+			} else {
+				req, err = http.NewRequest("GET", url, nil)
+			}
+		}
+	} else {
+		req, err = http.NewRequest("GET", url, nil)
+	}
+	return req, err
+}
+
+func (p *Prom) Request(url string) (*http.Response, error) {
+	req, err := p.GetReq(url)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := p.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 func (p *Prom) Collect() ([]*io.Point, error) {
-	resp, err := p.client.Get(p.opt.URL)
+	resp, err := p.Request(p.opt.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -141,12 +183,12 @@ func (p *Prom) Collect() ([]*io.Point, error) {
 func (p *Prom) CollectFromFile() ([]*io.Point, error) {
 	var f *os.File
 	if p.opt.Output != "" {
-		f, _ = os.OpenFile(p.opt.Output, os.O_RDONLY, 0600)
+		f, _ = os.OpenFile(p.opt.Output, os.O_RDONLY, 0o600)
 	} else {
 		fileName := p.opt.URL
-		f, _ = os.OpenFile(fileName, os.O_RDONLY, 0600)
+		f, _ = os.OpenFile(fileName, os.O_RDONLY, 0o600) //nolint:gosec
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck,gosec
 	return Text2Metrics(f, p.opt, p.opt.Tags)
 }
 
@@ -154,8 +196,12 @@ func (p *Prom) CollectFromFile() ([]*io.Point, error) {
 // WriteFile will only be called when Output is configured.
 func (p *Prom) WriteFile() error {
 	// If url is configured as local path file, prom does not collect from it.
-	Url, _ := url.Parse(p.opt.URL)
-	if Url.Scheme != "http" && Url.Scheme != "https" {
+	u, err := url.Parse(p.opt.URL)
+	if err != nil {
+		return fmt.Errorf("url parse error, %w", err)
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
 		return fmt.Errorf("url is neither http nor https")
 	}
 
@@ -163,20 +209,23 @@ func (p *Prom) WriteFile() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+
+	defer resp.Body.Close() //nolint:errcheck
 	if resp.ContentLength > p.opt.MaxFileSize {
 		return fmt.Errorf("content length is too large to handle")
 	}
+
 	fp := p.opt.Output
 	if !path.IsAbs(fp) {
 		fp = filepath.Join(datakit.InstallDir, fp)
 	}
+
 	// truncate if file exists
 	f, err := os.Create(fp)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck,gosec
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if int64(len(data)) > p.opt.MaxFileSize {

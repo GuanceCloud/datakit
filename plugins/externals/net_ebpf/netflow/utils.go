@@ -1,15 +1,13 @@
-// +build linux
+//go:build (linux && ignore) || ebpf
+// +build linux,ignore ebpf
 
 package netflow
 
 import (
 	"bytes"
-	"context"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net"
-	"net/http"
 	"os"
 	"sort"
 	"time"
@@ -17,63 +15,66 @@ import (
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/c"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dns"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dnsflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"golang.org/x/net/context/ctxhttp"
 	"golang.org/x/sys/unix"
 )
 
 var l = logger.DefaultSLogger("net_ebpf")
 
-var dnsRecord = dns.NewDNSRecord()
+var dnsRecord *dnsflow.DNSRecord
+
+func SetDNSRecord(r *dnsflow.DNSRecord) {
+	dnsRecord = r
+}
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
 }
 
-func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, error) {
+func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler func(cpu int, data []byte,
+	perfmap *manager.PerfMap, manager *manager.Manager)) (*manager.Manager, error) {
 	// 部分 kretprobe 类型程序需设置 maxactive， https://www.kernel.org/doc/Documentation/kprobes.txt.
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
 			{
-				Section: "kprobe/sockfd_lookup_light",
+				Section: "kprobe/sockfd_lookup_light", KProbeMaxActive: 128,
 			}, {
 				Section: "kretprobe/sockfd_lookup_light", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/do_sendfile",
+				Section: "kprobe/do_sendfile", KProbeMaxActive: 128,
 			}, {
 				Section: "kretprobe/do_sendfile", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/tcp_set_state",
+				Section: "kprobe/tcp_set_state", KProbeMaxActive: 128,
 			}, {
 				Section: "kretprobe/inet_csk_accept", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/inet_csk_listen_stop",
+				Section: "kprobe/inet_csk_listen_stop", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/tcp_close",
+				Section: "kprobe/tcp_close", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/tcp_retransmit_skb",
+				Section: "kprobe/tcp_retransmit_skb", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/tcp_sendmsg",
+				Section: "kprobe/tcp_sendmsg", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/tcp_cleanup_rbuf",
+				Section: "kprobe/tcp_cleanup_rbuf", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/ip_make_skb",
+				Section: "kprobe/ip_make_skb", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/udp_recvmsg",
+				Section: "kprobe/udp_recvmsg", KProbeMaxActive: 128,
 			}, {
 				Section: "kretprobe/udp_recvmsg", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/inet_bind",
+				Section: "kprobe/inet_bind", KProbeMaxActive: 128,
 			}, {
 				Section: "kretprobe/inet_bind", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/inet6_bind",
+				Section: "kprobe/inet6_bind", KProbeMaxActive: 128,
 			}, {
 				Section: "kretprobe/inet6_bind", KProbeMaxActive: 128,
 			}, {
-				Section: "kprobe/udp_destroy_sock",
+				Section: "kprobe/udp_destroy_sock", KProbeMaxActive: 128,
 			},
 		},
 		PerfMaps: []*manager.PerfMap{
@@ -90,7 +91,7 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 			},
 		},
 	}
-	m_opts := manager.Options{
+	mOpts := manager.Options{
 		RLimit: &unix.Rlimit{
 			Cur: math.MaxUint64,
 			Max: math.MaxUint64,
@@ -99,68 +100,14 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor) (*manager.Manager, e
 	}
 	if buf, err := dkebpf.Asset("netflow.o"); err != nil {
 		return nil, err
-	} else if err := m.InitWithOptions((bytes.NewReader(buf)), m_opts); err != nil {
+	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
 		return nil, err
 	}
 
 	return m, nil
 }
 
-func WriteData(data []byte, urlPath string) error {
-	// dataway path
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
-	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
-	if err != nil {
-		l.Errorf("[error] %s", err.Error())
-		return err
-	}
-
-	httpReq = httpReq.WithContext(ctx)
-	tmctx, timeoutCancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer timeoutCancel()
-
-	resp, err := ctxhttp.Do(tmctx, http.DefaultClient, httpReq)
-	if err != nil {
-		l.Errorf("[error] %s", err.Error())
-		return err
-	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-
-	l.Debug(urlPath, resp.StatusCode)
-	switch resp.StatusCode / 100 {
-	case 2:
-		return nil
-	default:
-		l.Debugf("post to %s HTTP: %d: %s", urlPath, resp.StatusCode, string(body))
-		return fmt.Errorf("post to %s failed(HTTP: %d): %s", urlPath, resp.StatusCode, string(body))
-	}
-}
-
-func FeedMeasurement(measurements *[]inputs.Measurement, path string) error {
-	lines := [][]byte{}
-	for _, m := range *measurements {
-		if pt, err := m.LineProto(); err != nil {
-			l.Warn(err)
-		} else {
-			ptstr := pt.String()
-			lines = append(lines, []byte(ptstr))
-		}
-	}
-
-	if err := WriteData(bytes.Join(lines, []byte("\n")), path); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ConvertConn2Measurement(connR *ConnResult, name string) *[]inputs.Measurement {
+func ConvertConn2Measurement(connR *ConnResult, name string) []inputs.Measurement {
 	collectCache := []inputs.Measurement{}
 
 	for k, v := range connR.result {
@@ -169,10 +116,11 @@ func ConvertConn2Measurement(connR *ConnResult, name string) *[]inputs.Measureme
 			collectCache = append(collectCache, m)
 		}
 	}
-	return &collectCache
+	return collectCache
 }
 
-func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]string, ts time.Time) inputs.Measurement {
+func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
+	tags map[string]string, ts time.Time) inputs.Measurement {
 	m := measurement{
 		name:   name,
 		tags:   map[string]string{},
@@ -199,12 +147,14 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 		isV6 = true
 	}
 
-	m.tags["src_ip"] = U32BEToIp(k.Saddr, isV6).String()
+	m.tags["src_ip"] = U32BEToIP(k.Saddr, isV6).String()
 
-	dst_ip := U32BEToIp(k.Daddr, isV6)
-	m.tags["dst_ip"] = dst_ip.String()
+	dstIP := U32BEToIP(k.Daddr, isV6)
+	m.tags["dst_ip"] = dstIP.String()
 
-	m.tags["dst_domain"] = dnsRecord.LookupAddr(dst_ip)
+	if dnsRecord != nil {
+		m.tags["dst_domain"] = dnsRecord.LookupAddr(dstIP)
+	}
 
 	if k.Sport == math.MaxUint32 {
 		m.tags["src_port"] = "*"
@@ -214,14 +164,14 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 
 	m.tags["dst_port"] = fmt.Sprintf("%d", k.Dport)
 
-	m.fields["bytes_read"] = int64(v.Stats.Recv_bytes)
-	m.fields["bytes_written"] = int64(v.Stats.Sent_bytes)
+	m.fields["bytes_read"] = int64(v.Stats.RecvBytes)
+	m.fields["bytes_written"] = int64(v.Stats.SentBytes)
 
 	if connProtocolIsTCP(k.Meta) {
 		m.tags["transport"] = "tcp"
-		m.fields["retransmits"] = int64(v.TcpStats.Retransmits)
-		m.fields["rtt"] = int64(v.TcpStats.Rtt)
-		m.fields["rtt_var"] = int64(v.TcpStats.Rtt_var)
+		m.fields["retransmits"] = int64(v.TCPStats.Retransmits)
+		m.fields["rtt"] = int64(v.TCPStats.Rtt)
+		m.fields["rtt_var"] = int64(v.TCPStats.RttVar)
 		m.fields["tcp_closed"] = v.TotalClosed
 		m.fields["tcp_established"] = v.TotalEstablished
 	} else {
@@ -230,13 +180,17 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string, tags map[string]
 	m.tags["direction"] = connDirection2Str(v.Stats.Direction)
 
 	if connProtocolIsTCP(k.Meta) {
-		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
-			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
-			m.fields["tcp_established"], m.fields["tcp_closed"], m.fields["retransmits"], float64(v.TcpStats.Rtt)/1000., float64(v.TcpStats.Rtt_var)/1000, m.tags["transport"], m.tags["direction"]))
+		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d "+
+			"re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
+			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"],
+			m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
+			m.fields["tcp_established"], m.fields["tcp_closed"], m.fields["retransmits"],
+			float64(v.TCPStats.Rtt)/1000., float64(v.TCPStats.RttVar)/1000, m.tags["transport"], m.tags["direction"]))
 	} else {
 		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d (%s, %s)",
-			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"], m.tags["dst_port"], m.fields["bytes_read"], m.fields["bytes_written"],
-			m.tags["transport"], m.tags["direction"]))
+			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"],
+			m.tags["dst_domain"], m.tags["dst_port"], m.fields["bytes_read"],
+			m.fields["bytes_written"], m.tags["transport"], m.tags["direction"]))
 	}
 	return &m
 }
@@ -263,7 +217,7 @@ func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
 	return ip
 }
 
-func U32BEToIp(addr [4]uint32, isIPv6 bool) net.IP {
+func U32BEToIP(addr [4]uint32, isIPv6 bool) net.IP {
 	ip := net.IP{}
 	if !isIPv6 {
 		v4 := U32BEToIPv4Array(addr[3])
@@ -279,7 +233,7 @@ func U32BEToIp(addr [4]uint32, isIPv6 bool) net.IP {
 	return ip
 }
 
-// 规则: 1. 过滤源 IP 和目标 IP 相同的连接;
+// ConnNotNeedToFilter 规则: 1. 过滤源 IP 和目标 IP 相同的连接;
 // 2. 过滤 loopback ip 的连接;
 // 3. 过滤一个采集周期内的无数据收发的连接;
 // 4. 过滤端口 为 0 或 ip address 为 :: or 0.0.0.0 的连接;
@@ -308,7 +262,8 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 	}
 
 	// 过滤上一周期的无变化的连接
-	if connStats.Stats.Recv_bytes == 0 && connStats.Stats.Sent_bytes == 0 && connStats.TotalClosed == 0 && connStats.TotalEstablished == 0 {
+	if connStats.Stats.RecvBytes == 0 && connStats.Stats.SentBytes == 0 &&
+		connStats.TotalClosed == 0 && connStats.TotalEstablished == 0 {
 		return false
 	}
 
@@ -316,7 +271,7 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 }
 
 type ConnTCPWithoutPidStats struct {
-	TcpStats         ConnectionTcpStats
+	TCPStats         ConnectionTCPStats
 	TotalEstablished int64
 	TotalClosed      int64
 	Pids             map[uint32]bool
@@ -375,7 +330,7 @@ func newConnTCPWithoutPid() *ConnTCPWithoutPid {
 
 var connTCPWithoutPid = newConnTCPWithoutPid()
 
-// 聚合 src port 为临时端口(32768 ~ 60999)的连接,
+// MergeConns 聚合 src port 为临时端口(32768 ~ 60999)的连接,
 // 被聚合的端口号被设置为
 // cat /proc/sys/net/ipv4/ip_local_port_range.
 func MergeConns(preResult *ConnResult) {
@@ -399,14 +354,16 @@ func MergeConns(preResult *ConnResult) {
 		if !isEphemeralPort(connInfoList[k].Sport) {
 			continue
 		}
-		if lastIndex < 0 {
+
+		switch {
+		case lastIndex < 0:
 			lastIndex = k
 			resultTmpConn[connInfoList[k]] = preResult.result[connInfoList[k]]
 			delete(preResult.result, connInfoList[k])
-		} else if ConnCmpNoSPort(connInfoList[lastIndex], connInfoList[k]) {
+		case ConnCmpNoSPort(connInfoList[lastIndex], connInfoList[k]):
 			connRecord[connInfoList[lastIndex]] = true
 			resultTmpConn[connInfoList[lastIndex]] = StatsTCPOp("+", resultTmpConn[connInfoList[lastIndex]],
-				preResult.result[connInfoList[k]].Stats, preResult.result[connInfoList[k]].TcpStats)
+				preResult.result[connInfoList[k]].Stats, preResult.result[connInfoList[k]].TCPStats)
 
 			connfull := resultTmpConn[connInfoList[lastIndex]]
 			connfull.TotalEstablished += preResult.result[connInfoList[k]].TotalEstablished
@@ -414,11 +371,12 @@ func MergeConns(preResult *ConnResult) {
 			resultTmpConn[connInfoList[lastIndex]] = connfull
 
 			delete(preResult.result, connInfoList[k])
-		} else {
+		default:
 			k--
 			lastIndex = -1
 		}
 	}
+
 	for k, v := range resultTmpConn {
 		if _, ok := connRecord[k]; ok {
 			k.Sport = math.MaxUint32
@@ -450,17 +408,17 @@ func (l ConnInfoList) Less(i, j int) bool {
 	metaJ := l[j].Meta
 
 	// family (ipv4)
-	if metaI&CONN_L3_MASK != metaJ&CONN_L3_MASK {
-		return metaI&CONN_L3_MASK == CONN_L3_IPv4
+	if metaI&ConnL3Mask != metaJ&ConnL3Mask {
+		return metaI&ConnL3Mask == ConnL3IPv4
 	}
 
 	// transport (tcp)
-	if metaI&CONN_L4_MASK != metaJ&CONN_L4_MASK {
-		return metaI&CONN_L4_MASK == CONN_L4_TCP
+	if metaI&ConnL4Mask != metaJ&ConnL4Mask {
+		return metaI&ConnL4Mask == ConnL4TCP
 	}
 
 	// src ip, dst ip
-	if metaI&CONN_L3_MASK == CONN_L3_IPv4 { // ipv4
+	if metaI&ConnL3Mask == ConnL3IPv4 { // ipv4
 		if l[i].Saddr[3] != l[j].Saddr[3] {
 			return l[i].Saddr[3] < l[j].Saddr[3]
 		}
@@ -516,4 +474,25 @@ const (
 
 func isEphemeralPort(port uint32) bool {
 	return port >= EphemeralPortMin && port <= EphemeralPortMax
+}
+
+func IPPortFilterIn(conn *ConnectionInfo) bool {
+	if conn.Sport == 0 || conn.Dport == 0 {
+		return false
+	}
+
+	if connAddrIsIPv4(conn.Meta) {
+		if (conn.Saddr[3]&0xFF == 0x7F) || (conn.Daddr[3]&0xFF == 0x7F) {
+			return false
+		}
+	} else if (conn.Saddr[0]|conn.Saddr[1]) == 0x00 || (conn.Daddr[0]|conn.Daddr[1]) == 0x00 {
+		if (conn.Saddr[2] == 0xffff0000 && conn.Saddr[3]&0xFF == 0x7F) ||
+			(conn.Daddr[2] == 0xffff0000 && conn.Daddr[3]&0xFF == 0x7F) {
+			return false
+		} else if (conn.Saddr[2] == 0x0 && conn.Saddr[3] == 0x01000000) ||
+			(conn.Daddr[2] == 0x0 && conn.Daddr[3] == 0x01000000) {
+			return false
+		}
+	}
+	return true
 }

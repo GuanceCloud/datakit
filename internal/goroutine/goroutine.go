@@ -1,3 +1,4 @@
+// Package goroutine implement grouptine pool
 package goroutine
 
 import (
@@ -52,18 +53,21 @@ func (g *Group) do(f func(ctx context.Context) error) {
 	if g.beforeCb != nil {
 		g.beforeCb()
 	}
+
 	ctx := g.ctx
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
 	panicTimes := g.panicTimes - 1
 
-	var err error
-	var run func()
-
-	var startTime time.Time
-	var endTime time.Time
-	var costTime time.Duration
+	var (
+		err       error
+		run       func()
+		startTime time.Time
+		endTime   time.Time
+		costTime  time.Duration
+	)
 
 	run = func() {
 		defer func() {
@@ -73,34 +77,44 @@ func (g *Group) do(f func(ctx context.Context) error) {
 				isPanicRetry := true
 				buf := make([]byte, 1024) //nolint:gomnd
 				buf = buf[:runtime.Stack(buf, false)]
+
 				if g.panicCb != nil {
 					isPanicRetry = g.panicCb(buf)
 				}
 
 				if isPanicRetry && panicTimes > 0 {
 					panicTimes--
+
 					if g.panicTimeout > 0 {
 						time.Sleep(g.panicTimeout)
 					}
+
 					run()
+
 					return
 				}
+
 				err = fmt.Errorf("goroutine: panic recovered: %s", r)
 			}
+
 			if err != nil {
 				g.errOnce.Do(func() {
 					g.err = err
+
 					if g.cancel != nil {
 						g.cancel()
 					}
 				})
 			}
+
 			costTime = endTime.Sub(startTime)
 			if g.postCb != nil {
 				g.postCb(err, costTime)
 			}
+
 			g.wg.Done()
 		}()
+
 		startTime = time.Now()
 		err = f(ctx)
 	}
@@ -132,14 +146,17 @@ func (g *Group) GOMAXPROCS(n int) {
 // returned by Wait.
 func (g *Group) Go(f func(ctx context.Context) error) {
 	g.wg.Add(1)
+
 	if g.ch != nil {
 		select {
 		case g.ch <- f:
 		default:
 			g.chs = append(g.chs, f)
 		}
+
 		return
 	}
+
 	go g.do(f)
 }
 
@@ -151,13 +168,16 @@ func (g *Group) Wait() error {
 			g.ch <- f
 		}
 	}
+
 	g.wg.Wait()
 	if g.ch != nil {
 		close(g.ch) // let all receiver exit
 	}
+
 	if g.cancel != nil {
 		g.cancel()
 	}
+
 	return g.err
 }
 

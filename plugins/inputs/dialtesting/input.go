@@ -1,7 +1,8 @@
+// Package dialtesting implement API dial testing.
+// nolint:gosec
 package dialtesting
 
 import (
-	"context"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/json"
@@ -9,12 +10,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
-	//	"github.com/jinzhu/copier"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
@@ -35,8 +36,6 @@ var (
 	l         = logger.DefaultSLogger(inputName)
 
 	MaxFails = 100
-
-	chromeCtxs chan *context.Context
 )
 
 const (
@@ -48,7 +47,7 @@ var apiTasksNum int
 
 type Input struct {
 	Region       string            `toml:"region,omitempty"`
-	RegionId     string            `toml:"region_id"`
+	RegionID     string            `toml:"region_id"`
 	Server       string            `toml:"server,omitempty"`
 	AK           string            `toml:"ak"`
 	SK           string            `toml:"sk"`
@@ -87,21 +86,21 @@ const sample = `
   # more_tag = "some_other_value"
   # ...`
 
-func (dt *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sample
 }
 
-func (dt *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "network"
 }
 
-func (dt *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&httpMeasurement{},
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
@@ -114,8 +113,6 @@ func (d *Input) Run() {
 	if d.Workers == 0 {
 		d.Workers = 6
 	}
-
-	chromeCtxs = make(chan *context.Context, d.Workers)
 
 	reqURL, err := url.Parse(d.Server)
 	if err != nil {
@@ -149,7 +146,7 @@ func (d *Input) Run() {
 func (d *Input) doServerTask() {
 	var f rtpanic.RecoverCallback
 
-	f = func(stack []byte, err error) {
+	f = func(stack []byte, _ error) {
 		defer rtpanic.Recover(f, nil)
 
 		du, err := time.ParseDuration(d.PullInterval)
@@ -193,13 +190,15 @@ func (d *Input) doServerTask() {
 }
 
 func (d *Input) doLocalTask(path string) {
-	j, err := d.getLocalJsonTasks(path)
+	j, err := d.getLocalJSONTasks(path)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
 	}
 
-	d.dispatchTasks(j)
+	if err := d.dispatchTasks(j); err != nil {
+		l.Errorf("dispatchTasks: %s", err.Error())
+	}
 
 	<-datakit.Exit.Wait()
 }
@@ -226,16 +225,12 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 		// no need dealwith
 	default:
 		l.Errorf("unknown task type")
-		break
+		return nil, fmt.Errorf("invalid task type")
 	}
 
 	l.Debugf("input tags: %+#v", d.Tags)
 
-	dialer, err := newDialer(t, d.Tags)
-	if err != nil {
-		l.Errorf(`%s`, err.Error())
-		return nil, err
-	}
+	dialer := newDialer(t, d.Tags)
 
 	d.wg.Add(1)
 	go func(id string) {
@@ -263,7 +258,10 @@ func protectedRun(d *dialer) {
 				return
 			}
 		}
-		d.run()
+
+		if err := d.run(); err != nil {
+			l.Warnf("run: %s, ignored", err)
+		}
 	}
 
 	f(nil, nil)
@@ -348,11 +346,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")
 				continue
-			case RegionInfo:
-				break
 			default:
 				l.Errorf("unknown task type: %s", k)
-				break
 			}
 
 			if t == nil {
@@ -415,8 +410,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 	return nil
 }
 
-func (d *Input) getLocalJsonTasks(path string) ([]byte, error) {
-	data, err := ioutil.ReadFile(path)
+func (d *Input) getLocalJSONTasks(path string) ([]byte, error) {
+	data, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, err
@@ -466,7 +461,7 @@ func (d *Input) pullTask() ([]byte, error) {
 
 	var res []byte
 	for i := 0; i <= 3; i++ {
-		statusCode := 0
+		var statusCode int
 		res, statusCode, err = d.pullHTTPTask(reqURL, d.pos)
 		if statusCode/100 != 5 { // 500 err 重试
 			break
@@ -495,7 +490,7 @@ func signReq(req *http.Request, ak, sk string) {
 
 func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error) {
 	reqURL.Path = "/v1/task/pull"
-	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", d.RegionId, sinceUs)
+	reqURL.RawQuery = fmt.Sprintf("region_id=%s&since=%d", d.RegionID, sinceUs)
 
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
@@ -503,7 +498,7 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 		return nil, 5, err
 	}
 
-	bodymd5 := fmt.Sprintf("%x", md5.Sum([]byte("")))
+	bodymd5 := fmt.Sprintf("%x", md5.Sum([]byte(""))) //nolint:gosec
 	req.Header.Set("Date", time.Now().Format(http.TimeFormat))
 	req.Header.Set("Content-MD5", bodymd5)
 	req.Header.Set("Connection", "close")
@@ -521,7 +516,7 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 		return nil, 0, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	switch resp.StatusCode / 100 {
 	case 2: // ok
 		return body, resp.StatusCode / 100, nil
@@ -542,7 +537,7 @@ func (d *Input) stopAlltask() {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Tags:     map[string]string{},
@@ -551,7 +546,7 @@ func init() {
 			cli: &http.Client{
 				Timeout: 30 * time.Second,
 				Transport: &http.Transport{
-					TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+					TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
 					TLSHandshakeTimeout: 30 * time.Second,
 					MaxIdleConns:        100,
 					MaxIdleConnsPerHost: 100,

@@ -15,15 +15,15 @@
 *.yaml
 *.zip
 **build/
-/install_local.sh
+install_local.sh
+install.sh
+install.ps1
 agent_linux
 agent.conf
 agent.pid
-build.sh
 cfg.json
 china-operator-ip
 cmd/installer/bin/
-conf.d/
 config.d/
 config.json
 data/*
@@ -61,3 +61,4 @@ test.jso
 test.output
 y.output
 ag.sh
+b.sh

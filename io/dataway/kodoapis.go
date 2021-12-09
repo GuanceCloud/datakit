@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -33,16 +34,18 @@ func (dc *endPoint) getLogFilter() ([]byte, error) {
 
 	resp, err := dc.dw.sendReq(req)
 	if err != nil {
-		return nil, err
-	}
+		log.Error(err.Error())
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
 		return nil, err
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err.Error())
 
+		return nil, err
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("getLogFilter failed with status code %d, body: %s", resp.StatusCode, string(body))
 	}
@@ -60,11 +63,13 @@ func (dw *DataWayCfg) WorkspaceQuery(body []byte) (*http.Response, error) {
 	if !ok {
 		return nil, fmt.Errorf("no workspace query URL available")
 	}
-	l.Debugf("NewRequest: %s", requrl)
+
+	log.Debugf("NewRequest: %s", requrl)
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
+
 	return dw.sendReq(req)
 }
 
@@ -105,26 +110,26 @@ func (dw *DataWayCfg) Election(namespace, id string) ([]byte, error) {
 		return nil, fmt.Errorf("token missing")
 	}
 
-	l.Debugf("election sending %s", requrl)
+	log.Debugf("election sending %s", requrl)
 	resp, err := dw.httpCli.Post(requrl, "", nil)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return nil, err
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
 	switch resp.StatusCode / 100 {
 	case 2:
-		l.Debugf("election %s ok", requrl)
+		log.Debugf("election %s ok", requrl)
 		return body, nil
 	default:
-		l.Debugf("election failed: %d", resp.StatusCode)
+		log.Debugf("election failed: %d", resp.StatusCode)
 		return nil, fmt.Errorf("election failed: %s", string(body))
 	}
 }
@@ -147,16 +152,16 @@ func (dw *DataWayCfg) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 		return nil, fmt.Errorf("token missing")
 	}
 
-	l.Debugf("election sending heartbeat %s", requrl)
+	log.Debugf("election sending heartbeat %s", requrl)
 	resp, err := dw.httpCli.Post(requrl, "", nil)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return nil, err
 	}
 
@@ -232,11 +237,11 @@ func (dw *DataWayCfg) DatawayList() ([]string, error) {
 
 	var dws dataways
 	if err := json.Unmarshal(body, &dws); err != nil {
-		l.Errorf(`%s, body: %s`, err, string(body))
+		log.Errorf(`%s, body: %s`, err, string(body))
 		return nil, err
 	}
 
-	l.Debugf(`available dataways; %+#v`, dws.Content)
+	log.Debugf(`available dataways; %+#v`, dws.Content)
 	return dws.Content, nil
 }
 
@@ -248,7 +253,7 @@ func (dw *DataWayCfg) HeartBeat() error {
 	}
 
 	if dw.httpCli == nil {
-		if err := dw.initHttp(); err != nil {
+		if err := dw.initHTTP(); err != nil {
 			return err
 		}
 	}
@@ -306,5 +311,25 @@ func (dw *DataWayCfg) DeleteObjectLabels(tkn string, body []byte) (*http.Respons
 		return nil, fmt.Errorf("delete object label error: %w", err)
 	}
 
+	return dw.sendReq(req)
+}
+
+func (dw *DataWayCfg) UploadLog(r io.Reader, hostName string) (*http.Response, error) {
+	if len(dw.endPoints) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	dc := dw.endPoints[0]
+	reqURL, ok := dc.categoryURL[datakit.LogUpload]
+	if !ok {
+		return nil, fmt.Errorf("no file upload URL available")
+	}
+
+	req, err := http.NewRequest("POST", reqURL, r)
+	if err != nil {
+		return nil, fmt.Errorf("upload failed: %w", err)
+	}
+
+	req.Header.Add("Host-Name", hostName)
 	return dw.sendReq(req)
 }

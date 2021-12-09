@@ -1,3 +1,4 @@
+// Package bufpool wraps internal buffer pool functions
 package bufpool
 
 import (

@@ -1,3 +1,4 @@
+// Package time wraps time related functions
 package time
 
 import (

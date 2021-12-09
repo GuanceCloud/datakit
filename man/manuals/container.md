@@ -24,12 +24,13 @@
 
 支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
 
-| 环境变量名                                             | 对应的配置参数项                    | 参数示例       |
-| :---                                                   | ---                                 | ---            |
-| `ENV_INPUT_CONTAINER_ENABLE_METRIC`                    | `enable_metric`                     | `true`/`false` |
-| `ENV_INPUT_CONTAINER_ENABLE_OBJECT`                    | `enable_object`                     | `true`/`false` |
-| `ENV_INPUT_CONTAINER_ENABLE_LOGGING`                   | `enable_logging`                    | `true`/`false` |
-| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false` |
+| 环境变量名                                             | 对应的配置参数项                    | 参数示例                                                     |
+| :---                                                   | ---                                 | ---                                                          |
+| `ENV_INPUT_CONTAINER_ENABLE_METRIC`                    | `enable_metric`                     | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_ENABLE_OBJECT`                    | `enable_object`                     | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_ENABLE_LOGGING`                   | `enable_logging`                    | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false`                                               |
+| `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
 
 ## 指标集
 
@@ -42,21 +43,65 @@
   # ...
 ```
 
+## 指标
+
 {{ range $i, $m := .Measurements }}
 
-### `{{$m.Name}}`
+{{if eq $m.Type "metric"}}
 
+### `{{$m.Name}}`
 {{$m.Desc}}
 
 -  标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
-{{ end }} 
+{{ end }}
+
+## 对象
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "object"}}
+
+### `{{$m.Name}}`
+{{$m.Desc}}
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+{{$m.Desc}}
+
+-  标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
 
 ### 标签定制和删除
 
@@ -99,7 +144,7 @@
 
 如果一个容器的 `container name` 和 `deployment` 分别匹配两个 log，会优先使用 `deployment` 所匹配的 log。例如容器的 `container name` 为 `containerAAA`，`deployment` 为 `deploymentAAA`，且配置如下：
 
-```
+```toml
 [[inputs.container.log]]
   match_by = "container-name"
   match = ['''container*''']

@@ -1,11 +1,12 @@
+// Package rabbitmq collects rabbitmq metrics.
 package rabbitmq
 
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -24,6 +25,16 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) PipelineConfig() map[string]string { return map[string]string{"rabbitmq": pipelineCfg} }
 
+func (n *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:   inputName,
+			Service:  inputName,
+			Pipeline: n.Log.Pipeline,
+		},
+	}
+}
+
 func (n *Input) RunPipeline() {
 	if n.Log == nil || len(n.Log.Files) == 0 {
 		return
@@ -41,18 +52,22 @@ func (n *Input) RunPipeline() {
 		MultilineMatch:    n.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
+	pl, err := config.GetPipelinePath(n.Log.Pipeline)
+	if err != nil {
+		io.FeedLastError(inputName, err.Error())
+		l.Error(err)
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt, n.Log.IgnoreStatus)
 	if err != nil {
+		l.Errorf("NewTailer: %s", err)
 		io.FeedLastError(inputName, err.Error())
-		l.Error(err)
 		return
 	}
 
@@ -64,7 +79,7 @@ func (n *Input) Run() {
 	l.Info("rabbitmq start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	client, err := n.createHttpClient()
+	client, err := n.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] rabbitmq init client err:%s", err.Error())
 		return
@@ -75,39 +90,57 @@ func (n *Input) Run() {
 	defer tick.Stop()
 
 	for {
-		select {
-		case <-datakit.Exit.Wait():
-			if n.tail != nil {
-				n.tail.Close()
-				l.Info("rabbitmq log exit")
-			}
-			l.Info("rabbitmq exit")
-			return
-
-		case <-tick.C:
-			if n.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-
+		if !n.pause {
 			n.getMetric()
-			if len(collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
-				collectCache = collectCache[:0]
-				if err != nil {
-					n.lastErr = err
-					l.Errorf(err.Error())
-					continue
-				}
-			}
+
 			if n.lastErr != nil {
 				io.FeedLastError(inputName, n.lastErr.Error())
 				n.lastErr = nil
 			}
 
+			if len(collectCache) > 0 {
+				if err := inputs.FeedMeasurement(inputName,
+					datakit.Metric,
+					collectCache,
+					&io.Option{CollectCost: time.Since(n.start)}); err != nil {
+					l.Errorf("FeedMeasurement: %s", err.Error())
+				}
+
+				collectCache = collectCache[:0]
+			}
+		} else {
+			l.Debugf("not leader, skipped")
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			n.exit()
+			l.Info("rabbitmq exit")
+			return
+
+		case <-n.semStop.Wait():
+			n.exit()
+			l.Info("rabbitmq return")
+			return
+
+		case <-tick.C:
+
 		case n.pause = <-n.pauseCh:
 			// nil
 		}
+	}
+}
+
+func (n *Input) exit() {
+	if n.tail != nil {
+		n.tail.Close()
+		l.Info("rabbitmq log exit")
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
 	}
 }
 
@@ -157,11 +190,13 @@ func (n *Input) Resume() error {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
 			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop: cliutils.NewSem(),
 		}
 		return s
 	})

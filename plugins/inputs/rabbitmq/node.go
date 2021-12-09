@@ -18,7 +18,7 @@ func getNode(n *Input) {
 	ts := time.Now()
 	for _, node := range Nodes {
 		tags := map[string]string{
-			"url":       n.Url,
+			"url":       n.URL,
 			"node_name": node.Name,
 		}
 		for k, v := range n.Tags {

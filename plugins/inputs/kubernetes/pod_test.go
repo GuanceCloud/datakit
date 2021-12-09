@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/prom"
 	corev1 "k8s.io/api/core/v1"
@@ -68,7 +69,7 @@ func TestPod(t *testing.T) {
 							Annotations: map[string]string{
 								"datakit/prom.instances": `
 									[[inputs.prom]]
-									  invalid_url = "$IP"
+									  url = "$IP"
 									  source = "prom"
 									  metric_types = ["counter", "gauge"]
 									  measurement_prefix = ""
@@ -96,4 +97,143 @@ func TestPod(t *testing.T) {
 	}
 
 	<-done
+}
+
+func TestComplatePromConfig(t *testing.T) {
+	io.SetTest()
+
+	tc := struct {
+		podList    *corev1.PodList
+		configList []string
+	}{
+		podList: &corev1.PodList{
+			Items: []corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test_name_01",
+						Namespace: "test_namespace_01",
+						Annotations: map[string]string{
+							"datakit/prom.instances": `
+[[inputs.prom]]
+  url = "$IP"
+  source = "prom"
+  metric_types = ["counter", "gauge"]
+  measurement_prefix = ""
+  interval = "10s"
+  [inputs.prom.tags]
+  name = "$PODNAME"
+  namespace = "$NAMESPACE"
+`,
+							"datakit/prom.instances.ip_index": "1",
+						},
+					},
+					Status: corev1.PodStatus{
+						PodIP: "http://dummy_ip_01",
+						PodIPs: []corev1.PodIP{
+							{IP: "http://dummy_ip_01_index_00"},
+							{IP: "http://dummy_ip_01_index_01"},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test_name_02",
+						Namespace: "test_namespace_02",
+						Annotations: map[string]string{
+							"datakit/prom.instances": `
+[[inputs.prom]]
+  url = "$IP"
+  source = "prom"
+  metric_types = ["counter", "gauge"]
+  measurement_prefix = ""
+  interval = "10s"
+  [inputs.prom.tags]
+  name = "$PODNAME"
+  namespace = "$NAMESPACE"
+`,
+							"datakit/prom.instances.ip_index": "2",
+						},
+					},
+					Status: corev1.PodStatus{
+						PodIP: "http://dummy_ip_02",
+						PodIPs: []corev1.PodIP{
+							{IP: "http://dummy_ip_02_index_00"},
+							{IP: "http://dummy_ip_02_index_01"},
+							{IP: "http://dummy_ip_02_index_02"},
+						},
+					},
+				},
+				// fail
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test_name_03",
+						Namespace: "test_namespace_03",
+						Annotations: map[string]string{
+							"datakit/prom.instances": `
+[[inputs.prom]]
+  url = "$IP"
+  source = "prom"
+  metric_types = ["counter", "gauge"]
+  measurement_prefix = ""
+  interval = "10s"
+  [inputs.prom.tags]
+  name = "$PODNAME"
+  namespace = "$NAMESPACE"
+`,
+							"datakit/prom.instances.ip_index": "3",
+						},
+					},
+					Status: corev1.PodStatus{
+						PodIP: "http://dummy_ip_03",
+						PodIPs: []corev1.PodIP{
+							{IP: "http://dummy_ip_03_index_00"},
+							{IP: "http://dummy_ip_03_index_01"},
+							{IP: "http://dummy_ip_03_index_02"},
+						},
+					},
+				},
+			},
+		},
+
+		configList: []string{
+			`
+[[inputs.prom]]
+  url = "http://dummy_ip_01_index_01"
+  source = "prom"
+  metric_types = ["counter", "gauge"]
+  measurement_prefix = ""
+  interval = "10s"
+  [inputs.prom.tags]
+  name = "test_name_01"
+  namespace = "test_namespace_01"
+`,
+			`
+[[inputs.prom]]
+  url = "http://dummy_ip_02_index_02"
+  source = "prom"
+  metric_types = ["counter", "gauge"]
+  measurement_prefix = ""
+  interval = "10s"
+  [inputs.prom.tags]
+  name = "test_name_02"
+  namespace = "test_namespace_02"
+`,
+
+			// fail
+			"",
+		},
+	}
+
+	for idx, obj := range tc.podList.Items {
+		config, ok := obj.Annotations[annotationPromExport]
+		if !ok {
+			continue
+		}
+
+		config = complatePromConfig(config, &tc.podList.Items[idx])
+
+		if (tc.configList[idx] != "" /*fail*/) && !assert.Equal(t, config, tc.configList[idx]) {
+			t.Fatal(config)
+		}
+	}
 }

@@ -24,6 +24,9 @@ const (
 	varfloat64Rotate = 6
 )
 
+var uvarint64Sizes = initUvarint64Sizes()
+var varfloat64Sizes = initVarfloat64Sizes()
+
 // EncodeUvarint64 serializes 64-bit unsigned integers 7 bits at a time,
 // starting with the least significant bits. The most significant bit in each
 // output byte is the continuation bit and indicates whether there are
@@ -60,6 +63,23 @@ func DecodeUvarint64(b *[]byte) (uint64, error) {
 	}
 }
 
+// Uvarint64Size returns the number of bytes that EncodeUvarint64 encodes a
+// 64-bit unsigned integer into.
+func Uvarint64Size(v uint64) int {
+	return uvarint64Sizes[bits.LeadingZeros64(v)]
+}
+
+func initUvarint64Sizes() [65]int {
+	var sizes [65]int
+	b := []byte{}
+	for i := 0; i <= 64; i++ {
+		b = b[:0]
+		EncodeUvarint64(&b, ^uint64(0)>>i)
+		sizes[i] = len(b)
+	}
+	return sizes
+}
+
 // EncodeVarint64 serializes 64-bit signed integers using zig-zag encoding,
 // which ensures small-scale integers are turned into unsigned integers that
 // have leading zeros, whether they are positive or negative, hence allows for
@@ -73,6 +93,12 @@ func EncodeVarint64(b *[]byte, v int64) {
 func DecodeVarint64(b *[]byte) (int64, error) {
 	v, err := DecodeUvarint64(b)
 	return int64((v >> 1) ^ -(v & 1)), err
+}
+
+// Varint64Size returns the number of bytes that EncodeVarint64 encodes a 64-bit
+// signed integer into.
+func Varint64Size(v int64) int {
+	return Uvarint64Size(uint64(v>>(64-1) ^ (v << 1)))
 }
 
 var errVarint32Overflow = errors.New("varint overflows a 32-bit integer")
@@ -161,4 +187,22 @@ func DecodeVarfloat64(b *[]byte) (float64, error) {
 	}
 	*b = (*b)[i+1:]
 	return math.Float64frombits(bits.RotateLeft64(x, -varfloat64Rotate)+math.Float64bits(1)) - 1, nil
+}
+
+// Varfloat64Size returns the number of bytes that EncodeVarfloat64 encodes a
+// 64-bit floating-point value into.
+func Varfloat64Size(v float64) int {
+	x := bits.RotateLeft64(math.Float64bits(v+1)-math.Float64bits(1), varfloat64Rotate)
+	return varfloat64Sizes[bits.TrailingZeros64(x)]
+}
+
+func initVarfloat64Sizes() [65]int {
+	var sizes [65]int
+	b := []byte{}
+	for i := 0; i <= 64; i++ {
+		b = b[:0]
+		EncodeVarfloat64(&b, math.Float64frombits(bits.RotateLeft64(^uint64(0)<<i, -varfloat64Rotate)+math.Float64bits(1))-1)
+		sizes[i] = len(b)
+	}
+	return sizes
 }

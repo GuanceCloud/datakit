@@ -36,7 +36,9 @@ func TestGetEnvs(t *testing.T) {
 
 	for _, tc := range cases {
 		for k, v := range tc.envs {
-			os.Setenv(k, v)
+			if err := os.Setenv(k, v); err != nil {
+				t.Error(err)
+			}
 		}
 
 		envs := getEnvs()

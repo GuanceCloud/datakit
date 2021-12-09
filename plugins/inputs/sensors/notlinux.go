@@ -1,3 +1,4 @@
+//go:build !linux
 // +build !linux
 
 package sensors
@@ -9,7 +10,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-// redefine here for sample checking on non-linux platform.
+// Input redefine here for sample checking on non-linux platform.
 type Input struct {
 	Path     string            `toml:"path"`
 	Interval datakit.Duration  `toml:"interval"`
@@ -37,6 +38,6 @@ func (s *Input) Run() {
 	l.Errorf("Can not run input %q on %s-%s.", inputName, runtime.GOOS, runtime.GOARCH)
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input { return &Input{} })
 }

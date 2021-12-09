@@ -140,9 +140,8 @@ func (d *dcaContext) fail(errors ...dcaError) {
 // dca reload.
 func dcaReload(c *gin.Context) {
 	context := getContext(c)
-	err := restartDataKit()
-	if err != nil {
-		l.Error(err)
+	if err := restartDataKit(); err != nil {
+		l.Error("restartDataKit: %s", err)
 		context.fail(dcaError{ErrorCode: "system.restart.error", ErrorMsg: "restart datakit error"})
 		return
 	}
@@ -153,16 +152,12 @@ func dcaReload(c *gin.Context) {
 func restartDataKit() error {
 	bin := "datakit"
 	if runtime.GOOS == "windows" {
-		bin = bin + ".exe"
+		bin += ".exe"
 	}
 	program := filepath.Join(datakit.InstallDir, bin)
 	l.Info("apiRestart", program)
-	cmd := exec.Command(program, "--api-restart")
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
-	return nil
+	cmd := exec.Command(program, "--api-restart") //nolint:gosec
+	return cmd.Start()
 }
 
 func dcaStats(c *gin.Context) {
@@ -192,6 +187,13 @@ type saveConfigParam struct {
 
 // auth middleware.
 func dcaAuthMiddleware(c *gin.Context) {
+	fullPath := c.FullPath()
+	for _, uri := range ignoreAuthURI {
+		if uri == fullPath {
+			c.Next()
+			return
+		}
+	}
 	tokens := c.Request.Header["X-Token"]
 	context := &dcaContext{c: c}
 	if len(tokens) == 0 {
@@ -219,7 +221,7 @@ func dcaGetConfig(c *gin.Context) {
 		return
 	}
 
-	content, err := ioutil.ReadFile(path)
+	content, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Error(err)
 		context.fail(dcaError{ErrorCode: "invalid.path", ErrorMsg: "invalid path"})
@@ -430,7 +432,7 @@ func dcaGetPipelinesDetail(c *gin.Context) {
 
 	path := filepath.Join(datakit.PipelineDir, fileName)
 
-	contentBytes, err := ioutil.ReadFile(path)
+	contentBytes, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Error(err)
 		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: fmt.Sprintf("param %s is not valid", fileName)})
@@ -456,7 +458,10 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 	pipeline := pipelineInfo{}
 	err := getBody(c, &pipeline)
 	if err != nil {
-		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "make sure parameter is in correct format"})
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  "make sure parameter is in correct format",
+		})
 		return
 	}
 
@@ -464,7 +469,10 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 	filePath = filepath.Join(datakit.PipelineDir, fileName)
 
 	if len(pipeline.Content) == 0 {
-		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "'content' should not be empty"})
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  "'content' should not be empty",
+		})
 		return
 	}
 
@@ -476,14 +484,20 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 		}
 	} else { // new pipeline
 		if path.IsFileExists(filePath) {
-			context.fail(dcaError{ErrorCode: "param.invalid.duplicate", ErrorMsg: fmt.Sprintf("current name '%s' is duplicate", pipeline.FileName)})
+			context.fail(dcaError{
+				ErrorCode: "param.invalid.duplicate",
+				ErrorMsg:  fmt.Sprintf("current name '%s' is duplicate", pipeline.FileName),
+			})
 			return
 		}
 	}
 
 	// only save or update custom pipeline!
 	if !isValidCustomPipelineName(fileName) {
-		context.fail(dcaError{ErrorCode: "param.invalid", ErrorMsg: "fileName is not valid custom pipeline name"})
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  "fileName is not valid custom pipeline name",
+		})
 		return
 	}
 
@@ -555,4 +569,107 @@ func dcaTestPipelines(c *gin.Context) {
 	}
 
 	context.success(parsedText)
+}
+
+type rumQueryParam struct {
+	ApplicatinID string `form:"app_id"`
+	Env          string `form:"env"`
+	Version      string `form:"version"`
+}
+
+// upload sourcemap
+// curl -X POST 'http://localhost:9531/v1/rum/sourcemap?app_id=app_xxxx&env=release&version=1.0.1'
+// 			-F "file=@/tmp/code.zip"
+// 			-H "Content-Type: multipart/form-data".
+func dcaUploadSourcemap(c *gin.Context) {
+	context := getContext(c)
+
+	var param rumQueryParam
+
+	if c.ShouldBindQuery(&param) != nil {
+		context.fail(dcaError{ErrorCode: "query.parse.error", ErrorMsg: "query string parse error"})
+		return
+	}
+
+	if (len(param.ApplicatinID) == 0) || (len(param.Env) == 0) || (len(param.Version) == 0) {
+		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id, env, version required"})
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		l.Errorf("get file failed: %s", err.Error())
+		context.fail(dcaError{ErrorCode: "upload.file.required", ErrorMsg: "make sure the file was uploaded correctly"})
+		return
+	}
+
+	fileName := GetSourcemapZipFileName(param.ApplicatinID, param.Env, param.Version)
+	rumDir := GetRumSourcemapDir()
+	if !path.IsDir(rumDir) {
+		if err := os.MkdirAll(rumDir, datakit.ConfPerm); err != nil {
+			context.fail(dcaError{
+				ErrorCode: "dir.create.failed",
+				ErrorMsg:  "rum dir created failed",
+			})
+			return
+		}
+	}
+	dst := filepath.Clean(filepath.Join(rumDir, fileName))
+
+	// check filename
+	if !strings.HasPrefix(dst, rumDir) {
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  "invalid param, should not contain illegal char, such as  '../, /'",
+		})
+		return
+	}
+
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		l.Errorf("save upload file error: %s", err.Error())
+		context.fail(dcaError{ErrorCode: "upload.file.error", ErrorMsg: "upload failed"})
+		return
+	}
+	updateSourcemapCache(dst)
+	context.success(fmt.Sprintf("uploaded to %s!", fileName))
+}
+
+func dcaDeleteSourcemap(c *gin.Context) {
+	context := getContext(c)
+
+	var param rumQueryParam
+
+	if c.ShouldBindQuery(&param) != nil {
+		context.fail(dcaError{ErrorCode: "query.parse.error", ErrorMsg: "query string parse error"})
+		return
+	}
+
+	if (len(param.ApplicatinID) == 0) || (len(param.Env) == 0) || (len(param.Version) == 0) {
+		context.fail(dcaError{ErrorCode: "query.param.required", ErrorMsg: "app_id, env, version required"})
+		return
+	}
+
+	fileName := GetSourcemapZipFileName(param.ApplicatinID, param.Env, param.Version)
+	rumDir := GetRumSourcemapDir()
+	zipFilePath := filepath.Clean(filepath.Join(rumDir, fileName))
+
+	// check filename
+	if !strings.HasPrefix(zipFilePath, rumDir) {
+		context.fail(dcaError{
+			ErrorCode: "param.invalid",
+			ErrorMsg:  "invalid param, should not contain illegal char, such as  '../, /'",
+		})
+		return
+	}
+
+	if err := os.Remove(zipFilePath); err != nil {
+		l.Errorf("delete zip file failed: %s, %s", zipFilePath, err.Error())
+		context.fail(dcaError{
+			ErrorCode: "delete.error",
+			ErrorMsg:  "delete sourcemap file failed.",
+		})
+		return
+	}
+	deleteSourcemapCache(zipFilePath)
+	context.success("delete file successfully")
 }

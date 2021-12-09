@@ -18,28 +18,31 @@
 
 syntax = "proto3";
 
+package skywalking.v3;
+
 option java_multiple_files = true;
 option java_package = "org.apache.skywalking.apm.network.language.profile.v3";
 option csharp_namespace = "SkyWalking.NetworkProtocol.V3";
-option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/skywalking/network/language/profile/v3";
+option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile";
 
 import "plugins/inputs/skywalking/v3/proto/common/Common.proto";
 
 service ProfileTask {
   // query all sniffer need to execute profile task commands
-  rpc getProfileTaskCommands(ProfileTaskCommandQuery) returns (Commands);
+  rpc getProfileTaskCommands(ProfileTaskCommandQuery) returns (Commands) {}
 
   // collect dumped thread snapshot
-  rpc collectSnapshot(stream ThreadSnapshot) returns (Commands);
+  rpc collectSnapshot(stream ThreadSnapshot) returns (Commands) {}
 
   // report profiling task finished
-  rpc reportTaskFinish(ProfileTaskFinishReport) returns (Commands);
+  rpc reportTaskFinish(ProfileTaskFinishReport) returns (Commands) {}
 }
 
 message ProfileTaskCommandQuery {
   // current sniffer information
   string service = 1;
   string serviceInstance = 2;
+
   // last command timestamp
   int64 lastCommandTime = 3;
 }
@@ -68,6 +71,7 @@ message ProfileTaskFinishReport {
   // current sniffer information
   string service = 1;
   string serviceInstance = 2;
+
   // profile task
   string taskId = 3;
 }

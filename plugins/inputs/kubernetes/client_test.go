@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"os"
 	"testing"
 )
@@ -16,7 +17,7 @@ func TestNewClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	list, err := cli.getPods()
+	list, err := cli.getPods("").List(context.Background(), metav1ListOption)
 	if err != nil {
 		t.Error(err)
 	}

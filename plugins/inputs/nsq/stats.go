@@ -39,14 +39,14 @@ func newStats() *stats {
 func (s *stats) add(nodeHost string, body []byte) error {
 	data := &DataStats{}
 	if err := json.Unmarshal(body, data); err != nil {
-		return fmt.Errorf("error parsing response: %s", err)
+		return fmt.Errorf("error parsing response: %w", err)
 	}
 
 	// Data was not parsed correctly attempt to use old format.
 	if len(data.Version) < 1 {
 		wrapper := &GlobalStats{}
 		if err := json.Unmarshal(body, wrapper); err != nil {
-			return fmt.Errorf("error parsing response: %s", err)
+			return fmt.Errorf("error parsing response: %w", err)
 		}
 		data = wrapper.Data
 	}
@@ -143,7 +143,6 @@ type DataStats struct {
 	Topics    []*TopicStats `json:"topics"`
 }
 
-// e2e_processing_latency is not modeled.
 type TopicStats struct {
 	Name         string          `json:"topic_name"`
 	Depth        int64           `json:"depth"`
@@ -153,7 +152,6 @@ type TopicStats struct {
 	Channels     []*ChannelStats `json:"channels"`
 }
 
-// e2e_processing_latency is not modeled.
 type ChannelStats struct {
 	Name          string `json:"channel_name"`
 	Depth         int64  `json:"depth"`

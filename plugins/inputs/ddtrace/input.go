@@ -1,3 +1,4 @@
+// Package ddtrace handle DDTrace APM traces.
 package ddtrace
 
 import (
@@ -7,8 +8,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
 )
 
 var (
@@ -38,13 +39,17 @@ var (
 `
 	customerKeys []string
 	ddTags       map[string]string
-	log          = logger.DefaultSLogger(inputName)
+	log                         = logger.DefaultSLogger(inputName)
+	_            inputs.InputV2 = &Input{}
 )
 
 var (
-	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats" //nolint: unused,deadcode,varcheck
-	ignoreResources      []*regexp.Regexp
-	filters              []traceFilter
+
+	//nolint: unused,deadcode,varcheck
+	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
+
+	ignoreResources []*regexp.Regexp
+	filters         []traceFilter
 )
 
 type Input struct {
@@ -65,11 +70,11 @@ func (*Input) SampleConfig() string {
 	return ddtraceSampleConfig
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&DDTraceMeasurement{}}
 }
 
@@ -109,16 +114,16 @@ func (i *Input) Run() {
 	}
 }
 
-func (i *Input) RegHttpHandler() {
+func (i *Input) RegHTTPHandler() {
 	for _, endpoint := range i.Endpoints {
 		switch endpoint {
 		case v3, v4, v5:
-			http.RegHttpHandler("POST", endpoint, handleTraces(endpoint))
-			http.RegHttpHandler("PUT", endpoint, handleTraces(endpoint))
+			http.RegHTTPHandler("POST", endpoint, handleTraces(endpoint))
+			http.RegHTTPHandler("PUT", endpoint, handleTraces(endpoint))
 			log.Infof("pattern %s registered", endpoint)
 		case v6:
-			http.RegHttpHandler("POST", endpoint, handleStats)
-			http.RegHttpHandler("PUT", endpoint, handleStats)
+			http.RegHTTPHandler("POST", endpoint, handleStats)
+			http.RegHTTPHandler("PUT", endpoint, handleStats)
 			log.Infof("pattern %s registered", endpoint)
 		default:
 			log.Errorf("unrecognized ddtrace agent endpoint")
@@ -126,7 +131,7 @@ func (i *Input) RegHttpHandler() {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{}
 	})

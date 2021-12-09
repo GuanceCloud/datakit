@@ -13,13 +13,17 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var ignoreAuthURI = []string{
+	"/v1/rum/sourcemap",
+}
+
 type DCAConfig struct {
 	Enable    bool     `toml:"enable" json:"enable"`
 	Listen    string   `toml:"listen" json:"listen"`
 	WhiteList []string `toml:"white_list" json:"white_list"`
 }
 
-func dcaHttpStart() {
+func dcaHTTPStart() {
 	gin.DisableConsoleColor()
 
 	if ginReleaseMode {
@@ -68,7 +72,7 @@ func dcaHttpStart() {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
@@ -99,13 +103,17 @@ func dcaHttpStart() {
 	router.POST("/v1/dca/pipelines", dcaCreatePipeline)
 	router.PATCH("/v1/dca/pipelines", dcaUpdatePipeline)
 
+	router.POST("/v1/rum/sourcemap", dcaUploadSourcemap)
+	router.DELETE("/v1/rum/sourcemap", dcaDeleteSourcemap)
+
 	srv := &http.Server{
 		Addr:    dcaConfig.Listen,
 		Handler: router,
 	}
 
 	g.Go(func(ctx context.Context) error {
-		tryStartServer(srv)
+		loadSourcemapFile()
+		tryStartServer(srv, false, nil, nil)
 		l.Info("DCA server exit")
 		return nil
 	})
@@ -122,49 +130,53 @@ func dcaHttpStart() {
 }
 
 func whiteListCheck(c *gin.Context) {
-	isValid := true
+	var isValid bool
 	context := dcaContext{c: c}
-	clientIp := net.ParseIP(c.ClientIP())
+	clientIP := net.ParseIP(c.ClientIP())
 	whiteList := dcaConfig.WhiteList
 
 	// ignore loopback
-	if clientIp.IsLoopback() {
-		l.Debugf("loopback ip: %s, ignore check whitelist", clientIp)
+	if clientIP.IsLoopback() {
+		l.Debugf("loopback ip: %s, ignore check whitelist", clientIP)
 		c.Next()
 		return
 	}
 
-	if len(whiteList) > 0 {
-		isValid = false
-		for _, v := range whiteList {
-			l.Debugf("check cidr %s, client ip: %s", v, clientIp)
-			_, ipNet, err := net.ParseCIDR(v)
-			if err != nil {
-				ip := net.ParseIP(v)
-				if ip == nil {
-					l.Warnf("parse ip error, %s, ignore", v)
-					continue
-				}
-				if string(ip) == string(clientIp) {
-					isValid = true
-					break
-				}
-			} else {
-				if ipNet.Contains(clientIp) {
-					isValid = true
-					break
-				}
-			}
-		}
-	} else {
-		isValid = false
+	if len(whiteList) == 0 {
 		l.Warn("DCA service is enabled, but the white list is empty!!")
+		c.Next()
+		return
+	}
+
+	isValid = false
+	for _, v := range whiteList {
+		l.Debugf("check cidr %s, client ip: %s", v, clientIP)
+		_, ipNet, err := net.ParseCIDR(v)
+		if err != nil {
+			ip := net.ParseIP(v)
+			if ip == nil {
+				l.Warnf("parse ip error, %s, ignore", v)
+				continue
+			}
+
+			if string(ip) == string(clientIP) {
+				isValid = true
+				break
+			}
+		} else if ipNet.Contains(clientIP) {
+			isValid = true
+			break
+		}
 	}
 
 	if isValid {
 		c.Next()
 	} else {
-		context.fail(dcaError{Code: 401, ErrorCode: "whiteList.check.error", ErrorMsg: "your cient is not in the white list"})
+		context.fail(dcaError{
+			Code:      401,
+			ErrorCode: "whiteList.check.error",
+			ErrorMsg:  "your cient is not in the white list",
+		})
 		c.Abort()
 	}
 }

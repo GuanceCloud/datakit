@@ -75,7 +75,7 @@ func apiWrite(c *gin.Context) {
 	case datakit.Rum:
 		input = "rum"
 	case datakit.Security:
-		input = "sechecker"
+		input = "scheck"
 	default:
 		l.Debugf("invalid category: %s", category)
 		uhttp.HttpErr(c, ErrInvalidCategory)
@@ -105,7 +105,7 @@ func apiWrite(c *gin.Context) {
 
 	body, err = uhttp.GinRead(c)
 	if err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
+		uhttp.HttpErr(c, uhttp.Error(ErrHTTPReadErr, err.Error()))
 		return
 	}
 
@@ -142,7 +142,7 @@ func apiWrite(c *gin.Context) {
 
 		pts, err = handleRUMBody(body, precision, srcip, isjson, apiConfig.RUMAppIDWhiteList)
 		// appid不在白名单中，当前 http 请求直接返回
-		if errors.As(err, &ErrRUMAppIdNotInWhiteList) {
+		if errors.As(err, &ErrRUMAppIDNotInWhiteList) {
 			uhttp.HttpErr(c, err)
 			return
 		}
@@ -152,8 +152,7 @@ func apiWrite(c *gin.Context) {
 			extags = nil
 		}
 
-		pts, err = handleWriteBody(body, precision,
-			extags, isjson, nil)
+		pts, err = handleWriteBody(body, precision, extags, isjson)
 		if err != nil {
 			uhttp.HttpErr(c, err)
 			return
@@ -167,19 +166,17 @@ func apiWrite(c *gin.Context) {
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 	} else {
-		ErrOK.HttpBody(c, nil)
+		OK.HttpBody(c, nil)
 	}
 }
 
 func handleWriteBody(body []byte,
 	precision string,
 	extags map[string]string,
-	isJson bool,
-	appIdWhiteList []string,
-) ([]*io.Point, error) {
-	switch isJson {
+	isJSON bool) ([]*io.Point, error) {
+	switch isJSON {
 	case true:
-		return jsonPoints(body, precision, extags, appIdWhiteList)
+		return jsonPoints(body, precision, extags)
 
 	default:
 		pts, err := lp.ParsePoints(body, &lp.Option{
@@ -198,29 +195,20 @@ func handleWriteBody(body []byte,
 
 func jsonPoints(body []byte,
 	prec string,
-	extags map[string]string,
-	appIdWhiteList []string) ([]*io.Point, error) {
+	extags map[string]string) ([]*io.Point, error) {
 	var jps []jsonPoint
 	err := json.Unmarshal(body, &jps)
 	if err != nil {
 		l.Error(err)
-		return nil, ErrInvalidJsonPoint
+		return nil, ErrInvalidJSONPoint
 	}
 
 	var pts []*io.Point
 	for _, jp := range jps {
 		if p, err := jp.pt(prec, extags); err != nil {
 			l.Error(err)
-			return nil, uhttp.Error(ErrInvalidJsonPoint, err.Error())
+			return nil, uhttp.Error(ErrInvalidJSONPoint, err.Error())
 		} else {
-			tags := p.Tags()
-			if len(tags) == 0 {
-				return nil, fmt.Errorf("empty tags")
-			}
-			if !contains(tags[rumMetricAppID], appIdWhiteList) {
-				return nil, ErrRUMAppIdNotInWhiteList
-			}
-
 			pts = append(pts, p)
 		}
 	}

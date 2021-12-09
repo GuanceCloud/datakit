@@ -22,6 +22,7 @@ func (m *tbMeasurement) LineProto() (*io.Point, error) {
 }
 
 // 指定指标.
+//nolint:lll
 func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL 表指标",
@@ -83,7 +84,7 @@ func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 func (i *Input) getTableSchema() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
-	tableSchemaSql := `
+	tableSchemaSQL := `
 	SELECT
         TABLE_SCHEMA,
         TABLE_NAME,
@@ -106,17 +107,20 @@ func (i *Input) getTableSchema() ([]inputs.Measurement, error) {
 		}
 
 		filterStr := strings.Join(arr, ",")
-		tableSchemaSql = fmt.Sprintf("%s and TABLE_NAME in (%s);", tableSchemaSql, filterStr)
+		tableSchemaSQL = fmt.Sprintf("%s and TABLE_NAME in (%s);", tableSchemaSQL, filterStr)
 	}
 
 	// run query
-	l.Info("tableSchema sql,", tableSchemaSql)
-	rows, err := i.db.Query(tableSchemaSql)
+	l.Debug("tableSchema sql,", tableSchemaSQL)
+	rows, err := i.db.Query(tableSchemaSQL)
 	if err != nil {
-		l.Errorf("query %s error %v", tableSchemaSql, err)
+		l.Errorf("query %s error %v", tableSchemaSQL, err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close() //nolint:errcheck
+		_ = rows.Err()   //nolint:errcheck
+	}()
 
 	for rows.Next() {
 		m := &tbMeasurement{

@@ -33,7 +33,7 @@ var (
 	FlagDefConf bool
 	FlagWorkDir string
 
-	FlagMan bool
+	FlagDisableTFMono, FlagMan bool
 	FlagIgnore,
 	FlagExportMan,
 	FlagExportIntegration,
@@ -45,7 +45,7 @@ var (
 	FlagStart,
 	FlagStop,
 	FlagRestart,
-	FlagApiRestart,
+	FlagAPIRestart,
 	FlagStatus,
 	FlagUninstall,
 	FlagReinstall bool
@@ -67,6 +67,7 @@ var (
 
 	FlagShowCloudInfo    string
 	FlagIPInfo           string
+	FlagConfigDir        string
 	FlagMonitor          bool
 	FlagCheckConfig      bool
 	FlagCheckSample      bool
@@ -75,11 +76,13 @@ var (
 	FlagVVV              bool
 	FlagCmdLogPath       string
 	FlagDumpSamples      string
+
+	FlagUploadLog bool
 )
 
 var (
-	ReleaseVersion string
-	ReleaseType    string
+	ReleaseVersion    string
+	InputsReleaseType string
 )
 
 func tryLoadMainCfg() {
@@ -115,21 +118,30 @@ func RunCmds() {
 	if FlagVersion {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		showVersion(ReleaseVersion, ReleaseType, FlagShowTestingVersions)
+		showVersion(ReleaseVersion, InputsReleaseType, FlagShowTestingVersions)
 		os.Exit(0)
 	}
 
 	if FlagCheckConfig {
-		tryLoadMainCfg()
+		confdir := FlagConfigDir
+		if confdir == "" {
+			tryLoadMainCfg()
+			confdir = datakit.ConfdDir
+		}
+
 		setCmdRootLog(FlagCmdLogPath)
-		checkConfig()
+		if err := checkConfig(confdir, ""); err != nil {
+			os.Exit(-1)
+		}
 		os.Exit(0)
 	}
 
 	if FlagCheckSample {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		checkSample()
+		if err := checkSample(); err != nil {
+			os.Exit(-1)
+		}
 		os.Exit(0)
 	}
 
@@ -236,7 +248,10 @@ func RunCmds() {
 	if FlagProm != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		promDebugger(FlagProm) //nolint:errcheck
+		if err := promDebugger(FlagProm); err != nil {
+			l.Errorf("promDebugger: %s", err)
+		}
+
 		os.Exit(0)
 	}
 
@@ -255,7 +270,10 @@ func RunCmds() {
 
 	if FlagExportMan != "" {
 		setCmdRootLog(FlagCmdLogPath)
-		if err := exportMan(FlagExportMan, FlagIgnore, FlagManVersion); err != nil {
+		if err := exportMan(FlagExportMan,
+			FlagIgnore,
+			FlagManVersion,
+			FlagDisableTFMono); err != nil {
 			l.Error(err)
 		}
 		os.Exit(0)
@@ -368,17 +386,28 @@ func RunCmds() {
 		os.Exit(0)
 	}
 
-	if FlagApiRestart {
+	if FlagAPIRestart {
 		tryLoadMainCfg()
 		logPath := config.Cfg.Logging.Log
 		setCmdRootLog(logPath)
 		apiRestart()
 		os.Exit(0)
 	}
+
+	if FlagUploadLog {
+		tryLoadMainCfg()
+		fmt.Println("Upload log start")
+		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
+			errorf("[E] upload log failed : %s\n", err.Error())
+			os.Exit(-1)
+		}
+		fmt.Println("Upload successfully!")
+		os.Exit(0)
+	}
 }
 
 func getcli() *http.Client {
-	proxy := config.Cfg.DataWay.HttpProxy
+	proxy := config.Cfg.DataWay.HTTPProxy
 
 	cliopt := &ihttp.Options{
 		InsecureSkipVerify: true,

@@ -21,7 +21,7 @@ func (m *innodbMeasurement) LineProto() (*io.Point, error) {
 }
 
 // 指定指标.
-func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
+func (m *innodbMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "mysql_innodb",
 		Fields: map[string]interface{}{
@@ -430,15 +430,20 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo {
 func (i *Input) getInnodb() ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
-	globalInnodbSql := `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
+	globalInnodbSQL := `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
 
 	// run query
-	rows, err := i.db.Query(globalInnodbSql)
+	rows, err := i.db.Query(globalInnodbSQL)
 	if err != nil {
 		l.Errorf("query error %v", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return nil, err
+	}
 
 	m := &innodbMeasurement{
 		tags:   make(map[string]string),
@@ -453,7 +458,7 @@ func (i *Input) getInnodb() ([]inputs.Measurement, error) {
 
 	for rows.Next() {
 		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
+		val := new(sql.RawBytes)
 		if err = rows.Scan(&key, val); err != nil {
 			continue
 		}

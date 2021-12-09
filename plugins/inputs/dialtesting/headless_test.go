@@ -17,7 +17,6 @@ var headlessCases = []struct {
 	fail      bool
 	reasonCnt int
 }{
-
 	{
 		fail:      false,
 		reasonCnt: 0,
@@ -148,7 +147,7 @@ const (
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 		<link rel="apple-touch-icon" href="https://gw.alipayobjects.com/mdn/prod_resou/afts/img/A*CUIoT4xopNYAAAAAAAAAAABkARQnAQ" />
 		<meta http-equiv="X-UA-Compatible" content="edge">
-		
+
 		<meta name="pagetype" content="group_homepage">
 		<meta name="pagename" content="group_homepage">
 		<meta name="description" content="DataFlux的产品功能与最佳实践">
@@ -164,9 +163,9 @@ const (
 		<link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="语雀" />
 		<link rel="manifest" href="/manifest.json" />
 		<meta name="theme_color" content="#05192D" />
-		
+
 		  <link rel="stylesheet" href="https://gw.alipayobjects.com/os/chair-script/skylark/common.d25726e4.chunk.css" />
-		
+
 		<link rel="stylesheet" href="https://gw.alipayobjects.com/os/chair-script/skylark/pc.3c59fc2b.css" />
 		<link href="https://gw.alipayobjects.com" rel="dns-prefetch" />
 	<link href="https://mdap.alipay.com" rel="dns-prefetch" />
@@ -177,7 +176,7 @@ const (
 	<link href="https://g.yuque.com" rel="dns-prefetch" />
 	<link href="https://mdap.yuque.com" rel="dns-prefetch" />
 	<meta name="baidu-site-verification" content="WGwq1qW6TC" />
-	<meta name="renderer" content="webkit">	
+	<meta name="renderer" content="webkit">
 	</head>
 	<body>
 	    <div id="result">%s</div>
@@ -185,7 +184,7 @@ const (
 		<script crossorigin src="https://gw.alipayobjects.com/os/lib/alipay/yuyan-monitor-web/2.0.29/dist/index.umd.min.js"></script>
 	  </body>
 	</html>
-	
+
 	`
 )
 
@@ -217,7 +216,6 @@ func testServer(addr string) error {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		// fmt.Printf(`header %s`, string(buf))
 		fmt.Fprintf(res, indexHTML, string(buf))
 	})
 
@@ -228,7 +226,6 @@ func testServer(addr string) error {
 			buf, _ := json.MarshalIndent(req.Header, "", "  ")
 			fmt.Printf(`basic auth failed %s`, string(buf))
 
-			// fmt.Fprintf(res, indexHTML, "basic auth failed")
 			http.Error(res, "basic auth failed", http.StatusInternalServerError)
 			return
 		}
@@ -236,15 +233,14 @@ func testServer(addr string) error {
 		fmt.Fprintf(res, indexHTML, buf)
 	})
 
-	//_test_with_cert
+	// _test_with_cert
 	mux.HandleFunc("/_test_with_cert", func(res http.ResponseWriter, req *http.Request) {
 		buf := fmt.Sprintf("request tls: %+#v", req.TLS)
 		fmt.Fprintf(res, indexHTML, buf)
 	})
 
 	mux.HandleFunc("/_test_no_resp", func(res http.ResponseWriter, req *http.Request) {
-		buf := fmt.Sprintf("_test_no_resp:xxxx")
-		fmt.Fprintf(res, indexHTML, buf)
+		fmt.Fprintf(res, indexHTML, "_test_no_resp:xxxx")
 	})
 
 	return http.ListenAndServe(addr, mux)
@@ -255,7 +251,7 @@ func TestHeadless(t *testing.T) {
 	flag.Parse()
 
 	// start test server
-	go testServer(fmt.Sprintf(":%d", *flagPort))
+	go testServer(fmt.Sprintf(":%d", *flagPort)) //nolint:errcheck
 
 	for i, c := range headlessCases {
 		// if i != 4 {

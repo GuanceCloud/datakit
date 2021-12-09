@@ -19,6 +19,7 @@ import (
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 )
 
 type (
@@ -77,16 +78,20 @@ type (
 		Disk       []*DiskInfo         `json:"disk"`
 		Conntrack  *conntrackutil.Info `json:"conntrack"`
 		FileFd     *filefdutil.Info    `json:"filefd"`
+		Election   *ElectionInfo       `json:"election"`
 		cpuPercent float64
 		load5      float64
 		cloudInfo  map[string]interface{}
 	}
-
+	ElectionInfo struct {
+		Namespace string `json:"namespace"`
+		Elected   string `json:"elected"`
+	}
 	HostConfig struct {
-		Ip         string          `json:"ip"`
+		IP         string          `json:"ip"`
 		DCAConfig  *http.DCAConfig `json:"dca_config"`
-		HttpListen string          `json:"http_listen"`
-		ApiToken   string          `json:"api_token"`
+		HTTPListen string          `json:"http_listen"`
+		APIToken   string          `json:"api_token"`
 	}
 
 	HostObjectMessage struct {
@@ -264,8 +269,8 @@ func getDiskInfo(ignoreFs []string) []*DiskInfo {
 	return infos
 }
 
-func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
-	inputsStats, err := io.GetStats(c.IOTimeout.Duration) // get all inputs stats
+func (ipt *Input) getEnabledInputs() (res []*CollectorStatus) {
+	inputsStats, err := io.GetStats(ipt.IOTimeout.Duration) // get all inputs stats
 	if err != nil {
 		l.Warnf("fail to get inputs stats, %s", err)
 		return
@@ -279,7 +284,7 @@ func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 		}
 
 		lastErr := s.LastErr
-		if ts > 0 && now.Sub(s.LastErrTS) > c.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
+		if ts > 0 && now.Sub(s.LastErrTS) > ipt.IgnoreInputsErrorsBefore.Duration { // ignore errors 30s ago
 			l.Debugf("ignore error %s(%v before)", s.LastErr, now.Sub(s.LastErrTS))
 			lastErr = ""
 			ts = 0
@@ -294,13 +299,14 @@ func (c *Input) getEnabledInputs() (res []*CollectorStatus) {
 			Version:     s.Version,
 		})
 	}
-	return
+
+	return res
 }
 
-func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
+func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	var msg HostObjectMessage
 
-	stat := c.getEnabledInputs()
+	stat := ipt.getEnabledInputs()
 
 	// NOTE: 由于获取采集器的运行情况信息时，io 模块可能较忙，导致获取不到
 	// 故此处缓存一下历史，以免在 message 字段中采集器信息字段(collectors)
@@ -321,7 +327,7 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		return nil, fmt.Errorf("collector stats missing")
 	}
 
-	msg.Config = c.getHostConfig()
+	msg.Config = getHostConfig()
 
 	fileFd, err := filefdutil.GetFileFdInfo()
 	if err != nil {
@@ -334,15 +340,16 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		cpuPercent: getCPUPercent(),
 		load5:      getLoad5(),
 		Mem:        getMemInfo(),
-		Net:        getNetInfo(c.EnableNetVirtualInterfaces),
-		Disk:       getDiskInfo(c.IgnoreFS),
+		Net:        getNetInfo(ipt.EnableNetVirtualInterfaces),
+		Disk:       getDiskInfo(ipt.IgnoreFS),
 		Conntrack:  conntrackutil.GetConntrackInfo(),
 		FileFd:     fileFd,
+		Election:   getElectionInfo(),
 	}
 
 	// sync cloud extra fields
-	if v, ok := c.Tags["cloud_provider"]; ok {
-		info, err := c.SyncCloudInfo(v)
+	if v, ok := ipt.Tags["cloud_provider"]; ok {
+		info, err := ipt.SyncCloudInfo(v)
 		if err != nil {
 			l.Warnf("sync cloud info failed: %v, ignored", err)
 		} else {
@@ -359,18 +366,29 @@ func (c *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	return &msg, nil
 }
 
-func (c *Input) getHostConfig() *HostConfig {
+func getHostConfig() *HostConfig {
 	hostConfig := &HostConfig{}
 
 	ip, err := datakit.LocalIP()
 	if err == nil {
-		hostConfig.Ip = ip
+		hostConfig.IP = ip
 	}
 
 	hostConfig.DCAConfig = config.Cfg.DCAConfig
 
-	hostConfig.ApiToken = config.GetToken()
-	hostConfig.HttpListen = config.Cfg.HTTPAPI.Listen
+	hostConfig.APIToken = config.GetToken()
+	hostConfig.HTTPListen = config.Cfg.HTTPAPI.Listen
 
 	return hostConfig
+}
+
+func getElectionInfo() *ElectionInfo {
+	electionInfo := &ElectionInfo{}
+	if config.Cfg.EnableElection {
+		elected, namespace := election.Elected()
+		electionInfo.Elected = elected
+		electionInfo.Namespace = namespace
+		return electionInfo
+	}
+	return nil
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/c-bata/go-prompt"
 	"github.com/influxdata/influxdb1-client/models"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
@@ -28,7 +29,7 @@ var (
 
 	dqlcli *http.Client
 
-	defaultJsonIndent = "  "
+	defaultJSONIndent = "  "
 )
 
 const (
@@ -76,7 +77,7 @@ func loadHistory() {
 		return
 	}
 
-	data, err := ioutil.ReadFile(histpath)
+	data, err := ioutil.ReadFile(filepath.Clean(histpath))
 	if err != nil {
 		l.Warnf("read history failed: %s", err.Error())
 		return
@@ -157,12 +158,14 @@ func runDQL(txt string) {
 			lines = append(lines, s)
 		}
 
-		resp := doDQL(strings.Join(lines, "\n"))
-		show(resp)
+		resp, err := doDQL(strings.Join(lines, "\n"))
+		if err == nil {
+			show(resp)
+		}
 	}
 }
 
-// runSingleDQL Perform a single DQL query statement
+// runSingleDQL Perform a single DQL query statement.
 func runSingleDQL(s string) {
 	if FlagCSV != "" {
 		if err := prepareCsv(); err != nil {
@@ -171,10 +174,8 @@ func runSingleDQL(s string) {
 		}
 	}
 
-	resp := doDQL(s)
-
-	if resp == nil {
-		errorf("Empty result\n")
+	resp, err := doDQL(s)
+	if err != nil {
 		return
 	}
 
@@ -195,7 +196,7 @@ func runSingleDQL(s string) {
 	}
 }
 
-// prepareCsv Judging whether the file exists, create a directory if there is no existence
+// prepareCsv Judging whether the file exists, create a directory if there is no existence.
 func prepareCsv() error {
 	f, err := os.Stat(FlagCSV)
 	if err == nil {
@@ -206,15 +207,13 @@ func prepareCsv() error {
 		if !FlagForce {
 			return fmt.Errorf("file %s exists", FlagCSV)
 		}
-	} else {
-		if err = os.MkdirAll(filepath.Dir(FlagCSV), os.ModePerm); err != nil {
-			return err
-		}
+	} else if err = os.MkdirAll(filepath.Dir(FlagCSV), os.ModePerm); err != nil {
+		return err
 	}
 	return nil
 }
 
-// convertStrings Convert Interface arrays to String array which in the query result
+// convertStrings Convert Interface arrays to String array which in the query result.
 func convertStrings(value []interface{}) []string {
 	res := []string{}
 	for k, v := range value {
@@ -222,30 +221,31 @@ func convertStrings(value []interface{}) []string {
 			res = append(res, "")
 			continue
 		}
-		switch v.(type) {
+		switch x := v.(type) {
 		case string:
-			res = append(res, v.(string))
+			res = append(res, x)
 
 		case json.Number:
-			res = append(res, fmt.Sprintf("%s", v))
+			res = append(res, x.String())
 
 		case bool:
-			res = append(res, fmt.Sprintf("%s", v))
+			res = append(res, fmt.Sprintf("%v", x))
 
 		default:
-			warnf("unknown key value, %v:%v", k, v)
+			warnf("unknown key value, %d:%v", k, x)
 		}
 	}
 	return res
 }
 
-// writeToCsv Format the query results and write to CSV files
+// writeToCsv Format the query results and write to CSV files.
 func writeToCsv(series []*models.Row, csvPath string) error {
-	csvFile, err := os.OpenFile(csvPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	csvFile, err := os.OpenFile(filepath.Clean(csvPath),
+		os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	defer csvFile.Close()
+	defer csvFile.Close() //nolint:errcheck,gosec
 
 	writer := csv.NewWriter(csvFile)
 
@@ -277,10 +277,10 @@ func writeToCsv(series []*models.Row, csvPath string) error {
 	return nil
 }
 
-func doDQL(s string) []*queryResult {
+func doDQL(s string) ([]*queryResult, error) {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
-		Token:       FlagToken,
+		Token:       config.GetToken(),
 		Queries: []*dkhttp.SingleQuery{
 			{
 				Query: s,
@@ -288,10 +288,14 @@ func doDQL(s string) []*queryResult {
 		},
 	}
 
+	if FlagToken != "" {
+		q.Token = FlagToken
+	}
+
 	j, err := json.Marshal(q)
 	if err != nil {
 		errorf("%s\n", err.Error())
-		return nil
+		return nil, err
 	}
 
 	l.Debugf("dql request: %s", string(j))
@@ -300,7 +304,7 @@ func doDQL(s string) []*queryResult {
 		fmt.Sprintf("http://%s%s", datakitHost, dqlraw), bytes.NewBuffer(j))
 	if err != nil {
 		errorf("http.NewRequest: %s\n", err.Error())
-		return nil
+		return nil, err
 	}
 
 	if dqlcli == nil {
@@ -310,17 +314,13 @@ func doDQL(s string) []*queryResult {
 	resp, err := dqlcli.Do(req)
 	if err != nil {
 		errorf("httpcli.Do: %s\n", err.Error())
-		return nil
-	}
-
-	for k, v := range resp.Header {
-		l.Debugf("%s: %v", k, v)
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		errorf("ioutil.ReadAll: %s\n", err.Error())
-		return nil
+		return nil, err
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
@@ -333,24 +333,27 @@ func doDQL(s string) []*queryResult {
 		if err := json.Unmarshal(body, &r); err != nil {
 			errorf("json.Unmarshal: %s\n", err.Error())
 			errorf("body: %s\n", string(body))
-			return nil
+			return nil, err
 		}
 
+		l.Warnf("body: %s", string(body))
+
 		errorf("[%s] %s\n", r.Err, r.Msg)
-		return nil
+		return nil, fmt.Errorf("%s", r.Err)
 	}
+
 	r := dqlResp{}
-	l.Debugf("json content:%s", string(body))
+
 	jd := json.NewDecoder(bytes.NewReader(body))
 	jd.UseNumber()
-	l.Debugf(string(body) + "\n")
+
 	if err := jd.Decode(&r); err != nil {
 		errorf("%s\n", err.Error())
-		return nil
+		return nil, err
 	}
 	content, _ := json.Marshal(r.Content)
 	l.Debugf("json content:%s", string(content))
-	return r.Content
+	return r.Content, nil
 }
 
 type queryResult struct {
@@ -375,7 +378,7 @@ func doShow(c *queryResult) {
 
 	switch {
 	case FlagJSON:
-		j, err := json.MarshalIndent(c, "", defaultJsonIndent)
+		j, err := json.MarshalIndent(c, "", defaultJSONIndent)
 		if err != nil {
 			errorf("%s\n", err.Error())
 			return
@@ -539,9 +542,9 @@ func prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
 			valFmt = "'%s'\n"
 			if FlagAutoJSON {
 				dst := &bytes.Buffer{}
-				if err := json.Indent(dst, []byte(v), "", defaultJsonIndent); err == nil {
+				if err := json.Indent(dst, []byte(v), "", defaultJSONIndent); err == nil {
 					val[colIdx] = dst.String()
-					valFmt = "----- json -----\n" + "%s\n" + "----- end of json -----\n"
+					valFmt = "<<<<< json \n" + "%s\n" + ">>>>> end of json\n"
 				}
 			}
 		case bool:

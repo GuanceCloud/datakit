@@ -1,3 +1,4 @@
+// Package nsq collects NSQ metrics.
 package nsq
 
 import (
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -45,6 +47,8 @@ type Input struct {
 	InsecureSkipVerify bool              `toml:"insecure_skip_verify"`
 	Tags               map[string]string `toml:"tags"`
 
+	EndpointDeprecated []string `toml:"endpoints,omitempty"`
+
 	lookupdEndpoint  string
 	nsqdEndpointList map[string]interface{}
 
@@ -53,6 +57,8 @@ type Input struct {
 
 	pauseCh chan bool
 	pause   bool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -63,6 +69,8 @@ func newInput() *Input {
 		nsqdEndpointList: make(map[string]interface{}),
 		pauseCh:          make(chan bool, maxPauseCh),
 		httpClient:       &http.Client{Timeout: 5 * time.Second},
+
+		semStop: cliutils.NewSem(),
 	}
 }
 
@@ -79,14 +87,14 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (this *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if this.setup() {
+	if ipt.setup() {
 		return
 	}
 
-	gatherTicker := time.NewTicker(this.duration)
+	gatherTicker := time.NewTicker(ipt.duration)
 	defer gatherTicker.Stop()
 
 	updateListTicker := time.NewTicker(updateEndpointListInterval)
@@ -95,16 +103,20 @@ func (this *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("exit")
+			l.Info("nsq exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("nsq return")
 			return
 
 		case <-gatherTicker.C:
-			if this.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
 			start := time.Now()
-			pts, err := this.gather()
+			pts, err := ipt.gather()
 			if err != nil {
 				l.Errorf("gather: %s, ignored", err)
 			}
@@ -118,25 +130,31 @@ func (this *Input) Run() {
 			}
 
 		case <-updateListTicker.C:
-			if this.pause {
+			if ipt.pause {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			if this.isLookupd() {
-				if err := this.updateEndpointListByLookupd(this.lookupdEndpoint); err != nil {
+			if ipt.isLookupd() {
+				if err := ipt.updateEndpointListByLookupd(ipt.lookupdEndpoint); err != nil {
 					l.Error(err)
 					continue
 				}
-				l.Debugf("nsqd endpoint list: %v", this.nsqdEndpointList)
+				l.Debugf("nsqd endpoint list: %v", ipt.nsqdEndpointList)
 			}
 
-		case this.pause = <-this.pauseCh:
+		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
 }
 
-func (this *Input) setup() bool {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func (ipt *Input) setup() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -147,7 +165,7 @@ func (this *Input) setup() bool {
 		}
 		time.Sleep(time.Second)
 
-		if err := this.setupDo(); err != nil {
+		if err := ipt.setupDo(); err != nil {
 			continue
 		}
 		break
@@ -156,17 +174,17 @@ func (this *Input) setup() bool {
 	return false
 }
 
-func (this *Input) setupDo() error {
-	if this.httpClient == nil {
-		this.httpClient = &http.Client{Timeout: 5 * time.Second}
+func (ipt *Input) setupDo() error {
+	if ipt.httpClient == nil {
+		ipt.httpClient = &http.Client{Timeout: 5 * time.Second}
 	}
 
-	if this.TLSCA != "" {
+	if ipt.TLSCA != "" {
 		tlsconfig := &net.TLSClientConfig{
-			CaCerts:            []string{this.TLSCA},
-			Cert:               this.TLSCert,
-			CertKey:            this.TLSKey,
-			InsecureSkipVerify: this.InsecureSkipVerify,
+			CaCerts:            []string{ipt.TLSCA},
+			Cert:               ipt.TLSCert,
+			CertKey:            ipt.TLSKey,
+			InsecureSkipVerify: ipt.InsecureSkipVerify,
 		}
 
 		tc, err := tlsconfig.TLSConfig()
@@ -174,73 +192,78 @@ func (this *Input) setupDo() error {
 			l.Errorf("compose TLS: %s", err)
 			return err
 		}
-		this.httpClient.Transport = &http.Transport{TLSClientConfig: tc}
+		ipt.httpClient.Transport = &http.Transport{TLSClientConfig: tc}
 	}
 
-	if this.isLookupd() {
-		u, err := buildURL(fmt.Sprintf(lookupdPattern, this.Lookupd))
+	if ipt.isLookupd() {
+		u, err := buildURL(fmt.Sprintf(lookupdPattern, ipt.Lookupd))
 		if err != nil {
 			l.Errorf("build URL: %s", err)
 			return err
 		}
-		this.lookupdEndpoint = u.String()
-		if err := this.updateEndpointListByLookupd(this.lookupdEndpoint); err != nil {
+		ipt.lookupdEndpoint = u.String()
+		if err := ipt.updateEndpointListByLookupd(ipt.lookupdEndpoint); err != nil {
 			l.Error(err)
 			return err
 		}
 	} else {
-		if len(this.NSQDs) == 0 {
+		if len(ipt.NSQDs) == 0 {
 			return fmt.Errorf("invalid nsqd endpoints")
 		}
-		for _, n := range this.NSQDs {
+		for _, n := range ipt.NSQDs {
 			u, err := buildURL(fmt.Sprintf(nsqdStatsPattern, n))
 			if err != nil {
 				l.Errorf("build URL: %s", err)
 				return err
 			}
-			this.nsqdEndpointList[u.String()] = nil
+			ipt.nsqdEndpointList[u.String()] = nil
 		}
 	}
 
 	var err error
-	this.duration, err = timex.ParseDuration(this.Interval)
+	ipt.duration, err = timex.ParseDuration(ipt.Interval)
 	if err != nil {
 		l.Warnf("parse duration error: %s", err)
 	}
-	if this.duration < minInterval {
-		this.duration = defaultInterval
-		l.Warnf("interval should large %s, got %s, use default interval %s", minInterval, this.Interval, defaultInterval)
+	if ipt.duration < minInterval {
+		ipt.duration = defaultInterval
+		l.Warnf("interval should large %s, got %s, use default interval %s",
+			minInterval, ipt.Interval, defaultInterval)
 	}
 
 	return nil
 }
 
-func (this *Input) isLookupd() bool {
-	return this.Lookupd != ""
+func (ipt *Input) isLookupd() bool {
+	return ipt.Lookupd != ""
 }
 
-func (this *Input) gather() ([]*io.Point, error) {
-	if len(this.nsqdEndpointList) == 0 {
+func (ipt *Input) gather() ([]*io.Point, error) {
+	if len(ipt.nsqdEndpointList) == 0 {
 		l.Warn("endpoint list is empty")
 		return nil, nil
 	}
 
 	st := newStats()
 
-	for endpoint := range this.nsqdEndpointList {
-		body, err := this.httpGet(endpoint)
+	for endpoint := range ipt.nsqdEndpointList {
+		body, err := ipt.httpGet(endpoint)
 		if err != nil {
 			l.Errorf("httpGet: %s, ignored", err)
 			continue
 		}
-		st.add(getURLHost(endpoint), body)
+
+		if err := st.add(getURLHost(endpoint), body); err != nil {
+			l.Errorf("st.add: %s, ignored", err.Error())
+			continue
+		}
 	}
 
-	return st.makePoint(this.Tags)
+	return st.makePoint(ipt.Tags)
 }
 
-func (this *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
-	body, err := this.httpGet(lookupdEndpoint)
+func (ipt *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
+	body, err := ipt.httpGet(lookupdEndpoint)
 	if err != nil {
 		return err
 	}
@@ -248,7 +271,7 @@ func (this *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
 	var endpoints []string
 	lk := &LookupNodes{}
 	if err := json.Unmarshal(body, lk); err != nil {
-		return fmt.Errorf("error parsing response: %s", err)
+		return fmt.Errorf("error parsing response: %w", err)
 	}
 
 	for _, p := range lk.Producers {
@@ -263,20 +286,20 @@ func (this *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {
 	}
 
 	for _, endpoint := range endpoints {
-		if _, ok := this.nsqdEndpointList[endpoint]; !ok {
-			this.nsqdEndpointList[endpoint] = nil
+		if _, ok := ipt.nsqdEndpointList[endpoint]; !ok {
+			ipt.nsqdEndpointList[endpoint] = nil
 		}
 	}
 
 	return nil
 }
 
-func (this *Input) httpGet(u string) ([]byte, error) {
-	r, err := this.httpClient.Get(u)
+func (ipt *Input) httpGet(u string) ([]byte, error) {
+	r, err := ipt.httpClient.Get(u)
 	if err != nil {
-		return nil, fmt.Errorf("error while polling %s: %s", u, err)
+		return nil, fmt.Errorf("error while polling %s: %w", u, err)
 	}
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 
 	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%s returned HTTP status %s", u, r.Status)
@@ -284,28 +307,28 @@ func (this *Input) httpGet(u string) ([]byte, error) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, fmt.Errorf(`error reading body: %s`, err)
+		return nil, fmt.Errorf(`error reading body: %w`, err)
 	}
 
 	return body, nil
 }
 
-func (this *Input) Pause() error {
+func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	defer tick.Stop()
 	select {
-	case this.pauseCh <- true:
+	case ipt.pauseCh <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
 	}
 }
 
-func (this *Input) Resume() error {
+func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
 	defer tick.Stop()
 	select {
-	case this.pauseCh <- false:
+	case ipt.pauseCh <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
@@ -315,7 +338,7 @@ func (this *Input) Resume() error {
 func buildURL(u string) (*url.URL, error) {
 	addr, err := url.Parse(u)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse address '%s': %s", u, err)
+		return nil, fmt.Errorf("unable to parse address '%s': %w", u, err)
 	}
 	return addr, nil
 }
@@ -328,7 +351,7 @@ func getURLHost(urlStr string) string {
 	return u.Host
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()
 	})

@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package hostobject
@@ -7,7 +8,7 @@ import (
 	"strings"
 )
 
-// returns virtual network card existing in the system.
+// NetVirtualInterfaces returns virtual network card existing in the system.
 func NetVirtualInterfaces(mockData ...string) (map[string]bool, error) {
 	cardVirtual := make(map[string]bool)
 	var data string
@@ -22,7 +23,7 @@ func NetVirtualInterfaces(mockData ...string) (map[string]bool, error) {
 		data = string(b)
 	}
 
-	for _, v := range strings.Split(string(data), "\n") {
+	for _, v := range strings.Split(data, "\n") {
 		if len(v) > 0 {
 			cardVirtual[v] = true
 		}

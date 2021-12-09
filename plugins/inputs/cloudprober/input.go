@@ -1,3 +1,4 @@
+// Package cloudprober scrape Google cloudprober metrics.
 package cloudprober
 
 import (
@@ -7,6 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/common/expfmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -14,11 +16,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func (_ *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sample
 }
 
-func (_ *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
@@ -27,7 +29,7 @@ func (n *Input) Run() {
 	l.Info("cloudprober start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	client, err := n.createHttpClient()
+	client, err := n.createHTTPClient()
 	if err != nil {
 		l.Errorf("[error] cloudprober init client err:%s", err.Error())
 		return
@@ -38,17 +40,27 @@ func (n *Input) Run() {
 	defer tick.Stop()
 
 	for {
+		n.getMetric()
+		if n.lastErr != nil {
+			iod.FeedLastError(inputName, n.lastErr.Error())
+		}
+
 		select {
 		case <-tick.C:
-			n.getMetric()
-			if n.lastErr != nil {
-				iod.FeedLastError(inputName, n.lastErr.Error())
-			}
 		case <-datakit.Exit.Wait():
-
 			l.Info("cloudprober exit")
 			return
+
+		case <-n.semStop.Wait():
+			l.Info("cloudprober return")
+			return
 		}
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
 	}
 }
 
@@ -59,7 +71,7 @@ func (n *Input) getMetric() {
 		n.lastErr = err
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	collector, err := n.parse(resp.Body)
 	if err != nil {
@@ -67,7 +79,10 @@ func (n *Input) getMetric() {
 		l.Error(err.Error())
 		return
 	}
-	if err := inputs.FeedMeasurement(inputName, datakit.Metric, collector, &iod.Option{CollectCost: time.Since(n.start)}); err != nil {
+	if err := inputs.FeedMeasurement(inputName,
+		datakit.Metric,
+		collector,
+		&iod.Option{CollectCost: time.Since(n.start)}); err != nil {
 		l.Error(err.Error())
 		n.lastErr = err
 	}
@@ -117,7 +132,7 @@ func (n *Input) parse(reader io.Reader) ([]inputs.Measurement, error) {
 	return collector, nil
 }
 
-func (n *Input) createHttpClient() (*http.Client, error) {
+func (n *Input) createHTTPClient() (*http.Client, error) {
 	tlsCfg, err := n.ClientConfig.TLSConfig()
 	if err != nil {
 		return nil, err
@@ -132,7 +147,7 @@ func (n *Input) createHttpClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (_ *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
@@ -142,10 +157,12 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 5},
+
+			semStop: cliutils.NewSem(),
 		}
 		return s
 	})

@@ -44,17 +44,19 @@ func PSSwapStat4Test() (*mem.SwapMemoryStat, error) {
 }
 
 func AssertFields(t *testing.T, actual, expected map[string]interface{}) {
+	t.Helper()
+
 	for k := range expected {
 		ed := expected[k]
 		if al, ok := actual[k]; ok {
-			switch ed.(type) {
+			switch v := ed.(type) {
 			case uint64:
-				if ed.(uint64) != al.(uint64) {
-					t.Errorf("error: "+k+" expected: %f \t actual %f", ed.(uint64), al.(uint64))
+				if v != al.(uint64) {
+					t.Errorf("error: "+k+" expected: %f \t actual %f", v, al.(uint64))
 				}
 			case float64:
-				if ed.(float64) != al.(float64) {
-					t.Errorf("error: "+k+" expected: %f \t actual %f", ed.(float64), al.(float64))
+				if v != al.(float64) {
+					t.Errorf("error: "+k+" expected: %f \t actual %f", v, al.(float64))
 				}
 			}
 		}

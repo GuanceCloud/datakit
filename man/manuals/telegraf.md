@@ -36,7 +36,7 @@ sudo apt-get update && sudo apt-get install telegraf
 - Linux: `/etc/telegraf/telegraf.conf`
 - Windows：配置文件就在 Telegraf 二进制同级目录（视具体安装情况而定）
 
-> 注意： Mac 下，如果通过 [`datakit --install telegraf` 安装](datakit-how-to#df09fa95)，则配置目录和 Linux 一样。
+> 注意： Mac 下，如果通过 [`datakit --install telegraf` 安装](datakit-tools-how-to#df09fa95)，则配置目录和 Linux 一样。
 
 修改配置文件如下：
 
@@ -67,7 +67,7 @@ sudo apt-get update && sudo apt-get install telegraf
 # 更多其它配置 ...
 ```
 
-如果 [DataKit API 位置有调整](datakit-how-to#f2d2b6db)，需调整如下配置，将 `url` 设置到 DataKit API 真实的地址即可：
+如果 [DataKit API 位置有调整](datakit-conf-how-to#f2d2b6db)，需调整如下配置，将 `url` 设置到 DataKit API 真实的地址即可：
 
 ```toml
 [[outputs.http]]

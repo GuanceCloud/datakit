@@ -1,6 +1,7 @@
 package lineproto
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"reflect"
@@ -15,16 +16,43 @@ type Option struct {
 	Time      time.Time
 	Precision string
 	ExtraTags map[string]string
-	Strict    bool
-	Callback  func(models.Point) (models.Point, error)
+
+	DisabledTagKeys   []string
+	DisabledFieldKeys []string
+
+	Strict             bool
+	IsMetric           bool
+	Callback           func(models.Point) (models.Point, error)
+	MaxTags, MaxFields int
 }
 
 var (
 	DefaultOption = &Option{
 		Strict:    true,
 		Precision: "n",
+		MaxTags:   256,
+		MaxFields: 1024,
+		Time:      time.Now().UTC(),
 	}
 )
+
+func (opt *Option) checkField(f string) error {
+	for _, x := range opt.DisabledFieldKeys {
+		if f == x {
+			return fmt.Errorf("field key `%s' disabled", f)
+		}
+	}
+	return nil
+}
+
+func (opt *Option) checkTag(t string) error {
+	for _, x := range opt.DisabledTagKeys {
+		if t == x {
+			return fmt.Errorf("tag key `%s' disabled", t)
+		}
+	}
+	return nil
+}
 
 func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 	if len(data) == 0 {
@@ -32,7 +60,15 @@ func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 	}
 
 	if opt == nil {
-		opt = &Option{Precision: "n", Time: time.Now().UTC()}
+		opt = DefaultOption
+	}
+
+	if opt.MaxFields <= 0 {
+		opt.MaxFields = 1024
+	}
+
+	if opt.MaxTags <= 0 {
+		opt.MaxTags = 256
 	}
 
 	points, err := models.ParsePointsWithPrecision(data, opt.Time, opt.Precision)
@@ -42,7 +78,6 @@ func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 
 	res := []*influxdb.Point{}
 	for _, point := range points {
-
 		if opt.ExtraTags != nil {
 			for k, v := range opt.ExtraTags {
 				if !point.HasTag([]byte(k)) {
@@ -63,7 +98,7 @@ func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 			return nil, fmt.Errorf("line point is empty")
 		}
 
-		if err := checkPoint(point); err != nil {
+		if err := checkPoint(point, opt); err != nil {
 			return nil, err
 		}
 
@@ -95,45 +130,34 @@ func MakeLineProtoPoint(name string,
 		}
 	}
 
-	if err := checkTags(tags); err != nil {
-		if opt.Strict {
-			return nil, err
-		}
+	if opt.MaxTags <= 0 {
+		opt.MaxTags = 256
+	}
+	if opt.MaxFields <= 0 {
+		opt.MaxFields = 1024
+	}
 
-		tags = adjustTags(tags)
+	if len(tags) > opt.MaxTags {
+		return nil, fmt.Errorf("exceed max tag count(%d), got %d tags", opt.MaxTags, len(tags))
+	}
+
+	if len(fields) > opt.MaxFields {
+		return nil, fmt.Errorf("exceed max field count(%d), got %d fields", opt.MaxFields, len(fields))
+	}
+
+	if err := checkTags(tags, opt); err != nil {
+		return nil, err
 	}
 
 	for k, v := range fields {
-
-		switch v.(type) {
-		case uint64:
-			if v.(uint64) > uint64(math.MaxInt64) {
-				if opt.Strict {
-					return nil, fmt.Errorf("too large int field from %s: key=%s, value=%d(> %d)",
-						name, k, v.(uint64), uint64(math.MaxInt64))
-				}
+		if x, err := checkField(k, v, opt); err != nil {
+			return nil, err
+		} else {
+			if x == nil {
 				delete(fields, k)
 			} else {
-				// Force convert uint64 to int64: to disable line proto like
-				//    `abc,tag=1 f1=32u`
-				// expected is:
-				//    `abc,tag=1 f1=32i`
-				fields[k] = int64(v.(uint64))
+				fields[k] = x
 			}
-
-		case int, int8, int16, int32, int64,
-			uint, uint8, uint16, uint32,
-			bool, string, float32, float64:
-
-		default:
-			if opt.Strict {
-				if v == nil {
-					return nil, fmt.Errorf("invalid field %s, value is nil", k)
-				} else {
-					return nil, fmt.Errorf("invalid field type: %s", reflect.TypeOf(v).String())
-				}
-			}
-			delete(fields, k)
 		}
 	}
 
@@ -148,16 +172,29 @@ func MakeLineProtoPoint(name string,
 	}
 }
 
-func checkPoint(p models.Point) error {
+func checkPoint(p models.Point, opt *Option) error {
 	// check if same key in tags and fields
 	fs, err := p.Fields()
 	if err != nil {
 		return err
 	}
 
+	if len(fs) > opt.MaxFields {
+		return fmt.Errorf("exceed max field count(%d), got %d tags", opt.MaxFields, len(fs))
+	}
+
 	for k, _ := range fs {
 		if p.HasTag([]byte(k)) {
 			return fmt.Errorf("same key `%s' in tag and field", k)
+		}
+
+		// enable `.' in time serial metric
+		if strings.Contains(k, ".") && !opt.IsMetric {
+			return fmt.Errorf("invalid field key `%s': found `.', isMetric: %v", k, opt.IsMetric)
+		}
+
+		if err := opt.checkField(k); err != nil {
+			return err
 		}
 	}
 
@@ -173,6 +210,21 @@ func checkPoint(p models.Point) error {
 	}
 
 	// add more point checking here...
+	tags := p.Tags()
+	if len(tags) > opt.MaxTags {
+		return fmt.Errorf("exceed max tag count(%d), got %d tags", opt.MaxTags, len(tags))
+	}
+
+	for _, t := range tags {
+		if bytes.IndexByte(t.Key, byte('.')) != -1 && !opt.IsMetric {
+			return fmt.Errorf("invalid tag key `%s': found `.'", string(t.Key))
+		}
+
+		if err := opt.checkTag(string(t.Key)); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -202,22 +254,79 @@ func trimSuffixAll(s, sfx string) string {
 	return x
 }
 
-func checkTags(tags map[string]string) error {
+func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
+	if strings.Contains(k, ".") && !opt.IsMetric {
+		return nil, fmt.Errorf("invalid field key `%s': found `.'", k)
+	}
+
+	if err := opt.checkField(k); err != nil {
+		return nil, err
+	}
+
+	switch x := v.(type) {
+	case uint64:
+		if x > uint64(math.MaxInt64) {
+			if opt.Strict {
+				return nil, fmt.Errorf("too large int field: key=%s, value=%d(> %d)",
+					k, x, uint64(math.MaxInt64))
+			}
+
+			return nil, nil // drop the field
+		} else {
+			// Force convert uint64 to int64: to disable line proto like
+			//    `abc,tag=1 f1=32u`
+			// expected is:
+			//    `abc,tag=1 f1=32i`
+			return int64(x), nil
+		}
+
+	case int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32,
+		bool, string, float32, float64:
+		return v, nil
+
+	default:
+		if opt.Strict {
+			if v == nil {
+				return nil, fmt.Errorf("invalid field %s, value is nil", k)
+			} else {
+				return nil, fmt.Errorf("invalid field type: %s", reflect.TypeOf(v).String())
+			}
+		}
+
+		return nil, nil
+	}
+}
+
+func checkTags(tags map[string]string, opt *Option) error {
 	for k, v := range tags {
-		if strings.HasSuffix(k, `\`) {
-			return fmt.Errorf("invalid tag key `%s'", k)
+		// check tag key
+		if strings.HasSuffix(k, `\`) || strings.Contains(k, "\n") {
+			if !opt.Strict {
+				delete(tags, k)
+				k = adjustKV(k)
+				tags[k] = v
+			} else {
+				return fmt.Errorf("invalid tag key `%s'", k)
+			}
 		}
 
-		if strings.HasSuffix(v, `\`) {
-			return fmt.Errorf("invalid tag value `%s'", v)
+		// check tag value
+		if strings.HasSuffix(v, `\`) || strings.Contains(v, "\n") {
+			if !opt.Strict {
+				tags[k] = adjustKV(v)
+			} else {
+				return fmt.Errorf("invalid tag value `%s'", v)
+			}
 		}
 
-		if strings.Contains(v, "\n") {
-			return fmt.Errorf("invalid tag value `%s': found new line", v)
+		// not recoverable if `.' exists!
+		if strings.Contains(k, ".") && !opt.IsMetric {
+			return fmt.Errorf("invalid tag key `%s': found `.'", k)
 		}
 
-		if strings.Contains(k, "\n") {
-			return fmt.Errorf("invalid tag key `%s': found new line", k)
+		if err := opt.checkTag(k); err != nil {
+			return err
 		}
 	}
 
@@ -226,23 +335,14 @@ func checkTags(tags map[string]string) error {
 
 // Remove all `\` suffix on key/val
 // Replace all `\n` with ` `
-func adjustTags(tags map[string]string) (res map[string]string) {
-	res = map[string]string{}
-	for k, v := range tags {
-		if strings.HasSuffix(k, `\`) {
-			delete(tags, k)
-			k = trimSuffixAll(k, `\`)
-			tags[k] = v
-		}
-
-		if strings.Contains(k, "\n") {
-			delete(tags, k)
-			k = strings.Replace(k, "\n", " ", -1)
-			tags[k] = v
-		}
-
-		res[k] = strings.Replace(trimSuffixAll(v, `\`), "\n", " ", -1)
+func adjustKV(x string) string {
+	if strings.HasSuffix(x, `\`) {
+		x = trimSuffixAll(x, `\`)
 	}
 
-	return
+	if strings.Contains(x, "\n") {
+		x = strings.ReplaceAll(x, "\n", " ")
+	}
+
+	return x
 }

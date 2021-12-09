@@ -13,12 +13,10 @@ func apiRestart(c *gin.Context) {
 		return
 	}
 
-	err := restartDataKit()
-	if err != nil {
-		uhttp.HttpErr(c,
-			fmt.Errorf("restart datakit failed: %s", err.Error()))
+	if err := restartDataKit(); err != nil {
+		uhttp.HttpErr(c, fmt.Errorf("restart datakit failed: %w", err))
 		return
 	}
 
-	ErrOK.HttpBody(c, nil)
+	OK.HttpBody(c, nil)
 }
