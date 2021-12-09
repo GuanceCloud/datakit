@@ -49,7 +49,7 @@ func TestProxy(t *testing.T) {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Verbose = true
 
-	proxyAddr := "0.0.0.0:12345"
+	proxyAddr := "0.0.0.0:54321"
 
 	proxysrv := &http.Server{
 		Addr:    proxyAddr,
@@ -278,7 +278,7 @@ func TestClientConnections(t *testing.T) {
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(time.Millisecond * 5)
+			time.Sleep(time.Millisecond)
 			fmt.Fprintf(w, "{}")
 		}))
 
@@ -317,7 +317,7 @@ func TestClientConnections(t *testing.T) {
 }
 
 func hello(w http.ResponseWriter, req *http.Request) {
-	time.Sleep(time.Millisecond * 5)
+	time.Sleep(time.Millisecond)
 	fmt.Fprintf(w, "hello\n")
 }
 
@@ -380,7 +380,7 @@ func TestClientTimeWait(t *testing.T) {
 
 	wg.Wait()
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 8)
 	if err := server.Shutdown(context.Background()); err != nil {
 		t.Log(err)
 	}

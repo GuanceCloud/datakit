@@ -93,6 +93,7 @@ func (x *candidate) startElection() {
 func Elected() (string, string) {
 	return defaultCandidate.status, defaultCandidate.namespace
 }
+
 func GetElectedTime() time.Time {
 	return defaultCandidate.ElectedTime
 }
