@@ -2,6 +2,7 @@
 package self
 
 import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"runtime"
 	"time"
 
@@ -41,6 +42,7 @@ type ClientStat struct {
 
 	DroppedPointsTotal int64
 	DroppedPoints      int64
+	Incumbency         int64
 }
 
 func setMax(prev, cur int64) int64 {
@@ -92,6 +94,7 @@ func (s *ClientStat) Update() {
 		s.CPUUsage = u
 	}
 
+	s.Incumbency = s.getIncumbency()
 	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
 	s.DroppedPointsTotal = io.DroppedTotal()
 }
@@ -143,4 +146,17 @@ func (s *ClientStat) ToMetric() *io.Point {
 	}
 
 	return pt
+}
+
+func (s *ClientStat) getIncumbency() int64 {
+	if !config.Cfg.EnableElection {
+		return 0
+	}
+
+	elected, _ := election.Elected()
+	if elected == "success" {
+		return int64(time.Since(election.GetElectedTime()) / time.Second)
+	} else {
+		return -1
+	}
 }

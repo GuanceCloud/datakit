@@ -89,7 +89,7 @@ func DefaultConfig() *Config {
 		WhiteList: []*inputHostList{
 			{Hosts: []string{}, Inputs: []string{}},
 		},
-		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
+		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
 
 		Tracer: &tracer.Tracer{TraceEnabled: false},
 
@@ -654,6 +654,26 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
 		c.EnableElection = true
+	}
+
+	if v := datakit.GetEnv("ENV_GIT_URL"); v != "" {
+		interval := datakit.GetEnv("ENV_GIT_INTERVAL")
+		keyPath := datakit.GetEnv("ENV_GIT_KEY_PATH")
+		keyPasswd := datakit.GetEnv("ENV_GIT_KEY_PW")
+		branch := datakit.GetEnv("ENV_GIT_BRANCH")
+
+		c.GitRepos = &GitRepost{
+			PullInterval: interval,
+			Repos: []*GitRepository{
+				{
+					Enable:                true,
+					URL:                   v,
+					SSHPrivateKeyPath:     keyPath,
+					SSHPrivateKeyPassword: keyPasswd,
+					Branch:                branch,
+				}, // GitRepository
+			}, // Repos
+		} // GitRepost
 	}
 
 	return nil

@@ -102,9 +102,14 @@ func (*Input) PipelineConfig() map[string]string {
 func (ipt *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: ipt.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if ipt.Log != nil {
+					return ipt.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }

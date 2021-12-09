@@ -70,6 +70,9 @@ var (
 	flagSrc,
 	flagCloudProvider string
 	flagDatakitHTTPPort int
+	flagLimitCPUMax     float64
+	flagLimitCPUMin     float64
+	flagCgroupEnabled   bool
 )
 
 const (
@@ -105,6 +108,10 @@ func init() { //nolint:gochecknoinits
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
+
+	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Croup CPU max usage")
+	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Croup CPU min usage")
+	flag.BoolVar(&flagCgroupEnabled, "cgroup-enabled", true, "default enable Cgroup")
 
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
@@ -372,6 +379,27 @@ func installNewDatakit(svc service.Service) {
 				}
 			}
 		}
+	}
+
+	if !flagCgroupEnabled {
+		l.Infof("disable Croups")
+		mc.Cgroup.Enable = false
+	}
+
+	if flagLimitCPUMin != 0 || flagLimitCPUMin > 100 {
+		if flagLimitCPUMin < 0 {
+			l.Errorf("Limit CPU min can not less than zero or bigger than one hundred")
+			flagLimitCPUMin = 5.0
+		}
+		mc.Cgroup.CPUMin = flagLimitCPUMin
+	}
+
+	if flagLimitCPUMax != 0 {
+		if flagLimitCPUMax < 0 || flagLimitCPUMax > 100 {
+			l.Errorf("Limit CPU max can not less than zero or bigger than one hundred")
+			flagLimitCPUMax = 20.0
+		}
+		mc.Cgroup.CPUMax = flagLimitCPUMax
 	}
 
 	if flagHostName != "" {
