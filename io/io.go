@@ -20,9 +20,11 @@ const (
 )
 
 var (
-	testAssert            = false
-	highFreqCleanInterval = time.Millisecond * 500
-	l                     = logger.DefaultSLogger("io")
+	testAssert                 = false
+	highFreqCleanInterval      = time.Millisecond * 500
+	datawayListIntervalDefault = 50
+	heartBeatIntervalDefault   = 40
+	l                          = logger.DefaultSLogger("io")
 
 	DisableLogFilter   bool
 	DisableHeartbeat   bool
@@ -314,10 +316,10 @@ func (x *IO) StartIO(recoverable bool) {
 		highFreqRecvTicker := time.NewTicker(highFreqCleanInterval)
 		defer highFreqRecvTicker.Stop()
 
-		heartBeatTick := time.NewTicker(time.Second * 30)
+		heartBeatTick := time.NewTicker(time.Second * time.Duration(heartBeatIntervalDefault))
 		defer heartBeatTick.Stop()
 
-		datawaylistTick := time.NewTicker(time.Minute)
+		datawaylistTick := time.NewTicker(time.Second * time.Duration(datawayListIntervalDefault))
 		defer datawaylistTick.Stop()
 
 		for {
@@ -337,18 +339,32 @@ func (x *IO) StartIO(recoverable bool) {
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()
 			case <-heartBeatTick.C:
+				l.Debugf("### enter heartBeat")
 				if !DisableHeartbeat {
-					if err := x.dw.HeartBeat(); err != nil {
+					heartBeatInterval, err := x.dw.HeartBeat()
+					if err != nil {
 						l.Warnf("dw.HeartBeat: %s, ignored", err.Error())
+					}
+					if heartBeatInterval != heartBeatIntervalDefault {
+						heartBeatTick.Reset(time.Second * time.Duration(heartBeatInterval))
+						heartBeatIntervalDefault = heartBeatInterval
 					}
 				}
 			case <-datawaylistTick.C:
+				l.Debugf("### enter dataway list")
 				if !DisableDatawayList {
-					dws, err := x.dw.DatawayList()
+					var dws []string
+					var err error
+					var datawayListInterval int
+					dws, datawayListInterval, err = x.dw.DatawayList()
 					if err != nil {
 						l.Warnf("DatawayList(): %s, ignored", err)
 					}
 					dataway.AvailableDataways = dws
+					if datawayListInterval != datawayListIntervalDefault {
+						datawaylistTick.Reset(time.Second * time.Duration(datawayListInterval))
+						datawayListIntervalDefault = datawayListInterval
+					}
 				}
 			case <-tick.C:
 				x.flushAll()

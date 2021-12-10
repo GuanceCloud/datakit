@@ -47,7 +47,7 @@ func TestHeartBeat(t *testing.T) {
 		err := dw.Apply()
 		tu.Equals(t, nil, err)
 
-		err = dw.HeartBeat()
+		_, err = dw.HeartBeat()
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
@@ -58,7 +58,7 @@ func TestHeartBeat(t *testing.T) {
 
 func TestListDataWay(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `{"content":[]}`)
+		fmt.Fprint(w, `{"content":{"dataway_list":[],"interval":10}}`)
 	}))
 	defer ts.Close()
 
@@ -80,7 +80,7 @@ func TestListDataWay(t *testing.T) {
 		err := dw.Apply()
 		tu.Equals(t, nil, err)
 
-		dws, err := dw.DatawayList()
+		dws, _, err := dw.DatawayList()
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
