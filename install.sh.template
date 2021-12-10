@@ -115,7 +115,7 @@ fi
 # Select installer
 installer_base_url="https://{{.InstallBaseURL}}"
 
-installer_file="installer-${os}-${arch}"
+installer_file="installer-${os}-${arch}-{{.Version}}"
 # shellcheck disable=SC2059
 printf "${BLU} Detect installer ${installer_file}${CLR}\n"
 
