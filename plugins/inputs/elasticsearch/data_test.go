@@ -105,7 +105,6 @@ var v2IndexExpected = map[string]interface{}{
 	"unassigned_shards":     20,
 }
 
-/*
 const nodeStatsResponse = `
 {
   "cluster_name": "es-testcluster",
@@ -937,9 +936,8 @@ const nodeStatsResponse = `
     }
   }
 }
-` */
+`
 
-/*
 var nodestatsExpected = map[string]interface{}{
 	"indices_id_cache_memory_size_in_bytes":             float64(0),
 	"indices_completion_size_in_bytes":                  float64(0),
@@ -1189,7 +1187,7 @@ var nodestatsExpected = map[string]interface{}{
 	"breakers_parent_tripped":                           float64(0),
 	"breakers_parent_limit_size_in_bytes":               float64(727213670),
 	"breakers_parent_estimated_size_in_bytes":           float64(0),
-}*/
+}
 
 /*
 const clusterStatsResponse = `

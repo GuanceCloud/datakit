@@ -29,7 +29,7 @@ require (
 	github.com/go-ole/go-ole v1.2.5
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.3
-	github.com/go-redis/redismock/v8 v8.0.6
+	github.com/go-redis/redismock/v8 v8.0.6 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobuffalo/logger v1.0.4 // indirect
@@ -77,7 +77,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211203040338-aed6ef631e08
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211210004814-2f3e86601ff6
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519

@@ -5,16 +5,8 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-)
-
-//nolint:stylecheck
-const (
-	MAX_TAGS   = 256
-	MAX_FIELDS = 1024
 )
 
 var (
@@ -28,23 +20,6 @@ var (
 		DynamicCacheDumpThreshold: 512,
 		FlushInterval:             10 * time.Second,
 	}
-
-	// For object(O::), `class' is the field ES will create from measurement name,
-	// so disabled `class' in both tag/field keys.
-	// For logging(L::), `source` ES also create the field from measurement name,
-	// disabled in tag/field keys too.
-	disabledTags = []string{
-		"class",
-		"source",
-	}
-
-	disabledFields = []string{
-		"class",
-		"source",
-	}
-
-	__maxTags   = MAX_TAGS   //nolint:stylecheck
-	__maxFields = MAX_FIELDS //nolint:stylecheck
 )
 
 type IOOption func(io *IO)
@@ -106,26 +81,10 @@ func SetDataway(dw *dataway.DataWayCfg) IOOption {
 	}
 }
 
-func SetFeedChanSize(size int) IOOption {
-	return func(io *IO) {
-		io.FeedChanSize = size
-	}
-}
-
-func SetHighFreqFeedChanSize(size int) IOOption {
-	return func(io *IO) {
-		io.HighFreqFeedChanSize = size
-	}
-}
-
 func ConfigDefaultIO(opts ...IOOption) {
 	for _, opt := range opts {
 		opt(defaultIO)
 	}
-}
-
-func SetExtraTags(k, v string) {
-	extraTags[k] = v
 }
 
 func Start() error {
@@ -191,152 +150,6 @@ func ChanStat() string {
 	l2 := len(defaultIO.in2)
 	c2 := cap(defaultIO.in2)
 	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
-}
-
-func Feed(name, category string, pts []*Point, opt *Option) error {
-	if len(pts) == 0 {
-		return fmt.Errorf("no points")
-	}
-
-	return defaultIO.DoFeed(pts, category, name, opt)
-}
-
-func FeedLastError(inputName string, err string) {
-	select {
-	case defaultIO.inLastErr <- &lastErr{
-		from: inputName,
-		err:  err,
-		ts:   time.Now(),
-	}:
-	case <-datakit.Exit.Wait():
-		l.Warnf("%s feed last error skipped on global exit", inputName)
-	}
-}
-
-func SelfError(err string) {
-	FeedLastError(datakit.DatakitInputName, err)
-}
-
-func MakePointWithoutGlobalTags(name string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) (*Point, error) {
-	return makePoint(name, tags, nil, fields, t...)
-}
-
-func makePoint(name string,
-	tags, extags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) (*Point, error) {
-	var ts time.Time
-	if len(t) > 0 {
-		ts = t[0]
-	} else {
-		ts = time.Now().UTC()
-	}
-
-	p, err := lp.MakeLineProtoPoint(name, tags, fields, &lp.Option{
-		ExtraTags:         extags,
-		Time:              ts,
-		Strict:            true,
-		Precision:         "n",
-		MaxTags:           __maxTags,
-		MaxFields:         __maxFields,
-		DisabledTagKeys:   disabledTags,
-		DisabledFieldKeys: disabledFields,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &Point{Point: p}, nil
-}
-
-func MakePoint(name string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) (*Point, error) {
-	return makePoint(name, tags, extraTags, fields, t...)
-}
-
-// MakeMetric Deprecated.
-func MakeMetric(name string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) ([]byte, error) {
-	p, err := MakePoint(name, tags, fields, t...)
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte(p.Point.String()), nil
-}
-
-// NamedFeed Deprecated.
-func NamedFeed(data []byte, category, name string) error {
-	pts, err := lp.ParsePoints(data, nil)
-	if err != nil {
-		return err
-	}
-
-	x := []*Point{}
-	for _, pt := range pts {
-		x = append(x, &Point{Point: pt})
-	}
-
-	return defaultIO.DoFeed(x, category, name, nil)
-}
-
-// HighFreqFeedEx Deprecated.
-func HighFreqFeedEx(name, category, metric string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) error {
-	var ts time.Time
-	if len(t) > 0 {
-		ts = t[0]
-	} else {
-		ts = time.Now().UTC()
-	}
-
-	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
-		&lp.Option{
-			ExtraTags: extraTags,
-			Strict:    true,
-			Time:      ts,
-			Precision: "n",
-		})
-	if err != nil {
-		return err
-	}
-
-	return defaultIO.DoFeed([]*Point{{pt}}, category, name, &Option{HighFreq: true})
-}
-
-// NamedFeedEx Deprecated.
-func NamedFeedEx(name, category, metric string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) error {
-	var ts time.Time
-	if len(t) > 0 {
-		ts = t[0]
-	} else {
-		ts = time.Now().UTC()
-	}
-
-	pt, err := lp.MakeLineProtoPoint(metric, tags, fields,
-		&lp.Option{
-			ExtraTags: extraTags,
-			Strict:    true,
-			Time:      ts,
-			Precision: "n",
-		})
-	if err != nil {
-		return err
-	}
-
-	return defaultIO.DoFeed([]*Point{{pt}}, category, name, nil)
 }
 
 func DroppedTotal() int64 {

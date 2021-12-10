@@ -61,7 +61,6 @@ func defaultServerInfo() serverInfo {
 	return serverInfo{nodeID: "", masterID: "SDFsfSDFsdfFSDSDfSFDSDF"}
 }
 
-/* test:failed
 func TestGatherNodeStats(t *testing.T) {
 	es := newElasticsearchWithClient()
 	es.Servers = []string{url}
@@ -96,7 +95,7 @@ func TestGatherNodeStats(t *testing.T) {
 	}
 
 	AssertContainsTaggedFields(t, "elasticsearch_node_stats", nodestatsExpected, tags, es.collectCache)
-} */
+}
 
 func TestUtilDuration(t *testing.T) {
 	d := Duration{Duration: time.Second}

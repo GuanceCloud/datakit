@@ -141,7 +141,7 @@ define check_golint_version
 endef
 
 define dingding_notify
-	@if [[ $(DINGDING_TOKEN) == "not-set" ]]; then \
+	@if [ $(DINGDING_TOKEN) -eq "not-set" ]; then \
 		printf "\033[31m [FAIL] DINGDING_TOKEN not set%s\n\033[0m"; \
 		exit 1; \
 	fi
@@ -235,10 +235,16 @@ define build_ip2isp
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
 endef
 
+define do_lint
+	truncate -s 0 lint.err
+	golangci-lint --version 
+	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix
+endef
+
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser_disable_line plparser_disable_line lint_with_exit
+deps: prepare man gofmt lfparser_disable_line plparser_disable_line
 
 man:
 	@packr2 clean
@@ -280,12 +286,13 @@ all_test: deps
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lint:
-	$(call check_golint_version)
-	@golangci-lint run --fix | tee lint.err
-
-lint_with_exit:
-	$(call check_golint_version)
-	@golangci-lint run --fix
+	$(call do_lint,386,windows)
+	$(call do_lint,amd64,windows)
+	$(call do_lint,amd64,linux)
+	$(call do_lint,386,linux)
+	$(call do_lint,arm,linux)
+	$(call do_lint,arm64,linux)
+	$(call do_lint,amd64,darwin)
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go
