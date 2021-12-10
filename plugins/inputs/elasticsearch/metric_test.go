@@ -70,11 +70,9 @@ func TestMeasurement(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run("", func(t *testing.T) {
-
 			if pt, err := tc.m.LineProto(); err != nil {
 				t.Fatal(err)
 			} else {
-
 				t.Log(pt.String())
 				fs, err := pt.Fields()
 				if err != nil {

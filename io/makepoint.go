@@ -80,7 +80,7 @@ func MakeTypedPoint(name, ptype string,
 
 	switch ptype {
 	case datakit.Metric:
-		opt.IsMetric = true
+		opt.EnablePointInKey = true
 	default: // pass
 	}
 

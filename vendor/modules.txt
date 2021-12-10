@@ -808,7 +808,7 @@ github.com/vmihailenco/tagparser/internal/parser
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211208073946-07ccd8d1776d
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211210004814-2f3e86601ff6
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
