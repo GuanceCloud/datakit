@@ -27,7 +27,8 @@ ENTRY = cmd/datakit/main.go
 LOCAL_ARCHS:="local"
 DEFAULT_ARCHS:="all"
 MAC_ARCHS:="darwin/amd64"
-DINGDING_TOKEN?="not-set"
+NOT_SET="not-set"
+DINGDING_TOKEN?=$(NOT_SET)
 DINGDING_DEBUG_HINT?=
 GIT_VERSION?=$(shell git describe --always --tags)
 DATE:=$(shell date -u +'%Y-%m-%d %H:%M:%S')
@@ -141,14 +142,18 @@ define check_golint_version
 endef
 
 define dingding_notify
-	@if [ $(DINGDING_TOKEN) -eq "not-set" ]; then \
+	@case $(DINGDING_TOKEN) in \
+	$(NOT_SET)) \
 		printf "\033[31m [FAIL] DINGDING_TOKEN not set%s\n\033[0m"; \
 		exit 1; \
-	fi
-	@curl \
+		;; \
+	*) \
+	curl \
 		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
 		-H 'Content-Type: application/json' \
-		-d '$(1)'
+		-d '$(1)'; \
+		;; \
+	esac
 endef
 
 local: deps
