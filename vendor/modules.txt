@@ -767,11 +767,6 @@ github.com/spf13/pflag
 github.com/stretchr/testify/assert
 # github.com/tidwall/gjson v1.8.0
 ## explicit
-github.com/tidwall/gjson
-# github.com/tidwall/match v1.0.3
-github.com/tidwall/match
-# github.com/tidwall/pretty v1.1.0
-github.com/tidwall/pretty
 # github.com/tinylib/msgp v1.1.6
 ## explicit
 github.com/tinylib/msgp/msgp
@@ -813,7 +808,7 @@ github.com/vmihailenco/tagparser/internal/parser
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v1.0.2-0.20211125032423-38ba53a361dd
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211210004814-2f3e86601ff6
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto

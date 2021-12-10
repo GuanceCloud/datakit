@@ -205,8 +205,7 @@ type JolokiaMeasurement struct {
 }
 
 func (j *JolokiaMeasurement) LineProto() (*io.Point, error) {
-	data, err := io.MakePoint(j.name, j.tags, j.fields, j.ts)
-	return data, err
+	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
 }
 
 func (j *JolokiaMeasurement) Info() *MeasurementInfo {
