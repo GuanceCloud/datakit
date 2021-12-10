@@ -42,7 +42,6 @@ const (
 	Object            = "/v1/write/object"
 	CustomObject      = "/v1/write/custom_object"
 	Logging           = "/v1/write/logging"
-	LogFilter         = "/v1/logfilter/pull"
 	Tracing           = "/v1/write/tracing"
 	Rum               = "/v1/write/rum"
 	Security          = "/v1/write/security"
@@ -51,11 +50,11 @@ const (
 	ElectionHeartbeat = "/v1/election/heartbeat"
 	QueryRaw          = "/v1/query/raw"
 	Workspace         = "/v1/workspace"
-	ListDataWay       = "/v1/list/dataway"
 	ObjectLabel       = "/v1/object/labels" // object label
 	LogUpload         = "/v1/log"
-
-	DatakitInputName = "self"
+	LogFilter         = "/v2/logfilter/pull"
+	ListDataWay       = "/v2/list/dataway"
+	DatakitInputName  = "self"
 )
 
 var (
