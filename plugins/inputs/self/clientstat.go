@@ -42,7 +42,7 @@ type ClientStat struct {
 
 	DroppedPointsTotal int64
 	DroppedPoints      int64
-	Incumbency         int64
+	Incumbency         int64 // 选举任期
 }
 
 func setMax(prev, cur int64) int64 {
@@ -138,6 +138,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 
 		"dropped_points_total": s.DroppedPointsTotal,
 		"dropped_points":       s.DroppedPoints,
+		"incumbency":           s.Incumbency,
 	}
 
 	pt, err := io.MakePoint(measurement, tags, fields)
@@ -148,6 +149,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 	return pt
 }
 
+// getIncumbency 获取任期时长
 func (s *ClientStat) getIncumbency() int64 {
 	if !config.Cfg.EnableElection {
 		return 0
