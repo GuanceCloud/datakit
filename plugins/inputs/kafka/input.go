@@ -113,7 +113,7 @@ func (i *Input) GetPipeline() []*tailer.Option {
 	}
 }
 
-func (*Input) Catalog() string      { return inputName }
+func (*Input) Catalog() string      { return "db" }
 func (*Input) SampleConfig() string { return kafkaConfSample }
 
 func (*Input) AvailableArchs() []string {
@@ -125,7 +125,6 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&KafkaControllerMment{},
 		&KafkaReplicaMment{},
 		&KafkaPurgatoryMment{},
-		&KafkaClientMment{},
 		&KafkaRequestMment{},
 		&KafkaTopicsMment{},
 		&KafkaTopicMment{},

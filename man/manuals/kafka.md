@@ -12,6 +12,17 @@
 
 安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar)。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。 
 
+Kafka 启动时，先配置 `KAFKA_OPTS` 环境变量： (port 可根据实际情况修改成可用端口）
+
+```shell
+export KAFKA_OPTS="$KAFKA_OPTS -javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=*,port=8080"
+```
+
+另外，也可以单独启动 Jolokia，将其指向 Kafka 进程 PID：
+
+```shell
+java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=9090 start <Kafka-PID>
+```
 
 ## 配置
 

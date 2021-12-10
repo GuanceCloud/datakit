@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -27,8 +28,22 @@ func randomPoints(out chan *Point, count int) {
 	if _, err = rand.Read(buf); err != nil {
 		l.Fatal(err.Error())
 	}
+
 	for i := 0; i < count; i++ {
-		if pt, err := makePoint("mock_random_point", map[string]string{base64.StdEncoding.EncodeToString(buf): base64.StdEncoding.EncodeToString(buf[1:])}, nil, map[string]interface{}{base64.StdEncoding.EncodeToString(buf[2:]): base64.StdEncoding.EncodeToString(buf[3:])}, time.Now()); err != nil {
+		opt := &lp.Option{
+			Strict:    true,
+			Precision: "n",
+			Time:      time.Now(),
+		}
+
+		if pt, err := doMakePoint("mock_random_point",
+			map[string]string{
+				base64.StdEncoding.EncodeToString(buf): base64.StdEncoding.EncodeToString(buf[1:]),
+			},
+			map[string]interface{}{
+				base64.StdEncoding.EncodeToString(buf[2:]): base64.StdEncoding.EncodeToString(buf[3:]),
+			},
+			opt); err != nil {
 			l.Fatal(err.Error())
 		} else {
 			out <- pt
@@ -90,15 +105,20 @@ func TestIODatawaySending(t *testing.T) {
 
 	time.Sleep(time.Second) // required
 
+	opt := &lp.Option{
+		Strict:    true,
+		Precision: "n",
+	}
+
 	npts := 0
 	fmt.Println("feed points...")
 	cache := []*Point{}
 	for {
 		for i := 0; i < cacheCnt; i++ {
-			pt, err := makePoint("TestIODatawaySending",
-				nil, nil, map[string]interface{}{
+			pt, err := doMakePoint("TestIODatawaySending",
+				nil, map[string]interface{}{
 					"f1": 3.14,
-				})
+				}, opt)
 			cache = append(cache, pt)
 			if err != nil {
 				t.Fatal(err)
