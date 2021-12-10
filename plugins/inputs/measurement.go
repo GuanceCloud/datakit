@@ -179,7 +179,6 @@ func sortMapKey(m map[string]interface{}) (res []string) {
 	return
 }
 
-// used to test all measurements tags/fields
 func BuildTags(t *testing.T, ti map[string]interface{}) map[string]string {
 	t.Helper()
 	x := map[string]string{}
