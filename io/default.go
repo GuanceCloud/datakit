@@ -6,7 +6,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -82,18 +81,6 @@ func SetDataway(dw *dataway.DataWayCfg) IOOption {
 	}
 }
 
-func SetFeedChanSize(size int) IOOption {
-	return func(io *IO) {
-		io.FeedChanSize = size
-	}
-}
-
-func SetHighFreqFeedChanSize(size int) IOOption {
-	return func(io *IO) {
-		io.HighFreqFeedChanSize = size
-	}
-}
-
 func ConfigDefaultIO(opts ...IOOption) {
 	for _, opt := range opts {
 		opt(defaultIO)
@@ -163,30 +150,6 @@ func ChanStat() string {
 	l2 := len(defaultIO.in2)
 	c2 := cap(defaultIO.in2)
 	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
-}
-
-func Feed(name, category string, pts []*Point, opt *Option) error {
-	if len(pts) == 0 {
-		return fmt.Errorf("no points")
-	}
-
-	return defaultIO.DoFeed(pts, category, name, opt)
-}
-
-func FeedLastError(inputName string, err string) {
-	select {
-	case defaultIO.inLastErr <- &lastErr{
-		from: inputName,
-		err:  err,
-		ts:   time.Now(),
-	}:
-	case <-datakit.Exit.Wait():
-		l.Warnf("%s feed last error skipped on global exit", inputName)
-	}
-}
-
-func SelfError(err string) {
-	FeedLastError(datakit.DatakitInputName, err)
 }
 
 func DroppedTotal() int64 {

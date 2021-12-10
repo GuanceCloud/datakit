@@ -115,7 +115,7 @@ fi
 # Select installer
 installer_base_url="https://{{.InstallBaseURL}}"
 
-installer_file="installer-${os}-${arch}"
+installer_file="installer-${os}-${arch}-{{.Version}}"
 # shellcheck disable=SC2059
 printf "${BLU} Detect installer ${installer_file}${CLR}\n"
 
@@ -231,6 +231,21 @@ if [ -n "$DK_HOSTNAME" ]; then
   env_hostname=$DK_HOSTNAME
 fi
 
+limit_cpumax=30
+if [ -n "$DK_LIMIT_CPUMAX" ]; then
+  limit_cpumax=$DK_LIMIT_CPUMAX
+fi
+
+limit_cpumin=5
+if [ -n "$DK_LIMIT_CPUMIN" ]; then
+  limit_cpumin=$DK_LIMIT_CPUMIN
+fi
+
+cgroup_enabled=true
+if [ -n "$DK_CGROUP_ENABLED" ]; then
+  cgroup_enabled=$DK_CGROUP_ENABLED
+fi
+
 install_log=/var/log/datakit/install.log
 if [ -n "$DK_INSTALL_LOG" ]; then
 	install_log=$DK_INSTALL_LOG
@@ -287,40 +302,46 @@ if [ "$upgrade" ]; then
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 	if [ "$install_only" ]; then
-		$sudo_cmd $installer                   \
-			--dataway="${dataway}"               \
-			--global-tags="${global_tags}"       \
-			--cloud-provider="${cloud_provider}" \
-			--namespace="${namespace}"           \
-			--listen="${http_listen}"            \
-			--port="${http_port}"                \
-			--proxy="${proxy}"                   \
-			--env_hostname="${env_hostname}"      \
-			--dca-enable="${dca_enable}"				 \
-			--dca-listen="${dca_listen}"				 \
-			--dca-white-list="${dca_white_list}" \
-			--git-url="${git_url}" \
-			--git-key-path="${git_key_path}" \
-			--git-key-pw="${git_key_pw}" \
-			--git-branch="${git_branch}" \
+		$sudo_cmd $installer                         \
+			--dataway="${dataway}"                     \
+			--global-tags="${global_tags}"             \
+			--cloud-provider="${cloud_provider}"       \
+			--namespace="${namespace}"                 \
+			--listen="${http_listen}"                  \
+			--port="${http_port}"                      \
+			--proxy="${proxy}"                         \
+			--env_hostname="${env_hostname}"           \
+			--dca-enable="${dca_enable}"               \
+			--dca-listen="${dca_listen}"               \
+			--dca-white-list="${dca_white_list}"       \
+			--git-url="${git_url}"                     \
+			--git-key-path="${git_key_path}"           \
+			--git-key-pw="${git_key_pw}"               \
+			--git-branch="${git_branch}"               \
+			--limit-cpumax="${limit_cpumax}"           \
+			--limit-cpumin="${limit_cpumin}"           \
+			--cgroup-enabled="${cgroup_enabled}"       \
 			--git-pull-interval="${git_pull_interval}" \
 			--install_only | $sudo_cmd tee ${install_log}
 	else
-		$sudo_cmd $installer                   \
-		  --dataway="${dataway}"               \
-			--global-tags="${global_tags}"       \
-			--cloud-provider="${cloud_provider}" \
-			--namespace="${namespace}"           \
-			--listen="${http_listen}"            \
-			--port="${http_port}"                \
-			--env_hostname="${env_hostname}"      \
-			--dca-enable="${dca_enable}"				 \
-			--dca-listen="${dca_listen}"				 \
-			--dca-white-list="${dca_white_list}"	\
-			--git-url="${git_url}" \
-			--git-key-path="${git_key_path}" \
-			--git-key-pw="${git_key_pw}" \
-			--git-branch="${git_branch}" \
+		$sudo_cmd $installer                         \
+		  --dataway="${dataway}"                     \
+			--global-tags="${global_tags}"             \
+			--cloud-provider="${cloud_provider}"       \
+			--namespace="${namespace}"                 \
+			--listen="${http_listen}"                  \
+			--port="${http_port}"                      \
+			--env_hostname="${env_hostname}"           \
+			--dca-enable="${dca_enable}"               \
+			--dca-listen="${dca_listen}"               \
+			--dca-white-list="${dca_white_list}"       \
+			--git-url="${git_url}"                     \
+			--git-key-path="${git_key_path}"           \
+			--git-key-pw="${git_key_pw}"               \
+			--git-branch="${git_branch}"               \
+			--limit-cpumax="${limit_cpumax}"           \
+			--limit-cpumin="${limit_cpumin}"           \
+			--cgroup-enabled="${cgroup_enabled}"       \
 			--git-pull-interval="${git_pull_interval}" \
 			--proxy="${proxy}" | $sudo_cmd tee ${install_log}
 	fi

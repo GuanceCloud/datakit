@@ -3,7 +3,6 @@ package lineproto
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"math"
 	"reflect"
 	"strings"
@@ -14,22 +13,17 @@ import (
 )
 
 type Option struct {
-<<<<<<< HEAD
-	Time               time.Time
-	Precision          string
-	ExtraTags          map[string]string
-	Strict             bool
-=======
-	Time      time.Time
-	Precision string
-	ExtraTags map[string]string
+	Time time.Time
 
 	DisabledTagKeys   []string
 	DisabledFieldKeys []string
 
-	Strict             bool
-	EnablePointInKey   bool
->>>>>>> ca7109cbf5223d0157a206de7788868afdc01864
+	Strict           bool
+	EnablePointInKey bool
+
+	Precision string
+	ExtraTags map[string]string
+
 	Callback           func(models.Point) (models.Point, error)
 	MaxTags, MaxFields int
 }
@@ -196,11 +190,6 @@ func checkPoint(p models.Point, opt *Option) error {
 			return fmt.Errorf("same key `%s' in tag and field", k)
 		}
 
-<<<<<<< HEAD
-		if strings.Contains(k, ".") {
-			return fmt.Errorf("invalid field key `%s': found `.'", k)
-		}
-=======
 		// enable `.' in time serial metric
 		if strings.Contains(k, ".") && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid field key `%s': found `.'", k)
@@ -209,7 +198,6 @@ func checkPoint(p models.Point, opt *Option) error {
 		if err := opt.checkField(k); err != nil {
 			return err
 		}
->>>>>>> ca7109cbf5223d0157a206de7788868afdc01864
 	}
 
 	// check if dup keys in fields
@@ -230,11 +218,6 @@ func checkPoint(p models.Point, opt *Option) error {
 	}
 
 	for _, t := range tags {
-<<<<<<< HEAD
-		if bytes.IndexByte(t.Key, byte('.')) != -1 {
-			return fmt.Errorf("invalid tag key `%s': found `.'", string(t.Key))
-		}
-=======
 		if bytes.IndexByte(t.Key, byte('.')) != -1 && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid tag key `%s': found `.'", string(t.Key))
 		}
@@ -242,7 +225,6 @@ func checkPoint(p models.Point, opt *Option) error {
 		if err := opt.checkTag(string(t.Key)); err != nil {
 			return err
 		}
->>>>>>> ca7109cbf5223d0157a206de7788868afdc01864
 	}
 
 	return nil
@@ -275,12 +257,6 @@ func trimSuffixAll(s, sfx string) string {
 }
 
 func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
-<<<<<<< HEAD
-	if strings.Contains(k, ".") {
-		return nil, fmt.Errorf("invalid field key `%s': found `.'", k)
-	}
-
-=======
 	if strings.Contains(k, ".") && !opt.EnablePointInKey {
 		return nil, fmt.Errorf("invalid field key `%s': found `.'", k)
 	}
@@ -289,7 +265,6 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 		return nil, err
 	}
 
->>>>>>> ca7109cbf5223d0157a206de7788868afdc01864
 	switch x := v.(type) {
 	case uint64:
 		if x > uint64(math.MaxInt64) {
@@ -304,10 +279,6 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 			//    `abc,tag=1 f1=32u`
 			// expected is:
 			//    `abc,tag=1 f1=32i`
-<<<<<<< HEAD
-			log.Printf("convert %d to int64", x)
-=======
->>>>>>> ca7109cbf5223d0157a206de7788868afdc01864
 			return int64(x), nil
 		}
 
@@ -323,39 +294,6 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 			} else {
 				return nil, fmt.Errorf("invalid field type: %s", reflect.TypeOf(v).String())
 			}
-<<<<<<< HEAD
-		}
-
-		return nil, nil
-	}
-}
-
-func checkTags(tags map[string]string, opt *Option) error {
-	for k, v := range tags {
-		// check tag key
-		if strings.HasSuffix(k, `\`) || strings.Contains(k, "\n") {
-			if !opt.Strict {
-				delete(tags, k)
-				k = adjustKV(k)
-				tags[k] = v
-			} else {
-				return fmt.Errorf("invalid tag key `%s'", k)
-			}
-		}
-
-		// check tag value
-		if strings.HasSuffix(v, `\`) || strings.Contains(v, "\n") {
-			if !opt.Strict {
-				tags[k] = adjustKV(v)
-			} else {
-				return fmt.Errorf("invalid tag value `%s'", v)
-			}
-		}
-
-		// not recoverable if `.' exists!
-		if strings.Contains(k, ".") {
-			return fmt.Errorf("invalid tag key `%s': found `.'", k)
-=======
 		}
 
 		return nil, nil
@@ -391,7 +329,10 @@ func checkTags(tags map[string]string, opt *Option) error {
 
 		if err := opt.checkTag(k); err != nil {
 			return err
->>>>>>> ca7109cbf5223d0157a206de7788868afdc01864
+		}
+
+		if err := opt.checkTag(k); err != nil {
+			return err
 		}
 	}
 

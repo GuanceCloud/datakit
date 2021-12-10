@@ -101,14 +101,19 @@ func (*Input) PipelineConfig() map[string]string {
 func (i *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: i.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }
 
-func (*Input) Catalog() string      { return inputName }
+func (*Input) Catalog() string      { return "db" }
 func (*Input) SampleConfig() string { return kafkaConfSample }
 
 func (*Input) AvailableArchs() []string {

@@ -68,6 +68,10 @@ type clusterHealth struct {
 	Indices                     map[string]indexHealth `json:"indices"`
 }
 
+type indexState struct {
+	Indices map[string]interface{} `json:"indices"`
+}
+
 type indexHealth struct {
 	ActivePrimaryShards int    `json:"active_primary_shards"`
 	ActiveShards        int    `json:"active_shards"`
@@ -292,9 +296,14 @@ func (*Input) PipelineConfig() map[string]string {
 func (i *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: i.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }
@@ -374,7 +383,7 @@ func (i *Input) Collect() error {
 					if i.ClusterHealthLevel != "" {
 						url = url + "?level=" + i.ClusterHealthLevel
 					}
-					if err := i.gatherClusterHealth(url); err != nil {
+					if err := i.gatherClusterHealth(url, s); err != nil {
 						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
@@ -762,9 +771,12 @@ func (i *Input) gatherClusterStats(url string) error {
 	return nil
 }
 
-func (i *Input) gatherClusterHealth(url string) error {
+func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	healthStats := &clusterHealth{}
+	indicesRes := &indexState{}
 	if err := i.gatherJSONData(url, healthStats); err != nil {
+		return err
+	} else if err := i.gatherJSONData(serverURL+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
 		return err
 	}
 	now := time.Now()
@@ -784,6 +796,7 @@ func (i *Input) gatherClusterHealth(url string) error {
 		"task_max_waiting_in_queue_millis": healthStats.TaskMaxWaitingInQueueMillis,
 		"timed_out":                        healthStats.TimedOut,
 		"unassigned_shards":                healthStats.UnassignedShards,
+		"indices_lifecycle_error_count":    len(indicesRes.Indices),
 	}
 
 	allFields := make(map[string]interface{})

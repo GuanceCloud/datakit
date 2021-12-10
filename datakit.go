@@ -34,28 +34,29 @@ const (
 
 	CommonChanCap = 32
 
-	// categories.
-	MetricDeprecated  = "/v1/write/metrics"
-	Metric            = "/v1/write/metric"
-	Network           = "/v1/write/network"
-	KeyEvent          = "/v1/write/keyevent"
-	Object            = "/v1/write/object"
-	CustomObject      = "/v1/write/custom_object"
-	Logging           = "/v1/write/logging"
-	LogFilter         = "/v1/logfilter/pull"
-	Tracing           = "/v1/write/tracing"
-	Rum               = "/v1/write/rum"
-	Security          = "/v1/write/security"
+	// data category, aka API /v1/write/category.
+	MetricDeprecated = "/v1/write/metrics"
+	Metric           = "/v1/write/metric"
+	Network          = "/v1/write/network"
+	KeyEvent         = "/v1/write/keyevent"
+	Object           = "/v1/write/object"
+	CustomObject     = "/v1/write/custom_object"
+	Logging          = "/v1/write/logging"
+	Tracing          = "/v1/write/tracing"
+	Rum              = "/v1/write/rum"
+	Security         = "/v1/write/security"
+
+	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"
 	QueryRaw          = "/v1/query/raw"
 	Workspace         = "/v1/workspace"
-	ListDataWay       = "/v1/list/dataway"
 	ObjectLabel       = "/v1/object/labels" // object label
 	LogUpload         = "/v1/log"
-
-	DatakitInputName = "self"
+	LogFilter         = "/v2/logfilter/pull"
+	ListDataWay       = "/v2/list/dataway"
+	DatakitInputName  = "self"
 )
 
 var (
@@ -67,6 +68,8 @@ var (
 	AutoUpdate = false
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+
+	DatakitHostName = "" // 默认为空
 
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: `C:\Program Files\datakit`,

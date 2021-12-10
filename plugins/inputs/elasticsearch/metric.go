@@ -17,7 +17,7 @@ type elasticsearchMeasurement struct {
 }
 
 func (m elasticsearchMeasurement) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(m.name, datakit.Metric, m.tags, m.fields, m.ts)
+	return io.NewPoint(m.name, m.tags, m.fields, &io.PointOption{Time: m.ts, Category: datakit.Metric})
 }
 
 func (m elasticsearchMeasurement) Info() *inputs.MeasurementInfo {

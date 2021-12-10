@@ -28,6 +28,7 @@ LOCAL_ARCHS:="local"
 DEFAULT_ARCHS:="all"
 MAC_ARCHS:="darwin/amd64"
 DINGDING_TOKEN?="not-set"
+DINGDING_DEBUG_HINT?=
 GIT_VERSION?=$(shell git describe --always --tags)
 DATE:=$(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION:=$(shell go version)
@@ -35,6 +36,19 @@ COMMIT:=$(shell git rev-parse --short HEAD)
 GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
 COMMITER:=$(shell git log -1 --pretty=format:'%an')
 UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
+
+GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
+GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
+GO_PATCH_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f3)
+MINIMUM_SUPPORTED_GO_MAJOR_VERSION = 1
+MINIMUM_SUPPORTED_GO_MINOR_VERSION = 16
+GO_VERSION_VALIDATION_ERR_MSG = Golang version is not supported, please update to at least $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION).$(MINIMUM_SUPPORTED_GO_MINOR_VERSION)
+BUILDER_GOOS_GOARCH="$(shell go env GOOS)-$(shell go env GOARCH)"
+
+GOLINT_VERSION = "$(shell golangci-lint --version | cut -c 27- | cut -d' ' -f1)"
+SUPPORTED_GOLINT_VERSION = "1.42.1"
+SUPPORTED_GOLINT_VERSION_ANOTHER = "v1.42.1"
+GOLINT_VERSION_VALIDATION_ERR_MSG = golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
 
 #####################
 # Large strings
@@ -55,60 +69,54 @@ const (
 endef
 export GIT_INFO
 
+# -------------
+# 注意：这些 XXX_NOTIFY_MSG 只能定义在一行中，跨行会报错
+# -------------
+
 define LOCAL_NOTIFY_MSG
-{
-	"msgtype": "text",
-	"text": {
-		"content": "$(UPLOADER) 「私自」发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：\nDK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：\n$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：\nDK_UPGRADE=1 bash -c \"$$(curl -L https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：\n$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;"
-	}
-}
+{ "msgtype": "text", "text": { "content": "$(UPLOADER) 「私自」发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：\nDK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：\n$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：\nDK_UPGRADE=1 bash -c \"$$(curl -L https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：\n$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;$(DINGDING_DEBUG_HINT)" }}
 endef
 export LOCAL_NOTIFY_MSG
 
 define TESTING_NOTIFY_MSG
-{
-	"msgtype": "text",
-	"text": {
-		"content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：DK_UPGRADE=1 bash -c \"$$(curl -L https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;"
-	}
-}
+{ "msgtype": "text", "text": { "content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：DK_UPGRADE=1 bash -c \"$$(curl -L https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;$(DINGDING_DEBUG_HINT)" } }
 endef
 export TESTING_NOTIFY_MSG
 
 define CI_PASS_NOTIFY_MSG
-{
-	"msgtype": "text",
-	"text": {
-		"content": "$(UPLOADER) 触发的 DataKit CI 通过"
-	}
-}
+{ "msgtype": "text", "text": { "content": "$(UPLOADER) 触发的 DataKit CI 通过$(DINGDING_DEBUG_HINT)" } }
 endef
 export CI_PASS_NOTIFY_MSG
 
 define NOTIFY_MSG_RELEASE
-{
-	"msgtype": "text",
-	"text": {
-		"content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))"
-	}
-}
+{ "msgtype": "text", "text": { "content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))$(DINGDING_DEBUG_HINT)" } }
 endef
 export NOTIFY_MSG_RELEASE
 
 define NOTIFY_CI
-{ "msgtype": "text", "text": { "content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支[$(GIT_BRANCH)]提交代码，以免 CI 任务失败" }}
+{ "msgtype": "text", "text": { "content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支[$(GIT_BRANCH)]提交代码，以免 CI 任务失败$(DINGDING_DEBUG_HINT)" }}
 endef
 export NOTIFY_CI
 
 LINUX_RELEASE_VERSION = $(shell uname -r)
 
 define build
+	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+		exit 0 ; \
+	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+		exit 1; \
+	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MINOR_VERSION) ] ; then \
+		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+		exit 1; \
+	fi
+
 	@rm -rf $(PUB_DIR)/$(1)/*
 	@mkdir -p $(BUILD_DIR) $(PUB_DIR)/$(1)
 	@echo "===== $(BIN) $(1) ===="
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go \
 		-main $(ENTRY) -binary $(BIN) -name $(NAME) -build-dir $(BUILD_DIR) \
-		 -release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
+		-release $(1) -pub-dir $(PUB_DIR) -archs $(2) -download-addr $(3)
 	@tree -Csh -L 3 $(BUILD_DIR)
 endef
 
@@ -118,6 +126,29 @@ define pub
 		-pub -release $(1) -pub-dir $(PUB_DIR) \
 		-name $(NAME) -download-addr $(2) \
 		-build-dir $(BUILD_DIR) -archs $(3)
+endef
+
+define check_golint_version
+	@case $(GOLINT_VERSION) in \
+	$(SUPPORTED_GOLINT_VERSION)) \
+	;; \
+	$(SUPPORTED_GOLINT_VERSION_ANOTHER)) \
+	;; \
+	*) \
+		echo '$(GOLINT_VERSION_VALIDATION_ERR_MSG)'; \
+		exit 1; \
+	esac;
+endef
+
+define dingding_notify
+	@if [ $(DINGDING_TOKEN) -eq "not-set" ]; then \
+		printf "\033[31m [FAIL] DINGDING_TOKEN not set%s\n\033[0m"; \
+		exit 1; \
+	fi
+	@curl \
+		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
+		-H 'Content-Type: application/json' \
+		-d '$(1)'
 endef
 
 local: deps
@@ -180,38 +211,23 @@ pub_release_mac:
 	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 ci_pass_notify:
-	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
-		-H 'Content-Type: application/json' \
-		-d "$$CI_PASS_NOTIFY_MSG"
+	$(call dingding_notify, $(CI_PASS_NOTIFY_MSG))
 
 test_notify:
-	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
-		-H 'Content-Type: application/json' \
-		-d "$$TESTING_NOTIFY_MSG"
+	$(call dingding_notify, $(TESTING_NOTIFY_MSG))
 
 local_notify:
-	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
-		-H 'Content-Type: application/json' \
-		-d "$$LOCAL_NOTIFY_MSG"
+	$(call dingding_notify, $(LOCAL_NOTIFY_MSG))
 
 production_notify:
-	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
-		-H 'Content-Type: application/json' \
-		-d "$$NOTIFY_MSG_RELEASE"
+	$(call dingding_notify, $(NOTIFY_MSG_RELEASE))
 
 ci_notify:
-	@curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
-		-H 'Content-Type: application/json' \
-		-d "$$NOTIFY_CI"
+	$(call dingding_notify, $(NOTIFY_CI))
 
 check_conf_compatible:
-	./dist/datakit-linux-amd64/datakit --check-config --config-dir samples
-	./dist/datakit-linux-amd64/datakit --check-sample
+	./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
+	./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
 
 define build_ip2isp
 	rm -rf china-operator-ip
@@ -219,10 +235,16 @@ define build_ip2isp
 	@GO111MODULE=off CGO_ENABLED=0 go run cmd/make/make.go -build-isp
 endef
 
+define do_lint
+	truncate -s 0 lint.err
+	golangci-lint --version 
+	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix
+endef
+
 ip2isp:
 	$(call build_ip2isp)
 
-deps: prepare man gofmt lfparser_disable_line plparser_disable_line lint_with_exit
+deps: prepare man gofmt lfparser_disable_line plparser_disable_line
 
 man:
 	@packr2 clean
@@ -237,30 +259,40 @@ vet:
 	@go vet ./...
 
 # all testing
-at: test_deps
+all_test: deps
 	@truncate -s 0 test.output
 	@echo "#####################" | tee -a test.output
 	@echo "#" $(DATE) | tee -a test.output
 	@echo "#" $(GIT_VERSION) | tee -a test.output
 	@echo "#####################" | tee -a test.output
-	for pkg in `go list ./...`; do \
+	i=0; \
+	for pkg in `go list ./... | grep -vE 'datakit/git'`; do \
 		echo "# testing $$pkg..." | tee -a test.output; \
-		GO111MODULE=off CGO_ENABLED=1 go test -race -timeout 30s \
-			-cover -benchmem -bench . $$pkg | tee -a test.output; \
-		echo "######################" | tee -a test.output; \
-	done
+		GO111MODULE=off CGO_ENABLED=1 go test -timeout 1m -cover $$pkg; \
+		if [ $$? != 0 ]; then \
+			printf "\033[31m [FAIL] %s\n\033[0m" $$pkg; \
+			i=`expr $$i + 1`; \
+		else \
+			echo "######################"; \
+		fi \
+	done; \
+	if [ $$i -gt 0 ]; then \
+			printf "\033[31m %d case failed.\n\033[0m" $$i; \
+			exit 1; \
+	else \
+			printf "\033[32m all testinig passed.\n\033[0m"; \
+	fi
 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
 lint:
-	@truncate -s 0 lint.err
-	@golangci-lint --version 
-	@golangci-lint run --fix | tee -a lint.err
-
-lint_with_exit:
-	@truncate -s 0 lint.err
-	@golangci-lint --version 
-	@golangci-lint run --fix
+	$(call do_lint,386,windows)
+	$(call do_lint,amd64,windows)
+	$(call do_lint,amd64,linux)
+	$(call do_lint,386,linux)
+	$(call do_lint,arm,linux)
+	$(call do_lint,arm64,linux)
+	$(call do_lint,amd64,darwin)
 
 lfparser_disable_line:
 	@rm -rf io/parser/gram_y.go

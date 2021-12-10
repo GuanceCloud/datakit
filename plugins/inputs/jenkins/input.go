@@ -35,16 +35,19 @@ func (*Input) PipelineConfig() map[string]string {
 func (n *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: n.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if n.Log != nil {
+					return n.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }
 
-func (n *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Info("jenkins start")
+func (n *Input) setup() {
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	client, err := n.createHTTPClient()
@@ -53,6 +56,13 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
+}
+
+func (n *Input) Run() {
+	l = logger.SLogger(inputName)
+	l.Info("jenkins start")
+
+	n.setup()
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()

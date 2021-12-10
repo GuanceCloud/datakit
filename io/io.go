@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -20,9 +19,11 @@ const (
 )
 
 var (
-	testAssert            = false
-	highFreqCleanInterval = time.Millisecond * 500
-	l                     = logger.DefaultSLogger("io")
+	testAssert                 = false
+	highFreqCleanInterval      = time.Millisecond * 500
+	datawayListIntervalDefault = 50
+	heartBeatIntervalDefault   = 40
+	l                          = logger.DefaultSLogger("io")
 
 	DisableLogFilter   bool
 	DisableHeartbeat   bool
@@ -69,10 +70,11 @@ type IO struct {
 	cache        map[string][]*Point
 	dynamicCache map[string][]*Point
 
+	fd *os.File
+
 	cacheCnt        int64
 	dynamicCacheCnt int64
 	droppedTotal    int64
-	fd              *os.File
 	outputFileSize  int64
 }
 
@@ -314,10 +316,10 @@ func (x *IO) StartIO(recoverable bool) {
 		highFreqRecvTicker := time.NewTicker(highFreqCleanInterval)
 		defer highFreqRecvTicker.Stop()
 
-		heartBeatTick := time.NewTicker(time.Second * 30)
+		heartBeatTick := time.NewTicker(time.Second * time.Duration(heartBeatIntervalDefault))
 		defer heartBeatTick.Stop()
 
-		datawaylistTick := time.NewTicker(time.Minute)
+		datawaylistTick := time.NewTicker(time.Second * time.Duration(datawayListIntervalDefault))
 		defer datawaylistTick.Stop()
 
 		for {
@@ -337,18 +339,32 @@ func (x *IO) StartIO(recoverable bool) {
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()
 			case <-heartBeatTick.C:
+				l.Debugf("### enter heartBeat")
 				if !DisableHeartbeat {
-					if err := x.dw.HeartBeat(); err != nil {
+					heartBeatInterval, err := x.dw.HeartBeat()
+					if err != nil {
 						l.Warnf("dw.HeartBeat: %s, ignored", err.Error())
+					}
+					if heartBeatInterval != heartBeatIntervalDefault {
+						heartBeatTick.Reset(time.Second * time.Duration(heartBeatInterval))
+						heartBeatIntervalDefault = heartBeatInterval
 					}
 				}
 			case <-datawaylistTick.C:
+				l.Debugf("### enter dataway list")
 				if !DisableDatawayList {
-					dws, err := x.dw.DatawayList()
+					var dws []string
+					var err error
+					var datawayListInterval int
+					dws, datawayListInterval, err = x.dw.DatawayList()
 					if err != nil {
 						l.Warnf("DatawayList(): %s, ignored", err)
 					}
 					dataway.AvailableDataways = dws
+					if datawayListInterval != datawayListIntervalDefault {
+						datawaylistTick.Reset(time.Second * time.Duration(datawayListInterval))
+						datawayListIntervalDefault = datawayListInterval
+					}
 				}
 			case <-tick.C:
 				x.flushAll()
@@ -380,7 +396,7 @@ func (x *IO) flushAll() {
 		for k := range x.cache {
 			x.cache[k] = nil
 		}
-		atomic.AddInt64(&x.droppedTotal, x.cacheCnt)
+		x.droppedTotal += x.cacheCnt
 		x.cacheCnt = 0
 	}
 	// dump dynamic cache pts
@@ -389,7 +405,7 @@ func (x *IO) flushAll() {
 		for k := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
-		atomic.AddInt64(&x.droppedTotal, x.dynamicCacheCnt)
+		x.droppedTotal += x.dynamicCacheCnt
 		x.dynamicCacheCnt = 0
 	}
 }
@@ -516,5 +532,6 @@ func (x *IO) fileOutput(body []byte) error {
 }
 
 func (x *IO) DroppedTotal() int64 {
-	return atomic.LoadInt64(&x.droppedTotal)
+	// NOTE: not thread-safe
+	return x.droppedTotal
 }
