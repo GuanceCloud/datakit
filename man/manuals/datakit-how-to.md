@@ -448,6 +448,21 @@ Bye!
 
 > 注：Windows 下，请在 Powershell 中执行调试。
 
+#### Pipeline 字段命名注意事项
+
+由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 Field），不宜有任何 tag 字段，这些 Tag 包含如下几类：
+
+- 各个具体采集器中，用户自行配置增加的 Tag，如 `[inputs.nginx.tags]` 下可增加各种 Tag
+- DataKit 全局 Tag，如 `host`。当然，这个全局 Tag 用户也能自行配置
+- 日志采集器默认会增加 `source/service` 这两个 Tag，在 Pipeline 中也不宜出现这两个字段切割
+
+一旦 Pipeline 切割出来的字段中带有上述任何一个 Tag key（大小写敏感），都会导致如下数据报错，故建议在 Pipeline 切割中，绕开这些字段命名。
+
+```shell
+# 该错误在 DataKit monitor 中能看到
+same key xxx in tag and field
+```
+
 ### 查看帮助文档
 
 为便于大家在服务端查看 DataKit 帮助文档，DataKit 提供如下交互式文档查看入口（Windows 不支持）：
@@ -465,7 +480,7 @@ man > Q               # 输入 Q 或 exit 退出
 为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
 
 ```shell
-datakit --workspaceinfo
+datakit --workspace-info
 {
   "token": {
     "ws_uuid": "wksp_2dc431d6693711eb8ff97aeee04b54af",

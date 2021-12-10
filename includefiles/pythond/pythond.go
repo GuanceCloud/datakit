@@ -133,7 +133,7 @@ class DataKitFramework(object):
 
 
     def construct_url(self, path):
-        s = Template('http://${s1}:${s2}/${s3}') 
+        s = Template('http://${s1}:${s2}/${s3}')
         return s.safe_substitute(s1=self.__dk_host, s2=self.__dk_port, s3=path)
 
 
@@ -158,7 +158,7 @@ class DataKitFramework(object):
             headers = {"Content-Type":"application/json"}
         else:
             send_data = bytes(str(raw_data),'utf8')
-        
+
         html = requests.Response()
         try:
             if method == 'POST':

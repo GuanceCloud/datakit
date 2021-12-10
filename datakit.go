@@ -34,17 +34,19 @@ const (
 
 	CommonChanCap = 32
 
-	// categories.
-	MetricDeprecated  = "/v1/write/metrics"
-	Metric            = "/v1/write/metric"
-	Network           = "/v1/write/network"
-	KeyEvent          = "/v1/write/keyevent"
-	Object            = "/v1/write/object"
-	CustomObject      = "/v1/write/custom_object"
-	Logging           = "/v1/write/logging"
-	Tracing           = "/v1/write/tracing"
-	Rum               = "/v1/write/rum"
-	Security          = "/v1/write/security"
+	// data category, aka API /v1/write/category.
+	MetricDeprecated = "/v1/write/metrics"
+	Metric           = "/v1/write/metric"
+	Network          = "/v1/write/network"
+	KeyEvent         = "/v1/write/keyevent"
+	Object           = "/v1/write/object"
+	CustomObject     = "/v1/write/custom_object"
+	Logging          = "/v1/write/logging"
+	Tracing          = "/v1/write/tracing"
+	Rum              = "/v1/write/rum"
+	Security         = "/v1/write/security"
+
+	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"

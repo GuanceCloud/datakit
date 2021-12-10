@@ -149,7 +149,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 	return pt
 }
 
-// getIncumbency 获取任期时长
+// getIncumbency 获取任期时长.
 func (s *ClientStat) getIncumbency() int64 {
 	if !config.Cfg.EnableElection {
 		return 0

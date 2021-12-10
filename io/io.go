@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -71,10 +70,11 @@ type IO struct {
 	cache        map[string][]*Point
 	dynamicCache map[string][]*Point
 
+	fd *os.File
+
 	cacheCnt        int64
 	dynamicCacheCnt int64
 	droppedTotal    int64
-	fd              *os.File
 	outputFileSize  int64
 }
 
@@ -396,7 +396,7 @@ func (x *IO) flushAll() {
 		for k := range x.cache {
 			x.cache[k] = nil
 		}
-		atomic.AddInt64(&x.droppedTotal, x.cacheCnt)
+		x.droppedTotal += x.cacheCnt
 		x.cacheCnt = 0
 	}
 	// dump dynamic cache pts
@@ -405,7 +405,7 @@ func (x *IO) flushAll() {
 		for k := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
-		atomic.AddInt64(&x.droppedTotal, x.dynamicCacheCnt)
+		x.droppedTotal += x.dynamicCacheCnt
 		x.dynamicCacheCnt = 0
 	}
 }
@@ -532,5 +532,6 @@ func (x *IO) fileOutput(body []byte) error {
 }
 
 func (x *IO) DroppedTotal() int64 {
-	return atomic.LoadInt64(&x.droppedTotal)
+	// NOTE: not thread-safe
+	return x.droppedTotal
 }

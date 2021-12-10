@@ -19,6 +19,7 @@ release-nothing-only-build:
   script:
     # only building
     - make ci_notify
+    - make lint
     - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
     - make check_conf_compatible
@@ -34,6 +35,7 @@ release-testing:
   script:
     # building && publish testing
     - make ci_notify
+    - make lint
     - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
     - make check_conf_compatible
@@ -49,6 +51,7 @@ release-production:
     - master
   script:
     - make ci_notify
+    - make lint
     - make all_test
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH
     - make check_conf_compatible

@@ -89,27 +89,21 @@ class RunThread (threading.Thread):
 				time.sleep(self.__interval)
 
 def search_plugin(plugin_path):
-    if PY3:
-        try:
-            mod = importlib.import_module(plugin_path)
-        except ModuleNotFoundError:
-            mylog(plugin_path + " not found.")
-            return
-    elif PY2:
-        try:
-            mod = importlib.import_module(plugin_path)
-        except ImportError:
-            mylog(plugin_path + " not found.")
-            return
+	try:
+		mod = importlib.import_module(plugin_path)
+	except ModuleNotFoundError:
+		mylog(plugin_path + " not found.")
+		return
 
-    plugins = []
+	plugins = []
 
-    for _, v in mod.__dict__.items():
-        if v is not DataKitFramework and type(v).__name__ == 'type' and issubclass(v, DataKitFramework):
-            plugin = v()
-            plugins.append(plugin)
+	for _, v in mod.__dict__.items():
+		if v is not DataKitFramework and type(v).__name__ == 'type' and issubclass(v, DataKitFramework):
+			plugin = v()
+			# return plugin
+			plugins.append(plugin)
 
-    return plugins
+	return plugins
 
 def main(*args):
     plugins = []

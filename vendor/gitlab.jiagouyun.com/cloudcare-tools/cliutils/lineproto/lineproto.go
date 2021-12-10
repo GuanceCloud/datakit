@@ -13,14 +13,17 @@ import (
 )
 
 type Option struct {
-	Time      time.Time
-	Precision string
-	ExtraTags map[string]string
+	Time time.Time
 
 	DisabledTagKeys   []string
 	DisabledFieldKeys []string
 
-	Strict             bool
+	Strict           bool
+	EnablePointInKey bool
+
+	Precision string
+	ExtraTags map[string]string
+
 	Callback           func(models.Point) (models.Point, error)
 	MaxTags, MaxFields int
 }
@@ -187,7 +190,8 @@ func checkPoint(p models.Point, opt *Option) error {
 			return fmt.Errorf("same key `%s' in tag and field", k)
 		}
 
-		if strings.Contains(k, ".") {
+		// enable `.' in time serial metric
+		if strings.Contains(k, ".") && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid field key `%s': found `.'", k)
 		}
 
@@ -214,7 +218,7 @@ func checkPoint(p models.Point, opt *Option) error {
 	}
 
 	for _, t := range tags {
-		if bytes.IndexByte(t.Key, byte('.')) != -1 {
+		if bytes.IndexByte(t.Key, byte('.')) != -1 && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid tag key `%s': found `.'", string(t.Key))
 		}
 
@@ -253,7 +257,7 @@ func trimSuffixAll(s, sfx string) string {
 }
 
 func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
-	if strings.Contains(k, ".") {
+	if strings.Contains(k, ".") && !opt.EnablePointInKey {
 		return nil, fmt.Errorf("invalid field key `%s': found `.'", k)
 	}
 
@@ -319,8 +323,12 @@ func checkTags(tags map[string]string, opt *Option) error {
 		}
 
 		// not recoverable if `.' exists!
-		if strings.Contains(k, ".") {
+		if strings.Contains(k, ".") && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid tag key `%s': found `.'", k)
+		}
+
+		if err := opt.checkTag(k); err != nil {
+			return err
 		}
 
 		if err := opt.checkTag(k); err != nil {
