@@ -77,7 +77,18 @@ func TestGatherNodeStats(t *testing.T) {
 
 	checkIsMaster(t, es, es.Servers[0], false)
 
-	for field := range nodestatsExpected {
+	for field, value := range nodestatsExpected {
+		fields := `fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes`
+
+		if strings.Contains(fields, field) {
+			if value, ok := value.(float64); ok {
+				val := value / (1024 * 1024 * 1024)
+				filedName := strings.ReplaceAll(field, "in_bytes", "in_gigabytes")
+				nodestatsExpected[filedName] = val
+			}
+			delete(nodestatsExpected, field)
+			continue
+		}
 		_, ok := nodeStatsFields[field]
 		if !ok {
 			delete(nodestatsExpected, field)
@@ -134,7 +145,7 @@ func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -162,7 +173,7 @@ func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -190,12 +201,13 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
 	checkIsMaster(t, es, es.Servers[0], false)
 
+	clusterHealthExpected["indices_lifecycle_error_count"] = 2
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
 		map[string]string{"name": clusterName}, es.collectCache)

@@ -78,6 +78,7 @@ var clusterHealthExpected = map[string]interface{}{
 	"number_of_pending_tasks": 0,
 	// "task_max_waiting_in_queue_millis": 0,
 	// "active_shards_percent_as_number":  100.0,
+	"indices_lifecycle_error_count": 0,
 }
 
 var v1IndexExpected = map[string]interface{}{

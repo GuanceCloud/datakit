@@ -36,9 +36,11 @@ var (
 		datakit.LogUpload,
 	}
 
-	ExtraHeaders      = map[string]string{}
-	AvailableDataways = []string{}
-	log               = logger.DefaultSLogger("dataway")
+	ExtraHeaders               = map[string]string{}
+	AvailableDataways          = []string{}
+	log                        = logger.DefaultSLogger("dataway")
+	datawayListIntervalDefault = 60
+	heartBeatIntervalDefault   = 30
 )
 
 type DataWayCfg struct {

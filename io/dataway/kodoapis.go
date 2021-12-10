@@ -174,78 +174,95 @@ func (dw *DataWayCfg) ElectionHeartbeat(namespace, id string) ([]byte, error) {
 	}
 }
 
-func (dc *endPoint) heartBeat(data []byte) error {
+func (dc *endPoint) heartBeat(data []byte) (int, error) {
 	requrl, ok := dc.categoryURL[datakit.HeartBeat]
 	if !ok {
-		return fmt.Errorf("HeartBeat API missing, should not been here")
+		return heartBeatIntervalDefault, fmt.Errorf("HeartBeat API missing, should not been here")
 	}
 
 	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(data))
 	if err != nil {
-		return err
+		return heartBeatIntervalDefault, err
 	}
 
 	if dc.ontest {
-		return nil
+		return heartBeatIntervalDefault, nil
 	}
 
 	resp, err := dc.dw.sendReq(req)
 	if err != nil {
-		return err
+		return heartBeatIntervalDefault, err
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode >= 400 {
 		err := fmt.Errorf("heart beat resp err: %+#v", resp)
-		return err
+		return heartBeatIntervalDefault, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return heartBeatIntervalDefault, err
+	}
+	type heartBeat struct {
+		Content struct {
+			Interval int `json:"interval"`
+		} `json:"content"`
 	}
 
-	return nil
+	var hb heartBeat
+	if err := json.Unmarshal(body, &hb); err != nil {
+		log.Errorf(`%s, body: %s`, err, string(body))
+		return heartBeatIntervalDefault, err
+	}
+	return hb.Content.Interval, nil
 }
 
-func (dw *DataWayCfg) DatawayList() ([]string, error) {
+func (dw *DataWayCfg) DatawayList() ([]string, int, error) {
 	if len(dw.endPoints) == 0 {
-		return nil, fmt.Errorf("no dataway available")
+		return nil, datawayListIntervalDefault, fmt.Errorf("no dataway available")
 	}
 
 	dc := dw.endPoints[0]
 	requrl, ok := dc.categoryURL[datakit.ListDataWay]
 	if !ok {
-		return nil, fmt.Errorf("dataway list API not available")
+		return nil, datawayListIntervalDefault, fmt.Errorf("dataway list API not available")
 	}
 
 	req, err := http.NewRequest("GET", requrl, nil)
 	if err != nil {
-		return nil, err
+		return nil, datawayListIntervalDefault, err
 	}
 
 	resp, err := dw.sendReq(req)
 	if err != nil {
-		return nil, err
+		return nil, datawayListIntervalDefault, err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, datawayListIntervalDefault, err
 	}
 
 	type dataways struct {
-		Content []string `json:"content"`
+		Content struct {
+			DatawayList []string `json:"dataway_list"`
+			Interval    int      `json:"interval"`
+		} `json:"content"`
 	}
 
 	var dws dataways
 	if err := json.Unmarshal(body, &dws); err != nil {
 		log.Errorf(`%s, body: %s`, err, string(body))
-		return nil, err
+		return nil, datawayListIntervalDefault, err
 	}
 
-	log.Debugf(`available dataways; %+#v`, dws.Content)
-	return dws.Content, nil
+	log.Debugf(`available dataways; %+#v,body: %s`, dws.Content, string(body))
+	return dws.Content.DatawayList, dws.Content.Interval, nil
 }
 
-func (dw *DataWayCfg) HeartBeat() error {
+func (dw *DataWayCfg) HeartBeat() (int, error) {
 	body := map[string]interface{}{
 		"dk_uuid":   dw.Hostname, // 暂用 hostname 代之, 后将弃用该字段
 		"heartbeat": time.Now().Unix(),
@@ -254,23 +271,24 @@ func (dw *DataWayCfg) HeartBeat() error {
 
 	if dw.httpCli == nil {
 		if err := dw.initHTTP(); err != nil {
-			return err
+			return heartBeatIntervalDefault, err
 		}
 	}
 
 	bodyByte, err := json.Marshal(body)
 	if err != nil {
 		err := fmt.Errorf("[error] heartbeat json marshal err: %w", err)
-		return err
+		return heartBeatIntervalDefault, err
 	}
-
+	var interval int
 	for _, dc := range dw.endPoints {
-		if err := dc.heartBeat(bodyByte); err != nil {
-			return err
+		interval, err = dc.heartBeat(bodyByte)
+		if err != nil {
+			return heartBeatIntervalDefault, err
 		}
 	}
 
-	return nil
+	return interval, nil
 }
 
 // UpsertObjectLabels , dw api create or update object labels.

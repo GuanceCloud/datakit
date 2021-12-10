@@ -112,6 +112,6 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 }
 
 func init() { //nolint:gochecknoinits
-	defInterval = time.Second
+	defIntervalDefault = 10
 	defLogFilterMock = &debugLogFilterMock{}
 }
