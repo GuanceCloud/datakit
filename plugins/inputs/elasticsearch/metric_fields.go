@@ -311,14 +311,15 @@ var clusterStatsFields = map[string]interface{}{
 }
 
 var clusterHealthFields = map[string]interface{}{
-	"active_primary_shards":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active primary shards in the cluster."},
-	"active_shards":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active shards in the cluster."},
-	"initializing_shards":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are currently initializing."},
-	"number_of_data_nodes":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of data nodes in the cluster."},
-	"number_of_pending_tasks": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of pending tasks."},
-	"relocating_shards":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are relocating from one node to another."},
-	"status":                  &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The cluster status: red, yellow, green."},
-	"unassigned_shards":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are unassigned to a node."},
+	"active_primary_shards":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active primary shards in the cluster."},
+	"active_shards":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active shards in the cluster."},
+	"initializing_shards":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are currently initializing."},
+	"number_of_data_nodes":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of data nodes in the cluster."},
+	"number_of_pending_tasks":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of pending tasks."},
+	"relocating_shards":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are relocating from one node to another."},
+	"status":                        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The cluster status: red, yellow, green."},
+	"unassigned_shards":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are unassigned to a node."},
+	"indices_lifecycle_error_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of indices that are managed by ILM and are in an error state."},
 	// "active_shards_percent_as_number":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The ratio of active shards in the cluster expressed as a percentage."},
 	// "delayed_unassigned_shards":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards whose allocation has been delayed by the timeout settings."},
 	// "number_of_in_flight_fetch":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of ongoing shard info requests."},
