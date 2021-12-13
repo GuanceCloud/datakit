@@ -25,7 +25,6 @@ var httpCases = []struct {
 	fail      bool
 	reasonCnt int
 }{
-
 	{
 		name:      "test dial with certificate",
 		fail:      false,
