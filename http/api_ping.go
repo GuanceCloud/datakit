@@ -11,8 +11,9 @@ import (
 type ping struct {
 	Version string `json:"version"`
 	Uptime  string `json:"uptime"`
+	Host    string `json:"host"`
 }
 
 func apiPing(c *gin.Context) {
-	OK.HttpBody(c, &ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(uptime))})
+	OK.HttpBody(c, &ping{Version: datakit.Version, Uptime: fmt.Sprintf("%v", time.Since(uptime)), Host: datakit.DatakitHostName})
 }
