@@ -183,7 +183,6 @@ static __always_inline __u32 read_netns(void *sk)
     bpf_probe_read(&netptr, sizeof(netptr), (__u8 *)sk + offset_sk_net);
 
     bpf_probe_read(&inum, sizeof(inum), (__u8 *)netptr + offset_ns_common_inum);
-    bpf_printk("%u", inum);
     return inum;
 }
 
