@@ -28,6 +28,11 @@ $ uname -r
 setenforce 0
 ```
 
+### DaemonSet 方式安装的 DataKit  
+
+若是在 K8s 中通过 DaemonSet 方式安装的 DataKit，
+需将宿主机目录 `/sys/kernel/debug` 挂载到容器中
+
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：

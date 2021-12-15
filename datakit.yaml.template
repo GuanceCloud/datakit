@@ -162,6 +162,8 @@ spec:
           readOnly: true
         - mountPath: /rootfs
           name: rootfs
+        - mountPath: /sys/kernel/debug
+          name: debugfs
         workingDir: /usr/local/datakit
       hostIPC: true
       hostPID: true
@@ -191,6 +193,10 @@ spec:
           path: /
           type: ""
         name: rootfs
+      - hostPath:
+          path: /sys/kernel/debug
+          type: ""
+        name: debugfs
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
