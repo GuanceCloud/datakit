@@ -5,7 +5,9 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -154,15 +156,24 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 		return fmt.Errorf("no points")
 	}
 
+	pts, err := GetPointsFromMeasurement(measurements)
+	if err != nil {
+		return err
+	}
+
+	return io.Feed(name, category, pts, opt)
+}
+
+func GetPointsFromMeasurement(measurements []Measurement) ([]*io.Point, error) {
 	var pts []*io.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
-			return err
+			return nil, err
 		} else {
 			pts = append(pts, pt)
 		}
 	}
-	return io.Feed(name, category, pts, opt)
+	return pts, nil
 }
 
 func NewTagInfo(desc string) *TagInfo {
@@ -179,6 +190,42 @@ func sortMapKey(m map[string]interface{}) (res []string) {
 	return
 }
 
+type ReporterMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (e ReporterMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(e.name, e.tags, e.fields, e.ts)
+}
+
+func (e ReporterMeasurement) Info() *MeasurementInfo {
+	return &MeasurementInfo{}
+}
+
+func FeedReporter(reporter *io.Reporter) {
+	measurement := getReporterMeasurement(reporter)
+	err := FeedMeasurement("datakit", datakit.Logging, []Measurement{measurement}, nil)
+	if err != nil {
+		l.Errorf("send datakit logging error: %s", err.Error())
+	}
+}
+
+func getReporterMeasurement(reporter *io.Reporter) ReporterMeasurement {
+	now := time.Now()
+	m := ReporterMeasurement{
+		name: "datakit",
+		ts:   now,
+	}
+
+	m.tags = reporter.Tags()
+	m.fields = reporter.Fields()
+	return m
+}
+
+// BuildTags used to test all measurements tags.
 func BuildTags(t *testing.T, ti map[string]interface{}) map[string]string {
 	t.Helper()
 	x := map[string]string{}
@@ -188,6 +235,7 @@ func BuildTags(t *testing.T, ti map[string]interface{}) map[string]string {
 	return x
 }
 
+// BuildFields used to test all measurements fields.
 func BuildFields(t *testing.T, fi map[string]interface{}) map[string]interface{} {
 	t.Helper()
 	x := map[string]interface{}{}

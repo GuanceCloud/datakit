@@ -11,12 +11,12 @@ import (
 	"github.com/google/gopacket/layers"
 )
 
-type DNSRecord struct {
+type DNSAnswerRecord struct {
 	sync.RWMutex
 	record map[string][2]interface{}
 }
 
-func (c *DNSRecord) LookupAddr(ip net.IP) string {
+func (c *DNSAnswerRecord) LookupAddr(ip net.IP) string {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -36,7 +36,7 @@ func (c *DNSRecord) LookupAddr(ip net.IP) string {
 	}
 }
 
-func (c *DNSRecord) addRecord(packetInfo *DNSPacketInfo) {
+func (c *DNSAnswerRecord) addRecord(packetInfo *DNSPacketInfo) {
 	c.Lock()
 	defer c.Unlock()
 	for _, answer := range packetInfo.Answers {
@@ -60,7 +60,7 @@ func (c *DNSRecord) addRecord(packetInfo *DNSPacketInfo) {
 	}
 }
 
-func (c *DNSRecord) Cleanup() {
+func (c *DNSAnswerRecord) Cleanup() {
 	c.Lock()
 	defer c.Unlock()
 	for k, v := range c.record {
@@ -72,8 +72,8 @@ func (c *DNSRecord) Cleanup() {
 	}
 }
 
-func NewDNSRecord() *DNSRecord {
-	return &DNSRecord{
+func NewDNSRecord() *DNSAnswerRecord {
+	return &DNSAnswerRecord{
 		record: map[string][2]interface{}{},
 	}
 }

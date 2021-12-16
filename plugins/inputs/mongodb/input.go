@@ -149,9 +149,14 @@ func (*Input) PipelineConfig() map[string]string {
 func (m *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: m.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if m.Log != nil {
+					return m.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }

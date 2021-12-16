@@ -2,34 +2,30 @@
 package pipeline
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
-	"time"
 
 	influxm "github.com/influxdata/influxdb1-client/models"
-	conv "github.com/spf13/cast"
-	vgrok "github.com/vjeantet/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-type Pipeline struct {
-	Content  string
-	Output   map[string]interface{}
-	lastErr  error
-	patterns map[string]string // 存放自定义patterns
-	ast      *parser.Ast
-	grok     *vgrok.Grok
-	timezone map[string]*time.Location
-}
-
 var l = logger.DefaultSLogger("pipeline")
+
+type Pipeline struct {
+	engine  *parser.Engine
+	output  map[string]interface{} // 这是一个map指针，不需要make初始化
+	lastErr error
+}
 
 func NewPipelineByScriptPath(scriptFullPath string) (*Pipeline, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(scriptFullPath))
@@ -40,13 +36,12 @@ func NewPipelineByScriptPath(scriptFullPath string) (*Pipeline, error) {
 }
 
 func NewPipeline(script string) (*Pipeline, error) {
-	p := &Pipeline{
-		Output: make(map[string]interface{}),
-		grok:   grokCfg,
+	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap)
+	if err != nil {
+		return nil, err
 	}
-
-	if err := p.parseScript(script); err != nil {
-		return p, err
+	p := &Pipeline{
+		engine: ng,
 	}
 
 	return p, nil
@@ -100,16 +95,8 @@ func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
 }
 
 func (p *Pipeline) Run(data string) *Pipeline {
-	p.Content = data
-	p.Output = make(map[string]interface{})
-	p.Output["message"] = data
-
-	// 防止脚本解析错误
-	if p.ast == nil || len(p.ast.Functions) == 0 {
-		return p
-	}
-
-	// 错误状态复位
+	// reset
+	p.output = nil
 	p.lastErr = nil
 
 	var f rtpanic.RecoverCallback
@@ -123,19 +110,19 @@ func (p *Pipeline) Run(data string) *Pipeline {
 			return
 		}
 
-		for _, fn := range p.ast.Functions {
-			fname := strings.ToLower(fn.Name)
-			plf, ok := funcsMap[fname]
-			if !ok {
-				p.lastErr = fmt.Errorf("unsupported func: `%v'", fn.Name)
-				return
-			}
-
-			if _, err := plf(p, fn); err != nil {
-				p.lastErr = fmt.Errorf("Run func %v: %w", fn.Name, err)
-				return
-			}
+		if p.engine == nil {
+			p.lastErr = fmt.Errorf("pipeline engine not initialized")
+			l.Error(p.lastErr)
+			return
 		}
+
+		if err := p.engine.Run(data); err != nil {
+			p.lastErr = fmt.Errorf("pipeline run error: %w", err)
+			l.Error(p.lastErr)
+			return
+		}
+
+		p.output = p.engine.Result()
 	}
 
 	f(nil, nil)
@@ -143,123 +130,19 @@ func (p *Pipeline) Run(data string) *Pipeline {
 }
 
 func (p *Pipeline) Result() (map[string]interface{}, error) {
-	for k, v := range p.Output {
-		switch v.(type) {
-		case int, uint64, uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
-		default:
-			str, err := json.Marshal(v)
-			if err != nil {
-				l.Errorf("object type marshal error %v", err)
-			}
-			p.Output[k] = string(str)
-		}
-	}
-	return p.Output, p.lastErr
+	return p.output, p.lastErr
 }
 
 func (p *Pipeline) LastError() error {
 	return p.lastErr
 }
 
-func (p *Pipeline) getContent(key interface{}) (interface{}, error) {
-	var k string
-
-	switch t := key.(type) {
-	case *parser.Identifier:
-		k = t.String()
-	case *parser.AttrExpr:
-		k = t.String()
-	case *parser.StringLiteral:
-		k = t.Val
-	case string:
-		k = t
-	default:
-		return nil, fmt.Errorf("unsupported %v get", reflect.TypeOf(key).String())
-	}
-
-	if k == "_" {
-		return p.Content, nil
-	}
-
-	v, ok := p.Output[k]
-	if !ok {
-		return nil, fmt.Errorf("%v no found", k)
-	}
-
-	return v, nil
-}
-
-func (p *Pipeline) getContentStr(key interface{}) (string, error) {
-	c, err := p.getContent(key)
-	if err != nil {
-		return "", err
-	}
-
-	switch v := reflect.ValueOf(c); v.Kind() { //nolint:exhaustive
-	case reflect.Map:
-		res, err := json.Marshal(v.Interface())
-		return string(res), err
-	default:
-		return conv.ToString(v.Interface()), err
-	}
-}
-
-func (p *Pipeline) setTimezone(k string, v *time.Location) {
-	if p.timezone == nil {
-		p.timezone = make(map[string]*time.Location)
-	}
-	p.timezone[k] = v
-}
-
-func (p *Pipeline) setContent(k, v interface{}) error {
-	var key string
-
-	switch t := k.(type) {
-	case *parser.Identifier:
-		key = t.String()
-	case *parser.AttrExpr:
-		key = t.String()
-	case *parser.StringLiteral:
-		key = t.Val
-	case string:
-		key = t
-	default:
-		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
-	}
-
-	if p.Output == nil {
-		p.Output = make(map[string]interface{})
-	}
-
-	if v == nil {
-		return nil
-	}
-
-	p.Output[key] = v
-
-	return nil
-}
-
-func (p *Pipeline) parseScript(script string) error {
-	node, err := parser.ParsePipeline(script)
-	if err != nil {
-		return err
-	}
-
-	switch ast := node.(type) {
-	case *parser.Ast:
-		p.ast = ast
-	default:
-		return fmt.Errorf("should not been here")
-	}
-
-	return nil
-}
-
 func Init(datadir string) error {
 	l = logger.SLogger("pipeline")
+	funcs.InitLog()
+	parser.InitLog()
 
-	if err := LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
+	if err := funcs.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return err
 	}
 
@@ -272,4 +155,56 @@ func Init(datadir string) error {
 	}
 
 	return nil
+}
+
+func loadPatterns() error {
+	loadedPatterns, err := readPatternsFromDir(datakit.PipelinePatternDir)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range loadedPatterns {
+		if _, ok := parser.GlobalPatterns[k]; !ok {
+			parser.GlobalPatterns[k] = v
+		} else {
+			l.Warnf("can not overwrite internal pattern `%s', skipped `%s'", k, k)
+		}
+	}
+	return nil
+}
+
+func readPatternsFromDir(path string) (map[string]string, error) {
+	if fi, err := os.Stat(path); err == nil {
+		if fi.IsDir() {
+			path += "/*"
+		}
+	} else {
+		return nil, fmt.Errorf("invalid path : %s", path)
+	}
+
+	files, _ := filepath.Glob(path)
+
+	patterns := make(map[string]string)
+	for _, fileName := range files {
+		file, err := os.Open(filepath.Clean(fileName))
+		if err != nil {
+			return patterns, err
+		}
+
+		scanner := bufio.NewScanner(bufio.NewReader(file))
+
+		for scanner.Scan() {
+			l := scanner.Text()
+			if len(l) > 0 && l[0] != '#' {
+				names := strings.SplitN(l, " ", 2)
+				patterns[names[0]] = names[1]
+			}
+		}
+
+		if err := file.Close(); err != nil {
+			l.Warnf("Close: %s, ignored", err.Error())
+		}
+	}
+
+	return patterns, nil
 }

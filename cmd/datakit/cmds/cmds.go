@@ -9,7 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -46,7 +46,7 @@ func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
 func ipInfo(ip string) (map[string]string, error) {
 	datadir := datakit.DataDir
 
-	if err := pipeline.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
+	if err := funcs.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
 		return nil, err
 	}
 
@@ -54,7 +54,7 @@ func ipInfo(ip string) (map[string]string, error) {
 		return nil, err
 	}
 
-	x, err := pipeline.Geo(ip)
+	x, err := funcs.Geo(ip)
 	if err != nil {
 		return nil, err
 	}

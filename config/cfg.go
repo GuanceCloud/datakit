@@ -57,6 +57,7 @@ func DefaultConfig() *Config {
 			DynamicCacheDumpThreshold: 512,
 			FlushInterval:             "10s",
 			OutputFileInputs:          []string{},
+			EnableCache:               false,
 		},
 
 		DataWay: &dataway.DataWayCfg{
@@ -89,7 +90,7 @@ func DefaultConfig() *Config {
 		WhiteList: []*inputHostList{
 			{Hosts: []string{}, Inputs: []string{}},
 		},
-		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
+		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
 
 		Tracer: &tracer.Tracer{TraceEnabled: false},
 
@@ -132,6 +133,7 @@ type IOConfig struct {
 	FlushInterval             string   `toml:"flush_interval"`
 	OutputFile                string   `toml:"output_file"`
 	OutputFileInputs          []string `toml:"output_file_inputs"`
+	EnableCache               bool     `toml:"enable_cache"`
 }
 
 type LoggerCfg struct {
@@ -441,6 +443,7 @@ func (c *Config) ApplyMainConfig() error {
 			dkio.SetFlushInterval(c.IOConf.FlushInterval),
 			dkio.SetOutputFile(c.IOConf.OutputFile),
 			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
+			dkio.SetEnableCache(c.IOConf.EnableCache),
 			dkio.SetDataway(c.DataWay))
 	}
 
@@ -504,6 +507,7 @@ func (c *Config) setHostname() error {
 	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
 		c.Hostname = v
 		l.Infof("set hostname to %s from config ENV_HOSTNAME", v)
+		datakit.DatakitHostName = c.Hostname
 		return nil
 	}
 
@@ -515,6 +519,7 @@ func (c *Config) setHostname() error {
 	}
 	l.Infof("here is hostname:%s", c.Hostname)
 	c.Hostname = hn
+	datakit.DatakitHostName = c.Hostname
 	l.Infof("set hostname to %s", hn)
 	return nil
 }
@@ -652,6 +657,26 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
 		c.EnableElection = true
+	}
+
+	if v := datakit.GetEnv("ENV_GIT_URL"); v != "" {
+		interval := datakit.GetEnv("ENV_GIT_INTERVAL")
+		keyPath := datakit.GetEnv("ENV_GIT_KEY_PATH")
+		keyPasswd := datakit.GetEnv("ENV_GIT_KEY_PW")
+		branch := datakit.GetEnv("ENV_GIT_BRANCH")
+
+		c.GitRepos = &GitRepost{
+			PullInterval: interval,
+			Repos: []*GitRepository{
+				{
+					Enable:                true,
+					URL:                   v,
+					SSHPrivateKeyPath:     keyPath,
+					SSHPrivateKeyPassword: keyPasswd,
+					Branch:                branch,
+				}, // GitRepository
+			}, // Repos
+		} // GitRepost
 	}
 
 	return nil

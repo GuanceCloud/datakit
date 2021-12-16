@@ -106,6 +106,8 @@ func main() {
 		l.Fatal(err)
 	}
 
+	dumpStderr2File()
+
 	dkfeed.DataKitAPIServer = opt.DataKitAPIServer
 
 	datakitPostURL := fmt.Sprintf("http://%s%s?input="+inputName, dkfeed.DataKitAPIServer, datakit.Network)
@@ -380,7 +382,7 @@ func savePid() error {
 	}
 
 	pid := os.Getpid()
-	return ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), 0644) //nolint:gosec
+	return ioutil.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), 0o644) //nolint:gosec
 }
 
 func isRuning() bool {
@@ -403,4 +405,31 @@ func isRuning() bool {
 	name, _ = p.Name()
 
 	return name == "net_ebpf"
+}
+
+const (
+	FileModeRW = 0o644
+	DirModeRW  = 0o755
+)
+
+func dumpStderr2File() {
+	dirpath := filepath.Join(datakit.InstallDir, "externals")
+	filepath := filepath.Join(dirpath, "net_ebpf.stderr")
+	if err := os.MkdirAll(dirpath, DirModeRW); err != nil {
+		l.Warn(err)
+		return
+	}
+	f, err := os.OpenFile(filepath, os.O_CREATE|os.O_APPEND|os.O_RDWR, FileModeRW) //nolint:gosec
+	if err != nil {
+		l.Error(err)
+		return
+	}
+	_, err = f.WriteString(fmt.Sprintf("\n========= %s =========\n", time.Now().UTC()))
+	if err != nil {
+		l.Error(err)
+	}
+	_ = syscall.Dup2(int(f.Fd()), int(os.Stderr.Fd()))
+	if err = f.Close(); err != nil {
+		l.Error(err)
+	}
 }

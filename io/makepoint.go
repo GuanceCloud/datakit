@@ -1,6 +1,7 @@
 package io
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
@@ -10,9 +11,19 @@ import (
 
 var (
 	// no set.
-	DisabledTagKeys   []string                                 = nil
-	DisabledFieldKeys []string                                 = nil
-	Callback          func(models.Point) (models.Point, error) = nil
+	DisabledTagKeys = map[string][]string{
+		datakit.Logging: {"source"},
+		datakit.Object:  {"class"},
+		// others not set...
+	}
+
+	DisabledFieldKeys = map[string][]string{
+		datakit.Logging: {"source"},
+		datakit.Object:  {"class"},
+		// others not set...
+	}
+
+	Callback func(models.Point) (models.Point, error) = nil
 
 	Strict           = true
 	MaxTags   int    = 256
@@ -24,46 +35,10 @@ func SetExtraTags(k, v string) {
 	extraTags[k] = v
 }
 
-func lpOpt(withGlobalTags bool) *lp.Option {
-	globalTags := extraTags
-	if withGlobalTags {
-		globalTags = nil
-	}
-
-	return &lp.Option{
-		Strict:    true,
-		Precision: "n",
-		ExtraTags: globalTags,
-		MaxTags:   MaxTags,
-		MaxFields: MaxFields,
-
-		// not set
-		DisabledTagKeys:   nil,
-		DisabledFieldKeys: nil,
-		Callback:          nil,
-	}
-}
-
-func MakePointWithoutGlobalTags(name string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) (*Point, error) {
-	return doMakePoint(name, tags, fields, lpOpt(true), t...)
-}
-
 func doMakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
-	opt *lp.Option,
-	t ...time.Time) (*Point, error) {
-	var ts time.Time
-	if len(t) > 0 {
-		ts = t[0]
-	} else {
-		ts = time.Now().UTC()
-	}
-	opt.Time = ts
-
+	opt *lp.Option) (*Point, error) {
 	p, err := lp.MakeLineProtoPoint(name, tags, fields, opt)
 	if err != nil {
 		return nil, err
@@ -72,26 +47,94 @@ func doMakePoint(name string,
 	return &Point{Point: p}, nil
 }
 
-func MakeTypedPoint(name, ptype string,
-	tags map[string]string,
-	fields map[string]interface{},
-	t ...time.Time) (*Point, error) {
-	opt := lpOpt(false)
-
-	switch ptype {
-	case datakit.Metric:
-		opt.EnablePointInKey = true
-	default: // pass
-	}
-
-	return doMakePoint(name, tags, fields, opt, t...)
+type PointOption struct {
+	Time              time.Time
+	Category          string
+	DisableGlobalTags bool
+	Strict            bool
 }
 
+var defaultPointOption = &PointOption{
+	Time:     time.Now(),
+	Category: datakit.Metric,
+	Strict:   true,
+}
+
+func NewPoint(name string,
+	tags map[string]string,
+	fields map[string]interface{},
+	opt ...*PointOption) (*Point, error) {
+	var o *PointOption
+	if len(opt) > 0 {
+		o = opt[0]
+	} else {
+		o = defaultPointOption
+	}
+
+	lpOpt := &lp.Option{
+		Time:      o.Time,
+		Strict:    o.Strict,
+		Precision: "n",
+		MaxTags:   MaxTags,
+		MaxFields: MaxFields,
+		ExtraTags: extraTags,
+
+		// not set
+		DisabledTagKeys:   nil,
+		DisabledFieldKeys: nil,
+		Callback:          nil,
+	}
+
+	if o.DisableGlobalTags {
+		lpOpt.ExtraTags = nil
+	}
+
+	switch o.Category {
+	case datakit.Metric:
+		lpOpt.EnablePointInKey = true
+		lpOpt.DisabledTagKeys = DisabledTagKeys[o.Category]
+		lpOpt.DisabledFieldKeys = DisabledFieldKeys[o.Category]
+	case datakit.Network,
+		datakit.KeyEvent,
+		datakit.Object,
+		datakit.CustomObject,
+		datakit.Logging,
+		datakit.Tracing,
+		datakit.Rum,
+		datakit.Security:
+		lpOpt.DisabledTagKeys = DisabledTagKeys[o.Category]
+		lpOpt.DisabledFieldKeys = DisabledFieldKeys[o.Category]
+	default:
+		return nil, fmt.Errorf("invalid point category: %s", o.Category)
+	}
+	return doMakePoint(name, tags, fields, lpOpt)
+}
+
+// MakePoint Deprecated.
 func MakePoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	t ...time.Time) (*Point, error) {
-	return doMakePoint(name, tags, fields, lpOpt(false), t...)
+	lpOpt := &lp.Option{
+		Strict:    true,
+		Precision: "n",
+		MaxTags:   MaxTags,
+		MaxFields: MaxFields,
+		ExtraTags: extraTags,
+
+		// not set
+		DisabledTagKeys:   nil,
+		DisabledFieldKeys: nil,
+		Callback:          nil,
+	}
+
+	if len(t) > 0 {
+		lpOpt.Time = t[0]
+	} else {
+		lpOpt.Time = time.Now().UTC()
+	}
+
+	return doMakePoint(name, tags, fields, lpOpt)
 }
 
 // MakeMetric Deprecated.
@@ -105,19 +148,4 @@ func MakeMetric(name string,
 	}
 
 	return []byte(p.Point.String()), nil
-}
-
-// NamedFeed Deprecated.
-func NamedFeed(data []byte, category, name string) error {
-	pts, err := lp.ParsePoints(data, nil)
-	if err != nil {
-		return err
-	}
-
-	x := []*Point{}
-	for _, pt := range pts {
-		x = append(x, &Point{Point: pt})
-	}
-
-	return defaultIO.DoFeed(x, category, name, nil)
 }

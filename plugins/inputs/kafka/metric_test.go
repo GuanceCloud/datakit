@@ -21,7 +21,6 @@ func TestMeasurement(t *testing.T) {
 			},
 		},
 		{
-
 			m: &KafkaTopicMment{
 				KafkaMeasurement{
 					name:   "kafka_topic",

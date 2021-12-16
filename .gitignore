@@ -5,6 +5,7 @@
 .vscode/
 *-packr.go
 *.ak
+*.bak
 *.csv
 *.err
 *.log
@@ -60,5 +61,7 @@ test.go
 test.jso
 test.output
 y.output
+gram_y.go
+pipeline/parser/parser.y.go
 ag.sh
 b.sh

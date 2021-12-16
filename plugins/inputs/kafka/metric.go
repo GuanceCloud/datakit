@@ -49,10 +49,9 @@ type KafkaPartitionMment struct {
 }
 
 func (j *KafkaMeasurement) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
-//nolint:lll
 var controllerFields = map[string]interface{}{
 	"AutoLeaderBalanceRateAndTimeMs.50thPercentile":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"AutoLeaderBalanceRateAndTimeMs.75thPercentile":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
@@ -416,7 +415,7 @@ var controllerTags = map[string]interface{}{
 }
 
 func (j *KafkaControllerMment) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
 func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo { //nolint:funlen
@@ -427,7 +426,6 @@ func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo { //nolint:funlen
 	}
 }
 
-//nolint:lll
 var replicationTags = map[string]interface{}{
 	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 }
@@ -467,7 +465,7 @@ var replicationFields = map[string]interface{}{
 }
 
 func (j *KafkaReplicaMment) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
 func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
@@ -509,10 +507,9 @@ var purgatoryFields = map[string]interface{}{
 }
 
 func (j *KafkaPurgatoryMment) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
-//nolint:lll
 func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_purgatory",
@@ -522,10 +519,9 @@ func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaRequestMment) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
-//nolint:lll
 var requestFields = map[string]interface{}{
 	"LocalTimeMs.50thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
 	"LocalTimeMs.75thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
@@ -637,10 +633,8 @@ func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaTopicsMment) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
-
-//nolint:lll
 
 var topicsFields = map[string]interface{}{
 	"BytesInPerSec.Count":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
@@ -801,10 +795,8 @@ func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaTopicMment) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
-
-//nolint:lll
 
 var topicFields = map[string]interface{}{
 	"BytesInPerSec.Count":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
@@ -862,10 +854,8 @@ func (j *KafkaTopicMment) Info() *inputs.MeasurementInfo {
 }
 
 func (j *KafkaPartitionMment) LineProto() (*io.Point, error) {
-	return io.MakeTypedPoint(j.name, datakit.Metric, j.tags, j.fields, j.ts)
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
-
-//nolint:lll
 
 var partitionFields = map[string]interface{}{
 	"LogEndOffset":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
