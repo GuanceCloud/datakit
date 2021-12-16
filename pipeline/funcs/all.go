@@ -15,7 +15,7 @@ func InitLog() {
 var FuncsMap = map[string]parser.FuncCallback{
 	"grok":                  Grok,
 	"add_key":               Addkey,
-	"auto_detect_timezone":  AutoDetectTimezone,
+	"adjust_timezone":       AdjustTimezone,
 	"json":                  JSON,
 	"add_pattern":           AddPattern,
 	"cast":                  Cast,
@@ -46,7 +46,7 @@ var FuncsMap = map[string]parser.FuncCallback{
 var FuncsCheckMap = map[string]parser.FuncCallbackCheck{
 	"grok":                  GrokChecking,
 	"add_key":               AddkeyChecking,
-	"auto_detect_timezone":  AutoDetectTimezoneChecking,
+	"adjust_timezone":       AdjustTimezoneChecking,
 	"json":                  JSONChecking,
 	"add_pattern":           AddPatternChecking,
 	"cast":                  CastChecking,

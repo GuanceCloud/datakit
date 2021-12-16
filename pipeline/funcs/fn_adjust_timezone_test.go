@@ -10,7 +10,7 @@ import (
 
 const Hour8 = 8 * timeHourNanosec
 
-func TestAutoDetectTimezone(t *testing.T) {
+func TestAdjustTimezone(t *testing.T) {
 	// local timezone: utc+0800
 	cst := time.FixedZone("CST", 8*3600)
 	time.Local = cst
@@ -39,7 +39,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 			pl: `
 			json(_, time)
 			default_time(time)
-			auto_detect_timezone(time)
+			adjust_timezone(time)
 		`,
 			outkey: "time",
 			expect: tn.UnixNano() - int64(tn.Nanosecond()),
@@ -62,7 +62,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 			pl: `
 			json(_, time)
 			default_time(time)
-			auto_detect_timezone(time)
+			adjust_timezone(time)
 		`,
 			outkey: "time",
 			expect: tn.UnixNano() - int64(tn.Nanosecond()),
@@ -85,7 +85,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 			pl: `
 			json(_, time)
 			default_time(time)
-			auto_detect_timezone(time)
+			adjust_timezone(time)
 		`,
 			outkey: "time",
 			expect: tn.UnixNano() / 1000000 * 1000000,
@@ -108,7 +108,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 			pl: `
 			json(_, time)
 			default_time(time)
-			auto_detect_timezone(time)
+			adjust_timezone(time)
 		`,
 			outkey: "time",
 			expect: tn.UnixNano() - int64(tn.Nanosecond()),
@@ -131,7 +131,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 			pl: `
 			json(_, time)
 			default_time(time)
-			auto_detect_timezone(time)
+			adjust_timezone(time)
 		`,
 			outkey: "time",
 			expect: tn.UnixNano() - int64(tn.Nanosecond()),
@@ -154,7 +154,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 			pl: `
 			json(_, time)
 			default_time(time)
-			auto_detect_timezone(time)
+			adjust_timezone(time)
 		`,
 			outkey: "time",
 			expect: tn.UnixNano() / 1000 * 1000,
@@ -177,7 +177,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 			pl: `
 			json(_, time)
 			default_time(time)
-			auto_detect_timezone(time)
+			adjust_timezone(time)
 		`,
 			outkey: "time",
 			expect: tn.UnixNano() / 1000000 * 1000000,
@@ -211,7 +211,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 			pl: `
 			json(_, time)
 			default_time(time)
-			auto_detect_timezone(time)
+			adjust_timezone(time)
 		`,
 			outkey: "time",
 			expect: tn.UnixNano() / 1000000 * 1000000,
@@ -230,7 +230,7 @@ func TestAutoDetectTimezone(t *testing.T) {
 		// 	pl: `
 		// 	json(_, time)
 		// 	default_time(time)
-		// 	auto_detect_timezone(time)
+		// 	adjust_timezone(time)
 		// `,
 		// 	outkey: "time",
 		// 	expect: int64(1639108160937000000),
