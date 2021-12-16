@@ -57,6 +57,7 @@ func DefaultConfig() *Config {
 			DynamicCacheDumpThreshold: 512,
 			FlushInterval:             "10s",
 			OutputFileInputs:          []string{},
+			EnableCache:               false,
 		},
 
 		DataWay: &dataway.DataWayCfg{
@@ -132,6 +133,7 @@ type IOConfig struct {
 	FlushInterval             string   `toml:"flush_interval"`
 	OutputFile                string   `toml:"output_file"`
 	OutputFileInputs          []string `toml:"output_file_inputs"`
+	EnableCache               bool     `toml:"enable_cache"`
 }
 
 type LoggerCfg struct {
@@ -441,6 +443,7 @@ func (c *Config) ApplyMainConfig() error {
 			dkio.SetFlushInterval(c.IOConf.FlushInterval),
 			dkio.SetOutputFile(c.IOConf.OutputFile),
 			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
+			dkio.SetEnableCache(c.IOConf.EnableCache),
 			dkio.SetDataway(c.DataWay))
 	}
 

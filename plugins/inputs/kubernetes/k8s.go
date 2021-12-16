@@ -165,7 +165,7 @@ func (m *kubernetesMetric) Gather() {
 			fields["ingress"] = len(list.Items)
 		}
 
-		if list, err := m.client.getPods("").List(context.Background(), metav1ListOption); err != nil {
+		if list, err := m.client.getPods(ns).List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["pod"] = len(list.Items)

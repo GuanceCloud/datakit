@@ -6,6 +6,8 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -81,6 +83,24 @@ func SetDataway(dw *dataway.DataWayCfg) IOOption {
 	}
 }
 
+func SetFeedChanSize(size int) IOOption {
+	return func(io *IO) {
+		io.FeedChanSize = size
+	}
+}
+
+func SetHighFreqFeedChanSize(size int) IOOption {
+	return func(io *IO) {
+		io.HighFreqFeedChanSize = size
+	}
+}
+
+func SetEnableCache(enable bool) IOOption {
+	return func(io *IO) {
+		io.EnableCache = enable
+	}
+}
+
 func ConfigDefaultIO(opts ...IOOption) {
 	for _, opt := range opts {
 		opt(defaultIO)
@@ -101,6 +121,16 @@ func Start() error {
 	defaultIO.dynamicCache = map[string][]*Point{}
 
 	defaultIO.StartIO(true)
+
+	if defaultIO.EnableCache {
+		if err := cache.Initialize(datakit.CacheDir, nil); err != nil {
+			l.Warn("initialized cache: %s, ignored", err)
+		} else { //nolint
+			if err := cache.CreateBucketIfNotExists(cacheBucket); err != nil {
+				l.Warn("create bucket: %s", err)
+			}
+		}
+	}
 
 	l.Debugf("io: %+#v", defaultIO)
 

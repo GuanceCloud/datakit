@@ -726,6 +726,7 @@ github.com/rivo/uniseg
 # github.com/rogpeppe/go-internal v1.8.0
 ## explicit
 # github.com/rs/xid v1.3.0
+## explicit
 github.com/rs/xid
 # github.com/sergi/go-diff v1.1.0
 github.com/sergi/go-diff/diffmatchpatch
@@ -819,6 +820,9 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer
 # gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
+# go.etcd.io/bbolt v1.3.5
+## explicit
+go.etcd.io/bbolt
 # go.uber.org/atomic v1.7.0
 go.uber.org/atomic
 # go.uber.org/multierr v1.7.0
