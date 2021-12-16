@@ -1,2 +1,2 @@
 all:
-	goyacc -o parser.y.go parser.y
+	goyacc -o gram_y.go gram.y

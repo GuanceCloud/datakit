@@ -2,6 +2,13 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc7(2021/12/16)
+
+- pipeline 添加 `if/elif/else` [语法](pipeline#FIXME_Placeholder)(#339)
+- pipeline 移除 `expr()` 函数
+
+---
+
 ## 1.1.9-rc6.1(2021/12/10)
 
 - 修复 ElasticSearch 以及 Kafka 采集报错问题(#486)

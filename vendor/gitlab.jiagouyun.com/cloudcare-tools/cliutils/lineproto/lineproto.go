@@ -13,17 +13,15 @@ import (
 )
 
 type Option struct {
-	Time time.Time
+	Time      time.Time
+	Precision string
+	ExtraTags map[string]string
 
 	DisabledTagKeys   []string
 	DisabledFieldKeys []string
 
-	Strict           bool
-	EnablePointInKey bool
-
-	Precision string
-	ExtraTags map[string]string
-
+	Strict             bool
+	EnablePointInKey   bool
 	Callback           func(models.Point) (models.Point, error)
 	MaxTags, MaxFields int
 }
@@ -325,10 +323,6 @@ func checkTags(tags map[string]string, opt *Option) error {
 		// not recoverable if `.' exists!
 		if strings.Contains(k, ".") && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid tag key `%s': found `.'", k)
-		}
-
-		if err := opt.checkTag(k); err != nil {
-			return err
 		}
 
 		if err := opt.checkTag(k); err != nil {
