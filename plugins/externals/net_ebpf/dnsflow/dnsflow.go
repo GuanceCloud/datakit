@@ -85,7 +85,8 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 	for {
 		dnsParser := NewDNSParse()
 
-		d, _, err := tp.ZeroCopyReadPacketData()
+		d, ci, err := tp.ZeroCopyReadPacketData()
+		ts := ci.Timestamp
 		if err != nil {
 			continue
 		}
@@ -94,7 +95,7 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 			continue
 		}
 
-		pinfo, err := ReadPacketInfoFromDNSParser(time.Now(), &dnsParser)
+		pinfo, err := ReadPacketInfoFromDNSParser(ts, &dnsParser)
 		if err != nil {
 			continue
 		}
