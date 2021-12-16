@@ -506,6 +506,7 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 	}
 	for _, body := range bodies {
 		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
+			addReporter(Reporter{Message: err.Error(), Status: "error", Category: "dataway"})
 			return err
 		}
 		x.SentBytes += x.lastBodyBytes

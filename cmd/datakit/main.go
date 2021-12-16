@@ -214,6 +214,8 @@ func run() {
 		return
 	}
 
+	inputs.FeedReporter(&io.Reporter{Message: "datakit start ok, ready for collecting metrics."})
+
 	l.Info("datakit start ok. Wait signal or service stop...")
 
 	// NOTE:

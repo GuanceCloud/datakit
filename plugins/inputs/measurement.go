@@ -5,7 +5,9 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -177,6 +179,41 @@ func sortMapKey(m map[string]interface{}) (res []string) {
 	}
 	sort.Strings(res)
 	return
+}
+
+type ReporterMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (e ReporterMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(e.name, e.tags, e.fields, e.ts)
+}
+
+func (e ReporterMeasurement) Info() *MeasurementInfo {
+	return &MeasurementInfo{}
+}
+
+func FeedReporter(reporter *io.Reporter) {
+	measurement := getReporterMeasurement(reporter)
+	err := FeedMeasurement("datakit", datakit.Logging, []Measurement{measurement}, nil)
+	if err != nil {
+		l.Errorf("send datakit logging error: %s", err.Error())
+	}
+}
+
+func getReporterMeasurement(reporter *io.Reporter) ReporterMeasurement {
+	now := time.Now()
+	m := ReporterMeasurement{
+		name: "datakit",
+		ts:   now,
+	}
+
+	m.tags = reporter.Tags()
+	m.fields = reporter.Fields()
+	return m
 }
 
 // BuildTags used to test all measurements tags.
