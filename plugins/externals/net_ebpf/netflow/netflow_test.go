@@ -475,24 +475,24 @@ func TestStatsOp(t *testing.T) {
 func TestRecord(t *testing.T) {
 	netflowTracer := NewNetFlowTracer()
 	conninfo := ConnectionInfo{
-		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
-		Daddr: [4]uint32{0, 0, 0, 0x0100007F},
+		Saddr: [4]uint32{0, 0, 0, 0x0101006F},
+		Daddr: [4]uint32{0, 0, 0, 0x0100006F},
 		Sport: 8080,
 		Dport: 23456,
 		Pid:   1222,
 		Meta:  ConnL4TCP | ConnL3IPv4,
 	}
 	conninfo2 := ConnectionInfo{
-		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
-		Daddr: [4]uint32{0, 0, 0, 0x0101017F},
+		Saddr: [4]uint32{0, 0, 0, 0x0101006F},
+		Daddr: [4]uint32{0, 0, 0, 0x0101016F},
 		Sport: 8080,
 		Dport: 23456,
 		Pid:   1222,
 		Meta:  ConnL4TCP | ConnL3IPv4,
 	}
 	conninfo3 := ConnectionInfo{
-		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
-		Daddr: [4]uint32{0, 0, 0, 0x0101017F},
+		Saddr: [4]uint32{0, 0, 0, 0x0101006F},
+		Daddr: [4]uint32{0, 0, 0, 0x0101016F},
 		Sport: 8088,
 		Dport: 3456,
 		Pid:   1233,
@@ -541,8 +541,8 @@ func TestRecord(t *testing.T) {
 
 	closedEvent := ConncetionClosedInfoC{
 		conn_info: _Ctype_struct_connection_info{
-			saddr: [4]_Ctype_uint{0, 0, 0, 0x0101007F},
-			daddr: [4]_Ctype_uint{0, 0, 0, 0x0100007F},
+			saddr: [4]_Ctype_uint{0, 0, 0, 0x0101006F},
+			daddr: [4]_Ctype_uint{0, 0, 0, 0x0100006F},
 			sport: 8080,
 			dport: 23456,
 			pid:   1222,
@@ -590,8 +590,8 @@ func TestRecord(t *testing.T) {
 	assert.Equal(t, 1, len(netflowTracer.connStatsRecord.lastActiveConns))
 	assert.Equal(t, 1, len(netflowTracer.connStatsRecord.closedConns))
 	connInfo := ConnectionInfo{
-		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
-		Daddr: [4]uint32{0, 0, 0, 0x0100007F},
+		Saddr: [4]uint32{0, 0, 0, 0x0101006F},
+		Daddr: [4]uint32{0, 0, 0, 0x0100006F},
 		Sport: 8080,
 		Dport: 23456,
 		Pid:   1222,
@@ -627,8 +627,8 @@ func TestRecord(t *testing.T) {
 
 	closedEvent = ConncetionClosedInfoC{
 		conn_info: _Ctype_struct_connection_info{
-			saddr: [4]_Ctype_uint{0, 0, 0, 0x0101007F},
-			daddr: [4]_Ctype_uint{0, 0, 0, 0x0200007F},
+			saddr: [4]_Ctype_uint{0, 0, 0, 0x0101006F},
+			daddr: [4]_Ctype_uint{0, 0, 0, 0x0200006F},
 			sport: 8080,
 			dport: 23456,
 			pid:   1222,
@@ -662,8 +662,8 @@ func TestRecord(t *testing.T) {
 	}
 
 	connInfo = ConnectionInfo{
-		Saddr: [4]uint32{0, 0, 0, 0x0101007F},
-		Daddr: [4]uint32{0, 0, 0, 0x0200007F},
+		Saddr: [4]uint32{0, 0, 0, 0x0101006F},
+		Daddr: [4]uint32{0, 0, 0, 0x0200006F},
 		Sport: 8080,
 		Dport: 23456,
 		Pid:   1222,
