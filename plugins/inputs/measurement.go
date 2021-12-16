@@ -154,15 +154,24 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 		return fmt.Errorf("no points")
 	}
 
+	pts, err := GetPointsFromMeasurement(measurements)
+	if err != nil {
+		return err
+	}
+
+	return io.Feed(name, category, pts, opt)
+}
+
+func GetPointsFromMeasurement(measurements []Measurement) ([]*io.Point, error) {
 	var pts []*io.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
-			return err
+			return []*io.Point{}, err
 		} else {
 			pts = append(pts, pt)
 		}
 	}
-	return io.Feed(name, category, pts, opt)
+	return pts, nil
 }
 
 func NewTagInfo(desc string) *TagInfo {

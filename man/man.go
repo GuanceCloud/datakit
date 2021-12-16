@@ -4,6 +4,8 @@ package man
 import (
 	"bytes"
 	"fmt"
+
+	// nolint:typecheck
 	"strings"
 	"text/template"
 

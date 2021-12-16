@@ -39,9 +39,21 @@ type Option struct {
 	Sample      func(points []*Point) []*Point
 }
 
-type lastErr struct {
+type lastError struct {
 	from, err string
 	ts        time.Time
+}
+
+func (e *lastError) Error() string {
+	return fmt.Sprintf("%s [%s] %s", e.ts, e.from, e.err)
+}
+
+func NewLastError(from, err string) *lastError {
+	return &lastError{
+		from: from,
+		err:  err,
+		ts:   time.Now(),
+	}
 }
 
 type IO struct {
@@ -59,7 +71,7 @@ type IO struct {
 
 	in        chan *iodata
 	in2       chan *iodata // high-freq chan
-	inLastErr chan *lastErr
+	inLastErr chan *lastError
 
 	lastBodyBytes int
 	SentBytes     int
@@ -91,7 +103,7 @@ func NewIO() *IO {
 		FlushInterval:        10 * time.Second,
 		in:                   make(chan *iodata, 128),
 		in2:                  make(chan *iodata, 128*8),
-		inLastErr:            make(chan *lastErr, 128),
+		inLastErr:            make(chan *lastError, 128),
 
 		inputstats: map[string]*InputsStat{},
 		qstatsCh:   make(chan *qinputStats), // blocking
@@ -177,7 +189,7 @@ func (x *IO) ioStop() {
 	}
 }
 
-func (x *IO) updateLastErr(e *lastErr) {
+func (x *IO) updateLastErr(e *lastError) {
 	stat, ok := x.inputstats[e.from]
 	if !ok {
 		stat = &InputsStat{

@@ -38,7 +38,7 @@ type kafkalog struct {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
-	if i.Interval == "" {
+	if i.Interval == "" { //nolint:typecheck
 		i.Interval = defaultInterval
 	}
 

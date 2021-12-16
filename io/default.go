@@ -94,7 +94,7 @@ func Start() error {
 
 	defaultIO.in = make(chan *iodata, defaultIO.FeedChanSize)
 	defaultIO.in2 = make(chan *iodata, defaultIO.HighFreqFeedChanSize)
-	defaultIO.inLastErr = make(chan *lastErr, 128)
+	defaultIO.inLastErr = make(chan *lastError, 128)
 	defaultIO.inputstats = map[string]*InputsStat{}
 	defaultIO.qstatsCh = make(chan *qinputStats) // blocking
 	defaultIO.cache = map[string][]*Point{}

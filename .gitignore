@@ -5,6 +5,7 @@
 .vscode/
 *-packr.go
 *.ak
+*.bak
 *.csv
 *.err
 *.log

@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
@@ -101,6 +102,10 @@ type ReadEnv interface {
 
 type Stoppable interface {
 	Terminate()
+}
+
+type InputOnceRunnable interface {
+	Collect() (map[string][]*io.Point, error)
 }
 
 type Creator func() Input
