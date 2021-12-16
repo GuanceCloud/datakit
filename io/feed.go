@@ -72,15 +72,3 @@ func FeedLastError(inputName string, err string) {
 func SelfError(err string) {
 	FeedLastError(datakit.DatakitInputName, err)
 }
-
-func SetFeedChanSize(size int) IOOption {
-	return func(io *IO) {
-		io.FeedChanSize = size
-	}
-}
-
-func SetHighFreqFeedChanSize(size int) IOOption {
-	return func(io *IO) {
-		io.HighFreqFeedChanSize = size
-	}
-}
