@@ -230,11 +230,7 @@ func (i *Input) collectMysqlCustomQueries() error {
 	}()
 
 	for _, item := range i.Query {
-		var arr []map[string]interface{}
-		arr, err = getCleanMysqlCustomQueries(i.q(item.sql))
-		if err != nil {
-			return err
-		}
+		arr := getCleanMysqlCustomQueries(i.q(item.sql))
 		if arr == nil {
 			continue
 		}

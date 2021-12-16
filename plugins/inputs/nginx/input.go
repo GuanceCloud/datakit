@@ -151,19 +151,32 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
-	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
-
-	client, err := n.createHTTPClient()
-	if err != nil {
-		l.Errorf("[error] nginx init client err:%s", err.Error())
-		return
-	}
-	n.client = client
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
 	for {
+		if n.pause {
+			l.Debugf("not leader, skipped")
+		} else {
+			mpts, err := n.Collect()
+			if err != nil {
+				l.Errorf("Collect failed: %v", err)
+			} else {
+				for category, points := range mpts {
+					if len(points) > 0 {
+						if err := io.Feed(inputName, category, points,
+							&io.Option{CollectCost: time.Since(n.start)}); err != nil {
+							l.Errorf(err.Error())
+							io.FeedLastError(inputName, err.Error())
+						} else {
+							n.collectCache = n.collectCache[:0]
+						}
+					}
+				} // for
+			}
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			n.exit()
@@ -176,28 +189,6 @@ func (n *Input) Run() {
 			return
 
 		case <-tick.C:
-			if n.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-
-			n.getMetric()
-			if len(n.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName,
-					datakit.Metric,
-					n.collectCache,
-					&io.Option{CollectCost: time.Since(n.start)})
-				n.collectCache = n.collectCache[:0]
-				if err != nil {
-					n.lastErr = err
-					l.Errorf(err.Error())
-					continue
-				}
-			}
-			if n.lastErr != nil {
-				io.FeedLastError(inputName, n.lastErr.Error())
-				n.lastErr = nil
-			}
 
 		case n.pause = <-n.pauseCh:
 			// nil
@@ -282,14 +273,58 @@ func (n *Input) Resume() error {
 	}
 }
 
+func (n *Input) setup() error {
+	if n.Interval.Duration == 0 {
+		n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
+	}
+
+	if n.client == nil {
+		client, err := n.createHTTPClient()
+		if err != nil {
+			fmt.Printf("[error] nginx init client err:%s\n", err.Error())
+			return err
+		}
+		n.client = client
+	}
+
+	return nil
+}
+
+func (n *Input) Collect() (map[string][]*io.Point, error) {
+	fmt.Printf("start get points: %s\n", inputName)
+
+	if err := n.setup(); err != nil {
+		return map[string][]*io.Point{}, err
+	}
+
+	n.getMetric()
+
+	if len(n.collectCache) == 0 {
+		return map[string][]*io.Point{}, fmt.Errorf("no points")
+	}
+
+	pts, err := inputs.GetPointsFromMeasurement(n.collectCache)
+	if err != nil {
+		return map[string][]*io.Point{}, err
+	}
+
+	mpts := make(map[string][]*io.Point)
+	mpts[datakit.Metric] = pts
+
+	return mpts, nil
+}
+
+func NewNginx() *Input {
+	return &Input{
+		Interval: datakit.Duration{Duration: time.Second * 10},
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		s := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 10},
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-
-			semStop: cliutils.NewSem(),
-		}
-		return s
+		return NewNginx()
 	})
 }

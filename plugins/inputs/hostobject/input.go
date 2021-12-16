@@ -40,7 +40,8 @@ type Input struct {
 
 	collectData *hostMeasurement
 
-	semStop *cliutils.Sem // start stop signal
+	semStop    *cliutils.Sem // start stop signal
+	isTestMode bool
 }
 
 func (ipt *Input) Catalog() string {
@@ -117,7 +118,7 @@ func (ipt *Input) singleCollect(n int) {
 	l.Debugf("start %d collecting...", n)
 
 	start := time.Now()
-	if err := ipt.Collect(); err != nil {
+	if err := ipt.doCollect(); err != nil {
 		io.FeedLastError(InputName, err.Error())
 	} else if err := inputs.FeedMeasurement(InputName,
 		datakit.Object,
@@ -167,7 +168,7 @@ func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) doCollect() error {
 	message, err := ipt.getHostObjectMessage()
 	if err != nil {
 		return err
@@ -189,13 +190,16 @@ func (ipt *Input) Collect() error {
 			"mem_used_percent": message.Host.Mem.usedPercent,
 			"load":             message.Host.load5,
 			"state":            "online",
-			"Scheck":           message.Collectors[0].Version,
 		},
 
 		tags: map[string]string{
 			"name": message.Host.HostMeta.HostName,
 			"os":   message.Host.HostMeta.OS,
 		},
+	}
+
+	if !ipt.isTestMode {
+		ipt.collectData.fields["Scheck"] = message.Collectors[0].Version
 	}
 
 	// append extra cloud fields: all of them as tags
@@ -235,6 +239,26 @@ func (ipt *Input) Collect() error {
 	return nil
 }
 
+func (ipt *Input) Collect() (map[string][]*io.Point, error) {
+	ipt.isTestMode = true
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	if err := ipt.doCollect(); err != nil {
+		return nil, err
+	}
+
+	var pts []*io.Point
+	if pt, err := ipt.collectData.LineProto(); err != nil {
+		return nil, err
+	} else {
+		pts = append(pts, pt)
+	}
+
+	mpts := make(map[string][]*io.Point)
+	mpts[datakit.Object] = pts
+
+	return mpts, nil
+}
+
 func DefaultHostObject() *Input {
 	return &Input{
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
@@ -262,5 +286,5 @@ func init() { //nolint:gochecknoinits
 }
 
 func SetLog() {
-	l = logger.SLogger("hostobject")
+	l = logger.SLogger(InputName)
 }

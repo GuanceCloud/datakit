@@ -28,7 +28,8 @@ var (
 	FlagPipeline,
 	FlagText string
 
-	FlagProm string
+	FlagProm      string
+	FlagTestInput string
 
 	FlagDefConf bool
 	FlagWorkDir string
@@ -251,6 +252,16 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 		if err := promDebugger(FlagProm); err != nil {
 			l.Errorf("promDebugger: %s", err)
+		}
+
+		os.Exit(0)
+	}
+
+	if FlagTestInput != "" {
+		tryLoadMainCfg()
+		setCmdRootLog(FlagCmdLogPath)
+		if err := inputDebugger(FlagTestInput); err != nil {
+			l.Errorf("inputDebugger: %s", err)
 		}
 
 		os.Exit(0)
