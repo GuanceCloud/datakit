@@ -124,8 +124,7 @@ func (i *Input) Run() {
 				// Try testing the connect
 				if i.url != nil {
 					if err := net.RawConnect(i.url.Hostname(), i.url.Port(), time.Second*3); err != nil {
-						l.Errorf("failed to connect to %s:%s, %s, exit", i.url.Hostname(), i.url.Port(), err)
-						return
+						l.Errorf("failed to connect to %s:%s, %s", i.url.Hostname(), i.url.Port(), err)
 					}
 				}
 
@@ -167,7 +166,7 @@ func (i *Input) setup() bool {
 		default:
 			// nil
 		}
-
+		time.Sleep(5 * time.Second) // sleep a while
 		if err := i.Init(); err != nil {
 			continue
 		} else {

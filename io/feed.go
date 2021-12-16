@@ -64,6 +64,7 @@ func FeedLastError(inputName string, err string) {
 		err:  err,
 		ts:   time.Now(),
 	}:
+		addReporter(Reporter{Status: "warning", Message: fmt.Sprintf("%s %s", inputName, err), Category: "input"})
 	case <-datakit.Exit.Wait():
 		l.Warnf("%s feed last error skipped on global exit", inputName)
 	}
