@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"database/sql"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -424,54 +423,4 @@ func (m *innodbMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			},
 		},
 	}
-}
-
-// 数据源获取数据.
-func (i *Input) getInnodb() ([]inputs.Measurement, error) {
-	var collectCache []inputs.Measurement
-
-	globalInnodbSQL := `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
-
-	// run query
-	rows, err := i.db.Query(globalInnodbSQL)
-	if err != nil {
-		l.Errorf("query error %v", err)
-		return nil, err
-	}
-	defer rows.Close() //nolint:errcheck
-
-	if err := rows.Err(); err != nil {
-		l.Errorf("rows.Err: %s", err)
-		return nil, err
-	}
-
-	m := &innodbMeasurement{
-		tags:   make(map[string]string),
-		fields: make(map[string]interface{}),
-	}
-
-	m.name = "mysql_innodb"
-
-	for key, value := range i.Tags {
-		m.tags[key] = value
-	}
-
-	for rows.Next() {
-		var key string
-		val := new(sql.RawBytes)
-		if err = rows.Scan(&key, val); err != nil {
-			continue
-		}
-
-		value, err := Conv(string(*val), inputs.Int)
-		if err != nil {
-			l.Errorf("innodb get value conv error", err)
-		} else {
-			m.fields[key] = value
-		}
-	}
-
-	collectCache = append(collectCache, m)
-
-	return collectCache, nil
 }

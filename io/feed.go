@@ -59,7 +59,7 @@ func Feed(name, category string, pts []*Point, opt *Option) error {
 
 func FeedLastError(inputName string, err string) {
 	select {
-	case defaultIO.inLastErr <- &lastErr{
+	case defaultIO.inLastErr <- &lastError{
 		from: inputName,
 		err:  err,
 		ts:   time.Now(),

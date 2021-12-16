@@ -33,6 +33,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mem"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/memcached"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodb"
+
+	// nolint:typecheck
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysql"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/net"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netebpf"

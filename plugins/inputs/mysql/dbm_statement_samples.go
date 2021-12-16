@@ -244,79 +244,6 @@ var eventsStatementsCollectionInterval = map[string]int{
 	"events_statements_current":      1,
 }
 
-func (i *Input) getDbmSample() ([]inputs.Measurement, error) {
-	var collectCache []inputs.Measurement
-
-	if err := readVersionInfo(i); err != nil {
-		return nil, err
-	}
-
-	strategy, err := getSampleCollectionStrategy(i)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := getNewEventsStatements(i, strategy.table, 5000)
-	if err != nil {
-		return nil, err
-	}
-
-	rows = filterValidStatementRows(i, rows)
-
-	plans := collectPlanForStatements(i, rows)
-
-	now := time.Now()
-	for _, plan := range plans {
-		tags := map[string]string{"service": "mysql_dbm_sample"}
-		fields := make(map[string]interface{})
-		tags["current_schema"] = plan.currentSchema
-		tags["plan_definition"] = plan.planDefinition
-		tags["plan_signature"] = plan.planSignature
-		tags["query_signature"] = plan.querySignature
-		tags["resource_hash"] = plan.resourceHash
-		tags["digest_text"] = plan.digestText
-		tags["query_truncated"] = plan.queryTruncated
-		tags["network_client_ip"] = plan.networkClientIP
-		tags["digest"] = plan.digest
-		tags["processlist_db"] = plan.processlistDB
-		tags["processlist_user"] = plan.processlistUser
-
-		fields["timestamp"] = plan.timestamp
-		fields["duration"] = plan.duration
-		fields["lock_time_ns"] = plan.lockTimeNs
-		fields["no_good_index_used"] = plan.noGoodIndexUsed
-		fields["no_index_used"] = plan.noIndexUsed
-		fields["rows_affected"] = plan.rowsAffected
-		fields["rows_examined"] = plan.rowsExamined
-		fields["rows_sent"] = plan.rowsSent
-		fields["select_full_join"] = plan.selectFullJoin
-		fields["select_full_range_join"] = plan.selectFullRangeJoin
-		fields["select_range"] = plan.selectRange
-		fields["select_range_check"] = plan.selectRangeCheck
-		fields["select_scan"] = plan.selectScan
-		fields["sort_merge_passes"] = plan.sortMergePasses
-		fields["sort_range"] = plan.sortRange
-		fields["sort_rows"] = plan.sortRows
-		fields["sort_scan"] = plan.sortScan
-		fields["timer_wait_ns"] = plan.duration
-		fields["message"] = plan.digestText
-
-		for key, value := range i.Tags {
-			tags[key] = value
-		}
-
-		m := &dbmSampleMeasurement{
-			name:   dbmMetricName,
-			tags:   tags,
-			fields: fields,
-			ts:     now,
-		}
-		collectCache = append(collectCache, m)
-	}
-
-	return collectCache, nil
-}
-
 // get the table from which samples should be collected.
 func getSampleCollectionStrategy(i *Input) (eventStrategy, error) {
 	var strategy eventStrategy
@@ -326,20 +253,17 @@ func getSampleCollectionStrategy(i *Input) (eventStrategy, error) {
 
 	var eventsStatementsTable string
 
-	enabledConsumers, err := getEnabledPerformanceSchemaConsumers(i)
-	if err != nil {
-		return strategy, err
-	}
+	enabledSQL := `SELECT name
+	FROM performance_schema.setup_consumers
+	WHERE enabled = 'YES' AND name LIKE 'events_statements_%'`
+	enabledConsumers := getCleanEnabledPerformanceSchemaConsumers(i.q(enabledSQL))
 
 	if len(enabledConsumers) < 3 {
 		err := enablePerformanceSchemaConsumers(i)
 		if err != nil {
 			l.Warn(err)
 		} else {
-			enabledConsumers, err = getEnabledPerformanceSchemaConsumers(i)
-			if err != nil {
-				return strategy, err
-			}
+			enabledConsumers = getCleanEnabledPerformanceSchemaConsumers(i.q(enabledSQL))
 		}
 	}
 
@@ -381,38 +305,6 @@ func getSampleCollectionStrategy(i *Input) (eventStrategy, error) {
 	i.dbmSampleCache.strategy = currentStrategy
 
 	return currentStrategy, nil
-}
-
-// get enabled consumers from table performance_schema.setup_consumers.
-func getEnabledPerformanceSchemaConsumers(i *Input) ([]string, error) {
-	consumers := []string{}
-	enabledSQL := `SELECT name 
-		FROM performance_schema.setup_consumers 
-		WHERE enabled = 'YES' AND name LIKE 'events_statements_%'`
-
-	rows, err := i.db.Query(enabledSQL)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close() //nolint:errcheck
-
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	var name string
-
-	for rows.Next() {
-		if err := rows.Scan(&name); err != nil {
-			continue
-		}
-		consumers = append(consumers, name)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	return consumers, nil
 }
 
 // enable consumers at runtime.
@@ -497,9 +389,9 @@ func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventR
 		if _, err := conn.ExecContext(ctx, "set @current_digest = ''"); err != nil {
 			return rows, err
 		}
-		subSelect = `(SELECT *, 
-			@row_num := IF(@current_digest = digest, @row_num + 1, 1) AS row_num, 
-			@current_digest := digest 
+		subSelect = `(SELECT *,
+			@row_num := IF(@current_digest = digest, @row_num + 1, 1) AS row_num,
+			@current_digest := digest
 			FROM %s ORDER BY digest, timer_wait)`
 	}
 
@@ -543,7 +435,7 @@ func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventR
 		AND timer_start > %v
 		AND row_num = 1
 	ORDER BY timer_wait DESC
-	LIMIT %v	
+	LIMIT %v
 `
 	subSelectSQL := fmt.Sprintf(subSelect, "datakit.temp_events")
 	eventsStatementsQuerySQL := fmt.Sprintf(eventsStatementsQuery, subSelectSQL, i.dbmSampleCache.checkPoint, rowLimit)
@@ -597,29 +489,6 @@ func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventR
 	}
 
 	return rows, nil
-}
-
-// read mysql version and set global_status table.
-func readVersionInfo(i *Input) error {
-	if len(i.dbmSampleCache.globalStatusTable) != 0 {
-		return nil
-	}
-
-	if len(i.dbmSampleCache.version.version) == 0 {
-		version, err := getVersion(i.db)
-		if err != nil {
-			return err
-		}
-		i.dbmSampleCache.version = version
-	}
-
-	if i.dbmSampleCache.version.flavor == "MariaDB" || !(i.dbmSampleCache.version.versionCompatible([]int{5, 7, 0})) {
-		i.dbmSampleCache.globalStatusTable = "information_schema.global_status"
-	} else {
-		i.dbmSampleCache.globalStatusTable = "performance_schema.global_status"
-	}
-
-	return nil
 }
 
 func filterValidStatementRows(i *Input, rows []eventRow) []eventRow {
