@@ -1,7 +1,7 @@
 package mysql
 
 /* test: fail
-func TestCollect(t *testing.T) {
+func TestdoCollect(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
 		input := &Input{
 			Host: "127.0.0.1",
@@ -15,7 +15,7 @@ func TestCollect(t *testing.T) {
 			t.Error(err)
 		}
 
-		input.Collect()
+		input.doCollect()
 	})
 
 	t.Run("error", func(t *testing.T) {
@@ -31,7 +31,7 @@ func TestCollect(t *testing.T) {
 			t.Error(err)
 		}
 
-		input.Collect()
+		input.doCollect()
 	})
 }
 
@@ -60,7 +60,7 @@ func TestRun(t *testing.T) {
 		t.Error(err)
 	}
 
-	input.Collect()
+	input.doCollect()
 }
 
 func TestInnodbCollect(t *testing.T) {

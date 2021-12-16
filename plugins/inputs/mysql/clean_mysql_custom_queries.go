@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-func getCleanMysqlCustomQueries(r rows) ([]map[string]interface{}, error) {
+func getCleanMysqlCustomQueries(r rows) []map[string]interface{} {
 	if r == nil {
-		return nil, nil
+		return nil
 	}
 
 	defer closeRows(r)
@@ -65,5 +65,5 @@ func getCleanMysqlCustomQueries(r rows) ([]map[string]interface{}, error) {
 		list = append(list, item)
 	}
 
-	return list, nil
+	return list
 }
