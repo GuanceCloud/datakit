@@ -20,7 +20,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/includefiles/pythond"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tracer"
@@ -28,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond"
 )
 
 func init() { //nolint:gochecknoinits
@@ -46,6 +46,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&cmds.FlagText, "txt", "", "text string for the pipeline or grok(json or raw text)")
 
 	flag.StringVar(&cmds.FlagProm, "prom-conf", "", "prom config file to test")
+	flag.StringVar(&cmds.FlagTestInput, "test-input", "", "specify config file to test")
 
 	// manuals related
 	flag.BoolVar(&cmds.FlagMan, "man", false, "read manuals of inputs")
@@ -213,6 +214,8 @@ func run() {
 	if err := doRun(); err != nil {
 		return
 	}
+
+	inputs.FeedReporter(&io.Reporter{Message: "datakit start ok, ready for collecting metrics."})
 
 	l.Info("datakit start ok. Wait signal or service stop...")
 

@@ -89,10 +89,6 @@ func (t *Single) Run() {
 }
 
 func (t *Single) Close() {
-	if err := t.file.Close(); err != nil {
-		t.opt.log.Warnf("Close(): %s, ignored", err.Error())
-	}
-
 	t.stopCh <- struct{}{}
 	t.opt.log.Infof("closing %s", t.filename)
 }
@@ -117,6 +113,9 @@ func (t *Single) forwardMessage() {
 	for {
 		select {
 		case <-t.stopCh:
+			if err := t.file.Close(); err != nil {
+				t.opt.log.Warnf("Close(): %s, ignored", err.Error())
+			}
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 		case <-timeout.C:

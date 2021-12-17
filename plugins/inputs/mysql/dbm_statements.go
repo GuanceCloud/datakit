@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"database/sql"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -129,71 +128,6 @@ type dbmRow struct {
 	sumNoGoodIndexUsed uint64
 }
 
-func (i *Input) getDbmMetric() ([]inputs.Measurement, error) {
-	var (
-		err     error
-		dbmRows []dbmRow
-	)
-
-	if dbmRows, err = getSummaryRows(i.db); err != nil {
-		return nil, err
-	}
-
-	metricRows, newDbmCache := getMetricRows(dbmRows, &i.dbmCache)
-
-	// save dbm rows
-	i.dbmCache = newDbmCache
-
-	var collectCache []inputs.Measurement
-	now := time.Now()
-	for _, row := range metricRows {
-		m := &dbmStateMeasurement{
-			name: dbmMetricName,
-			tags: map[string]string{
-				"service": "mysql_dbm_metric",
-			},
-			fields: make(map[string]interface{}),
-			ts:     now,
-		}
-
-		if len(row.digestText) > 0 {
-			m.fields["message"] = row.digestText
-		}
-
-		if len(row.digest) > 0 {
-			m.tags["digest"] = row.digest
-		}
-
-		if len(row.schemaName) > 0 {
-			m.tags["schema_name"] = row.schemaName
-		}
-
-		if len(row.querySignature) > 0 {
-			m.tags["query_signature"] = row.querySignature
-		}
-
-		m.fields["count_star"] = row.countStar
-		m.fields["sum_timer_wait"] = row.sumTimerWait
-		m.fields["sum_lock_time"] = row.sumLockTime
-		m.fields["sum_errors"] = row.sumErrors
-		m.fields["sum_rows_affected"] = row.sumRowsAffected
-		m.fields["sum_rows_sent"] = row.sumRowsSent
-		m.fields["sum_rows_examined"] = row.sumRowsExamined
-		m.fields["sum_select_scan"] = row.sumSelectScan
-		m.fields["sum_select_full_join"] = row.sumSelectFullJoin
-		m.fields["sum_no_index_used"] = row.sumNoIndexUsed
-		m.fields["sum_no_good_index_used"] = row.sumNoGoodIndexUsed
-
-		for key, value := range i.Tags {
-			m.tags[key] = value
-		}
-
-		collectCache = append(collectCache, m)
-	}
-
-	return collectCache, nil
-}
-
 // generate row key by shcemaName querySignature.
 func getRowKey(schemaName, querySignature string) string {
 	return schemaName + querySignature
@@ -228,109 +162,6 @@ func mergeDuplicateRows(rows []dbmRow) []dbmRow {
 	}
 
 	return dbmRows
-}
-
-// query summary info from "performance_schema.events_statements_summary_by_digest".
-func getSummaryRows(db *sql.DB) ([]dbmRow, error) {
-	var (
-		schemaName sql.NullString
-		digest     sql.NullString
-		digestText sql.NullString
-
-		countStar          uint64
-		sumTimerWait       uint64
-		sumLockTime        uint64
-		sumErrors          uint64
-		sumRowsAffected    uint64
-		sumRowsSent        uint64
-		sumRowsExamined    uint64
-		sumSelectScan      uint64
-		sumSelectFullJoin  uint64
-		sumNoIndexUsed     uint64
-		sumNoGoodIndexUsed uint64
-	)
-
-	// query sql
-	statementSummarySQL := `
-		SELECT schema_name,digest,digest_text,count_star,
-		sum_timer_wait,sum_lock_time,sum_errors,sum_rows_affected,
-		sum_rows_sent,sum_rows_examined,sum_select_scan,sum_select_full_join,
-		sum_no_index_used,sum_no_good_index_used 
-		FROM performance_schema.events_statements_summary_by_digest 
-		WHERE digest_text NOT LIKE 'EXPLAIN %' OR digest_text IS NULL 
-		ORDER BY count_star DESC LIMIT 10000`
-
-	// run query
-	rows, err := db.Query(statementSummarySQL)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close() //nolint:errcheck
-
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	dbmRows := []dbmRow{}
-
-	for rows.Next() {
-		if err = rows.Scan(
-			&schemaName,
-			&digest,
-			&digestText,
-			&countStar,
-			&sumTimerWait,
-			&sumLockTime,
-			&sumErrors,
-			&sumRowsAffected,
-			&sumRowsSent,
-			&sumRowsExamined,
-			&sumSelectScan,
-			&sumSelectFullJoin,
-			&sumNoIndexUsed,
-			&sumNoGoodIndexUsed); err != nil {
-			continue
-		}
-		var digestStr,
-			digestTextStr,
-			schemaNameStr string
-		if digest.Valid {
-			digestStr = digest.String
-		}
-		if digestText.Valid {
-			digestTextStr = digestText.String
-		}
-		if schemaName.Valid {
-			schemaNameStr = schemaName.String
-		}
-
-		digestTextStr = obfuscateSQL(digestTextStr)
-
-		querySignature := computeSQLSignature(digestTextStr)
-
-		dbmRowItem := dbmRow{
-			digest:             digestStr,
-			digestText:         digestTextStr,
-			schemaName:         schemaNameStr,
-			querySignature:     querySignature,
-			countStar:          countStar,
-			sumTimerWait:       sumTimerWait,
-			sumLockTime:        sumLockTime,
-			sumErrors:          sumErrors,
-			sumRowsAffected:    sumRowsAffected,
-			sumRowsSent:        sumRowsSent,
-			sumRowsExamined:    sumRowsExamined,
-			sumSelectScan:      sumSelectScan,
-			sumSelectFullJoin:  sumSelectFullJoin,
-			sumNoIndexUsed:     sumNoIndexUsed,
-			sumNoGoodIndexUsed: sumNoGoodIndexUsed,
-		}
-		dbmRows = append(dbmRows, dbmRowItem)
-	}
-
-	dbmRows = mergeDuplicateRows(dbmRows)
-
-	return dbmRows, nil
 }
 
 // calculate metric based on previous row identified by row key.

@@ -100,6 +100,29 @@ grok(_, %{time})
 - 相同模式名以脚本级优先（即局部模式覆盖全局模式）
 - pipeline 脚本中，`add_pattern()` 需在 `grok()` 函数前面调用，否则会导致第一条数据提取失败。
 
+## 脚本执行流
+
+pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>` 和 `!=`
+表达式两边可以是已存在的 key 或固定值，例如：
+
+```python
+add_key("score", 95)
+
+if score >= 90 {
+	add_key("level", "A")
+} elif score >= 75 {
+	add_key("level", "B")
+} elif score >= 60 {
+	add_key("level", "C")
+} else {
+	add_key("level", "D")
+}
+```
+
+和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。
+
+暂时不支持多个条件表达式的 `AND` 和 `OR`。
+
 ## 脚本函数
 
 函数参数说明：
@@ -113,7 +136,7 @@ grok(_, %{time})
 ### `add_pattern()`
 
 函数原型：`add_pattern(name=required, pattern=required)`
-函数说明: 创建自定义 grok 模式。
+函数说明: 创建自定义 grok 模式。函数无法对已存在/已添加的 grok 模式进行覆盖操作。
 
 参数:
 
@@ -252,6 +275,8 @@ json(_, [0].nets[-1])
 ```
 
 ### `json_all()`
+
+*此函数已被暂时移除*
 
 函数原型：`json_all()`
 函数说明：提取 json 中的所有字段，所有层次均被拉平。
@@ -478,6 +503,8 @@ json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')
 ```
 
 ### `expr()`
+
+*此函数已被暂时移除*
 
 函数原型：`expr(expr=required, key=required)`
 函数说明: 计算表达式 expr 的值，并将计算结果写入 `key`
@@ -819,6 +846,39 @@ rename("time", log_time)
 # 处理结果
 {
   "time": 1610358231887000000,
+}
+```
+
+### `adjust_timezone()`
+
+函数原型：`adjust_timezone(key=required)`
+
+函数说明: 自动选择时区，校准时间戳。用于校准日志中的时间格式不带时区信息，且与 pipeline 时间处理函数默认的本地时区不一致时使得时间戳出现数小时的偏差，适用于时间偏差小于24小时
+
+函数参数
+
+- `key`: 纳秒时间戳，如 default_time(time) 函数处理后得到的时间戳
+
+示例:
+
+```python
+# 原始 json
+{
+    "time":"10 Dec 2021 03:49:20.937", 
+    "second":2,
+    "thrid":"abc",
+    "forth":true
+}
+
+# pipeline 脚本
+json(_, time)      # 提取 time 字段 (若容器中时区 UTC+0000)
+default_time(time) # 将提取到的 time 字段转换成时间戳 
+                   # (对无时区数据使用本地时区 UTC+0800/UTC+0900...解析)
+adjust_timezone(time)
+                   # 自动(重新)选择时区，校准时间偏差
+# 处理结果
+{
+  "time": 1639108160937000000,
 }
 ```
 
