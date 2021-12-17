@@ -1,14 +1,12 @@
 package cmds
 
-import (
-	"testing"
+/*	"testing"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds/configs"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
-)
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all" */
 
 // go test -v -timeout 30s -run ^TestPrintInputOnce$ gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds
-func TestPrintInputOnce(t *testing.T) {
+/* func TestPrintInputOnce(t *testing.T) {
 	configFiles, err := configs.ReleaseFiles()
 	if err != nil {
 		t.Error(err)
@@ -39,4 +37,4 @@ func printInputOnceCore(t *testing.T, configPath string) error {
 	}
 
 	return nil
-}
+} */

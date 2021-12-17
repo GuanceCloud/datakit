@@ -18,6 +18,8 @@ release-nothing-only-build:
     - /^iss-.*$/
   script:
     # only building
+    - make clean
+    - make deps
     - make ci_notify
     - make lint
     - make all_test
@@ -34,6 +36,8 @@ release-testing:
     - /^testing-.*$/
   script:
     # building && publish testing
+    - make clean
+    - make deps
     - make ci_notify
     - make lint
     - make all_test
@@ -50,6 +54,8 @@ release-production:
   only:
     - master
   script:
+    - make clean
+    - make deps
     - make ci_notify
     - make lint
     - make all_test
