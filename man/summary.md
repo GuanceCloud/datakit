@@ -41,6 +41,7 @@
 
   - [数据库（中间件）]()
 
+    - [Clickhouse](clickhouse)
     - [MySQL](mysql)
     - [Oracle](oracle)
     - [NSQ](nsq)

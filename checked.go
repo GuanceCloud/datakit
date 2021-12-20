@@ -16,12 +16,12 @@ var (
 	EnableUncheckInputs = false
 
 	allInputs = map[string]bool{
-		"cshark":     false,
-		"mock":       false,
-		"qyt_all":    false,
-		"secureexec": false,
-		"demo":       false,
-
+		"cshark":                 false,
+		"mock":                   false,
+		"qyt_all":                false,
+		"secureexec":             false,
+		"demo":                   false,
+		"clickhouse":             true,
 		"activemqlog":            true,
 		"aliyunactiontrail":      true,
 		"aliyuncdn":              true,
