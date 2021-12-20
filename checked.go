@@ -64,7 +64,7 @@ var (
 		"expressjs":              true,
 		"external":               true,
 		"file_collector":         true,
-		"flink":                  true,
+		"flinkv1":                true,
 		"fluentd":                true,
 		"ginlog":                 true,
 		"gitlab":                 true,
