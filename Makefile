@@ -28,8 +28,6 @@ LOCAL_ARCHS:="local"
 DEFAULT_ARCHS:="all"
 MAC_ARCHS:="darwin/amd64"
 NOT_SET="not-set"
-DINGDING_TOKEN?=$(NOT_SET)
-DINGDING_DEBUG_HINT?=
 GIT_VERSION?=$(shell git describe --always --tags)
 DATE:=$(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION:=$(shell go version)
@@ -70,37 +68,6 @@ const (
 endef
 export GIT_INFO
 
-# -------------
-# 注意：这些 XXX_NOTIFY_MSG 只能定义在一行中，跨行会报错
-# -------------
-
-define LOCAL_NOTIFY_MSG
-{ "msgtype": "text", "text": { "content": "$(UPLOADER) 「私自」发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：\nDK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：\n$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：\nDK_UPGRADE=1 bash -c \"$$(curl -L https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：\n$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(LOCAL_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;$(DINGDING_DEBUG_HINT)" }}
-endef
-export LOCAL_NOTIFY_MSG
-
-define TESTING_NOTIFY_MSG
-{ "msgtype": "text", "text": { "content": "$(UPLOADER) 发布了 DataKit 测试版($(GIT_VERSION))。\n\nLinux/Mac 安装：DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\" bash -c \"$$(curl -L https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 安装：$$env:DK_DATAWAY=\"https://openway.guance.com?token=<TOKEN>\";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;\n\nLinux/Mac 升级：DK_UPGRADE=1 bash -c \"$$(curl -L https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).sh)\"\n\nWindows 升级：$$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://$(TESTING_DOWNLOAD_ADDR)/install-$(GIT_VERSION).ps1 -destination .install.ps1; powershell .install.ps1;$(DINGDING_DEBUG_HINT)" } }
-endef
-export TESTING_NOTIFY_MSG
-
-define CI_PASS_NOTIFY_MSG
-{ "msgtype": "text", "text": { "content": "$(UPLOADER) 触发的 DataKit CI 通过$(DINGDING_DEBUG_HINT)" } }
-endef
-export CI_PASS_NOTIFY_MSG
-
-define NOTIFY_MSG_RELEASE
-{ "msgtype": "text", "text": { "content": "$(UPLOADER) 发布了 DataKit 新版本($(GIT_VERSION))$(DINGDING_DEBUG_HINT)" } }
-endef
-export NOTIFY_MSG_RELEASE
-
-define NOTIFY_CI
-{ "msgtype": "text", "text": { "content": "$(COMMITER)正在执行 DataKit CI，此刻请勿在CI分支[$(GIT_BRANCH)]提交代码，以免 CI 任务失败$(DINGDING_DEBUG_HINT)" }}
-endef
-export NOTIFY_CI
-
-LINUX_RELEASE_VERSION = $(shell uname -r)
-
 define build
 	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
 		exit 0 ; \
@@ -139,21 +106,6 @@ define check_golint_version
 		echo '$(GOLINT_VERSION_VALIDATION_ERR_MSG)'; \
 		exit 1; \
 	esac;
-endef
-
-define dingding_notify
-	@case $(DINGDING_TOKEN) in \
-	$(NOT_SET)) \
-		printf "\033[31m [FAIL] DINGDING_TOKEN not set%s\n\033[0m"; \
-		exit 1; \
-		;; \
-	*) \
-	curl \
-		'https://oapi.dingtalk.com/robot/send?access_token=$(DINGDING_TOKEN)' \
-		-H 'Content-Type: application/json' \
-		-d '$(1)'; \
-		;; \
-	esac
 endef
 
 local: deps
@@ -215,21 +167,6 @@ pub_production:
 pub_release_mac:
 	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
-ci_pass_notify:
-	$(call dingding_notify, $(CI_PASS_NOTIFY_MSG))
-
-test_notify:
-	$(call dingding_notify, $(TESTING_NOTIFY_MSG))
-
-local_notify:
-	$(call dingding_notify, $(LOCAL_NOTIFY_MSG))
-
-production_notify:
-	$(call dingding_notify, $(NOTIFY_MSG_RELEASE))
-
-ci_notify:
-	$(call dingding_notify, $(NOTIFY_CI))
-
 check_conf_compatible:
 	./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
 	./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
@@ -290,7 +227,7 @@ all_test: deps
 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
-lint: deps
+lint:
 	$(call do_lint,386,windows)
 	$(call do_lint,amd64,windows)
 	$(call do_lint,amd64,linux)

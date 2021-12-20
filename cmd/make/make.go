@@ -87,6 +87,10 @@ func applyFlags() {
 		build.ReleaseVersion = x
 	}
 
+	if x := os.Getenv("DINGDING_TOKEN"); x != "" {
+		build.NotifyToken = x
+	}
+
 	vi := version.VerInfo{VersionString: build.ReleaseVersion}
 	if err := vi.Parse(); err != nil {
 		l.Fatalf("invalid version %s", build.ReleaseVersion)
@@ -120,12 +124,20 @@ func main() {
 	applyFlags()
 
 	if *flagPub {
+		build.NotifyStartPub()
 		if err := build.PubDatakit(); err != nil {
 			l.Error(err)
+			build.NotifyFail(err.Error())
+		} else {
+			build.NotifyPubDone()
 		}
 	} else {
+		build.NotifyStartBuild()
 		if err := build.Compile(); err != nil {
 			l.Error(err)
+			build.NotifyFail(err.Error())
+		} else {
+			build.NotifyBuildDone()
 		}
 	}
 }
