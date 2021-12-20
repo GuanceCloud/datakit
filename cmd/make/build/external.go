@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -79,7 +80,7 @@ var externals = []*dkexternal{
 	// others...
 }
 
-func buildExternals(outdir, goos, goarch string) {
+func buildExternals(outdir, goos, goarch string) error {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
 
 	for _, ex := range externals {
@@ -119,7 +120,7 @@ func buildExternals(outdir, goos, goarch string) {
 
 			msg, err := runEnv(args, ex.envs)
 			if err != nil {
-				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
+				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
 					args, ex.envs, err, string(msg))
 			}
 		case "makefile", "Makefile":
@@ -133,7 +134,7 @@ func buildExternals(outdir, goos, goarch string) {
 			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
 			msg, err := runEnv(args, ex.envs)
 			if err != nil {
-				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
+				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
 					args, ex.envs, err, string(msg))
 			}
 		default: // for python, just copy source code into build dir
@@ -145,9 +146,11 @@ func buildExternals(outdir, goos, goarch string) {
 
 			res, err := cmd.CombinedOutput()
 			if err != nil {
-				l.Fatalf("failed to build python(%s %s): %s, err: %s",
-					ex.buildCmd, strings.Join(ex.buildArgs, " "), res, err.Error())
+				return fmt.Errorf("failed to build python(%s %s): %s, err: %w",
+					ex.buildCmd, strings.Join(ex.buildArgs, " "), res, err)
 			}
 		}
 	}
+
+	return nil
 }

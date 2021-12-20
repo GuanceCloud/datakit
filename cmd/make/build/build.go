@@ -121,13 +121,15 @@ func prepare() {
 	}
 }
 
+const archSep = ","
+
 func parseArchs(s string) (archs []string) {
 	switch s {
 	case ALL:
 
 		// read cmd-line env
 		if x := os.Getenv("ALL_ARCHS"); x != "" {
-			archs = strings.Split(x, "|")
+			archs = strings.Split(x, archSep)
 		} else {
 			archs = OSArches
 		}
@@ -137,58 +139,70 @@ func parseArchs(s string) (archs []string) {
 			if x == "all" { // 指定 local 为 all，便于测试全平台编译/发布
 				archs = OSArches
 			} else {
-				archs = strings.Split(x, "|")
+				archs = strings.Split(x, archSep)
 			}
 		} else {
 			archs = []string{runtime.GOOS + "/" + runtime.GOARCH}
 		}
 	default:
-		archs = strings.Split(s, "|")
+		archs = strings.Split(s, archSep)
 	}
 
 	return
 }
 
-func Compile() {
+var curArchs []string
+
+func Compile() error {
 	start := time.Now()
 
 	prepare()
 
-	archs := parseArchs(Archs)
+	curArchs = parseArchs(Archs)
 
-	for idx := range archs {
-		parts := strings.Split(archs[idx], "/")
+	for _, arch := range curArchs {
+		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
-			l.Fatalf("invalid arch %q", parts)
+			return fmt.Errorf("invalid arch: %s", arch)
 		}
 
 		goos, goarch := parts[0], parts[1]
 		if goos == datakit.OSDarwin && runtime.GOOS != datakit.OSDarwin {
-			l.Warnf("skip build datakit under %s", archs[idx])
+			l.Warnf("skip build datakit under %s", arch)
 			continue
 		}
 		dir := fmt.Sprintf("%s/%s-%s-%s", BuildDir, AppName, goos, goarch)
 
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
-			l.Fatalf("failed to mkdir: %v", err)
+			l.Errorf("failed to mkdir: %v", err)
+			return err
 		}
 
 		dir, err = filepath.Abs(dir)
 		if err != nil {
-			l.Fatal(err)
+			l.Errorf("filepath.Abs: %s", err)
+			return err
 		}
 
-		compileArch(AppBin, goos, goarch, dir)
-		buildExternals(dir, goos, goarch)
+		if err := compileArch(AppBin, goos, goarch, dir); err != nil {
+			return err
+		}
 
-		buildInstaller(filepath.Join(PubDir, ReleaseType), goos, goarch)
+		if err := buildExternals(dir, goos, goarch); err != nil {
+			return err
+		}
+
+		if err := buildInstaller(filepath.Join(PubDir, ReleaseType), goos, goarch); err != nil {
+			return err
+		}
 	}
 
 	l.Infof("Done!(elapsed %v)", time.Since(start))
+	return nil
 }
 
-func compileArch(bin, goos, goarch, dir string) {
+func compileArch(bin, goos, goarch, dir string) error {
 	output := filepath.Join(dir, bin)
 	if goos == datakit.OSWindows {
 		output += winBinSuffix
@@ -216,11 +230,12 @@ func compileArch(bin, goos, goarch, dir string) {
 	l.Debugf("building %s", fmt.Sprintf("%s-%s/%s", goos, goarch, bin))
 	msg, err := runEnv(args, env)
 	if err != nil {
-		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", args, env, err, string(msg))
 	}
+	return nil
 }
 
-func buildInstaller(outdir, goos, goarch string) {
+func buildInstaller(outdir, goos, goarch string) error {
 	l.Debugf("building %s-%s/installer...", goos, goarch)
 
 	installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
@@ -243,6 +258,7 @@ func buildInstaller(outdir, goos, goarch string) {
 
 	msg, err := runEnv(args, env)
 	if err != nil {
-		l.Fatalf("failed to run %v, envs: %v: %v, msg: %s", args, env, err, string(msg))
+		return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s", args, env, err, string(msg))
 	}
+	return nil
 }

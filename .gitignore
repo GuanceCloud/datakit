@@ -15,7 +15,6 @@
 *.tar.gz
 *.yaml
 *.zip
-**build/
 install_local.sh
 install.sh
 install.ps1
