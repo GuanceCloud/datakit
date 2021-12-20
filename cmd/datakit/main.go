@@ -250,6 +250,7 @@ func tryLoadConfig() {
 
 	for {
 		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
+			io.FeedLastError("load-config", err.Error())
 			l.Errorf("load config failed: %s", err)
 			time.Sleep(time.Second)
 		} else {

@@ -120,7 +120,28 @@ func RunCmds() {
 	if FlagVersion {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
-		showVersion(ReleaseVersion, InputsReleaseType, FlagShowTestingVersions)
+		showVersion(ReleaseVersion, InputsReleaseType)
+
+		vis, err := checkNewVersion(ReleaseVersion, FlagShowTestingVersions)
+		if err != nil {
+			errorf("get online version info failed: %s\n", err)
+			os.Exit(-1)
+		}
+
+		for _, vi := range vis {
+			if vi.upgrade {
+				infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
+					vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
+				infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
+			}
+
+			if vi.install {
+				infof("\n\n%s version available: %s, commit %s (release at %s)\n",
+					vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
+				infof("%s\n", getInstallCommand())
+			}
+		}
+
 		os.Exit(0)
 	}
 

@@ -56,7 +56,7 @@ func SetFlushInterval(s string) IOOption {
 			io.FlushInterval = 10 * time.Second
 		} else {
 			if d, err := time.ParseDuration(s); err != nil {
-				l.Errorf("parse io flush interval failed, %s", err.Error())
+				log.Errorf("parse io flush interval failed, %s", err.Error())
 				io.FlushInterval = 10 * time.Second
 			} else {
 				io.FlushInterval = d
@@ -108,9 +108,9 @@ func ConfigDefaultIO(opts ...IOOption) {
 }
 
 func Start() error {
-	l = logger.SLogger("io")
+	log = logger.SLogger("io")
 
-	l.Debugf("default io config: %v", *defaultIO)
+	log.Debugf("default io config: %v", *defaultIO)
 
 	defaultIO.in = make(chan *iodata, defaultIO.FeedChanSize)
 	defaultIO.in2 = make(chan *iodata, defaultIO.HighFreqFeedChanSize)
@@ -124,15 +124,15 @@ func Start() error {
 
 	if defaultIO.EnableCache {
 		if err := cache.Initialize(datakit.CacheDir, nil); err != nil {
-			l.Warn("initialized cache: %s, ignored", err)
+			log.Warn("initialized cache: %s, ignored", err)
 		} else { //nolint
 			if err := cache.CreateBucketIfNotExists(cacheBucket); err != nil {
-				l.Warn("create bucket: %s", err)
+				log.Warn("create bucket: %s", err)
 			}
 		}
 	}
 
-	l.Debugf("io: %+#v", defaultIO)
+	log.Debugf("io: %+#v", defaultIO)
 
 	return nil
 }

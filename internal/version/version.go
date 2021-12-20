@@ -15,12 +15,12 @@ type VerInfo struct {
 	DownloadURL        string `json:"-"`
 	DownloadURLTesting string `json:"-"`
 
+	tag   string
 	major uint64
 	minor uint64
 	min   uint64
 	rc    string
 	build uint64
-	tag   string
 }
 
 func (vi *VerInfo) Compare(i *VerInfo) int {
@@ -91,7 +91,7 @@ func (vi *VerInfo) parseNumbers(s string) error {
 
 //nolint:gomnd
 func (vi *VerInfo) Parse() error {
-	arr := strings.Split(vi.VersionString, "_")
+	arr := strings.Split(vi.VersionString, "_") // there should be no `_' within version string
 	if len(arr) >= 2 {
 		vi.tag = arr[1]
 	}
@@ -100,7 +100,15 @@ func (vi *VerInfo) Parse() error {
 	verstr := strings.TrimPrefix(arr[0], "v")
 
 	parts := strings.Split(verstr, "-")
+
+	if err := vi.parseNumbers(parts[0]); err != nil {
+		return err
+	}
+
 	switch len(parts) {
+	case 1: // like 1.1.7
+		return nil
+
 	case 2: // like 1.1.7-rc2
 		if err := vi.parseNumbers(parts[0]); err != nil {
 			return err
@@ -153,4 +161,8 @@ func IsValidReleaseVersion(releaseVer string) bool {
 	}
 
 	return false
+}
+
+func (vi *VerInfo) IsStable() bool {
+	return vi.minor%2 == 0
 }
