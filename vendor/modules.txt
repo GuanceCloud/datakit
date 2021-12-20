@@ -724,7 +724,6 @@ github.com/rivo/uniseg
 # github.com/rogpeppe/go-internal v1.8.0
 ## explicit
 # github.com/rs/xid v1.3.0
-## explicit
 github.com/rs/xid
 # github.com/sergi/go-diff v1.1.0
 github.com/sergi/go-diff/diffmatchpatch
