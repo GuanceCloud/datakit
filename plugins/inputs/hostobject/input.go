@@ -1,9 +1,12 @@
+// Package hostobject collect host object.
 package hostobject
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -12,14 +15,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	l = logger.DefaultSLogger(InputName)
-)
+var _ inputs.ReadEnv = (*Input)(nil)
+
+var l = logger.DefaultSLogger(InputName)
 
 type Input struct {
-	Name  string `toml:"name,omitempty"`        //deprecated
-	Class string `toml:"class,omitempty"`       //deprecated
-	Desc  string `toml:"description,omitempty"` //deprecated
+	Name  string `toml:"name,omitempty"`        // deprecated
+	Class string `toml:"class,omitempty"`       // deprecated
+	Desc  string `toml:"description,omitempty"` // deprecated
 
 	Pipeline string            `toml:"pipeline,omitempty"`
 	Tags     map[string]string `toml:"tags,omitempty"`
@@ -36,20 +39,17 @@ type Input struct {
 	p *pipeline.Pipeline
 
 	collectData *hostMeasurement
+
+	semStop    *cliutils.Sem // start stop signal
+	isTestMode bool
 }
 
-func (i *Input) Catalog() string {
+func (ipt *Input) Catalog() string {
 	return InputCat
 }
 
-func (i *Input) SampleConfig() string {
+func (ipt *Input) SampleConfig() string {
 	return SampleConfig
-}
-
-func (r *Input) PipelineConfig() map[string]string {
-	return map[string]string{
-		InputName: pipelineSample,
-	}
 }
 
 const (
@@ -58,51 +58,73 @@ const (
 	hostObjMeasurementName = "HOST"
 )
 
-// TODO
-func (*Input) RunPipeline() {
-}
-
-func (c *Input) Run() {
-
+func (ipt *Input) Run() {
 	l = logger.SLogger(InputName)
 
-	c.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, c.Interval.Duration)
-	c.p = c.getPipeline()
-	tick := time.NewTicker(c.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	n := 0
 	defer tick.Stop()
 
-	l.Debugf("starting %s(interval: %v)...", InputName, c.Interval)
+	l.Debugf("starting %s(interval: %v)...", InputName, ipt.Interval)
 
-	c.singleCollect(n) // 1st shot on datakit startup
+	ipt.singleCollect(n) // 1st shot on datakit startup
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Infof("%s exit on sem", InputName)
 			return
+
+		case <-ipt.semStop.Wait():
+			l.Infof("%s return on sem", InputName)
+			return
+
 		case <-tick.C:
 			l.Debugf("start %d collecting...", n)
-			c.singleCollect(n)
+			ipt.singleCollect(n)
 			n++
 		}
 	}
 }
 
-func (c *Input) singleCollect(n int) {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
 
+// ReadEnv , support envs：
+//   ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES: booler
+func (ipt *Input) ReadEnv(envs map[string]string) {
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES to bool: %s, ignore", err)
+		} else {
+			ipt.EnableNetVirtualInterfaces = b
+		}
+	}
+
+	if tagsStr, ok := envs["ENV_INPUT_HOSTOBJECT_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			ipt.Tags[k] = v
+		}
+	}
+}
+
+func (ipt *Input) singleCollect(n int) {
 	l.Debugf("start %d collecting...", n)
 
 	start := time.Now()
-	if err := c.Collect(); err != nil {
+	if err := ipt.doCollect(); err != nil {
 		io.FeedLastError(InputName, err.Error())
-	} else {
-		if err := inputs.FeedMeasurement(InputName,
-			datakit.Object,
-			[]inputs.Measurement{c.collectData},
-			&io.Option{CollectCost: time.Since(start)}); err != nil {
-			io.FeedLastError(InputName, err.Error())
-		}
+	} else if err := inputs.FeedMeasurement(InputName,
+		datakit.Object,
+		[]inputs.Measurement{ipt.collectData},
+		&io.Option{CollectCost: time.Since(start)}); err != nil {
+		io.FeedLastError(InputName, err.Error())
 	}
 }
 
@@ -110,16 +132,18 @@ type hostMeasurement struct {
 	name   string
 	fields map[string]interface{}
 	tags   map[string]string
-	ts     time.Time
 }
 
-func (x *hostMeasurement) Info() *inputs.MeasurementInfo {
+//nolint:lll
+func (hm *hostMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: hostObjMeasurementName,
 		Desc: "主机对象数据采集如下数据",
+		Tags: map[string]interface{}{
+			"os": &inputs.TagInfo{Desc: "主机操作系统类型"},
+		},
 		Fields: map[string]interface{}{
 			"message":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "主机所有信息汇总"},
-			"os":               &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "主机操作系统类型"},
 			"start_time":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "主机启动时间（Unix 时间戳）"},
 			"datakit_ver":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "采集器版本"},
 			"cpu_usage":        &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent, Desc: "CPU 使用率"},
@@ -130,23 +154,22 @@ func (x *hostMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (x *hostMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(x.name, x.tags, x.fields)
+func (hm *hostMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(hm.name, hm.tags, hm.fields)
 }
 
-func (c *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&hostMeasurement{},
 	}
 }
 
-func (c *Input) AvailableArchs() []string {
+func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (c *Input) Collect() error {
-
-	message, err := c.getHostObjectMessage()
+func (ipt *Input) doCollect() error {
+	message, err := ipt.getHostObjectMessage()
 	if err != nil {
 		return err
 	}
@@ -157,11 +180,10 @@ func (c *Input) Collect() error {
 		return err
 	}
 
-	c.collectData = &hostMeasurement{
+	ipt.collectData = &hostMeasurement{
 		name: hostObjMeasurementName,
 		fields: map[string]interface{}{
 			"message":          string(messageData),
-			"os":               message.Host.HostMeta.OS,
 			"start_time":       message.Host.HostMeta.BootTime,
 			"datakit_ver":      datakit.Version,
 			"cpu_usage":        message.Host.cpuPercent,
@@ -172,7 +194,12 @@ func (c *Input) Collect() error {
 
 		tags: map[string]string{
 			"name": message.Host.HostMeta.HostName,
+			"os":   message.Host.HostMeta.OS,
 		},
+	}
+
+	if !ipt.isTestMode {
+		ipt.collectData.fields["Scheck"] = message.Collectors[0].Version
 	}
 
 	// append extra cloud fields: all of them as tags
@@ -180,7 +207,7 @@ func (c *Input) Collect() error {
 		switch tv := v.(type) {
 		case string:
 			if tv != Unavailable {
-				c.collectData.tags[k] = tv
+				ipt.collectData.tags[k] = tv
 			}
 		default:
 			l.Warnf("ignore non-string cloud extra field: %s: %v, ignored", k, v)
@@ -188,21 +215,21 @@ func (c *Input) Collect() error {
 	}
 
 	// merge custom tags: if conflict with fields, ignore the tag
-	for k, v := range c.Tags {
+	for k, v := range ipt.Tags {
 		// 添加的 tag key 不能存在已有的 field key 中
-		if _, ok := c.collectData.fields[k]; ok {
+		if _, ok := ipt.collectData.fields[k]; ok {
 			l.Warnf("ignore tag `%s', exists in field", k)
 			continue
 		}
 
 		// 用户 tag 无脑添加 tag(可能覆盖已有 tag)
-		c.collectData.tags[k] = v
+		ipt.collectData.tags[k] = v
 	}
 
-	if c.p != nil {
-		if result, err := c.p.Run(string(messageData)).Result(); err == nil {
+	if ipt.p != nil {
+		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil {
 			for k, v := range result {
-				c.collectData.fields[k] = v
+				ipt.collectData.fields[k] = v
 			}
 		} else {
 			l.Warnf("pipeline error: %s, ignored", err)
@@ -212,20 +239,24 @@ func (c *Input) Collect() error {
 	return nil
 }
 
-func (c *Input) getPipeline() *pipeline.Pipeline {
-
-	fname := c.Pipeline
-	if fname == "" {
-		fname = InputName + ".p"
+func (ipt *Input) Collect() (map[string][]*io.Point, error) {
+	ipt.isTestMode = true
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	if err := ipt.doCollect(); err != nil {
+		return nil, err
 	}
 
-	p, err := pipeline.NewPipelineByScriptPath(fname)
-	if err != nil {
-		l.Warnf("%s", err)
-		return nil
+	var pts []*io.Point
+	if pt, err := ipt.collectData.LineProto(); err != nil {
+		return nil, err
+	} else {
+		pts = append(pts, pt)
 	}
 
-	return p
+	mpts := make(map[string][]*io.Point)
+	mpts[datakit.Object] = pts
+
+	return mpts, nil
 }
 
 func DefaultHostObject() *Input {
@@ -243,15 +274,17 @@ func DefaultHostObject() *Input {
 			"aufs",
 			"squashfs",
 		},
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(InputName, func() inputs.Input {
 		return DefaultHostObject()
 	})
 }
 
 func SetLog() {
-	l = logger.SLogger("hostobject")
+	l = logger.SLogger(InputName)
 }

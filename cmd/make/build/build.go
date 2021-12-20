@@ -1,3 +1,4 @@
+// Package build implement datakit build & release functions.
 package build
 
 import (
@@ -12,31 +13,77 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 )
 
 var (
-	/* Use:
-		go tool dist list
-	to get current os/arch list */
 
+	// OSArches defined current supported release OS/Archs.
+
+	// Use `go tool dist list` to get golang supported os/archs.
 	OSArches = []string{ // supported os/arch list
+		// Linux
 		`linux/386`,
 		`linux/amd64`,
 		`linux/arm`,
 		`linux/arm64`,
 
+		// Darwin
+		// NOTE: currently we apply amd64 arch for arm64 on Mac M1
 		`darwin/amd64`,
 
+		// Windows
 		`windows/amd64`,
 		`windows/386`,
 	}
 
+	// ReleaseVersion default use git describe output, you
+	// can override this by set environment VERSION.
 	ReleaseVersion = git.Version
+
+	AppName = "datakit"
+	AppBin  = "datakit"
+	OSSPath = "datakit"
+
+	// Architectures and OS distributions, i.e,
+	// darwin/amd64
+	// windows/amd64
+	// linux/arm64
+	// ...
+	Archs string
+
+	// File pathh of main.go.
+	MainEntry string
+
+	ReleaseType string
+
+	// Where to publish install packages.
+	DownloadAddr string
+	BuildDir     = "build"
+	PubDir       = "pub"
+
+	// InputsReleaseType defined which inputs are available
+	// during current release:
+	// all: release all inputs, include unchecked.
+	// checked: only release checked inputs.
+	InputsReleaseType string
+
+	l = logger.DefaultSLogger("build")
+)
+
+const (
+	LOCAL        = "local"
+	ALL          = "all"
+	winBinSuffix = ".exe"
+
+	ReleaseTesting    = "testing"
+	ReleaseProduction = "production"
+	ReleaseLocal      = "local"
 )
 
 func runEnv(args, env []string) ([]byte, error) {
-	cmd := exec.Command(args[0], args[1:]...)
+	cmd := exec.Command(args[0], args[1:]...) //nolint:gosec
 	if env != nil {
 		cmd.Env = append(os.Environ(), env...)
 	}
@@ -44,26 +91,13 @@ func runEnv(args, env []string) ([]byte, error) {
 	return cmd.CombinedOutput()
 }
 
-var (
-	l = logger.DefaultSLogger("build")
-
-	BuildDir     = "build"
-	PubDir       = "pub"
-	AppName      = "datakit"
-	AppBin       = "datakit"
-	OSSPath      = "datakit"
-	Archs        string
-	Release      string
-	MainEntry    string
-	DownloadAddr string
-	ReleaseType  string
-)
-
 func prepare() {
+	if err := os.RemoveAll(BuildDir); err != nil {
+		l.Warnf("os.RemoveAll: %s, ignored", err.Error())
+	}
 
-	os.RemoveAll(BuildDir)
 	_ = os.MkdirAll(BuildDir, os.ModePerm)
-	_ = os.MkdirAll(filepath.Join(PubDir, Release), os.ModePerm)
+	_ = os.MkdirAll(filepath.Join(PubDir, ReleaseType), os.ModePerm)
 
 	// create version info
 	vd := &versionDesc{
@@ -80,14 +114,16 @@ func prepare() {
 		l.Fatal(err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(PubDir, Release, "version"), versionInfo, 0666); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(PubDir, ReleaseType, "version"),
+		versionInfo,
+		os.ModePerm); err != nil {
 		l.Fatal(err)
 	}
 }
 
 func parseArchs(s string) (archs []string) {
 	switch s {
-	case "all":
+	case ALL:
 
 		// read cmd-line env
 		if x := os.Getenv("ALL_ARCHS"); x != "" {
@@ -96,7 +132,7 @@ func parseArchs(s string) (archs []string) {
 			archs = OSArches
 		}
 
-	case "local":
+	case LOCAL:
 		if x := os.Getenv("LOCAL"); x != "" {
 			if x == "all" { // 指定 local 为 all，便于测试全平台编译/发布
 				archs = OSArches
@@ -120,15 +156,14 @@ func Compile() {
 
 	archs := parseArchs(Archs)
 
-	for idx, _ := range archs {
-
+	for idx := range archs {
 		parts := strings.Split(archs[idx], "/")
 		if len(parts) != 2 {
 			l.Fatalf("invalid arch %q", parts)
 		}
 
 		goos, goarch := parts[0], parts[1]
-		if goos == "darwin" && runtime.GOOS != "darwin" {
+		if goos == datakit.OSDarwin && runtime.GOOS != datakit.OSDarwin {
 			l.Warnf("skip build datakit under %s", archs[idx])
 			continue
 		}
@@ -147,28 +182,27 @@ func Compile() {
 		compileArch(AppBin, goos, goarch, dir)
 		buildExternals(dir, goos, goarch)
 
-		buildInstaller(filepath.Join(PubDir, Release), goos, goarch)
+		buildInstaller(filepath.Join(PubDir, ReleaseType), goos, goarch)
 	}
 
 	l.Infof("Done!(elapsed %v)", time.Since(start))
 }
 
 func compileArch(bin, goos, goarch, dir string) {
-
 	output := filepath.Join(dir, bin)
-	if goos == "windows" {
-		output += ".exe"
+	if goos == datakit.OSWindows {
+		output += winBinSuffix
 	}
-	cgo_enabled := "0"
-	if goos == "darwin" {
-		cgo_enabled = "1"
+	cgoEnabled := "0"
+	if goos == datakit.OSDarwin {
+		cgoEnabled = "1"
 	}
 
 	args := []string{
 		"go", "build",
 		"-o", output,
 		"-ldflags",
-		fmt.Sprintf("-w -s -X main.ReleaseType=%s -X main.ReleaseVersion=%s", ReleaseType, ReleaseVersion),
+		fmt.Sprintf("-w -s -X main.InputsReleaseType=%s -X main.ReleaseVersion=%s", InputsReleaseType, ReleaseVersion),
 		MainEntry,
 	}
 
@@ -176,7 +210,7 @@ func compileArch(bin, goos, goarch, dir string) {
 		"GOOS=" + goos,
 		"GOARCH=" + goarch,
 		`GO111MODULE=off`,
-		"CGO_ENABLED=" + cgo_enabled,
+		"CGO_ENABLED=" + cgoEnabled,
 	}
 
 	l.Debugf("building %s", fmt.Sprintf("%s-%s/%s", goos, goarch, bin))
@@ -186,19 +220,12 @@ func compileArch(bin, goos, goarch, dir string) {
 	}
 }
 
-type installInfo struct {
-	Name         string
-	DownloadAddr string
-	Version      string
-}
-
 func buildInstaller(outdir, goos, goarch string) {
-
 	l.Debugf("building %s-%s/installer...", goos, goarch)
 
 	installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
-	if goos == "windows" {
-		installerExe += ".exe"
+	if goos == datakit.OSWindows {
+		installerExe += winBinSuffix
 	}
 
 	args := []string{

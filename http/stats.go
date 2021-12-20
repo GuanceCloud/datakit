@@ -16,7 +16,6 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -33,34 +32,35 @@ type enabledInput struct {
 }
 
 type DatakitStats struct {
-	InputsStats     map[string]*io.InputsStat `json:"inputs_status"`
-	IoStats         io.IoStat                 `json:"io_stats"`
-	GoroutineStats  goroutine.Summary         `json:"goroutine_stats"`
-	EnabledInputs   []*enabledInput           `json:"enabled_inputs"`
-	AvailableInputs []string                  `json:"available_inputs"`
-	ConfigInfo      map[string]*inputs.Config `json:"config_info"`
+	GoroutineStats  *goroutine.Summary `json:"goroutine_stats"`
+	EnabledInputs   []*enabledInput    `json:"enabled_inputs"`
+	AvailableInputs []string           `json:"available_inputs"`
 
-	Version string `json:"version"`
-	BuildAt string `json:"build_at"`
-	Branch  string `json:"branch"`
-	Uptime  string `json:"uptime"`
-	OSArch  string `json:"os_arch"`
+	HostName   string `json:"hostname"`
+	Version    string `json:"version"`
+	BuildAt    string `json:"build_at"`
+	Branch     string `json:"branch"`
+	Uptime     string `json:"uptime"`
+	OSArch     string `json:"os_arch"`
+	IOChanStat string `json:"io_chan_stats"`
+	Elected    string `json:"elected"`
+	CSS        string `json:"-"`
 
-	WithinDocker bool   `json:"docker"`
-	IOChanStat   string `json:"io_chan_stats"`
-	Elected      string `json:"elected"`
-	AutoUpdate   bool   `json:"auto_update"`
+	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
+	IoStats     io.IoStat                 `json:"io_stats"`
+	ConfigInfo  map[string]*inputs.Config `json:"config_info"`
 
+	WithinDocker bool `json:"docker"`
+	AutoUpdate   bool `json:"auto_update"`
 	// markdown options
 	DisableMonofont bool `json:"-"`
-
-	CSS string `json:"-"`
 }
 
 var (
 	part1 = `
 ## 基本信息
 
+- 主机名     ：{{.HostName}}
 - 版本       : {{.Version}}
 - 运行时间   : {{.Uptime}}
 - 发布日期   : {{.BuildAt}}
@@ -103,18 +103,17 @@ var (
 ` + part1 + part2
 )
 
-var (
-	categoryMap = map[string]string{
-		datakit.MetricDeprecated: "M",
-		datakit.Metric:           "M",
-		datakit.KeyEvent:         "E",
-		datakit.Object:           "O",
-		datakit.Logging:          "L",
-		datakit.Tracing:          "T",
-		datakit.Rum:              "R",
-		datakit.Security:         "S",
-	}
-)
+var categoryMap = map[string]string{
+	datakit.MetricDeprecated: "M",
+	datakit.Metric:           "M",
+	datakit.Network:          "N",
+	datakit.KeyEvent:         "E",
+	datakit.Object:           "O",
+	datakit.Logging:          "L",
+	datakit.Tracing:          "T",
+	datakit.Rum:              "R",
+	datakit.Security:         "S",
+}
 
 func (x *DatakitStats) InputsConfTable() string {
 	const (
@@ -124,7 +123,7 @@ func (x *DatakitStats) InputsConfTable() string {
 `
 	)
 
-	var rowFmt = "|`%s`|%d|%d|"
+	rowFmt := "|`%s`|%d|%d|"
 	if x.DisableMonofont {
 		rowFmt = "|%s|%d|%d|"
 	}
@@ -147,15 +146,15 @@ func (x *DatakitStats) InputsConfTable() string {
 }
 
 func (x *DatakitStats) InputsStatsTable() string {
-
 	const (
+		//nolint:lll
 		tblHeader = `
 | 采集器 | 数据类型 | 频率   | 平均 IO 大小 | 总次数 | 点数  | 首次采集 | 最近采集 | 平均采集消耗 | 最大采集消耗 | 当前错误(时间) |
 | ----   | :----:   | :----: | :----:       | :----: | :---: | :----:   | :---:    | :----:       | :---:        | :----:         |
 `
 	)
 
-	var rowFmt = "|`%s`|`%s`|%s|%d|%d|%d|%s|%s|%s|%s|`%s`(%s)|"
+	rowFmt := "|`%s`|`%s`|%s|%d|%d|%d|%s|%s|%s|%s|`%s`(%s)|"
 	if x.DisableMonofont {
 		rowFmt = "|%s|%s|%s|%d|%d|%d|%s|%s|%s|%s|%s(%s)|"
 	}
@@ -169,7 +168,6 @@ func (x *DatakitStats) InputsStatsTable() string {
 	rows := []string{}
 
 	for k, s := range x.InputsStats {
-
 		firstIO := humanize.RelTime(s.First, now, "ago", "")
 		lastIO := humanize.RelTime(s.Last, now, "ago", "")
 
@@ -215,7 +213,6 @@ func (x *DatakitStats) InputsStatsTable() string {
 }
 
 func (x *DatakitStats) GoroutineStatTable() string {
-
 	const (
 		summaryFmt = `
 - 已完成: %d
@@ -229,7 +226,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 `
 	)
 
-	var rowFmt = "|%s|%d|%d|%s|%s|%s|%d|"
+	rowFmt := "|%s|%d|%d|%s|%s|%s|%d|"
 
 	rows := []string{}
 
@@ -256,9 +253,9 @@ func (x *DatakitStats) GoroutineStatTable() string {
 	return summary + "\n" + tblHeader + strings.Join(rows, "\n")
 }
 
-func GetStats() (*DatakitStats, error) {
-
+func GetStats(du time.Duration) (*DatakitStats, error) {
 	now := time.Now()
+	elected, _ := election.Elected()
 	stats := &DatakitStats{
 		Version:        datakit.Version,
 		BuildAt:        git.BuildAt,
@@ -268,15 +265,16 @@ func GetStats() (*DatakitStats, error) {
 		WithinDocker:   datakit.Docker,
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
-		Elected:        election.Elected(),
+		Elected:        elected,
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
 		ConfigInfo:     inputs.ConfigInfo,
+		HostName:       datakit.DatakitHostName,
 	}
 
 	var err error
 
-	stats.InputsStats, err = io.GetStats(time.Second * 5) // get all inputs stats
+	stats.InputsStats, err = io.GetStats(du) // get all inputs stats
 	if err != nil {
 		return nil, err
 	}
@@ -308,8 +306,7 @@ func GetStats() (*DatakitStats, error) {
 	return stats, nil
 }
 
-func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
-
+func (x *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 	tmpl := monitorTmpl
 	if verbose {
 		tmpl = verboseMonitorTmpl
@@ -317,23 +314,36 @@ func (ds *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 
 	temp, err := template.New("").Parse(tmpl)
 	if err != nil {
-		return nil, fmt.Errorf("parse markdown template failed: %s", err.Error())
+		return nil, fmt.Errorf("parse markdown template failed: %w", err)
 	}
 
 	if css != "" {
-		ds.CSS = css
+		x.CSS = css
 	}
 
 	var buf bytes.Buffer
-	if err := temp.Execute(&buf, ds); err != nil {
-		return nil, fmt.Errorf("execute markdown template failed: %s", err.Error())
+	if err := temp.Execute(&buf, x); err != nil {
+		return nil, fmt.Errorf("execute markdown template failed: %w", err)
 	}
 
 	return buf.Bytes(), nil
 }
 
 func apiGetDatakitMonitor(c *gin.Context) {
-	s, err := GetStats()
+	du := time.Second * 5
+	timeout := c.Query("timeout")
+	if timeout != "" {
+		if x, err := time.ParseDuration(timeout); err == nil {
+			du = x
+		} else {
+			c.Data(http.StatusBadRequest,
+				"text/html; charset=UTF-8",
+				[]byte(fmt.Sprintf("invalid timeout: %s", timeout)))
+			return
+		}
+	}
+
+	s, err := GetStats(du)
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return
@@ -350,7 +360,7 @@ func apiGetDatakitMonitor(c *gin.Context) {
 
 	htmlFlags := html.CommonFlags | html.HrefTargetBlank | html.CompletePage
 	opts := html.RendererOptions{Flags: htmlFlags}
-	//opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
+	// opts := html.RendererOptions{Flags: htmlFlags, Head: headerScript}
 	renderer := html.NewRenderer(opts)
 
 	out := markdown.ToHTML(mdbytes, psr, renderer)
@@ -359,8 +369,7 @@ func apiGetDatakitMonitor(c *gin.Context) {
 }
 
 func apiGetDatakitStats(c *gin.Context) {
-
-	s, err := GetStats()
+	s, err := GetStats(time.Duration(0))
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return

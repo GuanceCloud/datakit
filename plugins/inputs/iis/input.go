@@ -1,3 +1,4 @@
+//go:build windows && amd64
 // +build windows,amd64
 
 package iis
@@ -5,9 +6,9 @@ package iis
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -30,11 +31,6 @@ var (
 	l                    = logger.DefaultSLogger("iis")
 )
 
-type iisLog struct {
-	Files    []string `toml:"files"`
-	Pipeline string   `toml:"pipeline"`
-}
-
 type Input struct {
 	Interval datakit.Duration
 
@@ -44,6 +40,13 @@ type Input struct {
 	tail *tailer.Tailer
 
 	collectCache []inputs.Measurement
+
+	semStop *cliutils.Sem // start stop signal
+}
+
+type iisLog struct {
+	Files    []string `toml:"files"`
+	Pipeline string   `toml:"pipeline"`
 }
 
 func (i *Input) Catalog() string {
@@ -61,7 +64,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-// TODO
+// RunPipeline TODO.
 func (i *Input) RunPipeline() {
 	if i.Log == nil || len(i.Log.Files) == 0 {
 		return
@@ -77,7 +80,13 @@ func (i *Input) RunPipeline() {
 		GlobalTags: i.Tags,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
+
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
@@ -94,11 +103,26 @@ func (i *Input) RunPipeline() {
 	}
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineConfig := map[string]string{
 		inputName: pipelineCfg,
 	}
 	return pipelineConfig
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
+		},
+	}
 }
 
 func (i *Input) AvailableArchs() []string {
@@ -133,13 +157,28 @@ func (i *Input) Run() {
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Infof("iis logging exit")
-			}
+			i.exit()
 			l.Infof("iis input exit")
 			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Infof("iis input return")
+			return
 		}
+	}
+}
+
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Infof("iis logging exit")
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
@@ -147,7 +186,6 @@ func (i *Input) Collect() error {
 	for mName, metricCounterMap := range PerfObjMetricMap {
 		ts := time.Now()
 		for objName := range metricCounterMap {
-
 			// measurement name -> instance name -> metric name -> counter query handle list index
 			indexMap := map[string]map[string]map[string]int{mName: {}}
 
@@ -157,16 +195,15 @@ func (i *Input) Collect() error {
 				return fmt.Errorf("failed to enumerate the instance and counter of object %s", objName)
 			}
 
-			var pathList = make([]string, 0)
+			pathList := make([]string, 0)
 			pathListIndex := 0
 			// instance
 			for i := 0; i < len(instanceList); i++ {
 				indexMap[mName][instanceList[i]] = map[string]int{}
-				// counter
-				for key_counter := range metricCounterMap[objName] {
-					if metricName, ok := metricCounterMap[objName][key_counter]; ok {
+				for keyCounter := range metricCounterMap[objName] {
+					if metricName, ok := metricCounterMap[objName][keyCounter]; ok {
 						// make full counter path
-						tmpCounterFullPath := pdh.MakeFullCounterPath(objName, instanceList[i], key_counter)
+						tmpCounterFullPath := pdh.MakeFullCounterPath(objName, instanceList[i], keyCounter)
 						pathList = append(pathList, tmpCounterFullPath)
 
 						indexMap[mName][instanceList[i]][metricName] = pathListIndex
@@ -183,8 +220,8 @@ func (i *Input) Collect() error {
 				return fmt.Errorf("object: %s, PdhOpenQuery return: %x", objName, ret)
 			}
 
-			var counterHandleList = make([]pdh.PDH_HCOUNTER, len(pathList))
-			var valueList = make([]interface{}, len(pathList))
+			counterHandleList := make([]pdh.PDH_HCOUNTER, len(pathList))
+			valueList := make([]interface{}, len(pathList))
 			for i := range pathList {
 				ret = pdh.PdhAddEnglishCounter(handle, pathList[i], 0, &counterHandle)
 				counterHandleList[i] = counterHandle
@@ -251,10 +288,12 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-func init() {
+func init() { // nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval: datakit.Duration{Duration: time.Second * 15},
+
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

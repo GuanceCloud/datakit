@@ -2,19 +2,20 @@ package cmds
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/c-bata/go-prompt"
-	"github.com/fatih/color"
 	"github.com/influxdata/influxdb1-client/models"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 )
 
@@ -23,12 +24,23 @@ var (
 
 	disableNil  = false
 	echoExplain = false
-
-	history    []string
-	MaxHistory = 5000
+	history     []string
+	MaxHistory  = 5000
 
 	dqlcli *http.Client
+
+	defaultJSONIndent = "  "
 )
+
+const (
+	dqlraw = "/v1/query/raw"
+)
+
+type dqlResp struct {
+	ErrorCode string         `json:"error_code"`
+	Message   string         `json:"message"`
+	Content   []*queryResult `json:"content"`
+}
 
 func dql(host string) {
 	datakitHost = host
@@ -60,12 +72,12 @@ func loadHistory() {
 
 	histpath := filepath.Join(homedir, ".dql_history")
 
-	if _, err := os.Stat(histpath); err != nil {
+	if _, err = os.Stat(histpath); err != nil {
 		l.Warnf("history file %s not found", histpath)
 		return
 	}
 
-	data, err := ioutil.ReadFile(histpath)
+	data, err := ioutil.ReadFile(filepath.Clean(histpath))
 	if err != nil {
 		l.Warnf("read history failed: %s", err.Error())
 		return
@@ -75,7 +87,6 @@ func loadHistory() {
 }
 
 func addHistory(s ...string) {
-
 	history = append(history, s...)
 	if len(history) > MaxHistory {
 		dumpHistory()
@@ -94,7 +105,7 @@ func dumpHistory() {
 	}
 
 	if err := ioutil.WriteFile(filepath.Join(homedir, ".dql_history"),
-		[]byte(strings.Join(history, "\n")), 0644); err != nil {
+		[]byte(strings.Join(history, "\n")), os.ModePerm); err != nil {
 		l.Errorf("update history error: %s", err.Error())
 	}
 }
@@ -108,7 +119,6 @@ func updateHistoryOnExit() {
 }
 
 func runDQL(txt string) {
-
 	s := strings.Join(strings.Fields(strings.TrimSpace(txt)), " ")
 	if s == "" {
 		return
@@ -141,7 +151,6 @@ func runDQL(txt string) {
 		return
 
 	default:
-
 		lines := []string{}
 		if strings.HasSuffix(s, "\\") {
 			lines = append(lines, strings.TrimSuffix(s, "\\"))
@@ -149,55 +158,172 @@ func runDQL(txt string) {
 			lines = append(lines, s)
 		}
 
-		doDQL(strings.Join(lines, "\n"))
+		resp, err := doDQL(strings.Join(lines, "\n"))
+		if err == nil {
+			show(resp)
+		}
 	}
 }
 
-func doDQL(s string) {
+// runSingleDQL Perform a single DQL query statement.
+func runSingleDQL(s string) {
+	if FlagCSV != "" {
+		if err := prepareCsv(); err != nil {
+			errorf("prepareCsv: %s", err)
+			return
+		}
+	}
 
+	resp, err := doDQL(s)
+	if err != nil {
+		return
+	}
+
+	if FlagCSV != "" {
+		if len(resp) > 1 {
+			errorf("CSV export only support single DQL.\n")
+			return
+		}
+
+		if err := writeToCsv(resp[0].Series, FlagCSV); err != nil {
+			errorf("writeToCsv:%s", err)
+			return
+		}
+	}
+
+	if (FlagCSV != "" && FlagVVV) || FlagCSV == "" {
+		show(resp)
+	}
+}
+
+// prepareCsv Judging whether the file exists, create a directory if there is no existence.
+func prepareCsv() error {
+	f, err := os.Stat(FlagCSV)
+	if err == nil {
+		if f.IsDir() {
+			return fmt.Errorf("the specified path is a directory")
+		}
+
+		if !FlagForce {
+			return fmt.Errorf("file %s exists", FlagCSV)
+		}
+	} else if err = os.MkdirAll(filepath.Dir(FlagCSV), os.ModePerm); err != nil {
+		return err
+	}
+	return nil
+}
+
+// convertStrings Convert Interface arrays to String array which in the query result.
+func convertStrings(value []interface{}) []string {
+	res := []string{}
+	for k, v := range value {
+		if v == nil {
+			res = append(res, "")
+			continue
+		}
+		switch x := v.(type) {
+		case string:
+			res = append(res, x)
+
+		case json.Number:
+			res = append(res, x.String())
+
+		case bool:
+			res = append(res, fmt.Sprintf("%v", x))
+
+		default:
+			warnf("unknown key value, %d:%v", k, x)
+		}
+	}
+	return res
+}
+
+// writeToCsv Format the query results and write to CSV files.
+func writeToCsv(series []*models.Row, csvPath string) error {
+	csvFile, err := os.OpenFile(filepath.Clean(csvPath),
+		os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer csvFile.Close() //nolint:errcheck,gosec
+
+	writer := csv.NewWriter(csvFile)
+
+	sortColumns(series[0])
+
+	columns := []string{"name"}
+	columns = append(columns, series[0].Columns...)
+	if err := writer.Write(columns); err != nil {
+		l.Errorf("write file failed:%s", err)
+	}
+
+	for _, serial := range series {
+		sortColumns(serial)
+
+		for k := range serial.Values {
+			values := []string{serial.Name}
+			res := convertStrings(serial.Values[k])
+			values = append(values, res...)
+			if err := writer.Write(values); err != nil {
+				l.Errorf("write file failed:%s", err)
+			}
+		}
+	}
+
+	writer.Flush()
+	if err = writer.Error(); err != nil {
+		warnf("writer flush failed,error: %s", err)
+	}
+	return nil
+}
+
+func doDQL(s string) ([]*queryResult, error) {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
+		Token:       config.GetToken(),
 		Queries: []*dkhttp.SingleQuery{
-			&dkhttp.SingleQuery{
+			{
 				Query: s,
 			},
 		},
 	}
 
+	if FlagToken != "" {
+		q.Token = FlagToken
+	}
+
 	j, err := json.Marshal(q)
 	if err != nil {
-		colorPrint(color.FgRed, "%s\n", err.Error())
-		return
+		errorf("%s\n", err.Error())
+		return nil, err
 	}
 
 	l.Debugf("dql request: %s", string(j))
 
 	req, err := http.NewRequest("POST",
-		fmt.Sprintf("http://%s/v1/query/raw", datakitHost),
-		bytes.NewBuffer(j))
+		fmt.Sprintf("http://%s%s", datakitHost, dqlraw), bytes.NewBuffer(j))
 	if err != nil {
-		colorPrint(color.FgRed, "http.NewRequest: %s\n", err.Error())
-		return
+		errorf("http.NewRequest: %s\n", err.Error())
+		return nil, err
+	}
+
+	if dqlcli == nil {
+		dqlcli = &http.Client{}
 	}
 
 	resp, err := dqlcli.Do(req)
 	if err != nil {
-		colorPrint(color.FgRed, "httpcli.Do: %s\n", err.Error())
-		return
-	}
-
-	for k, v := range resp.Header {
-		l.Debugf("%s: %v", k, v)
+		errorf("httpcli.Do: %s\n", err.Error())
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		colorPrint(color.FgRed, "ioutil.ReadAll: %s\n", err.Error())
-		return
+		errorf("ioutil.ReadAll: %s\n", err.Error())
+		return nil, err
 	}
 
-	defer resp.Body.Close()
-
+	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode/100 != 2 {
 		r := struct {
 			Err string `json:"error_code"`
@@ -205,16 +331,29 @@ func doDQL(s string) {
 		}{}
 
 		if err := json.Unmarshal(body, &r); err != nil {
-			colorPrint(color.FgRed, "json.Unmarshal: %s\n", err.Error())
-			colorPrint(color.FgRed, "body: %s\n", string(body))
-			return
+			errorf("json.Unmarshal: %s\n", err.Error())
+			errorf("body: %s\n", string(body))
+			return nil, err
 		}
 
-		colorPrint(color.FgRed, "[%s] %s\n", r.Err, r.Msg)
-		return
+		l.Warnf("body: %s", string(body))
+
+		errorf("[%s] %s\n", r.Err, r.Msg)
+		return nil, fmt.Errorf("%s", r.Err)
 	}
 
-	show(body)
+	r := dqlResp{}
+
+	jd := json.NewDecoder(bytes.NewReader(body))
+	jd.UseNumber()
+
+	if err := jd.Decode(&r); err != nil {
+		errorf("%s\n", err.Error())
+		return nil, err
+	}
+	content, _ := json.Marshal(r.Content)
+	l.Debugf("json content:%s", string(content))
+	return r.Content, nil
 }
 
 type queryResult struct {
@@ -223,68 +362,212 @@ type queryResult struct {
 	Cost     string        `json:"cost,omitempty"`
 }
 
-func show(body []byte) {
-	r := struct {
-		ErrorCode string         `json:"error_code"`
-		Message   string         `json:"message"`
-		Content   []*queryResult `json:"content"`
-	}{}
-
-	jd := json.NewDecoder(bytes.NewReader(body))
-	jd.UseNumber()
-	if err := jd.Decode(&r); err != nil {
-		colorPrint(color.FgRed, "%s\n", err.Error())
+func show(content []*queryResult) {
+	if content == nil {
+		errorf("Empty result\n")
 		return
 	}
-
-	if r.Content == nil {
-		colorPrint(color.FgRed, "Empty result\n")
-		return
-	}
-
-	for _, c := range r.Content {
+	for _, c := range content {
+		l.Debugf("connent len: %d", len(content))
 		doShow(c)
 	}
 }
 
 func doShow(c *queryResult) {
-
 	rows := 0
 
-	rows = prettyShow(c)
+	switch {
+	case FlagJSON:
+		j, err := json.MarshalIndent(c, "", defaultJSONIndent)
+		if err != nil {
+			errorf("%s\n", err.Error())
+			return
+		}
+
+		if len(j) == 0 {
+			return
+		}
+
+		output("%s\n", j)
+	default:
+		rows = prettyShow(c)
+	}
 
 	if c.RawQuery != "" {
 		if json.Valid([]byte(c.RawQuery)) {
 			var x map[string]interface{}
 			if err := json.Unmarshal([]byte(c.RawQuery), &x); err != nil {
-				colorPrint(color.FgRed, "%s\n", err)
+				errorf("%s\n", err)
 			} else {
 				j, err := json.MarshalIndent(x, "", "    ")
 				if err != nil {
-					colorPrint(color.FgRed, "%s\n", err)
-				} else {
-					output("---------\n")
-					output("explain:\n%s\n", string(j))
+					errorf("%s\n", err)
+					return
 				}
+
+				infof("---------\n")
+				infof("explain:\n%s\n", string(j))
 			}
 		} else {
-			output("---------\n")
-			output("explain: %s\n", c.RawQuery)
+			infof("---------\n")
+			infof("explain:%s\n", c.RawQuery)
 		}
 	}
 
-	output("---------\n%d rows, cost %s\n", rows, c.Cost)
+	infof("---------\n%d rows, %d series, cost %s\n", rows, len(c.Series), c.Cost)
+}
+
+// Not used.
+func sortColumns(r *models.Row) {
+	colMap := map[string]int{}
+	for i, col := range r.Columns {
+		if _, ok := colMap[col]; ok {
+			// duplicate colums(means tag/field with the same key)
+			// terminate sorting
+			return
+		}
+
+		colMap[col] = i
+	}
+
+	sort.Strings(r.Columns)
+	valArray := [][]interface{}{}
+
+	for _, vals := range r.Values {
+		newVals := []interface{}{}
+		for _, col := range r.Columns {
+			newVals = append(newVals, vals[colMap[col]])
+		}
+
+		valArray = append(valArray, newVals)
+	}
+
+	r.Values = valArray
+}
+
+//nolint:deadcode,unused
+func showRow(r *models.Row) {
+	output("%d columns\n", len(r.Columns))
+
+	for i, col := range r.Columns {
+		if i < len(r.Columns)-1 {
+			output("%s, ", col)
+		} else {
+			output("%s\n", col)
+		}
+	}
+
+	output("%d values\n", len(r.Values))
+	for _, vals := range r.Values {
+		output("value width: %d\n", len(vals))
+		for i, v := range vals {
+			if i < len(vals)-1 {
+				output("%v, ", v)
+			} else {
+				output("%v\n", v)
+			}
+		}
+	}
+}
+
+// Not used
+//nolint:deadcode,unused
+func tableShow(resp *queryResult) int {
+	nrows := 0
+
+	if len(resp.Series) == 0 {
+		warnf("no data\n")
+		return 0
+	}
+
+	for _, row := range resp.Series {
+		sortColumns(row)
+		showRow(row)
+		nrows += len(row.Values)
+	}
+
+	return nrows
+}
+
+func prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
+	for colIdx := range s.Columns {
+		if disableNil && val[colIdx] == nil {
+			continue
+		}
+
+		col := s.Columns[colIdx]
+
+		if v, ok := s.Tags[col]; ok {
+			output(fmtStr+" %s\n", col, "#", v) // decorate tag key with a `#'
+			addSug(col)
+			continue
+		}
+
+		if col == "time" {
+			if _, ok := val[colIdx].(json.Number); !ok {
+				l.Error("invalid time: %v", val[colIdx])
+				val[colIdx] = fmt.Sprintf("%v", val[colIdx])
+			} else {
+				i, err := val[colIdx].(json.Number).Int64()
+				if err != nil {
+					l.Error("parse time failed: %v", err)
+					continue
+				}
+
+				// convert ms to second
+				val[colIdx] = time.Unix(i/1000, 0) //nolint
+			}
+		}
+
+		valFmt := ""
+		switch v := val[colIdx].(type) {
+		case time.Time:
+			valFmt = "%v\n"
+		case json.Number:
+			i, err := v.Int64()
+			if err != nil {
+				f, err := v.Float64()
+				if err != nil {
+					l.Warn(err)
+				} else {
+					valFmt = "%.6f\n"
+					val[colIdx] = f
+				}
+			} else {
+				val[colIdx] = i
+				valFmt = "%d\n"
+			}
+
+		case string:
+			valFmt = "'%s'\n"
+			if FlagAutoJSON {
+				dst := &bytes.Buffer{}
+				if err := json.Indent(dst, []byte(v), "", defaultJSONIndent); err == nil {
+					val[colIdx] = dst.String()
+					valFmt = "<<<<< json \n" + "%s\n" + ">>>>> end of json\n"
+				}
+			}
+		case bool:
+			valFmt = "%v\n"
+		default:
+			valFmt = "%v\n"
+			// pass
+		}
+
+		output(fmtStr+valFmt, col, " ", val[colIdx])
+		addSug(s.Columns[colIdx])
+	}
 }
 
 func prettyShow(resp *queryResult) int {
 	nrows := 0
 
 	if len(resp.Series) == 0 {
-		colorPrint(color.FgYellow, "no data\n")
+		warnf("no data\n")
 		return 0
 	}
 
-	for _, s := range resp.Series {
+	for si, s := range resp.Series {
 		switch len(s.Columns) {
 		case 1:
 
@@ -300,9 +583,8 @@ func prettyShow(resp *queryResult) int {
 					continue
 				}
 
-				switch val[0].(type) {
-				case string:
-					addSug(val[0].(string))
+				if str, ok := val[0].(string); ok {
+					addSug(str)
 				}
 
 				output("%s\n", val[0])
@@ -311,72 +593,14 @@ func prettyShow(resp *queryResult) int {
 
 		default:
 			colWidth := getMaxColWidth(s)
+			sortColumns(s)
+
 			fmtStr := fmt.Sprintf("%%%ds%%s", colWidth)
+
 			for _, val := range s.Values {
+				output("-----------------[ r%d.%s.s%d ]-----------------\n", nrows+1, s.Name, si+1)
 				nrows++
-				output("-----------------[ %d.%s ]-----------------\n", nrows, s.Name)
-
-				for k, v := range s.Tags {
-					output(fmtStr+" %s\n", k, "#", v)
-					addSug(k)
-				}
-
-				for colIdx, _ := range s.Columns {
-					if disableNil && val[colIdx] == nil {
-						continue
-					}
-
-					col := s.Columns[colIdx]
-					if _, ok := s.Tags[col]; !ok {
-						if col == "time" {
-
-							if _, ok := val[colIdx].(json.Number); !ok {
-								l.Error("invalid time: %v", val[colIdx])
-								val[colIdx] = fmt.Sprintf("%v", val[colIdx])
-							} else {
-								i, err := val[colIdx].(json.Number).Int64()
-								if err != nil {
-									l.Error("parse time failed: %v", err)
-									continue
-								}
-
-								// convert ms to second
-								val[colIdx] = time.Unix(i/1000, 0)
-							}
-						}
-
-						valFmt := ""
-						switch val[colIdx].(type) {
-						case time.Time:
-							valFmt = "%v\n"
-						case json.Number:
-							i, err := val[colIdx].(json.Number).Int64()
-							if err != nil {
-								f, err := val[colIdx].(json.Number).Float64()
-								if err != nil {
-									l.Warn(err)
-								} else {
-									valFmt = "%.6f\n"
-									val[colIdx] = f
-								}
-							} else {
-								val[colIdx] = i
-								valFmt = "%d\n"
-							}
-
-						case string:
-							valFmt = "'%s'\n"
-						case bool:
-							valFmt = "%v\n"
-						default:
-							valFmt = "%v\n"
-							// pass
-						}
-
-						output(fmtStr+valFmt, col, " ", val[colIdx])
-					}
-					addSug(s.Columns[colIdx])
-				}
+				prettyShowRow(s, val, fmtStr)
 			}
 		}
 	}
@@ -386,7 +610,7 @@ func prettyShow(resp *queryResult) int {
 
 func getMaxColWidth(r *models.Row) int {
 	max := 0
-	for k, _ := range r.Tags {
+	for k := range r.Tags {
 		if len(k) > max {
 			max = len(k)
 		}
@@ -399,16 +623,6 @@ func getMaxColWidth(r *models.Row) int {
 	}
 
 	return max
-}
-
-func colorPrint(c color.Attribute, fmtstr string, args ...interface{}) {
-	color.Set(c)
-	output(fmtstr, args...)
-	color.Unset()
-}
-
-func output(fmtstr string, args ...interface{}) {
-	fmt.Printf(fmtstr, args...)
 }
 
 var (
@@ -442,8 +656,10 @@ var (
 		{Text: "tracing::", Description: "Tracing namespace"},
 		{Text: "rum::", Description: "RUM namespace"},
 		{Text: "security::", Description: "Security namespace"},
+		{Text: "network::", Description: "eBPF-network namespace"},
 
 		{Text: "M::", Description: "metric namespace"},
+		{Text: "N::", Description: "eBPF-network namespace"},
 		{Text: "O::", Description: "object namespace"},
 		{Text: "CO::", Description: "custom object namespace"},
 		{Text: "E::", Description: "event namespace"},
@@ -476,6 +692,9 @@ var (
 		{Text: "show_security_source()", Description: "show security categories, same as show_security_category()"},
 		{Text: "show_security_category()", Description: "show security categories"},
 		{Text: "show_security_field()", Description: "show security fields"},
+
+		{Text: "show_network_source()", Description: "show eBPF network source"},
+		{Text: "show_network_field()", Description: "show eBPF network fields"},
 
 		{Text: "avg()", Description: ""},
 		{Text: "bottom()", Description: ""},
@@ -531,7 +750,7 @@ var (
 )
 
 func addSug(key string) {
-	if ok, _ := liveSug[key]; !ok {
+	if ok := liveSug[key]; !ok {
 		suggestions = append(suggestions, prompt.Suggest{
 			Text: key, Description: "",
 		})

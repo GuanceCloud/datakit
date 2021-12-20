@@ -1,3 +1,4 @@
+//nolint
 package cmds
 
 const (
@@ -569,7 +570,7 @@ const (
 #   ## Set to true if you want telegraf to overwrite an existing template
 #   overwrite_template = false
 #   ## If set to true a unique ID hash will be sent as sha256(concat(timestamp,measurement,series-hash)) string
-#   ## it will enable data resend and update metric points avoiding duplicated metrics with diferent id's
+#   ## it will enable data resend and update metric points avoiding duplicated metrics with different id's
 #   force_document_id = false
 
 
@@ -891,7 +892,7 @@ const (
 #
 #   ## The routing tag specifies a tagkey on the metric whose value is used as
 #   ## the message key.  The message key is used to determine which partition to
-#   ## send the message to.  This tag is prefered over the routing_key option.
+#   ## send the message to.  This tag is preferred over the routing_key option.
 #   routing_tag = "host"
 #
 #   ## The routing key is set as the message key and used to determine which
@@ -2237,8 +2238,8 @@ const (
 #   ## you'll want to consider memory use.
 #   cache_ttl = "24h"
 #
-#   ## lookup_timeout is how long should you wait for a single dns request to repsond.
-#   ## this is also the maximum acceptable latency for a metric travelling through
+#   ## lookup_timeout is how long should you wait for a single dns request to respond.
+#   ## this is also the maximum acceptable latency for a metric traveling through
 #   ## the reverse_dns processor. After lookup_timeout is exceeded, a metric will
 #   ## be passed on unaltered.
 #   ## multiple simultaneous resolution requests for the same IP will only make a
@@ -4388,7 +4389,6 @@ const (
 #   # [inputs.logstash.headers]
 #   #   "X-Special-Header" = "Special-Value"
 
-
 # # Read metrics from local Lustre service on OST, MDS
 # [[inputs.lustre2]]
 #   ## An array of /proc globs to search for Lustre stats
@@ -4844,7 +4844,7 @@ const (
 #   ## Read more low-level metrics (optional, defaults to false)
 #   # fullstat = false
 #
-#   ## List of mounts to explictly include or exclude (optional)
+#   ## List of mounts to explicitly include or exclude (optional)
 #   ## The pattern (Go regexp) is matched against the mount point (not the
 #   ## device being mounted).  If include_mounts is set, all mounts are ignored
 #   ## unless present in the list. If a mount is listed in both include_mounts
@@ -4861,7 +4861,7 @@ const (
 #   ## NFSv3 and NFSv4 have different lists.  While it is not possible to
 #   ## have different include/exclude lists for NFSv3/4, unused elements
 #   ## in the list should be okay.  It is possible to have different lists
-#   ## for different mountpoints:  use mulitple [[input.nfsclient]] stanzas,
+#   ## for different mountpoints:  use multiple [[input.nfsclient]] stanzas,
 #   ## with their own lists.  See "include_mounts" above, and be careful of
 #   ## duplicate metrics.
 #   # include_operations = []
@@ -5572,7 +5572,7 @@ const (
 #   servers = ["http://localhost:8098"]
 
 
-# # Read API usage and limits for a Salesforce organisation
+# # Read API usage and limits for a Salesforce organization
 # [[inputs.salesforce]]
 #   ## specify your credentials
 #   ##
@@ -7292,7 +7292,7 @@ const (
 # # Read metrics from MQTT topic(s)
 # [[inputs.mqtt_consumer]]
 #   ## Broker URLs for the MQTT server or cluster.  To connect to multiple
-#   ## clusters or standalone servers, use a seperate plugin instance.
+#   ## clusters or standalone servers, use a separate plugin instance.
 #   ##   example: servers = ["tcp://localhost:1883"]
 #   ##            servers = ["ssl://localhost:1883"]
 #   ##            servers = ["ws://localhost:1883"]

@@ -1,3 +1,4 @@
+// Package datakit defined all datakit's global settings
 package datakit
 
 import (
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
@@ -34,23 +34,29 @@ const (
 
 	CommonChanCap = 32
 
-	// categories
-	MetricDeprecated  = "/v1/write/metrics"
-	Metric            = "/v1/write/metric"
-	KeyEvent          = "/v1/write/keyevent"
-	Object            = "/v1/write/object"
-	CustomObject      = "/v1/write/custom_object"
-	Logging           = "/v1/write/logging"
-	LogFilter         = "/v1/logfilter/pull"
-	Tracing           = "/v1/write/tracing"
-	Rum               = "/v1/write/rum"
-	Security          = "/v1/write/security"
+	// data category, aka API /v1/write/category.
+	MetricDeprecated = "/v1/write/metrics"
+	Metric           = "/v1/write/metric"
+	Network          = "/v1/write/network"
+	KeyEvent         = "/v1/write/keyevent"
+	Object           = "/v1/write/object"
+	CustomObject     = "/v1/write/custom_object"
+	Logging          = "/v1/write/logging"
+	Tracing          = "/v1/write/tracing"
+	Rum              = "/v1/write/rum"
+	Security         = "/v1/write/security"
+
+	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"
 	QueryRaw          = "/v1/query/raw"
-	ListDataWay       = "/v1/list/dataway"
+	Workspace         = "/v1/workspace"
 	ObjectLabel       = "/v1/object/labels" // object label
+	LogUpload         = "/v1/log"
+	LogFilter         = "/v2/logfilter/pull"
+	ListDataWay       = "/v2/list/dataway"
+	DatakitInputName  = "self"
 )
 
 var (
@@ -62,6 +68,8 @@ var (
 	AutoUpdate = false
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+
+	DatakitHostName = "" // 默认为空
 
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: `C:\Program Files\datakit`,
@@ -75,13 +83,22 @@ var (
 	}
 
 	AllOS   = []string{OSWindows, OSLinux, OSDarwin}
-	AllArch = []string{OSArchWinAmd64, OSArchWin386, OSArchLinuxArm, OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64}
+	AllArch = []string{
+		OSArchWinAmd64, OSArchWin386, OSArchLinuxArm,
+		OSArchLinuxArm64, OSArchLinux386, OSArchLinuxAmd64, OSArchDarwinAmd64,
+	}
 
 	UnknownOS   = []string{"unknown"}
 	UnknownArch = []string{"unknown"}
 
 	DataDir  = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
+
+	GitReposDir      = filepath.Join(InstallDir, "gitrepos")
+	GetReposConfDirs []string // git repos conf search dirs
+
+	PythonDDir    = filepath.Join(InstallDir, "python.d")
+	PythonCoreDir = filepath.Join(PythonDDir, "core")
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
@@ -90,6 +107,7 @@ var (
 
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
+	CacheDir           = filepath.Join(InstallDir, "cache")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 )
@@ -105,8 +123,13 @@ func SetWorkDir(dir string) {
 
 	PipelineDir = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
+	CacheDir = filepath.Join(InstallDir, "cache")
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
+
+	GitReposDir = filepath.Join(InstallDir, "gitrepos")
+	PythonDDir = filepath.Join(InstallDir, "python.d")
+	PythonCoreDir = filepath.Join(PythonDDir, "core")
 
 	InitDirs()
 }
@@ -116,7 +139,9 @@ func InitDirs() {
 		DataDir,
 		ConfdDir,
 		PipelineDir,
-		PipelinePatternDir} {
+		PipelinePatternDir,
+		GitReposDir,
+	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)
 		}
@@ -128,7 +153,7 @@ const (
 )
 
 var (
-	// goroutines caches  goroutine
+	// goroutines caches  goroutine.
 	goroutines = []*goroutine.Group{}
 
 	l = logger.DefaultSLogger("datakit")
@@ -138,9 +163,8 @@ func SetLog() {
 	l = logger.SLogger("datakit")
 }
 
-// G create a groutine group, with namespace datakit
+// G create a goroutine group, with namespace datakit.
 func G(name string) *goroutine.Group {
-
 	panicCb := func(b []byte) bool {
 		l.Errorf("%s", b)
 		select {
@@ -161,7 +185,7 @@ func G(name string) *goroutine.Group {
 	return g
 }
 
-// GWait wait all goroutine group exit
+// GWait wait all goroutine group exit.
 func GWait() {
 	for _, g := range goroutines {
 		// just ignore error
@@ -172,7 +196,6 @@ func GWait() {
 }
 
 func Quit() {
-
 	_ = os.Remove(pidFile)
 
 	Exit.Close()
@@ -182,7 +205,7 @@ func Quit() {
 }
 
 func PID() (int, error) {
-	if x, err := ioutil.ReadFile(pidFile); err != nil {
+	if x, err := ioutil.ReadFile(filepath.Clean(pidFile)); err != nil {
 		return -1, err
 	} else {
 		if pid, err := strconv.ParseInt(string(x), 10, 32); err != nil {
@@ -194,9 +217,8 @@ func PID() (int, error) {
 }
 
 func SavePid() error {
-
 	if isRuning() {
-		return fmt.Errorf("DataKit still running, PID: %s", pidFile)
+		return fmt.Errorf("datakit still running, PID: %s", pidFile)
 	}
 
 	pid := os.Getpid()
@@ -208,8 +230,7 @@ func isRuning() bool {
 	var name string
 	var p *process.Process
 
-	cont, err := ioutil.ReadFile(pidFile)
-
+	cont, err := ioutil.ReadFile(filepath.Clean(pidFile))
 	// pid文件不存在
 	if err != nil {
 		return false
@@ -223,16 +244,13 @@ func isRuning() bool {
 	p, _ = process.NewProcess(int32(oidPid))
 	name, _ = p.Name()
 
-	if name == getBinName() {
-		return true
-	}
-	return false
+	return name == getBinName()
 }
 
 func getBinName() string {
 	bin := "datakit"
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == OSWindows {
 		bin += ".exe"
 	}
 

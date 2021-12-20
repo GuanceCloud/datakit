@@ -2,32 +2,13 @@ package diskio
 
 import (
 	"regexp"
-	"time"
 
 	"github.com/shirou/gopsutil/disk"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type measurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
 type DiskIO func(names ...string) (map[string]disk.IOCountersStat, error)
 
-// func PSDiskIO(names ...string) (map[string]disk.IOCountersStat, error) {
-// 	m, err := disk.IOCounters(names...)
-// 	if err != nil {
-// 		if strings.Contains(err.Error(), "not implemented yet") {
-// 			return nil, nil
-// 		}
-// 	}
-// 	return m, err
-// }
-
-// 正则过滤
 type DevicesFilter struct {
 	filters []*regexp.Regexp
 }

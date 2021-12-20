@@ -2,6 +2,7 @@ package postgresql
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
+//nolint:lll
 var postgreFields = map[string]interface{}{
 	// db
 	"numbackends":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Count, Desc: "The number of active connections to this database."},

@@ -1,52 +1,31 @@
 package jenkins
 
 import (
-	"sync"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
-
-	"github.com/gin-gonic/gin"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestGetMetric(t *testing.T) {
-
-	opt := &testutil.HTTPServerOptions{
-		Bind: ":1234",
-		Exit: make(chan interface{}),
-		Routes: map[string]func(*gin.Context){
-			"/metrics/:key/metrics": func(c *gin.Context) {
-				c.Writer.Header().Set("Content-Type", "application/json")
-				c.Writer.Write([]byte(s))
-			},
-		},
-	}
-
-	wg := sync.WaitGroup{}
-
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		testutil.NewHTTPServer(t, opt)
-	}()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, s)
+	}))
 
 	time.Sleep(time.Second)
 
 	n := Input{
-		Url:      "http://127.0.0.1:1234",
+		URL:      ts.URL,
 		Key:      "ccc",
 		Interval: datakit.Duration{Duration: time.Second * 1},
 	}
-	go func() {
-		time.Sleep(time.Second * 2)
-		datakit.Exit.Close()
-		close(opt.Exit)
-	}()
-	n.Run()
-	wg.Wait()
+
+	n.setup()
+
+	n.getPluginMetric()
 }
 
 var s = `{

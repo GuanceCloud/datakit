@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package sensors
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmd"
@@ -17,11 +19,20 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var (
+	defCommand  = "sensors"
+	defPath     = "/usr/bin/sensors"
+	defInterval = datakit.Duration{Duration: 10 * time.Second}
+	defTimeout  = datakit.Duration{Duration: 3 * time.Second}
+)
+
 type Input struct {
 	Path     string            `toml:"path"`
 	Interval datakit.Duration  `toml:"interval"`
 	Timeout  datakit.Duration  `toml:"timeout"`
 	Tags     map[string]string `toml:"tags"`
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (*Input) Catalog() string {
@@ -40,71 +51,83 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&sensorsMeasurement{}}
 }
 
-func (s *Input) Run() {
-
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("sensors input started")
 
 	var err error
-	if s.Path == "" || !path.IsFileExists(s.Path) {
-		if s.Path, err = exec.LookPath(defCommand); err != nil {
+	if ipt.Path == "" || !path.IsFileExists(ipt.Path) {
+		if ipt.Path, err = exec.LookPath(defCommand); err != nil {
 			l.Errorf("Can not find executable sensor command, install 'lm-sensors' first.")
 
 			return
 		}
-		l.Info("Command fallback to %q due to invalide path provided in 'sensors' input", s.Path)
+		l.Info("Command fallback to %q due to invalide path provided in 'sensors' input", ipt.Path)
 	}
 
-	tick := time.NewTicker(s.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	for {
 		select {
 		case <-tick.C:
-			if err = s.gather(); err != nil {
-				l.Error(err.Error())
+			if err = ipt.gather(); err != nil {
+				l.Errorf("gather: %s", err.Error())
 				io.FeedLastError(inputName, err.Error())
 				continue
 			}
 		case <-datakit.Exit.Wait():
-			l.Info("sensors input exits")
+			l.Info("sensors input exit")
+			return
 
+		case <-ipt.semStop.Wait():
+			l.Info("sensors input return")
 			return
 		}
 	}
 }
 
-func (s *Input) gather() error {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func (ipt *Input) gather() error {
 	start := time.Now()
-	output, err := cmd.RunWithTimeout(s.Timeout.Duration, false, s.Path, "-u")
+	output, err := cmd.RunWithTimeout(ipt.Timeout.Duration, false, ipt.Path, "-u")
 	if err != nil {
 		l.Errorf("Command process failed: %q", output)
 
 		return err
 	}
 
-	if cache, err := s.parse(string(output)); err != nil {
+	if cache, err := ipt.parse(string(output)); err != nil {
 		return err
 	} else {
-		return inputs.FeedMeasurement(inputName, datakit.Metric, cache, &io.Option{CollectCost: time.Now().Sub(start)})
+		return inputs.FeedMeasurement(inputName,
+			datakit.Metric,
+			cache,
+			&io.Option{CollectCost: time.Since(start)})
 	}
 }
 
-func (s *Input) getCustomerTags() map[string]string {
+func (ipt *Input) getCustomerTags() map[string]string {
 	tags := make(map[string]string)
-	for k, v := range s.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
 
 	return tags
 }
 
-func (s *Input) parse(output string) ([]inputs.Measurement, error) {
+func (ipt *Input) parse(output string) ([]inputs.Measurement, error) {
 	var (
 		lines  = strings.Split(strings.TrimSpace(output), "\n")
-		tags   = s.getCustomerTags()
+		tags   = ipt.getCustomerTags()
 		fields = make(map[string]interface{})
 		cache  []inputs.Measurement
 	)
+
 	for _, line := range lines {
 		if line == "" {
 			cache = append(cache, &sensorsMeasurement{
@@ -113,44 +136,48 @@ func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 				fields: fields,
 				ts:     time.Now(),
 			})
-			tags = s.getCustomerTags()
+			tags = ipt.getCustomerTags()
 			fields = make(map[string]interface{})
-		} else {
-			if strings.Contains(line, ":") {
-				parts := strings.Split(line, ":")
-				if strings.HasSuffix(line, ":") {
-					if len(fields) != 0 {
-						cache = append(cache, &sensorsMeasurement{
-							name:   inputName,
-							tags:   tags,
-							fields: fields,
-							ts:     time.Now(),
-						})
+			continue
+		}
 
-						tmp := make(map[string]string)
-						for k, v := range tags {
-							tmp[k] = v
-						}
-						tags = tmp
-						fields = make(map[string]interface{})
-					}
-					tags["feature"] = strings.ToLower(strings.Replace(strings.TrimSpace(parts[0]), " ", "_", -1))
-				} else if strings.HasPrefix(parts[0], " ") {
-					if value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err != nil {
-						log.Println(err.Error())
+		if !strings.Contains(line, ":") {
+			tags["chip"] = line
+			continue
+		}
 
-						return nil, err
-					} else {
-						fields[strings.ToLower(strings.TrimSpace(parts[0]))] = value
-					}
-				} else {
-					tags[strings.ToLower(parts[0])] = strings.TrimSpace(parts[1])
+		parts := strings.Split(line, ":")
+		switch {
+		case strings.HasSuffix(line, ":"):
+			if len(fields) != 0 {
+				cache = append(cache, &sensorsMeasurement{
+					name:   inputName,
+					tags:   tags,
+					fields: fields,
+					ts:     time.Now(),
+				})
+
+				tmp := make(map[string]string)
+				for k, v := range tags {
+					tmp[k] = v
 				}
-			} else {
-				tags["chip"] = line
+				tags = tmp
+				fields = make(map[string]interface{})
 			}
+			tags["feature"] = strings.ToLower(strings.ReplaceAll(strings.TrimSpace(parts[0]), " ", "_"))
+		case strings.HasPrefix(parts[0], " "):
+			if value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err != nil {
+				log.Println(err.Error())
+
+				return nil, err
+			} else {
+				fields[strings.ToLower(strings.TrimSpace(parts[0]))] = value
+			}
+		default:
+			tags[strings.ToLower(parts[0])] = strings.TrimSpace(parts[1])
 		}
 	}
+
 	if len(fields) != 0 {
 		cache = append(cache, &sensorsMeasurement{name: inputName, tags: tags, fields: fields, ts: time.Now()})
 	}
@@ -158,12 +185,14 @@ func (s *Input) parse(output string) ([]inputs.Measurement, error) {
 	return cache, nil
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Path:     defPath,
 			Interval: defInterval,
 			Timeout:  defTimeout,
+
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

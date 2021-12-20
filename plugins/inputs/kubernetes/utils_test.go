@@ -5,7 +5,7 @@ import (
 )
 
 func TestAddLabelToFields(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		labels map[string]string
 		fiedls map[string]interface{}
 	}{

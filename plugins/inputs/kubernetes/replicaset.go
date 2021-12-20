@@ -1,30 +1,30 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
-
-	appsv1 "k8s.io/api/apps/v1"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	kubev1apps "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
 const kubernetesReplicaSetName = "kubernetes_replica_sets"
 
 type replicaSet struct {
 	client interface {
-		getReplicaSets() (*appsv1.ReplicaSetList, error)
+		getReplicaSets() kubev1apps.ReplicaSetInterface
 	}
 	tags map[string]string
 }
 
 func (r *replicaSet) Gather() {
-	var start = time.Now()
+	start := time.Now()
 	var pts []*io.Point
 
-	list, err := r.client.getReplicaSets()
+	list, err := r.client.getReplicaSets().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Errorf("failed of get replicaSet resource: %s", err)
 		return
@@ -34,15 +34,19 @@ func (r *replicaSet) Gather() {
 		tags := map[string]string{
 			"name":             fmt.Sprintf("%v", obj.UID),
 			"replica_set_name": obj.Name,
-			"cluster_name":     obj.ClusterName,
-			"namespace":        obj.Namespace,
+		}
+		if obj.ClusterName != "" {
+			tags["cluster_name"] = obj.ClusterName
+		}
+		if obj.Namespace != "" {
+			tags["namespace"] = obj.Namespace
 		}
 		for k, v := range r.tags {
 			tags[k] = v
 		}
 
 		fields := map[string]interface{}{
-			"age":       int64(time.Now().Sub(obj.CreationTimestamp.Time).Seconds()),
+			"age":       int64(time.Since(obj.CreationTimestamp.Time).Seconds()),
 			"ready":     obj.Status.ReadyReplicas,
 			"available": obj.Status.AvailableReplicas,
 		}
@@ -60,15 +64,22 @@ func (r *replicaSet) Gather() {
 		}
 	}
 
+	if len(pts) == 0 {
+		l.Debug("no points")
+		return
+	}
+
 	if err := io.Feed(inputName, datakit.Object, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
 	}
 }
 
+//nolint:unused
 func (*replicaSet) resource() { /*empty interface*/ }
 
 func (*replicaSet) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (*replicaSet) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubernetesReplicaSetName,
@@ -86,7 +97,7 @@ func (*replicaSet) Info() *inputs.MeasurementInfo {
 			"available":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
 			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
 			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "object details"},
-			//TODO:
+			// TODO:
 			// "selectors": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 			// "current/desired":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 		},

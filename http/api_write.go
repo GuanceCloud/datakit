@@ -2,13 +2,12 @@ package http
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -18,43 +17,24 @@ import (
 type jsonPoint struct {
 	Measurement string                 `json:"measurement"`
 	Tags        map[string]string      `json:"tags,omitempty"`
-	Field       map[string]interface{} `json:"fields"`
+	Fields      map[string]interface{} `json:"fields"`
 	Time        int64                  `json:"time,omitempty"`
 }
 
-// convert json point to real point
-func (jp *jsonPoint) pt(prec string, extags map[string]string) (*io.Point, error) {
-	if prec == "" || prec == "n" {
-		prec = "ns"
+// convert json point to real point.
+func (jp *jsonPoint) point(opt *lp.Option) (*io.Point, error) {
+	p, err := lp.MakeLineProtoPoint(jp.Measurement, jp.Tags, jp.Fields, opt)
+	if err != nil {
+		return nil, err
 	}
 
-	var t time.Time
-	switch prec {
-	case "h", "m", "s", "ms", "u", "ns":
-		if jp.Time == 0 {
-			t = time.Now()
-		} else {
-			du, err := time.ParseDuration(fmt.Sprintf("%d%s", jp.Time, prec))
-			if err != nil {
-				return nil, err
-			}
-			t = time.Unix(0, int64(du))
-		}
-
-	default:
-		return nil, fmt.Errorf("invalid precision")
-	}
-
-	if extags == nil {
-		return io.MakePointWithoutGlobalTags(jp.Measurement, jp.Tags, jp.Field, t)
-	} else {
-		return io.MakePoint(jp.Measurement, jp.Tags, jp.Field, t)
-	}
+	return &io.Point{Point: p}, nil
 }
 
 func apiWrite(c *gin.Context) {
 	var body []byte
 	var err error
+	var version string
 
 	input := DEFAULT_INPUT
 
@@ -62,6 +42,7 @@ func apiWrite(c *gin.Context) {
 
 	switch category {
 	case datakit.Metric,
+		datakit.Network,
 		datakit.Logging,
 		datakit.Object,
 		datakit.Tracing,
@@ -73,7 +54,7 @@ func apiWrite(c *gin.Context) {
 	case datakit.Rum:
 		input = "rum"
 	case datakit.Security:
-		input = "sechecker"
+		input = "scheck"
 	default:
 		l.Debugf("invalid category: %s", category)
 		uhttp.HttpErr(c, ErrInvalidCategory)
@@ -89,6 +70,10 @@ func apiWrite(c *gin.Context) {
 		precision = x
 	}
 
+	if x := c.Query(VERSION); x != "" {
+		version = x
+	}
+
 	switch precision {
 	case "h", "m", "s", "ms", "u", "n":
 	default:
@@ -99,7 +84,7 @@ func apiWrite(c *gin.Context) {
 
 	body, err = uhttp.GinRead(c)
 	if err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrHttpReadErr, err.Error()))
+		uhttp.HttpErr(c, uhttp.Error(ErrHTTPReadErr, err.Error()))
 		return
 	}
 
@@ -134,16 +119,24 @@ func apiWrite(c *gin.Context) {
 			}
 		}
 
-		pts, err = handleRUMBody(body, precision, srcip, isjson)
-
+		pts, err = handleRUMBody(body, precision, srcip, isjson, apiConfig.RUMAppIDWhiteList)
+		// appid不在白名单中，当前 http 请求直接返回
+		if errors.As(err, &ErrRUMAppIDNotInWhiteList) {
+			uhttp.HttpErr(c, err)
+			return
+		}
 	} else {
 		extags := extraTags
 		if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
 			extags = nil
 		}
 
-		pts, err = handleWriteBody(body, precision,
-			extags, isjson)
+		pts, err = handleWriteBody(body, isjson, &lp.Option{
+			Precision: precision,
+			Time:      time.Now(),
+			ExtraTags: extags,
+			Strict:    true,
+		})
 		if err != nil {
 			uhttp.HttpErr(c, err)
 			return
@@ -152,32 +145,22 @@ func apiWrite(c *gin.Context) {
 
 	l.Debugf("received %d(%s) points from %s", len(pts), category, input)
 
-	err = io.Feed(input, category, pts, &io.Option{HighFreq: true})
+	err = io.Feed(input, category, pts, &io.Option{HighFreq: true, Version: version})
 
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 	} else {
-		ErrOK.HttpBody(c, nil)
+		OK.HttpBody(c, nil)
 	}
 }
 
-func handleWriteBody(body []byte,
-	precision string,
-	extags map[string]string,
-	isJson bool) ([]*io.Point, error) {
-
-	switch isJson {
+func handleWriteBody(body []byte, isJSON bool, opt *lp.Option) ([]*io.Point, error) {
+	switch isJSON {
 	case true:
-
-		return jsonPoints(body, precision, extags)
+		return jsonPoints(body, opt)
 
 	default:
-		pts, err := lp.ParsePoints(body, &lp.Option{
-			Time:      time.Now(),
-			ExtraTags: extags,
-			Strict:    true,
-			Precision: precision})
-
+		pts, err := lp.ParsePoints(body, opt)
 		if err != nil {
 			return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
 		}
@@ -186,20 +169,23 @@ func handleWriteBody(body []byte,
 	}
 }
 
-func jsonPoints(body []byte, prec string, extags map[string]string) ([]*io.Point, error) {
-
+func jsonPoints(body []byte, opt *lp.Option) ([]*io.Point, error) {
 	var jps []jsonPoint
 	err := json.Unmarshal(body, &jps)
 	if err != nil {
 		l.Error(err)
-		return nil, ErrInvalidJsonPoint
+		return nil, ErrInvalidJSONPoint
+	}
+
+	if opt == nil {
+		opt = lp.DefaultOption
 	}
 
 	var pts []*io.Point
 	for _, jp := range jps {
-		if p, err := jp.pt(prec, extags); err != nil {
+		if p, err := jp.point(opt); err != nil {
 			l.Error(err)
-			return nil, uhttp.Error(ErrInvalidJsonPoint, err.Error())
+			return nil, uhttp.Error(ErrInvalidJSONPoint, err.Error())
 		} else {
 			pts = append(pts, p)
 		}

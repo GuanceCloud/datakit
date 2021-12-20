@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -17,6 +18,7 @@ type kubernetesMetric struct {
 
 func (m *kubernetesMetric) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (m *kubernetesMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: k8sMeasurement,
@@ -90,15 +92,15 @@ func (m *kubernetesMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func (k *kubernetesMetric) Gather() {
-	list, err := k.client.getNamespaces()
+func (m *kubernetesMetric) Gather() {
+	list, err := m.client.getNamespaces().List(context.Background(), metav1ListOption)
 	if err != nil {
 		l.Error(err)
 		return
 	}
 
 	defer func() {
-		k.client.namespace = ""
+		m.client.namespace = ""
 	}()
 
 	for _, item := range list.Items {
@@ -106,64 +108,64 @@ func (k *kubernetesMetric) Gather() {
 		fields := map[string]interface{}{}
 
 		ns := item.Name
-		k.client.namespace = ns
+		m.client.namespace = ns
 
 		tags["namespace"] = ns
 
-		for key, value := range k.tags {
+		for key, value := range m.tags {
 			tags[key] = value
 		}
 
 		// DaemonSets
-		if list, err := k.client.getDaemonSets(); err != nil {
+		if list, err := m.client.getDaemonSets().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["daemonSet"] = len(list.Items)
 		}
 
 		// deployment
-		if list, err := k.client.getDeployments(); err != nil {
+		if list, err := m.client.getDeployments().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["deployment"] = len(list.Items)
 		}
 
 		// endpoint
-		if list, err := k.client.getEndpoints(); err != nil {
+		if list, err := m.client.getEndpoints().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["endpoint"] = len(list.Items)
 		}
 
 		// node
-		if list, err := k.client.getNodes(); err != nil {
+		if list, err := m.client.getNodes().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["node"] = len(list.Items)
 		}
 
 		// service
-		if list, err := k.client.getServices(); err != nil {
+		if list, err := m.client.getServices().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["service"] = len(list.Items)
 		}
 
 		// statefulSets
-		if list, err := k.client.getStatefulSets(); err != nil {
+		if list, err := m.client.getStatefulSets().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["statefulSets"] = len(list.Items)
 		}
 
 		// ingress
-		if list, err := k.client.getIngress(); err != nil {
+		if list, err := m.client.getIngress().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["ingress"] = len(list.Items)
 		}
 
-		if list, err := k.client.getPods(); err != nil {
+		if list, err := m.client.getPods(ns).List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["pod"] = len(list.Items)
@@ -174,13 +176,13 @@ func (k *kubernetesMetric) Gather() {
 			fields["container"] = containerCnt
 		}
 
-		if list, err := k.client.getJobs(); err != nil {
+		if list, err := m.client.getJobs().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["job"] = len(list.Items)
 		}
 
-		if list, err := k.client.getCronJobs(); err != nil {
+		if list, err := m.client.getCronJobs().List(context.Background(), metav1ListOption); err != nil {
 			l.Error(err)
 		} else {
 			fields["cronJob"] = len(list.Items)
@@ -189,10 +191,8 @@ func (k *kubernetesMetric) Gather() {
 		pt, err := io.MakePoint(k8sMeasurement, tags, fields, time.Now())
 		if err != nil {
 			l.Error(err)
-		} else {
-			if err := io.Feed(inputName, datakit.Metric, []*io.Point{pt}, nil); err != nil {
-				l.Error(err)
-			}
+		} else if err := io.Feed(inputName, datakit.Metric, []*io.Point{pt}, nil); err != nil {
+			l.Error(err)
 		}
 	}
 }

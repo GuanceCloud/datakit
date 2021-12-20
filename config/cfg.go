@@ -1,7 +1,9 @@
+// Package config manage datakit's configurations, include all inputs TOML configure.
 package config
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,19 +16,17 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	dktracer "gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
-	IntervalDuration = 10 * time.Second
-
 	Cfg = DefaultConfig()
 
 	l = logger.DefaultSLogger("config")
@@ -56,17 +56,27 @@ func DefaultConfig() *Config {
 			MaxDynamicCacheCount:      1024,
 			DynamicCacheDumpThreshold: 512,
 			FlushInterval:             "10s",
+			OutputFileInputs:          []string{},
+			EnableCache:               false,
 		},
 
-		DataWay: &dataway.DataWayCfg{},
+		DataWay: &dataway.DataWayCfg{
+			URLs: []string{},
+		},
 
 		ProtectMode: true,
 
 		HTTPAPI: &dkhttp.APIConfig{
 			RUMOriginIPHeader: "X-Forwarded-For",
 			Listen:            "localhost:9529",
+			RUMAppIDWhiteList: []string{},
 		},
 
+		DCAConfig: &dkhttp.DCAConfig{
+			Enable:    false,
+			Listen:    "0.0.0.0:9531",
+			WhiteList: []string{},
+		},
 		Logging: &LoggerCfg{
 			Level:  "info",
 			Rotate: 32,
@@ -75,16 +85,31 @@ func DefaultConfig() *Config {
 		},
 
 		BlackList: []*inputHostList{
-			&inputHostList{Hosts: []string{}, Inputs: []string{}},
+			{Hosts: []string{}, Inputs: []string{}},
 		},
 		WhiteList: []*inputHostList{
-			&inputHostList{Hosts: []string{}, Inputs: []string{}},
+			{Hosts: []string{}, Inputs: []string{}},
 		},
-		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
+		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
+
+		Tracer: &tracer.Tracer{TraceEnabled: false},
+
+		GitRepos: &GitRepost{
+			PullInterval: "1m",
+			Repos: []*GitRepository{
+				{
+					Enable:                false,
+					URL:                   "",
+					SSHPrivateKeyPath:     "",
+					SSHPrivateKeyPassword: "",
+					Branch:                "master",
+				},
+			},
+		},
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
 		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	}
@@ -99,14 +124,16 @@ type Cgroup struct {
 }
 
 type IOConfig struct {
-	FeedChanSize              int    `toml:"feed_chan_size"`
-	HighFreqFeedChanSize      int    `toml:"high_frequency_feed_chan_size"`
-	MaxCacheCount             int64  `toml:"max_cache_count"`
-	CacheDumpThreshold        int64  `toml:"cache_dump_threshold"`
-	MaxDynamicCacheCount      int64  `toml:"max_dynamic_cache_count"`
-	DynamicCacheDumpThreshold int64  `toml:"dynamic_cache_dump_threshold"`
-	FlushInterval             string `toml:"flush_interval"`
-	OutputFile                string `toml:"output_file"`
+	FeedChanSize              int      `toml:"feed_chan_size"`
+	HighFreqFeedChanSize      int      `toml:"high_frequency_feed_chan_size"`
+	MaxCacheCount             int64    `toml:"max_cache_count"`
+	CacheDumpThreshold        int64    `toml:"cache_dump_threshold"`
+	MaxDynamicCacheCount      int64    `toml:"max_dynamic_cache_count"`
+	DynamicCacheDumpThreshold int64    `toml:"dynamic_cache_dump_threshold"`
+	FlushInterval             string   `toml:"flush_interval"`
+	OutputFile                string   `toml:"output_file"`
+	OutputFileInputs          []string `toml:"output_file_inputs"`
+	EnableCache               bool     `toml:"enable_cache"`
 }
 
 type LoggerCfg struct {
@@ -117,61 +144,76 @@ type LoggerCfg struct {
 	Rotate       int    `toml:"rotate,omitzero"`
 }
 
+type GitRepository struct {
+	Enable                bool   `toml:"enable"`
+	URL                   string `toml:"url"`
+	SSHPrivateKeyPath     string `toml:"ssh_private_key_path"`
+	SSHPrivateKeyPassword string `toml:"ssh_private_key_password"`
+	Branch                string `toml:"branch"`
+}
+
+type GitRepost struct {
+	PullInterval string           `toml:"pull_interval"`
+	Repos        []*GitRepository `toml:"repo"`
+}
+
 type Config struct {
-	UUID           string `toml:"-"`
-	UUIDDeprecated string `toml:"uuid,omitempty"` // deprecated
+	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
+	InstallDate          time.Time `toml:"install_date,omitempty"`
+	UpgradeDate          time.Time `toml:"upgrade_date,omitempty"`
+
+	BlackList []*inputHostList `toml:"black_lists,omitempty"`
+	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
+
+	UUID string `toml:"-"`
 
 	Name      string `toml:"name,omitempty"`
 	Hostname  string `toml:"-"`
 	Namespace string `toml:"namespace"`
 
-	IOConf *IOConfig `toml:"io"`
-
-	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
-
 	// http config: TODO: merge into APIConfig
-	HTTPBindDeprecated       string            `toml:"http_server_addr,omitempty"`
-	HTTPListenDeprecated     string            `toml:"http_listen,omitempty"`
-	Disable404PageDeprecated bool              `toml:"disable_404page,omitempty"`
-	HTTPAPI                  *dkhttp.APIConfig `toml:"http_api"`
+	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
+	HTTPListenDeprecated string `toml:"http_listen,omitempty"`
+	IntervalDeprecated   string `toml:"interval,omitempty"`
+	OutputFileDeprecated string `toml:"output_file,omitempty"`
+	UUIDDeprecated       string `toml:"uuid,omitempty"` // deprecated
+
+	// DCA config
+	DCAConfig *dkhttp.DCAConfig `toml:"dca"`
 
 	// logging config
-	LogDeprecated       string     `toml:"log,omitempty"`
-	LogLevelDeprecated  string     `toml:"log_level,omitempty"`
-	LogRotateDeprecated int        `toml:"log_rotate,omitzero"`
-	GinLogDeprecated    string     `toml:"gin_log,omitempty"`
-	Logging             *LoggerCfg `toml:"logging"`
+	LogDeprecated      string `toml:"log,omitempty"`
+	LogLevelDeprecated string `toml:"log_level,omitempty"`
+	GinLogDeprecated   string `toml:"gin_log,omitempty"`
+
+	InstallVer string `toml:"install_version,omitempty"`
+
+	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
+	IOConf  *IOConfig           `toml:"io"`
+	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
+	Logging *LoggerCfg          `toml:"logging"`
+
+	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
+	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
 	GlobalTags   map[string]string `toml:"global_tags"`
 	Environments map[string]string `toml:"environments"`
+	Cgroup       *Cgroup           `toml:"cgroup"`
 
-	OutputFileDeprecated string `toml:"output_file,omitempty"`
+	EnablePProf              bool `toml:"enable_pprof,omitempty"`
+	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
+	ProtectMode              bool `toml:"protect_mode"`
 
-	EnablePProf bool `toml:"enable_pprof,omitempty"`
-	ProtectMode bool `toml:"protect_mode"`
-
-	IntervalDeprecated string `toml:"interval,omitempty"`
-
-	DefaultEnabledInputs []string `toml:"default_enabled_inputs,omitempty"`
-
-	InstallDate time.Time `toml:"install_date,omitempty"`
-	UpgradeDate time.Time `toml:"upgrade_date,omitempty"`
-	InstallVer  string    `toml:"install_version,omitempty"`
-
-	BlackList []*inputHostList `toml:"black_lists,omitempty"`
-	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
-	Cgroup    *Cgroup          `toml:"cgroup"`
-
-	EnableElection         bool           `toml:"enable_election"`
-	IOCacheCountDeprecated int64          `toml:"io_cache_count,omitzero"`
-	Tracer                 *tracer.Tracer `toml:"tracer,omitempty"`
-
-	EnableDca bool `toml:"enable_dca"`
+	EnableElection bool `toml:"enable_election"`
 
 	// 是否已开启自动更新，通过 dk-install --ota 来开启
 	AutoUpdate bool `toml:"auto_update,omitempty"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
+
+	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
+
+	GitRepos *GitRepost `toml:"git_repos"`
 }
 
 func (c *Config) String() string {
@@ -199,7 +241,7 @@ func (c *Config) SetUUID() error {
 }
 
 func (c *Config) LoadMainTOML(p string) error {
-	cfgdata, err := ioutil.ReadFile(p)
+	cfgdata, err := ioutil.ReadFile(filepath.Clean(p))
 	if err != nil {
 		l.Errorf("read main cfg %s failed: %s", p, err.Error())
 		return err
@@ -242,19 +284,18 @@ func (i *inputHostList) MatchInput(input string) bool {
 }
 
 func (c *Config) InitCfg(p string) error {
-
 	if c.Hostname == "" {
-		c.setHostname()
+		if err := c.setHostname(); err != nil {
+			return err
+		}
 	}
 
 	if mcdata, err := datakit.TomlMarshal(c); err != nil {
 		l.Errorf("TomlMarshal(): %s", err.Error())
 		return err
-	} else {
-		if err := ioutil.WriteFile(p, mcdata, datakit.ConfPerm); err != nil {
-			l.Errorf("error creating %s: %s", p, err)
-			return err
-		}
+	} else if err := ioutil.WriteFile(p, mcdata, datakit.ConfPerm); err != nil {
+		l.Errorf("error creating %s: %s", p, err)
+		return err
 	}
 
 	return nil
@@ -286,18 +327,21 @@ func (c *Config) setupGlobalTags() error {
 		c.GlobalTags = map[string]string{}
 	}
 
-	delete(c.GlobalTags, "host") // delete host tag if configured
+	// Delete host tag if configured: you should not do this,
+	// use ENV_HOSTNAME in Config.Environments instead
+	delete(c.GlobalTags, "host")
 
 	// setup global tags
 	for k, v := range c.GlobalTags {
-
 		// NOTE: accept `__` and `$` as tag-key prefix, to keep compatible with old prefix `$`
 		// by using `__` as prefix, avoid escaping `$` in Powershell and shell
 
 		switch strings.ToLower(v) {
 		case `__datakit_hostname`, `$datakit_hostname`:
 			if c.Hostname == "" {
-				c.setHostname()
+				if err := c.setHostname(); err != nil {
+					return err
+				}
 			}
 
 			c.GlobalTags[k] = c.Hostname
@@ -326,7 +370,6 @@ func (c *Config) setupGlobalTags() error {
 }
 
 func (c *Config) setLogging() {
-
 	// set global log root
 	switch c.Logging.Log {
 	case "stdout", "":
@@ -340,7 +383,8 @@ func (c *Config) setLogging() {
 		if err := logger.InitRoot(
 			&logger.Option{
 				Level: c.Logging.Level,
-				Flags: optflags}); err != nil {
+				Flags: optflags,
+			}); err != nil {
 			l.Errorf("set root log faile: %s", err.Error())
 		}
 	default:
@@ -352,7 +396,8 @@ func (c *Config) setLogging() {
 		if err := logger.InitRoot(&logger.Option{
 			Path:  c.Logging.Log,
 			Level: c.Logging.Level,
-			Flags: logger.OPT_DEFAULT}); err != nil {
+			Flags: logger.OPT_DEFAULT,
+		}); err != nil {
 			l.Panicf("set root log to %s faile: %s", c.Logging.Log, err.Error())
 		}
 
@@ -361,7 +406,6 @@ func (c *Config) setLogging() {
 }
 
 func (c *Config) ApplyMainConfig() error {
-
 	c.setLogging()
 
 	l = logger.SLogger("config")
@@ -380,11 +424,6 @@ func (c *Config) ApplyMainConfig() error {
 		return err
 	}
 
-	// initialize global tracer
-	if c.Tracer != nil {
-		dktracer.GlobalTracer = c.Tracer
-	}
-
 	datakit.AutoUpdate = c.AutoUpdate
 
 	// config default io
@@ -395,7 +434,17 @@ func (c *Config) ApplyMainConfig() error {
 		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
 			c.IOConf.OutputFile = c.OutputFileDeprecated
 		}
-		dkio.ConfigDefaultIO(dkio.SetFeedChanSize(c.IOConf.FeedChanSize), dkio.SetHighFreqFeedChanSize(c.IOConf.HighFreqFeedChanSize), dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount), dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold), dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount), dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold), dkio.SetFlushInterval(c.IOConf.FlushInterval), dkio.SetOutputFile(c.IOConf.OutputFile), dkio.SetDataway(c.DataWay))
+		dkio.ConfigDefaultIO(dkio.SetFeedChanSize(c.IOConf.FeedChanSize),
+			dkio.SetHighFreqFeedChanSize(c.IOConf.HighFreqFeedChanSize),
+			dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount),
+			dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold),
+			dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount),
+			dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold),
+			dkio.SetFlushInterval(c.IOConf.FlushInterval),
+			dkio.SetOutputFile(c.IOConf.OutputFile),
+			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
+			dkio.SetEnableCache(c.IOConf.EnableCache),
+			dkio.SetDataway(c.DataWay))
 	}
 
 	if err := c.setupGlobalTags(); err != nil {
@@ -409,15 +458,6 @@ func (c *Config) ApplyMainConfig() error {
 	// 此处不将 host 计入 c.GlobalTags，因为 c.GlobalTags 是读取的用户配置，而 host
 	// 是不允许修改的, 故单独添加这个 tag 到 io 模块
 	dkio.SetExtraTags("host", c.Hostname)
-
-	if c.IntervalDeprecated != "" {
-		du, err := time.ParseDuration(c.IntervalDeprecated)
-		if err != nil {
-			l.Warnf("parse %s failed: %s, set default to 10s", c.IntervalDeprecated)
-			du = time.Second * 10
-		}
-		IntervalDuration = du
-	}
 
 	// remove deprecated UUID field in main configure
 	if c.UUIDDeprecated != "" {
@@ -433,15 +473,41 @@ func (c *Config) ApplyMainConfig() error {
 		l.Info("refresh main configure ok")
 	}
 
+	mExistCloneDirs := make(map[string]struct{})
+
+	for _, v := range c.GitRepos.Repos {
+		if !v.Enable {
+			continue
+		}
+		v.URL = dkstring.TrimString(v.URL)
+		if v.URL == "" {
+			continue
+		}
+		repoName, err := path.GetGitPureName(v.URL)
+		if err != nil {
+			continue
+		}
+		// check repeat
+		if _, ok := mExistCloneDirs[repoName]; ok {
+			continue
+		}
+		mExistCloneDirs[repoName] = struct{}{}
+		clonePath, err := GetGitRepoDir(repoName)
+		if err != nil {
+			continue
+		}
+		datakit.GetReposConfDirs = append(datakit.GetReposConfDirs, clonePath)
+	}
+
 	return nil
 }
 
 func (c *Config) setHostname() error {
-
 	// try get hostname from configure
 	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
 		c.Hostname = v
 		l.Infof("set hostname to %s from config ENV_HOSTNAME", v)
+		datakit.DatakitHostName = c.Hostname
 		return nil
 	}
 
@@ -451,8 +517,9 @@ func (c *Config) setHostname() error {
 		l.Errorf("get hostname failed: %s", err.Error())
 		return err
 	}
-
+	l.Infof("here is hostname:%s", c.Hostname)
 	c.Hostname = hn
+	datakit.DatakitHostName = c.Hostname
 	l.Infof("set hostname to %s", hn)
 	return nil
 }
@@ -484,22 +551,28 @@ func (c *Config) LoadEnvs() error {
 		c.IOConf = &IOConfig{}
 	}
 
-	for _, envkey := range []string{"ENV_MAX_CACHE_COUNT", "ENV_CACHE_DUMP_THRESHOLD", "ENV_MAX_DYNAMIC_CACHE_COUNT", "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD"} {
+	for _, envkey := range []string{
+		"ENV_MAX_CACHE_COUNT",
+		"ENV_CACHE_DUMP_THRESHOLD",
+		"ENV_MAX_DYNAMIC_CACHE_COUNT",
+		"ENV_DYNAMIC_CACHE_DUMP_THRESHOLD",
+	} {
 		if v := datakit.GetEnv(envkey); v != "" {
 			value, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				l.Errorf("invalid env key value pair [%s:%s]", envkey, v)
-			} else {
-				switch envkey {
-				case "ENV_MAX_CACHE_COUNT":
-					c.IOConf.MaxCacheCount = value
-				case "ENV_CACHE_DUMP_THRESHOLD":
-					c.IOConf.CacheDumpThreshold = value
-				case "ENV_MAX_DYNAMIC_CACHE_COUNT":
-					c.IOConf.MaxDynamicCacheCount = value
-				case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
-					c.IOConf.DynamicCacheDumpThreshold = value
-				}
+				l.Errorf("invalid env key value pair [%s:%s], ignored", envkey, v)
+				continue
+			}
+
+			switch envkey {
+			case "ENV_MAX_CACHE_COUNT":
+				c.IOConf.MaxCacheCount = value
+			case "ENV_CACHE_DUMP_THRESHOLD":
+				c.IOConf.CacheDumpThreshold = value
+			case "ENV_MAX_DYNAMIC_CACHE_COUNT":
+				c.IOConf.MaxDynamicCacheCount = value
+			case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
+				c.IOConf.DynamicCacheDumpThreshold = value
 			}
 		}
 	}
@@ -512,6 +585,7 @@ func (c *Config) LoadEnvs() error {
 		c.GlobalTags = ParseGlobalTags(v)
 	}
 
+	// set logging
 	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
 		c.Logging.Level = v
 	}
@@ -520,9 +594,16 @@ func (c *Config) LoadEnvs() error {
 		c.Logging.Log = v
 	}
 
+	if v := datakit.GetEnv("ENV_GIN_LOG"); v != "" {
+		c.Logging.GinLog = v
+	}
+
+	if v := datakit.GetEnv("ENV_DISABLE_LOG_COLOR"); v != "" {
+		c.Logging.DisableColor = true
+	}
+
 	// 多个 dataway 支持 ',' 分割
 	if v := datakit.GetEnv("ENV_DATAWAY"); v != "" {
-
 		if c.DataWay == nil {
 			c.DataWay = &dataway.DataWayCfg{}
 		}
@@ -537,8 +618,19 @@ func (c *Config) LoadEnvs() error {
 		c.Name = v
 	}
 
+	// HTTP server setting
 	if v := datakit.GetEnv("ENV_HTTP_LISTEN"); v != "" {
 		c.HTTPAPI.Listen = v
+	}
+
+	// DCA settings
+	if v := datakit.GetEnv("ENV_DCA_LISTEN"); v != "" {
+		c.DCAConfig.Enable = true
+		c.DCAConfig.Listen = v
+	}
+
+	if v := datakit.GetEnv("ENV_DCA_WHITE_LIST"); v != "" {
+		c.DCAConfig.WhiteList = strings.Split(v, ",")
 	}
 
 	if v := datakit.GetEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {
@@ -559,18 +651,32 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_DEFAULT_ENABLED_INPUTS"); v != "" {
 		c.DefaultEnabledInputs = strings.Split(v, ",")
-	} else {
-		if v := datakit.GetEnv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
-			c.DefaultEnabledInputs = strings.Split(v, ",")
-		}
+	} else if v := datakit.GetEnv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
+		c.DefaultEnabledInputs = strings.Split(v, ",")
 	}
 
 	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
 		c.EnableElection = true
 	}
 
-	if v := datakit.GetEnv("ENV_ENABLE_DCA"); v != "" {
-		c.EnableDca = true
+	if v := datakit.GetEnv("ENV_GIT_URL"); v != "" {
+		interval := datakit.GetEnv("ENV_GIT_INTERVAL")
+		keyPath := datakit.GetEnv("ENV_GIT_KEY_PATH")
+		keyPasswd := datakit.GetEnv("ENV_GIT_KEY_PW")
+		branch := datakit.GetEnv("ENV_GIT_BRANCH")
+
+		c.GitRepos = &GitRepost{
+			PullInterval: interval,
+			Repos: []*GitRepository{
+				{
+					Enable:                true,
+					URL:                   v,
+					SSHPrivateKeyPath:     keyPath,
+					SSHPrivateKeyPassword: keyPasswd,
+					Branch:                branch,
+				}, // GitRepository
+			}, // Repos
+		} // GitRepost
 	}
 
 	return nil
@@ -598,7 +704,7 @@ func CreateUUIDFile(f, uuid string) error {
 }
 
 func LoadUUID(f string) (string, error) {
-	if data, err := ioutil.ReadFile(f); err != nil {
+	if data, err := ioutil.ReadFile(filepath.Clean(f)); err != nil {
 		return "", err
 	} else {
 		return string(data), nil
@@ -606,26 +712,20 @@ func LoadUUID(f string) (string, error) {
 }
 
 func emptyDir(fp string) bool {
-	fd, err := os.Open(fp)
+	fd, err := os.Open(filepath.Clean(fp))
 	if err != nil {
 		l.Error(err)
 		return false
 	}
 
-	defer fd.Close()
+	defer fd.Close() //nolint:errcheck,gosec
 
 	_, err = fd.ReadDir(1)
-	switch err {
-	case io.EOF:
-		return true
-	default:
-		return false
-	}
+	return errors.Is(err, io.EOF)
 }
 
-// remove all xxx.conf.sample
+// remove all xxx.conf.sample.
 func removeSamples() {
-
 	l.Debugf("searching samples under %s", datakit.ConfdDir)
 
 	fps := SearchDir(datakit.ConfdDir, ".conf.sample")
@@ -653,7 +753,6 @@ func removeSamples() {
 }
 
 func MoveDeprecatedCfg() {
-
 	if _, err := os.Stat(datakit.MainConfPathDeprecated); err == nil {
 		if err := os.Rename(datakit.MainConfPathDeprecated, datakit.MainConfPath); err != nil {
 			l.Fatal("move deprecated main configure failed: %s", err.Error())
@@ -677,56 +776,66 @@ func ProtectedInterval(min, max, cur time.Duration) time.Duration {
 }
 
 func CreateSymlinks() error {
+	var x [][2]string
 
-	x := [][2]string{}
-
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		x = [][2]string{
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit.exe"),
 				`C:\WINDOWS\system32\datakit.exe`,
 			},
 		}
 	} else {
 		x = [][2]string{
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/local/bin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/local/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/sbin/datakit",
 			},
 
-			[2]string{
+			{
 				filepath.Join(datakit.InstallDir, "datakit"),
 				"/usr/bin/datakit",
 			},
 		}
 	}
 
+	ok := 0
 	for _, item := range x {
+		if err := os.MkdirAll(filepath.Dir(item[1]), os.ModePerm); err != nil {
+			l.Warnf("create dir %s failed: %s, ignored", err.Error())
+			continue
+		}
+
 		if err := symlink(item[0], item[1]); err != nil {
 			l.Warnf("create datakit symlink: %s -> %s: %s, ignored", item[1], item[0], err.Error())
+			continue
 		}
+		ok++
+	}
+
+	if ok == 0 {
+		return fmt.Errorf("create symlink failed")
 	}
 
 	return nil
 }
 
 func symlink(src, dst string) error {
-
 	l.Debugf("remove link %s...", dst)
 	if err := os.Remove(dst); err != nil {
 		l.Warnf("%s, ignored", err)
@@ -750,4 +859,16 @@ func GetToken() string {
 	}
 
 	return ""
+}
+
+func GitHasEnabled() bool {
+	hasEnable := false
+	for _, v := range Cfg.GitRepos.Repos {
+		if v.Enable {
+			hasEnable = true
+			break
+		}
+	}
+
+	return hasEnable
 }

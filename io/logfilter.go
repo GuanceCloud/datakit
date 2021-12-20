@@ -16,17 +16,20 @@ import (
 type logFilterStatus uint8
 
 const (
-	filter_released logFilterStatus = iota + 1
-	filter_refreshed
+	filterReleased logFilterStatus = iota + 1
+	filterRefreshed
 )
 
 var (
-	defInterval  = 10 * time.Second
-	defLogfilter = &logFilter{status: filter_released}
+	defIntervalDefault = 15
+	defLogfilter       = &logFilter{status: filterReleased}
 )
 
 type rules struct {
-	Content []string `json:"content"`
+	Content struct {
+		LogFilter []string `json:"log_filter"`
+		Interval  int      `json:"interval"`
+	} `json:"content"`
 }
 
 type logFilter struct {
@@ -36,11 +39,11 @@ type logFilter struct {
 	sync.Mutex
 }
 
-func (this *logFilter) filter(pts []*Point) []*Point {
+func (ipt *logFilter) filter(pts []*Point) []*Point {
 	// mock data injector
 	pts = defLogFilterMock.preparePoints(pts)
 
-	if this.status == filter_released {
+	if ipt.status == filterReleased {
 		return pts
 	}
 
@@ -51,7 +54,8 @@ func (this *logFilter) filter(pts []*Point) []*Point {
 			l.Error(err)
 			continue
 		}
-		if !this.conds.Eval(pt.Name(), pt.Tags(), fields) {
+
+		if !ipt.conds.Eval(pt.Name(), pt.Tags(), fields) {
 			after = append(after, pt)
 		}
 	}
@@ -59,12 +63,13 @@ func (this *logFilter) filter(pts []*Point) []*Point {
 	return after
 }
 
-func (this *logFilter) start() {
-	l.Infof("log filter engaged, status: %q refresh_interval: %ds", this.status.String(), int(defInterval.Seconds()))
+func (ipt *logFilter) start() {
+	l.Infof("log filter engaged, status: %q", ipt.status.String())
 
 	g := datakit.G("logfilter")
 	g.Go(func(ctx context.Context) error {
-		tick := time.NewTicker(defInterval)
+		tick := time.NewTicker(time.Second * time.Duration(defIntervalDefault))
+		defer tick.Stop()
 	EXIT:
 		for {
 			select {
@@ -72,9 +77,16 @@ func (this *logFilter) start() {
 				l.Info("log filter exits")
 				break EXIT
 			case <-tick.C:
-				l.Debugf("### enter log filter refresh routine, status: %q", this.status.String())
-				if err := this.refreshRules(); err != nil {
+				l.Debugf("### enter log filter refresh routine, status: %q", ipt.status.String())
+				var err error
+				var defInterval int
+				if defInterval, err = ipt.refreshRules(); err != nil {
 					l.Error(err.Error())
+					FeedLastError("logfilter", err.Error())
+				}
+				if defInterval != defIntervalDefault {
+					tick.Reset(time.Second * time.Duration(defInterval))
+					defIntervalDefault = defInterval
 				}
 			}
 		}
@@ -82,48 +94,43 @@ func (this *logFilter) start() {
 	})
 }
 
-func (this *logFilter) refreshRules() error {
+func (ipt *logFilter) refreshRules() (int, error) {
 	defer func() {
 		if err := recover(); err != nil {
 			l.Error(err)
 		}
 	}()
-
 	body, err := defLogFilterMock.getLogFilter()
 	if err != nil {
-		return err
+		return defIntervalDefault, err
 	}
-	l.Debug(string(body))
 
 	if len(body) == 0 {
-		this.status = filter_released
+		ipt.status = filterReleased
 
-		return nil
+		return defIntervalDefault, nil
 	}
 
-	var rules rules
+	rules := rules{}
 	if err = json.Unmarshal(body, &rules); err != nil {
-		return err
+		return defIntervalDefault, err
 	}
+	l.Debugf("logfilter result: %v", rules)
+	if len(rules.Content.LogFilter) == 0 {
+		ipt.status = filterReleased
 
-	if len(rules.Content) == 0 {
-		this.status = filter_released
-
-		return nil
+		return rules.Content.Interval, nil
 	}
-
-	this.Lock()
-	defer this.Unlock()
 
 	// compare and refresh
-	if newRules := strings.Join(rules.Content, ";"); newRules != this.rules {
+	if newRules := strings.Join(rules.Content.LogFilter, ";"); newRules != ipt.rules {
 		conds := parser.GetConds(newRules)
 		if conds != nil {
-			this.conds = conds
-			this.rules = newRules
-			this.status = filter_refreshed
+			ipt.conds = conds
+			ipt.rules = newRules
+			ipt.status = filterRefreshed
 		}
 	}
 
-	return nil
+	return rules.Content.Interval, nil
 }

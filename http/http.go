@@ -1,59 +1,65 @@
+// Package http is datakit's HTTP server
 package http
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
+
+	// nolint:gosec
 	_ "net/http/pprof"
 	"os"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/natefinch/lumberjack.v2"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
 	l              = logger.DefaultSLogger("http")
 	ginLog         string
 	ginReleaseMode = true
-	pprof          bool
+	enablePprof    bool
 
 	uptime = time.Now()
-
-	mtx = sync.Mutex{}
 
 	dw        *dataway.DataWayCfg
 	extraTags = map[string]string{}
 	apiConfig *APIConfig
+	dcaConfig *DCAConfig
 
 	ginRotate = 32 // MB
 
 	g = datakit.G("http")
 
-	DcaToken  = ""
-	enableDca = false
+	DcaToken = ""
+
+	semReload          *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload signal
+	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
 )
 
+//nolint:stylecheck
 const (
 	LOGGING_SROUCE     = "source"
 	PRECISION          = "precision"
 	INPUT              = "input"
 	IGNORE_GLOBAL_TAGS = "ignore_global_tags"
 	CATEGORY           = "category"
-
-	DEFAULT_PRECISION = "n"
-	DEFAULT_INPUT     = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
+	VERSION            = "version"
+	DEFAULT_PRECISION  = "n"
+	DEFAULT_INPUT      = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
 )
 
 type Option struct {
@@ -61,36 +67,45 @@ type Option struct {
 	GinRotate int
 	APIConfig *APIConfig
 	DataWay   *dataway.DataWayCfg
-	EnableDca bool
+	DCAConfig *DCAConfig
 
 	GinReleaseMode bool
 	PProf          bool
 }
 
 type APIConfig struct {
-	RUMOriginIPHeader string `toml:"rum_origin_ip_header"`
-	Listen            string `toml:"listen"`
-	Disable404Page    bool   `toml:"disable_404page"`
+	RUMOriginIPHeader string   `toml:"rum_origin_ip_header"`
+	Listen            string   `toml:"listen"`
+	Disable404Page    bool     `toml:"disable_404page"`
+	RUMAppIDWhiteList []string `toml:"rum_app_id_white_list"`
 }
 
 func Start(o *Option) {
-
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
-	pprof = o.PProf
+	enablePprof = o.PProf
 	ginReleaseMode = o.GinReleaseMode
 	ginRotate = o.GinRotate
 	apiConfig = o.APIConfig
 	dw = o.DataWay
-	enableDca = o.EnableDca
+	dcaConfig = o.DCAConfig
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
-		HttpStart()
+		HTTPStart()
 		l.Info("http goroutine exit")
 		return nil
 	})
+
+	// DCA server
+	if dcaConfig.Enable {
+		g.Go(func(ctx context.Context) error {
+			dcaHTTPStart()
+			l.Info("DCA http goroutine exit")
+			return nil
+		})
+	}
 }
 
 type welcome struct {
@@ -110,7 +125,6 @@ func SetGlobalTags(tags map[string]string) {
 }
 
 func page404(c *gin.Context) {
-
 	w := &welcome{
 		Version: datakit.Version,
 		BuildAt: git.BuildAt,
@@ -138,7 +152,7 @@ func page404(c *gin.Context) {
 	c.String(http.StatusNotFound, buf.String())
 }
 
-func HttpStart() {
+func HTTPStart() {
 	gin.DisableConsoleColor()
 
 	if ginReleaseMode {
@@ -177,33 +191,21 @@ func HttpStart() {
 	applyHTTPRoute(router)
 
 	// internal datakit stats API
-	router.GET("/stats", func(c *gin.Context) { apiGetDatakitStats(c) })
-	router.GET("/monitor", func(c *gin.Context) { apiGetDatakitMonitor(c) })
-	router.GET("/man", func(c *gin.Context) { apiManualTOC(c) })
-	router.GET("/man/:name", func(c *gin.Context) { apiManual(c) })
-	router.GET("/restart", func(c *gin.Context) { apiRestart(c) })
+	router.GET("/stats", apiGetDatakitStats)
+	router.GET("/monitor", apiGetDatakitMonitor)
+	router.GET("/man", apiManualTOC)
+	router.GET("/man/:name", apiManual)
+	router.GET("/restart", apiRestart)
 
-	// dca api
-	if enableDca {
-		router.GET("/v1/dca/stats", func(c *gin.Context) { dcaStats(c) })
-		router.GET("/v1/dca/inputDoc", func(c *gin.Context) { dcaInputDoc(c) })
-		router.GET("/v1/dca/reload", func(c *gin.Context) { dcaAuthMiddleware(dcaReload)(c) })
-		// conf
-		router.POST("/v1/dca/saveConfig", func(c *gin.Context) { dcaAuthMiddleware(dcaSaveConfig)(c) })
-		router.GET("/v1/dca/getConfig", func(c *gin.Context) { dcaAuthMiddleware(dcaGetConfig)(c) })
-		// pipelines
-		router.GET("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaGetPipelines)(c) })
-		router.GET("/v1/dca/pipelines/detail", func(c *gin.Context) { dcaAuthMiddleware(dcaGetPipelinesDetail)(c) })
-		router.POST("/v1/dca/pipelines/test", func(c *gin.Context) { dcaAuthMiddleware(dcaTestPipelines)(c) })
-		router.POST("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaCreatePipeline)(c) })
-		router.PATCH("/v1/dca/pipelines", func(c *gin.Context) { dcaAuthMiddleware(dcaUpdatePipeline)(c) })
-	}
+	router.GET("/v1/workspace", apiWorkspace)
+	router.GET("/v1/ping", apiPing)
+	router.POST("/v1/lasterror", apiGetDatakitLastError)
+	router.POST("/v1/write/:category", apiWrite)
+	router.POST("/v1/query/raw", apiQueryRaw)
+	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
+	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
-	router.GET("/v1/ping", func(c *gin.Context) { apiPing(c) })
-	router.POST("/v1/write/:category", func(c *gin.Context) { apiWrite(c) })
-	router.POST("/v1/query/raw", func(c *gin.Context) { apiQueryRaw(c) })
-	router.POST("/v1/object/labels", func(c *gin.Context) { apiCreateOrUpdateObjectLabel(c) })
-	router.DELETE("/v1/object/labels", func(c *gin.Context) { apiDeleteObjectLabel(c) })
+	refreshRebootSem()
 
 	srv := &http.Server{
 		Addr:    apiConfig.Listen,
@@ -211,58 +213,118 @@ func HttpStart() {
 	}
 
 	g.Go(func(ctx context.Context) error {
-		tryStartServer(srv)
+		tryStartServer(srv, true, semReload, semReloadCompleted)
 		l.Info("http server exit")
 		return nil
 	})
 
 	// start pprof if enabled
 	var pprofSrv *http.Server
-	if pprof {
+	if enablePprof {
 		pprofSrv = &http.Server{
 			Addr: ":6060",
 		}
 
 		g.Go(func(ctx context.Context) error {
-			tryStartServer(pprofSrv)
+			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
 			l.Info("pprof server exit")
 			return nil
 		})
 	}
 
 	l.Debug("http server started")
-	<-datakit.Exit.Wait()
 
-	l.Debug("stopping http server...")
-
-	if err := srv.Shutdown(context.Background()); err != nil {
-		l.Errorf("Failed of http server shutdown, err: %s", err.Error())
-	} else {
-		l.Info("http server shutdown ok")
-	}
-
-	if pprof {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := pprofSrv.Shutdown(ctx); err != nil {
-			l.Error(err)
+	stopFunc := func() {
+		if err := srv.Shutdown(context.Background()); err != nil {
+			l.Errorf("Failed of http server shutdown, err: %s", err.Error())
+		} else {
+			l.Info("http server shutdown ok")
 		}
-		l.Infof("pprof stopped")
+
+		if enablePprof {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := pprofSrv.Shutdown(ctx); err != nil {
+				l.Error(err)
+			}
+			l.Infof("pprof stopped")
+		}
 	}
 
-	return
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			stopFunc()
+			return
+		case <-semReload.Wait():
+			l.Info("[HttpServer] reload detected")
+			stopFunc()
+			if semReloadCompleted != nil {
+				l.Debug("[HttpServer] before reload completed")
+				semReloadCompleted.Close()
+				l.Debug("[HttpServer] after reload completed")
+			}
+			return
+		}
+	}
 }
 
-func tryStartServer(srv *http.Server) {
+func refreshRebootSem() {
+	semReload = cliutils.NewSem()
+	semReloadCompleted = cliutils.NewSem()
+}
+
+func ReloadTheNormalServer() {
+	if semReload != nil {
+		semReload.Close()
+
+		// wait stop completed
+		if semReloadCompleted != nil {
+			l.Debug("[HttpServer] check wait")
+
+			<-semReloadCompleted.Wait()
+			l.Info("[HttpServer] reload stopped")
+			go HTTPStart()
+			return
+		}
+	}
+}
+
+func tryStartServer(srv *http.Server, canReload bool, semReload, semReloadCompleted *cliutils.Sem) {
 	retryCnt := 0
 
-	// TODO: test if port available
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("tryStartServer exit")
+			return
+		default:
+			if canReload && semReload != nil {
+				select {
+				case <-semReload.Wait():
+					l.Info("tryStartServer reload detected")
+
+					if semReloadCompleted != nil {
+						semReloadCompleted.Close()
+					}
+					return
+				default:
+				}
+			}
+		}
+
+		if portInUse(srv.Addr) {
+			l.Warnf("start server at %s ,Port is already used", srv.Addr)
+		} else {
+			break
+		}
+		time.Sleep(time.Second)
+	}
 
 	for {
 		l.Infof("try start server at %s(retrying %d)...", srv.Addr, retryCnt)
 		if err := srv.ListenAndServe(); err != nil {
-
-			if err != http.ErrServerClosed {
+			if !errors.As(err, &http.ErrServerClosed) {
 				l.Warnf("start server at %s failed: %s, retrying(%d)...", srv.Addr, err.Error(), retryCnt)
 				retryCnt++
 			} else {
@@ -272,6 +334,16 @@ func tryStartServer(srv *http.Server) {
 		}
 		time.Sleep(time.Second)
 	}
+}
+
+func portInUse(addr string) bool {
+	timeout := time.Millisecond * 100
+	conn, err := net.DialTimeout("tcp", addr, timeout)
+	if err != nil {
+		return false
+	}
+	defer conn.Close() //nolint:errcheck
+	return true
 }
 
 func checkToken(r *http.Request) error {

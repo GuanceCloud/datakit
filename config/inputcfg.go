@@ -9,17 +9,13 @@ import (
 
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	DisableSelfInput bool
-)
+var DisableSelfInput bool
 
 func SearchDir(dir string, suffix string) []string {
-
 	fps := []string{}
 
 	if err := filepath.Walk(dir, func(fp string, f os.FileInfo, err error) error {
@@ -38,11 +34,10 @@ func SearchDir(dir string, suffix string) []string {
 			return nil
 		}
 
-		if strings.HasSuffix(f.Name(), suffix) {
+		if suffix == "" || strings.HasSuffix(f.Name(), suffix) {
 			fps = append(fps, fp)
 		}
 		return nil
-
 	}); err != nil {
 		l.Error(err)
 	}
@@ -50,18 +45,23 @@ func SearchDir(dir string, suffix string) []string {
 	return fps
 }
 
-// load all inputs under @InstallDir/conf.d
-func LoadInputsConfig(c *Config) error {
+func GetGitRepoDir(cloneDirName string) (string, error) {
+	if cloneDirName == "" {
+		// you shouldn't be here, check before you call this function.
+		return "", fmt.Errorf("git_repo_clone_dir_empty")
+	}
+	return filepath.Join(datakit.GitReposDir, cloneDirName), nil
+}
 
-	inputs.Init()
-
+// LoadInputsConfigEx load all inputs under @InstallDir/conf.d.
+func LoadInputsConfigEx(confRootPath string) map[string]*ast.Table {
 	availableInputCfgs := map[string]*ast.Table{}
-	confs := SearchDir(datakit.ConfdDir, ".conf")
+
+	confs := SearchDir(confRootPath, ".conf")
 
 	l.Debugf("loading %d conf...", len(confs))
 
 	for _, fp := range confs {
-
 		l.Debugf("loading conf %s...", fp)
 
 		if filepath.Base(fp) == "datakit.conf" {
@@ -90,30 +90,10 @@ func LoadInputsConfig(c *Config) error {
 		availableInputCfgs[fp] = tbl
 	}
 
-	// reset inputs(for reloading)
-	l.Debug("reset inputs")
-	inputs.ResetInputs()
-
-	for name, creator := range inputs.Inputs {
-		if !datakit.Enabled(name) {
-			l.Debugf("ignore unchecked input %s", name)
-			continue
-		}
-
-		if err := doLoadInputConf(c, name, creator, availableInputCfgs); err != nil {
-			l.Errorf("load %s config failed: %v, ignored", name, err)
-			return err
-		}
-	}
-
-	if !DisableSelfInput {
-		inputs.AddSelf()
-	}
-
-	return nil
+	return availableInputCfgs
 }
 
-// fp == "", add new when not exist, set ConfigPaths empty when exist
+// fp == "", add new when not exist, set ConfigPaths empty when exist.
 func addConfigInfoPath(inputName string, fp string, loaded int8) {
 	if c, ok := inputs.ConfigInfo[inputName]; ok {
 		if len(fp) == 0 {
@@ -144,34 +124,27 @@ func addConfigInfoPath(inputName string, fp string, loaded int8) {
 	}
 }
 
-func doLoadInputConf(c *Config, name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
-
+func doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
 	l.Debugf("search input cfg for %s", name)
 
-	list := searchDatakitInputCfg(c, inputcfgs, name, creator)
+	list := searchDatakitInputCfg(inputcfgs, name, creator)
 
 	for _, i := range list {
-		if err := inputs.AddInput(name, i); err != nil {
-			l.Error("add %s failed: %v", name, err)
-			continue
-		}
+		inputs.AddInput(name, i)
 	}
 
 	return nil
 }
 
-func searchDatakitInputCfg(c *Config,
-	inputcfgs map[string]*ast.Table,
+func searchDatakitInputCfg(inputcfgs map[string]*ast.Table,
 	name string,
 	creator inputs.Creator) []inputs.Input {
-
 	inputlist := []inputs.Input{}
 
 	addConfigInfoPath(name, "", 0) // init config info
 
 	for fp, tbl := range inputcfgs {
 		for field, node := range tbl.Fields {
-
 			switch field {
 			case "inputs": //nolint:goconst
 				stbl, ok := node.(*ast.Table)
@@ -209,7 +182,6 @@ func searchDatakitInputCfg(c *Config,
 }
 
 func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
-
 	for _, bl := range blists {
 		if bl.MatchHost(hostname) && bl.MatchInput(name) {
 			return true // 一旦上榜，无脑屏蔽
@@ -234,14 +206,13 @@ func isDisabled(wlists, blists []*inputHostList, hostname, name string) bool {
 }
 
 func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputList []inputs.Input, err error) {
-
-	tbls := []*ast.Table{}
+	var tbls []*ast.Table
 
 	switch t := tbl.(type) {
 	case []*ast.Table:
-		tbls = tbl.([]*ast.Table)
+		tbls = t
 	case *ast.Table:
-		tbls = append(tbls, tbl.(*ast.Table))
+		tbls = append(tbls, t)
 	default:
 		err = fmt.Errorf("invalid toml format on %s: %v", name, t)
 		return
@@ -261,12 +232,11 @@ func TryUnmarshal(tbl interface{}, name string, creator inputs.Creator) (inputLi
 	return
 }
 
-var (
-	confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
-)
+//nolint:lll
+var confsampleFingerprint = append([]byte(fmt.Sprintf(`# {"version": "%s", "desc": "do NOT edit this line"}`, datakit.Version)), byte('\n'))
 
 func initDatakitConfSample(name string, c inputs.Creator) error {
-	if name == "self" { //nolint:goconst
+	if name == datakit.DatakitInputName {
 		return nil
 	}
 
@@ -297,10 +267,9 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 	return nil
 }
 
-// Creata datakit input plugin's configures if not exists
+// Creata datakit input plugin's configures if not exists.
 func initPluginSamples() error {
 	for name, create := range inputs.Inputs {
-
 		if !datakit.Enabled(name) {
 			l.Debugf("initPluginSamples: ignore unchecked input %s", name)
 			continue
@@ -314,14 +283,12 @@ func initPluginSamples() error {
 }
 
 func initDefaultEnabledPlugins(c *Config) {
-
 	if len(c.DefaultEnabledInputs) == 0 {
 		l.Debug("no default inputs enabled")
 		return
 	}
 
 	for _, name := range c.DefaultEnabledInputs {
-
 		l.Debugf("init default input %s conf...", name)
 
 		var fpath, sample string
@@ -341,7 +308,7 @@ func initDefaultEnabledPlugins(c *Config) {
 			continue
 		}
 
-		//check exist
+		// check exist
 		if _, err := os.Stat(fpath); err == nil {
 			continue
 		}
@@ -356,16 +323,29 @@ func initDefaultEnabledPlugins(c *Config) {
 }
 
 func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, error) {
-
 	tbl, err := ParseCfgFile(f)
 	if err != nil {
-		return nil, fmt.Errorf("[error] parse conf failed: %s", err)
+		return nil, fmt.Errorf("parse conf failed: %w", err)
 	}
 
-	inputlist := []inputs.Input{}
+	return parseTableToInputs(tbl, creator)
+}
+
+func LoadInputConfig(data string, creator inputs.Creator) ([]inputs.Input, error) {
+	tbl, err := toml.Parse([]byte(data))
+	if err != nil {
+		l.Errorf("parse toml %s failed", data)
+		return nil, fmt.Errorf("[error] parse conf failed: %w", err)
+	}
+
+	return parseTableToInputs(tbl, creator)
+}
+
+func parseTableToInputs(tbl *ast.Table, creator inputs.Creator) ([]inputs.Input, error) {
+	var inputlist []inputs.Input
+	var err error
 
 	for field, node := range tbl.Fields {
-
 		switch field {
 		case "inputs": //nolint:goconst
 			stbl, ok := node.(*ast.Table)
@@ -373,7 +353,7 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 				for inputName, v := range stbl.Fields {
 					inputlist, err = TryUnmarshal(v, inputName, creator)
 					if err != nil {
-						return nil, fmt.Errorf("unmarshal input failed, %s", err.Error())
+						return nil, fmt.Errorf("unmarshal input failed, %w", err)
 					}
 				}
 			}
@@ -381,7 +361,7 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 		default: // compatible with old version: no [[inputs.xxx]] header
 			inputlist, err = TryUnmarshal(node, "", creator)
 			if err != nil {
-				return nil, fmt.Errorf("unmarshal input failed: %s", err.Error())
+				return nil, fmt.Errorf("unmarshal input failed: %w", err)
 			}
 		}
 	}
@@ -392,10 +372,11 @@ func LoadInputConfigFile(f string, creator inputs.Creator) ([]inputs.Input, erro
 var deprecatedInputs = map[string]string{
 	"dockerlog":         "docker",
 	"docker_containers": "docker",
+	"traceSkywalking":   "skywalking",
+	"traceJaeger":       "jaeger",
 }
 
 func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {
-
 	res = map[string]string{}
 
 	for _, node := range tbl.Fields {

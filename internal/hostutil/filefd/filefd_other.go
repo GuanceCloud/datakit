@@ -1,8 +1,9 @@
+//go:build !linux
 // +build !linux
 
 package filefd
 
-func FileFdCollect() (map[string]int64, error) {
+func collect() (map[string]int64, error) {
 	info := make(map[string]int64)
 	info["allocated"] = -1
 	info["maximum"] = -1

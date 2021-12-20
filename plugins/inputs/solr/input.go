@@ -1,13 +1,15 @@
+// Package solr collects solr metrics.
 package solr
 
 import (
+	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -15,6 +17,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
 	minInterval = time.Second * 5
@@ -39,16 +43,17 @@ var (
   # username = "username"
   # password = "pa$$word"
 
-  [inputs.solr.log]
-    # files = []
-    ## grok pipeline script path
-    # pipeline = "solr.p"
+  # [inputs.solr.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "solr.p"
 
- [inputs.solr.tags]
+  [inputs.solr.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
 
 `
+	//nolint:lll
 	pipelineCfg = `
 add_pattern("solrReporter","(?:[.\\w\\d]+)")
 add_pattern("solrParams", "(?:[A-Za-z0-9$.+!*'|(){},~@#%&/=:;_?\\-\\[\\]<>]*)")
@@ -64,7 +69,7 @@ type solrlog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
 }
 
 type Input struct {
@@ -83,6 +88,11 @@ type Input struct {
 	collectCache []inputs.Measurement
 	gatherData   GatherData
 	m            sync.Mutex
+
+	pause   bool
+	pauseCh chan bool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (i *Input) appendM(m inputs.Measurement) {
@@ -122,17 +132,21 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -143,11 +157,26 @@ func (i *Input) RunPipeline() {
 	go i.tail.Start()
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
+		},
+	}
 }
 
 func (i *Input) AvailableArchs() []string {
@@ -163,7 +192,21 @@ func (i *Input) Run() {
 	defer tick.Stop()
 	for {
 		select {
+		case <-datakit.Exit.Wait():
+			i.exit()
+			l.Infof("solr input exit")
+			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Infof("solr input return")
+			return
+
 		case <-tick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
 			start := time.Now()
 			if err := i.Collect(); err == nil {
 				if feedErr := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
@@ -174,14 +217,23 @@ func (i *Input) Run() {
 				logError(err)
 			}
 			i.collectCache = make([]inputs.Measurement, 0)
-		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("solr log exit")
-			}
-			l.Infof("solr input exit")
-			return
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
+	}
+}
+
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("solr log exit")
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
@@ -197,7 +249,7 @@ func (i *Input) Collect() error {
 			defer wg.Done()
 			ts := time.Now()
 			resp := Response{}
-			if err := i.gatherData(i, UrlAll(s), &resp); err != nil {
+			if err := i.gatherData(i, URLAll(s), &resp); err != nil {
 				logError(err)
 				return
 			}
@@ -251,12 +303,37 @@ func (i *Input) Collect() error {
 	return nil
 }
 
-func init() {
+func (i *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			HTTPTimeout: datakit.Duration{Duration: time.Second * 5},
 			Interval:    datakit.Duration{Duration: time.Second * 10},
 			gatherData:  gatherDataFunc,
+			pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

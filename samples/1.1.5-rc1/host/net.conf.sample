@@ -1,0 +1,19 @@
+
+[[inputs.net]]
+  ## By default, gathers stats from any up interface, but Linux does not contain virtual interfaces.
+  ## Setting interfaces using regular expressions will collect these expected interfaces.
+  ##
+  # interfaces = ['''eth[\w-]+''', '''lo''', ]
+  ##
+  ## Used to enable the collection of virtual interfaces for Linux.
+  ## Setting enable_virtual_interfaces to true will collect virtual interfaces stats.
+  ##
+  # enable_virtual_interfaces = true
+  ##
+  ## On linux systems also collects protocol stats.
+  ## Setting ignore_protocol_stats to true will skip reporting of protocol metrics.
+  ##
+  # ignore_protocol_stats = false
+  ##
+  [inputs.net.tags]
+    # tag1 = "a"

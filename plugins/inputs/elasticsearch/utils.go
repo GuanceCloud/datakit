@@ -49,7 +49,7 @@ type JSONFlattener struct {
 	Fields map[string]interface{}
 }
 
-// FlattenJSON flattens nested maps/interfaces into a fields map (ignoring bools and string)
+// FlattenJSON flattens nested maps/interfaces into a fields map (ignoring bools and string).
 func (f *JSONFlattener) FlattenJSON(
 	fieldname string,
 	v interface{}) error {
@@ -60,7 +60,7 @@ func (f *JSONFlattener) FlattenJSON(
 	return f.FullFlattenJSON(fieldname, v, false, false)
 }
 
-// FullFlattenJSON flattens nested maps/interfaces into a fields map (including bools and string)
+// FullFlattenJSON flattens nested maps/interfaces into a fields map (including bools and string).
 func (f *JSONFlattener) FullFlattenJSON(
 	fieldname string,
 	v interface{},
@@ -92,20 +92,24 @@ func (f *JSONFlattener) FullFlattenJSON(
 			}
 			err := f.FullFlattenJSON(fieldkey, v, convertString, convertBool)
 			if err != nil {
-				return nil
+				return err
 			}
 		}
 	case float64:
 		f.Fields[fieldname] = t
 	case string:
 		if convertString {
-			f.Fields[fieldname] = v.(string)
+			if x, ok := v.(string); ok {
+				f.Fields[fieldname] = x
+			}
 		} else {
 			return nil
 		}
 	case bool:
 		if convertBool {
-			f.Fields[fieldname] = v.(bool)
+			if x, ok := v.(bool); ok {
+				f.Fields[fieldname] = x
+			}
 		} else {
 			return nil
 		}

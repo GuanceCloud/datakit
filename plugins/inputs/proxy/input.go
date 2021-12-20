@@ -1,3 +1,4 @@
+// Package proxy used to proxy HTTP request for no-public-network datakits.
 package proxy
 
 import (
@@ -7,7 +8,7 @@ import (
 	"time"
 
 	"github.com/elazarl/goproxy"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -22,25 +23,23 @@ var (
   ## default bind port
   port = 9530
 `
-	l = logger.DefaultSLogger(inputName)
+	log = logger.DefaultSLogger(inputName)
 )
-
-type statistic struct {
-	delivered int64
-	previous  int64
-	reqcount  int
-}
-
-type Input struct {
-	Bind    string `toml:"bind"`
-	Port    int    `toml:"port"`
-	Verbose bool   `toml:"verbose"`
-}
 
 type proxyLogger struct{}
 
 func (pl *proxyLogger) Printf(format string, v ...interface{}) {
-	l.Infof(format, v...)
+	log.Infof(format, v...)
+}
+
+type Input struct {
+	Bind string `toml:"bind"`
+	Port int    `toml:"port"`
+
+	semStop *cliutils.Sem // start stop signal
+
+	PathDeprecated   string `toml:"path,omitempty"`
+	WSBindDeprecated string `toml:"ws_bind,omitempty"`
 }
 
 func (*Input) Catalog() string {
@@ -56,45 +55,62 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{
-		//&measurement{}
-	}
+	return nil
 }
 
-func (h *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Infof("http proxy input started...")
+func (ipt *Input) Run() {
+	log = logger.SLogger(inputName)
+	log.Infof("http proxy input started...")
 
 	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = h.Verbose
+	proxy.Verbose = false
 	proxy.Logger = &proxyLogger{}
 	proxysrv := &http.Server{
-		Addr:    fmt.Sprintf("%s:%v", h.Bind, h.Port),
+		Addr:    fmt.Sprintf("%s:%v", ipt.Bind, ipt.Port),
 		Handler: proxy,
 	}
 
-	go func(proxysvr *http.Server) {
-		l.Infof("http proxy server listening on %s", proxysrv.Addr)
-		if err := proxysrv.ListenAndServe(); err != http.ErrServerClosed {
-			l.Errorf("proxy server not gracefully shutdown, err :%v\n", err)
-		} else {
-			l.Error(err)
+	go func(proxysrv *http.Server) {
+		log.Infof("http proxy server listening on %s", proxysrv.Addr)
+		if err := proxysrv.ListenAndServe(); err != nil {
+			log.Error(err)
 		}
 	}(proxysrv)
 
-	<-datakit.Exit.Wait()
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	stopFunc := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
 
-	if err := proxysrv.Shutdown(ctx); nil != err {
-		l.Errorf("server shutdown failed, err: %v\n", err)
-	} else {
-		l.Info("proxy server gracefully shutdown")
+		if err := proxysrv.Shutdown(ctx); nil != err {
+			log.Errorf("server shutdown failed, err: %sn", err.Error())
+		} else {
+			log.Info("proxy server gracefully shutdown")
+		}
+	}
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			stopFunc()
+			return
+
+		case <-ipt.semStop.Wait():
+			stopFunc()
+			return
+		}
 	}
 }
 
-func init() {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			semStop: cliutils.NewSem(),
+		}
 	})
 }

@@ -1,67 +1,109 @@
 package nginx
 
 import (
-	"context"
-	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
+// go test -v -timeout 30s -run ^TestGetMetric$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginx
 func TestGetMetric(t *testing.T) {
-	srv := &http.Server{Addr: ":5000"}
-
-	http.HandleFunc("/nginx_status", httpModelHandle)
-	http.HandleFunc("/status/format/json", vtsModelHandle)
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			l.Fatalf("ListenAndServe(): %v", err)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/nginx_status":
+			httpModelHandle(w, r)
+		case "/status/format/json":
+			vtsModelHandle(w, r)
+		default:
+			t.Errorf("unexpected url: %s", r.URL.Path)
 		}
-	}()
-	time.Sleep(time.Second)
+	}))
 
-	var n = Input{
-		Url:    "http://0.0.0.0:5000/nginx_status",
-		UseVts: false,
-	}
-	client, err := n.createHttpClient()
-	if err != nil {
-		l.Errorf("[error] nginx init client err:%s", err.Error())
-		return
-	}
-	n.client = client
+	defer ts.Close()
 
-	n.getMetric()
-	for _, v := range n.collectCache {
-		fmt.Println(v.LineProto())
-	}
-	n.collectCache = n.collectCache[:0]
-
-	n.Url = "http://0.0.0.0:5000/status/format/json"
-	n.UseVts = true
-	n.getMetric()
-
-	for _, v := range n.collectCache {
-		fmt.Println(v.LineProto())
+	//noline:lll
+	metrics := []string{
+		"nginx,nginx_port=50219,nginx_server=127.0.0.1 connection_accepts=12i,connection_active=2i,connection_handled=12i,connection_reading=0i,connection_requests=444i,connection_waiting=1i,connection_writing=1i",
+		"nginx,host=tan-thinkpad-e450,nginx_port=50219,nginx_server=127.0.0.1,nginx_version=1.9.2 connection_accepts=1i,connection_active=1i,connection_handled=1i,connection_reading=0i,connection_requests=1i,connection_waiting=0i,connection_writing=1i",
+		"nginx_server_zone,host=tan-thinkpad-e450,nginx_port=50219,nginx_server=127.0.0.1,nginx_version=1.9.2,server_zone=* received=0i,requests=0i,response_1xx=0i,response_2xx=0i,response_3xx=0i,response_4xx=0i,response_5xx=0i,send=0i",
+		"nginx_upstream_zone,host=tan-thinkpad-e450,nginx_port=50219,nginx_server=127.0.0.1,nginx_version=1.9.2,upstream_server=10.100.64.215:8888,upstream_zone=test received=0i,request_count=0i,response_1xx=0i,response_2xx=0i,response_3xx=0i,response_4xx=0i,response_5xx=0i,send=0i",
 	}
 
-	srv.Shutdown(context.Background())
+	cases := []struct {
+		name string
+		i    *Input
+	}{
+		{
+			name: "nginx_status",
+			i: &Input{
+				URL:    ts.URL + "/nginx_status",
+				UseVts: false,
+			},
+		},
+
+		{
+			name: "nginx_status_json",
+			i: &Input{
+				URL:    ts.URL + "/status/format/json",
+				UseVts: true,
+			},
+		},
+	}
+
+	count := 0
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			client, err := tc.i.createHTTPClient()
+			if err != nil {
+				l.Errorf("[error] nginx init client err:%s", err.Error())
+				return
+			}
+			tc.i.client = client
+
+			mpts, err := tc.i.Collect()
+			if err != nil {
+				t.Errorf("Collect failed: %v", err)
+			} else {
+				for category, points := range mpts {
+					// t.Logf("category = %s, points = %v", category, points)
+					if category != "/v1/write/metric" {
+						t.Error("invalid_category")
+					}
+					for _, v := range points {
+						// t.Logf("count = %d, v = %s", count, v)
+
+						// 为什么使用 HasPrefix？因为后面会跟时间戳，会不断变化。
+						if strings.HasPrefix(v.String(), metrics[count]) {
+							t.Errorf("not equal, left = %s, right = %s", v.String(), metrics[count])
+						}
+
+						count++
+					}
+				} // for
+			}
+
+			tu.Assert(t, len(tc.i.collectCache) > 0, "")
+		})
+	}
 }
 
 func httpModelHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "text/plain")
 	resp := `
-Active connections: 2 
+Active connections: 2
 server accepts handled requests
- 12 12 444 
+ 12 12 444
 Reading: 0 Writing: 1 Waiting: 1
 `
-	w.Write([]byte(resp))
+	w.Write([]byte(resp)) //nolint:errcheck
 }
 
 func vtsModelHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.Header().Set("Content-Type", "application/json")
-	resp := `{"hostName":"tan-thinkpad-e450","moduleVersion":"0.1.19.dev.91bdb14","nginxVersion":"1.9.2","loadMsec":1618888188619,"nowMsec":1618888193244,"connections":{"active":1,"reading":0,"writing":1,"waiting":0,"accepted":1,"handled":1,"requests":1},"sharedZones":{"name":"ngx_http_vhost_traffic_status","maxSize":1048575,"usedSize":0,"usedNode":0},"serverZones":{"*":{"requestCounter":0,"inBytes":0,"outBytes":0,"responses":{"1xx":0,"2xx":0,"3xx":0,"4xx":0,"5xx":0,"miss":0,"bypass":0,"expired":0,"stale":0,"updating":0,"revalidated":0,"hit":0,"scarce":0},"requestMsecCounter":0,"requestMsec":0,"requestMsecs":{"times":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"msecs":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"requestBuckets":{"msecs":[],"counters":[]},"overCounts":{"maxIntegerSize":18446744073709551615,"requestCounter":0,"inBytes":0,"outBytes":0,"1xx":0,"2xx":0,"3xx":0,"4xx":0,"5xx":0,"miss":0,"bypass":0,"expired":0,"stale":0,"updating":0,"revalidated":0,"hit":0,"scarce":0,"requestMsecCounter":0}}},"upstreamZones":{"test":[{"server":"10.100.64.215:8888","requestCounter":0,"inBytes":0,"outBytes":0,"responses":{"1xx":0,"2xx":0,"3xx":0,"4xx":0,"5xx":0},"requestMsecCounter":0,"requestMsec":0,"requestMsecs":{"times":[],"msecs":[]},"requestBuckets":{"msecs":[],"counters":[]},"responseMsecCounter":0,"responseMsec":0,"responseMsecs":{"times":[],"msecs":[]},"responseBuckets":{"msecs":[],"counters":[]},"weight":1,"maxFails":1,"failTimeout":10,"backup":false,"down":false,"overCounts":{"maxIntegerSize":18446744073709551615,"requestCounter":0,"inBytes":0,"outBytes":0,"1xx":0,"2xx":0,"3xx":0,"4xx":0,"5xx":0,"requestMsecCounter":0,"responseMsecCounter":0}}]}}`
-	w.Write([]byte(resp))
+	w.Write([]byte(vtsModelHandleData)) //nolint:errcheck
 }

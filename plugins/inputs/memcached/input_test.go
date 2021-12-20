@@ -18,7 +18,10 @@ func TestInput(t *testing.T) {
 	memcached := &Input{}
 	sampleMeasurements := memcached.SampleMeasurement()
 	assert.Greater(t, len(sampleMeasurements), 0)
-	m := sampleMeasurements[0].(*inputMeasurement)
+	m, ok := sampleMeasurements[0].(*inputMeasurement)
+	if !ok {
+		t.Error("expect *inputMeasurement")
+	}
 
 	assert.Equal(t, m.Info().Name, inputName)
 
@@ -36,6 +39,7 @@ func TestParseMetrics(t *testing.T) {
 }
 
 func checkValues(t *testing.T, values map[string]string) {
+	t.Helper()
 	for _, test := range tests {
 		value, ok := values[test.key]
 		if !ok {
@@ -80,10 +84,11 @@ func TestGatherServer(t *testing.T) {
 
 	err = memcached.gatherServer("invalid url", false)
 	assert.NotNil(t, err)
-
 }
 
 func createTcpServer(t *testing.T, serverChan chan<- int8) {
+	t.Helper()
+
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Errorf("mock tcp error: %s", err.Error())

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package io;
+
+option go_package = ".;io";
+
+message PBData {
+  string Category = 1;
+  bool Gz = 2;
+  bytes Body = 3;
+}

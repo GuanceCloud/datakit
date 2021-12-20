@@ -1,7 +1,10 @@
+//nolint:lll
 package sqlserver
 
 import (
-	_ "github.com/denisenkom/go-mssqldb" // go-mssqldb initialization
+
+	// go-mssqldb initialization.
+	_ "github.com/denisenkom/go-mssqldb"
 )
 
 // The SQL scripts assemble the correct query based the version of SQL Server
@@ -52,7 +55,7 @@ SELECT
 	,REPLACE(@@SERVERNAME,''\'','':'') AS [sqlserver_host]
 	,DB_NAME(vfs.[database_id]) AS [database_name]
 	,COALESCE(mf.[physical_name],''RBPEX'') AS [physical_filename]	--RPBEX = Resilient Buffer Pool Extension
-	,COALESCE(mf.[name],''RBPEX'') AS [logical_filename]	--RPBEX = Resilient Buffer Pool Extension	
+	,COALESCE(mf.[name],''RBPEX'') AS [logical_filename]	--RPBEX = Resilient Buffer Pool Extension
 	,mf.[type_desc] AS [file_type]
 	,vfs.[io_stall_read_ms] AS [read_latency_ms]
 	,vfs.[num_of_reads] AS [reads]
@@ -304,8 +307,8 @@ INSERT INTO @PCounters SELECT * FROM PerfCounters;
 SELECT
 	 'sqlserver_performance' AS [measurement]
 	,REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host]
-	,pc.[object_name] 
-	,pc.[counter_name] 
+	,pc.[object_name]
+	,pc.[counter_name]
 	,CASE pc.[instance_name] WHEN '_Total' THEN 'Total' ELSE ISNULL(pc.[instance_name],'') END AS [instance]
 	,CAST(CASE WHEN pc.[cntr_type] = 537003264 AND pc1.[cntr_value] > 0 THEN (pc.[cntr_value] * 1.0) / (pc1.[cntr_value] * 1.0) * 100 ELSE pc.[cntr_value] END AS float(10)) AS [cntr_value]
 	,CAST(pc.[cntr_type] AS varchar(25)) AS [counter_type]
@@ -898,7 +901,7 @@ END
 
 DECLARE
 	@MajorMinorVersion AS int = CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),4) AS int)*100 + CAST(PARSENAME(CAST(SERVERPROPERTY('ProductVersion') AS nvarchar),3) AS int)
-	
+
 IF @MajorMinorVersion >= 1050 BEGIN
 	SELECT DISTINCT
 		'sqlserver_volumespace' AS [measurement]
@@ -910,65 +913,4 @@ IF @MajorMinorVersion >= 1050 BEGIN
 		,vs.[total_bytes] - vs.[available_bytes] AS [volume_used_space_bytes]
 	FROM sys.master_files AS mf
 	CROSS APPLY sys.dm_os_volume_stats(mf.[database_id], mf.[file_id]) AS vs
-END
-`
-
-const sqlServerRingBufferCPU string = `
-IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterpris,Express*/
-	DECLARE @ErrorMessage AS nvarchar(500) = 'Telegraf - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the telegraf configuration.';
-	RAISERROR (@ErrorMessage,11,1)
-	RETURN
-END;
-
-WITH utilization_cte AS
-(
-	SELECT
-		 [SQLProcessUtilization] AS [sqlserver]
-		,[SystemIdle] AS [system_idle_cpu]
-		,100 - [SystemIdle] - [SQLProcessUtilization] AS [other_process_cpu]
-	FROM (
-		SELECT TOP 1
-			 [record_id]
-			,[SQLProcessUtilization]
-			,[SystemIdle]
-		FROM (
-			SELECT
-				 record.value('(./Record/@id)[1]', 'int') AS [record_id]
-				,record.value('(./Record/SchedulerMonitorEvent/SystemHealth/SystemIdle)[1]', 'int') AS [SystemIdle]
-				,record.value('(./Record/SchedulerMonitorEvent/SystemHealth/ProcessUtilization)[1]', 'int') AS [SQLProcessUtilization]
-				,[TIMESTAMP]
-			FROM (
-				SELECT
-					 [TIMESTAMP]
-					,convert(XML, [record]) AS [record]
-				FROM sys.dm_os_ring_buffers
-				WHERE
-					[ring_buffer_type] = N'RING_BUFFER_SCHEDULER_MONITOR'
-					AND [record] LIKE '%<SystemHealth>%'
-				) AS x
-			) AS y
-		ORDER BY [record_id] DESC
-	) AS z
-),
-processor_Info_cte AS
-(
-	SELECT ([cpu_count] / [hyperthread_ratio]) as [number_of_physical_cpus]
-	FROM sys.dm_os_sys_info
-)
-SELECT
-	'sqlserver' AS [measurement]
-	,REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host]
-	,[sqlserver_process_cpu]
-	,[system_idle_cpu]
-	,100 - [system_idle_cpu] - [sqlserver_process_cpu] AS [other_process_cpu]
-FROM (
-	SELECT
-		(CASE
-			WHEN u.[other_process_cpu] < 0 THEN u.[sqlserver_process_cpu] / p.[number_of_physical_cpus]
-			ELSE u.[sqlserver_process_cpu]
-		END) AS [sqlserver_process_cpu]
-		,u.[system_idle_cpu]
-	FROM utilization_cte AS u
-		CROSS APPLY processor_Info_cte AS p
-	) AS b
-`
+END`

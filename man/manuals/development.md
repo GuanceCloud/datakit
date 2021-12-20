@@ -88,35 +88,141 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 
 ## Windows/Mac/Liux 平台编译环境搭建
 
-### Windows
-
-TODO
-
-#### 安装 Golang
-#### 安装 packr2
-#### 安装 `make` 工具
-
 ### Linux
 
-TODO
-
 #### 安装 Golang
+
+当前 Go 版本 [1.16.4](https://golang.org/dl/go1.16.4.linux-amd64.tar.gz)
+
+#### CI 设置
+
+> 假定 go 安装在 /root/golang 目录下
+
+- 设置目录
+
+```
+# 创建 Go 项目路径
+mkdir /root/go
+```
+
+- 设置如下环境变量
+
+```
+export GO111MODULE=on
+# Set the GOPROXY environment variable
+export GOPRIVATE=gitlab.jiagouyun.com/*
+
+export GOPROXY=https://goproxy.io
+
+# 假定 golang 安装在 /root 目录下
+export GOROOT=/root/golang-1.16.4
+# 将 go 代码 clone 到 GOPATH 里面
+export GOPATH=/root/go
+export PATH=$GOROOT/bin:~/go/bin:$PATH
+```
+
+在 `~/.ossenv` 下创建一组环境变量，填写 OSS Access Key 以及 Secret Key，用于版本发布：
+
+```shell
+export RELEASE_OSS_ACCESS_KEY='LT**********************'
+export RELEASE_OSS_SECRET_KEY='Cz****************************'
+export RELEASE_OSS_BUCKET='zhuyun-static-files-production'
+export RELEASE_OSS_PATH=''
+export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
+```
+
 #### 安装 packr2
-#### 安装 `make` 工具
-#### 安装 `gcc-multilib`
+
+安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2)（可能需要翻墙）
+
+#### 安装常见工具
+
+- tree
+- make
+- [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
+- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation)
+- gofumpt: go install mvdan.cc/gofumpt@latest
+- wget
+- docker
+- curl
+- clang: 版本 >= 10.0
+- llvm： 版本 >= 10.0
+- go-bindata: `apt install go-bindata`
+
+#### 安装第三方库
+
+- `gcc-multilib`
+
+```shell
+# Debian/Ubuntu
+sudo apt-get install -y gcc-multilib
+sudo apt-get install -y linux-headers-$(uname -r)
+# Centos: TODO
+```
 
 ### Mac
 
 TODO
 
-#### 安装 Golang
-#### 安装 packr2
-#### 安装 `make` 工具
-#### 安装 `tree` 工具
+### Windows
+
+TODO
+
+## 本地调试
+
+DataKit 支持设定工作目录，目前默认的工作目录是 `/usr/local/datakit`（Windows 下为 `C:\Program Files\datakit`）。设定方式为：
+
+```shell
+datakit --workdir path/to/workdir
+```
+
+- 将该命令做一个 alias，放到 ~/.bashrc 中：
+
+```shell
+echo 'alias dk="datakit --workdir ~/datakit"' >> ~/.bashrc
+```
+
+大家可能直接在 DataKit 开发目录下启动 DataKit，可改一下 DataKit 启动文件，直接使用当前编译出来的 DataKit：
+
+```shell
+# Linux
+echo 'alias dk="./dist/datakit-linux-amd64/datakit --workdir ~/datakit"' >> ~/.bashrc
+
+# Mac
+echo 'alias dk="./dist/datakit-darwin-amd64/datakit --workdir ~/datakit"' >> ~/.bash_profile
+
+# alias 生效
+source ~/.bashrc       # Linux
+source ~/.bash_profile # Mac
+```
+
+- 通过 DataKit 创建一个 `datakit.conf`：
+
+```shell
+mkdir -p ~/datakit/conf.d && datakit --default-main-conf > ~/datakit/conf.d/datakit.conf
+```
+
+修改 `datakit.conf` 中的配置，如 token、日志配置（日志默认指向 `/var/log/datakit/` 下，可改到其它地方）等，启动之后，DataKit 会自动创建各种目录。这样就能在一个主机上运行多个 datakit 实例：
+
+```shell
+$ dk
+2021-08-26T14:12:54.647+0800    DEBUG   config  config/load.go:55       apply main configure...
+2021-08-26T14:12:54.647+0800    INFO    config  config/cfg.go:361       set root logger to /tmp/datakit/log ok
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:   export GIN_MODE=release
+  - using code:  gin.SetMode(gin.ReleaseMode)
+
+	[GIN-debug] GET    /stats                    --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func1 (4 handlers)
+	[GIN-debug] GET    /monitor                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func2 (4 handlers)
+	[GIN-debug] GET    /man                      --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func3 (4 handlers)
+	[GIN-debug] GET    /man/:name                --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func4 (4 handlers)
+	[GIN-debug] GET    /restart                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func5 (4 handlers)
+	...
+```
 
 ## 安装、升级测试 
 
-Datakit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
+DataKit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
 
 大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
 
@@ -125,74 +231,75 @@ Datakit 新功能发布，大家最好做全套测试，包括安装、升级等
 - AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
 - SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件，以 `zhangsan` 为例：
+在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 `scripts/build.sh` 中。将其 copy 到 datakit 源码根目录，稍作修改，即可用于本地编译、发布。
 
-配置开发机器的环境变量：
+## 关于代码规范
 
-```shell
-export LOCAL_OSS_ACCESS_KEY='LTAIxxxxxxxxxxxxxxxxxxxx'
-export LOCAL_OSS_SECRET_KEY='nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx'
-export LOCAL_OSS_BUCKET='df-storage-dev'
-export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com'
-export LOCAL_OSS_ADDR='df-storage-dev.oss-cn-hangzhou.aliyuncs.com/zhangsan/datakit'
+这里不强调具体的代码规范，现有工具能帮助我们规范各自的代码习惯，目前引入 golint 工具，可单独检查现有代码：
 
-# 编译、打包、上传脚本
-
-osarch="windows/amd64"
-#osarch="linux/amd64"
-#osarch="darwin/amd64"
-
-ver="1.0.0-rc0" # 故意搞一个低版本号
-
-# build & pub
-LOCAL=${osarch} VERSION=$ver make && LOCAL=${osarch} VERSION=$ver make pub_local -j8; exit 0
+```golang
+make lint
 ```
 
-升级/安装 shell 脚本：
+在 check.err 中即可看到各种修改建议。对于误报，我们可以用 `//nolint` 来显式关闭：
 
-```shell
-user="zhangsan" # 改一下你的 oss bucket 目录
-tkn="<your-dataflux-token>"
+```golang
+// 显而易见，16 是最大的单字节 16 进制数，但 lint 中的 gomnd 会报错：
+// mnd: Magic number: 16, in <return> detected (gomnd)
+// 但此处可加后缀来屏蔽这个检查
+func digitVal(ch rune) int {
+	switch {
+	case '0' <= ch && ch <= '9':
+		return int(ch - '0')
+	case 'a' <= ch && ch <= 'f':
+		return int(ch - 'a' + 10)
+	case 'A' <= ch && ch <= 'F':
+		return int(ch - 'A' + 10)
+	}
 
-# 几种不同的平台
-osarch="linux-amd64"
-#osarch="darwin-amd64"
-
-installer="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/${user}/datakit/installer-${osarch}"
-dw="https://openway.dataflux.cn?token=${tkn}"
-
-# 升级脚本(linux/mac)
-sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"; exit 0
-
-# 安装脚本(linux/mac)
-sudo -- sh -c "curl ${installer} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -dataway $dw && rm -rf ./dk-installer"; exit 0
+	// larger than any legal digit val
+	return 16 //nolint:gomnd
+}
 ```
 
-升级/安装 powershell 脚本：
+> `nolint` 规则参见[这里](https://golangci-lint.run/usage/false-positives/)
+
+但我们不建议频繁加上 `//nolint:xxx,yyy` 来掩耳盗铃，如下几种情况可用 lint：
+
+- 中所众所周知的一些 magic number，比如 1024 表示 1K, 16 为最大的单字节值
+- 一些确实无关的安全告警，比如要在代码中运行个命令，但命令参数是外面传入的，但既然 lint 工具有提及，就有必要考虑是否有可能的安全问题。
+
+```golang
+// cmd/datakit/cmds/monitor.go
+cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
+```
+- 其它可能确实需要关闭检查的地方，慎重对待
+
+## DataKit 辅助功能
+
+除了[官方文档](datakit-tools-how-to)列出的部分辅助功能外，DataKit 还支持其它功能，这些主要在开发过程中使用。
+
+### 检查 sample config 是否正确
 
 ```shell
-$user = "zhangsan"
-$tkn = "<your-dataflux-token>"
-
-# 几种不同的平台
-$osarch = "windows-amd64"
-
-$installer = "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/$user/datakit/installer-$osarch.exe"
-$dw = "https://openway.dataflux.cn?token=$tkn"
-
-# 升级脚本
-Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -upgrade; rm .dk-installer.exe
-
-# 安装脚本
-Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source "$installer" -destination .dk-installer.exe; .dk-installer.exe -dataway "$dw"; rm .dk-installer.exe
+datakit --check-sample
+------------------------
+checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 ```
 
-如果要执行 powershell 脚本（dk.ps1），在 Powershell 中执行如下命令：
+### 导出文档
+
+将 DataKit 现有文档，导出到指定目录，同时指定文档版本，将文档中标记为 `TODO` 的用 `-` 代替，同时忽略采集器 `demo`
 
 ```shell
-# 修改 powershell 执行权限
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+man_version=`git tag -l | sort -nr | head -n 1` # 获取最近发布的 tag 版本
+datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ignore demo
+```
 
-# 然后再执行脚本
-powershell.exe .\dk.ps1
+### 集成导出
+
+将集成内容导出到指定目录，一般这个目录是另一个 git-repo（当前是 [dataflux-integration](https://gitee.com/dataflux/dataflux-integration.git)）
+
+```shell
+datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
 ```

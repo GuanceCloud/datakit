@@ -5,78 +5,119 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"unsafe"
 
+	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 const (
-	// pipeline关键字段
+	// pipeline关键字段.
 	pipelineTimeField = "time"
 
-	// ES value can be at most 32766 bytes long
+	// ES value can be at most 32766 bytes long.
 	maxFieldsLength = 32766
 
-	// 不使用高频IO
+	// 不使用高频IO.
 	disableHighFreqIODdata = false
 )
+
+type errorList []error
+
+func (e errorList) Err() error {
+	if len(e) == 0 {
+		return nil
+	}
+	parts := make([]string, len(e))
+	for x, err := range e {
+		parts[x] = err.Error()
+	}
+	return fmt.Errorf(strings.Join(parts, "\n"))
+}
 
 type Logs struct {
 	text   string
 	fields map[string]interface{}
 	ts     time.Time
 	pt     *io.Point
-	err    error
+
+	skip bool
+	errs errorList
 }
 
 func NewLogs(text string) *Logs {
 	return &Logs{text: text, fields: make(map[string]interface{})}
 }
 
+func (x *Logs) RemoveAnsiEscapeCodesOfText(remove bool) *Logs {
+	if x.IsSkip() || !remove {
+		return x
+	}
+
+	newText, err := ansi.Strip(String2Bytes(x.text))
+	if err != nil {
+		x.AddErr(fmt.Errorf("failed of remove color: %w", err))
+		return x
+	}
+
+	x.text = Bytes2String(newText)
+	return x
+}
+
 func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
-	if x.err != nil || p == nil {
+	if x.IsSkip() {
+		return x
+	}
+
+	if p == nil {
 		x.fields["message"] = x.text
 		return x
 	}
 
-	x.fields, x.err = p.Run(x.text).Result()
-
-	if len(x.fields) == 0 {
-		x.err = fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline")
+	fields, err := p.Run(x.text).Result()
+	if err != nil {
+		x.AddErr(err)
 	}
+
+	for k, v := range fields {
+		x.fields[k] = v
+	}
+
 	return x
 }
 
-// checkFieldsLength 检查数据是否过长
+// CheckFieldsLength 检查数据是否过长
 // 只有在碰到非 message 字段，且长度超过最大限制时才会返回 error
-// 防止通过 pipeline 添加巨长字段的恶意行为
+// 防止通过 pipeline 添加巨长字段的恶意行为.
 func (x *Logs) CheckFieldsLength() *Logs {
-	if x.err != nil {
+	if x.IsSkip() {
 		return x
 	}
-
-	func() {
-		for k, v := range x.fields {
-			switch vv := v.(type) {
-			case string:
-				if len(vv) <= maxFieldsLength {
-					continue
-				}
-				if k == "message" {
-					x.fields[k] = vv[:maxFieldsLength]
-				} else {
-					x.err = fmt.Errorf("fields[%s], length=%d, out of maximum length", k, len(vv))
-					return
-				}
-			default:
-				// nil
-			}
+	for k, v := range x.fields {
+		vv, ok := v.(string)
+		if !ok {
+			continue
 		}
-	}()
+		if len(vv) <= maxFieldsLength {
+			continue
+		}
+
+		if k == "message" {
+			x.fields[k] = vv[:maxFieldsLength]
+		} else {
+			delete(x.fields, k)
+			x.AddErr(fmt.Errorf("discard fields[%s], length=%d, out of maximum length", k, len(vv)))
+		}
+	}
 
 	return x
 }
+
+const (
+	DefaultStatus = "info"
+)
 
 var statusMap = map[string]string{
 	"f":        "emerg",
@@ -100,55 +141,59 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-// addStatus 添加默认status和status映射
+// AddStatus 添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'.
 func (x *Logs) AddStatus(disable bool) *Logs {
-	if x.err != nil || disable {
+	if x.IsSkip() || disable {
 		return x
 	}
 
 	// 不包含 status 字段
 	statusField, ok := x.fields["status"]
 	if !ok {
-		x.fields["status"] = "info"
+		x.fields["status"] = DefaultStatus
 		return x
 	}
 
 	// status 类型必须是 string
 	statusStr, ok := statusField.(string)
 	if !ok {
-		x.fields["status"] = "info"
+		x.fields["status"] = DefaultStatus
 		return x
 	}
 
 	// 查询 statusMap 枚举表并替换
 	if v, ok := statusMap[strings.ToLower(statusStr)]; !ok {
-		x.fields["status"] = "info"
+		x.fields["status"] = DefaultStatus
 	} else {
 		x.fields["status"] = v
 	}
 	return x
 }
 
-// ignoreStatus 过滤指定status
+// IgnoreStatus 过滤指定status.
 func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
-	if x.err != nil || len(ignoreStatus) == 0 {
+	if x.IsSkip() || len(ignoreStatus) == 0 {
 		return x
 	}
 
-	if status, ok := x.fields["status"].(string); ok {
-		for _, ignore := range ignoreStatus {
-			if ignore == status {
-				x.err = fmt.Errorf("this fields has been ignored, status:%s", status)
-				break
-			}
-		}
+	status, ok := x.fields["status"].(string)
+	if !ok {
+		return x
 	}
 
+	s := strings.ToLower(status)
+
+	for _, ignore := range ignoreStatus {
+		if strings.ToLower(ignore) == s {
+			x.skip = true
+			return x
+		}
+	}
 	return x
 }
 
 func (x *Logs) TakeTime() *Logs {
-	if x.err != nil {
+	if x.IsSkip() {
 		return x
 	}
 
@@ -156,8 +201,9 @@ func (x *Logs) TakeTime() *Logs {
 	if v, ok := x.fields[pipelineTimeField]; ok {
 		nanots, ok := v.(int64)
 		if !ok {
-			x.err = fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
-				pipelineTimeField, v, reflect.TypeOf(v).String())
+			x.ts = time.Now()
+			x.AddErr(fmt.Errorf("invalid filed `%s: %v', should be nano-second, but got `%s'",
+				pipelineTimeField, v, reflect.TypeOf(v).String()))
 			return x
 		}
 
@@ -171,22 +217,39 @@ func (x *Logs) TakeTime() *Logs {
 }
 
 func (x *Logs) Point(measurement string, tags map[string]string) *Logs {
-	if x.err != nil {
+	if x.IsSkip() {
 		return x
 	}
-	x.pt, x.err = io.MakePoint(measurement, tags, x.fields, x.ts)
+
+	if len(x.fields) == 0 {
+		x.AddErr(fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline"))
+		return x
+	}
+
+	pt, err := io.MakePoint(measurement, tags, x.fields, x.ts)
+	if err != nil {
+		x.AddErr(err)
+	}
+	x.pt = pt
 	return x
 }
 
 func (x *Logs) Feed(inputName string) *Logs {
-	if x.err != nil {
+	if x.IsSkip() {
 		return x
 	}
-	x.err = io.Feed(inputName,
+	if x.pt == nil {
+		return x
+	}
+
+	err := io.Feed(inputName,
 		datakit.Logging,
 		[]*io.Point{x.pt},
 		&io.Option{HighFreq: disableHighFreqIODdata},
 	)
+	if err != nil {
+		x.AddErr(err)
+	}
 	return x
 }
 
@@ -197,8 +260,16 @@ func (x *Logs) Output() string {
 	return x.pt.String()
 }
 
-func (x *Logs) Error() error {
-	return x.err
+func (x *Logs) Err() error {
+	return x.errs.Err()
+}
+
+func (x *Logs) AddErr(err error) {
+	x.errs = append(x.errs, err)
+}
+
+func (x *Logs) IsSkip() bool {
+	return x.skip
 }
 
 func feed(inputName, measurement string, tags map[string]string, message string) error {
@@ -206,7 +277,6 @@ func feed(inputName, measurement string, tags map[string]string, message string)
 		tags,
 		map[string]interface{}{"message": message},
 		time.Now())
-
 	if err != nil {
 		return err
 	}
@@ -218,4 +288,18 @@ func feed(inputName, measurement string, tags map[string]string, message string)
 	)
 
 	return err
+}
+
+// String2Bytes convert string to bytes.
+//nolint:gosec
+func String2Bytes(s string) []byte {
+	x := (*[2]uintptr)(unsafe.Pointer(&s))
+	h := [3]uintptr{x[0], x[1], x[1]}
+	return *(*[]byte)(unsafe.Pointer(&h))
+}
+
+// Bytes2String convert bytes to string.
+//nolint:gosec
+func Bytes2String(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }

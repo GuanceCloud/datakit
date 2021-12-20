@@ -5,10 +5,11 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 )
 
-// TlsClientConfig represents the standard client TLS config.
-type TlsClientConfig struct {
+// TLSClientConfig represents the standard client TLS config.
+type TLSClientConfig struct {
 	CaCerts            []string `json:"ca_certs" toml:"ca_certs"`
 	Cert               string   `json:"cert" toml:"cert"`
 	CertKey            string   `json:"cert_key" toml:"cert_key"`
@@ -17,7 +18,7 @@ type TlsClientConfig struct {
 }
 
 // TLSConfig returns a tls.Config, may be nil without error if TLS is not configured.
-func (this *TlsClientConfig) TlsConfig() (*tls.Config, error) {
+func (c *TLSClientConfig) TLSConfig() (*tls.Config, error) {
 	// This check returns a nil (aka, "use the default")
 	// tls.Config if no field is set that would have an effect on
 	// a TLS connection. That is, any of:
@@ -25,30 +26,35 @@ func (this *TlsClientConfig) TlsConfig() (*tls.Config, error) {
 	//     * peer certificate authorities,
 	//     * disabled security, or
 	//     * an SNI server name.
-	if len(this.CaCerts) == 0 && this.CertKey == "" && this.Cert == "" && !this.InsecureSkipVerify && this.ServerName == "" {
+
+	if len(c.CaCerts) == 0 &&
+		c.CertKey == "" &&
+		c.Cert == "" &&
+		!c.InsecureSkipVerify && //nolint:gosec
+		c.ServerName == "" {
 		return nil, nil
 	}
-
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: this.InsecureSkipVerify,
+		InsecureSkipVerify: c.InsecureSkipVerify, //nolint:gosec
 		Renegotiation:      tls.RenegotiateNever,
 	}
 
-	if len(this.CaCerts) != 0 {
-		if pool, err := makeCertPool(this.CaCerts); err != nil {
+	if len(c.CaCerts) != 0 {
+		pool, err := makeCertPool(c.CaCerts)
+		if err != nil {
 			return nil, err
-		} else {
-			tlsConfig.RootCAs = pool
+		}
+
+		tlsConfig.RootCAs = pool
+	}
+
+	if c.Cert != "" && c.CertKey != "" {
+		if err := loadCertificate(tlsConfig, c.Cert, c.CertKey); err != nil {
+			return nil, err
 		}
 	}
 
-	if this.Cert != "" && this.CertKey != "" {
-		if err := loadCertificate(tlsConfig, this.Cert, this.CertKey); err != nil {
-			return nil, err
-		}
-	}
-
-	tlsConfig.ServerName = this.ServerName
+	tlsConfig.ServerName = c.ServerName
 
 	return tlsConfig, nil
 }
@@ -56,12 +62,13 @@ func (this *TlsClientConfig) TlsConfig() (*tls.Config, error) {
 func makeCertPool(certFiles []string) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	for _, certFile := range certFiles {
-		if pem, err := ioutil.ReadFile(certFile); err != nil {
-			return nil, fmt.Errorf("could not read certificate %q: %v", certFile, err)
-		} else {
-			if ok := pool.AppendCertsFromPEM(pem); !ok {
-				return nil, fmt.Errorf("could not parse any PEM certificates %q: %v", certFile, err)
-			}
+		pem, err := ioutil.ReadFile(filepath.Clean(certFile))
+		if err != nil {
+			return nil, fmt.Errorf("could not read certificate %q: %w", certFile, err)
+		}
+
+		if ok := pool.AppendCertsFromPEM(pem); !ok {
+			return nil, fmt.Errorf("could not parse any PEM certificates %q: %w", certFile, err)
 		}
 	}
 
@@ -69,12 +76,12 @@ func makeCertPool(certFiles []string) (*x509.CertPool, error) {
 }
 
 func loadCertificate(config *tls.Config, certFile, keyFile string) error {
-	if cert, err := tls.LoadX509KeyPair(certFile, keyFile); err != nil {
-		return fmt.Errorf("could not load keypair %s:%s: %v\n", certFile, keyFile, err)
-	} else {
-		config.Certificates = []tls.Certificate{cert}
-		config.BuildNameToCertificate()
-
-		return nil
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return fmt.Errorf("could not load keypair %s:%s: %w", certFile, keyFile, err)
 	}
+
+	config.Certificates = []tls.Certificate{cert}
+	config.BuildNameToCertificate()
+	return nil
 }

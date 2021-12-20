@@ -1,3 +1,4 @@
+// Package self collect datakit self metrics.
 package self
 
 import (
@@ -8,11 +9,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 )
 
-var (
-	StartTime time.Time
-)
+var StartTime time.Time
 
 type ClientStat struct {
 	HostName string
@@ -42,6 +42,7 @@ type ClientStat struct {
 
 	DroppedPointsTotal int64
 	DroppedPoints      int64
+	Incumbency         int64 // 选举任期
 }
 
 func setMax(prev, cur int64) int64 {
@@ -62,8 +63,8 @@ func setMin(prev, cur int64) int64 {
 
 func (s *ClientStat) Update() {
 	s.HostName = config.Cfg.Hostname
-	if config.Cfg.DataWay.HttpProxy != "" {
-		s.Proxy = config.Cfg.DataWay.HttpProxy
+	if config.Cfg.DataWay.HTTPProxy != "" {
+		s.Proxy = config.Cfg.DataWay.HTTPProxy
 	}
 
 	var memStatus runtime.MemStats
@@ -93,13 +94,13 @@ func (s *ClientStat) Update() {
 		s.CPUUsage = u
 	}
 
+	s.Incumbency = s.getIncumbency()
 	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
 	s.DroppedPointsTotal = io.DroppedTotal()
 }
 
 func (s *ClientStat) ToMetric() *io.Point {
-
-	s.Uptime = int64(time.Now().Sub(StartTime) / time.Second)
+	s.Uptime = int64(time.Since(StartTime) / time.Second)
 
 	measurement := "datakit"
 
@@ -137,6 +138,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 
 		"dropped_points_total": s.DroppedPointsTotal,
 		"dropped_points":       s.DroppedPoints,
+		"incumbency":           s.Incumbency,
 	}
 
 	pt, err := io.MakePoint(measurement, tags, fields)
@@ -145,4 +147,18 @@ func (s *ClientStat) ToMetric() *io.Point {
 	}
 
 	return pt
+}
+
+// getIncumbency 获取任期时长.
+func (s *ClientStat) getIncumbency() int64 {
+	if !config.Cfg.EnableElection {
+		return 0
+	}
+
+	elected, _ := election.Elected()
+	if elected == "success" {
+		return int64(time.Since(election.GetElectedTime()) / time.Second)
+	} else {
+		return -1
+	}
 }

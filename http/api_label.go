@@ -8,9 +8,8 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
-// create or update object labels
+// create or update object labels.
 func apiCreateOrUpdateObjectLabel(c *gin.Context) {
-
 	// 1) get request body
 	// 2) reroute to dataway
 	body, err := uhttp.GinRead(c)
@@ -44,12 +43,12 @@ func apiCreateOrUpdateObjectLabel(c *gin.Context) {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	c.Data(resp.StatusCode, "application/json", respBody)
 }
 
-// delete object label
+// delete object label.
 func apiDeleteObjectLabel(c *gin.Context) {
 	// 1) get request body
 	// 2) reroute to dataway
@@ -84,7 +83,7 @@ func apiDeleteObjectLabel(c *gin.Context) {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	c.Data(resp.StatusCode, "application/json", respBody)
 }

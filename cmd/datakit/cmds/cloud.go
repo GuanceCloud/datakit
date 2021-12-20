@@ -5,7 +5,6 @@ import (
 )
 
 func showCloudInfo(cloud string) (map[string]interface{}, error) {
-
 	hostobject.SetLog()
 
 	x := hostobject.Input{}

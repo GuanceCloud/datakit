@@ -34,12 +34,12 @@ import (
 // https://git.k8s.io/enhancements/keps/sig-node/runtime-class.md
 type RuntimeClass struct {
 	metav1.TypeMeta `json:",inline"`
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Specification of the RuntimeClass
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	Spec RuntimeClassSpec `json:"spec" protobuf:"bytes,2,name=spec"`
 }
 
@@ -56,8 +56,8 @@ type RuntimeClassSpec struct {
 	// For example, a handler called "runc" might specify that the runc OCI
 	// runtime (using native Linux containers) will be used to run the containers
 	// in a pod.
-	// The RuntimeHandler must conform to the DNS Label (RFC 1123) requirements
-	// and is immutable.
+	// The RuntimeHandler must be lowercase, conform to the DNS Label (RFC 1123)
+	// requirements, and is immutable.
 	RuntimeHandler string `json:"runtimeHandler" protobuf:"bytes,1,opt,name=runtimeHandler"`
 
 	// Overhead represents the resource overhead associated with running a pod for a
@@ -107,7 +107,7 @@ type Scheduling struct {
 type RuntimeClassList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 

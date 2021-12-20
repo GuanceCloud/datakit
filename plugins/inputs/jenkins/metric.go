@@ -2,9 +2,10 @@ package jenkins
 
 import (
 	"fmt"
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	"time"
 )
 
 var fieldMap = map[string]string{
@@ -46,7 +47,7 @@ func (n *Input) getPluginMetric() {
 	ts := time.Now()
 	tags := map[string]string{
 		"metric_plugin_version": metric.Version,
-		"url":                   n.Url,
+		"url":                   n.URL,
 	}
 	for k, v := range n.Tags {
 		tags[k] = v
@@ -58,7 +59,11 @@ func (n *Input) getPluginMetric() {
 		}
 	}
 	if version, ok := metric.Gauges["jenkins.versions.core"]; ok {
-		tags["version"] = (version["value"]).(string)
+		if v, ok := (version["value"]).(string); ok {
+			tags["version"] = v
+		} else {
+			l.Warnf("expect string")
+		}
 	}
 	if len(fields) == 0 {
 		err = fmt.Errorf("jenkins empty field")
@@ -81,6 +86,7 @@ func (m *Measurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,

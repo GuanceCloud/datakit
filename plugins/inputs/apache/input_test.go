@@ -1,17 +1,16 @@
 package apache
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"sync"
-	"time"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
-var s = `127.0.0.1
+var testdata = `127.0.0.1
 ServerVersion: Apache/2.4.29 (Ubuntu)
 ServerMPM: event
 Server Built: 2020-08-12T21:33:25
@@ -44,48 +43,34 @@ ConnsAsyncClosing: 0
 Scoreboard: W_________________________________________________....................................................................................................`
 
 func TestParse(t *testing.T) {
-	body := strings.NewReader(s)
+	body := strings.NewReader(testdata)
 	n := Input{}
-	n.parse(body)
-
-	var m Measurement
-	m.LineProto()
-	m.Info()
+	if _, err := n.parse(body); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestGetMetric(t *testing.T) {
-	opt := &testutil.HTTPServerOptions{
-		Bind: ":12345",
-		Exit: make(chan interface{}),
-		Routes: map[string]func(*gin.Context){
-			"/server_status": func(c *gin.Context) {
-				c.Writer.Header().Set("Content-Type", "text/plain; charset=ISO-8859-1")
-				c.Writer.Write([]byte(s))
-			},
-		},
-	}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, testdata)
+	}))
 
-	wg := sync.WaitGroup{}
-
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		testutil.NewHTTPServer(t, opt)
-	}()
-
-	time.Sleep(time.Second)
+	defer ts.Close()
 
 	n := Input{
-		Url:      "http://127.0.0.1:12345/server_status",
-		Interval: datakit.Duration{Duration: time.Second * 1},
+		URL: ts.URL + "/server_status",
 	}
-	go func() {
-		time.Sleep(time.Second * 2)
-		datakit.Exit.Close()
-		close(opt.Exit)
-	}()
-	n.Run()
-	wg.Wait()
 
+	client, err := n.createHTTPClient()
+	tu.Ok(t, err)
+	n.client = client
+
+	m, err := n.getMetric()
+	tu.Ok(t, err)
+
+	tu.Assert(t, m != nil, "Measurement should not nil")
+
+	p, err := m.LineProto()
+	tu.Ok(t, err)
+	t.Logf(p.String())
 }

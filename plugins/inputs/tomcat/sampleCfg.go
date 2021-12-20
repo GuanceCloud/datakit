@@ -1,6 +1,7 @@
 package tomcat
 
 const (
+	//nolint:lll
 	tomcatSampleCfg = `
 [[inputs.tomcat]]
   ### Tomcat user(rolename="jolokia"). For example:
@@ -20,10 +21,10 @@ const (
   ### Monitor Interval
   # interval = "15s"
 
-  [inputs.tomcat.log]
-    # files = []
-    ## grok pipeline script path
-    # pipeline = "tomcat.p"
+  # [inputs.tomcat.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "tomcat.p"
 
   [inputs.tomcat.tags]
   # some_tag = "some_value"
@@ -62,12 +63,13 @@ const (
     tag_keys = ["context","host"]
     tag_prefix = "tomcat_"`
 
+	//nolint:lll
 	pipelineCfg = `
 # juli OneLineFormatter format
-# cataline / host-manager / localhost / manager log 
+# catiline / host-manager / localhost / manager log
 add_pattern("olf_time", "%{MONTHDAY}-%{MONTH}-%{YEAR} %{TIME}")
 grok(_, "%{olf_time:time} %{LOGLEVEL:status} \\[%{NOTSPACE:thread_name}\\] %{NOTSPACE:report_source} %{GREEDYDATA:msg}")
-  
+
 # localhost_access_log log
 grok(_, "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \\[%{HTTPDATE:time}\\] \"%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}\" %{INT:status_code} %{INT:bytes}")
 

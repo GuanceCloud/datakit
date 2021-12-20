@@ -1,0 +1,9 @@
+# {"version": "1.1.8-rc3", "desc": "do NOT edit this line"}
+
+[[inputs.system]]
+  ##(optional) collect interval, default is 10 seconds
+  interval = '10s'
+
+  [inputs.system.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"

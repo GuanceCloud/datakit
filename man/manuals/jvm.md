@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 # {{.InputName}}
@@ -160,7 +160,7 @@ java -javaagent:dd-java-agent.jar \
 
 ## 通过 Jolokia 采集 JVM 指标
 
-JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到 DataFlux，帮助分析 Java 运行情况。
+JVM 采集器可以通过 JMX 来采取很多指标，并将指标采集到观测云，帮助分析 Java 运行情况。
 
 ## 前置条件
 

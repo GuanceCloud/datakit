@@ -1,39 +1,77 @@
 package container
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestGetContainerPodName(t *testing.T) {
-	mock := Kubernetes{
-		URL: "http://127.0.0.1:10255",
+	fakeResp := `
+{
+	"kind": "not-set",
+	"apiVersion": "not-set",
+	"items": [
+		{
+			"metadata": {
+				"name": "abc123",
+				"namespace": "not-set",
+				"uid": "id-not-set",
+				"labels": null
+			},
+			"status": {
+				"phase": "not-set",
+				"startTime": "not-set",
+				"containerStatuses": [
+					{
+						"containerID": "docker://faked-container-id",
+						"restartCount": 0,
+						"ready": true
+					}
+				]
+			}
+		}
+	]
+}`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, fakeResp)
+	}))
+
+	defer ts.Close()
+
+	k := Kubernetes{
+		URL: ts.URL,
 	}
 
-	if err := mock.Init(); err != nil {
-		t.Fatal(err)
+	if err := k.Init(); err != nil {
+		t.Error(err)
 	}
 
-	var cases = []struct {
-		id string
+	cases := []struct {
+		id, expected string
 	}{
 		{
-			"cf063df157fed1976dfff6b47e7ba55a1ce36385715b859bd03d4acc9b92690c",
+			id:       "faked-container-id",
+			expected: "abc123",
 		},
 	}
 
-	for idx, tc := range cases {
-		name, err := mock.GetContainerPodName(containerIDPrefix + tc.id)
+	for _, tc := range cases {
+		name, err := k.GetContainerPodName(containerIDPrefix + tc.id)
 		if err != nil {
 			t.Error(err)
 		}
-		t.Logf("[%d] container_id:%s pod_name:%s\n", idx, tc.id, name)
+
+		tu.Equals(t, tc.expected, name)
 	}
 }
 
 func TestGetDeploymentFromPodName(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		podName, deploymentName string
 	}{
 		{

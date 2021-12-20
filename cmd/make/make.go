@@ -1,40 +1,45 @@
+// tool to build datakit
+
 package main
 
 import (
 	"flag"
+	"os"
+	"path/filepath"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
-	"os"
-	"path/filepath"
 )
 
 var (
 	flagBinary       = flag.String("binary", "", "binary name to build")
 	flagName         = flag.String("name", *flagBinary, "same as -binary")
 	flagBuildDir     = flag.String("build-dir", "build", "output of build files")
-	flagMain         = flag.String(`main`, `main.go`, `binary build entry`)
+	flagMain         = flag.String("main", `main.go`, `binary build entry`)
 	flagDownloadAddr = flag.String("download-addr", "", "")
 	flagPubDir       = flag.String("pub-dir", "pub", "")
 	flagArchs        = flag.String("archs", "local", "os archs")
-	flagEnv          = flag.String(`env`, ``, `build for local/test/preprod/release`)
-	flagPub          = flag.Bool(`pub`, false, `publish binaries to OSS: local/test/release/preprod`)
+	flagRelease      = flag.String("release", "", `build for local/testing/production`)
+	flagPub          = flag.Bool("pub", false, `publish binaries to OSS: local/testing/production`)
 	flagBuildISP     = flag.Bool("build-isp", false, "generate ISP data")
 
 	l = logger.DefaultSLogger("make")
 )
 
 func applyFlags() {
-
 	if *flagBuildISP {
 		curDir, _ := os.Getwd()
 
-		inputIpDir := filepath.Join(curDir, "china-operator-ip")
+		inputIPDir := filepath.Join(curDir, "china-operator-ip")
 		ip2ispFile := filepath.Join(curDir, "pipeline", "ip2isp", "ip2isp.txt")
-		os.Remove(ip2ispFile)
+		if err := os.Remove(ip2ispFile); err != nil {
+			l.Warnf("os.Remove: %s, ignored", err.Error())
+		}
 
-		if err := ip2isp.MergeIsp(inputIpDir, ip2ispFile); err != nil {
+		if err := ip2isp.MergeIsp(inputIPDir, ip2ispFile); err != nil {
 			l.Errorf("MergeIsp failed: %v", err)
 		} else {
 			l.Infof("merge ip2isp file in `%v`", ip2ispFile)
@@ -46,7 +51,10 @@ func applyFlags() {
 			l.Errorf("%v not exist, you can download from `https://lite.ip2location.com/download?id=9`", inputFile)
 			os.Exit(0)
 		}
-		os.Remove(ip2ispFile)
+
+		if err := os.Remove(ip2ispFile); err != nil {
+			l.Warnf("os.Remove: %s, ignored", err.Error())
+		}
 
 		if err := ip2isp.BuildContryCity(inputFile, outputFile); err != nil {
 			l.Errorf("BuildContryCity failed: %v", err)
@@ -63,25 +71,35 @@ func applyFlags() {
 	build.AppName = *flagName
 	build.Archs = *flagArchs
 
-	build.Release = *flagEnv
 	build.MainEntry = *flagMain
 	build.DownloadAddr = *flagDownloadAddr
+	switch *flagRelease {
+	case build.ReleaseProduction, build.ReleaseLocal, build.ReleaseTesting:
+	default:
+		l.Fatalf("invalid release type: %s", *flagRelease)
+	}
+
+	build.ReleaseType = *flagRelease
 
 	// override git.Version
 	if x := os.Getenv("VERSION"); x != "" {
 		build.ReleaseVersion = x
 	}
 
-	l.Infof("use version %s", build.ReleaseVersion)
-
-	switch *flagEnv {
-	case "release":
+	switch *flagRelease {
+	case build.ReleaseProduction:
 		l.Debug("under release, only checked inputs released")
-		build.ReleaseType = "checked"
+		build.InputsReleaseType = "checked"
+		if !version.IsValidReleaseVersion(build.ReleaseVersion) {
+			l.Fatalf("invalid releaseVersion: %s, expect format 1.2.3-rc0", build.ReleaseVersion)
+		}
+
 	default:
 		l.Debug("under non-release, all inputs released")
-		build.ReleaseType = "all"
+		build.InputsReleaseType = "all"
 	}
+
+	l.Infof("use version %s", build.ReleaseVersion)
 
 	if *flagPub {
 		build.PubDatakit()

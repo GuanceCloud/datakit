@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// StatInfo represents each group statistic info
+// StatInfo represents each group statistic info.
 type StatInfo struct {
 	Total       int64         `json:"finished_goroutines"`
 	CostTime    time.Duration `json:"total_cost_time"`
@@ -17,12 +17,13 @@ type StatInfo struct {
 	totalJobs   int64         // total jobs containing non-finished jobs
 }
 
-// stat cache the group statistic info
-var stat map[string]*StatInfo
+// stat cache the group statistic info.
+var (
+	stat = make(map[string]*StatInfo)
+	mu   sync.Mutex
+)
 
-var mu sync.Mutex
-
-// Option provides the setup of a group
+// Option provides the setup of a group.
 type Option struct {
 	Name         string
 	PanicCb      func([]byte) bool
@@ -30,7 +31,7 @@ type Option struct {
 	PanicTimeout time.Duration
 }
 
-func beforeCb(name string, g *Group) func() {
+func beforeCb(name string) func() {
 	return func() {
 		mu.Lock()
 		groupStat, ok := stat[name]
@@ -43,7 +44,7 @@ func beforeCb(name string, g *Group) func() {
 	}
 }
 
-func postCb(name string, g *Group) func(error, time.Duration) {
+func postCb(name string) func(error, time.Duration) {
 	return func(err error, costTime time.Duration) {
 		mu.Lock()
 		groupStat, ok := stat[name]
@@ -68,9 +69,9 @@ func postCb(name string, g *Group) func(error, time.Duration) {
 	}
 }
 
-// NewGroup create a custom group
+// NewGroup create a custom group.
 func NewGroup(option Option) *Group {
-	var name = "default"
+	name := "default"
 	if len(option.Name) > 0 {
 		name = option.Name
 	}
@@ -81,13 +82,13 @@ func NewGroup(option Option) *Group {
 		panicTimeout: option.PanicTimeout,
 	}
 
-	g.postCb = postCb(name, g)
-	g.beforeCb = beforeCb(name, g)
+	g.postCb = postCb(name)
+	g.beforeCb = beforeCb(name)
 
 	return g
 }
 
-// RunningStatInfo represents each running group information
+// RunningStatInfo represents each running group information.
 type RunningStatInfo struct {
 	Total        int64  `json:"finished_goroutines"`
 	RunningTotal int64  `json:"running_goroutines"`
@@ -97,7 +98,7 @@ type RunningStatInfo struct {
 	ErrCount     int64  `json:"err_count"`
 }
 
-// Summary represents the total statistic information
+// Summary represents the total statistic information.
 type Summary struct {
 	Total        int64  `json:"finished_goroutines"`
 	RunningTotal int64  `json:"running_goroutines"`
@@ -107,26 +108,26 @@ type Summary struct {
 	Items map[string]RunningStatInfo
 }
 
-// GetStat return the group summary
-func GetStat() Summary {
-	summary := Summary{
+// GetStat return the group summary.
+func GetStat() *Summary {
+	summary := &Summary{
 		Items: make(map[string]RunningStatInfo),
 	}
 
 	costTime := time.Duration(0)
 
 	for k, v := range stat {
-		running_total := v.totalJobs - v.Total
+		runningTotal := v.totalJobs - v.Total
 		summary.Items[k] = RunningStatInfo{
 			Total:        v.Total,
-			RunningTotal: running_total,
+			RunningTotal: runningTotal,
 			CostTime:     fmt.Sprint(v.CostTime),
 			MinCostTime:  fmt.Sprint(v.MinCostTime),
 			MaxCostTime:  fmt.Sprint(v.MaxCostTime),
 			ErrCount:     v.ErrCount,
 		}
 		summary.Total += v.Total
-		summary.RunningTotal += running_total
+		summary.RunningTotal += runningTotal
 		costTime += v.CostTime
 	}
 
@@ -141,11 +142,7 @@ func GetStat() Summary {
 	return summary
 }
 
-// GetInputName return the group name for each inputs
+// GetInputName return the group name for each inputs.
 func GetInputName(name string) string {
 	return "inputs_" + name
-}
-
-func init() {
-	stat = make(map[string]*StatInfo)
 }

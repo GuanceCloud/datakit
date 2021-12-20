@@ -11,11 +11,13 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
+//nolint:lll
 const (
 	winUpgradeCmd      = `$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source %s -destination .install.ps1; powershell .install.ps1;`
 	winUpgradeCmdProxy = `$env:HTTPS_PROXY="%s"; $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -ProxyUsage Override -ProxyList $env:HTTP_PROXY -source %s -destination .install.ps1; powershell .install.ps1;`
@@ -25,7 +27,6 @@ const (
 )
 
 func checkUpdate(curverStr string, acceptRC bool) int {
-
 	l = logger.SLogger("ota-update")
 
 	l.Debugf("get online version...")
@@ -48,7 +49,7 @@ func checkUpdate(curverStr string, acceptRC bool) int {
 	if ver != nil && version.IsNewVersion(ver, curver, acceptRC) {
 		l.Infof("New online version available: %s, commit %s (release at %s)",
 			ver.VersionString, ver.Commit, ver.ReleaseDate)
-		return 42
+		return 42 // nolint
 	} else {
 		if acceptRC {
 			l.Infof("Up to date(%s)", curver.VersionString)
@@ -68,7 +69,15 @@ func showVersion(curverStr, releaseType string, showTestingVer bool) {
 Golang Version: %s
       Uploader: %s
 ReleasedInputs: %s
-`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader, releaseType)
+     InstallAt: %s
+     UpgradeAt: %s
+`, curverStr, git.Commit, git.Branch, git.BuildAt, git.Golang, git.Uploader,
+		releaseType, config.Cfg.InstallDate, func() string {
+			if config.Cfg.UpgradeDate.Unix() < 0 {
+				return "not upgraded"
+			}
+			return fmt.Sprintf("%v", config.Cfg.UpgradeDate)
+		}())
 	vers, err := getOnlineVersions(showTestingVer)
 	if err != nil {
 		fmt.Printf("Get online version failed: \n%s\n", err.Error())
@@ -81,10 +90,10 @@ ReleasedInputs: %s
 	}
 
 	for k, v := range vers {
-
-		// always show testing verison if showTestingVer is true
+		// always show testing version if showTestingVer is true
 		l.Debugf("compare %s <=> %s", v, curver)
-		if k == "Testing" || version.IsNewVersion(v, curver, true) { // show version info, also show RC verison info
+		// show version info, also show RC version info
+		if k == "Testing" || version.IsNewVersion(v, curver, true) {
 			fmt.Println("---------------------------------------------------")
 			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
 				k, v.VersionString, v.Commit, v.ReleaseDate)
@@ -94,34 +103,41 @@ ReleasedInputs: %s
 	}
 }
 
+const (
+	OnlineBaseURL  = "static.guance.com/datakit"
+	TestingBaseURL = "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit"
+)
+
 func getUpgradeCommand(dlurl string) string {
-	upgradeFmt := ""
-	proxy := config.Cfg.DataWay.HttpProxy
+	proxy := config.Cfg.DataWay.HTTPProxy
+	var upgradeCmd string
+
 	switch runtime.GOOS {
-	case "windows":
+	case datakit.OSWindows:
 		if proxy != "" {
-			upgradeFmt = fmt.Sprintf(winUpgradeCmdProxy, proxy, dlurl)
+			upgradeCmd = fmt.Sprintf(winUpgradeCmdProxy, proxy, dlurl)
 		} else {
-			upgradeFmt = fmt.Sprintf(winUpgradeCmd, dlurl)
+			upgradeCmd = fmt.Sprintf(winUpgradeCmd, dlurl)
 		}
 
 	default: // Linux/Mac
 
 		if proxy != "" {
-			upgradeFmt = fmt.Sprintf(unixUpgradeCmdProxy, proxy, proxy, dlurl)
+			upgradeCmd = fmt.Sprintf(unixUpgradeCmdProxy, proxy, proxy, dlurl)
 		} else {
-			upgradeFmt = fmt.Sprintf(unixUpgradeCmd, dlurl)
+			upgradeCmd = fmt.Sprintf(unixUpgradeCmd, dlurl)
 		}
 	}
 
-	return upgradeFmt
+	return upgradeCmd
 }
 
 func getLocalVersion(ver string) (*version.VerInfo, error) {
 	v := &version.VerInfo{
 		VersionString: strings.TrimPrefix(ver, "v"),
 		Commit:        git.Commit,
-		ReleaseDate:   git.BuildAt}
+		ReleaseDate:   git.BuildAt,
+	}
 	if err := v.Parse(); err != nil {
 		return nil, err
 	}
@@ -129,7 +145,6 @@ func getLocalVersion(ver string) (*version.VerInfo, error) {
 }
 
 func getVersion(addr string) (*version.VerInfo, error) {
-
 	cli := getcli()
 
 	req, err := nhttp.NewRequest("GET", "http://"+path.Join(addr, "version"), nil)
@@ -142,7 +157,7 @@ func getVersion(addr string) (*version.VerInfo, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	infobody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -159,17 +174,16 @@ func getVersion(addr string) (*version.VerInfo, error) {
 
 	ver.DownloadURL = fmt.Sprintf("https://%s/install.sh", addr)
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		ver.DownloadURL = fmt.Sprintf("https://%s/install.ps1", addr)
 	}
 	return &ver, nil
 }
 
 func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, err error) {
-
 	res = map[string]*version.VerInfo{}
 
-	onlineVer, err := getVersion("static.dataflux.cn/datakit")
+	onlineVer, err := getVersion(OnlineBaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +191,7 @@ func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, er
 	l.Debugf("online version: %s", onlineVer)
 
 	if showTestingVer {
-		testVer, err := getVersion("zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit")
+		testVer, err := getVersion(TestingBaseURL)
 		if err != nil {
 			return nil, err
 		}

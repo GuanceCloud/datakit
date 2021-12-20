@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"io/ioutil"
+	"path/filepath"
 )
 
 func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
@@ -14,7 +15,7 @@ func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
 		return nil, err
 	}
 	// Load CA cert
-	caCert, err := ioutil.ReadFile(caFile)
+	caCert, err := ioutil.ReadFile(filepath.Clean(caFile))
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +24,7 @@ func TLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
 		return nil, errors.New("failed to append certs from PEM")
 	}
 
-	tlsConfig := &tls.Config{
+	tlsConfig := &tls.Config{ //nolint:gosec
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caCertPool,
 		MinVersion:   tls.VersionTLS10,

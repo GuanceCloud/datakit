@@ -5,23 +5,23 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/docker/docker/api/types"
+	docker "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dkcfg "gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-
-	"github.com/docker/docker/api/types"
-	docker "github.com/docker/docker/client"
 )
 
 // 日志 source 选择
@@ -37,39 +37,36 @@ const (
 	// https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L21
 	maxLineBytes = 16 * 1024
 
-	// ES value can be at most 32766 bytes long
-	maxFieldsLength = 32766
-
-	pipelineTimeField = "time"
-
-	useIOHighFreq = true
+	multilineMaxLines = 1000
 
 	containerIDPrefix = "docker://"
+
+	loggingDisableAddStatus = false
 )
 
 type dockerClient struct {
 	client *docker.Client
 	K8s    *Kubernetes
 
-	IgnoreImageName     []string
-	IgnoreContainerName []string
+	IgnoreImageName              []string
+	IgnoreContainerName          []string
+	LoggingRemoveAnsiEscapeCodes bool
 
 	ProcessTags func(tags map[string]string)
 	Logs        Logs
 
-	containerLogsOptions types.ContainerLogsOptions
-	containerLogList     map[string]context.CancelFunc
+	containerLogList map[string]context.CancelFunc
 
 	mu sync.Mutex
 	wg sync.WaitGroup
 }
 
-/*This file is inherited from telegraf docker input plugin*/
+/*This file is inherited from telegraf docker input plugin.*/
 var (
 	version        = "1.24"
 	defaultHeaders = map[string]string{"User-Agent": "engine-api-cli-1.0"}
 
-	// 容器日志的连接参数
+	// 容器日志的连接参数.
 	containerLogsOptions = types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
@@ -95,25 +92,14 @@ func newDockerClient(host string, tlsConfig *tls.Config) (*dockerClient, error) 
 	}
 
 	return &dockerClient{
-		client:               client,
-		containerLogList:     make(map[string]context.CancelFunc),
-		containerLogsOptions: containerLogsOptions,
+		client:           client,
+		containerLogList: make(map[string]context.CancelFunc),
 	}, nil
-}
-
-func newDockerClientFromEnv() (*dockerClient, error) {
-	client, err := docker.NewClientWithOpts(docker.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dockerClient{client: client}, nil
 }
 
 func (d *dockerClient) Stop() {
 	d.cancelTails()
 	d.wg.Wait()
-	return
 }
 
 func (d *dockerClient) Metric(ctx context.Context, in chan<- []*job) {
@@ -194,7 +180,9 @@ func (d *dockerClient) Object(ctx context.Context, in chan<- []*job) {
 	in <- jobs
 }
 
-func (d *dockerClient) do(ctx context.Context, processFunc func(types.Container), opt types.ContainerListOptions) error {
+func (d *dockerClient) do(ctx context.Context,
+	processFunc func(types.Container),
+	opt types.ContainerListOptions) error {
 	cList, err := d.client.ContainerList(ctx, opt)
 	if err != nil {
 		l.Error(err)
@@ -218,7 +206,7 @@ func (d *dockerClient) gather(container types.Container) (*job, error) {
 	startTime := time.Now()
 	tags := d.gatherContainerInfo(container)
 
-	var fields = make(map[string]interface{})
+	fields := make(map[string]interface{})
 	var err error
 
 	// 注意，此处如果没有 fields，构建 point 会失败
@@ -245,7 +233,7 @@ func (d *dockerClient) ignoreContainerName(name string) bool {
 
 func (d *dockerClient) gatherContainerInfo(container types.Container) map[string]string {
 	imageName, imageShortName, imageTag := ParseImage(container.Image)
-	var tags = map[string]string{
+	tags := map[string]string{
 		"state":            container.State,
 		"docker_image":     container.Image,
 		"image_name":       imageName,
@@ -280,7 +268,7 @@ func (d *dockerClient) gatherSingleContainerProcess(container types.Container) (
 			continue
 		}
 
-		var p = make(map[string]string)
+		p := make(map[string]string)
 
 		for idx, title := range top.Titles {
 			p[title] = proc[idx]
@@ -313,9 +301,9 @@ func (d *dockerClient) gatherSingleContainerStats(container types.Container) (ma
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
-	if resp.OSType == "windows" {
+	if resp.OSType == datakit.OSWindows {
 		return nil, nil
 	}
 
@@ -334,7 +322,8 @@ func (d *dockerClient) calculateContainerStats(v *types.StatsJSON) map[string]in
 	blkRead, blkWrite := calculateBlockIO(v.BlkioStats)
 
 	return map[string]interface{}{
-		"cpu_usage":          calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage, v.PreCPUStats.SystemUsage, v), /*float64*/
+		"cpu_usage": calculateCPUPercentUnix(v.PreCPUStats.CPUUsage.TotalUsage,
+			v.PreCPUStats.SystemUsage, v), /*float64*/
 		"cpu_delta":          calculateCPUDelta(v),
 		"cpu_system_delta":   calculateCPUSystemDelta(v),
 		"cpu_numbers":        calculateCPUNumbers(v),
@@ -350,11 +339,11 @@ func (d *dockerClient) calculateContainerStats(v *types.StatsJSON) map[string]in
 }
 
 func (d *dockerClient) getContainerHostname(id string) (string, error) {
-	containerJson, err := d.client.ContainerInspect(context.TODO(), id)
+	containerJSON, err := d.client.ContainerInspect(context.TODO(), id)
 	if err != nil {
 		return "", err
 	}
-	return containerJson.Config.Hostname, nil
+	return containerJSON.Config.Hostname, nil
 }
 
 func getContainerName(names []string) string {
@@ -364,6 +353,7 @@ func getContainerName(names []string) string {
 	return "invalidContainerName"
 }
 
+// nolint:lll
 // contianerIsFromKubernetes 判断该容器是否由kubernetes创建
 // 所有kubernetes启动的容器的containerNamePrefix都是k8s，依据链接如下
 // https://github.com/rootsongjc/kubernetes-handbook/blob/master/practice/monitor.md#%E5%AE%B9%E5%99%A8%E7%9A%84%E5%91%BD%E5%90%8D%E8%A7%84%E5%88%99
@@ -372,22 +362,19 @@ func contianerIsFromKubernetes(containerName string) bool {
 	return strings.HasPrefix(containerName, kubernetesContainerNamePrefix)
 }
 
-//
-////////////////////////////////////// LOGGING ////////////////////////////////////////////////
-//
-
-func (d *dockerClient) addToContainerList(containerID string, cancel context.CancelFunc) error {
+// ---------------------------
+// LOGGING
+// ---------------------------.
+func (d *dockerClient) addToContainerList(containerID string, cancel context.CancelFunc) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.containerLogList[containerID] = cancel
-	return nil
 }
 
-func (d *dockerClient) removeFromContainerList(containerID string) error {
+func (d *dockerClient) removeFromContainerList(containerID string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	delete(d.containerLogList, containerID)
-	return nil
 }
 
 func (d *dockerClient) containerInContainerList(containerID string) bool {
@@ -397,13 +384,12 @@ func (d *dockerClient) containerInContainerList(containerID string) bool {
 	return ok
 }
 
-func (d *dockerClient) cancelTails() error {
+func (d *dockerClient) cancelTails() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for _, cancel := range d.containerLogList {
 		cancel()
 	}
-	return nil
 }
 
 func (d *dockerClient) hasTTY(ctx context.Context, container types.Container) (bool, error) {
@@ -450,11 +436,14 @@ func (d *dockerClient) Logging(ctx context.Context) {
 			defer d.wg.Done()
 			defer d.removeFromContainerList(container.ID)
 
-			err = d.tailContainerLogs(ctx, container)
-			if err != nil && err != context.Canceled {
-				l.Error(err)
-				iod.FeedLastError(inputName, fmt.Sprintf("failed of gather logging, restart this container logging, name:%s ID:%s error: %s",
-					getContainerName(container.Names), container.ID, err))
+			if err := d.tailContainerLogs(ctx, container); err != nil {
+				if !errors.Is(err, context.Canceled) {
+					l.Errorf("tailContainerLogs: %s", err)
+
+					iod.FeedLastError(inputName,
+						fmt.Sprintf("failed of gather logging, restart this container logging, name: %s ID:%s, error: %s",
+							getContainerName(container.Names), container.ID, err))
+				}
 			}
 		}(container)
 	}
@@ -518,43 +507,68 @@ func (d *dockerClient) tailContainerLogs(ctx context.Context, container types.Co
 	} else {
 		return d.tailMultiplexed(ctx, logReader, container)
 	}
-
 }
 
-func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, stream string, container types.Container) error {
-	defer reader.Close()
+func (d *dockerClient) tailStream(ctx context.Context,
+	reader io.ReadCloser,
+	stream string,
+	container types.Container) error {
+	defer reader.Close() //nolint:errcheck
 
 	var (
 		tags       = d.getContainerTags(container)
 		name       = tags["container_name"]
 		deployment = tags["deployment"]
 
-		pipe *pipeline.Pipeline
-		err  error
-
-		source = func() string {
-			// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试使用它的 deployment name
-			if tags["container_type"] == "kubernetes" && deployment != "" {
-				return deployment
-			}
-			return name
-		}()
-		service = name
+		ln = &logsOption{
+			source: func() string {
+				// measurement 默认使用容器名，如果该容器是 k8s 创建，则尝试使用它的 deployment name
+				if tags["container_type"] == "kubernetes" && deployment != "" {
+					return deployment
+				}
+				return name
+			}(),
+			service: name,
+		}
 	)
 
 	l.Debugf("matched name:%s deployment:%s", name, deployment)
 
 	if n := d.Logs.MatchName(deployment, name); n != -1 {
-		pipe, err = pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, d.Logs[n].Pipeline))
-		if err != nil {
-			l.Debugf("new pipeline error: %s", err)
+		l.Debug("log match success, containerName:%s deploymentName:%s", name, deployment)
+
+		if d.Logs[n].Pipeline != "" {
+			pPath, err := dkcfg.GetPipelinePath(d.Logs[n].Pipeline)
+			if err != nil {
+				l.Errorf("container_name:%s new pipeline error: %s", name, err)
+				return err
+			}
+			if err := ln.setPipeline(pPath); err != nil {
+				l.Warnf("container_name:%s new pipeline error: %s", name, err)
+			} else {
+				l.Debug("container_name:%s new pipeline success, path:%s", name, d.Logs[n].Pipeline)
+			}
 		}
-		source = d.Logs[n].Source
-		service = d.Logs[n].Service
+
+		if err := ln.setDecoder(d.Logs[n].CharacterEncoding); err != nil {
+			l.Warnf("container_name:%s new decoder error: %s", name, err)
+		} else {
+			l.Debug("container_name:%s new decoder success, characterEncoding:%s", name, d.Logs[n].CharacterEncoding)
+		}
+
+		if err := ln.setMultiline(d.Logs[n].MultilineMatch, multilineMaxLines); err != nil {
+			l.Warnf("container_name:%s new multiline error: %s", name, err)
+		} else {
+			l.Debug("container_name:%s new multiline success, multiline_match:%s", name, d.Logs[n].MultilineMatch)
+		}
+
+		ln.source = d.Logs[n].Source
+		ln.service = d.Logs[n].Service
+		ln.ignoreStatus = d.Logs[n].IgnoreStatus
 	}
 
 	tags["stream"] = stream
-	tags["service"] = service
+	tags["service"] = ln.service
 
 	r := bufio.NewReaderSize(reader, maxLineBytes)
 
@@ -578,16 +592,26 @@ func (d *dockerClient) tailStream(ctx context.Context, reader io.ReadCloser, str
 			continue
 		}
 
-		text := strings.TrimSpace(string(line))
+		text, err := ln.decode(string(line))
+		if err != nil {
+			l.Warnf("decode error: %s, ignored", err)
+		}
+
+		text = ln.multiline(strings.TrimSpace(text))
+		if text == "" {
+			continue
+		}
 
 		if err := tailer.NewLogs(text).
-			Pipeline(pipe).
+			RemoveAnsiEscapeCodesOfText(d.LoggingRemoveAnsiEscapeCodes).
+			Pipeline(ln.pipe).
 			CheckFieldsLength().
-			AddStatus(false).
+			AddStatus(loggingDisableAddStatus).
+			IgnoreStatus(ln.ignoreStatus).
 			TakeTime().
-			Point(source, tags).
+			Point(ln.source, tags).
 			Feed(inputName).
-			Error(); err != nil {
+			Err(); err != nil {
 			l.Error("logging gather failed, container_id: %s, container_name:%s, err: %s", err.Error())
 		}
 	}
@@ -616,15 +640,89 @@ func (d *dockerClient) tailMultiplexed(ctx context.Context, src io.ReadCloser, c
 		}
 	}()
 
+	defer func() {
+		wg.Wait()
+
+		if err := outWriter.Close(); err != nil {
+			l.Warnf("Close: %s", err)
+		}
+
+		if err := errWriter.Close(); err != nil {
+			l.Warnf("Close: %s", err)
+		}
+
+		if err := src.Close(); err != nil {
+			l.Warnf("Close: %s", err)
+		}
+	}()
+
 	_, err := stdcopy.StdCopy(outWriter, errWriter, src)
-	outWriter.Close()
-	errWriter.Close()
-	src.Close()
-	wg.Wait()
-	return err
+	if err != nil {
+		l.Warnf("StdCopy: %s", err)
+		return err
+	}
+
+	return nil
 }
 
-// ignoreCommand 忽略 k8s pod 的 init container
+// ignoreCommand 忽略 k8s pod 的 init container.
 func ignoreCommand(command string) bool {
 	return command == "/pause"
+}
+
+type logsOption struct {
+	source       string
+	service      string
+	pipe         *pipeline.Pipeline
+	decoder      *encoding.Decoder
+	mult         *tailer.Multiline
+	ignoreStatus []string
+}
+
+func (ln *logsOption) setPipeline(path string) error {
+	p, err := pipeline.NewPipelineFromFile(path)
+	if err != nil {
+		return err
+	}
+	ln.pipe = p
+	return nil
+}
+
+func (ln *logsOption) setDecoder(characterEncoding string) error {
+	if characterEncoding == "" {
+		return nil
+	}
+	d, err := encoding.NewDecoder(characterEncoding)
+	if err != nil {
+		return err
+	}
+	ln.decoder = d
+	return nil
+}
+
+func (ln *logsOption) setMultiline(match string, maxLines int) error {
+	if match == "" {
+		return nil
+	}
+
+	mult, err := tailer.NewMultiline(match, maxLines)
+	if err != nil {
+		return err
+	}
+	ln.mult = mult
+	return nil
+}
+
+func (ln *logsOption) decode(text string) (str string, err error) {
+	if ln.decoder == nil {
+		return text, nil
+	}
+	return ln.decoder.String(text)
+}
+
+func (ln *logsOption) multiline(text string) string {
+	if ln.mult == nil {
+		return text
+	}
+	return ln.mult.ProcessLine(text)
 }

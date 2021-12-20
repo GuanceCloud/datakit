@@ -11,14 +11,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-type DbData struct {
+type DBData struct {
 	Name   string
 	Fields map[string]interface{}
 }
 
 type ColData struct {
 	Name   string
-	DbName string
+	DBName string
 	Fields map[string]interface{}
 }
 
@@ -26,12 +26,11 @@ type MongodbData struct {
 	StatLine      *StatLine
 	Tags          map[string]string
 	Fields        map[string]interface{}
-	ShardHostData []DbData
-	DbData        []DbData
+	ShardHostData []DBData
+	DBData        []DBData
 	ColData       []ColData
-	TopStatsData  []DbData
+	TopStatsData  []DBData
 	collectCache  []inputs.Measurement
-	collectCost   time.Duration
 }
 
 func NewMongodbData(statLine *StatLine, tags map[string]string) *MongodbData {
@@ -89,42 +88,42 @@ func (d *MongodbData) AddDefaultStats() {
 
 func (d *MongodbData) AddShardHostStats() {
 	for host, hostStat := range d.StatLine.ShardHostStatsLines {
-		hostStatLine := reflect.ValueOf(&hostStat).Elem()
-		newDbData := &DbData{
+		hostStatLine := reflect.ValueOf(hostStat)
+		newDBData := &DBData{
 			Name:   host,
 			Fields: make(map[string]interface{}),
 		}
-		newDbData.Fields["type"] = "shard_host_stat"
+		newDBData.Fields["type"] = "shard_host_stat"
 		for k, v := range shardHostStats {
 			val := hostStatLine.FieldByName(v).Interface()
-			newDbData.Fields[k] = val
+			newDBData.Fields[k] = val
 		}
-		d.ShardHostData = append(d.ShardHostData, *newDbData)
+		d.ShardHostData = append(d.ShardHostData, *newDBData)
 	}
 }
 
-func (d *MongodbData) AddDbStats() {
-	for _, dbstat := range d.StatLine.DbStatsLines {
-		dbStatLine := reflect.ValueOf(&dbstat).Elem()
-		newDbData := &DbData{
+func (d *MongodbData) AddDBStats() {
+	for _, dbstat := range d.StatLine.DBStatsLines {
+		dbStatLine := reflect.ValueOf(dbstat)
+		newDBData := &DBData{
 			Name:   dbstat.Name,
 			Fields: make(map[string]interface{}),
 		}
-		newDbData.Fields["type"] = "db_stat"
+		newDBData.Fields["type"] = "db_stat"
 		for key, value := range dbDataStats {
 			val := dbStatLine.FieldByName(value).Interface()
-			newDbData.Fields[key] = val
+			newDBData.Fields[key] = val
 		}
-		d.DbData = append(d.DbData, *newDbData)
+		d.DBData = append(d.DBData, *newDBData)
 	}
 }
 
 func (d *MongodbData) AddColStats() {
 	for _, colstat := range d.StatLine.ColStatsLines {
-		colStatLine := reflect.ValueOf(&colstat).Elem()
+		colStatLine := reflect.ValueOf(colstat)
 		newColData := &ColData{
 			Name:   colstat.Name,
-			DbName: colstat.DbName,
+			DBName: colstat.DBName,
 			Fields: make(map[string]interface{}),
 		}
 		newColData.Fields["type"] = "col_stat"
@@ -138,8 +137,8 @@ func (d *MongodbData) AddColStats() {
 
 func (d *MongodbData) AddTopStats() {
 	for _, topStat := range d.StatLine.TopStatLines {
-		topStatLine := reflect.ValueOf(&topStat).Elem()
-		newTopStatData := &DbData{
+		topStatLine := reflect.ValueOf(topStat)
+		newTopStatData := &DBData{
 			Name:   topStat.CollectionName,
 			Fields: make(map[string]interface{}),
 		}
@@ -163,7 +162,6 @@ func (d *MongodbData) add(key string, val interface{}) {
 }
 
 func (d *MongodbData) append() {
-
 	now := time.Now()
 	d.collectCache = append(d.collectCache, &mongodbMeasurement{
 		name:   "mongodb",
@@ -172,10 +170,10 @@ func (d *MongodbData) append() {
 		ts:     now,
 	})
 
-	for _, db := range d.DbData {
+	for _, db := range d.DBData {
 		tmp := copyTags(d.Tags)
 		tmp["db_name"] = db.Name
-		d.collectCache = append(d.collectCache, &mongodbDbMeasurement{
+		d.collectCache = append(d.collectCache, &mongodbDBMeasurement{
 			name:   "mongodb_db_stats",
 			tags:   tmp,
 			fields: db.Fields,
@@ -186,7 +184,7 @@ func (d *MongodbData) append() {
 	for _, col := range d.ColData {
 		tmp := copyTags(d.Tags)
 		tmp["collection"] = col.Name
-		tmp["db_name"] = col.DbName
+		tmp["db_name"] = col.DBName
 		d.collectCache = append(d.collectCache, &mongodbColMeasurement{
 			name:   "mongodb_col_stats",
 			tags:   tmp,
@@ -220,8 +218,12 @@ func (d *MongodbData) append() {
 
 func (d *MongodbData) flush(cost time.Duration) {
 	if len(d.collectCache) != 0 {
-		if err := inputs.FeedMeasurement(inputName, datakit.Metric, d.collectCache, &io.Option{CollectCost: cost}); err != nil {
-			l.Error(err)
+		if err := inputs.FeedMeasurement(inputName,
+			datakit.Metric,
+			d.collectCache,
+			&io.Option{CollectCost: cost}); err != nil {
+			l.Errorf("FeedMeasurement: %s", err)
+
 			io.FeedLastError(inputName, err.Error())
 		}
 	}

@@ -56,8 +56,10 @@ type HeadlessTask struct {
 	Labels          []string               `json:"labels,omitempty"`
 	AdvanceOptions  *HeadlessAdvanceOption `json:"advance_options_headless,omitempty"`
 	UpdateTime      int64                  `json:"update_time,omitempty"`
+	TimeOut         string                 `json:"time_out,omitempty"`
 
-	ticker *time.Ticker
+	ticker          *time.Ticker
+	timeOutDuration time.Duration
 
 	hasAddSpecialSteps bool
 	linedatas          string
@@ -119,7 +121,7 @@ func (t *HeadlessTask) Class() string {
 }
 
 func (t *HeadlessTask) MetricName() string {
-	return `` //TODO
+	return `` // TODO
 }
 
 func (t *HeadlessTask) PostURLStr() string {
@@ -173,7 +175,6 @@ func (t *HeadlessTask) Check() error {
 }
 
 func (t *HeadlessTask) Run() error {
-
 	t.Clear()
 
 	disableCors := false
@@ -194,7 +195,10 @@ func (t *HeadlessTask) Run() error {
 	defer cancel()
 
 	// create context
-	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	chromeContext, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	defer cancel()
+
+	ctx, cancel := context.WithTimeout(chromeContext, t.timeOutDuration)
 	defer cancel()
 
 	header := map[string]interface{}{}
@@ -262,14 +266,10 @@ func (t *HeadlessTask) Run() error {
 			}
 			actions = append(actions, chromedp.Sleep(ts))
 
-		case `click`, `sendkeys`, `screenshot`: //TODO
+		case `click`, `sendkeys`, `screenshot`: // TODO
 		default:
 		}
 	}
-
-	// for _, action := range actions {
-	// 	log.Printf("headless start run actions: %+#v  %d  %v", action, len(actions), disableCors)
-	// }
 
 	err := chromedp.Run(ctx, actions...)
 	if err != nil {
@@ -277,6 +277,8 @@ func (t *HeadlessTask) Run() error {
 	}
 
 	t.linedatas = strings.Join(res, "\n")
+
+	chromedp.Cancel(ctx) //nolint:errcheck
 
 	return nil
 }
@@ -306,11 +308,12 @@ const insertjs = `(function (h, o, u, n, d) {
     })
   })`
 
-const getdata = `window.DATAFLUX_RUM_HEADLESS && DATAFLUX_RUM_HEADLESS.getInternalData()`
-const waitid = `#testheadless`
+const (
+	getdata = `window.DATAFLUX_RUM_HEADLESS && DATAFLUX_RUM_HEADLESS.getInternalData()`
+	waitid  = `#testheadless`
+)
 
 func (t *HeadlessTask) rumSpecialSteps() {
-
 	t.Steps = append(t.Steps, &RecordedSteps{
 		ActionName:    `insertjs`,
 		ActionContent: insertjs,
@@ -334,12 +337,18 @@ func (t *HeadlessTask) CheckResult() (reasons []string) {
 }
 
 func (t *HeadlessTask) Init() error {
-
 	// setup frequency
 	du, err := time.ParseDuration(t.Frequency)
 	if err != nil {
 		return err
 	}
+
+	t.timeOutDuration, err = time.ParseDuration(t.TimeOut)
+	if err != nil {
+		log.Printf(`[warn] no set timeout, use task frequency`)
+		t.timeOutDuration = du
+	}
+
 	if t.ticker != nil {
 		t.ticker.Stop()
 	}
@@ -349,7 +358,7 @@ func (t *HeadlessTask) Init() error {
 		return nil
 	}
 
-	//当前headless主要做browse rum 性能指标采集
+	// 当前headless主要做browse rum 性能指标采集
 	if !t.hasAddSpecialSteps {
 		t.rumSpecialSteps()
 	}

@@ -7,18 +7,18 @@ import (
 	"runtime"
 
 	"github.com/kardianos/service"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
 func isRoot() error {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		return nil // under windows, there is no root user
 	}
 
 	u, err := user.Current()
 	if err != nil {
-		return fmt.Errorf("get user failed: %s", err.Error())
+		return fmt.Errorf("get user failed: %w", err)
 	}
 
 	if u.Username != "root" {
@@ -29,13 +29,12 @@ func isRoot() error {
 }
 
 func stopDatakit() error {
-
 	if err := isRoot(); err != nil {
 		return err
 	}
 
 	// BUG: current service package can't Control service under windows, we use powershell's command instead
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		cmd := exec.Command("powershell", []string{"Stop-Service", "datakit"}...)
 		return cmd.Run()
 	}
@@ -62,8 +61,7 @@ func stopDatakit() error {
 }
 
 func startDatakit() error {
-
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		cmd := exec.Command("powershell", []string{"Start-Service", "datakit"}...)
 		return cmd.Run()
 	}
@@ -95,8 +93,7 @@ func startDatakit() error {
 }
 
 func restartDatakit() error {
-
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		cmd := exec.Command("powershell", []string{"Restart-Service", "datakit"}...)
 		return cmd.Run()
 	}
@@ -141,8 +138,7 @@ func reinstallDatakit() error {
 }
 
 func datakitStatus() (string, error) {
-
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		cmd := exec.Command("powershell", []string{"Get-Service", "datakit"}...)
 		res, err := cmd.CombinedOutput()
 		return string(res), err

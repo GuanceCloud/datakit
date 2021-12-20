@@ -1,3 +1,4 @@
+//nolint:lll
 package iis
 
 import (
@@ -92,7 +93,7 @@ func (m *IISWebService) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 吞吐量
+// 吞吐量.
 func newFieldInfoRPS(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -102,7 +103,7 @@ func newFieldInfoRPS(desc string) *inputs.FieldInfo {
 	}
 }
 
-// second
+// second.
 func newFieldInfoSecond(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -112,7 +113,7 @@ func newFieldInfoSecond(desc string) *inputs.FieldInfo {
 	}
 }
 
-// Bytes/s
+// Bytes/s.
 func newFieldInfoBytesPerSec(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -122,7 +123,7 @@ func newFieldInfoBytesPerSec(desc string) *inputs.FieldInfo {
 	}
 }
 
-// count
+// count.
 func newFieldInfoCount(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -132,7 +133,7 @@ func newFieldInfoCount(desc string) *inputs.FieldInfo {
 	}
 }
 
-// float unkonwn unit
+// float unknown unit.
 func newFieldInfoFloatUnknown(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,

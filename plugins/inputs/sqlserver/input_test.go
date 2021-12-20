@@ -1,8 +1,9 @@
 package sqlserver
 
-import "testing"
 import (
 	"fmt"
+	"testing"
+
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
@@ -12,7 +13,7 @@ func TestCon(t *testing.T) {
 		User:     "_",
 		Password: "_",
 	}
-	if err := n.initDb(); err != nil {
+	if err := n.initDB(); err != nil {
 		l.Error(err.Error())
 		return
 	}

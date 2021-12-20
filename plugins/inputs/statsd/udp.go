@@ -8,26 +8,26 @@ import (
 	"time"
 )
 
-func (s *input) setupUDPServer() error {
-	address, err := net.ResolveUDPAddr(s.Protocol, s.ServiceAddress)
+func (ipt *input) setupUDPServer() error {
+	address, err := net.ResolveUDPAddr(ipt.Protocol, ipt.ServiceAddress)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
 
-	conn, err := net.ListenUDP(s.Protocol, address)
+	conn, err := net.ListenUDP(ipt.Protocol, address)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
 
 	l.Infof("UDP listening on %q", conn.LocalAddr().String())
-	s.UDPlistener = conn
+	ipt.UDPlistener = conn
 
-	s.wg.Add(1)
+	ipt.wg.Add(1)
 	go func() {
-		defer s.wg.Done()
-		if err := s.udpListen(conn); err != nil {
+		defer ipt.wg.Done()
+		if err := ipt.udpListen(conn); err != nil {
 			l.Warnf("udpListen: %s, ignored", err.Error())
 		}
 	}()
@@ -35,9 +35,9 @@ func (s *input) setupUDPServer() error {
 }
 
 // udpListen starts listening for udp packets on the configured port.
-func (s *input) udpListen(conn *net.UDPConn) error {
-	if s.ReadBufferSize > 0 {
-		if err := s.UDPlistener.SetReadBuffer(s.ReadBufferSize); err != nil {
+func (ipt *input) udpListen(conn *net.UDPConn) error {
+	if ipt.ReadBufferSize > 0 {
+		if err := ipt.UDPlistener.SetReadBuffer(ipt.ReadBufferSize); err != nil {
 			return err
 		}
 	}
@@ -45,7 +45,7 @@ func (s *input) udpListen(conn *net.UDPConn) error {
 	buf := make([]byte, UDPMaxPacketSize)
 	for {
 		select {
-		case <-s.done:
+		case <-ipt.done:
 			return nil
 		default:
 			n, addr, err := conn.ReadFromUDP(buf)
@@ -59,7 +59,7 @@ func (s *input) udpListen(conn *net.UDPConn) error {
 
 			l.Debugf("UDP: read %d bytes from %s", n, addr.IP.String())
 
-			b, ok := s.bufPool.Get().(*bytes.Buffer)
+			b, ok := ipt.bufPool.Get().(*bytes.Buffer)
 			if !ok {
 				return fmt.Errorf("bufPool is not a bytes buffer")
 			}
@@ -68,16 +68,17 @@ func (s *input) udpListen(conn *net.UDPConn) error {
 				return err
 			}
 			select {
-			case s.in <- job{
+			case ipt.in <- job{
 				Buffer: b,
 				Time:   time.Now(),
-				Addr:   addr.IP.String()}:
+				Addr:   addr.IP.String(),
+			}:
 			default:
-				s.drops++
-				if s.drops == 1 || s.AllowedPendingMessages == 0 || s.drops%s.AllowedPendingMessages == 0 {
+				ipt.drops++
+				if ipt.drops == 1 || ipt.AllowedPendingMessages == 0 || ipt.drops%ipt.AllowedPendingMessages == 0 {
 					l.Errorf("Statsd message queue full. "+
 						"We have dropped %d messages so far. "+
-						"You may want to increase allowed_pending_messages in the config", s.drops)
+						"You may want to increase allowed_pending_messages in the config", ipt.drops)
 				}
 			}
 		}

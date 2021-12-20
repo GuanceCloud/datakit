@@ -2,7 +2,6 @@ package hostdir
 
 import (
 	"fmt"
-	"github.com/shirou/gopsutil/disk"
 	"io/ioutil"
 	"log"
 	"os"
@@ -13,16 +12,27 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/shirou/gopsutil/disk"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-var Dir_count int
+// 并发用到的channel数据类型.
+type dataChan struct {
+	fileSize int64
+	dirCount int64
+}
+
+const (
+	FSTypeUnknown = "unknown"
+)
 
 func GetFileSystemType(path string) (string, error) {
 	ptr := 0
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == datakit.OSWindows {
 		info, err := disk.Partitions(true)
 		if err != nil {
-			return "unknown", fmt.Errorf("error get windows disk information:%s", err)
+			return FSTypeUnknown, fmt.Errorf("error get windows disk information: %w", err)
 		}
 		for i := 0; i < len(info); i++ {
 			if strings.Contains(path, info[i].Device) {
@@ -33,7 +43,7 @@ func GetFileSystemType(path string) (string, error) {
 	} else {
 		infos, err := disk.Usage(path)
 		if err != nil {
-			return "unknown", fmt.Errorf("error get %s disk information:%s", runtime.GOOS, err)
+			return FSTypeUnknown, fmt.Errorf("error get %s disk information: %w", runtime.GOOS, err)
 		}
 		return infos.Fstype, nil
 	}
@@ -42,11 +52,11 @@ func GetFileSystemType(path string) (string, error) {
 func GetFileOwnership(path string, host string) (string, error) {
 	uid, err := Getuid(path, host)
 	if err != nil {
-		return "unknown", fmt.Errorf("error get uid:%s", err)
+		return FSTypeUnknown, fmt.Errorf("error get uid: %w", err)
 	}
 	u, err := user.LookupId(uid)
 	if err != nil {
-		return "unknown", fmt.Errorf("error look for uid:%s", err)
+		return FSTypeUnknown, fmt.Errorf("error look for uid: %w", err)
 	}
 	return u.Username, nil
 }
@@ -64,7 +74,7 @@ func Getuid(path string, host string) (string, error) {
 func Getdirmode(path string) (string, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return "unknown", fmt.Errorf("error get os stat information:%s", err)
+		return FSTypeUnknown, fmt.Errorf("error get os stat information:%w", err)
 	}
 	mode := fileInfo.Mode()
 	return mode.String(), nil
@@ -79,42 +89,46 @@ func dirents(path string) ([]os.FileInfo, bool) {
 	return entries, true
 }
 
-func walkDir(path string, fileSize chan<- int64, regslice []string) {
-	var flag bool
+func walkDir(path string, chans chan dataChan, regslice []string) {
 	entries, _ := dirents(path)
 	for _, e := range entries {
 		if e.IsDir() {
-			Dir_count++
-			walkDir(filepath.Join(path, e.Name()), fileSize, regslice)
+			chans <- dataChan{
+				dirCount: 1,
+			}
+			walkDir(filepath.Join(path, e.Name()), chans, regslice)
 		} else {
-			flag = false
-			flag = isreg(filepath.Join(path, e.Name()), regslice)
+			flag := isreg(filepath.Join(path, e.Name()), regslice)
 			if !flag {
-				fileSize <- e.Size()
+				chans <- dataChan{
+					fileSize: e.Size(),
+				}
 			}
 		}
 	}
 }
 
 func Startcollect(dir string, reslice []string) (int, int, int) {
-
-	fileSize := make(chan int64)
-
+	mychan := make(chan dataChan)
 	var sizeCount int64
 
 	var fileCount int
 
-	//*dirCount = 0
-	go func() {
-		walkDir(dir, fileSize, reslice)
-		defer close(fileSize)
-	}()
-	for size := range fileSize {
-		fileCount++
-		sizeCount += size
-	}
-	return int(sizeCount), fileCount, Dir_count
+	var dirNum int64
+	dirNum = 0
 
+	go func() {
+		walkDir(dir, mychan, reslice)
+		defer close(mychan)
+	}()
+
+	for count := range mychan {
+		fileCount++
+		sizeCount += count.fileSize
+		dirNum += count.dirCount
+	}
+
+	return int(sizeCount), fileCount, int(dirNum)
 }
 
 func isreg(filename string, regslice []string) bool {

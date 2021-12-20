@@ -4,7 +4,7 @@ container_name=${USER}-datakit            # 以本地用户名命名的 datakit
 host_confd=$HOME/datakit-confd            # 将 HOME 目录下的 datakit-confd 作为 datakit/confd 目录，便于在主机上编辑，不用再登入容器修改
 
 # 大家自行配置 dataway
-dataway="https://openway.dataflux.cn?token=tkn_f2b9920f05d84d6bb5b14d9d39db1dd3,https://openway.dataflux.cn?token=tkn_df4e067a4324460abd1378dcb58030d0"
+dataway="https://openway.guance.com?token=tkn_f2b9920f05d84d6bb5b14d9d39db1dd3,https://openway.guance.com?token=tkn_df4e067a4324460abd1378dcb58030d0"
 
 # 绑定宿主机上的端口映射为 DataKit 的 HTTP 端口，自行改之
 host_port=19529

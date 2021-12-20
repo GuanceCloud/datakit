@@ -1,14 +1,14 @@
+// Package redis collects redis metrics.
 package redis
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/go-redis/redis/v8"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -16,6 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
 	maxInterval = 30 * time.Minute
@@ -33,32 +35,46 @@ type redislog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
+
+	MatchDeprecated string `toml:"match,omitempty"`
 }
 
 type Input struct {
-	Host              string        `toml:"host"`
-	Port              int           `toml:"port"`
-	UnixSocketPath    string        `toml:"unix_socket_path"`
-	DB                int           `toml:"db"`
-	Password          string        `toml:"password"`
-	Timeout           string        `toml:"connect_timeout"`
-	timeoutDuration   time.Duration `toml:"-"`
-	Service           string        `toml:"service"`
-	SocketTimeout     int           `toml:"socket_timeout"`
+	Host              string `toml:"host"`
+	UnixSocketPath    string `toml:"unix_socket_path"`
+	Password          string `toml:"password"`
+	Timeout           string `toml:"connect_timeout"`
+	Service           string `toml:"service"`
+	Addr              string `toml:"-"`
+	Port              int    `toml:"port"`
+	DB                int    `toml:"db"`
+	SocketTimeout     int    `toml:"socket_timeout"`
+	SlowlogMaxLen     int    `toml:"slowlog-max-len"`
 	Interval          datakit.Duration
-	Keys              []string                               `toml:"keys"`
-	WarnOnMissingKeys bool                                   `toml:"warn_on_missing_keys"`
-	CommandStats      bool                                   `toml:"command_stats"`
-	Slowlog           bool                                   `toml:"slow_log"`
-	SlowlogMaxLen     int                                    `toml:"slowlog-max-len"`
-	Tags              map[string]string                      `toml:"tags"`
-	client            *redis.Client                          `toml:"-"`
-	Addr              string                                 `toml:"-"`
-	Log               *redislog                              `toml:"log"`
-	tail              *tailer.Tailer                         `toml:"-"`
-	start             time.Time                              `toml:"-"`
-	collectors        []func() ([]inputs.Measurement, error) `toml:"-"`
+	WarnOnMissingKeys bool              `toml:"warn_on_missing_keys"`
+	CommandStats      bool              `toml:"command_stats"`
+	Slowlog           bool              `toml:"slow_log"`
+	Tags              map[string]string `toml:"tags"`
+	Keys              []string          `toml:"keys"`
+	DBS               []int             `toml:"dbs"`
+	Log               *redislog         `toml:"log"`
+
+	MatchDeprecated   string   `toml:"match,omitempty"`
+	ServersDeprecated []string `toml:"servers,omitempty"`
+
+	timeoutDuration time.Duration
+
+	tail       *tailer.Tailer
+	start      time.Time
+	collectors []func() ([]inputs.Measurement, error)
+
+	client *redis.Client
+
+	pause   bool
+	pauseCh chan bool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (i *Input) initCfg() error {
@@ -98,29 +114,45 @@ func (i *Input) initCfg() error {
 	return nil
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"redis": pipelineCfg,
+		inputName: pipelineCfg,
 	}
 	return pipelineMap
 }
 
-func (i *Input) Collect() error {
-	for _, f := range i.collectors {
-		if ms, err := f(); err != nil {
-			io.FeedLastError(inputName, err.Error())
-		} else {
-			if len(ms) > 0 {
-				if err := inputs.FeedMeasurement(inputName,
-					datakit.Metric,
-					ms,
-					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-					l.Error(err)
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
 				}
+				return ""
+			}(),
+		},
+	}
+}
+
+func (i *Input) Collect() error {
+	for idx, f := range i.collectors {
+		ms, err := f()
+		if err != nil {
+			l.Errorf("collector %v[%d]: %s", f, idx, err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(ms) > 0 {
+			if err := inputs.FeedMeasurement(inputName,
+				datakit.Metric,
+				ms,
+				&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+				l.Errorf("FeedMeasurement: %s", err)
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -166,7 +198,7 @@ func (i *Input) collectBigKeyMeasurement() ([]inputs.Measurement, error) {
 	return i.getData(keys)
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
 	ctx := context.Background()
 	list, err := i.client.ClientList(ctx).Result()
@@ -178,7 +210,7 @@ func (i *Input) collectClientMeasurement() ([]inputs.Measurement, error) {
 	return i.parseClientData(list)
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (i *Input) collectCommandMeasurement() ([]inputs.Measurement, error) {
 	ctx := context.Background()
 	list, err := i.client.Info(ctx, "commandstats").Result()
@@ -209,20 +241,25 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
-		l.Error(err)
+		l.Error("NewTailer: %s", err)
+
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
@@ -235,30 +272,32 @@ func (i *Input) Run() {
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
+	tick := time.NewTicker(i.Interval.Duration)
+	defer tick.Stop()
+
+	// Try init until ok.
 	for {
 		select {
 		case <-datakit.Exit.Wait():
 			return
-		default:
+		case <-i.semStop.Wait():
+			return
+		case <-tick.C:
 		}
 
 		if err := i.initCfg(); err != nil {
 			io.FeedLastError(inputName, err.Error())
-			time.Sleep(5 * time.Second)
 		} else {
 			break
 		}
 	}
 
-	tick := time.NewTicker(i.Interval.Duration)
-	defer tick.Stop()
-
 	i.collectors = []func() ([]inputs.Measurement, error){
 		i.collectInfoMeasurement,
 		i.collectClientMeasurement,
 		i.collectCommandMeasurement,
-		i.collectDBMeasurement,
 		i.collectSlowlogMeasurement,
+		i.collectDBMeasurement,
 	}
 
 	if len(i.Keys) > 0 {
@@ -266,32 +305,54 @@ func (i *Input) Run() {
 	}
 
 	for {
-		select {
-		case <-tick.C:
+		if !i.pause {
 			l.Debugf("redis input gathering...")
 			i.start = time.Now()
-			i.Collect()
-
-		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("redis log exit")
+			if err := i.Collect(); err != nil {
+				l.Errorf("Collect: %s", err)
 			}
+		} else {
+			l.Debugf("not leader, skipped")
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			i.exit()
 			l.Info("redis exit")
 			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("redis return")
+			return
+
+		case <-tick.C:
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
 	}
 }
 
-func (i *Input) Catalog() string { return catalogName }
-
-func (i *Input) SampleConfig() string { return configSample }
-
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("redis log exit")
+	}
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
+}
+
+func (*Input) Catalog() string { return catalogName }
+
+func (*Input) SampleConfig() string { return configSample }
+
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&infoMeasurement{},
 		&clientMeasurement{},
@@ -301,8 +362,36 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func (i *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{Timeout: "10s"}
+		return &Input{
+			Timeout: "10s",
+			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
+			DB:      -1,
+
+			semStop: cliutils.NewSem(),
+		}
 	})
 }

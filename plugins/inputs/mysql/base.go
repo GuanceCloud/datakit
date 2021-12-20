@@ -1,10 +1,7 @@
 package mysql
 
 import (
-	"database/sql"
 	"time"
-
-	"github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -19,13 +16,14 @@ type baseMeasurement struct {
 	resData map[string]interface{}
 }
 
-// 生成行协议
+// 生成行协议.
 func (m *baseMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
-// 指定指标
-func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
+// 指定指标.
+//nolint:lll
+func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "mysql",
 		Fields: map[string]interface{}{
@@ -255,7 +253,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 				Desc:     "The number of physical writes of a key block from the MyISAM key cache to disk.",
 			},
 
-			//variables
+			// variables
 			"Key_buffer_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -500,102 +498,4 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 	}
-}
-
-// 数据源获取数据
-func (m *baseMeasurement) getStatus() error {
-	globalStatusSql := "SHOW /*!50002 GLOBAL */ STATUS;"
-	rows, err := m.i.db.Query(globalStatusSql)
-	if err != nil {
-		l.Errorf("query error %v", err)
-		return err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
-
-		if err = rows.Scan(&key, val); err != nil {
-			// error (todo)
-			continue
-		}
-
-		m.resData[key] = string(*val)
-	}
-
-	return nil
-}
-
-// variables data
-func (m *baseMeasurement) getVariables() error {
-	variablesSql := "SHOW GLOBAL VARIABLES;"
-	rows, err := m.i.db.Query(variablesSql)
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
-
-		if err = rows.Scan(&key, val); err != nil {
-			continue
-		}
-		m.resData[key] = string(*val)
-	}
-
-	return nil
-}
-
-// log stats
-func (m *baseMeasurement) getLogStats() error {
-	logSql := "SHOW BINARY LOGS;"
-	rows, err := m.i.db.Query(logSql)
-	if err != nil {
-		l.Error(err)
-		return err
-	}
-	defer rows.Close()
-
-	var binaryLogSpace int64
-	for rows.Next() {
-		var key string
-		var val *sql.RawBytes = new(sql.RawBytes)
-
-		if err = rows.Scan(&key, val); err != nil {
-			l.Warnf("rows.Scan(): %s, ignored", err.Error())
-			continue
-		}
-
-		v := cast.ToInt64(string(*val))
-
-		binaryLogSpace += v
-
-		m.resData["Binlog_space_usage_bytes"] = binaryLogSpace
-	}
-
-	return nil
-}
-
-// 提交数据
-func (m *baseMeasurement) submit() error {
-	metricInfo := m.Info()
-	for key, item := range metricInfo.Fields {
-		if value, ok := m.resData[key]; ok {
-			val, err := Conv(value, item.(*inputs.FieldInfo).DataType)
-			if err != nil {
-				m.i.err = err
-				l.Errorf("baseMeasurement metric %v value %v parse error %v", key, value, err)
-				return err
-			} else {
-				m.fields[key] = val
-			}
-		}
-	}
-
-	return nil
 }

@@ -1,11 +1,13 @@
+// Package logging collects host logging data.
 package logging
 
 import (
-	"path/filepath"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -45,7 +47,10 @@ const (
 
   ## The pattern should be a regexp. Note the use of '''this regexp'''
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  match = '''^\S'''
+  # multiline_match = '''^\S'''
+
+  ## removes ANSI escape codes from text strings
+  remove_ansi_escape_codes = false
 
   [inputs.logging.tags]
   # some_tag = "some_value"
@@ -54,91 +59,117 @@ const (
 )
 
 type Input struct {
-	LogFiles                []string          `toml:"logfiles"`
-	Ignore                  []string          `toml:"ignore"`
-	Source                  string            `toml:"source"`
-	Service                 string            `toml:"service"`
-	Pipeline                string            `toml:"pipeline"`
-	DeprecatedPipeline      string            `toml:"pipeline_path"`
-	DeprecatedFromBeginning bool              `toml:"from_beginning"`
-	IgnoreStatus            []string          `toml:"ignore_status"`
-	CharacterEncoding       string            `toml:"character_encoding"`
-	Match                   string            `toml:"match"`
-	Tags                    map[string]string `toml:"tags"`
-	FromBeginning           bool              `toml:"-"`
+	LogFiles              []string          `toml:"logfiles"`
+	Ignore                []string          `toml:"ignore"`
+	Source                string            `toml:"source"`
+	Service               string            `toml:"service"`
+	Pipeline              string            `toml:"pipeline"`
+	IgnoreStatus          []string          `toml:"ignore_status"`
+	CharacterEncoding     string            `toml:"character_encoding"`
+	MultilineMatch        string            `toml:"multiline_match"`
+	MultilineMaxLines     int               `toml:"multiline_maxlines"`
+	RemoveAnsiEscapeCodes bool              `toml:"remove_ansi_escape_codes"`
+	Tags                  map[string]string `toml:"tags"`
+	FromBeginning         bool              `toml:"-"`
+
+	DeprecatedPipeline       string `toml:"pipeline_path"`
+	DeprecatedMultilineMatch string `toml:"match"`
+	DeprecatedFromBeginning  bool   `toml:"from_beginning"`
 
 	tailer *tailer.Tailer
 
 	// 在输出 log 内容时，区分是 tailf 还是 logging
 	inputName string
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 var l = logger.DefaultSLogger(inputName)
 
-func (*Input) RunPipeline() {
-	// nil
-}
-
-func (this *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	// 兼容旧版配置 pipeline_path
-	if this.Pipeline == "" && this.DeprecatedPipeline != "" {
-		this.Pipeline = this.DeprecatedPipeline
+	if ipt.Pipeline == "" && ipt.DeprecatedPipeline != "" {
+		ipt.Pipeline = ipt.DeprecatedPipeline
+	}
+
+	if ipt.MultilineMatch == "" && ipt.DeprecatedMultilineMatch != "" {
+		ipt.MultilineMatch = ipt.DeprecatedMultilineMatch
 	}
 
 	var pipelinePath string
 
-	if this.Pipeline == "" {
-		pipelinePath = filepath.Join(datakit.PipelineDir, this.Source+".p")
-	} else {
-		pipelinePath = filepath.Join(datakit.PipelineDir, this.Pipeline)
+	if ipt.Pipeline == "" {
+		ipt.Pipeline = ipt.Source + ".p"
 	}
 
-	opt := &tailer.Option{
-		Source:            this.Source,
-		Service:           this.Service,
-		Pipeline:          pipelinePath,
-		IgnoreStatus:      this.IgnoreStatus,
-		FromBeginning:     this.FromBeginning,
-		CharacterEncoding: this.CharacterEncoding,
-		Match:             this.Match,
-		GlobalTags:        this.Tags,
-	}
-
-	var err error
-	this.tailer, err = tailer.NewTailer(this.LogFiles, opt, this.Ignore)
+	pipelinePath, err := config.GetPipelinePath(ipt.Pipeline)
 	if err != nil {
 		l.Error(err)
 		return
 	}
 
-	go this.tailer.Start()
+	opt := &tailer.Option{
+		Source:                ipt.Source,
+		Service:               ipt.Service,
+		Pipeline:              pipelinePath,
+		IgnoreStatus:          ipt.IgnoreStatus,
+		FromBeginning:         ipt.FromBeginning,
+		CharacterEncoding:     ipt.CharacterEncoding,
+		MultilineMatch:        ipt.MultilineMatch,
+		MultilineMaxLines:     ipt.MultilineMaxLines,
+		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
+		GlobalTags:            ipt.Tags,
+	}
 
-	// 阻塞在此，用以关闭 tailer 资源
-	<-datakit.Exit.Wait()
-	this.Stop()
-	l.Infof("%s exit", this.inputName)
+	ipt.tailer, err = tailer.NewTailer(ipt.LogFiles, opt, ipt.Ignore)
+	if err != nil {
+		l.Error(err)
+		return
+	}
+
+	go ipt.tailer.Start()
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.exit()
+			l.Infof("%s exit", ipt.inputName)
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Infof("%s return", ipt.inputName)
+			return
+		}
+	}
 }
 
-func (this *Input) Stop() {
-	this.tailer.Close()
+func (ipt *Input) exit() {
+	ipt.Stop()
 }
 
-func (this *Input) PipelineConfig() map[string]string {
-	return nil
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
 }
 
-func (this *Input) Catalog() string {
+func (ipt *Input) Stop() {
+	ipt.tailer.Close()
+}
+
+func (*Input) Catalog() string {
 	return "log"
 }
 
-func (this *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleCfg
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLinux}
+	return datakit.AllOS
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -154,11 +185,12 @@ type loggingMeasurement struct {
 	ts     time.Time
 }
 
-func (this *loggingMeasurement) LineProto() (*io.Point, error) {
-	return io.MakePoint(this.name, this.tags, this.fields, this.ts)
+func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(ipt.name, ipt.tags, ipt.fields, ipt.ts)
 }
 
-func (this *loggingMeasurement) Info() *inputs.MeasurementInfo {
+//nolint:lll
+func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "logging 日志采集",
 		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
@@ -174,17 +206,21 @@ func (this *loggingMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: inputName,
+
+			semStop: cliutils.NewSem(),
 		}
 	})
 	inputs.Add(deprecatedInputName, func() inputs.Input {
 		return &Input{
 			Tags:      make(map[string]string),
 			inputName: deprecatedInputName,
+
+			semStop: cliutils.NewSem(),
 		}
 	})
 }

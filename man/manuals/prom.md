@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 # 简介
@@ -73,7 +73,7 @@ node_filesystem,tag-list available_bytes=1.21585664e+08,device_error=0,files=9.2
 
 ## 命令行调试指标集 
 
-由于 Prometheus 暴露出来的指标非常多，大家不一定需要所有的指标，故 DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，已达到如下几个目的：
+由于 Prometheus 暴露出来的指标非常多，大家不一定需要所有的指标，故 DataKit 提供一个简单的调试 `prom.conf` 的工具，如果不断调整 `prom.conf` 的配置，以达到如下几个目的：
 
 - 只采集符合一定名称规则的 Prometheus 指标
 - 只采集部分计量数据（`metric_types`），如 `gauge` 类指标和 `counter` 类指标

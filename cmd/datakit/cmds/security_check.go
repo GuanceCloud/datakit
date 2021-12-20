@@ -11,17 +11,15 @@ import (
 )
 
 const (
-	BaseUrl = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/security-checker/"
+	BaseURL = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/security-checker/"
 )
 
-var (
-	SecCheckOsArch = map[string]bool{
-		datakit.OSArchLinuxArm:   true,
-		datakit.OSArchLinuxArm64: true,
-		datakit.OSArchLinuxAmd64: true,
-		datakit.OSArchLinux386:   true,
-	}
-)
+var SecCheckOsArch = map[string]bool{
+	datakit.OSArchLinuxArm:   true,
+	datakit.OSArchLinuxArm64: true,
+	datakit.OSArchLinuxAmd64: true,
+	datakit.OSArchLinux386:   true,
+}
 
 type SecCheckVersion struct {
 	Version string
@@ -30,15 +28,15 @@ type SecCheckVersion struct {
 func InstallSecCheck(installDir string) error {
 	osArch := runtime.GOOS + "/" + runtime.GOARCH
 	if _, ok := SecCheckOsArch[osArch]; !ok {
-		return fmt.Errorf("Security Checker not support in %v\n", osArch)
+		return fmt.Errorf("security checker not support in %v", osArch)
 	}
 
 	fmt.Printf("Start downloading install script...\n")
 
-	verUrl := BaseUrl + "install.sh"
+	verURL := BaseURL + "install.sh"
 	cli := getcli()
 
-	req, err := http.NewRequest("GET", verUrl, nil)
+	req, err := http.NewRequest("GET", verURL, nil)
 	if err != nil {
 		return err
 	}
@@ -48,20 +46,20 @@ func InstallSecCheck(installDir string) error {
 		return err
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status code %v", resp.StatusCode)
 	}
 
 	fmt.Printf("Download install script successfully.\n")
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read response body %v", err)
+		return fmt.Errorf("read response body %w", err)
 	}
 
 	// TODO: add network proxy option
-	cmd := exec.Command("/bin/bash", "-c", string(body))
+	cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 	x, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Security Checker install failed: %s \n", string(x))

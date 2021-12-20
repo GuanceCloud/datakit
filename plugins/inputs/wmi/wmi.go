@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package wmi
@@ -7,30 +8,32 @@ import (
 	"os"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-var (
-	moduleLogger *logger.Logger
-)
+var moduleLogger *logger.Logger
 
-func (_ *Instance) SampleConfig() string {
+func (*Instance) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *Instance) Catalog() string {
+func (*Instance) Catalog() string {
 	return `windows`
 }
 
 func (ag *Instance) Run() {
-
 	moduleLogger = logger.SLogger(inputName)
 
 	go func() {
-		<-datakit.Exit.Wait()
+		select {
+		case <-datakit.Exit.Wait():
+		case <-ag.semStop.Wait():
+		}
+		ag.exit()
 		ag.cancelFun()
 	}()
 
@@ -42,21 +45,28 @@ func (ag *Instance) Run() {
 		ag.Interval.Duration = time.Minute * 5
 	}
 
-	ag.run(ag.ctx)
+	_ = ag.run(ag.ctx)
 }
 
-func (r *Instance) run(ctx context.Context) error {
+func (ag *Instance) exit() {
+	ag.cancelFun()
+}
 
+func (ag *Instance) Terminate() {
+	if ag.semStop != nil {
+		ag.semStop.Close()
+	}
+}
+
+func (ag *Instance) run(ctx context.Context) error {
 	for {
-
 		select {
 		case <-ctx.Done():
 			return context.Canceled
 		default:
 		}
 
-		for _, query := range r.Queries {
-
+		for _, query := range ag.Queries {
 			select {
 			case <-ctx.Done():
 				return context.Canceled
@@ -65,13 +75,11 @@ func (r *Instance) run(ctx context.Context) error {
 
 			if query.lastTime.IsZero() {
 				query.lastTime = time.Now()
-			} else {
-				if time.Now().Sub(query.lastTime) < query.Interval.Duration {
-					continue
-				}
+			} else if time.Since(query.lastTime) < query.Interval.Duration {
+				continue
 			}
 
-			sql, err := query.ToSql()
+			sql, err := query.ToSQL()
 			if err != nil {
 				moduleLogger.Warnf("%s", err)
 				continue
@@ -87,7 +95,6 @@ func (r *Instance) run(ctx context.Context) error {
 			if err != nil {
 				moduleLogger.Errorf("query failed, %s", err)
 				continue
-
 			}
 
 			hostname, _ := os.Hostname()
@@ -96,35 +103,36 @@ func (r *Instance) run(ctx context.Context) error {
 				"host": hostname,
 			}
 
-			for k, v := range r.Tags {
+			for k, v := range ag.Tags {
 				tags[k] = v
 			}
 
 			for _, fields := range fieldsArr {
-				if r.isTest() {
+				if ag.isTest() {
 					// pass
 				} else {
-					io.NamedFeedEx(inputName, datakit.Metric, r.MetricName, tags, fields)
+					_ = io.NamedFeedEx(inputName, datakit.Metric, ag.MetricName, tags, fields)
 				}
 			}
 
 			query.lastTime = time.Now()
 		}
 
-		if r.isTest() {
+		if ag.isTest() {
 			return nil
 		}
-		datakit.SleepContext(ctx, time.Second)
+		_ = datakit.SleepContext(ctx, time.Second)
 	}
 }
 
 func NewAgent() *Instance {
 	ac := &Instance{}
 	ac.ctx, ac.cancelFun = context.WithCancel(context.Background())
+	ac.semStop = cliutils.NewSem()
 	return ac
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return NewAgent()
 	})

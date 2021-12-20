@@ -4,50 +4,65 @@ import (
 	"net"
 	"runtime"
 	"testing"
-	"time"
 
 	psNet "github.com/shirou/gopsutil/net"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
-// TODO
 func TestCollect(t *testing.T) {
-	i := &Input{
-		netIO:            NetIOCounters4Test,
-		netProto:         NetProtoCounters4Test,
-		netVirtualIfaces: NetVirtualInterfaces4Test}
-	i.Interfaces = nil
-	i.EnableVirtualInterfaces = true
-	i.IgnoreProtocolStats = true
+	cases := []struct {
+		i  *Input
+		os string
+	}{
+		{
+			i: &Input{
+				netIO:                   NetIOCounters4Test,
+				netProto:                NetProtoCounters4Test,
+				netVirtualIfaces:        NetVirtualInterfaces4Test,
+				Interfaces:              nil,
+				EnableVirtualInterfaces: true,
+				IgnoreProtocolStats:     true,
+			},
+		},
 
-	for x := 0; x < 6; x++ {
-		time.Sleep(time.Second)
-		if err := i.Collect(); err != nil {
+		{
+			os: "linux",
+			i: &Input{
+				netIO:                   NetIOCounters4Test,
+				netProto:                NetProtoCounters4Test,
+				netVirtualIfaces:        NetVirtualInterfaces4Test,
+				Interfaces:              []string{"eth.*", "wlp3s0", "docke[a-z]+\\d+"},
+				EnableVirtualInterfaces: false,
+				IgnoreProtocolStats:     false,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		if runtime.GOOS != tc.os && tc.os != "" {
+			continue
+		}
+
+		if err := tc.i.Collect(); err != nil {
 			t.Errorf("Error collecting network statistics: %s", err)
 		}
-	}
-	if len(i.collectCache) != 4 {
-		t.Errorf("Need to clear collectCache")
-	}
 
-	i.Interfaces = []string{"eth.*", "wlp3s0", "docke[a-z]+\\d+"}
-
-	// linux only, collect protocol stats test
-	if runtime.GOOS == "linux" {
-		i.EnableVirtualInterfaces = false
-		i.IgnoreProtocolStats = false
-		i.Collect()
-		time.Sleep(time.Second)
-		i.Collect()
+		tu.Assert(t, len(tc.i.collectCache) > 0, "no data collected")
+		for _, m := range tc.i.collectCache {
+			p, err := m.LineProto()
+			tu.Ok(t, err)
+			t.Logf(p.String())
+		}
 	}
 }
 
 func TestFilterInterface(t *testing.T) {
 	netio, _ := NetIOCounters4Test()
 	ifaces := []net.Interface{
-		net.Interface{Index: 1, MTU: 65536, Name: "lo", HardwareAddr: []byte("f1:de:38:f2:a0:2f"), Flags: 5},
-		net.Interface{Index: 2, MTU: 1500, Name: "enp2s0", HardwareAddr: []byte("1c:fe:ab:f1:d0:2e"), Flags: 19},
-		net.Interface{Index: 3, MTU: 1500, Name: "wlp3s0", HardwareAddr: []byte("cc:2f:75:a6:b3:c5"), Flags: 19},
-		net.Interface{Index: 4, MTU: 1500, Name: "docker0", HardwareAddr: []byte("c2:42:b7:2d:e8:a5"), Flags: 19},
+		{Index: 1, MTU: 65536, Name: "lo", HardwareAddr: []byte("f1:de:38:f2:a0:2f"), Flags: 5},
+		{Index: 2, MTU: 1500, Name: "enp2s0", HardwareAddr: []byte("1c:fe:ab:f1:d0:2e"), Flags: 19},
+		{Index: 3, MTU: 1500, Name: "wlp3s0", HardwareAddr: []byte("cc:2f:75:a6:b3:c5"), Flags: 19},
+		{Index: 4, MTU: 1500, Name: "docker0", HardwareAddr: []byte("c2:42:b7:2d:e8:a5"), Flags: 19},
 	}
 
 	// 包含虚拟接口、使用正则
@@ -118,7 +133,7 @@ func TestVirtualInterfaces(t *testing.T) {
 
 func NetIOCounters4Test() ([]psNet.IOCountersStat, error) {
 	r := []psNet.IOCountersStat{
-		psNet.IOCountersStat{
+		{
 			Name:        "lo",
 			BytesSent:   1715387281,
 			BytesRecv:   1715387281,
@@ -131,7 +146,7 @@ func NetIOCounters4Test() ([]psNet.IOCountersStat, error) {
 			Fifoin:      0,
 			Fifoout:     0,
 		},
-		psNet.IOCountersStat{
+		{
 			Name:        "enp2s0",
 			BytesSent:   0,
 			BytesRecv:   0,
@@ -144,7 +159,7 @@ func NetIOCounters4Test() ([]psNet.IOCountersStat, error) {
 			Fifoin:      0,
 			Fifoout:     0,
 		},
-		psNet.IOCountersStat{
+		{
 			Name:        "wlp3s0",
 			BytesSent:   176812478,
 			BytesRecv:   1037443863,
@@ -157,7 +172,7 @@ func NetIOCounters4Test() ([]psNet.IOCountersStat, error) {
 			Fifoin:      0,
 			Fifoout:     0,
 		},
-		psNet.IOCountersStat{
+		{
 			Name:        "docker0",
 			BytesSent:   0,
 			BytesRecv:   0,
@@ -176,7 +191,7 @@ func NetIOCounters4Test() ([]psNet.IOCountersStat, error) {
 
 func NetProtoCounters4Test(protocols []string) ([]psNet.ProtoCountersStat, error) {
 	r := []psNet.ProtoCountersStat{
-		psNet.ProtoCountersStat{
+		{
 			Protocol: "tcp",
 			Stats: map[string]int64{
 				"ActiveOpens":  10949,
@@ -196,7 +211,7 @@ func NetProtoCounters4Test(protocols []string) ([]psNet.ProtoCountersStat, error
 				"RtoMin":       200,
 			},
 		},
-		psNet.ProtoCountersStat{
+		{
 			Protocol: "udp",
 			Stats: map[string]int64{
 				"IgnoredMulti": 0,

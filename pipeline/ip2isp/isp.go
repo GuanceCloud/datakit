@@ -1,3 +1,4 @@
+// Package ip2isp append ISP info to IP address
 package ip2isp
 
 import (
@@ -10,36 +11,33 @@ import (
 	"strconv"
 	"strings"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
-	IpV4_Len       = 4
-	FILE_SEPERATOR = " "
+	IPV4Len       = 4
+	FileSeparator = " "
 )
 
-var (
-	IspValid = map[string]string{
-		"chinanet": "中国电信",
-		"cmcc":     "中国移动",
-		"unicom":   "中国联通",
-		"tietong":  "中国铁通",
-		"cernet":   "教育网",
-		"cstnet":   "科技网",
-		"drpeng":   "鹏博士",
-		"googlecn": "谷歌中国",
-	}
-)
+var IspValid = map[string]string{
+	"chinanet": "中国电信",
+	"cmcc":     "中国移动",
+	"unicom":   "中国联通",
+	"tietong":  "中国铁通",
+	"cernet":   "教育网",
+	"cstnet":   "科技网",
+	"drpeng":   "鹏博士",
+	"googlecn": "谷歌中国",
+}
 
 var (
 	l        = logger.DefaultSLogger("ip2isp")
-	Ip2IspDb = map[string]string{}
+	IP2ISPDB = map[string]string{}
 )
 
-func ParseIpCIDR(ipCidr string) (string, error) {
+func ParseIPCIDR(ipCidr string) (string, error) {
 	var err error
 	var cidrLen int64 = 32
 
@@ -52,7 +50,7 @@ func ParseIpCIDR(ipCidr string) (string, error) {
 	}
 
 	ipBytes := strings.Split(ipCidrs[0], ".")
-	if len(ipBytes) != IpV4_Len {
+	if len(ipBytes) != IPV4Len {
 		return "", fmt.Errorf("invalid ip address")
 	}
 	ipBitStr := ""
@@ -75,14 +73,14 @@ func ParseIpCIDR(ipCidr string) (string, error) {
 }
 
 func SearchIsp(ip string) string {
-	if len(Ip2IspDb) == 0 {
+	if len(IP2ISPDB) == 0 {
 		return "unknown"
 	}
 
 	for i := 32; i > 0; i-- {
 		ipCidr := fmt.Sprintf("%s/%v", ip, i)
-		ipBitStr, _ := ParseIpCIDR(ipCidr)
-		if v, ok := Ip2IspDb[ipBitStr]; ok {
+		ipBitStr, _ := ParseIPCIDR(ipCidr)
+		if v, ok := IP2ISPDB[ipBitStr]; ok {
 			return v
 		}
 	}
@@ -90,7 +88,6 @@ func SearchIsp(ip string) string {
 }
 
 func Init(f string) error {
-
 	l = logger.SLogger("ip2isp")
 
 	l.Debugf("setup ipdb from %s", f)
@@ -102,20 +99,20 @@ func Init(f string) error {
 		return nil
 	}
 
-	fd, err := os.Open(f)
+	fd, err := os.Open(filepath.Clean(f))
 	if err != nil {
 		return err
 	}
-	defer fd.Close()
+	defer fd.Close() //nolint:errcheck,gosec
 
 	scanner := bufio.NewScanner(fd)
 	for scanner.Scan() {
-		contents := strings.Split(scanner.Text(), FILE_SEPERATOR)
+		contents := strings.Split(scanner.Text(), FileSeparator)
 		if len(contents) != 2 {
 			continue
 		}
 
-		ipBitStr, err := ParseIpCIDR(contents[0])
+		ipBitStr, err := ParseIPCIDR(contents[0])
 		if err != nil {
 			continue
 		}
@@ -123,7 +120,7 @@ func Init(f string) error {
 	}
 
 	if len(m) != 0 {
-		Ip2IspDb = m
+		IP2ISPDB = m
 		l.Infof("found new %d rules", len(m))
 	} else {
 		l.Infof("no rules founded")
@@ -143,12 +140,12 @@ func MergeIsp(from, to string) error {
 	for _, f := range files {
 		file := f.Name()
 
-		//去掉统计信息文件
+		// 去掉统计信息文件
 		if !strings.HasSuffix(file, ".txt") {
 			continue
 		}
 
-		//去掉ipv6文件
+		// 去掉ipv6文件
 		if strings.HasSuffix(file, "6.txt") {
 			continue
 		}
@@ -158,15 +155,15 @@ func MergeIsp(from, to string) error {
 			continue
 		}
 
-		fd, err := os.Open(filepath.Join(from, file))
+		fd, err := os.Open(filepath.Clean(filepath.Join(from, file)))
 		if err != nil {
 			return err
 		}
-		defer fd.Close()
+		defer fd.Close() //nolint:errcheck,gosec
 
 		scanner := bufio.NewScanner(fd)
 		for scanner.Scan() {
-			c := fmt.Sprintf("%v%v%v", scanner.Text(), FILE_SEPERATOR, isp)
+			c := fmt.Sprintf("%v%v%v", scanner.Text(), FileSeparator, isp)
 			content = append(content, c)
 		}
 	}
@@ -178,11 +175,11 @@ func BuildContryCity(csvFile, outputFile string) error {
 	d := make(map[string]map[string][]string)
 	found := make(map[string]uint8)
 
-	f, err := os.Open(csvFile)
+	f, err := os.Open(filepath.Clean(csvFile))
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck,gosec
 
 	w := csv.NewReader(f)
 	data, err := w.ReadAll()

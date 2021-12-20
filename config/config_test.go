@@ -8,14 +8,13 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/influxdata/toml"
 	"github.com/influxdata/toml/ast"
-
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 func TestEmptyDir(t *testing.T) {
 	dirname := "test123"
-	if err := os.MkdirAll(dirname, 0600); err != nil {
+	if err := os.MkdirAll(dirname, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -106,21 +105,9 @@ func TestTomlParse2(t *testing.T) {
 			tu.Ok(t, err)
 		}
 	}
-
-	//for _, tc := range cases {
-	//	var x interface{}
-	//	_, err := bstoml.Decode(tc.s, &x)
-	//	if tc.fail {
-	//		tu.NotOk(t, err, "")
-	//		continue
-	//	} else {
-	//		tu.Ok(t, err)
-	//	}
-	//}
 }
 
 func TestTomlParse(t *testing.T) {
-
 	tomlParseCases := []struct {
 		in string
 	}{
@@ -165,12 +152,6 @@ func TestTomlParse(t *testing.T) {
 		},
 	}
 
-	type obj struct {
-		Key1 int     `toml:"key1"`
-		Key2 string  `toml:"key2"`
-		Key3 float64 `toml:"key3"`
-	}
-
 	for _, tcase := range tomlParseCases {
 		tbl, err := toml.Parse([]byte(tcase.in))
 		if err != nil {
@@ -182,9 +163,7 @@ func TestTomlParse(t *testing.T) {
 		}
 
 		for f, v := range tbl.Fields {
-
 			switch f {
-
 			default:
 				// ignore
 				t.Logf("ignore %+#v", f)
@@ -192,7 +171,10 @@ func TestTomlParse(t *testing.T) {
 			case "inputs":
 				switch tpe := v.(type) {
 				case *ast.Table:
-					stbl := v.(*ast.Table)
+					stbl, ok := v.(*ast.Table)
+					if !ok {
+						t.Error("expet *ast.Table")
+					}
 
 					for _, vv := range stbl.Fields {
 						switch tt := vv.(type) {
@@ -214,68 +196,6 @@ func TestTomlParse(t *testing.T) {
 		}
 	}
 }
-
-//func TestEnableInputs(t *testing.T) {
-//	fpath, sample, err := doEnableInput("timezone")
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	t.Logf("fpath: %s, sample: %s", fpath, sample)
-//}
-
-/*
-func TestBuildInputCfg(t *testing.T) {
-
-	data := `
-# Read metrics about disk IO by device
-[[inputs.diskio]]
-  # By default, telegraf will gather stats for all devices including
-  # disk partitions.
-  # Setting devices will restrict the stats to the specified devices.
-   devices = ["sda", "sdb", "vd*"]
-  # Uncomment the following line if you need disk serial numbers.
-   skip_serial_number = false
-
-  # On systems which support it, device metadata can be added in the form of
-  # tags.
-  # Currently only Linux is supported via udev properties. You can view
-  # available properties for a device by running:
-  # 'udevadm info -q property -n /dev/sda'
-  # Note: Most, but not all, udev properties can be accessed this way. Properties
-  # that are currently inaccessible include DEVTYPE, DEVNAME, and DEVPATH.
-   device_tags = ["ID_FS_TYPE", "ID_FS_USAGE"]
-
-  # Using the same metadata source as device_tags, you can also customize the
-  # name of the device via templates.
-  # The 'name_templates' parameter is a list of templates to try and apply to
-  # the device. The template may contain variables in the form of '$PROPERTY' or
-  # '${PROPERTY}'. The first template which does not contain any variables not
-  # present for the device is used as the device name tag.
-  # The typical use case is for LVM volumes, to get the VG/LV name instead of
-  # the near-meaningless DM-0 name.
-   name_templates = ["$ID_FS_LABEL","$DM_VG_NAME/$DM_LV_NAME"]
-
-	[inputs.diskio.tags]
-	host = '{{.Hostname}}'`
-
-	config.Cfg.Hostname = "this-is-the-test-host-name"
-	sample, err := BuildInputCfg([]byte(data), config.Cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Logf("sample: %s", sample)
-} */
-
-//func TestLoadMainCfg(t *testing.T) {
-//
-//	c := config.Cfg
-//	if err := c.LoadMainConfig(); err != nil {
-//		t.Errorf("%s", err)
-//	}
-//}
-//
 
 func TestTomlUnmarshal(t *testing.T) {
 	x := []byte(`
@@ -316,9 +236,7 @@ global = "global config"
 	t.Log(tbl.Source())
 
 	for f, v := range tbl.Fields {
-
 		switch f {
-
 		default:
 			// ignore
 			t.Logf("ignore %+#v", f)
@@ -326,7 +244,10 @@ global = "global config"
 		case "inputs":
 			switch tpe := v.(type) {
 			case *ast.Table:
-				stbl := v.(*ast.Table)
+				stbl, ok := v.(*ast.Table)
+				if !ok {
+					t.Error("expet *ast.Table")
+				}
 
 				for _, vv := range stbl.Fields {
 					switch tt := vv.(type) {
@@ -350,22 +271,22 @@ global = "global config"
 
 func TestBlackWhiteList(t *testing.T) {
 	wlists := []*inputHostList{
-		&inputHostList{
+		{
 			Hosts:  []string{"host1", "host2"},
 			Inputs: []string{"input1", "input2"},
 		},
-		&inputHostList{
+		{
 			Hosts:  []string{"hostx", "hosty"},
 			Inputs: []string{"inputx", "inputy"},
 		},
 	}
 
 	blists := []*inputHostList{
-		&inputHostList{
+		{
 			Hosts:  []string{"host_3", "host_4"},
 			Inputs: []string{"input_3", "input_4"},
 		},
-		&inputHostList{
+		{
 			Hosts:  []string{"host_i", "host_j"},
 			Inputs: []string{"input_i", "input_j"},
 		},
@@ -383,7 +304,6 @@ func TestBlackWhiteList(t *testing.T) {
 }
 
 func TestLoadCfg(t *testing.T) {
-	var c = Config{}
 	availableInputCfgs := map[string]*ast.Table{}
 	conf := map[string]string{
 		"1.conf": `[[inputs.aliyunobject]]
@@ -408,13 +328,11 @@ func TestLoadCfg(t *testing.T) {
 	for k, v := range conf {
 		as, _ := toml.Parse([]byte(v))
 		availableInputCfgs[k] = as
-
 	}
 
 	for name, creator := range inputs.Inputs {
-		if err := doLoadInputConf(&c, name, creator, availableInputCfgs); err != nil {
+		if err := doLoadInputConf(name, creator, availableInputCfgs); err != nil {
 			l.Errorf("load %s config failed: %v, ignored", name, err)
-
 		}
 	}
 	fmt.Println(inputs.InputsInfo)
@@ -430,19 +348,16 @@ func TestRemoveDepercatedInputs(t *testing.T) {
 			entries: map[string]string{"abc": "cba"},
 			res:     map[string]string{"abc": "cba"},
 		},
-
 		{
 			tomlStr: `[intputs.abc]`,
 			entries: map[string]string{"abc": "cba"},
 			res:     map[string]string{"abc": "cba"},
 		},
-
 		{
 			tomlStr: `[intputs.def]`,
 			entries: map[string]string{"abc": "cba"},
 			res:     nil,
 		},
-
 		{
 			tomlStr: `[intputs.abc.xyz]`,
 			entries: map[string]string{"abc": "cba"},
@@ -451,7 +366,6 @@ func TestRemoveDepercatedInputs(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		tbl, err := toml.Parse([]byte(tc.tomlStr))
 		if err != nil {
 			t.Fatal(err)
@@ -513,7 +427,9 @@ func TestFeedEnvs(t *testing.T) {
 
 	for idx, tc := range cases {
 		for k, v := range tc.env {
-			os.Setenv(k, v)
+			if err := os.Setenv(k, v); err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		data := feedEnvs([]byte(tc.str))

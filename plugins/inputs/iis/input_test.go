@@ -1,3 +1,4 @@
+//go:build windows && amd64
 // +build windows,amd64
 
 package iis
@@ -21,7 +22,7 @@ func TestPerfObjMetricMap(t *testing.T) {
 			if ret != uint32(windows.ERROR_SUCCESS) {
 				t.Errorf("Failed to enumerate the instance and counter of object %s", k)
 			}
-			var counterList2Map = map[string]string{}
+			counterList2Map := map[string]string{}
 			for c := range counterList {
 				counterList2Map[counterList[c]] = ""
 			}

@@ -1,7 +1,7 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 
@@ -36,9 +36,9 @@ RabbitMQ 采集器是通过插件 `rabbitmq-management` 采集数据监控 Rabbi
 - 创建 user，比如：
     
     ```shell
-    sudo rabbitmqctl add_user dataflux <SECRET>
-    sudo rabbitmqctl set_permissions  -p / dataflux "^aliveness-test$" "^amq\.default$" ".*"
-    sudo rabbitmqctl set_user_tags dataflux monitoring
+    sudo rabbitmqctl add_user guance <SECRET>
+    sudo rabbitmqctl set_permissions  -p / guance "^aliveness-test$" "^amq\.default$" ".*"
+    sudo rabbitmqctl set_user_tags guance monitoring
     ```
 
 ## 配置

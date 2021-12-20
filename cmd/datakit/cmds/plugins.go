@@ -39,7 +39,7 @@ func installExternal(service string) error {
 		"scheck":
 		return InstallSecCheck(ExternalInstallDir[dir])
 	default:
-		return fmt.Errorf("Unsupport install %s(available plugins: %s)",
+		return fmt.Errorf("unsupport install %s(available plugins: %s)",
 			service, strings.Join(availablePlugins, "/"))
 	}
 }

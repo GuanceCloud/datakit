@@ -1,3 +1,4 @@
+//nolint:unused
 package redis
 
 import (
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -28,6 +28,7 @@ func (m *replicaMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_replica",
@@ -60,12 +61,14 @@ func (i *Input) collectReplicaMeasurement() ([]inputs.Measurement, error) {
 		return nil, err
 	}
 
-	m.submit()
+	if err := m.submit(); err != nil {
+		l.Errorf("submit: %s", err)
+	}
 
 	return []inputs.Measurement{m}, nil
 }
 
-// 数据源获取数据
+// 数据源获取数据.
 func (m *replicaMeasurement) getData() error {
 	ctx := context.Background()
 	list, err := m.client.Info(ctx, "commandstats").Result()
@@ -79,8 +82,10 @@ func (m *replicaMeasurement) getData() error {
 	return nil
 }
 
-// 解析返回
-func (m *replicaMeasurement) parseInfoData(list string) error {
+var slaveMatch = regexp.MustCompile(`^slave\d+`)
+
+// 解析返回.
+func (m *replicaMeasurement) parseInfoData(list string) {
 	var masterDownSeconds, masterOffset, slaveOffset float64
 	var masterStatus, slaveID, ip, port string
 	var err error
@@ -100,7 +105,7 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 			continue
 		}
 
-		//cmdstat_get:calls=2,usec=16,usec_per_call=8.00
+		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		key, value := record[0], record[1]
 
 		if key == "master_repl_offset" {
@@ -115,7 +120,7 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 			masterStatus = value
 		}
 
-		if re, _ := regexp.MatchString(`^slave\d+`, key); re {
+		if slaveMatch.MatchString(key) {
 			slaveID = strings.TrimPrefix(key, "slave")
 			kv := strings.SplitN(value, ",", 5)
 			if len(kv) != 5 {
@@ -124,24 +129,28 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 
 			split := strings.Split(kv[0], "=")
 			if len(split) != 2 {
-				l.Warnf("Failed to parse slave ip. %s", err)
+				l.Warnf("Failed to parse slave ip, got %s", kv[0])
 				continue
 			}
 			ip = split[1]
 
 			split = strings.Split(kv[1], "=")
-			if err != nil {
-				l.Warnf("Failed to parse slave port. %s", err)
+			if len(split) != 2 {
+				l.Warnf("Failed to parse slave port, got %s", kv[1])
 				continue
 			}
 			port = split[1]
 
 			split = strings.Split(kv[3], "=")
-			if err != nil {
-				l.Warnf("Failed to parse slave offset. %s", err)
+			if len(split) != 2 {
+				l.Warnf("Failed to parse slave offset, got %s", kv[3])
 				continue
 			}
-			slaveOffset, _ = strconv.ParseFloat(split[1], 64)
+
+			if slaveOffset, err = strconv.ParseFloat(split[1], 64); err != nil {
+				l.Warnf("ParseFloat: %s, slaveOffset expect to be int, got %s", err, split[1])
+				continue
+			}
 		}
 
 		delay := masterOffset - slaveOffset
@@ -160,11 +169,9 @@ func (m *replicaMeasurement) parseInfoData(list string) error {
 			m.resData["master_link_down_since_seconds"] = masterDownSeconds
 		}
 	}
-
-	return nil
 }
 
-// 提交数据
+// 提交数据.
 func (m *replicaMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {

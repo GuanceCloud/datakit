@@ -86,6 +86,7 @@ type CallFunctionOnParams struct {
 	AwaitPromise        bool               `json:"awaitPromise,omitempty"`       // Whether execution should await for resulting value and return once awaited promise is resolved.
 	ExecutionContextID  ExecutionContextID `json:"executionContextId,omitempty"` // Specifies execution context which global object will be used to call function on. Either executionContextId or objectId should be specified.
 	ObjectGroup         string             `json:"objectGroup,omitempty"`        // Symbolic group name that can be used to release multiple objects. If objectGroup is not specified and objectId is, objectGroup will be inherited from object.
+	ThrowOnSideEffect   bool               `json:"throwOnSideEffect,omitempty"`  // Whether to throw an exception if side effect cannot be ruled out during evaluation.
 }
 
 // CallFunctionOn calls function with given declaration on the given object.
@@ -162,6 +163,13 @@ func (p CallFunctionOnParams) WithExecutionContextID(executionContextID Executio
 // inherited from object.
 func (p CallFunctionOnParams) WithObjectGroup(objectGroup string) *CallFunctionOnParams {
 	p.ObjectGroup = objectGroup
+	return &p
+}
+
+// WithThrowOnSideEffect whether to throw an exception if side effect cannot
+// be ruled out during evaluation.
+func (p CallFunctionOnParams) WithThrowOnSideEffect(throwOnSideEffect bool) *CallFunctionOnParams {
+	p.ThrowOnSideEffect = throwOnSideEffect
 	return &p
 }
 
@@ -517,10 +525,11 @@ func (p *GetHeapUsageParams) Do(ctx context.Context) (usedSize float64, totalSiz
 // GetPropertiesParams returns properties of a given object. Object group of
 // the result is inherited from the target object.
 type GetPropertiesParams struct {
-	ObjectID               RemoteObjectID `json:"objectId"`                         // Identifier of the object to return properties for.
-	OwnProperties          bool           `json:"ownProperties,omitempty"`          // If true, returns properties belonging only to the element itself, not to its prototype chain.
-	AccessorPropertiesOnly bool           `json:"accessorPropertiesOnly,omitempty"` // If true, returns accessor properties (with getter/setter) only; internal properties are not returned either.
-	GeneratePreview        bool           `json:"generatePreview,omitempty"`        // Whether preview should be generated for the results.
+	ObjectID                 RemoteObjectID `json:"objectId"`                           // Identifier of the object to return properties for.
+	OwnProperties            bool           `json:"ownProperties,omitempty"`            // If true, returns properties belonging only to the element itself, not to its prototype chain.
+	AccessorPropertiesOnly   bool           `json:"accessorPropertiesOnly,omitempty"`   // If true, returns accessor properties (with getter/setter) only; internal properties are not returned either.
+	GeneratePreview          bool           `json:"generatePreview,omitempty"`          // Whether preview should be generated for the results.
+	NonIndexedPropertiesOnly bool           `json:"nonIndexedPropertiesOnly,omitempty"` // If true, returns non-indexed properties only.
 }
 
 // GetProperties returns properties of a given object. Object group of the
@@ -553,6 +562,12 @@ func (p GetPropertiesParams) WithAccessorPropertiesOnly(accessorPropertiesOnly b
 // WithGeneratePreview whether preview should be generated for the results.
 func (p GetPropertiesParams) WithGeneratePreview(generatePreview bool) *GetPropertiesParams {
 	p.GeneratePreview = generatePreview
+	return &p
+}
+
+// WithNonIndexedPropertiesOnly if true, returns non-indexed properties only.
+func (p GetPropertiesParams) WithNonIndexedPropertiesOnly(nonIndexedPropertiesOnly bool) *GetPropertiesParams {
+	p.NonIndexedPropertiesOnly = nonIndexedPropertiesOnly
 	return &p
 }
 

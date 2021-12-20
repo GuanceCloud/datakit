@@ -5,15 +5,12 @@ import (
 )
 
 func TestMultiline(t *testing.T) {
-	m, err := NewMultiline("^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})")
+	m, err := NewMultiline("^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})", 10)
 	if err != nil {
 		panic(err)
 	}
 
-	// 更改最大限定，方便测试
-	maxLines = 10
-
-	var slows = [][]string{
+	slows := [][]string{
 		{
 			"# Time: 2021-05-31T11:15:26.043419Z",
 			"# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228",

@@ -1,7 +1,7 @@
+// Package system collect system level metrics
 package system
 
 import (
-	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -9,15 +9,17 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/load"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-
 	conntrackutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/conntrack"
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	minInterval = time.Second
@@ -48,21 +50,23 @@ type Input struct {
 	Tags      map[string]string
 
 	collectCache []inputs.Measurement
+
+	semStop *cliutils.Sem // start stop signal
 }
 
-func (i *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "host"
 }
 
-func (i *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sampleCfg
 }
 
-func (i *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&systemMeasurement{},
 		&conntrackMeasurement{},
@@ -70,9 +74,9 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) Collect() error {
+func (ipt *Input) Collect() error {
 	// clear collectCache
-	i.collectCache = make([]inputs.Measurement, 0)
+	ipt.collectCache = make([]inputs.Measurement, 0)
 
 	ts := time.Now()
 
@@ -87,13 +91,13 @@ func (i *Input) Collect() error {
 	}
 
 	tags := map[string]string{}
-	for k, v := range i.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
 
 	if runtime.GOOS == "linux" {
 		conntrackStat := conntrackutil.GetConntrackInfo()
-		filefdStat := filefdutil.GetFileFdInfo()
+
 		conntrackM := conntrackMeasurement{
 			name: metricNameConntrack,
 			fields: map[string]interface{}{
@@ -111,18 +115,25 @@ func (i *Input) Collect() error {
 			tags: tags,
 			ts:   ts,
 		}
-		filefdM := filefdMeasurement{
-			name: metricNameFilefd,
-			fields: map[string]interface{}{
-				"allocated": filefdStat.Allocated,
-				// "maximum":      filefdStat.Maximum,
-				"maximum_mega": filefdStat.MaximumMega,
-			},
-			tags: tags,
-			ts:   ts,
+
+		ipt.collectCache = append(ipt.collectCache, &conntrackM)
+
+		filefdStat, err := filefdutil.GetFileFdInfo()
+		if err != nil {
+			l.Warnf("filefdutil.GetFileFdInfo(): %s, ignored", err.Error())
+		} else {
+			filefdM := filefdMeasurement{
+				name: metricNameFilefd,
+				fields: map[string]interface{}{
+					"allocated":    filefdStat.Allocated,
+					"maximum_mega": filefdStat.MaximumMega,
+				},
+				tags: tags,
+				ts:   ts,
+			}
+
+			ipt.collectCache = append(ipt.collectCache, &filefdM)
 		}
-		i.collectCache = append(i.collectCache, &conntrackM)
-		i.collectCache = append(i.collectCache, &filefdM)
 	}
 
 	sysM := systemMeasurement{
@@ -141,55 +152,79 @@ func (i *Input) Collect() error {
 	}
 
 	users, err := host.Users()
-	if err == nil {
-		sysM.fields["n_users"] = len(users)
-	} else if os.IsNotExist(err) {
-		l.Debugf("Reading users: %s", err.Error())
-	} else if os.IsPermission(err) {
-		l.Debug(err.Error())
+	if err != nil {
+		l.Warnf("Users: %s, ignored", err.Error())
 	}
-	uptime, err := host.Uptime()
-	if err == nil {
-		sysM.fields["uptime"] = uptime
-	}
+	sysM.fields["n_users"] = len(users)
 
-	i.collectCache = append(i.collectCache, &sysM)
+	uptime, err := host.Uptime()
+	if err != nil {
+		l.Warnf("Uptime: %s, ignored", err.Error())
+	}
+	sysM.fields["uptime"] = uptime
+
+	ipt.collectCache = append(ipt.collectCache, &sysM)
 
 	return err
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("system input started")
-	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
-	tick := time.NewTicker(i.Interval.Duration)
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 	for {
+		start := time.Now()
+		if err := ipt.Collect(); err != nil {
+			l.Errorf("Collect: %s", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+
+		if len(ipt.collectCache) > 0 {
+			if err := inputs.FeedMeasurement(inputName, datakit.Metric, ipt.collectCache,
+				&io.Option{CollectCost: time.Since(start)}); err != nil {
+				l.Errorf("FeedMeasurement: %s", err)
+			}
+		}
+
 		select {
 		case <-tick.C:
-			start := time.Now()
-			if err := i.Collect(); err == nil {
-				if errFeed := inputs.FeedMeasurement(inputName, datakit.Metric, i.collectCache,
-					&io.Option{CollectCost: time.Since(start)}); errFeed != nil {
-					io.FeedLastError(inputName, errFeed.Error())
-					l.Error(errFeed)
-				}
-				// i.collectCache = make([]inputs.Measurement, 0)
-			} else {
-				io.FeedLastError(inputName, err.Error())
-				l.Error(err)
-			}
 		case <-datakit.Exit.Wait():
-			l.Infof("system input exit")
+			l.Info("system input exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("system input return")
 			return
 		}
 	}
 }
 
-func init() {
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
+// ReadEnv support envs：
+//   ENV_INPUT_SYSTEM_TAGS : "a=b,c=d"
+func (ipt *Input) ReadEnv(envs map[string]string) {
+	if tagsStr, ok := envs["ENV_INPUT_SYSTEM_TAGS"]; ok {
+		tags := config.ParseGlobalTags(tagsStr)
+		for k, v := range tags {
+			ipt.Tags[k] = v
+		}
+	}
+}
+
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
+
+			semStop: cliutils.NewSem(),
+			Tags:    make(map[string]string),
 		}
 	})
 }

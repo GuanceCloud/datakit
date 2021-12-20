@@ -6,24 +6,23 @@ import (
 	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
-
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 )
 
 type SingleQuery struct {
-	Query                string              `json:"query"`
 	TimeRange            []int64             `json:"time_range"`
-	Conditions           string              `json:"conditions"`
-	MaxPoint             int64               `json:"max_point"`
-	MaxDuration          string              `json:"max_duration"`
+	SearchAfter          []interface{}       `json:"search_after"`
 	OrderBy              []map[string]string `json:"orderby"`
+	Query                string              `json:"query"`
+	Conditions           string              `json:"conditions"`
+	MaxDuration          string              `json:"max_duration"`
+	MaxPoint             int64               `json:"max_point"`
 	Limit                int64               `json:"limit"`
 	SLimit               int64               `json:"slimit"`
 	Offset               int64               `json:"offset"`
 	SOffset              int64               `json:"soffset"`
 	DisableSlimit        bool                `json:"disable_slimit"`
 	DisableMultipleField bool                `json:"disable_multiple_field"`
-	SearchAfter          []interface{}       `json:"search_after"`
 	Highlight            bool                `json:"highlight"`
 }
 
@@ -46,7 +45,6 @@ func (q *QueryRaw) JSON() ([]byte, error) {
 }
 
 func apiQueryRaw(c *gin.Context) {
-
 	body, err := uhttp.GinRead(c)
 	if err != nil {
 		l.Errorf("GinRead: %s", err.Error())
@@ -66,13 +64,15 @@ func apiQueryRaw(c *gin.Context) {
 		return
 	}
 
-	tkns := dw.GetToken()
-	if len(tkns) == 0 {
-		uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
-		return
-	}
+	if q.Token == "" {
+		tkns := dw.GetToken()
+		if len(tkns) == 0 {
+			uhttp.HttpErr(c, fmt.Errorf("dataway token missing"))
+			return
+		}
 
-	q.Token = tkns[0]
+		q.Token = tkns[0]
+	}
 
 	j, err := json.Marshal(q)
 	if err != nil {
@@ -100,7 +100,7 @@ func apiQueryRaw(c *gin.Context) {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	c.Data(resp.StatusCode, "application/json", respBody)
 }

@@ -1,7 +1,6 @@
 package parser
 
 import (
-	//"reflect"
 	"testing"
 
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -94,7 +93,6 @@ func TestConditions(t *testing.T) {
 		fields map[string]interface{}
 		pass   bool
 	}{
-
 		{ // multi conditions
 			fields: map[string]interface{}{"a": int64(2), "c": "xyz"},
 			in: WhereConditions{

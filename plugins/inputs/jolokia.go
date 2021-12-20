@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -15,23 +16,20 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf/plugins/common/tls"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 // --------------------------------------------------------------------
-// --------------------------- jolokia agent --------------------------
+// --------------------------- jolokia agent --------------------------.
 const (
-	defaultInterval   = "60s"
 	MaxGatherInterval = 30 * time.Minute
 	MinGatherInterval = 1 * time.Second
 )
 
-var (
-	log = logger.DefaultSLogger("jolokia")
-)
+var log = logger.DefaultSLogger("jolokia")
 
 type JolokiaAgent struct {
 	DefaultFieldPrefix    string
@@ -56,10 +54,16 @@ type JolokiaAgent struct {
 
 	Tags  map[string]string `toml:"-"`
 	Types map[string]string `toml:"-"`
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 func (j *JolokiaAgent) Collect() {
 	log = logger.SLogger("jolokia")
+
+	if j.semStop == nil {
+		j.semStop = cliutils.NewSem()
+	}
 
 	if j.L == nil {
 		j.L = log
@@ -82,46 +86,64 @@ func (j *JolokiaAgent) Collect() {
 			start := time.Now()
 			if err := j.Gather(); err != nil {
 				io.FeedLastError(j.PluginName, err.Error())
-				j.L.Error(err)
-			} else {
-				FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
-					&io.Option{CollectCost: time.Since(start), HighFreq: false})
+			}
+
+			if len(j.collectCache) > 0 {
+				if err := FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
+					&io.Option{
+						CollectCost: time.Since(start),
+					}); err != nil {
+					j.L.Errorf("io.FeedMeasurement: %s, ignored", err.Error())
+				}
+
 				j.collectCache = j.collectCache[:0] // NOTE: do not forget to clean cache
+			} else {
+				j.L.Warn("no point, ignored")
 			}
 
 		case <-datakit.Exit.Wait():
 			j.L.Infof("input %s exit", j.PluginName)
 			return
+
+		case <-j.semStop.Wait():
+			j.L.Infof("input %s return", j.PluginName)
+			return
 		}
 	}
 }
 
-func (ja *JolokiaAgent) Gather() error {
-	if ja.gatherer == nil {
-		ja.gatherer = NewGatherer(ja.createMetrics())
+func (j *JolokiaAgent) Terminate() {
+	if j.semStop != nil {
+		j.semStop.Close()
+	}
+}
+
+func (j *JolokiaAgent) Gather() error {
+	if j.gatherer == nil {
+		j.gatherer = NewGatherer(j.createMetrics())
 	}
 
 	// Initialize clients once
-	if ja.clients == nil {
-		ja.clients = make([]*Client, 0, len(ja.URLs))
-		for _, url := range ja.URLs {
-			client, err := ja.createClient(url)
+	if j.clients == nil {
+		j.clients = make([]*Client, 0, len(j.URLs))
+		for _, url := range j.URLs {
+			client, err := j.createClient(url)
 			if err != nil {
 				return err
 			}
-			ja.clients = append(ja.clients, client)
+			j.clients = append(j.clients, client)
 		}
 	}
 
 	var wg sync.WaitGroup
-	for _, client := range ja.clients {
+	for _, client := range j.clients {
 		wg.Add(1)
 		go func(client *Client) {
 			defer wg.Done()
 
-			err := ja.gatherer.Gather(client, ja)
+			err := j.gatherer.Gather(client, j)
 			if err != nil {
-				ja.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
+				j.L.Errorf("unable to gather metrics for %s: %v", client.URL, err)
 			}
 		}(client)
 	}
@@ -131,23 +153,23 @@ func (ja *JolokiaAgent) Gather() error {
 	return nil
 }
 
-func (ja *JolokiaAgent) createMetrics() []Metric {
+func (j *JolokiaAgent) createMetrics() []Metric {
 	var metrics []Metric
 
-	for _, config := range ja.Metrics {
+	for _, config := range j.Metrics {
 		metrics = append(metrics, NewMetric(config,
-			ja.DefaultFieldPrefix, ja.DefaultFieldSeparator, ja.DefaultTagPrefix))
+			j.DefaultFieldPrefix, j.DefaultFieldSeparator, j.DefaultTagPrefix))
 	}
 
 	return metrics
 }
 
-func (ja *JolokiaAgent) createClient(url string) (*Client, error) {
+func (j *JolokiaAgent) createClient(url string) (*Client, error) {
 	return NewClient(url, &ClientConfig{
-		Username:        ja.Username,
-		Password:        ja.Password,
-		ResponseTimeout: ja.ResponseTimeout,
-		ClientConfig:    ja.ClientConfig,
+		Username:        j.Username,
+		Password:        j.Password,
+		ResponseTimeout: j.ResponseTimeout,
+		ClientConfig:    j.ClientConfig,
 	})
 }
 
@@ -186,8 +208,7 @@ type JolokiaMeasurement struct {
 }
 
 func (j *JolokiaMeasurement) LineProto() (*io.Point, error) {
-	data, err := io.MakePoint(j.name, j.tags, j.fields, j.ts)
-	return data, err
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
 func (j *JolokiaMeasurement) Info() *MeasurementInfo {
@@ -208,7 +229,7 @@ func NewGatherer(metrics []Metric) *Gatherer {
 
 // Gather adds points to an accumulator from responses returned
 // by a Jolokia agent.
-func (g *Gatherer) Gather(client *Client, ja *JolokiaAgent) error {
+func (g *Gatherer) Gather(client *Client, j *JolokiaAgent) error {
 	tags := make(map[string]string)
 	if client.config.ProxyConfig != nil {
 		tags["jolokia_proxy_url"] = client.URL
@@ -222,14 +243,12 @@ func (g *Gatherer) Gather(client *Client, ja *JolokiaAgent) error {
 		return err
 	}
 
-	g.gatherResponses(responses, mergeTags(tags, ja.Tags), ja)
-
-	return nil
+	return g.gatherResponses(responses, mergeTags(tags, j.Tags), j)
 }
 
 // gatherResponses adds points to an accumulator from the ReadResponse objects
 // returned by a Jolokia agent.
-func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]string, ja *JolokiaAgent) error {
+func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]string, j *JolokiaAgent) error {
 	series := make(map[string][]point)
 
 	for _, metric := range g.metrics {
@@ -260,7 +279,7 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				}
 
 				if jn, ok := v.(json.Number); ok {
-					field[k] = convertJsonNumber(k, jn, ja.Types)
+					field[k] = convertJSONNumber(k, jn, j.Types)
 				} else {
 					field[k] = v
 				}
@@ -270,7 +289,7 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 				continue
 			}
 
-			ja.collectCache = append(ja.collectCache, &JolokiaMeasurement{
+			j.collectCache = append(j.collectCache, &JolokiaMeasurement{
 				measurement,
 				mergeTags(point.Tags, tags),
 				field,
@@ -290,26 +309,25 @@ func (g *Gatherer) generatePoints(metric Metric, responses []ReadResponse) ([]po
 	for _, response := range responses {
 		switch response.Status {
 		case 200:
-			break
+			if !metricMatchesResponse(metric, response) {
+				continue
+			}
+
+			pb := newPointBuilder(metric, response.RequestAttributes, response.RequestPath)
+			for _, point := range pb.Build(metric.Mbean, response.Value) {
+				if response.RequestTarget != "" {
+					point.Tags["jolokia_agent_url"] = response.RequestTarget
+				}
+
+				points = append(points, point)
+			}
+
 		case 404:
 			continue
 		default:
 			errors = append(errors, fmt.Errorf("unexpected status in response from target %s (%q): %d",
 				response.RequestTarget, response.RequestMbean, response.Status))
 			continue
-		}
-
-		if !metricMatchesResponse(metric, response) {
-			continue
-		}
-
-		pb := newPointBuilder(metric, response.RequestAttributes, response.RequestPath)
-		for _, point := range pb.Build(metric.Mbean, response.Value) {
-			if response.RequestTarget != "" {
-				point.Tags["jolokia_agent_url"] = response.RequestTarget
-			}
-
-			points = append(points, point)
 		}
 	}
 
@@ -468,7 +486,7 @@ func findRequestAttributesWithPaths(attributes map[string][]string) []string {
 	return results
 }
 
-func convertJsonNumber(fieldName string, jn json.Number, fieldTyp map[string]string) interface{} {
+func convertJSONNumber(fieldName string, jn json.Number, fieldTyp map[string]string) interface{} {
 	if fieldTyp != nil {
 		return convertSpecifyType(fieldName, jn, fieldTyp)
 	}
@@ -493,8 +511,8 @@ func convertSpecifyType(fieldName string, jn json.Number, fieldTyp map[string]st
 }
 
 // ----------------------------------- metric ---------------------------------------
-// A MetricConfig represents a TOML form of
-// a Metric with some optional fields.
+
+// MetricConfig represents a TOML form of a Metric with some optional fields.
 type MetricConfig struct {
 	Name           string
 	Mbean          string
@@ -650,8 +668,9 @@ func (pb *pointBuilder) Build(mbean string, value interface{}) []point {
 	}
 
 	valueMap, ok := value.(map[string]interface{})
-	if !ok { // FIXME: log it and move on.
-		panic(fmt.Sprintf("There should be a map here for %s!\n", mbean))
+	if !ok {
+		// There should be a map here.
+		return nil
 	}
 
 	points := make([]point, 0)
@@ -710,16 +729,17 @@ func (pb *pointBuilder) extractFields(mbean string, value interface{}) map[strin
 
 	if ok {
 		// complex value
-		if len(pb.objectAttributes) == 0 {
+		switch {
+		case len(pb.objectAttributes) == 0:
 			// if there were no attributes requested,
 			// then the keys are attributes
 			pb.fillFields("", valueMap, fieldMap)
-		} else if len(pb.objectAttributes) == 1 {
+		case len(pb.objectAttributes) == 1:
 			// if there was a single attribute requested,
 			// then the keys are the attribute's properties
 			fieldName := pb.formatFieldName(pb.objectAttributes[0], pb.objectPath)
 			pb.fillFields(fieldName, valueMap, fieldMap)
-		} else {
+		default:
 			// if there were multiple attributes requested,
 			// then the keys are the attribute names
 			for _, attribute := range pb.objectAttributes {
@@ -759,7 +779,7 @@ func (pb *pointBuilder) formatFieldName(attribute, path string) string {
 	}
 
 	if path != "" {
-		fieldName = fieldName + fieldSeparator + strings.Replace(path, "/", fieldSeparator, -1)
+		fieldName = fieldName + fieldSeparator + strings.ReplaceAll(path, "/", fieldSeparator)
 	}
 
 	return fieldName
@@ -816,7 +836,7 @@ func (pb *pointBuilder) applySubstitutions(mbean string, fieldMap map[string]int
 		substitution := properties[subKey]
 
 		for fieldName, fieldValue := range fieldMap {
-			newFieldName := strings.Replace(fieldName, symbol, substitution, -1)
+			newFieldName := strings.ReplaceAll(fieldName, symbol, substitution)
 			if fieldName != newFieldName {
 				fieldMap[newFieldName] = fieldValue
 				delete(fieldMap, fieldName)
@@ -826,7 +846,7 @@ func (pb *pointBuilder) applySubstitutions(mbean string, fieldMap map[string]int
 }
 
 // makePropertyMap returns a the mbean property-key list as
-// a dictionary. foo:x=y becomes map[string]string { "x": "y" }
+// a dictionary. foo:x=y becomes map[string]string { "x": "y" }.
 func makePropertyMap(mbean, metricMbean string) map[string]string {
 	props := make(map[string]string)
 	object := strings.SplitN(mbean, ":", 2)
@@ -905,7 +925,7 @@ func makeSubstitutionList(mbean string) []string {
 	return subs
 }
 
-// mbean 里的 * 替换为 (.*) 并编译正则表达式, 贪婪匹配
+// mbean 里的 * 替换为 (.*) 并编译正则表达式, 贪婪匹配.
 func makeTagValueRegexMap(mbean string) (string, map[string]*regexp.Regexp) {
 	subs := make(map[string]*regexp.Regexp)
 	object := strings.SplitN(mbean, ":", 2)
@@ -919,7 +939,7 @@ func makeTagValueRegexMap(mbean string) (string, map[string]*regexp.Regexp) {
 				subs[pair[0]] = nil
 				property := pair[1]
 				if strings.Contains(property, "*") {
-					property = strings.Replace(property, "*", "(.*)", -1)
+					property = strings.ReplaceAll(property, "*", "(.*)")
 					if r, err := regexp.Compile(property); err == nil {
 						// if successful
 						subs[pair[0]] = r
@@ -932,7 +952,9 @@ func makeTagValueRegexMap(mbean string) (string, map[string]*regexp.Regexp) {
 }
 
 // ------------------------------------------------------------------------------
-// ------------------------------------ client ----------------------------------
+// ------------------------------------ client ----------------------------------.
+// ------------------------------------------------------------------------------
+
 type Client struct {
 	URL    string
 	client *http.Client
@@ -981,7 +1003,7 @@ type ReadResponse struct {
 //   "target": {
 //     "url: "service:jmx:rmi:///jndi/rmi://target:9010/jmxrmi"
 //   }
-// }
+// }.
 type jolokiaRequest struct {
 	Type      string         `json:"type"`
 	Mbean     string         `json:"mbean"`
@@ -1008,7 +1030,7 @@ type jolokiaTarget struct {
 //   "value": 1214083,
 //   "timestamp": 1488059309,
 //   "status": 200
-// }
+// }.
 type jolokiaResponse struct {
 	Request jolokiaRequest `json:"request"`
 	Value   interface{}    `json:"value"`
@@ -1052,7 +1074,7 @@ func (c *Client) read(requests []ReadRequest) ([]ReadResponse, error) {
 
 	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		//err is not contained in returned error - it may contain sensitive data (password) which should not be logged
+		// err is not contained in returned error - it may contain sensitive data (password) which should not be logged
 		return nil, fmt.Errorf("unable to create new request for: '%s'", c.URL)
 	}
 
@@ -1062,7 +1084,7 @@ func (c *Client) read(requests []ReadRequest) ([]ReadResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("response from url \"%s\" has status code %d (%s), expected %d (%s)",
@@ -1079,7 +1101,7 @@ func (c *Client) read(requests []ReadRequest) ([]ReadResponse, error) {
 	decoder.UseNumber()
 	err = decoder.Decode(&jResponses)
 	if err != nil {
-		return nil, fmt.Errorf("decoding JSON response: %s: %s", err, responseBody)
+		return nil, fmt.Errorf("decoding JSON response: %w: %s", err, responseBody)
 	}
 	return makeReadResponses(jResponses), nil
 }
@@ -1151,7 +1173,11 @@ func makeReadResponses(jresponses []jolokiaResponse) []ReadResponse {
 				attributes, _ := attrValue.([]interface{})
 				rrequest.Attributes = make([]string, len(attributes))
 				for i, attr := range attributes {
-					rrequest.Attributes[i] = attr.(string)
+					if s, ok := attr.(string); ok {
+						rrequest.Attributes[i] = s
+					} else {
+						l.Warnf("attr expect to be string, go %s", reflect.TypeOf(attr).String())
+					}
 				}
 			}
 		}

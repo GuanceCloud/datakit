@@ -1,6 +1,7 @@
+// Package conntrack wrap host network collection stats
 package conntrack
 
-type ConntrackInfo struct {
+type Info struct {
 	Current       int64 `json:"entries"`
 	Limit         int64 `json:"entries_limit"`
 	Found         int64 `json:"stat_found"`
@@ -13,7 +14,7 @@ type ConntrackInfo struct {
 	SearchRestart int64 `json:"stat_search_restart"`
 }
 
-func GetConntrackInfo() *ConntrackInfo {
-	info := ConntrackCollect()
+func GetConntrackInfo() *Info {
+	info := Collect()
 	return info
 }

@@ -9,7 +9,6 @@ type Point struct {
 }
 
 func WrapPoint(pts []*influxdb.Point) (x []*Point) {
-
 	for _, pt := range pts {
 		x = append(x, &Point{pt})
 	}

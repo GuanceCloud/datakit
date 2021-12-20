@@ -1,0 +1,59 @@
+# {"version": "1.1.8-rc2.1", "desc": "do NOT edit this line"}
+
+[[inputs.mongodb]]
+  ## Gathering interval
+  # interval = "10s"
+
+  ## An array of URLs of the form:
+  ##   "mongodb://" [user ":" pass "@"] host [ ":" port]
+  ## For example:
+  ##   mongodb://user:auth_key@10.10.3.30:27017,
+  ##   mongodb://10.10.3.33:18832,
+  # servers = ["mongodb://127.0.0.1:27017"]
+
+  ## When true, collect replica set stats
+  # gather_replica_set_stats = false
+
+  ## When true, collect cluster stats
+  ## Note that the query that counts jumbo chunks triggers a COLLSCAN, which may have an impact on performance.
+  # gather_cluster_stats = false
+
+  ## When true, collect per database stats
+  # gather_per_db_stats = true
+
+  ## When true, collect per collection stats
+  # gather_per_col_stats = true
+
+  ## List of db where collections stats are collected, If empty, all dbs are concerned.
+  # col_stats_dbs = []
+
+  ## When true, collect top command stats.
+  # gather_top_stat = true
+
+  ## Optional TLS Config, enabled if true.
+  # enable_tls = false
+
+  ## Optional local Mongod log input config, enabled if true.
+  # enable_mongod_log = false
+
+  ## TLS connection config
+  [inputs.mongodb.tlsconf]
+    # ca_certs = ["/etc/ssl/certs/mongod.cert.pem"]
+    # cert = "/etc/ssl/certs/mongo.cert.pem"
+    # cert_key = "/etc/ssl/certs/mongo.key.pem"
+    ## Use TLS but skip chain & host verification
+    # insecure_skip_verify = true
+    # server_name = ""
+
+  ## Mongod log
+  [inputs.mongodb.log]
+    ## Log file path check your mongodb config path usually under '/var/log/mongodb/mongod.log'.
+    # files = ["/var/log/mongodb/mongod.log"]
+    ## Grok pipeline script file.
+    # pipeline = "mongod.p"
+
+  ## Customer tags, if set will be seen with every metric.
+  [inputs.mongodb.tags]
+    # "key1" = "value1"
+    # "key2" = "value2"
+		# ...

@@ -14,9 +14,11 @@ type containerMetricMeasurement struct{}
 
 func (c *containerMetricMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (c *containerMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerName,
+		Type: "metric",
 		Desc: "容器指标数据（忽略 k8s pause 容器），只采集正在运行的容器",
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
@@ -52,10 +54,12 @@ type containerObjectMeasurement struct{}
 
 func (c *containerObjectMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (c *containerObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerName,
 		Desc: "容器对象数据（忽略 k8s pause 容器），如果容器处于非 running 状态，则`cpu_usage`等指标将不存在",
+		Type: "object",
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
@@ -97,9 +101,11 @@ type containerLogMeasurement struct{}
 
 func (c *containerLogMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (c *containerLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "日志数据",
+		Type: "logging",
 		Desc: "默认使用容器名，如果容器名能匹配 `log_option.container_name_match` 正则，则使用对应的 `source` 字段值（只采集正在运行的容器日志且忽略 k8s pause 容器）",
 		Tags: map[string]interface{}{
 			"container_name": inputs.NewTagInfo(`容器名称`),
@@ -122,9 +128,11 @@ type kubeletPodMetricMeasurement struct{}
 
 func (k *kubeletPodMetricMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (k *kubeletPodMetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubeletPodName,
+		Type: "metric",
 		Desc: "kubelet pod 指标数据（只采集正在运行的 pod）",
 		Tags: map[string]interface{}{
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),
@@ -154,9 +162,11 @@ type kubeletPodObjectMeasurement struct{}
 
 func (k *kubeletPodObjectMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
+//nolint:lll
 func (k *kubeletPodObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: kubeletPodName,
+		Type: "object",
 		Desc: "kubelet pod 对象数据，如果 pod 处于非 Running 状态，则`cpu_usage`等指标将不存在",
 		Tags: map[string]interface{}{
 			"node_name": inputs.NewTagInfo(`所在 kubelet node 名字`),

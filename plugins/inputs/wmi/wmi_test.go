@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package wmi
@@ -50,7 +51,6 @@ func TestLoadCfg(t *testing.T) {
 }
 
 func TestQuerySysInfo(t *testing.T) {
-
 	var q ClassQuery
 	q.Class = `Win32_LogicalDisk`
 
@@ -61,7 +61,7 @@ func TestQuerySysInfo(t *testing.T) {
 	// 	{`FileSystem`},
 	// }
 
-	sql, err := q.ToSql()
+	sql, err := q.ToSQL()
 	if err != nil {
 		t.Error(err)
 	}
@@ -79,7 +79,6 @@ func TestQuerySysInfo(t *testing.T) {
 }
 
 func TestSvr(t *testing.T) {
-
 	ag := NewAgent()
 
 	data, err := ioutil.ReadFile("./test.conf")

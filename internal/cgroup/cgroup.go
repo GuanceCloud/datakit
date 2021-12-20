@@ -1,3 +1,4 @@
+// Package cgroup wraps Linux cgroup functions.
 package cgroup
 
 import (
@@ -8,9 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
-var (
-	l = logger.DefaultSLogger("cgroup")
-)
+var l = logger.DefaultSLogger("cgroup")
 
 func Run() {
 	l = logger.SLogger("cgroup")
@@ -38,8 +37,9 @@ func GetCPUPercent(interval time.Duration) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if len(percent) < 0 {
+
+	if len(percent) == 0 {
 		return 0, nil
 	}
-	return percent[0] / 100, nil
+	return percent[0] / 100, nil //nolint:gomnd
 }

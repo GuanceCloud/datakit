@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 package main
 
 import (
@@ -18,10 +21,9 @@ import (
 	_ "github.com/godror/godror"
 	ifxcli "github.com/influxdata/influxdb1-client/v2"
 	"github.com/jessevdk/go-flags"
-	"golang.org/x/net/context/ctxhttp"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"golang.org/x/net/context/ctxhttp"
 )
 
 type Option struct {
@@ -38,7 +40,7 @@ type Option struct {
 
 	Log      string   `long:"log" description:"log path"`
 	LogLevel string   `long:"log-level" description:"log file" default:"info"`
-	Query    []string `long:"query" description:"custom query arrary"`
+	Query    []string `long:"query" description:"custom query array"`
 }
 
 var (
@@ -48,19 +50,15 @@ var (
 )
 
 type monitor struct {
-	libPath       string
-	metric        string
-	interval      string
-	instanceId    string
-	user          string
-	password      string
-	desc          string
-	host          string
-	port          string
-	serviceName   string
-	clusterType   string
-	tags          map[string]string
-	oracleVersion string
+	metric      string
+	interval    string
+	user        string
+	password    string
+	desc        string
+	host        string
+	port        string
+	serviceName string
+	tags        map[string]string
 
 	db               *sql.DB
 	intervalDuration time.Duration
@@ -103,7 +101,9 @@ func buildMonitor() *monitor {
 	}
 
 	for {
-		db, err := sql.Open("godror", fmt.Sprintf("%s/%s@%s:%s/%s", m.user, m.password, m.host, m.port, m.serviceName))
+		db, err := sql.Open("godror",
+			fmt.Sprintf("%s/%s@%s:%s/%s",
+				m.user, m.password, m.host, m.port, m.serviceName))
 		if err == nil {
 			m.db = db
 			break
@@ -141,7 +141,11 @@ func main() {
 
 	datakitPostURL = fmt.Sprintf("http://0.0.0.0:%d/v1/write/metric?input=oracle", opt.DatakitHTTPPort)
 
-	if err := logger.SetGlobalRootLogger(opt.Log, opt.LogLevel, logger.OPT_DEFAULT); err != nil {
+	if err := logger.InitRoot(&logger.Option{
+		Path:  opt.Log,
+		Level: opt.LogLevel,
+		Flags: logger.OPT_DEFAULT,
+	}); err != nil {
 		l.Errorf("set root log faile: %s", err.Error())
 	}
 
@@ -160,30 +164,28 @@ func (m *monitor) run() {
 
 	tick := time.NewTicker(m.intervalDuration)
 	defer tick.Stop()
-	defer m.db.Close()
+	defer m.db.Close() //nolint:errcheck
 
 	wg := sync.WaitGroup{}
 
 	for {
-		select {
-		case <-tick.C:
-			for idx, _ := range execCfgs {
-				wg.Add(1)
-				go func(i int) {
-					defer wg.Done()
-					m.handle(execCfgs[i])
-				}(idx)
-			}
-
-			wg.Wait() // blocking
+		for idx := range execCfgs {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				m.handle(execCfgs[i])
+			}(idx)
 		}
+
+		wg.Wait() // blocking
+
+		<-tick.C
 	}
 }
 
 func (m *monitor) handle(ec *ExecCfg) {
 	res, err := m.query(ec)
 	if err != nil {
-		fmt.Printf("oracle query `%s' faild: %v, ignored \n", ec.sql, err)
 		l.Warnf("oracle query `%s' faild: %v, ignored", ec.sql, err)
 		return
 	}
@@ -205,19 +207,17 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 	)
 
 	if metricName == "oracle_system" {
-		handleSystem(m, metricName, response)
-		return nil
+		return handleSystem(m, metricName, response)
 	}
 
 	for _, item := range response {
-
 		tags := map[string]string{}
 
 		tags["oracle_service"] = m.serviceName
 		tags["oracle_server"] = fmt.Sprintf("%s:%s", m.host, m.port)
 
 		for _, tagKey := range tagsKeys {
-			tags[tagKey] = strings.Replace(String(item[tagKey]), " ", "_", -1)
+			tags[tagKey] = strings.ReplaceAll(String(item[tagKey]), " ", "_")
 			delete(item, tagKey)
 		}
 
@@ -255,7 +255,6 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 	lines := [][]byte{}
 	tags := make(map[string]string)
 	fields := make(map[string]interface{})
-	// resData := make(map[string]interface{})
 	for _, item := range response {
 		tags["oracle_service"] = m.serviceName
 		tags["oracle_server"] = fmt.Sprintf("%s:%s", m.host, m.port)
@@ -269,7 +268,7 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		fieldName := String(item["metric_name"])
 		value := item["value"]
 
-		fieldName = strings.ToLower(strings.Replace(fieldName, " ", "_", -1))
+		fieldName = strings.ToLower(strings.ReplaceAll(fieldName, " ", "_"))
 
 		if newName, ok := dic[fieldName]; ok {
 			fields[newName] = value
@@ -281,8 +280,6 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		l.Error("NewPoint(): %s", err.Error())
 		return err
 	}
-
-	fmt.Println("point ======>", pt.String())
 
 	lines = append(lines, []byte(pt.String()))
 
@@ -304,44 +301,51 @@ func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return nil, err
+	}
 
 	columns, _ := rows.Columns()
 	columnLength := len(columns)
 	cache := make([]interface{}, columnLength)
-	for idx, _ := range cache {
+	for idx := range cache {
 		var a interface{}
 		cache[idx] = &a
 	}
+
 	var list []map[string]interface{}
+
 	for rows.Next() {
-		_ = rows.Scan(cache...)
+		if err := rows.Scan(cache...); err != nil {
+			l.Errorf("rows.Scan: %s", err.Error())
+			return nil, err
+		}
 
 		item := make(map[string]interface{})
-		for i, data := range cache {
+		for i, val := range cache {
 			key := strings.ToLower(columns[i])
-			val := *data.(*interface{})
-			if val != nil {
-				vType := reflect.TypeOf(val)
+			if val == nil {
+				l.Warnf("got nil on column %s, ignored", key)
+				continue
+			}
 
-				switch vType.String() {
-				case "int64":
-					item[key] = val.(int64)
-				case "string":
-					var data interface{}
-					str := strings.TrimSpace(val.(string))
-					data, err := strconv.ParseFloat(str, 64)
-					if err != nil {
-						data = val
-					}
+			switch x := val.(type) {
+			case string:
+				x = strings.TrimSpace(x)
+				if data, err := strconv.ParseFloat(x, 64); err == nil { // try parse string to float
 					item[key] = data
-				case "time.Time":
-					item[key] = val.(time.Time)
-				case "[]uint8":
-					item[key] = string(val.([]uint8))
-				default:
-					return nil, fmt.Errorf("unsupport data type '%s' now\n", vType)
+				} else {
+					item[key] = x // keep origin string value
 				}
+
+			case int64, time.Time, []uint8:
+				item[key] = x
+
+			default:
+				return nil, fmt.Errorf("unsupport data type:'%s'", reflect.TypeOf(val).String())
 			}
 		}
 
@@ -351,6 +355,7 @@ func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 }
 
 // String converts <i> to string.
+//nolint:gocyclo
 func String(i interface{}) string {
 	if i == nil {
 		return ""
@@ -365,7 +370,7 @@ func String(i interface{}) string {
 	case int32:
 		return strconv.Itoa(int(value))
 	case int64:
-		return strconv.FormatInt(int64(value), 10)
+		return strconv.FormatInt(value, 10)
 	case uint:
 		return strconv.FormatUint(uint64(value), 10)
 	case uint8:
@@ -375,7 +380,7 @@ func String(i interface{}) string {
 	case uint32:
 		return strconv.FormatUint(uint64(value), 10)
 	case uint64:
-		return strconv.FormatUint(uint64(value), 10)
+		return strconv.FormatUint(value, 10)
 	case float32:
 		return strconv.FormatFloat(float64(value), 'f', -1, 32)
 	case float64:
@@ -400,7 +405,6 @@ func WriteData(data []byte, urlPath string) error {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
 	httpReq, err := http.NewRequest("POST", urlPath, bytes.NewBuffer(data))
-
 	if err != nil {
 		l.Errorf("[error] %s", err.Error())
 		return err
@@ -415,7 +419,7 @@ func WriteData(data []byte, urlPath string) error {
 		l.Errorf("[error] %s", err.Error())
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -434,15 +438,15 @@ func WriteData(data []byte, urlPath string) error {
 }
 
 const (
-	oracle_process_sql = `
+	oracleProcessSQL = `
     SELECT PROGRAM, PGA_USED_MEM, PGA_ALLOC_MEM, PGA_FREEABLE_MEM, PGA_MAX_MEM FROM GV$PROCESS
     `
 
-	oracle_system_sql = `
+	oracleSystemSQL = `
     SELECT VALUE, METRIC_NAME FROM GV$SYSMETRIC ORDER BY BEGIN_TIME
     `
 
-	oracle_tablespace_sql = `
+	oracleTablespaceSQL = `
     SELECT
     m.tablespace_name,
     NVL(m.used_space * t.block_size, 0) as used_space,
@@ -462,18 +466,18 @@ type ExecCfg struct {
 }
 
 var execCfgs = []*ExecCfg{
-	&ExecCfg{
-		sql:        oracle_process_sql,
+	{
+		sql:        oracleProcessSQL,
 		metricName: "oracle_process",
 		tagsMap:    []string{"program"},
 	},
-	&ExecCfg{
-		sql:        oracle_system_sql,
+	{
+		sql:        oracleSystemSQL,
 		metricName: "oracle_system",
 		tagsMap:    []string{},
 	},
-	&ExecCfg{
-		sql:        oracle_tablespace_sql,
+	{
+		sql:        oracleTablespaceSQL,
 		metricName: "oracle_tablespace",
 		tagsMap:    []string{"tablespace_name"},
 	},

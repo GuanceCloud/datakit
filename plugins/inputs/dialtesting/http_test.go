@@ -14,25 +14,25 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 var httpCases = []struct {
+	name      string
 	t         *dt.HTTPTask
 	fail      bool
 	reasonCnt int
 }{
-
-	// test dial with certificate
 	{
+		name:      "test dial with certificate",
 		fail:      false,
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
-			URL:        "https://localhost:54323/_test_with_cert",
+			URL:        "https://localhost:45323/_test_with_cert",
 			Name:       "_test_with_cert",
 			Frequency:  "1s",
 			AdvanceOptions: &dt.HTTPAdvanceOption{
@@ -44,9 +44,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
@@ -54,11 +54,12 @@ var httpCases = []struct {
 	},
 	{
 		fail:      true,
+		name:      "invalid certificate",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
-			URL:        "https://localhost:54323/_test_with_cert",
+			URL:        "https://localhost:45323/_test_with_cert",
 			Name:       "_test_with_cert",
 			Region:     "",
 			Frequency:  "1s",
@@ -71,17 +72,17 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
 		},
 	},
 
-	// test dial with proxy
 	{
+		name:      "test dial with proxy",
 		fail:      false,
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
@@ -92,23 +93,23 @@ var httpCases = []struct {
 			Frequency:  "1s",
 			AdvanceOptions: &dt.HTTPAdvanceOption{
 				Proxy: &dt.HTTPOptProxy{
-					URL:     "http://localhost:54322",
+					URL:     "http://localhost:54325",
 					Headers: map[string]string{"X-proxy-header": "proxy-foo"},
 				},
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
 		},
 	},
 
-	// test dial with body
 	{
+		name:      "test dial with invalid body type",
 		fail:      true,
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
@@ -125,15 +126,16 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
 		},
 	},
 	{
+		name:      "test dial with body",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -149,17 +151,17 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
 		},
 	},
 
-	// test dial with headers
 	{
+		name:      "test dial with headers",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -177,17 +179,17 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
 		},
 	},
 
-	// test dial with auth
 	{
+		name:      "test dial with auth",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -205,17 +207,17 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
 		},
 	},
 
-	// test dial with cookie
 	{
+		name:      "test dial with cookie",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -235,17 +237,17 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"},
+						{Is: "200"},
 					},
 				},
 			},
 		},
 	},
 
-	// test dial for redirect
 	{
+		name:      "test dial for redirect",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -258,9 +260,9 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "200"}, // allow redirect, should be 200
+						{Is: "200"}, // allow redirect, should be 200
 					},
 				},
 			},
@@ -268,6 +270,7 @@ var httpCases = []struct {
 	},
 
 	{
+		name:      "redirect disabled",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -280,17 +283,17 @@ var httpCases = []struct {
 			},
 
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					StatusCode: []*dt.SuccessOption{
-						&dt.SuccessOption{Is: "302"}, // disabled redirect, should be 302
+						{Is: "302"}, // disabled redirect, should be 302
 					},
 				},
 			},
 		},
 	},
 
-	// test dial with response time checking
 	{
+		name:      "test dial with response time checking",
 		reasonCnt: 1,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -299,13 +302,13 @@ var httpCases = []struct {
 			Name:       "_test_resp_time_less_10ms",
 			Frequency:  "1s",
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{ResponseTime: "10ms"},
+				{ResponseTime: "10ms"},
 			},
 		},
 	},
 
-	// test dial with response headers
 	{
+		name:      "test dial with response headers",
 		reasonCnt: 2,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -315,27 +318,26 @@ var httpCases = []struct {
 			Region:     "hangzhou",
 			Frequency:  "1s",
 			SuccessWhen: []*dt.HTTPSuccess{
-				&dt.HTTPSuccess{
+				{
 					Header: map[string][]*dt.SuccessOption{
+						"Cache-Control": {
+							{MatchRegex: `max-ag=\d`}, // expect fail: max-age
+						},
+						"Server": {
+							{Is: `Apache`}, // expect fail
+						},
 
-						"Cache-Control": []*dt.SuccessOption{
-							&dt.SuccessOption{MatchRegex: `max-ag=\d`}, // expect fail: max-age
+						"Date": {
+							{Contains: "GMT"}, // ok: Date always use GMT
 						},
-						"Server": []*dt.SuccessOption{
-							&dt.SuccessOption{Is: `Apache`}, // expect fail
+						"NotExistHeader1": {
+							{NotMatchRegex: `.+`}, // ok
 						},
-
-						"Date": []*dt.SuccessOption{
-							&dt.SuccessOption{Contains: "GMT"}, // ok: Date always use GMT
+						"NotExistHeader2": {
+							{IsNot: `abc`}, // ok
 						},
-						"NotExistHeader1": []*dt.SuccessOption{
-							&dt.SuccessOption{NotMatchRegex: `.+`}, // ok
-						},
-						"NotExistHeader2": []*dt.SuccessOption{
-							&dt.SuccessOption{IsNot: `abc`}, // ok
-						},
-						"NotExistHeader3": []*dt.SuccessOption{
-							&dt.SuccessOption{NotContains: `def`}, // ok
+						"NotExistHeader3": {
+							{NotContains: `def`}, // ok
 						},
 					},
 				},
@@ -345,21 +347,21 @@ var httpCases = []struct {
 }
 
 func prepareSSL(t *testing.T) {
+	t.Helper()
 	for k, v := range tlsData {
-		if err := ioutil.WriteFile("."+k+".pem", v, 0644); err != nil {
+		if err := ioutil.WriteFile("."+k+".pem", v, 0o644); err != nil {
 			t.Error(err)
 		}
 	}
 }
 
 func cleanTLSData() {
-	for k, _ := range tlsData {
-		os.Remove("." + k + ".pem")
+	for k := range tlsData {
+		os.Remove("." + k + ".pem") //nolint:errcheck
 	}
 }
 
 func TestDialHTTP(t *testing.T) {
-
 	stopserver := make(chan interface{})
 
 	defer close(stopserver)
@@ -367,52 +369,55 @@ func TestDialHTTP(t *testing.T) {
 
 	go proxyServer(t)
 	go httpServer(t, "localhost:54321", false, stopserver) // http server
-	go httpServer(t, "localhost:54323", true, stopserver)  // https server
+	go httpServer(t, "localhost:45323", true, stopserver)  // https server
 
 	time.Sleep(time.Second) // wait servers ok
 
 	for _, c := range httpCases {
-
-		if err := c.t.Init(); err != nil {
-			if c.fail == false {
-				t.Errorf("case %s failed: %s", c.t.Name, err)
-			} else {
-				t.Logf("expected: %s", err.Error())
+		t.Run(c.name, func(t *testing.T) {
+			if err := c.t.Init(); err != nil {
+				if c.fail == false {
+					t.Errorf("case %s failed: %s", c.t.Name, err)
+				} else {
+					t.Logf("expected: %s", err.Error())
+				}
+				return
 			}
-			continue
-		}
 
-		if err := c.t.Run(); err != nil {
-			if c.fail == false {
-				t.Errorf("case %s failed: %s", c.t.Name, err)
-			} else {
-				t.Logf("expected: %s", err.Error())
+			if err := c.t.Run(); err != nil {
+				if c.fail == false {
+					t.Errorf("case %s failed: %s", c.t.Name, err)
+				} else {
+					t.Logf("expected: %s", err.Error())
+				}
+				return
 			}
-			continue
-		}
 
-		reasons := c.t.CheckResult()
-		if len(reasons) != c.reasonCnt {
-			t.Errorf("case %s expect %d reasons, but got %d reasons:\n\t%s",
-				c.t.Name, c.reasonCnt, len(reasons), strings.Join(reasons, "\n\t"))
-		} else {
+			tags, fields := c.t.GetResults()
+
+			t.Logf("tags: %+#v", tags)
+			t.Logf("fields: %+#v", fields)
+
+			reasons := c.t.CheckResult()
+			tu.Equals(t, len(reasons), c.reasonCnt)
+
 			if len(reasons) > 0 {
 				t.Logf("case %s reasons:\n\t%s",
 					c.t.Name, strings.Join(reasons, "\n\t"))
 			}
-		}
+		})
 	}
 }
 
 func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
-
+	t.Helper()
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
 	gin.DisableConsoleColor()
 	r.Use(gin.Recovery())
 
-	addTestingRoutes(r, https, t)
+	addTestingRoutes(t, r, https)
 
 	// start HTTP server
 	srv := &http.Server{
@@ -440,20 +445,22 @@ func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
 }
 
 func proxyServer(t *testing.T) {
+	t.Helper()
 	http.HandleFunc("/_test_with_proxy", func(w http.ResponseWriter, req *http.Request) {
-
-		t.Logf("proxied request comming")
-		for k, _ := range req.Header {
+		t.Logf("proxied request coming")
+		for k := range req.Header {
 			t.Logf("proxied header: %s: %s", k, req.Header.Get(k))
 		}
 
 		fmt.Fprintf(w, "ok")
 	})
-	http.ListenAndServe("localhost:54322", nil)
+	if err := http.ListenAndServe("localhost:54325", nil); err != nil {
+		t.Error(err)
+	}
 }
 
-func proxyHandler(target string, t *testing.T) gin.HandlerFunc {
-
+func proxyHandler(t *testing.T, target string) gin.HandlerFunc {
+	t.Helper()
 	remote, err := url.Parse(target)
 	if err != nil {
 		t.Error(err)
@@ -462,14 +469,12 @@ func proxyHandler(target string, t *testing.T) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		director := func(req *http.Request) {
-			req = c.Request
+			c.Request.URL.Scheme = remote.Scheme
+			c.Request.URL.Host = remote.Host
+			c.Request.URL.RawQuery = remote.RawQuery
 
-			req.URL.Scheme = remote.Scheme
-			req.URL.Host = remote.Host
-			req.URL.RawQuery = remote.RawQuery
-
-			req.Header["X-proxy-header"] = []string{c.Request.Header.Get("X-proxy-header")}
-			delete(req.Header, "X-proxy-header")
+			c.Request.Header["X-proxy-header"] = []string{c.Request.Header.Get("X-proxy-header")}
+			delete(c.Request.Header, "X-proxy-header")
 		}
 		proxy := &httputil.ReverseProxy{Director: director}
 		proxy.ServeHTTP(c.Writer, c.Request)
@@ -546,7 +551,8 @@ HHrpiTXtbrUfbKX2TEk3DSevJ9EZEuewxALtsaRQgX4WyHlxpYDXNSjag04Nn+/x
 -----END PRIVATE KEY-----`),
 }
 
-func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
+func addTestingRoutes(t *testing.T, r *gin.Engine, https bool) {
+	t.Helper()
 	r.GET("/_test_resp_time_less_10ms", func(c *gin.Context) {
 		time.Sleep(time.Millisecond * 11)
 		c.Data(http.StatusOK, ``, nil)
@@ -589,7 +595,7 @@ func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
 	})
 
 	r.GET("/_test_with_headers", func(c *gin.Context) {
-		for k, _ := range c.Request.Header {
+		for k := range c.Request.Header {
 			t.Logf("%s: %s", k, c.Request.Header.Get(k))
 		}
 
@@ -597,8 +603,7 @@ func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
 	})
 
 	r.POST("/_test_with_body", func(c *gin.Context) {
-
-		defer c.Request.Body.Close()
+		defer c.Request.Body.Close() //nolint:errcheck
 		body, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			t.Error(err)
@@ -610,11 +615,10 @@ func addTestingRoutes(r *gin.Engine, https bool, t *testing.T) {
 	})
 
 	r.GET("/_test_with_proxy",
-		proxyHandler("http://localhost:54322/_test_with_proxy" /*url must be the same*/, t))
+		proxyHandler(t, "http://localhost:54325/_test_with_proxy" /*url must be the same*/))
 
 	if https {
 		r.GET("/_test_with_cert", func(c *gin.Context) {
-
 			t.Logf("request tls: %+#v", c.Request.TLS)
 			c.Data(http.StatusOK, ``, nil)
 		})

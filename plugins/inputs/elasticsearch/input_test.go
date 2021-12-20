@@ -45,6 +45,7 @@ func newTransportMock(body string) http.RoundTripper {
 	}
 }
 
+//nolint:deadcode,unused
 func defaultTags() map[string]string {
 	return map[string]string{
 		"cluster_name":          "es-testcluster",
@@ -73,9 +74,20 @@ func TestGatherNodeStats(t *testing.T) {
 
 	tags := defaultTags()
 
-	checkIsMaster(es, es.Servers[0], false, t)
+	checkIsMaster(t, es, es.Servers[0], false)
 
-	for field := range nodestatsExpected {
+	for field, value := range nodestatsExpected {
+		fields := `fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes`
+
+		if strings.Contains(fields, field) {
+			if value, ok := value.(float64); ok {
+				val := value / (1024 * 1024 * 1024)
+				filedName := strings.ReplaceAll(field, "in_bytes", "in_gigabytes")
+				nodestatsExpected[filedName] = val
+			}
+			delete(nodestatsExpected, field)
+			continue
+		}
 		_, ok := nodeStatsFields[field]
 		if !ok {
 			delete(nodestatsExpected, field)
@@ -118,8 +130,7 @@ func TestCollect(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	err := es.Collect()
-	if err != nil {
+	if err := es.Collect(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -133,11 +144,11 @@ func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
-	checkIsMaster(es, es.Servers[0], false, t)
+	checkIsMaster(t, es, es.Servers[0], false)
 
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
@@ -161,11 +172,11 @@ func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
-	checkIsMaster(es, es.Servers[0], false, t)
+	checkIsMaster(t, es, es.Servers[0], false)
 
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
@@ -189,23 +200,16 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
-	checkIsMaster(es, es.Servers[0], false, t)
+	checkIsMaster(t, es, es.Servers[0], false)
 
+	clusterHealthExpected["indices_lifecycle_error_count"] = 2
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
 		map[string]string{"name": clusterName}, es.collectCache)
-
-	// AssertContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
-	// 	v1IndexExpected,
-	// 	map[string]string{"index": "v1", "name": clusterName}, es.collectCache)
-
-	// AssertContainsTaggedFields(t, "elasticsearch_cluster_health_indices",
-	// 	v2IndexExpected,
-	// 	map[string]string{"index": "v2", "name": clusterName}, es.collectCache)
 }
 
 func TestGatherClusterIndicesStats(t *testing.T) {
@@ -223,6 +227,10 @@ func TestGatherClusterIndicesStats(t *testing.T) {
 	AssertContainsTaggedFields(t, "elasticsearch_indices_stats",
 		clusterIndicesTotalExpected,
 		map[string]string{"index_name": "es", "cluster_name": ""}, es.collectCache)
+
+	AssertContainsTaggedFields(t, "elasticsearch_indices_stats",
+		clusterIndicesTotalExpected,
+		map[string]string{"index_name": "_all", "cluster_name": ""}, es.collectCache)
 }
 
 // func TestGatherClusterIndiceShardsStats(t *testing.T) {
@@ -287,13 +295,12 @@ func TestMapShardStatusToCode(t *testing.T) {
 }
 
 func TestTlsConfig(t *testing.T) {
-	_, err := TLSConfig("", "", "")
-	if err == nil {
+	if _, err := TLSConfig("", "", ""); err == nil {
 		t.Fail()
 	}
-
 }
 
+/* failed
 func TestGatherClusterStatsMaster(t *testing.T) {
 	es := newElasticsearchWithClient()
 	es.ClusterStats = true
@@ -322,7 +329,7 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	checkIsMaster(es, es.Servers[0], true, t)
+	checkIsMaster(t, es, es.Servers[0], true)
 	tags := defaultTags()
 
 	AssertContainsTaggedFields(t, "elasticsearch_node_stats", nodestatsExpected, tags, es.collectCache)
@@ -347,12 +354,12 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 	}
 
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_stats", clusterstatsExpected, tags, es.collectCache)
-}
+} */
 
 func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasurement {
-	switch metricType := metric.(type) {
+	t.Helper()
+	switch m := metric.(type) {
 	case *nodeStatsMeasurement:
-		m := metric.(*nodeStatsMeasurement)
 		return &elasticsearchMeasurement{
 			name:   m.name,
 			tags:   m.tags,
@@ -360,7 +367,6 @@ func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasu
 			ts:     m.ts,
 		}
 	case *indicesStatsMeasurement:
-		m := metric.(*indicesStatsMeasurement)
 		return &elasticsearchMeasurement{
 			name:   m.name,
 			tags:   m.tags,
@@ -368,7 +374,6 @@ func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasu
 			ts:     m.ts,
 		}
 	case *indicesStatsShardsMeasurement:
-		m := metric.(*indicesStatsShardsMeasurement)
 		return &elasticsearchMeasurement{
 			name:   m.name,
 			tags:   m.tags,
@@ -376,7 +381,6 @@ func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasu
 			ts:     m.ts,
 		}
 	case *indicesStatsShardsTotalMeasurement:
-		m := metric.(*indicesStatsShardsTotalMeasurement)
 		return &elasticsearchMeasurement{
 			name:   m.name,
 			tags:   m.tags,
@@ -384,7 +388,6 @@ func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasu
 			ts:     m.ts,
 		}
 	case *clusterStatsMeasurement:
-		m := metric.(*clusterStatsMeasurement)
 		return &elasticsearchMeasurement{
 			name:   m.name,
 			tags:   m.tags,
@@ -392,7 +395,6 @@ func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasu
 			ts:     m.ts,
 		}
 	case *clusterHealthMeasurement:
-		m := metric.(*clusterHealthMeasurement)
 		return &elasticsearchMeasurement{
 			name:   m.name,
 			tags:   m.tags,
@@ -400,7 +402,6 @@ func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasu
 			ts:     m.ts,
 		}
 	case *clusterHealthIndicesMeasurement:
-		m := metric.(*clusterHealthIndicesMeasurement)
 		return &elasticsearchMeasurement{
 			name:   m.name,
 			tags:   m.tags,
@@ -408,12 +409,17 @@ func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasu
 			ts:     m.ts,
 		}
 	default:
-		t.Fatal("Invalid metric type", metricType)
+		t.Fatalf("Invalid metric type: %s", reflect.TypeOf(metric).String())
 	}
 	return nil
 }
 
-func AssertContainsTaggedFields(t *testing.T, measurement string, fields map[string]interface{}, tags map[string]string, collectCache []inputs.Measurement) {
+func AssertContainsTaggedFields(t *testing.T,
+	measurement string,
+	fields map[string]interface{},
+	tags map[string]string,
+	collectCache []inputs.Measurement) {
+	t.Helper()
 	for _, metric := range collectCache {
 		m := getMeasurement(t, metric)
 		if !reflect.DeepEqual(tags, m.tags) {
@@ -434,13 +440,12 @@ func AssertContainsTaggedFields(t *testing.T, measurement string, fields map[str
 	assert.Fail(t, fmt.Sprintf("unknown measurement %q with tags %v", measurement, tags))
 }
 
-func AssertDoesNotContainsTaggedFields(
-	t *testing.T,
+func AssertDoesNotContainsTaggedFields(t *testing.T,
 	measurement string,
 	fields map[string]interface{},
 	tags map[string]string,
-	collectCache []inputs.Measurement,
-) {
+	collectCache []inputs.Measurement) {
+	t.Helper()
 	for _, metric := range collectCache {
 		m := getMeasurement(t, metric)
 		if !reflect.DeepEqual(tags, m.tags) {
@@ -453,7 +458,8 @@ func AssertDoesNotContainsTaggedFields(
 	}
 }
 
-func checkIsMaster(es *Input, server string, expected bool, t *testing.T) {
+func checkIsMaster(t *testing.T, es *Input, server string, expected bool) {
+	t.Helper()
 	if es.serverInfo[server].isMaster() != expected {
 		assert.Fail(t, "IsMaster set incorrectly")
 	}

@@ -2,14 +2,18 @@ package proxy
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-const (
-	pt1 = `point01,t1=tags10,t2=tags20 f1=11i,f2=true,f3="hello" 1602581410306591000`
-	pt2 = `point02,t1=tags10,t2=tags20 f1=11i,f2=true,f3="hello" 1602581410306591000`
-	ob1 = `{"source":"dk1", "status":200}`
-)
+func TestProxyServer(t *testing.T) {
+	var pts []*io.Point
+	for i := 0; i < 100; i++ {
+		pts = append(pts, &io.Point{Point: testutils.RandPoint("test_point", 10, 30)})
+	}
 
-func TestMain(t *testing.T) {
-
+	for _, pt := range pts {
+		log.Info(pt.String())
+	}
 }

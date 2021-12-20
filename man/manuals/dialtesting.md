@@ -1,20 +1,20 @@
 {{.CSS}}
 
-- 版本：{{.Version}}
-- 发布日期：{{.ReleaseDate}}
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：`{{.AvailableArchs}}`
 
 # {{.InputName}}
 
-该采集器是网络拨测结果数据采集，所有拨测产生的数据，上报DataFlux平台。
+该采集器是网络拨测结果数据采集，所有拨测产生的数据，上报观测云。
 
 ## 私有拨测节点部署
 
-私有拨测节点部署，需在 [DataFlux 页面创建私有拨测节点](https://www.yuque.com/dataflux/doc/phmtep)。创建完成后，将页面上相关信息填入 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 即可：
+私有拨测节点部署，需在 [观测云页面创建私有拨测节点](https://www.yuque.com/dataflux/doc/phmtep)。创建完成后，将页面上相关信息填入 `conf.d/{{.Catalog}}/{{.InputName}}.conf` 即可：
 
 ```toml
 #  中心任务存储的服务地址
-server = "https://dflux-dial.dataflux.cn"
+server = "https://dflux-dial.guance.com"
 
 # require，节点惟一标识ID
 region_id = "reg_c2jlokxxxxxxxxxxx"
@@ -33,6 +33,7 @@ sk = "BNFxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-net-arch.png)
 
+<!--
 ## 浏览器拨测（Headless 拨测）
 
 浏览器测需在 DataKit 上安装 Chrome 浏览器，以 Ubuntu 为例：
@@ -44,7 +45,8 @@ sudo dpkg -i google-chrome-stable_current_amd64.deb
 sudo apt-get install -f
 ```
 
-浏览器拨测无需修改 DataKit 配置，只需在 DataFlux 中[设置浏览器拨测任务](https://www.yuque.com/dataflux/doc/qnfc4a#UkJNb)即可。
+浏览器拨测无需修改 DataKit 配置，只需在观测云中[设置浏览器拨测任务](https://www.yuque.com/dataflux/doc/qnfc4a#UkJNb)即可。
+-->
 
 ## 配置
 

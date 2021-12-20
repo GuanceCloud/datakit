@@ -1,3 +1,4 @@
+// Package elasticsearch Collect ElasticSearch metrics.
 package elasticsearch
 
 import (
@@ -7,13 +8,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -23,10 +24,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 var mask = regexp.MustCompile(`https?:\/\/\S+:\S+@`)
 
-const statsPath = "/_nodes/stats"
-const statsPathLocal = "/_nodes/_local/stats"
+const (
+	statsPath      = "/_nodes/stats"
+	statsPathLocal = "/_nodes/_local/stats"
+)
 
 type nodeStat struct {
 	Host       string            `json:"host"`
@@ -63,6 +68,10 @@ type clusterHealth struct {
 	Indices                     map[string]indexHealth `json:"indices"`
 }
 
+type indexState struct {
+	Indices map[string]interface{} `json:"indices"`
+}
+
 type indexHealth struct {
 	ActivePrimaryShards int    `json:"active_primary_shards"`
 	ActiveShards        int    `json:"active_shards"`
@@ -88,6 +97,7 @@ type indexStat struct {
 	Shards    map[string][]interface{} `json:"shards"`
 }
 
+//nolint:lll
 const sampleConfig = `
 [[inputs.elasticsearch]]
   ## Elasticsearch服务器配置
@@ -139,17 +149,17 @@ const sampleConfig = `
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
-# [inputs.elasticsearch.log]
-  #	files = []
-  ## grok pipeline script path
-  #  pipeline = "elasticsearch.p"
+  # [inputs.elasticsearch.log]
+  # files = []
+  # #grok pipeline script path
+  # pipeline = "elasticsearch.p"
 
-[inputs.elasticsearch.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
+  [inputs.elasticsearch.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
 `
 
+//nolint:lll
 const pipelineCfg = `
 # Elasticsearch_search_query
 grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[i.s.s.(query|fetch)%{SPACE}\\] (\\[%{HOSTNAME:nodeId}\\] )?\\[%{NOTSPACE:index}\\]\\[%{INT}\\] took\\[.*\\], took_millis\\[%{INT:duration}\\].*")
@@ -170,21 +180,28 @@ default_time(time)
 `
 
 type Input struct {
-	Interval                   string            `toml:"interval"`
-	Local                      bool              `toml:"local"`
-	Servers                    []string          `toml:"servers"`
-	HTTPTimeout                Duration          `toml:"http_timeout"`
-	ClusterHealth              bool              `toml:"cluster_health"`
-	ClusterHealthLevel         string            `toml:"cluster_health_level"`
-	ClusterStats               bool              `toml:"cluster_stats"`
-	ClusterStatsOnlyFromMaster bool              `toml:"cluster_stats_only_from_master"`
-	IndicesInclude             []string          `toml:"indices_include"`
-	IndicesLevel               string            `toml:"indices_level"`
-	NodeStats                  []string          `toml:"node_stats"`
-	Username                   string            `toml:"username"`
-	Password                   string            `toml:"password"`
-	Log                        *elasticsearchlog `toml:"log"`
-	Tags                       map[string]string `toml:"tags"`
+	Interval                   string   `toml:"interval"`
+	Local                      bool     `toml:"local"`
+	Servers                    []string `toml:"servers"`
+	HTTPTimeout                Duration `toml:"http_timeout"`
+	ClusterHealth              bool     `toml:"cluster_health"`
+	ClusterHealthLevel         string   `toml:"cluster_health_level"`
+	ClusterStats               bool     `toml:"cluster_stats"`
+	ClusterStatsOnlyFromMaster bool     `toml:"cluster_stats_only_from_master"`
+	IndicesInclude             []string `toml:"indices_include"`
+	IndicesLevel               string   `toml:"indices_level"`
+	NodeStats                  []string `toml:"node_stats"`
+	Username                   string   `toml:"username"`
+	Password                   string   `toml:"password"`
+	Log                        *struct {
+		Files             []string `toml:"files"`
+		Pipeline          string   `toml:"pipeline"`
+		IgnoreStatus      []string `toml:"ignore"`
+		CharacterEncoding string   `toml:"character_encoding"`
+		MultilineMatch    string   `toml:"multiline_match"`
+	} `toml:"log"`
+
+	Tags map[string]string `toml:"tags"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
@@ -198,14 +215,11 @@ type Input struct {
 	tail            *tailer.Tailer
 
 	collectCache []inputs.Measurement
-}
 
-type elasticsearchlog struct {
-	Files             []string `toml:"files"`
-	Pipeline          string   `toml:"pipeline"`
-	IgnoreStatus      []string `toml:"ignore"`
-	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	pause   bool
+	pauseCh chan bool
+
+	semStop *cliutils.Sem // start stop signal
 }
 
 type serverInfo struct {
@@ -217,15 +231,20 @@ func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
 }
 
+var maxPauseCh = inputs.ElectionPauseChannelLength
+
 func NewElasticsearch() *Input {
 	return &Input{
 		HTTPTimeout:                Duration{Duration: time.Second * 5},
 		ClusterStatsOnlyFromMaster: true,
 		ClusterHealthLevel:         "indices",
+		pauseCh:                    make(chan bool, maxPauseCh),
+
+		semStop: cliutils.NewSem(),
 	}
 }
 
-// perform status mapping
+// perform status mapping.
 func mapHealthStatusToCode(s string) int {
 	switch strings.ToLower(s) {
 	case "green":
@@ -238,7 +257,7 @@ func mapHealthStatusToCode(s string) int {
 	return 0
 }
 
-// perform shard status mapping
+// perform shard status mapping.
 func mapShardStatusToCode(s string) int {
 	switch strings.ToUpper(s) {
 	case "UNASSIGNED":
@@ -274,6 +293,21 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
+		},
+	}
+}
+
 func (i *Input) extendSelfTag(tags map[string]string) {
 	if i.Tags != nil {
 		for k, v := range i.Tags {
@@ -290,11 +324,8 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&nodeStatsMeasurement{},
 		&indicesStatsMeasurement{},
-		// &indicesStatsShardsMeasurement{},
-		// &indicesStatsShardsTotalMeasurement{},
 		&clusterStatsMeasurement{},
 		&clusterHealthMeasurement{},
-		// &clusterHealthIndicesMeasurement{},
 	}
 }
 
@@ -352,7 +383,7 @@ func (i *Input) Collect() error {
 					if i.ClusterHealthLevel != "" {
 						url = url + "?level=" + i.ClusterHealthLevel
 					}
-					if err := i.gatherClusterHealth(url); err != nil {
+					if err := i.gatherClusterHealth(url, s); err != nil {
 						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
@@ -363,13 +394,22 @@ func (i *Input) Collect() error {
 					}
 				}
 
-				if len(i.IndicesInclude) > 0 && (i.serverInfo[s].isMaster() || !i.ClusterStatsOnlyFromMaster || !i.Local) {
+				if len(i.IndicesInclude) > 0 &&
+					(i.serverInfo[s].isMaster() ||
+						!i.ClusterStatsOnlyFromMaster ||
+						!i.Local) {
 					if i.IndicesLevel != "shards" {
-						if err := i.gatherIndicesStats(s+"/"+strings.Join(i.IndicesInclude, ",")+"/_stats", clusterName); err != nil {
+						if err := i.gatherIndicesStats(s+
+							"/"+
+							strings.Join(i.IndicesInclude, ",")+
+							"/_stats", clusterName); err != nil {
 							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					} else {
-						if err := i.gatherIndicesStats(s+"/"+strings.Join(i.IndicesInclude, ",")+"/_stats?level=shards", clusterName); err != nil {
+						if err := i.gatherIndicesStats(s+
+							"/"+
+							strings.Join(i.IndicesInclude, ",")+
+							"/_stats?level=shards", clusterName); err != nil {
 							return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 						}
 					}
@@ -377,7 +417,6 @@ func (i *Input) Collect() error {
 				return nil
 			})
 		}(serv)
-
 	}
 
 	return g.Wait()
@@ -403,17 +442,21 @@ func (i *Input) RunPipeline() {
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -429,10 +472,10 @@ func (i *Input) Run() {
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {
-		l.Error(fmt.Errorf("invalid interval, %s", err.Error()))
+		l.Error("invalid interval, %s", err.Error())
 		return
 	} else if duration <= 0 {
-		l.Error(fmt.Errorf("invalid interval, cannot be less than zero"))
+		l.Error("invalid interval, cannot be less than zero")
 		return
 	}
 
@@ -453,29 +496,52 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			if i.tail != nil {
-				i.tail.Close()
-				l.Info("elasticsearch log exit")
-			}
+			i.exit()
 			l.Info("elasticsearch exit")
 			return
 
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("elasticsearch return")
+			return
+
 		case <-tick.C:
+			if i.pause {
+				l.Debugf("not leader, skipped")
+				continue
+			}
 			start := time.Now()
 			if err := i.Collect(); err != nil {
 				io.FeedLastError(inputName, err.Error())
 				l.Error(err)
-			} else {
-				if len(i.collectCache) > 0 {
-					err := inputs.FeedMeasurement("elasticsearch", datakit.Metric, i.collectCache, &io.Option{CollectCost: time.Since(start)})
-					if err != nil {
-						io.FeedLastError(inputName, err.Error())
-						l.Errorf(err.Error())
-					}
-					i.collectCache = i.collectCache[:0]
+			} else if len(i.collectCache) > 0 {
+				err := inputs.FeedMeasurement("elasticsearch",
+					datakit.Metric,
+					i.collectCache,
+					&io.Option{CollectCost: time.Since(start)})
+				if err != nil {
+					io.FeedLastError(inputName, err.Error())
+					l.Errorf(err.Error())
 				}
+				i.collectCache = i.collectCache[:0]
 			}
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
+	}
+}
+
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("elasticsearch log exit")
+	}
+}
+
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
 	}
 }
 
@@ -491,31 +557,11 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 	}
 	now := time.Now()
 
-	// disable
-	// Total Shards Stats
-	// shardsStats := map[string]interface{}{}
-	// for k, v := range indicesStats.Shards {
-	//   shardsStats[k] = v
-	// }
-
-	// metric := &indicesStatsShardsTotalMeasurement{
-	//   elasticsearchMeasurement: elasticsearchMeasurement{
-	//     name:   "elasticsearch_indices_stats_shards_total",
-	//     tags:   map[string]string{},
-	//     fields: shardsStats,
-	//     ts:     now,
-	//   },
-	// }
-
-	// if len(metric.fields) > 0 {
-	//   i.collectCache = append(i.collectCache, metric)
-	// }
-
 	// All Stats
 	for m, s := range indicesStats.All {
 		// parse Json, ignoring strings and bools
 		jsonParser := JSONFlattener{}
-		err := jsonParser.FullFlattenJSON(m+"_", s, true, true)
+		err := jsonParser.FullFlattenJSON(m, s, true, true)
 		if err != nil {
 			return err
 		}
@@ -582,62 +628,6 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 				i.collectCache = append(i.collectCache, metric)
 			}
 		}
-
-		// disable now
-		// if false && i.IndicesLevel == "shards" {
-		//   for shardNumber, shards := range index.Shards {
-		//     for _, shard := range shards {
-
-		//       // Get Shard Stats
-		//       flattened := JSONFlattener{}
-		//       err := flattened.FullFlattenJSON("", shard, true, true)
-		//       if err != nil {
-		//         return err
-		//       }
-
-		//       // determine shard tag and primary/replica designation
-		//       shardType := "replica"
-		//       if flattened.Fields["routing_primary"] == true {
-		//         shardType = "primary"
-		//       }
-		//       delete(flattened.Fields, "routing_primary")
-
-		//       routingState, ok := flattened.Fields["routing_state"].(string)
-		//       if ok {
-		//         flattened.Fields["routing_state"] = mapShardStatusToCode(routingState)
-		//       }
-
-		//       routingNode, _ := flattened.Fields["routing_node"].(string)
-		//       shardTags := map[string]string{
-		//         "index_name": id,
-		//         "node_id":    routingNode,
-		//         "shard_name": string(shardNumber),
-		//         "type":       shardType,
-		//       }
-
-		//       for key, field := range flattened.Fields {
-		//         switch field.(type) {
-		//         case string, bool:
-		//           delete(flattened.Fields, key)
-		//         }
-		//       }
-
-		//       i.extendSelfTag(shardTags)
-		//       metric := &indicesStatsShardsMeasurement{
-		//         elasticsearchMeasurement: elasticsearchMeasurement{
-		//           name:   "elasticsearch_indices_stats_shards",
-		//           tags:   shardTags,
-		//           fields: flattened.Fields,
-		//           ts:     now,
-		//         },
-		//       }
-
-		//       if len(metric.fields) > 0 {
-		//         i.collectCache = append(i.collectCache, metric)
-		//       }
-		//     }
-		//   }
-		// }
 	}
 
 	return nil
@@ -679,6 +669,9 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 			"breakers":    n.Breakers,
 		}
 
+		//nolint:lll
+		const cols = `fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes`
+
 		now := time.Now()
 		allFields := make(map[string]interface{})
 		for p, s := range stats {
@@ -694,9 +687,20 @@ func (i *Input) gatherNodeStats(url string) (string, error) {
 				return "", err
 			}
 			for k, v := range f.Fields {
-				_, ok := nodeStatsFields[k]
+				filedName := k
+				val := v
+				// transform bytes to gigabytes
+				if p == "fs" {
+					if strings.Contains(cols, filedName) {
+						if value, ok := v.(float64); ok {
+							val = value / (1024 * 1024 * 1024)
+							filedName = strings.ReplaceAll(filedName, "in_bytes", "in_gigabytes")
+						}
+					}
+				}
+				_, ok := nodeStatsFields[filedName]
 				if ok {
-					allFields[k] = v
+					allFields[filedName] = val
 				}
 			}
 		}
@@ -749,7 +753,6 @@ func (i *Input) gatherClusterStats(url string) error {
 				allFields[k] = v
 			}
 		}
-
 	}
 
 	i.extendSelfTag(tags)
@@ -768,9 +771,12 @@ func (i *Input) gatherClusterStats(url string) error {
 	return nil
 }
 
-func (i *Input) gatherClusterHealth(url string) error {
+func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	healthStats := &clusterHealth{}
+	indicesRes := &indexState{}
 	if err := i.gatherJSONData(url, healthStats); err != nil {
+		return err
+	} else if err := i.gatherJSONData(serverURL+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
 		return err
 	}
 	now := time.Now()
@@ -790,6 +796,7 @@ func (i *Input) gatherClusterHealth(url string) error {
 		"task_max_waiting_in_queue_millis": healthStats.TaskMaxWaitingInQueueMillis,
 		"timed_out":                        healthStats.TimedOut,
 		"unassigned_shards":                healthStats.UnassignedShards,
+		"indices_lifecycle_error_count":    len(indicesRes.Indices),
 	}
 
 	allFields := make(map[string]interface{})
@@ -815,34 +822,6 @@ func (i *Input) gatherClusterHealth(url string) error {
 	if len(metric.fields) > 0 {
 		i.collectCache = append(i.collectCache, metric)
 	}
-
-	// disable
-	// for name, health := range healthStats.Indices {
-	//   indexFields := map[string]interface{}{
-	//     "active_primary_shards": health.ActivePrimaryShards,
-	//     "active_shards":         health.ActiveShards,
-	//     "initializing_shards":   health.InitializingShards,
-	//     "number_of_replicas":    health.NumberOfReplicas,
-	//     "number_of_shards":      health.NumberOfShards,
-	//     "relocating_shards":     health.RelocatingShards,
-	//     "status":                health.Status,
-	//     "status_code":           mapHealthStatusToCode(health.Status),
-	//     "unassigned_shards":     health.UnassignedShards,
-	//   }
-
-	//   metric := &clusterHealthIndicesMeasurement{
-	//     elasticsearchMeasurement: elasticsearchMeasurement{
-	//       name:   "elasticsearch_cluster_health_indices",
-	//       tags:   map[string]string{"index": name, "name": healthStats.ClusterName},
-	//       fields: indexFields,
-	//       ts:     now,
-	//     },
-	//   }
-
-	//   if len(metric.fields) > 0 {
-	//     i.collectCache = append(i.collectCache, metric)
-	//   }
-	// }
 
 	return nil
 }
@@ -916,7 +895,7 @@ func (i *Input) gatherJSONData(url string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 	if r.StatusCode != http.StatusOK {
 		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
 		// to let the underlying transport close the connection and re-establish a new one for
@@ -946,15 +925,15 @@ func (i *Input) getCatMaster(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 	if r.StatusCode != http.StatusOK {
 		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
 		// to let the underlying transport close the connection and re-establish a new one for
 		// future calls.
+		//nolint:lll
 		return "", fmt.Errorf("elasticsearch: Unable to retrieve master node information. API responded with status-code %d, expected %d", r.StatusCode, http.StatusOK)
 	}
 	response, err := ioutil.ReadAll(r.Body)
-
 	if err != nil {
 		return "", err
 	}
@@ -964,7 +943,29 @@ func (i *Input) getCatMaster(url string) (string, error) {
 	return masterID, nil
 }
 
-func init() {
+func (i *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (i *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return NewElasticsearch()
 	})

@@ -1,3 +1,4 @@
+// Package mysql collect MySQL metrics
 package mysql
 
 import (
@@ -5,22 +6,26 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.ElectionInput = (*Input)(nil)
+
 const (
-	maxInterval = 15 * time.Minute
-	minInterval = 10 * time.Second
+	maxInterval   = 15 * time.Minute
+	minInterval   = 10 * time.Second
+	dbmMetricName = "database_performance"
+	strMariaDB    = "MariaDB"
 )
 
 var (
@@ -30,19 +35,9 @@ var (
 )
 
 type tls struct {
-	TlsKey  string `toml:"tls_key"`
-	TlsCert string `toml:"tls_cert"`
-	TlsCA   string `toml:"tls_ca"`
-}
-
-type options struct {
-	Replication             bool `toml:"replication"`
-	GaleraCluster           bool `toml:"galera_cluster"`
-	ExtraStatusMetrics      bool `toml:"extra_status_metrics"`
-	ExtraInnodbMetrics      bool `toml:"extra_innodb_metrics"`
-	DisableInnodbMetrics    bool `toml:"disable_innodb_metrics"`
-	SchemaSizeMetrics       bool `toml:"schema_size_metrics"`
-	ExtraPerformanceMetrics bool `toml:"extra_performance_metrics"`
+	TLSKey  string `toml:"tls_key"`
+	TLSCert string `toml:"tls_cert"`
+	TLSCA   string `toml:"tls_ca"`
 }
 
 type customQuery struct {
@@ -50,6 +45,8 @@ type customQuery struct {
 	metric string   `toml:"metric"`
 	tags   []string `toml:"tags"`
 	fields []string `toml:"fields"`
+
+	md5Hash string
 }
 
 type mysqllog struct {
@@ -57,42 +54,88 @@ type mysqllog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-	Match             string   `toml:"match"`
+	MultilineMatch    string   `toml:"multiline_match"`
+
+	MatchDeprecated string `toml:"match,omitempty"`
 }
 
 type Input struct {
-	Host   string   `toml:"host"`
-	Port   int      `toml:"port"`
-	User   string   `toml:"user"`
-	Pass   string   `toml:"pass"`
-	Sock   string   `toml:"sock"`
-	Tables []string `toml:"tables"`
-	Users  []string `toml:"users"`
+	Host      string    `toml:"host"`
+	Port      int       `toml:"port"`
+	User      string    `toml:"user"`
+	Pass      string    `toml:"pass"`
+	Sock      string    `toml:"sock"`
+	Tables    []string  `toml:"tables"`
+	Users     []string  `toml:"users"`
+	Dbm       bool      `toml:"dbm"`
+	DbmMetric dbmMetric `toml:"dbm_metric"`
+	DbmSample dbmSample `toml:"dbm_sample"`
 
 	Charset string `toml:"charset"`
 
-	Timeout         string        `toml:"connect_timeout"`
-	timeoutDuration time.Duration `toml:"-"`
+	Timeout         string `toml:"connect_timeout"`
+	timeoutDuration time.Duration
 
-	Tls *tls `toml:"tls"`
+	TLS *tls `toml:"tls"`
 
 	Service  string `toml:"service"`
 	Interval datakit.Duration
 
 	Tags map[string]string `toml:"tags"`
 
-	options *options       `toml:"options"`
-	Query   []*customQuery `toml:"custom_queries"`
-	Addr    string         `toml:"-"`
-	InnoDB  bool           `toml:"innodb"`
-	Log     *mysqllog      `toml:"log"`
+	Query  []*customQuery `toml:"custom_queries"`
+	Addr   string         `toml:"-"`
+	InnoDB bool           `toml:"innodb"`
+	Log    *mysqllog      `toml:"log"`
 
-	start      time.Time                `toml:"-"`
-	db         *sql.DB                  `toml:"-"`
-	response   []map[string]interface{} `toml:"-"`
-	tail       *tailer.Tailer           `toml:"-"`
-	err        error
-	collectors []func() ([]inputs.Measurement, error) `toml:"-"`
+	MatchDeprecated string `toml:"match,omitempty"`
+
+	start time.Time
+	db    *sql.DB
+	// response   []map[string]interface{}
+	tail *tailer.Tailer
+	// collectors []func() ([]inputs.Measurement, error)
+	collectors []func() ([]*io.Point, error)
+
+	// err error
+
+	pause    bool
+	pauseCh  chan bool
+	binLogOn bool
+
+	semStop *cliutils.Sem // start stop signal
+
+	dbmCache       map[string]dbmRow
+	dbmSampleCache dbmSampleCache
+
+	// collected metrics - mysql
+	globalStatus    map[string]interface{}
+	globalVariables map[string]interface{}
+	binlog          map[string]interface{}
+
+	// collected metrics - mysql_schema
+	mSchemaSize          map[string]interface{}
+	mSchemaQueryExecTime map[string]interface{}
+
+	// collected metrics - mysql_innodb
+	mInnodb map[string]interface{}
+
+	// collected metrics - mysql_table_schema
+	mTableSchema []map[string]interface{}
+
+	// collected metrics - mysql_user_status
+	mUserStatusName       map[string]interface{}
+	mUserStatusVariable   map[string]map[string]interface{}
+	mUserStatusConnection map[string]map[string]interface{}
+
+	// collected metrics - mysql_dbm_metric
+	dbmMetricRows []dbmRow
+
+	// collected metrics - mysql_dbm_sample
+	dbmSamplePlans []planObj
+
+	// collected metrics - mysql custom queries
+	mCustomQueries map[string][]map[string]interface{}
 }
 
 func (i *Input) getDsnString() string {
@@ -128,11 +171,26 @@ func (i *Input) getDsnString() string {
 	return cfg.FormatDSN()
 }
 
-func (i *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
-		"mysql": pipelineCfg,
+		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (i *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
+		},
+	}
 }
 
 func (i *Input) initCfg() error {
@@ -161,7 +219,15 @@ func (i *Input) initCfg() error {
 	}
 
 	i.globalTag()
+	if i.Dbm {
+		i.initDbm()
+	}
 	return nil
+}
+
+func (i *Input) initDbm() {
+	i.dbmSampleCache.explainCache.Size = 1000 // max size
+	i.dbmSampleCache.explainCache.TTL = 60    // 60 second to live
 }
 
 func (i *Input) globalTag() {
@@ -169,102 +235,235 @@ func (i *Input) globalTag() {
 	i.Tags["service_name"] = i.Service
 }
 
-func (i *Input) Collect() error {
-	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
-	defer cancel()
-
-	if err := i.db.PingContext(ctx); err != nil {
-		l.Errorf("connect error %v", err)
-		io.FeedLastError(inputName, err.Error())
-		return err
+func (i *Input) q(s string) rows {
+	rows, err := i.db.Query(s)
+	if err != nil {
+		l.Errorf("query %s failed: %s, ignored", s, err.Error())
+		return nil
 	}
 
-	for idx, f := range i.collectors {
-		l.Debugf("collecting %d(%v)...", idx, f)
+	if err := rows.Err(); err != nil {
+		closeRows(rows)
+		l.Errorf("query %s failed: %s, ignored", s, err.Error())
+		return nil
+	}
 
-		if ms, err := f(); err != nil {
-			io.FeedLastError(inputName, err.Error())
-		} else {
-			if len(ms) > 0 {
-				if err := inputs.FeedMeasurement(inputName,
-					datakit.Metric,
-					ms,
-					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-					l.Error(err)
-				}
-			}
+	return rows
+}
+
+// init db connect.
+func (i *Input) initDBConnect() error {
+	isNeedConnect := false
+
+	if i.db == nil {
+		isNeedConnect = true
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer func() {
+			cancel()
+		}()
+
+		if err := i.db.PingContext(ctx); err != nil {
+			isNeedConnect = true
+		}
+	}
+
+	if isNeedConnect {
+		if err := i.initCfg(); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// 获取base指标
-func (i *Input) collectBaseMeasurement() ([]inputs.Measurement, error) {
-	m := &baseMeasurement{
-		i:       i,
-		resData: make(map[string]interface{}),
-		tags:    make(map[string]string),
-		fields:  make(map[string]interface{}),
+// mysql.
+func (i *Input) metricCollectMysql() ([]*io.Point, error) {
+	if err := i.collectMysql(); err != nil {
+		return []*io.Point{}, err
 	}
 
-	m.name = "mysql"
-	for key, value := range i.Tags {
-		m.tags[key] = value
+	pts, err := i.buildMysql()
+	if err != nil {
+		return []*io.Point{}, err
+	}
+	return pts, nil
+}
+
+// mysql_schema.
+func (i *Input) metricCollectMysqlSchema() ([]*io.Point, error) {
+	if err := i.collectMysqlSchema(); err != nil {
+		return []*io.Point{}, err
 	}
 
-	if err := m.getStatus(); err != nil {
-		return nil, err
+	pts, err := i.buildMysqlSchema()
+	if err != nil {
+		return []*io.Point{}, err
+	}
+	return pts, nil
+}
+
+// mysql_table_schema.
+func (i *Input) metricCollectMysqlTableSschema() ([]*io.Point, error) {
+	if err := i.collectMysqlTableSchema(); err != nil {
+		return []*io.Point{}, err
 	}
 
-	if err := m.getVariables(); err != nil {
-		return nil, err
+	pts, err := i.buildMysqlTableSchema()
+	if err != nil {
+		return []*io.Point{}, err
+	}
+	return pts, nil
+}
+
+// mysql_user_status.
+func (i *Input) metricCollectMysqlUserStatus() ([]*io.Point, error) {
+	if err := i.collectMysqlUserStatus(); err != nil {
+		return []*io.Point{}, err
 	}
 
-	// 如果没有打开 bin-log，这里可能报错：Error 1381: You are not using binary logging
-	// 不过忽略这一错误
-	// TODO: if-bin-log-enabled
-	if m.resData["log_bin"] == "ON" || m.resData["log_bin"] == "on" {
-		_ = m.getLogStats()
+	pts, err := i.buildMysqlUserStatus()
+	if err != nil {
+		return []*io.Point{}, err
+	}
+	return pts, nil
+}
+
+// mysql_custom_queries.
+func (i *Input) metricCollectMysqlCustomQueries() ([]*io.Point, error) {
+	if err := i.collectMysqlCustomQueries(); err != nil {
+		return []*io.Point{}, err
 	}
 
-	if err := m.submit(); err == nil {
-		if len(m.fields) > 0 {
-			return []inputs.Measurement{m}, nil
+	pts, err := i.buildMysqlCustomQueries()
+	if err != nil {
+		return []*io.Point{}, err
+	}
+	return pts, nil
+}
+
+// mysql_innodb.
+func (i *Input) metricCollectMysqlInnodb() ([]*io.Point, error) {
+	if err := i.collectMysqlInnodb(); err != nil {
+		return []*io.Point{}, err
+	}
+
+	pts, err := i.buildMysqlInnodb()
+	if err != nil {
+		return []*io.Point{}, err
+	}
+	return pts, nil
+}
+
+// mysql_dbm_metric.
+func (i *Input) metricCollectMysqlDbmMetric() ([]*io.Point, error) {
+	if err := i.collectMysqlDbmMetric(); err != nil {
+		return []*io.Point{}, err
+	}
+
+	pts, err := i.buildMysqlDbmMetric()
+	if err != nil {
+		return []*io.Point{}, err
+	}
+	return pts, nil
+}
+
+// mysql_dbm_sample.
+func (i *Input) metricCollectMysqlDbmSample() ([]*io.Point, error) {
+	if err := i.collectMysqlDbmSample(); err != nil {
+		return []*io.Point{}, err
+	}
+
+	pts, err := i.buildMysqlDbmSample()
+	if err != nil {
+		return []*io.Point{}, err
+	}
+	return pts, nil
+}
+
+func (i *Input) Collect() (map[string][]*io.Point, error) {
+	fmt.Printf("start get points: %s\n", inputName)
+
+	if err := i.initDBConnect(); err != nil {
+		return map[string][]*io.Point{}, err
+	}
+
+	if len(i.collectors) == 0 {
+		i.collectors = []func() ([]*io.Point, error){
+			i.metricCollectMysql,              // mysql
+			i.metricCollectMysqlSchema,        // mysql_schema
+			i.metricCollectMysqlTableSschema,  // mysql_table_schema
+			i.metricCollectMysqlUserStatus,    // mysql_user_status
+			i.metricCollectMysqlCustomQueries, // mysql_custom_queries
 		}
 	}
 
-	return nil, nil
-}
+	i.start = time.Now()
 
-// 获取innodb指标
-func (i *Input) collectInnodbMeasurement() ([]inputs.Measurement, error) {
-	return i.getInnodb()
-}
+	var ptsMetric, ptsLoggingMetric, ptsLoggingSample []*io.Point
 
-// 获取tableSchema指标
-func (i *Input) collectTableSchemaMeasurement() ([]inputs.Measurement, error) {
-	return i.getTableSchema()
-}
+	for idx, f := range i.collectors {
+		l.Debugf("collecting %d(%v)...", idx, f)
 
-// 获取用户指标
-func (i *Input) collectUserMeasurement() ([]inputs.Measurement, error) {
-	return i.getUserData()
-}
+		if pts, err := f(); err != nil {
+			return map[string][]*io.Point{}, err
+		} else {
+			if len(pts) == 0 {
+				continue
+			}
 
-// 获取schema指标
-func (i *Input) collectSchemaMeasurement() ([]inputs.Measurement, error) {
-	x, err := i.getSchemaSize()
-	if err != nil {
-		return nil, err
+			ptsMetric = append(ptsMetric, pts...)
+		}
 	}
 
-	y, err := i.getQueryExecTimePerSchema()
-	if err != nil {
-		return nil, err
+	if i.InnoDB {
+		// mysql_innodb
+		if pts, err := i.metricCollectMysqlInnodb(); err != nil {
+			return map[string][]*io.Point{}, err
+		} else {
+			ptsMetric = append(ptsMetric, pts...)
+		}
 	}
 
-	return append(x, y...), nil
+	if i.Dbm && (i.DbmMetric.Enabled || i.DbmSample.Enabled) {
+		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql_dbm")})
+		if i.DbmMetric.Enabled {
+			g.Go(func(ctx context.Context) error {
+				// mysql_dbm_metric
+				if pts, err := i.metricCollectMysqlDbmMetric(); err != nil {
+					return err
+				} else {
+					ptsLoggingMetric = append(ptsLoggingMetric, pts...)
+				}
+				return nil
+			})
+		}
+		if i.DbmSample.Enabled {
+			g.Go(func(ctx context.Context) error {
+				// mysql_dbm_sample
+				if pts, err := i.metricCollectMysqlDbmSample(); err != nil {
+					return err
+				} else {
+					ptsLoggingSample = append(ptsLoggingSample, pts...)
+				}
+				return nil
+			})
+		}
+
+		err := g.Wait()
+		if err != nil {
+			l.Errorf("mysql dmb collect error: %v", err)
+			io.FeedLastError(inputName, err.Error())
+		}
+	} // if
+
+	mpts := make(map[string][]*io.Point)
+	mpts[datakit.Metric] = ptsMetric
+
+	ptsLoggingMetric = append(ptsLoggingMetric, ptsLoggingSample...) // two combine in one
+	mpts[datakit.Logging] = ptsLoggingMetric
+
+	return mpts, nil
 }
 
 func (i *Input) RunPipeline() {
@@ -281,17 +480,21 @@ func (i *Input) RunPipeline() {
 		Service:           "mysql",
 		GlobalTags:        i.Tags,
 		CharacterEncoding: i.Log.CharacterEncoding,
-		Match:             i.Log.Match,
+		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, i.Log.Pipeline)
+	pl, err := config.GetPipelinePath(i.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)
 	if err != nil {
 		l.Error(err)
@@ -306,76 +509,141 @@ func (i *Input) Run() {
 	l = logger.SLogger("mysql")
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
-	for { // try until init OK
-
-		select {
-		case <-datakit.Exit.Wait():
-			return
-		default:
-		}
-
-		if err := i.initCfg(); err != nil {
-			io.FeedLastError(inputName, err.Error())
-			time.Sleep(time.Second)
-		} else {
-			break
-		}
-	}
-
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
-	l.Infof("collecting each %v", i.Interval.Duration)
-
-	i.collectors = []func() ([]inputs.Measurement, error){
-		i.collectBaseMeasurement,
-		i.collectSchemaMeasurement,
-		i.customSchemaMeasurement,
-		i.collectTableSchemaMeasurement,
-		i.collectUserMeasurement,
-	}
-
-	if i.InnoDB {
-		i.collectors = append(i.collectors, i.collectInnodbMeasurement)
-	}
-
+	// Try until init OK.
 	for {
+		if err := i.initCfg(); err != nil {
+			io.FeedLastError(inputName, err.Error())
+		} else {
+			break
+		}
+
 		select {
-		case <-tick.C:
-			l.Debugf("mysql input gathering...")
-			i.start = time.Now()
-			i.Collect()
 		case <-datakit.Exit.Wait():
+
 			if i.tail != nil {
-				i.tail.Close()
-				l.Info("mysql log exit")
+				i.tail.Close() //nolint:errcheck
 			}
 			l.Info("mysql exit")
+
 			return
+
+		case <-i.semStop.Wait():
+			return
+
+		case <-tick.C:
+		}
+	}
+
+	l.Infof("collecting each %v", i.Interval.Duration)
+
+	for {
+		// i.reset()
+
+		if i.pause {
+			l.Debugf("not leader, skipped")
+		} else {
+			l.Debugf("mysql input gathering...")
+		}
+
+		l.Debugf("mysql input gathering...")
+		if mpts, err := i.Collect(); err != nil {
+			l.Warnf("i.Collect failed: %v", err)
+			io.FeedLastError(inputName, err.Error())
+		} else {
+			for category, pts := range mpts {
+				if len(pts) > 0 {
+					if err := io.Feed(inputName, category, pts,
+						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+						l.Warnf("io.Feed failed: %v", err)
+						io.FeedLastError(inputName, err.Error())
+					} // if err
+				}
+			} // for
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			i.exit()
+			l.Info("mysql exit")
+			return
+
+		case <-i.semStop.Wait():
+			i.exit()
+			l.Info("mysql return")
+			return
+
+		case <-tick.C:
+
+		case i.pause = <-i.pauseCh:
+			// nil
 		}
 	}
 }
 
-func (i *Input) Catalog() string { return catalogName }
+func (i *Input) exit() {
+	if i.tail != nil {
+		i.tail.Close()
+		l.Info("mysql log exit")
+	}
+}
 
-func (i *Input) SampleConfig() string { return configSample }
+func (i *Input) Terminate() {
+	if i.semStop != nil {
+		i.semStop.Close()
+	}
+}
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (*Input) Catalog() string { return catalogName }
+
+func (*Input) SampleConfig() string { return configSample }
+
+func (*Input) AvailableArchs() []string { return datakit.AllArch }
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&baseMeasurement{},
 		&schemaMeasurement{},
 		&innodbMeasurement{},
 		&tbMeasurement{},
 		&userMeasurement{},
+		&dbmStateMeasurement{},
+		&dbmSampleMeasurement{},
 	}
 }
 
-func (i *Input) AvailableArchs() []string {
-	return datakit.AllArch
+func (i *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
 }
 
-func init() {
+func (i *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case i.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{Timeout: "10s"}
+		return &Input{
+			Tags:    make(map[string]string),
+			Timeout: "10s",
+			pauseCh: make(chan bool, inputs.ElectionPauseChannelLength),
+
+			semStop: cliutils.NewSem(),
+		}
 	})
 }

@@ -1,3 +1,4 @@
+//go:build windows && amd64
 // +build windows,amd64
 
 package pdh
@@ -9,13 +10,11 @@ import (
 )
 
 func TestGetDataThrPDH(t *testing.T) {
-
 	objNameList := map[string]bool{
 		"Web Service":  true,
 		"APP_POOL_WAS": true,
 	}
 	for objName := range objNameList {
-
 		// Enum the instance and counter of object
 		instanceList, counterList, ret := PdhEnumObjectItems(objName)
 		if ret != uint32(windows.ERROR_SUCCESS) {
@@ -23,7 +22,7 @@ func TestGetDataThrPDH(t *testing.T) {
 		}
 
 		// Make counter full path and check it
-		var pathList = make([]string, 0)
+		pathList := make([]string, 0)
 		for i := range instanceList {
 			for j := range counterList {
 				if r := PdhValidatePath(MakeFullCounterPath(objName, instanceList[i], counterList[j])); r != uint32(windows.ERROR_SUCCESS) {
@@ -44,7 +43,7 @@ func TestGetDataThrPDH(t *testing.T) {
 		}
 
 		// Add (english) counter
-		var counterHandleList = make([]PDH_HCOUNTER, len(pathList))
+		counterHandleList := make([]PDH_HCOUNTER, len(pathList))
 		for i := range pathList {
 			ret = PdhAddEnglishCounter(handle, pathList[i], 0, &counterHandle)
 			counterHandleList[i] = counterHandle

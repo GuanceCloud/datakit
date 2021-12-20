@@ -5,14 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 type commandMeasurement struct {
-	client  *redis.Client
 	name    string
 	tags    map[string]string
 	fields  map[string]interface{}
@@ -24,6 +21,7 @@ func (m *commandMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "redis_command_stat",
@@ -57,7 +55,7 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// 解析返回结果
+// 解析返回结果.
 func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
 	var collectCache []inputs.Measurement
 
@@ -85,7 +83,7 @@ func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
 			m.tags[key] = value
 		}
 
-		//cmdstat_get:calls=2,usec=16,usec_per_call=8.00
+		// cmdstat_get:calls=2,usec=16,usec_per_call=8.00
 		method := parts[0]
 
 		m.tags["method"] = method
@@ -113,7 +111,7 @@ func (i *Input) parseCommandData(list string) ([]inputs.Measurement, error) {
 	return collectCache, nil
 }
 
-// 提交数据
+// 提交数据.
 func (m *commandMeasurement) submit() error {
 	metricInfo := m.Info()
 	for key, item := range metricInfo.Fields {

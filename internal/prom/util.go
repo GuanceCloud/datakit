@@ -10,12 +10,12 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func isValid(familyType dto.MetricType, name string, metricTypes []string, metricNameFilter []string) bool {
-	metricType := ""
+//nolint:cyclop
+func isValid(familyType dto.MetricType, name string, metricTypes, metricNameFilter []string) bool {
+	var metricType string
 	typeValid := false
 	nameValid := false
 
@@ -67,7 +67,9 @@ func isValid(familyType dto.MetricType, name string, metricTypes []string, metri
 	return typeValid && nameValid
 }
 
-func getNames(name string, customMeasurementRules []Rule, measurementName, measurementPrefix string) (string, string) {
+//nolint:gocritic
+func getNames(name string, customMeasurementRules []Rule,
+	measurementName, measurementPrefix string) (string, string) {
 	// 1. check custom rules
 	if len(customMeasurementRules) > 0 {
 		for _, rule := range customMeasurementRules {
@@ -75,7 +77,7 @@ func getNames(name string, customMeasurementRules []Rule, measurementName, measu
 			if len(prefix) > 0 {
 				if strings.HasPrefix(name, prefix) {
 					ruleName := rule.Name
-					if len(ruleName) == 0 {
+					if ruleName == "" {
 						ruleName = strings.TrimRight(prefix, "_")
 					}
 					ruleName = measurementPrefix + ruleName
@@ -133,7 +135,11 @@ func getTags(labels []*dto.LabelPair, promTags, extraTags map[string]string, ign
 	return tags
 }
 
-func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) ([]*iod.Point, error) {
+// Text2Metrics convert prometheuse body to line protocol point(TODO refact me)
+//nolint:funlen,gocyclo,cyclop
+func Text2Metrics(in io.Reader,
+	prom *Option,
+	extraTags map[string]string) ([]*iod.Point, error) {
 	var lastErr error
 	var parser expfmt.TextParser
 	metricFamilies, err := parser.TextToMetricFamilies(in)
@@ -153,17 +159,19 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 	// iterate all metrics
 	for name, value := range metricFamilies {
 		familyType := value.GetType()
+		var fieldName string
 
 		valid := isValid(familyType, name, metricTypes, metricNameFilter)
 		if !valid {
 			continue
 		}
 
-		measurementName, fieldName := getNames(name, customMeasurementRules, measurementName, measurementPrefix)
+		msName, fieldName := getNames(name,
+			customMeasurementRules, measurementName, measurementPrefix)
 
 		// set default name when measurementName is empty
-		if len(measurementName) == 0 {
-			measurementName = "prom"
+		if msName == "" {
+			msName = "prom" //nolint:goconst
 		}
 
 		metrics := value.GetMetric()
@@ -182,7 +190,7 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -203,7 +211,7 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -223,7 +231,7 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -243,7 +251,7 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -262,14 +270,13 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 
 					tags["quantile"] = fmt.Sprint(quantile)
 
-					pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+					pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 					if err != nil {
 						lastErr = err
 					} else {
 						pts = append(pts, pt)
 					}
 				}
-
 			}
 		case dto.MetricType_HISTOGRAM:
 			for _, m := range metrics {
@@ -284,7 +291,7 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 
-				pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 				if err != nil {
 					lastErr = err
 				} else {
@@ -301,7 +308,7 @@ func PromText2Metrics(in io.Reader, prom *Option, extraTags map[string]string) (
 					tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 					tags["le"] = fmt.Sprint(bond)
 
-					pt, err := iod.MakePoint(measurementName, tags, fields, time.Now())
+					pt, err := iod.MakePoint(msName, tags, fields, time.Now())
 					if err != nil {
 						lastErr = err
 					} else {

@@ -1,3 +1,4 @@
+// Package service is datakit's service manager
 package service
 
 import (
@@ -26,7 +27,6 @@ var (
 type program struct{}
 
 func NewService() (service.Service, error) {
-
 	prog := &program{}
 
 	scfg := &service.Config{
@@ -38,11 +38,10 @@ func NewService() (service.Service, error) {
 	}
 
 	if runtime.GOOS == "darwin" {
-		scfg.Name = "cn.dataflux.datakit"
+		scfg.Name = "com.guance.datakit"
 	}
 
 	svc, err := service.New(prog, scfg)
-
 	if err != nil {
 		return nil, err
 	}
@@ -51,13 +50,12 @@ func NewService() (service.Service, error) {
 }
 
 func StartService() error {
-
 	svc, err := NewService()
 	if err != nil {
 		return err
 	}
 
-	errch := make(chan error, 32)
+	errch := make(chan error, 32) //nolint:gomnd
 	slogger, err = svc.Logger(errch)
 	if err != nil {
 		return err

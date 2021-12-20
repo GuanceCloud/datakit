@@ -100,7 +100,6 @@ func doInitStdoutLogger() {
 }
 
 func Reset() {
-
 	mtx.Lock()
 	defer mtx.Unlock()
 	root = nil
@@ -109,11 +108,13 @@ func Reset() {
 
 	defaultStdoutRootLogger = nil
 
+	totalSloggers = 0
+
 	doInitStdoutLogger()
 }
 
 func InitRoot(opt *Option) error {
-
+	var err error
 	if opt == nil {
 		opt = defaultOption
 	}
@@ -137,7 +138,12 @@ func InitRoot(opt *Option) error {
 
 	switch opt.Path {
 	case "":
-		// use default stdout logger
+		// reset default stdout logger
+		defaultStdoutRootLogger = nil
+		defaultStdoutRootLogger, err = stdoutLogger(opt.Level, opt.Flags)
+		if err != nil {
+			return err
+		}
 		return nil
 	default:
 

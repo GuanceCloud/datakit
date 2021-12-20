@@ -1,13 +1,14 @@
+// Package sqlserver collects SQL Server metrics.
 package sqlserver
 
 import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
@@ -16,26 +17,41 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func (_ *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sample
 }
 
-func (_ *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return catalogName
 }
 
-func (_ *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (_ *Input) PipelineConfig() map[string]string {
+func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		inputName: pipeline,
 	}
 	return pipelineMap
 }
 
-func (n *Input) initDb() error {
+func (n *Input) GetPipeline() []*tailer.Option {
+	return []*tailer.Option{
+		{
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if n.Log != nil {
+					return n.Log.Pipeline
+				}
+				return ""
+			}(),
+		},
+	}
+}
+
+func (n *Input) initDB() error {
 	db, err := sql.Open("sqlserver", fmt.Sprintf("sqlserver://%s:%s@%s?dial+timeout=3", n.User, n.Password, n.Host))
 	if err != nil {
 		return err
@@ -63,17 +79,21 @@ func (n *Input) RunPipeline() {
 		GlobalTags:        n.Tags,
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
-		Match:             `^\d{4}-\d{2}-\d{2}`,
+		MultilineMatch:    `^\d{4}-\d{2}-\d{2}`,
 	}
 
-	pl := filepath.Join(datakit.PipelineDir, n.Log.Pipeline)
+	pl, err := config.GetPipelinePath(n.Log.Pipeline)
+	if err != nil {
+		l.Error(err)
+		io.FeedLastError(inputName, err.Error())
+		return
+	}
 	if _, err := os.Stat(pl); err != nil {
 		l.Warn("%s missing: %s", pl, err.Error())
 	} else {
 		opt.Pipeline = pl
 	}
 
-	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -89,40 +109,78 @@ func (n *Input) Run() {
 	l.Info("sqlserver start")
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
-	if err := n.initDb(); err != nil {
-		l.Error(err.Error())
-		io.FeedLastError(inputName, err.Error())
-		return
-	}
-	defer n.db.Close()
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
 
+	// Init DB until OK.
 	for {
+		if err := n.initDB(); err != nil {
+			l.Errorf("initDB: %s", err.Error())
+
+			io.FeedLastError(inputName, err.Error())
+		} else {
+			break
+		}
+
 		select {
 		case <-tick.C:
-			n.getMetric()
-			if len(collectCache) > 0 {
-				err := io.Feed(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
-				collectCache = collectCache[:0]
-				if err != nil {
-					n.lastErr = err
-					l.Errorf(err.Error())
-					continue
-				}
-			}
-			if n.lastErr != nil {
-				io.FeedLastError(inputName, n.lastErr.Error())
-				n.lastErr = nil
-			}
 		case <-datakit.Exit.Wait():
-			if n.tail != nil {
-				n.tail.Close()
-				l.Info("sqlserver log exit")
-			}
 			l.Info("sqlserver exit")
 			return
 		}
+	}
+
+	defer func() {
+		if err := n.db.Close(); err != nil {
+			l.Warnf("Close: %s", err)
+		}
+
+		if n.tail != nil {
+			n.tail.Close()
+		}
+	}()
+
+	for {
+		n.getMetric()
+		if len(collectCache) > 0 {
+			err := io.Feed(inputName, datakit.Metric, collectCache, &io.Option{CollectCost: time.Since(n.start)})
+			collectCache = collectCache[:0]
+			if err != nil {
+				n.lastErr = err
+				l.Errorf(err.Error())
+				continue
+			}
+		}
+
+		if n.lastErr != nil {
+			io.FeedLastError(inputName, n.lastErr.Error())
+			n.lastErr = nil
+		}
+
+		select {
+		case <-tick.C:
+		case <-datakit.Exit.Wait():
+			l.Info("sqlserver exit")
+			return
+
+		case <-n.semStop.Wait():
+			n.exit()
+			l.Info("sqlserver return")
+			return
+		}
+	}
+}
+
+func (n *Input) exit() {
+	if n.tail != nil {
+		n.tail.Close()
+		l.Info("sqlserver log exit")
+	}
+}
+
+func (n *Input) Terminate() {
+	if n.semStop != nil {
+		n.semStop.Close()
 	}
 }
 
@@ -141,7 +199,13 @@ func (n *Input) handRow(query string, ts time.Time) {
 		n.lastErr = err
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
+
+	if err := rows.Err(); err != nil {
+		l.Errorf("rows.Err: %s", err)
+		return
+	}
+
 	OrderedColumns, err := rows.Columns()
 	if err != nil {
 		l.Error(err.Error())
@@ -151,7 +215,7 @@ func (n *Input) handRow(query string, ts time.Time) {
 
 	for rows.Next() {
 		var columnVars []interface{}
-		//var fields = make(map[string]interface{})
+		// var fields = make(map[string]interface{})
 		// store the column name with its *interface{}
 		columnMap := make(map[string]*interface{})
 
@@ -170,11 +234,11 @@ func (n *Input) handRow(query string, ts time.Time) {
 			return
 		}
 		measurement := ""
-		var tags = make(map[string]string)
+		tags := make(map[string]string)
 		for k, v := range n.Tags {
 			tags[k] = v
 		}
-		var fields = make(map[string]interface{})
+		fields := make(map[string]interface{})
 		for header, val := range columnMap {
 			if str, ok := (*val).(string); ok {
 				if header == "measurement" {
@@ -201,7 +265,6 @@ func (n *Input) handRow(query string, ts time.Time) {
 		}
 		collectCache = append(collectCache, point)
 	}
-
 }
 
 func (n *Input) SampleMeasurement() []inputs.Measurement {
@@ -214,10 +277,12 @@ func (n *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		s := &Input{
 			Interval: datakit.Duration{Duration: time.Second * 10},
+
+			semStop: cliutils.NewSem(),
 		}
 		return s
 	})
