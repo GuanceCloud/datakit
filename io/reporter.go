@@ -65,9 +65,9 @@ func addReporter(reporter Reporter) {
 
 	if err == nil {
 		if err := reporter.feed("datakit", datakit.Logging, []*Point{pt}, nil); err != nil {
-			l.Debugf("feed logging error: %s", err.Error())
+			log.Debugf("feed logging error: %s", err.Error())
 		}
 	} else {
-		l.Debugf("make point error: %s", err.Error())
+		log.Debugf("make point error: %s", err.Error())
 	}
 }

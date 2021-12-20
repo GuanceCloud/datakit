@@ -26,7 +26,7 @@ func randomPoints(out chan *Point, count int) {
 		err error
 	)
 	if _, err = rand.Read(buf); err != nil {
-		l.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	for i := 0; i < count; i++ {
@@ -44,7 +44,7 @@ func randomPoints(out chan *Point, count int) {
 				base64.StdEncoding.EncodeToString(buf[2:]): base64.StdEncoding.EncodeToString(buf[3:]),
 			},
 			opt); err != nil {
-			l.Fatal(err.Error())
+			log.Fatal(err.Error())
 		} else {
 			out <- pt
 		}
