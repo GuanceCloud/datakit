@@ -10,10 +10,9 @@
 
 ## 安装步骤 
 
-先下载[datakit.yaml](https://static.guance.com/datakit/datakit.yaml) ,在该配置中，有两个采集器可以配置：
+先下载[datakit.yaml](https://static.guance.com/datakit/datakit.yaml) ,在该配置中，需做如下配置：
 
 - kubernetes：用来采集 Kubernetes 中心指标，需要填写 kubernetes 中心采集地址
-- container：用来采集 Node 上的容器对象以及运行指标（如果要采集容器运行指标，则需要修改配置）
 
 其它主机相关的采集器都是默认开启的（`cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes`），且无需额外配置。
 
@@ -25,20 +24,6 @@
 	- name: ENV_DATAWAY
 		value: https://openway.guance.com?token=<your-token> # 此处填上 dataway 真实地址
 ```
-
-#### container 配置
-
-默认情况下，container 采集器没有开启指标采集，如需开启指标采集，修改 `datakit.yaml` 中如下配置：
-
-```yaml
-	[inputs.container]
-		endpoint = "unix:///var/run/docker.sock"
-
-		enable_metric = true # 将此处设置成 true
-		enable_object = true
-```
-
-详情参见 [容器采集配置](container)
 
 ### 安装 yaml
 
@@ -97,11 +82,10 @@ kubectl get pod -n datakit
 - `net`
 - `host_processes`
 - `kubernetes`
-- `container`
 
 如需开启更多其它采集器，如开启 ddtrace，直接在如下配置中追加即可。当然也可以将某些采集器从这个列表中删掉。
 
 ```yaml
         - name: ENV_DEFAULT_ENABLED_INPUTS
-          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
+          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes
 ```

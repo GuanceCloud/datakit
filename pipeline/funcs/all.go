@@ -46,7 +46,7 @@ var FuncsMap = map[string]parser.FuncCallback{
 var FuncsCheckMap = map[string]parser.FuncCallbackCheck{
 	"grok":                  GrokChecking,
 	"add_key":               AddkeyChecking,
-	"auto_detect_timezone":  AdjustTimezoneChecking,
+	"adjust_timezone":       AdjustTimezoneChecking,
 	"json":                  JSONChecking,
 	"add_pattern":           AddPatternChecking,
 	"cast":                  CastChecking,
