@@ -356,7 +356,6 @@ func (m *ProfileEventsMeasurement) Info() *inputs.MeasurementInfo {
 		Name: inputNameProfileEvents,
 		Type: TypeMetric,
 		Fields: map[string]interface{}{
-
 			"ReadBufferFromFileDescriptorReadFailed ":          newCountFieldInfo(" Number of times the read (read/pread) from a file descriptor have failed."),
 			"ReadBufferFromFileDescriptorReadBytes ":           newCountFieldInfo(" Number of bytes read from file descriptors. If the file is compressed, this will show the compressed data size."),
 			"WriteBufferFromFileDescriptorWrite ":              newCountFieldInfo(" Number of writes (write/pwrite) to a file descriptor. Does not include sockets"),
