@@ -274,7 +274,7 @@ json(_, name) json(name, first)
 json(_, [0].nets[-1])
 ```
 
-### `json_all()`
+<!-- ### `json_all()`
 
 *此函数已被暂时移除*
 
@@ -370,7 +370,7 @@ rename('height', `身高`) # 身高因为是 Unicode 字符，需要 `` 包围�
     "name.first"         : "Tom",
     "name.last"          : "Anderson"
 }
-```
+``` -->
 
 ### `rename()`
 
@@ -502,6 +502,7 @@ Kitchen     = "3:04PM"
 json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')
 ```
 
+<!--
 ### `expr()`
 
 *此函数已被暂时移除*
@@ -550,7 +551,7 @@ expr(a.second*10+(2+3)*5, bb)
 {
    "bb": "45"
 }
-```
+``` -->
 
 ### `cast()`
 
@@ -646,7 +647,7 @@ group_in(log_level, ["error", "panic"], "not-ok", status)
 # 待处理数据: {"first": "hello","second":2,"thrid":"aBC","forth":true}
 
 # 处理脚本
-json(_, first) uppercase(first, "1")
+json(_, first) uppercase(first)
 
 # 处理结果
 {
@@ -703,6 +704,14 @@ json(_, first) json(_, second) nullif(first, "1")
 }
 ```
 
+> 注：该功能可通过 `if/else` 语义来实现：
+
+```python
+if first == "1" {
+	drop_key(first)
+}
+```
+
 ### `strfmt()`
 
 函数原型：`strfmt(key=required, fmt=required, key1=optional, key2, ...)`
@@ -739,10 +748,8 @@ strfmt(bb, "%v %s %v", a.second, a.thrid, a.forth)
 ```python
 # 待处理数据: {"age": 17, "name": "zhangsan", "height": 180}
 
-# 处理脚本
+# 结果集中删除 message 内容
 drop_origin_data()
-
-# 结果集中删除message内容
 ```
 
 ### `add_key()`
