@@ -86,16 +86,19 @@ func (j *JolokiaAgent) Collect() {
 			start := time.Now()
 			if err := j.Gather(); err != nil {
 				io.FeedLastError(j.PluginName, err.Error())
-			} else {
+			}
+
+			if len(j.collectCache) > 0 {
 				if err := FeedMeasurement(j.PluginName, datakit.Metric, j.collectCache,
 					&io.Option{
 						CollectCost: time.Since(start),
-						HighFreq:    false,
 					}); err != nil {
 					j.L.Errorf("io.FeedMeasurement: %s, ignored", err.Error())
 				}
 
 				j.collectCache = j.collectCache[:0] // NOTE: do not forget to clean cache
+			} else {
+				j.L.Warn("no point, ignored")
 			}
 
 		case <-datakit.Exit.Wait():
@@ -205,8 +208,7 @@ type JolokiaMeasurement struct {
 }
 
 func (j *JolokiaMeasurement) LineProto() (*io.Point, error) {
-	data, err := io.MakePoint(j.name, j.tags, j.fields, j.ts)
-	return data, err
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
 func (j *JolokiaMeasurement) Info() *MeasurementInfo {

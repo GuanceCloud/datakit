@@ -2,110 +2,93 @@ package elasticsearch
 
 import (
 	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func TestIndicesStatsShardsMeasurement(t *testing.T) {
-	m := &indicesStatsShardsMeasurement{
-		elasticsearchMeasurement: elasticsearchMeasurement{
-			name: "indicesStatsShardsMeasurement",
-			tags: make(map[string]string),
+func TestMeasurement(t *testing.T) {
+	cases := []struct {
+		m inputs.Measurement
+	}{
+		{
+			m: &indicesStatsShardsMeasurement{
+				elasticsearchMeasurement: elasticsearchMeasurement{
+					name:   "elasticsearch_indices_stats_shards",
+					tags:   inputs.BuildTags(t, indicesStatsShardsTags),
+					fields: inputs.BuildFields(t, indicesStatsShardsFields),
+				},
+			},
+		},
+		{
+			m: &indicesStatsMeasurement{
+				elasticsearchMeasurement: elasticsearchMeasurement{
+					name:   "elasticsearch_indices_stats",
+					tags:   inputs.BuildTags(t, indicesStatsTags),
+					fields: inputs.BuildFields(t, indicesStatsFields),
+				},
+			},
+		},
+
+		{
+			m: &clusterHealthMeasurement{
+				elasticsearchMeasurement: elasticsearchMeasurement{
+					name:   "elasticsearch_cluster_health",
+					tags:   inputs.BuildTags(t, clusterHealthTags),
+					fields: inputs.BuildFields(t, clusterHealthFields),
+				},
+			},
+		},
+		{
+			m: &clusterStatsMeasurement{
+				elasticsearchMeasurement: elasticsearchMeasurement{
+					name:   "elasticsearch_cluster_stats",
+					tags:   inputs.BuildTags(t, clusterStatsTags),
+					fields: inputs.BuildFields(t, clusterStatsFields),
+				},
+			},
+		},
+
+		{
+			m: &nodeStatsMeasurement{
+				elasticsearchMeasurement: elasticsearchMeasurement{
+					name:   "elasticsearch_node_stats",
+					tags:   inputs.BuildTags(t, nodeStatsTags),
+					fields: inputs.BuildFields(t, nodeStatsFields),
+				},
+			},
+		},
+
+		{
+			m: &elasticsearchMeasurement{
+				name:   "elasticsearch",
+				tags:   make(map[string]string),
+				fields: inputs.BuildFields(t, elasticsearchMeasurementFields),
+			},
 		},
 	}
 
-	if info := m.Info(); info.Name != "elasticsearch_indices_stats_shards" {
-		t.Fatal("Info name invalid")
-	}
-}
+	for _, tc := range cases {
+		t.Run("", func(t *testing.T) {
+			if pt, err := tc.m.LineProto(); err != nil {
+				t.Fatal(err)
+			} else {
+				t.Log(pt.String())
+				fs, err := pt.Fields()
+				if err != nil {
+					t.Error(err)
+				}
+				ts := pt.Tags()
 
-func TestIndicesStatsMeasurement(t *testing.T) {
-	m := &indicesStatsMeasurement{
-		elasticsearchMeasurement: elasticsearchMeasurement{
-			name: "indicesStatsMeasurement",
-			tags: make(map[string]string),
-		},
-	}
+				if len(fs) > io.MaxFields {
+					t.Errorf("exceed max fields(%d > %d)", len(fs), io.MaxFields)
+				}
+				if len(ts) > io.MaxTags {
+					t.Errorf("exceed max tags(%d > %d)", len(ts), io.MaxTags)
+				}
 
-	if info := m.Info(); info.Name != "elasticsearch_indices_stats" {
-		t.Fatal("Info name invalid")
-	}
-}
-
-func TestIndicesStatsShardsTotalMeasurement(t *testing.T) {
-	m := &indicesStatsShardsTotalMeasurement{
-		elasticsearchMeasurement: elasticsearchMeasurement{
-			name: "indicesStatsShardsTotalMeasurement",
-			tags: make(map[string]string),
-		},
-	}
-
-	if info := m.Info(); info.Name != "elasticsearch_indices_stats_shards_total" {
-		t.Fatal("Info name invalid")
-	}
-}
-
-func TestClusterHealthIndicesMeasurement(t *testing.T) {
-	m := &clusterHealthIndicesMeasurement{
-		elasticsearchMeasurement: elasticsearchMeasurement{
-			name: "clusterHealthIndicesMeasurement",
-			tags: make(map[string]string),
-		},
-	}
-
-	if info := m.Info(); info.Name != "elasticsearch_cluster_health_indices" {
-		t.Fatal("Info name invalid")
-	}
-}
-
-func TestClusterHealthMeasurement(t *testing.T) {
-	m := &clusterHealthMeasurement{
-		elasticsearchMeasurement: elasticsearchMeasurement{
-			name: "clusterHealthMeasurement",
-			tags: make(map[string]string),
-		},
-	}
-	if info := m.Info(); info.Name != "elasticsearch_cluster_health" {
-		t.Fatal("Info name invalid")
-	}
-}
-
-func TestClusterStatsMeasurement(t *testing.T) {
-	m := &clusterStatsMeasurement{
-		elasticsearchMeasurement: elasticsearchMeasurement{
-			name: "clusterStatsMeasurement",
-			tags: make(map[string]string),
-		},
-	}
-
-	if info := m.Info(); info.Name != "elasticsearch_cluster_stats" {
-		t.Fatal("Info name invalid")
-	}
-}
-
-func TestNodeStatsMeasurement(t *testing.T) {
-	m := &nodeStatsMeasurement{
-		elasticsearchMeasurement: elasticsearchMeasurement{
-			name: "nodeStatsMeasurement",
-			tags: make(map[string]string),
-		},
-	}
-	if info := m.Info(); info.Name != "elasticsearch_node_stats" {
-		t.Fatal("Info name invalid")
-	}
-}
-
-func TestElasticsearchMeasurement(t *testing.T) {
-	fields := make(map[string]interface{})
-	fields["a"] = "11111"
-	m := &elasticsearchMeasurement{
-		name:   "elasticsearch",
-		tags:   make(map[string]string),
-		fields: fields,
-	}
-	if info := m.Info(); info.Name != "elasticsearch" {
-		t.Fatal("Info name invalid")
-	}
-
-	if _, err := m.LineProto(); err != nil {
-		t.Fatal(err)
+				t.Log(pt.String())
+			}
+		})
 	}
 }

@@ -10,7 +10,7 @@ require (
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/aliyun/aliyun-oss-go-sdk v2.1.10+incompatible
+	github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
@@ -29,7 +29,6 @@ require (
 	github.com/go-ole/go-ole v1.2.5
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.3
-	github.com/go-redis/redismock/v8 v8.0.6
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobuffalo/logger v1.0.4 // indirect
@@ -63,12 +62,13 @@ require (
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
+	github.com/rs/xid v1.3.0 // indirect
 	github.com/shirou/gopsutil v3.21.8+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
 	github.com/spf13/cast v1.4.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
-	github.com/tidwall/gjson v1.8.0
+	github.com/tidwall/gjson v1.12.1
 	github.com/tinylib/msgp v1.1.6
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
@@ -77,8 +77,9 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v1.0.1-0.20211118092836-6dd3d41ef44f
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211210004814-2f3e86601ff6
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
+	go.etcd.io/bbolt v1.3.5
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5 // indirect
@@ -87,10 +88,9 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
-	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
-	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.15
+	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0

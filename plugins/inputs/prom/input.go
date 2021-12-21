@@ -47,9 +47,9 @@ type Input struct {
 	CertFile   string `toml:"tls_cert"`
 	KeyFile    string `toml:"tls_key"`
 
-	Tags           map[string]string `toml:"tags"`
-	TagsIgnore     []string          `toml:"tags_ignore"`
-	DeprecatedAuth map[string]string `toml:"auth"`
+	Tags       map[string]string `toml:"tags"`
+	TagsIgnore []string          `toml:"tags_ignore"`
+	Auth       map[string]string `toml:"auth"`
 
 	pm *prom.Prom
 
@@ -124,8 +124,7 @@ func (i *Input) Run() {
 				// Try testing the connect
 				if i.url != nil {
 					if err := net.RawConnect(i.url.Hostname(), i.url.Port(), time.Second*3); err != nil {
-						l.Errorf("failed to connect to %s:%s, %s, exit", i.url.Hostname(), i.url.Port(), err)
-						return
+						l.Errorf("failed to connect to %s:%s, %s", i.url.Hostname(), i.url.Port(), err)
 					}
 				}
 
@@ -167,7 +166,7 @@ func (i *Input) setup() bool {
 		default:
 			// nil
 		}
-
+		time.Sleep(5 * time.Second) // sleep a while
 		if err := i.Init(); err != nil {
 			continue
 		} else {
@@ -203,6 +202,7 @@ func (i *Input) Init() error {
 		TagsIgnore:        i.TagsIgnore,
 		Output:            i.Output,
 		MaxFileSize:       i.maxFileSize,
+		Auth:              i.Auth,
 	}
 
 	pm, err := prom.NewProm(opt)

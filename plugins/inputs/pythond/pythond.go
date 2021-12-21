@@ -54,6 +54,9 @@ sys.path.extend(${CustomerDefinedScriptRoot})
 
 from datakit_framework import DataKitFramework
 
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+
 logger = logging.getLogger('pythond_cli')
 
 def init_log():

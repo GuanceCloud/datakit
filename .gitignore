@@ -5,6 +5,7 @@
 .vscode/
 *-packr.go
 *.ak
+*.bak
 *.csv
 *.err
 *.log
@@ -24,7 +25,6 @@ agent.pid
 cfg.json
 china-operator-ip
 cmd/installer/bin/
-conf.d/
 config.d/
 config.json
 data/*
@@ -61,5 +61,7 @@ test.go
 test.jso
 test.output
 y.output
+gram_y.go
+pipeline/parser/parser.y.go
 ag.sh
 b.sh

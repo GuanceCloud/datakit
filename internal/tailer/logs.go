@@ -180,10 +180,12 @@ func (x *Logs) IgnoreStatus(ignoreStatus []string) *Logs {
 	if !ok {
 		return x
 	}
+
+	s := strings.ToLower(status)
+
 	for _, ignore := range ignoreStatus {
-		if ignore == status {
+		if strings.ToLower(ignore) == s {
 			x.skip = true
-			x.AddErr(fmt.Errorf("this fields has been ignored, status:%s", status))
 			return x
 		}
 	}

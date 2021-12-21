@@ -4,6 +4,8 @@ package man
 import (
 	"bytes"
 	"fmt"
+
+	// nolint:typecheck
 	"strings"
 	"text/template"
 
@@ -106,7 +108,7 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 	} else {
 		c, ok := inputs.Inputs[name]
 		if !ok {
-			return nil, fmt.Errorf("intput %s not found", name)
+			return nil, fmt.Errorf("input %s not found", name)
 		}
 
 		input := c()

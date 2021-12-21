@@ -19,7 +19,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 )
 
@@ -39,7 +39,7 @@ var (
 )
 
 func geoTags(srcip string) map[string]string {
-	ipInfo, err := pipeline.Geo(srcip)
+	ipInfo, err := funcs.Geo(srcip)
 
 	l.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
 
@@ -78,7 +78,7 @@ func doHandleRUMBody(body []byte,
 	extraTags map[string]string,
 	appIDWhiteList []string) ([]*io.Point, error) {
 	if isjson {
-		rumpts, err := jsonPoints(body, precision, extraTags)
+		rumpts, err := jsonPoints(body, &lp.Option{Precision: precision, ExtraTags: extraTags})
 		if err != nil {
 			return nil, err
 		}
