@@ -3,6 +3,7 @@ package inputs
 
 import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/apache"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/clickhouse"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/cloudprober"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/consul"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/container"
@@ -17,6 +18,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/filecollector"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/flinkv1"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/gitlab"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostdir"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/hostobject"
