@@ -242,9 +242,9 @@ if [ -n "$DK_LIMIT_CPUMIN" ]; then
   limit_cpumin=$DK_LIMIT_CPUMIN
 fi
 
-cgroup_enabled=true
+cgroup_enabled=0
 if [ -n "$DK_CGROUP_ENABLED" ]; then
-  cgroup_enabled=$DK_CGROUP_ENABLED
+  cgroup_enabled=1
 fi
 
 install_log=/var/log/datakit/install.log
