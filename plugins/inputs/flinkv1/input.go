@@ -1,4 +1,4 @@
-// Package flink collect flink metrics by using input prom.
+// Package flinkv1 collect flink metrics by using input prom.
 package flinkv1
 
 import (
