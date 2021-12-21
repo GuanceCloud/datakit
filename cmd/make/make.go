@@ -96,6 +96,7 @@ func applyFlags() {
 		l.Fatalf("invalid version %s", build.ReleaseVersion)
 	}
 
+	build.DownloadAddr = *flagDownloadAddr
 	if !vi.IsStable() {
 		build.DownloadAddr = path.Join(*flagDownloadAddr, "rc")
 
