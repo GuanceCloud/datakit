@@ -8,7 +8,6 @@ func TestParseName(t *testing.T) {
 	cases := []struct {
 		in, out, sep string
 	}{
-
 		{
 			in:  `jvm.non_heap_memory_max`,
 			sep: "_",

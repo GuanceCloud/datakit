@@ -13,7 +13,6 @@ type parseCase struct {
 }
 
 var parseCases = []*parseCase{
-
 	// case:
 	{
 		in: `f([2].x[3])`,
@@ -122,7 +121,6 @@ var parseCases = []*parseCase{
 				{
 					Name: "avg",
 					Param: []Node{
-
 						&AttrExpr{
 							Obj: &Identifier{Name: "x"},
 							Attr: &AttrExpr{

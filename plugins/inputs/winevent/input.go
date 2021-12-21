@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"strings"
 	"syscall"
 	"time"
@@ -20,23 +21,23 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func (_ *Input) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return sample
 }
 
-func (_ *Input) Catalog() string {
+func (*Input) Catalog() string {
 	return "windows"
 }
 
-// TODO
+// RunPipeline TODO.
 func (*Input) RunPipeline() {
 }
 
-func (_ *Input) AvailableArchs() []string {
+func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSWindows}
 }
 
-func (w *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&Measurement{},
 	}
@@ -67,20 +68,19 @@ func (ipt *Input) Run() {
 			start := time.Now()
 			events, err := ipt.fetchEvents(ipt.subscription)
 			if err != nil {
-				switch {
-				case err == ERROR_NO_MORE_ITEMS:
+				if errors.Is(err, ErrorNoMoreItems) {
 					continue
-				case err != nil:
-					l.Error(err.Error())
-					io.FeedLastError(inputName, err.Error())
-					return
 				}
+				l.Error(err.Error())
+				io.FeedLastError(inputName, err.Error())
+				return
 			}
 			for _, event := range events {
 				ipt.handleEvent(event)
 			}
 			if len(ipt.collectCache) > 0 {
-				err := inputs.FeedMeasurement(inputName, datakit.Logging, ipt.collectCache, &io.Option{CollectCost: time.Since(start)})
+				err := inputs.FeedMeasurement(inputName, datakit.Logging,
+					ipt.collectCache, &io.Option{CollectCost: time.Since(start)})
 				if err != nil {
 					l.Error(err.Error())
 					io.FeedLastError(inputName, err.Error())
@@ -91,13 +91,13 @@ func (ipt *Input) Run() {
 	}
 }
 
-func (n *Input) Terminate() {
-	if n.semStop != nil {
-		n.semStop.Close()
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
 	}
 }
 
-func (w *Input) handleEvent(event Event) {
+func (ipt *Input) handleEvent(event Event) {
 	ts, err := time.Parse("2006-01-02T15:04:05.000000000Z", event.TimeCreated.SystemTime)
 	if err != nil {
 		l.Error(err.Error())
@@ -106,7 +106,7 @@ func (w *Input) handleEvent(event Event) {
 	tags := map[string]string{
 		"source": "windows_event",
 	}
-	for k, v := range w.Tags {
+	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
 
@@ -135,17 +135,17 @@ func (w *Input) handleEvent(event Event) {
 		ts:     ts,
 		name:   "windows_event",
 	}
-	w.collectCache = append(w.collectCache, metric)
+	ipt.collectCache = append(ipt.collectCache, metric)
 }
 
-func (w *Input) evtSubscribe(logName, xquery string) (EvtHandle, error) {
+func (ipt *Input) evtSubscribe(logName, xquery string) (EvtHandle, error) {
 	var logNamePtr, xqueryPtr *uint16
 
 	sigEvent, err := windows.CreateEvent(nil, 0, 0, nil)
 	if err != nil {
 		return 0, err
 	}
-	defer windows.CloseHandle(sigEvent)
+	defer windows.CloseHandle(sigEvent) // nolint:errcheck
 
 	logNamePtr, err = syscall.UTF16PtrFromString(logName)
 	if err != nil {
@@ -166,7 +166,7 @@ func (w *Input) evtSubscribe(logName, xquery string) (EvtHandle, error) {
 	return subsHandle, nil
 }
 
-func (w *Input) fetchEventHandles(subsHandle EvtHandle) ([]EvtHandle, error) {
+func (ipt *Input) fetchEventHandles(subsHandle EvtHandle) ([]EvtHandle, error) {
 	var eventsNumber uint32
 	var evtReturned uint32
 
@@ -176,8 +176,8 @@ func (w *Input) fetchEventHandles(subsHandle EvtHandle) ([]EvtHandle, error) {
 
 	err := _EvtNext(subsHandle, eventsNumber, &eventHandles[0], 0, 0, &evtReturned)
 	if err != nil {
-		if err == ERROR_INVALID_OPERATION && evtReturned == 0 {
-			return nil, ERROR_NO_MORE_ITEMS
+		if errors.Is(err, ErrorInvalidOperation) && evtReturned == 0 {
+			return nil, ErrorNoMoreItems
 		}
 		return nil, err
 	}
@@ -185,17 +185,17 @@ func (w *Input) fetchEventHandles(subsHandle EvtHandle) ([]EvtHandle, error) {
 	return eventHandles[:evtReturned], nil
 }
 
-func (w *Input) fetchEvents(subsHandle EvtHandle) ([]Event, error) {
+func (ipt *Input) fetchEvents(subsHandle EvtHandle) ([]Event, error) {
 	var events []Event
 
-	eventHandles, err := w.fetchEventHandles(subsHandle)
+	eventHandles, err := ipt.fetchEventHandles(subsHandle)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, eventHandle := range eventHandles {
 		if eventHandle != 0 {
-			event, err := w.renderEvent(eventHandle)
+			event, err := ipt.renderEvent(eventHandle)
 			if err == nil {
 				// w.Log.Debugf("Got event: %v", event)
 				events = append(events, event)
@@ -212,32 +212,32 @@ func (w *Input) fetchEvents(subsHandle EvtHandle) ([]Event, error) {
 	return events, nil
 }
 
-func (w *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
+func (ipt *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
 	var bufferUsed, propertyCount uint32
 
 	event := Event{}
-	err := _EvtRender(0, eventHandle, EvtRenderEventXml, uint32(len(w.buf)), &w.buf[0], &bufferUsed, &propertyCount)
+	err := _EvtRender(0, eventHandle, EvtRenderEventXML, uint32(len(ipt.buf)), &ipt.buf[0], &bufferUsed, &propertyCount)
 	if err != nil {
 		return event, err
 	}
 
-	eventXML, err := DecodeUTF16(w.buf[:bufferUsed])
+	eventXML, err := DecodeUTF16(ipt.buf[:bufferUsed])
 	if err != nil {
 		return event, err
 	}
-	err = xml.Unmarshal([]byte(eventXML), &event)
+	err = xml.Unmarshal(eventXML, &event)
 	if err != nil {
 		// We can return event without most text values,
 		// that way we will not loose information
 		// This can happen when processing Forwarded Events
-		return event, nil
+		return event, nil //nolint:nilerr
 	}
 
 	publisherHandle, err := openPublisherMetadata(0, event.Source.Name, 0)
 	if err != nil {
-		return event, nil
+		return event, nil //nolint:nilerr
 	}
-	defer _EvtClose(publisherHandle)
+	defer _EvtClose(publisherHandle) // nolint:errcheck
 
 	// Populating text values
 	keywords, err := formatEventString(EvtFormatMessageKeyword, eventHandle, publisherHandle)
@@ -274,7 +274,7 @@ func formatEventString(
 	var bufferUsed uint32
 	err := _EvtFormatMessage(publisherHandle, eventHandle, 0, 0, 0, messageFlag,
 		0, nil, &bufferUsed)
-	if err != nil && err != ERROR_INSUFFICIENT_BUFFER {
+	if err != nil && errors.Is(err, ErrorInsufficientBuffer) {
 		return "", err
 	}
 
@@ -328,7 +328,7 @@ func openPublisherMetadata(
 	return h, nil
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			buf:   make([]byte, 1<<14),

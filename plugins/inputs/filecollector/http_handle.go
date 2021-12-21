@@ -46,14 +46,14 @@ func Handle(c *gin.Context) {
 		resp := map[string]string{
 			"url": fileCollector.OssClient.GetOSSUrl(remotePath),
 		}
-		http.ErrOK.HttpBody(c, resp)
+		http.OK.HttpBody(c, resp)
 	case "sftp":
 		err = fileCollector.SftpClient.SFTPUPLoad(remotePath, f)
 		if err != nil {
 			uhttp.HttpErr(c, uhttp.Error(http.ErrUploadFileErr, err.Error()))
 			return
 		}
-		http.ErrOK.HttpBody(c, nil)
+		http.OK.HttpBody(c, nil)
 	default:
 		uhttp.HttpErr(c, uhttp.Error(http.ErrBadReq, "check file_collector config"))
 		return

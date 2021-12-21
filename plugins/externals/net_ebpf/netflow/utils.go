@@ -1,4 +1,5 @@
-// +build linux, ebpf
+//go:build (linux && ignore) || ebpf
+// +build linux,ignore ebpf
 
 package netflow
 
@@ -473,4 +474,25 @@ const (
 
 func isEphemeralPort(port uint32) bool {
 	return port >= EphemeralPortMin && port <= EphemeralPortMax
+}
+
+func IPPortFilterIn(conn *ConnectionInfo) bool {
+	if conn.Sport == 0 || conn.Dport == 0 {
+		return false
+	}
+
+	if connAddrIsIPv4(conn.Meta) {
+		if (conn.Saddr[3]&0xFF == 0x7F) || (conn.Daddr[3]&0xFF == 0x7F) {
+			return false
+		}
+	} else if (conn.Saddr[0]|conn.Saddr[1]) == 0x00 || (conn.Daddr[0]|conn.Daddr[1]) == 0x00 {
+		if (conn.Saddr[2] == 0xffff0000 && conn.Saddr[3]&0xFF == 0x7F) ||
+			(conn.Daddr[2] == 0xffff0000 && conn.Daddr[3]&0xFF == 0x7F) {
+			return false
+		} else if (conn.Saddr[2] == 0x0 && conn.Saddr[3] == 0x01000000) ||
+			(conn.Daddr[2] == 0x0 && conn.Daddr[3] == 0x01000000) {
+			return false
+		}
+	}
+	return true
 }

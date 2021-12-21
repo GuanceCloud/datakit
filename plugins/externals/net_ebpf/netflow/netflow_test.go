@@ -1,4 +1,5 @@
-// +build linux, ebpf
+//go:build (linux && ignore) || ebpf
+// +build linux,ignore ebpf
 
 package netflow
 
@@ -397,7 +398,6 @@ type caseStatsOp struct {
 
 func TestStatsOp(t *testing.T) {
 	cases := caseStatsOp{
-
 		fullStats: ConnFullStats{
 			Stats: ConnectionStats{
 				SentBytes:   1,
@@ -626,7 +626,6 @@ func TestRecord(t *testing.T) {
 	// 一个本周期内建立后关闭的连接，调用 closedEventHandler, 首次记录
 
 	closedEvent = ConncetionClosedInfoC{
-
 		conn_info: _Ctype_struct_connection_info{
 			saddr: [4]_Ctype_uint{0, 0, 0, 0x0101007F},
 			daddr: [4]_Ctype_uint{0, 0, 0, 0x0200007F},
@@ -1174,6 +1173,31 @@ func TestMultiPidConns(t *testing.T) {
 	connTCPWithoutPid.CleanupConns()
 	if len(connTCPWithoutPid.Conns) != 0 {
 		t.Error("len(connTCPWithoutPid.Conns)", len(connTCPWithoutPid.Conns))
+	}
+}
+
+func TestIPPortFilterIn(t *testing.T) {
+	cases := map[ConnectionInfo]bool{}
+	c, _ := newConn(ConnL3IPv4, "127.1.0.1", "1.1.1.1", 1, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv4, "12.1.0.1", "127.0.0.1", 1, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv4, "12.1.0.1", "12.0.0.1", 0, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv4, "12.1.0.1", "12.0.0.1", 1, 0, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv4, "12.1.0.1", "12.0.0.1", 1, 1, 1)
+	cases[*c] = true
+	c, _ = newConn(ConnL3IPv6, "2::1", "::1", 1, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv6, "::1", "2::1", 1, 1, 1)
+	cases[*c] = false
+	c, _ = newConn(ConnL3IPv6, "2::1", "2::1", 1, 1, 1)
+	cases[*c] = true
+	for k, v := range cases {
+		if IPPortFilterIn(&k) != v {
+			t.Error(k)
+		}
 	}
 }
 

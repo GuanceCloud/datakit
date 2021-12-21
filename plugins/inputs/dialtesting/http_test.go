@@ -23,7 +23,6 @@ var httpCases = []struct {
 	fail      bool
 	reasonCnt int
 }{
-
 	// test dial with certificate
 	{
 		fail:      false,
@@ -316,7 +315,6 @@ var httpCases = []struct {
 			SuccessWhen: []*dt.HTTPSuccess{
 				{
 					Header: map[string][]*dt.SuccessOption{
-
 						"Cache-Control": {
 							{MatchRegex: `max-ag=\d`}, // expect fail: max-age
 						},

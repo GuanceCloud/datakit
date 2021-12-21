@@ -47,7 +47,7 @@ tail -f /var/log/datakit/gin.log
 ...
 ```
 
-> 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-how-to#44462aae)是看不到 ddtrace 的采集信息的。
+> 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-tools-how-to#44462aae)是看不到 ddtrace 的采集信息的。
 
 ## ddtrace 环境变量设置
 

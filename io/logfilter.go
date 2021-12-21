@@ -76,6 +76,7 @@ func (ipt *logFilter) start() {
 				l.Debugf("### enter log filter refresh routine, status: %q", ipt.status.String())
 				if err := ipt.refreshRules(); err != nil {
 					l.Error(err.Error())
+					FeedLastError("logfilter", err.Error())
 				}
 			}
 		}

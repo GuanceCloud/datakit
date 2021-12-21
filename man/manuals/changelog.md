@@ -2,6 +2,33 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc5(2021/11/23)
+
+- 增加 [pythond(alpha)](pythond) ，便于用 Python3 编写自定义采集器(#367)
+<!-- - 支持 source map 文件处理，便于 RUM 采集器收集 JavaScript 调用栈信息(#266) -->
+- [SkyWalking V3](skywalking) 已支持到 8.5.0/8.6.0/8.7.0 三个版本(#385)
+- DataKit 初步支持[磁盘数据缓存(alpha)](datakit-conf-how-to#9dc84d15)(#420)
+- DataKit 支持选举状态上报(#427)
+- DataKit 支持 scheck 状态上报(#428)
+- 调整 DataKit 使用入门文档，新的分类更便于找到具体文档
+
+----
+
+## 1.1.9-rc4.3(2021/11/19)
+
+- 修复容器日志采集器因 pipeline 配置失当无法启动的问题
+
+----
+
+## 1.1.9-rc4.2(2021/11/18)
+
+- 紧急修复(#446)
+	- 修复 Kubernetes 模式下 stdout 日志输出 level 异常
+	- 修复选举模式下，未选举上的 MySQL 采集器死循环问题
+	- DaemonSet 文档补全
+
+----
+
 ## 1.1.9-rc4.1(2021/11/16)
 
 - 修复 Kubernetes Pod 采集 namespace 命名空间问题(#439)
@@ -10,7 +37,7 @@
 
 ## 1.1.9-rc4(2021/11/09)
 
-- 支持[通过 Git 来管理](datakit-how-to#9ca4d8d0) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
+- 支持[通过 Git 来管理](datakit-conf-how-to#5dd2079e) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
 - 支持[全离线安装](datakit-offline-install#7f3c40b6)(#421)
 <!--
 - eBPF-network
@@ -18,7 +45,7 @@
      - 增强内核适配性，内核版本要求已降低至 Linux 4.4+(#416) -->
 - 增强数据调试功能，采集到的数据支持写入本地文件，同时发送到中心(#415)
 - K8s 环境中，默认开启的采集器支持通过环境变量注入 tags，详见各个默认开启的采集器文档(#408)
-- DataKit 支持[一键上传日志](datakit-how-to#0b4d9e46)(#405)
+- DataKit 支持[一键上传日志](datakit-tools-how-to#0b4d9e46)(#405)
 <!-- - MySQL 采集器增加[SQL 语句执行性能指标]()(#382) -->
 - 修复安装脚本中 root 用户设定的 bug(#430)
 - 增强 Kubernetes 采集器：
@@ -41,7 +68,7 @@
 - APM 增加 [Jaeger 数据](jaeger)接入(#383)
 - [Prometheus Remote Write](prom_remote_write)采集器支持数据切割调试
 - 优化 [Nginx 代理](proxy#a64f44d8)功能
-- DQL 查询结果支持 [CSV 文件导出](datakit-how-to#2368bf1d)
+- DQL 查询结果支持 [CSV 文件导出](datakit-dql-how-to#2368bf1d)
 
 ---
 
@@ -56,7 +83,7 @@
 - 安装阶段新增环境变量 `DK_HOSTNAME` [支持](datakit-install#f9858758)(#334)
 - [Apache 采集器](apache) 增加更多指标采集 (#329)
 - DataKit API 新增接口 [`/v1/workspace`](apis#2a24dd46) 以获取工作空间信息(#324)
-	- 支持 DataKit 通过命令行参数[获取工作空间信息](datakit-how-to#88b4967d)
+	- 支持 DataKit 通过命令行参数[获取工作空间信息](datakit-tools-how-to#88b4967d)
 
 ---
 
@@ -72,7 +99,7 @@
 - 完善 Kubernetes 生态下 [Prometheus 类指标采集](kubernetes-prom)(#368/#347)
 - [eBPF-network](net_ebpf) 优化
 - 修复 DataKit/DataWay 之间连接数泄露问题(#290)
-- 修复容器模式下 [DataKit 各种子命令](datakit-how-to#666de9ed)无法执行的问题(#375)
+- 修复容器模式下DataKit 各种子命令无法执行的问题(#375)
 - 修复日志采集器因 Pipeline 错误丢失原始数据的问题(#376)
 - 完善 DataKit 端 [DCA](dca) 相关功能，支持在安装阶段[开启 DCA 功能](datakit-install#f9858758)。
 - 下线浏览器拨测功能
@@ -210,8 +237,8 @@
 - 加强[行协议数据检查](apis#f54b954f)
 - `system` 采集器，增加 [`conntrack`以及`filefd`](system) 两个指标集
 - `datakit.conf` 增加 IO 调参入口，便于用户对 DataKit 网络出口流量做优化（参见下面的 Breaking Changes）
-- DataKit 支持[服务卸载和恢复](datakit-how-to#9e00a535)
-- Windows 平台的服务支持通过[命令行管理](datakit-how-to#147762ed)
+- DataKit 支持[服务卸载和恢复](datakit-service-how-to#9e00a535)
+- Windows 平台的服务支持通过[命令行管理](datakit-service-how-to#147762ed)
 - DataKit 支持动态获取最新 DataWay 地址，避免默认 DataWay 被 DDos 攻击
 - DataKit 日志支持[输出到终端](datakit-daemonset-deploy#00c8a780)（Windows 暂不不支持），便于 k8s 部署时日志查看、采集
 - 调整 DataKit 主配置，各个不同配置模块化（详见下面的 Breaking Changes）
@@ -277,7 +304,7 @@
 - 支持从 `ENV_HOSTNAME` 获取主机名，以应付原始主机名不可用的问题
 - 支持 tag 级别的 [Trace](ddtrace) 过滤
 - [容器采集器](container)支持采集容器内进程对象
-- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit-how-to#9e364a84)（仅 Linux 支持）
+- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit-conf-how-to#9e364a84)（仅 Linux 支持）
 - 新增 [IIS 采集器](iis)
 
 ### Bug 修复
@@ -293,9 +320,9 @@
 - DataKit API 支持，且支持 [JSON Body](apis#75f8e5a2)
 - 命令行增加功能：
 
-  - [DQL 查询功能](datakit-how-to#cb421e00)
-  - [命令行查看 monitor](datakit-how-to#44462aae)
-  - [检查采集器配置是否正确](datakit-how-to#519a9e75)
+  - [DQL 查询功能](datakit-dql-how-to#cb421e00)
+  - [命令行查看 monitor](datakit-tools-how-to#44462aae)
+  - [检查采集器配置是否正确](datakit-tools-how-to#519a9e75)
 
 - 日志性能优化（对各个采集器自带的日志采集而言，目前仅针对 nginx/MySQL/Redis 做了适配，后续将适配其它各个自带日志收集的采集器）
 
@@ -474,7 +501,7 @@
 - 支持 [`/v1/ping` 接口](apis#50ea0eb5)
 - 移除 RUM 采集器，RUM 接口[默认已经支持](apis#f53903a9)
 - 新增 monitor 页面：http://localhost:9529/monitor，以替代之前的 /stats 页面。reload 之后自动跳转到 monitor 页面
-- 支持命令直接[安装 sec-checker](datakit-how-to#01243fef) 以及[更新 ip-db](datakit-how-to#ab5cd5ad)
+- 支持命令直接[安装 sec-checker](datakit-tools-how-to#01243fef) 以及[更新 ip-db](datakit-tools-how-to#ab5cd5ad)
 
 ---
 
@@ -498,7 +525,7 @@
 - [DataKit 支持选举](election)
 - 修复拨测历史数据清理问题
 - 大量文档[发布到语雀](https://www.yuque.com/dataflux/datakit)
-- [DataKit 支持命令行集成 Telegraf](datakit-how-to#d1b3b29b)
+- [DataKit 支持命令行集成 Telegraf](datakit-tools-how-to#d1b3b29b)
 - DataKit 单实例运行检测
 - DataKit [自动更新功能](datakit-update-crontab)
 

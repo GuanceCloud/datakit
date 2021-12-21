@@ -9,7 +9,7 @@ import (
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {

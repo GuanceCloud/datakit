@@ -26,8 +26,8 @@ func getSignificandPlusOne(float64Bits uint64) float64 {
 	return math.Float64frombits((float64Bits & significandMask) | oneMask)
 }
 
-// @param exponent should be >= -1022 and <= 1023
-// @param significandPlusOne should be >= 1 and < 2
+// exponent should be >= -1022 and <= 1023
+// significandPlusOne should be >= 1 and < 2
 func buildFloat64(exponent int, significandPlusOne float64) float64 {
 	return math.Float64frombits(
 		(uint64((exponent+exponentBias)<<exponentShift) & exponentMask) | (math.Float64bits(significandPlusOne) & significandMask),

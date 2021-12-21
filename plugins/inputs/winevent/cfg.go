@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	l     = logger.DefaultSLogger(inputName)
+	l = logger.DefaultSLogger(inputName)
+	// nolint:lll
 	query = `<QueryList>
     <Query Id="0" Path="Security">
       <Select Path="Security">*</Select>
@@ -70,40 +71,40 @@ type Event struct {
 	OpcodeText    string
 }
 
-// UserData Application-provided XML data
+// UserData Application-provided XML data.
 type UserData struct {
 	InnerXML []byte `xml:",innerxml"`
 }
 
-// EventData Application-provided XML data
+// EventData Application-provided XML data.
 type EventData struct {
 	InnerXML []byte `xml:",innerxml"`
 }
 
-// Provider is the Event provider information
+// Provider is the Event provider information.
 type Provider struct {
 	Name string `xml:"Name,attr"`
 }
 
-// Correlation is used for the event grouping
+// Correlation is used for the event grouping.
 type Correlation struct {
 	ActivityID        string `xml:"ActivityID,attr"`
 	RelatedActivityID string `xml:"RelatedActivityID,attr"`
 }
 
-// Execution Info for Event
+// Execution Info for Event.
 type Execution struct {
 	ProcessID   uint32 `xml:"ProcessID,attr"`
 	ThreadID    uint32 `xml:"ThreadID,attr"`
 	ProcessName string
 }
 
-// Security Data for Event
+// Security Data for Event.
 type Security struct {
 	UserID string `xml:"UserID,attr"`
 }
 
-// TimeCreated field for Event
+// TimeCreated field for Event.
 type TimeCreated struct {
 	SystemTime string `xml:"SystemTime,attr"`
 }

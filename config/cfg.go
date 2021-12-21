@@ -16,15 +16,14 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/ddtrace/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	dktracer "gitlab.jiagouyun.com/cloudcare-tools/datakit/tracer"
 )
 
 var (
@@ -92,13 +91,17 @@ func DefaultConfig() *Config {
 		},
 		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
 
+		Tracer: &tracer.Tracer{TraceEnabled: false},
+
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
 			Repos: []*GitRepository{
 				{
-					Enable: false, URL: "",
-					SSHPrivateKeyPath: "", SSHPrivateKeyPassword: "",
-					Branch: "master",
+					Enable:                false,
+					URL:                   "",
+					SSHPrivateKeyPath:     "",
+					SSHPrivateKeyPassword: "",
+					Branch:                "master",
 				},
 			},
 		},
@@ -194,7 +197,6 @@ type Config struct {
 	GlobalTags   map[string]string `toml:"global_tags"`
 	Environments map[string]string `toml:"environments"`
 	Cgroup       *Cgroup           `toml:"cgroup"`
-	Tracer       *tracer.Tracer    `toml:"tracer,omitempty"`
 
 	EnablePProf              bool `toml:"enable_pprof,omitempty"`
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
@@ -206,6 +208,8 @@ type Config struct {
 	AutoUpdate bool `toml:"auto_update,omitempty"`
 
 	EnableUncheckedInputs bool `toml:"enable_unchecked_inputs,omitempty"`
+
+	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
 
 	GitRepos *GitRepost `toml:"git_repos"`
 }
@@ -418,11 +422,6 @@ func (c *Config) ApplyMainConfig() error {
 		return err
 	}
 
-	// initialize global tracer
-	if c.Tracer != nil {
-		dktracer.GlobalTracer = c.Tracer
-	}
-
 	datakit.AutoUpdate = c.AutoUpdate
 
 	// config default io
@@ -581,12 +580,21 @@ func (c *Config) LoadEnvs() error {
 		c.GlobalTags = ParseGlobalTags(v)
 	}
 
+	// set logging
 	if v := datakit.GetEnv("ENV_LOG_LEVEL"); v != "" {
 		c.Logging.Level = v
 	}
 
 	if v := datakit.GetEnv("ENV_LOG"); v != "" {
 		c.Logging.Log = v
+	}
+
+	if v := datakit.GetEnv("ENV_GIN_LOG"); v != "" {
+		c.Logging.GinLog = v
+	}
+
+	if v := datakit.GetEnv("ENV_DISABLE_LOG_COLOR"); v != "" {
+		c.Logging.DisableColor = true
 	}
 
 	// 多个 dataway 支持 ',' 分割
@@ -605,8 +613,19 @@ func (c *Config) LoadEnvs() error {
 		c.Name = v
 	}
 
+	// HTTP server setting
 	if v := datakit.GetEnv("ENV_HTTP_LISTEN"); v != "" {
 		c.HTTPAPI.Listen = v
+	}
+
+	// DCA settings
+	if v := datakit.GetEnv("ENV_DCA_LISTEN"); v != "" {
+		c.DCAConfig.Enable = true
+		c.DCAConfig.Listen = v
+	}
+
+	if v := datakit.GetEnv("ENV_DCA_WHITE_LIST"); v != "" {
+		c.DCAConfig.WhiteList = strings.Split(v, ",")
 	}
 
 	if v := datakit.GetEnv("ENV_RUM_ORIGIN_IP_HEADER"); v != "" {

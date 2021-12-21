@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 // traceFilter will determine whether a trace should be drop or not,
