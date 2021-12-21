@@ -1,5 +1,5 @@
-// Package etcd collect etcd metrics by using input prom.
-package etcd
+// Package clickhouse collect clickhouse metrics by using input prom.
+package clickhouse
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -7,17 +7,27 @@ import (
 )
 
 const (
-	inputName    = "etcd"
+	inputName    = "clickhouse"
+	catalogName  = "db"
 	configSample = `
 [[inputs.prom]]
-  ## Exporter地址或者文件路径（Exporter地址要加上网络协议http或者https）
-  ## 文件路径各个操作系统下不同
-  ## Windows example: C:\\Users
-  ## UNIX-like example: /usr/local/
-  url = "http://127.0.0.1:2379/metrics"
+  ## Exporter 地址
+  url = "http://127.0.0.1:9363/metrics"
 
-	## 采集器别名
-	source = "etcd"
+  ## 采集器别名
+  source = "clickhouse"
+
+  ## 采集数据输出源
+  # 配置此项，可以将采集到的数据写到本地文件而不将数据打到中心
+  # 之后可以直接用 datakit --prom-conf /path/to/this/conf 命令对本地保存的指标集进行调试
+  # 如果已经将url配置为本地文件路径，则--prom-conf优先调试output路径的数据
+  # output = "/abs/path/to/file"
+
+  ## 采集数据大小上限，单位为字节
+  # 将数据输出到本地文件时，可以设置采集数据大小上限
+  # 如果采集数据的大小超过了此上限，则采集的数据将被丢弃
+  # 采集数据大小上限默认设置为32MB
+  # max_file_size = 0
 
   ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary
   # 默认只采集 counter 和 gauge 类型的指标
@@ -27,7 +37,7 @@ const (
   ## 指标名称过滤
   # 支持正则，可以配置多个，即满足其中之一即可
   # 如果为空，则不进行过滤
-  metric_name_filter = ["etcd_server_proposals","etcd_server_leader","etcd_server_has","etcd_network_client"]
+  # metric_name_filter = ["cpu"]
 
   ## 指标集名称前缀
   # 配置此项，可以给指标集名称添加前缀
@@ -56,24 +66,28 @@ const (
   # 可以将包含前缀prefix的指标归为一类指标集
   # 自定义指标集名称配置优先measurement_name配置项
   [[inputs.prom.measurements]]
-    prefix = "etcd_"
-    name = "etcd"
+  prefix = "ClickHouseProfileEvents_"
+  name = "ClickHouseProfileEvents"
 
-  ## 自定义认证方式，目前仅支持 Bearer Token
-  # [inputs.prom.auth]
-  # type = "bearer_token"
-  # token = "xxxxxxxx"
-  # token_file = "/tmp/token"
+  [[inputs.prom.measurements]]
+  prefix = "ClickHouseMetrics_"
+  name = "ClickHouseMetrics"
 
-  ## 自定义Tags
+  [[inputs.prom.measurements]]
+  prefix = "ClickHouseAsyncMetrics_"
+  name = "ClickHouseAsyncMetrics"
 
+  ## 自定义Tags(集群可添加主机名)
+  [inputs.prom.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
 `
 )
 
 type Input struct{}
 
 func (i *Input) Catalog() string {
-	return "etcd"
+	return catalogName
 }
 
 func (i *Input) SampleConfig() string {
@@ -89,8 +103,9 @@ func (i *Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&NetworkMeasurement{},
-		&ServerMeasurement{},
+		&AsyncMetricsMeasurement{},
+		&MetricsMeasurement{},
+		&ProfileEventsMeasurement{},
 	}
 }
 
