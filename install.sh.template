@@ -172,9 +172,9 @@ if [ -n "$DK_HTTP_PORT" ]; then
 	http_port=$DK_HTTP_PORT
 fi
 
-install_only=
+install_only=0
 if [ -n "$DK_INSTALL_ONLY" ]; then
-	install_only=$DK_INSTALL_ONLY
+	install_only=1
 fi
 
 dca_white_list=""
@@ -303,7 +303,7 @@ if [ "$upgrade" ]; then
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 		$sudo_cmd $installer                         \
-		  --install-only="$install_only" \
+		  --install-only="$install_only"             \
 			--dataway="${dataway}"                     \
 			--global-tags="${global_tags}"             \
 			--cloud-provider="${cloud_provider}"       \
@@ -322,7 +322,6 @@ else
 			--limit-cpumax="${limit_cpumax}"           \
 			--limit-cpumin="${limit_cpumin}"           \
 			--cgroup-enabled="${cgroup_enabled}"       \
-			--git-pull-interval="${git_pull_interval}" \
-			--install_only | $sudo_cmd tee ${install_log}
+			--git-pull-interval="${git_pull_interval}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer
