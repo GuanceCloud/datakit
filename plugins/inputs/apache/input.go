@@ -76,9 +76,14 @@ func (*Input) PipelineConfig() map[string]string { return map[string]string{"apa
 func (n *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: n.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if n.Log != nil {
+					return n.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }

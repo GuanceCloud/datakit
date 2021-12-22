@@ -28,7 +28,8 @@ var (
 	FlagPipeline,
 	FlagText string
 
-	FlagProm string
+	FlagProm      string
+	FlagTestInput string
 
 	FlagDefConf bool
 	FlagWorkDir string
@@ -39,6 +40,7 @@ var (
 	FlagExportIntegration,
 	FlagManVersion,
 	FlagTODO string
+	FlagExportMetaInfo string
 
 	FlagInstallExternal string
 
@@ -255,6 +257,16 @@ func RunCmds() {
 		os.Exit(0)
 	}
 
+	if FlagTestInput != "" {
+		tryLoadMainCfg()
+		setCmdRootLog(FlagCmdLogPath)
+		if err := inputDebugger(FlagTestInput); err != nil {
+			l.Errorf("inputDebugger: %s", err)
+		}
+
+		os.Exit(0)
+	}
+
 	if FlagGrokq {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
@@ -286,7 +298,14 @@ func RunCmds() {
 		}
 		os.Exit(0)
 	}
-
+	if FlagExportMetaInfo != "" {
+		tryLoadMainCfg()
+		setCmdRootLog(FlagCmdLogPath)
+		if err := ExportMetaInfo(FlagExportMetaInfo); err != nil {
+			l.Error(err)
+		}
+		os.Exit(0)
+	}
 	if FlagInstallExternal != "" {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)

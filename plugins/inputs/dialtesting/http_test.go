@@ -15,22 +15,24 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
 var httpCases = []struct {
+	name      string
 	t         *dt.HTTPTask
 	fail      bool
 	reasonCnt int
 }{
-	// test dial with certificate
 	{
+		name:      "test dial with certificate",
 		fail:      false,
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
-			URL:        "https://localhost:54323/_test_with_cert",
+			URL:        "https://localhost:45323/_test_with_cert",
 			Name:       "_test_with_cert",
 			Frequency:  "1s",
 			AdvanceOptions: &dt.HTTPAdvanceOption{
@@ -52,11 +54,12 @@ var httpCases = []struct {
 	},
 	{
 		fail:      true,
+		name:      "invalid certificate",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
-			URL:        "https://localhost:54323/_test_with_cert",
+			URL:        "https://localhost:45323/_test_with_cert",
 			Name:       "_test_with_cert",
 			Region:     "",
 			Frequency:  "1s",
@@ -78,8 +81,8 @@ var httpCases = []struct {
 		},
 	},
 
-	// test dial with proxy
 	{
+		name:      "test dial with proxy",
 		fail:      false,
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
@@ -90,7 +93,7 @@ var httpCases = []struct {
 			Frequency:  "1s",
 			AdvanceOptions: &dt.HTTPAdvanceOption{
 				Proxy: &dt.HTTPOptProxy{
-					URL:     "http://localhost:54322",
+					URL:     "http://localhost:54325",
 					Headers: map[string]string{"X-proxy-header": "proxy-foo"},
 				},
 			},
@@ -105,8 +108,8 @@ var httpCases = []struct {
 		},
 	},
 
-	// test dial with body
 	{
+		name:      "test dial with invalid body type",
 		fail:      true,
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
@@ -132,6 +135,7 @@ var httpCases = []struct {
 		},
 	},
 	{
+		name:      "test dial with body",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -156,8 +160,8 @@ var httpCases = []struct {
 		},
 	},
 
-	// test dial with headers
 	{
+		name:      "test dial with headers",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -184,8 +188,8 @@ var httpCases = []struct {
 		},
 	},
 
-	// test dial with auth
 	{
+		name:      "test dial with auth",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -212,8 +216,8 @@ var httpCases = []struct {
 		},
 	},
 
-	// test dial with cookie
 	{
+		name:      "test dial with cookie",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -242,8 +246,8 @@ var httpCases = []struct {
 		},
 	},
 
-	// test dial for redirect
 	{
+		name:      "test dial for redirect",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -266,6 +270,7 @@ var httpCases = []struct {
 	},
 
 	{
+		name:      "redirect disabled",
 		reasonCnt: 0,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -287,8 +292,8 @@ var httpCases = []struct {
 		},
 	},
 
-	// test dial with response time checking
 	{
+		name:      "test dial with response time checking",
 		reasonCnt: 1,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -302,8 +307,8 @@ var httpCases = []struct {
 		},
 	},
 
-	// test dial with response headers
 	{
+		name:      "test dial with response headers",
 		reasonCnt: 2,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
@@ -364,42 +369,43 @@ func TestDialHTTP(t *testing.T) {
 
 	go proxyServer(t)
 	go httpServer(t, "localhost:54321", false, stopserver) // http server
-	go httpServer(t, "localhost:54323", true, stopserver)  // https server
+	go httpServer(t, "localhost:45323", true, stopserver)  // https server
 
 	time.Sleep(time.Second) // wait servers ok
 
 	for _, c := range httpCases {
-		if err := c.t.Init(); err != nil {
-			if c.fail == false {
-				t.Errorf("case %s failed: %s", c.t.Name, err)
-			} else {
-				t.Logf("expected: %s", err.Error())
+		t.Run(c.name, func(t *testing.T) {
+			if err := c.t.Init(); err != nil {
+				if c.fail == false {
+					t.Errorf("case %s failed: %s", c.t.Name, err)
+				} else {
+					t.Logf("expected: %s", err.Error())
+				}
+				return
 			}
-			continue
-		}
 
-		if err := c.t.Run(); err != nil {
-			if c.fail == false {
-				t.Errorf("case %s failed: %s", c.t.Name, err)
-			} else {
-				t.Logf("expected: %s", err.Error())
+			if err := c.t.Run(); err != nil {
+				if c.fail == false {
+					t.Errorf("case %s failed: %s", c.t.Name, err)
+				} else {
+					t.Logf("expected: %s", err.Error())
+				}
+				return
 			}
-			continue
-		}
 
-		tags, fields := c.t.GetResults()
+			tags, fields := c.t.GetResults()
 
-		t.Logf("tags: %+#v", tags)
-		t.Logf("fields: %+#v", fields)
+			t.Logf("tags: %+#v", tags)
+			t.Logf("fields: %+#v", fields)
 
-		reasons := c.t.CheckResult()
-		if len(reasons) != c.reasonCnt {
-			t.Errorf("case %s expect %d reasons, but got %d reasons:\n\t%s",
-				c.t.Name, c.reasonCnt, len(reasons), strings.Join(reasons, "\n\t"))
-		} else if len(reasons) > 0 {
-			t.Logf("case %s reasons:\n\t%s",
-				c.t.Name, strings.Join(reasons, "\n\t"))
-		}
+			reasons := c.t.CheckResult()
+			tu.Equals(t, len(reasons), c.reasonCnt)
+
+			if len(reasons) > 0 {
+				t.Logf("case %s reasons:\n\t%s",
+					c.t.Name, strings.Join(reasons, "\n\t"))
+			}
+		})
 	}
 }
 
@@ -448,7 +454,7 @@ func proxyServer(t *testing.T) {
 
 		fmt.Fprintf(w, "ok")
 	})
-	if err := http.ListenAndServe("localhost:54322", nil); err != nil {
+	if err := http.ListenAndServe("localhost:54325", nil); err != nil {
 		t.Error(err)
 	}
 }
@@ -609,7 +615,7 @@ func addTestingRoutes(t *testing.T, r *gin.Engine, https bool) {
 	})
 
 	r.GET("/_test_with_proxy",
-		proxyHandler(t, "http://localhost:54322/_test_with_proxy" /*url must be the same*/))
+		proxyHandler(t, "http://localhost:54325/_test_with_proxy" /*url must be the same*/))
 
 	if https {
 		r.GET("/_test_with_cert", func(c *gin.Context) {

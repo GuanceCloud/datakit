@@ -205,7 +205,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 			opts := inp.GetPipeline()
 			for _, vv := range opts {
 				if vv.Pipeline == "" {
-					return nil, fmt.Errorf("pipeline_empty")
+					continue
 				}
 				pFullPath, err := GetPipelinePath(vv.Pipeline)
 				if err != nil {

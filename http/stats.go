@@ -36,6 +36,7 @@ type DatakitStats struct {
 	EnabledInputs   []*enabledInput    `json:"enabled_inputs"`
 	AvailableInputs []string           `json:"available_inputs"`
 
+	HostName   string `json:"hostname"`
 	Version    string `json:"version"`
 	BuildAt    string `json:"build_at"`
 	Branch     string `json:"branch"`
@@ -59,6 +60,7 @@ var (
 	part1 = `
 ## 基本信息
 
+- 主机名     ：{{.HostName}}
 - 版本       : {{.Version}}
 - 运行时间   : {{.Uptime}}
 - 发布日期   : {{.BuildAt}}
@@ -267,6 +269,7 @@ func GetStats(du time.Duration) (*DatakitStats, error) {
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
 		ConfigInfo:     inputs.ConfigInfo,
+		HostName:       datakit.DatakitHostName,
 	}
 
 	var err error
