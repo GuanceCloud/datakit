@@ -291,8 +291,6 @@ func (n *Input) setup() error {
 }
 
 func (n *Input) Collect() (map[string][]*io.Point, error) {
-	fmt.Printf("start get points: %s\n", inputName)
-
 	if err := n.setup(); err != nil {
 		return map[string][]*io.Point{}, err
 	}

@@ -80,6 +80,53 @@ datakit --workspace-info
 }
 ```
 
+## 查看 DataKit 相关事件
+
+DataKit 运行过程中，一些关键事件会以日志的形式进行上报，比如 DataKit 的启动、采集器的运行错误等。在命令行终端，可以通过 dql 进行查询。
+
+```shell
+sudo datakit --dql
+
+dql > L::datakit limit 10;
+
+-----------------[ r1.datakit.s1 ]-----------------
+    __docid 'L_c6vvetpaahl15ivd7vng'
+   category 'input'
+create_time 1639970679664
+    date_ns 835000
+       host 'demo'
+    message 'elasticsearch Get "http://myweb:9200/_nodes/_local/name": dial tcp 150.158.54.252:9200: connect: connection refused'
+     source 'datakit'
+     status 'warning'
+       time 2021-12-20 11:24:34 +0800 CST
+-----------------[ r2.datakit.s1 ]-----------------
+    __docid 'L_c6vvetpaahl15ivd7vn0'
+   category 'input'
+create_time 1639970679664
+    date_ns 67000
+       host 'demo'
+    message 'postgresql pq: password authentication failed for user "postgres"'
+     source 'datakit'
+     status 'warning'
+       time 2021-12-20 11:24:32 +0800 CST
+-----------------[ r3.datakit.s1 ]-----------------
+    __docid 'L_c6tish1aahlf03dqas00'
+   category 'default'
+create_time 1639657028706
+    date_ns 246000
+       host 'zhengs-MacBook-Pro.local'
+    message 'datakit start ok, ready for collecting metrics.'
+     source 'datakit'
+     status 'info'
+       time 2021-12-20 11:16:58 +0800 CST       
+          
+          ...       
+```
+
+**部分字段说明**
+ - category: 类别，默认为`default`, 还可取值为`input`， 表明是与采集器 (`input`) 相关
+ - status: 事件等级，可取值为 `info`, `warning`, `error`
+
 ## DataKit 更新 IP 数据库文件
 
 可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
