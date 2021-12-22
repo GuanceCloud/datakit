@@ -102,26 +102,33 @@ grok(_, %{time})
 
 ## 脚本执行流
 
-pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>` 和 `!=`
+pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>=` 和 `!=`，
 表达式两边可以是已存在的 key 或固定值，例如：
 
 ```python
-add_key("score", 95)
+
+# 数值比较
+add_key(score, 95)
 
 if score >= 90 {
-	add_key("level", "A")
+	add_key(level, "A")
 } elif score >= 75 {
-	add_key("level", "B")
+	add_key(level, "B")
 } elif score >= 60 {
-	add_key("level", "C")
+	add_key(level, "C")
 } else {
-	add_key("level", "D")
+	add_key(level, "D")
+}
+
+# 字符串比较
+add_key(name, "张三")
+
+if name == "法外狂徒" {
+	# 这是不可能的，不要污蔑我
 }
 ```
 
-和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。
-
-暂时不支持多个条件表达式的 `AND` 和 `OR`。
+和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。 暂时不支持多个条件表达式的 `AND` 和 `OR`。
 
 ## 脚本函数
 
