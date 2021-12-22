@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -97,8 +98,6 @@ type Input struct {
 	// collectors []func() ([]inputs.Measurement, error)
 	collectors []func() ([]*io.Point, error)
 
-	// err error
-
 	pause    bool
 	pauseCh  chan bool
 	binLogOn bool
@@ -136,6 +135,8 @@ type Input struct {
 
 	// collected metrics - mysql custom queries
 	mCustomQueries map[string][]map[string]interface{}
+
+	lastErrors []string
 }
 
 func (i *Input) getDsnString() string {
@@ -381,9 +382,24 @@ func (i *Input) metricCollectMysqlDbmSample() ([]*io.Point, error) {
 	return pts, nil
 }
 
-func (i *Input) Collect() (map[string][]*io.Point, error) {
-	fmt.Printf("start get points: %s\n", inputName)
+func (i *Input) resetLastError() {
+	i.lastErrors = []string{}
+}
 
+func (i *Input) handleLastError() {
+	if len(i.lastErrors) > 0 {
+		io.FeedLastError(inputName, strings.Join(i.lastErrors, "; "))
+		i.resetLastError()
+	}
+}
+
+func (i *Input) appendLastError(err error) {
+	if err != nil {
+		i.lastErrors = append(i.lastErrors, err.Error())
+	}
+}
+
+func (i *Input) Collect() (map[string][]*io.Point, error) {
 	if err := i.initDBConnect(); err != nil {
 		return map[string][]*io.Point{}, err
 	}
@@ -405,22 +421,26 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 	for idx, f := range i.collectors {
 		l.Debugf("collecting %d(%v)...", idx, f)
 
-		if pts, err := f(); err != nil {
-			return map[string][]*io.Point{}, err
-		} else {
-			if len(pts) == 0 {
-				continue
-			}
+		pts, err := f()
+		if err != nil {
+			l.Errorf("collectors %v failed: %s", f, err.Error())
+			i.appendLastError(err)
+		}
 
+		if len(pts) > 0 {
 			ptsMetric = append(ptsMetric, pts...)
 		}
 	}
 
 	if i.InnoDB {
 		// mysql_innodb
-		if pts, err := i.metricCollectMysqlInnodb(); err != nil {
-			return map[string][]*io.Point{}, err
-		} else {
+		pts, err := i.metricCollectMysqlInnodb()
+		if err != nil {
+			l.Errorf("metricCollectMysqlInnodb failed: %s", err.Error())
+			i.appendLastError(err)
+		}
+
+		if len(pts) > 0 {
 			ptsMetric = append(ptsMetric, pts...)
 		}
 	}
@@ -430,9 +450,13 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 		if i.DbmMetric.Enabled {
 			g.Go(func(ctx context.Context) error {
 				// mysql_dbm_metric
-				if pts, err := i.metricCollectMysqlDbmMetric(); err != nil {
-					return err
-				} else {
+				pts, err := i.metricCollectMysqlDbmMetric()
+				if err != nil {
+					l.Errorf("metricCollectMysqlDbmMetric failed: %s", err.Error())
+					i.appendLastError(err)
+				}
+
+				if len(pts) > 0 {
 					ptsLoggingMetric = append(ptsLoggingMetric, pts...)
 				}
 				return nil
@@ -441,9 +465,13 @@ func (i *Input) Collect() (map[string][]*io.Point, error) {
 		if i.DbmSample.Enabled {
 			g.Go(func(ctx context.Context) error {
 				// mysql_dbm_sample
-				if pts, err := i.metricCollectMysqlDbmSample(); err != nil {
-					return err
-				} else {
+				pts, err := i.metricCollectMysqlDbmSample()
+				if err != nil {
+					l.Errorf("metricCollectMysqlDbmSample failed: %s", err.Error())
+					i.appendLastError(err)
+				}
+
+				if len(pts) > 0 {
 					ptsLoggingSample = append(ptsLoggingSample, pts...)
 				}
 				return nil
@@ -540,8 +568,6 @@ func (i *Input) Run() {
 	l.Infof("collecting each %v", i.Interval.Duration)
 
 	for {
-		// i.reset()
-
 		if i.pause {
 			l.Debugf("not leader, skipped")
 		} else {
@@ -549,20 +575,26 @@ func (i *Input) Run() {
 		}
 
 		l.Debugf("mysql input gathering...")
-		if mpts, err := i.Collect(); err != nil {
+
+		i.resetLastError()
+
+		mpts, err := i.Collect()
+		if err != nil {
 			l.Warnf("i.Collect failed: %v", err)
 			io.FeedLastError(inputName, err.Error())
-		} else {
-			for category, pts := range mpts {
-				if len(pts) > 0 {
-					if err := io.Feed(inputName, category, pts,
-						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-						l.Warnf("io.Feed failed: %v", err)
-						io.FeedLastError(inputName, err.Error())
-					} // if err
-				}
-			} // for
 		}
+
+		for category, pts := range mpts {
+			if len(pts) > 0 {
+				if err := io.Feed(inputName, category, pts,
+					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+					l.Warnf("io.Feed failed: %v", err)
+					io.FeedLastError(inputName, err.Error())
+				} // if err
+			}
+		} // for
+
+		i.handleLastError()
 
 		select {
 		case <-datakit.Exit.Wait():
