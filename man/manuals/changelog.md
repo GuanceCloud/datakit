@@ -15,9 +15,9 @@
 	- 默认开启采集器移除容器采集器，以避免一些重复的采集问题(#473)
 
 - 其它：
-  - DataKit 支持自身事件上报（以日志形式）(#463)
-	- [ElasticSearch](elasticsearch) 采集器指标集下增加 `indices_lifecycle_error_count` 指标
-	- DataKit 安装完成后自动增加 [cgruop 限制](datakit-conf-how-to#9e364a84)
+	- DataKit 支持自身事件上报（以日志形式）(#463)
+	- [ElasticSearch](elasticsearch) 采集器指标集下增加 `indices_lifecycle_error_count` 指标（注意： 采集该指标，需在 ES [增加 `ilm` 角色](elasticsearch#852abae7)）
+	- DataKit 安装完成后自动增加 [cgroup 限制](datakit-conf-how-to#9e364a84)
 	- 部分跟中心对接的接口升级到了 v2 版本，故对接**非 SAAS 节点**的 DataKit，如果升级到当前版本，其对应的 DataWay 以及 Kodo 也需要升级，否则部分接口会报告 404 错误
 
 ### Breaking Changes
