@@ -14,6 +14,7 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -80,7 +81,10 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 		precision    = completePrecision(queries.Get("precision"))
 		pipelinePath = completePipelinePath(queries.Get("pipeline"))
 
-		extraTags = map[string]string{}
+		// TODO
+		// 每一条 request 都要解析和创建一个 tags，影响性能
+		// 可以将其缓存起来，以 url 的 md5 值为 key
+		extraTags = config.ParseGlobalTags(queries.Get("tags"))
 
 		result = Result{Status: statusSuccess}
 		err    error

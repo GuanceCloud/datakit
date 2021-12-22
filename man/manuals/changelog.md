@@ -2,6 +2,55 @@
 
 # DataKit 版本历史
 
+## 1.1.9-rc7(2021/12/16)
+
+- Pipeline 总体进行了较大的重构(#339)：
+	- 添加 `if/elif/else` [语法](pipeline#1ea7e5aa)
+	- 暂时移除 `expr()/json_all()` 函数
+	- 优化时区处理，增加 `adjust_timezone()` 函数
+	- 各个 Pipeline 函数做了整体测试加强
+
+- DataKit DaemonSet：
+	- Git 配置 DaemonSet [ENV 注入](datakit-daemonset-deploy#00c8a780)(#470)
+	- 默认开启采集器移除容器采集器，以避免一些重复的采集问题(#473)
+
+- 其它：
+  - DataKit 支持自身事件上报（以日志形式）(#463)
+	- [ElasticSearch](elasticsearch) 采集器指标集下增加 `indices_lifecycle_error_count` 指标
+	- DataKit 安装完成后自动增加 [cgruop 限制](datakit-conf-how-to#9e364a84)
+
+### Breaking Changes
+
+处理 json 数据时，如果最顶层是数组，需要使用下标方式进行选择，例如 JSON
+
+```
+[
+	{"abc": 123},
+	{"def": true}
+]
+```
+
+经过 Pipeline 处理完之后，如果取第一个元素的 `abc` 资源，之前版本做法是：
+
+```
+[0].abc
+```
+
+当前版本需改为：
+
+```
+# 在前面加一个 . 字符
+.[0].abc
+```
+
+---
+
+## 1.1.9-rc6.1(2021/12/10)
+
+- 修复 ElasticSearch 以及 Kafka 采集报错问题(#486)
+
+---
+
 ## 1.1.9-rc6(2021/11/30)
 
 - 针对 Pipeline 做了一点紧急修复：

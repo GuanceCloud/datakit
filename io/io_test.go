@@ -33,6 +33,7 @@ func randomPoints(out chan *Point, count int) {
 		opt := &lp.Option{
 			Strict:    true,
 			Precision: "n",
+			Time:      time.Now(),
 		}
 
 		if pt, err := doMakePoint("mock_random_point",
@@ -42,8 +43,7 @@ func randomPoints(out chan *Point, count int) {
 			map[string]interface{}{
 				base64.StdEncoding.EncodeToString(buf[2:]): base64.StdEncoding.EncodeToString(buf[3:]),
 			},
-			opt,
-			time.Now()); err != nil {
+			opt); err != nil {
 			l.Fatal(err.Error())
 		} else {
 			out <- pt

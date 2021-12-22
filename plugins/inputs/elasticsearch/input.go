@@ -68,6 +68,10 @@ type clusterHealth struct {
 	Indices                     map[string]indexHealth `json:"indices"`
 }
 
+type indexState struct {
+	Indices map[string]interface{} `json:"indices"`
+}
+
 type indexHealth struct {
 	ActivePrimaryShards int    `json:"active_primary_shards"`
 	ActiveShards        int    `json:"active_shards"`
@@ -292,9 +296,14 @@ func (*Input) PipelineConfig() map[string]string {
 func (i *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: i.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }
@@ -315,11 +324,8 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&nodeStatsMeasurement{},
 		&indicesStatsMeasurement{},
-		// &indicesStatsShardsMeasurement{},
-		// &indicesStatsShardsTotalMeasurement{},
 		&clusterStatsMeasurement{},
 		&clusterHealthMeasurement{},
-		// &clusterHealthIndicesMeasurement{},
 	}
 }
 
@@ -377,7 +383,7 @@ func (i *Input) Collect() error {
 					if i.ClusterHealthLevel != "" {
 						url = url + "?level=" + i.ClusterHealthLevel
 					}
-					if err := i.gatherClusterHealth(url); err != nil {
+					if err := i.gatherClusterHealth(url, s); err != nil {
 						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
@@ -551,26 +557,6 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 	}
 	now := time.Now()
 
-	// disable
-	// Total Shards Stats
-	// shardsStats := map[string]interface{}{}
-	// for k, v := range indicesStats.Shards {
-	//   shardsStats[k] = v
-	// }
-
-	// metric := &indicesStatsShardsTotalMeasurement{
-	//   elasticsearchMeasurement: elasticsearchMeasurement{
-	//     name:   "elasticsearch_indices_stats_shards_total",
-	//     tags:   map[string]string{},
-	//     fields: shardsStats,
-	//     ts:     now,
-	//   },
-	// }
-
-	// if len(metric.fields) > 0 {
-	//   i.collectCache = append(i.collectCache, metric)
-	// }
-
 	// All Stats
 	for m, s := range indicesStats.All {
 		// parse Json, ignoring strings and bools
@@ -642,62 +628,6 @@ func (i *Input) gatherIndicesStats(url string, clusterName string) error {
 				i.collectCache = append(i.collectCache, metric)
 			}
 		}
-
-		// disable now
-		// if false && i.IndicesLevel == "shards" {
-		//   for shardNumber, shards := range index.Shards {
-		//     for _, shard := range shards {
-
-		//       // Get Shard Stats
-		//       flattened := JSONFlattener{}
-		//       err := flattened.FullFlattenJSON("", shard, true, true)
-		//       if err != nil {
-		//         return err
-		//       }
-
-		//       // determine shard tag and primary/replica designation
-		//       shardType := "replica"
-		//       if flattened.Fields["routing_primary"] == true {
-		//         shardType = "primary"
-		//       }
-		//       delete(flattened.Fields, "routing_primary")
-
-		//       routingState, ok := flattened.Fields["routing_state"].(string)
-		//       if ok {
-		//         flattened.Fields["routing_state"] = mapShardStatusToCode(routingState)
-		//       }
-
-		//       routingNode, _ := flattened.Fields["routing_node"].(string)
-		//       shardTags := map[string]string{
-		//         "index_name": id,
-		//         "node_id":    routingNode,
-		//         "shard_name": string(shardNumber),
-		//         "type":       shardType,
-		//       }
-
-		//       for key, field := range flattened.Fields {
-		//         switch field.(type) {
-		//         case string, bool:
-		//           delete(flattened.Fields, key)
-		//         }
-		//       }
-
-		//       i.extendSelfTag(shardTags)
-		//       metric := &indicesStatsShardsMeasurement{
-		//         elasticsearchMeasurement: elasticsearchMeasurement{
-		//           name:   "elasticsearch_indices_stats_shards",
-		//           tags:   shardTags,
-		//           fields: flattened.Fields,
-		//           ts:     now,
-		//         },
-		//       }
-
-		//       if len(metric.fields) > 0 {
-		//         i.collectCache = append(i.collectCache, metric)
-		//       }
-		//     }
-		//   }
-		// }
 	}
 
 	return nil
@@ -841,9 +771,12 @@ func (i *Input) gatherClusterStats(url string) error {
 	return nil
 }
 
-func (i *Input) gatherClusterHealth(url string) error {
+func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	healthStats := &clusterHealth{}
+	indicesRes := &indexState{}
 	if err := i.gatherJSONData(url, healthStats); err != nil {
+		return err
+	} else if err := i.gatherJSONData(serverURL+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
 		return err
 	}
 	now := time.Now()
@@ -863,6 +796,7 @@ func (i *Input) gatherClusterHealth(url string) error {
 		"task_max_waiting_in_queue_millis": healthStats.TaskMaxWaitingInQueueMillis,
 		"timed_out":                        healthStats.TimedOut,
 		"unassigned_shards":                healthStats.UnassignedShards,
+		"indices_lifecycle_error_count":    len(indicesRes.Indices),
 	}
 
 	allFields := make(map[string]interface{})
@@ -888,34 +822,6 @@ func (i *Input) gatherClusterHealth(url string) error {
 	if len(metric.fields) > 0 {
 		i.collectCache = append(i.collectCache, metric)
 	}
-
-	// disable
-	// for name, health := range healthStats.Indices {
-	//   indexFields := map[string]interface{}{
-	//     "active_primary_shards": health.ActivePrimaryShards,
-	//     "active_shards":         health.ActiveShards,
-	//     "initializing_shards":   health.InitializingShards,
-	//     "number_of_replicas":    health.NumberOfReplicas,
-	//     "number_of_shards":      health.NumberOfShards,
-	//     "relocating_shards":     health.RelocatingShards,
-	//     "status":                health.Status,
-	//     "status_code":           mapHealthStatusToCode(health.Status),
-	//     "unassigned_shards":     health.UnassignedShards,
-	//   }
-
-	//   metric := &clusterHealthIndicesMeasurement{
-	//     elasticsearchMeasurement: elasticsearchMeasurement{
-	//       name:   "elasticsearch_cluster_health_indices",
-	//       tags:   map[string]string{"index": name, "name": healthStats.ClusterName},
-	//       fields: indexFields,
-	//       ts:     now,
-	//     },
-	//   }
-
-	//   if len(metric.fields) > 0 {
-	//     i.collectCache = append(i.collectCache, metric)
-	//   }
-	// }
 
 	return nil
 }

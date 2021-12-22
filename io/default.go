@@ -7,6 +7,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -94,6 +95,12 @@ func SetHighFreqFeedChanSize(size int) IOOption {
 	}
 }
 
+func SetEnableCache(enable bool) IOOption {
+	return func(io *IO) {
+		io.EnableCache = enable
+	}
+}
+
 func ConfigDefaultIO(opts ...IOOption) {
 	for _, opt := range opts {
 		opt(defaultIO)
@@ -107,13 +114,23 @@ func Start() error {
 
 	defaultIO.in = make(chan *iodata, defaultIO.FeedChanSize)
 	defaultIO.in2 = make(chan *iodata, defaultIO.HighFreqFeedChanSize)
-	defaultIO.inLastErr = make(chan *lastErr, 128)
+	defaultIO.inLastErr = make(chan *lastError, 128)
 	defaultIO.inputstats = map[string]*InputsStat{}
 	defaultIO.qstatsCh = make(chan *qinputStats) // blocking
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}
 
 	defaultIO.StartIO(true)
+
+	if defaultIO.EnableCache {
+		if err := cache.Initialize(datakit.CacheDir, nil); err != nil {
+			l.Warn("initialized cache: %s, ignored", err)
+		} else { //nolint
+			if err := cache.CreateBucketIfNotExists(cacheBucket); err != nil {
+				l.Warn("create bucket: %s", err)
+			}
+		}
+	}
 
 	l.Debugf("io: %+#v", defaultIO)
 
@@ -163,30 +180,6 @@ func ChanStat() string {
 	l2 := len(defaultIO.in2)
 	c2 := cap(defaultIO.in2)
 	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
-}
-
-func Feed(name, category string, pts []*Point, opt *Option) error {
-	if len(pts) == 0 {
-		return fmt.Errorf("no points")
-	}
-
-	return defaultIO.DoFeed(pts, category, name, opt)
-}
-
-func FeedLastError(inputName string, err string) {
-	select {
-	case defaultIO.inLastErr <- &lastErr{
-		from: inputName,
-		err:  err,
-		ts:   time.Now(),
-	}:
-	case <-datakit.Exit.Wait():
-		l.Warnf("%s feed last error skipped on global exit", inputName)
-	}
-}
-
-func SelfError(err string) {
-	FeedLastError(datakit.DatakitInputName, err)
 }
 
 func DroppedTotal() int64 {

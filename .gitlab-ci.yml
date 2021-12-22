@@ -18,7 +18,11 @@ release-nothing-only-build:
     - /^iss-.*$/
   script:
     # only building
+    - make clean
+    - make deps
     - make ci_notify
+    - make lint
+    - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
     - make check_conf_compatible
     - make ci_pass_notify
@@ -32,7 +36,11 @@ release-testing:
     - /^testing-.*$/
   script:
     # building && publish testing
+    - make clean
+    - make deps
     - make ci_notify
+    - make lint
+    - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
     - make check_conf_compatible
     - make pub_testing
@@ -46,7 +54,11 @@ release-production:
   only:
     - master
   script:
+    - make clean
+    - make deps
     - make ci_notify
+    - make lint
+    - make all_test
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH
     - make check_conf_compatible
     - make pub_production

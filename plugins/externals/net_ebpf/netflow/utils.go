@@ -22,9 +22,9 @@ import (
 
 var l = logger.DefaultSLogger("net_ebpf")
 
-var dnsRecord *dnsflow.DNSRecord
+var dnsRecord *dnsflow.DNSAnswerRecord
 
-func SetDNSRecord(r *dnsflow.DNSRecord) {
+func SetDNSRecord(r *dnsflow.DNSAnswerRecord) {
 	dnsRecord = r
 }
 

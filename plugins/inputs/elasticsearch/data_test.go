@@ -78,6 +78,7 @@ var clusterHealthExpected = map[string]interface{}{
 	"number_of_pending_tasks": 0,
 	// "task_max_waiting_in_queue_millis": 0,
 	// "active_shards_percent_as_number":  100.0,
+	"indices_lifecycle_error_count": 0,
 }
 
 var v1IndexExpected = map[string]interface{}{
@@ -1188,6 +1189,7 @@ var nodestatsExpected = map[string]interface{}{
 	"breakers_parent_estimated_size_in_bytes":           float64(0),
 }
 
+/*
 const clusterStatsResponse = `
 {
    "host":"ip-10-0-1-214",
@@ -1354,9 +1356,9 @@ const clusterStatsResponse = `
          }
       ]
    }
-}
-`
+}` */
 
+/*
 var clusterstatsExpected = map[string]interface{}{
 	"indices_completion_size_in_bytes":                  float64(0),
 	"indices_count":                                     float64(1),
@@ -1449,7 +1451,7 @@ var clusterstatsExpected = map[string]interface{}{
 	"nodes_plugins_2_name":                              "tr-metrics",
 	"nodes_plugins_2_site":                              false,
 	"nodes_plugins_2_version":                           "7bd5b4b",
-}
+} */
 
 const IsMasterResult = "SDFsfSDFsdfFSDSDfSFDSDF 10.206.124.66 10.206.124.66 test.host.com "
 

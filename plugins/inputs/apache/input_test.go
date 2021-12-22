@@ -48,12 +48,6 @@ func TestParse(t *testing.T) {
 	if _, err := n.parse(body); err != nil {
 		t.Error(err)
 	}
-
-	var m Measurement
-	if _, err := m.LineProto(); err != nil {
-		t.Error(err)
-	}
-	m.Info()
 }
 
 func TestGetMetric(t *testing.T) {
