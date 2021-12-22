@@ -102,26 +102,32 @@ grok(_, %{time})
 
 ## 脚本执行流
 
-pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>` 和 `!=`
+pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>=` 和 `!=`，
 表达式两边可以是已存在的 key 或固定值，例如：
 
 ```python
-add_key("score", 95)
+# 数值比较
+add_key(score, 95)
 
 if score >= 90 {
-	add_key("level", "A")
+	add_key(level, "A")
 } elif score >= 75 {
-	add_key("level", "B")
+	add_key(level, "B")
 } elif score >= 60 {
-	add_key("level", "C")
+	add_key(level, "C")
 } else {
-	add_key("level", "D")
+	add_key(level, "D")
+}
+
+# 字符串比较
+add_key(name, "张三")
+
+if name == "法外狂徒" {
+	# 这是不可能的，不要污蔑我
 }
 ```
 
-和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。
-
-暂时不支持多个条件表达式的 `AND` 和 `OR`。
+和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。 暂时不支持多个条件表达式的 `AND` 和 `OR`。
 
 ## 脚本函数
 
@@ -274,7 +280,7 @@ json(_, name) json(name, first)
 json(_, [0].nets[-1])
 ```
 
-### `json_all()`
+<!-- ### `json_all()`
 
 *此函数已被暂时移除*
 
@@ -370,7 +376,7 @@ rename('height', `身高`) # 身高因为是 Unicode 字符，需要 `` 包围�
     "name.first"         : "Tom",
     "name.last"          : "Anderson"
 }
-```
+``` -->
 
 ### `rename()`
 
@@ -502,6 +508,7 @@ Kitchen     = "3:04PM"
 json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')
 ```
 
+<!--
 ### `expr()`
 
 *此函数已被暂时移除*
@@ -550,7 +557,7 @@ expr(a.second*10+(2+3)*5, bb)
 {
    "bb": "45"
 }
-```
+``` -->
 
 ### `cast()`
 
@@ -646,7 +653,7 @@ group_in(log_level, ["error", "panic"], "not-ok", status)
 # 待处理数据: {"first": "hello","second":2,"thrid":"aBC","forth":true}
 
 # 处理脚本
-json(_, first) uppercase(first, "1")
+json(_, first) uppercase(first)
 
 # 处理结果
 {
@@ -703,6 +710,14 @@ json(_, first) json(_, second) nullif(first, "1")
 }
 ```
 
+> 注：该功能可通过 `if/else` 语义来实现：
+
+```python
+if first == "1" {
+	drop_key(first)
+}
+```
+
 ### `strfmt()`
 
 函数原型：`strfmt(key=required, fmt=required, key1=optional, key2, ...)`
@@ -739,10 +754,8 @@ strfmt(bb, "%v %s %v", a.second, a.thrid, a.forth)
 ```python
 # 待处理数据: {"age": 17, "name": "zhangsan", "height": 180}
 
-# 处理脚本
+# 结果集中删除 message 内容
 drop_origin_data()
-
-# 结果集中删除message内容
 ```
 
 ### `add_key()`
