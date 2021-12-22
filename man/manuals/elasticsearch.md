@@ -16,8 +16,8 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 - 设置 `cluster_stats = true` 可产生如下指标集
   - `elasticsearch_cluster_stats`
 - 如果开启账号密码访问，需要配置该账号拥有访问集群和索引监控的 `monitor` 权限，否则会导致监控信息获取失败错误。用户设置参考如下：
-  - 方法一：使用内置用户 `remote_monitoring_user` (推荐) 
-  - 方法二：创建自定义用户，需要赋予角色 `remote_monitoring_collector`
+  - 创建角色`ilm`，赋予索引 `all`的`manage_ilm`权限
+  - 创建自定义用户，并赋予角色 `remote_monitoring_collector`和新创建的`ilm`
 - 其他信息请参考配置文件说明
 
 ## 配置
