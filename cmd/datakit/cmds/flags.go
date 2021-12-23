@@ -272,7 +272,8 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := promDebugger(FlagProm); err != nil {
-			l.Errorf("promDebugger: %s", err)
+			errorf("[E] %s\n", err)
+			os.Exit(-1)
 		}
 
 		os.Exit(0)
