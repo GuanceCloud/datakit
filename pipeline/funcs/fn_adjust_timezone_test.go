@@ -8,14 +8,14 @@ import (
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
-const Hour8 = 8 * timeHourNanosec
+const Hour8 = int64(8 * time.Hour)
 
 func TestAdjustTimezone(t *testing.T) {
 	// local timezone: utc+0800
 	cst := time.FixedZone("CST", 8*3600)
 	time.Local = cst
 
-	tn := time.Now()
+	tn := time.Now().Add(time.Minute * 10)
 	cases := []struct {
 		name, pl, in string
 		outkey       string

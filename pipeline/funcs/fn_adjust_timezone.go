@@ -51,13 +51,13 @@ func AdjustTimezone(ng *parser.Engine, node parser.Node) error {
 	return nil
 }
 
-const timeHourNanosec = 3600000000000
+const timeHourNanosec = int64(time.Hour)
 
 func detactTimezone(cont interface{}) (int64, error) {
 	switch cont := cont.(type) {
 	case int64:
 		tn := time.Now().UnixNano()
-		deltaTZ := (tn - cont) / timeHourNanosec
+		deltaTZ := (tn - cont - (tn%timeHourNanosec - cont%timeHourNanosec)) / timeHourNanosec
 		if (deltaTZ > 24) || (deltaTZ < -24) {
 			return 0, fmt.Errorf("delta time > 24h")
 		}
