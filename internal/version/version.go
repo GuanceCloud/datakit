@@ -163,6 +163,18 @@ func IsValidReleaseVersion(releaseVer string) bool {
 	return false
 }
 
+func (vi *VerInfo) GetMinor() uint64 {
+	return vi.minor
+}
+
+func (vi *VerInfo) GetMajor() uint64 {
+	return vi.major
+}
+
+func (vi *VerInfo) GetMin() uint64 {
+	return vi.min
+}
+
 func (vi *VerInfo) IsStable() bool {
 	return vi.minor%2 == 0
 }

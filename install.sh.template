@@ -55,7 +55,7 @@ else
 fi
 
 ##################
-# Global variables
+# colors
 ##################
 RED="\033[31m"
 CLR="\033[0m"
@@ -299,7 +299,8 @@ chmod +x $installer
 if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
-    $sudo_cmd $installer --upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
+    $sudo_cmd $installer  \
+		--upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 		$sudo_cmd $installer                         \

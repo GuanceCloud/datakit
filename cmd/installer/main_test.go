@@ -36,21 +36,21 @@ func TestCheckUpgradeVersion(t *testing.T) {
 		},
 
 		{
-			id:   `unstable-rc-version`,
-			s:    "1.1.9-rc1",
-			fail: true,
+			id:   `1.1.x-stable-rc-version`,
+			s:    "1.1.9-rc1", // treat 1.1.x as stable
+			fail: false,
 		},
 
 		{
-			id:   `unstable-rc-testing-version`,
-			s:    "1.1.7-rc1-125-g40c4860c",
-			fail: true,
+			id:   `1.1.x-stable-rc-testing-version`,
+			s:    "1.1.7-rc1-125-g40c4860c", // also as stable
+			fail: false,
 		},
 
 		{
-			id:   `unstable-rc-hotfix-version`,
-			s:    "1.1.7-rc7.1",
-			fail: true,
+			id:   `1.1.x-stable-rc-hotfix-version`,
+			s:    "1.1.7-rc7.1", // stable
+			fail: false,
 		},
 
 		{
