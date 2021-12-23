@@ -2,17 +2,20 @@ package dialtesting
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
@@ -358,88 +361,88 @@ func cleanTLSData() {
 	}
 }
 
-// func TestDialHTTP(t *testing.T) {
-// 	stopserver := make(chan interface{})
+func TestDialHTTP(t *testing.T) {
+	stopserver := make(chan interface{})
 
-// 	defer close(stopserver)
-// 	defer cleanTLSData()
+	defer close(stopserver)
+	defer cleanTLSData()
 
-// 	go proxyServer(t)
-// 	go httpServer(t, "localhost:54321", false, stopserver) // http server
-// 	go httpServer(t, "localhost:45323", true, stopserver)  // https server
+	go proxyServer(t)
+	go httpServer(t, "localhost:54321", false, stopserver) // http server
+	go httpServer(t, "localhost:45323", true, stopserver)  // https server
 
-// 	time.Sleep(time.Second) // wait servers ok
+	time.Sleep(time.Second) // wait servers ok
 
-// 	for _, c := range httpCases {
-// 		t.Run(c.name, func(t *testing.T) {
-// 			if err := c.t.Init(); err != nil {
-// 				if c.fail == false {
-// 					t.Errorf("case %s failed: %s", c.t.Name, err)
-// 				} else {
-// 					t.Logf("expected: %s", err.Error())
-// 				}
-// 				return
-// 			}
+	for _, c := range httpCases {
+		t.Run(c.name, func(t *testing.T) {
+			if err := c.t.Init(); err != nil {
+				if c.fail == false {
+					t.Errorf("case %s failed: %s", c.t.Name, err)
+				} else {
+					t.Logf("expected: %s", err.Error())
+				}
+				return
+			}
 
-// 			if err := c.t.Run(); err != nil {
-// 				if c.fail == false {
-// 					t.Errorf("case %s failed: %s", c.t.Name, err)
-// 				} else {
-// 					t.Logf("expected: %s", err.Error())
-// 				}
-// 				return
-// 			}
+			if err := c.t.Run(); err != nil {
+				if c.fail == false {
+					t.Errorf("case %s failed: %s", c.t.Name, err)
+				} else {
+					t.Logf("expected: %s", err.Error())
+				}
+				return
+			}
 
-// 			tags, fields := c.t.GetResults()
+			tags, fields := c.t.GetResults()
 
-// 			t.Logf("tags: %+#v", tags)
-// 			t.Logf("fields: %+#v", fields)
+			t.Logf("tags: %+#v", tags)
+			t.Logf("fields: %+#v", fields)
 
-// 			reasons := c.t.CheckResult()
-// 			tu.Equals(t, len(reasons), c.reasonCnt)
+			reasons := c.t.CheckResult()
+			tu.Equals(t, len(reasons), c.reasonCnt)
 
-// 			if len(reasons) > 0 {
-// 				t.Logf("case %s reasons:\n\t%s",
-// 					c.t.Name, strings.Join(reasons, "\n\t"))
-// 			}
-// 		})
-// 	}
-// }
+			if len(reasons) > 0 {
+				t.Logf("case %s reasons:\n\t%s",
+					c.t.Name, strings.Join(reasons, "\n\t"))
+			}
+		})
+	}
+}
 
-// func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
-// 	t.Helper()
-// 	gin.SetMode(gin.ReleaseMode)
+func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
+	t.Helper()
+	gin.SetMode(gin.ReleaseMode)
 
-// 	r := gin.New()
-// 	gin.DisableConsoleColor()
-// 	r.Use(gin.Recovery())
+	r := gin.New()
+	gin.DisableConsoleColor()
+	r.Use(gin.Recovery())
 
-// 	addTestingRoutes(t, r, https)
+	addTestingRoutes(t, r, https)
 
-// 	// start HTTP server
-// 	srv := &http.Server{
-// 		Addr:    bind,
-// 		Handler: r,
-// 	}
+	// start HTTP server
+	srv := &http.Server{
+		Addr:    bind,
+		Handler: r,
+	}
 
-// 	if https {
-// 		prepareSSL(t)
-// 		go func() {
-// 			if err := srv.ListenAndServeTLS(".crt.pem", ".key.pem"); err != nil {
-// 				t.Errorf("ListenAndServeTLS(): %s", err)
-// 			}
-// 		}()
-// 	} else {
-// 		go func() {
-// 			if err := srv.ListenAndServe(); err != nil {
-// 				t.Logf("ListenAndServe(): %s", err)
-// 			}
-// 		}()
-// 	}
+	if https {
+		prepareSSL(t)
+		go func() {
+			if err := srv.ListenAndServeTLS(".crt.pem", ".key.pem"); err != nil {
+				t.Logf("ListenAndServeTLS(): %s", err)
+			}
+		}()
+	} else {
+		go func() {
+			if err := srv.ListenAndServe(); err != nil {
+				t.Logf("ListenAndServe(): %s", err)
+			}
+		}()
+	}
 
-// 	<-exit
-// 	_ = srv.Shutdown(context.Background())
-// }
+	<-exit
+	_ = srv.Shutdown(context.Background())
+}
 
 func proxyServer(t *testing.T) {
 	t.Helper()
