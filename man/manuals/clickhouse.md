@@ -6,17 +6,19 @@
 
 # ClickHouse
 
-ClickHouse 采集器可以利用 Prometheus 从 ClickHouse 服务器实例中采取很多指标，比如语句执行数量和内存存储量，IO交互等多种指标，并将指标采集到观测云 ，帮助你监控分析 ClickHouse 各种异常情况
+ClickHouse 采集器可以采集 ClickHouse 服务器实例主动暴露的多种指标，比如语句执行数量和内存存储量，IO交互等多种指标，并将指标采集到观测云，帮助你监控分析 ClickHouse 各种异常情况。
 
 ## 前置条件
 ### ClickHouse 端口号配置
 
 ClickHouse 版本 >=v20.1.2.4
 
-在 ClickHouse-server 的config.xml配置文件中找到如下的代码段，取消注释，并设置Prometheus监听的端口号。修改完成后重启（若为集群，则每台机器均需操作）。
+在 clickhouse-server 的 config.xml 配置文件中找到如下的代码段，取消注释，并设置 metrics 暴露的端口号（具体哪个自己造择，唯一即可）。修改完成后重启（若为集群，则每台机器均需操作）。
+
 ```shell
-vim /etc/ClickHouse-server/config.xml
+vim /etc/clickhouse-server/config.xml
 ```
+
 ```xml
 <prometheus>
     <endpoint>/metrics</endpoint>
@@ -26,31 +28,13 @@ vim /etc/ClickHouse-server/config.xml
     <asynchronous_metrics>true</asynchronous_metrics>
 </prometheus>
 ```
+
 - `endpoint` Prometheus服务器抓取指标的HTTP端点
 - `port` 端点的端口号
 - `metrics` 从 ClickHouse 中 system.metrics 表中抓取暴露的指标标志
 - `events` 从 ClickHouse 中 system.events 表中抓取暴露的事件标志
 - `asynchronous_metrics` 从 ClickHouse 中 system.asynchronous_metrics 表中抓取暴露的异步指标标志
 > 以上摘自[ClickHouse 官方文档](https://ClickHouse.com/docs/en/operations/server-configuration-parameters/settings/#server_configuration_parameters-prometheus)
-
-### Prometheus监听配置
-
-机器配置好Prometheus之后，修改其配置文件
-```shell
-vim /your-install-dir/prometheus/prometheus.yml
-```
-```yaml
-- job_name: "ClickHouse"
-
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-    
-    #添加job_name为ClickHouse并修改为与ClickHouse配置中一致的端口号
-    
-    static_configs:
-            - targets: ["localhost:9363"]
-```
-
 
 ## 配置
 
@@ -63,6 +47,7 @@ vim /your-install-dir/prometheus/prometheus.yml
 配置好后，重启 DataKit 即可。
 
 ## 指标集
+
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.prom.tags]`自定义指定其它Tags：(集群可添加主机名)
 
 ``` toml
@@ -78,6 +63,7 @@ vim /your-install-dir/prometheus/prometheus.yml
 {{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
+
 {{$m.Desc}}
 
 -  标签

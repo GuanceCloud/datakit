@@ -28,12 +28,20 @@ type AsyncMetricsMeasurement struct {
 	ts     time.Time
 }
 
+type StatusInfoMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
 const (
-	defaultDesc            = " - "
-	TypeMetric             = "metric"
-	inputNameAsyncMetrics  = "ClickHouseAsyncMetrics"
-	inputNameMetrics       = "ClickHouseMetrics"
-	inputNameProfileEvents = "ClickHouseProfileEvents"
+	defaultDesc          = " - "
+	TypeMetric           = "metric"
+	metricsAsyncMetrics  = "ClickHouseAsyncMetrics"
+	metricsMetrics       = "ClickHouseMetrics"
+	metricsProfileEvents = "ClickHouseProfileEvents"
+	metricsStatusInfo    = "ClickHouseStatusInfo"
 )
 
 func (m *ProfileEventsMeasurement) LineProto() (*io.Point, error) {
@@ -48,9 +56,13 @@ func (m *AsyncMetricsMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+func (m *StatusInfoMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
 func (m *AsyncMetricsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputNameAsyncMetrics,
+		Name: metricsAsyncMetrics,
 		Type: TypeMetric,
 		Fields: map[string]interface{}{
 			"AsynchronousMetricsCalculationTimeSpent":  newGaugeFieldInfo(defaultDesc),
@@ -257,7 +269,7 @@ func (m *AsyncMetricsMeasurement) Info() *inputs.MeasurementInfo {
 			"OSNiceTimeNormalized":                     newGaugeFieldInfo(defaultDesc),
 		},
 		Tags: map[string]interface{}{
-			"host": inputs.NewTagInfo("主机名称"),
+			"host": inputs.NewTagInfo("host name"),
 		},
 	}
 }
@@ -265,87 +277,87 @@ func (m *AsyncMetricsMeasurement) Info() *inputs.MeasurementInfo {
 //nolint:lll
 func (m *MetricsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputNameMetrics,
+		Name: metricsMetrics,
 		Type: TypeMetric,
 		Fields: map[string]interface{}{
-			"Query":                                   newCountFieldInfo(" Number of executing queries"),
-			"Merge":                                   newCountFieldInfo(" Number of executing background merges"),
-			"PartMutation":                            newCountFieldInfo(" Number of mutations (ALTER DELETE/UPDATE)"),
-			"ReplicatedFetch":                         newCountFieldInfo(" Number of data parts being fetched from replica"),
-			"ReplicatedSend":                          newCountFieldInfo(" Number of data parts being sent to replicas"),
-			"ReplicatedChecks":                        newCountFieldInfo(" Number of data parts checking for consistency"),
-			"BackgroundMergesAndMutationsPoolTask":    newCountFieldInfo(" Number of active merges and mutations in an associated background pool"),
-			"BackgroundFetchesPoolTask":               newCountFieldInfo(" Number of active fetches in an associated background pool"),
-			"BackgroundCommonPoolTask":                newCountFieldInfo(" Number of active tasks in an associated background pool"),
-			"BackgroundMovePoolTask":                  newCountFieldInfo(" Number of active tasks in BackgroundProcessingPool for moves"),
-			"BackgroundSchedulePoolTask":              newCountFieldInfo(" Number of active tasks in BackgroundSchedulePool. "),
-			"BackgroundBufferFlushSchedulePoolTask":   newCountFieldInfo(" Number of active tasks in BackgroundBufferFlushSchedulePool. This pool is used for periodic Buffer flushes"),
-			"BackgroundDistributedSchedulePoolTask":   newCountFieldInfo(" Number of active tasks in BackgroundDistributedSchedulePool. "),
-			"BackgroundMessageBrokerSchedulePoolTask": newCountFieldInfo(" Number of active tasks in BackgroundProcessingPool for message streaming"),
-			"CacheDictionaryUpdateQueueBatches":       newCountFieldInfo(" Number of 'batches' (a set of keys) in update queue in CacheDictionaries."),
-			"CacheDictionaryUpdateQueueKeys":          newCountFieldInfo(" Exact number of keys in update queue in CacheDictionaries."),
-			"DiskSpaceReservedForMerge":               newCountFieldInfo(" Disk space reserved for currently running background merges. It is slightly more than the total size of currently merging parts."),
-			"DistributedSend":                         newCountFieldInfo(" Number of connections to remote servers sending data that was INSERTed into Distributed tables. Both synchronous and asynchronous mode."),
-			"QueryPreempted":                          newCountFieldInfo(" Number of queries that are stopped and waiting due to 'priority' setting."),
-			"TCPConnection":                           newCountFieldInfo(" Number of connections to TCP server (clients with native interface), also included server-server distributed query connections"),
-			"MySQLConnection":                         newCountFieldInfo(" Number of client connections using MySQL protocol"),
-			"HTTPConnection":                          newCountFieldInfo(" Number of connections to HTTP server"),
-			"InterserverConnection":                   newCountFieldInfo(" Number of connections from other replicas to fetch parts"),
-			"PostgreSQLConnection":                    newCountFieldInfo(" Number of client connections using PostgreSQL protocol"),
-			"OpenFileForRead":                         newCountFieldInfo(" Number of files open for reading"),
-			"OpenFileForWrite":                        newCountFieldInfo(" Number of files open for writing"),
-			"Read":                                    newCountFieldInfo(" Number of read (read, pread, io_getevents, etc.) syscalls in fly"),
-			"Write":                                   newCountFieldInfo(" Number of write (write, pwrite, io_getevents, etc.) syscalls in fly"),
-			"NetworkReceive":                          newCountFieldInfo(" Number of threads receiving data from network. Only ClickHouse-related network interaction is included, not by 3rd party libraries."),
-			"NetworkSend":                             newCountFieldInfo(" Number of threads sending data to network. Only ClickHouse-related network interaction is included, not by 3rd party libraries."),
-			"SendScalars":                             newCountFieldInfo(" Number of connections that are sending data for scalars to remote servers."),
-			"SendExternalTables":                      newCountFieldInfo(" Number of connections that are sending data for external tables to remote servers. "),
-			"QueryThread":                             newCountFieldInfo(" Number of query processing threads"),
-			"ReadonlyReplica":                         newCountFieldInfo(" Number of Replicated tables that are currently in readonly state due to re-initialization after ZooKeeper session loss or due to startup without ZooKeeper configured."),
-			"MemoryTracking":                          newCountFieldInfo(" Total amount of memory (bytes) allocated by the server."),
-			"EphemeralNode":                           newCountFieldInfo(" Number of ephemeral nodes hold in ZooKeeper."),
-			"ZooKeeperSession":                        newCountFieldInfo(" Number of sessions (connections) to ZooKeeper."),
-			"ZooKeeperWatch":                          newCountFieldInfo(" Number of watches (event subscriptions) in ZooKeeper."),
-			"ZooKeeperRequest":                        newCountFieldInfo(" Number of requests to ZooKeeper in fly."),
-			"DelayedInserts":                          newCountFieldInfo(" Number of INSERT queries that are throttled due to high number of active data parts for partition in a MergeTree table."),
-			"ContextLockWait":                         newCountFieldInfo(" Number of threads waiting for lock in Context. This is global lock."),
-			"StorageBufferRows":                       newCountFieldInfo(" Number of rows in buffers of Buffer tables"),
-			"StorageBufferBytes":                      newCountFieldInfo(" Number of bytes in buffers of Buffer tables"),
-			"DictCacheRequests":                       newCountFieldInfo(" Number of requests in fly to data sources of dictionaries of cache type."),
-			"Revision Revision":                       newCountFieldInfo(" of the server. It is a number incremented for every release or release candidate except patch releases."),
-			"VersionInteger":                          newCountFieldInfo(" Version of the server in a single integer number in base-1000. For example, version 11.22.33 is translated to 11022033."),
-			"RWLockWaitingReaders":                    newCountFieldInfo(" Number of threads waiting for read on a table RWLock."),
-			"RWLockWaitingWriters":                    newCountFieldInfo(" Number of threads waiting for write on a table RWLock."),
-			"RWLockActiveReaders":                     newCountFieldInfo(" Number of threads holding read lock in a table RWLock."),
-			"RWLockActiveWriters":                     newCountFieldInfo(" Number of threads holding write lock in a table RWLock."),
-			"GlobalThread":                            newCountFieldInfo(" Number of threads in global thread pool."),
-			"GlobalThreadActive":                      newCountFieldInfo(" Number of threads in global thread pool running a task."),
-			"LocalThread":                             newCountFieldInfo(" Number of threads in local thread pools. The threads in local thread pools are taken from the global thread pool."),
-			"LocalThreadActive":                       newCountFieldInfo(" Number of threads in local thread pools running a task."),
-			"DistributedFilesToInsert":                newCountFieldInfo(" Number of pending files to process for asynchronous insertion into Distributed tables. Number of files for every shard is summed."),
-			"BrokenDistributedFilesToInsert":          newCountFieldInfo(" Number of files for asynchronous insertion into Distributed tables that has been marked as broken."),
-			"TablesToDropQueueSize":                   newCountFieldInfo(" Number of dropped tables, that are waiting for background data removal."),
-			"MaxDDLEntryID":                           newCountFieldInfo(" Max processed DDL entry of DDLWorker."),
-			"MaxPushedDDLEntryID":                     newCountFieldInfo(" Max DDL entry of DDLWorker that pushed to zookeeper."),
-			"PartsTemporary":                          newCountFieldInfo(" The part is generating now, it is not in data_parts list."),
-			"PartsPreCommitted":                       newCountFieldInfo(" The part is in data_parts, but not used for SELECTs."),
-			"PartsCommitted":                          newCountFieldInfo(" Active data part, used by current and upcoming SELECTs."),
-			"PartsOutdated":                           newCountFieldInfo(" Not active data part, but could be used by only current SELECTs, could be deleted after SELECTs finishes."),
-			"PartsDeleting":                           newCountFieldInfo(" Not active data part with identity refcounter, it is deleting right now by a cleaner."),
-			"PartsDeleteOnDestroy":                    newCountFieldInfo(" Part was moved to another disk and should be deleted in own destructor."),
-			"PartsWide":                               newCountFieldInfo(" Wide parts."),
-			"PartsCompact":                            newCountFieldInfo(" Compact parts."),
-			"PartsInMemory":                           newCountFieldInfo(" In-memory parts."),
-			"MMappedFiles":                            newCountFieldInfo(" Total number of mmapped files."),
-			"MMappedFileBytes":                        newCountFieldInfo(" Sum size of mmapped file regions."),
-			"AsyncDrainedConnections":                 newCountFieldInfo(" Number of connections drained asynchronously."),
-			"ActiveAsyncDrainedConnections":           newCountFieldInfo(" Number of active connections drained asynchronously."),
-			"SyncDrainedConnections":                  newCountFieldInfo(" Number of connections drained synchronously."),
-			"ActiveSyncDrainedConnections":            newCountFieldInfo(" Number of active connections drained synchronously."),
-			"AsynchronousReadWait":                    newCountFieldInfo(" Number of threads waiting for asynchronous read."),
+			"Query":                                   newGaugeFieldInfo(" Number of executing queries"),
+			"Merge":                                   newGaugeFieldInfo(" Number of executing background merges"),
+			"PartMutation":                            newGaugeFieldInfo(" Number of mutations (ALTER DELETE/UPDATE)"),
+			"ReplicatedFetch":                         newGaugeFieldInfo(" Number of data parts being fetched from replica"),
+			"ReplicatedSend":                          newGaugeFieldInfo(" Number of data parts being sent to replicas"),
+			"ReplicatedChecks":                        newGaugeFieldInfo(" Number of data parts checking for consistency"),
+			"BackgroundMergesAndMutationsPoolTask":    newGaugeFieldInfo(" Number of active merges and mutations in an associated background pool"),
+			"BackgroundFetchesPoolTask":               newGaugeFieldInfo(" Number of active fetches in an associated background pool"),
+			"BackgroundCommonPoolTask":                newGaugeFieldInfo(" Number of active tasks in an associated background pool"),
+			"BackgroundMovePoolTask":                  newGaugeFieldInfo(" Number of active tasks in BackgroundProcessingPool for moves"),
+			"BackgroundSchedulePoolTask":              newGaugeFieldInfo(" Number of active tasks in BackgroundSchedulePool. "),
+			"BackgroundBufferFlushSchedulePoolTask":   newGaugeFieldInfo(" Number of active tasks in BackgroundBufferFlushSchedulePool. This pool is used for periodic Buffer flushes"),
+			"BackgroundDistributedSchedulePoolTask":   newGaugeFieldInfo(" Number of active tasks in BackgroundDistributedSchedulePool. "),
+			"BackgroundMessageBrokerSchedulePoolTask": newGaugeFieldInfo(" Number of active tasks in BackgroundProcessingPool for message streaming"),
+			"CacheDictionaryUpdateQueueBatches":       newGaugeFieldInfo(" Number of 'batches' (a set of keys) in update queue in CacheDictionaries."),
+			"CacheDictionaryUpdateQueueKeys":          newGaugeFieldInfo(" Exact number of keys in update queue in CacheDictionaries."),
+			"DiskSpaceReservedForMerge":               newGaugeFieldInfo(" Disk space reserved for currently running background merges. It is slightly more than the total size of currently merging parts."),
+			"DistributedSend":                         newGaugeFieldInfo(" Number of connections to remote servers sending data that was INSERTed into Distributed tables. Both synchronous and asynchronous mode."),
+			"QueryPreempted":                          newGaugeFieldInfo(" Number of queries that are stopped and waiting due to 'priority' setting."),
+			"TCPConnection":                           newGaugeFieldInfo(" Number of connections to TCP server (clients with native interface), also included server-server distributed query connections"),
+			"MySQLConnection":                         newGaugeFieldInfo(" Number of client connections using MySQL protocol"),
+			"HTTPConnection":                          newGaugeFieldInfo(" Number of connections to HTTP server"),
+			"InterserverConnection":                   newGaugeFieldInfo(" Number of connections from other replicas to fetch parts"),
+			"PostgreSQLConnection":                    newGaugeFieldInfo(" Number of client connections using PostgreSQL protocol"),
+			"OpenFileForRead":                         newGaugeFieldInfo(" Number of files open for reading"),
+			"OpenFileForWrite":                        newGaugeFieldInfo(" Number of files open for writing"),
+			"Read":                                    newGaugeFieldInfo(" Number of read (read, pread, io_getevents, etc.) syscalls in fly"),
+			"Write":                                   newGaugeFieldInfo(" Number of write (write, pwrite, io_getevents, etc.) syscalls in fly"),
+			"NetworkReceive":                          newGaugeFieldInfo(" Number of threads receiving data from network. Only ClickHouse-related network interaction is included, not by 3rd party libraries."),
+			"NetworkSend":                             newGaugeFieldInfo(" Number of threads sending data to network. Only ClickHouse-related network interaction is included, not by 3rd party libraries."),
+			"SendScalars":                             newGaugeFieldInfo(" Number of connections that are sending data for scalars to remote servers."),
+			"SendExternalTables":                      newGaugeFieldInfo(" Number of connections that are sending data for external tables to remote servers. "),
+			"QueryThread":                             newGaugeFieldInfo(" Number of query processing threads"),
+			"ReadonlyReplica":                         newGaugeFieldInfo(" Number of Replicated tables that are currently in readonly state due to re-initialization after ZooKeeper session loss or due to startup without ZooKeeper configured."),
+			"MemoryTracking":                          newGaugeFieldInfo(" Total amount of memory (bytes) allocated by the server."),
+			"EphemeralNode":                           newGaugeFieldInfo(" Number of ephemeral nodes hold in ZooKeeper."),
+			"ZooKeeperSession":                        newGaugeFieldInfo(" Number of sessions (connections) to ZooKeeper."),
+			"ZooKeeperWatch":                          newGaugeFieldInfo(" Number of watches (event subscriptions) in ZooKeeper."),
+			"ZooKeeperRequest":                        newGaugeFieldInfo(" Number of requests to ZooKeeper in fly."),
+			"DelayedInserts":                          newGaugeFieldInfo(" Number of INSERT queries that are throttled due to high number of active data parts for partition in a MergeTree table."),
+			"ContextLockWait":                         newGaugeFieldInfo(" Number of threads waiting for lock in Context. This is global lock."),
+			"StorageBufferRows":                       newGaugeFieldInfo(" Number of rows in buffers of Buffer tables"),
+			"StorageBufferBytes":                      newGaugeFieldInfo(" Number of bytes in buffers of Buffer tables"),
+			"DictCacheRequests":                       newGaugeFieldInfo(" Number of requests in fly to data sources of dictionaries of cache type."),
+			"Revision Revision":                       newGaugeFieldInfo(" of the server. It is a number incremented for every release or release candidate except patch releases."),
+			"VersionInteger":                          newGaugeFieldInfo(" Version of the server in a single integer number in base-1000. For example, version 11.22.33 is translated to 11022033."),
+			"RWLockWaitingReaders":                    newGaugeFieldInfo(" Number of threads waiting for read on a table RWLock."),
+			"RWLockWaitingWriters":                    newGaugeFieldInfo(" Number of threads waiting for write on a table RWLock."),
+			"RWLockActiveReaders":                     newGaugeFieldInfo(" Number of threads holding read lock in a table RWLock."),
+			"RWLockActiveWriters":                     newGaugeFieldInfo(" Number of threads holding write lock in a table RWLock."),
+			"GlobalThread":                            newGaugeFieldInfo(" Number of threads in global thread pool."),
+			"GlobalThreadActive":                      newGaugeFieldInfo(" Number of threads in global thread pool running a task."),
+			"LocalThread":                             newGaugeFieldInfo(" Number of threads in local thread pools. The threads in local thread pools are taken from the global thread pool."),
+			"LocalThreadActive":                       newGaugeFieldInfo(" Number of threads in local thread pools running a task."),
+			"DistributedFilesToInsert":                newGaugeFieldInfo(" Number of pending files to process for asynchronous insertion into Distributed tables. Number of files for every shard is summed."),
+			"BrokenDistributedFilesToInsert":          newGaugeFieldInfo(" Number of files for asynchronous insertion into Distributed tables that has been marked as broken."),
+			"TablesToDropQueueSize":                   newGaugeFieldInfo(" Number of dropped tables, that are waiting for background data removal."),
+			"MaxDDLEntryID":                           newGaugeFieldInfo(" Max processed DDL entry of DDLWorker."),
+			"MaxPushedDDLEntryID":                     newGaugeFieldInfo(" Max DDL entry of DDLWorker that pushed to zookeeper."),
+			"PartsTemporary":                          newGaugeFieldInfo(" The part is generating now, it is not in data_parts list."),
+			"PartsPreCommitted":                       newGaugeFieldInfo(" The part is in data_parts, but not used for SELECTs."),
+			"PartsCommitted":                          newGaugeFieldInfo(" Active data part, used by current and upcoming SELECTs."),
+			"PartsOutdated":                           newGaugeFieldInfo(" Not active data part, but could be used by only current SELECTs, could be deleted after SELECTs finishes."),
+			"PartsDeleting":                           newGaugeFieldInfo(" Not active data part with identity refcounter, it is deleting right now by a cleaner."),
+			"PartsDeleteOnDestroy":                    newGaugeFieldInfo(" Part was moved to another disk and should be deleted in own destructor."),
+			"PartsWide":                               newGaugeFieldInfo(" Wide parts."),
+			"PartsCompact":                            newGaugeFieldInfo(" Compact parts."),
+			"PartsInMemory":                           newGaugeFieldInfo(" In-memory parts."),
+			"MMappedFiles":                            newGaugeFieldInfo(" Total number of mmapped files."),
+			"MMappedFileBytes":                        newGaugeFieldInfo(" Sum size of mmapped file regions."),
+			"AsyncDrainedConnections":                 newGaugeFieldInfo(" Number of connections drained asynchronously."),
+			"ActiveAsyncDrainedConnections":           newGaugeFieldInfo(" Number of active connections drained asynchronously."),
+			"SyncDrainedConnections":                  newGaugeFieldInfo(" Number of connections drained synchronously."),
+			"ActiveSyncDrainedConnections":            newGaugeFieldInfo(" Number of active connections drained synchronously."),
+			"AsynchronousReadWait":                    newGaugeFieldInfo(" Number of threads waiting for asynchronous read."),
 		},
 		Tags: map[string]interface{}{
-			"host": inputs.NewTagInfo("主机名称"),
+			"host": inputs.NewTagInfo("host name"),
 		},
 	}
 }
@@ -353,7 +365,7 @@ func (m *MetricsMeasurement) Info() *inputs.MeasurementInfo {
 //nolint:lll,funlen
 func (m *ProfileEventsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputNameProfileEvents,
+		Name: metricsProfileEvents,
 		Type: TypeMetric,
 		Fields: map[string]interface{}{
 			"ReadBufferFromFileDescriptorReadFailed ":          newCountFieldInfo(" Number of times the read (read/pread) from a file descriptor have failed."),
@@ -587,7 +599,21 @@ func (m *ProfileEventsMeasurement) Info() *inputs.MeasurementInfo {
 			"InvoluntaryContextSwitches":                       newCountFieldInfo(defaultDesc),
 		},
 		Tags: map[string]interface{}{
-			"host": inputs.NewTagInfo("主机名称"),
+			"host": inputs.NewTagInfo("host name"),
+		},
+	}
+}
+
+//nolint:lll
+func (m *StatusInfoMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: metricsStatusInfo,
+		Type: TypeMetric,
+		Fields: map[string]interface{}{
+			"DictionaryStatus": newGaugeFieldInfo(" Dictionary Status."),
+		},
+		Tags: map[string]interface{}{
+			"host": inputs.NewTagInfo("host name"),
 		},
 	}
 }
