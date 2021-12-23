@@ -688,6 +688,13 @@ func checkUpgradeVersion(s string) error {
 		return err
 	}
 
+	// 对 1.1.x 版本的 datakit，此处暂且认为是 stable 版本，不然
+	// 无法从 1.1.x 升级到 1.2.x
+	// 1.2 以后的版本（1.3/1.5/...）等均视为 unstable 版本
+	if v.GetMinor() == 1 {
+		return nil
+	}
+
 	if !v.IsStable() {
 		return fmt.Errorf("not stable version, only stable version allowed to upgrade")
 	}
