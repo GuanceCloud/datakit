@@ -85,17 +85,17 @@ func init() { //nolint:gochecknoinits
 func OSDetail() string {
 	switch runtime.GOOS {
 	case `darwin`:
-		return MacVersion()
+		return macVersion()
 	case `windows`:
-		return WindowsVersion()
+		return windowsVersion()
 	case `linux`:
-		return LinuxVersion()
+		return linuxVersion()
 	default:
 		return "unknown"
 	}
 }
 
-func LinuxVersion() string {
+func linuxVersion() string {
 	linux := `linux`
 	fp := "/etc/os-release"
 	_, err := os.Stat(fp)
@@ -119,12 +119,16 @@ func LinuxVersion() string {
 			if len(ss) < 2 {
 				return linux
 			}
-			return strings.TrimSuffix(ss[1], "\n")
+			ret := strings.TrimSuffix(ss[1], "\n")
+			if strings.HasPrefix(ret, "\"") && strings.HasSuffix(ret, "\"") {
+				ret = ret[1 : len(ret)-1]
+			}
+			return ret
 		}
 	}
 }
 
-func MacVersion() string {
+func macVersion() string {
 	ver, err := getKernelRelease()
 	if err != nil {
 		return "macOS"
@@ -183,7 +187,7 @@ func getKernelRelease() (string, error) {
 	return string(out), nil
 }
 
-func WindowsVersion() string {
+func windowsVersion() string {
 	display := `Windows`
 
 	if version := getVersion(); version != "" {
