@@ -77,6 +77,10 @@ const (
   prefix = "ClickHouseAsyncMetrics_"
   name = "ClickHouseAsyncMetrics"
 
+  [[inputs.prom.measurements]]
+  prefix = "ClickHouseStatusInfo_"
+  name = "ClickHouseStatusInfo"
+
   ## 自定义Tags(集群可添加主机名)
   [inputs.prom.tags]
   # some_tag = "some_value"
@@ -106,6 +110,7 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 		&AsyncMetricsMeasurement{},
 		&MetricsMeasurement{},
 		&ProfileEventsMeasurement{},
+		&StatusInfoMeasurement{},
 	}
 }
 
