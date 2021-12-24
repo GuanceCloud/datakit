@@ -17,6 +17,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+
+	// If the time package cannot find tzdata files on the system,
+	// it will use this embedded information in time/tzdata
+	_ "time/tzdata"
 )
 
 var l = logger.DefaultSLogger("pipeline")
