@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
@@ -407,7 +408,6 @@ func TestDialHTTP(t *testing.T) {
 		})
 	}
 }
-
 
 func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
 	t.Helper()

@@ -300,7 +300,6 @@ func TestTlsConfig(t *testing.T) {
 	}
 }
 
-/* failed
 func TestGatherClusterStatsMaster(t *testing.T) {
 	es := newElasticsearchWithClient()
 	es.ClusterStats = true
@@ -354,7 +353,7 @@ func TestGatherClusterStatsMaster(t *testing.T) {
 	}
 
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_stats", clusterstatsExpected, tags, es.collectCache)
-} */
+}
 
 func getMeasurement(t *testing.T, metric inputs.Measurement) *elasticsearchMeasurement {
 	t.Helper()
@@ -469,4 +468,64 @@ func newElasticsearchWithClient() *Input {
 	es := NewElasticsearch()
 	es.client = &http.Client{}
 	return es
+}
+
+func TestGetVersion(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.Servers = []string{url}
+	es.client.Transport = newTransportMock(clusterInfo)
+	version, err := es.getVersion("")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "6.8.20", version)
+}
+
+func TestGetLifeCycleErrorCount(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.client.Transport = newTransportMock(lifeCycleStateResponse)
+	es.serverInfo = make(map[string]serverInfo)
+	es.serverInfo[url] = serverInfo{version: "6.8"}
+
+	assert.Equal(t, 1, es.getLifeCycleErrorCount(url))
+
+	es.serverInfo[url] = serverInfo{version: "7.8"}
+	assert.Equal(t, 2, es.getLifeCycleErrorCount(url))
+}
+
+func TestMetric(t *testing.T) {
+	m := elasticsearchMeasurement{}
+	assert.Equal(t, m.Info().Name, inputName)
+	m1 := nodeStatsMeasurement{}
+	assert.Equal(t, m1.Info().Name, "elasticsearch_node_stats")
+	m2 := clusterStatsMeasurement{}
+	assert.Equal(t, m2.Info().Name, "elasticsearch_cluster_stats")
+	m3 := clusterHealthMeasurement{}
+	assert.Equal(t, m3.Info().Name, "elasticsearch_cluster_health")
+	m4 := clusterHealthIndicesMeasurement{}
+	assert.Equal(t, m4.Info().Name, "elasticsearch_cluster_health_indices")
+	m5 := indicesStatsShardsTotalMeasurement{}
+	assert.Equal(t, m5.Info().Name, "elasticsearch_indices_stats_shards_total")
+	m6 := indicesStatsMeasurement{}
+	assert.Equal(t, m6.Info().Name, "elasticsearch_indices_stats")
+	m7 := indicesStatsShardsMeasurement{}
+	assert.Equal(t, m7.Info().Name, "elasticsearch_indices_stats_shards")
+}
+
+func TestSetServerInfo(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.Servers = []string{url}
+	es.client.Transport = newTransportMock(clusterInfo)
+
+	err := es.setServerInfo()
+	assert.NoError(t, err)
+	assert.Equal(t, clusterInfoExpected["version"], es.serverInfo[url].version)
+}
+
+func TestGetUserPrivilege(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.client.Transport = newTransportMock(privilegeResponse)
+
+	p := es.getUserPrivilege("")
+
+	assert.True(t, p.Cluster.Monitor)
 }
