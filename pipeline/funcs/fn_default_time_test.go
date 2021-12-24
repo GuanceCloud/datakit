@@ -1038,6 +1038,28 @@ func TestDefaultTime(t *testing.T) {
 			expect: int64(1638417343001002003),
 			fail:   false,
 		},
+		{
+			name: "Dec 2, 2021 (tz: UTC)",
+			in:   `{"time":"Dec 2, 2021"}`,
+			pl: `
+			json(_, time)
+			default_time(time, "+0")
+		`,
+			outkey: "time",
+			expect: int64(1638403200000000000),
+			fail:   false,
+		},
+		{
+			name: "Tue Dec  2 11:55:34 CST 2021",
+			in:   `{"time":"Tue Dec  2 11:55:34 CST 2021"}`,
+			pl: `
+			json(_, time)
+			default_time(time, "+8")
+		`,
+			outkey: "time",
+			expect: int64(1638417334000000000),
+			fail:   false,
+		},
 	}
 
 	for idx, tc := range cases {
