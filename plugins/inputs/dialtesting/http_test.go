@@ -408,6 +408,7 @@ func TestDialHTTP(t *testing.T) {
 	}
 }
 
+
 func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
 	t.Helper()
 	gin.SetMode(gin.ReleaseMode)
