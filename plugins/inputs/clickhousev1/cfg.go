@@ -1,4 +1,4 @@
-package clickhouse
+package clickhousev1
 
 import (
 	"time"
