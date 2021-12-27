@@ -1,5 +1,5 @@
-// Package clickhouse collect clickhouse metrics by using input prom.
-package clickhouse
+// Package clickhousev1 collect clickhouse metrics by using input prom.
+package clickhousev1
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	inputName    = "clickhouse"
+	inputName    = "clickhousev1"
 	catalogName  = "db"
 	configSample = `
 [[inputs.prom]]
