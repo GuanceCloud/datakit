@@ -1,4 +1,4 @@
-package netebpf
+package ebpf
 
 import (
 	"time"
@@ -85,6 +85,37 @@ func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
 				"3 - NXDomain, 4 - NotImp, 5 - Refused, ...", inputs.UnknownUnit),
 			"resp_time": newFInfInt("DNS 请求的响应时间间隔", inputs.DurationNS),
 		},
+	}
+}
+
+type BashM measurement
+
+func (m *BashM) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
+func (m *BashM) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "bash",
+		Tags: map[string]interface{}{
+			"host":   inputs.TagInfo{Desc: "host name"},
+			"source": inputs.TagInfo{Desc: "固定值: bash"},
+		},
+		Fields: map[string]interface{}{
+			"pid":     newFString("bash 进程的 pid"),
+			"user":    newFString("执行 bash 命令的用户"),
+			"cmd":     newFString("bash 命令"),
+			"message": newFString("单条 bash 执行记录"),
+		},
+	}
+}
+
+func newFString(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		Type:     inputs.UnknownType,
+		DataType: inputs.String,
+		Unit:     inputs.UnknownUnit,
+		Desc:     desc,
 	}
 }
 

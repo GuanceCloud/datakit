@@ -11,6 +11,7 @@ import (
 
 type dkexternal struct {
 	name string
+	out  string
 
 	lang string // go/others
 
@@ -42,7 +43,8 @@ var externals = []*dkexternal{
 	},
 	{
 		// requirement: apt install clang llvm linux-headers-$(uname -r)
-		name: "net_ebpf",
+		name: "ebpf",
+		out:  "datakit-ebpf",
 		lang: "makefile",
 
 		entry: "Makefile",
@@ -98,6 +100,9 @@ func buildExternals(outdir, goos, goarch string) error {
 		}
 
 		out := ex.name
+		if ex.out != "" {
+			out = ex.out
+		}
 
 		switch strings.ToLower(ex.lang) {
 		case "go", "golang":

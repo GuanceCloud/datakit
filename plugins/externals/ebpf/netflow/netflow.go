@@ -10,7 +10,7 @@ import (
 	"github.com/DataDog/ebpf"
 	"github.com/DataDog/ebpf/manager"
 	"github.com/shirou/gopsutil/host"
-	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/feed"
+	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
 	"golang.org/x/net/context"
 )
 
@@ -23,7 +23,7 @@ type ConnResult struct {
 const connExpirationInterval = 8 * 3600 // 8 * 3600s
 
 const (
-	inputName = "netflow"
+	srcNameM = "netflow"
 )
 
 type NetFlowTracer struct {
@@ -222,7 +222,7 @@ func (tracer *NetFlowTracer) feedHandler(ctx context.Context, datakitPostURL str
 		select {
 		case result := <-tracer.resultCh:
 			MergeConns(result)
-			collectCache := ConvertConn2Measurement(result, inputName)
+			collectCache := ConvertConn2Measurement(result, srcNameM)
 			if len(collectCache) == 0 {
 				l.Warn("netflow: no data")
 			} else if err := dkfeed.FeedMeasurement(collectCache, datakitPostURL); err != nil {

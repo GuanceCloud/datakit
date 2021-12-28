@@ -1,4 +1,4 @@
-package netebpf
+package ebpf
 
 import (
 	"fmt"

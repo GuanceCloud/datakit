@@ -1,10 +1,11 @@
-// Package netebpf wrap ebpf external input to collect eBPF-network metrics
-package netebpf
+// Package ebpf wrap ebpf external input to collect eBPF metrics
+package ebpf
 
 import (
 	"fmt"
 	"regexp"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/host"
@@ -18,15 +19,15 @@ import (
 )
 
 var (
-	inputName   = "net_ebpf"
+	inputName   = "ebpf"
 	catalogName = "host"
-	l           = logger.DefaultSLogger("net_ebpf")
+	l           = logger.DefaultSLogger("ebpf")
 )
 
 type Input struct {
 	external.ExernalInput
-
-	semStop *cliutils.Sem // start stop signal
+	DisabledInput []string      `toml:"disabled_input"`
+	semStop       *cliutils.Sem // start stop signal
 }
 
 func (ipt *Input) Run() {
@@ -43,7 +44,7 @@ loop:
 				l.Error("unsupport OS/Arch")
 
 				io.FeedLastError(inputName,
-					fmt.Sprintf("net_ebpf not support %s/%s ",
+					fmt.Sprintf("ebpf not support %s/%s ",
 						runtime.GOOS, runtime.GOARCH))
 			}
 
@@ -61,16 +62,16 @@ loop:
 				break loop
 			}
 		case <-datakit.Exit.Wait():
-			l.Info("net_ebpf input exit")
+			l.Info("ebpf input exit")
 			return
 
 		case <-ipt.semStop.Wait():
-			l.Info("net_ebpf input return")
+			l.Info("ebpf input return")
 			return
 		}
 	}
 
-	l.Infof("net_ebpf input started")
+	l.Infof("ebpf input started")
 	matchHost := regexp.MustCompile("--hostname")
 	haveHostNameArg := false
 	for _, arg := range ipt.ExernalInput.Args {
@@ -85,8 +86,13 @@ loop:
 		}
 	}
 
+	if len(ipt.DisabledInput) > 0 {
+		dis := strings.Join(ipt.DisabledInput, ",")
+		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args, "--disabled", dis)
+	}
+
 	ipt.ExernalInput.Run()
-	l.Infof("net_ebpf input exit")
+	l.Infof("ebpf input exit")
 }
 
 func (ipt *Input) Terminate() {
@@ -103,6 +109,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&ConnStatsM{},
 		&DNSStatsM{},
+		&BashM{},
 	}
 }
 

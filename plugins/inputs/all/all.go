@@ -14,6 +14,9 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/dialtesting"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/disk"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/diskio"
+
+	// nolint:typecheck
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ebpf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/elasticsearch"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/etcd"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
@@ -35,11 +38,8 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mem"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/memcached"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mongodb"
-
-	// nolint:typecheck
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysql"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/net"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/netebpf"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginx"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nsq"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oracle"
