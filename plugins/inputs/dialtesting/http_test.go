@@ -429,13 +429,13 @@ func httpServer(t *testing.T, bind string, https bool, exit chan interface{}) {
 		prepareSSL(t)
 		go func() {
 			if err := srv.ListenAndServeTLS(".crt.pem", ".key.pem"); err != nil {
-				t.Logf("ListenAndServeTLS(): %s", err)
+				fmt.Printf("ListenAndServeTLS(): %v \n", err)
 			}
 		}()
 	} else {
 		go func() {
 			if err := srv.ListenAndServe(); err != nil {
-				t.Logf("ListenAndServe(): %s", err)
+				fmt.Printf("ListenAndServe(): %v \n", err)
 			}
 		}()
 	}

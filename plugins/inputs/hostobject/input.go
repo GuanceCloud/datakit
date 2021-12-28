@@ -239,12 +239,17 @@ func (ipt *Input) doCollect() error {
 	}
 
 	if ipt.p != nil {
-		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil {
-			for k, v := range result {
+		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil &&
+			result != nil && !result.Dropped {
+			for k, v := range result.Data {
 				ipt.collectData.fields[k] = v
 			}
+			for k, v := range result.Tags {
+				ipt.collectData.tags[k] = v
+			}
+			// ipt.collectData.tags
 		} else {
-			l.Warnf("pipeline error: %s, ignored", err)
+			l.Debug("pipeline error: %s, ignored", err)
 		}
 	}
 

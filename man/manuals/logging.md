@@ -6,7 +6,12 @@
 
 # {{.InputName}}
 
-采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
+
+日志采集器支持两种模式:
+- 从磁盘读取 ：采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
+- socket端口获取：可通过tcp/udp 将文件发送到datakit
+
+> 注意：两种采集方式目前互斥，当需要从socket传输日志时 请修改配置文件 *logfiles=[]*
 
 ## 配置
 
@@ -24,7 +29,13 @@
     "/var/log/*",                          # 文件路径下所有文件
     "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
   ]
-  
+   ## socket目前支持两种协议：tcp,udp。建议开启内网端口防止安全隐患
+   ## socket和log目前是互斥行为，要开启socket采集日志 需要配置logfiles=[]
+   socket = [
+    	"tcp://0.0.0.0:9540"
+    	"udp://0.0.0.0:9541"
+  	# only two protocols are supported:TCP and UDP
+    ]
   # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
   ignore = [""]
   
@@ -62,6 +73,20 @@
 ```
 
 >  注意：DataKit 启动后，`logfiles` 中配置的日志文件有新的日志产生才会采集上来，**老的日志数据是不会采集的**。
+
+### socket采集日志
+
+将logfiles设置为`[]` 并配置socket。以log4j2为例:
+``` xml
+ <!--socket配置日志传输到本机9540端口，protocol默认tcp-->
+ <Socket name="name1" host="localHost" port="9540" charset="utf8">
+            <!-- 输出格式  序列布局-->
+           <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
+            <!--注意：不要开启序列化传输到socket采集器上，dk无法反序列化，请使用纯文本形式传输-->
+            <!-- <SerializedLayout/>-->
+        </Socket>
+```
+
 
 ### 多行日志采集
 

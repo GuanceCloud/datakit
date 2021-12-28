@@ -517,7 +517,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelineFile))
+	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelineFile), false)
 	if err != nil {
 		return "", err
 	}
@@ -527,8 +527,13 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	if len(res) == 0 {
+	if res == nil || (len(res.Tags) == 0 || len(res.Data) == 0) {
 		l.Debug("No data extracted from pipeline")
+		return "", nil
+	}
+
+	if res.Dropped {
+		l.Debug("the current log has been dropped by the pipeline script")
 		return "", nil
 	}
 

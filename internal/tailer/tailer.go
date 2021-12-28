@@ -23,7 +23,8 @@ type Option struct {
 	// ex: "info"
 	//     "debug"
 	IgnoreStatus []string
-
+	// logFile      []string
+	Sockets []string
 	// 默认值是 $Source + `_log`
 	InputName string
 	// 数据来源，默认值为'default'
@@ -138,7 +139,6 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 	if err := t.opt.init(); err != nil {
 		return nil, err
 	}
-
 	return &t, nil
 }
 
