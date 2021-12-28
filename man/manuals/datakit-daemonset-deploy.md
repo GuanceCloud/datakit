@@ -64,6 +64,7 @@ kubectl get pod -n datakit
 | ENV_GIT_KEY_PW              | 无                         | 否       | 本地 PrivateKey 的使用密码。（如 `passwd`）                                                           |
 | ENV_GIT_BRANCH              | 无                         | 否       | 指定拉取的分支。<stong>为空则是默认</strong>，默认是远程指定的主分支，一般是 `master`。                      |
 | ENV_GIT_INTERVAL            | 无                         | 否       | 定时拉取的间隔。（如 `1m`）                                                                           |
+| ENV_CLOUD_PROVIDER          | 无                         | 否       | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)                                            |
 
 > 注意：
 >  `ENV_ENABLE_INPUTS` 已被弃用（但仍有效），建议使用 `ENV_DEFAULT_ENABLED_INPUTS`。如果俩个环境变量同时指定，则**只有后者生效**。
