@@ -55,6 +55,7 @@ const (
 	LOGGING_SROUCE     = "source"
 	PRECISION          = "precision"
 	INPUT              = "input"
+	SOURCE             = "source"
 	IGNORE_GLOBAL_TAGS = "ignore_global_tags"
 	CATEGORY           = "category"
 	VERSION            = "version"

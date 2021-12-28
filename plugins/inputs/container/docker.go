@@ -680,7 +680,7 @@ type logsOption struct {
 }
 
 func (ln *logsOption) setPipeline(path string) error {
-	p, err := pipeline.NewPipelineFromFile(path)
+	p, err := pipeline.NewPipelineFromFile(path, false)
 	if err != nil {
 		return err
 	}

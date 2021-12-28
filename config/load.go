@@ -237,7 +237,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 				if err != nil {
 					return nil, err
 				}
-				pl, err := pipeline.NewPipelineByScriptPath(pFullPath)
+				pl, err := pipeline.NewPipelineByScriptPath(pFullPath, false)
 				if err != nil {
 					return vv, err
 				}

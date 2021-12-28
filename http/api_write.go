@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+
 	"github.com/gin-gonic/gin"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -88,7 +90,7 @@ func apiWrite(c *gin.Context) {
 		return
 	}
 
-	isjson := (c.Request.Header.Get("Content-Type") == "application/json")
+	isjson := c.Request.Header.Get("Content-Type") == "application/json"
 
 	var pts []*io.Point
 	if category == datakit.Rum { // RUM 数据单独处理
@@ -144,9 +146,21 @@ func apiWrite(c *gin.Context) {
 	}
 
 	l.Debugf("received %d(%s) points from %s", len(pts), category, input)
-
-	err = io.Feed(input, category, pts, &io.Option{HighFreq: true, Version: version})
-
+	if category == datakit.Logging {
+		// input=nginx  category=v1/wirte/logging soure=pt.name/source
+		cs := &categorys{input: input, source: make(map[string][]worker.TaskData)}
+		for _, pt := range pts {
+			source := pt.Name()
+			if _, ok := cs.source[source]; !ok {
+				cs.source[source] = make([]worker.TaskData, 0)
+			}
+			cs.source[source] = append(cs.source[source],
+				&HTTPTaskData{source: source, version: version, category: category, point: pt})
+		}
+		err = sendToPipLine(cs)
+	} else {
+		err = io.Feed(input, category, pts, &io.Option{HighFreq: true, Version: version})
+	}
 	if err != nil {
 		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
 	} else {
@@ -191,4 +205,69 @@ func jsonPoints(body []byte, opt *lp.Option) ([]*io.Point, error) {
 		}
 	}
 	return pts, nil
+}
+
+type categorys struct {
+	input  string
+	source map[string][]worker.TaskData
+}
+
+type HTTPTaskData struct {
+	source   string
+	version  string
+	category string
+	point    *io.Point
+}
+
+func (std *HTTPTaskData) GetContent() string {
+	fields, err := std.point.Fields()
+	if err != nil {
+		return ""
+	}
+	if len(fields) > 0 {
+		if msg, ok := fields["message"]; ok {
+			switch msg := msg.(type) {
+			case string:
+				return msg
+			default:
+				return ""
+			}
+		}
+	}
+	return ""
+}
+
+func (std *HTTPTaskData) Handler(result *worker.Result) error {
+	tags := std.point.Tags()
+	for k, v := range tags {
+		result.SetTag(k, v)
+	}
+	fields, err := std.point.Fields()
+	if err != nil {
+		for k, i := range fields {
+			result.SetField(k, i)
+		}
+	}
+	return nil
+}
+
+func sendToPipLine(cs *categorys) error {
+	var err error
+	if cs != nil && cs.source != nil && len(cs.source) != 0 {
+		for sourceName, data := range cs.source {
+			task := &worker.Task{
+				TaskName:   cs.input,
+				ScriptName: "",
+				Source:     sourceName,
+				Data:       data,
+				Opt: &worker.TaskOpt{
+					IgnoreStatus:          []string{},
+					DisableAddStatusField: true,
+				},
+				TS: time.Now(),
+			}
+			err = worker.FeedPipelineTask(task)
+		}
+	}
+	return err
 }

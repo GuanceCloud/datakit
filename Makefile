@@ -42,7 +42,7 @@ GO_PATCH_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -
 MINIMUM_SUPPORTED_GO_MAJOR_VERSION = 1
 MINIMUM_SUPPORTED_GO_MINOR_VERSION = 16
 GO_VERSION_VALIDATION_ERR_MSG = Golang version is not supported, please update to at least $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION).$(MINIMUM_SUPPORTED_GO_MINOR_VERSION)
-BUILDER_GOOS_GOARCH="$(shell go env GOOS)-$(shell go env GOARCH)"
+BUILDER_GOOS_GOARCH=$(shell go env GOOS)-$(shell go env GOARCH)
 
 GOLINT_VERSION = "$(shell golangci-lint --version | cut -c 27- | cut -d' ' -f1)"
 SUPPORTED_GOLINT_VERSION = "1.42.1"

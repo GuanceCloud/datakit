@@ -26,20 +26,20 @@ var l = logger.DefaultSLogger("pipeline")
 
 type Pipeline struct {
 	engine  *parser.Engine
-	output  map[string]interface{} // 这是一个map指针，不需要make初始化
+	output  *parser.Output // 这是一个map指针，不需要make初始化
 	lastErr error
 }
 
-func NewPipelineByScriptPath(scriptFullPath string) (*Pipeline, error) {
+func NewPipelineByScriptPath(scriptFullPath string, debug bool) (*Pipeline, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(scriptFullPath))
 	if err != nil {
 		return nil, err
 	}
-	return NewPipeline(string(data))
+	return NewPipeline(string(data), debug)
 }
 
-func NewPipeline(script string) (*Pipeline, error) {
-	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap)
+func NewPipeline(script string, debug bool) (*Pipeline, error) {
+	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, debug)
 	if err != nil {
 		return nil, err
 	}
@@ -50,12 +50,12 @@ func NewPipeline(script string) (*Pipeline, error) {
 	return p, nil
 }
 
-func NewPipelineFromFile(filename string) (*Pipeline, error) {
+func NewPipelineFromFile(filename string, debug bool) (*Pipeline, error) {
 	b, err := ioutil.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
-	return NewPipeline(string(b))
+	return NewPipeline(string(b), debug)
 }
 
 // RunPoint line protocol point to pipeline JSON.
@@ -132,7 +132,7 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	return p
 }
 
-func (p *Pipeline) Result() (map[string]interface{}, error) {
+func (p *Pipeline) Result() (*parser.Output, error) {
 	return p.output, p.lastErr
 }
 
