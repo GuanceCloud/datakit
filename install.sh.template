@@ -21,13 +21,13 @@ function updateHosts() {
                 while read -r line_number; do
                     # replace the text of each line with the desired host entry
                     if [[ "$OSTYPE" == "darwin"* ]]; then
-                        sudo sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+                        sudo_cmd sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
                     else
-                        sudo sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
+                        sudo_cmd sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
                     fi
                 done <<< "$matches_in_hosts"
             else
-                echo "$host_entry" | sudo tee -a /etc/hosts > /dev/null
+                echo "$host_entry" | sudo_cmd tee -a /etc/hosts > /dev/null
             fi
         fi
     done
@@ -55,7 +55,7 @@ else
 fi
 
 ##################
-# Global variables
+# colors
 ##################
 RED="\033[31m"
 CLR="\033[0m"
@@ -172,9 +172,9 @@ if [ -n "$DK_HTTP_PORT" ]; then
 	http_port=$DK_HTTP_PORT
 fi
 
-install_only=
+install_only=0
 if [ -n "$DK_INSTALL_ONLY" ]; then
-	install_only=$DK_INSTALL_ONLY
+	install_only=1
 fi
 
 dca_white_list=""
@@ -242,9 +242,9 @@ if [ -n "$DK_LIMIT_CPUMIN" ]; then
   limit_cpumin=$DK_LIMIT_CPUMIN
 fi
 
-cgroup_enabled=true
+cgroup_enabled=0
 if [ -n "$DK_CGROUP_ENABLED" ]; then
-  cgroup_enabled=$DK_CGROUP_ENABLED
+  cgroup_enabled=1
 fi
 
 install_log=/var/log/datakit/install.log
@@ -299,11 +299,12 @@ chmod +x $installer
 if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
-    $sudo_cmd $installer --upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
+    $sudo_cmd $installer  \
+		--upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 		$sudo_cmd $installer                         \
-		  --install-only="$install_only" \
+		  --install-only="$install_only"             \
 			--dataway="${dataway}"                     \
 			--global-tags="${global_tags}"             \
 			--cloud-provider="${cloud_provider}"       \
@@ -322,7 +323,6 @@ else
 			--limit-cpumax="${limit_cpumax}"           \
 			--limit-cpumin="${limit_cpumin}"           \
 			--cgroup-enabled="${cgroup_enabled}"       \
-			--git-pull-interval="${git_pull_interval}" \
-			--install_only | $sudo_cmd tee ${install_log}
+			--git-pull-interval="${git_pull_interval}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer

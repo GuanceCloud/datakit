@@ -124,7 +124,7 @@ func addConfigInfoPath(inputName string, fp string, loaded int8) {
 	}
 }
 
-func doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) error {
+func doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*ast.Table) {
 	l.Debugf("search input cfg for %s", name)
 
 	list := searchDatakitInputCfg(inputcfgs, name, creator)
@@ -132,8 +132,6 @@ func doLoadInputConf(name string, creator inputs.Creator, inputcfgs map[string]*
 	for _, i := range list {
 		inputs.AddInput(name, i)
 	}
-
-	return nil
 }
 
 func searchDatakitInputCfg(inputcfgs map[string]*ast.Table,
@@ -286,6 +284,10 @@ func initDefaultEnabledPlugins(c *Config) {
 	if len(c.DefaultEnabledInputs) == 0 {
 		l.Debug("no default inputs enabled")
 		return
+	}
+
+	if GitHasEnabled() {
+		return // #501 issue
 	}
 
 	for _, name := range c.DefaultEnabledInputs {

@@ -102,26 +102,32 @@ grok(_, %{time})
 
 ## 脚本执行流
 
-pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>` 和 `!=`
+pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>=` 和 `!=`，
 表达式两边可以是已存在的 key 或固定值，例如：
 
 ```python
-add_key("score", 95)
+# 数值比较
+add_key(score, 95)
 
 if score >= 90 {
-	add_key("level", "A")
+	add_key(level, "A")
 } elif score >= 75 {
-	add_key("level", "B")
+	add_key(level, "B")
 } elif score >= 60 {
-	add_key("level", "C")
+	add_key(level, "C")
 } else {
-	add_key("level", "D")
+	add_key(level, "D")
+}
+
+# 字符串比较
+add_key(name, "张三")
+
+if name == "法外狂徒" {
+	# 这是不可能的，不要污蔑我
 }
 ```
 
-和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。
-
-暂时不支持多个条件表达式的 `AND` 和 `OR`。
+和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。 暂时不支持多个条件表达式的 `AND` 和 `OR`。
 
 ## 脚本函数
 
@@ -274,7 +280,7 @@ json(_, name) json(name, first)
 json(_, [0].nets[-1])
 ```
 
-### `json_all()`
+<!-- ### `json_all()`
 
 *此函数已被暂时移除*
 
@@ -370,7 +376,7 @@ rename('height', `身高`) # 身高因为是 Unicode 字符，需要 `` 包围�
     "name.first"         : "Tom",
     "name.last"          : "Anderson"
 }
-```
+``` -->
 
 ### `rename()`
 
@@ -385,6 +391,10 @@ rename('height', `身高`) # 身高因为是 Unicode 字符，需要 `` 包围�
 ```python
 # 把已提取的 abc 字段重新命名为 abc1
 rename('abc1', abc)
+
+# or 
+
+rename(abc1, abc)
 ```
 
 示例：
@@ -502,6 +512,7 @@ Kitchen     = "3:04PM"
 json(_, a.timestamp) datetime(a.timestamp, 'ms', 'RFC3339')
 ```
 
+<!--
 ### `expr()`
 
 *此函数已被暂时移除*
@@ -550,7 +561,7 @@ expr(a.second*10+(2+3)*5, bb)
 {
    "bb": "45"
 }
-```
+``` -->
 
 ### `cast()`
 
@@ -646,7 +657,7 @@ group_in(log_level, ["error", "panic"], "not-ok", status)
 # 待处理数据: {"first": "hello","second":2,"thrid":"aBC","forth":true}
 
 # 处理脚本
-json(_, first) uppercase(first, "1")
+json(_, first) uppercase(first)
 
 # 处理结果
 {
@@ -703,6 +714,14 @@ json(_, first) json(_, second) nullif(first, "1")
 }
 ```
 
+> 注：该功能可通过 `if/else` 语义来实现：
+
+```python
+if first == "1" {
+	drop_key(first)
+}
+```
+
 ### `strfmt()`
 
 函数原型：`strfmt(key=required, fmt=required, key1=optional, key2, ...)`
@@ -739,10 +758,8 @@ strfmt(bb, "%v %s %v", a.second, a.thrid, a.forth)
 ```python
 # 待处理数据: {"age": 17, "name": "zhangsan", "height": 180}
 
-# 处理脚本
+# 结果集中删除 message 内容
 drop_origin_data()
-
-# 结果集中删除message内容
 ```
 
 ### `add_key()`
@@ -1061,4 +1078,92 @@ replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
 # 中文名 {"str": "小阿卡"}
 json(_, str)
 replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
-``` 
+```
+
+### `set_tag()`
+
+函数原型：`set_tag(key=required, value=optional)`
+
+函数说明: 对指定字段标记为 tag 输出，设置为 tag 后，其他函数仍可对该变量操作
+
+函数参数
+
+- `key`: 待标记为 tag 的字段
+- `value`: 可以为字符串字面量或者变量
+
+```python
+# in << {"str": "13789123014"}
+set_tag(str)
+json(_, str)          # str == "13789123014"
+replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
+# Extracted data(drop: false, cost: 49.248µs):
+# {
+#   "message": "{\"str\": \"13789123014\", \"str_b\": \"3\"}",
+#   "str#": "137****3014"
+# }
+# * 字符 `#` 仅为 datakit --pl <path> --txt <str> 输出展示时字段为 tag 的标记
+
+# in << {"str_a": "2", "str_b": "3"}
+json(_, str_a)
+set_tag(str_a, "3")   # str_a == 3
+# Extracted data(drop: false, cost: 30.069µs):
+# {
+#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
+#   "str_a#": "3"
+# }
+
+
+# in << {"str_a": "2", "str_b": "3"}
+json(_, str_a)
+json(_, str_b)
+set_tag(str_a, str_b) # str_a == str_b == "3"
+# Extracted data(drop: false, cost: 32.903µs):
+# {
+#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
+#   "str_a#": "3",
+#   "str_b": "3"
+# }
+```
+
+### `drop()`
+
+函数原型：`drop()`
+
+函数说明: 丢弃整条日志，不进行上传
+
+```python
+# in << {"str_a": "2", "str_b": "3"}
+json(_, str_a)
+if str_a == "2"{
+  drop()
+  exit()
+}
+json(_, str_b)
+
+# Extracted data(drop: true, cost: 30.02µs):
+# {
+#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
+#   "str_a": "2"
+# }
+```
+
+### `exit()`
+
+函数原型：`exit()`
+
+函数说明: 结束当前一条日志的解析，若未调用函数 drop() 仍会输出已经解析的部分
+
+```python
+# in << {"str_a": "2", "str_b": "3"}
+json(_, str_a)
+if str_a == "2"{
+  exit()
+}
+json(_, str_b)
+
+# Extracted data(drop: false, cost: 48.233µs):
+# {
+#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
+#   "str_a": "2"
+# }
+```

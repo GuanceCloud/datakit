@@ -243,14 +243,12 @@ func (c *Config) SetUUID() error {
 func (c *Config) LoadMainTOML(p string) error {
 	cfgdata, err := ioutil.ReadFile(filepath.Clean(p))
 	if err != nil {
-		l.Errorf("read main cfg %s failed: %s", p, err.Error())
-		return err
+		return fmt.Errorf("ioutil.ReadFile: %w", err)
 	}
 
 	_, err = bstoml.Decode(string(cfgdata), c)
 	if err != nil {
-		l.Errorf("unmarshal main cfg failed %s", err.Error())
-		return err
+		return fmt.Errorf("bstoml.Decode: %w", err)
 	}
 
 	_ = c.SetUUID()

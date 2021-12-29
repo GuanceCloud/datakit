@@ -184,6 +184,10 @@ func Text2Metrics(in io.Reader,
 					continue
 				}
 
+				if math.IsNaN(v) {
+					continue
+				}
+
 				fields := make(map[string]interface{})
 				fields[fieldName] = v
 
@@ -202,6 +206,10 @@ func Text2Metrics(in io.Reader,
 			for _, m := range metrics {
 				v := m.GetUntyped().GetValue()
 				if math.IsInf(v, 0) {
+					continue
+				}
+
+				if math.IsNaN(v) {
 					continue
 				}
 
@@ -226,6 +234,11 @@ func Text2Metrics(in io.Reader,
 				if math.IsInf(v, 0) {
 					continue
 				}
+
+				if math.IsNaN(v) {
+					continue
+				}
+
 				fields[fieldName] = v
 
 				labels := m.GetLabel()
@@ -242,6 +255,7 @@ func Text2Metrics(in io.Reader,
 			for _, m := range metrics {
 				fields := make(map[string]interface{})
 				count := m.GetSummary().GetSampleCount()
+
 				sum := m.GetSummary().GetSampleSum()
 				quantiles := m.GetSummary().Quantile
 
@@ -278,6 +292,7 @@ func Text2Metrics(in io.Reader,
 					}
 				}
 			}
+
 		case dto.MetricType_HISTOGRAM:
 			for _, m := range metrics {
 				fields := make(map[string]interface{})

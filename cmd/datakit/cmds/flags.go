@@ -21,8 +21,8 @@ var (
 	FlagUpdateLogFile string
 	FlagVersion,
 	FlagShowTestingVersions,
-	FlagCheckUpdate,
-	FlagAcceptRCVersion bool
+	FlagAcceptRCVersion, // deprecated
+	FlagCheckUpdate bool
 
 	FlagGrokq bool
 	FlagPipeline,
@@ -89,7 +89,7 @@ var (
 
 func tryLoadMainCfg() {
 	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
-		l.Warnf("load config %s failed: %s, ignore", datakit.MainConfPath, err)
+		warnf("[W] load config %s failed: %s, ignored\n", datakit.MainConfPath, err)
 	}
 }
 
@@ -113,7 +113,13 @@ func RunCmds() {
 				l.Errorf("set root log faile: %s", err.Error())
 			}
 		}
-		ret := checkUpdate(ReleaseVersion, FlagAcceptRCVersion)
+
+		// deprecated: after 1.2.x, RC version can't be upgraded, see issue #484
+		if FlagAcceptRCVersion {
+			warnf("[W] --accept-rc-version deprecated\n")
+		}
+
+		ret := checkUpdate(ReleaseVersion, false)
 		os.Exit(ret)
 	}
 
@@ -210,7 +216,7 @@ func RunCmds() {
 
 		sort.Strings(keys)
 		for _, k := range keys {
-			fmt.Printf("\t% 24s: %v\n", k, info[k])
+			infof("\t% 24s: %v\n", k, info[k])
 		}
 
 		os.Exit(0)
@@ -232,7 +238,7 @@ func RunCmds() {
 			errorf("[E] get IP info failed: %s\n", err.Error())
 		} else {
 			for k, v := range x {
-				fmt.Printf("\t% 8s: %s\n", k, v)
+				infof("\t% 8s: %s\n", k, v)
 			}
 		}
 
@@ -272,7 +278,8 @@ func RunCmds() {
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 		if err := promDebugger(FlagProm); err != nil {
-			l.Errorf("promDebugger: %s", err)
+			errorf("[E] %s\n", err)
+			os.Exit(-1)
 		}
 
 		os.Exit(0)
@@ -346,7 +353,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		fmt.Println("Start DataKit OK") // TODO: 需说明 PID 是多少
+		infof("Start DataKit OK\n") // TODO: 需说明 PID 是多少
 		os.Exit(0)
 	}
 
@@ -359,7 +366,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		fmt.Println("Stop DataKit OK")
+		infof("Stop DataKit OK\n")
 		os.Exit(0)
 	}
 
@@ -373,7 +380,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		fmt.Println("Restart DataKit OK")
+		infof("Restart DataKit OK\n")
 		os.Exit(0)
 	}
 
@@ -385,7 +392,7 @@ func RunCmds() {
 			errorf("[E] get DataKit status failed: %s\n", err.Error())
 			os.Exit(-1)
 		}
-		fmt.Println(x)
+		infof("%s\n", x)
 		os.Exit(0)
 	}
 
@@ -397,7 +404,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		fmt.Println("Uninstall DataKit OK")
+		infof("Uninstall DataKit OK\n")
 		os.Exit(0)
 	}
 
@@ -409,7 +416,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		fmt.Println("Reinstall DataKit OK")
+		infof("Reinstall DataKit OK\n")
 		os.Exit(0)
 	}
 
@@ -422,7 +429,7 @@ func RunCmds() {
 			os.Exit(-1)
 		}
 
-		fmt.Println("Update IPdb OK, please restart datakit to load new IPDB")
+		infof("Update IPdb OK, please restart datakit to load new IPDB\n")
 		os.Exit(0)
 	}
 
@@ -436,12 +443,12 @@ func RunCmds() {
 
 	if FlagUploadLog {
 		tryLoadMainCfg()
-		fmt.Println("Upload log start")
+		infof("Upload log start...\n")
 		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
 			errorf("[E] upload log failed : %s\n", err.Error())
 			os.Exit(-1)
 		}
-		fmt.Println("Upload successfully!")
+		infof("Upload ok.\n")
 		os.Exit(0)
 	}
 }

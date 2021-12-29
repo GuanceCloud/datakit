@@ -15,6 +15,7 @@ export DINGDING_TOKEN="2453274xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # See: https://stackoverflow.com/a/17841619/342348
 function join_by { local d=${1-} f=${2-}; if shift 2; then printf %s "$f" "${@/#/$d}"; fi; }
 
+# 注意: 分支名不要带 /，否则 tar 打包会报错
 branch=`git rev-parse --abbrev-ref HEAD`
 VERSION="1.1.0-rc1_${branch}"
 export LOCAL=`join_by , linux/386 linux/arm linux/arm64 linux/amd64 darwin/amd64 windows/amd64 windows/386`

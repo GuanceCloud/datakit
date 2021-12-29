@@ -1,5 +1,46 @@
 package elasticsearch
 
+const clusterInfo = `
+{
+  "name":"OTLnnwU",
+  "cluster_name":"docker-cluster",
+  "cluster_uuid":"u9pu1oP3QcGHa89lNEbBhQ",
+  "version":{
+    "number":"6.8.20",
+    "build_flavor":"default",
+    "build_type":"docker",
+    "build_hash":"c859302",
+    "build_date":"2021-10-07T22:00:24.085009Z",
+    "build_snapshot":false,
+    "lucene_version":"7.7.3",
+    "minimum_wire_compatibility_version":"5.6.0",
+    "minimum_index_compatibility_version":"5.0.0"
+  },
+  "tagline":"You Know, for Search"
+}
+`
+
+const privilegeResponse = `
+{
+  "application": {},
+  "cluster": {
+      "monitor": true
+  },
+  "has_all_requested": true,
+  "index": {
+      "all": {
+          "manage_ilm": true,
+          "monitor": true
+      }
+  },
+  "username": "elastic"
+}
+`
+
+var clusterInfoExpected = map[string]string{
+	"version": "6.8.20",
+}
+
 const clusterHealthResponse = `
 {
    "cluster_name": "elasticsearch_cluster",
@@ -1189,7 +1230,6 @@ var nodestatsExpected = map[string]interface{}{
 	"breakers_parent_estimated_size_in_bytes":           float64(0),
 }
 
-/*
 const clusterStatsResponse = `
 {
    "host":"ip-10-0-1-214",
@@ -1356,9 +1396,8 @@ const clusterStatsResponse = `
          }
       ]
    }
-}` */
+}`
 
-/*
 var clusterstatsExpected = map[string]interface{}{
 	"indices_completion_size_in_bytes":                  float64(0),
 	"indices_count":                                     float64(1),
@@ -1451,7 +1490,7 @@ var clusterstatsExpected = map[string]interface{}{
 	"nodes_plugins_2_name":                              "tr-metrics",
 	"nodes_plugins_2_site":                              false,
 	"nodes_plugins_2_version":                           "7bd5b4b",
-} */
+}
 
 const IsMasterResult = "SDFsfSDFsdfFSDSDfSFDSDF 10.206.124.66 10.206.124.66 test.host.com "
 
@@ -1986,3 +2025,91 @@ var clusterIndicesTotalExpected = map[string]interface{}{
 	"total_search_query_total":            float64(0),
 	"total_store_size_in_bytes":           float64(535000),
 }
+
+var lifeCycleStateResponse = `
+{
+  "indices": {
+    "test-000056": {
+      "index": "test-000056",
+      "managed": true,
+      "policy": "my_lifecycle3",
+      "lifecycle_date_millis": 1538475653281,
+      "lifecycle_date": "2018-10-15T13:45:21.981Z",
+      "phase": "hot",
+      "phase_time_millis": 1538475653317,
+      "phase_time": "2018-10-15T13:45:22.577Z",
+      "action": "rollover",
+      "action_time_millis": 1538475653317,
+      "action_time": "2018-10-15T13:45:22.577Z",
+      "step": "ERROR",
+      "step_time_millis": 1538475653317,
+      "step_time": "2018-10-15T13:45:22.577Z",
+      "failed_step": "attempt-rollover", 
+      "step_info": { 
+        "type": "resource_already_exists_exception",
+        "reason": "index [test-000057/H7lF9n36Rzqa-KfKcnGQMg] already exists",
+        "index_uuid": "H7lF9n36Rzqa-KfKcnGQMg",
+        "index": "test-000057"
+      },
+      "phase_execution": {
+        "policy": "my_lifecycle3",
+        "phase_definition": {
+          "min_age": "0ms",
+          "actions": {
+            "rollover": {
+              "max_age": "30s"
+            }
+          }
+        },
+        "version": 3,
+        "modified_date": "2018-10-15T13:21:41.576Z",
+        "modified_date_in_millis": 1539609701576
+      }
+    },
+    "test-000020": {
+      "index": "test-000020",
+      "managed": true,
+      "policy": "my_lifecycle3",
+      "lifecycle_date_millis": 1538475653281,
+      "lifecycle_date": "2018-10-15T13:45:21.981Z",
+      "phase": "warm",
+      "phase_time_millis": 1538475653317,
+      "phase_time": "2018-10-15T13:45:22.577Z",
+      "action": "allocate",
+      "action_time_millis": 1538475653317,
+      "action_time": "2018-10-15T13:45:22.577Z",
+      "step": "check-allocation",
+      "step_time_millis": 1538475653317,
+      "step_time": "2018-10-15T13:45:22.577Z",
+      "step_info": { 
+        "message": "Waiting for all shard copies to be active",
+        "shards_left_to_allocate": -1,
+        "all_shards_active": false,
+        "actual_replicas": 2
+      },
+      "phase_execution": {
+        "policy": "my_lifecycle3",
+        "phase_definition": {
+          "min_age": "0ms",
+          "actions": {
+            "allocate": {
+              "number_of_replicas": 2,
+              "include": {
+                "box_type": "warm"
+              },
+              "exclude": {},
+              "require": {}
+            },
+            "forcemerge": {
+              "max_num_segments": 1
+            }
+          }
+        },
+        "version": 2,
+        "modified_date": "2018-10-15T13:20:02.489Z",
+        "modified_date_in_millis": 1539609602489
+      }
+    }
+  }
+}
+`
