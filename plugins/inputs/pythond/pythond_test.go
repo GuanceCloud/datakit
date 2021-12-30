@@ -10,17 +10,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 )
 
-// 开发的电脑名。把这个改成你的电脑名则可跑全所有 case。
-// 根据 case 不同可能需要配置一定量的环境。具体要配多少自己跑跑就知道。怎么配看代码！
-const devHostName = "macdeMacBook-Air.local"
-
-// 检查是不是开发机，如果不是开发机，则直接退出。
+// 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
 func checkDevHost() bool {
-	name, err := os.Hostname()
-	if err != nil {
-		panic(err)
-	}
-	if name != devHostName {
+	if envs := os.Getenv("LOCAL_UNIT_TEST"); envs == "" {
 		return false
 	}
 	return true
