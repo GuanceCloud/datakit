@@ -130,3 +130,11 @@ func TestContrast(t *testing.T) {
 
 	t.Log("END")
 }
+
+func TestCheckOutPutNilPtr(t *testing.T) {
+	var out *Output
+	checkOutPutNilPtr(&out)
+	if out == nil {
+		t.Error("nil")
+	}
+}

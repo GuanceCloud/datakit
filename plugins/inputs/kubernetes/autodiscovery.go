@@ -152,7 +152,7 @@ func (p *podlogging) run(client podclient, namespace, podName string) {
 	}
 	if p.Pipeline != "" {
 		path, _ := config.GetPipelinePath(p.Pipeline)
-		p.pipe, _ = pipeline.NewPipelineFromFile(path)
+		p.pipe, _ = pipeline.NewPipelineFromFile(path, false)
 	}
 	if len(p.Tags) == 0 {
 		p.Tags = make(map[string]string)

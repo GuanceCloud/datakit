@@ -1,4 +1,4 @@
-// Package prom scrape prometheus exportor metrics.
+// Package prom scrape prometheus exporter metrics.
 package prom
 
 import (
@@ -22,8 +22,9 @@ const (
 	catalog   = "prom"
 )
 
-// defaultMaxFileSize is the default maximum response body size, in bytes.
-// If the response body is over i size, we will simply discard its content instead of writing it to disk.
+// defaultMaxFileSize is the default max response body size, in bytes.
+// This field is used only when metrics are written to file, i.e. Output is configured.
+// If the size of response body is over defaultMaxFileSize, metrics will be discarded.
 // 32 MB.
 const defaultMaxFileSize int64 = 32 * 1024 * 1024
 
@@ -33,14 +34,16 @@ type Input struct {
 	Source   string `toml:"source"`
 	Interval string `toml:"interval"`
 
-	URL               string      `toml:"url"`
+	URL               string      `toml:"url,omitempty"` // Deprecated
+	URLs              []string    `toml:"urls"`
+	IgnoreReqErr      bool        `toml:"ignore_req_err"`
 	MetricTypes       []string    `toml:"metric_types"`
 	MetricNameFilter  []string    `toml:"metric_name_filter"`
 	MeasurementPrefix string      `toml:"measurement_prefix"`
 	MeasurementName   string      `toml:"measurement_name"`
 	Measurements      []prom.Rule `json:"measurements"`
 	Output            string      `toml:"output"`
-	maxFileSize       int64       `toml:"max_file_size"`
+	MaxFileSize       int64       `toml:"max_file_size"`
 
 	TLSOpen    bool   `toml:"tls_open"`
 	CacertFile string `toml:"tls_ca"`
@@ -56,7 +59,7 @@ type Input struct {
 	chPause chan bool
 	pause   bool
 
-	url    *url.URL
+	urls   []*url.URL
 	stopCh chan interface{}
 
 	semStop *cliutils.Sem // start stop signal
@@ -122,9 +125,9 @@ func (i *Input) Run() {
 				io.FeedLastError(source, err.Error())
 
 				// Try testing the connect
-				if i.url != nil {
-					if err := net.RawConnect(i.url.Hostname(), i.url.Port(), time.Second*3); err != nil {
-						l.Errorf("failed to connect to %s:%s, %s", i.url.Hostname(), i.url.Port(), err)
+				for _, u := range i.urls {
+					if err := net.RawConnect(u.Hostname(), u.Port(), time.Second*3); err != nil {
+						l.Errorf("failed to connect to %s:%s, %s", u.Hostname(), u.Port(), err)
 					}
 				}
 
@@ -178,17 +181,24 @@ func (i *Input) setup() bool {
 }
 
 func (i *Input) Init() error {
-	u, err := url.Parse(i.URL)
-	if err != nil {
-		return err
+	if i.URL != "" {
+		i.URLs = append(i.URLs, i.URL)
 	}
-	i.url = u
+	for _, u := range i.URLs {
+		uu, err := url.Parse(u)
+		if err != nil {
+			return err
+		}
+		i.urls = append(i.urls, uu)
+	}
 
 	// toml 不支持匿名字段的 marshal，JSON 支持
 	opt := &prom.Option{
 		Source:            i.Source,
 		Interval:          i.Interval,
 		URL:               i.URL,
+		URLs:              i.URLs,
+		IgnoreReqErr:      i.IgnoreReqErr,
 		MetricTypes:       i.MetricTypes,
 		MetricNameFilter:  i.MetricNameFilter,
 		MeasurementPrefix: i.MeasurementPrefix,
@@ -201,7 +211,7 @@ func (i *Input) Init() error {
 		Tags:              i.Tags,
 		TagsIgnore:        i.TagsIgnore,
 		Output:            i.Output,
-		MaxFileSize:       i.maxFileSize,
+		MaxFileSize:       i.MaxFileSize,
 		Auth:              i.Auth,
 	}
 
@@ -255,7 +265,7 @@ func NewProm() *Input {
 	return &Input{
 		stopCh:      make(chan interface{}, 1),
 		chPause:     make(chan bool, maxPauseCh),
-		maxFileSize: defaultMaxFileSize,
+		MaxFileSize: defaultMaxFileSize,
 
 		semStop: cliutils.NewSem(),
 	}

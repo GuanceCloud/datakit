@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -41,6 +42,7 @@ type redislog struct {
 }
 
 type Input struct {
+	Username          string `toml:"username"`
 	Host              string `toml:"host"`
 	UnixSocketPath    string `toml:"unix_socket_path"`
 	Password          string `toml:"password"`
@@ -85,9 +87,9 @@ func (i *Input) initCfg() error {
 	}
 
 	i.Addr = fmt.Sprintf("%s:%d", i.Host, i.Port)
-
 	client := redis.NewClient(&redis.Options{
 		Addr:     i.Addr,
+		Username: i.Username,
 		Password: i.Password, // no password set
 		DB:       i.DB,       // use default DB
 	})
@@ -298,6 +300,17 @@ func (i *Input) Run() {
 		i.collectCommandMeasurement,
 		i.collectSlowlogMeasurement,
 		i.collectDBMeasurement,
+		i.CollectLatencyMeasurement,
+	}
+
+	// 判断是否采集集群
+	ctx := context.Background()
+	list1 := i.client.Do(ctx, "info", "cluster").String()
+	part := strings.Split(list1, ":")
+	if len(part) >= 3 {
+		if strings.Compare(part[2], "1") == 1 {
+			i.collectors = append(i.collectors, i.CollectClusterMeasurement)
+		}
 	}
 
 	if len(i.Keys) > 0 {
@@ -359,6 +372,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&commandMeasurement{},
 		&slowlogMeasurement{},
 		&bigKeyMeasurement{},
+		&clusterMeasurement{},
+		&latencyMeasurement{},
 	}
 }
 

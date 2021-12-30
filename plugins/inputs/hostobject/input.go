@@ -4,12 +4,14 @@ package hostobject
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -112,6 +114,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.Tags[k] = v
 		}
 	}
+
+	// ENV_CLOUD_PROVIDER 会覆盖 ENV_INPUT_HOSTOBJECT_TAGS 中填入的 cloud_provider
+	if tagsStr, ok := envs["ENV_CLOUD_PROVIDER"]; ok {
+		cloudProvider := dkstring.TrimString(tagsStr)
+		cloudProvider = strings.ToLower(cloudProvider)
+		switch cloudProvider {
+		case "aliyun", "tencent", "aws", "hwcloud", "azure":
+			ipt.Tags["cloud_provider"] = cloudProvider
+		}
+	} // ENV_CLOUD_PROVIDER
 }
 
 func (ipt *Input) singleCollect(n int) {
@@ -227,12 +239,17 @@ func (ipt *Input) doCollect() error {
 	}
 
 	if ipt.p != nil {
-		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil {
-			for k, v := range result {
+		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil &&
+			result != nil && !result.Dropped {
+			for k, v := range result.Data {
 				ipt.collectData.fields[k] = v
 			}
+			for k, v := range result.Tags {
+				ipt.collectData.tags[k] = v
+			}
+			// ipt.collectData.tags
 		} else {
-			l.Warnf("pipeline error: %s, ignored", err)
+			l.Debug("pipeline error: %s, ignored", err)
 		}
 	}
 

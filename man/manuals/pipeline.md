@@ -57,6 +57,7 @@ drop_origin_data()
     source = "nginx"
 
     # 所有脚本必须放在 /path/to/datakit/pipeline 目录下
+    # 如果开启了 gitrepos 功能，则优先以 gitrepos 中的同名文件为准
     # 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名
     # 的脚本（如 nginx -> nginx.p），作为其默认 pipeline 配置
     pipeline = "nginx.p"
@@ -391,6 +392,10 @@ rename('height', `身高`) # 身高因为是 Unicode 字符，需要 `` 包围�
 ```python
 # 把已提取的 abc 字段重新命名为 abc1
 rename('abc1', abc)
+
+# or 
+
+rename(abc1, abc)
 ```
 
 示例：
@@ -1074,4 +1079,111 @@ replace(str, "([1-9]{4})[0-9]{10}([0-9]{4})", "$1**********$2")
 # 中文名 {"str": "小阿卡"}
 json(_, str)
 replace(str, '([\u4e00-\u9fa5])[\u4e00-\u9fa5]([\u4e00-\u9fa5])', "$1＊$2")
-``` 
+```
+
+### `set_tag()`
+
+函数原型：`set_tag(key=required, value=optional)`
+
+函数说明: 对指定字段标记为 tag 输出，设置为 tag 后，其他函数仍可对该变量操作
+
+函数参数
+
+- `key`: 待标记为 tag 的字段
+- `value`: 可以为字符串字面量或者变量
+
+```python
+# in << {"str": "13789123014"}
+set_tag(str)
+json(_, str)          # str == "13789123014"
+replace(str, "(1[0-9]{2})[0-9]{4}([0-9]{4})", "$1****$2")
+# Extracted data(drop: false, cost: 49.248µs):
+# {
+#   "message": "{\"str\": \"13789123014\", \"str_b\": \"3\"}",
+#   "str#": "137****3014"
+# }
+# * 字符 `#` 仅为 datakit --pl <path> --txt <str> 输出展示时字段为 tag 的标记
+
+# in << {"str_a": "2", "str_b": "3"}
+json(_, str_a)
+set_tag(str_a, "3")   # str_a == 3
+# Extracted data(drop: false, cost: 30.069µs):
+# {
+#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
+#   "str_a#": "3"
+# }
+
+
+# in << {"str_a": "2", "str_b": "3"}
+json(_, str_a)
+json(_, str_b)
+set_tag(str_a, str_b) # str_a == str_b == "3"
+# Extracted data(drop: false, cost: 32.903µs):
+# {
+#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
+#   "str_a#": "3",
+#   "str_b": "3"
+# }
+```
+
+### `drop()`
+
+函数原型：`drop()`
+
+函数说明: 丢弃整条日志，不进行上传
+
+```python
+# in << {"str_a": "2", "str_b": "3"}
+json(_, str_a)
+if str_a == "2"{
+  drop()
+  exit()
+}
+json(_, str_b)
+
+# Extracted data(drop: true, cost: 30.02µs):
+# {
+#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
+#   "str_a": "2"
+# }
+```
+
+### `exit()`
+
+函数原型：`exit()`
+
+函数说明: 结束当前一条日志的解析，若未调用函数 drop() 仍会输出已经解析的部分
+
+```python
+# in << {"str_a": "2", "str_b": "3"}
+json(_, str_a)
+if str_a == "2"{
+  exit()
+}
+json(_, str_b)
+
+# Extracted data(drop: false, cost: 48.233µs):
+# {
+#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
+#   "str_a": "2"
+# }
+```
+
+### `duration_precision()`
+
+函数原型：`duration_precision(key=required, old_precision=require, new_precision=require)`
+
+函数说明: 进行 duration 精度的转换，通过参数指定当前精度和目标精度。支持在 s, ms, us, ns 间转换。
+
+```python
+# in << {"ts":12345}
+json(_, ts)
+cast(ts, "int")
+duration_precision(ts, "ms", "ns")
+
+# Extracted data(drop: false, cost: 33.279µs):
+# {
+#   "message": "{\"ts\":12345}",
+#   "ts": 12345000000
+# }
+```

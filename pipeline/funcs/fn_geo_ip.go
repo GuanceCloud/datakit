@@ -111,12 +111,12 @@ func GeoIP(ng *parser.Engine, node parser.Node) error {
 
 	cont, err := ng.GetContentStr(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist, ignored", key)
+		l.Debug("key `%v' not exist, ignored", key)
 		return nil //nolint:nilerr
 	}
 
 	if dic, err := GeoIPHandle(cont); err != nil {
-		l.Warnf("GeoIPHandle: %s, ignored", err)
+		l.Debug("GeoIPHandle: %s, ignored", err)
 		return err
 	} else {
 		for k, v := range dic {

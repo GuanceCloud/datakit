@@ -6,7 +6,12 @@
 
 # {{.InputName}}
 
-采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
+
+日志采集器支持两种模式:
+- 从磁盘读取 ：采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
+- socket端口获取：可通过tcp/udp 将文件发送到datakit
+
+> 注意：两种采集方式目前互斥，当需要 socket 传输日志时 请修改配置文件中的`文件列表`： *logfiles=[]*
 
 ## 配置
 
@@ -24,7 +29,13 @@
     "/var/log/*",                          # 文件路径下所有文件
     "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
   ]
-  
+   ## socket目前支持两种协议：tcp,udp。建议开启内网端口防止安全隐患
+   ## socket和log目前是互斥行为，要开启socket采集日志 需要配置logfiles=[]
+   socket = [
+    	"tcp://0.0.0.0:9540"
+    	"udp://0.0.0.0:9541"
+  	# only two protocols are supported:TCP and UDP
+    ]
   # 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
   ignore = [""]
   
@@ -62,6 +73,20 @@
 ```
 
 >  注意：DataKit 启动后，`logfiles` 中配置的日志文件有新的日志产生才会采集上来，**老的日志数据是不会采集的**。
+
+### socket采集日志
+
+将logfiles设置为`[]` 并配置socket。以log4j2为例:
+``` xml
+ <!--socket配置日志传输到本机9540端口，protocol默认tcp-->
+ <Socket name="name1" host="localHost" port="9540" charset="utf8">
+     <!-- 输出格式  序列布局-->
+     <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
+     <!--注意：不要开启序列化传输到socket采集器上，dk无法反序列化，请使用纯文本形式传输-->
+     <!-- <SerializedLayout/>-->
+ </Socket>
+```
+
 
 ### 多行日志采集
 
@@ -234,6 +259,13 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 ### MacOS 日志采集器报错 `operation not permitted`
 
 在 MacOS 中，因为系统安全策略的原因，DataKit 日志采集器可能会无法打开文件，报错 `operation not permitted`，解决方法参考 [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection)。
+
+### 日志量太大可能会引发的问题
+
+自 datakit 版本1.2.0之后，无论是从磁盘读还是通过 socket 端口传输日志，为增加日志处理能力 采集器处理日志都改为异步操作，但同时也可能会在异步阻塞导致部分日志丢失
+
+这个问题并不会影响到正常的服务运行，因为 socket 处理如果不是异步并主动丢弃堆积日志的话，日志会在 client 端产生堆积，严重情况造成内存泄露从而影响主业务的运行。
+datakit 也会在处理不及造成日志堆积之后 缓存一定量日志到内存当中
 
 ### 更多参考
 

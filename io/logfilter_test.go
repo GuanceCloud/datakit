@@ -21,7 +21,7 @@ func (*debugLogFilterMock) getLogFilter() ([]byte, error) {
 func (*debugLogFilterMock) preparePoints(pts []*Point) []*Point {
 	influxPts, err := lp.ParsePoints(debugPoints, nil)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 	}
 
 	newpts := []*Point{}
@@ -47,18 +47,18 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb a
 
 	switch defLogfilter.status {
 	case filterReleased:
-		l.Info("log filter released")
+		log.Info("log filter released")
 	case filterRefreshed:
-		l.Info("log filter refreshed")
+		log.Info("log filter refreshed")
 	default:
-		l.Info("log filter status unknow")
+		log.Info("log filter status unknow")
 	}
 
-	l.Infof("log filter current rules: %q", defLogfilter.rules)
+	log.Infof("log filter current rules: %q", defLogfilter.rules)
 
 	after := defLogfilter.filter(nil)
 	for _, pt := range after {
-		l.Info(pt)
+		log.Info(pt)
 	}
 }
 
@@ -77,18 +77,18 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 
 	switch defLogfilter.status {
 	case filterReleased:
-		l.Info("log filter released")
+		log.Info("log filter released")
 	case filterRefreshed:
-		l.Info("log filter refreshed")
+		log.Info("log filter refreshed")
 	default:
-		l.Info("log filter status unknow")
+		log.Info("log filter status unknow")
 	}
 
-	l.Debug("log filter current rules: %q", defLogfilter.rules)
+	log.Debug("log filter current rules: %q", defLogfilter.rules)
 
 	after := defLogfilter.filter(nil)
 	for _, pt := range after {
-		l.Info(pt)
+		log.Info(pt)
 	}
 
 	debugFilterRules = []byte(`{"content": []}`)
@@ -96,18 +96,18 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 
 	switch defLogfilter.status {
 	case filterReleased:
-		l.Info("log filter released")
+		log.Info("log filter released")
 	case filterRefreshed:
-		l.Info("log filter refreshed")
+		log.Info("log filter refreshed")
 	default:
-		l.Info("log filter status unknow")
+		log.Info("log filter status unknow")
 	}
 
-	l.Infof("log filter current rules: %q", defLogfilter.rules)
+	log.Infof("log filter current rules: %q", defLogfilter.rules)
 
 	after = defLogfilter.filter(nil)
 	for _, pt := range after {
-		l.Info(pt)
+		log.Info(pt)
 	}
 }
 

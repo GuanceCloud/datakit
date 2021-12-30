@@ -57,6 +57,11 @@ const (
 	LogFilter         = "/v2/logfilter/pull"
 	ListDataWay       = "/v2/list/dataway"
 	DatakitInputName  = "self"
+
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
+	GitRepoSubDirNameConfd    = "conf.d"
+	GitRepoSubDirNamePipeline = "pipeline"
+	GitRepoSubDirNamePythond  = "python.d"
 )
 
 var (

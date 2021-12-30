@@ -207,6 +207,13 @@ func TimestampHandle(value, tz string) (int64, error) {
 	timezone := time.Local
 
 	if tz != "" {
+		// parse timezone as +x or -x
+		if tz[0] == '+' || tz[0] == '-' {
+			if _, has := timezoneList[tz]; !has {
+				return 0, fmt.Errorf("fail to parse timezone %s", tz)
+			}
+			tz = timezoneList[tz]
+		}
 		if timezone, err = time.LoadLocation(tz); err != nil {
 			return 0, err
 		}

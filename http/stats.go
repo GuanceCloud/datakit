@@ -230,7 +230,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 
 	rows := []string{}
 
-	s := goroutine.GetStat()
+	s := x.GoroutineStats
 
 	summary := fmt.Sprintf(summaryFmt, s.Total, s.RunningTotal, s.CostTime, s.AvgCostTime)
 	if len(s.Items) == 0 {

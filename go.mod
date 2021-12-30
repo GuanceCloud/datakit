@@ -62,7 +62,6 @@ require (
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
-	github.com/rs/xid v1.3.0 // indirect
 	github.com/shirou/gopsutil v3.21.8+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
 	github.com/spf13/cast v1.4.1
