@@ -15,7 +15,7 @@
 - [主机对象采集器](hostobject)
 	- 支持从 [`ENV_CLOUD_PROVIDER`](hostobject#224e2ccd) 读取云同步配置(#501)
 	- 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
-- [日志采集器](logging) 支持接收 TCP 数据(#503)
+- [日志采集器](logging) 支持接收 TCP/UDP 日志流(#503)
 - [Prom 采集器](prom) 支持多 URL 采集(#506)
 - 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBFP 数据采集(507)
 - [ElasticSearch采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
@@ -38,7 +38,9 @@
 	- 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
 	- 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
 	- 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
-	- 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装费稳定版
+	- 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
+
+---
 
 ## 1.1.9-rc7.1(2021/12/22)
 
