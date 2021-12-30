@@ -73,6 +73,11 @@ func (i *Input) ParseLatencyData(list string) ([]inputs.Measurement, error) {
 	// [latency latest:  command 1640151523 324 1000] ]]
 	part := strings.Split(list, "[[")
 
+	// redis没有最新延迟事件
+	if len(part) != 2 {
+		l.Info("have no delayed event")
+		return nil, nil
+	}
 	// "command 1640151523 324 1000"
 	part1 := strings.Split(part[1], "]]")
 
@@ -81,8 +86,8 @@ func (i *Input) ParseLatencyData(list string) ([]inputs.Measurement, error) {
 
 	// 长度不足4则失败
 	if len(finalPart) != 4 {
-		l.Errorf("parse latency data error or have no latency")
-		return nil, fmt.Errorf("parse latency data error or have no latency")
+		l.Errorf("parse latency data error")
+		return nil, fmt.Errorf("parse latency data error")
 	}
 
 	fieldName := []string{"event_name", "occur_time", "cost_time", "max_cost_time"}

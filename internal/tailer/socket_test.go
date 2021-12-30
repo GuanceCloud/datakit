@@ -9,9 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
 func Test_socketLogger_doSocket(t *testing.T) {

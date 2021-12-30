@@ -11,7 +11,7 @@ import (
 )
 
 /*
-支持socket接受日志
+支持socket接受日志.
 */
 const (
 	name          = "socketLog"
