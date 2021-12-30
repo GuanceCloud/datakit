@@ -114,18 +114,10 @@ func checkNewVersion(curverStr string, showTestingVer bool) (map[string]*newVers
 		l.Debugf("compare %s <=> %s", v, curver)
 
 		if version.IsNewVersion(v, curver, true) {
-			if curver.IsStable() {
-				vis[k] = &newVersionInfo{
-					versionType: k,
-					upgrade:     true,
-					newVersion:  v,
-				}
-			} else {
-				vis[k] = &newVersionInfo{
-					versionType: k,
-					install:     true,
-					newVersion:  v,
-				}
+			vis[k] = &newVersionInfo{
+				versionType: k,
+				upgrade:     true,
+				newVersion:  v,
 			}
 		}
 	}
