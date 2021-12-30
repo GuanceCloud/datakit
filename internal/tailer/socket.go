@@ -11,20 +11,14 @@ import (
 )
 
 /*
-支持socket接受日志
+支持socket接受日志.
 */
 const (
 	name          = "socketLog"
-	MaxPending    = 200
 	ReadBufferLen = 1024 * 4
-	defSendTime   = time.Second * 5
 )
 
 var l = logger.DefaultSLogger("socketLog")
-
-type sample struct {
-	data []string
-}
 
 type socketLogger struct {
 	// 存放连接，释放连接使用
@@ -36,10 +30,6 @@ type socketLogger struct {
 	// 配置
 	opt  *Option
 	stop chan struct{}
-
-	// pending 发送到pipline模块
-	pending []worker.TaskData
-	msg     chan *sample
 }
 
 func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err error) {
@@ -53,10 +43,8 @@ func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err 
 			}
 			return nil
 		}(),
-		opt:     opt,
-		stop:    make(chan struct{}, 1),
-		pending: make([]worker.TaskData, 0),
-		msg:     make(chan *sample, 10),
+		opt:  opt,
+		stop: make(chan struct{}, 1),
 	}
 	if err := sl.opt.init(); err != nil {
 		return nil, err
@@ -70,7 +58,6 @@ func (sl *socketLogger) Start() {
 		sl.opt.log.Warnf("no socket config")
 		return
 	}
-	go sl.startReceive()
 	for _, socket := range sl.opt.Sockets {
 		strs := strings.Split(socket, "://")
 		if len(strs) != 2 {
@@ -135,7 +122,7 @@ func (sl *socketLogger) doSocket(conn net.Conn) {
 		pipDate, cacheM = sl.spiltBuffer(cacheLine, string(data[:n]), n == sl.socketBufferLen)
 		cacheLine = cacheM
 		if len(pipDate) != 0 {
-			sl.msg <- &sample{pipDate}
+			sl.sendToPipeline(pipDate)
 		}
 	}
 }
@@ -155,38 +142,6 @@ func (sl *socketLogger) spiltBuffer(fromCache string, date string, full bool) (p
 		pipdata = append(pipdata, lines[0:logLen-1]...)
 	}
 	return pipdata, cacheDate
-}
-
-func (sl *socketLogger) startReceive() {
-	for {
-		select {
-		case d := <-sl.msg:
-			for _, datum := range d.data {
-				if datum != "" {
-					sl.pending = append(sl.pending, &SocketTaskData{Tag: sl.opt.GlobalTags, Log: datum, Source: sl.opt.Source})
-				}
-				l.Debugf("datam = %s", datum)
-			}
-			if len(sl.pending) > MaxPending {
-				err := sl.sendToPip(sl.pending)
-				if err != nil {
-					// 保留最新data
-					sl.pending = sl.pending[len(d.data)-1:]
-				} else {
-					sl.pending = make([]worker.TaskData, 0)
-				}
-			}
-		case <-time.After(defSendTime):
-			if len(sl.pending) > 0 {
-				err := sl.sendToPip(sl.pending)
-				if err == nil {
-					sl.pending = make([]worker.TaskData, 0)
-				}
-			}
-		case <-sl.stop:
-			return
-		}
-	}
 }
 
 type SocketTaskData struct {
@@ -209,19 +164,28 @@ func (std *SocketTaskData) Handler(result *worker.Result) error {
 	return nil
 }
 
-func (sl *socketLogger) sendToPip(pending []worker.TaskData) error {
-	task := &worker.Task{
-		TaskName:   name,
-		ScriptName: sl.opt.Pipeline,
-		Source:     sl.opt.Source,
-		Data:       pending,
-		Opt: &worker.TaskOpt{
-			IgnoreStatus:          sl.opt.IgnoreStatus,
-			DisableAddStatusField: sl.opt.DisableAddStatusField,
-		},
-		TS: time.Now(),
+func (sl *socketLogger) sendToPipeline(pending []string) {
+	taskDates := make([]worker.TaskData, 0)
+	for _, data := range pending {
+		if data != "" {
+			taskDates = append(taskDates, &SocketTaskData{Tag: sl.opt.GlobalTags, Log: data, Source: sl.opt.Source})
+		}
 	}
-	return worker.FeedPipelineTask(task)
+	if len(taskDates) != 0 {
+		task := &worker.Task{
+			TaskName:   name,
+			ScriptName: sl.opt.Pipeline,
+			Source:     sl.opt.Source,
+			Data:       taskDates,
+			Opt: &worker.TaskOpt{
+				IgnoreStatus:          sl.opt.IgnoreStatus,
+				DisableAddStatusField: sl.opt.DisableAddStatusField,
+			},
+			TS: time.Now(),
+		}
+		// 阻塞型channel
+		_ = worker.FeedPipelineTaskBlock(task)
+	}
 }
 
 func (sl *socketLogger) Close() {

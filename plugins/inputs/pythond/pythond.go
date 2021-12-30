@@ -288,6 +288,17 @@ func getPyModules(dir string) []string {
 	return arr
 }
 
+// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
+func searchPythondDir(dirName string, enabledRepos []string) string {
+	for _, v := range enabledRepos {
+		destPath := filepath.Join(datakit.GitReposDir, v, datakit.GitRepoSubDirNamePythond, dirName)
+		if path.IsDir(destPath) {
+			return destPath
+		}
+	}
+	return filepath.Join(datakit.PythonDDir, dirName)
+}
+
 func (pe *PythonDInput) Run() {
 	l = logger.SLogger(inputName)
 
@@ -305,32 +316,45 @@ func (pe *PythonDInput) Run() {
 	}
 
 	var pyModules, modulesRoot []string
+	enabledRepos := config.GitEnabledRepoNames()
 	for _, v := range pe.Dirs {
-		if config.GitHasEnabled() {
-			v = filepath.Join(datakit.GitReposDir, v)
+		var pythonPath string
+		if len(enabledRepos) != 0 {
+			// enabled git
+			if filepath.IsAbs(v) {
+				pythonPath = v
+			} else {
+				pythonPath = searchPythondDir(v, enabledRepos)
+			}
 		} else {
-			v = filepath.Join(datakit.PythonDDir, v)
+			// not enabled git
+			pythonPath = filepath.Join(datakit.PythonDDir, v)
 		}
 
-		// l.Debugf("v = %s", v)
+		l.Debugf("pythonPath = %s", pythonPath)
 
-		if path.IsDir(v) {
-			pyModules = append(pyModules, getPyModules(v)...)
-			modulesRoot = append(modulesRoot, v)
-		} else if datakit.FileExist(v) {
-			pyModules = append(pyModules, path.GetPureNameFromExt(v))
+		if path.IsDir(pythonPath) {
+			pyModules = append(pyModules, getPyModules(pythonPath)...)
+			modulesRoot = append(modulesRoot, pythonPath)
+		} else if datakit.FileExist(pythonPath) {
+			pyModules = append(pyModules, path.GetPureNameFromExt(pythonPath))
 		}
 	}
 
 	pyModules = dkstring.GetUniqueArray(pyModules)
 	modulesRoot = dkstring.GetUniqueArray(modulesRoot)
 
-	// l.Debugf("pyModules = %v, modulesRoot = %v", pyModules, modulesRoot)
+	l.Debugf("pyModules = %v, modulesRoot = %v", pyModules, modulesRoot)
+
+	if len(pyModules) == 0 || len(modulesRoot) == 0 {
+		l.Error("pyModules or modulesRoot empty.")
+		return
+	}
 
 	pe.scriptName = strings.Join(pyModules, "\", \"")
 	pe.scriptRoot = "['" + strings.Join(modulesRoot, "', '") + "']"
 
-	// l.Debugf("pe.scriptName = %v, pe.scriptRoot = %v", pe.scriptName, pe.scriptRoot)
+	l.Debugf("pe.scriptName = %v, pe.scriptRoot = %v", pe.scriptName, pe.scriptRoot)
 
 	for {
 		if err := pe.start(); err != nil { // start failed, retry

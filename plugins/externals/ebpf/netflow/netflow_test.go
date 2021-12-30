@@ -145,6 +145,8 @@ type caseConvConn2M struct {
 	result    measurement
 }
 
+const testServiceName = "netflow"
+
 func TestConvConn2M(t *testing.T) {
 	ts := time.Now()
 	connR := ConnResult{
@@ -176,13 +178,13 @@ func TestConvConn2M(t *testing.T) {
 				TotalClosed:      1,
 				TotalEstablished: 0,
 			},
-			tags: map[string]string{"host": "abc", "service": inputName},
+			tags: map[string]string{"host": "abc", "service": testServiceName},
 			ts:   ts,
 			result: measurement{
 				tags: map[string]string{
 					"host":        "abc",
-					"service":     inputName,
-					"source":      inputName,
+					"service":     testServiceName,
+					"source":      testServiceName,
 					"status":      "info",
 					"pid":         "1222",
 					"src_ip":      "125.0.1.1",
@@ -229,13 +231,13 @@ func TestConvConn2M(t *testing.T) {
 				TotalClosed:      1,
 				TotalEstablished: 0,
 			},
-			tags: map[string]string{"host": "abc", "service": inputName},
+			tags: map[string]string{"host": "abc", "service": testServiceName},
 			ts:   ts,
 			result: measurement{
 				tags: map[string]string{
 					"host":        "abc",
-					"service":     inputName,
-					"source":      inputName,
+					"service":     testServiceName,
+					"source":      testServiceName,
 					"status":      "info",
 					"pid":         "1222",
 					"src_ip":      "125.0.1.1",
@@ -277,13 +279,13 @@ func TestConvConn2M(t *testing.T) {
 				TotalClosed:      1,
 				TotalEstablished: 0,
 			},
-			tags: map[string]string{"host": "abc", "service": inputName},
+			tags: map[string]string{"host": "abc", "service": testServiceName},
 			ts:   ts,
 			result: measurement{
 				tags: map[string]string{
 					"host":        "abc",
-					"service":     inputName,
-					"source":      inputName,
+					"service":     testServiceName,
+					"source":      testServiceName,
 					"status":      "info",
 					"pid":         "1222",
 					"src_ip":      "125.0.1.1",
@@ -325,13 +327,13 @@ func TestConvConn2M(t *testing.T) {
 				TotalClosed:      1,
 				TotalEstablished: 0,
 			},
-			tags: map[string]string{"host": "abc", "service": inputName},
+			tags: map[string]string{"host": "abc", "service": testServiceName},
 			ts:   ts,
 			result: measurement{
 				tags: map[string]string{
 					"host":        "abc",
-					"service":     inputName,
-					"source":      inputName,
+					"service":     testServiceName,
+					"source":      testServiceName,
 					"status":      "info",
 					"pid":         "1222",
 					"src_ip":      "127.0.1.1",
@@ -386,7 +388,7 @@ func TestConvConn2M(t *testing.T) {
 			}
 		}
 	}
-	assert.Equal(t, len(cases), len(ConvertConn2Measurement(&connR, inputName)))
+	assert.Equal(t, len(cases), len(ConvertConn2Measurement(&connR, testServiceName)))
 }
 
 type caseStatsOp struct {

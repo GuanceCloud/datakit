@@ -95,7 +95,7 @@ func (i *Input) CollectClusterMeasurement() ([]inputs.Measurement, error) {
 	ctx := context.Background()
 	list, err := i.client.ClusterInfo(ctx).Result()
 	if err != nil {
-		l.Errorf("get cluster info error %v:", err)
+		l.Errorf("get clusterinfo error %v", err)
 		return nil, err
 	}
 	info, err := i.ParseClusterData(list)
@@ -103,7 +103,6 @@ func (i *Input) CollectClusterMeasurement() ([]inputs.Measurement, error) {
 		l.Errorf("paserclusterdata error %v", err)
 		return nil, err
 	}
-
 	return info, nil
 }
 

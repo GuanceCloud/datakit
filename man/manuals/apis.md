@@ -97,6 +97,9 @@ redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data"
 - 行协议中的指标集名称(此处的 `nginx/mysql/redis`) 会作为日志的 `source` 字段来存储。
 - 原式日志数据存放在 `message` 字段上
 
+> 注意：DK版本自1.2.0之后，为优化处理速度, /v1/write/logging 处理数据时改为异步操作，所以当后台处理 pipeline 时，这一条 http 请求已经完成并返回状态码了。
+> 如果返回状态码为200或者 **观测云** 上数据异常时，请先检查发送的数据是否符合文档中的要求。
+
 ### 时序数据(metric)示例
 
 ```http

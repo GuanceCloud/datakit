@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package netebpf
+package ebpf
 
 import (
 	"testing"

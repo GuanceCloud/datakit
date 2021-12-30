@@ -51,7 +51,10 @@ func AdjustTimezone(ng *parser.Engine, node parser.Node) error {
 	return nil
 }
 
-const timeHourNanosec = int64(time.Hour)
+const (
+	timeHourNanosec  = int64(time.Hour)
+	time45MinNanosec = int64(time.Minute * 45)
+)
 
 func detactTimezone(cont interface{}) (int64, error) {
 	switch cont := cont.(type) {
@@ -61,6 +64,15 @@ func detactTimezone(cont interface{}) (int64, error) {
 		if (deltaTZ > 24) || (deltaTZ < -24) {
 			return 0, fmt.Errorf("delta time > 24h")
 		}
+
+		// 分钟进位
+		deltaMin := tn%timeHourNanosec - cont%timeHourNanosec
+		if deltaMin >= time45MinNanosec {
+			deltaTZ += 1
+		} else if deltaMin <= -time45MinNanosec {
+			deltaTZ -= 1
+		}
+
 		return cont + deltaTZ*timeHourNanosec, nil
 	default:
 		return 0, fmt.Errorf("param value expect int64, got `%s`", reflect.TypeOf(cont))

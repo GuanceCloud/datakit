@@ -23,10 +23,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dnsflow"
-	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/feed"
-	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/netflow"
-	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/offset"
+	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/bash_history"
+	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
+	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
+	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
+	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/offset"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
 
@@ -35,7 +36,12 @@ const (
 	maxInterval = time.Minute * 30
 )
 
-var pidFile = filepath.Join(datakit.InstallDir, "externals", "net_ebpf.pid")
+var (
+	disableEbpfNet  = false
+	disableEbpfBash = false
+)
+
+var pidFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.pid")
 
 type Option struct {
 	Config string `long:"config" description:"config file path"`
@@ -51,17 +57,20 @@ type Option struct {
 	Log      string `long:"log" description:"log path"`
 	LogLevel string `long:"log-level" description:"log file" default:"info"`
 
-	Tags string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
-
-	Service string `long:"service" description:"service" default:"net_ebpf"`
+	Tags     string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	Disabled string `long:"disabled" description:"disabled input list in 'a,b,...' format"`
+	Service  string `long:"service" description:"service" default:"ebpf"`
 }
 
-type Inputs struct {
+type Input struct {
 	external.ExernalInput
+	DisabledInput []string `toml:"disabled_input"`
 }
 
 const (
-	inputName = "net_ebpf"
+	inputName     = "ebpf"
+	inputNameNet  = "ebpf-net"
+	inputNameBash = "ebpf-bash"
 )
 
 var (
@@ -88,7 +97,7 @@ func main() {
 			return
 		}
 
-		if i, err := loadNetEbpfCfg(opt.Config); err != nil {
+		if i, err := loadEbpfCfg(opt.Config); err != nil {
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		} else {
@@ -110,7 +119,8 @@ func main() {
 
 	dkfeed.DataKitAPIServer = opt.DataKitAPIServer
 
-	datakitPostURL := fmt.Sprintf("http://%s%s?input="+inputName, dkfeed.DataKitAPIServer, datakit.Network)
+	ebpfNetPostURL := fmt.Sprintf("http://%s%s?input="+inputNameNet, dkfeed.DataKitAPIServer, datakit.Network)
+	ebpfBashPostURL := fmt.Sprintf("http://%s%s?input="+inputNameBash, dkfeed.DataKitAPIServer, datakit.Logging)
 
 	logOpt := logger.Option{
 		Path:  opt.Log,
@@ -127,6 +137,7 @@ func main() {
 	dknetflow.SetLogger(l)
 	dkdns.SetLogger(l)
 	dkoffset.SetLogger(l)
+	dkbash.SetLogger(l)
 
 	// duration 介于 10s ～ 30min，若非，默认设为 30s.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
@@ -136,50 +147,73 @@ func main() {
 		interval = time.Second * 60
 	}
 
-	offset, err := getOffset()
-	if err != nil {
-		feedLastErrorLoop(err, signaIterrrupt)
-		return
-	}
-	l.Debug(offset)
-
-	constEditor := dkoffset.NewConstEditor(offset)
-	netflowTracer := dknetflow.NewNetFlowTracer()
-	bpfManger, err := dknetflow.NewNetFlowManger(constEditor, netflowTracer.ClosedEventHandler)
-	if err != nil {
-		feedLastErrorLoop(err, signaIterrrupt)
-		return
-	}
-	// Start the manager
-	if err := bpfManger.Start(); err != nil {
-		feedLastErrorLoop(err, signaIterrrupt)
-		return
-	} else {
-		l.Info("network tracer(net_ebpf) starting ...")
-	}
-	defer bpfManger.Stop(manager.CleanAll) //nolint:errcheck
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dnsRecord := dkdns.NewDNSRecord()
+	l.Info("datakit-ebpf starting ...")
 
-	dknetflow.SetDNSRecord(dnsRecord)
+	// ebpf-net
+	if !disableEbpfNet {
+		offset, err := getOffset()
+		if err != nil {
+			feedLastErrorLoop(err, signaIterrrupt)
+			return
+		}
+		l.Debug(offset)
 
-	if tp, err := dkdns.NewTPacketDNS(); err != nil {
-		l.Error(err)
-	} else {
-		dnsTracer := dkdns.NewDNSFlowTracer()
-		go dnsTracer.Run(ctx, tp, gTags, dnsRecord, datakitPostURL)
+		constEditor := dkoffset.NewConstEditor(offset)
+
+		netflowTracer := dknetflow.NewNetFlowTracer()
+		ebpfNetManger, err := dknetflow.NewNetFlowManger(constEditor, netflowTracer.ClosedEventHandler)
+		if err != nil {
+			feedLastErrorLoop(err, signaIterrrupt)
+			return
+		}
+		// Start the manager
+		if err := ebpfNetManger.Start(); err != nil {
+			feedLastErrorLoop(err, signaIterrrupt)
+			return
+		} else {
+			l.Info(" >>> datakit ebpf-net tracer(ebpf) starting ...")
+		}
+		defer ebpfNetManger.Stop(manager.CleanAll) //nolint:errcheck
+
+		// used for dns reverse
+		dnsRecord := dkdns.NewDNSRecord()
+		dknetflow.SetDNSRecord(dnsRecord)
+
+		// run dnsflow
+		if tp, err := dkdns.NewTPacketDNS(); err != nil {
+			l.Error(err)
+		} else {
+			dnsTracer := dkdns.NewDNSFlowTracer()
+			go dnsTracer.Run(ctx, tp, gTags, dnsRecord, ebpfNetPostURL)
+		}
+
+		// run netflow
+		err = netflowTracer.Run(ctx, ebpfNetManger, ebpfNetPostURL, gTags, interval)
+		if err != nil {
+			feedLastErrorLoop(err, signaIterrrupt)
+			return
+		}
 	}
 
-	err = netflowTracer.Run(ctx, bpfManger, datakitPostURL, gTags, interval)
-	if err != nil {
-		feedLastErrorLoop(err, signaIterrrupt)
-		return
+	// ebpf-bash
+	if !disableEbpfBash {
+		l.Info(" >>> datakit ebpf-bash tracer(ebpf) starting ...")
+		bashTracer := dkbash.NewBashTracer()
+		err := bashTracer.Run(ctx, gTags, ebpfBashPostURL, interval)
+		if err != nil {
+			feedLastErrorLoop(err, signaIterrrupt)
+			return
+		}
 	}
-	<-signaIterrrupt
-	l.Info("network tracer(net_ebpf) exit")
+
+	if !disableEbpfBash || !disableEbpfNet {
+		<-signaIterrrupt
+	}
+
+	l.Info("datakit-ebpf exit")
 	quit()
 }
 
@@ -245,6 +279,16 @@ func parseFlags() (*Option, map[string]string, error) {
 		return nil, nil, err
 	}
 
+	optDisabled := strings.Split(opt.Disabled, ",")
+	for _, item := range optDisabled {
+		switch item {
+		case inputNameNet:
+			disableEbpfNet = true
+		case inputNameBash:
+			disableEbpfBash = true
+		}
+	}
+
 	optTags := strings.Split(opt.Tags, ";")
 	for _, item := range optTags {
 		tagArr := strings.Split(item, "=")
@@ -274,7 +318,7 @@ func parseFlags() (*Option, map[string]string, error) {
 	gTags["service"] = opt.Service
 
 	if opt.Log == "" {
-		opt.Log = filepath.Join(datakit.InstallDir, "externals", "net_ebpf.log")
+		opt.Log = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.log")
 	}
 
 	return &opt, gTags, nil
@@ -297,12 +341,12 @@ func getEnvHostname() (string, error) {
 	}
 }
 
-func loadNetEbpfCfg(p string) (*Inputs, error) {
-	i := Inputs{}
+func loadEbpfCfg(p string) (*Input, error) {
+	i := Input{}
 
 	cfgdata, err := ioutil.ReadFile(filepath.Clean(p))
 	if err != nil {
-		l.Errorf("read net_ebpf cfg %s failed: %s", p, err.Error())
+		l.Errorf("read ebpf cfg %s failed: %s", p, err.Error())
 		return nil, err
 	}
 
@@ -320,9 +364,9 @@ func loadNetEbpfCfg(p string) (*Inputs, error) {
 		return nil, fmt.Errorf("invalid toml format")
 	}
 
-	node, ok = tbl.Fields["net_ebpf"]
+	node, ok = tbl.Fields["ebpf"]
 	if !ok {
-		return nil, fmt.Errorf("load config failed, field net_ebpf not found")
+		return nil, fmt.Errorf("load config failed, field ebpf not found")
 	}
 
 	tbls, ok := node.([]*ast.Table)
@@ -339,9 +383,19 @@ func loadNetEbpfCfg(p string) (*Inputs, error) {
 }
 
 // init opt, dkutil.DataKitAPIServer, datakitPostURL.
-func parseCfg(i *Inputs) (*Option, map[string]string, error) {
+func parseCfg(i *Input) (*Option, map[string]string, error) {
 	opt := Option{}
 	gTags := map[string]string{}
+
+	for _, v := range i.DisabledInput {
+		switch v {
+		case inputNameNet:
+			disableEbpfNet = true
+		case inputNameBash:
+			disableEbpfBash = true
+		}
+	}
+
 	for k, v := range i.Tags {
 		gTags[k] = v
 	}
@@ -366,7 +420,7 @@ func parseCfg(i *Inputs) (*Option, map[string]string, error) {
 	gTags["service"] = opt.Service
 
 	if opt.Log == "" {
-		opt.Log = filepath.Join(datakit.InstallDir, "externals", "net_ebpf.log")
+		opt.Log = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.log")
 	}
 
 	return &opt, gTags, nil
@@ -378,7 +432,7 @@ func quit() {
 
 func savePid() error {
 	if isRuning() {
-		return fmt.Errorf("net_ebpf still running, PID: %s", pidFile)
+		return fmt.Errorf("ebpf still running, PID: %s", pidFile)
 	}
 
 	pid := os.Getpid()
@@ -404,7 +458,7 @@ func isRuning() bool {
 	p, _ = process.NewProcess(int32(oidPid))
 	name, _ = p.Name()
 
-	return name == "net_ebpf"
+	return name == "datakit-ebpf"
 }
 
 const (
@@ -414,7 +468,7 @@ const (
 
 func dumpStderr2File() {
 	dirpath := filepath.Join(datakit.InstallDir, "externals")
-	filepath := filepath.Join(dirpath, "net_ebpf.stderr")
+	filepath := filepath.Join(dirpath, "datakit-ebpf.stderr")
 	if err := os.MkdirAll(dirpath, DirModeRW); err != nil {
 		l.Warn(err)
 		return

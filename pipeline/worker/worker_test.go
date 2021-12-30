@@ -273,3 +273,43 @@ func TestWorker(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func BenchmarkPpWorker_Run(b *testing.B) {
+	workerFeedFuncDebug = func(taskName string, points []*io.Point, id int) error {
+		b.Log(points)
+		return nil
+	}
+
+	// init manager
+	InitManager()
+	wkrManager.setDebug(true)
+
+	ts := time.Now()
+
+	for i := 0; i < b.N; i++ {
+		err := FeedPipelineTaskBlock(&Task{
+			TaskName: "nginx-test-log",
+			Source:   "nginx",
+			Opt:      &TaskOpt{IgnoreStatus: []string{"warn"}},
+			Data: []TaskData{
+				&taskData{
+					tags: map[string]string{
+						"tk": "aaa",
+					},
+					log: `127.0.0.1 - - [16/Dec/2021:17:25:29 +0800] "GET / HTTP/1.1" 404 162 "-" "Wget/1.20.3 (linux-gnu)"`,
+				},
+			},
+			TS: time.Now(),
+		})
+		if err != nil {
+			b.Log(err)
+		}
+	}
+	if len(taskCh) != 0 {
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	if len(taskCh) == 0 {
+		b.Log(time.Since(ts))
+	}
+}

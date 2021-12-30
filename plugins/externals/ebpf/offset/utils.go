@@ -1,4 +1,3 @@
-//go:build (linux && ignore) || ebpf
 // +build linux,ignore ebpf
 
 package offset
@@ -25,7 +24,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/c"
+	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 )
 
 type OffsetGuessC C.struct_offset_guess

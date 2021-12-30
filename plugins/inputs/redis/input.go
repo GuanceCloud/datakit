@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -299,8 +300,17 @@ func (i *Input) Run() {
 		i.collectCommandMeasurement,
 		i.collectSlowlogMeasurement,
 		i.collectDBMeasurement,
-		i.CollectClusterMeasurement,
 		i.CollectLatencyMeasurement,
+	}
+
+	// 判断是否采集集群
+	ctx := context.Background()
+	list1 := i.client.Do(ctx, "info", "cluster").String()
+	part := strings.Split(list1, ":")
+	if len(part) >= 3 {
+		if strings.Compare(part[2], "1") == 1 {
+			i.collectors = append(i.collectors, i.CollectClusterMeasurement)
+		}
 	}
 
 	if len(i.Keys) > 0 {

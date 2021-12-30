@@ -6,9 +6,17 @@
 
 # {{.InputName}}
 
-net_ebpf 采集器，采集主机网络 tcp、udp 连接信息
+ebpf 采集器，采集主机网络 tcp、udp 连接信息，bash 执行日志等，包含 ebpf-net 及 ebpf-bash:
 
-## 前置条件
+  * ebpf-net:
+    * 数据类别: Network
+    * 由 netflow 和 dnsflow 构成，分别用于采集主机 tcp/udp 连接统计信息和主机 dns 解析信息；
+
+  * ebpf-bash:
+    * 数据类别: Logging
+    * 采集 bash 的执行日志，包含 bash 进程号，用户名，执行的命令和时间等;
+
+## 前置条
 
 ### Linux 内核版本要求
 
@@ -28,11 +36,6 @@ $ uname -r
 setenforce 0
 ```
 
-### DaemonSet 方式安装的 DataKit  
-
-若是在 K8s 中通过 DaemonSet 方式安装的 DataKit，
-需将宿主机目录 `/sys/kernel/debug` 挂载到容器中
-
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
@@ -41,8 +44,9 @@ setenforce 0
 {{.InputSample}}
 ```
 
-配置好后，重启 DataKit 即可。
+默认配置关闭 ebpf-bash，若需开启移除 disabled_input 配置项中的 "ebpf-bash"；
 
+配置好后，重启 DataKit 即可。
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：

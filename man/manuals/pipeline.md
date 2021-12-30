@@ -57,6 +57,7 @@ drop_origin_data()
     source = "nginx"
 
     # 所有脚本必须放在 /path/to/datakit/pipeline 目录下
+    # 如果开启了 gitrepos 功能，则优先以 gitrepos 中的同名文件为准
     # 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名
     # 的脚本（如 nginx -> nginx.p），作为其默认 pipeline 配置
     pipeline = "nginx.p"
@@ -1165,5 +1166,24 @@ json(_, str_b)
 # {
 #   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",
 #   "str_a": "2"
+# }
+```
+
+### `duration_precision()`
+
+函数原型：`duration_precision(key=required, old_precision=require, new_precision=require)`
+
+函数说明: 进行 duration 精度的转换，通过参数指定当前精度和目标精度。支持在 s, ms, us, ns 间转换。
+
+```python
+# in << {"ts":12345}
+json(_, ts)
+cast(ts, "int")
+duration_precision(ts, "ms", "ns")
+
+# Extracted data(drop: false, cost: 33.279µs):
+# {
+#   "message": "{\"ts\":12345}",
+#   "ts": 12345000000
 # }
 ```

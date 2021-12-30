@@ -92,7 +92,7 @@ func FeedPipelineTask(task *Task) error {
 		return nil
 	}
 	if wkrManager == nil || taskCh == nil || stopCh == nil {
-		return fmt.Errorf("pipeline task channal is not ready")
+		return ErrTaskChNotReady
 	} else {
 		select {
 		case <-stopCh:
@@ -100,7 +100,23 @@ func FeedPipelineTask(task *Task) error {
 		case taskCh <- task:
 			return nil
 		default:
-			return ErrTaskChNotReady
+			return ErrTaskBusy
+		}
+	}
+}
+
+func FeedPipelineTaskBlock(task *Task) error {
+	if task == nil {
+		return nil
+	}
+	if wkrManager == nil || taskCh == nil || stopCh == nil {
+		return ErrTaskChNotReady
+	} else {
+		select {
+		case <-stopCh:
+			return ErrTaskChClosed
+		case taskCh <- task:
+			return nil
 		}
 	}
 }
