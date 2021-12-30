@@ -11,16 +11,16 @@ import (
 
 	"github.com/google/gopacket/afpacket"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/feed"
+	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 const (
-	inputName  = "dnsflow"
+	srcNameM   = "dnsflow"
 	DNSTIMEOUT = time.Second * 6
 )
 
-var l = logger.DefaultSLogger("net_ebpf")
+var l = logger.DefaultSLogger("ebpf")
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
@@ -165,14 +165,13 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket, gTag
 func conv2M(key DNSQAKey, stats DNSStats, gTags map[string]string) *measurement {
 	m := measurement{
 		ts:     stats.TS,
-		name:   inputName,
+		name:   srcNameM,
 		tags:   map[string]string{},
 		fields: map[string]interface{}{},
 	}
 	for k, v := range gTags {
 		m.tags[k] = v
 	}
-	m.tags["source"] = "dnsflow"
 	m.tags["src_ip"] = key.ClientIP
 	m.tags["src_port"] = fmt.Sprintf("%d", key.ClientPort)
 	m.tags["dst_ip"] = key.ServerIP

@@ -14,13 +14,13 @@ import (
 
 	"github.com/DataDog/ebpf/manager"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/c"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/net_ebpf/dnsflow"
+	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
 
-var l = logger.DefaultSLogger("net_ebpf")
+var l = logger.DefaultSLogger("ebpf")
 
 var dnsRecord *dnsflow.DNSAnswerRecord
 
@@ -131,7 +131,6 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 		m.tags[k] = v
 	}
 
-	m.tags["source"] = "netflow"
 	m.tags["status"] = "info"
 	m.tags["pid"] = fmt.Sprint(k.Pid)
 
