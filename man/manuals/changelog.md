@@ -2,6 +2,41 @@
 
 # DataKit 版本历史
 
+## 1.2.0(2021/12/30)
+
+### 采集器调整
+
+- 重构 Kubernetes 云原生采集器，将其整合进[容器采集器](container)。原有 Kubernetes 采集器不再生效(#492)
+- [Redis 采集器](redis)
+	- 支持用户名(#260)
+	- 支持采集集群指标(#396)
+- [Kafka 采集器](kafka)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
+- 新增 [ClickHouse](clickhouse) 以及 [Flink](flink) 采集器(#458/#459)
+- [主机对象采集器](hostobject)
+	- 支持从 `ENV_CLOUD_PROVIDER` 读取云同步配置(#501)
+	- 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
+- [日志采集器](logging) 支持接收 TCP 数据(#503)
+- [Prom 采集器](prom) 支持多 URL 采集(#506)
+- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBFP 数据采集(507)
+- [ElasticSearch采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
+
+### Bug 修复
+
+- 修复 [Statsd](statsd)/[Rabbitmq](rabbitmq) 指标问题(#497)
+- 修复 [Windows Event](windows_event) 采集数据问题(#521)
+
+### 其它
+
+- [Pipeline](pipeline)
+	- 增加 [`set_tag()`](pipeline#) 函数(#444)
+	- 增加 [`drop()`](pipeline#) 函数(#498)
+- Git 模式
+	- Git 模式下支持识别 `ENV_DEFAULT_ENABLED_INPUTS` 并将其生效(#501)
+	- 调整 Git 模式下文件夹存放策略(#509)
+- 推行新的版本号机制(#484)
+	- minor 版本号如果是偶数，则是 stable 版本
+	- 非偶数的 minor 版本(unstable)，不支持直接升级，比如，不能升级到 1.3.x 这样的版本，非稳定版只能安装
+
 ## 1.1.9-rc7.1(2021/12/22)
 
 - 修复 MySQL 采集器因局部采集失败导致的数据问题。
