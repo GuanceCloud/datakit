@@ -25,10 +25,10 @@ const (
     "/var/log/message",
   ]
   # only two protocols are supported:TCP and UDP
-  socket = [
-  	"tcp://0.0.0.0:9530",
-  	"udp://0.0.0.0:9531",
-  ]
+  # sockets = [
+  #	 "tcp://0.0.0.0:9530",
+  #	 "udp://0.0.0.0:9531",
+  # ]
   ## glob filteer
   ignore = [""]
 
@@ -64,7 +64,7 @@ const (
 
 type Input struct {
 	LogFiles              []string          `toml:"logfiles"`
-	Socket                []string          `toml:"socket,omitempty"`
+	Sockets               []string          `toml:"sockets,omitempty"`
 	Ignore                []string          `toml:"ignore"`
 	Source                string            `toml:"source"`
 	Service               string            `toml:"service"`
@@ -112,7 +112,7 @@ func (ipt *Input) Run() {
 		Source:                ipt.Source,
 		Service:               ipt.Service,
 		Pipeline:              ipt.Pipeline,
-		Sockets:               ipt.Socket,
+		Sockets:               ipt.Sockets,
 		IgnoreStatus:          ipt.IgnoreStatus,
 		FromBeginning:         ipt.FromBeginning,
 		CharacterEncoding:     ipt.CharacterEncoding,
@@ -132,7 +132,7 @@ func (ipt *Input) Run() {
 	}
 
 	// 互斥：只有当logFile为空，socket不为空才开启socket采集日志
-	if len(ipt.LogFiles) == 0 && len(ipt.Socket) != 0 {
+	if len(ipt.LogFiles) == 0 && len(ipt.Sockets) != 0 {
 		socker, err := tailer.NewWithOpt(opt, ipt.Ignore)
 		if err != nil {
 			l.Error(err)
