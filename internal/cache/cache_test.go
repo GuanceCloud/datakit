@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	dir    = "/tmp/cache_testing"
+	dir    = "cache_testing_dir"
 	bucket = "bucket_abc"
 )
 
@@ -237,10 +237,18 @@ func TestCacheMove(t *testing.T) {
 }
 
 func TestCacheForEachForTemp(t *testing.T) {
-	c, err := NewCache("/tmp", defaultCacheOptions)
+	tmpdir := "tmp"
+	c, err := NewCache(tmpdir, defaultCacheOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tmpdir); err != nil {
+			t.Error(err)
+		}
+	})
+
 	defer func() {
 		if err := c.Stop(); err != nil {
 			t.Error(err)
