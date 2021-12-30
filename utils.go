@@ -66,8 +66,7 @@ func MonitProc(proc *os.Process, name string, stopCh *cliutils.Sem) error {
 }
 
 func doKill(proc *os.Process, name string) error {
-	err := proc.Kill()
-	if err != nil { // XXX: should we wait here?
+	if err := proc.Kill(); err != nil { // XXX: should we wait here?
 		return err
 	}
 	sts, err := proc.Wait()

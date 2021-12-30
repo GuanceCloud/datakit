@@ -51,7 +51,6 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 - 创建自定义用户，并赋予新创建的`monitor`角色。
 - 其他信息请参考配置文件说明
 
-
 ### Open Distro for Elasticsearch
 
   - 创建用户
