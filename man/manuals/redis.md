@@ -29,9 +29,7 @@ redis6.0+ 进入redis-cli命令行,创建用户并且授权
 ACL SETUSER username >password
 ACL SETUSER username on +@dangerous
 ACL SETUSER username on +ping
-
 ```
-
 
 ## 配置
 
