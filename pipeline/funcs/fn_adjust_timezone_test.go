@@ -161,7 +161,7 @@ func TestAdjustTimezone(t *testing.T) {
 			fail:   false,
 		},
 		{
-			name: "postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
+			name: "1 postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
 			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("2006-01-02 15:04:05.000 UTC")),
 			pl: `
 			json(_, time)
@@ -172,7 +172,7 @@ func TestAdjustTimezone(t *testing.T) {
 			fail:   false,
 		},
 		{
-			name: "[auto] postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
+			name: "2 [auto] postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
 			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Format("2006-01-02 15:04:05.000 UTC")),
 			pl: `
 			json(_, time)
@@ -184,7 +184,7 @@ func TestAdjustTimezone(t *testing.T) {
 			fail:   false,
 		},
 		{
-			name: "postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
+			name: "3 postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
 			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(-8*time.Hour).Format("2006-01-02 15:04:05.000 UTC")),
 			pl: `
 			json(_, time)
@@ -195,8 +195,8 @@ func TestAdjustTimezone(t *testing.T) {
 			fail:   false,
 		},
 		{
-			name: "postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(-8*time.Hour).Format("2006-01-02 15:04:05.000 UTC")),
+			name: "4 postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
+			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(-time.Duration(Hour8)).Format("2006-01-02 15:04:05.000 UTC")),
 			pl: `
 			json(_, time)
 			default_time(time)
@@ -206,7 +206,7 @@ func TestAdjustTimezone(t *testing.T) {
 			fail:   false,
 		},
 		{
-			name: "[auto] postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
+			name: "5 [auto] postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
 			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(-8*time.Hour).Format("2006-01-02 15:04:05.000 UTC")),
 			pl: `
 			json(_, time)

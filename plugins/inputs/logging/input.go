@@ -2,16 +2,14 @@
 package logging
 
 import (
-	"io/ioutil"
+	"path"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -103,29 +101,17 @@ func (ipt *Input) Run() {
 
 	// 兼容旧版配置 pipeline_path
 	if ipt.Pipeline == "" && ipt.DeprecatedPipeline != "" {
-		ipt.Pipeline = ipt.DeprecatedPipeline
+		ipt.Pipeline = path.Base(ipt.DeprecatedPipeline)
 	}
 
 	if ipt.MultilineMatch == "" && ipt.DeprecatedMultilineMatch != "" {
 		ipt.MultilineMatch = ipt.DeprecatedMultilineMatch
 	}
 
-	var pipelinePath string
-
-	if ipt.Pipeline == "" {
-		ipt.Pipeline = ipt.Source + ".p"
-	}
-
-	pipelinePath, err := config.GetPipelinePath(ipt.Pipeline)
-	if err != nil {
-		l.Error(err)
-		return
-	}
-
 	opt := &tailer.Option{
 		Source:                ipt.Source,
 		Service:               ipt.Service,
-		Pipeline:              pipelinePath,
+		Pipeline:              ipt.Pipeline,
 		Sockets:               ipt.Socket,
 		IgnoreStatus:          ipt.IgnoreStatus,
 		FromBeginning:         ipt.FromBeginning,
@@ -159,15 +145,6 @@ func (ipt *Input) Run() {
 	}
 
 	if ipt.process != nil && len(ipt.process) > 0 {
-		pipdate, err := ioutil.ReadFile(opt.Pipeline)
-		if err == nil {
-			err = worker.ScriptRegister(opt.Pipeline, string(pipdate))
-			if err != nil {
-				l.Warnf("ScriptRegister =%v", err)
-			}
-		} else {
-			l.Errorf("ScriptRegister read file err=%v", err)
-		}
 		// start all process
 		for _, proce := range ipt.process {
 			go proce.Start()

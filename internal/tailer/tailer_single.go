@@ -120,7 +120,9 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 		case <-timeout.C:
-			t.sendToPip([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: t.mult.Flush(), Tag: t.tags}})
+			if str := t.mult.Flush(); str != "" {
+				t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: str, Tag: t.tags}})
+			}
 		default:
 			// nil
 		}
@@ -156,14 +158,15 @@ func (t *Single) forwardMessage() {
 			}
 			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
 		}
-		t.sendToPip(pending)
+		t.sendToPipeline(pending)
 	}
 }
 
-func (t *Single) sendToPip(pending []worker.TaskData) {
+func (t *Single) sendToPipeline(pending []worker.TaskData) {
 	task := &worker.Task{
 		TaskName:   name,
 		ScriptName: t.opt.Pipeline,
+		Source:     t.opt.Source,
 		Data:       pending,
 		Opt: &worker.TaskOpt{
 			IgnoreStatus:          t.opt.IgnoreStatus,
@@ -172,7 +175,7 @@ func (t *Single) sendToPip(pending []worker.TaskData) {
 		TS: time.Now(),
 	}
 
-	err := worker.FeedPipelineTask(task)
+	err := worker.FeedPipelineTaskBlock(task)
 	if err != nil {
 		t.opt.log.Warnf("pipline feed err = %v", err)
 		return
