@@ -116,6 +116,9 @@ const sampleConfig = `
   ## HTTP超时设置
   http_timeout = "5s"
 
+  ## 发行版本: elasticsearch, opendistro
+  distribution = "elasticsearch"
+
   ## 默认local是开启的，只采集当前Node自身指标，如果需要采集集群所有Node，需要将local设置为false
   local = true
 
@@ -186,6 +189,7 @@ default_time(time)
 type Input struct {
 	Interval                   string   `toml:"interval"`
 	Local                      bool     `toml:"local"`
+	Distribution               string   `toml:"distribution"`
 	Servers                    []string `toml:"servers"`
 	HTTPTimeout                Duration `toml:"http_timeout"`
 	ClusterHealth              bool     `toml:"cluster_health"`
@@ -346,6 +350,9 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (i *Input) setServerInfo() error {
+	if len(i.Distribution) == 0 {
+		i.Distribution = "elasticsearch"
+	}
 	i.serverInfo = make(map[string]serverInfo)
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
@@ -817,39 +824,67 @@ func (i *Input) isVersion6(url string) bool {
 	return false
 }
 
-func (i *Input) getLifeCycleErrorCount(url string) int {
-	// check privilege
-	privilege := i.serverInfo[url].userPrivilege
-	if privilege != nil {
-		indexPrivilege, ok := privilege.Index["all"]
-		if ok {
-			if !indexPrivilege.Ilm {
-				l.Warn("user has no ilm privilege, ingore collect indices_lifecycle_error_count")
-				return 0
-			}
-		}
-	}
-
-	indicesRes := &indexState{}
-	errCount := 0
-	if i.isVersion6(url) { // 6.x
-		if err := i.gatherJSONData(url+"/*/_ilm/explain", indicesRes); err != nil {
-			l.Warn(err)
-		} else {
-			for _, index := range indicesRes.Indices {
-				if index.Managed && index.Step == "ERROR" {
-					errCount += 1
+func (i *Input) getLifeCycleErrorCount(url string) (errCount int) {
+	errCount = 0
+	// default elasticsearch
+	if i.Distribution == "elasticsearch" || (len(i.Distribution) == 0) {
+		// check privilege
+		privilege := i.serverInfo[url].userPrivilege
+		if privilege != nil {
+			indexPrivilege, ok := privilege.Index["all"]
+			if ok {
+				if !indexPrivilege.Ilm {
+					l.Warn("user has no ilm privilege, ingore collect indices_lifecycle_error_count")
+					return 0
 				}
 			}
 		}
-	} else {
-		if err := i.gatherJSONData(url+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
-			l.Warn(err)
+
+		indicesRes := &indexState{}
+		if i.isVersion6(url) { // 6.x
+			if err := i.gatherJSONData(url+"/*/_ilm/explain", indicesRes); err != nil {
+				l.Warn(err)
+			} else {
+				for _, index := range indicesRes.Indices {
+					if index.Managed && index.Step == "ERROR" {
+						errCount += 1
+					}
+				}
+			}
 		} else {
-			errCount = len(indicesRes.Indices)
+			if err := i.gatherJSONData(url+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
+				l.Warn(err)
+			} else {
+				errCount = len(indicesRes.Indices)
+			}
 		}
 	}
 
+	// opendistro
+	if i.Distribution == "opendistro" {
+		res := map[string]interface{}{}
+
+		if err := i.gatherJSONData(url+"/_opendistro/_ism/explain/*", &res); err != nil {
+			l.Warn(err)
+		} else {
+			for _, index := range res {
+				indexVal, ok := index.(map[string]interface{})
+				if ok {
+					if step, ok := indexVal["step"]; ok {
+						if stepVal, ok := step.(map[string]interface{}); ok {
+							if status, ok := stepVal["step_status"]; ok {
+								if statusVal, ok := status.(string); ok {
+									if statusVal == "failed" {
+										errCount += 1
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	return errCount
 }
 
@@ -937,11 +972,13 @@ func (i *Input) getVersion(url string) (string, error) {
 
 func (i *Input) getUserPrivilege(url string) *userPrivilege {
 	privilege := &userPrivilege{}
-	body := strings.NewReader(`{"cluster": ["monitor"],"index":[{"names":["all"], "privileges":["monitor","manage_ilm"]}]}`)
-	header := map[string]string{"Content-Type": "application/json"}
-	if err := i.requestData("GET", url+"/_security/user/_has_privileges", header, body, privilege); err != nil {
-		l.Warnf("get user privilege error: %s", err.Error())
-		return nil
+	if i.Distribution == "elasticsearch" || len(i.Distribution) == 0 {
+		body := strings.NewReader(`{"cluster": ["monitor"],"index":[{"names":["all"], "privileges":["monitor","manage_ilm"]}]}`)
+		header := map[string]string{"Content-Type": "application/json"}
+		if err := i.requestData("GET", url+"/_security/user/_has_privileges", header, body, privilege); err != nil {
+			l.Warnf("get user privilege error: %s", err.Error())
+			return nil
+		}
 	}
 
 	return privilege
