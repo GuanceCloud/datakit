@@ -26,6 +26,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-git/go-git/v5 v5.4.2
+	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.5
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.3
@@ -46,6 +47,7 @@ require (
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/lib/pq v1.10.2
 	github.com/mattn/go-runewidth v0.0.10 // indirect
@@ -80,10 +82,11 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5 // indirect
-	golang.org/x/net v0.0.0-20210913180222-943fd674d43e
-	golang.org/x/sys v0.0.0-20211015200801-69063c4bb744
+	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
@@ -96,6 +99,11 @@ require (
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/klog/v2 v2.40.1 // indirect
+	k8s.io/metrics v0.20.5
+	k8s.io/utils v0.0.0-20211208161948-7d6a63dca704 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
+	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 replace github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6

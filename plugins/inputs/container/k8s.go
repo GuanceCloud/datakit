@@ -1,605 +1,164 @@
 package container
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-const (
-	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
-)
+//nolint:deadcode
+// const k8sBearerToken = "/run/secrets/k8s.io/serviceaccount/token"
 
-// Kubernetes represents the config object for the plugin.
-type Kubernetes struct {
-	URL           string   `toml:"kubelet_url"`
-	IgnorePodName []string `toml:"ignore_pod_name"`
-
-	// Bearer Token authorization file path
-	BearerToken       string `toml:"bearer_token"`
-	BearerTokenString string `toml:"bearer_token_string"`
-
-	TLSCA              string `toml:"tls_ca"`
-	TLSCert            string `toml:"tls_cert"`
-	TLSKey             string `toml:"tls_key"`
-	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
-
-	roundTripper http.RoundTripper
+type kubernetesInput struct {
+	client *k8sClient
+	cfg    *kubernetesInputConfig
 }
 
-func (k *Kubernetes) Init() error {
-	l.Debugf("use kubelet_url %s", k.URL)
-	u, err := url.Parse(k.URL)
-	if err != nil {
-		return err
-	}
-
-	// kubelet API 没有提供 ping 功能，此处手动检查该端口是否可以连接
-	if err := net.RawConnect(u.Hostname(), u.Port(), time.Second); err != nil {
-		l.Warnf("failed of kubelet connect(not collect kubelet): %s", err)
-		return err
-	}
-
-	// If neither are provided, use the default service account.
-	if k.BearerToken == "" && k.BearerTokenString == "" {
-		k.BearerToken = defaultServiceAccountPath
-	}
-
-	if k.BearerToken != "" {
-		if path.IsFileExists(k.BearerToken) {
-			token, err := ioutil.ReadFile(k.BearerToken)
-			if err != nil {
-				return err
-			}
-			k.BearerTokenString = strings.TrimSpace(string(token))
-		} else {
-			l.Info("kubernetes bearerToken is not exist, use empty token")
-		}
-	}
-
-	t := net.TLSClientConfig{
-		CaCerts: func() []string {
-			if k.TLSCA == "" {
-				return nil
-			}
-			return []string{k.TLSCA}
-		}(),
-		Cert:               k.TLSCert,
-		CertKey:            k.TLSKey,
-		InsecureSkipVerify: k.InsecureSkipVerify,
-	}
-
-	tlsConfig, err := t.TLSConfig()
-	if err != nil {
-		return err
-	}
-
-	k.roundTripper = &http.Transport{
-		TLSHandshakeTimeout:   apiTimeoutDuration,
-		TLSClientConfig:       tlsConfig,
-		ResponseHeaderTimeout: apiTimeoutDuration,
-	}
-
-	l.Debug("init k8s client success")
-	return nil
+type kubernetesInputConfig struct {
+	url               string
+	bearerToken       string
+	bearerTokenString string
+	extraTags         map[string]string
 }
 
-func (k *Kubernetes) Stop() {
-	// TODO
-}
-
-func (k *Kubernetes) Metric(ctx context.Context, in chan<- []*job) {
-	summary, err := k.getStatsSummary()
-	if err != nil {
-		l.Error(err)
-		return
-	}
-
-	nodeName := summary.Node.NodeName
-
-	var jobs []*job
-	for i := range summary.Pods {
-		podMetrics := &summary.Pods[i]
-		if k.ignorePodName(podMetrics.PodRef.Name) {
-			continue
-		}
-
-		result := k.gatherPodMetrics(podMetrics)
-		if result == nil {
-			return
-		}
-		result.addTag("node_name", nodeName)
-		result.setMetric()
-		jobs = append(jobs, result)
-	}
-
-	l.Debugf("get len(%d) k8s metric", len(jobs))
-	in <- jobs
-}
-
-func (k *Kubernetes) Object(ctx context.Context, in chan<- []*job) {
-	var summary *SummaryMetrics
-	var pods *Pods
+func newKubernetesInput(cfg *kubernetesInputConfig) (*kubernetesInput, error) {
+	k := &kubernetesInput{cfg: cfg}
 	var err error
 
-	summary, err = k.getStatsSummary()
-	if err != nil {
-		l.Error(err)
-		return
+	//nolint:gocritic
+	if cfg.bearerTokenString != "" {
+		k.client, err = newK8sClientFromBearerTokenString(cfg.url, cfg.bearerTokenString)
+	} else if cfg.bearerToken != "" {
+		k.client, err = newK8sClientFromBearerToken(cfg.url, cfg.bearerToken)
+	} else {
+		err = fmt.Errorf("invalid bearerToken or bearerTokenString, cannot be empty")
 	}
-
-	pods, err = k.getPods()
-	if err != nil {
-		l.Error(err)
-		return
-	}
-
-	nodeName := summary.Node.NodeName
-
-	var jobs []*job
-	for i := range pods.Items {
-		item := &pods.Items[i]
-		if k.ignorePodName(item.Metadata.Name) {
-			continue
-		}
-
-		result := k.gatherPodObject(item)
-		if result == nil {
-			return
-		}
-
-		func() {
-			podMetrics := k.findPodMetricsByUID(item.Metadata.UID, summary)
-			if podMetrics == nil {
-				return
-			}
-
-			resMetrics := k.gatherPodMetrics(podMetrics)
-			if resMetrics == nil {
-				return
-			}
-
-			if err := result.merge(resMetrics); err != nil {
-				l.Warn(err)
-			}
-		}()
-
-		result.addTag("node_name", nodeName)
-		// 一定要在此处进行 add pod_name
-		result.addTag("pod_name", item.Metadata.Name)
-
-		if message, err := result.marshal(); err != nil {
-			l.Warnf("failed of marshal json, %s", err)
-		} else {
-			result.addField("message", string(message))
-		}
-
-		result.setObject()
-		jobs = append(jobs, result)
-	}
-
-	l.Debugf("get len(%d) k8s object/pod", len(jobs))
-	in <- jobs
-}
-
-func (k *Kubernetes) Logging(ctx context.Context) {}
-
-func (k *Kubernetes) ignorePodName(name string) bool {
-	return regexpMatchString(k.IgnorePodName, name)
-}
-
-func (k *Kubernetes) gatherPodMetrics(pod *PodMetrics) *job {
-	tags := make(map[string]string)
-	tags["namespace"] = pod.PodRef.Namespace
-	tags["pod_name"] = pod.PodRef.Name
-
-	fields := make(map[string]interface{})
-	fields["cpu_usage_nanocores"] = float64(pod.CPU.UsageNanoCores)
-	fields["cpu_usage_core_nanoseconds"] = float64(pod.CPU.UsageCoreNanoSeconds)
-	fields["memory_usage_bytes"] = float64(pod.Memory.UsageBytes)
-	fields["memory_working_set_bytes"] = float64(pod.Memory.WorkingSetBytes)
-	fields["memory_rss_bytes"] = float64(pod.Memory.RSSBytes)
-	fields["memory_page_faults"] = float64(pod.Memory.PageFaults)
-	fields["memory_major_page_faults"] = float64(pod.Memory.MajorPageFaults)
-	fields["network_rx_bytes"] = float64(pod.Network.RXBytes())
-	fields["network_rx_errors"] = float64(pod.Network.RXErrors())
-	fields["network_tx_bytes"] = float64(pod.Network.TXBytes())
-	fields["network_tx_errors"] = float64(pod.Network.TXErrors())
-
-	if cpuPrecent, err := pod.CPU.Percent(); err == nil {
-		fields["cpu_usage"] = cpuPrecent
-	}
-
-	return &job{measurement: kubeletPodName, tags: tags, fields: fields, ts: time.Now()}
-}
-
-func (k *Kubernetes) gatherPodObject(item *PodItem) *job {
-	tags := make(map[string]string)
-	tags["name"] = item.Metadata.UID
-	tags["state"] = item.Status.Phase
-
-	fields := map[string]interface{}{
-		"age":       item.Status.Age(),
-		"restart":   item.Status.ContainerStatuses.RestartCount(),
-		"ready":     item.Status.ContainerStatuses.Ready(),
-		"available": item.Status.ContainerStatuses.Length(),
-		// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
-		"df_label":            item.Metadata.LabelsJSON(),
-		"df_label_permission": "read_only",
-		"df_label_source":     "datakit",
-	}
-
-	return &job{measurement: kubeletPodName, tags: tags, fields: fields, ts: time.Now()}
-}
-
-func (k *Kubernetes) findPodMetricsByUID(uid string, summary *SummaryMetrics) *PodMetrics {
-	for _, podMetrics := range summary.Pods {
-		if podMetrics.PodRef.UID == uid {
-			return &podMetrics
-		}
-	}
-	return nil
-}
-
-func (k *Kubernetes) getPods() (*Pods, error) {
-	var pods Pods
-	err := k.LoadJSON(fmt.Sprintf("%s/pods", k.URL), &pods)
 	if err != nil {
 		return nil, err
 	}
-	return &pods, nil
+	return k, nil
 }
 
-func (k *Kubernetes) getStatsSummary() (*SummaryMetrics, error) {
-	var summary SummaryMetrics
-	err := k.LoadJSON(fmt.Sprintf("%s/stats/summary", k.URL), &summary)
-	if err != nil {
-		return nil, err
-	}
-	return &summary, err
+var resourceList = []string{
+	"cluster",
+	"cronjob",
+	"deployment",
+	"job",
+	"node",
+	"pod",
+	"replica_set",
+	"service",
 }
 
-func (k *Kubernetes) GetContainerPodNamespace(id string) (string, error) {
-	if id == "" {
-		return "", fmt.Errorf("invalid containerID, cannot be empty")
-	}
-	pods, err := k.getPods()
-	if err != nil {
-		return "", err
-	}
-	return pods.GetContainerPodNamespace(id), nil
-}
+func (k *kubernetesInput) gather() (metrics, objects []inputs.Measurement, lastErr error) {
+	resourceCount := make(map[string]map[string]int)
 
-func (k *Kubernetes) GetContainerPodName(id string) (string, error) {
-	if id == "" {
-		return "", fmt.Errorf("invalid containerID, cannot be empty")
+	must := func(res k8sResourceStats, err error) k8sResourceStats {
+		lastErr = err
+		return res
 	}
 
-	pods, err := k.getPods()
-	if err != nil {
-		return "", err
-	}
-
-	return pods.GetContainerPodName(id), nil
-}
-
-func (k *Kubernetes) GetContainerDeploymentName(id string) (string, error) {
-	if id == "" {
-		return "", fmt.Errorf("invalid containerID, cannot be empty")
-	}
-	pods, err := k.getPods()
-	if err != nil {
-		return "", err
-	}
-	return pods.GetContainerDeploymentName(id), nil
-}
-
-func (k *Kubernetes) LoadJSON(url string, v interface{}) error {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return err
-	}
-	var resp *http.Response
-	req.Header.Set("Authorization", "Bearer "+k.BearerTokenString)
-	req.Header.Add("Accept", "application/json")
-
-	resp, err = k.roundTripper.RoundTrip(req)
-	if err != nil {
-		return fmt.Errorf("error making HTTP request to %s: %w", url, err)
-	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s returned HTTP status %s", url, resp.Status)
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(v)
-	if err != nil {
-		return fmt.Errorf(`error parsing response: %w`, err)
-	}
-
-	return nil
-}
-
-type Pods struct {
-	Kind       string    `json:"kind"`
-	APIVersion string    `json:"apiVersion"`
-	Items      []PodItem `json:"items"`
-}
-
-type PodItem struct {
-	Metadata PodItemMetadata `json:"metadata"`
-	Status   PodItemStatus   `json:"status"`
-}
-
-type PodItemMetadata struct {
-	Name      string            `json:"name"`
-	Namespace string            `json:"namespace"`
-	UID       string            `json:"uid"`
-	Labels    map[string]string `json:"labels"`
-}
-
-type PodItemStatus struct {
-	Phase             string                  `json:"phase"`
-	StartTime         string                  `json:"startTime"`
-	ContainerStatuses PodItemStatusContainers `json:"containerStatuses"`
-}
-
-type PodItemStatusContainers []PodItemStatusContainer
-
-type PodItemStatusContainer struct {
-	ContainerID  string `json:"containerID"`
-	RestartCount int64  `json:"restartCount"`
-	Ready        bool   `json:"ready"`
-}
-
-type SummaryMetrics struct {
-	Node NodeMetrics  `json:"node"`
-	Pods []PodMetrics `json:"pods"`
-}
-
-type NodeMetrics struct {
-	NodeName         string             `json:"nodeName"`
-	SystemContainers []ContainerMetrics `json:"systemContainers"`
-	CPU              CPUMetrics         `json:"cpu"`
-	Memory           MemoryMetrics      `json:"memory"`
-	Network          NetworkMetrics     `json:"network"`
-	FileSystem       FileSystemMetrics  `json:"fs"`
-	Runtime          RuntimeMetrics     `json:"runtime"`
-}
-
-type ContainerMetrics struct {
-	Name   string            `json:"name"`
-	CPU    CPUMetrics        `json:"cpu"`
-	Memory MemoryMetrics     `json:"memory"`
-	RootFS FileSystemMetrics `json:"rootfs"`
-	LogsFS FileSystemMetrics `json:"logs"`
-}
-
-type RuntimeMetrics struct {
-	ImageFileSystem FileSystemMetrics `json:"imageFs"`
-}
-
-type CPUMetrics struct {
-	Time                 time.Time `json:"time"`
-	UsageNanoCores       int64     `json:"usageNanoCores"`
-	UsageCoreNanoSeconds int64     `json:"usageCoreNanoSeconds"`
-}
-
-type PodMetrics struct {
-	PodRef     PodReference       `json:"podRef"`
-	StartTime  *time.Time         `json:"startTime"`
-	Containers []ContainerMetrics `json:"containers"`
-	CPU        CPUMetrics         `json:"cpu"`
-	Memory     MemoryMetrics      `json:"memory"`
-	Network    NetworkMetrics     `json:"network"`
-}
-
-type PodReference struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	UID       string `json:"uid"`
-}
-
-type MemoryMetrics struct {
-	Time            time.Time `json:"time"`
-	AvailableBytes  int64     `json:"availableBytes"`
-	UsageBytes      int64     `json:"usageBytes"`
-	WorkingSetBytes int64     `json:"workingSetBytes"`
-	RSSBytes        int64     `json:"rssBytes"`
-	PageFaults      int64     `json:"pageFaults"`
-	MajorPageFaults int64     `json:"majorPageFaults"`
-}
-
-type FileSystemMetrics struct {
-	AvailableBytes int64 `json:"availableBytes"`
-	CapacityBytes  int64 `json:"capacityBytes"`
-	UsedBytes      int64 `json:"usedBytes"`
-}
-
-type NetworkMetrics struct {
-	Time       time.Time `json:"time"`
-	Interfaces []struct {
-		Name     string `json:"name"`
-		RXBytes  int64  `json:"rxBytes"`
-		RXErrors int64  `json:"rxErrors"`
-		TXBytes  int64  `json:"txBytes"`
-		TXErrors int64  `json:"txErrors"`
-	} `json:"interfaces"`
-}
-
-type VolumeMetrics struct {
-	Name           string `json:"name"`
-	AvailableBytes int64  `json:"availableBytes"`
-	CapacityBytes  int64  `json:"capacityBytes"`
-	UsedBytes      int64  `json:"usedBytes"`
-}
-
-func (p PodItemMetadata) LabelsJSON() string {
-	// empty array
-	labelsString := "[]"
-
-	if len(p.Labels) != 0 {
-		var lb []string
-		for k, v := range p.Labels {
-			lb = append(lb, k+":"+v)
-		}
-
-		b, err := json.Marshal(lb)
-		if err == nil {
-			labelsString = string(b)
+	warpper := func(name string, res k8sResourceStats) {
+		for namespace, v := range res {
+			if x := resourceCount[namespace]; x == nil {
+				resourceCount[namespace] = make(map[string]int)
+			}
+			resourceCount[namespace][name] += len(v)
+			objects = append(objects, v...)
 		}
 	}
 
-	return labelsString
-}
+	warpper("cluster", must(gatherCluster(k.client, k.cfg.extraTags)))
+	warpper("cronjob", must(gatherCronJob(k.client, k.cfg.extraTags)))
+	warpper("deployment", must(gatherDeployment(k.client, k.cfg.extraTags)))
+	warpper("job", must(gatherJob(k.client, k.cfg.extraTags)))
+	warpper("node", must(gatherNode(k.client, k.cfg.extraTags)))
+	warpper("pod", must(gatherPod(k.client, k.cfg.extraTags)))
+	warpper("replica_set", must(gatherReplicaSet(k.client, k.cfg.extraTags)))
+	warpper("service", must(gatherService(k.client, k.cfg.extraTags)))
 
-func (p PodItemStatus) Age() int64 {
-	ts, err := time.Parse(time.RFC3339, p.StartTime)
-	if err != nil {
-		return -1
-	}
-	return time.Since(ts).Milliseconds() / 1e3 // 毫秒除以1000得秒数，不使用Second()因为它返回浮点
-}
-
-func (ps PodItemStatusContainers) RestartCount() int64 {
-	var num int64
-	for _, p := range ps {
-		num += p.RestartCount
-	}
-	return num
-}
-
-func (ps PodItemStatusContainers) Length() int64 {
-	return int64(len(ps))
-}
-
-func (ps PodItemStatusContainers) Ready() int64 {
-	var num int64
-	for _, p := range ps {
-		if p.Ready {
-			num++
-		}
-	}
-	return num
-}
-
-func (n NetworkMetrics) RXBytes() int64 {
-	var sum int64
-	for _, i := range n.Interfaces {
-		sum += i.RXBytes
-	}
-	return sum
-}
-
-func (n NetworkMetrics) RXErrors() int64 {
-	var sum int64
-	for _, i := range n.Interfaces {
-		sum += i.RXErrors
-	}
-	return sum
-}
-
-func (n NetworkMetrics) TXBytes() int64 {
-	var sum int64
-	for _, i := range n.Interfaces {
-		sum += i.TXBytes
-	}
-	return sum
-}
-
-func (n NetworkMetrics) TXErrors() int64 {
-	var sum int64
-	for _, i := range n.Interfaces {
-		sum += i.TXErrors
-	}
-	return sum
-}
-
-func (c *CPUMetrics) Percent() (float64, error) {
-	if c.UsageNanoCores == 0 {
-		return -1, fmt.Errorf("cpu usageNanoCores cannot be zero")
-	}
-	// source link: https://github.com/kubernetes/heapster/issues/650#issuecomment-147795824
-	// cpu_usage_core_nanoseconds / (cpu_usage_nanocores * 1000000000) * 100
-	return float64(c.UsageCoreNanoSeconds) / float64(c.UsageNanoCores*1000000000) * 100, nil
-}
-
-func (m *MemoryMetrics) Percent() (float64, error) {
-	if m.AvailableBytes+m.UsageBytes == 0 {
-		return -1, fmt.Errorf("memory total cannot be zero")
-	}
-	// mem_usage_percent = memory_usage_bytes / (memory_usage_bytes + memory_available_bytes)
-	return float64(m.UsageBytes) / float64(m.UsageBytes+m.AvailableBytes), nil
-}
-
-func (p *Pods) GetContainerDeploymentName(id string) string {
-	podName := p.GetContainerPodName(id)
-	if podName == "" {
-		return ""
-	}
-	return getDeploymentFromPodName(podName)
-}
-
-func (p *Pods) GetContainerPodName(id string) string {
-	for _, podMetadata := range p.Items {
-		if len(podMetadata.Status.ContainerStatuses) == 0 {
-			continue
+	for namespace, resource := range resourceCount {
+		c := newCount()
+		c.tags["namespace"] = namespace
+		for name, elem := range resource {
+			c.fields[name] = elem
 		}
 
-		for _, x := range podMetadata.Status.ContainerStatuses {
-			if x.ContainerID == id {
-				return podMetadata.Metadata.Name
+		for _, r := range resourceList {
+			if _, ok := c.fields[r]; !ok {
+				c.fields[r] = 0
 			}
 		}
+
+		c.time = time.Now()
+		metrics = append(metrics, c)
 	}
-	return ""
+	return //nolint:nakedret
 }
 
-func (p *Pods) GetContainerPodNamespace(id string) string {
-	for _, podMetadata := range p.Items {
-		if len(podMetadata.Status.ContainerStatuses) == 0 {
-			continue
-		}
-		for _, containerStauts := range podMetadata.Status.ContainerStatuses {
-			if containerStauts.ContainerID == id {
-				return podMetadata.Metadata.Namespace
-			}
-		}
+func (k *kubernetesInput) gatherPodMetrics() ([]inputs.Measurement, error) {
+	if k.client.metricsClient == nil {
+		return nil, nil
 	}
-	return ""
+	return gatherPodMetrics(k.client.metricsClient, k.cfg.extraTags)
 }
 
-func (p *Pods) GetContainerPodUID(id string) string {
-	for _, podMetadata := range p.Items {
-		if len(podMetadata.Status.ContainerStatuses) == 0 {
-			continue
-		}
-		for _, containerStauts := range podMetadata.Status.ContainerStatuses {
-			if containerStauts.ContainerID == id {
-				return podMetadata.Metadata.UID
-			}
-		}
-	}
-	return ""
+func (k *kubernetesInput) watchingEventLog(stop <-chan interface{}) {
+	watchingEvent(k.client, k.cfg.extraTags, stop)
 }
 
-func verifyIntegrityOfK8sConnect(k *Kubernetes) bool {
-	return k != nil && k.roundTripper != nil
+type count struct {
+	tags   tagsType
+	fields fieldsType
+	time   time.Time
 }
 
-func getDeploymentFromPodName(name string) string {
-	s := strings.Split(name, "-")
-	if len(s) > 2 {
-		return strings.Join(s[:len(s)-2], "-")
+func newCount() *count {
+	return &count{
+		tags:   make(tagsType),
+		fields: make(fieldsType),
 	}
-	return name
+}
+
+const kubernetesMetricName = "kubernetes"
+
+func (c *count) LineProto() (*io.Point, error) {
+	return io.NewPoint(kubernetesMetricName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
+}
+
+//nolint:lll
+func (*count) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: kubernetesMetricName,
+		Desc: "Kubernetes count 指标数据",
+		Type: "metric",
+		Tags: map[string]interface{}{
+			"namespace": &inputs.TagInfo{Desc: "namespace"},
+		},
+		Fields: map[string]interface{}{
+			"cluster":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "cluster count"},
+			"deployment":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "deployment count"},
+			"node":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "node count"},
+			"pod":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "pod count"},
+			"cronjob":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "cronjob count"},
+			"job":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "job count"},
+			"service":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "service count"},
+			"replica_set": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "replica_set count"},
+		},
+	}
+}
+
+func defaultNamespace(ns string) string {
+	if ns == "" {
+		return "default"
+	}
+	return ns
+}
+
+//nolint:gochecknoinits
+func init() {
+	registerMeasurement(&count{})
 }
