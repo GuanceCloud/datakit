@@ -346,7 +346,7 @@ func reloadCore(ctx context.Context) error {
 		}
 
 		round++
-		if round > 4 {
+		if round > 5 {
 			return nil
 		}
 	}
