@@ -87,7 +87,6 @@ type newVersionInfo struct {
 }
 
 func (vi *newVersionInfo) String() string {
-
 	if vi.newVersion == nil {
 		return ""
 	}
