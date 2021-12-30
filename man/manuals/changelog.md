@@ -4,16 +4,16 @@
 
 ## 1.2.0(2021/12/30)
 
-### 采集器调整
+### 采集器更新
 
 - 重构 Kubernetes 云原生采集器，将其整合进[容器采集器](container)。原有 Kubernetes 采集器不再生效(#492)
 - [Redis 采集器](redis)
-	- 支持用户名(#260)
-	- 支持采集集群指标(#396)
+	- 支持配置 [Redis 用户名](redis#852abae7)(#260)
+	- 增加 [Latency](redis#1355d1f8) 以及 [Cluster](redis#786114c8) 指标集(#396)
 - [Kafka 采集器](kafka)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
 - 新增 [ClickHouse](clickhouse) 以及 [Flink](flink) 采集器(#458/#459)
 - [主机对象采集器](hostobject)
-	- 支持从 `ENV_CLOUD_PROVIDER` 读取云同步配置(#501)
+	- 支持从 [`ENV_CLOUD_PROVIDER`](hostobject#224e2ccd) 读取云同步配置(#501)
 	- 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
 - [日志采集器](logging) 支持接收 TCP 数据(#503)
 - [Prom 采集器](prom) 支持多 URL 采集(#506)
@@ -28,14 +28,17 @@
 ### 其它
 
 - [Pipeline](pipeline)
-	- 增加 [`set_tag()`](pipeline#) 函数(#444)
-	- 增加 [`drop()`](pipeline#) 函数(#498)
+	- 增加 [`set_tag()`](pipeline#6e8c5285) 函数(#444)
+	- 增加 [`drop()`](pipeline#6e8c5285) 函数(#498)
 - Git 模式
-	- Git 模式下支持识别 `ENV_DEFAULT_ENABLED_INPUTS` 并将其生效(#501)
-	- 调整 Git 模式下文件夹存放策略(#509)
+	- 在 DaemonSet 模式下的 Git，支持识别 `ENV_DEFAULT_ENABLED_INPUTS` 并将其生效，非 DaemonSet 模式下，会自动开启 datakit.conf 中默认开启的采集器(#501)
+	- 调整 Git 模式下文件夹[存放策略]()(#509)
 - 推行新的版本号机制(#484)
-	- minor 版本号如果是偶数，则是 stable 版本
-	- 非偶数的 minor 版本(unstable)，不支持直接升级，比如，不能升级到 1.3.x 这样的版本，非稳定版只能安装
+  - 新的版本号形式为 1.2.3，此处 `1` 为 master 版本号，`2` 为 minor 版本号，`3` 为 mini 版本号
+	- 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
+	- 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
+	- 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
+	- 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装费稳定版
 
 ## 1.1.9-rc7.1(2021/12/22)
 
