@@ -180,7 +180,7 @@ grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[%{NO
 cast(shard, "int")
 cast(duration, "int")
 
-expr(duration*1000000, duration)
+duration_precision(duration, "ms", "ns")
 
 nullif(nodeId, "")
 default_time(time)

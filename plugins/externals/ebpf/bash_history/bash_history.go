@@ -84,7 +84,8 @@ type BashTracer struct {
 
 func NewBashTracer() *BashTracer {
 	return &BashTracer{
-		ch: make(chan *measurement, 32),
+		ch:     make(chan *measurement, 32),
+		stopCh: make(chan struct{}),
 	}
 }
 

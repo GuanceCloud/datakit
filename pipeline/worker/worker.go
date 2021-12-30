@@ -48,7 +48,7 @@ type ppWorker struct {
 
 func (wkr *ppWorker) Run() {
 	wkr.isRunning = true
-
+	ticker := time.NewTicker(time.Second * 30)
 	for {
 		select {
 		case task := <-taskCh:
@@ -62,6 +62,10 @@ func (wkr *ppWorker) Run() {
 			} else {
 				_ = workerFeedFuncDebug(task.TaskName, points, wkr.wkrID)
 			}
+		case <-ticker.C:
+			for _, v := range wkr.engines {
+				scriptCentorStore.checkAndUpdate(v)
+			}
 		case <-stopCh:
 			wkr.isRunning = false
 			return
@@ -70,8 +74,13 @@ func (wkr *ppWorker) Run() {
 }
 
 func (wkr *ppWorker) run(task *Task) []*io.Point {
-	defer recover() //nolint:errcheck
-
+	defer func() {
+		if err := recover(); err != nil {
+			l.Errorf("panic err = %v  lasterr=%v", err, wkr.lastErr)
+			wkr.lastErr = err.(error) //nolint
+			wkr.lastErrTS = time.Now()
+		}
+	}()
 	if task.Data == nil {
 		return nil
 	}
@@ -79,19 +88,16 @@ func (wkr *ppWorker) run(task *Task) []*io.Point {
 	if taskOpt == nil {
 		taskOpt = &TaskOpt{}
 	}
-
+	ng := wkr.getNg(task.GetScriptName())
 	points := []*io.Point{}
 	for _, v := range task.Data {
 		content := v.GetContent()
 		if len(content) >= maxFieldsLength {
 			content = content[:maxFieldsLength]
 		}
-
 		result := &Result{
 			output: nil,
 		}
-
-		ng := wkr.getNg(task.GetScriptName())
 		if ng != nil {
 			if err := ng.Run(content); err != nil {
 				wkr.lastErr = err
@@ -142,15 +148,14 @@ func (wkr *ppWorker) getNg(ppScriptName string) *parser.Engine {
 		if err != nil {
 			wkr.lastErr = err
 			wkr.lastErrTS = time.Now()
+			l.Debugf("script name: %s, err: %v", ppScriptName, err)
 			return nil
 		} else {
 			wkr.engines[ppScriptName] = scriptInf
 			return scriptInf.ng
 		}
-	} else {
-		scriptCentorStore.checkAndUpdate(scriptInf)
-		return scriptInf.ng
 	}
+	return scriptInf.ng
 }
 
 func (wkr *ppWorker) checkResult(name string, ts time.Time, result *Result) (string, time.Time) {

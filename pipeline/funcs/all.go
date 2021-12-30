@@ -41,6 +41,7 @@ var FuncsMap = map[string]parser.FuncCallback{
 	"parse_date":            ParseDate,
 	"cover":                 Dz,
 	"replace":               Replace,
+	"duration_precision":    DurationPrecision,
 	// disable
 	"json_all": JSONAll,
 	"expr":     Expr,
@@ -75,6 +76,7 @@ var FuncsCheckMap = map[string]parser.FuncCallbackCheck{
 	"parse_date":            ParseDateChecking,
 	"cover":                 DzChecking,
 	"replace":               ReplaceChecking,
+	"duration_precision":    DurationPrecisionChecking,
 	// disable
 	"json_all": JSONAllChecking,
 	"expr":     ExprChecking,

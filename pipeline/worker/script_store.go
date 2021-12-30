@@ -89,7 +89,19 @@ func (store *dotPScriptStore) appendScript(name string, script string, cover boo
 		store.scripts[DefaultScriptNs] = map[string]*ScriptInfo{}
 	}
 
-	if v, ok := store.scripts[DefaultScriptNs][name]; !ok || cover {
+	v, ok := store.scripts[DefaultScriptNs][name]
+	if ok && !cover {
+		if v.Script() == script {
+			return nil
+		} else {
+			return ErrScriptExists
+		}
+	} else {
+		// (ok && cover) || (!ok)
+		if cover && v != nil && v.Script() == script {
+			return nil
+		}
+
 		node, err := parser.ParsePipeline(script)
 		if err != nil {
 			return err
@@ -104,12 +116,6 @@ func (store *dotPScriptStore) appendScript(name string, script string, cover boo
 			updateTS: time.Now(),
 		}
 		return nil
-	} else {
-		if v.Script() == script {
-			return nil
-		} else {
-			return ErrScriptExists
-		}
 	}
 }
 
@@ -137,7 +143,7 @@ func (store *dotPScriptStore) appendScriptFromFilePath(fp string, cover bool) {
 	if v, err := os.ReadFile(fp); err == nil {
 		_, sName := filepath.Split(fp)
 		if err := store.appendScript(sName, string(v), cover); err != nil {
-			l.Error(err)
+			l.Errorf("script name: %s, path: %s, err: %v", sName, fp, err)
 		}
 	} else {
 		l.Error(err)
