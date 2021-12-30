@@ -59,6 +59,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"event_id":        inputs.NewTagInfo("事件 ID"),
 			"event_record_id": inputs.NewTagInfo("事件记录 ID"),
 			"source":          inputs.NewTagInfo("日志来源"),
+			"status":          inputs.NewTagInfo("日志等级"),
 			"event_source":    inputs.NewTagInfo("Windows 事件来源"),
 			"version":         inputs.NewTagInfo("版本"),
 			"task":            inputs.NewTagInfo("任务类别"),
