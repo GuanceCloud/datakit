@@ -3,8 +3,10 @@ package container
 import (
 	"regexp"
 	"strings"
+	"unsafe"
 
 	"github.com/docker/docker/api/types"
+	"github.com/pborman/ansi"
 )
 
 // ParseImage adapts some of the logic from the actual Docker library's image parsing
@@ -146,4 +148,32 @@ func calculateMemPercentUnixNoCache(limit float64, usedNoCache float64) float64 
 		return usedNoCache / limit * 100.0
 	}
 	return 0
+}
+
+func removeAnsiEscapeCodes(oldtext []byte, run bool) []byte {
+	if !run {
+		return oldtext
+	}
+
+	newtext, err := ansi.Strip(oldtext)
+	if err != nil {
+		l.Debugf("remove ansi code error: %w", err)
+		return oldtext
+	}
+
+	return newtext
+}
+
+// String2Bytes convert string to bytes.
+//nolint:gosec
+func String2Bytes(s string) []byte {
+	x := (*[2]uintptr)(unsafe.Pointer(&s))
+	h := [3]uintptr{x[0], x[1], x[1]}
+	return *(*[]byte)(unsafe.Pointer(&h))
+}
+
+// Bytes2String convert bytes to string.
+//nolint:gosec
+func Bytes2String(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }

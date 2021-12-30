@@ -449,7 +449,7 @@ func (x *IO) flush() {
 			}
 
 			if err := x.putCache(k, v); err != nil {
-				log.Warn("failed of put cache: %s", err)
+				log.Warn("failed to put cache: %s", err)
 				continue
 			}
 		}
@@ -472,7 +472,7 @@ func (x *IO) flush() {
 			}
 
 			if err := x.putCache(k, v); err != nil {
-				log.Warn("failed of put cache: %s", err)
+				log.Warn("failed to put cache: %s", err)
 				// clear data
 				x.dynamicCache[k] = nil
 				continue
