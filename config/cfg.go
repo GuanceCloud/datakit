@@ -39,9 +39,9 @@ func SetLog() {
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
 		GlobalTags: map[string]string{
-			"project": "",
-			"cluster": "",
-			"site":    "",
+			// "project": "",
+			// "cluster": "",
+			// "site":    "",
 		},
 
 		Environments: map[string]string{

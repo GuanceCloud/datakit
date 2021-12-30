@@ -51,6 +51,14 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - pods
+  - nodes
+  verbs:
+  - get
+  - list
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 
@@ -130,7 +138,7 @@ spec:
         - name: ENV_GLOBAL_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
         - name: ENV_DEFAULT_ENABLED_INPUTS
-          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,kubernetes,container
+          value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
         - name: ENV_ENABLE_ELECTION
           value: enable
         - name: ENV_LOG

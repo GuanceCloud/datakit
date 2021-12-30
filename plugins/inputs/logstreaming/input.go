@@ -100,7 +100,7 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 	case "influxdb":
 		body, _err := ioutil.ReadAll(req.Body)
 		if _err != nil {
-			l.Errorf("url %s failed of read body, err: %s", urlstr, _err)
+			l.Errorf("url %s failed to read body: %s", urlstr, _err)
 			err = _err
 			break
 		}
