@@ -33,7 +33,7 @@ func (mm *TaskmanagerMeasurement) LineProto() (*io.Point, error) {
 // Info flink_jobmanager_.
 func (*JobmanagerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "Jobmanager Metrics",
+		Name: "Jobmanager",
 		Fields: map[string]interface{}{
 			"Status_JVM_CPU_Load":                                newGaugeFieldInfo("The recent CPU usage of the JVM."),
 			"Status_JVM_CPU_Time":                                newGaugeFieldInfo("The CPU time used by the JVM."),
@@ -74,7 +74,7 @@ func (*JobmanagerMeasurement) Info() *inputs.MeasurementInfo {
 // Info flink_taskmanager_.
 func (*TaskmanagerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "Taskmanager Metrics",
+		Name: "Taskmanager",
 		Fields: map[string]interface{}{
 			"Status_Flink_Memory_Managed_Total":                     newGaugeFieldInfo("The total amount of managed memory."),
 			"Status_Flink_Memory_Managed_Used":                      newGaugeFieldInfo("The amount of managed memory currently used."),
