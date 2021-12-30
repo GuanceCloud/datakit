@@ -15,6 +15,7 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
 func TrimSuffixAll(s, sfx string) string {
@@ -30,7 +31,7 @@ func TrimSuffixAll(s, sfx string) string {
 	return x
 }
 
-func MonitProc(proc *os.Process, name string) error {
+func MonitProc(proc *os.Process, name string, stopCh *cliutils.Sem) error {
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 
@@ -56,13 +57,25 @@ func MonitProc(proc *os.Process, name string) error {
 			}
 
 		case <-Exit.Wait():
-			if err := proc.Kill(); err != nil { // XXX: should we wait here?
-				return err
-			}
+			return doKill(proc, name)
 
-			return nil
+		case <-stopCh.Wait():
+			return doKill(proc, name)
 		}
 	}
+}
+
+func doKill(proc *os.Process, name string) error {
+	err := proc.Kill()
+	if err != nil { // XXX: should we wait here?
+		return err
+	}
+	sts, err := proc.Wait()
+	if err != nil {
+		return err
+	}
+	l.Infof("proc wait, proc name: %ss exit code: %v", name, sts.ExitCode())
+	return nil
 }
 
 func RndTicker(s string) (*time.Ticker, error) {

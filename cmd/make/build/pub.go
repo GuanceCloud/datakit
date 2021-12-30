@@ -90,8 +90,16 @@ func generateInstallScript() error {
 	return nil
 }
 
+func addOSSFiles(ossPath string, files map[string]string) map[string]string {
+	res := map[string]string{}
+	for k, v := range files {
+		res[path.Join(ossPath, k)] = v
+	}
+	return res
+}
+
 //nolint:funlen,gocyclo
-func PubDatakit() {
+func PubDatakit() error {
 	start := time.Now()
 	var ak, sk, bucket, ossHost string
 
@@ -104,17 +112,18 @@ func PubDatakit() {
 		bucket = os.Getenv(tag + "_OSS_BUCKET")
 		ossHost = os.Getenv(tag + "_OSS_HOST")
 	default:
-		l.Fatalf("unknown release type: %s", ReleaseType)
+		return fmt.Errorf("unknown release type: %s", ReleaseType)
 	}
 
 	if ak == "" || sk == "" {
-		l.Fatalf("OSS access key or secret key missing, release type: %s",
-			ReleaseType)
+		return fmt.Errorf("OSS %s/%s not set",
+			strings.ToUpper(ReleaseType)+"_OSS_ACCESS_KEY",
+			strings.ToUpper(ReleaseType)+"_OSS_SECRET_KEY")
 	}
 
-	ossSlice := strings.SplitN(DownloadAddr, "/", 2)
+	ossSlice := strings.SplitN(DownloadAddr, "/", 2) // at least 2 parts
 	if len(ossSlice) != 2 {
-		l.Fatalf("downloadAddr:%s err", DownloadAddr)
+		return fmt.Errorf("invalid download addr: %s", DownloadAddr)
 	}
 	OSSPath = ossSlice[1]
 
@@ -128,33 +137,28 @@ func PubDatakit() {
 	}
 
 	if err := oc.Init(); err != nil {
-		l.Fatal(err)
+		return err
 	}
 
 	// upload all build archs
-	archs := parseArchs(Archs)
+	curArchs = parseArchs(Archs)
 
 	if err := generateInstallScript(); err != nil {
-		l.Fatal("generateInstallScript: %s", err)
+		return err
 	}
 
-	ossfiles := map[string]string{
-		path.Join(OSSPath, "version"): path.Join(PubDir, ReleaseType, "version"),
-
-		path.Join(OSSPath, "datakit.yaml"):                                 "datakit.yaml",
-		path.Join(OSSPath, "install.sh"):                                   "install.sh",
-		path.Join(OSSPath, "install.ps1"):                                  "install.ps1",
-		path.Join(OSSPath, fmt.Sprintf("datakit-%s.yaml", ReleaseVersion)): "datakit.yaml",
-		path.Join(OSSPath, fmt.Sprintf("install-%s.sh", ReleaseVersion)):   "install.sh",
-		path.Join(OSSPath, fmt.Sprintf("install-%s.ps1", ReleaseVersion)):  "install.ps1",
-	}
-
-	if Archs == datakit.OSArchDarwinAmd64 {
-		delete(ossfiles, path.Join(OSSPath, "version"))
+	basics := map[string]string{
+		"version":      path.Join(PubDir, ReleaseType, "version"),
+		"datakit.yaml": "datakit.yaml",
+		"install.sh":   "install.sh",
+		"install.ps1":  "install.ps1",
+		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion): "datakit.yaml",
+		fmt.Sprintf("install-%s.sh", ReleaseVersion):   "install.sh",
+		fmt.Sprintf("install-%s.ps1", ReleaseVersion):  "install.ps1",
 	}
 
 	// tar files and collect OSS upload/backup info
-	for _, arch := range archs {
+	for _, arch := range curArchs {
 		if arch == datakit.OSArchDarwinAmd64 && runtime.GOOS != datakit.OSDarwin {
 			l.Warn("Not a darwin system, skip the upload of related files.")
 			continue
@@ -162,7 +166,7 @@ func PubDatakit() {
 
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
-			l.Fatalf("invalid arch %q", parts)
+			return fmt.Errorf("invalid arch: %s", arch)
 		}
 		goos, goarch := parts[0], parts[1]
 
@@ -177,15 +181,23 @@ func PubDatakit() {
 			installerExeWithVer = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, ReleaseVersion)
 		}
 
-		ossfiles[path.Join(OSSPath, gzName)] = path.Join(PubDir, ReleaseType, gzName)
-		ossfiles[path.Join(OSSPath, installerExe)] = path.Join(PubDir, ReleaseType, installerExe)
-		ossfiles[path.Join(OSSPath, installerExeWithVer)] = path.Join(PubDir, ReleaseType, installerExe)
+		basics[gzName] = path.Join(PubDir, ReleaseType, gzName)
+		basics[installerExe] = path.Join(PubDir, ReleaseType, installerExe)
+		basics[installerExeWithVer] = path.Join(PubDir, ReleaseType, installerExe)
 	}
+
+	// Darwin release not under CI, so disable upload `version' file under darwin,
+	// only upload darwin related files.
+	if Archs == datakit.OSArchDarwinAmd64 {
+		delete(basics, "version")
+	}
+
+	ossfiles := addOSSFiles(OSSPath, basics)
 
 	// test if all file ok before uploading
 	for _, k := range ossfiles {
 		if _, err := os.Stat(k); err != nil {
-			l.Fatal(err)
+			return err
 		}
 	}
 
@@ -194,9 +206,10 @@ func PubDatakit() {
 		l.Debugf("%s => %s(%s)...", v, k, humanize.Bytes(uint64(fi.Size())))
 
 		if err := oc.Upload(v, k); err != nil {
-			l.Fatal(err)
+			return err
 		}
 	}
 
 	l.Infof("Done!(elapsed: %v)", time.Since(start))
+	return nil
 }

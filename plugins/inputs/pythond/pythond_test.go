@@ -1,15 +1,55 @@
 package pythond
 
-/* test: fail
+import (
+	"os"
+	"testing"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+)
+
+// 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
+func checkDevHost() bool {
+	if envs := os.Getenv("LOCAL_UNIT_TEST"); envs == "" {
+		return false
+	}
+	return true
+}
+
 // go test -v -timeout 30s -run ^TestPythonD$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
 func TestPythonD(t *testing.T) {
-	// config.Cfg.GitRepos.Repos[0].
+	if !checkDevHost() {
+		return
+	}
+
+	config.Cfg.GitRepos.Repos = []*config.GitRepository{
+		{
+			Enable: true,
+			URL:    "ssh://git@gitlab.jiagouyun.com:40022/jack/conf.git",
+		},
+	}
 	datakit.PythonDDir = "/Users/mac/Downloads/project/ent/src/gitlab.jiagouyun.com/cloudcare-tools/datakitpy"
 	pe := &PythonDInput{
 		Name:    "some-python-inputs",
 		Cmd:     "python3",
-		Dirs:    []string{"framework", "datakit"},
+		Dirs:    []string{"framework"},
 		semStop: cliutils.NewSem(),
 	}
 	pe.Run()
-} */
+}
+
+// go test -v -timeout 30s -run ^TestGetPyModules$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
+func TestGetPyModules(t *testing.T) {
+	ss := getPyModules("/usr/local/datakit/gitrepos/python.d/framework")
+	ss = dkstring.GetUniqueArray(ss)
+	t.Logf("pyModules = %v", ss)
+}
+
+// go test -v -timeout 30s -run ^TestSearchPythondDir$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
+func TestSearchPythondDir(t *testing.T) {
+	dirs := []string{"conf"}
+	s := searchPythondDir("framework", dirs)
+	t.Logf("searchPythondDir: %s", s)
+}

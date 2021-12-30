@@ -29,7 +29,9 @@ type Option struct {
 	TagsIgnore        []string `toml:"tags_ignore"`
 	Source            string   `toml:"source"`
 	Interval          string   `toml:"interval"`
-	URL               string   `toml:"url"`
+	URL               string   `toml:"url,omitempty"` // Deprecated
+	URLs              []string `toml:"urls"`
+	IgnoreReqErr      bool     `toml:"ignore_req_err"`
 	Output            string   `toml:"output"`
 	MaxFileSize       int64    `toml:"max_file_size"`
 	MeasurementPrefix string   `toml:"measurement_prefix"`
@@ -91,8 +93,22 @@ func NewProm(opt *Option) (*Prom, error) {
 		return nil, fmt.Errorf("invalid option")
 	}
 
-	if opt.URL == "" {
+	if opt.URL == "" && len(opt.URLs) == 0 {
 		return nil, fmt.Errorf("invalid URL, cannot be empty")
+	}
+
+	// double check opt.URL is placed in opt.URLs
+	if opt.URL != "" {
+		placed := false
+		for _, u := range opt.URLs {
+			if u == opt.URL {
+				placed = true
+				break
+			}
+		}
+		if !placed {
+			opt.URLs = append(opt.URLs, opt.URL)
+		}
 	}
 
 	p := Prom{opt: opt}
@@ -168,13 +184,24 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 }
 
 func (p *Prom) Collect() ([]*io.Point, error) {
-	resp, err := p.Request(p.opt.URL)
-	if err != nil {
-		return nil, err
+	var allPts []*io.Point
+	for _, u := range p.opt.URLs {
+		resp, err := p.Request(u)
+		if err != nil {
+			if p.opt.IgnoreReqErr {
+				continue
+			} else {
+				return nil, err
+			}
+		}
+		defer resp.Body.Close() //nolint:errcheck
+		pts, err := Text2Metrics(resp.Body, p.opt, p.opt.Tags)
+		if err != nil {
+			return nil, err
+		}
+		allPts = append(allPts, pts...)
 	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	return Text2Metrics(resp.Body, p.opt, p.opt.Tags)
+	return allPts, nil
 }
 
 // CollectFromFile collects metrics from local file.
@@ -192,34 +219,13 @@ func (p *Prom) CollectFromFile() ([]*io.Point, error) {
 	return Text2Metrics(f, p.opt, p.opt.Tags)
 }
 
-// WriteFile collects data from p.opt.URL then writes it to p.opt.Output.
-// WriteFile will only be called when Output is configured.
+// WriteFile scrapes metrics from p.opt.URLs then writes them directly to p.opt.Output.
+// WriteFile will only be called when field Output is configured.
 func (p *Prom) WriteFile() error {
-	// If url is configured as local path file, prom does not collect from it.
-	u, err := url.Parse(p.opt.URL)
-	if err != nil {
-		return fmt.Errorf("url parse error, %w", err)
-	}
-
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return fmt.Errorf("url is neither http nor https")
-	}
-
-	resp, err := p.client.Get(p.opt.URL)
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-	if resp.ContentLength > p.opt.MaxFileSize {
-		return fmt.Errorf("content length is too large to handle")
-	}
-
 	fp := p.opt.Output
 	if !path.IsAbs(fp) {
 		fp = filepath.Join(datakit.InstallDir, fp)
 	}
-
 	// truncate if file exists
 	f, err := os.Create(fp)
 	if err != nil {
@@ -227,15 +233,38 @@ func (p *Prom) WriteFile() error {
 	}
 	defer f.Close() //nolint:errcheck,gosec
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if int64(len(data)) > p.opt.MaxFileSize {
-		return fmt.Errorf("content length is too large to handle")
+	for _, u := range p.opt.URLs {
+		uu, err := url.Parse(u)
+		// If url is configured as local path file, prom does not collect from it.
+		if err != nil {
+			return fmt.Errorf("url parse error, %w", err)
+		}
+
+		if uu.Scheme != "http" && uu.Scheme != "https" {
+			return fmt.Errorf("url is neither http nor https")
+		}
+
+		resp, err := p.client.Get(u)
+		if err != nil {
+			return err
+		}
+
+		defer resp.Body.Close() //nolint:errcheck
+		if resp.ContentLength > p.opt.MaxFileSize {
+			return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.MaxFileSize, resp.ContentLength)
+		}
+
+		data, err := ioutil.ReadAll(resp.Body)
+		if int64(len(data)) > p.opt.MaxFileSize {
+			return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.MaxFileSize, len(data))
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := f.Write(data); err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		return err
-	}
-	if _, err := f.Write(data); err != nil {
-		return err
-	}
+
 	return nil
 }

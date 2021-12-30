@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	nhttp "net/http"
-	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -60,7 +59,7 @@ func checkUpdate(curverStr string, acceptRC bool) int {
 	return 0
 }
 
-func showVersion(curverStr, releaseType string, showTestingVer bool) {
+func showVersion(curverStr, releaseType string) {
 	fmt.Printf(`
        Version: %s
         Commit: %s
@@ -78,35 +77,74 @@ ReleasedInputs: %s
 			}
 			return fmt.Sprintf("%v", config.Cfg.UpgradeDate)
 		}())
+}
+
+type newVersionInfo struct {
+	versionType string
+	upgrade     bool
+	install     bool
+	newVersion  *version.VerInfo
+}
+
+func (vi *newVersionInfo) String() string {
+	return fmt.Sprintf("%s/%v/%v\n", vi.versionType, vi.upgrade, vi.install) + func() string {
+		if vi.upgrade {
+			return getUpgradeCommand(vi.newVersion.DownloadURL)
+		} else {
+			return getInstallCommand()
+		}
+	}()
+}
+
+func checkNewVersion(curverStr string, showTestingVer bool) (map[string]*newVersionInfo, error) {
 	vers, err := getOnlineVersions(showTestingVer)
 	if err != nil {
-		fmt.Printf("Get online version failed: \n%s\n", err.Error())
-		os.Exit(-1)
+		return nil, fmt.Errorf("getOnlineVersions: %w", err)
 	}
+
 	curver, err := getLocalVersion(curverStr)
 	if err != nil {
-		fmt.Printf("Get local version failed: \n%s\n", err.Error())
-		os.Exit(-1)
+		return nil, fmt.Errorf("getLocalVersion: %w", err)
 	}
+
+	vis := map[string]*newVersionInfo{}
 
 	for k, v := range vers {
 		// always show testing version if showTestingVer is true
 		l.Debugf("compare %s <=> %s", v, curver)
-		// show version info, also show RC version info
-		if k == "Testing" || version.IsNewVersion(v, curver, true) {
-			fmt.Println("---------------------------------------------------")
-			fmt.Printf("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
-				k, v.VersionString, v.Commit, v.ReleaseDate)
 
-			fmt.Println(getUpgradeCommand(v.DownloadURL))
+		if version.IsNewVersion(v, curver, true) {
+			if curver.IsStable() {
+				vis[k] = &newVersionInfo{
+					versionType: k,
+					upgrade:     true,
+					newVersion:  v,
+				}
+			} else {
+				vis[k] = &newVersionInfo{
+					versionType: k,
+					install:     true,
+					newVersion:  v,
+				}
+			}
 		}
 	}
+	return vis, nil
 }
 
 const (
-	OnlineBaseURL  = "static.guance.com/datakit"
-	TestingBaseURL = "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit"
+	versionTypeOnline  = "Online"
+	versionTypeTesting = "Testing"
 )
+
+var versionInfos = map[string]string{
+	versionTypeOnline:  "static.guance.com/datakit",
+	versionTypeTesting: "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit",
+}
+
+func getInstallCommand() string {
+	return "Current is unstable version, please reinstall DataKit."
+}
 
 func getUpgradeCommand(dlurl string) string {
 	proxy := config.Cfg.DataWay.HTTPProxy
@@ -180,24 +218,21 @@ func getVersion(addr string) (*version.VerInfo, error) {
 	return &ver, nil
 }
 
-func getOnlineVersions(showTestingVer bool) (res map[string]*version.VerInfo, err error) {
-	res = map[string]*version.VerInfo{}
+func getOnlineVersions(showTestingVer bool) (map[string]*version.VerInfo, error) {
+	res := map[string]*version.VerInfo{}
+	for k, v := range versionInfos {
+		if k == versionTypeTesting && !showTestingVer {
+			continue
+		}
 
-	onlineVer, err := getVersion(OnlineBaseURL)
-	if err != nil {
-		return nil, err
-	}
-	res["Online"] = onlineVer
-	l.Debugf("online version: %s", onlineVer)
-
-	if showTestingVer {
-		testVer, err := getVersion(TestingBaseURL)
+		vi, err := getVersion(v)
 		if err != nil {
 			return nil, err
 		}
-		res["Testing"] = testVer
-		l.Debugf("testing version: %s", testVer)
+
+		res[k] = vi
+		l.Debugf("get %s version: %s", k, vi)
 	}
 
-	return
+	return res, nil
 }

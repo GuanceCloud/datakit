@@ -2,6 +2,53 @@
 
 # DataKit 版本历史
 
+## 1.2.0(2021/12/30)
+
+### 采集器更新
+
+- 重构 Kubernetes 云原生采集器，将其整合进[容器采集器](container)。原有 Kubernetes 采集器不再生效(#492)
+- [Redis 采集器](redis)
+	- 支持配置 [Redis 用户名](redis#852abae7)(#260)
+	- 增加 [Latency](redis#1355d1f8) 以及 [Cluster](redis#786114c8) 指标集(#396)
+- [Kafka 采集器](kafka)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
+- 新增 [ClickHouse](clickhouse) 以及 [Flink](flink) 采集器(#458/#459)
+- [主机对象采集器](hostobject)
+	- 支持从 [`ENV_CLOUD_PROVIDER`](hostobject#224e2ccd) 读取云同步配置(#501)
+	- 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
+- [日志采集器](logging) 支持接收 TCP/UDP 日志流(#503)
+- [Prom 采集器](prom) 支持多 URL 采集(#506)
+- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBFP 数据采集(507)
+- [ElasticSearch采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
+
+### Bug 修复
+
+- 修复 [Statsd](statsd)/[Rabbitmq](rabbitmq) 指标问题(#497)
+- 修复 [Windows Event](windows_event) 采集数据问题(#521)
+
+### 其它
+
+- [Pipeline](pipeline)
+	- 增强 Pipeline 并行处理能力
+	- 增加 [`set_tag()`](pipeline#6e8c5285) 函数(#444)
+	- 增加 [`drop()`](pipeline#6e8c5285) 函数(#498)
+- Git 模式
+	- 在 DaemonSet 模式下的 Git，支持识别 `ENV_DEFAULT_ENABLED_INPUTS` 并将其生效，非 DaemonSet 模式下，会自动开启 datakit.conf 中默认开启的采集器(#501)
+	- 调整 Git 模式下文件夹[存放策略]()(#509)
+- 推行新的版本号机制(#484)
+	- 新的版本号形式为 1.2.3，此处 `1` 为 master 版本号，`2` 为 minor 版本号，`3` 为 mini 版本号
+	- 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
+	- 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
+	- 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
+	- 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
+
+---
+
+## 1.1.9-rc7.1(2021/12/22)
+
+- 修复 MySQL 采集器因局部采集失败导致的数据问题。
+
+---
+
 ## 1.1.9-rc7(2021/12/16)
 
 - Pipeline 总体进行了较大的重构(#339)：
@@ -15,9 +62,10 @@
 	- 默认开启采集器移除容器采集器，以避免一些重复的采集问题(#473)
 
 - 其它：
-  - DataKit 支持自身事件上报（以日志形式）(#463)
-	- [ElasticSearch](elasticsearch) 采集器指标集下增加 `indices_lifecycle_error_count` 指标
-	- DataKit 安装完成后自动增加 [cgruop 限制](datakit-conf-how-to#9e364a84)
+	- DataKit 支持自身事件上报（以日志形式）(#463)
+	- [ElasticSearch](elasticsearch) 采集器指标集下增加 `indices_lifecycle_error_count` 指标（注意： 采集该指标，需在 ES [增加 `ilm` 角色](elasticsearch#852abae7)）
+	- DataKit 安装完成后自动增加 [cgroup 限制](datakit-conf-how-to#9e364a84)
+	- 部分跟中心对接的接口升级到了 v2 版本，故对接**非 SAAS 节点**的 DataKit，如果升级到当前版本，其对应的 DataWay 以及 Kodo 也需要升级，否则部分接口会报告 404 错误
 
 ### Breaking Changes
 

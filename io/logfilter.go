@@ -51,7 +51,7 @@ func (ipt *logFilter) filter(pts []*Point) []*Point {
 	for _, pt := range pts {
 		fields, err := pt.Fields()
 		if err != nil {
-			l.Error(err)
+			log.Error(err)
 			continue
 		}
 
@@ -64,7 +64,7 @@ func (ipt *logFilter) filter(pts []*Point) []*Point {
 }
 
 func (ipt *logFilter) start() {
-	l.Infof("log filter engaged, status: %q", ipt.status.String())
+	log.Infof("log filter engaged, status: %q", ipt.status.String())
 
 	g := datakit.G("logfilter")
 	g.Go(func(ctx context.Context) error {
@@ -74,14 +74,14 @@ func (ipt *logFilter) start() {
 		for {
 			select {
 			case <-datakit.Exit.Wait():
-				l.Info("log filter exits")
+				log.Info("log filter exits")
 				break EXIT
 			case <-tick.C:
-				l.Debugf("### enter log filter refresh routine, status: %q", ipt.status.String())
+				log.Debugf("### enter log filter refresh routine, status: %q", ipt.status.String())
 				var err error
 				var defInterval int
 				if defInterval, err = ipt.refreshRules(); err != nil {
-					l.Error(err.Error())
+					log.Error(err.Error())
 					FeedLastError("logfilter", err.Error())
 				}
 				if defInterval != defIntervalDefault {
@@ -97,7 +97,7 @@ func (ipt *logFilter) start() {
 func (ipt *logFilter) refreshRules() (int, error) {
 	defer func() {
 		if err := recover(); err != nil {
-			l.Error(err)
+			log.Error(err)
 		}
 	}()
 	body, err := defLogFilterMock.getLogFilter()
@@ -115,7 +115,7 @@ func (ipt *logFilter) refreshRules() (int, error) {
 	if err = json.Unmarshal(body, &rules); err != nil {
 		return defIntervalDefault, err
 	}
-	l.Debugf("logfilter result: %v", rules)
+	log.Debugf("logfilter result: %v", rules)
 	if len(rules.Content.LogFilter) == 0 {
 		ipt.status = filterReleased
 

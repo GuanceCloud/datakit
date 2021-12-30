@@ -129,6 +129,12 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&KafkaTopicsMment{},
 		&KafkaTopicMment{},
 		&KafkaPartitionMment{},
+		&KafkaZooKeeperMment{},
+		&KafkaNetworkMment{},
+		&KafkaLogMment{},
+		&KafkaConsumerMment{},
+		&KafkaProducerMment{},
+		&KafkaConnectMment{},
 	}
 }
 

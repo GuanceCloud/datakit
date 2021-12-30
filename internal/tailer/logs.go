@@ -40,6 +40,7 @@ func (e errorList) Err() error {
 type Logs struct {
 	text   string
 	fields map[string]interface{}
+	tags   map[string]string
 	ts     time.Time
 	pt     *io.Point
 
@@ -76,13 +77,17 @@ func (x *Logs) Pipeline(p *pipeline.Pipeline) *Logs {
 		return x
 	}
 
-	fields, err := p.Run(x.text).Result()
+	output, err := p.Run(x.text).Result()
 	if err != nil {
 		x.AddErr(err)
 	}
 
-	for k, v := range fields {
+	for k, v := range output.Data {
 		x.fields[k] = v
+	}
+
+	for k, v := range output.Tags {
+		x.tags[k] = v
 	}
 
 	return x
@@ -129,6 +134,7 @@ var statusMap = map[string]string{
 	"e":        "error",
 	"error":    "error",
 	"w":        "warning",
+	"warn":     "warning",
 	"warning":  "warning",
 	"i":        "info",
 	"info":     "info",
@@ -224,6 +230,10 @@ func (x *Logs) Point(measurement string, tags map[string]string) *Logs {
 	if len(x.fields) == 0 {
 		x.AddErr(fmt.Errorf("fields is empty, maybe the use of delete_origin_data() of pipeline"))
 		return x
+	}
+
+	for k, v := range x.tags {
+		tags[k] = v
 	}
 
 	pt, err := io.MakePoint(measurement, tags, x.fields, x.ts)
