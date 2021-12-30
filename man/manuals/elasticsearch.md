@@ -17,12 +17,13 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
 - 设置 `cluster_stats = true` 可产生如下指标集
   - `elasticsearch_cluster_stats`
 
-### 用户权限配置
+## 用户权限配置
 
-- 如果开启账号密码访问，需要配置该账号拥有访问集群和索引监控的 `monitor` 权限，否则会导致监控信息获取失败错误。用户权限配置如下：
-  
+如果开启账号密码访问，需要配置相应的权限，否则会导致监控信息获取失败错误。目前支持 Elasticsearch 和 Open Distro for Elasticsearch。
+### Elasticsearch
+
   - 创建角色`monitor`，设置如下权限
-  
+
   ```javascript
     {
       "applications": [],
@@ -44,13 +45,44 @@ ElasticSearch 采集器主要采集节点运行情况、集群健康、JVM 性�
       ],
       "run_as": []
     }
-  
+
   ```
 
-  - 创建自定义用户，并赋予新创建的`monitor`角色。
+- 创建自定义用户，并赋予新创建的`monitor`角色。
 - 其他信息请参考配置文件说明
 
-其他信息请参考配置文件说明。
+
+### Open Distro for Elasticsearch
+
+  - 创建用户
+  - 创建角色 `monitor`, 设置如下权限：
+
+  ```
+  PUT _opendistro/_security/api/roles/monitor
+  {
+    "description": "monitor es cluster",
+    "cluster_permissions": [
+      "cluster:admin/opendistro/ism/managedindex/explain",
+      "cluster_monitor",
+      "cluster_composite_ops_ro"
+    ],
+    "index_permissions": [
+      {
+        "index_patterns": [
+          "*"
+        ],
+        "fls": [],
+        "masked_fields": [],
+        "allowed_actions": [
+          "read",
+          "indices_monitor"
+        ]
+      }
+    ],
+    "tenant_permissions": []
+  }
+  ```
+  - 设置角色与用户之间的映射关系
 
 ## 配置
 
