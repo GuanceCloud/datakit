@@ -34,6 +34,7 @@ type Input struct {
 	IOTimeout                *datakit.Duration `toml:"io_timeout,omitempty"`
 
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
+	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
 	IgnoreFS                   []string `toml:"ignore_fs"`
 
 	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
@@ -105,6 +106,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("parse ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES to bool: %s, ignore", err)
 		} else {
 			ipt.EnableNetVirtualInterfaces = b
+		}
+	}
+
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/505
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK to bool: %s, ignore", err)
+		} else {
+			ipt.IgnoreZeroBytesDisk = b
 		}
 	}
 
