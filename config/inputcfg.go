@@ -48,9 +48,17 @@ func SearchDir(dir string, suffix string) []string {
 func GetGitRepoDir(cloneDirName string) (string, error) {
 	if cloneDirName == "" {
 		// you shouldn't be here, check before you call this function.
-		return "", fmt.Errorf("git_repo_clone_dir_empty")
+		return "", fmt.Errorf("git repo clone dir empty")
 	}
 	return filepath.Join(datakit.GitReposDir, cloneDirName), nil
+}
+
+func GetGitRepoSubDir(cloneDirName, sonName string) (string, error) {
+	if cloneDirName == "" {
+		// you shouldn't be here, check before you call this function.
+		return "", fmt.Errorf("git repo clone dir empty")
+	}
+	return filepath.Join(datakit.GitReposDir, cloneDirName, sonName), nil
 }
 
 // LoadInputsConfigEx load all inputs under @InstallDir/conf.d.

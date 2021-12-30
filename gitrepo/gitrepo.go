@@ -22,6 +22,7 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	ssh2 "golang.org/x/crypto/ssh"
 )
@@ -116,7 +117,7 @@ func pullCore(c *config.GitRepository) error {
 	case strings.HasPrefix(gURL, prefixSSH), strings.HasPrefix(gURL, prefixGit):
 		bIsUseAuthUserNamePassword = false
 	default:
-		tip := "invalid_git_url"
+		tip := "invalid git url"
 		l.Error(tip)
 		return fmt.Errorf(tip)
 	}
@@ -126,7 +127,7 @@ func pullCore(c *config.GitRepository) error {
 	if bIsUseAuthUserNamePassword {
 		gitUserName = uGitURL.User.Username()
 		if password, ok := uGitURL.User.Password(); !ok {
-			tip := "invalid_git_password"
+			tip := "invalid git password"
 			l.Error(tip)
 			return fmt.Errorf(tip)
 		} else {
@@ -134,12 +135,12 @@ func pullCore(c *config.GitRepository) error {
 		}
 
 		if gitUserName == "" || gitPassword == "" {
-			tip := "http_need_username_password"
+			tip := "http need username password"
 			l.Error(tip)
 			return fmt.Errorf(tip)
 		}
 	} else if c.SSHPrivateKeyPath == "" {
-		tip := "ssh_need_key_file"
+		tip := "ssh need key file"
 		l.Error(tip)
 		return fmt.Errorf(tip)
 	}
@@ -275,12 +276,13 @@ func pullCore(c *config.GitRepository) error {
 }
 
 func reloadCore(ctx context.Context) error {
-	round := 0
+	round := 0 // 循环次数
 	for {
 		select {
 		case <-ctx.Done():
-			l.Error("reload_timeout")
-			return fmt.Errorf("reload_timeout")
+			tip := "reload timeout"
+			l.Error(tip)
+			return fmt.Errorf(tip)
 		default:
 			switch round {
 			case 0:
@@ -322,6 +324,13 @@ func reloadCore(ctx context.Context) error {
 				}
 
 			case 3:
+				l.Debug("before set pipelines")
+
+				allGitReposPipelines := config.GetGitReposAllPipelinePath()
+
+				worker.LoadAllDotPScriptForWkr([]string{}, allGitReposPipelines)
+
+			case 4:
 				l.Debug("before RunInputs")
 
 				if err := inputs.RunInputs(true); err != nil {
@@ -329,7 +338,7 @@ func reloadCore(ctx context.Context) error {
 					return err
 				}
 
-			case 4:
+			case 5:
 				l.Debug("before ReloadTheNormalServer")
 
 				httpd.ReloadTheNormalServer()
