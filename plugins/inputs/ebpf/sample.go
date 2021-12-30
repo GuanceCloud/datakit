@@ -9,8 +9,13 @@ const configSample = `
   args = ["--datakit-apiserver", "0.0.0.0:9529"]
   envs = []
 
-  # enabled by default: "ebpf-net", "ebpf-bash"
-  disabled_input = ["ebpf-bash"]
+  ## all supported plugins:
+  ## - "ebpf-net":
+  ##     contains L4-network, dns collection
+  ## - "ebpf-bash":
+  ##     log bash
+  ##
+  enabled_plugins = ["ebpf-net"]
 
   [inputs.ebpf.tags]
     # some_tag = "some_value"

@@ -19,15 +19,19 @@ import (
 )
 
 var (
-	inputName   = "ebpf"
-	catalogName = "host"
-	l           = logger.DefaultSLogger("ebpf")
+	inputName           = "ebpf"
+	catalogName         = "host"
+	l                   = logger.DefaultSLogger("ebpf")
+	AllSupportedPlugins = map[string]bool{
+		"ebpf-bash": true,
+		"ebpf-net":  true,
+	}
 )
 
 type Input struct {
 	external.ExernalInput
-	DisabledInput []string      `toml:"disabled_input"`
-	semStop       *cliutils.Sem // start stop signal
+	EnabledPlugins []string      `toml:"enabled_plugins"`
+	semStop        *cliutils.Sem // start stop signal
 }
 
 func (ipt *Input) Run() {
@@ -86,12 +90,20 @@ loop:
 		}
 	}
 
-	if len(ipt.DisabledInput) > 0 {
-		dis := strings.Join(ipt.DisabledInput, ",")
-		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args, "--disabled", dis)
+	enablePlugins := []string{}
+	for _, nameP := range ipt.EnabledPlugins {
+		if v, ok := AllSupportedPlugins[nameP]; ok && v {
+			enablePlugins = append(enablePlugins, nameP)
+		}
 	}
-
-	ipt.ExernalInput.Run()
+	if len(enablePlugins) > 0 {
+		ipt.ExernalInput.Args = append(ipt.ExernalInput.Args,
+			"--enabled", strings.Join(enablePlugins, ","))
+		ipt.ExernalInput.Run()
+	} else {
+		l.Warn("no ebpf plugins enabled")
+		io.FeedLastError(inputName, "no ebpf plugins enabled")
+	}
 	l.Infof("ebpf input exit")
 }
 
@@ -99,6 +111,7 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+	ipt.ExernalInput.Terminate()
 }
 
 func (*Input) Catalog() string { return catalogName }
@@ -120,7 +133,8 @@ func (*Input) AvailableArchs() []string {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			semStop: cliutils.NewSem(),
+			semStop:      cliutils.NewSem(),
+			ExernalInput: *external.NewExternalInput(),
 		}
 	})
 }
