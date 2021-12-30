@@ -237,7 +237,7 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 	return infos
 }
 
-func getDiskInfo(ignoreFs []string) []*DiskInfo {
+func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk bool) []*DiskInfo {
 	ps, err := diskutil.Partitions(true)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
@@ -260,6 +260,10 @@ func getDiskInfo(ignoreFs []string) []*DiskInfo {
 
 		usage, err := diskutil.Usage(p.Mountpoint)
 		if err == nil {
+			if ignoreZeroBytesDisk && usage.Total == 0 {
+				continue // https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/505
+			}
+
 			info.Total = usage.Total
 		}
 
@@ -343,7 +347,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		load5:      getLoad5(),
 		Mem:        getMemInfo(),
 		Net:        getNetInfo(ipt.EnableNetVirtualInterfaces),
-		Disk:       getDiskInfo(ipt.IgnoreFS),
+		Disk:       getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk),
 		Conntrack:  conntrackutil.GetConntrackInfo(),
 		FileFd:     fileFd,
 		Election:   getElectionInfo(),
