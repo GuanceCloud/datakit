@@ -57,6 +57,7 @@ drop_origin_data()
     source = "nginx"
 
     # 所有脚本必须放在 /path/to/datakit/pipeline 目录下
+    # 如果开启了 gitrepos 功能，则优先以 gitrepos 中的同名文件为准
     # 如果 pipeline 未配置，则在 pipeline 目录下寻找跟 source 同名
     # 的脚本（如 nginx -> nginx.p），作为其默认 pipeline 配置
     pipeline = "nginx.p"

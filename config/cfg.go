@@ -490,7 +490,7 @@ func (c *Config) ApplyMainConfig() error {
 			continue
 		}
 		mExistCloneDirs[repoName] = struct{}{}
-		clonePath, err := GetGitRepoDir(repoName)
+		clonePath, err := GetGitRepoSubDir(repoName, datakit.GitRepoSubDirNameConfd)
 		if err != nil {
 			continue
 		}
@@ -869,4 +869,33 @@ func GitHasEnabled() bool {
 	}
 
 	return hasEnable
+}
+
+func GitEnabledRepoNames() []string {
+	mExistCloneDirs := make(map[string]struct{})
+	for _, v := range Cfg.GitRepos.Repos {
+		if !v.Enable {
+			continue
+		}
+		v.URL = dkstring.TrimString(v.URL)
+		if v.URL == "" {
+			continue
+		}
+		repoName, err := path.GetGitPureName(v.URL)
+		if err != nil {
+			continue
+		}
+		// check repeat
+		if _, ok := mExistCloneDirs[repoName]; ok {
+			continue
+		}
+		mExistCloneDirs[repoName] = struct{}{}
+	}
+
+	var arr []string
+	for k := range mExistCloneDirs {
+		arr = append(arr, k)
+	}
+
+	return arr
 }
