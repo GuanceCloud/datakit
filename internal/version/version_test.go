@@ -6,6 +6,36 @@ import (
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
+func TestParse(t *testing.T) {
+	cases := []struct {
+		v    string
+		fail bool
+	}{
+		{
+			v: "1.2.3",
+		},
+
+		{
+			v: "1.2.3-123-g123abcde",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run("", func(t *testing.T) {
+			vi := VerInfo{VersionString: tc.v}
+			err := vi.Parse()
+			if tc.fail {
+				tu.NotOk(t, err, "")
+				return
+			} else {
+				tu.Ok(t, err)
+			}
+
+			t.Logf(vi.String())
+		})
+	}
+}
+
 //nolint:funlen
 func TestCompare(t *testing.T) {
 	cases := []struct {

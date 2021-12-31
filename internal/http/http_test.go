@@ -371,10 +371,12 @@ func TestClientTimeWait(t *testing.T) {
 						t.Error(err)
 					}
 
-					io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+					if resp != nil {
+						io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
 
-					if err := resp.Body.Close(); err != nil {
-						t.Error(err)
+						if err := resp.Body.Close(); err != nil {
+							t.Error(err)
+						}
 					}
 				}
 			}

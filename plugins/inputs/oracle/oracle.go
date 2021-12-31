@@ -76,6 +76,8 @@ func (i *Input) AvailableArchs() []string {
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{}
+		return &Input{
+			ExernalInput: *external.NewExternalInput(),
+		}
 	})
 }

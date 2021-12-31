@@ -135,17 +135,9 @@ func RunCmds() {
 		}
 
 		for _, vi := range vis {
-			if vi.upgrade {
-				infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
-					vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
-				infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
-			}
-
-			if vi.install {
-				infof("\n\n%s version available: %s, commit %s (release at %s)\n",
-					vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
-				infof("%s\n", getInstallCommand())
-			}
+			infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
+				vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
+			infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
 		}
 
 		os.Exit(0)

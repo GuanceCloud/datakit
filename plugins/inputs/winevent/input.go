@@ -128,6 +128,7 @@ func (ipt *Input) handleEvent(event Event) {
 		"message":         event.Message,
 		"level":           event.LevelText,
 		"total_message":   string(msg),
+		"status":          ipt.getEventStatus(event.Level),
 	}
 	metric := &Measurement{
 		tags:   tags,
@@ -136,6 +137,16 @@ func (ipt *Input) handleEvent(event Event) {
 		name:   "windows_event",
 	}
 	ipt.collectCache = append(ipt.collectCache, metric)
+}
+
+var statusList = []string{"info", "critical", "error", "warning", "info"}
+
+func (ipt *Input) getEventStatus(level int) string {
+	if level >= 0 && level < len(statusList) {
+		return statusList[level]
+	}
+
+	return "info"
 }
 
 func (ipt *Input) evtSubscribe(logName, xquery string) (EvtHandle, error) {
@@ -243,6 +254,8 @@ func (ipt *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
 	keywords, err := formatEventString(EvtFormatMessageKeyword, eventHandle, publisherHandle)
 	if err == nil {
 		event.Keywords = keywords
+	} else {
+		l.Warn(err)
 	}
 	message, err := formatEventString(EvtFormatMessageEvent, eventHandle, publisherHandle)
 	if err == nil {
@@ -250,18 +263,26 @@ func (ipt *Input) renderEvent(eventHandle EvtHandle) (Event, error) {
 		scanner.Scan()
 		message = scanner.Text()
 		event.Message = message
+	} else {
+		l.Warn(err)
 	}
 	level, err := formatEventString(EvtFormatMessageLevel, eventHandle, publisherHandle)
 	if err == nil {
 		event.LevelText = level
+	} else {
+		l.Warn(err)
 	}
 	task, err := formatEventString(EvtFormatMessageTask, eventHandle, publisherHandle)
 	if err == nil {
 		event.TaskText = task
+	} else {
+		l.Warn(err)
 	}
 	opcode, err := formatEventString(EvtFormatMessageOpcode, eventHandle, publisherHandle)
 	if err == nil {
 		event.OpcodeText = opcode
+	} else {
+		l.Warn(err)
 	}
 	return event, nil
 }
@@ -274,7 +295,7 @@ func formatEventString(
 	var bufferUsed uint32
 	err := _EvtFormatMessage(publisherHandle, eventHandle, 0, 0, 0, messageFlag,
 		0, nil, &bufferUsed)
-	if err != nil && errors.Is(err, ErrorInsufficientBuffer) {
+	if err != nil && !errors.Is(err, ErrorInsufficientBuffer) {
 		return "", err
 	}
 

@@ -117,6 +117,22 @@ func (vi *VerInfo) Parse() error {
 			vi.rc = parts[1]
 		}
 		return nil
+
+	case 3: // like 1.2.0-123-g40c4860c
+		if err := vi.parseNumbers(parts[0]); err != nil {
+			return err
+		}
+
+		var err error
+		vi.build, err = strconv.ParseUint(parts[1], 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid build number %s: %w", parts[2], err)
+		}
+
+		vi.Commit = parts[2]
+
+		return nil
+
 	case 4: // like 1.1.7-rc1-125-g40c4860c
 		if err := vi.parseNumbers(parts[0]); err != nil {
 			return err
@@ -132,6 +148,7 @@ func (vi *VerInfo) Parse() error {
 		if err != nil {
 			return fmt.Errorf("invalid build number %s: %w", parts[2], err)
 		}
+		vi.Commit = parts[3]
 
 		return nil
 	}

@@ -87,13 +87,15 @@ type newVersionInfo struct {
 }
 
 func (vi *newVersionInfo) String() string {
-	return fmt.Sprintf("%s/%v/%v\n", vi.versionType, vi.upgrade, vi.install) + func() string {
-		if vi.upgrade {
-			return getUpgradeCommand(vi.newVersion.DownloadURL)
-		} else {
-			return getInstallCommand()
-		}
-	}()
+	if vi.newVersion == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/%v/%v\n%s",
+		vi.versionType,
+		vi.upgrade,
+		vi.install,
+		getUpgradeCommand(vi.newVersion.DownloadURL))
 }
 
 func checkNewVersion(curverStr string, showTestingVer bool) (map[string]*newVersionInfo, error) {
@@ -114,18 +116,10 @@ func checkNewVersion(curverStr string, showTestingVer bool) (map[string]*newVers
 		l.Debugf("compare %s <=> %s", v, curver)
 
 		if version.IsNewVersion(v, curver, true) {
-			if curver.IsStable() {
-				vis[k] = &newVersionInfo{
-					versionType: k,
-					upgrade:     true,
-					newVersion:  v,
-				}
-			} else {
-				vis[k] = &newVersionInfo{
-					versionType: k,
-					install:     true,
-					newVersion:  v,
-				}
+			vis[k] = &newVersionInfo{
+				versionType: k,
+				upgrade:     true,
+				newVersion:  v,
 			}
 		}
 	}
@@ -140,10 +134,6 @@ const (
 var versionInfos = map[string]string{
 	versionTypeOnline:  "static.guance.com/datakit",
 	versionTypeTesting: "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit",
-}
-
-func getInstallCommand() string {
-	return "Current is unstable version, please reinstall DataKit."
 }
 
 func getUpgradeCommand(dlurl string) string {

@@ -44,7 +44,7 @@ setenforce 0
 {{.InputSample}}
 ```
 
-默认配置关闭 ebpf-bash，若需开启移除 disabled_input 配置项中的 "ebpf-bash"；
+默认配置不开启 ebpf-bash，若需开启在 enabled_plugins 配置项中添加 "ebpf-bash"；
 
 配置好后，重启 DataKit 即可。
 ## 指标集

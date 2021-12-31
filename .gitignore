@@ -4,6 +4,7 @@
 .orig
 .vscode/
 *-packr.go
+*.o
 *.ak
 *.bak
 *.csv

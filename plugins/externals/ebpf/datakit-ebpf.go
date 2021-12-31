@@ -37,8 +37,8 @@ const (
 )
 
 var (
-	disableEbpfNet  = false
-	disableEbpfBash = false
+	enableEbpfBash = false
+	enableEbpfNet  = false
 )
 
 var pidFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.pid")
@@ -57,14 +57,16 @@ type Option struct {
 	Log      string `long:"log" description:"log path"`
 	LogLevel string `long:"log-level" description:"log file" default:"info"`
 
-	Tags     string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
-	Disabled string `long:"disabled" description:"disabled input list in 'a,b,...' format"`
-	Service  string `long:"service" description:"service" default:"ebpf"`
+	Tags    string `long:"tags" description:"additional tags in 'a=b,c=d,...' format"`
+	Enabled string `long:"enabled" description:"enabled plugins list in 'a,b,...' format"`
+
+	Service string `long:"service" description:"service" default:"ebpf"`
 }
 
 type Input struct {
 	external.ExernalInput
-	DisabledInput []string `toml:"disabled_input"`
+	// DisabledInput []string `toml:"disabled_input"`
+	EnabledPlugins []string `toml:"enabled_plugins"`
 }
 
 const (
@@ -153,7 +155,7 @@ func main() {
 	l.Info("datakit-ebpf starting ...")
 
 	// ebpf-net
-	if !disableEbpfNet {
+	if enableEbpfNet {
 		offset, err := getOffset()
 		if err != nil {
 			feedLastErrorLoop(err, signaIterrrupt)
@@ -199,7 +201,7 @@ func main() {
 	}
 
 	// ebpf-bash
-	if !disableEbpfBash {
+	if enableEbpfBash {
 		l.Info(" >>> datakit ebpf-bash tracer(ebpf) starting ...")
 		bashTracer := dkbash.NewBashTracer()
 		err := bashTracer.Run(ctx, gTags, ebpfBashPostURL, interval)
@@ -209,7 +211,7 @@ func main() {
 		}
 	}
 
-	if !disableEbpfBash || !disableEbpfNet {
+	if enableEbpfBash || enableEbpfNet {
 		<-signaIterrrupt
 	}
 
@@ -279,13 +281,13 @@ func parseFlags() (*Option, map[string]string, error) {
 		return nil, nil, err
 	}
 
-	optDisabled := strings.Split(opt.Disabled, ",")
-	for _, item := range optDisabled {
+	optEnabled := strings.Split(opt.Enabled, ",")
+	for _, item := range optEnabled {
 		switch item {
 		case inputNameNet:
-			disableEbpfNet = true
+			enableEbpfNet = true
 		case inputNameBash:
-			disableEbpfBash = true
+			enableEbpfBash = true
 		}
 	}
 
@@ -387,12 +389,12 @@ func parseCfg(i *Input) (*Option, map[string]string, error) {
 	opt := Option{}
 	gTags := map[string]string{}
 
-	for _, v := range i.DisabledInput {
+	for _, v := range i.EnabledPlugins {
 		switch v {
 		case inputNameNet:
-			disableEbpfNet = true
+			enableEbpfNet = true
 		case inputNameBash:
-			disableEbpfBash = true
+			enableEbpfBash = true
 		}
 	}
 
