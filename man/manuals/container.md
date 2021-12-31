@@ -42,20 +42,20 @@
 
 以 kubernetes 为例，创建 Pod 添加 Annotations 如下：
 
-- Key 为固定的 `datakig/logs`
+- Key 为固定的 `datakit/logs`
 - Value 是一个 JSON 字符串，支持 `source` `service` 和 `pipeline` 三个字段值
 
-```
+```json
 [
   {
-    "source"="testing-source",
-    "service"="testing-service",
-    "pipeline"="test.p"
+    "source"   : "testing-source",
+    "service"  : "testing-service",
+    "pipeline" : "test.p"
   }
 ]
 ```
 
-拼接成一行并加上转义字符，最终结果是 `[{\"source\"=\"testing-source\", \"service\"=\"testing-service\", \"pipeline\"=\"test.p\"}]`
+拼接成一行并加上转义字符，最终结果是 `[{\"source\": \"testing-source\", \"service\": \"testing-service\", \"pipeline\": \"test.p\"}]`
 
 注意两点：
 
@@ -79,9 +79,9 @@ spec:
         datakit/logs: |
           [
             {
-              "source"="testing-source",
-              "service"="testing-service",
-              "pipeline"="test.p"
+              "source": "testing-source",
+              "service": "testing-service",
+              "pipeline": "test.p"
             }
           ]
 ```
