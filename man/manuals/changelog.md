@@ -11,7 +11,7 @@
 	- 支持配置 [Redis 用户名](redis#852abae7)(#260)
 	- 增加 [Latency](redis#1355d1f8) 以及 [Cluster](redis#786114c8) 指标集(#396)
 - [Kafka 采集器](kafka)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
-- 新增 [ClickHouse](clickhouse) 以及 [Flink](flink) 采集器(#458/#459)
+- 新增 [ClickHouse](clickhousev1) 以及 [Flink](flinkv1) 采集器(#458/#459)
 - [主机对象采集器](hostobject)
 	- 支持从 [`ENV_CLOUD_PROVIDER`](hostobject#224e2ccd) 读取云同步配置(#501)
 	- 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
