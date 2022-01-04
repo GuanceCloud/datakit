@@ -30,6 +30,8 @@ SampleMeasurement() []Measurement // 采集器文档生成辅助结构
 AvailableArchs() []string         // 采集器适用的操作系统
 ```
 
+> 由于不断会新增一些采集器功能，**新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface**
+
 - 在 `input.go` 中，新增如下模块初始化入口：
 
 ```Golang
