@@ -41,7 +41,19 @@ func TestDefaultTime(t *testing.T) {
 			fail:   false,
 		},
 		{
-			name: "redis log datetime, 02 Jan 2006 15:04:05.000",
+			name: "redis log datetime-tokyo",
+			in:   `{"time":"02 Dec 2021 12:55:34.000"}`,
+			pl: `
+			json(_, time)
+			default_time(time, "Asia/Tokyo")
+		`,
+			outkey: "time",
+			expect: int64(1638417334000000000),
+			fail:   false,
+		},
+
+		{
+			name: "redis log datetime-default tz",
 			in:   `{"time":"02 Dec 2021 11:55:34.000"}`,
 			pl: `
 			json(_, time)
@@ -52,25 +64,14 @@ func TestDefaultTime(t *testing.T) {
 			fail:   false,
 		},
 		{
-			name: "redis log datetime, 02 Jan 2006 15:04:05.000",
-			in:   `{"time":"02 Dec 2021 12:55:34.000"}`,
-			pl: `
-			json(_, time)
-			default_time(time, "Asia/Tokyo")
-		`,
-			outkey: "time",
-			expect: int64(1638417334000000000),
-			fail:   false,
-		},
-		{
-			name: "redis log datetime, 02 Jan 15:04:05.000",
+			name: "redis log datetime no year",
 			in:   `{"time":"02 Dec 11:55:34.000"}`,
 			pl: `
 			json(_, time)
 			default_time(time)
 		`,
 			outkey: "time",
-			expect: int64(1638417334000000000),
+			expect: time.Date(time.Now().Year(), time.Month(12), 2, 11, 55, 34, 0, time.Now().Location()).UnixNano(),
 			fail:   false,
 		},
 		{
@@ -586,7 +587,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"2021:12:02"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638374400000000000),
@@ -647,7 +648,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"2021年12月02日"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638374400000000000),
@@ -879,7 +880,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"2021-12-02"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638374400000000000),
@@ -890,7 +891,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"2021-12"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638288000000000000),
@@ -901,7 +902,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"2021"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1609430400000000000),
@@ -953,7 +954,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"2021.12"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638288000000000000),
@@ -964,7 +965,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"2021.12.02"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638374400000000000),
@@ -976,7 +977,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"20211202"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638374400000000000),
@@ -987,7 +988,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"20211202115543"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638417343000000000),
@@ -999,7 +1000,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"1638417343"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638417343000000000),
@@ -1010,7 +1011,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"1638417343001"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638417343001000000),
@@ -1021,7 +1022,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"1638417343001002"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638417343001002000),
@@ -1032,7 +1033,7 @@ func TestDefaultTime(t *testing.T) {
 			in:   `{"time":"1638417343001002003"}`,
 			pl: `
 			json(_, time)
-			default_time(time)	
+			default_time(time)
 		`,
 			outkey: "time",
 			expect: int64(1638417343001002003),
