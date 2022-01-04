@@ -54,6 +54,7 @@ func (m *Measurement) LineProto() (*io.Point, error) {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
+		Type:   "logging",
 		Fields: map[string]interface{}{},
 		Tags: map[string]interface{}{
 			"event_id":        inputs.NewTagInfo("事件 ID"),

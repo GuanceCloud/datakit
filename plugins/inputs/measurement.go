@@ -72,11 +72,11 @@ type Measurement interface {
 }
 
 type FieldInfo struct {
-	Type     string // gauge/count/...
-	DataType string // int/float/bool/...
-	Unit     string
-	Desc     string // markdown string
-	Disabled bool
+	Type     string `json:"type"`      // gauge/count/...
+	DataType string `json:"data_type"` // int/float/bool/...
+	Unit     string `json:"unit"`
+	Desc     string `json:"desc"` // markdown string
+	Disabled bool   `json:"disabled"`
 }
 
 type TagInfo struct {
