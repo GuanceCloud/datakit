@@ -155,6 +155,7 @@ func (j *KafkaConnectMment) Info() *inputs.MeasurementInfo {
 		Name:   "kafka_connect",
 		Fields: connectFields,
 		Tags:   connectTags,
+		Desc:   "该指标集需在 Connector 实例上采集",
 	}
 }
 
@@ -233,6 +234,7 @@ func (j *KafkaProducerMment) Info() *inputs.MeasurementInfo {
 		Name:   "kafka_producer",
 		Fields: producerFields,
 		Tags:   producerTags,
+		Desc:   "该指标集需在 Producer 实例上采集",
 	}
 }
 
@@ -320,6 +322,7 @@ func (j *KafkaConsumerMment) Info() *inputs.MeasurementInfo {
 		Name:   "kafka_consumer",
 		Fields: consumerFields,
 		Tags:   consumerTags,
+		Desc:   "该指标集需在 Consumer 实例上采集",
 	}
 }
 

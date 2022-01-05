@@ -6,12 +6,13 @@
 
 # {{.InputName}}
 
-采集 container 和 kubernetes 的指标数据、对象数据和容器日志，上报到观测云。
+采集 container 和 etes 的指标数据、对象数据和容器日志，上报到观测云。
 
 ## 前置条件
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
-- 采集 kubernetes 数据需要 DataKit 以 kubernetes daemonset 方式运行。
+- 采集 etes 数据需要 DataKit 以 Kubernetes daemonset 方式运行。
+- 采集 etes Pod 指标数据，需要 Kubernetes 安装 Metrics-Server 组件，[链接](https://github.com/kubernetes-sigs/metrics-server#installation)。
 
 ## 配置
 
@@ -21,7 +22,7 @@
 {{.InputSample}} 
 ```
 
-- `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`。
+- `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对 image 生效。
 - glob 规则是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元，[glob wiki](https://en.wikipedia.org/wiki/Glob_(programming))
 
 *对象数据采集间隔是5分钟，指标数据采集间隔是15秒，暂不支持配置*
@@ -40,7 +41,7 @@
 
 可以通过配置容器的 Labels，或容器所属 Pod 的 Annotations，为容器指定日志配置。
 
-以 kubernetes 为例，创建 Pod 添加 Annotations 如下：
+以 etes 为例，创建 Pod 添加 Annotations 如下：
 
 - Key 为固定的 `datakit/logs`
 - Value 是一个 JSON 字符串，支持 `source` `service` 和 `pipeline` 三个字段值
@@ -61,7 +62,7 @@
 
 1. 容器不支持动态添加 Labels，容器的 Labels 跟其镜像绑定在一起，在生成镜像时已经固定。给容器添加 Labels 需要重新 build 一份镜像再添加 Labels，[官方示例文档](https://docs.docker.com/engine/reference/builder/#label)
 
-2. kubernetes 一般不会直接创建 Pod 也不添加 Annotations，可以在创建 Deployment 时以 `template` 模式添加 Annotations，由此 Deployment 生成的所有 Pod 都会携带 Annotations，例如：
+2. etes 一般不会直接创建 Pod 也不添加 Annotations，可以在创建 Deployment 时以 `template` 模式添加 Annotations，由此 Deployment 生成的所有 Pod 都会携带 Annotations，例如：
 
 ```yaml
 apiVersion: apps/v1
@@ -107,7 +108,7 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 ### 支持 Kubernetes 自定义 Export
 
-详见[kubernetes-prom](kubernetes-prom)
+详见[etes-prom](kubernetes-prom)
 
 ## 指标集
 
