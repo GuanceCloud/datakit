@@ -12,7 +12,7 @@
 
 安装或下载 [Jolokia](https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.6.2/jolokia-jvm-1.6.2-agent.jar)。DataKit 安装目录下的 `data` 目录中已经有下载好的 Jolokia jar 包。 
 
-Jolokia 是做为 Kafka 的 java agent，基于 HTTP 协议提供了一个使用 json 作为数据格式的外部接口，提供给 DataKit 使用。 Kafka 启动时，先配置 `KAFKA_OPTS` 环境变量：(port 可根据实际情况修改成可用端口）
+Jolokia 是作为 Kafka 的 java agent，基于 HTTP 协议提供了一个使用 json 作为数据格式的外部接口，提供给 DataKit 使用。 Kafka 启动时，先配置 `KAFKA_OPTS` 环境变量：(port 可根据实际情况修改成可用端口）
 
 ```shell
 export KAFKA_OPTS="$KAFKA_OPTS -javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=*,port=8080"
@@ -23,6 +23,38 @@ export KAFKA_OPTS="$KAFKA_OPTS -javaagent:/usr/local/datakit/data/jolokia-jvm-ag
 ```shell
 java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <Kafka-PID>
 ```
+
+在开启 Kafka 服务后，如需采集 Producer/Consumer/Connector 指标，则需分别为其配置 Jolokia。
+
+参考 [KAFKA QUICKSTART](https://kafka.apache.org/quickstart) ，以 Producer 为例，先配置 `KAFKA_OPTS` 环境变量，示例如下：
+
+```shell
+export KAFKA_OPTS="-javaagent:/usr/local/datakit/data/jolokia-jvm-agent.jar=host=127.0.0.1,port=8090"
+```
+
+进入 Kafka 目录下启动一个 Producer：
+
+```shell
+bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
+```
+
+复制出一个 kafka.conf 以开启多个 Kafka 采集器，并配置该 url：
+
+```toml
+  urls = ["http://localhost:8090/jolokia"]
+```
+
+并将采集 Producer 指标部分的字段去掉注释：
+
+```toml
+  # The following metrics are available on producer instances.  
+  [[inputs.kafka.metric]]
+    name       = "kafka_producer"
+    mbean      = "kafka.producer:type=*,client-id=*"
+    tag_keys   = ["client-id", "type"]
+```
+
+重启 Datakit，这时 Datakit 便可采集到 Producer 实例的指标。
 
 ## 配置
 
