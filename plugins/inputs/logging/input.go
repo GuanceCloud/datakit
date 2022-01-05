@@ -219,6 +219,7 @@ func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "logging 日志采集",
+		Type: "logging",
 		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
 		Tags: map[string]interface{}{
 			"filename": inputs.NewTagInfo(`此条日志来源的文件名，仅为基础文件名，并非带有全路径`),
