@@ -170,6 +170,7 @@ func (*event) Info() *inputs.MeasurementInfo {
 
 type atomBool struct{ flag int32 }
 
+//nolint:unconvert
 func (b *atomBool) set(value bool) {
 	var i int32 = 0
 	if value {

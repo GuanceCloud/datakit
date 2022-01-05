@@ -107,7 +107,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
 			"status":           inputs.NewTagInfo("容器状态，例如 `Up 5 hours`"),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
-			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
+			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
 			"image_tag":        inputs.NewTagInfo("镜像tag，例如 `1.21.0`"),
