@@ -68,12 +68,26 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 		return tags
 	}
 
-	podlabels, err := getPodLables(k8sClient, podname, podnamespace)
+	meta, err := queryPodMetaData(k8sClient, podname, podnamespace)
 	if err != nil {
+		// ignore err
 		return tags
 	}
 
-	if deployment := getDeployment(podlabels["app"], podnamespace); deployment != "" {
+	if image := meta.containerImage(); image != "" {
+		// 如果能找到 pod image，则使用它
+		imageName, imageShortName, imageTag := ParseImage(image)
+		tags["image_name"] = imageName
+		tags["image_short_name"] = imageShortName
+		tags["image_tag"] = imageTag
+	}
+
+	if replicaSet := meta.replicaSet(); replicaSet != "" {
+		tags["replicaSet"] = replicaSet
+	}
+
+	labels := meta.labels()
+	if deployment := getDeployment(labels["app"], podnamespace); deployment != "" {
 		tags["deployment"] = deployment
 	}
 
@@ -175,7 +189,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dockerContainerName,
 		Type: "metric",
-		Desc: "容器指标数据（忽略 k8s pause 容器），只采集正在运行的容器",
+		Desc: "容器指标数据，只采集正在运行的容器",
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
