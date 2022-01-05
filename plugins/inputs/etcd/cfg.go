@@ -31,7 +31,8 @@ func (m *NetworkMeasurement) LineProto() (*io.Point, error) {
 
 func (m *NetworkMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
+		Name: "etcd_network",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"network_client_grpc_sent_bytes_total":     newCountFieldInfo("发送到 grpc 客户端的总字节数"),
 			"network_client_grpc_received_bytes_total": newCountFieldInfo("接收到 grpc 客户端的总字节数"),
@@ -44,7 +45,8 @@ func (m *NetworkMeasurement) Info() *inputs.MeasurementInfo {
 
 func (m *ServerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
+		Name: "etcd_server",
+		Type: "metric",
 		Fields: map[string]interface{}{
 			"server_leader_changes_seen_total": newCountFieldInfo("解释到的领导者变更次数"),
 			"server_proposals_committed_total": newCountFieldInfo("提交的共识提案总数"),
