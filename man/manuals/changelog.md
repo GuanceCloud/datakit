@@ -2,6 +2,16 @@
 
 # DataKit 版本历史
 
+## 1.2.1(2022/01/05)
+
+- 完善 [Kafka](kafka) 采集器文档以及指标采集优化(#534)
+- 修复采集器 Pipeline 使用问题(#529)
+- 完善[容器采集器](container)数据问题(#532/#530)
+	- 修复 short-image 采集问题
+	- 完善 k8s 环境下 Deployment/Replica-Set 关联
+
+---
+
 ## 1.2.0(2021/12/30)
 
 ### 采集器更新
@@ -11,7 +21,7 @@
 	- 支持配置 [Redis 用户名](redis#852abae7)(#260)
 	- 增加 [Latency](redis#1355d1f8) 以及 [Cluster](redis#786114c8) 指标集(#396)
 - [Kafka 采集器](kafka)增强，支持 topic/broker/consumer/connnetion 等维度的指标(#397)
-- 新增 [ClickHouse](clickhouse) 以及 [Flink](flink) 采集器(#458/#459)
+- 新增 [ClickHouse](clickhousev1) 以及 [Flink](flinkv1) 采集器(#458/#459)
 - [主机对象采集器](hostobject)
 	- 支持从 [`ENV_CLOUD_PROVIDER`](hostobject#224e2ccd) 读取云同步配置(#501)
 	- 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
@@ -40,7 +50,9 @@
 	- 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
 	- 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
 	- 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
-	- 老版本的 DataKit 升级，直接使用 `DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"` 即可，**老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**
+	- **老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
+		- Linux/Mac: `DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"`
+		- Windows: `$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;`
 
 ---
 

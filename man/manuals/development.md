@@ -30,6 +30,8 @@ SampleMeasurement() []Measurement // 采集器文档生成辅助结构
 AvailableArchs() []string         // 采集器适用的操作系统
 ```
 
+> 由于不断会新增一些采集器功能，**新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface**
+
 - 在 `input.go` 中，新增如下模块初始化入口：
 
 ```Golang
@@ -85,6 +87,10 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 ```
 
 - 如果采集器功能完整，增加 `man/manuals/zhangsan.md` 文档，这个可参考 `demo.md`，安装里面的模板来写即可
+
+- 对于文档中的指标集，默认是将所有能采集到的指标集以及各自的指标都列在文档中。某些特殊的指标集或指标，如果有前置条件，需在文档中做说明。
+  - 如果某个指标集需满足特定的条件，那么应该在指标集的 `MeasurementInfo.Desc` 中做说明
+  - 如果是指标集的某个指标有特定前置条件，应该在 `FieldInfo.Desc` 上做说明。
 
 ## Windows/Mac/Liux 平台编译环境搭建
 

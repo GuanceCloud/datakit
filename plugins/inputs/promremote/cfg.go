@@ -87,6 +87,7 @@ func (m *Measurement) LineProto() (*io.Point, error) {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
+		Type:   "metric",
 		Desc:   "prometheus remote write指标",
 		Fields: map[string]interface{}{},
 		Tags:   map[string]interface{}{},

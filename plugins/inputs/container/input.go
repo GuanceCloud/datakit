@@ -129,7 +129,7 @@ func (i *Input) Run() {
 			i.collectObject()
 
 		case i.pause = <-i.chPause:
-			globalPause = i.pause
+			globalPause.set(i.pause)
 		}
 	}
 }
