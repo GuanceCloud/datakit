@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -506,23 +505,12 @@ func (i *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:            "mysql",
 		Service:           "mysql",
+		Pipeline:          i.Log.Pipeline,
 		GlobalTags:        i.Tags,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
-
-	pl, err := config.GetPipelinePath(i.Log.Pipeline)
-	if err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt, i.Log.IgnoreStatus)
 	if err != nil {
 		l.Error(err)

@@ -8,7 +8,6 @@ import (
 	internalIo "io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -478,24 +477,14 @@ func (i *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
+		Pipeline:          i.Log.Pipeline,
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl, err := config.GetPipelinePath(i.Log.Pipeline)
-	if err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)

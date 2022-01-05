@@ -3,7 +3,6 @@ package rabbitmq
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -52,23 +51,13 @@ func (n *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:            "rabbitmq",
 		Service:           "rabbitmq",
+		Pipeline:          n.Log.Pipeline,
 		GlobalTags:        n.Tags,
 		CharacterEncoding: n.Log.CharacterEncoding,
 		MultilineMatch:    n.Log.MultilineMatch,
 	}
 
-	pl, err := config.GetPipelinePath(n.Log.Pipeline)
-	if err != nil {
-		io.FeedLastError(inputName, err.Error())
-		l.Error(err)
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt, n.Log.IgnoreStatus)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)

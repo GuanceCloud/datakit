@@ -4,7 +4,6 @@ package sqlserver
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -76,24 +75,14 @@ func (n *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
+		Pipeline:          n.Log.Pipeline,
 		GlobalTags:        n.Tags,
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
 		MultilineMatch:    `^\d{4}-\d{2}-\d{2}`,
 	}
 
-	pl, err := config.GetPipelinePath(n.Log.Pipeline)
-	if err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
