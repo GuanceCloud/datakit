@@ -122,6 +122,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 	return res
 }
 
+//nolint:deadcode,unused
 func getPodLables(k8sClient k8sClientX, podname, podnamespace string) (map[string]string, error) {
 	pod, err := queryPodMetaData(k8sClient, podname, podnamespace)
 	if err != nil {
@@ -152,6 +153,7 @@ func (item *podMeta) labels() map[string]string { return item.Labels }
 
 func (item *podMeta) annotations() map[string]string { return item.Annotations }
 
+//nolint:unused
 func (item *podMeta) containerName() string {
 	if len(item.Spec.Containers) == 0 {
 		return ""
@@ -222,7 +224,7 @@ func (*pod) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// map[md5sum(cfg)] = nil
+// map[md5sum(cfg)] = nil.
 var discoveryInputsMap = make(map[string]interface{})
 
 type discovery struct {
@@ -266,7 +268,7 @@ func (d *discovery) tryRunInput() error {
 
 		func(name string, ii inputs.Input) {
 			g.Go(func(ctx context.Context) error {
-				l.Infof("discovery: starting input %s ...", d.name)
+				l.Infof("discovery: starting input %s ...", name)
 				// main
 				ii.Run()
 				l.Infof("discovery: input %s exited", d.name)
