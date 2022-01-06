@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -260,6 +261,10 @@ type testClientConnectionsCase struct {
 }
 
 func TestClientConnections(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		return
+	}
+
 	cases := []testClientConnectionsCase{
 		{10, false, false, true},
 		{10, false, true, true},
@@ -366,10 +371,12 @@ func TestClientTimeWait(t *testing.T) {
 						t.Error(err)
 					}
 
-					io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
+					if resp != nil {
+						io.Copy(ioutil.Discard, resp.Body) //nolint:errcheck
 
-					if err := resp.Body.Close(); err != nil {
-						t.Error(err)
+						if err := resp.Body.Close(); err != nil {
+							t.Error(err)
+						}
 					}
 				}
 			}

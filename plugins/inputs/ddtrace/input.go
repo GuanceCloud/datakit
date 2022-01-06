@@ -44,12 +44,10 @@ var (
 )
 
 var (
-
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
-
-	ignoreResources []*regexp.Regexp
-	filters         []traceFilter
+	ignoreResources      []*regexp.Regexp
+	filters              []traceFilter
 )
 
 type Input struct {

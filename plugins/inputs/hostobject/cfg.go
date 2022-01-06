@@ -13,6 +13,9 @@ const (
 ## Setting enable_net_virtual_interfaces to true will collect network virtual interfaces stats for linux.
 # enable_net_virtual_interfaces = true
 
+# Ignore the disk which space is zero
+ignore_zero_bytes_disk = true
+
 ## Ignore mount points by filesystem type. Default ignored following FS types
 # ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "autofs", "squashfs", "aufs"]
 

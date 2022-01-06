@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	internalIo "io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -69,7 +69,10 @@ type clusterHealth struct {
 }
 
 type indexState struct {
-	Indices map[string]interface{} `json:"indices"`
+	Indices map[string]struct {
+		Managed bool   `json:"managed"`
+		Step    string `json:"step"`
+	} `json:"indices"`
 }
 
 type indexHealth struct {
@@ -111,6 +114,9 @@ const sampleConfig = `
 
   ## HTTP超时设置
   http_timeout = "5s"
+
+  ## 发行版本: elasticsearch, opendistro
+  distribution = "elasticsearch"
 
   ## 默认local是开启的，只采集当前Node自身指标，如果需要采集集群所有Node，需要将local设置为false
   local = true
@@ -173,7 +179,7 @@ grok(_, "^\\[%{TIMESTAMP_ISO8601:time}\\]\\[%{LOGLEVEL:status}%{SPACE}\\]\\[%{NO
 cast(shard, "int")
 cast(duration, "int")
 
-expr(duration*1000000, duration)
+duration_precision(duration, "ms", "ns")
 
 nullif(nodeId, "")
 default_time(time)
@@ -182,6 +188,7 @@ default_time(time)
 type Input struct {
 	Interval                   string   `toml:"interval"`
 	Local                      bool     `toml:"local"`
+	Distribution               string   `toml:"distribution"`
 	Servers                    []string `toml:"servers"`
 	HTTPTimeout                Duration `toml:"http_timeout"`
 	ClusterHealth              bool     `toml:"cluster_health"`
@@ -222,9 +229,21 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
+type userPrivilege struct {
+	Cluster struct {
+		Monitor bool `json:"monitor"`
+	} `json:"cluster"`
+	Index map[string]struct {
+		Monitor bool `json:"monitor"`
+		Ilm     bool `json:"manage_ilm"`
+	} `json:"index"`
+}
+
 type serverInfo struct {
-	nodeID   string
-	masterID string
+	nodeID        string
+	masterID      string
+	version       string
+	userPrivilege *userPrivilege
 }
 
 func (i serverInfo) isMaster() bool {
@@ -329,17 +348,21 @@ func (i *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (i *Input) Collect() error {
-	// 获取nodeID和masterID
-	if i.ClusterStats || len(i.IndicesInclude) > 0 || len(i.IndicesLevel) > 0 {
-		i.serverInfo = make(map[string]serverInfo)
-		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
-		for _, serv := range i.Servers {
-			func(s string) {
-				g.Go(func(ctx context.Context) error {
-					var err error
-					info := serverInfo{}
+func (i *Input) setServerInfo() error {
+	if len(i.Distribution) == 0 {
+		i.Distribution = "elasticsearch"
+	}
+	i.serverInfo = make(map[string]serverInfo)
 
+	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
+	for _, serv := range i.Servers {
+		func(s string) {
+			g.Go(func(ctx context.Context) error {
+				var err error
+				info := serverInfo{}
+
+				// 获取nodeID和masterID
+				if i.ClusterStats || len(i.IndicesInclude) > 0 || len(i.IndicesLevel) > 0 {
 					// Gather node ID
 					if info.nodeID, err = i.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
 						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
@@ -350,19 +373,34 @@ func (i *Input) Collect() error {
 					if info.masterID, err = i.getCatMaster(s + "/_cat/master"); err != nil {
 						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
+				}
 
-					i.serverInfoMutex.Lock()
-					i.serverInfo[s] = info
-					i.serverInfoMutex.Unlock()
+				if info.version, err = i.getVersion(s); err != nil {
+					return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+				}
 
-					return nil
-				})
-			}(serv)
-		}
-		err := g.Wait()
-		if err != nil {
-			return err
-		}
+				if mask.MatchString(s) {
+					info.userPrivilege = i.getUserPrivilege(s)
+				}
+
+				i.serverInfoMutex.Lock()
+				i.serverInfo[s] = info
+				i.serverInfoMutex.Unlock()
+
+				return nil
+			})
+		}(serv)
+	}
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Input) Collect() error {
+	if err := i.setServerInfo(); err != nil {
+		return err
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
@@ -439,24 +477,14 @@ func (i *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
+		Pipeline:          i.Log.Pipeline,
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl, err := config.GetPipelinePath(i.Log.Pipeline)
-	if err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -771,14 +799,90 @@ func (i *Input) gatherClusterStats(url string) error {
 	return nil
 }
 
+func (i *Input) isVersion6(url string) bool {
+	serverInfo, ok := i.serverInfo[url]
+	if !ok { // default
+		return false
+	} else {
+		parts := strings.Split(serverInfo.version, ".")
+		if len(parts) >= 2 {
+			return parts[0] == "6"
+		}
+	}
+
+	return false
+}
+
+func (i *Input) getLifeCycleErrorCount(url string) (errCount int) {
+	errCount = 0
+	// default elasticsearch
+	if i.Distribution == "elasticsearch" || (len(i.Distribution) == 0) {
+		// check privilege
+		privilege := i.serverInfo[url].userPrivilege
+		if privilege != nil {
+			indexPrivilege, ok := privilege.Index["all"]
+			if ok {
+				if !indexPrivilege.Ilm {
+					l.Warn("user has no ilm privilege, ingore collect indices_lifecycle_error_count")
+					return 0
+				}
+			}
+		}
+
+		indicesRes := &indexState{}
+		if i.isVersion6(url) { // 6.x
+			if err := i.gatherJSONData(url+"/*/_ilm/explain", indicesRes); err != nil {
+				l.Warn(err)
+			} else {
+				for _, index := range indicesRes.Indices {
+					if index.Managed && index.Step == "ERROR" {
+						errCount += 1
+					}
+				}
+			}
+		} else {
+			if err := i.gatherJSONData(url+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
+				l.Warn(err)
+			} else {
+				errCount = len(indicesRes.Indices)
+			}
+		}
+	}
+
+	// opendistro
+	if i.Distribution == "opendistro" {
+		res := map[string]interface{}{}
+
+		if err := i.gatherJSONData(url+"/_opendistro/_ism/explain/*", &res); err != nil {
+			l.Warn(err)
+		} else {
+			for _, index := range res {
+				indexVal, ok := index.(map[string]interface{})
+				if ok {
+					if step, ok := indexVal["step"]; ok {
+						if stepVal, ok := step.(map[string]interface{}); ok {
+							if status, ok := stepVal["step_status"]; ok {
+								if statusVal, ok := status.(string); ok {
+									if statusVal == "failed" {
+										errCount += 1
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return errCount
+}
+
 func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 	healthStats := &clusterHealth{}
-	indicesRes := &indexState{}
 	if err := i.gatherJSONData(url, healthStats); err != nil {
 		return err
-	} else if err := i.gatherJSONData(serverURL+"/*/_ilm/explain?only_errors", indicesRes); err != nil {
-		return err
 	}
+	indicesErrorCount := i.getLifeCycleErrorCount(serverURL)
 	now := time.Now()
 	clusterFields := map[string]interface{}{
 		"active_primary_shards":            healthStats.ActivePrimaryShards,
@@ -796,7 +900,7 @@ func (i *Input) gatherClusterHealth(url string, serverURL string) error {
 		"task_max_waiting_in_queue_millis": healthStats.TaskMaxWaitingInQueueMillis,
 		"timed_out":                        healthStats.TimedOut,
 		"unassigned_shards":                healthStats.UnassignedShards,
-		"indices_lifecycle_error_count":    len(indicesRes.Indices),
+		"indices_lifecycle_error_count":    indicesErrorCount,
 	}
 
 	allFields := make(map[string]interface{})
@@ -842,6 +946,33 @@ func (i *Input) gatherNodeID(url string) (string, error) {
 	return "", nil
 }
 
+func (i *Input) getVersion(url string) (string, error) {
+	clusterInfo := &struct {
+		Version struct {
+			Number string `json:"number"`
+		} `json:"version"`
+	}{}
+	if err := i.gatherJSONData(url, clusterInfo); err != nil {
+		return "", err
+	}
+
+	return clusterInfo.Version.Number, nil
+}
+
+func (i *Input) getUserPrivilege(url string) *userPrivilege {
+	privilege := &userPrivilege{}
+	if i.Distribution == "elasticsearch" || len(i.Distribution) == 0 {
+		body := strings.NewReader(`{"cluster": ["monitor"],"index":[{"names":["all"], "privileges":["monitor","manage_ilm"]}]}`)
+		header := map[string]string{"Content-Type": "application/json"}
+		if err := i.requestData("GET", url+"/_security/user/_has_privileges", header, body, privilege); err != nil {
+			l.Warnf("get user privilege error: %s", err.Error())
+			return nil
+		}
+	}
+
+	return privilege
+}
+
 func (i *Input) nodeStatsURL(baseURL string) string {
 	var url string
 
@@ -864,7 +995,7 @@ func (i *Input) stop() {
 
 func (i *Input) createHTTPClient() (*http.Client, error) {
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 
 	if i.TLSOpen {
@@ -881,8 +1012,15 @@ func (i *Input) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (i *Input) gatherJSONData(url string, v interface{}) error {
-	req, err := http.NewRequest("GET", url, nil)
+func (i *Input) requestData(method string, url string, header map[string]string, body internalIo.Reader, v interface{}) error {
+	m := "GET"
+	if len(method) > 0 {
+		m = method
+	}
+	req, err := http.NewRequest(m, url, body)
+	for k, v := range header {
+		req.Header.Add(k, v)
+	}
 	if err != nil {
 		return err
 	}
@@ -900,8 +1038,17 @@ func (i *Input) gatherJSONData(url string, v interface{}) error {
 		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
 		// to let the underlying transport close the connection and re-establish a new one for
 		// future calls.
-		return fmt.Errorf("elasticsearch: API responded with status-code %d, expected %d",
-			r.StatusCode, http.StatusOK)
+		resBodyBytes, err := ioutil.ReadAll(r.Body)
+		resBody := ""
+		if err != nil {
+			l.Debugf("get response body err: %s", err.Error())
+		} else {
+			resBody = string(resBodyBytes)
+		}
+
+		l.Debugf("response body: %s", resBody)
+		return fmt.Errorf("elasticsearch: API responded with status-code %d, expected %d, url: %s",
+			r.StatusCode, http.StatusOK, mask.ReplaceAllString(url, "http(s)://XXX:XXX@"))
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(v); err != nil {
@@ -909,6 +1056,10 @@ func (i *Input) gatherJSONData(url string, v interface{}) error {
 	}
 
 	return nil
+}
+
+func (i *Input) gatherJSONData(url string, v interface{}) error {
+	return i.requestData("GET", url, nil, nil, v)
 }
 
 func (i *Input) getCatMaster(url string) (string, error) {

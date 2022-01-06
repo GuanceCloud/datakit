@@ -3,6 +3,7 @@ package tailer
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -23,7 +24,8 @@ type Option struct {
 	// ex: "info"
 	//     "debug"
 	IgnoreStatus []string
-
+	// logFile      []string
+	Sockets []string
 	// 默认值是 $Source + `_log`
 	InputName string
 	// 数据来源，默认值为'default'
@@ -96,7 +98,9 @@ func (opt *Option) init() error {
 	if _, err := NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines); err != nil {
 		return err
 	}
-
+	if filepath.Base(opt.Pipeline) != opt.Pipeline {
+		return fmt.Errorf("invalid pipeline! the pipeline conf is file name like: nginx.p or xxx.p")
+	}
 	return nil
 }
 
@@ -138,7 +142,6 @@ func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (
 	if err := t.opt.init(); err != nil {
 		return nil, err
 	}
-
 	return &t, nil
 }
 

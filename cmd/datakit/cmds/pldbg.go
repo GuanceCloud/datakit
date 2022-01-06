@@ -19,32 +19,41 @@ func pipelineDebugger(plname, txt string) error {
 		return err
 	}
 
-	start := time.Now()
 	plPath, err := config.GetPipelinePath(plname)
 	if err != nil {
 		return fmt.Errorf("get pipeline failed: %w", err)
 	}
-	pl, err := pipeline.NewPipelineFromFile(plPath)
+	pl, err := pipeline.NewPipelineFromFile(plPath, true)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}
+
+	start := time.Now()
 
 	res, err := pl.Run(txt).Result()
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}
 
-	if len(res) == 0 {
+	if res == nil || (len(res.Data) == 0 && len(res.Tags) == 0) {
 		fmt.Println("No data extracted from pipeline")
 		return nil
 	}
 
-	j, err := json.MarshalIndent(res, "", defaultJSONIndent)
+	result := map[string]interface{}{}
+
+	for k, v := range res.Data {
+		result[k] = v
+	}
+	for k, v := range res.Tags {
+		result[k+"#"] = v
+	}
+	j, err := json.MarshalIndent(result, "", defaultJSONIndent)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Extracted data(cost: %v):\n", time.Since(start))
+	fmt.Printf("Extracted data(drop: %v, cost: %v):\n", res.Dropped, time.Since(start))
 	fmt.Printf("%s\n", string(j))
 	return nil
 }

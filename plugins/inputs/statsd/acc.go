@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -16,7 +17,7 @@ type point struct {
 }
 
 func (p *point) LineProto() (*io.Point, error) {
-	return io.MakePoint(p.name, p.tags, p.fields, p.tm)
+	return io.NewPoint(p.name, p.tags, p.fields, &io.PointOption{Time: p.tm, Category: datakit.Metric})
 }
 
 func (p *point) Info() *inputs.MeasurementInfo {

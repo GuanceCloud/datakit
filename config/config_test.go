@@ -331,9 +331,7 @@ func TestLoadCfg(t *testing.T) {
 	}
 
 	for name, creator := range inputs.Inputs {
-		if err := doLoadInputConf(name, creator, availableInputCfgs); err != nil {
-			l.Errorf("load %s config failed: %v, ignored", name, err)
-		}
+		doLoadInputConf(name, creator, availableInputCfgs)
 	}
 	fmt.Println(inputs.InputsInfo)
 }
