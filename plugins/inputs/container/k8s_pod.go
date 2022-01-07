@@ -48,6 +48,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 		obj.tags["node_name"] = item.Spec.NodeName
 		obj.tags["phase"] = fmt.Sprintf("%v", item.Status.Phase)
 		obj.tags["qos_class"] = fmt.Sprintf("%v", item.Status.QOSClass)
+		obj.tags["state"] = fmt.Sprintf("%v", item.Status.Phase) // Depercated
 		obj.tags["status"] = fmt.Sprintf("%v", item.Status.Phase)
 
 		for _, ref := range item.OwnerReferences {
@@ -66,6 +67,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 
 		for _, containerStatus := range item.Status.ContainerStatuses {
 			if containerStatus.State.Waiting != nil {
+				obj.tags["state"] = containerStatus.State.Waiting.Reason // Depercated
 				obj.tags["status"] = containerStatus.State.Waiting.Reason
 				break
 			}
@@ -93,6 +95,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 		for _, containerStatus := range item.Status.EphemeralContainerStatuses {
 			restartCount += int(containerStatus.RestartCount)
 		}
+		obj.fields["restart"] = restartCount // Depercated
 		obj.fields["restarts"] = restartCount
 
 		obj.fields.addMapWithJSON("annotations", item.Annotations)
@@ -207,6 +210,7 @@ func (*pod) Info() *inputs.MeasurementInfo {
 			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
 			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"phase":        inputs.NewTagInfo("The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.(Pending/Running/Succeeded/Failed/Unknown)"),
+			"state":        inputs.NewTagInfo("Reason the container is not yet running. (Depercated, use status)"),
 			"status":       inputs.NewTagInfo("Reason the container is not yet running."),
 			"qos_class":    inputs.NewTagInfo("The Quality of Service (QOS) classification assigned to the pod based on resource requirements"),
 			"deployment":   inputs.NewTagInfo("The name of the deployment which the object belongs to. (Probably empty)"),
@@ -215,7 +219,8 @@ func (*pod) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},
 			"create_time": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "CreationTimestamp is a timestamp representing the server time when this object was created.(second)"},
-			"restarts":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted"},
+			"restart":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted. (Depercated, use restarts)"},
+			"restarts":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of times the container has been restarted."},
 			"ready":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "container ready"},
 			"available":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "container count"},
 			"annotations": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "kubernetes annotations"},
