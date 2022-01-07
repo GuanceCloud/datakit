@@ -2,8 +2,10 @@
 package worker
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 
 // internal/tailer/logs.go.
 const (
+	taskChMaxL = 2048
 
 	// ES value can be at most 32766 bytes long.
 	maxFieldsLength = 32766
@@ -32,8 +35,10 @@ var (
 		return nil
 	}
 
+	g = datakit.G("pipeline_worker")
+
 	stopCh = make(chan struct{})
-	taskCh = make(chan *Task, 1024)
+	taskCh = make(chan *Task, taskChMaxL)
 )
 
 type ppWorker struct {
@@ -46,14 +51,15 @@ type ppWorker struct {
 	engines    map[string]*ScriptInfo
 }
 
-func (wkr *ppWorker) Run() {
+func (wkr *ppWorker) Run(ctx context.Context) error {
 	wkr.isRunning = true
 	ticker := time.NewTicker(time.Second * 30)
 	for {
 		select {
 		case task := <-taskCh:
+			taskNumIncrease()
 			if task.Data == nil {
-				return
+				return nil
 			}
 			points := wkr.run(task)
 
@@ -68,7 +74,7 @@ func (wkr *ppWorker) Run() {
 			}
 		case <-stopCh:
 			wkr.isRunning = false
-			return
+			return nil
 		}
 	}
 }
@@ -215,20 +221,31 @@ func (manager *workerManager) appendPPWorker() error {
 		engines:  make(map[string]*ScriptInfo),
 	}
 
-	go wkr.Run()
+	g.Go(wkr.Run)
 	manager.workers[wkr.wkrID] = wkr
 	return nil
 }
 
 func (manager *workerManager) stopManager() {
-	close(stopCh)
+	select {
+	case <-stopCh:
+	default:
+		close(stopCh)
+	}
 }
 
 func (manager *workerManager) setDebug(yn bool) {
 	manager.debug = yn
 }
 
-const MaxWorkerCount = 16
+var MaxWorkerCount = func() int {
+	n := runtime.NumCPU()
+	n *= 2 // or n += n / 2
+	if n <= 0 {
+		n = 8
+	}
+	return n
+}()
 
 func InitManager() {
 	l = logger.SLogger("pipeline-worker")
@@ -248,11 +265,12 @@ func InitManager() {
 		_ = wkrManager.appendPPWorker()
 	}
 	l.Info("pipeline task channal is ready")
-	go func() {
+	g.Go(func(ctx context.Context) error {
 		<-datakit.Exit.Wait()
 		wkrManager.stopManager()
 		l.Info("pipeline task channal is closed")
-	}()
+		return nil
+	})
 }
 
 func LoadAllDotPScriptForWkr(userDefPath []string, gitRepoPPFile []string) {
