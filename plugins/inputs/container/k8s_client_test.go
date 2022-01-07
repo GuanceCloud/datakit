@@ -12,17 +12,13 @@ func TestNewClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	list, err := cli.metricsClient.getPodMetrics().List(context.Background(), metaV1ListOption)
+	list, err := cli.getPods().List(context.Background(), metaV1ListOption)
 	if err != nil {
 		t.Error(err)
 	}
 	for _, item := range list.Items {
-		s, _ := json.MarshalIndent(item, "    ", "")
-		t.Logf("%s\n", s)
-		c := item.Containers[0].Usage["cpu"]
-		m := item.Containers[0].Usage["memory"]
-		t.Log(c.AsDec())
-		t.Log(m.AsInt64())
+		s, _ := json.MarshalIndent(item, "", "    ")
+		t.Logf("%s\n\n", s)
 	}
 }
 */

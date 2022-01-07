@@ -35,7 +35,7 @@ const sampleCfg = `
   container_include_log = ["image:*"]
   container_exclude_log = []
 
-  exclude_pause_container = false
+  exclude_pause_container = true
 
   ## Removes ANSI escape codes from text strings
   logging_remove_ansi_escape_codes = false

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"strings"
 	"sync"
 	"time"
 
@@ -194,9 +193,10 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 	tags := getContainerInfo(container, d.k8sClient)
 	tags["stream"] = stream
 
+	shortImageName := tags["image_short_name"]
 	task := &worker.Task{
-		TaskName: "container_log",
-		Source:   getContainerLogSource(container.Image),
+		TaskName: "log-" + shortImageName,
+		Source:   getContainerLogSource(shortImageName),
 	}
 
 	logconf := func() *containerLogConfig {
@@ -303,19 +303,9 @@ func (t *taskData) Handler(r *worker.Result) error {
 }
 
 func getContainerLogSource(image string) string {
-	_, imageShortName, imageVersion := ParseImage(image)
-
-	if strings.HasPrefix(imageShortName, "sha256") {
-		if len(imageVersion) > 12 {
-			return "image_id_" + imageVersion[:12]
-		}
-		return "image_id_" + imageVersion
+	if image != "" {
+		return image
 	}
-
-	if imageShortName != "" {
-		return imageShortName
-	}
-
 	return "default"
 }
 

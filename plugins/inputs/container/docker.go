@@ -132,7 +132,7 @@ func (d *dockerInput) watchingNewContainerLog() error {
 			continue
 		}
 		if d.ignoreContainer(&cList[idx]) || d.ignoreImageForLogging(container.Image) {
-			l.Debugf("ignore container log, name: %s image: %s", getContainerName(container.Names), container.Image)
+			l.Debugf("ignore container log, name: %s", getContainerName(container.Names))
 			continue
 		}
 
