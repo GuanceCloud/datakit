@@ -2,9 +2,19 @@
 
 # DataKit 版本历史
 
+## 1.2.2(2022/01/07)
+
+- [容器采集器](container)更新：
+	- 修复日志处理效率问题(#540)
+	-	优化配置文件黑白名单配置(#536)
+- Pipeline 模块增加 `datakit -M` 指标暴露(#541)
+- [ClickHouse](clickhousev1) 采集器 config-sample 问题修复(#539)
+- [Kafka](kafka) 指标采集优化(#534)
+
+---
+
 ## 1.2.1(2022/01/05)
 
-- 完善 [Kafka](kafka) 采集器文档以及指标采集优化(#534)
 - 修复采集器 Pipeline 使用问题(#529)
 - 完善[容器采集器](container)数据问题(#532/#530)
 	- 修复 short-image 采集问题
