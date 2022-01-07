@@ -254,7 +254,6 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 	logconf.tags["stream"] = stream
 	shortImageName := logconf.tags["image_short_name"]
 
-	shortImageName := tags["image_short_name"]
 	task := &worker.Task{
 		TaskName:   "log-" + shortImageName,
 		Source:     logconf.Source,
