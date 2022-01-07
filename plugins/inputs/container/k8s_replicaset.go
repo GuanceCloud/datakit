@@ -33,6 +33,13 @@ func exportReplicaSet(items []v1.ReplicaSet, extraTags tagsType) k8sResourceStat
 		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
 		obj.tags["replica_set_name"] = item.Name
 
+		for _, ref := range item.OwnerReferences {
+			if ref.Kind == "Deployment" {
+				obj.tags["deployment"] = ref.Name
+				break
+			}
+		}
+
 		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
@@ -77,8 +84,9 @@ func (*replicaSet) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("UID"),
 			"replica_set_name": inputs.NewTagInfo("Name must be unique within a namespace."),
-			"cluster_name":     inputs.NewTagInfo("The name of the cluster which the object belongs to."),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name":     inputs.NewTagInfo("The name of the cluster which the object belongs to."),
+			"deployment":       inputs.NewTagInfo("The name of the deployment which the object belongs to."),
 		},
 		Fields: map[string]interface{}{
 			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "age (seconds)"},

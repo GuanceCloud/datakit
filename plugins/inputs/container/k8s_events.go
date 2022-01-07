@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"encoding/json"
+	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -15,7 +16,7 @@ import (
 
 const k8sEventName = "kubernetes_events"
 
-var globalPause bool
+var globalPause = new(atomBool)
 
 func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{}) {
 	// Outer loop, for reconnections.
@@ -57,7 +58,7 @@ func watchingEvent(client k8sClientX, extraTags tagsType, stop <-chan interface{
 					break inner_loop
 				}
 
-				if globalPause {
+				if globalPause.get() {
 					continue
 				}
 
@@ -165,6 +166,21 @@ func (*event) Info() *inputs.MeasurementInfo {
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "event log details"},
 		},
 	}
+}
+
+type atomBool struct{ flag int32 }
+
+//nolint:unconvert
+func (b *atomBool) set(value bool) {
+	var i int32 = 0
+	if value {
+		i = 1
+	}
+	atomic.StoreInt32(&(b.flag), int32(i))
+}
+
+func (b *atomBool) get() bool {
+	return atomic.LoadInt32(&(b.flag)) != 0
 }
 
 //nolint:gochecknoinits
