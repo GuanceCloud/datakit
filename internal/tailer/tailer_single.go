@@ -164,7 +164,7 @@ func (t *Single) forwardMessage() {
 
 func (t *Single) sendToPipeline(pending []worker.TaskData) {
 	task := &worker.Task{
-		TaskName:   name,
+		TaskName:   t.opt.Pipeline,
 		ScriptName: t.opt.Pipeline,
 		Source:     t.opt.Source,
 		Data:       pending,
