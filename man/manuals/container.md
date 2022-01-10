@@ -56,7 +56,7 @@
 - docker 模式（容器由 docker 启动和管理）：
 
 ```
-docker inspect --format "{{.Config.Image}}" $CONTAINER_ID
+docker inspect --format "{{`{{.Config.Image}}`}}" $CONTAINER_ID
 ```
 
 - Kubernetes 模式（容器由 Kubernetes 创建，有自己的所属 Pod）：
