@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
+	plWorker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -36,15 +37,16 @@ type DatakitStats struct {
 	EnabledInputs   []*enabledInput    `json:"enabled_inputs"`
 	AvailableInputs []string           `json:"available_inputs"`
 
-	HostName   string `json:"hostname"`
-	Version    string `json:"version"`
-	BuildAt    string `json:"build_at"`
-	Branch     string `json:"branch"`
-	Uptime     string `json:"uptime"`
-	OSArch     string `json:"os_arch"`
-	IOChanStat string `json:"io_chan_stats"`
-	Elected    string `json:"elected"`
-	CSS        string `json:"-"`
+	HostName     string `json:"hostname"`
+	Version      string `json:"version"`
+	BuildAt      string `json:"build_at"`
+	Branch       string `json:"branch"`
+	Uptime       string `json:"uptime"`
+	OSArch       string `json:"os_arch"`
+	IOChanStat   string `json:"io_chan_stats"`
+	PLWorkerStat string `json:"pl_wroker_stats"`
+	Elected      string `json:"elected"`
+	CSS          string `json:"-"`
 
 	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
 	IoStats     io.IoStat                 `json:"io_stats"`
@@ -68,6 +70,7 @@ var (
 - 系统类型   : {{.OSArch}}
 - 容器运行   : {{.WithinDocker}}
 - IO 消耗统计: {{.IOChanStat}}
+- Pipeline Worker 统计: {{.PLWorkerStat}}
 - 自动更新   ：{{.AutoUpdate}}
 - 选举状态   ：{{.Elected}}
 	`
@@ -265,6 +268,7 @@ func GetStats(du time.Duration) (*DatakitStats, error) {
 		WithinDocker:   datakit.Docker,
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
+		PLWorkerStat:   plWorker.ShowPLWkrStats().String(),
 		Elected:        elected,
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),

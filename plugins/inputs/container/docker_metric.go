@@ -15,7 +15,7 @@ import (
 
 const dockerContainerName = "docker_containers"
 
-var dockerContaienrListOption = types.ContainerListOptions{All: true}
+var dockerContainerListOption = types.ContainerListOptions{All: true}
 
 func gatherDockerContainerMetric(client dockerClientX, k8sClient k8sClientX, container *types.Container) (*containerMetric, error) {
 	m := &containerMetric{}
@@ -35,6 +35,7 @@ func getContainerTags(container *types.Container) tagsType {
 
 	tags := make(tagsType)
 	tags["state"] = container.State
+	tags["docker_image"] = container.Image
 	tags["image"] = container.Image
 	tags["image_name"] = imageName
 	tags["image_short_name"] = imageShortName
@@ -77,6 +78,8 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 	if image := meta.containerImage(); image != "" {
 		// 如果能找到 pod image，则使用它
 		imageName, imageShortName, imageTag := ParseImage(image)
+
+		tags["docker_image"] = image
 		tags["image"] = image
 		tags["image_name"] = imageName
 		tags["image_short_name"] = imageShortName
@@ -194,6 +197,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
+			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),

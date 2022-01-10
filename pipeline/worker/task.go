@@ -94,6 +94,9 @@ func FeedPipelineTask(task *Task) error {
 	if wkrManager == nil || taskCh == nil || stopCh == nil {
 		return ErrTaskChNotReady
 	} else {
+		taskChFeedNumIncrease()
+		defer taskChFeedNumDecrease()
+
 		select {
 		case <-stopCh:
 			return ErrTaskChClosed
@@ -112,6 +115,9 @@ func FeedPipelineTaskBlock(task *Task) error {
 	if wkrManager == nil || taskCh == nil || stopCh == nil {
 		return ErrTaskChNotReady
 	} else {
+		taskChFeedNumIncrease()
+		defer taskChFeedNumDecrease()
+
 		select {
 		case <-stopCh:
 			return ErrTaskChClosed
