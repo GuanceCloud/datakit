@@ -4,6 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+)
+
+const (
+	tracing_stat_name = "tracingstat"
 )
 
 type SpanInfo struct {
@@ -16,25 +22,26 @@ type SpanInfo struct {
 }
 
 type TracingStatistic struct {
-	TraceId    int64
-	Service    string
-	Resource   string
-	VisitCount int
-	ErrCount   int
-	Duration   time.Duration
-	StatSpan   time.Duration
+	Toolkit      string
+	TraceId      int64
+	Service      string
+	Resource     string
+	VisitCount   int
+	ErrCount     int
+	DurationAvg  time.Duration
+	StatInterval time.Duration
 }
 
 var ErrSendSpanInfoFailed = errors.New("send span information failed")
 
 var (
 	statUnit                   = make(map[string]*TracingStatistic)
-	spanInfoChan               = make(chan *SpanInfo)
+	spanInfoChan               = make(chan *SpanInfo, 100)
 	sendTimeout  time.Duration = 10 * time.Second
 	retry        int           = 3
 )
 
-func StartTracingStatWorker(d time.Duration) {
+func startTracingStatWorker(d time.Duration) {
 	go func() {
 		tick := time.NewTicker(d)
 		for range tick.C {
@@ -44,9 +51,32 @@ func StartTracingStatWorker(d time.Duration) {
 	go func() {
 		for sinfo := range spanInfoChan {
 			if sinfo.reStat {
-				// TODO: calc statistics, make point then send to io
+				var (
+					pts []*Point
+					now = time.Now()
+				)
 				for _, unit := range statUnit {
-					unit.Duration /= time.Duration(unit.VisitCount)
+					unit.DurationAvg /= time.Duration(unit.VisitCount)
+					pt, err := MakePoint(tracing_stat_name, nil, map[string]interface{}{
+						"toolkit":       unit.Toolkit,
+						"trace_id":      unit.TraceId,
+						"service":       unit.Service,
+						"resource":      unit.Resource,
+						"visit_count":   unit.VisitCount,
+						"err_count":     unit.ErrCount,
+						"duration_avg":  unit.DurationAvg,
+						"stat_interval": d,
+					}, now)
+					if err != nil {
+						log.Errorf("make point failed in Tracing Statistic worker, err: %s", err.Error())
+						continue
+					}
+					pts = append(pts, pt)
+				}
+				if len(pts) != 0 {
+					if err := Feed(tracing_stat_name, datakit.Metric, pts, nil); err != nil {
+						log.Errorf("io feed points failed in Tracing Statistic worker, err: %s", err.Error())
+					}
 				}
 
 				statUnit = make(map[string]*TracingStatistic)
@@ -58,7 +88,7 @@ func StartTracingStatWorker(d time.Duration) {
 					if sinfo.IsErr {
 						unit.ErrCount++
 					}
-					unit.Duration += sinfo.Duration
+					unit.DurationAvg += sinfo.Duration
 				} else {
 					statUnit[key] = &TracingStatistic{
 						TraceId:    sinfo.TraceID,
@@ -72,7 +102,7 @@ func StartTracingStatWorker(d time.Duration) {
 								return 0
 							}
 						}(),
-						Duration: sinfo.Duration,
+						DurationAvg: sinfo.Duration,
 					}
 				}
 			}

@@ -410,6 +410,9 @@ func (x *IO) StartIO(recoverable bool) {
 		defLogfilter.start()
 	}
 
+	// start tracing statistic worker
+	startTracingStatWorker(30 * time.Second)
+
 	log.Info("starting...")
 }
 
