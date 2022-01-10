@@ -25,9 +25,7 @@ type TracingStatistic struct {
 	StatSpan   time.Duration
 }
 
-var (
-	ErrSendSpanInfoFailed = errors.New("send span information failed")
-)
+var ErrSendSpanInfoFailed = errors.New("send span information failed")
 
 var (
 	statUnit                   = make(map[string]*TracingStatistic)
