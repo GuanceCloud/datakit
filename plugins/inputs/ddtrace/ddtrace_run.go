@@ -189,13 +189,13 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 				log.Warnf("got nil span, request headers: %v", req.Header)
 				continue
 			}
-			tags := make(map[string]string)
-			field := make(map[string]interface{})
 
-			tm := &itrace.TraceMeasurement{}
-			tm.Name = "ddtrace"
-
-			var spanType string
+			var (
+				tags     = make(map[string]string)
+				field    = make(map[string]interface{})
+				tm       = &itrace.TraceMeasurement{Name: "ddtrace"}
+				spanType string
+			)
 			if span.ParentID == 0 {
 				spanType = itrace.SPAN_TYPE_ENTRY
 			} else {

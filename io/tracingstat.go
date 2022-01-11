@@ -13,6 +13,7 @@ const (
 )
 
 type SpanInfo struct {
+	Toolkit  string
 	TraceID  int64
 	Service  string
 	Resource string
@@ -91,6 +92,7 @@ func startTracingStatWorker(d time.Duration) {
 					unit.DurationAvg += sinfo.Duration
 				} else {
 					statUnit[key] = &TracingStatistic{
+						Toolkit:    sinfo.Toolkit,
 						TraceId:    sinfo.TraceID,
 						Service:    sinfo.Service,
 						Resource:   sinfo.Resource,
@@ -128,7 +130,5 @@ func SendSpanInfo(sinfo *SpanInfo) {
 		}
 	}
 
-	if retry <= 0 {
-		log.Error(ErrSendSpanInfoFailed.Error())
-	}
+	log.Error(ErrSendSpanInfoFailed.Error())
 }
