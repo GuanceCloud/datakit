@@ -99,8 +99,10 @@ type TraceAdapter struct {
 }
 
 func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
-	tags := make(map[string]string)
-	fields := make(map[string]interface{})
+	var (
+		tags   = make(map[string]string)
+		fields = make(map[string]interface{})
+	)
 
 	tags[TAG_PROJECT] = tAdpt.Project
 	tags[TAG_OPERATION] = tAdpt.OperationName
@@ -162,13 +164,9 @@ func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 	var pts []*dkio.Point
 	for _, tAdpt := range adapterGroup {
-		// run sample
-
-		pt, err := BuildLineProto(tAdpt)
-		if err != nil {
-			continue
+		if pt, err := BuildLineProto(tAdpt); err == nil {
+			pts = append(pts, pt)
 		}
-		pts = append(pts, pt)
 	}
 
 	if err := dkio.Feed(pluginName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
@@ -176,26 +174,27 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 	}
 }
 
-func ParseHTTPReq(r *http.Request) (*TraceReqInfo, error) {
-	defer r.Body.Close() //nolint:errcheck
-	body, err := ioutil.ReadAll(r.Body)
+func ParseHTTPReq(req *http.Request) (*TraceReqInfo, error) {
+	defer req.Body.Close() //nolint:errcheck
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	req := &TraceReqInfo{
-		Source:      r.URL.Query().Get("source"),
-		ContentType: r.Header.Get("Content-Type"),
-		Version:     r.URL.Query().Get("version"),
+	reqInfo := &TraceReqInfo{
+		Source:      req.URL.Query().Get("source"),
+		ContentType: req.Header.Get("Content-Type"),
+		Version:     req.URL.Query().Get("version"),
+		Body:        body,
 	}
-	if r.Header.Get("Content-Encoding") == "gzip" {
+	if req.Header.Get("Content-Encoding") == "gzip" {
 		var rd *gzip.Reader
 		if rd, err = gzip.NewReader(bytes.NewBuffer(body)); err == nil {
 			if body, err = io.ReadAll(rd); err == nil {
-				req.Body = body
+				reqInfo.Body = body
 			}
 		}
 	}
 
-	return req, err
+	return reqInfo, err
 }

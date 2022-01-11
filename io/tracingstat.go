@@ -38,7 +38,7 @@ var ErrSendSpanInfoFailed = errors.New("send span information failed")
 var (
 	statUnit                   = make(map[string]*TracingStatistic)
 	spanInfoChan               = make(chan *SpanInfo, 100)
-	sendTimeout  time.Duration = 10 * time.Second
+	sendTimeout  time.Duration = time.Second
 	retry        int           = 3
 )
 

@@ -141,7 +141,7 @@ func extractCustomerTags(customerKeys []string, meta map[string]string) map[stri
 func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 	mediaType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
 	if err != nil {
-		log.Debugf("parse media type failed fallback to application/json")
+		log.Debugf("detect media-type failed fallback to application/json")
 		mediaType = "application/json"
 	}
 
@@ -189,6 +189,16 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 				log.Warnf("got nil span, request headers: %v", req.Header)
 				continue
 			}
+
+			// send span info
+			dkio.SendSpanInfo(&dkio.SpanInfo{
+				Toolkit:  inputName,
+				TraceID:  int64(span.TraceID),
+				Service:  span.Service,
+				Resource: span.Resource,
+				Duration: time.Duration(span.Duration),
+				IsErr:    span.Error != 0,
+			})
 
 			var (
 				tags     = make(map[string]string)
