@@ -2,6 +2,7 @@ package worker
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -178,6 +179,27 @@ func TestWorker(t *testing.T) {
 			},
 			TS: ts,
 		},
+
+		// time sub
+		{
+			TaskName: "time sub",
+			Source:   "xxxxxx",
+			Data: []TaskData{
+				&taskData{
+					tags: map[string]string{
+						"tk": "aaa",
+					},
+					log: `{"time":"02/Dec/2021:11:55:34 +0800"}`,
+				},
+				&taskData{
+					tags: map[string]string{
+						"tk": "aaa",
+					},
+					log: `{"time":"02/Dec/2021:11:55:35 +0800"}`,
+				},
+			},
+			TS: ts,
+		},
 	}
 	expected := []([]tagfield){
 		[]tagfield{
@@ -189,7 +211,7 @@ func TestWorker(t *testing.T) {
 					"message": `{"time":"02/Dec/2021:11:55:34 +0800"}`,
 					"status":  "info",
 				},
-				ts: ts,
+				ts: ts.Add(-time.Nanosecond),
 			},
 		},
 		[]tagfield{
@@ -237,6 +259,28 @@ func TestWorker(t *testing.T) {
 			},
 		},
 		[]tagfield{},
+		[]tagfield{
+			{
+				tags: map[string]string{
+					"tk": "aaa",
+				},
+				fields: map[string]interface{}{
+					"message": `{"time":"02/Dec/2021:11:55:34 +0800"}`,
+					"status":  "info",
+				},
+				ts: ts.Add(time.Nanosecond * -2),
+			},
+			{
+				tags: map[string]string{
+					"tk": "aaa",
+				},
+				fields: map[string]interface{}{
+					"message": `{"time":"02/Dec/2021:11:55:35 +0800"}`,
+					"status":  "info",
+				},
+				ts: ts.Add(time.Nanosecond * -1),
+			},
+		},
 	}
 
 	for k, v := range cases {
@@ -258,12 +302,11 @@ func TestWorker(t *testing.T) {
 			continue
 		}
 		for k2, v2 := range expectedItem {
-			assert.Equal(t, v2.tags, pts[k2].Tags())
-			f, _ := pts[k2].Fields()
+			assert.Equal(t, v2.tags, pts[len(expectedItem)-k2-1].Tags())
+			f, _ := pts[len(expectedItem)-k2-1].Fields()
 			assert.Equal(t, v2.fields, f)
-			if !v2.ts.IsZero() {
-				assert.Equal(t, v2.ts, pts[k2].Time())
-			}
+			assert.Equal(t, v2.ts, pts[len(expectedItem)-k2-1].Time(),
+				fmt.Sprintf("index: %d %d", k, k2))
 		}
 	}
 	datakit.Exit.Close()

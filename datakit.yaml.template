@@ -119,7 +119,7 @@ spec:
       labels:
         app: daemonset-datakit
       annotations:
-        datakit/logs:|
+        datakit/logs: |
           [
             {
               "disable": true
