@@ -14,7 +14,6 @@ import (
 支持socket接受日志.
 */
 const (
-	name          = "socketLog"
 	ReadBufferLen = 1024 * 4
 )
 
@@ -173,7 +172,7 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 	}
 	if len(taskDates) != 0 {
 		task := &worker.Task{
-			TaskName:   name,
+			TaskName:   sl.opt.InputName,
 			ScriptName: sl.opt.Pipeline,
 			Source:     sl.opt.Source,
 			Data:       taskDates,

@@ -98,8 +98,8 @@ func (opt *Option) init() error {
 	if _, err := NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines); err != nil {
 		return err
 	}
-	if filepath.Base(opt.Pipeline) != opt.Pipeline {
-		return fmt.Errorf("invalid pipeline! the pipeline conf is file name like: nginx.p or xxx.p")
+	if opt.Pipeline != "" && filepath.Base(opt.Pipeline) != opt.Pipeline {
+		opt.log.Warnf("invalid pipeline! the pipeline conf is file name like: nginx.p or xxx.p")
 	}
 	return nil
 }
