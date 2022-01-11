@@ -96,8 +96,12 @@ func (wkr *ppWorker) run(task *Task) []*io.Point {
 	}
 	ng := wkr.getNg(task.GetScriptName())
 	points := []*io.Point{}
-	for _, v := range task.Data {
-		content := v.GetContent()
+	ts := task.TS
+	if ts.IsZero() {
+		ts = time.Now()
+	}
+	for di := len(task.Data) - 1; di >= 0; di-- {
+		content := task.Data[di].GetContent()
 		if len(content) >= maxFieldsLength {
 			content = content[:maxFieldsLength]
 		}
@@ -115,16 +119,17 @@ func (wkr *ppWorker) run(task *Task) []*io.Point {
 			result.output = &parser.Output{
 				Tags: map[string]string{},
 				Data: map[string]interface{}{
-					PipelineMessageField: v.GetContent(),
+					PipelineMessageField: task.Data[di].GetContent(),
 				},
 			}
 		}
 
-		if err := v.Handler(result); err != nil {
+		if err := task.Data[di].Handler(result); err != nil {
 			continue
 		}
 
-		source, ts := wkr.checkResult(task.Source, task.TS, result)
+		var source string
+		source, ts = wkr.checkResult(task.Source, ts, result)
 
 		// add status if disable == true;
 		// ignore logs of a specific status.
@@ -169,8 +174,12 @@ func (wkr *ppWorker) checkResult(name string, ts time.Time, result *Result) (str
 	if v, err := result.GetField(PipelineTimeField); err == nil {
 		if nanots, ok := v.(int64); ok {
 			ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
+		} else {
+			ts = ts.Add(-time.Nanosecond)
 		}
 		result.DeleteField(PipelineTimeField)
+	} else {
+		ts = ts.Add(-time.Nanosecond)
 	}
 
 	if v, err := result.GetTag(PipelineMSource); err == nil {
