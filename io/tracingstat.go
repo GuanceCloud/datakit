@@ -15,22 +15,26 @@ const (
 type SpanInfo struct {
 	Toolkit  string
 	TraceID  int64
+	Project  string
+	Version  string
 	Service  string
 	Resource string
 	Duration time.Duration
+	IsEntry  bool
 	IsErr    bool
 	reStat   bool
 }
 
 type TracingStatistic struct {
 	Toolkit      string
-	TraceId      int64
+	TraceID      int64
+	Project      string
+	Version      string
 	Service      string
 	Resource     string
-	VisitCount   int
+	RequestCount int
 	ErrCount     int
-	DurationAvg  time.Duration
-	StatInterval time.Duration
+	DurationAvg  int64
 }
 
 var ErrSendSpanInfoFailed = errors.New("send span information failed")
@@ -57,17 +61,22 @@ func startTracingStatWorker(d time.Duration) {
 					now = time.Now()
 				)
 				for _, unit := range statUnit {
-					unit.DurationAvg /= time.Duration(unit.VisitCount)
-					pt, err := MakePoint(tracing_stat_name, nil, map[string]interface{}{
-						"toolkit":       unit.Toolkit,
-						"trace_id":      unit.TraceId,
-						"service":       unit.Service,
-						"resource":      unit.Resource,
-						"visit_count":   unit.VisitCount,
-						"err_count":     unit.ErrCount,
-						"duration_avg":  unit.DurationAvg,
-						"stat_interval": d,
-					}, now)
+					unit.DurationAvg /= int64(unit.RequestCount)
+					pt, err := MakePoint(tracing_stat_name,
+						map[string]string{
+							"toolkit":  unit.Toolkit,
+							"project":  unit.Project,
+							"version":  unit.Version,
+							"service":  unit.Service,
+							"resource": unit.Resource,
+						},
+						map[string]interface{}{
+							"trace_id":      unit.TraceID,
+							"request_count": unit.RequestCount,
+							"err_count":     unit.ErrCount,
+							"duration_avg":  unit.DurationAvg,
+							"stat_interval": int64(d),
+						}, now)
 					if err != nil {
 						log.Errorf("make point failed in Tracing Statistic worker, err: %s", err.Error())
 						continue
@@ -85,27 +94,30 @@ func startTracingStatWorker(d time.Duration) {
 				key := fmt.Sprintf("%d:%s:%s", sinfo.TraceID, sinfo.Service, sinfo.Resource)
 				unit, ok := statUnit[key]
 				if ok {
-					unit.VisitCount++
+					if sinfo.IsEntry {
+						unit.RequestCount++
+					}
 					if sinfo.IsErr {
 						unit.ErrCount++
 					}
-					unit.DurationAvg += sinfo.Duration
+					unit.DurationAvg += int64(sinfo.Duration)
 				} else {
-					statUnit[key] = &TracingStatistic{
-						Toolkit:    sinfo.Toolkit,
-						TraceId:    sinfo.TraceID,
-						Service:    sinfo.Service,
-						Resource:   sinfo.Resource,
-						VisitCount: 1,
-						ErrCount: func() int {
-							if sinfo.IsErr {
-								return 1
-							} else {
-								return 0
-							}
-						}(),
-						DurationAvg: sinfo.Duration,
+					tstat := &TracingStatistic{
+						Toolkit:     sinfo.Toolkit,
+						TraceID:     sinfo.TraceID,
+						Project:     sinfo.Project,
+						Version:     sinfo.Version,
+						Service:     sinfo.Service,
+						Resource:    sinfo.Resource,
+						DurationAvg: int64(sinfo.Duration),
 					}
+					if sinfo.IsEntry {
+						tstat.RequestCount = 1
+					}
+					if sinfo.IsErr {
+						tstat.ErrCount = 1
+					}
+					statUnit[key] = tstat
 				}
 			}
 		}
