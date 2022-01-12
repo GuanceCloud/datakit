@@ -145,6 +145,10 @@ func NewConstEditor(offsetGuess *OffsetGuessC) []manager.ConstantEditor {
 			Name:  "offset_ns_common_inum",
 			Value: uint64(offsetGuess.offset_ns_common_inum),
 		},
+		{
+			Name:  "offset_socket_sk",
+			Value: uint64(offsetGuess.offset_socket_sk),
+		},
 	}
 }
 
@@ -229,7 +233,8 @@ func GuessOffset(ebpfMapGuess *ebpf.Map, guessed *OffsetGuessC) (*OffsetGuessC, 
 			offsetCheck.skDaddrOk > MINSUCCESS && offsetCheck.skV6DaddrOk > MINSUCCESS &&
 			offsetCheck.skFamilyOk > MINSUCCESS && offsetCheck.flowi4DaddrOk > MINSUCCESS &&
 			offsetCheck.flowi4DportOk > MINSUCCESS && offsetCheck.flowi4SaddrOk > MINSUCCESS &&
-			offsetCheck.netnsInumOk > MINSUCCESS && offsetCheck.sknetOk > MINSUCCESS {
+			offsetCheck.netnsInumOk > MINSUCCESS && offsetCheck.sknetOk > MINSUCCESS &&
+			offsetCheck.socketSkOK > MINSUCCESS {
 			newStatus := newGuessStatus()
 			copyOffset(&status, &newStatus)
 			if newStatus.offset_flowi4_daddr > newStatus.offset_flowi4_saddr {
@@ -252,7 +257,7 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 	if err := updateMapGuessStatus(ebpfMapGuess, status); err != nil {
 		return err
 	}
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 17)
 	conn, err := net.Dial("tcp4", serverAddr)
 	if err != nil {
 		return err
@@ -306,12 +311,14 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SK_DADDR)
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SK_FAMILY)
 	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_NS_COMMON_INUM)
+	tryGuess(statusAct, offsetCheck, &conninfo, GUESS_SOCKET_SK)
 
 	copyOffset(statusAct, status)
 	if status.offset_tcp_sk_srtt_us > MAXOFFSET ||
 		status.offset_tcp_sk_mdev_us > MAXOFFSET ||
 		status.offset_inet_sport > MAXOFFSET ||
 		status.offset_sk_dport > MAXOFFSET ||
+		status.offset_socket_sk > MAXOFFSET ||
 		status.offset_sk_daddr > MAXOFFSET ||
 		status.offset_sk_family > MAXOFFSET ||
 		status.offset_sk_net > MAXOFFSET ||
