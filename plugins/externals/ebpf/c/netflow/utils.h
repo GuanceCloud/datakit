@@ -171,6 +171,13 @@ static __always_inline __u64 load_offset_ns_common_inum()
     return var;
 }
 
+static __always_inline __u64 load_offset_socket_sk()
+{
+    __u64 var = 0;
+    LOAD_OFFSET("offset_socket_sk", var);
+    return var;
+}
+
 // value of sknet: &(struct net *) or &(struct possible_net_t)
 static __always_inline __u32 read_netns(void *sk)
 {
