@@ -183,47 +183,42 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 			continue
 		}
 
-		spanIds, parentIds := getSpanAndParentID(trace)
+		spanIDs, parentIDs := getSpanAndParentID(trace)
 		for _, span := range trace {
 			if span == nil {
 				log.Warnf("got nil span, request headers: %v", req.Header)
 				continue
 			}
 
-			// send span info
-			dkio.SendSpanInfo(&dkio.SpanInfo{
-				Toolkit:  inputName,
-				TraceID:  int64(span.TraceID),
-				Service:  span.Service,
-				Resource: span.Resource,
-				Duration: time.Duration(span.Duration),
-				IsErr:    span.Error != 0,
-			})
-
 			var (
+				spanInfo = &dkio.SpanInfo{
+					Toolkit:  inputName,
+					TraceID:  int64(span.TraceID),
+					Service:  span.Service,
+					Resource: span.Resource,
+					Duration: time.Duration(span.Duration),
+				}
 				tags     = make(map[string]string)
 				field    = make(map[string]interface{})
 				tm       = &itrace.TraceMeasurement{Name: "ddtrace"}
-				spanType string
-			)
-			if span.ParentID == 0 {
 				spanType = itrace.SPAN_TYPE_ENTRY
-			} else {
-				if serviceName, ok := spanIds[span.ParentID]; ok {
-					if serviceName != span.Service {
-						spanType = itrace.SPAN_TYPE_ENTRY
+			)
+
+			if span.ParentID != 0 {
+				if spanIDs[span.ParentID] {
+					if parentIDs[span.SpanID] {
+						spanType = itrace.SPAN_TYPE_LOCAL
 					} else {
-						if _, ok := parentIds[span.SpanID]; ok {
-							spanType = itrace.SPAN_TYPE_LOCAL
-						} else {
-							spanType = itrace.SPAN_TYPE_EXIT
-						}
+						spanType = itrace.SPAN_TYPE_EXIT
 					}
-				} else {
-					spanType = itrace.SPAN_TYPE_ENTRY
 				}
 			}
 			tags[itrace.TAG_SPAN_TYPE] = spanType
+			if spanType == itrace.SPAN_TYPE_ENTRY {
+				spanInfo.IsEntry = true
+				spanInfo.IsErr = span.Error != 0
+			}
+
 			tags[itrace.TAG_SERVICE] = span.Service
 			tags[itrace.TAG_OPERATION] = span.Name
 			tags[itrace.TAG_TYPE] = ddtraceSpanType[span.Type]
@@ -236,6 +231,7 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 			if tags[itrace.TAG_PROJECT] == "" {
 				tags[itrace.TAG_PROJECT] = ddTags[itrace.PROJECT]
 			}
+			spanInfo.Project = tags[itrace.TAG_PROJECT]
 
 			tags[itrace.TAG_ENV] = span.Meta[itrace.ENV]
 			if tags[itrace.TAG_ENV] == "" {
@@ -246,6 +242,8 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 			if tags[itrace.TAG_VERSION] == "" {
 				tags[itrace.TAG_VERSION] = ddTags[itrace.VERSION]
 			}
+			spanInfo.Version = tags[itrace.TAG_VERSION]
+
 			tags[itrace.TAG_CONTAINER_HOST] = span.Meta[itrace.CONTAINER_HOST]
 			tags[itrace.TAG_HTTP_METHOD] = span.Meta["http.method"]
 			tags[itrace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
@@ -254,7 +252,6 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 			for k, v := range customerTags {
 				tags[k] = v
 			}
-
 			for k, v := range ddTags {
 				tags[k] = v
 			}
@@ -288,21 +285,22 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 	return pts, nil
 }
 
-func getSpanAndParentID(spans []*Span) (map[uint64]string, map[uint64]string) {
-	spanID := make(map[uint64]string)
-	parentID := make(map[uint64]string)
-	for _, span := range spans {
+func getSpanAndParentID(trace Trace) (map[uint64]bool, map[uint64]bool) {
+	var (
+		spanIDs   = make(map[uint64]bool)
+		parentIDs = make(map[uint64]bool)
+	)
+	for _, span := range trace {
 		if span == nil {
 			continue
 		}
-
-		spanID[span.SpanID] = span.Service
+		spanIDs[span.SpanID] = true
 		if span.ParentID != 0 {
-			parentID[span.ParentID] = ""
+			parentIDs[span.ParentID] = true
 		}
 	}
 
-	return spanID, parentID
+	return spanIDs, parentIDs
 }
 
 // unmarshalTraceDictionary decodes a trace using the specification from the v0.5 endpoint.

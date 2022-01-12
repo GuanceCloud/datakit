@@ -27,14 +27,15 @@ const (
 	STATUS_WARN     = "warning"
 	STATUS_CRITICAL = "critical"
 
+	SPAN_TYPE_ENTRY = "entry"
+	SPAN_TYPE_EXIT  = "exit"
+	SPAN_TYPE_LOCAL = "local"
+
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_CACHE  = "cache"
 	SPAN_SERVICE_CUSTOM = "custom"
 	SPAN_SERVICE_DB     = "db"
 	SPAN_SERVICE_WEB    = "web"
-	SPAN_TYPE_ENTRY     = "entry"
-	SPAN_TYPE_EXIT      = "exit"
-	SPAN_TYPE_LOCAL     = "local"
 
 	TAG_CONTAINER_HOST = "container_host"
 	TAG_ENDPOINT       = "endpoint"
