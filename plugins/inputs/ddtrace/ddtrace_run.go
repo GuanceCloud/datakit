@@ -193,7 +193,6 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 			var (
 				spanInfo = &dkio.SpanInfo{
 					Toolkit:  inputName,
-					TraceID:  int64(span.TraceID),
 					Service:  span.Service,
 					Resource: span.Resource,
 					Duration: time.Duration(span.Duration),
@@ -243,6 +242,9 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 				tags[itrace.TAG_VERSION] = ddTags[itrace.VERSION]
 			}
 			spanInfo.Version = tags[itrace.TAG_VERSION]
+
+			// send span info
+			dkio.SendSpanInfo(spanInfo)
 
 			tags[itrace.TAG_CONTAINER_HOST] = span.Meta[itrace.CONTAINER_HOST]
 			tags[itrace.TAG_HTTP_METHOD] = span.Meta["http.method"]

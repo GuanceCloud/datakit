@@ -14,7 +14,6 @@ const (
 
 type SpanInfo struct {
 	Toolkit  string
-	TraceID  int64
 	Project  string
 	Version  string
 	Service  string
@@ -27,7 +26,6 @@ type SpanInfo struct {
 
 type TracingStatistic struct {
 	Toolkit      string
-	TraceID      int64
 	Project      string
 	Version      string
 	Service      string
@@ -71,7 +69,6 @@ func startTracingStatWorker(d time.Duration) {
 							"resource": unit.Resource,
 						},
 						map[string]interface{}{
-							"trace_id":      unit.TraceID,
 							"request_count": unit.RequestCount,
 							"err_count":     unit.ErrCount,
 							"duration_avg":  unit.DurationAvg,
@@ -91,7 +88,7 @@ func startTracingStatWorker(d time.Duration) {
 
 				statUnit = make(map[string]*TracingStatistic)
 			} else {
-				key := fmt.Sprintf("%d:%s:%s", sinfo.TraceID, sinfo.Service, sinfo.Resource)
+				key := fmt.Sprintf("%s-%s", sinfo.Service, sinfo.Resource)
 				unit, ok := statUnit[key]
 				if ok {
 					if sinfo.IsEntry {
@@ -104,7 +101,6 @@ func startTracingStatWorker(d time.Duration) {
 				} else {
 					tstat := &TracingStatistic{
 						Toolkit:     sinfo.Toolkit,
-						TraceID:     sinfo.TraceID,
 						Project:     sinfo.Project,
 						Version:     sinfo.Version,
 						Service:     sinfo.Service,
