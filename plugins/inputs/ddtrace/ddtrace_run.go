@@ -183,7 +183,7 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 			continue
 		}
 
-		spanIDs, parentIDs := getSpanAndParentID(trace)
+		spanIDs, parentIDs := getSpanIDsAndParentIDs(trace)
 		for _, span := range trace {
 			if span == nil {
 				log.Warnf("got nil span, request headers: %v", req.Header)
@@ -197,21 +197,12 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 					Resource: span.Resource,
 					Duration: time.Duration(span.Duration),
 				}
+				spanType = itrace.FindSpanType(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs)
 				tags     = make(map[string]string)
 				field    = make(map[string]interface{})
 				tm       = &itrace.TraceMeasurement{Name: "ddtrace"}
-				spanType = itrace.SPAN_TYPE_ENTRY
 			)
 
-			if span.ParentID != 0 {
-				if spanIDs[span.ParentID] {
-					if parentIDs[span.SpanID] {
-						spanType = itrace.SPAN_TYPE_LOCAL
-					} else {
-						spanType = itrace.SPAN_TYPE_EXIT
-					}
-				}
-			}
 			tags[itrace.TAG_SPAN_TYPE] = spanType
 			if spanType == itrace.SPAN_TYPE_ENTRY {
 				spanInfo.IsEntry = true
@@ -287,18 +278,18 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 	return pts, nil
 }
 
-func getSpanAndParentID(trace Trace) (map[uint64]bool, map[uint64]bool) {
+func getSpanIDsAndParentIDs(trace Trace) (map[int64]bool, map[int64]bool) {
 	var (
-		spanIDs   = make(map[uint64]bool)
-		parentIDs = make(map[uint64]bool)
+		spanIDs   = make(map[int64]bool)
+		parentIDs = make(map[int64]bool)
 	)
 	for _, span := range trace {
 		if span == nil {
 			continue
 		}
-		spanIDs[span.SpanID] = true
+		spanIDs[int64(span.SpanID)] = true
 		if span.ParentID != 0 {
-			parentIDs[span.ParentID] = true
+			parentIDs[int64(span.ParentID)] = true
 		}
 	}
 

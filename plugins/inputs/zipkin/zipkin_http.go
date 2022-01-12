@@ -28,9 +28,7 @@ func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
-	_ = w
-
-	reqInfo, err := trace.ParseHTTPReq(r)
+	reqInfo, err := trace.ParseTraceInfo(r)
 	if err != nil {
 		return err
 	}
@@ -90,7 +88,7 @@ func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
 
 func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	_ = w // not used
-	reqInfo, err := trace.ParseHTTPReq(r)
+	reqInfo, err := trace.ParseTraceInfo(r)
 	if err != nil {
 		return err
 	}

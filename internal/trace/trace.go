@@ -62,18 +62,6 @@ const (
 
 var log = logger.DefaultSLogger("trace")
 
-type TraceReqInfo struct {
-	Source      string
-	Version     string
-	ContentType string
-	Body        []byte
-}
-
-type TraceRepInfo struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-}
-
 type TraceAdapter struct {
 	ContainerHost  string
 	Content        string
@@ -97,6 +85,20 @@ type TraceAdapter struct {
 	TraceID        string // source trace id
 	Type           string
 	Version        string
+}
+
+func FindSpanType(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
+	if parentID != 0 {
+		if spanIDs[parentID] {
+			if parentIDs[spanID] {
+				return SPAN_TYPE_LOCAL
+			} else {
+				return SPAN_TYPE_EXIT
+			}
+		}
+	}
+
+	return SPAN_TYPE_ENTRY
 }
 
 func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
@@ -175,7 +177,14 @@ func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
 	}
 }
 
-func ParseHTTPReq(req *http.Request) (*TraceReqInfo, error) {
+type TraceReqInfo struct {
+	Source      string
+	Version     string
+	ContentType string
+	Body        []byte
+}
+
+func ParseTraceInfo(req *http.Request) (*TraceReqInfo, error) {
 	defer req.Body.Close() //nolint:errcheck
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
