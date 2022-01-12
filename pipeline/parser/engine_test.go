@@ -9,185 +9,201 @@ import (
 
 func TestContrast(t *testing.T) {
 	cases := []struct {
-		x, y     interface{}
-		operator string
-		pass     bool
+		name         string
+		x, y         interface{}
+		operator     string
+		expect, fail bool
 	}{
 		{
 			x:        json.Number("10.0"),
 			operator: "==",
 			y:        json.Number("10.0"),
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        json.Number("10.0"),
 			operator: "==",
 			y:        json.Number("12.0"),
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        json.Number("10"),
 			operator: "!=",
 			y:        json.Number("12"),
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        json.Number("10"),
 			operator: "<=",
 			y:        json.Number("12"),
-			pass:     true,
+			expect:   true,
 		},
 		{
+			name:     "float==int",
 			x:        float64(10.0),
 			operator: "==",
 			y:        int64(10),
-			pass:     false,
+			fail:     true,
 		},
 		{
 			x:        float64(10.0),
 			operator: "==",
 			y:        "hello",
-			pass:     false,
+			fail:     true,
 		},
 		{
+			name:     "flaot==bool",
 			x:        float64(10.0),
 			operator: "==",
 			y:        true,
-			pass:     false,
+			fail:     true,
 		},
 		{
 			x:        float64(10.0),
 			operator: "==",
 			y:        nil,
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        float64(3.1415),
 			operator: "==",
 			y:        float64(3.1415),
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        float64(3.1415),
 			operator: "!=",
 			y:        float64(3.1415),
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        float64(3.1415),
 			operator: "==",
 			y:        float64(12.25),
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        float64(3.1415),
 			operator: "<=",
 			y:        float64(12.25),
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        float64(3.1415),
 			operator: ">=",
 			y:        float64(12.25),
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        int64(3),
 			operator: "==",
 			y:        int64(3),
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        int64(3),
 			operator: "!=",
 			y:        int64(3),
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        int64(3),
 			operator: "<=",
 			y:        int64(10),
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        int64(3),
 			operator: ">=",
 			y:        int64(10),
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        "ABCD",
 			operator: "==",
 			y:        "ABCD",
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        "ABCD",
 			operator: "!=",
 			y:        "ABCDEEEEEE",
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        "ABCD",
 			operator: "<=",
 			y:        "ABCD",
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        "ABCD",
 			operator: "<=",
 			y:        int64(10),
-			pass:     false,
+			fail:     true,
 		},
 		{
 			x:        "ABCD",
 			operator: "==",
 			y:        nil,
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        true,
 			operator: "==",
 			y:        true,
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        true,
 			operator: "!=",
 			y:        true,
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        true,
 			operator: "<=",
 			y:        false,
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        nil,
 			operator: "==",
 			y:        nil,
-			pass:     true,
+			expect:   true,
 		},
 		{
 			x:        nil,
 			operator: "!=",
 			y:        nil,
-			pass:     false,
+			expect:   false,
 		},
 		{
 			x:        nil,
 			operator: "<=",
 			y:        nil,
-			pass:     false,
+			expect:   false,
+		},
+
+		{
+			x:        nil,
+			operator: "<=",
+			y:        10,
+			expect:   false,
 		},
 	}
 
-	for idx, tc := range cases {
-		t.Logf("[%d] %v %v %v  %v\n", idx, tc.x, tc.operator, tc.y, tc.pass)
-		b, err := contrast(tc.x, tc.operator, tc.y)
-		tu.Equals(t, nil, err)
-		tu.Equals(t, tc.pass, b)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			b, err := contrast(tc.x, tc.operator, tc.y)
+			if !tc.fail {
+				tu.Ok(t, err)
+				tu.Equals(t, tc.expect, b)
+			} else {
+				tu.NotOk(t, err, "")
+				return
+			}
+		})
 	}
 
 	t.Log("END")

@@ -728,9 +728,15 @@ func contrast(left interface{}, op string, right interface{}) (b bool, err error
 			left, reflect.TypeOf(left), right, reflect.TypeOf(right))
 	)
 
-	if reflect.TypeOf(left) != reflect.TypeOf(right) {
-		err = typeErr
-		return
+	// all value compared to nil is acceptable:
+	//   if 10 == nil
+	//   if "abc" == nil
+	//   ...
+	if right != nil && left != nil {
+		if reflect.TypeOf(left) != reflect.TypeOf(right) {
+			err = typeErr
+			return
+		}
 	}
 
 	switch op {
