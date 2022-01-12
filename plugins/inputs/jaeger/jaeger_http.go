@@ -134,6 +134,7 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 			spanInfo.IsEntry = true
 			spanInfo.IsErr = tAdapter.Status == trace.STATUS_ERR
 		}
+
 		// send span info
 		io.SendSpanInfo(spanInfo)
 

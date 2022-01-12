@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
 )
@@ -79,31 +80,44 @@ func (*TraceReportServerV3) CollectInSync(
 func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.TraceAdapter, error) {
 	var group []*trace.TraceAdapter
 	for _, span := range segment.Spans {
-		adapter := &trace.TraceAdapter{Source: inputName}
-		adapter.Duration = (span.EndTime - span.StartTime) * int64(time.Millisecond)
-		adapter.Start = span.StartTime * int64(time.Millisecond)
+		adapter := &trace.TraceAdapter{
+			Duration:      (span.EndTime - span.StartTime) * int64(time.Millisecond),
+			EndPoint:      span.Peer,
+			OperationName: span.OperationName,
+			ServiceName:   segment.Service,
+			Source:        inputName,
+			SpanID:        fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
+			Start:         span.StartTime * int64(time.Millisecond),
+			Tags:          tags,
+			TraceID:       segment.TraceId,
+		}
+
+		spanInfo := &dkio.SpanInfo{
+			Toolkit:  inputName,
+			Service:  segment.Service,
+			Resource: span.OperationName,
+			Duration: time.Duration(adapter.Duration),
+		}
+
 		js, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
 		adapter.Content = string(js)
-		adapter.ServiceName = segment.Service
-		adapter.OperationName = span.OperationName
+
 		if span.SpanType == skyimpl.SpanType_Entry {
 			if len(span.Refs) > 0 {
-				adapter.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
-					span.Refs[0].ParentSpanId)
+				adapter.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
 			}
 		} else {
 			adapter.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
 		}
 
-		adapter.TraceID = segment.TraceId
-		adapter.SpanID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId)
 		adapter.Status = trace.STATUS_OK
 		if span.IsError {
 			adapter.Status = trace.STATUS_ERR
 		}
+
 		switch span.SpanType {
 		case skyimpl.SpanType_Entry:
 			adapter.SpanType = trace.SPAN_TYPE_ENTRY
@@ -112,8 +126,14 @@ func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.TraceAdapter, er
 		case skyimpl.SpanType_Exit:
 			adapter.SpanType = trace.SPAN_TYPE_EXIT
 		}
-		adapter.EndPoint = span.Peer
-		adapter.Tags = tags
+
+		if adapter.SpanType == trace.SPAN_TYPE_ENTRY {
+			spanInfo.IsEntry = true
+			spanInfo.IsErr = span.IsError
+		}
+
+		// send span info
+		dkio.SendSpanInfo(spanInfo)
 
 		group = append(group, adapter)
 	}

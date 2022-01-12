@@ -39,9 +39,10 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
 			return err
 		} else {
-			group, err = thriftSpansToAdapters(zspans, zpkThriftV1Filters...)
+			group, err = thriftSpansToAdapters(zspans)
 			if err != nil {
 				log.Errorf("thriftSpansToAdapters: %s", err)
+
 				return err
 			}
 		}
@@ -49,11 +50,13 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		zspans := []*ZipkinSpanV1{}
 		if err := json.Unmarshal(reqInfo.Body, &zspans); err != nil {
 			log.Errorf("json.Unmarshal: %s", err)
+
 			return err
 		} else {
-			group, err = jsonV1SpansToAdapters(zspans, zpkJSONV1Filters...)
+			group, err = jsonV1SpansToAdapters(zspans)
 			if err != nil {
 				log.Errorf("jsonV1SpansToAdapters: %s", err)
+
 				return err
 			}
 		}
@@ -81,13 +84,11 @@ func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
 
 	if err := handleZipkinTraceV2(w, r); err != nil {
 		log.Errorf("handleZipkinTraceV2: %v", err)
-
 		io.FeedLastError(inputName, err.Error())
 	}
 }
 
 func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
-	_ = w // not used
 	reqInfo, err := trace.ParseTraceInfo(r)
 	if err != nil {
 		return err
@@ -99,23 +100,27 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 		zspans, err := parseZipkinProtobuf3(reqInfo.Body)
 		if err != nil {
 			log.Errorf("parseZipkinProtobuf3: %s", err.Error())
+
 			return err
 		}
 
-		group, err = protobufSpansToAdapters(zspans, zpkProtoBufV2Filters...)
+		group, err = protobufSpansToAdapters(zspans)
 		if err != nil {
 			log.Errorf("protobufSpansToAdapters: %s", err.Error())
+
 			return err
 		}
 	case "application/json":
 		zspans := []*zipkinmodel.SpanModel{}
 		if err := json.Unmarshal(reqInfo.Body, &zspans); err != nil {
 			log.Errorf("json.Unmarshal: %s", err.Error())
+
 			return err
 		}
 
-		if group, err = parseZipkinJSONV2(zspans, zpkJSONV2Filters...); err != nil {
+		if group, err = parseZipkinJSONV2(zspans); err != nil {
 			log.Errorf("parseZipkinJsonV2: %s", err.Error())
+
 			return err
 		}
 	default:

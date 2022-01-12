@@ -234,15 +234,7 @@ func unmarshalZipkinThriftV1(octets []byte) ([]*zipkincore.Span, error) {
 	return spans, nil
 }
 
-func thriftSpansToAdapters(zspans []*zipkincore.Span,
-	filters ...zipkinThriftV1SpansFilter) ([]*trace.TraceAdapter, error) {
-	// run all filters
-	for _, filter := range filters {
-		if len(filter(zspans)) == 0 {
-			return nil, nil
-		}
-	}
-
+func thriftSpansToAdapters(zspans []*zipkincore.Span) ([]*trace.TraceAdapter, error) {
 	var adapterGroup []*trace.TraceAdapter
 	for _, span := range zspans {
 		z := zipkinConvThriftToJSON(span)
@@ -308,14 +300,7 @@ func thriftSpansToAdapters(zspans []*zipkincore.Span,
 	return adapterGroup, nil
 }
 
-func jsonV1SpansToAdapters(zspans []*ZipkinSpanV1, filters ...zipkinJSONV1SpansFilter) ([]*trace.TraceAdapter, error) {
-	// run all filters
-	for _, filter := range filters {
-		if len(filter(zspans)) == 0 {
-			return nil, nil
-		}
-	}
-
+func jsonV1SpansToAdapters(zspans []*ZipkinSpanV1) ([]*trace.TraceAdapter, error) {
 	var adapterGroup []*trace.TraceAdapter
 	for _, span := range zspans {
 		tAdapter := &trace.TraceAdapter{}

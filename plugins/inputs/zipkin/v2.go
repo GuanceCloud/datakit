@@ -121,15 +121,7 @@ func protoAnnotationsToModelAnnotations(zpa []*zipkin_proto3.Annotation) (zma []
 	return zma
 }
 
-func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel,
-	filters ...zipkinProtoBufV2SpansFilter) ([]*trace.TraceAdapter, error) {
-	// run all filters
-	for _, filter := range filters {
-		if len(filter(zspans)) == 0 {
-			return nil, nil
-		}
-	}
-
+func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAdapter, error) {
 	var adapterGroup []*trace.TraceAdapter
 	for _, span := range zspans {
 		tAdapter := &trace.TraceAdapter{}
@@ -191,15 +183,7 @@ func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel,
 	return adapterGroup, nil
 }
 
-func parseZipkinJSONV2(zspans []*zipkinmodel.SpanModel,
-	filters ...zipkinJSONV2SpansFilter) ([]*trace.TraceAdapter, error) {
-	// run all filters
-	for _, filter := range filters {
-		if len(filter(zspans)) == 0 {
-			return nil, nil
-		}
-	}
-
+func parseZipkinJSONV2(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAdapter, error) {
 	var adapterGroup []*trace.TraceAdapter
 	for _, span := range zspans {
 		tAdapter := &trace.TraceAdapter{}
