@@ -44,17 +44,33 @@ int kretprobe__sockfd_lookup_light(struct pt_regs *ctx)
         return 0;
     }
     struct socket *skt = (struct socket *)PT_REGS_RC(ctx);
+    
+    __u64 offset_socket_sk = load_offset_socket_sk();
+    struct proto_ops *ops = NULL;
+
+    bpf_probe_read(&ops, sizeof(ops), (__u8 *)skt + offset_socket_sk + sizeof(__u8 *));
+    if (ops == NULL)
+    {
+        bpf_map_delete_elem(&bpfmap_tmp_sockfdlookuplight, &pid_tgid);
+        return 0;
+    }
+    
+    int family = 0;
+    bpf_probe_read(&family, sizeof(family), &ops->family);
+    
     enum sock_type sktype = 0;
-    if (sktype == SOCK_STREAM)
+    bpf_probe_read(&sktype, sizeof(short), &skt->type);
+    
+    if (sktype == SOCK_STREAM && (family == AF_INET || family == AF_INET6))
     { // TCP socket
         struct sock *sk = NULL;
-        bpf_probe_read(&sk, sizeof(sk), &skt->sk);
+        bpf_probe_read(&sk, sizeof(sk), (__u8 *)skt + offset_socket_sk);
         struct pid_fd pidfd = {
             .pid = pid_tgid >> 32,
             .fd = *sockfd,
         };
-        bpf_map_update_elem(&bpfmap_sockfd, &pidfd, sk, BPF_ANY);
-        bpf_map_update_elem(&bpfmap_sockfd_inverted, sk, &pidfd, BPF_ANY);
+        bpf_map_update_elem(&bpfmap_sockfd, &pidfd, &sk, BPF_ANY);
+        bpf_map_update_elem(&bpfmap_sockfd_inverted, &sk, &pidfd, BPF_ANY);
     }
     bpf_map_delete_elem(&bpfmap_tmp_sockfdlookuplight, &pid_tgid);
     return 0;

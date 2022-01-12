@@ -516,20 +516,26 @@ func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 		return true
 	}
 
+	warpper := func(b bool, err error) bool {
+		if err != nil {
+			ng.lastErr = err
+		}
+		return b
+	}
+
 	switch v := e.LHS.(type) {
 	case *Identifier:
-		left, ok := ng.output.Data[v.Name]
-		if !ok {
-			return false
-		}
+		left := ng.output.Data[v.Name] // left maybe nil
 
 		switch vv := e.RHS.(type) {
 		case *StringLiteral:
-			return contrast(left, e.Op.String(), vv.Value())
+			return warpper(contrast(left, e.Op.String(), vv.Value()))
 		case *NumberLiteral:
-			return contrast(left, e.Op.String(), vv.Value())
+			return warpper(contrast(left, e.Op.String(), vv.Value()))
 		case *BoolLiteral:
-			return contrast(left, e.Op.String(), vv.Value())
+			return warpper(contrast(left, e.Op.String(), vv.Value()))
+		case *NilLiteral:
+			return warpper(contrast(left, e.Op.String(), vv.Value()))
 		default:
 			ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(vv), e.RHS)
 		}
@@ -592,6 +598,8 @@ func (e *NumberLiteral) Value() interface{} {
 	}
 	return e.Float
 }
+
+func (e *NilLiteral) Value() interface{} { return nil }
 
 ///
 // Checking: Stmts, FuncStmt, AssignmentStmt, IfelseStmt,
@@ -708,159 +716,138 @@ func (e *ConditionalExpr) Check() error {
 }
 
 // nolint
-func contrast(x interface{}, op string, y interface{}) (b bool) {
-	// It's looong! float==float is undefined.
+// contrast 数值比较
+// 支持类型 int64, float64, json.Number, booler, string, nil  支持符号 < <= == != >= >
+// 如果类型不一致，一定是 false，比如 int64 和 float64 比较
+// 如果是 json.Number 类型，会先取其 float64 值，再进行 < <= > >= 比较
+func contrast(left interface{}, op string, right interface{}) (b bool, err error) {
 	var (
-		float  []float64
-		str    []string
-		booler []bool
+		float   []float64
+		integer []int64
+		typeErr = fmt.Errorf("mismatch of type, left:%s(%v), right:%s(%v)",
+			left, reflect.TypeOf(left), right, reflect.TypeOf(right))
 	)
-	var err error
 
-	const typeErr = "mismatch of type: %s(%v) %s %s(%v)"
-
-	switch vx := x.(type) {
-	case json.Number:
-		var xx float64
-		xx, err = vx.Float64()
-		if err != nil {
-			log.Warn(err)
+	// all value compared to nil is acceptable:
+	//   if 10 == nil
+	//   if "abc" == nil
+	//   ...
+	if right != nil && left != nil {
+		if reflect.TypeOf(left) != reflect.TypeOf(right) {
+			err = typeErr
 			return
 		}
-
-		float = append(float, xx)
-
-		switch vy := y.(type) {
-		case json.Number:
-			var yy float64
-			yy, err = vy.Float64()
-			if err != nil {
-				return
-			}
-			float = append(float, yy)
-		case float64:
-			float = append(float, vy)
-		case int64:
-			float = append(float, float64(vy))
-		default:
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-
-	case int64:
-		float = append(float, float64(vx))
-
-		switch vy := y.(type) {
-		case json.Number:
-			var yy float64
-			yy, err = vy.Float64()
-			if err != nil {
-				log.Warn(err)
-				return
-			}
-			float = append(float, yy)
-		case float64:
-			float = append(float, vy)
-		case int64:
-			float = append(float, float64(vy))
-		default:
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-
-	case float64:
-		float = append(float, vx)
-
-		switch vy := y.(type) {
-		case json.Number:
-			var yy float64
-			yy, err = vy.Float64()
-			if err != nil {
-				log.Warn(err)
-				return
-			}
-			float = append(float, yy)
-		case float64:
-			float = append(float, vy)
-		case int64:
-			float = append(float, float64(vy))
-		default:
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-
-	case string:
-		yy, ok := y.(string)
-		if !ok {
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-		str = append(str, vx)
-		str = append(str, yy)
-	case bool:
-		yy, ok := y.(bool)
-		if !ok {
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-		booler = append(booler, x.(bool))
-		booler = append(booler, yy)
-
-	case nil:
-		booler = append(booler, true)
-		if y == nil {
-			booler = append(booler, true)
-		} else {
-			booler = append(booler, false)
-		}
-
-	default:
-		log.Warnf("mismatch of type: %s(%v)", reflect.TypeOf(x), x)
-		return
 	}
 
 	switch op {
 	case "==":
-		b = reflect.DeepEqual(x, y)
+		b = reflect.DeepEqual(left, right)
 		return
 	case "!=":
-		if len(float) != 0 {
-			b = float[0] != float[1]
-			return
-		}
-		if len(str) != 0 {
-			b = str[0] != str[1]
-			return
-		}
-		if len(booler) != 0 {
-			b = booler[0] != booler[1]
-			return
-		}
-	case "<=":
-		if len(float) != 0 {
-			b = float[0] <= float[1]
-			return
-		}
-	case "<":
-		if len(float) != 0 {
-			b = float[0] < float[1]
-			return
-		}
-	case ">=":
-		if len(float) != 0 {
-			b = float[0] >= float[1]
-			return
-		}
-	case ">":
-		if len(float) != 0 {
-			b = float[0] > float[1]
-			return
-		}
-	default:
-		log.Warn("unexpected operator")
+		b = !reflect.DeepEqual(left, right)
 		return
 	}
 
-	log.Warn("the operator is not available for this type")
+	switch x := left.(type) {
+	case json.Number:
+		xnum, _err := x.Float64()
+		if err != nil {
+			err = fmt.Errorf("trans json.Number(%s) err, %w", x, _err)
+			return
+		}
+		float = append(float, xnum)
+
+		switch y := right.(type) {
+		case json.Number:
+			ynum, _err := y.Float64()
+			if err != nil {
+				err = fmt.Errorf("trans json.Number(%s) err, %w", y, _err)
+				return
+			}
+			float = append(float, ynum)
+		case float64:
+			float = append(float, y)
+		case nil:
+			return
+		default:
+			err = typeErr
+			return
+		}
+
+	case int64:
+		switch y := right.(type) {
+		case int64:
+			integer = append(integer, x)
+			integer = append(integer, y)
+		case nil:
+			return
+		default:
+			err = typeErr
+			return
+		}
+
+	case float64:
+		switch y := right.(type) {
+		case float64:
+			float = append(float, x)
+			float = append(float, y)
+		case nil:
+			return
+		default:
+			err = typeErr
+			return
+		}
+
+	case string, bool, nil:
+		return
+
+	default:
+		err = typeErr
+		return
+	}
+
+	switch op {
+	case "<=":
+		if len(float) == 2 {
+			b = float[0] <= float[1]
+			return
+		}
+		if len(integer) == 2 {
+			b = integer[0] <= integer[1]
+			return
+		}
+	case "<":
+		if len(float) == 2 {
+			b = float[0] < float[1]
+			return
+		}
+		if len(integer) == 2 {
+			b = integer[0] < integer[1]
+			return
+		}
+	case ">=":
+		if len(float) == 2 {
+			b = float[0] >= float[1]
+			return
+		}
+		if len(integer) == 2 {
+			b = integer[0] >= integer[1]
+			return
+		}
+	case ">":
+		if len(float) == 2 {
+			b = float[0] > float[1]
+			return
+		}
+		if len(integer) == 2 {
+			b = integer[0] > integer[1]
+			return
+		}
+	default:
+		err = fmt.Errorf("unexpected operator %s", op)
+		return
+	}
+
+	err = fmt.Errorf("the operator is not available for this type, %s", typeErr.Error())
 	return
 }

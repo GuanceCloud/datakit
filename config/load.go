@@ -192,11 +192,10 @@ func feedEnvs(data []byte) []byte {
 		}
 
 		envval, ok := os.LookupEnv(strings.TrimPrefix(string(envvar), "$"))
+		// 找到了环境变量就替换否则不替换
 		if ok {
 			envval = envVarEscaper.Replace(envval)
 			data = bytes.Replace(data, parameter[0], []byte(envval), 1)
-		} else {
-			data = bytes.Replace(data, parameter[0], []byte("no-value"), 1)
 		}
 	}
 

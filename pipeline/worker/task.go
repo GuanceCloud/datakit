@@ -26,6 +26,10 @@ type Result struct {
 	output *parser.Output
 }
 
+func (r *Result) SetTime(t time.Time) {
+	r.SetField("time", t.UnixNano())
+}
+
 func (r *Result) GetTag(k string) (string, error) {
 	if v, ok := r.output.Tags[k]; ok {
 		return v, nil
