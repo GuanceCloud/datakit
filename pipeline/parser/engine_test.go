@@ -3,129 +3,191 @@ package parser
 import (
 	"encoding/json"
 	"testing"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestContrast(t *testing.T) {
-	tests := []struct {
+	cases := []struct {
 		x, y     interface{}
 		operator string
-		ok       bool
+		pass     bool
 	}{
 		{
-			x:        3.1415,
+			x:        json.Number("10.0"),
 			operator: "==",
-			y:        3.1415,
-			ok:       true,
+			y:        json.Number("10.0"),
+			pass:     true,
 		},
 		{
-			x:        3.1415,
+			x:        json.Number("10.0"),
 			operator: "==",
-			y:        12.25,
-			ok:       false,
-		},
-		{
-			x:        3.1415,
-			operator: "!=",
-			y:        12.25,
-			ok:       true,
-		},
-		{
-			x:        3.1415,
-			operator: ">",
-			y:        12.25,
-			ok:       false,
-		},
-		{
-			x:        3.1415,
-			operator: ">=",
-			y:        12.25,
-			ok:       false,
-		},
-		{
-			x:        3.1415,
-			operator: "<",
-			y:        12.25,
-			ok:       true,
-		},
-		{
-			x:        3.1415,
-			operator: "<=",
-			y:        12.25,
-			ok:       true,
-		},
-		/* // int64(3)
-		{
-			x:        3,
-			operator: "<=",
-			y:        12.25,
-			ok:       true,
-		},
-		*/
-		{
-			x:        int64(3),
-			operator: "<=",
-			y:        12.25,
-			ok:       true,
-		},
-		{
-			x:        int64(3),
-			operator: "!=",
-			y:        12.25,
-			ok:       true,
+			y:        json.Number("12.0"),
+			pass:     false,
 		},
 		{
 			x:        json.Number("10"),
+			operator: "!=",
+			y:        json.Number("12"),
+			pass:     true,
+		},
+		{
+			x:        json.Number("10"),
+			operator: "<=",
+			y:        json.Number("12"),
+			pass:     true,
+		},
+		{
+			x:        float64(10.0),
 			operator: "==",
-			y:        json.Number("10.0"),
-			ok:       true,
+			y:        int64(10),
+			pass:     false,
+		},
+		{
+			x:        float64(10.0),
+			operator: "==",
+			y:        "hello",
+			pass:     false,
+		},
+		{
+			x:        float64(10.0),
+			operator: "==",
+			y:        true,
+			pass:     false,
+		},
+		{
+			x:        float64(10.0),
+			operator: "==",
+			y:        nil,
+			pass:     false,
+		},
+		{
+			x:        float64(3.1415),
+			operator: "==",
+			y:        float64(3.1415),
+			pass:     true,
+		},
+		{
+			x:        float64(3.1415),
+			operator: "!=",
+			y:        float64(3.1415),
+			pass:     false,
+		},
+		{
+			x:        float64(3.1415),
+			operator: "==",
+			y:        float64(12.25),
+			pass:     false,
+		},
+		{
+			x:        float64(3.1415),
+			operator: "<=",
+			y:        float64(12.25),
+			pass:     true,
+		},
+		{
+			x:        float64(3.1415),
+			operator: ">=",
+			y:        float64(12.25),
+			pass:     false,
+		},
+		{
+			x:        int64(3),
+			operator: "==",
+			y:        int64(3),
+			pass:     true,
+		},
+		{
+			x:        int64(3),
+			operator: "!=",
+			y:        int64(3),
+			pass:     false,
+		},
+		{
+			x:        int64(3),
+			operator: "<=",
+			y:        int64(10),
+			pass:     true,
+		},
+		{
+			x:        int64(3),
+			operator: ">=",
+			y:        int64(10),
+			pass:     false,
 		},
 		{
 			x:        "ABCD",
 			operator: "==",
 			y:        "ABCD",
-			ok:       true,
+			pass:     true,
 		},
 		{
 			x:        "ABCD",
 			operator: "!=",
 			y:        "ABCDEEEEEE",
-			ok:       true,
+			pass:     true,
 		},
 		{
 			x:        "ABCD",
 			operator: "<=",
 			y:        "ABCD",
-			ok:       false,
+			pass:     false,
+		},
+		{
+			x:        "ABCD",
+			operator: "<=",
+			y:        int64(10),
+			pass:     false,
+		},
+		{
+			x:        "ABCD",
+			operator: "==",
+			y:        nil,
+			pass:     false,
 		},
 		{
 			x:        true,
 			operator: "==",
 			y:        true,
-			ok:       true,
+			pass:     true,
 		},
 		{
 			x:        true,
 			operator: "!=",
 			y:        true,
-			ok:       false,
+			pass:     false,
 		},
 		{
 			x:        true,
 			operator: "<=",
 			y:        false,
-			ok:       false,
+			pass:     false,
+		},
+		{
+			x:        nil,
+			operator: "==",
+			y:        nil,
+			pass:     true,
+		},
+		{
+			x:        nil,
+			operator: "!=",
+			y:        nil,
+			pass:     false,
+		},
+		{
+			x:        nil,
+			operator: "<=",
+			y:        nil,
+			pass:     false,
 		},
 	}
 
-	var b bool
-
-	for idx, ts := range tests {
-		b = contrast(ts.x, ts.operator, ts.y)
-		if b == ts.ok {
-			t.Logf("[%d] OK, pass: (%v %s %v)\n", idx, ts.x, ts.operator, ts.y)
-		} else {
-			t.Logf("[%d] not:  (%v %s %v)\n", idx, ts.x, ts.operator, ts.y)
-		}
+	for idx, tc := range cases {
+		t.Logf("[%d] %v %v %v  %v\n", idx, tc.x, tc.operator, tc.y, tc.pass)
+		b, err := contrast(tc.x, tc.operator, tc.y)
+		tu.Equals(t, nil, err)
+		tu.Equals(t, tc.pass, b)
 	}
 
 	t.Log("END")
