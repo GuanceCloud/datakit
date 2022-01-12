@@ -242,12 +242,14 @@ func (std *HTTPTaskData) Handler(result *worker.Result) error {
 		result.SetTag(k, v)
 	}
 	fields, err := std.point.Fields()
-	if err != nil {
+	if err == nil {
 		for k, i := range fields {
 			result.SetField(k, i)
 		}
+	} else {
+		l.Warnf("get fields err=%v", err)
 	}
-	return nil
+	return err
 }
 
 func sendToPipLine(cs *categorys) error {
