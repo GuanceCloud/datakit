@@ -81,7 +81,7 @@ func startTracingStatWorker(d time.Duration) {
 					pts = append(pts, pt)
 				}
 				if len(pts) != 0 {
-					if err := Feed(tracing_stat_name, datakit.Metric, pts, nil); err != nil {
+					if err := Feed(tracing_stat_name, datakit.Tracing, pts, nil); err != nil {
 						log.Errorf("io feed points failed in Tracing Statistic worker, err: %s", err.Error())
 					}
 				}
