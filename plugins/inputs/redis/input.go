@@ -356,13 +356,14 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&infoMeasurement{},
-		&clientMeasurement{},
-		&commandMeasurement{},
-		&slowlogMeasurement{},
 		&bigKeyMeasurement{},
+		&clientMeasurement{},
 		&clusterMeasurement{},
+		&commandMeasurement{},
+		&dbMeasurement{},
+		&infoMeasurement{},
 		&latencyMeasurement{},
+		&slowlogMeasurement{},
 	}
 }
 
