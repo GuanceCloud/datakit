@@ -32,6 +32,7 @@ enum GUESS
     GUESS_SKADRR6_SIN6_PORT,
     GUESS_SK_NET,
     GUESS_NS_COMMON_INUM,
+    GUESS_SOCKET_SK,
 };
 
 enum ConnLayerP
@@ -69,6 +70,7 @@ struct offset_guess
     __u64 offset_skaddr6_sin6_port;
     __u64 offset_sk_net;
     __u64 offset_ns_common_inum;
+    __u64 offset_socket_sk;
 
     __u8 process_name[PROCNAMELEN];
     __s64 err;
@@ -78,6 +80,8 @@ struct offset_guess
 
     __u16 sport;
     __u16 dport;
+    __u16 sport_skt;
+    __u16 dport_skt;
 
     __u32 saddr[4];
     __u32 daddr[4];
@@ -87,6 +91,8 @@ struct offset_guess
     __u32 meta;
     __u32 rtt;
     __u32 rtt_var;
+
+    __u32 _pad;
 };
 
 #endif // !__OFFSET_H

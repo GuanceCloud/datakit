@@ -86,6 +86,7 @@ func (i *Input) initCfg() error {
 	}
 
 	i.Addr = fmt.Sprintf("%s:%d", i.Host, i.Port)
+
 	client := redis.NewClient(&redis.Options{
 		Addr:     i.Addr,
 		Username: i.Username,
