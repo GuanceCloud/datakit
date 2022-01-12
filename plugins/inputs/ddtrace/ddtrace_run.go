@@ -263,8 +263,8 @@ func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([
 			field[itrace.FIELD_PARENTID] = fmt.Sprintf("%d", span.ParentID)
 			field[itrace.FIELD_TRACEID] = fmt.Sprintf("%d", span.TraceID)
 			field[itrace.FIELD_SPANID] = fmt.Sprintf("%d", span.SpanID)
-			field[itrace.FIELD_DURATION] = span.Duration / 1000
-			field[itrace.FIELD_START] = span.Start / 1000
+			field[itrace.FIELD_DURATION] = span.Duration / int64(time.Microsecond)
+			field[itrace.FIELD_START] = span.Start / int64(time.Microsecond)
 			if v, ok := span.Metrics["system.pid"]; ok {
 				field[itrace.FIELD_PID] = fmt.Sprintf("%v", v)
 			}

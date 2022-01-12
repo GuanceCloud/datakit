@@ -51,7 +51,7 @@ func parseZipkinProtobuf3(octets []byte) (zss []*zipkinmodel.SpanModel, err erro
 			Kind:           zipkinmodel.Kind(zps.Kind.String()),
 			Timestamp:      microsToTime(zps.Timestamp),
 			Tags:           zps.Tags,
-			Duration:       microsToDuration(zps.Duration),
+			Duration:       time.Duration(zps.Duration) * time.Microsecond,
 			LocalEndpoint:  protoEndpointToModelEndpoint(zps.LocalEndpoint),
 			RemoteEndpoint: protoEndpointToModelEndpoint(zps.RemoteEndpoint),
 			Shared:         zps.Shared,
@@ -91,11 +91,6 @@ func zipkinSpanIDToModelSpanID(spanID []byte) (zid *zipkinmodel.ID, blank bool, 
 
 func microsToTime(us uint64) time.Time {
 	return time.Unix(0, int64(us*1e3)).UTC()
-}
-
-func microsToDuration(us uint64) time.Duration {
-	// us to ns; ns are the units of Duration
-	return time.Duration(us * 1e3)
 }
 
 func protoEndpointToModelEndpoint(zpe *zipkin_proto3.Endpoint) *zipkinmodel.Endpoint {

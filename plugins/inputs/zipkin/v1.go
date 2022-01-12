@@ -320,9 +320,8 @@ func jsonV1SpansToAdapters(zspans []*ZipkinSpanV1, filters ...zipkinJSONV1SpansF
 	for _, span := range zspans {
 		tAdapter := &trace.TraceAdapter{}
 		tAdapter.Source = sourceZipkin
-
-		tAdapter.Duration = span.Duration * 1000
-		tAdapter.Start = span.Timestamp * 1000
+		tAdapter.Duration = span.Duration * int64(time.Microsecond)
+		tAdapter.Start = span.Timestamp * int64(time.Microsecond)
 		if tAdapter.Start == 0 {
 			tAdapter.Start = getFirstTimestamp(span)
 		}

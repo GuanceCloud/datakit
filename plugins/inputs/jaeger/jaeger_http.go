@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
@@ -70,11 +71,9 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 	if project == "" {
 		project = jaegerTags[trace.PROJECT]
 	}
-
 	if ver == "" {
 		ver = jaegerTags[trace.VERSION]
 	}
-
 	if env == "" {
 		env = jaegerTags[trace.ENV]
 	}
@@ -87,8 +86,8 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 		tAdapter.Version = ver
 		tAdapter.Env = env
 
-		tAdapter.Duration = span.Duration * 1000
-		tAdapter.Start = span.StartTime * 1000
+		tAdapter.Duration = span.Duration * int64(time.Microsecond)
+		tAdapter.Start = span.StartTime * int64(time.Microsecond)
 		sJSON, err := json.Marshal(span)
 		if err != nil {
 			return nil, err

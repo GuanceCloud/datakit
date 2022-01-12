@@ -144,8 +144,8 @@ func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 		tAdpt.ParentID = "0"
 	}
 
-	fields[FIELD_DURATION] = tAdpt.Duration / 1000
-	fields[FIELD_START] = tAdpt.Start / 1000
+	fields[FIELD_DURATION] = tAdpt.Duration / int64(time.Microsecond)
+	fields[FIELD_START] = tAdpt.Start / int64(time.Microsecond)
 	fields[FIELD_MSG] = tAdpt.Content
 	fields[FIELD_RESOURCE] = tAdpt.Resource
 	fields[FIELD_PARENTID] = tAdpt.ParentID
