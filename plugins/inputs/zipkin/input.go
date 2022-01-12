@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	inputName = "traceZipkin"
+	inputName = "zipkin"
 	//nolint:lll
 	traceZipkinConfigSample = `
 [[inputs.traceZipkin]]
@@ -30,10 +30,9 @@ var (
 )
 
 type Input struct {
-	PathV1 string `toml:"pathV1"`
-	PathV2 string `toml:"pathV2"`
-	// TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs"`
-	Tags map[string]string `toml:"tags"`
+	PathV1 string            `toml:"pathV1"`
+	PathV2 string            `toml:"pathV2"`
+	Tags   map[string]string `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
