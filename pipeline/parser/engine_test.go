@@ -3,129 +3,207 @@ package parser
 import (
 	"encoding/json"
 	"testing"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestContrast(t *testing.T) {
-	tests := []struct {
-		x, y     interface{}
-		operator string
-		ok       bool
+	cases := []struct {
+		name         string
+		x, y         interface{}
+		operator     string
+		expect, fail bool
 	}{
 		{
-			x:        3.1415,
+			x:        json.Number("10.0"),
 			operator: "==",
-			y:        3.1415,
-			ok:       true,
+			y:        json.Number("10.0"),
+			expect:   true,
 		},
 		{
-			x:        3.1415,
+			x:        json.Number("10.0"),
 			operator: "==",
-			y:        12.25,
-			ok:       false,
-		},
-		{
-			x:        3.1415,
-			operator: "!=",
-			y:        12.25,
-			ok:       true,
-		},
-		{
-			x:        3.1415,
-			operator: ">",
-			y:        12.25,
-			ok:       false,
-		},
-		{
-			x:        3.1415,
-			operator: ">=",
-			y:        12.25,
-			ok:       false,
-		},
-		{
-			x:        3.1415,
-			operator: "<",
-			y:        12.25,
-			ok:       true,
-		},
-		{
-			x:        3.1415,
-			operator: "<=",
-			y:        12.25,
-			ok:       true,
-		},
-		/* // int64(3)
-		{
-			x:        3,
-			operator: "<=",
-			y:        12.25,
-			ok:       true,
-		},
-		*/
-		{
-			x:        int64(3),
-			operator: "<=",
-			y:        12.25,
-			ok:       true,
-		},
-		{
-			x:        int64(3),
-			operator: "!=",
-			y:        12.25,
-			ok:       true,
+			y:        json.Number("12.0"),
+			expect:   false,
 		},
 		{
 			x:        json.Number("10"),
+			operator: "!=",
+			y:        json.Number("12"),
+			expect:   true,
+		},
+		{
+			x:        json.Number("10"),
+			operator: "<=",
+			y:        json.Number("12"),
+			expect:   true,
+		},
+		{
+			name:     "float==int",
+			x:        float64(10.0),
 			operator: "==",
-			y:        json.Number("10.0"),
-			ok:       true,
+			y:        int64(10),
+			fail:     true,
+		},
+		{
+			x:        float64(10.0),
+			operator: "==",
+			y:        "hello",
+			fail:     true,
+		},
+		{
+			name:     "flaot==bool",
+			x:        float64(10.0),
+			operator: "==",
+			y:        true,
+			fail:     true,
+		},
+		{
+			x:        float64(10.0),
+			operator: "==",
+			y:        nil,
+			expect:   false,
+		},
+		{
+			x:        float64(3.1415),
+			operator: "==",
+			y:        float64(3.1415),
+			expect:   true,
+		},
+		{
+			x:        float64(3.1415),
+			operator: "!=",
+			y:        float64(3.1415),
+			expect:   false,
+		},
+		{
+			x:        float64(3.1415),
+			operator: "==",
+			y:        float64(12.25),
+			expect:   false,
+		},
+		{
+			x:        float64(3.1415),
+			operator: "<=",
+			y:        float64(12.25),
+			expect:   true,
+		},
+		{
+			x:        float64(3.1415),
+			operator: ">=",
+			y:        float64(12.25),
+			expect:   false,
+		},
+		{
+			x:        int64(3),
+			operator: "==",
+			y:        int64(3),
+			expect:   true,
+		},
+		{
+			x:        int64(3),
+			operator: "!=",
+			y:        int64(3),
+			expect:   false,
+		},
+		{
+			x:        int64(3),
+			operator: "<=",
+			y:        int64(10),
+			expect:   true,
+		},
+		{
+			x:        int64(3),
+			operator: ">=",
+			y:        int64(10),
+			expect:   false,
 		},
 		{
 			x:        "ABCD",
 			operator: "==",
 			y:        "ABCD",
-			ok:       true,
+			expect:   true,
 		},
 		{
 			x:        "ABCD",
 			operator: "!=",
 			y:        "ABCDEEEEEE",
-			ok:       true,
+			expect:   true,
 		},
 		{
 			x:        "ABCD",
 			operator: "<=",
 			y:        "ABCD",
-			ok:       false,
+			expect:   false,
+		},
+		{
+			x:        "ABCD",
+			operator: "<=",
+			y:        int64(10),
+			fail:     true,
+		},
+		{
+			x:        "ABCD",
+			operator: "==",
+			y:        nil,
+			expect:   false,
 		},
 		{
 			x:        true,
 			operator: "==",
 			y:        true,
-			ok:       true,
+			expect:   true,
 		},
 		{
 			x:        true,
 			operator: "!=",
 			y:        true,
-			ok:       false,
+			expect:   false,
 		},
 		{
 			x:        true,
 			operator: "<=",
 			y:        false,
-			ok:       false,
+			expect:   false,
+		},
+		{
+			x:        nil,
+			operator: "==",
+			y:        nil,
+			expect:   true,
+		},
+		{
+			x:        nil,
+			operator: "!=",
+			y:        nil,
+			expect:   false,
+		},
+		{
+			x:        nil,
+			operator: "<=",
+			y:        nil,
+			expect:   false,
+		},
+
+		{
+			x:        nil,
+			operator: "<=",
+			y:        10,
+			expect:   false,
 		},
 	}
 
-	var b bool
-
-	for idx, ts := range tests {
-		b = contrast(ts.x, ts.operator, ts.y)
-		if b == ts.ok {
-			t.Logf("[%d] OK, pass: (%v %s %v)\n", idx, ts.x, ts.operator, ts.y)
-		} else {
-			t.Logf("[%d] not:  (%v %s %v)\n", idx, ts.x, ts.operator, ts.y)
-		}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			b, err := contrast(tc.x, tc.operator, tc.y)
+			if !tc.fail {
+				tu.Ok(t, err)
+				tu.Equals(t, tc.expect, b)
+			} else {
+				tu.NotOk(t, err, "")
+				return
+			}
+		})
 	}
 
 	t.Log("END")
