@@ -66,7 +66,7 @@ func (m *filefdMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"allocated": newFieldInfoCount("已分配文件句柄的数目"),
 			// "maximum":      newFieldInfoCount("文件句柄的最大数目； 当值为 2^63-1 则页面显示 9223372036854776000(若大于此值，均会造成精度损失)"),
-			"maximum_mega": newFieldInfoMega("文件句柄的最大数目, 单位 M(10^6)"),
+			"maximum_mega": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "文件句柄的最大数目, 单位 M(10^6)"},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
@@ -107,15 +107,6 @@ func newFieldInfoCount(desc string) *inputs.FieldInfo {
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
 		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func newFieldInfoMega(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Float,
-		Unit:     inputs.Mega,
 		Desc:     desc,
 	}
 }

@@ -36,34 +36,28 @@ const (
 const (
 	UnknownUnit = "-"
 
-	SizeByte  = "Byte"
-	SizeIByte = "Byte" // deprecated
+	SizeByte  = "B"
+	SizeIByte = "B" // deprecated
 
 	SizeMiB = "MB"
 
 	NCount = "count"
 
 	// time units.
-	DurationNS     = "nsec"
-	DurationUS     = "usec"
-	DurationMS     = "msec"
-	DurationSecond = "second"
-	DurationMinute = "minute"
-	DurationHour   = "hour"
-	DurationDay    = "day"
+	DurationNS     = "ns"
+	DurationUS     = "μs"
+	DurationMS     = "ms"
+	DurationSecond = "s"
+	DurationMinute = "min"
+	DurationHour   = "h"
+	DurationDay    = "d"
 
-	Percent = "%"
+	Percent = "percent"
 
 	// TODO: add more...
-	BytesPerSec    = "B/s"
-	RequestsPerSec = "reqs/s"
-	Celsius        = "°C"
-
-	Peta = "P" // 10^15
-	Tera = "T" // 10^12
-	Giga = "G" // 10^9
-	Mega = "M" // 10^6
-	Kilo = "k" // 10^3
+	BytesPerSec    = "B/S"
+	RequestsPerSec = "reqps"
+	Celsius        = "C"
 )
 
 type Measurement interface {
