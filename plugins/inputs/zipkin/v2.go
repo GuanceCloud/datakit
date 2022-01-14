@@ -186,9 +186,9 @@ func protobufSpansToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.TraceAdap
 	return group, nil
 }
 
-func parseZipkinJSONV2(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
+func parseZipkinJsonV2(zpktrace []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
 	var group []*trace.TraceAdapter
-	for _, span := range zspans {
+	for _, span := range zpktrace {
 		tAdapter := &trace.TraceAdapter{
 			SpanID:    span.ID.String(),
 			Source:    inputName,

@@ -63,7 +63,7 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 		if len(group) != 0 {
 			trace.MkLineProto(group, inputName)
 		} else {
-			log.Debug("empty v3 segment")
+			log.Warnf("empty v3 segment")
 		}
 	}
 }
@@ -149,15 +149,13 @@ type ManagementServerV3 struct {
 	skyimpl.UnimplementedManagementServiceServer
 }
 
-func (*ManagementServerV3) ReportInstanceProperties(
-	ctx context.Context,
+func (*ManagementServerV3) ReportInstanceProperties(ctx context.Context,
 	mng *skyimpl.InstanceProperties) (*skyimpl.Commands, error) {
 	var kvpStr string
 	for _, kvp := range mng.Properties {
 		kvpStr += fmt.Sprintf("[%v:%v]", kvp.Key, kvp.Value)
 	}
-	log.Debugf("ReportInstanceProperties service:%v instance:%v properties:%v",
-		mng.Service, mng.ServiceInstance, kvpStr)
+	log.Debugf("ReportInstanceProperties service:%v instance:%v properties:%v", mng.Service, mng.ServiceInstance, kvpStr)
 
 	return &skyimpl.Commands{}, nil
 }
@@ -174,8 +172,7 @@ type JVMMetricReportServerV3 struct {
 	skyimpl.UnimplementedJVMMetricReportServiceServer
 }
 
-func (*JVMMetricReportServerV3) Collect(
-	ctx context.Context,
+func (*JVMMetricReportServerV3) Collect(ctx context.Context,
 	jvm *skyimpl.JVMMetricCollection) (*skyimpl.Commands, error) {
 	log.Debugf("JVMMetricReportService service:%v instance:%v", jvm.Service, jvm.ServiceInstance)
 
@@ -186,8 +183,7 @@ type DiscoveryServerV3 struct {
 	skyimpl.UnimplementedConfigurationDiscoveryServiceServer
 }
 
-func (*DiscoveryServerV3) FetchConfigurations(
-	ctx context.Context,
+func (*DiscoveryServerV3) FetchConfigurations(ctx context.Context,
 	cfgReq *skyimpl.ConfigurationSyncRequest) (*skyimpl.Commands, error) {
 	log.Debugf("DiscoveryServerV3 service: %s", cfgReq.String())
 

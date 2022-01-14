@@ -103,9 +103,7 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 
 			return err
 		}
-
-		group, err = protobufSpansToAdapters(zspans)
-		if err != nil {
+		if group, err = protobufSpansToAdapters(zspans); err != nil {
 			log.Errorf("protobufSpansToAdapters: %s", err.Error())
 
 			return err
@@ -117,8 +115,7 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 
 			return err
 		}
-
-		if group, err = parseZipkinJSONV2(zspans); err != nil {
+		if group, err = parseZipkinJsonV2(zspans); err != nil {
 			log.Errorf("parseZipkinJsonV2: %s", err.Error())
 
 			return err
@@ -130,7 +127,7 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	if len(group) != 0 {
 		trace.MkLineProto(group, inputName)
 	} else {
-		log.Warnf("empty zipkin v2 spans")
+		log.Warn("empty zipkin v2 spans")
 	}
 
 	return nil

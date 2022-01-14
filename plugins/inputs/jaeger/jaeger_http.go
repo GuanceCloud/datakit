@@ -60,7 +60,7 @@ func parseJaegerThrift(octets []byte) error {
 	if len(group) != 0 {
 		trace.MkLineProto(group, inputName)
 	} else {
-		log.Debug("empty batch")
+		log.Warn("empty batch")
 	}
 
 	return nil

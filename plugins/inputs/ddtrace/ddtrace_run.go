@@ -113,7 +113,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 			if len(group) != 0 {
 				itrace.MkLineProto(group, inputName)
 			} else {
-				log.Debug("empty trace")
+				log.Warn("empty trace")
 			}
 		}
 
