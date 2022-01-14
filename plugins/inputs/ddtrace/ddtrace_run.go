@@ -104,14 +104,14 @@ func handleTraces(pattern string) http.HandlerFunc {
 				continue
 			}
 
-			group, err := traceToAdapters(trace)
+			dkspans, err := traceToAdapters(trace)
 			if err != nil {
 				log.Error(err.Error())
 				continue
 			}
 
-			if len(group) != 0 {
-				itrace.MkLineProto(group, inputName)
+			if len(dkspans) != 0 {
+				itrace.MkLineProto(dkspans, inputName)
 
 			} else {
 				log.Warn("empty trace")
@@ -170,7 +170,7 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 
 func traceToAdapters(trace Trace) ([]*itrace.DatakitSpan, error) {
 	var (
-		group              []*itrace.DatakitSpan
+		dkspans            []*itrace.DatakitSpan
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)
 	)
 	for _, span := range trace {
@@ -178,7 +178,7 @@ func traceToAdapters(trace Trace) ([]*itrace.DatakitSpan, error) {
 			continue
 		}
 
-		tAdapter := &itrace.DatakitSpan{
+		dkspan := &itrace.DatakitSpan{
 			TraceID:        fmt.Sprintf("%d", span.TraceID),
 			ParentID:       fmt.Sprintf("%d", span.ParentID),
 			SpanID:         fmt.Sprintf("%d", span.SpanID),
@@ -195,47 +195,47 @@ func traceToAdapters(trace Trace) ([]*itrace.DatakitSpan, error) {
 		}
 
 		if span.Meta[itrace.PROJECT] != "" {
-			tAdapter.Project = span.Meta[itrace.PROJECT]
+			dkspan.Project = span.Meta[itrace.PROJECT]
 		} else {
-			tAdapter.Project = ddTags[itrace.PROJECT]
+			dkspan.Project = ddTags[itrace.PROJECT]
 		}
 
 		if span.Meta[itrace.ENV] != "" {
-			tAdapter.Env = span.Meta[itrace.ENV]
+			dkspan.Env = span.Meta[itrace.ENV]
 		} else {
-			tAdapter.Env = ddTags[itrace.ENV]
+			dkspan.Env = ddTags[itrace.ENV]
 		}
 
 		if span.Meta[itrace.VERSION] != "" {
-			tAdapter.Version = span.Meta[itrace.VERSION]
+			dkspan.Version = span.Meta[itrace.VERSION]
 		} else {
-			tAdapter.Version = ddTags[itrace.VERSION]
+			dkspan.Version = ddTags[itrace.VERSION]
 		}
 
 		if pid, ok := span.Metrics["system.pid"]; ok {
-			tAdapter.Pid = fmt.Sprintf("%f", pid)
+			dkspan.Pid = fmt.Sprintf("%f", pid)
 		}
 
-		tAdapter.Status = itrace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		if span.Error != 0 {
-			tAdapter.Status = itrace.STATUS_ERR
+			dkspan.Status = itrace.STATUS_ERR
 		}
 
-		tAdapter.Tags = extractCustomerTags(customerKeys, span.Meta)
+		dkspan.Tags = extractCustomerTags(customerKeys, span.Meta)
 		for k, v := range ddTags {
-			tAdapter.Tags[k] = v
+			dkspan.Tags[k] = v
 		}
 
 		buf, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(buf)
+		dkspan.Content = string(buf)
 
-		group = append(group, tAdapter)
+		dkspans = append(dkspans, dkspan)
 	}
 
-	return group, nil
+	return dkspans, nil
 }
 
 func getSpanIDsAndParentIDs(trace Trace) (map[int64]bool, map[int64]bool) {

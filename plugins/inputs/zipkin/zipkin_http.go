@@ -33,13 +33,13 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	var group []*trace.DatakitSpan
+	var dkspans []*trace.DatakitSpan
 	switch reqInfo.ContentType {
 	case "application/x-thrift":
 		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
 			return err
 		} else {
-			group, err = thriftSpansToAdapters(zspans)
+			dkspans, err = thriftSpansToAdapters(zspans)
 			if err != nil {
 				log.Errorf("thriftSpansToAdapters: %s", err)
 
@@ -47,13 +47,13 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 	case "application/json":
-		zspans := []*ZipkinSpanV1{}
+		var zspans []*ZipkinSpanV1
 		if err := json.Unmarshal(reqInfo.Body, &zspans); err != nil {
 			log.Errorf("json.Unmarshal: %s", err)
 
 			return err
 		} else {
-			group, err = jsonV1SpansToAdapters(zspans)
+			dkspans, err = jsonV1SpansToAdapters(zspans)
 			if err != nil {
 				log.Errorf("jsonV1SpansToAdapters: %s", err)
 
@@ -64,8 +64,8 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("zipkin V1 unsupported Content-Type: %s", reqInfo.ContentType)
 	}
 
-	if len(group) != 0 {
-		trace.MkLineProto(group, inputName)
+	if len(dkspans) != 0 {
+		trace.MkLineProto(dkspans, inputName)
 	} else {
 		log.Debug("empty zipkin v1 spans")
 	}
@@ -95,17 +95,17 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var (
-		group     []*trace.DatakitSpan
+		dkspans   []*trace.DatakitSpan
 		zpkmodels []*zpkmodel.SpanModel
 	)
 	switch reqInfo.ContentType {
 	case "application/x-protobuf":
 		if zpkmodels, err = parseZipkinProtobuf3(reqInfo.Body); err == nil {
-			group, err = spanModelsToAdapters(zpkmodels)
+			dkspans, err = spanModelsToAdapters(zpkmodels)
 		}
 	case "application/json":
 		if err = json.Unmarshal(reqInfo.Body, &zpkmodels); err == nil {
-			group, err = spanModelsToAdapters(zpkmodels)
+			dkspans, err = spanModelsToAdapters(zpkmodels)
 		}
 	default:
 		return fmt.Errorf("zipkin V2 unsupported Content-Type: %s", reqInfo.ContentType)
@@ -117,8 +117,8 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if len(group) != 0 {
-		trace.MkLineProto(group, inputName)
+	if len(dkspans) != 0 {
+		trace.MkLineProto(dkspans, inputName)
 	} else {
 		log.Warn("empty zipkin v2 spans")
 	}

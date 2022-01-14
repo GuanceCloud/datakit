@@ -126,9 +126,9 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 }
 
 func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.DatakitSpan, error) {
-	var group []*trace.DatakitSpan
+	var dkspans []*trace.DatakitSpan
 	for _, span := range zpktrace {
-		tAdapter := &trace.DatakitSpan{
+		dkspan := &trace.DatakitSpan{
 			SpanID:    span.ID.String(),
 			Source:    inputName,
 			Operation: span.Name,
@@ -138,50 +138,50 @@ func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.DatakitSpan,
 		}
 
 		if span.TraceID.High != 0 {
-			tAdapter.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
+			dkspan.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
 		} else {
-			tAdapter.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
+			dkspan.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
 		}
 
 		if span.ParentID != nil {
-			tAdapter.ParentID = fmt.Sprintf("%d", *span.ParentID)
+			dkspan.ParentID = fmt.Sprintf("%d", *span.ParentID)
 		}
 
 		if span.LocalEndpoint != nil {
-			tAdapter.Service = span.LocalEndpoint.ServiceName
+			dkspan.Service = span.LocalEndpoint.ServiceName
 		}
 
-		tAdapter.Status = trace.STATUS_OK
+		dkspan.Status = trace.STATUS_OK
 		for tag := range span.Tags {
 			if tag == trace.STATUS_ERR {
-				tAdapter.Status = trace.STATUS_ERR
+				dkspan.Status = trace.STATUS_ERR
 				break
 			}
 		}
 
 		if span.RemoteEndpoint != nil {
 			if len(span.RemoteEndpoint.IPv4) != 0 {
-				tAdapter.EndPoint = span.RemoteEndpoint.IPv4.String()
+				dkspan.EndPoint = span.RemoteEndpoint.IPv4.String()
 			}
 			if len(span.RemoteEndpoint.IPv6) != 0 {
-				tAdapter.EndPoint = span.RemoteEndpoint.IPv6.String()
+				dkspan.EndPoint = span.RemoteEndpoint.IPv6.String()
 			}
 		}
 
 		if span.Kind == zpkmodel.Undetermined {
-			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
+			dkspan.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
-			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
+			dkspan.SpanType = trace.SPAN_TYPE_ENTRY
 		}
 
 		buf, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(buf)
+		dkspan.Content = string(buf)
 
-		group = append(group, tAdapter)
+		dkspans = append(dkspans, dkspan)
 	}
 
-	return group, nil
+	return dkspans, nil
 }

@@ -52,13 +52,13 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	group, err := batchToAdapters(batch)
+	dkspans, err := batchToAdapters(batch)
 	if err != nil {
 		return err
 	}
 
-	if len(group) != 0 {
-		trace.MkLineProto(group, inputName)
+	if len(dkspans) != 0 {
+		trace.MkLineProto(dkspans, inputName)
 	} else {
 		log.Warn("empty batch")
 	}
@@ -79,7 +79,7 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.DatakitSpan, error) {
 	}
 
 	var (
-		group              []*trace.DatakitSpan
+		dkspans            []*trace.DatakitSpan
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(batch.Spans)
 	)
 	for _, span := range batch.Spans {
@@ -87,7 +87,7 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.DatakitSpan, error) {
 			continue
 		}
 
-		tAdapter := &trace.DatakitSpan{
+		dkspan := &trace.DatakitSpan{
 			TraceID:   trace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
 			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
 			SpanID:    fmt.Sprintf("%d", span.SpanId),
@@ -106,21 +106,21 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.DatakitSpan, error) {
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(buf)
+		dkspan.Content = string(buf)
 
-		tAdapter.Status = trace.STATUS_OK
+		dkspan.Status = trace.STATUS_OK
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				tAdapter.Status = trace.STATUS_ERR
+				dkspan.Status = trace.STATUS_ERR
 				break
 			}
 		}
-		tAdapter.Tags = jaegerTags
+		dkspan.Tags = jaegerTags
 
-		group = append(group, tAdapter)
+		dkspans = append(dkspans, dkspan)
 	}
 
-	return group, nil
+	return dkspans, nil
 }
 
 func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]bool) {

@@ -59,7 +59,7 @@ const (
 	FIELD_TRACEID  = "trace_id"
 )
 
-var log = logger.DefaultSLogger("trace")
+var log = logger.DefaultSLogger("dktrace")
 
 type DatakitSpan struct {
 	TraceID        string
@@ -177,10 +177,10 @@ func BuildLineProto(tAdapter *DatakitSpan) (*dkio.Point, error) {
 	return pt, err
 }
 
-func MkLineProto(group []*DatakitSpan, inputName string) {
+func MkLineProto(dkspans []*DatakitSpan, inputName string) {
 	var pts []*dkio.Point
-	for _, tAdpt := range group {
-		if pt, err := BuildLineProto(tAdpt); err == nil {
+	for _, dkspan := range dkspans {
+		if pt, err := BuildLineProto(dkspan); err == nil {
 			pts = append(pts, pt)
 		}
 	}

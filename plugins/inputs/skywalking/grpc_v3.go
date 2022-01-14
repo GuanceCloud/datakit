@@ -53,15 +53,15 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 
 		log.Debug("v3 segment received")
 
-		group, err := segobjToAdapters(segobj)
+		dkspans, err := segobjToAdapters(segobj)
 		if err != nil {
 			log.Error(err.Error())
 
 			return err
 		}
 
-		if len(group) != 0 {
-			trace.MkLineProto(group, inputName)
+		if len(dkspans) != 0 {
+			trace.MkLineProto(dkspans, inputName)
 		} else {
 			log.Warnf("empty v3 segment")
 		}
@@ -77,9 +77,9 @@ func (*TraceReportServerV3) CollectInSync(
 }
 
 func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.DatakitSpan, error) {
-	var group []*trace.DatakitSpan
+	var dkspans []*trace.DatakitSpan
 	for _, span := range segment.Spans {
-		adapter := &trace.DatakitSpan{
+		dkspan := &trace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
@@ -95,34 +95,34 @@ func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.DatakitSpan, err
 		if err != nil {
 			return nil, err
 		}
-		adapter.Content = string(js)
+		dkspan.Content = string(js)
 
 		if span.SpanType == skyimpl.SpanType_Entry {
 			if len(span.Refs) > 0 {
-				adapter.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
 			}
 		} else {
-			adapter.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
+			dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
 		}
 
-		adapter.Status = trace.STATUS_OK
+		dkspan.Status = trace.STATUS_OK
 		if span.IsError {
-			adapter.Status = trace.STATUS_ERR
+			dkspan.Status = trace.STATUS_ERR
 		}
 
 		switch span.SpanType {
 		case skyimpl.SpanType_Entry:
-			adapter.SpanType = trace.SPAN_TYPE_ENTRY
+			dkspan.SpanType = trace.SPAN_TYPE_ENTRY
 		case skyimpl.SpanType_Local:
-			adapter.SpanType = trace.SPAN_TYPE_LOCAL
+			dkspan.SpanType = trace.SPAN_TYPE_LOCAL
 		case skyimpl.SpanType_Exit:
-			adapter.SpanType = trace.SPAN_TYPE_EXIT
+			dkspan.SpanType = trace.SPAN_TYPE_EXIT
 		}
 
-		group = append(group, adapter)
+		dkspans = append(dkspans, dkspan)
 	}
 
-	return group, nil
+	return dkspans, nil
 }
 
 type EventServerV3 struct {

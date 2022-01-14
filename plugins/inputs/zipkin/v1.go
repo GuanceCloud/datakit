@@ -135,7 +135,7 @@ func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
 
 func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.DatakitSpan, error) {
 	var (
-		group              []*trace.DatakitSpan
+		dkspans            []*trace.DatakitSpan
 		spanIDs, parentIDs = getZpkCoreV1SpanIDsAndParentIDs(zpktrace)
 	)
 	for _, span := range zpktrace {
@@ -143,7 +143,7 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.DatakitSpan, er
 			continue
 		}
 
-		tAdapter := &trace.DatakitSpan{
+		dkspan := &trace.DatakitSpan{
 			TraceID:   fmt.Sprintf("%d", uint64(span.TraceID)),
 			SpanID:    fmt.Sprintf("%d", uint64(span.ID)),
 			Operation: span.Name,
@@ -153,68 +153,68 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.DatakitSpan, er
 		}
 
 		if span.ParentID != nil {
-			tAdapter.ParentID = fmt.Sprintf("%d", uint64(*span.ParentID))
+			dkspan.ParentID = fmt.Sprintf("%d", uint64(*span.ParentID))
 		}
 
 		if span.Timestamp != nil {
-			tAdapter.Start = (*span.Timestamp) * int64(time.Microsecond)
+			dkspan.Start = (*span.Timestamp) * int64(time.Microsecond)
 		} else {
-			tAdapter.Start = getStartTimestamp(span)
+			dkspan.Start = getStartTimestamp(span)
 		}
 
 		if span.Duration != nil {
-			tAdapter.Duration = (*span.Duration) * int64(time.Microsecond)
+			dkspan.Duration = (*span.Duration) * int64(time.Microsecond)
 		} else {
-			tAdapter.Duration = getDurationThriftAno(span.Annotations)
+			dkspan.Duration = getDurationThriftAno(span.Annotations)
 		}
 
 		for _, anno := range span.Annotations {
 			if anno.Host != nil && anno.Host.ServiceName != "" {
-				tAdapter.Service = anno.Host.ServiceName
+				dkspan.Service = anno.Host.ServiceName
 				break
 			}
 		}
-		if tAdapter.Service == "" {
+		if dkspan.Service == "" {
 			for _, banno := range span.BinaryAnnotations {
 				if banno.Host != nil && banno.Host.ServiceName != "" {
-					tAdapter.Service = banno.Host.ServiceName
+					dkspan.Service = banno.Host.ServiceName
 					break
 				}
 			}
 		}
 
-		tAdapter.Status = trace.STATUS_OK
+		dkspan.Status = trace.STATUS_OK
 		if _, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "error"); ok {
-			tAdapter.Status = trace.STATUS_ERR
+			dkspan.Status = trace.STATUS_ERR
 		}
 
 		if resource, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {
-			tAdapter.Resource = resource
+			dkspan.Resource = resource
 		}
 
 		if project, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
-			tAdapter.Project = project
+			dkspan.Project = project
 		}
 
 		if version, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
-			tAdapter.Version = version
+			dkspan.Version = version
 		}
 
 		buf, err := json.Marshal(zipkinConvThriftToJSON(span))
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(buf)
+		dkspan.Content = string(buf)
 
-		group = append(group, tAdapter)
+		dkspans = append(dkspans, dkspan)
 	}
 
-	return group, nil
+	return dkspans, nil
 }
 
 func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.DatakitSpan, error) {
 	var (
-		group              []*trace.DatakitSpan
+		dkspans            []*trace.DatakitSpan
 		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
 	)
 	for _, span := range zpktrace {
@@ -222,7 +222,7 @@ func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.DatakitSpan, erro
 			continue
 		}
 
-		tAdapter := &trace.DatakitSpan{
+		dkspan := &trace.DatakitSpan{
 			TraceID:   span.TraceID,
 			SpanID:    span.ID,
 			ParentID:  span.ParentID,
@@ -233,52 +233,52 @@ func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.DatakitSpan, erro
 			Duration:  span.Duration * int64(time.Microsecond),
 		}
 
-		if tAdapter.Duration == 0 {
-			tAdapter.Duration = getDurationByAno(span.Annotations)
+		if dkspan.Duration == 0 {
+			dkspan.Duration = getDurationByAno(span.Annotations)
 		}
 
 		for _, anno := range span.Annotations {
 			if anno.Host != nil && anno.Host.ServiceName != "" {
-				tAdapter.Service = anno.Host.ServiceName
+				dkspan.Service = anno.Host.ServiceName
 				break
 			}
 		}
-		if tAdapter.Service == "" {
+		if dkspan.Service == "" {
 			for _, bno := range span.BinaryAnnotations {
 				if bno.Host != nil && bno.Host.ServiceName != "" {
-					tAdapter.Service = bno.Host.ServiceName
+					dkspan.Service = bno.Host.ServiceName
 					break
 				}
 			}
 		}
 
-		tAdapter.Status = trace.STATUS_OK
+		dkspan.Status = trace.STATUS_OK
 		if _, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "error"); ok {
-			tAdapter.Status = trace.STATUS_ERR
+			dkspan.Status = trace.STATUS_ERR
 		}
 
 		if resource, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {
-			tAdapter.Resource = resource
+			dkspan.Resource = resource
 		}
 
 		if project, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
-			tAdapter.Project = project
+			dkspan.Project = project
 		}
 
 		if version, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
-			tAdapter.Version = version
+			dkspan.Version = version
 		}
 
 		buf, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(buf)
+		dkspan.Content = string(buf)
 
-		group = append(group, tAdapter)
+		dkspans = append(dkspans, dkspan)
 	}
 
-	return group, nil
+	return dkspans, nil
 }
 
 func getZpkCoreV1SpanIDsAndParentIDs(trace []*zpkcorev1.Span) (map[int64]bool, map[int64]bool) {
