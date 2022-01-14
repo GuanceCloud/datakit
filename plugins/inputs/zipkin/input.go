@@ -55,6 +55,7 @@ func (t *Input) Run() {
 
 func (t *Input) RegHTTPHandler() {
 	itrace.StartTracingStatistic()
+
 	if t.PathV1 == "" {
 		t.PathV1 = defaultZipkinPathV1
 	}
