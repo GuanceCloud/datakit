@@ -65,7 +65,7 @@ func newFieldsInfoCount(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
-		Unit:     inputs.Count,
+		Unit:     inputs.NCount,
 		Desc:     desc,
 	}
 }

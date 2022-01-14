@@ -75,15 +75,15 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "Used disk size in percent",
 			},
 			"inodes_total": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "Total inodes",
 			},
 			"inodes_free": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "Free inodes",
 			},
 			"inodes_used": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.Count,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "Used inodes",
 			},
 		},

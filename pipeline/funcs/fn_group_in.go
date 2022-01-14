@@ -66,7 +66,7 @@ func GroupIn(ng *parser.Engine, node parser.Node) error {
 		case *parser.Identifier:
 			cont, err := ng.GetContent(v.Name)
 			if err != nil {
-				l.Debug("key `%v' not exist, ignored", key)
+				l.Debugf("key `%v' not exist, ignored", key)
 				return nil //nolint:nilerr
 			}
 			setdata = append(setdata, cont)

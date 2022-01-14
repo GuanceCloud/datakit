@@ -64,6 +64,7 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 			"psub": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "Number of pattern matching subscriptions",
 			},
 		},
