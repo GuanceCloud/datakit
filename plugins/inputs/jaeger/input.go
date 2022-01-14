@@ -52,7 +52,6 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	// No predefined measurement available here
 	return nil
 }
 

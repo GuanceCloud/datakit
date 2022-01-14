@@ -63,31 +63,31 @@ const (
 var log = logger.DefaultSLogger("trace")
 
 type TraceAdapter struct {
+	TraceID        string
+	ParentID       string
+	SpanID         string
+	SpanType       string
+	Service        string
+	Resource       string
+	Operation      string
+	Source         string // third part source name
 	ContainerHost  string
-	Content        string
-	Duration       int64 // 纳秒单位
 	EndPoint       string
 	Env            string
 	HTTPMethod     string
 	HTTPStatusCode string
-	OperationName  string
-	ParentID       string
 	Pid            string
-	Project        string
-	Resource       string
-	ServiceName    string
-	Source         string // third part source name
-	SpanID         string
-	SpanType       string
-	Start          int64 // 纳秒单位
+	Start          int64 // nano sec
+	Duration       int64 // nano sec
 	Status         string
-	Tags           map[string]string
-	TraceID        string // source trace id
 	Type           string
+	Tags           map[string]string
+	Content        string
+	Project        string
 	Version        string
 }
 
-func FindSpanType(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
+func FindIntIDSpanType(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
 	if parentID != 0 {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
@@ -101,62 +101,76 @@ func FindSpanType(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) str
 	return SPAN_TYPE_ENTRY
 }
 
-func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
+func FindStringIDSpanType(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
+	if parentID != "" && parentID != "0" {
+		if spanIDs[parentID] {
+			if parentIDs[spanID] {
+				return SPAN_TYPE_LOCAL
+			} else {
+				return SPAN_TYPE_EXIT
+			}
+		}
+	}
+
+	return SPAN_TYPE_ENTRY
+}
+
+func BuildLineProto(tAdapter *TraceAdapter) (*dkio.Point, error) {
 	var (
 		tags   = make(map[string]string)
 		fields = make(map[string]interface{})
 	)
 
-	tags[TAG_PROJECT] = tAdpt.Project
-	tags[TAG_OPERATION] = tAdpt.OperationName
-	tags[TAG_SERVICE] = tAdpt.ServiceName
-	tags[TAG_VERSION] = tAdpt.Version
-	tags[TAG_ENV] = tAdpt.Env
-	tags[TAG_HTTP_METHOD] = tAdpt.HTTPMethod
-	tags[TAG_HTTP_CODE] = tAdpt.HTTPStatusCode
+	tags[TAG_PROJECT] = tAdapter.Project
+	tags[TAG_OPERATION] = tAdapter.Operation
+	tags[TAG_SERVICE] = tAdapter.Service
+	tags[TAG_VERSION] = tAdapter.Version
+	tags[TAG_ENV] = tAdapter.Env
+	tags[TAG_HTTP_METHOD] = tAdapter.HTTPMethod
+	tags[TAG_HTTP_CODE] = tAdapter.HTTPStatusCode
 
-	if tAdpt.Type != "" {
-		tags[TAG_TYPE] = tAdpt.Type
+	if tAdapter.Type != "" {
+		tags[TAG_TYPE] = tAdapter.Type
 	} else {
 		tags[TAG_TYPE] = SPAN_SERVICE_CUSTOM
 	}
 
-	for tag, tagV := range tAdpt.Tags {
-		tags[tag] = tagV
+	for k, v := range tAdapter.Tags {
+		tags[k] = v
 	}
 
-	tags[TAG_SPAN_STATUS] = tAdpt.Status
+	tags[TAG_SPAN_STATUS] = tAdapter.Status
 
-	if tAdpt.EndPoint != "" {
-		tags[TAG_ENDPOINT] = tAdpt.EndPoint
+	if tAdapter.EndPoint != "" {
+		tags[TAG_ENDPOINT] = tAdapter.EndPoint
 	} else {
 		tags[TAG_ENDPOINT] = "null"
 	}
 
-	if tAdpt.SpanType != "" {
-		tags[TAG_SPAN_TYPE] = tAdpt.SpanType
+	if tAdapter.SpanType != "" {
+		tags[TAG_SPAN_TYPE] = tAdapter.SpanType
 	} else {
 		tags[TAG_SPAN_TYPE] = SPAN_TYPE_ENTRY
 	}
 
-	if tAdpt.ContainerHost != "" {
-		tags[TAG_CONTAINER_HOST] = tAdpt.ContainerHost
+	if tAdapter.ContainerHost != "" {
+		tags[TAG_CONTAINER_HOST] = tAdapter.ContainerHost
 	}
 
-	if tAdpt.ParentID == "" {
-		tAdpt.ParentID = "0"
+	if tAdapter.ParentID == "" {
+		tAdapter.ParentID = "0"
 	}
 
-	fields[FIELD_DURATION] = tAdpt.Duration / int64(time.Microsecond)
-	fields[FIELD_START] = tAdpt.Start / int64(time.Microsecond)
-	fields[FIELD_MSG] = tAdpt.Content
-	fields[FIELD_RESOURCE] = tAdpt.Resource
-	fields[FIELD_PARENTID] = tAdpt.ParentID
-	fields[FIELD_TRACEID] = tAdpt.TraceID
-	fields[FIELD_SPANID] = tAdpt.SpanID
+	fields[FIELD_DURATION] = tAdapter.Duration / int64(time.Microsecond)
+	fields[FIELD_START] = tAdapter.Start / int64(time.Microsecond)
+	fields[FIELD_MSG] = tAdapter.Content
+	fields[FIELD_RESOURCE] = tAdapter.Resource
+	fields[FIELD_PARENTID] = tAdapter.ParentID
+	fields[FIELD_TRACEID] = tAdapter.TraceID
+	fields[FIELD_SPANID] = tAdapter.SpanID
 
-	ts := time.Unix(tAdpt.Start/int64(time.Second), tAdpt.Start%int64(time.Second))
-	pt, err := dkio.MakePoint(tAdpt.Source, tags, fields, ts)
+	ts := time.Unix(tAdapter.Start/int64(time.Second), tAdapter.Start%int64(time.Second))
+	pt, err := dkio.MakePoint(tAdapter.Source, tags, fields, ts)
 	if err != nil {
 		log.Errorf("build metric err: %s", err)
 	}
@@ -164,15 +178,15 @@ func BuildLineProto(tAdpt *TraceAdapter) (*dkio.Point, error) {
 	return pt, err
 }
 
-func MkLineProto(adapterGroup []*TraceAdapter, pluginName string) {
+func MkLineProto(group []*TraceAdapter, inputName string) {
 	var pts []*dkio.Point
-	for _, tAdpt := range adapterGroup {
+	for _, tAdpt := range group {
 		if pt, err := BuildLineProto(tAdpt); err == nil {
 			pts = append(pts, pt)
 		}
 	}
 
-	if err := dkio.Feed(pluginName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
+	if err := dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
 		log.Errorf("io feed err: %s", err)
 	}
 }

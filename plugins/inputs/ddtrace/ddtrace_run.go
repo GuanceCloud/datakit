@@ -11,10 +11,8 @@ import (
 	"time"
 
 	"github.com/tinylib/msgp/msgp"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 var ddtraceSpanType = map[string]string{
@@ -76,7 +74,6 @@ func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,
 
 func handleTraces(pattern string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		since := time.Now()
 		traces, err := decodeRequest(pattern, req)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -98,23 +95,26 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 		log.Debugf("show up all traces: %v", traces)
 
-		pts, err := tracesToPoints(req, traces, filters...)
-		if err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-		if len(pts) != 0 {
-			if err = dkio.Feed(inputName, datakit.Tracing, pts,
-				&dkio.Option{
-					CollectCost: time.Since(since),
-					HighFreq:    true,
-				}); err != nil {
-				log.Errorf("Feed: %s", err.Error())
+		for _, trace := range traces {
+			if len(trace) == 0 {
+				continue
 			}
-		} else {
-			log.Debugf("empty points")
+			// run all filters
+			if runFiltersWithBreak(trace, filters...) == nil {
+				continue
+			}
+
+			group, err := traceToAdapters(trace)
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			if len(group) != 0 {
+				itrace.MkLineProto(group, inputName)
+			} else {
+				log.Debug("empty trace")
+			}
 		}
 
 		resp.WriteHeader(http.StatusOK)
@@ -167,115 +167,74 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 	return traces, err
 }
 
-// tracesToPoints work as a adapter to convert traces to points.
-// parameter traces is raw traces, filters contains all the functional filters
-// like resource filter, sample.
-//nolint: cyclop
-func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
-	var pts []*dkio.Point
-	for _, trace := range traces {
-		if trace == nil || len(trace) == 0 {
-			log.Warnf("got empty trace, request headers: %v", req.Header)
-			continue
-		}
-		// run all filters
-		if runFiltersWithBreak(trace, filters...) == nil {
+func traceToAdapters(trace Trace) ([]*itrace.TraceAdapter, error) {
+	var (
+		group              []*itrace.TraceAdapter
+		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)
+	)
+	for _, span := range trace {
+		if span == nil {
 			continue
 		}
 
-		spanIDs, parentIDs := getSpanIDsAndParentIDs(trace)
-		for _, span := range trace {
-			if span == nil {
-				log.Warnf("got nil span, request headers: %v", req.Header)
-				continue
-			}
-
-			var (
-				spanInfo = &dkio.SpanInfo{
-					Toolkit:  inputName,
-					Service:  span.Service,
-					Resource: span.Resource,
-					Duration: time.Duration(span.Duration),
-				}
-				spanType = itrace.FindSpanType(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs)
-				tags     = make(map[string]string)
-				field    = make(map[string]interface{})
-				tm       = &itrace.TraceMeasurement{Name: "ddtrace"}
-			)
-
-			tags[itrace.TAG_SPAN_TYPE] = spanType
-			if spanType == itrace.SPAN_TYPE_ENTRY {
-				spanInfo.IsEntry = true
-				spanInfo.IsErr = span.Error != 0
-			}
-
-			tags[itrace.TAG_SERVICE] = span.Service
-			tags[itrace.TAG_OPERATION] = span.Name
-			tags[itrace.TAG_TYPE] = ddtraceSpanType[span.Type]
-			if span.Error == 0 {
-				tags[itrace.TAG_SPAN_STATUS] = itrace.STATUS_OK
-			} else {
-				tags[itrace.TAG_SPAN_STATUS] = itrace.STATUS_ERR
-			}
-			tags[itrace.TAG_PROJECT] = span.Meta[itrace.PROJECT]
-			if tags[itrace.TAG_PROJECT] == "" {
-				tags[itrace.TAG_PROJECT] = ddTags[itrace.PROJECT]
-			}
-			spanInfo.Project = tags[itrace.TAG_PROJECT]
-
-			tags[itrace.TAG_ENV] = span.Meta[itrace.ENV]
-			if tags[itrace.TAG_ENV] == "" {
-				tags[itrace.TAG_ENV] = ddTags[itrace.ENV]
-			}
-
-			tags[itrace.TAG_VERSION] = span.Meta[itrace.VERSION]
-			if tags[itrace.TAG_VERSION] == "" {
-				tags[itrace.TAG_VERSION] = ddTags[itrace.VERSION]
-			}
-			spanInfo.Version = tags[itrace.TAG_VERSION]
-
-			// send span info
-			dkio.SendSpanInfo(spanInfo)
-
-			tags[itrace.TAG_CONTAINER_HOST] = span.Meta[itrace.CONTAINER_HOST]
-			tags[itrace.TAG_HTTP_METHOD] = span.Meta["http.method"]
-			tags[itrace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
-
-			customerTags := extractCustomerTags(customerKeys, span.Meta)
-			for k, v := range customerTags {
-				tags[k] = v
-			}
-			for k, v := range ddTags {
-				tags[k] = v
-			}
-
-			field[itrace.FIELD_RESOURCE] = span.Resource
-			field[itrace.FIELD_PARENTID] = fmt.Sprintf("%d", span.ParentID)
-			field[itrace.FIELD_TRACEID] = fmt.Sprintf("%d", span.TraceID)
-			field[itrace.FIELD_SPANID] = fmt.Sprintf("%d", span.SpanID)
-			field[itrace.FIELD_DURATION] = span.Duration / int64(time.Microsecond)
-			field[itrace.FIELD_START] = span.Start / int64(time.Microsecond)
-			if v, ok := span.Metrics["system.pid"]; ok {
-				field[itrace.FIELD_PID] = fmt.Sprintf("%v", v)
-			}
-			if buf, err := json.Marshal(span); err != nil {
-				return nil, err
-			} else {
-				field[itrace.FIELD_MSG] = string(buf)
-			}
-
-			tm.Tags = tags
-			tm.Fields = field
-			tm.TS = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
-			if pt, err := tm.LineProto(); err != nil {
-				return nil, err
-			} else {
-				pts = append(pts, pt)
-			}
+		tAdapter := &itrace.TraceAdapter{
+			TraceID:        fmt.Sprintf("%d", span.TraceID),
+			ParentID:       fmt.Sprintf("%d", span.ParentID),
+			SpanID:         fmt.Sprintf("%d", span.SpanID),
+			Service:        span.Service,
+			Resource:       span.Resource,
+			Operation:      span.Name,
+			SpanType:       itrace.FindIntIDSpanType(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
+			Type:           ddtraceSpanType[span.Type],
+			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
+			HTTPMethod:     span.Meta["http.method"],
+			HTTPStatusCode: span.Meta["http.status_code"],
+			Start:          span.Start / int64(time.Microsecond),
+			Duration:       span.Duration / int64(time.Microsecond),
 		}
+
+		if span.Meta[itrace.PROJECT] != "" {
+			tAdapter.Project = span.Meta[itrace.PROJECT]
+		} else {
+			tAdapter.Project = ddTags[itrace.PROJECT]
+		}
+
+		if span.Meta[itrace.ENV] != "" {
+			tAdapter.Env = span.Meta[itrace.ENV]
+		} else {
+			tAdapter.Env = ddTags[itrace.ENV]
+		}
+
+		if span.Meta[itrace.VERSION] != "" {
+			tAdapter.Version = span.Meta[itrace.VERSION]
+		} else {
+			tAdapter.Version = ddTags[itrace.VERSION]
+		}
+
+		if pid, ok := span.Metrics["system.pid"]; ok {
+			tAdapter.Pid = fmt.Sprintf("%f", pid)
+		}
+
+		tAdapter.Status = itrace.STATUS_OK
+		if span.Error != 0 {
+			tAdapter.Status = itrace.STATUS_ERR
+		}
+
+		tAdapter.Tags = extractCustomerTags(customerKeys, span.Meta)
+		for k, v := range ddTags {
+			tAdapter.Tags[k] = v
+		}
+
+		buf, err := json.Marshal(span)
+		if err != nil {
+			return nil, err
+		}
+		tAdapter.Content = string(buf)
+
+		group = append(group, tAdapter)
 	}
 
-	return pts, nil
+	return group, nil
 }
 
 func getSpanIDsAndParentIDs(trace Trace) (map[int64]bool, map[int64]bool) {

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
 )
@@ -81,22 +80,15 @@ func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.TraceAdapter, er
 	var group []*trace.TraceAdapter
 	for _, span := range segment.Spans {
 		adapter := &trace.TraceAdapter{
-			Duration:      (span.EndTime - span.StartTime) * int64(time.Millisecond),
-			EndPoint:      span.Peer,
-			OperationName: span.OperationName,
-			ServiceName:   segment.Service,
-			Source:        inputName,
-			SpanID:        fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
-			Start:         span.StartTime * int64(time.Millisecond),
-			Tags:          tags,
-			TraceID:       segment.TraceId,
-		}
-
-		spanInfo := &dkio.SpanInfo{
-			Toolkit:  inputName,
-			Service:  segment.Service,
-			Resource: span.OperationName,
-			Duration: time.Duration(adapter.Duration),
+			TraceID:   segment.TraceId,
+			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
+			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
+			EndPoint:  span.Peer,
+			Operation: span.OperationName,
+			Service:   segment.Service,
+			Source:    inputName,
+			Start:     span.StartTime * int64(time.Millisecond),
+			Tags:      tags,
 		}
 
 		js, err := json.Marshal(span)
@@ -126,14 +118,6 @@ func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.TraceAdapter, er
 		case skyimpl.SpanType_Exit:
 			adapter.SpanType = trace.SPAN_TYPE_EXIT
 		}
-
-		if adapter.SpanType == trace.SPAN_TYPE_ENTRY {
-			spanInfo.IsEntry = true
-			spanInfo.IsErr = span.IsError
-		}
-
-		// send span info
-		dkio.SendSpanInfo(spanInfo)
 
 		group = append(group, adapter)
 	}

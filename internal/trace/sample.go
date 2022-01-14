@@ -86,7 +86,7 @@ func MergeTags(data ...map[string]string) map[string]string {
 	return merged
 }
 
-func GetTraceID(high, low int64) int64 {
+func GetTraceInt64ID(high, low int64) int64 {
 	temp := low
 	for temp != 0 {
 		high *= 10
@@ -96,6 +96,6 @@ func GetTraceID(high, low int64) int64 {
 	return high + low
 }
 
-func GetStringTraceID(high, low int64) string {
+func GetTraceStringID(high, low int64) string {
 	return fmt.Sprintf("%d%d", high, low)
 }

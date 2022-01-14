@@ -73,7 +73,7 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&DDTraceMeasurement{}}
+	return nil
 }
 
 func (i *Input) Run() {

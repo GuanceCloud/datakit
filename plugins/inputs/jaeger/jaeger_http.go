@@ -11,7 +11,6 @@ import (
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
@@ -80,7 +79,7 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 	}
 
 	var (
-		adapterGroup       []*trace.TraceAdapter
+		group              []*trace.TraceAdapter
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(batch.Spans)
 	)
 	for _, span := range batch.Spans {
@@ -88,27 +87,19 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 			continue
 		}
 
-		spanType := trace.FindSpanType(span.SpanId, span.ParentSpanId, spanIDs, parentIDs)
 		tAdapter := &trace.TraceAdapter{
-			Duration:      span.Duration * int64(time.Microsecond),
-			Env:           env,
-			OperationName: span.OperationName,
-			Project:       project,
-			ServiceName:   batch.Process.ServiceName,
-			Source:        inputName,
-			SpanID:        fmt.Sprintf("%d", span.SpanId),
-			SpanType:      spanType,
-			Start:         span.StartTime * int64(time.Microsecond),
-			TraceID:       trace.GetStringTraceID(span.TraceIdHigh, span.TraceIdLow),
-			Version:       version,
-		}
-		spanInfo := &io.SpanInfo{
-			Toolkit:  inputName,
-			Project:  project,
-			Version:  version,
-			Service:  tAdapter.ServiceName,
-			Resource: span.OperationName,
-			Duration: time.Duration(tAdapter.Duration),
+			TraceID:   trace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
+			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
+			SpanID:    fmt.Sprintf("%d", span.SpanId),
+			Duration:  span.Duration * int64(time.Microsecond),
+			Env:       env,
+			Operation: span.OperationName,
+			Project:   project,
+			Service:   batch.Process.ServiceName,
+			Source:    inputName,
+			SpanType:  trace.FindIntIDSpanType(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			Start:     span.StartTime * int64(time.Microsecond),
+			Version:   version,
 		}
 
 		buf, err := json.Marshal(span)
@@ -116,10 +107,6 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 			return nil, err
 		}
 		tAdapter.Content = string(buf)
-
-		if span.ParentSpanId != 0 {
-			tAdapter.ParentID = fmt.Sprintf("%d", span.ParentSpanId)
-		}
 
 		tAdapter.Status = trace.STATUS_OK
 		for _, tag := range span.Tags {
@@ -130,18 +117,10 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 		}
 		tAdapter.Tags = jaegerTags
 
-		if spanType == trace.SPAN_TYPE_ENTRY {
-			spanInfo.IsEntry = true
-			spanInfo.IsErr = tAdapter.Status == trace.STATUS_ERR
-		}
-
-		// send span info
-		io.SendSpanInfo(spanInfo)
-
-		adapterGroup = append(adapterGroup, tAdapter)
+		group = append(group, tAdapter)
 	}
 
-	return adapterGroup, nil
+	return group, nil
 }
 
 func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]bool) {

@@ -55,7 +55,7 @@ func (*Input) AvailableArchs() []string {
 
 func (i *Input) SampleMeasurement() []inputs.Measurement {
 	return nil
-} // TODO
+}
 
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)

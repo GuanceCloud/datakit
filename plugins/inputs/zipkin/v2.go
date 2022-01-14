@@ -10,16 +10,17 @@ import (
 
 	// nolint:staticcheck
 	"github.com/golang/protobuf/proto"
-	zipkinmodel "github.com/openzipkin/zipkin-go/model"
-	zipkin_proto3 "github.com/openzipkin/zipkin-go/proto/v2"
+	zpkmodel "github.com/openzipkin/zipkin-go/model"
+	zpkprotov2 "github.com/openzipkin/zipkin-go/proto/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
-func parseZipkinProtobuf3(octets []byte) (zss []*zipkinmodel.SpanModel, err error) {
-	var listOfSpans zipkin_proto3.ListOfSpans
+func parseZipkinProtobuf3(octets []byte) (zss []*zpkmodel.SpanModel, err error) {
+	var listOfSpans zpkprotov2.ListOfSpans
 	if err := proto.Unmarshal(octets, &listOfSpans); err != nil {
 		return nil, err
 	}
+
 	for _, zps := range listOfSpans.Spans {
 		traceID, err := zipkinTraceIDFromHex(fmt.Sprintf("%x", zps.TraceId))
 		if err != nil {
@@ -39,16 +40,16 @@ func parseZipkinProtobuf3(octets []byte) (zss []*zipkinmodel.SpanModel, err erro
 			return nil, fmt.Errorf("expected a non-nil SpanID")
 		}
 
-		zmsc := zipkinmodel.SpanContext{
+		zmsc := zpkmodel.SpanContext{
 			TraceID:  traceID,
 			ID:       *spanIDPtr,
 			ParentID: parentSpanID,
 			Debug:    false,
 		}
-		zms := &zipkinmodel.SpanModel{
+		zms := &zpkmodel.SpanModel{
 			SpanContext:    zmsc,
 			Name:           zps.Name,
-			Kind:           zipkinmodel.Kind(zps.Kind.String()),
+			Kind:           zpkmodel.Kind(zps.Kind.String()),
 			Timestamp:      microsToTime(zps.Timestamp),
 			Tags:           zps.Tags,
 			Duration:       time.Duration(zps.Duration) * time.Microsecond,
@@ -63,7 +64,7 @@ func parseZipkinProtobuf3(octets []byte) (zss []*zipkinmodel.SpanModel, err erro
 	return zss, nil
 }
 
-func zipkinTraceIDFromHex(h string) (t zipkinmodel.TraceID, err error) {
+func zipkinTraceIDFromHex(h string) (t zpkmodel.TraceID, err error) {
 	if len(h) > 16 {
 		if t.High, err = strconv.ParseUint(h[0:len(h)-16], 16, 64); err != nil {
 			return
@@ -75,7 +76,7 @@ func zipkinTraceIDFromHex(h string) (t zipkinmodel.TraceID, err error) {
 	return
 }
 
-func zipkinSpanIDToModelSpanID(spanID []byte) (zid *zipkinmodel.ID, blank bool, err error) {
+func zipkinSpanIDToModelSpanID(spanID []byte) (zid *zpkmodel.ID, blank bool, err error) {
 	if len(spanID) == 0 {
 		return nil, true, nil
 	}
@@ -85,7 +86,7 @@ func zipkinSpanIDToModelSpanID(spanID []byte) (zid *zipkinmodel.ID, blank bool, 
 
 	// Converting [8]byte --> uint64
 	u64 := binary.BigEndian.Uint64(spanID)
-	zid_ := zipkinmodel.ID(u64)
+	zid_ := zpkmodel.ID(u64)
 	return &zid_, false, nil
 }
 
@@ -93,11 +94,11 @@ func microsToTime(us uint64) time.Time {
 	return time.Unix(0, int64(us*1e3)).UTC()
 }
 
-func protoEndpointToModelEndpoint(zpe *zipkin_proto3.Endpoint) *zipkinmodel.Endpoint {
+func protoEndpointToModelEndpoint(zpe *zpkprotov2.Endpoint) *zpkmodel.Endpoint {
 	if zpe == nil {
 		return nil
 	}
-	return &zipkinmodel.Endpoint{
+	return &zpkmodel.Endpoint{
 		ServiceName: zpe.ServiceName,
 		IPv4:        net.IP(zpe.Ipv4),
 		IPv6:        net.IP(zpe.Ipv6),
@@ -105,10 +106,10 @@ func protoEndpointToModelEndpoint(zpe *zipkin_proto3.Endpoint) *zipkinmodel.Endp
 	}
 }
 
-func protoAnnotationsToModelAnnotations(zpa []*zipkin_proto3.Annotation) (zma []zipkinmodel.Annotation) {
+func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpkmodel.Annotation) {
 	for _, za := range zpa {
 		if za != nil {
-			zma = append(zma, zipkinmodel.Annotation{
+			zma = append(zma, zpkmodel.Annotation{
 				Timestamp: microsToTime(za.Timestamp),
 				Value:     za.Value,
 			})
@@ -121,11 +122,11 @@ func protoAnnotationsToModelAnnotations(zpa []*zipkin_proto3.Annotation) (zma []
 	return zma
 }
 
-func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAdapter, error) {
+func protobufSpansToAdapters(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
 	var adapterGroup []*trace.TraceAdapter
 	for _, span := range zspans {
 		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = sourceZipkin
+		tAdapter.Source = inputName
 
 		tAdapter.Duration = int64(span.Duration)
 		tAdapter.Start = span.Timestamp.UnixNano()
@@ -136,9 +137,9 @@ func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAda
 		tAdapter.Content = string(sJSON)
 
 		if span.LocalEndpoint != nil {
-			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
+			tAdapter.Service = span.LocalEndpoint.ServiceName
 		}
-		tAdapter.OperationName = span.Name
+		tAdapter.Operation = span.Name
 
 		if span.ParentID != nil {
 			tAdapter.ParentID = fmt.Sprintf("%d", *span.ParentID)
@@ -170,7 +171,7 @@ func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAda
 			}
 		}
 
-		if span.Kind == zipkinmodel.Undetermined {
+		if span.Kind == zpkmodel.Undetermined {
 			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
 			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
@@ -183,7 +184,7 @@ func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAda
 	return adapterGroup, nil
 }
 
-func parseZipkinJSONV2(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAdapter, error) {
+func parseZipkinJSONV2(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
 	var adapterGroup []*trace.TraceAdapter
 	for _, span := range zspans {
 		tAdapter := &trace.TraceAdapter{}
@@ -198,10 +199,10 @@ func parseZipkinJSONV2(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAdapter, 
 		tAdapter.Content = string(sJSON)
 
 		if span.LocalEndpoint != nil {
-			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
+			tAdapter.Service = span.LocalEndpoint.ServiceName
 		}
 
-		tAdapter.OperationName = span.Name
+		tAdapter.Operation = span.Name
 
 		if span.ParentID != nil {
 			tAdapter.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
@@ -233,7 +234,7 @@ func parseZipkinJSONV2(zspans []*zipkinmodel.SpanModel) ([]*trace.TraceAdapter, 
 			}
 		}
 
-		if span.Kind == zipkinmodel.Undetermined {
+		if span.Kind == zpkmodel.Undetermined {
 			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
 		} else {
 			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
