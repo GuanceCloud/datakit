@@ -73,6 +73,7 @@ func zipkinTraceIDFromHex(h string) (t zpkmodel.TraceID, err error) {
 		return
 	}
 	t.Low, err = strconv.ParseUint(h, 16, 64)
+
 	return
 }
 
@@ -87,6 +88,7 @@ func zipkinSpanIDToModelSpanID(spanID []byte) (zid *zpkmodel.ID, blank bool, err
 	// Converting [8]byte --> uint64
 	u64 := binary.BigEndian.Uint64(spanID)
 	zid_ := zpkmodel.ID(u64)
+
 	return &zid_, false, nil
 }
 
@@ -98,6 +100,7 @@ func protoEndpointToModelEndpoint(zpe *zpkprotov2.Endpoint) *zpkmodel.Endpoint {
 	if zpe == nil {
 		return nil
 	}
+
 	return &zpkmodel.Endpoint{
 		ServiceName: zpe.ServiceName,
 		IPv4:        net.IP(zpe.Ipv4),
@@ -115,34 +118,23 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 			})
 		}
 	}
-
 	if len(zma) == 0 {
 		return nil
 	}
+
 	return zma
 }
 
-func protobufSpansToAdapters(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
-	var adapterGroup []*trace.TraceAdapter
-	for _, span := range zspans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = inputName
-
-		tAdapter.Duration = int64(span.Duration)
-		tAdapter.Start = span.Timestamp.UnixNano()
-		sJSON, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		tAdapter.Content = string(sJSON)
-
-		if span.LocalEndpoint != nil {
-			tAdapter.Service = span.LocalEndpoint.ServiceName
-		}
-		tAdapter.Operation = span.Name
-
-		if span.ParentID != nil {
-			tAdapter.ParentID = fmt.Sprintf("%d", *span.ParentID)
+func protobufSpansToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
+	var group []*trace.TraceAdapter
+	for _, span := range zpktrace {
+		tAdapter := &trace.TraceAdapter{
+			SpanID:    span.ID.String(),
+			Source:    inputName,
+			Operation: span.Name,
+			Start:     span.Timestamp.UnixNano(),
+			Duration:  int64(span.Duration),
+			Tags:      zipkinTags,
 		}
 
 		if span.TraceID.High != 0 {
@@ -151,11 +143,17 @@ func protobufSpansToAdapters(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapte
 			tAdapter.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
 		}
 
-		tAdapter.SpanID = fmt.Sprintf("%d", span.ID)
+		if span.ParentID != nil {
+			tAdapter.ParentID = fmt.Sprintf("%d", *span.ParentID)
+		}
+
+		if span.LocalEndpoint != nil {
+			tAdapter.Service = span.LocalEndpoint.ServiceName
+		}
 
 		tAdapter.Status = trace.STATUS_OK
 		for tag := range span.Tags {
-			if tag == statusErr {
+			if tag == trace.STATUS_ERR {
 				tAdapter.Status = trace.STATUS_ERR
 				break
 			}
@@ -165,7 +163,6 @@ func protobufSpansToAdapters(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapte
 			if len(span.RemoteEndpoint.IPv4) != 0 {
 				tAdapter.EndPoint = span.RemoteEndpoint.IPv4.String()
 			}
-
 			if len(span.RemoteEndpoint.IPv6) != 0 {
 				tAdapter.EndPoint = span.RemoteEndpoint.IPv6.String()
 			}
@@ -176,33 +173,34 @@ func protobufSpansToAdapters(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapte
 		} else {
 			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
 		}
-		tAdapter.Tags = zipkinTags
 
-		adapterGroup = append(adapterGroup, tAdapter)
-	}
-
-	return adapterGroup, nil
-}
-
-func parseZipkinJSONV2(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
-	var adapterGroup []*trace.TraceAdapter
-	for _, span := range zspans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = sourceZipkin
-
-		tAdapter.Duration = int64(span.Duration)
-		tAdapter.Start = span.Timestamp.UnixNano()
-		sJSON, err := json.Marshal(span)
+		buf, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(sJSON)
+		tAdapter.Content = string(buf)
+
+		group = append(group, tAdapter)
+	}
+
+	return group, nil
+}
+
+func parseZipkinJSONV2(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
+	var group []*trace.TraceAdapter
+	for _, span := range zspans {
+		tAdapter := &trace.TraceAdapter{
+			SpanID:    span.ID.String(),
+			Source:    inputName,
+			Operation: span.Name,
+			Start:     span.Timestamp.UnixNano(),
+			Duration:  int64(span.Duration),
+			Tags:      zipkinTags,
+		}
 
 		if span.LocalEndpoint != nil {
 			tAdapter.Service = span.LocalEndpoint.ServiceName
 		}
-
-		tAdapter.Operation = span.Name
 
 		if span.ParentID != nil {
 			tAdapter.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
@@ -214,11 +212,9 @@ func parseZipkinJSONV2(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, err
 			tAdapter.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
 		}
 
-		tAdapter.SpanID = fmt.Sprintf("%x", uint64(span.ID))
-
 		tAdapter.Status = trace.STATUS_OK
 		for tag := range span.Tags {
-			if tag == statusErr {
+			if tag == trace.STATUS_ERR {
 				tAdapter.Status = trace.STATUS_ERR
 				break
 			}
@@ -228,7 +224,6 @@ func parseZipkinJSONV2(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, err
 			if len(span.RemoteEndpoint.IPv4) != 0 {
 				tAdapter.EndPoint = span.RemoteEndpoint.IPv4.String()
 			}
-
 			if len(span.RemoteEndpoint.IPv6) != 0 {
 				tAdapter.EndPoint = span.RemoteEndpoint.IPv6.String()
 			}
@@ -240,10 +235,14 @@ func parseZipkinJSONV2(zspans []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, err
 			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
 		}
 
-		tAdapter.Tags = zipkinTags
+		buf, err := json.Marshal(span)
+		if err != nil {
+			return nil, err
+		}
+		tAdapter.Content = string(buf)
 
-		adapterGroup = append(adapterGroup, tAdapter)
+		group = append(group, tAdapter)
 	}
 
-	return adapterGroup, nil
+	return group, nil
 }
