@@ -53,6 +53,7 @@ type OffsetCheck struct {
 	skaddr6Sin6PortOk uint64
 	sknetOk           uint64
 	netnsInumOk       uint64
+	socketSkOK        uint64
 }
 
 const PROCNAMLEN = 16 // Maximum length of process name
@@ -81,6 +82,7 @@ const (
 	GUESS_SKADRR6_SIN6_PORT
 	GUESS_SK_NET
 	GUESS_NS_COMMON_INUM
+	GUESS_SOCKET_SK
 )
 
 //nolint:stylecheck
@@ -106,6 +108,8 @@ func NewGuessManger() (*manager.Manager, error) {
 				Section: "kprobe/tcp_getsockopt",
 			}, {
 				Section: "kprobe/ip_make_skb",
+			}, {
+				Section: "kprobe/sock_common_getsockopt",
 			},
 		},
 	}
@@ -139,6 +143,8 @@ func updateMapGuessStatus(m *ebpf.Map, status *OffsetGuessC) error {
 	status.saddr = [4]C.__u32{}
 	status.dport = 0
 	status.sport = 0
+	status.dport_skt = 0
+	status.sport_skt = 0
 	status.rtt = 0
 	status.rtt_var = 0
 	status.netns = 0
@@ -209,6 +215,8 @@ func copyOffset(src *OffsetGuessC, dst *OffsetGuessC) {
 
 	dst.offset_sk_net = src.offset_sk_net
 	dst.offset_ns_common_inum = src.offset_ns_common_inum
+
+	dst.offset_socket_sk = src.offset_socket_sk
 }
 
 //nolint:gocyclo
@@ -272,6 +280,18 @@ func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhi
 			return false
 		} else {
 			check.tcpSkMdevUsOk++
+		}
+	case GUESS_SOCKET_SK:
+		if !(check.inetSportOk > MINSUCCESS && check.skDportOk > MINSUCCESS) {
+			return false
+		}
+		if !(conn.Sport == uint16(status.sport_skt) &&
+			conn.Dport == uint16(status.dport_skt)) {
+			status.offset_socket_sk++
+			check.socketSkOK = 0
+			return false
+		} else {
+			check.socketSkOK++
 		}
 	case GUESS_FLOWI4_SADDR:
 		if conn.Saddr != *(*[4]uint32)(unsafe.Pointer(&status.saddr)) {
