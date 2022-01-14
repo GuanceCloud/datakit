@@ -133,9 +133,9 @@ func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
 	return zc
 }
 
-func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.TraceAdapter, error) {
+func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.DatakitSpan, error) {
 	var (
-		group              []*trace.TraceAdapter
+		group              []*trace.DatakitSpan
 		spanIDs, parentIDs = getZpkCoreV1SpanIDsAndParentIDs(zpktrace)
 	)
 	for _, span := range zpktrace {
@@ -143,7 +143,7 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.TraceAdapter, e
 			continue
 		}
 
-		tAdapter := &trace.TraceAdapter{
+		tAdapter := &trace.DatakitSpan{
 			TraceID:   fmt.Sprintf("%d", uint64(span.TraceID)),
 			SpanID:    fmt.Sprintf("%d", uint64(span.ID)),
 			Operation: span.Name,
@@ -212,9 +212,9 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.TraceAdapter, e
 	return group, nil
 }
 
-func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.TraceAdapter, error) {
+func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.DatakitSpan, error) {
 	var (
-		group              []*trace.TraceAdapter
+		group              []*trace.DatakitSpan
 		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
 	)
 	for _, span := range zpktrace {
@@ -222,7 +222,7 @@ func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.TraceAdapter, err
 			continue
 		}
 
-		tAdapter := &trace.TraceAdapter{
+		tAdapter := &trace.DatakitSpan{
 			TraceID:   span.TraceID,
 			SpanID:    span.ID,
 			ParentID:  span.ParentID,

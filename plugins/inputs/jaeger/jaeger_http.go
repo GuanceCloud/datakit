@@ -66,7 +66,7 @@ func parseJaegerThrift(octets []byte) error {
 	return nil
 }
 
-func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
+func batchToAdapters(batch *jaeger.Batch) ([]*trace.DatakitSpan, error) {
 	project, version, env := getExpandInfo(batch)
 	if project == "" {
 		project = jaegerTags[trace.PROJECT]
@@ -79,7 +79,7 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 	}
 
 	var (
-		group              []*trace.TraceAdapter
+		group              []*trace.DatakitSpan
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(batch.Spans)
 	)
 	for _, span := range batch.Spans {
@@ -87,7 +87,7 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
 			continue
 		}
 
-		tAdapter := &trace.TraceAdapter{
+		tAdapter := &trace.DatakitSpan{
 			TraceID:   trace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
 			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
 			SpanID:    fmt.Sprintf("%d", span.SpanId),

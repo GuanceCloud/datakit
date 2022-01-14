@@ -33,7 +33,7 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	var group []*trace.TraceAdapter
+	var group []*trace.DatakitSpan
 	switch reqInfo.ContentType {
 	case "application/x-thrift":
 		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
@@ -95,7 +95,7 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var (
-		group     []*trace.TraceAdapter
+		group     []*trace.DatakitSpan
 		zpkmodels []*zpkmodel.SpanModel
 	)
 	switch reqInfo.ContentType {

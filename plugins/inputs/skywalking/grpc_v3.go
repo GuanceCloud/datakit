@@ -76,10 +76,10 @@ func (*TraceReportServerV3) CollectInSync(
 	return &skyimpl.Commands{}, nil
 }
 
-func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.TraceAdapter, error) {
-	var group []*trace.TraceAdapter
+func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.DatakitSpan, error) {
+	var group []*trace.DatakitSpan
 	for _, span := range segment.Spans {
-		adapter := &trace.TraceAdapter{
+		adapter := &trace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),

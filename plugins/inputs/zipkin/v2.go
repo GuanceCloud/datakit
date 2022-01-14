@@ -125,10 +125,10 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 	return zma
 }
 
-func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
-	var group []*trace.TraceAdapter
+func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.DatakitSpan, error) {
+	var group []*trace.DatakitSpan
 	for _, span := range zpktrace {
-		tAdapter := &trace.TraceAdapter{
+		tAdapter := &trace.DatakitSpan{
 			SpanID:    span.ID.String(),
 			Source:    inputName,
 			Operation: span.Name,

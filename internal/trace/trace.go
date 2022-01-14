@@ -1,4 +1,3 @@
-// Package trace wrap all APM related protocol converion functions.
 package trace
 
 import (
@@ -62,7 +61,7 @@ const (
 
 var log = logger.DefaultSLogger("trace")
 
-type TraceAdapter struct {
+type DatakitSpan struct {
 	TraceID        string
 	ParentID       string
 	SpanID         string
@@ -115,7 +114,7 @@ func FindStringIDSpanType(spanID, parentID string, spanIDs, parentIDs map[string
 	return SPAN_TYPE_ENTRY
 }
 
-func BuildLineProto(tAdapter *TraceAdapter) (*dkio.Point, error) {
+func BuildLineProto(tAdapter *DatakitSpan) (*dkio.Point, error) {
 	var (
 		tags   = make(map[string]string)
 		fields = make(map[string]interface{})
@@ -178,7 +177,7 @@ func BuildLineProto(tAdapter *TraceAdapter) (*dkio.Point, error) {
 	return pt, err
 }
 
-func MkLineProto(group []*TraceAdapter, inputName string) {
+func MkLineProto(group []*DatakitSpan, inputName string) {
 	var pts []*dkio.Point
 	for _, tAdpt := range group {
 		if pt, err := BuildLineProto(tAdpt); err == nil {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 const (
@@ -120,23 +121,30 @@ func startTracingStatWorker(d time.Duration) {
 	}()
 }
 
-func SendSpanInfo(sinfo *SpanInfo) {
-	if sinfo == nil {
+func SendTraceInfo(trace []*trace.DatakitSpan) {
+	if len(trace) == 0 {
 		return
 	}
 
-	var (
-		timeout = time.NewTimer(sendTimeout)
-		retry   = retry
-	)
-	for ; retry > 0; retry-- {
-		select {
-		case <-timeout.C:
-			timeout = time.NewTimer(sendTimeout)
-		case spanInfoChan <- sinfo:
-			return
-		}
-	}
-
-	log.Error(ErrSendSpanInfoFailed.Error())
 }
+
+// func SendSpanInfo(sinfo *SpanInfo) {
+// 	if sinfo == nil {
+// 		return
+// 	}
+
+// 	var (
+// 		timeout = time.NewTimer(sendTimeout)
+// 		retry   = retry
+// 	)
+// 	for ; retry > 0; retry-- {
+// 		select {
+// 		case <-timeout.C:
+// 			timeout = time.NewTimer(sendTimeout)
+// 		case spanInfoChan <- sinfo:
+// 			return
+// 		}
+// 	}
+
+// 	log.Error(ErrSendSpanInfoFailed.Error())
+// }
