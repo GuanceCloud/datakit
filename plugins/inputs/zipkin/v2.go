@@ -125,7 +125,7 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 	return zma
 }
 
-func protobufSpansToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
+func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
 	var group []*trace.TraceAdapter
 	for _, span := range zpktrace {
 		tAdapter := &trace.TraceAdapter{
@@ -149,67 +149,6 @@ func protobufSpansToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.TraceAdap
 
 		if span.LocalEndpoint != nil {
 			tAdapter.Service = span.LocalEndpoint.ServiceName
-		}
-
-		tAdapter.Status = trace.STATUS_OK
-		for tag := range span.Tags {
-			if tag == trace.STATUS_ERR {
-				tAdapter.Status = trace.STATUS_ERR
-				break
-			}
-		}
-
-		if span.RemoteEndpoint != nil {
-			if len(span.RemoteEndpoint.IPv4) != 0 {
-				tAdapter.EndPoint = span.RemoteEndpoint.IPv4.String()
-			}
-			if len(span.RemoteEndpoint.IPv6) != 0 {
-				tAdapter.EndPoint = span.RemoteEndpoint.IPv6.String()
-			}
-		}
-
-		if span.Kind == zpkmodel.Undetermined {
-			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
-		} else {
-			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
-		}
-
-		buf, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		tAdapter.Content = string(buf)
-
-		group = append(group, tAdapter)
-	}
-
-	return group, nil
-}
-
-func parseZipkinJsonV2(zpktrace []*zpkmodel.SpanModel) ([]*trace.TraceAdapter, error) {
-	var group []*trace.TraceAdapter
-	for _, span := range zpktrace {
-		tAdapter := &trace.TraceAdapter{
-			SpanID:    span.ID.String(),
-			Source:    inputName,
-			Operation: span.Name,
-			Start:     span.Timestamp.UnixNano(),
-			Duration:  int64(span.Duration),
-			Tags:      zipkinTags,
-		}
-
-		if span.LocalEndpoint != nil {
-			tAdapter.Service = span.LocalEndpoint.ServiceName
-		}
-
-		if span.ParentID != nil {
-			tAdapter.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
-		}
-
-		if span.TraceID.High != 0 {
-			tAdapter.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
-		} else {
-			tAdapter.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
 		}
 
 		tAdapter.Status = trace.STATUS_OK

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	zipkinmodel "github.com/openzipkin/zipkin-go/model"
+	zpkmodel "github.com/openzipkin/zipkin-go/model"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -94,34 +94,27 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	var group []*trace.TraceAdapter
+	var (
+		group     []*trace.TraceAdapter
+		zpkmodels []*zpkmodel.SpanModel
+	)
 	switch reqInfo.ContentType {
 	case "application/x-protobuf":
-		zspans, err := parseZipkinProtobuf3(reqInfo.Body)
-		if err != nil {
-			log.Errorf("parseZipkinProtobuf3: %s", err.Error())
-
-			return err
-		}
-		if group, err = protobufSpansToAdapters(zspans); err != nil {
-			log.Errorf("protobufSpansToAdapters: %s", err.Error())
-
-			return err
+		if zpkmodels, err = parseZipkinProtobuf3(reqInfo.Body); err == nil {
+			group, err = spanModelsToAdapters(zpkmodels)
 		}
 	case "application/json":
-		zspans := []*zipkinmodel.SpanModel{}
-		if err := json.Unmarshal(reqInfo.Body, &zspans); err != nil {
-			log.Errorf("json.Unmarshal: %s", err.Error())
-
-			return err
-		}
-		if group, err = parseZipkinJsonV2(zspans); err != nil {
-			log.Errorf("parseZipkinJsonV2: %s", err.Error())
-
-			return err
+		if err = json.Unmarshal(reqInfo.Body, &zpkmodels); err == nil {
+			group, err = spanModelsToAdapters(zpkmodels)
 		}
 	default:
 		return fmt.Errorf("zipkin V2 unsupported Content-Type: %s", reqInfo.ContentType)
+	}
+
+	if err != nil {
+		log.Errorf("convert trace to adapters failed: %s", err.Error())
+
+		return err
 	}
 
 	if len(group) != 0 {
