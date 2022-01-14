@@ -12,7 +12,7 @@ import (
 
 	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
 var ddtraceSpanType = map[string]string{
@@ -112,7 +112,6 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 			if len(dkspans) != 0 {
 				itrace.MkLineProto(dkspans, inputName)
-
 			} else {
 				log.Warn("empty trace")
 			}

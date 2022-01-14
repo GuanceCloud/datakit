@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	zpkcorev1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
 )
 
@@ -133,9 +133,9 @@ func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
 	return zc
 }
 
-func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.DatakitSpan, error) {
+func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*itrace.DatakitSpan, error) {
 	var (
-		dkspans            []*trace.DatakitSpan
+		dkspans            []*itrace.DatakitSpan
 		spanIDs, parentIDs = getZpkCoreV1SpanIDsAndParentIDs(zpktrace)
 	)
 	for _, span := range zpktrace {
@@ -143,12 +143,12 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.DatakitSpan, er
 			continue
 		}
 
-		dkspan := &trace.DatakitSpan{
+		dkspan := &itrace.DatakitSpan{
 			TraceID:   fmt.Sprintf("%d", uint64(span.TraceID)),
 			SpanID:    fmt.Sprintf("%d", uint64(span.ID)),
 			Operation: span.Name,
 			Source:    inputName,
-			SpanType:  trace.FindIntIDSpanType(span.ID, *span.ParentID, spanIDs, parentIDs),
+			SpanType:  itrace.FindIntIDSpanType(span.ID, *span.ParentID, spanIDs, parentIDs),
 			Tags:      zipkinTags,
 		}
 
@@ -183,9 +183,9 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.DatakitSpan, er
 			}
 		}
 
-		dkspan.Status = trace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		if _, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "error"); ok {
-			dkspan.Status = trace.STATUS_ERR
+			dkspan.Status = itrace.STATUS_ERR
 		}
 
 		if resource, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {
@@ -212,9 +212,9 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*trace.DatakitSpan, er
 	return dkspans, nil
 }
 
-func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.DatakitSpan, error) {
+func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*itrace.DatakitSpan, error) {
 	var (
-		dkspans            []*trace.DatakitSpan
+		dkspans            []*itrace.DatakitSpan
 		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
 	)
 	for _, span := range zpktrace {
@@ -222,12 +222,12 @@ func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.DatakitSpan, erro
 			continue
 		}
 
-		dkspan := &trace.DatakitSpan{
+		dkspan := &itrace.DatakitSpan{
 			TraceID:   span.TraceID,
 			SpanID:    span.ID,
 			ParentID:  span.ParentID,
 			Source:    inputName,
-			SpanType:  trace.FindStringIDSpanType(span.ID, span.ParentID, spanIDs, parentIDs),
+			SpanType:  itrace.FindStringIDSpanType(span.ID, span.ParentID, spanIDs, parentIDs),
 			Operation: span.Name,
 			Start:     getFirstTimestamp(span),
 			Duration:  span.Duration * int64(time.Microsecond),
@@ -252,9 +252,9 @@ func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*trace.DatakitSpan, erro
 			}
 		}
 
-		dkspan.Status = trace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		if _, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "error"); ok {
-			dkspan.Status = trace.STATUS_ERR
+			dkspan.Status = itrace.STATUS_ERR
 		}
 
 		if resource, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {

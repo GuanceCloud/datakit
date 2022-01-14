@@ -112,12 +112,10 @@ func NewIO() *IO {
 		in:                   make(chan *iodata, 128),
 		in2:                  make(chan *iodata, 128*8),
 		inLastErr:            make(chan *lastError, 128),
-
-		inputstats: map[string]*InputsStat{},
-		qstatsCh:   make(chan *qinputStats), // blocking
-
-		cache:        map[string][]*Point{},
-		dynamicCache: map[string][]*Point{},
+		inputstats:           map[string]*InputsStat{},
+		qstatsCh:             make(chan *qinputStats), // blocking
+		cache:                map[string][]*Point{},
+		dynamicCache:         map[string][]*Point{},
 	}
 
 	log.Debugf("IO: %+#v", x)
@@ -409,9 +407,6 @@ func (x *IO) StartIO(recoverable bool) {
 	if !DisableLogFilter {
 		defLogfilter.start()
 	}
-
-	// start tracing statistic worker
-	startTracingStatWorker(30 * time.Second)
 
 	log.Info("starting...")
 }

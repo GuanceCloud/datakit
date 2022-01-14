@@ -7,8 +7,8 @@ import (
 	"runtime/debug"
 
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
 func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
@@ -28,12 +28,12 @@ func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
-	reqInfo, err := trace.ParseTraceInfo(r)
+	reqInfo, err := itrace.ParseTraceInfo(r)
 	if err != nil {
 		return err
 	}
 
-	var dkspans []*trace.DatakitSpan
+	var dkspans []*itrace.DatakitSpan
 	switch reqInfo.ContentType {
 	case "application/x-thrift":
 		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
@@ -65,7 +65,7 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if len(dkspans) != 0 {
-		trace.MkLineProto(dkspans, inputName)
+		itrace.MkLineProto(dkspans, inputName)
 	} else {
 		log.Debug("empty zipkin v1 spans")
 	}
@@ -89,13 +89,13 @@ func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
-	reqInfo, err := trace.ParseTraceInfo(r)
+	reqInfo, err := itrace.ParseTraceInfo(r)
 	if err != nil {
 		return err
 	}
 
 	var (
-		dkspans   []*trace.DatakitSpan
+		dkspans   []*itrace.DatakitSpan
 		zpkmodels []*zpkmodel.SpanModel
 	)
 	switch reqInfo.ContentType {
@@ -118,7 +118,7 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if len(dkspans) != 0 {
-		trace.MkLineProto(dkspans, inputName)
+		itrace.MkLineProto(dkspans, inputName)
 	} else {
 		log.Warn("empty zipkin v2 spans")
 	}

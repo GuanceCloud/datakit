@@ -12,7 +12,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
 	zpkprotov2 "github.com/openzipkin/zipkin-go/proto/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
 func parseZipkinProtobuf3(octets []byte) (zss []*zpkmodel.SpanModel, err error) {
@@ -125,10 +125,10 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 	return zma
 }
 
-func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.DatakitSpan, error) {
-	var dkspans []*trace.DatakitSpan
+func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*itrace.DatakitSpan, error) {
+	var dkspans []*itrace.DatakitSpan
 	for _, span := range zpktrace {
-		dkspan := &trace.DatakitSpan{
+		dkspan := &itrace.DatakitSpan{
 			SpanID:    span.ID.String(),
 			Source:    inputName,
 			Operation: span.Name,
@@ -151,10 +151,10 @@ func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.DatakitSpan,
 			dkspan.Service = span.LocalEndpoint.ServiceName
 		}
 
-		dkspan.Status = trace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		for tag := range span.Tags {
-			if tag == trace.STATUS_ERR {
-				dkspan.Status = trace.STATUS_ERR
+			if tag == itrace.STATUS_ERR {
+				dkspan.Status = itrace.STATUS_ERR
 				break
 			}
 		}
@@ -169,9 +169,9 @@ func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*trace.DatakitSpan,
 		}
 
 		if span.Kind == zpkmodel.Undetermined {
-			dkspan.SpanType = trace.SPAN_TYPE_LOCAL
+			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
 		} else {
-			dkspan.SpanType = trace.SPAN_TYPE_ENTRY
+			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		}
 
 		buf, err := json.Marshal(span)

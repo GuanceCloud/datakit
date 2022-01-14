@@ -10,7 +10,7 @@ import (
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
 func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
@@ -23,20 +23,20 @@ func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	reqInfo, err := trace.ParseTraceInfo(req)
+	treqinfo, err := itrace.ParseTraceInfo(req)
 	if err != nil {
 		log.Error(err.Error())
 
 		return
 	}
 
-	if reqInfo.ContentType != "application/x-thrift" {
-		log.Errorf("Jeager unsupported Content-Type: %s", reqInfo.ContentType)
+	if treqinfo.ContentType != "application/x-thrift" {
+		log.Errorf("Jeager unsupported Content-Type: %s", treqinfo.ContentType)
 
 		return
 	}
 
-	if err = parseJaegerThrift(reqInfo.Body); err != nil {
+	if err = parseJaegerThrift(treqinfo.Body); err != nil {
 		log.Error(err.Error())
 	}
 }
@@ -58,7 +58,7 @@ func parseJaegerThrift(octets []byte) error {
 	}
 
 	if len(dkspans) != 0 {
-		trace.MkLineProto(dkspans, inputName)
+		itrace.MkLineProto(dkspans, inputName)
 	} else {
 		log.Warn("empty batch")
 	}
@@ -66,20 +66,20 @@ func parseJaegerThrift(octets []byte) error {
 	return nil
 }
 
-func batchToAdapters(batch *jaeger.Batch) ([]*trace.DatakitSpan, error) {
+func batchToAdapters(batch *jaeger.Batch) ([]*itrace.DatakitSpan, error) {
 	project, version, env := getExpandInfo(batch)
 	if project == "" {
-		project = jaegerTags[trace.PROJECT]
+		project = jaegerTags[itrace.PROJECT]
 	}
 	if version == "" {
-		version = jaegerTags[trace.VERSION]
+		version = jaegerTags[itrace.VERSION]
 	}
 	if env == "" {
-		env = jaegerTags[trace.ENV]
+		env = jaegerTags[itrace.ENV]
 	}
 
 	var (
-		dkspans            []*trace.DatakitSpan
+		dkspans            []*itrace.DatakitSpan
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(batch.Spans)
 	)
 	for _, span := range batch.Spans {
@@ -87,8 +87,8 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.DatakitSpan, error) {
 			continue
 		}
 
-		dkspan := &trace.DatakitSpan{
-			TraceID:   trace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
+		dkspan := &itrace.DatakitSpan{
+			TraceID:   itrace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
 			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
 			SpanID:    fmt.Sprintf("%d", span.SpanId),
 			Duration:  span.Duration * int64(time.Microsecond),
@@ -97,7 +97,7 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.DatakitSpan, error) {
 			Project:   project,
 			Service:   batch.Process.ServiceName,
 			Source:    inputName,
-			SpanType:  trace.FindIntIDSpanType(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			SpanType:  itrace.FindIntIDSpanType(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
 			Start:     span.StartTime * int64(time.Microsecond),
 			Version:   version,
 		}
@@ -108,10 +108,10 @@ func batchToAdapters(batch *jaeger.Batch) ([]*trace.DatakitSpan, error) {
 		}
 		dkspan.Content = string(buf)
 
-		dkspan.Status = trace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				dkspan.Status = trace.STATUS_ERR
+				dkspan.Status = itrace.STATUS_ERR
 				break
 			}
 		}
@@ -150,15 +150,15 @@ func getExpandInfo(batch *jaeger.Batch) (project, ver, env string) {
 			continue
 		}
 
-		if tag.Key == trace.PROJECT {
+		if tag.Key == itrace.PROJECT {
 			project = fmt.Sprintf("%v", getValueString(tag))
 		}
 
-		if tag.Key == trace.VERSION {
+		if tag.Key == itrace.VERSION {
 			ver = fmt.Sprintf("%v", getValueString(tag))
 		}
 
-		if tag.Key == trace.ENV {
+		if tag.Key == itrace.ENV {
 			env = fmt.Sprintf("%v", getValueString(tag))
 		}
 	}

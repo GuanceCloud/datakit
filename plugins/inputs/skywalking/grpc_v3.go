@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
 )
@@ -61,7 +61,7 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 		}
 
 		if len(dkspans) != 0 {
-			trace.MkLineProto(dkspans, inputName)
+			itrace.MkLineProto(dkspans, inputName)
 		} else {
 			log.Warnf("empty v3 segment")
 		}
@@ -76,10 +76,10 @@ func (*TraceReportServerV3) CollectInSync(
 	return &skyimpl.Commands{}, nil
 }
 
-func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.DatakitSpan, error) {
-	var dkspans []*trace.DatakitSpan
+func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*itrace.DatakitSpan, error) {
+	var dkspans []*itrace.DatakitSpan
 	for _, span := range segment.Spans {
-		dkspan := &trace.DatakitSpan{
+		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
@@ -105,18 +105,18 @@ func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.DatakitSpan, err
 			dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
 		}
 
-		dkspan.Status = trace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		if span.IsError {
-			dkspan.Status = trace.STATUS_ERR
+			dkspan.Status = itrace.STATUS_ERR
 		}
 
 		switch span.SpanType {
 		case skyimpl.SpanType_Entry:
-			dkspan.SpanType = trace.SPAN_TYPE_ENTRY
+			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		case skyimpl.SpanType_Local:
-			dkspan.SpanType = trace.SPAN_TYPE_LOCAL
+			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
 		case skyimpl.SpanType_Exit:
-			dkspan.SpanType = trace.SPAN_TYPE_EXIT
+			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		}
 
 		dkspans = append(dkspans, dkspan)

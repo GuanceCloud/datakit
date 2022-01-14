@@ -5,7 +5,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -31,12 +31,12 @@ var (
 )
 
 type Input struct {
-	Path             string                     `toml:"path"`           // deprecated
-	UDPAgent         string                     `toml:"udp_agent"`      // deprecated
-	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs"` // deprecated
-	Endpoint         string                     `toml:"endpoint"`
-	Address          string                     `toml:"address"`
-	Tags             map[string]string          `toml:"tags"`
+	Path             string                      `toml:"path"`           // deprecated
+	UDPAgent         string                      `toml:"udp_agent"`      // deprecated
+	TraceSampleConfs []*itrace.TraceSampleConfig `toml:"sample_configs"` // deprecated
+	Endpoint         string                      `toml:"endpoint"`
+	Address          string                      `toml:"address"`
+	Tags             map[string]string           `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
