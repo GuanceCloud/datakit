@@ -4,6 +4,7 @@ package zipkin
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -53,6 +54,7 @@ func (t *Input) Run() {
 }
 
 func (t *Input) RegHTTPHandler() {
+	itrace.StartTracingStatistic()
 	if t.PathV1 == "" {
 		t.PathV1 = defaultZipkinPathV1
 	}

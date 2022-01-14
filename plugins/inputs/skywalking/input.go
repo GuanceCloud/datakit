@@ -4,6 +4,7 @@ package skywalking
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -69,6 +70,9 @@ func (i *Input) Run() {
 	}
 
 	log.Debug("start skywalking grpc v3 server")
+
+	itrace.StartTracingStatistic()
+
 	go runServerV3(i.Address)
 }
 

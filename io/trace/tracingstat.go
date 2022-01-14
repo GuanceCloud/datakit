@@ -3,6 +3,7 @@ package trace
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -29,15 +30,27 @@ type TracingInfo struct {
 var ErrSendSpanInfoFailed = errors.New("send span information failed")
 
 var (
-	statUnit                      = make(map[string]*TracingInfo)
-	tracingInfoChan               = make(chan *TracingInfo, 100)
+	once            = sync.Once{}
+	statUnit        map[string]*TracingInfo
+	tracingInfoChan chan *TracingInfo
+	calcInterval                  = 30 * time.Second
 	sendTimeout     time.Duration = time.Second
 	retry           int           = 3
+	isWorkerReady   bool          = false
 )
 
-func startTracingStatWorker(d time.Duration) {
+func StartTracingStatistic() {
+	once.Do(func() {
+		statUnit = make(map[string]*TracingInfo)
+		tracingInfoChan = make(chan *TracingInfo, 100)
+		startTracingStatWorker(calcInterval)
+		isWorkerReady = true
+	})
+}
+
+func startTracingStatWorker(interval time.Duration) {
 	go func() {
-		tick := time.NewTicker(d)
+		tick := time.NewTicker(interval)
 		for range tick.C {
 			sendTracingInfo(&TracingInfo{
 				key:    "recalc",
@@ -74,7 +87,7 @@ func startTracingStatWorker(d time.Duration) {
 }
 
 func CalcTracingInfo(dkspans []*DatakitSpan) {
-	if len(dkspans) == 0 {
+	if !isWorkerReady || len(dkspans) == 0 {
 		return
 	}
 

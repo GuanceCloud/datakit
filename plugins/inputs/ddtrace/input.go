@@ -113,19 +113,25 @@ func (i *Input) Run() {
 }
 
 func (i *Input) RegHTTPHandler() {
+	var isReg bool
 	for _, endpoint := range i.Endpoints {
 		switch endpoint {
 		case v3, v4, v5:
+			isReg = true
 			http.RegHTTPHandler("POST", endpoint, handleTraces(endpoint))
 			http.RegHTTPHandler("PUT", endpoint, handleTraces(endpoint))
 			log.Infof("pattern %s registered", endpoint)
 		case v6:
+			isReg = true
 			http.RegHTTPHandler("POST", endpoint, handleStats)
 			http.RegHTTPHandler("PUT", endpoint, handleStats)
 			log.Infof("pattern %s registered", endpoint)
 		default:
 			log.Errorf("unrecognized ddtrace agent endpoint")
 		}
+	}
+	if isReg {
+		itrace.StartTracingStatistic()
 	}
 }
 

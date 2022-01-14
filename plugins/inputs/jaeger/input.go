@@ -72,6 +72,7 @@ func (t *Input) Run() {
 
 func (t *Input) RegHTTPHandler() {
 	if t.Endpoint != "" {
+		itrace.StartTracingStatistic()
 		http.RegHTTPHandler("POST", t.Endpoint, JaegerTraceHandle)
 	}
 }
