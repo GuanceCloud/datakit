@@ -111,6 +111,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 			}
 
 			if len(dktrace) != 0 {
+				itrace.CalcTracingInfo(dktrace)
 				itrace.MkLineProto(dktrace, inputName)
 			} else {
 				log.Warn("empty trace")
