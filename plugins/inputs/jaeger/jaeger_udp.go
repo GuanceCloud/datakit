@@ -60,7 +60,7 @@ func StartUDPAgent(addr string) error {
 			continue
 		}
 		if len(groups) != 0 {
-			itrace.MkLineProto(groups, inputName)
+			itrace.MakeLineProto(groups, inputName)
 		} else {
 			log.Debug("empty batch")
 		}

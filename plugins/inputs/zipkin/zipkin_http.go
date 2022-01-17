@@ -65,7 +65,7 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if len(dktrace) != 0 {
-		itrace.MkLineProto(dktrace, inputName)
+		itrace.MakeLineProto(dktrace, inputName)
 	} else {
 		log.Debug("empty zipkin v1 spans")
 	}
@@ -118,7 +118,7 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if len(dktrace) != 0 {
-		itrace.MkLineProto(dktrace, inputName)
+		itrace.MakeLineProto(dktrace, inputName)
 	} else {
 		log.Warn("empty zipkin v2 spans")
 	}

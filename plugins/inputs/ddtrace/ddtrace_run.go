@@ -95,6 +95,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 		log.Debugf("show up all traces: %v", traces)
 
+		var dktraces itrace.DatakitTrace
 		for _, trace := range traces {
 			if len(trace) == 0 {
 				continue
@@ -112,10 +113,15 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 			if len(dktrace) != 0 {
 				itrace.CalcTracingInfo(dktrace)
-				itrace.MkLineProto(dktrace, inputName)
+				dktraces = append(dktraces, dktrace...)
 			} else {
 				log.Warn("empty trace")
 			}
+		}
+		if len(dktraces) != 0 {
+			itrace.MakeLineProto(dktraces, inputName)
+		} else {
+			log.Warn("empty traces")
 		}
 
 		resp.WriteHeader(http.StatusOK)

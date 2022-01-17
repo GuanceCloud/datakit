@@ -58,7 +58,7 @@ func parseJaegerThrift(octets []byte) error {
 	}
 
 	if len(dkspans) != 0 {
-		itrace.MkLineProto(dkspans, inputName)
+		itrace.MakeLineProto(dkspans, inputName)
 	} else {
 		log.Warn("empty batch")
 	}

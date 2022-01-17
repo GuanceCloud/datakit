@@ -179,7 +179,7 @@ func BuildLineProto(tAdapter *DatakitSpan) (*dkio.Point, error) {
 	return pt, err
 }
 
-func MkLineProto(dktrace DatakitTrace, inputName string) {
+func MakeLineProto(dktrace DatakitTrace, inputName string) {
 	var pts []*dkio.Point
 	for _, dkspan := range dktrace {
 		if pt, err := BuildLineProto(dkspan); err == nil {

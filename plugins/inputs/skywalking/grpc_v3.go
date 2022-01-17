@@ -61,7 +61,7 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 		}
 
 		if len(dkspans) != 0 {
-			itrace.MkLineProto(dkspans, inputName)
+			itrace.MakeLineProto(dkspans, inputName)
 		} else {
 			log.Warnf("empty v3 segment")
 		}
