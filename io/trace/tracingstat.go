@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
-	tracing_stat_name = "tracingstat"
+	tracing_stat_name = "tracing_stat"
 )
 
 type TracingInfo struct {
@@ -71,7 +71,7 @@ func startTracingStatWorker(interval time.Duration) {
 				if len(pts) == 0 {
 					log.Warn("empty tracing stat unit")
 				} else {
-					if err := io.Feed(tracing_stat_name, datakit.Tracing, pts, nil); err != nil {
+					if err := dkio.Feed(tracing_stat_name, datakit.Tracing, pts, nil); err != nil {
 						log.Error(err.Error())
 					}
 				}
@@ -142,8 +142,8 @@ func sendTracingInfo(tinfo *TracingInfo) {
 	}
 }
 
-func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*io.Point {
-	var pts []*io.Point
+func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*dkio.Point {
+	var pts []*dkio.Point
 	for _, tinfo := range tinfos {
 		var (
 			tags   = make(map[string]string)
@@ -159,7 +159,7 @@ func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*io.Point {
 		fields["err_count"] = -tinfo.ErrCount
 		fields["duration_avg"] = tinfo.DurationAvg / int64(tinfo.RequestCount)
 
-		if pt, err := io.MakePoint(tracing_stat_name, tags, fields, time.Now()); err != nil {
+		if pt, err := dkio.MakePoint(tracing_stat_name, tags, fields, time.Now()); err != nil {
 			log.Error(err.Error())
 		} else {
 			pts = append(pts, pt)
