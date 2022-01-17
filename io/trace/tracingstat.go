@@ -149,7 +149,7 @@ func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*io.Point {
 			tags   = make(map[string]string)
 			fields = make(map[string]interface{})
 		)
-		tags["toolkit"] = tinfo.Source
+		tags["source"] = tinfo.Source
 		tags["project"] = tinfo.Project
 		tags["version"] = tinfo.Version
 		tags["service"] = tinfo.Service
