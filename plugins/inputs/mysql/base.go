@@ -263,6 +263,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"Key_cache_utilization": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.Percent,
 				Desc:     "The key cache utilization ratio.",
 			},
 			"max_connections": &inputs.FieldInfo{

@@ -403,18 +403,6 @@ func TestFeedEnvs(t *testing.T) {
 		},
 
 		{
-			str:    "this is env from os:  $$TEST_ENV_2",
-			env:    map[string]string{},
-			expect: "this is env from os:  $no-value",
-		},
-
-		{
-			str:    "this is env from os:  $TEST_ENV_2",
-			env:    map[string]string{},
-			expect: "this is env from os:  no-value",
-		},
-
-		{
 			str: "this is env from os:  $TEST_ENV_2",
 			env: map[string]string{
 				"TEST_ENV_2": "test-data2",

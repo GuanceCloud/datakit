@@ -560,29 +560,28 @@ func (i *Input) Run() {
 			l.Debugf("not leader, skipped")
 		} else {
 			l.Debugf("mysql input gathering...")
-		}
+			l.Debugf("mysql input gathering...")
 
-		l.Debugf("mysql input gathering...")
+			i.resetLastError()
 
-		i.resetLastError()
-
-		mpts, err := i.Collect()
-		if err != nil {
-			l.Warnf("i.Collect failed: %v", err)
-			io.FeedLastError(inputName, err.Error())
-		}
-
-		for category, pts := range mpts {
-			if len(pts) > 0 {
-				if err := io.Feed(inputName, category, pts,
-					&io.Option{CollectCost: time.Since(i.start)}); err != nil {
-					l.Warnf("io.Feed failed: %v", err)
-					io.FeedLastError(inputName, err.Error())
-				} // if err
+			mpts, err := i.Collect()
+			if err != nil {
+				l.Warnf("i.Collect failed: %v", err)
+				io.FeedLastError(inputName, err.Error())
 			}
-		} // for
 
-		i.handleLastError()
+			for category, pts := range mpts {
+				if len(pts) > 0 {
+					if err := io.Feed(inputName, category, pts,
+						&io.Option{CollectCost: time.Since(i.start)}); err != nil {
+						l.Warnf("io.Feed failed: %v", err)
+						io.FeedLastError(inputName, err.Error())
+					} // if err
+				}
+			} // for
+
+			i.handleLastError()
+		}
 
 		select {
 		case <-datakit.Exit.Wait():

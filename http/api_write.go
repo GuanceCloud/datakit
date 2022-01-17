@@ -242,12 +242,19 @@ func (std *HTTPTaskData) Handler(result *worker.Result) error {
 		result.SetTag(k, v)
 	}
 	fields, err := std.point.Fields()
-	if err != nil {
+	if err == nil {
 		for k, i := range fields {
 			result.SetField(k, i)
 		}
+
+		// no time exist in pipeline output, use origin line proto time
+		if _, err := result.GetField("time"); err != nil {
+			result.SetTime(std.point.Time())
+		}
+	} else {
+		l.Warnf("get fields err=%v", err)
 	}
-	return nil
+	return err
 }
 
 func sendToPipLine(cs *categorys) error {

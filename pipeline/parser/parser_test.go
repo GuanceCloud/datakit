@@ -24,7 +24,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-error-non-condition",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 
 			} elif {
 
@@ -35,7 +35,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-elif-error-non-condition",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 
 			} elif key=="22" {
 
@@ -48,7 +48,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-else-expr",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 				g1(arg)
 			} elif key=="22" {
 				g2(arg)
@@ -98,7 +98,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-expr",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 				g1(arg)
 			} elif key=="22" {
 				g2(arg)
@@ -140,7 +140,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-else-non-stmts",
 			in: `
-			if key=="11"{ 
+			if key=="11"{
 
 			} elif key=="22" {
 
@@ -173,7 +173,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-non-stmts",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 
 			} elif key=="22" {
 
@@ -220,7 +220,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-else-expr-non-stmts",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 
 			} else {
 
@@ -295,10 +295,10 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-else-expr-newline",
 			in: `
-			if key=="11" { 
-				g(arg) 
-			} else { 
-				h(arg) 
+			if key=="11" {
+				g(arg)
+			} else {
+				h(arg)
 			}`,
 			expected: Stmts{
 				&IfelseStmt{
@@ -321,6 +321,24 @@ func TestParser(t *testing.T) {
 						&FuncStmt{
 							Name:  "h",
 							Param: []Node{&Identifier{Name: "arg"}},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "if-nil",
+			in:   `if abc == nil {}`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op:  EQEQ,
+								LHS: &Identifier{Name: "abc"},
+								RHS: &NilLiteral{},
+							},
 						},
 					},
 				},
@@ -354,8 +372,8 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-expr-newline",
 			in: `
-			if key=="11" { 
-				g(arg) 
+			if key=="11" {
+				g(arg)
 			}`,
 			expected: Stmts{
 				&IfelseStmt{
