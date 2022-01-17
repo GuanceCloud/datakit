@@ -86,13 +86,13 @@ func startTracingStatWorker(interval time.Duration) {
 	}()
 }
 
-func CalcTracingInfo(dkspans []*DatakitSpan) {
-	if !isWorkerReady || len(dkspans) == 0 {
+func CalcTracingInfo(dktrace DatakitTrace) {
+	if !isWorkerReady || len(dktrace) == 0 {
 		return
 	}
 
 	tracingStatUnit := make(map[string]*TracingInfo)
-	for _, dkspan := range dkspans {
+	for _, dkspan := range dktrace {
 		var (
 			key   = fmt.Sprintf("%s-%s", dkspan.Service, dkspan.Resource)
 			tinfo *TracingInfo
