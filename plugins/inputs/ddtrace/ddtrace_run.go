@@ -191,6 +191,7 @@ func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
 			Service:        span.Service,
 			Resource:       span.Resource,
 			Operation:      span.Name,
+			Source:         inputName,
 			SpanType:       itrace.FindIntIDSpanType(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
 			Type:           ddtraceSpanType[span.Type],
 			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
