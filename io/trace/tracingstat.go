@@ -15,7 +15,7 @@ const (
 )
 
 type TracingInfo struct {
-	Toolkit      string
+	Source       string
 	Project      string
 	Version      string
 	Service      string
@@ -71,7 +71,7 @@ func startTracingStatWorker(interval time.Duration) {
 				if len(pts) == 0 {
 					log.Warn("empty tracing stat unit")
 				} else {
-					if err := io.Feed(tracing_stat_name, datakit.Metric, pts, nil); err != nil {
+					if err := io.Feed(tracing_stat_name, datakit.Tracing, pts, nil); err != nil {
 						log.Error(err.Error())
 					}
 				}
@@ -102,7 +102,7 @@ func CalcTracingInfo(dktrace DatakitTrace) {
 		)
 		if tinfo, ok = tracingStatUnit[key]; !ok {
 			tinfo = &TracingInfo{
-				Toolkit:  dkspan.Source,
+				Source:   dkspan.Source,
 				Project:  dkspan.Project,
 				Version:  dkspan.Version,
 				Service:  dkspan.Service,
@@ -149,7 +149,7 @@ func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*io.Point {
 			tags   = make(map[string]string)
 			fields = make(map[string]interface{})
 		)
-		tags["toolkit"] = tinfo.Toolkit
+		tags["toolkit"] = tinfo.Source
 		tags["project"] = tinfo.Project
 		tags["version"] = tinfo.Version
 		tags["service"] = tinfo.Service
