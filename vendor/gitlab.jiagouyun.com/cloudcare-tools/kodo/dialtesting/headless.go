@@ -17,7 +17,6 @@ import (
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/cdproto/security"
 	"github.com/chromedp/chromedp"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 

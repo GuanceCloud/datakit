@@ -139,7 +139,7 @@ func (d *Input) Run() {
 		d.doLocalTask(reqURL.String())
 
 	default:
-		l.Warnf(`no invalid scheme`)
+		l.Warnf(`no invalid scheme: %s`, reqURL.Scheme)
 	}
 }
 
@@ -217,6 +217,8 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 	case dt.ClassDNS:
 		// TODO
 	case dt.ClassTCP:
+		// TODO
+	case dt.ClassICMP:
 		// TODO
 	case dt.ClassOther:
 		// TODO
@@ -339,9 +341,9 @@ func (d *Input) dispatchTasks(j []byte) error {
 				l.Warnf("DNS task deprecated, ignored")
 				continue
 			case dt.ClassTCP:
-				// TODO
-				l.Warnf("TCP task deprecated, ignored")
-				continue
+				t = &dt.TcpTask{}
+			case dt.ClassICMP:
+				t = &dt.IcmpTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")

@@ -112,7 +112,7 @@ func (d *dialer) feedIO() error {
 
 	urlStr := u.String()
 	switch d.task.Class() {
-	case dt.ClassHTTP:
+	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP:
 		return d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
 		return fmt.Errorf("headless task deprecated")

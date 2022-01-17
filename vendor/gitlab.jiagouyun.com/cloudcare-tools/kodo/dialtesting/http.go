@@ -534,7 +534,6 @@ func (t *HTTPTask) Init() error {
 				if err != nil {
 					return err
 				}
-
 			}
 		}
 
@@ -553,7 +552,6 @@ func (t *HTTPTask) Init() error {
 				return err
 			}
 		}
-
 	}
 
 	// TODO: more checking on task validity
