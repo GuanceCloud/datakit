@@ -104,14 +104,14 @@ func handleTraces(pattern string) http.HandlerFunc {
 				continue
 			}
 
-			dkspans, err := traceToAdapters(trace)
+			dktrace, err := traceToAdapters(trace)
 			if err != nil {
 				log.Error(err.Error())
 				continue
 			}
 
-			if len(dkspans) != 0 {
-				itrace.MkLineProto(dkspans, inputName)
+			if len(dktrace) != 0 {
+				itrace.MkLineProto(dktrace, inputName)
 			} else {
 				log.Warn("empty trace")
 			}
@@ -167,9 +167,9 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 	return traces, err
 }
 
-func traceToAdapters(trace Trace) ([]*itrace.DatakitSpan, error) {
+func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
 	var (
-		dkspans            []*itrace.DatakitSpan
+		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)
 	)
 	for _, span := range trace {
@@ -231,10 +231,10 @@ func traceToAdapters(trace Trace) ([]*itrace.DatakitSpan, error) {
 		}
 		dkspan.Content = string(buf)
 
-		dkspans = append(dkspans, dkspan)
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return dkspans, nil
+	return dktrace, nil
 }
 
 func getSpanIDsAndParentIDs(trace Trace) (map[int64]bool, map[int64]bool) {

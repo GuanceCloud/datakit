@@ -67,7 +67,7 @@ func StartUDPAgent(addr string) error {
 	}
 }
 
-func parseJaegerUDP(data []byte) ([]*itrace.DatakitSpan, error) {
+func parseJaegerUDP(data []byte) (itrace.DatakitTrace, error) {
 	thriftBuffer := thrift.NewTMemoryBufferLen(len(data))
 	if _, err := thriftBuffer.Write(data); err != nil {
 		log.Error("buffer write failed :%v,", err)

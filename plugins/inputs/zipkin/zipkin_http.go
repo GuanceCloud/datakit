@@ -33,13 +33,13 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	var dkspans []*itrace.DatakitSpan
+	var dktrace itrace.DatakitTrace
 	switch reqInfo.ContentType {
 	case "application/x-thrift":
 		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
 			return err
 		} else {
-			dkspans, err = thriftSpansToAdapters(zspans)
+			dktrace, err = thriftSpansToAdapters(zspans)
 			if err != nil {
 				log.Errorf("thriftSpansToAdapters: %s", err)
 
@@ -53,7 +53,7 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 
 			return err
 		} else {
-			dkspans, err = jsonV1SpansToAdapters(zspans)
+			dktrace, err = jsonV1SpansToAdapters(zspans)
 			if err != nil {
 				log.Errorf("jsonV1SpansToAdapters: %s", err)
 
@@ -64,8 +64,8 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("zipkin V1 unsupported Content-Type: %s", reqInfo.ContentType)
 	}
 
-	if len(dkspans) != 0 {
-		itrace.MkLineProto(dkspans, inputName)
+	if len(dktrace) != 0 {
+		itrace.MkLineProto(dktrace, inputName)
 	} else {
 		log.Debug("empty zipkin v1 spans")
 	}
@@ -95,17 +95,17 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var (
-		dkspans   []*itrace.DatakitSpan
+		dktrace   itrace.DatakitTrace
 		zpkmodels []*zpkmodel.SpanModel
 	)
 	switch reqInfo.ContentType {
 	case "application/x-protobuf":
 		if zpkmodels, err = parseZipkinProtobuf3(reqInfo.Body); err == nil {
-			dkspans, err = spanModelsToAdapters(zpkmodels)
+			dktrace, err = spanModelsToAdapters(zpkmodels)
 		}
 	case "application/json":
 		if err = json.Unmarshal(reqInfo.Body, &zpkmodels); err == nil {
-			dkspans, err = spanModelsToAdapters(zpkmodels)
+			dktrace, err = spanModelsToAdapters(zpkmodels)
 		}
 	default:
 		return fmt.Errorf("zipkin V2 unsupported Content-Type: %s", reqInfo.ContentType)
@@ -117,8 +117,8 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if len(dkspans) != 0 {
-		itrace.MkLineProto(dkspans, inputName)
+	if len(dktrace) != 0 {
+		itrace.MkLineProto(dktrace, inputName)
 	} else {
 		log.Warn("empty zipkin v2 spans")
 	}

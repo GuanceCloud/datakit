@@ -125,8 +125,8 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 	return zma
 }
 
-func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*itrace.DatakitSpan, error) {
-	var dkspans []*itrace.DatakitSpan
+func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) (itrace.DatakitTrace, error) {
+	var dktrace itrace.DatakitTrace
 	for _, span := range zpktrace {
 		dkspan := &itrace.DatakitSpan{
 			SpanID:    span.ID.String(),
@@ -180,8 +180,8 @@ func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) ([]*itrace.DatakitSpan
 		}
 		dkspan.Content = string(buf)
 
-		dkspans = append(dkspans, dkspan)
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return dkspans, nil
+	return dktrace, nil
 }

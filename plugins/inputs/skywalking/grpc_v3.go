@@ -76,8 +76,8 @@ func (*TraceReportServerV3) CollectInSync(
 	return &skyimpl.Commands{}, nil
 }
 
-func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*itrace.DatakitSpan, error) {
-	var dkspans []*itrace.DatakitSpan
+func segobjToAdapters(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error) {
+	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
@@ -119,10 +119,10 @@ func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*itrace.DatakitSpan, er
 			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		}
 
-		dkspans = append(dkspans, dkspan)
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return dkspans, nil
+	return dktrace, nil
 }
 
 type EventServerV3 struct {

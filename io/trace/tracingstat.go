@@ -49,6 +49,8 @@ func StartTracingStatistic() {
 }
 
 func startTracingStatWorker(interval time.Duration) {
+	log.Info("tracing statistic worker started")
+
 	go func() {
 		tick := time.NewTicker(interval)
 		for range tick.C {
@@ -69,7 +71,7 @@ func startTracingStatWorker(interval time.Duration) {
 				if len(pts) == 0 {
 					log.Warn("empty tracing stat unit")
 				} else {
-					if err := io.Feed(tracing_stat_name, datakit.Tracing, pts, nil); err != nil {
+					if err := io.Feed(tracing_stat_name, datakit.Metric, pts, nil); err != nil {
 						log.Error(err.Error())
 					}
 				}

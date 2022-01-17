@@ -113,6 +113,7 @@ func (i *Input) Run() {
 }
 
 func (i *Input) RegHTTPHandler() {
+	log.Info("########### register ddtrace handlers")
 	var isReg bool
 	for _, endpoint := range i.Endpoints {
 		switch endpoint {
@@ -131,6 +132,7 @@ func (i *Input) RegHTTPHandler() {
 		}
 	}
 	if isReg {
+		log.Info("########### go to start worker")
 		itrace.StartTracingStatistic()
 	}
 }

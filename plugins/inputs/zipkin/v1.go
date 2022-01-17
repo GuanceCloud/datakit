@@ -133,9 +133,9 @@ func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
 	return zc
 }
 
-func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*itrace.DatakitSpan, error) {
+func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, error) {
 	var (
-		dkspans            []*itrace.DatakitSpan
+		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkCoreV1SpanIDsAndParentIDs(zpktrace)
 	)
 	for _, span := range zpktrace {
@@ -206,15 +206,15 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) ([]*itrace.DatakitSpan, e
 		}
 		dkspan.Content = string(buf)
 
-		dkspans = append(dkspans, dkspan)
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return dkspans, nil
+	return dktrace, nil
 }
 
-func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*itrace.DatakitSpan, error) {
+func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error) {
 	var (
-		dkspans            []*itrace.DatakitSpan
+		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
 	)
 	for _, span := range zpktrace {
@@ -275,10 +275,10 @@ func jsonV1SpansToAdapters(zpktrace []*ZipkinSpanV1) ([]*itrace.DatakitSpan, err
 		}
 		dkspan.Content = string(buf)
 
-		dkspans = append(dkspans, dkspan)
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return dkspans, nil
+	return dktrace, nil
 }
 
 func getZpkCoreV1SpanIDsAndParentIDs(trace []*zpkcorev1.Span) (map[int64]bool, map[int64]bool) {
