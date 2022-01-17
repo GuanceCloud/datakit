@@ -53,15 +53,16 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 
 		log.Debug("v3 segment received")
 
-		dkspans, err := segobjToAdapters(segobj)
+		dktrace, err := segobjToAdapters(segobj)
 		if err != nil {
 			log.Error(err.Error())
 
 			return err
 		}
 
-		if len(dkspans) != 0 {
-			itrace.MakeLineProto(dkspans, inputName)
+		if len(dktrace) != 0 {
+			itrace.CalcTracingInfo(dktrace)
+			itrace.MakeLineProto(dktrace, inputName)
 		} else {
 			log.Warnf("empty v3 segment")
 		}

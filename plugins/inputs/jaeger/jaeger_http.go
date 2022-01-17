@@ -52,13 +52,14 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	dkspans, err := batchToAdapters(batch)
+	dktrace, err := batchToAdapters(batch)
 	if err != nil {
 		return err
 	}
 
-	if len(dkspans) != 0 {
-		itrace.MakeLineProto(dkspans, inputName)
+	if len(dktrace) != 0 {
+		itrace.CalcTracingInfo(dktrace)
+		itrace.MakeLineProto(dktrace, inputName)
 	} else {
 		log.Warn("empty batch")
 	}

@@ -65,6 +65,7 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if len(dktrace) != 0 {
+		itrace.CalcTracingInfo(dktrace)
 		itrace.MakeLineProto(dktrace, inputName)
 	} else {
 		log.Debug("empty zipkin v1 spans")
@@ -95,8 +96,8 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var (
-		dktrace   itrace.DatakitTrace
 		zpkmodels []*zpkmodel.SpanModel
+		dktrace   itrace.DatakitTrace
 	)
 	switch reqInfo.ContentType {
 	case "application/x-protobuf":
@@ -118,6 +119,7 @@ func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if len(dktrace) != 0 {
+		itrace.CalcTracingInfo(dktrace)
 		itrace.MakeLineProto(dktrace, inputName)
 	} else {
 		log.Warn("empty zipkin v2 spans")
