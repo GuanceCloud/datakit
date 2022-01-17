@@ -170,8 +170,7 @@ func BuildLineProto(dkspan *DatakitSpan) (*dkio.Point, error) {
 	fields[FIELD_TRACEID] = dkspan.TraceID
 	fields[FIELD_SPANID] = dkspan.SpanID
 
-	ts := time.Unix(dkspan.Start/int64(time.Second), dkspan.Start%int64(time.Second))
-	pt, err := dkio.MakePoint(dkspan.Source, tags, fields, ts)
+	pt, err := dkio.MakePoint(dkspan.Source, tags, fields, time.Unix(0, dkspan.Start))
 	if err != nil {
 		log.Errorf("build metric err: %s", err)
 	}

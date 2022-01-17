@@ -8,7 +8,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"time"
 
 	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
@@ -197,8 +196,8 @@ func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
 			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
 			HTTPMethod:     span.Meta["http.method"],
 			HTTPStatusCode: span.Meta["http.status_code"],
-			Start:          span.Start / int64(time.Microsecond),
-			Duration:       span.Duration / int64(time.Microsecond),
+			Start:          span.Start,
+			Duration:       span.Duration,
 		}
 
 		if span.Meta[itrace.PROJECT] != "" {

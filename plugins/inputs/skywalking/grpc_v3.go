@@ -82,12 +82,12 @@ func segobjToAdapters(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, erro
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
-			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
 			EndPoint:  span.Peer,
 			Operation: span.OperationName,
 			Service:   segment.Service,
 			Source:    inputName,
 			Start:     span.StartTime * int64(time.Millisecond),
+			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
 			Tags:      tags,
 		}
 

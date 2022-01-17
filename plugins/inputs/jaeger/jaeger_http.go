@@ -91,7 +91,6 @@ func batchToAdapters(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			TraceID:   itrace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
 			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
 			SpanID:    fmt.Sprintf("%d", span.SpanId),
-			Duration:  span.Duration * int64(time.Microsecond),
 			Env:       env,
 			Operation: span.OperationName,
 			Project:   project,
@@ -99,6 +98,7 @@ func batchToAdapters(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			Source:    inputName,
 			SpanType:  itrace.FindIntIDSpanType(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
 			Start:     span.StartTime * int64(time.Microsecond),
+			Duration:  span.Duration * int64(time.Microsecond),
 			Version:   version,
 		}
 
