@@ -80,7 +80,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 		Type: "object",
 		Fields: map[string]interface{}{
 			"message":          newOtherFieldInfo(inputs.String, inputs.Gauge, inputs.UnknownUnit, "进程详细信息"),
-			"start_time":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "进程启动时间"),
+			"start_time":       newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampMS, "进程启动时间"),
 			"threads":          newOtherFieldInfo(inputs.Int, inputs.Count, inputs.NCount, "线程数"),
 			"rss":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeIByte, "Resident Set Size （常驻内存大小）"),
 			"pid":              newOtherFieldInfo(inputs.Int, inputs.UnknownType, inputs.UnknownUnit, "进程id"),
