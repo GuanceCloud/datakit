@@ -125,7 +125,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "TCP 连接时间, 单位 us",
+				Desc:     "TCP 连接时间, 单位",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -179,19 +179,19 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationMS,
-				Desc:     "平均往返时间(RTT), ms",
+				Desc:     "平均往返时间(RTT)",
 			},
 			"min_round_trip_time_in_millis": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationMS,
-				Desc:     "最小往返时间(RTT), ms",
+				Desc:     "最小往返时间(RTT)",
 			},
 			"max_round_trip_time_in_millis": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationMS,
-				Desc:     "最大往返时间(RTT), ms",
+				Desc:     "最大往返时间(RTT)",
 			},
 			"packet_loss_percent": &inputs.FieldInfo{
 				DataType: inputs.Float,
