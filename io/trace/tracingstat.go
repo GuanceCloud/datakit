@@ -75,6 +75,7 @@ func startTracingStatWorker(interval time.Duration) {
 						log.Error(err.Error())
 					}
 				}
+				statUnit = make(map[string]*TracingInfo)
 			} else {
 				if tunit, ok := statUnit[tinfo.key]; !ok {
 					statUnit[tinfo.key] = tinfo
