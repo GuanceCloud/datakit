@@ -277,6 +277,36 @@ if [ -n "$DK_GIT_INTERVAL" ]; then
 	git_pull_interval=$DK_GIT_INTERVAL
 fi
 
+enable_election=0
+if [ -n "$DK_ENABLE_ELECTION" ]; then
+  enable_election=1
+fi
+
+rum_origin_ip_header=""
+if [ -n "$DK_RUM_ORIGIN_IP_HEADER" ]; then
+  rum_origin_ip_header=$DK_RUM_ORIGIN_IP_HEADER
+fi
+
+disable_404page=0
+if [ -n "$DK_DISABLE_404PAGE" ]; then
+  disable_404page=1
+fi
+
+log_level=""
+if [ -n "$DK_LOG_LEVEL" ]; then
+  log_level=$DK_LOG_LEVEL
+fi
+
+log=""
+if [ -n "$DK_LOG" ]; then
+  log=$DK_LOG
+fi
+
+gin_log=""
+if [ -n "$DK_GIN_LOG" ]; then
+  gin_log=$DK_GIN_LOG
+fi
+
 ##################
 # Try install...
 ##################
@@ -320,9 +350,15 @@ else
 			--git-key-path="${git_key_path}"           \
 			--git-key-pw="${git_key_pw}"               \
 			--git-branch="${git_branch}"               \
+			--git-pull-interval="${git_pull_interval}" \
 			--limit-cpumax="${limit_cpumax}"           \
 			--limit-cpumin="${limit_cpumin}"           \
 			--cgroup-enabled="${cgroup_enabled}"       \
-			--git-pull-interval="${git_pull_interval}" | $sudo_cmd tee ${install_log}
+			--enable-election="${enable_election}"     \
+			--rum-origin-ip-header="${rum_origin_ip_header}" \
+			--disable-404page="${disable_404page}"           \
+			--log-level="${log_level}"                       \
+			--log="${log}"                                   \
+			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer

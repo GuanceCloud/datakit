@@ -578,6 +578,10 @@ func (c *Config) LoadEnvs() error {
 		c.Namespace = v
 	}
 
+	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
+		c.EnableElection = true
+	}
+
 	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" {
 		c.GlobalTags = ParseGlobalTags(v)
 	}
@@ -650,10 +654,6 @@ func (c *Config) LoadEnvs() error {
 		c.DefaultEnabledInputs = strings.Split(v, ",")
 	} else if v := datakit.GetEnv("ENV_ENABLE_INPUTS"); v != "" { // deprecated
 		c.DefaultEnabledInputs = strings.Split(v, ",")
-	}
-
-	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
-		c.EnableElection = true
 	}
 
 	if v := datakit.GetEnv("ENV_GIT_URL"); v != "" {
