@@ -109,7 +109,7 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			"timestamp": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.TimestampMS,
 				Desc:     "The timestamp(millisecond) when then the event ends.",
 			},
 			"duration": &inputs.FieldInfo{
