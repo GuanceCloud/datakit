@@ -1,3 +1,7 @@
+/*
+	convert tracing data from multiple platforms into datakit trace data structure
+*/
+
 package trace
 
 import (

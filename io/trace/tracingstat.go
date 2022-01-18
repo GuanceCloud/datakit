@@ -73,10 +73,8 @@ func startTracingStatWorker(interval time.Duration) {
 				pts := makeTracingInfoPoint(statUnit)
 				if len(pts) == 0 {
 					log.Warn("empty tracing stat unit")
-				} else {
-					if err := dkio.Feed(tracing_stat_name, datakit.Tracing, pts, nil); err != nil {
-						log.Error(err.Error())
-					}
+				} else if err := dkio.Feed(tracing_stat_name, datakit.Tracing, pts, nil); err != nil {
+					log.Error(err.Error())
 				}
 				statUnit = make(map[string]*TracingInfo)
 			} else {

@@ -20,14 +20,14 @@ func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if err := handleZipkinTraceV1(w, r); err != nil {
+	if err := handleZipkinTraceV1(r); err != nil {
 		log.Errorf("handleZipkinTraceV1: %s", err)
 
 		io.FeedLastError(inputName, err.Error())
 	}
 }
 
-func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
+func handleZipkinTraceV1(r *http.Request) error {
 	reqInfo, err := itrace.ParseTraceInfo(r)
 	if err != nil {
 		return err
@@ -83,13 +83,13 @@ func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if err := handleZipkinTraceV2(w, r); err != nil {
+	if err := handleZipkinTraceV2(r); err != nil {
 		log.Errorf("handleZipkinTraceV2: %v", err)
 		io.FeedLastError(inputName, err.Error())
 	}
 }
 
-func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
+func handleZipkinTraceV2(r *http.Request) error {
 	reqInfo, err := itrace.ParseTraceInfo(r)
 	if err != nil {
 		return err

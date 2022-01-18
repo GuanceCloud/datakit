@@ -52,7 +52,7 @@ const (
 	DurationHour   = "h"
 	DurationDay    = "d"
 
-	// timestamp units
+	// timestamp units.
 	TimestampNS  = "nsec"
 	TimestampUS  = "usec"
 	TimestampMS  = "msec"
