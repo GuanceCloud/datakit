@@ -61,8 +61,9 @@ const (
 )
 
 var (
+	name   = "dktrace"
 	dkOnce = sync.Once{}
-	log    = logger.DefaultSLogger("dktrace")
+	log    = logger.DefaultSLogger(name)
 )
 
 type DatakitSpan struct {
