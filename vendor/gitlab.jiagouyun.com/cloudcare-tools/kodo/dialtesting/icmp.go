@@ -32,7 +32,7 @@ type IcmpSuccess struct {
 }
 
 type IcmpTask struct {
-	Host            string            `json:"host"`
+	Host            string            `json:"dest_host"`
 	PacketSize      int               `json:"packet_size"`
 	PacketCount     int               `json:"packet_count"`
 	SuccessWhen     []*IcmpSuccess    `json:"success_when"`
@@ -138,9 +138,9 @@ func (t *IcmpTask) CheckResult() (reasons []string) {
 
 func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
-		"name":   t.Name,
-		"host":   t.Host,
-		"status": "FAIL",
+		"name":      t.Name,
+		"dest_host": t.Host,
+		"status":    "FAIL",
 	}
 
 	fields = map[string]interface{}{

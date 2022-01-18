@@ -17,8 +17,8 @@ type TcpSuccess struct {
 }
 
 type TcpTask struct {
-	Host            string            `json:"host"`
-	Port            string            `json:"port"`
+	Host            string            `json:"dest_host"`
+	Port            string            `json:"dest_port"`
 	Timeout         string            `json:"timeout"`
 	SuccessWhen     []*TcpSuccess     `json:"success_when"`
 	ExternalID      string            `json:"external_id"`
@@ -115,10 +115,10 @@ func (t *TcpTask) CheckResult() (reasons []string) {
 
 func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
-		"name":   t.Name,
-		"host":   t.Host,
-		"port":   t.Port,
-		"status": "FAIL",
+		"name":      t.Name,
+		"dest_host": t.Host,
+		"dest_port": t.Port,
+		"status":    "FAIL",
 	}
 
 	responseTime := int64(t.reqCost) / 1000 // us

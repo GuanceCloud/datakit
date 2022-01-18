@@ -97,6 +97,8 @@ func (*Input) Catalog() string {
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&httpMeasurement{},
+		&tcpMeasurement{},
+		&icmpMeasurement{},
 	}
 }
 
