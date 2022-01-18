@@ -160,7 +160,7 @@ func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*dkio.Point {
 		tags["resource"] = tinfo.Resource
 
 		fields["request_count"] = tinfo.RequestCount
-		fields["err_count"] = -tinfo.ErrCount
+		fields["err_count"] = tinfo.ErrCount
 		if tinfo.RequestCount == 0 {
 			fields["duration_avg"] = tinfo.DurationAvg
 		} else {
