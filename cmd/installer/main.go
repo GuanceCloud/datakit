@@ -49,7 +49,9 @@ var (
 	flagOffline,
 	flagDownloadOnly,
 	flagInfo,
-	flagOTA bool
+	flagOTA,
+	flagEnableElection,
+	flagDisable404Page bool
 
 	flagDataway,
 	flagDCAEnable,
@@ -68,7 +70,11 @@ var (
 	flagGitBranch,
 	flagGitPullInterval,
 	flagSrc,
-	flagCloudProvider string
+	flagCloudProvider,
+	flagRumOriginIPHeader,
+	flagLogLevel,
+	flagLog,
+	flagGinLog string
 
 	flagInstallOnly,
 	flagCgroupEnabled,
@@ -106,6 +112,12 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagGitKeyPW, "git-key-pw", "", "git repo access private use password")
 	flag.StringVar(&flagGitBranch, "git-branch", "", "git repo branch name")
 	flag.StringVar(&flagGitPullInterval, "git-pull-interval", "", "git repo pull interval")
+	flag.BoolVar(&flagEnableElection, "enable-election", false, "datakit election")
+	flag.StringVar(&flagRumOriginIPHeader, "rum-origin-ip-header", "", "rum only")
+	flag.BoolVar(&flagDisable404Page, "disable-404page", false, "datakit rum 404 page")
+	flag.StringVar(&flagLogLevel, "log-level", "", "log level setting")
+	flag.StringVar(&flagLog, "log", "", "log setting")
+	flag.StringVar(&flagGinLog, "gin-log", "", "gin log setting")
 	flag.StringVar(&flagSrc, "srcs",
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
@@ -450,6 +462,31 @@ func installNewDatakit(svc service.Service) {
 				}, // GitRepository
 			}, // Repos
 		} // GitRepost
+	}
+
+	if flagEnableElection {
+		l.Infof("set enable election: %v", flagEnableElection)
+		mc.EnableElection = flagEnableElection
+	}
+	if flagDisable404Page {
+		l.Infof("set disable 404 page: %v", flagDisable404Page)
+		mc.Disable404PageDeprecated = flagDisable404Page
+	}
+	if flagRumOriginIPHeader != "" {
+		l.Infof("set rum origin IP header: %s", flagRumOriginIPHeader)
+		mc.HTTPAPI.RUMOriginIPHeader = flagRumOriginIPHeader
+	}
+	if flagLogLevel != "" {
+		l.Infof("set log level: %s", flagLogLevel)
+		mc.Logging.Level = flagLogLevel
+	}
+	if flagLog != "" {
+		l.Infof("set log: %s", flagLog)
+		mc.Logging.Log = flagLog
+	}
+	if flagGinLog != "" {
+		l.Infof("set gin log: %s", flagGinLog)
+		mc.GinLogDeprecated = flagGinLog
 	}
 
 	writeDefInputToMainCfg(mc)
