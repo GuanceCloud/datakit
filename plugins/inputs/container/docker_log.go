@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/readbuf"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
@@ -86,6 +87,10 @@ func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *type
 		}
 	}
 
+	if err := logconf.checking(); err != nil {
+		return err
+	}
+
 	return d.tailContainerLogs(ctx, logconf)
 }
 
@@ -114,7 +119,7 @@ func (d *dockerInput) tailContainerLogs(ctx context.Context, logconf *containerL
 }
 
 func (d *dockerInput) hasTTY(ctx context.Context, containerID string) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, apiTimeoutDuration)
+	ctx, cancel := context.WithTimeout(ctx, timeoutDuration)
 	defer cancel()
 	c, err := d.client.ContainerInspect(ctx, containerID)
 	if err != nil {
@@ -175,10 +180,11 @@ func (d *dockerInput) tailMultiplexed(ctx context.Context, src io.ReadCloser, lo
 }
 
 type containerLogConfig struct {
-	Disable  bool   `json:"disable"`
-	Source   string `json:"source"`
-	Pipeline string `json:"pipeline"`
-	Service  string `json:"service"`
+	Disable   bool   `json:"disable"`
+	Source    string `json:"source"`
+	Pipeline  string `json:"pipeline"`
+	Service   string `json:"service"`
+	Multiline string `json:"multiline_match"`
 
 	containerID string
 	tags        map[string]string
@@ -194,9 +200,22 @@ func (c *containerLogConfig) clone() *containerLogConfig {
 		Source:      c.Source,
 		Pipeline:    c.Pipeline,
 		Service:     c.Service,
+		Multiline:   c.Multiline,
 		containerID: c.containerID,
 		tags:        t,
 	}
+}
+
+// multiline maxLines.
+const maxLines = 1000
+
+func (c *containerLogConfig) checking() error {
+	if c.Multiline == "" {
+		return nil
+	}
+
+	_, err := multiline.New(c.Multiline, maxLines)
+	return err
 }
 
 const (
@@ -255,17 +274,39 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 	shortImageName := logconf.tags["image_short_name"]
 
 	task := &worker.Task{
-		TaskName:   "log-" + shortImageName,
+		TaskName:   "containerlog::" + shortImageName,
 		Source:     logconf.Source,
 		ScriptName: logconf.Pipeline,
 	}
 
+	mult, err := multiline.New(logconf.Multiline, maxLines)
+	if err != nil {
+		// unreachable
+		return err
+	}
+
 	r := readbuf.NewReadBuffer(reader, readBuffSize)
+
+	timeout := time.NewTicker(timeoutDuration)
+	defer timeout.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
+		case <-timeout.C:
+			if text := mult.Flush(); len(text) != 0 {
+				task.Data = []worker.TaskData{
+					&taskData{
+						tags: logconf.tags,
+						log:  Bytes2String(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
+					},
+				}
+				task.TS = time.Now()
+				if err := worker.FeedPipelineTaskBlock(task); err != nil {
+					l.Errorf("failed to feed log, containerName: %s, err: %w", logconf.tags["container_name"], err)
+				}
+			}
 		default:
 			// nil
 		}
@@ -287,19 +328,27 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		workerData := []worker.TaskData{}
 
 		for _, line := range lines {
+			text := mult.ProcessLine(line)
+			if len(text) == 0 {
+				continue
+			}
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  Bytes2String(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
+					log:  Bytes2String(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
+		}
+
+		if len(workerData) == 0 {
+			continue
 		}
 
 		task.Data = workerData
 		task.TS = time.Now()
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("failed to fedd log, containerName: %s, err: %w", logconf.tags["container_name"], err)
+			l.Errorf("failed to feed log, containerName: %s, err: %w", logconf.tags["container_name"], err)
 		}
 	}
 }
