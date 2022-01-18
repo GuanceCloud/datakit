@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	tracing_stat_name = "tracing_stat"
+	tracingStatName = "tracing_stat"
 )
 
 type TracingInfo struct {
@@ -73,7 +73,7 @@ func startTracingStatWorker(interval time.Duration) {
 				pts := makeTracingInfoPoint(statUnit)
 				if len(pts) == 0 {
 					log.Warn("empty tracing stat unit")
-				} else if err := dkio.Feed(tracing_stat_name, datakit.Tracing, pts, nil); err != nil {
+				} else if err := dkio.Feed(tracingStatName, datakit.Tracing, pts, nil); err != nil {
 					log.Error(err.Error())
 				}
 				statUnit = make(map[string]*TracingInfo)
@@ -165,7 +165,7 @@ func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*dkio.Point {
 			fields["duration_avg"] = tinfo.DurationAvg / int64(tinfo.RequestCount)
 		}
 
-		if pt, err := dkio.NewPoint(tracing_stat_name, tags, fields, &dkio.PointOption{
+		if pt, err := dkio.NewPoint(tracingStatName, tags, fields, &dkio.PointOption{
 			Time:     time.Now(),
 			Category: datakit.Tracing,
 			Strict:   false,
