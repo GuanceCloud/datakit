@@ -17,8 +17,8 @@ type TcpSuccess struct {
 }
 
 type TcpTask struct {
-	Host            string            `json:"dest_host"`
-	Port            string            `json:"dest_port"`
+	Host            string            `json:"host"`
+	Port            string            `json:"port"`
 	Timeout         string            `json:"timeout"`
 	SuccessWhen     []*TcpSuccess     `json:"success_when"`
 	ExternalID      string            `json:"external_id"`

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/go-ping/ping"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
