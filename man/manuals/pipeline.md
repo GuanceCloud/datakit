@@ -103,17 +103,17 @@ grok(_, %{time})
 
 ## 脚本执行流
 
-pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>=` 和 `!=`，
-表达式两边可以是已存在的 key 或固定值，例如：
+pipeline 支持 `if/elif/else` 语法，`if` 后面的语句仅支持条件表达式，即 `<`、`<=`、`==`、`>`、`>=` 和 `!=`， 且支持小括号优先级和多个条件表达式的 `AND` 和 `OR` 连接。
+表达式两边可以是已存在的 key 或固定值（数值、布尔值、字符串和 nil ），例如：
 
 ```python
 # 数值比较
 add_key(score, 95)
 
-if score >= 90 {
+if score == 100  {
+	add_key(level, "S")
+} elif score >= 90 && score < 100 {
 	add_key(level, "A")
-} elif score >= 75 {
-	add_key(level, "B")
 } elif score >= 60 {
 	add_key(level, "C")
 } else {
@@ -128,7 +128,23 @@ if name == "法外狂徒" {
 }
 ```
 
-和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。 暂时不支持多个条件表达式的 `AND` 和 `OR`。
+和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。
+
+注意：如果是进行数值比较，需要先用 `cast()` 进行类型转换，比如：
+
+```
+# status_code 是 grok 切出来的 string 类型
+cast(status_code, "int")
+
+if status == 200 {
+	add_key(level, "OK")
+} elif status >= 400 && status < 500 {
+	add_key(level, "ERROR")
+} elif stauts > 500 {
+	add_key(level, "FATAL")
+}
+
+```
 
 ## 脚本函数
 
