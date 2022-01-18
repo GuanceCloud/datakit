@@ -89,6 +89,12 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy 
 - `DK_LIMIT_CPUMAX`:Linux系统下支持CPU的最大功率,默认30.0。（仅Linux平台支持）
 - `DK_LIMIT_CPUMIN`:Linux系统下支持CPU的最小功率,默认5.0。（仅Linux平台支持）
 - `DK_CGROUP_ENABLED`:Linux系统下开启Cgroup功能。（如`false`，默认为true，仅Linux平台支持）
+- `DK_ENABLE_ELECTION`: 开启选举, 默认不开启, 如需开启, 给该环境变量任意一个非空字符串值即可。（如 `True`/`False`）
+- `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
+- `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用.如 `True`/`False`)
+- `DK_LOG_LEVEL`: 可选值 info/debug
+- `DK_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
+- `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
