@@ -52,6 +52,12 @@ const (
 	DurationHour   = "h"
 	DurationDay    = "d"
 
+	// timestamp units
+	TimestampNS  = "nsec"
+	TimestampUS  = "usec"
+	TimestampMS  = "msec"
+	TimestampSec = "sec"
+
 	Percent = "percent"
 
 	// TODO: add more...
