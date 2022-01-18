@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -59,7 +60,10 @@ const (
 	FIELD_TRACEID  = "trace_id"
 )
 
-var log = logger.DefaultSLogger("dktrace")
+var (
+	dkOnce = sync.Once{}
+	log    = logger.DefaultSLogger("dktrace")
+)
 
 type DatakitSpan struct {
 	TraceID        string
@@ -117,6 +121,10 @@ func FindStringIDSpanType(spanID, parentID string, spanIDs, parentIDs map[string
 }
 
 func BuildLineProto(dkspan *DatakitSpan) (*dkio.Point, error) {
+	dkOnce.Do(func() {
+		log = logger.SLogger("dktrace")
+	})
+
 	var (
 		tags   = make(map[string]string)
 		fields = make(map[string]interface{})
@@ -170,7 +178,11 @@ func BuildLineProto(dkspan *DatakitSpan) (*dkio.Point, error) {
 	fields[FIELD_TRACEID] = dkspan.TraceID
 	fields[FIELD_SPANID] = dkspan.SpanID
 
-	pt, err := dkio.MakePoint(dkspan.Source, tags, fields, time.Unix(0, dkspan.Start))
+	pt, err := dkio.NewPoint(dkspan.Source, tags, fields, &dkio.PointOption{
+		Time:     time.Unix(0, dkspan.Start),
+		Category: datakit.Tracing,
+		Strict:   false,
+	})
 	if err != nil {
 		log.Errorf("build metric err: %s", err)
 	}

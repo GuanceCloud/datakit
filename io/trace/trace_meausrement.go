@@ -16,7 +16,10 @@ type TraceMeasurement struct {
 }
 
 func (tm *TraceMeasurement) LineProto() (*dkio.Point, error) {
-	return dkio.MakePoint(tm.Name, tm.Tags, tm.Fields, tm.TS)
+	return dkio.NewPoint(tm.Name, tm.Tags, tm.Fields, &dkio.PointOption{
+		Time:   tm.TS,
+		Strict: false,
+	})
 }
 
 func (tm *TraceMeasurement) Info() *inputs.MeasurementInfo {

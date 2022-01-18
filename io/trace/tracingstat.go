@@ -30,7 +30,7 @@ type TracingInfo struct {
 var ErrSendSpanInfoFailed = errors.New("send span information failed")
 
 var (
-	once            = sync.Once{}
+	statOnce        = sync.Once{}
 	statUnit        map[string]*TracingInfo
 	tracingInfoChan chan *TracingInfo
 	calcInterval                  = 30 * time.Second
@@ -40,7 +40,7 @@ var (
 )
 
 func StartTracingStatistic() {
-	once.Do(func() {
+	statOnce.Do(func() {
 		statUnit = make(map[string]*TracingInfo)
 		tracingInfoChan = make(chan *TracingInfo, 100)
 		startTracingStatWorker(calcInterval)
@@ -158,9 +158,17 @@ func makeTracingInfoPoint(tinfos map[string]*TracingInfo) []*dkio.Point {
 
 		fields["request_count"] = tinfo.RequestCount
 		fields["err_count"] = -tinfo.ErrCount
-		fields["duration_avg"] = tinfo.DurationAvg / int64(tinfo.RequestCount)
+		if tinfo.RequestCount == 0 {
+			fields["duration_avg"] = tinfo.DurationAvg
+		} else {
+			fields["duration_avg"] = tinfo.DurationAvg / int64(tinfo.RequestCount)
+		}
 
-		if pt, err := dkio.MakePoint(tracing_stat_name, tags, fields, time.Now()); err != nil {
+		if pt, err := dkio.NewPoint(tracing_stat_name, tags, fields, &dkio.PointOption{
+			Time:     time.Now(),
+			Category: datakit.Tracing,
+			Strict:   false,
+		}); err != nil {
 			log.Error(err.Error())
 		} else {
 			pts = append(pts, pt)
