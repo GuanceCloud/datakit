@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
@@ -27,7 +28,7 @@ type Single struct {
 	filename string
 
 	decoder  *encoding.Decoder
-	mult     *Multiline
+	mult     *multiline.Multiline
 	pipeline *pipeline.Pipeline
 
 	readBuff []byte
@@ -53,7 +54,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 			return nil, err
 		}
 	}
-	t.mult, err = NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines)
+	t.mult, err = multiline.New(opt.MultilineMatch, opt.MultilineMaxLines)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +121,7 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 		case <-timeout.C:
-			if str := t.mult.Flush(); str != "" {
+			if str := t.mult.FlushString(); str != "" {
 				t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: str, Tag: t.tags}})
 			}
 		default:
@@ -230,7 +231,7 @@ func (t *Single) multiline(text string) string {
 	if t.mult == nil {
 		return text
 	}
-	return t.mult.ProcessLine(text)
+	return t.mult.ProcessLineString(text)
 }
 
 type buffer struct {
