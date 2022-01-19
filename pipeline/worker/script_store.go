@@ -67,10 +67,10 @@ func (store *dotPScriptStore) checkAndUpdate(info *ScriptInfo) {
 	store.RLock()
 	defer store.RUnlock()
 	s, err := store.queryScript(info.name)
-	if err == nil { // not found
+	if err != nil { // not found
 		return
 	}
-	if s.updateTS.Equal(info.updateTS) {
+	if s.updateTS == info.updateTS {
 		return
 	} else { // not equal, update ng, script, updateTS
 		info.script = s.script
@@ -113,7 +113,7 @@ func (store *dotPScriptStore) appendScript(name string, script string, cover boo
 		store.scripts[DefaultScriptNs][name] = &ScriptInfo{
 			script:   script,
 			name:     name,
-			updateTS: time.Now(),
+			updateTS: time.Now().UnixNano(),
 		}
 		return nil
 	}
@@ -154,7 +154,7 @@ type ScriptInfo struct {
 	name     string // script name
 	script   string // script content
 	ng       *parser.Engine
-	updateTS time.Time
+	updateTS int64
 }
 
 // Name return pipeline script name.
