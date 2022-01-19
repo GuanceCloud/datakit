@@ -96,17 +96,17 @@ func TestWorker(t *testing.T) {
 		return nil
 	}
 
+	checkUpdateDebug = time.Second
 	// init manager
-	InitManager()
+	InitManager(1)
 	wkrManager.setDebug(true)
-	_ = os.MkdirAll("./test-ppscript", os.ModePerm)
-	_ = os.WriteFile("./test-ppscript/nginx-time.p", []byte(`
+	_ = os.MkdirAll("/tmp", os.ModePerm)
+	_ = os.WriteFile("/tmp/nginx-time.p", []byte(`
 	json(_, time)
-	#json(_, status)
-	default_time(time)`), os.FileMode(0o755))
-	LoadAllDotPScriptForWkr([]string{"test-ppscript"}, nil)
-	_ = os.Remove("./test-ppscript/nginx-time.p")
-	_ = os.Remove("./test-ppscript/")
+	set_tag(bb, "aa0")
+	default_time(time)
+	`), os.FileMode(0o755))
+	LoadAllDotPScriptForWkr(nil, []string{"/tmp/nginx-time.p"})
 
 	cases := []Task{
 		{
@@ -132,12 +132,14 @@ func TestWorker(t *testing.T) {
 				&taskData{
 					tags: map[string]string{
 						"tk": "aaa",
+						"bb": "aa0",
 					},
 					log: `{"time":"02/Dec/2021:11:55:34 +0800"}`,
 				},
 				&taskData{
 					tags: map[string]string{
 						"tk": "aaa",
+						"bb": "aa0",
 					},
 					log: `{"time":"02/Dec/2021:11:55:35 +0800"}`,
 				},
@@ -218,6 +220,7 @@ func TestWorker(t *testing.T) {
 			{
 				tags: map[string]string{
 					"tk": "aaa",
+					"bb": "aa0",
 				},
 				fields: map[string]interface{}{
 					"message": `{"time":"02/Dec/2021:11:55:34 +0800"}`,
@@ -227,6 +230,7 @@ func TestWorker(t *testing.T) {
 			},
 			{
 				tags: map[string]string{
+					"bb": "aa0",
 					"tk": "aaa",
 				},
 				fields: map[string]interface{}{
@@ -289,14 +293,14 @@ func TestWorker(t *testing.T) {
 			json(_, time)
 			json(_, status)
 			default_time(time)`, true)
+			time.Sleep(time.Second + time.Millisecond*10)
 		}
 		_ = FeedPipelineTask(&v)
 		pts, id := getResult()
-		t.Log(id)
 		expectedItem := expected[k]
 		t.Log(expectedItem)
 		t.Log(pts)
-		t.Logf("case %d, wkr %d", k, id)
+		t.Logf("case %d, wkr id %d", k, id)
 		if len(pts) != len(expectedItem) {
 			t.Error("count not equal")
 			continue
@@ -305,7 +309,7 @@ func TestWorker(t *testing.T) {
 			assert.Equal(t, v2.tags, pts[len(expectedItem)-k2-1].Tags())
 			f, _ := pts[len(expectedItem)-k2-1].Fields()
 			assert.Equal(t, v2.fields, f)
-			assert.Equal(t, v2.ts, pts[len(expectedItem)-k2-1].Time(),
+			assert.Equal(t, v2.ts.UnixNano(), pts[len(expectedItem)-k2-1].Time().UnixNano(),
 				fmt.Sprintf("index: %d %d", k, k2))
 		}
 	}
@@ -324,7 +328,7 @@ func BenchmarkPpWorker_Run(b *testing.B) {
 	}
 
 	// init manager
-	InitManager()
+	InitManager(-1)
 	wkrManager.setDebug(true)
 
 	ts := time.Now()
