@@ -9,6 +9,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 )
 
 const (
@@ -95,7 +96,7 @@ func (opt *Option) init() error {
 		return err
 	}
 
-	if _, err := NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines); err != nil {
+	if _, err := multiline.New(opt.MultilineMatch, opt.MultilineMaxLines); err != nil {
 		return err
 	}
 	if opt.Pipeline != "" && filepath.Base(opt.Pipeline) != opt.Pipeline {
