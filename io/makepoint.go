@@ -100,7 +100,7 @@ func NewPoint(name string,
 		datakit.CustomObject,
 		datakit.Logging,
 		datakit.Tracing,
-		datakit.Rum,
+		datakit.RUM,
 		datakit.Security:
 		lpOpt.DisabledTagKeys = DisabledTagKeys[o.Category]
 		lpOpt.DisabledFieldKeys = DisabledFieldKeys[o.Category]

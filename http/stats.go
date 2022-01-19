@@ -114,7 +114,7 @@ var categoryMap = map[string]string{
 	datakit.Object:           "O",
 	datakit.Logging:          "L",
 	datakit.Tracing:          "T",
-	datakit.Rum:              "R",
+	datakit.RUM:              "R",
 	datakit.Security:         "S",
 }
 
