@@ -293,7 +293,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		}
 
 		task := &worker.Task{
-			TaskName:   "containerlog/" + shortImageName,
+			TaskName:   "containerlogging/" + shortImageName,
 			Source:     logconf.Source,
 			ScriptName: logconf.Pipeline,
 			Data:       workerData,
