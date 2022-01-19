@@ -28,16 +28,17 @@ import (
 )
 
 var (
-	l              = logger.DefaultSLogger("http")
-	ginLog         string
-	ginReleaseMode = true
-	enablePprof    bool
+	l                   = logger.DefaultSLogger("http")
+	ginLog              string
+	ginReleaseMode      = true
+	enablePprof         = false
+	enableRequestLogger = false
 
 	uptime = time.Now()
 
 	dw        *dataway.DataWayCfg
 	extraTags = map[string]string{}
-	apiConfig *APIConfig
+	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
 
 	ginRotate = 32 // MB
@@ -58,6 +59,7 @@ const (
 	IGNORE_GLOBAL_TAGS = "ignore_global_tags"
 	CATEGORY           = "category"
 	VERSION            = "version"
+	PIPELINE_SOURCE    = "source"
 	DEFAULT_PRECISION  = "n"
 	DEFAULT_INPUT      = "datakit" // 当 API 调用方未亮明自己身份时，默认使用 datakit 作为数据源名称
 )
@@ -152,24 +154,19 @@ func page404(c *gin.Context) {
 	c.String(http.StatusNotFound, buf.String())
 }
 
-func HTTPStart() {
+func setupGinLogger() (gl io.Writer) {
 	gin.DisableConsoleColor()
 
 	if ginReleaseMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	l.Debugf("HTTP bind addr:%s", apiConfig.Listen)
-
-	router := gin.New()
-
 	// set gin logger
 	l.Infof("set gin log to %s", ginLog)
-	var ginlogger io.Writer
 	if ginLog == "stdout" {
-		ginlogger = os.Stdout
+		gl = os.Stdout
 	} else {
-		ginlogger = &lumberjack.Logger{
+		gl = &lumberjack.Logger{
 			Filename:   ginLog,
 			MaxSize:    ginRotate, // MB
 			MaxBackups: 5,
@@ -177,15 +174,26 @@ func HTTPStart() {
 		}
 	}
 
+	return
+}
+
+func setupRouter() *gin.Engine {
+	uhttp.Init()
+
+	router := gin.New()
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		Formatter: nil, // not set, use the default
-		Output:    ginlogger,
+		Formatter: uhttp.GinLogFormmatter,
+		Output:    setupGinLogger(),
 	}))
 
 	router.Use(gin.Recovery())
 	router.Use(uhttp.CORSMiddleware)
 	if !apiConfig.Disable404Page {
 		router.NoRoute(page404)
+	}
+
+	if enableRequestLogger {
+		router.Use(uhttp.RequestLoggerMiddleware)
 	}
 
 	applyHTTPRoute(router)
@@ -200,16 +208,34 @@ func HTTPStart() {
 	router.GET("/v1/workspace", apiWorkspace)
 	router.GET("/v1/ping", apiPing)
 	router.POST("/v1/lasterror", apiGetDatakitLastError)
-	router.POST("/v1/write/:category", apiWrite)
+	router.POST("/v1/write/:category", wrap(apiWrite, &apiWriteImpl{}))
 	router.POST("/v1/query/raw", apiQueryRaw)
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
+	return router
+}
 
+type apiHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
+
+// not used
+func wrap(next apiHandler, any ...interface{}) func(*gin.Context) {
+	return func(c *gin.Context) {
+		if res, err := next(c.Writer, c.Request, any...); err != nil {
+			uhttp.HttpErr(c, err)
+			return
+		} else {
+			OK.HttpBody(c, res)
+			return
+		}
+	}
+}
+
+func HTTPStart() {
 	refreshRebootSem()
-
+	l.Debugf("HTTP bind addr:%s", apiConfig.Listen)
 	srv := &http.Server{
 		Addr:    apiConfig.Listen,
-		Handler: router,
+		Handler: setupRouter(),
 	}
 
 	g.Go(func(ctx context.Context) error {

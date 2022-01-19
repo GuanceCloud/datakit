@@ -15,10 +15,14 @@ var (
 	ErrInvalidPrecision       = newErr(errors.New("invalid precision"), http.StatusBadRequest)
 	ErrHTTPReadErr            = newErr(errors.New("HTTP read error"), http.StatusInternalServerError)
 	ErrEmptyBody              = newErr(errors.New("empty body"), http.StatusBadRequest)
+	ErrNoPoints               = newErr(errors.New("no points"), http.StatusBadRequest)
 	ErrReloadDatakitFailed    = newErr(errors.New("reload datakit failed"), http.StatusInternalServerError)
 	ErrUploadFileErr          = newErr(errors.New("upload file failed"), http.StatusInternalServerError)
 	ErrInvalidToken           = newErr(errors.New("invalid token"), http.StatusForbidden)
+	ErrUnknownRUMMeasurement  = newErr(errors.New("unknown RUM measurement"), http.StatusBadRequest)
 	ErrRUMAppIDNotInWhiteList = newErr(errors.New("RUM app_id not in the white list"), http.StatusForbidden)
+	ErrInvalidAPIHandler      = newErr(errors.New("invalid API handler"), http.StatusInternalServerError)
+	ErrInvalidObjectPoint     = newErr(errors.New("invalid object point"), http.StatusBadRequest)
 
 	// write body error.
 	ErrInvalidJSONPoint = newErr(errors.New("invalid json point"), http.StatusBadRequest)

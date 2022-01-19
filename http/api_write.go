@@ -2,18 +2,24 @@ package http
 
 import (
 	"encoding/json"
-	"errors"
-	"net"
-	"strings"
+	"net/http"
+	"reflect"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	plw "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
+
+type IApiWrite interface {
+	sendToPipLine(*plw.Task) error
+	sendToIO(string, string, []*io.Point, *io.Option) error
+	geoInfo(string) map[string]string
+}
+
+type apiWriteImpl struct{}
 
 type jsonPoint struct {
 	Measurement string                 `json:"measurement"`
@@ -22,7 +28,7 @@ type jsonPoint struct {
 	Time        int64                  `json:"time,omitempty"`
 }
 
-// convert json point to real point.
+// convert json point to lineproto point.
 func (jp *jsonPoint) point(opt *lp.Option) (*io.Point, error) {
 	p, err := lp.MakeLineProtoPoint(jp.Measurement, jp.Tags, jp.Fields, opt)
 	if err != nil {
@@ -32,14 +38,37 @@ func (jp *jsonPoint) point(opt *lp.Option) (*io.Point, error) {
 	return &io.Point{Point: p}, nil
 }
 
-func apiWrite(c *gin.Context) {
+func (x *apiWriteImpl) sendToIO(input, category string, pts []*io.Point, opt *io.Option) error {
+	return io.Feed(input, category, pts, opt)
+}
+
+func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
+	return geoTags(ip)
+}
+
+// sendToPipLine will send each point from @pts to pipeline module
+func (x *apiWriteImpl) sendToPipLine(t *plw.Task) error {
+	return plw.FeedPipelineTaskBlock(t)
+}
+
+func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (interface{}, error) {
 	var body []byte
 	var err error
-	var version string
+
+	if x == nil || len(x) != 1 {
+		l.Errorf("invalid handler")
+		return nil, ErrInvalidAPIHandler
+	}
+
+	h, ok := x[0].(IApiWrite)
+	if !ok {
+		l.Errorf("not IApiWrite, got %s", reflect.TypeOf(x).String())
+		return nil, ErrInvalidAPIHandler
+	}
 
 	input := DEFAULT_INPUT
 
-	category := c.Request.URL.Path
+	category := req.URL.Path
 
 	switch category {
 	case datakit.Metric,
@@ -52,86 +81,73 @@ func apiWrite(c *gin.Context) {
 	case datakit.CustomObject:
 		input = "custom_object"
 
-	case datakit.Rum:
+	case datakit.RUM:
 		input = "rum"
 	case datakit.Security:
 		input = "scheck"
 	default:
 		l.Debugf("invalid category: %s", category)
-		uhttp.HttpErr(c, ErrInvalidCategory)
-		return
+		return nil, ErrInvalidCategory
 	}
 
-	if x := c.Query(INPUT); x != "" {
+	q := req.URL.Query()
+
+	if x := q.Get(INPUT); x != "" {
 		input = x
 	}
 
 	precision := DEFAULT_PRECISION
-	if x := c.Query(PRECISION); x != "" {
+	if x := q.Get(PRECISION); x != "" {
 		precision = x
 	}
 
-	if x := c.Query(VERSION); x != "" {
+	extags := extraTags
+	if x := q.Get(IGNORE_GLOBAL_TAGS); x != "" {
+		extags = nil
+	}
+
+	var version string
+	if x := q.Get(VERSION); x != "" {
 		version = x
+	}
+
+	var pipelineSource string
+	if x := q.Get(PIPELINE_SOURCE); x != "" {
+		pipelineSource = x
 	}
 
 	switch precision {
 	case "h", "m", "s", "ms", "u", "n":
 	default:
 		l.Warnf("invalid precision %s", precision)
-		uhttp.HttpErr(c, ErrInvalidPrecision)
-		return
+		return nil, ErrInvalidPrecision
 	}
 
-	body, err = uhttp.GinRead(c)
+	body, err = uhttp.ReadBody(req)
 	if err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrHTTPReadErr, err.Error()))
-		return
+		return nil, err
 	}
 
-	isjson := c.Request.Header.Get("Content-Type") == "application/json"
+	if len(body) == 0 {
+		return nil, ErrEmptyBody
+	}
+
+	isjson := req.Header.Get("Content-Type") == "application/json"
 
 	var pts []*io.Point
-	if category == datakit.Rum { // RUM 数据单独处理
-		srcip := ""
-		if apiConfig != nil {
-			srcip = c.Request.Header.Get(apiConfig.RUMOriginIPHeader)
-			l.Debugf("get ip from %s: %s", apiConfig.RUMOriginIPHeader, srcip)
-			if srcip == "" {
-				for k, v := range c.Request.Header {
-					l.Debugf("%s: %s", k, strings.Join(v, ","))
-				}
-			}
-		} else {
-			l.Debugf("apiConfig not set")
+
+	switch category {
+	case datakit.RUM:
+		pts, err = handleRUMBody(body,
+			precision, isjson,
+			h.geoInfo(getSrcIP(apiConfig, req)),
+			apiConfig.RUMAppIDWhiteList)
+
+		if err != nil {
+			return nil, err
 		}
 
-		if srcip != "" {
-			l.Debugf("header remote addr: %s", srcip)
-			parts := strings.Split(srcip, ",")
-			if len(parts) > 0 {
-				srcip = parts[0] // 注意：此处只取第一个 IP 作为源 IP
-			}
-		} else { // 默认取 gin 框架带进来的 IP
-			l.Debugf("gin remote addr: %s", c.Request.RemoteAddr)
-			host, _, err := net.SplitHostPort(c.Request.RemoteAddr)
-			if err == nil {
-				srcip = host
-			}
-		}
-
-		pts, err = handleRUMBody(body, precision, srcip, isjson, apiConfig.RUMAppIDWhiteList)
-		// appid不在白名单中，当前 http 请求直接返回
-		if errors.As(err, &ErrRUMAppIDNotInWhiteList) {
-			uhttp.HttpErr(c, err)
-			return
-		}
-	} else {
-		extags := extraTags
-		if x := c.Query(IGNORE_GLOBAL_TAGS); x != "" {
-			extags = nil
-		}
-
+	default:
 		pts, err = handleWriteBody(body, isjson, &lp.Option{
 			Precision: precision,
 			Time:      time.Now(),
@@ -139,32 +155,43 @@ func apiWrite(c *gin.Context) {
 			Strict:    true,
 		})
 		if err != nil {
-			uhttp.HttpErr(c, err)
-			return
+			return nil, err
+		}
+
+		switch category {
+		case datakit.Object:
+			for _, pt := range pts {
+				if err := checkObjectPoint(pt); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
-	l.Debugf("received %d(%s) points from %s", len(pts), category, input)
-	if category == datakit.Logging {
-		// input=nginx  category=v1/wirte/logging soure=pt.name/source
-		cs := &categorys{input: input, source: make(map[string][]worker.TaskData)}
-		for _, pt := range pts {
-			source := pt.Name()
-			if _, ok := cs.source[source]; !ok {
-				cs.source[source] = make([]worker.TaskData, 0)
-			}
-			cs.source[source] = append(cs.source[source],
-				&HTTPTaskData{source: source, version: version, category: category, point: pt})
-		}
-		err = sendToPipLine(cs)
-	} else {
-		err = io.Feed(input, category, pts, &io.Option{HighFreq: true, Version: version})
+	if len(pts) == 0 {
+		return nil, ErrNoPoints
 	}
+
+	l.Debugf("received %d(%s) points from %s, pipeline source: %v", len(pts), category, input, pipelineSource)
+
+	if category == datakit.Logging && pipelineSource != "" {
+		// Currently on logging support pipeline.
+		// We try to find some @input.p to split logging, for example, if @input is nginx
+		// the default pipeline is nginx.p.
+		// If nginx.p missing, pipeline do nothing on incomming logging data.
+
+		// for logging upload, we redirect them to pipeline
+		l.Debugf("send pts to pipeline")
+		err = h.sendToPipLine(buildLogPLTask(input, pipelineSource, version, category, pts))
+	} else {
+		err = h.sendToIO(input, category, pts, &io.Option{HighFreq: true, Version: version})
+	}
+
 	if err != nil {
-		uhttp.HttpErr(c, uhttp.Error(ErrBadReq, err.Error()))
-	} else {
-		OK.HttpBody(c, nil)
+		return nil, err
 	}
+
+	return nil, nil
 }
 
 func handleWriteBody(body []byte, isJSON bool, opt *lp.Option) ([]*io.Point, error) {
@@ -206,74 +233,10 @@ func jsonPoints(body []byte, opt *lp.Option) ([]*io.Point, error) {
 	return pts, nil
 }
 
-type categorys struct {
-	input  string
-	source map[string][]worker.TaskData
-}
-
-type HTTPTaskData struct {
-	source   string
-	version  string
-	category string
-	point    *io.Point
-}
-
-func (std *HTTPTaskData) GetContent() string {
-	fields, err := std.point.Fields()
-	if err != nil {
-		return ""
+func checkObjectPoint(p *io.Point) error {
+	tags := p.Point.Tags()
+	if _, ok := tags["name"]; !ok {
+		return ErrInvalidObjectPoint
 	}
-	if len(fields) > 0 {
-		if msg, ok := fields["message"]; ok {
-			switch msg := msg.(type) {
-			case string:
-				return msg
-			default:
-				return ""
-			}
-		}
-	}
-	return ""
-}
-
-func (std *HTTPTaskData) Handler(result *worker.Result) error {
-	tags := std.point.Tags()
-	for k, v := range tags {
-		result.SetTag(k, v)
-	}
-	fields, err := std.point.Fields()
-	if err == nil {
-		for k, i := range fields {
-			result.SetField(k, i)
-		}
-
-		// no time exist in pipeline output, use origin line proto time
-		if _, err := result.GetField("time"); err != nil {
-			result.SetTime(std.point.Time())
-		}
-	} else {
-		l.Warnf("get fields err=%v", err)
-	}
-	return err
-}
-
-func sendToPipLine(cs *categorys) error {
-	var err error
-	if cs != nil && cs.source != nil && len(cs.source) != 0 {
-		for sourceName, data := range cs.source {
-			task := &worker.Task{
-				TaskName:   cs.input,
-				ScriptName: "",
-				Source:     sourceName,
-				Data:       data,
-				Opt: &worker.TaskOpt{
-					IgnoreStatus:          []string{},
-					DisableAddStatusField: true,
-				},
-				TS: time.Now(),
-			}
-			err = worker.FeedPipelineTask(task)
-		}
-	}
-	return err
+	return nil
 }

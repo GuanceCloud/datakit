@@ -26,6 +26,20 @@ type Result struct {
 	output *parser.Output
 }
 
+func (r *Result) String() string {
+	return fmt.Sprintf("%+#v", r.output) // FIXME: need more string format
+}
+
+func NewResult() *Result {
+	return &Result{
+		output: &parser.Output{
+			Tags: make(map[string]string),
+			Data: make(map[string]interface{}),
+			Cost: make(map[string]string),
+		},
+	}
+}
+
 func (r *Result) SetTime(t time.Time) {
 	r.SetField("time", t.UnixNano())
 }
