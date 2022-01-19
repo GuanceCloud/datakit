@@ -1,10 +1,12 @@
 package cmds
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"os/user"
 	"runtime"
+	"time"
 
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -54,8 +56,18 @@ func stopDatakit() error {
 	}
 
 	l.Info("stoping datakit...")
-	if err := service.Control(svc, "stop"); err != nil {
-		return err
+	// 不能一直等待阻塞的 chan 或者 waitgroup到超时时间被强制 kill 时才退出
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- service.Control(svc, "stop")
+	}()
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+	case <-time.After(time.Second * 10):
+		return errors.New("datakit.service stop-sigterm timed out")
 	}
 	return nil
 }
