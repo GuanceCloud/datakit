@@ -49,15 +49,15 @@ func (m *swapMeasurement) Info() *inputs.MeasurementInfo {
 		Name: metricName,
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Host swap memory free",
 			},
 			"used": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Host swap memory used",
 			},
 			"free": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Host swap memory total",
 			},
 			"used_percent": &inputs.FieldInfo{
@@ -65,11 +65,11 @@ func (m *swapMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "Host swap memory percentage used",
 			},
 			"in": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Moving data from swap space to main memory of the machine",
 			},
 			"out": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Moving main memory contents to swap disk when main memory space fills up",
 			},
 		},
