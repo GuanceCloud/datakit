@@ -5,6 +5,7 @@ package main
 import (
 	"flag"
 	"os"
+	"path"
 	"path/filepath"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -72,7 +73,7 @@ func applyFlags() {
 	build.Archs = *flagArchs
 
 	build.MainEntry = *flagMain
-	build.DownloadAddr = *flagDownloadAddr
+
 	switch *flagRelease {
 	case build.ReleaseProduction, build.ReleaseLocal, build.ReleaseTesting:
 	default:
@@ -84,6 +85,23 @@ func applyFlags() {
 	// override git.Version
 	if x := os.Getenv("VERSION"); x != "" {
 		build.ReleaseVersion = x
+	}
+
+	if x := os.Getenv("DINGDING_TOKEN"); x != "" {
+		build.NotifyToken = x
+	}
+
+	vi := version.VerInfo{VersionString: build.ReleaseVersion}
+	if err := vi.Parse(); err != nil {
+		l.Fatalf("invalid version %s", build.ReleaseVersion)
+	}
+
+	build.DownloadAddr = *flagDownloadAddr
+	if !vi.IsStable() {
+		build.DownloadAddr = path.Join(*flagDownloadAddr, "rc")
+
+		l.Debugf("under unstable version %s, reset download address to %s",
+			build.ReleaseVersion, build.DownloadAddr)
 	}
 
 	switch *flagRelease {
@@ -100,15 +118,27 @@ func applyFlags() {
 	}
 
 	l.Infof("use version %s", build.ReleaseVersion)
-
-	if *flagPub {
-		build.PubDatakit()
-		os.Exit(0)
-	}
 }
 
 func main() {
 	flag.Parse()
 	applyFlags()
-	build.Compile()
+
+	if *flagPub {
+		build.NotifyStartPub()
+		if err := build.PubDatakit(); err != nil {
+			l.Error(err)
+			build.NotifyFail(err.Error())
+		} else {
+			build.NotifyPubDone()
+		}
+	} else {
+		build.NotifyStartBuild()
+		if err := build.Compile(); err != nil {
+			l.Error(err)
+			build.NotifyFail(err.Error())
+		} else {
+			build.NotifyBuildDone()
+		}
+	}
 }

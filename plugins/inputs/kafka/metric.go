@@ -48,6 +48,395 @@ type KafkaPartitionMment struct {
 	KafkaMeasurement
 }
 
+type KafkaZooKeeperMment struct {
+	KafkaMeasurement
+}
+
+type KafkaRequestHandlerMment struct {
+	KafkaMeasurement
+}
+
+type KafkaNetworkMment struct {
+	KafkaMeasurement
+}
+
+type KafkaLogMment struct {
+	KafkaMeasurement
+}
+
+type KafkaConsumerMment struct {
+	KafkaMeasurement
+}
+
+type KafkaProducerMment struct {
+	KafkaMeasurement
+}
+
+type KafkaConnectMment struct {
+	KafkaMeasurement
+}
+
+var connectFields = map[string]interface{}{
+	"commit_id":                            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"start_time_ms":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"version":                              &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"count":                                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_count":                      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_startup_success_percentage": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"connector_startup_success_total":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"task_startup_failure_percentage":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"task_startup_success_percentage":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"task_startup_success_total":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_startup_attempts_total":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_startup_failure_percentage": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"connector_startup_failure_total":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"task_count":                           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"task_startup_attempts_total":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"task_startup_failure_total":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_type":                       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"connector_unassigned_task_count":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_version":                    &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"status":                               &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"connector_class":                      &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"connector_failed_task_count":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_paused_task_count":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_total_task_count":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_destroyed_task_count":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_restarting_task_count":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connector_running_task_count":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"total_records_skipped":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"total_retries":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"offset_commit_failure_percentage":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"running_ratio":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"source_record_poll_total":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"total_record_failures":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"last_error_timestamp":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"offset_commit_success_percentage":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"source_record_poll_rate":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"source_record_write_rate":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"total_errors_logged":                  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"offset_commit_max_time_ms":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"source_record_active_count":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"source_record_write_total":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"total_record_errors":                  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"deadletterqueue_produce_failures":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"deadletterqueue_produce_requests":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"offset_commit_avg_time_ms":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"pause_ratio":                          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"offset_commit_skip_rate":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"sink_record_send_total":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"offset_commit_seq_no":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"put_batch_avg_time_ms":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"sink_record_send_rate":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"batch_size_avg":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"offset_commit_completion_rate":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"offset_commit_skip_total":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"sink_record_read_rate":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"batch_size_max":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"partition_count":                      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"sink_record_active_count":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"sink_record_read_total":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"put_batch_max_time_ms":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"offset_commit_completion_total":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"sink_record_active_count_avg":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"sink_record_active_count_max":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+}
+
+var connectTags = map[string]interface{}{
+	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"type":              inputs.TagInfo{Desc: "metric type"},
+	"client_id":         inputs.TagInfo{Desc: "client id"},
+	"task":              inputs.TagInfo{Desc: "task"},
+	"connector":         inputs.TagInfo{Desc: "connector"},
+}
+
+func (j *KafkaConnectMment) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:   "kafka_connect",
+		Fields: connectFields,
+		Tags:   connectTags,
+		Desc:   "该指标集需在 Connector 实例上采集",
+	}
+}
+
+func (j *KafkaConnectMment) LineProto() (*io.Point, error) {
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+}
+
+var producerFields = map[string]interface{}{
+	"io_wait_ratio":                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"io_waittime_total":                         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
+	"record_send_total":                         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"io_time_ns_avg":                            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
+	"buffer_exhausted_rate":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"buffer_total_bytes":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"incoming_byte_total":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"successful_reauthentication_total":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"record_retry_total":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"buffer_exhausted_total":                    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"failed_reauthentication_rate":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"request_rate":                              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"io_ratio":                                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"io_wait_time_ns_avg":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
+	"metadata_age":                              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"network_io_rate":                           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"connection_close_rate":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"connection_count":                          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"produce_throttle_time_max":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"successful_authentication_total":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"request_total":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"successful_authentication_no_reauth_total": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"bufferpool_wait_ratio":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"incoming_byte_rate":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"request_size_avg":                          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"select_total":                              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connection_close_total":                    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"network_io_total":                          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"response_rate":                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"select_rate":                               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"record_send_rate":                          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"successful_authentication_rate":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"record_error_rate":                         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"response_total":                            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"produce_throttle_time_avg":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"record_error_total":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"requests_in_flight":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"failed_authentication_rate":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"buffer_available_bytes":                    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"iotime_total":                              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
+	"successful_reauthentication_rate":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"failed_authentication_total":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"failed_reauthentication_total":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"record_retry_rate":                         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"batch_split_total":                         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"connection_creation_total":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"request_size_max":                          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"bufferpool_wait_time_total":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"waiting_threads":                           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"batch_split_rate":                          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"connection_creation_rate":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"outgoing_byte_rate":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"outgoing_byte_total":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"count":                                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"commit_id":                                 &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"start_time_ms":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"version":                                   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+}
+
+var producerTags = map[string]interface{}{
+	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"type":              inputs.TagInfo{Desc: "metric type"},
+	"client_id":         inputs.TagInfo{Desc: "client id"},
+}
+
+func (j *KafkaProducerMment) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:   "kafka_producer",
+		Fields: producerFields,
+		Tags:   producerTags,
+		Desc:   "该指标集需在 Producer 实例上采集",
+	}
+}
+
+func (j *KafkaProducerMment) LineProto() (*io.Point, error) {
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+}
+
+var consumerFields = map[string]interface{}{
+	"count":                                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"bytes_consumed_rate":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"bytes_consumed_total":                      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"fetch_latency_avg":                         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"fetch_throttle_time_avg":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"fetch_total":                               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"records_consumed_rate":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"fetch_latency_max":                         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"fetch_rate":                                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"fetch_throttle_time_max":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"records_consumed_total":                    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"commit_total":                              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"join_rate":                                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"join_total":                                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"rebalance_rate_per_hour":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"rebalance_total":                           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"failed_rebalance_rate_per_hour":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"heartbeat_rate":                            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"last_rebalance_seconds_ago":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"sync_rate":                                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"sync_total":                                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: ""},
+	"assigned_partitions":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"commit_rate":                               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"heartbeat_response_time_max":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"last_heartbeat_seconds_ago":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"failed_rebalance_total":                    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"heartbeat_total":                           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"rebalance_latency_total":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"commit_id":                                 &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"start_time_ms":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"version":                                   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
+	"io_waittime_total":                         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
+	"connection_creation_rate":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"connection_creation_total":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"successful_authentication_rate":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"failed_authentication_rate":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"failed_authentication_total":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"failed_reauthentication_total":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"io_wait_time_ns_avg":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
+	"network_io_total":                          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"request_size_avg":                          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"successful_authentication_no_reauth_total": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connection_close_rate":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"io_time_ns_avg":                            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
+	"outgoing_byte_total":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"request_size_max":                          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"response_rate":                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"successful_authentication_total":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"successful_reauthentication_total":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"connection_count":                          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"io_ratio":                                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"request_total":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"response_total":                            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"incoming_byte_total":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"iotime_total":                              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"last_poll_seconds_ago":                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"outgoing_byte_rate":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"connection_close_total":                    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"failed_reauthentication_rate":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"incoming_byte_rate":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"network_io_rate":                           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"select_rate":                               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"io_wait_ratio":                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"request_rate":                              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"select_total":                              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"successful_reauthentication_rate":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+}
+
+var consumerTags = map[string]interface{}{
+	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"type":              inputs.TagInfo{Desc: "metric type"},
+	"client_id":         inputs.TagInfo{Desc: "client id"},
+}
+
+func (j *KafkaConsumerMment) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:   "kafka_consumer",
+		Fields: consumerFields,
+		Tags:   consumerTags,
+		Desc:   "该指标集需在 Consumer 实例上采集",
+	}
+}
+
+func (j *KafkaConsumerMment) LineProto() (*io.Point, error) {
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+}
+
+var logFields = map[string]interface{}{
+	"OfflineLogDirectoryCount":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"cleaner_recopy_percent":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"max_compaction_delay_secs":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: ""},
+	"max_clean_time_secs":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: ""},
+	"DeadThreadCount":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"max_buffer_utilization_percent": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+}
+
+var logTags = map[string]interface{}{
+	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"type":              inputs.TagInfo{Desc: "metric type"},
+}
+
+func (j *KafkaLogMment) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:   "kafka_log",
+		Fields: logFields,
+		Tags:   logTags,
+	}
+}
+
+func (j *KafkaLogMment) LineProto() (*io.Point, error) {
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+}
+
+var networkFields = map[string]interface{}{
+	"NetworkProcessorAvgIdlePercent":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"ExpiredConnectionsKilledCount":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"ControlPlaneExpiredConnectionsKilledCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"MemoryPoolAvailable":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"MemoryPoolUsed":                            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+}
+
+var networkTags = map[string]interface{}{
+	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+	"type":              inputs.TagInfo{Desc: "metric type"},
+}
+
+func (j *KafkaNetworkMment) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:   "kafka_network",
+		Fields: networkFields,
+		Tags:   networkTags,
+	}
+}
+
+func (j *KafkaNetworkMment) LineProto() (*io.Point, error) {
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+}
+
+var requestHandlerFields = map[string]interface{}{
+	"RequestHandlerAvgIdlePercent.RateUnit":          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.String, Desc: ""},
+	"RequestHandlerAvgIdlePercent.EventType":         &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.String, Desc: ""},
+	"RequestHandlerAvgIdlePercent.FifteenMinuteRate": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"RequestHandlerAvgIdlePercent.OneMinuteRate":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"RequestHandlerAvgIdlePercent.Count":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"RequestHandlerAvgIdlePercent.FiveMinuteRate":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"RequestHandlerAvgIdlePercent.MeanRate":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+}
+
+var requestHandlerTags = map[string]interface{}{
+	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+}
+
+func (j *KafkaRequestHandlerMment) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:   "kafka_request_handler",
+		Fields: requestHandlerFields,
+		Tags:   requestHandlerTags,
+	}
+}
+
+func (j *KafkaRequestHandlerMment) LineProto() (*io.Point, error) {
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+}
+
+var zooKeeperFields = map[string]interface{}{
+	"ZooKeeperRequestLatencyMs.Mean":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.98thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.75thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.95thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.Min":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.999thPercentile": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.Max":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.StdDev":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.99thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"ZooKeeperRequestLatencyMs.Count":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
+	"ZooKeeperRequestLatencyMs.50thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+}
+
+var zooKeeperTags = map[string]interface{}{
+	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
+}
+
+func (j *KafkaZooKeeperMment) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:   "kafka_zookeeper",
+		Fields: zooKeeperFields,
+		Tags:   zooKeeperTags,
+	}
+}
+
+func (j *KafkaZooKeeperMment) LineProto() (*io.Point, error) {
+	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
+}
+
 func (j *KafkaMeasurement) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }

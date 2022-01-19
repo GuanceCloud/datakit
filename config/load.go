@@ -113,6 +113,31 @@ func ReloadInputConfig() error {
 }
 
 func ReloadInputTables(confTables []map[string]*ast.Table) error {
+	defer func() {
+		if GitHasEnabled() {
+			// #501 issue
+			for _, name := range Cfg.DefaultEnabledInputs {
+				if c, ok := inputs.Inputs[name]; ok {
+					i := c()
+					sample := i.SampleConfig()
+					tpl, err := parseCfgBytes([]byte(sample))
+					if err != nil {
+						l.Errorf("parseCfgBytes failed: %s", err.Error())
+						continue
+					}
+					res := getCheckInputCfgResult(tpl)
+					if !res.Runnable() {
+						l.Errorf("getCheckInputCfgResult failed: input_cfg_invalid")
+						continue
+					}
+					for _, i := range res.AvailableInputs {
+						inputs.AddInput(name, i)
+					}
+				}
+			} // if
+		} // if GitHasEnabled()
+	}()
+
 	if len(confTables) == 0 {
 		return nil
 	}
@@ -130,10 +155,7 @@ func ReloadInputTables(confTables []map[string]*ast.Table) error {
 				continue
 			}
 
-			if err := doLoadInputConf(name, creator, v); err != nil {
-				l.Errorf("load %s config failed: %v, ignored", name, err)
-				return err
-			}
+			doLoadInputConf(name, creator, v)
 		}
 	}
 
@@ -170,11 +192,10 @@ func feedEnvs(data []byte) []byte {
 		}
 
 		envval, ok := os.LookupEnv(strings.TrimPrefix(string(envvar), "$"))
+		// 找到了环境变量就替换否则不替换
 		if ok {
 			envval = envVarEscaper.Replace(envval)
 			data = bytes.Replace(data, parameter[0], []byte(envval), 1)
-		} else {
-			data = bytes.Replace(data, parameter[0], []byte("no-value"), 1)
 		}
 	}
 
@@ -188,7 +209,11 @@ func ParseCfgFile(f string) (*ast.Table, error) {
 		return nil, fmt.Errorf("read config %s failed: %w", f, err)
 	}
 
-	data = feedEnvs(data)
+	return parseCfgBytes(data)
+}
+
+func parseCfgBytes(bys []byte) (*ast.Table, error) {
+	data := feedEnvs(bys)
 
 	tbl, err := toml.Parse(data)
 	if err != nil {
@@ -211,7 +236,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 				if err != nil {
 					return nil, err
 				}
-				pl, err := pipeline.NewPipelineByScriptPath(pFullPath)
+				pl, err := pipeline.NewPipelineByScriptPath(pFullPath, false)
 				if err != nil {
 					return vv, err
 				}
@@ -233,13 +258,98 @@ func GetPipelinePath(pipeLineName string) (string, error) {
 
 	pipeLineName = dkstring.TrimString(pipeLineName)
 
-	if path.PathIsPureFileName(pipeLineName) {
-		// eg. AA
-		return filepath.Join(datakit.PipelineDir, pipeLineName), nil
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
+
+	if filepath.IsAbs(pipeLineName) {
+		// check absolute path
+		if _, err := os.Stat(pipeLineName); err != nil {
+			return "", err
+		}
+		return pipeLineName, nil
 	}
 
-	// eg. test/AA
-	return filepath.Join(datakit.GitReposDir, pipeLineName), nil
+	// start search unabsolute path
+
+	mExistCloneDirs := make(map[string]struct{})
+	// search enabled gitrepos
+	for _, v := range Cfg.GitRepos.Repos {
+		if !v.Enable {
+			continue
+		}
+		v.URL = dkstring.TrimString(v.URL)
+		if v.URL == "" {
+			continue
+		}
+		repoName, err := path.GetGitPureName(v.URL)
+		if err != nil {
+			continue
+		}
+		// check repeat
+		if _, ok := mExistCloneDirs[repoName]; ok {
+			continue
+		}
+		mExistCloneDirs[repoName] = struct{}{}
+		clonePath, err := GetGitRepoSubDir(repoName, datakit.GitRepoSubDirNamePipeline)
+		if err != nil {
+			continue
+		}
+		plPath := filepath.Join(clonePath, pipeLineName)
+		if _, err := os.Stat(plPath); err != nil {
+			continue
+		}
+		return plPath, nil // return once found the pipeline file
+	}
+
+	// search datakit root pipeline
+	plPath := filepath.Join(datakit.PipelineDir, pipeLineName)
+	if _, err := os.Stat(plPath); err != nil {
+		return "", err
+	}
+
+	return plPath, nil
+}
+
+func GetGitReposAllPipelinePath() []string {
+	var allGitReposPipelines []string
+
+	mExistCloneDirs := make(map[string]struct{})
+	for _, v := range Cfg.GitRepos.Repos {
+		if !v.Enable {
+			continue
+		}
+		v.URL = dkstring.TrimString(v.URL)
+		if v.URL == "" {
+			continue
+		}
+		repoName, err := path.GetGitPureName(v.URL)
+		if err != nil {
+			continue
+		}
+		// check repeat
+		if _, ok := mExistCloneDirs[repoName]; ok {
+			continue
+		}
+		mExistCloneDirs[repoName] = struct{}{}
+		clonePath, err := GetGitRepoSubDir(repoName, datakit.GitRepoSubDirNamePipeline)
+		if err != nil {
+			continue
+		}
+		files, err := ioutil.ReadDir(clonePath)
+		if err != nil {
+			continue
+		}
+		for _, f := range files {
+			if !f.IsDir() {
+				ext := filepath.Ext(f.Name())
+				extNew := strings.ToLower(ext)
+				if extNew == ".p" {
+					allGitReposPipelines = append(allGitReposPipelines, filepath.Join(clonePath, f.Name()))
+				}
+			}
+		} // for files
+	} // for
+
+	return allGitReposPipelines
 }
 
 type CheckedInputCfgResult struct {

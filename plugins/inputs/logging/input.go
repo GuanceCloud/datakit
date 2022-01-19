@@ -2,12 +2,12 @@
 package logging
 
 import (
+	"path"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -24,7 +24,11 @@ const (
     "/var/log/syslog",
     "/var/log/message",
   ]
-
+  # only two protocols are supported:TCP and UDP
+  # sockets = [
+  #	 "tcp://0.0.0.0:9530",
+  #	 "udp://0.0.0.0:9531",
+  # ]
   ## glob filteer
   ignore = [""]
 
@@ -60,6 +64,7 @@ const (
 
 type Input struct {
 	LogFiles              []string          `toml:"logfiles"`
+	Sockets               []string          `toml:"sockets,omitempty"`
 	Ignore                []string          `toml:"ignore"`
 	Source                string            `toml:"source"`
 	Service               string            `toml:"service"`
@@ -76,8 +81,7 @@ type Input struct {
 	DeprecatedMultilineMatch string `toml:"match"`
 	DeprecatedFromBeginning  bool   `toml:"from_beginning"`
 
-	tailer *tailer.Tailer
-
+	process []LogProcessor
 	// 在输出 log 内容时，区分是 tailf 还是 logging
 	inputName string
 
@@ -86,34 +90,29 @@ type Input struct {
 
 var l = logger.DefaultSLogger(inputName)
 
+type LogProcessor interface {
+	Start()
+	Close()
+	// add func
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	// 兼容旧版配置 pipeline_path
 	if ipt.Pipeline == "" && ipt.DeprecatedPipeline != "" {
-		ipt.Pipeline = ipt.DeprecatedPipeline
+		ipt.Pipeline = path.Base(ipt.DeprecatedPipeline)
 	}
 
 	if ipt.MultilineMatch == "" && ipt.DeprecatedMultilineMatch != "" {
 		ipt.MultilineMatch = ipt.DeprecatedMultilineMatch
 	}
 
-	var pipelinePath string
-
-	if ipt.Pipeline == "" {
-		ipt.Pipeline = ipt.Source + ".p"
-	}
-
-	pipelinePath, err := config.GetPipelinePath(ipt.Pipeline)
-	if err != nil {
-		l.Error(err)
-		return
-	}
-
 	opt := &tailer.Option{
 		Source:                ipt.Source,
 		Service:               ipt.Service,
-		Pipeline:              pipelinePath,
+		Pipeline:              ipt.Pipeline,
+		Sockets:               ipt.Sockets,
 		IgnoreStatus:          ipt.IgnoreStatus,
 		FromBeginning:         ipt.FromBeginning,
 		CharacterEncoding:     ipt.CharacterEncoding,
@@ -122,14 +121,37 @@ func (ipt *Input) Run() {
 		RemoveAnsiEscapeCodes: ipt.RemoveAnsiEscapeCodes,
 		GlobalTags:            ipt.Tags,
 	}
-
-	ipt.tailer, err = tailer.NewTailer(ipt.LogFiles, opt, ipt.Ignore)
-	if err != nil {
-		l.Error(err)
-		return
+	ipt.process = make([]LogProcessor, 0)
+	if len(ipt.LogFiles) != 0 {
+		tailerL, err := tailer.NewTailer(ipt.LogFiles, opt, ipt.Ignore)
+		if err != nil {
+			l.Error(err)
+		} else {
+			ipt.process = append(ipt.process, tailerL)
+		}
 	}
 
-	go ipt.tailer.Start()
+	// 互斥：只有当logFile为空，socket不为空才开启socket采集日志
+	if len(ipt.LogFiles) == 0 && len(ipt.Sockets) != 0 {
+		socker, err := tailer.NewWithOpt(opt, ipt.Ignore)
+		if err != nil {
+			l.Error(err)
+		} else {
+			l.Infof("new socket logging")
+			ipt.process = append(ipt.process, socker)
+		}
+	} else {
+		l.Warn("socket len =0")
+	}
+
+	if ipt.process != nil && len(ipt.process) > 0 {
+		// start all process
+		for _, proce := range ipt.process {
+			go proce.Start()
+		}
+	} else {
+		l.Warnf("There are no logging processors here")
+	}
 
 	for {
 		select {
@@ -157,7 +179,11 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Stop() {
-	ipt.tailer.Close()
+	if ipt.process != nil {
+		for _, proce := range ipt.process {
+			proce.Close()
+		}
+	}
 }
 
 func (*Input) Catalog() string {
@@ -193,6 +219,7 @@ func (ipt *loggingMeasurement) LineProto() (*io.Point, error) {
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "logging 日志采集",
+		Type: "logging",
 		Desc: "使用配置文件中的 `source` 字段值，如果该值为空，则默认为 `default`",
 		Tags: map[string]interface{}{
 			"filename": inputs.NewTagInfo(`此条日志来源的文件名，仅为基础文件名，并非带有全路径`),

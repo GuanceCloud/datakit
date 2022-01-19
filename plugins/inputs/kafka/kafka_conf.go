@@ -17,7 +17,7 @@ const (
   # tls_key  = "/var/private/client-key.pem"
   # insecure_skip_verify = false
   
-  ## Monitor Intreval
+  ## Monitor Interval
   # interval   = "60s"
   
   # Add agents URLs to query
@@ -33,12 +33,16 @@ const (
     name         = "kafka_replica_manager"
     mbean        = "kafka.server:name=*,type=ReplicaManager"
     field_prefix = "#1."
+
+  [[inputs.kafka.metric]]
+    name         = "kafka_zookeeper"
+    mbean        = "kafka.server:type=ZooKeeperClientMetrics,name=*"
+    field_prefix = "#1."
   
   [[inputs.kafka.metric]]
     name         = "kafka_purgatory"
     mbean        = "kafka.server:delayedOperation=*,name=*,type=DelayedOperationPurgatory"
-    field_prefix = "#1."
-    field_name   = "#2"
+    field_name   = "#1.#2"
   
   [[inputs.kafka.metric]]
     name     = "kafka_client"
@@ -50,6 +54,17 @@ const (
     mbean        = "kafka.network:name=*,request=*,type=RequestMetrics"
     field_prefix = "#1."
     tag_keys     = ["request"]
+
+  [[inputs.kafka.metric]]
+    name         = "kafka_request_handler"
+    mbean        = "kafka.server:type=KafkaRequestHandlerPool,name=*"
+    field_prefix = "#1."
+
+  [[inputs.kafka.metric]]
+    name         = "kafka_network"
+    mbean        = "kafka.network:type=*,name=*"
+    field_name   = "#2"
+    tag_keys     = ["type"]
   
   [[inputs.kafka.metric]]
     name         = "kafka_topics"
@@ -67,13 +82,47 @@ const (
     mbean      = "kafka.log:name=*,partition=*,topic=*,type=Log"
     field_name = "#1"
     tag_keys   = ["topic", "partition"]
+
+  [[inputs.kafka.metric]]
+    name       = "kafka_log"
+    mbean      = "kafka.log:type=*,name=*"
+    field_name = "#2"
+    tag_keys   = ["type"]
   
   [[inputs.kafka.metric]]
     name       = "kafka_partition"
     mbean      = "kafka.cluster:name=UnderReplicated,partition=*,topic=*,type=Partition"
     field_name = "UnderReplicatedPartitions"
     tag_keys   = ["topic", "partition"]
+
+  # # The following metrics are available on consumer instances.
+  # [[inputs.kafka.metric]]
+  #   name       = "kafka_consumer"
+  #   mbean      = "kafka.consumer:type=*,client-id=*"
+  #   tag_keys   = ["client-id", "type"]
+
+  # # The following metrics are available on producer instances.  
+  # [[inputs.kafka.metric]]
+  #   name       = "kafka_producer"
+  #   mbean      = "kafka.producer:type=*,client-id=*"
+  #   tag_keys   = ["client-id", "type"]
+
+  # # The following metrics are available on connector instances.
+  # [[inputs.kafka.metric]]
+  #   name       = "kafka_connect"
+  #   mbean      = "kafka.connect:type=*"
+  #   tag_keys   = ["type"]
   
+  # [[inputs.kafka.metric]]
+  #   name       = "kafka_connect"
+  #   mbean      = "kafka.connect:type=*,connector=*"
+  #   tag_keys   = ["type", "connector"]
+
+  # [[inputs.kafka.metric]]
+  #   name       = "kafka_connect"
+  #   mbean      = "kafka.connect:type=*,connector=*,task=*"
+  #   tag_keys   = ["type", "connector", "task"]
+
   # [inputs.kafka.log]
   # files = []
   # #grok pipeline script path

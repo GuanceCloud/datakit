@@ -59,7 +59,7 @@ func NullIf(ng *parser.Engine, node parser.Node) error {
 
 	cont, err := ng.GetContent(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist, ignored", key)
+		l.Debugf("key `%v' not exist, ignored", key)
 		return nil //nolint:nilerr
 	}
 
@@ -79,7 +79,7 @@ func NullIf(ng *parser.Engine, node parser.Node) error {
 			return nil
 		}
 
-		delete(ng.Result(), k)
+		_ = ng.DeleteContent(k)
 	}
 
 	return nil
