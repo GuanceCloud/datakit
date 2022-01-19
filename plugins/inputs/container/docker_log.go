@@ -254,12 +254,6 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 	logconf.tags["stream"] = stream
 	shortImageName := logconf.tags["image_short_name"]
 
-	task := &worker.Task{
-		TaskName:   "log-" + shortImageName,
-		Source:     logconf.Source,
-		ScriptName: logconf.Pipeline,
-	}
-
 	r := readbuf.NewReadBuffer(reader, readBuffSize)
 
 	for {
@@ -287,16 +281,24 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		workerData := []worker.TaskData{}
 
 		for _, line := range lines {
+			if len(line) == 0 {
+				continue
+			}
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  Bytes2String(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
+					log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
 		}
 
-		task.Data = workerData
-		task.TS = time.Now()
+		task := &worker.Task{
+			TaskName:   "containerlogging/" + shortImageName,
+			Source:     logconf.Source,
+			ScriptName: logconf.Pipeline,
+			Data:       workerData,
+			TS:         time.Now(),
+		}
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
 			l.Errorf("failed to fedd log, containerName: %s, err: %w", logconf.tags["container_name"], err)

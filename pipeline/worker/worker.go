@@ -35,6 +35,8 @@ var (
 		return nil
 	}
 
+	checkUpdateDebug = time.Duration(0)
+
 	g = datakit.G("pipeline_worker")
 
 	stopCh = make(chan struct{})
@@ -53,7 +55,15 @@ type ppWorker struct {
 
 func (wkr *ppWorker) Run(ctx context.Context) error {
 	wkr.isRunning = true
-	ticker := time.NewTicker(time.Second * 30)
+
+	dur := time.Second * 30
+	if checkUpdateDebug >= time.Second {
+		l.Warn("checkDotPUpdateDebug: ", checkUpdateDebug)
+		dur = checkUpdateDebug
+	}
+	ticker := time.NewTicker(dur)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case task := <-taskCh:
@@ -256,7 +266,7 @@ var MaxWorkerCount = func() int {
 	return n
 }()
 
-func InitManager() {
+func InitManager(count int) {
 	l = logger.SLogger("pipeline-worker")
 
 	if wkrManager != nil {
@@ -270,7 +280,10 @@ func InitManager() {
 
 	LoadAllDotPScriptForWkr(nil, nil)
 
-	for i := 0; i < MaxWorkerCount; i++ {
+	if count <= 0 {
+		count = MaxWorkerCount
+	}
+	for i := 0; i < count; i++ {
 		_ = wkrManager.appendPPWorker()
 	}
 	l.Info("pipeline task channal is ready")
