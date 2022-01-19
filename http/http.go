@@ -217,7 +217,7 @@ func setupRouter() *gin.Engine {
 
 type apiHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
 
-// not used
+// not used.
 func wrap(next apiHandler, any ...interface{}) func(*gin.Context) {
 	return func(c *gin.Context) {
 		if res, err := next(c.Writer, c.Request, any...); err != nil {

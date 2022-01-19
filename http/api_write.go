@@ -46,7 +46,7 @@ func (x *apiWriteImpl) geoInfo(ip string) map[string]string {
 	return geoTags(ip)
 }
 
-// sendToPipLine will send each point from @pts to pipeline module
+// sendToPipLine will send each point from @pts to pipeline module.
 func (x *apiWriteImpl) sendToPipLine(t *plw.Task) error {
 	return plw.FeedPipelineTaskBlock(t)
 }
@@ -158,8 +158,8 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 			return nil, err
 		}
 
-		switch category {
-		case datakit.Object:
+		// check if object is ok
+		if category == datakit.Object {
 			for _, pt := range pts {
 				if err := checkObjectPoint(pt); err != nil {
 					return nil, err

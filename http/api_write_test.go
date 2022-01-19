@@ -363,26 +363,32 @@ func TestAPIWrite(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			var resp *http.Response
 			var err error
 			switch tc.method {
 			case "GET":
-				resp, err = http.Get(fmt.Sprintf("%s%s", ts.URL, tc.url))
+				resp, err = http.Get(fmt.Sprintf("%s%s", ts.URL, tc.url)) //nolint:bodyclose
 				if err != nil {
 					t.Logf("http.Get: %s", err)
 				}
 
 			case "POST":
-				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url), tc.contentType, bytes.NewBuffer(tc.body))
+				resp, err = http.Post(fmt.Sprintf("%s%s", ts.URL, tc.url), tc.contentType, bytes.NewBuffer(tc.body)) //nolint:bodyclose
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			default: //
 				t.Error("TODO")
+				return
 			}
 
 			if resp == nil {
 				t.Logf("no response")
 				return
 			}
+
+			defer resp.Body.Close() // nolint:errcheck
 
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
@@ -392,7 +398,7 @@ func TestAPIWrite(t *testing.T) {
 
 			t.Logf("body: %s", string(body)[:len(body)%256]) // remove too-long-body display
 
-			defer resp.Body.Close()
+			defer resp.Body.Close() //nolint:errcheck
 
 			if tc.expectBody != nil {
 				switch x := tc.expectBody.(type) {

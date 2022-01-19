@@ -27,7 +27,7 @@ type Result struct {
 }
 
 func (r *Result) String() string {
-	return fmt.Sprintf("%+#v", r.output) // FIXME: need more string format
+	return fmt.Sprintf("%+#v", r.output)
 }
 
 func NewResult() *Result {

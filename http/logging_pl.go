@@ -71,7 +71,7 @@ func buildLogPLTask(input, source, version, category string, pts []*io.Point) *p
 			DisableAddStatusField: true,
 		},
 
-		//ScriptName: not set here, pipeline will detect @source.p as the default pipline
+		// ScriptName: not set here, pipeline will detect @source.p as the default pipline
 
 		TS:   time.Now(),
 		Data: td,
