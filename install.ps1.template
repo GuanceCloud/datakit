@@ -164,10 +164,10 @@ if ($x -ne $null) {
 	Write-COutput green "* set global tags $x" 
 }
 
-$install_only=""
+$install_only="0"
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALL_ONLY") 
 if ($x -ne $null) {
-	$install_only = $x
+	$install_only = "1"
 	Write-COutput yellow "* set install only"
 }
 
@@ -262,10 +262,7 @@ Invoke-Expression $dl_installer_action
 if ($upgrade -ne $null) { # upgrade
 	$action = "$installer -upgrade --proxy=${proxy}"
 } else { # install new datakit
-	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}'"
-	if ($install_only -ne "") {
-		$action = -join($action, " ", "--install-only")
-	}
+	$action = "$installer --dataway=$dataway --listen=$http_listen --port=${http_port} --proxy=${proxy} --namespace=${namespace} --env_hostname=${env_hostname} --cloud-provider=${cloud_provider} --global-tags='${global_tags}' --dca-enable=$dca_enable --dca-listen=$dca_listen --dca-white-list=$dca_white_list --git-url='${git_url}' --git-key-path='${git_key_path}' --git-key-pw='${git_key_pw}' --git-branch='${git_branch}' --git-pull-interval='${git_pull_interval}' --install-only='${install_only}'"
 }
 
 Write-COutput green "action: $action"

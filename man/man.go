@@ -29,6 +29,7 @@ var (
 
 		"datakit-how-to":         "man/manuals/datakit-how-to.md", // deprecated
 		"datakit-conf-how-to":    "man/manuals/datakit-conf-how-to.md",
+		"k8s-config-how-to":      "man/manuals/k8s-config-how-to.md",
 		"datakit-dql-how-to":     "man/manuals/datakit-dql-how-to.md",
 		"datakit-pl-how-to":      "man/manuals/datakit-pl-how-to.md",
 		"datakit-service-how-to": "man/manuals/datakit-service-how-to.md",
@@ -45,7 +46,6 @@ var (
 		"development":             "man/manuals/development.md",
 		"election":                "man/manuals/election.md",
 		"kubernetes-prom":         "man/manuals/kubernetes-prom.md",
-		"kubernetes-podlogging":   "man/manuals/kubernetes-podlogging.md",
 		"kubernetes-x":            "man/manuals/kubernetes-x.md",
 		"pipeline":                "man/manuals/pipeline.md",
 		"logging-pipeline-bench":  "man/manuals/logging-pipeline-bench.md",

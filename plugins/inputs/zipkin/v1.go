@@ -135,7 +135,7 @@ func getDurationThriftAno(anos []*zipkincore.Annotation) int64 {
 		}
 	}
 	if stop > start {
-		return (stop - start) * 1000
+		return (stop - start) * int64(time.Microsecond)
 	}
 	return 0
 }
@@ -250,11 +250,11 @@ func thriftSpansToAdapters(zspans []*zipkincore.Span,
 		tAdapter.Source = sourceZipkin
 
 		if span.Duration != nil {
-			tAdapter.Duration = (*span.Duration) * 1000
+			tAdapter.Duration = (*span.Duration) * int64(time.Microsecond)
 		}
 
 		if span.Timestamp != nil {
-			tAdapter.Start = (*span.Timestamp) * 1000
+			tAdapter.Start = (*span.Timestamp) * int64(time.Microsecond)
 		} else {
 			// tAdapter.TimestampUs = time.Now().UnixNano() / 1000
 			tAdapter.Start = getStartTimestamp(span)

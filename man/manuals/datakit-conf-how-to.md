@@ -20,20 +20,22 @@ DataKit 的配置均使用 [Toml 文件](https://toml.io/cn)。在 DataKit 中�
 	...
 ```
 
+## 默认开启的采集器
+
 DataKit 安装完成后，默认会开启一批采集器，这些采集器一般跟主机相关，列表如下。由于这些采集器默认开启，我们无需手动再配置它们。
 
-| 采集器名称       | 说明                                           |
-| ---------        | ---                                            |
-| `cpu`            | 采集主机的 CPU 使用情况                        |
-| `disk`           | 采集磁盘占用情况                               |
-| `diskio`         | 采集主机的磁盘 IO 情况                         |
-| `mem`            | 采集主机的内存使用情况                         |
-| `swap`           | 采集 Swap 内存使用情况                         |
-| `system`         | 采集主机操作系统负载                           |
-| `net`            | 采集主机网络流量情况                           |
-| `host_processes` | 采集主机上常驻（存活 10min 以上）进程列表      |
-| `hostobject`     | 采集主机基础信息（如操作系统信息、硬件信息等） |
-| `container`      | 采集主机上可能的容器对象以及容器日志           |
+| 采集器名称                         | 说明                                           |
+| ---------                          | ---                                            |
+| [`cpu`](cpu)                       | 采集主机的 CPU 使用情况                        |
+| [`disk`](disk)                     | 采集磁盘占用情况                               |
+| [`diskio`](diskio)                 | 采集主机的磁盘 IO 情况                         |
+| [`mem`](mem)                       | 采集主机的内存使用情况                         |
+| [`swap`](swap)                     | 采集 Swap 内存使用情况                         |
+| [`system`](system)                 | 采集主机操作系统负载                           |
+| [`net`](net)                       | 采集主机网络流量情况                           |
+| [`host_processes`](host_processes) | 采集主机上常驻（存活 10min 以上）进程列表      |
+| [`hostobject`](hostobject)         | 采集主机基础信息（如操作系统信息、硬件信息等） |
+| [`container`](container)           | 采集主机上可能的容器对象以及容器日志           |
 
 ## 采集器配置文件
 
@@ -290,22 +292,59 @@ Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下�
 
 我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用。
 
-当使用 DataKit 自带的 Pipeline 时，一般是不带任何前缀路径的， 如：
+当使用 DataKit 自带的 Pipeline 时，支持 2 种路径方式，一种是绝对路径（完整路径），一种是纯文件名（含扩展名 `.p`）。
+
+- 绝对路径
 
 ```toml
 [[inputs.nginx]]
     ...
     [inputs.nginx.log]
     ...
-    pipeline = "nginx.p" # 对应加载 <DataKit 安装目录>/pipeline/nginx.p 文件
+    pipeline = "/user/pipelines/nginx.p" # 对应加载 /user/pipelines/nginx.p 文件
 ```
 
-当使用 Git 管理的 Pipeline，因为 Clone 下来的文件，都是在特定的文件夹中，故 Pipeline 的配置也会带上对应的路径前缀：
+
+- 纯文件名路径
 
 ```toml
 [[inputs.nginx]]
     ...
     [inputs.nginx.log]
     ...
-    pipeline = "myconfs/nginx.p" # 对应加载 <DataKit 安装目录>/gitrepos/myconfs/nginx.p 文件
+    pipeline = "nginx.p" # 具体加载哪看下面的 "约束" 说明
 ```
+
+### Git 管理的使用约束
+
+在 git repo 使用过程必须遵循以下约束:
+- git repo 里面新建 `conf.d` 文件夹，下面放 DataKit 采集器配置
+- git repo 里面新建 `pipeline` 文件夹，下面放置 Pipeline 文件
+- git repo 里面新建 `python.d` 文件夹，下面放置 Python 脚本文件
+
+下面以图例来说明：
+
+```
+datakit 根目录
+├── conf.d
+├── data
+├── pipeline # 顶层 Pipeline 脚本
+├── python.d # 顶层 python.d 脚本
+├── externals
+└── gitrepos
+    ├── repo-1  # 仓库 1
+    │   ├── conf.d    # conf.d 专门存放采集器配置
+    │   ├── pipeline
+    │   │   └── nginx.p # 合法的 Pipeline 脚本
+    │   │   └── 123     # 不合法的 Pipeline 目录，其下文件也不会生效
+    │   │       └── some-invalid.p
+    │   └── python.d    存放 python.d 脚本
+    │       └── core
+    └── repo-2  # 仓库 2
+        ├── ...
+```
+
+如果 pipeline 和 pythond.conf 中填写的是 "纯文件名路径"，则查找优先级统一如下:
+
+1. 按 datakit.conf 里面的 `git_repos -> git_repos.repo` 配置逐个查找指定文件名，若找到，返回第一个;
+2. 在上面找不到的情况下，使用 `<Datakit 安装目录>/pipeline` 或者 `<Datakit 安装目录>/python.d` 再次进行查找，返回第一个;

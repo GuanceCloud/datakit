@@ -10,6 +10,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
 const (
@@ -69,7 +70,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	}
 
 	if opt.Pipeline != "" {
-		if p, err := pipeline.NewPipelineFromFile(opt.Pipeline); err != nil {
+		if p, err := pipeline.NewPipelineFromFile(opt.Pipeline, false); err != nil {
 			t.opt.log.Warnf("pipeline.NewPipelineFromFile error: %s, ignored", err)
 		} else {
 			t.pipeline = p
@@ -119,8 +120,8 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 		case <-timeout.C:
-			if err = t.processText(t.mult.Flush()); err != nil {
-				t.opt.log.Warn(err)
+			if str := t.mult.Flush(); str != "" {
+				t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: str, Tag: t.tags}})
 			}
 		default:
 			// nil
@@ -128,7 +129,7 @@ func (t *Single) forwardMessage() {
 
 		b.buf, readNum, err = t.read()
 		if err != nil {
-			t.opt.log.Warnf("failed of read data from file %s, error: %s", t.filename, err)
+			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
 			return
 		}
 		if readNum == 0 {
@@ -137,12 +138,11 @@ func (t *Single) forwardMessage() {
 		}
 
 		lines = b.split()
-
+		var pending []worker.TaskData
 		for _, line := range lines {
 			if line == "" {
 				continue
 			}
-
 			var text string
 			text, err = t.decode(line)
 			if err != nil {
@@ -156,32 +156,30 @@ func (t *Single) forwardMessage() {
 			if text == "" {
 				continue
 			}
-
-			err = t.processText(text)
-			if err != nil {
-				t.opt.log.Warnf("failed of processing text, err: %s", err)
-			}
+			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
 		}
+		t.sendToPipeline(pending)
 	}
 }
 
-func (t *Single) processText(text string) error {
-	if text == "" {
-		return nil
+func (t *Single) sendToPipeline(pending []worker.TaskData) {
+	task := &worker.Task{
+		TaskName:   "logging/" + t.opt.Pipeline,
+		ScriptName: t.opt.Pipeline,
+		Source:     t.opt.Source,
+		Data:       pending,
+		Opt: &worker.TaskOpt{
+			IgnoreStatus:          t.opt.IgnoreStatus,
+			DisableAddStatusField: t.opt.DisableAddStatusField,
+		},
+		TS: time.Now(),
 	}
 
-	err := NewLogs(text).
-		RemoveAnsiEscapeCodesOfText(t.opt.RemoveAnsiEscapeCodes).
-		Pipeline(t.pipeline).
-		CheckFieldsLength().
-		AddStatus(t.opt.DisableAddStatusField).
-		IgnoreStatus(t.opt.IgnoreStatus).
-		TakeTime().
-		Point(t.opt.Source, t.tags).
-		Feed(t.opt.InputName).
-		Err()
-
-	return err
+	err := worker.FeedPipelineTaskBlock(task)
+	if err != nil {
+		t.opt.log.Warnf("pipline feed err = %v", err)
+		return
+	}
 }
 
 func (t *Single) currentOffset() int64 {

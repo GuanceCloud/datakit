@@ -77,6 +77,10 @@ type PipelineInput interface {
 	GetPipeline() []*tailer.Option
 }
 
+type OptionalInput interface {
+	SetTags(map[string]string)
+}
+
 type XLog struct {
 	Files    []string `toml:"files"`
 	Pipeline string   `toml:"pipeline"`

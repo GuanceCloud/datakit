@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/types"
+	"github.com/pborman/ansi"
 )
 
 // ParseImage adapts some of the logic from the actual Docker library's image parsing
@@ -146,4 +147,18 @@ func calculateMemPercentUnixNoCache(limit float64, usedNoCache float64) float64 
 		return usedNoCache / limit * 100.0
 	}
 	return 0
+}
+
+func removeAnsiEscapeCodes(oldtext []byte, run bool) []byte {
+	if !run {
+		return oldtext
+	}
+
+	newtext, err := ansi.Strip(oldtext)
+	if err != nil {
+		l.Debugf("remove ansi code error: %w", err)
+		return oldtext
+	}
+
+	return newtext
 }

@@ -334,12 +334,15 @@ func (p *Input) WriteObject() {
 				l.Errorf("[error] process get pipeline err:%s", err.Error())
 				continue
 			}
-			pipe, err := pipeline.NewPipelineByScriptPath(plPath)
+			pipe, err := pipeline.NewPipelineByScriptPath(plPath, false)
 			if err == nil {
 				pipeMap, err := pipe.Run(string(m)).Result()
-				if err == nil {
-					for k, v := range pipeMap {
+				if err == nil && pipeMap != nil {
+					for k, v := range pipeMap.Data {
 						fields[k] = v
+					}
+					for k, v := range pipeMap.Tags {
+						tags[k] = v
 					}
 				} else {
 					l.Errorf("[error] process run pipeline err:%s", err.Error())

@@ -176,30 +176,34 @@ type Exchange struct {
 }
 
 type Node struct {
-	Name                     string
-	DiskFreeAlarm            bool    `json:"disk_free_alarm"`
-	MemAlarm                 bool    `json:"mem_alarm"`
-	Running                  bool    `json:"running"`
-	DiskFree                 int64   `json:"disk_free"`
-	DiskFreeLimit            int64   `json:"disk_free_limit"`
-	FdTotal                  int64   `json:"fd_total"`
-	FdUsed                   int64   `json:"fd_used"`
-	MemLimit                 int64   `json:"mem_limit"`
-	MemUsed                  int64   `json:"mem_used"`
-	ProcTotal                int64   `json:"proc_total"`
-	ProcUsed                 int64   `json:"proc_used"`
-	RunQueue                 int64   `json:"run_queue"`
-	SocketsTotal             int64   `json:"sockets_total"`
-	SocketsUsed              int64   `json:"sockets_used"`
-	Uptime                   int64   `json:"uptime"`
-	MnesiaDiskTxCount        int64   `json:"mnesia_disk_tx_count"`
-	MnesiaRAMTxCount         int64   `json:"mnesia_ram_tx_count"`
-	GcNum                    int64   `json:"gc_num"`
-	IoWriteAvgTime           int64   `json:"io_write_avg_time"`
-	IoWriteBytes             int64   `json:"io_write_bytes"`
-	IoReadBytes              int64   `json:"io_read_bytes"`
-	GcBytesReclaimed         int64   `json:"gc_bytes_reclaimed"`
-	IoReadAvgTime            int64   `json:"io_read_avg_time"`
+	Name              string
+	DiskFreeAlarm     bool  `json:"disk_free_alarm"`
+	MemAlarm          bool  `json:"mem_alarm"`
+	Running           bool  `json:"running"`
+	DiskFree          int64 `json:"disk_free"`
+	DiskFreeLimit     int64 `json:"disk_free_limit"`
+	FdTotal           int64 `json:"fd_total"`
+	FdUsed            int64 `json:"fd_used"`
+	MemLimit          int64 `json:"mem_limit"`
+	MemUsed           int64 `json:"mem_used"`
+	ProcTotal         int64 `json:"proc_total"`
+	ProcUsed          int64 `json:"proc_used"`
+	RunQueue          int64 `json:"run_queue"`
+	SocketsTotal      int64 `json:"sockets_total"`
+	SocketsUsed       int64 `json:"sockets_used"`
+	Uptime            int64 `json:"uptime"`
+	MnesiaDiskTxCount int64 `json:"mnesia_disk_tx_count"`
+	MnesiaRAMTxCount  int64 `json:"mnesia_ram_tx_count"`
+	GcNum             int64 `json:"gc_num"`
+	IoWriteBytes      int64 `json:"io_write_bytes"`
+	IoReadBytes       int64 `json:"io_read_bytes"`
+	GcBytesReclaimed  int64 `json:"gc_bytes_reclaimed"`
+
+	IoWriteAvgTime float64 `json:"io_write_avg_time"`
+	IoReadAvgTime  float64 `json:"io_read_avg_time"`
+	IoSeekAvgTime  float64 `json:"io_seek_avg_time"`
+	IoSyncAvgTime  float64 `json:"io_sync_avg_time"`
+
 	GcNumDetails             Details `json:"gc_num_details"`
 	MnesiaRAMTxCountDetails  Details `json:"mnesia_ram_tx_count_details"`
 	MnesiaDiskTxCountDetails Details `json:"mnesia_disk_tx_count_details"`
