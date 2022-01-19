@@ -14,7 +14,7 @@ var (
 [[inputs.skywalking]]
   ## skywalking grpc server listening on address
   address = "localhost:13800"
-	## customer tags
+  ## customer tags
   # [inputs.skywalking.V3.tags]
     # tag1 = "tag1"
     # tag2 = "tag2"
