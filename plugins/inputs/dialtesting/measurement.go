@@ -113,7 +113,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "包括请求头(request_header)/请求体(request_body)/返回头(response_header)/返回体(response_body)/fail_reason 冗余一份",
+				Desc:     "包括响应时间(response_time_in_micros)/错误原因(fail_reason)",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -167,7 +167,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
-				Desc:     "包括请求头(request_header)/请求体(request_body)/返回头(response_header)/返回体(response_body)/fail_reason 冗余一份",
+				Desc:     "包括平均RTT时间(average_round_trip_time_in_millis)/错误原因(fail_reason)",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
