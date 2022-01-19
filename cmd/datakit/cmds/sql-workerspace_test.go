@@ -70,7 +70,7 @@ func Test_cache(t *testing.T) {
       "is_running": false,
       "async_id": ""
     }`
-	var qr = &queryResult{}
+	qr := &queryResult{}
 	err := json.Unmarshal([]byte(jsonStr), qr)
 	if err != nil {
 		t.Errorf("json err=%v", err)

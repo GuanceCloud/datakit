@@ -73,11 +73,11 @@ func cache(c *queryResult) {
 			case "name":
 				nameIndex = i
 			default:
-
 			}
 		}
 		for _, value := range row.Values {
-			ws := &workerSpace{Name: (value[nameIndex]).(string),
+			ws := &workerSpace{
+				Name:     (value[nameIndex]).(string),
 				ID:       (value[wsIndex]).(string),
 				Token:    (value[tokenIndex]).(string),
 				createAt: (value[creatIndex]).(string),
