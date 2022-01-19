@@ -273,18 +273,6 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 	logconf.tags["stream"] = stream
 	shortImageName := logconf.tags["image_short_name"]
 
-	task := &worker.Task{
-		TaskName:   "containerlog::" + shortImageName,
-		Source:     logconf.Source,
-		ScriptName: logconf.Pipeline,
-	}
-
-	mult, err := multiline.New(logconf.Multiline, maxLines)
-	if err != nil {
-		// unreachable
-		return err
-	}
-
 	r := readbuf.NewReadBuffer(reader, readBuffSize)
 
 	timeout := time.NewTicker(timeoutDuration)
@@ -328,24 +316,24 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		workerData := []worker.TaskData{}
 
 		for _, line := range lines {
-			text := mult.ProcessLine(line)
-			if len(text) == 0 {
+			if len(line) == 0 {
 				continue
 			}
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  Bytes2String(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
+					log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
 		}
 
-		if len(workerData) == 0 {
-			continue
+		task := &worker.Task{
+			TaskName:   "containerlogging/" + shortImageName,
+			Source:     logconf.Source,
+			ScriptName: logconf.Pipeline,
+			Data:       workerData,
+			TS:         time.Now(),
 		}
-
-		task.Data = workerData
-		task.TS = time.Now()
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
 			l.Errorf("failed to feed log, containerName: %s, err: %w", logconf.tags["container_name"], err)

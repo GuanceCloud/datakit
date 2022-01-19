@@ -172,7 +172,7 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 	}
 	if len(taskDates) != 0 {
 		task := &worker.Task{
-			TaskName:   sl.opt.InputName,
+			TaskName:   "socklogging/" + sl.opt.InputName,
 			ScriptName: sl.opt.Pipeline,
 			Source:     sl.opt.Source,
 			Data:       taskDates,
