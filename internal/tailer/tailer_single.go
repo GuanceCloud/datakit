@@ -10,7 +10,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -27,9 +26,8 @@ type Single struct {
 	file     *os.File
 	filename string
 
-	decoder  *encoding.Decoder
-	mult     *multiline.Multiline
-	pipeline *pipeline.Pipeline
+	decoder *encoding.Decoder
+	mult    *multiline.Multiline
 
 	readBuff []byte
 
@@ -70,14 +68,6 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		}
 	}
 
-	if opt.Pipeline != "" {
-		if p, err := pipeline.NewPipelineFromFile(opt.Pipeline, false); err != nil {
-			t.opt.log.Warnf("pipeline.NewPipelineFromFile error: %s, ignored", err)
-		} else {
-			t.pipeline = p
-		}
-	}
-
 	t.readBuff = make([]byte, readBuffSize)
 	t.filename = t.file.Name()
 	t.tags = t.buildTags(opt.GlobalTags)
@@ -107,9 +97,14 @@ func (t *Single) forwardMessage() {
 	defer timeout.Stop()
 
 	// 上报一条标记数据，表示已启动成功
-	if err = feed(t.opt.InputName, t.opt.Source, t.tags,
+	eventTag := make(map[string]string)
+	for key, val := range t.tags {
+		eventTag[key] = val
+	}
+	eventTag["log_type"] = "event"
+	if err = feed(t.opt.InputName, t.opt.Source, eventTag,
 		fmt.Sprintf(firstMessage, t.filename, t.opt.Source)); err != nil {
-		t.opt.log.Warn(err)
+		t.opt.log.Warnf("feed err=%v", err)
 	}
 
 	for {
