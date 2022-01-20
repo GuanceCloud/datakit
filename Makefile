@@ -227,7 +227,7 @@ all_test: deps
 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
-lint:
+lint: deps
 	$(call do_lint,386,windows)
 	$(call do_lint,amd64,windows)
 	$(call do_lint,amd64,linux)

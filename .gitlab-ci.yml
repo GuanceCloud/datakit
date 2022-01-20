@@ -19,7 +19,6 @@ release-nothing-only-build:
   script:
     # only building
     - make clean
-    - make deps
     - make lint
     - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
@@ -51,7 +50,6 @@ release-production:
     - master
   script:
     - make clean
-    - make deps
     - make lint
     - make all_test
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH
