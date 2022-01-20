@@ -53,7 +53,7 @@ func (d *dockerInput) cancelTails() {
 	}
 }
 
-func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *types.Container) error {
+func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types.Container) error {
 	tags := getContainerInfo(container, d.k8sClient)
 	// add extra tags
 	for k, v := range d.cfg.extraTags {
@@ -91,10 +91,10 @@ func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *type
 		return err
 	}
 
-	return d.tailContainerLogs(ctx, logconf)
+	return d.tailContainerLog(ctx, logconf)
 }
 
-func (d *dockerInput) tailContainerLogs(ctx context.Context, logconf *containerLogConfig) error {
+func (d *dockerInput) tailContainerLog(ctx context.Context, logconf *containerLogConfig) error {
 	hasTTY, err := d.hasTTY(ctx, logconf.containerID)
 	if err != nil {
 		return err
