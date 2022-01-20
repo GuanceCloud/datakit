@@ -3,7 +3,9 @@ package cliutils
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/md5" //nolint:gosec
+
+	// nolint:gosec
+	"crypto/md5"
 	crand "crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -38,7 +40,6 @@ func (s *Sem) Wait() <-chan interface{} {
 }
 
 func WgWait(wg *sync.WaitGroup, timeout int) {
-
 	c := make(chan interface{})
 
 	go func() {
@@ -64,8 +65,7 @@ var (
 )
 
 func CreateRandomString(n int) string {
-
-	var src = mrand.NewSource(time.Now().UnixNano())
+	src := mrand.NewSource(time.Now().UnixNano())
 
 	b := make([]byte, n)
 	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
@@ -110,7 +110,6 @@ func Md5Hash(data []byte) string {
 }
 
 func Encrypt(data, phrase []byte) ([]byte, error) {
-
 	md5Cipher := Md5Hash(phrase)
 
 	block, _ := aes.NewCipher([]byte(md5Cipher))

@@ -91,7 +91,7 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 			"ts_size": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "Tablespace size",
 			},
 			"in_use": &inputs.FieldInfo{
@@ -160,7 +160,7 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"shared_pool_free": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "Shared pool free memory %",
 			},
 			"physical_reads": &inputs.FieldInfo{

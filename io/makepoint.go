@@ -12,13 +12,13 @@ import (
 var (
 	// no set.
 	DisabledTagKeys = map[string][]string{
-		datakit.Logging: {"source"},
+		datakit.Logging: {"source", "log_type"},
 		datakit.Object:  {"class"},
 		// others not set...
 	}
 
 	DisabledFieldKeys = map[string][]string{
-		datakit.Logging: {"source"},
+		datakit.Logging: {"source", "log_type"},
 		datakit.Object:  {"class"},
 		// others not set...
 	}
@@ -100,7 +100,7 @@ func NewPoint(name string,
 		datakit.CustomObject,
 		datakit.Logging,
 		datakit.Tracing,
-		datakit.Rum,
+		datakit.RUM,
 		datakit.Security:
 		lpOpt.DisabledTagKeys = DisabledTagKeys[o.Category]
 		lpOpt.DisabledFieldKeys = DisabledFieldKeys[o.Category]

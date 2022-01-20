@@ -216,7 +216,7 @@ func run() {
 		return
 	}
 
-	inputs.FeedReporter(&io.Reporter{Message: "datakit start ok, ready for collecting metrics."})
+	io.FeedEventLog(&io.Reporter{Message: "datakit start ok, ready for collecting metrics."})
 
 	l.Info("datakit start ok. Wait signal or service stop...")
 
@@ -289,7 +289,7 @@ func doRun() error {
 		return err
 	}
 
-	plworker.InitManager()
+	plworker.InitManager(-1)
 
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)

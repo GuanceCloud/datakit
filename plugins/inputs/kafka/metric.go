@@ -76,9 +76,11 @@ type KafkaConnectMment struct {
 	KafkaMeasurement
 }
 
+// TODO: add more desc & units
+//    refer to https://github.com/DataDog/integrations-core/blob/master/confluent_platform/metadata.csv
 var connectFields = map[string]interface{}{
 	"commit_id":                            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-	"start_time_ms":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"start_time_ms":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: ""},
 	"version":                              &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 	"count":                                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"connector_count":                      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
@@ -110,7 +112,7 @@ var connectFields = map[string]interface{}{
 	"running_ratio":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"source_record_poll_total":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"total_record_failures":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
-	"last_error_timestamp":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
+	"last_error_timestamp":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "The epoch timestamp when this task last encountered an error in millisecond."},
 	"offset_commit_success_percentage":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"source_record_poll_rate":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"source_record_write_rate":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
@@ -219,7 +221,7 @@ var producerFields = map[string]interface{}{
 	"outgoing_byte_total":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"count":                                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"commit_id":                                 &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-	"start_time_ms":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"start_time_ms":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: ""},
 	"version":                                   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 }
 
@@ -272,7 +274,7 @@ var consumerFields = map[string]interface{}{
 	"heartbeat_total":                           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"rebalance_latency_total":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"commit_id":                                 &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
-	"start_time_ms":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
+	"start_time_ms":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: ""},
 	"version":                                   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 	"io_waittime_total":                         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
 	"connection_creation_rate":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
