@@ -54,7 +54,8 @@ var (
 			XDatakitUUID,
 			XRP,
 			XPrecision,
-			XLua}, ", ")
+			XLua,
+		}, ", ")
 	realIPHeader      = []string{"X-Forwarded-For", "X-Real-IP", "RemoteAddr"}
 	MaxRequestBodyLen = 128
 
@@ -136,7 +137,6 @@ func TraceIDMiddleware(c *gin.Context) {
 }
 
 func FormatRequest(r *http.Request) string {
-
 	// Add the request string
 	url := fmt.Sprintf("%v %v %v", r.Method, r.URL, r.Proto)
 	request := []string{url}
