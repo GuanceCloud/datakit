@@ -6,7 +6,7 @@
 
 本次发布属于迭代发布，内容如下：
 
-- 增强 [DataKit API 安全访问控制]()，老版本的 DataKit 如果部署了 RUM 功能，建议升级(#578)
+- 增强 [DataKit API 安全访问控制](rum#b896ec48)，老版本的 DataKit 如果部署了 RUM 功能，建议升级(#578)
 - 增加更多 DataKit 内部事件日志上报(#527)
 - 查看 [DataKit 运行状态](datakit-tools-how-to#44462aae)不再会超时(#555)
 
