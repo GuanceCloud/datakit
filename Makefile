@@ -17,6 +17,7 @@ TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com
 # 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
 LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
 
+
 PUB_DIR = dist
 BUILD_DIR = dist
 

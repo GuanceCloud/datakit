@@ -181,6 +181,7 @@ func (ipt *Input) Collect() error {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
+	io.FeedEventLog(&io.Reporter{Message: "disk start ok, ready for collecting metrics.", Logtype: "event"})
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	ipt.IgnoreFS = unique(ipt.IgnoreFS)
 
