@@ -6,6 +6,7 @@
 	- [采集器配置](datakit-conf-how-to)
 
 	  - [Kubernetes 环境下的配置](k8s-config-how-to)
+	  - [如何通过 Git 来管理 DataKit 的配置](git-config-how-to)
 
 	- [通过 DQL 查询数据](datakit-dql-how-to)
 	- [调试 Pipeline](datakit-pl-how-to)
