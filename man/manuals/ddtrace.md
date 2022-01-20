@@ -51,6 +51,19 @@ tail -f /var/log/datakit/gin.log
 
 ## ddtrace 环境变量设置
 
+### 基本环境变量
+
+- DD_TRACE_ENABLED: 开启 global tracer (部分语言平台支持)
+- DD_AGENT_HOST: ddtrace agent host address
+- DD_TRACE_AGENT_PORT: ddtrace agent host port
+- DD_SERVICE: service name
+- DD_TRACE_SAMPLE_RATE: set sampling rate
+- DD_VERSION: application version (optional)
+- DD_TRACE_STARTUP_LOGS: ddtrace logger
+- DD_TRACE_DEBUG: ddtrace debug mode
+- DD_ENV: application env values
+- DD_TAGS: application tags
+
 除了在应用初始化时设置项目名，环境名以及版本号外，还可通过如下两种方式设置：
 
 - 通过命令行注入环境变量
