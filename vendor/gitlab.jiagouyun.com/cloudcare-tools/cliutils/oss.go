@@ -149,7 +149,6 @@ func (oc *OssCli) Move(from, to string) error {
 
 func (oc *OssCli) mpworker(imur *oss.InitiateMultipartUploadResult,
 	c *oss.FileChunk, from string, exit chan interface{}) (p oss.UploadPart, err error) {
-
 	select {
 	case <-exit:
 		return
@@ -168,7 +167,6 @@ func (oc *OssCli) mpworker(imur *oss.InitiateMultipartUploadResult,
 }
 
 func (oc *OssCli) multipartUpload(from, to string) error {
-
 	st, err := os.Stat(from)
 	if err != nil {
 		return err
