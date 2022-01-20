@@ -88,9 +88,13 @@ func (m *Multiline) Flush() []byte {
 	if m.buff.Len() == 0 {
 		return nil
 	}
-	text := m.buff.Bytes()
+
+	text := make([]byte, m.buff.Len())
+	copy(text, m.buff.Bytes())
+
 	m.buff.Reset()
 	m.lines = 0
+
 	return text
 }
 

@@ -297,12 +297,12 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		case <-ctx.Done():
 			return nil
 		case <-timeout.C:
-			if text := mult.Flush(); len(text) != 0 {
+			if line := mult.Flush(); len(line) != 0 {
 				task := newTask()
 				task.Data = []worker.TaskData{
 					&taskData{
 						tags: logconf.tags,
-						log:  string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
+						log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
 					},
 				}
 				task.TS = time.Now()
@@ -340,6 +340,10 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 					log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
+		}
+
+		if len(workerData) == 0 {
+			continue
 		}
 
 		task := newTask()
