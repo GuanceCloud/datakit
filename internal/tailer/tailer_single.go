@@ -10,6 +10,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -96,17 +97,7 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	// 上报一条标记数据，表示已启动成功
-	eventTag := make(map[string]string)
-	for key, val := range t.tags {
-		eventTag[key] = val
-	}
-	eventTag["log_type"] = "event"
-	if err = feed(t.opt.InputName, t.opt.Source, eventTag,
-		fmt.Sprintf(firstMessage, t.filename, t.opt.Source)); err != nil {
-		t.opt.log.Warnf("feed err=%v", err)
-	}
-
+	dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
 	for {
 		select {
 		case <-t.stopCh:
@@ -143,9 +134,7 @@ func (t *Single) forwardMessage() {
 			text, err = t.decode(line)
 			if err != nil {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				if err = feed(t.opt.InputName, t.opt.Source, t.tags, line); err != nil {
-					t.opt.log.Warn(err)
-				}
+				dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
 			}
 
 			text = t.multiline(text)
