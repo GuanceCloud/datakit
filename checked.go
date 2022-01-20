@@ -21,7 +21,7 @@ var (
 		"qyt_all":                false,
 		"secureexec":             false,
 		"demo":                   false,
-		"clickhouse":             true,
+		"clickhousev1":           true,
 		"activemqlog":            true,
 		"aliyunactiontrail":      true,
 		"aliyuncdn":              true,

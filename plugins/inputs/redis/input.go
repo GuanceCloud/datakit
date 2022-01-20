@@ -86,6 +86,7 @@ func (i *Input) initCfg() error {
 	}
 
 	i.Addr = fmt.Sprintf("%s:%d", i.Host, i.Port)
+
 	client := redis.NewClient(&redis.Options{
 		Addr:     i.Addr,
 		Username: i.Username,
@@ -356,13 +357,14 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&infoMeasurement{},
-		&clientMeasurement{},
-		&commandMeasurement{},
-		&slowlogMeasurement{},
 		&bigKeyMeasurement{},
+		&clientMeasurement{},
 		&clusterMeasurement{},
+		&commandMeasurement{},
+		&dbMeasurement{},
+		&infoMeasurement{},
 		&latencyMeasurement{},
+		&slowlogMeasurement{},
 	}
 }
 

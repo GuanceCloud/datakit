@@ -15,7 +15,7 @@ import (
 
 const dockerContainerName = "docker_containers"
 
-var dockerContaienrListOption = types.ContainerListOptions{All: true}
+var dockerContainerListOption = types.ContainerListOptions{All: true}
 
 func gatherDockerContainerMetric(client dockerClientX, k8sClient k8sClientX, container *types.Container) (*containerMetric, error) {
 	m := &containerMetric{}
@@ -36,6 +36,7 @@ func getContainerTags(container *types.Container) tagsType {
 	tags := make(tagsType)
 	tags["state"] = container.State
 	tags["docker_image"] = container.Image
+	tags["image"] = container.Image
 	tags["image_name"] = imageName
 	tags["image_short_name"] = imageShortName
 	tags["image_tag"] = imageTag
@@ -68,12 +69,29 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 		return tags
 	}
 
-	podlabels, err := getPodLables(k8sClient, podname, podnamespace)
+	meta, err := queryPodMetaData(k8sClient, podname, podnamespace)
 	if err != nil {
+		// ignore err
 		return tags
 	}
 
-	if deployment := getDeployment(podlabels["app"], podnamespace); deployment != "" {
+	if image := meta.containerImage(); image != "" {
+		// 如果能找到 pod image，则使用它
+		imageName, imageShortName, imageTag := ParseImage(image)
+
+		tags["docker_image"] = image
+		tags["image"] = image
+		tags["image_name"] = imageName
+		tags["image_short_name"] = imageShortName
+		tags["image_tag"] = imageTag
+	}
+
+	if replicaSet := meta.replicaSet(); replicaSet != "" {
+		tags["replicaSet"] = replicaSet
+	}
+
+	labels := meta.labels()
+	if deployment := getDeployment(labels["app"], podnamespace); deployment != "" {
 		tags["deployment"] = deployment
 	}
 
@@ -175,11 +193,12 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dockerContainerName,
 		Type: "metric",
-		Desc: "容器指标数据（忽略 k8s pause 容器），只采集正在运行的容器",
+		Desc: "容器指标数据，只采集正在运行的容器",
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
-			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
+			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
+			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
 			"image_tag":        inputs.NewTagInfo("镜像 tag，例如 `1.21.0`"),

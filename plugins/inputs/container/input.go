@@ -19,7 +19,7 @@ var _ inputs.ReadEnv = (*Input)(nil)
 
 const (
 	objectInterval = time.Minute * 5
-	metricInterval = time.Second * 15
+	metricInterval = time.Second * 20
 )
 
 type Input struct {
@@ -129,12 +129,13 @@ func (i *Input) Run() {
 			i.collectObject()
 
 		case i.pause = <-i.chPause:
-			globalPause = i.pause
+			globalPause.set(i.pause)
 		}
 	}
 }
 
 func (i *Input) collectObject() {
+	l.Debug("collect object in func")
 	if err := i.gatherDockerContainerObject(); err != nil {
 		l.Errorf("failed to collect container object: %w", err)
 	}
@@ -160,12 +161,12 @@ func (i *Input) collectObject() {
 }
 
 func (i *Input) collectMetric() {
-	l.Debug("collect mertric")
+	l.Debug("collect mertric in func")
 	if err := i.gatherDockerContainerMetric(); err != nil {
 		l.Errorf("failed to collect container metric: %w", err)
 	}
 
-	if err := i.watchingNewDockerContainerLog(); err != nil {
+	if err := i.watchNewDockerContainerLogs(); err != nil {
 		l.Errorf("failed to watch container log: %w", err)
 	}
 
@@ -255,8 +256,8 @@ func (i *Input) gatherK8sPodMetrics() error {
 		&io.Option{CollectCost: time.Since(start)})
 }
 
-func (i *Input) watchingNewDockerContainerLog() error {
-	return i.dockerInput.watchingNewContainerLog()
+func (i *Input) watchNewDockerContainerLogs() error {
+	return i.dockerInput.watchNewContainerLogs()
 }
 
 func (i *Input) watchingK8sEventLog() {

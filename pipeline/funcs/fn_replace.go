@@ -79,7 +79,7 @@ func Replace(ng *parser.Engine, node parser.Node) error {
 
 	cont, err := ng.GetContentStr(key)
 	if err != nil {
-		l.Debug("key `%v' not exist, ignored", key)
+		l.Debugf("key `%v' not exist, ignored", key)
 		return nil //nolint:nilerr
 	}
 

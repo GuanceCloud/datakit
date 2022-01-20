@@ -118,6 +118,14 @@ spec:
     metadata:
       labels:
         app: daemonset-datakit
+      annotations:
+        datakit/logs: |
+          [
+            {
+              "disable": true
+            }
+          ]
+
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet

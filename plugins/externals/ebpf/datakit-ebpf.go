@@ -161,7 +161,7 @@ func main() {
 			feedLastErrorLoop(err, signaIterrrupt)
 			return
 		}
-		l.Debug(offset)
+		l.Debugf("%+v", offset)
 
 		constEditor := dkoffset.NewConstEditor(offset)
 

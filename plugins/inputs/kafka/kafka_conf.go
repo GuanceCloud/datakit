@@ -42,8 +42,7 @@ const (
   [[inputs.kafka.metric]]
     name         = "kafka_purgatory"
     mbean        = "kafka.server:delayedOperation=*,name=*,type=DelayedOperationPurgatory"
-    field_prefix = "#1."
-    field_name   = "#2"
+    field_name   = "#1.#2"
   
   [[inputs.kafka.metric]]
     name     = "kafka_client"

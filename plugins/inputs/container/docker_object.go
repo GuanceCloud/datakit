@@ -100,14 +100,15 @@ func (c *containerObject) LineProto() (*io.Point, error) {
 func (c *containerObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dockerContainerName,
-		Desc: "容器对象数据（忽略 k8s pause 容器），如果容器处于非 running 状态，则`cpu_usage`等指标将不存在",
+		Desc: "容器对象数据，如果容器处于非 running 状态，则`cpu_usage`等指标将不存在",
 		Type: "object",
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
 			"status":           inputs.NewTagInfo("容器状态，例如 `Up 5 hours`"),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
-			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
+			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
+			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
 			"image_tag":        inputs.NewTagInfo("镜像tag，例如 `1.21.0`"),

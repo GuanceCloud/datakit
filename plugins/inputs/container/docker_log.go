@@ -1,17 +1,17 @@
 package container
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/readbuf"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -21,7 +21,9 @@ const (
 	// Maximum bytes of a log line before it will be split, size is mirroring
 	// docker code:
 	// https://github.com/moby/moby/blob/master/daemon/logger/copier.go#L21
-	maxLineBytes = 16 * 1024
+	// maxLineBytes = 16 * 1024.
+
+	readBuffSize = 2 * 1024
 )
 
 var containerLogsOptions = types.ContainerLogsOptions{
@@ -50,13 +52,50 @@ func (d *dockerInput) cancelTails() {
 	}
 }
 
-func (d *dockerInput) tailContainerLogs(ctx context.Context, container *types.Container) error {
-	hasTTY, err := d.hasTTY(ctx, container.ID)
+func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *types.Container) error {
+	tags := getContainerInfo(container, d.k8sClient)
+	// add extra tags
+	for k, v := range d.cfg.extraTags {
+		if _, ok := tags[k]; !ok {
+			tags[k] = v
+		}
+	}
+
+	logconf := func() *containerLogConfig {
+		if datakit.Docker && tags["pod_name"] != "" {
+			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["pod_namesapce"])
+		}
+		return getContainerLogConfigForDocker(container.Labels)
+	}()
+
+	if logconf != nil {
+		l.Debugf("use contaier logconfig %#v, container_name:%s", logconf, tags["container_name"])
+		if logconf.Disable {
+			l.Debug("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
+			return nil
+		}
+
+		logconf.tags = tags
+		logconf.containerID = container.ID
+	} else {
+		logconf = &containerLogConfig{
+			Source:      getContainerLogSource(tags["image_short_name"]),
+			Service:     tags["image_short_name"],
+			tags:        tags,
+			containerID: container.ID,
+		}
+	}
+
+	return d.tailContainerLogs(ctx, logconf)
+}
+
+func (d *dockerInput) tailContainerLogs(ctx context.Context, logconf *containerLogConfig) error {
+	hasTTY, err := d.hasTTY(ctx, logconf.containerID)
 	if err != nil {
 		return err
 	}
 
-	logReader, err := d.client.ContainerLogs(ctx, container.ID, containerLogsOptions)
+	logReader, err := d.client.ContainerLogs(ctx, logconf.containerID, containerLogsOptions)
 	if err != nil {
 		return err
 	}
@@ -68,9 +107,9 @@ func (d *dockerInput) tailContainerLogs(ctx context.Context, container *types.Co
 	// If the container is *not* using a TTY, streams for stdout and stderr are
 	// multiplexed.
 	if hasTTY {
-		return d.tailStream(ctx, logReader, "tty", container)
+		return d.tailStream(ctx, logReader, "tty", logconf)
 	} else {
-		return d.tailMultiplexed(ctx, logReader, container)
+		return d.tailMultiplexed(ctx, logReader, logconf)
 	}
 }
 
@@ -84,15 +123,18 @@ func (d *dockerInput) hasTTY(ctx context.Context, containerID string) (bool, err
 	return c.Config.Tty, nil
 }
 
-func (d *dockerInput) tailMultiplexed(ctx context.Context, src io.ReadCloser, container *types.Container) error {
+func (d *dockerInput) tailMultiplexed(ctx context.Context, src io.ReadCloser, logconf *containerLogConfig) error {
 	outReader, outWriter := io.Pipe()
 	errReader, errWriter := io.Pipe()
+
+	// 避免goroutine共享数据，clone一份
+	logconfStderr := logconf.clone()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := d.tailStream(ctx, outReader, "stdout", container)
+		err := d.tailStream(ctx, outReader, "stdout", logconf)
 		if err != nil {
 			l.Error(err)
 		}
@@ -101,7 +143,7 @@ func (d *dockerInput) tailMultiplexed(ctx context.Context, src io.ReadCloser, co
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := d.tailStream(ctx, errReader, "stderr", container)
+		err := d.tailStream(ctx, errReader, "stderr", logconfStderr)
 		if err != nil {
 			l.Error(err)
 		}
@@ -137,6 +179,24 @@ type containerLogConfig struct {
 	Source   string `json:"source"`
 	Pipeline string `json:"pipeline"`
 	Service  string `json:"service"`
+
+	containerID string
+	tags        map[string]string
+}
+
+func (c *containerLogConfig) clone() *containerLogConfig {
+	t := make(map[string]string)
+	for k, v := range c.tags {
+		t[k] = v
+	}
+	return &containerLogConfig{
+		Disable:     c.Disable,
+		Source:      c.Source,
+		Pipeline:    c.Pipeline,
+		Service:     c.Service,
+		containerID: c.containerID,
+		tags:        t,
+	}
 }
 
 const (
@@ -188,41 +248,19 @@ func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfi
 	return c
 }
 
-func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stream string, container *types.Container) error {
+func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stream string, logconf *containerLogConfig) error {
 	defer reader.Close() //nolint:errcheck
 
-	tags := getContainerInfo(container, d.k8sClient)
-	tags["stream"] = stream
+	logconf.tags["stream"] = stream
+	shortImageName := logconf.tags["image_short_name"]
 
 	task := &worker.Task{
-		TaskName: "container_log",
-		Source:   getContainerLogSource(container.Image),
+		TaskName:   "log-" + shortImageName,
+		Source:     logconf.Source,
+		ScriptName: logconf.Pipeline,
 	}
 
-	logconf := func() *containerLogConfig {
-		if datakit.Docker && tags["pod_name"] != "" {
-			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["pod_namesapce"])
-		}
-		return getContainerLogConfigForDocker(container.Labels)
-	}()
-	if logconf != nil {
-		l.Debugf("use contaier logconfig %#v, container_name:%s", logconf, tags["container_name"])
-
-		if logconf.Disable {
-			l.Debug("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
-			return nil
-		}
-		task.Source = logconf.Source
-		task.ScriptName = logconf.Pipeline
-		tags["service"] = logconf.Service
-	}
-
-	// add extra tags
-	for k, v := range d.cfg.extraTags {
-		tags[k] = v
-	}
-
-	r := bufio.NewReaderSize(reader, maxLineBytes)
+	r := readbuf.NewReadBuffer(reader, readBuffSize)
 
 	for {
 		select {
@@ -232,27 +270,36 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			// nil
 		}
 
-		line, err := r.ReadBytes('\n')
+		lines, err := r.ReadLines()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return nil
 			}
 			return err
 		}
 
-		if len(line) == 0 {
+		if len(lines) == 0 {
+			// 如果没有数据，那就等待1秒，避免频繁read
+			time.Sleep(time.Second)
 			continue
 		}
 
-		lineStr := Bytes2String(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes))
+		workerData := []worker.TaskData{}
 
-		task.Data = []worker.TaskData{
-			&taskData{tags: tags, log: lineStr},
+		for _, line := range lines {
+			workerData = append(workerData,
+				&taskData{
+					tags: logconf.tags,
+					log:  Bytes2String(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
+				},
+			)
 		}
+
+		task.Data = workerData
 		task.TS = time.Now()
 
-		if err := worker.FeedPipelineTask(task); err != nil {
-			l.Errorf("feed log error: %w", err)
+		if err := worker.FeedPipelineTaskBlock(task); err != nil {
+			l.Errorf("failed to fedd log, containerName: %s, err: %w", logconf.tags["container_name"], err)
 		}
 	}
 }
@@ -303,19 +350,9 @@ func (t *taskData) Handler(r *worker.Result) error {
 }
 
 func getContainerLogSource(image string) string {
-	_, imageShortName, imageVersion := ParseImage(image)
-
-	if strings.HasPrefix(imageShortName, "sha256") {
-		if len(imageVersion) > 12 {
-			return "image_id_" + imageVersion[:12]
-		}
-		return "image_id_" + imageVersion
+	if image != "" {
+		return image
 	}
-
-	if imageShortName != "" {
-		return imageShortName
-	}
-
 	return "default"
 }
 
