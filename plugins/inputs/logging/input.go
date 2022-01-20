@@ -38,7 +38,7 @@ const (
   ## add service tag, if it's empty, use $source.
   service = ""
 
-  ## grok pipeline script path
+  ## grok pipeline script name
   pipeline = ""
 
   ## optional status:

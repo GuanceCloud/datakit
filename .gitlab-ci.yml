@@ -36,7 +36,6 @@ release-testing:
   script:
     # building && publish testing
     - make clean
-    - make deps
     - make lint
     - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH

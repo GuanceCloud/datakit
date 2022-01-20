@@ -289,7 +289,7 @@ func doRun() error {
 		return err
 	}
 
-	plworker.InitManager()
+	plworker.InitManager(-1)
 
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)

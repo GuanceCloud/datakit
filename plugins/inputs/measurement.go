@@ -36,10 +36,8 @@ const (
 const (
 	UnknownUnit = "-"
 
-	SizeByte  = "B"
-	SizeIByte = "B" // deprecated
-
-	SizeMiB = "MB"
+	SizeByte = "B"
+	SizeMiB  = "MB"
 
 	NCount = "count"
 

@@ -1973,6 +1973,12 @@ github.com/zorkian/go-datadog-api v2.30.0+incompatible/go.mod h1:PkXwHX9CUQa/FpB
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20210914104241-59035f2f727a/go.mod h1:nZnFgIQZ1gqErHISzQbhvT+3SO2aEQlQauc8mgamTmc=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211210004814-2f3e86601ff6 h1:TBqpi+fpdNchsN9AvIukjA3PhazBZiZnxd1wfc6dNtc=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20211210004814-2f3e86601ff6/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220112053019-fb9963942616 h1:CNH0QkNNnvRpPRZa474k1mWf9rF/ICj1+8/9ZwvZyC8=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220112053019-fb9963942616/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220114075521-1a10b1c3af6e h1:NhpQJkFH6e85bger0LUfhsLpxfQ4AYDu69/MYTCnVYI=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220114075521-1a10b1c3af6e/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220114082128-f419839ca665 h1:RyOKolBr8wy37hc3pfO1+kqDEsBztpu4uPzWgOBWgSk=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220114082128-f419839ca665/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f h1:8Ols31IqbvSRPq+MEgJVSAm0kPeVh0mhoA7fHzxXcN4=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f/go.mod h1:5Pu9J7RhO3Nix1lt2Q54eG/5DK59rDXEZnQsSczvtLw=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

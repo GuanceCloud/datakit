@@ -19,19 +19,14 @@ import (
 const (
 	// 禁用 JSON 形式输出
 	OPT_ENC_CONSOLE = 1 //nolint:golint,stylecheck
-
 	// 显示代码路径时，不显示全路径
 	OPT_SHORT_CALLER = 2 //nolint:stylecheck,golint
-
 	// 日志写到 stdout
 	OPT_STDOUT = 4 //nolint:stylecheck,golint
-
 	// 日志内容中追加颜色
 	OPT_COLOR = 8 //nolint:stylecheck,golint
-
 	// 日志自动切割
 	OPT_ROTATE = 32 //nolint:stylecheck,golint
-
 	// 默认日志 flags
 	OPT_DEFAULT = OPT_ENC_CONSOLE | OPT_SHORT_CALLER | OPT_ROTATE //nolint:stylecheck,golint
 
@@ -82,11 +77,40 @@ type Option struct {
 	Flags int
 }
 
-func init() {
-	doInitStdoutLogger()
+func setRootLoggerFromEnv(opt *Option) error {
+	switch opt.Path {
+	case "nul", /* windows */
+		"/dev/null": /* most UNIX */
+		return doSetGlobalRootLogger(os.DevNull, opt.Level, opt.Flags)
+
+	case "":
+		return doInitStdoutLogger()
+
+	default:
+		return doSetGlobalRootLogger(opt.Path, opt.Level, opt.Flags)
+	}
 }
 
-func doInitStdoutLogger() {
+func init() {
+	if err := doInitStdoutLogger(); err != nil {
+		panic(err.Error())
+	}
+
+	if v, ok := os.LookupEnv("LOGGER_PATH"); ok {
+
+		opt := &Option{
+			Level: DEBUG,
+			Flags: OPT_DEFAULT,
+			Path:  v,
+		}
+
+		if err := setRootLoggerFromEnv(opt); err != nil {
+			panic(err.Error())
+		}
+	}
+}
+
+func doInitStdoutLogger() error {
 	flags := OPT_DEFAULT
 	if StdoutColor {
 		flags |= OPT_COLOR
@@ -95,8 +119,9 @@ func doInitStdoutLogger() {
 	var err error
 	defaultStdoutRootLogger, err = stdoutLogger(StdoutLevel, flags)
 	if err != nil {
-		panic(fmt.Sprintf("should not been here: %s", err))
+		return err
 	}
+	return nil
 }
 
 func Reset() {
@@ -110,11 +135,12 @@ func Reset() {
 
 	totalSloggers = 0
 
-	doInitStdoutLogger()
+	if err := doInitStdoutLogger(); err != nil {
+		panic(err.Error())
+	}
 }
 
 func InitRoot(opt *Option) error {
-	var err error
 	if opt == nil {
 		opt = defaultOption
 	}
@@ -138,17 +164,27 @@ func InitRoot(opt *Option) error {
 
 	switch opt.Path {
 	case "":
-		// reset default stdout logger
-		defaultStdoutRootLogger = nil
-		defaultStdoutRootLogger, err = stdoutLogger(opt.Level, opt.Flags)
-		if err != nil {
-			return err
+		if v, ok := os.LookupEnv("LOGGER_PATH"); ok {
+			opt.Path = v
+			return setRootLoggerFromEnv(opt)
 		}
-		return nil
-	default:
 
+		return doSetStdoutLogger(opt)
+
+	default:
 		return doSetGlobalRootLogger(opt.Path, opt.Level, opt.Flags)
 	}
+}
+
+func doSetStdoutLogger(opt *Option) error {
+	// reset default stdout logger
+	defaultStdoutRootLogger = nil
+	var err error
+	defaultStdoutRootLogger, err = stdoutLogger(opt.Level, opt.Flags)
+	if err != nil {
+		return fmt.Errorf("stdoutLogger: %w", err)
+	}
+	return nil
 }
 
 func stdoutLogger(level string, options int) (*zap.Logger, error) {
@@ -162,6 +198,9 @@ func stdoutLogger(level string, options int) (*zap.Logger, error) {
 }
 
 func doSetGlobalRootLogger(fpath, level string, options int) error {
+	if fpath == "" {
+		return fmt.Errorf("fpath should not empty")
+	}
 
 	mtx.Lock()
 	defer mtx.Unlock()
@@ -172,12 +211,12 @@ func doSetGlobalRootLogger(fpath, level string, options int) error {
 
 	if _, err := os.Stat(fpath); err != nil { // create file if not exists
 		if err := os.MkdirAll(filepath.Dir(fpath), 0700); err != nil {
-			return err
+			return fmt.Errorf("MkdirAll(%s): %w", fpath, err)
 		}
 
 		// create empty log file
 		if err := ioutil.WriteFile(fpath, nil, 0700); err != nil {
-			return err
+			return fmt.Errorf("WriteFile(%s): %w", fpath, err)
 		}
 	}
 
