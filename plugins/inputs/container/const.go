@@ -14,7 +14,7 @@ const (
 
 	dockerEndpoint = "unix:///var/run/docker.sock"
 
-	apiTimeoutDuration = time.Second * 5
+	timeoutDuration = time.Second * 5
 )
 
 var measurements = make(map[reflect.Type]inputs.Measurement)

@@ -223,7 +223,7 @@ func (m *HostsMeasurement) Info() *inputs.MeasurementInfo {
 			"hosts_reload_timestamp_seconds": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.DurationSecond,
+				Unit:     inputs.TimestampSec,
 				Desc:     "最后一次重载hosts文件的时间戳",
 			},
 		},
