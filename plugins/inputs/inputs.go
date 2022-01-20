@@ -309,7 +309,6 @@ func InputEnabled(name string) (n int) {
 	}
 
 	n = len(arr)
-	l.Debugf("name %s enabled %d", name, n)
 	return
 }
 

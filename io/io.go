@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -29,9 +30,7 @@ var (
 	datawayListIntervalDefault = 50
 	heartBeatIntervalDefault   = 40
 	log                        = logger.DefaultSLogger("io")
-)
 
-var (
 	DisableLogFilter   bool
 	DisableHeartbeat   bool
 	DisableDatawayList bool
@@ -85,7 +84,7 @@ type IO struct {
 	SentBytes     int
 
 	inputstats map[string]*InputsStat
-	qstatsCh   chan *qinputStats
+	lock       sync.RWMutex
 
 	cache        map[string][]*Point
 	dynamicCache map[string][]*Point
@@ -114,7 +113,6 @@ func NewIO() *IO {
 		inLastErr:            make(chan *lastError, 128),
 
 		inputstats: map[string]*InputsStat{},
-		qstatsCh:   make(chan *qinputStats), // blocking
 
 		cache:        map[string][]*Point{},
 		dynamicCache: map[string][]*Point{},
@@ -203,6 +201,9 @@ func (x *IO) ioStop() {
 }
 
 func (x *IO) updateLastErr(e *lastError) {
+	x.lock.Lock()
+	defer x.lock.Unlock()
+
 	stat, ok := x.inputstats[e.from]
 	if !ok {
 		stat = &InputsStat{
@@ -351,18 +352,13 @@ func (x *IO) StartIO(recoverable bool) {
 			select {
 			case d := <-x.in:
 				x.cacheData(d, true)
+
 			case e := <-x.inLastErr:
 				x.updateLastErr(e)
-			case q := <-x.qstatsCh:
-				res := dumpStats(x.inputstats)
-				select {
-				case <-q.ch:
-					log.Warnf("qid(%s) client canceled, ignored", q.qid)
-				case q.ch <- res: // XXX: reference
-					log.Debugf("qid(%s) response ok", q.qid)
-				}
+
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()
+
 			case <-heartBeatTick.C:
 				log.Debugf("### enter heartBeat")
 				if !DisableHeartbeat {
@@ -375,6 +371,7 @@ func (x *IO) StartIO(recoverable bool) {
 						heartBeatIntervalDefault = heartBeatInterval
 					}
 				}
+
 			case <-datawaylistTick.C:
 				log.Debugf("### enter dataway list")
 				if !DisableDatawayList {
@@ -391,6 +388,7 @@ func (x *IO) StartIO(recoverable bool) {
 						datawayListIntervalDefault = datawayListInterval
 					}
 				}
+
 			case <-tick.C:
 				x.flushAll()
 				if x.EnableCache {
