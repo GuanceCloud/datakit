@@ -63,3 +63,58 @@ func Test_spiltBuffer(t *testing.T) {
 		})
 	}
 }
+
+func Test_mkServer(t *testing.T) {
+	type args struct {
+		socket string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantS   *server
+		wantErr bool
+	}{
+		{
+			name:    "case1",
+			args:    args{socket: "tcp://127.0.0.1:7000"},
+			wantS:   &server{},
+			wantErr: false,
+		},
+		{
+			name:    "case2",
+			args:    args{socket: "udp://127.0.0.1:7000"}, // tcp 和 udp 可以使用同一端口
+			wantS:   &server{},
+			wantErr: false,
+		},
+		{
+			name:    "case3",
+			args:    args{socket: "udp://127.0.0.1:7000"}, // eq port
+			wantS:   &server{},
+			wantErr: true,
+		},
+		{
+			name:    "case4",
+			args:    args{socket: "udp1://127.0.0.1:7001"}, // err socket
+			wantS:   &server{},
+			wantErr: true,
+		},
+		{
+			name:    "case5",
+			args:    args{socket: "udp127.0.0.1:7001"}, // err socket
+			wantS:   &server{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotS, err := mkServer(tt.args.socket)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("mkServer() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotS == nil {
+				t.Errorf("mkServer() gotS = %v, want %v", gotS, tt.wantS)
+			}
+		})
+	}
+}
