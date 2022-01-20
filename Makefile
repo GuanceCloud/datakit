@@ -168,7 +168,20 @@ pub_production:
 pub_release_mac:
 	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
-check_conf_compatible:
+# Config samples should only be published by production release,
+# because config samples in multiple testing releases may not be compatible to each other.
+pub_conf_samples:
+	@echo "upload config samples to oss..."
+	@go run cmd/make/make.go -dump-samples -release production
+
+# testing/production downloads config samples from different oss bucket.
+check_testing_conf_compatible:
+	@go run cmd/make/make.go -download-samples -release testing
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+
+check_production_conf_compatible:
+	@go run cmd/make/make.go -download-samples -release production
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
 	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
 
