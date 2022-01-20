@@ -143,7 +143,9 @@ func (t *Single) forwardMessage() {
 			}
 			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
 		}
-		t.sendToPipeline(pending)
+		if len(pending) > 0 {
+			t.sendToPipeline(pending)
+		}
 	}
 }
 
