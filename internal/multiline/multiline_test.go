@@ -84,8 +84,8 @@ func TestMultilineString(t *testing.T) {
 	const maxLines = 10
 
 	cases := []struct {
-		pattern string
-		in, out []string
+		pattern, name string
+		in, out       []string
 	}{
 		{
 			pattern: "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})",
@@ -130,23 +130,32 @@ func TestMultilineString(t *testing.T) {
 			in:      []string{"2021-05-31T11:15:26.043419Z\n  Line:10================"},
 			out:     []string{"2021-05-31T11:15:26.043419Z\n  Line:10================"},
 		},
+
+		{
+			pattern: "",
+			in:      []string{"2021-05-31T11:15:26.043419Z", "Line:10================"},
+			out:     []string{"2021-05-31T11:15:26.043419Z", "Line:10================"},
+		},
 	}
 
 	for _, tc := range cases {
-		m, err := New(tc.pattern, maxLines)
-		tu.Equals(t, nil, err)
+		t.Run(tc.name, func(t *testing.T) {
+			m, err := New(tc.pattern, maxLines)
+			tu.Equals(t, nil, err)
 
-		outIdx := 0
-		for _, line := range tc.in {
-			res := m.ProcessLineString(line)
-			if res != "" {
-				tu.Equals(t, tc.out[outIdx], res)
-				outIdx++
+			outIdx := 0
+			for _, line := range tc.in {
+				res := m.ProcessLineString(line)
+				if res != "" {
+					tu.Equals(t, tc.out[outIdx], res)
+					outIdx++
+				}
 			}
-		}
 
-		if m.CacheLines() != 0 {
-			tu.Equals(t, tc.out[outIdx], m.FlushString())
-		}
+			if m.CacheLines() != 0 {
+				tu.Equals(t, tc.out[outIdx], m.FlushString())
+			}
+		})
+
 	}
 }

@@ -54,7 +54,7 @@ func (m *Multiline) ProcessLine(text []byte) []byte {
 
 	previousText := m.Flush()
 	m.buff.Write(text)
-	m.lines++
+	m.lines = 1 // always 1th line
 
 	return previousText
 }
@@ -75,7 +75,7 @@ func (m *Multiline) ProcessLineString(text string) string {
 
 	previousText := m.FlushString()
 	m.buff.WriteString(text)
-	m.lines++
+	m.lines = 1 // always 1th line
 
 	return previousText
 }
@@ -133,5 +133,5 @@ func (m *Multiline) matchStringOfPrefixSpace(text string) bool {
 	if len(text) == 0 {
 		return true
 	}
-	return unicode.IsSpace(rune(text[0]))
+	return !unicode.IsSpace(rune(text[0]))
 }
