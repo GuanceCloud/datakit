@@ -19,7 +19,8 @@
 - [NodeJS](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers)
 - [PHP](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers)
 - [C++](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers)
-- [C#](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-core?tab=windows)
+- [.Net Core](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-core?tab=windows)
+- [.Net Framework](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows)
 
 ### 不同语言平台 Source Code
 
@@ -30,7 +31,7 @@
 - [NodeJS](https://github.com/DataDog/dd-trace-js)
 - [PHP](https://github.com/DataDog/dd-trace-php)
 - [C++](https://github.com/opentracing/opentracing-cpp)
-- [C#](https://github.com/DataDog/dd-trace-dotnet)
+- [.Net](https://github.com/DataDog/dd-trace-dotnet)
 
 > Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent)
 
