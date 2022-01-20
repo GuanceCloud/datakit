@@ -277,12 +277,12 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	bodies, err := x.buildBody(d.pts)
-	if err != nil {
-		log.Errorf("build iodata bodies failed: %s", err)
-	}
-	for _, body := range bodies {
-		if x.OutputFile != "" {
+	if x.OutputFile != "" {
+		bodies, err := x.buildBody(d.pts)
+		if err != nil {
+			log.Errorf("build iodata bodies failed: %s", err)
+		}
+		for _, body := range bodies {
 			if len(x.OutputFileInput) == 0 || x.ifMatchOutputFileInput(d.name) {
 				if err := x.fileOutput(body.buf); err != nil {
 					log.Error("fileOutput: %s, ignored", err.Error())
