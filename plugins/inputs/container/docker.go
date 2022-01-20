@@ -14,9 +14,9 @@ import (
 )
 
 type dockerInput struct {
-	client *dockerClient
-	// container log 需要添加 pod 信息，所以存一份 k8s client
-	k8sClient *k8sClient
+	client dockerClientX
+	// container log 需要添加 pod 信息，所以存一份 k8sclient
+	k8sClient k8sClientX
 
 	containerLogList map[string]context.CancelFunc
 
