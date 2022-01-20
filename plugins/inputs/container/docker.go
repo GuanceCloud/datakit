@@ -67,7 +67,6 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 
 func (d *dockerInput) stop() {
 	d.cancelTails()
-	d.wg.Wait()
 }
 
 func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
