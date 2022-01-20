@@ -24,8 +24,6 @@ type dockerInput struct {
 	loggingFilter filter.Filter
 
 	cfg *dockerInputConfig
-
-	wg sync.WaitGroup
 }
 
 type dockerInputConfig struct {
@@ -158,13 +156,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 	}
 
 	for idx, container := range cList {
-		if d.containerInContainerList(container.ID) {
-			continue
-		}
-
-		image := getImageOfPodContainer(&cList[idx], d.k8sClient)
-		if d.ignoreContainer(&cList[idx]) || d.ignoreImageForLogging(image) {
-			l.Debugf("ignore container log, name: %s, shortImage: %s", getContainerName(container.Names), image)
+		if !d.shouldPullContainerLog(&cList[idx]) {
 			continue
 		}
 
@@ -173,23 +165,68 @@ func (d *dockerInput) watchNewContainerLogs() error {
 		d.addToContainerList(container.ID, cancel)
 
 		// Start a new goroutine for every new container that has logs to collect
-		d.wg.Add(1)
 		go func(container *types.Container) {
 			defer func() {
-				d.wg.Done()
 				d.removeFromContainerList(container.ID)
 				l.Debugf("remove container log, name: %s image: %s", getContainerName(container.Names), container.Image)
 			}()
 
-			if err := d.watchingContainerLogs(ctx, container); err != nil {
+			if err := d.watchingContainerLog(ctx, container); err != nil {
 				if !errors.Is(err, context.Canceled) {
-					l.Errorf("tailContainerLogs: %s", err)
+					l.Errorf("tailContainerLog: %s", err)
 				}
 			}
 		}(&cList[idx])
 	}
 
 	return nil
+}
+
+func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
+	if d.containerInContainerList(container.ID) {
+		return false
+	}
+
+	image := container.Image
+
+	// TODO
+	// 每次获取到容器列表，都要进行以下所有 resist 考查，特别是获取其 k8s Annotation 的配置，需要进行访问和查找
+	// 这消耗很大，且没有意义
+	// 可以使用 container ID 进行缓存，维持一份名单，通过名单再决定是否进行考查
+
+	disable := false
+	func() {
+		if d.k8sClient == nil || container.Labels["pod_name"] == "" {
+			return
+		}
+		meta, err := queryPodMetaData(d.k8sClient, container.Labels["pod_name"], container.Labels["pod_namesapce"])
+		if err != nil {
+			return
+		}
+		image = meta.containerImage()
+
+		logconf, err := getContainerLogConfig(meta.Annotations)
+		if err != nil || logconf == nil {
+			return
+		}
+		disable = logconf.Disable
+	}()
+	if disable {
+		l.Debugf("ignore containerlog because of annotation disable, name: %s, shortImage: %s", getContainerName(container.Names), image)
+		return false
+	}
+
+	if d.ignoreContainer(container) {
+		l.Debugf("ignore containerlog because of pause status, name: %s, shortImage: %s", getContainerName(container.Names), image)
+		return false
+	}
+
+	if d.ignoreImageForLogging(image) {
+		l.Debugf("ignore containerlog because of image filter, name: %s, shortImage: %s", getContainerName(container.Names), image)
+		return false
+	}
+
+	return true
 }
 
 func (d *dockerInput) getContaierList() ([]types.Container, error) {
