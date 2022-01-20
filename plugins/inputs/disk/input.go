@@ -59,15 +59,15 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "disk",
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Total disk size in bytes",
 			},
 			"free": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Free disk size in bytes",
 			},
 			"used": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Used disk size in bytes",
 			},
 			"used_percent": &inputs.FieldInfo{

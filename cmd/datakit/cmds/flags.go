@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"time"
 
@@ -85,6 +86,15 @@ var (
 var (
 	ReleaseVersion    string
 	InputsReleaseType string
+	windowsCmdErrMsg  = "Stop-Service -Name datakit"
+	darwinCmdErrMsg   = "sudo launchctl unload -w /Library/LaunchDaemons/cn.dataflux.datakit.plist"
+	linuxCmdErrMsg    = "systemctl stop datakit"
+
+	errMsg = map[string]string{
+		datakit.OSWindows: windowsCmdErrMsg,
+		datakit.OSLinux:   linuxCmdErrMsg,
+		datakit.OSDarwin:  darwinCmdErrMsg,
+	}
 )
 
 func tryLoadMainCfg() {
@@ -341,7 +351,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := startDatakit(); err != nil {
-			errorf("[E] start DataKit failed: %s\n", err.Error())
+			errorf("[E] start DataKit failed: %s\n using command to stop : %s\n", err.Error(), errMsg[runtime.GOOS])
 			os.Exit(-1)
 		}
 
@@ -368,7 +378,7 @@ func RunCmds() {
 		setCmdRootLog(FlagCmdLogPath)
 
 		if err := restartDatakit(); err != nil {
-			errorf("[E] restart DataKit failed: %s\n", err.Error())
+			errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
 			os.Exit(-1)
 		}
 

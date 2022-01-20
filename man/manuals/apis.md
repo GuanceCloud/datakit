@@ -12,13 +12,14 @@
 
 写入日志数据，参数列表：
 
-| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                               |
-| -------------------- | ------ | -------- | --------- | -------------------------------------------------- |
-| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object` |
-| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                      |
-| `input`              | string | false    | `datakit` | 数据源名称                                         |
-| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag            |
-| `version`            | string | false    | 无        | 当前采集器的版本号                                 |
+| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                                                                       |
+| -------------------- | ------ | -------- | --------- | --------------------------------------------------                                         |
+| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                         |
+| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                              |
+| `input`              | string | false    | `datakit` | 数据源名称                                                                                 |
+| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag                                                    |
+| `version`            | string | false    | 无        | 当前采集器的版本号                                                                         |
+| `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段。如果不指定 `source`，则上传的日志数据不会执行 pipeline 切割 |
 
 HTTP body 支持行协议以及 JSON 俩种形式。
 

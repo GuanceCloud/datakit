@@ -168,7 +168,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		}
 	case datakit.Tracing:
 	case datakit.Security:
-	case datakit.Rum:
+	case datakit.RUM:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
 	}

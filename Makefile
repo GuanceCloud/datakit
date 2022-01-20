@@ -168,8 +168,8 @@ pub_release_mac:
 	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
 check_conf_compatible:
-	./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
-	./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
 
 define build_ip2isp
 	rm -rf china-operator-ip
@@ -210,7 +210,7 @@ all_test: deps
 	i=0; \
 	for pkg in `go list ./... | grep -vE 'datakit/git'`; do \
 		echo "# testing $$pkg..." | tee -a test.output; \
-		GO111MODULE=off CGO_ENABLED=1 go test -timeout 1m -cover $$pkg; \
+		GO111MODULE=off CGO_ENABLED=1 LOGGER_PATH=nul go test -timeout 1m -cover $$pkg; \
 		if [ $$? != 0 ]; then \
 			printf "\033[31m [FAIL] %s\n\033[0m" $$pkg; \
 			i=`expr $$i + 1`; \

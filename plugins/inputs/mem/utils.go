@@ -16,7 +16,7 @@ func NewFieldInfoB(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
-		Unit:     inputs.SizeIByte,
+		Unit:     inputs.SizeByte,
 		Desc:     desc,
 	}
 }
