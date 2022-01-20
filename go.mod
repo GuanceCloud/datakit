@@ -80,7 +80,7 @@ require (
 	github.com/vmihailenco/msgpack/v4 v4.3.12
 	github.com/whilp/git-urls v1.0.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220117082011-b2dea10607f0
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220118102115-7c8ceb198efc
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
