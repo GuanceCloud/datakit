@@ -11,16 +11,16 @@
 - 查看 [DataKit 运行状态](datakit-tools-how-to#44462aae)不再会超时(#555)
 
 - [容器采集器](container)一些细节问题修复
-	- 修复在 Kubernetes 环境主机部署时奔溃问题(#576)
-	- 提升 Annotation 采集配置优先级(#553)
-	- 容器日志支持多行处理(#552)
-	- Kubernetes Node 对象增加 *role* 字段(#549)
-	- [通过 Annotation 标注](kubernetes-prom)的 [Prom 采集器](prom) 会自动增加相关属性（*pod_name/node_name/namespace*）(#522/#443)
-	- 其它 Bug 修复
+  - 修复在 Kubernetes 环境主机部署时奔溃问题(#576)
+  - 提升 Annotation 采集配置优先级(#553)
+  - 容器日志支持多行处理(#552)
+  - Kubernetes Node 对象增加 *role* 字段(#549)
+  - [通过 Annotation 标注](kubernetes-prom)的 [Prom 采集器](prom) 会自动增加相关属性（*pod_name/node_name/namespace*）(#522/#443)
+  - 其它 Bug 修复
 
 - Pipeline 问题修复
   - 修复日志处理中可能导致的时间乱序问题(#547)
-	- 支持 *if/else* 语句[复杂逻辑关系判断支持](pipeline#1ea7e5aa)
+  - 支持 *if/else* 语句[复杂逻辑关系判断支持](pipeline#1ea7e5aa)
 
 - 修复日志采集器 Windows 中路径问题(#423)
 - 完善 DataKit 服务管理，优化交互提示(#535)
@@ -58,7 +58,7 @@
 
 - [容器采集器](container)更新：
 	- 修复日志处理效率问题(#540)
-	-	优化配置文件黑白名单配置(#536)
+	- 优化配置文件黑白名单配置(#536)
 - Pipeline 模块增加 `datakit -M` 指标暴露(#541)
 - [ClickHouse](clickhousev1) 采集器 config-sample 问题修复(#539)
 - [Kafka](kafka) 指标采集优化(#534)
