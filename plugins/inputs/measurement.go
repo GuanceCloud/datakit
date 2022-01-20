@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -201,14 +200,6 @@ func (e ReporterMeasurement) LineProto() (*io.Point, error) {
 
 func (e ReporterMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{}
-}
-
-func FeedReporter(reporter *io.Reporter) {
-	measurement := getReporterMeasurement(reporter)
-	err := FeedMeasurement("datakit", datakit.Logging, []Measurement{measurement}, nil)
-	if err != nil {
-		l.Errorf("send datakit logging error: %s", err.Error())
-	}
 }
 
 func getReporterMeasurement(reporter *io.Reporter) ReporterMeasurement {

@@ -58,6 +58,7 @@ func (h *Input) Catalog() string {
 
 func (h *Input) Run() {
 	l.Infof("%s input started...", inputName)
+	iod.FeedEventLog(&iod.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 	if h.MaxBodySize == 0 {
 		h.MaxBodySize = defaultMaxBodySize
 	}

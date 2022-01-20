@@ -121,6 +121,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 
 func (ipt *Input) Run() {
 	l.Info("smartctl input started")
+	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 
 	var err error
 	if ipt.SmartCtlPath == "" || !ipath.IsFileExists(ipt.SmartCtlPath) {

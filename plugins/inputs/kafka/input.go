@@ -34,6 +34,7 @@ type kafkalog struct {
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
+	io.FeedEventLog(&io.Reporter{Message: "kafka start ok, ready for collecting metrics.", Logtype: "event"})
 
 	if i.Interval == "" { //nolint:typecheck
 		i.Interval = defaultInterval

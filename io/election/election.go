@@ -195,8 +195,14 @@ func (x *candidate) tryElection() (int, error) {
 
 	switch e.Content.Status {
 	case statusFail:
+		if x.status != statusFail {
+			io.FeedEventLog(&io.Reporter{Message: "election fail", Logtype: "event"})
+		}
 		x.status = statusFail
 	case statusSuccess:
+		if x.status != statusSuccess {
+			io.FeedEventLog(&io.Reporter{Message: "election success", Logtype: "event"})
+		}
 		x.status = statusSuccess
 		x.resumePlugins()
 		x.nElected++
