@@ -182,7 +182,7 @@ class MyTest(DataKitFramework):
 
 第三步：配置 {{.InputName}}.conf:
 
-```conf
+```toml
 [[inputs.pythond]]
 
   # Python 采集器名称
