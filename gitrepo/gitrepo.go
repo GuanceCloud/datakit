@@ -152,6 +152,8 @@ func doRun(c *config.GitRepository) error {
 		}
 	}
 
+	io.FeedEventLog(&io.Reporter{Message: "Gitrepo synchronizes the latest data", Logtype: "event"})
+
 	l.Debug("completed")
 	return nil
 }

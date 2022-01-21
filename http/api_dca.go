@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/influxdata/toml"
@@ -161,7 +160,7 @@ func restartDataKit() error {
 }
 
 func dcaStats(c *gin.Context) {
-	s, err := GetStats(time.Duration(0))
+	s, err := GetStats()
 	context := dcaContext{c: c}
 
 	if err != nil {

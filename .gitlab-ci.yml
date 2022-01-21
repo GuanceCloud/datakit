@@ -19,11 +19,10 @@ release-nothing-only-build:
   script:
     # only building
     - make clean
-    - make deps
     - make lint
     - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
-    - make check_conf_compatible
+    - make check_testing_conf_compatible
   tags:
     - cloudcare-ft
 
@@ -39,7 +38,7 @@ release-testing:
     - make lint
     - make all_test
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
-    - make check_conf_compatible
+    - make check_testing_conf_compatible
     - make pub_testing
     - make pub_testing_img
   tags:
@@ -51,11 +50,11 @@ release-production:
     - master
   script:
     - make clean
-    - make deps
     - make lint
     - make all_test
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH
-    - make check_conf_compatible
+    - make check_production_conf_compatible
+    - make pub_conf_samples
     - make pub_production
     - make pub_production_img
   tags:

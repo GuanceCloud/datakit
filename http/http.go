@@ -80,6 +80,7 @@ type APIConfig struct {
 	Listen            string   `toml:"listen"`
 	Disable404Page    bool     `toml:"disable_404page"`
 	RUMAppIDWhiteList []string `toml:"rum_app_id_white_list"`
+	PublicAPIs        []string `toml:"public_apis"`
 }
 
 func Start(o *Option) {
@@ -181,6 +182,12 @@ func setupRouter() *gin.Engine {
 	uhttp.Init()
 
 	router := gin.New()
+
+	// use whitelist config
+	if len(apiConfig.PublicAPIs) != 0 {
+		router.Use(loopbackWhiteList)
+	}
+
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: uhttp.GinLogFormmatter,
 		Output:    setupGinLogger(),
@@ -198,7 +205,6 @@ func setupRouter() *gin.Engine {
 
 	applyHTTPRoute(router)
 
-	// internal datakit stats API
 	router.GET("/stats", apiGetDatakitStats)
 	router.GET("/monitor", apiGetDatakitMonitor)
 	router.GET("/man", apiManualTOC)
@@ -213,6 +219,24 @@ func setupRouter() *gin.Engine {
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 	return router
+}
+
+// TODO: we should wrap this handler.
+func loopbackWhiteList(c *gin.Context) {
+	cliIP := net.ParseIP(c.ClientIP())
+
+	for _, urlPath := range apiConfig.PublicAPIs {
+		// TODO: other 404 API still blocked by this whitelist, this should be a 404 status, but got 403
+		if c.Request.URL.Path != urlPath && !cliIP.IsLoopback() { // not public API and not loopback client
+			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
+				"api %s disabled from IP %s, only loopback(localhost) allowed",
+				c.Request.URL.Path, cliIP.String()))
+			c.Abort()
+			return
+		}
+	}
+
+	c.Next()
 }
 
 type apiHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)

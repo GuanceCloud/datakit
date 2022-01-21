@@ -256,7 +256,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 	return summary + "\n" + tblHeader + strings.Join(rows, "\n")
 }
 
-func GetStats(du time.Duration) (*DatakitStats, error) {
+func GetStats() (*DatakitStats, error) {
 	now := time.Now()
 	elected, _ := election.Elected()
 	stats := &DatakitStats{
@@ -278,7 +278,7 @@ func GetStats(du time.Duration) (*DatakitStats, error) {
 
 	var err error
 
-	stats.InputsStats, err = io.GetStats(du) // get all inputs stats
+	stats.InputsStats, err = io.GetStats() // get all inputs stats
 	if err != nil {
 		return nil, err
 	}
@@ -334,20 +334,7 @@ func (x *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 }
 
 func apiGetDatakitMonitor(c *gin.Context) {
-	du := time.Second * 5
-	timeout := c.Query("timeout")
-	if timeout != "" {
-		if x, err := time.ParseDuration(timeout); err == nil {
-			du = x
-		} else {
-			c.Data(http.StatusBadRequest,
-				"text/html; charset=UTF-8",
-				[]byte(fmt.Sprintf("invalid timeout: %s", timeout)))
-			return
-		}
-	}
-
-	s, err := GetStats(du)
+	s, err := GetStats()
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return
@@ -373,7 +360,7 @@ func apiGetDatakitMonitor(c *gin.Context) {
 }
 
 func apiGetDatakitStats(c *gin.Context) {
-	s, err := GetStats(time.Duration(0))
+	s, err := GetStats()
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return

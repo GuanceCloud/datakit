@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
@@ -110,13 +109,12 @@ func ConfigDefaultIO(opts ...IOOption) {
 func Start() error {
 	log = logger.SLogger("io")
 
-	log.Debugf("default io config: %v", *defaultIO)
+	log.Debugf("default io config: %v", defaultIO)
 
 	defaultIO.in = make(chan *iodata, defaultIO.FeedChanSize)
 	defaultIO.in2 = make(chan *iodata, defaultIO.HighFreqFeedChanSize)
 	defaultIO.inLastErr = make(chan *lastError, 128)
 	defaultIO.inputstats = map[string]*InputsStat{}
-	defaultIO.qstatsCh = make(chan *qinputStats) // blocking
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}
 
@@ -137,33 +135,11 @@ func Start() error {
 	return nil
 }
 
-func GetStats(timeout time.Duration) (map[string]*InputsStat, error) {
-	q := &qinputStats{
-		qid: cliutils.XID("statqid_"),
-		ch:  make(chan map[string]*InputsStat),
-	}
+func GetStats() (map[string]*InputsStat, error) {
+	defaultIO.lock.RLock()
+	defer defaultIO.lock.RUnlock()
 
-	defer close(q.ch)
-
-	if timeout <= 0 {
-		timeout = 3 * time.Second
-	}
-
-	tick := time.NewTicker(timeout)
-	defer tick.Stop()
-
-	select {
-	case defaultIO.qstatsCh <- q:
-	case <-tick.C:
-		return nil, fmt.Errorf("default IO busy(qid: %s, %v)", q.qid, timeout)
-	}
-
-	select {
-	case res := <-q.ch:
-		return res, nil
-	case <-tick.C:
-		return nil, fmt.Errorf("default IO response timeout(qid: %s, %v)", q.qid, timeout)
-	}
+	return dumpStats(defaultIO.inputstats), nil
 }
 
 func GetIoStats() IoStat {
