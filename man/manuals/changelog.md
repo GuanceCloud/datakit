@@ -11,7 +11,7 @@
 - 查看 [DataKit 运行状态](datakit-tools-how-to#44462aae)不再会超时(#555)
 
 - [容器采集器](container)一些细节问题修复
-  - 修复在 Kubernetes 环境主机部署时奔溃问题(#576)
+  - 修复在 Kubernetes 环境主机部署时崩溃问题(#576)
   - 提升 Annotation 采集配置优先级(#553)
   - 容器日志支持多行处理(#552)
   - Kubernetes Node 对象增加 *role* 字段(#549)
@@ -368,7 +368,7 @@
 ## 1.1.8-rc2.1(2021/08/25)
 
 - 修复 CPU 温度采集导致的无数据问题
-- 修复 statsd 采集器退出奔溃问题(#321)
+- 修复 statsd 采集器退出崩溃问题(#321)
 - 修复代理模式下自动提示的升级命令问题
 
 ---
@@ -576,7 +576,7 @@
 - 修正 [Kubernetes 采集器](kubernetes)，支持更多 K8s 对象统计指标收集
 - 完善[容器采集器](container)，支持 image/container/pod 过滤
 - 修正 [Mongodb 采集器](mongodb)问题
-- 修正 MySQL/Redis 采集器可能因为配置缺失导致奔溃的问题
+- 修正 MySQL/Redis 采集器可能因为配置缺失导致崩溃的问题
 - 修正[离线安装问题](datakit-offline-install)
 - 修正部分采集器日志设置问题
 - 修正 [SSH](ssh)/[Jenkins](jenkins) 等采集器的数据问题
@@ -670,7 +670,7 @@
 
 ### 发布说明
 
-- 修复容器日志采集可能奔溃的问题
+- 修复容器日志采集可能崩溃的问题
 
 ---
 
