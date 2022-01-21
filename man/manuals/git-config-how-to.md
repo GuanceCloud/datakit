@@ -42,13 +42,15 @@ git push origin master
 - `gitrepos/repo-name/pipeline` 用来放 pipeline 脚本，且只有该目录下第一层的 `.p` 才生效，其下的子目录均不生效
 - `gitrepos/repo-name/python.d` 用来放 python 脚本
 
-## 如何远程提交一个 conf 文件以及文件夹? 
+## 如何远程提交一个 conf 文件以及目录?
 
 下面以 [clickhouse](https://www.yuque.com/dataflux/datakit/clickhousev1) 采集器为例进行演示。
 
 第 1 步: 切换到 `/root` 目录下，使用 `git clone http://github.com/path/to/repository.git` 命令拉取远程仓库到本地。
 
-选取想要开启的采集器，这里是 clickhouse。复制 `clickhousev1.conf.sample` 到上面的 `/root/repository` 文件夹下。
+选取想要开启的采集器，这里是 clickhouse。复制 `[Datakit 安装目录]/conf.d/db/clickhousev1.conf.sample` 到上面的 `/root/repository` 目录下。
+
+备注: 所有采集器配置文件样本在 `[Datakit 安装目录]/conf.d` 目录下。
 
 文件名去掉 `.sample`，文件结构如下:
 
@@ -101,7 +103,7 @@ $ sudo datakit --restart
 可以通过观察新增/修改的采集器是否生效:
 
 ```shell
-$ sudo datakit -M
+$ sudo datakit -M --vvv
 ```
 
 ## 更新 Git 仓库, 演示一下 dk 拉取到了新的 conf 并生效
