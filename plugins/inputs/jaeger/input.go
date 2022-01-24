@@ -5,6 +5,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -58,6 +59,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (t *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
+	dkio.FeedEventLog(&dkio.Reporter{Message: "jaeger start ok, ready for collecting metrics.", Logtype: "event"})
 
 	if t.Tags != nil {
 		jaegerTags = t.Tags

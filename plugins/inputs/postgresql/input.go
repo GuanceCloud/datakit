@@ -408,6 +408,7 @@ const (
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
+	io.FeedEventLog(&io.Reporter{Message: "postgresql start ok, ready for collecting metrics.", Logtype: "event"})
 
 	duration, err := time.ParseDuration(ipt.Interval)
 	if err != nil {

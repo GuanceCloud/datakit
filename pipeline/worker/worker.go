@@ -35,6 +35,8 @@ var (
 		return nil
 	}
 
+	checkUpdateDebug = time.Duration(0)
+
 	g = datakit.G("pipeline_worker")
 
 	stopCh = make(chan struct{})
@@ -53,16 +55,27 @@ type ppWorker struct {
 
 func (wkr *ppWorker) Run(ctx context.Context) error {
 	wkr.isRunning = true
-	ticker := time.NewTicker(time.Second * 30)
+
+	dur := time.Second * 30
+	if checkUpdateDebug >= time.Second {
+		l.Warn("checkDotPUpdateDebug: ", checkUpdateDebug)
+		dur = checkUpdateDebug
+	}
+	ticker := time.NewTicker(dur)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case task := <-taskCh:
 			taskNumIncrease()
-			if task.Data == nil {
-				return nil
+			if task == nil || len(task.Data) == 0 {
+				continue
 			}
 			points := wkr.run(task)
 
+			if len(points) == 0 {
+				continue
+			}
 			if !wkrManager.debug {
 				_ = wkr.feed(task, points)
 			} else {
@@ -87,7 +100,7 @@ func (wkr *ppWorker) run(task *Task) []*io.Point {
 			wkr.lastErrTS = time.Now()
 		}
 	}()
-	if task.Data == nil {
+	if task == nil || len(task.Data) == 0 {
 		return nil
 	}
 	taskOpt := task.Opt
@@ -112,6 +125,7 @@ func (wkr *ppWorker) run(task *Task) []*io.Point {
 			if err := ng.Run(content); err != nil {
 				wkr.lastErr = err
 				wkr.lastErrTS = time.Now()
+				l.Debug(err)
 			}
 			rst := ng.Result()
 			result.output = rst
@@ -119,7 +133,7 @@ func (wkr *ppWorker) run(task *Task) []*io.Point {
 			result.output = &parser.Output{
 				Tags: map[string]string{},
 				Data: map[string]interface{}{
-					PipelineMessageField: task.Data[di].GetContent(),
+					PipelineMessageField: content,
 				},
 			}
 		}
@@ -256,7 +270,7 @@ var MaxWorkerCount = func() int {
 	return n
 }()
 
-func InitManager() {
+func InitManager(count int) {
 	l = logger.SLogger("pipeline-worker")
 
 	if wkrManager != nil {
@@ -270,7 +284,10 @@ func InitManager() {
 
 	LoadAllDotPScriptForWkr(nil, nil)
 
-	for i := 0; i < MaxWorkerCount; i++ {
+	if count <= 0 {
+		count = MaxWorkerCount
+	}
+	for i := 0; i < count; i++ {
 		_ = wkrManager.appendPPWorker()
 	}
 	l.Info("pipeline task channal is ready")

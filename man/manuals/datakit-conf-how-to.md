@@ -263,9 +263,9 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 
 ### 手动配置 Git 管理
 
-Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下：
+Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚本。在 *datakit.conf* 中，找到 *git_repos* 位置，编辑如下内容：
 
-```conf
+```toml
 [git_repos]
   pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
 
@@ -286,38 +286,24 @@ Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下�
     branch = "master" # 指定 git branch
 ```
 
-注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（但 datakit.conf 继续生效）。DataKit 随带的 pipeline 依然有效。
+注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（*datakit.conf* 除外）。
 
-#### 应用 Git 管理的 Pipeline
+#### 应用 Git 管理的 Pipeline 示例
 
-我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用。
-
-当使用 DataKit 自带的 Pipeline 时，支持 2 种路径方式，一种是绝对路径（完整路径），一种是纯文件名（含扩展名 `.p`）。
-
-- 绝对路径
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx)的配置中，一个 pipeline 的配置示例：
 
 ```toml
 [[inputs.nginx]]
     ...
     [inputs.nginx.log]
     ...
-    pipeline = "/user/pipelines/nginx.p" # 对应加载 /user/pipelines/nginx.p 文件
-```
-
-
-- 纯文件名路径
-
-```toml
-[[inputs.nginx]]
-    ...
-    [inputs.nginx.log]
-    ...
-    pipeline = "nginx.p" # 具体加载哪看下面的 "约束" 说明
+    pipeline = "my-nginx.p" # 具体加载哪里的 my-nginx.p，参见下面的 「约束」 说明
 ```
 
 ### Git 管理的使用约束
 
-在 git repo 使用过程必须遵循以下约束:
+在 Git 使用过程必须遵循以下约束:
+
 - git repo 里面新建 `conf.d` 文件夹，下面放 DataKit 采集器配置
 - git repo 里面新建 `pipeline` 文件夹，下面放置 Pipeline 文件
 - git repo 里面新建 `python.d` 文件夹，下面放置 Python 脚本文件
@@ -333,10 +319,10 @@ datakit 根目录
 ├── externals
 └── gitrepos
     ├── repo-1  # 仓库 1
-    │   ├── conf.d    # conf.d 专门存放采集器配置
-    │   ├── pipeline
-    │   │   └── nginx.p # 合法的 Pipeline 脚本
-    │   │   └── 123     # 不合法的 Pipeline 目录，其下文件也不会生效
+    │   ├── conf.d    # 专门存放采集器配置
+    │   ├── pipeline  # 专门存放 pipeline 切割脚本
+    │   │   └── my-nginx.p # 合法的 pipeline 脚本
+    │   │   └── 123     # 不合法的 Pipeline 子目录，其下文件也不会生效
     │   │       └── some-invalid.p
     │   └── python.d    存放 python.d 脚本
     │       └── core
@@ -344,7 +330,8 @@ datakit 根目录
         ├── ...
 ```
 
-如果 pipeline 和 pythond.conf 中填写的是 "纯文件名路径"，则查找优先级统一如下:
+查找优先级定义如下:
 
-1. 按 datakit.conf 里面的 `git_repos -> git_repos.repo` 配置逐个查找指定文件名，若找到，返回第一个;
-2. 在上面找不到的情况下，使用 `<Datakit 安装目录>/pipeline` 或者 `<Datakit 安装目录>/python.d` 再次进行查找，返回第一个;
+1. 按 *datakit.conf* 中配置的 *git_repos* 次序（它是一个数组，可配置多个 Git 仓库），逐个查找指定文件名，若找到，返回第一个。比如查找 *my-nginx.p*，如果在第一个仓库目录的 *pipeline* 下找到，则以该找到的为准，**即使第二个仓库中也有同名的 *my-nginx.p*，也不会选择它**。
+
+2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。

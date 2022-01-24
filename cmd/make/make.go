@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -17,7 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
@@ -26,18 +26,18 @@ import (
 )
 
 var (
-	flagBinary         = flag.String("binary", "", "binary name to build")
-	flagName           = flag.String("name", *flagBinary, "same as -binary")
-	flagBuildDir       = flag.String("build-dir", "build", "output of build files")
-	flagMain           = flag.String("main", `main.go`, `binary build entry`)
-	flagDownloadAddr   = flag.String("download-addr", "", "")
-	flagPubDir         = flag.String("pub-dir", "pub", "")
-	flagArchs          = flag.String("archs", "local", "os archs")
-	flagRelease        = flag.String("release", "", `build for local/testing/production`)
-	flagPub            = flag.Bool("pub", false, `publish binaries to OSS: local/testing/production`)
-	flagBuildISP       = flag.Bool("build-isp", false, "generate ISP data")
-	flagDumpSamples    = flag.Bool("dump-samples", false, "dump samples to OSS")
-	flagUploadMetaInfo = flag.Bool("upload-metainfo", false, "upload metainfo to OSS")
+	flagBinary          = flag.String("binary", "", "binary name to build")
+	flagName            = flag.String("name", *flagBinary, "same as -binary")
+	flagBuildDir        = flag.String("build-dir", "build", "output of build files")
+	flagMain            = flag.String("main", `main.go`, `binary build entry`)
+	flagDownloadAddr    = flag.String("download-addr", "", "")
+	flagPubDir          = flag.String("pub-dir", "pub", "")
+	flagArchs           = flag.String("archs", "local", "os archs")
+	flagRelease         = flag.String("release", "", `build for local/testing/production`)
+	flagPub             = flag.Bool("pub", false, `publish binaries to OSS: local/testing/production`)
+	flagBuildISP        = flag.Bool("build-isp", false, "generate ISP data")
+	flagDownloadSamples = flag.Bool("download-samples", false, "download samples from OSS to samples/")
+	flagDumpSamples     = flag.Bool("dump-samples", false, "download and dump local samples to OSS")
 
 	l = logger.DefaultSLogger("make")
 )
@@ -132,29 +132,40 @@ func applyFlags() {
 	l.Infof("use version %s", build.ReleaseVersion)
 
 	if *flagDumpSamples {
-		tarPath := filepath.Join("..", "..", "conf.tar.gz")
-		if err := downloadSamples(tarPath); err != nil {
+		tarPath := "datakit-conf-samples.tar.gz"
+		ossPath := "datakit/datakit-conf-samples.tar.gz"
+		if err := downloadSamples(ossPath, tarPath); err != nil {
 			l.Fatalf("fail to download samples: %v", err)
 		}
 		if err := extractSamples(tarPath); err != nil {
 			l.Fatalf("fail to extract samples: %v", err)
 		}
 		dirName := getDirName()
-		dumpTo := filepath.Join("..", "..", "samples", dirName)
+		dumpTo := filepath.Join("samples", dirName)
 		if err := dumpLocalSamples(dumpTo); err != nil {
 			l.Fatalf("fail to dump local samples: %v", err)
 		}
-		if err := compressSamples(filepath.Join("..", "..", "samples"), tarPath); err != nil {
+		if err := compressSamples("samples", tarPath); err != nil {
 			l.Fatalf("fail to compress samples: %v", err)
 		}
-		if err := uploadSamples(tarPath); err != nil {
+		if err := uploadSamples(tarPath, ossPath); err != nil {
 			l.Fatalf("fail to upload samples: %v", err)
 		}
+		l.Infof("upload datakit-conf-samples.tar.gz to OSS successfully")
+		os.Exit(0)
 	}
-	if *flagUploadMetaInfo {
-		if err := uploadMetaInfo(); err != nil {
-			l.Fatalf("fail to upload measurements-meta.json to oss: %v", err)
+
+	if *flagDownloadSamples {
+		tarPath := "datakit-conf-samples.tar.gz"
+		ossPath := "datakit/datakit-conf-samples.tar.gz"
+		if err := downloadSamples(ossPath, tarPath); err != nil {
+			l.Fatalf("fail to download samples: %v", err)
 		}
+		if err := extractSamples(tarPath); err != nil {
+			l.Fatalf("fail to extract samples: %v", err)
+		}
+		l.Infof("download samples from OSS successfully")
+		os.Exit(0)
 	}
 }
 
@@ -170,10 +181,19 @@ func getDirName() string {
 }
 
 func getOSSClient() (*cliutils.OssCli, error) {
-	ak := os.Getenv("LOCAL_OSS_ACCESS_KEY")
-	sk := os.Getenv("LOCAL_OSS_SECRET_KEY")
-	bucket := os.Getenv("LOCAL_OSS_BUCKET")
-	ossHost := os.Getenv("LOCAL_OSS_HOST")
+	var ak, sk, bucket, ossHost string
+
+	switch build.ReleaseType {
+	case build.ReleaseTesting, build.ReleaseProduction, build.ReleaseLocal:
+		tag := strings.ToUpper(build.ReleaseType)
+		ak = os.Getenv(tag + "_OSS_ACCESS_KEY")
+		sk = os.Getenv(tag + "_OSS_SECRET_KEY")
+		bucket = os.Getenv(tag + "_OSS_BUCKET")
+		ossHost = os.Getenv(tag + "_OSS_HOST")
+	default:
+		return nil, fmt.Errorf("unknown release type: %s", build.ReleaseType)
+	}
+
 	oc := &cliutils.OssCli{
 		Host:       ossHost,
 		PartSize:   512 * 1024 * 1024,
@@ -188,16 +208,21 @@ func getOSSClient() (*cliutils.OssCli, error) {
 	return oc, nil
 }
 
-// downloadSamples downloads datakit/conf.tar.gz from oss.
-func downloadSamples(to string) error {
+func downloadSamples(from, to string) error {
 	oc, err := getOSSClient()
 	if err != nil {
 		return err
 	}
-	return oc.Download("datakit/conf.tar.gz", to)
+	if err := oc.Download(from, to); err != nil {
+		return fmt.Errorf("fail to download from oss, bucket: %s: %w", oc.BucketName, err)
+	}
+	return nil
 }
 
-// extractSamples extracts zipped file from give path.
+// extractSamples extracts samples from given datakit-conf-samples.tar.gz to datakit/samples.
+// Samples of current version is skipped because neither --dump-samples nor --download-samples
+// (it is used to download samples from oss and then check compatibility) needs samples of current version.
+// Besides, samples of current version may change before official release.
 func extractSamples(from string) error {
 	f, err := os.Open(filepath.Clean(from))
 	if err != nil {
@@ -218,7 +243,15 @@ func extractSamples(from string) error {
 		if err != nil {
 			return err
 		}
-		path := filepath.Join("..", "..", h.Name) //nolint:gosec
+		// Skip directories and hidden files.
+		if h.FileInfo().IsDir() || strings.HasPrefix(h.FileInfo().Name(), ".") {
+			continue
+		}
+		// Skip current version samples.
+		if strings.Contains(h.Name, getDirName()) {
+			continue
+		}
+		path := h.Name
 		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 			return err
 		}
@@ -266,7 +299,7 @@ func dumpLocalSamples(to string) error {
 	return nil
 }
 
-// compressSamples compresses provided 'samples' directory.
+// compressSamples compresses given samples directory.
 func compressSamples(from, to string) error {
 	fw, err := os.Create(to)
 	if err != nil {
@@ -290,11 +323,10 @@ func compressSamples(from, to string) error {
 			return err
 		}
 		defer fr.Close() //nolint:errcheck,gosec
-		pos := path[strings.Index(path, "samples"):]
-		if h, err := tar.FileInfoHeader(info, pos); err != nil {
+		if h, err := tar.FileInfoHeader(info, path); err != nil {
 			return err
 		} else {
-			h.Name = pos
+			h.Name = path
 			if err = tw.WriteHeader(h); err != nil {
 				return err
 			}
@@ -307,24 +339,12 @@ func compressSamples(from, to string) error {
 }
 
 // uploadSamples uploads given conf.tar.gz to oss.
-func uploadSamples(from string) error {
+func uploadSamples(from, to string) error {
 	oc, err := getOSSClient()
 	if err != nil {
 		return err
 	}
-	return oc.Upload(from, "datakit/conf.tar.gz")
-}
-
-func uploadMetaInfo() error {
-	exportPath := filepath.Join("..", "..", "measurements-meta.json")
-	if err := cmds.ExportMetaInfo(exportPath); err != nil {
-		return err
-	}
-	oc, err := getOSSClient()
-	if err != nil {
-		return err
-	}
-	return oc.Upload(exportPath, "datakit/measurements-meta.json")
+	return oc.Upload(from, to)
 }
 
 func main() {

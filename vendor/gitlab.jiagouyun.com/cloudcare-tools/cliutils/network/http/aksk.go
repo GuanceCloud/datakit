@@ -20,7 +20,6 @@ type SignOption struct {
 }
 
 func DefaultSignOption(authType string, headers []string) *SignOption {
-
 	sort.Strings(headers)
 
 	return &SignOption{
@@ -51,7 +50,6 @@ func (o *SignOption) SignReq(r *http.Request) (string, error) {
 }
 
 func (o *SignOption) ParseAuth(r *http.Request) error {
-
 	authHeader := r.Header.Get(`Authorization`)
 
 	parts := strings.Split(authHeader, " ")

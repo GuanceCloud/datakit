@@ -282,6 +282,7 @@ func (x *Logs) IsSkip() bool {
 	return x.skip
 }
 
+//nolint:deadcode,unused
 func feed(inputName, measurement string, tags map[string]string, message string) error {
 	pt, err := io.MakePoint(measurement,
 		tags,

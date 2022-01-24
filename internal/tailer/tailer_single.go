@@ -10,7 +10,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -27,9 +27,8 @@ type Single struct {
 	file     *os.File
 	filename string
 
-	decoder  *encoding.Decoder
-	mult     *multiline.Multiline
-	pipeline *pipeline.Pipeline
+	decoder *encoding.Decoder
+	mult    *multiline.Multiline
 
 	readBuff []byte
 
@@ -70,14 +69,6 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		}
 	}
 
-	if opt.Pipeline != "" {
-		if p, err := pipeline.NewPipelineFromFile(opt.Pipeline, false); err != nil {
-			t.opt.log.Warnf("pipeline.NewPipelineFromFile error: %s, ignored", err)
-		} else {
-			t.pipeline = p
-		}
-	}
-
 	t.readBuff = make([]byte, readBuffSize)
 	t.filename = t.file.Name()
 	t.tags = t.buildTags(opt.GlobalTags)
@@ -106,12 +97,7 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	// 上报一条标记数据，表示已启动成功
-	if err = feed(t.opt.InputName, t.opt.Source, t.tags,
-		fmt.Sprintf(firstMessage, t.filename, t.opt.Source)); err != nil {
-		t.opt.log.Warn(err)
-	}
-
+	dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
 	for {
 		select {
 		case <-t.stopCh:
@@ -148,9 +134,7 @@ func (t *Single) forwardMessage() {
 			text, err = t.decode(line)
 			if err != nil {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				if err = feed(t.opt.InputName, t.opt.Source, t.tags, line); err != nil {
-					t.opt.log.Warn(err)
-				}
+				dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
 			}
 
 			text = t.multiline(text)
@@ -159,13 +143,15 @@ func (t *Single) forwardMessage() {
 			}
 			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
 		}
-		t.sendToPipeline(pending)
+		if len(pending) > 0 {
+			t.sendToPipeline(pending)
+		}
 	}
 }
 
 func (t *Single) sendToPipeline(pending []worker.TaskData) {
 	task := &worker.Task{
-		TaskName:   t.opt.Pipeline,
+		TaskName:   "logging/" + t.opt.Pipeline,
 		ScriptName: t.opt.Pipeline,
 		Source:     t.opt.Source,
 		Data:       pending,

@@ -15,6 +15,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 )
 
 type versionDesc struct {
@@ -90,6 +91,10 @@ func generateInstallScript() error {
 	return nil
 }
 
+func generateMetaInfo() error {
+	return cmds.ExportMetaInfo("measurements-meta.json")
+}
+
 func addOSSFiles(ossPath string, files map[string]string) map[string]string {
 	res := map[string]string{}
 	for k, v := range files {
@@ -147,11 +152,16 @@ func PubDatakit() error {
 		return err
 	}
 
+	if err := generateMetaInfo(); err != nil {
+		return err
+	}
+
 	basics := map[string]string{
-		"version":      path.Join(PubDir, ReleaseType, "version"),
-		"datakit.yaml": "datakit.yaml",
-		"install.sh":   "install.sh",
-		"install.ps1":  "install.ps1",
+		"version":                path.Join(PubDir, ReleaseType, "version"),
+		"datakit.yaml":           "datakit.yaml",
+		"install.sh":             "install.sh",
+		"install.ps1":            "install.ps1",
+		"measurements-meta.json": "measurements-meta.json",
 		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion): "datakit.yaml",
 		fmt.Sprintf("install-%s.sh", ReleaseVersion):   "install.sh",
 		fmt.Sprintf("install-%s.ps1", ReleaseVersion):  "install.ps1",

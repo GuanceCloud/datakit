@@ -53,7 +53,7 @@ func (d *dockerInput) cancelTails() {
 	}
 }
 
-func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *types.Container) error {
+func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types.Container) error {
 	tags := getContainerInfo(container, d.k8sClient)
 	// add extra tags
 	for k, v := range d.cfg.extraTags {
@@ -72,7 +72,7 @@ func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *type
 	if logconf != nil {
 		l.Debugf("use contaier logconfig %#v, container_name:%s", logconf, tags["container_name"])
 		if logconf.Disable {
-			l.Debug("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
+			l.Debugf("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
 			return nil
 		}
 
@@ -91,10 +91,10 @@ func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *type
 		return err
 	}
 
-	return d.tailContainerLogs(ctx, logconf)
+	return d.tailContainerLog(ctx, logconf)
 }
 
-func (d *dockerInput) tailContainerLogs(ctx context.Context, logconf *containerLogConfig) error {
+func (d *dockerInput) tailContainerLog(ctx context.Context, logconf *containerLogConfig) error {
 	hasTTY, err := d.hasTTY(ctx, logconf.containerID)
 	if err != nil {
 		return err
@@ -273,16 +273,18 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 	logconf.tags["stream"] = stream
 	shortImageName := logconf.tags["image_short_name"]
 
-	task := &worker.Task{
-		TaskName:   "containerlog::" + shortImageName,
-		Source:     logconf.Source,
-		ScriptName: logconf.Pipeline,
-	}
-
 	mult, err := multiline.New(logconf.Multiline, maxLines)
 	if err != nil {
 		// unreachable
 		return err
+	}
+
+	newTask := func() *worker.Task {
+		return &worker.Task{
+			TaskName:   "containerlog/" + shortImageName,
+			Source:     logconf.Source,
+			ScriptName: logconf.Pipeline,
+		}
 	}
 
 	r := readbuf.NewReadBuffer(reader, readBuffSize)
@@ -295,11 +297,12 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		case <-ctx.Done():
 			return nil
 		case <-timeout.C:
-			if text := mult.Flush(); len(text) != 0 {
+			if line := mult.Flush(); len(line) != 0 {
+				task := newTask()
 				task.Data = []worker.TaskData{
 					&taskData{
 						tags: logconf.tags,
-						log:  Bytes2String(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
+						log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
 					},
 				}
 				task.TS = time.Now()
@@ -328,14 +331,13 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		workerData := []worker.TaskData{}
 
 		for _, line := range lines {
-			text := mult.ProcessLine(line)
-			if len(text) == 0 {
+			if len(line) == 0 {
 				continue
 			}
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  Bytes2String(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
+					log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
 		}
@@ -344,6 +346,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			continue
 		}
 
+		task := newTask()
 		task.Data = workerData
 		task.TS = time.Now()
 

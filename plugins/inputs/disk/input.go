@@ -59,15 +59,15 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 		Name: "disk",
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Total disk size in bytes",
 			},
 			"free": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Free disk size in bytes",
 			},
 			"used": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeIByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 				Desc: "Used disk size in bytes",
 			},
 			"used_percent": &inputs.FieldInfo{
@@ -181,6 +181,7 @@ func (ipt *Input) Collect() error {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("disk input started")
+	io.FeedEventLog(&io.Reporter{Message: "disk start ok, ready for collecting metrics.", Logtype: "event"})
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	ipt.IgnoreFS = unique(ipt.IgnoreFS)
 
