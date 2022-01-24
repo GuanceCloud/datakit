@@ -51,7 +51,7 @@ func init() { //nolint:gochecknoinits
 
 	// manuals related
 	flag.BoolVar(&cmds.FlagMan, "man", false, "read manuals of inputs")
-	flag.StringVar(&cmds.FlagExportMan, "export-manuals", "", "export all inputs and related manuals to specified path")
+	flag.StringVar(&cmds.FlagExportManuals, "export-manuals", "", "export all inputs and related manuals to specified path")
 	flag.StringVar(&cmds.FlagExportMetaInfo, "export-metainfo", "", "output metainfo to specified file")
 	flag.BoolVar(&cmds.FlagDisableTFMono, "disable-tf-mono", false, "use normal font on tag/field")
 	flag.StringVar(&cmds.FlagIgnore, "ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
