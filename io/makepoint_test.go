@@ -27,7 +27,6 @@ func TestNewPoint(t *testing.T) {
 			f:      map[string]interface{}{"f1": 12},
 			expect: "abc,t1=tval1 f1=12i 123",
 		},
-
 		{
 			tname:  "metric with point in field key",
 			name:   "abc",
@@ -37,7 +36,6 @@ func TestNewPoint(t *testing.T) {
 			f:      map[string]interface{}{"f.1": 12},
 			expect: "abc,t1=tval1 f.1=12i 123",
 		},
-
 		{
 			tname:  "metric with point in tag key",
 			name:   "abc",
@@ -47,7 +45,6 @@ func TestNewPoint(t *testing.T) {
 			f:      map[string]interface{}{"f1": 12},
 			expect: "abc,t.1=tval1 f1=12i 123",
 		},
-
 		{
 			tname: "with point in t/f key on non-metric type",
 			name:  "abc",
@@ -57,7 +54,6 @@ func TestNewPoint(t *testing.T) {
 			f:     map[string]interface{}{"f.1": 12},
 			fail:  true,
 		},
-
 		{
 			tname:      "with global tags added",
 			name:       "abc",
@@ -67,7 +63,6 @@ func TestNewPoint(t *testing.T) {
 			f:          map[string]interface{}{"f1": 12},
 			expect:     "abc,gt1=gtval1,t1=tval1 f1=12i 123",
 		},
-
 		{
 			tname:             "without global tags",
 			name:              "abc",
@@ -78,7 +73,6 @@ func TestNewPoint(t *testing.T) {
 			expect:            "abc,t1=tval1 f1=12i 123",
 			withoutGlobalTags: true,
 		},
-
 		{
 			tname: "with point in tag-field key",
 			name:  "abc",
@@ -87,7 +81,6 @@ func TestNewPoint(t *testing.T) {
 			f:     map[string]interface{}{"f1": 123, "f.2": "def"},
 			fail:  true,
 		},
-
 		{
 			tname:     "both exceed max field/tag count",
 			name:      "abc",
@@ -97,17 +90,14 @@ func TestNewPoint(t *testing.T) {
 			maxFields: 1,
 			maxTags:   1,
 		},
-
 		{
-			tname: "exceed max field count",
-
+			tname:     "exceed max field count",
 			name:      "abc",
 			t:         map[string]string{"t1": "abc", "t2": "xyz"},
 			f:         map[string]interface{}{"f1": 123, "f2": "def"},
 			fail:      true,
 			maxFields: 1,
 		},
-
 		{
 			tname:   "exceed max tag count",
 			name:    "abc",
@@ -116,7 +106,6 @@ func TestNewPoint(t *testing.T) {
 			fail:    true,
 			maxTags: 1,
 		},
-
 		{
 			tname: "with disabled tag key source",
 			name:  "abc",
@@ -125,7 +114,6 @@ func TestNewPoint(t *testing.T) {
 			f:     map[string]interface{}{"f1": 123},
 			fail:  true,
 		},
-
 		{
 			tname: "with disabled field key",
 			name:  "abc",
@@ -134,7 +122,6 @@ func TestNewPoint(t *testing.T) {
 			f:     map[string]interface{}{"class": 123},
 			fail:  true,
 		},
-
 		{
 			tname: "with disabled tag key log_type",
 			name:  "abc",
@@ -143,7 +130,6 @@ func TestNewPoint(t *testing.T) {
 			f:     map[string]interface{}{"f1": 123},
 			fail:  true,
 		},
-
 		{
 			tname: "with disabled field key log_type",
 			name:  "abc",
@@ -152,10 +138,8 @@ func TestNewPoint(t *testing.T) {
 			f:     map[string]interface{}{"log_type": 123},
 			fail:  true,
 		},
-
 		{
-			tname: "normal",
-
+			tname:  "normal",
 			name:   "abc",
 			t:      map[string]string{},
 			f:      map[string]interface{}{"f1": 123},
@@ -166,10 +150,11 @@ func TestNewPoint(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.tname, func(t *testing.T) {
-			var pt *Point
-			var err error
+			var (
+				pt  *Point
+				err error
+			)
 			extraTags = nil
-
 			MaxTags = 256
 			MaxFields = 1024
 
@@ -248,7 +233,6 @@ var benchCases = []struct {
 		},
 		category: datakit.Logging,
 	},
-
 	{
 		name: "3-tag-10-field-metric",
 		t: map[string]string{
@@ -270,7 +254,6 @@ var benchCases = []struct {
 		},
 		category: datakit.Metric,
 	},
-
 	{
 		name: "3-tag-10-field-object",
 		t: map[string]string{
@@ -292,7 +275,6 @@ var benchCases = []struct {
 		},
 		category: datakit.Object,
 	},
-
 	{
 		name: "3-tag-10-long-field-object",
 		t: map[string]string{
@@ -314,7 +296,6 @@ var benchCases = []struct {
 		},
 		category: datakit.Object,
 	},
-
 	{
 		name: "3-long-tag-10-long-field-object",
 		t: map[string]string{
