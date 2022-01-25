@@ -182,6 +182,12 @@ func (d *dockerInput) watchNewContainerLogs() error {
 	return nil
 }
 
+const (
+	podAnnotationNil = iota + 1
+	podAnnotationEnable
+	podAnnotationDisable
+)
+
 func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	if d.containerInContainerList(container.ID) {
 		return false
@@ -194,7 +200,8 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	// 这消耗很大，且没有意义
 	// 可以使用 container ID 进行缓存，维持一份名单，通过名单再决定是否进行考查
 
-	disable := false
+	podAnnotationState := podAnnotationNil
+
 	func() {
 		if d.k8sClient == nil || container.Labels["pod_name"] == "" {
 			return
@@ -209,11 +216,22 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 		if err != nil || logconf == nil {
 			return
 		}
-		disable = logconf.Disable
+
+		if logconf.Disable {
+			podAnnotationState = podAnnotationDisable
+		} else {
+			podAnnotationState = podAnnotationEnable
+		}
 	}()
-	if disable {
+
+	switch podAnnotationState {
+	case podAnnotationDisable:
 		l.Debugf("ignore containerlog because of annotation disable, name: %s, shortImage: %s", getContainerName(container.Names), image)
 		return false
+	case podAnnotationEnable:
+		return true
+	case podAnnotationNil:
+		// nil
 	}
 
 	if d.ignoreContainer(container) {
