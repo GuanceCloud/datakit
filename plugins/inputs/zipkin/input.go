@@ -3,6 +3,7 @@ package zipkin
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -40,8 +41,16 @@ func (*Input) Catalog() string {
 	return inputName
 }
 
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
 func (*Input) SampleConfig() string {
 	return traceZipkinConfigSample
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
 func (t *Input) Run() {
