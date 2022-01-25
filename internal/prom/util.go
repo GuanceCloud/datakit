@@ -110,14 +110,10 @@ func getNames(name string, customMeasurementRules []Rule,
 	return measurementPrefix + name, name
 }
 
-func getTags(labels []*dto.LabelPair, promTags, extraTags map[string]string, ignoreTags []string) map[string]string {
+func getTags(labels []*dto.LabelPair, promTags map[string]string, ignoreTags []string) map[string]string {
 	tags := map[string]string{}
 
 	for k, v := range promTags {
-		tags[k] = v
-	}
-
-	for k, v := range extraTags {
 		tags[k] = v
 	}
 
@@ -136,11 +132,10 @@ func getTags(labels []*dto.LabelPair, promTags, extraTags map[string]string, ign
 	return tags
 }
 
-// Text2Metrics convert prometheuse body to line protocol point(TODO refact me)
+// Text2Metrics converts raw prometheus text to line protocol point.
 //nolint:funlen,gocyclo,cyclop
-func Text2Metrics(in io.Reader,
-	prom *Option,
-	extraTags map[string]string) ([]*iod.Point, error) {
+func (p *Prom) Text2Metrics(in io.Reader) ([]*iod.Point, error) {
+	option := p.opt
 	var lastErr error
 	var parser expfmt.TextParser
 	metricFamilies, err := parser.TextToMetricFamilies(in)
@@ -148,12 +143,12 @@ func Text2Metrics(in io.Reader,
 		return nil, err
 	}
 
-	metricTypes := prom.MetricTypes
-	metricNameFilter := prom.MetricNameFilter
+	metricTypes := option.MetricTypes
+	metricNameFilter := option.MetricNameFilter
 
-	customMeasurementRules := prom.Measurements
-	measurementName := prom.MeasurementName
-	measurementPrefix := prom.MeasurementPrefix
+	customMeasurementRules := option.Measurements
+	measurementName := option.MeasurementName
+	measurementPrefix := option.MeasurementPrefix
 
 	var pts []*iod.Point
 	tmptime := time.Now()
@@ -193,7 +188,7 @@ func Text2Metrics(in io.Reader,
 				fields[fieldName] = v
 
 				labels := m.GetLabel()
-				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				tags := getTags(labels, option.Tags, option.TagsIgnore)
 				timeStamp := m.GetTimestampMs()
 				if timeStamp != 0 {
 					tmptime = getTimeStampS(timeStamp)
@@ -222,7 +217,7 @@ func Text2Metrics(in io.Reader,
 				fields[fieldName] = v
 
 				labels := m.GetLabel()
-				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				tags := getTags(labels, option.Tags, option.TagsIgnore)
 				timeStamp := m.GetTimestampMs()
 				if timeStamp != 0 {
 					tmptime = getTimeStampS(timeStamp)
@@ -251,7 +246,7 @@ func Text2Metrics(in io.Reader,
 				fields[fieldName] = v
 
 				labels := m.GetLabel()
-				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				tags := getTags(labels, option.Tags, option.TagsIgnore)
 				timeStamp := m.GetTimestampMs()
 				if timeStamp != 0 {
 					tmptime = getTimeStampS(timeStamp)
@@ -276,7 +271,7 @@ func Text2Metrics(in io.Reader,
 				fields[fieldName+"_sum"] = sum
 
 				labels := m.GetLabel()
-				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				tags := getTags(labels, option.Tags, option.TagsIgnore)
 				timeStamp := m.GetTimestampMs()
 				if timeStamp != 0 {
 					tmptime = getTimeStampS(timeStamp)
@@ -297,7 +292,7 @@ func Text2Metrics(in io.Reader,
 					fields[fieldName] = val
 
 					labels := m.GetLabel()
-					tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+					tags := getTags(labels, option.Tags, option.TagsIgnore)
 
 					tags["quantile"] = fmt.Sprint(quantile)
 
@@ -321,7 +316,7 @@ func Text2Metrics(in io.Reader,
 				fields[fieldName+"_sum"] = sum
 
 				labels := m.GetLabel()
-				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				tags := getTags(labels, option.Tags, option.TagsIgnore)
 				timeStamp := m.GetTimestampMs()
 				if timeStamp != 0 {
 					tmptime = getTimeStampS(timeStamp)
@@ -341,7 +336,7 @@ func Text2Metrics(in io.Reader,
 					fields[fieldName+"_bucket"] = count
 
 					labels := m.GetLabel()
-					tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+					tags := getTags(labels, option.Tags, option.TagsIgnore)
 					tags["le"] = fmt.Sprint(bond)
 
 					pt, err := iod.MakePoint(msName, tags, fields, tmptime)

@@ -195,7 +195,7 @@ func (p *Prom) Collect() ([]*io.Point, error) {
 			}
 		}
 		defer resp.Body.Close() //nolint:errcheck
-		pts, err := Text2Metrics(resp.Body, p.opt, p.opt.Tags)
+		pts, err := p.Text2Metrics(resp.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -216,7 +216,7 @@ func (p *Prom) CollectFromFile() ([]*io.Point, error) {
 		f, _ = os.OpenFile(fileName, os.O_RDONLY, 0o600) //nolint:gosec
 	}
 	defer f.Close() //nolint:errcheck,gosec
-	return Text2Metrics(f, p.opt, p.opt.Tags)
+	return p.Text2Metrics(f)
 }
 
 // WriteFile scrapes metrics from p.opt.URLs then writes them directly to p.opt.Output.
