@@ -15,7 +15,7 @@ var (
 	sampleConfig = `
 [[inputs.jaeger]]
   # Jaeger endpoint for receiving tracing span over HTTP.
-	# Default value set as below. DO NOT MODIFY THE ENDPOINT if not necessary.
+  # Default value set as below. DO NOT MODIFY THE ENDPOINT if not necessary.
   endpoint = "/apis/traces"
 
   # Jaeger agent host:port address for UDP transport.
