@@ -155,6 +155,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 	timestamp := time.Now()
 
 	for name, value := range metricFamilies {
+		// Filter metrics by metric name filter & metric type filter.
 		if !p.validMetricName(name) || !p.validMetricType(value.GetType()) {
 			continue
 		}
@@ -162,9 +163,9 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 		measurementName, fieldName := p.getNames(name)
 
 		switch value.GetType() {
-		case dto.MetricType_GAUGE:
+		case dto.MetricType_GAUGE, dto.MetricType_UNTYPED, dto.MetricType_COUNTER:
 			for _, m := range value.GetMetric() {
-				v := m.GetGauge().GetValue()
+				v := getValue(m, value.GetType())
 				if math.IsInf(v, 0) || math.IsNaN(v) {
 					continue
 				}
@@ -187,55 +188,6 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				}
 			}
 
-		case dto.MetricType_UNTYPED:
-			for _, m := range value.GetMetric() {
-				v := m.GetUntyped().GetValue()
-				if math.IsInf(v, 0) || math.IsNaN(v) {
-					continue
-				}
-
-				fields := map[string]interface{}{
-					fieldName: v,
-				}
-
-				tags := p.getTags(m.GetLabel())
-
-				if m.GetTimestampMs() != 0 {
-					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
-				}
-
-				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
-				if err != nil {
-					lastErr = err
-				} else {
-					pts = append(pts, pt)
-				}
-			}
-
-		case dto.MetricType_COUNTER:
-			for _, m := range value.GetMetric() {
-				v := m.GetCounter().GetValue()
-				if math.IsInf(v, 0) || math.IsNaN(v) {
-					continue
-				}
-
-				fields := map[string]interface{}{
-					fieldName: v,
-				}
-
-				tags := p.getTags(m.GetLabel())
-
-				if m.GetTimestampMs() != 0 {
-					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
-				}
-
-				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
-				if err != nil {
-					lastErr = err
-				} else {
-					pts = append(pts, pt)
-				}
-			}
 		case dto.MetricType_SUMMARY:
 			for _, m := range value.GetMetric() {
 				fields := map[string]interface{}{
@@ -312,4 +264,17 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 	}
 
 	return pts, lastErr
+}
+
+func getValue(m *dto.Metric, metricType dto.MetricType) float64 {
+	switch metricType {
+	case dto.MetricType_GAUGE:
+		return m.GetGauge().GetValue()
+	case dto.MetricType_UNTYPED:
+		return m.GetUntyped().GetValue()
+	case dto.MetricType_COUNTER:
+		return m.GetCounter().GetValue()
+	}
+	// Shouldn't get here.
+	return 0
 }
