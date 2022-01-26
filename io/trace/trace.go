@@ -71,25 +71,26 @@ type DatakitSpan struct {
 	TraceID        string
 	ParentID       string
 	SpanID         string
-	SpanType       string
 	Service        string
 	Resource       string
 	Operation      string
 	Source         string // third part source name
-	ContainerHost  string
-	EndPoint       string
+	SpanType       string
+	SourceType     string
 	Env            string
-	HTTPMethod     string
-	HTTPStatusCode string
-	Pid            string
-	Start          int64 // nano sec
-	Duration       int64 // nano sec
-	Status         string
-	Type           string
-	Tags           map[string]string
-	Content        string
 	Project        string
 	Version        string
+	Tags           map[string]string
+	EndPoint       string
+	HTTPMethod     string
+	HTTPStatusCode string
+	ContainerHost  string
+	PID            string // process id
+	Start          int64  // nano sec
+	Duration       int64  // nano sec
+	Status         string
+	Content        string
+	SampleRate     float32 // <=0: abandon directly; >=1: keep through; >0&&<1: sample traces bases on rate
 }
 
 type DatakitTrace []*DatakitSpan
@@ -140,8 +141,8 @@ func BuildLineProto(dkspan *DatakitSpan) (*dkio.Point, error) {
 	tags[TAG_HTTP_METHOD] = dkspan.HTTPMethod
 	tags[TAG_HTTP_CODE] = dkspan.HTTPStatusCode
 
-	if dkspan.Type != "" {
-		tags[TAG_TYPE] = dkspan.Type
+	if dkspan.SourceType != "" {
+		tags[TAG_TYPE] = dkspan.SourceType
 	} else {
 		tags[TAG_TYPE] = SPAN_SERVICE_CUSTOM
 	}

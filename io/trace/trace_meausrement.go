@@ -34,7 +34,7 @@ func (tm *TraceMeasurement) Info() *inputs.MeasurementInfo {
 			TAG_ENV:            &inputs.TagInfo{Desc: "application environment info"},
 			TAG_HTTP_METHOD:    &inputs.TagInfo{Desc: "http request method name"},
 			TAG_HTTP_CODE:      &inputs.TagInfo{Desc: "http response code"},
-			TAG_TYPE:           &inputs.TagInfo{Desc: "span  service type"},
+			TAG_TYPE:           &inputs.TagInfo{Desc: "span service type"},
 			TAG_ENDPOINT:       &inputs.TagInfo{Desc: "endpoint info"},
 			TAG_SPAN_STATUS:    &inputs.TagInfo{Desc: "span status"},
 			TAG_SPAN_TYPE:      &inputs.TagInfo{Desc: "span type"},

@@ -192,7 +192,7 @@ func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
 			Operation:      span.Name,
 			Source:         inputName,
 			SpanType:       itrace.FindIntIDSpanType(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
-			Type:           ddtraceSpanType[span.Type],
+			SourceType:     ddtraceSpanType[span.Type],
 			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
 			HTTPMethod:     span.Meta["http.method"],
 			HTTPStatusCode: span.Meta["http.status_code"],
@@ -219,7 +219,7 @@ func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
 		}
 
 		if pid, ok := span.Metrics["system.pid"]; ok {
-			dkspan.Pid = fmt.Sprintf("%f", pid)
+			dkspan.PID = fmt.Sprintf("%f", pid)
 		}
 
 		dkspan.Status = itrace.STATUS_OK
