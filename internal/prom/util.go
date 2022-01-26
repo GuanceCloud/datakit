@@ -5,196 +5,183 @@ import (
 	"io"
 	"math"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	dto "github.com/prometheus/client_model/go"
-	"github.com/prometheus/common/expfmt"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-//nolint:cyclop
-func isValid(familyType dto.MetricType, name string, metricTypes, metricNameFilter []string) bool {
-	var metricType string
-	typeValid := false
-	nameValid := false
-
+func (p *Prom) getMetricTypeName(familyType dto.MetricType) string {
+	var metricTypeName string
 	switch familyType {
 	case dto.MetricType_COUNTER:
-		metricType = "counter"
+		metricTypeName = "counter"
 	case dto.MetricType_GAUGE:
-		metricType = "gauge"
+		metricTypeName = "gauge"
 	case dto.MetricType_HISTOGRAM:
-		metricType = "histogram"
+		metricTypeName = "histogram"
 	case dto.MetricType_SUMMARY:
-		metricType = "summary"
+		metricTypeName = "summary"
 	case dto.MetricType_UNTYPED:
-		metricType = "untyped"
-	default:
-		return false
+		metricTypeName = "untyped"
 	}
-
-	// check metric type
-	if len(metricTypes) == 0 {
-		typeValid = true
-	} else {
-		for _, mt := range metricTypes {
-			mtLower := strings.ToLower(mt)
-			if mtLower == metricType {
-				typeValid = true
-				break
-			}
-		}
-	}
-
-	// check name
-	// set nameValid true when metricNameFilter is empty
-	if len(metricNameFilter) == 0 {
-		nameValid = true
-	} else {
-		for _, p := range metricNameFilter {
-			match, err := regexp.MatchString(p, name)
-			if err != nil {
-				continue
-			}
-			if match {
-				nameValid = true
-				break
-			}
-		}
-	}
-
-	return typeValid && nameValid
+	return metricTypeName
 }
 
-//nolint:gocritic
-func getNames(name string, customMeasurementRules []Rule,
-	measurementName, measurementPrefix string) (string, string) {
-	// 1. check custom rules
-	if len(customMeasurementRules) > 0 {
-		for _, rule := range customMeasurementRules {
-			prefix := rule.Prefix
-			if len(prefix) > 0 {
-				if strings.HasPrefix(name, prefix) {
-					ruleName := rule.Name
-					if ruleName == "" {
-						ruleName = strings.TrimRight(prefix, "_")
-					}
-					ruleName = measurementPrefix + ruleName
-					fieldName := strings.Replace(name, prefix, "", 1)
-					return ruleName, fieldName
-				}
-			}
+func (p *Prom) validMetricType(familyType dto.MetricType) bool {
+	if len(p.opt.MetricTypes) == 0 {
+		return true
+	}
+	typeName := p.getMetricTypeName(familyType)
+	for _, mt := range p.opt.MetricTypes {
+		if strings.ToLower(mt) == typeName {
+			return true
 		}
 	}
+	return false
+}
 
-	// 2. check measurementName
-	if len(measurementName) > 0 {
-		return measurementPrefix + measurementName, name
+func (p *Prom) validMetricName(name string) bool {
+	if len(p.opt.MetricNameFilter) == 0 {
+		return true
+	}
+	for _, p := range p.opt.MetricNameFilter {
+		match, err := regexp.MatchString(p, name)
+		if err != nil {
+			continue
+		}
+		if match {
+			return true
+		}
+	}
+	return false
+}
+
+// getNames prioritizes naming rules as follows:
+// 1. Check if any measurement rule is matched.
+// 2. Check if measurement name is configured.
+// 3. Check if measurement/field name can be split by first '_' met.
+// 4. If no term above matches, set both measurement name and field name to name.
+func (p *Prom) getNames(name string) (measurementName string, fieldName string) {
+	measurementName, fieldName = p.doGetNames(name)
+	if measurementName == "" {
+		measurementName = "prom"
+	}
+	return p.opt.MeasurementPrefix + measurementName, fieldName
+}
+
+func (p *Prom) doGetNames(name string) (measurementName string, fieldName string) {
+	// Check if it matches custom rules.
+	measurementName, fieldName = p.getNamesByRules(name)
+	if measurementName != "" || fieldName != "" {
+		return
 	}
 
-	// default
+	// Check if measurement name is set.
+	if len(p.opt.MeasurementName) > 0 {
+		return p.opt.MeasurementName, name
+	}
+
+	measurementName, fieldName = p.getNamesByDefault(name)
+	if measurementName != "" || fieldName != "" {
+		return
+	}
+
+	return name, name
+}
+
+func (p *Prom) getNamesByRules(name string) (measurementName string, fieldName string) {
+	for _, rule := range p.opt.Measurements {
+		if len(rule.Prefix) > 0 && strings.HasPrefix(name, rule.Prefix) {
+			if rule.Name != "" {
+				measurementName = rule.Name
+			} else {
+				// If rule name is not set, use rule prefix as measurement name but remove all trailing _.
+				measurementName = strings.TrimRight(rule.Prefix, "_")
+			}
+			return measurementName, name[len(rule.Prefix):]
+		}
+	}
+	return
+}
+
+func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName string) {
+	// By default, measurement name and metric name are split according to the first '_' met.
 	pattern := "(^[^_]+)_(.*)$"
 	reg := regexp.MustCompile(pattern)
-	if reg == nil {
-		return measurementPrefix + name, name
+	if reg != nil {
+		result := reg.FindAllStringSubmatch(name, -1)
+		if len(result) == 1 {
+			return result[0][1], result[0][2]
+		}
 	}
-	result := reg.FindAllStringSubmatch(name, -1)
-	if len(result) == 1 {
-		measurementName := measurementPrefix + result[0][1]
-		fieldName := result[0][2]
-		return measurementName, fieldName
-	}
-
-	return measurementPrefix + name, name
+	return
 }
 
-func getTags(labels []*dto.LabelPair, promTags map[string]string, ignoreTags []string) map[string]string {
+func (p *Prom) getTags(labels []*dto.LabelPair) map[string]string {
 	tags := map[string]string{}
 
-	for k, v := range promTags {
+	// Add custom tags.
+	for k, v := range p.opt.Tags {
 		tags[k] = v
 	}
 
+	// Add prometheus labels as tags.
 	for _, lab := range labels {
 		tags[lab.GetName()] = lab.GetValue()
 	}
 
-	for k := range tags {
-		for _, ignoreTag := range ignoreTags {
-			if k == ignoreTag {
-				delete(tags, k)
-			}
-		}
-	}
+	p.removeIgnoredTags(tags)
 
 	return tags
 }
 
-// Text2Metrics converts raw prometheus text to line protocol point.
-//nolint:funlen,gocyclo,cyclop
-func (p *Prom) Text2Metrics(in io.Reader) ([]*iod.Point, error) {
-	option := p.opt
-	var lastErr error
-	var parser expfmt.TextParser
-	metricFamilies, err := parser.TextToMetricFamilies(in)
+func (p *Prom) removeIgnoredTags(tags map[string]string) {
+	for t := range tags {
+		for _, ignoredTag := range p.opt.TagsIgnore {
+			if t == ignoredTag {
+				delete(tags, t)
+			}
+		}
+	}
+}
+
+// Text2Metrics converts raw prometheus metric text to line protocol point.
+func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
+	metricFamilies, err := p.parser.TextToMetricFamilies(in)
 	if err != nil {
 		return nil, err
 	}
 
-	metricTypes := option.MetricTypes
-	metricNameFilter := option.MetricNameFilter
+	timestamp := time.Now()
 
-	customMeasurementRules := option.Measurements
-	measurementName := option.MeasurementName
-	measurementPrefix := option.MeasurementPrefix
-
-	var pts []*iod.Point
-	tmptime := time.Now()
-	// iterate all metrics
 	for name, value := range metricFamilies {
-		familyType := value.GetType()
-		var fieldName string
-
-		valid := isValid(familyType, name, metricTypes, metricNameFilter)
-		if !valid {
+		if !p.validMetricName(name) || !p.validMetricType(value.GetType()) {
 			continue
 		}
 
-		msName, fieldName := getNames(name,
-			customMeasurementRules, measurementName, measurementPrefix)
+		measurementName, fieldName := p.getNames(name)
 
-		// set default name when measurementName is empty
-		if msName == "" {
-			msName = "prom" //nolint:goconst
-		}
-
-		metrics := value.GetMetric()
-
-		switch familyType {
+		switch value.GetType() {
 		case dto.MetricType_GAUGE:
-			for _, m := range metrics {
+			for _, m := range value.GetMetric() {
 				v := m.GetGauge().GetValue()
-				if math.IsInf(v, 0) {
+				if math.IsInf(v, 0) || math.IsNaN(v) {
 					continue
 				}
 
-				if math.IsNaN(v) {
-					continue
+				fields := map[string]interface{}{
+					fieldName: v,
 				}
 
-				fields := make(map[string]interface{})
-				fields[fieldName] = v
+				tags := p.getTags(m.GetLabel())
 
-				labels := m.GetLabel()
-				tags := getTags(labels, option.Tags, option.TagsIgnore)
-				timeStamp := m.GetTimestampMs()
-				if timeStamp != 0 {
-					tmptime = getTimeStampS(timeStamp)
+				if m.GetTimestampMs() != 0 {
+					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
 				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
+				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
 				if err != nil {
 					lastErr = err
 				} else {
@@ -203,27 +190,23 @@ func (p *Prom) Text2Metrics(in io.Reader) ([]*iod.Point, error) {
 			}
 
 		case dto.MetricType_UNTYPED:
-			for _, m := range metrics {
+			for _, m := range value.GetMetric() {
 				v := m.GetUntyped().GetValue()
-				if math.IsInf(v, 0) {
+				if math.IsInf(v, 0) || math.IsNaN(v) {
 					continue
 				}
 
-				if math.IsNaN(v) {
-					continue
+				fields := map[string]interface{}{
+					fieldName: v,
 				}
 
-				fields := make(map[string]interface{})
-				fields[fieldName] = v
+				tags := p.getTags(m.GetLabel())
 
-				labels := m.GetLabel()
-				tags := getTags(labels, option.Tags, option.TagsIgnore)
-				timeStamp := m.GetTimestampMs()
-				if timeStamp != 0 {
-					tmptime = getTimeStampS(timeStamp)
+				if m.GetTimestampMs() != 0 {
+					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
 				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
+				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
 				if err != nil {
 					lastErr = err
 				} else {
@@ -232,27 +215,23 @@ func (p *Prom) Text2Metrics(in io.Reader) ([]*iod.Point, error) {
 			}
 
 		case dto.MetricType_COUNTER:
-			for _, m := range metrics {
-				fields := make(map[string]interface{})
+			for _, m := range value.GetMetric() {
 				v := m.GetCounter().GetValue()
-				if math.IsInf(v, 0) {
+				if math.IsInf(v, 0) || math.IsNaN(v) {
 					continue
 				}
 
-				if math.IsNaN(v) {
-					continue
+				fields := map[string]interface{}{
+					fieldName: v,
 				}
 
-				fields[fieldName] = v
+				tags := p.getTags(m.GetLabel())
 
-				labels := m.GetLabel()
-				tags := getTags(labels, option.Tags, option.TagsIgnore)
-				timeStamp := m.GetTimestampMs()
-				if timeStamp != 0 {
-					tmptime = getTimeStampS(timeStamp)
+				if m.GetTimestampMs() != 0 {
+					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
 				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
+				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
 				if err != nil {
 					lastErr = err
 				} else {
@@ -260,43 +239,34 @@ func (p *Prom) Text2Metrics(in io.Reader) ([]*iod.Point, error) {
 				}
 			}
 		case dto.MetricType_SUMMARY:
-			for _, m := range metrics {
-				fields := make(map[string]interface{})
-				count := m.GetSummary().GetSampleCount()
-
-				sum := m.GetSummary().GetSampleSum()
-				quantiles := m.GetSummary().Quantile
-
-				fields[fieldName+"_count"] = float64(count)
-				fields[fieldName+"_sum"] = sum
-
-				labels := m.GetLabel()
-				tags := getTags(labels, option.Tags, option.TagsIgnore)
-				timeStamp := m.GetTimestampMs()
-				if timeStamp != 0 {
-					tmptime = getTimeStampS(timeStamp)
+			for _, m := range value.GetMetric() {
+				fields := map[string]interface{}{
+					fieldName + "_count": float64(m.GetSummary().GetSampleCount()),
+					fieldName + "_sum":   m.GetSummary().GetSampleSum(),
 				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
+				tags := p.getTags(m.GetLabel())
+
+				if m.GetTimestampMs() != 0 {
+					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
+				}
+
+				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
 				if err != nil {
 					lastErr = err
 				} else {
 					pts = append(pts, pt)
 				}
 
-				for _, q := range quantiles {
-					quantile := q.GetQuantile() // 0 0.25 0.5 0.75 1
-					val := q.GetValue()         // value
+				for _, q := range m.GetSummary().Quantile {
+					fields := map[string]interface{}{
+						fieldName: q.GetValue(),
+					}
 
-					fields := make(map[string]interface{})
-					fields[fieldName] = val
+					tags := p.getTags(m.GetLabel())
+					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
-					labels := m.GetLabel()
-					tags := getTags(labels, option.Tags, option.TagsIgnore)
-
-					tags["quantile"] = fmt.Sprint(quantile)
-
-					pt, err := iod.MakePoint(msName, tags, fields, tmptime)
+					pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -306,40 +276,33 @@ func (p *Prom) Text2Metrics(in io.Reader) ([]*iod.Point, error) {
 			}
 
 		case dto.MetricType_HISTOGRAM:
-			for _, m := range metrics {
-				fields := make(map[string]interface{})
-				count := m.GetHistogram().GetSampleCount()
-				sum := m.GetHistogram().GetSampleSum()
-				buckets := m.GetHistogram().GetBucket()
-
-				fields[fieldName+"_count"] = float64(count)
-				fields[fieldName+"_sum"] = sum
-
-				labels := m.GetLabel()
-				tags := getTags(labels, option.Tags, option.TagsIgnore)
-				timeStamp := m.GetTimestampMs()
-				if timeStamp != 0 {
-					tmptime = getTimeStampS(timeStamp)
+			for _, m := range value.GetMetric() {
+				fields := map[string]interface{}{
+					fieldName + "_count": float64(m.GetHistogram().GetSampleCount()),
+					fieldName + "_sum":   m.GetHistogram().GetSampleSum(),
 				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
+				tags := p.getTags(m.GetLabel())
+
+				if m.GetTimestampMs() != 0 {
+					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
+				}
+
+				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
 				if err != nil {
 					lastErr = err
 				} else {
 					pts = append(pts, pt)
 				}
-				for _, b := range buckets {
-					count := b.GetCumulativeCount()
-					bond := b.GetUpperBound()
+				for _, b := range m.GetHistogram().GetBucket() {
+					fields := map[string]interface{}{
+						fieldName + "_bucket": b.GetCumulativeCount(),
+					}
 
-					fields := make(map[string]interface{})
-					fields[fieldName+"_bucket"] = count
+					tags := p.getTags(m.GetLabel())
+					tags["le"] = fmt.Sprint(b.GetUpperBound())
 
-					labels := m.GetLabel()
-					tags := getTags(labels, option.Tags, option.TagsIgnore)
-					tags["le"] = fmt.Sprint(bond)
-
-					pt, err := iod.MakePoint(msName, tags, fields, tmptime)
+					pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -351,16 +314,4 @@ func (p *Prom) Text2Metrics(in io.Reader) ([]*iod.Point, error) {
 	}
 
 	return pts, lastErr
-}
-
-func getTimeStampS(timeStamp int64) time.Time {
-	timeStr := strconv.Itoa(int(timeStamp))
-	if len(timeStr) > 10 {
-		timeInt, _ := strconv.ParseInt(timeStr[:10], 10, 64)
-		return time.Unix(timeInt, 0)
-	}
-	if len(timeStr) < 10 {
-		return time.Now()
-	}
-	return time.Unix(timeStamp, 0)
 }

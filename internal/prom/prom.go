@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/prometheus/common/expfmt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -86,6 +87,7 @@ const (
 type Prom struct {
 	opt    *Option
 	client *http.Client
+	parser expfmt.TextParser
 }
 
 func NewProm(opt *Option) (*Prom, error) {

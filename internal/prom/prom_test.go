@@ -1,8 +1,6 @@
 package prom
 
 import (
-	"fmt"
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -12,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -611,16 +610,16 @@ func TestProm(t *testing.T) {
 				URL: promURL,
 				Measurements: []Rule{
 					{
-						Prefix:  "go_",
-						Name:    "with_prefix_go",
+						Prefix: "go_",
+						Name:   "with_prefix_go",
 					},
 					{
-						Prefix:  "request_",
-						Name:    "with_prefix_request",
+						Prefix: "request_",
+						Name:   "with_prefix_request",
 					},
 				},
 			},
-			fail:     false,
+			fail: false,
 			expected: []string{
 				"http,le=+Inf,method=GET,status_code=404 request_duration_seconds_bucket=1i",
 				"http,le=0.003,method=GET,status_code=404 request_duration_seconds_bucket=1i",
@@ -647,7 +646,7 @@ func TestProm(t *testing.T) {
 		{
 			name: "custom tags",
 			in: &Option{
-				URL:        promURL,
+				URL:  promURL,
 				Tags: map[string]string{"some_tag": "some_value", "more_tag": "some_other_value"},
 			},
 			fail: false,
@@ -677,7 +676,7 @@ func TestProm(t *testing.T) {
 		{
 			name: "multiple urls",
 			in: &Option{
-				URLs: []string{"localhost:1234", "localhost:5678"},
+				URLs:         []string{"localhost:1234", "localhost:5678"},
 				IgnoreReqErr: true,
 			},
 			fail: false,
@@ -751,9 +750,6 @@ func TestProm(t *testing.T) {
 				got = append(got, s)
 			}
 			sort.Strings(got)
-			for _, s := range got {
-				fmt.Println("\"" + s + "\",")
-			}
 			tu.Equals(t, tc.expected, got)
 			t.Logf("[%d] PASS", idx)
 		})
