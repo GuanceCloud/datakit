@@ -57,7 +57,7 @@ func main() {
 
 	datakit.SetLog()
 
-	if cmds.FlagDocker {
+	if datakit.Docker {
 		// This may throw `Unix syslog delivery error` within docker, so we just
 		// start the entry under docker.
 		run()
@@ -85,7 +85,7 @@ func applyFlags() {
 
 	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
 
-	if cmds.FlagDocker {
+	if cmds.FlagDocker /* Deprecated */ || *cmds.FlagRunInContainer {
 		datakit.Docker = true
 	}
 

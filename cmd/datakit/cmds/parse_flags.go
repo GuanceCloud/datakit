@@ -67,10 +67,9 @@ var (
 	/////////////////////////////////////
 	// running mode
 	/////////////////////////////////////
-	fsRun            = pflag.NewFlagSet("run", pflag.ContinueOnError)
-	flagRunService   = fsRun.BoolP("service", "s", false, "running in service mode")
-	flagRunContainer = fsRun.BoolP("container", "c", false, "running in container mode")
-	flagRunLogPath   = fsRun.String("log", func() string {
+	fsRun              = pflag.NewFlagSet("run", pflag.ContinueOnError)
+	FlagRunInContainer = fsRun.BoolP("container", "c", false, "running in container mode")
+	flagRunLogPath     = fsRun.String("log", func() string {
 		if runtime.GOOS == datakit.OSWindows {
 			return "nul" // under windows, nul is /dev/null
 		}
@@ -93,7 +92,7 @@ func printHelp() {
 
 	fmt.Fprintf(os.Stderr, "\tdoc     manage all documents for DataKit\n")
 	fmt.Fprintf(os.Stderr, "\tdql     query DQL for various usage\n")
-	fmt.Fprintf(os.Stderr, "\trun     select DataKit running mode\n")
+	fmt.Fprintf(os.Stderr, "\trun     select DataKit running mode(defaul running as service)\n")
 	// TODO: add more commands...
 
 	fmt.Fprintf(os.Stderr, "\n")
@@ -185,16 +184,10 @@ func ParseFlags() {
 	}
 }
 
-func doRunCmds() {
-	// TODO
-}
-
 func RunCmds() {
 	if len(os.Args) > 1 {
 		if strings.HasPrefix(os.Args[1], "-") {
 			runOldStyleCmds()
-		} else {
-			doRunCmds()
 		}
 	}
 }
