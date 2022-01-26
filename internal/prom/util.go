@@ -73,9 +73,8 @@ func (p *Prom) getNames(name string) (measurementName string, fieldName string) 
 
 func (p *Prom) doGetNames(name string) (measurementName string, fieldName string) {
 	// Check if it matches custom rules.
-	measurementName, fieldName = p.getNamesByRules(name)
-	if measurementName != "" || fieldName != "" {
-		return
+	if mName, fName, matchAny := p.getNamesByRules(name); matchAny {
+		return mName, fName
 	}
 
 	// Check if measurement name is set.
@@ -83,15 +82,14 @@ func (p *Prom) doGetNames(name string) (measurementName string, fieldName string
 		return p.opt.MeasurementName, name
 	}
 
-	measurementName, fieldName = p.getNamesByDefault(name)
-	if measurementName != "" || fieldName != "" {
-		return
+	if mName, fName, matchAny := p.getNamesByDefault(name); matchAny {
+		return mName, fName
 	}
 
 	return name, name
 }
 
-func (p *Prom) getNamesByRules(name string) (measurementName string, fieldName string) {
+func (p *Prom) getNamesByRules(name string) (measurementName string, fieldName string, matchAny bool) {
 	for _, rule := range p.opt.Measurements {
 		if len(rule.Prefix) > 0 && strings.HasPrefix(name, rule.Prefix) {
 			if rule.Name != "" {
@@ -100,20 +98,20 @@ func (p *Prom) getNamesByRules(name string) (measurementName string, fieldName s
 				// If rule name is not set, use rule prefix as measurement name but remove all trailing _.
 				measurementName = strings.TrimRight(rule.Prefix, "_")
 			}
-			return measurementName, name[len(rule.Prefix):]
+			return measurementName, name[len(rule.Prefix):], true
 		}
 	}
 	return
 }
 
-func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName string) {
+func (p *Prom) getNamesByDefault(name string) (measurementName string, fieldName string, matchAny bool) {
 	// By default, measurement name and metric name are split according to the first '_' met.
 	pattern := "(^[^_]+)_(.*)$"
 	reg := regexp.MustCompile(pattern)
 	if reg != nil {
 		result := reg.FindAllStringSubmatch(name, -1)
 		if len(result) == 1 {
-			return result[0][1], result[0][2]
+			return result[0][1], result[0][2], true
 		}
 	}
 	return
