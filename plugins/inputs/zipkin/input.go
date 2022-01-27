@@ -32,8 +32,8 @@ var (
 )
 
 var (
-	pathV1 = "/api/v1/spans"
-	pathV2 = "/api/v2/spans"
+	apiv1Path = "/api/v1/spans"
+	apiv2Path = "/api/v2/spans"
 )
 
 type Input struct {
@@ -71,12 +71,12 @@ func (t *Input) RegHTTPHandler() {
 	itrace.StartTracingStatistic()
 
 	if t.PathV1 == "" {
-		t.PathV1 = pathV1
+		t.PathV1 = apiv1Path
 	}
 	http.RegHTTPHandler("POST", t.PathV1, ZipkinTraceHandleV1)
 
 	if t.PathV2 == "" {
-		t.PathV2 = pathV2
+		t.PathV2 = apiv2Path
 	}
 	http.RegHTTPHandler("POST", t.PathV2, ZipkinTraceHandleV2)
 }

@@ -24,7 +24,7 @@ var (
   endpoint = "/apis/traces"
 
   # Jaeger agent host:port address for UDP transport.
-  #	address = "127.0.0.1:6831"
+  # address = "127.0.0.1:6831"
 
   # [inputs.jaeger.tags]
     # tag1 = "value1"
