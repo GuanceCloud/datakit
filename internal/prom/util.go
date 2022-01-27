@@ -145,6 +145,16 @@ func (p *Prom) removeIgnoredTags(tags map[string]string) {
 	}
 }
 
+func (p *Prom) filterMetricFamilies(metricFamilies map[string]*dto.MetricFamily) map[string]*dto.MetricFamily {
+	filteredMetricFamilies := make(map[string]*dto.MetricFamily)
+	for name, value := range metricFamilies {
+		if p.validMetricName(name) && p.validMetricType(value.GetType()) {
+			filteredMetricFamilies[name] = value
+		}
+	}
+	return filteredMetricFamilies
+}
+
 // Text2Metrics converts raw prometheus metric text to line protocol point.
 func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 	metricFamilies, err := p.parser.TextToMetricFamilies(in)
@@ -154,12 +164,9 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 
 	timestamp := time.Now()
 
-	for name, value := range metricFamilies {
-		// Filter metrics by metric name filter & metric type filter.
-		if !p.validMetricName(name) || !p.validMetricType(value.GetType()) {
-			continue
-		}
+	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
 
+	for name, value := range filteredMetricFamilies {
 		measurementName, fieldName := p.getNames(name)
 
 		switch value.GetType() {
