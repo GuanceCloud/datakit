@@ -203,19 +203,19 @@ func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
 		if span.Meta[itrace.PROJECT] != "" {
 			dkspan.Project = span.Meta[itrace.PROJECT]
 		} else {
-			dkspan.Project = ddTags[itrace.PROJECT]
+			dkspan.Project = tags[itrace.PROJECT]
 		}
 
 		if span.Meta[itrace.ENV] != "" {
 			dkspan.Env = span.Meta[itrace.ENV]
 		} else {
-			dkspan.Env = ddTags[itrace.ENV]
+			dkspan.Env = tags[itrace.ENV]
 		}
 
 		if span.Meta[itrace.VERSION] != "" {
 			dkspan.Version = span.Meta[itrace.VERSION]
 		} else {
-			dkspan.Version = ddTags[itrace.VERSION]
+			dkspan.Version = tags[itrace.VERSION]
 		}
 
 		if pid, ok := span.Metrics["system.pid"]; ok {
@@ -228,7 +228,7 @@ func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
 		}
 
 		dkspan.Tags = extractCustomerTags(customerKeys, span.Meta)
-		for k, v := range ddTags {
+		for k, v := range tags {
 			dkspan.Tags[k] = v
 		}
 

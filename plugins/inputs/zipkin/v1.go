@@ -149,7 +149,7 @@ func thriftSpansToAdapters(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, err
 			Operation: span.Name,
 			Source:    inputName,
 			SpanType:  itrace.FindIntIDSpanType(span.ID, *span.ParentID, spanIDs, parentIDs),
-			Tags:      zipkinTags,
+			Tags:      tags,
 		}
 
 		if span.ParentID != nil {

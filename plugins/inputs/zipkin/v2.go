@@ -134,7 +134,7 @@ func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) (itrace.DatakitTrace, 
 			Operation: span.Name,
 			Start:     span.Timestamp.UnixNano(),
 			Duration:  int64(span.Duration),
-			Tags:      zipkinTags,
+			Tags:      tags,
 		}
 
 		if span.TraceID.High != 0 {

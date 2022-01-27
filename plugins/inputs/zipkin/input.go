@@ -27,8 +27,8 @@ var (
     # tag2 = "value2"
     # ...
 `
-	zipkinTags map[string]string
-	log        = logger.DefaultSLogger(inputName)
+	tags map[string]string
+	log  = logger.DefaultSLogger(inputName)
 )
 
 var (
@@ -63,7 +63,7 @@ func (t *Input) Run() {
 	log.Infof("%s input started...", inputName)
 
 	if t.Tags != nil {
-		zipkinTags = t.Tags
+		tags = t.Tags
 	}
 }
 

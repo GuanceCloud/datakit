@@ -31,8 +31,8 @@ var (
     # tag2 = "value2"
     # ...
 `
-	jaegerTags map[string]string
-	log        = logger.DefaultSLogger(inputName)
+	tags map[string]string
+	log  = logger.DefaultSLogger(inputName)
 )
 
 type Input struct {
@@ -66,7 +66,7 @@ func (t *Input) Run() {
 	dkio.FeedEventLog(&dkio.Reporter{Message: "jaeger start ok, ready for collecting metrics.", Logtype: "event"})
 
 	if t.Tags != nil {
-		jaegerTags = t.Tags
+		tags = t.Tags
 	}
 
 	if t.Address != "" {

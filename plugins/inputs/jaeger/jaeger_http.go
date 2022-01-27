@@ -70,13 +70,13 @@ func parseJaegerThrift(octets []byte) error {
 func batchToAdapters(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 	project, version, env := getExpandInfo(batch)
 	if project == "" {
-		project = jaegerTags[itrace.PROJECT]
+		project = tags[itrace.PROJECT]
 	}
 	if version == "" {
-		version = jaegerTags[itrace.VERSION]
+		version = tags[itrace.VERSION]
 	}
 	if env == "" {
-		env = jaegerTags[itrace.ENV]
+		env = tags[itrace.ENV]
 	}
 
 	var (
@@ -116,7 +116,7 @@ func batchToAdapters(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 				break
 			}
 		}
-		dkspan.Tags = jaegerTags
+		dkspan.Tags = tags
 
 		dktrace = append(dktrace, dkspan)
 	}

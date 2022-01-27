@@ -44,7 +44,7 @@ var (
     # ...
 `
 	customerKeys []string
-	ddTags       map[string]string
+	tags         map[string]string
 	log          = logger.DefaultSLogger(inputName)
 )
 
@@ -112,9 +112,9 @@ func (i *Input) Run() {
 	}
 
 	if i.Tags != nil {
-		ddTags = i.Tags
+		tags = i.Tags
 	} else {
-		ddTags = map[string]string{}
+		tags = map[string]string{}
 	}
 }
 
