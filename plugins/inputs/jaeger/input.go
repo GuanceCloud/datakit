@@ -11,6 +11,11 @@ import (
 )
 
 var (
+	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput = &Input{}
+)
+
+var (
 	inputName    = "jaeger"
 	sampleConfig = `
 [[inputs.jaeger]]
@@ -27,8 +32,7 @@ var (
     # ...
 `
 	jaegerTags map[string]string
-	log                       = logger.DefaultSLogger(inputName)
-	_          inputs.InputV2 = &Input{}
+	log        = logger.DefaultSLogger(inputName)
 )
 
 type Input struct {

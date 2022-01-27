@@ -14,8 +14,13 @@ import (
 )
 
 var (
-	inputName           = "ddtrace"
-	ddtraceSampleConfig = `
+	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput = &Input{}
+)
+
+var (
+	inputName    = "ddtrace"
+	sampleConfig = `
 [[inputs.ddtrace]]
   ## DDTrace Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -40,8 +45,7 @@ var (
 `
 	customerKeys []string
 	ddTags       map[string]string
-	log                         = logger.DefaultSLogger(inputName)
-	_            inputs.InputV2 = &Input{}
+	log          = logger.DefaultSLogger(inputName)
 )
 
 var (
@@ -70,7 +74,7 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) SampleConfig() string {
-	return ddtraceSampleConfig
+	return sampleConfig
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

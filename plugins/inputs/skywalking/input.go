@@ -8,6 +8,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+var _ inputs.InputV2 = &Input{}
+
 var (
 	inputName    = "skywalking"
 	sampleConfig = `
@@ -20,8 +22,7 @@ var (
     # tag2 = "tag2"
     # ...
 `
-	log                = logger.DefaultSLogger(inputName)
-	_   inputs.InputV2 = &Input{}
+	log = logger.DefaultSLogger(inputName)
 )
 
 var (

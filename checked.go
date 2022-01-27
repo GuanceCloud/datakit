@@ -142,7 +142,7 @@ var (
 		"tomcat":                 true,
 		"jaeger":                 true,
 		"tracerouter":            true,
-		"traceZipkin":            true,
+		"zipkin":                 true,
 		"traefik":                true,
 		"ucloud_monitor":         true,
 		"wechatminiprogram":      true,

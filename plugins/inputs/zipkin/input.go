@@ -10,14 +10,19 @@ import (
 )
 
 var (
+	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput = &Input{}
+)
+
+var (
 	inputName = "zipkin"
 	//nolint:lll
-	traceZipkinConfigSample = `
-[[inputs.traceZipkin]]
+	configSample = `
+[[inputs.zipkin]]
   pathV1 = "/api/v1/spans"
   pathV2 = "/api/v2/spans"
 
-  # [inputs.traceZipkin.tags]
+  # [inputs.zipkin.tags]
     # tag1 = "tag1"
     # tag2 = "tag2"
     # ...
@@ -27,8 +32,8 @@ var (
 )
 
 var (
-	defaultZipkinPathV1 = "/api/v1/spans"
-	defaultZipkinPathV2 = "/api/v2/spans"
+	pathV1 = "/api/v1/spans"
+	pathV2 = "/api/v2/spans"
 )
 
 type Input struct {
@@ -46,7 +51,7 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) SampleConfig() string {
-	return traceZipkinConfigSample
+	return configSample
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
@@ -66,12 +71,12 @@ func (t *Input) RegHTTPHandler() {
 	itrace.StartTracingStatistic()
 
 	if t.PathV1 == "" {
-		t.PathV1 = defaultZipkinPathV1
+		t.PathV1 = pathV1
 	}
 	http.RegHTTPHandler("POST", t.PathV1, ZipkinTraceHandleV1)
 
 	if t.PathV2 == "" {
-		t.PathV2 = defaultZipkinPathV2
+		t.PathV2 = pathV2
 	}
 	http.RegHTTPHandler("POST", t.PathV2, ZipkinTraceHandleV2)
 }
