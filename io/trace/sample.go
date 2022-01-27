@@ -99,3 +99,21 @@ func GetTraceInt64ID(high, low int64) int64 {
 func GetTraceStringID(high, low int64) string {
 	return fmt.Sprintf("%d%d", high, low)
 }
+
+func SampleTraces(traces DatakitTraces) DatakitTraces {
+	var sampled DatakitTraces
+	for i := range traces {
+		var found bool
+		for j := range traces[i] {
+			if traces[i][j].ParentID == "0" && traces[i][j].SampleRate <= 0 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			sampled = append(sampled, traces[i])
+		}
+	}
+
+	return sampled
+}

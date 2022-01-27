@@ -55,12 +55,13 @@ func StartUDPAgent(addr string) error {
 			continue
 		}
 
-		groups, err := parseJaegerUDP(data[:n])
+		dktrace, err := parseJaegerUDP(data[:n])
 		if err != nil {
 			continue
 		}
-		if len(groups) != 0 {
-			itrace.MakeLineProto(groups, inputName)
+		if len(dktrace) != 0 {
+			itrace.CalcTracingInfo(dktrace)
+			itrace.MakeLineProto(itrace.DatakitTraces{dktrace}, inputName)
 		} else {
 			log.Debug("empty batch")
 		}

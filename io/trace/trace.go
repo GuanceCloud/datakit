@@ -95,6 +95,8 @@ type DatakitSpan struct {
 
 type DatakitTrace []*DatakitSpan
 
+type DatakitTraces []DatakitTrace
+
 func FindIntIDSpanType(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
 	if parentID != 0 {
 		if spanIDs[parentID] {
@@ -193,11 +195,13 @@ func BuildLineProto(dkspan *DatakitSpan) (*dkio.Point, error) {
 	return pt, err
 }
 
-func MakeLineProto(dktrace DatakitTrace, inputName string) {
+func MakeLineProto(dktraces DatakitTraces, inputName string) {
 	var pts []*dkio.Point
-	for _, dkspan := range dktrace {
-		if pt, err := BuildLineProto(dkspan); err == nil {
-			pts = append(pts, pt)
+	for i := range dktraces {
+		for j := range dktraces[i] {
+			if pt, err := BuildLineProto(dktraces[i][j]); err == nil {
+				pts = append(pts, pt)
+			}
 		}
 	}
 

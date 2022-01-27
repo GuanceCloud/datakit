@@ -16,11 +16,11 @@ const (
 )
 
 type TracingInfo struct {
+	Service      string
+	Resource     string
 	Source       string
 	Project      string
 	Version      string
-	Service      string
-	Resource     string
 	RequestCount int
 	ErrCount     int
 	DurationAvg  int64

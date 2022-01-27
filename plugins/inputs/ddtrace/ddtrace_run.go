@@ -94,7 +94,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 		log.Debugf("show up all traces: %v", traces)
 
-		var dktraces itrace.DatakitTrace
+		var dktraces itrace.DatakitTraces
 		for _, trace := range traces {
 			if len(trace) == 0 {
 				continue
@@ -112,7 +112,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 
 			if len(dktrace) != 0 {
 				itrace.CalcTracingInfo(dktrace)
-				dktraces = append(dktraces, dktrace...)
+				dktraces = append(dktraces, dktrace)
 			} else {
 				log.Warn("empty trace")
 			}
