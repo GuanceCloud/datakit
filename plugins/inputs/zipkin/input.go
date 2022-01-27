@@ -17,14 +17,14 @@ var (
 var (
 	inputName = "zipkin"
 	//nolint:lll
-	configSample = `
+	sampleConfig = `
 [[inputs.zipkin]]
   pathV1 = "/api/v1/spans"
   pathV2 = "/api/v2/spans"
 
   # [inputs.zipkin.tags]
-    # tag1 = "tag1"
-    # tag2 = "tag2"
+    # tag1 = "value1"
+    # tag2 = "value2"
     # ...
 `
 	zipkinTags map[string]string
@@ -51,7 +51,7 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) SampleConfig() string {
-	return configSample
+	return sampleConfig
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

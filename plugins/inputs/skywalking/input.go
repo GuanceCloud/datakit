@@ -18,16 +18,13 @@ var (
   address = "localhost:13800"
   ## customer tags
   # [inputs.skywalking.V3.tags]
-    # tag1 = "tag1"
-    # tag2 = "tag2"
+    # tag1 = "value1"
+    # tag2 = "value2"
     # ...
 `
-	log = logger.DefaultSLogger(inputName)
-)
-
-var (
 	defAddr = "localhost:13800"
 	tags    map[string]string
+	log     = logger.DefaultSLogger(inputName)
 )
 
 // deprecated.

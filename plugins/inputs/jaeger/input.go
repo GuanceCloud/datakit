@@ -27,8 +27,8 @@ var (
   #	address = "127.0.0.1:6831"
 
   # [inputs.jaeger.tags]
-    # tag1 = "val1"
-    #	tag2 = "val2"
+    # tag1 = "value1"
+    # tag2 = "value2"
     # ...
 `
 	jaegerTags map[string]string

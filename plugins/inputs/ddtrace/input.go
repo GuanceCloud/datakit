@@ -39,9 +39,9 @@ var (
 
   ## tags is ddtrace configed key value pairs
   # [inputs.ddtrace.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
-    ## ...
+    # tag1 = "value1"
+    # tag2 = "value2"
+    # ...
 `
 	customerKeys []string
 	ddTags       map[string]string
