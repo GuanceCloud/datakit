@@ -109,14 +109,14 @@ func handleTraces(pattern string) http.HandlerFunc {
 			}
 
 			if len(dktrace) != 0 {
-				itrace.CalcTracingInfo(dktrace)
+				itrace.StatTracingInfo(dktrace)
 				dktraces = append(dktraces, dktrace)
 			} else {
 				log.Warn("empty trace")
 			}
 		}
 		if len(dktraces) != 0 {
-			itrace.BuildPointsBatch(inputName, dktraces)
+			itrace.BuildPointsBatch(inputName, dktraces, false)
 		} else {
 			log.Warn("empty traces")
 		}

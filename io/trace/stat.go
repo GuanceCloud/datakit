@@ -87,7 +87,7 @@ func startTracingStatWorker(interval time.Duration) {
 	}()
 }
 
-func CalcTracingInfo(dktrace DatakitTrace) {
+func StatTracingInfo(dktrace DatakitTrace) {
 	if !isWorkerReady || len(dktrace) == 0 {
 		return
 	}

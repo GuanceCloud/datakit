@@ -58,8 +58,8 @@ func parseJaegerThrift(octets []byte) error {
 	}
 
 	if len(dktrace) != 0 {
-		itrace.CalcTracingInfo(dktrace)
-		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace})
+		itrace.StatTracingInfo(dktrace)
+		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 	} else {
 		log.Warn("empty batch")
 	}

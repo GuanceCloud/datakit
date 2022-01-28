@@ -60,8 +60,8 @@ func StartUDPAgent(addr string) error {
 			continue
 		}
 		if len(dktrace) != 0 {
-			itrace.CalcTracingInfo(dktrace)
-			itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace})
+			itrace.StatTracingInfo(dktrace)
+			itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 		} else {
 			log.Debug("empty batch")
 		}

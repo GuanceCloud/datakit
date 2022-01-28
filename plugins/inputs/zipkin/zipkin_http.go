@@ -65,8 +65,8 @@ func handleZipkinTraceV1(r *http.Request) error {
 	}
 
 	if len(dktrace) != 0 {
-		itrace.CalcTracingInfo(dktrace)
-		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace})
+		itrace.StatTracingInfo(dktrace)
+		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 	} else {
 		log.Debug("empty zipkin v1 spans")
 	}
@@ -119,8 +119,8 @@ func handleZipkinTraceV2(r *http.Request) error {
 	}
 
 	if len(dktrace) != 0 {
-		itrace.CalcTracingInfo(dktrace)
-		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace})
+		itrace.StatTracingInfo(dktrace)
+		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 	} else {
 		log.Warn("empty zipkin v2 spans")
 	}
