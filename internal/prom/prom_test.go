@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const promURL = "http://127.0.0.1:9100/metrics"
@@ -135,46 +136,7 @@ func TestCollect(t *testing.T) {
 
 		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
 
-		pts, err := p.Collect()
-		if tc.fail && assert.Error(t, err) {
-			continue
-		} else {
-			assert.NoError(t, err)
-		}
-
-		for _, pt := range pts {
-			t.Log(pt.String())
-		}
-	}
-}
-
-func TestProm_DebugCollect(t *testing.T) {
-	testcases := []struct {
-		in   *Option
-		fail bool
-	}{
-		{
-			in:   &Option{},
-			fail: true,
-		},
-
-		{
-			in:   &Option{URL: "http://127.0.0.1:9100/metrics"},
-			fail: false,
-		},
-	}
-
-	for _, tc := range testcases {
-		p, err := NewProm(tc.in)
-		if tc.fail && assert.Error(t, err) {
-			continue
-		} else {
-			assert.NoError(t, err)
-		}
-
-		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-
-		pts, err := p.CollectFromFile()
+		pts, err := p.CollectFromHttp(p.opt.URL)
 		if tc.fail && assert.Error(t, err) {
 			continue
 		} else {
@@ -321,7 +283,7 @@ func Test_WriteFile(t *testing.T) {
 
 	assert.NoError(t, err)
 	p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-	err = p.WriteFile()
+	err = p.WriteMetricText2File(p.opt.URL)
 
 	assert.NoError(t, err)
 
@@ -355,7 +317,7 @@ func TestIgnoreReqErr(t *testing.T) {
 			if err != nil {
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
-			_, err = p.Collect()
+			_, err = p.CollectFromHttp(p.opt.URL)
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d] returned an error as expected: %s", idx, err)
@@ -729,7 +691,14 @@ func TestProm(t *testing.T) {
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
-			pts, err := p.Collect()
+			var points []*io.Point
+			for _, u := range p.opt.URLs {
+				pts, err := p.CollectFromHttp(u)
+				if err != nil {
+					break
+				}
+				points = append(points, pts...)
+			}
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d] returned an error as expected: %s", idx, err)
@@ -743,7 +712,7 @@ func TestProm(t *testing.T) {
 				t.Errorf("[%d] expected to fail but it didn't", idx)
 			}
 			var got []string
-			for _, p := range pts {
+			for _, p := range points {
 				s := p.String()
 				// remove timestamp
 				s = s[:strings.LastIndex(s, " ")]

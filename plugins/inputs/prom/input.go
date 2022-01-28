@@ -4,6 +4,7 @@ package prom
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -117,12 +118,12 @@ func (i *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			l.Debugf("collect URL %s", i.pm.Option().URL)
+			l.Debugf("collect URLs %v", i.URLs)
 
 			// If Output is configured, data is written to local file specified by Output.
 			// Data will no more be written to datakit io.
 			if i.Output != "" {
-				err := i.pm.WriteFile()
+				err := i.WriteMetricText2File()
 				if err != nil {
 					l.Debugf(err.Error())
 				}
@@ -130,7 +131,7 @@ func (i *Input) Run() {
 			}
 
 			start := time.Now()
-			pts, err := i.pm.Collect()
+			pts, err := i.Collect()
 			if err != nil {
 				l.Errorf("Collect: %s", err)
 				io.FeedLastError(source, err.Error())
@@ -237,17 +238,54 @@ func (i *Input) Init() error {
 }
 
 func (i *Input) Collect() ([]*io.Point, error) {
-	if i.pm == nil {
-		return nil, nil
+	var points []*io.Point
+	for _, u := range i.URLs {
+		uu, err := url.Parse(u)
+		if err != nil {
+			return nil, err
+		}
+		var pts []*io.Point
+		if uu.Scheme != "http" && uu.Scheme != "https" {
+			pts, err = i.CollectFromFile(u)
+		} else {
+			pts, err = i.CollectFromHttp(u)
+		}
+		if err != nil {
+			return nil, err
+		}
+		points = append(points, pts...)
 	}
-	return i.pm.Collect()
+	return points, nil
 }
 
-func (i *Input) CollectFromFile() ([]*io.Point, error) {
-	if i.pm == nil {
-		return nil, nil
+func (i *Input) CollectFromHttp(u string) ([]*io.Point, error) {
+	return i.pm.CollectFromHttp(u)
+}
+
+func (i *Input) CollectFromFile(filepath string) ([]*io.Point, error) {
+	return i.pm.CollectFromFile(filepath)
+}
+
+func (i *Input) WriteMetricText2File() error {
+	// Remove if file already exists.
+	if _, err := os.Stat(i.Output); err == nil {
+		if err := os.Remove(i.Output); err != nil {
+			return err
+		}
 	}
-	return i.pm.CollectFromFile()
+	for _, u := range i.URLs {
+		if err := i.pm.WriteMetricText2File(u); err != nil {
+			return err
+		}
+		stat, err := os.Stat(i.Output)
+		if err != nil {
+			return err
+		}
+		if stat.Size() > i.MaxFileSize {
+			return fmt.Errorf("file size is too large, max: %d, got: %d", i.MaxFileSize, stat.Size())
+		}
+	}
+	return nil
 }
 
 func (i *Input) Pause() error {

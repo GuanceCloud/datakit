@@ -185,88 +185,73 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	return r, nil
 }
 
-func (p *Prom) Collect() ([]*io.Point, error) {
-	var allPts []*io.Point
-	for _, u := range p.opt.URLs {
-		resp, err := p.Request(u)
-		if err != nil {
-			if p.opt.IgnoreReqErr {
-				continue
-			} else {
-				return nil, err
-			}
-		}
-		defer resp.Body.Close() //nolint:errcheck
-		pts, err := p.Text2Metrics(resp.Body)
-		if err != nil {
+func (p *Prom) CollectFromHttp(u string) ([]*io.Point, error) {
+	resp, err := p.Request(u)
+	if err != nil {
+		if p.opt.IgnoreReqErr {
+			return []*io.Point{}, nil
+		} else {
 			return nil, err
 		}
-		allPts = append(allPts, pts...)
 	}
-	return allPts, nil
+	defer resp.Body.Close() //nolint:errcheck
+	pts, err := p.Text2Metrics(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return pts, nil
 }
 
-// CollectFromFile collects metrics from local file.
-// If both Output and URL is configured as local file path,
-// preference is given to p.opt.Output other than p.opt.URL.
-func (p *Prom) CollectFromFile() ([]*io.Point, error) {
-	var f *os.File
-	if p.opt.Output != "" {
-		f, _ = os.OpenFile(p.opt.Output, os.O_RDONLY, 0o600)
-	} else {
-		fileName := p.opt.URL
-		f, _ = os.OpenFile(fileName, os.O_RDONLY, 0o600) //nolint:gosec
+func (p *Prom) CollectFromFile(filepath string) ([]*io.Point, error) {
+	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600)
+	if err != nil {
+		return nil, err
 	}
 	defer f.Close() //nolint:errcheck,gosec
 	return p.Text2Metrics(f)
 }
 
-// WriteFile scrapes metrics from p.opt.URLs then writes them directly to p.opt.Output.
-// WriteFile will only be called when field Output is configured.
-func (p *Prom) WriteFile() error {
+// WriteMetricText2File scrapes raw prometheus metric text from u
+// then appends them directly to p.opt.Output.
+func (p *Prom) WriteMetricText2File(u string) error {
 	fp := p.opt.Output
 	if !path.IsAbs(fp) {
 		fp = filepath.Join(datakit.InstallDir, fp)
 	}
-	// truncate if file exists
-	f, err := os.Create(fp)
+	// Append to file if already exist.
+	f, err := os.OpenFile(fp, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
 	if err != nil {
 		return err
 	}
 	defer f.Close() //nolint:errcheck,gosec
 
-	for _, u := range p.opt.URLs {
-		uu, err := url.Parse(u)
-		// If url is configured as local path file, prom does not collect from it.
-		if err != nil {
-			return fmt.Errorf("url parse error, %w", err)
-		}
-
-		if uu.Scheme != "http" && uu.Scheme != "https" {
-			return fmt.Errorf("url is neither http nor https")
-		}
-
-		resp, err := p.client.Get(u)
-		if err != nil {
-			return err
-		}
-
-		defer resp.Body.Close() //nolint:errcheck
-		if resp.ContentLength > p.opt.MaxFileSize {
-			return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.MaxFileSize, resp.ContentLength)
-		}
-
-		data, err := ioutil.ReadAll(resp.Body)
-		if int64(len(data)) > p.opt.MaxFileSize {
-			return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.MaxFileSize, len(data))
-		}
-		if err != nil {
-			return err
-		}
-		if _, err := f.Write(data); err != nil {
-			return err
-		}
+	uu, err := url.Parse(u)
+	if err != nil {
+		return fmt.Errorf("url parse error, %w", err)
+	}
+	// If url is configured as local path file, prom does not collect from it.
+	if uu.Scheme != "http" && uu.Scheme != "https" {
+		return fmt.Errorf("url is neither http nor https")
 	}
 
+	resp, err := p.client.Get(u)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.ContentLength > p.opt.MaxFileSize {
+		return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.MaxFileSize, resp.ContentLength)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if int64(len(data)) > p.opt.MaxFileSize {
+		return fmt.Errorf("content length is too large to handle, max: %d, got: %d", p.opt.MaxFileSize, len(data))
+	}
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
 	return nil
 }
