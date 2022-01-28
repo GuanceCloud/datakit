@@ -248,7 +248,7 @@ func (i *Input) Collect() ([]*io.Point, error) {
 		if uu.Scheme != "http" && uu.Scheme != "https" {
 			pts, err = i.CollectFromFile(u)
 		} else {
-			pts, err = i.CollectFromHttp(u)
+			pts, err = i.CollectFromHTTP(u)
 		}
 		if err != nil {
 			return nil, err
@@ -258,8 +258,8 @@ func (i *Input) Collect() ([]*io.Point, error) {
 	return points, nil
 }
 
-func (i *Input) CollectFromHttp(u string) ([]*io.Point, error) {
-	return i.pm.CollectFromHttp(u)
+func (i *Input) CollectFromHTTP(u string) ([]*io.Point, error) {
+	return i.pm.CollectFromHTTP(u)
 }
 
 func (i *Input) CollectFromFile(filepath string) ([]*io.Point, error) {

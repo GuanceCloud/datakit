@@ -136,7 +136,7 @@ func TestCollect(t *testing.T) {
 
 		p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
 
-		pts, err := p.CollectFromHttp(p.opt.URL)
+		pts, err := p.CollectFromHTTP(p.opt.URL)
 		if tc.fail && assert.Error(t, err) {
 			continue
 		} else {
@@ -317,7 +317,7 @@ func TestIgnoreReqErr(t *testing.T) {
 			if err != nil {
 				t.Errorf("[%d] failed to init prom: %s", idx, err)
 			}
-			_, err = p.CollectFromHttp(p.opt.URL)
+			_, err = p.CollectFromHTTP(p.opt.URL)
 			if err != nil {
 				if tc.fail {
 					t.Logf("[%d] returned an error as expected: %s", idx, err)
@@ -693,7 +693,7 @@ func TestProm(t *testing.T) {
 			p.SetClient(&http.Client{Transport: newTransportMock(mockBody)})
 			var points []*io.Point
 			for _, u := range p.opt.URLs {
-				pts, err := p.CollectFromHttp(u)
+				pts, err := p.CollectFromHTTP(u)
 				if err != nil {
 					break
 				}

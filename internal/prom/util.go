@@ -274,14 +274,15 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 }
 
 func getValue(m *dto.Metric, metricType dto.MetricType) float64 {
-	switch metricType {
+	switch metricType { //nolint:exhaustive
 	case dto.MetricType_GAUGE:
 		return m.GetGauge().GetValue()
 	case dto.MetricType_UNTYPED:
 		return m.GetUntyped().GetValue()
 	case dto.MetricType_COUNTER:
 		return m.GetCounter().GetValue()
+	default:
+		// Shouldn't get here.
+		return 0
 	}
-	// Shouldn't get here.
-	return 0
 }

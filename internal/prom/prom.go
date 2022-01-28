@@ -185,7 +185,7 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	return r, nil
 }
 
-func (p *Prom) CollectFromHttp(u string) ([]*io.Point, error) {
+func (p *Prom) CollectFromHTTP(u string) ([]*io.Point, error) {
 	resp, err := p.Request(u)
 	if err != nil {
 		if p.opt.IgnoreReqErr {
@@ -203,7 +203,7 @@ func (p *Prom) CollectFromHttp(u string) ([]*io.Point, error) {
 }
 
 func (p *Prom) CollectFromFile(filepath string) ([]*io.Point, error) {
-	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600)
+	f, err := os.OpenFile(filepath, os.O_RDONLY, 0o600) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (p *Prom) WriteMetricText2File(u string) error {
 		fp = filepath.Join(datakit.InstallDir, fp)
 	}
 	// Append to file if already exist.
-	f, err := os.OpenFile(fp, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+	f, err := os.OpenFile(fp, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o660) //nolint:gosec
 	if err != nil {
 		return err
 	}
