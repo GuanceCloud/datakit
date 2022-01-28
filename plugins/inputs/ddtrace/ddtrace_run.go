@@ -116,7 +116,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 			}
 		}
 		if len(dktraces) != 0 {
-			itrace.MakeLineProto(inputName, dktraces)
+			itrace.BuildPointsBatch(inputName, dktraces)
 		} else {
 			log.Warn("empty traces")
 		}

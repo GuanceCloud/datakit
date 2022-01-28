@@ -1,12 +1,15 @@
 package trace
 
 import (
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
+
+var once = sync.Once{}
 
 type CalculatorFunc func(dktraces DatakitTraces)
 
@@ -26,6 +29,10 @@ func (ag *AfterGather) AddFilter(filters ...FilterFunc) {
 }
 
 func (ag *AfterGather) Run(inputName string, dktraces DatakitTraces) {
+	once.Do(func() {
+		log = logger.SLogger(packageName)
+	})
+
 	if inputName == "" || len(dktraces) == 0 {
 		return
 	}
@@ -37,14 +44,32 @@ func (ag *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 		dktraces = ag.Filters[i](dktraces)
 	}
 
-	MakeLineProto(inputName, dktraces)
+	pts := BuildPointsBatch(inputName, dktraces)
+	if len(pts) != 0 {
+		if err := dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
+			log.Errorf("io feed points error: %s", err.Error())
+		}
+	} else {
+		log.Warn("empty points")
+	}
 }
 
-func BuildLineProto(dkspan *DatakitSpan) (*dkio.Point, error) {
-	dkOnce.Do(func() {
-		log = logger.SLogger("dktrace")
-	})
+func BuildPointsBatch(inputName string, dktraces DatakitTraces) []*dkio.Point {
+	var pts []*dkio.Point
+	for i := range dktraces {
+		for j := range dktraces[i] {
+			if pt, err := BuildPoint(dktraces[i][j]); err != nil {
+				log.Errorf("build point error: %s", err.Error())
+			} else {
+				pts = append(pts, pt)
+			}
+		}
+	}
 
+	return pts
+}
+
+func BuildPoint(dkspan *DatakitSpan) (*dkio.Point, error) {
 	var (
 		tags   = make(map[string]string)
 		fields = make(map[string]interface{})
@@ -98,29 +123,9 @@ func BuildLineProto(dkspan *DatakitSpan) (*dkio.Point, error) {
 	fields[FIELD_TRACEID] = dkspan.TraceID
 	fields[FIELD_SPANID] = dkspan.SpanID
 
-	pt, err := dkio.NewPoint(dkspan.Source, tags, fields, &dkio.PointOption{
+	return dkio.NewPoint(dkspan.Source, tags, fields, &dkio.PointOption{
 		Time:     time.Unix(0, dkspan.Start),
 		Category: datakit.Tracing,
 		Strict:   false,
 	})
-	if err != nil {
-		log.Errorf("build metric err: %s", err)
-	}
-
-	return pt, err
-}
-
-func MakeLineProto(inputName string, dktraces DatakitTraces) {
-	var pts []*dkio.Point
-	for i := range dktraces {
-		for j := range dktraces[i] {
-			if pt, err := BuildLineProto(dktraces[i][j]); err == nil {
-				pts = append(pts, pt)
-			}
-		}
-	}
-
-	if err := dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
-		log.Errorf("io feed err: %s", err)
-	}
 }

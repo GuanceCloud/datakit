@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
@@ -59,9 +58,8 @@ const (
 )
 
 var (
-	name   = "dktrace"
-	dkOnce = sync.Once{}
-	log    = logger.DefaultSLogger(name)
+	packageName = "dktrace"
+	log         = logger.DefaultSLogger(packageName)
 )
 
 type DatakitSpan struct {

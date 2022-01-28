@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -42,8 +41,6 @@ var (
 
 func StartTracingStatistic() {
 	statOnce.Do(func() {
-		log = logger.SLogger(name)
-
 		statUnit = make(map[string]*TracingInfo)
 		tracingInfoChan = make(chan *TracingInfo, 100)
 		startTracingStatWorker(calcInterval)
