@@ -46,7 +46,7 @@ var ddtraceSpanType = map[string]string{
 }
 
 //nolint:lll
-type Span struct {
+type DDSpan struct {
 	Service  string             `codec:"service" protobuf:"bytes,1,opt,name=service,proto3" json:"service" msg:"service"`                                                                                     // client code defined service name of span
 	Name     string             `codec:"name" protobuf:"bytes,2,opt,name=name,proto3" json:"name" msg:"name"`                                                                                                 // client code defined operation name of span
 	Resource string             `codec:"resource" protobuf:"bytes,3,opt,name=resource,proto3" json:"resource" msg:"resource"`                                                                                 // client code defined resource name of span
@@ -61,11 +61,11 @@ type Span struct {
 	Type     string             `codec:"type" protobuf:"bytes,12,opt,name=type,proto3" json:"type" msg:"type"`                                                                                                // protocol associated with the span
 }
 
-type Trace []*Span
+type DDTrace []*DDSpan
 
-type Traces []Trace
+type DDTraces []DDTrace
 
-// TODO:.
+// TODO:
 func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
@@ -92,8 +92,6 @@ func handleTraces(pattern string) http.HandlerFunc {
 			return
 		}
 
-		log.Debugf("show up all traces: %v", traces)
-
 		var dktraces itrace.DatakitTraces
 		for _, trace := range traces {
 			if len(trace) == 0 {
@@ -118,7 +116,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 			}
 		}
 		if len(dktraces) != 0 {
-			itrace.MakeLineProto(dktraces, inputName)
+			itrace.MakeLineProto(inputName, dktraces)
 		} else {
 			log.Warn("empty traces")
 		}
@@ -144,7 +142,7 @@ func extractCustomerTags(customerKeys []string, meta map[string]string) map[stri
 	return customerTags
 }
 
-func decodeRequest(pattern string, req *http.Request) (Traces, error) {
+func decodeRequest(pattern string, req *http.Request) (DDTraces, error) {
 	mediaType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
 	if err != nil {
 		log.Debugf("detect media-type failed fallback to application/json")
@@ -156,7 +154,7 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 		return nil, err
 	}
 
-	traces := Traces{}
+	traces := DDTraces{}
 	if pattern == v5 {
 		err = unmarshalTraceDictionary(buf, &traces)
 	} else {
@@ -173,7 +171,7 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 	return traces, err
 }
 
-func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
+func traceToAdapters(trace DDTrace) (itrace.DatakitTrace, error) {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)
@@ -244,7 +242,7 @@ func traceToAdapters(trace Trace) (itrace.DatakitTrace, error) {
 	return dktrace, nil
 }
 
-func getSpanIDsAndParentIDs(trace Trace) (map[int64]bool, map[int64]bool) {
+func getSpanIDsAndParentIDs(trace DDTrace) (map[int64]bool, map[int64]bool) {
 	var (
 		spanIDs   = make(map[int64]bool)
 		parentIDs = make(map[int64]bool)
@@ -265,7 +263,7 @@ func getSpanIDsAndParentIDs(trace Trace) (map[int64]bool, map[int64]bool) {
 // unmarshalTraceDictionary decodes a trace using the specification from the v0.5 endpoint.
 // For details, see the documentation for endpoint v0.5 in pkg/trace/api/version.go
 //nolint:cyclop
-func unmarshalTraceDictionary(bts []byte, out *Traces) error {
+func unmarshalTraceDictionary(bts []byte, out *DDTraces) error {
 	if out == nil {
 		return errors.New("nil pointer")
 	}
@@ -296,7 +294,7 @@ func unmarshalTraceDictionary(bts []byte, out *Traces) error {
 	if cap(*out) >= int(sz) {
 		*out = (*out)[:sz]
 	} else {
-		*out = make(Traces, sz)
+		*out = make(DDTraces, sz)
 	}
 	for i := range *out {
 		sz, bts, err = msgp.ReadArrayHeaderBytes(bts)
@@ -306,11 +304,11 @@ func unmarshalTraceDictionary(bts []byte, out *Traces) error {
 		if cap((*out)[i]) >= int(sz) {
 			(*out)[i] = (*out)[i][:sz]
 		} else {
-			(*out)[i] = make(Trace, sz)
+			(*out)[i] = make(DDTrace, sz)
 		}
 		for j := range (*out)[i] {
 			if (*out)[i][j] == nil {
-				(*out)[i][j] = new(Span)
+				(*out)[i][j] = new(DDSpan)
 			}
 			if bts, err = unmarshalSpanDictionary(bts, dict, (*out)[i][j]); err != nil {
 				return err
@@ -348,7 +346,7 @@ const spanPropertyCount = 12
 // in the given dictionary dict. For details, see the documentation for endpoint v0.5
 // in pkg/trace/api/version.go
 //nolint:cyclop
-func unmarshalSpanDictionary(bts []byte, dict []string, out *Span) ([]byte, error) {
+func unmarshalSpanDictionary(bts []byte, dict []string, out *DDSpan) ([]byte, error) {
 	if out == nil {
 		return nil, errors.New("nil pointer")
 	}

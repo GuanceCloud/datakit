@@ -10,9 +10,9 @@ import (
 // traceFilter will determine whether a trace should be drop or not,
 // return nil Trace if the trace data dropped,
 // return true will tell runFilterWithBreak to break out loop early.
-type traceFilter func(Trace) (Trace, bool)
+type traceFilter func(DDTrace) (DDTrace, bool)
 
-func runFiltersWithBreak(trace Trace, filters ...traceFilter) Trace {
+func runFiltersWithBreak(trace DDTrace, filters ...traceFilter) DDTrace {
 	var abort bool
 	for _, filter := range filters {
 		if trace, abort = filter(trace); abort || trace == nil {
@@ -26,8 +26,8 @@ func runFiltersWithBreak(trace Trace, filters ...traceFilter) Trace {
 var present = make(map[string]time.Time)
 
 // service resource env.
-func rare(trace Trace) (Trace, bool) {
-	var rootSpan *Span
+func rare(trace DDTrace) (DDTrace, bool) {
+	var rootSpan *DDSpan
 	for i := range trace {
 		if trace[i].ParentID == 0 {
 			rootSpan = trace[i]
@@ -52,7 +52,7 @@ func rare(trace Trace) (Trace, bool) {
 	return trace, false
 }
 
-func checkResource(trace Trace) (Trace, bool) {
+func checkResource(trace DDTrace) (DDTrace, bool) {
 	for i := range trace {
 		for k := range ignoreResources {
 			if ignoreResources[k].MatchString(trace[i].Resource) {
@@ -64,7 +64,7 @@ func checkResource(trace Trace) (Trace, bool) {
 	return trace, false
 }
 
-func sample(trace Trace) (Trace, bool) {
+func sample(trace DDTrace) (DDTrace, bool) {
 	for i := range trace {
 		if trace[i].ParentID == 0 {
 			if priority, ok := trace[i].Metrics["_sampling_priority_v1"]; ok && priority < 1 {

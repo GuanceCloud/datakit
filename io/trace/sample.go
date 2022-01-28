@@ -100,7 +100,7 @@ func GetTraceStringID(high, low int64) string {
 	return fmt.Sprintf("%d%d", high, low)
 }
 
-func SampleTraces(traces DatakitTraces) DatakitTraces {
+func DefSampler(traces DatakitTraces) DatakitTraces {
 	var sampled DatakitTraces
 	for i := range traces {
 		var found bool

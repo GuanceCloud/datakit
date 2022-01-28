@@ -59,7 +59,7 @@ func parseJaegerThrift(octets []byte) error {
 
 	if len(dktrace) != 0 {
 		itrace.CalcTracingInfo(dktrace)
-		itrace.MakeLineProto(itrace.DatakitTraces{dktrace}, inputName)
+		itrace.MakeLineProto(inputName, itrace.DatakitTraces{dktrace})
 	} else {
 		log.Warn("empty batch")
 	}
