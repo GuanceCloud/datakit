@@ -238,6 +238,9 @@ func (i *Input) Init() error {
 }
 
 func (i *Input) Collect() ([]*io.Point, error) {
+	if i.pm == nil {
+		return nil, nil
+	}
 	var points []*io.Point
 	for _, u := range i.URLs {
 		uu, err := url.Parse(u)
@@ -259,10 +262,16 @@ func (i *Input) Collect() ([]*io.Point, error) {
 }
 
 func (i *Input) CollectFromHTTP(u string) ([]*io.Point, error) {
+	if i.pm == nil {
+		return nil, nil
+	}
 	return i.pm.CollectFromHTTP(u)
 }
 
 func (i *Input) CollectFromFile(filepath string) ([]*io.Point, error) {
+	if i.pm == nil {
+		return nil, nil
+	}
 	return i.pm.CollectFromFile(filepath)
 }
 
