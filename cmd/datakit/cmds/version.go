@@ -25,6 +25,25 @@ const (
 	unixUpgradeCmdProxy = `HTTPS_PROXY="%s" DK_UPGRADE=1 bash -c "$(curl -x "%s" -L %s)"`
 )
 
+func runVersionFlags() error {
+	showVersion(ReleaseVersion, InputsReleaseType)
+
+	if !*flagVersionDisableUpgradeInfo {
+		vis, err := checkNewVersion(ReleaseVersion, *flagVersionUpgradeTestingVersion)
+		if err != nil {
+			return fmt.Errorf("get online version info failed: %s\n", err)
+		}
+
+		for _, vi := range vis {
+			infof("\n\n%s version available: %s, commit %s (release at %s)\n\nUpgrade:\n\t",
+				vi.versionType, vi.newVersion.VersionString, vi.newVersion.Commit, vi.newVersion.ReleaseDate)
+			infof("%s\n", getUpgradeCommand(vi.newVersion.DownloadURL))
+		}
+	}
+
+	return nil
+}
+
 func checkUpdate(curverStr string, acceptRC bool) int {
 	l = logger.SLogger("ota-update")
 

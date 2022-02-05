@@ -42,6 +42,10 @@ func main() {
 		datakit.Version = ReleaseVersion
 	}
 
+	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
+	cmds.ReleaseVersion = ReleaseVersion
+	cmds.InputsReleaseType = InputsReleaseType
+
 	cmds.ParseFlags()
 	applyFlags()
 
@@ -83,14 +87,9 @@ func applyFlags() {
 		datakit.SetWorkDir(cmds.FlagWorkDir)
 	}
 
-	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
-
 	if cmds.FlagDocker /* Deprecated */ || *cmds.FlagRunInContainer {
 		datakit.Docker = true
 	}
-
-	cmds.ReleaseVersion = ReleaseVersion
-	cmds.InputsReleaseType = InputsReleaseType
 
 	cmds.RunCmds()
 }

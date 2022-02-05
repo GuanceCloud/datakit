@@ -3,6 +3,7 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -10,11 +11,30 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
-func pipelineDebugger(plname, txt string) error {
-	if txt == "" {
-		l.Fatal("-txt required")
+func runPLFlags() error {
+	var txt string
+	if *flagPLTxtFile != "" {
+		txtBytes, err := ioutil.ReadFile(*flagPLTxtFile)
+		if err != nil {
+			return fmt.Errorf("ioutil.ReadFile: %s", err)
+		}
+		txt = string(txtBytes)
 	}
 
+	if txt == "" {
+		if *flagPLTxtData != "" {
+			txt = *flagPLTxtData
+		}
+	}
+
+	if txt == "" {
+		return fmt.Errorf("empty txt")
+	}
+
+	return pipelineDebugger(debugPipelineName, txt)
+}
+
+func pipelineDebugger(plname, txt string) error {
 	if err := pipeline.Init(datakit.DataDir); err != nil {
 		return err
 	}

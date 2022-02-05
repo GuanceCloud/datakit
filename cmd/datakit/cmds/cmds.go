@@ -89,7 +89,6 @@ func setCmdRootLog(rl string) {
 	config.SetLog()
 
 	l = logger.SLogger("cmds")
-	infof("root log set to %s", rl)
 }
 
 func infof(fmtstr string, args ...interface{}) {

@@ -49,6 +49,27 @@ type dqlCmd struct {
 	dqlcli *http.Client
 }
 
+func runDQLFlags() error {
+	dc := &dqlCmd{
+		json:          *flagDQLJSON,
+		autoJson:      *flagDQLAutoJSON,
+		dqlString:     *flagDQLString,
+		token:         *flagDQLToken,
+		csv:           *flagDQLCSV,
+		forceWriteCSV: *flagDQLForce,
+		host:          *flagDQLDataKitHost,
+		verbose:       *flagDQLVerbose,
+		log:           *flagDQLLogPath,
+	}
+
+	if err := dc.prepare(); err != nil {
+		return fmt.Errorf("dc.prepare: %s", err)
+	}
+
+	dc.run()
+	return nil
+}
+
 func (dc *dqlCmd) prepare() error {
 	// use localhost token configured in <datakit-install-path>/conf.d/datakit.conf
 	if dc.token == "" {

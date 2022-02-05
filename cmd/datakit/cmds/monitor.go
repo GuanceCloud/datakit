@@ -13,6 +13,11 @@ import (
 	"golang.org/x/term"
 )
 
+func runMonitorFlags() error {
+	cmdMonitor(*flagMonitorRefreshInterval, *flagMonitorVerbose)
+	return nil
+}
+
 func cmdMonitor(interval time.Duration, verbose bool) {
 	addr := fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen)
 
