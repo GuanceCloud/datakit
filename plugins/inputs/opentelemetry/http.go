@@ -3,6 +3,7 @@ package opentelemetry
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,8 +12,11 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	common "go.opentelemetry.io/proto/otlp/common/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -36,11 +40,11 @@ type otlpHTTPCollector struct {
 	delay                <-chan struct{} // todo  要不要单线程 或者延迟接收 time.tick
 
 	// clientTLSConfig *tls.Config
-	expectedHeaders map[string]string // 用于检测是否包含特定的 header
+	ExpectedHeaders map[string]string `toml:"expectedHeaders"` // 用于检测是否包含特定的 header
 }
 
 // apiOtlpCollector :trace
-func apiOtlpTrace(w http.ResponseWriter, r *http.Request) {
+func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request) {
 	response := collectortracepb.ExportTraceServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {
@@ -61,21 +65,86 @@ func apiOtlpTrace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeReply(w, rawResponse, 0, "", nil) // 先将信息返回到客户端 然后再处理spans
-	fmt.Println(request)
-	rss := request.GetResourceSpans()
-	for _, spans := range rss {
-		ls := spans.GetInstrumentationLibrarySpans()
-		for _, librarySpans := range ls {
-			spans := librarySpans.Spans
-			for _, span := range spans {
-				fmt.Println(span.Name) // todo 组装trace
-			}
-		}
-	}
+
+	dt := mkDKTrace(request.GetResourceSpans())
+	l.Infof("dt len=%d", len(dt))
 }
 
-// apiOtlpCollector :trace
-func apiOtlpMetric(w http.ResponseWriter, r *http.Request) {
+func mkDKTrace(rss []*tracepb.ResourceSpans) DKtrace.DatakitTraces {
+	dkTraces := make([]DKtrace.DatakitTrace, 0)
+	for _, spans := range rss {
+		ls := spans.GetInstrumentationLibrarySpans()
+		l.Infof("resource = %s", spans.Resource.String())
+		l.Infof("GetSchemaUrl = %s", spans.GetSchemaUrl())
+		for _, librarySpans := range ls {
+			spans := librarySpans.Spans
+			// librarySpans.String()
+			dktrace := make([]*DKtrace.DatakitSpan, 0)
+			for _, span := range spans {
+				dkSpan := &DKtrace.DatakitSpan{
+					TraceID:        hex.EncodeToString(span.GetTraceId()),
+					ParentID:       hex.EncodeToString(span.GetParentSpanId()),
+					SpanID:         hex.EncodeToString(span.GetSpanId()),
+					Service:        span.Name,
+					Resource:       span.Name,
+					Operation:      "",
+					Source:         "",
+					SpanType:       "",
+					SourceType:     "",
+					Env:            "",
+					Project:        "",
+					Version:        "",
+					Tags:           toDatakitTags(span.Attributes),
+					EndPoint:       "",
+					HTTPMethod:     "",
+					HTTPStatusCode: "",
+					ContainerHost:  "",
+					PID:            "",
+					Start:          int64(span.StartTimeUnixNano),                        // todo 注意单位
+					Duration:       int64(span.EndTimeUnixNano - span.StartTimeUnixNano), //
+					Status:         tracepb.Status_StatusCode_name[int32(span.GetStatus().Code)],
+					Content:        "",
+					SampleRate:     0,
+				}
+				l.Infof("dkspan = %+v", dkSpan)
+				dktrace = append(dktrace, dkSpan)
+			}
+			dkTraces = append(dkTraces, dktrace)
+		}
+	}
+	return dkTraces
+}
+
+// toDatakitTags : make attributes to tags
+func toDatakitTags(attr []*common.KeyValue) map[string]string {
+	m := make(map[string]string, len(attr))
+	for _, kv := range attr {
+		m[kv.Key] = kv.GetValue().String()
+		/*switch kv.GetValue().Value.(type) {
+		// For slice attributes, serialize as JSON list string.
+		case *v1.AnyValue_StringValue:
+			m[kv.Key] = kv.GetValue().GetStringValue()
+		case *v1.AnyValue_BoolValue:
+		case *v1.AnyValue_IntValue:
+		case *v1.AnyValue_DoubleValue:
+		case *v1.AnyValue_ArrayValue:
+		case *v1.AnyValue_KvlistValue:
+		case *v1.AnyValue_BytesValue:
+
+		default:
+			m[(string)(kv.Key)] = kv.Value.Emit()
+		}*/
+	}
+
+	if len(m) == 0 {
+		return nil
+	}
+
+	return m
+}
+
+// apiOtlpCollector : todo metric
+func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request) {
 	response := collectormetricpb.ExportMetricsServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {
@@ -165,8 +234,8 @@ func writeReply(w http.ResponseWriter, rawResponse []byte, s int, ct string, h m
 
 func (o *otlpHTTPCollector) RunHttp() {
 	// 注册到http模块
-	dkHTTP.RegHTTPHandler("POST", "/otel/v11/trace", apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v11/metric", apiOtlpMetric)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v11/trace", o.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v11/metric", o.apiOtlpMetric)
 }
 
 // todo del

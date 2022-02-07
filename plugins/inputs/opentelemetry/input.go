@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	// defaultInterval = "60s"
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]

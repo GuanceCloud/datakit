@@ -65,23 +65,13 @@ func (et *ExportTrace) Export(ctx context.Context,
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
 	rss := ets.GetResourceSpans()
 	if rss != nil && len(rss) > 0 {
-		log.Printf("rss len =%d", len(rss))
-		for _, rs := range rss {
-			ls := rs.GetInstrumentationLibrarySpans()
-			log.Printf("ls len =%d", len(ls))
-			for _, l := range ls {
-				spans := l.GetSpans()
-				log.Printf("span len =%d", len(spans))
-				for _, span := range spans {
-					// todo span
-					fmt.Println(span.Name)
-				}
-			}
-		}
+		mkDKTrace(rss)
 	}
-	return nil, nil
+	res := &collectortracepb.ExportTraceServiceResponse{}
+	return res, nil
 }
 
+// todo metric
 type MetricService struct {
 	collectormetricpb.UnimplementedMetricsServiceServer
 

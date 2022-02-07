@@ -41,6 +41,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/net"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nginx"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/nsq"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/oracle"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/postgresql"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/process"
