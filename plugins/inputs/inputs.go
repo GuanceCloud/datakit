@@ -24,13 +24,12 @@ const (
 )
 
 var (
-	Inputs     = map[string]Creator{}
-	InputsInfo = map[string][]*inputInfo{}
-	ConfigInfo = map[string]*Config{}
-
-	l           = logger.DefaultSLogger("inputs")
+	Inputs      = map[string]Creator{}
+	InputsInfo  = map[string][]*inputInfo{}
+	ConfigInfo  = map[string]*Config{}
 	panicInputs = map[string]int{}
 	mtx         = sync.RWMutex{}
+	l           = logger.DefaultSLogger("inputs")
 )
 
 func GetElectionInputs() []ElectionInput {
@@ -43,6 +42,7 @@ func GetElectionInputs() []ElectionInput {
 			}
 		}
 	}
+
 	return res
 }
 

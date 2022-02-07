@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
 	"google.golang.org/grpc"
 )
@@ -53,17 +53,18 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 
 		log.Debug("v3 segment received")
 
-		group, err := segobjToAdapters(segobj)
+		dktrace, err := segobjToAdapters(segobj)
 		if err != nil {
 			log.Error(err.Error())
 
 			return err
 		}
 
-		if len(group) != 0 {
-			trace.MkLineProto(group, inputName)
+		if len(dktrace) != 0 {
+			itrace.StatTracingInfo(dktrace)
+			itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 		} else {
-			log.Debug("empty v3 segment")
+			log.Warnf("empty v3 segment")
 		}
 	}
 }
@@ -76,49 +77,53 @@ func (*TraceReportServerV3) CollectInSync(
 	return &skyimpl.Commands{}, nil
 }
 
-func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.TraceAdapter, error) {
-	var group []*trace.TraceAdapter
+func segobjToAdapters(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error) {
+	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
-		adapter := &trace.TraceAdapter{Source: inputName}
-		adapter.Duration = (span.EndTime - span.StartTime) * int64(time.Millisecond)
-		adapter.Start = span.StartTime * int64(time.Millisecond)
+		dkspan := &itrace.DatakitSpan{
+			TraceID:   segment.TraceId,
+			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
+			EndPoint:  span.Peer,
+			Operation: span.OperationName,
+			Service:   segment.Service,
+			Source:    inputName,
+			Start:     span.StartTime * int64(time.Millisecond),
+			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
+			Tags:      tags,
+		}
+
 		js, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		adapter.Content = string(js)
-		adapter.ServiceName = segment.Service
-		adapter.OperationName = span.OperationName
+		dkspan.Content = string(js)
+
 		if span.SpanType == skyimpl.SpanType_Entry {
 			if len(span.Refs) > 0 {
-				adapter.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId,
-					span.Refs[0].ParentSpanId)
+				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
 			}
 		} else {
-			adapter.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
+			dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)
 		}
 
-		adapter.TraceID = segment.TraceId
-		adapter.SpanID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId)
-		adapter.Status = trace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		if span.IsError {
-			adapter.Status = trace.STATUS_ERR
+			dkspan.Status = itrace.STATUS_ERR
 		}
+
 		switch span.SpanType {
 		case skyimpl.SpanType_Entry:
-			adapter.SpanType = trace.SPAN_TYPE_ENTRY
+			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		case skyimpl.SpanType_Local:
-			adapter.SpanType = trace.SPAN_TYPE_LOCAL
+			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
 		case skyimpl.SpanType_Exit:
-			adapter.SpanType = trace.SPAN_TYPE_EXIT
+			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		}
-		adapter.EndPoint = span.Peer
-		adapter.Tags = tags
 
-		group = append(group, adapter)
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return group, nil
+	return dktrace, nil
 }
 
 type EventServerV3 struct {
@@ -145,15 +150,13 @@ type ManagementServerV3 struct {
 	skyimpl.UnimplementedManagementServiceServer
 }
 
-func (*ManagementServerV3) ReportInstanceProperties(
-	ctx context.Context,
+func (*ManagementServerV3) ReportInstanceProperties(ctx context.Context,
 	mng *skyimpl.InstanceProperties) (*skyimpl.Commands, error) {
 	var kvpStr string
 	for _, kvp := range mng.Properties {
 		kvpStr += fmt.Sprintf("[%v:%v]", kvp.Key, kvp.Value)
 	}
-	log.Debugf("ReportInstanceProperties service:%v instance:%v properties:%v",
-		mng.Service, mng.ServiceInstance, kvpStr)
+	log.Debugf("ReportInstanceProperties service:%v instance:%v properties:%v", mng.Service, mng.ServiceInstance, kvpStr)
 
 	return &skyimpl.Commands{}, nil
 }
@@ -170,8 +173,7 @@ type JVMMetricReportServerV3 struct {
 	skyimpl.UnimplementedJVMMetricReportServiceServer
 }
 
-func (*JVMMetricReportServerV3) Collect(
-	ctx context.Context,
+func (*JVMMetricReportServerV3) Collect(ctx context.Context,
 	jvm *skyimpl.JVMMetricCollection) (*skyimpl.Commands, error) {
 	log.Debugf("JVMMetricReportService service:%v instance:%v", jvm.Service, jvm.ServiceInstance)
 
@@ -182,8 +184,7 @@ type DiscoveryServerV3 struct {
 	skyimpl.UnimplementedConfigurationDiscoveryServiceServer
 }
 
-func (*DiscoveryServerV3) FetchConfigurations(
-	ctx context.Context,
+func (*DiscoveryServerV3) FetchConfigurations(ctx context.Context,
 	cfgReq *skyimpl.ConfigurationSyncRequest) (*skyimpl.Commands, error) {
 	log.Debugf("DiscoveryServerV3 service: %s", cfgReq.String())
 

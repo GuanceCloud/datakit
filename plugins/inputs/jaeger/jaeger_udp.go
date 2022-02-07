@@ -8,7 +8,7 @@ import (
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/agent"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
 func StartUDPAgent(addr string) error {
@@ -55,19 +55,20 @@ func StartUDPAgent(addr string) error {
 			continue
 		}
 
-		groups, err := parseJaegerUDP(data[:n])
+		dktrace, err := parseJaegerUDP(data[:n])
 		if err != nil {
 			continue
 		}
-		if len(groups) != 0 {
-			trace.MkLineProto(groups, inputName)
+		if len(dktrace) != 0 {
+			itrace.StatTracingInfo(dktrace)
+			itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 		} else {
 			log.Debug("empty batch")
 		}
 	}
 }
 
-func parseJaegerUDP(data []byte) ([]*trace.TraceAdapter, error) {
+func parseJaegerUDP(data []byte) (itrace.DatakitTrace, error) {
 	thriftBuffer := thrift.NewTMemoryBufferLen(len(data))
 	if _, err := thriftBuffer.Write(data); err != nil {
 		log.Error("buffer write failed :%v,", err)

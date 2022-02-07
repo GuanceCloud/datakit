@@ -86,7 +86,7 @@ func MergeTags(data ...map[string]string) map[string]string {
 	return merged
 }
 
-func GetTraceID(high, low int64) int64 {
+func GetTraceInt64ID(high, low int64) int64 {
 	temp := low
 	for temp != 0 {
 		high *= 10
@@ -96,6 +96,24 @@ func GetTraceID(high, low int64) int64 {
 	return high + low
 }
 
-func GetStringTraceID(high, low int64) string {
+func GetTraceStringID(high, low int64) string {
 	return fmt.Sprintf("%d%d", high, low)
+}
+
+func DefSampler(traces DatakitTraces) DatakitTraces {
+	var sampled DatakitTraces
+	for i := range traces {
+		var found bool
+		for j := range traces[i] {
+			if traces[i][j].ParentID == "0" && traces[i][j].SampleRate <= 0 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			sampled = append(sampled, traces[i])
+		}
+	}
+
+	return sampled
 }

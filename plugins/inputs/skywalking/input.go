@@ -4,8 +4,11 @@ package skywalking
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
+
+var _ inputs.InputV2 = &Input{}
 
 var (
 	inputName    = "skywalking"
@@ -13,19 +16,15 @@ var (
 [[inputs.skywalking]]
   ## skywalking grpc server listening on address
   address = "localhost:13800"
-	## customer tags
+  ## customer tags
   # [inputs.skywalking.V3.tags]
-    # tag1 = "tag1"
-    # tag2 = "tag2"
+    # tag1 = "value1"
+    # tag2 = "value2"
     # ...
 `
-	log                = logger.DefaultSLogger(inputName)
-	_   inputs.InputV2 = &Input{}
-)
-
-var (
 	defAddr = "localhost:13800"
 	tags    map[string]string
+	log     = logger.DefaultSLogger(inputName)
 )
 
 // deprecated.
@@ -45,17 +44,17 @@ func (*Input) Catalog() string {
 	return inputName
 }
 
-func (*Input) SampleConfig() string {
-	return sampleConfig
-}
-
 func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
+func (*Input) SampleConfig() string {
+	return sampleConfig
+}
+
 func (i *Input) SampleMeasurement() []inputs.Measurement {
-	return nil
-} // TODO
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
+}
 
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)
@@ -69,6 +68,9 @@ func (i *Input) Run() {
 	}
 
 	log.Debug("start skywalking grpc v3 server")
+
+	itrace.StartTracingStatistic()
+
 	go runServerV3(i.Address)
 }
 

@@ -10,16 +10,17 @@ import (
 
 	// nolint:staticcheck
 	"github.com/golang/protobuf/proto"
-	zipkinmodel "github.com/openzipkin/zipkin-go/model"
-	zipkin_proto3 "github.com/openzipkin/zipkin-go/proto/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	zpkmodel "github.com/openzipkin/zipkin-go/model"
+	zpkprotov2 "github.com/openzipkin/zipkin-go/proto/v2"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
-func parseZipkinProtobuf3(octets []byte) (zss []*zipkinmodel.SpanModel, err error) {
-	var listOfSpans zipkin_proto3.ListOfSpans
+func parseZipkinProtobuf3(octets []byte) (zss []*zpkmodel.SpanModel, err error) {
+	var listOfSpans zpkprotov2.ListOfSpans
 	if err := proto.Unmarshal(octets, &listOfSpans); err != nil {
 		return nil, err
 	}
+
 	for _, zps := range listOfSpans.Spans {
 		traceID, err := zipkinTraceIDFromHex(fmt.Sprintf("%x", zps.TraceId))
 		if err != nil {
@@ -39,19 +40,19 @@ func parseZipkinProtobuf3(octets []byte) (zss []*zipkinmodel.SpanModel, err erro
 			return nil, fmt.Errorf("expected a non-nil SpanID")
 		}
 
-		zmsc := zipkinmodel.SpanContext{
+		zmsc := zpkmodel.SpanContext{
 			TraceID:  traceID,
 			ID:       *spanIDPtr,
 			ParentID: parentSpanID,
 			Debug:    false,
 		}
-		zms := &zipkinmodel.SpanModel{
+		zms := &zpkmodel.SpanModel{
 			SpanContext:    zmsc,
 			Name:           zps.Name,
-			Kind:           zipkinmodel.Kind(zps.Kind.String()),
+			Kind:           zpkmodel.Kind(zps.Kind.String()),
 			Timestamp:      microsToTime(zps.Timestamp),
 			Tags:           zps.Tags,
-			Duration:       microsToDuration(zps.Duration),
+			Duration:       time.Duration(zps.Duration) * time.Microsecond,
 			LocalEndpoint:  protoEndpointToModelEndpoint(zps.LocalEndpoint),
 			RemoteEndpoint: protoEndpointToModelEndpoint(zps.RemoteEndpoint),
 			Shared:         zps.Shared,
@@ -63,7 +64,7 @@ func parseZipkinProtobuf3(octets []byte) (zss []*zipkinmodel.SpanModel, err erro
 	return zss, nil
 }
 
-func zipkinTraceIDFromHex(h string) (t zipkinmodel.TraceID, err error) {
+func zipkinTraceIDFromHex(h string) (t zpkmodel.TraceID, err error) {
 	if len(h) > 16 {
 		if t.High, err = strconv.ParseUint(h[0:len(h)-16], 16, 64); err != nil {
 			return
@@ -72,10 +73,11 @@ func zipkinTraceIDFromHex(h string) (t zipkinmodel.TraceID, err error) {
 		return
 	}
 	t.Low, err = strconv.ParseUint(h, 16, 64)
+
 	return
 }
 
-func zipkinSpanIDToModelSpanID(spanID []byte) (zid *zipkinmodel.ID, blank bool, err error) {
+func zipkinSpanIDToModelSpanID(spanID []byte) (zid *zpkmodel.ID, blank bool, err error) {
 	if len(spanID) == 0 {
 		return nil, true, nil
 	}
@@ -85,7 +87,8 @@ func zipkinSpanIDToModelSpanID(spanID []byte) (zid *zipkinmodel.ID, blank bool, 
 
 	// Converting [8]byte --> uint64
 	u64 := binary.BigEndian.Uint64(spanID)
-	zid_ := zipkinmodel.ID(u64)
+	zid_ := zpkmodel.ID(u64)
+
 	return &zid_, false, nil
 }
 
@@ -93,16 +96,12 @@ func microsToTime(us uint64) time.Time {
 	return time.Unix(0, int64(us*1e3)).UTC()
 }
 
-func microsToDuration(us uint64) time.Duration {
-	// us to ns; ns are the units of Duration
-	return time.Duration(us * 1e3)
-}
-
-func protoEndpointToModelEndpoint(zpe *zipkin_proto3.Endpoint) *zipkinmodel.Endpoint {
+func protoEndpointToModelEndpoint(zpe *zpkprotov2.Endpoint) *zpkmodel.Endpoint {
 	if zpe == nil {
 		return nil
 	}
-	return &zipkinmodel.Endpoint{
+
+	return &zpkmodel.Endpoint{
 		ServiceName: zpe.ServiceName,
 		IPv4:        net.IP(zpe.Ipv4),
 		IPv6:        net.IP(zpe.Ipv6),
@@ -110,160 +109,79 @@ func protoEndpointToModelEndpoint(zpe *zipkin_proto3.Endpoint) *zipkinmodel.Endp
 	}
 }
 
-func protoAnnotationsToModelAnnotations(zpa []*zipkin_proto3.Annotation) (zma []zipkinmodel.Annotation) {
+func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpkmodel.Annotation) {
 	for _, za := range zpa {
 		if za != nil {
-			zma = append(zma, zipkinmodel.Annotation{
+			zma = append(zma, zpkmodel.Annotation{
 				Timestamp: microsToTime(za.Timestamp),
 				Value:     za.Value,
 			})
 		}
 	}
-
 	if len(zma) == 0 {
 		return nil
 	}
+
 	return zma
 }
 
-func protobufSpansToAdapters(zspans []*zipkinmodel.SpanModel,
-	filters ...zipkinProtoBufV2SpansFilter) ([]*trace.TraceAdapter, error) {
-	// run all filters
-	for _, filter := range filters {
-		if len(filter(zspans)) == 0 {
-			return nil, nil
-		}
-	}
-
-	var adapterGroup []*trace.TraceAdapter
-	for _, span := range zspans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = sourceZipkin
-
-		tAdapter.Duration = int64(span.Duration)
-		tAdapter.Start = span.Timestamp.UnixNano()
-		sJSON, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		tAdapter.Content = string(sJSON)
-
-		if span.LocalEndpoint != nil {
-			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
-		}
-		tAdapter.OperationName = span.Name
-
-		if span.ParentID != nil {
-			tAdapter.ParentID = fmt.Sprintf("%d", *span.ParentID)
+func spanModelsToAdapters(zpktrace []*zpkmodel.SpanModel) (itrace.DatakitTrace, error) {
+	var dktrace itrace.DatakitTrace
+	for _, span := range zpktrace {
+		dkspan := &itrace.DatakitSpan{
+			SpanID:    span.ID.String(),
+			Source:    inputName,
+			Operation: span.Name,
+			Start:     span.Timestamp.UnixNano(),
+			Duration:  int64(span.Duration),
+			Tags:      tags,
 		}
 
 		if span.TraceID.High != 0 {
-			tAdapter.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
+			dkspan.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
 		} else {
-			tAdapter.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
+			dkspan.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
 		}
 
-		tAdapter.SpanID = fmt.Sprintf("%d", span.ID)
+		if span.ParentID != nil {
+			dkspan.ParentID = fmt.Sprintf("%d", *span.ParentID)
+		}
 
-		tAdapter.Status = trace.STATUS_OK
+		if span.LocalEndpoint != nil {
+			dkspan.Service = span.LocalEndpoint.ServiceName
+		}
+
+		dkspan.Status = itrace.STATUS_OK
 		for tag := range span.Tags {
-			if tag == statusErr {
-				tAdapter.Status = trace.STATUS_ERR
+			if tag == itrace.STATUS_ERR {
+				dkspan.Status = itrace.STATUS_ERR
 				break
 			}
 		}
 
 		if span.RemoteEndpoint != nil {
 			if len(span.RemoteEndpoint.IPv4) != 0 {
-				tAdapter.EndPoint = span.RemoteEndpoint.IPv4.String()
+				dkspan.EndPoint = span.RemoteEndpoint.IPv4.String()
 			}
-
 			if len(span.RemoteEndpoint.IPv6) != 0 {
-				tAdapter.EndPoint = span.RemoteEndpoint.IPv6.String()
+				dkspan.EndPoint = span.RemoteEndpoint.IPv6.String()
 			}
 		}
 
-		if span.Kind == zipkinmodel.Undetermined {
-			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
+		if span.Kind == zpkmodel.Undetermined {
+			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
 		} else {
-			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
+			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		}
-		tAdapter.Tags = zipkinTags
 
-		adapterGroup = append(adapterGroup, tAdapter)
-	}
-
-	return adapterGroup, nil
-}
-
-func parseZipkinJSONV2(zspans []*zipkinmodel.SpanModel,
-	filters ...zipkinJSONV2SpansFilter) ([]*trace.TraceAdapter, error) {
-	// run all filters
-	for _, filter := range filters {
-		if len(filter(zspans)) == 0 {
-			return nil, nil
-		}
-	}
-
-	var adapterGroup []*trace.TraceAdapter
-	for _, span := range zspans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = sourceZipkin
-
-		tAdapter.Duration = int64(span.Duration)
-		tAdapter.Start = span.Timestamp.UnixNano()
-		sJSON, err := json.Marshal(span)
+		buf, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(sJSON)
+		dkspan.Content = string(buf)
 
-		if span.LocalEndpoint != nil {
-			tAdapter.ServiceName = span.LocalEndpoint.ServiceName
-		}
-
-		tAdapter.OperationName = span.Name
-
-		if span.ParentID != nil {
-			tAdapter.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
-		}
-
-		if span.TraceID.High != 0 {
-			tAdapter.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
-		} else {
-			tAdapter.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
-		}
-
-		tAdapter.SpanID = fmt.Sprintf("%x", uint64(span.ID))
-
-		tAdapter.Status = trace.STATUS_OK
-		for tag := range span.Tags {
-			if tag == statusErr {
-				tAdapter.Status = trace.STATUS_ERR
-				break
-			}
-		}
-
-		if span.RemoteEndpoint != nil {
-			if len(span.RemoteEndpoint.IPv4) != 0 {
-				tAdapter.EndPoint = span.RemoteEndpoint.IPv4.String()
-			}
-
-			if len(span.RemoteEndpoint.IPv6) != 0 {
-				tAdapter.EndPoint = span.RemoteEndpoint.IPv6.String()
-			}
-		}
-
-		if span.Kind == zipkinmodel.Undetermined {
-			tAdapter.SpanType = trace.SPAN_TYPE_LOCAL
-		} else {
-			tAdapter.SpanType = trace.SPAN_TYPE_ENTRY
-		}
-
-		tAdapter.Tags = zipkinTags
-
-		adapterGroup = append(adapterGroup, tAdapter)
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return adapterGroup, nil
+	return dktrace, nil
 }

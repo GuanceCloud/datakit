@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	zipkinmodel "github.com/openzipkin/zipkin-go/model"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	zpkmodel "github.com/openzipkin/zipkin-go/model"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
 func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
@@ -20,42 +20,43 @@ func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if err := handleZipkinTraceV1(w, r); err != nil {
+	if err := handleZipkinTraceV1(r); err != nil {
 		log.Errorf("handleZipkinTraceV1: %s", err)
 
 		io.FeedLastError(inputName, err.Error())
 	}
 }
 
-func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
-	_ = w
-
-	reqInfo, err := trace.ParseHTTPReq(r)
+func handleZipkinTraceV1(r *http.Request) error {
+	reqInfo, err := itrace.ParseTraceInfo(r)
 	if err != nil {
 		return err
 	}
 
-	var group []*trace.TraceAdapter
+	var dktrace itrace.DatakitTrace
 	switch reqInfo.ContentType {
 	case "application/x-thrift":
 		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
 			return err
 		} else {
-			group, err = thriftSpansToAdapters(zspans, zpkThriftV1Filters...)
+			dktrace, err = thriftSpansToAdapters(zspans)
 			if err != nil {
 				log.Errorf("thriftSpansToAdapters: %s", err)
+
 				return err
 			}
 		}
 	case "application/json":
-		zspans := []*ZipkinSpanV1{}
+		var zspans []*ZipkinSpanV1
 		if err := json.Unmarshal(reqInfo.Body, &zspans); err != nil {
 			log.Errorf("json.Unmarshal: %s", err)
+
 			return err
 		} else {
-			group, err = jsonV1SpansToAdapters(zspans, zpkJSONV1Filters...)
+			dktrace, err = jsonV1SpansToAdapters(zspans)
 			if err != nil {
 				log.Errorf("jsonV1SpansToAdapters: %s", err)
+
 				return err
 			}
 		}
@@ -63,8 +64,9 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("zipkin V1 unsupported Content-Type: %s", reqInfo.ContentType)
 	}
 
-	if len(group) != 0 {
-		trace.MkLineProto(group, inputName)
+	if len(dktrace) != 0 {
+		itrace.StatTracingInfo(dktrace)
+		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 	} else {
 		log.Debug("empty zipkin v1 spans")
 	}
@@ -81,53 +83,46 @@ func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if err := handleZipkinTraceV2(w, r); err != nil {
+	if err := handleZipkinTraceV2(r); err != nil {
 		log.Errorf("handleZipkinTraceV2: %v", err)
-
 		io.FeedLastError(inputName, err.Error())
 	}
 }
 
-func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {
-	_ = w // not used
-	reqInfo, err := trace.ParseHTTPReq(r)
+func handleZipkinTraceV2(r *http.Request) error {
+	reqInfo, err := itrace.ParseTraceInfo(r)
 	if err != nil {
 		return err
 	}
 
-	var group []*trace.TraceAdapter
+	var (
+		zpkmodels []*zpkmodel.SpanModel
+		dktrace   itrace.DatakitTrace
+	)
 	switch reqInfo.ContentType {
 	case "application/x-protobuf":
-		zspans, err := parseZipkinProtobuf3(reqInfo.Body)
-		if err != nil {
-			log.Errorf("parseZipkinProtobuf3: %s", err.Error())
-			return err
-		}
-
-		group, err = protobufSpansToAdapters(zspans, zpkProtoBufV2Filters...)
-		if err != nil {
-			log.Errorf("protobufSpansToAdapters: %s", err.Error())
-			return err
+		if zpkmodels, err = parseZipkinProtobuf3(reqInfo.Body); err == nil {
+			dktrace, err = spanModelsToAdapters(zpkmodels)
 		}
 	case "application/json":
-		zspans := []*zipkinmodel.SpanModel{}
-		if err := json.Unmarshal(reqInfo.Body, &zspans); err != nil {
-			log.Errorf("json.Unmarshal: %s", err.Error())
-			return err
-		}
-
-		if group, err = parseZipkinJSONV2(zspans, zpkJSONV2Filters...); err != nil {
-			log.Errorf("parseZipkinJsonV2: %s", err.Error())
-			return err
+		if err = json.Unmarshal(reqInfo.Body, &zpkmodels); err == nil {
+			dktrace, err = spanModelsToAdapters(zpkmodels)
 		}
 	default:
 		return fmt.Errorf("zipkin V2 unsupported Content-Type: %s", reqInfo.ContentType)
 	}
 
-	if len(group) != 0 {
-		trace.MkLineProto(group, inputName)
+	if err != nil {
+		log.Errorf("convert trace to adapters failed: %s", err.Error())
+
+		return err
+	}
+
+	if len(dktrace) != 0 {
+		itrace.StatTracingInfo(dktrace)
+		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 	} else {
-		log.Warnf("empty zipkin v2 spans")
+		log.Warn("empty zipkin v2 spans")
 	}
 
 	return nil

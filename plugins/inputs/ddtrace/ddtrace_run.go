@@ -8,13 +8,10 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"time"
 
 	"github.com/tinylib/msgp/msgp"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
 var ddtraceSpanType = map[string]string{
@@ -49,7 +46,7 @@ var ddtraceSpanType = map[string]string{
 }
 
 //nolint:lll
-type Span struct {
+type DDSpan struct {
 	Service  string             `codec:"service" protobuf:"bytes,1,opt,name=service,proto3" json:"service" msg:"service"`                                                                                     // client code defined service name of span
 	Name     string             `codec:"name" protobuf:"bytes,2,opt,name=name,proto3" json:"name" msg:"name"`                                                                                                 // client code defined operation name of span
 	Resource string             `codec:"resource" protobuf:"bytes,3,opt,name=resource,proto3" json:"resource" msg:"resource"`                                                                                 // client code defined resource name of span
@@ -64,11 +61,11 @@ type Span struct {
 	Type     string             `codec:"type" protobuf:"bytes,12,opt,name=type,proto3" json:"type" msg:"type"`                                                                                                // protocol associated with the span
 }
 
-type Trace []*Span
+type DDTrace []*DDSpan
 
-type Traces []Trace
+type DDTraces []DDTrace
 
-// TODO:.
+// TODO:
 func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
 	log.Errorf("%s not support now", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
@@ -76,7 +73,6 @@ func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,
 
 func handleTraces(pattern string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		since := time.Now()
 		traces, err := decodeRequest(pattern, req)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -96,25 +92,33 @@ func handleTraces(pattern string) http.HandlerFunc {
 			return
 		}
 
-		log.Debugf("show up all traces: %v", traces)
-
-		pts, err := tracesToPoints(req, traces, filters...)
-		if err != nil {
-			log.Error(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-		if len(pts) != 0 {
-			if err = dkio.Feed(inputName, datakit.Tracing, pts,
-				&dkio.Option{
-					CollectCost: time.Since(since),
-					HighFreq:    true,
-				}); err != nil {
-				log.Errorf("Feed: %s", err.Error())
+		var dktraces itrace.DatakitTraces
+		for _, trace := range traces {
+			if len(trace) == 0 {
+				continue
 			}
+			// run all filters
+			if runFiltersWithBreak(trace, filters...) == nil {
+				continue
+			}
+
+			dktrace, err := traceToAdapters(trace)
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			if len(dktrace) != 0 {
+				itrace.StatTracingInfo(dktrace)
+				dktraces = append(dktraces, dktrace)
+			} else {
+				log.Warn("empty trace")
+			}
+		}
+		if len(dktraces) != 0 {
+			itrace.BuildPointsBatch(inputName, dktraces, false)
 		} else {
-			log.Debugf("empty points")
+			log.Warn("empty traces")
 		}
 
 		resp.WriteHeader(http.StatusOK)
@@ -138,10 +142,10 @@ func extractCustomerTags(customerKeys []string, meta map[string]string) map[stri
 	return customerTags
 }
 
-func decodeRequest(pattern string, req *http.Request) (Traces, error) {
+func decodeRequest(pattern string, req *http.Request) (DDTraces, error) {
 	mediaType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
 	if err != nil {
-		log.Debugf("parse media type failed fallback to application/json")
+		log.Debugf("detect media-type failed fallback to application/json")
 		mediaType = "application/json"
 	}
 
@@ -150,7 +154,7 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 		return nil, err
 	}
 
-	traces := Traces{}
+	traces := DDTraces{}
 	if pattern == v5 {
 		err = unmarshalTraceDictionary(buf, &traces)
 	} else {
@@ -167,138 +171,99 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 	return traces, err
 }
 
-// tracesToPoints work as a adapter to convert traces to points.
-// parameter traces is raw traces, filters contains all the functional filters
-// like resource filter, sample.
-//nolint: cyclop
-func tracesToPoints(req *http.Request, traces Traces, filters ...traceFilter) ([]*dkio.Point, error) {
-	var pts []*dkio.Point
-	for _, trace := range traces {
-		if trace == nil || len(trace) == 0 {
-			log.Warnf("got empty trace, request headers: %v", req.Header)
-			continue
-		}
-		// run all filters
-		if runFiltersWithBreak(trace, filters...) == nil {
-			continue
-		}
-
-		spanIds, parentIds := getSpanAndParentID(trace)
-		for _, span := range trace {
-			if span == nil {
-				log.Warnf("got nil span, request headers: %v", req.Header)
-				continue
-			}
-			tags := make(map[string]string)
-			field := make(map[string]interface{})
-
-			tm := &itrace.TraceMeasurement{}
-			tm.Name = "ddtrace"
-
-			var spanType string
-			if span.ParentID == 0 {
-				spanType = itrace.SPAN_TYPE_ENTRY
-			} else {
-				if serviceName, ok := spanIds[span.ParentID]; ok {
-					if serviceName != span.Service {
-						spanType = itrace.SPAN_TYPE_ENTRY
-					} else {
-						if _, ok := parentIds[span.SpanID]; ok {
-							spanType = itrace.SPAN_TYPE_LOCAL
-						} else {
-							spanType = itrace.SPAN_TYPE_EXIT
-						}
-					}
-				} else {
-					spanType = itrace.SPAN_TYPE_ENTRY
-				}
-			}
-			tags[itrace.TAG_SPAN_TYPE] = spanType
-			tags[itrace.TAG_SERVICE] = span.Service
-			tags[itrace.TAG_OPERATION] = span.Name
-			tags[itrace.TAG_TYPE] = ddtraceSpanType[span.Type]
-			if span.Error == 0 {
-				tags[itrace.TAG_SPAN_STATUS] = itrace.STATUS_OK
-			} else {
-				tags[itrace.TAG_SPAN_STATUS] = itrace.STATUS_ERR
-			}
-			tags[itrace.TAG_PROJECT] = span.Meta[itrace.PROJECT]
-			if tags[itrace.TAG_PROJECT] == "" {
-				tags[itrace.TAG_PROJECT] = ddTags[itrace.PROJECT]
-			}
-
-			tags[itrace.TAG_ENV] = span.Meta[itrace.ENV]
-			if tags[itrace.TAG_ENV] == "" {
-				tags[itrace.TAG_ENV] = ddTags[itrace.ENV]
-			}
-
-			tags[itrace.TAG_VERSION] = span.Meta[itrace.VERSION]
-			if tags[itrace.TAG_VERSION] == "" {
-				tags[itrace.TAG_VERSION] = ddTags[itrace.VERSION]
-			}
-			tags[itrace.TAG_CONTAINER_HOST] = span.Meta[itrace.CONTAINER_HOST]
-			tags[itrace.TAG_HTTP_METHOD] = span.Meta["http.method"]
-			tags[itrace.TAG_HTTP_CODE] = span.Meta["http.status_code"]
-
-			customerTags := extractCustomerTags(customerKeys, span.Meta)
-			for k, v := range customerTags {
-				tags[k] = v
-			}
-
-			for k, v := range ddTags {
-				tags[k] = v
-			}
-
-			field[itrace.FIELD_RESOURCE] = span.Resource
-			field[itrace.FIELD_PARENTID] = fmt.Sprintf("%d", span.ParentID)
-			field[itrace.FIELD_TRACEID] = fmt.Sprintf("%d", span.TraceID)
-			field[itrace.FIELD_SPANID] = fmt.Sprintf("%d", span.SpanID)
-			field[itrace.FIELD_DURATION] = span.Duration / 1000
-			field[itrace.FIELD_START] = span.Start / 1000
-			if v, ok := span.Metrics["system.pid"]; ok {
-				field[itrace.FIELD_PID] = fmt.Sprintf("%v", v)
-			}
-			if buf, err := json.Marshal(span); err != nil {
-				return nil, err
-			} else {
-				field[itrace.FIELD_MSG] = string(buf)
-			}
-
-			tm.Tags = tags
-			tm.Fields = field
-			tm.TS = time.Unix(span.Start/int64(time.Second), span.Start%int64(time.Second))
-			if pt, err := tm.LineProto(); err != nil {
-				return nil, err
-			} else {
-				pts = append(pts, pt)
-			}
-		}
-	}
-
-	return pts, nil
-}
-
-func getSpanAndParentID(spans []*Span) (map[uint64]string, map[uint64]string) {
-	spanID := make(map[uint64]string)
-	parentID := make(map[uint64]string)
-	for _, span := range spans {
+func traceToAdapters(trace DDTrace) (itrace.DatakitTrace, error) {
+	var (
+		dktrace            itrace.DatakitTrace
+		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)
+	)
+	for _, span := range trace {
 		if span == nil {
 			continue
 		}
 
-		spanID[span.SpanID] = span.Service
+		dkspan := &itrace.DatakitSpan{
+			TraceID:        fmt.Sprintf("%d", span.TraceID),
+			ParentID:       fmt.Sprintf("%d", span.ParentID),
+			SpanID:         fmt.Sprintf("%d", span.SpanID),
+			Service:        span.Service,
+			Resource:       span.Resource,
+			Operation:      span.Name,
+			Source:         inputName,
+			SpanType:       itrace.FindIntIDSpanType(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
+			SourceType:     ddtraceSpanType[span.Type],
+			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
+			HTTPMethod:     span.Meta["http.method"],
+			HTTPStatusCode: span.Meta["http.status_code"],
+			Start:          span.Start,
+			Duration:       span.Duration,
+		}
+
+		if span.Meta[itrace.PROJECT] != "" {
+			dkspan.Project = span.Meta[itrace.PROJECT]
+		} else {
+			dkspan.Project = tags[itrace.PROJECT]
+		}
+
+		if span.Meta[itrace.ENV] != "" {
+			dkspan.Env = span.Meta[itrace.ENV]
+		} else {
+			dkspan.Env = tags[itrace.ENV]
+		}
+
+		if span.Meta[itrace.VERSION] != "" {
+			dkspan.Version = span.Meta[itrace.VERSION]
+		} else {
+			dkspan.Version = tags[itrace.VERSION]
+		}
+
+		if pid, ok := span.Metrics["system.pid"]; ok {
+			dkspan.PID = fmt.Sprintf("%f", pid)
+		}
+
+		dkspan.Status = itrace.STATUS_OK
+		if span.Error != 0 {
+			dkspan.Status = itrace.STATUS_ERR
+		}
+
+		dkspan.Tags = extractCustomerTags(customerKeys, span.Meta)
+		for k, v := range tags {
+			dkspan.Tags[k] = v
+		}
+
+		buf, err := json.Marshal(span)
+		if err != nil {
+			return nil, err
+		}
+		dkspan.Content = string(buf)
+
+		dktrace = append(dktrace, dkspan)
+	}
+
+	return dktrace, nil
+}
+
+func getSpanIDsAndParentIDs(trace DDTrace) (map[int64]bool, map[int64]bool) {
+	var (
+		spanIDs   = make(map[int64]bool)
+		parentIDs = make(map[int64]bool)
+	)
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		spanIDs[int64(span.SpanID)] = true
 		if span.ParentID != 0 {
-			parentID[span.ParentID] = ""
+			parentIDs[int64(span.ParentID)] = true
 		}
 	}
 
-	return spanID, parentID
+	return spanIDs, parentIDs
 }
 
 // unmarshalTraceDictionary decodes a trace using the specification from the v0.5 endpoint.
 // For details, see the documentation for endpoint v0.5 in pkg/trace/api/version.go
 //nolint:cyclop
-func unmarshalTraceDictionary(bts []byte, out *Traces) error {
+func unmarshalTraceDictionary(bts []byte, out *DDTraces) error {
 	if out == nil {
 		return errors.New("nil pointer")
 	}
@@ -329,7 +294,7 @@ func unmarshalTraceDictionary(bts []byte, out *Traces) error {
 	if cap(*out) >= int(sz) {
 		*out = (*out)[:sz]
 	} else {
-		*out = make(Traces, sz)
+		*out = make(DDTraces, sz)
 	}
 	for i := range *out {
 		sz, bts, err = msgp.ReadArrayHeaderBytes(bts)
@@ -339,11 +304,11 @@ func unmarshalTraceDictionary(bts []byte, out *Traces) error {
 		if cap((*out)[i]) >= int(sz) {
 			(*out)[i] = (*out)[i][:sz]
 		} else {
-			(*out)[i] = make(Trace, sz)
+			(*out)[i] = make(DDTrace, sz)
 		}
 		for j := range (*out)[i] {
 			if (*out)[i][j] == nil {
-				(*out)[i][j] = new(Span)
+				(*out)[i][j] = new(DDSpan)
 			}
 			if bts, err = unmarshalSpanDictionary(bts, dict, (*out)[i][j]); err != nil {
 				return err
@@ -381,7 +346,7 @@ const spanPropertyCount = 12
 // in the given dictionary dict. For details, see the documentation for endpoint v0.5
 // in pkg/trace/api/version.go
 //nolint:cyclop
-func unmarshalSpanDictionary(bts []byte, dict []string, out *Span) ([]byte, error) {
+func unmarshalSpanDictionary(bts []byte, dict []string, out *DDSpan) ([]byte, error) {
 	if out == nil {
 		return nil, errors.New("nil pointer")
 	}

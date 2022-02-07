@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
 func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
@@ -22,20 +23,20 @@ func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	reqInfo, err := trace.ParseHTTPReq(req)
+	treqinfo, err := itrace.ParseTraceInfo(req)
 	if err != nil {
 		log.Error(err.Error())
 
 		return
 	}
 
-	if reqInfo.ContentType != "application/x-thrift" {
-		log.Errorf("Jeager unsupported Content-Type: %s", reqInfo.ContentType)
+	if treqinfo.ContentType != "application/x-thrift" {
+		log.Errorf("Jeager unsupported Content-Type: %s", treqinfo.ContentType)
 
 		return
 	}
 
-	if err = parseJaegerThrift(reqInfo.Body); err != nil {
+	if err = parseJaegerThrift(treqinfo.Body); err != nil {
 		log.Error(err.Error())
 	}
 }
@@ -51,73 +52,94 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	group, err := batchToAdapters(batch)
+	dktrace, err := batchToAdapters(batch)
 	if err != nil {
 		return err
 	}
 
-	if len(group) != 0 {
-		trace.MkLineProto(group, inputName)
+	if len(dktrace) != 0 {
+		itrace.StatTracingInfo(dktrace)
+		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
 	} else {
-		log.Debug("empty batch")
+		log.Warn("empty batch")
 	}
 
 	return nil
 }
 
-func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
-	project, ver, env := getExpandInfo(batch)
+func batchToAdapters(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
+	project, version, env := getExpandInfo(batch)
 	if project == "" {
-		project = jaegerTags[trace.PROJECT]
+		project = tags[itrace.PROJECT]
 	}
-
-	if ver == "" {
-		ver = jaegerTags[trace.VERSION]
+	if version == "" {
+		version = tags[itrace.VERSION]
 	}
-
 	if env == "" {
-		env = jaegerTags[trace.ENV]
+		env = tags[itrace.ENV]
 	}
 
-	var adapterGroup []*trace.TraceAdapter
+	var (
+		dktrace            itrace.DatakitTrace
+		spanIDs, parentIDs = getSpanIDsAndParentIDs(batch.Spans)
+	)
 	for _, span := range batch.Spans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = "jaeger"
-		tAdapter.Project = project
-		tAdapter.Version = ver
-		tAdapter.Env = env
+		if span == nil {
+			continue
+		}
 
-		tAdapter.Duration = span.Duration * 1000
-		tAdapter.Start = span.StartTime * 1000
-		sJSON, err := json.Marshal(span)
+		dkspan := &itrace.DatakitSpan{
+			TraceID:   itrace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
+			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
+			SpanID:    fmt.Sprintf("%d", span.SpanId),
+			Env:       env,
+			Operation: span.OperationName,
+			Project:   project,
+			Service:   batch.Process.ServiceName,
+			Source:    inputName,
+			SpanType:  itrace.FindIntIDSpanType(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			Start:     span.StartTime * int64(time.Microsecond),
+			Duration:  span.Duration * int64(time.Microsecond),
+			Version:   version,
+		}
+
+		buf, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
 		}
-		tAdapter.Content = string(sJSON)
+		dkspan.Content = string(buf)
 
-		tAdapter.ServiceName = batch.Process.ServiceName
-		tAdapter.OperationName = span.OperationName
-		if span.ParentSpanId != 0 {
-			tAdapter.ParentID = fmt.Sprintf("%d", span.ParentSpanId)
-		}
-
-		// tAdapter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
-		tAdapter.TraceID = trace.GetStringTraceID(span.TraceIdHigh, span.TraceIdLow)
-		tAdapter.SpanID = fmt.Sprintf("%d", span.SpanId)
-
-		tAdapter.Status = trace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				tAdapter.Status = trace.STATUS_ERR
+				dkspan.Status = itrace.STATUS_ERR
 				break
 			}
 		}
-		tAdapter.Tags = jaegerTags
+		dkspan.Tags = tags
 
-		adapterGroup = append(adapterGroup, tAdapter)
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return adapterGroup, nil
+	return dktrace, nil
+}
+
+func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]bool) {
+	var (
+		spanIDs   = make(map[int64]bool)
+		parentIDs = make(map[int64]bool)
+	)
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		spanIDs[span.SpanId] = true
+		if span.ParentSpanId != 0 {
+			parentIDs[span.ParentSpanId] = true
+		}
+	}
+
+	return spanIDs, parentIDs
 }
 
 func getExpandInfo(batch *jaeger.Batch) (project, ver, env string) {
@@ -129,15 +151,15 @@ func getExpandInfo(batch *jaeger.Batch) (project, ver, env string) {
 			continue
 		}
 
-		if tag.Key == trace.PROJECT {
+		if tag.Key == itrace.PROJECT {
 			project = fmt.Sprintf("%v", getValueString(tag))
 		}
 
-		if tag.Key == trace.VERSION {
+		if tag.Key == itrace.VERSION {
 			ver = fmt.Sprintf("%v", getValueString(tag))
 		}
 
-		if tag.Key == trace.ENV {
+		if tag.Key == itrace.ENV {
 			env = fmt.Sprintf("%v", getValueString(tag))
 		}
 	}

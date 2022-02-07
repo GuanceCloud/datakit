@@ -8,14 +8,19 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	inputName           = "ddtrace"
-	ddtraceSampleConfig = `
+	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput = &Input{}
+)
+
+var (
+	inputName    = "ddtrace"
+	sampleConfig = `
 [[inputs.ddtrace]]
   ## DDTrace Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -34,14 +39,13 @@ var (
 
   ## tags is ddtrace configed key value pairs
   # [inputs.ddtrace.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
-    ## ...
+    # tag1 = "value1"
+    # tag2 = "value2"
+    # ...
 `
 	customerKeys []string
-	ddTags       map[string]string
-	log                         = logger.DefaultSLogger(inputName)
-	_            inputs.InputV2 = &Input{}
+	tags         map[string]string
+	log          = logger.DefaultSLogger(inputName)
 )
 
 var (
@@ -52,35 +56,35 @@ var (
 )
 
 type Input struct {
-	Path             string                     `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs,omitempty"` // deprecated
-	TraceSampleConf  *trace.TraceSampleConfig   `toml:"sample_config"`            // deprecated
-	Endpoints        []string                   `toml:"endpoints"`
-	IgnoreResources  []string                   `toml:"ignore_resources"`
-	CustomerTags     []string                   `toml:"customer_tags"`
-	Tags             map[string]string          `toml:"tags"`
+	Path             string                      `toml:"path,omitempty"`           // deprecated
+	TraceSampleConfs []*itrace.TraceSampleConfig `toml:"sample_configs,omitempty"` // deprecated
+	TraceSampleConf  *itrace.TraceSampleConfig   `toml:"sample_config"`            // deprecated
+	Endpoints        []string                    `toml:"endpoints"`
+	IgnoreResources  []string                    `toml:"ignore_resources"`
+	CustomerTags     []string                    `toml:"customer_tags"`
+	Tags             map[string]string           `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
 	return inputName
 }
 
-func (*Input) SampleConfig() string {
-	return ddtraceSampleConfig
-}
-
 func (*Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
+func (*Input) SampleConfig() string {
+	return sampleConfig
+}
+
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&DDTraceMeasurement{}}
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
-	iod.FeedEventLog(&iod.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
+	dkio.FeedEventLog(&dkio.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// rare traces penetration
 	filters = append(filters, rare)
@@ -108,26 +112,32 @@ func (i *Input) Run() {
 	}
 
 	if i.Tags != nil {
-		ddTags = i.Tags
+		tags = i.Tags
 	} else {
-		ddTags = map[string]string{}
+		tags = map[string]string{}
 	}
 }
 
 func (i *Input) RegHTTPHandler() {
+	var isReg bool
 	for _, endpoint := range i.Endpoints {
 		switch endpoint {
 		case v3, v4, v5:
+			isReg = true
 			http.RegHTTPHandler("POST", endpoint, handleTraces(endpoint))
 			http.RegHTTPHandler("PUT", endpoint, handleTraces(endpoint))
 			log.Infof("pattern %s registered", endpoint)
 		case v6:
+			isReg = true
 			http.RegHTTPHandler("POST", endpoint, handleStats)
 			http.RegHTTPHandler("PUT", endpoint, handleStats)
 			log.Infof("pattern %s registered", endpoint)
 		default:
 			log.Errorf("unrecognized ddtrace agent endpoint")
 		}
+	}
+	if isReg {
+		itrace.StartTracingStatistic()
 	}
 }
 
