@@ -62,7 +62,7 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 
 		if len(dktrace) != 0 {
 			itrace.StatTracingInfo(dktrace)
-			itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
+			itrace.BuildPointsBatch(inputName, dktrace, false)
 		} else {
 			log.Warnf("empty v3 segment")
 		}

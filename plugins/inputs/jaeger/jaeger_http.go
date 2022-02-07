@@ -59,7 +59,7 @@ func parseJaegerThrift(octets []byte) error {
 
 	if len(dktrace) != 0 {
 		itrace.StatTracingInfo(dktrace)
-		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
+		itrace.BuildPointsBatch(inputName, dktrace, false)
 	} else {
 		log.Warn("empty batch")
 	}
@@ -97,7 +97,7 @@ func batchToAdapters(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			Project:   project,
 			Service:   batch.Process.ServiceName,
 			Source:    inputName,
-			SpanType:  itrace.FindIntIDSpanType(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			SpanType:  itrace.FindSpanTypeInt(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
 			Start:     span.StartTime * int64(time.Microsecond),
 			Duration:  span.Duration * int64(time.Microsecond),
 			Version:   version,

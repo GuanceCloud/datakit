@@ -4,6 +4,7 @@ package trace
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -19,14 +20,14 @@ const (
 	VERSION        = "version"
 
 	STATUS_OK       = "ok"
-	STATUS_ERR      = "error"
 	STATUS_INFO     = "info"
 	STATUS_WARN     = "warning"
+	STATUS_ERR      = "error"
 	STATUS_CRITICAL = "critical"
 
 	SPAN_TYPE_ENTRY = "entry"
-	SPAN_TYPE_EXIT  = "exit"
 	SPAN_TYPE_LOCAL = "local"
+	SPAN_TYPE_EXIT  = "exit"
 
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_CACHE  = "cache"
@@ -57,42 +58,53 @@ const (
 	FIELD_TRACEID  = "trace_id"
 )
 
+// trace keep priority
+const (
+	// reject trace before send to dataway
+	PriorityReject = -1
+	// consider with sampling rate
+	PriorityAuto = 0
+	// always send to dataway and do not consider sampling and filters
+	PriorityKeep = 1
+)
+
 var (
 	packageName = "dktrace"
 	log         = logger.DefaultSLogger(packageName)
 )
 
 type DatakitSpan struct {
-	TraceID        string
-	ParentID       string
-	SpanID         string
-	Service        string
-	Resource       string
-	Operation      string
-	Source         string // third part source name
-	SpanType       string
-	SourceType     string
-	Env            string
-	Project        string
-	Version        string
-	Tags           map[string]string
-	EndPoint       string
-	HTTPMethod     string
-	HTTPStatusCode string
-	ContainerHost  string
-	PID            string // process id
-	Start          int64  // nano sec
-	Duration       int64  // nano sec
-	Status         string
-	Content        string
-	SampleRate     float32 // <=0: abandon directly; >=1: keep through; >0&&<1: sample traces bases on rate
+	TraceID            string
+	ParentID           string
+	SpanID             string
+	Service            string
+	Resource           string
+	Operation          string
+	Source             string // third part source name
+	SpanType           string
+	SourceType         string
+	Env                string
+	Project            string
+	Version            string
+	Tags               map[string]string
+	EndPoint           string
+	HTTPMethod         string
+	HTTPStatusCode     string
+	ContainerHost      string
+	PID                string // process id
+	Start              int64  // nano sec
+	Duration           int64  // nano sec
+	Status             string
+	Content            string
+	Priority           int
+	SamplingRateGlobal float64
 }
 
 type DatakitTrace []*DatakitSpan
 
 type DatakitTraces []DatakitTrace
 
-func FindIntIDSpanType(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
+func FindSpanTypeInt(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
 	if parentID != 0 {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
@@ -106,7 +118,7 @@ func FindIntIDSpanType(spanID, parentID int64, spanIDs, parentIDs map[int64]bool
 	return SPAN_TYPE_ENTRY
 }
 
-func FindStringIDSpanType(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
+func FindSpanTypeString(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
 	if parentID != "" && parentID != "0" {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
@@ -118,6 +130,35 @@ func FindStringIDSpanType(spanID, parentID string, spanIDs, parentIDs map[string
 	}
 
 	return SPAN_TYPE_ENTRY
+}
+
+func MergeTags(data ...map[string]string) map[string]string {
+	merged := map[string]string{}
+	for _, tags := range data {
+		for k, v := range tags {
+			merged[k] = v
+		}
+	}
+
+	return merged
+}
+
+func GetTraceInt64ID(high, low int64) int64 {
+	temp := low
+	for temp != 0 {
+		high *= 10
+		temp /= 10
+	}
+
+	return high + low
+}
+
+func GetTraceStringID(high, low int64) string {
+	return fmt.Sprintf("%d%d", high, low)
+}
+
+func IsRootSpan(dkspan *DatakitSpan) bool {
+	return dkspan.ParentID == "0" || dkspan.ParentID == ""
 }
 
 type TraceReqInfo struct {

@@ -14,6 +14,13 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
+const (
+	// KeySamplingPriority is the key of the sampling priority value in the metrics map of the root span.
+	keyPriority = "_sampling_priority_v1"
+	// keySamplingRateGlobal is a metric key holding the global sampling rate.
+	keySamplingRateGlobal = "_sample_rate"
+)
+
 var ddtraceSpanType = map[string]string{
 	"cache":         itrace.SPAN_SERVICE_CACHE,
 	"cassandra":     itrace.SPAN_SERVICE_DB,
@@ -92,13 +99,8 @@ func handleTraces(pattern string) http.HandlerFunc {
 			return
 		}
 
-		var dktraces itrace.DatakitTraces
 		for _, trace := range traces {
 			if len(trace) == 0 {
-				continue
-			}
-			// run all filters
-			if runFiltersWithBreak(trace, filters...) == nil {
 				continue
 			}
 
@@ -108,17 +110,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 				continue
 			}
 
-			if len(dktrace) != 0 {
-				itrace.StatTracingInfo(dktrace)
-				dktraces = append(dktraces, dktrace)
-			} else {
-				log.Warn("empty trace")
-			}
-		}
-		if len(dktraces) != 0 {
-			itrace.BuildPointsBatch(inputName, dktraces, false)
-		} else {
-			log.Warn("empty traces")
+			afterGather.Run(inputName, dktrace, false)
 		}
 
 		resp.WriteHeader(http.StatusOK)
@@ -182,20 +174,21 @@ func traceToAdapters(trace DDTrace) (itrace.DatakitTrace, error) {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:        fmt.Sprintf("%d", span.TraceID),
-			ParentID:       fmt.Sprintf("%d", span.ParentID),
-			SpanID:         fmt.Sprintf("%d", span.SpanID),
-			Service:        span.Service,
-			Resource:       span.Resource,
-			Operation:      span.Name,
-			Source:         inputName,
-			SpanType:       itrace.FindIntIDSpanType(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
-			SourceType:     ddtraceSpanType[span.Type],
-			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
-			HTTPMethod:     span.Meta["http.method"],
-			HTTPStatusCode: span.Meta["http.status_code"],
-			Start:          span.Start,
-			Duration:       span.Duration,
+			TraceID:            fmt.Sprintf("%d", span.TraceID),
+			ParentID:           fmt.Sprintf("%d", span.ParentID),
+			SpanID:             fmt.Sprintf("%d", span.SpanID),
+			Service:            span.Service,
+			Resource:           span.Resource,
+			Operation:          span.Name,
+			Source:             inputName,
+			SpanType:           itrace.FindSpanTypeInt(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
+			SourceType:         ddtraceSpanType[span.Type],
+			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
+			HTTPMethod:         span.Meta["http.method"],
+			HTTPStatusCode:     span.Meta["http.status_code"],
+			Start:              span.Start,
+			Duration:           span.Duration,
+			SamplingRateGlobal: span.Metrics[keySamplingRateGlobal],
 		}
 
 		if span.Meta[itrace.PROJECT] != "" {
@@ -235,6 +228,10 @@ func traceToAdapters(trace DDTrace) (itrace.DatakitTrace, error) {
 			return nil, err
 		}
 		dkspan.Content = string(buf)
+
+		if priority := int(span.Metrics[keyPriority]); priority <= 0 {
+			dkspan.Priority = itrace.PriorityReject
+		}
 
 		dktrace = append(dktrace, dkspan)
 	}

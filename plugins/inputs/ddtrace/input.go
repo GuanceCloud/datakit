@@ -4,6 +4,7 @@ package ddtrace
 import (
 	"regexp"
 	"strings"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -51,18 +52,19 @@ var (
 var (
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
-	ignoreResources      []*regexp.Regexp
-	filters              []traceFilter
+	ignResRegs           []*regexp.Regexp
+	rareResMap           = make(map[string]time.Time)
+	afterGather          = itrace.NewAfterGather()
 )
 
 type Input struct {
-	Path             string                      `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs []*itrace.TraceSampleConfig `toml:"sample_configs,omitempty"` // deprecated
-	TraceSampleConf  *itrace.TraceSampleConfig   `toml:"sample_config"`            // deprecated
-	Endpoints        []string                    `toml:"endpoints"`
-	IgnoreResources  []string                    `toml:"ignore_resources"`
-	CustomerTags     []string                    `toml:"customer_tags"`
-	Tags             map[string]string           `toml:"tags"`
+	Path             string            `toml:"path,omitempty"`           // deprecated
+	TraceSampleConfs interface{}       `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
+	TraceSampleConf  interface{}       `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
+	Endpoints        []string          `toml:"endpoints"`
+	IgnoreResources  []string          `toml:"ignore_resources"`
+	CustomerTags     []string          `toml:"customer_tags"`
+	Tags             map[string]string `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
@@ -81,46 +83,44 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 	dkio.FeedEventLog(&dkio.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
 
-	// rare traces penetration
-	filters = append(filters, rare)
-	// add resource filter
-	for k := range i.IgnoreResources {
-		if reg, err := regexp.Compile(i.IgnoreResources[k]); err != nil {
-			log.Warnf("parse regular expression %q failed", i.IgnoreResources[k])
-			continue
-		} else {
-			ignoreResources = append(ignoreResources, reg)
-		}
-	}
-	if len(ignoreResources) != 0 {
-		filters = append(filters, checkResource)
-	}
-	// add sample filter
-	filters = append(filters, sample)
+	// add calculators
+	afterGather.AppendCalculator(itrace.StatTracingInfo)
 
-	for k := range i.CustomerTags {
-		if strings.Contains(i.CustomerTags[k], ".") {
+	// add close resource filter
+	if len(ipt.IgnoreResources) != 0 {
+		for i := range ipt.IgnoreResources {
+			ignResRegs = append(ignResRegs, regexp.MustCompile(ipt.IgnoreResources[i]))
+		}
+		afterGather.AppendFilter(itrace.CloseResourceWrapper(ignResRegs))
+	}
+	// add rare resource keeper
+	afterGather.AppendFilter(itrace.KeepRareResourceWrapper(rareResMap))
+	// add sampler
+	afterGather.AppendFilter(itrace.DefSampler)
+
+	for k := range ipt.CustomerTags {
+		if strings.Contains(ipt.CustomerTags[k], ".") {
 			log.Warn("customer tag can not contains dot(.)")
 		} else {
-			customerKeys = append(customerKeys, i.CustomerTags[k])
+			customerKeys = append(customerKeys, ipt.CustomerTags[k])
 		}
 	}
 
-	if i.Tags != nil {
-		tags = i.Tags
+	if ipt.Tags != nil {
+		tags = ipt.Tags
 	} else {
 		tags = map[string]string{}
 	}
 }
 
-func (i *Input) RegHTTPHandler() {
+func (ipt *Input) RegHTTPHandler() {
 	var isReg bool
-	for _, endpoint := range i.Endpoints {
+	for _, endpoint := range ipt.Endpoints {
 		switch endpoint {
 		case v3, v4, v5:
 			isReg = true

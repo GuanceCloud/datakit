@@ -58,27 +58,27 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
-func (t *Input) Run() {
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	if t.Tags != nil {
-		tags = t.Tags
+	if ipt.Tags != nil {
+		tags = ipt.Tags
 	}
 }
 
-func (t *Input) RegHTTPHandler() {
+func (ipt *Input) RegHTTPHandler() {
 	itrace.StartTracingStatistic()
 
-	if t.PathV1 == "" {
-		t.PathV1 = apiv1Path
+	if ipt.PathV1 == "" {
+		ipt.PathV1 = apiv1Path
 	}
-	http.RegHTTPHandler("POST", t.PathV1, ZipkinTraceHandleV1)
+	http.RegHTTPHandler("POST", ipt.PathV1, ZipkinTraceHandleV1)
 
-	if t.PathV2 == "" {
-		t.PathV2 = apiv2Path
+	if ipt.PathV2 == "" {
+		ipt.PathV2 = apiv2Path
 	}
-	http.RegHTTPHandler("POST", t.PathV2, ZipkinTraceHandleV2)
+	http.RegHTTPHandler("POST", ipt.PathV2, ZipkinTraceHandleV2)
 }
 
 func init() { //nolint:gochecknoinits
