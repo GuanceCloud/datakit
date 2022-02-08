@@ -74,14 +74,28 @@ type DDTraces []DDTrace
 
 // TODO:
 func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
-	log.Errorf("%s not support now", req.URL.Path)
+	log.Errorf("%s unsupport yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
 func handleTraces(pattern string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		traces, err := decodeRequest(pattern, req)
+		buf, err := io.ReadAll(req.Body)
 		if err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+
+		var mediaType string
+		if mediaType, _, err = mime.ParseMediaType(req.Header.Get("Content-Type")); err != nil {
+			log.Warn("detect content-type failed fallback to application/json")
+			mediaType = "application/json"
+		}
+
+		var traces DDTraces
+		if traces, err = decodeRequest(pattern, mediaType, buf); err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Warn(err.Error())
 				resp.WriteHeader(http.StatusOK)
@@ -134,19 +148,11 @@ func extractCustomerTags(customerKeys []string, meta map[string]string) map[stri
 	return customerTags
 }
 
-func decodeRequest(pattern string, req *http.Request) (DDTraces, error) {
-	mediaType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
-	if err != nil {
-		log.Debugf("detect media-type failed fallback to application/json")
-		mediaType = "application/json"
-	}
-
-	buf, err := io.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	traces := DDTraces{}
+func decodeRequest(pattern string, mediaType string, buf []byte) (DDTraces, error) {
+	var (
+		traces = DDTraces{}
+		err    error
+	)
 	if pattern == v5 {
 		err = unmarshalTraceDictionary(buf, &traces)
 	} else {
