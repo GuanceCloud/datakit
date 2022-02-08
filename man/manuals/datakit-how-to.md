@@ -645,7 +645,7 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 
 Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下：
 
-```conf
+```toml
 [git_repos]
   pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
 

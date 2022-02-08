@@ -10,17 +10,22 @@ import (
 )
 
 var (
-	// no set.
+	// For logging, we use measurement-name as source value
+	// in kodo, so there should not be any tag/field named
+	// with `source`.
+	// For object, we use measurement-name as class value
+	// in kodo, so there should not be any tag/field named
+	// with `class`.
 	DisabledTagKeys = map[string][]string{
 		datakit.Logging: {"source"},
 		datakit.Object:  {"class"},
-		// others not set...
+		// others data type not set...
 	}
 
 	DisabledFieldKeys = map[string][]string{
 		datakit.Logging: {"source"},
 		datakit.Object:  {"class"},
-		// others not set...
+		// others data type not set...
 	}
 
 	Callback func(models.Point) (models.Point, error) = nil

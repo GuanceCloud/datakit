@@ -18,6 +18,7 @@ var (
 	unknown = []string{}
 	ignored = []string{}
 	passed  = 0
+	checked = 0
 )
 
 func checkInputCfg(tpl *ast.Table, fp string) {
@@ -64,8 +65,8 @@ func checkInputCfg(tpl *ast.Table, fp string) {
 
 func showCheckResult() {
 	infof("\n------------------------\n")
-	infof("checked %d sample, %d ignored, %d passed, %d failed, %d unknown, ",
-		len(inputs.Inputs), len(ignored), passed, len(failed), len(unknown))
+	infof("checked %d samples, %d ignored, %d passed, %d failed, %d unknown, ",
+		checked, len(ignored), passed, len(failed), len(unknown))
 
 	if len(ignored) > 0 {
 		infof("ignored:\n")
@@ -94,6 +95,7 @@ func checkSample() error {
 	failed = []string{}
 	unknown = []string{}
 	passed = 0
+	checked = len(inputs.Inputs)
 	ignored = []string{}
 
 	for k, c := range inputs.Inputs {
@@ -128,6 +130,7 @@ func checkConfig(dir, suffix string) error {
 	failed = []string{}
 	unknown = []string{}
 	passed = 0
+	checked = 0
 	ignored = []string{}
 
 	for _, fp := range fps {
@@ -142,6 +145,7 @@ func checkConfig(dir, suffix string) error {
 		} else {
 			checkInputCfg(tpl, fp)
 		}
+		checked++
 	}
 
 	showCheckResult()

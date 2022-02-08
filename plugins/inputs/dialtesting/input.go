@@ -20,6 +20,7 @@ import (
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
@@ -108,6 +109,7 @@ func (*Input) AvailableArchs() []string {
 
 func (d *Input) Run() {
 	l = logger.SLogger(inputName)
+	iod.FeedEventLog(&iod.Reporter{Message: "dialtesting start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// 根据Server配置，若为服务地址则定时拉取任务数据；
 	// 若为本地json文件，则读取任务

@@ -53,7 +53,7 @@ func (d *dockerInput) cancelTails() {
 	}
 }
 
-func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *types.Container) error {
+func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types.Container) error {
 	tags := getContainerInfo(container, d.k8sClient)
 	// add extra tags
 	for k, v := range d.cfg.extraTags {
@@ -72,7 +72,7 @@ func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *type
 	if logconf != nil {
 		l.Debugf("use contaier logconfig %#v, container_name:%s", logconf, tags["container_name"])
 		if logconf.Disable {
-			l.Debug("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
+			l.Debugf("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
 			return nil
 		}
 
@@ -91,10 +91,10 @@ func (d *dockerInput) watchingContainerLogs(ctx context.Context, container *type
 		return err
 	}
 
-	return d.tailContainerLogs(ctx, logconf)
+	return d.tailContainerLog(ctx, logconf)
 }
 
-func (d *dockerInput) tailContainerLogs(ctx context.Context, logconf *containerLogConfig) error {
+func (d *dockerInput) tailContainerLog(ctx context.Context, logconf *containerLogConfig) error {
 	hasTTY, err := d.hasTTY(ctx, logconf.containerID)
 	if err != nil {
 		return err
@@ -297,12 +297,12 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		case <-ctx.Done():
 			return nil
 		case <-timeout.C:
-			if text := mult.Flush(); len(text) != 0 {
+			if line := mult.Flush(); len(line) != 0 {
 				task := newTask()
 				task.Data = []worker.TaskData{
 					&taskData{
 						tags: logconf.tags,
-						log:  string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
+						log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
 					},
 				}
 				task.TS = time.Now()
@@ -340,6 +340,10 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 					log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
+		}
+
+		if len(workerData) == 0 {
+			continue
 		}
 
 		task := newTask()
