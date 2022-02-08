@@ -12,8 +12,6 @@ import (
 )
 
 func StartUDPAgent(addr string) error {
-	data := make([]byte, 65535)
-
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return err
@@ -23,9 +21,10 @@ func StartUDPAgent(addr string) error {
 		return err
 	}
 
-	log.Infof("Jaeger UDP agent listening on %s", addr)
+	log.Debugf("%s(UDP): listen on path: %s", inputName, addr)
 
 	// receiving loop
+	buf := make([]byte, 65535)
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -44,7 +43,7 @@ func StartUDPAgent(addr string) error {
 			continue
 		}
 
-		n, addr, err := udpConn.ReadFromUDP(data)
+		n, addr, err := udpConn.ReadFromUDP(buf)
 		if err != nil {
 			log.Debug(err.Error())
 			continue
@@ -55,7 +54,7 @@ func StartUDPAgent(addr string) error {
 			continue
 		}
 
-		dktrace, err := parseJaegerUDP(data[:n])
+		dktrace, err := parseJaegerUDP(buf[:n])
 		if err != nil {
 			continue
 		}

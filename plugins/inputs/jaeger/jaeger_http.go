@@ -14,7 +14,8 @@ import (
 )
 
 func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("trace handle with path: %s", req.URL.Path)
+	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
+
 	defer func() {
 		resp.WriteHeader(http.StatusOK)
 		if r := recover(); r != nil {

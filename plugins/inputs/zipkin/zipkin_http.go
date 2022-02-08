@@ -11,8 +11,9 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
-func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("trace handle with path: %s", r.URL.Path)
+func ZipkinTraceHandleV1(resp http.ResponseWriter, req *http.Request) {
+	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
+
 	defer func() {
 		if r := recover(); r != nil {
 			log.Errorf("Stack crash: %v", r)
@@ -20,15 +21,15 @@ func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if err := handleZipkinTraceV1(r); err != nil {
+	if err := handleZipkinTraceV1(req); err != nil {
 		log.Errorf("handleZipkinTraceV1: %s", err)
 
 		io.FeedLastError(inputName, err.Error())
 	}
 }
 
-func handleZipkinTraceV1(r *http.Request) error {
-	reqInfo, err := itrace.ParseTraceInfo(r)
+func handleZipkinTraceV1(req *http.Request) error {
+	reqInfo, err := itrace.ParseTraceInfo(req)
 	if err != nil {
 		return err
 	}
@@ -74,8 +75,9 @@ func handleZipkinTraceV1(r *http.Request) error {
 	return nil
 }
 
-func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("trace handle with path: %s", r.URL.Path)
+func ZipkinTraceHandleV2(resp http.ResponseWriter, req *http.Request) {
+	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
+
 	defer func() {
 		if r := recover(); r != nil {
 			log.Errorf("Stack crash: %v", r)
@@ -83,14 +85,14 @@ func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if err := handleZipkinTraceV2(r); err != nil {
+	if err := handleZipkinTraceV2(req); err != nil {
 		log.Errorf("handleZipkinTraceV2: %v", err)
 		io.FeedLastError(inputName, err.Error())
 	}
 }
 
-func handleZipkinTraceV2(r *http.Request) error {
-	reqInfo, err := itrace.ParseTraceInfo(r)
+func handleZipkinTraceV2(req *http.Request) error {
+	reqInfo, err := itrace.ParseTraceInfo(req)
 	if err != nil {
 		return err
 	}
