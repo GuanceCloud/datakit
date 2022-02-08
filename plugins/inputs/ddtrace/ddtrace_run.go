@@ -109,7 +109,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 			return
 		}
 		if len(traces) == 0 {
-			log.Debug("empty traces")
+			log.Debug("empty ddtraces")
 			resp.WriteHeader(http.StatusOK)
 
 			return
@@ -120,13 +120,17 @@ func handleTraces(pattern string) http.HandlerFunc {
 				continue
 			}
 
-			dktrace, err := traceToAdapters(trace)
+			dktrace, err := ddtraceToDkTrace(trace)
 			if err != nil {
 				log.Error(err.Error())
 				continue
 			}
 
-			afterGather.Run(inputName, dktrace, false)
+			if len(dktrace) == 0 {
+				log.Warn("empty datakit trace")
+			} else {
+				afterGather.Run(inputName, dktrace, false)
+			}
 		}
 
 		resp.WriteHeader(http.StatusOK)
@@ -171,7 +175,7 @@ func decodeRequest(pattern string, mediaType string, buf []byte) (DDTraces, erro
 	return traces, err
 }
 
-func traceToAdapters(trace DDTrace) (itrace.DatakitTrace, error) {
+func ddtraceToDkTrace(trace DDTrace) (itrace.DatakitTrace, error) {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)

@@ -40,7 +40,7 @@ func handleZipkinTraceV1(req *http.Request) error {
 		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
 			return err
 		} else {
-			dktrace, err = thriftSpansToAdapters(zspans)
+			dktrace, err = thriftSpansToDkTrace(zspans)
 			if err != nil {
 				log.Errorf("thriftSpansToAdapters: %s", err)
 
@@ -54,7 +54,7 @@ func handleZipkinTraceV1(req *http.Request) error {
 
 			return err
 		} else {
-			dktrace, err = jsonV1SpansToAdapters(zspans)
+			dktrace, err = jsonV1SpansToDkTrace(zspans)
 			if err != nil {
 				log.Errorf("jsonV1SpansToAdapters: %s", err)
 
@@ -65,11 +65,10 @@ func handleZipkinTraceV1(req *http.Request) error {
 		return fmt.Errorf("zipkin V1 unsupported Content-Type: %s", reqInfo.ContentType)
 	}
 
-	if len(dktrace) != 0 {
-		itrace.StatTracingInfo(dktrace)
-		itrace.BuildPointsBatch(inputName, dktrace, false)
+	if len(dktrace) == 0 {
+		log.Warn("empty datakit trace")
 	} else {
-		log.Debug("empty zipkin v1 spans")
+		afterGather.Run(inputName, dktrace, false)
 	}
 
 	return nil
@@ -104,11 +103,11 @@ func handleZipkinTraceV2(req *http.Request) error {
 	switch reqInfo.ContentType {
 	case "application/x-protobuf":
 		if zpkmodels, err = parseZipkinProtobuf3(reqInfo.Body); err == nil {
-			dktrace, err = spanModelsToAdapters(zpkmodels)
+			dktrace, err = spanModelsToDkTrace(zpkmodels)
 		}
 	case "application/json":
 		if err = json.Unmarshal(reqInfo.Body, &zpkmodels); err == nil {
-			dktrace, err = spanModelsToAdapters(zpkmodels)
+			dktrace, err = spanModelsToDkTrace(zpkmodels)
 		}
 	default:
 		return fmt.Errorf("zipkin V2 unsupported Content-Type: %s", reqInfo.ContentType)
@@ -120,11 +119,10 @@ func handleZipkinTraceV2(req *http.Request) error {
 		return err
 	}
 
-	if len(dktrace) != 0 {
-		itrace.StatTracingInfo(dktrace)
-		itrace.BuildPointsBatch(inputName, dktrace, false)
+	if len(dktrace) == 0 {
+		log.Warn("empty datakit trace")
 	} else {
-		log.Warn("empty zipkin v2 spans")
+		afterGather.Run(inputName, dktrace, false)
 	}
 
 	return nil

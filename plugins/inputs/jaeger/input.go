@@ -31,9 +31,11 @@ var (
     # tag2 = "value2"
     # ...
 `
-	tags map[string]string
+	tags = make(map[string]string)
 	log  = logger.DefaultSLogger(inputName)
 )
+
+var afterGather = itrace.NewAfterGather()
 
 type Input struct {
 	Path     string            `toml:"path"`      // deprecated
@@ -64,14 +66,19 @@ func (ipt *Input) Run() {
 	log.Infof("%s input started...", inputName)
 	dkio.FeedEventLog(&dkio.Reporter{Message: "jaeger start ok, ready for collecting metrics.", Logtype: "event"})
 
-	if ipt.Tags != nil {
-		tags = ipt.Tags
+	// add calculators
+	afterGather.AppendCalculator(itrace.StatTracingInfo)
+
+	// start up UDP agent
+	if ipt.Address != "" {
+		itrace.StartTracingStatistic()
+		if err := StartUDPAgent(ipt.Address); err != nil {
+			log.Errorf("%s start UDP agent failed: %s", inputName, err.Error())
+		}
 	}
 
-	if ipt.Address != "" {
-		if err := StartUDPAgent(ipt.Address); err != nil {
-			log.Errorf("StartUDPAgent: %s", err)
-		}
+	if len(ipt.Tags) != 0 {
+		tags = ipt.Tags
 	}
 }
 

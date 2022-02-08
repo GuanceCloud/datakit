@@ -54,8 +54,8 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 		log = logger.SLogger(packageName)
 	})
 
-	if inputName == "" || len(dktrace) == 0 {
-		log.Warnf("wrong parameters for AfterGather.Run(inputName: %s, dktrace:%v)", inputName, dktrace)
+	if len(dktrace) == 0 {
+		log.Warnf("wrong parameters for AfterGather.Run(dktrace:%v)", dktrace)
 
 		return
 	}
@@ -73,7 +73,7 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 		return
 	}
 
-	if pts := BuildPointsBatch(inputName, dktrace, stricktMod); len(pts) != 0 {
+	if pts := BuildPointsBatch(dktrace, stricktMod); len(pts) != 0 {
 		if err := dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
 			log.Errorf("io feed points error: %s", err.Error())
 		}
@@ -83,7 +83,7 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 }
 
 // BuildPointsBatch builds points from whole trace
-func BuildPointsBatch(inputName string, dktrace DatakitTrace, strict bool) []*dkio.Point {
+func BuildPointsBatch(dktrace DatakitTrace, strict bool) []*dkio.Point {
 	var pts []*dkio.Point
 	for i := range dktrace {
 		if pt, err := BuildPoint(dktrace[i], strict); err != nil {

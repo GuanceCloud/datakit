@@ -27,13 +27,14 @@ var (
     # tag2 = "value2"
     # ...
 `
-	tags map[string]string
+	tags = make(map[string]string)
 	log  = logger.DefaultSLogger(inputName)
 )
 
 var (
-	apiv1Path = "/api/v1/spans"
-	apiv2Path = "/api/v2/spans"
+	apiv1Path   = "/api/v1/spans"
+	apiv2Path   = "/api/v2/spans"
+	afterGather = itrace.NewAfterGather()
 )
 
 type Input struct {
@@ -62,7 +63,10 @@ func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	if ipt.Tags != nil {
+	// add calculators
+	afterGather.AppendCalculator(itrace.StatTracingInfo)
+
+	if len(ipt.Tags) != 0 {
 		tags = ipt.Tags
 	}
 }

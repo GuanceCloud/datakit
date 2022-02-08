@@ -45,7 +45,7 @@ var (
     # ...
 `
 	customerKeys []string
-	tags         map[string]string
+	tags         = make(map[string]string)
 	log          = logger.DefaultSLogger(inputName)
 )
 
@@ -111,10 +111,8 @@ func (ipt *Input) Run() {
 		}
 	}
 
-	if ipt.Tags != nil {
+	if len(ipt.Tags) != 0 {
 		tags = ipt.Tags
-	} else {
-		tags = map[string]string{}
 	}
 }
 
