@@ -279,6 +279,8 @@ func unmarshalTraceDictionary(bts []byte, out *DDTraces) error {
 
 	var err error
 	if _, bts, err = msgp.ReadArrayHeaderBytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return err
 	}
 	// read dictionary
@@ -289,15 +291,17 @@ func unmarshalTraceDictionary(bts []byte, out *DDTraces) error {
 	dict := make([]string, sz)
 	for i := range dict {
 		var str string
-		str, bts, err = msgpack.ParseStringBytes(bts)
-		if err != nil {
+		if str, bts, err = msgpack.ParseStringBytes(bts); err != nil {
+			log.Debug(err.Error())
+
 			return err
 		}
 		dict[i] = str
 	}
 	// read traces
-	sz, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
+	if sz, bts, err = msgp.ReadArrayHeaderBytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return err
 	}
 	if cap(*out) >= int(sz) {
@@ -306,8 +310,9 @@ func unmarshalTraceDictionary(bts []byte, out *DDTraces) error {
 		*out = make(DDTraces, sz)
 	}
 	for i := range *out {
-		sz, bts, err = msgp.ReadArrayHeaderBytes(bts)
-		if err != nil {
+		if sz, bts, err = msgp.ReadArrayHeaderBytes(bts); err != nil {
+			log.Debug(err.Error())
+
 			return err
 		}
 		if cap((*out)[i]) >= int(sz) {
@@ -335,10 +340,10 @@ func dictionaryString(bts []byte, dict []string) (string, []byte, error) {
 		ui  uint32
 		err error
 	)
-	ui, bts, err = msgp.ReadUint32Bytes(bts)
-	if err != nil {
+	if ui, bts, err = msgp.ReadUint32Bytes(bts); err != nil {
 		return "", bts, err
 	}
+
 	idx := int(ui)
 	if idx >= len(dict) {
 		return "", bts, fmt.Errorf("dictionary index %d out of range", idx)
@@ -357,68 +362,82 @@ const spanPropertyCount = 12
 //nolint:cyclop
 func unmarshalSpanDictionary(bts []byte, dict []string, out *DDSpan) ([]byte, error) {
 	if out == nil {
-		return nil, errors.New("nil pointer")
+		return nil, errors.New("*DDSpan pointer is nil")
 	}
 
 	var (
 		sz  uint32
 		err error
 	)
-	sz, bts, err = msgp.ReadArrayHeaderBytes(bts)
-	if err != nil {
+	if sz, bts, err = msgp.ReadArrayHeaderBytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	if sz != spanPropertyCount {
-		return bts, errors.New("encoded span needs exactly 12 elements in array")
+		err = errors.New("encoded span needs exactly 12 elements in array")
+		log.Debug(err.Error())
+
+		return bts, err
 	}
 	// Service (0)
-	out.Service, bts, err = dictionaryString(bts, dict)
-	if err != nil {
+	if out.Service, bts, err = dictionaryString(bts, dict); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// Name (1)
-	out.Name, bts, err = dictionaryString(bts, dict)
-	if err != nil {
+	if out.Name, bts, err = dictionaryString(bts, dict); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// Resource (2)
-	out.Resource, bts, err = dictionaryString(bts, dict)
-	if err != nil {
+	if out.Resource, bts, err = dictionaryString(bts, dict); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// TraceID (3)
-	out.TraceID, bts, err = msgpack.ParseUint64Bytes(bts)
-	if err != nil {
+	if out.TraceID, bts, err = msgpack.ParseUint64Bytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// SpanID (4)
-	out.SpanID, bts, err = msgpack.ParseUint64Bytes(bts)
-	if err != nil {
+	if out.SpanID, bts, err = msgpack.ParseUint64Bytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// ParentID (5)
-	out.ParentID, bts, err = msgpack.ParseUint64Bytes(bts)
-	if err != nil {
+	if out.ParentID, bts, err = msgpack.ParseUint64Bytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// Start (6)
-	out.Start, bts, err = msgpack.ParseInt64Bytes(bts)
-	if err != nil {
+	if out.Start, bts, err = msgpack.ParseInt64Bytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// Duration (7)
-	out.Duration, bts, err = msgpack.ParseInt64Bytes(bts)
-	if err != nil {
+	if out.Duration, bts, err = msgpack.ParseInt64Bytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// Error (8)
-	out.Error, bts, err = msgpack.ParseInt32Bytes(bts)
-	if err != nil {
+	if out.Error, bts, err = msgpack.ParseInt32Bytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	// Meta (9)
-	sz, bts, err = msgp.ReadMapHeaderBytes(bts)
-	if err != nil {
+	if sz, bts, err = msgp.ReadMapHeaderBytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	if out.Meta == nil && sz > 0 {
@@ -431,19 +450,22 @@ func unmarshalSpanDictionary(bts []byte, dict []string, out *DDSpan) ([]byte, er
 	for sz > 0 {
 		sz--
 		var key, val string
-		key, bts, err = dictionaryString(bts, dict)
-		if err != nil {
+		if key, bts, err = dictionaryString(bts, dict); err != nil {
+			log.Debug(err.Error())
+
 			return bts, err
 		}
-		val, bts, err = dictionaryString(bts, dict)
-		if err != nil {
+		if val, bts, err = dictionaryString(bts, dict); err != nil {
+			log.Debug(err.Error())
+
 			return bts, err
 		}
 		out.Meta[key] = val
 	}
 	// Metrics (10)
-	sz, bts, err = msgp.ReadMapHeaderBytes(bts)
-	if err != nil {
+	if sz, bts, err = msgp.ReadMapHeaderBytes(bts); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 	if out.Metrics == nil && sz > 0 {
@@ -459,19 +481,22 @@ func unmarshalSpanDictionary(bts []byte, dict []string, out *DDSpan) ([]byte, er
 			key string
 			val float64
 		)
-		key, bts, err = dictionaryString(bts, dict)
-		if err != nil {
+		if key, bts, err = dictionaryString(bts, dict); err != nil {
+			log.Debug(err.Error())
+
 			return bts, err
 		}
-		val, bts, err = msgpack.ParseFloat64Bytes(bts)
-		if err != nil {
+		if val, bts, err = msgpack.ParseFloat64Bytes(bts); err != nil {
+			log.Debug(err.Error())
+
 			return bts, err
 		}
 		out.Metrics[key] = val
 	}
 	// Type (11)
-	out.Type, bts, err = dictionaryString(bts, dict)
-	if err != nil {
+	if out.Type, bts, err = dictionaryString(bts, dict); err != nil {
+		log.Debug(err.Error())
+
 		return bts, err
 	}
 
