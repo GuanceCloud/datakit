@@ -6,14 +6,9 @@ package opentelemetry
 
 import (
 	"context"
-	"log"
 	"net"
 	"sync"
-	"time"
 
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
-
-	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	trace "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc"
@@ -39,10 +34,7 @@ func (o *otlpGrpcCollector) run() {
 		et := &ExportTrace{}
 		collectortracepb.RegisterTraceServiceServer(srv, et)
 	}
-	if o.MetricEnable {
-		em := &MetricService{}
-		collectormetricpb.RegisterMetricsServiceServer(srv, em)
-	}
+
 	o.stopFunc = srv.Stop
 	_ = srv.Serve(ln)
 }
@@ -65,53 +57,11 @@ type ExportTrace struct {
 
 func (et *ExportTrace) Export(ctx context.Context,
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
-	rss := ets.GetResourceSpans()
 	l.Infof(ets.String())
 	// ets.ProtoMessage()
-	if rss != nil && len(rss) > 0 {
-		dt := mkDKTrace(rss)
-		after := itrace.NewAfterGather()
-		// todo add filter : 增加tag
-		after.Run(inputName, dt, false)
+	if rss := ets.GetResourceSpans(); rss != nil && len(rss) > 0 {
+		storage.AddSpans(rss)
 	}
 	res := &collectortracepb.ExportTraceServiceResponse{}
 	return res, nil
-}
-
-/*
-
- */
-
-// todo metric
-type MetricService struct {
-	collectormetricpb.UnimplementedMetricsServiceServer
-
-	requests int
-	errors   []error
-
-	headers metadata.MD
-	mu      sync.RWMutex
-	// storage otlpmetrictest.MetricsStorage
-	delay time.Duration
-}
-
-func (et *MetricService) Export(ctx context.Context,
-	ets *collectormetricpb.ExportMetricsServiceRequest) (*collectormetricpb.ExportMetricsServiceResponse, error) {
-	rss := ets.GetResourceMetrics()
-	if rss != nil && len(rss) > 0 {
-		log.Printf("rss len =%d", len(rss))
-		for _, rs := range rss {
-			ls := rs.GetInstrumentationLibraryMetrics()
-			log.Printf("ls len =%d", len(ls))
-			for _, libMetrics := range ls {
-				spans := libMetrics.GetMetrics()
-				log.Printf("span len =%d", len(spans))
-				for _, span := range spans {
-					// todo metric
-					l.Debug(span.Name)
-				}
-			}
-		}
-	}
-	return nil, nil
 }

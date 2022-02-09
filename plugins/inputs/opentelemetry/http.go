@@ -7,10 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"sync"
 
 	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/protobuf/proto"
@@ -23,21 +21,17 @@ import (
 
 // handler collector
 type otlpHTTPCollector struct {
-	Enable   bool `toml:"enable"`
-	spanLock sync.Mutex
-	// spansStorage otlptracetest.SpansStorage
-
-	injectHTTPStatus     []int
-	injectResponseHeader []map[string]string
-	injectContentType    string
-	delay                <-chan struct{} // todo  要不要单线程 或者延迟接收 time.tick
-
-	// clientTLSConfig *tls.Config
+	Enable          bool              `toml:"enable"`
+	HTTPStatusOK    int               `toml:"http_status_ok"`
 	ExpectedHeaders map[string]string `toml:"expectedHeaders"` // 用于检测是否包含特定的 header
 }
 
 // apiOtlpCollector :trace
 func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request) {
+	if !o.checkHeaders(r) {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	response := collectortracepb.ExportTraceServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {
@@ -57,13 +51,8 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	writeReply(w, rawResponse, 0, "", nil) // 先将信息返回到客户端 然后再处理spans
-
-	dt := mkDKTrace(request.GetResourceSpans())
-	l.Infof("dt len=%d", len(dt))
-	after := itrace.NewAfterGather()
-	// todo add filter : 增加tag
-	after.Run(inputName, dt, false)
+	writeReply(w, rawResponse, o.HTTPStatusOK, nil) // 先将信息返回到客户端 然后再处理spans
+	storage.AddSpans(request.ResourceSpans)
 }
 
 // apiOtlpCollector : todo metric
@@ -87,19 +76,29 @@ func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	writeReply(w, rawResponse, 0, "", nil) // 先将信息返回到客户端 然后再处理spans
-	fmt.Println(request)
+	writeReply(w, rawResponse, 200, nil) // 先将信息返回到客户端 然后再处理spans
 	rss := request.GetResourceMetrics()
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibraryMetrics()
 		for _, librarySpans := range ls {
 			spans := librarySpans.Metrics
 			for _, span := range spans {
-				fmt.Println(span.Name) // todo: 组装 metric
+				l.Debug(span.Name) // todo: 组装 metric
 			}
 		}
 	}
 }
+
+func (o *otlpHTTPCollector) checkHeaders(r *http.Request) bool {
+	for k, v := range o.ExpectedHeaders {
+		got := r.Header.Get(k)
+		if got != v {
+			return false
+		}
+	}
+	return true
+}
+
 func unmarshalTraceRequest(rawRequest []byte, contentType string) (*collectortracepb.ExportTraceServiceRequest, error) {
 	request := &collectortracepb.ExportTraceServiceRequest{}
 	if contentType != "application/x-protobuf" {
@@ -130,23 +129,16 @@ func readGzipBody(body io.Reader) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer gunzipper.Close()
-	_, err = io.Copy(&rawRequest, gunzipper)
+	defer gunzipper.Close()                  //nolint:errcheck
+	_, err = io.Copy(&rawRequest, gunzipper) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
 	return rawRequest.Bytes(), nil
 }
 
-func writeReply(w http.ResponseWriter, rawResponse []byte, s int, ct string, h map[string]string) {
-	status := http.StatusOK
-	if s != 0 {
-		status = s
-	}
+func writeReply(w http.ResponseWriter, rawResponse []byte, status int, h map[string]string) {
 	contentType := "application/x-protobuf"
-	if ct != "" {
-		contentType = ct
-	}
 	w.Header().Set("Content-Type", contentType)
 	for k, v := range h {
 		w.Header().Add(k, v)
@@ -155,13 +147,17 @@ func writeReply(w http.ResponseWriter, rawResponse []byte, s int, ct string, h m
 	_, _ = w.Write(rawResponse)
 }
 
-func (o *otlpHTTPCollector) RunHttp() {
+func (o *otlpHTTPCollector) RunHTTP() {
 	// 注册到http模块
 	dkHTTP.RegHTTPHandler("POST", "/otel/v11/trace", o.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v11/metric", o.apiOtlpMetric)
+
+	// metrice 暂时不开
+	// dkHTTP.RegHTTPHandler("POST", "/otel/v11/metric", o.apiOtlpMetric)
 }
 
+/*
 // todo del
 func (o *otlpHTTPCollector) stop() {
 	// empty func
 }
+*/

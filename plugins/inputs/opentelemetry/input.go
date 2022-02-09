@@ -1,21 +1,26 @@
+// Package opentelemetry is input for opentelemetry
+
 package opentelemetry
 
 /*
-	接收opentelemetry发送的 L/T/M 三种数据
+	接收从 opentelemetry 发送的 L/T/M 三种数据
 		仅支持两种协议方式发送
-			HTTP:使用protobuf格式发送 Trace/metric/logging
-			grpc:同样使用protobuf格式
+			HTTP:使用 protobuf 格式发送 Trace/metric/logging
+			grpc:同样使用 protobuf 格式
 
 	接收到的数据交给trace处理。
 	本模块只做数据接收和组装 不做业务处理，并都是在(接收完成、返回客户端statusOK) 之后 再进行组装。
 
-	参考开源项目opentelemetry exports模块， github地址：https://github.com/open-telemetry/opentelemetry-go
+	参考开源项目 opentelemetry exports 模块， github地址：https://github.com/open-telemetry/opentelemetry-go
+
+	接收到原生trace 组装成dktrace对象后存储 每隔5秒 或者长度超过100条之后 发送到IO
 */
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -43,6 +48,9 @@ const (
   ##	metric: /otel/v11/metric
   ## use as : http://127.0.0.1:9529/otel/v11/trace . Method = POST
   enable = false
+  ## 200/202
+  http_status_ok = 200
+
   [inputs.opentelemetry.http.expectedHeaders]
     ## 如有header配置 则请求中必须要携带 否则返回状态码500
 	## 可作为安全检测使用
@@ -53,7 +61,11 @@ const (
 )
 
 var (
-	l = logger.DefaultSLogger("otel")
+	l           = logger.DefaultSLogger("otel")
+	afterGather = itrace.NewAfterGather()
+	storage     = NewSpansStorage()
+	maxSend     = 100
+	interval    = 10
 )
 
 type Input struct {
@@ -77,24 +89,31 @@ func (i *Input) exit() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("otlp")
+	open := false
 	// 从配置文件 开启
 	if i.Otc.Enable {
-		go i.Otc.RunHttp()
+		open = true
+		go i.Otc.RunHTTP()
 	}
 	if i.Ogc.TraceEnable || i.Ogc.MetricEnable {
 		go i.Ogc.run()
 	}
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			i.exit()
-			l.Infof("%s exit", i.inputName)
-			return
+	if open {
+		// add calculators
+		afterGather.AppendCalculator(itrace.StatTracingInfo)
+		go storage.run()
+		for {
+			select {
+			case <-datakit.Exit.Wait():
+				i.exit()
+				l.Infof("%s exit", i.inputName)
+				return
 
-		case <-i.semStop.Wait():
-			i.exit()
-			l.Infof("%s return", i.inputName)
-			return
+			case <-i.semStop.Wait():
+				i.exit()
+				l.Infof("%s return", i.inputName)
+				return
+			}
 		}
 	}
 }

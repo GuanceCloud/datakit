@@ -34,7 +34,7 @@ end_time_unix_nano:1644312401488931400
 status:{}}}}
 ```
 
-## 组装到 span
+## 原生 span
 ```
 trace_id:"\x94<\xdf\x00zx\x82\xe7Wy\xfe\x93\xab\x19\x95a"  
 span_id:".\xbd\x06c\x10ɫ*" 
@@ -45,7 +45,7 @@ end_time_unix_nano:1644312398464865900
  status:{}
 ```
 
-## dkspan
+## 组装到 dkspan
 ```
 {TraceID:943cdf007a7882e75779fe93ab199561 
 ParentID:a72a805a23be4cf6 
@@ -68,3 +68,6 @@ Status:STATUS_CODE_UNSET
 Content: 
 SampleRate:0}
 ```
+
+int64 max 9223372036854775807
+          4850414097632547000
