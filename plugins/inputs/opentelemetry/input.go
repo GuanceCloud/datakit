@@ -14,6 +14,7 @@ package opentelemetry
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -51,6 +52,10 @@ const (
 `
 )
 
+var (
+	l = logger.DefaultSLogger("otel")
+)
+
 type Input struct {
 	Ogc       *otlpGrpcCollector `toml:"grpc"`
 	Otc       *otlpHTTPCollector `toml:"http"`
@@ -65,11 +70,13 @@ func (i *Input) Catalog() string {
 func (i *Input) SampleConfig() string {
 	return sampleConfig
 }
+
 func (i *Input) exit() {
 	i.Ogc.stop()
 }
 
 func (i *Input) Run() {
+	l = logger.SLogger("otlp")
 	// 从配置文件 开启
 	if i.Otc.Enable {
 		go i.Otc.RunHttp()

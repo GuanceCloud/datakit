@@ -6,11 +6,12 @@ package opentelemetry
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"sync"
 	"time"
+
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 
 	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -29,7 +30,8 @@ type otlpGrpcCollector struct {
 func (o *otlpGrpcCollector) run() {
 	ln, err := net.Listen("tcp", o.Addr)
 	if err != nil {
-		fmt.Printf("Failed to get an endpoint: %v", err)
+		l.Fatalf("Failed to get an endpoint: %v", err)
+		return
 	}
 
 	srv := grpc.NewServer()
@@ -64,12 +66,21 @@ type ExportTrace struct {
 func (et *ExportTrace) Export(ctx context.Context,
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
 	rss := ets.GetResourceSpans()
+	l.Infof(ets.String())
+	// ets.ProtoMessage()
 	if rss != nil && len(rss) > 0 {
-		mkDKTrace(rss)
+		dt := mkDKTrace(rss)
+		after := itrace.NewAfterGather()
+		// todo add filter : 增加tag
+		after.Run(inputName, dt, false)
 	}
 	res := &collectortracepb.ExportTraceServiceResponse{}
 	return res, nil
 }
+
+/*
+
+ */
 
 // todo metric
 type MetricService struct {
@@ -92,12 +103,12 @@ func (et *MetricService) Export(ctx context.Context,
 		for _, rs := range rss {
 			ls := rs.GetInstrumentationLibraryMetrics()
 			log.Printf("ls len =%d", len(ls))
-			for _, l := range ls {
-				spans := l.GetMetrics()
+			for _, libMetrics := range ls {
+				spans := libMetrics.GetMetrics()
 				log.Printf("span len =%d", len(spans))
 				for _, span := range spans {
 					// todo metric
-					fmt.Println(span.Name)
+					l.Debug(span.Name)
 				}
 			}
 		}
