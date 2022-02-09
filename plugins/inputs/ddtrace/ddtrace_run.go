@@ -14,35 +14,42 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
+const (
+	// KeySamplingPriority is the key of the sampling priority value in the metrics map of the root span.
+	keyPriority = "_sampling_priority_v1"
+	// keySamplingRateGlobal is a metric key holding the global sampling rate.
+	keySamplingRateGlobal = "_sample_rate"
+)
+
 var ddtraceSpanType = map[string]string{
-	"cache":         itrace.SPAN_SERVICE_CACHE,
-	"cassandra":     itrace.SPAN_SERVICE_DB,
-	"elasticsearch": itrace.SPAN_SERVICE_DB,
-	"grpc":          itrace.SPAN_SERVICE_CUSTOM,
-	"http":          itrace.SPAN_SERVICE_WEB,
-	"mongodb":       itrace.SPAN_SERVICE_DB,
-	"redis":         itrace.SPAN_SERVICE_CACHE,
-	"sql":           itrace.SPAN_SERVICE_DB,
-	"template":      itrace.SPAN_SERVICE_CUSTOM,
-	"test":          itrace.SPAN_SERVICE_CUSTOM,
-	"web":           itrace.SPAN_SERVICE_WEB,
-	"worker":        itrace.SPAN_SERVICE_CUSTOM,
-	"memcached":     itrace.SPAN_SERVICE_CACHE,
-	"leveldb":       itrace.SPAN_SERVICE_DB,
-	"dns":           itrace.SPAN_SERVICE_CUSTOM,
-	"queue":         itrace.SPAN_SERVICE_CUSTOM,
 	"consul":        itrace.SPAN_SERVICE_APP,
-	"rpc":           itrace.SPAN_SERVICE_CUSTOM,
-	"soap":          itrace.SPAN_SERVICE_CUSTOM,
-	"db":            itrace.SPAN_SERVICE_DB,
-	"hibernate":     itrace.SPAN_SERVICE_CUSTOM,
+	"cache":         itrace.SPAN_SERVICE_CACHE,
+	"memcached":     itrace.SPAN_SERVICE_CACHE,
+	"redis":         itrace.SPAN_SERVICE_CACHE,
 	"aerospike":     itrace.SPAN_SERVICE_DB,
-	"datanucleus":   itrace.SPAN_SERVICE_CUSTOM,
-	"graphql":       itrace.SPAN_SERVICE_CUSTOM,
-	"custom":        itrace.SPAN_SERVICE_CUSTOM,
+	"cassandra":     itrace.SPAN_SERVICE_DB,
+	"db":            itrace.SPAN_SERVICE_DB,
+	"elasticsearch": itrace.SPAN_SERVICE_DB,
+	"leveldb":       itrace.SPAN_SERVICE_DB,
+	"mongodb":       itrace.SPAN_SERVICE_DB,
+	"sql":           itrace.SPAN_SERVICE_DB,
+	"http":          itrace.SPAN_SERVICE_WEB,
+	"web":           itrace.SPAN_SERVICE_WEB,
+	"":              itrace.SPAN_SERVICE_CUSTOM,
 	"benchmark":     itrace.SPAN_SERVICE_CUSTOM,
 	"build":         itrace.SPAN_SERVICE_CUSTOM,
-	"":              itrace.SPAN_SERVICE_CUSTOM,
+	"custom":        itrace.SPAN_SERVICE_CUSTOM,
+	"datanucleus":   itrace.SPAN_SERVICE_CUSTOM,
+	"dns":           itrace.SPAN_SERVICE_CUSTOM,
+	"graphql":       itrace.SPAN_SERVICE_CUSTOM,
+	"grpc":          itrace.SPAN_SERVICE_CUSTOM,
+	"hibernate":     itrace.SPAN_SERVICE_CUSTOM,
+	"queue":         itrace.SPAN_SERVICE_CUSTOM,
+	"rpc":           itrace.SPAN_SERVICE_CUSTOM,
+	"soap":          itrace.SPAN_SERVICE_CUSTOM,
+	"template":      itrace.SPAN_SERVICE_CUSTOM,
+	"test":          itrace.SPAN_SERVICE_CUSTOM,
+	"worker":        itrace.SPAN_SERVICE_CUSTOM,
 }
 
 //nolint:lll
@@ -67,14 +74,30 @@ type DDTraces []DDTrace
 
 // TODO:
 func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
-	log.Errorf("%s not support now", req.URL.Path)
+	log.Errorf("%s unsupport yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
 func handleTraces(pattern string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		traces, err := decodeRequest(pattern, req)
+		log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
+
+		buf, err := io.ReadAll(req.Body)
 		if err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+
+			return
+		}
+
+		var mediaType string
+		if mediaType, _, err = mime.ParseMediaType(req.Header.Get("Content-Type")); err != nil {
+			log.Warn("detect content-type failed fallback to application/json")
+			mediaType = "application/json"
+		}
+
+		var traces DDTraces
+		if traces, err = decodeRequest(pattern, mediaType, buf); err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Warn(err.Error())
 				resp.WriteHeader(http.StatusOK)
@@ -86,39 +109,28 @@ func handleTraces(pattern string) http.HandlerFunc {
 			return
 		}
 		if len(traces) == 0 {
-			log.Debug("empty traces")
+			log.Debug("empty ddtraces")
 			resp.WriteHeader(http.StatusOK)
 
 			return
 		}
 
-		var dktraces itrace.DatakitTraces
 		for _, trace := range traces {
 			if len(trace) == 0 {
 				continue
 			}
-			// run all filters
-			if runFiltersWithBreak(trace, filters...) == nil {
-				continue
-			}
 
-			dktrace, err := traceToAdapters(trace)
+			dktrace, err := ddtraceToDkTrace(trace)
 			if err != nil {
 				log.Error(err.Error())
 				continue
 			}
 
-			if len(dktrace) != 0 {
-				itrace.StatTracingInfo(dktrace)
-				dktraces = append(dktraces, dktrace)
+			if len(dktrace) == 0 {
+				log.Warn("empty datakit trace")
 			} else {
-				log.Warn("empty trace")
+				afterGather.Run(inputName, dktrace, false)
 			}
-		}
-		if len(dktraces) != 0 {
-			itrace.BuildPointsBatch(inputName, dktraces, false)
-		} else {
-			log.Warn("empty traces")
 		}
 
 		resp.WriteHeader(http.StatusOK)
@@ -142,19 +154,11 @@ func extractCustomerTags(customerKeys []string, meta map[string]string) map[stri
 	return customerTags
 }
 
-func decodeRequest(pattern string, req *http.Request) (DDTraces, error) {
-	mediaType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
-	if err != nil {
-		log.Debugf("detect media-type failed fallback to application/json")
-		mediaType = "application/json"
-	}
-
-	buf, err := io.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	traces := DDTraces{}
+func decodeRequest(pattern string, mediaType string, buf []byte) (DDTraces, error) {
+	var (
+		traces = DDTraces{}
+		err    error
+	)
 	if pattern == v5 {
 		err = unmarshalTraceDictionary(buf, &traces)
 	} else {
@@ -171,7 +175,7 @@ func decodeRequest(pattern string, req *http.Request) (DDTraces, error) {
 	return traces, err
 }
 
-func traceToAdapters(trace DDTrace) (itrace.DatakitTrace, error) {
+func ddtraceToDkTrace(trace DDTrace) (itrace.DatakitTrace, error) {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)
@@ -182,20 +186,21 @@ func traceToAdapters(trace DDTrace) (itrace.DatakitTrace, error) {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:        fmt.Sprintf("%d", span.TraceID),
-			ParentID:       fmt.Sprintf("%d", span.ParentID),
-			SpanID:         fmt.Sprintf("%d", span.SpanID),
-			Service:        span.Service,
-			Resource:       span.Resource,
-			Operation:      span.Name,
-			Source:         inputName,
-			SpanType:       itrace.FindIntIDSpanType(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
-			SourceType:     ddtraceSpanType[span.Type],
-			ContainerHost:  span.Meta[itrace.CONTAINER_HOST],
-			HTTPMethod:     span.Meta["http.method"],
-			HTTPStatusCode: span.Meta["http.status_code"],
-			Start:          span.Start,
-			Duration:       span.Duration,
+			TraceID:            fmt.Sprintf("%d", span.TraceID),
+			ParentID:           fmt.Sprintf("%d", span.ParentID),
+			SpanID:             fmt.Sprintf("%d", span.SpanID),
+			Service:            span.Service,
+			Resource:           span.Resource,
+			Operation:          span.Name,
+			Source:             inputName,
+			SpanType:           itrace.FindSpanTypeInt(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
+			SourceType:         ddtraceSpanType[span.Type],
+			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
+			HTTPMethod:         span.Meta["http.method"],
+			HTTPStatusCode:     span.Meta["http.status_code"],
+			Start:              span.Start,
+			Duration:           span.Duration,
+			SamplingRateGlobal: span.Metrics[keySamplingRateGlobal],
 		}
 
 		if span.Meta[itrace.PROJECT] != "" {
@@ -235,6 +240,10 @@ func traceToAdapters(trace DDTrace) (itrace.DatakitTrace, error) {
 			return nil, err
 		}
 		dkspan.Content = string(buf)
+
+		if priority := int(span.Metrics[keyPriority]); priority <= 0 {
+			dkspan.Priority = itrace.PriorityReject
+		}
 
 		dktrace = append(dktrace, dkspan)
 	}

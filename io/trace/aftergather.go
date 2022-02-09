@@ -11,118 +11,113 @@ import (
 
 var once = sync.Once{}
 
-type CalculatorFunc func(dktraces DatakitTraces)
+// CalculatorFunc is func type for calculation, statistics, etc
+// any data changes in DatakitTraces will be saved and affect the next actions afterwards.
+type CalculatorFunc func(dktrace DatakitTrace)
 
-type FilterFunc func(dktraces DatakitTraces) DatakitTraces
+// FilterFunc is func type for data filter.
+// Return the DatakitTraces that need to propagate to next action and
+// return ture if one want to skip all FilterFunc afterwards, false otherwise.
+type FilterFunc func(dktrace DatakitTrace) (DatakitTrace, bool)
 
 type AfterGather struct {
 	sync.Mutex
-	Calculators map[string]CalculatorFunc
-	Filters     map[string]FilterFunc
+	calculators []CalculatorFunc
+	filters     []FilterFunc
 }
 
 func NewAfterGather() *AfterGather {
-	return &AfterGather{
-		Calculators: make(map[string]CalculatorFunc),
-		Filters:     make(map[string]FilterFunc),
-	}
+	return &AfterGather{}
 }
 
-func (ag *AfterGather) AddCalculator(key string, calc CalculatorFunc) {
-	ag.Lock()
-	defer ag.Unlock()
+// AppendCalculator will append new calculators into AfterGather structure,
+// and run them as the order they added.
+func (aga *AfterGather) AppendCalculator(calc ...CalculatorFunc) {
+	aga.Lock()
+	defer aga.Unlock()
 
-	ag.Calculators[key] = calc
+	aga.calculators = append(aga.calculators, calc...)
 }
 
-func (ag *AfterGather) DelCalculator(key string) {
-	ag.Lock()
-	defer ag.Unlock()
+// AppendFilter will append new filters into AfterGather structure,
+// and run them as the order they added if no filter func return false
+// to break out the filters loop.
+func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
+	aga.Lock()
+	defer aga.Unlock()
 
-	delete(ag.Calculators, key)
+	aga.filters = append(aga.filters, filter...)
 }
 
-func (ag *AfterGather) AddFilter(key string, filter FilterFunc) {
-	ag.Lock()
-	defer ag.Unlock()
-
-	ag.Filters[key] = filter
-}
-
-func (ag *AfterGather) DelFilter(key string) {
-	ag.Lock()
-	defer ag.Unlock()
-
-	delete(ag.Filters, key)
-}
-
-func (ag *AfterGather) Run(inputName string, dktraces DatakitTraces, stricktMod bool) {
+func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod bool) {
 	once.Do(func() {
 		log = logger.SLogger(packageName)
 	})
 
-	if inputName == "" || len(dktraces) == 0 {
-		log.Warnf("wrong parameters for AfterGather.Run(inputName: %s, dktraces:%v)", inputName, dktraces)
+	if len(dktrace) == 0 {
+		log.Warnf("wrong parameters for AfterGather.Run(dktrace:%v)", dktrace)
 
 		return
 	}
 
-	for i := range ag.Calculators {
-		ag.Calculators[i](dktraces)
+	for i := range aga.calculators {
+		aga.calculators[i](dktrace)
 	}
-	for i := range ag.Filters {
-		dktraces = ag.Filters[i](dktraces)
+	var skip bool
+	for i := range aga.filters {
+		if dktrace, skip = aga.filters[i](dktrace); skip {
+			break
+		}
+	}
+	if dktrace == nil {
+		return
 	}
 
-	if pts := BuildPointsBatch(inputName, dktraces, stricktMod); len(pts) != 0 {
+	if pts := BuildPointsBatch(dktrace, stricktMod); len(pts) != 0 {
 		if err := dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
 			log.Errorf("io feed points error: %s", err.Error())
 		}
 	} else {
-		log.Warn("empty points")
+		log.Warn("BuildPointsBatch return empty points array")
 	}
 }
 
-func BuildPointsBatch(inputName string, dktraces DatakitTraces, strict bool) []*dkio.Point {
+// BuildPointsBatch builds points from whole trace
+func BuildPointsBatch(dktrace DatakitTrace, strict bool) []*dkio.Point {
 	var pts []*dkio.Point
-	for i := range dktraces {
-		for j := range dktraces[i] {
-			if pt, err := BuildPoint(dktraces[i][j], strict); err != nil {
-				log.Errorf("build point error: %s", err.Error())
-			} else {
-				pts = append(pts, pt)
-			}
+	for i := range dktrace {
+		if pt, err := BuildPoint(dktrace[i], strict); err != nil {
+			log.Errorf("build point error: %s", err.Error())
+		} else {
+			pts = append(pts, pt)
 		}
 	}
 
 	return pts
 }
 
+// BuildPoint builds point from DatakitSpan.
 func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
-	var (
-		tags   = make(map[string]string)
-		fields = make(map[string]interface{})
-	)
+	tags := map[string]string{
+		TAG_PROJECT:     dkspan.Project,
+		TAG_OPERATION:   dkspan.Operation,
+		TAG_SERVICE:     dkspan.Service,
+		TAG_VERSION:     dkspan.Version,
+		TAG_ENV:         dkspan.Env,
+		TAG_HTTP_METHOD: dkspan.HTTPMethod,
+		TAG_HTTP_CODE:   dkspan.HTTPStatusCode,
+		TAG_SPAN_STATUS: dkspan.Status,
+	}
 
-	tags[TAG_PROJECT] = dkspan.Project
-	tags[TAG_OPERATION] = dkspan.Operation
-	tags[TAG_SERVICE] = dkspan.Service
-	tags[TAG_VERSION] = dkspan.Version
-	tags[TAG_ENV] = dkspan.Env
-	tags[TAG_HTTP_METHOD] = dkspan.HTTPMethod
-	tags[TAG_HTTP_CODE] = dkspan.HTTPStatusCode
+	if dkspan.ParentID == "" {
+		dkspan.ParentID = "0"
+	}
 
 	if dkspan.SourceType != "" {
 		tags[TAG_TYPE] = dkspan.SourceType
 	} else {
 		tags[TAG_TYPE] = SPAN_SERVICE_CUSTOM
 	}
-
-	for k, v := range dkspan.Tags {
-		tags[k] = v
-	}
-
-	tags[TAG_SPAN_STATUS] = dkspan.Status
 
 	if dkspan.EndPoint != "" {
 		tags[TAG_ENDPOINT] = dkspan.EndPoint
@@ -140,17 +135,19 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
 		tags[TAG_CONTAINER_HOST] = dkspan.ContainerHost
 	}
 
-	if dkspan.ParentID == "" {
-		dkspan.ParentID = "0"
+	for k, v := range dkspan.Tags {
+		tags[k] = v
 	}
 
-	fields[FIELD_START] = dkspan.Start / int64(time.Microsecond)
-	fields[FIELD_DURATION] = dkspan.Duration / int64(time.Microsecond)
-	fields[FIELD_MSG] = dkspan.Content
-	fields[FIELD_RESOURCE] = dkspan.Resource
-	fields[FIELD_PARENTID] = dkspan.ParentID
-	fields[FIELD_TRACEID] = dkspan.TraceID
-	fields[FIELD_SPANID] = dkspan.SpanID
+	fields := map[string]interface{}{
+		FIELD_START:    dkspan.Start / int64(time.Microsecond),
+		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
+		FIELD_MSG:      dkspan.Content,
+		FIELD_RESOURCE: dkspan.Resource,
+		FIELD_PARENTID: dkspan.ParentID,
+		FIELD_TRACEID:  dkspan.TraceID,
+		FIELD_SPANID:   dkspan.SpanID,
+	}
 
 	return dkio.NewPoint(dkspan.Source, tags, fields, &dkio.PointOption{
 		Time:     time.Unix(0, dkspan.Start),

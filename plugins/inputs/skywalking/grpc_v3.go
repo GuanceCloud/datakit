@@ -53,18 +53,17 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 
 		log.Debug("v3 segment received")
 
-		dktrace, err := segobjToAdapters(segobj)
+		dktrace, err := segobjToDkTrace(segobj)
 		if err != nil {
 			log.Error(err.Error())
 
 			return err
 		}
 
-		if len(dktrace) != 0 {
-			itrace.StatTracingInfo(dktrace)
-			itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
+		if len(dktrace) == 0 {
+			log.Warn("empty datakit trace")
 		} else {
-			log.Warnf("empty v3 segment")
+			afterGather.Run(inputName, dktrace, false)
 		}
 	}
 }
@@ -77,7 +76,7 @@ func (*TraceReportServerV3) CollectInSync(
 	return &skyimpl.Commands{}, nil
 }
 
-func segobjToAdapters(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error) {
+func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error) {
 	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
 		dkspan := &itrace.DatakitSpan{

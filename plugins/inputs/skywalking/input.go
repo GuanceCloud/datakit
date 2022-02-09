@@ -23,9 +23,11 @@ var (
     # ...
 `
 	defAddr = "localhost:13800"
-	tags    map[string]string
+	tags    = make(map[string]string)
 	log     = logger.DefaultSLogger(inputName)
 )
+
+var afterGather = itrace.NewAfterGather()
 
 // deprecated.
 type skywalkingConfig struct {
@@ -52,26 +54,29 @@ func (*Input) SampleConfig() string {
 	return sampleConfig
 }
 
-func (i *Input) SampleMeasurement() []inputs.Measurement {
+func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
-func (i *Input) Run() {
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	if len(i.Address) == 0 {
-		i.Address = defAddr
+	if len(ipt.Address) == 0 {
+		ipt.Address = defAddr
 	}
-	if len(i.Tags) != 0 {
-		tags = i.Tags
+
+	// add calculators
+	afterGather.AppendCalculator(itrace.StatTracingInfo)
+
+	if len(ipt.Tags) != 0 {
+		tags = ipt.Tags
 	}
 
 	log.Debug("start skywalking grpc v3 server")
 
 	itrace.StartTracingStatistic()
-
-	go runServerV3(i.Address)
+	go runServerV3(ipt.Address)
 }
 
 func init() { //nolint:gochecknoinits

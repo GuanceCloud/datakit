@@ -31,17 +31,18 @@ var (
     # tag2 = "value2"
     # ...
 `
-	tags map[string]string
+	tags = make(map[string]string)
 	log  = logger.DefaultSLogger(inputName)
 )
 
+var afterGather = itrace.NewAfterGather()
+
 type Input struct {
-	Path             string                      `toml:"path"`           // deprecated
-	UDPAgent         string                      `toml:"udp_agent"`      // deprecated
-	TraceSampleConfs []*itrace.TraceSampleConfig `toml:"sample_configs"` // deprecated
-	Endpoint         string                      `toml:"endpoint"`
-	Address          string                      `toml:"address"`
-	Tags             map[string]string           `toml:"tags"`
+	Path     string            `toml:"path"`      // deprecated
+	UDPAgent string            `toml:"udp_agent"` // deprecated
+	Endpoint string            `toml:"endpoint"`
+	Address  string            `toml:"address"`
+	Tags     map[string]string `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
@@ -60,26 +61,31 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
-func (t *Input) Run() {
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 	dkio.FeedEventLog(&dkio.Reporter{Message: "jaeger start ok, ready for collecting metrics.", Logtype: "event"})
 
-	if t.Tags != nil {
-		tags = t.Tags
+	// add calculators
+	afterGather.AppendCalculator(itrace.StatTracingInfo)
+
+	// start up UDP agent
+	if ipt.Address != "" {
+		itrace.StartTracingStatistic()
+		if err := StartUDPAgent(ipt.Address); err != nil {
+			log.Errorf("%s start UDP agent failed: %s", inputName, err.Error())
+		}
 	}
 
-	if t.Address != "" {
-		if err := StartUDPAgent(t.Address); err != nil {
-			log.Errorf("StartUDPAgent: %s", err)
-		}
+	if len(ipt.Tags) != 0 {
+		tags = ipt.Tags
 	}
 }
 
-func (t *Input) RegHTTPHandler() {
-	if t.Endpoint != "" {
+func (ipt *Input) RegHTTPHandler() {
+	if ipt.Endpoint != "" {
 		itrace.StartTracingStatistic()
-		http.RegHTTPHandler("POST", t.Endpoint, JaegerTraceHandle)
+		http.RegHTTPHandler("POST", ipt.Endpoint, JaegerTraceHandle)
 	}
 }
 

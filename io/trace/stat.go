@@ -93,30 +93,30 @@ func StatTracingInfo(dktrace DatakitTrace) {
 	}
 
 	tracingStatUnit := make(map[string]*TracingInfo)
-	for _, dkspan := range dktrace {
+	for i := range dktrace {
 		var (
-			key   = fmt.Sprintf("%s-%s", dkspan.Service, dkspan.Resource)
+			key   = fmt.Sprintf("%s-%s", dktrace[i].Service, dktrace[i].Resource)
 			tinfo *TracingInfo
 			ok    bool
 		)
 		if tinfo, ok = tracingStatUnit[key]; !ok {
 			tinfo = &TracingInfo{
-				Source:   dkspan.Source,
-				Project:  dkspan.Project,
-				Version:  dkspan.Version,
-				Service:  dkspan.Service,
-				Resource: dkspan.Resource,
+				Source:   dktrace[i].Source,
+				Project:  dktrace[i].Project,
+				Version:  dktrace[i].Version,
+				Service:  dktrace[i].Service,
+				Resource: dktrace[i].Resource,
 				key:      key,
 			}
 			tracingStatUnit[key] = tinfo
 		}
-		if dkspan.SpanType == SPAN_TYPE_ENTRY {
+		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
 			tinfo.RequestCount++
-			if dkspan.Status == STATUS_ERR {
+			if dktrace[i].Status == STATUS_ERR {
 				tinfo.ErrCount++
 			}
 		}
-		tinfo.DurationAvg += dkspan.Duration
+		tinfo.DurationAvg += dktrace[i].Duration
 	}
 
 	for _, info := range tracingStatUnit {

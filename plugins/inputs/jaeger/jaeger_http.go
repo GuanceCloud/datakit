@@ -14,7 +14,8 @@ import (
 )
 
 func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("trace handle with path: %s", req.URL.Path)
+	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
+
 	defer func() {
 		resp.WriteHeader(http.StatusOK)
 		if r := recover(); r != nil {
@@ -52,22 +53,21 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	dktrace, err := batchToAdapters(batch)
+	dktrace, err := batchToDkTrace(batch)
 	if err != nil {
 		return err
 	}
 
-	if len(dktrace) != 0 {
-		itrace.StatTracingInfo(dktrace)
-		itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
+	if len(dktrace) == 0 {
+		log.Warn("empty datakit trace")
 	} else {
-		log.Warn("empty batch")
+		afterGather.Run(inputName, dktrace, false)
 	}
 
 	return nil
 }
 
-func batchToAdapters(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
+func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 	project, version, env := getExpandInfo(batch)
 	if project == "" {
 		project = tags[itrace.PROJECT]
@@ -97,7 +97,7 @@ func batchToAdapters(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			Project:   project,
 			Service:   batch.Process.ServiceName,
 			Source:    inputName,
-			SpanType:  itrace.FindIntIDSpanType(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			SpanType:  itrace.FindSpanTypeInt(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
 			Start:     span.StartTime * int64(time.Microsecond),
 			Duration:  span.Duration * int64(time.Microsecond),
 			Version:   version,
@@ -142,24 +142,22 @@ func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]boo
 	return spanIDs, parentIDs
 }
 
-func getExpandInfo(batch *jaeger.Batch) (project, ver, env string) {
+func getExpandInfo(batch *jaeger.Batch) (project, version, env string) {
 	if batch.Process == nil {
 		return
 	}
+
 	for _, tag := range batch.Process.Tags {
 		if tag == nil {
 			continue
 		}
 
-		if tag.Key == itrace.PROJECT {
+		switch tag.Key {
+		case itrace.PROJECT:
 			project = fmt.Sprintf("%v", getValueString(tag))
-		}
-
-		if tag.Key == itrace.VERSION {
-			ver = fmt.Sprintf("%v", getValueString(tag))
-		}
-
-		if tag.Key == itrace.ENV {
+		case itrace.VERSION:
+			version = fmt.Sprintf("%v", getValueString(tag))
+		case itrace.ENV:
 			env = fmt.Sprintf("%v", getValueString(tag))
 		}
 	}

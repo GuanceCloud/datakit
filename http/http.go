@@ -218,6 +218,7 @@ func setupRouter() *gin.Engine {
 	router.POST("/v1/query/raw", apiQueryRaw)
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
+
 	return router
 }
 

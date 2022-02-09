@@ -12,8 +12,6 @@ import (
 )
 
 func StartUDPAgent(addr string) error {
-	data := make([]byte, 65535)
-
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return err
@@ -23,9 +21,10 @@ func StartUDPAgent(addr string) error {
 		return err
 	}
 
-	log.Infof("Jaeger UDP agent listening on %s", addr)
+	log.Debugf("%s(UDP): listen on path: %s", inputName, addr)
 
 	// receiving loop
+	buf := make([]byte, 65535)
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -40,11 +39,11 @@ func StartUDPAgent(addr string) error {
 
 		err := udpConn.SetDeadline(time.Now().Add(time.Second))
 		if err != nil {
-			log.Errorf("SetDeadline failed: %v", err)
+			log.Errorf("SetDeadline failed: %s", err.Error())
 			continue
 		}
 
-		n, addr, err := udpConn.ReadFromUDP(data)
+		n, addr, err := udpConn.ReadFromUDP(buf)
 		if err != nil {
 			log.Debug(err.Error())
 			continue
@@ -55,32 +54,35 @@ func StartUDPAgent(addr string) error {
 			continue
 		}
 
-		dktrace, err := parseJaegerUDP(data[:n])
+		dktrace, err := parseJaegerUDP(buf[:n])
 		if err != nil {
+			log.Error(err.Error())
 			continue
 		}
-		if len(dktrace) != 0 {
-			itrace.StatTracingInfo(dktrace)
-			itrace.BuildPointsBatch(inputName, itrace.DatakitTraces{dktrace}, false)
+
+		if len(dktrace) == 0 {
+			log.Warn("empty datakit trace")
 		} else {
-			log.Debug("empty batch")
+			afterGather.Run(inputName, dktrace, false)
 		}
 	}
 }
 
 func parseJaegerUDP(data []byte) (itrace.DatakitTrace, error) {
 	thriftBuffer := thrift.NewTMemoryBufferLen(len(data))
-	if _, err := thriftBuffer.Write(data); err != nil {
-		log.Error("buffer write failed :%v,", err)
+	_, err := thriftBuffer.Write(data)
+	if err != nil {
+		log.Error("buffer write failed :%s", err.Error())
 
 		return nil, err
 	}
 
-	protocolFactory := thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
-	thriftProtocol := protocolFactory.GetProtocol(thriftBuffer)
-	_, _, _, err := thriftProtocol.ReadMessageBegin(context.TODO()) //nolint:dogsled
-	if err != nil {
-		log.Error("read message begin failed :%v,", err)
+	var (
+		protocolFactory = thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
+		thriftProtocol  = protocolFactory.GetProtocol(thriftBuffer)
+	)
+	if _, _, _, err = thriftProtocol.ReadMessageBegin(context.TODO()); err != nil { //nolint:dogsled
+		log.Error("read message begin failed :%s,", err.Error())
 
 		return nil, err
 	}
@@ -88,24 +90,23 @@ func parseJaegerUDP(data []byte) (itrace.DatakitTrace, error) {
 	batch := agent.AgentEmitBatchArgs{}
 	err = batch.Read(context.TODO(), thriftProtocol)
 	if err != nil {
-		log.Error("read batch failed :%v,", err)
+		log.Error("read batch failed :%s,", err.Error())
 
 		return nil, err
 	}
 
-	groups, err := batchToAdapters(batch.Batch)
-	if err != nil {
-		log.Error("process batch failed :%v,", err)
+	var dktrace itrace.DatakitTrace
+	if dktrace, err = batchToDkTrace(batch.Batch); err != nil {
+		log.Error("process batch failed :%s,", err.Error())
 
 		return nil, err
 	}
 
-	err = thriftProtocol.ReadMessageEnd(context.TODO())
-	if err != nil {
-		log.Error("read message end failed :%v,", err)
+	if err = thriftProtocol.ReadMessageEnd(context.TODO()); err != nil {
+		log.Error("read message end failed :%s,", err.Error())
 
 		return nil, err
 	}
 
-	return groups, nil
+	return dktrace, nil
 }
