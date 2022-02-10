@@ -53,13 +53,17 @@ Consul 采集器用于采集 Consul 相关的指标数据，目前只支持 Prom
 {{ end }}
 
 ## 日志
+
 如需采集 Consul 的日志，需要在开启 Consul 的时候，使用 -syslog 参数，例如
+
 ```shell
 consul agent -dev -syslog
 ```
+
 使用 logging 采集器采集日志，需要配置 logging 采集器。
 进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。
 配置如下：
+
 ```toml
 [[inputs.logging]]
   ## required
@@ -89,7 +93,7 @@ consul agent -dev -syslog
 
   ## The pattern should be a regexp. Note the use of '''this regexp'''
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  match = '''^\S'''
+  multiline_match = '''^\S'''
 
   [inputs.logging.tags]
   # some_tag = "some_value"
@@ -104,11 +108,11 @@ Sep 18 19:30:23 derrick-ThinkPad-X230 consul[11803]: 2021-09-18T19:30:23.522+080
 
 切割后的字段列表如下：
 
-| 字段名   | 字段值                                                   | 说明                         |
-| ---      | ---                                                      | ---                          |
-| `date` | `2021-09-18T19:30:23.522+0800`                             | 日志日期                     |
-| `level`    | `INFO`                                                | 日志级别                     |
-| `character`   | `agent.server.connect`                               | 角色 |
-| `msg`   | `initialized primary datacenter CA with provider: provider=consul`  | 日志内容 |
+| 字段名      | 字段值                                                             | 说明     |
+| ---         | ---                                                                | ---      |
+| `date`      | `2021-09-18T19:30:23.522+0800`                                     | 日志日期 |
+| `level`     | `INFO`                                                             | 日志级别 |
+| `character` | `agent.server.connect`                                             | 角色     |
+| `msg`       | `initialized primary datacenter CA with provider: provider=consul` | 日志内容 |
 
 
