@@ -49,6 +49,12 @@ func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 	aga.filters = append(aga.filters, filter...)
 }
 
+func (aga *AfterGather) UpdateDefSampler() {}
+
+func (aga *AfterGather) UpdateCloseResource() {}
+
+func (aga *AfterGather) UpdateKeepRareResource() {}
+
 func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod bool) {
 	once.Do(func() {
 		log = logger.SLogger(packageName)

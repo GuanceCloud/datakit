@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"encoding/hex"
 	"regexp"
 	"time"
 
@@ -9,15 +10,24 @@ import (
 
 func DefSampler(dktrace DatakitTrace) (DatakitTrace, bool) {
 	for i := range dktrace {
-		if IsRootSpan(dktrace[i]) && dktrace[i].Priority < PriorityAuto {
-			return nil, true
+		if IsRootSpan(dktrace[i]) {
+			switch dktrace[i].Priority {
+			case PriorityAuto:
+				hex.EncodeToString([]byte(dktrace[i].TraceID))
+			case PriorityReject:
+				return nil, true
+			case PriorityKeep:
+				return dktrace, true
+			default:
+				log.Debug("unrecognized trace proority")
+			}
 		}
 	}
 
 	return dktrace, false
 }
 
-func CloseResourceWrapper(ignoredResources []*regexp.Regexp) FilterFunc {
+func CloseResourceWrapper(ignoredResources map[string]*regexp.Regexp) FilterFunc {
 	if len(ignoredResources) == 0 {
 		return func(dktrace DatakitTrace) (DatakitTrace, bool) {
 			return dktrace, false

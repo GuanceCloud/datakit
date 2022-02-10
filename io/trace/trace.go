@@ -4,10 +4,12 @@ package trace
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
@@ -191,4 +193,32 @@ func ParseTraceInfo(req *http.Request) (*TraceReqInfo, error) {
 	}
 
 	return reqInfo, err
+}
+
+func UnifyTraceIDInt64(traceID string) int64 {
+	if len(traceID) == 0 {
+		return 0
+	}
+
+	var isAllInt = true
+	for _, b := range traceID {
+		if b < 48 || b > 57 {
+			isAllInt = false
+			break
+		}
+	}
+
+	if isAllInt {
+		if i, err := strconv.ParseInt(traceID, 10, 64); err == nil {
+			return i
+		}
+	}
+
+	hexstr := hex.EncodeToString([]byte(traceID))
+	if l := len(hexstr); l > 16 {
+		hexstr = hexstr[l-16:]
+	}
+	i, _ := strconv.ParseInt(hexstr, 16, 64)
+
+	return i
 }

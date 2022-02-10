@@ -123,6 +123,7 @@ func TestNewPoint(t *testing.T) {
 			fail:  true,
 		},
 		{
+<<<<<<< HEAD
 			tname: "with disabled tag key log_type",
 			name:  "abc",
 			mtype: datakit.Logging,
@@ -140,6 +141,10 @@ func TestNewPoint(t *testing.T) {
 		},
 		{
 			tname:  "normal",
+=======
+			tname: "normal",
+
+>>>>>>> dev
 			name:   "abc",
 			t:      map[string]string{},
 			f:      map[string]interface{}{"f1": 123},
