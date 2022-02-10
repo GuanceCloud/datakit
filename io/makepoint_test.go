@@ -136,24 +136,6 @@ func TestNewPoint(t *testing.T) {
 		},
 
 		{
-			tname: "with disabled tag key log_type",
-			name:  "abc",
-			mtype: datakit.Logging,
-			t:     map[string]string{"log_type": "s1"},
-			f:     map[string]interface{}{"f1": 123},
-			fail:  true,
-		},
-
-		{
-			tname: "with disabled field key log_type",
-			name:  "abc",
-			mtype: datakit.Logging,
-			t:     map[string]string{},
-			f:     map[string]interface{}{"log_type": 123},
-			fail:  true,
-		},
-
-		{
 			tname: "normal",
 
 			name:   "abc",
