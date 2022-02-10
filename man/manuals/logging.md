@@ -11,8 +11,6 @@
 - 从磁盘读取 ：采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
 - socket端口获取：可通过tcp/udp 将文件发送到datakit
 
-> 注意：两种采集方式目前互斥，当需要 socket 传输日志时 请修改配置文件中的`文件列表`： *logfiles=[]*
-
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
@@ -73,7 +71,10 @@
   # ...
 ```
 
->  注意：DataKit 启动后，`logfiles` 中配置的日志文件有新的日志产生才会采集上来，**老的日志数据是不会采集的**。
+注意：
+
+1. DataKit 启动后，`logfiles` 中配置的日志文件有新的日志产生才会采集上来，**老的日志数据是不会采集的**
+1. 两种采集方式目前互斥，当以 socket 方式上传日志时，需将配置中的 `logfiles` 字段置空：`logfiles=[]`
 
 ### socket 采集日志
 
