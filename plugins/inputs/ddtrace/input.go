@@ -27,6 +27,14 @@ var (
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
+  ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
+  ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
+  ## IT'S EMPTY STRING VALUE AS DEFAULT indicates that no customer tag set up. DO NOT USE DOT(.) IN TAGS
+  # customer_tags = []
+
+  ## Keep rare ddtrace resources list.
+  # keep_rare_resource = true
+
   ## Sampler config
   # [inputs.ddtrace.sampler]
     # priority = 0
@@ -38,14 +46,6 @@ var (
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
     # ...
-
-  ## Keep ddtrace rare resources list.
-  # keep_rare_resource = true
-
-  ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
-  ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
-  ## IT'S EMPTY STRING VALUE AS DEFAULT indicates that no customer tag set up. DO NOT USE DOT(.) IN TAGS
-  # customer_tags = []
 
   ## tags is ddtrace configed key value pairs
   # [inputs.ddtrace.tags]
