@@ -17,6 +17,9 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 		if IsRootSpan(dktrace[i]) {
 			switch dktrace[i].Priority {
 			case PriorityAuto:
+				if smp.SamplingRateGlobal >= 1 {
+					return dktrace, false
+				}
 				tid := UnifyToInt64ID(dktrace[i].TraceID)
 				if tid%100 < int64(smp.SamplingRateGlobal*100) {
 					return dktrace, false
