@@ -62,7 +62,7 @@ var (
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
 	afterGather          = itrace.NewAfterGather()
-	defSampler           *itrace.DefSampler
+	defSampler           *itrace.Sampler
 	closeResource        *itrace.CloseResource
 	keepRareResource     *itrace.KeepRareResource
 )
@@ -78,7 +78,7 @@ type Input struct {
 	TraceSampleConf  interface{}         `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
 	IgnoreResources  []string            `toml:"ignore_resources"`         // deprecated []string
 	Endpoints        []string            `toml:"endpoints"`
-	Sampler          *sampler            `toml:"sampler"`
+	Sampler          *itrace.Sampler     `toml:"sampler"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CustomerTags     []string            `toml:"customer_tags"`
@@ -124,8 +124,7 @@ func (ipt *Input) Run() {
 	}
 	// add sampler
 	if ipt.Sampler != nil {
-		defSampler = &itrace.DefSampler{}
-		defSampler.UpdateArgs(ipt.Sampler.Priority, ipt.Sampler.Rate)
+		defSampler = ipt.Sampler
 		afterGather.AppendFilter(defSampler.Sample)
 	}
 

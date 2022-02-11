@@ -7,18 +7,18 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 )
 
-type DefSampler struct {
-	Priority           int
-	SamplingRateGlobal float64
+type Sampler struct {
+	Priority           int     `toml:"priority" json:"priority"`
+	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
 }
 
-func (dsmp *DefSampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
+func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 	for i := range dktrace {
 		if IsRootSpan(dktrace[i]) {
 			switch dktrace[i].Priority {
 			case PriorityAuto:
 				tid := UnifyToInt64ID(dktrace[i].TraceID)
-				if tid%100 < int64(dsmp.SamplingRateGlobal*100) {
+				if tid%100 < int64(smp.SamplingRateGlobal*100) {
 					return dktrace, false
 				} else {
 					return nil, true
@@ -36,7 +36,7 @@ func (dsmp *DefSampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-func (ds *DefSampler) UpdateArgs(priority int, samplingRateGlobal float64) {
+func (ds *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	switch priority {
 	case PriorityAuto, PriorityReject, PriorityKeep:
 		ds.Priority = priority
