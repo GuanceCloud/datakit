@@ -34,13 +34,13 @@ var (
 
   ## Ignore ddtrace resources list. List of strings
   ## A list of regular expressions used to block certain resource name.
-	# [inputs.ddtrace.close_resource]
-    # service1 = ["resource1", "resource2", ...]
+  # [inputs.ddtrace.close_resource]
+     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
-		# ...
+    # ...
 
-	## Keep ddtrace rare resources list.
-	# keep_rare_resource = true
+  ## Keep ddtrace rare resources list.
+  # keep_rare_resource = true
 
   ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
   ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
