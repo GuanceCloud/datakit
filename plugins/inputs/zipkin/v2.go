@@ -180,6 +180,11 @@ func spanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) (itrace.DatakitTrace, e
 		}
 		dkspan.Content = string(buf)
 
+		if defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
 		dktrace = append(dktrace, dkspan)
 	}
 

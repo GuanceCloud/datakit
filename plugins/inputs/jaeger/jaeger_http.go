@@ -110,6 +110,12 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 		dkspan.Content = string(buf)
 
 		dkspan.Status = itrace.STATUS_OK
+
+		if defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
 				dkspan.Status = itrace.STATUS_ERR

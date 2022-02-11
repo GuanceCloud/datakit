@@ -235,6 +235,11 @@ func ddtraceToDkTrace(trace DDTrace) (itrace.DatakitTrace, error) {
 			dkspan.Tags[k] = v
 		}
 
+		if defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
 		buf, err := json.Marshal(span)
 		if err != nil {
 			return nil, err
