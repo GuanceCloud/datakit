@@ -35,7 +35,7 @@ var (
   ## Ignore ddtrace resources list. List of strings
   ## A list of regular expressions used to block certain resource name.
   # [inputs.ddtrace.close_resource]
-     # service1 = ["resource1", "resource2", ...]
+    # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
     # ...
 
