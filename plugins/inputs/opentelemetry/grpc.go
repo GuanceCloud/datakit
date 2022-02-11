@@ -8,7 +8,12 @@ import (
 	"context"
 	"net"
 	"sync"
+	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+
+	collectormetricepb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	trace "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc"
@@ -33,6 +38,10 @@ func (o *otlpGrpcCollector) run() {
 	if o.TraceEnable {
 		et := &ExportTrace{}
 		collectortracepb.RegisterTraceServiceServer(srv, et)
+	}
+	if o.MetricEnable {
+		em := &ExportMetric{}
+		collectormetricepb.RegisterMetricsServiceServer(srv, em)
 	}
 
 	o.stopFunc = srv.Stop
@@ -64,4 +73,61 @@ func (et *ExportTrace) Export(ctx context.Context,
 	}
 	res := &collectortracepb.ExportTraceServiceResponse{}
 	return res, nil
+}
+
+type ExportMetric struct {
+	collectormetricepb.UnimplementedMetricsServiceServer
+	errors      []error
+	requests    int
+	mu          sync.RWMutex
+	storage     []*trace.Span
+	headers     metadata.MD
+	exportBlock chan struct{}
+}
+
+func (et *ExportMetric) Export(ctx context.Context,
+	ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) {
+	// header
+	header, b := metadata.FromOutgoingContext(ctx)
+	if b {
+		l.Infof("len =%d", header.Len())
+	}
+	l.Infof(ets.String())
+	// ets.ProtoMessage()
+	if rss := ets.ResourceMetrics; rss != nil && len(rss) > 0 {
+		for _, resourceMetrics := range rss {
+			LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
+			for _, libraryMetric := range LibraryMetrics {
+				metrices := libraryMetric.GetMetrics()
+				for _, metrice := range metrices {
+					l.Debugf(metrice.Name)
+					l.Infof("metric string=%s", metrice.String())
+				}
+			}
+		}
+	}
+	res := &collectormetricepb.ExportMetricsServiceResponse{}
+	return res, nil
+}
+
+type DKMetric struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (m *DKMetric) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
+//nolint:lll
+func (m *DKMetric) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:   inputName,
+		Type:   "metric",
+		Desc:   "opentelemetry 指标",
+		Fields: map[string]interface{}{},
+		Tags:   map[string]interface{}{},
+	}
 }

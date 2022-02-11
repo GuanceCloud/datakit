@@ -69,5 +69,48 @@ Content:
 SampleRate:0}
 ```
 
-int64 max 9223372036854775807
-          4850414097632547000
+
+          
+## metric 原始数据
+```
+resource_metrics:{
+resource:{
+
+attributes:{key:"service.name" value:{string_value:"unknown_service:___go_build_go_opentelemetry_io_otel_example_otel_collector.exe"}}  -- service name
+attributes:{key:"telemetry.sdk.language" value:{string_value:"go"}} 
+attributes:{key:"telemetry.sdk.name" value:{string_value:"opentelemetry"}} 
+attributes:{key:"telemetry.sdk.version" value:{string_value:"1.3.0"}}} 
+
+instrumentation_library_metrics:{instrumentation_library:{name:"test-meter"}  -- metric name
+ 
+metrics:{name:"an_important_metric"
+ description:"Measures the cumulative epicness of the app" 
+sum:{data_points:{start_time_unix_nano:1644481279198123400 time_unix_nano:1644481281107922800 as_double:10} aggregation_temporality:AGGREGATION_TEMPORALITY_CUMULATIVE is_monotonic:true}}} 
+
+schema_url:"https://opentelemetry.io/schemas/v1.7.0"}
+
+pl:
+name :___go_build_go_opentelemetry_io_otel_example_otel_collector.exe
+tags : [attributes]
+fileds : 
+t 
+-------------------------------------------
+resource_metrics:{
+resource:{
+attributes:{key:"host.name" value:{string_value:"songlongqi"}} 
+attributes:{key:"os.description" value:{string_value:"Windows 10 Home China 21H2 (2009) [Version 10.0.19044.1466]"}} 
+attributes:{key:"os.type" value:{string_value:"windows"}} 
+attributes:{key:"process.command_args" value:{array_value:{values:{string_value:"C:\\Users\\18332\\AppData\\Local\\Temp\\___go_build_go_opentelemetry_io_otel_example_otel_collector.exe"}}}} 
+attributes:{key:"process.executable.name" value:{string_value:"___go_build_go_opentelemetry_io_otel_example_otel_collector.exe"}} 
+attributes:{key:"process.executable.path" value:{string_value:"C:\\Users\\18332\\AppData\\Local\\Temp\\___go_build_go_opentelemetry_io_otel_example_otel_collector.exe"}} 
+attributes:{key:"process.owner" value:{string_value:"SONGLONGQI\\18332"}} attributes:{key:"process.pid" value:{int_value:20576}} 
+attributes:{key:"process.runtime.description" value:{string_value:"go version go1.16.8 windows/amd64"}} 
+attributes:{key:"process.runtime.name" value:{string_value:"gc"}} 
+attributes:{key:"process.runtime.version" value:{string_value:"go1.16.8"}}} 
+
+instrumentation_library_metrics:{instrumentation_library:{name:"test-meter"} 
+metrics:{name:"an_important_metric" description:"Measures the cumulative epicness of the app" 
+sum:{data_points:{start_time_unix_nano:1644482920517894200 time_unix_nano:1644482920517894200 as_double:10} aggregation_temporality:AGGREGATION_TEMPORALITY_CUMULATIVE is_monotonic:true}}} 
+schema_url:"https://opentelemetry.io/schemas/v1.7.0"}
+```
+          

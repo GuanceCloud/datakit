@@ -2,6 +2,7 @@ package opentelemetry
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -131,6 +132,10 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 					Priority:           0,
 					SamplingRateGlobal: 0,
 				}
+				bts, err := json.Marshal(dkSpan)
+				if err == nil {
+					dkSpan.Content = string(bts)
+				}
 				l.Infof("dkspan = %+v", dkSpan)
 				l.Infof("span = %+v", span)
 				dktrace = append(dktrace, dkSpan)
@@ -146,7 +151,7 @@ func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
 	m := make(map[string]string, len(attr))
 	for _, kv := range attr {
 		key := replace(kv.Key)
-		m[key] = kv.GetValue().String()
+		m[key] = kv.GetValue().GetStringValue()
 		/*
 			switch kv.GetValue().Value.(type) {
 			// For slice attributes, serialize as JSON list string.
@@ -167,16 +172,17 @@ func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
 
 	return m
 }
+
 func byteToInt64(bts []byte) string {
 	string16 := hex.EncodeToString(bts)
 	n, err := strconv.ParseUint(string16, 16, 64)
 	if err != nil {
-		// l.Errorf("err=%v", err)
 		return string16
 	}
 	return strconv.FormatUint(n, 10)
 }
 
+// getDKSpanStatus 从otel的status转成dk的span_status
 func getDKSpanStatus(code tracepb.Status_StatusCode) string {
 	status := DKtrace.STATUS_INFO
 	switch code {
