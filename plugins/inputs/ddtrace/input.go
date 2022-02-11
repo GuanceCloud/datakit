@@ -33,12 +33,7 @@ var (
   # customer_tags = []
 
   ## Keep rare ddtrace resources list.
-  # keep_rare_resource = true
-
-  ## Sampler config
-  # [inputs.ddtrace.sampler]
-    # priority = 0
-    # sampling_rate = 1.0
+  # keep_rare_resource = false
 
   ## Ignore ddtrace resources list. List of strings
   ## A list of regular expressions used to block certain resource name.
@@ -46,6 +41,11 @@ var (
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
     # ...
+
+  ## Sampler config
+  # [inputs.ddtrace.sampler]
+    # priority = 0
+    # sampling_rate = 1.0
 
   ## tags is ddtrace configed key value pairs
   # [inputs.ddtrace.tags]
@@ -62,15 +62,10 @@ var (
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
 	afterGather          = itrace.NewAfterGather()
-	defSampler           *itrace.Sampler
-	closeResource        *itrace.CloseResource
 	keepRareResource     *itrace.KeepRareResource
+	closeResource        *itrace.CloseResource
+	defSampler           *itrace.Sampler
 )
-
-type sampler struct {
-	Priority int     `toml:"priority"`
-	Rate     float64 `toml:"rate"`
-}
 
 type Input struct {
 	Path             string              `toml:"path,omitempty"`           // deprecated
@@ -78,9 +73,9 @@ type Input struct {
 	TraceSampleConf  interface{}         `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
 	IgnoreResources  []string            `toml:"ignore_resources"`         // deprecated []string
 	Endpoints        []string            `toml:"endpoints"`
-	Sampler          *itrace.Sampler     `toml:"sampler"`
-	CloseResource    map[string][]string `toml:"close_resource"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string `toml:"close_resource"`
+	Sampler          *itrace.Sampler     `toml:"sampler"`
 	CustomerTags     []string            `toml:"customer_tags"`
 	Tags             map[string]string   `toml:"tags"`
 }

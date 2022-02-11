@@ -2,6 +2,8 @@
 package zipkin
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -22,6 +24,21 @@ var (
   pathV1 = "/api/v1/spans"
   pathV2 = "/api/v2/spans"
 
+  ## Keep rare ddtrace resources list.
+  # keep_rare_resource = false
+
+  ## Ignore ddtrace resources list. List of strings
+  ## A list of regular expressions used to block certain resource name.
+  # [inputs.ddtrace.close_resource]
+    # service1 = ["resource1", "resource2", ...]
+    # service2 = ["resource1", "resource2", ...]
+    # ...
+
+  ## Sampler config
+  # [inputs.ddtrace.sampler]
+    # priority = 0
+    # sampling_rate = 1.0
+
   # [inputs.zipkin.tags]
     # tag1 = "value1"
     # tag2 = "value2"
@@ -32,15 +49,21 @@ var (
 )
 
 var (
-	apiv1Path   = "/api/v1/spans"
-	apiv2Path   = "/api/v2/spans"
-	afterGather = itrace.NewAfterGather()
+	apiv1Path        = "/api/v1/spans"
+	apiv2Path        = "/api/v2/spans"
+	afterGather      = itrace.NewAfterGather()
+	keepRareResource *itrace.KeepRareResource
+	closeResource    *itrace.CloseResource
+	defSampler       *itrace.Sampler
 )
 
 type Input struct {
-	PathV1 string            `toml:"pathV1"`
-	PathV2 string            `toml:"pathV2"`
-	Tags   map[string]string `toml:"tags"`
+	PathV1           string              `toml:"pathV1"`
+	PathV2           string              `toml:"pathV2"`
+	KeepRareResource bool                `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string `toml:"close_resource"`
+	Sampler          *itrace.Sampler     `toml:"sampler"`
+	Tags             map[string]string   `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
@@ -65,6 +88,25 @@ func (ipt *Input) Run() {
 
 	// add calculators
 	afterGather.AppendCalculator(itrace.StatTracingInfo)
+
+	// add filters: the order append in AfterGather is important!!!
+	// add close resource filter
+	if len(ipt.CloseResource) != 0 {
+		closeResource = &itrace.CloseResource{}
+		closeResource.UpdateIgnResList(ipt.CloseResource)
+		afterGather.AppendFilter(closeResource.Close)
+	}
+	// add rare resource keeper
+	if ipt.KeepRareResource {
+		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
+		afterGather.AppendFilter(keepRareResource.Keep)
+	}
+	// add sampler
+	if ipt.Sampler != nil {
+		defSampler = ipt.Sampler
+		afterGather.AppendFilter(defSampler.Sample)
+	}
 
 	if len(ipt.Tags) != 0 {
 		tags = ipt.Tags
