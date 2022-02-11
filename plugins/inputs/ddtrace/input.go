@@ -30,7 +30,7 @@ var (
   ## Sampler config
   # [inputs.ddtrace.sampler]
     # priority = 0
-    # rate = 1.0
+    # sampling_rate = 1.0
 
   ## Ignore ddtrace resources list. List of strings
   ## A list of regular expressions used to block certain resource name.
