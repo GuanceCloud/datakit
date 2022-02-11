@@ -1,19 +1,28 @@
 package trace
 
 import (
-	"encoding/hex"
 	"regexp"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 )
 
-func DefSampler(dktrace DatakitTrace) (DatakitTrace, bool) {
+type DefSampler struct {
+	Priority           int
+	SamplingRateGlobal float64
+}
+
+func (dsmp *DefSampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 	for i := range dktrace {
 		if IsRootSpan(dktrace[i]) {
 			switch dktrace[i].Priority {
 			case PriorityAuto:
-				hex.EncodeToString([]byte(dktrace[i].TraceID))
+				tid := UnifyToInt64ID(dktrace[i].TraceID)
+				if tid%100 < int64(dsmp.SamplingRateGlobal*100) {
+					return dktrace, false
+				} else {
+					return nil, true
+				}
 			case PriorityReject:
 				return nil, true
 			case PriorityKeep:
@@ -27,54 +36,94 @@ func DefSampler(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-func CloseResourceWrapper(ignoredResources map[string]*regexp.Regexp) FilterFunc {
-	if len(ignoredResources) == 0 {
-		return func(dktrace DatakitTrace) (DatakitTrace, bool) {
-			return dktrace, false
-		}
-	} else {
-		return func(dktrace DatakitTrace) (DatakitTrace, bool) {
-			for i := range dktrace {
-				if IsRootSpan(dktrace[i]) {
-					for k := range ignoredResources {
-						if ignoredResources[k].MatchString(dktrace[i].Resource) {
+func (ds *DefSampler) UpdateArgs(priority int, samplingRateGlobal float64) {
+	switch priority {
+	case PriorityAuto, PriorityReject, PriorityKeep:
+		ds.Priority = priority
+	}
+	if samplingRateGlobal >= 0 && samplingRateGlobal <= 1 {
+		ds.SamplingRateGlobal = samplingRateGlobal
+	}
+}
+
+type CloseResources struct {
+	IgnoreResources map[string][]*regexp.Regexp
+}
+
+func (close *CloseResources) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if len(close.IgnoreResources) == 0 {
+		return dktrace, false
+	}
+
+	for i := range dktrace {
+		if IsRootSpan(dktrace[i]) {
+			for service, resList := range close.IgnoreResources {
+				if dktrace[i].Service == service {
+					for j := range resList {
+						if resList[j].MatchString(dktrace[i].Resource) {
 							return nil, true
 						}
 					}
 				}
 			}
-
-			return dktrace, false
 		}
+	}
+
+	return dktrace, false
+}
+
+func (close *CloseResources) UpdateIgnResList(ignResList map[string][]string) {
+	if len(ignResList) == 0 {
+		close.IgnoreResources = nil
+	} else {
+		ignResRegs := make(map[string][]*regexp.Regexp)
+		for service, resList := range ignResList {
+			ignResRegs[service] = []*regexp.Regexp{}
+			for i := range resList {
+				ignResRegs[service] = append(ignResRegs[service], regexp.MustCompile(resList[i]))
+			}
+		}
+		close.IgnoreResources = ignResRegs
 	}
 }
 
-func KeepRareResourceWrapper(presentMap map[string]time.Time) FilterFunc {
-	if presentMap == nil {
-		presentMap = make(map[string]time.Time)
+type KeepResources struct {
+	Open       bool
+	Span       time.Duration
+	presentMap map[string]time.Time
+}
+
+func (keep *KeepResources) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if !keep.Open {
+		return dktrace, false
+	}
+	if keep.presentMap == nil {
+		keep.presentMap = make(map[string]time.Time)
 	}
 
-	return func(dktrace DatakitTrace) (DatakitTrace, bool) {
-		var skip bool
-		for i := range dktrace {
-			if IsRootSpan(dktrace[i]) {
-				var (
-					checksum = hashcode.GenMapHash(map[string]string{
-						"service":  dktrace[i].Service,
-						"resource": dktrace[i].Resource,
-						"env":      dktrace[i].Env,
-					})
-					lastCheck time.Time
-					ok        bool
-				)
-				if lastCheck, ok = presentMap[checksum]; !ok || time.Since(lastCheck) >= time.Hour {
-					skip = true
-				}
-				presentMap[checksum] = time.Now()
-				break
+	var skip bool
+	for i := range dktrace {
+		if IsRootSpan(dktrace[i]) {
+			var (
+				checkSum = hashcode.GenMapHash(map[string]string{
+					"service":  dktrace[i].Service,
+					"resource": dktrace[i].Resource,
+					"env":      dktrace[i].Env,
+				})
+				lastCheck time.Time
+				ok        bool
+			)
+			if lastCheck, ok = keep.presentMap[checkSum]; !ok || time.Since(lastCheck) >= keep.Span {
+				skip = true
 			}
+			keep.presentMap[checkSum] = time.Now()
 		}
-
-		return dktrace, skip
 	}
+
+	return dktrace, skip
+}
+
+func (keep *KeepResources) UpdateStatus(open bool, span time.Duration) {
+	keep.Open = open
+	keep.Span = span
 }

@@ -14,7 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-//nolint:stylecheck
+// trace constants
 const (
 	CONTAINER_HOST = "container_host"
 	ENV            = "env"
@@ -195,13 +195,13 @@ func ParseTraceInfo(req *http.Request) (*TraceReqInfo, error) {
 	return reqInfo, err
 }
 
-func UnifyTraceIDInt64(traceID string) int64 {
-	if len(traceID) == 0 {
+func UnifyToInt64ID(id string) int64 {
+	if len(id) == 0 {
 		return 0
 	}
 
 	var isAllInt = true
-	for _, b := range traceID {
+	for _, b := range id {
 		if b < 48 || b > 57 {
 			isAllInt = false
 			break
@@ -209,12 +209,12 @@ func UnifyTraceIDInt64(traceID string) int64 {
 	}
 
 	if isAllInt {
-		if i, err := strconv.ParseInt(traceID, 10, 64); err == nil {
+		if i, err := strconv.ParseInt(id, 10, 64); err == nil {
 			return i
 		}
 	}
 
-	hexstr := hex.EncodeToString([]byte(traceID))
+	hexstr := hex.EncodeToString([]byte(id))
 	if l := len(hexstr); l > 16 {
 		hexstr = hexstr[l-16:]
 	}
