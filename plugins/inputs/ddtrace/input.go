@@ -2,7 +2,6 @@
 package ddtrace
 
 import (
-	"regexp"
 	"strings"
 	"time"
 
@@ -28,16 +27,20 @@ var (
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
+  ## Sampler config
+  # [inputs.ddtrace.sampler]
+    # priority = 0
+    # rate = 1.0
+
   ## Ignore ddtrace resources list. List of strings
-  ## A list of regular expressions filter out certain resource name.
-  ## All entries must be double quoted and split by comma.
-	# [inputs.ddtrace.close_resources]
-    # service1 = []
-    # service2 = []
+  ## A list of regular expressions used to block certain resource name.
+	# [inputs.ddtrace.close_resource]
+    # service1 = ["resource1", "resource2", ...]
+    # service2 = ["resource1", "resource2", ...]
 		# ...
 
 	## Keep ddtrace rare resources list.
-	# keep_rare_resources = true
+	# keep_rare_resource = true
 
   ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
   ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
@@ -58,21 +61,28 @@ var (
 var (
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
-	closeResRegs         map[string]*regexp.Regexp
-	rareResMap           = make(map[string]time.Time)
 	afterGather          = itrace.NewAfterGather()
+	defSampler           *itrace.DefSampler
+	closeResource        *itrace.CloseResource
+	keepRareResource     *itrace.KeepRareResource
 )
 
+type sampler struct {
+	Priority int     `toml:"priority"`
+	Rate     float64 `toml:"rate"`
+}
+
 type Input struct {
-	Path              string              `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs  interface{}         `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
-	TraceSampleConf   interface{}         `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
-	IgnoreResources   []string            `toml:"ignore_resources"`         // deprecated []string
-	Endpoints         []string            `toml:"endpoints"`
-	CloseResources    map[string][]string `toml:"close_resources"`
-	KeepRareResources bool                `toml:"keep_rare_resources"`
-	CustomerTags      []string            `toml:"customer_tags"`
-	Tags              map[string]string   `toml:"tags"`
+	Path             string              `toml:"path,omitempty"`           // deprecated
+	TraceSampleConfs interface{}         `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
+	TraceSampleConf  interface{}         `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
+	IgnoreResources  []string            `toml:"ignore_resources"`         // deprecated []string
+	Endpoints        []string            `toml:"endpoints"`
+	Sampler          *sampler            `toml:"sampler"`
+	CloseResource    map[string][]string `toml:"close_resource"`
+	KeepRareResource bool                `toml:"keep_rare_resource"`
+	CustomerTags     []string            `toml:"customer_tags"`
+	Tags             map[string]string   `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
@@ -99,17 +109,25 @@ func (ipt *Input) Run() {
 	// add calculators
 	afterGather.AppendCalculator(itrace.StatTracingInfo)
 
+	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
-	if len(ipt.IgnoreResources) != 0 {
-		for i := range ipt.IgnoreResources {
-			ignResRegs = append(ignResRegs, regexp.MustCompile(ipt.IgnoreResources[i]))
-		}
-		afterGather.AppendFilter(itrace.CloseResourceWrapper(ignResRegs))
+	if len(ipt.CloseResource) != 0 {
+		closeResource = &itrace.CloseResource{}
+		closeResource.UpdateIgnResList(ipt.CloseResource)
+		afterGather.AppendFilter(closeResource.Close)
 	}
 	// add rare resource keeper
-	afterGather.AppendFilter(itrace.KeepRareResourceWrapper(rareResMap))
+	if ipt.KeepRareResource {
+		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
+		afterGather.AppendFilter(keepRareResource.Keep)
+	}
 	// add sampler
-	afterGather.AppendFilter(itrace.DefSampler)
+	if ipt.Sampler != nil {
+		defSampler = &itrace.DefSampler{}
+		defSampler.UpdateArgs(ipt.Sampler.Priority, ipt.Sampler.Rate)
+		afterGather.AppendFilter(defSampler.Sample)
+	}
 
 	for k := range ipt.CustomerTags {
 		if strings.Contains(ipt.CustomerTags[k], ".") {

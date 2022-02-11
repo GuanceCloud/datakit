@@ -200,7 +200,7 @@ func UnifyToInt64ID(id string) int64 {
 		return 0
 	}
 
-	var isAllInt = true
+	isAllInt := true
 	for _, b := range id {
 		if b < 48 || b > 57 {
 			isAllInt = false

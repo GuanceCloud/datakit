@@ -46,11 +46,11 @@ func (ds *DefSampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	}
 }
 
-type CloseResources struct {
+type CloseResource struct {
 	IgnoreResources map[string][]*regexp.Regexp
 }
 
-func (close *CloseResources) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
+func (close *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(close.IgnoreResources) == 0 {
 		return dktrace, false
 	}
@@ -72,7 +72,7 @@ func (close *CloseResources) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-func (close *CloseResources) UpdateIgnResList(ignResList map[string][]string) {
+func (close *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 	if len(ignResList) == 0 {
 		close.IgnoreResources = nil
 	} else {
@@ -87,13 +87,13 @@ func (close *CloseResources) UpdateIgnResList(ignResList map[string][]string) {
 	}
 }
 
-type KeepResources struct {
+type KeepRareResource struct {
 	Open       bool
 	Span       time.Duration
 	presentMap map[string]time.Time
 }
 
-func (keep *KeepResources) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
+func (keep *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
 	if !keep.Open {
 		return dktrace, false
 	}
@@ -123,7 +123,7 @@ func (keep *KeepResources) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, skip
 }
 
-func (keep *KeepResources) UpdateStatus(open bool, span time.Duration) {
+func (keep *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	keep.Open = open
 	keep.Span = span
 }
