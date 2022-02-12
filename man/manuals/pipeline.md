@@ -883,6 +883,56 @@ rename("time", log_time)
 }
 ```
 
+#### 可用的 timezone 列表
+
+```golang
+var timezoneList = map[string]string{
+	"-11":    "Pacific/Midway",
+	"-10":    "Pacific/Honolulu",
+	"-9:30":  "Pacific/Marquesas",
+	"-9":     "America/Anchorage",
+	"-8":     "America/Los_Angeles",
+	"-6":     "America/Phoenix",
+	"-6":     "America/Chicago",
+	"-5":     "America/New_York",
+	"-4":     "America/Santiago",
+	"-3:30":  "America/St_Johns",
+	"-3":     "America/Sao_Paulo",
+	"-2":     "America/Noronha",
+	"-1":     "America/Scoresbysund",
+	"+0":     "Europe/London",
+	"+1":     "Europe/Vatican",
+	"+2":     "Europe/Kiev",
+	"+3":     "Europe/Moscow",
+	"+3:30":  "Asia/Tehran",
+	"+4":     "Asia/Dubai",
+	"+4:30":  "Asia/Kabul",
+	"+5":     "Asia/Samarkand",
+	"+5:30":  "Asia/Kolkata",
+	"+5:45":  "Asia/Kathmandu",
+	"+6":     "Asia/Almaty",
+	"+6:30":  "Asia/Yangon",
+	"+7":     "Asia/Jakarta",
+	"+8":     "Asia/Shanghai",
+	"+8:45":  "Australia/Eucla",
+	"+9":     "Asia/Tokyo",
+	"+9:30":  "Australia/Darwin",
+	"+10":    "Australia/Sydney",
+	"+10:30": "Australia/Lord_Howe",
+	"+11":    "Pacific/Guadalcanal",
+	"+12":    "Pacific/Auckland",
+	"+12:45": "Pacific/Chatham",
+	"+13":    "Pacific/Apia",
+	"+14":    "Pacific/Kiritimati",
+}
+```
+
+我们可以使用如上列表中的 key 来指定时区，比如东八区用 `"+8"` 来指定：
+
+```python
+default_time(mytime, "+8")
+```
+
 ### `adjust_timezone()`
 
 函数原型：`adjust_timezone(key=required)`

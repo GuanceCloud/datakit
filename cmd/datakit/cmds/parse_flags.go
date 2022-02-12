@@ -79,6 +79,8 @@ var (
 	flagPLLogPath     = fsPL.String("log", commonLogFlag(), "command line log path")
 	flagPLTxtData     = fsPL.StringP("txt", "T", "", "text string for the pipeline or grok(json or raw text)")
 	flagPLTxtFile     = fsPL.StringP("file", "F", "", "text file path for the pipeline or grok(json or raw text)")
+	flagPLTable       = fsPL.Bool("tab", false, "output result in table format")
+	flagPLDate        = fsPL.Bool("date", false, "append date display(according to local timezone) on timestamp")
 	flagPLGrokQ       = fsPL.BoolP("grokq", "G", false, "query groks interactively")
 	fsPLUsage         = func() {
 		fmt.Println("usage: datakit pipeline [pipeline-script-name.p] [options]\n")
