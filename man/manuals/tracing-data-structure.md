@@ -3,7 +3,7 @@
 ## 简述
 
 此文用于解释主流 Telemetry 平台数据结构以及与 Datakit 平台数据结构的映射关系。
-包括: DataDog, Jaeger, Skywalking, Zipking
+包括: DataDog, Jaeger, Skywalking, Zipkin
 
 ---
 
@@ -135,7 +135,7 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ---
 
-## Zipking Tracing Data Structure
+## Zipkin Tracing Data Structure
 
 ### Zipkin Thrift Protocol Span Structure V1
 
