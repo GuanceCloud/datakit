@@ -82,6 +82,7 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
+			ParentID:  "0",
 			EndPoint:  span.Peer,
 			Operation: span.OperationName,
 			Service:   segment.Service,

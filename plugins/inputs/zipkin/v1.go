@@ -146,22 +146,20 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   fmt.Sprintf("%d", uint64(span.TraceID)),
 			SpanID:    fmt.Sprintf("%d", uint64(span.ID)),
+			ParentID:  "0",
 			Operation: span.Name,
 			Source:    inputName,
 			SpanType:  itrace.FindSpanTypeInt(span.ID, *span.ParentID, spanIDs, parentIDs),
 			Tags:      tags,
 		}
-
 		if span.ParentID != nil {
 			dkspan.ParentID = fmt.Sprintf("%d", uint64(*span.ParentID))
 		}
-
 		if span.Timestamp != nil {
 			dkspan.Start = (*span.Timestamp) * int64(time.Microsecond)
 		} else {
 			dkspan.Start = getStartTimestamp(span)
 		}
-
 		if span.Duration != nil {
 			dkspan.Duration = (*span.Duration) * int64(time.Microsecond)
 		} else {
@@ -237,7 +235,9 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error)
 			Start:     getFirstTimestamp(span),
 			Duration:  span.Duration * int64(time.Microsecond),
 		}
-
+		if dkspan.ParentID == "" {
+			dkspan.ParentID = "0"
+		}
 		if dkspan.Duration == 0 {
 			dkspan.Duration = getDurationByAno(span.Annotations)
 		}
