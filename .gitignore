@@ -39,6 +39,7 @@ docker/datakit
 embed/*
 git/git.go
 gram_y.go
+build.sh
 gram_y.go
 install_local.sh
 install_local.sh
@@ -46,7 +47,6 @@ install.ps1
 install.ps1
 install.sh
 install.sh
-internal/http/req.db
 internal/http/req.db
 iploc.bin
 liu_script.sh
