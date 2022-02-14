@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 
@@ -94,20 +96,118 @@ func (et *ExportMetric) Export(ctx context.Context,
 	}
 	l.Infof(ets.String())
 	// ets.ProtoMessage()
+	orms := make([]*otelResourceMetric, 0)
 	if rss := ets.ResourceMetrics; rss != nil && len(rss) > 0 {
 		for _, resourceMetrics := range rss {
+			tags := toDatakitTags(resourceMetrics.Resource.Attributes)
 			LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
 			for _, libraryMetric := range LibraryMetrics {
 				metrices := libraryMetric.GetMetrics()
 				for _, metrice := range metrices {
 					l.Debugf(metrice.Name)
 					l.Infof("metric string=%s", metrice.String())
+					ps := getData(metrice)
+					for _, p := range ps {
+						orm := &otelResourceMetric{name: metrice.Name, attributes: tags,
+							description: metrice.Description, dataType: p.typeName, startTime: p.startTime,
+							unitTime: p.unitTime, data: p.val}
+						orms = append(orms, orm)
+						// todo 将 orms 转换成 行协议格式 并发送到IO
+					}
 				}
 			}
 		}
 	}
 	res := &collectormetricepb.ExportMetricsServiceResponse{}
 	return res, nil
+}
+
+type point struct {
+	typeName  string
+	startTime uint64
+	unitTime  uint64
+	val       interface{}
+}
+
+func getData(metric *metricpb.Metric) []*point {
+	ps := make([]*point, 0)
+	switch t := metric.GetData().(type) {
+	case *metricpb.Metric_IntGauge: // 弃用
+	case *metricpb.Metric_Gauge:
+		for _, p := range t.Gauge.DataPoints {
+			point := &point{}
+			if double, ok := p.Value.(*metricpb.NumberDataPoint_AsDouble); ok {
+				point.val = double.AsDouble
+				point.typeName = "double"
+			} else if i, ok := p.Value.(*metricpb.NumberDataPoint_AsInt); ok {
+				point.val = i.AsInt
+				point.typeName = "int"
+			}
+			point.startTime = p.StartTimeUnixNano
+			point.unitTime = p.TimeUnixNano
+			ps = append(ps, point)
+		}
+	case *metricpb.Metric_IntSum: // 弃用
+	case *metricpb.Metric_Sum:
+		for _, p := range t.Sum.DataPoints {
+			point := &point{}
+			if double, ok := p.Value.(*metricpb.NumberDataPoint_AsDouble); ok {
+				point.val = double.AsDouble
+				point.typeName = "double"
+			} else if i, ok := p.Value.(*metricpb.NumberDataPoint_AsInt); ok {
+				point.val = i.AsInt
+				point.typeName = "int"
+			}
+			//	t.Sum.AggregationTemporality
+			point.startTime = p.StartTimeUnixNano
+			point.unitTime = p.TimeUnixNano
+			ps = append(ps, point)
+		}
+	case *metricpb.Metric_IntHistogram: // 弃用
+	case *metricpb.Metric_Histogram:
+		for _, p := range t.Histogram.DataPoints {
+			point := &point{}
+			point.val = p.Sum
+			point.typeName = "histogram"
+			point.startTime = p.StartTimeUnixNano
+			point.unitTime = p.TimeUnixNano
+			ps = append(ps, point)
+		}
+	case *metricpb.Metric_ExponentialHistogram:
+		for _, p := range t.ExponentialHistogram.DataPoints {
+			point := &point{
+				typeName:  "ExponentialHistogram",
+				startTime: p.StartTimeUnixNano,
+				unitTime:  p.TimeUnixNano,
+				val:       p.Sum,
+			}
+			ps = append(ps, point)
+		}
+	case *metricpb.Metric_Summary:
+		for _, p := range t.Summary.DataPoints {
+			point := &point{
+				typeName:  "summary",
+				startTime: p.StartTimeUnixNano,
+				unitTime:  p.TimeUnixNano,
+				val:       p.Sum,
+			}
+			ps = append(ps, point)
+		}
+	default:
+
+	}
+	return ps
+}
+
+type otelResourceMetric struct {
+	name        string
+	attributes  map[string]string
+	description string
+	dataType    string // int bool int64 float
+	startTime   uint64
+	unitTime    uint64
+	data        interface{}
+	// Exemplar 可获取 spanid 等
 }
 
 type DKMetric struct {

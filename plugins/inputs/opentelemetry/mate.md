@@ -85,15 +85,16 @@ instrumentation_library_metrics:{instrumentation_library:{name:"test-meter"}  --
  
 metrics:{name:"an_important_metric"
  description:"Measures the cumulative epicness of the app" 
-sum:{data_points:{start_time_unix_nano:1644481279198123400 time_unix_nano:1644481281107922800 as_double:10} aggregation_temporality:AGGREGATION_TEMPORALITY_CUMULATIVE is_monotonic:true}}} 
+sum:{data_points:{start_time_unix_nano:1644481279198123400 
+time_unix_nano:1644481281107922800 as_double:10} aggregation_temporality:AGGREGATION_TEMPORALITY_CUMULATIVE is_monotonic:true}}} 
 
 schema_url:"https://opentelemetry.io/schemas/v1.7.0"}
 
 pl:
-name :___go_build_go_opentelemetry_io_otel_example_otel_collector.exe
+name : test-meter
 tags : [attributes]
 fileds : 
-t 
+t : time now
 -------------------------------------------
 resource_metrics:{
 resource:{

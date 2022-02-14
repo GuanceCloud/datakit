@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -81,6 +82,11 @@ func (i *Input) Catalog() string {
 
 func (i *Input) SampleConfig() string {
 	return sampleConfig
+}
+
+func (i *Input) RegHTTPHandler() {
+	dkHTTP.RegHTTPHandler("POST", "/otel/v11/trace", i.Otc.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("GET", "/otel/v11/trace", i.Otc.apiOtlpTrace)
 }
 
 func (i *Input) exit() {
