@@ -132,6 +132,21 @@ var (
 		fmt.Println("Monitor used to show datakit running statistics\n")
 		fmt.Println(fsMonitor.FlagUsagesWrapped(0))
 	}
+
+	/////////////////////////////////////
+	// install related flags
+	/////////////////////////////////////
+	fsInstallName       = "install"
+	fsInstall           = pflag.NewFlagSet(fsInstallName, pflag.ContinueOnError)
+	flagInstallLogPath  = fsInstall.String("log", commonLogFlag(), "command line log path")
+	flagInstallTelegraf = fsInstall.Bool("telegraf", false, "install Telegraf")
+	flagInstallScheck   = fsInstall.Bool("scheck", false, "install SCheck")
+	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database(currently only iploc avaialble)")
+	fsInstallUsage      = func() {
+		fmt.Println("usage: datakit install [options]\n")
+		fmt.Println("Install used to install DataKit related packages and plugins\n")
+		fmt.Println(fsInstall.FlagUsagesWrapped(0))
+	}
 )
 
 func commonLogFlag() string {
@@ -155,6 +170,8 @@ func printHelp() {
 	fmt.Fprintf(os.Stderr, "\tpipeline   debug pipeline\n")
 	fmt.Fprintf(os.Stderr, "\tservice    manage datakit service\n")
 	fmt.Fprintf(os.Stderr, "\tmonitor    show datakit running statistics\n")
+	fmt.Fprintf(os.Stderr, "\tinstall    install DataKit related packages and plugins\n")
+
 	// TODO: add more commands...
 
 	fmt.Fprintf(os.Stderr, "\n")
@@ -187,6 +204,9 @@ func runHelpFlags() {
 
 		case fsMonitorName:
 			fsMonitorUsage()
+
+		case fsInstallName:
+			fsInstallUsage()
 
 		default: // add more
 			fmt.Fprintf(os.Stderr, "flag provided but not defined: %s", os.Args[2])
@@ -304,6 +324,21 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
+			os.Exit(0)
+
+		case fsInstallName:
+			// TODO
+			setCmdRootLog(*flagInstallLogPath)
+			if err := fsInstall.Parse(os.Args[2:]); err != nil {
+				errorf("Parse: %s\n", err)
+				fsInstallUsage()
+				os.Exit(-1)
+			}
+
+			if err := installPlugins(); err != nil {
+				errorf("%s\n", err)
+				os.Exit(-1)
+			}
 			os.Exit(0)
 
 		default:
