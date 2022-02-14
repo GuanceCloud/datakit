@@ -126,7 +126,7 @@ func mkServer(socket string) (s *server, err error) {
 	return s, err
 }
 
-// toReceive: 根据listen或udp.conn 开始接收数据
+// toReceive: 根据listen或udp.conn 开始接收数据.
 func (sl *socketLogger) toReceive() {
 	if sl.servers == nil || len(sl.servers) == 0 {
 		return
