@@ -60,7 +60,7 @@ const (
 	FIELD_TRACEID  = "trace_id"
 )
 
-// trace keep priority
+// tracing data keep priority
 const (
 	// reject trace before send to dataway
 	PriorityReject = -1

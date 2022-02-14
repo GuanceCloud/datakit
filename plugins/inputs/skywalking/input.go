@@ -19,18 +19,26 @@ var (
   ## skywalking grpc server listening on address
   address = "localhost:13800"
 
-  ## Keep rare ddtrace resources list.
+  ## Keep rare tracing resources list switch.
+  ## If some resources are rare enough(not presend in 1 hour), those resource will always send
+  ## to data center and do not consider samplers and filters.
   # keep_rare_resource = false
 
-  ## Ignore ddtrace resources list. List of strings
-  ## A list of regular expressions used to block certain resource name.
-  # [inputs.ddtrace.close_resource]
+  ## Ignore tracing resources map like service:[resources...].
+  ## The service name is the full service name set in current application.
+  ## The resource list is regular expressions uses to block resource names.
+  # [inputs.skywalking.close_resource]
     # service1 = ["resource1", "resource2", ...]
     # service2 = ["resource1", "resource2", ...]
     # ...
 
-  ## Sampler config
-  # [inputs.ddtrace.sampler]
+  ## Sampler config uses to set global sampling strategy.
+  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
+  ##   -1: always reject any tracing data send to datakit
+  ##    0: accept tracing data and calculate with sampling_rate
+  ##    1: always send to data center and do not consider sampling_rate
+  ## sampling_rate used to set global sampling rate
+  # [inputs.skywalking.sampler]
     # priority = 0
     # sampling_rate = 1.0
 
