@@ -30,7 +30,7 @@ var (
   # keep_rare_resource = false
 
   ## Ignore tracing resources map like service:[resources...].
-  ## The service name is the full service name set in current application.
+  ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
   # [inputs.zipkin.close_resource]
     # service1 = ["resource1", "resource2", ...]
