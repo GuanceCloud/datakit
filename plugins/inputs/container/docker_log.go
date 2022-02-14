@@ -270,6 +270,7 @@ func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfi
 func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stream string, logconf *containerLogConfig) error {
 	defer reader.Close() //nolint:errcheck
 
+	logconf.tags["service"] = logconf.Service
 	logconf.tags["stream"] = stream
 	shortImageName := logconf.tags["image_short_name"]
 
@@ -334,10 +335,16 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			if len(line) == 0 {
 				continue
 			}
+
+			text := mult.ProcessLine(line)
+			if len(text) == 0 {
+				continue
+			}
+
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
+					log:  string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
 		}
