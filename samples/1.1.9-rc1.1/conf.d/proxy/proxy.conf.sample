@@ -1,7 +1,0 @@
-# {"version": "1.1.9-rc1.1", "desc": "do NOT edit this line"}
-
-[[inputs.proxy]]
-  ## default bind ip address
-  bind = "0.0.0.0"
-  ## default bind port
-  port = 9530

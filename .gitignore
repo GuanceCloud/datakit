@@ -72,3 +72,5 @@ test.go
 test.jso
 test.output
 y.output
+samples/*
+measurements-meta.json

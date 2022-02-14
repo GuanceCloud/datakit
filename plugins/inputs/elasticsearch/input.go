@@ -497,6 +497,7 @@ func (i *Input) RunPipeline() {
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
+	io.FeedEventLog(&io.Reporter{Message: "elasticsearch start ok, ready for collecting metrics.", Logtype: "event"})
 
 	duration, err := time.ParseDuration(i.Interval)
 	if err != nil {

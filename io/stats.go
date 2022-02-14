@@ -4,11 +4,6 @@ import (
 	"time"
 )
 
-type qinputStats struct {
-	qid string
-	ch  chan map[string]*InputsStat
-}
-
 type InputsStat struct {
 	// Name      string    `json:"name"`
 	Category       string        `json:"category"`

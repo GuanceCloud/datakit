@@ -66,7 +66,7 @@ func (m *filefdMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"allocated": newFieldInfoCount("已分配文件句柄的数目"),
 			// "maximum":      newFieldInfoCount("文件句柄的最大数目； 当值为 2^63-1 则页面显示 9223372036854776000(若大于此值，均会造成精度损失)"),
-			"maximum_mega": newFieldInfoMega("文件句柄的最大数目, 单位 M(10^6)"),
+			"maximum_mega": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "文件句柄的最大数目, 单位 M(10^6)"},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},
@@ -88,8 +88,8 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"load1_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "每个核心过去 1 分钟的 CPU 平均负载"},
 			"load5_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "每个核心过去 5 分钟的 CPU 平均负载"},
 			"load15_per_core": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "每个核心过去 15 分钟的 CPU 平均负载"},
-			"n_cpus":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Count, Desc: "CPU 逻辑核心数"},
-			"n_users":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Count, Desc: "用户数"},
+			"n_cpus":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "CPU 逻辑核心数"},
+			"n_users":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "用户数"},
 			"uptime":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "系统运行时间"},
 		},
 		Tags: map[string]interface{}{
@@ -107,15 +107,6 @@ func newFieldInfoCount(desc string) *inputs.FieldInfo {
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
 		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func newFieldInfoMega(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Float,
-		Unit:     inputs.Mega,
 		Desc:     desc,
 	}
 }

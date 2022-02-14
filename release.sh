@@ -43,8 +43,8 @@ case $branch_name in
 		fi
 		;;
 
-	"github") echo "release to github"
-		git push github dev
+	"github-mirror") echo "release to github"
+		git push github github-mirror
 		;;
 
 	*) echo "[E] unsupported branch '$branch_name' for release, exited"

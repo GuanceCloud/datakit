@@ -43,7 +43,7 @@ const (
 	CustomObject     = "/v1/write/custom_object"
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
-	Rum              = "/v1/write/rum"
+	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
 
 	// other APIS.

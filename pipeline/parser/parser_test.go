@@ -16,6 +16,102 @@ func TestParser(t *testing.T) {
 		fail     bool
 	}{
 		{
+			name: "if-condition-list-paren2",
+			in:   `if ((a==b) && (a==c)) || a==d { }`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op: OR,
+								LHS: &ParenExpr{
+									Param: &ConditionalExpr{
+										Op: AND,
+										LHS: &ParenExpr{
+											Param: &ConditionalExpr{
+												Op:  EQEQ,
+												LHS: &Identifier{Name: "a"},
+												RHS: &Identifier{Name: "b"},
+											},
+										},
+										RHS: &ParenExpr{
+											Param: &ConditionalExpr{
+												Op:  EQEQ,
+												LHS: &Identifier{Name: "a"},
+												RHS: &Identifier{Name: "c"},
+											},
+										},
+									},
+								},
+								RHS: &ConditionalExpr{
+									Op:  EQEQ,
+									LHS: &Identifier{Name: "a"},
+									RHS: &Identifier{Name: "d"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "if-condition-list-paren",
+			in:   `if (a==b) && (a==c) { }`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op: AND,
+								LHS: &ParenExpr{
+									Param: &ConditionalExpr{
+										Op:  EQEQ,
+										LHS: &Identifier{Name: "a"},
+										RHS: &Identifier{Name: "b"},
+									},
+								},
+								RHS: &ParenExpr{
+									Param: &ConditionalExpr{
+										Op:  EQEQ,
+										LHS: &Identifier{Name: "a"},
+										RHS: &Identifier{Name: "c"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "if-condition-list",
+			in:   `if a==b && a==c { }`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op: AND,
+								LHS: &ConditionalExpr{
+									Op:  EQEQ,
+									LHS: &Identifier{Name: "a"},
+									RHS: &Identifier{Name: "b"},
+								},
+								RHS: &ConditionalExpr{
+									Op:  EQEQ,
+									LHS: &Identifier{Name: "a"},
+									RHS: &Identifier{Name: "c"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
 			name: "if-error-non-condition",
 			in:   `if { }`,
 			fail: true,
