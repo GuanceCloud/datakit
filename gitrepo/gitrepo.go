@@ -309,11 +309,19 @@ func reloadCore(ctx context.Context) (int, error) {
 				l.Info("before ReloadTheNormalServer")
 
 				httpd.ReloadTheNormalServer()
+
+			case 6:
+				l.Info("before RunInputExtra")
+
+				if err := inputs.RunInputExtra(); err != nil {
+					l.Errorf("RunInputExtra failed: %v", err)
+					return round, err
+				}
 			}
 		}
 
 		round++
-		if round > 5 {
+		if round > 6 {
 			return round, nil // round + 1
 		}
 	}

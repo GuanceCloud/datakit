@@ -177,7 +177,7 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 
 // go test -v -timeout 30s -run ^TestReloadCore$ gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo
 func TestReloadCore(t *testing.T) {
-	const successRound = 5
+	const successRound = 6
 
 	cases := []struct {
 		name          string
