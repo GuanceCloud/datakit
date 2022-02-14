@@ -64,6 +64,8 @@ func (close *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 				if dktrace[i].Service == service {
 					for j := range resList {
 						if resList[j].MatchString(dktrace[i].Resource) {
+							log.Debugf("closed service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+
 							return nil, true
 						}
 					}
@@ -117,6 +119,7 @@ func (keep *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
 				ok        bool
 			)
 			if lastCheck, ok = keep.presentMap[checkSum]; !ok || time.Since(lastCheck) >= keep.Span {
+				log.Debugf("got rare service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 				skip = true
 			}
 			keep.presentMap[checkSum] = time.Now()

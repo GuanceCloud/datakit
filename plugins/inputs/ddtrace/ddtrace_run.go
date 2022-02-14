@@ -80,7 +80,7 @@ func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,
 
 func handleTraces(pattern string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
+		log.Debugf("%s: received tracing data from path: %s", inputName, req.URL.Path)
 
 		buf, err := io.ReadAll(req.Body)
 		if err != nil {
