@@ -4,15 +4,17 @@ package trace
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-//nolint:stylecheck
+// trace constants
 const (
 	CONTAINER_HOST = "container_host"
 	ENV            = "env"
@@ -58,7 +60,7 @@ const (
 	FIELD_TRACEID  = "trace_id"
 )
 
-// trace keep priority
+// tracing data keep priority
 const (
 	// reject trace before send to dataway
 	PriorityReject = -1
@@ -191,4 +193,32 @@ func ParseTraceInfo(req *http.Request) (*TraceReqInfo, error) {
 	}
 
 	return reqInfo, err
+}
+
+func UnifyToInt64ID(id string) int64 {
+	if len(id) == 0 {
+		return 0
+	}
+
+	isAllInt := true
+	for _, b := range id {
+		if b < 48 || b > 57 {
+			isAllInt = false
+			break
+		}
+	}
+
+	if isAllInt {
+		if i, err := strconv.ParseInt(id, 10, 64); err == nil {
+			return i
+		}
+	}
+
+	hexstr := hex.EncodeToString([]byte(id))
+	if l := len(hexstr); l > 16 {
+		hexstr = hexstr[l-16:]
+	}
+	i, _ := strconv.ParseInt(hexstr, 16, 64)
+
+	return i
 }

@@ -39,15 +39,21 @@ func (aga *AfterGather) AppendCalculator(calc ...CalculatorFunc) {
 	aga.calculators = append(aga.calculators, calc...)
 }
 
-// AppendFilter will append new filters into AfterGather structure,
-// and run them as the order they added if no filter func return false
-// to break out the filters loop.
+// AppendFilter will append new filters into AfterGather structure
+// and run them as the order they added. If one filter func return false then
+// the filters loop will break.
 func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 	aga.Lock()
 	defer aga.Unlock()
 
 	aga.filters = append(aga.filters, filter...)
 }
+
+func (aga *AfterGather) UpdateDefSampler() {}
+
+func (aga *AfterGather) UpdateCloseResource() {}
+
+func (aga *AfterGather) UpdateKeepRareResource() {}
 
 func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod bool) {
 	once.Do(func() {

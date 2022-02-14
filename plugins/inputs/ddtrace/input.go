@@ -2,7 +2,6 @@
 package ddtrace
 
 import (
-	"regexp"
 	"strings"
 	"time"
 
@@ -28,15 +27,34 @@ var (
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
-  ## Ignore ddtrace resources list. List of strings
-  ## A list of regular expressions filter out certain resource name.
-  ## All entries must be double quoted and split by comma.
-  # ignore_resources = []
-
   ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
   ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
-  ## IT'S EMPTY STRING VALUE AS DEFAULT indicates that no customer tag set up. DO NOT USE DOT(.) IN TAGS
+  ## IT'S EMPTY STRING VALUE AS DEFAULT indicates that no customer tag set up.
+  ## DO NOT USE DOT(.) IN TAGS.
   # customer_tags = []
+
+  ## Keep rare tracing resources list switch.
+  ## If some resources are rare enough(not presend in 1 hour), those resource will always send
+  ## to data center and do not consider samplers and filters.
+  # keep_rare_resource = false
+
+  ## Ignore tracing resources map like service:[resources...].
+  ## The service name is the full service name in current application.
+  ## The resource list is regular expressions uses to block resource names.
+  # [inputs.ddtrace.close_resource]
+    # service1 = ["resource1", "resource2", ...]
+    # service2 = ["resource1", "resource2", ...]
+    # ...
+
+  ## Sampler config uses to set global sampling strategy.
+  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
+  ##   -1: always reject any tracing data send to datakit
+  ##    0: accept tracing data and calculate with sampling_rate
+  ##    1: always send to data center and do not consider sampling_rate
+  ## sampling_rate used to set global sampling rate
+  # [inputs.ddtrace.sampler]
+    # priority = 0
+    # sampling_rate = 1.0
 
   ## tags is ddtrace configed key value pairs
   # [inputs.ddtrace.tags]
@@ -52,19 +70,23 @@ var (
 var (
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
-	ignResRegs           []*regexp.Regexp
-	rareResMap           = make(map[string]time.Time)
 	afterGather          = itrace.NewAfterGather()
+	keepRareResource     *itrace.KeepRareResource
+	closeResource        *itrace.CloseResource
+	defSampler           *itrace.Sampler
 )
 
 type Input struct {
-	Path             string            `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs interface{}       `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
-	TraceSampleConf  interface{}       `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
-	Endpoints        []string          `toml:"endpoints"`
-	IgnoreResources  []string          `toml:"ignore_resources"`
-	CustomerTags     []string          `toml:"customer_tags"`
-	Tags             map[string]string `toml:"tags"`
+	Path             string              `toml:"path,omitempty"`           // deprecated
+	TraceSampleConfs interface{}         `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
+	TraceSampleConf  interface{}         `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
+	IgnoreResources  []string            `toml:"ignore_resources"`         // deprecated []string
+	Endpoints        []string            `toml:"endpoints"`
+	KeepRareResource bool                `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string `toml:"close_resource"`
+	Sampler          *itrace.Sampler     `toml:"sampler"`
+	CustomerTags     []string            `toml:"customer_tags"`
+	Tags             map[string]string   `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
@@ -91,17 +113,24 @@ func (ipt *Input) Run() {
 	// add calculators
 	afterGather.AppendCalculator(itrace.StatTracingInfo)
 
+	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
-	if len(ipt.IgnoreResources) != 0 {
-		for i := range ipt.IgnoreResources {
-			ignResRegs = append(ignResRegs, regexp.MustCompile(ipt.IgnoreResources[i]))
-		}
-		afterGather.AppendFilter(itrace.CloseResourceWrapper(ignResRegs))
+	if len(ipt.CloseResource) != 0 {
+		closeResource = &itrace.CloseResource{}
+		closeResource.UpdateIgnResList(ipt.CloseResource)
+		afterGather.AppendFilter(closeResource.Close)
 	}
 	// add rare resource keeper
-	afterGather.AppendFilter(itrace.KeepRareResourceWrapper(rareResMap))
+	if ipt.KeepRareResource {
+		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
+		afterGather.AppendFilter(keepRareResource.Keep)
+	}
 	// add sampler
-	afterGather.AppendFilter(itrace.DefSampler)
+	if ipt.Sampler != nil {
+		defSampler = ipt.Sampler
+		afterGather.AppendFilter(defSampler.Sample)
+	}
 
 	for k := range ipt.CustomerTags {
 		if strings.Contains(ipt.CustomerTags[k], ".") {

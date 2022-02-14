@@ -119,6 +119,11 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		}
 
+		if defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
 		dktrace = append(dktrace, dkspan)
 	}
 

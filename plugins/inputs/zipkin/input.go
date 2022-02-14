@@ -2,6 +2,8 @@
 package zipkin
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -22,6 +24,29 @@ var (
   pathV1 = "/api/v1/spans"
   pathV2 = "/api/v2/spans"
 
+  ## Keep rare tracing resources list switch.
+  ## If some resources are rare enough(not presend in 1 hour), those resource will always send
+  ## to data center and do not consider samplers and filters.
+  # keep_rare_resource = false
+
+  ## Ignore tracing resources map like service:[resources...].
+  ## The service name is the full service name in current application.
+  ## The resource list is regular expressions uses to block resource names.
+  # [inputs.zipkin.close_resource]
+    # service1 = ["resource1", "resource2", ...]
+    # service2 = ["resource1", "resource2", ...]
+    # ...
+
+  ## Sampler config uses to set global sampling strategy.
+  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
+  ##   -1: always reject any tracing data send to datakit
+  ##    0: accept tracing data and calculate with sampling_rate
+  ##    1: always send to data center and do not consider sampling_rate
+  ## sampling_rate used to set global sampling rate
+  # [inputs.zipkin.sampler]
+    # priority = 0
+    # sampling_rate = 1.0
+
   # [inputs.zipkin.tags]
     # tag1 = "value1"
     # tag2 = "value2"
@@ -32,15 +57,21 @@ var (
 )
 
 var (
-	apiv1Path   = "/api/v1/spans"
-	apiv2Path   = "/api/v2/spans"
-	afterGather = itrace.NewAfterGather()
+	apiv1Path        = "/api/v1/spans"
+	apiv2Path        = "/api/v2/spans"
+	afterGather      = itrace.NewAfterGather()
+	keepRareResource *itrace.KeepRareResource
+	closeResource    *itrace.CloseResource
+	defSampler       *itrace.Sampler
 )
 
 type Input struct {
-	PathV1 string            `toml:"pathV1"`
-	PathV2 string            `toml:"pathV2"`
-	Tags   map[string]string `toml:"tags"`
+	PathV1           string              `toml:"pathV1"`
+	PathV2           string              `toml:"pathV2"`
+	KeepRareResource bool                `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string `toml:"close_resource"`
+	Sampler          *itrace.Sampler     `toml:"sampler"`
+	Tags             map[string]string   `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
@@ -65,6 +96,25 @@ func (ipt *Input) Run() {
 
 	// add calculators
 	afterGather.AppendCalculator(itrace.StatTracingInfo)
+
+	// add filters: the order append in AfterGather is important!!!
+	// add close resource filter
+	if len(ipt.CloseResource) != 0 {
+		closeResource = &itrace.CloseResource{}
+		closeResource.UpdateIgnResList(ipt.CloseResource)
+		afterGather.AppendFilter(closeResource.Close)
+	}
+	// add rare resource keeper
+	if ipt.KeepRareResource {
+		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
+		afterGather.AppendFilter(keepRareResource.Keep)
+	}
+	// add sampler
+	if ipt.Sampler != nil {
+		defSampler = ipt.Sampler
+		afterGather.AppendFilter(defSampler.Sample)
+	}
 
 	if len(ipt.Tags) != 0 {
 		tags = ipt.Tags

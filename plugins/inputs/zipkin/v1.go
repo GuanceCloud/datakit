@@ -206,6 +206,11 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 		}
 		dkspan.Content = string(buf)
 
+		if defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
 		dktrace = append(dktrace, dkspan)
 	}
 
@@ -267,6 +272,11 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error)
 
 		if version, ok := findZpkV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
 			dkspan.Version = version
+		}
+
+		if defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
 		}
 
 		buf, err := json.Marshal(span)
