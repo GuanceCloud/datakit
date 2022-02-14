@@ -110,6 +110,10 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ---
 
+## OpenTelemetry Tracing Data Structure
+
+---
+
 ## Jaeger Tracing Data Structure
 
 ### Jaeger Thrift Protocol Batch Structure
