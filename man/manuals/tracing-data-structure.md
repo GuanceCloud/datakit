@@ -3,7 +3,7 @@
 ## 简述
 
 此文用于解释主流 Telemetry 平台数据结构以及与 Datakit 平台数据结构的映射关系。
-包括: DataDog Tracing, Jaeger Tracing, Skywalking, Zipking
+包括: DataDog, Jaeger, Skywalking, Zipking
 
 ---
 
