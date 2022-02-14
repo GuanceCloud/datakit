@@ -1,3 +1,5 @@
+// Package opentelemetry storage
+
 package opentelemetry
 
 import (
@@ -49,9 +51,7 @@ func setTag(tags map[string]string, attr []*commonpb.KeyValue) map[string]string
 // GetResourceSpans returns the stored resource spans.
 func (s *SpansStorage) getDKTrace() []DKtrace.DatakitTrace {
 	rss := make([]DKtrace.DatakitTrace, 0, len(s.rsm))
-	for _, rs := range s.rsm {
-		rss = append(rss, rs)
-	}
+	rss = append(rss, s.rsm...)
 	return rss
 }
 
@@ -94,7 +94,7 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibrarySpans()
 
-		//opentelemetry/filter.go:15      resource = attributes:{key:"service.name" value:{string_value:"test-service"}}
+		// opentelemetry/filter.go:15      resource = attributes:{key:"service.name" value:{string_value:"test-service"}}
 		l.Infof("resource = %s", spans.Resource.String())
 
 		service := getServiceName(spans.Resource.Attributes)

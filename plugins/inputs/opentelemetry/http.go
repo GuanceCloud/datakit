@@ -1,3 +1,5 @@
+// Package opentelemetry http method
+
 package opentelemetry
 
 import (
@@ -59,6 +61,7 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 }
 
 // apiOtlpCollector : todo metric
+// nolint:unused
 func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request) {
 	response := collectormetricpb.ExportMetricsServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
@@ -111,6 +114,7 @@ func unmarshalTraceRequest(rawRequest []byte, contentType string) (*collectortra
 	return request, err
 }
 
+// nolint:unused
 func unmarshalMetricsRequest(rawRequest []byte, contentType string) (*collectormetricpb.ExportMetricsServiceRequest, error) {
 	request := &collectormetricpb.ExportMetricsServiceRequest{}
 	if contentType != "application/x-protobuf" {
@@ -119,6 +123,7 @@ func unmarshalMetricsRequest(rawRequest []byte, contentType string) (*collectorm
 	err := proto.Unmarshal(rawRequest, request)
 	return request, err
 }
+
 func readRequest(r *http.Request) ([]byte, error) {
 	if r.Header.Get("Content-Encoding") == "gzip" {
 		return readGzipBody(r.Body)

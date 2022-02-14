@@ -1,3 +1,4 @@
+// Package opentelemetry is http
 package opentelemetry
 
 /*
@@ -7,7 +8,6 @@ package opentelemetry
 import (
 	"context"
 	"net"
-	"sync"
 	"time"
 
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
@@ -17,7 +17,6 @@ import (
 
 	collectormetricepb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
-	trace "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -56,38 +55,38 @@ func (o *otlpGrpcCollector) stop() {
 	}
 }
 
-type ExportTrace struct {
+type ExportTrace struct { //nolint:structcheck,stylecheck
 	collectortracepb.UnimplementedTraceServiceServer
-	errors      []error
-	requests    int
-	mu          sync.RWMutex
-	storage     []*trace.Span
-	headers     metadata.MD
-	exportBlock chan struct{}
+	// errors      []error
+	// requests    int
+	// mu          sync.RWMutex
+	// storage     []*trace.Span
+	// headers     metadata.MD
+	// exportBlock chan struct{}
 }
 
-func (et *ExportTrace) Export(ctx context.Context,
+func (et *ExportTrace) Export(ctx context.Context, //nolint:structcheck,stylecheck
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
 	l.Infof(ets.String())
 	// ets.ProtoMessage()
-	if rss := ets.GetResourceSpans(); rss != nil && len(rss) > 0 {
+	if rss := ets.GetResourceSpans(); len(rss) > 0 {
 		storage.AddSpans(rss)
 	}
 	res := &collectortracepb.ExportTraceServiceResponse{}
 	return res, nil
 }
 
-type ExportMetric struct {
+type ExportMetric struct { //nolint:structcheck,stylecheck
 	collectormetricepb.UnimplementedMetricsServiceServer
-	errors      []error
-	requests    int
-	mu          sync.RWMutex
-	storage     []*trace.Span
-	headers     metadata.MD
-	exportBlock chan struct{}
+	// errors      []error
+	// requests    int
+	// mu          sync.RWMutex
+	// storage     []*trace.Span
+	// headers     metadata.MD
+	// exportBlock chan struct{}
 }
 
-func (et *ExportMetric) Export(ctx context.Context,
+func (et *ExportMetric) Export(ctx context.Context, //nolint:structcheck,stylecheck
 	ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) {
 	// header
 	header, b := metadata.FromOutgoingContext(ctx)
@@ -97,7 +96,7 @@ func (et *ExportMetric) Export(ctx context.Context,
 	l.Infof(ets.String())
 	// ets.ProtoMessage()
 	orms := make([]*otelResourceMetric, 0)
-	if rss := ets.ResourceMetrics; rss != nil && len(rss) > 0 {
+	if rss := ets.ResourceMetrics; len(rss) > 0 {
 		for _, resourceMetrics := range rss {
 			tags := toDatakitTags(resourceMetrics.Resource.Attributes)
 			LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
@@ -118,6 +117,7 @@ func (et *ExportMetric) Export(ctx context.Context,
 			}
 		}
 	}
+	l.Infof("orms len=%d", len(orms))
 	res := &collectormetricepb.ExportMetricsServiceResponse{}
 	return res, nil
 }
