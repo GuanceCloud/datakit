@@ -271,7 +271,9 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 	defer reader.Close() //nolint:errcheck
 
 	logconf.tags["stream"] = stream
-	shortImageName := logconf.tags["image_short_name"]
+	logconf.tags["service"] = logconf.Service
+
+	containerName := logconf.tags["container_name"]
 
 	mult, err := multiline.New(logconf.Multiline, maxLines)
 	if err != nil {
@@ -281,7 +283,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 
 	newTask := func() *worker.Task {
 		return &worker.Task{
-			TaskName:   "containerlog/" + shortImageName,
+			TaskName:   "containerlog/" + logconf.Source,
 			Source:     logconf.Source,
 			ScriptName: logconf.Pipeline,
 		}
@@ -307,7 +309,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 				}
 				task.TS = time.Now()
 				if err := worker.FeedPipelineTaskBlock(task); err != nil {
-					l.Errorf("failed to feed log, containerName: %s, err: %w", logconf.tags["container_name"], err)
+					l.Errorf("failed to feed log, containerName: %s, err: %w", containerName, err)
 				}
 			}
 		default:
@@ -351,7 +353,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		task.TS = time.Now()
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("failed to feed log, containerName: %s, err: %w", logconf.tags["container_name"], err)
+			l.Errorf("failed to feed log, containerName: %s, err: %w", containerName, err)
 		}
 	}
 }
