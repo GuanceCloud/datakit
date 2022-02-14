@@ -30,9 +30,16 @@ var (
 
 	Callback func(models.Point) (models.Point, error) = nil
 
-	Strict           = true
-	MaxTags   int    = 256
-	MaxFields int    = 1024
+	Strict        = true
+	MaxTags   int = 256  // limit tag count
+	MaxFields int = 1024 // limit field count
+
+	// limit tag/field key/value length
+	MaxTagKeyLen     int = 256
+	MaxFieldKeyLen   int = 256
+	MaxTagValueLen   int = 1024
+	MaxFieldValueLen int = 32 * 1024 // if field value is string,limit to 32K
+
 	Precision string = "n"
 )
 
@@ -80,9 +87,15 @@ func NewPoint(name string,
 		Time:      o.Time,
 		Strict:    o.Strict,
 		Precision: "n",
+
 		MaxTags:   MaxTags,
 		MaxFields: MaxFields,
 		ExtraTags: extraTags,
+
+		MaxTagKeyLen:     MaxTagKeyLen,
+		MaxFieldKeyLen:   MaxFieldKeyLen,
+		MaxTagValueLen:   MaxTagValueLen,
+		MaxFieldValueLen: MaxFieldValueLen,
 
 		// not set
 		DisabledTagKeys:   nil,
@@ -123,9 +136,15 @@ func MakePoint(name string,
 	lpOpt := &lp.Option{
 		Strict:    true,
 		Precision: "n",
+
 		MaxTags:   MaxTags,
 		MaxFields: MaxFields,
 		ExtraTags: extraTags,
+
+		MaxTagKeyLen:     MaxTagKeyLen,
+		MaxFieldKeyLen:   MaxFieldKeyLen,
+		MaxTagValueLen:   MaxTagValueLen,
+		MaxFieldValueLen: MaxFieldValueLen,
 
 		// not set
 		DisabledTagKeys:   nil,
