@@ -167,6 +167,7 @@ func main() {
 
 	tryLoadConfig()
 
+	// start up global tracer
 	tracer.Start()
 	defer tracer.Stop()
 
