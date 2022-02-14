@@ -175,6 +175,9 @@ func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
 
 func byteToInt64(bts []byte) string {
 	string16 := hex.EncodeToString(bts)
+	if string16 == "" {
+		return "0"
+	}
 	n, err := strconv.ParseUint(string16, 16, 64)
 	if err != nil {
 		return string16
