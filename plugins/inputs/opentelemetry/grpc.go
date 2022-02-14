@@ -7,6 +7,7 @@ package opentelemetry
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"time"
 
@@ -94,6 +95,10 @@ func (et *ExportMetric) Export(ctx context.Context, //nolint:structcheck,stylech
 		l.Infof("len =%d", header.Len())
 	}
 	l.Infof(ets.String())
+	bts, err := json.MarshalIndent(ets.GetResourceMetrics(), "    ", "")
+	if err == nil {
+		l.Info(string(bts))
+	}
 	// ets.ProtoMessage()
 	orms := make([]*otelResourceMetric, 0)
 	if rss := ets.ResourceMetrics; len(rss) > 0 {
@@ -104,6 +109,10 @@ func (et *ExportMetric) Export(ctx context.Context, //nolint:structcheck,stylech
 				metrices := libraryMetric.GetMetrics()
 				for _, metrice := range metrices {
 					l.Debugf(metrice.Name)
+					bts, err := json.MarshalIndent(metrice, "\t", "")
+					if err == nil {
+						l.Info(string(bts))
+					}
 					l.Infof("metric string=%s", metrice.String())
 					ps := getData(metrice)
 					for _, p := range ps {
