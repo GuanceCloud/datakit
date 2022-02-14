@@ -17,7 +17,7 @@ Name | Tags | Fields | Timestamp
 
 ### Datakit Tracing Span Structure
 
-> 以下简称 dtspan
+> 以下简称 dkspan
 
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
 | ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
