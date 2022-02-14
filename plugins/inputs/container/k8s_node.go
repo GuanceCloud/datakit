@@ -42,7 +42,13 @@ func exportNode(items []v1.Node, extraTags tagsType) k8sResourceStats {
 
 		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
-		obj.tags.addValueIfNotEmpty("node_ip", datakit.GetEnv("HOST_IP"))
+		for _, address := range item.Status.Addresses {
+			switch address.Type {
+			case v1.NodeInternalIP:
+				obj.tags.addValueIfNotEmpty("internal_ip", address.Address)
+				obj.tags.addValueIfNotEmpty("node_ip", address.Address) // depercated
+			}
+		}
 		obj.tags.append(extraTags)
 
 		obj.fields["age"] = int64(time.Since(item.CreationTimestamp.Time).Seconds())
@@ -84,7 +90,8 @@ func (*node) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":         inputs.NewTagInfo("UID"),
 			"node_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
-			"node_ip":      inputs.NewTagInfo("Node IP"),
+			"node_ip":      inputs.NewTagInfo("Node IP (depercated)"),
+			"internal_ip":  inputs.NewTagInfo("Node internal IP"),
 			"role":         inputs.NewTagInfo("Node role. (master/node)"),
 			"cluster_name": inputs.NewTagInfo("The name of the cluster which the object belongs to."),
 			"namespace":    inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
