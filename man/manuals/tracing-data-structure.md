@@ -50,7 +50,7 @@ Datakit Span 是 Datakit 内部使用的中间数据结构. Datakit 目前接入
 | Duration | int64 | 纳秒 | 耗时 | dkproto.fields.duration |
 | Status | string | | Span 状态字段 | dkproto.tags.status |
 | Content | string | | Span 原始数据 | dkproto.fields.message |
-| Priority | int | | Span 上报优先级 -1:reject 0:auto consider with sample rate 1:always send to data center | dkproto.fields.priority |
+| Priority | int | | Span 上报优先级 -1:reject 0:auto calculate with sample rate 1:always send to data center | dkproto.fields.priority |
 | SamplingRateGlobal | float64 | | Global Sampling Rate | dkproto.fields.sampling_rate_global |
 
 ---
