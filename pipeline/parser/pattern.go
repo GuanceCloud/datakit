@@ -19,6 +19,7 @@ var GlobalPatterns = map[string]string{
 	"SPACE":                `\s*`,
 	"DATA":                 `.*?`,
 	"GREEDYDATA":           `.*`,
+	"GREEDYLINES":          `(?s).*`, // make . match \n
 	"QUOTEDSTRING":         `"(?:[^"\\]*(?:\\.[^"\\]*)*)"|\'(?:[^\'\\]*(?:\\.[^\'\\]*)*)\'`,
 	"UUID":                 `[A-Fa-f0-9]{8}-(?:[A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}`,
 	"MAC":                  `(?:%{CISCOMAC}|%{WINDOWSMAC}|%{COMMONMAC})`,
