@@ -26,7 +26,7 @@ var (
 
   ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
   ## that want to send to data center. Those keys set by client code will take precedence over
-  ## keys in [inputs.zipkin.tags]. DO NOT CONTAIN DOT(.) IN KEYS LIST.
+  ## keys in [inputs.zipkin.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
   # customer_tags = ["key1", "key2", ...]
 
   ## Keep rare tracing resources list switch.

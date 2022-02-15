@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -131,7 +132,11 @@ func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
 		tags[TAG_ENDPOINT] = "null"
 	}
 	for k, v := range dkspan.Tags {
-		tags[k] = v
+		if strings.Contains(k, ".") {
+			tags[strings.ReplaceAll(k, ".", "_")] = v
+		} else {
+			tags[k] = v
+		}
 	}
 
 	fields := map[string]interface{}{
