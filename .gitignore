@@ -47,12 +47,14 @@ install.ps1
 install.ps1
 install.sh
 install.sh
+internal-pipelines.json
 internal/http/req.db
 iploc.bin
 liu_script.sh
 measurements-meta.json
 old/
 parser_y.go
+pipeline-docs.json
 pipeline/parser/parser.y.go
 pipeline/parser/parser.y.go
 plugins/external/csv/__tmp

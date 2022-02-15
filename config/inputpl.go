@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -22,24 +23,39 @@ func initPluginPipeline() error {
 		return err
 	}
 
-	for name, c := range inputs.Inputs {
+	scriptMap, err := GetScriptMap()
+	if err != nil {
+		l.Errorf(err.Error())
+		return err
+	}
+
+	for name, script := range scriptMap {
+		plPath := filepath.Join(datakit.PipelineDir, name)
+		if err := ioutil.WriteFile(plPath, []byte(script), datakit.ConfPerm); err != nil {
+			l.Errorf("failed to create pipeline script for %s: %s", name, err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+func GetScriptMap() (map[string]string, error) {
+	scriptMap := map[string]string{}
+	for _, c := range inputs.Inputs {
 		if v, ok := c().(inputs.PipelineInput); ok {
-			ps := v.PipelineConfig()
-
-			for k, v := range ps {
-				if v == "" {
-					continue // ignore empty pipeline
+			scripts := v.PipelineConfig()
+			for n, script := range scripts {
+				// Ignore empty pipeline script.
+				if script == "" {
+					continue
 				}
-
-				plpath := filepath.Join(datakit.PipelineDir, k+".p")
-
-				if err := ioutil.WriteFile(plpath, []byte(pipelineWarning+v), datakit.ConfPerm); err != nil {
-					l.Errorf("failed to create pipeline script for %s/%s", name, k, err.Error())
-					return err
+				name := n + ".p"
+				if _, has := scriptMap[name]; has {
+					return nil, fmt.Errorf("duplicated pipeline script name: %s", name)
 				}
+				scriptMap[name] = pipelineWarning + script
 			}
 		}
 	}
-
-	return nil
+	return scriptMap, nil
 }

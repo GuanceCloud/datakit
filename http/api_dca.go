@@ -17,7 +17,6 @@ import (
 	"github.com/influxdata/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -139,7 +138,7 @@ func (d *dcaContext) fail(errors ...dcaError) {
 // dca reload.
 func dcaReload(c *gin.Context) {
 	context := getContext(c)
-	if err := restartDataKit(); err != nil {
+	if err := dcaAPI.RestartDataKit(); err != nil {
 		l.Error("restartDataKit: %s", err)
 		context.fail(dcaError{ErrorCode: "system.restart.error", ErrorMsg: "restart datakit error"})
 		return
@@ -160,7 +159,7 @@ func restartDataKit() error {
 }
 
 func dcaStats(c *gin.Context) {
-	s, err := GetStats()
+	s, err := dcaAPI.GetStats()
 	context := dcaContext{c: c}
 
 	if err != nil {
@@ -334,7 +333,7 @@ func dcaInputDoc(c *gin.Context) {
 		return
 	}
 
-	md, err := man.BuildMarkdownManual(inputName, &man.Option{})
+	md, err := dcaAPI.GetMarkdownContent(inputName)
 	if err != nil {
 		l.Warn(err)
 		// context.fail(dcaError{ErrorCode: "record.not.exist", ErrorMsg: "record not exist", Code: http.StatusNotFound})
@@ -565,7 +564,7 @@ func dcaTestPipelines(c *gin.Context) {
 		return
 	}
 
-	parsedText, err := pipelineTest(fileName, text)
+	parsedText, err := dcaAPI.TestPipeline(fileName, text)
 	if err != nil {
 		l.Error(err)
 		context.fail(dcaError{ErrorCode: "pipeline.parse.error", ErrorMsg: err.Error()})
