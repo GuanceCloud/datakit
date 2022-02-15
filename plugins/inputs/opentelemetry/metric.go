@@ -114,7 +114,7 @@ func (m *DKMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
 		Type:   "metric",
-		Desc:   "opentelemetry 指标",
+		Desc:   "opentelemetry metric 指标",
 		Fields: map[string]interface{}{},
 		Tags:   map[string]interface{}{},
 	}

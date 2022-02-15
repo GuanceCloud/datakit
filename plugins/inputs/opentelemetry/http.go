@@ -5,6 +5,7 @@ package opentelemetry
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -34,7 +35,7 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	l.Infof("-------------------- checkHeaders ok ------------")
+
 	response := collectortracepb.ExportTraceServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {
@@ -42,22 +43,21 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	l.Infof("-------------------- Marshal ok ------------")
+
 	rawRequest, err := readRequest(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	l.Infof("-------------------- readRequest ok ------------")
+
 	request, err := unmarshalTraceRequest(rawRequest, r.Header.Get("content-type"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	l.Infof("-------------------- unmarshalTraceRequest ok ------------")
+
 	writeReply(w, rawResponse, o.HTTPStatusOK, nil) // 先将信息返回到客户端 然后再处理spans
 	storage.AddSpans(request.ResourceSpans)
-	l.Infof("-------------------- end ------------")
 }
 
 // apiOtlpCollector : todo metric
@@ -83,13 +83,31 @@ func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request
 		return
 	}
 	writeReply(w, rawResponse, 200, nil) // 先将信息返回到客户端 然后再处理spans
-	rss := request.GetResourceMetrics()
-	for _, spans := range rss {
-		ls := spans.GetInstrumentationLibraryMetrics()
-		for _, librarySpans := range ls {
-			spans := librarySpans.Metrics
-			for _, span := range spans {
-				l.Debug(span.Name) // todo: 组装 metric
+	orms := make([]*otelResourceMetric, 0)
+	if rss := request.ResourceMetrics; len(rss) > 0 {
+		for _, resourceMetrics := range rss {
+			tags := toDatakitTags(resourceMetrics.Resource.Attributes)
+			LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
+			for _, libraryMetric := range LibraryMetrics {
+				metrices := libraryMetric.GetMetrics()
+				for _, metrice := range metrices {
+					l.Debugf(metrice.Name)
+					bts, err := json.MarshalIndent(metrice, "\t", "")
+					if err == nil {
+						l.Info(string(bts))
+					}
+					l.Infof("metric string=%s", metrice.String())
+					ps := getData(metrice)
+					for _, p := range ps {
+						orm := &otelResourceMetric{
+							name: metrice.Name, attributes: tags,
+							description: metrice.Description, dataType: p.typeName, startTime: p.startTime,
+							unitTime: p.unitTime, data: p.val,
+						}
+						orms = append(orms, orm)
+						// todo 将 orms 转换成 行协议格式 并发送到IO
+					}
+				}
 			}
 		}
 	}
