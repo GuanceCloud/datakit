@@ -24,6 +24,31 @@ var (
 	}
 )
 
+func installPlugins() error {
+	dir := runtime.GOOS + "/" + runtime.GOARCH
+
+	if _, ok := ExternalInstallDir[dir]; !ok {
+		return fmt.Errorf("%v/%v not suppotrted", runtime.GOOS, runtime.GOARCH)
+	}
+
+	if *flagInstallTelegraf {
+		return installTelegraf(ExternalInstallDir[dir])
+	} else if *flagInstallScheck {
+		return installSecCheck(ExternalInstallDir[dir])
+	} else if *flagInstallIPDB != "" {
+		switch *flagInstallIPDB {
+		case "iploc":
+			// TODO: add another ipdb.go to install ipdb files
+			return nil
+		default:
+			return fmt.Errorf("unknown ipdb `%s'", *flagInstallIPDB)
+		}
+	}
+
+	return fmt.Errorf("unknown package or plugin")
+}
+
+// Deprecated: old flag handler
 func installExternal(service string) error {
 	name := strings.ToLower(service)
 	dir := runtime.GOOS + "/" + runtime.GOARCH
@@ -34,10 +59,10 @@ func installExternal(service string) error {
 
 	switch name {
 	case "telegraf":
-		return InstallTelegraf(ExternalInstallDir[dir])
+		return installTelegraf(ExternalInstallDir[dir])
 	case "sec-checker", // deprecated
 		"scheck":
-		return InstallSecCheck(ExternalInstallDir[dir])
+		return installSecCheck(ExternalInstallDir[dir])
 	default:
 		return fmt.Errorf("unsupport install %s(available plugins: %s)",
 			service, strings.Join(availablePlugins, "/"))

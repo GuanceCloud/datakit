@@ -25,13 +25,13 @@ type SecCheckVersion struct {
 	Version string
 }
 
-func InstallSecCheck(installDir string) error {
+func installSecCheck(installDir string) error {
 	osArch := runtime.GOOS + "/" + runtime.GOARCH
 	if _, ok := SecCheckOsArch[osArch]; !ok {
 		return fmt.Errorf("security checker not support in %v", osArch)
 	}
 
-	fmt.Printf("Start downloading install script...\n")
+	infof("Start downloading install script...\n")
 
 	verURL := BaseURL + "install.sh"
 	cli := getcli()
@@ -50,7 +50,7 @@ func InstallSecCheck(installDir string) error {
 		return fmt.Errorf("status code %v", resp.StatusCode)
 	}
 
-	fmt.Printf("Download install script successfully.\n")
+	infof("Download install script successfully.\n")
 
 	defer resp.Body.Close() //nolint:errcheck
 	body, err := ioutil.ReadAll(resp.Body)
@@ -60,12 +60,11 @@ func InstallSecCheck(installDir string) error {
 
 	// TODO: add network proxy option
 	cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
-	x, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf("Security Checker install failed: %s \n", string(x))
+	if _, err = cmd.CombinedOutput(); err != nil {
 		return err
 	}
-	fmt.Printf("Install Security Checker successfully.\n")
+
+	infof("Install Security Checker successfully.\n")
 
 	return nil
 }

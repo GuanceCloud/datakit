@@ -12,12 +12,25 @@ import (
 	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/dustin/go-humanize"
 	"github.com/rivo/tview"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"golang.org/x/term"
 )
 
-func inputMonitors(app *tview.Application, ds *dkhttp.DatakitStats) {
+var categoryMap = map[string]string{
+	datakit.MetricDeprecated: "M",
+	datakit.Metric:           "M",
+	datakit.Network:          "N",
+	datakit.KeyEvent:         "E",
+	datakit.Object:           "O",
+	datakit.Logging:          "L",
+	datakit.Tracing:          "T",
+	datakit.RUM:              "R",
+	datakit.Security:         "S",
+}
+
+func inputMonitors(app *tview.Application, ds *dkhttp.DatakitStats) (*tview.Table, error) {
 	table := tview.NewTable().SetBorders(true)
 
 	colArr := strings.Split(`Input,Category,Freqency,Avg Feed Pts,Total Feed,Total Points,First Feed,Last Feed,Avg Cost,Max Cost,Error(date),`, ",")
@@ -37,8 +50,9 @@ func inputMonitors(app *tview.Application, ds *dkhttp.DatakitStats) {
 				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 1,
-			tview.NewTableCell(v.Category).
-				SetAlign(tview.AlignCenter))
+			tview.NewTableCell(func() string {
+				return categoryMap[v.Category]
+			}()).SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 2,
 			tview.NewTableCell(func() string {
@@ -89,15 +103,13 @@ func inputMonitors(app *tview.Application, ds *dkhttp.DatakitStats) {
 		row++
 	}
 
-	if err := app.SetRoot(table, true).EnableMouse(false).Run(); err != nil {
-		panic(err)
-	}
+	return table, nil
 }
 
-func dkMonitor(interval time.Duration, verbose bool) {
+func runMonitorFlags() error {
 	addr := fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen)
-	if interval < time.Second {
-		interval = time.Second
+	if *flagMonitorRefreshInterval < time.Second {
+		*flagMonitorRefreshInterval = time.Second
 	}
 
 	app := tview.NewApplication()
@@ -108,14 +120,25 @@ func dkMonitor(interval time.Duration, verbose bool) {
 			return // TODO: handle this error
 		}
 
-		inputMonitors(app, ds)
+		// refer to this pg example: https://gist.github.com/rivo/2893c6740a6c651f685b9766d1898084
+
+		table, err := inputMonitors(app, ds)
+		//box := tview.NewBox().SetBorder(true).SetBorderAttributes(true).SetTitle("Inputs Running Status")
+		//if err != nil {
+		//}
+
+		if err := app.SetRoot(table, true).EnableMouse(false).Run(); err != nil {
+			panic(err)
+		}
 	}
 
-	tick := time.NewTicker(interval)
+	tick := time.NewTicker(*flagMonitorRefreshInterval)
 	defer tick.Stop()
 	for range tick.C {
 		monitor()
 	}
+
+	return nil
 }
 
 func cmdMonitor(interval time.Duration, verbose bool) {
