@@ -1,55 +1,203 @@
 package pythond
 
 import (
-	"os"
+	"crypto/md5"
+	"encoding/hex"
 	"testing"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 )
 
-// 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
-func checkDevHost() bool {
-	if envs := os.Getenv("LOCAL_UNIT_TEST"); envs == "" {
-		return false
-	}
-	return true
+func md5sum(str string) string {
+	h := md5.New() //nolint:gosec
+	h.Write([]byte(str))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
-// go test -v -timeout 30s -run ^TestPythonD$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
-func TestPythonD(t *testing.T) {
-	if !checkDevHost() {
-		return
-	}
+//------------------------------------------------------------------------------
 
-	config.Cfg.GitRepos.Repos = []*config.GitRepository{
+// go test -v -timeout 30s -run ^TestGetCliPyScript$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
+func TestGetCliPyScript(t *testing.T) {
+	scriptRoot := `['/usr/local/datakit/gitrepos/conf/python.d/framework']`
+	scriptName := "mytest"
+
+	cli := getCliPyScript(scriptRoot, scriptName)
+
+	expectMD5 := "beb828f059208df3647fb0d068eca8b8"
+
+	assert.Equal(t, expectMD5, md5sum(cli), "md5 not equal!")
+}
+
+//------------------------------------------------------------------------------
+
+// go test -v -timeout 30s -run ^TestGetFilteredPyModules$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
+func TestGetFilteredPyModules(t *testing.T) {
+	cases := []struct {
+		name   string
+		files  []string
+		root   string
+		expect []string
+	}{
 		{
-			Enable: true,
-			URL:    "ssh://git@gitlab.jiagouyun.com:40022/jack/conf.git",
+			name: "standard_and_right",
+			files: []string{
+				"/usr/local/datakit/gitrepos/repository/python.d/file1.py",
+				"/usr/local/datakit/gitrepos/repository/python.d/dir1/file2.py",
+			},
+			root: "/usr/local/datakit/gitrepos/repository/python.d",
+			expect: []string{
+				"file1",
+				"dir1.file2",
+			},
+		},
+
+		{
+			name: "not_standard_but_right",
+			files: []string{
+				"/usr/local/datakit/gitrepos/repository/python.d/dir1/dir2/file3.py",
+				"/usr/local/datakit/gitrepos/repository/python.d/dir1/dir2/dir3/file4.py",
+			},
+			root: "/usr/local/datakit/gitrepos/repository/python.d",
+			expect: []string{
+				"dir2.file3",
+				"dir3.file4",
+			},
 		},
 	}
-	datakit.PythonDDir = "/Users/mac/Downloads/project/ent/src/gitlab.jiagouyun.com/cloudcare-tools/datakitpy"
-	pe := &PythonDInput{
-		Name:    "some-python-inputs",
-		Cmd:     "python3",
-		Dirs:    []string{"framework"},
-		semStop: cliutils.NewSem(),
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			arr := getFilteredPyModules(tc.files, tc.root)
+			assert.Equal(t, tc.expect, arr)
+		})
 	}
-	pe.Run()
 }
 
-// go test -v -timeout 30s -run ^TestGetPyModules$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
-func TestGetPyModules(t *testing.T) {
-	ss := getPyModules("/usr/local/datakit/gitrepos/python.d/framework")
-	ss = dkstring.GetUniqueArray(ss)
-	t.Logf("pyModules = %v", ss)
+//------------------------------------------------------------------------------
+
+var dataIsDir bool
+
+type pathMockerTest struct{}
+
+func (*pathMockerTest) IsDir(ph string) bool {
+	return dataIsDir
 }
 
 // go test -v -timeout 30s -run ^TestSearchPythondDir$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
 func TestSearchPythondDir(t *testing.T) {
-	dirs := []string{"conf"}
-	s := searchPythondDir("framework", dirs)
-	t.Logf("searchPythondDir: %s", s)
+	cases := []struct {
+		name         string
+		isDIr        bool
+		pythonModule string
+		enabledRepos []string
+		expect       string
+	}{
+		{
+			name:         "not_dir_conf1",
+			isDIr:        false,
+			pythonModule: "framework",
+			enabledRepos: []string{"enabled_conf1"},
+			expect:       "/usr/local/datakit/python.d/framework",
+		},
+
+		{
+			name:         "dir_conf2",
+			isDIr:        true,
+			pythonModule: "framework",
+			enabledRepos: []string{"enabled_conf2"},
+			expect:       "/usr/local/datakit/gitrepos/enabled_conf2/python.d/framework",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dataIsDir = tc.isDIr
+			dir := searchPythondDir(tc.pythonModule, tc.enabledRepos, &pathMockerTest{})
+
+			assert.Equal(t, tc.expect, dir)
+		})
+	}
 }
+
+//------------------------------------------------------------------------------
+
+var dataExistDirs, dataExistFiles map[string]struct{}
+
+type pathMockExerTest struct{}
+
+func (*pathMockExerTest) IsDir(ph string) bool {
+	_, ok := dataExistDirs[ph]
+	return ok
+}
+
+func (*pathMockExerTest) FileExist(ph string) bool {
+	_, ok := dataExistFiles[ph]
+	return ok
+}
+
+var dataFolderList []string
+
+type folderListMockerTest struct{}
+
+func (*folderListMockerTest) GetFolderList(root string, deep int) (folders, files []string, err error) {
+	return nil, dataFolderList, nil
+}
+
+// go test -v -timeout 30s -run ^TestGetScriptNameRoot$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
+func TestGetScriptNameRoot(t *testing.T) {
+	cases := []struct {
+		name        string
+		configRepos []*config.GitRepository
+		isDIr       bool
+		dirs        []string
+		existDirs   map[string]struct{}
+		existFiles  map[string]struct{}
+		folderList  []string
+		expect      map[string]string
+	}{
+		{
+			name: "get_script_normal",
+			configRepos: []*config.GitRepository{
+				{
+					Enable: true,
+					URL:    "ssh://git@github.com:9000/path/to/repository.git",
+				},
+			},
+			isDIr: true,
+			dirs:  []string{"framework"},
+			existDirs: map[string]struct{}{
+				"/usr/local/datakit/gitrepos/repository/python.d/framework": {},
+			},
+			existFiles: map[string]struct{}{},
+			folderList: []string{
+				"/usr/local/datakit/gitrepos/repository/python.d/framework/mytest.py",
+			},
+			expect: map[string]string{
+				"scriptName": "mytest",
+				"scriptRoot": "['/usr/local/datakit/gitrepos/repository/python.d/framework']",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			config.Cfg.GitRepos.Repos = tc.configRepos
+			dataIsDir = tc.isDIr
+			dataExistDirs = tc.existDirs
+			dataExistFiles = tc.existFiles
+			dataFolderList = tc.folderList
+
+			scriptName, scriptRoot, err := getScriptNameRoot(tc.dirs, &pathMockerTest{}, &pathMockExerTest{}, &folderListMockerTest{})
+
+			assert.NoError(t, err, "getScriptNameRoot error")
+			mVal := map[string]string{
+				"scriptName": scriptName,
+				"scriptRoot": scriptRoot,
+			}
+			assert.Equal(t, tc.expect, mVal, "getScriptNameRoot not equal")
+		})
+	}
+}
+
+//------------------------------------------------------------------------------

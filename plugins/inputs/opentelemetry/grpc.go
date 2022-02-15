@@ -111,9 +111,11 @@ func (et *ExportMetric) Export(ctx context.Context, //nolint:structcheck,stylech
 					l.Infof("metric string=%s", metrice.String())
 					ps := getData(metrice)
 					for _, p := range ps {
-						orm := &otelResourceMetric{name: metrice.Name, attributes: tags,
+						orm := &otelResourceMetric{
+							name: metrice.Name, attributes: tags,
 							description: metrice.Description, dataType: p.typeName, startTime: p.startTime,
-							unitTime: p.unitTime, data: p.val}
+							unitTime: p.unitTime, data: p.val,
+						}
 						orms = append(orms, orm)
 						// todo 将 orms 转换成 行协议格式 并发送到IO
 					}

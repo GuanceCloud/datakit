@@ -82,6 +82,7 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
+			ParentID:  "0",
 			EndPoint:  span.Peer,
 			Operation: span.OperationName,
 			Service:   segment.Service,
@@ -90,12 +91,6 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
 			Tags:      tags,
 		}
-
-		js, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		dkspan.Content = string(js)
 
 		if span.SpanType == skyimpl.SpanType_Entry {
 			if len(span.Refs) > 0 {
@@ -122,6 +117,12 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 		if defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
+		if buf, err := json.Marshal(span); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
 		}
 
 		dktrace = append(dktrace, dkspan)

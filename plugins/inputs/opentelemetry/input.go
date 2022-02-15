@@ -72,7 +72,7 @@ const (
   ## grpc listen addr
   addr = "127.0.0.1:9550"
 
-  ## http 
+  ## http
   [inputs.opentelemetry.http]
   ## if enable=true  
   ## http path (do not edit):
@@ -144,6 +144,7 @@ func (i *Input) Run() {
 		defSampler = i.Sampler
 		afterGather.AppendFilter(defSampler.Sample)
 	}
+
 	open := false
 	// 从配置文件 开启
 	if i.Otc.Enable {

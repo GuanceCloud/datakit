@@ -143,17 +143,6 @@ func handleStats(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-func extractCustomerTags(customerKeys []string, meta map[string]string) map[string]string {
-	customerTags := map[string]string{}
-	for _, key := range customerKeys {
-		if value, ok := meta[key]; ok {
-			customerTags[key] = value
-		}
-	}
-
-	return customerTags
-}
-
 func decodeRequest(pattern string, mediaType string, buf []byte) (DDTraces, error) {
 	var (
 		traces = DDTraces{}
@@ -195,7 +184,9 @@ func ddtraceToDkTrace(trace DDTrace) (itrace.DatakitTrace, error) {
 			Source:             inputName,
 			SpanType:           itrace.FindSpanTypeInt(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
 			SourceType:         ddtraceSpanType[span.Type],
+			Tags:               itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
+			PID:                fmt.Sprintf("%f", span.Metrics["system.pid"]),
 			HTTPMethod:         span.Meta["http.method"],
 			HTTPStatusCode:     span.Meta["http.status_code"],
 			Start:              span.Start,
@@ -221,18 +212,13 @@ func ddtraceToDkTrace(trace DDTrace) (itrace.DatakitTrace, error) {
 			dkspan.Version = tags[itrace.VERSION]
 		}
 
-		if pid, ok := span.Metrics["system.pid"]; ok {
-			dkspan.PID = fmt.Sprintf("%f", pid)
-		}
-
 		dkspan.Status = itrace.STATUS_OK
 		if span.Error != 0 {
 			dkspan.Status = itrace.STATUS_ERR
 		}
 
-		dkspan.Tags = extractCustomerTags(customerKeys, span.Meta)
-		for k, v := range tags {
-			dkspan.Tags[k] = v
+		if priority := int(span.Metrics[keyPriority]); priority <= 0 {
+			dkspan.Priority = itrace.PriorityReject
 		}
 
 		if defSampler != nil {
@@ -240,14 +226,10 @@ func ddtraceToDkTrace(trace DDTrace) (itrace.DatakitTrace, error) {
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
 		}
 
-		buf, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		dkspan.Content = string(buf)
-
-		if priority := int(span.Metrics[keyPriority]); priority <= 0 {
-			dkspan.Priority = itrace.PriorityReject
+		if buf, err := json.Marshal(span); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
 		}
 
 		dktrace = append(dktrace, dkspan)

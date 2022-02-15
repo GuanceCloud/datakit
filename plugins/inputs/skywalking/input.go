@@ -19,6 +19,11 @@ var (
   ## skywalking grpc server listening on address
   address = "localhost:13800"
 
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. Those keys set by client code will take precedence over
+  ## keys in [inputs.skywalking.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
+  # customer_tags = ["key1", "key2", ...]
+
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
   ## to data center and do not consider samplers and filters.
@@ -42,10 +47,9 @@ var (
     # priority = 0
     # sampling_rate = 1.0
 
-  ## customer tags
-  # [inputs.skywalking.V3.tags]
-    # tag1 = "value1"
-    # tag2 = "value2"
+  # [inputs.skywalking.tags]
+    # key1 = "value1"
+    # key2 = "value2"
     # ...
 `
 	defAddr = "localhost:13800"

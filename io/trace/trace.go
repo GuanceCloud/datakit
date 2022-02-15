@@ -27,9 +27,10 @@ const (
 	STATUS_ERR      = "error"
 	STATUS_CRITICAL = "critical"
 
-	SPAN_TYPE_ENTRY = "entry"
-	SPAN_TYPE_LOCAL = "local"
-	SPAN_TYPE_EXIT  = "exit"
+	SPAN_TYPE_ENTRY  = "entry"
+	SPAN_TYPE_LOCAL  = "local"
+	SPAN_TYPE_EXIT   = "exit"
+	SPAN_TYPE_UNKNOW = "unknow"
 
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_CACHE  = "cache"
@@ -45,26 +46,29 @@ const (
 	TAG_OPERATION      = "operation"
 	TAG_PROJECT        = "project"
 	TAG_SERVICE        = "service"
+	TAG_SOURCE_TYPE    = "source_type"
 	TAG_SPAN_STATUS    = "status"
 	TAG_SPAN_TYPE      = "span_type"
 	TAG_TYPE           = "type"
 	TAG_VERSION        = "version"
 
-	FIELD_DURATION = "duration"
-	FIELD_MSG      = "message"
-	FIELD_PARENTID = "parent_id"
-	FIELD_PID      = "pid"
-	FIELD_RESOURCE = "resource"
-	FIELD_SPANID   = "span_id"
-	FIELD_START    = "start"
-	FIELD_TRACEID  = "trace_id"
+	FIELD_DURATION           = "duration"
+	FIELD_MSG                = "message"
+	FIELD_PARENTID           = "parent_id"
+	FIELD_PID                = "pid"
+	FIELD_PRIORITY           = "priority"
+	FIELD_RESOURCE           = "resource"
+	FIELD_SAMPLE_RATE_GLOBAL = "sample_rate_global"
+	FIELD_SPANID             = "span_id"
+	FIELD_START              = "start"
+	FIELD_TRACEID            = "trace_id"
 )
 
 // tracing data keep priority
 const (
 	// reject trace before send to dataway
 	PriorityReject = -1
-	// consider with sampling rate
+	// auto calculate with sampling rate
 	PriorityAuto = 0
 	// always send to dataway and do not consider sampling and filters
 	PriorityKeep = 1
@@ -121,7 +125,7 @@ func FindSpanTypeInt(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) 
 }
 
 func FindSpanTypeString(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
-	if parentID != "" && parentID != "0" {
+	if parentID != "0" && parentID != "" {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
 				return SPAN_TYPE_LOCAL
@@ -132,17 +136,6 @@ func FindSpanTypeString(spanID, parentID string, spanIDs, parentIDs map[string]b
 	}
 
 	return SPAN_TYPE_ENTRY
-}
-
-func MergeTags(data ...map[string]string) map[string]string {
-	merged := map[string]string{}
-	for _, tags := range data {
-		for k, v := range tags {
-			merged[k] = v
-		}
-	}
-
-	return merged
 }
 
 func GetTraceInt64ID(high, low int64) int64 {
@@ -161,6 +154,48 @@ func GetTraceStringID(high, low int64) string {
 
 func IsRootSpan(dkspan *DatakitSpan) bool {
 	return dkspan.ParentID == "0" || dkspan.ParentID == ""
+}
+
+func UnifyToInt64ID(id string) int64 {
+	if len(id) == 0 {
+		return 0
+	}
+
+	isAllInt := true
+	for _, b := range id {
+		if b < 48 || b > 57 {
+			isAllInt = false
+			break
+		}
+	}
+
+	if isAllInt {
+		if i, err := strconv.ParseInt(id, 10, 64); err == nil {
+			return i
+		}
+	}
+
+	hexstr := hex.EncodeToString([]byte(id))
+	if l := len(hexstr); l > 16 {
+		hexstr = hexstr[l-16:]
+	}
+	i, _ := strconv.ParseInt(hexstr, 16, 64)
+
+	return i
+}
+
+func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[string]string) map[string]string {
+	merged := make(map[string]string)
+	for k, v := range datakitTags {
+		merged[k] = v
+	}
+	for i := range customerKeys {
+		if v, ok := sourceTags[customerKeys[i]]; ok {
+			merged[customerKeys[i]] = v
+		}
+	}
+
+	return merged
 }
 
 type TraceReqInfo struct {
@@ -193,32 +228,4 @@ func ParseTraceInfo(req *http.Request) (*TraceReqInfo, error) {
 	}
 
 	return reqInfo, err
-}
-
-func UnifyToInt64ID(id string) int64 {
-	if len(id) == 0 {
-		return 0
-	}
-
-	isAllInt := true
-	for _, b := range id {
-		if b < 48 || b > 57 {
-			isAllInt = false
-			break
-		}
-	}
-
-	if isAllInt {
-		if i, err := strconv.ParseInt(id, 10, 64); err == nil {
-			return i
-		}
-	}
-
-	hexstr := hex.EncodeToString([]byte(id))
-	if l := len(hexstr); l > 16 {
-		hexstr = hexstr[l-16:]
-	}
-	i, _ := strconv.ParseInt(hexstr, 16, 64)
-
-	return i
 }

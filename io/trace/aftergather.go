@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -105,54 +106,50 @@ func BuildPointsBatch(dktrace DatakitTrace, strict bool) []*dkio.Point {
 // BuildPoint builds point from DatakitSpan.
 func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
 	tags := map[string]string{
-		TAG_PROJECT:     dkspan.Project,
-		TAG_OPERATION:   dkspan.Operation,
-		TAG_SERVICE:     dkspan.Service,
-		TAG_VERSION:     dkspan.Version,
-		TAG_ENV:         dkspan.Env,
-		TAG_HTTP_METHOD: dkspan.HTTPMethod,
-		TAG_HTTP_CODE:   dkspan.HTTPStatusCode,
-		TAG_SPAN_STATUS: dkspan.Status,
+		TAG_CONTAINER_HOST: dkspan.ContainerHost,
+		TAG_ENV:            dkspan.Env,
+		TAG_HTTP_CODE:      dkspan.HTTPStatusCode,
+		TAG_HTTP_METHOD:    dkspan.HTTPMethod,
+		TAG_OPERATION:      dkspan.Operation,
+		TAG_PROJECT:        dkspan.Project,
+		TAG_SERVICE:        dkspan.Service,
+		TAG_SPAN_STATUS:    dkspan.Status,
+		TAG_VERSION:        dkspan.Version,
 	}
-
-	if dkspan.ParentID == "" {
-		dkspan.ParentID = "0"
-	}
-
 	if dkspan.SourceType != "" {
 		tags[TAG_TYPE] = dkspan.SourceType
 	} else {
 		tags[TAG_TYPE] = SPAN_SERVICE_CUSTOM
 	}
-
+	if dkspan.SpanType != "" {
+		tags[TAG_SPAN_TYPE] = dkspan.SpanType
+	} else {
+		tags[TAG_SPAN_TYPE] = SPAN_TYPE_UNKNOW
+	}
 	if dkspan.EndPoint != "" {
 		tags[TAG_ENDPOINT] = dkspan.EndPoint
 	} else {
 		tags[TAG_ENDPOINT] = "null"
 	}
-
-	if dkspan.SpanType != "" {
-		tags[TAG_SPAN_TYPE] = dkspan.SpanType
-	} else {
-		tags[TAG_SPAN_TYPE] = SPAN_TYPE_ENTRY
-	}
-
-	if dkspan.ContainerHost != "" {
-		tags[TAG_CONTAINER_HOST] = dkspan.ContainerHost
-	}
-
 	for k, v := range dkspan.Tags {
-		tags[k] = v
+		if strings.Contains(k, ".") {
+			tags[strings.ReplaceAll(k, ".", "_")] = v
+		} else {
+			tags[k] = v
+		}
 	}
 
 	fields := map[string]interface{}{
+		FIELD_TRACEID:  dkspan.TraceID,
+		FIELD_SPANID:   dkspan.SpanID,
+		FIELD_PID:      dkspan.PID,
 		FIELD_START:    dkspan.Start / int64(time.Microsecond),
 		FIELD_DURATION: dkspan.Duration / int64(time.Microsecond),
 		FIELD_MSG:      dkspan.Content,
 		FIELD_RESOURCE: dkspan.Resource,
-		FIELD_PARENTID: dkspan.ParentID,
-		FIELD_TRACEID:  dkspan.TraceID,
-		FIELD_SPANID:   dkspan.SpanID,
+	}
+	if dkspan.ParentID == "" {
+		fields[FIELD_PARENTID] = "0"
 	}
 
 	return dkio.NewPoint(dkspan.Source, tags, fields, &dkio.PointOption{
