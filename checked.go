@@ -111,6 +111,7 @@ var (
 		"nsq":                    true,
 		"oracle":                 true,
 		"oraclemonitor":          true,
+		"opentelemetry":          true,
 		"postgresql_replication": true,
 		"postgresql":             true,
 		"processes":              true,

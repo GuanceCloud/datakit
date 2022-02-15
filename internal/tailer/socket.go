@@ -54,13 +54,13 @@ func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err 
 			}
 			return nil
 		}(),
-		tags: buildTags(opt.GlobalTags),
 		opt:  opt,
 		stop: make(chan struct{}, 1),
 	}
 	if err := sl.opt.init(); err != nil {
 		return nil, err
 	}
+	sl.tags = buildTags(sl.opt.GlobalTags)
 	l = logger.SLogger("socketLog")
 	return sl, nil
 }
