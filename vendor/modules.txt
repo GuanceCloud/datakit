@@ -359,7 +359,7 @@ github.com/florianl/go-tc/internal/unix
 github.com/fsnotify/fsnotify
 # github.com/gdamore/encoding v1.0.0
 github.com/gdamore/encoding
-# github.com/gdamore/tcell/v2 v2.4.0
+# github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 ## explicit
 github.com/gdamore/tcell/v2
 github.com/gdamore/tcell/v2/terminfo
@@ -764,6 +764,9 @@ github.com/prometheus/procfs/internal/util
 ## explicit
 github.com/prometheus/prometheus/prompb
 github.com/prometheus/prometheus/util/strutil
+# github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
+## explicit
+github.com/rivo/tview
 # github.com/rivo/uniseg v0.2.0
 ## explicit
 github.com/rivo/uniseg
@@ -934,7 +937,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20220204135822-1c1b9b1eba6a
+# golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
