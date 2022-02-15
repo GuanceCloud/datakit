@@ -62,10 +62,10 @@ release-unstable:
 current-testing:
   stage: deploy
   only:
-    - /^614-.*$/
+    - /^xxx-.*$/
   script:
     - make clean
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.3.0
-    - make testing_image VERSION=1.3.0
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.999.0
+    - make testing_image VERSION=1.999.0
   tags:
     - cloudcare-ft

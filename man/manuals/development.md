@@ -240,6 +240,67 @@ DataKit 新功能发布，大家最好做全套测试，包括安装、升级等
 
 在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 `scripts/build.sh` 中。将其 copy 到 datakit 源码根目录，稍作修改，即可用于本地编译、发布。
 
+## 版本发布
+
+DataKit 版本发布包含俩部分：
+
+- DataKit 版本发布
+- 语雀文档发布
+
+### DataKit 版本发布
+
+DataKit 当前的版本发布，是在 gitlab 中实现的，一旦特定分支的代码被推送到 GitLab，就会触发对应的版本发布，详见 _.gitlab-ci.yml_。
+
+在 1.2.6(含) 以前的版本中，DataKit 版本发布依赖于命令 `git describe --tags` 的输出。自 1.2.7 之后，DataKit 版本不再依赖这个机制，而是通过手动指定版本号，其步骤如下：
+
+> 注：当前 script/build.sh 中依然依赖 `git describe --tags`，这只是一个版本获取策略问题，不影响主流程。
+
+- 编辑 *.gitlab-ci.yml*，修改里面的 `VERSION` 变量，如：
+
+```yaml
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.8
+```
+
+每次版本发布，都需要手动编辑 *.gitlab-ci.yml* 指定该版本号。
+
+- 版本发布完成后，在代码上新增一个 tag
+
+```shell
+git tag -f <same-as-the-new-version>
+git push -f --tags
+```
+
+> 注意： Mac 版本的发布，目前只能在 amd64 架构上的 Mac 发布，因为开启了 CGO 的原因，在 GitLab 上无法发布 Mac 版本的 DataKit。其实现如下：
+
+```shell
+make production_mac VERSION=<the-new-version>
+make pub_production_mac VERSION=<the-new-version>
+```
+
+#### DataKit 版本号机制
+
+- 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
+- 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是基数
+
+### 语雀文档发布
+
+语雀文档的发布，只能在开发机器上发布，需安装 [waque](https://github.com/yesmeck/waque) 1.13.1+ 以上的版本。其流程如下：
+
+- 执行 yuque.sh
+
+```
+./yuque.sh <the-new-version>
+```
+
+如果不指定版本，会以最近的一个 tag 名称作为版本号。注意，如果是线上代码发布，最好保证跟**线上 DataKit 当前的稳定版版本号**保持一致，不然会导致用户困扰。
+
+在当前的代码树中，有俩个文档库配置：
+
+- *yuque.yml*: 发布到[线上 DataKit 文档库](https://www.yuque.com/dataflux/datakit)
+- *yuque_testing.yml*: 发布到[测试 DataKit 文档库](https://www.yuque.com/dataflux/cd74oo)
+
+测试文档库用于测试文档发布效果。当在你本地机器发布文档时，如果当前代码分支是 *yuque*，会自动发布到线上文档库，否则发布到测试文档库。
+
 ## 关于代码规范
 
 这里不强调具体的代码规范，现有工具能帮助我们规范各自的代码习惯，目前引入 golint 工具，可单独检查现有代码：

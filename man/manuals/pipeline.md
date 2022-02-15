@@ -231,6 +231,12 @@ if status == 200 {
 
 ```
 
+## Pipeline 脚本存放目录
+
+### 内置的 pipeline 目录
+### Git 管理的 pipeline 目录
+### Remote Pipeline 目录
+
 ## 脚本函数
 
 函数参数说明：
