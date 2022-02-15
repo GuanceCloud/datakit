@@ -28,33 +28,6 @@ Datakit Span 是 Datakit 内部使用的中间数据结构. Datakit 目前接入
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
 | ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
 
-type DatakitSpan struct {
-TraceID string
-ParentID string
-SpanID string
-Service string
-Resource string
-Operation string
-Source string // third part source name
-SpanType string
-SourceType string
-Env string
-Project string
-Version string
-Tags map[string]string
-EndPoint string
-HTTPMethod string
-HTTPStatusCode string
-ContainerHost string
-PID string // process id
-Start int64 // nano sec
-Duration int64 // nano sec
-Status string
-Content string
-Priority int
-SamplingRateGlobal float64
-}
-
 | TraceID | string | | Trace ID | dkproto.fields.trace_id |
 | ParentID | string | | Parent Span ID | dkproto.fields.parent_id |
 | SpanID | string | | Span ID | dkproto.fields.span_id |
@@ -71,14 +44,14 @@ SamplingRateGlobal float64
 | EndPoint | string | | 通讯对端 | dkproto.tags.endpoint |
 | HTTPMethod | string | | HTTP Method | dkproto.tags.http_method |
 | HTTPStatusCode | string | | HTTP Response Status Code(.e.g 200) | dkproto.tags.http_status_code |
-| PID | string | | Process ID | dkproto. |
-
 | ContainerHost | string | | 容器主机名 | dkproto.tags.container_host |
-| Content | string | | Span 原始数据 | dkproto.fields.message |
-| Duration | int64 | 纳秒 | 耗时 | dkproto.fields.duration |
+| PID | string | | Process ID | dkproto. |
 | Start | int64 | 纳秒 | Span 起始时间 | dkproto.fields.start |
+| Duration | int64 | 纳秒 | 耗时 | dkproto.fields.duration |
 | Status | string | | Span 状态字段 | dkproto.tags.status |
-| Type | string | | Span Type | dkproto.tags.span_type |
+| Content | string | | Span 原始数据 | dkproto.fields.message |
+| Priority | int | | Span 上报优先级 -1:reject 0:auto consider with sample rate 1:always send to data center | dkproto.fields.priority |
+| SamplingRateGlobal | float64 | | Global Sampling Rate | dkproto.fields.sampling_rate_global |
 
 ---
 
