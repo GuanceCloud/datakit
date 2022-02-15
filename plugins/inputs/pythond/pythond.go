@@ -334,7 +334,7 @@ func (*pathMockExer) FileExist(ph string) bool {
 	return datakit.FileExist(ph)
 }
 
-// Splicing Python related module information
+// Splicing Python related module information.
 func getScriptNameRoot(dirs []string, mp mockPath, mpEx mockPathEx, mlist mockFolderList) (scriptName, scriptRoot string, err error) {
 	var pyModules, modulesRoot []string
 	enabledRepos := config.GitEnabledRepoNames()

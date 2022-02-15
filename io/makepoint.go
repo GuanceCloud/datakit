@@ -34,7 +34,7 @@ var (
 	MaxTags   int = 256  // limit tag count
 	MaxFields int = 1024 // limit field count
 
-	// limit tag/field key/value length
+	// limit tag/field key/value length.
 	MaxTagKeyLen     int = 256
 	MaxFieldKeyLen   int = 256
 	MaxTagValueLen   int = 1024
