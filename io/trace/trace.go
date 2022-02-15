@@ -68,7 +68,7 @@ const (
 const (
 	// reject trace before send to dataway
 	PriorityReject = -1
-	// consider with sampling rate
+	// auto calculate with sampling rate
 	PriorityAuto = 0
 	// always send to dataway and do not consider sampling and filters
 	PriorityKeep = 1
