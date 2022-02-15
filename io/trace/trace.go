@@ -27,9 +27,10 @@ const (
 	STATUS_ERR      = "error"
 	STATUS_CRITICAL = "critical"
 
-	SPAN_TYPE_ENTRY = "entry"
-	SPAN_TYPE_LOCAL = "local"
-	SPAN_TYPE_EXIT  = "exit"
+	SPAN_TYPE_ENTRY  = "entry"
+	SPAN_TYPE_LOCAL  = "local"
+	SPAN_TYPE_EXIT   = "exit"
+	SPAN_TYPE_UNKNOW = "unknow"
 
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_CACHE  = "cache"
@@ -45,19 +46,22 @@ const (
 	TAG_OPERATION      = "operation"
 	TAG_PROJECT        = "project"
 	TAG_SERVICE        = "service"
+	TAG_SOURCE_TYPE    = "source_type"
 	TAG_SPAN_STATUS    = "status"
 	TAG_SPAN_TYPE      = "span_type"
 	TAG_TYPE           = "type"
 	TAG_VERSION        = "version"
 
-	FIELD_DURATION = "duration"
-	FIELD_MSG      = "message"
-	FIELD_PARENTID = "parent_id"
-	FIELD_PID      = "pid"
-	FIELD_RESOURCE = "resource"
-	FIELD_SPANID   = "span_id"
-	FIELD_START    = "start"
-	FIELD_TRACEID  = "trace_id"
+	FIELD_DURATION           = "duration"
+	FIELD_MSG                = "message"
+	FIELD_PARENTID           = "parent_id"
+	FIELD_PID                = "pid"
+	FIELD_PRIORITY           = "priority"
+	FIELD_RESOURCE           = "resource"
+	FIELD_SAMPLE_RATE_GLOBAL = "sample_rate_global"
+	FIELD_SPANID             = "span_id"
+	FIELD_START              = "start"
+	FIELD_TRACEID            = "trace_id"
 )
 
 // tracing data keep priority
@@ -121,7 +125,7 @@ func FindSpanTypeInt(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) 
 }
 
 func FindSpanTypeString(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
-	if parentID != "" && parentID != "0" {
+	if parentID != "0" && parentID != "" {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
 				return SPAN_TYPE_LOCAL
