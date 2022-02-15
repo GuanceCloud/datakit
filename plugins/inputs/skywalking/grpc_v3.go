@@ -79,6 +79,10 @@ func (*TraceReportServerV3) CollectInSync(
 func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error) {
 	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
+		if span == nil {
+			continue
+		}
+
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
@@ -89,7 +93,6 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 			Source:    inputName,
 			Start:     span.StartTime * int64(time.Millisecond),
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
-			Tags:      tags,
 		}
 
 		if span.SpanType == skyimpl.SpanType_Entry {
@@ -113,6 +116,12 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 		case skyimpl.SpanType_Exit:
 			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		}
+
+		sourceTags := make(map[string]string)
+		for _, tag := range span.Tags {
+			sourceTags[tag.Key] = tag.Value
+		}
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
 		if defSampler != nil {
 			dkspan.Priority = defSampler.Priority

@@ -12,7 +12,7 @@ import (
 
 var _ inputs.InputV2 = &Input{}
 
-var (
+const (
 	inputName    = "skywalking"
 	sampleConfig = `
 [[inputs.skywalking]]
@@ -52,22 +52,24 @@ var (
     # key2 = "value2"
     # ...
 `
-	defAddr = "localhost:13800"
-	tags    = make(map[string]string)
-	log     = logger.DefaultSLogger(inputName)
 )
 
 var (
+	log              = logger.DefaultSLogger(inputName)
+	defAddr          = "localhost:13800"
 	afterGather      = itrace.NewAfterGather()
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
+	customerKeys     []string
+	tags             map[string]string
 )
 
 type Input struct {
 	V2               interface{}         `toml:"V2"` // deprecated *skywalkingConfig
 	V3               interface{}         `toml:"V3"` // deprecated *skywalkingConfig
 	Address          string              `toml:"address"`
+	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
@@ -120,9 +122,8 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(defSampler.Sample)
 	}
 
-	if len(ipt.Tags) != 0 {
-		tags = ipt.Tags
-	}
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
 
 	log.Debug("start skywalking grpc v3 server")
 

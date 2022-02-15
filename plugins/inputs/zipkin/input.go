@@ -16,9 +16,8 @@ var (
 	_ inputs.HTTPInput = &Input{}
 )
 
-var (
-	inputName = "zipkin"
-	//nolint:lll
+const (
+	inputName    = "zipkin"
 	sampleConfig = `
 [[inputs.zipkin]]
   pathV1 = "/api/v1/spans"
@@ -57,22 +56,24 @@ var (
     # key2 = "value2"
     # ...
 `
-	tags = make(map[string]string)
-	log  = logger.DefaultSLogger(inputName)
 )
 
 var (
+	log              = logger.DefaultSLogger(inputName)
 	apiv1Path        = "/api/v1/spans"
 	apiv2Path        = "/api/v2/spans"
 	afterGather      = itrace.NewAfterGather()
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
+	customerKeys     []string
+	tags             map[string]string
 )
 
 type Input struct {
 	PathV1           string              `toml:"pathV1"`
 	PathV2           string              `toml:"pathV2"`
+	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
@@ -121,9 +122,8 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(defSampler.Sample)
 	}
 
-	if len(ipt.Tags) != 0 {
-		tags = ipt.Tags
-	}
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
 }
 
 func (ipt *Input) RegHTTPHandler() {

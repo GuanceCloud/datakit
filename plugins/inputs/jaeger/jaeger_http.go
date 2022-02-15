@@ -103,11 +103,6 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			Version:   version,
 		}
 
-		if defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
-		}
-
 		dkspan.Status = itrace.STATUS_OK
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
@@ -116,7 +111,16 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			}
 		}
 
-		dkspan.Tags = tags
+		sourceTags := make(map[string]string)
+		for _, tag := range span.Tags {
+			sourceTags[tag.Key] = tag.String()
+		}
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+
+		if defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
 
 		if buf, err := json.Marshal(span); err != nil {
 			log.Warn(err.Error())
