@@ -150,16 +150,18 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 			Operation: span.Name,
 			Source:    inputName,
 			SpanType:  itrace.FindSpanTypeInt(span.ID, *span.ParentID, spanIDs, parentIDs),
-			Tags:      tags,
 		}
+
 		if span.ParentID != nil {
 			dkspan.ParentID = fmt.Sprintf("%d", uint64(*span.ParentID))
 		}
+
 		if span.Timestamp != nil {
 			dkspan.Start = (*span.Timestamp) * int64(time.Microsecond)
 		} else {
 			dkspan.Start = getStartTimestamp(span)
 		}
+
 		if span.Duration != nil {
 			dkspan.Duration = (*span.Duration) * int64(time.Microsecond)
 		} else {
@@ -198,15 +200,21 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 			dkspan.Version = version
 		}
 
-		buf, err := json.Marshal(zipkinConvThriftToJSON(span))
-		if err != nil {
-			return nil, err
+		sourceTags := make(map[string]string)
+		for _, tag := range span.BinaryAnnotations {
+			sourceTags[tag.Key] = string(tag.Value)
 		}
-		dkspan.Content = string(buf)
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
 		if defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
+		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
 		}
 
 		dktrace = append(dktrace, dkspan)

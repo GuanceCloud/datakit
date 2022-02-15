@@ -17,7 +17,7 @@ var (
 	_ inputs.HTTPInput = &Input{}
 )
 
-var (
+const (
 	inputName    = "jaeger"
 	sampleConfig = `
 [[inputs.jaeger]]
@@ -61,15 +61,16 @@ var (
     # key2 = "value2"
     # ...
 `
-	tags = make(map[string]string)
-	log  = logger.DefaultSLogger(inputName)
 )
 
 var (
+	log              = logger.DefaultSLogger(inputName)
 	afterGather      = itrace.NewAfterGather()
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
+	customerKeys     []string
+	tags             map[string]string
 )
 
 type Input struct {
@@ -77,6 +78,7 @@ type Input struct {
 	UDPAgent         string              `toml:"udp_agent"` // deprecated
 	Endpoint         string              `toml:"endpoint"`
 	Address          string              `toml:"address"`
+	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
@@ -134,9 +136,8 @@ func (ipt *Input) Run() {
 		}
 	}
 
-	if len(ipt.Tags) != 0 {
-		tags = ipt.Tags
-	}
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
 }
 
 func (ipt *Input) RegHTTPHandler() {

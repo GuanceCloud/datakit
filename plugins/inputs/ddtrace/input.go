@@ -2,7 +2,6 @@
 package ddtrace
 
 import (
-	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -18,7 +17,7 @@ var (
 	_ inputs.HTTPInput = &Input{}
 )
 
-var (
+const (
 	inputName    = "ddtrace"
 	sampleConfig = `
 [[inputs.ddtrace]]
@@ -60,18 +59,18 @@ var (
     # key2 = "value2"
     # ...
 `
-	tags = make(map[string]string)
-	log  = logger.DefaultSLogger(inputName)
 )
 
 var (
-	customerKeys []string
+	log = logger.DefaultSLogger(inputName)
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
 	afterGather          = itrace.NewAfterGather()
 	keepRareResource     *itrace.KeepRareResource
 	closeResource        *itrace.CloseResource
 	defSampler           *itrace.Sampler
+	customerKeys         []string
+	tags                 map[string]string
 )
 
 type Input struct {
@@ -80,10 +79,10 @@ type Input struct {
 	TraceSampleConf  interface{}         `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
 	IgnoreResources  []string            `toml:"ignore_resources"`         // deprecated []string
 	Endpoints        []string            `toml:"endpoints"`
+	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
-	CustomerTags     []string            `toml:"customer_tags"`
 	Tags             map[string]string   `toml:"tags"`
 }
 
@@ -132,17 +131,8 @@ func (ipt *Input) Run() {
 		log.Debug("########## nil sampler")
 	}
 
-	for k := range ipt.CustomerTags {
-		if strings.Contains(ipt.CustomerTags[k], ".") {
-			log.Warn("customer tag can not contains dot(.)")
-		} else {
-			customerKeys = append(customerKeys, ipt.CustomerTags[k])
-		}
-	}
-
-	if len(ipt.Tags) != 0 {
-		tags = ipt.Tags
-	}
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
 }
 
 func (ipt *Input) RegHTTPHandler() {
