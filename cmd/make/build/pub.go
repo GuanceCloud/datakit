@@ -1,6 +1,8 @@
 package build
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +18,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 )
 
 type versionDesc struct {
@@ -95,6 +100,60 @@ func generateMetaInfo() error {
 	return cmds.ExportMetaInfo("measurements-meta.json")
 }
 
+func generatePipelineDoc() error {
+	encoding := base64.StdEncoding
+	// Encode Markdown docs with base64.
+	for _, plDoc := range funcs.PipelineFunctionDocs {
+		plDoc.Doc = encoding.EncodeToString([]byte(plDoc.Doc))
+	}
+	exportPLDocs := struct {
+		Version   string                  `json:"version"`
+		Docs      string                  `json:"docs"`
+		Functions map[string]*funcs.PLDoc `json:"functions"`
+	}{
+		Version:   git.Version,
+		Docs:      "经过 base64 编码的 pipeline 函数文档，包括各函数原型、说明、使用示例",
+		Functions: funcs.PipelineFunctionDocs,
+	}
+	data, err := json.Marshal(exportPLDocs)
+	if err != nil {
+		return err
+	}
+	f, err := os.Create("pipeline-docs.json")
+	if err != nil {
+		return err
+	}
+	defer f.Close() //nolint:errcheck,gosec
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func generatePipelineScripts() error {
+	scriptMap, err := config.GetScriptMap()
+	if err != nil {
+		return err
+	}
+	encoding := base64.StdEncoding
+	// Encode Markdown docs with base64.
+	for name, script := range scriptMap {
+		scriptMap[name] = encoding.EncodeToString([]byte(script))
+	}
+	data, err := json.Marshal(scriptMap)
+	if err != nil {
+		return err
+	}
+	f, err := os.Create("internal-pipelines.json")
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
+	return nil
+}
+
 func addOSSFiles(ossPath string, files map[string]string) map[string]string {
 	res := map[string]string{}
 	for k, v := range files {
@@ -156,12 +215,22 @@ func PubDatakit() error {
 		return err
 	}
 
+	if err := generatePipelineDoc(); err != nil {
+		return err
+	}
+
+	if err := generatePipelineScripts(); err != nil {
+		return err
+	}
+
 	basics := map[string]string{
-		"version":                path.Join(PubDir, ReleaseType, "version"),
-		"datakit.yaml":           "datakit.yaml",
-		"install.sh":             "install.sh",
-		"install.ps1":            "install.ps1",
-		"measurements-meta.json": "measurements-meta.json",
+		"version":                 path.Join(PubDir, ReleaseType, "version"),
+		"datakit.yaml":            "datakit.yaml",
+		"install.sh":              "install.sh",
+		"install.ps1":             "install.ps1",
+		"measurements-meta.json":  "measurements-meta.json",
+		"pipeline-docs.json":      "pipeline-docs.json",
+		"internal-pipelines.json": "internal-pipelines.json",
 		fmt.Sprintf("datakit-%s.yaml", ReleaseVersion): "datakit.yaml",
 		fmt.Sprintf("install-%s.sh", ReleaseVersion):   "install.sh",
 		fmt.Sprintf("install-%s.ps1", ReleaseVersion):  "install.ps1",

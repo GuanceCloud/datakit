@@ -81,7 +81,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220117082011-b2dea10607f0
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220214030751-cf38aa8d1ebd
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/multierr v1.7.0 // indirect
@@ -92,7 +92,7 @@ require (
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
-	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
+	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17

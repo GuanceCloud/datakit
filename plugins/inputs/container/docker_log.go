@@ -270,8 +270,11 @@ func getContainerLogConfigForDocker(labels map[string]string) *containerLogConfi
 func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stream string, logconf *containerLogConfig) error {
 	defer reader.Close() //nolint:errcheck
 
+	logconf.tags["service"] = logconf.Service
 	logconf.tags["stream"] = stream
-	shortImageName := logconf.tags["image_short_name"]
+	logconf.tags["service"] = logconf.Service
+
+	containerName := logconf.tags["container_name"]
 
 	mult, err := multiline.New(logconf.Multiline, maxLines)
 	if err != nil {
@@ -281,7 +284,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 
 	newTask := func() *worker.Task {
 		return &worker.Task{
-			TaskName:   "containerlog/" + shortImageName,
+			TaskName:   "containerlog/" + logconf.Source,
 			Source:     logconf.Source,
 			ScriptName: logconf.Pipeline,
 		}
@@ -307,7 +310,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 				}
 				task.TS = time.Now()
 				if err := worker.FeedPipelineTaskBlock(task); err != nil {
-					l.Errorf("failed to feed log, containerName: %s, err: %w", logconf.tags["container_name"], err)
+					l.Errorf("failed to feed log, containerName: %s, err: %w", containerName, err)
 				}
 			}
 		default:
@@ -334,10 +337,16 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			if len(line) == 0 {
 				continue
 			}
+
+			text := mult.ProcessLine(line)
+			if len(text) == 0 {
+				continue
+			}
+
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
+					log:  string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
 		}
@@ -351,7 +360,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		task.TS = time.Now()
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("failed to feed log, containerName: %s, err: %w", logconf.tags["container_name"], err)
+			l.Errorf("failed to feed log, containerName: %s, err: %w", containerName, err)
 		}
 	}
 }

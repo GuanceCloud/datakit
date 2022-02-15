@@ -393,3 +393,8 @@ status_code: 500
 
 - tags 和 fields 中的 key 不允许重名
 - tags 内部或 fields 内部不允许出现同名 key
+- Tag 个数不超过 256 个
+- Field 个数不超过 1024 个
+- Tag/Field Key 长度不超过 256 字节
+- Tag Value 长度不超过 1024 字节
+- Field Value 不超过 32K(32x1024) 字节

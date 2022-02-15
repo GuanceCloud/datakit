@@ -861,15 +861,13 @@ func GetToken() string {
 }
 
 func GitHasEnabled() bool {
-	hasEnable := false
 	for _, v := range Cfg.GitRepos.Repos {
 		if v.Enable {
-			hasEnable = true
-			break
+			return true
 		}
 	}
 
-	return hasEnable
+	return false
 }
 
 func GitEnabledRepoNames() []string {

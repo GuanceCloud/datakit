@@ -149,13 +149,11 @@ type PythonDInput struct {
 	Dirs []string `toml:"dirs"`
 	Envs []string `toml:"envs"`
 
-	cmd      *exec.Cmd
-	duration time.Duration
+	cmd *exec.Cmd
 
-	semStop     *cliutils.Sem // start stop signal
-	replacePair map[string]string
-	scriptName  string
-	scriptRoot  string
+	semStop    *cliutils.Sem // start stop signal
+	scriptName string
+	scriptRoot string
 }
 
 func (*PythonDInput) Catalog() string { return inputName }
@@ -166,16 +164,18 @@ func (*PythonDInput) AvailableArchs() []string { return datakit.AllArch }
 
 func (*PythonDInput) SampleMeasurement() []inputs.Measurement { return []inputs.Measurement{} }
 
-func (pe *PythonDInput) start() error {
-	pe.replacePair = map[string]string{
-		"PythonCorePath":                "\"" + datakit.PythonCoreDir + "\"",
-		"CustomerDefinedScriptRoot":     pe.scriptRoot,
-		"CustomerDefinedScriptName":     "\"" + pe.scriptName + "\"",
-		"CustomerDefinedScriptInterval": fmt.Sprintf("%.1f", pe.duration.Seconds()),
+func getCliPyScript(scriptRoot, scriptName string) string {
+	replacePair := map[string]string{
+		"PythonCorePath":            "\"" + datakit.PythonCoreDir + "\"",
+		"CustomerDefinedScriptRoot": scriptRoot,
+		"CustomerDefinedScriptName": "\"" + scriptName + "\"",
 	}
 
-	cli := os.Expand(pyCli, func(k string) string { return pe.replacePair[k] })
-	l.Debugf("cli = %s", cli)
+	return os.Expand(pyCli, func(k string) string { return replacePair[k] })
+}
+
+func (pe *PythonDInput) start() error {
+	cli := getCliPyScript(pe.scriptRoot, pe.scriptName)
 
 	pyTmpFle, err := ioutil.TempFile("", "pythond_")
 	if err != nil {
@@ -245,59 +245,136 @@ func (pe *PythonDInput) start() error {
 	return nil
 }
 
-func getPyModules(dir string) []string {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return []string{}
-	}
+//------------------------------------------------------------------------------
 
+type mockFolderList interface {
+	GetFolderList(root string, deep int) (folders, files []string, err error)
+}
+
+type folderListMocker struct{}
+
+func (*folderListMocker) GetFolderList(root string, deep int) (folders, files []string, err error) {
+	return path.GetFolderList(root, deep)
+}
+
+func getPyModules(root string, mlist mockFolderList) []string {
+	_, files, err := mlist.GetFolderList(root, 2)
+	if err != nil {
+		l.Error(err)
+		return nil
+	}
+	return getFilteredPyModules(files, root)
+}
+
+func getFilteredPyModules(files []string, root string) []string {
 	var arr []string
 
-	for _, f := range files {
-		if f.IsDir() {
-			// read file names
-			ff, err := ioutil.ReadDir(filepath.Join(dir, f.Name()))
-			if err != nil {
-				continue
-			}
-			for _, v := range ff {
-				if v.IsDir() {
-					continue
-				}
-				if v.Name() == "__init__.py" {
-					continue
-				}
-				ext := filepath.Ext(v.Name())
-				if strings.ToLower(ext) != ".py" {
-					continue
-				}
-				arr = append(arr, fmt.Sprintf("%s.%s", f.Name(),
-					path.GetPureNameFromExt(v.Name())))
-			}
+	for _, v := range files {
+		base := filepath.Base(v)
+		if base == "__init__.py" {
+			continue
+		}
+
+		ext := filepath.Ext(base)
+		if strings.ToLower(ext) != ".py" {
+			continue
+		}
+
+		pureName := path.GetPureNameFromExt(base)
+
+		parentFull := filepath.Dir(v)
+		if parentFull == root {
+			arr = append(arr, pureName)
 		} else {
-			if f.Name() == "__init__.py" {
-				continue
-			}
-			ext := filepath.Ext(f.Name())
-			if strings.ToLower(ext) == ".py" {
-				arr = append(arr, path.GetPureNameFromExt(f.Name()))
-			}
+			parent := path.GetParentDirName(v)
+			arr = append(arr, fmt.Sprintf("%s.%s", parent, pureName))
 		}
 	}
 
 	return arr
 }
 
+//------------------------------------------------------------------------------
+
+type mockPath interface {
+	IsDir(path string) bool
+}
+
+type pathMocker struct{}
+
+func (*pathMocker) IsDir(ph string) bool {
+	return path.IsDir(ph)
+}
+
 // https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
-func searchPythondDir(dirName string, enabledRepos []string) string {
+func searchPythondDir(dirName string, enabledRepos []string, mp mockPath) string {
 	for _, v := range enabledRepos {
 		destPath := filepath.Join(datakit.GitReposDir, v, datakit.GitRepoSubDirNamePythond, dirName)
-		if path.IsDir(destPath) {
+		if mp.IsDir(destPath) {
 			return destPath
 		}
 	}
 	return filepath.Join(datakit.PythonDDir, dirName)
 }
+
+//------------------------------------------------------------------------------
+
+type mockPathEx interface {
+	IsDir(path string) bool
+	FileExist(filename string) bool
+}
+
+type pathMockExer struct{}
+
+func (*pathMockExer) IsDir(ph string) bool {
+	return path.IsDir(ph)
+}
+
+func (*pathMockExer) FileExist(ph string) bool {
+	return datakit.FileExist(ph)
+}
+
+// Splicing Python related module information.
+func getScriptNameRoot(dirs []string, mp mockPath, mpEx mockPathEx, mlist mockFolderList) (scriptName, scriptRoot string, err error) {
+	var pyModules, modulesRoot []string
+	enabledRepos := config.GitEnabledRepoNames()
+	for _, v := range dirs {
+		var pythonPath string
+		if len(enabledRepos) != 0 {
+			// enabled git
+			if filepath.IsAbs(v) {
+				pythonPath = v
+			} else {
+				pythonPath = searchPythondDir(v, enabledRepos, mp)
+			}
+		} else {
+			// not enabled git
+			pythonPath = filepath.Join(datakit.PythonDDir, v)
+		}
+
+		if mpEx.IsDir(pythonPath) {
+			pyModules = append(pyModules, getPyModules(pythonPath, mlist)...)
+			modulesRoot = append(modulesRoot, pythonPath)
+		} else if mpEx.FileExist(pythonPath) {
+			pyModules = append(pyModules, path.GetPureNameFromExt(pythonPath))
+		}
+	}
+
+	pyModules = dkstring.GetUniqueArray(pyModules)
+	modulesRoot = dkstring.GetUniqueArray(modulesRoot)
+
+	if len(pyModules) == 0 || len(modulesRoot) == 0 {
+		err = fmt.Errorf("pyModules or modulesRoot empty")
+		return "", "", err
+	}
+
+	scriptName = strings.Join(pyModules, "\", \"")
+	scriptRoot = "['" + strings.Join(modulesRoot, "', '") + "']"
+
+	return scriptName, scriptRoot, nil
+}
+
+//------------------------------------------------------------------------------
 
 func (pe *PythonDInput) Run() {
 	l = logger.SLogger(inputName)
@@ -315,44 +392,11 @@ func (pe *PythonDInput) Run() {
 		return
 	}
 
-	var pyModules, modulesRoot []string
-	enabledRepos := config.GitEnabledRepoNames()
-	for _, v := range pe.Dirs {
-		var pythonPath string
-		if len(enabledRepos) != 0 {
-			// enabled git
-			if filepath.IsAbs(v) {
-				pythonPath = v
-			} else {
-				pythonPath = searchPythondDir(v, enabledRepos)
-			}
-		} else {
-			// not enabled git
-			pythonPath = filepath.Join(datakit.PythonDDir, v)
-		}
-
-		l.Debugf("pythonPath = %s", pythonPath)
-
-		if path.IsDir(pythonPath) {
-			pyModules = append(pyModules, getPyModules(pythonPath)...)
-			modulesRoot = append(modulesRoot, pythonPath)
-		} else if datakit.FileExist(pythonPath) {
-			pyModules = append(pyModules, path.GetPureNameFromExt(pythonPath))
-		}
-	}
-
-	pyModules = dkstring.GetUniqueArray(pyModules)
-	modulesRoot = dkstring.GetUniqueArray(modulesRoot)
-
-	l.Debugf("pyModules = %v, modulesRoot = %v", pyModules, modulesRoot)
-
-	if len(pyModules) == 0 || len(modulesRoot) == 0 {
-		l.Error("pyModules or modulesRoot empty.")
+	var err error
+	if pe.scriptName, pe.scriptRoot, err = getScriptNameRoot(pe.Dirs, &pathMocker{}, &pathMockExer{}, &folderListMocker{}); err != nil {
+		l.Error(err)
 		return
 	}
-
-	pe.scriptName = strings.Join(pyModules, "\", \"")
-	pe.scriptRoot = "['" + strings.Join(modulesRoot, "', '") + "']"
 
 	l.Debugf("pe.scriptName = %v, pe.scriptRoot = %v", pe.scriptName, pe.scriptRoot)
 
