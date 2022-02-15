@@ -100,11 +100,18 @@ var (
 	storage       = NewSpansStorage()
 	maxSend       = 100
 	interval      = 10
+
+	// add to point
+	globalTags map[string]string
+
+	// that want to send to data center
+	customTags []string
 )
 
 type Input struct {
-	Ogc           *otlpGrpcCollector  `toml:"grpc"`
-	Otc           *otlpHTTPCollector  `toml:"http"`
+	Ogc *otlpGrpcCollector `toml:"grpc"`
+	Otc *otlpHTTPCollector `toml:"http"`
+
 	CloseResource map[string][]string `toml:"close_resource"`
 	Sampler       *itrace.Sampler     `toml:"sampler"`
 	CustomerTags  []string            `toml:"customer_tags"`
@@ -122,8 +129,8 @@ func (i *Input) SampleConfig() string {
 }
 
 func (i *Input) RegHTTPHandler() {
-	dkHTTP.RegHTTPHandler("POST", "/otel/v11/trace", i.Otc.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("GET", "/otel/v11/trace", i.Otc.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", i.Otc.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", i.Otc.apiOtlpMetric)
 }
 
 func (i *Input) exit() {
@@ -144,6 +151,9 @@ func (i *Input) Run() {
 		defSampler = i.Sampler
 		afterGather.AppendFilter(defSampler.Sample)
 	}
+
+	globalTags = i.Tags
+	customTags = i.CustomerTags
 
 	open := false
 	// 从配置文件 开启

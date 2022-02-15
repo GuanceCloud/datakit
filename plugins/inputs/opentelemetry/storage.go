@@ -5,7 +5,6 @@ package opentelemetry
 import (
 	"encoding/hex"
 	"encoding/json"
-	"strconv"
 	"strings"
 	"time"
 
@@ -42,8 +41,15 @@ func (s *SpansStorage) AddSpans(rss []*tracepb.ResourceSpans) {
 
 func setTag(tags map[string]string, attr []*commonpb.KeyValue) map[string]string {
 	for _, kv := range attr {
-		key := replace(kv.Key)
-		tags[key] = kv.GetValue().String()
+		for _, tag := range customTags {
+			if kv.Key == tag {
+				key := replace(kv.Key)
+				tags[key] = kv.GetValue().String()
+			}
+		}
+	}
+	for k, v := range globalTags {
+		tags[k] = v
 	}
 	return tags
 }
@@ -93,7 +99,6 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	dkTraces := make([]DKtrace.DatakitTrace, 0)
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibrarySpans()
-
 		// opentelemetry/filter.go:15      resource = attributes:{key:"service.name" value:{string_value:"test-service"}}
 		l.Infof("resource = %s", spans.Resource.String())
 
@@ -121,10 +126,10 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 					Version:            librarySpans.InstrumentationLibrary.Version,
 					Tags:               tags,
 					EndPoint:           "",
-					HTTPMethod:         "",
-					HTTPStatusCode:     "",
-					ContainerHost:      "",
-					PID:                "",
+					HTTPMethod:         getHTTPMethod(span.Attributes),
+					HTTPStatusCode:     getHTTPStatusCode(span.Attributes),
+					ContainerHost:      getContainerHost(span.Attributes),
+					PID:                getPID(span.Attributes),
 					Start:              int64(span.StartTimeUnixNano),                        //  注意单位 nano
 					Duration:           int64(span.EndTimeUnixNano - span.StartTimeUnixNano), // 单位 nano
 					Status:             getDKSpanStatus(span.GetStatus().Code),               // 使用 dk status
@@ -150,8 +155,8 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
 	m := make(map[string]string, len(attr))
 	for _, kv := range attr {
-		key := replace(kv.Key)
-		m[key] = kv.GetValue().GetStringValue()
+		// key := replace(kv.Key)
+		m[kv.Key] = kv.GetValue().GetStringValue()
 		/*
 			switch kv.GetValue().Value.(type) {
 			// For slice attributes, serialize as JSON list string.
@@ -174,15 +179,11 @@ func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
 }
 
 func byteToInt64(bts []byte) string {
-	string16 := hex.EncodeToString(bts)
-	if string16 == "" {
+	hexCode := hex.EncodeToString(bts)
+	if hexCode == "" {
 		return "0"
 	}
-	n, err := strconv.ParseUint(string16, 16, 64)
-	if err != nil {
-		return string16
-	}
-	return strconv.FormatUint(n, 10)
+	return hexCode
 }
 
 // getDKSpanStatus 从otel的status转成dk的span_status
@@ -204,15 +205,48 @@ func getServiceName(attr []*commonpb.KeyValue) string {
 	for _, kv := range attr {
 		if kv.Key == "service.name" {
 			return kv.Value.GetStringValue()
-			/*if stringVal, ok := kv.Value.Value.(*commonpb.AnyValue_StringValue); ok {
-				return stringVal.StringValue
-			}*/
+		}
+	}
+	return "unknown.service"
+}
+
+func getHTTPMethod(attr []*commonpb.KeyValue) string {
+	for _, kv := range attr {
+		if kv.Key == "http.method" { // see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go:742
+			return kv.Value.GetStringValue()
 		}
 	}
 	return ""
 }
 
-// replace 行协议中的tag的key禁止点 全部替换掉
+func getHTTPStatusCode(attr []*commonpb.KeyValue) string {
+	for _, kv := range attr {
+		if kv.Key == "http.status_code" { //see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go:784
+			return kv.Value.GetStringValue()
+		}
+	}
+	return ""
+}
+
+func getContainerHost(attr []*commonpb.KeyValue) string {
+	for _, kv := range attr {
+		if kv.Key == "container.name" {
+			return kv.Value.GetStringValue()
+		}
+	}
+	return ""
+}
+
+func getPID(attr []*commonpb.KeyValue) string {
+	for _, kv := range attr {
+		if kv.Key == "process.pid" { //see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/resource.go:686
+			return kv.Value.GetStringValue()
+		}
+	}
+	return ""
+}
+
+// replace 行协议中的tag的key禁止有点 全部替换掉
 func replace(key string) string {
-	return strings.ReplaceAll(key, ".", "")
+	return strings.ReplaceAll(key, ".", "_")
 }

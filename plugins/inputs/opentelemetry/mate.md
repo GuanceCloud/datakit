@@ -111,7 +111,8 @@ attributes:{key:"os.type" value:{string_value:"windows"}}
 attributes:{key:"process.command_args" value:{array_value:{values:{string_value:"C:\\Users\\18332\\AppData\\Local\\Temp\\___go_build_go_opentelemetry_io_otel_example_otel_collector.exe"}}}} 
 attributes:{key:"process.executable.name" value:{string_value:"___go_build_go_opentelemetry_io_otel_example_otel_collector.exe"}} 
 attributes:{key:"process.executable.path" value:{string_value:"C:\\Users\\18332\\AppData\\Local\\Temp\\___go_build_go_opentelemetry_io_otel_example_otel_collector.exe"}} 
-attributes:{key:"process.owner" value:{string_value:"SONGLONGQI\\18332"}} attributes:{key:"process.pid" value:{int_value:20576}} 
+attributes:{key:"process.owner" value:{string_value:"SONGLONGQI\\18332"}} 
+attributes:{key:"process.pid" value:{int_value:20576}} 
 attributes:{key:"process.runtime.description" value:{string_value:"go version go1.16.8 windows/amd64"}} 
 attributes:{key:"process.runtime.name" value:{string_value:"gc"}} 
 attributes:{key:"process.runtime.version" value:{string_value:"go1.16.8"}}} 
