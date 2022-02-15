@@ -29,7 +29,38 @@ const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]
-  ## todo : 语雀文档地址
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. These keys will take precedence over keys in 
+  # customer_tags = ["key1", "key2", ...]
+
+  ## Keep rare tracing resources list switch.
+  ## If some resources are rare enough(not presend in 1 hour), those resource will always send
+  ## to data center and do not consider samplers and filters.
+  # keep_rare_resource = false
+
+  ## Ignore tracing resources map like service:[resources...].
+  ## The service name is the full service name in current application.
+  ## The resource list is regular expressions uses to block resource names.
+  # [inputs.opentelemetry.close_resource]
+    # service1 = ["resource1", "resource2", ...]
+    # service2 = ["resource1", "resource2", ...]
+    # ...
+
+  ## Sampler config uses to set global sampling strategy.
+  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
+  ##   -1: always reject any tracing data send to datakit
+  ##    0: accept tracing data and calculate with sampling_rate
+  ##    1: always send to data center and do not consider sampling_rate
+  ## sampling_rate used to set global sampling rate
+  # [inputs.opentelemetry.sampler]
+    # priority = 0
+    # sampling_rate = 1.0
+
+  # [inputs.opentelemetry.tags]
+    # key1 = "value1"
+    # key2 = "value2"
+    # ...
+
   ## grpc
   [inputs.opentelemetry.grpc]
   ## trace for grpc
@@ -38,18 +69,18 @@ const (
   ## metric for grpc
   metric_enable = false
 
-  ## tcp port
+  ## grpc listen addr
   addr = "127.0.0.1:9550"
 
   ## http 
   [inputs.opentelemetry.http]
   ## if enable=true  
-  ## http path :
-  ##	trace : /otel/v11/trace
-  ##	metric: /otel/v11/metric
+  ## http path (do not edit):
+  ##	trace : /otel/v1/trace
+  ##	metric: /otel/v1/metric
   ## use as : http://127.0.0.1:9529/otel/v11/trace . Method = POST
   enable = false
-  ## 200/202
+  ## return to client status_ok_code :200/202
   http_status_ok = 200
 
   [inputs.opentelemetry.http.expectedHeaders]
@@ -62,18 +93,24 @@ const (
 )
 
 var (
-	l           = logger.DefaultSLogger("otel")
-	afterGather = itrace.NewAfterGather()
-	storage     = NewSpansStorage()
-	maxSend     = 100
-	interval    = 10
+	l             = logger.DefaultSLogger("otel")
+	closeResource *itrace.CloseResource
+	afterGather   = itrace.NewAfterGather()
+	defSampler    *itrace.Sampler
+	storage       = NewSpansStorage()
+	maxSend       = 100
+	interval      = 10
 )
 
 type Input struct {
-	Ogc       *otlpGrpcCollector `toml:"grpc"`
-	Otc       *otlpHTTPCollector `toml:"http"`
-	inputName string
-	semStop   *cliutils.Sem // start stop signal
+	Ogc           *otlpGrpcCollector  `toml:"grpc"`
+	Otc           *otlpHTTPCollector  `toml:"http"`
+	CloseResource map[string][]string `toml:"close_resource"`
+	Sampler       *itrace.Sampler     `toml:"sampler"`
+	CustomerTags  []string            `toml:"customer_tags"`
+	Tags          map[string]string   `toml:"tags"`
+	inputName     string
+	semStop       *cliutils.Sem // start stop signal
 }
 
 func (i *Input) Catalog() string {
@@ -95,6 +132,18 @@ func (i *Input) exit() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("otlp")
+	// add filters: the order append in AfterGather is important!!!
+	// add close resource filter
+	if len(i.CloseResource) != 0 {
+		closeResource = &itrace.CloseResource{}
+		closeResource.UpdateIgnResList(i.CloseResource)
+		afterGather.AppendFilter(closeResource.Close)
+	}
+	// add sampler
+	if i.Sampler != nil {
+		defSampler = i.Sampler
+		afterGather.AppendFilter(defSampler.Sample)
+	}
 	open := false
 	// 从配置文件 开启
 	if i.Otc.Enable {
