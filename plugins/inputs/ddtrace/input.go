@@ -27,11 +27,10 @@ var (
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
 
-  ## customer_tags is a list of keys set by client code like span.SetTag(key, value)
-  ## this field will take precedence over [tags] while [customer_tags] merge with [tags].
-  ## IT'S EMPTY STRING VALUE AS DEFAULT indicates that no customer tag set up.
-  ## DO NOT USE DOT(.) IN TAGS.
-  # customer_tags = []
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. Those keys set by client code will take precedence over
+  ## keys in [inputs.ddtrace.tags]. DO NOT CONTAIN DOT(.) IN KEYS LIST.
+  # customer_tags = ["key1", "key2", ...]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -56,18 +55,17 @@ var (
     # priority = 0
     # sampling_rate = 1.0
 
-  ## tags is ddtrace configed key value pairs
   # [inputs.ddtrace.tags]
-    # tag1 = "value1"
-    # tag2 = "value2"
+    # key1 = "value1"
+    # key2 = "value2"
     # ...
 `
-	customerKeys []string
-	tags         = make(map[string]string)
-	log          = logger.DefaultSLogger(inputName)
+	tags = make(map[string]string)
+	log  = logger.DefaultSLogger(inputName)
 )
 
 var (
+	customerKeys []string
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
 	afterGather          = itrace.NewAfterGather()
@@ -130,6 +128,8 @@ func (ipt *Input) Run() {
 	if ipt.Sampler != nil {
 		defSampler = ipt.Sampler
 		afterGather.AppendFilter(defSampler.Sample)
+	} else {
+		log.Debug("########## nil sampler")
 	}
 
 	for k := range ipt.CustomerTags {

@@ -138,17 +138,6 @@ func FindSpanTypeString(spanID, parentID string, spanIDs, parentIDs map[string]b
 	return SPAN_TYPE_ENTRY
 }
 
-func MergeTags(data ...map[string]string) map[string]string {
-	merged := map[string]string{}
-	for _, tags := range data {
-		for k, v := range tags {
-			merged[k] = v
-		}
-	}
-
-	return merged
-}
-
 func GetTraceInt64ID(high, low int64) int64 {
 	temp := low
 	for temp != 0 {
@@ -165,6 +154,48 @@ func GetTraceStringID(high, low int64) string {
 
 func IsRootSpan(dkspan *DatakitSpan) bool {
 	return dkspan.ParentID == "0" || dkspan.ParentID == ""
+}
+
+func UnifyToInt64ID(id string) int64 {
+	if len(id) == 0 {
+		return 0
+	}
+
+	isAllInt := true
+	for _, b := range id {
+		if b < 48 || b > 57 {
+			isAllInt = false
+			break
+		}
+	}
+
+	if isAllInt {
+		if i, err := strconv.ParseInt(id, 10, 64); err == nil {
+			return i
+		}
+	}
+
+	hexstr := hex.EncodeToString([]byte(id))
+	if l := len(hexstr); l > 16 {
+		hexstr = hexstr[l-16:]
+	}
+	i, _ := strconv.ParseInt(hexstr, 16, 64)
+
+	return i
+}
+
+func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[string]string) map[string]string {
+	merged := make(map[string]string)
+	for k, v := range datakitTags {
+		merged[k] = v
+	}
+	for i := range customerKeys {
+		if v, ok := sourceTags[customerKeys[i]]; ok {
+			merged[customerKeys[i]] = v
+		}
+	}
+
+	return merged
 }
 
 type TraceReqInfo struct {
@@ -197,32 +228,4 @@ func ParseTraceInfo(req *http.Request) (*TraceReqInfo, error) {
 	}
 
 	return reqInfo, err
-}
-
-func UnifyToInt64ID(id string) int64 {
-	if len(id) == 0 {
-		return 0
-	}
-
-	isAllInt := true
-	for _, b := range id {
-		if b < 48 || b > 57 {
-			isAllInt = false
-			break
-		}
-	}
-
-	if isAllInt {
-		if i, err := strconv.ParseInt(id, 10, 64); err == nil {
-			return i
-		}
-	}
-
-	hexstr := hex.EncodeToString([]byte(id))
-	if l := len(hexstr); l > 16 {
-		hexstr = hexstr[l-16:]
-	}
-	i, _ := strconv.ParseInt(hexstr, 16, 64)
-
-	return i
 }

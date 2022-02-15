@@ -24,6 +24,9 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 				if tid%100 < int64(smp.SamplingRateGlobal*100) {
 					return dktrace, false
 				} else {
+					log.Debugf("drop service: %s resource %s trace_id: %s span_id: %s by default sampler",
+						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID)
+
 					return nil, true
 				}
 			case PriorityReject:
@@ -64,7 +67,7 @@ func (close *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 				if dktrace[i].Service == service {
 					for j := range resList {
 						if resList[j].MatchString(dktrace[i].Resource) {
-							log.Debugf("closed service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+							log.Debugf("close service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 
 							return nil, true
 						}

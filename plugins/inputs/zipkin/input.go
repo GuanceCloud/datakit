@@ -24,6 +24,11 @@ var (
   pathV1 = "/api/v1/spans"
   pathV2 = "/api/v2/spans"
 
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. Those keys set by client code will take precedence over
+  ## keys in [inputs.zipkin.tags]. DO NOT CONTAIN DOT(.) IN KEYS LIST.
+  # customer_tags = ["key1", "key2", ...]
+
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
   ## to data center and do not consider samplers and filters.
@@ -48,8 +53,8 @@ var (
     # sampling_rate = 1.0
 
   # [inputs.zipkin.tags]
-    # tag1 = "value1"
-    # tag2 = "value2"
+    # key1 = "value1"
+    # key2 = "value2"
     # ...
 `
 	tags = make(map[string]string)

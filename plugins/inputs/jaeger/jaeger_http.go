@@ -103,26 +103,26 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			Version:   version,
 		}
 
-		buf, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		dkspan.Content = string(buf)
-
-		dkspan.Status = itrace.STATUS_OK
-
 		if defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
 		}
 
+		dkspan.Status = itrace.STATUS_OK
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
 				dkspan.Status = itrace.STATUS_ERR
 				break
 			}
 		}
+
 		dkspan.Tags = tags
+
+		if buf, err := json.Marshal(span); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
+		}
 
 		dktrace = append(dktrace, dkspan)
 	}

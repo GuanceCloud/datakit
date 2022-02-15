@@ -41,9 +41,9 @@ const (
   ## tcp port
   addr = "127.0.0.1:9550"
 
-  ## http 
+  ## http
   [inputs.opentelemetry.http]
-  ## if enable=true  
+  ## if enable=true
   ## http path :
   ##	trace : /otel/v11/trace
   ##	metric: /otel/v11/metric
