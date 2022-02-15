@@ -168,3 +168,45 @@ Extracted data(cost: 421.705µs):
 # 该错误在 DataKit monitor 中能看到
 same key xxx in tag and field
 ```
+
+## FAQ
+
+### Pipeline 调试时，为什么变量无法引用？
+
+Pipeline 为：
+
+```python
+json(_, message, "message")
+json(_, thread_name, "thread")
+json(_, level, "status")
+json(_, @timestamp, "time")
+```
+
+其报错如下：
+
+```
+[E] new piepline failed: 4:8 parse error: unexpected character: '@'
+```
+
+---
+
+A: 对于有特殊字符的变量，需将其用两个 `` ` `` 修饰一下：
+
+```python
+json(_, `@timestamp`, "time")
+```
+
+参见 [Pipeline 的基本语法规则](pipeline#3ab24547)
+
+### Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？
+
+命令如下：
+
+```shell
+datakit --pl test.p --txt "..."
+[E] get pipeline failed: stat /usr/local/datakit/pipeline/test.p: no such file or directory
+```
+
+---
+
+A: 调试用的 Pipeline 脚本，需将其放置到 *<DataKit 安装目录>/pipeline* 目录下。
