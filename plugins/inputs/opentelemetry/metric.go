@@ -82,7 +82,6 @@ func getData(metric *metricpb.Metric) []*point {
 			ps = append(ps, point)
 		}
 	default:
-
 	}
 	return ps
 }

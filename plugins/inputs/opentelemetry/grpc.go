@@ -62,7 +62,6 @@ type ExportTrace struct { //nolint:structcheck,stylecheck
 
 func (et *ExportTrace) Export(ctx context.Context, //nolint:structcheck,stylecheck
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
-
 	l.Infof(ets.String())
 	// ets.ProtoMessage()
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
@@ -101,8 +100,8 @@ func (et *ExportMetric) Export(ctx context.Context, //nolint:structcheck,stylech
 			tags := toDatakitTags(resourceMetrics.Resource.Attributes)
 			LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
 			for _, libraryMetric := range LibraryMetrics {
-				metrices := libraryMetric.GetMetrics()
-				for _, metrice := range metrices {
+				metrics := libraryMetric.GetMetrics()
+				for _, metrice := range metrics {
 					l.Debugf(metrice.Name)
 					bts, err := json.MarshalIndent(metrice, "\t", "")
 					if err == nil {

@@ -40,12 +40,7 @@ func handleZipkinTraceV1(req *http.Request) error {
 		if zspans, err := unmarshalZipkinThriftV1(reqInfo.Body); err != nil {
 			return err
 		} else {
-			dktrace, err = thriftSpansToDkTrace(zspans)
-			if err != nil {
-				log.Errorf("thriftSpansToAdapters: %s", err)
-
-				return err
-			}
+			dktrace = thriftSpansToDkTrace(zspans)
 		}
 	case "application/json":
 		var zspans []*ZipkinSpanV1

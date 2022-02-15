@@ -72,7 +72,7 @@ type DDTrace []*DDSpan
 
 type DDTraces []DDTrace
 
-// TODO:
+// TODO:.
 func handleInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
 	log.Errorf("%s unsupport yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
@@ -120,13 +120,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 				continue
 			}
 
-			dktrace, err := ddtraceToDkTrace(trace)
-			if err != nil {
-				log.Error(err.Error())
-				continue
-			}
-
-			if len(dktrace) == 0 {
+			if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
 				log.Warn("empty datakit trace")
 			} else {
 				afterGather.Run(inputName, dktrace, false)
@@ -164,7 +158,7 @@ func decodeRequest(pattern string, mediaType string, buf []byte) (DDTraces, erro
 	return traces, err
 }
 
-func ddtraceToDkTrace(trace DDTrace) (itrace.DatakitTrace, error) {
+func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)
@@ -235,7 +229,7 @@ func ddtraceToDkTrace(trace DDTrace) (itrace.DatakitTrace, error) {
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 func getSpanIDsAndParentIDs(trace DDTrace) (map[int64]bool, map[int64]bool) {

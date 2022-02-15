@@ -42,13 +42,13 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-func (ds *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
+func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	switch priority {
 	case PriorityAuto, PriorityReject, PriorityKeep:
-		ds.Priority = priority
+		smp.Priority = priority
 	}
 	if samplingRateGlobal >= 0 && samplingRateGlobal <= 1 {
-		ds.SamplingRateGlobal = samplingRateGlobal
+		smp.SamplingRateGlobal = samplingRateGlobal
 	}
 }
 
@@ -56,14 +56,14 @@ type CloseResource struct {
 	IgnoreResources map[string][]*regexp.Regexp
 }
 
-func (close *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
-	if len(close.IgnoreResources) == 0 {
+func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if len(cres.IgnoreResources) == 0 {
 		return dktrace, false
 	}
 
 	for i := range dktrace {
 		if IsRootSpan(dktrace[i]) {
-			for service, resList := range close.IgnoreResources {
+			for service, resList := range cres.IgnoreResources {
 				if dktrace[i].Service == service {
 					for j := range resList {
 						if resList[j].MatchString(dktrace[i].Resource) {
@@ -80,9 +80,9 @@ func (close *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-func (close *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
+func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 	if len(ignResList) == 0 {
-		close.IgnoreResources = nil
+		cres.IgnoreResources = nil
 	} else {
 		ignResRegs := make(map[string][]*regexp.Regexp)
 		for service, resList := range ignResList {
@@ -91,7 +91,7 @@ func (close *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 				ignResRegs[service] = append(ignResRegs[service], regexp.MustCompile(resList[i]))
 			}
 		}
-		close.IgnoreResources = ignResRegs
+		cres.IgnoreResources = ignResRegs
 	}
 }
 
@@ -101,12 +101,12 @@ type KeepRareResource struct {
 	presentMap map[string]time.Time
 }
 
-func (keep *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
-	if !keep.Open {
+func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if !kprres.Open {
 		return dktrace, false
 	}
-	if keep.presentMap == nil {
-		keep.presentMap = make(map[string]time.Time)
+	if kprres.presentMap == nil {
+		kprres.presentMap = make(map[string]time.Time)
 	}
 
 	var skip bool
@@ -121,18 +121,18 @@ func (keep *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
 				lastCheck time.Time
 				ok        bool
 			)
-			if lastCheck, ok = keep.presentMap[checkSum]; !ok || time.Since(lastCheck) >= keep.Span {
+			if lastCheck, ok = kprres.presentMap[checkSum]; !ok || time.Since(lastCheck) >= kprres.Span {
 				log.Debugf("got rare service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 				skip = true
 			}
-			keep.presentMap[checkSum] = time.Now()
+			kprres.presentMap[checkSum] = time.Now()
 		}
 	}
 
 	return dktrace, skip
 }
 
-func (keep *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
-	keep.Open = open
-	keep.Span = span
+func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
+	kprres.Open = open
+	kprres.Span = span
 }

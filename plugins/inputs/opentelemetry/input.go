@@ -101,10 +101,10 @@ var (
 	maxSend       = 100
 	interval      = 10
 
-	// add to point
+	// add to point.
 	globalTags map[string]string
 
-	// that want to send to data center
+	// that want to send to data center.
 	customTags []string
 )
 

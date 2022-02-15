@@ -53,12 +53,7 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	dktrace, err := batchToDkTrace(batch)
-	if err != nil {
-		return err
-	}
-
-	if len(dktrace) == 0 {
+	if dktrace := batchToDkTrace(batch); len(dktrace) == 0 {
 		log.Warn("empty datakit trace")
 	} else {
 		afterGather.Run(inputName, dktrace, false)
@@ -67,7 +62,7 @@ func parseJaegerThrift(octets []byte) error {
 	return nil
 }
 
-func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
+func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 	project, version, env := getExpandInfo(batch)
 	if project == "" {
 		project = tags[itrace.PROJECT]
@@ -131,7 +126,7 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]bool) {

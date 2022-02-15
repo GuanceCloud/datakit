@@ -21,14 +21,14 @@ import (
 		数据格式为 protobuf
 */
 
-// handler collector
+// handler collector.
 type otlpHTTPCollector struct {
 	Enable          bool              `toml:"enable"`
 	HTTPStatusOK    int               `toml:"http_status_ok"`
 	ExpectedHeaders map[string]string `toml:"expectedHeaders"` // 用于检测是否包含特定的 header
 }
 
-// apiOtlpCollector :trace
+// apiOtlpCollector :trace.
 func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request) {
 	if !o.checkHeaders(r) {
 		w.WriteHeader(http.StatusBadRequest)

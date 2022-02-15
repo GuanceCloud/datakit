@@ -13,7 +13,7 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-// SpansStorage stores the spans
+// SpansStorage stores the spans.
 type SpansStorage struct {
 	rsm       []DKtrace.DatakitTrace
 	spanCount int
@@ -151,7 +151,7 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	return dkTraces
 }
 
-// toDatakitTags : make attributes to tags
+// toDatakitTags : make attributes to tags.
 func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
 	m := make(map[string]string, len(attr))
 	for _, kv := range attr {
@@ -186,7 +186,7 @@ func byteToInt64(bts []byte) string {
 	return hexCode
 }
 
-// getDKSpanStatus 从otel的status转成dk的span_status
+// getDKSpanStatus 从otel的status转成dk的span_status.
 func getDKSpanStatus(code tracepb.Status_StatusCode) string {
 	status := DKtrace.STATUS_INFO
 	switch code {
@@ -221,7 +221,7 @@ func getHTTPMethod(attr []*commonpb.KeyValue) string {
 
 func getHTTPStatusCode(attr []*commonpb.KeyValue) string {
 	for _, kv := range attr {
-		if kv.Key == "http.status_code" { //see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go:784
+		if kv.Key == "http.status_code" { // see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go:784
 			return kv.Value.GetStringValue()
 		}
 	}
@@ -239,14 +239,14 @@ func getContainerHost(attr []*commonpb.KeyValue) string {
 
 func getPID(attr []*commonpb.KeyValue) string {
 	for _, kv := range attr {
-		if kv.Key == "process.pid" { //see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/resource.go:686
+		if kv.Key == "process.pid" { // see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/resource.go:686
 			return kv.Value.GetStringValue()
 		}
 	}
 	return ""
 }
 
-// replace 行协议中的tag的key禁止有点 全部替换掉
+// replace 行协议中的tag的key禁止有点 全部替换掉.
 func replace(key string) string {
 	return strings.ReplaceAll(key, ".", "_")
 }

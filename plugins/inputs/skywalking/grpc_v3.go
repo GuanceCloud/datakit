@@ -53,14 +53,7 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 
 		log.Debug("v3 segment received")
 
-		dktrace, err := segobjToDkTrace(segobj)
-		if err != nil {
-			log.Error(err.Error())
-
-			return err
-		}
-
-		if len(dktrace) == 0 {
+		if dktrace := segobjToDkTrace(segobj); len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
 			afterGather.Run(inputName, dktrace, false)
@@ -76,7 +69,7 @@ func (*TraceReportServerV3) CollectInSync(
 	return &skyimpl.Commands{}, nil
 }
 
-func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error) {
+func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
 		if span == nil {
@@ -137,7 +130,7 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 type EventServerV3 struct {
