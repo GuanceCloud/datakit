@@ -445,7 +445,7 @@ func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
 	tasks := taskPullResp{
 		Content: res,
 	}
-	rs, err := json.Marshal(tasks)
+	rs, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		l.Error(err)
 		return nil, err
