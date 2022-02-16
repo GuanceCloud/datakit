@@ -101,7 +101,7 @@ func NewFieldsInfoIByte(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
-		Unit:     inputs.SizeIByte,
+		Unit:     inputs.SizeByte,
 		Desc:     desc,
 	}
 }
@@ -119,7 +119,7 @@ func NewFieldsInfoCount(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
-		Unit:     inputs.Count,
+		Unit:     inputs.NCount,
 		Desc:     desc,
 	}
 }
@@ -128,7 +128,7 @@ func NewFieldsInfoCountPerSec(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
-		Unit:     inputs.Count,
+		Unit:     inputs.NCount,
 		Desc:     desc,
 	}
 }

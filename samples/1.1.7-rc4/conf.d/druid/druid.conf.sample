@@ -1,9 +1,0 @@
-
-[inputs.druid]
-    ## http server route path
-    ## required
-    path = "/druid"
-
-    [inputs.druid.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"

@@ -30,6 +30,7 @@ var (
 	dqlcli *http.Client
 
 	defaultJSONIndent = "  "
+	temporaryToken    = "" // 临时token，不允许跨工作空间 所以只能赋值一次
 )
 
 const (
@@ -292,6 +293,10 @@ func doDQL(s string) ([]*queryResult, error) {
 		q.Token = FlagToken
 	}
 
+	if temporaryToken != "" && s != "show_workspaces()" {
+		q.Token = temporaryToken
+	}
+
 	j, err := json.Marshal(q)
 	if err != nil {
 		errorf("%s\n", err.Error())
@@ -299,6 +304,11 @@ func doDQL(s string) ([]*queryResult, error) {
 	}
 
 	l.Debugf("dql request: %s", string(j))
+
+	if strings.HasPrefix(s, "use") {
+		switchToken(s)
+		return nil, fmt.Errorf("err not nil") // only switch token
+	}
 
 	req, err := http.NewRequest("POST",
 		fmt.Sprintf("http://%s%s", datakitHost, dqlraw), bytes.NewBuffer(j))
@@ -353,6 +363,10 @@ func doDQL(s string) ([]*queryResult, error) {
 	}
 	content, _ := json.Marshal(r.Content)
 	l.Debugf("json content:%s", string(content))
+
+	if s == "show_workspaces()" {
+		cacheWorkerSpace(r.Content)
+	}
 	return r.Content, nil
 }
 
@@ -603,6 +617,9 @@ func prettyShow(resp *queryResult) int {
 				prettyShowRow(s, val, fmtStr)
 			}
 		}
+		if s.Name == "show_workspaces" {
+			infof("do dql to change workSpace 'use tkn_xxxxxxxxxx' \n")
+		}
 	}
 
 	return nrows
@@ -695,6 +712,11 @@ var (
 
 		{Text: "show_network_source()", Description: "show eBPF network source"},
 		{Text: "show_network_field()", Description: "show eBPF network fields"},
+		{Text: "show_workspaces()", Description: "Show all default and readonly workspaces"},
+		{Text: "use", Description: "use other workspace,as :'use tkn_xxxxxx' "},
+
+		{Text: "show_workspaces()", Description: "Show all default and readonly workspaces"},
+		{Text: "use", Description: "use other workspace,as :'use tkn_xxxxxx' "},
 
 		{Text: "avg()", Description: ""},
 		{Text: "bottom()", Description: ""},

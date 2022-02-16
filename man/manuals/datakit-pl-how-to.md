@@ -28,6 +28,12 @@ datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/
 No data extracted from pipeline
 ```
 
+> 如果调试文本比较复杂，可以将它们写入一个文件（sample.log），用如下方式调试：
+
+```shell
+datakit --pl your_pipeline.p --txt "$(< sample.log)"
+```
+
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell

@@ -87,20 +87,27 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 ```json
 [
   {
-    "disable"  : false,
-    "source"   : "testing-source",
-    "service"  : "testing-service",
-    "pipeline" : "test.p"
+    "disable"        : false,
+    "source"         : "testing-source",
+    "service"        : "testing-service",
+    "pipeline"       : "test.p",
+    "multiline_match": ""
   }
 ]
 ```
 
-拼接成一行并加上转义字符，最终结果是 `[{\"disable\": false, \"source\": \"testing-source\", \"service\": \"testing-service\", \"pipeline\": \"test.p\"}]`
+如果是在终端命令行添加 Annotations，需要有转义字符，例如：
+
+```
+## foo 是 Pod name
+kubectl annotate pods foo datakit/logs='[{\"disable\": false, \"source\": \"testing-source\", \"service\": \"testing-service\", \"pipeline\": \"test.p\", \"multiline_match\": \"\"}]'
+```
 
 注意：
 
 - 如果该 JSON 配置的 `disable` 字段为 `true`，则不采集此 Pod 的所有容器日志。
-- 容器不支持动态添加 Labels，容器的 Labels 跟其镜像绑定在一起，在生成镜像时已经固定。给容器添加 Labels 需要重新 build 一份镜像再添加 Labels，[官方示例文档](https://docs.docker.com/engine/reference/builder/#label)
+- `multiline_match` 配置要做转义，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义。
+- 容器添加 Labels 的方法[文档](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file)
 - Kubernetes 一般不会直接创建 Pod 也不添加 Annotations，可以在创建 Deployment 时以 `template` 模式添加 Annotations，由此 Deployment 生成的所有 Pod 都会携带 Annotations，例如：
 
 ```yaml

@@ -1,8 +1,0 @@
-
-[inputs.puppetagent]
-    # puppetagent location of lastrunfile
-    # required
-    location = "/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml"
-
-    # [inputs.puppetagent.tags]
-    # tags1 = "value1"

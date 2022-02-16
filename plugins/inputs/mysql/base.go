@@ -148,13 +148,13 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"Bytes_sent": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "The number of bytes sent to all clients.",
 			},
 			"Bytes_received": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "The number of bytes received from all clients.",
 			},
 			// Query Cache Metrics
@@ -257,12 +257,13 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"Key_buffer_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "Size of the buffer used for index blocks.",
 			},
 			"Key_cache_utilization": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.Percent,
 				Desc:     "The key cache utilization ratio.",
 			},
 			"max_connections": &inputs.FieldInfo{
@@ -274,7 +275,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"query_cache_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "The amount of memory allocated for caching query results.",
 			},
 			"table_open_cache": &inputs.FieldInfo{
@@ -286,7 +287,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"thread_cache_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "How many threads the server should cache for reuse. When a client disconnects, the client's threads are put in the cache if there are fewer than thread_cache_size threads there.",
 			},
 
@@ -294,7 +295,7 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"Binlog_space_usage_bytes": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     inputs.TODO,
 			},
 
@@ -302,13 +303,13 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"Binlog_cache_disk_use": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "The number of transactions that used the temporary binary log cache but that exceeded the value of binlog_cache_size and used a temporary file to store statements from the transaction.",
 			},
 			"Binlog_cache_use": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "The number of transactions that used the binary log cache.",
 			},
 			"Handler_commit": &inputs.FieldInfo{
@@ -398,13 +399,13 @@ func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 			"Qcache_free_blocks": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "The number of free memory blocks in the query cache.",
 			},
 			"Qcache_free_memory": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "The amount of free memory for the query cache.",
 			},
 			"Qcache_not_cached": &inputs.FieldInfo{

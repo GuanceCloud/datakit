@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -26,9 +27,8 @@ type Single struct {
 	file     *os.File
 	filename string
 
-	decoder  *encoding.Decoder
-	mult     *Multiline
-	pipeline *pipeline.Pipeline
+	decoder *encoding.Decoder
+	mult    *multiline.Multiline
 
 	readBuff []byte
 
@@ -53,7 +53,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 			return nil, err
 		}
 	}
-	t.mult, err = NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines)
+	t.mult, err = multiline.New(opt.MultilineMatch, opt.MultilineMaxLines)
 	if err != nil {
 		return nil, err
 	}
@@ -66,14 +66,6 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 	if !opt.FromBeginning {
 		if _, err := t.file.Seek(0, os.SEEK_END); err != nil {
 			return nil, err
-		}
-	}
-
-	if opt.Pipeline != "" {
-		if p, err := pipeline.NewPipelineFromFile(opt.Pipeline, false); err != nil {
-			t.opt.log.Warnf("pipeline.NewPipelineFromFile error: %s, ignored", err)
-		} else {
-			t.pipeline = p
 		}
 	}
 
@@ -105,12 +97,7 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	// 上报一条标记数据，表示已启动成功
-	if err = feed(t.opt.InputName, t.opt.Source, t.tags,
-		fmt.Sprintf(firstMessage, t.filename, t.opt.Source)); err != nil {
-		t.opt.log.Warn(err)
-	}
-
+	dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
 	for {
 		select {
 		case <-t.stopCh:
@@ -120,7 +107,7 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 		case <-timeout.C:
-			if str := t.mult.Flush(); str != "" {
+			if str := t.mult.FlushString(); str != "" {
 				t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: str, Tag: t.tags}})
 			}
 		default:
@@ -147,9 +134,7 @@ func (t *Single) forwardMessage() {
 			text, err = t.decode(line)
 			if err != nil {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				if err = feed(t.opt.InputName, t.opt.Source, t.tags, line); err != nil {
-					t.opt.log.Warn(err)
-				}
+				dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
 			}
 
 			text = t.multiline(text)
@@ -158,13 +143,15 @@ func (t *Single) forwardMessage() {
 			}
 			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
 		}
-		t.sendToPipeline(pending)
+		if len(pending) > 0 {
+			t.sendToPipeline(pending)
+		}
 	}
 }
 
 func (t *Single) sendToPipeline(pending []worker.TaskData) {
 	task := &worker.Task{
-		TaskName:   t.opt.Pipeline,
+		TaskName:   "logging/" + t.opt.Pipeline,
 		ScriptName: t.opt.Pipeline,
 		Source:     t.opt.Source,
 		Data:       pending,
@@ -230,7 +217,7 @@ func (t *Single) multiline(text string) string {
 	if t.mult == nil {
 		return text
 	}
-	return t.mult.ProcessLine(text)
+	return t.mult.ProcessLineString(text)
 }
 
 type buffer struct {

@@ -87,74 +87,45 @@
   require-specific = false
 
 [linters]
-disable-all = true
-enable = [
-  "bodyclose",
-  "deadcode",
-  "depguard",
-  "dogsled",
-  "dupl",
-  "errcheck",
-  #"exhaustive",
-  "funlen",
-  "gochecknoinits",
-  "goconst",
-  "gocritic",
-  "gocyclo",
-  "gofmt",
-  "goimports",
-  "golint",
-  "gomnd",
-  "goprintffuncname",
-  "gosec",
-  "gosimple",
-  "govet",
-  "ineffassign",
+enable-all = true
+disable = [
+  # 权且放开他们
+  "testpackage",      # Too strict
+  "wrapcheck",        # 不便于错误处理
+  "tagliatelle",      # 跟现有 json tag 命名方式
+  "paralleltest",     # 可开启，改动范围较大
+  "noctx",            # 要求 HTTP 请求都用 context 形式，改动较大
+  "nlreturn",         # 要求 return 语句前有一个空行
+  "gomnd",            # 不放过任何一个魔术数
+  "wsl",              # 更好代码分段
+  "prealloc",         # Too many false-positive.
+  "nestif",           # Too many false-positive.
+  "goerr113",         # 不能 fmt.Errorf/errors.New
+  "gochecknoglobals", # 不能搞全局变量
+  "exhaustivestruct", # 结构体初始化字段是否完整
+  "golint",           # Too strict
+	"godot",            # panic on make lint
   "interfacer",
-  "lll",
-  "misspell",
-  "nakedret",
-  #"noctx",
-  #"nolintlint",
-  "rowserrcheck",
-  "scopelint",
-  "staticcheck",
-  "structcheck",
-  "stylecheck",
-  "typecheck",
-  "unconvert",
-  "unparam",
-  "unused",
-  "varcheck",
-  "whitespace"
+  "scopelint",        # obsoluted: https://github.com/kyoh86/scopelint#obsoleted
+
+  # 代码太复杂
+  "gocognit",
+  "gocyclo",
+
+  "dupl",     # 还不允许有相似代码
+  "maligned", # deprecated: https://github.com/mdempsky/maligned
+
+  "cyclop",
+  "gomoddirectives", # used `replace' in go.mod
+  "nolintlint",
+  "revive",
 ]
 
 [issues]
-
   [[issues.exclude-rules]]
-  path = "_test\\.go"
-  linters = [
-    "gomnd"
-  ]
-
-  [[issues.exclude-rules]]
-  linters = [
-    "gocritic"
-  ]
-  text = "unnecessaryDefer:"
+  path = "(.+)_test.go"
+	linters = ["goconst", "funlen",  "lll", "gosec", "stylecheck", "wsl", "unused", "deadcode", "unparam", "varcheck"]
 
 [run]
-skip-dirs = [
-  #"test/testdata_etc",
-  #"internal/cache",
-  #"internal/renameio",
-  #"internal/robustio"
-]
-
+skip-dirs = []
 timeout = "1h"
-
-[service]
-golangci-lint-version = "1.23.x"
-prepare = [
-  "echo \"here I can run custom commands, but no preparation needed for this repo\""
-]
