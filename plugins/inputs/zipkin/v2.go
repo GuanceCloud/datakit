@@ -128,23 +128,31 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 func spanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) (itrace.DatakitTrace, error) {
 	var dktrace itrace.DatakitTrace
 	for _, span := range zpktrace {
+		if span == nil {
+			continue
+		}
+
 		dkspan := &itrace.DatakitSpan{
 			SpanID:    span.ID.String(),
 			ParentID:  "0",
-			Source:    inputName,
+			Resource:  span.Name,
 			Operation: span.Name,
+			Source:    inputName,
 			Start:     span.Timestamp.UnixNano(),
 			Duration:  int64(span.Duration),
 			Tags:      tags,
 		}
+
 		if span.TraceID.High != 0 {
 			dkspan.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
 		} else {
 			dkspan.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
 		}
+
 		if span.ParentID != nil {
 			dkspan.ParentID = fmt.Sprintf("%d", *span.ParentID)
 		}
+
 		if span.LocalEndpoint != nil {
 			dkspan.Service = span.LocalEndpoint.ServiceName
 		}
@@ -172,15 +180,17 @@ func spanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) (itrace.DatakitTrace, e
 			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		}
 
-		buf, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		dkspan.Content = string(buf)
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
 
-		if defSampler != nil {
+		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
+		if buf, err := json.Marshal(span); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
 		}
 
 		dktrace = append(dktrace, dkspan)

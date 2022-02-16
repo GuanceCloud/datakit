@@ -80,10 +80,11 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
 			ParentID:  "0",
-			EndPoint:  span.Peer,
-			Operation: span.OperationName,
 			Service:   segment.Service,
+			Resource:  span.OperationName,
+			Operation: span.OperationName,
 			Source:    inputName,
+			EndPoint:  span.Peer,
 			Start:     span.StartTime * int64(time.Millisecond),
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
 		}
@@ -116,7 +117,7 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if defSampler != nil {
+		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
 		}

@@ -127,8 +127,6 @@ func (ipt *Input) Run() {
 	if ipt.Sampler != nil {
 		defSampler = ipt.Sampler
 		afterGather.AppendFilter(defSampler.Sample)
-	} else {
-		log.Debug("########## nil sampler")
 	}
 
 	customerKeys = ipt.CustomerTags
