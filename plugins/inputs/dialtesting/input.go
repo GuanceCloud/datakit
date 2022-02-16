@@ -192,7 +192,13 @@ func (d *Input) doServerTask() {
 }
 
 func (d *Input) doLocalTask(path string) {
-	j, err := d.getLocalJSONTasks(path)
+	data, err := ioutil.ReadFile(filepath.Clean(path))
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return
+	}
+
+	j, err := d.getLocalJSONTasks(data)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
@@ -412,13 +418,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 	return nil
 }
 
-func (d *Input) getLocalJSONTasks(path string) ([]byte, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(path))
-	if err != nil {
-		l.Errorf(`%s`, err.Error())
-		return nil, err
-	}
-
+func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
 	// 转化结构，json结构转成与kodo服务一样的格式
 	var resp map[string][]interface{}
 	if err := json.Unmarshal(data, &resp); err != nil {
