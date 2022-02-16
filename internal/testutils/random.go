@@ -10,24 +10,15 @@ import (
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
-type Gauge struct {
-	Time    time.Time
-	Name    string
-	Count   int
-	Score   float64
-	Code    byte
-	Checked bool
-}
-
-func RandGauge() *Gauge {
-	return &Gauge{
-		Name:    RandString(15),
-		Count:   rand.Int(),
-		Code:    byte(rand.Intn(128)),
-		Score:   rand.Float64(),
-		Checked: rand.Int()%2 == 0,
-		Time:    time.Now(),
+func RandString(maxLen int) string {
+	if maxLen <= 0 {
+		maxLen = 1
 	}
+
+	bts := make([]byte, rand.Intn(maxLen)+1)
+	rand.Read(bts)
+
+	return base64.RawStdEncoding.EncodeToString(bts)
 }
 
 func RandTags(entries int, maxKeyLen, maxValueLen int) map[string]string {
@@ -56,17 +47,6 @@ func RandFields(entries int, maxKeyLen int) map[string]interface{} {
 	}
 
 	return fields
-}
-
-func RandString(maxLen int) string {
-	if maxLen <= 0 {
-		maxLen = 1
-	}
-
-	bts := make([]byte, rand.Intn(maxLen)+1)
-	rand.Read(bts)
-
-	return base64.RawStdEncoding.EncodeToString(bts)
 }
 
 func RandPoint(name string, maxTags, maxFields int) *influxdb.Point {
@@ -106,4 +86,24 @@ func RandPoints(count int, maxTags, maxFields int) []*influxdb.Point {
 	}
 
 	return pnts
+}
+
+type Gauge struct {
+	Time    time.Time
+	Name    string
+	Count   int
+	Score   float64
+	Code    byte
+	Checked bool
+}
+
+func RandGauge() *Gauge {
+	return &Gauge{
+		Name:    RandString(15),
+		Count:   rand.Int(),
+		Code:    byte(rand.Intn(128)),
+		Score:   rand.Float64(),
+		Checked: rand.Int()%2 == 0,
+		Time:    time.Now(),
+	}
 }
