@@ -43,8 +43,7 @@ func exportNode(items []v1.Node, extraTags tagsType) k8sResourceStats {
 		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		for _, address := range item.Status.Addresses {
-			switch address.Type {
-			case v1.NodeInternalIP:
+			if address.Type == v1.NodeInternalIP {
 				obj.tags.addValueIfNotEmpty("internal_ip", address.Address)
 				obj.tags.addValueIfNotEmpty("node_ip", address.Address) // depercated
 			}
