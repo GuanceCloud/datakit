@@ -642,18 +642,24 @@ func TestDcaUploadSourcemap(t *testing.T) {
 }
 
 func TestDcaDeleteSourcemap(t *testing.T) {
-	datakit.DataDir = os.TempDir()
+	datakit.DataDir = "./"
+
 	appId := "app_1234"
 	env := "test"
 	version := "0.0.0"
 	GetSourcemapZipFileName(appId, env, version)
 	zipFilePath := filepath.Clean(filepath.Join(GetRumSourcemapDir(), GetSourcemapZipFileName(appId, env, version)))
 
+	if err := os.MkdirAll(filepath.Dir(zipFilePath), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(filepath.Dir(zipFilePath))
+
 	err := ioutil.WriteFile(filepath.Join(zipFilePath), []byte(""), os.ModePerm)
 	if err != nil {
 		t.Fatal("create temp zip file failed", err)
 	}
-	defer os.Remove(zipFilePath) //nolint: errcheck
 
 	testCases := []struct {
 		title   string
