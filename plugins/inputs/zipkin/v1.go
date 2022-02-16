@@ -224,7 +224,7 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 	return dktrace
 }
 
-func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error) {
+func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
@@ -298,7 +298,7 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error)
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 func getZpkCoreV1SpanIDsAndParentIDs(trace []*zpkcorev1.Span) (map[int64]bool, map[int64]bool) {
