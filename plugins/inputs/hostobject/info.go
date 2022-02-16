@@ -274,7 +274,7 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk bool) []*DiskInfo {
 }
 
 func (ipt *Input) getEnabledInputs() (res []*CollectorStatus) {
-	inputsStats, err := io.GetStats(ipt.IOTimeout.Duration) // get all inputs stats
+	inputsStats, err := io.GetStats() // get all inputs stats
 	if err != nil {
 		l.Warnf("fail to get inputs stats, %s", err)
 		return

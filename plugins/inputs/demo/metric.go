@@ -43,7 +43,7 @@ func (m *demoMetric) Info() *inputs.MeasurementInfo {
 			"mem_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.SizeIByte,
+				Unit:     inputs.SizeByte,
 				Desc:     "this is memory size",
 			},
 			"some_string": &inputs.FieldInfo{

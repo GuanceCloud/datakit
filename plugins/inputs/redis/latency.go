@@ -29,21 +29,25 @@ func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
 			"event_name": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
 				Desc:     "Event name.",
 			},
 			"occur_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.TimestampSec,
 				Desc:     "Unix timestamp of the latest latency spike for the event.",
 			},
 			"cost_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
 				Desc:     "Latest event latency in millisecond.",
 			},
 			"max_cost_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
 				Desc:     "All-time maximum latency for this event.",
 			},
 		},

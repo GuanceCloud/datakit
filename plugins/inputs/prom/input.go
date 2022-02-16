@@ -73,6 +73,17 @@ func (*Input) AvailableArchs() []string { return datakit.AllArch }
 
 func (*Input) Catalog() string { return catalog }
 
+func (i *Input) SetTags(m map[string]string) {
+	if i.Tags == nil {
+		i.Tags = make(map[string]string)
+	}
+	for k, v := range m {
+		if _, ok := i.Tags[k]; !ok {
+			i.Tags[k] = v
+		}
+	}
+}
+
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 

@@ -17,6 +17,7 @@ TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com
 # 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
 LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
 
+
 PUB_DIR = dist
 BUILD_DIR = dist
 
@@ -167,9 +168,22 @@ pub_production:
 pub_release_mac:
 	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
-check_conf_compatible:
-	./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
-	./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+# Config samples should only be published by production release,
+# because config samples in multiple testing releases may not be compatible to each other.
+pub_conf_samples:
+	@echo "upload config samples to oss..."
+	@go run cmd/make/make.go -dump-samples -release production
+
+# testing/production downloads config samples from different oss bucket.
+check_testing_conf_compatible:
+	@go run cmd/make/make.go -download-samples -release testing
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
+
+check_production_conf_compatible:
+	@go run cmd/make/make.go -download-samples -release production
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-config --config-dir samples
+	@LOGGER_PATH=nul ./dist/datakit-$(BUILDER_GOOS_GOARCH)/datakit --check-sample
 
 define build_ip2isp
 	rm -rf china-operator-ip
@@ -210,7 +224,7 @@ all_test: deps
 	i=0; \
 	for pkg in `go list ./... | grep -vE 'datakit/git'`; do \
 		echo "# testing $$pkg..." | tee -a test.output; \
-		GO111MODULE=off CGO_ENABLED=1 go test -timeout 1m -cover $$pkg; \
+		GO111MODULE=off CGO_ENABLED=1 LOGGER_PATH=nul go test -timeout 1m -cover $$pkg; \
 		if [ $$? != 0 ]; then \
 			printf "\033[31m [FAIL] %s\n\033[0m" $$pkg; \
 			i=`expr $$i + 1`; \
@@ -227,7 +241,7 @@ all_test: deps
 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
 
-lint:
+lint: deps
 	$(call do_lint,386,windows)
 	$(call do_lint,amd64,windows)
 	$(call do_lint,amd64,linux)

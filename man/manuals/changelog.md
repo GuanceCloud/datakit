@@ -2,6 +2,41 @@
 
 # DataKit 版本历史
 
+## 1.2.6(2022/01/20)
+
+本次发布属于迭代发布，内容如下：
+
+- 增强 [DataKit API 安全访问控制]()，老版本的 DataKit 如果部署了 RUM 功能，建议升级(#578)
+- 增加更多 DataKit 内部事件日志上报(#527)
+- 查看 [DataKit 运行状态](datakit-tools-how-to#44462aae)不再会超时(#555)
+
+- [容器采集器](container)一些细节问题修复
+	- 修复在 Kubernetes 环境主机部署时奔溃问题(#576)
+	- 提升 Annotation 采集配置优先级(#553)
+	- 容器日志支持多行处理(#552)
+	- Kubernetes Node 对象增加 *role* 字段(#549)
+	- [通过 Annotation 标注](kubernetes-prom)的 [Prom 采集器](prom) 会自动增加相关属性（*pod_name/node_name/namespace*）(#522/#443)
+	- 其它 Bug 修复
+
+- Pipeline 问题修复
+  - 修复日志处理中可能导致的时间乱序问题(#547)
+	- 支持 *if/else* 语句[复杂逻辑关系判断支持](pipeline#1ea7e5aa)
+
+- 修复日志采集器 Windows 中路径问题(#423)
+- 完善 DataKit 服务管理，优化交互提示(#535)
+- 优化现有 DataKit 文档导出的指标单位(#531)
+- 提升工程质量(#515/#528)
+
+----
+
+## 1.2.5(2022/01/19)
+
+- 修复[Log Stream 采集器](logstreaming) Pipeline 配置问题(#569)
+- 修复[容器采集器](container)日志错乱的问题(#571)
+- 修复 Pipeline 模块更新逻辑的 bug(#572)
+
+---
+
 ## 1.2.4(2022/01/12)
 
 - 修复日志 API 接口指标丢失问题(#551)
