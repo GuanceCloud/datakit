@@ -84,7 +84,7 @@ mongodb,filename=mongod.log,host=CodapeWilds-MacBook-Pro.local,service=mongodb c
 		log.Info("log filter status unknow")
 	}
 
-	log.Debug("log filter current rules: %q", defLogfilter.rules)
+	log.Debugf("log filter current rules: %q", defLogfilter.rules)
 
 	after := defLogfilter.filter(nil)
 	for _, pt := range after {

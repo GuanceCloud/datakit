@@ -1,6 +1,7 @@
 package tailer
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/gobwas/glob"
@@ -19,6 +20,12 @@ func (p *Provider) SearchFiles(patterns []string) *Provider {
 	}
 
 	for _, pattern := range patterns {
+		info, err := os.Stat(pattern)
+		if err == nil && !info.IsDir() { // 是单个文件
+			p.list = append(p.list, pattern)
+			continue
+		}
+
 		paths, err := filepath.Glob(pattern)
 		if err != nil {
 			p.lastErr = err

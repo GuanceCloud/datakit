@@ -3,6 +3,7 @@ package config
 import (
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/influxdata/toml/ast"
@@ -18,6 +19,10 @@ func TestConfSample(t *testing.T) {
 
 	samples := SearchDir(samplePath, "")
 	for _, s := range samples {
+		// fail in macos because of .DS_Store
+		if strings.HasPrefix(filepath.Base(s), ".") {
+			continue
+		}
 		t.Logf("testing %s", s)
 
 		asttbl, err := ParseCfgFile(s)

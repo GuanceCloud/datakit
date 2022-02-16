@@ -1,8 +1,0 @@
-
-#[[inputs.huaweiyunobject]]
-# ##(required) authorization informations
-# access_key_id = ''
-# access_key_secret = ''
-
-# ##(optional) collection interval, default is 15m
-# interval = '15m'

@@ -1,6 +1,0 @@
-
-[[inputs.httpPacket]]
-    ## http server route path
-    ## required
-    path = "/httpPacket"
-    lua_files = []

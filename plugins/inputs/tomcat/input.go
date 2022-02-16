@@ -111,6 +111,7 @@ func (i *Input) RunPipeline() {
 }
 
 func (i *Input) Run() {
+	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 	go func() {
 		for {
 			<-datakit.Exit.Wait()

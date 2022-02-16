@@ -24,7 +24,7 @@ var (
 		datakit.Logging,
 		datakit.LogFilter,
 		datakit.Tracing,
-		datakit.Rum,
+		datakit.RUM,
 		datakit.Security,
 		datakit.HeartBeat,
 		datakit.Election,

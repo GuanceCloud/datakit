@@ -296,7 +296,11 @@ func TestWorker(t *testing.T) {
 			time.Sleep(time.Second + time.Millisecond*10)
 		}
 		_ = FeedPipelineTask(&v)
-		pts, id := getResult()
+		pts := []*io.Point{}
+		id := -1
+		if k != 3 {
+			pts, id = getResult()
+		}
 		expectedItem := expected[k]
 		t.Log(expectedItem)
 		t.Log(pts)
