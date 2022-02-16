@@ -49,9 +49,7 @@ var (
 	flagOffline,
 	flagDownloadOnly,
 	flagInfo,
-	flagOTA,
-	flagEnableElection,
-	flagDisable404Page bool
+	flagOTA bool
 
 	flagDataway,
 	flagDCAEnable,
@@ -74,7 +72,9 @@ var (
 	flagRumOriginIPHeader,
 	flagLogLevel,
 	flagLog,
-	flagGinLog string
+	flagGinLog,
+	flagEnableElection,
+	flagDisable404Page string
 
 	flagInstallOnly,
 	flagCgroupEnabled,
@@ -112,9 +112,9 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagGitKeyPW, "git-key-pw", "", "git repo access private use password")
 	flag.StringVar(&flagGitBranch, "git-branch", "", "git repo branch name")
 	flag.StringVar(&flagGitPullInterval, "git-pull-interval", "", "git repo pull interval")
-	flag.BoolVar(&flagEnableElection, "enable-election", false, "datakit election")
+	flag.StringVar(&flagEnableElection, "enable-election", "", "datakit election")
 	flag.StringVar(&flagRumOriginIPHeader, "rum-origin-ip-header", "", "rum only")
-	flag.BoolVar(&flagDisable404Page, "disable-404page", false, "datakit rum 404 page")
+	flag.StringVar(&flagDisable404Page, "disable-404page", "", "datakit rum 404 page")
 	flag.StringVar(&flagLogLevel, "log-level", "", "log level setting")
 	flag.StringVar(&flagLog, "log", "", "log setting")
 	flag.StringVar(&flagGinLog, "gin-log", "", "gin log setting")
@@ -464,13 +464,13 @@ func installNewDatakit(svc service.Service) {
 		} // GitRepost
 	}
 
-	if flagEnableElection {
+	if flagEnableElection != "" {
 		l.Infof("set enable election: %v", flagEnableElection)
-		mc.EnableElection = flagEnableElection
+		mc.EnableElection = true
 	}
-	if flagDisable404Page {
+	if flagDisable404Page != "" {
 		l.Infof("set disable 404 page: %v", flagDisable404Page)
-		mc.Disable404PageDeprecated = flagDisable404Page
+		mc.Disable404PageDeprecated = true
 	}
 	if flagRumOriginIPHeader != "" {
 		l.Infof("set rum origin IP header: %s", flagRumOriginIPHeader)
