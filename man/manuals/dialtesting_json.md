@@ -79,15 +79,38 @@
 
 主要的字段定义如下：
 
-| 字段              | 类型   | 是否必须 | 说明                         |
-| :---              | ---    | ---      | ---                          |
-| `name`            | string | Y        | 拨测服务名称                 |
-| `method`          | string | Y        | HTTP 请求方法                |
-| `url`             | string | Y        | 完整的 HTTP 请求地址         |
-| `status`          | string | Y        | 拨测服务状态，如 "OK"/"stop" |
-| `frequency`       | string | Y        | 拨测频率                     |
-| `success_when`    | object | Y        | 详见下文                     |
-| `advance_options` | object | N        | 详见下文                     |
+| 字段              | 类型   | 是否必须 | 说明                                    |
+| :---              | ---    | ---      | ---                                     |
+| `name`            | string | Y        | 拨测服务名称                            |
+| `method`          | string | Y        | HTTP 请求方法                           |
+| `url`             | string | Y        | 完整的 HTTP 请求地址                    |
+| `status`          | string | Y        | 拨测服务状态，如 "OK"/"stop"            |
+| `frequency`       | string | Y        | 拨测频率                                |
+| `success_when`    | object | Y        | 详见下文                                |
+| `advance_options` | object | N        | 详见下文                                |
+| `post_url`        | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
+
+由于目前只支持 HTTP 拨测，故总体的 JSON 结构如下：
+
+```
+{
+	"HTTP": [
+		{
+      "name": "baidu-json-test",
+      "method": "GET",
+      "url": "http://baidu.com",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when": ...,
+      "advance_options": ...
+		},
+		{
+			... another HTTP dialtesting
+		}
+	]
+}
+```
 
 ##### `success_when` 定义
 
