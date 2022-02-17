@@ -111,4 +111,4 @@ exclude = []
 
 [[issues.exclude-rules]]
 path = "(.+)_test.go"
-linters = ["goconst", "funlen", "godot", "lll", "gosec", "stylecheck", "wsl", "unused", "deadcode", "unparam", "varcheck"]
+linters = ["errcheck", "goconst", "funlen", "godot", "lll", "gosec", "stylecheck", "wsl", "unused", "deadcode", "unparam", "varcheck"]

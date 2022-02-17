@@ -11,21 +11,6 @@ variables:
 stages:
   - deploy
 
-release-nothing-only-build:
-  stage: deploy
-  only:
-    - /^dev-.*$/
-    - /^iss-.*$/
-  script:
-    # only building
-    - make clean
-    - make lint
-    - make all_test
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
-    - make check_testing_conf_compatible
-  tags:
-    - cloudcare-ft
-
 release-testing:
   stage: deploy
   only:
@@ -37,14 +22,13 @@ release-testing:
     - make clean
     - make lint
     - make all_test
-    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH # do not set VERSION here, use git version
     - make check_testing_conf_compatible
-    - make pub_testing
-    - make pub_testing_img
+    - make testing_image
   tags:
     - cloudcare-ft
 
-release-production:
+release-stable:
   stage: deploy
   only:
     - master
@@ -52,10 +36,36 @@ release-production:
     - make clean
     - make lint
     - make all_test
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.7 # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples
-    - make pub_production
-    - make pub_production_img
+    - make production_image
+  tags:
+    - cloudcare-ft
+
+release-unstable:
+  stage: deploy
+  only:
+    - unstable # 专用分支来发布 unstable 版本
+  script:
+    - make clean
+    - make lint
+    - make all_test
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.3.0
+    - make production_image VERSION=1.3.0
+    - make check_production_conf_compatible
+    - make production_image
+  tags:
+    - cloudcare-ft
+
+# for testing current issue, should delete after merge into master
+current-testing:
+  stage: deploy
+  only:
+    - /^xxx-.*$/
+  script:
+    - make clean
+    - make testing GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.999.0
+    - make testing_image VERSION=1.999.0
   tags:
     - cloudcare-ft

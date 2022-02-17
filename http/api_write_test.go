@@ -67,9 +67,13 @@ func TestHandleBody(t *testing.T) {
 	}{
 		{
 			name: `[json]tag exceed limit`,
-			opt: &lp.Option{
-				MaxTags: 1,
-			},
+
+			opt: func() *lp.Option {
+				o := lp.NewDefaultOption()
+				o.MaxTags = 1
+				return o
+			}(),
+
 			body: []byte(`[
 			{
 				"measurement":"abc",
@@ -138,14 +142,24 @@ func TestHandleBody(t *testing.T) {
 				"time":1624550216
 			}
 			]`),
-			opt:  &lp.Option{Precision: `s`},
+
+			opt: func() *lp.Option {
+				o := lp.NewDefaultOption()
+				o.Precision = "s"
+				return o
+			}(),
+
 			npts: 2,
 			js:   true,
 		},
 
 		{
 			name: `raw point body with/wthout timestamp`,
-			opt:  &lp.Option{Precision: `s`},
+			opt: func() *lp.Option {
+				o := lp.NewDefaultOption()
+				o.Precision = "s"
+				return o
+			}(),
 			body: []byte(`error,t1=tag1,t2=tag2 f1=1.0,f2=2i,f3="abc"
 			view,t1=tag2,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
 			resource,t1=tag3,t2=tag2 f1=1.0,f2=2i,f3="abc" 1621239130
