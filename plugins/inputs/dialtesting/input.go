@@ -259,7 +259,9 @@ func protectedRun(d *dialer) {
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-			l.Warnf("task %s panic: %+#v", d.task.ID(), err)
+
+			l.Warnf("task %s panic: %+#v, trace: %s", d.task.ID(), err, string(trace))
+
 			crashcnt++
 			if crashcnt > maxCrashCnt {
 				l.Warnf("task %s crashed %d times, exit now", d.task.ID(), crashcnt)
@@ -426,7 +428,8 @@ func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	res := map[string]interface{}{}
+	content := map[string]interface{}{}
+
 	for k, v := range resp {
 		vs := []string{}
 		for _, v1 := range v {
@@ -439,11 +442,11 @@ func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
 			vs = append(vs, string(dt))
 		}
 
-		res[k] = vs
+		content[k] = vs
 	}
 
 	tasks := taskPullResp{
-		Content: res,
+		Content: content,
 	}
 	rs, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
@@ -539,21 +542,25 @@ func (d *Input) stopAlltask() {
 	}
 }
 
+func newDefaultInput() *Input {
+	return &Input{
+		Tags:     map[string]string{},
+		curTasks: map[string]*dialer{},
+		wg:       sync.WaitGroup{},
+		cli: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+				TLSHandshakeTimeout: 30 * time.Second,
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 100,
+			},
+		},
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:     map[string]string{},
-			curTasks: map[string]*dialer{},
-			wg:       sync.WaitGroup{},
-			cli: &http.Client{
-				Timeout: 30 * time.Second,
-				Transport: &http.Transport{
-					TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
-					TLSHandshakeTimeout: 30 * time.Second,
-					MaxIdleConns:        100,
-					MaxIdleConnsPerHost: 100,
-				},
-			},
-		}
+		return newDefaultInput()
 	})
 }

@@ -12,7 +12,47 @@ func TestJSONTaskFile(t *testing.T) {
 		fail    bool
 	}{
 		{
-			j:    `{"a": [{"url": "http://172.16.5.9:13001", "name": "auth北京", "method": "GET", "region": "beijing", "status": "stop", "post_url": "http://testing-openway.cloudcare.cn?token=tkn_2dc438b6693711eb8ff97aeee04b54af", "frequency": "1m", "access_key": "tfAA3qeo5AOB2kEflcZA", "external_id": "dial_0b34e8383ff145e997818c1e2ecd8cf7", "update_time": 1618299681542678, "success_when": [{"header": {"jyd": [{"contains": "cccc"}]}}], "advance_options": {}}]}`,
+			j: `
+{
+  "HTTP": [
+    {
+      "name": "baidu-json-test",
+      "method": "GET",
+      "url": "http://baidu.com",
+      "post_url": "http://testing-openway.cloudcare.cn?token=tkn_878de73a7cb411ebb24c9a711bbe15d4",
+      "status": "OK",
+      "frequency": "10s",
+      "region": "shang_hai",
+      "owner_external_id": "ak_c1imts73q2c335d71cn0-wksp_878de24e7cb411ebb24c9a711bbe15d4",
+      "success_when": [
+        {
+          "response_time": "1000ms",
+          "header": {
+            "Content-Type": [
+              {
+                "contains": "html"
+              }
+            ]
+          },
+          "status_code": [
+            {
+              "is": "200"
+            }
+          ]
+        }
+      ],
+      "advance_options": {
+        "request_options": {
+          "auth": {}
+        },
+        "request_body": {},
+        "secret": {}
+      },
+      "update_time": 1645065786362746
+    }
+  ]
+}
+`,
 			name: `normal case`,
 		},
 	}
@@ -20,14 +60,14 @@ func TestJSONTaskFile(t *testing.T) {
 	for _, tc := range cases {
 		_ = tc
 		t.Run(tc.name, func(t *testing.T) {
-			i := Input{}
+			i := newDefaultInput()
 			b, err := i.getLocalJSONTasks([]byte(tc.j))
 			if tc.fail {
 				tu.NotOk(t, err, "expect err, got none")
 			}
 			tu.Ok(t, err)
-
 			t.Logf(string(b))
+
 		})
 	}
 }
