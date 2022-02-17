@@ -4,58 +4,6 @@ code.cloudfoundry.org/bytefmt
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
-# github.com/DataDog/datadog-agent v0.0.0-20210914224445-7abd230002d9
-## explicit
-github.com/DataDog/datadog-agent/pkg/autodiscovery/common/types
-github.com/DataDog/datadog-agent/pkg/collector/check/defaults
-github.com/DataDog/datadog-agent/pkg/config
-github.com/DataDog/datadog-agent/pkg/config/seelog
-github.com/DataDog/datadog-agent/pkg/diagnose/diagnosis
-github.com/DataDog/datadog-agent/pkg/errors
-github.com/DataDog/datadog-agent/pkg/metadata/host/container
-github.com/DataDog/datadog-agent/pkg/proto/pbgo
-github.com/DataDog/datadog-agent/pkg/secrets
-github.com/DataDog/datadog-agent/pkg/telemetry
-github.com/DataDog/datadog-agent/pkg/trace/atomic
-github.com/DataDog/datadog-agent/pkg/trace/config
-github.com/DataDog/datadog-agent/pkg/trace/config/features
-github.com/DataDog/datadog-agent/pkg/trace/flags
-github.com/DataDog/datadog-agent/pkg/trace/info
-github.com/DataDog/datadog-agent/pkg/trace/metrics
-github.com/DataDog/datadog-agent/pkg/trace/osutil
-github.com/DataDog/datadog-agent/pkg/trace/pb
-github.com/DataDog/datadog-agent/pkg/trace/sampler
-github.com/DataDog/datadog-agent/pkg/trace/stats
-github.com/DataDog/datadog-agent/pkg/trace/test/testutil
-github.com/DataDog/datadog-agent/pkg/trace/traceutil
-github.com/DataDog/datadog-agent/pkg/trace/watchdog
-github.com/DataDog/datadog-agent/pkg/util/cache
-github.com/DataDog/datadog-agent/pkg/util/common
-github.com/DataDog/datadog-agent/pkg/util/containers
-github.com/DataDog/datadog-agent/pkg/util/containers/metrics
-github.com/DataDog/datadog-agent/pkg/util/containers/providers
-github.com/DataDog/datadog-agent/pkg/util/docker
-github.com/DataDog/datadog-agent/pkg/util/ec2
-github.com/DataDog/datadog-agent/pkg/util/ecs
-github.com/DataDog/datadog-agent/pkg/util/ecs/common
-github.com/DataDog/datadog-agent/pkg/util/ecs/metadata
-github.com/DataDog/datadog-agent/pkg/util/ecs/metadata/v1
-github.com/DataDog/datadog-agent/pkg/util/ecs/metadata/v2
-github.com/DataDog/datadog-agent/pkg/util/ecs/metadata/v3
-github.com/DataDog/datadog-agent/pkg/util/executable
-github.com/DataDog/datadog-agent/pkg/util/fargate
-github.com/DataDog/datadog-agent/pkg/util/grpc
-github.com/DataDog/datadog-agent/pkg/util/hostname/validate
-github.com/DataDog/datadog-agent/pkg/util/http
-github.com/DataDog/datadog-agent/pkg/util/retry
-github.com/DataDog/datadog-agent/pkg/util/system
-github.com/DataDog/datadog-agent/pkg/util/testutil
-github.com/DataDog/datadog-agent/pkg/version
-# github.com/DataDog/datadog-agent/pkg/util/log v0.31.0
-github.com/DataDog/datadog-agent/pkg/util/log
-# github.com/DataDog/datadog-agent/pkg/util/winutil v0.31.0
-## explicit
-github.com/DataDog/datadog-agent/pkg/util/winutil
 # github.com/DataDog/datadog-go v4.8.2+incompatible
 github.com/DataDog/datadog-go/statsd
 # github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
@@ -68,6 +16,7 @@ github.com/DataDog/ebpf/internal/unix
 github.com/DataDog/ebpf/manager
 github.com/DataDog/ebpf/perf
 # github.com/DataDog/gopsutil v0.0.0-20210826200402-bbfc5b0ae6e9
+## explicit
 github.com/DataDog/gopsutil/cpu
 github.com/DataDog/gopsutil/host
 github.com/DataDog/gopsutil/internal/common
@@ -81,8 +30,6 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/DataDog/viper v1.9.0
-github.com/DataDog/viper
 # github.com/MichaelMure/go-term-markdown v0.1.3
 ## explicit
 github.com/MichaelMure/go-term-markdown
@@ -147,6 +94,8 @@ github.com/alecthomas/chroma/lexers/w
 github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
 github.com/alecthomas/chroma/styles
+# github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1
+## explicit
 # github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
@@ -158,51 +107,6 @@ github.com/apache/thrift/lib/go/thrift
 github.com/araddon/dateparse
 # github.com/avast/retry-go v2.7.0+incompatible
 github.com/avast/retry-go
-# github.com/aws/aws-sdk-go v1.40.48
-github.com/aws/aws-sdk-go/aws
-github.com/aws/aws-sdk-go/aws/awserr
-github.com/aws/aws-sdk-go/aws/awsutil
-github.com/aws/aws-sdk-go/aws/client
-github.com/aws/aws-sdk-go/aws/client/metadata
-github.com/aws/aws-sdk-go/aws/corehandlers
-github.com/aws/aws-sdk-go/aws/credentials
-github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds
-github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
-github.com/aws/aws-sdk-go/aws/credentials/processcreds
-github.com/aws/aws-sdk-go/aws/credentials/ssocreds
-github.com/aws/aws-sdk-go/aws/credentials/stscreds
-github.com/aws/aws-sdk-go/aws/csm
-github.com/aws/aws-sdk-go/aws/defaults
-github.com/aws/aws-sdk-go/aws/ec2metadata
-github.com/aws/aws-sdk-go/aws/endpoints
-github.com/aws/aws-sdk-go/aws/request
-github.com/aws/aws-sdk-go/aws/session
-github.com/aws/aws-sdk-go/aws/signer/v4
-github.com/aws/aws-sdk-go/internal/context
-github.com/aws/aws-sdk-go/internal/ini
-github.com/aws/aws-sdk-go/internal/sdkio
-github.com/aws/aws-sdk-go/internal/sdkmath
-github.com/aws/aws-sdk-go/internal/sdkrand
-github.com/aws/aws-sdk-go/internal/sdkuri
-github.com/aws/aws-sdk-go/internal/shareddefaults
-github.com/aws/aws-sdk-go/internal/strings
-github.com/aws/aws-sdk-go/internal/sync/singleflight
-github.com/aws/aws-sdk-go/private/protocol
-github.com/aws/aws-sdk-go/private/protocol/ec2query
-github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
-github.com/aws/aws-sdk-go/private/protocol/jsonrpc
-github.com/aws/aws-sdk-go/private/protocol/query
-github.com/aws/aws-sdk-go/private/protocol/query/queryutil
-github.com/aws/aws-sdk-go/private/protocol/rest
-github.com/aws/aws-sdk-go/private/protocol/restjson
-github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
-github.com/aws/aws-sdk-go/service/ec2
-github.com/aws/aws-sdk-go/service/sso
-github.com/aws/aws-sdk-go/service/sso/ssoiface
-github.com/aws/aws-sdk-go/service/sts
-github.com/aws/aws-sdk-go/service/sts/stsiface
-# github.com/beorn7/perks v1.0.1
-github.com/beorn7/perks/quantile
 # github.com/c-bata/go-prompt v0.2.5 => github.com/coanor/go-prompt v0.2.6
 ## explicit
 github.com/c-bata/go-prompt
@@ -279,6 +183,7 @@ github.com/cihub/seelog/archive/zip
 github.com/containerd/cgroups
 github.com/containerd/cgroups/stats/v1
 # github.com/containerd/containerd v1.5.5
+## explicit
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
 github.com/containerd/containerd/platforms
@@ -545,6 +450,7 @@ github.com/google/gopacket/layers
 # github.com/google/uuid v1.3.0
 github.com/google/uuid
 # github.com/googleapis/gnostic v0.5.1
+## explicit
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
 github.com/googleapis/gnostic/jsonschema
@@ -556,18 +462,8 @@ github.com/grpc-ecosystem/grpc-gateway/utilities
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.1.1
+## explicit
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/hcl v1.0.0
-github.com/hashicorp/hcl
-github.com/hashicorp/hcl/hcl/ast
-github.com/hashicorp/hcl/hcl/parser
-github.com/hashicorp/hcl/hcl/printer
-github.com/hashicorp/hcl/hcl/scanner
-github.com/hashicorp/hcl/hcl/strconv
-github.com/hashicorp/hcl/hcl/token
-github.com/hashicorp/hcl/json/parser
-github.com/hashicorp/hcl/json/scanner
-github.com/hashicorp/hcl/json/token
 # github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
 # github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
@@ -594,8 +490,6 @@ github.com/jbenet/go-context/io
 # github.com/jessevdk/go-flags v1.5.0
 ## explicit
 github.com/jessevdk/go-flags
-# github.com/jmespath/go-jmespath v0.4.0
-github.com/jmespath/go-jmespath
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
 # github.com/josharian/native v0.0.0-20200817173448-b6b71def0850
@@ -603,12 +497,11 @@ github.com/josharian/native
 # github.com/json-iterator/go v1.1.12
 ## explicit
 github.com/json-iterator/go
-# github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
-github.com/kardianos/osext
 # github.com/kardianos/service v1.0.0
 ## explicit
 github.com/kardianos/service
 # github.com/karrick/godirwalk v1.16.1
+## explicit
 github.com/karrick/godirwalk
 # github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351
 github.com/kevinburke/ssh_config
@@ -625,8 +518,6 @@ github.com/lib/pq/oid
 github.com/lib/pq/scram
 # github.com/lucasb-eyer/go-colorful v1.0.3
 github.com/lucasb-eyer/go-colorful
-# github.com/magiconair/properties v1.8.5
-github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.7
 github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
@@ -650,15 +541,13 @@ github.com/mattn/go-tty
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mdlayher/netlink v1.4.1
+## explicit
 github.com/mdlayher/netlink
 github.com/mdlayher/netlink/nlenc
 # github.com/mdlayher/socket v0.0.0-20210307095302-262dc9984e00
 github.com/mdlayher/socket
 # github.com/mitchellh/go-homedir v1.1.0
 github.com/mitchellh/go-homedir
-# github.com/mitchellh/mapstructure v1.4.2
-## explicit
-github.com/mitchellh/mapstructure
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.2
@@ -680,14 +569,9 @@ github.com/opencontainers/runtime-spec/specs-go
 ## explicit
 github.com/openzipkin/zipkin-go/model
 github.com/openzipkin/zipkin-go/proto/v2
-# github.com/patrickmn/go-cache v2.1.0+incompatible
-github.com/patrickmn/go-cache
 # github.com/pborman/ansi v1.0.0
 ## explicit
 github.com/pborman/ansi
-# github.com/pelletier/go-toml v1.9.4
-## explicit
-github.com/pelletier/go-toml
 # github.com/philhofer/fwd v1.1.1
 github.com/philhofer/fwd
 # github.com/pkg/errors v0.9.1
@@ -699,10 +583,6 @@ github.com/pkg/sftp
 github.com/pkg/term/termios
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/prometheus/client_golang v1.11.0
-github.com/prometheus/client_golang/prometheus
-github.com/prometheus/client_golang/prometheus/internal
-github.com/prometheus/client_golang/prometheus/promhttp
 # github.com/prometheus/client_model v0.2.0
 ## explicit
 github.com/prometheus/client_model/go
@@ -750,14 +630,9 @@ github.com/shirou/gopsutil/v3/process
 github.com/shirou/w32
 # github.com/sirupsen/logrus v1.8.1
 github.com/sirupsen/logrus
-# github.com/spf13/afero v1.6.0
-github.com/spf13/afero
-github.com/spf13/afero/mem
 # github.com/spf13/cast v1.4.1
 ## explicit
 github.com/spf13/cast
-# github.com/spf13/jwalterweatherman v1.1.0
-github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5
 ## explicit
 github.com/spf13/pflag
@@ -792,27 +667,21 @@ github.com/uber/jaeger-client-go/thrift-gen/zipkincore
 ## explicit
 github.com/ugorji/go/codec
 # github.com/vishvananda/netlink v1.1.1-0.20210508154835-66ddd91f7ddd
+## explicit
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f
+## explicit
 github.com/vishvananda/netns
 # github.com/vjeantet/grok v1.0.0
 ## explicit
 github.com/vjeantet/grok
-# github.com/vmihailenco/msgpack/v4 v4.3.12
-## explicit
-github.com/vmihailenco/msgpack/v4
-github.com/vmihailenco/msgpack/v4/codes
-# github.com/vmihailenco/tagparser v0.1.2
-github.com/vmihailenco/tagparser
-github.com/vmihailenco/tagparser/internal
-github.com/vmihailenco/tagparser/internal/parser
 # github.com/whilp/git-urls v1.0.0
 ## explicit
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220117082011-b2dea10607f0
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220214030751-cf38aa8d1ebd
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto
@@ -841,6 +710,7 @@ go.uber.org/atomic
 ## explicit
 go.uber.org/multierr
 # go.uber.org/zap v1.17.0
+## explicit
 go.uber.org/zap
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
@@ -874,10 +744,6 @@ golang.org/x/image/tiff/lzw
 golang.org/x/image/vp8
 golang.org/x/image/vp8l
 golang.org/x/image/webp
-# golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5
-## explicit
-golang.org/x/mobile/asset
-golang.org/x/mobile/internal/mobileinit
 # golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 ## explicit
 golang.org/x/net/bpf
@@ -886,7 +752,6 @@ golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/http/httpguts
-golang.org/x/net/http/httpproxy
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
@@ -937,16 +802,10 @@ golang.org/x/time/rate
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # google.golang.org/appengine v1.6.7
-google.golang.org/appengine
-google.golang.org/appengine/datastore
-google.golang.org/appengine/datastore/internal/cloudkey
-google.golang.org/appengine/datastore/internal/cloudpb
 google.golang.org/appengine/internal
-google.golang.org/appengine/internal/app_identity
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
-google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch

@@ -26,7 +26,9 @@ func randomDDSpan() *DDSpan {
 		Duration: testutils.RandInt64(6),
 		Meta:     testutils.RandTags(10, 10, 20),
 		Metrics:  testutils.RandMetrics(10, 10),
-		Type: testutils.RandWithinStrings([]string{"consul", "cache", "memcached", "redis", "aerospike", "cassandra", "db", "elasticsearch", "leveldb",
-			"", "mongodb", "sql", "http", "web", "benchmark", "build", "custom", "datanucleus", "dns", "graphql", "grpc", "hibernate", "queue", "rpc", "soap", "template", "test", "worker"}),
+		Type: testutils.RandWithinStrings([]string{
+			"consul", "cache", "memcached", "redis", "aerospike", "cassandra", "db", "elasticsearch", "leveldb",
+			"", "mongodb", "sql", "http", "web", "benchmark", "build", "custom", "datanucleus", "dns", "graphql", "grpc", "hibernate", "queue", "rpc", "soap", "template", "test", "worker",
+		}),
 	}
 }

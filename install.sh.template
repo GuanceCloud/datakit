@@ -277,9 +277,9 @@ if [ -n "$DK_GIT_INTERVAL" ]; then
 	git_pull_interval=$DK_GIT_INTERVAL
 fi
 
-enable_election=0
+enable_election=""
 if [ -n "$DK_ENABLE_ELECTION" ]; then
-  enable_election=1
+  enable_election=$DK_ENABLE_ELECTION
 fi
 
 rum_origin_ip_header=""
@@ -287,9 +287,9 @@ if [ -n "$DK_RUM_ORIGIN_IP_HEADER" ]; then
   rum_origin_ip_header=$DK_RUM_ORIGIN_IP_HEADER
 fi
 
-disable_404page=0
+disable_404page=""
 if [ -n "$DK_DISABLE_404PAGE" ]; then
-  disable_404page=1
+  disable_404page=$DK_DISABLE_404PAGE
 fi
 
 log_level=""
