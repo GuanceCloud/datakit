@@ -21,7 +21,7 @@ type otlpGrpcCollector struct {
 func (o *otlpGrpcCollector) run() {
 	ln, err := net.Listen("tcp", o.Addr)
 	if err != nil {
-		l.Fatalf("Failed to get an endpoint: %v", err)
+		l.Errorf("Failed to get an endpoint: %v", err)
 		return
 	}
 	srv := grpc.NewServer()

@@ -2,20 +2,6 @@
 
 package opentelemetry
 
-/*
-	接收从 opentelemetry 发送的 L/T/M 三种数据
-		仅支持两种协议方式发送
-			HTTP:使用 protobuf 格式发送 Trace/metric/logging
-			grpc:同样使用 protobuf 格式
-
-	接收到的数据交给trace处理。
-	本模块只做数据接收和组装 不做业务处理，并都是在(接收完成、返回客户端statusOK) 之后 再进行组装。
-
-	参考开源项目 opentelemetry exports 模块， github地址：https://github.com/open-telemetry/opentelemetry-go
-
-	接收到原生trace 组装成dktrace对象后存储 每隔5秒 或者长度超过100条之后 发送到IO
-*/
-
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -93,7 +79,7 @@ const (
 )
 
 var (
-	l             = logger.DefaultSLogger("otel")
+	l             = logger.DefaultSLogger("otel-log")
 	closeResource *itrace.CloseResource
 	afterGather   = itrace.NewAfterGather()
 	defSampler    *itrace.Sampler
@@ -109,15 +95,15 @@ var (
 )
 
 type Input struct {
-	Ogc *otlpGrpcCollector `toml:"grpc"`
-	Otc *otlpHTTPCollector `toml:"http"`
-
+	Ogc           *otlpGrpcCollector  `toml:"grpc"`
+	Otc           *otlpHTTPCollector  `toml:"http"`
 	CloseResource map[string][]string `toml:"close_resource"`
 	Sampler       *itrace.Sampler     `toml:"sampler"`
 	CustomerTags  []string            `toml:"customer_tags"`
 	Tags          map[string]string   `toml:"tags"`
-	inputName     string
-	semStop       *cliutils.Sem // start stop signal
+
+	inputName string
+	semStop   *cliutils.Sem // start stop signal
 }
 
 func (i *Input) Catalog() string {
@@ -138,7 +124,7 @@ func (i *Input) exit() {
 }
 
 func (i *Input) Run() {
-	l = logger.SLogger("otlp")
+	l = logger.SLogger("otlp-log")
 	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
 	if len(i.CloseResource) != 0 {

@@ -16,8 +16,7 @@ import (
 
 // SpansStorage stores the spans.
 type SpansStorage struct {
-	rsm []DKtrace.DatakitTrace
-	//	dkMetrics   []*DKMetric
+	rsm         []DKtrace.DatakitTrace
 	otelMetrics []*otelResourceMetric
 	Count       int
 	max         chan int
@@ -44,7 +43,6 @@ func (s *SpansStorage) AddSpans(rss []*tracepb.ResourceSpans) {
 }
 
 func (s *SpansStorage) AddMetric(rss []*otelResourceMetric) {
-	//	s.dkMetrics = append(s.dkMetrics, otelMetricToDkMetric(rss)...)
 	s.otelMetrics = append(s.otelMetrics, rss...)
 	s.Count += len(rss)
 	if s.Count >= maxSend {

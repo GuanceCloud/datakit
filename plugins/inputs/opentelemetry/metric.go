@@ -95,16 +95,19 @@ func getData(metric *metricpb.Metric) []*date {
 }
 
 type otelResourceMetric struct {
-	Operation   string            `json:"operation"`
-	Source      string            `json:"source"`
-	Attributes  map[string]string `json:"attributes"`
-	Resource    string            `json:"resource"`
-	Description string            `json:"description"`
-	ValueType   string            `json:"value_type"` // int bool int64 float
-	StartTime   uint64            `json:"start_time"`
-	UnitTime    uint64            `json:"unit_time"`
-	Value       interface{}       `json:"value"`
-	Content     string            `json:"content"`
+	Operation   string            `json:"operation"`   // metric.name
+	Source      string            `json:"source"`      // inputName ： opentelemetry
+	Attributes  map[string]string `json:"attributes"`  // tags
+	Resource    string            `json:"resource"`    // global.Meter name
+	Description string            `json:"description"` // metric.Description
+	StartTime   uint64            `json:"start_time"`  // start time
+	UnitTime    uint64            `json:"unit_time"`   // end time
+
+	ValueType string      `json:"value_type"` // double | int | histogram | ExponentialHistogram | summary
+	Value     interface{} `json:"value"`      // 5种类型 对应的值：int | float
+
+	Content string `json:"content"` //
+
 	// Exemplar 可获取 spanid 等
 }
 
@@ -117,12 +120,6 @@ func toDatakitMetric(rss []*metricpb.ResourceMetrics) []*otelResourceMetric {
 			resource := libraryMetric.InstrumentationLibrary.Name
 			metrices := libraryMetric.GetMetrics()
 			for _, metrice := range metrices {
-				/*	l.Debugf(metrice.Name)
-					bts, err := json.MarshalIndent(metrice, "\t", "    ")
-					if err == nil {
-						l.Info(string(bts))
-					}
-					l.Infof("metric string=%s", metrice.String())*/
 				ps := getData(metrice)
 				for _, p := range ps {
 					orm := &otelResourceMetric{
