@@ -67,7 +67,6 @@ func TestJSONTaskFile(t *testing.T) {
 			}
 			tu.Ok(t, err)
 			t.Logf(string(b))
-
 		})
 	}
 }

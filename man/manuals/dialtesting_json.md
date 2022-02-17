@@ -279,7 +279,7 @@
       },
     "headers": {
       "X-Prison-Breaker": "张三"
-      "X-Prison-Breaker-Password": "fawaikuangtu"
+      "X-Prison-Break-Password": "fawaikuangtu"
     },
     "follow_redirect": false
   },
@@ -311,9 +311,21 @@
 | `ignore_server_certificate_error` | bool   | N        | 是否忽略证书错误 |
 | `private_key`                     | string | N        | key              |
 | `certificate`                     | string | N        | 证书             |
-| `ca`                              | string | N        | 可不传           |
+| `ca`                              | string | N        | 暂时未使用       |
 
-以下是一组 `private_key` 示例：
+`certificate` 示例：
+
+```json
+"advance_options": {
+  "certificate": {
+		"ignore_server_certificate_error": false,
+		"private_key": "<your-private-key>",
+		"certificate": "<your-certificate-key>"
+  },
+}
+```
+
+`private_key` 示例：
 
 ```
 -----BEGIN PRIVATE KEY-----
