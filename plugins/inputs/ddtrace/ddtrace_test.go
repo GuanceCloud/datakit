@@ -30,9 +30,3 @@ func randomDDSpan() *DDSpan {
 			"", "mongodb", "sql", "http", "web", "benchmark", "build", "custom", "datanucleus", "dns", "graphql", "grpc", "hibernate", "queue", "rpc", "soap", "template", "test", "worker"}),
 	}
 }
-
-func msgpackDataSource() {
-}
-
-func jsonDataSource() {
-}
