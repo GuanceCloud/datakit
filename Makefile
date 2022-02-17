@@ -29,13 +29,14 @@ LOCAL_ARCHS:="local"
 DEFAULT_ARCHS:="all"
 MAC_ARCHS:="darwin/amd64"
 NOT_SET="not-set"
-GIT_VERSION?=$(shell git describe --always --tags)
+VERSION?=$(shell git describe --always --tags)
 DATE:=$(shell date -u +'%Y-%m-%d %H:%M:%S')
 GOVERSION:=$(shell go version)
 COMMIT:=$(shell git rev-parse --short HEAD)
 GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
 COMMITER:=$(shell git log -1 --pretty=format:'%an')
 UPLOADER:=$(shell hostname)/${USER}/${COMMITER}
+DOCKER_IMAGE_ARCHS:="linux/arm64,linux/amd64"
 
 GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
 GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
@@ -60,7 +61,7 @@ package git
 
 const (
 	BuildAt  string = "$(DATE)"
-	Version  string = "$(GIT_VERSION)"
+	Version  string = "$(VERSION)"
 	Golang   string = "$(GOVERSION)"
 	Commit   string = "$(COMMIT)"
 	Branch   string = "$(GIT_BRANCH)"
@@ -97,6 +98,10 @@ define pub
 		-build-dir $(BUILD_DIR) -archs $(3)
 endef
 
+define build_docker_image
+	@sudo docker buildx build --platform $(1) -t $(2)/datakit/datakit:$(VERSION) . --push
+endef
+
 define check_golint_version
 	@case $(GOLINT_VERSION) in \
 	$(SUPPORTED_GOLINT_VERSION)) \
@@ -112,61 +117,45 @@ endef
 local: deps
 	$(call build,local, $(LOCAL_ARCHS), $(LOCAL_DOWNLOAD_ADDR))
 
-build: prepare man gofmt lfparser_disable_line plparser_disable_line
-	$(call build, testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
-
-testing: deps
-	$(call build, testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
-
-production: deps
-	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
-
-release_mac: deps
-	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
-
-testing_mac: deps
-	$(call build, testing, $(MAC_ARCHS), $(TESTING_DOWNLOAD_ADDR))
-
 pub_local:
 	$(call pub, local,$(LOCAL_DOWNLOAD_ADDR),$(LOCAL_ARCHS))
 
-pub_testing:
+testing: deps
+	$(call build, testing, $(DEFAULT_ARCHS), $(TESTING_DOWNLOAD_ADDR))
 	$(call pub, testing,$(TESTING_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
 
-pub_testing_mac:
+testing_image:
+	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
+
+production: deps # stable release
+	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
+	$(call pub, production, $(PRODUCTION_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
+
+production_image:
+	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
+
+production_mac: deps
+	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
+	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
+
+testing_mac: deps
+	$(call build, testing, $(MAC_ARCHS), $(TESTING_DOWNLOAD_ADDR))
 	$(call pub, testing,$(TESTING_DOWNLOAD_ADDR),$(MAC_ARCHS))
 
+# not used
 pub_testing_win_img:
 	@mkdir -p embed/windows-amd64
 	@wget --quiet -O - "https://$(TESTING_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
-	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
+	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
+	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(VERSION)
 
-pub_testing_img:
-	@mkdir -p embed/linux-amd64
-	@wget --quiet -O - "https://$(TESTING_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker buildx build --platform linux/arm64,linux/amd64 \
-		-t registry.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
-
+# not used
 pub_release_win_img:
 	# release to pub hub
 	@mkdir -p embed/windows-amd64
 	@wget --quiet -O - "https://$(PRODUCTION_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION) -f ./Dockerfile_win .
-	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(GIT_VERSION)
-
-pub_production_img:
-	# release to pub hub
-	@mkdir -p embed/linux-amd64
-	@wget --quiet -O - "https://$(PRODUCTION_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
-	@sudo docker buildx build --platform linux/arm64,linux/amd64 -t \
-		pubrepo.jiagouyun.com/datakit/datakit:$(GIT_VERSION) . --push
-
-pub_production:
-	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(DEFAULT_ARCHS))
-
-pub_release_mac:
-	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
+	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
+	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION)
 
 # Config samples should only be published by production release,
 # because config samples in multiple testing releases may not be compatible to each other.
@@ -219,7 +208,7 @@ all_test: deps
 	@truncate -s 0 test.output
 	@echo "#####################" | tee -a test.output
 	@echo "#" $(DATE) | tee -a test.output
-	@echo "#" $(GIT_VERSION) | tee -a test.output
+	@echo "#" $(VERSION) | tee -a test.output
 	@echo "#####################" | tee -a test.output
 	i=0; \
 	for pkg in `go list ./... | grep -vE 'datakit/git'`; do \

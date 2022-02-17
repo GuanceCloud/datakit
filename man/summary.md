@@ -28,6 +28,8 @@
 - [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
 - [如何排查无数据问题](why-no-data)
+- [DataKit 开发手册](development)
+
 - [采集器]()
 
   - [主机]()
