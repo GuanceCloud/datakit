@@ -14,7 +14,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-// trace constants
+// trace constants.
+//nolint:stylecheck
 const (
 	CONTAINER_HOST = "container_host"
 	ENV            = "env"
@@ -64,13 +65,13 @@ const (
 	FIELD_TRACEID            = "trace_id"
 )
 
-// tracing data keep priority
+// tracing data keep priority.
 const (
-	// reject trace before send to dataway
+	// reject trace before send to dataway.
 	PriorityReject = -1
-	// auto calculate with sampling rate
+	// auto calculate with sampling rate.
 	PriorityAuto = 0
-	// always send to dataway and do not consider sampling and filters
+	// always send to dataway and do not consider sampling and filters.
 	PriorityKeep = 1
 )
 

@@ -133,7 +133,7 @@ func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
 	return zc
 }
 
-func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, error) {
+func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkCoreV1SpanIDsAndParentIDs(zpktrace)
@@ -147,6 +147,7 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 			TraceID:   fmt.Sprintf("%d", uint64(span.TraceID)),
 			SpanID:    fmt.Sprintf("%d", uint64(span.ID)),
 			ParentID:  "0",
+			Resource:  span.Name,
 			Operation: span.Name,
 			Source:    inputName,
 			SpanType:  itrace.FindSpanTypeInt(span.ID, *span.ParentID, spanIDs, parentIDs),
@@ -206,7 +207,7 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if defSampler != nil {
+		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
 		}
@@ -220,10 +221,10 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
-func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error) {
+func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
@@ -237,9 +238,10 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error)
 			TraceID:   span.TraceID,
 			SpanID:    span.ID,
 			ParentID:  span.ParentID,
+			Resource:  span.Name,
+			Operation: span.Name,
 			Source:    inputName,
 			SpanType:  itrace.FindSpanTypeString(span.ID, span.ParentID, spanIDs, parentIDs),
-			Operation: span.Name,
 			Start:     getFirstTimestamp(span),
 			Duration:  span.Duration * int64(time.Microsecond),
 		}
@@ -282,21 +284,21 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error)
 			dkspan.Version = version
 		}
 
-		if defSampler != nil {
+		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
 		}
 
-		buf, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
+		if buf, err := json.Marshal(span); err != nil {
+			continue
+		} else {
+			dkspan.Content = string(buf)
 		}
-		dkspan.Content = string(buf)
 
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 func getZpkCoreV1SpanIDsAndParentIDs(trace []*zpkcorev1.Span) (map[int64]bool, map[int64]bool) {

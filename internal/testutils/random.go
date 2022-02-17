@@ -4,58 +4,33 @@ package testutils
 
 import (
 	"encoding/base64"
+	"fmt"
 	"math/rand"
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
-type Gauge struct {
-	Time    time.Time
-	Name    string
-	Count   int
-	Score   float64
-	Code    byte
-	Checked bool
-}
-
-func RandGauge() *Gauge {
-	return &Gauge{
-		Name:    RandString(15),
-		Count:   rand.Int(),
-		Code:    byte(rand.Intn(128)),
-		Score:   rand.Float64(),
-		Checked: rand.Int()%2 == 0,
-		Time:    time.Now(),
-	}
-}
-
-func RandTags(entries int, maxKeyLen, maxValueLen int) map[string]string {
-	tags := make(map[string]string, entries)
-	for i := 0; i < entries; i++ {
-		tags[RandString(maxKeyLen)] = RandString(maxValueLen)
+func RandInt64(n int) int64 {
+	if n < 1 {
+		return 0
 	}
 
-	return tags
-}
-
-func RandFields(entries int, maxKeyLen int) map[string]interface{} {
-	fields := make(map[string]interface{}, entries)
-
-	for i := 0; i < entries; i++ {
-		switch rand.Int() % 4 {
-		case 0:
-			fields[RandString(maxKeyLen)] = RandString(3 * maxKeyLen)
-		case 1:
-			fields[RandString(maxKeyLen)] = rand.Int()
-		case 2:
-			fields[RandString(maxKeyLen)] = rand.Float64()
-		case 3:
-			fields[RandString(maxKeyLen)] = RandGauge()
-		}
+	i := 1 + rand.Int63n(9)
+	for j := 1; j < n; j++ {
+		i *= 10
+		i += rand.Int63n(10)
 	}
 
-	return fields
+	return i
+}
+
+func RandStrID(n int) string {
+	return fmt.Sprintf("%d", RandInt64(n))
+}
+
+func RandTime() time.Time {
+	return time.Unix(0, RandInt64(13))
 }
 
 func RandString(maxLen int) string {
@@ -67,6 +42,55 @@ func RandString(maxLen int) string {
 	rand.Read(bts)
 
 	return base64.RawStdEncoding.EncodeToString(bts)
+}
+
+func RandStrings(length, lenPerLine int) []string {
+	ss := make([]string, length)
+	for i := 0; i < length; i++ {
+		ss[i] = RandString(lenPerLine)
+	}
+
+	return ss
+}
+
+func RandWithinStrings(emun []string) string {
+	return emun[rand.Intn(len(emun))]
+}
+
+func RandTags(entries, maxKeyLen, maxValueLen int) map[string]string {
+	tags := make(map[string]string, entries)
+	for i := 0; i < entries; i++ {
+		tags[RandString(maxKeyLen)] = RandString(maxValueLen)
+	}
+
+	return tags
+}
+
+func RandFields(entries, maxKeyLen int) map[string]interface{} {
+	fields := make(map[string]interface{}, entries)
+	for i := 0; i < entries; i++ {
+		switch rand.Int() % 4 {
+		case 0:
+			fields[RandString(maxKeyLen)] = RandString(3 * maxKeyLen)
+		case 1:
+			fields[RandString(maxKeyLen)] = rand.Int63n(999999999)
+		case 2:
+			fields[RandString(maxKeyLen)] = rand.Float64()
+		case 3:
+			fields[RandString(maxKeyLen)] = RandGauge()
+		}
+	}
+
+	return fields
+}
+
+func RandMetrics(entries, maxKeyLen int) map[string]float64 {
+	metrics := make(map[string]float64)
+	for i := 0; i < entries; i++ {
+		metrics[RandString(maxKeyLen)] = rand.Float64()
+	}
+
+	return metrics
 }
 
 func RandPoint(name string, maxTags, maxFields int) *influxdb.Point {
@@ -106,4 +130,24 @@ func RandPoints(count int, maxTags, maxFields int) []*influxdb.Point {
 	}
 
 	return pnts
+}
+
+type Gauge struct {
+	Time    time.Time
+	Name    string
+	Count   int
+	Score   float64
+	Code    byte
+	Checked bool
+}
+
+func RandGauge() *Gauge {
+	return &Gauge{
+		Name:    RandString(15),
+		Count:   rand.Int(),
+		Code:    byte(rand.Intn(128)),
+		Score:   rand.Float64(),
+		Checked: rand.Int()%2 == 0,
+		Time:    time.Now(),
+	}
 }

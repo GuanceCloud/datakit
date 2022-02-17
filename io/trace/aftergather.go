@@ -89,7 +89,7 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 	}
 }
 
-// BuildPointsBatch builds points from whole trace
+// BuildPointsBatch builds points from whole trace.
 func BuildPointsBatch(dktrace DatakitTrace, strict bool) []*dkio.Point {
 	var pts []*dkio.Point
 	for i := range dktrace {

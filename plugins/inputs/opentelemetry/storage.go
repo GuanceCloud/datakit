@@ -14,7 +14,7 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-// SpansStorage stores the spans
+// SpansStorage stores the spans.
 type SpansStorage struct {
 	rsm []DKtrace.DatakitTrace
 	//	dkMetrics   []*DKMetric
@@ -121,6 +121,7 @@ func (s *SpansStorage) feedAll() {
 		err := inputs.FeedMeasurement(inputName, datakit.Metric, metrics, &dkio.Option{HighFreq: true})
 		if err != nil {
 			l.Errorf("feed to io error=%v", err)
+
 		}
 	}
 }

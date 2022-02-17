@@ -53,12 +53,7 @@ func parseJaegerThrift(octets []byte) error {
 		return err
 	}
 
-	dktrace, err := batchToDkTrace(batch)
-	if err != nil {
-		return err
-	}
-
-	if len(dktrace) == 0 {
+	if dktrace := batchToDkTrace(batch); len(dktrace) == 0 {
 		log.Warn("empty datakit trace")
 	} else {
 		afterGather.Run(inputName, dktrace, false)
@@ -67,21 +62,18 @@ func parseJaegerThrift(octets []byte) error {
 	return nil
 }
 
-func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
-	project, version, env := getExpandInfo(batch)
-	if project == "" {
-		project = tags[itrace.PROJECT]
-	}
-	if version == "" {
-		version = tags[itrace.VERSION]
-	}
-	if env == "" {
-		env = tags[itrace.ENV]
+func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
+	buf, err := json.Marshal(batch)
+	if err != nil {
+		log.Debug(err.Error())
+	} else {
+		log.Debug(string(buf))
 	}
 
 	var (
-		dktrace            itrace.DatakitTrace
-		spanIDs, parentIDs = getSpanIDsAndParentIDs(batch.Spans)
+		project, version, env = getExpandInfo(batch)
+		dktrace               itrace.DatakitTrace
+		spanIDs, parentIDs    = getSpanIDsAndParentIDs(batch.Spans)
 	)
 	for _, span := range batch.Spans {
 		if span == nil {
@@ -92,12 +84,13 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			TraceID:   itrace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
 			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
 			SpanID:    fmt.Sprintf("%d", span.SpanId),
-			Env:       env,
-			Operation: span.OperationName,
-			Project:   project,
 			Service:   batch.Process.ServiceName,
+			Resource:  span.OperationName,
+			Operation: span.OperationName,
 			Source:    inputName,
 			SpanType:  itrace.FindSpanTypeInt(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			Env:       env,
+			Project:   project,
 			Start:     span.StartTime * int64(time.Microsecond),
 			Duration:  span.Duration * int64(time.Microsecond),
 			Version:   version,
@@ -117,7 +110,7 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if defSampler != nil {
+		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
 		}
@@ -131,7 +124,7 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]bool) {

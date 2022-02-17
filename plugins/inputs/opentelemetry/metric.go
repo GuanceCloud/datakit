@@ -90,7 +90,6 @@ func getData(metric *metricpb.Metric) []*date {
 			ps = append(ps, point)
 		}
 	default:
-
 	}
 	return ps
 }
