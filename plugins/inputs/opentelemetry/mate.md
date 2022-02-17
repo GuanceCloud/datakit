@@ -122,4 +122,64 @@ metrics:{name:"an_important_metric" description:"Measures the cumulative epicnes
 sum:{data_points:{start_time_unix_nano:1644482920517894200 time_unix_nano:1644482920517894200 as_double:10} aggregation_temporality:AGGREGATION_TEMPORALITY_CUMULATIVE is_monotonic:true}}} 
 schema_url:"https://opentelemetry.io/schemas/v1.7.0"}
 ```
+
+
+
+
+--------- 格式化 onemetric  json --------------------
+```
+ {
+            "resource": {},
+            "instrumentation_library_metrics": [
+                {
+                    "instrumentation_library": {
+                        "name": "onelib"
+                    },
+                    "metrics": [
+                        {
+                            "name": "foo",
+                            "Data": {
+                                "Sum": {
+                                    "data_points": [
+                                        {
+                                            "attributes": [
+                                                {
+                                                    "key": "abc",
+                                                    "value": {
+                                                        "Value": {
+                                                            "StringValue": "def"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "key": "one",
+                                                    "value": {
+                                                        "Value": {
+                                                            "IntValue": 1
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "start_time_unix_nano": 1607454900000000000,
+                                            "time_unix_nano": 1607454960000000000,
+                                            "Value": {
+                                                "AsInt": 42
+                                            }
+                                        }
+                                    ],
+                                    "aggregation_temporality": 2,
+                                    "is_monotonic": true
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+```
           
+&{foo opentelemetry map[abc:def one:1] onelib  int 1607454900000000000 1607454960000000000 42 {"operation":"foo","source":"opentelemetry","attributes":{"abc":"def","one":"1"},"resource":"onelib","description":"","value_type":"int","start_time":1607454900000000000,"unit_time":1607454960000000000,"value":42,"content":""}} 
+&{foo opentelemetry map[abc:def one:1] onelib  int 1607454900000000000 1607454960000000000 42 {"operation":"foo","source":"opentelemetry","attributes":{"abc":"def","one":"1"},"resource":"onelib","description":"","value_type":"int","start_time":1607454900000000000,"unit_time":1607454960000000000,"value":42,"content":""}}
+
+filter

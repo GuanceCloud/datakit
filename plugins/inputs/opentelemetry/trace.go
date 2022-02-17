@@ -3,6 +3,7 @@ package opentelemetry
 import (
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
@@ -19,9 +20,6 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 
 		service := getServiceName(spans.Resource.Attributes)
 		for _, librarySpans := range ls {
-			l.Infof("librarySpans.InstrumentationLibrary.Name = %s", librarySpans.InstrumentationLibrary.Name)
-			l.Infof("librarySpans.InstrumentationLibrary.Version = %s", librarySpans.InstrumentationLibrary.Version)
-			l.Infof("schemaurl = %s", librarySpans.SchemaUrl)
 			dktrace := make([]*DKtrace.DatakitSpan, 0)
 			for _, span := range librarySpans.Spans {
 				tags := toDatakitTags(span.Attributes)
@@ -70,26 +68,29 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
 	m := make(map[string]string, len(attr))
 	for _, kv := range attr {
-		// key := replace(kv.Key)
-		m[kv.Key] = kv.GetValue().GetStringValue()
-		/*
-			switch kv.GetValue().Value.(type) {
-			// For slice attributes, serialize as JSON list string.
-			case *v1.AnyValue_StringValue:
-				m[kv.Key] = kv.GetValue().GetStringValue()
-			case *v1.AnyValue_BoolValue:
-			case *v1.AnyValue_IntValue:
-			case *v1.AnyValue_DoubleValue:
-			case *v1.AnyValue_ArrayValue:
-			case *v1.AnyValue_KvlistValue:
-			case *v1.AnyValue_BytesValue:
-
-			default:
-				m[(string)(kv.Key)] = kv.Value.Emit()
+		key := replace(kv.Key) // 统一将`.`换成 `_`
+		switch t := kv.GetValue().Value.(type) {
+		case *commonpb.AnyValue_StringValue:
+			m[key] = kv.GetValue().GetStringValue()
+		case *commonpb.AnyValue_BoolValue:
+			m[key] = strconv.FormatBool(t.BoolValue)
+		case *commonpb.AnyValue_IntValue:
+			m[key] = strconv.FormatInt(t.IntValue, 10)
+		case *commonpb.AnyValue_DoubleValue:
+			m[key] = strconv.FormatFloat(t.DoubleValue, 'f', 2, 64)
+		case *commonpb.AnyValue_ArrayValue:
+			m[key] = t.ArrayValue.String()
+		case *commonpb.AnyValue_KvlistValue:
+			tags := toDatakitTags(t.KvlistValue.Values)
+			for s, s2 := range tags {
+				m[s] = s2
 			}
-		*/
+		case *commonpb.AnyValue_BytesValue:
+			m[key] = string(t.BytesValue)
+		default:
+			m[key] = kv.Value.GetStringValue()
+		}
 	}
-
 	return m
 }
 

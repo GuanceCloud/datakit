@@ -159,7 +159,6 @@ func (i *Input) Run() {
 	// 从配置文件 开启
 	if i.Otc.Enable {
 		open = true
-		go i.Otc.RunHTTP()
 	}
 	if i.Ogc.TraceEnable || i.Ogc.MetricEnable {
 		go i.Ogc.run()
