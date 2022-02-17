@@ -2,7 +2,6 @@
 
 - DataKit 版本：{{.Version}}
 - 文档发布日期：{{.ReleaseDate}}
-- 操作系统支持：`{{.AvailableArchs}}`
 
 # 非中心化的网络拨测部署
 
@@ -29,6 +28,10 @@
     isp      = "<specify-datakit-ISP>"      # 指定 DataKit 所在的网络服务商
     region   = "<your-region>"              # 可随意指定一个 region 名称
 ```
+
+具体的国家/地域以及 ISP 选择，可按照下图所示方式来选择（注意，不要真的新建「自建节点」，此处只是提供一个可供选择的来源）：
+
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dialtesting-select-country-city-isp.png)
 
 ### 配置拨测任务
 
