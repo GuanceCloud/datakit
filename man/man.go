@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -55,6 +56,7 @@ var (
 		"telegraf":                "man/manuals/telegraf.md",
 		"why-no-data":             "man/manuals/why-no-data.md",
 		"dca":                     "man/manuals/dca.md",
+		"dialtesting_json":        "man/manuals/dialtesting_json.md",
 	}
 	l = logger.DefaultSLogger("man")
 )
@@ -68,6 +70,7 @@ type Params struct {
 	Measurements   []*inputs.MeasurementInfo
 	CSS            string
 	AvailableArchs string
+	PipelineFuncs  string
 }
 
 func Get(name string) (string, error) {
@@ -104,6 +107,14 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 			Version:     ver,
 			ReleaseDate: git.BuildAt,
 			CSS:         css,
+		}
+		// Add pipeline functions doc.
+		if name == "pipeline" {
+			sb := strings.Builder{}
+			for _, v := range funcs.PipelineFunctionDocs {
+				sb.WriteString(v.Doc)
+			}
+			p.PipelineFuncs = sb.String()
 		}
 	} else {
 		c, ok := inputs.Inputs[name]

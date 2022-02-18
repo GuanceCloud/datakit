@@ -224,6 +224,25 @@ func RunInputs(isReload bool) error {
 	return nil
 }
 
+func RunInputExtra() error {
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	for name, arr := range InputsInfo {
+		for _, ii := range arr {
+			if ii.input == nil {
+				l.Debugf("skip non-datakit-input %s", name)
+				continue
+			}
+
+			if inp, ok := ii.input.(HTTPInput); ok {
+				inp.RegHTTPHandler()
+			}
+		}
+	}
+	return nil
+}
+
 func StopInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()

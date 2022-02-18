@@ -72,3 +72,5 @@ test.output
 y.output
 samples/*
 measurements-meta.json
+pipeline-docs.json
+internal-pipelines.json
