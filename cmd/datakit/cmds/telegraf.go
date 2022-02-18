@@ -36,13 +36,13 @@ func installTelegraf(installDir string) error {
 		return err
 	}
 
+	//nolint:lll
 	infof("Install Telegraf successfully!\n")
 	if runtime.GOOS == datakit.OSWindows {
-		infof("Start telegraf by `cd %v`, `copy telegraf.conf.sample tg.conf`, and `telegraf.exe --config tg.conf`\n",
+		infof("Start telegraf by `cd %s`, `copy telegraf.conf.sample tg.conf`, and `telegraf.exe --config tg.conf`\n",
 			filepath.Join(installDir, dirName))
 	} else {
-		//nolint:lll
-		infof("Start telegraf by `cd /etc/telegraf`, `cp telegraf.conf.sample tg.conf`, and `telegraf --config tg.conf`\n",
+		infof("Start telegraf by `cd %s`, `cp telegraf.conf.sample tg.conf`, and `telegraf --config tg.conf`\n",
 			filepath.Join(installDir, dirName))
 	}
 

@@ -13,9 +13,8 @@ import (
 	"golang.org/x/term"
 )
 
-func runMonitorFlags() error {
+func runMonitorFlags() {
 	cmdMonitor(*flagMonitorRefreshInterval, *flagMonitorVerbose)
-	return nil
 }
 
 func cmdMonitor(interval time.Duration, verbose bool) {

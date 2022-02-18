@@ -13,66 +13,66 @@ import (
 )
 
 var (
-	// FSG                  = pflag.NewFlagSet("", pflag.ExitOnError) //global flagset
+	// FSG                  = pflag.NewFlagSet("", pflag.ExitOnError) //global flagset.
 
-	/////////////////////////////////////
-	// doc related flags
-	/////////////////////////////////////
+	//
+	// doc related flags.
+	//
 	fsDocName  = "doc"
 	fsDoc      = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
 	fsDocUsage = func() {
-		fmt.Println("usage: datakit doc [options]\n")
-		fmt.Println("Doc used to manage all documents related to DataKit. Available options:\n")
+		fmt.Printf("usage: datakit doc [options]\n\n")
+		fmt.Printf("Doc used to manage all documents related to DataKit. Available options:\n\n")
 		fmt.Println(fsDoc.FlagUsagesWrapped(0))
 	}
 
-	flagDocExportDocs              = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
-	flagDocExportMetaInfo          = fsDoc.String("export-metainfo", "", "output metainfo to specified file")
-	flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
-	flagDocIgnore                  = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
-	flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)")
-	flagDocVersion                 = fsDoc.String("version", datakit.Version, "specify version string in document's header")
-	flagDocTODO                    = fsDoc.String("TODO", "TODO", "set TODO placeholder")
-	flagDocLogPath                 = fsDoc.String("log", commonLogFlag(), "command line log path")
+	// TODO: this flags not used, comment them to disable lint errors.
+	// flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
+	// flagDocExportDocs              = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
+	// flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)").
+	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file")
+	// flagDocIgnore         = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem").
+	flagDocLogPath = fsDoc.String("log", commonLogFlag(), "command line log path")
+	// flagDocTODO                    = fsDoc.String("TODO", "TODO", "set TODO placeholder")
+	// flagDocVersion = fsDoc.String("version", datakit.Version, "specify version string in document's header").
 
-	/////////////////////////////////////
-	// DQL related flags
-	/////////////////////////////////////
+	//
+	// DQL related flags.
+	//
 	fsDQLName  = "dql"
 	fsDQL      = pflag.NewFlagSet(fsDQLName, pflag.ContinueOnError)
 	fsDQLUsage = func() {
-		fmt.Println("usage: datakit dql [options]\n")
-		fmt.Println("DQL used to query data from DataFlux. If no option specified, query interactively. Other available options:\n")
+		fmt.Printf("usage: datakit dql [options]\n\n")
+		fmt.Printf("DQL used to query data from DataFlux. If no option specified, query interactively. Other available options:\n\n")
 		fmt.Println(fsDQL.FlagUsagesWrapped(0))
 	}
 
-	flagDQLInteractively bool
-	flagDQLJSON          = fsDQL.BoolP("json", "j", false, "output in json format")
-	flagDQLAutoJSON      = fsDQL.Bool("auto-json", false, "pretty output string if field/tag value is JSON")
-	flagDQLVerbose       = fsDQL.BoolP("verbose", "v", false, "verbosity mode")
-	flagDQLString        = fsDQL.StringP("run", "r", "", "run single DQL")
-	flagDQLToken         = fsDQL.StringP("token", "t", "", "run query for specific token(workspace)")
-	flagDQLCSV           = fsDQL.String("csv", "", "Specify the directory")
-	flagDQLForce         = fsDQL.BoolP("force", "f", false, "overwrite csv if file exists")
-	flagDQLDataKitHost   = fsDQL.StringP("host", "h", "", "specify datakit host to query")
-	flagDQLLogPath       = fsDQL.String("log", commonLogFlag(), "command line log path")
+	flagDQLJSON        = fsDQL.BoolP("json", "j", false, "output in json format")
+	flagDQLAutoJSON    = fsDQL.Bool("auto-json", false, "pretty output string if field/tag value is JSON")
+	flagDQLVerbose     = fsDQL.BoolP("verbose", "v", false, "verbosity mode")
+	flagDQLString      = fsDQL.StringP("run", "r", "", "run single DQL")
+	flagDQLToken       = fsDQL.StringP("token", "t", "", "run query for specific token(workspace)")
+	flagDQLCSV         = fsDQL.String("csv", "", "Specify the directory")
+	flagDQLForce       = fsDQL.BoolP("force", "f", false, "overwrite csv if file exists")
+	flagDQLDataKitHost = fsDQL.StringP("host", "h", "", "specify datakit host to query")
+	flagDQLLogPath     = fsDQL.String("log", commonLogFlag(), "command line log path")
 
-	/////////////////////////////////////
-	// running mode
-	/////////////////////////////////////
+	//
+	// running mode.
+	//
 	fsRunName          = "run"
 	fsRun              = pflag.NewFlagSet(fsRunName, pflag.ContinueOnError)
 	FlagRunInContainer = fsRun.BoolP("container", "c", false, "running in container mode")
-	flagRunLogPath     = fsRun.String("log", commonLogFlag(), "command line log path")
-	fsRunUsage         = func() {
-		fmt.Println("usage: datakit run [options]\n")
-		fmt.Println("Run used to select different datakit running mode.\n")
+	// flagRunLogPath     = fsRun.String("log", commonLogFlag(), "command line log path").
+	fsRunUsage = func() {
+		fmt.Printf("usage: datakit run [options]\n\n")
+		fmt.Printf("Run used to select different datakit running mode.\n\n")
 		fmt.Println(fsRun.FlagUsagesWrapped(0))
 	}
 
-	/////////////////////////////////////
-	// pipeline related flags
-	/////////////////////////////////////
+	//
+	// pipeline related flags.
+	//
 	fsPLName          = "pipeline"
 	debugPipelineName = ""
 	fsPL              = pflag.NewFlagSet(fsPLName, pflag.ContinueOnError)
@@ -81,30 +81,30 @@ var (
 	flagPLTxtFile     = fsPL.StringP("file", "F", "", "text file path for the pipeline or grok(json or raw text)")
 	flagPLTable       = fsPL.Bool("tab", false, "output result in table format")
 	flagPLDate        = fsPL.Bool("date", false, "append date display(according to local timezone) on timestamp")
-	flagPLGrokQ       = fsPL.BoolP("grokq", "G", false, "query groks interactively")
-	fsPLUsage         = func() {
-		fmt.Println("usage: datakit pipeline [pipeline-script-name.p] [options]\n")
-		fmt.Println("Pipeline used to debug exists pipeline script.\n")
+	// flagPLGrokQ       = fsPL.BoolP("grokq", "G", false, "query groks interactively").
+	fsPLUsage = func() {
+		fmt.Printf("usage: datakit pipeline [pipeline-script-name.p] [options]\n\n")
+		fmt.Printf("Pipeline used to debug exists pipeline script.\n\n")
 		fmt.Println(fsPL.FlagUsagesWrapped(0))
 	}
 
-	/////////////////////////////////////
-	// version related flags
-	/////////////////////////////////////
+	//
+	// version related flags.
+	//
 	fsVersionName                    = "version"
 	fsVersion                        = pflag.NewFlagSet(fsVersionName, pflag.ContinueOnError)
 	flagVersionLogPath               = fsVersion.String("log", commonLogFlag(), "command line log path")
 	flagVersionDisableUpgradeInfo    = fsVersion.Bool("upgrade-info-off", false, "do not show upgrade info")
 	flagVersionUpgradeTestingVersion = fsVersion.BoolP("testing", "T", false, "show testing version upgrade info")
 	fsVersionUsage                   = func() {
-		fmt.Println("usage: datakit version [options]\n")
-		fmt.Println("Version used to handle version related functions.\n")
+		fmt.Printf("usage: datakit version [options]\n\n")
+		fmt.Printf("Version used to handle version related functions.\n\n")
 		fmt.Println(fsVersion.FlagUsagesWrapped(0))
 	}
 
-	/////////////////////////////////////
-	// service management related flags
-	/////////////////////////////////////
+	//
+	// service management related flags.
+	//
 	fsServiceName        = "service"
 	fsService            = pflag.NewFlagSet(fsServiceName, pflag.ContinueOnError)
 	flagServiceLogPath   = fsService.String("log", commonLogFlag(), "command line log path")
@@ -114,37 +114,37 @@ var (
 	flagServiceUninstall = fsService.BoolP("uninstall", "U", false, "uninstall datakit service")
 	flagServiceReinstall = fsService.BoolP("reinstall", "I", false, "reinstall datakit service")
 	fsServiceUsage       = func() {
-		fmt.Println("usage: datakit service [options]\n")
-		fmt.Println("Service used to manage datakit service\n")
+		fmt.Printf("usage: datakit service [options]\n\n")
+		fmt.Printf("Service used to manage datakit service\n\n")
 		fmt.Println(fsService.FlagUsagesWrapped(0))
 	}
 
-	/////////////////////////////////////
-	// monitor related flags
-	/////////////////////////////////////
+	//
+	// monitor related flags.
+	//
 	fsMonitorName              = "monitor"
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
 	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info")
 	fsMonitorUsage             = func() {
-		fmt.Println("usage: datakit monitor [options]\n")
-		fmt.Println("Monitor used to show datakit running statistics\n")
+		fmt.Printf("usage: datakit monitor [options]\n\n")
+		fmt.Printf("Monitor used to show datakit running statistics\n\n")
 		fmt.Println(fsMonitor.FlagUsagesWrapped(0))
 	}
 
-	/////////////////////////////////////
-	// install related flags
-	/////////////////////////////////////
+	//
+	// install related flags.
+	//
 	fsInstallName       = "install"
 	fsInstall           = pflag.NewFlagSet(fsInstallName, pflag.ContinueOnError)
 	flagInstallLogPath  = fsInstall.String("log", commonLogFlag(), "command line log path")
 	flagInstallTelegraf = fsInstall.Bool("telegraf", false, "install Telegraf")
 	flagInstallScheck   = fsInstall.Bool("scheck", false, "install SCheck")
-	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database(currently only iploc avaialble)")
+	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database(currently only iploc available)")
 	fsInstallUsage      = func() {
-		fmt.Println("usage: datakit install [options]\n")
-		fmt.Println("Install used to install DataKit related packages and plugins\n")
+		fmt.Printf("usage: datakit install [options]\n\n")
+		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")
 		fmt.Println(fsInstall.FlagUsagesWrapped(0))
 	}
 )
@@ -319,10 +319,7 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			if err := runMonitorFlags(); err != nil {
-				errorf("%s\n", err)
-				os.Exit(-1)
-			}
+			runMonitorFlags()
 
 			os.Exit(0)
 
@@ -371,6 +368,6 @@ func RunCmds() {
 	}
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	initOldStyleFlags()
 }

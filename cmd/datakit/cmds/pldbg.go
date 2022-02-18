@@ -19,7 +19,7 @@ func runPLFlags() error {
 	if *flagPLTxtFile != "" {
 		txtBytes, err := ioutil.ReadFile(*flagPLTxtFile)
 		if err != nil {
-			return fmt.Errorf("ioutil.ReadFile: %s", err)
+			return fmt.Errorf("ioutil.ReadFile: %w", err)
 		}
 		txt = string(txtBytes)
 		txt = strings.TrimSuffix(txt, "\n")
