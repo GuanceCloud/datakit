@@ -209,7 +209,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			SourceType:         ddtraceSpanType[span.Type],
 			Tags:               itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
-			PID:                fmt.Sprintf("%f", span.Metrics["system.pid"]),
+			PID:                fmt.Sprintf("%d", int64(span.Metrics["system.pid"])),
 			HTTPMethod:         span.Meta["http.method"],
 			HTTPStatusCode:     span.Meta["http.status_code"],
 			Start:              span.Start,

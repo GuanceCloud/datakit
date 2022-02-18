@@ -15,9 +15,7 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
-var jsonContentTypes = []string{"", "xxx", "application/json", "text/json"}
-
-func TestDDTraceHandlers(t *testing.T) {
+func TestDDTraceAgent(t *testing.T) {
 	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktrace itrace.DatakitTrace, strikMod bool) {})
 
 	rand.Seed(time.Now().UnixNano())
@@ -45,7 +43,7 @@ func testJsonDDTraces(t *testing.T) {
 				return
 			}
 
-			for _, contentType := range jsonContentTypes {
+			for _, contentType := range []string{"", "xxx", "application/json", "text/json"} {
 				req.Header.Set("Content-Type", contentType)
 				resp, err := http.DefaultClient.Do(req)
 				if err != nil {

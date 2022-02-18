@@ -64,8 +64,9 @@ const (
 )
 
 var (
-	log              = logger.DefaultSLogger(inputName)
-	afterGather      = itrace.NewAfterGather()
+	log                                        = logger.DefaultSLogger(inputName)
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
