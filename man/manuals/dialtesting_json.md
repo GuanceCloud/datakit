@@ -76,6 +76,8 @@
 }
 ```
 
+>  编辑完这个 JSON 后，建议找一些在线工具（[这个](https://www.json.cn/)或[这个](https://jsonformatter.curiousconcept.com/#)）验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
+
 配置好后，重启 DataKit 即可。
 
 ### 拨测任务字段定义
