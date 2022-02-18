@@ -64,7 +64,8 @@ const (
 
 var (
 	log                                        = logger.DefaultSLogger(inputName)
-	v3, v4, v5, v6                             = "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
+	v3, v4, v5                                 = "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
+	info, stats                                = "/info", "/v0.6/stats"
 	afterGather                                = itrace.NewAfterGather()
 	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
@@ -143,17 +144,15 @@ func (ipt *Input) RegHTTPHandler() {
 			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTraces(endpoint))
 			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTraces(endpoint))
 			log.Infof("pattern %s registered", endpoint)
-		case v6:
-			isReg = true
-			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDStats)
-			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDStats)
-			log.Infof("pattern %s registered", endpoint)
 		default:
 			log.Errorf("unrecognized ddtrace agent endpoint")
 		}
 	}
 	if isReg {
 		itrace.StartTracingStatistic()
+		// unsupported api yet
+		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
+		dkhttp.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
 	}
 }
 
