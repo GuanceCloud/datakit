@@ -18,23 +18,55 @@ import (
 	"golang.org/x/term"
 )
 
-var categoryMap = map[string]string{
-	datakit.MetricDeprecated: "M",
-	datakit.Metric:           "M",
-	datakit.Network:          "N",
-	datakit.KeyEvent:         "E",
-	datakit.Object:           "O",
-	datakit.Logging:          "L",
-	datakit.Tracing:          "T",
-	datakit.RUM:              "R",
-	datakit.Security:         "S",
+var (
+	categoryMap = map[string]string{
+		datakit.MetricDeprecated: "M",
+		datakit.Metric:           "M",
+		datakit.Network:          "N",
+		datakit.KeyEvent:         "E",
+		datakit.Object:           "O",
+		datakit.Logging:          "L",
+		datakit.Tracing:          "T",
+		datakit.RUM:              "R",
+		datakit.Security:         "S",
+	}
+
+	inputsStatsCols = strings.Split(`Input,Category,Freqency,Avg Feed Pts,Total Feed,Total Points,First Feed,Last Feed,Avg Cost,Max Cost,Error(date),`, ",")
+)
+
+func renderBasicInfoTable(table *tview.Table, ds *dkhttp.DatakitStats) {
+	row := 0
+	table.SetCell(row, 0,
+		tview.NewTableCell("Hostname").
+			SetAlign(tview.AlignCenter))
+
+	table.SetCell(row, 1,
+		tview.NewTableCell(ds.HostName).
+			SetAlign(tview.AlignCenter))
+	row++
+
+	table.SetCell(row, 0,
+		tview.NewTableCell("Version").
+			SetAlign(tview.AlignCenter))
+
+	table.SetCell(row, 1,
+		tview.NewTableCell(ds.Version).
+			SetAlign(tview.AlignCenter))
+	row++
+
+	table.SetCell(row, 0,
+		tview.NewTableCell("Uptime").
+			SetAlign(tview.AlignCenter))
+
+	table.SetCell(row, 1,
+		tview.NewTableCell(ds.Uptime).
+			SetAlign(tview.AlignCenter))
+	row++
+
+	// TODO
 }
 
-func inputMonitors(app *tview.Application, ds *dkhttp.DatakitStats) (*tview.Table, error) {
-	table := tview.NewTable().SetBorders(true)
-
-	colArr := strings.Split(`Input,Category,Freqency,Avg Feed Pts,Total Feed,Total Points,First Feed,Last Feed,Avg Cost,Max Cost,Error(date),`, ",")
-
+func renderInputsStatTable(table *tview.Table, ds *dkhttp.DatakitStats, colArr []string) {
 	// set table header
 	for idx := range colArr {
 		table.SetCell(0, idx,
@@ -102,43 +134,87 @@ func inputMonitors(app *tview.Application, ds *dkhttp.DatakitStats) (*tview.Tabl
 
 		row++
 	}
+}
 
-	return table, nil
+type monitorAPP struct {
+	app            *tview.Application
+	basicInfoBox   *tview.Box
+	basicInfoTable *tview.Table
+
+	inputsStatBox   *tview.Box
+	inputsStatTable *tview.Table
+
+	refresh time.Duration
+	url     string
+}
+
+func (m *monitorAPP) setup() {
+	m.basicInfoBox = tview.NewTable().SetBorder(true).SetTitle("Basic Info")
+	m.basicInfoTable = tview.NewTable().SetBorders(true)
+	m.basicInfoTable.SetBorder(true)
+
+	m.inputsStatBox = tview.NewTable().SetBorder(true).SetTitle("Inputs Stats")
+	m.inputsStatTable = tview.NewTable().SetBorders(true)
+	m.inputsStatTable.SetBorders(true)
+
+	flex := tview.NewFlex().AddItem(m.basicInfoBox, 0, 1, false).
+		AddItem(m.basicInfoTable, 0, 2, false).
+		AddItem(m.inputsStatBox, 0, 1, false).
+		AddItem(m.inputsStatTable, 0, 2, false)
+
+	go func() {
+		tick := time.NewTicker(m.refresh)
+		defer tick.Stop()
+
+		for {
+
+			l.Debugf("try get stats...")
+
+			ds, err := requestStats(m.url)
+			if err != nil {
+				return // TODO: handle this error
+			}
+
+			m.render(ds)
+
+			select { // wait
+			case <-tick.C:
+			}
+		}
+	}()
+
+	pages := tview.NewPages().AddPage("", flex, true, true)
+	m.app.SetRoot(pages, true)
+}
+
+func (m *monitorAPP) run() error {
+	return m.app.Run()
+}
+
+func (m *monitorAPP) render(ds *dkhttp.DatakitStats) {
+	// inputMonitors(m.app, ds)
+
+	m.basicInfoTable.Clear()
+	m.inputsStatTable.Clear()
+
+	renderBasicInfoTable(m.inputsStatTable, ds)
+	renderInputsStatTable(m.inputsStatTable, ds, inputsStatsCols)
 }
 
 func runMonitorFlags() error {
-	addr := fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen)
 	if *flagMonitorRefreshInterval < time.Second {
 		*flagMonitorRefreshInterval = time.Second
 	}
 
-	app := tview.NewApplication()
-
-	monitor := func() {
-		ds, err := requestStats(addr)
-		if err != nil {
-			return // TODO: handle this error
-		}
-
-		// refer to this pg example: https://gist.github.com/rivo/2893c6740a6c651f685b9766d1898084
-
-		table, err := inputMonitors(app, ds)
-		//box := tview.NewBox().SetBorder(true).SetBorderAttributes(true).SetTitle("Inputs Running Status")
-		//if err != nil {
-		//}
-
-		if err := app.SetRoot(table, true).EnableMouse(false).Run(); err != nil {
-			panic(err)
-		}
+	m := monitorAPP{
+		app:     tview.NewApplication(),
+		refresh: *flagMonitorRefreshInterval,
+		url:     fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen),
 	}
 
-	tick := time.NewTicker(*flagMonitorRefreshInterval)
-	defer tick.Stop()
-	for range tick.C {
-		monitor()
-	}
+	m.setup()
 
-	return nil
+	return m.run()
 }
 
 func cmdMonitor(interval time.Duration, verbose bool) {
