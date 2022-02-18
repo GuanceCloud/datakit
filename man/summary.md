@@ -68,6 +68,8 @@
 
     - [网络拨测](dialtesting)
 
+       - [通过本地 JSON 定义拨测任务](dialtesting_json)
+
 	- [eBPF]()
 
 		- [ebpf](ebpf)

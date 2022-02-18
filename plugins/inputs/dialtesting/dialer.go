@@ -152,17 +152,18 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "http_dial_testing",
 		Tags: map[string]interface{}{
-			"name":               &inputs.TagInfo{Desc: "示例：拨测名称,百度测试"},
-			"url":                &inputs.TagInfo{Desc: "示例 http://wwww.baidu.com"},
-			"country":            &inputs.TagInfo{Desc: "示例 中国"},
-			"province":           &inputs.TagInfo{Desc: "示例 浙江"},
 			"city":               &inputs.TagInfo{Desc: "示例 杭州"},
+			"country":            &inputs.TagInfo{Desc: "示例 中国"},
 			"internal":           &inputs.TagInfo{Desc: "示例 true（国内 true /海外 false）"},
 			"isp":                &inputs.TagInfo{Desc: "示例 电信/移动/联通"},
+			"name":               &inputs.TagInfo{Desc: "示例：拨测名称,百度测试"},
+			"region":             &inputs.TagInfo{Desc: "示例：China-Xizang-unicom"},
+			"proto":              &inputs.TagInfo{Desc: "示例 HTTP/1.0"},
+			"province":           &inputs.TagInfo{Desc: "示例 浙江"},
 			"status":             &inputs.TagInfo{Desc: "示例 OK/FAIL 两种状态 "},
 			"status_code_class":  &inputs.TagInfo{Desc: "示例 2xx"},
 			"status_code_string": &inputs.TagInfo{Desc: "示例 200 OK"},
-			"proto":              &inputs.TagInfo{Desc: "示例 HTTP/1.0"},
+			"url":                &inputs.TagInfo{Desc: "示例 http://wwww.baidu.com"},
 		},
 		Fields: map[string]interface{}{
 			"status_code": &inputs.FieldInfo{
