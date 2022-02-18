@@ -15,7 +15,6 @@ func TestJaegerAgent(t *testing.T) {
 
 func testHTTPHandle(t *testing.T) {
 	t.Helper()
-
 }
 
 func testUDPClient(t *testing.T) {
