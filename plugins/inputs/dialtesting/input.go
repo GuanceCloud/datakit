@@ -68,7 +68,7 @@ type Input struct {
 const sample = `
 [[inputs.dialtesting]]
   # 中心任务存储的服务地址，即df_dialtesting center service。
-  # 此处同时可配置成本地json 文件全路径 "files:///your/dir/json-file-name", 为task任务的json字符串。
+  # 此处同时可配置成本地json 文件全路径 "file:///your/dir/json-file-name", 为task任务的json字符串。
   server = "https://dflux-dial.guance.com"
 
   # require，节点惟一标识ID
@@ -192,7 +192,13 @@ func (d *Input) doServerTask() {
 }
 
 func (d *Input) doLocalTask(path string) {
-	j, err := d.getLocalJSONTasks(path)
+	data, err := ioutil.ReadFile(filepath.Clean(path))
+	if err != nil {
+		l.Errorf(`%s`, err.Error())
+		return
+	}
+
+	j, err := d.getLocalJSONTasks(data)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
@@ -253,7 +259,9 @@ func protectedRun(d *dialer) {
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-			l.Warnf("task %s panic: %+#v", d.task.ID(), err)
+
+			l.Warnf("task %s panic: %+#v, trace: %s", d.task.ID(), err, string(trace))
+
 			crashcnt++
 			if crashcnt > maxCrashCnt {
 				l.Warnf("task %s crashed %d times, exit now", d.task.ID(), crashcnt)
@@ -412,13 +420,7 @@ func (d *Input) dispatchTasks(j []byte) error {
 	return nil
 }
 
-func (d *Input) getLocalJSONTasks(path string) ([]byte, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(path))
-	if err != nil {
-		l.Errorf(`%s`, err.Error())
-		return nil, err
-	}
-
+func (d *Input) getLocalJSONTasks(data []byte) ([]byte, error) {
 	// 转化结构，json结构转成与kodo服务一样的格式
 	var resp map[string][]interface{}
 	if err := json.Unmarshal(data, &resp); err != nil {
@@ -426,7 +428,8 @@ func (d *Input) getLocalJSONTasks(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	res := map[string]interface{}{}
+	content := map[string]interface{}{}
+
 	for k, v := range resp {
 		vs := []string{}
 		for _, v1 := range v {
@@ -439,13 +442,13 @@ func (d *Input) getLocalJSONTasks(path string) ([]byte, error) {
 			vs = append(vs, string(dt))
 		}
 
-		res[k] = vs
+		content[k] = vs
 	}
 
 	tasks := taskPullResp{
-		Content: res,
+		Content: content,
 	}
-	rs, err := json.Marshal(tasks)
+	rs, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		l.Error(err)
 		return nil, err
@@ -539,21 +542,25 @@ func (d *Input) stopAlltask() {
 	}
 }
 
+func newDefaultInput() *Input {
+	return &Input{
+		Tags:     map[string]string{},
+		curTasks: map[string]*dialer{},
+		wg:       sync.WaitGroup{},
+		cli: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+				TLSHandshakeTimeout: 30 * time.Second,
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 100,
+			},
+		},
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:     map[string]string{},
-			curTasks: map[string]*dialer{},
-			wg:       sync.WaitGroup{},
-			cli: &http.Client{
-				Timeout: 30 * time.Second,
-				Transport: &http.Transport{
-					TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
-					TLSHandshakeTimeout: 30 * time.Second,
-					MaxIdleConns:        100,
-					MaxIdleConnsPerHost: 100,
-				},
-			},
-		}
+		return newDefaultInput()
 	})
 }
