@@ -12,6 +12,16 @@ import (
 
 var once = sync.Once{}
 
+type AfterGatherHandler interface {
+	Run(inputName string, dktrace DatakitTrace, strikMod bool)
+}
+
+type AfterGatherFunc func(inputName string, dktrace DatakitTrace, strikMod bool)
+
+func (ag AfterGatherFunc) Run(inputName string, dktrace DatakitTrace, strikMod bool) {
+	ag(inputName, dktrace, strikMod)
+}
+
 // CalculatorFunc is func type for calculation, statistics, etc
 // any data changes in DatakitTraces will be saved and affect the next actions afterwards.
 type CalculatorFunc func(dktrace DatakitTrace)
