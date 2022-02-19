@@ -147,7 +147,7 @@ github.com/alecthomas/chroma/lexers/w
 github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
 github.com/alecthomas/chroma/styles
-# github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/apache/thrift v0.13.0
@@ -859,7 +859,7 @@ github.com/vmihailenco/tagparser/internal/parser
 github.com/whilp/git-urls
 # github.com/xanzy/ssh-agent v0.3.0
 github.com/xanzy/ssh-agent
-# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220214030751-cf38aa8d1ebd
+# gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220216063214-d3ae12b9cbd2
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/cliutils
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto

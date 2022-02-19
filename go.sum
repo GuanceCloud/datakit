@@ -248,6 +248,8 @@ github.com/aliyun/aliyun-oss-go-sdk v2.1.2+incompatible/go.mod h1:T/Aws4fEfogEE9
 github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible h1:ht2+VfbXtNLGhCsnTMc6/N26nSTBK6qdhktjYyjJQkk=
 github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
+github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible h1:uuJIwCFhbZy+zdvLy5zrcIToPEQP0s5CFOZ0Zj03O/w=
+github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9/go.mod h1:eliMa/PW+RDr2QLWRmLH1R1ZA4RInpmvOzDDXtaIZkc=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.0/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
@@ -1987,6 +1989,8 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220117082011-b2dea10607f0
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220117082011-b2dea10607f0/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220214030751-cf38aa8d1ebd h1:Q9AqqcyifPZBAHlECCTs4wZn54wBnDX5jSETDuet0UE=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220214030751-cf38aa8d1ebd/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220216063214-d3ae12b9cbd2 h1:8+fva+dhBz+Q2acExC9OMZfJtxAjNcJbgxUDeM0tX3g=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220216063214-d3ae12b9cbd2/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f h1:8Ols31IqbvSRPq+MEgJVSAm0kPeVh0mhoA7fHzxXcN4=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f/go.mod h1:5Pu9J7RhO3Nix1lt2Q54eG/5DK59rDXEZnQsSczvtLw=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

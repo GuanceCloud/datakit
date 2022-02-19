@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
 	//"github.com/gdamore/tcell/v2"
 	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/dustin/go-humanize"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
@@ -30,61 +33,65 @@ var (
 		datakit.RUM:              "R",
 		datakit.Security:         "S",
 	}
-
-	inputsStatsCols = strings.Split(`Input,Category,Freqency,Avg Feed Pts,Total Feed,Total Points,First Feed,Last Feed,Avg Cost,Max Cost,Error(date),`, ",")
+	ErrMsgTrimLenght = 8
+	MaxTableWidth    = 16
+	inputsStatsCols  = strings.Split(`Input,Category,Freq,Avg Pts,Total Feed,Total Pts,1st Feed,Last Feed,Avg Cost,Max Cost,Error(date)`, ",")
 )
 
-func renderBasicInfoTable(table *tview.Table, ds *dkhttp.DatakitStats) {
-	row := 0
-	table.SetCell(row, 0,
-		tview.NewTableCell("Hostname").
-			SetAlign(tview.AlignCenter))
-
-	table.SetCell(row, 1,
-		tview.NewTableCell(ds.HostName).
-			SetAlign(tview.AlignCenter))
-	row++
-
-	table.SetCell(row, 0,
-		tview.NewTableCell("Version").
-			SetAlign(tview.AlignCenter))
-
-	table.SetCell(row, 1,
-		tview.NewTableCell(ds.Version).
-			SetAlign(tview.AlignCenter))
-	row++
-
-	table.SetCell(row, 0,
-		tview.NewTableCell("Uptime").
-			SetAlign(tview.AlignCenter))
-
-	table.SetCell(row, 1,
-		tview.NewTableCell(ds.Uptime).
-			SetAlign(tview.AlignCenter))
-	row++
-
-	// TODO
+func (m *monitorAPP) renderBasicInfoForm(ds *dkhttp.DatakitStats) {
+	m.basicInfoForm.AddInputField("Hostname", ds.HostName, 32, nil, nil).
+		AddInputField("Version", ds.Version, 32, nil, nil).
+		AddInputField("Build", ds.BuildAt, 32, nil, nil).
+		AddInputField("Branch", ds.Branch, 32, nil, nil).
+		AddInputField("Uptime", ds.Uptime, 32, nil, nil).
+		AddInputField("OS/Arch", ds.OSArch, 32, nil, nil).
+		AddInputField("IO Chan", ds.IOChanStat, 32, nil, nil).
+		AddInputField("PL Chan", ds.PLWorkerStat, 32, nil, nil).
+		AddInputField("Elected", ds.Elected, 32, nil, nil).
+		AddInputField("From", m.url, 32, nil, nil).
+		AddInputField("Monitor Time", fmt.Sprintf("%s", time.Since(m.start)), 32, nil, nil)
 }
 
-func renderInputsStatTable(table *tview.Table, ds *dkhttp.DatakitStats, colArr []string) {
+func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []string) {
+	table := m.inputsStatTable
+
 	// set table header
 	for idx := range colArr {
 		table.SetCell(0, idx,
 			tview.NewTableCell(colArr[idx]).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
+				SetTextColor(tcell.ColorGreen).
 				SetAlign(tview.AlignCenter))
 	}
 
 	row := 1
 	now := time.Now()
-	for k, v := range ds.InputsStats {
+
+	// sort inputs(by name)
+	inputsNames := []string{}
+	for k := range ds.InputsStats {
+		inputsNames = append(inputsNames, k)
+	}
+	sort.Strings(inputsNames)
+
+	for _, name := range inputsNames {
+		v := ds.InputsStats[name]
+
 		table.SetCell(row, 0,
-			tview.NewTableCell(k).
-				SetAlign(tview.AlignCenter))
+			tview.NewTableCell(name).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
+				SetAlign(tview.AlignRight))
 
 		table.SetCell(row, 1,
 			tview.NewTableCell(func() string {
-				return categoryMap[v.Category]
-			}()).SetAlign(tview.AlignCenter))
+				if v, ok := categoryMap[v.Category]; ok {
+					return v
+				} else {
+					return "-"
+				}
+			}()).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
+				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 2,
 			tview.NewTableCell(func() string {
@@ -92,45 +99,58 @@ func renderInputsStatTable(table *tview.Table, ds *dkhttp.DatakitStats, colArr [
 					return "-"
 				}
 				return v.Frequency
-			}()).SetAlign(tview.AlignCenter))
+			}()).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
+				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 3,
 			tview.NewTableCell(fmt.Sprintf("%d", v.AvgSize)).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
 				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 4,
-			tview.NewTableCell(fmt.Sprintf("%d", v.Count)).
+			tview.NewTableCell(fmt.Sprintf("%s", humanize.Bytes(uint64(v.Count)))).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
 				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 5,
-			tview.NewTableCell(fmt.Sprintf("%d", v.Total)).
+			tview.NewTableCell(fmt.Sprintf("%s", humanize.Bytes(uint64(v.Total)))).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
 				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 6,
 			tview.NewTableCell(func() string {
 				return humanize.RelTime(v.First, now, "ago", "")
-			}()).SetAlign(tview.AlignCenter))
+			}()).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
+				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 7,
 			tview.NewTableCell(func() string {
 				return humanize.RelTime(v.Last, now, "ago", "")
-			}()).SetAlign(tview.AlignCenter))
+			}()).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
+				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 8,
 			tview.NewTableCell(v.AvgCollectCost.String()).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
 				SetAlign(tview.AlignCenter))
 
 		table.SetCell(row, 9,
 			tview.NewTableCell(v.MaxCollectCost.String()).
+				SetMaxWidth(*flagMonitorMaxTableWidth).
 				SetAlign(tview.AlignCenter))
 
-		table.SetCell(row, 9,
+		table.SetCell(row, 10,
 			tview.NewTableCell(func() string {
 				if v.LastErr == "" {
 					return "-"
 				}
-				return fmt.Sprintf("%s(%s)", v.LastErr, humanize.RelTime(v.LastErrTS, now, "ago", ""))
-			}()).SetAlign(tview.AlignCenter))
+				return fmt.Sprintf("%s(%s)", cliutils.StringTrim(v.LastErr, ErrMsgTrimLenght), humanize.RelTime(v.LastErrTS, now, "ago", ""))
+			}()).
+				SetMaxWidth(*flagMonitorMaxTableWidth+ErrMsgTrimLenght).
+				SetAlign(tview.AlignCenter))
 
 		row++
 	}
@@ -139,28 +159,33 @@ func renderInputsStatTable(table *tview.Table, ds *dkhttp.DatakitStats, colArr [
 type monitorAPP struct {
 	app            *tview.Application
 	basicInfoBox   *tview.Box
+	basicInfoForm  *tview.Form
 	basicInfoTable *tview.Table
 
-	inputsStatBox   *tview.Box
 	inputsStatTable *tview.Table
+	exitPrompt      *tview.TextView
 
 	refresh time.Duration
+	start   time.Time
 	url     string
 }
 
 func (m *monitorAPP) setup() {
-	m.basicInfoBox = tview.NewTable().SetBorder(true).SetTitle("Basic Info")
-	m.basicInfoTable = tview.NewTable().SetBorders(true)
-	m.basicInfoTable.SetBorder(true)
-
-	m.inputsStatBox = tview.NewTable().SetBorder(true).SetTitle("Inputs Stats")
 	m.inputsStatTable = tview.NewTable().SetBorders(true)
-	m.inputsStatTable.SetBorders(true)
+	m.inputsStatTable.SetBorder(true).SetTitle("Inputs Info").SetTitleAlign(tview.AlignLeft)
 
-	flex := tview.NewFlex().AddItem(m.basicInfoBox, 0, 1, false).
-		AddItem(m.basicInfoTable, 0, 2, false).
-		AddItem(m.inputsStatBox, 0, 1, false).
-		AddItem(m.inputsStatTable, 0, 2, false)
+	m.basicInfoForm = tview.NewForm()
+	m.basicInfoForm.SetBorder(true).SetTitle("Basic Info").SetTitleAlign(tview.AlignLeft)
+	m.basicInfoForm.SetFieldBackgroundColor(tcell.ColorDefault)
+	m.basicInfoForm.SetItemPadding(0)
+
+	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
+
+	flex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(m.basicInfoForm, 0, 7, false).
+		AddItem(m.inputsStatTable, 0, 14, false).
+		AddItem(m.exitPrompt, 0, 1, false)
 
 	go func() {
 		tick := time.NewTicker(m.refresh)
@@ -176,6 +201,7 @@ func (m *monitorAPP) setup() {
 			}
 
 			m.render(ds)
+			m.app = m.app.Draw()
 
 			select { // wait
 			case <-tick.C:
@@ -183,8 +209,9 @@ func (m *monitorAPP) setup() {
 		}
 	}()
 
-	pages := tview.NewPages().AddPage("", flex, true, true)
-	m.app.SetRoot(pages, true)
+	if err := m.app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
+		panic(err)
+	}
 }
 
 func (m *monitorAPP) run() error {
@@ -192,13 +219,17 @@ func (m *monitorAPP) run() error {
 }
 
 func (m *monitorAPP) render(ds *dkhttp.DatakitStats) {
-	// inputMonitors(m.app, ds)
-
-	m.basicInfoTable.Clear()
+	m.basicInfoForm.Clear(true)
 	m.inputsStatTable.Clear()
+	m.exitPrompt.Clear()
 
-	renderBasicInfoTable(m.inputsStatTable, ds)
-	renderInputsStatTable(m.inputsStatTable, ds, inputsStatsCols)
+	if ds == nil {
+		return
+	}
+
+	m.renderBasicInfoForm(ds)
+	m.renderInputsStatTable(ds, inputsStatsCols)
+	fmt.Fprintf(m.exitPrompt, "[yellow]Refreshed at %s, Press ctrl+c to exit monitor", *flagMonitorRefreshInterval)
 }
 
 func runMonitorFlags() error {
@@ -206,10 +237,16 @@ func runMonitorFlags() error {
 		*flagMonitorRefreshInterval = time.Second
 	}
 
+	to := config.Cfg.HTTPAPI.Listen
+	if *flagMonitorTo != "" {
+		to = *flagMonitorTo
+	}
+
 	m := monitorAPP{
 		app:     tview.NewApplication(),
 		refresh: *flagMonitorRefreshInterval,
-		url:     fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen),
+		url:     fmt.Sprintf("http://%s/stats", to),
+		start:   time.Now(),
 	}
 
 	m.setup()

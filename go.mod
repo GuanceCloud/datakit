@@ -10,7 +10,7 @@ require (
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible
+	github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
@@ -81,7 +81,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/vmihailenco/msgpack/v4 v4.3.12
 	github.com/whilp/git-urls v1.0.0
-	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220214030751-cf38aa8d1ebd
+	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220216063214-d3ae12b9cbd2
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/multierr v1.7.0 // indirect

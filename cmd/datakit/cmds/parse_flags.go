@@ -124,6 +124,8 @@ var (
 	/////////////////////////////////////
 	fsMonitorName              = "monitor"
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
+	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 16, "set max table cell width")
+	flagMonitorTo              = fsMonitor.String("to", "", "which DataKit(IP:Port) you want to monitor? default to local DataKit")
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
 	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info")

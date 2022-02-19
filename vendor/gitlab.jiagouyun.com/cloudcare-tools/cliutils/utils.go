@@ -146,3 +146,20 @@ func Decrypt(endata, phrase []byte) ([]byte, error) {
 	}
 	return plaintext, nil
 }
+
+func StringTrim(s string, n int) string {
+	if len(s) > n {
+		return fmt.Sprintf("%s...(%d trimmed)", s[:n], len(s)-n)
+	} else {
+		return s
+	}
+}
+
+func LeftStringTrim(s string, n int) string {
+	if len(s) > n {
+		pos := len(s) - n
+		return fmt.Sprintf("...%s(%d trimmed)", s[pos:], pos)
+	} else {
+		return s
+	}
+}
