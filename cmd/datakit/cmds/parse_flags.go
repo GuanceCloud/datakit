@@ -1,3 +1,4 @@
+//nolint:lll
 package cmds
 
 import (
@@ -122,13 +123,16 @@ var (
 	/////////////////////////////////////
 	// monitor related flags
 	/////////////////////////////////////
-	fsMonitorName              = "monitor"
-	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
-	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 16, "set max table cell width")
-	flagMonitorTo              = fsMonitor.String("to", "", "which DataKit(IP:Port) you want to monitor? default to local DataKit")
+	fsMonitorName            = "monitor"
+	fsMonitor                = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
+	flagMonitorMaxTableWidth = fsMonitor.IntP("max-table-width", "W", 16, "set max table cell width")
+	flagMonitorTo            = fsMonitor.String("to", "", "which DataKit(IP:Port) you want to monitor? default to local DataKit")
+
+	flagMonitorOnlyInputs = fsMonitor.StringSliceP("input", "I", nil, "show only specified inputs stats, seprated by ',', i.e., --input cpu,mem")
+
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
-	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info")
+	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info, default not show goroutine and inputs config info")
 	fsMonitorUsage             = func() {
 		fmt.Println("usage: datakit monitor [options]\n")
 		fmt.Println("Monitor used to show datakit running statistics\n")

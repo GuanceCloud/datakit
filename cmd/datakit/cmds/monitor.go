@@ -1,3 +1,4 @@
+//nolint:lll
 package cmds
 
 import (
@@ -109,7 +110,7 @@ func (m *monitorAPP) renderEnabledInputTable(ds *dkhttp.DatakitStats, colArr []s
 
 	// set table header
 	for idx := range colArr {
-		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).SetMaxWidth(*flagMonitorMaxTableWidth).SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignCenter))
+		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).SetMaxWidth(*flagMonitorMaxTableWidth).SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
 	}
 
 	// sort enabled inputs(by name)
@@ -140,7 +141,7 @@ func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []stri
 
 	// set table header
 	for idx := range colArr {
-		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).SetMaxWidth(*flagMonitorMaxTableWidth).SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignCenter))
+		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).SetMaxWidth(*flagMonitorMaxTableWidth).SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
 	}
 
 	row := 1
@@ -161,7 +162,7 @@ func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []stri
 		table.SetCell(row, 3, tview.NewTableCell(v.CostTime).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 4, tview.NewTableCell(v.MinCostTime).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 5, tview.NewTableCell(v.MaxCostTime).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 5, tview.NewTableCell(fmt.Sprintf("%d", v.ErrCount)).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 6, tview.NewTableCell(fmt.Sprintf("%d", v.ErrCount)).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
 		row++
 	}
@@ -187,18 +188,38 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 
 	// set table header
 	for idx := range colArr {
-		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).SetMaxWidth(*flagMonitorMaxTableWidth).SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignCenter))
+		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).SetMaxWidth(*flagMonitorMaxTableWidth).SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
 	}
 
 	row := 1
 	now := time.Now()
 
+	isSpecifiedInputs := func(n string) bool {
+		for _, x := range *flagMonitorOnlyInputs {
+			if x == n {
+				return true
+			}
+		}
+		return false
+	}
+
 	// sort inputs(by name)
 	inputsNames := []string{}
 	for k := range ds.InputsStats {
-		inputsNames = append(inputsNames, k)
+		if len(*flagMonitorOnlyInputs) == 0 {
+			inputsNames = append(inputsNames, k)
+		} else {
+			if isSpecifiedInputs(k) {
+				inputsNames = append(inputsNames, k)
+			}
+		}
 	}
 	sort.Strings(inputsNames)
+
+	if len(*flagMonitorOnlyInputs) > 0 {
+		m.inputsStatTable.SetTitle(fmt.Sprintf("Inputs Info(total %d, %d selected)",
+			len(ds.InputsStats), len(*flagMonitorOnlyInputs)))
+	}
 
 	for _, name := range inputsNames {
 		v := ds.InputsStats[name]
@@ -215,8 +236,8 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 				return "-"
 			}
 			return v.Frequency
-		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
-		table.SetCell(row, 3, tview.NewTableCell(fmt.Sprintf("%d", v.AvgSize)).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
+		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 3, tview.NewTableCell(fmt.Sprintf("%d", v.AvgSize)).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 4, tview.NewTableCell(fmt.Sprintf("%s", humanize.SI(float64(v.Count), ""))).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 5, tview.NewTableCell(fmt.Sprintf("%s", humanize.SI(float64(v.Total), ""))).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 6, tview.NewTableCell(func() string {
@@ -233,7 +254,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 					return "-"
 				}
 				return fmt.Sprintf("%s(%s)", v.LastErr, humanize.RelTime(v.LastErrTS, now, "ago", ""))
-			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
+			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
 		row++
 	}
@@ -262,7 +283,7 @@ func (m *monitorAPP) setup() {
 	m.basicInfoTable.SetBorder(true).SetTitle("Basic Info").SetTitleAlign(tview.AlignLeft)
 
 	// inputs running stats
-	m.inputsStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false)
+	m.inputsStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.inputsStatTable.SetBorder(true).SetTitle("Inputs Info").SetTitleAlign(tview.AlignLeft)
 
 	// enabled inputs
@@ -270,20 +291,28 @@ func (m *monitorAPP) setup() {
 	m.enabledInputTable.SetBorder(true).SetTitle("Enabled Inputs").SetTitleAlign(tview.AlignLeft)
 
 	// goroutine stats
-	m.goroutineStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false)
+	m.goroutineStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.goroutineStatTable.SetBorder(true).SetTitle("Goroutines").SetTitleAlign(tview.AlignLeft)
 
 	// buttom prompt
 	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
 
-	flex := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(m.basicInfoTable, 0, 6, false).
-		AddItem(m.inputsStatTable, 0, 14, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-			AddItem(m.enabledInputTable, 0, 10, false).
-			AddItem(m.goroutineStatTable, 0, 10, false), 0, 10, false).
-		AddItem(m.exitPrompt, 0, 1, false)
+	flex := tview.NewFlex()
+
+	if *flagMonitorVerbose {
+		flex.SetDirection(tview.FlexRow).
+			AddItem(m.basicInfoTable, 0, 6, false).
+			AddItem(m.inputsStatTable, 0, 14, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(m.enabledInputTable, 0, 10, false).
+				AddItem(m.goroutineStatTable, 0, 10, false), 0, 10, false).
+			AddItem(m.exitPrompt, 0, 1, false)
+	} else {
+		flex.SetDirection(tview.FlexRow).
+			AddItem(m.basicInfoTable, 0, 6, false).
+			AddItem(m.inputsStatTable, 0, 14, false).
+			AddItem(m.exitPrompt, 0, 1, false)
+	}
 
 	go func() {
 		tick := time.NewTicker(m.refresh)
@@ -320,14 +349,19 @@ func (m *monitorAPP) run() error {
 func (m *monitorAPP) render(ds *dkhttp.DatakitStats) {
 	m.basicInfoTable.Clear()
 	m.inputsStatTable.Clear()
-	m.enabledInputTable.Clear()
-	m.goroutineStatTable.Clear()
+
+	if *flagMonitorVerbose {
+		m.enabledInputTable.Clear()
+		m.goroutineStatTable.Clear()
+	}
 	m.exitPrompt.Clear()
 
 	m.renderBasicInfoTable(ds)
 	m.renderInputsStatTable(ds, inputsStatsCols)
-	m.renderEnabledInputTable(ds, enabledInputCols)
-	m.renderGoroutineTable(ds, goroutineCols)
+	if *flagMonitorVerbose {
+		m.renderEnabledInputTable(ds, enabledInputCols)
+		m.renderGoroutineTable(ds, goroutineCols)
+	}
 	m.renderExitPrompt()
 }
 
