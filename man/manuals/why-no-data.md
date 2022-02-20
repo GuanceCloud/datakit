@@ -53,26 +53,7 @@ Wed Jul 21 08:22:32 UTC 2021
 
 ## 查看 Monitor 页面
 
-如果是 Windows 系统，打开浏览器，输入
-
-```
-# 视实际绑定的网卡以及端口而定
-http://localhost:9529/monitor
-```
-
-如果是 Linux/Mac，直接在终端输入（无需修改 `listen` 配置）：
-
-> DataKit [1.1.7-rc7](changelog#494d6cd5) 才支持这一功能
-
-```shell
-datakit -M
-
-# 或者
-
-datakit --monitor --vvv
-```
-
-页面上会显示每个采集器的运行情况，如果某个采集器有误，在「当前错误（时间）」这一列，能看到具体的报错信息以及报错时间。
+参见[这里](datakit-monitor)
 
 ## 通过 DQL 查看是否有数据产生
 

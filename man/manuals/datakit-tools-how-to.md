@@ -16,6 +16,8 @@ datakit -h
 
 ## 查看 DataKit 运行情况
 
+> 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor)
+
 在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
 
 ```shell

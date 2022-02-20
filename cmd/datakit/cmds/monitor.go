@@ -261,7 +261,9 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 
 	for _, name := range inputsNames {
 		v := ds.InputsStats[name]
-		table.SetCell(row, 0, tview.NewTableCell(name).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 0,
+			tview.NewTableCell(name).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 1, tview.NewTableCell(func() string {
 			if v, ok := categoryMap[v.Category]; ok {
 				return v
@@ -275,17 +277,27 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 			}
 			return v.Frequency
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 3, tview.NewTableCell(fmt.Sprintf("%d", v.AvgSize)).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 4, tview.NewTableCell(humanize.SI(float64(v.Count), "")).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 5, tview.NewTableCell(humanize.SI(float64(v.Total), "")).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 3,
+			tview.NewTableCell(fmt.Sprintf("%d", v.AvgSize)).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 4,
+			tview.NewTableCell(humanize.SI(float64(v.Count), "")).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 5,
+			tview.NewTableCell(humanize.SI(float64(v.Total), "")).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 6, tview.NewTableCell(func() string {
 			return humanize.RelTime(v.First, now, "ago", "")
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 7, tview.NewTableCell(func() string {
 			return humanize.RelTime(v.Last, now, "ago", "")
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 8, tview.NewTableCell(v.AvgCollectCost.String()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 9, tview.NewTableCell(v.MaxCollectCost.String()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 8,
+			tview.NewTableCell(v.AvgCollectCost.String()).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 9,
+			tview.NewTableCell(v.MaxCollectCost.String()).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 10,
 			tview.NewTableCell(func() string {
 				if v.LastErr == "" {
