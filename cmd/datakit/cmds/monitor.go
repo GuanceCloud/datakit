@@ -39,6 +39,49 @@ var (
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 )
 
+func (m *monitorAPP) renderGolangRuntime(ds *dkhttp.DatakitStats) {
+	table := m.golangRuntime
+	row := 0
+
+	if m.anyError != nil { // some error occurred, we just gone
+		return
+	}
+
+	table.SetCell(row, 0,
+		tview.NewTableCell("Goroutines").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(fmt.Sprintf("%d", ds.GolangRuntime.Goroutines)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0,
+		tview.NewTableCell("Memory").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.HeapAlloc)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0,
+		tview.NewTableCell("Stack").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.StackInuse)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0,
+		tview.NewTableCell("GC Pasued").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(time.Duration(ds.GolangRuntime.GCPauseTotal).String()).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0,
+		tview.NewTableCell("GC Count").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(fmt.Sprintf("%d", ds.GolangRuntime.GCNum)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+}
+
 func (m *monitorAPP) renderBasicInfoTable(ds *dkhttp.DatakitStats) {
 	table := m.basicInfoTable
 	row := 0
@@ -260,6 +303,7 @@ type monitorAPP struct {
 
 	// UI elements
 	basicInfoTable     *tview.Table
+	golangRuntime      *tview.Table
 	inputsStatTable    *tview.Table
 	enabledInputTable  *tview.Table
 	goroutineStatTable *tview.Table
@@ -277,6 +321,9 @@ func (m *monitorAPP) setup() {
 	m.basicInfoTable = tview.NewTable().SetSelectable(true, false).SetBorders(false)
 	m.basicInfoTable.SetBorder(true).SetTitle("Basic Info").SetTitleAlign(tview.AlignLeft)
 
+	m.golangRuntime = tview.NewTable().SetSelectable(true, false).SetBorders(false)
+	m.golangRuntime.SetBorder(true).SetTitle("Runtime Info").SetTitleAlign(tview.AlignLeft)
+
 	// inputs running stats
 	m.inputsStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.inputsStatTable.SetBorder(true).SetTitle("Inputs Info").SetTitleAlign(tview.AlignLeft)
@@ -287,7 +334,7 @@ func (m *monitorAPP) setup() {
 
 	// goroutine stats
 	m.goroutineStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
-	m.goroutineStatTable.SetBorder(true).SetTitle("Goroutines").SetTitleAlign(tview.AlignLeft)
+	m.goroutineStatTable.SetBorder(true).SetTitle("Goroutine Groups").SetTitleAlign(tview.AlignLeft)
 
 	// buttom prompt
 	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
@@ -296,7 +343,9 @@ func (m *monitorAPP) setup() {
 
 	if *flagMonitorVerbose {
 		flex.SetDirection(tview.FlexRow).
-			AddItem(m.basicInfoTable, 0, 6, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(m.basicInfoTable, 0, 10, false).
+				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
 			AddItem(m.inputsStatTable, 0, 14, false).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
 				AddItem(m.enabledInputTable, 0, 10, false).
@@ -304,7 +353,9 @@ func (m *monitorAPP) setup() {
 			AddItem(m.exitPrompt, 0, 1, false)
 	} else {
 		flex.SetDirection(tview.FlexRow).
-			AddItem(m.basicInfoTable, 0, 6, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(m.basicInfoTable, 0, 10, false).
+				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
 			AddItem(m.inputsStatTable, 0, 14, false).
 			AddItem(m.exitPrompt, 0, 1, false)
 	}
@@ -341,6 +392,8 @@ func (m *monitorAPP) run() error {
 
 func (m *monitorAPP) render(ds *dkhttp.DatakitStats) {
 	m.basicInfoTable.Clear()
+	m.golangRuntime.Clear()
+
 	m.inputsStatTable.Clear()
 
 	if *flagMonitorVerbose {
@@ -350,6 +403,7 @@ func (m *monitorAPP) render(ds *dkhttp.DatakitStats) {
 	m.exitPrompt.Clear()
 
 	m.renderBasicInfoTable(ds)
+	m.renderGolangRuntime(ds)
 	m.renderInputsStatTable(ds, inputsStatsCols)
 	if *flagMonitorVerbose {
 		m.renderEnabledInputTable(ds, enabledInputCols)
@@ -380,6 +434,34 @@ func runMonitorFlags() error {
 	return m.run()
 }
 
+func requestStats(url string) (*dkhttp.DatakitStats, error) {
+	resp, err := http.Get(url) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s", string(body))
+	}
+
+	ds := dkhttp.DatakitStats{
+		DisableMonofont: true,
+	}
+	if err = json.Unmarshal(body, &ds); err != nil {
+		return nil, err
+	}
+
+	return &ds, nil
+}
+
+// cmdMonitor deprecated
 func cmdMonitor(interval time.Duration, verbose bool) {
 	addr := fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen)
 
@@ -406,33 +488,6 @@ func cmdMonitor(interval time.Duration, verbose bool) {
 	for range tick.C {
 		run()
 	}
-}
-
-func requestStats(url string) (*dkhttp.DatakitStats, error) {
-	resp, err := http.Get(url) //nolint:gosec
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s", string(body))
-	}
-
-	ds := dkhttp.DatakitStats{
-		DisableMonofont: true,
-	}
-	if err = json.Unmarshal(body, &ds); err != nil {
-		return nil, err
-	}
-
-	return &ds, nil
 }
 
 func doCMDMonitor(url string, verbose bool) ([]byte, error) {

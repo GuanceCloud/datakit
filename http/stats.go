@@ -32,11 +32,33 @@ type enabledInput struct {
 	Panics    int    `json:"panic"`
 }
 
+type runtimeInfo struct {
+	Goroutines   int    `json:"goroutines"`
+	HeapAlloc    uint64 `json:"heap_alloc"`
+	StackInuse   uint64 `json:"stack_inuse"`
+	GCPauseTotal uint64 `json:"gc_pause_total"`
+	GCNum        uint32 `json:"gc_num"`
+}
+
+func getRuntimeInfo() *runtimeInfo {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return &runtimeInfo{
+		Goroutines:   runtime.NumGoroutine(),
+		HeapAlloc:    m.HeapAlloc,
+		StackInuse:   m.StackInuse,
+		GCPauseTotal: m.PauseTotalNs,
+		GCNum:        m.NumGC,
+	}
+}
+
 type DatakitStats struct {
 	GoroutineStats *goroutine.Summary `json:"goroutine_stats"`
 
 	EnabledInputsDeprecated []*enabledInput          `json:"enabled_inputs"`
 	EnabledInputs           map[string]*enabledInput `json:"enabled_input_list"`
+
+	GolangRuntime *runtimeInfo `json:"golang_runtime"`
 
 	AvailableInputs []string `json:"available_inputs"`
 
@@ -278,6 +300,7 @@ func GetStats() (*DatakitStats, error) {
 		ConfigInfo:     inputs.ConfigInfo,
 		HostName:       datakit.DatakitHostName,
 		EnabledInputs:  map[string]*enabledInput{},
+		GolangRuntime:  getRuntimeInfo(),
 	}
 
 	var err error
