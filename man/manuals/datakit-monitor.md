@@ -129,3 +129,9 @@ datakit monitor --to localhost:19528
 # 也能查看另一个远程 DataKit 的 monitor
 datakit monitor --to <remote-ip>:9528
 ```
+
+### 如何查看具体采集器的错误信息？
+
+---
+
+A: 直接点击错误信息，即可在底部显示详细错误信息。点击该错误信息后，通过 ESC 或 Enter 键即可退出该错误信息展示。

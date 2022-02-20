@@ -47,6 +47,11 @@ func (m *monitorAPP) renderGolangRuntime(ds *dkhttp.DatakitStats) {
 		return
 	}
 
+	if ds.GolangRuntime == nil { // on older version datakit, no golang runtime responded
+		m.golangRuntime.SetTitle("Runtime Info(unavailable)").SetTitleAlign(tview.AlignLeft)
+		return
+	}
+
 	table.SetCell(row, 0,
 		tview.NewTableCell("Goroutines").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
@@ -211,7 +216,7 @@ func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []stri
 }
 
 func (m *monitorAPP) renderExitPrompt() {
-	fmt.Fprintf(m.exitPrompt, "[yellow]Refreshed at %s, Press ctrl+c to exit monitor", *flagMonitorRefreshInterval)
+	fmt.Fprintf(m.exitPrompt, "[green]Refreshed at %s. Double press ctrl+c to exit monitor.", *flagMonitorRefreshInterval)
 }
 
 func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []string) {
@@ -259,6 +264,9 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 			len(ds.InputsStats), len(*flagMonitorOnlyInputs)))
 	}
 
+	//
+	// render all inputs, row by row
+	//
 	for _, name := range inputsNames {
 		v := ds.InputsStats[name]
 		table.SetCell(row, 0,
@@ -298,13 +306,25 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 		table.SetCell(row, 9,
 			tview.NewTableCell(v.MaxCollectCost.String()).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 10,
-			tview.NewTableCell(func() string {
+
+		// carefully treat the error message column
+
+		lastErrCell := tview.NewTableCell(
+			func() string {
 				if v.LastErr == "" {
 					return "-"
 				}
 				return fmt.Sprintf("%s(%s)", v.LastErr, humanize.RelTime(v.LastErrTS, now, "ago", ""))
-			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight)
+
+		if v.LastErr != "" {
+			lastErrCell.SetClickedFunc(func() bool {
+				m.setupLastErr(v.LastErr)
+				return true
+			})
+		}
+
+		table.SetCell(row, 10, lastErrCell)
 
 		row++
 	}
@@ -320,12 +340,62 @@ type monitorAPP struct {
 	enabledInputTable  *tview.Table
 	goroutineStatTable *tview.Table
 	exitPrompt         *tview.TextView
+	lastErrText        *tview.TextView
+
+	flex *tview.Flex
+
+	ds *dkhttp.DatakitStats
 
 	anyError error
 
 	refresh time.Duration
 	start   time.Time
 	url     string
+}
+
+func (m *monitorAPP) setupLastErr(lastErr string) {
+	if m.lastErrText != nil { // change to another `last error`
+		m.lastErrText.Clear()
+		m.flex.RemoveItem(m.lastErrText)
+	}
+
+	m.lastErrText = tview.NewTextView().SetWordWrap(true).SetDynamicColors(true)
+
+	m.lastErrText.SetBorder(true)
+	fmt.Fprintf(m.lastErrText, "[red]%s \n\n[green]Click ESC or Enter to close this message.", lastErr)
+
+	m.flex.AddItem(m.lastErrText, 0, 5, false)
+
+	m.lastErrText.SetDoneFunc(func(key tcell.Key) {
+		switch key {
+		case tcell.KeyESC, tcell.KeyEnter: // exit current text view
+			m.lastErrText.Clear()
+			m.flex.RemoveItem(m.lastErrText)
+		}
+	})
+}
+
+func (m *monitorAPP) setupFlex() {
+	m.flex.Clear()
+
+	if *flagMonitorVerbose { // with -V, we show more stats info
+		m.flex.SetDirection(tview.FlexRow).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(m.basicInfoTable, 0, 10, false).
+				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
+			AddItem(m.inputsStatTable, 0, 14, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(m.enabledInputTable, 0, 10, false).
+				AddItem(m.goroutineStatTable, 0, 10, false), 0, 10, false).
+			AddItem(m.exitPrompt, 0, 1, false)
+	} else {
+		m.flex.SetDirection(tview.FlexRow).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+				AddItem(m.basicInfoTable, 0, 10, false).
+				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
+			AddItem(m.inputsStatTable, 0, 14, false).
+			AddItem(m.exitPrompt, 0, 1, false)
+	}
 }
 
 func (m *monitorAPP) setup() {
@@ -351,49 +421,32 @@ func (m *monitorAPP) setup() {
 	// buttom prompt
 	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
 
-	flex := tview.NewFlex()
-
-	if *flagMonitorVerbose {
-		flex.SetDirection(tview.FlexRow).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(m.basicInfoTable, 0, 10, false).
-				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
-			AddItem(m.inputsStatTable, 0, 14, false).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(m.enabledInputTable, 0, 10, false).
-				AddItem(m.goroutineStatTable, 0, 10, false), 0, 10, false).
-			AddItem(m.exitPrompt, 0, 1, false)
-	} else {
-		flex.SetDirection(tview.FlexRow).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(m.basicInfoTable, 0, 10, false).
-				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
-			AddItem(m.inputsStatTable, 0, 14, false).
-			AddItem(m.exitPrompt, 0, 1, false)
-	}
+	m.flex = tview.NewFlex()
+	m.setupFlex()
 
 	go func() {
 		tick := time.NewTicker(m.refresh)
 		defer tick.Stop()
+		var err error
 
 		for {
 			m.anyError = nil
 
 			l.Debugf("try get stats...")
 
-			ds, err := requestStats(m.url)
+			m.ds, err = requestStats(m.url)
 			if err != nil {
 				m.anyError = fmt.Errorf("request stats failed: %w", err)
 			}
 
-			m.render(ds)
+			m.render()
 			m.app = m.app.Draw()
 
 			<-tick.C // wait
 		}
 	}()
 
-	if err := m.app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
+	if err := m.app.SetRoot(m.flex, true).EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}
 }
@@ -402,7 +455,7 @@ func (m *monitorAPP) run() error {
 	return m.app.Run()
 }
 
-func (m *monitorAPP) render(ds *dkhttp.DatakitStats) {
+func (m *monitorAPP) render() {
 	m.basicInfoTable.Clear()
 	m.golangRuntime.Clear()
 
@@ -414,12 +467,12 @@ func (m *monitorAPP) render(ds *dkhttp.DatakitStats) {
 	}
 	m.exitPrompt.Clear()
 
-	m.renderBasicInfoTable(ds)
-	m.renderGolangRuntime(ds)
-	m.renderInputsStatTable(ds, inputsStatsCols)
+	m.renderBasicInfoTable(m.ds)
+	m.renderGolangRuntime(m.ds)
+	m.renderInputsStatTable(m.ds, inputsStatsCols)
 	if *flagMonitorVerbose {
-		m.renderEnabledInputTable(ds, enabledInputCols)
-		m.renderGoroutineTable(ds, goroutineCols)
+		m.renderEnabledInputTable(m.ds, enabledInputCols)
+		m.renderGoroutineTable(m.ds, goroutineCols)
 	}
 	m.renderExitPrompt()
 }
