@@ -31,7 +31,7 @@ func runVersionFlags() error {
 	if !*flagVersionDisableUpgradeInfo {
 		vis, err := checkNewVersion(ReleaseVersion, *flagVersionUpgradeTestingVersion)
 		if err != nil {
-			return fmt.Errorf("get online version info failed: %s\n", err)
+			return fmt.Errorf("get online version info failed: %w", err)
 		}
 
 		for _, vi := range vis {

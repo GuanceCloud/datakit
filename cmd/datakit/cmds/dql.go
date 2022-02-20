@@ -35,7 +35,7 @@ const (
 
 type dqlCmd struct {
 	json     bool
-	autoJson bool
+	autoJSON bool
 	verbose  bool
 
 	csv           string
@@ -52,7 +52,7 @@ type dqlCmd struct {
 func runDQLFlags() error {
 	dc := &dqlCmd{
 		json:          *flagDQLJSON,
-		autoJson:      *flagDQLAutoJSON,
+		autoJSON:      *flagDQLAutoJSON,
 		dqlString:     *flagDQLString,
 		token:         *flagDQLToken,
 		csv:           *flagDQLCSV,
@@ -63,13 +63,14 @@ func runDQLFlags() error {
 	}
 
 	if err := dc.prepare(); err != nil {
-		return fmt.Errorf("dc.prepare: %s", err)
+		return fmt.Errorf("dc.prepare: %w", err)
 	}
 
 	dc.run()
 	return nil
 }
 
+//nolint:unparam
 func (dc *dqlCmd) prepare() error {
 	// use localhost token configured in <datakit-install-path>/conf.d/datakit.conf
 	if dc.token == "" {
@@ -96,7 +97,7 @@ type dqlResp struct {
 
 func (dc *dqlCmd) run() {
 	if dc.dqlString != "" {
-		dc.runDQL(dc.dqlString)
+		dc.runSingleDQL(dc.dqlString)
 		return
 	}
 
@@ -602,7 +603,7 @@ func (dc *dqlCmd) prettyShowRow(s *models.Row, val []interface{}, fmtStr string)
 
 		case string:
 			valFmt = "'%s'\n"
-			if dc.autoJson {
+			if dc.autoJSON {
 				dst := &bytes.Buffer{}
 				if err := json.Indent(dst, []byte(v), "", defaultJSONIndent); err == nil {
 					val[colIdx] = dst.String()

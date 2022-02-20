@@ -14,7 +14,7 @@ const (
 	BaseURL = "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/security-checker/"
 )
 
-var SecCheckOsArch = map[string]bool{
+var ScheckOsArch = map[string]bool{
 	datakit.OSArchLinuxArm:   true,
 	datakit.OSArchLinuxArm64: true,
 	datakit.OSArchLinuxAmd64: true,
@@ -25,9 +25,9 @@ type SecCheckVersion struct {
 	Version string
 }
 
-func installSecCheck(installDir string) error {
+func installScheck() error {
 	osArch := runtime.GOOS + "/" + runtime.GOARCH
-	if _, ok := SecCheckOsArch[osArch]; !ok {
+	if _, ok := ScheckOsArch[osArch]; !ok {
 		return fmt.Errorf("security checker not support in %v", osArch)
 	}
 

@@ -162,7 +162,7 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.BoolVar(&FlagUploadLog, "upload-log", false, "upload log")
 }
 
-// setupFlags deprecated
+// setupFlags deprecated.
 func setupFlags() {
 	// hidden flags
 	for _, f := range []string{
@@ -195,7 +195,7 @@ func setupFlags() {
 	}
 }
 
-// parseOldStyleFlags deprecated
+// parseOldStyleFlags deprecated.
 func parseOldStyleFlags() {
 	setupFlags()
 	pflag.Parse()
@@ -275,13 +275,12 @@ func runOldStyleCmds() {
 	}
 
 	if FlagDQL || FlagRunDQL != "" {
-
 		tryLoadMainCfg()
 		setCmdRootLog(FlagCmdLogPath)
 
 		dc := &dqlCmd{
 			json:          FlagJSON,
-			autoJson:      FlagAutoJSON,
+			autoJSON:      FlagAutoJSON,
 			dqlString:     FlagRunDQL,
 			token:         FlagToken,
 			csv:           FlagCSV,
