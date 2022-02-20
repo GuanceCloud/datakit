@@ -33,9 +33,12 @@ type enabledInput struct {
 }
 
 type DatakitStats struct {
-	GoroutineStats  *goroutine.Summary `json:"goroutine_stats"`
-	EnabledInputs   []*enabledInput    `json:"enabled_inputs"`
-	AvailableInputs []string           `json:"available_inputs"`
+	GoroutineStats *goroutine.Summary `json:"goroutine_stats"`
+
+	EnabledInputsDeprecated []*enabledInput          `json:"enabled_inputs"`
+	EnabledInputs           map[string]*enabledInput `json:"enabled_input_list"`
+
+	AvailableInputs []string `json:"available_inputs"`
 
 	HostName     string `json:"hostname"`
 	Version      string `json:"version"`
@@ -274,6 +277,7 @@ func GetStats() (*DatakitStats, error) {
 		GoroutineStats: goroutine.GetStat(),
 		ConfigInfo:     inputs.ConfigInfo,
 		HostName:       datakit.DatakitHostName,
+		EnabledInputs:  map[string]*enabledInput{},
 	}
 
 	var err error
@@ -291,7 +295,7 @@ func GetStats() (*DatakitStats, error) {
 		n := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
-			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Panics: npanic})
+			stats.EnabledInputs[k] = &enabledInput{Input: k, Instances: n, Panics: npanic}
 		}
 	}
 
