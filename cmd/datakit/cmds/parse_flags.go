@@ -125,9 +125,9 @@ var (
 	//
 	fsMonitorName              = "monitor"
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
-	flagMonitorTo              = fsMonitor.String("to", "", "which DataKit(IP:Port) you want to monitor? default to local DataKit")
+	flagMonitorTo              = fsMonitor.String("to", "localhost:9529", "specify the DataKit(IP:Port) to show its statistics")
 	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 16, "set max table cell width")
-	flagMonitorOnlyInputs      = fsMonitor.StringSliceP("input", "I", nil, "show only specified inputs stats, seprated by ',', i.e., --input cpu,mem")
+	flagMonitorOnlyInputs      = fsMonitor.StringSliceP("input", "I", nil, "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
 	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info, default not show goroutine and inputs config info")
@@ -323,7 +323,10 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			runMonitorFlags()
+			if err := runMonitorFlags(); err != nil {
+				errorf("%s\n", err)
+				os.Exit(-1)
+			}
 
 			os.Exit(0)
 

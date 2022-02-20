@@ -43,55 +43,54 @@ func (m *monitorAPP) renderBasicInfoTable(ds *dkhttp.DatakitStats) {
 	table := m.basicInfoTable
 	row := 0
 
-	if m.anyError != nil { // some error occured, we just gone
+	if m.anyError != nil { // some error occurred, we just gone
 		table.SetCell(row, 0, tview.NewTableCell("Error").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 1, tview.NewTableCell(fmt.Sprintf("%s", m.anyError.Error())).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft).SetTextColor(tcell.ColorRed))
+		table.SetCell(row, 1, tview.NewTableCell(m.anyError.Error()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft).SetTextColor(tcell.ColorRed))
 		return
 	}
 
 	table.SetCell(row, 0, tview.NewTableCell("Hostname").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.HostName).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("Version").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.Version).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("Build").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.BuildAt).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("Branch").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.Branch).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("Uptime").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.Uptime).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("OS/Arch").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.OSArch).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("IO").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.IOChanStat).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("Pipeline").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.PLWorkerStat).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("Elected").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.Elected).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("From").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(m.url).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-	row++
 
-	table.SetCell(row, 0, tview.NewTableCell("Monitor Time").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-	table.SetCell(row, 1, tview.NewTableCell(fmt.Sprintf("%s", time.Since(m.start))).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 	row++
+	table.SetCell(row, 0, tview.NewTableCell("Monitor Time").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(time.Since(m.start).String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 }
 
 func (m *monitorAPP) renderEnabledInputTable(ds *dkhttp.DatakitStats, colArr []string) {
@@ -206,12 +205,8 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 	// sort inputs(by name)
 	inputsNames := []string{}
 	for k := range ds.InputsStats {
-		if len(*flagMonitorOnlyInputs) == 0 {
+		if len(*flagMonitorOnlyInputs) == 0 || isSpecifiedInputs(k) {
 			inputsNames = append(inputsNames, k)
-		} else {
-			if isSpecifiedInputs(k) {
-				inputsNames = append(inputsNames, k)
-			}
 		}
 	}
 	sort.Strings(inputsNames)
@@ -238,8 +233,8 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 			return v.Frequency
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 3, tview.NewTableCell(fmt.Sprintf("%d", v.AvgSize)).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 4, tview.NewTableCell(fmt.Sprintf("%s", humanize.SI(float64(v.Count), ""))).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 5, tview.NewTableCell(fmt.Sprintf("%s", humanize.SI(float64(v.Total), ""))).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 4, tview.NewTableCell(humanize.SI(float64(v.Count), "")).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 5, tview.NewTableCell(humanize.SI(float64(v.Total), "")).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 6, tview.NewTableCell(func() string {
 			return humanize.RelTime(v.First, now, "ago", "")
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
@@ -331,9 +326,7 @@ func (m *monitorAPP) setup() {
 			m.render(ds)
 			m.app = m.app.Draw()
 
-			select { // wait
-			case <-tick.C:
-			}
+			<-tick.C // wait
 		}
 	}()
 
