@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -186,11 +187,15 @@ func TestProm_DebugCollect(t *testing.T) {
 }
 
 func Test_BearerToken(t *testing.T) {
-	f, err := ioutil.TempFile(os.TempDir(), "token")
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir) // nolint:errcheck
+	f, err := ioutil.TempFile(tmpDir, "token")
 	assert.NoError(t, err)
 	token_file := f.Name()
 	defer os.Remove(token_file) // nolint:errcheck
-
 	testcases := []struct {
 		auth    map[string]string
 		url     string
@@ -246,7 +251,12 @@ func Test_Tls(t *testing.T) {
 	})
 
 	t.Run("tls with ca", func(t *testing.T) {
-		f, err := ioutil.TempFile(os.TempDir(), "ca.crt")
+		tmpDir, err := ioutil.TempDir("./", "__tmp")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir) // nolint:errcheck
+		f, err := ioutil.TempFile(tmpDir, "ca.crt")
 		assert.NoError(t, err)
 		_, err = f.WriteString(caContent)
 		assert.NoError(t, err)
@@ -306,10 +316,17 @@ func Test_Option(t *testing.T) {
 }
 
 func Test_WriteFile(t *testing.T) {
-	f, err := ioutil.TempFile(os.TempDir(), "output")
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir) // nolint:errcheck
+	f, err := ioutil.TempFile(tmpDir, "output")
 	assert.NoError(t, err)
-	outputFile := f.Name()
-	defer os.Remove(outputFile) // nolint:errcheck
+	outputFile, err := filepath.Abs(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	p, err := NewProm(&Option{
 		URL:         promURL,
