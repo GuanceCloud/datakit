@@ -19,10 +19,35 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-var l = logger.DefaultSLogger("pipeline")
+var ipdbInstance ipdb.IPdb // get ip location and isp
+
+var (
+	l                               = logger.DefaultSLogger("pipeline")
+	pipelineDefaultCfg *PipelineCfg = &PipelineCfg{
+		IPdbType: "iploc",
+		IPdbAttr: map[string]string{
+			"iploc_file": "iploc.bin",
+			"isp_file":   "ip2isp.txt",
+		},
+	}
+	pipelineIPDbmap = map[string]ipdb.IPdb{
+		"iploc": &iploc.IPloc{},
+	}
+)
+
+func GetIPdb() ipdb.IPdb {
+	return ipdbInstance
+}
+
+type PipelineCfg struct {
+	IPdbAttr map[string]string `toml:"ipdb_attr"`
+	IPdbType string            `toml:"ipdb_type"`
+}
 
 type Pipeline struct {
 	engine  *parser.Engine
@@ -140,17 +165,13 @@ func (p *Pipeline) LastError() error {
 	return p.lastErr
 }
 
-func Init(datadir string) error {
+func Init(pipelineCfg *PipelineCfg) error {
 	l = logger.SLogger("pipeline")
 	funcs.InitLog()
 	parser.InitLog()
 
-	if err := funcs.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
-		return err
-	}
-
-	if err := ip2isp.Init(filepath.Join(datadir, "ip2isp.txt")); err != nil {
-		return err
+	if _, err := InitIPdb(pipelineCfg); err != nil {
+		l.Warnf("init ipdb error: %s", err.Error())
 	}
 
 	if err := loadPatterns(); err != nil {
@@ -158,6 +179,24 @@ func Init(datadir string) error {
 	}
 
 	return nil
+}
+
+// InitIPdb init ipdb instance.
+func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
+	if pipelineCfg == nil {
+		pipelineCfg = pipelineDefaultCfg
+	}
+	if instance, ok := pipelineIPDbmap[pipelineCfg.IPdbType]; ok {
+		ipdbInstance = instance
+		ipdbInstance.Init(datakit.DataDir, pipelineCfg.IPdbAttr)
+		funcs.InitIPdb(ipdbInstance)
+		ip2isp.InitIPdb(ipdbInstance)
+	} else { // invalid ipdb type, then use the default iploc to ignore the error.
+		l.Warnf("invalid ipdb_type %s", pipelineCfg.IPdbType)
+		return pipelineIPDbmap["iploc"], nil
+	}
+
+	return ipdbInstance, nil
 }
 
 func loadPatterns() error {
