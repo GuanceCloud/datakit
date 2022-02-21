@@ -8,11 +8,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -20,6 +19,8 @@ const (
 	IPV4Len       = 4
 	FileSeparator = " "
 )
+
+var ipdbInstance ipdb.IPdb
 
 var IspValid = map[string]string{
 	"chinanet": "中国电信",
@@ -32,101 +33,15 @@ var IspValid = map[string]string{
 	"googlecn": "谷歌中国",
 }
 
-var (
-	l        = logger.DefaultSLogger("ip2isp")
-	IP2ISPDB = map[string]string{}
-)
-
-func ParseIPCIDR(ipCidr string) (string, error) {
-	var err error
-	var cidrLen int64 = 32
-
-	ipCidrs := strings.Split(ipCidr, "/")
-	if len(ipCidrs) == 2 {
-		cidrLen, err = strconv.ParseInt(ipCidrs[1], 10, 8)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	ipBytes := strings.Split(ipCidrs[0], ".")
-	if len(ipBytes) != IPV4Len {
-		return "", fmt.Errorf("invalid ip address")
-	}
-	ipBitStr := ""
-	for _, ipByteStr := range ipBytes {
-		ip, err := strconv.ParseInt(ipByteStr, 10, 16)
-		if err != nil {
-			return "", err
-		}
-		if cidrLen >= 8 {
-			ipBitStr += BitConvTemplate[ip]
-		} else {
-			ipBitStr += BitConvTemplate[ip][0:cidrLen]
-		}
-		cidrLen -= 8
-		if cidrLen <= 0 {
-			break
-		}
-	}
-	return ipBitStr, nil
+func InitIPdb(instance ipdb.IPdb) {
+	ipdbInstance = instance
 }
 
 func SearchIsp(ip string) string {
-	if len(IP2ISPDB) == 0 {
-		return "unknown"
-	}
-
-	for i := 32; i > 0; i-- {
-		ipCidr := fmt.Sprintf("%s/%v", ip, i)
-		ipBitStr, _ := ParseIPCIDR(ipCidr)
-		if v, ok := IP2ISPDB[ipBitStr]; ok {
-			return v
-		}
+	if ipdbInstance != nil {
+		return ipdbInstance.SearchIsp(ip)
 	}
 	return "unknown"
-}
-
-func Init(f string) error {
-	l = logger.SLogger("ip2isp")
-
-	l.Debugf("setup ipdb from %s", f)
-
-	m := make(map[string]string)
-
-	if !datakit.FileExist(f) {
-		l.Warnf("%v not found", f)
-		return nil
-	}
-
-	fd, err := os.Open(filepath.Clean(f))
-	if err != nil {
-		return err
-	}
-	defer fd.Close() //nolint:errcheck,gosec
-
-	scanner := bufio.NewScanner(fd)
-	for scanner.Scan() {
-		contents := strings.Split(scanner.Text(), FileSeparator)
-		if len(contents) != 2 {
-			continue
-		}
-
-		ipBitStr, err := ParseIPCIDR(contents[0])
-		if err != nil {
-			continue
-		}
-		m[ipBitStr] = contents[1]
-	}
-
-	if len(m) != 0 {
-		IP2ISPDB = m
-		l.Infof("found new %d rules", len(m))
-	} else {
-		l.Infof("no rules founded")
-	}
-
-	return nil
 }
 
 func MergeIsp(from, to string) error {

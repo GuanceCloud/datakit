@@ -13,6 +13,30 @@ import (
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
+func runServiceFlags() error {
+	if *flagServiceRestart {
+		return restartDatakit()
+	}
+
+	if *flagServiceStop {
+		return stopDatakit()
+	}
+
+	if *flagServiceStart {
+		return startDatakit()
+	}
+
+	if *flagServiceUninstall {
+		return uninstallDatakit()
+	}
+
+	if *flagServiceReinstall {
+		return reinstallDatakit()
+	}
+
+	return fmt.Errorf("no action specified")
+}
+
 func isRoot() error {
 	if runtime.GOOS == datakit.OSWindows {
 		return nil // under windows, there is no root user
