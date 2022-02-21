@@ -367,8 +367,7 @@ func (m *monitorAPP) setupLastErr(lastErr string) {
 	m.flex.AddItem(m.lastErrText, 0, 5, false)
 
 	m.lastErrText.SetDoneFunc(func(key tcell.Key) {
-		switch key {
-		case tcell.KeyESC, tcell.KeyEnter: // exit current text view
+		if key == tcell.KeyESC || key == tcell.KeyEnter {
 			m.lastErrText.Clear()
 			m.flex.RemoveItem(m.lastErrText)
 		}
@@ -526,7 +525,7 @@ func requestStats(url string) (*dkhttp.DatakitStats, error) {
 	return &ds, nil
 }
 
-// cmdMonitor deprecated
+// cmdMonitor deprecated.
 func cmdMonitor(interval time.Duration, verbose bool) {
 	addr := fmt.Sprintf("http://%s/stats", config.Cfg.HTTPAPI.Listen)
 
