@@ -559,7 +559,7 @@ datakit --reinstall
 可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
 
 ```shell
-sudo datakit --update-ip-db
+sudo datakit install --ipdb iploc
 ```
 
 若 DataKit 在运行中，更新成功后会自动更新 IP-DB 文件。
