@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 var (
@@ -77,6 +78,9 @@ func DefaultConfig() *Config {
 			Enable:    false,
 			Listen:    "0.0.0.0:9531",
 			WhiteList: []string{},
+		},
+		Pipeline: &pipeline.PipelineCfg{
+			IPdbType: "iploc",
 		},
 		Logging: &LoggerCfg{
 			Level:  "info",
@@ -181,6 +185,9 @@ type Config struct {
 
 	// DCA config
 	DCAConfig *dkhttp.DCAConfig `toml:"dca"`
+
+	// pipeline
+	Pipeline *pipeline.PipelineCfg `toml:"pipeline"`
 
 	// logging config
 	LogDeprecated      string `toml:"log,omitempty"`
