@@ -3,16 +3,16 @@
 ## 主要功能
 - 接收从 opentelemetry 发送的 L/T/M 三种数据，目前仅支持 trace和metric
 - 传输协议支持两种：grpc 和 http
-- 数据编码格式仅支持 protobuf
+- 数据编码格式仅支持 protobuf 
 
 ### 参考：
 - go开源地址 [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go)
-- 其他语言: [opentelemetry-java](https://github.com/open-telemetry/opentelemetry-go) 
+- 其他语言: [opentelemetry-java](https://github.com/open-telemetry/opentelemetry-java) 
 - 官方使用手册 ：[opentelemetry-io-docs](https://opentelemetry.io/docs/)
 
 
 
-## GRPC 协议 (目前的 otel 主流协议， 比 http 开销较小)
+## GRPC 协议 (目前otel的主流协议， 比 http 开销较小)
 
 接收到的数据交给trace处理。
 

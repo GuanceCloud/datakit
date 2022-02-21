@@ -50,12 +50,13 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 					Priority:           0,
 					SamplingRateGlobal: 0,
 				}
-				bts, err := json.Marshal(dkSpan)
+				bts, err := json.Marshal(span)
 				if err == nil {
 					dkSpan.Content = string(bts)
 				}
 				l.Infof("dkspan = %+v", dkSpan)
-				l.Infof("span = %+v", span)
+				l.Infof("")
+				l.Infof("span = %s", span.String())
 				dktrace = append(dktrace, dkSpan)
 			}
 			dkTraces = append(dkTraces, dktrace)
