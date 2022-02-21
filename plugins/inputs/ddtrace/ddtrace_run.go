@@ -20,47 +20,36 @@ const (
 	keySamplingRateGlobal = "_sample_rate"
 )
 
-func handleDDTraces(pattern string) http.HandlerFunc {
-	return func(resp http.ResponseWriter, req *http.Request) {
-		log.Debugf("%s: received tracing data from path: %s", inputName, req.URL.Path)
+func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
+	log.Debugf("%s: received tracing data from path: %s", inputName, req.URL.Path)
 
-		switch req.URL.Path {
-		case v1, v2, v3, v4, v5:
-		default:
-			log.Errorf("unrecognized ddtrace endpoint: %s", req.URL.Path)
-			resp.WriteHeader(http.StatusBadRequest)
+	traces, err := decodeDDTraces(req.URL.Path, req)
+	if err != nil {
+		log.Errorf(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
-			return
-		}
-
-		traces, err := decodeDDTraces(req.URL.Path, req)
-		if err != nil {
-			log.Errorf(err.Error())
-			resp.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-		if len(traces) == 0 {
-			log.Debug("empty ddtraces")
-			resp.WriteHeader(http.StatusOK)
-
-			return
-		}
-
-		for _, trace := range traces {
-			if len(trace) == 0 {
-				continue
-			}
-
-			if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
-				log.Warn("empty datakit trace")
-			} else {
-				afterGatherRun.Run(inputName, dktrace, false)
-			}
-		}
-
-		resp.WriteHeader(http.StatusOK)
+		return
 	}
+	if len(traces) == 0 {
+		log.Debug("empty ddtraces")
+		resp.WriteHeader(http.StatusOK)
+
+		return
+	}
+
+	for _, trace := range traces {
+		if len(trace) == 0 {
+			continue
+		}
+
+		if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
+			log.Warn("empty datakit trace")
+		} else {
+			afterGatherRun.Run(inputName, dktrace, false)
+		}
+	}
+
+	resp.WriteHeader(http.StatusOK)
 }
 
 // TODO:.
