@@ -19,13 +19,13 @@ func TestDDTraceAgent(t *testing.T) {
 
 	rand.Seed(time.Now().UnixNano())
 	testJsonDDTraces(t)
-	// testMsgPackDDTraces(t)
+	testMsgPackDDTraces(t)
 }
 
 func testJsonDDTraces(t *testing.T) {
 	t.Helper()
 
-	for _, version := range []string{v3, v4} {
+	for _, version := range []string{v2, v3, v4} {
 		tsvr := httptest.NewServer(handleDDTraces(version))
 		for _, method := range []string{http.MethodPost, http.MethodPut} {
 			buf, err := jsonEncoder(randomDDTraces(3, 10))
@@ -42,7 +42,7 @@ func testJsonDDTraces(t *testing.T) {
 				return
 			}
 
-			for _, contentType := range []string{"", "xxx", "application/json", "text/json"} {
+			for _, contentType := range []string{"application/json", "text/json"} {
 				req.Header.Set("Content-Type", contentType)
 				resp, err := http.DefaultClient.Do(req)
 				if err != nil {
@@ -62,32 +62,34 @@ func testJsonDDTraces(t *testing.T) {
 func testMsgPackDDTraces(t *testing.T) {
 	t.Helper()
 
-	tsvr := httptest.NewServer(handleDDTraces(v5))
-	for _, method := range []string{http.MethodPost} {
-		buf, err := msgpackEncoder(randomDDTraces(3, 10))
-		if err != nil {
-			t.Error(err.Error())
+	for _, version := range []string{v3, v4, v5} {
+		tsvr := httptest.NewServer(handleDDTraces(version))
+		for _, method := range []string{http.MethodPost} {
+			buf, err := msgpackEncoder(randomDDTraces(3, 10))
+			if err != nil {
+				t.Error(err.Error())
 
-			return
-		}
+				return
+			}
 
-		req, err := http.NewRequest(method, tsvr.URL+v5, bytes.NewBuffer(buf))
-		if err != nil {
-			t.Error(err.Error())
+			req, err := http.NewRequest(method, tsvr.URL+version, bytes.NewBuffer(buf))
+			if err != nil {
+				t.Error(err.Error())
 
-			return
-		}
+				return
+			}
 
-		req.Header.Set("Content-Type", "application/msgpack")
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Error(err.Error())
+			req.Header.Set("Content-Type", "application/msgpack")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Error(err.Error())
 
-			return
-		}
-		resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("request failed with status code %d\n", resp.StatusCode)
+				return
+			}
+			resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				fmt.Printf("request failed with status code %d\n", resp.StatusCode)
+			}
 		}
 	}
 }

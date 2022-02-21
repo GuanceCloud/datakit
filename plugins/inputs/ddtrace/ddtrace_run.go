@@ -105,7 +105,7 @@ func decodeDDTraces(endpoint string, req *http.Request) (DDTraces, error) {
 func decodeRequest(req *http.Request, out *DDTraces) error {
 	mediaType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
 	if err != nil {
-		return err
+		log.Debug(err.Error())
 	}
 	switch mediaType {
 	case "application/msgpack":
