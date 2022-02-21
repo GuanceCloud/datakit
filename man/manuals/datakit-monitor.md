@@ -22,7 +22,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor.png)
 
-该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 H/J 来浏览）
+该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K 来浏览）
 
 上图中的每个 UI 块的信息分别是：
 
@@ -134,4 +134,4 @@ datakit monitor --to <remote-ip>:9528
 
 ---
 
-A: 直接点击错误信息，即可在底部显示详细错误信息。点击该错误信息后，通过 ESC 或 Enter 键即可退出该错误信息展示。
+A: 直接点击错误信息，即可在底部显示详细错误信息。点击该错误信息后，通过 ESC 或 Enter 键即可关闭该错误信息展示。
