@@ -17,7 +17,6 @@ func GetBuffer() *bytes.Buffer {
 	if !ok {
 		return nil
 	}
-
 	buf.Reset()
 
 	return buf

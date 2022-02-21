@@ -63,16 +63,16 @@ const (
 )
 
 var (
-	log                                        = logger.DefaultSLogger(inputName)
-	v3, v4, v5                                 = "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
-	info, stats                                = "/info", "/v0.6/stats"
-	afterGather                                = itrace.NewAfterGather()
-	afterGatherRun   itrace.AfterGatherHandler = afterGather
-	keepRareResource *itrace.KeepRareResource
-	closeResource    *itrace.CloseResource
-	defSampler       *itrace.Sampler
-	customerKeys     []string
-	tags             map[string]string
+	log                                          = logger.DefaultSLogger(inputName)
+	v1, v2, v3, v4, v5                           = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
+	info, stats                                  = "/info", "/v0.6/stats"
+	afterGather                                  = itrace.NewAfterGather()
+	afterGatherRun     itrace.AfterGatherHandler = afterGather
+	keepRareResource   *itrace.KeepRareResource
+	closeResource      *itrace.CloseResource
+	defSampler         *itrace.Sampler
+	customerKeys       []string
+	tags               map[string]string
 )
 
 type Input struct {
@@ -139,7 +139,7 @@ func (ipt *Input) RegHTTPHandler() {
 	var isReg bool
 	for _, endpoint := range ipt.Endpoints {
 		switch endpoint {
-		case v3, v4, v5:
+		case v1, v2, v3, v4, v5:
 			isReg = true
 			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTraces(endpoint))
 			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTraces(endpoint))

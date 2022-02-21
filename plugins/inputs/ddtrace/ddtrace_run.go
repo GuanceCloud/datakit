@@ -1,15 +1,15 @@
 package ddtrace
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
-	"strings"
 
 	"github.com/tinylib/msgp/msgp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
@@ -20,14 +20,12 @@ const (
 	keySamplingRateGlobal = "_sample_rate"
 )
 
-var validContentTypes = map[string]bool{"application/json": true, "text/json": true, "application/msgpack": true}
-
 func handleDDTraces(pattern string) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		log.Debugf("%s: received tracing data from path: %s", inputName, req.URL.Path)
 
 		switch req.URL.Path {
-		case v3, v4, v5:
+		case v1, v2, v3, v4, v5:
 		default:
 			log.Errorf("unrecognized ddtrace endpoint: %s", req.URL.Path)
 			resp.WriteHeader(http.StatusBadRequest)
@@ -35,53 +33,12 @@ func handleDDTraces(pattern string) http.HandlerFunc {
 			return
 		}
 
-		buf, err := io.ReadAll(req.Body)
+		traces, err := decodeDDTraces(req.URL.Path, req)
 		if err != nil {
-			log.Error(err.Error())
+			log.Errorf(err.Error())
 			resp.WriteHeader(http.StatusBadRequest)
 
 			return
-		}
-
-		contentType := strings.ToLower(strings.TrimSpace(req.Header.Get("Content-Type")))
-		if !validContentTypes[contentType] {
-			if json.Valid(buf) {
-				contentType = "application/json"
-			} else {
-				log.Errorf("unrecognized Content-Type: %s", contentType)
-				resp.WriteHeader(http.StatusBadRequest)
-
-				return
-			}
-		}
-
-		var traces DDTraces
-		switch req.URL.Path {
-		case v3, v4:
-			if traces, err = decodeV3V4Request(contentType, buf); err != nil {
-				if errors.Is(err, io.EOF) {
-					log.Warn(err.Error())
-					resp.WriteHeader(http.StatusOK)
-				} else {
-					log.Error(err.Error())
-					resp.WriteHeader(http.StatusBadRequest)
-				}
-
-				return
-			}
-		case v5:
-			if contentType != "application/msgpack" {
-				log.Errorf("invalid Content-Type: %s for MsgPack", contentType)
-				resp.WriteHeader(http.StatusBadRequest)
-
-				return
-			}
-			if err = unmarshalTraceMsgDictionary(buf, &traces); err != nil {
-				log.Error(err.Error())
-				resp.WriteHeader(http.StatusBadRequest)
-
-				return
-			}
 		}
 		if len(traces) == 0 {
 			log.Debug("empty ddtraces")
@@ -118,21 +75,80 @@ func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-func decodeV3V4Request(contentType string, buf []byte) (DDTraces, error) {
+func decodeDDTraces(endpoint string, req *http.Request) (DDTraces, error) {
 	var (
-		traces = DDTraces{}
+		traces DDTraces
 		err    error
 	)
-	switch contentType {
-	case "application/msgpack":
-		err = Unmarshal(bytes.NewBuffer(buf), &traces)
-	case "application/json", "text/json", "":
-		err = json.NewDecoder(bytes.NewBuffer(buf)).Decode(&traces)
+	switch endpoint {
+	case v1:
+		var spans DDTrace
+		if err := json.NewDecoder(req.Body).Decode(&spans); err != nil {
+			return nil, err
+		}
+		traces = tracesFromSpans(spans)
+	case v5:
+		buf := bufpool.GetBuffer()
+		defer bufpool.PutBuffer(buf)
+
+		if _, err := io.Copy(buf, req.Body); err != nil {
+			return nil, err
+		}
+		err = unmarshalTraceMsgDictionary(buf.Bytes(), &traces)
 	default:
-		err = errors.New("unrecognized Content-Type: " + contentType)
+		err = decodeRequest(req, &traces)
 	}
 
 	return traces, err
+}
+
+func decodeRequest(req *http.Request, out *DDTraces) error {
+	mediaType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+	if err != nil {
+		return err
+	}
+	switch mediaType {
+	case "application/msgpack":
+		buf := bufpool.GetBuffer()
+		defer bufpool.PutBuffer(buf)
+
+		if _, err = io.Copy(buf, req.Body); err != nil {
+			return err
+		}
+		_, err = out.UnmarshalMsg(buf.Bytes())
+	case "application/json", "text/json", "":
+		return json.NewDecoder(req.Body).Decode(out)
+	default:
+		// do our best
+		if err1 := json.NewDecoder(req.Body).Decode(out); err1 != nil {
+			buf := bufpool.GetBuffer()
+			defer bufpool.PutBuffer(buf)
+
+			_, err2 := io.Copy(buf, req.Body)
+			if err2 != nil {
+				err = fmt.Errorf("could not decode JSON (%q), nor Msgpack (%q)", err1, err2)
+			}
+			_, err2 = out.UnmarshalMsg(buf.Bytes())
+			if err2 != nil {
+				err = fmt.Errorf("could not decode JSON (%q), nor Msgpack (%q)", err1, err2)
+			}
+		}
+	}
+
+	return err
+}
+
+func tracesFromSpans(trace DDTrace) DDTraces {
+	traces := DDTraces{}
+	byID := make(map[uint64]DDTrace)
+	for _, span := range trace {
+		byID[span.TraceID] = append(byID[span.TraceID], span)
+	}
+	for _, trace := range byID {
+		traces = append(traces, trace)
+	}
+
+	return traces
 }
 
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
