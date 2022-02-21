@@ -11,7 +11,7 @@
 
 ### 配置采集器
 
-进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+进入 DataKit 安装目录下的 `conf.d/network` 目录，复制 `dialtesting.conf.sample` 并命名为 `dialtesting.conf`。示例如下：
 
 ```toml
 [[inputs.dialtesting]]
@@ -68,13 +68,15 @@
         "request_options": {
           "auth": {}
         },
-        "request_body": {},
+        "request_body": {}
       },
       "update_time": 1645065786362746
     }
   ]
 }
 ```
+
+>  编辑完这个 JSON 后，建议找一些在线工具（[这个](https://www.json.cn/)或[这个](https://jsonformatter.curiousconcept.com/#)）验证下 JSON 格式是不是正确。如果 JSON 格式不对，那么会导致拨测不生效。
 
 配置好后，重启 DataKit 即可。
 
