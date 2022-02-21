@@ -1,19 +1,42 @@
-// Unless explicitly stated otherwise all files in this repository are licensed
-// under the Apache License Version 2.0.
-// This product includes software developed at Datadog (https://www.datadoghq.com/).
-// Copyright 2016-present Datadog, Inc.
-
-package msgpack
+package ddtrace
 
 import (
 	"bytes"
 	"errors"
+	"io"
 	"math"
+	"reflect"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/tinylib/msgp/msgp"
+	"github.com/ugorji/go/codec"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 )
+
+var (
+	msgpHandler codec.MsgpackHandle
+	encoder     = codec.NewEncoder(nil, &msgpHandler)
+	decoder     = codec.NewDecoder(nil, &msgpHandler)
+)
+
+func Marshal(src interface{}) ([]byte, error) {
+	buf := bufpool.GetBuffer()
+	encoder.Reset(buf)
+	err := encoder.Encode(src)
+
+	return buf.Bytes(), err
+}
+
+func Unmarshal(src io.Reader, dest interface{}) error {
+	if src == nil || dest == nil || reflect.ValueOf(dest).Kind() != reflect.Ptr {
+		return errors.New("invalid parameters for msgpack.Unmarshal")
+	}
+
+	decoder.Reset(src)
+
+	return decoder.Decode(dest)
+}
 
 // repairUTF8 ensures all characters in s are UTF-8 by replacing non-UTF-8 characters
 // with the replacement char �.

@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
@@ -135,5 +134,5 @@ func jsonEncoder(ddtraces DDTraces) ([]byte, error) {
 }
 
 func msgpackEncoder(ddtraces DDTraces) ([]byte, error) {
-	return msgpack.Marshal(ddtraces)
+	return Marshal(ddtraces)
 }
