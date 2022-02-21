@@ -17,6 +17,7 @@ import (
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
@@ -72,6 +73,7 @@ var (
 	flagRumOriginIPHeader,
 	flagLogLevel,
 	flagLog,
+	flagIpdb,
 	flagGinLog,
 	flagEnableElection,
 	flagDisable404Page string
@@ -105,6 +107,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
+	flag.StringVar(&flagIpdb, "ipdb-type", "", "ipdb type")
 	flag.StringVar(&flagCloudProvider,
 		"cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 	flag.StringVar(&flagGitURL, "git-url", "", "git repo url")
@@ -162,6 +165,17 @@ func downloadFiles(to string) error {
 	dl.CurDownloading = "data"
 	if err := dl.Download(cli, dataURL, to, true, flagDownloadOnly); err != nil {
 		return err
+	}
+
+	if flagIpdb != "" {
+		fmt.Printf("\n")
+		baseURL := "https://" + DataKitBaseURL
+		if _, err := cmds.InstallIpdb(baseURL, flagIpdb); err != nil {
+			l.Warnf("ipdb install failed error: %s, please try later.", err.Error())
+			time.Sleep(1 * time.Second)
+		} else {
+			config.Cfg.Pipeline.IPdbType = flagIpdb
+		}
 	}
 
 	fmt.Printf("\n")

@@ -54,15 +54,15 @@ func geoTags(srcip string) map[string]string {
 		return nil
 	}
 
-	switch ipInfo.Country_short { // #issue 354
+	switch ipInfo.Country { // #issue 354
 	case "TW":
-		ipInfo.Country_short = "CN"
+		ipInfo.Country = "CN"
 		ipInfo.Region = "Taiwan"
 	case "MO":
-		ipInfo.Country_short = "CN"
+		ipInfo.Country = "CN"
 		ipInfo.Region = "Macao"
 	case "HK":
-		ipInfo.Country_short = "CN"
+		ipInfo.Country = "CN"
 		ipInfo.Region = "Hong Kong"
 	}
 
@@ -70,7 +70,7 @@ func geoTags(srcip string) map[string]string {
 	tags := map[string]string{
 		"city":     ipInfo.City,
 		"province": ipInfo.Region,
-		"country":  ipInfo.Country_short,
+		"country":  ipInfo.Country,
 		"isp":      ip2isp.SearchIsp(srcip),
 		"ip":       srcip,
 	}
