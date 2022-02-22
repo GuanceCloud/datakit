@@ -3,6 +3,7 @@ package cmds
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"runtime"
@@ -15,23 +16,53 @@ import (
 
 func runServiceFlags() error {
 	if *flagServiceRestart {
-		return restartDatakit()
+		if err := restartDatakit(); err != nil {
+			errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
+			os.Exit(-1)
+		}
+
+		infof("Restart DataKit OK\n")
+		os.Exit(0)
 	}
 
 	if *flagServiceStop {
-		return stopDatakit()
+		if err := stopDatakit(); err != nil {
+			errorf("[E] stop DataKit failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		infof("Stop DataKit OK\n")
+		os.Exit(0)
 	}
 
 	if *flagServiceStart {
-		return startDatakit()
+		if err := startDatakit(); err != nil {
+			errorf("[E] start DataKit failed: %s\n using command to stop : %s\n", err.Error(), errMsg[runtime.GOOS])
+			os.Exit(-1)
+		}
+
+		infof("Start DataKit OK\n") // TODO: 需说明 PID 是多少
+		os.Exit(0)
 	}
 
 	if *flagServiceUninstall {
-		return uninstallDatakit()
+		if err := uninstallDatakit(); err != nil {
+			errorf("[E] uninstall DataKit failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		infof("Uninstall DataKit OK\n")
+		os.Exit(0)
 	}
 
 	if *flagServiceReinstall {
-		return reinstallDatakit()
+		if err := reinstallDatakit(); err != nil {
+			errorf("[E] reinstall DataKit failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		infof("Reinstall DataKit OK\n")
+		os.Exit(0)
 	}
 
 	return fmt.Errorf("no action specified")

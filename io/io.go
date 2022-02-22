@@ -31,9 +31,10 @@ var (
 	heartBeatIntervalDefault   = 40
 	log                        = logger.DefaultSLogger("io")
 
-	DisableLogFilter   bool
-	DisableHeartbeat   bool
-	DisableDatawayList bool
+	DisableLogFilter            bool
+	DisableHeartbeat            bool
+	DisableDatawayList          bool
+	FlagDebugDisableDatawayList bool
 )
 
 type Option struct {

@@ -11,6 +11,8 @@
 	- [调试 Pipeline](datakit-pl-how-to)
 	- [各种其它工具使用](datakit-tools-how-to)
 
+		- [查看 DataKit Monitor](datakit-monitor)
+
 - [DataKit 版本历史](changelog)
 
 - [DataKit 安装]()
