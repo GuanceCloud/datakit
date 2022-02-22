@@ -235,9 +235,46 @@ if status == 200 {
 
 ## Pipeline 脚本存放目录
 
-### 内置的 pipeline 目录
-### Git 管理的 pipeline 目录
+Pipeline 的目录搜索优先级是:
+1. Remote Pipeline 目录
+2. Git 管理的 pipeline 目录
+3. 内置的 pipeline 目录
+
+由 1 往 3 方向查找，匹配到了直接返回。
+
+不允许绝对路径的写法。
+
 ### Remote Pipeline 目录
+
+在 Datakit 的安装目录下面的 `pipeline_remote` 目录下，目录结构如下所示:
+
+```
+.
+├── conf.d
+├── datakit
+├── pipeline
+│   ├── root_apache.p
+│   └── root_consul.p
+├── pipeline_remote
+│   ├── remote_elasticsearch.p
+│   └── remote_jenkins.p
+├── gitrepos
+│   └── mygitproject
+│       ├── conf.d
+│       ├── pipeline
+│       │   └── git_kafka.p
+│       │   └── git_mongod.p
+│       └── python.d
+└── ...
+```
+
+### Git 管理的 pipeline 目录
+
+在 `gitrepos` 目录下的 `项目名/pipeline` 目录下，目录结构如上所示。
+
+### 内置的 pipeline 目录
+
+在 Datakit 的安装目录下面的 `pipeline` 目录下，目录结构如上所示。
 
 ## 脚本函数
 

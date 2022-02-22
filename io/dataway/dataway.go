@@ -34,6 +34,7 @@ var (
 		datakit.ListDataWay,
 		datakit.ObjectLabel,
 		datakit.LogUpload,
+		datakit.PipelinePull,
 	}
 
 	ExtraHeaders               = map[string]string{}

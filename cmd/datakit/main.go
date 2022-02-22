@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
 	plworker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
@@ -96,11 +97,20 @@ func applyFlags() {
 
 func run() {
 	l.Info("datakit start...")
-	if err := doRun(); err != nil {
+
+	switch config.Cfg.RunMode {
+	case datakit.ModeNormal:
+		if err := doRun(); err != nil {
+			return
+		}
+		io.FeedEventLog(&io.Reporter{Message: "datakit start ok, ready for collecting metrics."})
+
+	case datakit.ModeDev:
+		startDKHttp()
+
+	default:
 		return
 	}
-
-	io.FeedEventLog(&io.Reporter{Message: "datakit start ok, ready for collecting metrics."})
 
 	l.Info("datakit start ok. Wait signal or service stop...")
 
@@ -179,6 +189,11 @@ func doRun() error {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
 	}
 
+	if len(config.Cfg.DataWay.URLs) == 1 {
+		// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
+		plRemote.StartPipelineRemote(config.Cfg.DataWay.URLs)
+	}
+
 	if err := initPythonCore(); err != nil {
 		l.Errorf("initPythonCore failed: %v", err)
 		return err
@@ -197,6 +212,12 @@ func doRun() error {
 	}
 
 	// NOTE: Should we wait all inputs ok, then start http server?
+	startDKHttp()
+
+	return nil
+}
+
+func startDKHttp() {
 	dkhttp.Start(&dkhttp.Option{
 		APIConfig:      config.Cfg.HTTPAPI,
 		DCAConfig:      config.Cfg.DCAConfig,
@@ -209,6 +230,4 @@ func doRun() error {
 	})
 
 	time.Sleep(time.Second) // wait http server ok
-
-	return nil
 }

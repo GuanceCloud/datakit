@@ -89,8 +89,8 @@ func LoadCfg(c *Config, mcp string) error {
 
 func GetConfRootPaths() []string {
 	var confRootPath *[]string
-	if len(datakit.GetReposConfDirs) != 0 {
-		confRootPath = &datakit.GetReposConfDirs
+	if GitHasEnabled() {
+		confRootPath = &[]string{datakit.GitReposRepoFullPath}
 	} else {
 		confRootPath = &[]string{datakit.ConfdDir}
 	}
@@ -259,18 +259,38 @@ func GetPipelinePath(pipeLineName string) (string, error) {
 	pipeLineName = dkstring.TrimString(pipeLineName)
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
-
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
 	if filepath.IsAbs(pipeLineName) {
-		// check absolute path
-		if _, err := os.Stat(pipeLineName); err != nil {
-			return "", err
-		}
-		return pipeLineName, nil
+		return "", fmt.Errorf("pipeline in absolutely path is discouraged")
 	}
 
-	// start search unabsolute path
+	// start search pipeline_remote
+	{
+		plPath := filepath.Join(datakit.PipelineRemoteDir, pipeLineName)
+		if _, err := os.Stat(plPath); err == nil {
+			return plPath, nil
+		}
+	}
 
-	mExistCloneDirs := make(map[string]struct{})
+	{
+		plPath := filepath.Join(datakit.GitReposRepoFullPath, pipeLineName)
+		if _, err := os.Stat(plPath); err != nil {
+			l.Errorf("os.Stat failed: %v", err)
+		} else {
+			return plPath, nil // return once found the pipeline file
+		}
+	}
+
+	// search datakit root pipeline
+	plPath := filepath.Join(datakit.PipelineDir, pipeLineName)
+	if _, err := os.Stat(plPath); err != nil {
+		return "", err
+	}
+
+	return plPath, nil
+}
+
+func InitGitreposDir() {
 	// search enabled gitrepos
 	for _, v := range Cfg.GitRepos.Repos {
 		if !v.Enable {
@@ -284,72 +304,22 @@ func GetPipelinePath(pipeLineName string) (string, error) {
 		if err != nil {
 			continue
 		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-		clonePath, err := GetGitRepoSubDir(repoName, datakit.GitRepoSubDirNamePipeline)
+		datakit.GitReposRepoName = repoName
+		datakit.GitReposRepoFullPath, err = GetGitRepoDir(repoName)
 		if err != nil {
-			continue
+			l.Errorf("GetGitRepoDir failed: err = %v, repoName = %s", err, repoName)
 		}
-		plPath := filepath.Join(clonePath, pipeLineName)
-		if _, err := os.Stat(plPath); err != nil {
-			continue
-		}
-		return plPath, nil // return once found the pipeline file
 	}
-
-	// search datakit root pipeline
-	plPath := filepath.Join(datakit.PipelineDir, pipeLineName)
-	if _, err := os.Stat(plPath); err != nil {
-		return "", err
-	}
-
-	return plPath, nil
 }
 
-func GetGitReposAllPipelinePath() []string {
-	var allGitReposPipelines []string
-
-	mExistCloneDirs := make(map[string]struct{})
-	for _, v := range Cfg.GitRepos.Repos {
-		if !v.Enable {
-			continue
-		}
-		v.URL = dkstring.TrimString(v.URL)
-		if v.URL == "" {
-			continue
-		}
-		repoName, err := path.GetGitPureName(v.URL)
-		if err != nil {
-			continue
-		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-		clonePath, err := GetGitRepoSubDir(repoName, datakit.GitRepoSubDirNamePipeline)
-		if err != nil {
-			continue
-		}
-		files, err := ioutil.ReadDir(clonePath)
-		if err != nil {
-			continue
-		}
-		for _, f := range files {
-			if !f.IsDir() {
-				ext := filepath.Ext(f.Name())
-				extNew := strings.ToLower(ext)
-				if extNew == ".p" {
-					allGitReposPipelines = append(allGitReposPipelines, filepath.Join(clonePath, f.Name()))
-				}
-			}
-		} // for files
-	} // for
-
-	return allGitReposPipelines
+func GetNamespacePipelineFiles(namespace string) ([]string, error) {
+	switch namespace {
+	case datakit.StrPipelineRemote:
+		return path.GetSuffixFilesFromDirDeepOne(datakit.PipelineRemoteDir, datakit.StrPipelineFileSuffix)
+	case datakit.StrGitRepos:
+		return path.GetSuffixFilesFromDirDeepOne(datakit.GitReposRepoFullPath, datakit.StrPipelineFileSuffix)
+	}
+	return nil, fmt.Errorf("invalid namespace")
 }
 
 type CheckedInputCfgResult struct {
