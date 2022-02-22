@@ -53,14 +53,16 @@ DataKit 目前支持 Linux/Windows/Mac 三种主流平台：
 
 ```shell
 # Linux/Mac 可能需加上 sudo
-datakit --stop
-datakit --start
-datakit --restart
+datakit service -T # stop
+datakit service -S # start
+datakit service -R # restart
 ```
+
+> 可通过 `datakit help service` 查看更多帮助信息。
 
 #### 服务管理失败处理
 
-有时候可能因为 DataKit 部分组件的 bug，导致服务操作失败（如 `--stop` 之后，服务并未停止），可按照如下方式来强制处理。
+有时候可能因为 DataKit 部分组件的 bug，导致服务操作失败（如 `datakit service -T` 之后，服务并未停止），可按照如下方式来强制处理。
 
 Linux 下，如果上述命令失效，可使用以下命令来替代：
 
@@ -91,10 +93,6 @@ sudo launchctl unload -w /Library/LaunchDaemons/com.guance.datakit.plist
 
 ```shell
 # Linux/Mac shell
-sudo datakit --uninstall
-sudo datakit --reinstall
-
-# Windows Powershell
-datakit --uninstall
-datakit --reinstall
+datakit service -I # re-install
+datakit service -U # uninstall
 ```

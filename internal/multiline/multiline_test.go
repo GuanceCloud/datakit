@@ -156,6 +156,5 @@ func TestMultilineString(t *testing.T) {
 				tu.Equals(t, tc.out[outIdx], m.FlushString())
 			}
 		})
-
 	}
 }
