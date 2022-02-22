@@ -62,7 +62,7 @@ Wed Jul 21 08:22:32 UTC 2021
 > DataKit [1.1.7-rc7](changelog#494d6cd5) 才支持这一功能
 
 ```shell
-datakit --dql
+datakit dql
 > 这里即可输入 DQL 查询语句...
 ```
 

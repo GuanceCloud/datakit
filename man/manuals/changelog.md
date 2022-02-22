@@ -8,8 +8,8 @@
 
 - Pipeline
 	- 增加[动态多行 pattern](datakit-pl-how-to#88b72768)，便于处理多行切割(#615)
-	- 支持中心下发 Pipeline(#524)
-  - 增加 Pipeline 调试接口 */v1/pipeline/debug*
+	- 支持中心下发 Pipeline(#524)，这样一来，Pipeline 将有[三种存放路径](pipeline#6ee232b2)
+  - 增加 Pipeline 调试接口 [/v1/pipeline/debug](apis#539fb60e)
 
 <!--
 - APM 功能调整(#610)
@@ -20,12 +20,13 @@
 !!! Delay
 -->
 
-- 为减少二进制体积，默认安装不再带 IP 库。如需 RUM 等相关 IP 查找功能，可额外[安装对应的 IP 库]()
+- 为减少二进制体积，默认安装不再带 IP 库。如需 RUM 等相关 IP 查找功能，可额外[安装对应的 IP 库](datakit-tools-how-to#ab5cd5ad)
 - 容器采集器增加 [logfwd 日志接入]()(#600)
 - 为进一步规范数据上传，行协议增加了更多严格的[限制](apis#f54b954f)(#592)
 - 优化日志采集过程中的 Monitor 显示(#587)
 - 优化安装程序的命令行参数检查(#573)
-- 重新调整 DataKit 命令行参数，老的命令行参数依然生效
+- 重新调整 DataKit 命令行参数，大部分主要的命令已经支持。另外，**老的命令行参数在一定时间内依然生效**(#499)
+	- 可通过 `datakit help` 查看新的命令行参数风格
 - 重新实现 [ DataKit Monitor](datakit-monitor)
 
 ### 其它 Bug 修复

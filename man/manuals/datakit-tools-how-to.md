@@ -9,25 +9,16 @@
 DataKit 内置很多不同的小工具，便于大家日常使用。可通过如下命令来查看 DataKit 的命令行帮助：
 
 ```shell
-datakit -h
+datakit help
 ```
 
 >注意：因不同平台的差异，具体帮助内容会有差别。
 
 ## 查看 DataKit 运行情况
 
-> 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor)
+> 老的 monitor 查看方式已经废弃（仍然可用，不久将废弃）
 
-在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
-
-```shell
-datakit --monitor     # 或者 datakit -M
-
-# 同时可查看采集器开启情况：
-datakit -M --vvv
-```
-
-> 注：Windows 下暂不支持在终端查看 monitor 数据，只能在浏览器端查看。
+DataKit 新的 monitor 用法[参见这里](datakit-monitor)。
 
 ## 检查采集器配置是否正确
 
@@ -87,7 +78,7 @@ datakit debug --workspace-info
 DataKit 运行过程中，一些关键事件会以日志的形式进行上报，比如 DataKit 的启动、采集器的运行错误等。在命令行终端，可以通过 dql 进行查询。
 
 ```shell
-sudo datakit --dql
+sudo datakit dql
 
 dql > L::datakit limit 10;
 
@@ -131,10 +122,10 @@ create_time 1639657028706
 
 ## DataKit 更新 IP 数据库文件
 
-可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
+可直接使用如下命令安装/更新 IP 地理信息库：
 
 ```shell
-sudo datakit --update-ip-db
+sudo datakit install --ipdb iploc
 ```
 
 若 DataKit 在运行中，更新成功后会自动更新 IP-DB 文件。
@@ -148,7 +139,7 @@ sudo datakit --update-ip-db
 安装 Telegraf 集成
 
 ```shell
-sudo datakit --install telegraf
+sudo datakit install --telegraf
 ```
 
 启动 Telegraf
@@ -166,8 +157,7 @@ sudo telegraf --config telegraf.conf
 安装 Security Checker
 
 ```shell
-sudo datakit --install scheck
-sudo datakit --install sec-checker  # 该命名即将废弃
+sudo datakit install --scheck
 ```
 
 安装成功后会自动运行，Security Checker 具体使用，参见[这里](https://www.yuque.com/dataflux/sec_checker/install) 
@@ -188,7 +178,7 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 如果安装 DataKit 所在的机器是一台云服务器（目前支持 `aliyun/tencent/aws/hwcloud/azure` 这几种），可通过如下命令查看部分云属性数据，如（标记为 `-` 表示该字段无效）：
 
 ```shell
-datakit --show-cloud-info aws
+datakit debug --show-cloud-info aws
 
            cloud_provider: aws
               description: -

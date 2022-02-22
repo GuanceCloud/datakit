@@ -9,7 +9,7 @@
 DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit 自带语句补全功能：
 
 ```shell
-datakit --dql      # 或者 datakit -Q
+datakit dql      # 或者 datakit -Q
 dql > cpu limit 1
 -----------------[ 1.cpu ]-----------------
              cpu 'cpu-total'
@@ -37,7 +37,7 @@ Tips：
 - 支持查询语句模糊搜，如 `echo_explain` 只需要输入 `echo` 或 `exp` 即可弹出提示，**通过 `Tab` 即可选择下拉提示**
 - DataKit 会自动保存前面多次运行的 DQL 查询历史（最大 5000 条），可通过上下方向键来选择
 
-> 注：Windows 下，请在 Powershell 中执行 `datakit --dql` 或 `datakit -Q`
+> 注：Windows 下，请在 Powershell 中执行 `datakit dql`
 
 #### 单次执行 DQL 查询
 
@@ -78,10 +78,9 @@ mem,2014437376,2077097984,24.18060302734375,73502720,achen.local,1635242544382
 
 ```shell
 datakit dql --run 'O::HOST:(os, message)' --json
-datakit -Q --json
 
 # 如果字段值是 JSON 字符串，则自动做 JSON 美化（注意：JSON 模式下（即 --json），`--auto-json` 选项无效）
-datakit --run-dql 'O::HOST:(os, message)' --auto-json
+datakit dql --run 'O::HOST:(os, message)' --auto-json
 -----------------[ r1.HOST.s1 ]-----------------
 message ----- json -----  # JSON 开始处有明显标志，此处 message 为字段名
 {
@@ -109,6 +108,4 @@ message ----- json -----  # JSON 开始处有明显标志，此处 message 为�
 
 ```shell
 datakit dql --run 'O::HOST:(os, message)' --token <your-token>
-datakit -Q --token <your-token>
 ```
-
