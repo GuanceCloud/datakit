@@ -21,6 +21,14 @@ func (dw *DataWayCfg) GetLogFilter() ([]byte, error) {
 	return dw.endPoints[0].getLogFilter()
 }
 
+func (dw *DataWayCfg) GetPipelinePull(ts int64) (*PullPipelineReturn, error) {
+	if len(dw.endPoints) == 0 {
+		return nil, fmt.Errorf("[error] dataway url empty")
+	}
+
+	return dw.endPoints[0].getPipelinePull(ts)
+}
+
 func (dc *endPoint) getLogFilter() ([]byte, error) {
 	url, ok := dc.categoryURL[datakit.LogFilter]
 	if !ok {
@@ -51,6 +59,70 @@ func (dc *endPoint) getLogFilter() ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+type HTTPError struct {
+	ErrCode  string `json:"error_code,omitempty"`
+	Err      error  `json:"-"`
+	HTTPCode int    `json:"-"`
+}
+
+type bodyResp struct {
+	*HTTPError
+	Message string              `json:"message,omitempty"`
+	Content *PullPipelineReturn `json:"content,omitempty"` // 注意与 kodo 中的不一样
+}
+
+type PipelineUnit struct {
+	Name       string `json:"name"`
+	Base64Text string `json:"base64text"`
+}
+
+type PullPipelineReturn struct {
+	UpdateTime int64           `json:"update_time"`
+	Pipelines  []*PipelineUnit `json:"pipelines"`
+}
+
+func (dc *endPoint) getPipelinePull(ts int64) (*PullPipelineReturn, error) {
+	url, ok := dc.categoryURL[datakit.PipelinePull]
+	if !ok {
+		return nil, fmt.Errorf("PipelinePull API missing, should not been here")
+	}
+
+	url += "&ts=" + fmt.Sprintf("%d", ts)
+
+	log.Debugf("PipelinePull GET: %s", url)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := dc.dw.sendReq(req)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("getPipelinePull failed with status code %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var br bodyResp
+	err = json.Unmarshal(body, &br)
+	if err != nil {
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	return br.Content, err
 }
 
 func (dw *DataWayCfg) WorkspaceQuery(body []byte) (*http.Response, error) {

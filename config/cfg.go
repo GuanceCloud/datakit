@@ -20,8 +20,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -80,7 +78,8 @@ func DefaultConfig() *Config {
 			WhiteList: []string{},
 		},
 		Pipeline: &pipeline.PipelineCfg{
-			IPdbType: "iploc",
+			IPdbType:           "iploc",
+			RemotePullInterval: "1m",
 		},
 		Logging: &LoggerCfg{
 			Level:  "info",
@@ -222,6 +221,8 @@ type Config struct {
 	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
 
 	GitRepos *GitRepost `toml:"git_repos"`
+
+	RunMode int `toml:"run_mode,omitempty"`
 }
 
 func (c *Config) String() string {
@@ -316,6 +317,12 @@ func (c *Config) setupDataway() error {
 
 	if len(c.DataWay.URLs) == 0 {
 		return fmt.Errorf("dataway not set")
+	}
+	if c.DataWay.URLs[0] == datakit.DatawayDisableURL {
+		c.RunMode = datakit.ModeDev
+		return nil
+	} else {
+		c.RunMode = datakit.ModeNormal
 	}
 
 	dataway.ExtraHeaders = map[string]string{
@@ -479,31 +486,7 @@ func (c *Config) ApplyMainConfig() error {
 		l.Info("refresh main configure ok")
 	}
 
-	mExistCloneDirs := make(map[string]struct{})
-
-	for _, v := range c.GitRepos.Repos {
-		if !v.Enable {
-			continue
-		}
-		v.URL = dkstring.TrimString(v.URL)
-		if v.URL == "" {
-			continue
-		}
-		repoName, err := path.GetGitPureName(v.URL)
-		if err != nil {
-			continue
-		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-		clonePath, err := GetGitRepoSubDir(repoName, datakit.GitRepoSubDirNameConfd)
-		if err != nil {
-			continue
-		}
-		datakit.GetReposConfDirs = append(datakit.GetReposConfDirs, clonePath)
-	}
+	InitGitreposDir()
 
 	return nil
 }
@@ -868,40 +851,5 @@ func GetToken() string {
 }
 
 func GitHasEnabled() bool {
-	for _, v := range Cfg.GitRepos.Repos {
-		if v.Enable {
-			return true
-		}
-	}
-
-	return false
-}
-
-func GitEnabledRepoNames() []string {
-	mExistCloneDirs := make(map[string]struct{})
-	for _, v := range Cfg.GitRepos.Repos {
-		if !v.Enable {
-			continue
-		}
-		v.URL = dkstring.TrimString(v.URL)
-		if v.URL == "" {
-			continue
-		}
-		repoName, err := path.GetGitPureName(v.URL)
-		if err != nil {
-			continue
-		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-	}
-
-	var arr []string
-	for k := range mExistCloneDirs {
-		arr = append(arr, k)
-	}
-
-	return arr
+	return datakit.GitReposRepoName != "" && datakit.GitReposRepoFullPath != ""
 }

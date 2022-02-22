@@ -4,6 +4,7 @@ package path
 import (
 	"errors"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -117,4 +118,23 @@ func GetFolderList(root string, deep int) (folders, files []string, err error) {
 		return nil, nil, err
 	}
 	return folders, files, err
+}
+
+func GetSuffixFilesFromDirDeepOne(dir, suffixLower string) ([]string, error) {
+	fs, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var arr []string
+	for _, v := range fs {
+		if !v.IsDir() {
+			ext := filepath.Ext(v.Name())
+			extLower := strings.ToLower(ext)
+			if extLower == suffixLower {
+				arr = append(arr, filepath.Join(dir, v.Name()))
+			}
+		}
+	}
+
+	return arr, nil
 }

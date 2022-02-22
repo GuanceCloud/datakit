@@ -4,7 +4,6 @@ package worker
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -43,7 +42,7 @@ var (
 	taskCh = make(chan *Task, taskChMaxL)
 )
 
-type ppWorker struct {
+type plWorker struct {
 	wkrID      int
 	createTS   time.Time
 	TaskLast10 int
@@ -53,7 +52,7 @@ type ppWorker struct {
 	engines    map[string]*ScriptInfo
 }
 
-func (wkr *ppWorker) Run(ctx context.Context) error {
+func (wkr *plWorker) Run(ctx context.Context) error {
 	wkr.isRunning = true
 
 	dur := time.Second * 30
@@ -73,17 +72,23 @@ func (wkr *ppWorker) Run(ctx context.Context) error {
 			}
 			points := wkr.run(task)
 
-			if len(points) == 0 {
-				continue
-			}
-			if !wkrManager.debug {
-				_ = wkr.feed(task, points)
-			} else {
+			if wkrManager.debug {
 				_ = workerFeedFuncDebug(task.TaskName, points, wkr.wkrID)
+			} else {
+				_ = wkr.feed(task, points)
 			}
 		case <-ticker.C:
-			for _, v := range wkr.engines {
-				scriptCentorStore.checkAndUpdate(v)
+			needDelete := []string{}
+			for name, v := range wkr.engines {
+				if ngUpdated, err := scriptCentorStore.checkAndUpdate(v); err == nil {
+					wkr.engines[name] = ngUpdated
+				} else {
+					// err != nil,查询失败, script store 无法找到相关内容
+					needDelete = append(needDelete, name)
+				}
+			}
+			for _, name := range needDelete {
+				delete(wkr.engines, name)
 			}
 		case <-stopCh:
 			wkr.isRunning = false
@@ -92,7 +97,7 @@ func (wkr *ppWorker) Run(ctx context.Context) error {
 	}
 }
 
-func (wkr *ppWorker) run(task *Task) []*io.Point {
+func (wkr *plWorker) run(task *Task) []*io.Point {
 	defer func() {
 		if err := recover(); err != nil {
 			l.Errorf("panic err = %v  lasterr=%v", err, wkr.lastErr)
@@ -103,57 +108,16 @@ func (wkr *ppWorker) run(task *Task) []*io.Point {
 	if task == nil || len(task.Data) == 0 {
 		return nil
 	}
-	taskOpt := task.Opt
-	if taskOpt == nil {
-		taskOpt = &TaskOpt{}
-	}
-	ng := wkr.getNg(task.GetScriptName())
-	points := []*io.Point{}
-	ts := task.TS
-	if ts.IsZero() {
-		ts = time.Now()
-	}
-	for di := len(task.Data) - 1; di >= 0; di-- {
-		content := task.Data[di].GetContent()
-		if len(content) >= maxFieldsLength {
-			content = content[:maxFieldsLength]
-		}
-		result := &Result{
-			output: nil,
-		}
-		if ng != nil {
-			if err := ng.Run(content); err != nil {
-				wkr.lastErr = err
-				wkr.lastErrTS = time.Now()
-				l.Debug(err)
-			}
-			rst := ng.Result()
-			result.output = rst
-		} else {
-			result.output = &parser.Output{
-				Tags: map[string]string{},
-				Data: map[string]interface{}{
-					PipelineMessageField: content,
-				},
-			}
-		}
 
-		if err := task.Data[di].Handler(result); err != nil {
+	ng := wkr.getNg(task.GetScriptName())
+	result := RunPlTask(task, ng)
+
+	points := []*io.Point{}
+	for _, result := range result {
+		if result.output.Dropped {
 			continue
 		}
-
-		var source string
-		source, ts = wkr.checkResult(task.Source, ts, result)
-
-		// add status if disable == true;
-		// ignore logs of a specific status.
-		if status := PPAddSatus(result, taskOpt.DisableAddStatusField); true {
-			if PPIgnoreStatus(status, taskOpt.IgnoreStatus) {
-				continue
-			}
-		}
-
-		if pt, err := io.MakePoint(source, result.output.Tags, result.output.Data, ts); err != nil {
+		if pt, err := io.MakePoint(result.measurement, result.output.Tags, result.output.Data, result.ts); err != nil {
 			wkr.lastErr = err
 			wkr.lastErrTS = time.Now()
 		} else {
@@ -164,7 +128,7 @@ func (wkr *ppWorker) run(task *Task) []*io.Point {
 	return points
 }
 
-func (wkr *ppWorker) getNg(ppScriptName string) *parser.Engine {
+func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {
 	// 取 pp engine
 	var err error
 	scriptInf, ok := wkr.engines[ppScriptName]
@@ -183,28 +147,10 @@ func (wkr *ppWorker) getNg(ppScriptName string) *parser.Engine {
 	return scriptInf.ng
 }
 
-func (wkr *ppWorker) checkResult(name string, ts time.Time, result *Result) (string, time.Time) {
-	source := name
-	if v, err := result.GetField(PipelineTimeField); err == nil {
-		if nanots, ok := v.(int64); ok {
-			ts = time.Unix(nanots/int64(time.Second), nanots%int64(time.Second))
-		} else {
-			ts = ts.Add(-time.Nanosecond)
-		}
-		result.DeleteField(PipelineTimeField)
-	} else {
-		ts = ts.Add(-time.Nanosecond)
+func (wkr *plWorker) feed(task *Task, points []*io.Point) error {
+	if len(points) == 0 {
+		return nil
 	}
-
-	if v, err := result.GetTag(PipelineMSource); err == nil {
-		source = v
-		result.DeleteTag(PipelineMSource)
-	}
-
-	return source, ts
-}
-
-func (wkr *ppWorker) feed(task *Task, points []*io.Point) error {
 	category := datakit.Logging
 	version := ""
 
@@ -226,7 +172,7 @@ func (wkr *ppWorker) feed(task *Task, points []*io.Point) error {
 
 type workerManager struct {
 	sync.Mutex
-	workers map[int]*ppWorker
+	workers map[int]*plWorker
 	debug   bool
 }
 
@@ -238,7 +184,7 @@ func (manager *workerManager) appendPPWorker() error {
 		return fmt.Errorf("pipeline worker: Maximum limit reached")
 	}
 
-	wkr := &ppWorker{
+	wkr := &plWorker{
 		wkrID:    len(manager.workers),
 		createTS: time.Now(),
 		engines:  make(map[string]*ScriptInfo),
@@ -274,15 +220,15 @@ func InitManager(count int) {
 	l = logger.SLogger("pipeline-worker")
 
 	if wkrManager != nil {
-		LoadAllDotPScriptForWkr(nil, nil)
+		LoadDefaultDotPScript2Store()
 		return
 	}
 
 	wkrManager = &workerManager{
-		workers: make(map[int]*ppWorker),
+		workers: make(map[int]*plWorker),
 	}
 
-	LoadAllDotPScriptForWkr(nil, nil)
+	LoadDefaultDotPScript2Store()
 
 	if count <= 0 {
 		count = MaxWorkerCount
@@ -297,17 +243,4 @@ func InitManager(count int) {
 		l.Info("pipeline task channal is closed")
 		return nil
 	})
-}
-
-func LoadAllDotPScriptForWkr(userDefPath []string, gitRepoPPFile []string) {
-	ppPath := filepath.Join(datakit.InstallDir, "pipeline")
-	scriptCentorStore.appendScriptFromDirPath(ppPath, true)
-
-	for _, v := range gitRepoPPFile {
-		scriptCentorStore.appendScriptFromFilePath(v, true)
-	}
-
-	for _, v := range userDefPath {
-		scriptCentorStore.appendScriptFromDirPath(v, true)
-	}
 }
