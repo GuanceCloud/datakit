@@ -126,7 +126,6 @@ func (wkr *plWorker) run(task *Task) []*io.Point {
 				Strict:            true,
 				MaxFieldValueLen:  task.MaxMessageLen,
 			}); err != nil {
-
 			wkr.lastErr = err
 			wkr.lastErrTS = time.Now()
 		} else {
