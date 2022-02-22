@@ -110,7 +110,7 @@ func generatePipelineDoc() error {
 			if strings.HasPrefix(line, protoPrefix) {
 				proto := strings.TrimPrefix(line, protoPrefix)
 				// Prototype line contains starting and trailing ` only.
-				if strings.Index(proto, "`") == 0 && strings.Index(proto[1:], "`") == len(proto[1:])-1 {
+				if len(proto) >= 2 && strings.Index(proto, "`") == 0 && strings.Index(proto[1:], "`") == len(proto[1:])-1 {
 					proto = proto[1 : len(proto)-1]
 				}
 				plDoc.Prototype = proto
