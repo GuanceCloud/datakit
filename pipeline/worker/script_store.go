@@ -18,8 +18,16 @@ const (
 	RemoteScriptNS  = "remote"   // remote pl script，优先级最高
 )
 
+var plScriptNSSearchOrder = [3]string{
+	RemoteScriptNS, // 优先级最高的 ns
+	GitRepoScriptNS,
+	DefaultScriptNS,
+}
+
 var scriptCentorStore = &dotPScriptStore{
 	scripts: map[string]map[string]*ScriptInfo{
+		RemoteScriptNS:  {},
+		GitRepoScriptNS: {},
 		DefaultScriptNS: {},
 	},
 }
@@ -40,28 +48,18 @@ func (store *dotPScriptStore) queryScript(name string) (*ScriptInfo, error) {
 	store.RLock()
 	defer store.RUnlock()
 	if store.scripts != nil {
-		var vPtr *ScriptInfo
-		switch {
-		case len(store.scripts[RemoteScriptNS]) > 0:
-			if v, ok := store.scripts[RemoteScriptNS][name]; ok {
-				vPtr = v
+		for _, ns := range plScriptNSSearchOrder {
+			if len(store.scripts[ns]) == 0 {
+				continue
 			}
-		case len(store.scripts[GitRepoScriptNS]) > 0:
-			if v, ok := store.scripts[GitRepoScriptNS][name]; ok {
-				vPtr = v
+			if vPtr, ok := store.scripts[ns][name]; ok {
+				return &ScriptInfo{
+					ns:       vPtr.ns,
+					name:     vPtr.name,
+					script:   vPtr.script,
+					updateTS: vPtr.updateTS,
+				}, nil
 			}
-		case len(store.scripts[DefaultScriptNS]) > 0:
-			if v, ok := store.scripts[DefaultScriptNS][name]; ok {
-				vPtr = v
-			}
-		}
-		if vPtr != nil {
-			return &ScriptInfo{
-				ns:       vPtr.ns,
-				name:     vPtr.name,
-				script:   vPtr.script,
-				updateTS: vPtr.updateTS,
-			}, nil
 		}
 	}
 	return nil, fmt.Errorf("not found")

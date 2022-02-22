@@ -27,6 +27,38 @@ type taskData struct {
 	log  string
 }
 
+func TestPlScriptStore(t *testing.T) {
+	store := &dotPScriptStore{
+		scripts: map[string]map[string]*ScriptInfo{},
+	}
+
+	err := store.appendScript(DefaultScriptNS, "abc.p", "default(time)", true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = store.appendScript(GitRepoScriptNS, "abc.p", "default(time)", true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = store.appendScript(RemoteScriptNS, "abc.p", "default(time)", true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, ns := range plScriptNSSearchOrder {
+		sInfo, err := store.queryScript("abc.p")
+		if err != nil {
+			t.Error(err)
+		}
+		if sInfo.ns != ns {
+			t.Error(sInfo.ns, ns)
+		}
+		store.cleanAllScriptWithNS(ns)
+	}
+}
+
 func TestRunAsTask(t *testing.T) {
 	cases := []struct {
 		title       string
@@ -398,7 +430,7 @@ func TestWorker(t *testing.T) {
 
 	for k, v := range cases {
 		if k == 2 {
-			_ = scriptCentorStore.appendScript(RemoteScriptNS, "nginx-time.p", `
+			_ = scriptCentorStore.appendScript(GitRepoScriptNS, "nginx-time.p", `
 			json(_, time)
 			json(_, status)
 			default_time(time)`, true)
