@@ -84,6 +84,26 @@ func RandFields(entries, maxKeyLen int) map[string]interface{} {
 	return fields
 }
 
+type Gauge struct {
+	Time    time.Time
+	Name    string
+	Count   int
+	Score   float64
+	Code    byte
+	Checked bool
+}
+
+func RandGauge() *Gauge {
+	return &Gauge{
+		Name:    RandString(15),
+		Count:   rand.Int(),
+		Code:    byte(rand.Intn(128)),
+		Score:   rand.Float64(),
+		Checked: rand.Int()%2 == 0,
+		Time:    time.Now(),
+	}
+}
+
 func RandMetrics(entries, maxKeyLen int) map[string]float64 {
 	metrics := make(map[string]float64)
 	for i := 0; i < entries; i++ {
@@ -130,24 +150,4 @@ func RandPoints(count int, maxTags, maxFields int) []*influxdb.Point {
 	}
 
 	return pnts
-}
-
-type Gauge struct {
-	Time    time.Time
-	Name    string
-	Count   int
-	Score   float64
-	Code    byte
-	Checked bool
-}
-
-func RandGauge() *Gauge {
-	return &Gauge{
-		Name:    RandString(15),
-		Count:   rand.Int(),
-		Code:    byte(rand.Intn(128)),
-		Score:   rand.Float64(),
-		Checked: rand.Int()%2 == 0,
-		Time:    time.Now(),
-	}
 }
