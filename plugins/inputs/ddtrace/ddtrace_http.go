@@ -20,7 +20,7 @@ const (
 	keySamplingRateGlobal = "_sample_rate"
 )
 
-func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
+func handleDDTrace(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("%s: received tracing data from path: %s", inputName, req.URL.Path)
 
 	traces, err := decodeDDTraces(req.URL.Path, req)
@@ -53,7 +53,7 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 }
 
 // TODO:.
-func handleDDInfo(resp http.ResponseWriter, req *http.Request) { //nolint: unused,deadcode
+func handleDDInfo(resp http.ResponseWriter, req *http.Request) { // nolint: unused,deadcode
 	log.Errorf("%s unsupport yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }

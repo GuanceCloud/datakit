@@ -56,7 +56,7 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 		if dktrace := segobjToDkTrace(segobj); len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
-			afterGather.Run(inputName, dktrace, false)
+			afterGatherRun.Run(inputName, dktrace, false)
 		}
 	}
 }

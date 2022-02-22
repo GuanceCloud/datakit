@@ -2,20 +2,20 @@
 package trace
 
 import (
-	"bytes"
 	"compress/gzip"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-// trace constants.
-//nolint:stylecheck
+// tracing data constants
+// nolint:stylecheck
 const (
 	CONTAINER_HOST = "container_host"
 	ENV            = "env"
@@ -63,16 +63,6 @@ const (
 	FIELD_SPANID             = "span_id"
 	FIELD_START              = "start"
 	FIELD_TRACEID            = "trace_id"
-)
-
-// tracing data keep priority.
-const (
-	// reject trace before send to dataway.
-	PriorityReject = -1
-	// auto calculate with sampling rate.
-	PriorityAuto = 0
-	// always send to dataway and do not consider sampling and filters.
-	PriorityKeep = 1
 )
 
 var (
@@ -199,34 +189,21 @@ func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[st
 	return merged
 }
 
-type TraceReqInfo struct {
-	Source      string
-	Version     string
-	ContentType string
-	Body        []byte
-}
-
-func ParseTraceInfo(req *http.Request) (*TraceReqInfo, error) {
-	defer req.Body.Close() //nolint:errcheck
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
+func ParseTracingRequest(req *http.Request) (contentType string, body []byte, err error) {
+	if req == nil {
+		return "", nil, errors.New("nil http.Request pointer")
 	}
 
-	reqInfo := &TraceReqInfo{
-		Source:      req.URL.Query().Get("source"),
-		ContentType: req.Header.Get("Content-Type"),
-		Version:     req.URL.Query().Get("version"),
-		Body:        body,
-	}
+	contentType = strings.ToLower(strings.TrimSpace(req.Header.Get("Content-Type")))
+
 	if req.Header.Get("Content-Encoding") == "gzip" {
 		var rd *gzip.Reader
-		if rd, err = gzip.NewReader(bytes.NewBuffer(body)); err == nil {
-			if body, err = io.ReadAll(rd); err == nil {
-				reqInfo.Body = body
-			}
+		if rd, err = gzip.NewReader(req.Body); err == nil {
+			body, err = io.ReadAll(rd)
 		}
+	} else {
+		body, err = io.ReadAll(req.Body)
 	}
 
-	return reqInfo, err
+	return
 }

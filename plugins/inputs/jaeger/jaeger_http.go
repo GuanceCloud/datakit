@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime/debug"
 	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
@@ -13,53 +12,48 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
-func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
+func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
 
-	defer func() {
-		resp.WriteHeader(http.StatusOK)
-		if r := recover(); r != nil {
-			log.Errorf("Stack crash: %v", r)
-			log.Errorf("Stack info :%s", string(debug.Stack()))
-		}
-	}()
-
-	treqinfo, err := itrace.ParseTraceInfo(req)
+	contentType, body, err := itrace.ParseTracingRequest(req)
 	if err != nil {
 		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	if treqinfo.ContentType != "application/x-thrift" {
-		log.Errorf("Jeager unsupported Content-Type: %s", treqinfo.ContentType)
+	if contentType != "application/x-thrift" {
+		log.Errorf("Jeager unsupported Content-Type: %s", contentType)
+		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	if err = parseJaegerThrift(treqinfo.Body); err != nil {
+	buf := thrift.NewTMemoryBuffer()
+	if _, err = buf.Write(body); err != nil {
 		log.Error(err.Error())
-	}
-}
+		resp.WriteHeader(http.StatusBadRequest)
 
-func parseJaegerThrift(octets []byte) error {
-	buffer := thrift.NewTMemoryBuffer()
-	if _, err := buffer.Write(octets); err != nil {
-		return err
+		return
 	}
-	transport := thrift.NewTBinaryProtocolConf(buffer, &thrift.TConfiguration{})
-	batch := &jaeger.Batch{}
-	if err := batch.Read(context.TODO(), transport); err != nil {
-		return err
+
+	var (
+		transport = thrift.NewTBinaryProtocolConf(buf, &thrift.TConfiguration{})
+		batch     = &jaeger.Batch{}
+	)
+	if err = batch.Read(context.TODO(), transport); err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
 	}
 
 	if dktrace := batchToDkTrace(batch); len(dktrace) == 0 {
 		log.Warn("empty datakit trace")
 	} else {
-		afterGather.Run(inputName, dktrace, false)
+		afterGatherRun.Run(inputName, dktrace, false)
 	}
-
-	return nil
 }
 
 func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {

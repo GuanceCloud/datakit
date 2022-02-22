@@ -144,7 +144,7 @@ func (ipt *Input) Run() {
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.Endpoint != "" {
 		itrace.StartTracingStatistic()
-		http.RegHTTPHandler("POST", ipt.Endpoint, JaegerTraceHandle)
+		http.RegHTTPHandler("POST", ipt.Endpoint, handleJaegerTrace)
 	}
 }
 

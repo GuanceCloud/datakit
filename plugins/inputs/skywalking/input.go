@@ -55,9 +55,10 @@ const (
 )
 
 var (
-	log              = logger.DefaultSLogger(inputName)
-	defAddr          = "localhost:13800"
-	afterGather      = itrace.NewAfterGather()
+	log                                        = logger.DefaultSLogger(inputName)
+	defAddr                                    = "localhost:13800"
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler

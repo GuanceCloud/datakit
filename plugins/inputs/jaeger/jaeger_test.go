@@ -9,11 +9,11 @@ import (
 func TestJaegerAgent(t *testing.T) {
 	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktrace itrace.DatakitTrace, strikMod bool) {})
 
-	testHTTPHandle(t)
+	testHTTPHandler(t)
 	testUDPClient(t)
 }
 
-func testHTTPHandle(t *testing.T) {
+func testHTTPHandler(t *testing.T) {
 	t.Helper()
 }
 

@@ -7,6 +7,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 )
 
+// tracing data keep priority.
+const (
+	// reject trace before send to dataway.
+	PriorityReject = -1
+	// auto calculate with sampling rate.
+	PriorityAuto = 0
+	// always send to dataway and do not consider sampling and filters.
+	PriorityKeep = 1
+)
+
 type Sampler struct {
 	Priority           int     `toml:"priority" json:"priority"`
 	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
