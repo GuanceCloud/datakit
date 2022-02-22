@@ -297,8 +297,6 @@ Content-Type: application/json
 
 创建或者更新对象的 `labels`
 
-请求示例:
-
 `request body`说明
 
 |           参数 | 描述                                                                          | 类型       |
@@ -308,6 +306,8 @@ Content-Type: application/json
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string`   |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`     |
 |       `labels` | `labels` 列表，一个 `string` 数组                                             | `[]string` |
+
+### 示例
 
 ```shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
@@ -345,9 +345,7 @@ status_code: 500
 
 删除对象的 `labels`
 
-请求示例:
-
-`request body`说明
+`request body` 说明
 
 |           参数 | 描述                                                                          | 类型     |
 | -------------: | ----------------------------------------------------------------------------- | -------- |
@@ -355,6 +353,8 @@ status_code: 500
 |  `object_name` | 表示 `labels` 所关联的 `object`名称，如 `host-123`                            | `string` |
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string` |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`   |
+
+### 示例
 
 ```shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
@@ -387,23 +387,11 @@ status_code: 500
 }
 ```
 
-## DataKit 行协议约束
-
-为规范观测云中的数据，现对经过 DataKit 的行协议数据，做如下约束：
-
-- tags 和 fields 中的 key 不允许重名
-- tags 内部或 fields 内部不允许出现同名 key
-- Tag 个数不超过 256 个
-- Field 个数不超过 1024 个
-- Tag/Field Key 长度不超过 256 字节
-- Tag Value 长度不超过 1024 字节
-- Field Value 不超过 32K(32x1024) 字节
-
 ## `/v1/pipeline/debug` | `POST`
 
 提供远程调试 PL 的功能。
 
-HTTP 请求:
+### 示例 
 
 ```
 POST /v1/pipeline/debug
@@ -455,3 +443,15 @@ HTTP Code: 40x
     "message": "invalid category"
 }
 ```
+
+## DataKit 行协议约束
+
+为规范观测云中的数据，现对经过 DataKit 的行协议数据，做如下约束：
+
+- tags 和 fields 中的 key 不允许重名
+- tags 内部或 fields 内部不允许出现同名 key
+- Tag 个数不超过 256 个
+- Field 个数不超过 1024 个
+- Tag/Field Key 长度不超过 256 字节
+- Tag Value 长度不超过 1024 字节
+- Field Value 不超过 32K(32x1024) 字节

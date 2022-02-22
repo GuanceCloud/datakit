@@ -8,6 +8,8 @@
 
 DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit 自带语句补全功能：
 
+> 通过 datakit help dql 可获取更多命令行参数帮助。
+
 ```shell
 datakit dql      # 或者 datakit -Q
 dql > cpu limit 1
