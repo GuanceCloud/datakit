@@ -115,11 +115,11 @@ func decodeRequest(req *http.Request, out *DDTraces) error {
 
 			_, err2 := io.Copy(buf, req.Body)
 			if err2 != nil {
-				err = fmt.Errorf("could not decode JSON (%q), nor Msgpack (%q)", err1, err2)
+				err = fmt.Errorf("could not decode JSON (%q), nor Msgpack (%q)", err1.Error(), err2.Error())
 			}
 			_, err2 = out.UnmarshalMsg(buf.Bytes())
 			if err2 != nil {
-				err = fmt.Errorf("could not decode JSON (%q), nor Msgpack (%q)", err1, err2)
+				err = fmt.Errorf("could not decode JSON (%q), nor Msgpack (%q)", err1.Error(), err2.Error())
 			}
 		}
 	}
