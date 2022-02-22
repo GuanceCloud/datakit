@@ -150,7 +150,7 @@ func generatePipelineDoc() error {
 }
 
 func generatePipelineScripts() error {
-	scriptMap, err := config.GetScriptMap()
+	scriptMap, err := config.GetScriptMap(false)
 	if err != nil {
 		return err
 	}
