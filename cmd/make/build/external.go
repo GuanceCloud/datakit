@@ -57,6 +57,21 @@ var externals = []*dkexternal{
 			"CGO_ENABLED=1",
 		},
 	},
+	{
+		name: "logfwd",
+		lang: "go",
+
+		entry: "logfwd.go",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+			"linux/arm64": true,
+		},
+
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=0",
+		},
+	},
 	// &dkexternal{
 	// 	// requirement: apt-get install gcc-multilib
 	// 	name: "skywalkingGrpcV3",

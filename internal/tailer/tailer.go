@@ -23,6 +23,8 @@ const (
 
 var maxFieldsLength = 32766
 
+type ForwardFunc func(filename, text string) error
+
 type Option struct {
 	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
 	// ex: "info"
@@ -73,6 +75,10 @@ type Option struct {
 	DisableAddStatusField bool
 	// 是否关闭高频IO
 	DisableHighFreqIODdata bool
+	// 日志文本的另一种发送方式（和Feed冲突）
+	ForwardFunc ForwardFunc
+	// 关闭发送 event
+	DisableSendEvent bool
 }
 
 func (opt *Option) init() error {
