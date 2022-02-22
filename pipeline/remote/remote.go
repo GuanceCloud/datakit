@@ -31,8 +31,9 @@ const (
 )
 
 var (
-	l                 = logger.DefaultSLogger(pipelineRemoteName)
-	runPipelineRemote sync.Once
+	l                      = logger.DefaultSLogger(pipelineRemoteName)
+	runPipelineRemote      sync.Once
+	runLocalPipelineRemote sync.Once
 )
 
 type pipelineRemoteConfig struct {
@@ -44,13 +45,6 @@ func StartPipelineRemote(urls []string) {
 	runPipelineRemote.Do(func() {
 		l = logger.SLogger(pipelineRemoteName)
 		g := datakit.G(pipelineRemoteName)
-
-		pls, err := config.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
-		if err != nil {
-			l.Errorf("GetNamespacePipelineFiles failed: %v", err)
-		} else {
-			worker.ReloadAllRemoteDotPScript2Store(pls)
-		}
 
 		g.Go(func(ctx context.Context) error {
 			return pullMain(urls, &pipelineRemoteImpl{})
@@ -252,7 +246,22 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		return 0, err
 	}
 	if cf.SiteURL != siteURL {
+		if err := os.Remove(pathConfig); err != nil {
+			l.Warnf("diff token, remove config failed: %v", err)
+		}
+		if err := removeLocalRemote(ipr); err != nil {
+			l.Warnf("diff token, removeLocalRemote failed: %v", err)
+		}
 		return 0, nil // need update when token has changed
+	} else {
+		runLocalPipelineRemote.Do(func() {
+			pls, err := config.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
+			if err != nil {
+				l.Errorf("GetNamespacePipelineFiles failed: %v", err)
+			} else {
+				worker.ReloadAllRemoteDotPScript2Store(pls)
+			}
+		})
 	}
 	return cf.UpdateTime, nil
 }
