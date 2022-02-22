@@ -27,6 +27,7 @@ const (
 	# 不要修改或删除本文件
 	#-----------------------------------------------------------------------------------
 	`
+	deleteAll = 1
 )
 
 var (
@@ -165,6 +166,15 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 	if localTS == updateTime || updateTime <= 0 {
 		l.Debugf("already up to date: %d", updateTime)
 	} else {
+		if updateTime == deleteAll {
+			l.Debug("deleteAll")
+			// remove lcoal files
+			if err := removeLocalFiles(datakit.PipelineRemoteDir, ipr); err != nil {
+				return err
+			}
+			return nil
+		}
+
 		l.Infof("localTS = %d, updateTime = %d, so update", localTS, updateTime)
 
 		files, err := dumpFiles(mFiles, ipr)
@@ -181,19 +191,16 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 			return err
 		}
 
-		l.Debug("update completed.")
+		l.Debugf("update completed: %d", updateTime)
 	}
 
 	return nil
 }
 
-func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) {
-	l.Debugf("dumpFiles: %#v", mFiles)
-
-	// remove lcoal files
+func removeLocalFiles(dirname string, ipr IPipelineRemote) error {
 	files, err := ipr.ReadDir(datakit.PipelineRemoteDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for _, fi := range files {
 		if !fi.IsDir() {
@@ -207,12 +214,22 @@ func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) 
 			}
 		}
 	}
+	return nil
+}
+
+func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) {
+	l.Debugf("dumpFiles: %#v", mFiles)
+
+	// remove lcoal files
+	if err := removeLocalFiles(datakit.PipelineRemoteDir, ipr); err != nil {
+		return nil, err
+	}
 
 	// dump
 	var plPaths []string
 	for k, v := range mFiles {
 		fullPath := filepath.Join(datakit.PipelineRemoteDir, k)
-		if err = ipr.WriteFile(fullPath, []byte(pipelineWarning+v), datakit.ConfPerm); err != nil {
+		if err := ipr.WriteFile(fullPath, []byte(pipelineWarning+v), datakit.ConfPerm); err != nil {
 			l.Errorf("failed to write pipeline remote %s, err: %s", k, err.Error())
 			continue
 		}
