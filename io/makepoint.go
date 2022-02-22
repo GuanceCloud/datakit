@@ -64,6 +64,7 @@ type PointOption struct {
 	Category          string
 	DisableGlobalTags bool
 	Strict            bool
+	MaxFieldValueLen  int
 }
 
 var defaultPointOption = &PointOption{
@@ -106,7 +107,9 @@ func NewPoint(name string,
 	if o.DisableGlobalTags {
 		lpOpt.ExtraTags = nil
 	}
-
+	if o.MaxFieldValueLen > 0 {
+		lpOpt.MaxFieldValueLen = o.MaxFieldValueLen
+	}
 	switch o.Category {
 	case datakit.Metric:
 		lpOpt.EnablePointInKey = true

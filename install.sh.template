@@ -196,6 +196,11 @@ if [ -n "$DK_DCA_ENABLE" ]; then
 	fi
 fi
 
+ipdb_type=""
+if [ -n "$DK_INSTALL_IPDB" ]; then
+	ipdb_type=$DK_INSTALL_IPDB
+fi
+
 if [ -n "$HTTP_PROXY" ]; then
 	proxy=$HTTP_PROXY
 fi
@@ -359,6 +364,7 @@ else
 			--disable-404page="${disable_404page}"           \
 			--log-level="${log_level}"                       \
 			--log="${log}"                                   \
+			--ipdb-type="${ipdb_type}"												\
 			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer

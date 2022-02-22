@@ -142,14 +142,14 @@ parse_date(key="time", h=hour, M=min, s=sec, ns=ns, zone="CST")
 		},
 
 		{
-			name: "missed second: use current second offset",
+			name: "missed second: use 0",
 			pl: `
 grok(_, "%{INT:hour}:%{INT:min}")
 parse_date(key="time", h=hour, M=min, zone="CST")`,
 			in:     "16:40",
 			outKey: "time",
 			expected: time.Date(now.Year(), now.Month(), now.Day(),
-				16, 40, now.Second(), 0, time.FixedZone("UTC+8", 8*60*60)).UnixNano(),
+				16, 40, 0o0, 0, time.FixedZone("UTC+8", 8*60*60)).UnixNano(),
 		},
 
 		{

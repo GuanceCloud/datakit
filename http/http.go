@@ -218,7 +218,21 @@ func setupRouter() *gin.Engine {
 	router.POST("/v1/query/raw", apiQueryRaw)
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
+
+	router.POST("/v1/pipeline/debug", apiHTTPWrap(apiDebugPipelineHandler))
 	return router
+}
+
+func apiHTTPWrap(next func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error), whatever ...interface{}) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		data, err := next(ctx.Writer, ctx.Request, whatever...)
+		if err != nil {
+			uhttp.HttpErr(ctx, err)
+			return
+		}
+
+		OK.HttpBody(ctx, data)
+	}
 }
 
 // TODO: we should wrap this handler.

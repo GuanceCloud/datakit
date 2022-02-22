@@ -511,10 +511,6 @@ func dcaSavePipeline(c *gin.Context, isUpdate bool) {
 }
 
 func pipelineTest(pipelineFile string, text string) (string, error) {
-	if err := pipeline.Init(datakit.DataDir); err != nil {
-		return "", err
-	}
-
 	pl, err := pipeline.NewPipelineFromFile(filepath.Join(datakit.PipelineDir, pipelineFile), false)
 	if err != nil {
 		return "", err

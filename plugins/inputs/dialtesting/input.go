@@ -259,7 +259,6 @@ func protectedRun(d *dialer) {
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-
 			l.Warnf("task %s panic: %+#v, trace: %s", d.task.ID(), err, string(trace))
 
 			crashcnt++
