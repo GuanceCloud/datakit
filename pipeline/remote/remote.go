@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	lPipelineRemote   = logger.DefaultSLogger(pipelineRemoteName)
+	l                 = logger.DefaultSLogger(pipelineRemoteName)
 	runPipelineRemote sync.Once
 )
 
@@ -41,12 +41,12 @@ type pipelineRemoteConfig struct {
 
 func StartPipelineRemote(urls []string) {
 	runPipelineRemote.Do(func() {
-		lPipelineRemote = logger.SLogger(pipelineRemoteName)
+		l = logger.SLogger(pipelineRemoteName)
 		g := datakit.G(pipelineRemoteName)
 
 		pls, err := config.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
 		if err != nil {
-			lPipelineRemote.Errorf("GetNamespacePipelineFiles failed: %v", err)
+			l.Errorf("GetNamespacePipelineFiles failed: %v", err)
 		} else {
 			worker.ReloadAllRemoteDotPScript2Store(pls)
 		}
@@ -103,7 +103,7 @@ func (*pipelineRemoteImpl) PullPipeline(ts int64) (mFiles map[string]string, upd
 func (*pipelineRemoteImpl) GetTickerDurationAndBreak() (time.Duration, bool) {
 	dr, err := time.ParseDuration(config.Cfg.Pipeline.RemotePullInterval)
 	if err != nil {
-		lPipelineRemote.Errorf("time.ParseDuration failed: err = (%v), str = (%s)", err, config.Cfg.Pipeline.RemotePullInterval)
+		l.Errorf("time.ParseDuration failed: err = (%v), str = (%s)", err, config.Cfg.Pipeline.RemotePullInterval)
 		dr = time.Minute
 	}
 	return dr, false
@@ -112,7 +112,7 @@ func (*pipelineRemoteImpl) GetTickerDurationAndBreak() (time.Duration, bool) {
 //------------------------------------------------------------------------------
 
 func pullMain(urls []string, ipr IPipelineRemote) error {
-	lPipelineRemote.Info("start")
+	l.Info("start")
 
 	if len(urls) == 0 {
 		return nil
@@ -121,7 +121,7 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	pathConfig := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteConfigFile)
 
 	td, isReturn := ipr.GetTickerDurationAndBreak()
-	lPipelineRemote.Infof("duration: %s", td.String())
+	l.Infof("duration: %s", td.String())
 
 	tick := time.NewTicker(td)
 	defer tick.Stop()
@@ -131,11 +131,11 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			lPipelineRemote.Info("exit")
+			l.Info("exit")
 			return nil
 
 		case <-tick.C:
-			lPipelineRemote.Debug("triggered")
+			l.Debug("triggered")
 
 			err = doPull(pathConfig, urls[0], ipr)
 			if err != nil {
@@ -152,24 +152,24 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 	localTS, err := getPipelineRemoteConfig(pathConfig, siteURL, ipr)
 	if err != nil {
-		lPipelineRemote.Errorf("getPipelineRemoteConfig failed: %s", err.Error())
+		l.Errorf("getPipelineRemoteConfig failed: %s", err.Error())
 		return err
 	}
 
 	mFiles, updateTime, err := ipr.PullPipeline(localTS)
 	if err != nil {
-		lPipelineRemote.Errorf("PullPipeline failed: %s", err.Error())
+		l.Errorf("PullPipeline failed: %s", err.Error())
 		return err
 	}
 
 	if localTS == updateTime || updateTime <= 0 {
-		lPipelineRemote.Debugf("already up to date: %d", updateTime)
+		l.Debugf("already up to date: %d", updateTime)
 	} else {
-		lPipelineRemote.Debug("update")
+		l.Infof("localTS = %d, updateTime = %d, so update", localTS, updateTime)
 
 		files, err := dumpFiles(mFiles, ipr)
 		if err != nil {
-			lPipelineRemote.Errorf("dumpFiles failed: %s", err.Error())
+			l.Errorf("dumpFiles failed: %s", err.Error())
 			return err
 		}
 
@@ -177,18 +177,18 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 
 		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 		if err != nil {
-			lPipelineRemote.Errorf("updatePipelineRemoteConfig failed: %s", err.Error())
+			l.Errorf("updatePipelineRemoteConfig failed: %s", err.Error())
 			return err
 		}
 
-		lPipelineRemote.Debug("update completed.")
+		l.Debug("update completed.")
 	}
 
 	return nil
 }
 
 func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) {
-	lPipelineRemote.Debugf("dumpFiles: %#v", mFiles)
+	l.Debugf("dumpFiles: %#v", mFiles)
 
 	// remove lcoal files
 	files, err := ipr.ReadDir(datakit.PipelineRemoteDir)
@@ -201,7 +201,7 @@ func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) 
 			if localName != pipelineRemoteConfigFile {
 				fullPath := filepath.Join(datakit.PipelineRemoteDir, localName)
 				if err = os.Remove(fullPath); err != nil {
-					lPipelineRemote.Errorf("failed to remove pipeline remote %s, err: %s", fi.Name(), err.Error())
+					l.Errorf("failed to remove pipeline remote %s, err: %s", fi.Name(), err.Error())
 					continue
 				}
 			}
@@ -213,12 +213,12 @@ func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) 
 	for k, v := range mFiles {
 		fullPath := filepath.Join(datakit.PipelineRemoteDir, k)
 		if err = ipr.WriteFile(fullPath, []byte(pipelineWarning+v), datakit.ConfPerm); err != nil {
-			lPipelineRemote.Errorf("failed to write pipeline remote %s, err: %s", k, err.Error())
+			l.Errorf("failed to write pipeline remote %s, err: %s", k, err.Error())
 			continue
 		}
 		plPaths = append(plPaths, fullPath)
 	}
-	lPipelineRemote.Debugf("plPaths: %#v", plPaths)
+	l.Debugf("plPaths: %#v", plPaths)
 	return plPaths, nil
 }
 
