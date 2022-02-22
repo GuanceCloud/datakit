@@ -18,19 +18,36 @@ func RandInt64(n int) int64 {
 
 	i := 1 + rand.Int63n(9)
 	for j := 1; j < n; j++ {
-		i *= 10
-		i += rand.Int63n(10)
+		d := rand.Int63n(10)
+		if i*10+d <= 0 {
+			break
+		} else {
+			i *= 10
+			i += d
+		}
 	}
 
 	return i
 }
 
-func RandStrID(n int) string {
+func RandWithinInts(emun []int) int {
+	return emun[rand.Intn(len(emun))]
+}
+
+func RandInt64StrID(n int) string {
 	return fmt.Sprintf("%d", RandInt64(n))
 }
 
-func RandTime() time.Time {
-	return time.Unix(0, RandInt64(13))
+func RandStrID(n int) string {
+	var buf []byte = make([]byte, n)
+	for n--; n >= 0; n-- {
+		buf[n] = '0' + byte(rand.Intn(10))
+	}
+	if buf[0] == '0' {
+		buf[0] = '1' + byte(rand.Intn(8))
+	}
+
+	return string(buf)
 }
 
 func RandString(maxLen int) string {
@@ -55,6 +72,24 @@ func RandStrings(length, lenPerLine int) []string {
 
 func RandWithinStrings(emun []string) string {
 	return emun[rand.Intn(len(emun))]
+}
+
+func RandEndPoint(splits int) string {
+	var endpoint string
+	for splits > 0 {
+		endpoint += "/" + RandString(20)
+		splits--
+	}
+
+	return endpoint
+}
+
+func RandVersion(maxSub int) string {
+	return fmt.Sprintf("%02d.%02d.%02d", rand.Intn(maxSub), rand.Intn(maxSub), rand.Intn(maxSub))
+}
+
+func RandTime() time.Time {
+	return time.Unix(0, RandInt64(13))
 }
 
 func RandTags(entries, maxKeyLen, maxValueLen int) map[string]string {

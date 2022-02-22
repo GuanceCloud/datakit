@@ -2,13 +2,29 @@ package testutils
 
 import (
 	"fmt"
+	"log"
 	"testing"
 )
 
 func TestRandInt64(t *testing.T) {
-	for i := 1; i < 10; i++ {
+	for i := 1; i <= 30; i++ {
 		for j := 0; j < 10; j++ {
 			fmt.Println(RandInt64(i))
+		}
+	}
+}
+
+func TestRandWithinInts(t *testing.T) {
+	var data = []int{2, 3, 45, 9, 67, 8, 9}
+	for i := 0; i < 10; i++ {
+		log.Println(RandWithinInts(data))
+	}
+}
+
+func TestRandStrID(t *testing.T) {
+	for i := 1; i <= 30; i++ {
+		for j := 0; j < 10; j++ {
+			fmt.Println(RandStrID(i))
 		}
 	}
 }
