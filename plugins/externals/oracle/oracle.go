@@ -227,6 +227,11 @@ func handleResponse(m *monitor, metricName string, tagsKeys []string, response [
 			tags[k] = v
 		}
 
+		if len(item) == 0 {
+			l.Warnf("no field on %s, ignored", metricName)
+			continue
+		}
+
 		pt, err = ifxcli.NewPoint(metricName, tags, item, time.Now())
 		if err != nil {
 			l.Error("NewPoint(): %s", err.Error())
@@ -273,6 +278,11 @@ func handleSystem(m *monitor, metricName string, response []map[string]interface
 		if newName, ok := dic[fieldName]; ok {
 			fields[newName] = value
 		}
+	}
+
+	if len(fields) == 0 {
+		l.Warnf("no field on %s, ignored", metricName)
+		return nil
 	}
 
 	pt, err := ifxcli.NewPoint(metricName, tags, fields, time.Now())
@@ -333,19 +343,28 @@ func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 			}
 
 			switch x := val.(type) {
-			case string:
-				x = strings.TrimSpace(x)
-				if data, err := strconv.ParseFloat(x, 64); err == nil { // try parse string to float
-					item[key] = data
-				} else {
-					item[key] = x // keep origin string value
+
+			case *interface{}:
+				switch _x := (*x).(type) {
+				case string:
+					_x = strings.TrimSpace(_x)
+					if data, err := strconv.ParseFloat(_x, 64); err == nil { // try parse string to float
+						item[key] = data
+					} else {
+						item[key] = _x // keep origin string value
+					}
+
+				case int64, int, int32, int8, int16,
+					uint64, uint, uint32, uint8, uint16,
+					time.Time, []uint8:
+					item[key] = _x
+
+				default:
+					l.Debugf("ignore key %s, type is %s", key, reflect.TypeOf(x).String())
 				}
 
-			case int64, time.Time, []uint8:
-				item[key] = x
-
 			default:
-				return nil, fmt.Errorf("unsupport data type:'%s'", reflect.TypeOf(val).String())
+				l.Debugf("ignore key %s, type is %s", key, reflect.TypeOf(val).String())
 			}
 		}
 

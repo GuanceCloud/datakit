@@ -41,6 +41,20 @@ unzip instantclient-basiclite-linux.x64-21.1.0.0.0.zip
 
 将解压后的目录文件路径添加到以下配置信息中的`LD_LIBRARY_PATH`环境变量路径中。
 
+> 也可以直接下载我们预先准备好的依赖包：
+
+```shell
+wget -q https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/otn_software/instantclient/instantclient-basiclite-linux.x64-19.8.0.0.0dbru.zip \
+			-O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+			&& unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle;
+```
+
+另外，可能还需要安装额外的依赖库：
+
+```shell
+apt-get install -y libaio-dev libaio1
+```
+
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
