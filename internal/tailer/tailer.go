@@ -21,9 +21,7 @@ const (
 	LineMaxLen      = 32 * 1024 * 1024
 )
 
-var (
-	maxFieldsLength = 32766
-)
+var maxFieldsLength = 32766
 
 type Option struct {
 	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
