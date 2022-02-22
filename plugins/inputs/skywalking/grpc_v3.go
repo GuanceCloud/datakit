@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func runServerV3(addr string) {
+func registerServerV3(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Errorf("start skywalking V3 grpc server %s failed: %v", addr, err)
