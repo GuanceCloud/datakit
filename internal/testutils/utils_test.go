@@ -15,7 +15,7 @@ func TestRandInt64(t *testing.T) {
 }
 
 func TestRandWithinInts(t *testing.T) {
-	var data = []int{2, 3, 45, 9, 67, 8, 9}
+	data := []int{2, 3, 45, 9, 67, 8, 9}
 	for i := 0; i < 10; i++ {
 		log.Println(RandWithinInts(data))
 	}
