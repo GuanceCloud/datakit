@@ -169,7 +169,7 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 		if updateTime == deleteAll {
 			l.Debug("deleteAll")
 			// remove lcoal files
-			if err := removeLocalFiles(datakit.PipelineRemoteDir, ipr); err != nil {
+			if err := removeLocalRemote(ipr); err != nil {
 				return err
 			}
 			return nil
@@ -197,7 +197,7 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 	return nil
 }
 
-func removeLocalFiles(dirname string, ipr IPipelineRemote) error {
+func removeLocalRemote(ipr IPipelineRemote) error {
 	files, err := ipr.ReadDir(datakit.PipelineRemoteDir)
 	if err != nil {
 		return err
@@ -221,7 +221,7 @@ func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) 
 	l.Debugf("dumpFiles: %#v", mFiles)
 
 	// remove lcoal files
-	if err := removeLocalFiles(datakit.PipelineRemoteDir, ipr); err != nil {
+	if err := removeLocalRemote(ipr); err != nil {
 		return nil, err
 	}
 
