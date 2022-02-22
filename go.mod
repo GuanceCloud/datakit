@@ -43,6 +43,7 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
 	github.com/google/gopacket v1.1.19
+	github.com/gorilla/websocket v1.5.0
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65

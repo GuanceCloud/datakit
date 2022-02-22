@@ -27,11 +27,13 @@ const (
 	# 不要修改或删除本文件
 	#-----------------------------------------------------------------------------------
 	`
+	deleteAll = 1
 )
 
 var (
-	l                 = logger.DefaultSLogger(pipelineRemoteName)
-	runPipelineRemote sync.Once
+	l                      = logger.DefaultSLogger(pipelineRemoteName)
+	runPipelineRemote      sync.Once
+	runLocalPipelineRemote sync.Once
 )
 
 type pipelineRemoteConfig struct {
@@ -43,13 +45,6 @@ func StartPipelineRemote(urls []string) {
 	runPipelineRemote.Do(func() {
 		l = logger.SLogger(pipelineRemoteName)
 		g := datakit.G(pipelineRemoteName)
-
-		pls, err := config.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
-		if err != nil {
-			l.Errorf("GetNamespacePipelineFiles failed: %v", err)
-		} else {
-			worker.ReloadAllRemoteDotPScript2Store(pls)
-		}
 
 		g.Go(func(ctx context.Context) error {
 			return pullMain(urls, &pipelineRemoteImpl{})
@@ -165,6 +160,15 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 	if localTS == updateTime || updateTime <= 0 {
 		l.Debugf("already up to date: %d", updateTime)
 	} else {
+		if updateTime == deleteAll {
+			l.Debug("deleteAll")
+			// remove lcoal files
+			if err := removeLocalRemote(ipr); err != nil {
+				return err
+			}
+			return nil
+		}
+
 		l.Infof("localTS = %d, updateTime = %d, so update", localTS, updateTime)
 
 		files, err := dumpFiles(mFiles, ipr)
@@ -181,19 +185,16 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 			return err
 		}
 
-		l.Debug("update completed.")
+		l.Debugf("update completed: %d", updateTime)
 	}
 
 	return nil
 }
 
-func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) {
-	l.Debugf("dumpFiles: %#v", mFiles)
-
-	// remove lcoal files
+func removeLocalRemote(ipr IPipelineRemote) error {
 	files, err := ipr.ReadDir(datakit.PipelineRemoteDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for _, fi := range files {
 		if !fi.IsDir() {
@@ -207,12 +208,22 @@ func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) 
 			}
 		}
 	}
+	return nil
+}
+
+func dumpFiles(mFiles map[string]string, ipr IPipelineRemote) ([]string, error) {
+	l.Debugf("dumpFiles: %#v", mFiles)
+
+	// remove lcoal files
+	if err := removeLocalRemote(ipr); err != nil {
+		return nil, err
+	}
 
 	// dump
 	var plPaths []string
 	for k, v := range mFiles {
 		fullPath := filepath.Join(datakit.PipelineRemoteDir, k)
-		if err = ipr.WriteFile(fullPath, []byte(pipelineWarning+v), datakit.ConfPerm); err != nil {
+		if err := ipr.WriteFile(fullPath, []byte(pipelineWarning+v), datakit.ConfPerm); err != nil {
 			l.Errorf("failed to write pipeline remote %s, err: %s", k, err.Error())
 			continue
 		}
@@ -235,7 +246,22 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		return 0, err
 	}
 	if cf.SiteURL != siteURL {
+		if err := os.Remove(pathConfig); err != nil {
+			l.Warnf("diff token, remove config failed: %v", err)
+		}
+		if err := removeLocalRemote(ipr); err != nil {
+			l.Warnf("diff token, removeLocalRemote failed: %v", err)
+		}
 		return 0, nil // need update when token has changed
+	} else {
+		runLocalPipelineRemote.Do(func() {
+			pls, err := config.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
+			if err != nil {
+				l.Errorf("GetNamespacePipelineFiles failed: %v", err)
+			} else {
+				worker.ReloadAllRemoteDotPScript2Store(pls)
+			}
+		})
 	}
 	return cf.UpdateTime, nil
 }
