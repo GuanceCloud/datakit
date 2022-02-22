@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"google.golang.org/grpc/metadata"
+
 	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
@@ -14,6 +18,33 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	tracev1 "go.opentelemetry.io/otel/trace"
 )
+
+type MockTrace struct {
+	collectortracepb.UnimplementedTraceServiceServer
+	Rss     []*tracepb.ResourceSpans
+	Headers metadata.MD
+}
+
+func (et *MockTrace) getResourceSpans() []*tracepb.ResourceSpans {
+	return et.Rss
+}
+
+func (et *MockTrace) GetHeader() metadata.MD {
+	return et.Headers
+}
+
+func (et *MockTrace) Export(ctx context.Context,
+	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
+	l.Infof(ets.String())
+	// ets.ProtoMessage()
+	if rss := ets.GetResourceSpans(); len(rss) > 0 {
+		et.Rss = rss
+	}
+	et.Headers, _ = metadata.FromOutgoingContext(ctx)
+
+	res := &collectortracepb.ExportTraceServiceResponse{}
+	return res, nil
+}
 
 /*
 got :

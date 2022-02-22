@@ -23,9 +23,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	collectormetricepb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
-	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 func contextWithTimeout(parent context.Context, t *testing.T, timeout time.Duration) (context.Context, context.CancelFunc) {
@@ -174,31 +172,4 @@ func (o *otelResourceMetric) toString() string {
 		return ""
 	}
 	return string(bts)
-}
-
-type MockTrace struct {
-	collectortracepb.UnimplementedTraceServiceServer
-	Rss     []*tracepb.ResourceSpans
-	Headers metadata.MD
-}
-
-func (et *MockTrace) getResourceSpans() []*tracepb.ResourceSpans {
-	return et.Rss
-}
-
-func (et *MockTrace) GetHeader() metadata.MD {
-	return et.Headers
-}
-
-func (et *MockTrace) Export(ctx context.Context,
-	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
-	l.Infof(ets.String())
-	// ets.ProtoMessage()
-	if rss := ets.GetResourceSpans(); len(rss) > 0 {
-		et.Rss = rss
-	}
-	et.Headers, _ = metadata.FromOutgoingContext(ctx)
-
-	res := &collectortracepb.ExportTraceServiceResponse{}
-	return res, nil
 }

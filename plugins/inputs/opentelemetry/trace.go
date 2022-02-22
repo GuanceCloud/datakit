@@ -23,7 +23,8 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 			dktrace := make([]*DKtrace.DatakitSpan, 0)
 			for _, span := range librarySpans.Spans {
 				tags := toDatakitTags(span.Attributes)
-				tags = setTag(tags, spans.Resource.Attributes)
+				tags = setTag(tags, spans.Resource.Attributes) // 将用户自定义和global tag添加到tags中
+				// 添加span的其他字段
 				dkSpan := &DKtrace.DatakitSpan{
 					TraceID:            hex.EncodeToString(span.GetTraceId()),
 					ParentID:           byteToInt64(span.GetParentSpanId()),
@@ -54,6 +55,7 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 				if err == nil {
 					dkSpan.Content = string(bts)
 				}
+
 				l.Infof("dkspan = %+v", dkSpan)
 				l.Infof("")
 				l.Infof("span = %s", span.String())
@@ -93,6 +95,21 @@ func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
 		}
 	}
 	return m
+}
+
+func setTag(tags map[string]string, attr []*commonpb.KeyValue) map[string]string {
+	for _, kv := range attr {
+		for _, tag := range customTags {
+			if kv.Key == tag {
+				key := replace(kv.Key)
+				tags[key] = kv.GetValue().String()
+			}
+		}
+	}
+	for k, v := range globalTags {
+		tags[k] = v
+	}
+	return tags
 }
 
 func byteToInt64(bts []byte) string {

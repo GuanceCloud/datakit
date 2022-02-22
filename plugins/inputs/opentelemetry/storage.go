@@ -10,7 +10,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
-	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
@@ -48,21 +47,6 @@ func (s *SpansStorage) AddMetric(rss []*otelResourceMetric) {
 	if s.Count >= maxSend {
 		s.max <- 0
 	}
-}
-
-func setTag(tags map[string]string, attr []*commonpb.KeyValue) map[string]string {
-	for _, kv := range attr {
-		for _, tag := range customTags {
-			if kv.Key == tag {
-				key := replace(kv.Key)
-				tags[key] = kv.GetValue().String()
-			}
-		}
-	}
-	for k, v := range globalTags {
-		tags[k] = v
-	}
-	return tags
 }
 
 // GetResourceSpans returns the stored resource spans.
