@@ -17,8 +17,7 @@ type ipdbInfo struct {
 }
 
 func installIpdb(ipdbType string) error {
-	// baseURL := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit/"
-	baseURL := "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/zhengbo/datakit"
+	baseURL := "https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/datakit"
 
 	ipdb, err := InstallIpdb(baseURL, ipdbType)
 	if err != nil {

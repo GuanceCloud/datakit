@@ -384,8 +384,17 @@ func installNewDatakit(svc service.Service) {
 
 	mc := config.Cfg
 
-	// prepare dataway info
+	// prepare dataway info and check token format
 	mc.DataWay = getDataWayCfg()
+	tokens := mc.DataWay.GetToken()
+	if len(tokens) == 0 {
+		l.Fatalf("dataway token should not be empty")
+	}
+
+	if err := mc.DataWay.CheckToken(tokens[0]); err != nil {
+		l.Fatal(err)
+	}
+
 	if flagOTA {
 		l.Debugf("set auto update flag")
 		mc.AutoUpdate = flagOTA

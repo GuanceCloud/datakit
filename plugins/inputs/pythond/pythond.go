@@ -337,15 +337,14 @@ func (*pathMockExer) FileExist(ph string) bool {
 // Splicing Python related module information.
 func getScriptNameRoot(dirs []string, mp mockPath, mpEx mockPathEx, mlist mockFolderList) (scriptName, scriptRoot string, err error) {
 	var pyModules, modulesRoot []string
-	enabledRepos := config.GitEnabledRepoNames()
 	for _, v := range dirs {
 		var pythonPath string
-		if len(enabledRepos) != 0 {
+		if config.GitHasEnabled() {
 			// enabled git
 			if filepath.IsAbs(v) {
 				pythonPath = v
 			} else {
-				pythonPath = searchPythondDir(v, enabledRepos, mp)
+				pythonPath = searchPythondDir(v, []string{datakit.GitReposRepoName}, mp)
 			}
 		} else {
 			// not enabled git
