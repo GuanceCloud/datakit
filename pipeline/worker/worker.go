@@ -117,7 +117,16 @@ func (wkr *plWorker) run(task *Task) []*io.Point {
 		if result.output.Dropped {
 			continue
 		}
-		if pt, err := io.MakePoint(result.measurement, result.output.Tags, result.output.Data, result.ts); err != nil {
+
+		if pt, err := io.NewPoint(result.measurement, result.output.Tags, result.output.Data,
+			&io.PointOption{
+				Time:              result.ts,
+				Category:          datakit.Logging,
+				DisableGlobalTags: false,
+				Strict:            true,
+				MaxFieldValueLen:  task.MaxMessageLen,
+			}); err != nil {
+
 			wkr.lastErr = err
 			wkr.lastErrTS = time.Now()
 		} else {

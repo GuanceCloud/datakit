@@ -189,17 +189,18 @@ func (r *Result) MarkAsDropped() {
 	r.output.Dropped = true
 }
 
-func (r *Result) checkFieldValLen(massageLen int) {
-	spiltLen := massageLen
+func (r *Result) checkFieldValLen(messageLen int) {
+	spiltLen := messageLen
 	if spiltLen == 0 { // 初始化task时候 没有注入最大长度 则使用默认值
 		spiltLen = maxFieldsLength
 	}
-
-	if i, err := r.GetField(PipelineMessageField); err == nil {
-		if mass, isString := i.(string); isString {
-			if len(mass) > spiltLen {
-				mass = mass[:spiltLen]
-				r.SetField(PipelineMessageField, mass)
+	for key := range r.output.Data {
+		if i, err := r.GetField(key); err == nil {
+			if mass, isString := i.(string); isString {
+				if len(mass) > spiltLen {
+					mass = mass[:spiltLen]
+					r.SetField(key, mass)
+				}
 			}
 		}
 	}

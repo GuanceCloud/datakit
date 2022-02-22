@@ -159,7 +159,8 @@ func (t *Single) sendToPipeline(pending []worker.TaskData) {
 			IgnoreStatus:          t.opt.IgnoreStatus,
 			DisableAddStatusField: t.opt.DisableAddStatusField,
 		},
-		TS: time.Now(),
+		TS:            time.Now(),
+		MaxMessageLen: maxFieldsLength,
 	}
 
 	err := worker.FeedPipelineTaskBlock(task)
