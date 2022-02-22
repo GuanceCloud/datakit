@@ -59,6 +59,7 @@ var (
 		"dialtesting_json":        "man/manuals/dialtesting_json.md",
 		"datakit-monitor":         "man/manuals/datakit-monitor.md",
 		"logging_socket":          "man/manuals/logging_socket.md",
+		"logfwd":                  "man/manuals/logfwd.md",
 	}
 	l = logger.DefaultSLogger("man")
 )

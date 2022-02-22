@@ -343,7 +343,6 @@ func (m *monitor) query(obj *ExecCfg) ([]map[string]interface{}, error) {
 			}
 
 			switch x := val.(type) {
-
 			case *interface{}:
 				switch _x := (*x).(type) {
 				case string:

@@ -114,6 +114,7 @@
     - [日志](logging)
     - [第三方日志接入](logstreaming)
     - [Socket 日志接入最佳实践](logging_socket)
+    - [通过 Sidecar 方式采集 Pod 日志](logfwd)
 
   - [Windows 相关]()
 

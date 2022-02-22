@@ -32,7 +32,7 @@
 
 ### logfwd 使用和配置
 
-logfwd 主配置是 JSON 格式，内容如下：
+logfwd 主配置是 JSON 格式，如下是一个配置示例：
 
 ``` json
 [
@@ -63,14 +63,14 @@ logfwd 主配置是 JSON 格式，内容如下：
 配置参数说明：
 
 - `datakit_addr` 是 DataKit logfwdserver 地址
-- `loggings` 为主要配置，是一个数组，子项也基本和 [logging](logging.md) 采集器相同。
+- `loggings` 为主要配置，是一个数组，子项也基本和 [logging](logging) 采集器相同。
     - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
     - `source` 数据来源，如果为空，则默认使用 'default'
     - `service` 新增标记tag，如果为空，则默认使用 $source
     - `pipeline` pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline（此脚本文件存在于 DataKit 端）
     - `character_encoding` # 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持`utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
-    - `multiline_match` 多行匹配，与 [logging](logging.md) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
+    - `multiline_match` 多行匹配，与 [logging](logging) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
 
 
@@ -125,7 +125,7 @@ spec:
         fieldRef:
           apiVersion: v1
           fieldPath: metadata.namespace
-    image: registry.jiagouyun.com/datakit/logfwd:{{.Version}}
+    image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
     imagePullPolicy: Always
     volumeMounts:
     - name: varlog

@@ -35,7 +35,7 @@ var (
 	flagDQLLogPath     = fsDQL.String("log", commonLogFlag(), "command line log path")
 
 	//
-	// running mode. (not used)
+	// running mode. (not used).
 	//
 	fsRunName          = "run"
 	fsRun              = pflag.NewFlagSet(fsRunName, pflag.ContinueOnError)
