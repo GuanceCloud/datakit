@@ -183,7 +183,7 @@ endef
 define do_lint
 	truncate -s 0 lint.err
 	golangci-lint --version 
-	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix
+	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix --allow-parallel-runners
 endef
 
 ip2isp:
