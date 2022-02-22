@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -406,4 +407,28 @@ func TestUploadLog(t *testing.T) {
 	respBody, err := ioutil.ReadAll(resp.Body)
 	tu.Ok(t, err)
 	tu.Assert(t, string(respBody) == "OK", "assert failed")
+}
+
+func TestCheckToken(t *testing.T) {
+	cases := []struct {
+		valid bool
+		token string
+	}{
+		{valid: true, token: "tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+		{valid: true, token: "token_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+		{valid: true, token: "tokn_xxxxxxxxxxxxxxxxxxxxxxxx"},
+		{valid: false, token: "tokn_xxxxxxxxx"},
+		{valid: false, token: "token_xxxxxxxxx"},
+		{valid: false, token: "tkn_xxxxxxxxx"},
+	}
+	dw := DataWayCfg{}
+
+	for _, info := range cases {
+		err := dw.CheckToken(info.token)
+		if info.valid {
+			assert.NoError(t, err)
+		} else {
+			assert.Error(t, err)
+		}
+	}
 }
