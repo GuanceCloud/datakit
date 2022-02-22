@@ -82,7 +82,7 @@ sudo datakit --start                                            # 重启 datakit
 - 执行如下命令检查采集器情况：
 
 ```shell
-sudo datakit --check-config # 检查采集器配置文件是否正常
+sudo datakit debug --check-config # 检查采集器配置文件是否正常
 datakit -M --vvv            # 检查所有采集器的运行情况
 ```
 

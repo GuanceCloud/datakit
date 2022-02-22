@@ -16,6 +16,8 @@ datakit -h
 
 ## 查看 DataKit 运行情况
 
+> 当前的 monitor 查看方式已经废弃（仍然可用，不久将废弃），新的 monitor 功能[参见这里](datakit-monitor)
+
 在终端即可查看 DataKit 运行情况，其效果跟浏览器端 monitor 页面相似：
 
 ```shell
@@ -32,7 +34,7 @@ datakit -M --vvv
 编辑完采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可检查是否正确：
 
 ```shell
-sudo datakit --check-config
+sudo datakit debug --check-config
 ------------------------
 checked 13 conf, all passing, cost 22.27455ms
 ```
@@ -55,7 +57,7 @@ man > Q               # 输入 Q 或 exit 退出
 为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
 
 ```shell
-datakit --workspace-info
+datakit debug --workspace-info
 {
   "token": {
     "ws_uuid": "wksp_2dc431d6693711eb8ff97aeee04b54af",
@@ -175,7 +177,7 @@ sudo datakit --install sec-checker  # 该命名即将废弃
 排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
 
 ```shell
-sudo datakit --upload-log
+sudo datakit debug --upload-log
 log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # 将这个路径信息发送给我们工程师即可
 ```
 

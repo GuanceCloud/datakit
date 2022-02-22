@@ -52,4 +52,4 @@ LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit \
 	--TODO "-" && \
 	waque upload .docs/*.md -c "${waque_yml}" && \
 	printf "${GREEN}----------------------${CLR}\n" && \
-	printf "${GREEN}[I] upload manuals ok %s ${CLR}\n"
+	printf "${GREEN}[I] upload manuals ok.${CLR}\n"

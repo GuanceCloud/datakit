@@ -57,6 +57,7 @@ var (
 		"why-no-data":             "man/manuals/why-no-data.md",
 		"dca":                     "man/manuals/dca.md",
 		"dialtesting_json":        "man/manuals/dialtesting_json.md",
+		"datakit-monitor":         "man/manuals/datakit-monitor.md",
 	}
 	l = logger.DefaultSLogger("man")
 )

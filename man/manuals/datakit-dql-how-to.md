@@ -45,16 +45,16 @@ Tips：
 
 ```shell
 # 单次执行一条查询语句
-datakit --run-dql 'cpu limit 1'
+datakit dql --run 'cpu limit 1'
 
 # 将执行结果写入 CSV 文件
-datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv"
+datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv"
 
 # 强制覆盖已有 CSV 文件
-datakit --run-dql 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
+datakit dql --run 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
 
 # 将结果写入 CSV 的同时，在终端也显示查询结果
-datakit --run-dql 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
+datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
 ```
 
 导出的 CSV 文件样式示例：
@@ -77,7 +77,7 @@ mem,2014437376,2077097984,24.18060302734375,73502720,achen.local,1635242544382
 以 JSON 形式输出结果，但 JSON 模式下，不会输出一些统计信息，如返回行数、时间消耗等（以保证 JSON 可直接解析）
 
 ```shell
-datakit --run-dql 'O::HOST:(os, message)' --json
+datakit dql --run 'O::HOST:(os, message)' --json
 datakit -Q --json
 
 # 如果字段值是 JSON 字符串，则自动做 JSON 美化（注意：JSON 模式下（即 --json），`--auto-json` 选项无效）
@@ -108,7 +108,7 @@ message ----- json -----  # JSON 开始处有明显标志，此处 message 为�
 通过指定不同的 Token 来查询其它工作空间的数据：
 
 ```shell
-datakit --run-dql 'O::HOST:(os, message)' --token <your-token>
+datakit dql --run 'O::HOST:(os, message)' --token <your-token>
 datakit -Q --token <your-token>
 ```
 

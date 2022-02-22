@@ -124,9 +124,12 @@ var (
 	//
 	fsMonitorName              = "monitor"
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
+	flagMonitorTo              = fsMonitor.String("to", "localhost:9529", "specify the DataKit(IP:Port) to show its statistics")
+	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 16, "set max table cell width")
+	flagMonitorOnlyInputs      = fsMonitor.StringSliceP("input", "I", nil, "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
-	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info")
+	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info, default not show goroutine and inputs config info")
 	fsMonitorUsage             = func() {
 		fmt.Printf("usage: datakit monitor [options]\n\n")
 		fmt.Printf("Monitor used to show datakit running statistics\n\n")
@@ -146,6 +149,29 @@ var (
 		fmt.Printf("usage: datakit install [options]\n\n")
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")
 		fmt.Println(fsInstall.FlagUsagesWrapped(0))
+	}
+	//
+	// debug related flags.
+	//
+
+	fsDebugName            = "debug"
+	fsDebug                = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
+	flagDebugLogPath       = fsDebug.String("log", commonLogFlag(), "command line log path")
+	flagDebugCloudInfo     = fsDebug.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flagDebugIPInfo        = fsDebug.String("ipinfo", "", "show IP geo info")
+	flagDebugWorkspaceInfo = fsDebug.Bool("workspace-info", false, "show workspace info")
+	flagDebugCheckConfig   = fsDebug.Bool("check-config", false, "check inputs configure and main configure")
+	flagDebugCmdLog        = fsDebug.String("cmd-log", "/dev/null", "command line log path")
+	flagDebugDumpSamples   = fsDebug.String("dump-samples", "", "dump all inputs samples")
+	// flagDebugDisableSelfInput   = fsDebug.Bool("disable-self-input", false, "disable self input")
+	// flagDebugDisableDatawayList = fsDebug.Bool("disable-dataway-list", false, "disable list available dataway")
+	// flagDebugDisableLogFilter   = fsDebug.Bool("disable-logfilter", false, "disable logfilter")
+	// flagDebugDisableHeartBeat   = fsDebug.Bool("disable-heartbeat", false, "disable heartbeat").
+	flagDebugLoadLog = fsDebug.Bool("upload-log", false, "upload log")
+	fsDebugUsage     = func() {
+		fmt.Printf("usage: datakit debug [options]\n\n")
+		fmt.Printf("methods of all debug datakits\n\n")
+		fmt.Println(fsDebug.FlagUsagesWrapped(0))
 	}
 )
 
@@ -171,6 +197,7 @@ func printHelp() {
 	fmt.Fprintf(os.Stderr, "\tservice    manage datakit service\n")
 	fmt.Fprintf(os.Stderr, "\tmonitor    show datakit running statistics\n")
 	fmt.Fprintf(os.Stderr, "\tinstall    install DataKit related packages and plugins\n")
+	fmt.Fprintf(os.Stderr, "\tdebug      methods of all debug datakits\n")
 
 	// TODO: add more commands...
 
@@ -207,6 +234,9 @@ func runHelpFlags() {
 
 		case fsInstallName:
 			fsInstallUsage()
+
+		case fsDebugName:
+			fsDebugUsage()
 
 		default: // add more
 			fmt.Fprintf(os.Stderr, "flag provided but not defined: %s", os.Args[2])
@@ -319,7 +349,10 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			runMonitorFlags()
+			if err := runMonitorFlags(); err != nil {
+				errorf("%s\n", err)
+				os.Exit(-1)
+			}
 
 			os.Exit(0)
 
@@ -336,6 +369,22 @@ func doParseAndRunFlags() {
 				errorf("%s\n", err)
 				os.Exit(-1)
 			}
+			os.Exit(0)
+
+		case fsDebugName:
+			setCmdRootLog(*flagDebugLogPath)
+			if err := fsDebug.Parse(os.Args[2:]); err != nil {
+				errorf("Parse: %s\n", err)
+				fsDebugUsage()
+				os.Exit(-1)
+			}
+
+			err := runDebugFlags()
+			if err != nil {
+				errorf("%s\n", err)
+				os.Exit(-1)
+			}
+
 			os.Exit(0)
 
 		default:
