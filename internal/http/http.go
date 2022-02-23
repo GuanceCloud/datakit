@@ -187,3 +187,7 @@ func (cw *ConnWatcher) String() string {
 	return fmt.Sprintf("connections: new: %d, closed: %d, Max: %d, hijacked: %d, idle: %d, active: %d",
 		cw.New, cw.Close, cw.Max, cw.Hijacked, cw.Idle, cw.Active)
 }
+
+func GetHeader(req *http.Request, key string) string {
+	return strings.ToLower(strings.TrimSpace(req.Header.Get(key)))
+}

@@ -15,21 +15,6 @@ import (
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
 
-	// contentType, body, err := itrace.ParseTracingRequest(req)
-	// if err != nil {
-	// 	log.Error(err.Error())
-	// 	resp.WriteHeader(http.StatusBadRequest)
-
-	// 	return
-	// }
-
-	// if contentType != "application/x-thrift" {
-	// 	log.Errorf("Jeager unsupported Content-Type: %s", contentType)
-	// 	resp.WriteHeader(http.StatusBadRequest)
-
-	// 	return
-	// }
-
 	buf := thrift.NewTMemoryBuffer()
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {

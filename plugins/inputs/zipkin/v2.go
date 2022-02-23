@@ -15,9 +15,9 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
-func parseZipkinProtobuf3(octets []byte) (zss []*zpkmodel.SpanModel, err error) {
+func parseZipkinProtobuf3(body []byte) (zss []*zpkmodel.SpanModel, err error) {
 	var listOfSpans zpkprotov2.ListOfSpans
-	if err := proto.Unmarshal(octets, &listOfSpans); err != nil {
+	if err := proto.Unmarshal(body, &listOfSpans); err != nil {
 		return nil, err
 	}
 

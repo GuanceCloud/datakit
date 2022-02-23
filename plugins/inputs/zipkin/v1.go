@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -43,9 +44,9 @@ type ZipkinSpanV1 struct {
 	Debug             bool                `thrift:"debug,9" db:"debug" json:"debug,omitempty"`
 }
 
-func unmarshalZipkinThriftV1(octets []byte) ([]*zpkcorev1.Span, error) {
+func unmarshalZipkinThriftV1(body io.ReadCloser) ([]*zpkcorev1.Span, error) {
 	buffer := thrift.NewTMemoryBuffer()
-	_, err := buffer.Write(octets)
+	_, err := buffer.ReadFrom(body)
 	if err != nil {
 		return nil, err
 	}

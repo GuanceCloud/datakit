@@ -3,6 +3,7 @@ package zipkin
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
@@ -28,7 +29,7 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 		}
 	case "application/json":
 		var zspans []*ZipkinSpanV1
-		if err = json.Unmarshal(body, &zspans); err == nil {
+		if err = json.NewDecoder(req.Body).Decode(&zspans); err == nil {
 			dktrace = jsonV1SpansToDkTrace(zspans)
 		}
 	default:
@@ -60,17 +61,25 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	buf, err := io.ReadAll(body)
+	if err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
 	var (
 		zpkmodels []*zpkmodel.SpanModel
 		dktrace   itrace.DatakitTrace
 	)
 	switch contentType {
 	case "application/x-protobuf":
-		if zpkmodels, err = parseZipkinProtobuf3(body); err == nil {
+		if zpkmodels, err = parseZipkinProtobuf3(buf); err == nil {
 			dktrace = spanModelsToDkTrace(zpkmodels)
 		}
 	case "application/json":
-		if err = json.Unmarshal(body, &zpkmodels); err == nil {
+		if err = json.NewDecoder(req.Body).Decode(&zpkmodels); err == nil {
 			dktrace = spanModelsToDkTrace(zpkmodels)
 		}
 	default:

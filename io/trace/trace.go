@@ -9,9 +9,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 )
 
 // tracing data constants
@@ -189,20 +189,16 @@ func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[st
 	return merged
 }
 
-func ParseTracingRequest(req *http.Request) (contentType string, body []byte, err error) {
+func ParseTracingRequest(req *http.Request) (contentType string, body io.ReadCloser, err error) {
 	if req == nil {
 		return "", nil, errors.New("nil http.Request pointer")
 	}
 
-	contentType = strings.ToLower(strings.TrimSpace(req.Header.Get("Content-Type")))
-
-	if req.Header.Get("Content-Encoding") == "gzip" {
-		var rd *gzip.Reader
-		if rd, err = gzip.NewReader(req.Body); err == nil {
-			body, err = io.ReadAll(rd)
-		}
+	contentType = ihttp.GetHeader(req, "Content-Type")
+	if ihttp.GetHeader(req, "Content-Encoding") == "gzip" {
+		body, err = gzip.NewReader(req.Body)
 	} else {
-		body, err = io.ReadAll(req.Body)
+		body = req.Body
 	}
 
 	return
