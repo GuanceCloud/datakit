@@ -10,6 +10,8 @@ import (
 )
 
 func randDatakitSpan(t *testing.T) *DatakitSpan {
+	t.Helper()
+
 	dkspan := &DatakitSpan{
 		TraceID:            testutils.RandStrID(30),
 		ParentID:           testutils.RandStrID(30),

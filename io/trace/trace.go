@@ -50,7 +50,6 @@ const (
 	TAG_SOURCE_TYPE    = "source_type"
 	TAG_SPAN_STATUS    = "status"
 	TAG_SPAN_TYPE      = "span_type"
-	TAG_TYPE           = "type"
 	TAG_VERSION        = "version"
 
 	FIELD_DURATION           = "duration"

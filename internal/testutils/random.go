@@ -39,7 +39,7 @@ func RandInt64StrID(n int) string {
 }
 
 func RandStrID(n int) string {
-	var buf []byte = make([]byte, n)
+	buf := make([]byte, n)
 	for n--; n >= 0; n-- {
 		buf[n] = '0' + byte(rand.Intn(10))
 	}
