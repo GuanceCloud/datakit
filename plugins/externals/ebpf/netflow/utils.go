@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
@@ -24,12 +25,18 @@ var l = logger.DefaultSLogger("ebpf")
 
 var dnsRecord *dnsflow.DNSAnswerRecord
 
+var k8sNetInfo *k8sinfo.K8sNetInfo
+
 func SetDNSRecord(r *dnsflow.DNSAnswerRecord) {
 	dnsRecord = r
 }
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
+}
+
+func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
+	k8sNetInfo = n
 }
 
 func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler func(cpu int, data []byte,
@@ -177,6 +184,35 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 		m.tags["transport"] = "udp"
 	}
 	m.tags["direction"] = connDirection2Str(v.Stats.Direction)
+
+	if k8sNetInfo != nil {
+		srcPoName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["src_ip"], k.Sport, m.tags["transport"])
+		if err == nil {
+			m.tags["src_k8s_pod"] = srcPoName
+			m.tags["src_k8s_svc"] = srcSvcName
+			if svcP == k.Sport {
+				m.tags["direction"] = "incoming"
+			}
+			m.tags["src_k8s_ns"] = ns
+		}
+
+		dstPoName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["dst_ip"], k.Dport, m.tags["transport"])
+		if err == nil {
+			m.tags["dst_k8s_pod"] = dstPoName
+			m.tags["dst_k8s_svc"] = dstSvcName
+			if svcP == k.Dport {
+				m.tags["direction"] = "outgoing"
+			}
+			m.tags["dst_k8s_ns"] = ns
+		} else {
+			dstSvcName, ns, err := k8sNetInfo.QuerySvcName(m.tags["dst_ip"])
+			if err == nil {
+				m.tags["dst_k8s_svc"] = dstSvcName
+				m.tags["dst_k8s_ns"] = ns
+			}
+		}
+
+	}
 
 	if connProtocolIsTCP(k.Meta) {
 		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d "+
