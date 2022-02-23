@@ -277,12 +277,14 @@ func TestDcaSaveConfig(t *testing.T) {
 	inputName := "demo-input"
 	inputs.ConfigInfo[inputName] = &inputs.Config{}
 
-	confDir := os.TempDir()
+	confDir, err := ioutil.TempDir("./", "conf")
+	if err != nil {
+		l.Fatal(err)
+	}
+	defer os.RemoveAll(confDir) //nolint: errcheck
 	datakit.ConfdDir = confDir
 	f, err := ioutil.TempFile(confDir, "new-conf*.conf")
 	assert.NoError(t, err)
-
-	defer os.Remove(f.Name()) //nolint: errcheck //nolint: errcheck
 
 	bodyTemplate := `{"path": "%s","config":"%s", "isNew":%s, "inputName": "%s"}`
 	config := "[input]"
@@ -328,7 +330,10 @@ func TestGetConfig(t *testing.T) {
 	assert.Equal(t, "params.invalid.path_invalid", res.ErrorCode)
 
 	// get config ok
-	confDir := os.TempDir()
+	confDir, err := ioutil.TempDir("./", "conf")
+	if err != nil {
+		l.Fatal(err)
+	}
 	datakit.ConfdDir = confDir
 	f, err := ioutil.TempFile(confDir, "new-conf*.conf")
 	assert.NoError(t, err)
@@ -349,7 +354,7 @@ func TestGetConfig(t *testing.T) {
 }
 
 func TestDcaGetPipelines(t *testing.T) {
-	pipelineDir, err := ioutil.TempDir(os.TempDir(), "pipeline")
+	pipelineDir, err := ioutil.TempDir("./", "pipeline")
 	datakit.PipelineDir = pipelineDir
 
 	defer os.RemoveAll(pipelineDir) //nolint: errcheck
@@ -380,7 +385,7 @@ func TestDcaGetPipelines(t *testing.T) {
 }
 
 func TestDcaGetPipelinesDetail(t *testing.T) {
-	pipelineDir, err := ioutil.TempDir(os.TempDir(), "pipeline")
+	pipelineDir, err := ioutil.TempDir("./", "pipeline")
 	datakit.PipelineDir = pipelineDir
 
 	defer os.RemoveAll(pipelineDir) //nolint: errcheck
@@ -472,7 +477,7 @@ func TestDcaTestPipelines(t *testing.T) {
 				return parsedPipeline, nil
 			}
 		}
-		pipelineDir, err := ioutil.TempDir(os.TempDir(), "pipeline")
+		pipelineDir, err := ioutil.TempDir("./", "pipeline")
 		datakit.PipelineDir = pipelineDir
 
 		defer os.RemoveAll(pipelineDir) //nolint: errcheck
@@ -535,7 +540,7 @@ func TestDcaCreatePipeline(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		pipelineDir, err := ioutil.TempDir(os.TempDir(), "pipeline")
+		pipelineDir, err := ioutil.TempDir("./", "pipeline")
 		datakit.PipelineDir = pipelineDir
 
 		defer os.RemoveAll(pipelineDir) //nolint: errcheck
@@ -575,7 +580,12 @@ func TestDcaCreatePipeline(t *testing.T) {
 }
 
 func TestDcaUploadSourcemap(t *testing.T) {
-	datakit.DataDir = os.TempDir()
+	dir, err := ioutil.TempDir("./", "tmp")
+	if err != nil {
+		t.Fatal("create tmp dir eror")
+	}
+	datakit.DataDir = dir
+	defer os.RemoveAll(dir) //nolint: errcheck
 	testCases := []struct {
 		title       string
 		appId       string
@@ -642,18 +652,28 @@ func TestDcaUploadSourcemap(t *testing.T) {
 }
 
 func TestDcaDeleteSourcemap(t *testing.T) {
-	datakit.DataDir = os.TempDir()
+	tmpDir, err := ioutil.TempDir("./", "data")
+	if err != nil {
+		t.Fatal(err)
+	}
+	datakit.DataDir = tmpDir
+	defer os.RemoveAll(tmpDir) //nolint: errcheck
 	appId := "app_1234"
 	env := "test"
 	version := "0.0.0"
 	GetSourcemapZipFileName(appId, env, version)
 	zipFilePath := filepath.Clean(filepath.Join(GetRumSourcemapDir(), GetSourcemapZipFileName(appId, env, version)))
 
-	err := ioutil.WriteFile(filepath.Join(zipFilePath), []byte(""), os.ModePerm)
+	if err := os.MkdirAll(filepath.Dir(zipFilePath), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(filepath.Dir(zipFilePath)) //nolint: errcheck
+
+	err = ioutil.WriteFile(filepath.Join(zipFilePath), []byte(""), os.ModePerm)
 	if err != nil {
 		t.Fatal("create temp zip file failed", err)
 	}
-	defer os.Remove(zipFilePath) //nolint: errcheck
 
 	testCases := []struct {
 		title   string

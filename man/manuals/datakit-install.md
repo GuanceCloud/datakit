@@ -95,6 +95,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy 
 - `DK_LOG_LEVEL`: 可选值 info/debug
 - `DK_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
 - `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
+- `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`)
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 

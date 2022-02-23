@@ -11,6 +11,8 @@
 	- [调试 Pipeline](datakit-pl-how-to)
 	- [各种其它工具使用](datakit-tools-how-to)
 
+		- [查看 DataKit Monitor](datakit-monitor)
+
 - [DataKit 版本历史](changelog)
 
 - [DataKit 安装]()
@@ -28,6 +30,8 @@
 - [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
 - [如何排查无数据问题](why-no-data)
+- [DataKit 开发手册](development)
+
 - [采集器]()
 
   - [主机]()
@@ -65,6 +69,8 @@
   - [网络相关]()
 
     - [网络拨测](dialtesting)
+
+       - [通过本地 JSON 定义拨测任务](dialtesting_json)
 
 	- [eBPF]()
 
@@ -107,6 +113,8 @@
 
     - [日志](logging)
     - [第三方日志接入](logstreaming)
+    - [Socket 日志接入最佳实践](logging_socket)
+    - [通过 Sidecar 方式采集 Pod 日志](logfwd)
 
   - [Windows 相关]()
 

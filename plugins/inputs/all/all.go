@@ -32,6 +32,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/jvm"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/k8sextra"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/kafka"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logfwdserver"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logging"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/logstreaming"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mem"

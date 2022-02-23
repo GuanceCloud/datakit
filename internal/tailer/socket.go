@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
@@ -60,7 +61,8 @@ func NewWithOpt(opt *Option, ignorePatterns ...[]string) (sl *socketLogger, err 
 	if err := sl.opt.init(); err != nil {
 		return nil, err
 	}
-	sl.tags = buildTags(sl.opt.GlobalTags)
+	sl.tags = buildTags(opt.GlobalTags)
+
 	l = logger.SLogger("socketLog")
 	return sl, nil
 }
@@ -233,10 +235,12 @@ func (sl *socketLogger) sendToPipeline(pending []string) {
 			Source:     sl.opt.Source,
 			Data:       taskDates,
 			Opt: &worker.TaskOpt{
+				Category:              datakit.Logging,
 				IgnoreStatus:          sl.opt.IgnoreStatus,
 				DisableAddStatusField: sl.opt.DisableAddStatusField,
 			},
-			TS: time.Now(),
+			TS:            time.Now(),
+			MaxMessageLen: maxFieldsLength,
 		}
 		// 阻塞型channel
 		_ = worker.FeedPipelineTaskBlock(task)

@@ -56,6 +56,10 @@ var (
 		"telegraf":                "man/manuals/telegraf.md",
 		"why-no-data":             "man/manuals/why-no-data.md",
 		"dca":                     "man/manuals/dca.md",
+		"dialtesting_json":        "man/manuals/dialtesting_json.md",
+		"datakit-monitor":         "man/manuals/datakit-monitor.md",
+		"logging_socket":          "man/manuals/logging_socket.md",
+		"logfwd":                  "man/manuals/logfwd.md",
 	}
 	l = logger.DefaultSLogger("man")
 )

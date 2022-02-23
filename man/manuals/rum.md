@@ -19,6 +19,8 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 disable_404page = true
 ```
 
+- 在 DataKit 上[安装 IP 地理信息库](datakit-tools-how-to#ab5cd5ad)
+
 ### 安全限制
 
 由于 RUM DataKit 一般部署在公网环境，但是只会使用其中特定的 [DataKit API](apis) 接口，其它接口是不能开放的。通过如下方式可加强 API 访问控制，在 *datakit.conf* 中，修改如下 *public_apis* 字段配置：
