@@ -343,6 +343,61 @@ cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 ```
 - 其它可能确实需要关闭检查的地方，慎重对待
 
+## 排查 DataKit 内存泄露
+
+编辑 datakit.conf，顶部增加如下配置字段即可开启 DataKit 远程 pprof 功能：
+
+```toml
+enable_pprof = true
+```
+
+重启 DataKit 生效。
+
+下载内存分配 pprof 文件：
+
+```shell
+# 下载当前 DataKit 活跃内存 pprof 文件
+wget http://<datakit-ip>:6060/debug/pprof/heap
+
+# 下载当前 DataKit 总分配内存 pprof 文件（含已经被释放的内存）
+wget http://<datakit-ip>:6060/debug/pprof/allocs
+```
+
+> 这里的 6060 端口是固定死的，暂时无法修改。
+
+下载到本地后，运行如下命令，进入交互命令后，可输入 top 即可查看内存消耗的 top10 热点：
+
+```shell
+$ go tool pprof heap 
+File: datakit
+Type: inuse_space
+Time: Feb 23, 2022 at 9:06pm (CST)
+Entering interactive mode (type "help" for commands, "o" for options)
+(pprof) top                            <------ 查看 top 10 的内存热点
+Showing nodes accounting for 7719.52kB, 88.28% of 8743.99kB total
+Showing top 10 nodes out of 108
+flat  flat%   sum%        cum   cum%
+2048.45kB 23.43% 23.43%  2048.45kB 23.43%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/alecthomas/chroma.NewLexer
+1031.96kB 11.80% 35.23%  1031.96kB 11.80%  regexp/syntax.(*compiler).inst
+902.59kB 10.32% 45.55%   902.59kB 10.32%  compress/flate.NewWriter
+591.75kB  6.77% 52.32%   591.75kB  6.77%  bytes.makeSlice
+561.50kB  6.42% 58.74%   561.50kB  6.42%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/golang.org/x/net/html.init
+528.17kB  6.04% 64.78%   528.17kB  6.04%  regexp.(*bitState).reset
+516.01kB  5.90% 70.68%   516.01kB  5.90%  io.glob..func1
+513.50kB  5.87% 76.55%   513.50kB  5.87%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/gdamore/tcell/v2/terminfo/v/vt220.init.0
+513.31kB  5.87% 82.43%   513.31kB  5.87%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/k8s.io/apimachinery/pkg/conversion.ConversionFuncs.AddUntyped
+512.28kB  5.86% 88.28%   512.28kB  5.86%  encoding/pem.Decode
+(pprof) 
+(pprof) pdf                            <------ 输出成 pdf，即在当前目录下会生成 profile001.pdf
+Generating report in profile001.pdf
+(pprof) 
+(pprof) web                            <------ 直接在浏览器上查看，效果跟 PDF 一样
+```
+
+用同样的方式，可查看总分配内存 pprof 文件 allocs。PDF 的效果大概如下：
+
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-pprof-pdf.png)
+
 ## DataKit 辅助功能
 
 除了[官方文档](datakit-tools-how-to)列出的部分辅助功能外，DataKit 还支持其它功能，这些主要在开发过程中使用。
@@ -371,3 +426,4 @@ datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ig
 ```shell
 datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
 ```
+
