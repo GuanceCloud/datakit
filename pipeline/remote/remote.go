@@ -208,6 +208,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
+	worker.CleanAllScriptWithNS(worker.RemoteScriptNS)
 	return nil
 }
 
