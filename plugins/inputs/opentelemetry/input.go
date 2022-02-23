@@ -91,7 +91,7 @@ var (
 	globalTags map[string]string
 
 	// that want to send to data center.
-	customTags []string
+	customTags map[string]struct{}
 )
 
 type Input struct {
@@ -139,7 +139,9 @@ func (i *Input) Run() {
 	}
 
 	globalTags = i.Tags
-	customTags = i.CustomerTags
+	for _, tag := range i.CustomerTags {
+		customTags[tag] = struct{}{}
+	}
 
 	open := false
 	// 从配置文件 开启
