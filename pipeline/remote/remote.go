@@ -63,6 +63,9 @@ type IPipelineRemote interface {
 	ReadDir(dirname string) ([]fs.FileInfo, error)
 	PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err error)
 	GetTickerDurationAndBreak() (time.Duration, bool)
+	Remove(name string) error
+	FeedLastError(inputName string, err string)
+	GetNamespacePipelineFiles(namespace string) ([]string, error)
 }
 
 type pipelineRemoteImpl struct{}
@@ -98,10 +101,22 @@ func (*pipelineRemoteImpl) PullPipeline(ts int64) (mFiles map[string]string, upd
 func (*pipelineRemoteImpl) GetTickerDurationAndBreak() (time.Duration, bool) {
 	dr, err := time.ParseDuration(config.Cfg.Pipeline.RemotePullInterval)
 	if err != nil {
-		l.Errorf("time.ParseDuration failed: err = (%v), str = (%s)", err, config.Cfg.Pipeline.RemotePullInterval)
+		l.Warnf("time.ParseDuration failed: err = (%v), str = (%s)", err, config.Cfg.Pipeline.RemotePullInterval)
 		dr = time.Minute
 	}
 	return dr, false
+}
+
+func (*pipelineRemoteImpl) Remove(name string) error {
+	return os.Remove(name)
+}
+
+func (*pipelineRemoteImpl) FeedLastError(inputName string, err string) {
+	io.FeedLastError(inputName, err)
+}
+
+func (*pipelineRemoteImpl) GetNamespacePipelineFiles(namespace string) ([]string, error) {
+	return config.GetNamespacePipelineFiles(namespace)
 }
 
 //------------------------------------------------------------------------------
@@ -134,7 +149,7 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 
 			err = doPull(pathConfig, urls[0], ipr)
 			if err != nil {
-				io.FeedLastError(datakit.DatakitInputName, err.Error())
+				ipr.FeedLastError(datakit.DatakitInputName, err.Error())
 			}
 
 			if isReturn {
@@ -201,7 +216,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			localName := strings.ToLower(fi.Name())
 			if localName != pipelineRemoteConfigFile {
 				fullPath := filepath.Join(datakit.PipelineRemoteDir, localName)
-				if err = os.Remove(fullPath); err != nil {
+				if err = ipr.Remove(fullPath); err != nil {
 					l.Errorf("failed to remove pipeline remote %s, err: %s", fi.Name(), err.Error())
 					continue
 				}
@@ -247,7 +262,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		return 0, err
 	}
 	if cf.SiteURL != siteURL {
-		if err := os.Remove(pathConfig); err != nil {
+		if err := ipr.Remove(pathConfig); err != nil {
 			l.Warnf("diff token, remove config failed: %v", err)
 		}
 		if err := removeLocalRemote(ipr); err != nil {
@@ -256,7 +271,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		return 0, nil // need update when token has changed
 	} else {
 		runLocalPipelineRemote.Do(func() {
-			pls, err := config.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
+			pls, err := ipr.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
 			if err != nil {
 				l.Errorf("GetNamespacePipelineFiles failed: %v", err)
 			} else {
