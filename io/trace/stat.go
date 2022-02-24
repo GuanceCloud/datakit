@@ -29,6 +29,8 @@ type TracingInfo struct {
 
 var ErrSendSpanInfoFailed = errors.New("send span information failed")
 
+var ioFeed func(name, category string, pts []*dkio.Point, opt *dkio.Option) error = dkio.Feed
+
 var (
 	statOnce        = sync.Once{}
 	statUnit        map[string]*TracingInfo
@@ -70,7 +72,7 @@ func startTracingStatWorker(interval time.Duration) {
 				pts := makeTracingInfoPoint(statUnit)
 				if len(pts) == 0 {
 					log.Warn("empty tracing stat unit")
-				} else if err := dkio.Feed(tracingStatName, datakit.Tracing, pts, nil); err != nil {
+				} else if err := ioFeed(tracingStatName, datakit.Tracing, pts, nil); err != nil {
 					log.Error(err.Error())
 				}
 				statUnit = make(map[string]*TracingInfo)

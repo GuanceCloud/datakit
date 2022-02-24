@@ -59,10 +59,11 @@ const (
 )
 
 var (
-	log              = logger.DefaultSLogger(inputName)
-	apiv1Path        = "/api/v1/spans"
-	apiv2Path        = "/api/v2/spans"
-	afterGather      = itrace.NewAfterGather()
+	log                                        = logger.DefaultSLogger(inputName)
+	apiv1Path                                  = "/api/v1/spans"
+	apiv2Path                                  = "/api/v2/spans"
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
@@ -132,12 +133,12 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.PathV1 == "" {
 		ipt.PathV1 = apiv1Path
 	}
-	http.RegHTTPHandler("POST", ipt.PathV1, ZipkinTraceHandleV1)
+	http.RegHTTPHandler("POST", ipt.PathV1, handleZipkinTraceV1)
 
 	if ipt.PathV2 == "" {
 		ipt.PathV2 = apiv2Path
 	}
-	http.RegHTTPHandler("POST", ipt.PathV2, ZipkinTraceHandleV2)
+	http.RegHTTPHandler("POST", ipt.PathV2, handleZipkinTraceV2)
 }
 
 func init() { //nolint:gochecknoinits

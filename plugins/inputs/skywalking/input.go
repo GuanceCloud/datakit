@@ -55,9 +55,10 @@ const (
 )
 
 var (
-	log              = logger.DefaultSLogger(inputName)
-	defAddr          = "localhost:13800"
-	afterGather      = itrace.NewAfterGather()
+	log                                        = logger.DefaultSLogger(inputName)
+	defAddr                                    = "localhost:13800"
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
@@ -128,7 +129,7 @@ func (ipt *Input) Run() {
 	log.Debug("start skywalking grpc v3 server")
 
 	itrace.StartTracingStatistic()
-	go runServerV3(ipt.Address)
+	go registerServerV3(ipt.Address)
 }
 
 func init() { //nolint:gochecknoinits

@@ -64,8 +64,9 @@ const (
 )
 
 var (
-	log              = logger.DefaultSLogger(inputName)
-	afterGather      = itrace.NewAfterGather()
+	log                                        = logger.DefaultSLogger(inputName)
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
@@ -143,7 +144,7 @@ func (ipt *Input) Run() {
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.Endpoint != "" {
 		itrace.StartTracingStatistic()
-		http.RegHTTPHandler("POST", ipt.Endpoint, JaegerTraceHandle)
+		http.RegHTTPHandler("POST", ipt.Endpoint, handleJaegerTrace)
 	}
 }
 

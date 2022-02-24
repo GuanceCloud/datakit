@@ -2,20 +2,20 @@
 package trace
 
 import (
-	"bytes"
 	"compress/gzip"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 )
 
-// trace constants.
-//nolint:stylecheck
+// tracing data constants
+// nolint:stylecheck
 const (
 	CONTAINER_HOST = "container_host"
 	ENV            = "env"
@@ -50,7 +50,6 @@ const (
 	TAG_SOURCE_TYPE    = "source_type"
 	TAG_SPAN_STATUS    = "status"
 	TAG_SPAN_TYPE      = "span_type"
-	TAG_TYPE           = "type"
 	TAG_VERSION        = "version"
 
 	FIELD_DURATION           = "duration"
@@ -65,53 +64,43 @@ const (
 	FIELD_TRACEID            = "trace_id"
 )
 
-// tracing data keep priority.
-const (
-	// reject trace before send to dataway.
-	PriorityReject = -1
-	// auto calculate with sampling rate.
-	PriorityAuto = 0
-	// always send to dataway and do not consider sampling and filters.
-	PriorityKeep = 1
-)
-
 var (
 	packageName = "dktrace"
 	log         = logger.DefaultSLogger(packageName)
 )
 
 type DatakitSpan struct {
-	TraceID            string
-	ParentID           string
-	SpanID             string
-	Service            string
-	Resource           string
-	Operation          string
-	Source             string // third part source name
-	SpanType           string
-	SourceType         string
-	Env                string
-	Project            string
-	Version            string
-	Tags               map[string]string
-	EndPoint           string
-	HTTPMethod         string
-	HTTPStatusCode     string
-	ContainerHost      string
-	PID                string // process id
-	Start              int64  // nano sec
-	Duration           int64  // nano sec
-	Status             string
-	Content            string
-	Priority           int
-	SamplingRateGlobal float64
+	TraceID            string            `json:"trace_id"`
+	ParentID           string            `json:"parent_id"`
+	SpanID             string            `json:"span_id"`
+	Service            string            `json:"service"`
+	Resource           string            `json:"resource"`
+	Operation          string            `json:"operation"`
+	Source             string            `json:"source"` // third part source name
+	SpanType           string            `json:"span_type"`
+	SourceType         string            `json:"source_type"`
+	Env                string            `json:"env"`
+	Project            string            `json:"project"`
+	Version            string            `json:"version"`
+	Tags               map[string]string `json:"tags"`
+	EndPoint           string            `json:"end_point"`
+	HTTPMethod         string            `json:"http_method"`
+	HTTPStatusCode     string            `json:"http_status_code"`
+	ContainerHost      string            `json:"container_host"`
+	PID                string            `json:"p_id"`     // process id
+	Start              int64             `json:"start"`    // nano sec
+	Duration           int64             `json:"duration"` // nano sec
+	Status             string            `json:"status"`
+	Content            string            `json:"content"`
+	Priority           int               `json:"priority"`
+	SamplingRateGlobal float64           `json:"sampling_rate_global"`
 }
 
 type DatakitTrace []*DatakitSpan
 
 type DatakitTraces []DatakitTrace
 
-func FindSpanTypeInt(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
+func FindSpanTypeIntSpanID(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
 	if parentID != 0 {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
@@ -125,7 +114,7 @@ func FindSpanTypeInt(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) 
 	return SPAN_TYPE_ENTRY
 }
 
-func FindSpanTypeString(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
+func FindSpanTypeStrSpanID(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
 	if parentID != "0" && parentID != "" {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
@@ -162,16 +151,30 @@ func UnifyToInt64ID(id string) int64 {
 		return 0
 	}
 
-	isAllInt := true
+	var (
+		isInt = true
+		isHex = true
+	)
 	for _, b := range id {
-		if b < 48 || b > 57 {
-			isAllInt = false
-			break
+		if b < '0' || b > '9' {
+			isInt = false
+			if b < 'a' || b > 'f' {
+				isHex = false
+				break
+			}
 		}
 	}
-
-	if isAllInt {
-		if i, err := strconv.ParseInt(id, 10, 64); err == nil {
+	var (
+		i   int64
+		err error
+	)
+	if isInt {
+		if i, err = strconv.ParseInt(id, 10, 64); err == nil {
+			return i
+		}
+	}
+	if isHex {
+		if i, err = strconv.ParseInt(id, 16, 64); err == nil {
 			return i
 		}
 	}
@@ -180,7 +183,7 @@ func UnifyToInt64ID(id string) int64 {
 	if l := len(hexstr); l > 16 {
 		hexstr = hexstr[l-16:]
 	}
-	i, _ := strconv.ParseInt(hexstr, 16, 64)
+	i, _ = strconv.ParseInt(hexstr, 16, 64)
 
 	return i
 }
@@ -199,34 +202,17 @@ func MergeInToCustomerTags(customerKeys []string, datakitTags, sourceTags map[st
 	return merged
 }
 
-type TraceReqInfo struct {
-	Source      string
-	Version     string
-	ContentType string
-	Body        []byte
-}
-
-func ParseTraceInfo(req *http.Request) (*TraceReqInfo, error) {
-	defer req.Body.Close() //nolint:errcheck
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
+func ParseTracingRequest(req *http.Request) (contentType string, body io.ReadCloser, err error) {
+	if req == nil {
+		return "", nil, errors.New("nil http.Request pointer")
 	}
 
-	reqInfo := &TraceReqInfo{
-		Source:      req.URL.Query().Get("source"),
-		ContentType: req.Header.Get("Content-Type"),
-		Version:     req.URL.Query().Get("version"),
-		Body:        body,
-	}
-	if req.Header.Get("Content-Encoding") == "gzip" {
-		var rd *gzip.Reader
-		if rd, err = gzip.NewReader(bytes.NewBuffer(body)); err == nil {
-			if body, err = io.ReadAll(rd); err == nil {
-				reqInfo.Body = body
-			}
-		}
+	contentType = ihttp.GetHeader(req, "Content-Type")
+	if ihttp.GetHeader(req, "Content-Encoding") == "gzip" {
+		body, err = gzip.NewReader(req.Body)
+	} else {
+		body = req.Body
 	}
 
-	return reqInfo, err
+	return
 }

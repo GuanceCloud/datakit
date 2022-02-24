@@ -2,11 +2,12 @@
 package ddtrace
 
 import (
+	"net/http"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -62,15 +63,16 @@ const (
 )
 
 var (
-	log = logger.DefaultSLogger(inputName)
-	//nolint: unused,deadcode,varcheck
-	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
-	afterGather          = itrace.NewAfterGather()
-	keepRareResource     *itrace.KeepRareResource
-	closeResource        *itrace.CloseResource
-	defSampler           *itrace.Sampler
-	customerKeys         []string
-	tags                 map[string]string
+	log                                          = logger.DefaultSLogger(inputName)
+	v1, v2, v3, v4, v5                           = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
+	info, stats                                  = "/info", "/v0.6/stats"
+	afterGather                                  = itrace.NewAfterGather()
+	afterGatherRun     itrace.AfterGatherHandler = afterGather
+	keepRareResource   *itrace.KeepRareResource
+	closeResource      *itrace.CloseResource
+	defSampler         *itrace.Sampler
+	customerKeys       []string
+	tags               map[string]string
 )
 
 type Input struct {
@@ -137,15 +139,10 @@ func (ipt *Input) RegHTTPHandler() {
 	var isReg bool
 	for _, endpoint := range ipt.Endpoints {
 		switch endpoint {
-		case v3, v4, v5:
+		case v1, v2, v3, v4, v5:
 			isReg = true
-			http.RegHTTPHandler("POST", endpoint, handleTraces(endpoint))
-			http.RegHTTPHandler("PUT", endpoint, handleTraces(endpoint))
-			log.Infof("pattern %s registered", endpoint)
-		case v6:
-			isReg = true
-			http.RegHTTPHandler("POST", endpoint, handleStats)
-			http.RegHTTPHandler("PUT", endpoint, handleStats)
+			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTrace)
+			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTrace)
 			log.Infof("pattern %s registered", endpoint)
 		default:
 			log.Errorf("unrecognized ddtrace agent endpoint")
@@ -153,6 +150,9 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	if isReg {
 		itrace.StartTracingStatistic()
+		// unsupported api yet
+		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
+		dkhttp.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
 	}
 }
 

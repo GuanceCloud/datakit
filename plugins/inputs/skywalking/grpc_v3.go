@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func runServerV3(addr string) {
+func registerServerV3(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Errorf("start skywalking V3 grpc server %s failed: %v", addr, err)
@@ -56,7 +56,7 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 		if dktrace := segobjToDkTrace(segobj); len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
-			afterGather.Run(inputName, dktrace, false)
+			afterGatherRun.Run(inputName, dktrace, false)
 		}
 	}
 }

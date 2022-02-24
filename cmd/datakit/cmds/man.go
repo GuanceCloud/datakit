@@ -15,11 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-func runDocFlags() error {
-	// TODO
-	return nil
-}
-
 func cmdMan() {
 	if runtime.GOOS == datakit.OSWindows {
 		fmt.Println("\n[E] --man do not support Windows")
