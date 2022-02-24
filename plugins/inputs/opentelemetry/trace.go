@@ -3,6 +3,7 @@ package opentelemetry
 import (
 	"encoding/hex"
 	"encoding/json"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -16,17 +17,12 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibrarySpans()
 		l.Infof("resource = %s", spans.Resource.String())
-
-		tags := make(map[string]string)
-		setResourceAttributes(tags, spans.Resource.GetAttributes())
 		service := getServiceName(spans.Resource.Attributes)
 		for _, librarySpans := range ls {
 			dktrace := make([]*DKtrace.DatakitSpan, 0)
 			for _, span := range librarySpans.Spans {
-				//	tags := toDatakitTags(span.Attributes)
-				tags := toDataKitTagsV2(span, spans.Resource.Attributes)
-
-				//	tags = setTag(tags, spans.Resource.Attributes) // 将用户自定义和global tag添加到tags中
+				dt := newEmptyTags()
+				tags := dt.toDataKitTagsV2(span, spans.Resource.Attributes)
 				dkSpan := &DKtrace.DatakitSpan{
 					TraceID:            hex.EncodeToString(span.GetTraceId()),
 					ParentID:           byteToInt64(span.GetParentSpanId()),
@@ -69,7 +65,18 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	return dkTraces
 }
 
-func toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) map[string]string {
+type dkTags struct {
+	config option
+	tags   map[string]string
+}
+
+func newEmptyTags() *dkTags {
+	return &dkTags{
+		tags: make(map[string]string),
+	}
+}
+
+func (dt *dkTags) toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) map[string]string {
 	/*
 		tags :
 			1 先将tags从resource中提取
@@ -78,127 +85,105 @@ func toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) map[
 			4 统一的key处理
 			5 过黑白名单
 			6 添加global tags
+		 如果要换成白名单机制，则顺序应该改变
 	*/
-	tags := make(map[string]string)
-	setResourceAttributes(tags, resourceAttr)
-	setSpanAttributes(tags, span.Attributes)
-	addOtherTags(tags, span)
-	tags = checkAllTagsKey(tags)
-	checkCustomTags(tags)
-	addGlobalTags(tags)
-	return tags
+	dt.setAttributesToTags(resourceAttr).
+		setAttributesToTags(span.Attributes).
+		checkAllTagsKey().
+		checkCustomTags().
+		addOtherTags(span).
+		addGlobalTags()
+	return dt.resource()
 }
 
-func setSpanAttributes(tags map[string]string, attr []*commonpb.KeyValue) {
+func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 	for _, kv := range attr {
-		//	if _, ok := customTags[kv.Key]; ok { // 白名单机制
-		//	key := replace(kv.Key) // 统一将`.`换成 `_`
 		key := kv.Key
 		switch t := kv.GetValue().Value.(type) {
 		case *commonpb.AnyValue_StringValue:
-			tags[key] = kv.GetValue().GetStringValue()
+			dt.tags[key] = kv.GetValue().GetStringValue()
 		case *commonpb.AnyValue_BoolValue:
-			tags[key] = strconv.FormatBool(t.BoolValue)
+			dt.tags[key] = strconv.FormatBool(t.BoolValue)
 		case *commonpb.AnyValue_IntValue:
-			tags[key] = strconv.FormatInt(t.IntValue, 10)
+			dt.tags[key] = strconv.FormatInt(t.IntValue, 10)
 		case *commonpb.AnyValue_DoubleValue:
-			tags[key] = strconv.FormatFloat(t.DoubleValue, 'f', 2, 64)
+			// 保留两位小数
+			dt.tags[key] = strconv.FormatFloat(t.DoubleValue, 'f', 2, 64)
 		case *commonpb.AnyValue_ArrayValue:
-			tags[key] = t.ArrayValue.String()
+			dt.tags[key] = t.ArrayValue.String()
 		case *commonpb.AnyValue_KvlistValue:
-			setSpanAttributes(tags, t.KvlistValue.Values)
-			for s, s2 := range tags {
-				tags[s] = s2
-			}
+			dt.setAttributesToTags(t.KvlistValue.Values)
+			/*for s, s2 := range dt.tags {
+				dt.tags[s] = s2
+			}*/
 		case *commonpb.AnyValue_BytesValue:
-			tags[key] = string(t.BytesValue)
+			dt.tags[key] = string(t.BytesValue)
 		default:
-			tags[key] = kv.Value.GetStringValue()
+			dt.tags[key] = kv.Value.GetStringValue()
 		}
-		//	}
 	}
+	return dt
 }
 
-func setResourceAttributes(tags map[string]string, attr []*commonpb.KeyValue) {
-	// todo
-}
-
-// todo 黑白名单机制
-func checkCustomTags(tags map[string]string) {
-
+// checkCustomTags : 黑白名单机制
+func (dt *dkTags) checkCustomTags() *dkTags {
+	if regexpString == "" {
+		return dt
+	}
+	reg := regexp.MustCompile(regexpString)
+	for key := range dt.tags {
+		if reg.MatchString(key) {
+			// 通过正则则应该忽略
+			delete(dt.tags, key)
+		}
+	}
+	return dt
 }
 
 // setGlobalTags: 添加配置文件中的自定义tags
-func addGlobalTags(tags map[string]string) {
+func (dt *dkTags) addGlobalTags() *dkTags {
 	// set global tags
 	for k, v := range globalTags {
-		tags[k] = v
+		dt.tags[k] = v
 	}
+	return dt
 }
 
 // 统一做替换
-func checkAllTagsKey(tags map[string]string) map[string]string {
+func (dt *dkTags) checkAllTagsKey() *dkTags {
 	newTags := make(map[string]string)
-	for key, val := range tags {
+	for key, val := range dt.tags {
 		newTags[replace(key)] = val
 	}
-	return newTags
+	return dt
 }
 
-func addOtherTags(tags map[string]string, span *tracepb.Span) {
+func (dt *dkTags) addOtherTags(span *tracepb.Span) *dkTags {
 	if span.DroppedAttributesCount != 0 {
 		count := strconv.Itoa(int(span.DroppedAttributesCount))
-		tags[DroppedAttributesCount] = count
+		dt.tags[DroppedAttributesCount] = count
 	}
 	if span.DroppedEventsCount != 0 {
 		count := strconv.Itoa(int(span.DroppedEventsCount))
-		tags[DroppedEventsCount] = count
+		dt.tags[DroppedEventsCount] = count
 	}
 	if span.DroppedLinksCount != 0 {
 		count := strconv.Itoa(int(span.DroppedLinksCount))
-		tags[DroppedLinksCount] = count
+		dt.tags[DroppedLinksCount] = count
 	}
 	if len(span.Events) != 0 {
 		count := strconv.Itoa(len(span.Events))
-		tags[Events] = count
+		dt.tags[Events] = count
 	}
 	if len(span.Links) != 0 {
 		count := strconv.Itoa(len(span.Links))
-		tags[Links] = count
+		dt.tags[Links] = count
 	}
+	return dt
 }
 
-// toDatakitTags : make attributes to tags
-func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
-	m := make(map[string]string, len(attr))
-	for _, kv := range attr {
-		if _, ok := customTags[kv.Key]; ok { // 白名单机制
-			key := replace(kv.Key) // 统一将`.`换成 `_`
-			switch t := kv.GetValue().Value.(type) {
-			case *commonpb.AnyValue_StringValue:
-				m[key] = kv.GetValue().GetStringValue()
-			case *commonpb.AnyValue_BoolValue:
-				m[key] = strconv.FormatBool(t.BoolValue)
-			case *commonpb.AnyValue_IntValue:
-				m[key] = strconv.FormatInt(t.IntValue, 10)
-			case *commonpb.AnyValue_DoubleValue:
-				m[key] = strconv.FormatFloat(t.DoubleValue, 'f', 2, 64)
-			case *commonpb.AnyValue_ArrayValue:
-				m[key] = t.ArrayValue.String()
-			case *commonpb.AnyValue_KvlistValue:
-				tags := toDatakitTags(t.KvlistValue.Values)
-				for s, s2 := range tags {
-					m[s] = s2
-				}
-			case *commonpb.AnyValue_BytesValue:
-				m[key] = string(t.BytesValue)
-			default:
-				m[key] = kv.Value.GetStringValue()
-			}
-		}
-	}
-
-	return m
+func (dt *dkTags) resource() map[string]string {
+	return dt.tags
 }
 
 func byteToInt64(bts []byte) string {

@@ -3,6 +3,8 @@
 package opentelemetry
 
 import (
+	"strings"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -15,9 +17,13 @@ const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]
-  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
-  ## that want to send to data center. These keys will take precedence over keys in 
-  # customer_tags = ["key1", "key2", ...]
+  ## 在创建'trace',Span','resource'时，会加入很多标签，这些标签最终都会出现在'Span'中
+  ## 当您不希望这些标签太多造成网络上不必要的流量损失时，可选择忽略掉这些标签
+  ## 支持正则表达，注意:将所有的'.'替换成'_'
+  ## When creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
+  ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
+  ## Support regular expression. Note!!!: all '.' Replace with '_' 
+  # ignore_attribute_keys = ["os_*","process_*"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -88,19 +94,20 @@ var (
 	interval      = 10
 
 	// add to point.
-	globalTags map[string]string
-
+	globalTags   map[string]string
+	regexpString string
 	// that want to send to data center.
-	customTags map[string]struct{}
+	// customTags map[string]struct{}
 )
 
 type Input struct {
-	Ogc           *otlpGrpcCollector  `toml:"grpc"`
-	Otc           *otlpHTTPCollector  `toml:"http"`
-	CloseResource map[string][]string `toml:"close_resource"`
-	Sampler       *itrace.Sampler     `toml:"sampler"`
-	CustomerTags  []string            `toml:"customer_tags"`
-	Tags          map[string]string   `toml:"tags"`
+	Ogc                 *otlpGrpcCollector  `toml:"grpc"`
+	Otc                 *otlpHTTPCollector  `toml:"http"`
+	CloseResource       map[string][]string `toml:"close_resource"`
+	Sampler             *itrace.Sampler     `toml:"sampler"`
+	CustomerTags        []string            `toml:"customer_tags"`
+	IgnoreAttributeKeys []string            `toml:"ignore_attribute_keys"`
+	Tags                map[string]string   `toml:"tags"`
 
 	inputName string
 	semStop   *cliutils.Sem // start stop signal
@@ -139,8 +146,12 @@ func (i *Input) Run() {
 	}
 
 	globalTags = i.Tags
-	for _, tag := range i.CustomerTags {
-		customTags[tag] = struct{}{}
+	// for _, tag := range i.CustomerTags {
+	//	customTags[tag] = struct{}{}
+	// }
+
+	if len(i.IgnoreAttributeKeys) > 0 {
+		regexpString = strings.Join(i.IgnoreAttributeKeys, "|")
 	}
 
 	open := false

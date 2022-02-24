@@ -4,7 +4,10 @@ package opentelemetry
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
+
+	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -148,6 +151,36 @@ func toDatakitMetric(rss []*metricpb.ResourceMetrics) []*otelResourceMetric {
 		}
 	}
 	return orms
+}
+
+// toDatakitTags : make attributes to tags
+func toDatakitTags(attr []*commonpb.KeyValue) map[string]string {
+	m := make(map[string]string, len(attr))
+	for _, kv := range attr {
+		key := replace(kv.Key) // 统一将`.`换成 `_`
+		switch t := kv.GetValue().Value.(type) {
+		case *commonpb.AnyValue_StringValue:
+			m[key] = kv.GetValue().GetStringValue()
+		case *commonpb.AnyValue_BoolValue:
+			m[key] = strconv.FormatBool(t.BoolValue)
+		case *commonpb.AnyValue_IntValue:
+			m[key] = strconv.FormatInt(t.IntValue, 10)
+		case *commonpb.AnyValue_DoubleValue:
+			m[key] = strconv.FormatFloat(t.DoubleValue, 'f', 2, 64)
+		case *commonpb.AnyValue_ArrayValue:
+			m[key] = t.ArrayValue.String()
+		case *commonpb.AnyValue_KvlistValue:
+			tags := toDatakitTags(t.KvlistValue.Values)
+			for s, s2 := range tags {
+				m[s] = s2
+			}
+		case *commonpb.AnyValue_BytesValue:
+			m[key] = string(t.BytesValue)
+		default:
+			m[key] = kv.Value.GetStringValue()
+		}
+	}
+	return m
 }
 
 func otelMetricToDkMetric(orms []*otelResourceMetric) (res []*DKMetric) {

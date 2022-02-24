@@ -1,22 +1,21 @@
-# opentelemetry input
+# opentelemetry input 开发文档
 
 ## 主要功能
 - 接收从 opentelemetry 发送的 L/T/M 三种数据，目前仅支持 trace和metric
-- 传输协议支持两种：grpc 和 http
+- 传输协议支持两种：grpc 和 http  (目前otel的主流协议)
 - 数据编码格式仅支持 protobuf 
 
 ### 参考：
 - go开源地址 [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go)
-- 其他语言: [opentelemetry-java](https://github.com/open-telemetry/opentelemetry-java) 
 - 官方使用手册 ：[opentelemetry-io-docs](https://opentelemetry.io/docs/)
 
 
-
-## GRPC 协议 (目前otel的主流协议， 比 http 开销较小)
-
+### trace 流程
 接收到的数据交给trace处理。
 
 	本模块只做数据接收和组装 不做业务处理，并都是在(接收完成、返回客户端statusOK) 之后 再进行组装。
+ 
+
  
 metric 在dk上的映射结构体为
 ``` go
@@ -34,10 +33,7 @@ type otelResourceMetric struct {
 
 	Content string `json:"content"` //
 
-	// Exemplar 可获取 spanid 等
+	// TODO : Exemplar 可获取 spanid 等
 }
 ```
 
-
-
-### HTTP 协议
