@@ -70,37 +70,37 @@ var (
 )
 
 type DatakitSpan struct {
-	TraceID            string
-	ParentID           string
-	SpanID             string
-	Service            string
-	Resource           string
-	Operation          string
-	Source             string // third part source name
-	SpanType           string
-	SourceType         string
-	Env                string
-	Project            string
-	Version            string
-	Tags               map[string]string
-	EndPoint           string
-	HTTPMethod         string
-	HTTPStatusCode     string
-	ContainerHost      string
-	PID                string // process id
-	Start              int64  // nano sec
-	Duration           int64  // nano sec
-	Status             string
-	Content            string
-	Priority           int
-	SamplingRateGlobal float64
+	TraceID            string            `json:"trace_id"`
+	ParentID           string            `json:"parent_id"`
+	SpanID             string            `json:"span_id"`
+	Service            string            `json:"service"`
+	Resource           string            `json:"resource"`
+	Operation          string            `json:"operation"`
+	Source             string            `json:"source"` // third part source name
+	SpanType           string            `json:"span_type"`
+	SourceType         string            `json:"source_type"`
+	Env                string            `json:"env"`
+	Project            string            `json:"project"`
+	Version            string            `json:"version"`
+	Tags               map[string]string `json:"tags"`
+	EndPoint           string            `json:"end_point"`
+	HTTPMethod         string            `json:"http_method"`
+	HTTPStatusCode     string            `json:"http_status_code"`
+	ContainerHost      string            `json:"container_host"`
+	PID                string            `json:"p_id"`     // process id
+	Start              int64             `json:"start"`    // nano sec
+	Duration           int64             `json:"duration"` // nano sec
+	Status             string            `json:"status"`
+	Content            string            `json:"content"`
+	Priority           int               `json:"priority"`
+	SamplingRateGlobal float64           `json:"sampling_rate_global"`
 }
 
 type DatakitTrace []*DatakitSpan
 
 type DatakitTraces []DatakitTrace
 
-func FindSpanTypeInt(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
+func FindSpanTypeIntSpanID(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
 	if parentID != 0 {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
@@ -114,7 +114,7 @@ func FindSpanTypeInt(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) 
 	return SPAN_TYPE_ENTRY
 }
 
-func FindSpanTypeString(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
+func FindSpanTypeStrSpanID(spanID, parentID string, spanIDs, parentIDs map[string]bool) string {
 	if parentID != "0" && parentID != "" {
 		if spanIDs[parentID] {
 			if parentIDs[spanID] {
@@ -151,16 +151,30 @@ func UnifyToInt64ID(id string) int64 {
 		return 0
 	}
 
-	isAllInt := true
+	var (
+		isInt = true
+		isHex = true
+	)
 	for _, b := range id {
-		if b < 48 || b > 57 {
-			isAllInt = false
-			break
+		if b < '0' || b > '9' {
+			isInt = false
+			if b < 'a' || b > 'f' {
+				isHex = false
+				break
+			}
 		}
 	}
-
-	if isAllInt {
-		if i, err := strconv.ParseInt(id, 10, 64); err == nil {
+	var (
+		i   int64
+		err error
+	)
+	if isInt {
+		if i, err = strconv.ParseInt(id, 10, 64); err == nil {
+			return i
+		}
+	}
+	if isHex {
+		if i, err = strconv.ParseInt(id, 16, 64); err == nil {
 			return i
 		}
 	}
@@ -169,7 +183,7 @@ func UnifyToInt64ID(id string) int64 {
 	if l := len(hexstr); l > 16 {
 		hexstr = hexstr[l-16:]
 	}
-	i, _ := strconv.ParseInt(hexstr, 16, 64)
+	i, _ = strconv.ParseInt(hexstr, 16, 64)
 
 	return i
 }

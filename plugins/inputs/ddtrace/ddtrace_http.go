@@ -158,7 +158,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Resource:           span.Resource,
 			Operation:          span.Name,
 			Source:             inputName,
-			SpanType:           itrace.FindSpanTypeInt(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
+			SpanType:           itrace.FindSpanTypeIntSpanID(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
 			SourceType:         ddtraceSpanType[span.Type],
 			Tags:               itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],

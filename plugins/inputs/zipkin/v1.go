@@ -151,7 +151,7 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 			Resource:  span.Name,
 			Operation: span.Name,
 			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeInt(span.ID, *span.ParentID, spanIDs, parentIDs),
+			SpanType:  itrace.FindSpanTypeIntSpanID(span.ID, *span.ParentID, spanIDs, parentIDs),
 		}
 
 		if span.ParentID != nil {
@@ -242,7 +242,7 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 			Resource:  span.Name,
 			Operation: span.Name,
 			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeString(span.ID, span.ParentID, spanIDs, parentIDs),
+			SpanType:  itrace.FindSpanTypeStrSpanID(span.ID, span.ParentID, spanIDs, parentIDs),
 			Start:     getFirstTimestamp(span),
 			Duration:  span.Duration * int64(time.Microsecond),
 		}

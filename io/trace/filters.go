@@ -34,8 +34,8 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 				if tid%100 < int64(smp.SamplingRateGlobal*100) {
 					return dktrace, false
 				} else {
-					log.Debugf("drop service: %s resource %s trace_id: %s span_id: %s by default sampler",
-						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID)
+					log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %f",
+						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID, dktrace[i].SamplingRateGlobal)
 
 					return nil, true
 				}

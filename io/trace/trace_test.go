@@ -2,13 +2,103 @@ package trace
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
+	"strconv"
+	"testing"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-func randDatakitSpan() *DatakitSpan {
+func TestFindSpanTypeIntSpanID(t *testing.T) {
+	trace := randDatakitTrace(t, 10)
+	parentialize(trace)
+	parentIDs, spanIDs := extractTraceIDs(trace)
+	for i := range trace {
+		switch FindSpanTypeStrSpanID(trace[i].SpanID, trace[i].ParentID, spanIDs, parentIDs) {
+		case SPAN_TYPE_ENTRY:
+			if i != 0 {
+				t.Errorf("not an entry span")
+			}
+		case SPAN_TYPE_LOCAL:
+			if i == 0 || i == len(trace)-1 {
+				t.Errorf("not one of local spans")
+			}
+		case SPAN_TYPE_EXIT:
+			if i != len(trace)-1 {
+				t.Errorf("not an exit span")
+			}
+		}
+	}
+}
+
+func TestGetTraceInt64ID(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		low := testutils.RandInt64(5)
+		high := testutils.RandInt64(5)
+		if fmt.Sprintf("%d", GetTraceInt64ID(high, low)) != strconv.Itoa(int(high))+strconv.Itoa(int(low)) {
+			t.Error("get wrong trace id")
+		}
+	}
+}
+
+func TestUnifyToInt64ID(t *testing.T) {
+	testcases := map[string]int64{
+		"345678987655678":                          345678987655678,
+		"45f6f7f4d67a4b56":                         parseInt64("45f6f7f4d67a4b56", 16, 64),
+		"$%^&*&^%CGHGfxcghjsdkfh%^&6dr67d77855678": 3978710596982290232,
+		"4%^&cvghjdfh":                             7167029555165947496,
+	}
+	for k, v := range testcases {
+		if i := UnifyToInt64ID(k); i != v {
+			t.Errorf("invalid transform origin: %s transform: %d expect: %d", k, i, v)
+		}
+	}
+}
+
+func parseInt64(s string, base int, bitSize int) int64 {
+	i, _ := strconv.ParseInt(s, base, bitSize)
+
+	return i
+}
+
+func parentialize(trace DatakitTrace) {
+	if len(trace) <= 1 {
+		return
+	}
+
+	trace[0].ParentID = "0"
+	for i := range trace[1:] {
+		trace[i+1].ParentID = trace[i].SpanID
+	}
+
+	return
+}
+
+func extractTraceIDs(trace DatakitTrace) (parentids, spanids map[string]bool) {
+	parentids = make(map[string]bool)
+	spanids = make(map[string]bool)
+	for i := range trace {
+		parentids[trace[i].ParentID] = true
+		spanids[trace[i].SpanID] = true
+	}
+
+	return
+}
+
+func randDatakitTrace(t *testing.T, n int) DatakitTrace {
+	trace := make(DatakitTrace, n)
+	for i := 0; i < n; i++ {
+		trace[i] = randDatakitSpan(t)
+	}
+
+	return trace
+}
+
+func randDatakitSpan(t *testing.T) *DatakitSpan {
+	t.Helper()
+
 	dkspan := &DatakitSpan{
 		TraceID:            testutils.RandStrID(30),
 		ParentID:           testutils.RandStrID(30),
@@ -36,18 +126,9 @@ func randDatakitSpan() *DatakitSpan {
 	}
 	buf, err := json.Marshal(dkspan)
 	if err != nil {
-		log.Panic(err.Error())
+		t.Error(err.Error())
 	}
 	dkspan.Content = string(buf)
 
 	return dkspan
-}
-
-func randDatakitTrace(n int) DatakitTrace {
-	trace := make(DatakitTrace, n)
-	for i := 0; i < n; i++ {
-		trace[i] = randDatakitSpan()
-	}
-
-	return trace
 }

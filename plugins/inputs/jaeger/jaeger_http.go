@@ -68,7 +68,7 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			Resource:  span.OperationName,
 			Operation: span.OperationName,
 			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeInt(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			SpanType:  itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
 			Env:       env,
 			Project:   project,
 			Start:     span.StartTime * int64(time.Microsecond),
