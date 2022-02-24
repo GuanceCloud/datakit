@@ -4,14 +4,11 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
-	"testing"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
-func randDatakitSpan(t *testing.T) *DatakitSpan {
-	t.Helper()
-
+func randDatakitSpan() *DatakitSpan {
 	dkspan := &DatakitSpan{
 		TraceID:            testutils.RandStrID(30),
 		ParentID:           testutils.RandStrID(30),
@@ -39,9 +36,18 @@ func randDatakitSpan(t *testing.T) *DatakitSpan {
 	}
 	buf, err := json.Marshal(dkspan)
 	if err != nil {
-		t.Error(err.Error())
+		log.Panic(err.Error())
 	}
 	dkspan.Content = string(buf)
 
 	return dkspan
+}
+
+func randDatakitTrace(n int) DatakitTrace {
+	trace := make(DatakitTrace, n)
+	for i := 0; i < n; i++ {
+		trace[i] = randDatakitSpan()
+	}
+
+	return trace
 }
