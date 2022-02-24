@@ -133,8 +133,7 @@ func Test_byteToInt64(t *testing.T) {
 func Test_dkTags_addGlobalTags(t *testing.T) {
 	globalTags = map[string]string{"globalTag_a": "b"}
 	type fields struct {
-		config option
-		tags   map[string]string
+		tags map[string]string
 	}
 	tests := []struct {
 		name   string
@@ -150,8 +149,7 @@ func Test_dkTags_addGlobalTags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				config: tt.fields.config,
-				tags:   tt.fields.tags,
+				tags: tt.fields.tags,
 			}
 			if got := dt.addGlobalTags(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("addGlobalTags() = %v, want %v", got, tt.want)
@@ -162,8 +160,7 @@ func Test_dkTags_addGlobalTags(t *testing.T) {
 
 func Test_dkTags_addOtherTags(t *testing.T) {
 	type fields struct {
-		config option
-		tags   map[string]string
+		tags map[string]string
 	}
 	type args struct {
 		span *tracepb.Span
@@ -193,8 +190,7 @@ func Test_dkTags_addOtherTags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				config: tt.fields.config,
-				tags:   tt.fields.tags,
+				tags: tt.fields.tags,
 			}
 			if got := dt.addOtherTags(tt.args.span); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("addOtherTags() = %v, want %v", got, tt.want)
@@ -205,8 +201,7 @@ func Test_dkTags_addOtherTags(t *testing.T) {
 
 func Test_dkTags_checkAllTagsKey(t *testing.T) {
 	type fields struct {
-		config option
-		tags   map[string]string
+		tags map[string]string
 	}
 	tests := []struct {
 		name   string
@@ -224,8 +219,7 @@ func Test_dkTags_checkAllTagsKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				config: tt.fields.config,
-				tags:   tt.fields.tags,
+				tags: tt.fields.tags,
 			}
 			if got := dt.checkAllTagsKey(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("checkAllTagsKey() = %v, want %v", got, tt.want)
@@ -236,8 +230,7 @@ func Test_dkTags_checkAllTagsKey(t *testing.T) {
 
 func Test_dkTags_checkCustomTags(t *testing.T) {
 	type fields struct {
-		config option
-		tags   map[string]string
+		tags map[string]string
 	}
 	tests := []struct {
 		name      string
@@ -273,8 +266,7 @@ func Test_dkTags_checkCustomTags(t *testing.T) {
 
 func Test_dkTags_resource(t *testing.T) {
 	type fields struct {
-		config option
-		tags   map[string]string
+		tags map[string]string
 	}
 	tests := []struct {
 		name   string
@@ -290,8 +282,7 @@ func Test_dkTags_resource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				config: tt.fields.config,
-				tags:   tt.fields.tags,
+				tags: tt.fields.tags,
 			}
 			if got := dt.resource(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("resource() = %v, want %v", got, tt.want)
@@ -302,8 +293,7 @@ func Test_dkTags_resource(t *testing.T) {
 
 func Test_dkTags_setAttributesToTags(t *testing.T) {
 	type fields struct {
-		config option
-		tags   map[string]string
+		tags map[string]string
 	}
 	type args struct {
 		attr []*commonpb.KeyValue
@@ -324,8 +314,7 @@ func Test_dkTags_setAttributesToTags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				config: tt.fields.config,
-				tags:   tt.fields.tags,
+				tags: tt.fields.tags,
 			}
 			if got := dt.setAttributesToTags(tt.args.attr); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("setAttributesToTags() = %v, want %v", got, tt.want)
@@ -336,8 +325,7 @@ func Test_dkTags_setAttributesToTags(t *testing.T) {
 
 func Test_dkTags_toDataKitTagsV2(t *testing.T) {
 	type fields struct {
-		config option
-		tags   map[string]string
+		tags map[string]string
 	}
 	type args struct {
 		span         *tracepb.Span
@@ -354,8 +342,7 @@ func Test_dkTags_toDataKitTagsV2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				config: tt.fields.config,
-				tags:   tt.fields.tags,
+				tags: tt.fields.tags,
 			}
 			if got := dt.toDataKitTagsV2(tt.args.span, tt.args.resourceAttr); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("toDataKitTagsV2() = %v, want %v", got, tt.want)

@@ -23,11 +23,12 @@ type SpansStorage struct {
 }
 
 // NewSpansStorage creates a new spans storage.
-func NewSpansStorage() SpansStorage {
-	return SpansStorage{
+func NewSpansStorage() *SpansStorage {
+	return &SpansStorage{
 		rsm:         make([]DKtrace.DatakitTrace, 0),
 		otelMetrics: make([]*otelResourceMetric, 0),
 		max:         make(chan int, 1),
+		stop:        make(chan struct{}, 1),
 	}
 }
 
@@ -87,6 +88,8 @@ func (s *SpansStorage) run() {
 				s.reset()
 			}
 		case <-s.stop:
+			l.Infof("spanStorage stop")
+			close(s.stop)
 			return
 		}
 	}

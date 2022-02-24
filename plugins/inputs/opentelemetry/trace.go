@@ -66,8 +66,8 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 }
 
 type dkTags struct {
-	config option
-	tags   map[string]string
+	// config option
+	tags map[string]string
 }
 
 func newEmptyTags() *dkTags {
@@ -76,6 +76,7 @@ func newEmptyTags() *dkTags {
 	}
 }
 
+// toDataKitTagsV2 黑名单机制
 func (dt *dkTags) toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) map[string]string {
 	/*
 		tags :
@@ -85,13 +86,13 @@ func (dt *dkTags) toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.K
 			4 统一的key处理
 			5 过黑白名单
 			6 添加global tags
-		 如果要换成白名单机制，则顺序应该改变
+		 如果要换成白名单机制，则顺序应该改变：步骤3在黑白名单之后
 	*/
 	dt.setAttributesToTags(resourceAttr).
 		setAttributesToTags(span.Attributes).
+		addOtherTags(span).
 		checkAllTagsKey().
 		checkCustomTags().
-		addOtherTags(span).
 		addGlobalTags()
 	return dt.resource()
 }
