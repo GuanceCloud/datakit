@@ -154,7 +154,7 @@ DataKit 安装完成后，默认会开启一批采集器，这些采集器一般
 以下涉及 DataKit 主配置的修改，均需重启 DataKit：
 
 ```shell
-sudo datakit --restart
+sudo datakit service -R
 ```
 
 ### HTTP 绑定端口

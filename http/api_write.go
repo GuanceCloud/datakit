@@ -148,12 +148,12 @@ func apiWrite(w http.ResponseWriter, req *http.Request, x ...interface{}) (inter
 		}
 
 	default:
-		pts, err = handleWriteBody(body, isjson, &lp.Option{
-			Precision: precision,
-			Time:      time.Now(),
-			ExtraTags: extags,
-			Strict:    true,
-		})
+		opt := lp.NewDefaultOption()
+		opt.Precision = precision
+		opt.Time = time.Now()
+		opt.ExtraTags = extags
+		opt.Strict = true
+		pts, err = handleWriteBody(body, isjson, opt)
 		if err != nil {
 			return nil, err
 		}

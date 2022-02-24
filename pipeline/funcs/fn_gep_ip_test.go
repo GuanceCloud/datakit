@@ -3,14 +3,17 @@ package funcs
 import (
 	"testing"
 
-	"github.com/ip2location/ip2location-go"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 )
 
 type mockGEO struct{}
 
-func (m *mockGEO) Get(ip string) (*ip2location.IP2Locationrecord, error) {
-	return &ip2location.IP2Locationrecord{
+func (m *mockGEO) Init(dataDir string, config map[string]string) {}
+func (m *mockGEO) SearchIsp(ip string) string                    { return "" }
+
+func (m *mockGEO) Geo(ip string) (*ipdb.IPdbRecord, error) {
+	return &ipdb.IPdbRecord{
 		City: func() string {
 			if ip == "unknown-city" {
 				return geoDefaultVal
@@ -25,7 +28,7 @@ func (m *mockGEO) Get(ip string) (*ip2location.IP2Locationrecord, error) {
 				return "Shanghai"
 			}
 		}(),
-		Country_short: func() string {
+		Country: func() string {
 			if ip == "unknown-country-short" {
 				return geoDefaultVal
 			} else {
@@ -36,8 +39,7 @@ func (m *mockGEO) Get(ip string) (*ip2location.IP2Locationrecord, error) {
 }
 
 func TestGeoIpFunc(t *testing.T) {
-	defaultGEO = &mockGEO{}
-
+	ipdbInstance = &mockGEO{}
 	cases := []struct {
 		data   string
 		script string

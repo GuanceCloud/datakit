@@ -293,9 +293,12 @@ func reloadCore(ctx context.Context) (int, error) {
 			case 3:
 				l.Info("before set pipelines")
 
-				allGitReposPipelines := config.GetGitReposAllPipelinePath()
-
-				worker.LoadAllDotPScriptForWkr([]string{}, allGitReposPipelines)
+				allGitReposPipelines, err := config.GetNamespacePipelineFiles(datakit.GitReposRepoFullPath)
+				if err != nil {
+					l.Infof("GetNamespacePipelineFiles failed: %v", err)
+				} else {
+					worker.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
+				}
 
 			case 4:
 				l.Info("before RunInputs")
@@ -309,11 +312,19 @@ func reloadCore(ctx context.Context) (int, error) {
 				l.Info("before ReloadTheNormalServer")
 
 				httpd.ReloadTheNormalServer()
+
+			case 6:
+				l.Info("before RunInputExtra")
+
+				if err := inputs.RunInputExtra(); err != nil {
+					l.Errorf("RunInputExtra failed: %v", err)
+					return round, err
+				}
 			}
 		}
 
 		round++
-		if round > 5 {
+		if round > 6 {
 			return round, nil // round + 1
 		}
 	}
