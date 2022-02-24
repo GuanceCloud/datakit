@@ -160,7 +160,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 			continue
 		}
 
-		l.Infof("add container log, name: %s image: %s", getContainerName(container.Names), container.Image)
+		l.Infof("add container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
 		ctx, cancel := context.WithCancel(context.Background())
 		d.addToContainerList(container.ID, cancel)
 
@@ -168,7 +168,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 		go func(container *types.Container) {
 			defer func() {
 				d.removeFromContainerList(container.ID)
-				l.Debugf("remove container log, name: %s image: %s", getContainerName(container.Names), container.Image)
+				l.Debugf("remove container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
 			}()
 
 			if err := d.watchingContainerLog(ctx, container); err != nil {
@@ -203,10 +203,13 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	podAnnotationState := podAnnotationNil
 
 	func() {
-		if d.k8sClient == nil || container.Labels["pod_name"] == "" {
+		podName := container.Labels[containerLableForPodName]
+		if d.k8sClient == nil || podName == "" {
 			return
 		}
-		meta, err := queryPodMetaData(d.k8sClient, container.Labels["pod_name"], container.Labels["pod_namesapce"])
+		podNamespace := container.Labels[containerLableForPodNamespace]
+
+		meta, err := queryPodMetaData(d.k8sClient, podName, podNamespace)
 		if err != nil {
 			return
 		}
@@ -219,6 +222,8 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 
 		if logconf.Disable {
 			podAnnotationState = podAnnotationDisable
+			l.Debugf("ignore containerlog because of annotation disable, podName:%s, podNamespace:%s, logconfig:%#v, containerName:%s",
+				podName, podNamespace, logconf, getContainerName(container.Names))
 		} else {
 			podAnnotationState = podAnnotationEnable
 		}
@@ -226,7 +231,6 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 
 	switch podAnnotationState {
 	case podAnnotationDisable:
-		l.Debugf("ignore containerlog because of annotation disable, name: %s, shortImage: %s", getContainerName(container.Names), image)
 		return false
 	case podAnnotationEnable:
 		return true
@@ -235,12 +239,12 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	}
 
 	if d.ignoreContainer(container) {
-		l.Debugf("ignore containerlog because of pause status, name: %s, shortImage: %s", getContainerName(container.Names), image)
+		l.Debugf("ignore containerlog because of pause status, containerName:%s, shortImage:%s", getContainerName(container.Names), image)
 		return false
 	}
 
 	if d.ignoreImageForLogging(image) {
-		l.Debugf("ignore containerlog because of image filter, name: %s, shortImage: %s", getContainerName(container.Names), image)
+		l.Debugf("ignore containerlog because of image filter, containerName:%s, shortImage:%s", getContainerName(container.Names), image)
 		return false
 	}
 
