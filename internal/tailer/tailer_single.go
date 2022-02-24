@@ -153,7 +153,7 @@ func (t *Single) forwardMessage() {
 				t.sendToForwardCallback(text)
 				continue
 			}
-			logstr := string(removeAnsiEscapeCodes([]byte(text), t.opt.RemoveAnsiEscapeCodes))
+			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
 			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: logstr, Tag: t.tags})
 		}
 		if len(pending) > 0 {
@@ -284,16 +284,16 @@ func (b *buffer) split() []string {
 	return res
 }
 
-func removeAnsiEscapeCodes(oldtext []byte, run bool) []byte {
+func removeAnsiEscapeCodes(oldtext string, run bool) string {
 	if !run {
 		return oldtext
 	}
 
-	newtext, err := ansi.Strip(oldtext)
+	newtext, err := ansi.Strip([]byte(oldtext))
 	if err != nil {
 		l.Debugf("remove ansi code error: %w", err)
 		return oldtext
 	}
 
-	return newtext
+	return string(newtext)
 }
