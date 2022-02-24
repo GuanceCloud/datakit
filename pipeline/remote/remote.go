@@ -31,9 +31,9 @@ const (
 )
 
 var (
-	l                      = logger.DefaultSLogger(pipelineRemoteName)
-	runPipelineRemote      sync.Once
-	runLocalPipelineRemote sync.Once
+	l                 = logger.DefaultSLogger(pipelineRemoteName)
+	runPipelineRemote sync.Once
+	isFirst           = true
 )
 
 type pipelineRemoteConfig struct {
@@ -270,14 +270,16 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		}
 		return 0, nil // need update when token has changed
 	} else {
-		runLocalPipelineRemote.Do(func() {
+		if isFirst {
+			isFirst = true
+
 			pls, err := ipr.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
 			if err != nil {
 				l.Errorf("GetNamespacePipelineFiles failed: %v", err)
 			} else {
 				worker.ReloadAllRemoteDotPScript2Store(pls)
 			}
-		})
+		} // isFirst
 	}
 	return cf.UpdateTime, nil
 }
