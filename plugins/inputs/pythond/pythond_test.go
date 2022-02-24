@@ -188,6 +188,10 @@ func TestGetScriptNameRoot(t *testing.T) {
 			dataExistFiles = tc.existFiles
 			dataFolderList = tc.folderList
 
+			if len(tc.configRepos) > 0 {
+				config.InitGitreposDir()
+			}
+
 			scriptName, scriptRoot, err := getScriptNameRoot(tc.dirs, &pathMockerTest{}, &pathMockExerTest{}, &folderListMockerTest{})
 
 			assert.NoError(t, err, "getScriptNameRoot error")

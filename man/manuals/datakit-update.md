@@ -20,7 +20,7 @@ DataKit 支持手动更新和自动更新两种方式。
 
 ```shell
 # Linux/Mac
-$ datakit --version
+$ datakit version
 
        Version: 1.1.6-rc0
         Commit: d1f4604d
@@ -38,7 +38,7 @@ Upgrade:
 
 # Windows
 
-$ datakit.exe --version
+$ datakit.exe version
 
        Version: 1.1.6-rc0
         Commit: d1f4604d
