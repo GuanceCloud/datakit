@@ -45,8 +45,9 @@ func GetIPdb() ipdb.IPdb {
 }
 
 type PipelineCfg struct {
-	IPdbAttr map[string]string `toml:"ipdb_attr"`
-	IPdbType string            `toml:"ipdb_type"`
+	IPdbAttr           map[string]string `toml:"ipdb_attr"`
+	IPdbType           string            `toml:"ipdb_type"`
+	RemotePullInterval string            `toml:"remote_pull_interval"`
 }
 
 type Pipeline struct {

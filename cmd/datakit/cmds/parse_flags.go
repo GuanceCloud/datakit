@@ -13,29 +13,6 @@ import (
 )
 
 var (
-	// FSG                  = pflag.NewFlagSet("", pflag.ExitOnError) //global flagset.
-
-	//
-	// doc related flags.
-	//
-	fsDocName  = "doc"
-	fsDoc      = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
-	fsDocUsage = func() {
-		fmt.Printf("usage: datakit doc [options]\n\n")
-		fmt.Printf("Doc used to manage all documents related to DataKit. Available options:\n\n")
-		fmt.Println(fsDoc.FlagUsagesWrapped(0))
-	}
-
-	// TODO: this flags not used, comment them to disable lint errors.
-	// flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
-	// flagDocExportDocs              = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
-	// flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)").
-	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file")
-	// flagDocIgnore         = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem").
-	flagDocLogPath = fsDoc.String("log", commonLogFlag(), "command line log path")
-	// flagDocTODO                    = fsDoc.String("TODO", "TODO", "set TODO placeholder")
-	// flagDocVersion = fsDoc.String("version", datakit.Version, "specify version string in document's header").
-
 	//
 	// DQL related flags.
 	//
@@ -47,18 +24,18 @@ var (
 		fmt.Println(fsDQL.FlagUsagesWrapped(0))
 	}
 
-	flagDQLJSON        = fsDQL.BoolP("json", "j", false, "output in json format")
+	flagDQLJSON        = fsDQL.BoolP("json", "J", false, "output in json format")
 	flagDQLAutoJSON    = fsDQL.Bool("auto-json", false, "pretty output string if field/tag value is JSON")
-	flagDQLVerbose     = fsDQL.BoolP("verbose", "v", false, "verbosity mode")
-	flagDQLString      = fsDQL.StringP("run", "r", "", "run single DQL")
-	flagDQLToken       = fsDQL.StringP("token", "t", "", "run query for specific token(workspace)")
+	flagDQLVerbose     = fsDQL.BoolP("verbose", "V", false, "verbosity mode")
+	flagDQLString      = fsDQL.StringP("run", "R", "", "run single DQL")
+	flagDQLToken       = fsDQL.StringP("token", "T", "", "run query for specific token(workspace)")
 	flagDQLCSV         = fsDQL.String("csv", "", "Specify the directory")
-	flagDQLForce       = fsDQL.BoolP("force", "f", false, "overwrite csv if file exists")
-	flagDQLDataKitHost = fsDQL.StringP("host", "h", "", "specify datakit host to query")
+	flagDQLForce       = fsDQL.BoolP("force", "F", false, "overwrite csv if file exists")
+	flagDQLDataKitHost = fsDQL.StringP("host", "H", "", "specify datakit host to query")
 	flagDQLLogPath     = fsDQL.String("log", commonLogFlag(), "command line log path")
 
 	//
-	// running mode.
+	// running mode. (not used).
 	//
 	fsRunName          = "run"
 	fsRun              = pflag.NewFlagSet(fsRunName, pflag.ContinueOnError)
@@ -124,9 +101,12 @@ var (
 	//
 	fsMonitorName              = "monitor"
 	fsMonitor                  = pflag.NewFlagSet(fsMonitorName, pflag.ContinueOnError)
+	flagMonitorTo              = fsMonitor.String("to", "localhost:9529", "specify the DataKit(IP:Port) to show its statistics")
+	flagMonitorMaxTableWidth   = fsMonitor.IntP("max-table-width", "W", 16, "set max table cell width")
+	flagMonitorOnlyInputs      = fsMonitor.StringSliceP("input", "I", nil, "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	flagMonitorLogPath         = fsMonitor.String("log", commonLogFlag(), "command line log path")
 	flagMonitorRefreshInterval = fsMonitor.DurationP("refresh", "R", 5*time.Second, "refresh interval")
-	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info")
+	flagMonitorVerbose         = fsMonitor.BoolP("verbose", "V", false, "show all statistics info, default not show goroutine and inputs config info")
 	fsMonitorUsage             = func() {
 		fmt.Printf("usage: datakit monitor [options]\n\n")
 		fmt.Printf("Monitor used to show datakit running statistics\n\n")
@@ -147,6 +127,26 @@ var (
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")
 		fmt.Println(fsInstall.FlagUsagesWrapped(0))
 	}
+
+	//
+	// debug related flags.
+	//
+
+	fsDebugName            = "debug"
+	fsDebug                = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
+	flagDebugLogPath       = fsDebug.String("log", commonLogFlag(), "command line log path")
+	flagDebugCloudInfo     = fsDebug.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flagDebugIPInfo        = fsDebug.String("ipinfo", "", "show IP geo info")
+	flagDebugWorkspaceInfo = fsDebug.Bool("workspace-info", false, "show workspace info")
+	flagDebugCheckConfig   = fsDebug.Bool("check-config", false, "check inputs configure and main configure")
+	flagDebugCmdLog        = fsDebug.String("cmd-log", "/dev/null", "command line log path")
+	flagDebugDumpSamples   = fsDebug.String("dump-samples", "", "dump all inputs samples")
+	flagDebugLoadLog       = fsDebug.Bool("upload-log", false, "upload log")
+	fsDebugUsage           = func() {
+		fmt.Printf("usage: datakit debug [options]\n\n")
+		fmt.Printf("Various tools for debugging\n\n")
+		fmt.Println(fsDebug.FlagUsagesWrapped(0))
+	}
 )
 
 func commonLogFlag() string {
@@ -164,13 +164,13 @@ func printHelp() {
 
 	fmt.Fprintf(os.Stderr, "The commands are:\n\n")
 
-	fmt.Fprintf(os.Stderr, "\tdoc        manage all documents for DataKit\n")
 	fmt.Fprintf(os.Stderr, "\tdql        query DQL for various usage\n")
 	fmt.Fprintf(os.Stderr, "\trun        select DataKit running mode(defaul running as service)\n")
 	fmt.Fprintf(os.Stderr, "\tpipeline   debug pipeline\n")
 	fmt.Fprintf(os.Stderr, "\tservice    manage datakit service\n")
 	fmt.Fprintf(os.Stderr, "\tmonitor    show datakit running statistics\n")
 	fmt.Fprintf(os.Stderr, "\tinstall    install DataKit related packages and plugins\n")
+	fmt.Fprintf(os.Stderr, "\tdebug      methods of all debug datakits\n")
 
 	// TODO: add more commands...
 
@@ -184,9 +184,6 @@ func runHelpFlags() {
 		printHelp()
 	case 3: // need help for various commands
 		switch os.Args[2] {
-		case fsDocName:
-			fsDocUsage()
-
 		case fsPLName:
 			fsPLUsage()
 
@@ -208,6 +205,9 @@ func runHelpFlags() {
 		case fsInstallName:
 			fsInstallUsage()
 
+		case fsDebugName:
+			fsDebugUsage()
+
 		default: // add more
 			fmt.Fprintf(os.Stderr, "flag provided but not defined: %s", os.Args[2])
 			printHelp()
@@ -227,20 +227,6 @@ func doParseAndRunFlags() {
 		}
 
 		switch os.Args[1] {
-		case fsDocName:
-			setCmdRootLog(*flagDocLogPath)
-			if err := fsDoc.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
-				fsDocUsage()
-				os.Exit(-1)
-			}
-
-			if err := runDocFlags(); err != nil {
-				errorf("%s\n", err)
-				os.Exit(-1)
-			}
-			os.Exit(0)
-
 		case fsDQLName:
 			setCmdRootLog(*flagDQLLogPath)
 			if err := fsDQL.Parse(os.Args[2:]); err != nil {
@@ -319,7 +305,10 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			runMonitorFlags()
+			if err := runMonitorFlags(); err != nil {
+				errorf("%s\n", err)
+				os.Exit(-1)
+			}
 
 			os.Exit(0)
 
@@ -336,6 +325,22 @@ func doParseAndRunFlags() {
 				errorf("%s\n", err)
 				os.Exit(-1)
 			}
+			os.Exit(0)
+
+		case fsDebugName:
+			setCmdRootLog(*flagDebugLogPath)
+			if err := fsDebug.Parse(os.Args[2:]); err != nil {
+				errorf("Parse: %s\n", err)
+				fsDebugUsage()
+				os.Exit(-1)
+			}
+
+			err := runDebugFlags()
+			if err != nil {
+				errorf("%s\n", err)
+				os.Exit(-1)
+			}
+
 			os.Exit(0)
 
 		default:

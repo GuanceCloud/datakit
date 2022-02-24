@@ -23,7 +23,7 @@ func initPluginPipeline() error {
 		return err
 	}
 
-	scriptMap, err := GetScriptMap()
+	scriptMap, err := GetScriptMap(true)
 	if err != nil {
 		l.Errorf(err.Error())
 		return err
@@ -39,7 +39,7 @@ func initPluginPipeline() error {
 	return nil
 }
 
-func GetScriptMap() (map[string]string, error) {
+func GetScriptMap(addPipelineWarning bool) (map[string]string, error) {
 	scriptMap := map[string]string{}
 	for _, c := range inputs.Inputs {
 		if v, ok := c().(inputs.PipelineInput); ok {
@@ -53,7 +53,11 @@ func GetScriptMap() (map[string]string, error) {
 				if _, has := scriptMap[name]; has {
 					return nil, fmt.Errorf("duplicated pipeline script name: %s", name)
 				}
-				scriptMap[name] = pipelineWarning + script
+				if addPipelineWarning {
+					scriptMap[name] = pipelineWarning + script
+				} else {
+					scriptMap[name] = script
+				}
 			}
 		}
 	}

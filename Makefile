@@ -100,6 +100,7 @@ endef
 
 define build_docker_image
 	@sudo docker buildx build --platform $(1) -t $(2)/datakit/datakit:$(VERSION) . --push
+	@sudo docker buildx build --platform $(1) -t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push
 endef
 
 define check_golint_version
@@ -183,7 +184,7 @@ endef
 define do_lint
 	truncate -s 0 lint.err
 	golangci-lint --version 
-	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix
+	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix --allow-parallel-runners
 endef
 
 ip2isp:

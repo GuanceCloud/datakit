@@ -91,6 +91,7 @@ var (
 		"kong":                   true,
 		"kubernetes":             true,
 		"lighttpd":               true,
+		"logfwdserver":           true,
 		"logging":                true,
 		"logstreaming":           true,
 		"mem":                    true,
