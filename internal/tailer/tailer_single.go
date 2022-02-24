@@ -153,7 +153,8 @@ func (t *Single) forwardMessage() {
 				t.sendToForwardCallback(text)
 				continue
 			}
-			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: string(removeAnsiEscapeCodes([]byte(text), t.opt.RemoveAnsiEscapeCodes)), Tag: t.tags})
+			logstr := string(removeAnsiEscapeCodes([]byte(text), t.opt.RemoveAnsiEscapeCodes))
+			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: logstr, Tag: t.tags})
 		}
 		if len(pending) > 0 {
 			t.sendToPipeline(pending)
