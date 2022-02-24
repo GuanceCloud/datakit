@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
@@ -44,11 +45,13 @@ func TestGetTraceInt64ID(t *testing.T) {
 }
 
 func TestUnifyToInt64ID(t *testing.T) {
+	ri := testutils.RandInt64StrID(10)
 	testcases := map[string]int64{
 		"345678987655678":                          345678987655678,
-		"45f6f7f4d67a4b56":                         parseInt64("45f6f7f4d67a4b56", 16, 64),
+		"45f6f7f4d67a4b56":                         parseInt("45f6f7f4d67a4b56", 16, 64),
 		"$%^&*&^%CGHGfxcghjsdkfh%^&6dr67d77855678": 3978710596982290232,
 		"4%^&cvghjdfh":                             7167029555165947496,
+		ri:                                         parseInt(ri, 10, 64),
 	}
 	for k, v := range testcases {
 		if i := UnifyToInt64ID(k); i != v {
@@ -57,19 +60,24 @@ func TestUnifyToInt64ID(t *testing.T) {
 	}
 }
 
-func parseInt64(s string, base int, bitSize int) int64 {
+func parseInt(s string, base int, bitSize int) int64 {
 	i, _ := strconv.ParseInt(s, base, bitSize)
 
 	return i
 }
 
 func parentialize(trace DatakitTrace) {
-	if len(trace) <= 1 {
+	if l := len(trace); l <= 1 {
+		if l == 1 {
+			trace[0].ParentID = "0"
+		}
+
 		return
 	}
 
 	trace[0].ParentID = "0"
 	for i := range trace[1:] {
+		trace[i+1].TraceID = trace[0].TraceID
 		trace[i+1].ParentID = trace[i].SpanID
 	}
 
@@ -99,6 +107,7 @@ func randDatakitTrace(t *testing.T, n int) DatakitTrace {
 func randDatakitSpan(t *testing.T) *DatakitSpan {
 	t.Helper()
 
+	rand.Seed(time.Now().Local().UnixNano())
 	dkspan := &DatakitSpan{
 		TraceID:            testutils.RandStrID(30),
 		ParentID:           testutils.RandStrID(30),

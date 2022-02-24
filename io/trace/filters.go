@@ -2,6 +2,7 @@ package trace
 
 import (
 	"regexp"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
@@ -20,22 +21,27 @@ const (
 type Sampler struct {
 	Priority           int     `toml:"priority" json:"priority"`
 	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
+	ratio              int
+	once               sync.Once
 }
 
 func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
+	smp.once.Do(func() {
+		smp.ratio = int(smp.SamplingRateGlobal * 100)
+	})
+
 	for i := range dktrace {
 		if IsRootSpan(dktrace[i]) {
-			switch dktrace[i].Priority {
+			switch smp.Priority {
 			case PriorityAuto:
 				if smp.SamplingRateGlobal >= 1 {
 					return dktrace, false
 				}
-				tid := UnifyToInt64ID(dktrace[i].TraceID)
-				if tid%100 < int64(smp.SamplingRateGlobal*100) {
+				if int(UnifyToInt64ID(dktrace[i].TraceID)%100) < smp.ratio {
 					return dktrace, false
 				} else {
-					log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %f",
-						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID, dktrace[i].SamplingRateGlobal)
+					log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d",
+						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID, smp.ratio)
 
 					return nil, true
 				}
