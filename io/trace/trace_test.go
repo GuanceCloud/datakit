@@ -95,6 +95,16 @@ func extractTraceIDs(trace DatakitTrace) (parentids, spanids map[string]bool) {
 	return
 }
 
+func randDatakitTraceByService(t *testing.T, n int, service, resource string) DatakitTrace {
+	trace := randDatakitTrace(t, n)
+	for i := range trace {
+		trace[i].Service = service
+		trace[i].Resource = resource
+	}
+
+	return trace
+}
+
 func randDatakitTrace(t *testing.T, n int) DatakitTrace {
 	trace := make(DatakitTrace, n)
 	for i := 0; i < n; i++ {

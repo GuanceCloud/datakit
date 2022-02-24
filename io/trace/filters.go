@@ -65,6 +65,7 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	}
 	if samplingRateGlobal >= 0 && samplingRateGlobal <= 1 {
 		smp.SamplingRateGlobal = samplingRateGlobal
+		smp.ratio = int(smp.SamplingRateGlobal * 100)
 	}
 }
 
