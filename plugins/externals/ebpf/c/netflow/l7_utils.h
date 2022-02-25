@@ -38,13 +38,6 @@ enum
     HTTP_REQ_RESP = 0b10
 };
 
-struct layer7_http
-{
-    __u32 method;
-    __u32 http_version;
-    __u32 status_code;
-    __u32 req_status; // request | response
-};
 
 static __always_inline void read_ipv4_from_skb(struct __sk_buff *skb, struct connection_info *conn_info)
 {
@@ -243,7 +236,7 @@ HTTPRESPONSE:
     {
         return -1;
     }
-    l7http->http_version = (buffer[5] - '0') * 10 + (buffer[7] - '0');
+    l7http->http_version = ((buffer[5] - '0') << 16) + (buffer[7] - '0');
     l7http->status_code = (buffer[9] - '0') * 100 + (buffer[10] - '0') * 10 + (buffer[11] - '0');
     return 0;
 }

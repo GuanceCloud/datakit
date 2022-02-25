@@ -58,9 +58,9 @@ int socket__http_filter(struct __sk_buff *skb)
         stats.req_method = l7http.method;
         bpf_map_update_elem(&bpfmap_http_stats, &conn_info, &stats, BPF_NOEXIST);
 
-        bpf_printk("xxsrc, dst %lx %lx", conn_info.saddr[3], conn_info.daddr[3]);
-        bpf_printk("xxsport, dport %d %d", conn_info.sport, conn_info.dport);
-        bpf_printk("%s %d", stats.payload, bpf_get_smp_processor_id());
+        // bpf_printk("xxsrc, dst %lx %lx", conn_info.saddr[3], conn_info.daddr[3]);
+        // bpf_printk("xxsport, dport %d %d", conn_info.sport, conn_info.dport);
+        // bpf_printk("%s %d", stats.payload, bpf_get_smp_processor_id());
     }
     else if (l7http.req_status == HTTP_REQ_RESP)
     {
@@ -83,6 +83,7 @@ int socket__http_filter(struct __sk_buff *skb)
         bpf_map_delete_elem(&bpfmap_http_stats, &conn_info);
 
         http_finished.http_stats.resp_code = l7http.status_code;
+        http_finished.http_stats.http_version =l7http.http_version;
         http_finished.http_stats.resp_ts = bpf_ktime_get_ns();
 
         // 需要较新的内核支持，

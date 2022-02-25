@@ -43,8 +43,25 @@ func TestHttpCode(t *testing.T) {
 		200, 300, 200,
 	}
 	for k, v := range cases {
-		if HttpCode(v) != result[k] {
-			t.Error(HttpCode(v), " ", result[k])
+		if ParseHttpCode(v) != result[k] {
+			t.Error(ParseHttpCode(v), " ", result[k])
+		}
+	}
+}
+
+func TestHttpVersion(t *testing.T) {
+	cases := []uint32{
+		1<<16 + 0,
+		1<<16 + 1,
+		2<<16 + 0,
+		3<<16 + 0,
+	}
+	result := []string{
+		"1.0", "1.1", "2.0", "3.0",
+	}
+	for k, v := range cases {
+		if ParseHttpVersion(v) != result[k] {
+			t.Error(ParseHttpCode(v), " ", result[k])
 		}
 	}
 }

@@ -28,4 +28,13 @@ struct http_req_finished_info
     struct http_stats http_stats;
 };
 
+
+struct layer7_http
+{
+    __u32 method;
+    __u32 http_version;
+    __u32 status_code;
+    __u32 req_status; // request | response
+};
+
 #endif // !__HTTP_STATS_H

@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
@@ -51,7 +52,7 @@ type (
 		// payload    [HTTP_PAYLOAD_MAXSIZE]byte
 		payload      string
 		req_method   uint8
-		http_version uint16
+		http_version uint32
 		resp_code    uint32
 		req_ts       uint64
 		resp_ts      uint64
@@ -169,11 +170,12 @@ func (tracer *HttpFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 			Meta:  uint32(eventC.conn_info.meta),
 		},
 		HttpStats: HttpStats{
-			payload:    unix.ByteSliceToString((*(*[HttpPayloadMaxsize]byte)(unsafe.Pointer(&eventC.http_stats.payload)))[:]),
-			req_method: uint8(eventC.http_stats.req_method),
-			resp_code:  uint32(eventC.http_stats.resp_code),
-			req_ts:     uint64(eventC.http_stats.req_ts),
-			resp_ts:    uint64(eventC.http_stats.resp_ts),
+			payload:      unix.ByteSliceToString((*(*[HttpPayloadMaxsize]byte)(unsafe.Pointer(&eventC.http_stats.payload)))[:]),
+			req_method:   uint8(eventC.http_stats.req_method),
+			http_version: uint32(eventC.http_stats.http_version),
+			resp_code:    uint32(eventC.http_stats.resp_code),
+			req_ts:       uint64(eventC.http_stats.req_ts),
+			resp_ts:      uint64(eventC.http_stats.resp_ts),
 		},
 	}
 	tracer.finReqCh <- &httpStats
@@ -196,19 +198,19 @@ func (tracer *HttpFlowTracer) feedHandler(ctx context.Context) {
 					continue
 				}
 				ms = append(ms, m)
-				if f, err := m.LineProto(); err != nil {
-					l.Error(err)
-				} else {
-					l.Warn(f.String())
-				}
+				// if f, err := m.LineProto(); err != nil {
+				// 	l.Error(err)
+				// } else {
+				// 	l.Warn(f.String())
+				// }
 			}
+			cache = []*HttpReqFinishedInfo{}
 			if len(ms) == 0 {
 				continue
 			}
-			// if err := feed.FeedMeasurement(ms, tracer.datakitPostURL); err != nil {
-			// 	l.Error(err)
-			// }
-			cache = []*HttpReqFinishedInfo{}
+			if err := feed.FeedMeasurement(ms, tracer.datakitPostURL); err != nil {
+				l.Error(err)
+			}
 		case finReq := <-tracer.finReqCh:
 			cache = append(cache, finReq)
 		case <-ctx.Done():
@@ -270,10 +272,11 @@ func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
 	}
 
 	m.fields = map[string]interface{}{
-		"path":        path,
-		"status_code": HttpCode(httpFinReq.HttpStats.resp_code),
-		"latency":     int64(httpFinReq.HttpStats.resp_ts - httpFinReq.HttpStats.req_ts),
-		"method":      HttpMethodInt(int(httpFinReq.HttpStats.req_method)),
+		"path":         path,
+		"status_code":  ParseHttpCode(httpFinReq.HttpStats.resp_code),
+		"latency":      int64(httpFinReq.HttpStats.resp_ts - httpFinReq.HttpStats.req_ts),
+		"method":       HttpMethodInt(int(httpFinReq.HttpStats.req_method)),
+		"http_version": ParseHttpVersion(httpFinReq.HttpStats.http_version),
 	}
 
 	if k8sNetInfo != nil {

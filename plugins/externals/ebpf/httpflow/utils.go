@@ -4,6 +4,7 @@
 package httpflow
 
 import (
+	"fmt"
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
@@ -108,6 +109,10 @@ func FindHttpURI(payload string) string {
 	return uri[startOffset:]
 }
 
-func HttpCode(code uint32) int {
+func ParseHttpCode(code uint32) int {
 	return int(code / 100 * 100)
+}
+
+func ParseHttpVersion(v uint32) string {
+	return fmt.Sprintf("%d.%d", v>>16, v&0xFFFF)
 }
