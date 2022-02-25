@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"fmt"
 	"regexp"
 	"sync"
 	"time"
@@ -84,7 +85,7 @@ func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 				if dktrace[i].Service == service {
 					for j := range resList {
 						if resList[j].MatchString(dktrace[i].Resource) {
-							log.Debugf("close service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+							log.Debugf("close trace from service: %s resource: %s send by source: %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 
 							return nil, true
 						}
@@ -114,7 +115,8 @@ func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 
 type KeepRareResource struct {
 	Open       bool
-	Span       time.Duration
+	Duration   time.Duration
+	once       sync.Once
 	presentMap map[string]time.Time
 }
 
@@ -122,27 +124,28 @@ func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) 
 	if !kprres.Open {
 		return dktrace, false
 	}
-	if kprres.presentMap == nil {
+	kprres.once.Do(func() {
 		kprres.presentMap = make(map[string]time.Time)
-	}
+	})
 
 	var skip bool
 	for i := range dktrace {
 		if IsRootSpan(dktrace[i]) {
+			sed := fmt.Sprintf("%s%s%s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+			if len(sed) == 0 {
+				break
+			}
 			var (
-				checkSum = hashcode.GenMapHash(map[string]string{
-					"service":  dktrace[i].Service,
-					"resource": dktrace[i].Resource,
-					"env":      dktrace[i].Env,
-				})
+				checksum  = hashcode.GenStringsHash(sed)
 				lastCheck time.Time
 				ok        bool
 			)
-			if lastCheck, ok = kprres.presentMap[checkSum]; !ok || time.Since(lastCheck) >= kprres.Span {
-				log.Debugf("got rare service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+			if lastCheck, ok = kprres.presentMap[checksum]; !ok || time.Since(lastCheck) >= kprres.Duration {
+				log.Debugf("got rare trace from service: %s resource: %s send by %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 				skip = true
 			}
-			kprres.presentMap[checkSum] = time.Now()
+			kprres.presentMap[checksum] = time.Now()
+			break
 		}
 	}
 
@@ -151,5 +154,10 @@ func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) 
 
 func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	kprres.Open = open
-	kprres.Span = span
+	kprres.Duration = span
+	if kprres.Open {
+		kprres.presentMap = make(map[string]time.Time)
+	} else {
+		kprres.presentMap = nil
+	}
 }

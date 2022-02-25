@@ -21,14 +21,17 @@ func TestFindSpanTypeIntSpanID(t *testing.T) {
 		case SPAN_TYPE_ENTRY:
 			if i != 0 {
 				t.Errorf("not an entry span")
+				t.FailNow()
 			}
 		case SPAN_TYPE_LOCAL:
 			if i == 0 || i == len(trace)-1 {
 				t.Errorf("not one of local spans")
+				t.FailNow()
 			}
 		case SPAN_TYPE_EXIT:
 			if i != len(trace)-1 {
 				t.Errorf("not an exit span")
+				t.FailNow()
 			}
 		}
 	}
@@ -40,6 +43,7 @@ func TestGetTraceInt64ID(t *testing.T) {
 		high := testutils.RandInt64(5)
 		if fmt.Sprintf("%d", GetTraceInt64ID(high, low)) != strconv.Itoa(int(high))+strconv.Itoa(int(low)) {
 			t.Error("get wrong trace id")
+			t.FailNow()
 		}
 	}
 }
@@ -56,6 +60,7 @@ func TestUnifyToInt64ID(t *testing.T) {
 	for k, v := range testcases {
 		if i := UnifyToInt64ID(k); i != v {
 			t.Errorf("invalid transform origin: %s transform: %d expect: %d", k, i, v)
+			t.FailNow()
 		}
 	}
 }
@@ -95,11 +100,12 @@ func extractTraceIDs(trace DatakitTrace) (parentids, spanids map[string]bool) {
 	return
 }
 
-func randDatakitTraceByService(t *testing.T, n int, service, resource string) DatakitTrace {
+func randDatakitTraceByService(t *testing.T, n int, service, resource, source string) DatakitTrace {
 	trace := randDatakitTrace(t, n)
 	for i := range trace {
 		trace[i].Service = service
 		trace[i].Resource = resource
+		trace[i].Source = source
 	}
 
 	return trace
@@ -125,7 +131,7 @@ func randDatakitSpan(t *testing.T) *DatakitSpan {
 		Service:            testutils.RandString(30),
 		Resource:           testutils.RandString(30),
 		Operation:          testutils.RandString(30),
-		Source:             testutils.RandString(30),
+		Source:             testutils.RandWithinStrings([]string{"ddtrace", "jaeger", "skywalking", "zipkin"}),
 		SpanType:           testutils.RandWithinStrings([]string{SPAN_TYPE_ENTRY, SPAN_TYPE_LOCAL, SPAN_TYPE_EXIT, SPAN_TYPE_UNKNOW}),
 		SourceType:         testutils.RandWithinStrings([]string{SPAN_SERVICE_APP, SPAN_SERVICE_CACHE, SPAN_SERVICE_CUSTOM, SPAN_SERVICE_DB, SPAN_SERVICE_WEB}),
 		Env:                testutils.RandString(100),

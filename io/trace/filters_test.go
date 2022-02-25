@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
+	"time"
 )
 
 func TestSampler(t *testing.T) {
@@ -30,9 +31,9 @@ func TestSampler(t *testing.T) {
 
 func TestCloseResource(t *testing.T) {
 	testcases := DatakitTraces{
-		randDatakitTraceByService(t, 10, "login", "Allen123"),
-		randDatakitTraceByService(t, 10, "game", "Bravo333"),
-		randDatakitTraceByService(t, 10, "logout", "Clear666"),
+		randDatakitTraceByService(t, 10, "login", "Allen123", "ddtrace"),
+		randDatakitTraceByService(t, 10, "game", "Bravo333", "ddtrace"),
+		randDatakitTraceByService(t, 10, "logout", "Clear666", "ddtrace"),
 	}
 	expected := []func(trace DatakitTrace) bool{
 		func(trace DatakitTrace) bool { return trace != nil },
@@ -49,6 +50,45 @@ func TestCloseResource(t *testing.T) {
 		trace, _ := closer.Close(testcases[i])
 		if !expected[i](trace) {
 			t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
+			t.FailNow()
 		}
+	}
+}
+
+func TestKeepRareResource(t *testing.T) {
+	var traces DatakitTraces
+	for i := 0; i < 10; i++ {
+		trace := randDatakitTraceByService(t, 10, "test-rare-resource", "kept", "ddtrace")
+		parentialize(trace)
+		traces = append(traces, trace)
+	}
+
+	keep := &KeepRareResource{
+		Open:     true,
+		Duration: 10 * time.Millisecond,
+	}
+
+	var kept DatakitTraces
+	for i := range traces {
+		time.Sleep(5 * time.Millisecond)
+		if t, skip := keep.Keep(traces[i]); skip {
+			kept = append(kept, t)
+		}
+	}
+	if len(kept) >= len(traces) {
+		t.Errorf("wrong length kept send: %d kept: %d", len(traces), len(kept))
+		t.FailNow()
+	}
+
+	kept = kept[:0]
+	for i := range traces {
+		time.Sleep(15 * time.Millisecond)
+		if t, skip := keep.Keep(traces[i]); skip {
+			kept = append(kept, t)
+		}
+	}
+	if len(kept) != len(traces) {
+		t.Errorf("wrong length kept sec send: %d kept: %d", len(traces), len(kept))
+		t.FailNow()
 	}
 }
