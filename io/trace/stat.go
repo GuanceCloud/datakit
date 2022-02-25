@@ -29,16 +29,15 @@ type TracingInfo struct {
 
 var ErrSendSpanInfoFailed = errors.New("send span information failed")
 
-var ioFeed func(name, category string, pts []*dkio.Point, opt *dkio.Option) error = dkio.Feed
-
 var (
 	statOnce        = sync.Once{}
 	statUnit        map[string]*TracingInfo
 	tracingInfoChan chan *TracingInfo
-	calcInterval                  = 30 * time.Second
-	sendTimeout     time.Duration = time.Second
-	retry           int           = 3
-	isWorkerReady   bool          = false
+	calcInterval                                                                           = 30 * time.Second
+	sendTimeout     time.Duration                                                          = time.Second
+	retry           int                                                                    = 3
+	isWorkerReady   bool                                                                   = false
+	ioFeed          func(name, category string, pts []*dkio.Point, opt *dkio.Option) error = dkio.Feed
 )
 
 func StartTracingStatistic() {

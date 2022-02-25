@@ -34,6 +34,10 @@ func RandWithinInts(emun []int) int {
 	return emun[rand.Intn(len(emun))]
 }
 
+func RandWithinFloats(emun []float64) float64 {
+	return emun[rand.Intn(len(emun))]
+}
+
 func RandInt64StrID(n int) string {
 	return fmt.Sprintf("%d", RandInt64(n))
 }
