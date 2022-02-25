@@ -85,8 +85,6 @@ func parentialize(trace DatakitTrace) {
 		trace[i+1].TraceID = trace[0].TraceID
 		trace[i+1].ParentID = trace[i].SpanID
 	}
-
-	return
 }
 
 func extractTraceIDs(trace DatakitTrace) (parentids, spanids map[string]bool) {
@@ -101,6 +99,8 @@ func extractTraceIDs(trace DatakitTrace) (parentids, spanids map[string]bool) {
 }
 
 func randDatakitTraceByService(t *testing.T, n int, service, resource, source string) DatakitTrace {
+	t.Helper()
+
 	trace := randDatakitTrace(t, n)
 	for i := range trace {
 		trace[i].Service = service
@@ -112,6 +112,8 @@ func randDatakitTraceByService(t *testing.T, n int, service, resource, source st
 }
 
 func randDatakitTrace(t *testing.T, n int) DatakitTrace {
+	t.Helper()
+
 	trace := make(DatakitTrace, n)
 	for i := 0; i < n; i++ {
 		trace[i] = randDatakitSpan(t)
