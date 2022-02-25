@@ -119,8 +119,8 @@ func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.
 		resource.WithAttributes(
 			// the service name used to display traces in backends
 			semconv.ServiceNameKey.String("global.ServerName"),
-			// semconv.FaaSIDKey.String(""),
 		),
+		// resource.WithFromEnv(), // service name or service attributes
 	)
 
 	spanCxt := tracev1.NewSpanContext(tracev1.SpanContextConfig{
@@ -152,32 +152,34 @@ func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.
 	}}.Snapshots()
 
 	wantContent := `{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1645423573257862600,"end_time_unix_nano":1645423574257862600,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}}`
-	want = []DKtrace.DatakitTrace{[]*DKtrace.DatakitSpan{&DKtrace.DatakitSpan{
-		TraceID:            "00000000000000000000000000000001",
-		ParentID:           "0",
-		SpanID:             "0000000000000002",
-		Service:            "global.ServerName",
-		Resource:           "test-server",
-		Operation:          "span_name",
-		Source:             inputName,
-		SpanType:           "SPAN_KIND_UNSPECIFIED",
-		SourceType:         "",
-		Env:                "",
-		Project:            "",
-		Version:            "",
-		Tags:               map[string]string{"a": "b", "int": "123"},
-		EndPoint:           "",
-		HTTPMethod:         "",
-		HTTPStatusCode:     "",
-		ContainerHost:      "",
-		PID:                "",
-		Start:              startTime.UnixNano(),
-		Duration:           endTime.UnixNano() - startTime.UnixNano(),
-		Status:             "info",
-		Content:            wantContent,
-		Priority:           0,
-		SamplingRateGlobal: 0,
-	}}}
+	want = []DKtrace.DatakitTrace{[]*DKtrace.DatakitSpan{
+		{
+			TraceID:            "00000000000000000000000000000001",
+			ParentID:           "0",
+			SpanID:             "0000000000000002",
+			Service:            "global.ServerName",
+			Resource:           "test-server",
+			Operation:          "span_name",
+			Source:             inputName,
+			SpanType:           "SPAN_KIND_UNSPECIFIED",
+			SourceType:         "",
+			Env:                "",
+			Project:            "",
+			Version:            "",
+			Tags:               map[string]string{"a": "b", "int": "123", "service_name": "global.ServerName"},
+			EndPoint:           "",
+			HTTPMethod:         "",
+			HTTPStatusCode:     "",
+			ContainerHost:      "",
+			PID:                "",
+			Start:              startTime.UnixNano(),
+			Duration:           endTime.UnixNano() - startTime.UnixNano(),
+			Status:             "info",
+			Content:            wantContent,
+			Priority:           0,
+			SamplingRateGlobal: 0,
+		},
+	}}
 
 	return roSpans, want
 }

@@ -100,15 +100,14 @@ func Test_mkDKTrace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := mkDKTrace(tt.args.rss)
-			if !reflect.DeepEqual(got[0][0], tt.want[0][0]) {
+			if !reflect.DeepEqual(got[0][0].Tags, tt.want[0][0].Tags) {
 				t.Errorf("mkDKTrace() = %+v,\n want %+v", got[0][0], tt.want[0][0])
 			}
-
 		})
 	}
 }
 
-func Test_byteToInt64(t *testing.T) {
+func Test_byteToString(t *testing.T) {
 	type args struct {
 		bts []byte
 	}
@@ -123,7 +122,7 @@ func Test_byteToInt64(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := byteToInt64(tt.args.bts); got != tt.want {
+			if got := byteToString(tt.args.bts); got != tt.want {
 				t.Errorf("byteToInt64() = %v, want %v", got, tt.want)
 			}
 		})
@@ -212,7 +211,7 @@ func Test_dkTags_checkAllTagsKey(t *testing.T) {
 			name:   "case",
 			fields: fields{tags: map[string]string{"a.b": "c"}},
 			want: &dkTags{
-				tags: map[string]string{"a.b": "c"},
+				tags: map[string]string{"a_b": "c"},
 			},
 		},
 	}
@@ -323,56 +322,6 @@ func Test_dkTags_setAttributesToTags(t *testing.T) {
 	}
 }
 
-func Test_dkTags_toDataKitTagsV2(t *testing.T) {
-	type fields struct {
-		tags map[string]string
-	}
-	type args struct {
-		span         *tracepb.Span
-		resourceAttr []*commonpb.KeyValue
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   map[string]string
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dt := &dkTags{
-				tags: tt.fields.tags,
-			}
-			if got := dt.toDataKitTagsV2(tt.args.span, tt.args.resourceAttr); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("toDataKitTagsV2() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_getContainerHost(t *testing.T) {
-	type args struct {
-		attr []*commonpb.KeyValue
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{name: "case", args: args{
-			attr: testKV,
-		}, want: "hostName"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getContainerHost(tt.args.attr); got != tt.want {
-				t.Errorf("getContainerHost() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_getDKSpanStatus(t *testing.T) {
 	type args struct {
 		code tracepb.Status_StatusCode
@@ -382,17 +331,22 @@ func Test_getDKSpanStatus(t *testing.T) {
 		args args
 		want string
 	}{
-		{name: "case", args: args{
-			code: tracepb.Status_STATUS_CODE_UNSET,
-		}, want: "STATUS_CODE_UNSET"},
+		{
+			name: "case1",
+			args: args{code: tracepb.Status_STATUS_CODE_UNSET},
+			want: "info"},
 
-		{name: "case", args: args{
-			code: tracepb.Status_STATUS_CODE_OK,
-		}, want: "STATUS_CODE_OK"},
+		{
+			name: "case2",
+			args: args{code: tracepb.Status_STATUS_CODE_OK},
+			want: "ok",
+		},
 
-		{name: "case", args: args{
-			code: tracepb.Status_STATUS_CODE_ERROR,
-		}, want: "STATUS_CODE_ERROR"},
+		{
+			name: "case3",
+			args: args{code: tracepb.Status_STATUS_CODE_ERROR},
+			want: "error",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -403,102 +357,12 @@ func Test_getDKSpanStatus(t *testing.T) {
 	}
 }
 
-func Test_getHTTPMethod(t *testing.T) {
-	type args struct {
-		attr []*commonpb.KeyValue
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{name: "case", args: args{
-			attr: testKV,
-		}, want: "hostName"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getHTTPMethod(tt.args.attr); got != tt.want {
-				t.Errorf("getHTTPMethod() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_getHTTPStatusCode(t *testing.T) {
-	type args struct {
-		attr []*commonpb.KeyValue
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{name: "case", args: args{
-			attr: testKV,
-		}, want: "hostName"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getHTTPStatusCode(tt.args.attr); got != tt.want {
-				t.Errorf("getHTTPStatusCode() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_getPID(t *testing.T) {
-	type args struct {
-		attr []*commonpb.KeyValue
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{name: "case", args: args{
-			attr: testKV,
-		}, want: "hostName"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getPID(tt.args.attr); got != tt.want {
-				t.Errorf("getPID() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_getServiceName(t *testing.T) {
-	type args struct {
-		attr []*commonpb.KeyValue
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{name: "test service name",
-			args: args{
-				attr: testKV,
-			},
-			want: "service"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getServiceName(tt.args.attr); got != tt.want {
-				t.Errorf("getServiceName() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_newEmptyTags(t *testing.T) {
 	tests := []struct {
 		name string
 		want *dkTags
 	}{
-		{name: "empty tags", want: &dkTags{tags: map[string]string{}}},
+		{name: "empty tags", want: &dkTags{tags: map[string]string{}, replaceTags: map[string]string{}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

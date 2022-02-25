@@ -17,17 +17,19 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibrarySpans()
 		l.Infof("resource = %s", spans.Resource.String())
-		service := getServiceName(spans.Resource.Attributes)
+		// service := getServiceName(spans.Resource.Attributes)
 		for _, librarySpans := range ls {
 			dktrace := make([]*DKtrace.DatakitSpan, 0)
 			for _, span := range librarySpans.Spans {
 				dt := newEmptyTags()
-				tags := dt.toDataKitTagsV2(span, spans.Resource.Attributes)
+				dt.makeAllTags(span, spans.Resource.Attributes)
+				//  tags := dt.toDataKitTagsV2(span, spans.Resource.Attributes)
+
 				dkSpan := &DKtrace.DatakitSpan{
 					TraceID:            hex.EncodeToString(span.GetTraceId()),
-					ParentID:           byteToInt64(span.GetParentSpanId()),
-					SpanID:             byteToInt64(span.GetSpanId()),
-					Service:            service,
+					ParentID:           byteToString(span.GetParentSpanId()),
+					SpanID:             byteToString(span.GetSpanId()),
+					Service:            dt.getAttributeVal(otelResourceServiceKey),
 					Resource:           librarySpans.InstrumentationLibrary.Name,
 					Operation:          span.Name,
 					Source:             inputName,
@@ -36,12 +38,12 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 					Env:                "",
 					Project:            "",
 					Version:            librarySpans.InstrumentationLibrary.Version,
-					Tags:               tags,
+					Tags:               dt.resource(),
 					EndPoint:           "",
-					HTTPMethod:         getHTTPMethod(span.Attributes),
-					HTTPStatusCode:     getHTTPStatusCode(span.Attributes),
-					ContainerHost:      getContainerHost(span.Attributes),
-					PID:                getPID(span.Attributes),
+					HTTPMethod:         dt.getAttributeVal(otelResourceHTTPMethodKey),
+					HTTPStatusCode:     dt.getAttributeVal(otelResourceHTTPStatusCodeKey),
+					ContainerHost:      dt.getAttributeVal(otelResourceContainerNameKey),
+					PID:                dt.getAttributeVal(otelResourceProcessPidKey),
 					Start:              int64(span.StartTimeUnixNano),                        // 注意单位 nano
 					Duration:           int64(span.EndTimeUnixNano - span.StartTimeUnixNano), // 单位 nano
 					Status:             getDKSpanStatus(span.GetStatus().Code),               // 使用 dk status
@@ -67,17 +69,22 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 
 type dkTags struct {
 	// config option
+
+	// 从span中获取的attribute 放到tags中
 	tags map[string]string
+
+	// 将`.`替换成`_`之后的map,防止二次遍历查找key,所以两者不可用一个map
+	replaceTags map[string]string
 }
 
 func newEmptyTags() *dkTags {
 	return &dkTags{
-		tags: make(map[string]string),
+		tags:        make(map[string]string),
+		replaceTags: make(map[string]string),
 	}
 }
 
-// toDataKitTagsV2 黑名单机制
-func (dt *dkTags) toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) map[string]string {
+func (dt *dkTags) makeAllTags(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) {
 	/*
 		tags :
 			1 先将tags从resource中提取
@@ -94,8 +101,21 @@ func (dt *dkTags) toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.K
 		checkAllTagsKey().
 		checkCustomTags().
 		addGlobalTags()
+}
+
+/*
+// toDataKitTagsV2 黑名单机制
+func (dt *dkTags) toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) map[string]string {
+
+	dt.setAttributesToTags(resourceAttr).
+		setAttributesToTags(span.Attributes).
+		addOtherTags(span).
+		checkAllTagsKey().
+		checkCustomTags().
+		addGlobalTags()
 	return dt.resource()
 }
+*/
 
 func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 	for _, kv := range attr {
@@ -150,12 +170,13 @@ func (dt *dkTags) addGlobalTags() *dkTags {
 	return dt
 }
 
-// 统一做替换
+// checkAllTagsKey 统一替换key 放进replaceTags中
 func (dt *dkTags) checkAllTagsKey() *dkTags {
 	newTags := make(map[string]string)
 	for key, val := range dt.tags {
 		newTags[replace(key)] = val
 	}
+	dt.replaceTags = newTags
 	return dt
 }
 
@@ -184,10 +205,22 @@ func (dt *dkTags) addOtherTags(span *tracepb.Span) *dkTags {
 }
 
 func (dt *dkTags) resource() map[string]string {
-	return dt.tags
+	return dt.replaceTags
 }
 
-func byteToInt64(bts []byte) string {
+func (dt *dkTags) getAttributeVal(keyName string) string {
+	for k, v := range dt.tags {
+		if k == keyName {
+			return v
+		}
+	}
+	if keyName == otelResourceServiceKey {
+		return defaultServiceVal // set default to 'service.name'
+	}
+	return ""
+}
+
+func byteToString(bts []byte) string {
 	hexCode := hex.EncodeToString(bts)
 	if hexCode == "" {
 		return "0"
@@ -208,51 +241,6 @@ func getDKSpanStatus(code tracepb.Status_StatusCode) string {
 	default:
 	}
 	return status
-}
-
-func getServiceName(attr []*commonpb.KeyValue) string {
-	for _, kv := range attr {
-		if kv.Key == "service.name" {
-			return kv.Value.GetStringValue()
-		}
-	}
-	return "unknown.service"
-}
-
-func getHTTPMethod(attr []*commonpb.KeyValue) string {
-	for _, kv := range attr {
-		if kv.Key == "http.method" { // see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go:742
-			return kv.Value.GetStringValue()
-		}
-	}
-	return ""
-}
-
-func getHTTPStatusCode(attr []*commonpb.KeyValue) string {
-	for _, kv := range attr {
-		if kv.Key == "http.status_code" { //see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go:784
-			return kv.Value.GetStringValue()
-		}
-	}
-	return ""
-}
-
-func getContainerHost(attr []*commonpb.KeyValue) string {
-	for _, kv := range attr {
-		if kv.Key == "container.name" {
-			return kv.Value.GetStringValue()
-		}
-	}
-	return ""
-}
-
-func getPID(attr []*commonpb.KeyValue) string {
-	for _, kv := range attr {
-		if kv.Key == "process.pid" { //see :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/resource.go:686
-			return kv.Value.GetStringValue()
-		}
-	}
-	return ""
 }
 
 // replace 行协议中的tag的key禁止有点 全部替换掉
