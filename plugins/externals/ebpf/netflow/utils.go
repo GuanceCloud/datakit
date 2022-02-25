@@ -188,27 +188,32 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	if k8sNetInfo != nil {
 		srcPoName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["src_ip"], k.Sport, m.tags["transport"])
 		if err == nil {
+			m.tags["sub_source"] = "K8s"
+			m.tags["src_k8s_ns"] = ns
 			m.tags["src_k8s_pod"] = srcPoName
 			m.tags["src_k8s_svc"] = srcSvcName
 			if svcP == k.Sport {
 				m.tags["direction"] = "incoming"
 			}
-			m.tags["src_k8s_ns"] = ns
 		}
 
 		dstPoName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["dst_ip"], k.Dport, m.tags["transport"])
 		if err == nil {
+			m.tags["sub_source"] = "K8s"
+			m.tags["dst_k8s_ns"] = ns
 			m.tags["dst_k8s_pod"] = dstPoName
 			m.tags["dst_k8s_svc"] = dstSvcName
 			if svcP == k.Dport {
 				m.tags["direction"] = "outgoing"
 			}
-			m.tags["dst_k8s_ns"] = ns
+
 		} else {
 			dstSvcName, ns, err := k8sNetInfo.QuerySvcName(m.tags["dst_ip"])
 			if err == nil {
-				m.tags["dst_k8s_svc"] = dstSvcName
+				m.tags["sub_source"] = "K8s"
 				m.tags["dst_k8s_ns"] = ns
+				m.tags["dst_k8s_pod"] = "N/A"
+				m.tags["dst_k8s_svc"] = dstSvcName
 			}
 		}
 

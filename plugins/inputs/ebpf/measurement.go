@@ -47,7 +47,7 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 			"src_k8s_namespace":    inputs.TagInfo{Desc: "源 IP 所在 k8s 的 namespace"},
 			"dst_k8s_pod_name":     inputs.TagInfo{Desc: "目标 IP 所属 k8s 的 pod name"},
 			"dst_k8s_service_name": inputs.TagInfo{
-				Desc: "目标 IP 所属 service, 如果是 dst_ip 是 cluster(service) ip 则 dst_k8s_pod_name 无值",
+				Desc: "目标 IP 所属 service, 如果是 dst_ip 是 cluster(service) ip 则 dst_k8s_pod_name 值为 `N/A`",
 			},
 			"dst_k8s_namespace": inputs.TagInfo{Desc: "目标 IP 所在 k8s 的 namespace"},
 			"pid":               inputs.TagInfo{Desc: "进程号"},
@@ -55,6 +55,7 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 			"family":            inputs.TagInfo{Desc: "TCP/IP 协议族 (IPv4/IPv6)"},
 			"direction":         inputs.TagInfo{Desc: "传输方向 (incoming/outgoing)"},
 			"source":            inputs.TagInfo{Desc: "固定值: netflow"},
+			"sub_source":        inputs.TagInfo{Desc: "用于 netflow 的部分特定连接分类，如 Kubernetes 流量的值为 K8s"},
 		},
 		Fields: map[string]interface{}{
 			"bytes_read":      newFInfInt("读取字节数", inputs.SizeByte),
