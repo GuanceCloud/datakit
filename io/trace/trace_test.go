@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	_services     = []string{"login", "name_service", "logout"}
-	_resources    = []string{"/get_user/name", "/push/data", "/check/security"}
+	_services     = []string{"login", "game", "fire_gun", "march", "kill", "logout"}
+	_resources    = []string{"/get_user/name", "/push/data", "/check/security", "/fetch/data_source", "/pull/all_data", "/list/user_name"}
 	_source       = []string{"ddtrace", "jaeger", "skywalking", "zipkin"}
 	_span_types   = []string{SPAN_TYPE_ENTRY, SPAN_TYPE_LOCAL, SPAN_TYPE_EXIT, SPAN_TYPE_UNKNOW}
 	_source_types = []string{SPAN_SERVICE_APP, SPAN_SERVICE_CACHE, SPAN_SERVICE_CUSTOM, SPAN_SERVICE_DB, SPAN_SERVICE_WEB}

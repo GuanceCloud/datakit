@@ -8,7 +8,7 @@ import (
 )
 
 func TestStatTracingInfo(t *testing.T) {
-	ioFeed = func(name, category string, pts []*dkio.Point, opt *dkio.Option) error { return nil }
+	dkioFeed = func(name, category string, pts []*dkio.Point, opt *dkio.Option) error { return nil }
 
 	var (
 		traces    DatakitTraces

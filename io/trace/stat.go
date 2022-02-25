@@ -33,11 +33,10 @@ var (
 	statOnce        = sync.Once{}
 	statUnit        map[string]*TracingInfo
 	tracingInfoChan chan *TracingInfo
-	calcInterval                                                                           = 30 * time.Second
-	sendTimeout     time.Duration                                                          = time.Second
-	retry           int                                                                    = 3
-	isWorkerReady   bool                                                                   = false
-	ioFeed          func(name, category string, pts []*dkio.Point, opt *dkio.Option) error = dkio.Feed
+	calcInterval                  = 30 * time.Second
+	sendTimeout     time.Duration = time.Second
+	retry           int           = 3
+	isWorkerReady   bool          = false
 )
 
 func StartTracingStatistic() {
@@ -71,7 +70,7 @@ func startTracingStatWorker(interval time.Duration) {
 				pts := makeTracingInfoPoint(statUnit)
 				if len(pts) == 0 {
 					log.Warn("empty tracing stat unit")
-				} else if err := ioFeed(tracingStatName, datakit.Tracing, pts, nil); err != nil {
+				} else if err := dkioFeed(tracingStatName, datakit.Tracing, pts, nil); err != nil {
 					log.Error(err.Error())
 				}
 				statUnit = make(map[string]*TracingInfo)

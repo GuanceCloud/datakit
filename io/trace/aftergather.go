@@ -10,7 +10,10 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-var once = sync.Once{}
+var (
+	once                                                                            = sync.Once{}
+	dkioFeed func(name, category string, pts []*dkio.Point, opt *dkio.Option) error = dkio.Feed
+)
 
 type AfterGatherHandler interface {
 	Run(inputName string, dktrace DatakitTrace, strikMod bool)
@@ -85,7 +88,7 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 	}
 
 	if pts := BuildPointsBatch(dktrace, stricktMod); len(pts) != 0 {
-		if err := dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
+		if err := dkioFeed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
 			log.Errorf("io feed points error: %s", err.Error())
 		}
 	} else {
