@@ -41,7 +41,7 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 				if int(UnifyToInt64ID(dktrace[i].TraceID)%100) < smp.ratio {
 					return dktrace, false
 				} else {
-					log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d",
+					log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d%%",
 						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID, smp.ratio)
 
 					return nil, true

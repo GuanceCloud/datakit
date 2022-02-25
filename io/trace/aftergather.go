@@ -77,6 +77,7 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 	for i := range aga.calculators {
 		aga.calculators[i](dktrace)
 	}
+
 	var skip bool
 	for i := range aga.filters {
 		if dktrace, skip = aga.filters[i](dktrace); skip {
