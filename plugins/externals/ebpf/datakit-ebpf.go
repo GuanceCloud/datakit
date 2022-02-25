@@ -186,7 +186,7 @@ func main() {
 			return
 		}
 
-		tracer := dkhttpflow.NewHttpFlowTracer(gTags, ebpfNetPostURL)
+		tracer := dkhttpflow.NewHTTPFlowTracer(gTags, ebpfNetPostURL)
 		if err := tracer.Run(ctx); err != nil {
 			l.Error(err)
 		}

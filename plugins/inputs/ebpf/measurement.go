@@ -69,14 +69,14 @@ func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type HttpFlowM measurement
+type HTTPFlowM measurement
 
-func (m *HttpFlowM) LineProto() (*io.Point, error) {
+func (m *HTTPFlowM) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
 //nolint:lll
-func (m *HttpFlowM) Info() *inputs.MeasurementInfo {
+func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "httpflow",
 		Tags: map[string]interface{}{

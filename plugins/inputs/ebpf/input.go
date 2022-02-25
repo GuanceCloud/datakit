@@ -154,7 +154,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&ConnStatsM{},
 		&DNSStatsM{},
 		&BashM{},
-		&HttpFlowM{},
+		&HTTPFlowM{},
 	}
 }
 

@@ -31,7 +31,7 @@ const (
 	HTTP_METHOD_TRACE
 )
 
-func HttpMethodInt(method int) string {
+func HTTPMethodInt(method int) string {
 	switch method {
 	case HTTP_METHOD_GET:
 		return "GET"
@@ -52,7 +52,7 @@ func HttpMethodInt(method int) string {
 	}
 }
 
-func HttpMethodString(method string) int {
+func HTTPMethodString(method string) int {
 	switch method {
 	case "GET":
 		return HTTP_METHOD_GET
@@ -73,12 +73,12 @@ func HttpMethodString(method string) int {
 	}
 }
 
-func FindHttpURI(payload string) string {
+func FindHTTPURI(payload string) string {
 	split := strings.Split(payload, " ")
 	if len(split) < 2 {
 		return ""
 	}
-	if HttpMethodString(split[0]) == HTTP_METHOD_UNKNOWN {
+	if HTTPMethodString(split[0]) == HTTP_METHOD_UNKNOWN {
 		return ""
 	}
 	uri := split[1]
@@ -109,10 +109,10 @@ func FindHttpURI(payload string) string {
 	return uri[startOffset:]
 }
 
-func ParseHttpCode(code uint32) int {
+func ParseHTTPCode(code uint32) int {
 	return int(code / 100 * 100)
 }
 
-func ParseHttpVersion(v uint32) string {
+func ParseHTTPVersion(v uint32) string {
 	return fmt.Sprintf("%d.%d", v>>16, v&0xFFFF)
 }

@@ -28,7 +28,7 @@ import (
 // #include "../c/netflow/l7_stats.h"
 import "C"
 
-const HttpPayloadMaxsize = 69
+const HTTPPayloadMaxsize = 69
 
 const srcNameM = "httpflow"
 
@@ -43,12 +43,12 @@ const (
 )
 
 type (
-	HttpStatsC           C.struct_http_stats
-	HttpReqFinishedInfoC C.struct_http_req_finished_info
+	HTTPStatsC           C.struct_http_stats
+	HTTPReqFinishedInfoC C.struct_http_req_finished_info
 
 	ConnectionInfoC dknetflow.ConnectionInfoC
 	ConnectionInfo  dknetflow.ConnectionInfo
-	HttpStats       struct {
+	HTTPStats       struct {
 		// payload    [HTTP_PAYLOAD_MAXSIZE]byte
 		payload      string
 		req_method   uint8
@@ -57,9 +57,9 @@ type (
 		req_ts       uint64
 		resp_ts      uint64
 	}
-	HttpReqFinishedInfo struct {
+	HTTPReqFinishedInfo struct {
 		ConnInfo  ConnectionInfo
-		HttpStats HttpStats
+		HTTPStats HTTPStats
 	}
 )
 
@@ -69,9 +69,7 @@ func SetLogger(nl *logger.Logger) {
 	l = nl
 }
 
-// struct Http
-
-func NewHttpFlowManger(fd int, closedEventHandler func(cpu int, data []byte,
+func NewHTTPFlowManger(fd int, closedEventHandler func(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager)) (*manager.Manager, error) {
 	m := &manager.Manager{
 		Probes: []*manager.Probe{
@@ -111,22 +109,22 @@ func NewHttpFlowManger(fd int, closedEventHandler func(cpu int, data []byte,
 	return m, nil
 }
 
-type HttpFlowTracer struct {
+type HTTPFlowTracer struct {
 	TPacket        *afpacket.TPacket
 	gTags          map[string]string
-	finReqCh       chan *HttpReqFinishedInfo
+	finReqCh       chan *HTTPReqFinishedInfo
 	datakitPostURL string
 }
 
-func NewHttpFlowTracer(tags map[string]string, datakitPostURL string) *HttpFlowTracer {
-	return &HttpFlowTracer{
-		finReqCh:       make(chan *HttpReqFinishedInfo, 128),
+func NewHTTPFlowTracer(tags map[string]string, datakitPostURL string) *HTTPFlowTracer {
+	return &HTTPFlowTracer{
+		finReqCh:       make(chan *HTTPReqFinishedInfo, 128),
 		gTags:          tags,
 		datakitPostURL: datakitPostURL,
 	}
 }
 
-func (tracer *HttpFlowTracer) Run(ctx context.Context) error {
+func (tracer *HTTPFlowTracer) Run(ctx context.Context) error {
 	rawSocket, err := afpacket.NewTPacket()
 	if err != nil {
 		return fmt.Errorf("error creating raw socket: %s", err)
@@ -139,7 +137,7 @@ func (tracer *HttpFlowTracer) Run(ctx context.Context) error {
 	logrus.Error(socketFD)
 	tracer.TPacket = rawSocket
 
-	bpfManger, err := NewHttpFlowManger(socketFD, tracer.reqFinishedEventHandler)
+	bpfManger, err := NewHTTPFlowManger(socketFD, tracer.reqFinishedEventHandler)
 	if err != nil {
 		return err
 	}
@@ -157,11 +155,11 @@ func (tracer *HttpFlowTracer) Run(ctx context.Context) error {
 	return nil
 }
 
-func (tracer *HttpFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
+func (tracer *HTTPFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 	perfmap *manager.PerfMap, manager *manager.Manager) {
-	eventC := (*HttpReqFinishedInfoC)(unsafe.Pointer(&data[0])) //nolint:gosec
+	eventC := (*HTTPReqFinishedInfoC)(unsafe.Pointer(&data[0])) //nolint:gosec
 
-	httpStats := HttpReqFinishedInfo{
+	httpStats := HTTPReqFinishedInfo{
 		ConnInfo: ConnectionInfo{
 			Saddr: (*(*[4]uint32)(unsafe.Pointer(&eventC.conn_info.saddr))),
 			Sport: uint32(eventC.conn_info.sport),
@@ -169,8 +167,8 @@ func (tracer *HttpFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 			Dport: uint32(eventC.conn_info.dport),
 			Meta:  uint32(eventC.conn_info.meta),
 		},
-		HttpStats: HttpStats{
-			payload:      unix.ByteSliceToString((*(*[HttpPayloadMaxsize]byte)(unsafe.Pointer(&eventC.http_stats.payload)))[:]),
+		HTTPStats: HTTPStats{
+			payload:      unix.ByteSliceToString((*(*[HTTPPayloadMaxsize]byte)(unsafe.Pointer(&eventC.http_stats.payload)))[:]),
 			req_method:   uint8(eventC.http_stats.req_method),
 			http_version: uint32(eventC.http_stats.http_version),
 			resp_code:    uint32(eventC.http_stats.resp_code),
@@ -182,9 +180,9 @@ func (tracer *HttpFlowTracer) reqFinishedEventHandler(cpu int, data []byte,
 	// l.Warnf("%#v", httpStats)
 }
 
-func (tracer *HttpFlowTracer) feedHandler(ctx context.Context) {
+func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 10)
-	cache := []*HttpReqFinishedInfo{}
+	cache := []*HTTPReqFinishedInfo{}
 	for {
 		select {
 		case <-ticker.C:
@@ -204,7 +202,7 @@ func (tracer *HttpFlowTracer) feedHandler(ctx context.Context) {
 				// 	l.Warn(f.String())
 				// }
 			}
-			cache = []*HttpReqFinishedInfo{}
+			cache = []*HTTPReqFinishedInfo{}
 			if len(ms) == 0 {
 				continue
 			}
@@ -234,7 +232,7 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 	return nil
 }
 
-func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
+func conv2M(httpFinReq *HTTPReqFinishedInfo) *measurement {
 	m := measurement{
 		name:   srcNameM,
 		tags:   map[string]string{},
@@ -247,7 +245,7 @@ func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
 		httpFinReq.ConnInfo.Sport, httpFinReq.ConnInfo.Dport = httpFinReq.ConnInfo.Dport, httpFinReq.ConnInfo.Sport
 		direction = "incoming"
 	}
-	path := FindHttpURI(httpFinReq.HttpStats.payload)
+	path := FindHTTPURI(httpFinReq.HTTPStats.payload)
 	if path == "" {
 		return nil
 	}
@@ -272,10 +270,10 @@ func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
 
 	m.fields = map[string]interface{}{
 		"path":         path,
-		"status_code":  ParseHttpCode(httpFinReq.HttpStats.resp_code),
-		"latency_tmp":  int64(httpFinReq.HttpStats.resp_ts - httpFinReq.HttpStats.req_ts),
-		"method":       HttpMethodInt(int(httpFinReq.HttpStats.req_method)),
-		"http_version": ParseHttpVersion(httpFinReq.HttpStats.http_version),
+		"status_code":  ParseHTTPCode(httpFinReq.HTTPStats.resp_code),
+		"latency_tmp":  int64(httpFinReq.HTTPStats.resp_ts - httpFinReq.HTTPStats.req_ts),
+		"method":       HTTPMethodInt(int(httpFinReq.HTTPStats.req_method)),
+		"http_version": ParseHTTPVersion(httpFinReq.HTTPStats.http_version),
 	}
 
 	if k8sNetInfo != nil {
