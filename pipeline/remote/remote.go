@@ -269,18 +269,16 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 			l.Warnf("diff token, removeLocalRemote failed: %v", err)
 		}
 		return 0, nil // need update when token has changed
-	} else {
-		if isFirst {
-			isFirst = true
+	} else if isFirst {
+		isFirst = true
 
-			pls, err := ipr.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
-			if err != nil {
-				l.Errorf("GetNamespacePipelineFiles failed: %v", err)
-			} else {
-				worker.ReloadAllRemoteDotPScript2Store(pls)
-			}
-		} // isFirst
-	}
+		pls, err := ipr.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
+		if err != nil {
+			l.Errorf("GetNamespacePipelineFiles failed: %v", err)
+		} else {
+			worker.ReloadAllRemoteDotPScript2Store(pls)
+		}
+	} // isFirst
 	return cf.UpdateTime, nil
 }
 
