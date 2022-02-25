@@ -47,6 +47,32 @@ func resetVars() {
 	errGetNamespacePipelineFiles = nil
 }
 
+type fileInfoStruct struct{}
+
+func (fileInfoStruct) Name() string {
+	return "useless"
+}
+
+func (fileInfoStruct) Size() int64 {
+	return 0
+}
+
+func (fileInfoStruct) Mode() fs.FileMode {
+	return 0
+}
+
+func (fileInfoStruct) ModTime() time.Time {
+	return time.Time{}
+}
+
+func (fileInfoStruct) IsDir() bool {
+	return false
+}
+
+func (fileInfoStruct) Sys() interface{} {
+	return nil
+}
+
 type pipelineRemoteMockerTest struct{}
 
 type FileDataStruct struct {
@@ -94,41 +120,12 @@ func (*pipelineRemoteMockerTest) WriteFile(filename string, data []byte, perm fs
 	return nil
 }
 
-type fileInfoStruct struct{}
-
-func (*fileInfoStruct) Name() string {
-	return "useless"
-}
-
-func (*fileInfoStruct) Size() int64 {
-	return 0
-}
-
-func (*fileInfoStruct) Mode() fs.FileMode {
-	return 0
-}
-
-func (*fileInfoStruct) ModTime() time.Time {
-	return time.Time{}
-}
-
-func (*fileInfoStruct) IsDir() bool {
-	return false
-}
-
-func (*fileInfoStruct) Sys() interface{} {
-	return nil
-}
-
 func (*pipelineRemoteMockerTest) ReadDir(dirname string) ([]fs.FileInfo, error) {
 	if errReadDir != nil {
 		return nil, errReadDir
 	}
 
 	return readDirResult, nil
-
-	// a := []fileInfoStruct{}
-	// return a, nil
 }
 
 func (*pipelineRemoteMockerTest) PullPipeline(ts int64) (mFiles map[string]string, updateTime int64, err error) {
@@ -215,10 +212,12 @@ func TestDoPull(t *testing.T) {
 		siteURL                    string
 		configContent              []byte
 		testPullPipelineUpdateTime int64
+		testReadDirResult          []fs.FileInfo
 		failedMarshal              error
 		failedReadFile             error
 		failedReadDir              error
 		failedPullPipeline         error
+		failedRemove               error
 		expectError                error
 	}{
 		{
@@ -286,6 +285,15 @@ func TestDoPull(t *testing.T) {
 			failedReadDir:              errGeneral,
 			expectError:                errGeneral,
 		},
+		{
+			name:                       "removeLocalRemote_continue",
+			pathConfig:                 configPath,
+			siteURL:                    dwURL,
+			configContent:              []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90","UpdateTime":1644318398}`),
+			testPullPipelineUpdateTime: 1,
+			testReadDirResult:          []fs.FileInfo{&fileInfoStruct{}},
+			failedRemove:               errGeneral,
+		},
 	}
 
 	for _, tc := range cases {
@@ -300,6 +308,10 @@ func TestDoPull(t *testing.T) {
 			errReadDir = tc.failedReadDir
 			errPullPipeline = tc.failedPullPipeline
 			pullPipelineUpdateTime = tc.testPullPipelineUpdateTime
+			if len(tc.testReadDirResult) > 0 {
+				readDirResult = tc.testReadDirResult
+			}
+			errRemove = tc.failedRemove
 
 			err := doPull(tc.pathConfig, tc.siteURL, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "doPull found error: %v", err)
