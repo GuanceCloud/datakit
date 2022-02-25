@@ -103,20 +103,6 @@ func (dt *dkTags) makeAllTags(span *tracepb.Span, resourceAttr []*commonpb.KeyVa
 		addGlobalTags()
 }
 
-/*
-// toDataKitTagsV2 黑名单机制
-func (dt *dkTags) toDataKitTagsV2(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) map[string]string {
-
-	dt.setAttributesToTags(resourceAttr).
-		setAttributesToTags(span.Attributes).
-		addOtherTags(span).
-		checkAllTagsKey().
-		checkCustomTags().
-		addGlobalTags()
-	return dt.resource()
-}
-*/
-
 func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 	for _, kv := range attr {
 		key := kv.Key

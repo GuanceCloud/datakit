@@ -101,8 +101,8 @@ var (
 )
 
 type Input struct {
-	Ogc                 *otlpGrpcCollector  `toml:"grpc"`
-	Otc                 *otlpHTTPCollector  `toml:"http"`
+	Ogrpc               *otlpGrpcCollector  `toml:"grpc"`
+	OHTTPc              *otlpHTTPCollector  `toml:"http"`
 	CloseResource       map[string][]string `toml:"close_resource"`
 	Sampler             *itrace.Sampler     `toml:"sampler"`
 	CustomerTags        []string            `toml:"customer_tags"`
@@ -122,12 +122,12 @@ func (i *Input) SampleConfig() string {
 }
 
 func (i *Input) RegHTTPHandler() {
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", i.Otc.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", i.Otc.apiOtlpMetric)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", i.OHTTPc.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", i.OHTTPc.apiOtlpMetric)
 }
 
 func (i *Input) exit() {
-	i.Ogc.stop()
+	i.Ogrpc.stop()
 }
 
 func (i *Input) Run() {
@@ -146,9 +146,6 @@ func (i *Input) Run() {
 	}
 
 	globalTags = i.Tags
-	// for _, tag := range i.CustomerTags {
-	//	customTags[tag] = struct{}{}
-	// }
 
 	if len(i.IgnoreAttributeKeys) > 0 {
 		regexpString = strings.Join(i.IgnoreAttributeKeys, "|")
@@ -156,11 +153,11 @@ func (i *Input) Run() {
 
 	open := false
 	// 从配置文件 开启
-	if i.Otc.Enable {
+	if i.OHTTPc.Enable {
 		open = true
 	}
-	if i.Ogc.TraceEnable || i.Ogc.MetricEnable {
-		go i.Ogc.run()
+	if i.Ogrpc.TraceEnable || i.Ogrpc.MetricEnable {
+		go i.Ogrpc.run()
 	}
 	if open {
 		// add calculators

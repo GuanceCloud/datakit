@@ -61,7 +61,6 @@ var allTag = map[string]string{
 	"process.pid":      "2222",
 }
 
-// todo test
 func Test_mkDKTrace(t *testing.T) {
 	/*
 		mock server
@@ -100,7 +99,7 @@ func Test_mkDKTrace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := mkDKTrace(tt.args.rss)
-			if !reflect.DeepEqual(got[0][0].Tags, tt.want[0][0].Tags) {
+			if !reflect.DeepEqual(got[0][0], tt.want[0][0]) {
 				t.Errorf("mkDKTrace() = %+v,\n want %+v", got[0][0], tt.want[0][0])
 			}
 		})
@@ -265,7 +264,7 @@ func Test_dkTags_checkCustomTags(t *testing.T) {
 
 func Test_dkTags_resource(t *testing.T) {
 	type fields struct {
-		tags map[string]string
+		replaceTags map[string]string
 	}
 	tests := []struct {
 		name   string
@@ -274,14 +273,14 @@ func Test_dkTags_resource(t *testing.T) {
 	}{
 		{
 			name:   "get resource",
-			fields: fields{tags: map[string]string{"a": "b"}},
+			fields: fields{replaceTags: map[string]string{"a": "b"}},
 			want:   map[string]string{"a": "b"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				tags: tt.fields.tags,
+				replaceTags: tt.fields.replaceTags,
 			}
 			if got := dt.resource(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("resource() = %v, want %v", got, tt.want)
@@ -388,6 +387,52 @@ func Test_replace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := replace(tt.args.key); got != tt.want {
 				t.Errorf("replace() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_dkTags_getAttributeVal(t *testing.T) {
+	type fields struct {
+		tags        map[string]string
+		replaceTags map[string]string
+	}
+	type args struct {
+		keyName string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   string
+	}{
+		{
+			name:   "case1",
+			fields: fields{tags: allTag},
+			args:   args{keyName: otelResourceServiceKey},
+			want:   "service",
+		},
+		{
+			name:   "case2",
+			fields: fields{tags: allTag},
+			args:   args{keyName: otelResourceHTTPMethodKey},
+			want:   "POST",
+		},
+		{
+			name:   "case3",
+			fields: fields{tags: allTag},
+			args:   args{keyName: otelResourceContainerNameKey},
+			want:   "hostName",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dt := &dkTags{
+				tags:        tt.fields.tags,
+				replaceTags: tt.fields.replaceTags,
+			}
+			if got := dt.getAttributeVal(tt.args.keyName); got != tt.want {
+				t.Errorf("getAttributeVal() = %v, want %v", got, tt.want)
 			}
 		})
 	}

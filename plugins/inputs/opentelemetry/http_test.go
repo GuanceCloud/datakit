@@ -1,8 +1,11 @@
 package opentelemetry
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
+	"reflect"
 	"testing"
 	"time"
 
@@ -10,6 +13,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	v1 "go.opentelemetry.io/proto/otlp/trace/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
@@ -116,5 +122,109 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 			bts, _ := json.MarshalIndent(datakitSpan, "    ", "  ")
 			t.Logf("json span = \n %s", string(bts))
 		}
+	}
+}
+
+// todo metric api test
+
+func Test_otlpHTTPCollector_checkHeaders(t *testing.T) {
+	type fields struct {
+		Enable          bool
+		HTTPStatusOK    int
+		ExpectedHeaders map[string]string
+	}
+	type args struct {
+		r *http.Request
+	}
+	req, err := http.NewRequest("post", "", nil)
+	if err != nil {
+		t.Errorf("err=%v", err)
+		return
+	}
+	req.Header.Add("header", "1")
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			name:   "case1",
+			fields: fields{Enable: true, HTTPStatusOK: 200, ExpectedHeaders: map[string]string{"header": "1"}},
+			args:   args{r: req},
+			want:   true,
+		},
+		{
+			name:   "case2",
+			fields: fields{Enable: true, HTTPStatusOK: 200, ExpectedHeaders: map[string]string{"header": "2"}},
+			args:   args{r: req},
+			want:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := &otlpHTTPCollector{
+				Enable:          tt.fields.Enable,
+				HTTPStatusOK:    tt.fields.HTTPStatusOK,
+				ExpectedHeaders: tt.fields.ExpectedHeaders,
+			}
+			if got := o.checkHeaders(tt.args.r); got != tt.want {
+				t.Errorf("checkHeaders() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_unmarshalTraceRequest(t *testing.T) {
+	type args struct {
+		rawRequest  []byte
+		contentType string
+	}
+	rss := &collectortracepb.ExportTraceServiceRequest{ResourceSpans: []*v1.ResourceSpans{&v1.ResourceSpans{SchemaUrl: "aaaaaaa"}}}
+	bts, err := proto.Marshal(rss)
+	if err != nil {
+		t.Errorf("err=%v", err)
+		return
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *collectortracepb.ExportTraceServiceRequest
+		wantErr bool
+	}{
+		{
+			name:    "case1",
+			args:    args{rawRequest: bts, contentType: "application/x-protobuf"},
+			want:    rss,
+			wantErr: false,
+		},
+		{
+			name:    "case2",
+			args:    args{rawRequest: bts, contentType: ""},
+			want:    rss,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := unmarshalTraceRequest(tt.args.rawRequest, tt.args.contentType)
+			if err != nil {
+				if tt.wantErr {
+					return
+				} else {
+					t.Errorf("unmarshalTraceRequest() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+			}
+
+			gbts, _ := proto.Marshal(got)
+			if !bytes.Equal(gbts, tt.args.rawRequest) {
+				t.Errorf("byte not equal")
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("unmarshalTraceRequest() got = %+v,\n want %+v", got, tt.want)
+			}
+		})
 	}
 }

@@ -102,8 +102,10 @@ want:
 */
 
 func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.DatakitTrace) {
-	startTime := time.Now()
+	// 固定时间测试 否则格式化content数据不对
+	startTime := time.Date(2020, time.December, 8, 19, 15, 0, 0, time.UTC)
 	endTime := startTime.Add(time.Second)
+
 	traceID, err := tracev1.TraceIDFromHex("00000000000000000000000000000001")
 	if err != nil {
 		t.Errorf("err=%v", err)
@@ -151,7 +153,7 @@ func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.
 		InstrumentationLibrary: instrumentation.Library{Name: "test-server"},
 	}}.Snapshots()
 
-	wantContent := `{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1645423573257862600,"end_time_unix_nano":1645423574257862600,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}}`
+	wantContent := `{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1607454900000000000,"end_time_unix_nano":1607454901000000000,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}}`
 	want = []DKtrace.DatakitTrace{[]*DKtrace.DatakitSpan{
 		{
 			TraceID:            "00000000000000000000000000000001",
