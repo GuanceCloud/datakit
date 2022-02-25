@@ -351,9 +351,16 @@ cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 enable_pprof = true
 ```
 
+> 如果是 DaemonSet 安装 datakit，可注入环境变量:
+
+```yaml
+        - name: ENV_ENABLE_PPROF
+          value: true
+```
+
 重启 DataKit 生效。
 
-下载内存分配 pprof 文件：
+### 获取 pprof 文件
 
 ```shell
 # 下载当前 DataKit 活跃内存 pprof 文件
@@ -363,7 +370,11 @@ wget http://<datakit-ip>:6060/debug/pprof/heap
 wget http://<datakit-ip>:6060/debug/pprof/allocs
 ```
 
-> 这里的 6060 端口是固定死的，暂时无法修改。
+> 这里的 6060 端口是固定死的，暂时无法修改
+
+另外通过 web 访问 `http://<datakit-ip>:6060/debug/pprof/heap?=debug=1` 也能查看一些内存分配信息。
+
+### 查看 pprof 文件
 
 下载到本地后，运行如下命令，进入交互命令后，可输入 top 即可查看内存消耗的 top10 热点：
 
@@ -394,9 +405,13 @@ Generating report in profile001.pdf
 (pprof) web                            <------ 直接在浏览器上查看，效果跟 PDF 一样
 ```
 
+> 通过 `go tool pprof -sample_index=inuse_objects heap` 可看对象的分配情况，详询 `go tool pprof -help`。
+
 用同样的方式，可查看总分配内存 pprof 文件 allocs。PDF 的效果大概如下：
 
 ![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-pprof-pdf.png)
+
+更多 pprof 的使用方法，参见[这里](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/)。
 
 ## DataKit 辅助功能
 
@@ -426,4 +441,3 @@ datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ig
 ```shell
 datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
 ```
-
