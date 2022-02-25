@@ -737,13 +737,13 @@ func TestRecord(t *testing.T) {
 func TestConnMeta(t *testing.T) {
 	var meta uint32
 	meta = ConnL3IPv4 | ConnL4TCP
-	assert.Equal(t, true, connAddrIsIPv4(meta))
-	assert.Equal(t, true, connProtocolIsTCP(meta))
+	assert.Equal(t, true, ConnAddrIsIPv4(meta))
+	assert.Equal(t, true, ConnProtocolIsTCP(meta))
 
 	meta = meta&(^ConnL3Mask) | ConnL3IPv6
-	assert.Equal(t, false, connAddrIsIPv4(meta))
+	assert.Equal(t, false, ConnAddrIsIPv4(meta))
 	meta = meta&(^ConnL4Mask) | ConnL4UDP
-	assert.Equal(t, false, connProtocolIsTCP(meta))
+	assert.Equal(t, false, ConnProtocolIsTCP(meta))
 }
 
 func TestDirection(t *testing.T) {
@@ -1226,7 +1226,7 @@ func newFullStats(meta uint32, sent_bytes, recv_bytes uint64, tcp_established, t
 		},
 	}
 
-	if connProtocolIsTCP(meta) {
+	if ConnProtocolIsTCP(meta) {
 		fullStats.TotalClosed = tcp_closed
 		fullStats.TotalEstablished = tcp_established
 	}

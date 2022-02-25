@@ -19,9 +19,13 @@ type K8sNetInfo struct {
 }
 
 func (kinfo *K8sNetInfo) Update() error {
+	// svc ip -> svc
 	k8sSvcMap := map[string]*K8sServicesNet{}
+	// pod ip (not include host ip) -> pod
 	k8sPodMap := map[string]*K8sPodNet{}
+	// pod ip + port -> pod
 	k8sPodNetPortMap := map[string]map[Port]*K8sPodNet{} // pod (include host_network)
+
 	k8sPodTmpNetMap := map[string][]*K8sPodNet{}
 
 	ns, err := kinfo.cli.GetNamespaces()
@@ -137,13 +141,13 @@ func (kinfo *K8sNetInfo) AutoUpdate(ctx context.Context) {
 	}()
 }
 
-// QueryPodSvcName returns (pod name, svc name, namespace, port, err).
-func (kinfo *K8sNetInfo) QueryPodSvcName(ip string, port uint32, protocol string) (string, string, string, uint32, error) {
+// QueryPodInfo returns (server(ture) or client, pod name, svc name, namespace, port, err).
+func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (bool, string, string, string, uint32, error) {
 	kinfo.RLock()
 	defer kinfo.RUnlock()
 
 	if port == 0 || port > 65535 {
-		return "", "", "", 0, fmt.Errorf("no match pod")
+		return false, "", "", "", 0, fmt.Errorf("no match pod")
 	}
 	pP := Port{
 		Port: port,
@@ -157,20 +161,20 @@ func (kinfo *K8sNetInfo) QueryPodSvcName(ip string, port uint32, protocol string
 	if p, ok := kinfo.poNetInfoPort[ip]; ok {
 		// 可能是 HostNetwork ip pod, 需要 port 辅助判定
 		if v, ok := p[pP]; ok {
-			return v.Name, v.ServiceName, v.Namespace, port, nil
+			return true, v.Name, v.ServiceName, v.Namespace, port, nil
 		}
 	}
 
 	// 作为 client 发送请求的 pod， 不含(host network ip)
 	if v, ok := kinfo.poNetInfoIP[ip]; ok {
-		return v.Name, v.ServiceName, v.Namespace, 0, nil
+		return false, v.Name, v.ServiceName, v.Namespace, 0, nil
 	}
 
-	return "", "", "", 0, fmt.Errorf("no match pod")
+	return false, "", "", "", 0, fmt.Errorf("no match pod")
 }
 
-// QuerySvcName returns (svc name, namespace, error).
-func (kinfo *K8sNetInfo) QuerySvcName(ip string) (string, string, error) {
+// QuerySvcInfo returns (svc name, namespace, error).
+func (kinfo *K8sNetInfo) QuerySvcInfo(ip string) (string, string, error) {
 	kinfo.RLock()
 	defer kinfo.RUnlock()
 	if v, ok := kinfo.svcNetInfo[ip]; ok {

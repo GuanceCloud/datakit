@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/DataDog/ebpf/manager"
@@ -37,6 +38,70 @@ func SetLogger(nl *logger.Logger) {
 
 func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
 	k8sNetInfo = n
+}
+
+var SrcIPPortRecorder = func() *srcIPPortRecorder {
+	ptr := &srcIPPortRecorder{
+		Record: map[[4]uint32]IPPortRecord{},
+	}
+	go ptr.AutoClean()
+	return ptr
+}()
+
+type IPPortRecord struct {
+	IP [4]uint32
+	TS time.Time
+}
+
+// 辅助 httpflow 判断 server ip
+type srcIPPortRecorder struct {
+	sync.RWMutex
+	Record map[[4]uint32]IPPortRecord
+}
+
+func (record *srcIPPortRecorder) InsertAndUpdate(ip [4]uint32) {
+	record.Lock()
+	defer record.Unlock()
+	record.Record[ip] = IPPortRecord{
+		IP: ip,
+		TS: time.Now(),
+	}
+}
+
+func (record *srcIPPortRecorder) Query(ip [4]uint32) (*IPPortRecord, error) {
+	record.RLock()
+	defer record.RUnlock()
+	if v, ok := record.Record[ip]; ok {
+		return &v, nil
+	} else {
+		return nil, fmt.Errorf("not found")
+	}
+}
+
+const cleanTickerIPPortDur = time.Minute * 3
+const cleanIPPortDur = time.Minute * 5
+
+func (record *srcIPPortRecorder) CleanOutdateData() {
+	record.Lock()
+	defer record.Unlock()
+	ts := time.Now()
+	needDelete := [][4]uint32{}
+	for k, v := range record.Record {
+		if ts.Sub(v.TS) > cleanIPPortDur {
+			needDelete = append(needDelete, k)
+		}
+	}
+	for _, v := range needDelete {
+		delete(record.Record, v)
+	}
+}
+
+func (record *srcIPPortRecorder) AutoClean() {
+	ticker := time.NewTicker(cleanTickerIPPortDur)
+	for {
+		<-ticker.C
+		record.CleanOutdateData()
+	}
 }
 
 func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler func(cpu int, data []byte,
@@ -142,7 +207,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	m.tags["pid"] = fmt.Sprint(k.Pid)
 
 	isV6 := false
-	if connAddrIsIPv4(k.Meta) {
+	if ConnAddrIsIPv4(k.Meta) {
 		m.tags["src_ip_type"] = connIPv4Type(k.Saddr[3])
 		m.tags["dst_ip_type"] = connIPv4Type(k.Daddr[3])
 		m.tags["family"] = "IPv4"
@@ -173,7 +238,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	m.fields["bytes_read"] = int64(v.Stats.RecvBytes)
 	m.fields["bytes_written"] = int64(v.Stats.SentBytes)
 
-	if connProtocolIsTCP(k.Meta) {
+	if ConnProtocolIsTCP(k.Meta) {
 		m.tags["transport"] = "tcp"
 		m.fields["retransmits"] = int64(v.TCPStats.Retransmits)
 		m.fields["rtt"] = int64(v.TCPStats.Rtt)
@@ -186,29 +251,29 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	m.tags["direction"] = connDirection2Str(v.Stats.Direction)
 
 	if k8sNetInfo != nil {
-		srcPoName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["src_ip"], k.Sport, m.tags["transport"])
+		_, srcPodName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"], k.Sport, m.tags["transport"])
 		if err == nil {
 			m.tags["sub_source"] = "K8s"
 			m.tags["src_k8s_ns"] = ns
-			m.tags["src_k8s_pod"] = srcPoName
+			m.tags["src_k8s_pod"] = srcPodName
 			m.tags["src_k8s_svc"] = srcSvcName
 			if svcP == k.Sport {
 				m.tags["direction"] = "incoming"
 			}
 		}
 
-		dstPoName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["dst_ip"], k.Dport, m.tags["transport"])
+		_, dstPodName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"], k.Dport, m.tags["transport"])
 		if err == nil {
 			m.tags["sub_source"] = "K8s"
 			m.tags["dst_k8s_ns"] = ns
-			m.tags["dst_k8s_pod"] = dstPoName
+			m.tags["dst_k8s_pod"] = dstPodName
 			m.tags["dst_k8s_svc"] = dstSvcName
 			if svcP == k.Dport {
 				m.tags["direction"] = "outgoing"
 			}
 
 		} else {
-			dstSvcName, ns, err := k8sNetInfo.QuerySvcName(m.tags["dst_ip"])
+			dstSvcName, ns, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
 			if err == nil {
 				m.tags["sub_source"] = "K8s"
 				m.tags["dst_k8s_ns"] = ns
@@ -219,7 +284,7 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 
 	}
 
-	if connProtocolIsTCP(k.Meta) {
+	if ConnProtocolIsTCP(k.Meta) {
 		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d "+
 			"re: %d rtt/rttvar: %.2fms/%.2fms (%s, %s)",
 			m.tags["pid"], m.tags["src_ip"], m.tags["src_port"], m.tags["dst_ip"], m.tags["dst_domain"],
@@ -284,7 +349,7 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 		conn.Sport == 0 || conn.Dport == 0 {
 		return false
 	}
-	if connAddrIsIPv4(conn.Meta) { // IPv4
+	if ConnAddrIsIPv4(conn.Meta) { // IPv4
 		saddr := U32BEToIPv4Array(conn.Saddr[3])
 		daddr := U32BEToIPv4Array(conn.Daddr[3])
 		if saddr == daddr {
@@ -521,7 +586,7 @@ func IPPortFilterIn(conn *ConnectionInfo) bool {
 		return false
 	}
 
-	if connAddrIsIPv4(conn.Meta) {
+	if ConnAddrIsIPv4(conn.Meta) {
 		if (conn.Saddr[3]&0xFF == 0x7F) || (conn.Daddr[3]&0xFF == 0x7F) {
 			return false
 		}

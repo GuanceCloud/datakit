@@ -31,7 +31,7 @@ type ConnectionInfo struct {
 }
 
 func (conn *ConnectionInfo) String() string {
-	return fmt.Sprintf("%s:%d -> %s:%d, pid:%d, tcp:%t", U32BEToIP(conn.Saddr, true), conn.Sport, U32BEToIP(conn.Daddr, true), conn.Dport, conn.Pid, connProtocolIsTCP(conn.Meta))
+	return fmt.Sprintf("%s:%d -> %s:%d, pid:%d, tcp:%t", U32BEToIP(conn.Saddr, true), conn.Sport, U32BEToIP(conn.Daddr, true), conn.Dport, conn.Pid, ConnProtocolIsTCP(conn.Meta))
 }
 
 type ConnectionStats struct {
@@ -91,11 +91,11 @@ const (
 	TCP_MAX_STATES
 )
 
-func connProtocolIsTCP(meta uint32) bool {
+func ConnProtocolIsTCP(meta uint32) bool {
 	return (meta & ConnL4Mask) == ConnL4TCP
 }
 
-func connAddrIsIPv4(meta uint32) bool {
+func ConnAddrIsIPv4(meta uint32) bool {
 	return (meta & ConnL3Mask) == ConnL3IPv4
 }
 
@@ -188,7 +188,7 @@ func (c *ConnStatsRecord) clearClosedConnsCache() {
 func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInfo) {
 	if connLastActive, ok := c.lastActiveConns[closedEvents.Info]; ok {
 		// 上一采集周期内未关闭的连接
-		if connProtocolIsTCP(closedEvents.Info.Meta) {
+		if ConnProtocolIsTCP(closedEvents.Info.Meta) {
 			connLastActive.TotalEstablished = 0
 			connLastActive.TotalClosed = 1
 			connLastActive = StatsTCPOp("-", connLastActive, closedEvents.Stats, closedEvents.TCPStats)
@@ -202,7 +202,7 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInf
 	} else if connClosed, ok := c.closedConns[closedEvents.Info]; ok {
 		// 已经关闭的连接，已被记录的
 
-		if connProtocolIsTCP(closedEvents.Info.Meta) {
+		if ConnProtocolIsTCP(closedEvents.Info.Meta) {
 			connClosed.TotalClosed += 1
 			connClosed.TotalEstablished += 1
 			connClosed = StatsTCPOp("+", connClosed, closedEvents.Stats, closedEvents.TCPStats)
@@ -216,7 +216,7 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInf
 			Stats:    closedEvents.Stats,
 			TCPStats: closedEvents.TCPStats,
 		}
-		if connProtocolIsTCP((closedEvents.Info.Meta)) {
+		if ConnProtocolIsTCP((closedEvents.Info.Meta)) {
 			connF.TotalClosed = 1
 			connF.TotalEstablished = 1
 		}
@@ -244,7 +244,7 @@ func (c *ConnStatsRecord) deleteLastActive(conninfo ConnectionInfo) {
 func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, connFullStats ConnFullStats) ConnFullStats {
 	if v, ok := c.closedConns[connInfo]; ok {
 		// closed
-		if connProtocolIsTCP(connInfo.Meta) {
+		if ConnProtocolIsTCP(connInfo.Meta) {
 			v = StatsTCPOp("+", v, connFullStats.Stats, connFullStats.TCPStats)
 			v.TotalEstablished += 1
 		} else {
@@ -255,7 +255,7 @@ func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, con
 		return v
 	} else if v, ok := c.readLastActive(connInfo); ok {
 		// last active
-		if connProtocolIsTCP(connInfo.Meta) {
+		if ConnProtocolIsTCP(connInfo.Meta) {
 			v = StatsTCPOp("-", v, connFullStats.Stats, connFullStats.TCPStats)
 			v.TotalEstablished = 0
 		} else {
@@ -264,7 +264,7 @@ func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, con
 		c.updateLastActive(connInfo, connFullStats)
 		return v
 	} else {
-		if connProtocolIsTCP(connInfo.Meta) {
+		if ConnProtocolIsTCP(connInfo.Meta) {
 			// 在 net_ebpf 启动前建立的连接无法记录 TCP_ESTABLISHED,
 			// 不依据 TCP_ESTABLISHED 判断连接是否建立，
 			// 存在于 bpfmap_conn_stats 的连接视为未关闭的连接
