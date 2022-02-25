@@ -78,8 +78,10 @@ func (record *srcIPPortRecorder) Query(ip [4]uint32) (*IPPortRecord, error) {
 	}
 }
 
-const cleanTickerIPPortDur = time.Minute * 3
-const cleanIPPortDur = time.Minute * 5
+const (
+	cleanTickerIPPortDur = time.Minute * 3
+	cleanIPPortDur       = time.Minute * 5
+)
 
 func (record *srcIPPortRecorder) CleanOutdateData() {
 	record.Lock()

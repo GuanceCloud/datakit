@@ -235,12 +235,11 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 }
 
 func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
-
 	m := measurement{
 		name:   srcNameM,
 		tags:   map[string]string{},
 		fields: map[string]interface{}{},
-		// ts:
+		ts:     time.Now(),
 	}
 	direction := "outgoing"
 	if _, err := dknetflow.SrcIPPortRecorder.Query(httpFinReq.ConnInfo.Daddr); err == nil {
@@ -274,7 +273,7 @@ func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
 	m.fields = map[string]interface{}{
 		"path":         path,
 		"status_code":  ParseHttpCode(httpFinReq.HttpStats.resp_code),
-		"latency":      int64(httpFinReq.HttpStats.resp_ts - httpFinReq.HttpStats.req_ts),
+		"latency_tmp":  int64(httpFinReq.HttpStats.resp_ts - httpFinReq.HttpStats.req_ts),
 		"method":       HttpMethodInt(int(httpFinReq.HttpStats.req_method)),
 		"http_version": ParseHttpVersion(httpFinReq.HttpStats.http_version),
 	}
@@ -282,6 +281,7 @@ func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
 	if k8sNetInfo != nil {
 		_, srcPodName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"], httpFinReq.ConnInfo.Sport, m.tags["transport"])
 		if err == nil {
+			m.tags["sub_source"] = "K8s"
 			m.tags["src_k8s_pod_name"] = srcPodName
 			m.tags["src_k8s_service_name"] = srcSvcName
 			if svcP == httpFinReq.ConnInfo.Sport {
@@ -292,6 +292,7 @@ func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
 
 		_, dstPoName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"], httpFinReq.ConnInfo.Dport, m.tags["transport"])
 		if err == nil {
+			m.tags["sub_source"] = "K8s"
 			m.tags["dst_k8s_pod_name"] = dstPoName
 			m.tags["dst_k8s_service_name"] = dstSvcName
 			if svcP == httpFinReq.ConnInfo.Dport {
@@ -301,6 +302,8 @@ func conv2M(httpFinReq *HttpReqFinishedInfo) *measurement {
 		} else {
 			dstSvcName, ns, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
 			if err == nil {
+				m.tags["sub_source"] = "K8s"
+				m.tags["dst_k8s_pod_name"] = "N/A"
 				m.tags["dst_k8s_service_name"] = dstSvcName
 				m.tags["dst_k8s_namespace"] = ns
 			}
