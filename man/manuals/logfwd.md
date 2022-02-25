@@ -156,14 +156,47 @@ data:
                 {
                     "logfiles": ["/var/log/1.log"],
                     "source": "log_source",
-                     "tags_str": "tags1=value1"
+                    "tags_str": "tags1=value1"
                 },
                 {
                     "logfiles": ["/var/log/2.log"],
                     "source": "log_source2",
-                     "tags_str": "tags1=value1"
+                    "tags_str": "tags1=value1"
                 }
             ]
         }
     ]
+```
+
+### 性能测试
+
+- 环境：
+
+```
+goos: linux
+goarch: amd64
+cpu: Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
+```
+
+- 日志文件内容为 1000w 条 nginx 日志，文件大小 2.2GB：
+
+```
+192.168.17.1 - - [06/Jan/2022:16:16:37 +0000] "GET /google/company?test=var1%20Pl HTTP/1.1" 401 612 "http://www.google.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-"
+```
+
+- 结果：
+
+耗时**95 秒**将所有日志读取和转发完毕，平均每秒读取 10w 条日志。
+
+单核心 CPU 使用率峰值为 42%，以下是当时的 `top` 记录：
+
+```
+top - 16:32:46 up 52 days,  7:28, 17 users,  load average: 2.53, 0.96, 0.59
+Tasks: 464 total,   2 running, 457 sleeping,   0 stopped,   5 zombie
+%Cpu(s): 30.3 us, 33.7 sy,  0.0 ni, 34.3 id,  0.1 wa,  0.0 hi,  1.5 si,  0.0 st
+MiB Mem :  15885.2 total,    985.2 free,   6204.0 used,   8696.1 buff/cache
+MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+1850829 root      20   0  715416  17500   8964 R  42.1   0.1   0:10.44 logfwd
 ```

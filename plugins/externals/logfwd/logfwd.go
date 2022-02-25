@@ -340,11 +340,8 @@ func (w *wsclient) tryConnectWebsocketSrv() {
 }
 
 func (w *wsclient) writeMessage(data []byte) error {
-	select {
-	case w.dataCh <- data:
-		// nil
-	default:
-		return fmt.Errorf("failed to write channel")
-	}
+	// abstruction
+	w.dataCh <- data
+	// fmt.Errorf("failed to write channel")
 	return nil
 }
