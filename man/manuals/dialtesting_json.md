@@ -47,6 +47,7 @@
       "post_url": "https://<your-dataway-host>?token=<your-token>",
       "status": "OK",
       "frequency": "10s",
+      "success_when": "and",
       "success_when": [
         {
           "response_time": "1000ms",
@@ -91,6 +92,7 @@
 | `url`             | string | Y        | 完整的 HTTP 请求地址                    |
 | `status`          | string | Y        | 拨测服务状态，如 "OK"/"stop"            |
 | `frequency`       | string | Y        | 拨测频率                                |
+| `success_when_logic`    | string | N        | success_when条件之间的逻辑关系，如"and"/"or",默认为"and"  |
 | `success_when`    | object | Y        | 详见下文                                |
 | `advance_options` | object | N        | 详见下文                                |
 | `post_url`        | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
@@ -107,6 +109,7 @@
       "post_url": "https://<your-dataway-host>?token=<your-token>",
       "status": "OK",
       "frequency": "10s",
+      "success_when_logic": "and",
       "success_when": ...,
       "advance_options": ...
 		},
@@ -146,7 +149,7 @@
 ]
 ```
 
-此处 `body` 可以配置多个验证规则，它们之间是 AND 的关系，即，如果其中**任何一个规则验证不过，则认为当前拨测失败**。下面的验证规则，均遵循这一判定原则。
+此处 `body` 可以配置多个验证规则，由"success_when_logic"确定他们之间的关系，配置为`and`时，**任何一个规则验证不过，则认为当前拨测失败**；配置为`or`时，**任何一个规则验证通过，则认为当前拨测成功**；默认是 `and` 的关系。下面的验证规则，均遵循这一判定原则。
 
 > 注意，此处正则要正确转义，示例中的实际正则表达式是 `\d\d.*`。
 
@@ -240,7 +243,7 @@
 
 > 注意，此处指定的时间单位有 `ns`（纳秒）/`us`（微秒）/`ms`（毫秒）/`s`（秒）/`m`（分钟）/`h`（小时）。对 HTTP 拨测而言，一般使用 `ms` 单位。
 
-以上列举的几种判定依据，可以组合使用，他们之间也是 AND 的关系，如：
+以上列举的几种判定依据，可以组合使用，由"success_when_logic"确定他们之间的关系，配置为`and`时，**任何一个规则验证不过，则认为当前拨测失败**；配置为`or`时，**任何一个规则验证通过，则认为当前拨测成功**；默认是 `and` 的关系。如：
 
 ```json
 "success_when": [

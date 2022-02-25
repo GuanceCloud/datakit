@@ -22,21 +22,22 @@ import (
 )
 
 type HTTPTask struct {
-	ExternalID      string             `json:"external_id"`
-	Name            string             `json:"name"`
-	AK              string             `json:"access_key"`
-	Method          string             `json:"method"`
-	URL             string             `json:"url"`
-	PostURL         string             `json:"post_url"`
-	CurStatus       string             `json:"status"`
-	Frequency       string             `json:"frequency"`
-	Region          string             `json:"region"` // 冗余进来，便于调试
-	OwnerExternalID string             `json:"owner_external_id"`
-	SuccessWhen     []*HTTPSuccess     `json:"success_when"`
-	Tags            map[string]string  `json:"tags,omitempty"`
-	Labels          []string           `json:"labels,omitempty"`
-	AdvanceOptions  *HTTPAdvanceOption `json:"advance_options,omitempty"`
-	UpdateTime      int64              `json:"update_time,omitempty"`
+	ExternalID       string             `json:"external_id"`
+	Name             string             `json:"name"`
+	AK               string             `json:"access_key"`
+	Method           string             `json:"method"`
+	URL              string             `json:"url"`
+	PostURL          string             `json:"post_url"`
+	CurStatus        string             `json:"status"`
+	Frequency        string             `json:"frequency"`
+	Region           string             `json:"region"` // 冗余进来，便于调试
+	OwnerExternalID  string             `json:"owner_external_id"`
+	SuccessWhenLogic string             `json:"success_when_logic"`
+	SuccessWhen      []*HTTPSuccess     `json:"success_when"`
+	Tags             map[string]string  `json:"tags,omitempty"`
+	Labels           []string           `json:"labels,omitempty"`
+	AdvanceOptions   *HTTPAdvanceOption `json:"advance_options,omitempty"`
+	UpdateTime       int64              `json:"update_time,omitempty"`
 
 	ticker   *time.Ticker
 	cli      *http.Client
@@ -169,19 +170,29 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		message[`request_header`] = t.req.Header
 	}
 
-	reasons := t.CheckResult()
+	reasons, succFlag := t.CheckResult()
 	if t.reqError != "" {
 		reasons = append(reasons, t.reqError)
 	}
+	switch t.SuccessWhenLogic {
+	case "or":
+		if succFlag && t.reqError == "" {
+			tags["status"] = "OK"
+			fields["success"] = int64(1)
+		} else {
+			message[`fail_reason`] = strings.Join(reasons, `;`)
+			fields[`fail_reason`] = strings.Join(reasons, `;`)
+		}
+	default:
+		if len(reasons) != 0 {
+			message[`fail_reason`] = strings.Join(reasons, `;`)
+			fields[`fail_reason`] = strings.Join(reasons, `;`)
+		}
 
-	if len(reasons) != 0 {
-		message[`fail_reason`] = strings.Join(reasons, `;`)
-		fields[`fail_reason`] = strings.Join(reasons, `;`)
-	}
-
-	if t.reqError == "" && len(reasons) == 0 {
-		tags["status"] = "OK"
-		fields["success"] = int64(1)
+		if t.reqError == "" && len(reasons) == 0 {
+			tags["status"] = "OK"
+			fields["success"] = int64(1)
+		}
 	}
 
 	notSave := false
@@ -355,9 +366,9 @@ result:
 	return err
 }
 
-func (t *HTTPTask) CheckResult() (reasons []string) {
+func (t *HTTPTask) CheckResult() (reasons []string, succFlag bool) {
 	if t.resp == nil {
-		return nil
+		return nil, true
 	}
 
 	for _, chk := range t.SuccessWhen {
@@ -367,6 +378,8 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 			for _, v := range vs {
 				if err := v.check(t.resp.Header.Get(k), fmt.Sprintf("HTTP header `%s'", k)); err != nil {
 					reasons = append(reasons, err.Error())
+				} else {
+					succFlag = true
 				}
 			}
 		}
@@ -376,6 +389,8 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 			for _, v := range chk.Body {
 				if err := v.check(string(t.respBody), "response body"); err != nil {
 					reasons = append(reasons, err.Error())
+				} else {
+					succFlag = true
 				}
 			}
 		}
@@ -385,6 +400,8 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 			for _, v := range chk.StatusCode {
 				if err := v.check(fmt.Sprintf(`%d`, t.resp.StatusCode), "HTTP status"); err != nil {
 					reasons = append(reasons, err.Error())
+				} else {
+					succFlag = true
 				}
 			}
 		}
@@ -393,6 +410,8 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 		if t.reqCost > chk.respTime && chk.respTime > 0 {
 			reasons = append(reasons,
 				fmt.Sprintf("HTTP response time(%v) larger than %v", t.reqCost, chk.respTime))
+		} else {
+			succFlag = true
 		}
 	}
 

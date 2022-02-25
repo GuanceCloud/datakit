@@ -398,7 +398,7 @@ func TestDialHTTP(t *testing.T) {
 			t.Logf("tags: %+#v", tags)
 			t.Logf("fields: %+#v", fields)
 
-			reasons := c.t.CheckResult()
+			reasons, _ := c.t.CheckResult()
 			tu.Equals(t, len(reasons), c.reasonCnt)
 
 			if len(reasons) > 0 {
