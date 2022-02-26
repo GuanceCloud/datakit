@@ -69,11 +69,12 @@ func main() {
 	} else {
 		go cgroup.Run()
 		service.Entry = run
-		if cmds.FlagWorkDir != "" { // debugging running, not start as service
+
+		// debugging running, not start as service
+		if cmds.FlagWorkDir != "" /* Deprecated */ || *cmds.FlagDebugWorkDir != "" {
 			run()
 		} else if err := service.StartService(); err != nil {
 			l.Errorf("start service failed: %s", err.Error())
-
 			return
 		}
 	}
@@ -227,8 +228,9 @@ func startDKHttp() {
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
 
-		DataWay: config.Cfg.DataWay,
-		PProf:   config.Cfg.EnablePProf,
+		DataWay:     config.Cfg.DataWay,
+		PProf:       config.Cfg.EnablePProf,
+		PProfListen: config.Cfg.PProfListen,
 	})
 
 	time.Sleep(time.Second) // wait http server ok

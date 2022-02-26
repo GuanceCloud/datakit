@@ -204,3 +204,37 @@ func TestApiGetDatakitLastError(t *testing.T) {
 		tu.Equals(t, fakeEM.Input, em.Input)
 	}
 }
+
+func TestCORS(t *testing.T) {
+	srv := &http.Server{
+		Addr:    "localhost:12345",
+		Handler: setupRouter(),
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			t.Log(err)
+		}
+	}()
+
+	time.Sleep(time.Second)
+
+	req, err := http.NewRequest("POST", "http://localhost:12345/some-404-page", nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	origin := "http://foobar.com"
+	req.Header.Set("Origin", origin)
+
+	c := &http.Client{}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// See: https://stackoverflow.com/a/12179364/342348
+	got := resp.Header.Get("Access-Control-Allow-Origin")
+	tu.Assert(t, origin == got, "expect %s, got %s", got)
+}

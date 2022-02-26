@@ -28,10 +28,15 @@ import (
 )
 
 var (
-	l                   = logger.DefaultSLogger("http")
-	ginLog              string
-	ginReleaseMode      = true
-	enablePprof         = false
+	l              = logger.DefaultSLogger("http")
+	ginLog         string
+	ginReleaseMode = true
+
+	enablePprof = false
+	pprofListen = ":6060"
+
+	pprofSrv *http.Server
+
 	enableRequestLogger = false
 
 	uptime = time.Now()
@@ -72,7 +77,9 @@ type Option struct {
 	DCAConfig *DCAConfig
 
 	GinReleaseMode bool
-	PProf          bool
+
+	PProf       bool
+	PProfListen string
 }
 
 type APIConfig struct {
@@ -87,7 +94,12 @@ func Start(o *Option) {
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
+
 	enablePprof = o.PProf
+	if o.PProfListen != "" {
+		pprofListen = o.PProfListen
+	}
+
 	ginReleaseMode = o.GinReleaseMode
 	ginRotate = o.GinRotate
 	apiConfig = o.APIConfig
@@ -106,6 +118,19 @@ func Start(o *Option) {
 		g.Go(func(ctx context.Context) error {
 			dcaHTTPStart()
 			l.Info("DCA http goroutine exit")
+			return nil
+		})
+	}
+
+	// start pprof if enabled
+	if enablePprof {
+		pprofSrv = &http.Server{
+			Addr: pprofListen,
+		}
+
+		g.Go(func(ctx context.Context) error {
+			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
+			l.Info("pprof server exit")
 			return nil
 		})
 	}
@@ -178,6 +203,11 @@ func setupGinLogger() (gl io.Writer) {
 	return
 }
 
+func setVersionInfo(c *gin.Context) {
+	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, git.BuildAt))
+	c.Next()
+}
+
 func setupRouter() *gin.Engine {
 	uhttp.Init()
 
@@ -187,6 +217,8 @@ func setupRouter() *gin.Engine {
 	if len(apiConfig.PublicAPIs) != 0 {
 		router.Use(loopbackWhiteList)
 	}
+
+	router.Use(setVersionInfo)
 
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: uhttp.GinLogFormmatter,
@@ -281,20 +313,6 @@ func HTTPStart() {
 		l.Info("http server exit")
 		return nil
 	})
-
-	// start pprof if enabled
-	var pprofSrv *http.Server
-	if enablePprof {
-		pprofSrv = &http.Server{
-			Addr: ":6060",
-		}
-
-		g.Go(func(ctx context.Context) error {
-			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
-			l.Info("pprof server exit")
-			return nil
-		})
-	}
 
 	l.Debug("http server started")
 
