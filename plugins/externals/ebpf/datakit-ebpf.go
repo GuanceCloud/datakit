@@ -149,6 +149,7 @@ func main() {
 			l.Warn(err)
 		} else {
 			dknetflow.SetK8sNetInfo(k8sinfo)
+			dkhttpflow.SetK8sNetInfo(k8sinfo)
 		}
 		constEditor := dkoffset.NewConstEditor(offset)
 
