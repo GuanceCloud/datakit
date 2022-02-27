@@ -191,7 +191,7 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 			}
 			ms := make([]inputs.Measurement, 0)
 			for _, httpFinReq := range cache {
-				m := conv2M(httpFinReq)
+				m := conv2M(httpFinReq, tracer.gTags)
 				if m == nil {
 					continue
 				}
@@ -232,7 +232,7 @@ func (m *measurement) Info() *inputs.MeasurementInfo {
 	return nil
 }
 
-func conv2M(httpFinReq *HTTPReqFinishedInfo) *measurement {
+func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measurement {
 	m := measurement{
 		name:   srcNameM,
 		tags:   map[string]string{},
@@ -248,6 +248,9 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo) *measurement {
 	path := FindHTTPURI(httpFinReq.HTTPStats.payload)
 	if path == "" {
 		return nil
+	}
+	for k, v := range tags {
+		m.tags[k] = v
 	}
 	m.tags["direction"] = direction
 
