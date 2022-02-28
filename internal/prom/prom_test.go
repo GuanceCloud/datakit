@@ -741,3 +741,23 @@ func TestProm(t *testing.T) {
 		})
 	}
 }
+
+func TestCollectFromFile(t *testing.T) {
+	f, err := os.CreateTemp("./", "test_collect_from_file_")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	defer os.Remove(f.Name())
+	f.WriteString(mockBody)
+	f.Sync()
+	option := Option{
+		URLs: []string{f.Name()},
+	}
+	p, err := NewProm(&option)
+	if err != nil {
+		t.Errorf("failed to init prom: %s", err)
+	}
+	if _, err := p.CollectFromFile(f.Name()); err != nil {
+		t.Errorf(err.Error())
+	}
+}
