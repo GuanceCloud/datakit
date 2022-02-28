@@ -39,6 +39,7 @@ func handleDDTrace(resp http.ResponseWriter, req *http.Request) {
 
 	for _, trace := range traces {
 		if len(trace) == 0 {
+			log.Debug("empty ddtrace")
 			continue
 		}
 
