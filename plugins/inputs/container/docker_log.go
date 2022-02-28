@@ -284,9 +284,10 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 
 	newTask := func() *worker.Task {
 		return &worker.Task{
-			TaskName:   "containerlog/" + logconf.Source,
-			Source:     logconf.Source,
-			ScriptName: logconf.Pipeline,
+			TaskName:      "containerlog/" + logconf.Source,
+			Source:        logconf.Source,
+			ScriptName:    logconf.Pipeline,
+			MaxMessageLen: d.cfg.maxLoggingLength,
 		}
 	}
 
