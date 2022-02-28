@@ -12,29 +12,27 @@ import (
 	dt "gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting"
 )
 
-type debugDialtestingMock struct {
-	t *testing.T
-}
+type debugDialtestingMock struct{}
 
 var (
-	initErr     error
-	runErr      error
+	errInit     error
+	errRun      error
 	debugFields map[string]interface{}
 )
 
 func (*debugDialtestingMock) debugInit(task *dt.HTTPTask) error {
-	return initErr
+	return errInit
 }
 
 func (*debugDialtestingMock) debugRun(task *dt.HTTPTask) error {
-	return runErr
+	return errRun
 }
 
 func (*debugDialtestingMock) getResults(task *dt.HTTPTask) (tags map[string]string, fields map[string]interface{}) {
 	return map[string]string{}, debugFields
 }
 
-func init() {
+func init() { // nolint:gochecknoinits
 	defDialtestingMock = &debugDialtestingMock{}
 }
 
@@ -43,9 +41,9 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		name        string
 		t           *dialtestingDebugRequest
 		body        []byte
-		initErr     error
-		runErr      error
-		expectErr   error
+		errInit     error
+		errRun      error
+		errExpect   error
 		expectRes   map[string]interface{}
 		debugFields map[string]interface{}
 	}{
@@ -68,7 +66,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 					},
 				},
 			},
-			expectErr: uhttp.Error(ErrInvalidRequest, "invalid request"),
+			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
 		},
 		{
 			name: "test dial invalid request1",
@@ -88,8 +86,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 					},
 				},
 			},
-			initErr:   uhttp.Error(ErrInvalidRequest, "ddd"),
-			expectErr: uhttp.Error(ErrInvalidRequest, "invalid request"),
+			errInit:   uhttp.Error(ErrInvalidRequest, "ddd"),
+			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
 		},
 		{
 			name: "test dial invalid request2",
@@ -109,8 +107,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 					},
 				},
 			},
-			runErr:    uhttp.Error(ErrInvalidRequest, "ddd"),
-			expectErr: uhttp.Error(ErrInvalidRequest, "invalid request"),
+			errRun:    uhttp.Error(ErrInvalidRequest, "ddd"),
+			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
 		},
 		{
 			name: "test dial status stop",
@@ -131,7 +129,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 					},
 				},
 			},
-			expectErr: uhttp.Error(ErrInvalidRequest, "the task status is stop"),
+			errExpect: uhttp.Error(ErrInvalidRequest, "the task status is stop"),
 		},
 		{
 			name: "test dial success1",
@@ -151,7 +149,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 					},
 				},
 			},
-			initErr:   nil,
+			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
 		},
 		{
@@ -182,8 +180,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 	for _, tc := range httpCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var w http.ResponseWriter
-			initErr = tc.initErr
-			runErr = tc.runErr
+			errInit = tc.errInit
+			errRun = tc.errRun
 			debugFields = tc.debugFields
 			var bys []byte
 			if tc.name == "test dial task para wrong" {
@@ -194,10 +192,13 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 				bys, _ = json.Marshal(tc.t)
 			}
 			req, err := http.NewRequest("POST", "uri", bytes.NewReader(bys))
+			if err != nil {
+				t.Log(err)
+			}
 			res, err := apiDebugDialtestingHandler(w, req)
 
 			if err != nil {
-				tu.Equals(t, tc.expectErr, err)
+				tu.Equals(t, tc.errExpect, err)
 			} else {
 				tu.Equals(t, tc.expectRes["Status"], res.(*dialtestingDebugResponse).Status)
 			}
