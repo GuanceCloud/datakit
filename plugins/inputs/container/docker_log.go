@@ -70,9 +70,9 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 	}()
 
 	if logconf != nil {
-		l.Debugf("use contaier logconfig %#v, container_name:%s", logconf, tags["container_name"])
+		l.Debugf("use container logconfig %#v, container_name:%s", logconf, tags["container_name"])
 		if logconf.Disable {
-			l.Debugf("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
+			l.Debugf("disable container log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
 			return nil
 		}
 

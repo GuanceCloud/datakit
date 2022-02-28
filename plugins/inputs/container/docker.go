@@ -69,7 +69,7 @@ func (d *dockerInput) stop() {
 }
 
 func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 }
 
 func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 }
 
 func (d *dockerInput) watchNewContainerLogs() error {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	return true
 }
 
-func (d *dockerInput) getContaierList() ([]types.Container, error) {
+func (d *dockerInput) getContainerList() ([]types.Container, error) {
 	cList, err := d.client.ContainerList(context.Background(), dockerContainerListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container list: %w", err)
