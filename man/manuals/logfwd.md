@@ -109,7 +109,7 @@ spec:
           fieldPath: status.hostIP
     - name: LOGFWD_DATAKIT_PORT
       value: "9531"
-    - name: LOGFWD_LOGFWD_ANNOTATION_DATAKIT_LOG_CONFIGS
+    - name: LOGFWD_ANNOTATION_DATAKIT_LOGS
       valueFrom:
         fieldRef:
           apiVersion: v1
