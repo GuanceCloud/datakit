@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package ddtrace.v3;
+package ddtrace;
 
 option go_package = "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/ddtrace";
 
