@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -421,6 +422,10 @@ func TestMessageToJSON(t *testing.T) {
 }
 
 func TestStartLog(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		return
+	}
+
 	f, err := ioutil.TempFile("", "")
 	assert.NoError(t, err)
 

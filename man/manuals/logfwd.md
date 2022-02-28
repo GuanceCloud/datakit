@@ -82,7 +82,6 @@ kind: Pod
 metadata:
   name: logfwd
 spec:
-  nodeName: df-idc-qa-001
   containers:
   - name: count
     image: busybox
@@ -109,7 +108,7 @@ spec:
           apiVersion: v1
           fieldPath: status.hostIP
     - name: LOGFWD_DATAKIT_PORT
-      value: "9533"
+      value: "9531"
     - name: LOGFWD_LOGFWD_ANNOTATION_DATAKIT_LOG_CONFIGS
       valueFrom:
         fieldRef:
@@ -133,7 +132,7 @@ spec:
     - mountPath: /opt/logfwd/config
       name: logfwd-config
       subPath: config
-      workingDir: /opt/logfwd
+    workingDir: /opt/logfwd
   volumes:
   - name: varlog
     emptyDir: {}
@@ -151,17 +150,14 @@ data:
   config: |
     [
         {
-            "datakit_addr": "127.0.0.1:9533",
             "loggings": [
                 {
                     "logfiles": ["/var/log/1.log"],
-                    "source": "log_source",
-                    "tags_str": "tags1=value1"
+                    "source": "log_source"
                 },
                 {
                     "logfiles": ["/var/log/2.log"],
-                    "source": "log_source2",
-                    "tags_str": "tags1=value1"
+                    "source": "log_source2"
                 }
             ]
         }
