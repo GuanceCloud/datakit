@@ -218,6 +218,10 @@ func Test_unmarshalTraceRequest(t *testing.T) {
 				}
 			}
 
+			/*
+				踩坑： 对象做 proto.marshal 之前和之后的数据是不一样的。所以 reflect.Equal 会返回 false
+					got 通过 proto.marshal 之后，再进行对比就会返回 true。将下面四行删掉 就会返回false
+			*/
 			gbts, _ := proto.Marshal(got)
 			if !bytes.Equal(gbts, tt.args.rawRequest) {
 				t.Errorf("byte not equal")

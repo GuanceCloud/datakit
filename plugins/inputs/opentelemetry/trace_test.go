@@ -141,7 +141,7 @@ func Test_dkTags_addGlobalTags(t *testing.T) {
 		{
 			name:   "add a:b",
 			fields: fields{tags: map[string]string{}},
-			want:   &dkTags{tags: map[string]string{"globalTag_a": "b"}},
+			want:   &dkTags{replaceTags: map[string]string{"globalTag_a": "b"}},
 		},
 	}
 	for _, tt := range tests {
@@ -210,7 +210,7 @@ func Test_dkTags_checkAllTagsKey(t *testing.T) {
 			name:   "case",
 			fields: fields{tags: map[string]string{"a.b": "c"}},
 			want: &dkTags{
-				tags: map[string]string{"a_b": "c"},
+				replaceTags: map[string]string{"a_b": "c"},
 			},
 		},
 	}
@@ -240,13 +240,13 @@ func Test_dkTags_checkCustomTags(t *testing.T) {
 			name:      "regexp-1",
 			regexpStr: "os_*|process_*",
 			fields:    fields{tags: map[string]string{"os_name": "linux", "other_key": "other_value"}},
-			want:      &dkTags{tags: map[string]string{"other_key": "other_value"}},
+			want:      &dkTags{replaceTags: map[string]string{"other_key": "other_value"}},
 		},
 		{
 			name:      "regexp-2",
 			regexpStr: "os_*|process_*",
 			fields:    fields{tags: map[string]string{"os_name": "linux", "process_id": "123", "other_key": "other_value"}},
-			want:      &dkTags{tags: map[string]string{"other_key": "other_value"}},
+			want:      &dkTags{replaceTags: map[string]string{"other_key": "other_value"}},
 		},
 	}
 	for _, tt := range tests {

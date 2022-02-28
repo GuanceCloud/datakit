@@ -140,7 +140,25 @@ func TestSpansStorage_getDKTrace(t *testing.T) {
 		fields fields
 		want   []DKtrace.DatakitTrace
 	}{
-		// TODO: Add test cases.
+		{
+			name: "case",
+			fields: fields{
+				rsm: []DKtrace.DatakitTrace{
+					{&DKtrace.DatakitSpan{TraceID: "000001"}},
+					{&DKtrace.DatakitSpan{TraceID: "000002"}},
+					{&DKtrace.DatakitSpan{TraceID: "000003"}},
+				},
+				otelMetrics: nil,
+				Count:       0,
+				max:         nil,
+				stop:        nil,
+			},
+			want: []DKtrace.DatakitTrace{
+				{&DKtrace.DatakitSpan{TraceID: "000001"}},
+				{&DKtrace.DatakitSpan{TraceID: "000002"}},
+				{&DKtrace.DatakitSpan{TraceID: "000003"}},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -154,40 +172,7 @@ func TestSpansStorage_getDKTrace(t *testing.T) {
 			if got := s.getDKTrace(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getDKTrace() = %v, want %v", got, tt.want)
 			}
-		})
-	}
-}
-
-func TestSpansStorage_reset(t *testing.T) {
-	type fields struct {
-		rsm         []DKtrace.DatakitTrace
-		otelMetrics []*otelResourceMetric
-		Count       int
-		max         chan int
-		stop        chan struct{}
-	}
-	tests := []struct {
-		name   string
-		fields fields
-	}{
-		{
-			name:   "reset count",
-			fields: fields{Count: 2},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &SpansStorage{
-				rsm:         tt.fields.rsm,
-				otelMetrics: tt.fields.otelMetrics,
-				Count:       tt.fields.Count,
-				max:         tt.fields.max,
-				stop:        tt.fields.stop,
-			}
-			s.reset()
-			if s.Count != 0 {
-				t.Errorf("reset() count not 0")
-			}
+			t.Logf("storage.rsm len=%d", len(s.rsm))
 		})
 	}
 }

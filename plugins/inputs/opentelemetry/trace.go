@@ -86,7 +86,7 @@ func newEmptyTags() *dkTags {
 
 func (dt *dkTags) makeAllTags(span *tracepb.Span, resourceAttr []*commonpb.KeyValue) {
 	/*
-		tags :
+		trace tags 处理逻辑:
 			1 先将tags从resource中提取
 			2 从span attributes中提取
 			3 从span的剩余字段中提取
@@ -138,10 +138,10 @@ func (dt *dkTags) checkCustomTags() *dkTags {
 		return dt
 	}
 	reg := regexp.MustCompile(regexpString)
-	for key := range dt.tags {
+	for key := range dt.replaceTags {
 		if reg.MatchString(key) {
 			// 通过正则则应该忽略
-			delete(dt.tags, key)
+			delete(dt.replaceTags, key)
 		}
 	}
 	return dt
@@ -151,18 +151,16 @@ func (dt *dkTags) checkCustomTags() *dkTags {
 func (dt *dkTags) addGlobalTags() *dkTags {
 	// set global tags
 	for k, v := range globalTags {
-		dt.tags[k] = v
+		dt.replaceTags[k] = v
 	}
 	return dt
 }
 
 // checkAllTagsKey 统一替换key 放进replaceTags中
 func (dt *dkTags) checkAllTagsKey() *dkTags {
-	newTags := make(map[string]string)
 	for key, val := range dt.tags {
-		newTags[replace(key)] = val
+		dt.replaceTags[replace(key)] = val
 	}
-	dt.replaceTags = newTags
 	return dt
 }
 
