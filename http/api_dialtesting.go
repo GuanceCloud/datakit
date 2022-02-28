@@ -35,17 +35,16 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 
 	//------------------------------------------------------------------
 	// -- dialtesting debug procedure start --
-	if err := reqDebug.Task.Init(); err != nil {
+	if err := defDialtestingMock.debugInit(reqDebug.Task); err != nil {
+		l.Errorf("[%s] %s", tid, err.Error())
+		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
+	}
+	if err := defDialtestingMock.debugRun(reqDebug.Task); err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 
-	if err := reqDebug.Task.Run(); err != nil {
-		l.Errorf("[%s] %s", tid, err.Error())
-		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
-	}
-
-	_, fields := reqDebug.Task.GetResults()
+	_, fields := defDialtestingMock.getResults(reqDebug.Task)
 
 	failReason, ok := fields["fail_reason"].(string)
 	status := "success"
