@@ -206,7 +206,7 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 		if d.k8sClient == nil || container.Labels["pod_name"] == "" {
 			return
 		}
-		meta, err := queryPodMetaData(d.k8sClient, container.Labels["pod_name"], container.Labels["pod_namesapce"])
+		meta, err := queryPodMetaData(d.k8sClient, container.Labels["pod_name"], container.Labels["pod_namespace"])
 		if err != nil {
 			return
 		}
@@ -337,7 +337,7 @@ func getImageOfPodContainer(container *types.Container, k8sClient k8sClientX) (i
 		return
 	}
 
-	meta, err := queryPodMetaData(k8sClient, container.Labels["pod_name"], container.Labels["pod_namesapce"])
+	meta, err := queryPodMetaData(k8sClient, container.Labels["pod_name"], container.Labels["pod_namespace"])
 	if err != nil {
 		return
 	}
