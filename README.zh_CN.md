@@ -2,7 +2,7 @@
 
 ![log](datakit-logo.png)
 
-[![Slack Status](https://img.shields.io/badge/slack-join__chat-orange?logo=slack&style=social)](https://app.slack.com/client/T032YB4B6TA/)
+[![Slack Status](https://img.shields.io/badge/slack-join__chat-orange)](https://app.slack.com/client/T032YB4B6TA/)
 
 DataKit 是一款开源、一体式的数据集成 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景：
 
