@@ -136,4 +136,4 @@ Before contributing, check out some guideline of DataKit:
 
 ## Full Documentation
 
-For full documents of DataKit, see[DataKit Doc Repository](https://www.yuque.com/dataflux/datakit)。
+For full documents of DataKit, see [DataKit Doc Repository](https://www.yuque.com/dataflux/datakit)。
