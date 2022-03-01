@@ -24,11 +24,10 @@
 package compile
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -623,21 +622,18 @@ func file_plugins_inputs_skywalking_v3_proto_logging_Logging_proto_rawDescGZIP()
 	return file_plugins_inputs_skywalking_v3_proto_logging_Logging_proto_rawDescData
 }
 
-var (
-	file_plugins_inputs_skywalking_v3_proto_logging_Logging_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-	file_plugins_inputs_skywalking_v3_proto_logging_Logging_proto_goTypes  = []interface{}{
-		(*LogData)(nil),            // 0: skywalking.v3.LogData
-		(*LogDataBody)(nil),        // 1: skywalking.v3.LogDataBody
-		(*TextLog)(nil),            // 2: skywalking.v3.TextLog
-		(*JSONLog)(nil),            // 3: skywalking.v3.JSONLog
-		(*YAMLLog)(nil),            // 4: skywalking.v3.YAMLLog
-		(*TraceContext)(nil),       // 5: skywalking.v3.TraceContext
-		(*LogTags)(nil),            // 6: skywalking.v3.LogTags
-		(*KeyStringValuePair)(nil), // 7: skywalking.v3.KeyStringValuePair
-		(*Commands)(nil),           // 8: skywalking.v3.Commands
-	}
-)
-
+var file_plugins_inputs_skywalking_v3_proto_logging_Logging_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_plugins_inputs_skywalking_v3_proto_logging_Logging_proto_goTypes = []interface{}{
+	(*LogData)(nil),            // 0: skywalking.v3.LogData
+	(*LogDataBody)(nil),        // 1: skywalking.v3.LogDataBody
+	(*TextLog)(nil),            // 2: skywalking.v3.TextLog
+	(*JSONLog)(nil),            // 3: skywalking.v3.JSONLog
+	(*YAMLLog)(nil),            // 4: skywalking.v3.YAMLLog
+	(*TraceContext)(nil),       // 5: skywalking.v3.TraceContext
+	(*LogTags)(nil),            // 6: skywalking.v3.LogTags
+	(*KeyStringValuePair)(nil), // 7: skywalking.v3.KeyStringValuePair
+	(*Commands)(nil),           // 8: skywalking.v3.Commands
+}
 var file_plugins_inputs_skywalking_v3_proto_logging_Logging_proto_depIdxs = []int32{
 	1, // 0: skywalking.v3.LogData.body:type_name -> skywalking.v3.LogDataBody
 	5, // 1: skywalking.v3.LogData.traceContext:type_name -> skywalking.v3.TraceContext

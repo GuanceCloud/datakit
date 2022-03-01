@@ -4,7 +4,6 @@ package compile
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -47,12 +46,12 @@ type JVMMetricReportServiceServer interface {
 }
 
 // UnimplementedJVMMetricReportServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedJVMMetricReportServiceServer struct{}
+type UnimplementedJVMMetricReportServiceServer struct {
+}
 
 func (UnimplementedJVMMetricReportServiceServer) Collect(context.Context, *JVMMetricCollection) (*Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Collect not implemented")
 }
-
 func (UnimplementedJVMMetricReportServiceServer) mustEmbedUnimplementedJVMMetricReportServiceServer() {
 }
 

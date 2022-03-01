@@ -24,11 +24,10 @@
 package compile
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -220,16 +219,13 @@ func file_plugins_inputs_skywalking_v3_proto_management_Management_proto_rawDesc
 	return file_plugins_inputs_skywalking_v3_proto_management_Management_proto_rawDescData
 }
 
-var (
-	file_plugins_inputs_skywalking_v3_proto_management_Management_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-	file_plugins_inputs_skywalking_v3_proto_management_Management_proto_goTypes  = []interface{}{
-		(*InstanceProperties)(nil), // 0: skywalking.v3.InstanceProperties
-		(*InstancePingPkg)(nil),    // 1: skywalking.v3.InstancePingPkg
-		(*KeyStringValuePair)(nil), // 2: skywalking.v3.KeyStringValuePair
-		(*Commands)(nil),           // 3: skywalking.v3.Commands
-	}
-)
-
+var file_plugins_inputs_skywalking_v3_proto_management_Management_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_plugins_inputs_skywalking_v3_proto_management_Management_proto_goTypes = []interface{}{
+	(*InstanceProperties)(nil), // 0: skywalking.v3.InstanceProperties
+	(*InstancePingPkg)(nil),    // 1: skywalking.v3.InstancePingPkg
+	(*KeyStringValuePair)(nil), // 2: skywalking.v3.KeyStringValuePair
+	(*Commands)(nil),           // 3: skywalking.v3.Commands
+}
 var file_plugins_inputs_skywalking_v3_proto_management_Management_proto_depIdxs = []int32{
 	2, // 0: skywalking.v3.InstanceProperties.properties:type_name -> skywalking.v3.KeyStringValuePair
 	0, // 1: skywalking.v3.ManagementService.reportInstanceProperties:input_type -> skywalking.v3.InstanceProperties

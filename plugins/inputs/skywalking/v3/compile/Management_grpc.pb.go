@@ -4,7 +4,6 @@ package compile
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -66,12 +65,12 @@ type ManagementServiceServer interface {
 }
 
 // UnimplementedManagementServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedManagementServiceServer struct{}
+type UnimplementedManagementServiceServer struct {
+}
 
 func (UnimplementedManagementServiceServer) ReportInstanceProperties(context.Context, *InstanceProperties) (*Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportInstanceProperties not implemented")
 }
-
 func (UnimplementedManagementServiceServer) KeepAlive(context.Context, *InstancePingPkg) (*Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KeepAlive not implemented")
 }

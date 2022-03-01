@@ -24,11 +24,10 @@
 package compile
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -152,14 +151,11 @@ func file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscove
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto_rawDescData
 }
 
-var (
-	file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-	file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto_goTypes  = []interface{}{
-		(*ConfigurationSyncRequest)(nil), // 0: skywalking.v3.ConfigurationSyncRequest
-		(*Commands)(nil),                 // 1: skywalking.v3.Commands
-	}
-)
-
+var file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto_goTypes = []interface{}{
+	(*ConfigurationSyncRequest)(nil), // 0: skywalking.v3.ConfigurationSyncRequest
+	(*Commands)(nil),                 // 1: skywalking.v3.Commands
+}
 var file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto_depIdxs = []int32{
 	0, // 0: skywalking.v3.ConfigurationDiscoveryService.fetchConfigurations:input_type -> skywalking.v3.ConfigurationSyncRequest
 	1, // 1: skywalking.v3.ConfigurationDiscoveryService.fetchConfigurations:output_type -> skywalking.v3.Commands
@@ -173,7 +169,6 @@ var file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscover
 func init() {
 	file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto_init()
 }
-
 func file_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto_init() {
 	if File_plugins_inputs_skywalking_v3_proto_language_agent_ConfigurationDiscoveryService_proto != nil {
 		return

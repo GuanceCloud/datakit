@@ -24,11 +24,10 @@
 package compile
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -346,18 +345,15 @@ func file_plugins_inputs_skywalking_v3_proto_common_Common_proto_rawDescGZIP() [
 	return file_plugins_inputs_skywalking_v3_proto_common_Common_proto_rawDescData
 }
 
-var (
-	file_plugins_inputs_skywalking_v3_proto_common_Common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_plugins_inputs_skywalking_v3_proto_common_Common_proto_msgTypes  = make([]protoimpl.MessageInfo, 4)
-	file_plugins_inputs_skywalking_v3_proto_common_Common_proto_goTypes   = []interface{}{
-		(DetectPoint)(0),           // 0: skywalking.v3.DetectPoint
-		(*KeyStringValuePair)(nil), // 1: skywalking.v3.KeyStringValuePair
-		(*CPU)(nil),                // 2: skywalking.v3.CPU
-		(*Commands)(nil),           // 3: skywalking.v3.Commands
-		(*Command)(nil),            // 4: skywalking.v3.Command
-	}
-)
-
+var file_plugins_inputs_skywalking_v3_proto_common_Common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_plugins_inputs_skywalking_v3_proto_common_Common_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_plugins_inputs_skywalking_v3_proto_common_Common_proto_goTypes = []interface{}{
+	(DetectPoint)(0),           // 0: skywalking.v3.DetectPoint
+	(*KeyStringValuePair)(nil), // 1: skywalking.v3.KeyStringValuePair
+	(*CPU)(nil),                // 2: skywalking.v3.CPU
+	(*Commands)(nil),           // 3: skywalking.v3.Commands
+	(*Command)(nil),            // 4: skywalking.v3.Command
+}
 var file_plugins_inputs_skywalking_v3_proto_common_Common_proto_depIdxs = []int32{
 	4, // 0: skywalking.v3.Commands.commands:type_name -> skywalking.v3.Command
 	1, // 1: skywalking.v3.Command.args:type_name -> skywalking.v3.KeyStringValuePair

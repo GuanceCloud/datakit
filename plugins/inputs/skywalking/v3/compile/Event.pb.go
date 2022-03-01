@@ -24,11 +24,10 @@
 package compile
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -349,18 +348,15 @@ func file_plugins_inputs_skywalking_v3_proto_event_Event_proto_rawDescGZIP() []b
 	return file_plugins_inputs_skywalking_v3_proto_event_Event_proto_rawDescData
 }
 
-var (
-	file_plugins_inputs_skywalking_v3_proto_event_Event_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_plugins_inputs_skywalking_v3_proto_event_Event_proto_msgTypes  = make([]protoimpl.MessageInfo, 3)
-	file_plugins_inputs_skywalking_v3_proto_event_Event_proto_goTypes   = []interface{}{
-		(Type)(0),        // 0: skywalking.v3.Type
-		(*Event)(nil),    // 1: skywalking.v3.Event
-		(*Source)(nil),   // 2: skywalking.v3.Source
-		nil,              // 3: skywalking.v3.Event.ParametersEntry
-		(*Commands)(nil), // 4: skywalking.v3.Commands
-	}
-)
-
+var file_plugins_inputs_skywalking_v3_proto_event_Event_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_plugins_inputs_skywalking_v3_proto_event_Event_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_plugins_inputs_skywalking_v3_proto_event_Event_proto_goTypes = []interface{}{
+	(Type)(0),        // 0: skywalking.v3.Type
+	(*Event)(nil),    // 1: skywalking.v3.Event
+	(*Source)(nil),   // 2: skywalking.v3.Source
+	nil,              // 3: skywalking.v3.Event.ParametersEntry
+	(*Commands)(nil), // 4: skywalking.v3.Commands
+}
 var file_plugins_inputs_skywalking_v3_proto_event_Event_proto_depIdxs = []int32{
 	2, // 0: skywalking.v3.Event.source:type_name -> skywalking.v3.Source
 	0, // 1: skywalking.v3.Event.type:type_name -> skywalking.v3.Type

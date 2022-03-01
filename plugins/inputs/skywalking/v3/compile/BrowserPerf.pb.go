@@ -24,11 +24,10 @@
 package compile
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -560,17 +559,14 @@ func file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_rawDescGZ
 	return file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_rawDescData
 }
 
-var (
-	file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_msgTypes  = make([]protoimpl.MessageInfo, 2)
-	file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_goTypes   = []interface{}{
-		(ErrorCategory)(0),      // 0: skywalking.v3.ErrorCategory
-		(*BrowserPerfData)(nil), // 1: skywalking.v3.BrowserPerfData
-		(*BrowserErrorLog)(nil), // 2: skywalking.v3.BrowserErrorLog
-		(*Commands)(nil),        // 3: skywalking.v3.Commands
-	}
-)
-
+var file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_goTypes = []interface{}{
+	(ErrorCategory)(0),      // 0: skywalking.v3.ErrorCategory
+	(*BrowserPerfData)(nil), // 1: skywalking.v3.BrowserPerfData
+	(*BrowserErrorLog)(nil), // 2: skywalking.v3.BrowserErrorLog
+	(*Commands)(nil),        // 3: skywalking.v3.Commands
+}
 var file_plugins_inputs_skywalking_v3_proto_browser_BrowserPerf_proto_depIdxs = []int32{
 	0, // 0: skywalking.v3.BrowserErrorLog.category:type_name -> skywalking.v3.ErrorCategory
 	1, // 1: skywalking.v3.BrowserPerfService.collectPerfData:input_type -> skywalking.v3.BrowserPerfData

@@ -24,11 +24,10 @@
 package compile
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -387,17 +386,14 @@ func file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_rawDescGZIP()
 	return file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_rawDescData
 }
 
-var (
-	file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-	file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_goTypes  = []interface{}{
-		(*ProfileTaskCommandQuery)(nil), // 0: skywalking.v3.ProfileTaskCommandQuery
-		(*ThreadSnapshot)(nil),          // 1: skywalking.v3.ThreadSnapshot
-		(*ThreadStack)(nil),             // 2: skywalking.v3.ThreadStack
-		(*ProfileTaskFinishReport)(nil), // 3: skywalking.v3.ProfileTaskFinishReport
-		(*Commands)(nil),                // 4: skywalking.v3.Commands
-	}
-)
-
+var file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_goTypes = []interface{}{
+	(*ProfileTaskCommandQuery)(nil), // 0: skywalking.v3.ProfileTaskCommandQuery
+	(*ThreadSnapshot)(nil),          // 1: skywalking.v3.ThreadSnapshot
+	(*ThreadStack)(nil),             // 2: skywalking.v3.ThreadStack
+	(*ProfileTaskFinishReport)(nil), // 3: skywalking.v3.ProfileTaskFinishReport
+	(*Commands)(nil),                // 4: skywalking.v3.Commands
+}
 var file_plugins_inputs_skywalking_v3_proto_profile_Profile_proto_depIdxs = []int32{
 	2, // 0: skywalking.v3.ThreadSnapshot.stack:type_name -> skywalking.v3.ThreadStack
 	0, // 1: skywalking.v3.ProfileTask.getProfileTaskCommands:input_type -> skywalking.v3.ProfileTaskCommandQuery

@@ -10,51 +10,61 @@ import (
 // MarshalMsg implements msgp.Marshaler
 func (z *DDSpan) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 12
-	// string "Service"
-	o = append(o, 0x8c, 0xa7, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65)
+	// map header, size 15
+	// string "service"
+	o = append(o, 0x8f, 0xa7, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65)
 	o = msgp.AppendString(o, z.Service)
-	// string "Name"
-	o = append(o, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
+	// string "name"
+	o = append(o, 0xa4, 0x6e, 0x61, 0x6d, 0x65)
 	o = msgp.AppendString(o, z.Name)
-	// string "Resource"
-	o = append(o, 0xa8, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65)
+	// string "resource"
+	o = append(o, 0xa8, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65)
 	o = msgp.AppendString(o, z.Resource)
-	// string "TraceID"
-	o = append(o, 0xa7, 0x54, 0x72, 0x61, 0x63, 0x65, 0x49, 0x44)
+	// string "trace_id"
+	o = append(o, 0xa8, 0x74, 0x72, 0x61, 0x63, 0x65, 0x5f, 0x69, 0x64)
 	o = msgp.AppendUint64(o, z.TraceID)
-	// string "SpanID"
-	o = append(o, 0xa6, 0x53, 0x70, 0x61, 0x6e, 0x49, 0x44)
+	// string "span_id"
+	o = append(o, 0xa7, 0x73, 0x70, 0x61, 0x6e, 0x5f, 0x69, 0x64)
 	o = msgp.AppendUint64(o, z.SpanID)
-	// string "ParentID"
-	o = append(o, 0xa8, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x49, 0x44)
+	// string "parent_id"
+	o = append(o, 0xa9, 0x70, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x5f, 0x69, 0x64)
 	o = msgp.AppendUint64(o, z.ParentID)
-	// string "Start"
-	o = append(o, 0xa5, 0x53, 0x74, 0x61, 0x72, 0x74)
+	// string "start"
+	o = append(o, 0xa5, 0x73, 0x74, 0x61, 0x72, 0x74)
 	o = msgp.AppendInt64(o, z.Start)
-	// string "Duration"
-	o = append(o, 0xa8, 0x44, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e)
+	// string "duration"
+	o = append(o, 0xa8, 0x64, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e)
 	o = msgp.AppendInt64(o, z.Duration)
-	// string "Error"
-	o = append(o, 0xa5, 0x45, 0x72, 0x72, 0x6f, 0x72)
+	// string "error"
+	o = append(o, 0xa5, 0x65, 0x72, 0x72, 0x6f, 0x72)
 	o = msgp.AppendInt32(o, z.Error)
-	// string "Meta"
-	o = append(o, 0xa4, 0x4d, 0x65, 0x74, 0x61)
+	// string "meta"
+	o = append(o, 0xa4, 0x6d, 0x65, 0x74, 0x61)
 	o = msgp.AppendMapHeader(o, uint32(len(z.Meta)))
 	for za0001, za0002 := range z.Meta {
 		o = msgp.AppendString(o, za0001)
 		o = msgp.AppendString(o, za0002)
 	}
-	// string "Metrics"
-	o = append(o, 0xa7, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73)
+	// string "metrics"
+	o = append(o, 0xa7, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73)
 	o = msgp.AppendMapHeader(o, uint32(len(z.Metrics)))
 	for za0003, za0004 := range z.Metrics {
 		o = msgp.AppendString(o, za0003)
 		o = msgp.AppendFloat64(o, za0004)
 	}
-	// string "Type"
-	o = append(o, 0xa4, 0x54, 0x79, 0x70, 0x65)
+	// string "type"
+	o = append(o, 0xa4, 0x74, 0x79, 0x70, 0x65)
 	o = msgp.AppendString(o, z.Type)
+	// string "XXX_NoUnkeyedLiteral"
+	o = append(o, 0xb4, 0x58, 0x58, 0x58, 0x5f, 0x4e, 0x6f, 0x55, 0x6e, 0x6b, 0x65, 0x79, 0x65, 0x64, 0x4c, 0x69, 0x74, 0x65, 0x72, 0x61, 0x6c)
+	// map header, size 0
+	o = append(o, 0x80)
+	// string "XXX_unrecognized"
+	o = append(o, 0xb0, 0x58, 0x58, 0x58, 0x5f, 0x75, 0x6e, 0x72, 0x65, 0x63, 0x6f, 0x67, 0x6e, 0x69, 0x7a, 0x65, 0x64)
+	o = msgp.AppendBytes(o, z.XXX_unrecognized)
+	// string "XXX_sizecache"
+	o = append(o, 0xad, 0x58, 0x58, 0x58, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x63, 0x61, 0x63, 0x68, 0x65)
+	o = msgp.AppendInt32(o, z.XXX_sizecache)
 	return
 }
 
@@ -76,61 +86,61 @@ func (z *DDSpan) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "Service":
-			z.Service, bts, err = msgp.ReadStringBytes(bts)
+		case "service":
+			z.Service, bts, err = parseStringBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Service")
 				return
 			}
-		case "Name":
-			z.Name, bts, err = msgp.ReadStringBytes(bts)
+		case "name":
+			z.Name, bts, err = parseStringBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Name")
 				return
 			}
-		case "Resource":
-			z.Resource, bts, err = msgp.ReadStringBytes(bts)
+		case "resource":
+			z.Resource, bts, err = parseStringBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Resource")
 				return
 			}
-		case "TraceID":
-			z.TraceID, bts, err = msgp.ReadUint64Bytes(bts)
+		case "trace_id":
+			z.TraceID, bts, err = parseUint64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "TraceID")
 				return
 			}
-		case "SpanID":
-			z.SpanID, bts, err = msgp.ReadUint64Bytes(bts)
+		case "span_id":
+			z.SpanID, bts, err = parseUint64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "SpanID")
 				return
 			}
-		case "ParentID":
-			z.ParentID, bts, err = msgp.ReadUint64Bytes(bts)
+		case "parent_id":
+			z.ParentID, bts, err = parseUint64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "ParentID")
 				return
 			}
-		case "Start":
-			z.Start, bts, err = msgp.ReadInt64Bytes(bts)
+		case "start":
+			z.Start, bts, err = parseInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Start")
 				return
 			}
-		case "Duration":
-			z.Duration, bts, err = msgp.ReadInt64Bytes(bts)
+		case "duration":
+			z.Duration, bts, err = parseInt64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Duration")
 				return
 			}
-		case "Error":
-			z.Error, bts, err = msgp.ReadInt32Bytes(bts)
+		case "error":
+			z.Error, bts, err = parseInt32Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Error")
 				return
 			}
-		case "Meta":
+		case "meta":
 			var zb0002 uint32
 			zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
 			if err != nil {
@@ -148,19 +158,19 @@ func (z *DDSpan) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				var za0001 string
 				var za0002 string
 				zb0002--
-				za0001, bts, err = msgp.ReadStringBytes(bts)
+				za0001, bts, err = parseStringBytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "Meta")
 					return
 				}
-				za0002, bts, err = msgp.ReadStringBytes(bts)
+				za0002, bts, err = parseStringBytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "Meta", za0001)
 					return
 				}
 				z.Meta[za0001] = za0002
 			}
-		case "Metrics":
+		case "metrics":
 			var zb0003 uint32
 			zb0003, bts, err = msgp.ReadMapHeaderBytes(bts)
 			if err != nil {
@@ -178,22 +188,57 @@ func (z *DDSpan) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				var za0003 string
 				var za0004 float64
 				zb0003--
-				za0003, bts, err = msgp.ReadStringBytes(bts)
+				za0003, bts, err = parseStringBytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "Metrics")
 					return
 				}
-				za0004, bts, err = msgp.ReadFloat64Bytes(bts)
+				za0004, bts, err = parseFloat64Bytes(bts)
 				if err != nil {
 					err = msgp.WrapError(err, "Metrics", za0003)
 					return
 				}
 				z.Metrics[za0003] = za0004
 			}
-		case "Type":
-			z.Type, bts, err = msgp.ReadStringBytes(bts)
+		case "type":
+			z.Type, bts, err = parseStringBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Type")
+				return
+			}
+		case "XXX_NoUnkeyedLiteral":
+			var zb0004 uint32
+			zb0004, bts, err = msgp.ReadMapHeaderBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "XXX_NoUnkeyedLiteral")
+				return
+			}
+			for zb0004 > 0 {
+				zb0004--
+				field, bts, err = msgp.ReadMapKeyZC(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "XXX_NoUnkeyedLiteral")
+					return
+				}
+				switch msgp.UnsafeString(field) {
+				default:
+					bts, err = msgp.Skip(bts)
+					if err != nil {
+						err = msgp.WrapError(err, "XXX_NoUnkeyedLiteral")
+						return
+					}
+				}
+			}
+		case "XXX_unrecognized":
+			z.XXX_unrecognized, bts, err = msgp.ReadBytesBytes(bts, z.XXX_unrecognized)
+			if err != nil {
+				err = msgp.WrapError(err, "XXX_unrecognized")
+				return
+			}
+		case "XXX_sizecache":
+			z.XXX_sizecache, bts, err = parseInt32Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "XXX_sizecache")
 				return
 			}
 		default:
@@ -210,7 +255,7 @@ func (z *DDSpan) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *DDSpan) Msgsize() (s int) {
-	s = 1 + 8 + msgp.StringPrefixSize + len(z.Service) + 5 + msgp.StringPrefixSize + len(z.Name) + 9 + msgp.StringPrefixSize + len(z.Resource) + 8 + msgp.Uint64Size + 7 + msgp.Uint64Size + 9 + msgp.Uint64Size + 6 + msgp.Int64Size + 9 + msgp.Int64Size + 6 + msgp.Int32Size + 5 + msgp.MapHeaderSize
+	s = 1 + 8 + msgp.StringPrefixSize + len(z.Service) + 5 + msgp.StringPrefixSize + len(z.Name) + 9 + msgp.StringPrefixSize + len(z.Resource) + 9 + msgp.Uint64Size + 8 + msgp.Uint64Size + 10 + msgp.Uint64Size + 6 + msgp.Int64Size + 9 + msgp.Int64Size + 6 + msgp.Int32Size + 5 + msgp.MapHeaderSize
 	if z.Meta != nil {
 		for za0001, za0002 := range z.Meta {
 			_ = za0002
@@ -224,6 +269,6 @@ func (z *DDSpan) Msgsize() (s int) {
 			s += msgp.StringPrefixSize + len(za0003) + msgp.Float64Size
 		}
 	}
-	s += 5 + msgp.StringPrefixSize + len(z.Type)
+	s += 5 + msgp.StringPrefixSize + len(z.Type) + 21 + 1 + 17 + msgp.BytesPrefixSize + len(z.XXX_unrecognized) + 14 + msgp.Int32Size
 	return
 }
