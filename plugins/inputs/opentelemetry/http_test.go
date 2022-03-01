@@ -19,7 +19,7 @@ import (
 )
 
 func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
-	cfg := mockCollectorConfig{
+	cfg := mock.mockCollectorConfig{
 		URLPath:         "/otel/v1/trace",
 		Port:            20010,
 		ExpectedHeaders: map[string]string{"header1": "1"}}
@@ -29,12 +29,12 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 		HTTPStatusOK:    200,
 		ExpectedHeaders: map[string]string{"header1": "1"},
 	}
-	mockserver := runMockCollector(t, cfg, o.apiOtlpTrace)
+	mockserver := mock.runMockCollector(t, cfg, o.apiOtlpTrace)
 	time.Sleep(time.Millisecond * 5) // 等待 server 端口开启
 
 	// mock client
 	ctx := context.Background()
-	exp := newHTTPExporter(t, ctx, cfg.URLPath, "localhost:20010")
+	exp := mock.newHTTPExporter(t, ctx, cfg.URLPath, "localhost:20010")
 
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -63,7 +63,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 	t.Log("span end")
 	// Flush and close.
 	func() {
-		ctx, cancel := contextWithTimeout(ctx, t, 10*time.Second)
+		ctx, cancel := mock.contextWithTimeout(ctx, t, 10*time.Second)
 		defer cancel()
 		require.NoError(t, tp.Shutdown(ctx))
 	}()

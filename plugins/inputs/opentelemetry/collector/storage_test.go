@@ -1,4 +1,4 @@
-package opentelemetry
+package collector
 
 import (
 	"reflect"
@@ -144,7 +144,7 @@ func TestSpansStorage_getCount(t *testing.T) {
 func TestSpansStorage_getDKTrace(t *testing.T) {
 	type fields struct {
 		rsm         []DKtrace.DatakitTrace
-		otelMetrics []*otelResourceMetric
+		otelMetrics []*OtelResourceMetric
 		Count       int
 		max         chan int
 		stop        chan struct{}
@@ -183,7 +183,7 @@ func TestSpansStorage_getDKTrace(t *testing.T) {
 				max:         tt.fields.max,
 				stop:        tt.fields.stop,
 			}
-			if got := s.getDKTrace(); !reflect.DeepEqual(got, tt.want) {
+			if got := s.GetDKTrace(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("getDKTrace() = %v, want %v", got, tt.want)
 			}
 			t.Logf("storage.rsm len=%d", len(s.rsm))
@@ -194,7 +194,7 @@ func TestSpansStorage_getDKTrace(t *testing.T) {
 func TestSpansStorage_run(t *testing.T) {
 	type fields struct {
 		rsm         []DKtrace.DatakitTrace
-		otelMetrics []*otelResourceMetric
+		otelMetrics []*OtelResourceMetric
 		Count       int
 		max         chan int
 		stop        chan struct{}
@@ -207,7 +207,7 @@ func TestSpansStorage_run(t *testing.T) {
 			name: "case1",
 			fields: fields{
 				rsm:         make([]DKtrace.DatakitTrace, 0),
-				otelMetrics: make([]*otelResourceMetric, 0),
+				otelMetrics: make([]*OtelResourceMetric, 0),
 				max:         make(chan int, 1),
 				stop:        make(chan struct{}, 1),
 			},
@@ -222,7 +222,7 @@ func TestSpansStorage_run(t *testing.T) {
 				max:         tt.fields.max,
 				stop:        tt.fields.stop,
 			}
-			go s.run()
+			go s.Run()
 			go func() {
 				s.stop <- struct{}{}
 				t.Log("set stop")

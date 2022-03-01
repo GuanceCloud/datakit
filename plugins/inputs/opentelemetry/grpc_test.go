@@ -8,19 +8,20 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 func TestExportTrace_Export(t *testing.T) {
-	trace := &ExportTrace{}
+	trace := &ExportTrace{storage: collector.NewSpansStorage()}
 	endpoint := "localhost:20010"
-	m := MockOtlpGrpcCollector{trace: trace}
-	go m.startServer(t, endpoint)
+	m := collector.MockOtlpGrpcCollector{Trace: trace}
+	go m.StartServer(t, endpoint)
 	<-time.After(5 * time.Millisecond)
 	t.Log("start server")
 	ctx := context.Background()
-	exp := newGRPCExporter(t, ctx, endpoint)
+	exp := collector.NewGRPCExporter(t, ctx, endpoint)
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithBatcher(
@@ -47,7 +48,7 @@ func TestExportTrace_Export(t *testing.T) {
 	t.Log("span end")
 	// Flush and close.
 	func() {
-		ctx, cancel := contextWithTimeout(ctx, t, 10*time.Second)
+		ctx, cancel := collector.ContextWithTimeout(ctx, t, 10*time.Second)
 		defer cancel()
 		require.NoError(t, tp.Shutdown(ctx))
 	}()
@@ -60,7 +61,7 @@ func TestExportTrace_Export(t *testing.T) {
 
 	// Shutdown the collector too so that we can begin
 	// verification checks of expected data back.
-	m.stopFunc()
+	m.StopFunc()
 	t.Log("stop server")
 	expected := map[string]string{
 		"Int":     "1",
@@ -69,7 +70,7 @@ func TestExportTrace_Export(t *testing.T) {
 		"Bool":    "true",
 		"String":  "test",
 	}
-	dktraces := storage.getDKTrace()
+	dktraces := trace.storage.GetDKTrace()
 
 	if len(dktraces) != 1 {
 		t.Errorf("dktraces.len != 1")
@@ -111,15 +112,15 @@ func TestExportTrace_Export(t *testing.T) {
 func TestExportMetric_Export(t *testing.T) {
 	metric := &ExportMetric{}
 	endpoint := "localhost:20010"
-	m := MockOtlpGrpcCollector{metric: metric}
-	go m.startServer(t, endpoint)
+	m := collector.MockOtlpGrpcCollector{Metric: metric}
+	go m.StartServer(t, endpoint)
 	<-time.After(5 * time.Millisecond)
 	t.Log("start server")
 
 	ctx := context.Background()
-	exp := newMetricGRPCExporter(t, ctx, endpoint)
+	exp := collector.NewMetricGRPCExporter(t, ctx, endpoint)
 
-	err := exp.Export(ctx, testResource, oneRecord)
+	err := exp.Export(ctx, collector.TestResource, collector.OneRecord)
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
@@ -130,12 +131,12 @@ func TestExportMetric_Export(t *testing.T) {
 			panic(err)
 		}
 	}()
-	m.stopFunc()
-	ms := storage.getDKMetric()
+	m.StopFunc()
+	ms := metric.storage.GetDKMetric()
 	if len(ms) != 1 {
 		t.Errorf("metric len != 1")
 	}
-	want := &otelResourceMetric{
+	want := &collector.otelResourceMetric{
 		Operation: "foo",
 		Attributes: map[string]string{
 			"abc": "def",

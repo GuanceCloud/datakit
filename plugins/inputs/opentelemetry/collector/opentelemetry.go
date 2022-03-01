@@ -1,4 +1,4 @@
-package opentelemetry
+package collector
 
 /*
 	定义常量 或者 在otel上的常量 可在此文件下定义

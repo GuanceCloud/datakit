@@ -1,8 +1,7 @@
-package opentelemetry
+package collector
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net"
 	"sync"
@@ -27,7 +26,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func contextWithTimeout(parent context.Context, t *testing.T, timeout time.Duration) (context.Context, context.CancelFunc) {
+func ContextWithTimeout(parent context.Context, t *testing.T, timeout time.Duration) (context.Context, context.CancelFunc) {
 	t.Helper()
 	d, ok := t.Deadline()
 	if !ok {
@@ -43,13 +42,13 @@ func contextWithTimeout(parent context.Context, t *testing.T, timeout time.Durat
 }
 
 type MockOtlpGrpcCollector struct {
-	trace    collectortracepb.TraceServiceServer
-	metric   *ExportMetric
+	Trace    collectortracepb.TraceServiceServer
+	Metric   collectormetricepb.MetricsServiceServer
 	Addr     string
-	stopFunc func()
+	StopFunc func()
 }
 
-func (m *MockOtlpGrpcCollector) startServer(t *testing.T, endpoint string) {
+func (m *MockOtlpGrpcCollector) StartServer(t *testing.T, endpoint string) {
 	t.Helper()
 	ln, err := net.Listen("tcp", endpoint)
 	if err != nil {
@@ -58,18 +57,18 @@ func (m *MockOtlpGrpcCollector) startServer(t *testing.T, endpoint string) {
 	}
 
 	srv := grpc.NewServer()
-	if m.trace != nil {
-		collectortracepb.RegisterTraceServiceServer(srv, m.trace)
+	if m.Trace != nil {
+		collectortracepb.RegisterTraceServiceServer(srv, m.Trace)
 	}
-	if m.metric != nil {
-		collectormetricepb.RegisterMetricsServiceServer(srv, m.metric)
+	if m.Metric != nil {
+		collectormetricepb.RegisterMetricsServiceServer(srv, m.Metric)
 	}
 
-	m.stopFunc = srv.Stop
+	m.StopFunc = srv.Stop
 	_ = srv.Serve(ln)
 }
 
-func newGRPCExporter(t *testing.T, ctx context.Context, endpoint string, additionalOpts ...otlptracegrpc.Option) *otlptrace.Exporter {
+func NewGRPCExporter(t *testing.T, ctx context.Context, endpoint string, additionalOpts ...otlptracegrpc.Option) *otlptrace.Exporter {
 	t.Helper()
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithInsecure(),
@@ -86,7 +85,7 @@ func newGRPCExporter(t *testing.T, ctx context.Context, endpoint string, additio
 	return exp
 }
 
-func newMetricGRPCExporter(t *testing.T, ctx context.Context, endpoint string, additionalOpts ...otlpmetricgrpc.Option) *otlpmetric.Exporter {
+func NewMetricGRPCExporter(t *testing.T, ctx context.Context, endpoint string, additionalOpts ...otlpmetricgrpc.Option) *otlpmetric.Exporter {
 	t.Helper()
 	opts := []otlpmetricgrpc.Option{
 		otlpmetricgrpc.WithInsecure(),
@@ -138,7 +137,7 @@ func (m *metricReader) ForEach(_ aggregation.TemporalitySelector, fn func(export
 	return nil
 }
 
-func getReader() export.InstrumentationLibraryReader {
+func GetReader() export.InstrumentationLibraryReader {
 	desc := metrictest.NewDescriptor(
 		"foo",
 		sdkapi.CounterInstrumentKind,
@@ -165,16 +164,7 @@ func getReader() export.InstrumentationLibraryReader {
 }
 
 var (
-	oneRecord = getReader()
+	OneRecord = GetReader()
 
-	testResource = resource.Empty()
+	TestResource = resource.Empty()
 )
-
-func (o *otelResourceMetric) toString() string {
-	bts, err := json.MarshalIndent(o, "    ", "    ")
-	if err != nil {
-		l.Errorf("marshal err= %v", err)
-		return ""
-	}
-	return string(bts)
-}

@@ -1,4 +1,4 @@
-package opentelemetry
+package collector
 
 import (
 	"encoding/hex"
@@ -12,7 +12,7 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
+func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	dkTraces := make([]DKtrace.DatakitTrace, 0)
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibrarySpans()
@@ -21,7 +21,7 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 		for _, librarySpans := range ls {
 			dktrace := make([]*DKtrace.DatakitSpan, 0)
 			for _, span := range librarySpans.Spans {
-				dt := newEmptyTags()
+				dt := newEmptyTags(s.RegexpString, s.GlobalTags)
 				dt.makeAllTags(span, spans.Resource.Attributes)
 				//  tags := dt.toDataKitTagsV2(span, spans.Resource.Attributes)
 				dkSpan := &DKtrace.DatakitSpan{
@@ -68,7 +68,8 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 
 type dkTags struct {
 	// config option
-
+	regexpString string
+	globalTags   map[string]string
 	// 从span中获取的attribute 放到tags中
 	tags map[string]string
 
@@ -76,10 +77,12 @@ type dkTags struct {
 	replaceTags map[string]string
 }
 
-func newEmptyTags() *dkTags {
+func newEmptyTags(regexp string, globalTags map[string]string) *dkTags {
 	return &dkTags{
-		tags:        make(map[string]string),
-		replaceTags: make(map[string]string),
+		regexpString: regexp,
+		globalTags:   globalTags,
+		tags:         make(map[string]string),
+		replaceTags:  make(map[string]string),
 	}
 }
 
@@ -133,10 +136,10 @@ func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 
 // checkCustomTags : 黑白名单机制
 func (dt *dkTags) checkCustomTags() *dkTags {
-	if regexpString == "" {
+	if dt.regexpString == "" {
 		return dt
 	}
-	reg := regexp.MustCompile(regexpString)
+	reg := regexp.MustCompile(dt.regexpString)
 	for key := range dt.replaceTags {
 		if reg.MatchString(key) {
 			// 通过正则则应该忽略
@@ -149,7 +152,7 @@ func (dt *dkTags) checkCustomTags() *dkTags {
 // setGlobalTags: 添加配置文件中的自定义tags
 func (dt *dkTags) addGlobalTags() *dkTags {
 	// set global tags
-	for k, v := range globalTags {
+	for k, v := range dt.globalTags {
 		dt.replaceTags[k] = v
 	}
 	return dt

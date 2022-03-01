@@ -192,11 +192,24 @@ schema_url:"https://opentelemetry.io/schemas/v1.7.0"}
         }
     ]
 ```
-          
-&{foo opentelemetry map[abc:def one:1] onelib  int 1607454900000000000 1607454960000000000 42 {"operation":"foo","source":"opentelemetry","attributes":{"abc":"def","one":"1"},"resource":"onelib","description":"","value_type":"int","start_time":1607454900000000000,"unit_time":1607454960000000000,"value":42,"content":""}} 
-&{foo opentelemetry map[abc:def one:1] onelib  int 1607454900000000000 1607454960000000000 42 {"operation":"foo","source":"opentelemetry","attributes":{"abc":"def","one":"1"},"resource":"onelib","description":"","value_type":"int","start_time":1607454900000000000,"unit_time":1607454960000000000,"value":42,"content":""}}
 
-filter
-&{TraceID:00000000000000000000000000000001 ParentID:0 SpanID:0000000000000002 Service:global.ServerName Resource:test-server Operation:span_name Source:opentelemetry SpanType:SPAN_KIND_UNSPECIFIED SourceType: Env: Project: Version: Tags:map[a:b int:123 service_name:global.ServerName] EndPoint: HTTPMethod: HTTPStatusCode: ContainerHost: PID: Start:1645772215853204600 Duration:1000000000 Status:info Content:{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1645772215853204600,"end_time_unix_nano":1645772216853204600,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}} Priority:0 SamplingRateGlobal:0},
-&{TraceID:00000000000000000000000000000001 ParentID:0 SpanID:0000000000000002 Service:global.ServerName Resource:test-server Operation:span_name Source:opentelemetry SpanType:SPAN_KIND_UNSPECIFIED SourceType: Env: Project: Version: Tags:map[a:b int:123 service_name:global.ServerName] EndPoint: HTTPMethod: HTTPStatusCode: ContainerHost: PID: Start:1645772215853204600 Duration:1000000000 Status:info Content:{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1645423573257862600,"end_time_unix_nano":1645423574257862600,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}} Priority:0 SamplingRateGlobal:0}
-    
+metric 在dk上的映射结构体为
+``` go
+type otelResourceMetric struct {
+	Operation   string            `json:"operation"`   // metric.name
+	Source      string            `json:"source"`      // inputName ： opentelemetry
+	Attributes  map[string]string `json:"attributes"`  // tags
+	Resource    string            `json:"resource"`    // global.Meter name
+	Description string            `json:"description"` // metric.Description
+	StartTime   uint64            `json:"start_time"`  // start time
+	UnitTime    uint64            `json:"unit_time"`   // end time
+
+	ValueType string      `json:"value_type"` // double | int | histogram | ExponentialHistogram | summary
+	Value     interface{} `json:"value"`      // 5种类型 对应的值：int | float
+
+	Content string `json:"content"` //
+
+	// TODO : Exemplar 可获取 spanid 等
+}
+```        
+ 

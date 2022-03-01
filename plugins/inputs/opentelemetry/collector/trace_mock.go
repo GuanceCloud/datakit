@@ -1,13 +1,9 @@
-package opentelemetry
+package collector
 
 import (
 	"context"
 	"testing"
 	"time"
-
-	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
-	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
-	"google.golang.org/grpc/metadata"
 
 	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"go.opentelemetry.io/otel/attribute"
@@ -17,6 +13,9 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	tracev1 "go.opentelemetry.io/otel/trace"
+	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"google.golang.org/grpc/metadata"
 )
 
 type MockTrace struct {

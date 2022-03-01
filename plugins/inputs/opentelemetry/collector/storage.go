@@ -1,34 +1,46 @@
 // Package opentelemetry storage
 
-package opentelemetry
+package collector
 
 import (
 	"sync"
 	"time"
 
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
+var (
+	inputName = "opentelemetry"
+	l         = logger.DefaultSLogger("otel-log")
+	maxSend   = 100
+	interval  = 10
+)
+
 // SpansStorage stores the spans.
 type SpansStorage struct {
-	traceMu     sync.Mutex
-	rsm         []DKtrace.DatakitTrace
-	metricMu    sync.Mutex
-	otelMetrics []*otelResourceMetric
-	Count       int
-	max         chan int
-	stop        chan struct{}
+	AfterGather  *DKtrace.AfterGather
+	RegexpString string
+	CustomerTags []string
+	GlobalTags   map[string]string
+	traceMu      sync.Mutex
+	rsm          []DKtrace.DatakitTrace
+	metricMu     sync.Mutex
+	otelMetrics  []*OtelResourceMetric
+	Count        int
+	max          chan int
+	stop         chan struct{}
 }
 
 // NewSpansStorage creates a new spans storage.
 func NewSpansStorage() *SpansStorage {
 	return &SpansStorage{
+		AfterGather: DKtrace.NewAfterGather(),
 		rsm:         make([]DKtrace.DatakitTrace, 0),
-		otelMetrics: make([]*otelResourceMetric, 0),
+		otelMetrics: make([]*OtelResourceMetric, 0),
 		max:         make(chan int, 1),
 		stop:        make(chan struct{}, 1),
 	}
@@ -36,7 +48,7 @@ func NewSpansStorage() *SpansStorage {
 
 // AddSpans adds spans to the spans storage.
 func (s *SpansStorage) AddSpans(rss []*tracepb.ResourceSpans) {
-	traces := mkDKTrace(rss)
+	traces := s.mkDKTrace(rss)
 	s.traceMu.Lock()
 	l.Debugf("mktrace %d otel span and add %d span to storage", len(rss), len(traces))
 	s.rsm = append(s.rsm, traces...)
@@ -47,7 +59,7 @@ func (s *SpansStorage) AddSpans(rss []*tracepb.ResourceSpans) {
 	}
 }
 
-func (s *SpansStorage) AddMetric(rss []*otelResourceMetric) {
+func (s *SpansStorage) AddMetric(rss []*OtelResourceMetric) {
 	s.metricMu.Lock()
 	s.otelMetrics = append(s.otelMetrics, rss...)
 	s.metricMu.Unlock()
@@ -58,7 +70,7 @@ func (s *SpansStorage) AddMetric(rss []*otelResourceMetric) {
 }
 
 // GetResourceSpans returns the stored resource spans.
-func (s *SpansStorage) getDKTrace() []DKtrace.DatakitTrace {
+func (s *SpansStorage) GetDKTrace() []DKtrace.DatakitTrace {
 	s.traceMu.Lock()
 	defer s.traceMu.Unlock()
 	rss := make([]DKtrace.DatakitTrace, 0, len(s.rsm))
@@ -67,10 +79,10 @@ func (s *SpansStorage) getDKTrace() []DKtrace.DatakitTrace {
 	return rss
 }
 
-func (s *SpansStorage) getDKMetric() []*otelResourceMetric {
+func (s *SpansStorage) GetDKMetric() []*OtelResourceMetric {
 	s.metricMu.Lock()
 	defer s.metricMu.Unlock()
-	rss := make([]*otelResourceMetric, 0, len(s.rsm))
+	rss := make([]*OtelResourceMetric, 0, len(s.rsm))
 	rss = append(rss, s.otelMetrics...)
 	s.otelMetrics = s.otelMetrics[:0]
 	return rss
@@ -80,7 +92,7 @@ func (s *SpansStorage) getCount() int {
 	return s.Count
 }
 
-func (s *SpansStorage) run() {
+func (s *SpansStorage) Run() {
 	for {
 		select {
 		case <-s.max:
@@ -99,12 +111,12 @@ func (s *SpansStorage) run() {
 
 // feedAll : trace -> io.trace  |  metric -> io
 func (s *SpansStorage) feedAll() {
-	traces := s.getDKTrace()
+	traces := s.GetDKTrace()
 	for _, trace := range traces {
-		afterGather.Run(inputName, trace, false)
+		s.AfterGather.Run(inputName, trace, false)
 	}
 	l.Debugf("send %d trace to io.trace", len(traces))
-	metrics := s.getDKMetric()
+	metrics := s.GetDKMetric()
 	if len(metrics) > 0 {
 		pts := makePoints(metrics)
 		err := dkio.Feed(inputName, datakit.Metric, pts, &dkio.Option{HighFreq: true})
