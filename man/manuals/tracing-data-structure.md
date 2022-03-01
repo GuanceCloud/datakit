@@ -3,7 +3,11 @@
 ## 简述
 
 此文用于解释主流 Telemetry 平台数据结构以及与 Datakit 平台数据结构的映射关系。
-包括: DataDog, Jaeger, OpenTelemetry, Skywalking, Zipkin
+目前支持数据结构：DataDog，Jaeger，OpenTelemetry，Skywalking，Zipkin
+
+数据转换流：
+
+> 外部 Tracing 数据结构 --> Datakit Span --> Line Protocol
 
 ---
 
@@ -11,7 +15,7 @@
 
 ### Datakit Line Protocol
 
-航协议数据结构是由 Name,Tags, Fields, Timestamp 四部分组成的字符串形如:
+行协议数据结构是由 Name, Tags, Fields, Timestamp 四部分和分隔符 (英文逗号，空格) 组成的字符串，形如：
 
 ```example
 source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
@@ -21,12 +25,12 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 
 ### Datakit Tracing Span Structure
 
-Datakit Span 是 Datakit 内部使用的中间数据结构. Datakit 目前接入的第三方 Tracing 平台都要在 Datakit 内部转换成此结构后传入数据中心.
+Datakit Span 是 Datakit 内部使用的数据结构。第三方 Tracing Agent 数据结构会转换成 Datakit Span 结构后发送到数据中心。
 
 > 以下简称 dkspan
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 
 | TraceID | string | | Trace ID | dkproto.fields.trace_id |
 | ParentID | string | | Parent Span ID | dkproto.fields.parent_id |
@@ -65,21 +69,21 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ### DDTrace Span Structure
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 
-| Duration | int64 | 纳秒 | 耗时 | dkproto.fields.duration |
-| Error | int32 | | Span 状态字段 0:无报错 1:出错 | dkproto.tags.status |
+| TraceID | uint64 | | Trace ID | dkspan.TraceID |
+| ParentID | uint64 | | Parent Span ID | dkspan.ParentID |
+| SpanID | uint64 | | Span ID | dkspan.SpanID |
+| Service | string | | 服务名 | dkspan.Service |
+| Resource | string | | 资源名 | dkspan.Resource |
+| Name | string | | 生产此条 Span 的方法名 | dkspan.Operation |
+| Start | int64 | 纳秒 | Span 起始时间 | dkspan.Start |
+| Duration | int64 | 纳秒 | 耗时 | dkspan.Duration |
+| Error | int32 | | Span 状态字段 0:无报错 1:出错 | dkspan.Status |
 | Meta | map[string, string] | | Span 过程元数据 | dkproto.tags.project, dkproto.tags.env, dkproto.tags.version, dkproto.tags.container_host, dkproto.tags.http_method, dkproto.tags.http_status_code |
-| Metrics | map[string, float64] | | Span 过程需要参与运算数据例如采样 | 无直接对应关系 |
-| Name | string | | 生产此条 Span 的方法名 | dkproto.tags.operation |
-| ParentID | uint64 | | Parent Span ID | dkproto.fields.parent_id |
-| Resource | string | | 资源名 | dkproto.fields.resource |
-| Service | string | | 服务名 | dkproto.tags.service |
-| SpanID | uint64 | | Span ID | dkproto.fields.span_id |
-| Start | int64 | 纳秒 | Span 起始时间 | dkproto.fields.start |
-| TraceID | uint64 | | Trace ID | dkproto.fields.trace_id |
-| Type | string | | Span Type | dkproto.tags.span_type |
+| Metrics | map[string, float64] | | Span 过程需要参与运算数据，例如：采样 | 无直接对应关系 |
+| Type | string | | Span Type | dkspan.SourceType |
 
 ---
 
@@ -91,8 +95,8 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ### Jaeger Thrift Protocol Batch Structure
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 
 | Process | struct pointer | | 进程相关项 | dkproto.tags.service |
 | SeqNo | int64 pointer | | 序列号 | 无直接对应关系 |
@@ -101,8 +105,8 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ### Jaeger Thrift Protocol Span Structure
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 
 | Duration | int64 | 纳秒 | 耗时 | dkproto.fields.duration |
 | Flags | int32 | | Span Flags | 无直接对应关系 |
@@ -122,8 +126,8 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ### Skywalking Segment Object Generated By Proto Buffer Protocol V3
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 
 | IsSizeLimited | bool | | 是否包含连路上所有 Span | 未使用字段 |
 | Service | string | | 服务名 | dkproto.tags.service |
@@ -134,8 +138,8 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ### Skywalking Span Object Structure in Segment Object
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 
 | ComponentId | int32 | | 第三方框架数值化定义 | 未使用字段 |
 | EndTime | int64 | 毫秒 | Span 结束时间 | EndTime 减去 StartTime 对应 dkproto.fields.duration |
@@ -158,8 +162,8 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ### Zipkin Thrift Protocol Span Structure V1
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 
 | Annotations | array | | 参与获取 Service Name | dkproto.tags.service |
 | BinaryAnnotations | array | | 参与获取 Span 状态字段 | dkproto.tags.status |
@@ -174,8 +178,8 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ### Zipkin Span Structure V2
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------- |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 
 | TraceID | struct | | Trace ID | dkproto.fields.trace_id |
 | ID | uint64 | | Span ID | dkproto.fields.span_id |
