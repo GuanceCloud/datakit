@@ -17,10 +17,10 @@
 
 DataKit is an open source, integrated data collection agent, which provides full platform (Linux/Windows/macOS) support and has comprehensive data collection capability, covering various scenarios such as host, container, middleware, tracing, logging and security inspection.
 
-## Key Functions
+## Key Features
 
 - Support collection of metrics, logging and tracing
-- Fully support Kubernates ecology
+- Fully support Kubernetes ecology
 - [Pipeline](https://www.yuque.com/dataflux/datakit/pipeline): Simple structured data extraction
 - Supports third-party data import:
 	- [Telegraf](https://www.yuque.com/dataflux/datakit/telegraf)
