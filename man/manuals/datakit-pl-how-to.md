@@ -125,7 +125,9 @@ default_time(time)       # 将 time 字段作为输出数据的时间戳
 drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
 ```
 
-这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下（**注意，用户自定义 pattern 如果需要全局生效，必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下**）:
+这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下。
+
+> 注意，用户自定义 pattern 如果需要==全局生效==（即在其它 Pipeline 脚本中应用），必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下）:
 
 ```Shell
 $ cat pipeline/pattern/datakit
