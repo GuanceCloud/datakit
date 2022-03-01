@@ -48,8 +48,10 @@ DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L ht
 - Windows
 
 ```powershell
-$env:DK_DATAWAY="https://openway.guance.com?token=tkn_2af4b19d7f5a489fa81f0fff7e63b588";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
+
+更多关于安装的文档，参见[这里](https://www.yuque.com/dataflux/datakit/datakit-install)。
 
 ## 源码编译
 
@@ -88,7 +90,7 @@ cd datakit
 make
 ```
 
-如果编译通过，将在当前目录的 *disk* 目录下生成如下文件：
+如果编译通过，将在当前目录的 *dist* 目录下生成如下文件：
 
 ```
 dist/
