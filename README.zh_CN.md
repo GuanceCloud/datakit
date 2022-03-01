@@ -13,7 +13,7 @@
   <a href="https://www.yuque.com/dataflux/datakit">文档</a>
 </h2>
 
-DataKit 是一款开源、一体式的数据集成 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景。
+DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景。
 
 ## 主要功能点
 
@@ -36,7 +36,7 @@ DataKit 是一款开源、一体式的数据集成 Agent，它提供全平台操
 | macOS 10.12 或更高版本([原因](https://github.com/golang/go/issues/25633)) | amd64 | `/usr/local/datakit` |
 | Windows 7, Server 2008R2 或更高版本 | amd64/386 | 64位：`C:\Program Files\datakit`<br />32位：`C:\Program Files(32)\datakit` |
 
-## 观测云 DataKit 安装
+## DataKit 安装
 
 我们可以直接在观测云平台获取 DataKit 安装命令，主流平台的安装命令大概如下：
 
@@ -55,7 +55,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 ## 源码编译
 
-### 外部依赖
+DataKit 开发过程中依赖了一些外部工具，我们必须先将这些工具准备好才能比较顺利的编译 DataKit。
 
 以下依赖（库/工具）主要用于 DataKit 自身的编译、打包以及发布流程。其中，**不建议在 Windows 上编译 DataKit**。
 

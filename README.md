@@ -1,81 +1,139 @@
-# DataKit
+<p align="center">
+  <img alt="golangci-lint logo" src="datakit-logo.png" height="150" />
+</p>
 
-DataKit is collection agent for [DataFlux](https://guance.com/)
+[![Slack Status](https://img.shields.io/badge/slack-join_chat-orange?logo=slack&style=plastic)](https://app.slack.com/client/T032YB4B6TA/)
+[![MIT License](https://img.shields.io/badge/license-MIT-green?style=plastic)](LICENSE)
+
+<h2>
+  <a href="https://datakit.tools">Website</a>
+  <span> • </span>
+  <a href="https://www.yuque.com/dataflux/datakit">Doc</a>
+</h2>
 
 
 ## _Read this in other languages._
 <kbd>[<img title="中文 (Simplified)" alt="中文 (Simplified)" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/cn.svg" width="22">](README.zh_CN.md)</kbd>
 
-# Build
+DataKit is an open source, integrated data collection agent, which provides full platform (Linux/Windows/macOS) support and has comprehensive data collection capability, covering various scenarios such as host, container, middleware, tracing, logging and security inspection.
 
-## Dependencies
+## Key Functions
 
-- `apt-get install gcc-multilib`: for building oracle input
-- `apt-get install tree`: for Makefile usage
-- `packr2`: for packaging manuals
-- `goyacc`: for pipeline grammar generation
+- Support collection of metrics, logging and tracing
+- Fully support Kubernates ecology
+- [Pipeline](https://www.yuque.com/dataflux/datakit/pipeline): Simple structured data extraction
+- Supports third-party data import:
+	- [Telegraf](https://www.yuque.com/dataflux/datakit/telegraf)
+	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
+	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
+	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
+	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
+	- Tracing related(OpenTelemetry/[DDTrace](https://www.yuque.com/dataflux/datakit/ddtrace)/Zipkin/[Jaeger](https://www.yuque.com/dataflux/datakit/jaeger)/[Skywalking](https://www.yuque.com/dataflux/datakit/skywalking))
 
-DataKit was designed to be build across Darwin, Linux and Windows. For example, you can build windows/amd64 release under Darwin:
+## Minimal Requirements
+
+| OS | Arch | Install Path |
+| --- | --- | --- |
+| Linux Kernel 2.6.23+ | amd64/386/arm/arm64 | `/usr/local/datakit` |
+| macOS 10.12+([Why](https://github.com/golang/go/issues/25633)) | amd64 | `/usr/local/datakit` |
+| Windows 7+/Server 2008R2+ | amd64/386 | 64-bit：`C:\Program Files\datakit`<br />32-nit：`C:\Program Files(32)\datakit` |
+
+
+## Install DataKit
+
+We can directly obtain the DataKit installation command from [guance cloud](http://guance.com). Most of the installation commands seems like that:
+
+- Linux & Mac
+```shell
+DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+- Windows
+
+```powershell
+$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+
+For more documentations about DataKit installation, see [here](https://www.yuque.com/dataflux/datakit/datakit-install).
+
+## Build From Source
+
+DataKit building relies on some external tools/libs, we must install them all before compile the source code.
+
+> We do not support build DataKit on Windows.
+
+
+- Go-1.16.4+
+- gcc-multilib: Used to build Oracle input(`apt-get install gcc-multilib`)
+- tree: After building datakit, `tree` used to show all bianries(`apt-get install tree`)
+- packr2: Used to package resources(mainly documents)
+- goyacc: Used to build grammar for Pipleine(`go get -u golang.org/x/tools/cmd/goyacc`)
+- Docker: Used to build DataKit image
+- lint related:
+	- gofumpt: Used to format go source code(`go install mvdan.cc/gofumpt@latest`)
+	- [golangci-lint 1.42.1](https://github.com/golangci/golangci-lint/releases/tag/v1.42.1)
+- eBPF related:
+	- clang 10.0+
+	- llvm 10.0+
+	- `apt install go-bindata`
+- Documentation exporting:
+	- [waque 1.13.1+](https://github.com/yesmeck/waque)
+
+### Build
+
+1. Clone
 
 ```shell
-# build windows exe on Mac
-LOCAL=windows/amd64 make
+git clone https://github.com/DataFlux-cn/datakit.git
+```
 
-# build linux binary on Mac
-LOCAL=linux/amd64 make
+2. Building
 
-# build on different OS/Arch, DataKit build tool will
-# detect current OS/Arch and build the default one
+```shell
+cd datakit
 make
 ```
 
-and is's possible to huild all release under Darwin:
+If building ok, all binaries are generated under *dist*:
+
+```
+dist/
+├── datakit-linux-amd64
+│   ├── datakit             # DataKit main binary
+│   └── externals      
+│       ├── datakit-ebpf    # eBPF collector
+│       ├── logfwd          # logfwd collector
+│       └── oracle          # Oracle collector
+└── local
+    ├── installer-linux-amd64 # installer used fo Linux 
+    └── version               # version descriptor
+```
+
+We can build all platforms(Linux/Mac/Windows) with following command:
 
 ```shell
-# build all os-arch platform under for release tesing release
 make testing
-
-# run test cases with -race/-cover/-bench, output duplicates to test.output
-make test
 ```
 
-All the output binary under `dist`:
+## Basic Usage
 
-```
-dist
-├  [4.0K]  datakit-linux-386
-│   ├ [ 51M]  datakit
-│   └ [4.0K]  externals
-│       └ [8.5M]  oracle
-├  [4.0K]  datakit-linux-amd64
-│   ├ [ 60M]  datakit
-│   └ [4.0K]  externals
-│       └ [9.9M]  oracle
-├  [4.0K]  datakit-linux-arm
-│   └ [ 51M]  datakit
-├  [4.0K]  datakit-linux-arm64
-│   └ [ 56M]  datakit
-├  [4.0K]  datakit-windows-386
-│   └ [ 52M]  datakit.exe
-├  [4.0K]  datakit-windows-amd64
-│   └ [ 60M]  datakit.exe
-└  [4.0K]  test
-    ├  [ 12M]  installer-linux-386
-    ├  [ 15M]  installer-linux-amd64
-    ├  [ 12M]  installer-linux-arm
-    ├  [ 14M]  installer-linux-arm64
-    ├  [ 13M]  installer-windows-386.exe
-    ├  [ 15M]  installer-windows-amd64.exe
-    └  [ 204]  version
+We can use `help` command to see more usage of DataKit:
 
-9 directories, 15 files
+```shell
+datakit help
+
+# Or
+
+./dist/datakit-linux-amd64/datakit help
 ```
 
-> Note: The Darwin release can not be build under Linux/Windows, because we applied CGO for Darwin release. BTW, Windows lack(default) of many build tools(such as `make`), we still recommand to build under Linux and Darwin.
+## Contributing
 
-# More references
+Before contributing, check out some guideline of DataKit:
 
-- [Datakit-How-TO](https://www.yuque.com/dataflux/datakit/datakit-how-to)
-- Datakit Install
-	- [On host](https://www.yuque.com/dataflux/datakit/datakit-install)
-	- [DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
+- Read [architecure introduciton](https://www.yuque.com/dataflux/datakit/datakit-arch)
+- Read [development guideline](https://www.yuque.com/dataflux/datakit/development)
+
+## Full Documentation
+
+For full documents of DataKit, see[DataKit Doc Repository](https://www.yuque.com/dataflux/datakit)。
