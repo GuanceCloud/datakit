@@ -113,7 +113,7 @@ spec:
       valueFrom:
         fieldRef:
           apiVersion: v1
-          fieldPath: metadata.annotations['datakit/log']
+          fieldPath: metadata.annotations['datakit/logs']
     - name: LOGFWD_POD_NAME
       valueFrom:
         fieldRef:
