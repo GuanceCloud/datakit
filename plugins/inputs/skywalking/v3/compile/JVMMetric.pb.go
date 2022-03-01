@@ -24,10 +24,11 @@
 package compile
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -819,21 +820,24 @@ func file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_rawD
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_goTypes = []interface{}{
-	(PoolType)(0),               // 0: skywalking.v3.PoolType
-	(GCPhrase)(0),               // 1: skywalking.v3.GCPhrase
-	(*JVMMetricCollection)(nil), // 2: skywalking.v3.JVMMetricCollection
-	(*JVMMetric)(nil),           // 3: skywalking.v3.JVMMetric
-	(*Memory)(nil),              // 4: skywalking.v3.Memory
-	(*MemoryPool)(nil),          // 5: skywalking.v3.MemoryPool
-	(*GC)(nil),                  // 6: skywalking.v3.GC
-	(*Thread)(nil),              // 7: skywalking.v3.Thread
-	(*Class)(nil),               // 8: skywalking.v3.Class
-	(*CPU)(nil),                 // 9: skywalking.v3.CPU
-	(*Commands)(nil),            // 10: skywalking.v3.Commands
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_msgTypes  = make([]protoimpl.MessageInfo, 7)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_goTypes   = []interface{}{
+		(PoolType)(0),               // 0: skywalking.v3.PoolType
+		(GCPhrase)(0),               // 1: skywalking.v3.GCPhrase
+		(*JVMMetricCollection)(nil), // 2: skywalking.v3.JVMMetricCollection
+		(*JVMMetric)(nil),           // 3: skywalking.v3.JVMMetric
+		(*Memory)(nil),              // 4: skywalking.v3.Memory
+		(*MemoryPool)(nil),          // 5: skywalking.v3.MemoryPool
+		(*GC)(nil),                  // 6: skywalking.v3.GC
+		(*Thread)(nil),              // 7: skywalking.v3.Thread
+		(*Class)(nil),               // 8: skywalking.v3.Class
+		(*CPU)(nil),                 // 9: skywalking.v3.CPU
+		(*Commands)(nil),            // 10: skywalking.v3.Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_language_agent_JVMMetric_proto_depIdxs = []int32{
 	3,  // 0: skywalking.v3.JVMMetricCollection.metrics:type_name -> skywalking.v3.JVMMetric
 	9,  // 1: skywalking.v3.JVMMetric.cpu:type_name -> skywalking.v3.CPU

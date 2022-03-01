@@ -24,10 +24,11 @@
 package compile
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -402,15 +403,18 @@ func file_plugins_inputs_skywalking_v3_proto_language_agent_CLRMetric_proto_rawD
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_CLRMetric_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_language_agent_CLRMetric_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_CLRMetric_proto_goTypes = []interface{}{
-	(*CLRMetricCollection)(nil), // 0: skywalking.v3.CLRMetricCollection
-	(*CLRMetric)(nil),           // 1: skywalking.v3.CLRMetric
-	(*ClrGC)(nil),               // 2: skywalking.v3.ClrGC
-	(*ClrThread)(nil),           // 3: skywalking.v3.ClrThread
-	(*CPU)(nil),                 // 4: skywalking.v3.CPU
-	(*Commands)(nil),            // 5: skywalking.v3.Commands
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_language_agent_CLRMetric_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_CLRMetric_proto_goTypes  = []interface{}{
+		(*CLRMetricCollection)(nil), // 0: skywalking.v3.CLRMetricCollection
+		(*CLRMetric)(nil),           // 1: skywalking.v3.CLRMetric
+		(*ClrGC)(nil),               // 2: skywalking.v3.ClrGC
+		(*ClrThread)(nil),           // 3: skywalking.v3.ClrThread
+		(*CPU)(nil),                 // 4: skywalking.v3.CPU
+		(*Commands)(nil),            // 5: skywalking.v3.Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_language_agent_CLRMetric_proto_depIdxs = []int32{
 	1, // 0: skywalking.v3.CLRMetricCollection.metrics:type_name -> skywalking.v3.CLRMetric
 	4, // 1: skywalking.v3.CLRMetric.cpu:type_name -> skywalking.v3.CPU

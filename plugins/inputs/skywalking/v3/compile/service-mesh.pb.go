@@ -24,10 +24,11 @@
 package compile
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -443,15 +444,18 @@ func file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_pro
 	return file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_goTypes = []interface{}{
-	(Protocol)(0),               // 0: skywalking.v3.Protocol
-	(*ServiceMeshMetric)(nil),   // 1: skywalking.v3.ServiceMeshMetric
-	(*TCPInfo)(nil),             // 2: skywalking.v3.TCPInfo
-	(*MeshProbeDownstream)(nil), // 3: skywalking.v3.MeshProbeDownstream
-	(DetectPoint)(0),            // 4: skywalking.v3.DetectPoint
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_msgTypes  = make([]protoimpl.MessageInfo, 3)
+	file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_goTypes   = []interface{}{
+		(Protocol)(0),               // 0: skywalking.v3.Protocol
+		(*ServiceMeshMetric)(nil),   // 1: skywalking.v3.ServiceMeshMetric
+		(*TCPInfo)(nil),             // 2: skywalking.v3.TCPInfo
+		(*MeshProbeDownstream)(nil), // 3: skywalking.v3.MeshProbeDownstream
+		(DetectPoint)(0),            // 4: skywalking.v3.DetectPoint
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_service_mesh_probe_service_mesh_proto_depIdxs = []int32{
 	0, // 0: skywalking.v3.ServiceMeshMetric.protocol:type_name -> skywalking.v3.Protocol
 	4, // 1: skywalking.v3.ServiceMeshMetric.detectPoint:type_name -> skywalking.v3.DetectPoint

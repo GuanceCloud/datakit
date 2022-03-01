@@ -5,15 +5,18 @@ package ddtrace
 
 import (
 	fmt "fmt"
+	math "math"
+
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto.Marshal
-var _ = fmt.Errorf
-var _ = math.Inf
+var (
+	_ = proto.Marshal
+	_ = fmt.Errorf
+	_ = math.Inf
+)
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -45,18 +48,23 @@ func (*DDSpan) ProtoMessage()    {}
 func (*DDSpan) Descriptor() ([]byte, []int) {
 	return fileDescriptor_fc5f2b88b579999f, []int{0}
 }
+
 func (m *DDSpan) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DDSpan.Unmarshal(m, b)
 }
+
 func (m *DDSpan) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DDSpan.Marshal(b, m, deterministic)
 }
+
 func (m *DDSpan) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_DDSpan.Merge(m, src)
 }
+
 func (m *DDSpan) XXX_Size() int {
 	return xxx_messageInfo_DDSpan.Size(m)
 }
+
 func (m *DDSpan) XXX_DiscardUnknown() {
 	xxx_messageInfo_DDSpan.DiscardUnknown(m)
 }

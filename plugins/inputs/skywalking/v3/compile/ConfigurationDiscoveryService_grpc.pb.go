@@ -4,6 +4,7 @@ package compile
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -70,12 +71,12 @@ type ConfigurationDiscoveryServiceServer interface {
 }
 
 // UnimplementedConfigurationDiscoveryServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedConfigurationDiscoveryServiceServer struct {
-}
+type UnimplementedConfigurationDiscoveryServiceServer struct{}
 
 func (UnimplementedConfigurationDiscoveryServiceServer) FetchConfigurations(context.Context, *ConfigurationSyncRequest) (*Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchConfigurations not implemented")
 }
+
 func (UnimplementedConfigurationDiscoveryServiceServer) mustEmbedUnimplementedConfigurationDiscoveryServiceServer() {
 }
 

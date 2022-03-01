@@ -4,6 +4,7 @@ package compile
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -98,15 +99,16 @@ type TraceSegmentReportServiceServer interface {
 }
 
 // UnimplementedTraceSegmentReportServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedTraceSegmentReportServiceServer struct {
-}
+type UnimplementedTraceSegmentReportServiceServer struct{}
 
 func (UnimplementedTraceSegmentReportServiceServer) Collect(TraceSegmentReportService_CollectServer) error {
 	return status.Errorf(codes.Unimplemented, "method Collect not implemented")
 }
+
 func (UnimplementedTraceSegmentReportServiceServer) CollectInSync(context.Context, *SegmentCollection) (*Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CollectInSync not implemented")
 }
+
 func (UnimplementedTraceSegmentReportServiceServer) mustEmbedUnimplementedTraceSegmentReportServiceServer() {
 }
 

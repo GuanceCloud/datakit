@@ -4,6 +4,7 @@ package compile
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -99,15 +100,16 @@ type ProfileTaskServer interface {
 }
 
 // UnimplementedProfileTaskServer must be embedded to have forward compatible implementations.
-type UnimplementedProfileTaskServer struct {
-}
+type UnimplementedProfileTaskServer struct{}
 
 func (UnimplementedProfileTaskServer) GetProfileTaskCommands(context.Context, *ProfileTaskCommandQuery) (*Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProfileTaskCommands not implemented")
 }
+
 func (UnimplementedProfileTaskServer) CollectSnapshot(ProfileTask_CollectSnapshotServer) error {
 	return status.Errorf(codes.Unimplemented, "method CollectSnapshot not implemented")
 }
+
 func (UnimplementedProfileTaskServer) ReportTaskFinish(context.Context, *ProfileTaskFinishReport) (*Commands, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportTaskFinish not implemented")
 }

@@ -24,10 +24,11 @@
 package compile
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -532,16 +533,19 @@ func file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_rawDescG
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_goTypes = []interface{}{
-	(*Label)(nil),               // 0: skywalking.v3.Label
-	(*MeterBucketValue)(nil),    // 1: skywalking.v3.MeterBucketValue
-	(*MeterSingleValue)(nil),    // 2: skywalking.v3.MeterSingleValue
-	(*MeterHistogram)(nil),      // 3: skywalking.v3.MeterHistogram
-	(*MeterData)(nil),           // 4: skywalking.v3.MeterData
-	(*MeterDataCollection)(nil), // 5: skywalking.v3.MeterDataCollection
-	(*Commands)(nil),            // 6: skywalking.v3.Commands
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_goTypes  = []interface{}{
+		(*Label)(nil),               // 0: skywalking.v3.Label
+		(*MeterBucketValue)(nil),    // 1: skywalking.v3.MeterBucketValue
+		(*MeterSingleValue)(nil),    // 2: skywalking.v3.MeterSingleValue
+		(*MeterHistogram)(nil),      // 3: skywalking.v3.MeterHistogram
+		(*MeterData)(nil),           // 4: skywalking.v3.MeterData
+		(*MeterDataCollection)(nil), // 5: skywalking.v3.MeterDataCollection
+		(*Commands)(nil),            // 6: skywalking.v3.Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_language_agent_Meter_proto_depIdxs = []int32{
 	0, // 0: skywalking.v3.MeterSingleValue.labels:type_name -> skywalking.v3.Label
 	0, // 1: skywalking.v3.MeterHistogram.labels:type_name -> skywalking.v3.Label

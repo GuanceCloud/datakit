@@ -5,14 +5,17 @@ package ddtrace
 
 import (
 	fmt "fmt"
-	proto "github.com/gogo/protobuf/proto"
 	math "math"
+
+	proto "github.com/gogo/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto.Marshal
-var _ = fmt.Errorf
-var _ = math.Inf
+var (
+	_ = proto.Marshal
+	_ = fmt.Errorf
+	_ = math.Inf
+)
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -36,18 +39,23 @@ func (*APIDDTrace) ProtoMessage()    {}
 func (*APIDDTrace) Descriptor() ([]byte, []int) {
 	return fileDescriptor_0571941a1d628a80, []int{0}
 }
+
 func (m *APIDDTrace) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_APIDDTrace.Unmarshal(m, b)
 }
+
 func (m *APIDDTrace) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_APIDDTrace.Marshal(b, m, deterministic)
 }
+
 func (m *APIDDTrace) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_APIDDTrace.Merge(m, src)
 }
+
 func (m *APIDDTrace) XXX_Size() int {
 	return xxx_messageInfo_APIDDTrace.Size(m)
 }
+
 func (m *APIDDTrace) XXX_DiscardUnknown() {
 	xxx_messageInfo_APIDDTrace.DiscardUnknown(m)
 }

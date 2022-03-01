@@ -4,6 +4,7 @@ package compile
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -83,8 +84,7 @@ type EventServiceServer interface {
 }
 
 // UnimplementedEventServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedEventServiceServer struct {
-}
+type UnimplementedEventServiceServer struct{}
 
 func (UnimplementedEventServiceServer) Collect(EventService_CollectServer) error {
 	return status.Errorf(codes.Unimplemented, "method Collect not implemented")

@@ -24,10 +24,11 @@
 package compile
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -956,21 +957,24 @@ func file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_rawDes
 	return file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_rawDescData
 }
 
-var file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_goTypes = []interface{}{
-	(SpanType)(0),              // 0: skywalking.v3.SpanType
-	(RefType)(0),               // 1: skywalking.v3.RefType
-	(SpanLayer)(0),             // 2: skywalking.v3.SpanLayer
-	(*SegmentObject)(nil),      // 3: skywalking.v3.SegmentObject
-	(*SegmentReference)(nil),   // 4: skywalking.v3.SegmentReference
-	(*SpanObject)(nil),         // 5: skywalking.v3.SpanObject
-	(*Log)(nil),                // 6: skywalking.v3.Log
-	(*ID)(nil),                 // 7: skywalking.v3.ID
-	(*SegmentCollection)(nil),  // 8: skywalking.v3.SegmentCollection
-	(*KeyStringValuePair)(nil), // 9: skywalking.v3.KeyStringValuePair
-	(*Commands)(nil),           // 10: skywalking.v3.Commands
-}
+var (
+	file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_msgTypes  = make([]protoimpl.MessageInfo, 6)
+	file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_goTypes   = []interface{}{
+		(SpanType)(0),              // 0: skywalking.v3.SpanType
+		(RefType)(0),               // 1: skywalking.v3.RefType
+		(SpanLayer)(0),             // 2: skywalking.v3.SpanLayer
+		(*SegmentObject)(nil),      // 3: skywalking.v3.SegmentObject
+		(*SegmentReference)(nil),   // 4: skywalking.v3.SegmentReference
+		(*SpanObject)(nil),         // 5: skywalking.v3.SpanObject
+		(*Log)(nil),                // 6: skywalking.v3.Log
+		(*ID)(nil),                 // 7: skywalking.v3.ID
+		(*SegmentCollection)(nil),  // 8: skywalking.v3.SegmentCollection
+		(*KeyStringValuePair)(nil), // 9: skywalking.v3.KeyStringValuePair
+		(*Commands)(nil),           // 10: skywalking.v3.Commands
+	}
+)
+
 var file_plugins_inputs_skywalking_v3_proto_language_agent_Tracing_proto_depIdxs = []int32{
 	5,  // 0: skywalking.v3.SegmentObject.spans:type_name -> skywalking.v3.SpanObject
 	1,  // 1: skywalking.v3.SegmentReference.refType:type_name -> skywalking.v3.RefType
