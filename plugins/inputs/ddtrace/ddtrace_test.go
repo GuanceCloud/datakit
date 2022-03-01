@@ -1,148 +1,140 @@
-//go:build linux && darwin
-// +build linux,darwin
-
 package ddtrace
 
 import (
 	"bytes"
-	"io"
-	"io/ioutil"
+	"encoding/json"
+	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/DataDog/datadog-agent/pkg/trace/pb"
-	"github.com/DataDog/datadog-agent/pkg/trace/test/testutil"
-	"github.com/stretchr/testify/assert"
-	vmsgp "github.com/vmihailenco/msgpack/v4"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
-var data = [2]interface{}{
-	0: []string{
-		0:  "baggage",
-		1:  "item",
-		2:  "elasticsearch.version",
-		3:  "7.0",
-		4:  "my-name",
-		5:  "X",
-		6:  "my-service",
-		7:  "my-resource",
-		8:  "_dd.sampling_rate_whatever",
-		9:  "value whatever",
-		10: "sql",
-	},
-	1: [][][12]interface{}{
-		{
-			{
-				6,
-				4,
-				7,
-				uint64(1),
-				uint64(2),
-				uint64(3),
-				int64(123),
-				int64(456),
-				1,
-				map[interface{}]interface{}{
-					8: 9,
-					0: 1,
-					2: 3,
-				},
-				map[interface{}]float64{
-					5: 1.2,
-				},
-				10,
-			},
-		},
-	},
+func TestDDTraceAgent(t *testing.T) {
+	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktrace itrace.DatakitTrace, strikMod bool) {})
+
+	rand.Seed(time.Now().UnixNano())
+	testJsonDDTraces(t)
+	testMsgPackDDTraces(t)
 }
 
-func genRamTraces(maxLevels, masSpans, count int) pb.Traces {
-	traces := make(pb.Traces, count)
-	for i := range traces {
-		traces[i] = testutil.RandomTrace(maxLevels, masSpans)
-	}
+func testJsonDDTraces(t *testing.T) {
+	t.Helper()
 
-	return traces
-}
+	for _, version := range []string{v2, v3, v4} {
+		tsvr := httptest.NewServer(http.HandlerFunc(handleDDTrace))
+		for _, method := range []string{http.MethodPost, http.MethodPut} {
+			buf, err := jsonEncoder(randomDDTraces(3, 10))
+			if err != nil {
+				t.Error(err.Error())
 
-func TestTracesDecodeV3V4(t *testing.T) {
-	ramTraces := genRamTraces(10, 20, 10)
+				return
+			}
 
-	tsrv := httptest.NewServer(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		traces, err := decodeRequest(req.URL.Path, req)
-		if err != nil {
-			t.Error(err)
-			resp.WriteHeader(http.StatusBadRequest)
-		}
+			req, err := http.NewRequest(method, tsvr.URL+version, bytes.NewBuffer(buf))
+			if err != nil {
+				t.Error(err.Error())
 
-		for i := range traces {
-			for j := range traces[i] {
-				if !assert.EqualValues(t, ramTraces[i][j], traces[i][j]) {
-					t.Errorf("not equivalent span expect %v got %v", ramTraces[i][j], traces[i][j])
-					resp.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			for _, contentType := range []string{"application/json", "text/json"} {
+				req.Header.Set("Content-Type", contentType)
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					t.Error(err.Error())
+
+					return
+				}
+				resp.Body.Close()
+				if resp.StatusCode != http.StatusOK {
+					fmt.Printf("request failed with status code %d\n", resp.StatusCode)
 				}
 			}
 		}
-
-		resp.WriteHeader(http.StatusOK)
-	}))
-	defer tsrv.Close()
-
-	bts, err := ramTraces.MarshalMsg(nil)
-	if err != nil {
-		t.Error(err)
 	}
+}
 
-	for _, path := range []string{v3, v4} {
-		resp, err := http.Post(tsrv.URL+path, "application/msgpack", bytes.NewBuffer(bts))
-		if err != nil {
-			t.Error(err)
-		} else {
-			if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-				t.Error(err)
+func testMsgPackDDTraces(t *testing.T) {
+	t.Helper()
+
+	for _, version := range []string{v3, v4} {
+		tsvr := httptest.NewServer(http.HandlerFunc(handleDDTrace))
+		for _, method := range []string{http.MethodPost} {
+			buf, err := msgpackEncoder(randomDDTraces(3, 10))
+			if err != nil {
+				t.Error(err.Error())
+
+				return
 			}
-			defer resp.Body.Close() //nolint:errcheck
-		}
 
-		if resp.StatusCode != http.StatusOK {
-			t.Error(resp.Status)
+			req, err := http.NewRequest(method, tsvr.URL+version, bytes.NewBuffer(buf))
+			if err != nil {
+				t.Error(err.Error())
+
+				return
+			}
+
+			req.Header.Set("Content-Type", "application/msgpack")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Error(err.Error())
+
+				return
+			}
+			resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				fmt.Printf("request failed with status code %d\n", resp.StatusCode)
+			}
 		}
 	}
 }
 
-func TestTracesDecodeV5(t *testing.T) {
-	tsrv := httptest.NewServer(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		traces, err := decodeRequest(req.URL.Path, req)
-		if err != nil {
-			t.Error(err)
-		}
+func randomDDSpan() *DDSpan {
+	return &DDSpan{
+		Service:  testutils.RandString(10),
+		Name:     testutils.RandString(10),
+		Resource: testutils.RandString(10),
+		TraceID:  uint64(testutils.RandInt64(10)),
+		SpanID:   uint64(testutils.RandInt64(10)),
+		ParentID: uint64(testutils.RandInt64(10)),
+		Start:    testutils.RandTime().UnixNano(),
+		Duration: testutils.RandInt64(6),
+		Meta:     testutils.RandTags(10, 10, 20),
+		Metrics:  testutils.RandMetrics(10, 10),
+		Type: testutils.RandWithinStrings([]string{
+			"consul", "cache", "memcached", "redis", "aerospike", "cassandra", "db", "elasticsearch", "leveldb",
+			"", "mongodb", "sql", "http", "web", "benchmark", "build", "custom", "datanucleus", "dns", "graphql", "grpc", "hibernate", "queue", "rpc", "soap", "template", "test", "worker",
+		}),
+	}
+}
 
-		for i := range traces {
-			for j := range traces[i] {
-				log.Info(traces[i][j])
-			}
-		}
-	}))
-
-	defer tsrv.Close() //nolint:errcheck
-
-	bts, err := vmsgp.Marshal(data)
-	if err != nil {
-		t.Error(err)
+func randomDDTrace(n int) DDTrace {
+	ddtrace := make(DDTrace, n)
+	for i := 0; i < n; i++ {
+		ddtrace[i] = randomDDSpan()
 	}
 
-	resp, err := http.Post(tsrv.URL+v5, "application/msgpack", bytes.NewBuffer(bts)) //nolint:bodyclose
-	if err != nil {
-		t.Error(err)
-	} else {
-		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
-			t.Error(err)
-		}
-		defer resp.Body.Close() //nolint:errcheck
+	return ddtrace
+}
+
+func randomDDTraces(n, m int) DDTraces {
+	ddtraces := make(DDTraces, n)
+	for i := 0; i < n; i++ {
+		ddtraces[i] = randomDDTrace(m)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		t.Error(err)
-	}
+	return ddtraces
+}
+
+func jsonEncoder(ddtraces DDTraces) ([]byte, error) {
+	return json.Marshal(ddtraces)
+}
+
+func msgpackEncoder(ddtraces DDTraces) ([]byte, error) {
+	return Marshal(ddtraces)
 }

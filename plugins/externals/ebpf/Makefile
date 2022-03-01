@@ -1,24 +1,52 @@
-uname = $(shell uname -r)
+KERNEL_RELEASE := $(shell uname -r)
 
+ARCH ?= $(shell uname -m | sed -e s/x86_64/x86_64/ \
+				  -e s/aarch64.*/arm64/)
 
-BASE_PATH = $(BASEPATH)
-OUT_PATH = $(OUTPATH)
+MACHINE_ARCH := $(ARCH)
+GO_ARCH := $(MACHINE_ARCH)
 
-$(shell mkdir -p $(BASE_PATH)/dist $(BASE_PATH)/c/bin)
+# not support 32bit arch
 
-all: netflow_c offset_guess_c bash_history_c bindata buildexec
+ifeq ($(MACHINE_ARCH),x86_64)
+        MACHINE_ARCH := x86
+		GO_ARCH := amd64
+endif
+ifeq ($(MACHINE_ARCH),amd64)
+        MACHINE_ARCH := x86
+		GO_ARCH := amd64
+endif
 
-netflow_c: 
-	clang \
-		-I/usr/src/linux-headers-$(uname)/arch/x86/include -I/usr/src/linux-headers-$(uname)/arch/x86/include/generated \
-		-I/usr/src/linux-headers-$(uname)/include -I/usr/src/linux-headers-$(uname)/arch/x86/include/uapi -I/usr/src/linux-headers-$(uname)/arch/x86/include/generated/uapi \
-		-I/usr/src/linux-headers-$(uname)/include/uapi -I/usr/src/linux-headers-$(uname)/include/generated/uapi \
-		-fno-stack-protector -g \
+SRCPATH ?= .
+SRC_PATH := $(SRCPATH)
+
+BIN_PATH := $(SRC_PATH)/c/bin/$(GO_ARCH)
+
+OUTPATH ?= $(SRC_PATH)/dist/$(GO_ARCH)/
+OUT_PATH := $(OUTPATH)
+
+$(shell mkdir -p $(BIN_PATH))
+
+KERNELSRC ?= /usr/src/linux-headers-$(KERNEL_RELEASE)
+KERNEL_SRC := $(KERNELSRC)
+
+KERNEL_UAPI_INCLUDE := -isystem$(KERNEL_SRC)/arch/$(MACHINE_ARCH)/include/uapi \
+		-isystem$(KERNEL_SRC)/arch/$(MACHINE_ARCH)/include/generated/uapi \
+		-isystem$(KERNEL_SRC)/include/uapi \
+		-isystem$(KERNEL_SRC)/include/generated/uapi
+
+KERNEL_INCLUDE := -isystem$(KERNEL_SRC)/arch/$(MACHINE_ARCH)/include \
+		-isystem$(KERNEL_SRC)/arch/$(MACHINE_ARCH)/include/generated \
+		-isystem$(KERNEL_SRC)/include \
+		$(KERNEL_UAPI_INCLUDE)
+
+BPF_INCLUDE := $(KERNEL_INCLUDE) \
 		-include linux/kconfig.h \
-		-I$(BASE_PATH)/c/common \
-		-include asm_goto_workaround.h \
-		-D__KERNEL__ -D__BPF_TRACING__ \
-		-DKBUILD_MODNAME=\"dktracer\" \
+		-I$(SRC_PATH)/c/common \
+		-include asm_goto_workaround.h
+
+BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ \
+		-fno-stack-protector -g \
 		-Wno-unused-value \
 		-Wno-pointer-sign \
 		-Wno-compare-distinct-pointer-types \
@@ -26,87 +54,37 @@ netflow_c:
 		-Wno-address-of-packed-member \
 		-Wno-tautological-compare\
 		-Wno-unknown-warning-option \
-		-O2 -emit-llvm \
-		-c $(BASE_PATH)/c/netflow/netflow.c \
-		-o - | llc -march=bpf -filetype=obj -o $(BASE_PATH)/c/bin/netflow.o
-	llvm-strip $(BASE_PATH)/c/bin/netflow.o --no-strip-all  -R .BTF
+		-O2 -emit-llvm
 
-offset_guess_c:
-	clang \
-		-I/usr/src/linux-headers-$(uname)/arch/x86/include -I/usr/src/linux-headers-$(uname)/arch/x86/include/generated \
-		-I/usr/src/linux-headers-$(uname)/include -I/usr/src/linux-headers-$(uname)/arch/x86/include/uapi -I/usr/src/linux-headers-$(uname)/arch/x86/include/generated/uapi \
-		-I/usr/src/linux-headers-$(uname)/include/uapi -I/usr/src/linux-headers-$(uname)/include/generated/uapi \
-		-fno-stack-protector -g \
-		-include linux/kconfig.h \
-		-I$(BASE_PATH)/c/common \
-		-include asm_goto_workaround.h \
-		-D__KERNEL__ -D__BPF_TRACING__ \
-		-DKBUILD_MODNAME=\"dktracer\" \
-		-Wno-unused-value \
-		-Wno-pointer-sign \
-		-Wno-compare-distinct-pointer-types \
-		-Wno-gnu-variable-sized-type-not-at-end \
-		-Wno-address-of-packed-member \
-		-Wno-tautological-compare\
-		-Wno-unknown-warning-option \
-		-O2 -emit-llvm \
-		-c $(BASE_PATH)/c/offset_guess/offset_guess.c \
-		-o - | llc -march=bpf -filetype=obj -o $(BASE_PATH)/c/bin/offset_guess.o
-	llvm-strip $(BASE_PATH)/c/bin/offset_guess.o --no-strip-all -R .BTF
+all: go_bindata buildexec
 
-dns_filter_c:
-	clang \
-		-I/usr/src/linux-headers-$(uname)/arch/x86/include -I/usr/src/linux-headers-$(uname)/arch/x86/include/generated \
-		-I/usr/src/linux-headers-$(uname)/include -I/usr/src/linux-headers-$(uname)/arch/x86/include/uapi -I/usr/src/linux-headers-$(uname)/arch/x86/include/generated/uapi \
-		-I/usr/src/linux-headers-$(uname)/include/uapi -I/usr/src/linux-headers-$(uname)/include/generated/uapi \
-		-fno-stack-protector -g \
-		-include linux/kconfig.h \
-		-I$(BASE_PATH)/c/common \
-		-include asm_goto_workaround.h \
-		-D__KERNEL__ -D__BPF_TRACING__ \
-		-DKBUILD_MODNAME=\"dktracer\" \
-		-Wno-unused-value \
-		-Wno-pointer-sign \
-		-Wno-compare-distinct-pointer-types \
-		-Wno-gnu-variable-sized-type-not-at-end \
-		-Wno-address-of-packed-member \
-		-Wno-tautological-compare\
-		-Wno-unknown-warning-option \
-		-O2 -emit-llvm \
-		-c $(BASE_PATH)/c/socket_filter/dns_filter.c \
-		-o - | llc -march=bpf -filetype=obj -o $(BASE_PATH)/c/bin/dns_filter.o
-	llvm-strip $(BASE_PATH)/c/bin/dns_filter.o --no-strip-all -R .BTF
+netflow.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(SRC_PATH)/c/netflow/netflow.c \
+		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/netflow.o
 
-bash_history_c : 
-	clang \
-		-I/usr/src/linux-headers-$(uname)/arch/x86/include -I/usr/src/linux-headers-$(uname)/arch/x86/include/generated \
-		-I/usr/src/linux-headers-$(uname)/include -I/usr/src/linux-headers-$(uname)/arch/x86/include/uapi -I/usr/src/linux-headers-$(uname)/arch/x86/include/generated/uapi \
-		-I/usr/src/linux-headers-$(uname)/include/uapi -I/usr/src/linux-headers-$(uname)/include/generated/uapi \
-		-fno-stack-protector -g \
-		-include linux/kconfig.h \
-		-I$(BASE_PATH)/c/common \
-		-include asm_goto_workaround.h \
-		-D__KERNEL__ -D__BPF_TRACING__ \
-		-Wno-unused-value \
-		-Wno-pointer-sign \
-		-Wno-compare-distinct-pointer-types \
-		-Wno-gnu-variable-sized-type-not-at-end \
-		-Wno-address-of-packed-member \
-		-Wno-tautological-compare\
-		-Wno-unknown-warning-option \
-		-O2 -emit-llvm \
-		-c $(BASE_PATH)/c/bash_history/bash_history.c \
-		-o - | llc -march=bpf -filetype=obj -o $(BASE_PATH)/c/bin/bash_history.o
-	llvm-strip $(BASE_PATH)/c/bin/bash_history.o --no-strip-all  -R .BTF
+offset_guess.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(SRC_PATH)/c/offset_guess/offset_guess.c \
+		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/offset_guess.o
 
-bindata:
-	go-bindata -pkg ebpf -prefix "$(BASE_PATH)/c/bin/" -o "$(BASE_PATH)/c/ebpf_bindata.go" \
-		 "$(BASE_PATH)/c/bin/offset_guess.o" "$(BASE_PATH)/c/bin/netflow.o" "$(BASE_PATH)/c/bin/bash_history.o"
+bash_history.o : 
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-c $(SRC_PATH)/c/bash_history/bash_history.c \
+		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/bash_history.o
 
-# /dist/ebpf
+bindata: offset_guess.o netflow.o bash_history.o
+	llvm-strip $(BIN_PATH)/*.o --no-strip-all -R .BTF
+
+go_bindata: bindata
+	go-bindata -pkg ebpf -prefix "$(BIN_PATH)/" -o "$(SRC_PATH)/c/bindata_linux_$(GO_ARCH).go" \
+		 "$(BIN_PATH)/offset_guess.o" "$(BIN_PATH)/netflow.o" "$(BIN_PATH)/bash_history.o"
+
 buildexec:
-	go build -tags="ebpf" -o $(OUT_PATH) $(BASE_PATH)/datakit-ebpf.go
+	go build -tags="ebpf" -o $(OUT_PATH) $(SRC_PATH)/datakit-ebpf.go
 
 clean:
-	rm dist/*
-	rm c/bin/*
+	rm -r $(OUT_PATH)
+	rm -r $(BIN_PATH)

@@ -57,6 +57,21 @@ var externals = []*dkexternal{
 			"CGO_ENABLED=1",
 		},
 	},
+	{
+		name: "logfwd",
+		lang: "go",
+
+		entry: "logfwd.go",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+			"linux/arm64": true,
+		},
+
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=0",
+		},
+	},
 	// &dkexternal{
 	// 	// requirement: apt-get install gcc-multilib
 	// 	name: "skywalkingGrpcV3",
@@ -99,6 +114,13 @@ func buildExternals(outdir, goos, goarch string) error {
 			continue
 		}
 
+		if ex.name == "ebpf" {
+			if goarch != runtime.GOARCH {
+				l.Warnf("skip, ebpf does not support cross compilation")
+				continue
+			}
+		}
+
 		out := ex.name
 		if ex.out != "" {
 			out = ex.out
@@ -132,8 +154,9 @@ func buildExternals(outdir, goos, goarch string) error {
 			args := []string{
 				"make",
 				"--file=" + filepath.Join("plugins", "externals", ex.name, ex.entry),
+				"SRCPATH=" + "plugins/externals/" + ex.name,
 				"OUTPATH=" + filepath.Join(outdir, "externals", out),
-				"BASEPATH=" + "plugins/externals/" + ex.name,
+				"ARCH=" + runtime.GOARCH,
 			}
 
 			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
