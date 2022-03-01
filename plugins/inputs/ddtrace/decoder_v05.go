@@ -26,7 +26,7 @@ func dictionaryString(bts []byte, dict []string) (string, []byte, error) {
 }
 
 // UnmarshalMsgDictionary decodes a trace using the specification from the v0.5 endpoint.
-// For details, see the documentation for endpoint v0.5 in pkg/trace/api/version.go
+// For details, see the documentation for endpoint v0.5 in pkg/trace/api/version.go.
 func (t *DDTraces) UnmarshalMsgDictionary(bts []byte) error {
 	var err error
 	if _, bts, err = msgp.ReadArrayHeaderBytes(bts); err != nil {
@@ -84,7 +84,7 @@ const spanPropertyCount = 12
 
 // UnmarshalMsgDictionary decodes a span from the given decoder dc, looking up strings
 // in the given dictionary dict. For details, see the documentation for endpoint v0.5
-// in pkg/trace/api/version.go
+// in pkg/trace/api/version.go.
 func (z *DDSpan) UnmarshalMsgDictionary(bts []byte, dict []string) ([]byte, error) {
 	var (
 		sz  uint32

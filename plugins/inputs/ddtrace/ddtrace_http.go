@@ -41,10 +41,6 @@ func handleDDTrace(resp http.ResponseWriter, req *http.Request) {
 			continue
 		}
 
-		for _, span := range trace {
-			log.Debugf("%s,  %s,  %d", span.Service, span.Resource, span.ParentID)
-		}
-
 		if dktrace := ddtraceToDkTrace(trace); len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
