@@ -8,24 +8,24 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-green?style=plastic)](LICENSE)
 
 <h2>
-  <a href="https://todo">官网</a>
+  <a href="https://datakit.tools">官网</a>
   <span> • </span>
   <a href="https://www.yuque.com/dataflux/datakit">文档</a>
 </h2>
 
-DataKit 是一款开源、一体式的数据集成 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景：
+DataKit 是一款开源、一体式的数据集成 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景。
 
 ## 主要功能点
 
-- 支持[主机]()、[中间件]()、[日志]()、[APM]() 等领域的指标、日志以及 Tracing 几大类数据采集
-- 完整支持 [Kubernates]() 生态
-- [Pipeline]()：简便的结构化数据提取
+- 支持主机、中间件、日志、APM 等领域的指标、日志以及 Tracing 几大类数据采集
+- 完整支持 Kubernates 云原生生态
+- [Pipeline](https://www.yuque.com/dataflux/datakit/pipeline)：简便的结构化数据提取
 - 支持接入其它第三方数据采集
-	- [Telegraf]()
-	- [Prometheus]()
-	- [Statsd]()
-	- [Fluentd]()
-	- [Function]()
+	- [Telegraf](https://www.yuque.com/dataflux/datakit/telegraf)
+	- [Prometheus](https://www.yuque.com/dataflux/datakit/prom)
+	- [Statsd](https://www.yuque.com/dataflux/datakit/statsd)
+	- [Fluentd](https://www.yuque.com/dataflux/datakit/logstreaming#a653042e)
+	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
 	- Tracing 相关（[OpenTelemetry]()/[DDTrace]()/[Zipkin]()/[Jaeger]()/[Skywalking]()）
 
 ## 操作系统最低要求
@@ -117,6 +117,13 @@ make testing
 datakit help
 ```
 
+## 如何贡献代码
+
+在为我们贡献代码之前：
+
+- 可尝试阅读 DataKit [基本架构介绍](https://www.yuque.com/dataflux/datakit/datakit-arch)
+- 请先查看我们的[开发指南](https://www.yuque.com/dataflux/datakit/development)
+
 ## 文档
 
-DataKit 文档，参见[这里](https://www.yuque.com/dataflux/datakit)。
+DataKit 文档，参见[DataKit 文档库](https://www.yuque.com/dataflux/datakit)。
