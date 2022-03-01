@@ -5,7 +5,6 @@
 </p>
 
 [![Slack Status](https://img.shields.io/badge/slack-join__chat-orange)](https://app.slack.com/client/T032YB4B6TA/)
-[![Go Report](https://goreportcard.com/badge/github.com/pyroscope-io/pyroscope)](https://goreportcard.com/report/github.com/pyroscope-io/pyroscope)
 [![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <h2>

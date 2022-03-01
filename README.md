@@ -2,6 +2,10 @@
 
 DataKit is collection agent for [DataFlux](https://guance.com/)
 
+
+## _Read this in other languages._
+<kbd>[<img title="中文 (Simplified)" alt="中文 (Simplified)" src="https://cdn.staticaly.com/gh/hjnilsson/country-flags/master/svg/cn.svg" width="22">](README.zh_CN.md)</kbd>
+
 # Build
 
 ## Dependencies
