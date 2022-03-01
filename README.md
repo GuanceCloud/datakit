@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="golangci-lint logo" src="datakit-logo.png" height="150" />
+  <img alt="datakit logo" src="datakit-logo.png" height="150" />
 </p>
 
 [![Slack Status](https://img.shields.io/badge/slack-join_chat-orange?logo=slack&style=plastic)](https://app.slack.com/client/T032YB4B6TA/)
