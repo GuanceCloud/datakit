@@ -1,8 +1,19 @@
 # DataKit
 
-![log](datakit-logo.png)
+<p align="center">
+  <img alt="golangci-lint logo" src="datakit-logo.png" height="150" />
+</p>
 
 [![Slack Status](https://img.shields.io/badge/slack-join__chat-orange)](https://app.slack.com/client/T032YB4B6TA/)
+[![Go Report](https://goreportcard.com/badge/github.com/pyroscope-io/pyroscope)](https://goreportcard.com/report/github.com/pyroscope-io/pyroscope)
+[![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+<h2>
+  <a href="https://pyroscope.io/">Website</a>
+  <span> • </span>
+  <a href="https://pyroscope.io/docs">Docs</a>
+  <span> • </span>
+</h2>
 
 DataKit 是一款开源、一体式的数据集成 Agent，它提供全平台操作系统（Linux/Windows/macOS）支持，拥有全面数据采集能力，涵盖主机、容器、中间件、Tracing、日志以及安全巡检等各种场景：
 
