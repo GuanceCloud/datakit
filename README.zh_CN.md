@@ -4,8 +4,8 @@
   <img alt="golangci-lint logo" src="datakit-logo.png" height="150" />
 </p>
 
-[![Slack Status](https://img.shields.io/badge/slack-join__chat-orange)](https://app.slack.com/client/T032YB4B6TA/)
-[![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Slack Status](https://img.shields.io/badge/slack-join_chat-orange?logo=slack&style=plastic)](https://app.slack.com/client/T032YB4B6TA/)
+[![MIT License](https://img.shields.io/badge/license-MIT-green?style=plastic)](LICENSE)
 
 <h2>
   <a href="https://todo">官网</a>
