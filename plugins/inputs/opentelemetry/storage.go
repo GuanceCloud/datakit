@@ -38,6 +38,7 @@ func NewSpansStorage() *SpansStorage {
 func (s *SpansStorage) AddSpans(rss []*tracepb.ResourceSpans) {
 	traces := mkDKTrace(rss)
 	s.traceMu.Lock()
+	l.Debugf("mktrace %d otel span and add %d span to storage", len(rss), len(traces))
 	s.rsm = append(s.rsm, traces...)
 	s.traceMu.Unlock()
 	s.Count += len(traces)
@@ -102,6 +103,7 @@ func (s *SpansStorage) feedAll() {
 	for _, trace := range traces {
 		afterGather.Run(inputName, trace, false)
 	}
+	l.Debugf("send %d trace to io.trace", len(traces))
 	metrics := s.getDKMetric()
 	if len(metrics) > 0 {
 		pts := makePoints(metrics)

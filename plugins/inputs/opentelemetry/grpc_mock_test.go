@@ -3,6 +3,7 @@ package opentelemetry
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"sync"
 	"testing"
@@ -27,6 +28,7 @@ import (
 )
 
 func contextWithTimeout(parent context.Context, t *testing.T, timeout time.Duration) (context.Context, context.CancelFunc) {
+	t.Helper()
 	d, ok := t.Deadline()
 	if !ok {
 		d = time.Now().Add(timeout)
@@ -48,9 +50,10 @@ type MockOtlpGrpcCollector struct {
 }
 
 func (m *MockOtlpGrpcCollector) startServer(t *testing.T, endpoint string) {
+	t.Helper()
 	ln, err := net.Listen("tcp", endpoint)
 	if err != nil {
-		t.Fatalf("Failed to get an endpoint: %v", err)
+		t.Errorf("Failed to get an endpoint: %v", err)
 		return
 	}
 
@@ -67,6 +70,7 @@ func (m *MockOtlpGrpcCollector) startServer(t *testing.T, endpoint string) {
 }
 
 func newGRPCExporter(t *testing.T, ctx context.Context, endpoint string, additionalOpts ...otlptracegrpc.Option) *otlptrace.Exporter {
+	t.Helper()
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithInsecure(),
 		otlptracegrpc.WithEndpoint(endpoint),
@@ -83,6 +87,7 @@ func newGRPCExporter(t *testing.T, ctx context.Context, endpoint string, additio
 }
 
 func newMetricGRPCExporter(t *testing.T, ctx context.Context, endpoint string, additionalOpts ...otlpmetricgrpc.Option) *otlpmetric.Exporter {
+	t.Helper()
 	opts := []otlpmetricgrpc.Option{
 		otlpmetricgrpc.WithInsecure(),
 		otlpmetricgrpc.WithEndpoint(endpoint),
@@ -126,7 +131,7 @@ var _ export.Reader = &metricReader{}
 
 func (m *metricReader) ForEach(_ aggregation.TemporalitySelector, fn func(export.Record) error) error {
 	for _, record := range m.records {
-		if err := fn(record); err != nil && err != aggregation.ErrNoData {
+		if err := fn(record); err != nil && errors.Is(err, aggregation.ErrNoData) {
 			return err
 		}
 	}

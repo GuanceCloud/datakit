@@ -70,7 +70,6 @@ func TestExportTrace_Export(t *testing.T) {
 		"String":  "test",
 	}
 	dktraces := storage.getDKTrace()
-	storage.reset()
 
 	if len(dktraces) != 1 {
 		t.Errorf("dktraces.len != 1")

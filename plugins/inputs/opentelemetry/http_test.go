@@ -86,7 +86,6 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 		"String":  "test",
 	}
 	dktraces := storage.getDKTrace()
-	storage.reset()
 
 	if len(dktraces) != 1 {
 		t.Errorf("dktraces.len != 1")

@@ -24,7 +24,6 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 				dt := newEmptyTags()
 				dt.makeAllTags(span, spans.Resource.Attributes)
 				//  tags := dt.toDataKitTagsV2(span, spans.Resource.Attributes)
-
 				dkSpan := &DKtrace.DatakitSpan{
 					TraceID:            hex.EncodeToString(span.GetTraceId()),
 					ParentID:           byteToString(span.GetParentSpanId()),
@@ -46,7 +45,7 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 					PID:                dt.getAttributeVal(otelResourceProcessPidKey),
 					Start:              int64(span.StartTimeUnixNano),                        // 注意单位 nano
 					Duration:           int64(span.EndTimeUnixNano - span.StartTimeUnixNano), // 单位 nano
-					Status:             getDKSpanStatus(span.GetStatus().Code),               // 使用 dk status
+					Status:             getDKSpanStatus(span.GetStatus()),                    // 使用 dk status
 					Content:            "",
 					Priority:           0,
 					SamplingRateGlobal: 0,
@@ -213,9 +212,12 @@ func byteToString(bts []byte) string {
 }
 
 // getDKSpanStatus 从otel的status转成dk的span_status
-func getDKSpanStatus(code tracepb.Status_StatusCode) string {
+func getDKSpanStatus(statuspb *tracepb.Status) string {
 	status := DKtrace.STATUS_INFO
-	switch code {
+	if statuspb == nil {
+		return status
+	}
+	switch statuspb.Code {
 	case tracepb.Status_STATUS_CODE_UNSET:
 		status = DKtrace.STATUS_INFO
 	case tracepb.Status_STATUS_CODE_OK:

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,12 +18,6 @@ type mockCollector struct {
 	endpoint string
 	server   *http.Server
 
-	spanLock sync.Mutex
-
-	injectHTTPStatus  []int
-	injectContentType string
-	delay             <-chan struct{}
-
 	clientTLSConfig *tls.Config
 	expectedHeaders map[string]string
 }
@@ -34,6 +27,7 @@ func (c *mockCollector) Stop() error {
 }
 
 func (c *mockCollector) MustStop(t *testing.T) {
+	t.Helper()
 	assert.NoError(t, c.server.Shutdown(context.Background()))
 }
 
@@ -43,6 +37,9 @@ func (c *mockCollector) Endpoint() string {
 
 func (c *mockCollector) ClientTLSConfig() *tls.Config {
 	return c.clientTLSConfig
+}
+func (c *mockCollector) ExpectedHeaders() map[string]string {
+	return c.expectedHeaders
 }
 
 /*
@@ -94,6 +91,7 @@ type mockCollectorConfig struct {
 }
 
 func runMockCollector(t *testing.T, cfg mockCollectorConfig, h http.HandlerFunc) *mockCollector {
+	t.Helper()
 	ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", cfg.Port))
 	require.NoError(t, err)
 	_, portStr, err := net.SplitHostPort(ln.Addr().String())
@@ -116,6 +114,7 @@ func runMockCollector(t *testing.T, cfg mockCollectorConfig, h http.HandlerFunc)
 
 // newHTTPExporter http client
 func newHTTPExporter(t *testing.T, ctx context.Context, path string, endpoint string) *otlptrace.Exporter {
+	t.Helper()
 	httpClent, err := otlptracehttp.New(
 		ctx,
 		otlptracehttp.WithURLPath(path),

@@ -102,6 +102,7 @@ want:
 */
 
 func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.DatakitTrace) {
+	t.Helper()
 	// 固定时间测试 否则格式化content数据不对
 	startTime := time.Date(2020, time.December, 8, 19, 15, 0, 0, time.UTC)
 	endTime := startTime.Add(time.Second)
@@ -124,7 +125,10 @@ func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.
 		),
 		// resource.WithFromEnv(), // service name or service attributes
 	)
-
+	if err != nil {
+		t.Errorf("err=%v", err)
+		return
+	}
 	spanCxt := tracev1.NewSpanContext(tracev1.SpanContextConfig{
 		TraceID:    traceID,
 		SpanID:     spanID,

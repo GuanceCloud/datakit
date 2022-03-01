@@ -82,7 +82,8 @@ func Test_mkDKTrace(t *testing.T) {
 
 	roSpans, want := mockRoSpans(t)
 	if err := exp.ExportSpans(ctx, roSpans); err != nil {
-		t.Fatalf("err=%v", err)
+		t.Errorf("err=%v", err)
+		return
 	}
 	time.Sleep(time.Millisecond * 40) // wait MockTrace
 	rss := trace.getResourceSpans()
@@ -141,13 +142,14 @@ func Test_dkTags_addGlobalTags(t *testing.T) {
 		{
 			name:   "add a:b",
 			fields: fields{tags: map[string]string{}},
-			want:   &dkTags{replaceTags: map[string]string{"globalTag_a": "b"}},
+			want:   &dkTags{replaceTags: map[string]string{"globalTag_a": "b"}, tags: map[string]string{}},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				tags: tt.fields.tags,
+				tags:        tt.fields.tags,
+				replaceTags: map[string]string{},
 			}
 			if got := dt.addGlobalTags(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("addGlobalTags() = %v, want %v", got, tt.want)
@@ -210,6 +212,7 @@ func Test_dkTags_checkAllTagsKey(t *testing.T) {
 			name:   "case",
 			fields: fields{tags: map[string]string{"a.b": "c"}},
 			want: &dkTags{
+				tags:        map[string]string{"a.b": "c"},
 				replaceTags: map[string]string{"a_b": "c"},
 			},
 		},
@@ -217,46 +220,11 @@ func Test_dkTags_checkAllTagsKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				tags: tt.fields.tags,
+				tags:        tt.fields.tags,
+				replaceTags: map[string]string{},
 			}
 			if got := dt.checkAllTagsKey(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("checkAllTagsKey() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_dkTags_checkCustomTags(t *testing.T) {
-	type fields struct {
-		tags map[string]string
-	}
-	tests := []struct {
-		name      string
-		regexpStr string
-		fields    fields
-		want      *dkTags
-	}{
-		{
-			name:      "regexp-1",
-			regexpStr: "os_*|process_*",
-			fields:    fields{tags: map[string]string{"os_name": "linux", "other_key": "other_value"}},
-			want:      &dkTags{replaceTags: map[string]string{"other_key": "other_value"}},
-		},
-		{
-			name:      "regexp-2",
-			regexpStr: "os_*|process_*",
-			fields:    fields{tags: map[string]string{"os_name": "linux", "process_id": "123", "other_key": "other_value"}},
-			want:      &dkTags{replaceTags: map[string]string{"other_key": "other_value"}},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dt := &dkTags{
-				tags: tt.fields.tags,
-			}
-			regexpString = tt.regexpStr
-			if got := dt.checkCustomTags(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("checkCustomTags() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -323,7 +291,7 @@ func Test_dkTags_setAttributesToTags(t *testing.T) {
 
 func Test_getDKSpanStatus(t *testing.T) {
 	type args struct {
-		code tracepb.Status_StatusCode
+		code *tracepb.Status
 	}
 	tests := []struct {
 		name string
@@ -332,18 +300,18 @@ func Test_getDKSpanStatus(t *testing.T) {
 	}{
 		{
 			name: "case1",
-			args: args{code: tracepb.Status_STATUS_CODE_UNSET},
+			args: args{code: &tracepb.Status{Code: tracepb.Status_STATUS_CODE_UNSET}},
 			want: "info"},
 
 		{
 			name: "case2",
-			args: args{code: tracepb.Status_STATUS_CODE_OK},
+			args: args{code: &tracepb.Status{Code: tracepb.Status_STATUS_CODE_OK}},
 			want: "ok",
 		},
 
 		{
 			name: "case3",
-			args: args{code: tracepb.Status_STATUS_CODE_ERROR},
+			args: args{code: &tracepb.Status{Code: tracepb.Status_STATUS_CODE_ERROR}},
 			want: "error",
 		},
 	}
@@ -433,6 +401,57 @@ func Test_dkTags_getAttributeVal(t *testing.T) {
 			}
 			if got := dt.getAttributeVal(tt.args.keyName); got != tt.want {
 				t.Errorf("getAttributeVal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_dkTags_checkCustomTags1(t *testing.T) {
+	type fields struct {
+		tags        map[string]string
+		replaceTags map[string]string
+	}
+	tests := []struct {
+		name      string
+		regexpStr string
+		fields    fields
+		want      *dkTags
+	}{
+		{
+			name:      "regexp-1",
+			regexpStr: "os_*|process_*",
+			fields: fields{
+				tags:        map[string]string{},
+				replaceTags: map[string]string{"os_name": "linux", "other_key": "other_value"},
+			},
+			want: &dkTags{
+				tags:        map[string]string{},
+				replaceTags: map[string]string{"other_key": "other_value"},
+			},
+		},
+
+		{
+			name:      "regexp-2",
+			regexpStr: "os_*|process_*",
+			fields: fields{
+				tags:        map[string]string{},
+				replaceTags: map[string]string{"os_name": "linux", "process_id": "123", "other_key": "other_value"},
+			},
+			want: &dkTags{
+				tags:        map[string]string{},
+				replaceTags: map[string]string{"other_key": "other_value"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dt := &dkTags{
+				tags:        tt.fields.tags,
+				replaceTags: tt.fields.replaceTags,
+			}
+			regexpString = tt.regexpStr
+			if got := dt.checkCustomTags(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("checkCustomTags() = %v, want %v", got, tt.want)
 			}
 		})
 	}

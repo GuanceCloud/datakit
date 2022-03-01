@@ -157,6 +157,7 @@ func (i *Input) Run() {
 		open = true
 	}
 	if i.Ogrpc.TraceEnable || i.Ogrpc.MetricEnable {
+		open = true
 		go i.Ogrpc.run()
 	}
 	if open {
