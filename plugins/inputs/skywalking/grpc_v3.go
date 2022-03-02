@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func runServerV3(addr string) {
+func registerServerV3(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Errorf("start skywalking V3 grpc server %s failed: %v", addr, err)
@@ -53,17 +53,10 @@ func (s *TraceReportServerV3) Collect(tsc skyimpl.TraceSegmentReportService_Coll
 
 		log.Debug("v3 segment received")
 
-		dktrace, err := segobjToDkTrace(segobj)
-		if err != nil {
-			log.Error(err.Error())
-
-			return err
-		}
-
-		if len(dktrace) == 0 {
+		if dktrace := segobjToDkTrace(segobj); len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
-			afterGather.Run(inputName, dktrace, false)
+			afterGatherRun.Run(inputName, dktrace, false)
 		}
 	}
 }
@@ -76,27 +69,25 @@ func (*TraceReportServerV3) CollectInSync(
 	return &skyimpl.Commands{}, nil
 }
 
-func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error) {
+func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 	var dktrace itrace.DatakitTrace
 	for _, span := range segment.Spans {
+		if span == nil {
+			continue
+		}
+
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
 			ParentID:  "0",
-			EndPoint:  span.Peer,
-			Operation: span.OperationName,
 			Service:   segment.Service,
+			Resource:  span.OperationName,
+			Operation: span.OperationName,
 			Source:    inputName,
+			EndPoint:  span.Peer,
 			Start:     span.StartTime * int64(time.Millisecond),
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
-			Tags:      tags,
 		}
-
-		js, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		dkspan.Content = string(js)
 
 		if span.SpanType == skyimpl.SpanType_Entry {
 			if len(span.Refs) > 0 {
@@ -120,15 +111,27 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) (itrace.DatakitTrace, error
 			dkspan.SpanType = itrace.SPAN_TYPE_EXIT
 		}
 
-		if defSampler != nil {
+		sourceTags := make(map[string]string)
+		for _, tag := range span.Tags {
+			sourceTags[tag.Key] = tag.Value
+		}
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+
+		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
+		if buf, err := json.Marshal(span); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
 		}
 
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 type EventServerV3 struct {

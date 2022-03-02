@@ -34,6 +34,7 @@ var (
 		datakit.ListDataWay,
 		datakit.ObjectLabel,
 		datakit.LogUpload,
+		datakit.PipelinePull,
 	}
 
 	ExtraHeaders               = map[string]string{}
@@ -105,6 +106,31 @@ func (dw *DataWayCfg) GetToken() []string {
 	}
 
 	return resToken
+}
+
+func (dw *DataWayCfg) CheckToken(token string) (err error) {
+	err = fmt.Errorf("token invalid format")
+
+	tokenFormatMap := map[string]int{
+		"token_": 32,
+		"tkn_":   32,
+		"tokn_":  24,
+	}
+
+	parts := strings.Split(token, "_")
+
+	if len(parts) == 2 {
+		prefix := parts[0] + "_"
+		tokenVal := parts[1]
+
+		if tokenLen, ok := tokenFormatMap[prefix]; ok {
+			if len(tokenVal) == tokenLen {
+				err = nil
+			}
+		}
+	}
+
+	return
 }
 
 func (dw *DataWayCfg) Apply() error {

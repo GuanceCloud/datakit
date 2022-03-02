@@ -59,7 +59,6 @@ func StartUDPAgent(addr string) error {
 			log.Error(err.Error())
 			continue
 		}
-
 		if len(dktrace) == 0 {
 			log.Warn("empty datakit trace")
 		} else {
@@ -95,18 +94,11 @@ func parseJaegerUDP(data []byte) (itrace.DatakitTrace, error) {
 		return nil, err
 	}
 
-	var dktrace itrace.DatakitTrace
-	if dktrace, err = batchToDkTrace(batch.Batch); err != nil {
-		log.Error("process batch failed :%s,", err.Error())
-
-		return nil, err
-	}
+	dktrace := batchToDkTrace(batch.Batch)
 
 	if err = thriftProtocol.ReadMessageEnd(context.TODO()); err != nil {
 		log.Error("read message end failed :%s,", err.Error())
-
-		return nil, err
 	}
 
-	return dktrace, nil
+	return dktrace, err
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime/debug"
 	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
@@ -13,75 +12,48 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
-func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
+func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
 
-	defer func() {
-		resp.WriteHeader(http.StatusOK)
-		if r := recover(); r != nil {
-			log.Errorf("Stack crash: %v", r)
-			log.Errorf("Stack info :%s", string(debug.Stack()))
-		}
-	}()
-
-	treqinfo, err := itrace.ParseTraceInfo(req)
+	buf := thrift.NewTMemoryBuffer()
+	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
 		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
 		return
-	}
-
-	if treqinfo.ContentType != "application/x-thrift" {
-		log.Errorf("Jeager unsupported Content-Type: %s", treqinfo.ContentType)
-
-		return
-	}
-
-	if err = parseJaegerThrift(treqinfo.Body); err != nil {
-		log.Error(err.Error())
-	}
-}
-
-func parseJaegerThrift(octets []byte) error {
-	buffer := thrift.NewTMemoryBuffer()
-	if _, err := buffer.Write(octets); err != nil {
-		return err
-	}
-	transport := thrift.NewTBinaryProtocolConf(buffer, &thrift.TConfiguration{})
-	batch := &jaeger.Batch{}
-	if err := batch.Read(context.TODO(), transport); err != nil {
-		return err
-	}
-
-	dktrace, err := batchToDkTrace(batch)
-	if err != nil {
-		return err
-	}
-
-	if len(dktrace) == 0 {
-		log.Warn("empty datakit trace")
-	} else {
-		afterGather.Run(inputName, dktrace, false)
-	}
-
-	return nil
-}
-
-func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
-	project, version, env := getExpandInfo(batch)
-	if project == "" {
-		project = tags[itrace.PROJECT]
-	}
-	if version == "" {
-		version = tags[itrace.VERSION]
-	}
-	if env == "" {
-		env = tags[itrace.ENV]
 	}
 
 	var (
-		dktrace            itrace.DatakitTrace
-		spanIDs, parentIDs = getSpanIDsAndParentIDs(batch.Spans)
+		transport = thrift.NewTBinaryProtocolConf(buf, &thrift.TConfiguration{})
+		batch     = &jaeger.Batch{}
+	)
+	if err = batch.Read(context.TODO(), transport); err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	if dktrace := batchToDkTrace(batch); len(dktrace) == 0 {
+		log.Warn("empty datakit trace")
+	} else {
+		afterGatherRun.Run(inputName, dktrace, false)
+	}
+}
+
+func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
+	buf, err := json.Marshal(batch)
+	if err != nil {
+		log.Debug(err.Error())
+	} else {
+		log.Debug(string(buf))
+	}
+
+	var (
+		project, version, env = getExpandInfo(batch)
+		dktrace               itrace.DatakitTrace
+		spanIDs, parentIDs    = getSpanIDsAndParentIDs(batch.Spans)
 	)
 	for _, span := range batch.Spans {
 		if span == nil {
@@ -92,42 +64,47 @@ func batchToDkTrace(batch *jaeger.Batch) (itrace.DatakitTrace, error) {
 			TraceID:   itrace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
 			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
 			SpanID:    fmt.Sprintf("%d", span.SpanId),
-			Env:       env,
-			Operation: span.OperationName,
-			Project:   project,
 			Service:   batch.Process.ServiceName,
+			Resource:  span.OperationName,
+			Operation: span.OperationName,
 			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeInt(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			SpanType:  itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			Env:       env,
+			Project:   project,
 			Start:     span.StartTime * int64(time.Microsecond),
 			Duration:  span.Duration * int64(time.Microsecond),
 			Version:   version,
 		}
 
-		buf, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		dkspan.Content = string(buf)
-
 		dkspan.Status = itrace.STATUS_OK
-
-		if defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
-		}
-
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
 				dkspan.Status = itrace.STATUS_ERR
 				break
 			}
 		}
-		dkspan.Tags = tags
+
+		sourceTags := make(map[string]string)
+		for _, tag := range span.Tags {
+			sourceTags[tag.Key] = tag.String()
+		}
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+
+		if dkspan.ParentID == "0" && defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
+		if buf, err := json.Marshal(span); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
+		}
 
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]bool) {

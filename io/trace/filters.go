@@ -1,29 +1,49 @@
 package trace
 
 import (
+	"fmt"
 	"regexp"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 )
 
+// tracing data keep priority.
+const (
+	// reject trace before send to dataway.
+	PriorityReject = -1
+	// auto calculate with sampling rate.
+	PriorityAuto = 0
+	// always send to dataway and do not consider sampling and filters.
+	PriorityKeep = 1
+)
+
 type Sampler struct {
 	Priority           int     `toml:"priority" json:"priority"`
 	SamplingRateGlobal float64 `toml:"sampling_rate" json:"sampling_rate"`
+	ratio              int
+	once               sync.Once
 }
 
 func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
+	smp.once.Do(func() {
+		smp.ratio = int(smp.SamplingRateGlobal * 100)
+	})
+
 	for i := range dktrace {
 		if IsRootSpan(dktrace[i]) {
-			switch dktrace[i].Priority {
+			switch smp.Priority {
 			case PriorityAuto:
 				if smp.SamplingRateGlobal >= 1 {
 					return dktrace, false
 				}
-				tid := UnifyToInt64ID(dktrace[i].TraceID)
-				if tid%100 < int64(smp.SamplingRateGlobal*100) {
+				if int(UnifyToInt64ID(dktrace[i].TraceID)%100) < smp.ratio {
 					return dktrace, false
 				} else {
+					log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d%%",
+						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID, smp.ratio)
+
 					return nil, true
 				}
 			case PriorityReject:
@@ -39,13 +59,14 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-func (ds *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
+func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	switch priority {
 	case PriorityAuto, PriorityReject, PriorityKeep:
-		ds.Priority = priority
+		smp.Priority = priority
 	}
 	if samplingRateGlobal >= 0 && samplingRateGlobal <= 1 {
-		ds.SamplingRateGlobal = samplingRateGlobal
+		smp.SamplingRateGlobal = samplingRateGlobal
+		smp.ratio = int(smp.SamplingRateGlobal * 100)
 	}
 }
 
@@ -53,18 +74,18 @@ type CloseResource struct {
 	IgnoreResources map[string][]*regexp.Regexp
 }
 
-func (close *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
-	if len(close.IgnoreResources) == 0 {
+func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if len(cres.IgnoreResources) == 0 {
 		return dktrace, false
 	}
 
 	for i := range dktrace {
 		if IsRootSpan(dktrace[i]) {
-			for service, resList := range close.IgnoreResources {
+			for service, resList := range cres.IgnoreResources {
 				if dktrace[i].Service == service {
 					for j := range resList {
 						if resList[j].MatchString(dktrace[i].Resource) {
-							log.Debugf("closed service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+							log.Debugf("close trace from service: %s resource: %s send by source: %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 
 							return nil, true
 						}
@@ -77,9 +98,9 @@ func (close *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return dktrace, false
 }
 
-func (close *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
+func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 	if len(ignResList) == 0 {
-		close.IgnoreResources = nil
+		cres.IgnoreResources = nil
 	} else {
 		ignResRegs := make(map[string][]*regexp.Regexp)
 		for service, resList := range ignResList {
@@ -88,48 +109,55 @@ func (close *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 				ignResRegs[service] = append(ignResRegs[service], regexp.MustCompile(resList[i]))
 			}
 		}
-		close.IgnoreResources = ignResRegs
+		cres.IgnoreResources = ignResRegs
 	}
 }
 
 type KeepRareResource struct {
 	Open       bool
-	Span       time.Duration
+	Duration   time.Duration
+	once       sync.Once
 	presentMap map[string]time.Time
 }
 
-func (keep *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
-	if !keep.Open {
+func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
+	if !kprres.Open {
 		return dktrace, false
 	}
-	if keep.presentMap == nil {
-		keep.presentMap = make(map[string]time.Time)
-	}
+	kprres.once.Do(func() {
+		kprres.presentMap = make(map[string]time.Time)
+	})
 
 	var skip bool
 	for i := range dktrace {
 		if IsRootSpan(dktrace[i]) {
+			sed := fmt.Sprintf("%s%s%s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+			if len(sed) == 0 {
+				break
+			}
 			var (
-				checkSum = hashcode.GenMapHash(map[string]string{
-					"service":  dktrace[i].Service,
-					"resource": dktrace[i].Resource,
-					"env":      dktrace[i].Env,
-				})
+				checksum  = hashcode.GenStringsHash(sed)
 				lastCheck time.Time
 				ok        bool
 			)
-			if lastCheck, ok = keep.presentMap[checkSum]; !ok || time.Since(lastCheck) >= keep.Span {
-				log.Debugf("got rare service: %s resource: %s from %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
+			if lastCheck, ok = kprres.presentMap[checksum]; !ok || time.Since(lastCheck) >= kprres.Duration {
+				log.Debugf("got rare trace from service: %s resource: %s send by %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 				skip = true
 			}
-			keep.presentMap[checkSum] = time.Now()
+			kprres.presentMap[checksum] = time.Now()
+			break
 		}
 	}
 
 	return dktrace, skip
 }
 
-func (keep *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
-	keep.Open = open
-	keep.Span = span
+func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
+	kprres.Open = open
+	kprres.Duration = span
+	if kprres.Open {
+		kprres.presentMap = make(map[string]time.Time)
+	} else {
+		kprres.presentMap = nil
+	}
 }

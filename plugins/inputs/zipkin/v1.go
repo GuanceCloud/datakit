@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -43,9 +44,9 @@ type ZipkinSpanV1 struct {
 	Debug             bool                `thrift:"debug,9" db:"debug" json:"debug,omitempty"`
 }
 
-func unmarshalZipkinThriftV1(octets []byte) ([]*zpkcorev1.Span, error) {
+func unmarshalZipkinThriftV1(body io.ReadCloser) ([]*zpkcorev1.Span, error) {
 	buffer := thrift.NewTMemoryBuffer()
-	_, err := buffer.Write(octets)
+	_, err := buffer.ReadFrom(body)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
 	return zc
 }
 
-func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, error) {
+func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkCoreV1SpanIDsAndParentIDs(zpktrace)
@@ -147,19 +148,22 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 			TraceID:   fmt.Sprintf("%d", uint64(span.TraceID)),
 			SpanID:    fmt.Sprintf("%d", uint64(span.ID)),
 			ParentID:  "0",
+			Resource:  span.Name,
 			Operation: span.Name,
 			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeInt(span.ID, *span.ParentID, spanIDs, parentIDs),
-			Tags:      tags,
+			SpanType:  itrace.FindSpanTypeIntSpanID(span.ID, *span.ParentID, spanIDs, parentIDs),
 		}
+
 		if span.ParentID != nil {
 			dkspan.ParentID = fmt.Sprintf("%d", uint64(*span.ParentID))
 		}
+
 		if span.Timestamp != nil {
 			dkspan.Start = (*span.Timestamp) * int64(time.Microsecond)
 		} else {
 			dkspan.Start = getStartTimestamp(span)
 		}
+
 		if span.Duration != nil {
 			dkspan.Duration = (*span.Duration) * int64(time.Microsecond)
 		} else {
@@ -198,24 +202,30 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) (itrace.DatakitTrace, erro
 			dkspan.Version = version
 		}
 
-		buf, err := json.Marshal(zipkinConvThriftToJSON(span))
-		if err != nil {
-			return nil, err
+		sourceTags := make(map[string]string)
+		for _, tag := range span.BinaryAnnotations {
+			sourceTags[tag.Key] = string(tag.Value)
 		}
-		dkspan.Content = string(buf)
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if defSampler != nil {
+		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
+		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
 		}
 
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
-func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error) {
+func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
@@ -229,9 +239,10 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error)
 			TraceID:   span.TraceID,
 			SpanID:    span.ID,
 			ParentID:  span.ParentID,
-			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeString(span.ID, span.ParentID, spanIDs, parentIDs),
+			Resource:  span.Name,
 			Operation: span.Name,
+			Source:    inputName,
+			SpanType:  itrace.FindSpanTypeStrSpanID(span.ID, span.ParentID, spanIDs, parentIDs),
 			Start:     getFirstTimestamp(span),
 			Duration:  span.Duration * int64(time.Microsecond),
 		}
@@ -274,21 +285,21 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) (itrace.DatakitTrace, error)
 			dkspan.Version = version
 		}
 
-		if defSampler != nil {
+		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
 		}
 
-		buf, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
+		if buf, err := json.Marshal(span); err != nil {
+			continue
+		} else {
+			dkspan.Content = string(buf)
 		}
-		dkspan.Content = string(buf)
 
 		dktrace = append(dktrace, dkspan)
 	}
 
-	return dktrace, nil
+	return dktrace
 }
 
 func getZpkCoreV1SpanIDsAndParentIDs(trace []*zpkcorev1.Span) (map[int64]bool, map[int64]bool) {

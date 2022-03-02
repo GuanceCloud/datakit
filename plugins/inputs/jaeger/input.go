@@ -17,7 +17,7 @@ var (
 	_ inputs.HTTPInput = &Input{}
 )
 
-var (
+const (
 	inputName    = "jaeger"
 	sampleConfig = `
 [[inputs.jaeger]]
@@ -27,6 +27,11 @@ var (
 
   # Jaeger agent host:port address for UDP transport.
   # address = "127.0.0.1:6831"
+
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. Those keys set by client code will take precedence over
+  ## keys in [inputs.jaeger.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
+  # customer_tags = ["key1", "key2", ...]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -52,19 +57,21 @@ var (
     # sampling_rate = 1.0
 
   # [inputs.jaeger.tags]
-    # tag1 = "value1"
-    # tag2 = "value2"
+    # key1 = "value1"
+    # key2 = "value2"
     # ...
 `
-	tags = make(map[string]string)
-	log  = logger.DefaultSLogger(inputName)
 )
 
 var (
-	afterGather      = itrace.NewAfterGather()
+	log                                        = logger.DefaultSLogger(inputName)
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
+	customerKeys     []string
+	tags             map[string]string
 )
 
 type Input struct {
@@ -72,6 +79,7 @@ type Input struct {
 	UDPAgent         string              `toml:"udp_agent"` // deprecated
 	Endpoint         string              `toml:"endpoint"`
 	Address          string              `toml:"address"`
+	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
@@ -129,15 +137,14 @@ func (ipt *Input) Run() {
 		}
 	}
 
-	if len(ipt.Tags) != 0 {
-		tags = ipt.Tags
-	}
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
 }
 
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.Endpoint != "" {
 		itrace.StartTracingStatistic()
-		http.RegHTTPHandler("POST", ipt.Endpoint, JaegerTraceHandle)
+		http.RegHTTPHandler("POST", ipt.Endpoint, handleJaegerTrace)
 	}
 }
 

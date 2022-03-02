@@ -12,12 +12,17 @@ import (
 
 var _ inputs.InputV2 = &Input{}
 
-var (
+const (
 	inputName    = "skywalking"
 	sampleConfig = `
 [[inputs.skywalking]]
   ## skywalking grpc server listening on address
   address = "localhost:13800"
+
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. Those keys set by client code will take precedence over
+  ## keys in [inputs.skywalking.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
+  # customer_tags = ["key1", "key2", ...]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -42,28 +47,30 @@ var (
     # priority = 0
     # sampling_rate = 1.0
 
-  ## customer tags
-  # [inputs.skywalking.V3.tags]
-    # tag1 = "value1"
-    # tag2 = "value2"
+  # [inputs.skywalking.tags]
+    # key1 = "value1"
+    # key2 = "value2"
     # ...
 `
-	defAddr = "localhost:13800"
-	tags    = make(map[string]string)
-	log     = logger.DefaultSLogger(inputName)
 )
 
 var (
-	afterGather      = itrace.NewAfterGather()
+	log                                        = logger.DefaultSLogger(inputName)
+	defAddr                                    = "localhost:13800"
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
+	customerKeys     []string
+	tags             map[string]string
 )
 
 type Input struct {
 	V2               interface{}         `toml:"V2"` // deprecated *skywalkingConfig
 	V3               interface{}         `toml:"V3"` // deprecated *skywalkingConfig
 	Address          string              `toml:"address"`
+	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
@@ -116,14 +123,13 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(defSampler.Sample)
 	}
 
-	if len(ipt.Tags) != 0 {
-		tags = ipt.Tags
-	}
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
 
 	log.Debug("start skywalking grpc v3 server")
 
 	itrace.StartTracingStatistic()
-	go runServerV3(ipt.Address)
+	go registerServerV3(ipt.Address)
 }
 
 func init() { //nolint:gochecknoinits

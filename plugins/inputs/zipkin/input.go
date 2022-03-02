@@ -16,13 +16,17 @@ var (
 	_ inputs.HTTPInput = &Input{}
 )
 
-var (
-	inputName = "zipkin"
-	//nolint:lll
+const (
+	inputName    = "zipkin"
 	sampleConfig = `
 [[inputs.zipkin]]
   pathV1 = "/api/v1/spans"
   pathV2 = "/api/v2/spans"
+
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. Those keys set by client code will take precedence over
+  ## keys in [inputs.zipkin.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
+  # customer_tags = ["key1", "key2", ...]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -48,26 +52,29 @@ var (
     # sampling_rate = 1.0
 
   # [inputs.zipkin.tags]
-    # tag1 = "value1"
-    # tag2 = "value2"
+    # key1 = "value1"
+    # key2 = "value2"
     # ...
 `
-	tags = make(map[string]string)
-	log  = logger.DefaultSLogger(inputName)
 )
 
 var (
-	apiv1Path        = "/api/v1/spans"
-	apiv2Path        = "/api/v2/spans"
-	afterGather      = itrace.NewAfterGather()
+	log                                        = logger.DefaultSLogger(inputName)
+	apiv1Path                                  = "/api/v1/spans"
+	apiv2Path                                  = "/api/v2/spans"
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
 	defSampler       *itrace.Sampler
+	customerKeys     []string
+	tags             map[string]string
 )
 
 type Input struct {
 	PathV1           string              `toml:"pathV1"`
 	PathV2           string              `toml:"pathV2"`
+	CustomerTags     []string            `toml:"customer_tags"`
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
@@ -116,9 +123,8 @@ func (ipt *Input) Run() {
 		afterGather.AppendFilter(defSampler.Sample)
 	}
 
-	if len(ipt.Tags) != 0 {
-		tags = ipt.Tags
-	}
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
 }
 
 func (ipt *Input) RegHTTPHandler() {
@@ -127,12 +133,12 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.PathV1 == "" {
 		ipt.PathV1 = apiv1Path
 	}
-	http.RegHTTPHandler("POST", ipt.PathV1, ZipkinTraceHandleV1)
+	http.RegHTTPHandler("POST", ipt.PathV1, handleZipkinTraceV1)
 
 	if ipt.PathV2 == "" {
 		ipt.PathV2 = apiv2Path
 	}
-	http.RegHTTPHandler("POST", ipt.PathV2, ZipkinTraceHandleV2)
+	http.RegHTTPHandler("POST", ipt.PathV2, handleZipkinTraceV2)
 }
 
 func init() { //nolint:gochecknoinits

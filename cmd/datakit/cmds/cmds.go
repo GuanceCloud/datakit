@@ -2,15 +2,12 @@ package cmds
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/c-bata/go-prompt"
 	"github.com/fatih/color"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 var (
@@ -44,28 +41,22 @@ func (c *completer) Complete(d prompt.Document) []prompt.Suggest {
 }
 
 func ipInfo(ip string) (map[string]string, error) {
-	datadir := datakit.DataDir
-
-	if err := funcs.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
+	if ipdbInstance, err := pipeline.InitIPdb(config.Cfg.Pipeline); err != nil {
 		return nil, err
-	}
+	} else {
+		x, err := ipdbInstance.Geo(ip)
+		if err != nil {
+			return nil, err
+		}
 
-	if err := ip2isp.Init(filepath.Join(datadir, "ip2isp.txt")); err != nil {
-		return nil, err
+		return map[string]string{
+			"city":     x.City,
+			"province": x.Region,
+			"country":  x.Country,
+			"isp":      ipdbInstance.SearchIsp(ip),
+			"ip":       ip,
+		}, nil
 	}
-
-	x, err := funcs.Geo(ip)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]string{
-		"city":     x.City,
-		"province": x.Region,
-		"country":  x.Country_short,
-		"isp":      ip2isp.SearchIsp(ip),
-		"ip":       ip,
-	}, nil
 }
 
 func setCmdRootLog(rl string) {
@@ -89,7 +80,6 @@ func setCmdRootLog(rl string) {
 	config.SetLog()
 
 	l = logger.SLogger("cmds")
-	l.Infof("root log set to %s", rl)
 }
 
 func infof(fmtstr string, args ...interface{}) {
