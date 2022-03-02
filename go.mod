@@ -19,12 +19,13 @@ require (
 	github.com/chromedp/chromedp v0.7.4 // indirect
 	github.com/containerd/cgroups v1.0.1
 	github.com/denisenkom/go-mssqldb v0.10.0
+	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.5.1
-	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1 // indirect
+	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-logr/logr v1.2.2 // indirect
@@ -36,6 +37,7 @@ require (
 	github.com/gobuffalo/logger v1.0.4 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.1
 	github.com/gobwas/glob v0.2.3
+	github.com/gobwas/ws v1.1.0
 	github.com/godror/godror v0.17.0
 	github.com/gofrs/flock v0.8.0
 	github.com/gogo/protobuf v1.3.2
@@ -93,7 +95,7 @@ require (
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
-	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
+	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17

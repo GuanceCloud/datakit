@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -40,6 +41,8 @@ var (
 	extraTags = map[string]string{}
 	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
+
+	lmt *limiter.Limiter
 
 	ginRotate = 32 // MB
 
@@ -65,11 +68,12 @@ const (
 )
 
 type Option struct {
-	GinLog    string
-	GinRotate int
-	APIConfig *APIConfig
-	DataWay   *dataway.DataWayCfg
-	DCAConfig *DCAConfig
+	GinLog           string
+	GinRotate        int
+	APIConfig        *APIConfig
+	DataWay          *dataway.DataWayCfg
+	DCAConfig        *DCAConfig
+	RequestRateLimit float64
 
 	GinReleaseMode bool
 	PProf          bool
@@ -81,6 +85,7 @@ type APIConfig struct {
 	Disable404Page    bool     `toml:"disable_404page"`
 	RUMAppIDWhiteList []string `toml:"rum_app_id_white_list"`
 	PublicAPIs        []string `toml:"public_apis"`
+	Limiter           int      `toml:"limiter,omitzero"`
 }
 
 func Start(o *Option) {
@@ -93,6 +98,10 @@ func Start(o *Option) {
 	apiConfig = o.APIConfig
 	dw = o.DataWay
 	dcaConfig = o.DCAConfig
+
+	if o.RequestRateLimit > 0.0 {
+		lmt = setupLimiter(o.RequestRateLimit)
+	}
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
@@ -212,7 +221,7 @@ func setupRouter() *gin.Engine {
 	router.GET("/restart", apiRestart)
 
 	router.GET("/v1/workspace", apiWorkspace)
-	router.GET("/v1/ping", apiPing)
+	router.GET("/v1/ping", limitHandler(lmt), apiPing)
 	router.POST("/v1/lasterror", apiGetDatakitLastError)
 	router.POST("/v1/write/:category", wrap(apiWrite, &apiWriteImpl{}))
 	router.POST("/v1/query/raw", apiQueryRaw)

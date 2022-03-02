@@ -136,7 +136,7 @@ var (
 	fsDebug                = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
 	flagDebugLogPath       = fsDebug.String("log", commonLogFlag(), "command line log path")
 	flagDebugCloudInfo     = fsDebug.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
-	flagDebugIPInfo        = fsDebug.String("ipinfo", "", "show IP geo info")
+	flagDebugIPInfo        = fsDebug.String("ipinfo", "", "show IP geography info")
 	flagDebugWorkspaceInfo = fsDebug.Bool("workspace-info", false, "show workspace info")
 	flagDebugCheckConfig   = fsDebug.Bool("check-config", false, "check inputs configure and main configure")
 	flagDebugCmdLog        = fsDebug.String("cmd-log", "/dev/null", "command line log path")

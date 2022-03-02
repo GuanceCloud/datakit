@@ -296,6 +296,12 @@ github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 github.com/dgryski/go-rendezvous
+# github.com/didip/tollbooth/v6 v6.1.2
+## explicit
+github.com/didip/tollbooth/v6
+github.com/didip/tollbooth/v6/errors
+github.com/didip/tollbooth/v6/libstring
+github.com/didip/tollbooth/v6/limiter
 # github.com/disintegration/imaging v1.6.2
 github.com/disintegration/imaging
 # github.com/dlclark/regexp2 v1.1.6
@@ -472,6 +478,8 @@ github.com/go-logr/logr
 ## explicit
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
+# github.com/go-pkgz/expirable-cache v0.0.3
+github.com/go-pkgz/expirable-cache
 # github.com/go-playground/locales v0.13.0
 github.com/go-playground/locales
 github.com/go-playground/locales/currency
@@ -529,6 +537,7 @@ github.com/gobwas/pool/internal/pmath
 github.com/gobwas/pool/pbufio
 github.com/gobwas/pool/pbytes
 # github.com/gobwas/ws v1.1.0
+## explicit
 github.com/gobwas/ws
 github.com/gobwas/ws/wsutil
 # github.com/godbus/dbus/v5 v5.0.4
@@ -973,7 +982,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20220210224613-90d013bbcef8
+# golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
 ## explicit
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
