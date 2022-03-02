@@ -29,33 +29,32 @@ Datakit Span 是 Datakit 内部使用的数据结构。第三方 Tracing Agent �
 
 > 以下简称 dkspan
 
-| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
-
-| TraceID | string | | Trace ID | dkproto.fields.trace_id |
-| ParentID | string | | Parent Span ID | dkproto.fields.parent_id |
-| SpanID | string | | Span ID | dkproto.fields.span_id |
-| Service | string | | Service Name | dkproto.tags.service |
-| Resource | string | | Resource Name(.e.g /get/data/from/some/api) | dkproto.fields.resource |
-| Operation | string | | 生产此条 Span 的方法名 | dkproto.tags.operation |
-| Source | string | | Span 接入源(.e.g ddtrace) | dkproto.name |
-| SpanType | string | | Span Type(.e.g Entry) | dkproto.tags.span_type |
-| SourceType | string | | Span Source Type(.e.g Web) | dkproto.tags.type |
-| Env | string | | Environment Variables | dkproto.tags.env |
-| Project | string | | App 项目名 | dkproto.tags.project |
-| Version | string | | App 版本号 | dkproto.tags.version |
-| Tags | map[string, string] | | Span Tags | dkproto.tags |
-| EndPoint | string | | 通讯对端 | dkproto.tags.endpoint |
-| HTTPMethod | string | | HTTP Method | dkproto.tags.http_method |
-| HTTPStatusCode | string | | HTTP Response Status Code(.e.g 200) | dkproto.tags.http_status_code |
-| ContainerHost | string | | 容器主机名 | dkproto.tags.container_host |
-| PID | string | | Process ID | dkproto. |
-| Start | int64 | 纳秒 | Span 起始时间 | dkproto.fields.start |
-| Duration | int64 | 纳秒 | 耗时 | dkproto.fields.duration |
-| Status | string | | Span 状态字段 | dkproto.tags.status |
-| Content | string | | Span 原始数据 | dkproto.fields.message |
-| Priority | int | | Span 上报优先级 -1:reject 0:auto calculate with sample rate 1:always send to data center | dkproto.fields.priority |
-| SamplingRateGlobal | float64 | | Global Sampling Rate | dkproto.fields.sampling_rate_global |
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span>                                        | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| TraceID                                         | string                                         |                                            | Trace ID                                                                                | dkproto.fields.trace_id                            |
+| ParentID                                        | string                                         |                                            | Parent Span ID                                                                          | dkproto.fields.parent_id                           |
+| SpanID                                          | string                                         |                                            | Span ID                                                                                 | dkproto.fields.span_id                             |
+| Service                                         | string                                         |                                            | Service Name                                                                            | dkproto.tags.service                               |
+| Resource                                        | string                                         |                                            | Resource Name(.e.g /get/data/from/some/api)                                             | dkproto.fields.resource                            |
+| Operation                                       | string                                         |                                            | 生产此条 Span 的方法名                                                                  | dkproto.tags.operation                             |
+| Source                                          | string                                         |                                            | Span 接入源(.e.g ddtrace)                                                               | dkproto.name                                       |
+| SpanType                                        | string                                         |                                            | Span Type(.e.g Entry)                                                                   | dkproto.tags.span_type                             |
+| SourceType                                      | string                                         |                                            | Span Source Type(.e.g Web)                                                              | dkproto.tags.type                                  |
+| Env                                             | string                                         |                                            | Environment Variables                                                                   | dkproto.tags.env                                   |
+| Project                                         | string                                         |                                            | App 项目名                                                                              | dkproto.tags.project                               |
+| Version                                         | string                                         |                                            | App 版本号                                                                              | dkproto.tags.version                               |
+| Tags                                            | map[string, string]                            |                                            | Span Tags                                                                               | dkproto.tags                                       |
+| EndPoint                                        | string                                         |                                            | 通讯对端                                                                                | dkproto.tags.endpoint                              |
+| HTTPMethod                                      | string                                         |                                            | HTTP Method                                                                             | dkproto.tags.http_method                           |
+| HTTPStatusCode                                  | string                                         |                                            | HTTP Response Status Code(.e.g 200)                                                     | dkproto.tags.http_status_code                      |
+| ContainerHost                                   | string                                         |                                            | 容器主机名                                                                              | dkproto.tags.container_host                        |
+| PID                                             | string                                         |                                            | Process ID                                                                              | dkproto.                                           |
+| Start                                           | int64                                          | 纳秒                                       | Span 起始时间                                                                           | dkproto.fields.start                               |
+| Duration                                        | int64                                          | 纳秒                                       | 耗时                                                                                    | dkproto.fields.duration                            |
+| Status                                          | string                                         |                                            | Span 状态字段                                                                           | dkproto.tags.status                                |
+| Content                                         | string                                         |                                            | Span 原始数据                                                                           | dkproto.fields.message                             |
+| Priority                                        | int                                            |                                            | Span 上报优先级 -1:reject 0:auto consider with sample rate 1:always send to data center | dkproto.fields.priority                            |
+| SamplingRateGlobal                              | float64                                        |                                            | Global Sampling Rate                                                                    | dkproto.fields.sampling_rate_global                |
 
 ---
 
