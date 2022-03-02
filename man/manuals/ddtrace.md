@@ -44,7 +44,9 @@ tail -f /var/log/datakit/gin.log
 [GIN] 2021/08/02 - 17:16:31 | 200 |     386.256µs |       127.0.0.1 | POST     "/v0.4/traces"
 [GIN] 2021/08/02 - 17:17:30 | 200 |     116.109µs |       127.0.0.1 | POST     "/v0.4/traces"
 [GIN] 2021/08/02 - 17:17:30 | 200 |     489.428µs |       127.0.0.1 | POST     "/v0.4/traces"
+
 ...
+
 ```
 
 > 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-tools-how-to#44462aae)是看不到 ddtrace 的采集信息的。
@@ -88,13 +90,13 @@ DD_TAGS="container_host:$HOSTNAME,other_tag:other_tag_val" ddtrace-run python yo
 customer_tags = []
 ```
 
-注意，这些 tag-key 中不能包含英文字符 '.'，带 `.` 的 tag-key 会忽略掉，示例：
+注意，这些 tag-key 中不能包含英文字符 '.'，带 `.` 的 tag-key 会替换为 `_`，示例：
 
 ```toml
 customer_tags = [
 	"order_id",
 	"task_id",
-	"some.invalid.key",  # 无效的 tag-key，DataKit 选择将其忽略
+	"some.invalid.key",  #替换为 some_ivalid_key
 ]
 ```
 
