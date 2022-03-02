@@ -119,8 +119,8 @@ func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelR
 		LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
 		for _, libraryMetric := range LibraryMetrics {
 			resource := libraryMetric.InstrumentationLibrary.Name
-			metrices := libraryMetric.GetMetrics()
-			for _, metrice := range metrices {
+			metrics := libraryMetric.GetMetrics()
+			for _, metrice := range metrics {
 				ps := s.getData(metrice)
 				for _, p := range ps {
 					orm := &OtelResourceMetric{

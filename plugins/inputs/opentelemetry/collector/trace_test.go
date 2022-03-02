@@ -16,14 +16,16 @@ var testKV = []*commonpb.KeyValue{
 		Key: "service.name",
 		Value: &commonpb.AnyValue{
 			Value: &commonpb.AnyValue_StringValue{
-				StringValue: "service"},
+				StringValue: "service",
+			},
 		},
 	},
 	{
 		Key: "http.method",
 		Value: &commonpb.AnyValue{
 			Value: &commonpb.AnyValue_StringValue{
-				StringValue: "POST"},
+				StringValue: "POST",
+			},
 		},
 	},
 	{
@@ -182,7 +184,8 @@ func Test_dkTags_addOtherTags(t *testing.T) {
 					DroppedEventsCount: 1,                                               // drop event count = 1
 					Events:             []*tracepb.Span_Event{{Name: "1"}, {Name: "1"}}, // events = 2
 					Links:              []*tracepb.Span_Link{{TraceState: "1"}},         // links = 1
-				}},
+				},
+			},
 			want: &dkTags{
 				tags: map[string]string{"links_count": "1", "events_count": "2", "dropped_events_count": "1"},
 			},
@@ -302,7 +305,8 @@ func Test_getDKSpanStatus(t *testing.T) {
 		{
 			name: "case1",
 			args: args{code: &tracepb.Status{Code: tracepb.Status_STATUS_CODE_UNSET}},
-			want: "info"},
+			want: "info",
+		},
 
 		{
 			name: "case2",
@@ -338,10 +342,12 @@ func Test_newEmptyTags(t *testing.T) {
 		{
 			name: "case",
 			args: args{regexp: "", globalTags: map[string]string{}},
-			want: &dkTags{regexpString: "",
-				globalTags:  map[string]string{},
-				tags:        make(map[string]string),
-				replaceTags: make(map[string]string)},
+			want: &dkTags{
+				regexpString: "",
+				globalTags:   map[string]string{},
+				tags:         make(map[string]string),
+				replaceTags:  make(map[string]string),
+			},
 		},
 	}
 	for _, tt := range tests {

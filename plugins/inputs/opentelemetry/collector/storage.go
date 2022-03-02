@@ -107,7 +107,7 @@ func (s *SpansStorage) Run() {
 	}
 }
 
-// feedAll : trace -> io.trace  |  metric -> io
+// feedAll : trace -> io.trace  |  metric -> io.
 func (s *SpansStorage) feedAll() {
 	traces := s.GetDKTrace()
 	for _, trace := range traces {

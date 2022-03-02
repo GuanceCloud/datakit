@@ -5,14 +5,13 @@ package opentelemetry
 import (
 	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 )
 
 const (
@@ -86,9 +85,7 @@ const (
 `
 )
 
-var (
-	l = logger.DefaultSLogger("otel-log")
-)
+var l = logger.DefaultSLogger("otel-log")
 
 type Input struct {
 	Ogrpc               *otlpGrpcCollector  `toml:"grpc"`

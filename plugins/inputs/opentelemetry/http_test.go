@@ -9,9 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
-
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -24,7 +23,8 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 	cfg := collector.MockCollectorConfig{
 		URLPath:         "/otel/v1/trace",
 		Port:            20010,
-		ExpectedHeaders: map[string]string{"header1": "1"}}
+		ExpectedHeaders: map[string]string{"header1": "1"},
+	}
 
 	o := otlpHTTPCollector{
 		storage:         collector.NewSpansStorage(),
@@ -182,7 +182,7 @@ func Test_unmarshalTraceRequest(t *testing.T) {
 		rawRequest  []byte
 		contentType string
 	}
-	rss := &collectortracepb.ExportTraceServiceRequest{ResourceSpans: []*v1.ResourceSpans{&v1.ResourceSpans{SchemaUrl: "aaaaaaa"}}}
+	rss := &collectortracepb.ExportTraceServiceRequest{ResourceSpans: []*v1.ResourceSpans{{SchemaUrl: "aaaaaaa"}}}
 	bts, err := proto.Marshal(rss)
 	if err != nil {
 		t.Errorf("err=%v", err)
