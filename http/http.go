@@ -29,10 +29,15 @@ import (
 )
 
 var (
-	l                   = logger.DefaultSLogger("http")
-	ginLog              string
-	ginReleaseMode      = true
-	enablePprof         = false
+	l              = logger.DefaultSLogger("http")
+	ginLog         string
+	ginReleaseMode = true
+
+	enablePprof = false
+	pprofListen = ":6060"
+
+	pprofSrv *http.Server
+
 	enableRequestLogger = false
 
 	uptime = time.Now()
@@ -42,7 +47,7 @@ var (
 	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
 
-	lmt *limiter.Limiter
+	reqLimiter *limiter.Limiter
 
 	ginRotate = 32 // MB
 
@@ -68,15 +73,16 @@ const (
 )
 
 type Option struct {
-	GinLog           string
-	GinRotate        int
-	APIConfig        *APIConfig
-	DataWay          *dataway.DataWayCfg
-	DCAConfig        *DCAConfig
-	RequestRateLimit float64
+	GinLog    string
+	GinRotate int
+	APIConfig *APIConfig
+	DataWay   *dataway.DataWayCfg
+	DCAConfig *DCAConfig
 
 	GinReleaseMode bool
-	PProf          bool
+
+	PProf       bool
+	PProfListen string
 }
 
 type APIConfig struct {
@@ -85,23 +91,32 @@ type APIConfig struct {
 	Disable404Page    bool     `toml:"disable_404page"`
 	RUMAppIDWhiteList []string `toml:"rum_app_id_white_list"`
 	PublicAPIs        []string `toml:"public_apis"`
-	Limiter           int      `toml:"limiter,omitzero"`
+	RequestRateLimit  float64  `toml:"request_rate_limit,omitzero"`
 }
 
 func Start(o *Option) {
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
+
 	enablePprof = o.PProf
+	if o.PProfListen != "" {
+		pprofListen = o.PProfListen
+	}
+
 	ginReleaseMode = o.GinReleaseMode
 	ginRotate = o.GinRotate
+
 	apiConfig = o.APIConfig
+	if apiConfig.RequestRateLimit > 0.0 {
+		l.Infof("set request limit to %f", apiConfig.RequestRateLimit)
+		reqLimiter = setupLimiter(apiConfig.RequestRateLimit)
+	} else {
+		l.Infof("set request limit not set: %f", apiConfig.RequestRateLimit)
+	}
+
 	dw = o.DataWay
 	dcaConfig = o.DCAConfig
-
-	if o.RequestRateLimit > 0.0 {
-		lmt = setupLimiter(o.RequestRateLimit)
-	}
 
 	// start HTTP server
 	g.Go(func(ctx context.Context) error {
@@ -115,6 +130,19 @@ func Start(o *Option) {
 		g.Go(func(ctx context.Context) error {
 			dcaHTTPStart()
 			l.Info("DCA http goroutine exit")
+			return nil
+		})
+	}
+
+	// start pprof if enabled
+	if enablePprof {
+		pprofSrv = &http.Server{
+			Addr: pprofListen,
+		}
+
+		g.Go(func(ctx context.Context) error {
+			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
+			l.Info("pprof server exit")
 			return nil
 		})
 	}
@@ -187,6 +215,11 @@ func setupGinLogger() (gl io.Writer) {
 	return
 }
 
+func setVersionInfo(c *gin.Context) {
+	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, git.BuildAt))
+	c.Next()
+}
+
 func setupRouter() *gin.Engine {
 	uhttp.Init()
 
@@ -196,6 +229,8 @@ func setupRouter() *gin.Engine {
 	if len(apiConfig.PublicAPIs) != 0 {
 		router.Use(loopbackWhiteList)
 	}
+
+	router.Use(setVersionInfo)
 
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: uhttp.GinLogFormmatter,
@@ -221,7 +256,7 @@ func setupRouter() *gin.Engine {
 	router.GET("/restart", apiRestart)
 
 	router.GET("/v1/workspace", apiWorkspace)
-	router.GET("/v1/ping", limitHandler(lmt), apiPing)
+	router.GET("/v1/ping", limitHandler(reqLimiter), apiPing)
 	router.POST("/v1/lasterror", apiGetDatakitLastError)
 	router.POST("/v1/write/:category", wrap(apiWrite, &apiWriteImpl{}))
 	router.POST("/v1/query/raw", apiQueryRaw)
@@ -290,20 +325,6 @@ func HTTPStart() {
 		l.Info("http server exit")
 		return nil
 	})
-
-	// start pprof if enabled
-	var pprofSrv *http.Server
-	if enablePprof {
-		pprofSrv = &http.Server{
-			Addr: ":6060",
-		}
-
-		g.Go(func(ctx context.Context) error {
-			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
-			l.Info("pprof server exit")
-			return nil
-		})
-	}
 
 	l.Debug("http server started")
 
