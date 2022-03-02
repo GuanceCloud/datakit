@@ -87,9 +87,7 @@ const (
 )
 
 var (
-	l        = logger.DefaultSLogger("otel-log")
-	maxSend  = 100
-	interval = 10
+	l = logger.DefaultSLogger("otel-log")
 )
 
 type Input struct {

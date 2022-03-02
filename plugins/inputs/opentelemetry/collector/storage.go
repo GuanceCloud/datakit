@@ -1,5 +1,3 @@
-// Package opentelemetry storage
-
 package collector
 
 import (
@@ -69,7 +67,7 @@ func (s *SpansStorage) AddMetric(rss []*OtelResourceMetric) {
 	}
 }
 
-// GetResourceSpans returns the stored resource spans.
+// GetDKTrace  returns the stored resource spans.
 func (s *SpansStorage) GetDKTrace() []DKtrace.DatakitTrace {
 	s.traceMu.Lock()
 	defer s.traceMu.Unlock()

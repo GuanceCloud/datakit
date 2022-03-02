@@ -68,7 +68,10 @@ func Test_getData(t *testing.T) {
 					if !ok {
 						t.Error("want type is int64")
 					}
-					wantVal := tt.want.val.(int)
+					wantVal, ok := tt.want.val.(int)
+					if !ok {
+						t.Error("want type int")
+					}
 					if val != int64(wantVal) {
 						t.Errorf("got val =%d want val=%d", val, wantVal)
 					}
@@ -76,9 +79,14 @@ func Test_getData(t *testing.T) {
 				if gotdate.typeName == "double" {
 					val, ok := gotdate.val.(float64)
 					if !ok {
-						t.Error("want type is int64")
+						t.Error("want type is float64")
+						return
 					}
-					wantVal := tt.want.val.(float64)
+					wantVal, ok := tt.want.val.(float64)
+					if !ok {
+						t.Error("want type is float64")
+						return
+					}
 					if val != wantVal {
 						t.Errorf("got val =%f want val=%f", val, wantVal)
 					}

@@ -112,7 +112,7 @@ func RunMockCollector(t *testing.T, cfg MockCollectorConfig, h http.HandlerFunc)
 	return m
 }
 
-// newHTTPExporter http client
+// NewHTTPExporter http client
 func NewHTTPExporter(t *testing.T, ctx context.Context, path string, endpoint string) *otlptrace.Exporter {
 	t.Helper()
 	httpClent, err := otlptracehttp.New(

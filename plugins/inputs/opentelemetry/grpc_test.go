@@ -136,7 +136,7 @@ func TestExportMetric_Export(t *testing.T) {
 	if len(ms) != 1 {
 		t.Errorf("metric len != 1")
 	}
-	want := &collector.otelResourceMetric{
+	want := &collector.OtelResourceMetric{
 		Operation: "foo",
 		Attributes: map[string]string{
 			"abc": "def",

@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
+
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -19,22 +21,23 @@ import (
 )
 
 func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
-	cfg := mock.mockCollectorConfig{
+	cfg := collector.MockCollectorConfig{
 		URLPath:         "/otel/v1/trace",
 		Port:            20010,
 		ExpectedHeaders: map[string]string{"header1": "1"}}
 
 	o := otlpHTTPCollector{
+		storage:         collector.NewSpansStorage(),
 		Enable:          true,
 		HTTPStatusOK:    200,
 		ExpectedHeaders: map[string]string{"header1": "1"},
 	}
-	mockserver := mock.runMockCollector(t, cfg, o.apiOtlpTrace)
+	mockserver := collector.RunMockCollector(t, cfg, o.apiOtlpTrace)
 	time.Sleep(time.Millisecond * 5) // 等待 server 端口开启
 
 	// mock client
 	ctx := context.Background()
-	exp := mock.newHTTPExporter(t, ctx, cfg.URLPath, "localhost:20010")
+	exp := collector.NewHTTPExporter(t, ctx, cfg.URLPath, "localhost:20010")
 
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
@@ -63,7 +66,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 	t.Log("span end")
 	// Flush and close.
 	func() {
-		ctx, cancel := mock.contextWithTimeout(ctx, t, 10*time.Second)
+		ctx, cancel := collector.ContextWithTimeout(ctx, t, 10*time.Second)
 		defer cancel()
 		require.NoError(t, tp.Shutdown(ctx))
 	}()
@@ -85,7 +88,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 		"Bool":    "true",
 		"String":  "test",
 	}
-	dktraces := storage.getDKTrace()
+	dktraces := o.storage.GetDKTrace()
 
 	if len(dktraces) != 1 {
 		t.Errorf("dktraces.len != 1")

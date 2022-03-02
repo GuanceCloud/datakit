@@ -142,13 +142,14 @@ func Test_dkTags_addGlobalTags(t *testing.T) {
 		{
 			name:   "add a:b",
 			fields: fields{tags: map[string]string{}, globalTags: map[string]string{"globalTag_a": "b"}},
-			want:   &dkTags{replaceTags: map[string]string{"globalTag_a": "b"}, tags: map[string]string{}},
+			want:   &dkTags{replaceTags: map[string]string{"globalTag_a": "b"}, globalTags: map[string]string{"globalTag_a": "b"}, tags: map[string]string{}},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
 				tags:        tt.fields.tags,
+				globalTags:  tt.fields.globalTags,
 				replaceTags: map[string]string{},
 			}
 			if got := dt.addGlobalTags(); !reflect.DeepEqual(got, tt.want) {
@@ -337,7 +338,10 @@ func Test_newEmptyTags(t *testing.T) {
 		{
 			name: "case",
 			args: args{regexp: "", globalTags: map[string]string{}},
-			want: nil,
+			want: &dkTags{regexpString: "",
+				globalTags:  map[string]string{},
+				tags:        make(map[string]string),
+				replaceTags: make(map[string]string)},
 		},
 	}
 	for _, tt := range tests {
@@ -415,50 +419,53 @@ func Test_dkTags_getAttributeVal(t *testing.T) {
 	}
 }
 
-func Test_dkTags_checkCustomTags1(t *testing.T) {
+func Test_dkTags_checkCustomTags(t *testing.T) {
 	type fields struct {
+		regexpStr   string
 		tags        map[string]string
 		replaceTags map[string]string
 	}
 	tests := []struct {
-		name      string
-		regexpStr string
-		fields    fields
-		want      *dkTags
+		name   string
+		fields fields
+		want   *dkTags
 	}{
 		{
-			name:      "regexp-1",
-			regexpStr: "os_*|process_*",
+			name: "regexp-1",
 			fields: fields{
 				tags:        map[string]string{},
 				replaceTags: map[string]string{"os_name": "linux", "other_key": "other_value"},
+				regexpStr:   "os_*|process_*",
 			},
 			want: &dkTags{
-				tags:        map[string]string{},
-				replaceTags: map[string]string{"other_key": "other_value"},
+				regexpString: "os_*|process_*",
+				tags:         map[string]string{},
+				replaceTags:  map[string]string{"other_key": "other_value"},
 			},
 		},
 
 		{
-			name:      "regexp-2",
-			regexpStr: "os_*|process_*",
+			name: "regexp-2",
 			fields: fields{
+				regexpStr:   "os_*|process_*",
 				tags:        map[string]string{},
 				replaceTags: map[string]string{"os_name": "linux", "process_id": "123", "other_key": "other_value"},
 			},
 			want: &dkTags{
-				tags:        map[string]string{},
-				replaceTags: map[string]string{"other_key": "other_value"},
+				regexpString: "os_*|process_*",
+				tags:         map[string]string{},
+				replaceTags:  map[string]string{"other_key": "other_value"},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dt := &dkTags{
-				tags:        tt.fields.tags,
-				replaceTags: tt.fields.replaceTags,
+				regexpString: tt.fields.regexpStr,
+				tags:         tt.fields.tags,
+				replaceTags:  tt.fields.replaceTags,
 			}
-			dt.regexpString = tt.regexpStr
+
 			if got := dt.checkCustomTags(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("checkCustomTags() = %v, want %v", got, tt.want)
 			}

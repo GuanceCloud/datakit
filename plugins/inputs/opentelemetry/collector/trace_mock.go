@@ -45,6 +45,7 @@ func (et *MockTrace) Export(ctx context.Context,
 	return res, nil
 }
 
+// nolint:lll
 /*
 got :
 &{
@@ -156,6 +157,7 @@ func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.
 		InstrumentationLibrary: instrumentation.Library{Name: "test-server"},
 	}}.Snapshots()
 
+	// nolint:lll
 	wantContent := `{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1607454900000000000,"end_time_unix_nano":1607454901000000000,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}}`
 	want = []DKtrace.DatakitTrace{[]*DKtrace.DatakitSpan{
 		{

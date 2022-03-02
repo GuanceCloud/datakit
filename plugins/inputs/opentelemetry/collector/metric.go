@@ -1,5 +1,3 @@
-// Package opentelemetry is metric
-
 package collector
 
 import (
