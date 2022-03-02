@@ -31,7 +31,6 @@ Datakit Span 是 Datakit 内部使用的数据结构。第三方 Tracing Agent �
 
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
 | ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
-
 | TraceID | string | | Trace ID | dkproto.fields.trace_id |
 | ParentID | string | | Parent Span ID | dkproto.fields.parent_id |
 | SpanID | string | | Span ID | dkproto.fields.span_id |
@@ -71,7 +70,6 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 | <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
 | ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
-
 | TraceID | uint64 | | Trace ID | dkspan.TraceID |
 | ParentID | uint64 | | Parent Span ID | dkspan.ParentID |
 | SpanID | uint64 | | Span ID | dkspan.SpanID |
@@ -89,7 +87,55 @@ DataDog 里 Trace 代表一个 Span 的数组结构
 
 ## OpenTelemetry Tracing Data Structure
 
+datakit 采集从 OpenTelemetry exporter:Otlp 中发送上来的数据时，简略的原始数据通过 json 序列化之后，如下所示：
+
+``` text
+resource_spans:{
+    resource:{
+        attributes:{key:"message.type"  value:{string_value:"message-name"}}
+        attributes:{key:"service.name"  value:{string_value:"test-name"}}
+    }
+    instrumentation_library_spans:{instrumentation_library:{name:"test-tracer"}  
+    spans:{
+        trace_id:"\x94<\xdf\x00zx\x82\xe7Wy\xfe\x93\xab\x19\x95a"  
+        span_id:".\xbd\x06c\x10ɫ*"  
+        parent_span_id:"\xa7*\x80Z#\xbeL\xf6"  
+        name:"Sample-0" 
+        kind:SPAN_KIND_INTERNAL  
+        start_time_unix_nano:1644312397453313100 
+        end_time_unix_nano:1644312398464865900  
+        status:{}
+    } 
+    spans:{
+           ...
+        }
+}
+
+```
+
+otel 中的 `resource_spans` 和 dkspan 的对应关系 如下：
+
+| <span style="color:green">**Field Name**</span> | <span style="color:green">**Data Type**</span> | <span style="color:green"> **Unit**</span> | <span style="color:green">**Description**</span> | <span style="color:green">**Correspond To**</span> |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
+| trace_id | [16]byte | | Trace ID | dkspan.TraceID |
+| span_id | [8]byte | | Span ID | dkspan.SpanID |
+| parent_span_id | [8]byte | | Parent Span ID | dkspan.ParentID |
+| name | string | | Span Name | dkspan.Operation |
+| kind | string | | Span Type | dkspan.SpanType |
+| start_time_unix_nano | int64 | 纳秒| Span 起始时间 | dkspan.Start |
+| end_time_unix_nano | int64 | 纳秒| Span 终止时间 | dkspan.Duration = end - start |
+| status | string | | Span Status | dkspan.Status |
+| instrumentation_library.name | string | | Trace Name | dkspan.Resource |
+| resource.attributes | map[string]string |  | resource 标签 | dkspan.tags.service, dkspan.tags.project, dkspan.tags.env, dkspan.tags.version, dkspan.tags.container_host, dkspan.tags.http_method, dkspan.tags.http_status_code |
+| span.attributes | map[string]string |  | Span 标签 | dkspan.tags |
+| span.dropped_attributes_count | int |  | Span 被删除的标签数量 | dkspan.tags.dropped_attributes_count |
+| span.dropped_events_count | int |  | Span 被删除的事件数量 | dkspan.tags.dropped_events_count |
+| span.dropped_links_count | int |  | Span 被删除的连接数量 | dkspan.tags.dropped_links_count |
+| span.events_count | int |  | Span 关联事件数量 | dkspan.tags.events_count |
+| span.links_count | int |  | Span 所关联的 span 数量 | dkspan.tags.links_count |
 ---
+
+
 
 ## Jaeger Tracing Data Structure
 
