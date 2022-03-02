@@ -1,4 +1,4 @@
-package opentelemetry
+package collector
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 )
 
-type mockCollector struct {
+type MockCollector struct {
 	endpoint string
 	server   *http.Server
 
@@ -22,23 +22,23 @@ type mockCollector struct {
 	expectedHeaders map[string]string
 }
 
-func (c *mockCollector) Stop() error {
+func (c *MockCollector) Stop() error {
 	return c.server.Shutdown(context.Background())
 }
 
-func (c *mockCollector) MustStop(t *testing.T) {
+func (c *MockCollector) MustStop(t *testing.T) {
 	t.Helper()
 	assert.NoError(t, c.server.Shutdown(context.Background()))
 }
 
-func (c *mockCollector) Endpoint() string {
+func (c *MockCollector) Endpoint() string {
 	return c.endpoint
 }
 
-func (c *mockCollector) ClientTLSConfig() *tls.Config {
+func (c *MockCollector) ClientTLSConfig() *tls.Config {
 	return c.clientTLSConfig
 }
-func (c *mockCollector) ExpectedHeaders() map[string]string {
+func (c *MockCollector) ExpectedHeaders() map[string]string {
 	return c.expectedHeaders
 }
 
@@ -84,19 +84,19 @@ func (c *mockCollector) serveMetrics(w http.ResponseWriter, r *http.Request) {
 }
 */
 
-type mockCollectorConfig struct {
+type MockCollectorConfig struct {
 	URLPath         string
 	Port            int
 	ExpectedHeaders map[string]string
 }
 
-func runMockCollector(t *testing.T, cfg mockCollectorConfig, h http.HandlerFunc) *mockCollector {
+func RunMockCollector(t *testing.T, cfg MockCollectorConfig, h http.HandlerFunc) *MockCollector {
 	t.Helper()
 	ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", cfg.Port))
 	require.NoError(t, err)
 	_, portStr, err := net.SplitHostPort(ln.Addr().String())
 	require.NoError(t, err)
-	m := &mockCollector{
+	m := &MockCollector{
 		endpoint: fmt.Sprintf("localhost:%s", portStr),
 	}
 	mux := http.NewServeMux()
@@ -112,8 +112,8 @@ func runMockCollector(t *testing.T, cfg mockCollectorConfig, h http.HandlerFunc)
 	return m
 }
 
-// newHTTPExporter http client
-func newHTTPExporter(t *testing.T, ctx context.Context, path string, endpoint string) *otlptrace.Exporter {
+// NewHTTPExporter http client
+func NewHTTPExporter(t *testing.T, ctx context.Context, path string, endpoint string) *otlptrace.Exporter {
 	t.Helper()
 	httpClent, err := otlptracehttp.New(
 		ctx,

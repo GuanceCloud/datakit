@@ -5,6 +5,8 @@ package opentelemetry
 import (
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -85,19 +87,7 @@ const (
 )
 
 var (
-	l             = logger.DefaultSLogger("otel-log")
-	closeResource *itrace.CloseResource
-	afterGather   = itrace.NewAfterGather()
-	defSampler    *itrace.Sampler
-	storage       = NewSpansStorage()
-	maxSend       = 100
-	interval      = 10
-
-	// add to point.
-	globalTags   map[string]string
-	regexpString string
-	// that want to send to data center.
-	// customTags map[string]struct{}
+	l = logger.DefaultSLogger("otel-log")
 )
 
 type Input struct {
@@ -132,38 +122,41 @@ func (i *Input) exit() {
 
 func (i *Input) Run() {
 	l = logger.SLogger("otlp-log")
+	storage := collector.NewSpansStorage()
 	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
 	if len(i.CloseResource) != 0 {
-		closeResource = &itrace.CloseResource{}
+		closeResource := &itrace.CloseResource{}
 		closeResource.UpdateIgnResList(i.CloseResource)
-		afterGather.AppendFilter(closeResource.Close)
+		storage.AfterGather.AppendFilter(closeResource.Close)
 	}
 	// add sampler
 	if i.Sampler != nil {
-		defSampler = i.Sampler
-		afterGather.AppendFilter(defSampler.Sample)
+		defSampler := i.Sampler
+		storage.AfterGather.AppendFilter(defSampler.Sample)
 	}
 
-	globalTags = i.Tags
+	storage.GlobalTags = i.Tags
 
 	if len(i.IgnoreAttributeKeys) > 0 {
-		regexpString = strings.Join(i.IgnoreAttributeKeys, "|")
+		storage.RegexpString = strings.Join(i.IgnoreAttributeKeys, "|")
 	}
 
 	open := false
 	// 从配置文件 开启
 	if i.OHTTPc.Enable {
+		// add option
+		i.OHTTPc.storage = storage
 		open = true
 	}
 	if i.Ogrpc.TraceEnable || i.Ogrpc.MetricEnable {
 		open = true
-		go i.Ogrpc.run()
+		go i.Ogrpc.run(storage)
 	}
 	if open {
 		// add calculators
-		afterGather.AppendCalculator(itrace.StatTracingInfo)
-		go storage.run()
+		storage.AfterGather.AppendCalculator(itrace.StatTracingInfo)
+		go storage.Run()
 		for {
 			select {
 			case <-datakit.Exit.Wait():

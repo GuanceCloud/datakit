@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
+
 	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/protobuf/proto"
@@ -22,6 +24,7 @@ import (
 
 // handler collector.
 type otlpHTTPCollector struct {
+	storage         *collector.SpansStorage
 	Enable          bool              `toml:"enable"`
 	HTTPStatusOK    int               `toml:"http_status_ok"`
 	ExpectedHeaders map[string]string `toml:"expectedHeaders"` // 用于检测是否包含特定的 header
@@ -29,6 +32,11 @@ type otlpHTTPCollector struct {
 
 // apiOtlpCollector :trace.
 func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request) {
+	if o.storage == nil {
+		l.Error("option == nil")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	if !o.checkHeaders(r) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -57,10 +65,15 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeReply(w, rawResponse, o.HTTPStatusOK, nil) // 先将信息返回到客户端 然后再处理spans
-	storage.AddSpans(request.ResourceSpans)
+	o.storage.AddSpans(request.ResourceSpans)
 }
 
 func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request) {
+	if o.storage == nil {
+		l.Error("option == nil")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	response := collectormetricpb.ExportMetricsServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {
@@ -83,8 +96,8 @@ func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request
 		return
 	}
 	writeReply(w, rawResponse, 200, nil) // 先将信息返回到客户端 然后再处理spans
-	orms := toDatakitMetric(request.ResourceMetrics)
-	storage.AddMetric(orms)
+	orms := o.storage.ToDatakitMetric(request.ResourceMetrics)
+	o.storage.AddMetric(orms)
 }
 
 func (o *otlpHTTPCollector) checkHeaders(r *http.Request) bool {

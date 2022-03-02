@@ -1,4 +1,5 @@
-package opentelemetry
+// Package collector is trace and tags.
+package collector
 
 import (
 	"encoding/hex"
@@ -12,18 +13,15 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
+func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	dkTraces := make([]DKtrace.DatakitTrace, 0)
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibrarySpans()
-		l.Infof("resource = %s", spans.Resource.String())
-		// service := getServiceName(spans.Resource.Attributes)
 		for _, librarySpans := range ls {
 			dktrace := make([]*DKtrace.DatakitSpan, 0)
 			for _, span := range librarySpans.Spans {
-				dt := newEmptyTags()
+				dt := newEmptyTags(s.RegexpString, s.GlobalTags)
 				dt.makeAllTags(span, spans.Resource.Attributes)
-				//  tags := dt.toDataKitTagsV2(span, spans.Resource.Attributes)
 				dkSpan := &DKtrace.DatakitSpan{
 					TraceID:            hex.EncodeToString(span.GetTraceId()),
 					ParentID:           byteToString(span.GetParentSpanId()),
@@ -67,7 +65,11 @@ func mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 }
 
 type dkTags struct {
-	// config option
+	// 配置文件中的黑名单配置，通过正则过滤数据中的标签
+	regexpString string
+
+	// 配置文件中的全局标签
+	globalTags map[string]string
 
 	// 从span中获取的attribute 放到tags中
 	tags map[string]string
@@ -76,10 +78,12 @@ type dkTags struct {
 	replaceTags map[string]string
 }
 
-func newEmptyTags() *dkTags {
+func newEmptyTags(regexp string, globalTags map[string]string) *dkTags {
 	return &dkTags{
-		tags:        make(map[string]string),
-		replaceTags: make(map[string]string),
+		regexpString: regexp,
+		globalTags:   globalTags,
+		tags:         make(map[string]string),
+		replaceTags:  make(map[string]string),
 	}
 }
 
@@ -119,9 +123,6 @@ func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 			dt.tags[key] = t.ArrayValue.String()
 		case *commonpb.AnyValue_KvlistValue:
 			dt.setAttributesToTags(t.KvlistValue.Values)
-			/*for s, s2 := range dt.tags {
-				dt.tags[s] = s2
-			}*/
 		case *commonpb.AnyValue_BytesValue:
 			dt.tags[key] = string(t.BytesValue)
 		default:
@@ -133,23 +134,22 @@ func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 
 // checkCustomTags : 黑白名单机制
 func (dt *dkTags) checkCustomTags() *dkTags {
-	if regexpString == "" {
+	if dt.regexpString == "" {
 		return dt
 	}
-	reg := regexp.MustCompile(regexpString)
+	reg := regexp.MustCompile(dt.regexpString)
 	for key := range dt.replaceTags {
 		if reg.MatchString(key) {
-			// 通过正则则应该忽略
 			delete(dt.replaceTags, key)
 		}
 	}
 	return dt
 }
 
-// setGlobalTags: 添加配置文件中的自定义tags
+// addGlobalTags: 添加配置文件中的自定义tags
 func (dt *dkTags) addGlobalTags() *dkTags {
 	// set global tags
-	for k, v := range globalTags {
+	for k, v := range dt.globalTags {
 		dt.replaceTags[k] = v
 	}
 	return dt

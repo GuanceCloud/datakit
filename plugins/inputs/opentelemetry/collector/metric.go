@@ -1,13 +1,10 @@
-// Package opentelemetry is metric
-
-package opentelemetry
+package collector
 
 import (
 	"encoding/json"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
@@ -20,13 +17,13 @@ type date struct {
 	val       interface{}
 }
 
-func getData(metric *metricpb.Metric) []*date {
+func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
 	ps := make([]*date, 0)
 	switch t := metric.GetData().(type) {
 	// case *metricpb.Metric_IntGauge: // 弃用
 	case *metricpb.Metric_Gauge:
 		for _, p := range t.Gauge.DataPoints {
-			point := &date{tags: newEmptyTags()}
+			point := &date{tags: newEmptyTags(s.RegexpString, s.GlobalTags)}
 			if double, ok := p.Value.(*metricpb.NumberDataPoint_AsDouble); ok {
 				point.val = double.AsDouble
 				point.typeName = "double"
@@ -42,7 +39,7 @@ func getData(metric *metricpb.Metric) []*date {
 	// case *metricpb.Metric_IntSum: // 弃用
 	case *metricpb.Metric_Sum:
 		for _, p := range t.Sum.DataPoints {
-			point := &date{tags: newEmptyTags()}
+			point := &date{tags: newEmptyTags(s.RegexpString, s.GlobalTags)}
 			if double, ok := p.Value.(*metricpb.NumberDataPoint_AsDouble); ok {
 				point.val = double.AsDouble
 				point.typeName = "double"
@@ -59,7 +56,7 @@ func getData(metric *metricpb.Metric) []*date {
 	// case *metricpb.Metric_IntHistogram: // 弃用
 	case *metricpb.Metric_Histogram:
 		for _, p := range t.Histogram.DataPoints {
-			point := &date{tags: newEmptyTags()}
+			point := &date{tags: newEmptyTags(s.RegexpString, s.GlobalTags)}
 			point.val = p.Sum
 			point.typeName = "histogram"
 			point.tags.setAttributesToTags(p.Attributes)
@@ -72,7 +69,7 @@ func getData(metric *metricpb.Metric) []*date {
 		for _, p := range t.ExponentialHistogram.DataPoints {
 			point := &date{
 				typeName:  "ExponentialHistogram",
-				tags:      newEmptyTags().setAttributesToTags(p.Attributes),
+				tags:      newEmptyTags(s.RegexpString, s.GlobalTags).setAttributesToTags(p.Attributes),
 				startTime: p.StartTimeUnixNano,
 				unitTime:  p.TimeUnixNano,
 				val:       p.Sum,
@@ -83,7 +80,7 @@ func getData(metric *metricpb.Metric) []*date {
 		for _, p := range t.Summary.DataPoints {
 			point := &date{
 				typeName:  "summary",
-				tags:      newEmptyTags().setAttributesToTags(p.Attributes),
+				tags:      newEmptyTags(s.RegexpString, s.GlobalTags).setAttributesToTags(p.Attributes),
 				startTime: p.StartTimeUnixNano,
 				unitTime:  p.TimeUnixNano,
 				val:       p.Sum,
@@ -100,7 +97,7 @@ func getData(metric *metricpb.Metric) []*date {
 	return ps
 }
 
-type otelResourceMetric struct {
+type OtelResourceMetric struct {
 	Operation   string            `json:"operation"`   // metric.name
 	Source      string            `json:"source"`      // inputName ： opentelemetry
 	Attributes  map[string]string `json:"attributes"`  // tags
@@ -115,18 +112,18 @@ type otelResourceMetric struct {
 	// Exemplar 可获取 spanid 等
 }
 
-func toDatakitMetric(rss []*metricpb.ResourceMetrics) []*otelResourceMetric {
-	orms := make([]*otelResourceMetric, 0)
+func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelResourceMetric {
+	orms := make([]*OtelResourceMetric, 0)
 	for _, resourceMetrics := range rss {
-		tags := newEmptyTags().setAttributesToTags(resourceMetrics.Resource.Attributes).tags
+		tags := newEmptyTags(s.RegexpString, s.GlobalTags).setAttributesToTags(resourceMetrics.Resource.Attributes).tags
 		LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
 		for _, libraryMetric := range LibraryMetrics {
 			resource := libraryMetric.InstrumentationLibrary.Name
 			metrices := libraryMetric.GetMetrics()
 			for _, metrice := range metrices {
-				ps := getData(metrice)
+				ps := s.getData(metrice)
 				for _, p := range ps {
-					orm := &otelResourceMetric{
+					orm := &OtelResourceMetric{
 						Operation:   metrice.Name,
 						Source:      inputName,
 						Attributes:  tags,
@@ -154,7 +151,7 @@ func toDatakitMetric(rss []*metricpb.ResourceMetrics) []*otelResourceMetric {
 	return orms
 }
 
-func makePoints(orms []*otelResourceMetric) []*dkio.Point {
+func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
 	pts := make([]*dkio.Point, 0)
 	for _, resourceMetric := range orms {
 		tags := map[string]string{
