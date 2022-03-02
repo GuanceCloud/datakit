@@ -15,7 +15,7 @@ type dialtestingMock interface {
 type prodDialtestingMock struct{}
 
 func (*prodDialtestingMock) debugInit(task *dt.HTTPTask) error {
-	return task.Init()
+	return task.InitDebug()
 }
 
 func (*prodDialtestingMock) debugRun(task *dt.HTTPTask) error {

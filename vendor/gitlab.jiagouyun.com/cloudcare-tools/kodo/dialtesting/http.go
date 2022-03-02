@@ -460,6 +460,116 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 	return nil
 }
 
+func (t *HTTPTask) InitDebug() error {
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	// setup HTTP client
+	t.cli = &http.Client{
+		Timeout: 30 * time.Second, // default timeout
+	}
+
+	// advance options
+	opt := t.AdvanceOptions
+	if opt != nil && opt.RequestOptions != nil {
+		// check FollowRedirect
+		if !opt.RequestOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
+			t.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
+		}
+	}
+
+	if opt != nil && opt.RequestBody != nil {
+		switch opt.RequestBody.BodyType {
+		case "text/plain", "application/json", "text/xml", "application/x-www-form-urlencoded":
+		case "text/html", "multipart/form-data", "", "None": // do nothing
+		default:
+			return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
+		}
+	}
+
+	// TLS opotions
+	if opt != nil && opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
+
+		cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
+		if err != nil {
+			return err
+		}
+
+		t.cli.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:            caCertPool,
+				Certificates:       []tls.Certificate{cert},
+				InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError,
+			},
+		}
+	}
+
+	// proxy options
+	if opt != nil && opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
+		proxyURL, err := url.Parse(opt.Proxy.URL)
+		if err != nil {
+			return err
+		}
+
+		if t.cli.Transport == nil {
+			t.cli.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		} else {
+			t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+		}
+	}
+
+	if len(t.SuccessWhen) == 0 {
+		return fmt.Errorf(`no any check rule`)
+	}
+
+	// init success checker
+	for _, checker := range t.SuccessWhen {
+		if checker.ResponseTime != "" {
+			du, err := time.ParseDuration(checker.ResponseTime)
+			if err != nil {
+				return err
+			}
+			checker.respTime = du
+		}
+
+		for _, vs := range checker.Header {
+			for _, v := range vs {
+				err := genReg(v)
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+
+		// body
+		for _, v := range checker.Body {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
+		// status_code
+		for _, v := range checker.StatusCode {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	// TODO: more checking on task validity
+
+	return nil
+}
+
 func (t *HTTPTask) Init() error {
 	// setup frequency
 	du, err := time.ParseDuration(t.Frequency)
