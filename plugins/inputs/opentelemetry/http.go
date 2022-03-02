@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	dkHTTP "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	collectormetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/protobuf/proto"
@@ -34,65 +33,58 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	l.Infof("-------------------- checkHeaders ok ------------")
+
 	response := collectortracepb.ExportTraceServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {
-		l.Infof("proto marshal error=%v", err)
+		l.Errorf("proto marshal error=%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	l.Infof("-------------------- Marshal ok ------------")
+
 	rawRequest, err := readRequest(r)
 	if err != nil {
+		l.Errorf("readRequest err=%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	l.Infof("-------------------- readRequest ok ------------")
+
 	request, err := unmarshalTraceRequest(rawRequest, r.Header.Get("content-type"))
 	if err != nil {
+		l.Errorf("unmarshalMetricsRequest err=%v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	l.Infof("-------------------- unmarshalTraceRequest ok ------------")
+
 	writeReply(w, rawResponse, o.HTTPStatusOK, nil) // 先将信息返回到客户端 然后再处理spans
 	storage.AddSpans(request.ResourceSpans)
-	l.Infof("-------------------- end ------------")
 }
 
-// apiOtlpCollector : todo metric
-// nolint:unused
 func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request) {
 	response := collectormetricpb.ExportMetricsServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {
-		l.Infof("proto marshal error=%v", err)
+		l.Errorf("proto marshal error=%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	rawRequest, err := readRequest(r)
 	if err != nil {
+		l.Errorf("readRequest err=%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	request, err := unmarshalMetricsRequest(rawRequest, r.Header.Get("content-type"))
 	if err != nil {
+		l.Errorf("unmarshalMetricsRequest err=%v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	writeReply(w, rawResponse, 200, nil) // 先将信息返回到客户端 然后再处理spans
-	rss := request.GetResourceMetrics()
-	for _, spans := range rss {
-		ls := spans.GetInstrumentationLibraryMetrics()
-		for _, librarySpans := range ls {
-			spans := librarySpans.Metrics
-			for _, span := range spans {
-				l.Debug(span.Name) // todo: 组装 metric
-			}
-		}
-	}
+	orms := toDatakitMetric(request.ResourceMetrics)
+	storage.AddMetric(orms)
 }
 
 func (o *otlpHTTPCollector) checkHeaders(r *http.Request) bool {
@@ -114,7 +106,6 @@ func unmarshalTraceRequest(rawRequest []byte, contentType string) (*collectortra
 	return request, err
 }
 
-// nolint:unused
 func unmarshalMetricsRequest(rawRequest []byte, contentType string) (*collectormetricpb.ExportMetricsServiceRequest, error) {
 	request := &collectormetricpb.ExportMetricsServiceRequest{}
 	if contentType != "application/x-protobuf" {
@@ -154,18 +145,3 @@ func writeReply(w http.ResponseWriter, rawResponse []byte, status int, h map[str
 	w.WriteHeader(status)
 	_, _ = w.Write(rawResponse)
 }
-
-func (o *otlpHTTPCollector) RunHTTP() {
-	// 注册到http模块
-	dkHTTP.RegHTTPHandler("POST", "/otel/v11/trace", o.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("GET", "/otel/v11/trace", o.apiOtlpTrace)
-	// metrice 暂时不开
-	// dkHTTP.RegHTTPHandler("POST", "/otel/v11/metric", o.apiOtlpMetric)
-}
-
-/*
-// todo del
-func (o *otlpHTTPCollector) stop() {
-	// empty func
-}
-*/

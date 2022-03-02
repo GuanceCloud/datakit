@@ -2,21 +2,9 @@
 
 package opentelemetry
 
-/*
-	接收从 opentelemetry 发送的 L/T/M 三种数据
-		仅支持两种协议方式发送
-			HTTP:使用 protobuf 格式发送 Trace/metric/logging
-			grpc:同样使用 protobuf 格式
-
-	接收到的数据交给trace处理。
-	本模块只做数据接收和组装 不做业务处理，并都是在(接收完成、返回客户端statusOK) 之后 再进行组装。
-
-	参考开源项目 opentelemetry exports 模块， github地址：https://github.com/open-telemetry/opentelemetry-go
-
-	接收到原生trace 组装成dktrace对象后存储 每隔5秒 或者长度超过100条之后 发送到IO
-*/
-
 import (
+	"strings"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -29,9 +17,13 @@ const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
 [[inputs.opentelemetry]]
-  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
-  ## that want to send to data center. These keys will take precedence over keys in 
-  # customer_tags = ["key1", "key2", ...]
+  ## 在创建'trace',Span','resource'时，会加入很多标签，这些标签最终都会出现在'Span'中
+  ## 当您不希望这些标签太多造成网络上不必要的流量损失时，可选择忽略掉这些标签
+  ## 支持正则表达，注意:将所有的'.'替换成'_'
+  ## When creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
+  ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
+  ## Support regular expression. Note!!!: all '.' Replace with '_' 
+  # ignore_attribute_keys = ["os_*","process_*"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -93,7 +85,7 @@ const (
 )
 
 var (
-	l             = logger.DefaultSLogger("otel")
+	l             = logger.DefaultSLogger("otel-log")
 	closeResource *itrace.CloseResource
 	afterGather   = itrace.NewAfterGather()
 	defSampler    *itrace.Sampler
@@ -102,22 +94,23 @@ var (
 	interval      = 10
 
 	// add to point.
-	globalTags map[string]string
-
+	globalTags   map[string]string
+	regexpString string
 	// that want to send to data center.
-	customTags []string
+	// customTags map[string]struct{}
 )
 
 type Input struct {
-	Ogc *otlpGrpcCollector `toml:"grpc"`
-	Otc *otlpHTTPCollector `toml:"http"`
+	Ogrpc               *otlpGrpcCollector  `toml:"grpc"`
+	OHTTPc              *otlpHTTPCollector  `toml:"http"`
+	CloseResource       map[string][]string `toml:"close_resource"`
+	Sampler             *itrace.Sampler     `toml:"sampler"`
+	CustomerTags        []string            `toml:"customer_tags"`
+	IgnoreAttributeKeys []string            `toml:"ignore_attribute_keys"`
+	Tags                map[string]string   `toml:"tags"`
 
-	CloseResource map[string][]string `toml:"close_resource"`
-	Sampler       *itrace.Sampler     `toml:"sampler"`
-	CustomerTags  []string            `toml:"customer_tags"`
-	Tags          map[string]string   `toml:"tags"`
-	inputName     string
-	semStop       *cliutils.Sem // start stop signal
+	inputName string
+	semStop   *cliutils.Sem // start stop signal
 }
 
 func (i *Input) Catalog() string {
@@ -129,16 +122,16 @@ func (i *Input) SampleConfig() string {
 }
 
 func (i *Input) RegHTTPHandler() {
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", i.Otc.apiOtlpTrace)
-	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", i.Otc.apiOtlpMetric)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/trace", i.OHTTPc.apiOtlpTrace)
+	dkHTTP.RegHTTPHandler("POST", "/otel/v1/metric", i.OHTTPc.apiOtlpMetric)
 }
 
 func (i *Input) exit() {
-	i.Ogc.stop()
+	i.Ogrpc.stop()
 }
 
 func (i *Input) Run() {
-	l = logger.SLogger("otlp")
+	l = logger.SLogger("otlp-log")
 	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
 	if len(i.CloseResource) != 0 {
@@ -153,16 +146,19 @@ func (i *Input) Run() {
 	}
 
 	globalTags = i.Tags
-	customTags = i.CustomerTags
+
+	if len(i.IgnoreAttributeKeys) > 0 {
+		regexpString = strings.Join(i.IgnoreAttributeKeys, "|")
+	}
 
 	open := false
 	// 从配置文件 开启
-	if i.Otc.Enable {
+	if i.OHTTPc.Enable {
 		open = true
-		go i.Otc.RunHTTP()
 	}
-	if i.Ogc.TraceEnable || i.Ogc.MetricEnable {
-		go i.Ogc.run()
+	if i.Ogrpc.TraceEnable || i.Ogrpc.MetricEnable {
+		open = true
+		go i.Ogrpc.run()
 	}
 	if open {
 		// add calculators

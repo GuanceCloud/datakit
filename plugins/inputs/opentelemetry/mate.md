@@ -3,13 +3,19 @@
 resource_spans:{
 resource:{attributes:{key:"message.type"  value:{string_value:"message-name"}} 
  attributes:{key:"service.name"  value:{string_value:"testservice"}}}  
+
 instrumentation_library_spans:{instrumentation_library:{name:"test-tracer"}  
 
-spans:{trace_id:"\x94<\xdf\x00zx\x82\xe7Wy\xfe\x93\xab\x19\x95a"  
-span_id:".\xbd\x06c\x10ɫ*"  
-parent_span_id:"\xa7*\x80Z#\xbeL\xf6"  name:"Sample-0" 
- kind:SPAN_KIND_INTERNAL  start_time_unix_nano:1644312397453313100 
- end_time_unix_nano:1644312398464865900  status:{}} 
+spans:{
+    trace_id:"\x94<\xdf\x00zx\x82\xe7Wy\xfe\x93\xab\x19\x95a"  
+    span_id:".\xbd\x06c\x10ɫ*"  
+    parent_span_id:"\xa7*\x80Z#\xbeL\xf6"  
+    name:"Sample-0" 
+    kind:SPAN_KIND_INTERNAL  
+    start_time_unix_nano:1644312397453313100 
+    end_time_unix_nano:1644312398464865900  
+    status:{}
+} 
 
  spans:{trace_id:"\x94<\xdf\x00zx\x82\xe7Wy\xfe\x93\xab\x19\x95a"  
 span_id:"\xd0\xf3\xe0\t\x92\xea-\xcc"  parent_span_id:"\xa7*\x80Z#\xbeL\xf6"  
@@ -69,6 +75,14 @@ Content:
 SampleRate:0}
 ```
 
+### 测试 
+
+``` text
+&{TraceID:00000000000000000000000000000001 ParentID:0 SpanID:0000000000000002 Service:global.ServerName Resource:test-server Operation:span_name Source:opentelemetry SpanType:SPAN_KIND_UNSPECIFIED SourceType: Env: Project: Version: Tags:map[a:b int:123] EndPoint: HTTPMethod: HTTPStatusCode: ContainerHost: PID: Start:1645424025258951800 Duration:1000000000 Status:info Content:{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1645424025258951800,"end_time_unix_nano":1645424026258951800,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}} Priority:0 SamplingRateGlobal:0},
+&{TraceID:00000000000000000000000000000001 ParentID:0 SpanID:0000000000000002 Service:global.ServerName Resource:test-server Operation:span_name Source:opentelemetry SpanType:SPAN_KIND_UNSPECIFIED SourceType: Env: Project: Version: Tags:map[a:b int:123] EndPoint: HTTPMethod: HTTPStatusCode: ContainerHost: PID: Start:1645424025258951800 Duration:1000000000 Status:info Content:{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1645423573257862600,"end_time_unix_nano":1645423574257862600,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}} Priority:0 SamplingRateGlobal:0}
+   
+```
+
 
           
 ## metric 原始数据
@@ -122,4 +136,67 @@ metrics:{name:"an_important_metric" description:"Measures the cumulative epicnes
 sum:{data_points:{start_time_unix_nano:1644482920517894200 time_unix_nano:1644482920517894200 as_double:10} aggregation_temporality:AGGREGATION_TEMPORALITY_CUMULATIVE is_monotonic:true}}} 
 schema_url:"https://opentelemetry.io/schemas/v1.7.0"}
 ```
+
+
+
+
+--------- 格式化 onemetric  json --------------------
+```
+ {
+            "resource": {},
+            "instrumentation_library_metrics": [
+                {
+                    "instrumentation_library": {
+                        "name": "onelib"
+                    },
+                    "metrics": [
+                        {
+                            "name": "foo",
+                            "Data": {
+                                "Sum": {
+                                    "data_points": [
+                                        {
+                                            "attributes": [
+                                                {
+                                                    "key": "abc",
+                                                    "value": {
+                                                        "Value": {
+                                                            "StringValue": "def"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "key": "one",
+                                                    "value": {
+                                                        "Value": {
+                                                            "IntValue": 1
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "start_time_unix_nano": 1607454900000000000,
+                                            "time_unix_nano": 1607454960000000000,
+                                            "Value": {
+                                                "AsInt": 42
+                                            }
+                                        }
+                                    ],
+                                    "aggregation_temporality": 2,
+                                    "is_monotonic": true
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+```
           
+&{foo opentelemetry map[abc:def one:1] onelib  int 1607454900000000000 1607454960000000000 42 {"operation":"foo","source":"opentelemetry","attributes":{"abc":"def","one":"1"},"resource":"onelib","description":"","value_type":"int","start_time":1607454900000000000,"unit_time":1607454960000000000,"value":42,"content":""}} 
+&{foo opentelemetry map[abc:def one:1] onelib  int 1607454900000000000 1607454960000000000 42 {"operation":"foo","source":"opentelemetry","attributes":{"abc":"def","one":"1"},"resource":"onelib","description":"","value_type":"int","start_time":1607454900000000000,"unit_time":1607454960000000000,"value":42,"content":""}}
+
+filter
+&{TraceID:00000000000000000000000000000001 ParentID:0 SpanID:0000000000000002 Service:global.ServerName Resource:test-server Operation:span_name Source:opentelemetry SpanType:SPAN_KIND_UNSPECIFIED SourceType: Env: Project: Version: Tags:map[a:b int:123 service_name:global.ServerName] EndPoint: HTTPMethod: HTTPStatusCode: ContainerHost: PID: Start:1645772215853204600 Duration:1000000000 Status:info Content:{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1645772215853204600,"end_time_unix_nano":1645772216853204600,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}} Priority:0 SamplingRateGlobal:0},
+&{TraceID:00000000000000000000000000000001 ParentID:0 SpanID:0000000000000002 Service:global.ServerName Resource:test-server Operation:span_name Source:opentelemetry SpanType:SPAN_KIND_UNSPECIFIED SourceType: Env: Project: Version: Tags:map[a:b int:123 service_name:global.ServerName] EndPoint: HTTPMethod: HTTPStatusCode: ContainerHost: PID: Start:1645772215853204600 Duration:1000000000 Status:info Content:{"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==","span_id":"AAAAAAAAAAI=","name":"span_name","start_time_unix_nano":1645423573257862600,"end_time_unix_nano":1645423574257862600,"attributes":[{"key":"a","value":{"Value":{"StringValue":"b"}}},{"key":"int","value":{"Value":{"IntValue":123}}}],"status":{}} Priority:0 SamplingRateGlobal:0}
+    

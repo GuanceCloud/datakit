@@ -9,7 +9,8 @@ require (
 	github.com/DataDog/gopsutil v0.0.0-20210826200402-bbfc5b0ae6e9 // indirect
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible
+	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
+	github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible
 	github.com/apache/thrift v0.13.0
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
 	github.com/c-bata/go-prompt v0.2.5
@@ -27,7 +28,6 @@ require (
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.5
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.3
@@ -44,7 +44,9 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/gomarkdown/markdown v0.0.0-20210208175418-bda154fe17d8
 	github.com/google/gopacket v1.1.19
+	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/gorilla/websocket v1.5.0
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	github.com/influxdata/telegraf v1.15.2
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
@@ -54,6 +56,7 @@ require (
 	github.com/kardianos/service v1.0.0
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/lib/pq v1.10.2
+	github.com/mdlayher/netlink v1.4.1 // indirect
 	github.com/mssola/user_agent v0.5.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
@@ -83,7 +86,17 @@ require (
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220216063214-d3ae12b9cbd2
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.etcd.io/bbolt v1.3.5
-	go.opentelemetry.io/proto/otlp v0.11.0
+	go.opentelemetry.io/otel v1.4.1
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.27.0
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.27.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.4.1
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.4.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.4.1
+	go.opentelemetry.io/otel/metric v0.27.0
+	go.opentelemetry.io/otel/sdk v1.4.1
+	go.opentelemetry.io/otel/sdk/metric v0.27.0
+	go.opentelemetry.io/otel/trace v1.4.1
+	go.opentelemetry.io/proto/otlp v0.12.0
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
@@ -92,8 +105,8 @@ require (
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
-	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
-	google.golang.org/grpc v1.42.0
+	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
+	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
