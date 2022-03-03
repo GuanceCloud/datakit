@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -136,10 +135,6 @@ func GetTraceInt64ID(high, low int64) int64 {
 	}
 
 	return high + low
-}
-
-func GetTraceStringID(high, low int64) string {
-	return fmt.Sprintf("%d%d", high, low)
 }
 
 func IsRootSpan(dkspan *DatakitSpan) bool {

@@ -133,6 +133,7 @@ func spanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
+			TraceID:   fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low),
 			SpanID:    span.ID.String(),
 			ParentID:  "0",
 			Resource:  span.Name,
@@ -143,14 +144,8 @@ func spanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			Tags:      tags,
 		}
 
-		if span.TraceID.High != 0 {
-			dkspan.TraceID = fmt.Sprintf("%d%d", span.TraceID.High, span.TraceID.Low)
-		} else {
-			dkspan.TraceID = fmt.Sprintf("%d", span.TraceID.Low)
-		}
-
 		if span.ParentID != nil {
-			dkspan.ParentID = fmt.Sprintf("%d", *span.ParentID)
+			dkspan.ParentID = span.ParentID.String()
 		}
 
 		if span.LocalEndpoint != nil {

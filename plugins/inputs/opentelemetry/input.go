@@ -14,6 +14,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 )
 
+var (
+	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput = &Input{}
+)
+
 const (
 	inputName    = "opentelemetry"
 	sampleConfig = `
@@ -23,7 +28,7 @@ const (
   ## 支持正则表达，注意:将所有的'.'替换成'_'
   ## When creating 'trace', 'span' and 'resource', many labels will be added, and these labels will eventually appear in all 'spans'
   ## When you don't want too many labels to cause unnecessary traffic loss on the network, you can choose to ignore these labels
-  ## Support regular expression. Note!!!: all '.' Replace with '_' 
+  ## Support regular expression. Note!!!: all '.' Replace with '_'
   # ignore_attribute_keys = ["os_*","process_*"]
 
   ## Keep rare tracing resources list switch.
@@ -67,7 +72,7 @@ const (
 
   ## http
   [inputs.opentelemetry.http]
-  ## if enable=true  
+  ## if enable=true
   ## http path (do not edit):
   ##	trace : /otel/v1/trace
   ##	metric: /otel/v1/metric
@@ -104,8 +109,16 @@ func (i *Input) Catalog() string {
 	return inputName
 }
 
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
 func (i *Input) SampleConfig() string {
 	return sampleConfig
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
 func (i *Input) RegHTTPHandler() {
