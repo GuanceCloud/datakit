@@ -144,8 +144,6 @@ func v1ThriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 			continue
 		}
 
-		log.Debug(*span)
-
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   fmt.Sprintf("%x", uint64(span.TraceID)),
 			SpanID:    fmt.Sprintf("%x", uint64(span.ID)),
@@ -237,8 +235,6 @@ func v1JsonSpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 			continue
 		}
 
-		log.Debug(*span)
-
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   span.TraceID,
 			SpanID:    span.ID,
@@ -265,6 +261,7 @@ func v1JsonSpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 				break
 			}
 		}
+
 		if dkspan.Service == "" {
 			for _, bno := range span.BinaryAnnotations {
 				if bno.Host != nil && bno.Host.ServiceName != "" {

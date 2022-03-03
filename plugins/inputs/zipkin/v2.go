@@ -132,8 +132,6 @@ func v2SpanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			continue
 		}
 
-		log.Debug(*span)
-
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low),
 			SpanID:    span.ID.String(),
