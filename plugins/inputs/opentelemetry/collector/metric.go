@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"encoding/json"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -107,7 +106,7 @@ type OtelResourceMetric struct {
 	UnitTime    uint64            `json:"unit_time"`   // end time
 	ValueType   string            `json:"value_type"`  // double | int | histogram | ExponentialHistogram | summary
 	Value       interface{}       `json:"value"`       // 上述五种类型所对应的值
-	Content     string            `json:"content"`     // metric json string
+	// Content     string            `json:"content"`     // metric json string
 
 	// Exemplar 可获取 spanid 等
 }
@@ -137,12 +136,7 @@ func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelR
 					for k, v := range p.tags.resource() {
 						orm.Attributes[k] = v
 					}
-					bts, err := json.Marshal(metrice)
-					if err != nil {
-						l.Errorf("marshal err=%v", err)
-					} else {
-						orm.Content = string(bts)
-					}
+
 					orms = append(orms, orm)
 				}
 			}
@@ -162,9 +156,9 @@ func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
 			tags[k] = v
 		}
 		fields := map[string]interface{}{
-			"start":      resourceMetric.StartTime,
-			"duration":   resourceMetric.UnitTime - resourceMetric.StartTime,
-			"message":    resourceMetric.Content,
+			"start":    resourceMetric.StartTime,
+			"duration": resourceMetric.UnitTime - resourceMetric.StartTime,
+			//	"message":    resourceMetric.Content,
 			"resource":   resourceMetric.Resource,
 			"value_type": resourceMetric.ValueType,
 			"value":      resourceMetric.Value,
@@ -184,3 +178,11 @@ func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
 	}
 	return pts
 }
+
+/*
+标签
+tag
+
+指标
+Metric name -> val
+*/
