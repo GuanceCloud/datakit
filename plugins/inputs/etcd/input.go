@@ -17,7 +17,7 @@ const (
   url = "http://127.0.0.1:2379/metrics"
 
 	## 采集器别名
-	source = "prom"
+	source = "etcd"
 
   ## 指标类型过滤, 可选值为 counter, gauge, histogram, summary
   # 默认只采集 counter 和 gauge 类型的指标

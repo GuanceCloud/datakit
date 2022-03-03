@@ -2,11 +2,8 @@
 package kafka
 
 import (
-	"os"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -37,8 +34,9 @@ type kafkalog struct {
 
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
+	io.FeedEventLog(&io.Reporter{Message: "kafka start ok, ready for collecting metrics.", Logtype: "event"})
 
-	if i.Interval == "" {
+	if i.Interval == "" { //nolint:typecheck
 		i.Interval = defaultInterval
 	}
 
@@ -62,28 +60,17 @@ func (i *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
+		Pipeline:          i.Log.Pipeline,
 		GlobalTags:        i.Tags,
 		IgnoreStatus:      i.Log.IgnoreStatus,
 		CharacterEncoding: i.Log.CharacterEncoding,
 		MultilineMatch:    i.Log.MultilineMatch,
 	}
 
-	pl, err := config.GetPipelinePath(i.Log.Pipeline)
-	if err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	i.tail, err = tailer.NewTailer(i.Log.Files, opt)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
-
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
@@ -101,14 +88,19 @@ func (*Input) PipelineConfig() map[string]string {
 func (i *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: i.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if i.Log != nil {
+					return i.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }
 
-func (*Input) Catalog() string      { return inputName }
+func (*Input) Catalog() string      { return "db" }
 func (*Input) SampleConfig() string { return kafkaConfSample }
 
 func (*Input) AvailableArchs() []string {
@@ -120,11 +112,16 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&KafkaControllerMment{},
 		&KafkaReplicaMment{},
 		&KafkaPurgatoryMment{},
-		&KafkaClientMment{},
 		&KafkaRequestMment{},
 		&KafkaTopicsMment{},
 		&KafkaTopicMment{},
 		&KafkaPartitionMment{},
+		&KafkaZooKeeperMment{},
+		&KafkaNetworkMment{},
+		&KafkaLogMment{},
+		&KafkaConsumerMment{},
+		&KafkaProducerMment{},
+		&KafkaConnectMment{},
 	}
 }
 

@@ -3,7 +3,6 @@ package lineproto
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"math"
 	"reflect"
 	"strings"
@@ -14,23 +13,60 @@ import (
 )
 
 type Option struct {
-	Time               time.Time
-	Precision          string
-	ExtraTags          map[string]string
-	Strict             bool
-	Callback           func(models.Point) (models.Point, error)
-	MaxTags, MaxFields int
+	Time      time.Time
+	Precision string
+	ExtraTags map[string]string
+
+	DisabledTagKeys   []string
+	DisabledFieldKeys []string
+
+	Strict           bool
+	EnablePointInKey bool
+	Callback         func(models.Point) (models.Point, error)
+
+	MaxTags,
+	MaxFields,
+	MaxTagKeyLen,
+	MaxFieldKeyLen,
+	MaxTagValueLen,
+	MaxFieldValueLen int
 }
 
-var (
-	DefaultOption = &Option{
+var DefaultOption = NewDefaultOption()
+
+func NewDefaultOption() *Option {
+	return &Option{
 		Strict:    true,
 		Precision: "n",
+
 		MaxTags:   256,
 		MaxFields: 1024,
-		Time:      time.Now().UTC(),
+
+		MaxTagKeyLen:   256,
+		MaxFieldKeyLen: 256,
+
+		MaxTagValueLen:   1024,
+		MaxFieldValueLen: 32 * 1024, // 32K
 	}
-)
+}
+
+func (opt *Option) checkDisabledField(f string) error {
+	for _, x := range opt.DisabledFieldKeys {
+		if f == x {
+			return fmt.Errorf("field key `%s' disabled", f)
+		}
+	}
+	return nil
+}
+
+func (opt *Option) checkDisabledTag(t string) error {
+	for _, x := range opt.DisabledTagKeys {
+		if t == x {
+			return fmt.Errorf("tag key `%s' disabled", t)
+		}
+	}
+	return nil
+}
 
 func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 	if len(data) == 0 {
@@ -49,7 +85,12 @@ func ParsePoints(data []byte, opt *Option) ([]*influxdb.Point, error) {
 		opt.MaxTags = 256
 	}
 
-	points, err := models.ParsePointsWithPrecision(data, opt.Time, opt.Precision)
+	ptTime := opt.Time
+	if opt.Time.IsZero() {
+		ptTime = time.Now()
+	}
+
+	points, err := models.ParsePointsWithPrecision(data, ptTime, opt.Precision)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +131,10 @@ func MakeLineProtoPoint(name string,
 	tags map[string]string,
 	fields map[string]interface{},
 	opt *Option) (*influxdb.Point, error) {
+
+	if name == "" {
+		return nil, fmt.Errorf("empty measurement name")
+	}
 
 	if opt == nil {
 		opt = DefaultOption
@@ -161,13 +206,18 @@ func checkPoint(p models.Point, opt *Option) error {
 		return fmt.Errorf("exceed max field count(%d), got %d tags", opt.MaxFields, len(fs))
 	}
 
-	for k, _ := range fs {
+	for k := range fs {
 		if p.HasTag([]byte(k)) {
 			return fmt.Errorf("same key `%s' in tag and field", k)
 		}
 
-		if strings.Contains(k, ".") {
+		// enable `.' in time serial metric
+		if strings.Contains(k, ".") && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid field key `%s': found `.'", k)
+		}
+
+		if err := opt.checkDisabledField(k); err != nil {
+			return err
 		}
 	}
 
@@ -189,8 +239,12 @@ func checkPoint(p models.Point, opt *Option) error {
 	}
 
 	for _, t := range tags {
-		if bytes.IndexByte(t.Key, byte('.')) != -1 {
+		if bytes.IndexByte(t.Key, byte('.')) != -1 && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid tag key `%s': found `.'", string(t.Key))
+		}
+
+		if err := opt.checkDisabledTag(string(t.Key)); err != nil {
+			return err
 		}
 	}
 
@@ -202,7 +256,7 @@ func checkTagFieldSameKey(tags map[string]string, fields map[string]interface{})
 		return nil
 	}
 
-	for k, _ := range tags {
+	for k := range tags {
 		if _, ok := fields[k]; ok {
 			return fmt.Errorf("same key `%s' in tag and field", k)
 		}
@@ -224,8 +278,16 @@ func trimSuffixAll(s, sfx string) string {
 }
 
 func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
-	if strings.Contains(k, ".") {
+	if strings.Contains(k, ".") && !opt.EnablePointInKey {
 		return nil, fmt.Errorf("invalid field key `%s': found `.'", k)
+	}
+
+	if len(k) > opt.MaxFieldKeyLen {
+		return nil, fmt.Errorf("exceed max field key limit(%d), got key %s with length %d", opt.MaxFieldKeyLen, k, len(k))
+	}
+
+	if err := opt.checkDisabledField(k); err != nil {
+		return nil, err
 	}
 
 	switch x := v.(type) {
@@ -242,13 +304,18 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 			//    `abc,tag=1 f1=32u`
 			// expected is:
 			//    `abc,tag=1 f1=32i`
-			log.Printf("convert %d to int64", x)
 			return int64(x), nil
 		}
 
 	case int, int8, int16, int32, int64,
 		uint, uint8, uint16, uint32,
-		bool, string, float32, float64:
+		bool, float32, float64:
+		return v, nil
+
+	case string:
+		if len(x) > opt.MaxFieldValueLen && opt.MaxFieldValueLen > 0 {
+			return nil, fmt.Errorf("exceed max field value limit(%d), got key %s with length %d", opt.MaxFieldValueLen, k, len(x))
+		}
 		return v, nil
 
 	default:
@@ -266,6 +333,15 @@ func checkField(k string, v interface{}, opt *Option) (interface{}, error) {
 
 func checkTags(tags map[string]string, opt *Option) error {
 	for k, v := range tags {
+
+		if len(k) > opt.MaxTagKeyLen {
+			return fmt.Errorf("exceed max tag key limit(%d), got key %s with length %d", opt.MaxTagKeyLen, k, len(k))
+		}
+
+		if len(v) > opt.MaxTagValueLen {
+			return fmt.Errorf("exceed max tag value limit(%d), got key %s with length %d", opt.MaxTagValueLen, k, len(v))
+		}
+
 		// check tag key
 		if strings.HasSuffix(k, `\`) || strings.Contains(k, "\n") {
 			if !opt.Strict {
@@ -287,8 +363,12 @@ func checkTags(tags map[string]string, opt *Option) error {
 		}
 
 		// not recoverable if `.' exists!
-		if strings.Contains(k, ".") {
+		if strings.Contains(k, ".") && !opt.EnablePointInKey {
 			return fmt.Errorf("invalid tag key `%s': found `.'", k)
+		}
+
+		if err := opt.checkDisabledTag(k); err != nil {
+			return err
 		}
 	}
 

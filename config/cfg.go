@@ -20,10 +20,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 var (
@@ -39,9 +38,9 @@ func SetLog() {
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
 		GlobalTags: map[string]string{
-			"project": "",
-			"cluster": "",
-			"site":    "",
+			// "project": "",
+			// "cluster": "",
+			// "site":    "",
 		},
 
 		Environments: map[string]string{
@@ -57,6 +56,7 @@ func DefaultConfig() *Config {
 			DynamicCacheDumpThreshold: 512,
 			FlushInterval:             "10s",
 			OutputFileInputs:          []string{},
+			EnableCache:               false,
 		},
 
 		DataWay: &dataway.DataWayCfg{
@@ -69,12 +69,17 @@ func DefaultConfig() *Config {
 			RUMOriginIPHeader: "X-Forwarded-For",
 			Listen:            "localhost:9529",
 			RUMAppIDWhiteList: []string{},
+			PublicAPIs:        []string{},
 		},
 
 		DCAConfig: &dkhttp.DCAConfig{
 			Enable:    false,
 			Listen:    "0.0.0.0:9531",
 			WhiteList: []string{},
+		},
+		Pipeline: &pipeline.PipelineCfg{
+			IPdbType:           "iploc",
+			RemotePullInterval: "1m",
 		},
 		Logging: &LoggerCfg{
 			Level:  "info",
@@ -89,7 +94,7 @@ func DefaultConfig() *Config {
 		WhiteList: []*inputHostList{
 			{Hosts: []string{}, Inputs: []string{}},
 		},
-		Cgroup: &Cgroup{Enable: false, CPUMax: 30.0, CPUMin: 5.0},
+		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
 
 		Tracer: &tracer.Tracer{TraceEnabled: false},
 
@@ -132,6 +137,7 @@ type IOConfig struct {
 	FlushInterval             string   `toml:"flush_interval"`
 	OutputFile                string   `toml:"output_file"`
 	OutputFileInputs          []string `toml:"output_file_inputs"`
+	EnableCache               bool     `toml:"enable_cache"`
 }
 
 type LoggerCfg struct {
@@ -179,6 +185,9 @@ type Config struct {
 	// DCA config
 	DCAConfig *dkhttp.DCAConfig `toml:"dca"`
 
+	// pipeline
+	Pipeline *pipeline.PipelineCfg `toml:"pipeline"`
+
 	// logging config
 	LogDeprecated      string `toml:"log,omitempty"`
 	LogLevelDeprecated string `toml:"log_level,omitempty"`
@@ -212,6 +221,8 @@ type Config struct {
 	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
 
 	GitRepos *GitRepost `toml:"git_repos"`
+
+	RunMode int `toml:"run_mode,omitempty"`
 }
 
 func (c *Config) String() string {
@@ -241,14 +252,12 @@ func (c *Config) SetUUID() error {
 func (c *Config) LoadMainTOML(p string) error {
 	cfgdata, err := ioutil.ReadFile(filepath.Clean(p))
 	if err != nil {
-		l.Errorf("read main cfg %s failed: %s", p, err.Error())
-		return err
+		return fmt.Errorf("ioutil.ReadFile: %w", err)
 	}
 
 	_, err = bstoml.Decode(string(cfgdata), c)
 	if err != nil {
-		l.Errorf("unmarshal main cfg failed %s", err.Error())
-		return err
+		return fmt.Errorf("bstoml.Decode: %w", err)
 	}
 
 	_ = c.SetUUID()
@@ -308,6 +317,12 @@ func (c *Config) setupDataway() error {
 
 	if len(c.DataWay.URLs) == 0 {
 		return fmt.Errorf("dataway not set")
+	}
+	if c.DataWay.URLs[0] == datakit.DatawayDisableURL {
+		c.RunMode = datakit.ModeDev
+		return nil
+	} else {
+		c.RunMode = datakit.ModeNormal
 	}
 
 	dataway.ExtraHeaders = map[string]string{
@@ -441,6 +456,7 @@ func (c *Config) ApplyMainConfig() error {
 			dkio.SetFlushInterval(c.IOConf.FlushInterval),
 			dkio.SetOutputFile(c.IOConf.OutputFile),
 			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
+			dkio.SetEnableCache(c.IOConf.EnableCache),
 			dkio.SetDataway(c.DataWay))
 	}
 
@@ -470,31 +486,7 @@ func (c *Config) ApplyMainConfig() error {
 		l.Info("refresh main configure ok")
 	}
 
-	mExistCloneDirs := make(map[string]struct{})
-
-	for _, v := range c.GitRepos.Repos {
-		if !v.Enable {
-			continue
-		}
-		v.URL = dkstring.TrimString(v.URL)
-		if v.URL == "" {
-			continue
-		}
-		repoName, err := path.GetGitPureName(v.URL)
-		if err != nil {
-			continue
-		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-		clonePath, err := GetGitRepoDir(repoName)
-		if err != nil {
-			continue
-		}
-		datakit.GetReposConfDirs = append(datakit.GetReposConfDirs, clonePath)
-	}
+	InitGitreposDir()
 
 	return nil
 }
@@ -504,6 +496,7 @@ func (c *Config) setHostname() error {
 	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
 		c.Hostname = v
 		l.Infof("set hostname to %s from config ENV_HOSTNAME", v)
+		datakit.DatakitHostName = c.Hostname
 		return nil
 	}
 
@@ -515,6 +508,7 @@ func (c *Config) setHostname() error {
 	}
 	l.Infof("here is hostname:%s", c.Hostname)
 	c.Hostname = hn
+	datakit.DatakitHostName = c.Hostname
 	l.Infof("set hostname to %s", hn)
 	return nil
 }
@@ -574,6 +568,10 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
 		c.Namespace = v
+	}
+
+	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
+		c.EnableElection = true
 	}
 
 	if v := datakit.GetEnv("ENV_GLOBAL_TAGS"); v != "" {
@@ -650,8 +648,24 @@ func (c *Config) LoadEnvs() error {
 		c.DefaultEnabledInputs = strings.Split(v, ",")
 	}
 
-	if v := datakit.GetEnv("ENV_ENABLE_ELECTION"); v != "" {
-		c.EnableElection = true
+	if v := datakit.GetEnv("ENV_GIT_URL"); v != "" {
+		interval := datakit.GetEnv("ENV_GIT_INTERVAL")
+		keyPath := datakit.GetEnv("ENV_GIT_KEY_PATH")
+		keyPasswd := datakit.GetEnv("ENV_GIT_KEY_PW")
+		branch := datakit.GetEnv("ENV_GIT_BRANCH")
+
+		c.GitRepos = &GitRepost{
+			PullInterval: interval,
+			Repos: []*GitRepository{
+				{
+					Enable:                true,
+					URL:                   v,
+					SSHPrivateKeyPath:     keyPath,
+					SSHPrivateKeyPassword: keyPasswd,
+					Branch:                branch,
+				}, // GitRepository
+			}, // Repos
+		} // GitRepost
 	}
 
 	return nil
@@ -837,13 +851,5 @@ func GetToken() string {
 }
 
 func GitHasEnabled() bool {
-	hasEnable := false
-	for _, v := range Cfg.GitRepos.Repos {
-		if v.Enable {
-			hasEnable = true
-			break
-		}
-	}
-
-	return hasEnable
+	return datakit.GitReposRepoName != "" && datakit.GitReposRepoFullPath != ""
 }

@@ -17,11 +17,13 @@ import (
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
 
@@ -45,7 +47,6 @@ var (
 var (
 	flagHostName string
 	flagDKUpgrade,
-	flagInstallOnly,
 	flagOffline,
 	flagDownloadOnly,
 	flagInfo,
@@ -68,8 +69,21 @@ var (
 	flagGitBranch,
 	flagGitPullInterval,
 	flagSrc,
-	flagCloudProvider string
+	flagCloudProvider,
+	flagRumOriginIPHeader,
+	flagLogLevel,
+	flagLog,
+	flagIpdb,
+	flagGinLog,
+	flagEnableElection,
+	flagDisable404Page string
+
+	flagInstallOnly,
+	flagCgroupEnabled,
 	flagDatakitHTTPPort int
+
+	flagLimitCPUMax float64
+	flagLimitCPUMin float64
 )
 
 const (
@@ -78,7 +92,6 @@ const (
 
 func init() { //nolint:gochecknoinits
 	flag.BoolVar(&flagDKUpgrade, "upgrade", false, "")
-	flag.BoolVar(&flagInstallOnly, "install-only", false, "install only, not start")
 	flag.BoolVar(&flagOTA, "ota", false, "auto update")
 	flag.StringVar(&flagDCAEnable, "dca-enable", "", "enable DCA")
 	flag.StringVar(&flagDCAListen, "dca-listen", "0.0.0.0:9531", "DCA listen address and port")
@@ -94,6 +107,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
+	flag.StringVar(&flagIpdb, "ipdb-type", "", "ipdb type")
 	flag.StringVar(&flagCloudProvider,
 		"cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 	flag.StringVar(&flagGitURL, "git-url", "", "git repo url")
@@ -101,12 +115,24 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagGitKeyPW, "git-key-pw", "", "git repo access private use password")
 	flag.StringVar(&flagGitBranch, "git-branch", "", "git repo branch name")
 	flag.StringVar(&flagGitPullInterval, "git-pull-interval", "", "git repo pull interval")
+	flag.StringVar(&flagEnableElection, "enable-election", "", "datakit election")
+	flag.StringVar(&flagRumOriginIPHeader, "rum-origin-ip-header", "", "rum only")
+	flag.StringVar(&flagDisable404Page, "disable-404page", "", "datakit rum 404 page")
+	flag.StringVar(&flagLogLevel, "log-level", "", "log level setting")
+	flag.StringVar(&flagLog, "log", "", "log setting")
+	flag.StringVar(&flagGinLog, "gin-log", "", "gin log setting")
 	flag.StringVar(&flagSrc, "srcs",
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
 
+	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Croup CPU max usage")
+	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Croup CPU min usage")
+
+	flag.IntVar(&flagCgroupEnabled, "cgroup-enabled", 0, "enable Cgroup under Linux")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
+	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
+
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
@@ -139,6 +165,17 @@ func downloadFiles(to string) error {
 	dl.CurDownloading = "data"
 	if err := dl.Download(cli, dataURL, to, true, flagDownloadOnly); err != nil {
 		return err
+	}
+
+	if flagIpdb != "" {
+		fmt.Printf("\n")
+		baseURL := "https://" + DataKitBaseURL
+		if _, err := cmds.InstallIpdb(baseURL, flagIpdb); err != nil {
+			l.Warnf("ipdb install failed error: %s, please try later.", err.Error())
+			time.Sleep(1 * time.Second)
+		} else {
+			config.Cfg.Pipeline.IPdbType = flagIpdb
+		}
 	}
 
 	fmt.Printf("\n")
@@ -254,22 +291,26 @@ Data           : %s
 	datakit.InitDirs()
 
 	if flagDKUpgrade { // upgrade new version
+		if err := checkUpgradeVersion(git.Version); err != nil {
+			l.Fatalf("upgrade datakit: %s", err.Error())
+		}
+
 		l.Infof("Upgrading to version %s...", DataKitVersion)
 		if err = upgradeDatakit(svc); err != nil {
-			l.Fatalf("upgrade datakit: %s, ignored", err.Error())
+			l.Fatalf("upgrade datakit: %s", err.Error())
 		}
 	} else { // install new datakit
 		l.Infof("Installing version %s...", DataKitVersion)
 		installNewDatakit(svc)
 	}
 
-	if !flagInstallOnly {
+	if flagInstallOnly != 0 {
+		l.Infof("only install service %s, NOT started", dkservice.ServiceName)
+	} else {
 		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
 			l.Warnf("star service: %s, ignored", err.Error())
 		}
-	} else {
-		l.Infof("only install service %s, NOT started", dkservice.ServiceName)
 	}
 
 	if err := config.CreateSymlinks(); err != nil {
@@ -343,8 +384,17 @@ func installNewDatakit(svc service.Service) {
 
 	mc := config.Cfg
 
-	// prepare dataway info
+	// prepare dataway info and check token format
 	mc.DataWay = getDataWayCfg()
+	tokens := mc.DataWay.GetToken()
+	if len(tokens) == 0 {
+		l.Fatalf("dataway token should not be empty")
+	}
+
+	if err := mc.DataWay.CheckToken(tokens[0]); err != nil {
+		l.Fatal(err)
+	}
+
 	if flagOTA {
 		l.Debugf("set auto update flag")
 		mc.AutoUpdate = flagOTA
@@ -372,6 +422,32 @@ func installNewDatakit(svc service.Service) {
 				}
 			}
 		}
+	}
+
+	// Only linux support cgroup.
+	if flagCgroupEnabled == 1 && runtime.GOOS == datakit.OSLinux {
+		l.Infof("Croups enabled under Linux")
+		mc.Cgroup.Enable = true
+
+		if flagLimitCPUMin > 0 {
+			mc.Cgroup.CPUMin = flagLimitCPUMin
+		}
+
+		if flagLimitCPUMax > 0 {
+			mc.Cgroup.CPUMax = flagLimitCPUMax
+		}
+
+		if mc.Cgroup.CPUMax < mc.Cgroup.CPUMin {
+			l.Fatalf("invalid CGroup CPU limit, max should larger than min")
+		}
+	}
+
+	if flagLimitCPUMax != 0 {
+		if flagLimitCPUMax < 0 || flagLimitCPUMax > 100 {
+			l.Errorf("Limit CPU max can not less than zero or bigger than one hundred")
+			flagLimitCPUMax = 20.0
+		}
+		mc.Cgroup.CPUMax = flagLimitCPUMax
 	}
 
 	if flagHostName != "" {
@@ -409,6 +485,31 @@ func installNewDatakit(svc service.Service) {
 				}, // GitRepository
 			}, // Repos
 		} // GitRepost
+	}
+
+	if flagEnableElection != "" {
+		l.Infof("set enable election: %v", flagEnableElection)
+		mc.EnableElection = true
+	}
+	if flagDisable404Page != "" {
+		l.Infof("set disable 404 page: %v", flagDisable404Page)
+		mc.Disable404PageDeprecated = true
+	}
+	if flagRumOriginIPHeader != "" {
+		l.Infof("set rum origin IP header: %s", flagRumOriginIPHeader)
+		mc.HTTPAPI.RUMOriginIPHeader = flagRumOriginIPHeader
+	}
+	if flagLogLevel != "" {
+		l.Infof("set log level: %s", flagLogLevel)
+		mc.Logging.Level = flagLogLevel
+	}
+	if flagLog != "" {
+		l.Infof("set log: %s", flagLog)
+		mc.Logging.Log = flagLog
+	}
+	if flagGinLog != "" {
+		l.Infof("set gin log: %s", flagGinLog)
+		mc.GinLogDeprecated = flagGinLog
 	}
 
 	writeDefInputToMainCfg(mc)
@@ -639,4 +740,23 @@ func mvOldDatakit(svc service.Service) {
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
 		l.Fatalf("move %s -> %s failed: %s", olddir, datakit.InstallDir, err.Error())
 	}
+}
+
+func checkUpgradeVersion(s string) error {
+	v := version.VerInfo{VersionString: s}
+	if err := v.Parse(); err != nil {
+		return err
+	}
+
+	// 对 1.1.x 版本的 datakit，此处暂且认为是 stable 版本，不然
+	// 无法从 1.1.x 升级到 1.2.x
+	// 1.2 以后的版本（1.3/1.5/...）等均视为 unstable 版本
+	if v.GetMinor() == 1 {
+		return nil
+	}
+
+	if !v.IsStable() {
+		return fmt.Errorf("not stable version, only stable version allowed to upgrade")
+	}
+	return nil
 }

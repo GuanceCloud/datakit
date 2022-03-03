@@ -55,6 +55,7 @@ func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("sensors input started")
+	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 
 	var err error
 	if ipt.Path == "" || !path.IsFileExists(ipt.Path) {

@@ -35,6 +35,7 @@ logstreaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。
 - `service`：添加 service 标签字段，例如（`/v1/write/logstreaming?service=nginx_service`）
   - 默认为 `source` 参数值。
 - `pipeline`：指定数据需要使用的 pipeline 名称，例如 `nginx.p`（`/v1/write/logstreaming?pipeline=nginx.p`）
+- `tags`：添加自定义 tag，以英文逗号 `,` 分割，例如 `key1=value1` 和 `key2=value2`（`/v1/write/logstreaming?tags=key1=value1,key2=value2`）
 
 
 ### 使用方式

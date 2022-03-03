@@ -1,6 +1,7 @@
 package ddtrace
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/msgpack"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -106,9 +106,7 @@ func handleTraces(pattern string) http.HandlerFunc {
 			return
 		}
 		if len(pts) != 0 {
-			if err = dkio.Feed(inputName,
-				datakit.Tracing,
-				pts,
+			if err = dkio.Feed(inputName, datakit.Tracing, pts,
 				&dkio.Option{
 					CollectCost: time.Since(since),
 					HighFreq:    true,
@@ -147,20 +145,20 @@ func decodeRequest(pattern string, req *http.Request) (Traces, error) {
 		mediaType = "application/json"
 	}
 
+	buf, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	traces := Traces{}
 	if pattern == v5 {
-		buf := bufpool.GetBuffer()
-		defer bufpool.PutBuffer(buf)
-
-		if _, err = io.Copy(buf, req.Body); err == nil {
-			err = unmarshalTraceDictionary(buf.Bytes(), &traces)
-		}
+		err = unmarshalTraceDictionary(buf, &traces)
 	} else {
 		switch mediaType {
 		case "application/msgpack":
-			err = msgpack.Unmarshal(req.Body, &traces)
+			err = msgpack.Unmarshal(bytes.NewBuffer(buf), &traces)
 		case "application/json", "text/json", "":
-			err = json.NewDecoder(req.Body).Decode(&traces)
+			err = json.NewDecoder(bytes.NewBuffer(buf)).Decode(&traces)
 		default:
 			err = errors.New("unrecognized Content-Type to decode")
 		}

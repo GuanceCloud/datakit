@@ -8,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -28,13 +29,10 @@ import (
  */
 
 var (
-	defaultCandidate = &candidate{
-		status: statusDisabled,
-	}
-
-	l                = logger.DefaultSLogger("dk-election")
-	HTTPTimeout      = time.Second * 3
-	electionInterval = time.Second * 3
+	defaultCandidate        = &candidate{status: statusDisabled}
+	log                     = logger.DefaultSLogger("dk-election")
+	HTTPTimeout             = time.Second * 3
+	electionIntervalDefault = 4
 )
 
 const (
@@ -44,16 +42,16 @@ const (
 )
 
 type candidate struct {
-	status        string
-	id, namespace string
-	dw            *dataway.DataWayCfg
-	plugins       []inputs.ElectionInput
-
+	status                         string
+	id, namespace                  string
+	dw                             *dataway.DataWayCfg
+	plugins                        []inputs.ElectionInput
+	ElectedTime                    time.Time
 	nElected, nHeartbeat, nOffline int
 }
 
 func Start(namespace, id string, dw *dataway.DataWayCfg) {
-	l = logger.SLogger("dk-election")
+	log = logger.SLogger("dk-election")
 	defaultCandidate.run(namespace, id, dw)
 }
 
@@ -63,8 +61,8 @@ func (x *candidate) run(namespace, id string, dw *dataway.DataWayCfg) {
 	x.dw = dw
 	x.plugins = inputs.GetElectionInputs()
 
-	l.Debugf("namespace: %s id: %s", x.namespace, x.id)
-	l.Infof("get %d election inputs", len(x.plugins))
+	log.Debugf("namespace: %s id: %s", x.namespace, x.id)
+	log.Infof("get %d election inputs", len(x.plugins))
 
 	x.startElection()
 }
@@ -73,17 +71,20 @@ func (x *candidate) startElection() {
 	g := datakit.G("election")
 	g.Go(func(ctx context.Context) error {
 		x.pausePlugins()
-		tick := time.NewTicker(electionInterval)
+		tick := time.NewTicker(time.Second * time.Duration(electionIntervalDefault))
 		defer tick.Stop()
 
 		for {
 			select {
 			case <-datakit.Exit.Wait():
 				return nil
-
 			case <-tick.C:
-				l.Debugf("run once...")
-				x.runOnce()
+				log.Debugf("###run once...")
+				electionInterval := x.runOnce()
+				if electionInterval != electionIntervalDefault {
+					tick.Reset(time.Second * time.Duration(electionInterval))
+					electionIntervalDefault = electionInterval
+				}
 			}
 		}
 	})
@@ -94,47 +95,61 @@ func Elected() (string, string) {
 	return defaultCandidate.status, defaultCandidate.namespace
 }
 
-func (x *candidate) runOnce() {
+func GetElectedTime() time.Time {
+	return defaultCandidate.ElectedTime
+}
+
+func (x *candidate) runOnce() int {
+	var (
+		elecIntv int
+		err      error
+	)
 	switch x.status {
 	case statusSuccess:
-		_ = x.keepalive()
+		elecIntv, err = x.keepalive()
 	default:
-		_ = x.tryElection()
+		elecIntv, err = x.tryElection()
 	}
+
+	if err != nil {
+		io.FeedLastError("election", err.Error())
+	}
+
+	return elecIntv
 }
 
 func (x *candidate) pausePlugins() {
 	for i, p := range x.plugins {
-		l.Debugf("pause %dth inputs...", i)
+		log.Debugf("pause %dth inputs...", i)
 		if err := p.Pause(); err != nil {
-			l.Warn(err)
+			log.Warn(err)
 		}
 	}
 }
 
 func (x *candidate) resumePlugins() {
 	for i, p := range x.plugins {
-		l.Debugf("resume %dth inputs...", i)
+		log.Debugf("resume %dth inputs...", i)
 		if err := p.Resume(); err != nil {
-			l.Warn(err)
+			log.Warn(err)
 		}
 	}
 }
 
-func (x *candidate) keepalive() error {
+func (x *candidate) keepalive() (int, error) {
 	body, err := x.dw.ElectionHeartbeat(x.namespace, x.id)
 	if err != nil {
-		l.Error(err)
-		return err
+		log.Error(err)
+		return electionIntervalDefault, err
 	}
 
 	e := electionResult{}
 	if err := json.Unmarshal(body, &e); err != nil {
-		l.Error(err)
-		return err
+		log.Error(err)
+		return electionIntervalDefault, err
 	}
 
-	l.Debugf("result body: %s", body)
+	log.Debugf("result body: %s", body)
 
 	switch e.Content.Status {
 	case statusFail:
@@ -143,11 +158,11 @@ func (x *candidate) keepalive() error {
 		x.pausePlugins()
 	case statusSuccess:
 		x.nHeartbeat++
-		l.Debugf("%s HB %d", x.id, x.nHeartbeat)
+		log.Debugf("%s HB %d", x.id, x.nHeartbeat)
 	default:
-		l.Warnf("unknown election status: %s", e.Content.Status)
+		log.Warnf("unknown election status: %s", e.Content.Status)
 	}
-	return nil
+	return e.Content.Interval, nil
 }
 
 type electionResult struct {
@@ -157,34 +172,45 @@ type electionResult struct {
 		ID           string `json:"id"`
 		IncumbencyID string `json:"incumbency_id,omitempty"`
 		ErrorMsg     string `json:"error_msg,omitempty"`
+		Interval     int    `json:"interval"`
 	} `json:"content"`
 }
 
-func (x *candidate) tryElection() error {
+func (x *candidate) tryElection() (int, error) {
 	body, err := x.dw.Election(x.namespace, x.id)
 	if err != nil {
-		l.Error(err)
-		return err
+		log.Error(err)
+
+		return electionIntervalDefault, err
 	}
 
 	e := electionResult{}
 	if err := json.Unmarshal(body, &e); err != nil {
-		l.Error(err)
-		return nil
+		log.Error(err)
+
+		return electionIntervalDefault, nil
 	}
 
-	l.Debugf("result body: %s", body)
+	log.Debugf("result body: %s", body)
 
 	switch e.Content.Status {
 	case statusFail:
+		if x.status != statusFail {
+			io.FeedEventLog(&io.Reporter{Message: "election fail", Logtype: "event"})
+		}
 		x.status = statusFail
 	case statusSuccess:
+		if x.status != statusSuccess {
+			io.FeedEventLog(&io.Reporter{Message: "election success", Logtype: "event"})
+		}
 		x.status = statusSuccess
 		x.resumePlugins()
 		x.nElected++
 		x.nHeartbeat = 0
+		x.ElectedTime = time.Now()
 	default:
-		l.Warnf("unknown election status: %s", e.Content.Status)
+		log.Warnf("unknown election status: %s", e.Content.Status)
 	}
-	return nil
+
+	return e.Content.Interval, nil
 }

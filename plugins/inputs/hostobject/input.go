@@ -4,12 +4,14 @@ package hostobject
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -29,9 +31,10 @@ type Input struct {
 
 	Interval                 *datakit.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore *datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
-	IOTimeout                *datakit.Duration `toml:"io_timeout,omitempty"`
+	DeprecatedIOTimeout      *datakit.Duration `toml:"io_timeout,omitempty"`
 
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
+	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
 	IgnoreFS                   []string `toml:"ignore_fs"`
 
 	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
@@ -40,7 +43,8 @@ type Input struct {
 
 	collectData *hostMeasurement
 
-	semStop *cliutils.Sem // start stop signal
+	semStop    *cliutils.Sem // start stop signal
+	isTestMode bool
 }
 
 func (ipt *Input) Catalog() string {
@@ -59,6 +63,7 @@ const (
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(InputName)
+	io.FeedEventLog(&io.Reporter{Message: "hostobject start ok, ready for collecting metrics.", Logtype: "event"})
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
@@ -105,19 +110,39 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/505
+	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK"]; ok {
+		b, err := strconv.ParseBool(enable)
+		if err != nil {
+			l.Warnf("parse ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK to bool: %s, ignore", err)
+		} else {
+			ipt.IgnoreZeroBytesDisk = b
+		}
+	}
+
 	if tagsStr, ok := envs["ENV_INPUT_HOSTOBJECT_TAGS"]; ok {
 		tags := config.ParseGlobalTags(tagsStr)
 		for k, v := range tags {
 			ipt.Tags[k] = v
 		}
 	}
+
+	// ENV_CLOUD_PROVIDER 会覆盖 ENV_INPUT_HOSTOBJECT_TAGS 中填入的 cloud_provider
+	if tagsStr, ok := envs["ENV_CLOUD_PROVIDER"]; ok {
+		cloudProvider := dkstring.TrimString(tagsStr)
+		cloudProvider = strings.ToLower(cloudProvider)
+		switch cloudProvider {
+		case "aliyun", "tencent", "aws", "hwcloud", "azure":
+			ipt.Tags["cloud_provider"] = cloudProvider
+		}
+	} // ENV_CLOUD_PROVIDER
 }
 
 func (ipt *Input) singleCollect(n int) {
 	l.Debugf("start %d collecting...", n)
 
 	start := time.Now()
-	if err := ipt.Collect(); err != nil {
+	if err := ipt.doCollect(); err != nil {
 		io.FeedLastError(InputName, err.Error())
 	} else if err := inputs.FeedMeasurement(InputName,
 		datakit.Object,
@@ -167,7 +192,7 @@ func (ipt *Input) AvailableArchs() []string {
 	return datakit.AllArch
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) doCollect() error {
 	message, err := ipt.getHostObjectMessage()
 	if err != nil {
 		return err
@@ -189,13 +214,16 @@ func (ipt *Input) Collect() error {
 			"mem_used_percent": message.Host.Mem.usedPercent,
 			"load":             message.Host.load5,
 			"state":            "online",
-			"Scheck":           message.Collectors[0].Version,
 		},
 
 		tags: map[string]string{
 			"name": message.Host.HostMeta.HostName,
 			"os":   message.Host.HostMeta.OS,
 		},
+	}
+
+	if !ipt.isTestMode {
+		ipt.collectData.fields["Scheck"] = message.Collectors[0].Version
 	}
 
 	// append extra cloud fields: all of them as tags
@@ -223,23 +251,47 @@ func (ipt *Input) Collect() error {
 	}
 
 	if ipt.p != nil {
-		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil {
-			for k, v := range result {
+		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil &&
+			result != nil && !result.Dropped {
+			for k, v := range result.Data {
 				ipt.collectData.fields[k] = v
 			}
+			for k, v := range result.Tags {
+				ipt.collectData.tags[k] = v
+			}
+			// ipt.collectData.tags
 		} else {
-			l.Warnf("pipeline error: %s, ignored", err)
+			l.Debug("pipeline error: %s, ignored", err)
 		}
 	}
 
 	return nil
 }
 
+func (ipt *Input) Collect() (map[string][]*io.Point, error) {
+	ipt.isTestMode = true
+	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+	if err := ipt.doCollect(); err != nil {
+		return nil, err
+	}
+
+	var pts []*io.Point
+	if pt, err := ipt.collectData.LineProto(); err != nil {
+		return nil, err
+	} else {
+		pts = append(pts, pt)
+	}
+
+	mpts := make(map[string][]*io.Point)
+	mpts[datakit.Object] = pts
+
+	return mpts, nil
+}
+
 func DefaultHostObject() *Input {
 	return &Input{
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
 		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
-		IOTimeout:                &datakit.Duration{Duration: 10 * time.Second},
 		IgnoreFS: []string{
 			"autofs",
 			"tmpfs",
@@ -262,5 +314,5 @@ func init() { //nolint:gochecknoinits
 }
 
 func SetLog() {
-	l = logger.SLogger("hostobject")
+	l = logger.SLogger(InputName)
 }

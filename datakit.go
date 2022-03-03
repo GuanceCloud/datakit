@@ -34,28 +34,43 @@ const (
 
 	CommonChanCap = 32
 
-	// categories.
-	MetricDeprecated  = "/v1/write/metrics"
-	Metric            = "/v1/write/metric"
-	Network           = "/v1/write/network"
-	KeyEvent          = "/v1/write/keyevent"
-	Object            = "/v1/write/object"
-	CustomObject      = "/v1/write/custom_object"
-	Logging           = "/v1/write/logging"
-	LogFilter         = "/v1/logfilter/pull"
-	Tracing           = "/v1/write/tracing"
-	Rum               = "/v1/write/rum"
-	Security          = "/v1/write/security"
+	// data category, aka API /v1/write/category.
+	MetricDeprecated = "/v1/write/metrics"
+	Metric           = "/v1/write/metric"
+	Network          = "/v1/write/network"
+	KeyEvent         = "/v1/write/keyevent"
+	Object           = "/v1/write/object"
+	CustomObject     = "/v1/write/custom_object"
+	Logging          = "/v1/write/logging"
+	Tracing          = "/v1/write/tracing"
+	RUM              = "/v1/write/rum"
+	Security         = "/v1/write/security"
+
+	// other APIS.
 	HeartBeat         = "/v1/write/heartbeat"
 	Election          = "/v1/election"
 	ElectionHeartbeat = "/v1/election/heartbeat"
 	QueryRaw          = "/v1/query/raw"
 	Workspace         = "/v1/workspace"
-	ListDataWay       = "/v1/list/dataway"
 	ObjectLabel       = "/v1/object/labels" // object label
 	LogUpload         = "/v1/log"
+	PipelinePull      = "/v1/pipeline/pull"
+	LogFilter         = "/v2/logfilter/pull"
+	ListDataWay       = "/v2/list/dataway"
+	DatakitInputName  = "self"
 
-	DatakitInputName = "self"
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
+	GitRepoSubDirNameConfd    = "conf.d"
+	GitRepoSubDirNamePipeline = "pipeline"
+	GitRepoSubDirNamePythond  = "python.d"
+
+	DatawayDisableURL = "dev_null"
+	ModeNormal        = 1
+	ModeDev           = 2
+
+	StrGitRepos           = "gitrepos"
+	StrPipelineRemote     = "pipeline_remote"
+	StrPipelineFileSuffix = ".p"
 )
 
 var (
@@ -67,6 +82,8 @@ var (
 	AutoUpdate = false
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
+
+	DatakitHostName = "" // 默认为空
 
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: `C:\Program Files\datakit`,
@@ -91,11 +108,14 @@ var (
 	DataDir  = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
 
-	GitReposDir      = filepath.Join(InstallDir, "gitrepos")
-	GetReposConfDirs []string // git repos conf search dirs
+	GitReposDir          = filepath.Join(InstallDir, StrGitRepos)
+	GitReposRepoName     string
+	GitReposRepoFullPath string
 
 	PythonDDir    = filepath.Join(InstallDir, "python.d")
 	PythonCoreDir = filepath.Join(PythonDDir, "core")
+
+	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
@@ -104,6 +124,7 @@ var (
 
 	PipelineDir        = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
+	CacheDir           = filepath.Join(InstallDir, "cache")
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 )
@@ -119,12 +140,14 @@ func SetWorkDir(dir string) {
 
 	PipelineDir = filepath.Join(InstallDir, "pipeline")
 	PipelinePatternDir = filepath.Join(PipelineDir, "pattern")
+	CacheDir = filepath.Join(InstallDir, "cache")
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
 
-	GitReposDir = filepath.Join(InstallDir, "gitrepos")
+	GitReposDir = filepath.Join(InstallDir, StrGitRepos)
 	PythonDDir = filepath.Join(InstallDir, "python.d")
 	PythonCoreDir = filepath.Join(PythonDDir, "core")
+	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
 	InitDirs()
 }
@@ -136,6 +159,7 @@ func InitDirs() {
 		PipelineDir,
 		PipelinePatternDir,
 		GitReposDir,
+		PipelineRemoteDir,
 	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)

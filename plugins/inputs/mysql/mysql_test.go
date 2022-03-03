@@ -1,18 +1,34 @@
 package mysql
 
 import (
-	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-func TestCollect(t *testing.T) {
+// 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
+func checkDevHost() bool {
+	if envs := os.Getenv("LOCAL_UNIT_TEST"); envs == "" {
+		return false
+	}
+	return true
+}
+
+const (
+	testMysqlHost     = "47.98.119.69"
+	testMysqlPort     = 3306
+	testMysqlPassword = "12345@"
+)
+
+/* test: fail
+func TestdoCollect(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
 		input := &Input{
 			Host: "127.0.0.1",
-			Port: 3306,
+			Port: testMysqlPort,
 			User: "root",
 			Pass: "test",
 			Tags: make(map[string]string),
@@ -22,13 +38,13 @@ func TestCollect(t *testing.T) {
 			t.Error(err)
 		}
 
-		input.Collect()
+		input.doCollect()
 	})
 
 	t.Run("error", func(t *testing.T) {
 		input := &Input{
 			Host: "127.0.0.2",
-			Port: 3306,
+			Port: testMysqlPort,
 			User: "root",
 			Pass: "test",
 			Tags: make(map[string]string),
@@ -38,7 +54,7 @@ func TestCollect(t *testing.T) {
 			t.Error(err)
 		}
 
-		input.Collect()
+		input.doCollect()
 	})
 }
 
@@ -67,14 +83,14 @@ func TestRun(t *testing.T) {
 		t.Error(err)
 	}
 
-	input.Collect()
+	input.doCollect()
 }
 
 func TestInnodbCollect(t *testing.T) {
 	t.Run("bin log off", func(t *testing.T) {
 		input := &Input{
 			Host: "127.0.0.1",
-			Port: 3306,
+			Port: testMysqlPort,
 			User: "root",
 			Pass: "test",
 			Tags: make(map[string]string),
@@ -133,7 +149,7 @@ func TestBaseCollect(t *testing.T) {
 	t.Run("bin log on", func(t *testing.T) {
 		input := &Input{
 			Host: "rm-bp15268nefz6870hg.mysql.rds.aliyuncs.com",
-			Port: 3306,
+			Port: testMysqlPort,
 			User: "datakitMonitor",
 			Pass: "SunxEVJEE75tmUJZU7Eb",
 			Tags: make(map[string]string),
@@ -163,7 +179,7 @@ func TestBaseCollect(t *testing.T) {
 func TestSchemaCollect(t *testing.T) {
 	input := &Input{
 		Host: "127.0.0.1",
-		Port: 3306,
+		Port: testMysqlPort,
 		User: "root",
 		Pass: "test",
 		Tags: make(map[string]string),
@@ -192,7 +208,7 @@ func TestSchemaCollect(t *testing.T) {
 func TestTbSchemaCollect(t *testing.T) {
 	input := &Input{
 		Host: "127.0.0.1",
-		Port: 3306,
+		Port: testMysqlPort,
 		User: "root",
 		Pass: "test",
 		Tags: make(map[string]string),
@@ -223,7 +239,7 @@ func TestTbSchemaCollect(t *testing.T) {
 func TestCustomSchemaMeasurement(t *testing.T) {
 	input := &Input{
 		Host: "127.0.0.1",
-		Port: 3306,
+		Port: testMysqlPort,
 		User: "root",
 		Pass: "test",
 		Tags: make(map[string]string),
@@ -261,7 +277,7 @@ func TestCustomSchemaMeasurement(t *testing.T) {
 func TestUserMeasurement(t *testing.T) {
 	input := &Input{
 		Host: "127.0.0.1",
-		Port: 3306,
+		Port: testMysqlPort,
 		User: "root",
 		Pass: "test",
 		Tags: make(map[string]string),
@@ -292,7 +308,7 @@ func TestUserMeasurement(t *testing.T) {
 func TestDbmStatement(t *testing.T) {
 	input := &Input{
 		Host: "127.0.0.1",
-		Port: 3306,
+		Port: testMysqlPort,
 		User: "root",
 		Pass: "123456",
 		Tags: make(map[string]string),
@@ -342,7 +358,7 @@ func TestDbmStatementSamples(t *testing.T) {
 func TestUtil(t *testing.T) {
 	input := &Input{
 		Host: "127.0.0.1",
-		Port: 3306,
+		Port: testMysqlPort,
 		User: "root",
 		Pass: "123456",
 		Tags: make(map[string]string),
@@ -387,4 +403,101 @@ func TestUtil(t *testing.T) {
 		time.Sleep(15 * time.Second)
 		assert.True(t, cache.Acquire("key"))
 	})
+} */
+
+// go test -v -timeout 30s -run ^TestCollect$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysql
+func TestCollect(t *testing.T) {
+	if !checkDevHost() {
+		return
+	}
+
+	input := &Input{
+		Host: testMysqlHost,
+		Port: testMysqlPort,
+		User: "root",
+		Pass: testMysqlPassword,
+		Tags: make(map[string]string),
+	}
+
+	pts, err := input.Collect()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, pts, "collect empty!")
+
+	t.Logf("pts = %v", pts)
+}
+
+// go test -v -timeout 30s -run ^TestMetricCollectMysqlGeneral$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/mysql
+func TestMetricCollectMysqlGeneral(t *testing.T) {
+	if !checkDevHost() {
+		return
+	}
+
+	input := &Input{
+		Host: testMysqlHost,
+		Port: testMysqlPort,
+		User: "root",
+		Pass: testMysqlPassword,
+		Tags: make(map[string]string),
+	}
+
+	err := input.initDBConnect()
+	assert.NoError(t, err)
+
+	input.initDbm()
+
+	cases := []struct {
+		name string
+		fun  func() ([]*io.Point, error)
+	}{
+		{
+			name: "CollectMysql",
+			fun:  input.metricCollectMysql,
+		},
+		{
+			name: "CollectMysqlSchema",
+			fun:  input.metricCollectMysqlSchema,
+		},
+		{
+			name: "CollectMysqlTableSschema",
+			fun:  input.metricCollectMysqlTableSschema,
+		},
+		{
+			name: "CollectMysqlUserStatus",
+			fun:  input.metricCollectMysqlUserStatus,
+		},
+		// {
+		// 	name: "metricCollectMysqlCustomQueries",
+		// 	fun:  input.metricCollectMysqlCustomQueries,
+		// },
+		{
+			name: "CollectMysqlInnodb",
+			fun:  input.metricCollectMysqlInnodb,
+		},
+		{
+			name: "CollectMysqlDbmMetric",
+			fun:  input.metricCollectMysqlDbmMetric,
+		},
+		{
+			name: "CollectMysqlDbmSample",
+			fun:  input.metricCollectMysqlDbmSample,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input.start = time.Now()
+
+			if tc.name == "CollectMysqlDbmMetric" {
+				// 这个测试需要运行两遍 fun() 才能通过
+				// go test 也要运行两遍
+				tc.fun() //nolint:errcheck
+			}
+
+			pts, err := tc.fun()
+			assert.NoError(t, err)
+			assert.NotEmpty(t, pts, "collect empty!")
+
+			t.Logf("pts = %v", pts)
+		})
+	}
 }

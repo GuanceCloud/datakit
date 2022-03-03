@@ -5,6 +5,7 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -155,7 +156,7 @@ func Text2Metrics(in io.Reader,
 	measurementPrefix := prom.MeasurementPrefix
 
 	var pts []*iod.Point
-
+	tmptime := time.Now()
 	// iterate all metrics
 	for name, value := range metricFamilies {
 		familyType := value.GetType()
@@ -184,13 +185,21 @@ func Text2Metrics(in io.Reader,
 					continue
 				}
 
+				if math.IsNaN(v) {
+					continue
+				}
+
 				fields := make(map[string]interface{})
 				fields[fieldName] = v
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
 					lastErr = err
 				} else {
@@ -205,13 +214,21 @@ func Text2Metrics(in io.Reader,
 					continue
 				}
 
+				if math.IsNaN(v) {
+					continue
+				}
+
 				fields := make(map[string]interface{})
 				fields[fieldName] = v
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
 					lastErr = err
 				} else {
@@ -226,12 +243,21 @@ func Text2Metrics(in io.Reader,
 				if math.IsInf(v, 0) {
 					continue
 				}
+
+				if math.IsNaN(v) {
+					continue
+				}
+
 				fields[fieldName] = v
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
 					lastErr = err
 				} else {
@@ -242,6 +268,7 @@ func Text2Metrics(in io.Reader,
 			for _, m := range metrics {
 				fields := make(map[string]interface{})
 				count := m.GetSummary().GetSampleCount()
+
 				sum := m.GetSummary().GetSampleSum()
 				quantiles := m.GetSummary().Quantile
 
@@ -250,8 +277,12 @@ func Text2Metrics(in io.Reader,
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
 					lastErr = err
 				} else {
@@ -270,7 +301,7 @@ func Text2Metrics(in io.Reader,
 
 					tags["quantile"] = fmt.Sprint(quantile)
 
-					pt, err := iod.MakePoint(msName, tags, fields, time.Now())
+					pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -278,6 +309,7 @@ func Text2Metrics(in io.Reader,
 					}
 				}
 			}
+
 		case dto.MetricType_HISTOGRAM:
 			for _, m := range metrics {
 				fields := make(map[string]interface{})
@@ -290,8 +322,12 @@ func Text2Metrics(in io.Reader,
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
-				pt, err := iod.MakePoint(msName, tags, fields, time.Now())
+				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
 					lastErr = err
 				} else {
@@ -308,7 +344,7 @@ func Text2Metrics(in io.Reader,
 					tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
 					tags["le"] = fmt.Sprint(bond)
 
-					pt, err := iod.MakePoint(msName, tags, fields, time.Now())
+					pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 					if err != nil {
 						lastErr = err
 					} else {
@@ -320,4 +356,16 @@ func Text2Metrics(in io.Reader,
 	}
 
 	return pts, lastErr
+}
+
+func getTimeStampS(timeStamp int64) time.Time {
+	timeStr := strconv.Itoa(int(timeStamp))
+	if len(timeStr) > 10 {
+		timeInt, _ := strconv.ParseInt(timeStr[:10], 10, 64)
+		return time.Unix(timeInt, 0)
+	}
+	if len(timeStr) < 10 {
+		return time.Now()
+	}
+	return time.Unix(timeStamp, 0)
 }

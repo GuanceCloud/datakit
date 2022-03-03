@@ -331,9 +331,7 @@ func TestLoadCfg(t *testing.T) {
 	}
 
 	for name, creator := range inputs.Inputs {
-		if err := doLoadInputConf(name, creator, availableInputCfgs); err != nil {
-			l.Errorf("load %s config failed: %v, ignored", name, err)
-		}
+		doLoadInputConf(name, creator, availableInputCfgs)
 	}
 	fmt.Println(inputs.InputsInfo)
 }
@@ -402,18 +400,6 @@ func TestFeedEnvs(t *testing.T) {
 				"TEST_ENV___1": "test-data2",
 			},
 			expect: "this is env from os:  $test-data$$",
-		},
-
-		{
-			str:    "this is env from os:  $$TEST_ENV_2",
-			env:    map[string]string{},
-			expect: "this is env from os:  $no-value",
-		},
-
-		{
-			str:    "this is env from os:  $TEST_ENV_2",
-			env:    map[string]string{},
-			expect: "this is env from os:  no-value",
 		},
 
 		{

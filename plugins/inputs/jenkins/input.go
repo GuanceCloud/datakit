@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -35,16 +34,19 @@ func (*Input) PipelineConfig() map[string]string {
 func (n *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: n.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if n.Log != nil {
+					return n.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }
 
-func (n *Input) Run() {
-	l = logger.SLogger(inputName)
-	l.Info("jenkins start")
+func (n *Input) setup() {
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	client, err := n.createHTTPClient()
@@ -53,6 +55,14 @@ func (n *Input) Run() {
 		return
 	}
 	n.client = client
+}
+
+func (n *Input) Run() {
+	l = logger.SLogger(inputName)
+	l.Info("jenkins start")
+	io.FeedEventLog(&io.Reporter{Message: "jenkins start ok, ready for collecting metrics.", Logtype: "event"})
+
+	n.setup()
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
@@ -116,24 +126,14 @@ func (n *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:            inputName,
 		Service:           inputName,
+		Pipeline:          n.Log.Pipeline,
 		GlobalTags:        n.Tags,
 		IgnoreStatus:      n.Log.IgnoreStatus,
 		CharacterEncoding: n.Log.CharacterEncoding,
 		MultilineMatch:    `^\d{4}-\d{2}-\d{2}`,
 	}
 
-	pl, err := config.GetPipelinePath(n.Log.Pipeline)
-	if err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)

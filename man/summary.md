@@ -2,10 +2,16 @@
 - [DataKit 使用入门]()
 
 	- [服务安装和管理](datakit-service-how-to)
+
 	- [采集器配置](datakit-conf-how-to)
+
+	  - [Kubernetes 环境下的配置](k8s-config-how-to)
+
 	- [通过 DQL 查询数据](datakit-dql-how-to)
 	- [调试 Pipeline](datakit-pl-how-to)
 	- [各种其它工具使用](datakit-tools-how-to)
+
+		- [查看 DataKit Monitor](datakit-monitor)
 
 - [DataKit 版本历史](changelog)
 
@@ -24,6 +30,8 @@
 - [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
 - [如何排查无数据问题](why-no-data)
+- [DataKit 开发手册](development)
+
 - [采集器]()
 
   - [主机]()
@@ -38,9 +46,11 @@
     - [Net](net)
     - [System](system)
     - [主机目录](hostdir)
+    - [SSH](ssh)
 
   - [数据库（中间件）]()
 
+    - [ClickHouse](clickhousev1)
     - [MySQL](mysql)
     - [Oracle](oracle)
     - [NSQ](nsq)
@@ -54,23 +64,23 @@
     - [Kafka](kafka)
     - [RabbitMQ](rabbitmq)
     - [Solr](solr)
+    - [Flink](flinkv1)
 
   - [网络相关]()
 
     - [网络拨测](dialtesting)
-    - [eBPF-network](net_ebpf)
 
-  - [系统相关]()
+       - [通过本地 JSON 定义拨测任务](dialtesting_json)
 
-    - [SSH](ssh)
+	- [eBPF]()
+
+		- [ebpf](ebpf)
+
+  - [云原生]()
+
     - [容器](container)
-
-  - [Kubernetes]()
-
-    - [Kubernetes](kubernetes)
     - [Kubernetes 扩展指标采集](kubernetes-x)
     - [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
-    - [Kubernetes pod 日志采集](kubernetes-podlogging)
 
   - [Java]()
 
@@ -103,6 +113,8 @@
 
     - [日志](logging)
     - [第三方日志接入](logstreaming)
+    - [Socket 日志接入最佳实践](logging_socket)
+    - [通过 Sidecar 方式采集 Pod 日志](logfwd)
 
   - [Windows 相关]()
 
@@ -119,7 +131,7 @@
     - [Statsd 数据接入](statsd)
     - [Cloudprober 接入](cloudprober)
     - [Telegraf 数据接入](telegraf)
-    - [Security Checker 接入](sec-checker)
+    - [Scheck 接入](sec-checker)
     - [用 Python 开发自定义采集器](pythond)
 
   - [其它]()

@@ -53,15 +53,18 @@ const (
 var (
 	keywords = map[string]ItemType{
 		// Keywords.
-		"and":        AND,
+		"if":         IF,
+		"elif":       ELIF,
+		"else":       ELSE,
 		"false":      FALSE,
 		"identifier": IDENTIFIER,
 		"nil":        NIL,
 		"null":       NULL,
-		"or":         OR,
 		"re":         RE,
 		"true":       TRUE,
 		"jp":         JP,
+		// "or":         OR,
+		// "and":        AND,
 	}
 
 	ItemTypeStr = map[ItemType]string{
@@ -69,8 +72,11 @@ var (
 		RIGHT_PAREN:   ")",
 		LEFT_BRACKET:  "[",
 		RIGHT_BRACKET: "]",
+		LEFT_BRACE:    "{",
+		RIGHT_BRACE:   "}",
 		COMMA:         ",",
 		EQ:            "=",
+		EQEQ:          "==",
 		SEMICOLON:     ";",
 		DOT:           ".",
 		SPACE:         "<space>",
@@ -206,7 +212,12 @@ func lexStatements(l *Lexer) stateFn {
 		l.emit(POW)
 
 	case r == '=':
-		l.emit(EQ)
+		if t := l.peek(); t == '=' {
+			l.next()
+			l.emit(EQEQ)
+		} else {
+			l.emit(EQ)
+		}
 
 	case r == ';':
 		l.emit(SEMICOLON)
@@ -281,6 +292,19 @@ func lexStatements(l *Lexer) stateFn {
 		l.emit(RIGHT_PAREN)
 		l.parenDepth--
 		if l.parenDepth < 0 {
+			return l.errorf("unexpected right parenthesis %q", r)
+		}
+		return lexStatements
+
+	case r == '{':
+		l.emit(LEFT_BRACE)
+		l.braceDepth++
+		return lexStatements
+
+	case r == '}':
+		l.emit(RIGHT_BRACE)
+		l.braceDepth--
+		if l.braceDepth < 0 {
 			return l.errorf("unexpected right parenthesis %q", r)
 		}
 		return lexStatements

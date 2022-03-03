@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
@@ -47,7 +48,7 @@ func TestHeartBeat(t *testing.T) {
 		err := dw.Apply()
 		tu.Equals(t, nil, err)
 
-		err = dw.HeartBeat()
+		_, err = dw.HeartBeat()
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
@@ -58,7 +59,7 @@ func TestHeartBeat(t *testing.T) {
 
 func TestListDataWay(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `{"content":[]}`)
+		fmt.Fprint(w, `{"content":{"dataway_list":[],"interval":10}}`)
 	}))
 	defer ts.Close()
 
@@ -80,7 +81,7 @@ func TestListDataWay(t *testing.T) {
 		err := dw.Apply()
 		tu.Equals(t, nil, err)
 
-		dws, err := dw.DatawayList()
+		dws, _, err := dw.DatawayList()
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
@@ -406,4 +407,28 @@ func TestUploadLog(t *testing.T) {
 	respBody, err := ioutil.ReadAll(resp.Body)
 	tu.Ok(t, err)
 	tu.Assert(t, string(respBody) == "OK", "assert failed")
+}
+
+func TestCheckToken(t *testing.T) {
+	cases := []struct {
+		valid bool
+		token string
+	}{
+		{valid: true, token: "tkn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+		{valid: true, token: "token_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+		{valid: true, token: "tokn_xxxxxxxxxxxxxxxxxxxxxxxx"},
+		{valid: false, token: "tokn_xxxxxxxxx"},
+		{valid: false, token: "token_xxxxxxxxx"},
+		{valid: false, token: "tkn_xxxxxxxxx"},
+	}
+	dw := DataWayCfg{}
+
+	for _, info := range cases {
+		err := dw.CheckToken(info.token)
+		if info.valid {
+			assert.NoError(t, err)
+		} else {
+			assert.Error(t, err)
+		}
+	}
 }

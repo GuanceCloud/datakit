@@ -6,6 +6,7 @@ import (
 
 	// nolint:gosec
 	"crypto/md5"
+	"fmt"
 	"sort"
 )
 
@@ -30,4 +31,8 @@ func GenMapHash(data map[string]string) string {
 	checksum := md5.Sum(buf.Bytes()) //nolint:gosec
 
 	return string(checksum[:])
+}
+
+func GetMD5String32(bt []byte) string {
+	return fmt.Sprintf("%X", md5.Sum(bt)) //nolint:gosec
 }

@@ -3,7 +3,6 @@ package rabbitmq
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -28,9 +27,14 @@ func (*Input) PipelineConfig() map[string]string { return map[string]string{"rab
 func (n *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{
-			Source:   inputName,
-			Service:  inputName,
-			Pipeline: n.Log.Pipeline,
+			Source:  inputName,
+			Service: inputName,
+			Pipeline: func() string {
+				if n.Log != nil {
+					return n.Log.Pipeline
+				}
+				return ""
+			}(),
 		},
 	}
 }
@@ -47,23 +51,13 @@ func (n *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:            "rabbitmq",
 		Service:           "rabbitmq",
+		Pipeline:          n.Log.Pipeline,
 		GlobalTags:        n.Tags,
 		CharacterEncoding: n.Log.CharacterEncoding,
 		MultilineMatch:    n.Log.MultilineMatch,
 	}
 
-	pl, err := config.GetPipelinePath(n.Log.Pipeline)
-	if err != nil {
-		io.FeedLastError(inputName, err.Error())
-		l.Error(err)
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt, n.Log.IgnoreStatus)
 	if err != nil {
 		l.Errorf("NewTailer: %s", err)
@@ -77,6 +71,7 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
+	io.FeedEventLog(&io.Reporter{Message: inputName + " start ok, ready for collecting metrics.", Logtype: "event"})
 	n.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, n.Interval.Duration)
 
 	client, err := n.createHTTPClient()

@@ -21,6 +21,16 @@ Redis 指标采集器，采集以下数据：
 
 在采集主从架构下数据时，请配置从节点的主机信息进行数据采集，可以得到主从相关的指标信息。
 
+创建监控用户
+
+redis6.0+ 进入redis-cli命令行,创建用户并且授权
+
+```sql
+ACL SETUSER username >password
+ACL SETUSER username on +@dangerous
+ACL SETUSER username on +ping
+```
+
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：

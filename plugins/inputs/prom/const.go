@@ -2,8 +2,11 @@ package prom
 
 const sampleCfg = `
 [[inputs.prom]]
-  ## Exporter 地址
-  url = "http://127.0.0.1:9100/metrics"
+  ## Exporter URLs
+  # urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
+
+  ## 忽略对 url 的请求错误
+  ignore_req_err = false
 
   ## 采集器别名
   source = "prom"
@@ -11,7 +14,7 @@ const sampleCfg = `
   ## 采集数据输出源
   # 配置此项，可以将采集到的数据写到本地文件而不将数据打到中心
   # 之后可以直接用 datakit --prom-conf /path/to/this/conf 命令对本地保存的指标集进行调试
-  # 如果已经将url配置为本地文件路径，则--prom-conf优先调试output路径的数据
+  # 如果已经将 url 配置为本地文件路径，则 --prom-conf 优先调试 output 路径的数据
   # output = "/abs/path/to/file"
 
   ## 采集数据大小上限，单位为字节

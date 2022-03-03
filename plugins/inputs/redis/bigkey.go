@@ -28,6 +28,7 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 			"value_length": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
 				Desc:     "Key length",
 			},
 			/*"key": &inputs.FieldInfo{

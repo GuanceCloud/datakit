@@ -45,6 +45,7 @@ func newTransportMock(body string) http.RoundTripper {
 	}
 }
 
+//nolint:deadcode,unused
 func defaultTags() map[string]string {
 	return map[string]string{
 		"cluster_name":          "es-testcluster",
@@ -75,7 +76,18 @@ func TestGatherNodeStats(t *testing.T) {
 
 	checkIsMaster(t, es, es.Servers[0], false)
 
-	for field := range nodestatsExpected {
+	for field, value := range nodestatsExpected {
+		fields := `fs_total_available_in_bytes,fs_total_free_in_bytes,fs_total_total_in_bytes,fs_data_0_available_in_bytes,fs_data_0_free_in_bytes,fs_data_0_total_in_bytes`
+
+		if strings.Contains(fields, field) {
+			if value, ok := value.(float64); ok {
+				val := value / (1024 * 1024 * 1024)
+				filedName := strings.ReplaceAll(field, "in_bytes", "in_gigabytes")
+				nodestatsExpected[filedName] = val
+			}
+			delete(nodestatsExpected, field)
+			continue
+		}
 		_, ok := nodeStatsFields[field]
 		if !ok {
 			delete(nodestatsExpected, field)
@@ -132,7 +144,7 @@ func TestGatherClusterHealthEmptyClusterHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -160,7 +172,7 @@ func TestGatherClusterHealthSpecificClusterHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -188,12 +200,13 @@ func TestGatherClusterHealthAlsoIndicesHealth(t *testing.T) {
 	es.serverInfo = make(map[string]serverInfo)
 	es.serverInfo[url] = defaultServerInfo()
 
-	if err := es.gatherClusterHealth(""); err != nil {
+	if err := es.gatherClusterHealth("", ""); err != nil {
 		t.Fatal(err)
 	}
 
 	checkIsMaster(t, es, es.Servers[0], false)
 
+	clusterHealthExpected["indices_lifecycle_error_count"] = 2
 	AssertContainsTaggedFields(t, "elasticsearch_cluster_health",
 		clusterHealthExpected,
 		map[string]string{"name": clusterName}, es.collectCache)
@@ -455,4 +468,64 @@ func newElasticsearchWithClient() *Input {
 	es := NewElasticsearch()
 	es.client = &http.Client{}
 	return es
+}
+
+func TestGetVersion(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.Servers = []string{url}
+	es.client.Transport = newTransportMock(clusterInfo)
+	version, err := es.getVersion("")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "6.8.20", version)
+}
+
+func TestGetLifeCycleErrorCount(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.client.Transport = newTransportMock(lifeCycleStateResponse)
+	es.serverInfo = make(map[string]serverInfo)
+	es.serverInfo[url] = serverInfo{version: "6.8"}
+
+	assert.Equal(t, 1, es.getLifeCycleErrorCount(url))
+
+	es.serverInfo[url] = serverInfo{version: "7.8"}
+	assert.Equal(t, 2, es.getLifeCycleErrorCount(url))
+}
+
+func TestMetric(t *testing.T) {
+	m := elasticsearchMeasurement{}
+	assert.Equal(t, m.Info().Name, inputName)
+	m1 := nodeStatsMeasurement{}
+	assert.Equal(t, m1.Info().Name, "elasticsearch_node_stats")
+	m2 := clusterStatsMeasurement{}
+	assert.Equal(t, m2.Info().Name, "elasticsearch_cluster_stats")
+	m3 := clusterHealthMeasurement{}
+	assert.Equal(t, m3.Info().Name, "elasticsearch_cluster_health")
+	m4 := clusterHealthIndicesMeasurement{}
+	assert.Equal(t, m4.Info().Name, "elasticsearch_cluster_health_indices")
+	m5 := indicesStatsShardsTotalMeasurement{}
+	assert.Equal(t, m5.Info().Name, "elasticsearch_indices_stats_shards_total")
+	m6 := indicesStatsMeasurement{}
+	assert.Equal(t, m6.Info().Name, "elasticsearch_indices_stats")
+	m7 := indicesStatsShardsMeasurement{}
+	assert.Equal(t, m7.Info().Name, "elasticsearch_indices_stats_shards")
+}
+
+func TestSetServerInfo(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.Servers = []string{url}
+	es.client.Transport = newTransportMock(clusterInfo)
+
+	err := es.setServerInfo()
+	assert.NoError(t, err)
+	assert.Equal(t, clusterInfoExpected["version"], es.serverInfo[url].version)
+}
+
+func TestGetUserPrivilege(t *testing.T) {
+	es := newElasticsearchWithClient()
+	es.client.Transport = newTransportMock(privilegeResponse)
+
+	p := es.getUserPrivilege("")
+
+	assert.True(t, p.Cluster.Monitor)
 }

@@ -325,6 +325,20 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.NCount,
 				Desc:     "Number of failed lookup of keys in the main dictionary",
 			},
+
+			"total_net_input_bytes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The total number of bytes read from the network",
+			},
+
+			"total_net_output_bytes": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The total number of bytes written to the network",
+			},
 		},
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{

@@ -1,39 +1,33 @@
 #!/bin/bash
 # Local build & release.
 
-user='zhangsan'
-
-export LOCAL_OSS_ACCESS_KEY='LTAIxxxxxxxxxxxxxxxxxxxx'
-export LOCAL_OSS_SECRET_KEY='nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx'
+# OSS envs
+export LOCAL_OSS_ACCESS_KEY='xxxxxxxxxxxxxxxxxxxxxxxx'
+export LOCAL_OSS_SECRET_KEY='xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 export LOCAL_OSS_BUCKET='df-storage-dev'
 export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com'
-export LOCAL_OSS_ADDR="df-storage-dev.oss-cn-hangzhou.aliyuncs.com/${user}/datakit"
-export DINGDING_TOKEN="you-should-set-yourself"
+export LOCAL_OSS_ADDR='df-storage-dev.oss-cn-hangzhou.aliyuncs.com/<YOUR-DIR-NAME>/datakit'
+
+export DINGDING_TOKEN="2453274xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# See: https://stackoverflow.com/a/17841619/342348
+function join_by { local d=${1-} f=${2-}; if shift 2; then printf %s "$f" "${@/#/$d}"; fi; }
 
 branch=`git rev-parse --abbrev-ref HEAD`
-VERSION="1.0.0-rc1_${branch}" # 此处版本号可做更多「个性化」
-
-osarchs=(
-		# Linux
-		"linux/386"
-		"linux/amd64"
-		"linux/arm"
-		"linux/arm64"
-
-		# Darwin
-		"darwin/amd64"
-
-		# Windows
-		"windows/amd64"
-		"windows/386"
+versions=( # you can release multiple versions. Examples:
+  #1.1.1-rc1_${branch}
+  #1.2.2-rc1_${branch}
+  #1.2.3
+  #1.3.3-rc1_${branch}
 )
 
-for osarch in "${osarchs[@]}"
-do
-	# build & pub: with version set via ENV
-	export LOCAL=${osarch}
-	make local GIT_VERSION=$VERSION && make pub_local GIT_VERSION=$VERSION
-done
+export LOCAL=`join_by , linux/386 linux/arm linux/arm64 linux/amd64 darwin/amd64 windows/amd64 windows/386`
 
-# CI 会将编译结果、安装、升级命令发送到「DataKit/DataWay/Kodo CI 群」
-make local_notify GIT_VERSION=$VERSION DINGDING_TOKEN=$DINGDING_TOKEN
+make lint && make all_test || exit -1
+
+for ver in "${versions[@]}"
+do
+	make local VERSION=$ver && \
+  make check_testing_conf_compatible && \
+	make pub_local VERSION=$ver -j8
+done

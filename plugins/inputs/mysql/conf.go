@@ -43,7 +43,7 @@ const (
 
   ## The pattern should be a regexp. Note the use of '''this regexp'''
   ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  #match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
+  #multiline_match = '''^(# Time|\d{4}-\d{2}-\d{2}|\d{6}\s+\d{2}:\d{2}:\d{2}).*'''
 
   ## grok pipeline script path
   #pipeline = "mysql.p"

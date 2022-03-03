@@ -4,6 +4,8 @@ package man
 import (
 	"bytes"
 	"fmt"
+
+	// nolint:typecheck
 	"strings"
 	"text/template"
 
@@ -11,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -27,6 +30,7 @@ var (
 
 		"datakit-how-to":         "man/manuals/datakit-how-to.md", // deprecated
 		"datakit-conf-how-to":    "man/manuals/datakit-conf-how-to.md",
+		"k8s-config-how-to":      "man/manuals/k8s-config-how-to.md",
 		"datakit-dql-how-to":     "man/manuals/datakit-dql-how-to.md",
 		"datakit-pl-how-to":      "man/manuals/datakit-pl-how-to.md",
 		"datakit-service-how-to": "man/manuals/datakit-service-how-to.md",
@@ -43,7 +47,6 @@ var (
 		"development":             "man/manuals/development.md",
 		"election":                "man/manuals/election.md",
 		"kubernetes-prom":         "man/manuals/kubernetes-prom.md",
-		"kubernetes-podlogging":   "man/manuals/kubernetes-podlogging.md",
 		"kubernetes-x":            "man/manuals/kubernetes-x.md",
 		"pipeline":                "man/manuals/pipeline.md",
 		"logging-pipeline-bench":  "man/manuals/logging-pipeline-bench.md",
@@ -53,6 +56,10 @@ var (
 		"telegraf":                "man/manuals/telegraf.md",
 		"why-no-data":             "man/manuals/why-no-data.md",
 		"dca":                     "man/manuals/dca.md",
+		"dialtesting_json":        "man/manuals/dialtesting_json.md",
+		"datakit-monitor":         "man/manuals/datakit-monitor.md",
+		"logging_socket":          "man/manuals/logging_socket.md",
+		"logfwd":                  "man/manuals/logfwd.md",
 	}
 	l = logger.DefaultSLogger("man")
 )
@@ -66,6 +73,7 @@ type Params struct {
 	Measurements   []*inputs.MeasurementInfo
 	CSS            string
 	AvailableArchs string
+	PipelineFuncs  string
 }
 
 func Get(name string) (string, error) {
@@ -103,10 +111,18 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 			ReleaseDate: git.BuildAt,
 			CSS:         css,
 		}
+		// Add pipeline functions doc.
+		if name == "pipeline" {
+			sb := strings.Builder{}
+			for _, v := range funcs.PipelineFunctionDocs {
+				sb.WriteString(v.Doc)
+			}
+			p.PipelineFuncs = sb.String()
+		}
 	} else {
 		c, ok := inputs.Inputs[name]
 		if !ok {
-			return nil, fmt.Errorf("intput %s not found", name)
+			return nil, fmt.Errorf("input %s not found", name)
 		}
 
 		input := c()

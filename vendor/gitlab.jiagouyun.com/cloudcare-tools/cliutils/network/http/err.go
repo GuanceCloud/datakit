@@ -84,18 +84,28 @@ func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 		return
 	}
 
-	resp := &bodyResp{
-		HttpError: he,
-		Content:   body,
+	var bodyBytes []byte
+	var contentType string
+	var err error
+
+	switch x := body.(type) {
+	case []byte:
+		bodyBytes = x
+	default:
+		resp := &bodyResp{
+			HttpError: he,
+			Content:   body,
+		}
+		contentType = `application/json`
+
+		bodyBytes, err = json.Marshal(resp)
+		if err != nil {
+			undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", resp)
+			return
+		}
 	}
 
-	j, err := json.Marshal(resp)
-	if err != nil {
-		undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", resp)
-		return
-	}
-
-	c.Data(he.HttpCode, `application/json`, j)
+	c.Data(he.HttpCode, contentType, bodyBytes)
 }
 
 func HttpErr(c *gin.Context, err error) {

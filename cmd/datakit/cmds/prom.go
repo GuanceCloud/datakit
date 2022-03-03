@@ -20,6 +20,8 @@ import (
 	pr "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/promremote"
 )
 
+const trueString = "true"
+
 func promDebugger(configFile string) error {
 	configPath := configFile
 	if !path.IsAbs(configFile) {
@@ -198,9 +200,9 @@ func printResult(points []*io.Point) error {
 		if err != nil {
 			return err
 		}
-		timeSeries[fmt.Sprint(influxPoint[0].HashID())] = "true"
+		timeSeries[fmt.Sprint(influxPoint[0].HashID())] = trueString
 		name := point.Name()
-		measurements[name] = "true"
+		measurements[name] = trueString
 	}
 	mKeys := make([]string, len(measurements))
 	i := 0

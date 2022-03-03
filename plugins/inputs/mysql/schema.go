@@ -1,10 +1,8 @@
 package mysql
 
 import (
-	"database/sql"
 	"time"
 
-	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -49,113 +47,4 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 	}
-}
-
-// 数据源获取数据.
-func (i *Input) getSchemaSize() ([]inputs.Measurement, error) {
-	querySizePerschemaSQL := `
-		SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb
-		FROM     information_schema.tables
-		GROUP BY table_schema;
-	`
-	rows, err := i.db.Query(querySizePerschemaSQL)
-	if err != nil {
-		l.Error(err)
-		return nil, err
-	}
-	defer rows.Close() //nolint:errcheck
-
-	if err := rows.Err(); err != nil {
-		l.Errorf("rows.Err: %s", err)
-		return nil, err
-	}
-
-	ms := []inputs.Measurement{}
-
-	for rows.Next() {
-		m := &schemaMeasurement{
-			name:   "mysql_schema",
-			tags:   make(map[string]string),
-			fields: make(map[string]interface{}),
-		}
-
-		for key, value := range i.Tags {
-			m.tags[key] = value
-		}
-
-		var key string
-		val := new(sql.RawBytes)
-
-		if err = rows.Scan(&key, val); err != nil {
-			l.Error(err)
-			return nil, err
-		}
-
-		size := cast.ToFloat64(string(*val))
-
-		m.fields["schema_size"] = size
-		m.tags["schema_name"] = key
-		m.ts = time.Now()
-
-		if len(m.fields) > 0 {
-			ms = append(ms, m)
-		}
-	}
-
-	return ms, nil
-}
-
-func (i *Input) getQueryExecTimePerSchema() ([]inputs.Measurement, error) {
-	queryExecPerTimeSQL := `
-	SELECT schema_name, ROUND((SUM(sum_timer_wait) / SUM(count_star)) / 1000000) AS avg_us
-	FROM performance_schema.events_statements_summary_by_digest
-	WHERE schema_name IS NOT NULL
-	GROUP BY schema_name;
-	`
-	rows, err := i.db.Query(queryExecPerTimeSQL)
-	if err != nil {
-		l.Error(err)
-		return nil, err
-	}
-
-	defer rows.Close() //nolint:errcheck
-
-	if err := rows.Err(); err != nil {
-		l.Errorf("rows.Err: %s", err)
-		return nil, err
-	}
-
-	ms := []inputs.Measurement{}
-
-	for rows.Next() {
-		m := &schemaMeasurement{
-			name:   "mysql_schema",
-			tags:   make(map[string]string),
-			fields: make(map[string]interface{}),
-		}
-
-		for key, value := range i.Tags {
-			m.tags[key] = value
-		}
-
-		var key string
-		val := new(sql.RawBytes)
-
-		if err = rows.Scan(&key, val); err != nil {
-			l.Error(err)
-			return nil, err
-		}
-
-		size := cast.ToInt64(string(*val))
-
-		m.fields["query_run_time_avg"] = size
-		m.tags["schema_name"] = key
-		m.ts = time.Now()
-
-		if len(m.fields) > 0 {
-			ms = append(ms, m)
-		}
-	}
-
-	return ms, nil
 }

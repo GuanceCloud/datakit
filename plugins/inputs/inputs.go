@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
@@ -76,6 +77,10 @@ type PipelineInput interface {
 	GetPipeline() []*tailer.Option
 }
 
+type OptionalInput interface {
+	SetTags(map[string]string)
+}
+
 type XLog struct {
 	Files    []string `toml:"files"`
 	Pipeline string   `toml:"pipeline"`
@@ -101,6 +106,10 @@ type ReadEnv interface {
 
 type Stoppable interface {
 	Terminate()
+}
+
+type InputOnceRunnable interface {
+	Collect() (map[string][]*io.Point, error)
 }
 
 type Creator func() Input
@@ -215,6 +224,25 @@ func RunInputs(isReload bool) error {
 	return nil
 }
 
+func RunInputExtra() error {
+	mtx.RLock()
+	defer mtx.RUnlock()
+
+	for name, arr := range InputsInfo {
+		for _, ii := range arr {
+			if ii.input == nil {
+				l.Debugf("skip non-datakit-input %s", name)
+				continue
+			}
+
+			if inp, ok := ii.input.(HTTPInput); ok {
+				inp.RegHTTPHandler()
+			}
+		}
+	}
+	return nil
+}
+
 func StopInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
@@ -250,11 +278,20 @@ func protectRunningInput(name string, ii *inputInfo) {
 			crashTime = append(crashTime, fmt.Sprintf("%v", time.Now()))
 			addPanic(name)
 
+			io.FeedEventLog(&io.Reporter{Status: "warning", Message: string(trace), Category: "input"})
+
 			if len(crashTime) >= MaxCrash {
 				l.Warnf("input %s crash %d times(at %+#v), exit now.",
 					name, len(crashTime), strings.Join(crashTime, "\n"))
+
+				message := fmt.Sprintf("input '%s' has exceeded the max crash times %v and it will be stopped.", name, MaxCrash)
+				io.FeedEventLog(&io.Reporter{Message: message, Status: "error", Category: "input"})
+
 				return
 			}
+		} else {
+			message := fmt.Sprintf("input '%s' starts to run, totally %v instances.", name, InputEnabled(name))
+			io.FeedEventLog(&io.Reporter{Message: message, Category: "input"})
 		}
 
 		select {
@@ -291,7 +328,6 @@ func InputEnabled(name string) (n int) {
 	}
 
 	n = len(arr)
-	l.Debugf("name %s enabled %d", name, n)
 	return
 }
 

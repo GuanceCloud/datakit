@@ -27,22 +27,6 @@ func ZipkinTraceHandleV1(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("trace handle with path: %s", r.URL.Path)
-	defer func() {
-		if r := recover(); r != nil {
-			log.Errorf("Stack crash: %v", r)
-			log.Errorf("Stack info :%s", string(debug.Stack()))
-		}
-	}()
-
-	if err := handleZipkinTraceV2(w, r); err != nil {
-		log.Errorf("handleZipkinTraceV2: %v", err)
-
-		io.FeedLastError(inputName, err.Error())
-	}
-}
-
 func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 	_ = w
 
@@ -86,6 +70,22 @@ func handleZipkinTraceV1(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	return nil
+}
+
+func ZipkinTraceHandleV2(w http.ResponseWriter, r *http.Request) {
+	log.Debugf("trace handle with path: %s", r.URL.Path)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("Stack crash: %v", r)
+			log.Errorf("Stack info :%s", string(debug.Stack()))
+		}
+	}()
+
+	if err := handleZipkinTraceV2(w, r); err != nil {
+		log.Errorf("handleZipkinTraceV2: %v", err)
+
+		io.FeedLastError(inputName, err.Error())
+	}
 }
 
 func handleZipkinTraceV2(w http.ResponseWriter, r *http.Request) error {

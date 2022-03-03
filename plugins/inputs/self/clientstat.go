@@ -9,6 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 )
 
 var StartTime time.Time
@@ -16,11 +17,12 @@ var StartTime time.Time
 type ClientStat struct {
 	HostName string
 
-	PID    int
-	Uptime int64
-	OS     string
-	Arch   string
-	Proxy  string
+	PID      int
+	Uptime   int64
+	OS       string
+	OSDetail string
+	Arch     string
+	Proxy    string
 
 	NumGoroutines int64
 	HeapAlloc     int64
@@ -41,6 +43,7 @@ type ClientStat struct {
 
 	DroppedPointsTotal int64
 	DroppedPoints      int64
+	Incumbency         int64 // 选举任期
 }
 
 func setMax(prev, cur int64) int64 {
@@ -92,6 +95,7 @@ func (s *ClientStat) Update() {
 		s.CPUUsage = u
 	}
 
+	s.Incumbency = s.getIncumbency()
 	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
 	s.DroppedPointsTotal = io.DroppedTotal()
 }
@@ -102,11 +106,13 @@ func (s *ClientStat) ToMetric() *io.Point {
 	measurement := "datakit"
 
 	tags := map[string]string{
-		"uuid":    config.Cfg.UUID,
-		"vserion": datakit.Version,
-		"os":      s.OS,
-		"arch":    s.Arch,
-		"host":    s.HostName,
+		"uuid":              config.Cfg.UUID,
+		"vserion":           datakit.Version,
+		"version":           datakit.Version,
+		"os":                s.OS,
+		"os_version_detail": s.OSDetail,
+		"arch":              s.Arch,
+		"host":              s.HostName,
 	}
 
 	if s.Proxy != "" {
@@ -135,6 +141,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 
 		"dropped_points_total": s.DroppedPointsTotal,
 		"dropped_points":       s.DroppedPoints,
+		"incumbency":           s.Incumbency,
 	}
 
 	pt, err := io.MakePoint(measurement, tags, fields)
@@ -143,4 +150,18 @@ func (s *ClientStat) ToMetric() *io.Point {
 	}
 
 	return pt
+}
+
+// getIncumbency 获取任期时长.
+func (s *ClientStat) getIncumbency() int64 {
+	if !config.Cfg.EnableElection {
+		return 0
+	}
+
+	elected, _ := election.Elected()
+	if elected == "success" {
+		return int64(time.Since(election.GetElectedTime()) / time.Second)
+	} else {
+		return -1
+	}
 }

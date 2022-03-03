@@ -9,6 +9,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -44,12 +45,10 @@ var (
 )
 
 var (
-
 	//nolint: unused,deadcode,varcheck
 	info, v3, v4, v5, v6 = "/info", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces", "/v0.6/stats"
-
-	ignoreResources []*regexp.Regexp
-	filters         []traceFilter
+	ignoreResources      []*regexp.Regexp
+	filters              []traceFilter
 )
 
 type Input struct {
@@ -81,6 +80,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (i *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
+	iod.FeedEventLog(&iod.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// rare traces penetration
 	filters = append(filters, rare)

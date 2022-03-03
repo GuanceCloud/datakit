@@ -98,6 +98,7 @@ func (fc *FileCollector) initFileCollector() error {
 func (fc *FileCollector) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("file_collector start")
+	io.FeedEventLog(&io.Reporter{Message: "file_collector start ok, ready for collecting metrics.", Logtype: "event"})
 	if !datakit.FileExist(fc.Path) {
 		l.Errorf("[error] file:%s not exist", fc.Path)
 		return

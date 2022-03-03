@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 type dkexternal struct {
 	name string
+	out  string
 
 	lang string // go/others
 
@@ -41,7 +43,8 @@ var externals = []*dkexternal{
 	},
 	{
 		// requirement: apt install clang llvm linux-headers-$(uname -r)
-		name: "net_ebpf",
+		name: "ebpf",
+		out:  "datakit-ebpf",
 		lang: "makefile",
 
 		entry: "Makefile",
@@ -52,6 +55,21 @@ var externals = []*dkexternal{
 		buildArgs: nil,
 		envs: []string{
 			"CGO_ENABLED=1",
+		},
+	},
+	{
+		name: "logfwd",
+		lang: "go",
+
+		entry: "logfwd.go",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+			"linux/arm64": true,
+		},
+
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=0",
 		},
 	},
 	// &dkexternal{
@@ -79,7 +97,7 @@ var externals = []*dkexternal{
 	// others...
 }
 
-func buildExternals(outdir, goos, goarch string) {
+func buildExternals(outdir, goos, goarch string) error {
 	curOSArch := runtime.GOOS + "/" + runtime.GOARCH
 
 	for _, ex := range externals {
@@ -96,7 +114,17 @@ func buildExternals(outdir, goos, goarch string) {
 			continue
 		}
 
+		if ex.name == "ebpf" {
+			if goarch != runtime.GOARCH {
+				l.Warnf("skip, ebpf does not support cross compilation")
+				continue
+			}
+		}
+
 		out := ex.name
+		if ex.out != "" {
+			out = ex.out
+		}
 
 		switch strings.ToLower(ex.lang) {
 		case "go", "golang":
@@ -119,21 +147,22 @@ func buildExternals(outdir, goos, goarch string) {
 
 			msg, err := runEnv(args, ex.envs)
 			if err != nil {
-				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
+				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
 					args, ex.envs, err, string(msg))
 			}
 		case "makefile", "Makefile":
 			args := []string{
 				"make",
 				"--file=" + filepath.Join("plugins", "externals", ex.name, ex.entry),
+				"SRCPATH=" + "plugins/externals/" + ex.name,
 				"OUTPATH=" + filepath.Join(outdir, "externals", out),
-				"BASEPATH=" + "plugins/externals/" + ex.name,
+				"ARCH=" + runtime.GOARCH,
 			}
 
 			ex.envs = append(ex.envs, "GOOS="+goos, "GOARCH="+goarch)
 			msg, err := runEnv(args, ex.envs)
 			if err != nil {
-				l.Fatalf("failed to run %v, envs: %v: %v, msg: %s",
+				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
 					args, ex.envs, err, string(msg))
 			}
 		default: // for python, just copy source code into build dir
@@ -145,9 +174,11 @@ func buildExternals(outdir, goos, goarch string) {
 
 			res, err := cmd.CombinedOutput()
 			if err != nil {
-				l.Fatalf("failed to build python(%s %s): %s, err: %s",
-					ex.buildCmd, strings.Join(ex.buildArgs, " "), res, err.Error())
+				return fmt.Errorf("failed to build python(%s %s): %s, err: %w",
+					ex.buildCmd, strings.Join(ex.buildArgs, " "), res, err)
 			}
 		}
 	}
+
+	return nil
 }

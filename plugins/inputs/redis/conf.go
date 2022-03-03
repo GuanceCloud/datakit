@@ -8,6 +8,7 @@ const (
   # unix_socket_path = "/var/run/redis/redis.sock"
   # 配置多个db，配置了dbs，db也会放入采集列表。dbs=[]或者不配置则会采集redis中所有非空的db
   # dbs=[]
+  # username = "<USERNAME>"
   # password = "<PASSWORD>"
   
   ## @param connect_timeout - number - optional - default: 10s

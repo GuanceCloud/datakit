@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"testing"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
@@ -33,34 +35,32 @@ const (
 const (
 	UnknownUnit = "-"
 
-	SizeByte  = "Byte"
-	SizeIByte = "Byte" // deprecated
-
-	SizeMiB = "MB"
+	SizeByte = "B"
+	SizeMiB  = "MB"
 
 	NCount = "count"
 
 	// time units.
-	DurationNS     = "nsec"
-	DurationUS     = "usec"
-	DurationMS     = "msec"
-	DurationSecond = "second"
-	DurationMinute = "minute"
-	DurationHour   = "hour"
-	DurationDay    = "day"
+	DurationNS     = "ns"
+	DurationUS     = "μs"
+	DurationMS     = "ms"
+	DurationSecond = "s"
+	DurationMinute = "min"
+	DurationHour   = "h"
+	DurationDay    = "d"
 
-	Percent = "%"
+	// timestamp units.
+	TimestampNS  = "nsec"
+	TimestampUS  = "usec"
+	TimestampMS  = "msec"
+	TimestampSec = "sec"
+
+	Percent = "percent"
 
 	// TODO: add more...
-	BytesPerSec    = "B/s"
-	RequestsPerSec = "reqs/s"
-	Celsius        = "°C"
-
-	Peta = "P" // 10^15
-	Tera = "T" // 10^12
-	Giga = "G" // 10^9
-	Mega = "M" // 10^6
-	Kilo = "k" // 10^3
+	BytesPerSec    = "B/S"
+	RequestsPerSec = "reqps"
+	Celsius        = "C"
 )
 
 type Measurement interface {
@@ -69,11 +69,11 @@ type Measurement interface {
 }
 
 type FieldInfo struct {
-	Type     string // gauge/count/...
-	DataType string // int/float/bool/...
-	Unit     string
-	Desc     string // markdown string
-	Disabled bool
+	Type     string `json:"type"`      // gauge/count/...
+	DataType string `json:"data_type"` // int/float/bool/...
+	Unit     string `json:"unit"`
+	Desc     string `json:"desc"` // markdown string
+	Disabled bool   `json:"disabled"`
 }
 
 type TagInfo struct {
@@ -153,15 +153,24 @@ func FeedMeasurement(name, category string, measurements []Measurement, opt *io.
 		return fmt.Errorf("no points")
 	}
 
+	pts, err := GetPointsFromMeasurement(measurements)
+	if err != nil {
+		return err
+	}
+
+	return io.Feed(name, category, pts, opt)
+}
+
+func GetPointsFromMeasurement(measurements []Measurement) ([]*io.Point, error) {
 	var pts []*io.Point
 	for _, m := range measurements {
 		if pt, err := m.LineProto(); err != nil {
-			return err
+			return nil, err
 		} else {
 			pts = append(pts, pt)
 		}
 	}
-	return io.Feed(name, category, pts, opt)
+	return pts, nil
 }
 
 func NewTagInfo(desc string) *TagInfo {
@@ -176,4 +185,68 @@ func sortMapKey(m map[string]interface{}) (res []string) {
 	}
 	sort.Strings(res)
 	return
+}
+
+type ReporterMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (e ReporterMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(e.name, e.tags, e.fields, e.ts)
+}
+
+func (e ReporterMeasurement) Info() *MeasurementInfo {
+	return &MeasurementInfo{}
+}
+
+func getReporterMeasurement(reporter *io.Reporter) ReporterMeasurement {
+	now := time.Now()
+	m := ReporterMeasurement{
+		name: "datakit",
+		ts:   now,
+	}
+
+	m.tags = reporter.Tags()
+	m.fields = reporter.Fields()
+	return m
+}
+
+// BuildTags used to test all measurements tags.
+func BuildTags(t *testing.T, ti map[string]interface{}) map[string]string {
+	t.Helper()
+	x := map[string]string{}
+	for k := range ti {
+		x[k] = k + "-tag-val"
+	}
+	return x
+}
+
+// BuildFields used to test all measurements fields.
+func BuildFields(t *testing.T, fi map[string]interface{}) map[string]interface{} {
+	t.Helper()
+	x := map[string]interface{}{}
+	for k, v := range fi {
+		switch _v := v.(type) {
+		case *FieldInfo:
+			switch _v.DataType {
+			case Float:
+				x[k] = 1.23
+			case Int:
+				x[k] = 123
+			case String:
+				x[k] = "abc123"
+			case Bool:
+				x[k] = false
+			default:
+				t.Errorf("invalid data field for field: %s", k)
+			}
+
+		default:
+			t.Errorf("expect *FieldInfo")
+		}
+	}
+	return x
 }

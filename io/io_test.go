@@ -2,17 +2,11 @@ package io
 
 import (
 	"encoding/base64"
-	"fmt"
 	"math/rand"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 )
 
 func randomPoints(out chan *Point, count int) {
@@ -25,11 +19,25 @@ func randomPoints(out chan *Point, count int) {
 		err error
 	)
 	if _, err = rand.Read(buf); err != nil {
-		l.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
+
 	for i := 0; i < count; i++ {
-		if pt, err := makePoint("mock_random_point", map[string]string{base64.StdEncoding.EncodeToString(buf): base64.StdEncoding.EncodeToString(buf[1:])}, nil, map[string]interface{}{base64.StdEncoding.EncodeToString(buf[2:]): base64.StdEncoding.EncodeToString(buf[3:])}, time.Now()); err != nil {
-			l.Fatal(err.Error())
+		opt := &lp.Option{
+			Strict:    true,
+			Precision: "n",
+			Time:      time.Now(),
+		}
+
+		if pt, err := doMakePoint("mock_random_point",
+			map[string]string{
+				base64.StdEncoding.EncodeToString(buf): base64.StdEncoding.EncodeToString(buf[1:]),
+			},
+			map[string]interface{}{
+				base64.StdEncoding.EncodeToString(buf[2:]): base64.StdEncoding.EncodeToString(buf[3:]),
+			},
+			opt); err != nil {
+			log.Fatal(err.Error())
 		} else {
 			out <- pt
 		}
@@ -59,63 +67,4 @@ func BenchmarkBuildBody(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-}
-
-func TestIODatawaySending(t *testing.T) {
-	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "{}") // datakit expect json response
-	}))
-
-	var cw ihttp.ConnWatcher
-	ts.Config.ConnState = cw.OnStateChange
-
-	ts.Start()
-
-	testdw := &dataway.DataWayCfg{
-		URLs: []string{ts.URL + "?tkn=tkn_TestIODatawaySending"},
-	}
-	if err := testdw.Apply(); err != nil {
-		t.Fatal(err)
-	}
-
-	cacheCnt := 10
-
-	ConfigDefaultIO(SetDataway(testdw), SetMaxCacheCount(int64(cacheCnt)))
-
-	go func() {
-		if err := Start(); err != nil { // start IO
-			t.Error(err)
-		}
-	}()
-
-	time.Sleep(time.Second) // required
-
-	npts := 0
-	fmt.Println("feed points...")
-	cache := []*Point{}
-	for {
-		for i := 0; i < cacheCnt; i++ {
-			pt, err := makePoint("TestIODatawaySending",
-				nil, nil, map[string]interface{}{
-					"f1": 3.14,
-				})
-			cache = append(cache, pt)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			npts++
-		}
-
-		if err := Feed("TestIODatawaySending", datakit.Metric, cache, nil); err != nil {
-			t.Fatal(err)
-		}
-		if npts > 10000 {
-			break
-		}
-		cache = cache[:0]
-	}
-
-	t.Logf("cw: %s", cw.String())
-	tu.Assert(t, cw.Max == 1, "single dataway should only 1 HTTP client, but got %d", cw.Max)
 }

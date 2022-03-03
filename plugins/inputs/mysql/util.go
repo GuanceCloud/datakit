@@ -87,36 +87,6 @@ func (m *mysqlVersion) versionCompatible(compatVersion []int) bool {
 	return true
 }
 
-func getVersion(db *sql.DB) (mysqlVersion, error) {
-	var versionStr string
-	var version mysqlVersion
-	row := db.QueryRow("SELECT VERSION()")
-	if err := row.Scan(&versionStr); err != nil {
-		return version, err
-	}
-
-	parts := strings.Split(versionStr, "-")
-	version.version = parts[0]
-
-	for _, item := range parts {
-		if item == "MariaDB" {
-			version.flavor = "MariaDB"
-		} else if len(version.flavor) == 0 {
-			version.flavor = "MySQL"
-		}
-
-		if strings.Contains("log,standard,debug,valgrind,embedded,", item) { //nolint:gocritic
-			version.build = item
-		}
-	}
-
-	if len(version.build) == 0 {
-		version.build = "unspecified"
-	}
-
-	return version, nil
-}
-
 func canExplain(obfuscatedStatement string) bool {
 	parts := strings.Split(obfuscatedStatement, " ")
 	if len(parts) < 2 {

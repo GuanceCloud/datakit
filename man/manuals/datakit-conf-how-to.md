@@ -20,20 +20,22 @@ DataKit 的配置均使用 [Toml 文件](https://toml.io/cn)。在 DataKit 中�
 	...
 ```
 
+## 默认开启的采集器
+
 DataKit 安装完成后，默认会开启一批采集器，这些采集器一般跟主机相关，列表如下。由于这些采集器默认开启，我们无需手动再配置它们。
 
-| 采集器名称       | 说明                                           |
-| ---------        | ---                                            |
-| `cpu`            | 采集主机的 CPU 使用情况                        |
-| `disk`           | 采集磁盘占用情况                               |
-| `diskio`         | 采集主机的磁盘 IO 情况                         |
-| `mem`            | 采集主机的内存使用情况                         |
-| `swap`           | 采集 Swap 内存使用情况                         |
-| `system`         | 采集主机操作系统负载                           |
-| `net`            | 采集主机网络流量情况                           |
-| `host_processes` | 采集主机上常驻（存活 10min 以上）进程列表      |
-| `hostobject`     | 采集主机基础信息（如操作系统信息、硬件信息等） |
-| `container`      | 采集主机上可能的容器对象以及容器日志           |
+| 采集器名称                         | 说明                                           |
+| ---------                          | ---                                            |
+| [`cpu`](cpu)                       | 采集主机的 CPU 使用情况                        |
+| [`disk`](disk)                     | 采集磁盘占用情况                               |
+| [`diskio`](diskio)                 | 采集主机的磁盘 IO 情况                         |
+| [`mem`](mem)                       | 采集主机的内存使用情况                         |
+| [`swap`](swap)                     | 采集 Swap 内存使用情况                         |
+| [`system`](system)                 | 采集主机操作系统负载                           |
+| [`net`](net)                       | 采集主机网络流量情况                           |
+| [`host_processes`](host_processes) | 采集主机上常驻（存活 10min 以上）进程列表      |
+| [`hostobject`](hostobject)         | 采集主机基础信息（如操作系统信息、硬件信息等） |
+| [`container`](container)           | 采集主机上可能的容器对象以及容器日志           |
 
 ## 采集器配置文件
 
@@ -152,7 +154,7 @@ DataKit 安装完成后，默认会开启一批采集器，这些采集器一般
 以下涉及 DataKit 主配置的修改，均需重启 DataKit：
 
 ```shell
-sudo datakit --restart
+sudo datakit service -R
 ```
 
 ### HTTP 绑定端口
@@ -261,9 +263,9 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 
 ### 手动配置 Git 管理
 
-Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下：
+Datakit 支持使用 git 来管理采集器配置、Pipeline 以及 Python 脚本。在 *datakit.conf* 中，找到 *git_repos* 位置，编辑如下内容：
 
-```conf
+```toml
 [git_repos]
   pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
 
@@ -284,28 +286,52 @@ Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下�
     branch = "master" # 指定 git branch
 ```
 
-注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（但 datakit.conf 继续生效）。DataKit 随带的 pipeline 依然有效。
+注意：开启 Git 同步后，原 `conf.d` 目录下的采集器配置将不再生效（*datakit.conf* 除外）。
 
-#### 应用 Git 管理的 Pipeline
+#### 应用 Git 管理的 Pipeline 示例
 
-我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用。
-
-当使用 DataKit 自带的 Pipeline 时，一般是不带任何前缀路径的， 如：
+我们可以在采集器配置中，增加 Pipeline 来对相关服务的日志进行切割。在开启 Git 同步的情况下，**DataKit 自带的 Pipeline 和 Git 同步下来的 Pipeline 均可使用**。在 [Nginx 采集器](nginx)的配置中，一个 pipeline 的配置示例：
 
 ```toml
 [[inputs.nginx]]
     ...
     [inputs.nginx.log]
     ...
-    pipeline = "nginx.p" # 对应加载 <DataKit 安装目录>/pipeline/nginx.p 文件
+    pipeline = "my-nginx.p" # 具体加载哪里的 my-nginx.p，参见下面的 「约束」 说明
 ```
 
-当使用 Git 管理的 Pipeline，因为 Clone 下来的文件，都是在特定的文件夹中，故 Pipeline 的配置也会带上对应的路径前缀：
+### Git 管理的使用约束
 
-```toml
-[[inputs.nginx]]
-    ...
-    [inputs.nginx.log]
-    ...
-    pipeline = "myconfs/nginx.p" # 对应加载 <DataKit 安装目录>/gitrepos/myconfs/nginx.p 文件
+在 Git 使用过程必须遵循以下约束:
+
+- git repo 里面新建 `conf.d` 文件夹，下面放 DataKit 采集器配置
+- git repo 里面新建 `pipeline` 文件夹，下面放置 Pipeline 文件
+- git repo 里面新建 `python.d` 文件夹，下面放置 Python 脚本文件
+
+下面以图例来说明：
+
 ```
+datakit 根目录
+├── conf.d
+├── data
+├── pipeline # 顶层 Pipeline 脚本
+├── python.d # 顶层 python.d 脚本
+├── externals
+└── gitrepos
+    ├── repo-1  # 仓库 1
+    │   ├── conf.d    # 专门存放采集器配置
+    │   ├── pipeline  # 专门存放 pipeline 切割脚本
+    │   │   └── my-nginx.p # 合法的 pipeline 脚本
+    │   │   └── 123     # 不合法的 Pipeline 子目录，其下文件也不会生效
+    │   │       └── some-invalid.p
+    │   └── python.d    存放 python.d 脚本
+    │       └── core
+    └── repo-2  # 仓库 2
+        ├── ...
+```
+
+查找优先级定义如下:
+
+1. 按 *datakit.conf* 中配置的 *git_repos* 次序（它是一个数组，可配置多个 Git 仓库），逐个查找指定文件名，若找到，返回第一个。比如查找 *my-nginx.p*，如果在第一个仓库目录的 *pipeline* 下找到，则以该找到的为准，**即使第二个仓库中也有同名的 *my-nginx.p*，也不会选择它**。
+
+2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。
