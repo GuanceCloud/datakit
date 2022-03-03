@@ -529,6 +529,7 @@ github.com/gobwas/pool/internal/pmath
 github.com/gobwas/pool/pbufio
 github.com/gobwas/pool/pbytes
 # github.com/gobwas/ws v1.1.0
+## explicit
 github.com/gobwas/ws
 github.com/gobwas/ws/wsutil
 # github.com/godbus/dbus/v5 v5.0.4
@@ -618,6 +619,7 @@ github.com/hashicorp/hcl/json/token
 github.com/imdario/mergo
 # github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 ## explicit
+github.com/influxdata/influxdb1-client
 github.com/influxdata/influxdb1-client/models
 github.com/influxdata/influxdb1-client/pkg/escape
 github.com/influxdata/influxdb1-client/v2
@@ -670,7 +672,6 @@ github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
 # github.com/lucasb-eyer/go-colorful v1.2.0
-## explicit
 github.com/lucasb-eyer/go-colorful
 # github.com/magiconair/properties v1.8.5
 github.com/magiconair/properties
@@ -690,7 +691,6 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.14
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.13
-## explicit
 github.com/mattn/go-runewidth
 # github.com/mattn/go-tty v0.0.3
 github.com/mattn/go-tty
@@ -771,7 +771,6 @@ github.com/prometheus/prometheus/util/strutil
 ## explicit
 github.com/rivo/tview
 # github.com/rivo/uniseg v0.2.0
-## explicit
 github.com/rivo/uniseg
 # github.com/rogpeppe/go-internal v1.8.0
 ## explicit

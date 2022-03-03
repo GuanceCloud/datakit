@@ -71,6 +71,17 @@ const (
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"
 	StrPipelineFileSuffix = ".p"
+
+	SinkTargetExample        = "example only, will not working"
+	SinkCategoryMetric       = "M"
+	SinkCategoryNetwork      = "N"
+	SinkCategoryKeyEvent     = "K"
+	SinkCategoryObject       = "O"
+	SinkCategoryCustomObject = "CO"
+	SinkCategoryLogging      = "L"
+	SinkCategoryTracing      = "T"
+	SinkCategoryRUM          = "R"
+	SinkCategorySecurity     = "S"
 )
 
 var (

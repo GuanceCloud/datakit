@@ -106,8 +106,13 @@ func ConfigDefaultIO(opts ...IOOption) {
 	}
 }
 
-func Start() error {
+func Start(sincfg []map[string]interface{}) error {
 	log = logger.SLogger("io")
+
+	if err := InitSink(sincfg); err != nil {
+		l.Error("InitSink failed: %v", err)
+		return err
+	}
 
 	log.Debugf("default io config: %v", defaultIO)
 
