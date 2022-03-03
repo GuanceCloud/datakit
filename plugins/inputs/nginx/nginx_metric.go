@@ -23,7 +23,7 @@ func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nginx,
 		Fields: map[string]interface{}{
-			"load_timestamp":      newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationMS, "Loaded process time in milliseconds, when exist by open vts"),
+			"load_timestamp":      newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampMS, "Loaded process time in milliseconds, when exist by open vts"),
 			"connection_active":   newCountFieldInfo("The current number of active client connections"),
 			"connection_reading":  newCountFieldInfo("The total number of reading client connections"),
 			"connection_writing":  newCountFieldInfo("The total number of writing client connections"),

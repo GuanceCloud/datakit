@@ -32,8 +32,8 @@ case $branch_name in
 			git tag -f $new_tag  &&
 
 			if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
-				make release_mac     &&
-				make pub_release_mac &&
+				make production_mac VERSION=$new_tag &&
+				make pub_production_mac VERSION=$new_tag &&
 				echo "[I] darwin prod release ok"
 			fi
 
@@ -43,8 +43,8 @@ case $branch_name in
 		fi
 		;;
 
-	"github") echo "release to github"
-		git push github dev
+	"github-mirror") echo "release to github"
+		git push github github-mirror
 		;;
 
 	*) echo "[E] unsupported branch '$branch_name' for release, exited"

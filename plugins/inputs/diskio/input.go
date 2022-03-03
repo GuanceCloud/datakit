@@ -243,6 +243,7 @@ func (i *Input) Collect() error {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("diskio input started")
+	io.FeedEventLog(&io.Reporter{Message: "diskio start ok, ready for collecting metrics.", Logtype: "event"})
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 
 	l.Infof("diskio input started, collect interval: %v", i.Interval.Duration)

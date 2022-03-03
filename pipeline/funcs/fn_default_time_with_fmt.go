@@ -81,7 +81,7 @@ func DefaultTimeWithFmt(ng *parser.Engine, node parser.Node) error {
 
 	timeStr, err := ng.GetContentStr(key)
 	if err != nil {
-		l.Warnf("key `%v' not exist, ignored", key)
+		l.Debugf("key `%v' not exist, ignored", key)
 		return nil //nolint:nilerr
 	}
 

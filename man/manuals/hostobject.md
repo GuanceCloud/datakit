@@ -27,7 +27,9 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | 环境变量名                                           | 对应的配置参数项                | 参数示例                                                     |
 | :---                                                 | ---                             | ---                                                          |
 | `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | `true`/`false`                                               |
+| `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | `true`/`false`                                               |
 | `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_CLOUD_PROVIDER`                                 | `tags`                          | `aliyun`/`aws`/`tencent`/`hwcloud`/`azure`              |
 
 ## 开启云同步
 

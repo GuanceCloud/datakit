@@ -36,11 +36,13 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 			"command": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
 				Desc:     "slow command",
 			},
 			"slowlog_micros": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
 				Desc:     "cost time",
 			},
 		},

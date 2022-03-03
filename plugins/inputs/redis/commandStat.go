@@ -29,6 +29,7 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 			"calls": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
 				Desc:     "The number of calls that reached command execution",
 			},
 			"usec": &inputs.FieldInfo{

@@ -11,6 +11,7 @@ type Reporter struct {
 	Status   string `json:"status"` // info warning error
 	Message  string `json:"message"`
 	Category string `josn:"category"`
+	Logtype  string `josn:"Logtype"`
 	feed     func(string, string, []*Point, *Option) error
 }
 
@@ -19,6 +20,7 @@ func (e *Reporter) Tags() map[string]string {
 		"source":   "datakit",
 		"status":   "info",
 		"category": "default",
+		"log_type": "",
 	}
 
 	if len(e.Status) > 0 {
@@ -27,6 +29,10 @@ func (e *Reporter) Tags() map[string]string {
 
 	if len(e.Category) > 0 {
 		tags["category"] = e.Category
+	}
+
+	if len(e.Logtype) > 0 {
+		tags["log_type"] = e.Logtype
 	}
 
 	return tags
@@ -65,9 +71,9 @@ func addReporter(reporter Reporter) {
 
 	if err == nil {
 		if err := reporter.feed("datakit", datakit.Logging, []*Point{pt}, nil); err != nil {
-			l.Debugf("feed logging error: %s", err.Error())
+			log.Debugf("feed logging error: %s", err.Error())
 		}
 	} else {
-		l.Debugf("make point error: %s", err.Error())
+		log.Debugf("make point error: %s", err.Error())
 	}
 }

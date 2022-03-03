@@ -5,7 +5,6 @@ package iis
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -77,30 +76,17 @@ func (i *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:     "iis",
 		Service:    "iis",
+		Pipeline:   i.Log.Pipeline,
 		GlobalTags: i.Tags,
 	}
 
-	pl, err := config.GetPipelinePath(i.Log.Pipeline)
-	if err != nil {
+	var err error
+	if i.tail, err = tailer.NewTailer(i.Log.Files, opt); err != nil {
 		l.Error(err)
 		io.FeedLastError(inputName, err.Error())
 		return
 	}
-
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
-	if t, err := tailer.NewTailer(i.Log.Files, opt); err != nil {
-		l.Error(err)
-		io.FeedLastError(inputName, err.Error())
-		return
-	} else {
-		i.tail = t
-		go i.tail.Start()
-	}
+	go i.tail.Start()
 }
 
 func (*Input) PipelineConfig() map[string]string {
@@ -136,6 +122,7 @@ func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("iis input started")
+	io.FeedEventLog(&io.Reporter{Message: "iis start ok, ready for collecting metrics.", Logtype: "event"})
 
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)

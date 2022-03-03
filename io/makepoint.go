@@ -10,24 +10,36 @@ import (
 )
 
 var (
-	// no set.
+	// For logging, we use measurement-name as source value
+	// in kodo, so there should not be any tag/field named
+	// with `source`.
+	// For object, we use measurement-name as class value
+	// in kodo, so there should not be any tag/field named
+	// with `class`.
 	DisabledTagKeys = map[string][]string{
 		datakit.Logging: {"source"},
 		datakit.Object:  {"class"},
-		// others not set...
+		// others data type not set...
 	}
 
 	DisabledFieldKeys = map[string][]string{
 		datakit.Logging: {"source"},
 		datakit.Object:  {"class"},
-		// others not set...
+		// others data type not set...
 	}
 
 	Callback func(models.Point) (models.Point, error) = nil
 
-	Strict           = true
-	MaxTags   int    = 256
-	MaxFields int    = 1024
+	Strict        = true
+	MaxTags   int = 256  // limit tag count
+	MaxFields int = 1024 // limit field count
+
+	// limit tag/field key/value length.
+	MaxTagKeyLen     int = 256
+	MaxFieldKeyLen   int = 256
+	MaxTagValueLen   int = 1024
+	MaxFieldValueLen int = 32 * 1024 // if field value is string,limit to 32K
+
 	Precision string = "n"
 )
 
@@ -52,6 +64,7 @@ type PointOption struct {
 	Category          string
 	DisableGlobalTags bool
 	Strict            bool
+	MaxFieldValueLen  int
 }
 
 var defaultPointOption = &PointOption{
@@ -75,9 +88,15 @@ func NewPoint(name string,
 		Time:      o.Time,
 		Strict:    o.Strict,
 		Precision: "n",
+
 		MaxTags:   MaxTags,
 		MaxFields: MaxFields,
 		ExtraTags: extraTags,
+
+		MaxTagKeyLen:     MaxTagKeyLen,
+		MaxFieldKeyLen:   MaxFieldKeyLen,
+		MaxTagValueLen:   MaxTagValueLen,
+		MaxFieldValueLen: MaxFieldValueLen,
 
 		// not set
 		DisabledTagKeys:   nil,
@@ -88,7 +107,9 @@ func NewPoint(name string,
 	if o.DisableGlobalTags {
 		lpOpt.ExtraTags = nil
 	}
-
+	if o.MaxFieldValueLen > 0 {
+		lpOpt.MaxFieldValueLen = o.MaxFieldValueLen
+	}
 	switch o.Category {
 	case datakit.Metric:
 		lpOpt.EnablePointInKey = true
@@ -100,7 +121,7 @@ func NewPoint(name string,
 		datakit.CustomObject,
 		datakit.Logging,
 		datakit.Tracing,
-		datakit.Rum,
+		datakit.RUM,
 		datakit.Security:
 		lpOpt.DisabledTagKeys = DisabledTagKeys[o.Category]
 		lpOpt.DisabledFieldKeys = DisabledFieldKeys[o.Category]
@@ -118,9 +139,15 @@ func MakePoint(name string,
 	lpOpt := &lp.Option{
 		Strict:    true,
 		Precision: "n",
+
 		MaxTags:   MaxTags,
 		MaxFields: MaxFields,
 		ExtraTags: extraTags,
+
+		MaxTagKeyLen:     MaxTagKeyLen,
+		MaxFieldKeyLen:   MaxFieldKeyLen,
+		MaxTagValueLen:   MaxTagValueLen,
+		MaxFieldValueLen: MaxFieldValueLen,
 
 		// not set
 		DisabledTagKeys:   nil,

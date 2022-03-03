@@ -23,7 +23,7 @@ var (
       <Suppress Path="Security">*[System[( (EventID &gt;= 5152 and EventID &lt;= 5158) or EventID=5379 or EventID=4672)]]</Suppress>
     </Query>
     <Query Id="1" Path="Application">
-      <Select Path="Application">*[System[(Level &lt; 4)]]</Select>
+      <Select Path="Application">*[System[(Level &lt;= 4)]]</Select>
     </Query>
     <Query Id="2" Path="Windows PowerShell">
       <Select Path="Windows PowerShell">*[System[(Level &lt; 4)]]</Select>

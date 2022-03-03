@@ -17,11 +17,12 @@ var StartTime time.Time
 type ClientStat struct {
 	HostName string
 
-	PID    int
-	Uptime int64
-	OS     string
-	Arch   string
-	Proxy  string
+	PID      int
+	Uptime   int64
+	OS       string
+	OSDetail string
+	Arch     string
+	Proxy    string
 
 	NumGoroutines int64
 	HeapAlloc     int64
@@ -105,11 +106,13 @@ func (s *ClientStat) ToMetric() *io.Point {
 	measurement := "datakit"
 
 	tags := map[string]string{
-		"uuid":    config.Cfg.UUID,
-		"vserion": datakit.Version,
-		"os":      s.OS,
-		"arch":    s.Arch,
-		"host":    s.HostName,
+		"uuid":              config.Cfg.UUID,
+		"vserion":           datakit.Version,
+		"version":           datakit.Version,
+		"os":                s.OS,
+		"os_version_detail": s.OSDetail,
+		"arch":              s.Arch,
+		"host":              s.HostName,
 	}
 
 	if s.Proxy != "" {

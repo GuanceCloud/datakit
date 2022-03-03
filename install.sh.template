@@ -21,13 +21,13 @@ function updateHosts() {
                 while read -r line_number; do
                     # replace the text of each line with the desired host entry
                     if [[ "$OSTYPE" == "darwin"* ]]; then
-                        sudo sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
+                        sudo_cmd sed -i '' "${line_number}s/.*/${host_entry} /" /etc/hosts
                     else
-                        sudo sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
+                        sudo_cmd sed -i "${line_number}s/.*/${host_entry} /" /etc/hosts
                     fi
                 done <<< "$matches_in_hosts"
             else
-                echo "$host_entry" | sudo tee -a /etc/hosts > /dev/null
+                echo "$host_entry" | sudo_cmd tee -a /etc/hosts > /dev/null
             fi
         fi
     done
@@ -55,7 +55,7 @@ else
 fi
 
 ##################
-# Global variables
+# colors
 ##################
 RED="\033[31m"
 CLR="\033[0m"
@@ -116,6 +116,7 @@ fi
 installer_base_url="https://{{.InstallBaseURL}}"
 
 installer_file="installer-${os}-${arch}-{{.Version}}"
+
 # shellcheck disable=SC2059
 printf "${BLU} Detect installer ${installer_file}${CLR}\n"
 
@@ -171,9 +172,9 @@ if [ -n "$DK_HTTP_PORT" ]; then
 	http_port=$DK_HTTP_PORT
 fi
 
-install_only=
+install_only=0
 if [ -n "$DK_INSTALL_ONLY" ]; then
-	install_only=$DK_INSTALL_ONLY
+	install_only=1
 fi
 
 dca_white_list=""
@@ -193,6 +194,11 @@ if [ -n "$DK_DCA_ENABLE" ]; then
 		printf "${RED}[E] DCA service is enabled, but white list is not set in DK_DCA_WHITE_LIST!${CLR}\n"
 		exit 1;
 	fi
+fi
+
+ipdb_type=""
+if [ -n "$DK_INSTALL_IPDB" ]; then
+	ipdb_type=$DK_INSTALL_IPDB
 fi
 
 if [ -n "$HTTP_PROXY" ]; then
@@ -241,9 +247,9 @@ if [ -n "$DK_LIMIT_CPUMIN" ]; then
   limit_cpumin=$DK_LIMIT_CPUMIN
 fi
 
-cgroup_enabled=true
+cgroup_enabled=0
 if [ -n "$DK_CGROUP_ENABLED" ]; then
-  cgroup_enabled=$DK_CGROUP_ENABLED
+  cgroup_enabled=1
 fi
 
 install_log=/var/log/datakit/install.log
@@ -276,6 +282,36 @@ if [ -n "$DK_GIT_INTERVAL" ]; then
 	git_pull_interval=$DK_GIT_INTERVAL
 fi
 
+enable_election=""
+if [ -n "$DK_ENABLE_ELECTION" ]; then
+  enable_election=$DK_ENABLE_ELECTION
+fi
+
+rum_origin_ip_header=""
+if [ -n "$DK_RUM_ORIGIN_IP_HEADER" ]; then
+  rum_origin_ip_header=$DK_RUM_ORIGIN_IP_HEADER
+fi
+
+disable_404page=""
+if [ -n "$DK_DISABLE_404PAGE" ]; then
+  disable_404page=$DK_DISABLE_404PAGE
+fi
+
+log_level=""
+if [ -n "$DK_LOG_LEVEL" ]; then
+  log_level=$DK_LOG_LEVEL
+fi
+
+log=""
+if [ -n "$DK_LOG" ]; then
+  log=$DK_LOG
+fi
+
+gin_log=""
+if [ -n "$DK_GIN_LOG" ]; then
+  gin_log=$DK_GIN_LOG
+fi
+
 ##################
 # Try install...
 ##################
@@ -298,11 +334,12 @@ chmod +x $installer
 if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
-    $sudo_cmd $installer --upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
+    $sudo_cmd $installer  \
+		--upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
-	if [ "$install_only" ]; then
 		$sudo_cmd $installer                         \
+		  --install-only="$install_only"             \
 			--dataway="${dataway}"                     \
 			--global-tags="${global_tags}"             \
 			--cloud-provider="${cloud_provider}"       \
@@ -318,32 +355,16 @@ else
 			--git-key-path="${git_key_path}"           \
 			--git-key-pw="${git_key_pw}"               \
 			--git-branch="${git_branch}"               \
+			--git-pull-interval="${git_pull_interval}" \
 			--limit-cpumax="${limit_cpumax}"           \
 			--limit-cpumin="${limit_cpumin}"           \
 			--cgroup-enabled="${cgroup_enabled}"       \
-			--git-pull-interval="${git_pull_interval}" \
-			--install_only | $sudo_cmd tee ${install_log}
-	else
-		$sudo_cmd $installer                         \
-		  --dataway="${dataway}"                     \
-			--global-tags="${global_tags}"             \
-			--cloud-provider="${cloud_provider}"       \
-			--namespace="${namespace}"                 \
-			--listen="${http_listen}"                  \
-			--port="${http_port}"                      \
-			--env_hostname="${env_hostname}"           \
-			--dca-enable="${dca_enable}"               \
-			--dca-listen="${dca_listen}"               \
-			--dca-white-list="${dca_white_list}"       \
-			--git-url="${git_url}"                     \
-			--git-key-path="${git_key_path}"           \
-			--git-key-pw="${git_key_pw}"               \
-			--git-branch="${git_branch}"               \
-			--limit-cpumax="${limit_cpumax}"           \
-			--limit-cpumin="${limit_cpumin}"           \
-			--cgroup-enabled="${cgroup_enabled}"       \
-			--git-pull-interval="${git_pull_interval}" \
-			--proxy="${proxy}" | $sudo_cmd tee ${install_log}
-	fi
+			--enable-election="${enable_election}"     \
+			--rum-origin-ip-header="${rum_origin_ip_header}" \
+			--disable-404page="${disable_404page}"           \
+			--log-level="${log_level}"                       \
+			--log="${log}"                                   \
+			--ipdb-type="${ipdb_type}"												\
+			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer

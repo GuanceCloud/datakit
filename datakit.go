@@ -43,7 +43,7 @@ const (
 	CustomObject     = "/v1/write/custom_object"
 	Logging          = "/v1/write/logging"
 	Tracing          = "/v1/write/tracing"
-	Rum              = "/v1/write/rum"
+	RUM              = "/v1/write/rum"
 	Security         = "/v1/write/security"
 
 	// other APIS.
@@ -54,9 +54,23 @@ const (
 	Workspace         = "/v1/workspace"
 	ObjectLabel       = "/v1/object/labels" // object label
 	LogUpload         = "/v1/log"
+	PipelinePull      = "/v1/pipeline/pull"
 	LogFilter         = "/v2/logfilter/pull"
 	ListDataWay       = "/v2/list/dataway"
 	DatakitInputName  = "self"
+
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
+	GitRepoSubDirNameConfd    = "conf.d"
+	GitRepoSubDirNamePipeline = "pipeline"
+	GitRepoSubDirNamePythond  = "python.d"
+
+	DatawayDisableURL = "dev_null"
+	ModeNormal        = 1
+	ModeDev           = 2
+
+	StrGitRepos           = "gitrepos"
+	StrPipelineRemote     = "pipeline_remote"
+	StrPipelineFileSuffix = ".p"
 )
 
 var (
@@ -94,11 +108,14 @@ var (
 	DataDir  = filepath.Join(InstallDir, "data")
 	ConfdDir = filepath.Join(InstallDir, "conf.d")
 
-	GitReposDir      = filepath.Join(InstallDir, "gitrepos")
-	GetReposConfDirs []string // git repos conf search dirs
+	GitReposDir          = filepath.Join(InstallDir, StrGitRepos)
+	GitReposRepoName     string
+	GitReposRepoFullPath string
 
 	PythonDDir    = filepath.Join(InstallDir, "python.d")
 	PythonCoreDir = filepath.Join(PythonDDir, "core")
+
+	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
@@ -127,9 +144,10 @@ func SetWorkDir(dir string) {
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
 
-	GitReposDir = filepath.Join(InstallDir, "gitrepos")
+	GitReposDir = filepath.Join(InstallDir, StrGitRepos)
 	PythonDDir = filepath.Join(InstallDir, "python.d")
 	PythonCoreDir = filepath.Join(PythonDDir, "core")
+	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
 	InitDirs()
 }
@@ -141,6 +159,7 @@ func InitDirs() {
 		PipelineDir,
 		PipelinePatternDir,
 		GitReposDir,
+		PipelineRemoteDir,
 	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)

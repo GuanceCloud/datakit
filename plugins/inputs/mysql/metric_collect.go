@@ -149,8 +149,10 @@ func (i *Input) collectMysqlTableSchema() error {
 	if res := getCleanTableSchema(i.q(tableSchemaSQL)); res != nil {
 		i.mTableSchema = res
 	} else {
-		err = fmt.Errorf("collect_table_schema_failed")
-		return err
+		l.Warnf("collect_table_schema_failed")
+		if len(i.mTableSchema) > 0 {
+			i.mTableSchema = []map[string]interface{}{}
+		}
 	}
 
 	return err
@@ -209,13 +211,11 @@ func (i *Input) collectMysqlUserStatus() error {
 	}
 
 	if len(i.mUserStatusVariable) == 0 {
-		err = fmt.Errorf("collect_user_variable_failed")
-		return err
+		l.Warnf("collect_user_variable_failed")
 	}
 
 	if len(i.mUserStatusConnection) == 0 {
-		err = fmt.Errorf("collect_user_connection_failed")
-		return err
+		l.Warnf("collect_user_connection_failed")
 	}
 
 	return err

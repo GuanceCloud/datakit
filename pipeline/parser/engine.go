@@ -6,6 +6,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"time"
 
 	conv "github.com/spf13/cast"
 	vgrok "github.com/vjeantet/grok"
@@ -24,8 +25,13 @@ type (
 )
 
 type Engine struct {
-	output  map[string]interface{}
+	output  *Output
 	content string
+
+	stopRunPP bool // stop run()
+
+	debugMode bool
+	ts        time.Time
 
 	patterns map[string]string
 	grok     *vgrok.Grok
@@ -37,7 +43,16 @@ type Engine struct {
 	lastErr error
 }
 
-func NewEngine(script string, callbacks map[string]FuncCallback, check map[string]FuncCallbackCheck) (*Engine, error) {
+//nolint:structcheck,unused
+type Output struct {
+	Dropped bool
+	Error   string
+	Cost    map[string]string
+	Tags    map[string]string
+	Data    map[string]interface{}
+}
+
+func NewEngine(script string, callbacks map[string]FuncCallback, check map[string]FuncCallbackCheck, debug bool) (*Engine, error) {
 	node, err := ParsePipeline(script)
 	if err != nil {
 		return nil, err
@@ -48,7 +63,12 @@ func NewEngine(script string, callbacks map[string]FuncCallback, check map[strin
 		return nil, fmt.Errorf("invalid AST, should not been here")
 	}
 	ng := &Engine{
-		output:    make(map[string]interface{}),
+		debugMode: debug,
+		output: &Output{
+			Tags: make(map[string]string),
+			Data: make(map[string]interface{}),
+			Cost: make(map[string]string),
+		},
 		patterns:  CopyGlobalPatterns(),
 		callbacks: callbacks,
 		stmts:     stmts,
@@ -68,14 +88,19 @@ func (ng *Engine) Check() error {
 
 func (ng *Engine) Run(input string) error {
 	ng.reset()
+	ng.ts = time.Now()
 	ng.content = input
-	ng.output["message"] = input
+	ng.output.Data["message"] = input
+	ng.stopRunPP = false
 	ng.stmts.Run(ng)
+	if ng.debugMode {
+		ng.output.Cost["script-total"] = time.Since(ng.ts).String()
+	}
 	return ng.lastErr
 }
 
-func (ng *Engine) Result() map[string]interface{} {
-	for k, v := range ng.output {
+func (ng *Engine) Result() *Output {
+	for k, v := range ng.output.Data {
 		switch v.(type) {
 		case int, uint64, uint32, uint16, uint8, int64, int32, int16, int8, bool, string, float32, float64:
 		default:
@@ -83,7 +108,7 @@ func (ng *Engine) Result() map[string]interface{} {
 			if err != nil {
 				log.Errorf("object type marshal error %v", err)
 			}
-			ng.output[k] = string(str)
+			ng.output.Data[k] = string(str)
 		}
 	}
 	return ng.output
@@ -94,7 +119,12 @@ func (ng *Engine) LastErr() error {
 }
 
 func (ng *Engine) reset() {
-	ng.output = make(map[string]interface{})
+	ng.output = &Output{
+		Tags: make(map[string]string),
+		Data: make(map[string]interface{}),
+		Cost: make(map[string]string),
+	}
+	ng.ts = time.Now()
 	ng.lastErr = nil
 	ng.content = ""
 }
@@ -134,7 +164,10 @@ func (ng *Engine) GetContent(key interface{}) (interface{}, error) {
 		return ng.content, nil
 	}
 
-	v, ok := ng.output[k]
+	if v, ok := ng.output.Tags[k]; ok {
+		return v, nil
+	}
+	v, ok := ng.output.Data[k]
 	if !ok {
 		return nil, fmt.Errorf("%s no found", k)
 	}
@@ -151,10 +184,13 @@ func (ng *Engine) SetKey(k string, v interface{}) {
 		return
 	}
 
-	if ng.output == nil {
-		ng.output = map[string]interface{}{}
-	}
-	ng.output[k] = v
+	checkOutPutNilPtr(&ng.output)
+
+	ng.output.Data[k] = v
+}
+
+func (ng *Engine) MarkDrop() {
+	ng.output.Dropped = true
 }
 
 const (
@@ -247,6 +283,21 @@ func (ng *Engine) GetGrok() *vgrok.Grok {
 	return ng.grok
 }
 
+func checkOutPutNilPtr(outptr **Output) {
+	if *outptr == nil {
+		*outptr = &Output{
+			Tags: make(map[string]string),
+			Data: make(map[string]interface{}),
+		}
+	}
+	if (*outptr).Data == nil {
+		(*outptr).Data = make(map[string]interface{})
+	}
+	if (*outptr).Tags == nil {
+		(*outptr).Tags = make(map[string]string)
+	}
+}
+
 func (ng *Engine) SetContent(k, v interface{}) error {
 	var key string
 
@@ -263,16 +314,68 @@ func (ng *Engine) SetContent(k, v interface{}) error {
 		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
 
-	if ng.output == nil {
-		ng.output = make(map[string]interface{})
-	}
+	checkOutPutNilPtr(&ng.output)
 
 	if v == nil {
 		return nil
 	}
 
-	ng.output[key] = v
+	if _, ok := ng.output.Tags[key]; ok {
+		var value string
+		switch v := v.(type) {
+		case int, uint64, uint32, uint16, uint8, int64, int32, int16, int8, bool, float32, float64:
+			value = conv.ToString(v)
+		case string:
+			value = v
+		}
+		ng.output.Tags[key] = value
+	} else {
+		ng.output.Data[key] = v
+	}
 	return nil
+}
+
+func (ng *Engine) SetTag(k interface{}, v string) error {
+	var key string
+	switch t := k.(type) {
+	case *Identifier:
+		key = t.String()
+	case *AttrExpr:
+		key = t.String()
+	case *StringLiteral:
+		key = t.Val
+	case string:
+		key = t
+	default:
+		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
+	}
+	checkOutPutNilPtr(&ng.output)
+
+	delete(ng.output.Data, key)
+
+	ng.output.Tags[key] = v
+
+	return nil
+}
+
+func (ng *Engine) IsTag(k interface{}) bool {
+	var key string
+	switch t := k.(type) {
+	case *Identifier:
+		key = t.String()
+	case *AttrExpr:
+		key = t.String()
+	case *StringLiteral:
+		key = t.Val
+	case string:
+		key = t
+	default:
+		return false
+	}
+	if _, ok := ng.output.Tags[key]; ok {
+		return true
+	}
+	return false
 }
 
 func (ng *Engine) SetGrok(g *vgrok.Grok) {
@@ -297,7 +400,11 @@ func (ng *Engine) DeleteContent(k interface{}) error {
 		return fmt.Errorf("unsupported %v set", reflect.TypeOf(key).String())
 	}
 
-	delete(ng.output, key)
+	if _, ok := ng.output.Tags[key]; ok {
+		delete(ng.output.Tags, key)
+	} else {
+		delete(ng.output.Data, key)
+	}
 	return nil
 }
 
@@ -336,7 +443,7 @@ func (ng *Engine) SetPatterns(patterns map[string]string) error {
 ///
 
 func (e Stmts) Run(ng *Engine) {
-	if ng.lastErr != nil {
+	if ng.lastErr != nil || ng.stopRunPP {
 		return
 	}
 	for _, stmt := range e {
@@ -345,12 +452,16 @@ func (e Stmts) Run(ng *Engine) {
 			v.Run(ng)
 		case *FuncStmt:
 			v.Run(ng)
+			if v.Name == "exit" {
+				ng.stopRunPP = true
+			}
+
 		case *AssignmentStmt:
 			v.Run(ng)
 		case Stmts:
 			v.Run(ng)
 		default:
-			ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(v), stmt)
+			ng.lastErr = fmt.Errorf("unsupported Stmts type %s, from: %s", reflect.TypeOf(v), stmt)
 		}
 	}
 }
@@ -367,7 +478,7 @@ func (e *IfelseStmt) Run(ng *Engine) {
 
 func (e IfList) Run(ng *Engine) (end bool) {
 	if ng.lastErr != nil {
-		return true
+		return false
 	}
 	for _, ifexpr := range e {
 		end = ifexpr.Run(ng)
@@ -380,17 +491,19 @@ func (e IfList) Run(ng *Engine) (end bool) {
 
 func (e *IfExpr) Run(ng *Engine) (pass bool) {
 	if ng.lastErr != nil {
-		return true
+		return false
 	}
 
 	switch v := e.Condition.(type) {
+	case *ParenExpr:
+		pass = v.Run(ng)
 	case *ConditionalExpr:
 		pass = v.Run(ng)
 	case *BoolLiteral:
 		pass = v.Val
 	default:
-		ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(v), e.Condition)
-		return
+		ng.lastErr = fmt.Errorf("unsupported IfExpr type %s, from: %s", reflect.TypeOf(v), e.Condition)
+		return false
 	}
 
 	if pass {
@@ -402,31 +515,83 @@ func (e *IfExpr) Run(ng *Engine) (pass bool) {
 
 func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 	if ng.lastErr != nil {
-		return true
+		return false
 	}
+
+	// TODO
+	// add 'Lazy Evaluation' to ConditionalExpr contrast
+
+	var left, right interface{}
 
 	switch v := e.LHS.(type) {
 	case *Identifier:
-		left, ok := ng.output[v.Name]
-		if !ok {
-			return false
-		}
-
-		switch vv := e.RHS.(type) {
-		case *StringLiteral:
-			return contrast(left, e.Op.String(), vv.Value())
-		case *NumberLiteral:
-			return contrast(left, e.Op.String(), vv.Value())
-		case *BoolLiteral:
-			return contrast(left, e.Op.String(), vv.Value())
-		default:
-			ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(vv), e.RHS)
-		}
+		left = ng.output.Data[v.Name] // left maybe nil
+	case *ParenExpr:
+		left = v.Run(ng)
+	case *ConditionalExpr:
+		left = v.Run(ng)
+	case *StringLiteral:
+		left = v.Value()
+	case *NumberLiteral:
+		left = v.Value()
+	case *BoolLiteral:
+		left = v.Value()
+	case *NilLiteral:
+		left = v.Value()
 	default:
-		ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(v), e.LHS)
+		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.LHS)
+		return false
 	}
 
-	return false
+	switch v := e.RHS.(type) {
+	case *Identifier:
+		right = ng.output.Data[v.Name] // right maybe nil
+	case *ParenExpr:
+		right = v.Run(ng)
+	case *ConditionalExpr:
+		right = v.Run(ng)
+	case *StringLiteral:
+		right = v.Value()
+	case *NumberLiteral:
+		right = v.Value()
+	case *BoolLiteral:
+		right = v.Value()
+	case *NilLiteral:
+		right = v.Value()
+	default:
+		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.RHS)
+		return false
+	}
+
+	if ng.lastErr != nil {
+		return false
+	}
+
+	p, err := contrast(left, e.Op.String(), right)
+	if err != nil {
+		ng.lastErr = fmt.Errorf("failed to contrast, err: %w", err)
+		return false
+	}
+	return p
+}
+
+func (e *ParenExpr) Run(ng *Engine) (pass bool) {
+	if ng.lastErr != nil {
+		return false
+	}
+
+	switch v := e.Param.(type) {
+	case *ParenExpr:
+		pass = v.Run(ng)
+	case *ConditionalExpr:
+		pass = v.Run(ng)
+	case *BoolLiteral:
+		pass = v.Val
+	default:
+		ng.lastErr = fmt.Errorf("unsupported ParenExpr type %s, from: %s", reflect.TypeOf(v), e.Param)
+		return
+	}
+	return
 }
 
 func (e *ComputationExpr) Run(ng *Engine) {
@@ -442,16 +607,16 @@ func (e *AssignmentStmt) Run(ng *Engine) {
 	case *Identifier:
 		switch vv := e.RHS.(type) {
 		case *StringLiteral:
-			ng.output[v.Name] = vv.Value()
+			ng.output.Data[v.Name] = vv.Value()
 		case *NumberLiteral:
-			ng.output[v.Name] = vv.Value()
+			ng.output.Data[v.Name] = vv.Value()
 		case *BoolLiteral:
-			ng.output[v.Name] = vv.Value()
+			ng.output.Data[v.Name] = vv.Value()
 		default:
-			ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(vv), e.RHS)
+			ng.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(vv), e.RHS)
 		}
 	default:
-		ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(v), e.LHS)
+		ng.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(v), e.LHS)
 	}
 }
 
@@ -481,6 +646,8 @@ func (e *NumberLiteral) Value() interface{} {
 	}
 	return e.Float
 }
+
+func (e *NilLiteral) Value() interface{} { return nil }
 
 ///
 // Checking: Stmts, FuncStmt, AssignmentStmt, IfelseStmt,
@@ -527,7 +694,7 @@ func (e *AssignmentStmt) Check() error {
 	case *Identifier:
 		// nil
 	default:
-		return fmt.Errorf(`unsupported type %s, from: %s`,
+		return fmt.Errorf(`unsupported AssignmentStmt type %s, from: %s`,
 			reflect.TypeOf(e.LHS), e.LHS)
 	}
 
@@ -597,159 +764,161 @@ func (e *ConditionalExpr) Check() error {
 }
 
 // nolint
-func contrast(x interface{}, op string, y interface{}) (b bool) {
-	// It's looong! float==float is undefined.
+// contrast 数值比较
+// 支持类型 int64, float64, json.Number, booler, string, nil  支持符号 < <= == != >= >
+// 如果类型不一致，一定是 false，比如 int64 和 float64 比较
+// 如果是 json.Number 类型，会先取其 float64 值，再进行 < <= > >= 比较
+func contrast(left interface{}, op string, right interface{}) (b bool, err error) {
 	var (
-		float  []float64
-		str    []string
-		booler []bool
+		float   []float64
+		integer []int64
+		booler  []bool
+		typeErr = fmt.Errorf(`invalid operation: %s %s %s (mismatched types untyped %s and untyped %s)`,
+			left, op, right, reflect.TypeOf(left), reflect.TypeOf(right))
 	)
-	var err error
 
-	const typeErr = "mismatch of type: %s(%v) %s %s(%v)"
-
-	switch vx := x.(type) {
-	case json.Number:
-		var xx float64
-		xx, err = vx.Float64()
-		if err != nil {
-			log.Warn(err)
+	// all value compared to nil is acceptable:
+	//   if 10 == nil
+	//   if "abc" == nil
+	//   ...
+	if right != nil && left != nil {
+		if reflect.TypeOf(left) != reflect.TypeOf(right) {
+			err = typeErr
 			return
 		}
-
-		float = append(float, xx)
-
-		switch vy := y.(type) {
-		case json.Number:
-			var yy float64
-			yy, err = vy.Float64()
-			if err != nil {
-				return
-			}
-			float = append(float, yy)
-		case float64:
-			float = append(float, vy)
-		case int64:
-			float = append(float, float64(vy))
-		default:
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-
-	case int64:
-		float = append(float, float64(vx))
-
-		switch vy := y.(type) {
-		case json.Number:
-			var yy float64
-			yy, err = vy.Float64()
-			if err != nil {
-				log.Warn(err)
-				return
-			}
-			float = append(float, yy)
-		case float64:
-			float = append(float, vy)
-		case int64:
-			float = append(float, float64(vy))
-		default:
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-
-	case float64:
-		float = append(float, vx)
-
-		switch vy := y.(type) {
-		case json.Number:
-			var yy float64
-			yy, err = vy.Float64()
-			if err != nil {
-				log.Warn(err)
-				return
-			}
-			float = append(float, yy)
-		case float64:
-			float = append(float, vy)
-		case int64:
-			float = append(float, float64(vy))
-		default:
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-
-	case string:
-		yy, ok := y.(string)
-		if !ok {
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-		str = append(str, vx)
-		str = append(str, yy)
-	case bool:
-		yy, ok := y.(bool)
-		if !ok {
-			log.Warnf(typeErr, reflect.TypeOf(x), x, op, reflect.TypeOf(y), y)
-			return
-		}
-		booler = append(booler, x.(bool))
-		booler = append(booler, yy)
-
-	case nil:
-		booler = append(booler, true)
-		if y == nil {
-			booler = append(booler, true)
-		} else {
-			booler = append(booler, false)
-		}
-
-	default:
-		log.Warnf("mismatch of type: %s(%v)", reflect.TypeOf(x), x)
-		return
 	}
 
 	switch op {
 	case "==":
-		b = reflect.DeepEqual(x, y)
+		b = reflect.DeepEqual(left, right)
 		return
 	case "!=":
-		if len(float) != 0 {
-			b = float[0] != float[1]
-			return
-		}
-		if len(str) != 0 {
-			b = str[0] != str[1]
-			return
-		}
-		if len(booler) != 0 {
-			b = booler[0] != booler[1]
-			return
-		}
-	case "<=":
-		if len(float) != 0 {
-			b = float[0] <= float[1]
-			return
-		}
-	case "<":
-		if len(float) != 0 {
-			b = float[0] < float[1]
-			return
-		}
-	case ">=":
-		if len(float) != 0 {
-			b = float[0] >= float[1]
-			return
-		}
-	case ">":
-		if len(float) != 0 {
-			b = float[0] > float[1]
-			return
-		}
-	default:
-		log.Warn("unexpected operator")
+		b = !reflect.DeepEqual(left, right)
 		return
 	}
 
-	log.Warn("the operator is not available for this type")
+	switch x := left.(type) {
+	case json.Number:
+		xnum, _err := x.Float64()
+		if err != nil {
+			err = fmt.Errorf("trans json.Number(%s) err, %w", x, _err)
+			return
+		}
+		float = append(float, xnum)
+
+		switch y := right.(type) {
+		case json.Number:
+			ynum, _err := y.Float64()
+			if err != nil {
+				err = fmt.Errorf("trans json.Number(%s) err, %w", y, _err)
+				return
+			}
+			float = append(float, ynum)
+		case float64:
+			float = append(float, y)
+		case nil:
+			return
+		default:
+			err = typeErr
+			return
+		}
+
+	case int64:
+		switch y := right.(type) {
+		case int64:
+			integer = append(integer, x)
+			integer = append(integer, y)
+		case nil:
+			return
+		default:
+			err = typeErr
+			return
+		}
+
+	case float64:
+		switch y := right.(type) {
+		case float64:
+			float = append(float, x)
+			float = append(float, y)
+		case nil:
+			return
+		default:
+			err = typeErr
+			return
+		}
+
+	case bool:
+		switch y := right.(type) {
+		case bool:
+			booler = append(booler, x)
+			booler = append(booler, y)
+		case nil:
+			return
+		default:
+			err = typeErr
+			return
+		}
+
+	case string, nil:
+		return
+
+	default:
+		err = typeErr
+		return
+	}
+
+	switch op {
+	case "&&":
+		if len(booler) == 2 {
+			b = booler[0] && booler[1]
+			return
+		}
+	case "||":
+		if len(booler) == 2 {
+			b = booler[0] || booler[1]
+			return
+		}
+	case "<=":
+		if len(float) == 2 {
+			b = float[0] <= float[1]
+			return
+		}
+		if len(integer) == 2 {
+			b = integer[0] <= integer[1]
+			return
+		}
+	case "<":
+		if len(float) == 2 {
+			b = float[0] < float[1]
+			return
+		}
+		if len(integer) == 2 {
+			b = integer[0] < integer[1]
+			return
+		}
+	case ">=":
+		if len(float) == 2 {
+			b = float[0] >= float[1]
+			return
+		}
+		if len(integer) == 2 {
+			b = integer[0] >= integer[1]
+			return
+		}
+	case ">":
+		if len(float) == 2 {
+			b = float[0] > float[1]
+			return
+		}
+		if len(integer) == 2 {
+			b = integer[0] > integer[1]
+			return
+		}
+	default:
+		err = fmt.Errorf("unexpected operator %s", op)
+		return
+	}
+
+	err = fmt.Errorf("the operator is not available for this type, %s", typeErr.Error())
 	return
 }

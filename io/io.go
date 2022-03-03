@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -28,11 +29,12 @@ var (
 	highFreqCleanInterval      = time.Millisecond * 500
 	datawayListIntervalDefault = 50
 	heartBeatIntervalDefault   = 40
-	l                          = logger.DefaultSLogger("io")
+	log                        = logger.DefaultSLogger("io")
 
-	DisableLogFilter   bool
-	DisableHeartbeat   bool
-	DisableDatawayList bool
+	DisableLogFilter            bool
+	DisableHeartbeat            bool
+	DisableDatawayList          bool
+	FlagDebugDisableDatawayList bool
 )
 
 type Option struct {
@@ -83,7 +85,7 @@ type IO struct {
 	SentBytes     int
 
 	inputstats map[string]*InputsStat
-	qstatsCh   chan *qinputStats
+	lock       sync.RWMutex
 
 	cache        map[string][]*Point
 	dynamicCache map[string][]*Point
@@ -112,13 +114,12 @@ func NewIO() *IO {
 		inLastErr:            make(chan *lastError, 128),
 
 		inputstats: map[string]*InputsStat{},
-		qstatsCh:   make(chan *qinputStats), // blocking
 
 		cache:        map[string][]*Point{},
 		dynamicCache: map[string][]*Point{},
 	}
 
-	l.Debugf("IO: %+#v", x)
+	log.Debugf("IO: %+#v", x)
 
 	return x
 }
@@ -162,16 +163,16 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 			}
 		} else {
 			// TODO: add multiple dataway config support
-			l.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
+			log.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
 		}
 	case datakit.Tracing:
 	case datakit.Security:
-	case datakit.Rum:
+	case datakit.RUM:
 	default:
 		return fmt.Errorf("invalid category `%s'", category)
 	}
 
-	l.Debugf("io feed %s", name)
+	log.Debugf("io feed %s", name)
 
 	select {
 	case ch <- &iodata{
@@ -181,7 +182,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		opt:      opt,
 	}:
 	case <-datakit.Exit.Wait():
-		l.Warnf("%s/%s feed skipped on global exit", category, name)
+		log.Warnf("%s/%s feed skipped on global exit", category, name)
 	}
 
 	return nil
@@ -190,17 +191,20 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 func (x *IO) ioStop() {
 	if x.fd != nil {
 		if err := x.fd.Close(); err != nil {
-			l.Error(err)
+			log.Error(err)
 		}
 	}
 	if x.EnableCache {
 		if err := cache.Stop(); err != nil {
-			l.Error(err)
+			log.Error(err)
 		}
 	}
 }
 
 func (x *IO) updateLastErr(e *lastError) {
+	x.lock.Lock()
+	defer x.lock.Unlock()
+
 	stat, ok := x.inputstats[e.from]
 	if !ok {
 		stat = &InputsStat{
@@ -258,11 +262,11 @@ func (x *IO) ifMatchOutputFileInput(feedName string) bool {
 
 func (x *IO) cacheData(d *iodata, tryClean bool) {
 	if d == nil {
-		l.Warn("get empty data, ignored")
+		log.Warn("get empty data, ignored")
 		return
 	}
 
-	l.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.category, d.name)
+	log.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.category, d.name)
 
 	x.updateStats(d)
 
@@ -274,15 +278,15 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 		x.cacheCnt += int64(len(d.pts))
 	}
 
-	bodies, err := x.buildBody(d.pts)
-	if err != nil {
-		l.Errorf("build iodata bodies failed: %s", err)
-	}
-	for _, body := range bodies {
-		if x.OutputFile != "" {
+	if x.OutputFile != "" {
+		bodies, err := x.buildBody(d.pts)
+		if err != nil {
+			log.Errorf("build iodata bodies failed: %s", err)
+		}
+		for _, body := range bodies {
 			if len(x.OutputFileInput) == 0 || x.ifMatchOutputFileInput(d.name) {
 				if err := x.fileOutput(body.buf); err != nil {
-					l.Error("fileOutput: %s, ignored", err.Error())
+					log.Error("fileOutput: %s, ignored", err.Error())
 				}
 			}
 		}
@@ -296,7 +300,7 @@ func (x *IO) cacheData(d *iodata, tryClean bool) {
 
 func (x *IO) cleanHighFreqIOData() {
 	if len(x.in2) > 0 {
-		l.Debugf("clean %d cache on high-freq-chan", len(x.in2))
+		log.Debugf("clean %d cache on high-freq-chan", len(x.in2))
 	}
 
 	for {
@@ -313,7 +317,7 @@ func (x *IO) init() error {
 	if x.OutputFile != "" {
 		f, err := os.OpenFile(x.OutputFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644) //nolint:gosec
 		if err != nil {
-			l.Error(err)
+			log.Error(err)
 			return err
 		}
 
@@ -327,7 +331,7 @@ func (x *IO) StartIO(recoverable bool) {
 	g := datakit.G("io")
 	g.Go(func(ctx context.Context) error {
 		if err := x.init(); err != nil {
-			l.Errorf("init io err %v", err)
+			log.Errorf("init io err %v", err)
 			return nil
 		}
 
@@ -349,39 +353,35 @@ func (x *IO) StartIO(recoverable bool) {
 			select {
 			case d := <-x.in:
 				x.cacheData(d, true)
+
 			case e := <-x.inLastErr:
 				x.updateLastErr(e)
-			case q := <-x.qstatsCh:
-				res := dumpStats(x.inputstats)
-				select {
-				case <-q.ch:
-					l.Warnf("qid(%s) client canceled, ignored", q.qid)
-				case q.ch <- res: // XXX: reference
-					l.Debugf("qid(%s) response ok", q.qid)
-				}
+
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()
+
 			case <-heartBeatTick.C:
-				l.Debugf("### enter heartBeat")
+				log.Debugf("### enter heartBeat")
 				if !DisableHeartbeat {
 					heartBeatInterval, err := x.dw.HeartBeat()
 					if err != nil {
-						l.Warnf("dw.HeartBeat: %s, ignored", err.Error())
+						log.Warnf("dw.HeartBeat: %s, ignored", err.Error())
 					}
 					if heartBeatInterval != heartBeatIntervalDefault {
 						heartBeatTick.Reset(time.Second * time.Duration(heartBeatInterval))
 						heartBeatIntervalDefault = heartBeatInterval
 					}
 				}
+
 			case <-datawaylistTick.C:
-				l.Debugf("### enter dataway list")
+				log.Debugf("### enter dataway list")
 				if !DisableDatawayList {
 					var dws []string
 					var err error
 					var datawayListInterval int
 					dws, datawayListInterval, err = x.dw.DatawayList()
 					if err != nil {
-						l.Warnf("DatawayList(): %s, ignored", err)
+						log.Warnf("DatawayList(): %s, ignored", err)
 					}
 					dataway.AvailableDataways = dws
 					if datawayListInterval != datawayListIntervalDefault {
@@ -389,15 +389,16 @@ func (x *IO) StartIO(recoverable bool) {
 						datawayListIntervalDefault = datawayListInterval
 					}
 				}
+
 			case <-tick.C:
 				x.flushAll()
 				if x.EnableCache {
 					x.flushCache()
-					l.Debugf("cache info:%s", cache.Info())
+					log.Debugf("cache info:%s", cache.Info())
 				}
 
 			case <-datakit.Exit.Wait():
-				l.Info("io exit on exit")
+				log.Info("io exit on exit")
 				return nil
 			}
 		}
@@ -408,19 +409,19 @@ func (x *IO) StartIO(recoverable bool) {
 		defLogfilter.start()
 	}
 
-	l.Info("starting...")
+	log.Info("starting...")
 }
 
 func (x *IO) flushAll() {
 	x.flush()
 
 	if x.cacheCnt > 0 {
-		l.Warnf("post failed cache count: %d", x.cacheCnt)
+		log.Warnf("post failed cache count: %d", x.cacheCnt)
 	}
 
 	// dump cache pts
 	if x.CacheDumpThreshold > 0 && x.cacheCnt > x.CacheDumpThreshold {
-		l.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCount)
+		log.Warnf("failed cache count reach max limit(%d), cleanning cache...", x.MaxCacheCount)
 		for k := range x.cache {
 			x.cache[k] = nil
 		}
@@ -429,7 +430,7 @@ func (x *IO) flushAll() {
 	}
 	// dump dynamic cache pts
 	if x.DynamicCacheDumpThreshold > 0 && x.dynamicCacheCnt > x.DynamicCacheDumpThreshold {
-		l.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCount)
+		log.Warnf("failed dynamicCache count reach max limit(%d), cleanning cache...", x.MaxDynamicCacheCount)
 		for k := range x.dynamicCache {
 			x.dynamicCache[k] = nil
 		}
@@ -441,20 +442,20 @@ func (x *IO) flushAll() {
 func (x *IO) flush() {
 	for k, v := range x.cache {
 		if err := x.doFlush(v, k); err != nil {
-			l.Errorf("post %d to %s failed", len(v), k)
+			log.Errorf("post %d to %s failed", len(v), k)
 			if !x.EnableCache {
 				continue
 			}
 
 			if err := x.putCache(k, v); err != nil {
-				l.Warn("failed of put cache: %s", err)
+				log.Warn("failed to put cache: %s", err)
 				continue
 			}
 		}
 
 		if len(v) > 0 {
 			x.cacheCnt -= int64(len(v))
-			l.Debugf("clean %d cache on %s, remain: %d", len(v), k, x.cacheCnt)
+			log.Debugf("clean %d cache on %s, remain: %d", len(v), k, x.cacheCnt)
 			x.cache[k] = nil
 		}
 	}
@@ -462,7 +463,7 @@ func (x *IO) flush() {
 	// flush dynamic cache: __not__ post to default dataway
 	for k, v := range x.dynamicCache {
 		if err := x.doFlush(v, k); err != nil {
-			l.Errorf("post %d to %s failed", len(v), k)
+			log.Errorf("post %d to %s failed", len(v), k)
 			if !x.EnableCache {
 				// clear data
 				x.dynamicCache[k] = nil
@@ -470,7 +471,7 @@ func (x *IO) flush() {
 			}
 
 			if err := x.putCache(k, v); err != nil {
-				l.Warn("failed of put cache: %s", err)
+				log.Warn("failed to put cache: %s", err)
 				// clear data
 				x.dynamicCache[k] = nil
 				continue
@@ -479,7 +480,7 @@ func (x *IO) flush() {
 
 		if len(v) > 0 {
 			x.dynamicCacheCnt -= int64(len(v))
-			l.Debugf("clean %d dynamicCache on %s, remain: %d", len(v), k, x.dynamicCacheCnt)
+			log.Debugf("clean %d dynamicCache on %s, remain: %d", len(v), k, x.dynamicCacheCnt)
 			x.dynamicCache[k] = nil
 		}
 	}
@@ -499,10 +500,10 @@ func (x *IO) buildBody(pts []*Point) ([]*body, error) {
 				body = &body{buf: lines}
 				err  error
 			)
-			l.Debugf("### io body size before GZ: %dM %dK", len(body.buf)/1000/1000, len(body.buf)/1000)
+			log.Debugf("### io body size before GZ: %dM %dK", len(body.buf)/1000/1000, len(body.buf)/1000)
 			if len(lines) > minGZSize && x.OutputFile == "" {
 				if body.buf, err = datakit.GZip(body.buf); err != nil {
-					l.Errorf("gz: %s", err.Error())
+					log.Errorf("gz: %s", err.Error())
 
 					return nil, err
 				}
@@ -610,7 +611,7 @@ func (x *IO) putCache(category string, pts []*Point) error {
 }
 
 func (x *IO) flushCache() {
-	l.Debugf("flush cache")
+	log.Debugf("flush cache")
 	const clean = true
 
 	fn := func(k, v []byte) error {
@@ -622,6 +623,6 @@ func (x *IO) flushCache() {
 	}
 
 	if err := cache.ForEach(cacheBucket, fn, clean); err != nil {
-		l.Warnf("upload cache: %s, ignore", err)
+		log.Warnf("upload cache: %s, ignore", err)
 	}
 }

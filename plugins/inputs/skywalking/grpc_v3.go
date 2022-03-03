@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	skyimpl "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/skywalking/v3/compile"
@@ -79,8 +80,8 @@ func segobjToAdapters(segment *skyimpl.SegmentObject) ([]*trace.TraceAdapter, er
 	var group []*trace.TraceAdapter
 	for _, span := range segment.Spans {
 		adapter := &trace.TraceAdapter{Source: inputName}
-		adapter.Duration = (span.EndTime - span.StartTime) * 1000000
-		adapter.Start = span.StartTime * 1000000
+		adapter.Duration = (span.EndTime - span.StartTime) * int64(time.Millisecond)
+		adapter.Start = span.StartTime * int64(time.Millisecond)
 		js, err := json.Marshal(span)
 		if err != nil {
 			return nil, err

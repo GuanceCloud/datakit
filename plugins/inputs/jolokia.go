@@ -692,6 +692,7 @@ func (pb *pointBuilder) extractTags(mbean string) map[string]string {
 	for key, value := range propertyMap {
 		if pb.includeTag(key) {
 			tagName := pb.formatTagName(key)
+			tagName = strings.ReplaceAll(tagName, "-", "_")
 			tagMap[tagName] = value
 		}
 	}
@@ -822,7 +823,7 @@ func (pb *pointBuilder) fillFields(name string, value interface{}, fieldMap map[
 	if name == "" {
 		name = defaultFieldName
 	}
-
+	name = strings.ReplaceAll(name, "-", "_")
 	fieldMap[name] = value
 }
 

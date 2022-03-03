@@ -96,7 +96,7 @@ func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownType,
+				Unit:     inputs.UnknownUnit,
 				Desc:     "The text of the normalized statement digest.",
 			},
 		},

@@ -25,15 +25,17 @@ func getNode(n *Input) {
 			tags[k] = v
 		}
 		fields := map[string]interface{}{
-			"disk_free_alarm": node.DiskFreeAlarm,
-			"disk_free":       node.DiskFree,
-			"fd_used":         node.FdUsed,
-			"mem_alarm":       node.MemAlarm,
-			"mem_limit":       node.MemLimit,
-			"mem_used":        node.MemUsed,
-			"run_queue":       node.RunQueue,
-			"running":         node.Running,
-			"sockets_used":    node.SocketsUsed,
+			"disk_free_alarm":   node.DiskFreeAlarm,
+			"disk_free":         node.DiskFree,
+			"fd_used":           node.FdUsed,
+			"mem_alarm":         node.MemAlarm,
+			"mem_limit":         node.MemLimit,
+			"mem_used":          node.MemUsed,
+			"run_queue":         node.RunQueue,
+			"running":           node.Running,
+			"sockets_used":      node.SocketsUsed,
+			"io_write_avg_time": node.IoWriteAvgTime,
+			"io_read_avg_time":  node.IoReadAvgTime,
 		}
 		metric := &NodeMeasurement{
 			name:   NodeMetric,
@@ -56,6 +58,7 @@ func (m *NodeMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: NodeMetric,
@@ -69,6 +72,12 @@ func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 			"run_queue":       newCountFieldInfo("Average number of Erlang processes waiting to run"),
 			"running":         newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "Is the node running or not"),
 			"sockets_used":    newCountFieldInfo("Number of file descriptors used as sockets"),
+
+			// See: https://documentation.solarwinds.com/en/success_center/appoptics/content/kb/host_infrastructure/integrations/rabbitmq.htm
+			"io_read_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "avg wall time (milliseconds) for each disk read operation in the last statistics interval"),
+			"io_write_avg_time": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "avg wall time (milliseconds) for each disk write operation in the last statistics interval"),
+			"io_seek_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "average wall time (milliseconds) for each seek operation in the last statistics interval"),
+			"io_sync_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "average wall time (milliseconds) for each fsync() operation in the last statistics interval"),
 		},
 
 		Tags: map[string]interface{}{

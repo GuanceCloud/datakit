@@ -34,42 +34,32 @@ type ZipkinTracer struct {
 }
 
 type TraceAdapter struct {
-	Source string // third part source name
-
-	// 纳秒单位
-	Duration int64
-
-	// 纳秒单位
-	Start   int64
-	Content string
-
-	Project        string
-	Version        string
-	Env            string
-	ServiceName    string
-	OperationName  string
-	Resource       string
-	ParentID       string
-	TraceID        string // source trace id
-	SpanID         string
-	Status         string
-	SpanType       string
+	ContainerHost  string
+	Content        string
+	Duration       int64 // 纳秒单位
 	EndPoint       string
-	Type           string
-	Pid            string
+	Env            string
 	HTTPMethod     string
 	HTTPStatusCode string
-	ContainerHost  string
-
-	Tags map[string]string
+	OperationName  string
+	ParentID       string
+	Pid            string
+	Project        string
+	Resource       string
+	ServiceName    string
+	Source         string // third part source name
+	SpanID         string
+	SpanType       string
+	Start          int64 // 纳秒单位
+	Status         string
+	Tags           map[string]string
+	TraceID        string // source trace id
+	Type           string
+	Version        string
 }
 
 //nolint:stylecheck
 const (
-	SPAN_TYPE_ENTRY = "entry"
-	SPAN_TYPE_LOCAL = "local"
-	SPAN_TYPE_EXIT  = "exit"
-
 	STATUS_OK       = "ok"
 	STATUS_ERR      = "error"
 	STATUS_INFO     = "info"
@@ -82,32 +72,35 @@ const (
 	CONTAINER_HOST = "container_host"
 
 	SPAN_SERVICE_APP    = "app"
-	SPAN_SERVICE_DB     = "db"
-	SPAN_SERVICE_WEB    = "web"
 	SPAN_SERVICE_CACHE  = "cache"
 	SPAN_SERVICE_CUSTOM = "custom"
+	SPAN_SERVICE_DB     = "db"
+	SPAN_SERVICE_WEB    = "web"
+	SPAN_TYPE_ENTRY     = "entry"
+	SPAN_TYPE_EXIT      = "exit"
+	SPAN_TYPE_LOCAL     = "local"
 
-	TAG_PROJECT        = "project"
-	TAG_OPERATION      = "operation"
-	TAG_SERVICE        = "service"
-	TAG_VERSION        = "version"
-	TAG_ENV            = "env"
-	TAG_HTTP_METHOD    = "http_method"
-	TAG_HTTP_CODE      = "http_status_code"
-	TAG_TYPE           = "type"
+	TAG_CONTAINER_HOST = "container_host"
 	TAG_ENDPOINT       = "endpoint"
+	TAG_ENV            = "env"
+	TAG_HTTP_CODE      = "http_status_code"
+	TAG_HTTP_METHOD    = "http_method"
+	TAG_OPERATION      = "operation"
+	TAG_PROJECT        = "project"
+	TAG_SERVICE        = "service"
 	TAG_SPAN_STATUS    = "status"
 	TAG_SPAN_TYPE      = "span_type"
-	TAG_CONTAINER_HOST = "container_host"
+	TAG_TYPE           = "type"
+	TAG_VERSION        = "version"
 
-	FIELD_PARENTID = "parent_id"
-	FIELD_TRACEID  = "trace_id"
-	FIELD_SPANID   = "span_id"
 	FIELD_DURATION = "duration"
-	FIELD_START    = "start"
 	FIELD_MSG      = "message"
-	FIELD_RESOURCE = "resource"
+	FIELD_PARENTID = "parent_id"
 	FIELD_PID      = "pid"
+	FIELD_RESOURCE = "resource"
+	FIELD_SPANID   = "span_id"
+	FIELD_START    = "start"
+	FIELD_TRACEID  = "trace_id"
 )
 
 var log = logger.DefaultSLogger("trace")

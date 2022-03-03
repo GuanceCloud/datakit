@@ -10,33 +10,62 @@ import (
 	"path/filepath"
 	"strings"
 
+	// it will use this embedded information in time/tzdata.
+	_ "time/tzdata"
+
 	influxm "github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-var l = logger.DefaultSLogger("pipeline")
+var ipdbInstance ipdb.IPdb // get ip location and isp
+
+var (
+	l                               = logger.DefaultSLogger("pipeline")
+	pipelineDefaultCfg *PipelineCfg = &PipelineCfg{
+		IPdbType: "iploc",
+		IPdbAttr: map[string]string{
+			"iploc_file": "iploc.bin",
+			"isp_file":   "ip2isp.txt",
+		},
+	}
+	pipelineIPDbmap = map[string]ipdb.IPdb{
+		"iploc": &iploc.IPloc{},
+	}
+)
+
+func GetIPdb() ipdb.IPdb {
+	return ipdbInstance
+}
+
+type PipelineCfg struct {
+	IPdbAttr           map[string]string `toml:"ipdb_attr"`
+	IPdbType           string            `toml:"ipdb_type"`
+	RemotePullInterval string            `toml:"remote_pull_interval"`
+}
 
 type Pipeline struct {
 	engine  *parser.Engine
-	output  map[string]interface{} // 这是一个map指针，不需要make初始化
+	output  *parser.Output // 这是一个map指针，不需要make初始化
 	lastErr error
 }
 
-func NewPipelineByScriptPath(scriptFullPath string) (*Pipeline, error) {
+func NewPipelineByScriptPath(scriptFullPath string, debug bool) (*Pipeline, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(scriptFullPath))
 	if err != nil {
 		return nil, err
 	}
-	return NewPipeline(string(data))
+	return NewPipeline(string(data), debug)
 }
 
-func NewPipeline(script string) (*Pipeline, error) {
-	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap)
+func NewPipeline(script string, debug bool) (*Pipeline, error) {
+	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, debug)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +76,12 @@ func NewPipeline(script string) (*Pipeline, error) {
 	return p, nil
 }
 
-func NewPipelineFromFile(filename string) (*Pipeline, error) {
+func NewPipelineFromFile(filename string, debug bool) (*Pipeline, error) {
 	b, err := ioutil.ReadFile(filename) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
-	return NewPipeline(string(b))
+	return NewPipeline(string(b), debug)
 }
 
 // RunPoint line protocol point to pipeline JSON.
@@ -129,7 +158,7 @@ func (p *Pipeline) Run(data string) *Pipeline {
 	return p
 }
 
-func (p *Pipeline) Result() (map[string]interface{}, error) {
+func (p *Pipeline) Result() (*parser.Output, error) {
 	return p.output, p.lastErr
 }
 
@@ -137,17 +166,13 @@ func (p *Pipeline) LastError() error {
 	return p.lastErr
 }
 
-func Init(datadir string) error {
+func Init(pipelineCfg *PipelineCfg) error {
 	l = logger.SLogger("pipeline")
 	funcs.InitLog()
 	parser.InitLog()
 
-	if err := funcs.LoadIPLib(filepath.Join(datadir, "iploc.bin")); err != nil {
-		return err
-	}
-
-	if err := ip2isp.Init(filepath.Join(datadir, "ip2isp.txt")); err != nil {
-		return err
+	if _, err := InitIPdb(pipelineCfg); err != nil {
+		l.Warnf("init ipdb error: %s", err.Error())
 	}
 
 	if err := loadPatterns(); err != nil {
@@ -155,6 +180,24 @@ func Init(datadir string) error {
 	}
 
 	return nil
+}
+
+// InitIPdb init ipdb instance.
+func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
+	if pipelineCfg == nil {
+		pipelineCfg = pipelineDefaultCfg
+	}
+	if instance, ok := pipelineIPDbmap[pipelineCfg.IPdbType]; ok {
+		ipdbInstance = instance
+		ipdbInstance.Init(datakit.DataDir, pipelineCfg.IPdbAttr)
+		funcs.InitIPdb(ipdbInstance)
+		ip2isp.InitIPdb(ipdbInstance)
+	} else { // invalid ipdb type, then use the default iploc to ignore the error.
+		l.Warnf("invalid ipdb_type %s", pipelineCfg.IPdbType)
+		return pipelineIPDbmap["iploc"], nil
+	}
+
+	return ipdbInstance, nil
 }
 
 func loadPatterns() error {

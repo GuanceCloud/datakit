@@ -16,6 +16,102 @@ func TestParser(t *testing.T) {
 		fail     bool
 	}{
 		{
+			name: "if-condition-list-paren2",
+			in:   `if ((a==b) && (a==c)) || a==d { }`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op: OR,
+								LHS: &ParenExpr{
+									Param: &ConditionalExpr{
+										Op: AND,
+										LHS: &ParenExpr{
+											Param: &ConditionalExpr{
+												Op:  EQEQ,
+												LHS: &Identifier{Name: "a"},
+												RHS: &Identifier{Name: "b"},
+											},
+										},
+										RHS: &ParenExpr{
+											Param: &ConditionalExpr{
+												Op:  EQEQ,
+												LHS: &Identifier{Name: "a"},
+												RHS: &Identifier{Name: "c"},
+											},
+										},
+									},
+								},
+								RHS: &ConditionalExpr{
+									Op:  EQEQ,
+									LHS: &Identifier{Name: "a"},
+									RHS: &Identifier{Name: "d"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "if-condition-list-paren",
+			in:   `if (a==b) && (a==c) { }`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op: AND,
+								LHS: &ParenExpr{
+									Param: &ConditionalExpr{
+										Op:  EQEQ,
+										LHS: &Identifier{Name: "a"},
+										RHS: &Identifier{Name: "b"},
+									},
+								},
+								RHS: &ParenExpr{
+									Param: &ConditionalExpr{
+										Op:  EQEQ,
+										LHS: &Identifier{Name: "a"},
+										RHS: &Identifier{Name: "c"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "if-condition-list",
+			in:   `if a==b && a==c { }`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op: AND,
+								LHS: &ConditionalExpr{
+									Op:  EQEQ,
+									LHS: &Identifier{Name: "a"},
+									RHS: &Identifier{Name: "b"},
+								},
+								RHS: &ConditionalExpr{
+									Op:  EQEQ,
+									LHS: &Identifier{Name: "a"},
+									RHS: &Identifier{Name: "c"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
 			name: "if-error-non-condition",
 			in:   `if { }`,
 			fail: true,
@@ -24,7 +120,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-error-non-condition",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 
 			} elif {
 
@@ -35,7 +131,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-elif-error-non-condition",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 
 			} elif key=="22" {
 
@@ -48,7 +144,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-else-expr",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 				g1(arg)
 			} elif key=="22" {
 				g2(arg)
@@ -98,7 +194,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-expr",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 				g1(arg)
 			} elif key=="22" {
 				g2(arg)
@@ -140,7 +236,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-else-non-stmts",
 			in: `
-			if key=="11"{ 
+			if key=="11"{
 
 			} elif key=="22" {
 
@@ -173,7 +269,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-elif-non-stmts",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 
 			} elif key=="22" {
 
@@ -220,7 +316,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-else-expr-non-stmts",
 			in: `
-			if key=="11" { 
+			if key=="11" {
 
 			} else {
 
@@ -295,10 +391,10 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-else-expr-newline",
 			in: `
-			if key=="11" { 
-				g(arg) 
-			} else { 
-				h(arg) 
+			if key=="11" {
+				g(arg)
+			} else {
+				h(arg)
 			}`,
 			expected: Stmts{
 				&IfelseStmt{
@@ -321,6 +417,24 @@ func TestParser(t *testing.T) {
 						&FuncStmt{
 							Name:  "h",
 							Param: []Node{&Identifier{Name: "arg"}},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "if-nil",
+			in:   `if abc == nil {}`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op:  EQEQ,
+								LHS: &Identifier{Name: "abc"},
+								RHS: &NilLiteral{},
+							},
 						},
 					},
 				},
@@ -354,8 +468,8 @@ func TestParser(t *testing.T) {
 		{
 			name: "if-expr-newline",
 			in: `
-			if key=="11" { 
-				g(arg) 
+			if key=="11" {
+				g(arg)
 			}`,
 			expected: Stmts{
 				&IfelseStmt{

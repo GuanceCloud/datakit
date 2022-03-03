@@ -56,6 +56,12 @@ type ExernalInput struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
+func NewExternalInput() *ExernalInput {
+	return &ExernalInput{
+		semStop: cliutils.NewSem(),
+	}
+}
+
 func (*ExernalInput) Catalog() string {
 	return "external"
 }
@@ -131,7 +137,7 @@ func (ex *ExernalInput) Run() {
 			break
 		}
 
-		if err := datakit.MonitProc(ex.cmd.Process, ex.Name); err != nil { // blocking here...
+		if err := datakit.MonitProc(ex.cmd.Process, ex.Name, ex.semStop); err != nil { // blocking here...
 			l.Errorf("datakit.MonitProc: %s", err.Error())
 		}
 		return

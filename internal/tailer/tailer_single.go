@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
 const (
@@ -21,13 +23,12 @@ const (
 )
 
 type Single struct {
-	opt      *Option
-	file     *os.File
-	filename string
+	opt                    *Option
+	file                   *os.File
+	filename, baseFilename string
 
-	decoder  *encoding.Decoder
-	mult     *Multiline
-	pipeline *pipeline.Pipeline
+	decoder *encoding.Decoder
+	mult    *multiline.Multiline
 
 	readBuff []byte
 
@@ -52,7 +53,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 			return nil, err
 		}
 	}
-	t.mult, err = NewMultiline(opt.MultilineMatch, opt.MultilineMaxLines)
+	t.mult, err = multiline.New(opt.MultilineMatch, opt.MultilineMaxLines)
 	if err != nil {
 		return nil, err
 	}
@@ -68,16 +69,9 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 		}
 	}
 
-	if opt.Pipeline != "" {
-		if p, err := pipeline.NewPipelineFromFile(opt.Pipeline); err != nil {
-			t.opt.log.Warnf("pipeline.NewPipelineFromFile error: %s, ignored", err)
-		} else {
-			t.pipeline = p
-		}
-	}
-
 	t.readBuff = make([]byte, readBuffSize)
 	t.filename = t.file.Name()
+	t.baseFilename = filepath.Base(t.filename)
 	t.tags = t.buildTags(opt.GlobalTags)
 
 	return t, nil
@@ -104,12 +98,9 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	// 上报一条标记数据，表示已启动成功
-	if err = feed(t.opt.InputName, t.opt.Source, t.tags,
-		fmt.Sprintf(firstMessage, t.filename, t.opt.Source)); err != nil {
-		t.opt.log.Warn(err)
+	if !t.opt.DisableSendEvent {
+		dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
 	}
-
 	for {
 		select {
 		case <-t.stopCh:
@@ -119,8 +110,8 @@ func (t *Single) forwardMessage() {
 			t.opt.log.Infof("stop reading data from file %s", t.filename)
 			return
 		case <-timeout.C:
-			if err = t.processText(t.mult.Flush()); err != nil {
-				t.opt.log.Warn(err)
+			if str := t.mult.FlushString(); str != "" {
+				t.send(str)
 			}
 		default:
 			// nil
@@ -128,7 +119,7 @@ func (t *Single) forwardMessage() {
 
 		b.buf, readNum, err = t.read()
 		if err != nil {
-			t.opt.log.Warnf("failed of read data from file %s, error: %s", t.filename, err)
+			t.opt.log.Warnf("failed to read data from file %s, error: %s", t.filename, err)
 			return
 		}
 		if readNum == 0 {
@@ -137,7 +128,7 @@ func (t *Single) forwardMessage() {
 		}
 
 		lines = b.split()
-
+		var pending []worker.TaskData
 		for _, line := range lines {
 			if line == "" {
 				continue
@@ -147,8 +138,8 @@ func (t *Single) forwardMessage() {
 			text, err = t.decode(line)
 			if err != nil {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				if err = feed(t.opt.InputName, t.opt.Source, t.tags, line); err != nil {
-					t.opt.log.Warn(err)
+				if !t.opt.DisableSendEvent {
+					dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
 				}
 			}
 
@@ -157,31 +148,52 @@ func (t *Single) forwardMessage() {
 				continue
 			}
 
-			err = t.processText(text)
-			if err != nil {
-				t.opt.log.Warnf("failed of processing text, err: %s", err)
+			if t.opt.ForwardFunc != nil {
+				t.sendToForwardCallback(text)
+				continue
 			}
+			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
+		}
+		if len(pending) > 0 {
+			t.sendToPipeline(pending)
 		}
 	}
 }
 
-func (t *Single) processText(text string) error {
-	if text == "" {
-		return nil
+func (t *Single) send(text string) {
+	if t.opt.ForwardFunc != nil {
+		t.sendToForwardCallback(text)
+		return
+	}
+	t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags}})
+}
+
+func (t *Single) sendToForwardCallback(text string) {
+	err := t.opt.ForwardFunc(t.baseFilename, text)
+	if err != nil {
+		t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
+	}
+}
+
+func (t *Single) sendToPipeline(pending []worker.TaskData) {
+	task := &worker.Task{
+		TaskName:   "logging/" + t.opt.Pipeline,
+		ScriptName: t.opt.Pipeline,
+		Source:     t.opt.Source,
+		Data:       pending,
+		Opt: &worker.TaskOpt{
+			IgnoreStatus:          t.opt.IgnoreStatus,
+			DisableAddStatusField: t.opt.DisableAddStatusField,
+		},
+		TS:            time.Now(),
+		MaxMessageLen: maxFieldsLength,
 	}
 
-	err := NewLogs(text).
-		RemoveAnsiEscapeCodesOfText(t.opt.RemoveAnsiEscapeCodes).
-		Pipeline(t.pipeline).
-		CheckFieldsLength().
-		AddStatus(t.opt.DisableAddStatusField).
-		IgnoreStatus(t.opt.IgnoreStatus).
-		TakeTime().
-		Point(t.opt.Source, t.tags).
-		Feed(t.opt.InputName).
-		Err()
-
-	return err
+	err := worker.FeedPipelineTaskBlock(task)
+	if err != nil {
+		t.opt.log.Warnf("pipline feed err = %v", err)
+		return
+	}
 }
 
 func (t *Single) currentOffset() int64 {
@@ -216,7 +228,7 @@ func (t *Single) buildTags(globalTags map[string]string) map[string]string {
 		tags[k] = v
 	}
 	if _, ok := tags["filename"]; !ok {
-		tags["filename"] = filepath.Base(t.filename)
+		tags["filename"] = t.baseFilename
 	}
 	return tags
 }
@@ -232,7 +244,7 @@ func (t *Single) multiline(text string) string {
 	if t.mult == nil {
 		return text
 	}
-	return t.mult.ProcessLine(text)
+	return t.mult.ProcessLineString(text)
 }
 
 type buffer struct {

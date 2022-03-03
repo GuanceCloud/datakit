@@ -63,7 +63,7 @@ func Rename(ng *parser.Engine, node parser.Node) error {
 		l.Warn(err)
 		return nil
 	}
-	delete(ng.Result(), from.String())
+	_ = ng.DeleteContent(from.String())
 
 	return nil
 }

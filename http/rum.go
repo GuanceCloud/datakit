@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -39,6 +41,10 @@ var (
 )
 
 func geoTags(srcip string) map[string]string {
+	if srcip == "" {
+		return nil
+	}
+
 	ipInfo, err := funcs.Geo(srcip)
 
 	l.Debugf("ipinfo(%s): %+#v", srcip, ipInfo)
@@ -48,15 +54,15 @@ func geoTags(srcip string) map[string]string {
 		return nil
 	}
 
-	switch ipInfo.Country_short { // #issue 354
+	switch ipInfo.Country { // #issue 354
 	case "TW":
-		ipInfo.Country_short = "CN"
+		ipInfo.Country = "CN"
 		ipInfo.Region = "Taiwan"
 	case "MO":
-		ipInfo.Country_short = "CN"
+		ipInfo.Country = "CN"
 		ipInfo.Region = "Macao"
 	case "HK":
-		ipInfo.Country_short = "CN"
+		ipInfo.Country = "CN"
 		ipInfo.Region = "Hong Kong"
 	}
 
@@ -64,7 +70,7 @@ func geoTags(srcip string) map[string]string {
 	tags := map[string]string{
 		"city":     ipInfo.City,
 		"province": ipInfo.Region,
-		"country":  ipInfo.Country_short,
+		"country":  ipInfo.Country,
 		"isp":      ip2isp.SearchIsp(srcip),
 		"ip":       srcip,
 	}
@@ -78,7 +84,10 @@ func doHandleRUMBody(body []byte,
 	extraTags map[string]string,
 	appIDWhiteList []string) ([]*io.Point, error) {
 	if isjson {
-		rumpts, err := jsonPoints(body, &lp.Option{Precision: precision, ExtraTags: extraTags})
+		opt := lp.NewDefaultOption()
+		opt.Precision = precision
+		opt.ExtraTags = extraTags
+		rumpts, err := jsonPoints(body, opt)
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +117,7 @@ func doHandleRUMBody(body []byte,
 			}
 
 			if _, ok := rumMetricNames[name]; !ok {
-				return nil, fmt.Errorf("unknow RUM data-type %s", name)
+				return nil, uhttp.Errorf(ErrUnknownRUMMeasurement, "unknow RUM measurement: %s", name)
 			}
 
 			// handle sourcemap
@@ -126,8 +135,8 @@ func doHandleRUMBody(body []byte,
 		},
 	})
 	if err != nil {
-		l.Error(err)
-		return nil, uhttp.Error(ErrInvalidLinePoint, err.Error())
+		l.Warnf("doHandleRUMBody: %s", err)
+		return nil, err
 	}
 
 	return io.WrapPoint(rumpts), nil
@@ -145,12 +154,46 @@ func contains(str string, list []string) bool {
 	return false
 }
 
+func getSrcIP(ac *APIConfig, req *http.Request) (ip string) {
+	if ac != nil {
+		ip = req.Header.Get(ac.RUMOriginIPHeader)
+		l.Debugf("get ip from %s: %s", ac.RUMOriginIPHeader, ip)
+		if ip == "" {
+			for k, v := range req.Header {
+				l.Debugf("%s: %s", k, strings.Join(v, ","))
+			}
+		}
+	} else {
+		l.Info("apiConfig not set")
+	}
+
+	if ip != "" {
+		l.Debugf("header remote addr: %s", ip)
+		parts := strings.Split(ip, ",")
+		if len(parts) > 0 {
+			ip = parts[0] // 注意：此处只取第一个 IP 作为源 IP
+			return
+		}
+	} else { // 默认取 http 框架带进来的 IP
+		l.Debugf("gin remote addr: %s", req.RemoteAddr)
+		host, _, err := net.SplitHostPort(req.RemoteAddr)
+		if err == nil {
+			ip = host
+			return
+		} else {
+			l.Warnf("net.SplitHostPort(%s): %s, ignored", req.RemoteAddr, err)
+		}
+	}
+
+	return ip
+}
+
 func handleRUMBody(body []byte,
-	precision,
-	srcip string,
+	precision string,
 	isjson bool,
+	geoInfo map[string]string,
 	list []string) ([]*io.Point, error) {
-	return doHandleRUMBody(body, precision, isjson, geoTags(srcip), list)
+	return doHandleRUMBody(body, precision, isjson, geoInfo, list)
 }
 
 func handleSourcemap(p influxm.Point) error {

@@ -12,13 +12,14 @@
 
 写入日志数据，参数列表：
 
-| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                               |
-| -------------------- | ------ | -------- | --------- | -------------------------------------------------- |
-| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object` |
-| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                      |
-| `input`              | string | false    | `datakit` | 数据源名称                                         |
-| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag            |
-| `version`            | string | false    | 无        | 当前采集器的版本号                                 |
+| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                                                                       |
+| -------------------- | ------ | -------- | --------- | --------------------------------------------------                                         |
+| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                         |
+| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                              |
+| `input`              | string | false    | `datakit` | 数据源名称                                                                                 |
+| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag                                                    |
+| `version`            | string | false    | 无        | 当前采集器的版本号                                                                         |
+| `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段。如果不指定 `source`，则上传的日志数据不会执行 pipeline 切割 |
 
 HTTP body 支持行协议以及 JSON 俩种形式。
 
@@ -96,6 +97,9 @@ redis,tag1=a,tag2=b,filename=c.log f1=1i,f2=1.2,f3="abc",message="more-log-data"
 
 - 行协议中的指标集名称(此处的 `nginx/mysql/redis`) 会作为日志的 `source` 字段来存储。
 - 原式日志数据存放在 `message` 字段上
+
+> 注意：DK版本自1.2.0之后，为优化处理速度, /v1/write/logging 处理数据时改为异步操作，所以当后台处理 pipeline 时，这一条 http 请求已经完成并返回状态码了。
+> 如果返回状态码为200或者 **观测云** 上数据异常时，请先检查发送的数据是否符合文档中的要求。
 
 ### 时序数据(metric)示例
 
@@ -293,8 +297,6 @@ Content-Type: application/json
 
 创建或者更新对象的 `labels`
 
-请求示例:
-
 `request body`说明
 
 |           参数 | 描述                                                                          | 类型       |
@@ -304,6 +306,8 @@ Content-Type: application/json
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string`   |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`     |
 |       `labels` | `labels` 列表，一个 `string` 数组                                             | `[]string` |
+
+### 示例
 
 ```shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
@@ -341,9 +345,7 @@ status_code: 500
 
 删除对象的 `labels`
 
-请求示例:
-
-`request body`说明
+`request body` 说明
 
 |           参数 | 描述                                                                          | 类型     |
 | -------------: | ----------------------------------------------------------------------------- | -------- |
@@ -351,6 +353,8 @@ status_code: 500
 |  `object_name` | 表示 `labels` 所关联的 `object`名称，如 `host-123`                            | `string` |
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string` |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`   |
+
+### 示例
 
 ```shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
@@ -383,9 +387,71 @@ status_code: 500
 }
 ```
 
+## `/v1/pipeline/debug` | `POST`
+
+提供远程调试 PL 的功能。
+
+### 示例 
+
+```
+POST /v1/pipeline/debug
+Content-Type: application/json
+
+{
+  "pipeline": base64("pipeline-source-code"),
+  "category": "logging", # 暂时只支持日志的 PL 调试
+  "data": base64("raw-logging-data"), # 此处 raw data 可以是多行， API 会自动做分行处理
+  "multiline": "用于多行匹配的正则指定",  # 如果不传，则 API 以「非空白字符开头」为多行分割标识
+  "encode": "@data 的字符编码",         # 默认是 utf8 编码
+  "benchmark": true,                  # 是否开启 benchmark
+}
+```
+
+正常返回:
+
+```
+HTTP/1.1 200 OK
+
+{
+    "content": {
+        "cost": "2.3ms",
+        "benchmark": BenchmarkResult.String(), # 返回 benchmark 结果
+        "error_msg": "",
+        "plresults": [ # 由于日志可能是多行的，此处会返回多个切割结果
+            {
+                "measurement" : "指标集名称，一般是日志 source",
+                "tags": { "key": "val", "other-key": "other-val"},
+                "fields": { "f1": 1, "f2": "abc", "f3": 1.2 },
+                "time": 1644380607 # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
+                "time_ns": 421869748 # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
+                "error":"",
+            },
+           {  another-result},
+           ...
+        ]
+    }
+}
+```
+
+错误返回:
+
+```
+HTTP Code: 40x
+
+{
+    "error_code": "datakit.invalidCategory",
+    "message": "invalid category"
+}
+```
+
 ## DataKit 行协议约束
 
 为规范观测云中的数据，现对经过 DataKit 的行协议数据，做如下约束：
 
 - tags 和 fields 中的 key 不允许重名
 - tags 内部或 fields 内部不允许出现同名 key
+- Tag 个数不超过 256 个
+- Field 个数不超过 1024 个
+- Tag/Field Key 长度不超过 256 字节
+- Tag Value 长度不超过 1024 字节
+- Field Value 不超过 32K(32x1024) 字节

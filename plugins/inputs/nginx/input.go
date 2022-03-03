@@ -4,7 +4,6 @@ package nginx
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -125,20 +124,11 @@ func (n *Input) RunPipeline() {
 	opt := &tailer.Option{
 		Source:     inputName,
 		Service:    inputName,
+		Pipeline:   n.Log.Pipeline,
 		GlobalTags: n.Tags,
 	}
 
-	pl, err := config.GetPipelinePath(n.Log.Pipeline)
-	if err != nil {
-		l.Error(err)
-		return
-	}
-	if _, err := os.Stat(pl); err != nil {
-		l.Warn("%s missing: %s", pl, err.Error())
-	} else {
-		opt.Pipeline = pl
-	}
-
+	var err error
 	n.tail, err = tailer.NewTailer(n.Log.Files, opt)
 	if err != nil {
 		l.Error(err)
@@ -151,6 +141,7 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
+	io.FeedEventLog(&io.Reporter{Message: "nginx start ok, ready for collecting metrics.", Logtype: "event"})
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()
@@ -291,8 +282,6 @@ func (n *Input) setup() error {
 }
 
 func (n *Input) Collect() (map[string][]*io.Point, error) {
-	fmt.Printf("start get points: %s\n", inputName)
-
 	if err := n.setup(); err != nil {
 		return map[string][]*io.Point{}, err
 	}

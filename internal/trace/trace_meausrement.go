@@ -30,7 +30,7 @@ func (t *TraceMeasurement) Info() *inputs.MeasurementInfo {
 			FIELD_TRACEID:  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Trace id."},
 			FIELD_SPANID:   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Span id."},
 			FIELD_DURATION: &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Duration of span."},
-			FIELD_START:    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "start time of span."},
+			FIELD_START:    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampUS, Desc: "start time of span."},
 			FIELD_MSG:      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The origin content of span."},
 			FIELD_RESOURCE: &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The resource name."},
 			FIELD_PID:      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The application process id."},

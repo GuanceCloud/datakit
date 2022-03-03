@@ -399,7 +399,7 @@ datakit -M --vvv
 编辑完采集器的配置文件后，可能某些配置有误（如配置文件格式错误），通过如下命令可检查是否正确：
 
 ```shell
-sudo datakit --check-config
+sudo datakit debug --check-config
 ------------------------
 checked 13 conf, all passing, cost 22.27455ms
 ```
@@ -423,8 +423,6 @@ Extracted data(cost: 421.705µs): # 表示切割成功
 datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 No data extracted from pipeline
 ```
-
-> 注意：由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 field），不宜有日志采集器以及 Datakit 全局配置的 tag 字段，如 `source`、`service`、`host` 等字段，不然行协议构建会报错：`same key xxx in tag and field`。
 
 由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
@@ -480,7 +478,7 @@ man > Q               # 输入 Q 或 exit 退出
 为便于大家在服务端查看工作空间信息，DataKit 提供如下命令查看：
 
 ```shell
-datakit --workspace-info
+datakit debug --workspace-info
 {
   "token": {
     "ws_uuid": "wksp_2dc431d6693711eb8ff97aeee04b54af",
@@ -561,7 +559,7 @@ datakit --reinstall
 可直接使用如下命令更新数据库文件（仅 Mac/Linux 支持）
 
 ```shell
-sudo datakit --update-ip-db
+sudo datakit install --ipdb iploc
 ```
 
 若 DataKit 在运行中，更新成功后会自动更新 IP-DB 文件。
@@ -633,7 +631,7 @@ DataKit 会持续以当前 CPU 使用率为基准，动态调整自身能使用�
 排查 DataKit 问题时，通常需要检查 DataKit 运行日志，为了简化日志搜集过程，DataKit 支持一键上传日志文件：
 
 ```shell
-sudo datakit --upload-log
+sudo datakit debug --upload-log
 log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip # 将这个路径信息发送给我们工程师即可
 ```
 
@@ -647,7 +645,7 @@ log info: path/to/tkn_xxxxx/your-hostname/datakit-log-2021-11-08-1636340937.zip 
 
 Datakit 支持使用 git 来管理采集器配置以及 Pipeline。示例如下：
 
-```conf
+```toml
 [git_repos]
   pull_interval = "1m" # 同步配置间隔，即 1 分钟同步一次
 

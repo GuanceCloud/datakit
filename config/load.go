@@ -89,8 +89,8 @@ func LoadCfg(c *Config, mcp string) error {
 
 func GetConfRootPaths() []string {
 	var confRootPath *[]string
-	if len(datakit.GetReposConfDirs) != 0 {
-		confRootPath = &datakit.GetReposConfDirs
+	if GitHasEnabled() {
+		confRootPath = &[]string{datakit.GitReposRepoFullPath}
 	} else {
 		confRootPath = &[]string{datakit.ConfdDir}
 	}
@@ -113,6 +113,31 @@ func ReloadInputConfig() error {
 }
 
 func ReloadInputTables(confTables []map[string]*ast.Table) error {
+	defer func() {
+		if GitHasEnabled() {
+			// #501 issue
+			for _, name := range Cfg.DefaultEnabledInputs {
+				if c, ok := inputs.Inputs[name]; ok {
+					i := c()
+					sample := i.SampleConfig()
+					tpl, err := parseCfgBytes([]byte(sample))
+					if err != nil {
+						l.Errorf("parseCfgBytes failed: %s", err.Error())
+						continue
+					}
+					res := getCheckInputCfgResult(tpl)
+					if !res.Runnable() {
+						l.Errorf("getCheckInputCfgResult failed: input_cfg_invalid")
+						continue
+					}
+					for _, i := range res.AvailableInputs {
+						inputs.AddInput(name, i)
+					}
+				}
+			} // if
+		} // if GitHasEnabled()
+	}()
+
 	if len(confTables) == 0 {
 		return nil
 	}
@@ -130,10 +155,7 @@ func ReloadInputTables(confTables []map[string]*ast.Table) error {
 				continue
 			}
 
-			if err := doLoadInputConf(name, creator, v); err != nil {
-				l.Errorf("load %s config failed: %v, ignored", name, err)
-				return err
-			}
+			doLoadInputConf(name, creator, v)
 		}
 	}
 
@@ -170,11 +192,10 @@ func feedEnvs(data []byte) []byte {
 		}
 
 		envval, ok := os.LookupEnv(strings.TrimPrefix(string(envvar), "$"))
+		// 找到了环境变量就替换否则不替换
 		if ok {
 			envval = envVarEscaper.Replace(envval)
 			data = bytes.Replace(data, parameter[0], []byte(envval), 1)
-		} else {
-			data = bytes.Replace(data, parameter[0], []byte("no-value"), 1)
 		}
 	}
 
@@ -188,7 +209,11 @@ func ParseCfgFile(f string) (*ast.Table, error) {
 		return nil, fmt.Errorf("read config %s failed: %w", f, err)
 	}
 
-	data = feedEnvs(data)
+	return parseCfgBytes(data)
+}
+
+func parseCfgBytes(bys []byte) (*ast.Table, error) {
+	data := feedEnvs(bys)
 
 	tbl, err := toml.Parse(data)
 	if err != nil {
@@ -211,7 +236,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 				if err != nil {
 					return nil, err
 				}
-				pl, err := pipeline.NewPipelineByScriptPath(pFullPath)
+				pl, err := pipeline.NewPipelineByScriptPath(pFullPath, false)
 				if err != nil {
 					return vv, err
 				}
@@ -233,13 +258,68 @@ func GetPipelinePath(pipeLineName string) (string, error) {
 
 	pipeLineName = dkstring.TrimString(pipeLineName)
 
-	if path.PathIsPureFileName(pipeLineName) {
-		// eg. AA
-		return filepath.Join(datakit.PipelineDir, pipeLineName), nil
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
+	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
+	if filepath.IsAbs(pipeLineName) {
+		return "", fmt.Errorf("pipeline in absolutely path is discouraged")
 	}
 
-	// eg. test/AA
-	return filepath.Join(datakit.GitReposDir, pipeLineName), nil
+	// start search pipeline_remote
+	{
+		plPath := filepath.Join(datakit.PipelineRemoteDir, pipeLineName)
+		if _, err := os.Stat(plPath); err == nil {
+			return plPath, nil
+		}
+	}
+
+	{
+		plPath := filepath.Join(datakit.GitReposRepoFullPath, pipeLineName)
+		if _, err := os.Stat(plPath); err != nil {
+			l.Errorf("os.Stat failed: %v", err)
+		} else {
+			return plPath, nil // return once found the pipeline file
+		}
+	}
+
+	// search datakit root pipeline
+	plPath := filepath.Join(datakit.PipelineDir, pipeLineName)
+	if _, err := os.Stat(plPath); err != nil {
+		return "", err
+	}
+
+	return plPath, nil
+}
+
+func InitGitreposDir() {
+	// search enabled gitrepos
+	for _, v := range Cfg.GitRepos.Repos {
+		if !v.Enable {
+			continue
+		}
+		v.URL = dkstring.TrimString(v.URL)
+		if v.URL == "" {
+			continue
+		}
+		repoName, err := path.GetGitPureName(v.URL)
+		if err != nil {
+			continue
+		}
+		datakit.GitReposRepoName = repoName
+		datakit.GitReposRepoFullPath, err = GetGitRepoDir(repoName)
+		if err != nil {
+			l.Errorf("GetGitRepoDir failed: err = %v, repoName = %s", err, repoName)
+		}
+	}
+}
+
+func GetNamespacePipelineFiles(namespace string) ([]string, error) {
+	switch namespace {
+	case datakit.StrPipelineRemote:
+		return path.GetSuffixFilesFromDirDeepOne(datakit.PipelineRemoteDir, datakit.StrPipelineFileSuffix)
+	case datakit.StrGitRepos:
+		return path.GetSuffixFilesFromDirDeepOne(datakit.GitReposRepoFullPath, datakit.StrPipelineFileSuffix)
+	}
+	return nil, fmt.Errorf("invalid namespace")
 }
 
 type CheckedInputCfgResult struct {
