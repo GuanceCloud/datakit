@@ -30,7 +30,7 @@ var reqs = map[string]string{
 	datakit.Logging:           "POST",
 	datakit.LogFilter:         "GET",
 	datakit.Tracing:           "POST",
-	datakit.Rum:               "POST",
+	datakit.RUM:               "POST",
 	datakit.Security:          "POST",
 	datakit.HeartBeat:         "POST",
 	datakit.Election:          "POST",

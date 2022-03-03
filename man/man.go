@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -27,32 +28,38 @@ var (
 		"datakit-batch-deploy":     "man/manuals/datakit-batch-deploy.md",
 		"datakit-conf-how-to":      "man/manuals/datakit-conf-how-to.md",
 		"datakit-daemonset-deploy": "man/manuals/datakit-daemonset-deploy.md",
-		"datakit-dql-how-to":       "man/manuals/datakit-dql-how-to.md",
-		"datakit-how-to":           "man/manuals/datakit-how-to.md", // deprecated
-		"datakit-install":          "man/manuals/datakit-install.md",
-		"datakit-offline-install":  "man/manuals/datakit-offline-install.md",
-		"datakit-on-public":        "man/manuals/datakit-on-public.md",
-		"datakit-pl-how-to":        "man/manuals/datakit-pl-how-to.md",
-		"datakit-service-how-to":   "man/manuals/datakit-service-how-to.md",
-		"datakit-tools-how-to":     "man/manuals/datakit-tools-how-to.md",
-		"datakit-update":           "man/manuals/datakit-update.md",
-		"datatypes":                "man/manuals/datatypes.md",
-		"dataway":                  "man/manuals/dataway.md",
-		"dca":                      "man/manuals/dca.md",
-		"ddtrace-java":             "man/manuals/ddtrace-java.md",
-		"ddtrace-python":           "man/manuals/ddtrace-python.md",
-		"development":              "man/manuals/development.md",
-		"election":                 "man/manuals/election.md",
-		"k8s-config-how-to":        "man/manuals/k8s-config-how-to.md",
-		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
-		"kubernetes-x":             "man/manuals/kubernetes-x.md",
-		"logging-pipeline-bench":   "man/manuals/logging-pipeline-bench.md",
-		"pipeline":                 "man/manuals/pipeline.md",
-		"prometheus":               "man/manuals/prometheus.md",
-		"rum":                      "man/manuals/rum.md",
-		"sec-checker":              "man/manuals/sec-checker.md",
-		"telegraf":                 "man/manuals/telegraf.md",
-		"why-no-data":              "man/manuals/why-no-data.md",
+
+		"datakit-how-to":         "man/manuals/datakit-how-to.md", // deprecated
+		"k8s-config-how-to":      "man/manuals/k8s-config-how-to.md",
+		"datakit-dql-how-to":     "man/manuals/datakit-dql-how-to.md",
+		"datakit-pl-how-to":      "man/manuals/datakit-pl-how-to.md",
+		"datakit-service-how-to": "man/manuals/datakit-service-how-to.md",
+		"datakit-tools-how-to":   "man/manuals/datakit-tools-how-to.md",
+
+		"datakit-install":         "man/manuals/datakit-install.md",
+		"datakit-offline-install": "man/manuals/datakit-offline-install.md",
+		"datakit-update":          "man/manuals/datakit-update.md",
+		"datakit-on-public":       "man/manuals/datakit-on-public.md",
+		"datatypes":               "man/manuals/datatypes.md",
+		"dataway":                 "man/manuals/dataway.md",
+		"ddtrace-java":            "man/manuals/ddtrace-java.md",
+		"ddtrace-python":          "man/manuals/ddtrace-python.md",
+		"development":             "man/manuals/development.md",
+		"election":                "man/manuals/election.md",
+		"kubernetes-prom":         "man/manuals/kubernetes-prom.md",
+		"kubernetes-x":            "man/manuals/kubernetes-x.md",
+		"pipeline":                "man/manuals/pipeline.md",
+		"logging-pipeline-bench":  "man/manuals/logging-pipeline-bench.md",
+		"prometheus":              "man/manuals/prometheus.md",
+		"rum":                     "man/manuals/rum.md",
+		"sec-checker":             "man/manuals/sec-checker.md",
+		"telegraf":                "man/manuals/telegraf.md",
+		"why-no-data":             "man/manuals/why-no-data.md",
+		"dca":                     "man/manuals/dca.md",
+		"dialtesting_json":        "man/manuals/dialtesting_json.md",
+		"datakit-monitor":         "man/manuals/datakit-monitor.md",
+		"logging_socket":          "man/manuals/logging_socket.md",
+		"logfwd":                  "man/manuals/logfwd.md",
 	}
 	l = logger.DefaultSLogger("man")
 )
@@ -66,6 +73,7 @@ type Params struct {
 	Measurements   []*inputs.MeasurementInfo
 	CSS            string
 	AvailableArchs string
+	PipelineFuncs  string
 }
 
 func Get(name string) (string, error) {
@@ -102,6 +110,14 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 			Version:     ver,
 			ReleaseDate: git.BuildAt,
 			CSS:         css,
+		}
+		// Add pipeline functions doc.
+		if name == "pipeline" {
+			sb := strings.Builder{}
+			for _, v := range funcs.PipelineFunctionDocs {
+				sb.WriteString(v.Doc)
+			}
+			p.PipelineFuncs = sb.String()
 		}
 	} else {
 		c, ok := inputs.Inputs[name]

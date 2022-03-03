@@ -43,11 +43,14 @@ gram_y.go
 install_local.sh
 install.ps1
 install.sh
+internal-pipelines.json
 internal/http/req.db
 iploc.bin
 liu_script.sh
+measurements-meta.json
 old/
 parser_y.go
+pipeline-docs.json
 pipeline/parser/parser.y.go
 plugins/external/csv/__tmp
 plugins/external/csv/venv
@@ -61,6 +64,7 @@ replace.sh
 run_mac.sh
 run.s
 run.sh
+samples/*
 test.conf
 test.go
 test.jso

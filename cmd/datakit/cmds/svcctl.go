@@ -1,15 +1,72 @@
 package cmds
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"runtime"
+	"time"
 
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
+
+func runServiceFlags() error {
+	if *flagServiceRestart {
+		if err := restartDatakit(); err != nil {
+			errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
+			os.Exit(-1)
+		}
+
+		infof("Restart DataKit OK\n")
+		os.Exit(0)
+	}
+
+	if *flagServiceStop {
+		if err := stopDatakit(); err != nil {
+			errorf("[E] stop DataKit failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		infof("Stop DataKit OK\n")
+		os.Exit(0)
+	}
+
+	if *flagServiceStart {
+		if err := startDatakit(); err != nil {
+			errorf("[E] start DataKit failed: %s\n using command to stop : %s\n", err.Error(), errMsg[runtime.GOOS])
+			os.Exit(-1)
+		}
+
+		infof("Start DataKit OK\n") // TODO: 需说明 PID 是多少
+		os.Exit(0)
+	}
+
+	if *flagServiceUninstall {
+		if err := uninstallDatakit(); err != nil {
+			errorf("[E] uninstall DataKit failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		infof("Uninstall DataKit OK\n")
+		os.Exit(0)
+	}
+
+	if *flagServiceReinstall {
+		if err := reinstallDatakit(); err != nil {
+			errorf("[E] reinstall DataKit failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+
+		infof("Reinstall DataKit OK\n")
+		os.Exit(0)
+	}
+
+	return fmt.Errorf("no action specified")
+}
 
 func isRoot() error {
 	if runtime.GOOS == datakit.OSWindows {
@@ -54,8 +111,18 @@ func stopDatakit() error {
 	}
 
 	l.Info("stoping datakit...")
-	if err := service.Control(svc, "stop"); err != nil {
-		return err
+	// 不能一直等待阻塞的 chan 或者 waitgroup到超时时间被强制 kill 时才退出
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- service.Control(svc, "stop")
+	}()
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+	case <-time.After(time.Second * 10):
+		return errors.New("datakit.service stop-sigterm timed out")
 	}
 	return nil
 }

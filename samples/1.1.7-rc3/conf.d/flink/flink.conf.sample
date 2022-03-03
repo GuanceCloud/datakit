@@ -1,8 +1,0 @@
-
-[[inputs.flink]]
-    ## require
-    db = "flink"
-
-    [inputs.flink.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"

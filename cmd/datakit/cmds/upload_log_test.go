@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,10 +14,17 @@ import (
 )
 
 func TestGetLogFile(t *testing.T) {
-	logFile, err := ioutil.TempFile(os.TempDir(), "log")
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir) // nolint:errcheck
+	logFile, err := ioutil.TempFile(tmpDir, "log")
 	assert.NoError(t, err, "create temp log file failed")
-	defer os.Remove(logFile.Name()) //nolint: errcheck
-	config.Cfg.Logging.Log = logFile.Name()
+	config.Cfg.Logging.Log, err = filepath.Abs("./" + logFile.Name())
+	if err != nil {
+		l.Fatal(err)
+	}
 	logFileName, err := getLogFile()
 	assert.NoError(t, err)
 	assert.Contains(t, logFileName, os.TempDir())
@@ -29,10 +37,18 @@ func TestUploadLog(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	logFile, err := ioutil.TempFile(os.TempDir(), "log")
+	tmpDir, err := ioutil.TempDir("./", "__tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir) // nolint:errcheck
+
+	logFile, err := ioutil.TempFile(tmpDir, "log")
 	assert.NoError(t, err, "create temp log file failed")
-	defer os.Remove(logFile.Name()) //nolint: errcheck
-	config.Cfg.Logging.Log = logFile.Name()
+	config.Cfg.Logging.Log, err = filepath.Abs("./" + logFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	err = uploadLog([]string{ts.URL})
 	assert.NoError(t, err)

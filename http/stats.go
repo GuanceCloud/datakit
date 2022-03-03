@@ -32,10 +32,35 @@ type enabledInput struct {
 	Panics    int    `json:"panic"`
 }
 
+type runtimeInfo struct {
+	Goroutines   int    `json:"goroutines"`
+	HeapAlloc    uint64 `json:"heap_alloc"`
+	StackInuse   uint64 `json:"stack_inuse"`
+	GCPauseTotal uint64 `json:"gc_pause_total"`
+	GCNum        uint32 `json:"gc_num"`
+}
+
+func getRuntimeInfo() *runtimeInfo {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return &runtimeInfo{
+		Goroutines:   runtime.NumGoroutine(),
+		HeapAlloc:    m.HeapAlloc,
+		StackInuse:   m.StackInuse,
+		GCPauseTotal: m.PauseTotalNs,
+		GCNum:        m.NumGC,
+	}
+}
+
 type DatakitStats struct {
-	GoroutineStats  *goroutine.Summary `json:"goroutine_stats"`
-	EnabledInputs   []*enabledInput    `json:"enabled_inputs"`
-	AvailableInputs []string           `json:"available_inputs"`
+	GoroutineStats *goroutine.Summary `json:"goroutine_stats"`
+
+	EnabledInputsDeprecated []*enabledInput          `json:"enabled_inputs"`
+	EnabledInputs           map[string]*enabledInput `json:"enabled_input_list"`
+
+	GolangRuntime *runtimeInfo `json:"golang_runtime"`
+
+	AvailableInputs []string `json:"available_inputs"`
 
 	HostName     string `json:"hostname"`
 	Version      string `json:"version"`
@@ -114,7 +139,7 @@ var categoryMap = map[string]string{
 	datakit.Object:           "O",
 	datakit.Logging:          "L",
 	datakit.Tracing:          "T",
-	datakit.Rum:              "R",
+	datakit.RUM:              "R",
 	datakit.Security:         "S",
 }
 
@@ -256,7 +281,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 	return summary + "\n" + tblHeader + strings.Join(rows, "\n")
 }
 
-func GetStats(du time.Duration) (*DatakitStats, error) {
+func GetStats() (*DatakitStats, error) {
 	now := time.Now()
 	elected, _ := election.Elected()
 	stats := &DatakitStats{
@@ -274,11 +299,13 @@ func GetStats(du time.Duration) (*DatakitStats, error) {
 		GoroutineStats: goroutine.GetStat(),
 		ConfigInfo:     inputs.ConfigInfo,
 		HostName:       datakit.DatakitHostName,
+		EnabledInputs:  map[string]*enabledInput{},
+		GolangRuntime:  getRuntimeInfo(),
 	}
 
 	var err error
 
-	stats.InputsStats, err = io.GetStats(du) // get all inputs stats
+	stats.InputsStats, err = io.GetStats() // get all inputs stats
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +318,7 @@ func GetStats(du time.Duration) (*DatakitStats, error) {
 		n := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
-			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Panics: npanic})
+			stats.EnabledInputs[k] = &enabledInput{Input: k, Instances: n, Panics: npanic}
 		}
 	}
 
@@ -334,20 +361,7 @@ func (x *DatakitStats) Markdown(css string, verbose bool) ([]byte, error) {
 }
 
 func apiGetDatakitMonitor(c *gin.Context) {
-	du := time.Second * 5
-	timeout := c.Query("timeout")
-	if timeout != "" {
-		if x, err := time.ParseDuration(timeout); err == nil {
-			du = x
-		} else {
-			c.Data(http.StatusBadRequest,
-				"text/html; charset=UTF-8",
-				[]byte(fmt.Sprintf("invalid timeout: %s", timeout)))
-			return
-		}
-	}
-
-	s, err := GetStats(du)
+	s, err := GetStats()
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return
@@ -373,7 +387,7 @@ func apiGetDatakitMonitor(c *gin.Context) {
 }
 
 func apiGetDatakitStats(c *gin.Context) {
-	s, err := GetStats(time.Duration(0))
+	s, err := GetStats()
 	if err != nil {
 		c.Data(http.StatusInternalServerError, "text/html", []byte(err.Error()))
 		return

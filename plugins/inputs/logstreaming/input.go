@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
@@ -73,7 +72,7 @@ func (i *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) 
 		typee        = queries.Get("type")
 		source       = completeSource(queries.Get("source"))
 		precision    = completePrecision(queries.Get("precision"))
-		pipelinePath = completePipelinePath(queries.Get("pipeline"))
+		pipelinePath = queries.Get("pipeline")
 
 		// TODO
 		// 每一条 request 都要解析和创建一个 tags，影响性能
@@ -174,13 +173,6 @@ func completePrecision(precision string) string {
 		return defaultPercision
 	}
 	return precision
-}
-
-func completePipelinePath(p string) string {
-	if p == "" {
-		return ""
-	}
-	return filepath.Join(datakit.PipelineDir, p)
 }
 
 func init() { //nolint:gochecknoinits

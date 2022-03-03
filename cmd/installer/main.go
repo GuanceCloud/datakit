@@ -17,6 +17,7 @@ import (
 	"github.com/kardianos/service"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
@@ -68,7 +69,14 @@ var (
 	flagGitBranch,
 	flagGitPullInterval,
 	flagSrc,
-	flagCloudProvider string
+	flagCloudProvider,
+	flagRumOriginIPHeader,
+	flagLogLevel,
+	flagLog,
+	flagIpdb,
+	flagGinLog,
+	flagEnableElection,
+	flagDisable404Page string
 
 	flagInstallOnly,
 	flagCgroupEnabled,
@@ -99,6 +107,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagNamespace, "namespace", "", "datakit namespace")
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
+	flag.StringVar(&flagIpdb, "ipdb-type", "", "ipdb type")
 	flag.StringVar(&flagCloudProvider,
 		"cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 	flag.StringVar(&flagGitURL, "git-url", "", "git repo url")
@@ -106,6 +115,12 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagGitKeyPW, "git-key-pw", "", "git repo access private use password")
 	flag.StringVar(&flagGitBranch, "git-branch", "", "git repo branch name")
 	flag.StringVar(&flagGitPullInterval, "git-pull-interval", "", "git repo pull interval")
+	flag.StringVar(&flagEnableElection, "enable-election", "", "datakit election")
+	flag.StringVar(&flagRumOriginIPHeader, "rum-origin-ip-header", "", "rum only")
+	flag.StringVar(&flagDisable404Page, "disable-404page", "", "datakit rum 404 page")
+	flag.StringVar(&flagLogLevel, "log-level", "", "log level setting")
+	flag.StringVar(&flagLog, "log", "", "log setting")
+	flag.StringVar(&flagGinLog, "gin-log", "", "gin log setting")
 	flag.StringVar(&flagSrc, "srcs",
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
@@ -150,6 +165,17 @@ func downloadFiles(to string) error {
 	dl.CurDownloading = "data"
 	if err := dl.Download(cli, dataURL, to, true, flagDownloadOnly); err != nil {
 		return err
+	}
+
+	if flagIpdb != "" {
+		fmt.Printf("\n")
+		baseURL := "https://" + DataKitBaseURL
+		if _, err := cmds.InstallIpdb(baseURL, flagIpdb); err != nil {
+			l.Warnf("ipdb install failed error: %s, please try later.", err.Error())
+			time.Sleep(1 * time.Second)
+		} else {
+			config.Cfg.Pipeline.IPdbType = flagIpdb
+		}
 	}
 
 	fmt.Printf("\n")
@@ -358,8 +384,17 @@ func installNewDatakit(svc service.Service) {
 
 	mc := config.Cfg
 
-	// prepare dataway info
+	// prepare dataway info and check token format
 	mc.DataWay = getDataWayCfg()
+	tokens := mc.DataWay.GetToken()
+	if len(tokens) == 0 {
+		l.Fatalf("dataway token should not be empty")
+	}
+
+	if err := mc.DataWay.CheckToken(tokens[0]); err != nil {
+		l.Fatal(err)
+	}
+
 	if flagOTA {
 		l.Debugf("set auto update flag")
 		mc.AutoUpdate = flagOTA
@@ -450,6 +485,31 @@ func installNewDatakit(svc service.Service) {
 				}, // GitRepository
 			}, // Repos
 		} // GitRepost
+	}
+
+	if flagEnableElection != "" {
+		l.Infof("set enable election: %v", flagEnableElection)
+		mc.EnableElection = true
+	}
+	if flagDisable404Page != "" {
+		l.Infof("set disable 404 page: %v", flagDisable404Page)
+		mc.Disable404PageDeprecated = true
+	}
+	if flagRumOriginIPHeader != "" {
+		l.Infof("set rum origin IP header: %s", flagRumOriginIPHeader)
+		mc.HTTPAPI.RUMOriginIPHeader = flagRumOriginIPHeader
+	}
+	if flagLogLevel != "" {
+		l.Infof("set log level: %s", flagLogLevel)
+		mc.Logging.Level = flagLogLevel
+	}
+	if flagLog != "" {
+		l.Infof("set log: %s", flagLog)
+		mc.Logging.Log = flagLog
+	}
+	if flagGinLog != "" {
+		l.Infof("set gin log: %s", flagGinLog)
+		mc.GinLogDeprecated = flagGinLog
 	}
 
 	writeDefInputToMainCfg(mc)

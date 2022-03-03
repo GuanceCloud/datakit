@@ -5,6 +5,7 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -193,6 +194,10 @@ func Text2Metrics(in io.Reader,
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
 				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
@@ -218,6 +223,10 @@ func Text2Metrics(in io.Reader,
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
 				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
@@ -243,6 +252,10 @@ func Text2Metrics(in io.Reader,
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
 				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
@@ -264,6 +277,10 @@ func Text2Metrics(in io.Reader,
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
 				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
@@ -305,6 +322,10 @@ func Text2Metrics(in io.Reader,
 
 				labels := m.GetLabel()
 				tags := getTags(labels, prom.Tags, extraTags, prom.TagsIgnore)
+				timeStamp := m.GetTimestampMs()
+				if timeStamp != 0 {
+					tmptime = getTimeStampS(timeStamp)
+				}
 
 				pt, err := iod.MakePoint(msName, tags, fields, tmptime)
 				if err != nil {
@@ -335,4 +356,16 @@ func Text2Metrics(in io.Reader,
 	}
 
 	return pts, lastErr
+}
+
+func getTimeStampS(timeStamp int64) time.Time {
+	timeStr := strconv.Itoa(int(timeStamp))
+	if len(timeStr) > 10 {
+		timeInt, _ := strconv.ParseInt(timeStr[:10], 10, 64)
+		return time.Unix(timeInt, 0)
+	}
+	if len(timeStr) < 10 {
+		return time.Now()
+	}
+	return time.Unix(timeStamp, 0)
 }

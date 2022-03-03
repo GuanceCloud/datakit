@@ -56,6 +56,54 @@ Bye!
 
 > 注：Windows 下，请在 Powershell 中执行调试。
 
+### 多行如何处理
+
+在处理一些调用栈相关的日志时，由于其日志行数不固定，直接用 `GREEDYDATA` 这个 pattern 无法处理如下情况的日志：
+
+```
+2022-02-10 16:27:36.116 ERROR 1629881 --- [scheduling-1] o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task
+
+	java.lang.NullPointerException: null
+	at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.isSimilarPrize(xxxxxxxxxxxxxxxxx.java:442)
+	at com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.lambda$getSimilarPrizeSnapUpDo$0(xxxxxxxxxxxxxxxxx.java:595)
+	at java.util.stream.ReferencePipeline$3$1.accept(xxxxxxxxxxxxxxxxx.java:193)
+	at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(xxxxxxxxx.java:1382)
+	at java.util.stream.AbstractPipeline.copyInto(xxxxxxxxxxxxxxxx.java:481)
+	at java.util.stream.AbstractPipeline.wrapAndCopyInto(xxxxxxxxxxxxxxxx.java:471)
+	at java.util.stream.ReduceOps$ReduceOp.evaluateSequential(xxxxxxxxx.java:708)
+	at java.util.stream.AbstractPipeline.evaluate(xxxxxxxxxxxxxxxx.java:234)
+	at java.util.stream.ReferencePipeline.collect(xxxxxxxxxxxxxxxxx.java:499)
+```
+
+此处可以使用 `GREEDYLINES` 规则来通配，如（*/usr/local/datakit/pipeline/test.p*）：
+
+```python
+add_pattern('_dklog_date', '%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{HOUR}:%{MINUTE}:%{SECOND}%{INT}')
+grok(_, '%{_dklog_date:log_time}\\s+%{LOGLEVEL:Level}\\s+%{NUMBER:Level_value}\\s+---\\s+\\[%{NOTSPACE:thread_name}\\]\\s+%{GREEDYDATA:Logger_name}\\s+(\\n)?(%{GREEDYLINES:stack_trace})'
+
+# 此处移除 message 字段便于调试
+drop_origin_data()
+```
+
+将上述多行日志存为 *multi-line.log*，调试一下：
+
+```shell
+datakit --pl test.p --txt "$(<multi-line.log)"
+```
+
+得到如下切割结果：
+
+```json
+{
+  "Level": "ERROR",
+  "Level_value": "1629881",
+  "Logger_name": "o.s.s.s.TaskUtils$LoggingErrorHandler    : Unexpected error occurred in scheduled task",
+  "log_time": "2022-02-10 16:27:36.116",
+  "stack_trace": "java.lang.NullPointerException: null\n\tat com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.isSimilarPrize(xxxxxxxxxxxxxxxxx.java:442)\n\tat com.xxxxx.xxxxxxxxxxx.xxxxxxx.impl.SxxxUpSxxxxxxImpl.lambda$getSimilarPrizeSnapUpDo$0(xxxxxxxxxxxxxxxxx.java:595)\n\tat java.util.stream.ReferencePipeline$3$1.accept(xxxxxxxxxxxxxxxxx.java:193)\n\tat java.util.ArrayList$ArrayListSpliterator.forEachRemaining(xxxxxxxxx.java:1382)\n\tat java.util.stream.AbstractPipeline.copyInto(xxxxxxxxxxxxxxxx.java:481)\n\tat java.util.stream.AbstractPipeline.wrapAndCopyInto(xxxxxxxxxxxxxxxx.java:471)\n\tat java.util.stream.ReduceOps$ReduceOp.evaluateSequential(xxxxxxxxx.java:708)\n\tat java.util.stream.AbstractPipeline.evaluate(xxxxxxxxxxxxxxxx.java:234)\n\tat java.util.stream.ReferencePipeline.collect(xxxxxxxxxxxxxxxxx.java:499)",
+  "thread_name": "scheduling-1"
+}
+```
+
 ### 完整 Pipeline 示例
 
 这里以 DataKit 自身的日志切割为例。DataKit 自身的日志形式如下：
@@ -120,3 +168,45 @@ Extracted data(cost: 421.705µs):
 # 该错误在 DataKit monitor 中能看到
 same key xxx in tag and field
 ```
+
+## FAQ
+
+### Pipeline 调试时，为什么变量无法引用？
+
+Pipeline 为：
+
+```python
+json(_, message, "message")
+json(_, thread_name, "thread")
+json(_, level, "status")
+json(_, @timestamp, "time")
+```
+
+其报错如下：
+
+```
+[E] new piepline failed: 4:8 parse error: unexpected character: '@'
+```
+
+---
+
+A: 对于有特殊字符的变量，需将其用两个 `` ` `` 修饰一下：
+
+```python
+json(_, `@timestamp`, "time")
+```
+
+参见 [Pipeline 的基本语法规则](pipeline#3ab24547)
+
+### Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？
+
+命令如下：
+
+```shell
+datakit --pl test.p --txt "..."
+[E] get pipeline failed: stat /usr/local/datakit/pipeline/test.p: no such file or directory
+```
+
+---
+
+A: 调试用的 Pipeline 脚本，需将其放置到 *<DataKit 安装目录>/pipeline* 目录下。

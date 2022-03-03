@@ -6,12 +6,15 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io/ioutil"
-	"log"
+	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
 const (
@@ -51,8 +54,53 @@ var (
 			XDatakitUUID,
 			XRP,
 			XPrecision,
-			XLua}, ", ")
+			XLua,
+		}, ", ")
+	realIPHeader      = []string{"X-Forwarded-For", "X-Real-IP", "RemoteAddr"}
+	MaxRequestBodyLen = 128
+
+	l = logger.DefaultSLogger("gin")
 )
+
+func Init() {
+	l = logger.SLogger("gin")
+
+	if v, ok := os.LookupEnv("MAX_REQUEST_BODY_LEN"); ok {
+		if i, err := strconv.ParseInt(v, 10, 64); err != nil {
+			l.Warnf("invalid MAX_REQUEST_BODY_LEN, expect int, got %s, ignored", v)
+		} else {
+			MaxRequestBodyLen = int(i)
+		}
+	}
+}
+
+func GinLogFormmatter(param gin.LogFormatterParams) string {
+	realIP := param.ClientIP
+	for _, h := range realIPHeader {
+		if v := param.Request.Header.Get(h); v != "" {
+			realIP = v
+		}
+	}
+
+	if param.ErrorMessage != "" {
+		return fmt.Sprintf("[GIN] %v | %3d | %8v | %15s | %-7s %#v -> %s\n",
+			param.TimeStamp.Format("2006/01/02 - 15:04:05"),
+			param.StatusCode,
+			param.Latency,
+			net.ParseIP(realIP),
+			param.Method,
+			param.Path,
+			param.ErrorMessage)
+	} else {
+		return fmt.Sprintf("[GIN] %v | %3d | %8v | %15s | %-7s %#v\n",
+			param.TimeStamp.Format("2006/01/02 - 15:04:05"),
+			param.StatusCode,
+			param.Latency,
+			net.ParseIP(realIP),
+			param.Method,
+			param.Path)
+	}
+}
 
 func CORSMiddleware(c *gin.Context) {
 	allowOrigin := c.GetHeader("origin")
@@ -89,7 +137,6 @@ func TraceIDMiddleware(c *gin.Context) {
 }
 
 func FormatRequest(r *http.Request) string {
-
 	// Add the request string
 	url := fmt.Sprintf("%v %v %v", r.Method, r.URL, r.Proto)
 	request := []string{url}
@@ -127,15 +174,15 @@ func RequestLoggerMiddleware(c *gin.Context) {
 	c.Writer = w
 	c.Next()
 
-	code := c.Writer.Status()
-	switch code / 200 {
-	case 1:
-		tid := c.Writer.Header().Get(XTraceId)
-		log.Printf("[debug][%s] %s %s %d", tid, c.Request.Method, c.Request.URL, code)
-	default:
-		log.Printf("[warn] %s %s %d, RemoteAddr: %s, Request: [%s], Body: %s",
-			c.Request.Method, c.Request.URL, code, c.Request.RemoteAddr, FormatRequest(c.Request), w.body.String())
-	}
+	body := w.body.String()
+
+	l.Infof("%s %s %d, RemoteAddr: %s, Request: [%s], Body: %s",
+		c.Request.Method,
+		c.Request.URL,
+		c.Writer.Status(),
+		c.Request.RemoteAddr,
+		FormatRequest(c.Request),
+		body[:len(body)%MaxRequestBodyLen]+"...")
 }
 
 func GinReadWithMD5(c *gin.Context) (buf []byte, md5str string, err error) {

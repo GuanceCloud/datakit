@@ -60,6 +60,7 @@ func (n *Input) setup() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("jenkins start")
+	io.FeedEventLog(&io.Reporter{Message: "jenkins start ok, ready for collecting metrics.", Logtype: "event"})
 
 	n.setup()
 

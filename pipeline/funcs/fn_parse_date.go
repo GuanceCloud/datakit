@@ -105,7 +105,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) error {
 	if x, err := ng.GetFuncIntArg(funcExpr, 6, "s"); err != nil {
 		return err
 	} else {
-		ss, err = fixSecond(now, x)
+		ss, err = fixSecond(x)
 		if err != nil {
 			return err
 		}

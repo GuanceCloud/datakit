@@ -28,7 +28,7 @@
 ### 安装 yaml
 
 ```shell
-kubectl apply -f datakit-default.yaml
+kubectl apply -f datakit.yaml
 ```
 
 ### 查看运行状态：
@@ -57,7 +57,7 @@ kubectl get pod -n datakit
 | ENV_DISABLE_404PAGE        | 无                         | 否       | 禁用 DataKit 404 页面（公网部署 DataKit RUM 时常用）                                                               |
 | ENV_DEFAULT_ENABLED_INPUTS | 无                         | 否       | 默认开启[采集器列表](datakit-conf-how-to#764ffbc2)，以英文逗号分割，如 `cpu,mem,disk`。                                                            |
 | ENV_ENABLE_ELECTION        | 默认不开启                 | 否       | 开启[选举](election)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                   |
-| ENV_NAMESPACE              | 无                         | 否       | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`                  |
+| ENV_NAMESPACE              | 无                         | 否       | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。                  |
 | ENV_HOSTNAME               | 无                         | 否       | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`                                                            |
 | ENV_GIT_URL                 | 无                         | 否       | 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）  |
 | ENV_GIT_KEY_PATH            | 无                         | 否       | 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）                                        |

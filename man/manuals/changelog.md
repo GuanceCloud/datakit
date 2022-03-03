@@ -2,6 +2,79 @@
 
 # DataKit 版本历史
 
+## 1.2.7(2022/02/22)
+
+本次发布属于迭代发布，内容如下：
+
+- Pipeline
+	- Grok 中增加[动态多行 pattern](datakit-pl-how-to#88b72768)，便于处理动态多行切割(#615)
+	- 支持中心下发 Pipeline(#524)，这样一来，Pipeline 将有[三种存放路径](pipeline#6ee232b2)
+  - DataKit HTTP API 增加 Pipeline 调试接口 [/v1/pipeline/debug](apis#539fb60e)
+
+<!--
+- APM 功能调整(#610)
+	- 重构现有常见的 Tracing 数据接入
+	- 增加 APM 指标计算
+	- 新增 [otel(OpenTelemetry)数据接入]()
+
+!!! Delay
+-->
+
+- 为减少默认安装包体积，默认安装不再带 IP 地理信息库。RUM 等采集器中，可额外[安装对应的 IP 库](datakit-tools-how-to#ab5cd5ad)
+  - 如需安装时就带上 IP 地理信息库，可通过[额外支持的命令行环境变量](datakit-install#f9858758)来实现
+- 容器采集器增加 [logfwd 日志接入](logfwd)(#600)
+- 为进一步规范数据上传，行协议增加了更多严格的[限制](apis#f54b954f)(#592)
+- 优化日志采集过程中的 Monitor 显示(#587)
+- 优化安装程序的命令行参数检查(#573)
+- 重新调整 DataKit 命令行参数，大部分主要的命令已经支持。另外，**老的命令行参数在一定时间内依然生效**(#499)
+	- 可通过 `datakit help` 查看新的命令行参数风格
+- 重新实现 [ DataKit Monitor](datakit-monitor)
+
+### 其它 Bug 修复
+
+- 修复 Windows 下安装脚本问题(#617)
+- 调整 datakit.yaml 中的 ConfigMap 设定(#603)
+- 修复 Git 模式下 Reload 导致部分 HTTP 服务异常的问题(#596)
+- 修复安装包 isp 文件丢失问题(#584/#585/#560)
+- 修复 Pod annotation 中日志多行匹配不生效的问题(#620)
+- 修复 TCP/UDP 日志采集器 *service* tag 不生效的问题(#610)
+- 修复 Oracle 采集器采集不到数据的问题(#625)
+
+## 1.2.6(2022/01/20)
+
+本次发布属于迭代发布，内容如下：
+
+- 增强 [DataKit API 安全访问控制](rum#b896ec48)，老版本的 DataKit 如果部署了 RUM 功能，建议升级(#578)
+- 增加更多 DataKit 内部事件日志上报(#527)
+- 查看 [DataKit 运行状态](datakit-tools-how-to#44462aae)不再会超时(#555)
+
+- [容器采集器](container)一些细节问题修复
+  - 修复在 Kubernetes 环境主机部署时崩溃问题(#576)
+  - 提升 Annotation 采集配置优先级(#553)
+  - 容器日志支持多行处理(#552)
+  - Kubernetes Node 对象增加 *role* 字段(#549)
+  - [通过 Annotation 标注](kubernetes-prom)的 [Prom 采集器](prom) 会自动增加相关属性（*pod_name/node_name/namespace*）(#522/#443)
+  - 其它 Bug 修复
+
+- Pipeline 问题修复
+  - 修复日志处理中可能导致的时间乱序问题(#547)
+  - 支持 *if/else* 语句[复杂逻辑关系判断支持](pipeline#1ea7e5aa)
+
+- 修复日志采集器 Windows 中路径问题(#423)
+- 完善 DataKit 服务管理，优化交互提示(#535)
+- 优化现有 DataKit 文档导出的指标单位(#531)
+- 提升工程质量(#515/#528)
+
+----
+
+## 1.2.5(2022/01/19)
+
+- 修复[Log Stream 采集器](logstreaming) Pipeline 配置问题(#569)
+- 修复[容器采集器](container)日志错乱的问题(#571)
+- 修复 Pipeline 模块更新逻辑的 bug(#572)
+
+---
+
 ## 1.2.4(2022/01/12)
 
 - 修复日志 API 接口指标丢失问题(#551)
@@ -23,7 +96,7 @@
 
 - [容器采集器](container)更新：
 	- 修复日志处理效率问题(#540)
-	-	优化配置文件黑白名单配置(#536)
+	- 优化配置文件黑白名单配置(#536)
 - Pipeline 模块增加 `datakit -M` 指标暴露(#541)
 - [ClickHouse](clickhousev1) 采集器 config-sample 问题修复(#539)
 - [Kafka](kafka) 指标采集优化(#534)
@@ -333,7 +406,7 @@
 ## 1.1.8-rc2.1(2021/08/25)
 
 - 修复 CPU 温度采集导致的无数据问题
-- 修复 statsd 采集器退出奔溃问题(#321)
+- 修复 statsd 采集器退出崩溃问题(#321)
 - 修复代理模式下自动提示的升级命令问题
 
 ---
@@ -541,7 +614,7 @@
 - 修正 [Kubernetes 采集器](kubernetes)，支持更多 K8s 对象统计指标收集
 - 完善[容器采集器](container)，支持 image/container/pod 过滤
 - 修正 [Mongodb 采集器](mongodb)问题
-- 修正 MySQL/Redis 采集器可能因为配置缺失导致奔溃的问题
+- 修正 MySQL/Redis 采集器可能因为配置缺失导致崩溃的问题
 - 修正[离线安装问题](datakit-offline-install)
 - 修正部分采集器日志设置问题
 - 修正 [SSH](ssh)/[Jenkins](jenkins) 等采集器的数据问题
@@ -635,7 +708,7 @@
 
 ### 发布说明
 
-- 修复容器日志采集可能奔溃的问题
+- 修复容器日志采集可能崩溃的问题
 
 ---
 

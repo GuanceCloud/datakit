@@ -461,7 +461,7 @@ func (e Stmts) Run(ng *Engine) {
 		case Stmts:
 			v.Run(ng)
 		default:
-			ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(v), stmt)
+			ng.lastErr = fmt.Errorf("unsupported Stmts type %s, from: %s", reflect.TypeOf(v), stmt)
 		}
 	}
 }
@@ -478,7 +478,7 @@ func (e *IfelseStmt) Run(ng *Engine) {
 
 func (e IfList) Run(ng *Engine) (end bool) {
 	if ng.lastErr != nil {
-		return true
+		return false
 	}
 	for _, ifexpr := range e {
 		end = ifexpr.Run(ng)
@@ -491,17 +491,19 @@ func (e IfList) Run(ng *Engine) (end bool) {
 
 func (e *IfExpr) Run(ng *Engine) (pass bool) {
 	if ng.lastErr != nil {
-		return true
+		return false
 	}
 
 	switch v := e.Condition.(type) {
+	case *ParenExpr:
+		pass = v.Run(ng)
 	case *ConditionalExpr:
 		pass = v.Run(ng)
 	case *BoolLiteral:
 		pass = v.Val
 	default:
-		ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(v), e.Condition)
-		return
+		ng.lastErr = fmt.Errorf("unsupported IfExpr type %s, from: %s", reflect.TypeOf(v), e.Condition)
+		return false
 	}
 
 	if pass {
@@ -513,37 +515,83 @@ func (e *IfExpr) Run(ng *Engine) (pass bool) {
 
 func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 	if ng.lastErr != nil {
-		return true
+		return false
 	}
 
-	warpper := func(b bool, err error) bool {
-		if err != nil {
-			ng.lastErr = err
-		}
-		return b
-	}
+	// TODO
+	// add 'Lazy Evaluation' to ConditionalExpr contrast
+
+	var left, right interface{}
 
 	switch v := e.LHS.(type) {
 	case *Identifier:
-		left := ng.output.Data[v.Name] // left maybe nil
-
-		switch vv := e.RHS.(type) {
-		case *StringLiteral:
-			return warpper(contrast(left, e.Op.String(), vv.Value()))
-		case *NumberLiteral:
-			return warpper(contrast(left, e.Op.String(), vv.Value()))
-		case *BoolLiteral:
-			return warpper(contrast(left, e.Op.String(), vv.Value()))
-		case *NilLiteral:
-			return warpper(contrast(left, e.Op.String(), vv.Value()))
-		default:
-			ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(vv), e.RHS)
-		}
+		left = ng.output.Data[v.Name] // left maybe nil
+	case *ParenExpr:
+		left = v.Run(ng)
+	case *ConditionalExpr:
+		left = v.Run(ng)
+	case *StringLiteral:
+		left = v.Value()
+	case *NumberLiteral:
+		left = v.Value()
+	case *BoolLiteral:
+		left = v.Value()
+	case *NilLiteral:
+		left = v.Value()
 	default:
-		ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(v), e.LHS)
+		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.LHS)
+		return false
 	}
 
-	return false
+	switch v := e.RHS.(type) {
+	case *Identifier:
+		right = ng.output.Data[v.Name] // right maybe nil
+	case *ParenExpr:
+		right = v.Run(ng)
+	case *ConditionalExpr:
+		right = v.Run(ng)
+	case *StringLiteral:
+		right = v.Value()
+	case *NumberLiteral:
+		right = v.Value()
+	case *BoolLiteral:
+		right = v.Value()
+	case *NilLiteral:
+		right = v.Value()
+	default:
+		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.RHS)
+		return false
+	}
+
+	if ng.lastErr != nil {
+		return false
+	}
+
+	p, err := contrast(left, e.Op.String(), right)
+	if err != nil {
+		ng.lastErr = fmt.Errorf("failed to contrast, err: %w", err)
+		return false
+	}
+	return p
+}
+
+func (e *ParenExpr) Run(ng *Engine) (pass bool) {
+	if ng.lastErr != nil {
+		return false
+	}
+
+	switch v := e.Param.(type) {
+	case *ParenExpr:
+		pass = v.Run(ng)
+	case *ConditionalExpr:
+		pass = v.Run(ng)
+	case *BoolLiteral:
+		pass = v.Val
+	default:
+		ng.lastErr = fmt.Errorf("unsupported ParenExpr type %s, from: %s", reflect.TypeOf(v), e.Param)
+		return
+	}
+	return
 }
 
 func (e *ComputationExpr) Run(ng *Engine) {
@@ -565,10 +613,10 @@ func (e *AssignmentStmt) Run(ng *Engine) {
 		case *BoolLiteral:
 			ng.output.Data[v.Name] = vv.Value()
 		default:
-			ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(vv), e.RHS)
+			ng.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(vv), e.RHS)
 		}
 	default:
-		ng.lastErr = fmt.Errorf("unsupported type %s, from: %s", reflect.TypeOf(v), e.LHS)
+		ng.lastErr = fmt.Errorf("unsupported AssignmentStmt type %s, from: %s", reflect.TypeOf(v), e.LHS)
 	}
 }
 
@@ -646,7 +694,7 @@ func (e *AssignmentStmt) Check() error {
 	case *Identifier:
 		// nil
 	default:
-		return fmt.Errorf(`unsupported type %s, from: %s`,
+		return fmt.Errorf(`unsupported AssignmentStmt type %s, from: %s`,
 			reflect.TypeOf(e.LHS), e.LHS)
 	}
 
@@ -724,8 +772,9 @@ func contrast(left interface{}, op string, right interface{}) (b bool, err error
 	var (
 		float   []float64
 		integer []int64
-		typeErr = fmt.Errorf("mismatch of type, left:%s(%v), right:%s(%v)",
-			left, reflect.TypeOf(left), right, reflect.TypeOf(right))
+		booler  []bool
+		typeErr = fmt.Errorf(`invalid operation: %s %s %s (mismatched types untyped %s and untyped %s)`,
+			left, op, right, reflect.TypeOf(left), reflect.TypeOf(right))
 	)
 
 	// all value compared to nil is acceptable:
@@ -798,7 +847,19 @@ func contrast(left interface{}, op string, right interface{}) (b bool, err error
 			return
 		}
 
-	case string, bool, nil:
+	case bool:
+		switch y := right.(type) {
+		case bool:
+			booler = append(booler, x)
+			booler = append(booler, y)
+		case nil:
+			return
+		default:
+			err = typeErr
+			return
+		}
+
+	case string, nil:
 		return
 
 	default:
@@ -807,6 +868,16 @@ func contrast(left interface{}, op string, right interface{}) (b bool, err error
 	}
 
 	switch op {
+	case "&&":
+		if len(booler) == 2 {
+			b = booler[0] && booler[1]
+			return
+		}
+	case "||":
+		if len(booler) == 2 {
+			b = booler[0] || booler[1]
+			return
+		}
 	case "<=":
 		if len(float) == 2 {
 			b = float[0] <= float[1]
