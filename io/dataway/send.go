@@ -12,6 +12,8 @@ import (
 
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/tracer"
+
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 func (dc *endPoint) send(category string, data []byte, gz bool) error {
@@ -136,4 +138,13 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 	}
 
 	return nil
+}
+
+func (dw *DataWayCfg) Write(category string, pts []*influxdb.Point) error {
+	log.Debugf("metric write.....")
+	log.Debug(category, len(pts))
+
+	time.Sleep(10 * time.Second)
+	log.Debugf("metric write..... timeout")
+	return fmt.Errorf("timeout")
 }

@@ -9,11 +9,13 @@ import (
 	"sync"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	pb "google.golang.org/protobuf/proto"
 )
 
@@ -96,6 +98,7 @@ type IO struct {
 	dynamicCacheCnt int64
 	droppedTotal    int64
 	outputFileSize  int64
+	sender          *sender.Sender
 }
 
 type IoStat struct {
@@ -328,6 +331,12 @@ func (x *IO) init() error {
 }
 
 func (x *IO) StartIO(recoverable bool) {
+	x.sender = sender.NewSender(&sender.Sinker{
+		Store: map[string]sender.Writer{"metric": x.dw, "dataway": x.dw}},
+		&sender.Option{
+			Cache:              x.EnableCache,
+			FlushCacheInterval: x.FlushInterval,
+		})
 	g := datakit.G("io")
 	g.Go(func(ctx context.Context) error {
 		if err := x.init(); err != nil {
@@ -352,6 +361,7 @@ func (x *IO) StartIO(recoverable bool) {
 		for {
 			select {
 			case d := <-x.in:
+				log.Debug("sender x.in")
 				x.cacheData(d, true)
 
 			case e := <-x.inLastErr:
@@ -391,6 +401,7 @@ func (x *IO) StartIO(recoverable bool) {
 				}
 
 			case <-tick.C:
+				log.Debug("sender tick.C")
 				x.flushAll()
 				if x.EnableCache {
 					x.flushCache()
@@ -441,16 +452,16 @@ func (x *IO) flushAll() {
 
 func (x *IO) flush() {
 	for k, v := range x.cache {
-		if err := x.doFlush(v, k); err != nil {
+		if err := x.doFlushAsync(v, k); err != nil {
 			log.Errorf("post %d to %s failed", len(v), k)
 			if !x.EnableCache {
 				continue
 			}
 
-			if err := x.putCache(k, v); err != nil {
-				log.Warn("failed to put cache: %s", err)
-				continue
-			}
+			// if err := x.putCache(k, v); err != nil {
+			// 	log.Warn("failed to put cache: %s", err)
+			// 	continue
+			// }
 		}
 
 		if len(v) > 0 {
@@ -462,7 +473,7 @@ func (x *IO) flush() {
 
 	// flush dynamic cache: __not__ post to default dataway
 	for k, v := range x.dynamicCache {
-		if err := x.doFlush(v, k); err != nil {
+		if err := x.doFlushAsync(v, k); err != nil {
 			log.Errorf("post %d to %s failed", len(v), k)
 			if !x.EnableCache {
 				// clear data
@@ -470,12 +481,12 @@ func (x *IO) flush() {
 				continue
 			}
 
-			if err := x.putCache(k, v); err != nil {
-				log.Warn("failed to put cache: %s", err)
-				// clear data
-				x.dynamicCache[k] = nil
-				continue
-			}
+			// if err := x.putCache(k, v); err != nil {
+			// 	log.Warn("failed to put cache: %s", err)
+			// 	// clear data
+			// 	x.dynamicCache[k] = nil
+			// 	continue
+			// }
 		}
 
 		if len(v) > 0 {
@@ -559,6 +570,26 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 	}
 
 	return nil
+}
+
+func (x *IO) doFlushAsync(pts []*Point, category string) error {
+	log.Debug("sender: doFlushAsync")
+	points := []*influxdb.Point{}
+	for _, pt := range pts {
+		points = append(points, pt.Point)
+	}
+	if x.sender == nil {
+		return fmt.Errorf("io sender is not initialized")
+	}
+
+	// if x.EnableCache {
+	// 	senderOpt.FailCb = func() {
+	// 		if err := x.putCache(category, pts); err != nil {
+	// 			log.Warn("failed to put cache: %s", err)
+	// 		}
+	// 	}
+	// }
+	return x.sender.Write(category, points)
 }
 
 func (x *IO) fileOutput(body []byte) error {

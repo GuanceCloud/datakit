@@ -8,6 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 )
 
 var (
@@ -28,6 +29,12 @@ type IOOption func(io *IO)
 func SetMaxCacheCount(max int64) IOOption {
 	return func(io *IO) {
 		io.MaxCacheCount = max
+	}
+}
+
+func SetSender(sender *sender.Sender) IOOption {
+	return func(io *IO) {
+		io.sender = sender
 	}
 }
 
