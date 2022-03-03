@@ -54,7 +54,6 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:   fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow)),
 			ParentID:  fmt.Sprintf("%x", uint64(span.ParentSpanId)),
 			SpanID:    fmt.Sprintf("%x", uint64(span.SpanId)),
 			Service:   batch.Process.ServiceName,
@@ -67,6 +66,12 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			Start:     span.StartTime * int64(time.Microsecond),
 			Duration:  span.Duration * int64(time.Microsecond),
 			Version:   version,
+		}
+
+		if span.TraceIdHigh != 0 {
+			dkspan.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
+		} else {
+			dkspan.TraceID = fmt.Sprintf("%x", uint64(span.TraceIdLow))
 		}
 
 		dkspan.Status = itrace.STATUS_OK
