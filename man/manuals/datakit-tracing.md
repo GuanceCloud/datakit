@@ -17,24 +17,23 @@ Datakit Frontend 还负责配置 [Datakit Tracing Backend](#datakit-tracing-back
 
 通用配置如下：
 
-```config
+```toml
 ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
 ## that want to send to data center. Those keys set by client code will take precedence over
 ## keys in [tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
-# customer_tags = ["key1", "key2", ...]
+customer_tags = ["key1", "key2", ...]
 
 ## Keep rare tracing resources list switch.
 ## If some resources are rare enough(not presend in 1 hour), those resource will always send
 ## to data center and do not consider samplers and filters.
-# keep_rare_resource = false
+keep_rare_resource = false
 
 ## Ignore tracing resources map like service:[resources...].
 ## The service name is the full service name in current application.
 ## The resource list is regular expressions uses to block resource names.
-# [close_resource]
-  # service1 = ["resource1", "resource2", ...]
-  # service2 = ["resource1", "resource2", ...]
-  # ...
+[close_resource]
+service1 = ["resource1", "resource2", ...]
+service2 = ["resource1", "resource2", ...]
 
 ## Sampler config uses to set global sampling strategy.
 ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
@@ -42,9 +41,10 @@ Datakit Frontend 还负责配置 [Datakit Tracing Backend](#datakit-tracing-back
 ##    0: accept tracing data and calculate with sampling_rate
 ##    1: always send to data center and do not consider sampling_rate
 ## sampling_rate used to set global sampling rate
-# [sampler]
-  # priority = 0
-  # sampling_rate = 1.0
+[sampler]
+priority = 0
+sampling_rate = 1.0
+
 ```
 
 ## Datakit Tracing Backend

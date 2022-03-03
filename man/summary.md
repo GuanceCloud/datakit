@@ -101,6 +101,7 @@
     - [Datakit Tracing Struct](datakit-tracing-struct)
     - [Datakit Tracing](datakit-tracing)
     - [DDTrace](ddtrace)
+      - [Golang 示例](ddtrace-golang)
       - [Java 示例](ddtrace-java)
       - [Python 示例](ddtrace-python)
     - [SkyWalking](skywalking)
