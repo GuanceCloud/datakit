@@ -22,6 +22,7 @@ agent_linux
 agent.conf
 agent.pid
 b.sh
+build.sh
 cfg.json
 china-operator-ip
 cmd/installer/bin/
@@ -39,19 +40,14 @@ docker/datakit
 embed/*
 git/git.go
 gram_y.go
-gram_y.go
-install_local.sh
 install_local.sh
 install.ps1
-install.ps1
-install.sh
 install.sh
 internal/http/req.db
 iploc.bin
 liu_script.sh
 old/
 parser_y.go
-pipeline/parser/parser.y.go
 pipeline/parser/parser.y.go
 plugins/external/csv/__tmp
 plugins/external/csv/venv
