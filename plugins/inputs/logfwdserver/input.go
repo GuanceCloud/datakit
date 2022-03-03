@@ -24,7 +24,7 @@ const (
 
 	sampleCfg = `
 [inputs.logfwdserver]
-  address = "0.0.0.0:9531"
+  address = "0.0.0.0:9533"
 
   [inputs.logfwdserver.tags]
   # some_tag = "some_value"
