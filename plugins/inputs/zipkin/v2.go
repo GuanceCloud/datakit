@@ -125,12 +125,14 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 	return zma
 }
 
-func spanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
+func v2SpanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 	var dktrace itrace.DatakitTrace
 	for _, span := range zpktrace {
 		if span == nil {
 			continue
 		}
+
+		log.Debug(*span)
 
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low),

@@ -25,12 +25,12 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	case "application/x-thrift":
 		var zspans []*corev1.Span
 		if zspans, err = unmarshalZipkinThriftV1(body); err == nil {
-			dktrace = thriftSpansToDkTrace(zspans)
+			dktrace = v1ThriftSpansToDkTrace(zspans)
 		}
 	case "application/json":
 		var zspans []*ZipkinSpanV1
 		if err = json.NewDecoder(req.Body).Decode(&zspans); err == nil {
-			dktrace = jsonV1SpansToDkTrace(zspans)
+			dktrace = v1JsonSpansToDkTrace(zspans)
 		}
 	default:
 		err = fmt.Errorf("zipkin V1 unsupported Content-Type: %s", contentType)
@@ -75,13 +75,9 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 	)
 	switch contentType {
 	case "application/x-protobuf":
-		if zpkmodels, err = parseZipkinProtobuf3(buf); err == nil {
-			dktrace = spanModelsToDkTrace(zpkmodels)
-		}
+		zpkmodels, err = parseZipkinProtobuf3(buf)
 	case "application/json":
-		if err = json.NewDecoder(req.Body).Decode(&zpkmodels); err == nil {
-			dktrace = spanModelsToDkTrace(zpkmodels)
-		}
+		err = json.NewDecoder(req.Body).Decode(&zpkmodels)
 	default:
 		err = fmt.Errorf("zipkin V2 unsupported Content-Type: %s", contentType)
 	}
@@ -93,6 +89,7 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	dktrace = v2SpanModelsToDkTrace(zpkmodels)
 	if len(dktrace) == 0 {
 		log.Warn("empty datakit trace")
 	} else {
