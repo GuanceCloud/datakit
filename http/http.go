@@ -17,7 +17,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -46,8 +45,6 @@ var (
 	extraTags = map[string]string{}
 	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
-
-	reqLimiter *limiter.Limiter
 
 	ginRotate = 32 // MB
 
@@ -249,7 +246,7 @@ func setupRouter() *gin.Engine {
 
 	applyHTTPRoute(router)
 
-	router.GET("/stats", apiGetDatakitStats)
+	router.GET("/stats", limitHandler(reqLimiter), apiGetDatakitStats) // stats not limited
 	router.GET("/monitor", apiGetDatakitMonitor)
 	router.GET("/man", apiManualTOC)
 	router.GET("/man/:name", apiManual)
@@ -258,8 +255,8 @@ func setupRouter() *gin.Engine {
 	router.GET("/v1/workspace", apiWorkspace)
 	router.GET("/v1/ping", limitHandler(reqLimiter), apiPing)
 	router.POST("/v1/lasterror", apiGetDatakitLastError)
-	router.POST("/v1/write/:category", wrap(apiWrite, &apiWriteImpl{}))
-	router.POST("/v1/query/raw", apiQueryRaw)
+	router.POST("/v1/write/:category", limitHandler(reqLimiter), wrap(apiWrite, &apiWriteImpl{}))
+	router.POST("/v1/query/raw", limitHandler(reqLimiter), apiQueryRaw)
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
@@ -319,6 +316,12 @@ func HTTPStart() {
 		Addr:    apiConfig.Listen,
 		Handler: setupRouter(),
 	}
+
+	g.Go(func(ctx context.Context) error {
+		l.Info("start HTTP metric goroutine")
+		metrics()
+		return nil
+	})
 
 	g.Go(func(ctx context.Context) error {
 		tryStartServer(srv, true, semReload, semReloadCompleted)
