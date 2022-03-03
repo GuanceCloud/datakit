@@ -37,7 +37,7 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	if err != nil {
-		log.Errorf("convert zipkin trace to datakit trace failed: %s", err.Error())
+		log.Errorf("convert zipkin trace [%s] to datakit trace failed: %s", contentType, err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -77,13 +77,13 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 	case "application/x-protobuf":
 		zpkmodels, err = parseZipkinProtobuf3(buf)
 	case "application/json":
-		err = json.NewDecoder(req.Body).Decode(&zpkmodels)
+		err = json.Unmarshal(buf, &zpkmodels)
 	default:
 		err = fmt.Errorf("zipkin V2 unsupported Content-Type: %s", contentType)
 	}
 
 	if err != nil {
-		log.Errorf("convert zipkin trace to datakit trace failed: %s", err.Error())
+		log.Errorf("convert zipkin trace [%s] to datakit trace failed: %s", contentType, err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
