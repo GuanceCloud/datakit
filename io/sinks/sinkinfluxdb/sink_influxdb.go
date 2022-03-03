@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	sinkName = "influxdb"
+	creatorID = "influxdb"
 
 	clientTypeHTTP = 1
 	clientTypeUDP  = 2
@@ -24,6 +24,8 @@ var (
 )
 
 type SinkInfluxDB struct {
+	ID string // required. sink config identity, unique.
+
 	addr      string // required. eg. http://172.16.239.130:8086
 	precision string // required.
 	database  string // required.
@@ -53,6 +55,7 @@ func (s *SinkInfluxDB) Write(pts []*io.Point) error {
 }
 
 func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
+	s.ID = mConf["id"].(string)
 	s.addr = mConf["addr"].(string)
 	s.precision = mConf["precision"].(string)
 	s.database = mConf["database"].(string)
@@ -98,6 +101,7 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 	}
 
 	initSucceeded = true
+	io.AddImpl(s)
 	return nil
 }
 
@@ -154,12 +158,12 @@ func (s *SinkInfluxDB) Metrics() map[string]interface{} {
 	return nil
 }
 
-func (s *SinkInfluxDB) GetName() string {
-	return sinkName
+func (s *SinkInfluxDB) GetID() string {
+	return s.ID
 }
 
 func init() {
-	io.Add(sinkName, func() io.ISink {
+	io.AddCreator(creatorID, func() io.ISink {
 		return &SinkInfluxDB{}
 	})
 }
