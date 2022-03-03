@@ -37,6 +37,8 @@ var (
 		"datakit-pl-how-to":        "man/manuals/datakit-pl-how-to.md",
 		"datakit-service-how-to":   "man/manuals/datakit-service-how-to.md",
 		"datakit-tools-how-to":     "man/manuals/datakit-tools-how-to.md",
+		"datakit-tracing-struct":   "man/manuals/datakit-tracing-struct.md",
+		"datakit-tracing":          "man/manuals/datakit-tracing.md",
 		"datakit-update":           "man/manuals/datakit-update.md",
 		"datatypes":                "man/manuals/datatypes.md",
 		"dataway":                  "man/manuals/dataway.md",
