@@ -12,6 +12,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+// nolint:unparam
+// There may be some error returned here.
 func runDebugFlags() error {
 	if *FlagDebugWorkDir != "" {
 		datakit.SetWorkDir(*FlagDebugWorkDir)

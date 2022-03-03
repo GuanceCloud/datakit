@@ -246,34 +246,24 @@ func setupRouter() *gin.Engine {
 
 	applyHTTPRoute(router)
 
-	router.GET("/stats", limitHandler(reqLimiter), apiGetDatakitStats) // stats not limited
+	router.GET("/stats", ginWraper(reqLimiter), apiGetDatakitStats)
 	router.GET("/monitor", apiGetDatakitMonitor)
 	router.GET("/man", apiManualTOC)
 	router.GET("/man/:name", apiManual)
 	router.GET("/restart", apiRestart)
 
 	router.GET("/v1/workspace", apiWorkspace)
-	router.GET("/v1/ping", limitHandler(reqLimiter), apiPing)
+	router.GET("/v1/ping", ginWraper(reqLimiter), apiPing)
 	router.POST("/v1/lasterror", apiGetDatakitLastError)
-	router.POST("/v1/write/:category", limitHandler(reqLimiter), wrap(apiWrite, &apiWriteImpl{}))
-	router.POST("/v1/query/raw", limitHandler(reqLimiter), apiQueryRaw)
+
+	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
+
+	router.POST("/v1/query/raw", ginWraper(reqLimiter), apiQueryRaw)
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
-	router.POST("/v1/pipeline/debug", apiHTTPWrap(apiDebugPipelineHandler))
+	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiDebugPipelineHandler))
 	return router
-}
-
-func apiHTTPWrap(next func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error), whatever ...interface{}) func(*gin.Context) {
-	return func(ctx *gin.Context) {
-		data, err := next(ctx.Writer, ctx.Request, whatever...)
-		if err != nil {
-			uhttp.HttpErr(ctx, err)
-			return
-		}
-
-		OK.HttpBody(ctx, data)
-	}
 }
 
 // TODO: we should wrap this handler.
@@ -292,21 +282,6 @@ func loopbackWhiteList(c *gin.Context) {
 	}
 
 	c.Next()
-}
-
-type apiHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
-
-// not used.
-func wrap(next apiHandler, any ...interface{}) func(*gin.Context) {
-	return func(c *gin.Context) {
-		if res, err := next(c.Writer, c.Request, any...); err != nil {
-			uhttp.HttpErr(c, err)
-			return
-		} else {
-			OK.HttpBody(c, res)
-			return
-		}
-	}
 }
 
 func HTTPStart() {

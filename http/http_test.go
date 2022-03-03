@@ -233,6 +233,7 @@ func TestCORS(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer resp.Body.Close()
 
 	// See: https://stackoverflow.com/a/12179364/342348
 	got := resp.Header.Get("Access-Control-Allow-Origin")

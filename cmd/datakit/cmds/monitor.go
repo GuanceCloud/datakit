@@ -368,7 +368,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 					return "-"
 				}
 				return fmt.Sprintf("%s(%s)", v.LastErr, humanize.RelTime(v.LastErrTS, now, "ago", ""))
-			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight)
+			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter)
 
 		if v.LastErr != "" {
 			lastErrCell.SetClickedFunc(func() bool {
