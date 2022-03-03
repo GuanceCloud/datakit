@@ -8,6 +8,7 @@ import (
 //----------------------------------------------------------------------
 
 type ISink interface {
+	GetName() string
 	LoadConfig(mConf map[string]interface{}) error
 	Write(pts []*Point) error
 	Metrics() map[string]interface{}
@@ -69,6 +70,7 @@ func Write(category string, pts []*Point) error {
 func InitSink(sincfg []map[string]interface{}) error {
 	onceInit.Do(func() {
 		sinkConfig = sincfg
+		log.Debugf("SinkImpls = %v", SinkImpls)
 	})
 	return nil
 }

@@ -1,4 +1,4 @@
-package io
+package sinkinfluxdb
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
 const (
@@ -18,8 +19,8 @@ const (
 )
 
 var (
-	_             ISink = new(SinkInfluxDB)
-	initSucceeded       = false
+	_             io.ISink = new(SinkInfluxDB)
+	initSucceeded          = false
 )
 
 type SinkInfluxDB struct {
@@ -43,7 +44,7 @@ type SinkInfluxDB struct {
 	cliType int
 }
 
-func (s *SinkInfluxDB) Write(pts []*Point) error {
+func (s *SinkInfluxDB) Write(pts []*io.Point) error {
 	if !initSucceeded {
 		return fmt.Errorf("not_init")
 	}
@@ -100,7 +101,7 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 	return nil
 }
 
-func (s *SinkInfluxDB) writeInfluxDB(pts []*Point) error {
+func (s *SinkInfluxDB) writeInfluxDB(pts []*io.Point) error {
 	var c client.Client
 	var err error
 
@@ -153,8 +154,12 @@ func (s *SinkInfluxDB) Metrics() map[string]interface{} {
 	return nil
 }
 
+func (s *SinkInfluxDB) GetName() string {
+	return sinkName
+}
+
 func init() {
-	// sinks.Add(sinkName, func() sinks.Sink {
-	// 	return &Sink{}
-	// })
+	io.Add(sinkName, func() io.ISink {
+		return &SinkInfluxDB{}
+	})
 }

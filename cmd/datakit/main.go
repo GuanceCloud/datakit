@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sinkall"
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
 	plworker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
