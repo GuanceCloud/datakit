@@ -145,8 +145,8 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:   fmt.Sprintf("%d", uint64(span.TraceID)),
-			SpanID:    fmt.Sprintf("%d", uint64(span.ID)),
+			TraceID:   fmt.Sprintf("%x", uint64(span.TraceID)),
+			SpanID:    fmt.Sprintf("%x", uint64(span.ID)),
 			ParentID:  "0",
 			Resource:  span.Name,
 			Operation: span.Name,
@@ -155,7 +155,7 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 
 		if span.ParentID != nil {
-			dkspan.ParentID = fmt.Sprintf("%d", uint64(*span.ParentID))
+			dkspan.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
 		}
 
 		if span.Timestamp != nil {
