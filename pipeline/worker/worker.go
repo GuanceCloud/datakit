@@ -10,7 +10,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -29,10 +28,6 @@ var (
 	l = logger.DefaultSLogger("pipeline-worker")
 
 	wkrManager *workerManager
-
-	workerFeedFuncDebug = func(taskName string, points []*io.Point, id int) error {
-		return nil
-	}
 
 	checkUpdateDebug = time.Duration(0)
 
@@ -67,15 +62,8 @@ func (wkr *plWorker) Run(ctx context.Context) error {
 		select {
 		case task := <-taskCh:
 			taskNumIncrease()
-			if task == nil || len(task.Data) == 0 {
-				continue
-			}
-			points := wkr.run(task)
-
-			if wkrManager.debug {
-				_ = workerFeedFuncDebug(task.TaskName, points, wkr.wkrID)
-			} else {
-				_ = wkr.feed(task, points)
+			if err := wkr.run(task); err != nil {
+				l.Error(err)
 			}
 		case <-ticker.C:
 			needDelete := []string{}
@@ -97,7 +85,7 @@ func (wkr *plWorker) Run(ctx context.Context) error {
 	}
 }
 
-func (wkr *plWorker) run(task *Task) []*io.Point {
+func (wkr *plWorker) run(task *Task) error {
 	defer func() {
 		if err := recover(); err != nil {
 			l.Errorf("panic err = %v  lasterr=%v", err, wkr.lastErr)
@@ -105,35 +93,17 @@ func (wkr *plWorker) run(task *Task) []*io.Point {
 			wkr.lastErrTS = time.Now()
 		}
 	}()
-	if task == nil || len(task.Data) == 0 {
+
+	if task == nil {
 		return nil
 	}
 
 	ng := wkr.getNg(task.GetScriptName())
-	result := RunPlTask(task, ng)
 
-	points := []*io.Point{}
-	for _, result := range result {
-		if result.output.Dropped {
-			continue
-		}
+	result, _ := RunPlTask(task, ng)
 
-		if pt, err := io.NewPoint(result.measurement, result.output.Tags, result.output.Data,
-			&io.PointOption{
-				Time:              result.ts,
-				Category:          datakit.Logging,
-				DisableGlobalTags: false,
-				Strict:            true,
-				MaxFieldValueLen:  task.MaxMessageLen,
-			}); err != nil {
-			wkr.lastErr = err
-			wkr.lastErrTS = time.Now()
-		} else {
-			points = append(points, pt)
-		}
-	}
-
-	return points
+	// 此处可能导致 panic，需要 recover
+	return task.Data.Callback(task, result)
 }
 
 func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {
@@ -155,33 +125,9 @@ func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {
 	return scriptInf.ng
 }
 
-func (wkr *plWorker) feed(task *Task, points []*io.Point) error {
-	if len(points) == 0 {
-		return nil
-	}
-	category := datakit.Logging
-	version := ""
-
-	if task.Opt != nil {
-		if task.Opt.Category != "" {
-			category = task.Opt.Category
-		}
-		if task.Opt.Version != "" {
-			version = task.Opt.Version
-		}
-	}
-
-	return io.Feed(task.TaskName, category, points,
-		&io.Option{
-			HighFreq: disableHighFreqIODdata,
-			Version:  version,
-		})
-}
-
 type workerManager struct {
 	sync.Mutex
 	workers map[int]*plWorker
-	debug   bool
 }
 
 // 如果超出 worker 数量上限将返回 error.
@@ -199,6 +145,7 @@ func (manager *workerManager) appendPPWorker() error {
 	}
 
 	g.Go(wkr.Run)
+
 	manager.workers[wkr.wkrID] = wkr
 	return nil
 }
@@ -209,10 +156,6 @@ func (manager *workerManager) stopManager() {
 	default:
 		close(stopCh)
 	}
-}
-
-func (manager *workerManager) setDebug(yn bool) {
-	manager.debug = yn
 }
 
 var MaxWorkerCount = func() int {

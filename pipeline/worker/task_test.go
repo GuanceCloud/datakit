@@ -46,14 +46,13 @@ func TestResult_checkFieldValLen(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Result{
-				output:      tt.fields.output,
-				measurement: tt.fields.measurement,
-				ts:          tt.fields.ts,
-				err:         tt.fields.err,
+				Output: tt.fields.output,
+				TS:     tt.fields.ts,
+				Err:    tt.fields.err,
 			}
-			r.checkFieldValLen(tt.args.messageLen)
+			r.CheckFieldValLen(tt.args.messageLen)
 
-			for key := range r.output.Data {
+			for key := range r.Output.Data {
 				if i, err := r.GetField(key); err == nil {
 					if mass, isString := i.(string); isString {
 						if len(mass) > tt.args.messageLen {

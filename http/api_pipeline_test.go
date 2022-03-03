@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -163,7 +164,7 @@ func TestApiDebugPipelineHandler(t *testing.T) {
 							"server":       "localhost",
 							"status":       "error",
 						},
-						Time:    1636534793,
+						Time:    time.Date(2021, 11, 10, 16, 59, 53, 0, time.Local).Unix(),
 						TimeNS:  0,
 						Dropped: false,
 					},

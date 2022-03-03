@@ -128,7 +128,11 @@ func (t *Single) forwardMessage() {
 		}
 
 		lines = b.split()
-		var pending []worker.TaskData
+		pending := &worker.TaskDataTemplate{
+			ContentDataType: worker.ContentString,
+			ContentStr:      []string{},
+			Tags:            t.tags,
+		}
 		for _, line := range lines {
 			if line == "" {
 				continue
@@ -152,9 +156,9 @@ func (t *Single) forwardMessage() {
 				t.sendToForwardCallback(text)
 				continue
 			}
-			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
+			pending.ContentStr = append(pending.ContentStr, text)
 		}
-		if len(pending) > 0 {
+		if len(pending.ContentStr) > 0 {
 			t.sendToPipeline(pending)
 		}
 	}
@@ -165,7 +169,14 @@ func (t *Single) send(text string) {
 		t.sendToForwardCallback(text)
 		return
 	}
-	t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags}})
+
+	t.sendToPipeline(
+		&worker.TaskDataTemplate{
+			ContentDataType: worker.ContentString,
+			ContentStr:      []string{text},
+			Tags:            t.tags,
+		},
+	)
 }
 
 func (t *Single) sendToForwardCallback(text string) {
@@ -175,7 +186,7 @@ func (t *Single) sendToForwardCallback(text string) {
 	}
 }
 
-func (t *Single) sendToPipeline(pending []worker.TaskData) {
+func (t *Single) sendToPipeline(pending *worker.TaskDataTemplate) {
 	task := &worker.Task{
 		TaskName:   "logging/" + t.opt.Pipeline,
 		ScriptName: t.opt.Pipeline,

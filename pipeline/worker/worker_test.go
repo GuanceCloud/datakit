@@ -23,8 +23,47 @@ type tagfield struct {
 }
 
 type taskData struct {
-	tags map[string]string
-	log  string
+	tags        map[string]string
+	fields      map[string]interface{}
+	content     []string
+	contentByte [][]byte
+	callback    func(r []*io.Point) error
+	encode      string
+	dataType    string
+}
+
+func (d *taskData) GetContentStr() []string {
+	return d.content
+}
+
+func (d *taskData) GetContentByte() [][]byte {
+	return d.contentByte
+}
+
+func (d *taskData) ContentType() string {
+	return d.dataType
+}
+
+func (d *taskData) ContentEncode() string {
+	return d.encode
+}
+
+func (d *taskData) Callback(task *Task, result []*Result) error {
+	pts := []*io.Point{}
+	result = ResultUtilsLoggingProcessor(task, result, d.tags, d.fields)
+	ts := task.TS
+	if ts.IsZero() {
+		ts = time.Now()
+	}
+	result = ResultUtilsAutoFillTime(result, ts)
+	for _, r := range result {
+		pt, err := r.MakePointIgnoreDropped(task.Source, 0, "")
+		l.Error(err)
+		if pt != nil {
+			pts = append(pts, pt)
+		}
+	}
+	return d.callback(pts)
 }
 
 func TestPlScriptStore(t *testing.T) {
@@ -143,7 +182,7 @@ func TestRunAsTask(t *testing.T) {
 		default:
 		}
 
-		r := RunAsPlTask(data.category, data.measurement, data.service, data.content, ng)
+		r := RunAsPlTask(data.category, data.measurement, data.service, ContentString, data.content, nil, "", ng)
 		if len(result[index]) != len(r) {
 			t.Error("length not equal")
 		}
@@ -183,7 +222,7 @@ func TestNewEmptyNg(t *testing.T) {
 
 func TestAddStatus(t *testing.T) {
 	v := &Result{
-		output: &parser.Output{
+		Output: &parser.Output{
 			Tags: map[string]string{},
 			Data: map[string]interface{}{
 				"status": "WARN",
@@ -191,10 +230,10 @@ func TestAddStatus(t *testing.T) {
 		},
 	}
 	PPAddSatus(v, false)
-	assert.Equal(t, "warning", v.output.Data["status"])
+	assert.Equal(t, "warning", v.Output.Data["status"])
 
 	v = &Result{
-		output: &parser.Output{
+		Output: &parser.Output{
 			Tags: map[string]string{},
 			Data: map[string]interface{}{
 				"status": "ERROR",
@@ -202,7 +241,7 @@ func TestAddStatus(t *testing.T) {
 		},
 	}
 	PPAddSatus(v, true)
-	assert.Equal(t, v.output.Data, map[string]interface{}{"status": "ERROR"})
+	assert.Equal(t, v.Output.Data, map[string]interface{}{"status": "ERROR"})
 }
 
 func TestIgnoreStatus(t *testing.T) {
@@ -211,37 +250,21 @@ func TestIgnoreStatus(t *testing.T) {
 	}
 }
 
-func (t *taskData) GetContent() string {
-	return t.log
-}
-
-func (t *taskData) Handler(r *Result) error {
-	for k, v := range t.tags {
-		if _, err := r.GetTag(k); err != nil {
-			r.SetTag(k, v)
-		}
-	}
-	return nil
-}
-
 func TestWorker(t *testing.T) {
 	ts := time.Now()
 	ptCh := make(chan []*io.Point)
-	idCh := make(chan int)
 	// set feed func for test
-	getResult := func() ([]*io.Point, int) {
-		return <-ptCh, <-idCh
-	}
-	workerFeedFuncDebug = func(taskName string, points []*io.Point, id int) error {
-		ptCh <- points
-		idCh <- id
+	feedResult := func(pts []*io.Point) error {
+		ptCh <- pts
 		return nil
+	}
+	getResult := func() []*io.Point {
+		return <-ptCh
 	}
 
 	checkUpdateDebug = time.Second
 	// init manager
 	InitManager(1)
-	wkrManager.setDebug(true)
 	_ = os.WriteFile("/tmp/nginx-time.p", []byte(`
 	json(_, time)
 	set_tag(bb, "aa0")
@@ -249,74 +272,75 @@ func TestWorker(t *testing.T) {
 	`), os.FileMode(0o755))
 	loadDotPScript2StoreWithNS(DefaultScriptNS, []string{"/tmp/nginx-time.p"}, "")
 	_ = os.Remove("/tmp/nginx-time.p")
+
+	// 测试 panic 触发
+	FeedPipelineTask(&Task{})
+
 	cases := []*Task{
 		{
 			TaskName: "nginx-test-log1",
 			Source:   "nginx123",
 
 			Opt: &TaskOpt{IgnoreStatus: []string{"warn"}},
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"time":"02/Dec/2021:11:55:34 +0800"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
 				},
+				content:  []string{`{"time":"02/Dec/2021:11:55:34 +0800"}`},
+				callback: feedResult,
 			},
+
 			TS: ts,
 		},
 		{
 			ScriptName: "nginx-time.p",
 			TaskName:   "nginx-test-log2",
 			Source:     "nginx-time",
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-						"bb": "aa0",
-					},
-					log: `{"time":"02/Dec/2021:11:55:34 +0800"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
+					"bb": "aa0",
 				},
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-						"bb": "aa0",
-					},
-					log: `{"time":"02/Dec/2021:11:55:35 +0800"}`,
+				content: []string{
+					`{"time":"02/Dec/2021:11:55:34 +0800"}`,
+					`{"time":"02/Dec/2021:11:55:35 +0800"}`,
 				},
+				callback: feedResult,
 			},
 			TS: ts,
 		},
 		{ // index == 2， 变更脚本
 			TaskName: "nginx-test-log3",
 			Source:   "nginx-time",
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"time":"02/Dec/2021:11:55:34 +0800", "status":"DEBUG"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
 				},
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"time":"02/Dec/2021:11:55:35 +0800", "status":"DEBUG"}`,
+				content: []string{
+					`{"time":"02/Dec/2021:11:55:34 +0800", "status":"DEBUG"}`,
+					`{"time":"02/Dec/2021:11:55:35 +0800", "status":"DEBUG"}`,
 				},
+				callback: feedResult,
 			},
 			TS: ts,
 		},
 		{
 			TaskName: "nginx-test-log4",
 			Source:   "nginx-time",
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"time":"02/Dec/2021:11:55:11 +0800", "status":"DEBUG"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
 				},
+				content: []string{
+					`{"time":"02/Dec/2021:11:55:11 +0800", "status":"DEBUG"}`,
+				},
+				callback: feedResult,
 			},
+
 			Opt: &TaskOpt{
 				IgnoreStatus: []string{"debug"},
 			},
@@ -327,23 +351,21 @@ func TestWorker(t *testing.T) {
 		{
 			TaskName: "time sub",
 			Source:   "xxxxxx",
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"timex":"02/Dec/2021:11:55:34 +0800"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
 				},
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"timex":"02/Dec/2021:11:55:35 +0800"}`,
+				content: []string{
+					`{"timex":"02/Dec/2021:11:55:34 +0800"}`,
+					`{"timex":"02/Dec/2021:11:55:35 +0800"}`,
 				},
+				callback: feedResult,
 			},
 			TS: ts,
 		},
 	}
+
 	expected := []([]tagfield){
 		[]tagfield{
 			{
@@ -437,9 +459,9 @@ func TestWorker(t *testing.T) {
 			time.Sleep(time.Second + time.Millisecond*10)
 		}
 		_ = FeedPipelineTask(v)
-		pts, id := getResult()
+		pts := getResult()
 		expectedItem := expected[k]
-		t.Logf("case %d, wkr id %d", k, id)
+		t.Logf("case %d", k)
 		t.Log(expectedItem)
 		t.Log(pts)
 		if len(pts) != len(expectedItem) {
@@ -454,6 +476,7 @@ func TestWorker(t *testing.T) {
 				fmt.Sprintf("index: %d %d", k, k2))
 		}
 	}
+
 	datakit.Exit.Close()
 	err := FeedPipelineTask(&Task{})
 	time.Sleep(time.Millisecond * 100)
@@ -463,14 +486,8 @@ func TestWorker(t *testing.T) {
 }
 
 func BenchmarkPpWorker_Run(b *testing.B) {
-	workerFeedFuncDebug = func(taskName string, points []*io.Point, id int) error {
-		b.Log(points)
-		return nil
-	}
-
 	// init manager
 	InitManager(-1)
-	wkrManager.setDebug(true)
 
 	ts := time.Now()
 
@@ -479,14 +496,16 @@ func BenchmarkPpWorker_Run(b *testing.B) {
 			TaskName: "nginx-test-log",
 			Source:   "nginx",
 			Opt:      &TaskOpt{IgnoreStatus: []string{"warn"}},
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `127.0.0.1 - - [16/Dec/2021:17:25:29 +0800] "GET / HTTP/1.1" 404 162 "-" "Wget/1.20.3 (linux-gnu)"`,
+			Data: &taskData{
+				tags: map[string]string{
+					"tk": "aaa",
 				},
+				content: []string{
+					`127.0.0.1 - - [16/Dec/2021:17:25:29 +0800] "GET / HTTP/1.1" 404 162 "-" "Wget/1.20.3 (linux-gnu)"`,
+				},
+				callback: func(r []*io.Point) error { return nil },
 			},
+
 			TS: time.Now(),
 		})
 		if err != nil {

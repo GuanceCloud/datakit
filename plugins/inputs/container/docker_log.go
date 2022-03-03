@@ -302,11 +302,10 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		case <-timeout.C:
 			if line := mult.Flush(); len(line) != 0 {
 				task := newTask()
-				task.Data = []worker.TaskData{
-					&taskData{
-						tags: logconf.tags,
-						log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
-					},
+				task.Data = &worker.TaskDataTemplate{
+					Tags:            logconf.tags,
+					ContentDataType: worker.ContentString,
+					ContentStr:      []string{string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes))},
 				}
 				task.TS = time.Now()
 				if err := worker.FeedPipelineTaskBlock(task); err != nil {
@@ -331,7 +330,11 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			continue
 		}
 
-		workerData := []worker.TaskData{}
+		workerData := &worker.TaskDataTemplate{
+			ContentDataType: worker.ContentString,
+			ContentStr:      []string{},
+			Tags:            logconf.tags,
+		}
 
 		for _, line := range lines {
 			if len(line) == 0 {
@@ -343,15 +346,12 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 				continue
 			}
 
-			workerData = append(workerData,
-				&taskData{
-					tags: logconf.tags,
-					log:  string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
-				},
+			workerData.ContentStr = append(workerData.ContentStr,
+				string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
 			)
 		}
 
-		if len(workerData) == 0 {
+		if len(workerData.ContentStr) == 0 {
 			continue
 		}
 
@@ -390,24 +390,6 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "日志源数据"},
 		},
 	}
-}
-
-type taskData struct {
-	tags map[string]string
-	log  string
-}
-
-func (t *taskData) GetContent() string {
-	return t.log
-}
-
-func (t *taskData) Handler(r *worker.Result) error {
-	for k, v := range t.tags {
-		if _, err := r.GetTag(k); err != nil {
-			r.SetTag(k, v)
-		}
-	}
-	return nil
 }
 
 func getContainerLogSource(image string) string {

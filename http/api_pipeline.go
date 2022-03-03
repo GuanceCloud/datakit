@@ -101,7 +101,8 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 	// STEP 3: pipeline processing
 	start := time.Now()
-	res := worker.RunAsPlTask(reqDebug.Category, reqDebug.Source, reqDebug.Service, dataLines, ng)
+	res := worker.RunAsPlTask(reqDebug.Category, reqDebug.Source, reqDebug.Service,
+		worker.ContentString, dataLines, nil, "", ng)
 
 	// STEP 4 (optional): benchmark
 	var benchmarkResult testing.BenchmarkResult
@@ -109,7 +110,8 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		benchmarkResult = testing.Benchmark(func(b *testing.B) {
 			b.Helper()
 			for n := 0; n < b.N; n++ {
-				worker.RunAsPlTask(reqDebug.Category, reqDebug.Source, reqDebug.Service, []string{dataLines[0]}, ng)
+				worker.RunAsPlTask(reqDebug.Category, reqDebug.Source, reqDebug.Service,
+					worker.ContentString, []string{dataLines[0]}, nil, "", ng)
 			}
 		})
 	}
