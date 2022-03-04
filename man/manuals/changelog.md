@@ -2,6 +2,17 @@
 
 # DataKit 版本历史
 
+## 1.2.8(2022/03/04)
+
+本次发布属于 hotfix 修复，内容如下：
+
+- DaemonSet 模式部署时， datakit.yaml 添加污点容忍度配置(#635)
+- 修复 Remote Pipeline 拉取更新时的 bug(#630)
+- 修复 DataKit IO 模块卡死导致的内存泄露(#646)
+- 在 Pipeline 中允许修改 `service` 字段(#646)
+
+---
+
 ## 1.2.7(2022/02/22)
 
 本次发布属于迭代发布，内容如下：
@@ -44,6 +55,8 @@
 ### Breaking Changes
 
 - 老版本的 DataKit 如果开启了 RUM 功能，升级上来后，需[重新安装 IP 库](datakit-tools-how-to#ab5cd5ad)，老版本的 IP 库将无法使用。
+
+---
 
 ## 1.2.6(2022/01/20)
 
