@@ -70,14 +70,9 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 	}()
 
 	if logconf != nil {
-		l.Debugf("use container logconfig %#v, container_name:%s", logconf, tags["container_name"])
-		if logconf.Disable {
-			l.Debugf("disable container log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
-			return nil
-		}
-
 		logconf.tags = tags
 		logconf.containerID = container.ID
+		l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
 	} else {
 		logconf = &containerLogConfig{
 			Source:      getContainerLogSource(tags["image_short_name"]),
@@ -272,7 +267,6 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 
 	logconf.tags["service"] = logconf.Service
 	logconf.tags["stream"] = stream
-	logconf.tags["service"] = logconf.Service
 
 	containerName := logconf.tags["container_name"]
 
@@ -311,7 +305,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 				}
 				task.TS = time.Now()
 				if err := worker.FeedPipelineTaskBlock(task); err != nil {
-					l.Errorf("failed to feed log, containerName: %s, err: %w", containerName, err)
+					l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
 				}
 			}
 		default:
@@ -339,15 +333,15 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 				continue
 			}
 
-			text := mult.ProcessLine(line)
-			if len(text) == 0 {
+			text := mult.ProcessLineString(string(line))
+			if text == "" {
 				continue
 			}
 
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
+					log:  string(removeAnsiEscapeCodes([]byte(text), d.cfg.removeLoggingAnsiCodes)),
 				},
 			)
 		}
@@ -361,7 +355,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		task.TS = time.Now()
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("failed to feed log, containerName: %s, err: %w", containerName, err)
+			l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
 		}
 	}
 }

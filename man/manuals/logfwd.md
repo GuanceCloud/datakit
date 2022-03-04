@@ -50,7 +50,7 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
                 "character_encoding": "",
                 "multiline_match": "<your-match>",
                 "remove_ansi_escape_codes": false,
-		"tags": {}
+                "tags": {}
             },
             {
                 "logfiles": ["<your-logfile-path-2>"],
@@ -63,7 +63,8 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 
 配置参数说明：
 
-- `datakit_addr` 是 DataKit logfwdserver 地址
+- `datakit_addr` 是 DataKit logfwdserver 地址，通常使用环境变量 `LOGFWD_DATAKIT_HOST` 和 `LOGFWD_DATAKIT_PORT` 进行配置
+
 - `loggings` 为主要配置，是一个数组，子项也基本和 [logging](logging) 采集器相同。
     - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
@@ -75,8 +76,81 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
     - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
     - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
+#### 安装和运行
 
-logfwd 推荐在 Kubernetes Pod 中使用，下面是运行 logfwd 的 Pod demo 配置文件：
+logfwd 在 Kubernetes 的部署配置分为两部分，一是 Kubernetes Pod 创建 `spec.containers` 的配置，包括注入环境变量和挂载目录。配置如下：
+
+```
+spec:
+  containers:
+  - name: logfwd
+    env:
+    - name: LOGFWD_DATAKIT_HOST
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: status.hostIP
+    - name: LOGFWD_DATAKIT_PORT
+      value: "9533"
+    - name: LOGFWD_ANNOTATION_DATAKIT_LOGS
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.annotations['datakit/logs']
+    - name: LOGFWD_POD_NAME
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.name
+    - name: LOGFWD_POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.namespace
+    image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
+    imagePullPolicy: Always
+    volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+    - mountPath: /opt/logfwd/config
+      name: logfwd-config
+      subPath: config
+      workingDir: /opt/logfwd
+
+```
+
+第二份配置为 logfwd 实际运行的配置，即前文提到的 JSON 格式的主配置，在 Kubernetes 中以 ConfigMap 形式存在。
+
+根据 logfwd 配置示例，按照实际情况修改 `config`。`ConfigMap` 格式如下：
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logfwd-conf
+data:
+  config: |
+    [
+        {
+            "loggings": [
+                {
+                    "logfiles": ["/var/log/1.log"],
+                    "source": "log_source",
+                    "tags": {}
+                },
+                {
+                    "logfiles": ["/var/log/2.log"],
+                    "source": "log_source2"
+                }
+            ]
+        }
+    ]
+```
+
+
+将两份配置集成到现有的 Kubernetes yaml 中，并使用 `volumes` 和 `volumeMounts` 将目录在 containers 内部共享，即可实现 logfwd 容器采集其他容器的日志文件。
+
+完整示例如下：
 
 ```yaml
 apiVersion: v1
@@ -157,7 +231,7 @@ data:
                     "logfiles": ["/var/log/1.log"],
                     "source": "log_source",
 		    "tags": {
-		        "flag": "log_source1",
+		        "flag": "log_source1"
 		    }
                 },
                 {
