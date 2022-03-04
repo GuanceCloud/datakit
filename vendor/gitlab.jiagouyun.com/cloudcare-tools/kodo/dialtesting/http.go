@@ -410,7 +410,7 @@ func (t *HTTPTask) CheckResult() (reasons []string, succFlag bool) {
 		if t.reqCost > chk.respTime && chk.respTime > 0 {
 			reasons = append(reasons,
 				fmt.Sprintf("HTTP response time(%v) larger than %v", t.reqCost, chk.respTime))
-		} else {
+		} else if chk.respTime > 0 {
 			succFlag = true
 		}
 	}
