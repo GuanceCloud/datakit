@@ -21,7 +21,7 @@
 ``` toml
 [inputs.logfwdserver]
   ## logfwd 接收端监听地址和端口
-  address = "0.0.0.0:9531"
+  address = "0.0.0.0:9533"
 
   [inputs.logfwdserver.tags]
   # some_tag = "some_value"
@@ -30,32 +30,31 @@
 
 配置好后，重启 DataKit 即可。
 
-注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装文档。
+> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy.md)。
 
 ### logfwd 使用和配置
 
-logfwd 主配置是 JSON 格式，如下是一个配置示例：
+logfwd 主配置是 JSON 格式，以下是配置示例：
 
 ``` json
 [
     {
-        "datakit_addr": "127.0.0.1:9531",
+        "datakit_addr": "127.0.0.1:9533",
         "loggings": [
             {
-                "logfiles": ["/tmp/redis.log", "/tmp/redis_access.log*"],
+                "logfiles": ["<your-logfile-path>"],
                 "ignore": [],
-                "source": "redis",
-                "service": "redis_log",
-                "pipeline": "redis.p",
+                "source": "<your-source>",
+                "service": "<your-service>",
+                "pipeline": "<your-pipeline.p>",
                 "character_encoding": "",
-                "multiline_match": "^\\d{4}",
+                "multiline_match": "<your-match>",
                 "remove_ansi_escape_codes": false,
+                "tags": {}
             },
             {
-                "logfiles": ["/tmp/nginx_log*"],
-                "source": "nginx",
-                "service": "nginx_log",
-                "pipeline": "nginx.p",
+                "logfiles": ["<your-logfile-path-2>"],
+                "source": "<your-source-2>"
             }
         ]
     }
@@ -64,17 +63,18 @@ logfwd 主配置是 JSON 格式，如下是一个配置示例：
 
 配置参数说明：
 
-- `datakit_addr` 是 DataKit logfwdserver 地址
+- `datakit_addr` 是 DataKit logfwdserver 地址，通常使用环境变量 `LOGFWD_DATAKIT_HOST` 和 `LOGFWD_DATAKIT_PORT` 进行配置
 
 - `loggings` 为主要配置，是一个数组，子项也基本和 [logging](logging) 采集器相同。
     - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
     - `source` 数据来源，如果为空，则默认使用 'default'
-    - `service` 新增标记tag，如果为空，则默认使用 $source
+    - `service` 新增标记 tag，如果为空，则默认使用 $source
     - `pipeline` pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 pipeline（此脚本文件存在于 DataKit 端）
     - `character_encoding` # 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持`utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
     - `multiline_match` 多行匹配，与 [logging](logging) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
+    - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
 #### 安装和运行
 
@@ -119,7 +119,9 @@ spec:
 
 ```
 
-第二份配置为 logfwd 实际运行的配置，即前文提到的 JSON 格式的主配置，在 Kubernetes 中以 ConfigMap 形式存在。示例如下：
+第二份配置为 logfwd 实际运行的配置，即前文提到的 JSON 格式的主配置，在 Kubernetes 中以 ConfigMap 形式存在。
+
+根据 logfwd 配置示例，按照实际情况修改 `config`。`ConfigMap` 格式如下：
 
 ```
 apiVersion: v1
@@ -130,17 +132,15 @@ data:
   config: |
     [
         {
-            "datakit_addr": "127.0.0.1:9533",
             "loggings": [
                 {
                     "logfiles": ["/var/log/1.log"],
                     "source": "log_source",
-                     "tags_str": "tags1=value1"
+                    "tags": {}
                 },
                 {
                     "logfiles": ["/var/log/2.log"],
-                    "source": "log_source2",
-                     "tags_str": "tags1=value1"
+                    "source": "log_source2"
                 }
             ]
         }
@@ -208,7 +208,7 @@ spec:
     - mountPath: /opt/logfwd/config
       name: logfwd-config
       subPath: config
-      workingDir: /opt/logfwd
+    workingDir: /opt/logfwd
   volumes:
   - name: varlog
     emptyDir: {}
@@ -226,19 +226,54 @@ data:
   config: |
     [
         {
-            "datakit_addr": "127.0.0.1:9533",
             "loggings": [
                 {
                     "logfiles": ["/var/log/1.log"],
                     "source": "log_source",
-                     "tags_str": "tags1=value1"
+		    "tags": {
+		        "flag": "log_source1"
+		    }
                 },
                 {
                     "logfiles": ["/var/log/2.log"],
-                    "source": "log_source2",
-                     "tags_str": "tags1=value1"
+                    "source": "log_source2"
                 }
             ]
         }
     ]
+```
+
+> 注意，需要使用 `volumes` 和 `volumeMounts` 将应用容器（即示例中的 `count` 容器）的日志目录挂载和共享，以便在 logfwd 容器中能够正常访问到。`volumes` 官方说明[文档](https://kubernetes.io/docs/concepts/storage/volumes/)
+
+### 性能测试
+
+- 环境：
+
+```
+goos: linux
+goarch: amd64
+cpu: Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz
+```
+
+- 日志文件内容为 1000w 条 nginx 日志，文件大小 2.2GB：
+
+```
+192.168.17.1 - - [06/Jan/2022:16:16:37 +0000] "GET /google/company?test=var1%20Pl HTTP/1.1" 401 612 "http://www.google.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-"
+```
+
+- 结果：
+
+耗时**95 秒**将所有日志读取和转发完毕，平均每秒读取 10w 条日志。
+
+单核心 CPU 使用率峰值为 42%，以下是当时的 `top` 记录：
+
+```
+top - 16:32:46 up 52 days,  7:28, 17 users,  load average: 2.53, 0.96, 0.59
+Tasks: 464 total,   2 running, 457 sleeping,   0 stopped,   5 zombie
+%Cpu(s): 30.3 us, 33.7 sy,  0.0 ni, 34.3 id,  0.1 wa,  0.0 hi,  1.5 si,  0.0 st
+MiB Mem :  15885.2 total,    985.2 free,   6204.0 used,   8696.1 buff/cache
+MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+1850829 root      20   0  715416  17500   8964 R  42.1   0.1   0:10.44 logfwd
 ```
