@@ -42,24 +42,15 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
         "datakit_addr": "127.0.0.1:9533",
         "loggings": [
             {
-                "logfiles": ["/tmp/redis.log", "/tmp/redis_access.log*"],
+                "logfiles": ["<your-logfile-path>"],
                 "ignore": [],
-                "source": "redis",
-                "service": "redis_log",
-                "pipeline": "redis.p",
+                "source": "<your-source>",
+                "service": "<your-service>",
+                "pipeline": "<your-pipeline.p>",
                 "character_encoding": "",
-                "multiline_match": "^\\d{4}",
+                "multiline_match": "<your-match>",
                 "remove_ansi_escape_codes": false,
-		"tags": {
-			"key1": "value1",
-			"key2": "value2"
-		}
-            },
-            {
-                "logfiles": ["/tmp/nginx_log*"],
-                "source": "nginx",
-                "service": "nginx_log",
-                "pipeline": "nginx.p"
+		"tags": {}
             }
         ]
     }
@@ -78,7 +69,7 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
     - `character_encoding` # 选择编码，如果编码有误会导致数据无法查看，默认为空即可。支持`utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
     - `multiline_match` 多行匹配，与 [logging](logging) 该项配置一样，注意因为是 JSON 格式所以不支持 3 个单引号的“不转义写法”，正则 `^\d{4}` 需要添加转义写成 `^\\d{4}`
     - `remove_ansi_escape_codes` 是否删除 ANSI 转义码，例如标准输出的文本颜色等，值为 `true` 或 `false`
-    - `tags` 添加额外 `tag`，书写格式是 JSON map，详见示例 `tags` 项
+    - `tags` 添加额外 `tag`，书写格式是 JSON map，例如 `{ "key1":"value1", "key2":"value2" }`
 
 
 logfwd 推荐在 Kubernetes Pod 中使用，下面是运行 logfwd 的 Pod demo 配置文件：
@@ -162,7 +153,7 @@ data:
                     "logfiles": ["/var/log/1.log"],
                     "source": "log_source",
 		    "tags": {
-		        "some_tag": "some_value",
+		        "flag": "log_source1",
 		    }
                 },
                 {
