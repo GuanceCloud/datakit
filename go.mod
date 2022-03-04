@@ -5,9 +5,8 @@ go 1.16
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 	github.com/BurntSushi/toml v0.3.1
-	github.com/DataDog/datadog-agent v0.0.0-20210914224445-7abd230002d9
-	github.com/DataDog/datadog-agent/pkg/util/winutil v0.31.0 // indirect
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
+	github.com/DataDog/gopsutil v0.0.0-20210826200402-bbfc5b0ae6e9 // indirect
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible
@@ -18,13 +17,14 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20210910012206-68626162910d // indirect
 	github.com/chromedp/chromedp v0.7.4 // indirect
 	github.com/containerd/cgroups v1.0.1
+	github.com/containerd/containerd v1.5.5 // indirect
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.5.1
-	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1 // indirect
+	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-logr/logr v1.2.2 // indirect
@@ -36,6 +36,7 @@ require (
 	github.com/gobuffalo/logger v1.0.4 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.1
 	github.com/gobwas/glob v0.2.3
+	github.com/gobwas/ws v1.1.0
 	github.com/godror/godror v0.17.0
 	github.com/gofrs/flock v0.8.0
 	github.com/gogo/protobuf v1.3.2
@@ -51,22 +52,18 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kardianos/service v1.0.0
+	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/lib/pq v1.10.2
-	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/mssola/user_agent v0.5.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/pborman/ansi v1.0.0
-	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/procfs v0.7.3
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
-	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/shirou/gopsutil v3.21.8+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
@@ -79,22 +76,24 @@ require (
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/ugorji/go/codec v1.2.6
+	github.com/vishvananda/netlink v1.1.1-0.20210508154835-66ddd91f7ddd // indirect
+	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
 	github.com/vjeantet/grok v1.0.0
-	github.com/vmihailenco/msgpack/v4 v4.3.12
 	github.com/whilp/git-urls v1.0.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220216063214-d3ae12b9cbd2
 	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20210923054635-8b8d5dd9ba4f
 	go.etcd.io/bbolt v1.3.5
+	go.opentelemetry.io/proto/otlp v0.11.0
 	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/zap v1.17.0 // indirect
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
-	golang.org/x/mobile v0.0.0-20210902104108-5d9a33257ab5 // indirect
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
+	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
-	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
-	google.golang.org/grpc v1.40.0
+	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
+	google.golang.org/grpc v1.42.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
