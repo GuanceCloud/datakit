@@ -51,6 +51,10 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
                 "multiline_match": "<your-match>",
                 "remove_ansi_escape_codes": false,
 		"tags": {}
+            },
+            {
+                "logfiles": ["<your-logfile-path-2>"],
+                "source": "<your-source-2>"
             }
         ]
     }
