@@ -6,10 +6,11 @@
 
 本次发布属于 hotfix 修复，内容如下：
 
-- DaemonSet 模式部署时， datakit.yaml 添加污点容忍度配置(#635)
+- DaemonSet 模式部署时， datakit.yaml 添加[污点容忍度配置](datakit-daemonset-deploy#e29e678e)(#635)
 - 修复 Remote Pipeline 拉取更新时的 bug(#630)
 - 修复 DataKit IO 模块卡死导致的内存泄露(#646)
 - 在 Pipeline 中允许修改 `service` 字段(#646)
+- 修复 `pod_namespace` 拼写错误
 
 ---
 
