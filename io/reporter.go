@@ -1,6 +1,7 @@
 package io
 
 import (
+	"context"
 	"regexp"
 	"time"
 
@@ -58,6 +59,7 @@ func (e *Reporter) escape(message string) string {
 	return escapedMessage
 }
 
+// addReporter report log, should not block.
 func addReporter(reporter Reporter) {
 	tags := reporter.Tags()
 	fields := reporter.Fields()
@@ -70,9 +72,13 @@ func addReporter(reporter Reporter) {
 	}
 
 	if err == nil {
-		if err := reporter.feed("datakit", datakit.Logging, []*Point{pt}, nil); err != nil {
-			log.Debugf("feed logging error: %s", err.Error())
-		}
+		g := datakit.G("io")
+		g.Go(func(ctx context.Context) error {
+			if err := reporter.feed("datakit", datakit.Logging, []*Point{pt}, nil); err != nil {
+				log.Debugf("feed logging error: %s", err.Error())
+			}
+			return nil
+		})
 	} else {
 		log.Debugf("make point error: %s", err.Error())
 	}

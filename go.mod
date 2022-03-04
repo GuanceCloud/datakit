@@ -92,8 +92,8 @@ require (
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
-	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
-	google.golang.org/grpc v1.42.0
+	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
+	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
