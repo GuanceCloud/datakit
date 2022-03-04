@@ -158,7 +158,7 @@ Extracted data(cost: 421.705µs):
 
 ### Pipeline 字段命名注意事项
 
-由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 Field），不宜有任何 tag 字段，这些 Tag 包含如下几类：
+由于[行协议约束](apis#2fc2526a)，在切割出来的字段中（在行协议中，它们都是 Field），不宜有任何 tag 字段，这些 Tag 包含如下几类：
 
 - 各个具体采集器中，用户自行配置增加的 Tag，如 `[inputs.nginx.tags]` 下可增加各种 Tag
 - DataKit 全局 Tag，如 `host`。当然，这个全局 Tag 用户也能自行配置

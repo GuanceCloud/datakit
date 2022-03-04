@@ -100,9 +100,11 @@ apt-get install -y libaio-dev libaio1
 
 ### 配置好 Oracle 采集之后，为何 monitor 中无数据显示？
 
+大概原因有如下几种可能：
+
 1. Oracle 动态库依赖有问题
 
-==即使你本机当前可能已经有对应的 Oracle 包== ，仍然建议使用上面文档中指定的依赖包，且确保其安装路径跟 `LD_LIBRARY_PATH` 所指定的路径一致。
+即使你本机当前可能已经有对应的 Oracle 包，==仍然建议使用上面文档中指定的依赖包==，且确保其安装路径跟 `LD_LIBRARY_PATH` 所指定的路径一致。
 
 2. glibc 版本有问题
 

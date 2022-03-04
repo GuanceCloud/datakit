@@ -23,7 +23,7 @@
 - 为减少默认安装包体积，默认安装不再带 IP 地理信息库。RUM 等采集器中，可额外[安装对应的 IP 库](datakit-tools-how-to#ab5cd5ad)
   - 如需安装时就带上 IP 地理信息库，可通过[额外支持的命令行环境变量](datakit-install#f9858758)来实现
 - 容器采集器增加 [logfwd 日志接入](logfwd)(#600)
-- 为进一步规范数据上传，行协议增加了更多严格的[限制](apis#f54b954f)(#592)
+- 为进一步规范数据上传，行协议增加了更多严格的[限制](apis#2fc2526a)(#592)
 - [日志采集器](logging)中，放开日志长度限制（`maximum_length`）(#623)
 - 优化日志采集过程中的 Monitor 显示(#587)
 - 优化安装程序的命令行参数检查(#573)
@@ -464,7 +464,7 @@
 - 完善 [Kubernetes](kubernetes) 采集器，增加更多 Kubernetes 对象采集
 - 完善[主机名覆盖功能](datakit-install#987d5f91)
 - 优化 Pipeline 处理性能（约 15 倍左右，视不同 Pipeline 复杂度而定）
-- 加强[行协议数据检查](apis#f54b954f)
+- 加强[行协议数据检查](apis#2fc2526a)
 - `system` 采集器，增加 [`conntrack`以及`filefd`](system) 两个指标集
 - `datakit.conf` 增加 IO 调参入口，便于用户对 DataKit 网络出口流量做优化（参见下面的 Breaking Changes）
 - DataKit 支持[服务卸载和恢复](datakit-service-how-to#9e00a535)
