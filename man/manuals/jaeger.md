@@ -20,9 +20,35 @@
 {{.InputSample}}
 ```
 
+### 配置 Jaeger HTTP Agent
+
+endpoint 代表 Jaeger HTTP Agent 路由
+
+```toml
+[[inputs.jaeger]]
+  # Jaeger endpoint for receiving tracing span over HTTP.
+  # Default value set as below. DO NOT MODIFY THE ENDPOINT if not necessary.
+  endpoint = "/apis/traces"
+```
+
+- 修改 Jaeger Client 的 Agent Host Port 为 Datakit Port（默认为 9529）
+- 修改 Jaeger Client 的 Agent endpoint 为上面配置中指定的 endpoint
+
+### 配置 Jaeger UDP Agent
+
+```toml
+[[inputs.jaeger]]
+  # Jaeger agent host:port address for UDP transport.
+  address = "127.0.0.1:6831"
+```
+
+- 修改 Jaeger Client 的 Agent UDP Host:Port 为上面配置中指定的 address
+
+有关数据采样，数据过滤，关闭资源等配置请参考[Datakit Tracing](datakit-tracing)
+
 ## Golang 示例
 
-```Golang
+```golang
 package main
 
 import (
@@ -70,4 +96,5 @@ func main() {
 		time.Sleep(time.Second)
 	}
 }
-``` 
+
+```

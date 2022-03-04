@@ -18,39 +18,10 @@
   ## Endpoints can be skipped listen by remove them from the list.
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
-
-  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
-  ## that want to send to data center. Those keys set by client code will take precedence over
-  ## keys in [inputs.ddtrace.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
-  customer_tags = ["key1", "key2", ...]
-
-  ## Keep rare tracing resources list switch.
-  ## If some resources are rare enough(not presend in 1 hour), those resource will always send
-  ## to data center and do not consider samplers and filters.
-  keep_rare_resource = false
-
-  ## Ignore tracing resources map like service:[resources...].
-  ## The service name is the full service name in current application.
-  ## The resource list is regular expressions uses to block resource names.
-  [inputs.ddtrace.close_resource]
-    service1 = ["resource1", "resource2", ...]
-    service2 = ["resource1", "resource2", ...]
-
-  ## Sampler config uses to set global sampling strategy.
-  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##   -1: always reject any tracing data send to datakit
-  ##    0: accept tracing data and calculate with sampling_rate
-  ##    1: always send to data center and do not consider sampling_rate
-  ## sampling_rate used to set global sampling rate
-  [inputs.ddtrace.sampler]
-    priority = 0
-    sampling_rate = 1.0
-
-  [inputs.ddtrace.tags]
-    key1 = "value1"
-    key2 = "value2"
-
 ```
+
+- 打开 Datakit 配置中需要的 endpoints 目前支持的 DDTrace 版本有 v0.3 v0.4 v0.5
+- 配置 DDTrace Client 中的 Agent Host:Port 为 Datakit 的 Host:Port
 
 # ddtrace api for golang
 
@@ -77,7 +48,6 @@ func example_for_golang_tracing() {
 	bts, err = ioutil.ReadFile("~/test.json")
 	span.SetTag("file_len", len(bts))
 }
-
 ```
 
 # references

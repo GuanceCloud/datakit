@@ -60,7 +60,6 @@ tail -f /var/log/datakit/gin.log
 [GIN] 2021/08/02 - 17:17:30 | 200 |     489.428µs |       127.0.0.1 | POST     "/v0.4/traces"
 
 ...
-
 ```
 
 > 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-tools-how-to#44462aae)是看不到 ddtrace 的采集信息的。
@@ -92,10 +91,9 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 ```toml
 ## tags is ddtrace configed key value pairs
-# [inputs.ddtrace.tags]
-	# some_tag = "some_value"
-	# more_tag = "some_other_value"
-	## ...
+[inputs.ddtrace.tags]
+	 some_tag = "some_value"
+	 more_tag = "some_other_value"
 ```
 
 ## 关于 Tags
