@@ -186,6 +186,8 @@ spec:
       restartPolicy: Always
       serviceAccount: datakit
       serviceAccountName: datakit
+      tolerations:
+      - operator: Exists
       volumes:
       - configMap:
           name: datakit-conf
