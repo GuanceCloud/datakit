@@ -24,7 +24,7 @@ const (
 	envPodNameKey      = "LOGFWD_POD_NAME"
 	envPodNamespaceKey = "LOGFWD_POD_NAMESPACE"
 
-	envLogConfigKey = "LOGFWD_ANNOTATION_DATAKIT_LOG_CONFIGS"
+	envLogConfigKey = "LOGFWD_ANNOTATION_DATAKIT_LOGS"
 	envFwdConfigKey = "LOGFWD_JSON_CONFIG"
 
 	envWsHostKey = "LOGFWD_DATAKIT_HOST"
