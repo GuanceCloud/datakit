@@ -20,6 +20,7 @@ disable_404page = true
 ```
 
 - 在 DataKit 上[安装 IP 地理信息库](datakit-tools-how-to#ab5cd5ad)
+	- 自 [1.2.7](changelog#dbbe856a) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
 
 ### 安全限制
 
