@@ -30,6 +30,8 @@
 
 配置好后，重启 DataKit 即可。
 
+> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy.md)。
+
 ### logfwd 使用和配置
 
 logfwd 主配置是 JSON 格式，以下是配置示例：
@@ -172,9 +174,7 @@ data:
     ]
 ```
 
-注意，需要使用 `volumes` 和 `volumeMounts` 将应用容器（即示例中的 `count` 容器）的日志目录挂载和共享，以便在 logfwd 容器中能够正常访问到。
-
-`volumes` 官方说明[文档](https://kubernetes.io/docs/concepts/storage/volumes/)
+> 注意，需要使用 `volumes` 和 `volumeMounts` 将应用容器（即示例中的 `count` 容器）的日志目录挂载和共享，以便在 logfwd 容器中能够正常访问到。`volumes` 官方说明[文档](https://kubernetes.io/docs/concepts/storage/volumes/)
 
 ### 性能测试
 
