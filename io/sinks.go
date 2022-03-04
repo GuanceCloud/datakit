@@ -19,7 +19,7 @@ type SinkCreator func() ISink
 
 func AddCreator(creatorID string, creator SinkCreator) {
 	if _, ok := SinkImplCreator[creatorID]; ok {
-		l.Fatalf("sinks %s exist(from datakit)", creatorID)
+		log.Fatalf("sink %s exist(from datakit)", creatorID)
 	}
 	SinkImplCreator[creatorID] = creator
 }
@@ -35,24 +35,9 @@ var (
 	SinkImpls       = []ISink{}
 	SinkCategoryMap = make(map[string][]ISink)
 
-	onceInit sync.Once
-	// sinkConfig []map[string]interface{}
+	onceInit        sync.Once
 	isInitSucceeded bool
 )
-
-/*
-type singleton struct{}
-
-var ins *singleton
-var once sync.Once
-
-func GetIns() *singleton {
-	once.Do(func() {
-		ins = &singleton{}
-	})
-	return ins
-}
-*/
 
 //----------------------------------------------------------------------
 
@@ -113,24 +98,26 @@ func InitSink(sincfg []map[string]interface{}) error {
 
 func aggregationCategorys(sincfg []map[string]interface{}) error {
 	for _, v := range sincfg {
-		categories := v["categories"]
-		if categoriesArray, ok := categories.([]string); ok {
-			mCategory := make(map[string]struct{})
-			for _, category := range categoriesArray {
-				mCategory[category] = struct{}{}
-			}
+		categoriesArray, ok := v["categories"].([]string)
+		if !ok {
+			return fmt.Errorf("invalid categories: not []string")
+		}
 
-			for category := range mCategory {
-				for _, impl := range SinkImpls {
-					id := v["id"].(string)
-					if id == impl.GetID() {
-						SinkCategoryMap[category] = append(SinkCategoryMap[category], impl)
-					}
+		mCategory := make(map[string]struct{})
+		for _, category := range categoriesArray {
+			mCategory[category] = struct{}{}
+		}
+
+		for category := range mCategory {
+			for _, impl := range SinkImpls {
+				id, err := getAssertString("id", v)
+				if err != nil {
+					return err
+				}
+				if id == impl.GetID() {
+					SinkCategoryMap[category] = append(SinkCategoryMap[category], impl)
 				}
 			}
-
-		} else {
-			return fmt.Errorf("invalid categories")
 		}
 	}
 	return nil
@@ -138,7 +125,10 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 
 func buildSinkImpls(sincfg []map[string]interface{}) error {
 	for _, v := range sincfg {
-		target := v["target"].(string)
+		target, err := getAssertString("target", v)
+		if err != nil {
+			return err
+		}
 		if ins := getSinkInstanceFromTarget(target); ins != nil {
 			if err := ins.LoadConfig(v); err != nil {
 				return err
@@ -163,7 +153,10 @@ func checkSinksConfig(sincfg []map[string]interface{}) error {
 	// check id unique
 	mSinkID := make(map[string]struct{})
 	for _, v := range sincfg {
-		id := v["id"].(string)
+		id, err := getAssertString("id", v)
+		if err != nil {
+			return err
+		}
 		idNew := strings.TrimSpace(id)
 		if idNew == "" {
 			return fmt.Errorf("invalid id: empty")
@@ -175,6 +168,18 @@ func checkSinksConfig(sincfg []map[string]interface{}) error {
 		}
 	}
 	return nil
+}
+
+func getAssertString(name string, mSingle map[string]interface{}) (string, error) {
+	str, ok := mSingle[name].(string)
+	if !ok {
+		return "", getAssertStringError(name)
+	}
+	return str, nil
+}
+
+func getAssertStringError(name string) error {
+	return fmt.Errorf("invalid %s: not string", name)
 }
 
 //----------------------------------------------------------------------
