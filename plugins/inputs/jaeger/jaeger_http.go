@@ -5,139 +5,142 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime/debug"
+	"time"
 
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
 
-func JaegerTraceHandle(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("trace handle with path: %s", req.URL.Path)
-	defer func() {
-		resp.WriteHeader(http.StatusOK)
-		if r := recover(); r != nil {
-			log.Errorf("Stack crash: %v", r)
-			log.Errorf("Stack info :%s", string(debug.Stack()))
-		}
-	}()
+func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
+	log.Debugf("%s: listen on path: %s", inputName, req.URL.Path)
 
-	reqInfo, err := trace.ParseHTTPReq(req)
+	buf := thrift.NewTMemoryBuffer()
+	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
 		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	if reqInfo.ContentType != "application/x-thrift" {
-		log.Errorf("Jeager unsupported Content-Type: %s", reqInfo.ContentType)
+	var (
+		transport = thrift.NewTBinaryProtocolConf(buf, &thrift.TConfiguration{})
+		batch     = &jaeger.Batch{}
+	)
+	if err = batch.Read(context.TODO(), transport); err != nil {
+		log.Error(err.Error())
+		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	if err = parseJaegerThrift(reqInfo.Body); err != nil {
-		log.Error(err.Error())
-	}
-}
-
-func parseJaegerThrift(octets []byte) error {
-	buffer := thrift.NewTMemoryBuffer()
-	if _, err := buffer.Write(octets); err != nil {
-		return err
-	}
-	transport := thrift.NewTBinaryProtocolConf(buffer, &thrift.TConfiguration{})
-	batch := &jaeger.Batch{}
-	if err := batch.Read(context.TODO(), transport); err != nil {
-		return err
-	}
-
-	group, err := batchToAdapters(batch)
-	if err != nil {
-		return err
-	}
-
-	if len(group) != 0 {
-		trace.MkLineProto(group, inputName)
+	if dktrace := batchToDkTrace(batch); len(dktrace) == 0 {
+		log.Warn("empty datakit trace")
 	} else {
-		log.Debug("empty batch")
+		afterGatherRun.Run(inputName, dktrace, false)
 	}
-
-	return nil
 }
 
-func batchToAdapters(batch *jaeger.Batch) ([]*trace.TraceAdapter, error) {
-	project, ver, env := getExpandInfo(batch)
-	if project == "" {
-		project = jaegerTags[trace.PROJECT]
+func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
+	buf, err := json.Marshal(batch)
+	if err != nil {
+		log.Debug(err.Error())
+	} else {
+		log.Debug(string(buf))
 	}
 
-	if ver == "" {
-		ver = jaegerTags[trace.VERSION]
-	}
-
-	if env == "" {
-		env = jaegerTags[trace.ENV]
-	}
-
-	var adapterGroup []*trace.TraceAdapter
+	var (
+		project, version, env = getExpandInfo(batch)
+		dktrace               itrace.DatakitTrace
+		spanIDs, parentIDs    = getSpanIDsAndParentIDs(batch.Spans)
+	)
 	for _, span := range batch.Spans {
-		tAdapter := &trace.TraceAdapter{}
-		tAdapter.Source = "jaeger"
-		tAdapter.Project = project
-		tAdapter.Version = ver
-		tAdapter.Env = env
-
-		tAdapter.Duration = span.Duration * 1000
-		tAdapter.Start = span.StartTime * 1000
-		sJSON, err := json.Marshal(span)
-		if err != nil {
-			return nil, err
-		}
-		tAdapter.Content = string(sJSON)
-
-		tAdapter.ServiceName = batch.Process.ServiceName
-		tAdapter.OperationName = span.OperationName
-		if span.ParentSpanId != 0 {
-			tAdapter.ParentID = fmt.Sprintf("%d", span.ParentSpanId)
+		if span == nil {
+			continue
 		}
 
-		// tAdapter.TraceID = fmt.Sprintf("%x%x", uint64(span.TraceIdHigh), uint64(span.TraceIdLow))
-		tAdapter.TraceID = trace.GetStringTraceID(span.TraceIdHigh, span.TraceIdLow)
-		tAdapter.SpanID = fmt.Sprintf("%d", span.SpanId)
+		dkspan := &itrace.DatakitSpan{
+			TraceID:   itrace.GetTraceStringID(span.TraceIdHigh, span.TraceIdLow),
+			ParentID:  fmt.Sprintf("%d", span.ParentSpanId),
+			SpanID:    fmt.Sprintf("%d", span.SpanId),
+			Service:   batch.Process.ServiceName,
+			Resource:  span.OperationName,
+			Operation: span.OperationName,
+			Source:    inputName,
+			SpanType:  itrace.FindSpanTypeIntSpanID(span.SpanId, span.ParentSpanId, spanIDs, parentIDs),
+			Env:       env,
+			Project:   project,
+			Start:     span.StartTime * int64(time.Microsecond),
+			Duration:  span.Duration * int64(time.Microsecond),
+			Version:   version,
+		}
 
-		tAdapter.Status = trace.STATUS_OK
+		dkspan.Status = itrace.STATUS_OK
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				tAdapter.Status = trace.STATUS_ERR
+				dkspan.Status = itrace.STATUS_ERR
 				break
 			}
 		}
-		tAdapter.Tags = jaegerTags
 
-		adapterGroup = append(adapterGroup, tAdapter)
+		sourceTags := make(map[string]string)
+		for _, tag := range span.Tags {
+			sourceTags[tag.Key] = tag.String()
+		}
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+
+		if dkspan.ParentID == "0" && defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
+		if buf, err := json.Marshal(span); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
+		}
+
+		dktrace = append(dktrace, dkspan)
 	}
 
-	return adapterGroup, nil
+	return dktrace
 }
 
-func getExpandInfo(batch *jaeger.Batch) (project, ver, env string) {
+func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]bool) {
+	var (
+		spanIDs   = make(map[int64]bool)
+		parentIDs = make(map[int64]bool)
+	)
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		spanIDs[span.SpanId] = true
+		if span.ParentSpanId != 0 {
+			parentIDs[span.ParentSpanId] = true
+		}
+	}
+
+	return spanIDs, parentIDs
+}
+
+func getExpandInfo(batch *jaeger.Batch) (project, version, env string) {
 	if batch.Process == nil {
 		return
 	}
+
 	for _, tag := range batch.Process.Tags {
 		if tag == nil {
 			continue
 		}
 
-		if tag.Key == trace.PROJECT {
+		switch tag.Key {
+		case itrace.PROJECT:
 			project = fmt.Sprintf("%v", getValueString(tag))
-		}
-
-		if tag.Key == trace.VERSION {
-			ver = fmt.Sprintf("%v", getValueString(tag))
-		}
-
-		if tag.Key == trace.ENV {
+		case itrace.VERSION:
+			version = fmt.Sprintf("%v", getValueString(tag))
+		case itrace.ENV:
 			env = fmt.Sprintf("%v", getValueString(tag))
 		}
 	}

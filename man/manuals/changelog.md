@@ -41,6 +41,10 @@
 - 修复 TCP/UDP 日志采集器 *service* tag 不生效的问题(#610)
 - 修复 Oracle 采集器采集不到数据的问题(#625)
 
+### Breaking Changes
+
+- 老版本的 DataKit 如果开启了 RUM 功能，升级上来后，需[重新安装 IP 库](datakit-tools-how-to#ab5cd5ad)，老版本的 IP 库将无法使用。
+
 ## 1.2.6(2022/01/20)
 
 本次发布属于迭代发布，内容如下：
