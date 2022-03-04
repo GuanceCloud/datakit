@@ -26,8 +26,7 @@ const (
   ## 指标名称过滤
   # 支持正则，可以配置多个，即满足其中之一即可
   # 如果为空，则不进行过滤
-    metric_name_filter = ["consul_raft_leader", "consul_raft_peers", "consul_serf_lan_members", "consul_catalog_service", "consul_catalog_service_node_healthy", "consul_health_node_status", "consul_serf_lan_member_status"]
-
+  metric_name_filter = ["consul_raft_leader", "consul_raft_peers", "consul_serf_lan_members", "consul_catalog_service", "consul_catalog_service_node_healthy", "consul_health_node_status", "consul_serf_lan_member_status"]
 
   ## 指标集名称前缀
   # 配置此项，可以给指标集名称添加前缀

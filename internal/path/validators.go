@@ -3,6 +3,8 @@ package path
 
 import (
 	"errors"
+	"io/fs"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,8 +41,8 @@ func PathIsPureFileName(s string) bool {
 }
 
 // GetGitPureName returns conf like below
-// ssh://git@gitlab.jiagouyun.com:40022/wanchuan853/conf.git
-// http://gitlab.jiagouyun.com/wanchuan853/conf.git
+// ssh://git@gitlab.jiagouyun.com:40022/name/conf.git
+// http://gitlab.jiagouyun.com/name/conf.git
 func GetGitPureName(gitURL string) (string, error) {
 	uRL, err := giturls.Parse(gitURL)
 	if err != nil {
@@ -70,3 +72,69 @@ func GetPureNameFromExt(name string) string {
 // 	}
 // 	return filepath.Dir(ex), nil
 // }
+
+func GetFolderList(root string, deep int) (folders, files []string, err error) {
+	mark := ".."
+
+	checkDeepfunc := func(path string) bool {
+		// return true means exceeded the deep
+		rel, err := filepath.Rel(path, root)
+		if err != nil {
+			return true
+		}
+		if IsDir(path) {
+			return strings.Count(rel, mark) > (deep - 1) // exclude (deep -1) dir
+		}
+		return strings.Count(rel, mark) > deep
+	}
+
+	err = filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+		if info == nil {
+			// 文件名称超过限定长度等其他问题也会导致info == nil
+			// 如果此时return err 就会显示找不到路径，并停止查找。
+			return nil
+		}
+		if info.IsDir() {
+			if checkDeepfunc(path) {
+				return nil
+			}
+
+			if root == path {
+				return nil // exclude self
+			}
+
+			folders = append(folders, path)
+			return nil
+		} else {
+			if checkDeepfunc(path) {
+				return nil
+			}
+
+			files = append(files, path)
+			return nil
+		}
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return folders, files, err
+}
+
+func GetSuffixFilesFromDirDeepOne(dir, suffixLower string) ([]string, error) {
+	fs, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var arr []string
+	for _, v := range fs {
+		if !v.IsDir() {
+			ext := filepath.Ext(v.Name())
+			extLower := strings.ToLower(ext)
+			if extLower == suffixLower {
+				arr = append(arr, filepath.Join(dir, v.Name()))
+			}
+		}
+	}
+
+	return arr, nil
+}

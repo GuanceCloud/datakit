@@ -91,7 +91,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
     "source"         : "testing-source",
     "service"        : "testing-service",
     "pipeline"       : "test.p",
-    "multiline_match": ""
+    "multiline_match": "^\\d{4}-\\d{2}"    # 注意斜杠转义
   }
 ]
 ```
@@ -100,7 +100,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 
 ```
 ## foo 是 Pod name
-kubectl annotate pods foo datakit/logs='[{\"disable\": false, \"source\": \"testing-source\", \"service\": \"testing-service\", \"pipeline\": \"test.p\", \"multiline_match\": \"\"}]'
+kubectl annotate pods foo datakit/logs='[{\"disable\": false, \"source\": \"testing-source\", \"service\": \"testing-service\", \"pipeline\": \"test.p\", \"multiline_match\": \"^\\d{4}-\\d{2}\"}]'
 ```
 
 注意：
@@ -126,9 +126,11 @@ spec:
         datakit/logs: |
           [
             {
+              "disable": false,
               "source": "testing-source",
               "service": "testing-service",
-              "pipeline": "test.p"
+              "pipeline": "test.p",
+              "multiline_match": "^\\d{4}-\\d{2}"
             }
           ]
 ```

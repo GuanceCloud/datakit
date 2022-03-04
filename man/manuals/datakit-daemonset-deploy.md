@@ -28,7 +28,7 @@
 ### 安装 yaml
 
 ```shell
-kubectl apply -f datakit-default.yaml
+kubectl apply -f datakit.yaml
 ```
 
 ### 查看运行状态：

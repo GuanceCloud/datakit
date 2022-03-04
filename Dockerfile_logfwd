@@ -1,0 +1,8 @@
+FROM ubuntu:18.04 AS base
+ARG TARGETARCH
+
+RUN mkdir -p /opt/logfwd
+
+COPY dist/datakit-linux-${TARGETARCH}/externals/logfwd /opt/logfwd
+
+CMD ["/opt/logfwd/logfwd", "-config", "/opt/logfwd/config"]
