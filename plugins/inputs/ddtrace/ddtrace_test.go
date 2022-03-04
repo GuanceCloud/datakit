@@ -3,22 +3,55 @@ package ddtrace
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/ugorji/go/codec"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 )
+
+var (
+	msgpHandler codec.MsgpackHandle
+	encoder     = codec.NewEncoder(nil, &msgpHandler)
+	decoder     = codec.NewDecoder(nil, &msgpHandler)
+)
+
+func Marshal(src interface{}) ([]byte, error) {
+	buf := bufpool.GetBuffer()
+	encoder.Reset(buf)
+	err := encoder.Encode(src)
+
+	return buf.Bytes(), err
+}
+
+func Unmarshal(src io.Reader, dest interface{}) error {
+	if src == nil || dest == nil || reflect.ValueOf(dest).Kind() != reflect.Ptr {
+		return errors.New("invalid parameters for msgpack.Unmarshal")
+	}
+
+	decoder.Reset(src)
+
+	return decoder.Decode(dest)
+}
+
+func msgpackEncoder(ddtraces DDTraces) ([]byte, error) {
+	return Marshal(ddtraces)
+}
 
 func TestDDTraceAgent(t *testing.T) {
 	afterGatherRun = itrace.AfterGatherFunc(func(inputName string, dktrace itrace.DatakitTrace, strikMod bool) {})
 
 	rand.Seed(time.Now().UnixNano())
-	testJsonDDTraces(t)
+	// testJsonDDTraces(t)
 	testMsgPackDDTraces(t)
 }
 
@@ -66,6 +99,7 @@ func testMsgPackDDTraces(t *testing.T) {
 		tsvr := httptest.NewServer(http.HandlerFunc(handleDDTrace))
 		for _, method := range []string{http.MethodPost} {
 			buf, err := msgpackEncoder(randomDDTraces(3, 10))
+			// buf, err := randomDDTraces(3, 10).MarshalMsg(nil)
 			if err != nil {
 				t.Error(err.Error())
 
@@ -133,8 +167,4 @@ func randomDDTraces(n, m int) DDTraces {
 
 func jsonEncoder(ddtraces DDTraces) ([]byte, error) {
 	return json.Marshal(ddtraces)
-}
-
-func msgpackEncoder(ddtraces DDTraces) ([]byte, error) {
-	return Marshal(ddtraces)
 }

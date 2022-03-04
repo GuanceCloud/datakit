@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -17,28 +16,33 @@ import (
 // tracing data constants
 // nolint:stylecheck
 const (
+	// datakit tracing customer tags
 	CONTAINER_HOST = "container_host"
 	ENV            = "env"
 	PROJECT        = "project"
 	VERSION        = "version"
 
+	// span status
 	STATUS_OK       = "ok"
 	STATUS_INFO     = "info"
 	STATUS_WARN     = "warning"
 	STATUS_ERR      = "error"
 	STATUS_CRITICAL = "critical"
 
+	// span position in trace
 	SPAN_TYPE_ENTRY  = "entry"
 	SPAN_TYPE_LOCAL  = "local"
 	SPAN_TYPE_EXIT   = "exit"
 	SPAN_TYPE_UNKNOW = "unknow"
 
+	// service type
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_CACHE  = "cache"
 	SPAN_SERVICE_CUSTOM = "custom"
 	SPAN_SERVICE_DB     = "db"
 	SPAN_SERVICE_WEB    = "web"
 
+	// line protocol tags
 	TAG_CONTAINER_HOST = "container_host"
 	TAG_ENDPOINT       = "endpoint"
 	TAG_ENV            = "env"
@@ -52,6 +56,7 @@ const (
 	TAG_SPAN_TYPE      = "span_type"
 	TAG_VERSION        = "version"
 
+	// line protocol fields
 	FIELD_DURATION           = "duration"
 	FIELD_MSG                = "message"
 	FIELD_PARENTID           = "parent_id"
@@ -73,12 +78,12 @@ type DatakitSpan struct {
 	TraceID            string            `json:"trace_id"`
 	ParentID           string            `json:"parent_id"`
 	SpanID             string            `json:"span_id"`
-	Service            string            `json:"service"`
-	Resource           string            `json:"resource"`
-	Operation          string            `json:"operation"`
-	Source             string            `json:"source"` // third part source name
-	SpanType           string            `json:"span_type"`
-	SourceType         string            `json:"source_type"`
+	Service            string            `json:"service"`     // process name
+	Resource           string            `json:"resource"`    // a resource name in process
+	Operation          string            `json:"operation"`   // a operation name behind resource
+	Source             string            `json:"source"`      // tracer name
+	SpanType           string            `json:"span_type"`   // span type of entry, local, exit or unknow
+	SourceType         string            `json:"source_type"` // process role in service
 	Env                string            `json:"env"`
 	Project            string            `json:"project"`
 	Version            string            `json:"version"`
@@ -88,12 +93,12 @@ type DatakitSpan struct {
 	HTTPStatusCode     string            `json:"http_status_code"`
 	ContainerHost      string            `json:"container_host"`
 	PID                string            `json:"p_id"`     // process id
-	Start              int64             `json:"start"`    // nano sec
-	Duration           int64             `json:"duration"` // nano sec
+	Start              int64             `json:"start"`    // unit: nano sec
+	Duration           int64             `json:"duration"` // unit: nano sec
 	Status             string            `json:"status"`
-	Content            string            `json:"content"`
-	Priority           int               `json:"priority"`
-	SamplingRateGlobal float64           `json:"sampling_rate_global"`
+	Content            string            `json:"content"`              // raw tracing data in json
+	Priority           int               `json:"priority"`             // smapling priority
+	SamplingRateGlobal float64           `json:"sampling_rate_global"` // global sampling ratio
 }
 
 type DatakitTrace []*DatakitSpan
@@ -136,10 +141,6 @@ func GetTraceInt64ID(high, low int64) int64 {
 	}
 
 	return high + low
-}
-
-func GetTraceStringID(high, low int64) string {
-	return fmt.Sprintf("%d%d", high, low)
 }
 
 func IsRootSpan(dkspan *DatakitSpan) bool {

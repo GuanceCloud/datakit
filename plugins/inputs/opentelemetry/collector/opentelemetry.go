@@ -4,11 +4,11 @@ package collector
 	定义常量 或者 在otel上的常量 可在此文件下定义
 */
 
-// :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go
+// :vendor/go.opentelemetry.io/otel/semconv/v1.4.0/trace.go.
 const (
 	otelResourceServiceKey = "service.name"
 	defaultServiceVal      = "unknown.service"
-	// HTTP
+	// HTTP.
 	otelResourceHTTPMethodKey     = "http.method"
 	otelResourceHTTPStatusCodeKey = "http.status_code"
 

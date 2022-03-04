@@ -37,7 +37,7 @@ func StartUDPAgent(addr string) error {
 		default:
 		}
 
-		err := udpConn.SetDeadline(time.Now().Add(time.Second))
+		err := udpConn.SetDeadline(time.Now().Add(3 * time.Second))
 		if err != nil {
 			log.Errorf("SetDeadline failed: %s", err.Error())
 			continue

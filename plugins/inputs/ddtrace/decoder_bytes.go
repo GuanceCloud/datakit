@@ -3,40 +3,12 @@ package ddtrace
 import (
 	"bytes"
 	"errors"
-	"io"
 	"math"
-	"reflect"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/tinylib/msgp/msgp"
-	"github.com/ugorji/go/codec"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 )
-
-var (
-	msgpHandler codec.MsgpackHandle
-	encoder     = codec.NewEncoder(nil, &msgpHandler)
-	decoder     = codec.NewDecoder(nil, &msgpHandler)
-)
-
-func Marshal(src interface{}) ([]byte, error) {
-	buf := bufpool.GetBuffer()
-	encoder.Reset(buf)
-	err := encoder.Encode(src)
-
-	return buf.Bytes(), err
-}
-
-func Unmarshal(src io.Reader, dest interface{}) error {
-	if src == nil || dest == nil || reflect.ValueOf(dest).Kind() != reflect.Ptr {
-		return errors.New("invalid parameters for msgpack.Unmarshal")
-	}
-
-	decoder.Reset(src)
-
-	return decoder.Decode(dest)
-}
 
 // repairUTF8 ensures all characters in s are UTF-8 by replacing non-UTF-8 characters
 // with the replacement char �.
@@ -58,9 +30,9 @@ func repairUTF8(s string) string {
 	}
 }
 
-// ParseStringBytes reads the next type in the msgpack payload and
+// parseStringBytes reads the next type in the msgpack payload and
 // converts the BinType or the StrType in a valid string.
-func ParseStringBytes(bts []byte) (string, []byte, error) {
+func parseStringBytes(bts []byte) (string, []byte, error) {
 	if msgp.IsNil(bts) {
 		bts, err := msgp.ReadNilBytes(bts)
 		return "", bts, err
@@ -90,10 +62,10 @@ func ParseStringBytes(bts []byte) (string, []byte, error) {
 	return repairUTF8(msgp.UnsafeString(i)), bts, nil
 }
 
-// ParseFloat64Bytes parses a float64 even if the sent value is an int64 or an uint64;
+// parseFloat64Bytes parses a float64 even if the sent value is an int64 or an uint64;
 // this is required because the encoding library could remove bytes from the encoded
 // payload to reduce the size, if they're not needed.
-func ParseFloat64Bytes(bts []byte) (float64, []byte, error) {
+func parseFloat64Bytes(bts []byte) (float64, []byte, error) {
 	if msgp.IsNil(bts) {
 		bts, err := msgp.ReadNilBytes(bts)
 		return 0, bts, err
@@ -144,10 +116,10 @@ func castInt64(v uint64) (int64, bool) {
 	return int64(v), true
 }
 
-// ParseInt64Bytes parses an int64 even if the sent value is an uint64;
+// parseInt64Bytes parses an int64 even if the sent value is an uint64;
 // this is required because the encoding library could remove bytes from the encoded
 // payload to reduce the size, if they're not needed.
-func ParseInt64Bytes(bts []byte) (int64, []byte, error) {
+func parseInt64Bytes(bts []byte) (int64, []byte, error) {
 	if msgp.IsNil(bts) {
 		bts, err := msgp.ReadNilBytes(bts)
 		return 0, bts, err
@@ -184,12 +156,12 @@ func ParseInt64Bytes(bts []byte) (int64, []byte, error) {
 	}
 }
 
-// ParseUint64Bytes parses an uint64 even if the sent value is an int64;
+// parseUint64Bytes parses an uint64 even if the sent value is an int64;
 // this is required because the language used for the encoding library
 // may not have unsigned types. An example is early version of Java
 // (and so JRuby interpreter) that encodes uint64 as int64:
 // http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
-func ParseUint64Bytes(bts []byte) (uint64, []byte, error) {
+func parseUint64Bytes(bts []byte) (uint64, []byte, error) {
 	if msgp.IsNil(bts) {
 		bts, err := msgp.ReadNilBytes(bts)
 		return 0, bts, err
@@ -232,10 +204,10 @@ func castInt32(v uint32) (int32, bool) {
 	return int32(v), true
 }
 
-// ParseInt32Bytes parses an int32 even if the sent value is an uint32;
+// parseInt32Bytes parses an int32 even if the sent value is an uint32;
 // this is required because the encoding library could remove bytes from the encoded
 // payload to reduce the size, if they're not needed.
-func ParseInt32Bytes(bts []byte) (int32, []byte, error) {
+func parseInt32Bytes(bts []byte) (int32, []byte, error) {
 	if msgp.IsNil(bts) {
 		bts, err := msgp.ReadNilBytes(bts)
 		return 0, bts, err

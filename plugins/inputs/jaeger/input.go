@@ -102,6 +102,13 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
+func (ipt *Input) RegHTTPHandler() {
+	if ipt.Endpoint != "" {
+		itrace.StartTracingStatistic()
+		http.RegHTTPHandler("POST", ipt.Endpoint, handleJaegerTrace)
+	}
+}
+
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
@@ -139,13 +146,6 @@ func (ipt *Input) Run() {
 
 	customerKeys = ipt.CustomerTags
 	tags = ipt.Tags
-}
-
-func (ipt *Input) RegHTTPHandler() {
-	if ipt.Endpoint != "" {
-		itrace.StartTracingStatistic()
-		http.RegHTTPHandler("POST", ipt.Endpoint, handleJaegerTrace)
-	}
 }
 
 func init() { //nolint:gochecknoinits

@@ -875,7 +875,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20220209214540-3681064d5158
+# golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs

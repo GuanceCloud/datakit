@@ -110,7 +110,7 @@ func TestExportTrace_Export(t *testing.T) {
 }
 
 func TestExportMetric_Export(t *testing.T) {
-	metric := &ExportMetric{}
+	metric := &ExportMetric{storage: collector.NewSpansStorage()}
 	endpoint := "localhost:20010"
 	m := collector.MockOtlpGrpcCollector{Metric: metric}
 	go m.StartServer(t, endpoint)

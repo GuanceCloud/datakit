@@ -154,7 +154,7 @@ func (dt *dkTags) setAttributesToTags(attr []*commonpb.KeyValue) *dkTags {
 	return dt
 }
 
-// checkCustomTags : 黑白名单机制
+// checkCustomTags : 黑白名单机制.
 func (dt *dkTags) checkCustomTags() *dkTags {
 	if dt.regexpString == "" {
 		return dt
@@ -168,7 +168,7 @@ func (dt *dkTags) checkCustomTags() *dkTags {
 	return dt
 }
 
-// addGlobalTags: 添加配置文件中的自定义tags
+// addGlobalTags: 添加配置文件中的自定义tags.
 func (dt *dkTags) addGlobalTags() *dkTags {
 	// set global tags
 	for k, v := range dt.globalTags {
@@ -177,7 +177,7 @@ func (dt *dkTags) addGlobalTags() *dkTags {
 	return dt
 }
 
-// checkAllTagsKey 统一替换key 放进replaceTags中
+// checkAllTagsKey 统一替换key 放进replaceTags中.
 func (dt *dkTags) checkAllTagsKey() *dkTags {
 	for key, val := range dt.tags {
 		dt.replaceTags[replace(key)] = val
@@ -233,7 +233,7 @@ func byteToString(bts []byte) string {
 	return hexCode
 }
 
-// getDKSpanStatus 从otel的status转成dk的span_status
+// getDKSpanStatus 从otel的status转成dk的span_status.
 func getDKSpanStatus(statuspb *tracepb.Status) string {
 	status := DKtrace.STATUS_INFO
 	if statuspb == nil {
@@ -250,7 +250,7 @@ func getDKSpanStatus(statuspb *tracepb.Status) string {
 	return status
 }
 
-// replace 行协议中的tag的key禁止有点 全部替换掉
+// replace 行协议中的tag的key禁止有点 全部替换掉.
 func replace(key string) string {
 	return strings.ReplaceAll(key, ".", "_")
 }

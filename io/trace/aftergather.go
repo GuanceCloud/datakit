@@ -10,7 +10,10 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
-var once = sync.Once{}
+var (
+	once                                                                            = sync.Once{}
+	dkioFeed func(name, category string, pts []*dkio.Point, opt *dkio.Option) error = dkio.Feed
+)
 
 type AfterGatherHandler interface {
 	Run(inputName string, dktrace DatakitTrace, strikMod bool)
@@ -60,12 +63,6 @@ func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 	aga.filters = append(aga.filters, filter...)
 }
 
-func (aga *AfterGather) UpdateDefSampler() {}
-
-func (aga *AfterGather) UpdateCloseResource() {}
-
-func (aga *AfterGather) UpdateKeepRareResource() {}
-
 func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod bool) {
 	once.Do(func() {
 		log = logger.SLogger(packageName)
@@ -80,6 +77,7 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 	for i := range aga.calculators {
 		aga.calculators[i](dktrace)
 	}
+
 	var skip bool
 	for i := range aga.filters {
 		if dktrace, skip = aga.filters[i](dktrace); skip {
@@ -91,7 +89,7 @@ func (aga *AfterGather) Run(inputName string, dktrace DatakitTrace, stricktMod b
 	}
 
 	if pts := BuildPointsBatch(dktrace, stricktMod); len(pts) != 0 {
-		if err := dkio.Feed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
+		if err := dkioFeed(inputName, datakit.Tracing, pts, &dkio.Option{HighFreq: true}); err != nil {
 			log.Errorf("io feed points error: %s", err.Error())
 		}
 	} else {

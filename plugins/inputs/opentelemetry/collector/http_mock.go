@@ -38,6 +38,7 @@ func (c *MockCollector) Endpoint() string {
 func (c *MockCollector) ClientTLSConfig() *tls.Config {
 	return c.clientTLSConfig
 }
+
 func (c *MockCollector) ExpectedHeaders() map[string]string {
 	return c.expectedHeaders
 }
@@ -112,7 +113,7 @@ func RunMockCollector(t *testing.T, cfg MockCollectorConfig, h http.HandlerFunc)
 	return m
 }
 
-// NewHTTPExporter http client
+// NewHTTPExporter http client.
 func NewHTTPExporter(t *testing.T, ctx context.Context, path string, endpoint string) *otlptrace.Exporter {
 	t.Helper()
 	httpClent, err := otlptracehttp.New(
