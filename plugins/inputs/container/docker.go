@@ -31,6 +31,7 @@ type dockerInputConfig struct {
 
 	excludePauseContainer  bool
 	removeLoggingAnsiCodes bool
+	maxLoggingLength       int
 
 	containerIncludeMetric []string
 	containerExcludeMetric []string
@@ -68,7 +69,7 @@ func (d *dockerInput) stop() {
 }
 
 func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +111,7 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 }
 
 func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +151,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 }
 
 func (d *dockerInput) watchNewContainerLogs() error {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return err
 	}
@@ -251,7 +252,7 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	return true
 }
 
-func (d *dockerInput) getContaierList() ([]types.Container, error) {
+func (d *dockerInput) getContainerList() ([]types.Container, error) {
 	cList, err := d.client.ContainerList(context.Background(), dockerContainerListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container list: %w", err)
@@ -341,7 +342,7 @@ func getImageOfPodContainer(container *types.Container, k8sClient k8sClientX) (i
 		return
 	}
 
-	meta, err := queryPodMetaData(k8sClient, container.Labels["pod_name"], container.Labels["pod_namesapce"])
+	meta, err := queryPodMetaData(k8sClient, container.Labels["pod_name"], container.Labels["pod_namespace"])
 	if err != nil {
 		return
 	}
