@@ -98,13 +98,15 @@
 
   - [应用性能监测（APM）]()
 
-    - [Datakit Tracing Struct](datakit-tracing-struct)
-    - [Datakit Tracing](datakit-tracing)
     - [DDTrace](ddtrace)
       - [Java 示例](ddtrace-java)
       - [Python 示例](ddtrace-python)
+      - [Golang 示例](ddtrace-go)
     - [SkyWalking](skywalking)
     - [Jaeger](jaeger)
+
+    - [Datakit Tracing Struct](datakit-tracing-struct)
+    - [Datakit Tracing](datakit-tracing)
 
   - [用户访问监测（RUM）]()
 

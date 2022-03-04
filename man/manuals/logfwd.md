@@ -147,8 +147,9 @@ data:
     ]
 ```
 
-
 将两份配置集成到现有的 Kubernetes yaml 中，并使用 `volumes` 和 `volumeMounts` 将目录在 containers 内部共享，即可实现 logfwd 容器采集其他容器的日志文件。
+
+> 注意，需要使用 `volumes` 和 `volumeMounts` 将应用容器（即示例中的 `count` 容器）的日志目录挂载和共享，以便在 logfwd 容器中能够正常访问到。`volumes` 官方说明[文档](https://kubernetes.io/docs/concepts/storage/volumes/)
 
 完整示例如下：
 
@@ -230,9 +231,9 @@ data:
                 {
                     "logfiles": ["/var/log/1.log"],
                     "source": "log_source",
-		    "tags": {
-		        "flag": "log_source1"
-		    }
+                    "tags": {
+                        "flag": "tag1"
+                    }
                 },
                 {
                     "logfiles": ["/var/log/2.log"],
@@ -242,8 +243,6 @@ data:
         }
     ]
 ```
-
-> 注意，需要使用 `volumes` 和 `volumeMounts` 将应用容器（即示例中的 `count` 容器）的日志目录挂载和共享，以便在 logfwd 容器中能够正常访问到。`volumes` 官方说明[文档](https://kubernetes.io/docs/concepts/storage/volumes/)
 
 ### 性能测试
 
