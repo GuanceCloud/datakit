@@ -70,11 +70,6 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 	}()
 
 	if logconf != nil {
-		// // unreachable
-		// if logconf.Disable {
-		// 	return nil
-		// }
-
 		logconf.tags = tags
 		logconf.containerID = container.ID
 		l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
