@@ -30,6 +30,10 @@ DataKit is an open source, integrated data collection agent, which provides full
 	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
 	- Tracing related(OpenTelemetry/[DDTrace](https://www.yuque.com/dataflux/datakit/ddtrace)/Zipkin/[Jaeger](https://www.yuque.com/dataflux/datakit/jaeger)/[Skywalking](https://www.yuque.com/dataflux/datakit/skywalking))
 
+## Changelog
+
+All DataKit changelog refers to [here](https://www.yuque.com/dataflux/datakit/changelog).
+
 ## Minimal Requirements
 
 | OS | Arch | Install Path |

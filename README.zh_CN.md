@@ -28,6 +28,10 @@ DataKit 是一款开源、一体式的数据采集 Agent，它提供全平台操
 	- [Function](https://www.yuque.com/dataflux/func/write-data-via-datakit)
 	- Tracing 相关（[OpenTelemetry]()/[DDTrace]()/[Zipkin]()/[Jaeger]()/[Skywalking]()）
 
+## 发布历史
+
+DataKit 发布历史参见[这里](https://www.yuque.com/dataflux/datakit/changelog).
+
 ## 操作系统最低要求
 
 | 操作系统 | 架构 | 安装路径 |
