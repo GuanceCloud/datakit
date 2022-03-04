@@ -53,7 +53,7 @@ func getContainerTags(container *types.Container) tagsType {
 		tags["pod_name"] = container.Labels[containerLableForPodName]
 	}
 	if container.Labels[containerLableForPodNamespace] != "" {
-		tags["pod_namesapce"] = container.Labels[containerLableForPodNamespace]
+		tags["pod_namespace"] = container.Labels[containerLableForPodNamespace]
 	}
 
 	return tags
@@ -205,7 +205,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"state":            inputs.NewTagInfo(`运行状态，running`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namesapce":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"pod_namespace":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
 			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 		},
 		Fields: map[string]interface{}{

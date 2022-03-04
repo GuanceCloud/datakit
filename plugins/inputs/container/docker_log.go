@@ -64,15 +64,15 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 
 	logconf := func() *containerLogConfig {
 		if datakit.Docker && tags["pod_name"] != "" {
-			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["pod_namesapce"])
+			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["pod_namespace"])
 		}
 		return getContainerLogConfigForDocker(container.Labels)
 	}()
 
 	if logconf != nil {
-		l.Debugf("use contaier logconfig %#v, container_name:%s", logconf, tags["container_name"])
+		l.Debugf("use container logconfig %#v, container_name:%s", logconf, tags["container_name"])
 		if logconf.Disable {
-			l.Debugf("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
+			l.Debugf("disable container log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
 			return nil
 		}
 
@@ -284,9 +284,10 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 
 	newTask := func() *worker.Task {
 		return &worker.Task{
-			TaskName:   "containerlog/" + logconf.Source,
-			Source:     logconf.Source,
-			ScriptName: logconf.Pipeline,
+			TaskName:      "containerlog/" + logconf.Source,
+			Source:        logconf.Source,
+			ScriptName:    logconf.Pipeline,
+			MaxMessageLen: d.cfg.maxLoggingLength,
 		}
 	}
 
@@ -381,7 +382,7 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
 			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namesapce":  inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"pod_namespace":  inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
 			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 			"service":        inputs.NewTagInfo(`服务名称`),
 		},
