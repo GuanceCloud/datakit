@@ -6,7 +6,7 @@
 
 # 准备工作
 
-1. 在您的开发目录下运行 `go get -v github.com/DataDog/dd-trace-go`
+1. 在您的开发目录下运行 `go get -v github.com/DataDog/dd-trace-go`
 2. 复制`Datakit`安装目录下`conf.d/ddtrace/ddtrace.conf.example`并重命名为`ddtrace.conf`
 3. 重启`Datakit`
 

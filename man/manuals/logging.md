@@ -28,8 +28,8 @@
     "/var/log/sys*",                       # 文件路径下所有以 sys 前缀的文件
   ]
 
-  ## socket目前支持两种协议：tcp,udp。建议开启内网端口防止安全隐患
-  ## socket和log目前是互斥行为，要开启socket采集日志 需要配置logfiles=[]
+  ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
+  ## socket 和 log 目前只能选择其中之一，不能既通过文件采集，又通过 socket 采集
   socket = [
    "tcp://0.0.0.0:9540"
    "udp://0.0.0.0:9541"

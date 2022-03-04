@@ -85,7 +85,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 			len(data), requrl, gz, time.Since(postbeg), string(body))
 	case 4:
 		dc.fails = 0
-		log.Warnf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
+		log.Errorf("post %d to %s failed(HTTP: %s): %s, cost %v, data dropped",
 			len(data),
 			requrl,
 			resp.Status,
@@ -93,7 +93,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 			time.Since(postbeg))
 	case 5:
 		dc.fails++
-		log.Errorf("[%d] post %d to %s failed(HTTP: %s): %s, cost %v", dc.fails,
+		log.Errorf("fails count [%d] post %d to %s failed(HTTP: %s): %s, cost %v", dc.fails,
 			len(data),
 			requrl,
 			resp.Status,
