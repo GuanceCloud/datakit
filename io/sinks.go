@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 )
 
 //----------------------------------------------------------------------
@@ -110,7 +112,7 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 
 		for category := range mCategory {
 			for _, impl := range SinkImpls {
-				id, err := getAssertString("id", v)
+				id, err := dkstring.GetMapAssertString("id", v)
 				if err != nil {
 					return err
 				}
@@ -125,7 +127,7 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 
 func buildSinkImpls(sincfg []map[string]interface{}) error {
 	for _, v := range sincfg {
-		target, err := getAssertString("target", v)
+		target, err := dkstring.GetMapAssertString("target", v)
 		if err != nil {
 			return err
 		}
@@ -153,7 +155,7 @@ func checkSinksConfig(sincfg []map[string]interface{}) error {
 	// check id unique
 	mSinkID := make(map[string]struct{})
 	for _, v := range sincfg {
-		id, err := getAssertString("id", v)
+		id, err := dkstring.GetMapAssertString("id", v)
 		if err != nil {
 			return err
 		}
@@ -168,18 +170,6 @@ func checkSinksConfig(sincfg []map[string]interface{}) error {
 		}
 	}
 	return nil
-}
-
-func getAssertString(name string, mSingle map[string]interface{}) (string, error) {
-	str, ok := mSingle[name].(string)
-	if !ok {
-		return "", getAssertStringError(name)
-	}
-	return str, nil
-}
-
-func getAssertStringError(name string) error {
-	return fmt.Errorf("invalid %s: not string", name)
 }
 
 //----------------------------------------------------------------------

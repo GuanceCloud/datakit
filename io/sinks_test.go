@@ -68,3 +68,28 @@ func TestCheckSinksConfig(t *testing.T) {
 		})
 	}
 }
+
+// go test -v -timeout 30s -run ^TestBuildSinkImpls$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io
+// func TestBuildSinkImpls(t *testing.T) {
+// 	cases := []struct {
+// 		name        string
+// 		in          []map[string]interface{}
+// 		expectError error
+// 	}{
+// 		{
+// 			name: "id_unique",
+// 			in: []map[string]interface{}{
+// 				{"id": "abc"},
+// 				{"id": "bcd"},
+// 				{"id": "efg"},
+// 			},
+// 		},
+// 	}
+
+// 	for _, tc := range cases {
+// 		t.Run(tc.name, func(t *testing.T) {
+// 			// err := checkSinksConfig(tc.in)
+// 			// assert.Equal(t, tc.expectError, err)
+// 		})
+// 	}
+// }

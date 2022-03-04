@@ -6,6 +6,7 @@ import (
 	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -55,36 +56,89 @@ func (s *SinkInfluxDB) Write(pts []*io.Point) error {
 }
 
 func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
-	s.ID = mConf["id"].(string)
-	s.addr = mConf["addr"].(string)
-	s.precision = mConf["precision"].(string)
-	s.database = mConf["database"].(string)
+	if id, err := dkstring.GetMapAssertString("id", mConf); err != nil {
+		return err
+	} else {
+		s.ID = id
+	}
 
-	s.username = mConf["username"].(string)
-	s.password = mConf["password"].(string)
-	s.userAgent = mConf["user_agent"].(string)
+	if addr, err := dkstring.GetMapAssertString("addr", mConf); err != nil {
+		return err
+	} else {
+		s.addr = addr
+	}
 
-	s.retentionPolicy = mConf["retention_policy"].(string)
-	s.writeConsistency = mConf["write_consistency"].(string)
+	if precision, err := dkstring.GetMapAssertString("precision", mConf); err != nil {
+		return err
+	} else {
+		s.precision = precision
+	}
 
-	s.payloadSize = mConf["payload_size"].(int)
+	if database, err := dkstring.GetMapAssertString("database", mConf); err != nil {
+		return err
+	} else {
+		s.database = database
+	}
 
-	s.writeEncoding = mConf["write_encoding"].(string)
-	if s.writeEncoding != "" {
-		if s.writeEncoding != string(client.GzipEncoding) {
-			return fmt.Errorf("not support encoding")
+	if username, err := dkstring.GetMapAssertString("username", mConf); err != nil {
+		return err
+	} else {
+		s.username = username
+	}
+
+	if password, err := dkstring.GetMapAssertString("password", mConf); err != nil {
+		return err
+	} else {
+		s.password = password
+	}
+
+	if userAgent, err := dkstring.GetMapAssertString("user_agent", mConf); err != nil {
+		return err
+	} else {
+		s.userAgent = userAgent
+	}
+
+	if retentionPolicy, err := dkstring.GetMapAssertString("retention_policy", mConf); err != nil {
+		return err
+	} else {
+		s.retentionPolicy = retentionPolicy
+	}
+
+	if writeConsistency, err := dkstring.GetMapAssertString("write_consistency", mConf); err != nil {
+		return err
+	} else {
+		s.writeConsistency = writeConsistency
+	}
+
+	if payloadSize, err := dkstring.GetMapAssertInt("payload_size", mConf); err != nil {
+		return err
+	} else {
+		s.payloadSize = payloadSize
+	}
+
+	if writeEncoding, err := dkstring.GetMapAssertString("write_encoding", mConf); err != nil {
+		return err
+	} else {
+		if writeEncoding != "" {
+			if writeEncoding != string(client.GzipEncoding) {
+				return fmt.Errorf("not support encoding")
+			}
+			s.writeEncoding = writeEncoding
 		}
 	}
 
-	timeoutStr := mConf["timeout"].(string)
-	if timeoutStr != "" {
-		td, err := time.ParseDuration(timeoutStr)
-		if err != nil {
-			return err
-		}
-		s.timeout = td
+	if timeout, err := dkstring.GetMapAssertString("timeout", mConf); err != nil {
+		return err
 	} else {
-		s.timeout = defaultTimeout
+		if timeout != "" {
+			td, err := time.ParseDuration(timeout)
+			if err != nil {
+				return err
+			}
+			s.timeout = td
+		} else {
+			s.timeout = defaultTimeout
+		}
 	}
 
 	ul, err := url.Parse(s.addr)
