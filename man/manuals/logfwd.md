@@ -32,7 +32,7 @@
 
 ### logfwd 使用和配置
 
-logfwd 主配置是 JSON 格式，内容如下：
+logfwd 主配置是 JSON 格式，如下是一个配置示例：
 
 ``` json
 [
@@ -125,7 +125,7 @@ spec:
         fieldRef:
           apiVersion: v1
           fieldPath: metadata.namespace
-    image: registry.jiagouyun.com/datakit/logfwd:{{.Version}}
+    image: pubrepo.jiagouyun.com/datakit/logfwd:{{.Version}}
     imagePullPolicy: Always
     volumeMounts:
     - name: varlog
