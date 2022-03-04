@@ -31,13 +31,24 @@
 kubectl apply -f datakit.yaml
 ```
 
-### 查看运行状态：
+### 查看运行状态
 
 安装完后，会创建一个 datakit 的 DaemonSet 部署：
 
 ```shell
 kubectl get pod -n datakit
 ```
+
+### Kubernetes 污点容忍度配置
+
+DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有污点），如果 Kubernetes 中某些 node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 datakit.yaml，调整其中的污点容忍度：
+
+```yaml
+      tolerations:
+      - operator: Exists    <--- 修改这里的污点容忍度
+```
+
+具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration)。
 
 ### DataKit 中其它环境变量设置
 
