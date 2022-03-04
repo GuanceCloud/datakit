@@ -828,11 +828,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-<<<<<<< HEAD
 # golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
-=======
-# golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11
->>>>>>> hotfix
 ## explicit
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
