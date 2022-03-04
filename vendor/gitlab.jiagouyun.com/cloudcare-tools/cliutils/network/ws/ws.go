@@ -146,7 +146,10 @@ func (s *Server) startEpoll() {
 
 			connections, err := s.epoller.Wait(100)
 			if err != nil {
-				l.Errorf("Failed to epoll wait %v", err)
+				// You should check the epoll_wait return value,
+				// then if it's -1 compare errno to EINTR and,
+				// if so, retry the system call.
+				// This is usually done with continue in a loop.
 				continue
 			}
 
