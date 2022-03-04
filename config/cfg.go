@@ -22,7 +22,6 @@ import (
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
@@ -336,17 +335,6 @@ func (c *Config) setupDataway() error {
 	return c.DataWay.Apply()
 }
 
-func (c *Config) setupSender() (*sender.Sender, error) {
-	c.IOConf.FlushInterval
-	s := sender.NewSender(&sender.Sinker{
-		Store: map[string]sender.Writer{"metric": c.DataWay, "dataway": c.DataWay}},
-		&sender.Option{
-			Cache:    c.IOConf.EnableCache,
-			Interval: c.IOConf.FlushInterval,
-		})
-	return s, nil
-}
-
 func (c *Config) setupGlobalTags() error {
 	if c.GlobalTags == nil {
 		c.GlobalTags = map[string]string{}
@@ -449,11 +437,6 @@ func (c *Config) ApplyMainConfig() error {
 		return err
 	}
 
-	sender, err := c.setupSender()
-	if err != nil {
-		return err
-	}
-
 	datakit.AutoUpdate = c.AutoUpdate
 
 	// config default io
@@ -474,7 +457,6 @@ func (c *Config) ApplyMainConfig() error {
 			dkio.SetOutputFile(c.IOConf.OutputFile),
 			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
 			dkio.SetEnableCache(c.IOConf.EnableCache),
-			dkio.SetSender(sender),
 			dkio.SetDataway(c.DataWay))
 	}
 

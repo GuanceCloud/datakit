@@ -17,10 +17,9 @@ type Sinker struct {
 }
 
 func (d *Sinker) Write(category string, pts []*influxdb.Point) error {
-	writer, ok := d.Store[category]
+	writer, ok := d.Store["dataway"]
 	if !ok {
 		return fmt.Errorf("invalid category: %s, found no sinker", category)
 	}
-	l.Debug("sender......", writer)
 	return writer.Write(category, pts)
 }

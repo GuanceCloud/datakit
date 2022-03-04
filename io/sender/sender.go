@@ -1,4 +1,4 @@
-// Package sender mainly save io data.
+// Package sender mainly send io data and cache io data when send failed.
 package sender
 
 import (
@@ -38,6 +38,7 @@ type Sender struct {
 	opt            *Option
 	sinkerInstance *Sinker
 	group          *goroutine.Group
+	stopCh         chan interface{}
 }
 
 func (s *Sender) Write(category string, pts []*influxdb.Point) error {
@@ -60,14 +61,13 @@ func (s *Sender) worker(category string, pts []*influxdb.Point) error {
 	s.group.Go(func(ctx context.Context) error {
 		if err := s.sinkerInstance.Write(category, pts); err != nil {
 			atomic.AddInt64(&s.Stat.failCount, 1)
-			l.Error("sender...", err)
+			l.Error("sink write error", err)
 
 			if s.opt.Cache {
 				s.cache(category, pts)
 			}
 
 		} else {
-			l.Debug("sender....", category)
 			atomic.AddInt64(&s.Stat.successCount, 1)
 		}
 
@@ -81,7 +81,12 @@ func (s *Sender) Wait() error {
 	return s.group.Wait()
 }
 
+// cache save points to cache.
 func (s *Sender) cache(category string, pts []*influxdb.Point) {
+	if len(pts) == 0 {
+		return
+	}
+
 	ptList := []string{}
 	for _, pt := range pts {
 		ptList = append(ptList, pt.String())
@@ -107,6 +112,8 @@ func (s *Sender) cache(category string, pts []*influxdb.Point) {
 }
 
 func (s *Sender) init(opt *Option) {
+	s.stopCh = make(chan interface{})
+
 	if opt != nil {
 		s.opt = opt
 	} else {
@@ -132,14 +139,15 @@ func (s *Sender) init(opt *Option) {
 
 func (s *Sender) initCache(cacheDir string) {
 	if err := cache.Initialize(cacheDir, nil); err != nil {
-		l.Warn("initialized cache: %s, ignored", err)
+		l.Warnf("initialized cache: %s, ignored", err.Error())
 	} else { //nolint
 		if err := cache.CreateBucketIfNotExists(cacheBucket); err != nil {
-			l.Warn("create bucket: %s", err)
+			l.Warnf("create bucket: %s", err.Error())
 		}
 	}
 }
 
+// startFlushCache start flush cache loop
 func (s *Sender) startFlushCache() {
 	interval := s.opt.FlushCacheInterval
 	if interval == 0 {
@@ -153,15 +161,18 @@ func (s *Sender) startFlushCache() {
 		case <-tick.C:
 			s.flushCache()
 		case <-datakit.Exit.Wait():
-			l.Warnf("flush cache exit")
+			l.Warnf("flush cache exit on global exit")
+			return
+		case <-s.stopCh:
+			l.Warn("flush cache stop")
+			return
 		}
 	}
-
 }
 
 func (s *Sender) flushCache() {
 	l.Debugf("flush cache")
-	const clean = true
+	const clean = false
 
 	fn := func(k, v []byte) error {
 		d := PBData{}
@@ -170,12 +181,16 @@ func (s *Sender) flushCache() {
 		}
 		pts, err := lp.ParsePoints(d.Lines, nil)
 		if err != nil {
-			l.Warnf("parse cace points error : %s", err.Error())
+			l.Warnf("parse cache points error : %s", err.Error())
 		}
 
 		err = s.sinkerInstance.Write(d.Category, pts)
 		if err != nil {
 			l.Warnf("cache sink write error: %s", err.Error())
+		} else {
+			if err := cache.Del(cacheBucket, k); err != nil {
+				l.Warnf("cache send ok, but delete cache error: %s", string(k))
+			}
 		}
 		return err
 	}
@@ -183,8 +198,20 @@ func (s *Sender) flushCache() {
 	if err := cache.ForEach(cacheBucket, fn, clean); err != nil {
 		l.Warnf("upload cache: %s, ignore", err)
 	}
+
+	l.Debug(cache.Info())
 }
 
+// Stop stop cache interval and stop cache
+func (s *Sender) Stop() error {
+	if s.stopCh != nil {
+		close(s.stopCh)
+	}
+
+	return cache.Stop()
+}
+
+// NewSender init sender with sinker instance and custom opt.
 func NewSender(sinker *Sinker, opt *Option) *Sender {
 	l = logger.SLogger("sender")
 	s := &Sender{
@@ -194,33 +221,3 @@ func NewSender(sinker *Sinker, opt *Option) *Sender {
 	s.init(opt)
 	return s
 }
-
-// func getDataType(category string) (dataType string) {
-// 	switch category {
-// 	case datakit.MetricDeprecated:
-// 		dataType = "metric"
-// 	case datakit.Metric:
-// 		dataType = "metric"
-// 	case datakit.Network:
-// 		dataType = "network"
-// 	case datakit.KeyEvent:
-// 		dataType = "keyevent"
-// 	case datakit.Object:
-// 		dataType = "object"
-// 	case datakit.CustomObject:
-// 		dataType = "custom_object"
-// 	case datakit.Logging:
-// 		dataType = "logging"
-// 	case datakit.Tracing:
-// 		dataType = "tracing"
-// 	case datakit.Security:
-// 		dataType = "security"
-// 	case datakit.RUM:
-// 		dataType = "rum"
-// 	default:
-// 		if _, err := url.ParseRequestURI(category); err == nil {
-// 			dataType = "dataway"
-// 		}
-// 	}
-// 	return
-// }

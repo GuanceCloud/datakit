@@ -10,20 +10,15 @@ import (
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
-	pb "google.golang.org/protobuf/proto"
 )
 
 const (
 	minGZSize   = 1024
 	maxKodoPack = 10 * 1000 * 1000
-
-	cacheBucket = "io_upload_metric"
 )
 
 var (
@@ -197,10 +192,9 @@ func (x *IO) ioStop() {
 			log.Error(err)
 		}
 	}
-	if x.EnableCache {
-		if err := cache.Stop(); err != nil {
-			log.Error(err)
-		}
+	// stop sender
+	if err := x.sender.Stop(); err != nil {
+		log.Error(err)
 	}
 }
 
@@ -332,7 +326,8 @@ func (x *IO) init() error {
 
 func (x *IO) StartIO(recoverable bool) {
 	x.sender = sender.NewSender(&sender.Sinker{
-		Store: map[string]sender.Writer{"metric": x.dw, "dataway": x.dw}},
+		Store: map[string]sender.Writer{"metric": x.dw, "dataway": x.dw},
+	},
 		&sender.Option{
 			Cache:              x.EnableCache,
 			FlushCacheInterval: x.FlushInterval,
@@ -401,12 +396,7 @@ func (x *IO) StartIO(recoverable bool) {
 				}
 
 			case <-tick.C:
-				log.Debug("sender tick.C")
 				x.flushAll()
-				if x.EnableCache {
-					x.flushCache()
-					log.Debugf("cache info:%s", cache.Info())
-				}
 
 			case <-datakit.Exit.Wait():
 				log.Info("io exit on exit")
@@ -452,16 +442,9 @@ func (x *IO) flushAll() {
 
 func (x *IO) flush() {
 	for k, v := range x.cache {
-		if err := x.doFlushAsync(v, k); err != nil {
+		if err := x.doFlush(v, k); err != nil {
 			log.Errorf("post %d to %s failed", len(v), k)
-			if !x.EnableCache {
-				continue
-			}
-
-			// if err := x.putCache(k, v); err != nil {
-			// 	log.Warn("failed to put cache: %s", err)
-			// 	continue
-			// }
+			continue
 		}
 
 		if len(v) > 0 {
@@ -473,20 +456,9 @@ func (x *IO) flush() {
 
 	// flush dynamic cache: __not__ post to default dataway
 	for k, v := range x.dynamicCache {
-		if err := x.doFlushAsync(v, k); err != nil {
+		if err := x.doFlush(v, k); err != nil {
 			log.Errorf("post %d to %s failed", len(v), k)
-			if !x.EnableCache {
-				// clear data
-				x.dynamicCache[k] = nil
-				continue
-			}
-
-			// if err := x.putCache(k, v); err != nil {
-			// 	log.Warn("failed to put cache: %s", err)
-			// 	// clear data
-			// 	x.dynamicCache[k] = nil
-			// 	continue
-			// }
+			continue
 		}
 
 		if len(v) > 0 {
@@ -547,33 +519,32 @@ func (x *IO) buildBody(pts []*Point) ([]*body, error) {
 	}
 }
 
+// func (x *IO) doFlush(pts []*Point, category string) error {
+// 	if testAssert {
+// 		return nil
+// 	}
+
+// 	if pts == nil {
+// 		return nil
+// 	}
+
+// 	bodies, err := x.buildBody(pts)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	for _, body := range bodies {
+// 		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
+// 			addReporter(Reporter{Message: err.Error(), Status: "error", Category: "dataway"})
+// 			return err
+// 		}
+// 		x.SentBytes += x.lastBodyBytes
+// 		x.lastBodyBytes = 0
+// 	}
+
+// 	return nil
+// }
+
 func (x *IO) doFlush(pts []*Point, category string) error {
-	if testAssert {
-		return nil
-	}
-
-	if pts == nil {
-		return nil
-	}
-
-	bodies, err := x.buildBody(pts)
-	if err != nil {
-		return err
-	}
-	for _, body := range bodies {
-		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
-			addReporter(Reporter{Message: err.Error(), Status: "error", Category: "dataway"})
-			return err
-		}
-		x.SentBytes += x.lastBodyBytes
-		x.lastBodyBytes = 0
-	}
-
-	return nil
-}
-
-func (x *IO) doFlushAsync(pts []*Point, category string) error {
-	log.Debug("sender: doFlushAsync")
 	points := []*influxdb.Point{}
 	for _, pt := range pts {
 		points = append(points, pt.Point)
@@ -582,13 +553,6 @@ func (x *IO) doFlushAsync(pts []*Point, category string) error {
 		return fmt.Errorf("io sender is not initialized")
 	}
 
-	// if x.EnableCache {
-	// 	senderOpt.FailCb = func() {
-	// 		if err := x.putCache(category, pts); err != nil {
-	// 			log.Warn("failed to put cache: %s", err)
-	// 		}
-	// 	}
-	// }
 	return x.sender.Write(category, points)
 }
 
@@ -613,47 +577,30 @@ func (x *IO) DroppedTotal() int64 {
 	return x.droppedTotal
 }
 
-func (x *IO) putCache(category string, pts []*Point) error {
-	bodies, err := x.buildBody(pts)
-	if err != nil {
-		return err
-	}
+// func (x *IO) putCache(category string, pts []*Point) error {
+// 	bodies, err := x.buildBody(pts)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	for _, body := range bodies {
-		id := cliutils.XID("cache_")
-		d := PBData{
-			Category: category,
-			Gz:       body.gzon,
-			Body:     body.buf,
-		}
+// 	for _, body := range bodies {
+// 		id := cliutils.XID("cache_")
+// 		d := PBData{
+// 			Category: category,
+// 			Gz:       body.gzon,
+// 			Body:     body.buf,
+// 		}
 
-		data, err := pb.Marshal(&d)
-		if err != nil {
-			return err
-		}
-		if err := cache.Put(cacheBucket, []byte(id), data); err != nil {
-			return err
-		}
-		x.SentBytes += x.lastBodyBytes
-		x.lastBodyBytes = 0
-	}
+// 		data, err := pb.Marshal(&d)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		if err := cache.Put(cacheBucket, []byte(id), data); err != nil {
+// 			return err
+// 		}
+// 		x.SentBytes += x.lastBodyBytes
+// 		x.lastBodyBytes = 0
+// 	}
 
-	return nil
-}
-
-func (x *IO) flushCache() {
-	log.Debugf("flush cache")
-	const clean = true
-
-	fn := func(k, v []byte) error {
-		d := PBData{}
-		if err := pb.Unmarshal(v, &d); err != nil {
-			return err
-		}
-		return x.dw.Send(d.Category, d.Body, d.Gz)
-	}
-
-	if err := cache.ForEach(cacheBucket, fn, clean); err != nil {
-		log.Warnf("upload cache: %s, ignore", err)
-	}
-}
+// 	return nil
+// }

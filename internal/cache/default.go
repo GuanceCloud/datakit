@@ -64,6 +64,14 @@ func Get(bucket string, key []byte) ([]byte, error) {
 	return defaultCache.Get(bucket, key)
 }
 
+func Del(bucket string, key []byte) error {
+	if defaultCache == nil {
+		return ErrGlobalCacheNotInitialize
+	}
+	defaultCache.cleanCache(bucket, [][]byte{key})
+	return nil
+}
+
 func ForEach(bucket string, handle ProcessHandle, clean bool) error {
 	if defaultCache == nil {
 		return ErrGlobalCacheNotInitialize

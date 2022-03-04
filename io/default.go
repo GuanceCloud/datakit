@@ -5,10 +5,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 )
 
 var (
@@ -29,12 +26,6 @@ type IOOption func(io *IO)
 func SetMaxCacheCount(max int64) IOOption {
 	return func(io *IO) {
 		io.MaxCacheCount = max
-	}
-}
-
-func SetSender(sender *sender.Sender) IOOption {
-	return func(io *IO) {
-		io.sender = sender
 	}
 }
 
@@ -126,17 +117,6 @@ func Start() error {
 	defaultIO.dynamicCache = map[string][]*Point{}
 
 	defaultIO.StartIO(true)
-
-	if defaultIO.EnableCache {
-		if err := cache.Initialize(datakit.CacheDir, nil); err != nil {
-			log.Warn("initialized cache: %s, ignored", err)
-		} else { //nolint
-			if err := cache.CreateBucketIfNotExists(cacheBucket); err != nil {
-				log.Warn("create bucket: %s", err)
-			}
-		}
-	}
-
 	log.Debugf("io: %+#v", defaultIO)
 
 	return nil

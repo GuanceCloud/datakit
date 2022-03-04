@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/tracer"
 
@@ -141,10 +142,76 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 }
 
 func (dw *DataWayCfg) Write(category string, pts []*influxdb.Point) error {
-	log.Debugf("metric write.....")
-	log.Debug(category, len(pts))
+	if len(pts) == 0 {
+		return nil
+	}
 
-	time.Sleep(10 * time.Second)
-	log.Debugf("metric write..... timeout")
-	return fmt.Errorf("timeout")
+	bodies, err := dw.buildBody(pts, true)
+	if err != nil {
+		return err
+	}
+
+	for _, body := range bodies {
+		if err := dw.Send(category, body.buf, body.gzon); err != nil {
+			log.Error(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+const (
+	minGZSize   = 1024
+	maxKodoPack = 10 * 1000 * 1000
+)
+
+type body struct {
+	buf  []byte
+	gzon bool
+}
+
+func (dw *DataWayCfg) buildBody(pts []*influxdb.Point, isGzip bool) ([]*body, error) {
+	lines := bytes.Buffer{}
+	var (
+		gz = func(lines []byte) (*body, error) {
+			var (
+				body = &body{buf: lines}
+				err  error
+			)
+			log.Debugf("### io body size before GZ: %dM %dK", len(body.buf)/1000/1000, len(body.buf)/1000)
+			if len(lines) > minGZSize && isGzip {
+				if body.buf, err = datakit.GZip(body.buf); err != nil {
+					log.Errorf("gz: %s", err.Error())
+
+					return nil, err
+				}
+				body.gzon = true
+			}
+
+			return body, nil
+		}
+		// lines  bytes.Buffer
+		bodies []*body
+	)
+	lines.Reset()
+	for _, pt := range pts {
+		ptstr := pt.String()
+		if lines.Len()+len(ptstr)+1 >= maxKodoPack {
+			if body, err := gz(lines.Bytes()); err != nil {
+				return nil, err
+			} else {
+				log.Warn(string(body.buf))
+				bodies = append(bodies, body)
+			}
+			lines.Reset()
+		}
+		lines.WriteString(ptstr)
+		lines.WriteString("\n")
+	}
+	if body, err := gz(lines.Bytes()); err != nil {
+		return nil, err
+	} else {
+		return append(bodies, body), nil
+	}
 }
