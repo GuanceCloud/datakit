@@ -30,11 +30,6 @@ func AddImpl(sink ISink) {
 
 //----------------------------------------------------------------------
 
-type SinkImplStruct struct {
-	ID        string
-	ISinkImpl ISink
-}
-
 var (
 	SinkImplCreator = make(map[string]SinkCreator)
 	SinkImpls       = []ISink{}
