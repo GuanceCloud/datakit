@@ -440,14 +440,20 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 		// auth
 		// TODO: add more auth options
 		if opt.RequestOptions.Auth != nil {
-			req.SetBasicAuth(opt.RequestOptions.Auth.Username, opt.RequestOptions.Auth.Password)
+			if !(opt.RequestOptions.Auth.Username == "" && opt.RequestOptions.Auth.Password == "") {
+				req.SetBasicAuth(opt.RequestOptions.Auth.Username, opt.RequestOptions.Auth.Password)
+			}
 		}
 	}
 
 	// body options
 	if opt.RequestBody != nil {
-		req.Header.Add("Content-Type", opt.RequestBody.BodyType)
-		req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(opt.RequestBody.Body)))
+		if opt.RequestBody.BodyType != "" {
+			req.Header.Add("Content-Type", opt.RequestBody.BodyType)
+		}
+		if opt.RequestBody.Body != "" {
+			req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(opt.RequestBody.Body)))
+		}
 	}
 
 	// proxy headers
