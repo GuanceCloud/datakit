@@ -1,54 +1,24 @@
-package io
+package sink
 
 import (
 	"fmt"
 	"strings"
 	"sync"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
 )
 
 //----------------------------------------------------------------------
 
-type ISink interface {
-	GetID() string
-	LoadConfig(mConf map[string]interface{}) error
-	Write(pts []*Point) error
-	Metrics() map[string]interface{}
-}
-
-type SinkCreator func() ISink
-
-func AddCreator(creatorID string, creator SinkCreator) {
-	if _, ok := SinkImplCreator[creatorID]; ok {
-		log.Fatalf("sink %s exist(from datakit)", creatorID)
-	}
-	SinkImplCreator[creatorID] = creator
-}
-
-func AddImpl(sink ISink) {
-	SinkImpls = append(SinkImpls, sink)
-}
-
-//----------------------------------------------------------------------
-
-var (
-	SinkImplCreator = make(map[string]SinkCreator)
-	SinkImpls       = []ISink{}
-	SinkCategoryMap = make(map[string][]ISink)
-
-	onceInit        sync.Once
-	isInitSucceeded bool
-)
-
-//----------------------------------------------------------------------
-
-func Write(category string, pts []*Point) error {
+func Write(category string, pts []sinkcommon.ISinkPoint) error {
 	if !isInitSucceeded {
 		return fmt.Errorf("not inited")
 	}
 
-	if impls, ok := SinkCategoryMap[category]; ok {
+	if impls, ok := sinkcommon.SinkCategoryMap[category]; ok {
 		var errKeep error
 		for _, v := range impls {
 			if err := v.Write(pts); err != nil {
@@ -64,32 +34,34 @@ func Write(category string, pts []*Point) error {
 	return fmt.Errorf("unsupport category")
 }
 
-func InitSink(sincfg []map[string]interface{}) error {
+func Init(sincfg []map[string]interface{}) error {
 	var err error
 	onceInit.Do(func() {
+		l = logger.SLogger(packageName)
+
 		err = func() error {
 			if isInitSucceeded {
 				return fmt.Errorf("init twice")
 			}
 
-			// check sinks config
-			if err := checkSinksConfig(sincfg); err != nil {
+			// check sink config
+			if err := checkSinkConfig(sincfg); err != nil {
 				return err
 			}
 
-			log.Debugf("SinkImplCreator = %#v", SinkImplCreator)
+			l.Debugf("SinkImplCreator = %#v", sinkcommon.SinkImplCreator)
 
 			if err := buildSinkImpls(sincfg); err != nil {
 				return err
 			}
 
-			log.Debugf("SinkImpls = %#v", SinkImpls)
+			l.Debugf("SinkImpls = %#v", sinkcommon.SinkImpls)
 
 			if err := aggregationCategorys(sincfg); err != nil {
 				return err
 			}
 
-			log.Debugf("SinkCategoryMap = %v", SinkCategoryMap)
+			l.Debugf("SinkCategoryMap = %v", sinkcommon.SinkCategoryMap)
 
 			isInitSucceeded = true
 			return nil
@@ -97,6 +69,16 @@ func InitSink(sincfg []map[string]interface{}) error {
 	})
 	return err
 }
+
+//----------------------------------------------------------------------
+
+const packageName = "sink"
+
+var (
+	l               = logger.DefaultSLogger(packageName)
+	onceInit        sync.Once
+	isInitSucceeded bool
+)
 
 func aggregationCategorys(sincfg []map[string]interface{}) error {
 	for _, v := range sincfg {
@@ -111,13 +93,14 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 		}
 
 		for category := range mCategory {
-			for _, impl := range SinkImpls {
+			for _, impl := range sinkcommon.SinkImpls {
 				id, err := dkstring.GetMapAssertString("id", v)
 				if err != nil {
 					return err
 				}
 				if id == impl.GetID() {
-					SinkCategoryMap[category] = append(SinkCategoryMap[category], impl)
+					sinkcommon.SinkCategoryMap[category] =
+						append(sinkcommon.SinkCategoryMap[category], impl)
 				}
 			}
 		}
@@ -142,8 +125,8 @@ func buildSinkImpls(sincfg []map[string]interface{}) error {
 	return nil
 }
 
-func getSinkInstanceFromTarget(target string) ISink {
-	for k, v := range SinkImplCreator {
+func getSinkInstanceFromTarget(target string) sinkcommon.ISink {
+	for k, v := range sinkcommon.SinkImplCreator {
 		if k == target {
 			return v()
 		}
@@ -151,7 +134,7 @@ func getSinkInstanceFromTarget(target string) ISink {
 	return nil
 }
 
-func checkSinksConfig(sincfg []map[string]interface{}) error {
+func checkSinkConfig(sincfg []map[string]interface{}) error {
 	// check id unique
 	mSinkID := make(map[string]struct{})
 	for _, v := range sincfg {

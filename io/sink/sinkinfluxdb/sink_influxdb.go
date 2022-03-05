@@ -7,7 +7,7 @@ import (
 
 	client "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 const (
@@ -20,8 +20,8 @@ const (
 )
 
 var (
-	_             io.ISink = new(SinkInfluxDB)
-	initSucceeded          = false
+	_             sinkcommon.ISink = new(SinkInfluxDB)
+	initSucceeded                  = false
 )
 
 type SinkInfluxDB struct {
@@ -47,7 +47,7 @@ type SinkInfluxDB struct {
 	cliType int
 }
 
-func (s *SinkInfluxDB) Write(pts []*io.Point) error {
+func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
 	if !initSucceeded {
 		return fmt.Errorf("not_init")
 	}
@@ -155,11 +155,11 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 	}
 
 	initSucceeded = true
-	io.AddImpl(s)
+	sinkcommon.AddImpl(s)
 	return nil
 }
 
-func (s *SinkInfluxDB) writeInfluxDB(pts []*io.Point) error {
+func (s *SinkInfluxDB) writeInfluxDB(pts []sinkcommon.ISinkPoint) error {
 	var c client.Client
 	var err error
 
@@ -197,7 +197,7 @@ func (s *SinkInfluxDB) writeInfluxDB(pts []*io.Point) error {
 
 	var ps []*client.Point
 	for _, v := range pts {
-		ps = append(ps, v.Point)
+		ps = append(ps, v.ToPoint())
 	}
 	bp.AddPoints(ps)
 
@@ -217,7 +217,7 @@ func (s *SinkInfluxDB) GetID() string {
 }
 
 func init() {
-	io.AddCreator(creatorID, func() io.ISink {
+	sinkcommon.AddCreator(creatorID, func() sinkcommon.ISink {
 		return &SinkInfluxDB{}
 	})
 }

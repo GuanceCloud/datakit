@@ -8,6 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
 )
 
 var (
@@ -109,7 +110,7 @@ func ConfigDefaultIO(opts ...IOOption) {
 func Start(sincfg []map[string]interface{}) error {
 	log = logger.SLogger("io")
 
-	if err := InitSink(sincfg); err != nil {
+	if err := sink.Init(sincfg); err != nil {
 		l.Error("InitSink failed: %v", err)
 		return err
 	}

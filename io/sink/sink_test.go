@@ -1,4 +1,4 @@
-package io
+package sink
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// go test -v -timeout 30s -run ^TestCheckSinksConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io
+// go test -v -timeout 30s -run ^TestCheckSinksConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
 func TestCheckSinksConfig(t *testing.T) {
 	cases := []struct {
 		name        string
@@ -63,13 +63,13 @@ func TestCheckSinksConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := checkSinksConfig(tc.in)
+			err := checkSinkConfig(tc.in)
 			assert.Equal(t, tc.expectError, err)
 		})
 	}
 }
 
-// go test -v -timeout 30s -run ^TestBuildSinkImpls$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io
+// go test -v -timeout 30s -run ^TestBuildSinkImpls$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
 // func TestBuildSinkImpls(t *testing.T) {
 // 	cases := []struct {
 // 		name        string
