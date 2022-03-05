@@ -61,7 +61,7 @@ func Init(sincfg []map[string]interface{}) error {
 				return err
 			}
 
-			l.Debugf("SinkCategoryMap = %v", sinkcommon.SinkCategoryMap)
+			l.Debugf("SinkCategoryMap = %#v", sinkcommon.SinkCategoryMap)
 
 			isInitSucceeded = true
 			return nil
