@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
 )
 
 // go test -v -timeout 30s -run ^TestCheckSinksConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
@@ -70,26 +71,26 @@ func TestCheckSinksConfig(t *testing.T) {
 }
 
 // go test -v -timeout 30s -run ^TestBuildSinkImpls$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
-// func TestBuildSinkImpls(t *testing.T) {
-// 	cases := []struct {
-// 		name        string
-// 		in          []map[string]interface{}
-// 		expectError error
-// 	}{
-// 		{
-// 			name: "id_unique",
-// 			in: []map[string]interface{}{
-// 				{"id": "abc"},
-// 				{"id": "bcd"},
-// 				{"id": "efg"},
-// 			},
-// 		},
-// 	}
+func TestBuildSinkImpls(t *testing.T) {
+	cases := []struct {
+		name        string
+		in          []map[string]interface{}
+		expectError error
+	}{
+		{
+			name: "id_unique",
+			in: []map[string]interface{}{
+				{"id": "abc"},
+				{"id": "bcd"},
+				{"id": "efg"},
+			},
+		},
+	}
 
-// 	for _, tc := range cases {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			// err := checkSinksConfig(tc.in)
-// 			// assert.Equal(t, tc.expectError, err)
-// 		})
-// 	}
-// }
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// err := checkSinksConfig(tc.in)
+			// assert.Equal(t, tc.expectError, err)
+		})
+	}
+}
