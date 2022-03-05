@@ -99,8 +99,7 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 					return err
 				}
 				if id == impl.GetID() {
-					sinkcommon.SinkCategoryMap[category] =
-						append(sinkcommon.SinkCategoryMap[category], impl)
+					sinkcommon.SinkCategoryMap[category] = append(sinkcommon.SinkCategoryMap[category], impl)
 				}
 			}
 		}
