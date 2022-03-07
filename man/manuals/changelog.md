@@ -2,6 +2,20 @@
 
 # DataKit 版本历史
 
+## 1.2.8(2022/03/04)
+
+本次发布属于 hotfix 修复，内容如下：
+
+- DaemonSet 模式部署时， datakit.yaml 添加[污点容忍度配置](datakit-daemonset-deploy#e29e678e)(#635)
+- 修复 Remote Pipeline 拉取更新时的 bug(#630)
+- 修复 DataKit IO 模块卡死导致的内存泄露(#646)
+- 在 Pipeline 中允许修改 `service` 字段(#645)
+- 修复 `pod_namespace` 拼写错误
+- 修复 logfwd 的一些问题(#640)
+- 修复日志采集器在容器环境下采集时多行粘滞问题(#633)
+
+---
+
 ## 1.2.7(2022/02/22)
 
 本次发布属于迭代发布，内容如下：
@@ -23,7 +37,8 @@
 - 为减少默认安装包体积，默认安装不再带 IP 地理信息库。RUM 等采集器中，可额外[安装对应的 IP 库](datakit-tools-how-to#ab5cd5ad)
   - 如需安装时就带上 IP 地理信息库，可通过[额外支持的命令行环境变量](datakit-install#f9858758)来实现
 - 容器采集器增加 [logfwd 日志接入](logfwd)(#600)
-- 为进一步规范数据上传，行协议增加了更多严格的[限制](apis#f54b954f)(#592)
+- 为进一步规范数据上传，行协议增加了更多严格的[限制](apis#2fc2526a)(#592)
+- [日志采集器](logging)中，放开日志长度限制（`maximum_length`）(#623)
 - 优化日志采集过程中的 Monitor 显示(#587)
 - 优化安装程序的命令行参数检查(#573)
 - 重新调整 DataKit 命令行参数，大部分主要的命令已经支持。另外，**老的命令行参数在一定时间内依然生效**(#499)
@@ -39,6 +54,12 @@
 - 修复 Pod annotation 中日志多行匹配不生效的问题(#620)
 - 修复 TCP/UDP 日志采集器 *service* tag 不生效的问题(#610)
 - 修复 Oracle 采集器采集不到数据的问题(#625)
+
+### Breaking Changes
+
+- 老版本的 DataKit 如果开启了 RUM 功能，升级上来后，需[重新安装 IP 库](datakit-tools-how-to#ab5cd5ad)，老版本的 IP 库将无法使用。
+
+---
 
 ## 1.2.6(2022/01/20)
 
@@ -459,7 +480,7 @@
 - 完善 [Kubernetes](kubernetes) 采集器，增加更多 Kubernetes 对象采集
 - 完善[主机名覆盖功能](datakit-install#987d5f91)
 - 优化 Pipeline 处理性能（约 15 倍左右，视不同 Pipeline 复杂度而定）
-- 加强[行协议数据检查](apis#f54b954f)
+- 加强[行协议数据检查](apis#2fc2526a)
 - `system` 采集器，增加 [`conntrack`以及`filefd`](system) 两个指标集
 - `datakit.conf` 增加 IO 调参入口，便于用户对 DataKit 网络出口流量做优化（参见下面的 Breaking Changes）
 - DataKit 支持[服务卸载和恢复](datakit-service-how-to#9e00a535)
