@@ -56,4 +56,5 @@ Datakit Tracing Backend 包括三部分 Tracing Statistics, Filters, Samplers
   - keep_rare_resource: 当系统监测到某些链路在一小时之内没有发送任何 Tracing 数据那么将被认定为稀有并被透穿到 Data Center。
   - close_resource: 按照正则规则关闭某些 Service 下的一个或多个 Resource。
 - Samplers: 基于概率的 Tracing 数据采样。多服务环境下采样率必须配置一致才能达到采样效果，
-  例如：A-Service(0.3) --> B-Service(0.3) --> C-Service(0.3) 最终采样率为 30%。
+  - 例一：A-Service(0.3) --> B-Service(0.3) --> C-Service(0.3) 配置正确，最终采样率为 30%。
+  - 例二：A-Service(0.1) --> B-Service(0.3) --> C-Service(0.1) 配置错误，链路不能正常工作。
