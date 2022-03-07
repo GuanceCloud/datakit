@@ -18,6 +18,36 @@
  
 trace 的具体数据结构 查看 [json后数据结构](mate.md)
  
+---
+ 
+### Metric
+代码及注释中会用到很多 OTEL 专业的名称，这里做统一解释
+- instrumentation_library.name: 指标集名称
+- Provider : Metric 处理器,一个进城一般只有一个处理器
+- attributes:标签
+- Exporter : 将产生的 metric 发送出去
+
+重新梳理 Metric 数据结构和观测云上的展示后。决定重构 OtelResourceMetric 对象。 20220303
+
+分层结构如下：
+``` text
+resource (server.name or inputName)
+    指标集名称（libraryMetric.InstrumentationLibrary.Name）
+        子类：指标A（metricName）
+            tag：{tagA:A,tagB:b} // 观测云上筛选使用
+            field : {metricName : metricVal} // 指标的时序图展示使用
+        子类：指标B
+            ...
+
+观测云展示示例
+指标集
+resource_指标集名称  ------>  指标A
+                             指标B
+```
+
+        
+---
+ 
 ### 如何测试
 1. 单元测试中有 mock 数据可以进行测试。
 1. 源码测试可使用 [github.example](https://github.com/open-telemetry/opentelemetry-go/blob/main/example/otel-collector/main.go)

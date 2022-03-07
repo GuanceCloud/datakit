@@ -97,7 +97,6 @@ type Input struct {
 	OHTTPc              *otlpHTTPCollector  `toml:"http"`
 	CloseResource       map[string][]string `toml:"close_resource"`
 	Sampler             *itrace.Sampler     `toml:"sampler"`
-	CustomerTags        []string            `toml:"customer_tags"`
 	IgnoreAttributeKeys []string            `toml:"ignore_attribute_keys"`
 	Tags                map[string]string   `toml:"tags"`
 

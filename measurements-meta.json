@@ -1,6 +1,6 @@
 {
-  "version": "1.1.1-rc1_debug-ddtrace-msgpack",
-  "release_date": "2022-02-10 04:28:15",
+  "version": "1.2.8-test1",
+  "release_date": "2022-03-04 08:27:52",
   "doc": [
     "本文档主要用来描述 DataKit 所采集到的各种指标集数据",
     "-----------------------------",
@@ -4991,42 +4991,56 @@
           "type": "gauge",
           "data_type": "int",
           "unit": "μs",
-          "desc": "Duration of span.",
+          "desc": "duration of span",
           "disabled": false
         },
         "message": {
           "type": "",
           "data_type": "string",
           "unit": "-",
-          "desc": "The origin content of span.",
+          "desc": "origin content of span",
           "disabled": false
         },
         "parent_id": {
           "type": "",
           "data_type": "string",
           "unit": "-",
-          "desc": "The parent id of current span.",
+          "desc": "parent span ID of current span",
           "disabled": false
         },
         "pid": {
           "type": "",
           "data_type": "string",
           "unit": "-",
-          "desc": "The application process id.",
+          "desc": "application process id.",
+          "disabled": false
+        },
+        "priority": {
+          "type": "",
+          "data_type": "int",
+          "unit": "-",
+          "desc": "",
           "disabled": false
         },
         "resource": {
           "type": "",
           "data_type": "string",
           "unit": "-",
-          "desc": "The resource name.",
+          "desc": "resource name produce current span",
+          "disabled": false
+        },
+        "sample_rate_global": {
+          "type": "",
+          "data_type": "float",
+          "unit": "-",
+          "desc": "global sample ratio",
           "disabled": false
         },
         "span_id": {
           "type": "",
           "data_type": "string",
           "unit": "-",
-          "desc": "Span id.",
+          "desc": "span id",
           "disabled": false
         },
         "start": {
@@ -5040,7 +5054,7 @@
           "type": "",
           "data_type": "string",
           "unit": "-",
-          "desc": "Trace id.",
+          "desc": "trace id",
           "disabled": false
         }
       },
@@ -5069,14 +5083,14 @@
         "service": {
           "Desc": "service name"
         },
+        "source_type": {
+          "Desc": "tracing source type"
+        },
         "span_type": {
           "Desc": "span type"
         },
         "status": {
           "Desc": "span status"
-        },
-        "type": {
-          "Desc": "span  service type"
         },
         "version": {
           "Desc": "application version info"
@@ -6662,6 +6676,9 @@
         "province": {
           "Desc": "示例 浙江"
         },
+        "region": {
+          "Desc": "示例：China-Xizang-unicom"
+        },
         "status": {
           "Desc": "示例 OK/FAIL 两种状态 "
         },
@@ -8146,6 +8163,121 @@
         }
       },
       "from": "influxdb"
+    },
+    "jaeger": {
+      "desc": "",
+      "type": "tracing",
+      "fields": {
+        "duration": {
+          "type": "gauge",
+          "data_type": "int",
+          "unit": "μs",
+          "desc": "duration of span",
+          "disabled": false
+        },
+        "message": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "origin content of span",
+          "disabled": false
+        },
+        "parent_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "parent span ID of current span",
+          "disabled": false
+        },
+        "pid": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "application process id.",
+          "disabled": false
+        },
+        "priority": {
+          "type": "",
+          "data_type": "int",
+          "unit": "-",
+          "desc": "",
+          "disabled": false
+        },
+        "resource": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "resource name produce current span",
+          "disabled": false
+        },
+        "sample_rate_global": {
+          "type": "",
+          "data_type": "float",
+          "unit": "-",
+          "desc": "global sample ratio",
+          "disabled": false
+        },
+        "span_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "span id",
+          "disabled": false
+        },
+        "start": {
+          "type": "gauge",
+          "data_type": "int",
+          "unit": "usec",
+          "desc": "start time of span.",
+          "disabled": false
+        },
+        "trace_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "trace id",
+          "disabled": false
+        }
+      },
+      "tags": {
+        "container_host": {
+          "Desc": "container hostname"
+        },
+        "endpoint": {
+          "Desc": "endpoint info"
+        },
+        "env": {
+          "Desc": "application environment info"
+        },
+        "http_method": {
+          "Desc": "http request method name"
+        },
+        "http_status_code": {
+          "Desc": "http response code"
+        },
+        "operation": {
+          "Desc": "span name"
+        },
+        "project": {
+          "Desc": "project name"
+        },
+        "service": {
+          "Desc": "service name"
+        },
+        "source_type": {
+          "Desc": "tracing source type"
+        },
+        "span_type": {
+          "Desc": "span type"
+        },
+        "status": {
+          "Desc": "span status"
+        },
+        "version": {
+          "Desc": "application version info"
+        }
+      },
+      "from": "jaeger"
     },
     "java_class_loading": {
       "desc": "",
@@ -18911,6 +19043,121 @@
       },
       "from": "nsq"
     },
+    "opentelemetry": {
+      "desc": "",
+      "type": "tracing",
+      "fields": {
+        "duration": {
+          "type": "gauge",
+          "data_type": "int",
+          "unit": "μs",
+          "desc": "duration of span",
+          "disabled": false
+        },
+        "message": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "origin content of span",
+          "disabled": false
+        },
+        "parent_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "parent span ID of current span",
+          "disabled": false
+        },
+        "pid": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "application process id.",
+          "disabled": false
+        },
+        "priority": {
+          "type": "",
+          "data_type": "int",
+          "unit": "-",
+          "desc": "",
+          "disabled": false
+        },
+        "resource": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "resource name produce current span",
+          "disabled": false
+        },
+        "sample_rate_global": {
+          "type": "",
+          "data_type": "float",
+          "unit": "-",
+          "desc": "global sample ratio",
+          "disabled": false
+        },
+        "span_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "span id",
+          "disabled": false
+        },
+        "start": {
+          "type": "gauge",
+          "data_type": "int",
+          "unit": "usec",
+          "desc": "start time of span.",
+          "disabled": false
+        },
+        "trace_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "trace id",
+          "disabled": false
+        }
+      },
+      "tags": {
+        "container_host": {
+          "Desc": "container hostname"
+        },
+        "endpoint": {
+          "Desc": "endpoint info"
+        },
+        "env": {
+          "Desc": "application environment info"
+        },
+        "http_method": {
+          "Desc": "http request method name"
+        },
+        "http_status_code": {
+          "Desc": "http response code"
+        },
+        "operation": {
+          "Desc": "span name"
+        },
+        "project": {
+          "Desc": "project name"
+        },
+        "service": {
+          "Desc": "service name"
+        },
+        "source_type": {
+          "Desc": "tracing source type"
+        },
+        "span_type": {
+          "Desc": "span type"
+        },
+        "status": {
+          "Desc": "span status"
+        },
+        "version": {
+          "Desc": "application version info"
+        }
+      },
+      "from": "opentelemetry"
+    },
     "oracle_process": {
       "desc": "",
       "type": "",
@@ -20705,6 +20952,121 @@
         }
       },
       "from": "sensors"
+    },
+    "skywalking": {
+      "desc": "",
+      "type": "tracing",
+      "fields": {
+        "duration": {
+          "type": "gauge",
+          "data_type": "int",
+          "unit": "μs",
+          "desc": "duration of span",
+          "disabled": false
+        },
+        "message": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "origin content of span",
+          "disabled": false
+        },
+        "parent_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "parent span ID of current span",
+          "disabled": false
+        },
+        "pid": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "application process id.",
+          "disabled": false
+        },
+        "priority": {
+          "type": "",
+          "data_type": "int",
+          "unit": "-",
+          "desc": "",
+          "disabled": false
+        },
+        "resource": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "resource name produce current span",
+          "disabled": false
+        },
+        "sample_rate_global": {
+          "type": "",
+          "data_type": "float",
+          "unit": "-",
+          "desc": "global sample ratio",
+          "disabled": false
+        },
+        "span_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "span id",
+          "disabled": false
+        },
+        "start": {
+          "type": "gauge",
+          "data_type": "int",
+          "unit": "usec",
+          "desc": "start time of span.",
+          "disabled": false
+        },
+        "trace_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "trace id",
+          "disabled": false
+        }
+      },
+      "tags": {
+        "container_host": {
+          "Desc": "container hostname"
+        },
+        "endpoint": {
+          "Desc": "endpoint info"
+        },
+        "env": {
+          "Desc": "application environment info"
+        },
+        "http_method": {
+          "Desc": "http request method name"
+        },
+        "http_status_code": {
+          "Desc": "http response code"
+        },
+        "operation": {
+          "Desc": "span name"
+        },
+        "project": {
+          "Desc": "project name"
+        },
+        "service": {
+          "Desc": "service name"
+        },
+        "source_type": {
+          "Desc": "tracing source type"
+        },
+        "span_type": {
+          "Desc": "span type"
+        },
+        "status": {
+          "Desc": "span status"
+        },
+        "version": {
+          "Desc": "application version info"
+        }
+      },
+      "from": "skywalking"
     },
     "smart": {
       "desc": "",
@@ -22768,6 +23130,121 @@
         }
       },
       "from": "tomcat"
+    },
+    "zipkin": {
+      "desc": "",
+      "type": "tracing",
+      "fields": {
+        "duration": {
+          "type": "gauge",
+          "data_type": "int",
+          "unit": "μs",
+          "desc": "duration of span",
+          "disabled": false
+        },
+        "message": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "origin content of span",
+          "disabled": false
+        },
+        "parent_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "parent span ID of current span",
+          "disabled": false
+        },
+        "pid": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "application process id.",
+          "disabled": false
+        },
+        "priority": {
+          "type": "",
+          "data_type": "int",
+          "unit": "-",
+          "desc": "",
+          "disabled": false
+        },
+        "resource": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "resource name produce current span",
+          "disabled": false
+        },
+        "sample_rate_global": {
+          "type": "",
+          "data_type": "float",
+          "unit": "-",
+          "desc": "global sample ratio",
+          "disabled": false
+        },
+        "span_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "span id",
+          "disabled": false
+        },
+        "start": {
+          "type": "gauge",
+          "data_type": "int",
+          "unit": "usec",
+          "desc": "start time of span.",
+          "disabled": false
+        },
+        "trace_id": {
+          "type": "",
+          "data_type": "string",
+          "unit": "-",
+          "desc": "trace id",
+          "disabled": false
+        }
+      },
+      "tags": {
+        "container_host": {
+          "Desc": "container hostname"
+        },
+        "endpoint": {
+          "Desc": "endpoint info"
+        },
+        "env": {
+          "Desc": "application environment info"
+        },
+        "http_method": {
+          "Desc": "http request method name"
+        },
+        "http_status_code": {
+          "Desc": "http response code"
+        },
+        "operation": {
+          "Desc": "span name"
+        },
+        "project": {
+          "Desc": "project name"
+        },
+        "service": {
+          "Desc": "service name"
+        },
+        "source_type": {
+          "Desc": "tracing source type"
+        },
+        "span_type": {
+          "Desc": "span type"
+        },
+        "status": {
+          "Desc": "span status"
+        },
+        "version": {
+          "Desc": "application version info"
+        }
+      },
+      "from": "zipkin"
     }
   },
   "objects": {
@@ -23514,6 +23991,9 @@
         "cluster_name": {
           "Desc": "The name of the cluster which the object belongs to."
         },
+        "internal_ip": {
+          "Desc": "Node internal IP"
+        },
         "name": {
           "Desc": "UID"
         },
@@ -23521,7 +24001,7 @@
           "Desc": "Namespace defines the space within each name must be unique."
         },
         "node_ip": {
-          "Desc": "Node IP"
+          "Desc": "Node IP (depercated)"
         },
         "node_name": {
           "Desc": "Name must be unique within a namespace."

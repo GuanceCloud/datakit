@@ -305,7 +305,7 @@ func Test_getDKSpanStatus(t *testing.T) {
 		{
 			name: "case1",
 			args: args{code: &tracepb.Status{Code: tracepb.Status_STATUS_CODE_UNSET}},
-			want: "info",
+			want: "ok",
 		},
 
 		{

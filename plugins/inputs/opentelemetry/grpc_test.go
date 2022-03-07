@@ -142,7 +142,6 @@ func TestExportMetric_Export(t *testing.T) {
 			"abc": "def",
 			"one": "1",
 		},
-		Source:    inputName,
 		Resource:  "onelib",
 		ValueType: "int",
 		Value:     42,

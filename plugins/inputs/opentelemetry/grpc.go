@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"net"
 
+	"google.golang.org/grpc/metadata"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	collectormetricepb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -51,6 +53,10 @@ type ExportTrace struct { //nolint:structcheck,stylecheck
 
 func (et *ExportTrace) Export(ctx context.Context, //nolint:structcheck,stylecheck
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
+	headers, b := metadata.FromIncomingContext(ctx)
+	if b {
+		l.Infof("headers=%+v", headers)
+	}
 	l.Infof(ets.String())
 	// ets.ProtoMessage()
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
