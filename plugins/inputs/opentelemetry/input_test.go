@@ -5,9 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -123,7 +122,7 @@ func TestInput_Run(t *testing.T) {
 				semStop:             tt.fields.semStop,
 			}
 			go i.Run()
-			stop := make(chan int, 0)
+			stop := make(chan int)
 			go func() {
 				time.Sleep(time.Second * 4)
 				if i.OHTTPc.storage == nil {

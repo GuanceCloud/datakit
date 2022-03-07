@@ -209,22 +209,23 @@ func TestSpansStorage_GetDKTrace(t *testing.T) {
 		fields fields
 		want   []DKtrace.DatakitTrace
 	}{
-		{name: "case1", fields: fields{
-			AfterGather:  nil,
-			RegexpString: "",
-			CustomerTags: nil,
-			GlobalTags:   nil,
-			rsm: []DKtrace.DatakitTrace{
-				{
-					&DKtrace.DatakitSpan{Operation: "name"},
-					&DKtrace.DatakitSpan{Operation: "name"},
+		{
+			name: "case1", fields: fields{
+				AfterGather:  nil,
+				RegexpString: "",
+				CustomerTags: nil,
+				GlobalTags:   nil,
+				rsm: []DKtrace.DatakitTrace{
+					{
+						&DKtrace.DatakitSpan{Operation: "name"},
+						&DKtrace.DatakitSpan{Operation: "name"},
+					},
 				},
+				otelMetrics: nil,
+				Count:       2,
+				max:         nil,
+				stop:        nil,
 			},
-			otelMetrics: nil,
-			Count:       2,
-			max:         nil,
-			stop:        nil,
-		},
 			want: []DKtrace.DatakitTrace{
 				{
 					&DKtrace.DatakitSpan{Operation: "name"},
