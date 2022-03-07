@@ -333,8 +333,8 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 				continue
 			}
 
-			text := mult.ProcessLineString(string(line))
-			if text == "" {
+			text := mult.ProcessLine(line)
+			if len(text) == 0 {
 				continue
 			}
 
