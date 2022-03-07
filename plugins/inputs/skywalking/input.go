@@ -102,7 +102,7 @@ func (ipt *Input) Run() {
 	}
 
 	// add calculators
-	afterGather.AppendCalculator(itrace.StatTracingInfo)
+	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
 	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
@@ -128,7 +128,7 @@ func (ipt *Input) Run() {
 
 	log.Debug("start skywalking grpc v3 server")
 
-	itrace.StartTracingStatistic()
+	// itrace.StartTracingStatistic()
 	go registerServerV3(ipt.Address)
 }
 

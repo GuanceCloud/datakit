@@ -164,7 +164,7 @@ func (i *Input) Run() {
 	}
 	if open {
 		// add calculators
-		storage.AfterGather.AppendCalculator(itrace.StatTracingInfo)
+		// storage.AfterGather.AppendCalculator(itrace.StatTracingInfo)
 		go storage.Run()
 		for {
 			select {

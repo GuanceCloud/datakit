@@ -118,7 +118,7 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 	if isReg {
-		itrace.StartTracingStatistic()
+		// itrace.StartTracingStatistic()
 		// unsupported api yet
 		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
 		dkhttp.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
@@ -131,7 +131,7 @@ func (ipt *Input) Run() {
 	dkio.FeedEventLog(&dkio.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// add calculators
-	afterGather.AppendCalculator(itrace.StatTracingInfo)
+	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
 	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
