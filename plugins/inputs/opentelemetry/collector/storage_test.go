@@ -2,6 +2,7 @@ package collector
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -186,6 +187,71 @@ func TestSpansStorage_run(t *testing.T) {
 			t.Log("wait stop")
 			if res, ok := <-s.stop; ok {
 				t.Errorf("not close res=%v", res)
+			}
+		})
+	}
+}
+
+func TestSpansStorage_GetDKTrace(t *testing.T) {
+	type fields struct {
+		AfterGather  *DKtrace.AfterGather
+		RegexpString string
+		CustomerTags []string
+		GlobalTags   map[string]string
+		rsm          []DKtrace.DatakitTrace
+		otelMetrics  []*OtelResourceMetric
+		Count        int
+		max          chan int
+		stop         chan struct{}
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []DKtrace.DatakitTrace
+	}{
+		{name: "case1", fields: fields{
+			AfterGather:  nil,
+			RegexpString: "",
+			CustomerTags: nil,
+			GlobalTags:   nil,
+			rsm: []DKtrace.DatakitTrace{
+				{
+					&DKtrace.DatakitSpan{Operation: "name"},
+					&DKtrace.DatakitSpan{Operation: "name"},
+				},
+			},
+			otelMetrics: nil,
+			Count:       2,
+			max:         nil,
+			stop:        nil,
+		},
+			want: []DKtrace.DatakitTrace{
+				{
+					&DKtrace.DatakitSpan{Operation: "name"},
+					&DKtrace.DatakitSpan{Operation: "name"},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &SpansStorage{
+				AfterGather:  tt.fields.AfterGather,
+				RegexpString: tt.fields.RegexpString,
+				CustomerTags: tt.fields.CustomerTags,
+				GlobalTags:   tt.fields.GlobalTags,
+				rsm:          tt.fields.rsm,
+				otelMetrics:  tt.fields.otelMetrics,
+				Count:        tt.fields.Count,
+				max:          tt.fields.max,
+				stop:         tt.fields.stop,
+			}
+			s.traceMu = sync.Mutex{}
+			if got := s.GetDKTrace(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetDKTrace() = %v, want %v", got, tt.want)
+			}
+			if len(s.rsm) != 0 {
+				t.Errorf("s.rsm lens !=0")
 			}
 		})
 	}

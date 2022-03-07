@@ -150,7 +150,8 @@ func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
 	pts := make([]*dkio.Point, 0)
 	for _, resourceMetric := range orms {
 		tags := map[string]string{
-			"description": resourceMetric.Description,
+			"description":          resourceMetric.Description,
+			"instrumentation_name": resourceMetric.Resource,
 		}
 		for k, v := range resourceMetric.Attributes {
 			tags[k] = v
@@ -162,9 +163,8 @@ func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
 		if UnitTime.IsZero() {
 			UnitTime = time.Now()
 		}
-		// 指标集名称定义：'Provider'+'_'+'instrumentationName'
-		name := resourceMetric.Service + "_" + resourceMetric.Resource
-		pt, err := dkio.NewPoint(name, tags, fields, &dkio.PointOption{
+		// 指标集名称定义：'instrumentationName'
+		pt, err := dkio.NewPoint(resourceMetric.Service, tags, fields, &dkio.PointOption{
 			Time:              UnitTime,
 			Category:          datakit.Metric,
 			DisableGlobalTags: false,

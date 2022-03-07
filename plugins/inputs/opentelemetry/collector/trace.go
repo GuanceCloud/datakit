@@ -241,7 +241,7 @@ func getDKSpanStatus(statuspb *tracepb.Status) string {
 	}
 	switch statuspb.Code {
 	case tracepb.Status_STATUS_CODE_UNSET, tracepb.Status_STATUS_CODE_OK:
-		status = DKtrace.STATUS_INFO
+		status = DKtrace.STATUS_OK
 	case tracepb.Status_STATUS_CODE_ERROR:
 		status = DKtrace.STATUS_ERR
 
