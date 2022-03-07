@@ -59,6 +59,7 @@ func (s *SpansStorage) AddSpans(rss []*tracepb.ResourceSpans) {
 
 func (s *SpansStorage) AddMetric(rss []*OtelResourceMetric) {
 	s.metricMu.Lock()
+	l.Debugf("AddMetric add %d metric to storage", len(rss))
 	s.otelMetrics = append(s.otelMetrics, rss...)
 	s.metricMu.Unlock()
 	s.Count += len(rss)
@@ -118,7 +119,6 @@ func (s *SpansStorage) feedAll() {
 	if len(metrics) > 0 {
 		pts := makePoints(metrics)
 		err := dkio.Feed(inputName, datakit.Metric, pts, &dkio.Option{HighFreq: true})
-		// err := inputs.FeedMeasurement(inputName, datakit.Metric, metrics, &dkio.Option{HighFreq: true})
 		if err != nil {
 			l.Errorf("feed to io error=%v", err)
 		}

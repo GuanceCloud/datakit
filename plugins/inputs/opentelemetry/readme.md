@@ -39,10 +39,7 @@ resource (server.name or inputName)
         子类：指标B
             ...
 
-观测云展示示例
-指标集
-resource_指标集名称  ------>  指标A
-                             指标B
+
 ```
 
         

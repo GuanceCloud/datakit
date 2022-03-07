@@ -137,7 +137,6 @@ func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelR
 					for k, v := range p.tags.resource() {
 						orm.Attributes[k] = v
 					}
-
 					orms = append(orms, orm)
 				}
 			}

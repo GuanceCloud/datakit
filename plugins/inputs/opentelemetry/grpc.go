@@ -3,14 +3,12 @@ package opentelemetry
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	collectormetricepb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 type otlpGrpcCollector struct {
@@ -52,12 +50,6 @@ type ExportTrace struct { //nolint:structcheck,stylecheck
 
 func (et *ExportTrace) Export(ctx context.Context, //nolint:structcheck,stylecheck
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
-	headers, b := metadata.FromIncomingContext(ctx)
-	if b {
-		l.Infof("headers=%+v", headers)
-	}
-	l.Infof(ets.String())
-	// ets.ProtoMessage()
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
 		et.storage.AddSpans(rss)
 	}
@@ -72,10 +64,6 @@ type ExportMetric struct { //nolint:structcheck,stylecheck
 
 func (em *ExportMetric) Export(ctx context.Context, //nolint:structcheck,stylecheck
 	ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) {
-	bts, err := json.MarshalIndent(ets.GetResourceMetrics(), "    ", "    ")
-	if err == nil {
-		l.Info(string(bts))
-	}
 	if rss := ets.ResourceMetrics; len(rss) > 0 {
 		orms := em.storage.ToDatakitMetric(rss)
 		em.storage.AddMetric(orms)

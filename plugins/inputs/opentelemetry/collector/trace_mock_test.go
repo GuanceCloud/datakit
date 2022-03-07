@@ -45,62 +45,6 @@ func (et *MockTrace) Export(ctx context.Context,
 	return res, nil
 }
 
-// nolint:lll
-/*
-got :
-&{
-	TraceID:00000000000000000000000000000001
-	ParentID:0
-	SpanID:0000000000000002
-	Service:global.ServerName
-	Resource:test-server
-	Operation:span_name
-	Source:opentelemetry
-	SpanType:SPAN_KIND_UNSPECIFIED
-	SourceType: Env: Project: Version:
-	Tags:map[a:b int:123]
-	EndPoint: HTTPMethod: HTTPStatusCode: ContainerHost: PID:
-	Start:1645413248574237500
-	Duration:1000000000
-	Status:info
-	Content:{"TraceID":"00000000000000000000000000000001","ParentID":"0","SpanID":"0000000000000002","Service":"global.ServerName","Resource":"test-server","Operation":"span_name","Source":"opentelemetry","SpanType":"SPAN_KIND_UNSPECIFIED","SourceType":"","Env":"","Project":"","Version":"","Tags":{"a":"b","int":"123"},"EndPoint":"","HTTPMethod":"","HTTPStatusCode":"","ContainerHost":"","PID":"","Start":1645413248574237500,"Duration":1000000000,"Status":"info","Content":"","Priority":0,"SamplingRateGlobal":0}
-	Priority:0
-	SamplingRateGlobal:0
-},
-
-{
-"trace_id":"AAAAAAAAAAAAAAAAAAAAAQ==",
-"span_id":"AAAAAAAAAAI=",
-"name":"span_name",
-"start_time_unix_nano":1645423252614239800,
-"end_time_unix_nano":1645423253614239800,
-"attributes":[
-{"key":"a","value":{"Value":{"StringValue":"b"}}},
-{"key":"int","value":{"Value":{"IntValue":123}}}
-]
-
-want:
-&{
-	TraceID:1
-	ParentID:0
-	SpanID:2
-	Service:global.ServerName
-	Resource:test-server
-	Operation:span_name
-	Source:
-	SpanType: SourceType: Env: Project: Version:
-	Tags:map[a:b int:123]
-	EndPoint: HTTPMethod: HTTPStatusCode: ContainerHost: PID:
-	Start:1645413248574237500
-	Duration:1645413249574237500
-	Status:
-	Content:
-	Priority:0
-	SamplingRateGlobal:0
-}
-
-*/
-
 func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.DatakitTrace) {
 	t.Helper()
 	// 固定时间测试 否则格式化content数据不对

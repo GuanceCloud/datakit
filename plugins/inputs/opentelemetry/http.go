@@ -32,7 +32,7 @@ type otlpHTTPCollector struct {
 // apiOtlpCollector :trace.
 func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request) {
 	if o.storage == nil {
-		l.Error("option == nil")
+		l.Error("storage is nil")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -101,7 +101,7 @@ func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request
 
 func (o *otlpHTTPCollector) checkHeaders(r *http.Request) bool {
 	for k, v := range o.ExpectedHeaders {
-		l.Infof("header key=%s val=%s", k, v)
+		l.Debugf("header key=%s val=%s", k, v)
 		got := r.Header.Get(k)
 		if got != v {
 			return false

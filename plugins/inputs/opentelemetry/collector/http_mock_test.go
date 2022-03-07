@@ -43,48 +43,6 @@ func (c *MockCollector) ExpectedHeaders() map[string]string {
 	return c.expectedHeaders
 }
 
-/*
-func (c *mockCollector) serveMetrics(w http.ResponseWriter, r *http.Request) {
-	if c.delay != nil {
-		select {
-		case <-c.delay:
-		case <-r.Context().Done():
-			return
-		}
-	}
-
-	if !c.checkHeaders(r) {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	response := collectormetricpb.ExportMetricsServiceResponse{}
-	rawResponse, err := proto.Marshal(&response)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if injectedStatus := c.getInjectHTTPStatus(); injectedStatus != 0 {
-		writeReply(w, rawResponse, injectedStatus, c.injectContentType)
-		return
-	}
-	rawRequest, err := readRequest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	request, err := unmarshalMetricsRequest(rawRequest, r.Header.Get("content-type"))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	writeReply(w, rawResponse, 0, c.injectContentType)
-	c.spanLock.Lock()
-	defer c.spanLock.Unlock()
-	c.metricsStorage.AddMetrics(request)
-}
-*/
-
 type MockCollectorConfig struct {
 	URLPath         string
 	Port            int

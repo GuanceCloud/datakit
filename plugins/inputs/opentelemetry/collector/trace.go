@@ -55,10 +55,6 @@ func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.Datakit
 				if err == nil {
 					dkSpan.Content = string(bts)
 				}
-
-				l.Infof("dkspan = %+v", dkSpan)
-				l.Infof("")
-				l.Infof("span = %s", span.String())
 				dktrace = append(dktrace, dkSpan)
 			}
 			dkTraces = append(dkTraces, dktrace)
@@ -170,7 +166,6 @@ func (dt *dkTags) checkCustomTags() *dkTags {
 
 // addGlobalTags: 添加配置文件中的自定义tags.
 func (dt *dkTags) addGlobalTags() *dkTags {
-	// set global tags
 	for k, v := range dt.globalTags {
 		dt.replaceTags[k] = v
 	}
