@@ -12,7 +12,7 @@
 - [source code](https://github.com/jaegertracing/jaeger)
 - [client download](https://github.com/jaegertracing/jaeger-client-go/releases)
 
-## 配置
+## 配置 Jaeger Agent
 
 > 当前 Jaeger 版本支持 HTTP 和 UDP 通信协议和 Apache Thrift 编码规范
 

@@ -12,13 +12,13 @@
 
 - skywlking-java-apm [官方下载](https://skywalking.apache.org/downloads/)
 
-## 在 Java 应用中添加 skywalking 支持
+## 在 Java 应用中添加 SkyWalking 支持
 
 ```shell
 java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 ```
 
-## 配置 SkyWalking
+## 配置 SkyWalking Client
 
 打开文件 /path_to_skywalking_agent/config/agent.config 进行配置
 
@@ -29,7 +29,7 @@ agent.service_name=${SW_AGENT_NAME:your-service-name}
 collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skywalking-agent-port>}
 ```
 
-## 配置
+## 配置 SkyWaking Agent
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
