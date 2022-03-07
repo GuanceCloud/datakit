@@ -40,7 +40,7 @@ func main() {
 
 	optflags := (logger.OPT_DEFAULT | logger.OPT_STDOUT)
 	if err := logger.InitRoot(&logger.Option{Level: logger.INFO, Flags: optflags}); err != nil {
-		l.Warnf("set root log to %s faile: %s", c.Logging.Log, err.Error())
+		l.Warnf("failed to set root log, err: %w", err)
 	}
 
 	cfg, err := getConfig()
