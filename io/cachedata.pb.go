@@ -4,7 +4,7 @@
 // 	protoc        v3.19.4
 // source: cachedata.proto
 
-package sender
+package io
 
 import (
 	reflect "reflect"

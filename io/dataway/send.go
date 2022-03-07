@@ -10,11 +10,10 @@ import (
 	"net/url"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/tracer"
-
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 )
 
 func (dc *endPoint) send(category string, data []byte, gz bool) error {

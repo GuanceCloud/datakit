@@ -1,4 +1,4 @@
-package sender
+package io
 
 import (
 	"fmt"
@@ -14,17 +14,16 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 )
 
-type MockWriter struct {
-	isFailed bool
-}
-
-func (w *MockWriter) Write(category string, pts []*influxdb.Point) error {
+func MockWrite(category string, pts []*Point) error {
 	fmt.Println("write points", category, pts)
 
-	if w.isFailed {
-		return fmt.Errorf("failed")
-	}
 	return nil
+}
+
+func MockWriteFailed(category string, pts []*Point) error {
+	fmt.Println("write points", category, pts)
+
+	return fmt.Errorf("failed")
 }
 
 func TestSender(t *testing.T) {
@@ -33,12 +32,10 @@ func TestSender(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(testDir)
-	writer := &MockWriter{}
-	sinkerInstance := &Sinker{map[string]Writer{"metric": writer}}
-	sender := NewSender(sinkerInstance, nil)
+	sender := NewSender(MockWrite, nil)
 	p, _ := lp.MakeLineProtoPoint("metric_name", map[string]string{"t1": "t1"}, map[string]interface{}{"f": "f"}, nil)
 
-	err = sender.Write("metric", []*influxdb.Point{p})
+	err = sender.Write("metric", WrapPoint([]*influxdb.Point{p}))
 	assert.NoError(t, err)
 
 	err = sender.Wait()
@@ -47,10 +44,9 @@ func TestSender(t *testing.T) {
 	assert.True(t, sender.Stat.successCount > 0)
 
 	t.Run("cache data when failed", func(t *testing.T) {
-		sender := NewSender(sinkerInstance, &Option{Cache: true, CacheDir: testDir, FlushCacheInterval: time.Second})
+		sender := NewSender(MockWriteFailed, &SenderOption{Cache: true, CacheDir: testDir, FlushCacheInterval: time.Second})
 		isCached := false
-		writer.isFailed = true
-		err := sender.Write("metric", []*influxdb.Point{p})
+		err := sender.Write("metric", WrapPoint([]*influxdb.Point{p}))
 
 		assert.NoError(t, err)
 
@@ -66,7 +62,7 @@ func TestSender(t *testing.T) {
 	})
 
 	t.Run("exit when receive global exit", func(t *testing.T) {
-		sender := NewSender(sinkerInstance, &Option{Cache: true, CacheDir: testDir})
+		sender := NewSender(MockWrite, &SenderOption{Cache: true, CacheDir: testDir})
 		go datakit.Exit.Close()
 		sender.Wait()
 	})

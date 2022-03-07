@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 )
 
 const (
@@ -78,8 +77,7 @@ type IO struct {
 	in2       chan *iodata // high-freq chan
 	inLastErr chan *lastError
 
-	lastBodyBytes int
-	SentBytes     int
+	SentBytes int
 
 	inputstats map[string]*InputsStat
 	lock       sync.RWMutex
@@ -93,7 +91,7 @@ type IO struct {
 	dynamicCacheCnt int64
 	droppedTotal    int64
 	outputFileSize  int64
-	sender          *sender.Sender
+	sender          *Sender
 }
 
 type IoStat struct {
@@ -324,11 +322,21 @@ func (x *IO) init() error {
 	return nil
 }
 
+func Write(category string, pts []*Point) error {
+	if defaultIO == nil || defaultIO.dw == nil {
+		return fmt.Errorf("io or datawy is not initialized")
+	}
+	points := []*influxdb.Point{}
+	for _, pt := range pts {
+		points = append(points, pt.Point)
+	}
+	return defaultIO.dw.Write(category, points)
+}
+
 func (x *IO) StartIO(recoverable bool) {
-	x.sender = sender.NewSender(&sender.Sinker{
-		Store: map[string]sender.Writer{"metric": x.dw, "dataway": x.dw},
-	},
-		&sender.Option{
+	x.sender = NewSender(
+		Write,
+		&SenderOption{
 			Cache:              x.EnableCache,
 			FlushCacheInterval: x.FlushInterval,
 		})
@@ -356,7 +364,6 @@ func (x *IO) StartIO(recoverable bool) {
 		for {
 			select {
 			case d := <-x.in:
-				log.Debug("sender x.in")
 				x.cacheData(d, true)
 
 			case e := <-x.inLastErr:
@@ -519,41 +526,12 @@ func (x *IO) buildBody(pts []*Point) ([]*body, error) {
 	}
 }
 
-// func (x *IO) doFlush(pts []*Point, category string) error {
-// 	if testAssert {
-// 		return nil
-// 	}
-
-// 	if pts == nil {
-// 		return nil
-// 	}
-
-// 	bodies, err := x.buildBody(pts)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	for _, body := range bodies {
-// 		if err := x.dw.Send(category, body.buf, body.gzon); err != nil {
-// 			addReporter(Reporter{Message: err.Error(), Status: "error", Category: "dataway"})
-// 			return err
-// 		}
-// 		x.SentBytes += x.lastBodyBytes
-// 		x.lastBodyBytes = 0
-// 	}
-
-// 	return nil
-// }
-
 func (x *IO) doFlush(pts []*Point, category string) error {
-	points := []*influxdb.Point{}
-	for _, pt := range pts {
-		points = append(points, pt.Point)
-	}
 	if x.sender == nil {
 		return fmt.Errorf("io sender is not initialized")
 	}
 
-	return x.sender.Write(category, points)
+	return x.sender.Write(category, pts)
 }
 
 func (x *IO) fileOutput(body []byte) error {
@@ -576,31 +554,3 @@ func (x *IO) DroppedTotal() int64 {
 	// NOTE: not thread-safe
 	return x.droppedTotal
 }
-
-// func (x *IO) putCache(category string, pts []*Point) error {
-// 	bodies, err := x.buildBody(pts)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	for _, body := range bodies {
-// 		id := cliutils.XID("cache_")
-// 		d := PBData{
-// 			Category: category,
-// 			Gz:       body.gzon,
-// 			Body:     body.buf,
-// 		}
-
-// 		data, err := pb.Marshal(&d)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		if err := cache.Put(cacheBucket, []byte(id), data); err != nil {
-// 			return err
-// 		}
-// 		x.SentBytes += x.lastBodyBytes
-// 		x.lastBodyBytes = 0
-// 	}
-
-// 	return nil
-// }
