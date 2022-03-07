@@ -142,7 +142,15 @@ func ChanStat() string {
 
 	l2 := len(defaultIO.in2)
 	c2 := cap(defaultIO.in2)
-	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
+
+	failCount := float32(defaultIO.sender.Stat.failCount)
+	successCount := float32(defaultIO.sender.Stat.successCount)
+	var sendSuccessRatio float32
+	if (successCount + failCount) > 0 {
+		sendSuccessRatio = successCount / (successCount + failCount) * 100
+	}
+
+	return fmt.Sprintf(`inputCh: %d/%d, highFreqInputCh: %d/%d, sendSuccess: %.2f%%`, l, c, l2, c2, sendSuccessRatio)
 }
 
 func DroppedTotal() int64 {

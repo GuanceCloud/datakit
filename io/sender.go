@@ -38,6 +38,10 @@ type Sender struct {
 }
 
 func (s *Sender) Write(category string, pts []*Point) error {
+	if len(pts) == 0 {
+		return nil
+	}
+
 	if s.WriteFunc == nil {
 		return fmt.Errorf("missing sinker instance")
 	}
@@ -60,9 +64,13 @@ func (s *Sender) worker(category string, pts []*Point) error {
 			l.Error("sink write error", err)
 
 			if s.opt.Cache {
-				s.cache(category, pts)
+				err := s.cache(category, pts)
+				if err == nil {
+					l.Debugf("sink write cached: %s(%d)", category, len(pts))
+				}
 			}
 		} else {
+			l.Debugf("sink write ok: %s(%d)", category, len(pts))
 			atomic.AddInt64(&s.Stat.successCount, 1)
 		}
 
@@ -77,9 +85,9 @@ func (s *Sender) Wait() error {
 }
 
 // cache save points to cache.
-func (s *Sender) cache(category string, pts []*Point) {
+func (s *Sender) cache(category string, pts []*Point) error {
 	if len(pts) == 0 {
-		return
+		return nil
 	}
 
 	ptList := []string{}
@@ -99,11 +107,15 @@ func (s *Sender) cache(category string, pts []*Point) {
 	dataBuffer, err := pb.Marshal(&data)
 	if err != nil {
 		l.Warnf("marshal data error: %s", err.Error())
+		return err
 	}
 
 	if err := cache.Put(cacheBucket, []byte(id), dataBuffer); err != nil {
 		l.Warnf("cache data error: %s", err.Error())
+		return err
 	}
+
+	return nil
 }
 
 func (s *Sender) init(opt *SenderOption) {
@@ -184,8 +196,10 @@ func (s *Sender) flushCache() {
 		err = s.WriteFunc(d.Category, points)
 		if err != nil {
 			l.Warnf("cache sink write error: %s", err.Error())
-		} else if err := cache.Del(cacheBucket, k); err != nil {
-			l.Warnf("cache send ok, but delete cache error: %s", string(k))
+		} else {
+			if err := cache.Del(cacheBucket, k); err != nil {
+				l.Warnf("cache send ok, but delete cache error: %s", string(k))
+			}
 		}
 
 		return err
