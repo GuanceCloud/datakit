@@ -94,7 +94,7 @@ func TestInput_Run(t *testing.T) {
 			name: "case1",
 			fields: fields{
 				Ogrpc: &otlpGrpcCollector{
-					TraceEnable: true, Addr: "0.0.0.0:4317",
+					TraceEnable: true, Addr: "127.0.0.1:4317",
 				},
 				OHTTPc: &otlpHTTPCollector{
 					Enable:          true,
@@ -125,7 +125,7 @@ func TestInput_Run(t *testing.T) {
 			go i.Run()
 			stop := make(chan int, 0)
 			go func() {
-				time.Sleep(time.Second * 1)
+				time.Sleep(time.Second * 4)
 				if i.OHTTPc.storage == nil {
 					t.Errorf("storage == nil")
 				}
@@ -186,11 +186,15 @@ func TestInput_exit(t *testing.T) {
 		fields fields
 	}{
 		{
-			name:   "case1 stopFunc is nil",
-			fields: fields{},
+			name: "case1_stopFunc_is_nil",
+			fields: fields{Ogrpc: &otlpGrpcCollector{
+				TraceEnable:  false,
+				MetricEnable: false,
+				Addr:         "",
+			}},
 		},
 		{
-			name: "case2 not fil",
+			name: "case2_not_fil",
 			fields: fields{Ogrpc: &otlpGrpcCollector{
 				TraceEnable:  false,
 				MetricEnable: false,
