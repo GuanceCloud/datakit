@@ -8,9 +8,9 @@
 
 Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing 协议数据。
 
-## 前置条件
+## DDTrace 文档
 
-### 不同语言平台 Referenc
+### Referenc
 
 - [Java](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers)
 - [Python](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers)
@@ -22,7 +22,7 @@ Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing �
 - [.Net Core](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-core?tab=windows)
 - [.Net Framework](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows)
 
-### 不同语言平台 Source Code
+### Source Code
 
 - [Java](https://github.com/DataDog/dd-trace-java)
 - [Python](https://github.com/DataDog/dd-trace-py)
