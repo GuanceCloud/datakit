@@ -12,12 +12,6 @@
 
 - skywlking-java-apm [官方下载](https://skywalking.apache.org/downloads/)
 
-## 在 Java 应用中添加 SkyWalking 支持
-
-```shell
-java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
-```
-
 ## 配置 SkyWalking Client
 
 打开文件 /path_to_skywalking_agent/config/agent.config 进行配置
@@ -35,4 +29,10 @@ collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skyw
 
 ```toml
 {{.InputSample}}
+```
+
+## 启动 Java Client
+
+```command
+java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 ```
