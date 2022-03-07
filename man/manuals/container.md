@@ -96,11 +96,11 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 ]
 ```
 
-如果是在终端命令行添加 Annotations，需要有转义字符，例如：
+如果是在终端命令行添加 Annotations，注意添加转义字符（以下示例两边是单引号，所以无需对双引号做转义）：
 
 ```
 ## foo 是 Pod name
-kubectl annotate pods foo datakit/logs='[{\"disable\": false, \"source\": \"testing-source\", \"service\": \"testing-service\", \"pipeline\": \"test.p\", \"multiline_match\": \"^\\d{4}-\\d{2}\"}]'
+kubectl annotate pods foo datakit/logs='[{"disable": false, "source": "testing-source", "service": "testing-service", "pipeline": "test.p", "multiline_match": "^\\d{4}-\\d{2}"}]'
 ```
 
 注意：
