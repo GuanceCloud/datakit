@@ -141,13 +141,15 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 
 安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2)（可能需要翻墙）
 
+`go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
+
 #### 安装常见工具
 
 - tree
 - make
 - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
-- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation)
-- gofumpt: go install mvdan.cc/gofumpt@latest
+- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+- gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
 - wget
 - docker
 - curl
