@@ -98,25 +98,28 @@
 
   - [应用性能监测（APM）]()
 
-    - [Datakit Tracing Struct](datakit-tracing-struct)
-    - [Datakit Tracing](datakit-tracing)
     - [DDTrace](ddtrace)
       - [Golang 示例](ddtrace-golang)
       - [Java 示例](ddtrace-java)
       - [Python 示例](ddtrace-python)
+      - [Golang 示例](ddtrace-go)
     - [SkyWalking](skywalking)
     - [Jaeger](jaeger)
+
+    - [Datakit Tracing Struct](datakit-tracing-struct)
+    - [Datakit Tracing](datakit-tracing)
 
   - [用户访问监测（RUM）]()
 
     - [RUM](rum)
 
-  - [日志数据采集]()
+  - [日志]()
 
     - [日志](logging)
     - [第三方日志接入](logstreaming)
     - [Socket 日志接入最佳实践](logging_socket)
     - [通过 Sidecar 方式采集 Pod 日志](logfwd)
+		- [DataKit 整体日志采集介绍](datakit-logging)
 
   - [Windows 相关]()
 
