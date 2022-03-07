@@ -6,7 +6,7 @@
 
 # {{.InputName}}
 
-接收符合 ddtrace 协议格式的链路数据，并把数据经过统一转换成观测云的链路格式，然后上报观测云。
+Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing 协议数据。
 
 ## 前置条件
 

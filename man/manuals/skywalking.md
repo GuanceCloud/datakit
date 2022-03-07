@@ -6,6 +6,8 @@
 
 # {{.InputName}}
 
+Datakit 内嵌的 SkyWalking Agent 用于接收，运算，分析 Skywalking Tracing 协议数据。
+
 ## 下载 SkyWalking
 
 注意：APM v8.8.3 目前存在不兼容问题无法使用。目前已支持 v8.5.0 v8.6.0 v8.7.0
