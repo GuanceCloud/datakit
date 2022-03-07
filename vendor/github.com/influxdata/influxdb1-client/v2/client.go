@@ -556,7 +556,10 @@ func (c *client) Query(q Query) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		io.Copy(ioutil.Discard, resp.Body) // https://github.com/influxdata/influxdb1-client/issues/58
+		resp.Body.Close()
+	}()
 
 	if err := checkResponse(resp); err != nil {
 		return nil, err
