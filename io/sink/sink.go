@@ -29,13 +29,15 @@ func Write(category string, pts []sinkcommon.ISinkPoint) error {
 		return errKeep
 	} else {
 		// default
-		//
+		if defaultCallPtr != nil {
+			return defaultCallPtr(category, pts)
+		}
 	}
 
 	return fmt.Errorf("unsupport category")
 }
 
-func Init(sincfg []map[string]interface{}) error {
+func Init(sincfg []map[string]interface{}, defCall func(string, []sinkcommon.ISinkPoint) error) error {
 	var err error
 	onceInit.Do(func() {
 		l = logger.SLogger(packageName)
@@ -64,6 +66,8 @@ func Init(sincfg []map[string]interface{}) error {
 
 			l.Debugf("SinkCategoryMap = %#v", sinkcommon.SinkCategoryMap)
 
+			defaultCallPtr = defCall
+
 			isInitSucceeded = true
 			return nil
 		}()
@@ -79,6 +83,7 @@ var (
 	l               = logger.DefaultSLogger(packageName)
 	onceInit        sync.Once
 	isInitSucceeded bool
+	defaultCallPtr  func(string, []sinkcommon.ISinkPoint) error
 )
 
 func aggregationCategorys(sincfg []map[string]interface{}) error {
