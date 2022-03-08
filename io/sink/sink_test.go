@@ -82,7 +82,7 @@ func TestBuildSinkImpls(t *testing.T) {
 				{
 					"id":         "influxdb_1",
 					"target":     "influxdb",
-					"addr":       "http://10.200.7.21:8086",
+					"addr":       "http://1.1.1.1:8086",
 					"precision":  "ns",
 					"database":   "db0",
 					"user_agent": "go_test_client",
@@ -176,7 +176,7 @@ func TestAggregationCategorys(t *testing.T) {
 				{
 					"id":         "influxdb_1",
 					"target":     "influxdb",
-					"addr":       "http://10.200.7.21:8086",
+					"addr":       "http://1.1.1.1:8086",
 					"precision":  "ns",
 					"database":   "db0",
 					"user_agent": "go_test_client",

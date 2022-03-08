@@ -117,7 +117,7 @@ func DefaultConfig() *Config {
 					"id":             "influxdb_test_will_not_working",
 					"target":         datakit.SinkTargetExample,
 					"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-					"addr":           "http://10.200.7.21:8086",
+					"addr":           "http://1.1.1.1:8086",
 					"precision":      "ns",
 					"database":       "db0",
 					"timeout":        "10s",

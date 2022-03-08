@@ -358,7 +358,7 @@ hostname = "should-not-set"`,
 [sinks]
 
   [[sinks.sink]]
-    addr = "http://10.200.7.21:8086"
+    addr = "http://1.1.1.1:8086"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
     database = "db0"
     id = "influxdb_1"
@@ -369,7 +369,7 @@ hostname = "should-not-set"`,
     write_encoding = ""
 
   [[sinks.sink]]
-    addr = "http://10.200.7.21:8087"
+    addr = "http://1.1.1.1:8087"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
     database = "db0"
     id = "influxdb_bak"
@@ -380,7 +380,7 @@ hostname = "should-not-set"`,
     write_encoding = ""
 
   [[sinks.sink]]
-    addr = "http://10.200.7.21:8086"
+    addr = "http://1.1.1.1:8086"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
     database = "db0"
     id = "influxdb_test_will_not_working"
@@ -398,7 +398,7 @@ func TestWriteConfigFile(t *testing.T) {
 				"id":             "influxdb_1",
 				"target":         "influxdb",
 				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-				"addr":           "http://10.200.7.21:8086",
+				"addr":           "http://1.1.1.1:8086",
 				"precision":      "ns",
 				"database":       "db0",
 				"user_agent":     "go_test_client",
@@ -409,7 +409,7 @@ func TestWriteConfigFile(t *testing.T) {
 				"id":             "influxdb_bak",
 				"target":         "influxdb",
 				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-				"addr":           "http://10.200.7.21:8087",
+				"addr":           "http://1.1.1.1:8087",
 				"precision":      "ns",
 				"database":       "db0",
 				"user_agent":     "go_test_client",
@@ -420,7 +420,7 @@ func TestWriteConfigFile(t *testing.T) {
 				"id":             "influxdb_test_will_not_working",
 				"target":         datakit.SinkTargetExample,
 				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-				"addr":           "http://10.200.7.21:8086",
+				"addr":           "http://1.1.1.1:8086",
 				"precision":      "ns",
 				"database":       "db0",
 				"user_agent":     "go_test_client",
