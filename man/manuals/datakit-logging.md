@@ -15,6 +15,8 @@
 
 这是最原始的日志处理方式，不管是对开发者而言，还是传统的日志收集方案而言，日志最开始一般都是直接写到磁盘文件的，写到磁盘文件的日志有如下几个特点：
 
+![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-from-disk.png)
+
 - 序列式写入：一般的日志框架，都能保证磁盘文件中的日志，保持时间的序列性
 - 自动切片：由于磁盘日志文件都是物理递增的，为避免日志将磁盘打爆，一般日志框架都会自动做切割，或者通过一些外部常驻脚本来实现日志切割
 
@@ -30,6 +32,8 @@
 
 这种采集方式目前主要针对容器环境中的 stdout 日志，这种日志要求运行在容器（或 k8s）中的应用将日志输出到 stdout，然后通过 Docker 的日志接口，将对应 stdout 上的日志同步到 DataKit。
 
+![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-stdout.png)
+
 在 DataKit 现有 stdout 采集方案中（主要针对 k8s 环境），日志的采集有如下几个特点：
 
 - 由于部署在容器环境中的应用，均需构建对应的容器镜像。对 DataKit 而言，可以基于镜像名称，选择性的针对某些应用做日志采集
@@ -44,6 +48,8 @@
 
 对远程日志推送而言，其主要是开发者主动将日志推送到 DataKit 指定的服务上，比如 [Java 的 log4j](logging_socket#java) 以及 [Python 原生的 `SocketHandler`](logging_socket#Python) 均支持将日志发送给远端服务。
 
+![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-remote.png)
+
 这种形式的特点是日志直接发送给 DataKit，中间无需落盘（上面的 Docker API 方式采集日志实际上还是有落盘）。这种形式的日志采集，需注意以下几点：
 
 - 对 TCP 形式的日志推送，其日志类型（`source/service`）如果多变，那么需要在 DataKit 上开多个 TCP 端口
@@ -55,6 +61,8 @@
 ## Sidecar 形式的日志采集
 
 这种方式的采集实际上是综合了磁盘日志采集和日志远程推送俩种方式，具体而言，就是在用户的 Pod 中添加一个跟 DataKit 配套（即 [logfwd](logfwd)）的 Sidecar 应用，其采集方式如下：
+
+![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-logging-sidecar.png)
 
 - 通 logfwd 以磁盘文件的方式先获取到日志
 - 然后 logfwd 再将日志远程推送（WebSocket）给 DataKit
