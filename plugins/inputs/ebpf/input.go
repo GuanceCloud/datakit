@@ -28,8 +28,15 @@ var (
 	}
 )
 
+type K8sConf struct {
+	K8sURL            string `toml:"kubernetes_url"`
+	K8sBearerToken    string `toml:"bearer_token"`
+	K8sBearerTokenStr string `toml:"bearer_token_string"`
+}
+
 type Input struct {
 	external.ExernalInput
+	K8sConf
 	EnabledPlugins []string      `toml:"enabled_plugins"`
 	semStop        *cliutils.Sem // start stop signal
 }
@@ -44,8 +51,8 @@ loop:
 	for {
 		select {
 		case <-tick.C:
-			// not linux/amd64
-			if !(runtime.GOOS == "linux" && runtime.GOARCH == "amd64") {
+			// not linux/amd64 or linux/arm64
+			if !(runtime.GOOS == "linux" && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64")) {
 				l.Error("unsupport OS/Arch")
 
 				io.FeedLastError(inputName,
@@ -79,6 +86,12 @@ loop:
 	l.Infof("ebpf input started")
 	matchHost := regexp.MustCompile("--hostname")
 	haveHostNameArg := false
+	if ipt.ExernalInput.Args == nil {
+		ipt.ExernalInput.Args = []string{}
+	}
+	if ipt.ExernalInput.Envs == nil {
+		ipt.ExernalInput.Envs = []string{}
+	}
 	for _, arg := range ipt.ExernalInput.Args {
 		haveHostNameArg = matchHost.MatchString(arg)
 		if haveHostNameArg {
@@ -89,6 +102,23 @@ loop:
 		if envHostname, ok := config.Cfg.Environments["ENV_HOSTNAME"]; ok && envHostname != "" {
 			ipt.ExernalInput.Args = append(ipt.ExernalInput.Args, "--hostname", envHostname)
 		}
+	}
+
+	if ipt.K8sURL != "" {
+		ipt.Envs = append(ipt.Envs,
+			fmt.Sprintf("K8S_URL=%s", ipt.K8sURL))
+	}
+	if ipt.K8sBearerToken != "" {
+		ipt.Envs = append(ipt.Envs,
+			fmt.Sprintf("K8S_BEARER_TOKEN_PATH=%s", ipt.K8sBearerToken))
+	}
+	if ipt.K8sBearerTokenStr != "" {
+		ipt.Envs = append(ipt.Envs,
+			fmt.Sprintf("K8S_BEARER_TOKEN_STRING=%s", ipt.K8sBearerTokenStr))
+	}
+
+	if len(ipt.EnabledPlugins) == 0 {
+		ipt.EnabledPlugins = []string{"ebpf-net"}
 	}
 
 	enablePlugins := []string{}
@@ -134,8 +164,9 @@ func (*Input) AvailableArchs() []string {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			semStop:      cliutils.NewSem(),
-			ExernalInput: *external.NewExternalInput(),
+			semStop:        cliutils.NewSem(),
+			EnabledPlugins: []string{},
+			ExernalInput:   *external.NewExternalInput(),
 		}
 	})
 }
