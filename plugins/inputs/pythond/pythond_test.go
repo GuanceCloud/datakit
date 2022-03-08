@@ -3,9 +3,11 @@ package pythond
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
@@ -24,7 +26,7 @@ func TestGetCliPyScript(t *testing.T) {
 
 	cli := getCliPyScript(scriptRoot, scriptName)
 
-	expectMD5 := "beb828f059208df3647fb0d068eca8b8"
+	expectMD5 := "54c045fa96a92bed6e8b5bc9a760dac3"
 
 	assert.Equal(t, expectMD5, md5sum(cli), "md5 not equal!")
 }
@@ -98,7 +100,7 @@ func TestSearchPythondDir(t *testing.T) {
 			isDIr:        false,
 			pythonModule: "framework",
 			enabledRepos: []string{"enabled_conf1"},
-			expect:       "/usr/local/datakit/python.d/framework",
+			expect:       filepath.Join(datakit.InstallDir, "python.d/framework"),
 		},
 
 		{
@@ -106,7 +108,7 @@ func TestSearchPythondDir(t *testing.T) {
 			isDIr:        true,
 			pythonModule: "framework",
 			enabledRepos: []string{"enabled_conf2"},
-			expect:       "/usr/local/datakit/gitrepos/enabled_conf2/python.d/framework",
+			expect:       filepath.Join(datakit.InstallDir, "gitrepos/enabled_conf2/python.d/framework"),
 		},
 	}
 
