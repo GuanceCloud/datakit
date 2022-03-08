@@ -59,18 +59,20 @@ const (
 	ListDataWay       = "/v2/list/dataway"
 	DatakitInputName  = "self"
 
+	StrGitRepos           = "gitrepos"
+	StrPipelineRemote     = "pipeline_remote"
+	StrPipelineFileSuffix = ".p"
+	StrConfD              = "conf.d"
+	StrPythonD            = "python.d"
+
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
-	GitRepoSubDirNameConfd    = "conf.d"
+	GitRepoSubDirNameConfd    = StrConfD
 	GitRepoSubDirNamePipeline = "pipeline"
-	GitRepoSubDirNamePythond  = "python.d"
+	GitRepoSubDirNamePythond  = StrPythonD
 
 	DatawayDisableURL = "dev_null"
 	ModeNormal        = 1
 	ModeDev           = 2
-
-	StrGitRepos           = "gitrepos"
-	StrPipelineRemote     = "pipeline_remote"
-	StrPipelineFileSuffix = ".p"
 )
 
 var (
@@ -106,13 +108,13 @@ var (
 	UnknownArch = []string{"unknown"}
 
 	DataDir  = filepath.Join(InstallDir, "data")
-	ConfdDir = filepath.Join(InstallDir, "conf.d")
+	ConfdDir = filepath.Join(InstallDir, StrConfD)
 
 	GitReposDir          = filepath.Join(InstallDir, StrGitRepos)
 	GitReposRepoName     string
 	GitReposRepoFullPath string
 
-	PythonDDir    = filepath.Join(InstallDir, "python.d")
+	PythonDDir    = filepath.Join(InstallDir, StrPythonD)
 	PythonCoreDir = filepath.Join(PythonDDir, "core")
 
 	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
@@ -133,7 +135,7 @@ func SetWorkDir(dir string) {
 	InstallDir = dir
 
 	DataDir = filepath.Join(InstallDir, "data")
-	ConfdDir = filepath.Join(InstallDir, "conf.d")
+	ConfdDir = filepath.Join(InstallDir, StrConfD)
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath = filepath.Join(ConfdDir, "datakit.conf")
@@ -145,7 +147,7 @@ func SetWorkDir(dir string) {
 	pidFile = filepath.Join(InstallDir, ".pid")
 
 	GitReposDir = filepath.Join(InstallDir, StrGitRepos)
-	PythonDDir = filepath.Join(InstallDir, "python.d")
+	PythonDDir = filepath.Join(InstallDir, StrPythonD)
 	PythonCoreDir = filepath.Join(PythonDDir, "core")
 	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 

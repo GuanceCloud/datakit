@@ -21,6 +21,14 @@ func md5sum(str string) string {
 
 // go test -v -timeout 30s -run ^TestGetCliPyScript$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
 func TestGetCliPyScript(t *testing.T) {
+	originInstallDir := datakit.InstallDir
+	originGitReposDir := datakit.GitReposDir
+	originPythonDDir := datakit.PythonDDir
+
+	datakit.InstallDir = "/usr/local/datakit"
+	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
+	datakit.PythonDDir = filepath.Join(datakit.InstallDir, datakit.StrPythonD)
+
 	scriptRoot := `['/usr/local/datakit/gitrepos/conf/python.d/framework']`
 	scriptName := "mytest"
 
@@ -29,14 +37,21 @@ func TestGetCliPyScript(t *testing.T) {
 	expectMD5 := "54c045fa96a92bed6e8b5bc9a760dac3"
 
 	assert.Equal(t, expectMD5, md5sum(cli), "md5 not equal!")
+
+	datakit.InstallDir = originInstallDir
+	datakit.GitReposDir = originGitReposDir
+	datakit.PythonDDir = originPythonDDir
 }
 
 //------------------------------------------------------------------------------
 
 // go test -v -timeout 30s -run ^TestGetFilteredPyModules$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
 func TestGetFilteredPyModules(t *testing.T) {
-	originPath := datakit.InstallDir
+	originInstallDir := datakit.InstallDir
+	originGitReposDir := datakit.GitReposDir
+
 	datakit.InstallDir = "/usr/local/datakit"
+	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
 
 	cases := []struct {
 		name   string
@@ -78,13 +93,22 @@ func TestGetFilteredPyModules(t *testing.T) {
 		})
 	}
 
-	datakit.InstallDir = originPath
+	datakit.InstallDir = originInstallDir
+	datakit.GitReposDir = originGitReposDir
 }
 
 //------------------------------------------------------------------------------
 
 // go test -v -timeout 30s -run ^TestSearchPythondDir$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
 func TestSearchPythondDir(t *testing.T) {
+	originInstallDir := datakit.InstallDir
+	originGitReposDir := datakit.GitReposDir
+	originPythonDDir := datakit.PythonDDir
+
+	datakit.InstallDir = "/usr/local/datakit"
+	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
+	datakit.PythonDDir = filepath.Join(datakit.InstallDir, datakit.StrPythonD)
+
 	cases := []struct {
 		name         string
 		isDIr        bool
@@ -97,7 +121,7 @@ func TestSearchPythondDir(t *testing.T) {
 			isDIr:        false,
 			pythonModule: "framework",
 			enabledRepos: []string{"enabled_conf1"},
-			expect:       filepath.Join(datakit.InstallDir, "python.d/framework"),
+			expect:       "/usr/local/datakit/python.d/framework",
 		},
 
 		{
@@ -105,7 +129,7 @@ func TestSearchPythondDir(t *testing.T) {
 			isDIr:        true,
 			pythonModule: "framework",
 			enabledRepos: []string{"enabled_conf2"},
-			expect:       filepath.Join(datakit.InstallDir, "python.d/framework"),
+			expect:       "/usr/local/datakit/gitrepos/enabled_conf2/python.d/framework",
 		},
 	}
 
@@ -117,13 +141,19 @@ func TestSearchPythondDir(t *testing.T) {
 			assert.Equal(t, tc.expect, dir)
 		})
 	}
+
+	datakit.InstallDir = originInstallDir
+	datakit.GitReposDir = originGitReposDir
+	datakit.PythonDDir = originPythonDDir
 }
 
 //------------------------------------------------------------------------------
 
-var dataIsDir, dataGitHasEnabled bool
-var dataExistFiles map[string]struct{}
-var dataFolderList []string
+var (
+	dataIsDir, dataGitHasEnabled bool
+	dataExistFiles               map[string]struct{}
+	dataFolderList               []string
+)
 
 func resetVars() {
 	dataIsDir = false
@@ -157,6 +187,12 @@ func (*pythondMockerTest) GitHasEnabled() bool {
 
 // go test -v -timeout 30s -run ^TestGetScriptNameRoot$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond
 func TestGetScriptNameRoot(t *testing.T) {
+	originInstallDir := datakit.InstallDir
+	originGitReposDir := datakit.GitReposDir
+
+	datakit.InstallDir = "/usr/local/datakit"
+	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
+
 	cases := []struct {
 		name          string
 		configRepos   []*config.GitRepository
@@ -212,6 +248,9 @@ func TestGetScriptNameRoot(t *testing.T) {
 			assert.Equal(t, tc.expect, mVal, "getScriptNameRoot not equal")
 		})
 	}
+
+	datakit.InstallDir = originInstallDir
+	datakit.GitReposDir = originGitReposDir
 }
 
 //------------------------------------------------------------------------------
