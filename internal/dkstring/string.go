@@ -27,7 +27,12 @@ func GetUniqueArray(arr []string) []string {
 }
 
 func GetMapAssertString(name string, m map[string]interface{}) (string, error) {
-	str, ok := m[name].(string)
+	val, ok := m[name]
+	if !ok {
+		// not exist
+		return "", nil
+	}
+	str, ok := val.(string)
 	if !ok {
 		return "", fmt.Errorf("invalid %s: not string", name)
 	}
@@ -35,9 +40,22 @@ func GetMapAssertString(name string, m map[string]interface{}) (string, error) {
 }
 
 func GetMapAssertInt(name string, m map[string]interface{}) (int, error) {
-	num, ok := m[name].(int)
+	val, ok := m[name]
+	if !ok {
+		// not exist
+		return 0, nil
+	}
+	num, ok := val.(int)
 	if !ok {
 		return 0, fmt.Errorf("invalid %s: not int", name)
 	}
 	return num, nil
+}
+
+func CheckNotEmpty(str, name string) (string, error) {
+	strNew := TrimString(str)
+	if strNew == "" {
+		return "", fmt.Errorf("%s could not be empty", name)
+	}
+	return strNew, nil
 }

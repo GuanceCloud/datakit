@@ -59,25 +59,41 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 	if id, err := dkstring.GetMapAssertString("id", mConf); err != nil {
 		return err
 	} else {
-		s.ID = id
+		idNew, err := dkstring.CheckNotEmpty(id, "id")
+		if err != nil {
+			return err
+		}
+		s.ID = idNew
 	}
 
 	if addr, err := dkstring.GetMapAssertString("addr", mConf); err != nil {
 		return err
 	} else {
-		s.addr = addr
+		addrNew, err := dkstring.CheckNotEmpty(addr, "addr")
+		if err != nil {
+			return err
+		}
+		s.addr = addrNew
 	}
 
 	if precision, err := dkstring.GetMapAssertString("precision", mConf); err != nil {
 		return err
 	} else {
-		s.precision = precision
+		precisionNew, err := dkstring.CheckNotEmpty(precision, "precision")
+		if err != nil {
+			return err
+		}
+		s.precision = precisionNew
 	}
 
 	if database, err := dkstring.GetMapAssertString("database", mConf); err != nil {
 		return err
 	} else {
-		s.database = database
+		databaseNew, err := dkstring.CheckNotEmpty(database, "database")
+		if err != nil {
+			return err
+		}
+		s.database = databaseNew
 	}
 
 	if username, err := dkstring.GetMapAssertString("username", mConf); err != nil {

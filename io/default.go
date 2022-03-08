@@ -108,11 +108,6 @@ func ConfigDefaultIO(opts ...IOOption) {
 func Start(sincfg []map[string]interface{}) error {
 	log = logger.SLogger("io")
 
-	if err := sink.Init(sincfg); err != nil {
-		l.Error("InitSink failed: %v", err)
-		return err
-	}
-
 	log.Debugf("default io config: %v", defaultIO)
 
 	defaultIO.in = make(chan *iodata, defaultIO.FeedChanSize)
@@ -124,6 +119,13 @@ func Start(sincfg []map[string]interface{}) error {
 
 	defaultIO.StartIO(true)
 	log.Debugf("io: %+#v", defaultIO)
+
+	if err := sink.Init(sincfg, nil); err != nil {
+		log.Error("InitSink failed: %v", err)
+		return err
+	}
+
+	log.Debug("sink.Init succeeded")
 
 	return nil
 }

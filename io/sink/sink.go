@@ -2,10 +2,10 @@ package sink
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
@@ -28,13 +28,15 @@ func Write(category string, pts []sinkcommon.ISinkPoint) error {
 		return errKeep
 	} else {
 		// default
-		//
+		if defaultCallPtr != nil {
+			return defaultCallPtr(category, pts)
+		}
 	}
 
 	return fmt.Errorf("unsupport category")
 }
 
-func Init(sincfg []map[string]interface{}) error {
+func Init(sincfg []map[string]interface{}, defCall func(string, []sinkcommon.ISinkPoint) error) error {
 	var err error
 	onceInit.Do(func() {
 		l = logger.SLogger(packageName)
@@ -63,6 +65,8 @@ func Init(sincfg []map[string]interface{}) error {
 
 			l.Debugf("SinkCategoryMap = %#v", sinkcommon.SinkCategoryMap)
 
+			defaultCallPtr = defCall
+
 			isInitSucceeded = true
 			return nil
 		}()
@@ -78,6 +82,7 @@ var (
 	l               = logger.DefaultSLogger(packageName)
 	onceInit        sync.Once
 	isInitSucceeded bool
+	defaultCallPtr  func(string, []sinkcommon.ISinkPoint) error
 )
 
 func aggregationCategorys(sincfg []map[string]interface{}) error {
@@ -85,6 +90,9 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 		categoriesArray, ok := v["categories"].([]string)
 		if !ok {
 			return fmt.Errorf("invalid categories: not []string")
+		}
+		if len(categoriesArray) == 0 {
+			return fmt.Errorf("invalid categories: empty")
 		}
 
 		mCategory := make(map[string]struct{})
@@ -112,6 +120,9 @@ func buildSinkImpls(sincfg []map[string]interface{}) error {
 		target, err := dkstring.GetMapAssertString("target", v)
 		if err != nil {
 			return err
+		}
+		if target == datakit.SinkTargetExample {
+			continue // ignore example
 		}
 		if ins := getSinkInstanceFromTarget(target); ins != nil {
 			if err := ins.LoadConfig(v); err != nil {
@@ -141,9 +152,8 @@ func checkSinkConfig(sincfg []map[string]interface{}) error {
 		if err != nil {
 			return err
 		}
-		idNew := strings.TrimSpace(id)
-		if idNew == "" {
-			return fmt.Errorf("invalid id: empty")
+		if _, err := dkstring.CheckNotEmpty(id, "id"); err != nil {
+			return err
 		}
 		if _, ok := mSinkID[id]; ok {
 			return fmt.Errorf("invalid sink config: id not unique")

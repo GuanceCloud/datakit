@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 // go test -v -timeout 30s -run ^TestCheckSinksConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
@@ -28,27 +28,26 @@ func TestCheckSinksConfig(t *testing.T) {
 			in: []map[string]interface{}{
 				{"id": " "},
 			},
-			expectError: fmt.Errorf("invalid id: empty"),
+			expectError: fmt.Errorf("%s could not be empty", "id"),
 		},
 		{
 			name: "id_empty_2",
 			in: []map[string]interface{}{
 				{"id": ""},
 			},
-			expectError: fmt.Errorf("invalid id: empty"),
+			expectError: fmt.Errorf("%s could not be empty", "id"),
 		},
 		{
 			name: "id_empty_3",
 			in: []map[string]interface{}{
 				{"id": "  "},
 			},
-			expectError: fmt.Errorf("invalid id: empty"),
+			expectError: fmt.Errorf("%s could not be empty", "id"),
 		},
 		{
 			name: "id_repeat",
 			in: []map[string]interface{}{
 				{"id": "abc"},
-				{"id": "bcd"},
 				{"id": "abc"},
 			},
 			expectError: fmt.Errorf("invalid sink config: id not unique"),
@@ -78,19 +77,106 @@ func TestBuildSinkImpls(t *testing.T) {
 		expectError error
 	}{
 		{
-			name: "id_unique",
+			name: "normal",
 			in: []map[string]interface{}{
-				{"id": "abc"},
-				{"id": "bcd"},
-				{"id": "efg"},
+				{
+					"id":             "influxdb_1",
+					"target":         "influxdb",
+					"addr":           "http://10.200.7.21:8086",
+					"precision":      "ns",
+					"database":       "db0",
+					"user_agent":     "go_test_client",
+					"timeout":        "6s",
+					"write_encoding": "",
+				},
 			},
+		},
+		{
+			name: "invaid_target",
+			in: []map[string]interface{}{
+				{
+					"target": "influxdb1",
+				},
+			},
+			expectError: fmt.Errorf("%s not implemented yet", "influxdb1"),
+		},
+		{
+			name: "invaid_target_type",
+			in: []map[string]interface{}{
+				{
+					"target": 123,
+				},
+			},
+			expectError: fmt.Errorf("invalid %s: not string", "target"),
+		},
+		{
+			name: "example",
+			in: []map[string]interface{}{
+				{
+					"target": datakit.SinkTargetExample,
+				},
+			},
+		},
+		{
+			name: "id_empty",
+			in: []map[string]interface{}{
+				{
+					"target": "influxdb",
+				},
+			},
+			expectError: fmt.Errorf("%s could not be empty", "id"),
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			// err := checkSinksConfig(tc.in)
-			// assert.Equal(t, tc.expectError, err)
+			err := buildSinkImpls(tc.in)
+			assert.Equal(t, tc.expectError, err)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^TestAggregationCategorys$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
+func TestAggregationCategorys(t *testing.T) {
+	cases := []struct {
+		name        string
+		in          []map[string]interface{}
+		expectError error
+	}{
+		// {
+		// 	name: "categories_empty",
+		// 	in: []map[string]interface{}{
+		// 		{
+		// 			"categories": []string{},
+		// 		},
+		// 	},
+		// 	expectError: fmt.Errorf("invalid categories: empty"),
+		// },
+		// {
+		// 	name: "categories_not_[]string",
+		// 	in: []map[string]interface{}{
+		// 		{
+		// 			"categories": "",
+		// 		},
+		// 	},
+		// 	expectError: fmt.Errorf("invalid categories: not []string"),
+		// },
+		{
+			name: "invalid_id",
+			in: []map[string]interface{}{
+				{
+					"id":         123,
+					"categories": []string{"M"},
+				},
+			},
+			expectError: fmt.Errorf("invalid categories: empty"),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := aggregationCategorys(tc.in)
+			assert.Equal(t, tc.expectError, err)
 		})
 	}
 }
