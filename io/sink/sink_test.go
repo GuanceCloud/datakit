@@ -143,55 +143,33 @@ func TestAggregationCategorys(t *testing.T) {
 		in          []map[string]interface{}
 		expectError error
 	}{
+		// {
+		// 	name: "categories_empty",
+		// 	in: []map[string]interface{}{
+		// 		{
+		// 			"categories": []string{},
+		// 		},
+		// 	},
+		// 	expectError: fmt.Errorf("invalid categories: empty"),
+		// },
+		// {
+		// 	name: "categories_not_[]string",
+		// 	in: []map[string]interface{}{
+		// 		{
+		// 			"categories": "",
+		// 		},
+		// 	},
+		// 	expectError: fmt.Errorf("invalid categories: not []string"),
+		// },
 		{
-			name: "normal",
+			name: "invalid_id",
 			in: []map[string]interface{}{
 				{
-					"id":             "influxdb_1",
-					"target":         "influxdb",
-					"addr":           "http://10.200.7.21:8086",
-					"precision":      "ns",
-					"database":       "db0",
-					"user_agent":     "go_test_client",
-					"timeout":        "6s",
-					"write_encoding": "",
+					"id":         123,
+					"categories": []string{"M"},
 				},
 			},
-		},
-		{
-			name: "invaid_target",
-			in: []map[string]interface{}{
-				{
-					"target": "influxdb1",
-				},
-			},
-			expectError: fmt.Errorf("%s not implemented yet", "influxdb1"),
-		},
-		{
-			name: "invaid_target_type",
-			in: []map[string]interface{}{
-				{
-					"target": 123,
-				},
-			},
-			expectError: fmt.Errorf("invalid %s: not string", "target"),
-		},
-		{
-			name: "example",
-			in: []map[string]interface{}{
-				{
-					"target": datakit.SinkTargetExample,
-				},
-			},
-		},
-		{
-			name: "id_empty",
-			in: []map[string]interface{}{
-				{
-					"target": "influxdb",
-				},
-			},
-			expectError: fmt.Errorf("%s could not be empty", "id"),
+			expectError: fmt.Errorf("invalid categories: empty"),
 		},
 	}
 
