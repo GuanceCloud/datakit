@@ -142,7 +142,7 @@ func tracesFromSpans(trace DDTrace) DDTraces {
 func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
-		spanIDs, parentIDs = getSpanIDsAndParentIDs(trace)
+		parentIDs, spanIDs = gatherSpansInfo(trace)
 	)
 	for _, span := range trace {
 		if span == nil {
@@ -157,7 +157,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			Resource:           span.Resource,
 			Operation:          span.Name,
 			Source:             inputName,
-			SpanType:           itrace.FindSpanTypeIntSpanID(int64(span.SpanID), int64(span.ParentID), spanIDs, parentIDs),
+			SpanType:           itrace.FindSpanTypeInMultiTraces(int64(span.SpanID), int64(span.ParentID), span.Service, spanIDs, parentIDs),
 			SourceType:         ddtraceSpanType[span.Type],
 			Tags:               itrace.MergeInToCustomerTags(customerKeys, tags, span.Meta),
 			ContainerHost:      span.Meta[itrace.CONTAINER_HOST],
@@ -213,20 +213,18 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	return dktrace
 }
 
-func getSpanIDsAndParentIDs(trace DDTrace) (map[int64]bool, map[int64]bool) {
-	var (
-		spanIDs   = make(map[int64]bool)
-		parentIDs = make(map[int64]bool)
-	)
+func gatherSpansInfo(trace DDTrace) (parentIDs map[int64]bool, spanIDs map[int64]string) {
+	parentIDs = make(map[int64]bool)
+	spanIDs = make(map[int64]string)
 	for _, span := range trace {
 		if span == nil {
 			continue
 		}
-		spanIDs[int64(span.SpanID)] = true
+		spanIDs[int64(span.SpanID)] = span.Service
 		if span.ParentID != 0 {
 			parentIDs[int64(span.ParentID)] = true
 		}
 	}
 
-	return spanIDs, parentIDs
+	return
 }

@@ -105,6 +105,23 @@ type DatakitTrace []*DatakitSpan
 
 type DatakitTraces []DatakitTrace
 
+func FindSpanTypeInMultiTraces(spanID, parentID int64, service string, spanIDs map[int64]string, parentIDs map[int64]bool) string {
+	if parentID != 0 {
+		if ss, ok := spanIDs[parentID]; ok {
+			if ss != service {
+				return SPAN_TYPE_ENTRY
+			}
+			if parentIDs[spanID] {
+				return SPAN_TYPE_LOCAL
+			} else {
+				return SPAN_TYPE_EXIT
+			}
+		}
+	}
+
+	return SPAN_TYPE_ENTRY
+}
+
 func FindSpanTypeIntSpanID(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
 	if parentID != 0 {
 		if spanIDs[parentID] {
