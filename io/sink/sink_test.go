@@ -80,14 +80,13 @@ func TestBuildSinkImpls(t *testing.T) {
 			name: "normal",
 			in: []map[string]interface{}{
 				{
-					"id":             "influxdb_1",
-					"target":         "influxdb",
-					"addr":           "http://10.200.7.21:8086",
-					"precision":      "ns",
-					"database":       "db0",
-					"user_agent":     "go_test_client",
-					"timeout":        "6s",
-					"write_encoding": "",
+					"id":         "influxdb_1",
+					"target":     "influxdb",
+					"addr":       "http://10.200.7.21:8086",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
 				},
 			},
 		},
@@ -170,6 +169,21 @@ func TestAggregationCategorys(t *testing.T) {
 				},
 			},
 			expectError: fmt.Errorf("invalid id: not string"),
+		},
+		{
+			name: "normal",
+			in: []map[string]interface{}{
+				{
+					"id":         "influxdb_1",
+					"target":     "influxdb",
+					"addr":       "http://10.200.7.21:8086",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
+					"categories": []string{"M"},
+				},
+			},
 		},
 	}
 
