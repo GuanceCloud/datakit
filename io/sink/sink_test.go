@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
 )
 
 // go test -v -timeout 30s -run ^TestCheckSinksConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
@@ -78,19 +77,44 @@ func TestBuildSinkImpls(t *testing.T) {
 		expectError error
 	}{
 		{
-			name: "id_unique",
+			name: "normal",
 			in: []map[string]interface{}{
-				{"id": "abc"},
-				{"id": "bcd"},
-				{"id": "efg"},
+				{
+					"id":             "influxdb_1",
+					"target":         "influxdb",
+					"addr":           "http://10.200.7.21:8086",
+					"precision":      "ns",
+					"database":       "db0",
+					"user_agent":     "go_test_client",
+					"timeout":        "6s",
+					"write_encoding": "",
+				},
 			},
+		},
+		{
+			name: "invaid_target",
+			in: []map[string]interface{}{
+				{
+					"target": "influxdb1",
+				},
+			},
+			expectError: fmt.Errorf("%s not implemented yet", "influxdb1"),
+		},
+		{
+			name: "invaid_target_type",
+			in: []map[string]interface{}{
+				{
+					"target": 123,
+				},
+			},
+			expectError: fmt.Errorf("invalid %s: not string", "target"),
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			// err := checkSinksConfig(tc.in)
-			// assert.Equal(t, tc.expectError, err)
+			err := buildSinkImpls(tc.in)
+			assert.Equal(t, tc.expectError, err)
 		})
 	}
 }
