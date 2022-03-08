@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 // go test -v -timeout 30s -run ^TestCheckSinksConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
@@ -105,6 +106,15 @@ func TestBuildSinkImpls(t *testing.T) {
 			in: []map[string]interface{}{
 				{
 					"target": 123,
+				},
+			},
+			expectError: fmt.Errorf("invalid %s: not string", "target"),
+		},
+		{
+			name: "example",
+			in: []map[string]interface{}{
+				{
+					"target": datakit.SinkTargetExample,
 				},
 			},
 			expectError: fmt.Errorf("invalid %s: not string", "target"),

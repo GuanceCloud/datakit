@@ -51,3 +51,11 @@ func GetMapAssertInt(name string, m map[string]interface{}) (int, error) {
 	}
 	return num, nil
 }
+
+func CheckNotEmpty(str, name string) (string, error) {
+	strNew := TrimString(str)
+	if strNew == "" {
+		return "", fmt.Errorf("%s could not be empty", name)
+	}
+	return strNew, nil
+}
