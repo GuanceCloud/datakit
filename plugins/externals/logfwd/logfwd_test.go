@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -18,9 +19,9 @@ import (
 )
 
 func TestForwardFunc(t *testing.T) {
-	lc := &logConfig{
-		Source:  "t_source",
-		TagsStr: "service=t_service",
+	lg := &logging{
+		Source: "t_source",
+		Tags:   map[string]string{"service": "t_service"},
 	}
 
 	var writeRevicer []string
@@ -37,27 +38,27 @@ func TestForwardFunc(t *testing.T) {
 		{
 			inFilename: "/tmp/111",
 			inText:     "hello,world",
-			out:        `{"type":"1","source":"t_source","tags_str":"filename=/tmp/111,service=t_service","log":"hello,world"}`,
+			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/111","service":"t_service"},"log":"hello,world"}`,
 		},
 		{
 			inFilename: "/tmp/222",
 			inText:     "hello,world,222",
-			out:        `{"type":"1","source":"t_source","tags_str":"filename=/tmp/222,service=t_service","log":"hello,world,222"}`,
+			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/222","service":"t_service"},"log":"hello,world,222"}`,
 		},
 		{
 			inFilename: "/tmp/333",
 			inText:     "hello,world,333",
-			out:        `{"type":"1","source":"t_source","tags_str":"filename=/tmp/333,service=t_service","log":"hello,world,333"}`,
+			out:        `{"type":"1","source":"t_source","tags":{"filename":"/tmp/333","service":"t_service"},"log":"hello,world,333"}`,
 		},
 	}
 
 	for idx, tc := range cases {
-		forwardFunc(lc, write)(tc.inFilename, tc.inText)
+		forwardFunc(lg, write)(tc.inFilename, tc.inText)
 		assert.Equal(t, tc.out, writeRevicer[idx])
 	}
 }
 
-func TestGetFwdConfig(t *testing.T) {
+func TestGetConfig(t *testing.T) {
 	cfgstr := `
 		[
 		  {
@@ -89,38 +90,36 @@ func TestGetFwdConfig(t *testing.T) {
 	}()
 
 	// fail
-	_, err = getFwdConfig()
+	_, err = getConfig()
 	assert.Error(t, err)
 
 	// command arg file
 	// level 3
 	argConfig = &fname
-	c3, err := getFwdConfig()
+	c3, err := getConfig()
 	assert.NoError(t, err)
 
 	// command arg
 	// level 2
-	argConfigJSON = &cfgstr
-	c2, err := getFwdConfig()
+	argJSONConfig = &cfgstr
+	c2, err := getConfig()
 	assert.NoError(t, err)
 
 	// env
 	// level 1
-	err = os.Setenv(envFwdConfigKey, cfgstr)
+	envMainJSONConfig = cfgstr
+	c1, err := getConfig()
 	assert.NoError(t, err)
-	c1, err := getFwdConfig()
-	assert.NoError(t, err)
-	os.Unsetenv(envFwdConfigKey)
 
 	assert.Equal(t, c1, c2)
 	assert.Equal(t, c1, c3)
 	assert.Equal(t, c2, c3)
 }
 
-func TestParseFwdConfig(t *testing.T) {
+func TestParseConfig(t *testing.T) {
 	cases := []struct {
 		in   string
-		out  fwdConfig
+		out  config
 		fail bool
 	}{
 		{
@@ -140,15 +139,15 @@ func TestParseFwdConfig(t *testing.T) {
 				  }
 				]
 			`,
-			out: fwdConfig{
-				DataKitAddr: "192.168.0.20:9090",
-				LogConfigs: logConfigs{
+			out: config{
+				DataKitAddr: "192.168.0.20:9533",
+				Loggings: loggings{
 					{
 						LogFiles:       []string{"/tmp/11", "/tmp/22"},
 						Source:         "t_source",
-						Service:        "t_service",
-						Pipeline:       "t_pipeline",
-						MultilineMatch: "t_multiline",
+						Service:        "t_service_new",
+						Pipeline:       "t_pipeline_new",
+						MultilineMatch: "t_multiline_new",
 					},
 				},
 			},
@@ -161,115 +160,58 @@ func TestParseFwdConfig(t *testing.T) {
 		},
 
 		{
-			// invalid fwdConfig
+			// invalid config
 			in:   ``,
 			fail: true,
 		},
 	}
 
-	err := os.Setenv(envWsHostKey, "192.168.0.20")
-	assert.NoError(t, err)
-	err = os.Setenv(envWsPortKey, "9090")
-	assert.NoError(t, err)
-	defer func() {
-		err := os.Unsetenv(envWsHostKey)
-		assert.NoError(t, err)
-		err = os.Unsetenv(envWsPortKey)
-		assert.NoError(t, err)
-	}()
+	wsHost = "192.168.0.20"
+	wsPort = "9533"
+	envAnnotationDataKitLogs = `
+		[
+		  {
+		    "source":"t_source",
+		    "service":"t_service_new",
+		    "pipeline":"t_pipeline_new",
+		    "multiline_match":"t_multiline_new"
+		  }
+		]
+	`
 
 	for _, tc := range cases {
-		config, err := parseFwdConfig(tc.in)
+		config, err := parseConfig(tc.in)
 		if tc.fail && assert.Error(t, err) {
 			continue
 		}
 
 		assert.NoError(t, err)
 		assert.Equal(t, tc.out.DataKitAddr, config.DataKitAddr)
-		assert.Equal(t, tc.out.LogPath, config.LogPath)
-		assert.Equal(t, tc.out.LogLevel, config.LogLevel)
 
-		for idx, cfg := range config.LogConfigs {
-			assert.Equal(t, tc.out.LogConfigs[idx].Source, cfg.Source)
-			assert.Equal(t, tc.out.LogConfigs[idx].Service, cfg.Service)
-			assert.Equal(t, tc.out.LogConfigs[idx].Pipeline, cfg.Pipeline)
-			assert.Equal(t, tc.out.LogConfigs[idx].MultilineMatch, cfg.MultilineMatch)
+		for idx, cfg := range config.Loggings {
+			assert.Equal(t, tc.out.Loggings[idx].Source, cfg.Source)
+			assert.Equal(t, tc.out.Loggings[idx].Service, cfg.Service)
+			assert.Equal(t, tc.out.Loggings[idx].Pipeline, cfg.Pipeline)
+			assert.Equal(t, tc.out.Loggings[idx].MultilineMatch, cfg.MultilineMatch)
 		}
 	}
 }
 
-func TestGetEnvLogConfigs(t *testing.T) {
-	var (
-		envKey = envLogConfigKey
-
-		cases = []struct {
-			in  string
-			out logConfigs
-		}{
-			{
-				in: `
-					[
-					  {
-					    "source":"t_source",
-					    "service":"t_service",
-					    "pipeline":"t_pipeline",
-					    "multiline_match":"t_multiline"
-					  }
-					]
-				`,
-				out: logConfigs{
-					{
-						Source:         "t_source",
-						Service:        "t_service",
-						Pipeline:       "t_pipeline",
-						MultilineMatch: "t_multiline",
-					},
-				},
-			},
-			{
-				in: `
-				        ## failed to unmarshal
-					[
-					  {
-					    "source":"t_source",
-					    "service":"t_service",
-					    "pipeline":"t_pipeline",
-					    "multiline_match":"t_multiline"
-					  }
-					]
-				`,
-				out: nil,
-			},
-		}
-	)
-
-	for _, tc := range cases {
-		err := os.Setenv(envKey, tc.in)
-		assert.NoError(t, err)
-
-		configs := getEnvLogConfigs(envKey)
-		assert.Equal(t, tc.out, configs)
-
-		err = os.Unsetenv(envKey)
-		assert.NoError(t, err)
-	}
-}
-
-func TestLogConfigMerge(t *testing.T) {
+func TestLoggingMerge(t *testing.T) {
 	cases := []struct {
-		dst *logConfig
-		src logConfigs
-		res *logConfig
+		dst *logging
+		src loggings
+		res *logging
 	}{
 		{
-			dst: &logConfig{
+			dst: &logging{
 				LogFiles:       []string{"/tmp/11", "/tmp/22"},
 				Source:         "t_source",
 				Service:        "t_service",
 				Pipeline:       "t_pipeline",
 				MultilineMatch: "t_multiline",
 			},
-			src: logConfigs{
+			src: loggings{
 				{
 					Source:         "t_source",
 					Service:        "t_service2",
@@ -277,7 +219,7 @@ func TestLogConfigMerge(t *testing.T) {
 					MultilineMatch: "t_multiline2",
 				},
 			},
-			res: &logConfig{
+			res: &logging{
 				LogFiles:       []string{"/tmp/11", "/tmp/22"},
 				Source:         "t_source",
 				Service:        "t_service2",
@@ -286,14 +228,14 @@ func TestLogConfigMerge(t *testing.T) {
 			},
 		},
 		{
-			dst: &logConfig{
+			dst: &logging{
 				LogFiles:       []string{"/tmp/11", "/tmp/22"},
 				Source:         "t_source",
 				Service:        "t_service",
 				Pipeline:       "t_pipeline",
 				MultilineMatch: "t_multiline",
 			},
-			src: logConfigs{
+			src: loggings{
 				{
 					Source:         "t_source2",
 					Service:        "t_service2",
@@ -301,7 +243,7 @@ func TestLogConfigMerge(t *testing.T) {
 					MultilineMatch: "t_multiline2",
 				},
 			},
-			res: &logConfig{
+			res: &logging{
 				LogFiles:       []string{"/tmp/11", "/tmp/22"},
 				Source:         "t_source",
 				Service:        "t_service",
@@ -317,84 +259,59 @@ func TestLogConfigMerge(t *testing.T) {
 	}
 }
 
-func TestLogConfigSetup(t *testing.T) {
-	err := os.Setenv(envPodNameKey, "test_pod_name")
-	assert.NoError(t, err)
-	err = os.Setenv(envPodNamespaceKey, "test_pod_namespace")
-	assert.NoError(t, err)
-	defer func() {
-		err := os.Unsetenv(envPodNameKey)
-		assert.NoError(t, err)
-		err = os.Unsetenv(envPodNamespaceKey)
-		assert.NoError(t, err)
-	}()
+func TestLoggingSetup(t *testing.T) {
+	podName = "test_pod_name"
+	podNamespace = "test_pod_namespace"
 
 	cases := []struct {
-		in  *logConfig
-		out *logConfig
+		in  *logging
+		out *logging
 	}{
 		{
-			in: &logConfig{
+			in: &logging{
 				Source: "t_source",
 			},
-			out: &logConfig{
+			out: &logging{
 				Source:  "t_source",
 				Service: "t_source", // use $source
-				TagsStr: "pod_namespace=test_pod_namespace,pod_name=test_pod_name,service=t_source",
+				Tags: map[string]string{
+					"pod_namespace": "test_pod_namespace",
+					"pod_name":      "test_pod_name",
+					"service":       "t_source",
+				},
 			},
 		},
 		{
-			in: &logConfig{
+			in: &logging{
 				Service: "t_service",
 			},
-			out: &logConfig{
+			out: &logging{
 				Source:  "default", // use default
 				Service: "t_service",
-				TagsStr: "pod_namespace=test_pod_namespace,pod_name=test_pod_name,service=t_service",
+				Tags: map[string]string{
+					"pod_namespace": "test_pod_namespace",
+					"pod_name":      "test_pod_name",
+					"service":       "t_service",
+				},
 			},
 		},
 		{
-			in: &logConfig{},
-			out: &logConfig{
+			in: &logging{},
+			out: &logging{
 				Source:  "default", // use default
 				Service: "default",
-				TagsStr: "pod_namespace=test_pod_namespace,pod_name=test_pod_name,service=default",
+				Tags: map[string]string{
+					"pod_namespace": "test_pod_namespace",
+					"pod_name":      "test_pod_name",
+					"service":       "default",
+				},
 			},
 		},
 	}
 
 	for _, tc := range cases {
 		tc.in.setup()
-		assert.NoError(t, err)
 		assert.Equal(t, tc.out, tc.in)
-	}
-}
-
-func TestAddTag(t *testing.T) {
-	cases := []struct {
-		in             *message
-		inKey, inValue string
-		out            string
-	}{
-		{
-			in:      &message{},
-			inKey:   "key",
-			inValue: "value",
-			out:     "key=value",
-		},
-		{
-			in: &message{
-				TagsStr: "key1=value1",
-			},
-			inKey:   "key2",
-			inValue: "value2",
-			out:     "key2=value2,key1=value1",
-		},
-	}
-
-	for _, tc := range cases {
-		out := tc.in.appendToTagsStr(tc.inKey, tc.inValue)
-		assert.Equal(t, tc.out, out)
 	}
 }
 
@@ -421,6 +338,10 @@ func TestMessageToJSON(t *testing.T) {
 }
 
 func TestStartLog(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		return
+	}
+
 	f, err := ioutil.TempFile("", "")
 	assert.NoError(t, err)
 
@@ -434,9 +355,9 @@ func TestStartLog(t *testing.T) {
 
 	const addr = "0.0.0.0:9090"
 
-	cfg := &fwdConfig{
+	cfg := &config{
 		DataKitAddr: addr,
-		LogConfigs: logConfigs{
+		Loggings: loggings{
 			{
 				LogFiles: []string{f.Name()},
 				Source:   "t_source",
