@@ -117,7 +117,15 @@ func TestBuildSinkImpls(t *testing.T) {
 					"target": datakit.SinkTargetExample,
 				},
 			},
-			expectError: fmt.Errorf("invalid %s: not string", "target"),
+		},
+		{
+			name: "id_empty",
+			in: []map[string]interface{}{
+				{
+					"target": "influxdb",
+				},
+			},
+			expectError: fmt.Errorf("%s could not be empty", "id"),
 		},
 	}
 
