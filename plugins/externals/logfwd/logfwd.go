@@ -186,12 +186,13 @@ func parseConfig(s string) (*config, error) {
 		cfg.DataKitAddr = fmt.Sprintf("%s:%s", wsHost, wsPort)
 	}
 
+	var annotationLoggings loggings
 	if envAnnotationDataKitLogs != "" {
-		var annotationLoggings loggings
 		_ = json.Unmarshal([]byte(envAnnotationDataKitLogs), &annotationLoggings)
-		for _, logging := range cfg.Loggings {
-			logging.merge(annotationLoggings)
-		}
+	}
+	for _, logging := range cfg.Loggings {
+		logging.merge(annotationLoggings)
+		logging.setup()
 	}
 
 	return cfg, nil
