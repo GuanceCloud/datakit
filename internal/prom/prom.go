@@ -212,7 +212,7 @@ func (p *Prom) CollectFromFile(filepath string) ([]*io.Point, error) {
 }
 
 // WriteMetricText2File scrapes raw prometheus metric text from u
-// then appends them directly to p.opt.Output.
+// then appends them directly to file p.opt.Output.
 func (p *Prom) WriteMetricText2File(u string) error {
 	fp := p.opt.Output
 	if !path.IsAbs(fp) {

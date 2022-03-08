@@ -237,6 +237,7 @@ func (i *Input) Init() error {
 	return nil
 }
 
+// Collect collects metrics from all URLs.
 func (i *Input) Collect() ([]*io.Point, error) {
 	if i.pm == nil {
 		return nil, nil
@@ -275,6 +276,8 @@ func (i *Input) CollectFromFile(filepath string) ([]*io.Point, error) {
 	return i.pm.CollectFromFile(filepath)
 }
 
+// WriteMetricText2File collects from all URLs and then
+// directly writes them to file specified by field Output.
 func (i *Input) WriteMetricText2File() error {
 	// Remove if file already exists.
 	if _, err := os.Stat(i.Output); err == nil {

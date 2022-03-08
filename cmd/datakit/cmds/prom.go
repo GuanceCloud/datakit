@@ -158,7 +158,6 @@ func getPromInput(configPath string) (*prom.Input, error) {
 }
 
 func showPromInput(input *prom.Input) error {
-	// init client
 	err := input.Init()
 	if err != nil {
 		return err
@@ -166,8 +165,11 @@ func showPromInput(input *prom.Input) error {
 
 	var points []*io.Point
 	if input.Output != "" {
+		// If input.Output is configured, raw metric text is written to file.
+		// In this case, read the file and perform Text2Metric.
 		points, err = input.CollectFromFile(input.Output)
 	} else {
+		// Collect from all URLs.
 		points, err = input.Collect()
 	}
 	if err != nil {
