@@ -80,14 +80,13 @@ func TestBuildSinkImpls(t *testing.T) {
 			name: "normal",
 			in: []map[string]interface{}{
 				{
-					"id":             "influxdb_1",
-					"target":         "influxdb",
-					"addr":           "http://10.200.7.21:8086",
-					"precision":      "ns",
-					"database":       "db0",
-					"user_agent":     "go_test_client",
-					"timeout":        "6s",
-					"write_encoding": "",
+					"id":         "influxdb_1",
+					"target":     "influxdb",
+					"addr":       "http://1.1.1.1:8086",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
 				},
 			},
 		},
@@ -143,24 +142,24 @@ func TestAggregationCategorys(t *testing.T) {
 		in          []map[string]interface{}
 		expectError error
 	}{
-		// {
-		// 	name: "categories_empty",
-		// 	in: []map[string]interface{}{
-		// 		{
-		// 			"categories": []string{},
-		// 		},
-		// 	},
-		// 	expectError: fmt.Errorf("invalid categories: empty"),
-		// },
-		// {
-		// 	name: "categories_not_[]string",
-		// 	in: []map[string]interface{}{
-		// 		{
-		// 			"categories": "",
-		// 		},
-		// 	},
-		// 	expectError: fmt.Errorf("invalid categories: not []string"),
-		// },
+		{
+			name: "categories_empty",
+			in: []map[string]interface{}{
+				{
+					"categories": []string{},
+				},
+			},
+			expectError: fmt.Errorf("invalid categories: empty"),
+		},
+		{
+			name: "categories_not_[]string",
+			in: []map[string]interface{}{
+				{
+					"categories": "",
+				},
+			},
+			expectError: fmt.Errorf("invalid categories: not []string"),
+		},
 		{
 			name: "invalid_id",
 			in: []map[string]interface{}{
@@ -169,7 +168,22 @@ func TestAggregationCategorys(t *testing.T) {
 					"categories": []string{"M"},
 				},
 			},
-			expectError: fmt.Errorf("invalid categories: empty"),
+			expectError: fmt.Errorf("invalid id: not string"),
+		},
+		{
+			name: "normal",
+			in: []map[string]interface{}{
+				{
+					"id":         "influxdb_1",
+					"target":     "influxdb",
+					"addr":       "http://1.1.1.1:8086",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
+					"categories": []string{"M"},
+				},
+			},
 		},
 	}
 
