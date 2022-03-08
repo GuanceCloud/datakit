@@ -91,6 +91,9 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 		if !ok {
 			return fmt.Errorf("invalid categories: not []string")
 		}
+		if len(categoriesArray) == 0 {
+			return fmt.Errorf("invalid categories: empty")
+		}
 
 		mCategory := make(map[string]struct{})
 		for _, category := range categoriesArray {
