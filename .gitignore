@@ -40,12 +40,8 @@ docker/datakit
 embed/*
 git/git.go
 gram_y.go
-gram_y.go
-install_local.sh
 install_local.sh
 install.ps1
-install.ps1
-install.sh
 install.sh
 internal-pipelines.json
 internal/http/req.db
@@ -55,7 +51,6 @@ measurements-meta.json
 old/
 parser_y.go
 pipeline-docs.json
-pipeline/parser/parser.y.go
 pipeline/parser/parser.y.go
 plugins/external/csv/__tmp
 plugins/external/csv/venv
