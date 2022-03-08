@@ -64,6 +64,7 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 
 	podname := container.Labels[containerLableForPodName]
 	podnamespace := container.Labels[containerLableForPodNamespace]
+	podContainerName := container.Labels[containerLableForPodContainerName]
 
 	if k8sClient == nil || podname == "" {
 		return tags
@@ -75,7 +76,7 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 		return tags
 	}
 
-	if image := meta.containerImage(); image != "" {
+	if image := meta.containerImage(podContainerName); image != "" {
 		// 如果能找到 pod image，则使用它
 		imageName, imageShortName, imageTag := ParseImage(image)
 

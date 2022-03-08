@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/readbuf"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -175,12 +176,14 @@ func (d *dockerInput) tailMultiplexed(ctx context.Context, src io.ReadCloser, lo
 }
 
 type containerLogConfig struct {
-	Disable   bool   `json:"disable"`
-	Source    string `json:"source"`
-	Pipeline  string `json:"pipeline"`
-	Service   string `json:"service"`
-	Multiline string `json:"multiline_match"`
+	Disable    bool     `json:"disable"`
+	Source     string   `json:"source"`
+	Pipeline   string   `json:"pipeline"`
+	Service    string   `json:"service"`
+	Multiline  string   `json:"multiline_match"`
+	OnlyImages []string `json:"only_images"`
 
+	imageFilter filter.Filter
 	containerID string
 	tags        map[string]string
 }
@@ -214,9 +217,10 @@ func (c *containerLogConfig) checking() error {
 }
 
 const (
-	containerLableForPodName      = "io.kubernetes.pod.name"
-	containerLableForPodNamespace = "io.kubernetes.pod.namespace"
-	containerLogConfigKey         = "datakit/logs"
+	containerLableForPodName          = "io.kubernetes.pod.name"
+	containerLableForPodNamespace     = "io.kubernetes.pod.namespace"
+	containerLableForPodContainerName = "io.kubernetes.container.name"
+	containerLogConfigKey             = "datakit/logs"
 )
 
 func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
