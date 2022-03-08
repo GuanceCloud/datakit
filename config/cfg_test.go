@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -350,4 +351,70 @@ hostname = "should-not-set"`,
 			t.Error(err)
 		}
 	}
+}
+
+// go test -v -timeout 30s -run ^TestWriteConfigFile$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
+/*
+[sinks]
+
+  [[sinks.sink]]
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    host = "1.1.1.1"
+    password = "666"
+    port = 123
+    target = "influxdb"
+    username = "jack"
+
+  [[sinks.sink]]
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    host = "2.2.2.2"
+    password = "777"
+    port = 456
+    target = "elasticsearch"
+    username = "jack"
+
+  [[sinks.sink]]
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    host = "1.1.1.1"
+    password = "123456"
+    port = 16666
+    target = "example only, will not working"
+    username = "admin"
+*/
+func TestWriteConfigFile(t *testing.T) {
+	c := DefaultConfig()
+	c.Sinks = &Sinker{
+		Sink: []map[string]interface{}{
+			{
+				"target":     "influxdb",
+				"categories": []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+				"host":       "1.1.1.1",
+				"username":   "jack",
+				"password":   "666",
+				"port":       123,
+			},
+			{
+				"target":     "elasticsearch",
+				"categories": []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+				"host":       "2.2.2.2",
+				"username":   "jack",
+				"password":   "777",
+				"port":       456,
+			},
+			{
+				"target":     datakit.SinkTargetExample,
+				"categories": []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+				"host":       "1.1.1.1",
+				"username":   "admin",
+				"password":   "123456",
+				"port":       16666,
+			},
+		},
+	}
+
+	mcdata, err := datakit.TomlMarshal(c)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(mcdata))
 }

@@ -179,7 +179,7 @@ func initPythonCore() error {
 }
 
 func doRun() error {
-	if err := io.Start(); err != nil {
+	if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
 		return err
 	}
 

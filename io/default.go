@@ -6,6 +6,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
 )
 
 var (
@@ -104,8 +105,13 @@ func ConfigDefaultIO(opts ...IOOption) {
 	}
 }
 
-func Start() error {
+func Start(sincfg []map[string]interface{}) error {
 	log = logger.SLogger("io")
+
+	if err := sink.Init(sincfg); err != nil {
+		l.Error("InitSink failed: %v", err)
+		return err
+	}
 
 	log.Debugf("default io config: %v", defaultIO)
 
