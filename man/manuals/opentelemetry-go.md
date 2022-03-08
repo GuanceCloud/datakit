@@ -88,11 +88,12 @@ func initProvider() func() {
 	}
 }
 
+var tracer = otel.Tracer("tracer_user_login")
+
 // web handler 处理请求数据
 func web(w http.ResponseWriter, r *http.Request) {
 	// ... 接收客户端请求
 	log.Println("doing web")
-	tracer := otel.Tracer("tracer_user_login")
 	// labels represent additional key-value descriptors that can be bound to a
 	// metric observer or recorder.
 	commonLabels := []attribute.KeyValue{attribute.String("key1", "val1")}
@@ -115,7 +116,6 @@ func web(w http.ResponseWriter, r *http.Request) {
 // service 调用service层 处理业务
 func service(ctx context.Context) {
 	log.Println("service")
-	tracer := otel.Tracer("tracer_user_login")
 	ctx1, iSpan := tracer.Start(ctx, "Sample-service")
 	<-time.After(time.Second / 2) // do something...
 	dao(ctx1)
@@ -125,7 +125,6 @@ func service(ctx context.Context) {
 // dao 数据访问层
 func dao(ctx context.Context) {
 	log.Println("dao")
-	tracer := otel.Tracer("tracer_user_login")
 	ctxD, iSpan := tracer.Start(ctx, "Sample-dao")
 	<-time.After(time.Second / 2)
 
