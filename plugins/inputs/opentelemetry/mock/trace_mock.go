@@ -1,7 +1,8 @@
-package collector
+package mock
 
 import (
 	"context"
+	"log"
 	"testing"
 	"time"
 
@@ -24,7 +25,7 @@ type MockTrace struct {
 	Headers metadata.MD
 }
 
-func (et *MockTrace) getResourceSpans() []*tracepb.ResourceSpans {
+func (et *MockTrace) GetResourceSpans() []*tracepb.ResourceSpans {
 	return et.Rss
 }
 
@@ -34,7 +35,7 @@ func (et *MockTrace) GetHeader() metadata.MD {
 
 func (et *MockTrace) Export(ctx context.Context,
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
-	l.Infof(ets.String())
+	log.Printf(ets.String())
 	// ets.ProtoMessage()
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
 		et.Rss = rss
@@ -45,7 +46,7 @@ func (et *MockTrace) Export(ctx context.Context,
 	return res, nil
 }
 
-func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.DatakitTrace) {
+func MockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.DatakitTrace) {
 	t.Helper()
 	// 固定时间测试 否则格式化content数据不对
 	startTime := time.Date(2020, time.December, 8, 19, 15, 0, 0, time.UTC)
@@ -111,7 +112,7 @@ func mockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.
 			Service:            "global.ServerName",
 			Resource:           "test-server",
 			Operation:          "span_name",
-			Source:             inputName,
+			Source:             "opentelemetry",
 			SpanType:           "entry",
 			SourceType:         "custom",
 			Env:                "",

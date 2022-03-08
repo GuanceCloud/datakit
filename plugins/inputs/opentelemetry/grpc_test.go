@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/mock"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -16,12 +17,12 @@ import (
 func TestExportTrace_Export(t *testing.T) {
 	trace := &ExportTrace{storage: collector.NewSpansStorage()}
 	endpoint := "localhost:20010"
-	m := collector.MockOtlpGrpcCollector{Trace: trace}
+	m := mock.MockOtlpGrpcCollector{Trace: trace}
 	go m.StartServer(t, endpoint)
 	<-time.After(5 * time.Millisecond)
 	t.Log("start server")
 	ctx := context.Background()
-	exp := collector.NewGRPCExporter(t, ctx, endpoint)
+	exp := mock.NewGRPCExporter(t, ctx, endpoint)
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithBatcher(
@@ -48,7 +49,7 @@ func TestExportTrace_Export(t *testing.T) {
 	t.Log("span end")
 	// Flush and close.
 	func() {
-		ctx, cancel := collector.ContextWithTimeout(ctx, t, 10*time.Second)
+		ctx, cancel := mock.ContextWithTimeout(ctx, t, 10*time.Second)
 		defer cancel()
 		require.NoError(t, tp.Shutdown(ctx))
 	}()
@@ -112,15 +113,15 @@ func TestExportTrace_Export(t *testing.T) {
 func TestExportMetric_Export(t *testing.T) {
 	metric := &ExportMetric{storage: collector.NewSpansStorage()}
 	endpoint := "localhost:20010"
-	m := collector.MockOtlpGrpcCollector{Metric: metric}
+	m := mock.MockOtlpGrpcCollector{Metric: metric}
 	go m.StartServer(t, endpoint)
 	<-time.After(5 * time.Millisecond)
 	t.Log("start server")
 
 	ctx := context.Background()
-	exp := collector.NewMetricGRPCExporter(t, ctx, endpoint)
+	exp := mock.NewMetricGRPCExporter(t, ctx, endpoint)
 
-	err := exp.Export(ctx, collector.TestResource, collector.OneRecord)
+	err := exp.Export(ctx, mock.TestResource, mock.OneRecord)
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
