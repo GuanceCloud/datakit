@@ -28,21 +28,21 @@ func TestCheckSinksConfig(t *testing.T) {
 			in: []map[string]interface{}{
 				{"id": " "},
 			},
-			expectError: fmt.Errorf("invalid id: empty"),
+			expectError: fmt.Errorf("%s could not be empty", "id"),
 		},
 		{
 			name: "id_empty_2",
 			in: []map[string]interface{}{
 				{"id": ""},
 			},
-			expectError: fmt.Errorf("invalid id: empty"),
+			expectError: fmt.Errorf("%s could not be empty", "id"),
 		},
 		{
 			name: "id_empty_3",
 			in: []map[string]interface{}{
 				{"id": "  "},
 			},
-			expectError: fmt.Errorf("invalid id: empty"),
+			expectError: fmt.Errorf("%s could not be empty", "id"),
 		},
 		{
 			name: "id_repeat",

@@ -2,7 +2,6 @@ package sink
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -150,9 +149,8 @@ func checkSinkConfig(sincfg []map[string]interface{}) error {
 		if err != nil {
 			return err
 		}
-		idNew := strings.TrimSpace(id)
-		if idNew == "" {
-			return fmt.Errorf("invalid id: empty")
+		if _, err := dkstring.CheckNotEmpty(id, "id"); err != nil {
+			return err
 		}
 		if _, ok := mSinkID[id]; ok {
 			return fmt.Errorf("invalid sink config: id not unique")
