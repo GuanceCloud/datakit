@@ -102,7 +102,7 @@ func (ipt *Input) Run() {
 	log.Infof("%s input started...", inputName)
 
 	// add calculators
-	afterGather.AppendCalculator(itrace.StatTracingInfo)
+	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
 	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
@@ -128,7 +128,7 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) RegHTTPHandler() {
-	itrace.StartTracingStatistic()
+	// itrace.StartTracingStatistic()
 
 	if ipt.PathV1 == "" {
 		ipt.PathV1 = apiv1Path
