@@ -38,6 +38,11 @@ func main() {
 	quitChannel := make(chan struct{})
 	flag.Parse()
 
+	optflags := (logger.OPT_DEFAULT | logger.OPT_STDOUT)
+	if err := logger.InitRoot(&logger.Option{Level: logger.INFO, Flags: optflags}); err != nil {
+		l.Warnf("failed to set root log, err: %w", err)
+	}
+
 	cfg, err := getConfig()
 	if err != nil {
 		l.Error(err)
