@@ -9,6 +9,11 @@ var (
 	defaultCache                *Cache
 )
 
+type CacheInfo struct {
+	CacheCount   int64
+	FlushedCount int64
+}
+
 func Initialize(dir string, opt *Options) error {
 	c, err := NewCache(dir, opt)
 	if err != nil {
@@ -64,11 +69,11 @@ func Get(bucket string, key []byte) ([]byte, error) {
 	return defaultCache.Get(bucket, key)
 }
 
-func Del(bucket string, key []byte) error {
+func Del(bucket string, keys [][]byte) error {
 	if defaultCache == nil {
 		return ErrGlobalCacheNotInitialize
 	}
-	defaultCache.cleanCache(bucket, [][]byte{key})
+	defaultCache.cleanCache(bucket, keys)
 	return nil
 }
 
@@ -77,4 +82,15 @@ func ForEach(bucket string, handle ProcessHandle, clean bool) error {
 		return ErrGlobalCacheNotInitialize
 	}
 	return defaultCache.ForEach(bucket, handle, clean)
+}
+
+func GetInfo() (*CacheInfo, error) {
+	if defaultCache == nil {
+		return nil, ErrGlobalCacheNotInitialize
+	}
+
+	return &CacheInfo{
+		CacheCount:   defaultCache.totalCacheCnt,
+		FlushedCount: defaultCache.totalFlushed,
+	}, nil
 }

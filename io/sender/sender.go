@@ -84,7 +84,7 @@ func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 	s.group.Go(func(ctx context.Context) error {
 		if err := s.write(category, pts); err != nil {
 			atomic.AddInt64(&s.Stat.FailCount, 1)
-			l.Error("sink write error", err)
+			l.Error("sink write error: ", err)
 
 			if s.opt.ErrorCallback != nil {
 				s.opt.ErrorCallback(err)
@@ -217,10 +217,26 @@ func (s *Sender) startFlushCache() {
 }
 
 func (s *Sender) flushCache() {
-	l.Debugf("flush cache")
+	l.Debugf("flush cache start")
+
+	cacheInfo, err := cache.GetInfo()
+	if err != nil {
+		l.Warnf("get cache info error: %s", err.Error())
+		return
+	}
+
+	if cacheInfo.CacheCount <= cacheInfo.FlushedCount {
+		l.Debug("cache count is less than flushed count, no need to flush")
+		return
+	}
+
 	const clean = false
 
+	toCleanKeys := [][]byte{}
+
+	l.Debugf("cache info before: %s", cache.Info())
 	fn := func(k, v []byte) error {
+		time.Sleep(100 * time.Millisecond)
 		d := PBData{}
 		if err := pb.Unmarshal(v, &d); err != nil {
 			return err
@@ -234,19 +250,23 @@ func (s *Sender) flushCache() {
 		if err != nil {
 			l.Warnf("cache sink write error: %s", err.Error())
 		} else {
-			if err := cache.Del(cacheBucket, k); err != nil {
-				l.Warnf("cache send ok, but delete cache error: %s", string(k))
-			}
+			toCleanKeys = append(toCleanKeys, k)
 		}
 
 		return err
 	}
 
 	if err := cache.ForEach(cacheBucket, fn, clean); err != nil {
-		l.Warnf("upload cache: %s, ignore", err)
+		l.Warnf("upload cache: %s, ignore", err.Error())
 	}
 
-	l.Debug(cache.Info())
+	if len(toCleanKeys) > 0 {
+		if err := cache.Del(cacheBucket, toCleanKeys); err != nil {
+			l.Warnf("cache upload ok , but clean cache failed: ", err.Error())
+		}
+	}
+
+	l.Debugf("cache info after: %s", cache.Info())
 }
 
 // Stop stop cache interval and stop cache.

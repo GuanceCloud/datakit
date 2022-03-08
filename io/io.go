@@ -32,6 +32,8 @@ var (
 	DisableHeartbeat            bool
 	DisableDatawayList          bool
 	FlagDebugDisableDatawayList bool
+
+	g = datakit.G("io")
 )
 
 type Option struct {
@@ -214,37 +216,44 @@ func (x *IO) updateLastErr(e *lastError) {
 	stat.LastErrTS = e.ts
 }
 
+// updateStats update io input stats with a new groutine, do not block io.
 func (x *IO) updateStats(d *iodata) {
-	now := time.Now()
-	stat, ok := x.inputstats[d.name]
+	g.Go(func(ctx context.Context) error {
+		x.lock.Lock()
+		defer x.lock.Unlock()
+		now := time.Now()
+		stat, ok := x.inputstats[d.name]
 
-	if !ok {
-		stat = &InputsStat{
-			Total: int64(len(d.pts)),
-			First: now,
+		if !ok {
+			stat = &InputsStat{
+				Total: int64(len(d.pts)),
+				First: now,
+			}
+			x.inputstats[d.name] = stat
 		}
-		x.inputstats[d.name] = stat
-	}
 
-	stat.Total += int64(len(d.pts))
-	stat.Count++
-	stat.Last = now
-	stat.Category = d.category
+		stat.Total += int64(len(d.pts))
+		stat.Count++
+		stat.Last = now
+		stat.Category = d.category
 
-	if (stat.Last.Unix() - stat.First.Unix()) > 0 {
-		stat.Frequency = fmt.Sprintf("%.02f/min",
-			float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
-	}
-	stat.AvgSize = (stat.Total) / stat.Count
-
-	if d.opt != nil {
-		stat.Version = d.opt.Version
-		stat.totalCost += d.opt.CollectCost
-		stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
-		if d.opt.CollectCost > stat.MaxCollectCost {
-			stat.MaxCollectCost = d.opt.CollectCost
+		if (stat.Last.Unix() - stat.First.Unix()) > 0 {
+			stat.Frequency = fmt.Sprintf("%.02f/min",
+				float64(stat.Count)/(float64(stat.Last.Unix()-stat.First.Unix())/60))
 		}
-	}
+		stat.AvgSize = (stat.Total) / stat.Count
+
+		if d.opt != nil {
+			stat.Version = d.opt.Version
+			stat.totalCost += d.opt.CollectCost
+			stat.AvgCollectCost = (stat.totalCost) / time.Duration(stat.Count)
+			if d.opt.CollectCost > stat.MaxCollectCost {
+				stat.MaxCollectCost = d.opt.CollectCost
+			}
+		}
+
+		return nil
+	})
 }
 
 func (x *IO) ifMatchOutputFileInput(feedName string) bool {
@@ -338,7 +347,6 @@ func (x *IO) StartIO(recoverable bool) {
 		x.sender = sender
 	}
 
-	g := datakit.G("io")
 	g.Go(func(ctx context.Context) error {
 		if err := x.init(); err != nil {
 			log.Errorf("init io err %v", err)
