@@ -103,6 +103,9 @@
       - [Java 示例](ddtrace-java)
       - [Python 示例](ddtrace-python)
     - [SkyWalking](skywalking)
+    - [Opentelemetry](opentelemetry)
+      - [Golang 示例](opentelemetry-go)
+      - [Java 示例](opentelemetry-java)
     - [Jaeger](jaeger)
 
     - [Datakit Tracing Struct](datakit-tracing-struct)
