@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
@@ -112,6 +113,9 @@ func buildSinkImpls(sincfg []map[string]interface{}) error {
 		target, err := dkstring.GetMapAssertString("target", v)
 		if err != nil {
 			return err
+		}
+		if target == datakit.SinkTargetExample {
+			continue // ignore example
 		}
 		if ins := getSinkInstanceFromTarget(target); ins != nil {
 			if err := ins.LoadConfig(v); err != nil {

@@ -114,12 +114,14 @@ func DefaultConfig() *Config {
 		Sinks: &Sinker{
 			Sink: []map[string]interface{}{
 				{
-					"target":     datakit.SinkTargetExample,
-					"categories": []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-					"host":       "1.1.1.1",
-					"username":   "admin",
-					"password":   "123456",
-					"port":       16666,
+					"id":             "influxdb_test_will_not_working",
+					"target":         datakit.SinkTargetExample,
+					"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+					"addr":           "http://10.200.7.21:8086",
+					"precision":      "ns",
+					"database":       "db0",
+					"timeout":        "10s",
+					"write_encoding": "",
 				},
 			},
 		},
