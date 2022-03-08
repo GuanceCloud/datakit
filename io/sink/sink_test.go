@@ -143,33 +143,40 @@ func TestAggregationCategorys(t *testing.T) {
 		in          []map[string]interface{}
 		expectError error
 	}{
-		// {
-		// 	name: "categories_empty",
-		// 	in: []map[string]interface{}{
-		// 		{
-		// 			"categories": []string{},
-		// 		},
-		// 	},
-		// 	expectError: fmt.Errorf("invalid categories: empty"),
-		// },
-		// {
-		// 	name: "categories_not_[]string",
-		// 	in: []map[string]interface{}{
-		// 		{
-		// 			"categories": "",
-		// 		},
-		// 	},
-		// 	expectError: fmt.Errorf("invalid categories: not []string"),
-		// },
+		{
+			name: "categories_empty",
+			in: []map[string]interface{}{
+				{
+					"categories": []string{},
+				},
+			},
+			expectError: fmt.Errorf("invalid categories: empty"),
+		},
+		{
+			name: "categories_not_[]string",
+			in: []map[string]interface{}{
+				{
+					"categories": "",
+				},
+			},
+			expectError: fmt.Errorf("invalid categories: not []string"),
+		},
 		{
 			name: "invalid_id",
 			in: []map[string]interface{}{
 				{
-					"id":         123,
-					"categories": []string{"M"},
+					"id":             123,
+					"categories":     []string{"M"},
+					"target":         "influxdb",
+					"addr":           "http://10.200.7.21:8086",
+					"precision":      "ns",
+					"database":       "db0",
+					"user_agent":     "go_test_client",
+					"timeout":        "6s",
+					"write_encoding": "",
 				},
 			},
-			expectError: fmt.Errorf("invalid categories: empty"),
+			expectError: fmt.Errorf("invalid id: not string"),
 		},
 	}
 
