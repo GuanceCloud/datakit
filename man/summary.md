@@ -102,7 +102,6 @@
       - [Golang 示例](ddtrace-golang)
       - [Java 示例](ddtrace-java)
       - [Python 示例](ddtrace-python)
-      - [Golang 示例](ddtrace-go)
     - [SkyWalking](skywalking)
     - [Jaeger](jaeger)
 
@@ -119,7 +118,7 @@
     - [第三方日志接入](logstreaming)
     - [Socket 日志接入最佳实践](logging_socket)
     - [通过 Sidecar 方式采集 Pod 日志](logfwd)
-		- [DataKit 整体日志采集介绍](datakit-logging)
+    - [DataKit 整体日志采集介绍](datakit-logging)
 
   - [Windows 相关]()
 
