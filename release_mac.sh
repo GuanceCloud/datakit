@@ -33,13 +33,8 @@ case $branch_name in
 
 			if [[ "$OSTYPE" == "darwin"* ]]; then # Release darwin version first
 				make production_mac VERSION=$new_tag &&
-				make pub_production_mac VERSION=$new_tag &&
 				echo "[I] darwin prod release ok"
 			fi
-
-			# Trigger CI to release other platforms
-			git push -f --tags   &&
-			git push
 		fi
 		;;
 

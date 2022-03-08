@@ -220,6 +220,7 @@ func setupRouter() *gin.Engine {
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
 	router.POST("/v1/pipeline/debug", apiHTTPWrap(apiDebugPipelineHandler))
+	router.POST("/v1/dialtesting/debug", apiHTTPWrap(apiDebugDialtestingHandler))
 	return router
 }
 
