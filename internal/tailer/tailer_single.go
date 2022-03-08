@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -152,7 +153,8 @@ func (t *Single) forwardMessage() {
 				t.sendToForwardCallback(text)
 				continue
 			}
-			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
+			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: logstr, Tag: t.tags})
 		}
 		if len(pending) > 0 {
 			t.sendToPipeline(pending)
@@ -280,4 +282,18 @@ func (b *buffer) split() []string {
 	}
 
 	return res
+}
+
+func removeAnsiEscapeCodes(oldtext string, run bool) string {
+	if !run {
+		return oldtext
+	}
+
+	newtext, err := ansi.Strip([]byte(oldtext))
+	if err != nil {
+		l.Debugf("remove ansi code error: %w", err)
+		return oldtext
+	}
+
+	return string(newtext)
 }
