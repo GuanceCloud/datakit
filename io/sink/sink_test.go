@@ -48,7 +48,6 @@ func TestCheckSinksConfig(t *testing.T) {
 			name: "id_repeat",
 			in: []map[string]interface{}{
 				{"id": "abc"},
-				{"id": "bcd"},
 				{"id": "abc"},
 			},
 			expectError: fmt.Errorf("invalid sink config: id not unique"),
