@@ -165,15 +165,8 @@ func TestAggregationCategorys(t *testing.T) {
 			name: "invalid_id",
 			in: []map[string]interface{}{
 				{
-					"id":             123,
-					"categories":     []string{"M"},
-					"target":         "influxdb",
-					"addr":           "http://10.200.7.21:8086",
-					"precision":      "ns",
-					"database":       "db0",
-					"user_agent":     "go_test_client",
-					"timeout":        "6s",
-					"write_encoding": "",
+					"id":         123,
+					"categories": []string{"M"},
 				},
 			},
 			expectError: fmt.Errorf("invalid id: not string"),
