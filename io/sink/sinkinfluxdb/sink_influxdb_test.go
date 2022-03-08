@@ -3,6 +3,7 @@ package sinkinfluxdb
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -10,6 +11,16 @@ import (
 	_ "github.com/influxdata/influxdb1-client"
 	client "github.com/influxdata/influxdb1-client/v2"
 )
+
+// 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
+func checkDevHost() bool {
+	if envs := os.Getenv("LOCAL_UNIT_TEST"); envs == "" {
+		return false
+	}
+	return true
+}
+
+//------------------------------------------------------------------------------
 
 func ExampleClient_query() {
 	c, err := client.NewHTTPClient(client.HTTPConfig{
@@ -28,6 +39,10 @@ func ExampleClient_query() {
 
 // go test -v -timeout 30s -run ^TestWrite$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io
 func TestWrite(t *testing.T) {
+	if !checkDevHost() {
+		return
+	}
+
 	sampleSize := 1000
 
 	// Make client
