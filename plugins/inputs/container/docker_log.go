@@ -11,7 +11,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/readbuf"
 	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -183,7 +182,6 @@ type containerLogConfig struct {
 	Multiline  string   `json:"multiline_match"`
 	OnlyImages []string `json:"only_images"`
 
-	imageFilter filter.Filter
 	containerID string
 	tags        map[string]string
 }
