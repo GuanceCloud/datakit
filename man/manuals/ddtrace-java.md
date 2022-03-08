@@ -14,7 +14,7 @@ Java 应用链路数据采集需经过如下步骤：
 
 ## 下载 Ddtrace JAR 包
 
-通过如下命令下载Ddtrace Java JAR 包 `dd-java-agent.jar` ：
+通过如下命令下载 Ddtrace Java JAR 包 `dd-java-agent.jar` ：
 
 ```shell
 wget -O dd-java-agent.jar https://dtdg.co/latest-java-tracer
@@ -38,8 +38,8 @@ java -javaagent:/path/to/dd-java-agent.jar \
 
 其中各个参数意义是：
 
-- `Ddd.logs.injection`: 是否开启 Java 应用日志注入，让日志与链路数据进行关联，默认为false
-- `Ddd.trace.sample.rate`: 设置链路数据采样率，默认为1
+- `Ddd.logs.injection`: 是否开启 Java 应用日志注入，让日志与链路数据进行关联，默认为 false
+- `Ddd.trace.sample.rate`: 设置链路数据采样率，默认为 1
 - `Ddd.service`: 设置服务名
 - `Ddd.env`: 设置环境名
 - `Ddd.version`: 设置版本号

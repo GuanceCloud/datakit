@@ -134,7 +134,7 @@ func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
 	return zc
 }
 
-func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
+func v1ThriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkCoreV1SpanIDsAndParentIDs(zpktrace)
@@ -145,8 +145,8 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 
 		dkspan := &itrace.DatakitSpan{
-			TraceID:   fmt.Sprintf("%d", uint64(span.TraceID)),
-			SpanID:    fmt.Sprintf("%d", uint64(span.ID)),
+			TraceID:   fmt.Sprintf("%x", uint64(span.TraceID)),
+			SpanID:    fmt.Sprintf("%x", uint64(span.ID)),
 			ParentID:  "0",
 			Resource:  span.Name,
 			Operation: span.Name,
@@ -155,7 +155,7 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 		}
 
 		if span.ParentID != nil {
-			dkspan.ParentID = fmt.Sprintf("%d", uint64(*span.ParentID))
+			dkspan.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
 		}
 
 		if span.Timestamp != nil {
@@ -225,7 +225,7 @@ func thriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
 	return dktrace
 }
 
-func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
+func v1JsonSpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
@@ -246,9 +246,11 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 			Start:     getFirstTimestamp(span),
 			Duration:  span.Duration * int64(time.Microsecond),
 		}
+
 		if dkspan.ParentID == "" {
 			dkspan.ParentID = "0"
 		}
+
 		if dkspan.Duration == 0 {
 			dkspan.Duration = getDurationByAno(span.Annotations)
 		}
@@ -259,6 +261,7 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 				break
 			}
 		}
+
 		if dkspan.Service == "" {
 			for _, bno := range span.BinaryAnnotations {
 				if bno.Host != nil && bno.Host.ServiceName != "" {
