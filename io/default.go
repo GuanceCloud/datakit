@@ -117,13 +117,13 @@ func Start(sincfg []map[string]interface{}) error {
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}
 
-	defaultIO.StartIO(true)
-	log.Debugf("io: %+#v", defaultIO)
-
-	if err := sink.Init(sincfg, nil); err != nil {
+	if err := sink.Init(sincfg, defaultIO.dw.Write); err != nil {
 		log.Error("InitSink failed: %v", err)
 		return err
 	}
+
+	defaultIO.StartIO(true)
+	log.Debugf("io: %+#v", defaultIO)
 
 	log.Debug("sink.Init succeeded")
 
