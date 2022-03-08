@@ -149,8 +149,8 @@ func ChanStat() string {
 	l2 := len(defaultIO.in2)
 	c2 := cap(defaultIO.in2)
 
-	failCount := float32(defaultIO.sender.Stat.failCount)
-	successCount := float32(defaultIO.sender.Stat.successCount)
+	failCount := float32(defaultIO.sender.Stat.FailCount)
+	successCount := float32(defaultIO.sender.Stat.SuccessCount)
 	var sendSuccessRatio float32
 	if (successCount + failCount) > 0 {
 		sendSuccessRatio = successCount / (successCount + failCount) * 100

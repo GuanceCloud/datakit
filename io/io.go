@@ -9,10 +9,11 @@ import (
 	"sync"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 const (
@@ -91,7 +92,7 @@ type IO struct {
 	dynamicCacheCnt int64
 	droppedTotal    int64
 	outputFileSize  int64
-	sender          *Sender
+	sender          *sender.Sender
 }
 
 type IoStat struct {
@@ -322,24 +323,18 @@ func (x *IO) init() error {
 	return nil
 }
 
-func Write(category string, pts []*Point) error {
-	if defaultIO == nil || defaultIO.dw == nil {
-		return fmt.Errorf("io or datawy is not initialized")
-	}
-	points := []*influxdb.Point{}
-	for _, pt := range pts {
-		points = append(points, pt.Point)
-	}
-	return defaultIO.dw.Write(category, points)
-}
-
 func (x *IO) StartIO(recoverable bool) {
-	x.sender = NewSender(
-		Write,
-		&SenderOption{
+	if sender, err := sender.NewSender(
+		&sender.Option{
 			Cache:              x.EnableCache,
 			FlushCacheInterval: x.FlushInterval,
-		})
+			Write:              x.dw.Write,
+		}); err != nil {
+		log.Errorf("init sender error: %s", err.Error())
+	} else {
+		x.sender = sender
+	}
+
 	g := datakit.G("io")
 	g.Go(func(ctx context.Context) error {
 		if err := x.init(); err != nil {
@@ -531,7 +526,13 @@ func (x *IO) doFlush(pts []*Point, category string) error {
 		return fmt.Errorf("io sender is not initialized")
 	}
 
-	return x.sender.Write(category, pts)
+	points := []sinkcommon.ISinkPoint{}
+
+	for _, pt := range pts {
+		points = append(points, pt)
+	}
+
+	return x.sender.Write(category, points)
 }
 
 func (x *IO) fileOutput(body []byte) error {

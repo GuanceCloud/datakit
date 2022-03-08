@@ -9,6 +9,7 @@ import (
 
 type ISinkPoint interface {
 	ToPoint() *client.Point
+	String() string
 }
 
 type ISink interface {

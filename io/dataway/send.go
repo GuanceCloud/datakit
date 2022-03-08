@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/tracer"
 )
@@ -140,7 +140,7 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) error {
 	return nil
 }
 
-func (dw *DataWayCfg) Write(category string, pts []*influxdb.Point) error {
+func (dw *DataWayCfg) Write(category string, pts []sinkcommon.ISinkPoint) error {
 	if len(pts) == 0 {
 		return nil
 	}
@@ -170,7 +170,7 @@ type body struct {
 	gzon bool
 }
 
-func (dw *DataWayCfg) buildBody(pts []*influxdb.Point, isGzip bool) ([]*body, error) {
+func (dw *DataWayCfg) buildBody(pts []sinkcommon.ISinkPoint, isGzip bool) ([]*body, error) {
 	lines := bytes.Buffer{}
 	var (
 		gz = func(lines []byte) (*body, error) {

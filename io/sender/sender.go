@@ -1,4 +1,4 @@
-package io
+package sender
 
 import (
 	"context"
@@ -7,43 +7,65 @@ import (
 	"sync/atomic"
 	"time"
 
+	influxdb "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	pb "google.golang.org/protobuf/proto"
 )
 
-var cacheBucket = "io_upload_metric"
+type Point struct {
+	*influxdb.Point
+}
 
-type SenderOption struct {
+var _ sinkcommon.ISinkPoint = new(Point)
+
+func (p *Point) ToPoint() *influxdb.Point {
+	return p.Point
+}
+
+func WrapPoint(pts []*influxdb.Point) (x []sinkcommon.ISinkPoint) {
+	for _, pt := range pts {
+		x = append(x, &Point{pt})
+	}
+	return
+}
+
+var (
+	cacheBucket = "io_upload_metric"
+	l           = logger.DefaultSLogger("sender")
+)
+
+type WriteFunc func(string, []sinkcommon.ISinkPoint) error
+
+type Option struct {
 	Cache              bool
 	CacheDir           string
 	FlushCacheInterval time.Duration
+	Write              WriteFunc
 }
 
 type senderStat struct {
-	failCount    int64
-	successCount int64
+	FailCount    int64
+	SuccessCount int64
 }
 
 type Sender struct {
-	WriteFunc func(string, []*Point) error
-	Stat      senderStat
-	opt       *SenderOption
-	group     *goroutine.Group
-	stopCh    chan interface{}
+	Stat   senderStat
+	opt    *Option
+	write  WriteFunc
+	group  *goroutine.Group
+	stopCh chan interface{}
 }
 
-func (s *Sender) Write(category string, pts []*Point) error {
+func (s *Sender) Write(category string, pts []sinkcommon.ISinkPoint) error {
 	if len(pts) == 0 {
 		return nil
-	}
-
-	if s.WriteFunc == nil {
-		return fmt.Errorf("missing sinker instance")
 	}
 
 	if err := s.worker(category, pts); err != nil {
@@ -53,14 +75,14 @@ func (s *Sender) Write(category string, pts []*Point) error {
 	return nil
 }
 
-func (s *Sender) worker(category string, pts []*Point) error {
+func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 	if s.group == nil {
 		return fmt.Errorf("sender is not initialized correctly, missing worker group")
 	}
 
 	s.group.Go(func(ctx context.Context) error {
-		if err := s.WriteFunc(category, pts); err != nil {
-			atomic.AddInt64(&s.Stat.failCount, 1)
+		if err := s.write(category, pts); err != nil {
+			atomic.AddInt64(&s.Stat.FailCount, 1)
 			l.Error("sink write error", err)
 
 			if s.opt.Cache {
@@ -71,7 +93,7 @@ func (s *Sender) worker(category string, pts []*Point) error {
 			}
 		} else {
 			l.Debugf("sink write ok: %s(%d)", category, len(pts))
-			atomic.AddInt64(&s.Stat.successCount, 1)
+			atomic.AddInt64(&s.Stat.SuccessCount, 1)
 		}
 
 		return nil
@@ -85,7 +107,7 @@ func (s *Sender) Wait() error {
 }
 
 // cache save points to cache.
-func (s *Sender) cache(category string, pts []*Point) error {
+func (s *Sender) cache(category string, pts []sinkcommon.ISinkPoint) error {
 	if len(pts) == 0 {
 		return nil
 	}
@@ -118,17 +140,27 @@ func (s *Sender) cache(category string, pts []*Point) error {
 	return nil
 }
 
-func (s *Sender) init(opt *SenderOption) {
+func (s *Sender) init(opt *Option) error {
 	s.stopCh = make(chan interface{})
 
 	if opt != nil {
 		s.opt = opt
 	} else {
-		s.opt = &SenderOption{}
+		s.opt = &Option{}
 	}
 
 	if s.group == nil {
 		s.group = datakit.G("sender")
+	}
+
+	if s.opt.Write != nil {
+		s.write = s.opt.Write
+	} else {
+		s.write = sink.Write
+	}
+
+	if s.write == nil {
+		return fmt.Errorf("sender init error: write method is required!")
 	}
 
 	if s.opt.Cache {
@@ -142,6 +174,8 @@ func (s *Sender) init(opt *SenderOption) {
 			return nil
 		})
 	}
+
+	return nil
 }
 
 func (s *Sender) initCache(cacheDir string) {
@@ -190,10 +224,8 @@ func (s *Sender) flushCache() {
 		if err != nil {
 			l.Warnf("parse cache points error : %s", err.Error())
 		}
-
 		points := WrapPoint(pts)
-
-		err = s.WriteFunc(d.Category, points)
+		err = s.write(d.Category, points)
 		if err != nil {
 			l.Warnf("cache sink write error: %s", err.Error())
 		} else {
@@ -222,12 +254,11 @@ func (s *Sender) Stop() error {
 }
 
 // NewSender init sender with sinker instance and custom opt.
-func NewSender(writeFunc func(string, []*Point) error, opt *SenderOption) *Sender {
+func NewSender(opt *Option) (*Sender, error) {
 	l = logger.SLogger("sender")
 	s := &Sender{
-		WriteFunc: writeFunc,
-		group:     datakit.G("sender"),
+		group: datakit.G("sender"),
 	}
-	s.init(opt)
-	return s
+	err := s.init(opt)
+	return s, err
 }
