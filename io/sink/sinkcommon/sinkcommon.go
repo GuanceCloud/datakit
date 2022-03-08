@@ -1,3 +1,4 @@
+// Package sinkcommon contains sink common declaration
 package sinkcommon
 
 import (
