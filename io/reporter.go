@@ -11,8 +11,8 @@ import (
 type Reporter struct {
 	Status   string `json:"status"` // info warning error
 	Message  string `json:"message"`
-	Category string `josn:"category"`
-	Logtype  string `josn:"Logtype"`
+	Category string `json:"category"`
+	Logtype  string `json:"Logtype"`
 	feed     func(string, string, []*Point, *Option) error
 }
 

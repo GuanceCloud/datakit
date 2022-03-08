@@ -46,6 +46,7 @@ type WriteFunc func(string, []sinkcommon.ISinkPoint) error
 type Option struct {
 	Cache              bool
 	CacheDir           string
+	ErrorCallback      func(error)
 	FlushCacheInterval time.Duration
 	Write              WriteFunc
 }
@@ -84,6 +85,10 @@ func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 		if err := s.write(category, pts); err != nil {
 			atomic.AddInt64(&s.Stat.FailCount, 1)
 			l.Error("sink write error", err)
+
+			if s.opt.ErrorCallback != nil {
+				s.opt.ErrorCallback(err)
+			}
 
 			if s.opt.Cache {
 				err := s.cache(category, pts)
@@ -160,7 +165,7 @@ func (s *Sender) init(opt *Option) error {
 	}
 
 	if s.write == nil {
-		return fmt.Errorf("sender init error: write method is required!")
+		return fmt.Errorf("sender init error: write method is required")
 	}
 
 	if s.opt.Cache {

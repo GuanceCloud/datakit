@@ -329,6 +329,9 @@ func (x *IO) StartIO(recoverable bool) {
 			Cache:              x.EnableCache,
 			FlushCacheInterval: x.FlushInterval,
 			Write:              x.dw.Write,
+			ErrorCallback: func(err error) {
+				addReporter(Reporter{Status: "error", Message: err.Error()})
+			},
 		}); err != nil {
 		log.Errorf("init sender error: %s", err.Error())
 	} else {
