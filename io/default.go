@@ -134,7 +134,7 @@ func Start(sincfg []map[string]interface{}) error {
 	log.Debugf("io: %+#v", defaultIO)
 
 	if err := sink.Init(sincfg, nil); err != nil {
-		l.Error("InitSink failed: %v", err)
+		log.Error("InitSink failed: %v", err)
 		return err
 	}
 
