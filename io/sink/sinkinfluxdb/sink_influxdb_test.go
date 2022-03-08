@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/influxdata/influxdb1-client" // this is important because of the bug in go mod
+	// this is important because of the bug in go mod
+	_ "github.com/influxdata/influxdb1-client"
 	client "github.com/influxdata/influxdb1-client/v2"
 )
 
@@ -71,7 +72,7 @@ func TestWrite(t *testing.T) {
 			time.Now(),
 		)
 		if err != nil {
-			println("Error:", err.Error())
+			fmt.Printf("Error: %s\n", err.Error())
 			continue
 		}
 		bp.AddPoint(pt)

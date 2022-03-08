@@ -45,7 +45,7 @@ var (
 	l = logger.DefaultSLogger(packageName)
 )
 
-func init() {
+func init() { //nolint:gochecknoinits
 	l = logger.SLogger(packageName)
 }
 

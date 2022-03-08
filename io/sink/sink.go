@@ -1,3 +1,4 @@
+// Package sink contains sink implement
 package sink
 
 import (
@@ -26,11 +27,8 @@ func Write(category string, pts []sinkcommon.ISinkPoint) error {
 			}
 		}
 		return errKeep
-	} else {
-		// default
-		if defaultCallPtr != nil {
-			return defaultCallPtr(category, pts)
-		}
+	} else if defaultCallPtr != nil {
+		return defaultCallPtr(category, pts)
 	}
 
 	return fmt.Errorf("unsupport category")
