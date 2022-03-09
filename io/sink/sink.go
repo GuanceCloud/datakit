@@ -85,7 +85,14 @@ var (
 
 func aggregationCategorys(sincfg []map[string]interface{}) error {
 	for _, v := range sincfg {
-		categoriesArray, ok := v["categories"].([]string)
+		if len(v) == 0 {
+			continue // empty
+		}
+		val, ok := v["categories"]
+		if !ok {
+			return fmt.Errorf("invalid categories: not found")
+		}
+		categoriesArray, ok := val.([]string)
 		if !ok {
 			return fmt.Errorf("invalid categories: not []string")
 		}
