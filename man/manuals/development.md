@@ -279,6 +279,37 @@ make production_mac VERSION=<the-new-version>
 make pub_production_mac VERSION=<the-new-version>
 ```
 
+### 自定义目录运行 DataKit
+
+默认情况下，DataKit 运行在指定的目录（Linux 下为 /usr/local/datakit），但通过额外的方式，可以自定义 DataKit 工作目录，主要用于开发的过程中调试 DataKit 的功能。
+
+1. 更新最新的代码(dev 分支) 
+1. 编译
+1. 创建预期的 DataKit 工作目录，比如 `mkdir -p ~/datakit/conf.d`
+1. 生成默认 datakit.conf 配置文件。以 Linux 为例，执行
+
+```shell
+./dist/datakit-linux-amd64/datakit debug --default-main-conf > ~/datakit/conf.d/datakit.conf`
+```
+
+1. 修改上面生成的 datakit.conf：
+
+	- 填写 `default_enabled_inputs`，加入希望开启的采集器列表，一般是 `cpu,disk,mem` 等这些
+	- `http_api.listen` 地址改一下
+	- `dataway.urls` 里面的 token 改一下
+	- 如有必要，logging 目录/level 都改一下
+	- 没有了
+
+1. 启动 DataKit，以 Linux 为例：`./dist/datakit-linux-amd64/datakit debug --workdir ~/datakit`
+1. 可在本地 bash 中新加个 alias，这样每次编译完 DataKit 后，直接运行 `ddk` 即可（即 Debugging-DataKit）
+
+```shell
+echo 'alias ddk=./dist/datakit-linux-amd64/datakit debug --workdir ~/datakit' ~/.bashrc
+source ~/.bashrc
+```
+
+这样，DataKit 不是以服务的方式运行，可直接 ctrl+c 结束 DataKit
+
 #### DataKit 版本号机制
 
 - 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
