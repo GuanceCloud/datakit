@@ -20,7 +20,7 @@ type Task interface {
 	Status() string
 	Run() error
 	Init() error
-	CheckResult() ([]string, bool)
+	CheckResult() []string
 	Class() string
 	GetResults() (map[string]string, map[string]interface{})
 	PostURLStr() string

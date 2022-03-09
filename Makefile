@@ -262,6 +262,15 @@ prepare:
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
 
+check_man:
+	grep --color=always -nrP "[a-zA-Z0-9][\p{Han}]|[\p{Han}][a-zA-Z0-9]" man > bad-doc.log
+	if [ $$? != 0 ]; then \
+		echo "check manuals ok"; \
+	else \
+		cat bad-doc.log; \
+		rm -rf bad-doc.log; \
+	fi
+
 clean:
 	@rm -rf build/*
 	@rm -rf io/parser/gram_y.go

@@ -27,8 +27,7 @@ import (
 
 var (
 	Cfg = DefaultConfig()
-
-	l = logger.DefaultSLogger("config")
+	l   = logger.DefaultSLogger("config")
 )
 
 func SetLog() {
