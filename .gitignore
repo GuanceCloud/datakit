@@ -17,7 +17,6 @@
 *.yaml
 *.zip
 **build/
-/http/conf*/
 ag.sh
 agent_linux
 agent.conf

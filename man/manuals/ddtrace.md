@@ -6,11 +6,11 @@
 
 # {{.InputName}}
 
-接收符合 ddtrace 协议格式的链路数据，并把数据经过统一转换成观测云的链路格式，然后上报观测云。
+Datakit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing 协议数据。
 
-## 前置条件
+## DDTrace 文档
 
-### 不同语言平台 Referenc
+### Referenc
 
 - [Java](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers)
 - [Python](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers)
@@ -22,7 +22,7 @@
 - [.Net Core](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-core?tab=windows)
 - [.Net Framework](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows)
 
-### 不同语言平台 Source Code
+### Source Code
 
 - [Java](https://github.com/DataDog/dd-trace-java)
 - [Python](https://github.com/DataDog/dd-trace-py)
@@ -35,7 +35,7 @@
 
 > Java： DataKit 安装目录 `data` 目录下，有预先准备好的 `dd-java-agent.jar`（推荐使用）。也可以直接去 [Maven 下载](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent)
 
-## 配置
+## 配置 DDTrace Agent
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -60,7 +60,6 @@ tail -f /var/log/datakit/gin.log
 [GIN] 2021/08/02 - 17:17:30 | 200 |     489.428µs |       127.0.0.1 | POST     "/v0.4/traces"
 
 ...
-
 ```
 
 > 注意：如果没有 trace 发送过来，在 [monitor 页面](datakit-tools-how-to#44462aae)是看不到 ddtrace 的采集信息的。
@@ -92,10 +91,9 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 ```toml
 ## tags is ddtrace configed key value pairs
-# [inputs.ddtrace.tags]
-	# some_tag = "some_value"
-	# more_tag = "some_other_value"
-	## ...
+[inputs.ddtrace.tags]
+	 some_tag = "some_value"
+	 more_tag = "some_other_value"
 ```
 
 ## 关于 Tags

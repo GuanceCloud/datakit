@@ -525,7 +525,7 @@ github.com/hashicorp/errwrap
 github.com/hashicorp/go-multierror
 # github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
-# github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
+# github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 ## explicit
 github.com/influxdata/influxdb1-client/models
 github.com/influxdata/influxdb1-client/pkg/escape
@@ -915,7 +915,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20220210224613-90d013bbcef8
+# golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
 ## explicit
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1

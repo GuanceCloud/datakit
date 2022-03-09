@@ -41,7 +41,7 @@ const sampleCfg = `
   logging_remove_ansi_escape_codes = false
   ## Maximum length of logging, default 32766 bytes.
   max_logging_length = 32766
-  
+
   kubernetes_url = "https://kubernetes.default:443"
 
   ## Authorization level:
