@@ -5,7 +5,6 @@ import (
 	"time"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
 
@@ -197,7 +196,8 @@ func Test_makePoints(t *testing.T) {
 		StartTime:   uint64(time.Now().Unix()),
 		UnitTime:    uint64(time.Now().Unix()),
 		ValueType:   "int",
-		Value:       10}
+		Value:       10,
+	}
 
 	if err != nil {
 		t.Errorf("makepoint err=%v", err)

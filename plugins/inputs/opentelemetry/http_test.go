@@ -250,16 +250,6 @@ func GZipBytes(data []byte) []byte {
 	return input.Bytes()
 }
 
-func UGZipBytes(data []byte) []byte {
-	var out bytes.Buffer
-	var in bytes.Buffer
-	in.Write(data)
-	r, _ := gzip.NewReader(&in)
-	_ = r.Close()
-	_, _ = io.Copy(&out, r) //这里我看了下源码不是太明白，
-	return out.Bytes()
-}
-
 func Test_readGzipBody(t *testing.T) {
 	type args struct {
 		body io.Reader
@@ -482,7 +472,6 @@ func Test_otlpHTTPCollector_apiOtlpTrace1(t *testing.T) {
 				t.Errorf("error =%v", err)
 				return
 			}
-
 		})
 	}
 }
@@ -614,7 +603,6 @@ func Test_otlpHTTPCollector_apiOtlpMetric(t *testing.T) {
 				t.Errorf("error =%v", err)
 				return
 			}
-
 		})
 	}
 }

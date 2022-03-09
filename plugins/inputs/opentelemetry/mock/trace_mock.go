@@ -1,8 +1,8 @@
+// Package mock is for test
 package mock
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
@@ -35,8 +35,6 @@ func (et *MockTrace) GetHeader() metadata.MD {
 
 func (et *MockTrace) Export(ctx context.Context,
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
-	log.Printf(ets.String())
-	// ets.ProtoMessage()
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
 		et.Rss = rss
 	}

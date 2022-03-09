@@ -4,8 +4,8 @@ resource_spans:{
 resource:{attributes:{key:"message.type"  value:{string_value:"message-name"}} 
  attributes:{key:"service.name"  value:{string_value:"testservice"}}}  
 
-instrumentation_library_spans:{instrumentation_library:{name:"test-tracer"}  
-
+instrumentation_library_spans:{
+instrumentation_library:{name:"test-tracer"}  
 spans:{
     trace_id:"\x94<\xdf\x00zx\x82\xe7Wy\xfe\x93\xab\x19\x95a"  
     span_id:".\xbd\x06c\x10ɫ*"  
