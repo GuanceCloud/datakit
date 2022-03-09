@@ -1,3 +1,4 @@
+//nolint:lll
 package cmds
 
 import (
@@ -13,6 +14,28 @@ import (
 )
 
 var (
+
+	//
+	// doc related flags.
+	//
+	fsDocName  = "doc"
+	fsDoc      = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
+	fsDocUsage = func() {
+		fmt.Printf("usage: datakit doc [options]\n\n")
+		fmt.Printf("Doc used to manage all documents related to DataKit. Available options:\n\n")
+		fmt.Println(fsDoc.FlagUsagesWrapped(0))
+	}
+
+	// TODO: this flags not used, comment them to disable lint errors.
+	// flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
+	// flagDocExportDocs              = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
+	// flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)").
+	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file")
+	// flagDocIgnore         = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem").
+	flagDocLogPath = fsDoc.String("log", commonLogFlag(), "command line log path")
+	// flagDocTODO                    = fsDoc.String("TODO", "TODO", "set TODO placeholder")
+	// flagDocVersion = fsDoc.String("version", datakit.Version, "specify version string in document's header").
+
 	//
 	// DQL related flags.
 	//
@@ -165,6 +188,7 @@ func printHelp() {
 
 	fmt.Fprintf(os.Stderr, "The commands are:\n\n")
 
+	fmt.Fprintf(os.Stderr, "\tdoc        manage all documents for DataKit\n")
 	fmt.Fprintf(os.Stderr, "\tdql        query DQL for various usage\n")
 	fmt.Fprintf(os.Stderr, "\trun        select DataKit running mode(defaul running as service)\n")
 	fmt.Fprintf(os.Stderr, "\tpipeline   debug pipeline\n")
@@ -185,6 +209,9 @@ func runHelpFlags() {
 		printHelp()
 	case 3: // need help for various commands
 		switch os.Args[2] {
+		case fsDocName:
+			fsDocUsage()
+
 		case fsPLName:
 			fsPLUsage()
 
@@ -228,6 +255,20 @@ func doParseAndRunFlags() {
 		}
 
 		switch os.Args[1] {
+		case fsDocName:
+			setCmdRootLog(*flagDocLogPath)
+			if err := fsDoc.Parse(os.Args[2:]); err != nil {
+				errorf("Parse: %s\n", err)
+				fsDocUsage()
+				os.Exit(-1)
+			}
+
+			if err := runDocFlags(); err != nil {
+				errorf("%s\n", err)
+				os.Exit(-1)
+			}
+			os.Exit(0)
+
 		case fsDQLName:
 			if err := fsDQL.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)

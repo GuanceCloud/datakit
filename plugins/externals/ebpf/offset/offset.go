@@ -257,7 +257,7 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 	if err := updateMapGuessStatus(ebpfMapGuess, status); err != nil {
 		return err
 	}
-	time.Sleep(time.Millisecond * 17)
+	time.Sleep(time.Millisecond * 12)
 	conn, err := net.Dial("tcp4", serverAddr)
 	if err != nil {
 		return err
