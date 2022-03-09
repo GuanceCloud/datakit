@@ -3,6 +3,7 @@ package sink
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
@@ -112,12 +113,48 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 					return err
 				}
 				if id == impl.GetID() {
-					sinkcommon.SinkCategoryMap[category] = append(sinkcommon.SinkCategoryMap[category], impl)
+					newCategory, err := getMapCategory(category)
+					if err != nil {
+						return err
+					}
+					sinkcommon.SinkCategoryMap[newCategory] = append(sinkcommon.SinkCategoryMap[newCategory], impl)
 				}
 			}
 		}
 	}
 	return nil
+}
+
+func getMapCategory(originCategory string) (string, error) {
+	var newCategory string
+
+	tmpCategory := dkstring.TrimString(originCategory)
+	category := strings.ToUpper(tmpCategory)
+
+	switch category {
+	case datakit.SinkCategoryMetric:
+		newCategory = datakit.Metric
+	case datakit.SinkCategoryNetwork:
+		newCategory = datakit.Network
+	case datakit.SinkCategoryKeyEvent:
+		newCategory = datakit.KeyEvent
+	case datakit.SinkCategoryObject:
+		newCategory = datakit.Object
+	case datakit.SinkCategoryCustomObject:
+		newCategory = datakit.CustomObject
+	case datakit.SinkCategoryLogging:
+		newCategory = datakit.Logging
+	case datakit.SinkCategoryTracing:
+		newCategory = datakit.Tracing
+	case datakit.SinkCategoryRUM:
+		newCategory = datakit.RUM
+	case datakit.SinkCategorySecurity:
+		newCategory = datakit.Security
+	default:
+		return "", fmt.Errorf("unrecognized category")
+	}
+
+	return newCategory, nil
 }
 
 func buildSinkImpls(sincfg []map[string]interface{}) error {
