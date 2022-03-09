@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
 var ipdbInstance ipdb.IPdb // get ip location and isp
@@ -52,7 +53,7 @@ type PipelineCfg struct {
 
 type Pipeline struct {
 	engine  *parser.Engine
-	output  *parser.Output // 这是一个map指针，不需要make初始化
+	output  *worker.Result // 这是一个map指针，不需要make初始化
 	lastErr error
 }
 
@@ -145,20 +146,20 @@ func (p *Pipeline) Run(data string) *Pipeline {
 			return
 		}
 
-		if err := p.engine.Run(data); err != nil {
+		if result, err := worker.RunPlStr(data, "", 0, p.engine); err != nil {
 			p.lastErr = fmt.Errorf("pipeline run error: %w", err)
 			l.Error(p.lastErr)
 			return
+		} else {
+			p.output = result
 		}
-
-		p.output = p.engine.Result()
 	}
 
 	f(nil, nil)
 	return p
 }
 
-func (p *Pipeline) Result() (*parser.Output, error) {
+func (p *Pipeline) Result() (*worker.Result, error) {
 	return p.output, p.lastErr
 }
 

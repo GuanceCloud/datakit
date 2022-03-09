@@ -45,11 +45,17 @@ type Engine struct {
 
 //nolint:structcheck,unused
 type Output struct {
+	Error string
+
 	Dropped bool
-	Error   string
-	Cost    map[string]string
-	Tags    map[string]string
-	Data    map[string]interface{}
+
+	DataMeasurement string
+	DataTS          int64
+
+	Tags map[string]string
+	Data map[string]interface{}
+
+	Cost map[string]string
 }
 
 func NewEngine(script string, callbacks map[string]FuncCallback, check map[string]FuncCallbackCheck, debug bool) (*Engine, error) {

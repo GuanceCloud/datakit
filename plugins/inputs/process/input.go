@@ -339,10 +339,10 @@ func (p *Input) WriteObject() {
 			if err == nil {
 				pipeMap, err := pipe.Run(string(m)).Result()
 				if err == nil && pipeMap != nil {
-					for k, v := range pipeMap.Data {
+					for k, v := range pipeMap.GetFields() {
 						fields[k] = v
 					}
-					for k, v := range pipeMap.Tags {
+					for k, v := range pipeMap.GetTags() {
 						tags[k] = v
 					}
 				} else {

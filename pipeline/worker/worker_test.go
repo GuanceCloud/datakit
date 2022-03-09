@@ -115,9 +115,11 @@ func TestRunAsTask(t *testing.T) {
 			json(_, time)
 			set_tag(bb, "aa0")
 			default_time(time)
+			json(_, source)
+			set_tag(source)
 			`,
 			content: []string{
-				`{"time":"02/Dec/2021:11:55:34 +0800"}`,
+				`{"time":"02/Dec/2021:11:55:34 +0800", "source": "bb"}`,
 				`{"time":"02/Dec/2021:11:55:35 +0800"}`,
 				`{"time":"02/Dec/2021:11:55:36 +0800"}`,
 			},
@@ -127,14 +129,14 @@ func TestRunAsTask(t *testing.T) {
 	result := [][]tagfield{
 		{
 			{
-				measurement: "aa",
+				measurement: "bb",
 				dropped:     false,
 				tags: map[string]string{
 					"bb":      "aa0",
 					"service": "aa",
 				},
 				fields: map[string]interface{}{
-					"message": `{"time":"02/Dec/2021:11:55:34 +0800"}`,
+					"message": `{"time":"02/Dec/2021:11:55:34 +0800", "source": "bb"}`,
 					"status":  "info",
 				},
 				ts: time.Unix(1638417334, 0),

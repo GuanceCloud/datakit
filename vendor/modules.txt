@@ -529,6 +529,7 @@ github.com/gobwas/pool/internal/pmath
 github.com/gobwas/pool/pbufio
 github.com/gobwas/pool/pbytes
 # github.com/gobwas/ws v1.1.0
+## explicit
 github.com/gobwas/ws
 github.com/gobwas/ws/wsutil
 # github.com/godbus/dbus/v5 v5.0.4
@@ -838,6 +839,9 @@ github.com/uber/jaeger-client-go/thrift
 github.com/uber/jaeger-client-go/thrift-gen/agent
 github.com/uber/jaeger-client-go/thrift-gen/jaeger
 github.com/uber/jaeger-client-go/thrift-gen/zipkincore
+# github.com/ubwbu/grok v1.0.3
+## explicit
+github.com/ubwbu/grok
 # github.com/ugorji/go/codec v1.2.6
 ## explicit
 github.com/ugorji/go/codec

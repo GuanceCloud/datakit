@@ -62,7 +62,7 @@ func pipelineDebugger(plname, txt string) error {
 	}
 	cost := time.Since(start)
 
-	if res == nil || (len(res.Data) == 0 && len(res.Tags) == 0) {
+	if res == nil || (len(res.Output.Data) == 0 && len(res.Output.Tags) == 0) {
 		errorf("[E] No data extracted from pipeline\n")
 		return nil
 	}
@@ -70,7 +70,7 @@ func pipelineDebugger(plname, txt string) error {
 	result := map[string]interface{}{}
 	maxWidth := 0
 
-	for k, v := range res.Data {
+	for k, v := range res.GetFields() {
 		if len(k) > maxWidth {
 			maxWidth = len(k)
 		}
@@ -93,7 +93,7 @@ func pipelineDebugger(plname, txt string) error {
 		}
 	}
 
-	for k, v := range res.Tags {
+	for k, v := range res.GetTags() {
 		result[k+"#"] = v
 		if len(k)+1 > maxWidth {
 			maxWidth = len(k) + 1
@@ -120,7 +120,7 @@ func pipelineDebugger(plname, txt string) error {
 	}
 
 	infof("---------------\n")
-	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n", len(res.Data), len(res.Tags), res.Dropped, cost)
+	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n", len(res.GetFields()), len(res.GetFields()), res.IsDropped(), cost)
 
 	return nil
 }
