@@ -20,12 +20,13 @@ require (
 	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/containerd v1.5.5 // indirect
 	github.com/denisenkom/go-mssqldb v0.10.0
+	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 	github.com/fatih/color v1.12.0
 	github.com/fsnotify/fsnotify v1.5.1
-	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
+	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1 // indirect
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-ole/go-ole v1.2.5

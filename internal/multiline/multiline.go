@@ -109,7 +109,7 @@ func (m *Multiline) matchOfPrefixSpace(text []byte) bool {
 	if len(text) == 0 {
 		return true
 	}
-	return unicode.IsSpace(rune(text[0]))
+	return !unicode.IsSpace(rune(text[0]))
 }
 
 func (m *Multiline) FlushString() string {

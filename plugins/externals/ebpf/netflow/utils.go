@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	"golang.org/x/sys/unix"
 )
@@ -24,12 +25,18 @@ var l = logger.DefaultSLogger("ebpf")
 
 var dnsRecord *dnsflow.DNSAnswerRecord
 
+var k8sNetInfo *k8sinfo.K8sNetInfo
+
 func SetDNSRecord(r *dnsflow.DNSAnswerRecord) {
 	dnsRecord = r
 }
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
+}
+
+func SetK8sNetInfo(n *k8sinfo.K8sNetInfo) {
+	k8sNetInfo = n
 }
 
 func NewNetFlowManger(constEditor []manager.ConstantEditor, closedEventHandler func(cpu int, data []byte,
@@ -177,6 +184,56 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 		m.tags["transport"] = "udp"
 	}
 	m.tags["direction"] = connDirection2Str(v.Stats.Direction)
+
+	if k8sNetInfo != nil {
+		srcK8sFlag := false
+		dstK8sFlag := false
+		srcPoName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["src_ip"], k.Sport, m.tags["transport"])
+		if err == nil {
+			srcK8sFlag = true
+			m.tags["src_k8s_namespace"] = ns
+			m.tags["src_k8s_pod_name"] = srcPoName
+			m.tags["src_k8s_service_name"] = srcSvcName
+			if svcP == k.Sport {
+				m.tags["direction"] = "incoming"
+			}
+		}
+
+		dstPoName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodSvcName(m.tags["dst_ip"], k.Dport, m.tags["transport"])
+		if err == nil {
+			dstK8sFlag = true
+			m.tags["dst_k8s_namespace"] = ns
+			m.tags["dst_k8s_pod_name"] = dstPoName
+			m.tags["dst_k8s_service_name"] = dstSvcName
+			if svcP == k.Dport {
+				m.tags["direction"] = "outgoing"
+			}
+
+		} else {
+			dstSvcName, ns, err := k8sNetInfo.QuerySvcName(m.tags["dst_ip"])
+			if err == nil {
+				dstK8sFlag = true
+				m.tags["dst_k8s_namespace"] = ns
+				m.tags["dst_k8s_pod_name"] = "N/A"
+				m.tags["dst_k8s_service_name"] = dstSvcName
+				m.tags["direction"] = "outgoing"
+			}
+		}
+
+		if srcK8sFlag || dstK8sFlag {
+			m.tags["sub_source"] = "K8s"
+			if !srcK8sFlag {
+				m.tags["src_k8s_namespace"] = "N/A"
+				m.tags["src_k8s_pod_name"] = "N/A"
+				m.tags["src_k8s_service_name"] = "N/A"
+			}
+			if !dstK8sFlag {
+				m.tags["dst_k8s_namespace"] = "N/A"
+				m.tags["dst_k8s_pod_name"] = "N/A"
+				m.tags["dst_k8s_service_name"] = "N/A"
+			}
+		}
+	}
 
 	if connProtocolIsTCP(k.Meta) {
 		l.Debug(fmt.Sprintf("pid %s: %s:%s->%s(%s):%s r/w: %d/%d e/c: %d/%d "+

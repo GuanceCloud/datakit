@@ -16,8 +16,9 @@
 *.tar.gz
 *.yaml
 *.zip
-**build/
-/http/conf*/
+install_local.sh
+install.sh
+install.ps1
 ag.sh
 agent_linux
 agent.conf
