@@ -4,7 +4,8 @@ code.cloudfoundry.org/bytefmt
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
-# github.com/DataDog/datadog-go v4.8.2+incompatible
+# github.com/DataDog/datadog-go v4.8.3+incompatible
+## explicit
 github.com/DataDog/datadog-go/statsd
 # github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 ## explicit
@@ -23,7 +24,8 @@ github.com/DataDog/gopsutil/internal/common
 github.com/DataDog/gopsutil/mem
 github.com/DataDog/gopsutil/net
 github.com/DataDog/gopsutil/process
-# github.com/DataDog/sketches-go v1.2.1
+# github.com/DataDog/sketches-go v1.3.0
+## explicit
 github.com/DataDog/sketches-go/ddsketch
 github.com/DataDog/sketches-go/ddsketch/encoding
 github.com/DataDog/sketches-go/ddsketch/mapping
@@ -36,7 +38,8 @@ github.com/MichaelMure/go-term-markdown
 github.com/MichaelMure/go-term-markdown/html
 # github.com/MichaelMure/go-term-text v0.2.7
 github.com/MichaelMure/go-term-text
-# github.com/Microsoft/go-winio v0.5.1
+# github.com/Microsoft/go-winio v0.5.2
+## explicit
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
 # github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7
@@ -96,7 +99,7 @@ github.com/alecthomas/chroma/lexers/y
 github.com/alecthomas/chroma/styles
 # github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1
 ## explicit
-# github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v2.2.1+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss
 # github.com/apache/thrift v0.13.0
@@ -882,7 +885,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
+# golang.org/x/sys v0.0.0-20220307203707-22a9840ba4d7
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1018,7 +1021,7 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
-# gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.17
+# gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18
 ## explicit
 gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace
 gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext
