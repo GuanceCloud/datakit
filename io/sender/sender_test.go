@@ -62,6 +62,19 @@ func TestSender(t *testing.T) {
 		sender.Wait()
 
 		assert.True(t, isCached)
+
+		t.Run("should flush cache when sender run", func(t *testing.T) {
+			sender, err := NewSender(&Option{Cache: true, CacheDir: testDir, FlushCacheInterval: time.Second, Write: MockWrite})
+			assert.NoError(t, err)
+			time.Sleep(2 * time.Second)
+			cacheInfo, err := cache.GetInfo()
+			assert.NoError(t, err)
+			assert.EqualValues(t, 1, cacheInfo.CacheCount)
+			assert.EqualValues(t, 1, cacheInfo.FlushedCount)
+
+			sender.Stop()
+			sender.Wait()
+		})
 	})
 
 	t.Run("exit when receive global exit", func(t *testing.T) {
