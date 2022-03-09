@@ -15,7 +15,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -25,7 +24,7 @@ const (
 
 	sampleCfg = `
 [inputs.logfwdserver]
-  address = "0.0.0.0:9531"
+  address = "0.0.0.0:9533"
 
   [inputs.logfwdserver.tags]
   # some_tag = "some_value"
@@ -97,7 +96,10 @@ func (ipt *Input) setup() bool {
 		}
 
 		name := "logfwd/" + msg.Source
-		tags := config.ParseGlobalTags(msg.TagsStr)
+		tags := msg.Tags
+		if tags == nil {
+			tags = make(map[string]string)
+		}
 		for k, v := range ipt.Tags {
 			if _, ok := tags[k]; !ok {
 				tags[k] = v
@@ -167,10 +169,10 @@ func (*Input) AvailableArchs() []string {
 }
 
 type message struct {
-	Source   string `json:"source"`
-	Pipeline string `json:"pipeline"`
-	TagsStr  string `json:"tags_str"`
-	Log      string `json:"log"`
+	Source   string            `json:"source"`
+	Pipeline string            `json:"pipeline"`
+	Tags     map[string]string `json:"tags"`
+	Log      string            `json:"log"`
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil }

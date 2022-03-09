@@ -201,6 +201,28 @@ func (sl *socketLogger) spiltBuffer(fromCache string, date string, full bool) (p
 	return pipdata, cacheDate
 }
 
+type SocketTaskData struct {
+	Log    string
+	Source string
+	Tag    map[string]string
+}
+
+func (std *SocketTaskData) GetContent() string {
+	return std.Log
+}
+
+func (std *SocketTaskData) Handler(result *worker.Result) error {
+	// result.SetSource(std.source)
+	if std.Tag != nil && len(std.Tag) != 0 {
+		for k, v := range std.Tag {
+			if _, err := result.GetTag(k); err != nil {
+				result.SetTag(k, v)
+			}
+		}
+	}
+	return nil
+}
+
 func (sl *socketLogger) sendToPipeline(pending []string) {
 	taskDates := &worker.TaskDataTemplate{
 		ContentDataType: worker.ContentString,
