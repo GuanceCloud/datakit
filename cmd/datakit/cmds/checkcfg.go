@@ -116,6 +116,8 @@ func checkSample() error {
 		}
 	}
 
+	l.Debugf("checked %d inptus samples", len(inputs.Inputs))
+
 	showCheckResult()
 
 	if len(failed) > 0 {
