@@ -28,10 +28,15 @@ import (
 )
 
 var (
-	l                   = logger.DefaultSLogger("http")
-	ginLog              string
-	ginReleaseMode      = true
-	enablePprof         = false
+	l              = logger.DefaultSLogger("http")
+	ginLog         string
+	ginReleaseMode = true
+
+	enablePprof = false
+	pprofListen = ":6060"
+
+	pprofSrv *http.Server
+
 	enableRequestLogger = false
 
 	uptime = time.Now()
@@ -72,7 +77,9 @@ type Option struct {
 	DCAConfig *DCAConfig
 
 	GinReleaseMode bool
-	PProf          bool
+
+	PProf       bool
+	PProfListen string
 }
 
 type APIConfig struct {
@@ -81,16 +88,30 @@ type APIConfig struct {
 	Disable404Page    bool     `toml:"disable_404page"`
 	RUMAppIDWhiteList []string `toml:"rum_app_id_white_list"`
 	PublicAPIs        []string `toml:"public_apis"`
+	RequestRateLimit  float64  `toml:"request_rate_limit,omitzero"`
 }
 
 func Start(o *Option) {
 	l = logger.SLogger("http")
 
 	ginLog = o.GinLog
+
 	enablePprof = o.PProf
+	if o.PProfListen != "" {
+		pprofListen = o.PProfListen
+	}
+
 	ginReleaseMode = o.GinReleaseMode
 	ginRotate = o.GinRotate
+
 	apiConfig = o.APIConfig
+	if apiConfig.RequestRateLimit > 0.0 {
+		l.Infof("set request limit to %f", apiConfig.RequestRateLimit)
+		reqLimiter = setupLimiter(apiConfig.RequestRateLimit)
+	} else {
+		l.Infof("set request limit not set: %f", apiConfig.RequestRateLimit)
+	}
+
 	dw = o.DataWay
 	dcaConfig = o.DCAConfig
 
@@ -106,6 +127,19 @@ func Start(o *Option) {
 		g.Go(func(ctx context.Context) error {
 			dcaHTTPStart()
 			l.Info("DCA http goroutine exit")
+			return nil
+		})
+	}
+
+	// start pprof if enabled
+	if enablePprof {
+		pprofSrv = &http.Server{
+			Addr: pprofListen,
+		}
+
+		g.Go(func(ctx context.Context) error {
+			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
+			l.Info("pprof server exit")
 			return nil
 		})
 	}
@@ -178,6 +212,11 @@ func setupGinLogger() (gl io.Writer) {
 	return
 }
 
+func setVersionInfo(c *gin.Context) {
+	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, git.BuildAt))
+	c.Next()
+}
+
 func setupRouter() *gin.Engine {
 	uhttp.Init()
 
@@ -187,6 +226,8 @@ func setupRouter() *gin.Engine {
 	if len(apiConfig.PublicAPIs) != 0 {
 		router.Use(loopbackWhiteList)
 	}
+
+	router.Use(setVersionInfo)
 
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: uhttp.GinLogFormmatter,
@@ -205,35 +246,25 @@ func setupRouter() *gin.Engine {
 
 	applyHTTPRoute(router)
 
-	router.GET("/stats", apiGetDatakitStats)
+	router.GET("/stats", ginWraper(reqLimiter), apiGetDatakitStats)
 	router.GET("/monitor", apiGetDatakitMonitor)
 	router.GET("/man", apiManualTOC)
 	router.GET("/man/:name", apiManual)
 	router.GET("/restart", apiRestart)
 
 	router.GET("/v1/workspace", apiWorkspace)
-	router.GET("/v1/ping", apiPing)
+	router.GET("/v1/ping", ginWraper(reqLimiter), apiPing)
 	router.POST("/v1/lasterror", apiGetDatakitLastError)
-	router.POST("/v1/write/:category", wrap(apiWrite, &apiWriteImpl{}))
-	router.POST("/v1/query/raw", apiQueryRaw)
+
+	router.POST("/v1/write/:category", rawHTTPWraper(reqLimiter, apiWrite, &apiWriteImpl{}))
+
+	router.POST("/v1/query/raw", ginWraper(reqLimiter), apiQueryRaw)
 	router.POST("/v1/object/labels", apiCreateOrUpdateObjectLabel)
 	router.DELETE("/v1/object/labels", apiDeleteObjectLabel)
 
-	router.POST("/v1/pipeline/debug", apiHTTPWrap(apiDebugPipelineHandler))
-
+	router.POST("/v1/pipeline/debug", rawHTTPWraper(reqLimiter, apiDebugPipelineHandler))
+	router.POST("/v1/dialtesting/debug", rawHTTPWraper(reqLimiter, apiDebugDialtestingHandler))
 	return router
-}
-
-func apiHTTPWrap(next func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error), whatever ...interface{}) func(*gin.Context) {
-	return func(ctx *gin.Context) {
-		data, err := next(ctx.Writer, ctx.Request, whatever...)
-		if err != nil {
-			uhttp.HttpErr(ctx, err)
-			return
-		}
-
-		OK.HttpBody(ctx, data)
-	}
 }
 
 // TODO: we should wrap this handler.
@@ -254,21 +285,6 @@ func loopbackWhiteList(c *gin.Context) {
 	c.Next()
 }
 
-type apiHandler func(http.ResponseWriter, *http.Request, ...interface{}) (interface{}, error)
-
-// not used.
-func wrap(next apiHandler, any ...interface{}) func(*gin.Context) {
-	return func(c *gin.Context) {
-		if res, err := next(c.Writer, c.Request, any...); err != nil {
-			uhttp.HttpErr(c, err)
-			return
-		} else {
-			OK.HttpBody(c, res)
-			return
-		}
-	}
-}
-
 func HTTPStart() {
 	refreshRebootSem()
 	l.Debugf("HTTP bind addr:%s", apiConfig.Listen)
@@ -278,24 +294,16 @@ func HTTPStart() {
 	}
 
 	g.Go(func(ctx context.Context) error {
+		l.Info("start HTTP metric goroutine")
+		metrics()
+		return nil
+	})
+
+	g.Go(func(ctx context.Context) error {
 		tryStartServer(srv, true, semReload, semReloadCompleted)
 		l.Info("http server exit")
 		return nil
 	})
-
-	// start pprof if enabled
-	var pprofSrv *http.Server
-	if enablePprof {
-		pprofSrv = &http.Server{
-			Addr: ":6060",
-		}
-
-		g.Go(func(ctx context.Context) error {
-			tryStartServer(pprofSrv, true, semReload, semReloadCompleted)
-			l.Info("pprof server exit")
-			return nil
-		})
-	}
 
 	l.Debug("http server started")
 

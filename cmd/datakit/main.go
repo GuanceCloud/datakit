@@ -69,13 +69,16 @@ func main() {
 		run()
 	} else {
 		go cgroup.Run()
-		service.Entry = run
-		if cmds.FlagWorkDir != "" { // debugging running, not start as service
-			run()
-		} else if err := service.StartService(); err != nil {
-			l.Errorf("start service failed: %s", err.Error())
 
-			return
+		// debugging running, not start as service
+		if cmds.FlagWorkDir != "" /* Deprecated */ || *cmds.FlagDebugWorkDir != "" {
+			run()
+		} else {
+			service.Entry = run
+			if err := service.StartService(); err != nil {
+				l.Errorf("start service failed: %s", err.Error())
+				return
+			}
 		}
 	}
 
@@ -144,6 +147,7 @@ exit:
 func tryLoadConfig() {
 	config.MoveDeprecatedCfg()
 
+	l.Infof("load config from %s...", datakit.MainConfPath)
 	for {
 		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
@@ -228,8 +232,9 @@ func startDKHttp() {
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
 
-		DataWay: config.Cfg.DataWay,
-		PProf:   config.Cfg.EnablePProf,
+		DataWay:     config.Cfg.DataWay,
+		PProf:       config.Cfg.EnablePProf,
+		PProfListen: config.Cfg.PProfListen,
 	})
 
 	time.Sleep(time.Second) // wait http server ok
