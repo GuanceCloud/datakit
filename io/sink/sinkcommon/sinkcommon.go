@@ -1,3 +1,4 @@
+// Package sinkcommon contains sink common declaration
 package sinkcommon
 
 import (
@@ -46,7 +47,7 @@ var (
 	l = logger.DefaultSLogger(packageName)
 )
 
-func init() {
+func init() { //nolint:gochecknoinits
 	l = logger.SLogger(packageName)
 }
 

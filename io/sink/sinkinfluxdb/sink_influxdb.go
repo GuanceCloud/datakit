@@ -1,3 +1,4 @@
+// Package sinkinfluxdb contains influxdb sink implement
 package sinkinfluxdb
 
 import (
@@ -134,13 +135,11 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 
 	if writeEncoding, err := dkstring.GetMapAssertString("write_encoding", mConf); err != nil {
 		return err
-	} else {
-		if writeEncoding != "" {
-			if writeEncoding != string(client.GzipEncoding) {
-				return fmt.Errorf("not support encoding")
-			}
-			s.writeEncoding = writeEncoding
+	} else if writeEncoding != "" {
+		if writeEncoding != string(client.GzipEncoding) {
+			return fmt.Errorf("not support encoding")
 		}
+		s.writeEncoding = writeEncoding
 	}
 
 	if timeout, err := dkstring.GetMapAssertString("timeout", mConf); err != nil {
@@ -199,7 +198,7 @@ func (s *SinkInfluxDB) writeInfluxDB(pts []sinkcommon.ISinkPoint) error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck
 
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 		Database:         s.database,
@@ -232,7 +231,7 @@ func (s *SinkInfluxDB) GetID() string {
 	return s.ID
 }
 
-func init() {
+func init() { //nolint:gochecknoinits
 	sinkcommon.AddCreator(creatorID, func() sinkcommon.ISink {
 		return &SinkInfluxDB{}
 	})
