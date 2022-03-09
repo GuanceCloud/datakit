@@ -91,7 +91,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
     "source"         : "testing-source",
     "service"        : "testing-service",
     "pipeline"       : "test.p",
-    "only_images"    : ["image:<image_regexp1>"], # 用法和上文的 `根据 image 过滤容器` 完全相同
+    "only_images"    : ["image:<image_regexp1>"], # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
     "multiline_match": "^\d{4}-\d{2}"
   }
 ]
