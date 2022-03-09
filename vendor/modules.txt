@@ -296,6 +296,12 @@ github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 github.com/dgryski/go-rendezvous
+# github.com/didip/tollbooth/v6 v6.1.2
+## explicit
+github.com/didip/tollbooth/v6
+github.com/didip/tollbooth/v6/errors
+github.com/didip/tollbooth/v6/libstring
+github.com/didip/tollbooth/v6/limiter
 # github.com/disintegration/imaging v1.6.2
 github.com/disintegration/imaging
 # github.com/dlclark/regexp2 v1.1.6
@@ -472,6 +478,8 @@ github.com/go-logr/logr
 ## explicit
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
+# github.com/go-pkgz/expirable-cache v0.0.3
+github.com/go-pkgz/expirable-cache
 # github.com/go-playground/locales v0.13.0
 github.com/go-playground/locales
 github.com/go-playground/locales/currency
