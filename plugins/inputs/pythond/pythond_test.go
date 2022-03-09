@@ -3,6 +3,7 @@ package pythond
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -24,23 +25,27 @@ func TestGetCliPyScript(t *testing.T) {
 	originInstallDir := datakit.InstallDir
 	originGitReposDir := datakit.GitReposDir
 	originPythonDDir := datakit.PythonDDir
+	originPythonCoreDir := datakit.PythonCoreDir
 
 	datakit.InstallDir = "/usr/local/datakit"
 	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
 	datakit.PythonDDir = filepath.Join(datakit.InstallDir, datakit.StrPythonD)
+	datakit.PythonCoreDir = filepath.Join(datakit.PythonDDir, datakit.StrPythonCore)
 
 	scriptRoot := `['/usr/local/datakit/gitrepos/conf/python.d/framework']`
 	scriptName := "mytest"
 
 	cli := getCliPyScript(scriptRoot, scriptName)
 
-	expectMD5 := "54c045fa96a92bed6e8b5bc9a760dac3"
+	expectMD5 := "beb828f059208df3647fb0d068eca8b8"
 
+	fmt.Println(cli)
 	assert.Equal(t, expectMD5, md5sum(cli), "md5 not equal!")
 
 	datakit.InstallDir = originInstallDir
 	datakit.GitReposDir = originGitReposDir
 	datakit.PythonDDir = originPythonDDir
+	datakit.PythonCoreDir = originPythonCoreDir
 }
 
 //------------------------------------------------------------------------------

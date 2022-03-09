@@ -64,6 +64,7 @@ const (
 	StrPipelineFileSuffix = ".p"
 	StrConfD              = "conf.d"
 	StrPythonD            = "python.d"
+	StrPythonCore         = "core"
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
 	GitRepoSubDirNameConfd    = StrConfD
@@ -115,7 +116,7 @@ var (
 	GitReposRepoFullPath string
 
 	PythonDDir    = filepath.Join(InstallDir, StrPythonD)
-	PythonCoreDir = filepath.Join(PythonDDir, "core")
+	PythonCoreDir = filepath.Join(PythonDDir, StrPythonCore)
 
 	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
@@ -148,7 +149,7 @@ func SetWorkDir(dir string) {
 
 	GitReposDir = filepath.Join(InstallDir, StrGitRepos)
 	PythonDDir = filepath.Join(InstallDir, StrPythonD)
-	PythonCoreDir = filepath.Join(PythonDDir, "core")
+	PythonCoreDir = filepath.Join(PythonDDir, StrPythonCore)
 	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
 	InitDirs()
