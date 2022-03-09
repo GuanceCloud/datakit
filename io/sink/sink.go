@@ -159,6 +159,9 @@ func getMapCategory(originCategory string) (string, error) {
 
 func buildSinkImpls(sincfg []map[string]interface{}) error {
 	for _, v := range sincfg {
+		if len(v) == 0 {
+			continue // empty
+		}
 		target, err := dkstring.GetMapAssertString("target", v)
 		if err != nil {
 			return err
