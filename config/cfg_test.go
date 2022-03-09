@@ -392,37 +392,37 @@ hostname = "should-not-set"`,
 */
 func TestWriteConfigFile(t *testing.T) {
 	c := DefaultConfig()
-	c.Sinks = &Sinker{
-		Sink: []map[string]interface{}{
-			{
-				"id":             "influxdb_1",
-				"target":         "influxdb",
-				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-				"addr":           "http://1.1.1.1:8086",
-				"precision":      "ns",
-				"database":       "db0",
-				"user_agent":     "go_test_client",
-				"timeout":        "6s",
-				"write_encoding": "",
-			},
-			{
-				"id":             "influxdb_bak",
-				"target":         "influxdb",
-				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-				"addr":           "http://1.1.1.1:8087",
-				"precision":      "ns",
-				"database":       "db0",
-				"user_agent":     "go_test_client",
-				"timeout":        "6s",
-				"write_encoding": "",
-			},
-		},
-	}
 	// c.Sinks = &Sinker{
 	// 	Sink: []map[string]interface{}{
-	// 		{},
+	// 		{
+	// 			"id":             "influxdb_1",
+	// 			"target":         "influxdb",
+	// 			"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+	// 			"addr":           "http://1.1.1.1:8086",
+	// 			"precision":      "ns",
+	// 			"database":       "db0",
+	// 			"user_agent":     "go_test_client",
+	// 			"timeout":        "6s",
+	// 			"write_encoding": "",
+	// 		},
+	// 		{
+	// 			"id":             "influxdb_bak",
+	// 			"target":         "influxdb",
+	// 			"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+	// 			"addr":           "http://1.1.1.1:8087",
+	// 			"precision":      "ns",
+	// 			"database":       "db0",
+	// 			"user_agent":     "go_test_client",
+	// 			"timeout":        "6s",
+	// 			"write_encoding": "",
+	// 		},
 	// 	},
 	// }
+	c.Sinks = &Sinker{
+		Sink: []map[string]interface{}{
+			{},
+		},
+	}
 
 	mcdata, err := datakit.TomlMarshal(c)
 	if err != nil {

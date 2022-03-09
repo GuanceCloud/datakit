@@ -190,6 +190,9 @@ func checkSinkConfig(sincfg []map[string]interface{}) error {
 	// check id unique
 	mSinkID := make(map[string]struct{})
 	for _, v := range sincfg {
+		if len(v) == 0 {
+			continue // empty
+		}
 		id, err := dkstring.GetMapAssertString("id", v)
 		if err != nil {
 			return err
