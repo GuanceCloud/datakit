@@ -65,6 +65,7 @@ type Sender struct {
 	stopCh chan interface{}
 }
 
+// Write receive input data and then call worker to save the data
 func (s *Sender) Write(category string, pts []sinkcommon.ISinkPoint) error {
 	if len(pts) == 0 {
 		return nil
@@ -77,6 +78,7 @@ func (s *Sender) Write(category string, pts []sinkcommon.ISinkPoint) error {
 	return nil
 }
 
+// worker create a groutine to run write job
 func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 	if s.group == nil {
 		return fmt.Errorf("sender is not initialized correctly, missing worker group")
@@ -108,6 +110,7 @@ func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 	return nil
 }
 
+// Wait waits all worker to stop
 func (s *Sender) Wait() error {
 	return s.group.Wait()
 }
@@ -146,6 +149,7 @@ func (s *Sender) cache(category string, pts []sinkcommon.ISinkPoint) error {
 	return nil
 }
 
+// init setup sender instance
 func (s *Sender) init(opt *Option) error {
 	s.stopCh = make(chan interface{})
 
@@ -184,6 +188,7 @@ func (s *Sender) init(opt *Option) error {
 	return nil
 }
 
+// initCache init cache instance
 func (s *Sender) initCache(cacheDir string) {
 	if err := cache.Initialize(cacheDir, nil); err != nil {
 		l.Warnf("initialized cache: %s, ignored", err.Error())
@@ -217,6 +222,7 @@ func (s *Sender) startFlushCache() {
 	}
 }
 
+// flushCache flush cache when necessary
 func (s *Sender) flushCache() {
 	l.Debugf("flush cache start")
 
