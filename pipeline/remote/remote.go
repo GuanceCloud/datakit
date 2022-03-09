@@ -270,7 +270,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		}
 		return 0, nil // need update when token has changed
 	} else if isFirst {
-		isFirst = true
+		isFirst = false
 
 		pls, err := ipr.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
 		if err != nil {
