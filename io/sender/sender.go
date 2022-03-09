@@ -1,3 +1,4 @@
+// Package sender manages io data storage and data cache when failed.
 package sender
 
 import (
