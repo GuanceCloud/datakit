@@ -18,10 +18,11 @@ import (
 
 // handler collector.
 type otlpHTTPCollector struct {
-	storage         *collector.SpansStorage
-	Enable          bool              `toml:"enable"`
-	HTTPStatusOK    int               `toml:"http_status_ok"`
-	ExpectedHeaders map[string]string `toml:"expectedHeaders"` // 用于检测是否包含特定的 header
+	storage      *collector.SpansStorage
+	Enable       bool `toml:"enable"`
+	HTTPStatusOK int  `toml:"http_status_ok"`
+
+	ExpectedHeaders map[string]string // 用于检测是否包含特定的 header
 }
 
 // apiOtlpCollector :trace.
@@ -97,7 +98,6 @@ func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request
 
 func (o *otlpHTTPCollector) checkHeaders(r *http.Request) bool {
 	for k, v := range o.ExpectedHeaders {
-		l.Debugf("header key=%s val=%s", k, v)
 		got := r.Header.Get(k)
 		if got != v {
 			return false

@@ -7,9 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/mock"
+
+	"google.golang.org/grpc/metadata"
+
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/mock"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -156,5 +159,57 @@ func TestExportMetric_Export(t *testing.T) {
 	}
 	if got.Operation != want.Operation {
 		t.Errorf("operation got=%s want=%s", got.Operation, want.Operation)
+	}
+}
+
+func Test_checkHandler(t *testing.T) {
+	type args struct {
+		headers map[string]string
+		md      metadata.MD
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "case_no_header",
+			args: args{
+				headers: map[string]string{},
+				md:      make(metadata.MD),
+			},
+			want: true,
+		},
+		{
+			name: "case_check_header_len_1",
+			args: args{
+				headers: map[string]string{"must_have_header1": "1"},
+				md:      map[string][]string{"must_have_header1": {"1"}},
+			},
+			want: true,
+		},
+		{
+			name: "case_check_header_len_2",
+			args: args{
+				headers: map[string]string{"must_have_header1": "1,2"},
+				md:      map[string][]string{"must_have_header1": {"1", "2"}},
+			},
+			want: true,
+		},
+		{
+			name: "case_check_invalid_header",
+			args: args{
+				headers: map[string]string{"must_have_header1": "1,2", "header2": "2"},
+				md:      map[string][]string{"must_have_header1": {"1", "2"}},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := checkHandler(tt.args.headers, tt.args.md); got != tt.want {
+				t.Errorf("checkHandler() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

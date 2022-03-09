@@ -3,7 +3,11 @@ package opentelemetry
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"strings"
+
+	"google.golang.org/grpc/metadata"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
 	collectormetricepb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -12,10 +16,11 @@ import (
 )
 
 type otlpGrpcCollector struct {
-	TraceEnable  bool   `toml:"trace_enable"`
-	MetricEnable bool   `toml:"metric_enable"`
-	Addr         string `toml:"addr"`
-	stopFunc     func()
+	TraceEnable     bool   `toml:"trace_enable"`
+	MetricEnable    bool   `toml:"metric_enable"`
+	Addr            string `toml:"addr"`
+	ExpectedHeaders map[string]string
+	stopFunc        func()
 }
 
 func (o *otlpGrpcCollector) run(storage *collector.SpansStorage) {
@@ -45,11 +50,18 @@ func (o *otlpGrpcCollector) stop() {
 
 type ExportTrace struct { //nolint:structcheck,stylecheck
 	collectortracepb.UnimplementedTraceServiceServer
-	storage *collector.SpansStorage
+	ExpectedHeaders map[string]string
+	storage         *collector.SpansStorage
 }
 
 func (et *ExportTrace) Export(ctx context.Context, //nolint:structcheck,stylecheck
 	ets *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
+	md, haveHeader := metadata.FromIncomingContext(ctx)
+	if haveHeader {
+		if !checkHandler(et.ExpectedHeaders, md) {
+			return nil, fmt.Errorf("invalid request haeders or nil headers")
+		}
+	}
 	if rss := ets.GetResourceSpans(); len(rss) > 0 {
 		et.storage.AddSpans(rss)
 	}
@@ -59,15 +71,36 @@ func (et *ExportTrace) Export(ctx context.Context, //nolint:structcheck,styleche
 
 type ExportMetric struct { //nolint:structcheck,stylecheck
 	collectormetricepb.UnimplementedMetricsServiceServer
-	storage *collector.SpansStorage
+	ExpectedHeaders map[string]string
+	storage         *collector.SpansStorage
 }
 
 func (em *ExportMetric) Export(ctx context.Context, //nolint:structcheck,stylecheck
 	ets *collectormetricepb.ExportMetricsServiceRequest) (*collectormetricepb.ExportMetricsServiceResponse, error) {
+	md, haveHeader := metadata.FromIncomingContext(ctx)
+	if haveHeader {
+		if !checkHandler(em.ExpectedHeaders, md) {
+			return nil, fmt.Errorf("invalid request haeders or nil headers")
+		}
+	}
 	if rss := ets.ResourceMetrics; len(rss) > 0 {
 		orms := em.storage.ToDatakitMetric(rss)
 		em.storage.AddMetric(orms)
 	}
 	res := &collectormetricepb.ExportMetricsServiceResponse{}
 	return res, nil
+}
+
+func checkHandler(headers map[string]string, md metadata.MD) bool {
+	if len(headers) == 0 {
+		return true
+	}
+	for k, v := range headers {
+		strs := md.Get(strings.ToLower(k))
+		mdVal := strings.Join(strs, ",")
+		if mdVal != v {
+			return false
+		}
+	}
+	return true
 }
