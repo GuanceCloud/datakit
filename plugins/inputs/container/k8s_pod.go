@@ -32,6 +32,7 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
 		obj.tags["pod_name"] = item.Name
 		obj.tags["node_name"] = item.Spec.NodeName
+		obj.tags["host"] = item.Spec.NodeName // 指定 pod 所在的 host
 		obj.tags["phase"] = fmt.Sprintf("%v", item.Status.Phase)
 		obj.tags["qos_class"] = fmt.Sprintf("%v", item.Status.QOSClass)
 		obj.tags["state"] = fmt.Sprintf("%v", item.Status.Phase) // Depercated
