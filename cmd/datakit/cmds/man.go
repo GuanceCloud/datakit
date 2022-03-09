@@ -83,6 +83,8 @@ func exportMan(to, skipList, ver string, disableMono bool) error {
 		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), data, os.ModePerm); err != nil {
 			return err
 		}
+
+		l.Infof("export %s to %s ok", k+".md", to)
 	}
 
 	for k := range man.OtherDocs {
