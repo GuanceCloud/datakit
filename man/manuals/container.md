@@ -91,17 +91,17 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
     "source"         : "testing-source",
     "service"        : "testing-service",
     "pipeline"       : "test.p",
-    "only_images"    : ["image:<image_regexp1>"], # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
+    "only_images"    : ["image:<your_image_regexp>"], # 用法和上文的 `根据 image 过滤容器` 完全相同，`image:` 后面填写正则表达式
     "multiline_match": "^\d{4}-\d{2}"
   }
 ]
 ```
 
-如果是在终端命令行添加 Annotations，需要有转义字符，例如：
+如果是在终端命令行添加 Annotations，注意添加转义字符（以下示例两边是单引号，所以无需对双引号做转义）：
 
 ```
 ## foo 是 Pod name
-kubectl annotate pods foo datakit/logs='[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<image_regexp1>\"],\"multiline_match\":\"^\\d{4}-\\d{2}\"}]'
+kubectl annotate pods foo datakit/logs='[{\"disable\":false,\"source\":\"testing-source\",\"service\":\"testing-service\",\"pipeline\":\"test.p\",\"only_images\":[\"image:<your_image_regexp>\"],\"multiline_match\":\"^\\d{4}-\\d{2}\"}]'
 ```
 
 注意：

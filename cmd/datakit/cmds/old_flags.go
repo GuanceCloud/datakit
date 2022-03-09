@@ -418,11 +418,11 @@ func runOldStyleCmds() {
 
 	if FlagExportManuals != "" {
 		setCmdRootLog(FlagCmdLogPath)
-		if err := exportMan(FlagExportManuals,
-			FlagIgnore,
-			FlagManVersion,
-			FlagDisableTFMono); err != nil {
-			l.Error(err)
+		if err := exportMan(FlagExportManuals, FlagIgnore,
+			FlagManVersion, FlagDisableTFMono); err != nil {
+			l.Errorf("exportMan: %s", err)
+		} else {
+			l.Infof("exportMan ok")
 		}
 		os.Exit(0)
 	}

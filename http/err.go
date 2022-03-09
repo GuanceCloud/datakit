@@ -30,6 +30,7 @@ var (
 	ErrInvalidAPIHandler      = newErr(errors.New("invalid API handler"), http.StatusInternalServerError)
 	ErrInvalidObjectPoint     = newErr(errors.New("invalid object point"), http.StatusBadRequest)
 	ErrPublicAccessDisabled   = newErr(errors.New("public access disabled"), http.StatusForbidden)
+	ErrReachLimit             = newErr(errors.New("reach max API limit"), http.StatusTooManyRequests)
 
 	// write body error.
 	ErrInvalidJSONPoint = newErr(errors.New("invalid json point"), http.StatusBadRequest)
