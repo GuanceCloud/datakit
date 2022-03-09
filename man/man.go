@@ -44,7 +44,7 @@ var (
 		"datatypes":                "man/manuals/datatypes.md",
 		"dataway":                  "man/manuals/dataway.md",
 		"dca":                      "man/manuals/dca.md",
-		"ddtrace-go":               "man/manuals/ddtrace-go.md",
+		"ddtrace-golang":           "man/manuals/ddtrace-golang.md",
 		"ddtrace-java":             "man/manuals/ddtrace-java.md",
 		"ddtrace-python":           "man/manuals/ddtrace-python.md",
 		"development":              "man/manuals/development.md",

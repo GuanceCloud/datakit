@@ -46,7 +46,7 @@ else
 fi
 
 LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit \
-	--ignore demo \
+	--ignore demo,logfwdserver,opentelemetry \
 	--export-manuals .docs \
 	--man-version "${man_version}" \
 	--TODO "-" && \
