@@ -113,16 +113,7 @@ func DefaultConfig() *Config {
 
 		Sinks: &Sinker{
 			Sink: []map[string]interface{}{
-				{
-					"id":             "influxdb_test_will_not_working",
-					"target":         datakit.SinkTargetExample,
-					"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-					"addr":           "http://1.1.1.1:8086",
-					"precision":      "ns",
-					"database":       "db0",
-					"timeout":        "10s",
-					"write_encoding": "",
-				},
+				{},
 			},
 		},
 	}
