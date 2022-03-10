@@ -1,4 +1,4 @@
-// Package process collect host processes metrics/objectss
+// Package process collect host processes metrics/objects
 package process
 
 import (
