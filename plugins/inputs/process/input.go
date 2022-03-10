@@ -276,11 +276,16 @@ func (p *Input) WriteObject() {
 
 	for _, ps := range p.getProcesses() {
 		username, state, name, fields, message := p.Parse(ps)
+		listeningPorts, err := getListeningPorts(ps)
+		if err != nil {
+			p.lastErr = err
+		}
 		tags := map[string]string{
 			"username":     username,
 			"state":        state,
 			"name":         fmt.Sprintf("%s_%d", config.Cfg.Hostname, ps.Pid),
 			"process_name": name,
+			"listen_ports": listeningPorts,
 		}
 		for k, v := range p.Tags {
 			tags[k] = v
@@ -388,15 +393,10 @@ func (p *Input) WriteMetric() {
 			continue
 		}
 		username, _, name, fields, _ := p.Parse(ps)
-		listeningPorts, err := getListeningPorts(ps)
-		if err != nil {
-			p.lastErr = err
-		}
 		tags := map[string]string{
 			"username":     username,
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
-			"listen_ports": listeningPorts,
 		}
 		for k, v := range p.Tags {
 			tags[k] = v
