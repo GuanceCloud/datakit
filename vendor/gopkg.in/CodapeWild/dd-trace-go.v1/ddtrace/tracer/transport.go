@@ -163,6 +163,8 @@ func (t *httpTransport) send(p *payload) (body io.ReadCloser, err error) {
 	}
 	response, err := t.client.Do(req)
 	if err != nil {
+		fmt.Printf("send traces failed: %s, request info: [url: %s, host: %s]\n", err.Error(), req.URL.String(), req.Host)
+
 		return nil, err
 	}
 	if code := response.StatusCode; code >= 400 {
@@ -173,9 +175,9 @@ func (t *httpTransport) send(p *payload) (body io.ReadCloser, err error) {
 		response.Body.Close()
 		txt := http.StatusText(code)
 		if n > 0 {
-			return nil, fmt.Errorf("%s (Status: %s)", msg[:n], txt)
+			return nil, fmt.Errorf("%s [status: %s, url: %s, host: %s]", msg[:n], txt, req.URL.String(), req.Host)
 		}
-		return nil, fmt.Errorf("%s", txt)
+		return nil, fmt.Errorf("%s [url: %s, host: %s]", txt, req.URL.String(), req.Host)
 	}
 	return response.Body, nil
 }

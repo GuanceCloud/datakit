@@ -125,7 +125,9 @@ default_time(time)       # 将 time 字段作为输出数据的时间戳
 drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
 ```
 
-这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下（**注意，用户自定义 pattern 如果需要全局生效，必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下**）:
+这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下。
+
+> 注意，用户自定义 pattern 如果需要==全局生效==（即在其它 Pipeline 脚本中应用），必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下）:
 
 ```Shell
 $ cat pipeline/pattern/datakit
@@ -156,7 +158,7 @@ Extracted data(cost: 421.705µs):
 
 ### Pipeline 字段命名注意事项
 
-由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 Field），不宜有任何 tag 字段，这些 Tag 包含如下几类：
+由于[行协议约束](apis#2fc2526a)，在切割出来的字段中（在行协议中，它们都是 Field），不宜有任何 tag 字段，这些 Tag 包含如下几类：
 
 - 各个具体采集器中，用户自行配置增加的 Tag，如 `[inputs.nginx.tags]` 下可增加各种 Tag
 - DataKit 全局 Tag，如 `host`。当然，这个全局 Tag 用户也能自行配置
