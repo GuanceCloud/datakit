@@ -425,13 +425,13 @@ func (p *Input) WriteMetric() {
 }
 
 // getListeningPorts returns ports given process is listening
-// in format "[aaa,bbb,ccc]" or "" when error occurs.
+// in format "[aaa,bbb,ccc]" or "[]" when error occurs.
 func getListeningPorts(proc *pr.Process) string {
 	connections, err := proc.Connections()
 	if err != nil {
 		name, _ := proc.Name()
 		l.Warnf("fail to get ports process %s is listening: %v", name, err)
-		return ""
+		return "[]"
 	}
 	var listening []string
 	for _, c := range connections {
