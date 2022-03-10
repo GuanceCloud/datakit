@@ -79,6 +79,8 @@ func (p *testPoint) ToPoint() *client.Point {
 }
 
 func getTestPoints(t *testing.T, sampleSize int, seed int64) []*testPoint {
+	t.Helper()
+
 	rand.Seed(seed)
 
 	var pts []*testPoint
