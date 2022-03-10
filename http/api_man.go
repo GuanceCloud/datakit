@@ -127,13 +127,13 @@ func apiManualTOC(c *gin.Context) {
 func apiManual(c *gin.Context) {
 	name := c.Param("name")
 	if name == "" {
-		c.Redirect(200, "/man")
+		c.Redirect(http.StatusSeeOther, "/man")
 		return
 	}
 
 	mdtxt, err := man.BuildMarkdownManual(name, &man.Option{WithCSS: true})
 	if err != nil {
-		c.Redirect(200, "/man")
+		c.Redirect(http.StatusSeeOther, "/man")
 		return
 	}
 
