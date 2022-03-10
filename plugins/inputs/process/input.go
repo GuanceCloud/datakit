@@ -281,6 +281,7 @@ func (p *Input) WriteObject() {
 			"state":        state,
 			"name":         fmt.Sprintf("%s_%d", config.Cfg.Hostname, ps.Pid),
 			"process_name": name,
+			"listen_ports": getListeningPorts(ps),
 		}
 		for k, v := range p.Tags {
 			tags[k] = v
@@ -388,15 +389,10 @@ func (p *Input) WriteMetric() {
 			continue
 		}
 		username, _, name, fields, _ := p.Parse(ps)
-		listeningPorts, err := getListeningPorts(ps)
-		if err != nil {
-			p.lastErr = err
-		}
 		tags := map[string]string{
 			"username":     username,
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
-			"listen_ports": listeningPorts,
 		}
 		for k, v := range p.Tags {
 			tags[k] = v
@@ -429,19 +425,21 @@ func (p *Input) WriteMetric() {
 }
 
 // getListeningPorts returns ports given process is listening
-// in format "[aaa,bbb,ccc]" or "" when error occurs.
-func getListeningPorts(proc *pr.Process) (string, error) {
+// in format "[aaa,bbb,ccc]" or "[]" when error occurs.
+func getListeningPorts(proc *pr.Process) string {
 	connections, err := proc.Connections()
 	if err != nil {
-		return "", err
+		name, _ := proc.Name()
+		l.Warnf("fail to get ports process %s is listening: %v", name, err)
+		return "[]"
 	}
-	var ret []string
+	var listening []string
 	for _, c := range connections {
 		if c.Status == "LISTEN" {
-			ret = append(ret, strconv.FormatInt(int64(c.Laddr.Port), 10))
+			listening = append(listening, strconv.FormatInt(int64(c.Laddr.Port), 10))
 		}
 	}
-	return "[" + strings.Join(ret, ",") + "]", nil
+	return "[" + strings.Join(listening, ",") + "]"
 }
 
 func init() { //nolint:gochecknoinits
