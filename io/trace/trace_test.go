@@ -92,9 +92,9 @@ var (
 )
 
 func TestFindSpanTypeIntSpanID(t *testing.T) {
-	trace := randDatakitTrace(t, 10)
+	trace := randDatakitTraceByService(t, 10, "test_single_service", "", "")
 	parentialize(trace)
-	parentIDs, spanIDs := extractTraceIDs(trace)
+	parentIDs, spanIDs := gatherSpansInfo(trace)
 	for i := range trace {
 		switch FindSpanTypeStrSpanID(trace[i].SpanID, trace[i].ParentID, spanIDs, parentIDs) {
 		case SPAN_TYPE_ENTRY:
@@ -166,12 +166,12 @@ func parentialize(trace DatakitTrace) {
 	}
 }
 
-func extractTraceIDs(trace DatakitTrace) (parentids, spanids map[string]bool) {
-	parentids = make(map[string]bool)
-	spanids = make(map[string]bool)
+func gatherSpansInfo(trace DatakitTrace) (parentIDs, spanIDs map[string]bool) {
+	parentIDs = make(map[string]bool)
+	spanIDs = make(map[string]bool)
 	for i := range trace {
-		parentids[trace[i].ParentID] = true
-		spanids[trace[i].SpanID] = true
+		parentIDs[trace[i].ParentID] = true
+		spanIDs[trace[i].SpanID] = true
 	}
 
 	return
@@ -182,8 +182,12 @@ func randDatakitTraceByService(t *testing.T, n int, service, resource, source st
 
 	trace := randDatakitTrace(t, n)
 	for i := range trace {
-		trace[i].Service = service
-		trace[i].Resource = resource
+		if service != "" {
+			trace[i].Service = service
+		}
+		if resource != "" {
+			trace[i].Resource = resource
+		}
 		if source != "" {
 			trace[i].Source = source
 		}

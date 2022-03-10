@@ -15,6 +15,7 @@ import (
 
 func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.DatakitTrace {
 	dkTraces := make([]DKtrace.DatakitTrace, 0)
+	spanIDs, parentIDs := getSpanIDsAndParentIDs(rss)
 	for _, spans := range rss {
 		ls := spans.GetInstrumentationLibrarySpans()
 		for _, librarySpans := range ls {
@@ -22,16 +23,18 @@ func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.Datakit
 			for _, span := range librarySpans.Spans {
 				dt := newEmptyTags(s.RegexpString, s.GlobalTags)
 				dt.makeAllTags(span, spans.Resource.Attributes)
+				spanID := byteToString(span.GetSpanId())
+				ParentID := byteToString(span.GetParentSpanId())
 				dkSpan := &DKtrace.DatakitSpan{
 					TraceID:            hex.EncodeToString(span.GetTraceId()),
-					ParentID:           byteToString(span.GetParentSpanId()),
-					SpanID:             byteToString(span.GetSpanId()),
+					ParentID:           ParentID,
+					SpanID:             spanID,
 					Service:            dt.getAttributeVal(otelResourceServiceKey),
 					Resource:           librarySpans.InstrumentationLibrary.Name,
 					Operation:          span.Name,
 					Source:             inputName,
-					SpanType:           span.Kind.String(),
-					SourceType:         "",
+					SpanType:           DKtrace.FindSpanTypeStrSpanID(spanID, ParentID, spanIDs, parentIDs),
+					SourceType:         DKtrace.SPAN_SERVICE_CUSTOM,
 					Env:                "",
 					Project:            "",
 					Version:            librarySpans.InstrumentationLibrary.Version,
@@ -52,16 +55,31 @@ func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.Datakit
 				if err == nil {
 					dkSpan.Content = string(bts)
 				}
-
-				l.Infof("dkspan = %+v", dkSpan)
-				l.Infof("")
-				l.Infof("span = %s", span.String())
 				dktrace = append(dktrace, dkSpan)
 			}
 			dkTraces = append(dkTraces, dktrace)
 		}
 	}
 	return dkTraces
+}
+
+func getSpanIDsAndParentIDs(rss []*tracepb.ResourceSpans) (map[string]bool, map[string]bool) {
+	var (
+		spanIDs   = make(map[string]bool)
+		parentIDs = make(map[string]bool)
+	)
+	for _, resourceSpans := range rss {
+		for _, librarySpans := range resourceSpans.InstrumentationLibrarySpans {
+			for _, span := range librarySpans.Spans {
+				spanID := byteToString(span.GetTraceId())
+				spanIDs[spanID] = true
+				if spanID != "" {
+					parentIDs[spanID] = true
+				}
+			}
+		}
+	}
+	return spanIDs, parentIDs
 }
 
 type dkTags struct {
@@ -148,7 +166,6 @@ func (dt *dkTags) checkCustomTags() *dkTags {
 
 // addGlobalTags: 添加配置文件中的自定义tags.
 func (dt *dkTags) addGlobalTags() *dkTags {
-	// set global tags
 	for k, v := range dt.globalTags {
 		dt.replaceTags[k] = v
 	}
@@ -218,12 +235,11 @@ func getDKSpanStatus(statuspb *tracepb.Status) string {
 		return status
 	}
 	switch statuspb.Code {
-	case tracepb.Status_STATUS_CODE_UNSET:
-		status = DKtrace.STATUS_INFO
-	case tracepb.Status_STATUS_CODE_OK:
+	case tracepb.Status_STATUS_CODE_UNSET, tracepb.Status_STATUS_CODE_OK:
 		status = DKtrace.STATUS_OK
 	case tracepb.Status_STATUS_CODE_ERROR:
 		status = DKtrace.STATUS_ERR
+
 	default:
 	}
 	return status

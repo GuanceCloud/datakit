@@ -59,6 +59,13 @@ const (
     # key2 = "value2"
     # ...
 
+  [inputs.opentelemetry.expectedHeaders]
+    ## 如有header配置 则请求中必须要携带 否则返回状态码500
+	## 可作为安全检测使用,必须全部小写
+	# ex_version = xxx
+	# ex_name = xxx
+	# ...
+
   ## grpc
   [inputs.opentelemetry.grpc]
   ## trace for grpc
@@ -80,13 +87,6 @@ const (
   enable = false
   ## return to client status_ok_code :200/202
   http_status_ok = 200
-
-  [inputs.opentelemetry.http.expectedHeaders]
-    ## 如有header配置 则请求中必须要携带 否则返回状态码500
-	## 可作为安全检测使用
-	# EX_VERSION = xxx
-	# EX_NAME = xxx
-	# ...
 `
 )
 
@@ -97,9 +97,9 @@ type Input struct {
 	OHTTPc              *otlpHTTPCollector  `toml:"http"`
 	CloseResource       map[string][]string `toml:"close_resource"`
 	Sampler             *itrace.Sampler     `toml:"sampler"`
-	CustomerTags        []string            `toml:"customer_tags"`
 	IgnoreAttributeKeys []string            `toml:"ignore_attribute_keys"`
 	Tags                map[string]string   `toml:"tags"`
+	ExpectedHeaders     map[string]string   `toml:"expectedHeaders"`
 
 	inputName string
 	semStop   *cliutils.Sem // start stop signal
@@ -157,10 +157,12 @@ func (i *Input) Run() {
 	if i.OHTTPc.Enable {
 		// add option
 		i.OHTTPc.storage = storage
+		i.OHTTPc.ExpectedHeaders = i.ExpectedHeaders
 		open = true
 	}
 	if i.Ogrpc.TraceEnable || i.Ogrpc.MetricEnable {
 		open = true
+		i.Ogrpc.ExpectedHeaders = i.ExpectedHeaders
 		go i.Ogrpc.run(storage)
 	}
 	if open {

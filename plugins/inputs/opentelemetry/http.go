@@ -16,23 +16,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-/*
-	API 接收从client端发送的trace数据
-		数据格式为 protobuf
-*/
-
 // handler collector.
 type otlpHTTPCollector struct {
-	storage         *collector.SpansStorage
-	Enable          bool              `toml:"enable"`
-	HTTPStatusOK    int               `toml:"http_status_ok"`
-	ExpectedHeaders map[string]string `toml:"expectedHeaders"` // 用于检测是否包含特定的 header
+	storage      *collector.SpansStorage
+	Enable       bool `toml:"enable"`
+	HTTPStatusOK int  `toml:"http_status_ok"`
+
+	ExpectedHeaders map[string]string // 用于检测是否包含特定的 header
 }
 
 // apiOtlpCollector :trace.
 func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request) {
 	if o.storage == nil {
-		l.Error("option == nil")
+		l.Error("storage is nil")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -44,7 +40,6 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 	response := collectortracepb.ExportTraceServiceResponse{}
 	rawResponse, err := proto.Marshal(&response)
 	if err != nil {
-		l.Errorf("proto marshal error=%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -64,12 +59,14 @@ func (o *otlpHTTPCollector) apiOtlpTrace(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeReply(w, rawResponse, o.HTTPStatusOK, nil) // 先将信息返回到客户端 然后再处理spans
-	o.storage.AddSpans(request.ResourceSpans)
+	if len(request.ResourceSpans) > 0 {
+		o.storage.AddSpans(request.ResourceSpans)
+	}
 }
 
 func (o *otlpHTTPCollector) apiOtlpMetric(w http.ResponseWriter, r *http.Request) {
 	if o.storage == nil {
-		l.Error("option == nil")
+		l.Error("storage is nil")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

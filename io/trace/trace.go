@@ -16,33 +16,33 @@ import (
 // tracing data constants
 // nolint:stylecheck
 const (
-	// datakit tracing customer tags
+	// datakit tracing customer tags.
 	CONTAINER_HOST = "container_host"
 	ENV            = "env"
 	PROJECT        = "project"
 	VERSION        = "version"
 
-	// span status
+	// span status.
 	STATUS_OK       = "ok"
 	STATUS_INFO     = "info"
 	STATUS_WARN     = "warning"
 	STATUS_ERR      = "error"
 	STATUS_CRITICAL = "critical"
 
-	// span position in trace
+	// span position in trace.
 	SPAN_TYPE_ENTRY  = "entry"
 	SPAN_TYPE_LOCAL  = "local"
 	SPAN_TYPE_EXIT   = "exit"
 	SPAN_TYPE_UNKNOW = "unknow"
 
-	// service type
+	// service type.
 	SPAN_SERVICE_APP    = "app"
 	SPAN_SERVICE_CACHE  = "cache"
 	SPAN_SERVICE_CUSTOM = "custom"
 	SPAN_SERVICE_DB     = "db"
 	SPAN_SERVICE_WEB    = "web"
 
-	// line protocol tags
+	// line protocol tags.
 	TAG_CONTAINER_HOST = "container_host"
 	TAG_ENDPOINT       = "endpoint"
 	TAG_ENV            = "env"
@@ -56,7 +56,7 @@ const (
 	TAG_SPAN_TYPE      = "span_type"
 	TAG_VERSION        = "version"
 
-	// line protocol fields
+	// line protocol fields.
 	FIELD_DURATION           = "duration"
 	FIELD_MSG                = "message"
 	FIELD_PARENTID           = "parent_id"
@@ -104,6 +104,40 @@ type DatakitSpan struct {
 type DatakitTrace []*DatakitSpan
 
 type DatakitTraces []DatakitTrace
+
+func FindSpanTypeInMultiServersIntSpanID(spanID, parentID int64, service string, spanIDs map[int64]string, parentIDs map[int64]bool) string {
+	if parentID != 0 {
+		if ss, ok := spanIDs[parentID]; ok {
+			if service != ss {
+				return SPAN_TYPE_ENTRY
+			}
+			if parentIDs[spanID] {
+				return SPAN_TYPE_LOCAL
+			} else {
+				return SPAN_TYPE_EXIT
+			}
+		}
+	}
+
+	return SPAN_TYPE_ENTRY
+}
+
+func FindSpanTypeInMultiServersStrSpanID(spanID, parentID string, service string, spanIDs map[string]string, parentIDs map[string]bool) string {
+	if parentID != "0" && parentID != "" {
+		if ss, ok := spanIDs[parentID]; ok {
+			if service != ss {
+				return SPAN_TYPE_ENTRY
+			}
+			if parentIDs[spanID] {
+				return SPAN_TYPE_LOCAL
+			} else {
+				return SPAN_TYPE_EXIT
+			}
+		}
+	}
+
+	return SPAN_TYPE_ENTRY
+}
 
 func FindSpanTypeIntSpanID(spanID, parentID int64, spanIDs, parentIDs map[int64]bool) string {
 	if parentID != 0 {

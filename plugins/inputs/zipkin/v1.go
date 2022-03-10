@@ -13,37 +13,6 @@ import (
 	zpkcorev1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/zipkin/corev1"
 )
 
-type Endpoint struct {
-	ServiceName string `json:"serviceName"`
-	Ipv4        string `json:"ipv4"`
-	Ipv6        string `json:"ipv6,omitempty"`
-	Port        int16  `json:"port"`
-}
-
-type Annotation struct {
-	Timestamp int64     `json:"timestamp"`
-	Value     string    `json:"value"`
-	Host      *Endpoint `json:"endpoint,omitempty"`
-}
-
-type BinaryAnnotation struct {
-	Key   string    `json:"key"`
-	Value string    `json:"value"`
-	Host  *Endpoint `json:"endpoint,omitempty"`
-}
-
-type ZipkinSpanV1 struct {
-	TraceID           string              `thrift:"traceId,1" db:"traceId" json:"traceId"`
-	ParentID          string              `thrift:"parentId,5" db:"parentId" json:"parentId,omitempty"`
-	ID                string              `thrift:"id,4" db:"id" json:"id"`
-	Name              string              `thrift:"name,3" db:"name" json:"name"`
-	Annotations       []*Annotation       `thrift:"annotations,6" db:"annotations" json:"annotations"`
-	BinaryAnnotations []*BinaryAnnotation `thrift:"binary_annotations,8" db:"binary_annotations" json:"binaryAnnotations"`
-	Timestamp         int64               `thrift:"timestamp,10" db:"timestamp" json:"timestamp,omitempty"`
-	Duration          int64               `thrift:"duration,11" db:"duration" json:"duration,omitempty"`
-	Debug             bool                `thrift:"debug,9" db:"debug" json:"debug,omitempty"`
-}
-
 func unmarshalZipkinThriftV1(body io.ReadCloser) ([]*zpkcorev1.Span, error) {
 	buffer := thrift.NewTMemoryBuffer()
 	_, err := buffer.ReadFrom(body)
@@ -70,6 +39,175 @@ func unmarshalZipkinThriftV1(body io.ReadCloser) ([]*zpkcorev1.Span, error) {
 	}
 
 	return spans, transport.ReadListEnd()
+}
+
+func thriftV1SpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
+	var (
+		dktrace            itrace.DatakitTrace
+		parentIDs, spanIDs = gatherZpkCoreV1SpansInfo(zpktrace)
+	)
+	for _, span := range zpktrace {
+		if span == nil {
+			continue
+		}
+
+		if span.ParentID == nil {
+			span.ParentID = new(int64)
+		}
+		service := getServiceFromZpkCoreV1Span(span)
+		dkspan := &itrace.DatakitSpan{
+			TraceID:   fmt.Sprintf("%x", uint64(span.TraceID)),
+			ParentID:  fmt.Sprintf("%x", uint64(*span.ParentID)),
+			SpanID:    fmt.Sprintf("%x", uint64(span.ID)),
+			Service:   service,
+			Resource:  span.Name,
+			Operation: span.Name,
+			Source:    inputName,
+			SpanType:  itrace.FindSpanTypeInMultiServersIntSpanID(span.ID, *span.ParentID, service, spanIDs, parentIDs),
+		}
+
+		if span.Timestamp != nil {
+			dkspan.Start = (*span.Timestamp) * int64(time.Microsecond)
+		} else {
+			dkspan.Start = getStartTimestamp(span)
+		}
+
+		if span.Duration != nil {
+			dkspan.Duration = (*span.Duration) * int64(time.Microsecond)
+		} else {
+			dkspan.Duration = getDurationThriftAno(span.Annotations)
+		}
+
+		dkspan.Status = itrace.STATUS_OK
+		if _, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "error"); ok {
+			dkspan.Status = itrace.STATUS_ERR
+		}
+
+		if resource, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {
+			dkspan.Resource = resource
+		}
+
+		if project, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
+			dkspan.Project = project
+		}
+
+		if version, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
+			dkspan.Version = version
+		}
+
+		sourceTags := make(map[string]string)
+		for _, tag := range span.BinaryAnnotations {
+			sourceTags[tag.Key] = string(tag.Value)
+		}
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+
+		if dkspan.ParentID == "0" && defSampler != nil {
+			dkspan.Priority = defSampler.Priority
+			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		}
+
+		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
+			log.Warn(err.Error())
+		} else {
+			dkspan.Content = string(buf)
+		}
+
+		dktrace = append(dktrace, dkspan)
+	}
+
+	return dktrace
+}
+
+func gatherZpkCoreV1SpansInfo(trace []*zpkcorev1.Span) (parentIDs map[int64]bool, spanIDs map[int64]string) {
+	parentIDs = make(map[int64]bool)
+	spanIDs = make(map[int64]string)
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		spanIDs[span.ID] = getServiceFromZpkCoreV1Span(span)
+		if span.ParentID != nil && *span.ParentID != 0 {
+			parentIDs[*span.ParentID] = true
+		}
+	}
+
+	return
+}
+
+func getServiceFromZpkCoreV1Span(span *zpkcorev1.Span) string {
+	for _, anno := range span.Annotations {
+		if anno.Host != nil && anno.Host.ServiceName != "" {
+			return anno.Host.ServiceName
+		}
+	}
+	for _, banno := range span.BinaryAnnotations {
+		if banno.Host != nil && banno.Host.ServiceName != "" {
+			return banno.Host.ServiceName
+		}
+	}
+
+	return "zipkin_core_v1_unknown_service"
+}
+
+func getStartTimestamp(zs *zpkcorev1.Span) int64 {
+	var (
+		ts      int64 = 0x7FFFFFFFFFFFFFFF
+		isFound bool
+	)
+	for _, ano := range zs.Annotations {
+		if ano.Timestamp == 0 {
+			continue
+		}
+		if ano.Timestamp < ts {
+			isFound = true
+			ts = ano.Timestamp
+		}
+	}
+
+	if isFound {
+		return ts * 1000
+	}
+
+	return time.Now().UnixNano()
+}
+
+func getDurationThriftAno(anos []*zpkcorev1.Annotation) int64 {
+	if len(anos) < 2 {
+		return 0
+	}
+
+	var (
+		start int64 = 0x7FFFFFFFFFFFFFFF
+		stop  int64
+	)
+	for _, ano := range anos {
+		if ano.Timestamp == 0 {
+			continue
+		}
+
+		if ano.Timestamp > stop {
+			stop = ano.Timestamp
+		}
+		if ano.Timestamp < start {
+			start = ano.Timestamp
+		}
+	}
+
+	if stop > start {
+		return (stop - start) * int64(time.Microsecond)
+	}
+
+	return 0
+}
+
+func findZpkCoreV1BinaryAnnotation(bannos []*zpkcorev1.BinaryAnnotation, key string) (string, bool) {
+	for _, banno := range bannos {
+		if banno != nil && banno.AnnotationType == zpkcorev1.AnnotationType_STRING && banno.Key == key {
+			return string(banno.Value), true
+		}
+	}
+
+	return "", false
 }
 
 func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
@@ -134,115 +272,64 @@ func zipkinConvThriftToJSON(span *zpkcorev1.Span) *zpkcorev1.SpanJsonApater {
 	return zc
 }
 
-func v1ThriftSpansToDkTrace(zpktrace []*zpkcorev1.Span) itrace.DatakitTrace {
-	var (
-		dktrace            itrace.DatakitTrace
-		spanIDs, parentIDs = getZpkCoreV1SpanIDsAndParentIDs(zpktrace)
-	)
-	for _, span := range zpktrace {
-		if span == nil {
-			continue
-		}
+func int2ip(i uint32) []byte {
+	bs := make([]byte, 4)
+	binary.BigEndian.PutUint32(bs, i)
 
-		dkspan := &itrace.DatakitSpan{
-			TraceID:   fmt.Sprintf("%x", uint64(span.TraceID)),
-			SpanID:    fmt.Sprintf("%x", uint64(span.ID)),
-			ParentID:  "0",
-			Resource:  span.Name,
-			Operation: span.Name,
-			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeIntSpanID(span.ID, *span.ParentID, spanIDs, parentIDs),
-		}
-
-		if span.ParentID != nil {
-			dkspan.ParentID = fmt.Sprintf("%x", uint64(*span.ParentID))
-		}
-
-		if span.Timestamp != nil {
-			dkspan.Start = (*span.Timestamp) * int64(time.Microsecond)
-		} else {
-			dkspan.Start = getStartTimestamp(span)
-		}
-
-		if span.Duration != nil {
-			dkspan.Duration = (*span.Duration) * int64(time.Microsecond)
-		} else {
-			dkspan.Duration = getDurationThriftAno(span.Annotations)
-		}
-
-		for _, anno := range span.Annotations {
-			if anno.Host != nil && anno.Host.ServiceName != "" {
-				dkspan.Service = anno.Host.ServiceName
-				break
-			}
-		}
-		if dkspan.Service == "" {
-			for _, banno := range span.BinaryAnnotations {
-				if banno.Host != nil && banno.Host.ServiceName != "" {
-					dkspan.Service = banno.Host.ServiceName
-					break
-				}
-			}
-		}
-
-		dkspan.Status = itrace.STATUS_OK
-		if _, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "error"); ok {
-			dkspan.Status = itrace.STATUS_ERR
-		}
-
-		if resource, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "path.http"); ok {
-			dkspan.Resource = resource
-		}
-
-		if project, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "project"); ok {
-			dkspan.Project = project
-		}
-
-		if version, ok := findZpkCoreV1BinaryAnnotation(span.BinaryAnnotations, "version"); ok {
-			dkspan.Version = version
-		}
-
-		sourceTags := make(map[string]string)
-		for _, tag := range span.BinaryAnnotations {
-			sourceTags[tag.Key] = string(tag.Value)
-		}
-		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
-
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
-		}
-
-		if buf, err := json.Marshal(zipkinConvThriftToJSON(span)); err != nil {
-			log.Warn(err.Error())
-		} else {
-			dkspan.Content = string(buf)
-		}
-
-		dktrace = append(dktrace, dkspan)
-	}
-
-	return dktrace
+	return bs
 }
 
-func v1JsonSpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
+type Endpoint struct {
+	ServiceName string `json:"serviceName"`
+	Ipv4        string `json:"ipv4"`
+	Ipv6        string `json:"ipv6,omitempty"`
+	Port        int16  `json:"port"`
+}
+
+type Annotation struct {
+	Timestamp int64     `json:"timestamp"`
+	Value     string    `json:"value"`
+	Host      *Endpoint `json:"endpoint,omitempty"`
+}
+
+type BinaryAnnotation struct {
+	Key   string    `json:"key"`
+	Value string    `json:"value"`
+	Host  *Endpoint `json:"endpoint,omitempty"`
+}
+
+type ZipkinSpanV1 struct {
+	TraceID           string              `thrift:"traceId,1" db:"traceId" json:"traceId"`
+	ParentID          string              `thrift:"parentId,5" db:"parentId" json:"parentId,omitempty"`
+	ID                string              `thrift:"id,4" db:"id" json:"id"`
+	Name              string              `thrift:"name,3" db:"name" json:"name"`
+	Annotations       []*Annotation       `thrift:"annotations,6" db:"annotations" json:"annotations"`
+	BinaryAnnotations []*BinaryAnnotation `thrift:"binary_annotations,8" db:"binary_annotations" json:"binaryAnnotations"`
+	Timestamp         int64               `thrift:"timestamp,10" db:"timestamp" json:"timestamp,omitempty"`
+	Duration          int64               `thrift:"duration,11" db:"duration" json:"duration,omitempty"`
+	Debug             bool                `thrift:"debug,9" db:"debug" json:"debug,omitempty"`
+}
+
+func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
-		spanIDs, parentIDs = getZpkV1SpanIDsAndParentIDs(zpktrace)
+		parentIDs, spanIDs = gatherZpkV1SpansInfo(zpktrace)
 	)
 	for _, span := range zpktrace {
 		if span == nil {
 			continue
 		}
 
+		service := getServiceFromZpkV1Span(span)
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   span.TraceID,
-			SpanID:    span.ID,
 			ParentID:  span.ParentID,
+			SpanID:    span.ID,
+			Service:   service,
 			Resource:  span.Name,
 			Operation: span.Name,
 			Source:    inputName,
-			SpanType:  itrace.FindSpanTypeStrSpanID(span.ID, span.ParentID, spanIDs, parentIDs),
+			SpanType:  itrace.FindSpanTypeInMultiServersStrSpanID(span.ID, span.ParentID, service, spanIDs, parentIDs),
 			Start:     getFirstTimestamp(span),
 			Duration:  span.Duration * int64(time.Microsecond),
 		}
@@ -253,22 +340,6 @@ func v1JsonSpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 
 		if dkspan.Duration == 0 {
 			dkspan.Duration = getDurationByAno(span.Annotations)
-		}
-
-		for _, anno := range span.Annotations {
-			if anno.Host != nil && anno.Host.ServiceName != "" {
-				dkspan.Service = anno.Host.ServiceName
-				break
-			}
-		}
-
-		if dkspan.Service == "" {
-			for _, bno := range span.BinaryAnnotations {
-				if bno.Host != nil && bno.Host.ServiceName != "" {
-					dkspan.Service = bno.Host.ServiceName
-					break
-				}
-			}
 		}
 
 		dkspan.Status = itrace.STATUS_OK
@@ -288,6 +359,12 @@ func v1JsonSpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 			dkspan.Version = version
 		}
 
+		sourceTags := make(map[string]string)
+		for _, tag := range span.BinaryAnnotations {
+			sourceTags[tag.Key] = tag.Value
+		}
+		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
+
 		if dkspan.ParentID == "0" && defSampler != nil {
 			dkspan.Priority = defSampler.Priority
 			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
@@ -305,40 +382,35 @@ func v1JsonSpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 	return dktrace
 }
 
-func getZpkCoreV1SpanIDsAndParentIDs(trace []*zpkcorev1.Span) (map[int64]bool, map[int64]bool) {
-	var (
-		spanIDs   = make(map[int64]bool)
-		parentIDs = make(map[int64]bool)
-	)
+func gatherZpkV1SpansInfo(trace []*ZipkinSpanV1) (parentIDs map[string]bool, spanIDs map[string]string) {
+	parentIDs = make(map[string]bool)
+	spanIDs = make(map[string]string)
 	for _, span := range trace {
 		if span == nil {
 			continue
 		}
-		spanIDs[span.ID] = true
-		if span.ParentID != nil && *span.ParentID != 0 {
-			parentIDs[*span.ParentID] = true
-		}
-	}
-
-	return spanIDs, parentIDs
-}
-
-func getZpkV1SpanIDsAndParentIDs(trace []*ZipkinSpanV1) (map[string]bool, map[string]bool) {
-	var (
-		spanIDs   = make(map[string]bool)
-		parentIDs = make(map[string]bool)
-	)
-	for _, span := range trace {
-		if span == nil {
-			continue
-		}
-		spanIDs[span.ID] = true
+		spanIDs[span.ID] = getServiceFromZpkV1Span(span)
 		if span.ParentID != "" && span.ParentID != "0" {
 			parentIDs[span.ParentID] = true
 		}
 	}
 
-	return spanIDs, parentIDs
+	return
+}
+
+func getServiceFromZpkV1Span(span *ZipkinSpanV1) string {
+	for _, anno := range span.Annotations {
+		if anno.Host != nil && anno.Host.ServiceName != "" {
+			return anno.Host.ServiceName
+		}
+	}
+	for _, bno := range span.BinaryAnnotations {
+		if bno.Host != nil && bno.Host.ServiceName != "" {
+			return bno.Host.ServiceName
+		}
+	}
+
+	return "zipkin_v1_unknown_service"
 }
 
 func getFirstTimestamp(zs *ZipkinSpanV1) int64 {
@@ -389,74 +461,6 @@ func getDurationByAno(anos []*Annotation) int64 {
 	}
 
 	return 0
-}
-
-func getStartTimestamp(zs *zpkcorev1.Span) int64 {
-	var (
-		ts      int64 = 0x7FFFFFFFFFFFFFFF
-		isFound bool
-	)
-	for _, ano := range zs.Annotations {
-		if ano.Timestamp == 0 {
-			continue
-		}
-		if ano.Timestamp < ts {
-			isFound = true
-			ts = ano.Timestamp
-		}
-	}
-
-	if isFound {
-		return ts * 1000
-	}
-
-	return time.Now().UnixNano()
-}
-
-func getDurationThriftAno(anos []*zpkcorev1.Annotation) int64 {
-	if len(anos) < 2 {
-		return 0
-	}
-
-	var (
-		start int64 = 0x7FFFFFFFFFFFFFFF
-		stop  int64
-	)
-	for _, ano := range anos {
-		if ano.Timestamp == 0 {
-			continue
-		}
-
-		if ano.Timestamp > stop {
-			stop = ano.Timestamp
-		}
-		if ano.Timestamp < start {
-			start = ano.Timestamp
-		}
-	}
-
-	if stop > start {
-		return (stop - start) * int64(time.Microsecond)
-	}
-
-	return 0
-}
-
-func int2ip(i uint32) []byte {
-	bs := make([]byte, 4)
-	binary.BigEndian.PutUint32(bs, i)
-
-	return bs
-}
-
-func findZpkCoreV1BinaryAnnotation(bannos []*zpkcorev1.BinaryAnnotation, key string) (string, bool) {
-	for _, banno := range bannos {
-		if banno != nil && banno.AnnotationType == zpkcorev1.AnnotationType_STRING && banno.Key == key {
-			return string(banno.Value), true
-		}
-	}
-
-	return "", false
 }
 
 func findZpkV1BinaryAnnotation(bannos []*BinaryAnnotation, key string) (string, bool) {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	DKtrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/mock"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -71,23 +72,23 @@ func Test_mkDKTrace(t *testing.T) {
 		从export中获取 ResourceSpans
 
 	*/
-	trace := &MockTrace{}
+	trace := &mock.MockTrace{}
 	endpoint := "localhost:20010"
-	m := MockOtlpGrpcCollector{Trace: trace}
+	m := mock.MockOtlpGrpcCollector{Trace: trace}
 	go m.StartServer(t, endpoint)
 	<-time.After(5 * time.Millisecond)
 	t.Log("start server")
 
 	ctx := context.Background()
-	exp := NewGRPCExporter(t, ctx, endpoint)
+	exp := mock.NewGRPCExporter(t, ctx, endpoint)
 
-	roSpans, want := mockRoSpans(t)
+	roSpans, want := mock.MockRoSpans(t)
 	if err := exp.ExportSpans(ctx, roSpans); err != nil {
 		t.Errorf("err=%v", err)
 		return
 	}
 	time.Sleep(time.Millisecond * 40) // wait MockTrace
-	rss := trace.getResourceSpans()
+	rss := trace.GetResourceSpans()
 	type args struct {
 		rss []*tracepb.ResourceSpans
 	}
@@ -305,7 +306,7 @@ func Test_getDKSpanStatus(t *testing.T) {
 		{
 			name: "case1",
 			args: args{code: &tracepb.Status{Code: tracepb.Status_STATUS_CODE_UNSET}},
-			want: "info",
+			want: "ok",
 		},
 
 		{

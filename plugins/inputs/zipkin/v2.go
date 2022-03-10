@@ -125,19 +125,29 @@ func protoAnnotationsToModelAnnotations(zpa []*zpkprotov2.Annotation) (zma []zpk
 	return zma
 }
 
-func v2SpanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
-	var dktrace itrace.DatakitTrace
+func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
+	var (
+		dktrace            itrace.DatakitTrace
+		parentIDs, spanIDs = gatherSpanModelsInfo(zpktrace)
+	)
 	for _, span := range zpktrace {
 		if span == nil {
 			continue
 		}
 
+		if span.ParentID == nil {
+			span.ParentID = new(zpkmodel.ID)
+		}
+		service := getServiceFromSpanModel(span)
 		dkspan := &itrace.DatakitSpan{
+			ParentID:  span.ParentID.String(),
 			SpanID:    span.ID.String(),
-			ParentID:  "0",
+			Service:   service,
 			Resource:  span.Name,
 			Operation: span.Name,
 			Source:    inputName,
+			SpanType:  itrace.FindSpanTypeInMultiServersStrSpanID(span.ID.String(), span.ParentID.String(), service, spanIDs, parentIDs),
+			Status:    itrace.STATUS_OK,
 			Start:     span.Timestamp.UnixNano(),
 			Duration:  int64(span.Duration),
 			Tags:      tags,
@@ -149,15 +159,6 @@ func v2SpanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			dkspan.TraceID = fmt.Sprintf("%x", span.TraceID.Low)
 		}
 
-		if span.ParentID != nil {
-			dkspan.ParentID = span.ParentID.String()
-		}
-
-		if span.LocalEndpoint != nil {
-			dkspan.Service = span.LocalEndpoint.ServiceName
-		}
-
-		dkspan.Status = itrace.STATUS_OK
 		for tag := range span.Tags {
 			if tag == itrace.STATUS_ERR {
 				dkspan.Status = itrace.STATUS_ERR
@@ -172,12 +173,6 @@ func v2SpanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			if len(span.RemoteEndpoint.IPv6) != 0 {
 				dkspan.EndPoint = span.RemoteEndpoint.IPv6.String()
 			}
-		}
-
-		if span.Kind == zpkmodel.Undetermined {
-			dkspan.SpanType = itrace.SPAN_TYPE_LOCAL
-		} else {
-			dkspan.SpanType = itrace.SPAN_TYPE_ENTRY
 		}
 
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, span.Tags)
@@ -197,4 +192,28 @@ func v2SpanModelsToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 	}
 
 	return dktrace
+}
+
+func gatherSpanModelsInfo(trace []*zpkmodel.SpanModel) (parentIDs map[string]bool, spanIDs map[string]string) {
+	parentIDs = make(map[string]bool)
+	spanIDs = make(map[string]string)
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		spanIDs[span.ID.String()] = getServiceFromSpanModel(span)
+		if span.ParentID != nil && span.ParentID.String() != "0" {
+			parentIDs[span.ParentID.String()] = true
+		}
+	}
+
+	return
+}
+
+func getServiceFromSpanModel(span *zpkmodel.SpanModel) string {
+	if span.LocalEndpoint != nil {
+		return span.LocalEndpoint.ServiceName
+	} else {
+		return "zipkin_v2_unknow_service"
+	}
 }

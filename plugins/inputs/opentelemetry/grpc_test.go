@@ -9,19 +9,21 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/collector"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/opentelemetry/mock"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestExportTrace_Export(t *testing.T) {
 	trace := &ExportTrace{storage: collector.NewSpansStorage()}
 	endpoint := "localhost:20010"
-	m := collector.MockOtlpGrpcCollector{Trace: trace}
+	m := mock.MockOtlpGrpcCollector{Trace: trace}
 	go m.StartServer(t, endpoint)
 	<-time.After(5 * time.Millisecond)
 	t.Log("start server")
 	ctx := context.Background()
-	exp := collector.NewGRPCExporter(t, ctx, endpoint)
+	exp := mock.NewGRPCExporter(t, ctx, endpoint)
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithBatcher(
@@ -48,7 +50,7 @@ func TestExportTrace_Export(t *testing.T) {
 	t.Log("span end")
 	// Flush and close.
 	func() {
-		ctx, cancel := collector.ContextWithTimeout(ctx, t, 10*time.Second)
+		ctx, cancel := mock.ContextWithTimeout(ctx, t, 10*time.Second)
 		defer cancel()
 		require.NoError(t, tp.Shutdown(ctx))
 	}()
@@ -112,15 +114,15 @@ func TestExportTrace_Export(t *testing.T) {
 func TestExportMetric_Export(t *testing.T) {
 	metric := &ExportMetric{storage: collector.NewSpansStorage()}
 	endpoint := "localhost:20010"
-	m := collector.MockOtlpGrpcCollector{Metric: metric}
+	m := mock.MockOtlpGrpcCollector{Metric: metric}
 	go m.StartServer(t, endpoint)
 	<-time.After(5 * time.Millisecond)
 	t.Log("start server")
 
 	ctx := context.Background()
-	exp := collector.NewMetricGRPCExporter(t, ctx, endpoint)
+	exp := mock.NewMetricGRPCExporter(t, ctx, endpoint)
 
-	err := exp.Export(ctx, collector.TestResource, collector.OneRecord)
+	err := exp.Export(ctx, mock.TestResource, mock.OneRecord)
 	if err != nil {
 		t.Fatalf("err = %v", err)
 	}
@@ -142,7 +144,6 @@ func TestExportMetric_Export(t *testing.T) {
 			"abc": "def",
 			"one": "1",
 		},
-		Source:    inputName,
 		Resource:  "onelib",
 		ValueType: "int",
 		Value:     42,
@@ -156,5 +157,57 @@ func TestExportMetric_Export(t *testing.T) {
 	}
 	if got.Operation != want.Operation {
 		t.Errorf("operation got=%s want=%s", got.Operation, want.Operation)
+	}
+}
+
+func Test_checkHandler(t *testing.T) {
+	type args struct {
+		headers map[string]string
+		md      metadata.MD
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "case_no_header",
+			args: args{
+				headers: map[string]string{},
+				md:      make(metadata.MD),
+			},
+			want: true,
+		},
+		{
+			name: "case_check_header_len_1",
+			args: args{
+				headers: map[string]string{"must_have_header1": "1"},
+				md:      map[string][]string{"must_have_header1": {"1"}},
+			},
+			want: true,
+		},
+		{
+			name: "case_check_header_len_2",
+			args: args{
+				headers: map[string]string{"must_have_header1": "1,2"},
+				md:      map[string][]string{"must_have_header1": {"1", "2"}},
+			},
+			want: true,
+		},
+		{
+			name: "case_check_invalid_header",
+			args: args{
+				headers: map[string]string{"must_have_header1": "1,2", "header2": "2"},
+				md:      map[string][]string{"must_have_header1": {"1", "2"}},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := checkHandler(tt.args.headers, tt.args.md); got != tt.want {
+				t.Errorf("checkHandler() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

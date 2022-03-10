@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"encoding/json"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -99,15 +98,14 @@ func (s *SpansStorage) getData(metric *metricpb.Metric) []*date {
 
 type OtelResourceMetric struct {
 	Operation   string            `json:"operation"`   // metric.name
-	Source      string            `json:"source"`      // inputName ： opentelemetry
 	Attributes  map[string]string `json:"attributes"`  // tags
+	Service     string            `json:"service"`     // metric.resource.(service.name)
 	Resource    string            `json:"resource"`    // global.Meter name
 	Description string            `json:"description"` // metric.Description
 	StartTime   uint64            `json:"start_time"`  // start time
 	UnitTime    uint64            `json:"unit_time"`   // end time
 	ValueType   string            `json:"value_type"`  // double | int | histogram | ExponentialHistogram | summary
 	Value       interface{}       `json:"value"`       // 上述五种类型所对应的值
-	Content     string            `json:"content"`     // metric json string
 
 	// Exemplar 可获取 spanid 等
 }
@@ -115,7 +113,9 @@ type OtelResourceMetric struct {
 func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelResourceMetric {
 	orms := make([]*OtelResourceMetric, 0)
 	for _, resourceMetrics := range rss {
-		tags := newEmptyTags(s.RegexpString, s.GlobalTags).setAttributesToTags(resourceMetrics.Resource.Attributes).tags
+		dt := newEmptyTags(s.RegexpString, s.GlobalTags)
+		tags := dt.setAttributesToTags(resourceMetrics.Resource.Attributes).tags
+		service := dt.getAttributeVal(otelResourceServiceKey)
 		LibraryMetrics := resourceMetrics.GetInstrumentationLibraryMetrics()
 		for _, libraryMetric := range LibraryMetrics {
 			resource := libraryMetric.InstrumentationLibrary.Name
@@ -125,8 +125,8 @@ func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelR
 				for _, p := range ps {
 					orm := &OtelResourceMetric{
 						Operation:   metrice.Name,
-						Source:      inputName,
 						Attributes:  tags,
+						Service:     service,
 						Resource:    resource,
 						Description: metrice.Description,
 						ValueType:   p.typeName,
@@ -136,12 +136,6 @@ func (s *SpansStorage) ToDatakitMetric(rss []*metricpb.ResourceMetrics) []*OtelR
 					}
 					for k, v := range p.tags.resource() {
 						orm.Attributes[k] = v
-					}
-					bts, err := json.Marshal(metrice)
-					if err != nil {
-						l.Errorf("marshal err=%v", err)
-					} else {
-						orm.Content = string(bts)
 					}
 					orms = append(orms, orm)
 				}
@@ -155,22 +149,22 @@ func makePoints(orms []*OtelResourceMetric) []*dkio.Point {
 	pts := make([]*dkio.Point, 0)
 	for _, resourceMetric := range orms {
 		tags := map[string]string{
-			"operation":   resourceMetric.Operation,
-			"description": resourceMetric.Description,
+			"description":          resourceMetric.Description,
+			"instrumentation_name": resourceMetric.Resource,
 		}
 		for k, v := range resourceMetric.Attributes {
 			tags[k] = v
 		}
 		fields := map[string]interface{}{
-			"start":      resourceMetric.StartTime,
-			"duration":   resourceMetric.UnitTime - resourceMetric.StartTime,
-			"message":    resourceMetric.Content,
-			"resource":   resourceMetric.Resource,
-			"value_type": resourceMetric.ValueType,
-			"value":      resourceMetric.Value,
+			resourceMetric.Operation: resourceMetric.Value,
 		}
-		pt, err := dkio.NewPoint(inputName, tags, fields, &dkio.PointOption{
-			Time:              time.Now(),
+		UnitTime := time.Unix(0, int64(resourceMetric.UnitTime))
+		if UnitTime.IsZero() {
+			UnitTime = time.Now()
+		}
+		// 指标集名称定义：'instrumentationName'
+		pt, err := dkio.NewPoint(resourceMetric.Service, tags, fields, &dkio.PointOption{
+			Time:              UnitTime,
 			Category:          datakit.Metric,
 			DisableGlobalTags: false,
 			Strict:            true,

@@ -4,8 +4,8 @@ resource_spans:{
 resource:{attributes:{key:"message.type"  value:{string_value:"message-name"}} 
  attributes:{key:"service.name"  value:{string_value:"testservice"}}}  
 
-instrumentation_library_spans:{instrumentation_library:{name:"test-tracer"}  
-
+instrumentation_library_spans:{
+instrumentation_library:{name:"test-tracer"}  
 spans:{
     trace_id:"\x94<\xdf\x00zx\x82\xe7Wy\xfe\x93\xab\x19\x95a"  
     span_id:".\xbd\x06c\x10ɫ*"  
@@ -142,42 +142,121 @@ schema_url:"https://opentelemetry.io/schemas/v1.7.0"}
 
 --------- 格式化 onemetric  json --------------------
 ```
- {
-            "resource": {},
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "host.name",
+                        "value": {
+                            "Value": {
+                                "StringValue": "songlongqi"
+                            }
+                        }
+                    },
+                    {
+                        "key": "os.description",
+                        "value": {
+                            "Value": {
+                                "StringValue": "Windows 10 Home China 21H2 (2009) [Version 10.0.19044.1526]"
+                            }
+                        }
+                    },
+                    {
+                        "key": "os.type",
+                        "value": {
+                            "Value": {
+                                "StringValue": "windows"
+                            }
+                        }
+                    },
+                    {
+                        "key": "process.pid",
+                        "value": {
+                            "Value": {
+                                "IntValue": 24052
+                            }
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "Value": {
+                                "StringValue": "serviceNameForMetric"
+                            }
+                        }
+                    }
+                ]
+            },
             "instrumentation_library_metrics": [
                 {
                     "instrumentation_library": {
-                        "name": "onelib"
+                        "name": "test_meter"
                     },
                     "metrics": [
                         {
-                            "name": "foo",
+                            "name": "ex.com",
                             "Data": {
-                                "Sum": {
+                                "Histogram": {
                                     "data_points": [
                                         {
                                             "attributes": [
                                                 {
-                                                    "key": "abc",
+                                                    "key": "A",
                                                     "value": {
                                                         "Value": {
-                                                            "StringValue": "def"
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "key": "one",
-                                                    "value": {
-                                                        "Value": {
-                                                            "IntValue": 1
+                                                            "StringValue": "1"
                                                         }
                                                     }
                                                 }
                                             ],
-                                            "start_time_unix_nano": 1607454900000000000,
-                                            "time_unix_nano": 1607454960000000000,
+                                            "start_time_unix_nano": 1646290961917362200,
+                                            "time_unix_nano": 1646290961919645000,
+                                            "count": 1,
+                                            "sum": 12,
+                                            "bucket_counts": [
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                1
+                                            ],
+                                            "explicit_bounds": [
+                                                0.005,
+                                                0.01,
+                                                0.025,
+                                                0.05,
+                                                0.1,
+                                                0.25,
+                                                0.5,
+                                                1,
+                                                2.5,
+                                                5,
+                                                10
+                                            ]
+                                        }
+                                    ],
+                                    "aggregation_temporality": 2
+                                }
+                            }
+                        },
+                        {
+                            "name": "an_important_metric",
+                            "description": "Measures the cumulative epicness of the app",
+                            "Data": {
+                                "Sum": {
+                                    "data_points": [
+                                        {
+                                            "start_time_unix_nano": 1646290961917362200,
+                                            "time_unix_nano": 1646290961919645000,
                                             "Value": {
-                                                "AsInt": 42
+                                                "AsDouble": 10
                                             }
                                         }
                                     ],
@@ -188,7 +267,8 @@ schema_url:"https://opentelemetry.io/schemas/v1.7.0"}
                         }
                     ]
                 }
-            ]
+            ],
+            "schema_url": "https://opentelemetry.io/schemas/v1.7.0"
         }
     ]
 ```

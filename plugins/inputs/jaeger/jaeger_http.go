@@ -46,7 +46,7 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 	var (
 		project, version, env = getExpandInfo(batch)
 		dktrace               itrace.DatakitTrace
-		spanIDs, parentIDs    = getSpanIDsAndParentIDs(batch.Spans)
+		spanIDs, parentIDs    = gatherSpansInfo(batch.Spans)
 	)
 	for _, span := range batch.Spans {
 		if span == nil {
@@ -105,11 +105,9 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 	return dktrace
 }
 
-func getSpanIDsAndParentIDs(trace []*jaeger.Span) (map[int64]bool, map[int64]bool) {
-	var (
-		spanIDs   = make(map[int64]bool)
-		parentIDs = make(map[int64]bool)
-	)
+func gatherSpansInfo(trace []*jaeger.Span) (parentIDs map[int64]bool, spanIDs map[int64]bool) {
+	parentIDs = make(map[int64]bool)
+	spanIDs = make(map[int64]bool)
 	for _, span := range trace {
 		if span == nil {
 			continue
