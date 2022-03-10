@@ -29,14 +29,16 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 
 	for idx, item := range items {
 		obj := newPod()
-		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
-		obj.tags["pod_name"] = item.Name
-		obj.tags["node_name"] = item.Spec.NodeName
-		obj.tags["host"] = item.Spec.NodeName // 指定 pod 所在的 host
-		obj.tags["phase"] = fmt.Sprintf("%v", item.Status.Phase)
-		obj.tags["qos_class"] = fmt.Sprintf("%v", item.Status.QOSClass)
-		obj.tags["state"] = fmt.Sprintf("%v", item.Status.Phase) // Depercated
-		obj.tags["status"] = fmt.Sprintf("%v", item.Status.Phase)
+		obj.tags = map[string]string{
+			"name":      fmt.Sprintf("%v", item.UID),
+			"pod_name":  item.Name,
+			"node_name": item.Spec.NodeName,
+			"host":      item.Spec.NodeName, // 指定 pod 所在的 host
+			"phase":     fmt.Sprintf("%v", item.Status.Phase),
+			"qos_class": fmt.Sprintf("%v", item.Status.QOSClass),
+			"state":     fmt.Sprintf("%v", item.Status.Phase), // Depercated
+			"status":    fmt.Sprintf("%v", item.Status.Phase),
+		}
 
 		for _, ref := range item.OwnerReferences {
 			if ref.Kind == "ReplicaSet" {
@@ -67,10 +69,13 @@ func exportPod(items []v1.Pod, extraTags tagsType) k8sResourceStats {
 				containerReadyCount++
 			}
 		}
-		obj.fields["age"] = int64(time.Since(item.CreationTimestamp.Time).Seconds())
-		obj.fields["ready"] = containerReadyCount
-		obj.fields["availale"] = containerAllCount
-		obj.fields["create_time"] = item.CreationTimestamp.Time.Unix()
+
+		obj.fields = map[string]interface{}{
+			"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
+			"ready":       containerReadyCount,
+			"availale":    containerAllCount,
+			"create_time": item.CreationTimestamp.Time.Unix(),
+		}
 
 		restartCount := 0
 		for _, containerStatus := range item.Status.InitContainerStatuses {
