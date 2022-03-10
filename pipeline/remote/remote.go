@@ -155,7 +155,6 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 
 		case <-tick.C:
 			l.Debug("triggered")
-
 		} // select
 	} // for
 }
