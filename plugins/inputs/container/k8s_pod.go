@@ -130,19 +130,13 @@ func (item *podMeta) labels() map[string]string { return item.Labels }
 
 func (item *podMeta) annotations() map[string]string { return item.Annotations }
 
-//nolint:unused
-func (item *podMeta) containerName() string {
-	if len(item.Spec.Containers) == 0 {
-		return ""
+func (item *podMeta) containerImage(name string) string {
+	for _, container := range item.Spec.Containers {
+		if container.Name == name {
+			return container.Image
+		}
 	}
-	return item.Spec.Containers[0].Name
-}
-
-func (item *podMeta) containerImage() string {
-	if len(item.Spec.Containers) == 0 {
-		return ""
-	}
-	return item.Spec.Containers[0].Image
+	return ""
 }
 
 func (item *podMeta) replicaSet() string {
