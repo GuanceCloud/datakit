@@ -139,6 +139,15 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	var err error
 
 	for {
+		err = doPull(pathConfig, urls[0], ipr)
+		if err != nil {
+			ipr.FeedLastError(datakit.DatakitInputName, err.Error())
+		}
+
+		if isReturn {
+			return nil
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
@@ -147,14 +156,6 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 		case <-tick.C:
 			l.Debug("triggered")
 
-			err = doPull(pathConfig, urls[0], ipr)
-			if err != nil {
-				ipr.FeedLastError(datakit.DatakitInputName, err.Error())
-			}
-
-			if isReturn {
-				return nil
-			}
 		} // select
 	} // for
 }
