@@ -278,7 +278,7 @@ func (p *Input) WriteObject() {
 		username, state, name, fields, message := p.Parse(ps)
 		listeningPorts, err := getListeningPorts(ps)
 		if err != nil {
-			l.Errorf("fail to get ports process %s is listening: %v", name, err)
+			l.Warnf("fail to get ports process %s is listening: %v", name, err)
 		}
 		tags := map[string]string{
 			"username":     username,
