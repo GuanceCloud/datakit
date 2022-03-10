@@ -24,6 +24,12 @@ func TestCheckSinksConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "empty",
+			in: []map[string]interface{}{
+				{},
+			},
+		},
+		{
 			name: "id_empty_1",
 			in: []map[string]interface{}{
 				{"id": " "},
@@ -91,6 +97,12 @@ func TestBuildSinkImpls(t *testing.T) {
 			},
 		},
 		{
+			name: "empty",
+			in: []map[string]interface{}{
+				{},
+			},
+		},
+		{
 			name: "invaid_target",
 			in: []map[string]interface{}{
 				{
@@ -143,6 +155,21 @@ func TestAggregationCategorys(t *testing.T) {
 		expectError error
 	}{
 		{
+			name: "normal",
+			in: []map[string]interface{}{
+				{
+					"id":         "influxdb_1",
+					"target":     "influxdb",
+					"addr":       "http://1.1.1.1:8086",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
+					"categories": []string{"M"},
+				},
+			},
+		},
+		{
 			name: "categories_empty",
 			in: []map[string]interface{}{
 				{
@@ -171,7 +198,22 @@ func TestAggregationCategorys(t *testing.T) {
 			expectError: fmt.Errorf("invalid id: not string"),
 		},
 		{
-			name: "normal",
+			name: "empty",
+			in: []map[string]interface{}{
+				{},
+			},
+		},
+		{
+			name: "no_categories",
+			in: []map[string]interface{}{
+				{
+					"id": 123,
+				},
+			},
+			expectError: fmt.Errorf("invalid categories: not found"),
+		},
+		{
+			name: "unrecognized category",
 			in: []map[string]interface{}{
 				{
 					"id":         "influxdb_1",
@@ -181,9 +223,10 @@ func TestAggregationCategorys(t *testing.T) {
 					"database":   "db0",
 					"user_agent": "go_test_client",
 					"timeout":    "6s",
-					"categories": []string{"M"},
+					"categories": []string{"M1"},
 				},
 			},
+			expectError: fmt.Errorf("unrecognized category"),
 		},
 	}
 
@@ -191,6 +234,58 @@ func TestAggregationCategorys(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := aggregationCategorys(tc.in)
 			assert.Equal(t, tc.expectError, err)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^TestGetMapCategory$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
+func TestGetMapCategory(t *testing.T) {
+	cases := []struct {
+		name        string
+		in          []string
+		out         []string
+		expectError error
+	}{
+		{
+			name: "normal",
+			in: []string{
+				datakit.SinkCategoryMetric,
+				datakit.SinkCategoryNetwork,
+				datakit.SinkCategoryKeyEvent,
+				datakit.SinkCategoryObject,
+				datakit.SinkCategoryCustomObject,
+				datakit.SinkCategoryLogging,
+				datakit.SinkCategoryTracing,
+				datakit.SinkCategoryRUM,
+				datakit.SinkCategorySecurity,
+			},
+			out: []string{
+				datakit.Metric,
+				datakit.Network,
+				datakit.KeyEvent,
+				datakit.Object,
+				datakit.CustomObject,
+				datakit.Logging,
+				datakit.Tracing,
+				datakit.RUM,
+				datakit.Security,
+			},
+		},
+		{
+			name:        "unrecognized category",
+			in:          []string{datakit.MetricDeprecated},
+			out:         []string{""},
+			expectError: fmt.Errorf("unrecognized category"),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for k, str := range tc.in {
+				newCategory, err := getMapCategory(str)
+				assert.Equal(t, tc.expectError, err)
+				assert.Equal(t, tc.out[k], newCategory)
+			}
 		})
 	}
 }
