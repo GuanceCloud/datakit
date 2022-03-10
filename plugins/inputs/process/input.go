@@ -1,4 +1,4 @@
-// Package process collect host processes metrics/objectss
+// Package process collect host processes metrics/objects
 package process
 
 import (
@@ -388,10 +388,15 @@ func (p *Input) WriteMetric() {
 			continue
 		}
 		username, _, name, fields, _ := p.Parse(ps)
+		listeningPorts, err := getListeningPorts(ps)
+		if err != nil {
+			p.lastErr = err
+		}
 		tags := map[string]string{
 			"username":     username,
 			"pid":          fmt.Sprintf("%d", ps.Pid),
 			"process_name": name,
+			"listen_ports": listeningPorts,
 		}
 		for k, v := range p.Tags {
 			tags[k] = v
@@ -421,6 +426,22 @@ func (p *Input) WriteMetric() {
 		io.FeedLastError(inputName, p.lastErr.Error())
 		p.lastErr = nil
 	}
+}
+
+// getListeningPorts returns ports given process is listening
+// in format "[aaa,bbb,ccc]" or "" when error occurs.
+func getListeningPorts(proc *pr.Process) (string, error) {
+	connections, err := proc.Connections()
+	if err != nil {
+		return "", err
+	}
+	var ret []string
+	for _, c := range connections {
+		if c.Status == "LISTEN" {
+			ret = append(ret, strconv.FormatInt(int64(c.Laddr.Port), 10))
+		}
+	}
+	return "[" + strings.Join(ret, ",") + "]", nil
 }
 
 func init() { //nolint:gochecknoinits
