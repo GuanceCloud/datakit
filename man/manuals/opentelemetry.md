@@ -1,4 +1,10 @@
-# opentelemetry 
+{{.CSS}}
+
+- DataKit 版本：{{.Version}}
+- 文档发布日期：{{.ReleaseDate}}
+- 操作系统支持：`{{.AvailableArchs}}`
+
+# {{.InputName}}
 
 OpenTelemetry （以下简称 OTEL）是 CNCF 的一个可观测性项目，旨在提供可观测性领域的标准化方案，解决观测数据的数据模型、采集、处理、导出等的标准化问题。
 
@@ -94,7 +100,8 @@ OTEL 提供与 vendor 无关的实现，根据用户的需要将观测类数据�
 1. 在涉及到 `float` `double` 类型数据时，会最多保留两位小数。
 
 1. 配置字段 `ignore_attribute_keys` 是过滤掉一些不需要的 Key 。但是在 OTEL 中的 `attributes` 大多数的标签中用 `.` 分隔。例如在 resource 的源码中：
-``` go
+
+```golang
 ServiceNameKey = attribute.Key("service.name")
 ServiceNamespaceKey = attribute.Key("service.namespace")
 TelemetrySDKNameKey = attribute.Key("telemetry.sdk.name")
@@ -103,6 +110,7 @@ OSTypeKey = attribute.Key("os.type")
 OSDescriptionKey = attribute.Key("os.description")
  ...
 ```
+
 因此，如果您想要过滤所有 `teletemetry.sdk` 和 `os`  下所有的子类型标签，那么应该这样配置：
 
 ``` toml

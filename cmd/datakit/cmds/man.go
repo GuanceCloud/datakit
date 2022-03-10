@@ -62,6 +62,7 @@ func exportMan(to, skipList, ver string, disableMono bool) error {
 
 	for k := range inputs.Inputs {
 		if skip[k] {
+			l.Warnf("skip %s", k)
 			continue
 		}
 
@@ -77,6 +78,7 @@ func exportMan(to, skipList, ver string, disableMono bool) error {
 		}
 
 		if len(data) == 0 {
+			l.Warnf("no data, skip %s", k)
 			continue
 		}
 
