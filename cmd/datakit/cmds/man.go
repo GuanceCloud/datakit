@@ -15,6 +15,11 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+func runDocFlags() error {
+	// TODO
+	return nil
+}
+
 func cmdMan() {
 	if runtime.GOOS == datakit.OSWindows {
 		fmt.Println("\n[E] --man do not support Windows")
@@ -78,6 +83,8 @@ func exportMan(to, skipList, ver string, disableMono bool) error {
 		if err := ioutil.WriteFile(filepath.Join(to, k+".md"), data, os.ModePerm); err != nil {
 			return err
 		}
+
+		l.Infof("export %s to %s ok", k+".md", to)
 	}
 
 	for k := range man.OtherDocs {
@@ -87,7 +94,7 @@ func exportMan(to, skipList, ver string, disableMono bool) error {
 
 		data, err := man.BuildMarkdownManual(k, &man.Option{ManVersion: ver, WithCSS: false})
 		if err != nil {
-			l.Fatalf("BuildMarkdownManual: %s", err)
+			return err
 		}
 
 		if len(data) == 0 {

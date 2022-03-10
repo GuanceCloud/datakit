@@ -30,7 +30,7 @@ SampleMeasurement() []Measurement // 采集器文档生成辅助结构
 AvailableArchs() []string         // 采集器适用的操作系统
 ```
 
-> 由于不断会新增一些采集器功能，**新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface**
+> 由于不断会新增一些采集器功能，==新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface==
 
 - 在 `input.go` 中，新增如下模块初始化入口：
 
@@ -82,7 +82,7 @@ sudo datakit --start                                            # 重启 datakit
 - 执行如下命令检查采集器情况：
 
 ```shell
-sudo datakit --check-config # 检查采集器配置文件是否正常
+sudo datakit debug --check-config # 检查采集器配置文件是否正常
 datakit -M --vvv            # 检查所有采集器的运行情况
 ```
 
@@ -141,19 +141,22 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 
 安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2)（可能需要翻墙）
 
+`go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
+
 #### 安装常见工具
 
 - tree
 - make
 - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
-- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation)
-- gofumpt: go install mvdan.cc/gofumpt@latest
+- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+- gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
 - wget
 - docker
 - curl
 - clang: 版本 >= 10.0
 - llvm： 版本 >= 10.0
-- go-bindata: `apt install go-bindata`
+- go-bindata: `apt install go-bindata` `go get -u github.com/go-bindata/go-bindata/...`
+- [waque](https://github.com/yesmeck/waque)：版本 >= 1.13.1
 
 #### 安装第三方库
 
@@ -174,44 +177,52 @@ TODO
 
 TODO
 
-## 本地调试
+## 安装、升级测试 
 
-DataKit 支持设定工作目录，目前默认的工作目录是 `/usr/local/datakit`（Windows 下为 `C:\Program Files\datakit`）。设定方式为：
+DataKit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
+
+大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
+
+> 可下载 [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478) 客户端工具来查看 OSS 中的文件。
+
+- AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
+- SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
+
+在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 `scripts/build.sh` 中。将其 copy 到 datakit 源码根目录，稍作修改，即可用于本地编译、发布。
+
+### 自定义目录运行 DataKit
+
+默认情况下，DataKit 以==服务的形式==，运行在指定的目录（Linux 下为 /usr/local/datakit），但通过额外的方式，可以自定义 DataKit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
+
+1. 更新最新的代码(dev 分支) 
+1. 编译
+1. 创建预期的 DataKit 工作目录，比如 `mkdir -p ~/datakit/conf.d`
+1. 生成默认 datakit.conf 配置文件。以 Linux 为例，执行
 
 ```shell
-datakit --workdir path/to/workdir
+./dist/datakit-linux-amd64/datakit debug --default-main-conf > ~/datakit/conf.d/datakit.conf
 ```
 
-- 将该命令做一个 alias，放到 ~/.bashrc 中：
+1. 修改上面生成的 datakit.conf：
+
+	- 填写 `default_enabled_inputs`，加入希望开启的采集器列表，一般是 `cpu,disk,mem` 等这些
+	- `http_api.listen` 地址改一下
+	- `dataway.urls` 里面的 token 改一下
+	- 如有必要，logging 目录/level 都改一下
+	- 没有了
+
+1. 启动 DataKit，以 Linux 为例：`./dist/datakit-linux-amd64/datakit debug --workdir ~/datakit`
+1. 可在本地 bash 中新加个 alias，这样每次编译完 DataKit 后，直接运行 `ddk` 即可（即 Debugging-DataKit）
 
 ```shell
-echo 'alias dk="datakit --workdir ~/datakit"' >> ~/.bashrc
+echo 'alias ddk=./dist/datakit-linux-amd64/datakit debug --workdir ~/datakit' >> ~/.bashrc
+source ~/.bashrc
 ```
 
-大家可能直接在 DataKit 开发目录下启动 DataKit，可改一下 DataKit 启动文件，直接使用当前编译出来的 DataKit：
+这样，DataKit 不是以服务的方式运行，可直接 ctrl+c 结束 DataKit
 
 ```shell
-# Linux
-echo 'alias dk="./dist/datakit-linux-amd64/datakit --workdir ~/datakit"' >> ~/.bashrc
-
-# Mac
-echo 'alias dk="./dist/datakit-darwin-amd64/datakit --workdir ~/datakit"' >> ~/.bash_profile
-
-# alias 生效
-source ~/.bashrc       # Linux
-source ~/.bash_profile # Mac
-```
-
-- 通过 DataKit 创建一个 `datakit.conf`：
-
-```shell
-mkdir -p ~/datakit/conf.d && datakit --default-main-conf > ~/datakit/conf.d/datakit.conf
-```
-
-修改 `datakit.conf` 中的配置，如 token、日志配置（日志默认指向 `/var/log/datakit/` 下，可改到其它地方）等，启动之后，DataKit 会自动创建各种目录。这样就能在一个主机上运行多个 datakit 实例：
-
-```shell
-$ dk
+$ ddk
 2021-08-26T14:12:54.647+0800    DEBUG   config  config/load.go:55       apply main configure...
 2021-08-26T14:12:54.647+0800    INFO    config  config/cfg.go:361       set root logger to /tmp/datakit/log ok
 [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
@@ -226,18 +237,66 @@ $ dk
 	...
 ```
 
-## 安装、升级测试 
+## 版本发布
 
-DataKit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
+DataKit 版本发布包含俩部分：
 
-大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
+- DataKit 版本发布
+- 语雀文档发布
 
-> 可下载 [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478) 客户端工具来查看 OSS 中的文件。
+### DataKit 版本发布
 
-- AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
-- SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
+DataKit 当前的版本发布，是在 gitlab 中实现的，一旦特定分支的代码被推送到 GitLab，就会触发对应的版本发布，详见 _.gitlab-ci.yml_。
 
-在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 `scripts/build.sh` 中。将其 copy 到 datakit 源码根目录，稍作修改，即可用于本地编译、发布。
+在 1.2.6(含) 以前的版本中，DataKit 版本发布依赖于命令 `git describe --tags` 的输出。自 1.2.7 之后，DataKit 版本不再依赖这个机制，而是通过手动指定版本号，其步骤如下：
+
+> 注：当前 script/build.sh 中依然依赖 `git describe --tags`，这只是一个版本获取策略问题，不影响主流程。
+
+- 编辑 *.gitlab-ci.yml*，修改里面的 `VERSION` 变量，如：
+
+```yaml
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.8
+```
+
+每次版本发布，都需要手动编辑 *.gitlab-ci.yml* 指定该版本号。
+
+- 版本发布完成后，在代码上新增一个 tag
+
+```shell
+git tag -f <same-as-the-new-version>
+git push -f --tags
+```
+
+> 注意： Mac 版本的发布，目前只能在 amd64 架构上的 Mac 发布，因为开启了 CGO 的原因，在 GitLab 上无法发布 Mac 版本的 DataKit。其实现如下：
+
+```shell
+make production_mac VERSION=<the-new-version>
+make pub_production_mac VERSION=<the-new-version>
+```
+
+### DataKit 版本号机制
+
+- 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
+- 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是基数
+
+### 语雀文档发布
+
+语雀文档的发布，只能在开发机器上发布，需安装 [waque](https://github.com/yesmeck/waque) 1.13.1+ 以上的版本。其流程如下：
+
+- 执行 yuque.sh
+
+```
+./yuque.sh <the-new-version>
+```
+
+如果不指定版本，会以最近的一个 tag 名称作为版本号。注意，如果是线上代码发布，最好保证跟**线上 DataKit 当前的稳定版版本号**保持一致，不然会导致用户困扰。
+
+在当前的代码树中，有俩个文档库配置：
+
+- *yuque.yml*: 发布到[线上 DataKit 文档库](https://www.yuque.com/dataflux/datakit)
+- *yuque_testing.yml*: 发布到[测试 DataKit 文档库](https://www.yuque.com/dataflux/cd74oo)
+
+测试文档库用于测试文档发布效果。当在你本地机器发布文档时，如果当前代码分支是 *yuque*，会自动发布到线上文档库，否则发布到测试文档库。
 
 ## 关于代码规范
 
@@ -280,6 +339,76 @@ func digitVal(ch rune) int {
 cmd := exec.Command("/bin/bash", "-c", string(body)) //nolint:gosec
 ```
 - 其它可能确实需要关闭检查的地方，慎重对待
+
+## 排查 DataKit 内存泄露
+
+编辑 datakit.conf，顶部增加如下配置字段即可开启 DataKit 远程 pprof 功能：
+
+```toml
+enable_pprof = true
+```
+
+> 如果是 DaemonSet 安装 datakit，可注入环境变量:
+
+```yaml
+        - name: ENV_ENABLE_PPROF
+          value: true
+```
+
+重启 DataKit 生效。
+
+### 获取 pprof 文件
+
+```shell
+# 下载当前 DataKit 活跃内存 pprof 文件
+wget http://<datakit-ip>:6060/debug/pprof/heap
+
+# 下载当前 DataKit 总分配内存 pprof 文件（含已经被释放的内存）
+wget http://<datakit-ip>:6060/debug/pprof/allocs
+```
+
+> 这里的 6060 端口是固定死的，暂时无法修改
+
+另外通过 web 访问 `http://<datakit-ip>:6060/debug/pprof/heap?=debug=1` 也能查看一些内存分配信息。
+
+### 查看 pprof 文件
+
+下载到本地后，运行如下命令，进入交互命令后，可输入 top 即可查看内存消耗的 top10 热点：
+
+```shell
+$ go tool pprof heap 
+File: datakit
+Type: inuse_space
+Time: Feb 23, 2022 at 9:06pm (CST)
+Entering interactive mode (type "help" for commands, "o" for options)
+(pprof) top                            <------ 查看 top 10 的内存热点
+Showing nodes accounting for 7719.52kB, 88.28% of 8743.99kB total
+Showing top 10 nodes out of 108
+flat  flat%   sum%        cum   cum%
+2048.45kB 23.43% 23.43%  2048.45kB 23.43%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/alecthomas/chroma.NewLexer
+1031.96kB 11.80% 35.23%  1031.96kB 11.80%  regexp/syntax.(*compiler).inst
+902.59kB 10.32% 45.55%   902.59kB 10.32%  compress/flate.NewWriter
+591.75kB  6.77% 52.32%   591.75kB  6.77%  bytes.makeSlice
+561.50kB  6.42% 58.74%   561.50kB  6.42%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/golang.org/x/net/html.init
+528.17kB  6.04% 64.78%   528.17kB  6.04%  regexp.(*bitState).reset
+516.01kB  5.90% 70.68%   516.01kB  5.90%  io.glob..func1
+513.50kB  5.87% 76.55%   513.50kB  5.87%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/github.com/gdamore/tcell/v2/terminfo/v/vt220.init.0
+513.31kB  5.87% 82.43%   513.31kB  5.87%  gitlab.jiagouyun.com/cloudcare-tools/datakit/vendor/k8s.io/apimachinery/pkg/conversion.ConversionFuncs.AddUntyped
+512.28kB  5.86% 88.28%   512.28kB  5.86%  encoding/pem.Decode
+(pprof) 
+(pprof) pdf                            <------ 输出成 pdf，即在当前目录下会生成 profile001.pdf
+Generating report in profile001.pdf
+(pprof) 
+(pprof) web                            <------ 直接在浏览器上查看，效果跟 PDF 一样
+```
+
+> 通过 `go tool pprof -sample_index=inuse_objects heap` 可看对象的分配情况，详询 `go tool pprof -help`。
+
+用同样的方式，可查看总分配内存 pprof 文件 allocs。PDF 的效果大概如下：
+
+![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/datakit-pprof-pdf.png)
+
+更多 pprof 的使用方法，参见[这里](https://www.freecodecamp.org/news/how-i-investigated-memory-leaks-in-go-using-pprof-on-a-large-codebase-4bec4325e192/)。
 
 ## DataKit 辅助功能
 

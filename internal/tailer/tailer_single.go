@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pborman/ansi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -23,9 +24,9 @@ const (
 )
 
 type Single struct {
-	opt      *Option
-	file     *os.File
-	filename string
+	opt                    *Option
+	file                   *os.File
+	filename, baseFilename string
 
 	decoder *encoding.Decoder
 	mult    *multiline.Multiline
@@ -71,6 +72,7 @@ func NewTailerSingle(filename string, opt *Option) (*Single, error) {
 
 	t.readBuff = make([]byte, readBuffSize)
 	t.filename = t.file.Name()
+	t.baseFilename = filepath.Base(t.filename)
 	t.tags = t.buildTags(opt.GlobalTags)
 
 	return t, nil
@@ -97,7 +99,9 @@ func (t *Single) forwardMessage() {
 	)
 	defer timeout.Stop()
 
-	dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
+	if !t.opt.DisableSendEvent {
+		dkio.FeedEventLog(&dkio.Reporter{Message: fmt.Sprintf(firstMessage, t.filename, t.opt.Source), Logtype: "event"})
+	}
 	for {
 		select {
 		case <-t.stopCh:
@@ -108,7 +112,7 @@ func (t *Single) forwardMessage() {
 			return
 		case <-timeout.C:
 			if str := t.mult.FlushString(); str != "" {
-				t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: str, Tag: t.tags}})
+				t.send(str)
 			}
 		default:
 			// nil
@@ -130,22 +134,46 @@ func (t *Single) forwardMessage() {
 			if line == "" {
 				continue
 			}
+
 			var text string
 			text, err = t.decode(line)
 			if err != nil {
 				t.opt.log.Debugf("decode '%s' error: %s", t.opt.CharacterEncoding, err)
-				dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
+				if !t.opt.DisableSendEvent {
+					dkio.FeedEventLog(&dkio.Reporter{Message: line, Logtype: "event", Status: "warning"}) // event:warning
+				}
 			}
 
 			text = t.multiline(text)
 			if text == "" {
 				continue
 			}
-			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags})
+
+			if t.opt.ForwardFunc != nil {
+				t.sendToForwardCallback(text)
+				continue
+			}
+			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
+			pending = append(pending, &SocketTaskData{Source: t.opt.Source, Log: logstr, Tag: t.tags})
 		}
 		if len(pending) > 0 {
 			t.sendToPipeline(pending)
 		}
+	}
+}
+
+func (t *Single) send(text string) {
+	if t.opt.ForwardFunc != nil {
+		t.sendToForwardCallback(text)
+		return
+	}
+	t.sendToPipeline([]worker.TaskData{&SocketTaskData{Source: t.opt.Source, Log: text, Tag: t.tags}})
+}
+
+func (t *Single) sendToForwardCallback(text string) {
+	err := t.opt.ForwardFunc(t.baseFilename, text)
+	if err != nil {
+		t.opt.log.Warnf("failed to forward text from file %s, error: %s", t.filename, err)
 	}
 }
 
@@ -159,7 +187,8 @@ func (t *Single) sendToPipeline(pending []worker.TaskData) {
 			IgnoreStatus:          t.opt.IgnoreStatus,
 			DisableAddStatusField: t.opt.DisableAddStatusField,
 		},
-		TS: time.Now(),
+		TS:            time.Now(),
+		MaxMessageLen: maxFieldsLength,
 	}
 
 	err := worker.FeedPipelineTaskBlock(task)
@@ -201,7 +230,7 @@ func (t *Single) buildTags(globalTags map[string]string) map[string]string {
 		tags[k] = v
 	}
 	if _, ok := tags["filename"]; !ok {
-		tags["filename"] = filepath.Base(t.filename)
+		tags["filename"] = t.baseFilename
 	}
 	return tags
 }
@@ -253,4 +282,18 @@ func (b *buffer) split() []string {
 	}
 
 	return res
+}
+
+func removeAnsiEscapeCodes(oldtext string, run bool) string {
+	if !run {
+		return oldtext
+	}
+
+	newtext, err := ansi.Strip([]byte(oldtext))
+	if err != nil {
+		l.Debugf("remove ansi code error: %w", err)
+		return oldtext
+	}
+
+	return string(newtext)
 }

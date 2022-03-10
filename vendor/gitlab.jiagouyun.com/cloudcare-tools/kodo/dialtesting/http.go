@@ -22,21 +22,22 @@ import (
 )
 
 type HTTPTask struct {
-	ExternalID      string             `json:"external_id"`
-	Name            string             `json:"name"`
-	AK              string             `json:"access_key"`
-	Method          string             `json:"method"`
-	URL             string             `json:"url"`
-	PostURL         string             `json:"post_url"`
-	CurStatus       string             `json:"status"`
-	Frequency       string             `json:"frequency"`
-	Region          string             `json:"region"` // 冗余进来，便于调试
-	OwnerExternalID string             `json:"owner_external_id"`
-	SuccessWhen     []*HTTPSuccess     `json:"success_when"`
-	Tags            map[string]string  `json:"tags,omitempty"`
-	Labels          []string           `json:"labels,omitempty"`
-	AdvanceOptions  *HTTPAdvanceOption `json:"advance_options,omitempty"`
-	UpdateTime      int64              `json:"update_time,omitempty"`
+	ExternalID       string             `json:"external_id"`
+	Name             string             `json:"name"`
+	AK               string             `json:"access_key"`
+	Method           string             `json:"method"`
+	URL              string             `json:"url"`
+	PostURL          string             `json:"post_url"`
+	CurStatus        string             `json:"status"`
+	Frequency        string             `json:"frequency"`
+	Region           string             `json:"region"` // 冗余进来，便于调试
+	OwnerExternalID  string             `json:"owner_external_id"`
+	SuccessWhenLogic string             `json:"success_when_logic"`
+	SuccessWhen      []*HTTPSuccess     `json:"success_when"`
+	Tags             map[string]string  `json:"tags,omitempty"`
+	Labels           []string           `json:"labels,omitempty"`
+	AdvanceOptions   *HTTPAdvanceOption `json:"advance_options,omitempty"`
+	UpdateTime       int64              `json:"update_time,omitempty"`
 
 	ticker   *time.Ticker
 	cli      *http.Client
@@ -169,19 +170,29 @@ func (t *HTTPTask) GetResults() (tags map[string]string, fields map[string]inter
 		message[`request_header`] = t.req.Header
 	}
 
-	reasons := t.CheckResult()
+	reasons, succFlag := t.CheckResult()
 	if t.reqError != "" {
 		reasons = append(reasons, t.reqError)
 	}
+	switch t.SuccessWhenLogic {
+	case "or":
+		if succFlag && t.reqError == "" {
+			tags["status"] = "OK"
+			fields["success"] = int64(1)
+		} else {
+			message[`fail_reason`] = strings.Join(reasons, `;`)
+			fields[`fail_reason`] = strings.Join(reasons, `;`)
+		}
+	default:
+		if len(reasons) != 0 {
+			message[`fail_reason`] = strings.Join(reasons, `;`)
+			fields[`fail_reason`] = strings.Join(reasons, `;`)
+		}
 
-	if len(reasons) != 0 {
-		message[`fail_reason`] = strings.Join(reasons, `;`)
-		fields[`fail_reason`] = strings.Join(reasons, `;`)
-	}
-
-	if t.reqError == "" && len(reasons) == 0 {
-		tags["status"] = "OK"
-		fields["success"] = int64(1)
+		if t.reqError == "" && len(reasons) == 0 {
+			tags["status"] = "OK"
+			fields["success"] = int64(1)
+		}
 	}
 
 	notSave := false
@@ -355,9 +366,9 @@ result:
 	return err
 }
 
-func (t *HTTPTask) CheckResult() (reasons []string) {
+func (t *HTTPTask) CheckResult() (reasons []string, succFlag bool) {
 	if t.resp == nil {
-		return nil
+		return nil, true
 	}
 
 	for _, chk := range t.SuccessWhen {
@@ -367,6 +378,8 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 			for _, v := range vs {
 				if err := v.check(t.resp.Header.Get(k), fmt.Sprintf("HTTP header `%s'", k)); err != nil {
 					reasons = append(reasons, err.Error())
+				} else {
+					succFlag = true
 				}
 			}
 		}
@@ -376,6 +389,8 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 			for _, v := range chk.Body {
 				if err := v.check(string(t.respBody), "response body"); err != nil {
 					reasons = append(reasons, err.Error())
+				} else {
+					succFlag = true
 				}
 			}
 		}
@@ -385,6 +400,8 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 			for _, v := range chk.StatusCode {
 				if err := v.check(fmt.Sprintf(`%d`, t.resp.StatusCode), "HTTP status"); err != nil {
 					reasons = append(reasons, err.Error())
+				} else {
+					succFlag = true
 				}
 			}
 		}
@@ -393,6 +410,8 @@ func (t *HTTPTask) CheckResult() (reasons []string) {
 		if t.reqCost > chk.respTime && chk.respTime > 0 {
 			reasons = append(reasons,
 				fmt.Sprintf("HTTP response time(%v) larger than %v", t.reqCost, chk.respTime))
+		} else if chk.respTime > 0 {
+			succFlag = true
 		}
 	}
 
@@ -421,14 +440,20 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 		// auth
 		// TODO: add more auth options
 		if opt.RequestOptions.Auth != nil {
-			req.SetBasicAuth(opt.RequestOptions.Auth.Username, opt.RequestOptions.Auth.Password)
+			if !(opt.RequestOptions.Auth.Username == "" && opt.RequestOptions.Auth.Password == "") {
+				req.SetBasicAuth(opt.RequestOptions.Auth.Username, opt.RequestOptions.Auth.Password)
+			}
 		}
 	}
 
 	// body options
 	if opt.RequestBody != nil {
-		req.Header.Add("Content-Type", opt.RequestBody.BodyType)
-		req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(opt.RequestBody.Body)))
+		if opt.RequestBody.BodyType != "" {
+			req.Header.Add("Content-Type", opt.RequestBody.BodyType)
+		}
+		if opt.RequestBody.Body != "" {
+			req.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(opt.RequestBody.Body)))
+		}
 	}
 
 	// proxy headers
@@ -437,6 +462,116 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 			req.Header.Add(k, v)
 		}
 	}
+
+	return nil
+}
+
+func (t *HTTPTask) InitDebug() error {
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	// setup HTTP client
+	t.cli = &http.Client{
+		Timeout: 30 * time.Second, // default timeout
+	}
+
+	// advance options
+	opt := t.AdvanceOptions
+	if opt != nil && opt.RequestOptions != nil {
+		// check FollowRedirect
+		if !opt.RequestOptions.FollowRedirect { // see https://stackoverflow.com/a/38150816/342348
+			t.cli.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
+		}
+	}
+
+	if opt != nil && opt.RequestBody != nil {
+		switch opt.RequestBody.BodyType {
+		case "text/plain", "application/json", "text/xml", "application/x-www-form-urlencoded":
+		case "text/html", "multipart/form-data", "", "None": // do nothing
+		default:
+			return fmt.Errorf("invalid body type: `%s'", opt.RequestBody.BodyType)
+		}
+	}
+
+	// TLS opotions
+	if opt != nil && opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
+
+		cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
+		if err != nil {
+			return err
+		}
+
+		t.cli.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:            caCertPool,
+				Certificates:       []tls.Certificate{cert},
+				InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError,
+			},
+		}
+	}
+
+	// proxy options
+	if opt != nil && opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
+		proxyURL, err := url.Parse(opt.Proxy.URL)
+		if err != nil {
+			return err
+		}
+
+		if t.cli.Transport == nil {
+			t.cli.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
+		} else {
+			t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+		}
+	}
+
+	if len(t.SuccessWhen) == 0 {
+		return fmt.Errorf(`no any check rule`)
+	}
+
+	// init success checker
+	for _, checker := range t.SuccessWhen {
+		if checker.ResponseTime != "" {
+			du, err := time.ParseDuration(checker.ResponseTime)
+			if err != nil {
+				return err
+			}
+			checker.respTime = du
+		}
+
+		for _, vs := range checker.Header {
+			for _, v := range vs {
+				err := genReg(v)
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+
+		// body
+		for _, v := range checker.Body {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
+		// status_code
+		for _, v := range checker.StatusCode {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	// TODO: more checking on task validity
 
 	return nil
 }

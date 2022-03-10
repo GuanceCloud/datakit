@@ -331,7 +331,7 @@ func (t *HeadlessTask) rumSpecialSteps() {
 	t.hasAddSpecialSteps = true
 }
 
-func (t *HeadlessTask) CheckResult() (reasons []string) {
+func (t *HeadlessTask) CheckResult() (reasons []string, flag bool) {
 	return
 }
 

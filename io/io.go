@@ -31,9 +31,10 @@ var (
 	heartBeatIntervalDefault   = 40
 	log                        = logger.DefaultSLogger("io")
 
-	DisableLogFilter   bool
-	DisableHeartbeat   bool
-	DisableDatawayList bool
+	DisableLogFilter            bool
+	DisableHeartbeat            bool
+	DisableDatawayList          bool
+	FlagDebugDisableDatawayList bool
 )
 
 type Option struct {
@@ -111,11 +112,9 @@ func NewIO() *IO {
 		in:                   make(chan *iodata, 128),
 		in2:                  make(chan *iodata, 128*8),
 		inLastErr:            make(chan *lastError, 128),
-
-		inputstats: map[string]*InputsStat{},
-
-		cache:        map[string][]*Point{},
-		dynamicCache: map[string][]*Point{},
+		inputstats:           map[string]*InputsStat{},
+		cache:                map[string][]*Point{},
+		dynamicCache:         map[string][]*Point{},
 	}
 
 	log.Debugf("IO: %+#v", x)

@@ -10,8 +10,23 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+type apiList struct {
+	GetStats           func() (*DatakitStats, error)
+	GetMarkdownContent func(string) ([]byte, error)
+	RestartDataKit     func() error
+	TestPipeline       func(string, string) (string, error)
+}
+
+var dcaAPI = &apiList{
+	GetStats:           GetStats,
+	GetMarkdownContent: getMarkdownContent,
+	RestartDataKit:     restartDataKit,
+	TestPipeline:       pipelineTest,
+}
 
 var ignoreAuthURI = []string{
 	"/v1/rum/sourcemap",
@@ -32,79 +47,7 @@ func dcaHTTPStart() {
 
 	l.Debugf("DCA HTTP bind addr:%s", dcaConfig.Listen)
 
-	router := gin.New()
-
-	// set gin logger
-	l.Infof("set DCA server log to %s", ginLog)
-	var ginlogger io.Writer
-	if ginLog == "stdout" {
-		ginlogger = os.Stdout
-	} else {
-		ginlogger = &lumberjack.Logger{
-			Filename:   ginLog,
-			MaxSize:    ginRotate, // MB
-			MaxBackups: 5,
-			MaxAge:     30, // day
-		}
-	}
-
-	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		Formatter: nil, // not set, use the default
-		Output:    ginlogger,
-	}))
-
-	router.Use(gin.Recovery())
-
-	// cors
-	router.Use(func(c *gin.Context) {
-		allowHeaders := []string{
-			"Content-Type",
-			"Content-Length",
-			"Accept-Encoding",
-			"Authorization",
-			"accept",
-			"origin",
-			"Cache-Control",
-			"X-Requested-With",
-			"X-Token",
-		}
-
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-
-		c.Next()
-	})
-
-	// white list check
-	router.Use(whiteListCheck)
-
-	// auth check
-	router.Use(dcaAuthMiddleware)
-
-	router.NoRoute(dcaDefault)
-
-	router.GET("/v1/dca/stats", dcaStats)
-	router.GET("/v1/dca/inputDoc", dcaInputDoc)
-	router.GET("/v1/dca/reload", dcaReload)
-	// conf
-	router.POST("/v1/dca/saveConfig", dcaSaveConfig)
-	router.GET("/v1/dca/getConfig", dcaGetConfig)
-	// pipelines
-	router.GET("/v1/dca/pipelines", dcaGetPipelines)
-	router.GET("/v1/dca/pipelines/detail", dcaGetPipelinesDetail)
-	router.POST("/v1/dca/pipelines/test", dcaTestPipelines)
-	router.POST("/v1/dca/pipelines", dcaCreatePipeline)
-	router.PATCH("/v1/dca/pipelines", dcaUpdatePipeline)
-
-	router.POST("/v1/rum/sourcemap", dcaUploadSourcemap)
-	router.DELETE("/v1/rum/sourcemap", dcaDeleteSourcemap)
+	router := setupDcaRouter()
 
 	srv := &http.Server{
 		Addr:    dcaConfig.Listen,
@@ -179,4 +122,86 @@ func whiteListCheck(c *gin.Context) {
 		})
 		c.Abort()
 	}
+}
+
+func setupDcaRouter() *gin.Engine {
+	// set gin logger
+	l.Infof("set DCA server log to %s", ginLog)
+	var ginlogger io.Writer
+	if ginLog == "stdout" {
+		ginlogger = os.Stdout
+	} else {
+		ginlogger = &lumberjack.Logger{
+			Filename:   ginLog,
+			MaxSize:    ginRotate, // MB
+			MaxBackups: 5,
+			MaxAge:     30, // day
+		}
+	}
+
+	router := gin.New()
+
+	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
+		Formatter: nil, // not set, use the default
+		Output:    ginlogger,
+	}))
+
+	router.Use(gin.Recovery())
+
+	// cors
+	router.Use(func(c *gin.Context) {
+		allowHeaders := []string{
+			"Content-Type",
+			"Content-Length",
+			"Accept-Encoding",
+			"Authorization",
+			"accept",
+			"origin",
+			"Cache-Control",
+			"X-Requested-With",
+			"X-Token",
+		}
+
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", strings.Join(allowHeaders, ", "))
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	})
+
+	// white list check
+	router.Use(whiteListCheck)
+
+	// auth check
+	router.Use(dcaAuthMiddleware)
+
+	router.NoRoute(dcaDefault)
+
+	router.GET("/v1/dca/stats", dcaStats)
+	router.GET("/v1/dca/inputDoc", dcaInputDoc)
+	router.GET("/v1/dca/reload", dcaReload)
+	// conf
+	router.POST("/v1/dca/saveConfig", dcaSaveConfig)
+	router.GET("/v1/dca/getConfig", dcaGetConfig)
+	// pipelines
+	router.GET("/v1/dca/pipelines", dcaGetPipelines)
+	router.GET("/v1/dca/pipelines/detail", dcaGetPipelinesDetail)
+	router.POST("/v1/dca/pipelines/test", dcaTestPipelines)
+	router.POST("/v1/dca/pipelines", dcaCreatePipeline)
+	router.PATCH("/v1/dca/pipelines", dcaUpdatePipeline)
+
+	router.POST("/v1/rum/sourcemap", dcaUploadSourcemap)
+	router.DELETE("/v1/rum/sourcemap", dcaDeleteSourcemap)
+
+	return router
+}
+
+func getMarkdownContent(inputName string) ([]byte, error) {
+	return man.BuildMarkdownManual(inputName, &man.Option{})
 }

@@ -10,18 +10,18 @@
 
 ## `/v1/write/:category`
 
-写入日志数据，参数列表：
+本 API 用于给 DataKit 上报各类数据（`category`），参数说明如下：
 
-| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                                                                       |
-| -------------------- | ------ | -------- | --------- | --------------------------------------------------                                         |
-| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                         |
-| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                              |
-| `input`              | string | false    | `datakit` | 数据源名称                                                                                 |
-| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag                                                    |
-| `version`            | string | false    | 无        | 当前采集器的版本号                                                                         |
-| `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段。如果不指定 `source`，则上传的日志数据不会执行 pipeline 切割 |
+| 参数名               | 类型   | 是否必选 | 默认值    | 说明                                                                                                                       |
+| -------------------- | ------ | -------- | --------- | --------------------------------------------------                                                                         |
+| `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                         |
+| `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
+| `input`              | string | false    | `datakit` | 数据源名称                                                                                                                 |
+| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag                                                                                    |
+| `version`            | string | false    | 无        | 当前采集器的版本号                                                                                                         |
+| `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
 
-HTTP body 支持行协议以及 JSON 俩种形式。
+HTTP body 支持行协议以及 JSON 俩种形式。关于数据结构（不管是行协议形式还是 JSON 形式）的约束，参见[这里](apis#2fc2526a)。
 
 ### JSON Body 示例
 
@@ -297,8 +297,6 @@ Content-Type: application/json
 
 创建或者更新对象的 `labels`
 
-请求示例:
-
 `request body`说明
 
 |           参数 | 描述                                                                          | 类型       |
@@ -308,6 +306,8 @@ Content-Type: application/json
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string`   |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`     |
 |       `labels` | `labels` 列表，一个 `string` 数组                                             | `[]string` |
+
+### 示例
 
 ```shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels" \
@@ -345,9 +345,7 @@ status_code: 500
 
 删除对象的 `labels`
 
-请求示例:
-
-`request body`说明
+`request body` 说明
 
 |           参数 | 描述                                                                          | 类型     |
 | -------------: | ----------------------------------------------------------------------------- | -------- |
@@ -355,6 +353,8 @@ status_code: 500
 |  `object_name` | 表示 `labels` 所关联的 `object`名称，如 `host-123`                            | `string` |
 |          `key` | 表示 `labels` 所关联的 `object` 的具体字段名，如进程名字段 `process_name`     | `string` |
 |        `value` | 表示 `labels` 所关联的 `object` 的具体字段值，如进程名为 `systemsoundserverd` | `void`   |
+
+### 示例
 
 ```shell
 curl -XPOST "127.0.0.1:9529/v1/object/labels"  \
@@ -387,9 +387,73 @@ status_code: 500
 }
 ```
 
-## DataKit 行协议约束
+## `/v1/pipeline/debug` | `POST`
 
-为规范观测云中的数据，现对经过 DataKit 的行协议数据，做如下约束：
+提供远程调试 PL 的功能。
+
+### 示例 
+
+```
+POST /v1/pipeline/debug
+Content-Type: application/json
+
+{
+  "pipeline": base64("pipeline-source-code"),
+  "category": "logging", # 暂时只支持日志的 PL 调试
+  "data": base64("raw-logging-data"), # 此处 raw data 可以是多行， API 会自动做分行处理
+  "multiline": "用于多行匹配的正则指定",  # 如果不传，则 API 以「非空白字符开头」为多行分割标识
+  "encode": "@data 的字符编码",         # 默认是 utf8 编码
+  "benchmark": true,                  # 是否开启 benchmark
+}
+```
+
+正常返回:
+
+```
+HTTP/1.1 200 OK
+
+{
+    "content": {
+        "cost": "2.3ms",
+        "benchmark": BenchmarkResult.String(), # 返回 benchmark 结果
+        "error_msg": "",
+        "plresults": [ # 由于日志可能是多行的，此处会返回多个切割结果
+            {
+                "measurement" : "指标集名称，一般是日志 source",
+                "tags": { "key": "val", "other-key": "other-val"},
+                "fields": { "f1": 1, "f2": "abc", "f3": 1.2 },
+                "time": 1644380607 # Unix 时间戳（单位秒）, 前端可将其转成可读日期,
+                "time_ns": 421869748 # 余下的纳秒时间，便于精确转换成日期，完整的纳秒时间戳为 1644380607421869748,
+                "error":"",
+            },
+           {  another-result},
+           ...
+        ]
+    }
+}
+```
+
+错误返回:
+
+```
+HTTP Code: 40x
+
+{
+    "error_code": "datakit.invalidCategory",
+    "message": "invalid category"
+}
+```
+
+## DataKit 数据结构约束
+
+为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），如无特殊标记，DataKit 将拒绝处理违反如下限定的数据。
 
 - tags 和 fields 中的 key 不允许重名
 - tags 内部或 fields 内部不允许出现同名 key
+- Tag 个数不超过 256 个
+- Field 个数不超过 1024 个
+- Tag/Field Key 长度不超过 256 字节
+- Tag Value 长度不超过 1024 字节
+- Field Value 不超过 32K(32x1024) 字节
+
+关于特殊标记，目前通过 HTTP 接口打进来的数据，均无法标记（比如允许 Tag 个数大于 256 个），而 DataKit 自身的采集器，在某些特殊情况下，可能需要绕过这些限制（比如日志采集中，field 的长度可以放开）。
