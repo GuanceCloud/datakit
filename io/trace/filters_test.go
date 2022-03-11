@@ -1,8 +1,7 @@
 package trace
 
 import (
-	"fmt"
-	"regexp"
+	"sync"
 	"testing"
 	"time"
 )
@@ -15,18 +14,25 @@ func TestSampler(t *testing.T) {
 		origin = append(origin, dktrace)
 	}
 
-	sampler := &Sampler{
-		Priority:           PriorityAuto,
-		SamplingRateGlobal: 0.15,
-	}
-	var sampled DatakitTraces
-	for i := range origin {
-		if t, _ := sampler.Sample(origin[i]); t != nil {
-			sampled = append(sampled, t)
-		}
-	}
+	sampler := &Sampler{}
+	sampler.UpdateArgs(PriorityAuto, 0.15)
 
-	fmt.Printf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() { // nolint:govet,staticcheck
+			defer wg.Done()
+
+			var sampled DatakitTraces
+			for i := range origin {
+				if t, _ := sampler.Sample(origin[i]); t != nil {
+					sampled = append(sampled, t)
+				}
+			}
+			t.Logf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
+		}()
+	}
+	wg.Wait()
 }
 
 func TestCloseResource(t *testing.T) {
@@ -41,18 +47,27 @@ func TestCloseResource(t *testing.T) {
 		func(trace DatakitTrace) bool { return trace != nil },
 	}
 
-	closer := &CloseResource{
-		IgnoreResources: map[string][]*regexp.Regexp{"game": {regexp.MustCompile(".*333")}},
-	}
-	for i := range testcases {
-		parentialize(testcases[i])
+	closer := &CloseResource{}
+	closer.UpdateIgnResList(map[string][]string{"game": {".*333"}})
 
-		trace, _ := closer.Close(testcases[i])
-		if !expected[i](trace) {
-			t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
-			t.FailNow()
-		}
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() { // nolint:govet,staticcheck
+			defer wg.Done()
+
+			for i := range testcases {
+				parentialize(testcases[i])
+
+				trace, _ := closer.Close(testcases[i])
+				if !expected[i](trace) {
+					t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
+					t.FailNow() // nolint:govet,staticcheck
+				}
+			}
+		}()
 	}
+	wg.Wait()
 }
 
 func TestKeepRareResource(t *testing.T) {
@@ -63,24 +78,31 @@ func TestKeepRareResource(t *testing.T) {
 		traces = append(traces, trace)
 	}
 
-	keep := &KeepRareResource{
-		Open:     true,
-		Duration: 10 * time.Millisecond,
+	keep := &KeepRareResource{}
+	keep.UpdateStatus(true, 10*time.Millisecond)
+
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() { // nolint:govet,staticcheck
+			defer wg.Done()
+
+			var kept DatakitTraces
+			for i := range traces {
+				time.Sleep(5 * time.Millisecond)
+				if t, skip := keep.Keep(traces[i]); skip {
+					kept = append(kept, t)
+				}
+			}
+			if len(kept) >= len(traces) {
+				t.Errorf("wrong length kept send: %d kept: %d", len(traces), len(kept))
+				t.FailNow() // nolint:govet,staticcheck
+			}
+		}()
 	}
+	wg.Wait()
 
 	var kept DatakitTraces
-	for i := range traces {
-		time.Sleep(5 * time.Millisecond)
-		if t, skip := keep.Keep(traces[i]); skip {
-			kept = append(kept, t)
-		}
-	}
-	if len(kept) >= len(traces) {
-		t.Errorf("wrong length kept send: %d kept: %d", len(traces), len(kept))
-		t.FailNow()
-	}
-
-	kept = kept[:0]
 	for i := range traces {
 		time.Sleep(15 * time.Millisecond)
 		if t, skip := keep.Keep(traces[i]); skip {
