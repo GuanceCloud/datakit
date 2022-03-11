@@ -20,7 +20,7 @@ func TestSampler(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
-		go func() {
+		go func() { // nolint:govet,staticcheck
 			defer wg.Done()
 
 			var sampled DatakitTraces
@@ -53,7 +53,7 @@ func TestCloseResource(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
-		go func() {
+		go func() { // nolint:govet,staticcheck
 			defer wg.Done()
 
 			for i := range testcases {
@@ -62,7 +62,7 @@ func TestCloseResource(t *testing.T) {
 				trace, _ := closer.Close(testcases[i])
 				if !expected[i](trace) {
 					t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
-					t.FailNow()
+					t.FailNow() // nolint:govet,staticcheck
 				}
 			}
 		}()
@@ -84,7 +84,7 @@ func TestKeepRareResource(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
-		go func() {
+		go func() { // nolint:govet,staticcheck
 			defer wg.Done()
 
 			var kept DatakitTraces
@@ -96,7 +96,7 @@ func TestKeepRareResource(t *testing.T) {
 			}
 			if len(kept) >= len(traces) {
 				t.Errorf("wrong length kept send: %d kept: %d", len(traces), len(kept))
-				t.FailNow()
+				t.FailNow() // nolint:govet,staticcheck
 			}
 		}()
 	}
