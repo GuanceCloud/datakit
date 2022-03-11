@@ -1,11 +1,16 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
   "version": "1.2.8-1095-g24c2c81c86",
   "release_date": "2022-03-11 04:57:50",
 =======
   "version": "1.2.8-test1",
   "release_date": "2022-03-04 08:27:52",
 >>>>>>> master
+=======
+  "version": "1.2.8-test1",
+  "release_date": "2022-03-04 08:27:52",
+>>>>>>> hotfix-daily
   "doc": [
     "本文档主要用来描述 DataKit 所采集到的各种指标集数据",
     "-----------------------------",
@@ -5557,10 +5562,14 @@
           "Desc": "pod 名称（容器由 k8s 创建时存在）"
         },
 <<<<<<< HEAD
+<<<<<<< HEAD
         "pod_namespace": {
 =======
         "pod_namesapce": {
 >>>>>>> master
+=======
+        "pod_namesapce": {
+>>>>>>> hotfix-daily
           "Desc": "pod 命名空间（容器由 k8s 创建时存在）"
         },
         "state": {
@@ -18585,6 +18594,7 @@
           "Desc": "目标 IP 类型 (other/private/multicast)"
         },
 <<<<<<< HEAD
+<<<<<<< HEAD
         "dst_k8s_namespace": {
           "Desc": "目标 IP 所在 k8s 的 namespace"
         },
@@ -18596,6 +18606,8 @@
         },
 =======
 >>>>>>> master
+=======
+>>>>>>> hotfix-daily
         "dst_port": {
           "Desc": "目标端口"
         },
@@ -18618,6 +18630,7 @@
           "Desc": "源 IP 类型 (other/private/multicast)"
         },
 <<<<<<< HEAD
+<<<<<<< HEAD
         "src_k8s_namespace": {
           "Desc": "源 IP 所在 k8s 的 namespace"
         },
@@ -18638,6 +18651,11 @@
           "Desc": "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"
         },
 >>>>>>> master
+=======
+        "src_port": {
+          "Desc": "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"
+        },
+>>>>>>> hotfix-daily
         "transport": {
           "Desc": "传输协议 (udp/tcp)"
         }
@@ -23492,10 +23510,14 @@
           "Desc": "pod 名称（容器由 k8s 创建时存在）"
         },
 <<<<<<< HEAD
+<<<<<<< HEAD
         "pod_namespace": {
 =======
         "pod_namesapce": {
 >>>>>>> master
+=======
+        "pod_namesapce": {
+>>>>>>> hotfix-daily
           "Desc": "pod 命名空间（容器由 k8s 创建时存在）"
         },
         "state": {

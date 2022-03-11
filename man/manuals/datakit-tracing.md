@@ -56,7 +56,10 @@ keep_rare_resource = false
 Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters 和 Samplers：
 
 <!-- - Tracing Statistics: 统计 Tracing 链路上的业务状态，例如：访问耗时，错误率等。 -->
+<<<<<<< HEAD
 
+=======
+>>>>>>> hotfix-daily
 - Filters:
   - keep_rare_resource: 当系统监测到某些链路在一小时之内没有发送任何 Tracing 数据那么将被认定为稀有并被透穿到 Data Center。
   - close_resource: 按照正则规则关闭某些 Service 下的一个或多个 Resource。

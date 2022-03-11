@@ -1,6 +1,7 @@
 - [DataKit 使用入门]()
 
   - [服务安装和管理](datakit-service-how-to)
+<<<<<<< HEAD
 
   - [采集器配置](datakit-conf-how-to)
 
@@ -8,6 +9,12 @@
 
   - [通过 DQL 查询数据](datakit-dql-how-to)
   - [调试 Pipeline](datakit-pl-how-to)
+=======
+
+  - [采集器配置](datakit-conf-how-to)
+
+  - [通过 DQL 查询数据](datakit-dql-how-to)
+>>>>>>> hotfix-daily
   - [各种其它工具使用](datakit-tools-how-to)
 
     - [查看 DataKit Monitor](datakit-monitor)
@@ -28,6 +35,7 @@
 - [DataKit 整体架构简介](datakit-arch)
 - [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
+  - [调试 Pipeline](datakit-pl-how-to)
 - [如何排查无数据问题](why-no-data)
 - [DataKit 开发手册](development)
 
@@ -65,10 +73,10 @@
     - [Solr](solr)
     - [Flink](flinkv1)
 
-  - [网络相关]()
 
-    - [网络拨测](dialtesting)
+  - [网络拨测](dialtesting)
 
+<<<<<<< HEAD
       - [通过本地 JSON 定义拨测任务](dialtesting_json)
 
   - [eBPF]()
@@ -81,6 +89,24 @@
     - [Kubernetes 扩展指标采集](kubernetes-x)
     - [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
     - [通过 Sidecar 方式采集 Pod 日志](logfwd)
+=======
+    - [通过本地 JSON 定义拨测任务](dialtesting_json)
+
+  - [eBPF]()
+
+    - [eBPF](ebpf)
+
+  - [云原生]()
+
+    - [数据采集]()
+
+			- [容器](container)
+			- [Kubernetes 扩展指标采集](kubernetes-x)
+			- [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
+
+    - [通过 Sidecar 方式采集 Pod 日志](logfwd)
+    - [Kubernetes 环境下的 DataKit 配置](k8s-config-how-to)
+>>>>>>> hotfix-daily
 
   - [Java]()
 
@@ -106,7 +132,10 @@
     - [SkyWalking](skywalking)
 
     - [Opentelemetry](opentelemetry)
+<<<<<<< HEAD
 
+=======
+>>>>>>> hotfix-daily
       - [Golang 示例](opentelemetry-go)
       - [Java 示例](opentelemetry-java)
 
@@ -115,9 +144,12 @@
 
     - [Datakit Tracing Struct](datakit-tracing-struct)
     - [Datakit Tracing](datakit-tracing)
+<<<<<<< HEAD
 
     - [Datakit Tracing Struct](datakit-tracing-struct)
     - [Datakit Tracing](datakit-tracing)
+=======
+>>>>>>> hotfix-daily
 
   - [用户访问监测（RUM）]()
 

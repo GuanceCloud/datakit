@@ -14,6 +14,16 @@
 - 进程对象采集[增加监听端口列表](host_processes#a30fc2c1-1)(#562)
 - eBPF 采集器[支持 Kubernetes 字段关联](ebpf#35c97cc9)(#511)
 
+<<<<<<< HEAD
+=======
+### Breaking Changes
+
+- 本次对 Tracing 数据采集做了较大的调整，涉及几个方面的不兼容：
+
+  - [DDtrace](ddtrace) 原有 conf 中配置的 `ignore_resources` 字段需改成 `close_resource`，且字段类型由原来的数组（`[...]`）形式改成了字典数组（`map[string][...]`）形式（可参照 [conf.sample](ddtrace#69995abe) 来配置）
+  - DDTrace 原数据中采集的 [tag `type` 字段改成 `source_type`](ddtrace#01b88adb)
+
+>>>>>>> hotfix-daily
 ---
 
 ## 1.2.8(2022/03/04)
@@ -182,6 +192,7 @@
   - 在 DaemonSet 模式下的 Git，支持识别 `ENV_DEFAULT_ENABLED_INPUTS` 并将其生效，非 DaemonSet 模式下，会自动开启 datakit.conf 中默认开启的采集器(#501)
   - 调整 Git 模式下文件夹[存放策略]()(#509)
 - 推行新的版本号机制(#484)
+<<<<<<< HEAD
   - 新的版本号形式为 1.2.3，此处 `1` 为 master 版本号，`2` 为 minor 版本号，`3` 为 mini 版本号
   - 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
   - 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
@@ -190,6 +201,29 @@
   - **老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
     - Linux/Mac: `DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"`
     - Windows: `$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;`
+=======
+	- 新的版本号形式为 1.2.3，此处 `1` 为 master 版本号，`2` 为 minor 版本号，`3` 为 mini 版本号
+	- 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
+	- 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
+	- 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
+	- 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
+
+### Breaking Changes
+
+**老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
+
+- Linux/Mac:
+
+```shell
+DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+- Windows
+
+```powershell
+$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+>>>>>>> hotfix-daily
 
 ---
 

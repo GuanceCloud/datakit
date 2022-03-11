@@ -12,7 +12,7 @@
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
 - 采集 Kubernetes 数据需要 DataKit 以 Kubernetes daemonset 方式运行。
-- 采集 Kubernetes Pod 指标数据，需要 Kubernetes 安装 Metrics-Server 组件，[链接](https://github.com/kubernetes-sigs/metrics-server#installation)。
+- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
 
 ## 配置
 
@@ -28,8 +28,13 @@ _对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂
 
 配置文件中的 `container_include_metric / container_exclude_metric` 是针对指标数据，`container_include_log / container_exclude_log` 是针对日志数据。
 
+<<<<<<< HEAD
 - `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效。
 - glob 规则是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元，[glob wiki](<https://en.wikipedia.org/wiki/Glob_(programming)>)
+=======
+- `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效
+- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming))是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
+>>>>>>> hotfix-daily
 
 例如，配置如下：
 
@@ -108,7 +113,11 @@ kubectl annotate pods foo datakit/logs='[{\"disable\":false,\"source\":\"testing
 
 - 如果该 JSON 配置的 `disable` 字段为 `true`，则不采集此 Pod 的所有容器日志。
 - `only_images` 针对 Pod 内部多容器情景，如果填写了任何 image 通配，则只采集能匹配这些 image 的容器的日志，类似白名单功能；如果字段为空，即认为采集该 Pod 中所有容器的日志
+<<<<<<< HEAD
 - `multiline_match` 配置要做转义，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义。
+=======
+- `multiline_match` 配置要做转义，例如 `"multiline_match":"^\\d{4}"` 表示行首是4个数字，在正则表达式规则中`\d` 是数字，前面的 `\` 是用来转义。
+>>>>>>> hotfix-daily
 - 容器添加 Labels 的方法[文档](https://docs.docker.com/engine/reference/commandline/run/#set-metadata-on-container--l---label---label-file)
 - Kubernetes 一般不会直接创建 Pod 也不添加 Annotations，可以在创建 Deployment 时以 `template` 模式添加 Annotations，由此 Deployment 生成的所有 Pod 都会携带 Annotations，例如：
 
@@ -233,3 +242,8 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 {{end}}
 
 {{ end }}
+
+## 延伸阅读
+
+- [eBPF 采集器：支持容器环境下的流量采集](ebpf)
+- [Pipeline：文本数据处理](pipeline)
