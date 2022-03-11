@@ -2,6 +2,20 @@
 
 # DataKit 版本历史
 
+## 1.2.9(2022/03/10)
+
+本次发布属于迭代发布，更新内容如下：
+
+- DataKit 9529 HTTP 服务添加 [API 限流措施](datakit-conf-how-to#e35bf313)(#637)
+- 统一各种 Tracing 数据的[采样率设置](datakit-tracing#64df2902)(#631)
+- 发布 [DataKit 整体日志采集介绍](datakit-logging)
+- 支持 [OpenTelemetry 数据接入](opentelemetry)(#609)
+- 支持[禁用 Pod 内部部分镜像的日志](container#2a6149d7)(#586)
+- 进程对象采集[增加监听端口列表](host_processes#a30fc2c1-1)(#562)
+- eBPF 采集器[支持 Kubernetes 字段关联](ebpf#35c97cc9)(#511)
+
+---
+
 ## 1.2.8(2022/03/04)
 
 本次发布属于 hotfix 修复，内容如下：

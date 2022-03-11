@@ -16,6 +16,8 @@
 
 ### DataKit 配置
 
+需要开启 logfwdserver，详见[文档](logfwdserver)。以下是抄录。
+
 进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
 
 ``` toml
@@ -30,7 +32,7 @@
 
 配置好后，重启 DataKit 即可。
 
-> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy.md)。
+> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy)。
 
 ### logfwd 使用和配置
 

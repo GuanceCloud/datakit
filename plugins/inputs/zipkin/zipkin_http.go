@@ -25,7 +25,7 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	case "application/x-thrift":
 		var zspans []*corev1.Span
 		if zspans, err = unmarshalZipkinThriftV1(body); err == nil {
-			dktrace = thriftSpansToDkTrace(zspans)
+			dktrace = thriftV1SpansToDkTrace(zspans)
 		}
 	case "application/json":
 		var zspans []*ZipkinSpanV1
@@ -37,7 +37,7 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	if err != nil {
-		log.Errorf("convert zipkin trace to datakit trace failed: %s", err.Error())
+		log.Errorf("convert zipkin trace [%s] to datakit trace failed: %s", contentType, err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -75,24 +75,21 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 	)
 	switch contentType {
 	case "application/x-protobuf":
-		if zpkmodels, err = parseZipkinProtobuf3(buf); err == nil {
-			dktrace = spanModelsToDkTrace(zpkmodels)
-		}
+		zpkmodels, err = parseZipkinProtobuf3(buf)
 	case "application/json":
-		if err = json.NewDecoder(req.Body).Decode(&zpkmodels); err == nil {
-			dktrace = spanModelsToDkTrace(zpkmodels)
-		}
+		err = json.Unmarshal(buf, &zpkmodels)
 	default:
 		err = fmt.Errorf("zipkin V2 unsupported Content-Type: %s", contentType)
 	}
 
 	if err != nil {
-		log.Errorf("convert zipkin trace to datakit trace failed: %s", err.Error())
+		log.Errorf("convert zipkin trace [%s] to datakit trace failed: %s", contentType, err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
+	dktrace = spanModeleV2ToDkTrace(zpkmodels)
 	if len(dktrace) == 0 {
 		log.Warn("empty datakit trace")
 	} else {

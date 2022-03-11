@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 //------------------------------------------------------------------------------
@@ -337,8 +339,8 @@ func TestDumpFiles(t *testing.T) {
 				"456.p": "text456",
 			},
 			expect: []string{
-				"/usr/local/datakit/pipeline_remote/123.p",
-				"/usr/local/datakit/pipeline_remote/456.p",
+				filepath.Join(datakit.InstallDir, "pipeline_remote/123.p"),
+				filepath.Join(datakit.InstallDir, "pipeline_remote/456.p"),
 			},
 		},
 		{
@@ -373,7 +375,7 @@ func TestDumpFiles(t *testing.T) {
 			}
 			for _, v := range tc.expect {
 				if _, ok := mV[v]; !ok {
-					assert.Fail(t, "dumpFiles not found: %s", v)
+					assert.Fail(t, fmt.Sprintf("dumpFiles not found: %s", v))
 				}
 			}
 		})

@@ -104,13 +104,34 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
 }
 
+func (ipt *Input) RegHTTPHandler() {
+	var isReg bool
+	for _, endpoint := range ipt.Endpoints {
+		switch endpoint {
+		case v1, v2, v3, v4, v5:
+			isReg = true
+			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTrace)
+			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTrace)
+			log.Infof("pattern %s registered", endpoint)
+		default:
+			log.Errorf("unrecognized ddtrace agent endpoint")
+		}
+	}
+	if isReg {
+		// itrace.StartTracingStatistic()
+		// unsupported api yet
+		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
+		dkhttp.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
+	}
+}
+
 func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 	dkio.FeedEventLog(&dkio.Reporter{Message: "ddtrace start ok, ready for collecting metrics.", Logtype: "event"})
 
 	// add calculators
-	afterGather.AppendCalculator(itrace.StatTracingInfo)
+	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
 	// add filters: the order append in AfterGather is important!!!
 	// add close resource filter
@@ -133,27 +154,6 @@ func (ipt *Input) Run() {
 
 	customerKeys = ipt.CustomerTags
 	tags = ipt.Tags
-}
-
-func (ipt *Input) RegHTTPHandler() {
-	var isReg bool
-	for _, endpoint := range ipt.Endpoints {
-		switch endpoint {
-		case v1, v2, v3, v4, v5:
-			isReg = true
-			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTrace)
-			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTrace)
-			log.Infof("pattern %s registered", endpoint)
-		default:
-			log.Errorf("unrecognized ddtrace agent endpoint")
-		}
-	}
-	if isReg {
-		itrace.StartTracingStatistic()
-		// unsupported api yet
-		dkhttp.RegHTTPHandler(http.MethodPost, info, handleDDInfo)
-		dkhttp.RegHTTPHandler(http.MethodPost, stats, handleDDStats)
-	}
 }
 
 func init() { //nolint:gochecknoinits

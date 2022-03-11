@@ -141,19 +141,21 @@ export RELEASE_OSS_HOST='oss-cn-hangzhou-internal.aliyuncs.com'
 
 安装 [packr2](https://github.com/gobuffalo/packr/tree/master/v2)（可能需要翻墙）
 
+`go install github.com/gobuffalo/packr/v2/packr2@v2.8.3`
+
 #### 安装常见工具
 
 - tree
 - make
 - [goyacc](https://gist.github.com/tlightsky/9a163e59b6f3b05dbac8fc6b459a43c0): `go get -u golang.org/x/tools/cmd/goyacc`
-- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation)
-- gofumpt: go install mvdan.cc/gofumpt@latest
+- [golangci-lint](https://golangci-lint.run/usage/install/#local-installation): `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1`
+- gofumpt: `go install mvdan.cc/gofumpt@v0.1.1`
 - wget
 - docker
 - curl
 - clang: 版本 >= 10.0
 - llvm： 版本 >= 10.0
-- go-bindata: `apt install go-bindata`
+- go-bindata: `apt install go-bindata` `go get -u github.com/go-bindata/go-bindata/...`
 - [waque](https://github.com/yesmeck/waque)：版本 >= 1.13.1
 
 #### 安装第三方库
@@ -175,44 +177,52 @@ TODO
 
 TODO
 
-## 本地调试
+## 安装、升级测试 
 
-DataKit 支持设定工作目录，目前默认的工作目录是 `/usr/local/datakit`（Windows 下为 `C:\Program Files\datakit`）。设定方式为：
+DataKit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
+
+大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
+
+> 可下载 [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478) 客户端工具来查看 OSS 中的文件。
+
+- AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
+- SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
+
+在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 `scripts/build.sh` 中。将其 copy 到 datakit 源码根目录，稍作修改，即可用于本地编译、发布。
+
+### 自定义目录运行 DataKit
+
+默认情况下，DataKit 以==服务的形式==，运行在指定的目录（Linux 下为 /usr/local/datakit），但通过额外的方式，可以自定义 DataKit 工作目录，让它以非服务的方式运行，且从指定的目录读取配置和数据，主要用于开发的过程中调试 DataKit 的功能。
+
+1. 更新最新的代码(dev 分支) 
+1. 编译
+1. 创建预期的 DataKit 工作目录，比如 `mkdir -p ~/datakit/conf.d`
+1. 生成默认 datakit.conf 配置文件。以 Linux 为例，执行
 
 ```shell
-datakit --workdir path/to/workdir
+./dist/datakit-linux-amd64/datakit debug --default-main-conf > ~/datakit/conf.d/datakit.conf
 ```
 
-- 将该命令做一个 alias，放到 ~/.bashrc 中：
+1. 修改上面生成的 datakit.conf：
+
+	- 填写 `default_enabled_inputs`，加入希望开启的采集器列表，一般是 `cpu,disk,mem` 等这些
+	- `http_api.listen` 地址改一下
+	- `dataway.urls` 里面的 token 改一下
+	- 如有必要，logging 目录/level 都改一下
+	- 没有了
+
+1. 启动 DataKit，以 Linux 为例：`./dist/datakit-linux-amd64/datakit debug --workdir ~/datakit`
+1. 可在本地 bash 中新加个 alias，这样每次编译完 DataKit 后，直接运行 `ddk` 即可（即 Debugging-DataKit）
 
 ```shell
-echo 'alias dk="datakit --workdir ~/datakit"' >> ~/.bashrc
+echo 'alias ddk=./dist/datakit-linux-amd64/datakit debug --workdir ~/datakit' >> ~/.bashrc
+source ~/.bashrc
 ```
 
-大家可能直接在 DataKit 开发目录下启动 DataKit，可改一下 DataKit 启动文件，直接使用当前编译出来的 DataKit：
+这样，DataKit 不是以服务的方式运行，可直接 ctrl+c 结束 DataKit
 
 ```shell
-# Linux
-echo 'alias dk="./dist/datakit-linux-amd64/datakit --workdir ~/datakit"' >> ~/.bashrc
-
-# Mac
-echo 'alias dk="./dist/datakit-darwin-amd64/datakit --workdir ~/datakit"' >> ~/.bash_profile
-
-# alias 生效
-source ~/.bashrc       # Linux
-source ~/.bash_profile # Mac
-```
-
-- 通过 DataKit 创建一个 `datakit.conf`：
-
-```shell
-mkdir -p ~/datakit/conf.d && datakit --default-main-conf > ~/datakit/conf.d/datakit.conf
-```
-
-修改 `datakit.conf` 中的配置，如 token、日志配置（日志默认指向 `/var/log/datakit/` 下，可改到其它地方）等，启动之后，DataKit 会自动创建各种目录。这样就能在一个主机上运行多个 datakit 实例：
-
-```shell
-$ dk
+$ ddk
 2021-08-26T14:12:54.647+0800    DEBUG   config  config/load.go:55       apply main configure...
 2021-08-26T14:12:54.647+0800    INFO    config  config/cfg.go:361       set root logger to /tmp/datakit/log ok
 [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
@@ -226,19 +236,6 @@ $ dk
 	[GIN-debug] GET    /restart                  --> gitlab.jiagouyun.com/cloudcare-tools/datakit/http.HttpStart.func5 (4 handlers)
 	...
 ```
-
-## 安装、升级测试 
-
-DataKit 新功能发布，大家最好做全套测试，包括安装、升级等流程。现有的所有 DataKit 安装文件，全部存储在 OSS 上，下面我们用另一个隔离的 OSS bucket 来做安装、升级测试。
-
-大家试用下这个*预设 OSS 路径*：`oss://df-storage-dev/`（华东区域），以下 AK/SK 有需要可申请获取：
-
-> 可下载 [OSS Browser](https://help.aliyun.com/document_detail/209974.htm?spm=a2c4g.11186623.2.4.2f643d3bbtPfN8#task-2065478) 客户端工具来查看 OSS 中的文件。
-
-- AK: `LTAIxxxxxxxxxxxxxxxxxxxx`
-- SK: `nRr1xxxxxxxxxxxxxxxxxxxxxxxxxx`
-
-在这个 OSS bucket 中，我们规定，每个开发人员，都有一个子目录，用于存放其 DataKit 测试文件。具体脚本在源码 `scripts/build.sh` 中。将其 copy 到 datakit 源码根目录，稍作修改，即可用于本地编译、发布。
 
 ## 版本发布
 
@@ -277,7 +274,7 @@ make production_mac VERSION=<the-new-version>
 make pub_production_mac VERSION=<the-new-version>
 ```
 
-#### DataKit 版本号机制
+### DataKit 版本号机制
 
 - 稳定版：其版本号为 `x.y.z`，其中 `y` 必须是偶数
 - 非稳定版：其版本号为 `x.y.z`，其中 `y` 必须是基数
