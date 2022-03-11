@@ -54,3 +54,7 @@ net 采集器用于采集主机网络信息，如各网络接口的流量信息�
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 延伸阅读
+
+- [eBPF 数据采集](ebpf)

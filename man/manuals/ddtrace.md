@@ -141,3 +141,8 @@ customer_tags = [
 {{end}}
 
 {{ end }}
+
+## 延伸阅读
+
+- [DataKit Tracing 字段定义](datakit-tracing-struct)
+- [DataKit 通用 Tracing 数据采集说明](datakit-tracing)

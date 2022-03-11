@@ -16,7 +16,7 @@
 
 ### DataKit 配置
 
-需要开启 logfwdserver，详见[文档](logfwdserver.md)。以下是抄录。
+需要开启 logfwdserver，详见[文档](logfwdserver)。以下是抄录。
 
 进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
 
@@ -32,7 +32,7 @@
 
 配置好后，重启 DataKit 即可。
 
-> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy.md)。
+> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy)。
 
 ### logfwd 使用和配置
 
@@ -278,3 +278,13 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
     PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
 1850829 root      20   0  715416  17500   8964 R  42.1   0.1   0:10.44 logfwd
 ```
+
+## 延伸阅读
+
+- [DataKit 整体日志采集介绍](datakit-logging)
+- [Socket 日志接入最佳实践](logging_socket)
+- [Kubernetes 中指定 Pod 的日志采集配置](container#2a6149d7)
+- [第三方日志接入](logstreaming)
+- [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to)
+- [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy)
+- [在 DataKit 上部署 `logfwdserver`](logfwdserver)

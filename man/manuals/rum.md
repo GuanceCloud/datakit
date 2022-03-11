@@ -10,19 +10,14 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
 
 ## 前置条件
 
-- 将 DataKit 部署成公网可访问。
+- 将 DataKit 部署成公网可访问
 
-> 注意：可通过如下配置，禁用公网访问 DataKit 404 页面：
-
-```toml
-# datakit.conf
-disable_404page = true
-```
+建议将 RUM 以单独的方式部署在公网上，==不要跟已有的服务部署在一起==（如 Kubernetes 集群）。因为 RUM 这个接口上的流量可能很大，集群内部的流量会被它干扰到，而且一些可能的集群内部资源调度机制，可能影响 RUM 服务的运行。
 
 - 在 DataKit 上[安装 IP 地理信息库](datakit-tools-how-to#ab5cd5ad)
 	- 自 [1.2.7](changelog#dbbe856a) 之后，由于调整了 IP 地理信息库的安装方式，默认安装不再自带 IP 信息库，需手动安装
 
-### 安全限制
+## 安全限制
 
 由于 RUM DataKit 一般部署在公网环境，但是只会使用其中特定的 [DataKit API](apis) 接口，其它接口是不能开放的。通过如下方式可加强 API 访问控制，在 *datakit.conf* 中，修改如下 *public_apis* 字段配置：
 
@@ -43,6 +38,15 @@ disable_404page = true
 ```
 
 其它接口依然可用，但只能通过 DataKit 本机访问，比如[查询 DQL](datakit-dql-how-to) 或者查看 [DataKit 运行状态](datakit-tools-how-to#44462aae)。
+
+### 禁用 DataKit 404 页面
+
+可通过如下配置，禁用公网访问 DataKit 404 页面：
+
+```toml
+# datakit.conf
+disable_404page = true
+```
 
 ## 配置
 
