@@ -16,37 +16,38 @@ rm -rf .docs
 mkdir -p .docs
 cp man/summary.md .docs/
 
-latest_tag=`git tag -l | sort -nr | head -n 1`
-current_branch=`git rev-parse --abbrev-ref HEAD`
+latest_tag=$(git tag -l | sort -nr | head -n 1)
+current_branch=$(git rev-parse --abbrev-ref HEAD)
 
 man_version=$1
 
 if [ -z $man_version ]; then
-	printf "${YELLOW}[E] manual version missing, use current tag %s as version${CLR}\n" $latest_tag
-	man_version="${latest_tag}"
+  printf "${YELLOW}[E] manual version missing, use current tag %s as version${CLR}\n" $latest_tag
+  man_version="${latest_tag}"
 fi
 
 waque_yml="yuque.yml"
 
 case $current_branch in
-	"yuque")
-		;; # pass
+"yuque") ;;
+  # pass
 
-	*)
-    waque_yml="yuque_testing.yml"
-		printf "${GREEN}[I] current branch is %s, use %s ${CLR}\n" $current_branch $waque_yml
-		;;
+*)
+  waque_yml="yuque_testing.yml"
+  printf "${GREEN}[I] current branch is %s, use %s ${CLR}\n" $current_branch $waque_yml
+  ;;
 esac
 
 os=
 if [[ "$OSTYPE" == "darwin"* ]]; then
-	os="darwin"
+  os="darwin"
 else
-	os="linux"
+  os="linux"
 fi
 
 LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit \
-	--ignore demo,logfwdserver \
+	--ignore demo \
+	--cmd-log stdout \
 	--export-manuals .docs \
 	--man-version "${man_version}" \
 	--TODO "-" && \

@@ -277,6 +277,10 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 这个问题并不会影响到正常的服务运行，因为 socket 处理如果不是异步并主动丢弃堆积日志的话，日志会在 client 端产生堆积，严重情况造成内存泄露从而影响主业务的运行。
 datakit 也会在处理不及造成日志堆积之后 缓存一定量日志到内存当中
 
-### 更多参考
+## 延伸阅读
 
-- pipeline 性能测试和对比[文档](logging-pipeline-bench)
+- [DataKit 整体日志采集介绍](datakit-logging)
+- [Pipeline: 文本数据处理](pipeline)
+- [Pipeline 调试](datakit-pl-how-to)
+- [Pipeline 性能测试和对比](logging-pipeline-bench)
+- [`logfwd`: 容器内部日志采集](logfwd)
