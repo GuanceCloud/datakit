@@ -1,5 +1,5 @@
-//go:build (linux && ignore) || ebpf
-// +build linux,ignore ebpf
+//go:build (linux && amd64 && ebpf) || (linux && arm64 && ebpf)
+// +build linux,amd64,ebpf linux,arm64,ebpf
 
 package main
 
@@ -16,19 +16,17 @@ import (
 	"time"
 
 	"github.com/DataDog/ebpf/manager"
-	"github.com/influxdata/toml"
-	"github.com/influxdata/toml/ast"
 	"github.com/jessevdk/go-flags"
 	"github.com/shirou/gopsutil/process"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
-	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/bash_history"
+	dkbash "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/bashhistory"
 	dkdns "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/dnsflow"
 	dkfeed "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/feed"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/k8sinfo"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/netflow"
+
 	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/externals/ebpf/offset"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/external"
 )
 
 const (
@@ -44,8 +42,6 @@ var (
 var pidFile = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.pid")
 
 type Option struct {
-	Config string `long:"config" description:"config file path"`
-
 	DataKitAPIServer string `long:"datakit-apiserver" description:"DataKit API server" default:"0.0.0.0:9529"`
 
 	HostName string `long:"hostname" description:"host name"`
@@ -63,11 +59,10 @@ type Option struct {
 	Service string `long:"service" description:"service" default:"ebpf"`
 }
 
-type Input struct {
-	external.ExernalInput
-	// DisabledInput []string `toml:"disabled_input"`
-	EnabledPlugins []string `toml:"enabled_plugins"`
-}
+//  Envs:
+// 		K8sURL               string
+// 		K8sBearerTokenPath   string
+// 		K8sBearerTokenString string
 
 const (
 	inputName     = "ebpf"
@@ -92,25 +87,6 @@ func main() {
 	}
 	if opt.PIDFile != "" {
 		pidFile = opt.PIDFile
-	}
-	if opt.Config != "" { // config 参数存在
-		if _, err := os.Stat(opt.Config); err != nil {
-			l.Warnf("configuration file does not exist: %s", opt.Config)
-			return
-		}
-
-		if i, err := loadEbpfCfg(opt.Config); err != nil {
-			feedLastErrorLoop(err, signaIterrrupt)
-			return
-		} else {
-			opt, gTags, err = parseCfg(i)
-			if err != nil {
-				feedLastErrorLoop(err, signaIterrrupt)
-				return
-			}
-			l.Debug("config file: ", opt)
-			l.Debug("tags: ", gTags)
-		}
 	}
 
 	if err := savePid(); err != nil {
@@ -143,7 +119,10 @@ func main() {
 
 	// duration 介于 10s ～ 30min，若非，默认设为 30s.
 	if tmp, err := time.ParseDuration(opt.Interval); err == nil {
-		interval = config.ProtectedInterval(minInterval, maxInterval, tmp)
+		if tmp < maxInterval || tmp > maxInterval {
+			tmp = time.Second * 30
+		}
+		interval = tmp
 		l.Debug("interval: ", opt.Interval)
 	} else {
 		interval = time.Second * 60
@@ -163,6 +142,12 @@ func main() {
 		}
 		l.Debugf("%+v", offset)
 
+		k8sinfo, err := newK8sInfoFromENV()
+		if err != nil {
+			l.Warn(err)
+		} else {
+			dknetflow.SetK8sNetInfo(k8sinfo)
+		}
 		constEditor := dkoffset.NewConstEditor(offset)
 
 		netflowTracer := dknetflow.NewNetFlowTracer()
@@ -305,11 +290,8 @@ func parseFlags() (*Option, map[string]string, error) {
 	}
 
 	if gTags["host"] == "" && opt.HostName == "" {
-		if envHostName, err := getEnvHostname(); err != nil {
-			l.Error(err)
-		} else if envHostName != "" {
-			gTags["host"] = envHostName
-		} else if gTags["host"], err = os.Hostname(); err != nil {
+		var err error
+		if gTags["host"], err = os.Hostname(); err != nil {
 			l.Error(err)
 			gTags["host"] = "no-value"
 		}
@@ -326,106 +308,56 @@ func parseFlags() (*Option, map[string]string, error) {
 	return &opt, gTags, nil
 }
 
-func loadDatakitMainCfg() (*config.Config, error) {
-	c := config.Config{}
-	if err := c.LoadMainTOML(datakit.MainConfPath); err != nil {
-		l.Warnf("load config %s failed: %s, ignore", datakit.MainConfPath, err)
-		return nil, err
-	}
-	return &c, nil
-}
+func newK8sInfoFromENV() (*k8sinfo.K8sNetInfo, error) {
+	var k8sURL string
+	k8sBearerTokenPath := ""
+	k8sBearerTokenStr := ""
 
-func getEnvHostname() (string, error) {
-	if c, err := loadDatakitMainCfg(); err != nil {
-		return "", err
+	if v, ok := os.LookupEnv("K8S_URL"); ok && v != "" {
+		k8sURL = v
 	} else {
-		return c.Environments["ENV_HOSTNAME"], nil
-	}
-}
-
-func loadEbpfCfg(p string) (*Input, error) {
-	i := Input{}
-
-	cfgdata, err := ioutil.ReadFile(filepath.Clean(p))
-	if err != nil {
-		l.Errorf("read ebpf cfg %s failed: %s", p, err.Error())
-		return nil, err
+		k8sURL = "https://kubernetes.default:443"
 	}
 
-	tbl, err := toml.Parse(cfgdata)
-	if err != nil {
-		return nil, err
-	}
-	node, ok := tbl.Fields["inputs"]
-	if !ok {
-		return nil, fmt.Errorf("load config failed, field inputs not found")
+	// net.LookupHost()
+
+	if v, ok := os.LookupEnv("K8S_BEARER_TOKEN_STRING"); ok && v != "" {
+		k8sBearerTokenStr = v
 	}
 
-	tbl, ok = node.(*ast.Table)
-	if !ok {
-		return nil, fmt.Errorf("invalid toml format")
+	if v, ok := os.LookupEnv("K8S_BEARER_TOKEN_PATH"); ok && v != "" {
+		k8sBearerTokenPath = v
 	}
 
-	node, ok = tbl.Fields["ebpf"]
-	if !ok {
-		return nil, fmt.Errorf("load config failed, field ebpf not found")
+	if k8sBearerTokenPath == "" && k8sBearerTokenStr == "" {
+		//nolint:gosec
+		k8sBearerTokenPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 	}
 
-	tbls, ok := node.([]*ast.Table)
-	if !ok {
-		l.Error(node)
-		return nil, fmt.Errorf("invalid toml format")
-	}
-
-	err = toml.UnmarshalTable(tbls[0], &i)
-	if err != nil {
-		return nil, err
-	}
-	return &i, nil
-}
-
-// init opt, dkutil.DataKitAPIServer, datakitPostURL.
-func parseCfg(i *Input) (*Option, map[string]string, error) {
-	opt := Option{}
-	gTags := map[string]string{}
-
-	for _, v := range i.EnabledPlugins {
-		switch v {
-		case inputNameNet:
-			enableEbpfNet = true
-		case inputNameBash:
-			enableEbpfBash = true
+	var cli *k8sinfo.K8sClient
+	var err error
+	if k8sBearerTokenPath != "" {
+		cli, err = k8sinfo.NewK8sClientFromBearerToken(k8sURL,
+			k8sBearerTokenPath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		cli, err = k8sinfo.NewK8sClientFromBearerTokenString(k8sURL,
+			k8sBearerTokenStr)
+		if err != nil {
+			return nil, err
 		}
 	}
-
-	for k, v := range i.Tags {
-		gTags[k] = v
+	if cli == nil {
+		return nil, fmt.Errorf("new k8s client")
 	}
-	_, err := flags.ParseArgs(&opt, i.Args)
+	kinfo, err := k8sinfo.NewK8sNetInfo(cli)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if gTags["host"] == "" && opt.HostName == "" {
-		if envHostName, err := getEnvHostname(); err != nil {
-			l.Error(err)
-		} else if envHostName != "" {
-			gTags["host"] = envHostName
-		} else if gTags["host"], err = os.Hostname(); err != nil {
-			l.Error(err)
-			gTags["host"] = "no-value"
-		}
-	} else if opt.HostName != "" {
-		gTags["host"] = opt.HostName
-	}
-
-	gTags["service"] = opt.Service
-
-	if opt.Log == "" {
-		opt.Log = filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf.log")
-	}
-
-	return &opt, gTags, nil
+	return kinfo, err
 }
 
 func quit() {
@@ -484,7 +416,7 @@ func dumpStderr2File() {
 	if err != nil {
 		l.Error(err)
 	}
-	_ = syscall.Dup2(int(f.Fd()), int(os.Stderr.Fd()))
+	_ = syscall.Dup3(int(f.Fd()), int(os.Stderr.Fd()), 0) // for arm64 arch
 	if err = f.Close(); err != nil {
 		l.Error(err)
 	}

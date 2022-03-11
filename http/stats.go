@@ -32,10 +32,35 @@ type enabledInput struct {
 	Panics    int    `json:"panic"`
 }
 
+type runtimeInfo struct {
+	Goroutines   int    `json:"goroutines"`
+	HeapAlloc    uint64 `json:"heap_alloc"`
+	StackInuse   uint64 `json:"stack_inuse"`
+	GCPauseTotal uint64 `json:"gc_pause_total"`
+	GCNum        uint32 `json:"gc_num"`
+}
+
+func getRuntimeInfo() *runtimeInfo {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return &runtimeInfo{
+		Goroutines:   runtime.NumGoroutine(),
+		HeapAlloc:    m.HeapAlloc,
+		StackInuse:   m.StackInuse,
+		GCPauseTotal: m.PauseTotalNs,
+		GCNum:        m.NumGC,
+	}
+}
+
 type DatakitStats struct {
-	GoroutineStats  *goroutine.Summary `json:"goroutine_stats"`
-	EnabledInputs   []*enabledInput    `json:"enabled_inputs"`
-	AvailableInputs []string           `json:"available_inputs"`
+	GoroutineStats *goroutine.Summary `json:"goroutine_stats"`
+
+	EnabledInputsDeprecated []*enabledInput          `json:"enabled_inputs,omitempty"`
+	EnabledInputs           map[string]*enabledInput `json:"enabled_input_list"`
+
+	GolangRuntime *runtimeInfo `json:"golang_runtime"`
+
+	AvailableInputs []string `json:"available_inputs"`
 
 	HostName     string `json:"hostname"`
 	Version      string `json:"version"`
@@ -50,7 +75,7 @@ type DatakitStats struct {
 
 	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
 	IoStats     io.IoStat                 `json:"io_stats"`
-	ConfigInfo  map[string]*inputs.Config `json:"config_info"`
+	HTTPMetrics map[string]*apiStat       `json:"http_metrics"`
 
 	WithinDocker bool `json:"docker"`
 	AutoUpdate   bool `json:"auto_update"`
@@ -272,8 +297,10 @@ func GetStats() (*DatakitStats, error) {
 		Elected:        elected,
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
-		ConfigInfo:     inputs.ConfigInfo,
 		HostName:       datakit.DatakitHostName,
+		EnabledInputs:  map[string]*enabledInput{},
+		HTTPMetrics:    getMetrics(),
+		GolangRuntime:  getRuntimeInfo(),
 	}
 
 	var err error
@@ -291,7 +318,7 @@ func GetStats() (*DatakitStats, error) {
 		n := inputs.InputEnabled(k)
 		npanic := inputs.GetPanicCnt(k)
 		if n > 0 {
-			stats.EnabledInputs = append(stats.EnabledInputs, &enabledInput{Input: k, Instances: n, Panics: npanic})
+			stats.EnabledInputs[k] = &enabledInput{Input: k, Instances: n, Panics: npanic}
 		}
 	}
 

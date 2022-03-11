@@ -2,25 +2,98 @@
 
 # DataKit 版本历史
 
+## 1.2.9(2022/03/10)
+
+本次发布属于迭代发布，更新内容如下：
+
+- DataKit 9529 HTTP 服务添加 [API 限流措施](datakit-conf-how-to#e35bf313)(#637)
+- 统一各种 Tracing 数据的[采样率设置](datakit-tracing#64df2902)(#631)
+- 发布 [DataKit 整体日志采集介绍](datakit-logging)
+- 支持 [OpenTelemetry 数据接入](opentelemetry)(#609)
+- 支持[禁用 Pod 内部部分镜像的日志](container#2a6149d7)(#586)
+- 进程对象采集[增加监听端口列表](host_processes#a30fc2c1-1)(#562)
+- eBPF 采集器[支持 Kubernetes 字段关联](ebpf#35c97cc9)(#511)
+
+---
+
+## 1.2.8(2022/03/04)
+
+本次发布属于 hotfix 修复，内容如下：
+
+- DaemonSet 模式部署时， datakit.yaml 添加[污点容忍度配置](datakit-daemonset-deploy#e29e678e)(#635)
+- 修复 Remote Pipeline 拉取更新时的 bug(#630)
+- 修复 DataKit IO 模块卡死导致的内存泄露(#646)
+- 在 Pipeline 中允许修改 `service` 字段(#645)
+- 修复 `pod_namespace` 拼写错误
+- 修复 logfwd 的一些问题(#640)
+- 修复日志采集器在容器环境下采集时多行粘滞问题(#633)
+
+---
+
+## 1.2.7(2022/02/22)
+
+本次发布属于迭代发布，内容如下：
+
+- Pipeline
+	- Grok 中增加[动态多行 pattern](datakit-pl-how-to#88b72768)，便于处理动态多行切割(#615)
+	- 支持中心下发 Pipeline(#524)，这样一来，Pipeline 将有[三种存放路径](pipeline#6ee232b2)
+  - DataKit HTTP API 增加 Pipeline 调试接口 [/v1/pipeline/debug](apis#539fb60e)
+
+<!--
+- APM 功能调整(#610)
+	- 重构现有常见的 Tracing 数据接入
+	- 增加 APM 指标计算
+	- 新增 [otel(OpenTelemetry)数据接入]()
+
+!!! Delay
+-->
+
+- 为减少默认安装包体积，默认安装不再带 IP 地理信息库。RUM 等采集器中，可额外[安装对应的 IP 库](datakit-tools-how-to#ab5cd5ad)
+  - 如需安装时就带上 IP 地理信息库，可通过[额外支持的命令行环境变量](datakit-install#f9858758)来实现
+- 容器采集器增加 [logfwd 日志接入](logfwd)(#600)
+- 为进一步规范数据上传，行协议增加了更多严格的[限制](apis#2fc2526a)(#592)
+- [日志采集器](logging)中，放开日志长度限制（`maximum_length`）(#623)
+- 优化日志采集过程中的 Monitor 显示(#587)
+- 优化安装程序的命令行参数检查(#573)
+- 重新调整 DataKit 命令行参数，大部分主要的命令已经支持。另外，**老的命令行参数在一定时间内依然生效**(#499)
+	- 可通过 `datakit help` 查看新的命令行参数风格
+- 重新实现 [ DataKit Monitor](datakit-monitor)
+
+### 其它 Bug 修复
+
+- 修复 Windows 下安装脚本问题(#617)
+- 调整 datakit.yaml 中的 ConfigMap 设定(#603)
+- 修复 Git 模式下 Reload 导致部分 HTTP 服务异常的问题(#596)
+- 修复安装包 isp 文件丢失问题(#584/#585/#560)
+- 修复 Pod annotation 中日志多行匹配不生效的问题(#620)
+- 修复 TCP/UDP 日志采集器 *service* tag 不生效的问题(#610)
+- 修复 Oracle 采集器采集不到数据的问题(#625)
+
+### Breaking Changes
+
+- 老版本的 DataKit 如果开启了 RUM 功能，升级上来后，需[重新安装 IP 库](datakit-tools-how-to#ab5cd5ad)，老版本的 IP 库将无法使用。
+
+---
+
 ## 1.2.6(2022/01/20)
 
 本次发布属于迭代发布，内容如下：
 
-- 增强 [DataKit API 安全访问控制]()，老版本的 DataKit 如果部署了 RUM 功能，建议升级(#578)
+- 增强 [DataKit API 安全访问控制](rum#b896ec48)，老版本的 DataKit 如果部署了 RUM 功能，建议升级(#578)
 - 增加更多 DataKit 内部事件日志上报(#527)
 - 查看 [DataKit 运行状态](datakit-tools-how-to#44462aae)不再会超时(#555)
 
 - [容器采集器](container)一些细节问题修复
-	- 修复在 Kubernetes 环境主机部署时奔溃问题(#576)
-	- 提升 Annotation 采集配置优先级(#553)
-	- 容器日志支持多行处理(#552)
-	- Kubernetes Node 对象增加 *role* 字段(#549)
-	- [通过 Annotation 标注](kubernetes-prom)的 [Prom 采集器](prom) 会自动增加相关属性（*pod_name/node_name/namespace*）(#522/#443)
-	- 其它 Bug 修复
+  - 修复在 Kubernetes 环境主机部署时崩溃问题(#576)
+  - 提升 Annotation 采集配置优先级(#553)
+  - 容器日志支持多行处理(#552)
+  - Kubernetes Node 对象增加 *role* 字段(#549)
+  - [通过 Annotation 标注](kubernetes-prom)的 [Prom 采集器](prom) 会自动增加相关属性（*pod_name/node_name/namespace*）(#522/#443)
+  - 其它 Bug 修复
 
 - Pipeline 问题修复
   - 修复日志处理中可能导致的时间乱序问题(#547)
-	- 支持 *if/else* 语句[复杂逻辑关系判断支持](pipeline#1ea7e5aa)
+  - 支持 *if/else* 语句[复杂逻辑关系判断支持](pipeline#1ea7e5aa)
 
 - 修复日志采集器 Windows 中路径问题(#423)
 - 完善 DataKit 服务管理，优化交互提示(#535)
@@ -58,7 +131,7 @@
 
 - [容器采集器](container)更新：
 	- 修复日志处理效率问题(#540)
-	-	优化配置文件黑白名单配置(#536)
+	- 优化配置文件黑白名单配置(#536)
 - Pipeline 模块增加 `datakit -M` 指标暴露(#541)
 - [ClickHouse](clickhousev1) 采集器 config-sample 问题修复(#539)
 - [Kafka](kafka) 指标采集优化(#534)
@@ -368,7 +441,7 @@
 ## 1.1.8-rc2.1(2021/08/25)
 
 - 修复 CPU 温度采集导致的无数据问题
-- 修复 statsd 采集器退出奔溃问题(#321)
+- 修复 statsd 采集器退出崩溃问题(#321)
 - 修复代理模式下自动提示的升级命令问题
 
 ---
@@ -421,7 +494,7 @@
 - 完善 [Kubernetes](kubernetes) 采集器，增加更多 Kubernetes 对象采集
 - 完善[主机名覆盖功能](datakit-install#987d5f91)
 - 优化 Pipeline 处理性能（约 15 倍左右，视不同 Pipeline 复杂度而定）
-- 加强[行协议数据检查](apis#f54b954f)
+- 加强[行协议数据检查](apis#2fc2526a)
 - `system` 采集器，增加 [`conntrack`以及`filefd`](system) 两个指标集
 - `datakit.conf` 增加 IO 调参入口，便于用户对 DataKit 网络出口流量做优化（参见下面的 Breaking Changes）
 - DataKit 支持[服务卸载和恢复](datakit-service-how-to#9e00a535)
@@ -576,7 +649,7 @@
 - 修正 [Kubernetes 采集器](kubernetes)，支持更多 K8s 对象统计指标收集
 - 完善[容器采集器](container)，支持 image/container/pod 过滤
 - 修正 [Mongodb 采集器](mongodb)问题
-- 修正 MySQL/Redis 采集器可能因为配置缺失导致奔溃的问题
+- 修正 MySQL/Redis 采集器可能因为配置缺失导致崩溃的问题
 - 修正[离线安装问题](datakit-offline-install)
 - 修正部分采集器日志设置问题
 - 修正 [SSH](ssh)/[Jenkins](jenkins) 等采集器的数据问题
@@ -670,7 +743,7 @@
 
 ### 发布说明
 
-- 修复容器日志采集可能奔溃的问题
+- 修复容器日志采集可能崩溃的问题
 
 ---
 

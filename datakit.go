@@ -54,14 +54,26 @@ const (
 	Workspace         = "/v1/workspace"
 	ObjectLabel       = "/v1/object/labels" // object label
 	LogUpload         = "/v1/log"
+	PipelinePull      = "/v1/pipeline/pull"
 	LogFilter         = "/v2/logfilter/pull"
 	ListDataWay       = "/v2/list/dataway"
 	DatakitInputName  = "self"
 
+	StrGitRepos           = "gitrepos"
+	StrPipelineRemote     = "pipeline_remote"
+	StrPipelineFileSuffix = ".p"
+	StrConfD              = "conf.d"
+	StrPythonD            = "python.d"
+	StrPythonCore         = "core"
+
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
-	GitRepoSubDirNameConfd    = "conf.d"
+	GitRepoSubDirNameConfd    = StrConfD
 	GitRepoSubDirNamePipeline = "pipeline"
-	GitRepoSubDirNamePythond  = "python.d"
+	GitRepoSubDirNamePythond  = StrPythonD
+
+	DatawayDisableURL = "dev_null"
+	ModeNormal        = 1
+	ModeDev           = 2
 )
 
 var (
@@ -97,13 +109,16 @@ var (
 	UnknownArch = []string{"unknown"}
 
 	DataDir  = filepath.Join(InstallDir, "data")
-	ConfdDir = filepath.Join(InstallDir, "conf.d")
+	ConfdDir = filepath.Join(InstallDir, StrConfD)
 
-	GitReposDir      = filepath.Join(InstallDir, "gitrepos")
-	GetReposConfDirs []string // git repos conf search dirs
+	GitReposDir          = filepath.Join(InstallDir, StrGitRepos)
+	GitReposRepoName     string
+	GitReposRepoFullPath string
 
-	PythonDDir    = filepath.Join(InstallDir, "python.d")
-	PythonCoreDir = filepath.Join(PythonDDir, "core")
+	PythonDDir    = filepath.Join(InstallDir, StrPythonD)
+	PythonCoreDir = filepath.Join(PythonDDir, StrPythonCore)
+
+	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath           = filepath.Join(ConfdDir, "datakit.conf")
@@ -121,7 +136,7 @@ func SetWorkDir(dir string) {
 	InstallDir = dir
 
 	DataDir = filepath.Join(InstallDir, "data")
-	ConfdDir = filepath.Join(InstallDir, "conf.d")
+	ConfdDir = filepath.Join(InstallDir, StrConfD)
 
 	MainConfPathDeprecated = filepath.Join(InstallDir, "datakit.conf")
 	MainConfPath = filepath.Join(ConfdDir, "datakit.conf")
@@ -132,9 +147,10 @@ func SetWorkDir(dir string) {
 	GRPCDomainSock = filepath.Join(InstallDir, "datakit.sock")
 	pidFile = filepath.Join(InstallDir, ".pid")
 
-	GitReposDir = filepath.Join(InstallDir, "gitrepos")
-	PythonDDir = filepath.Join(InstallDir, "python.d")
-	PythonCoreDir = filepath.Join(PythonDDir, "core")
+	GitReposDir = filepath.Join(InstallDir, StrGitRepos)
+	PythonDDir = filepath.Join(InstallDir, StrPythonD)
+	PythonCoreDir = filepath.Join(PythonDDir, StrPythonCore)
+	PipelineRemoteDir = filepath.Join(InstallDir, StrPipelineRemote)
 
 	InitDirs()
 }
@@ -146,6 +162,7 @@ func InitDirs() {
 		PipelineDir,
 		PipelinePatternDir,
 		GitReposDir,
+		PipelineRemoteDir,
 	} {
 		if err := os.MkdirAll(dir, ConfPerm); err != nil {
 			l.Fatalf("create %s failed: %s", dir, err)

@@ -20,16 +20,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 var (
 	Cfg = DefaultConfig()
-
-	l = logger.DefaultSLogger("config")
+	l   = logger.DefaultSLogger("config")
 )
 
 func SetLog() {
@@ -78,6 +76,10 @@ func DefaultConfig() *Config {
 			Listen:    "0.0.0.0:9531",
 			WhiteList: []string{},
 		},
+		Pipeline: &pipeline.PipelineCfg{
+			IPdbType:           "iploc",
+			RemotePullInterval: "1m",
+		},
 		Logging: &LoggerCfg{
 			Level:  "info",
 			Rotate: 32,
@@ -85,15 +87,7 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		BlackList: []*inputHostList{
-			{Hosts: []string{}, Inputs: []string{}},
-		},
-		WhiteList: []*inputHostList{
-			{Hosts: []string{}, Inputs: []string{}},
-		},
 		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
-
-		Tracer: &tracer.Tracer{TraceEnabled: false},
 
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
@@ -166,7 +160,8 @@ type Config struct {
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 
-	UUID string `toml:"-"`
+	UUID    string `toml:"-"`
+	RunMode int    `toml:"-"`
 
 	Name      string `toml:"name,omitempty"`
 	Hostname  string `toml:"-"`
@@ -175,12 +170,20 @@ type Config struct {
 	// http config: TODO: merge into APIConfig
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
 	HTTPListenDeprecated string `toml:"http_listen,omitempty"`
+
 	IntervalDeprecated   string `toml:"interval,omitempty"`
 	OutputFileDeprecated string `toml:"output_file,omitempty"`
 	UUIDDeprecated       string `toml:"uuid,omitempty"` // deprecated
 
+	// pprof
+	EnablePProf bool   `toml:"enable_pprof"`
+	PProfListen string `toml:"pprof_listen"`
+
 	// DCA config
 	DCAConfig *dkhttp.DCAConfig `toml:"dca"`
+
+	// pipeline
+	Pipeline *pipeline.PipelineCfg `toml:"pipeline"`
 
 	// logging config
 	LogDeprecated      string `toml:"log,omitempty"`
@@ -201,7 +204,6 @@ type Config struct {
 	Environments map[string]string `toml:"environments"`
 	Cgroup       *Cgroup           `toml:"cgroup"`
 
-	EnablePProf              bool `toml:"enable_pprof,omitempty"`
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
 
@@ -309,6 +311,12 @@ func (c *Config) setupDataway() error {
 
 	if len(c.DataWay.URLs) == 0 {
 		return fmt.Errorf("dataway not set")
+	}
+	if c.DataWay.URLs[0] == datakit.DatawayDisableURL {
+		c.RunMode = datakit.ModeDev
+		return nil
+	} else {
+		c.RunMode = datakit.ModeNormal
 	}
 
 	dataway.ExtraHeaders = map[string]string{
@@ -472,31 +480,7 @@ func (c *Config) ApplyMainConfig() error {
 		l.Info("refresh main configure ok")
 	}
 
-	mExistCloneDirs := make(map[string]struct{})
-
-	for _, v := range c.GitRepos.Repos {
-		if !v.Enable {
-			continue
-		}
-		v.URL = dkstring.TrimString(v.URL)
-		if v.URL == "" {
-			continue
-		}
-		repoName, err := path.GetGitPureName(v.URL)
-		if err != nil {
-			continue
-		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-		clonePath, err := GetGitRepoSubDir(repoName, datakit.GitRepoSubDirNameConfd)
-		if err != nil {
-			continue
-		}
-		datakit.GetReposConfDirs = append(datakit.GetReposConfDirs, clonePath)
-	}
+	InitGitreposDir()
 
 	return nil
 }
@@ -646,6 +630,10 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_ENABLE_PPROF"); v != "" {
 		c.EnablePProf = true
+	}
+
+	if v := datakit.GetEnv("ENV_PPROF_LISTEN"); v != "" {
+		c.PProfListen = v
 	}
 
 	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {
@@ -861,42 +849,5 @@ func GetToken() string {
 }
 
 func GitHasEnabled() bool {
-	hasEnable := false
-	for _, v := range Cfg.GitRepos.Repos {
-		if v.Enable {
-			hasEnable = true
-			break
-		}
-	}
-
-	return hasEnable
-}
-
-func GitEnabledRepoNames() []string {
-	mExistCloneDirs := make(map[string]struct{})
-	for _, v := range Cfg.GitRepos.Repos {
-		if !v.Enable {
-			continue
-		}
-		v.URL = dkstring.TrimString(v.URL)
-		if v.URL == "" {
-			continue
-		}
-		repoName, err := path.GetGitPureName(v.URL)
-		if err != nil {
-			continue
-		}
-		// check repeat
-		if _, ok := mExistCloneDirs[repoName]; ok {
-			continue
-		}
-		mExistCloneDirs[repoName] = struct{}{}
-	}
-
-	var arr []string
-	for k := range mExistCloneDirs {
-		arr = append(arr, k)
-	}
-
-	return arr
+	return datakit.GitReposRepoName != "" && datakit.GitReposRepoFullPath != ""
 }
