@@ -106,7 +106,7 @@ func newByteFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
-		Unit:     inputs.SizeIByte,
+		Unit:     inputs.SizeByte,
 		Desc:     desc,
 	}
 }

@@ -205,6 +205,7 @@ func (m *Input) RunPipeline() {
 func (m *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("mongodb input started")
+	io.FeedEventLog(&io.Reporter{Message: "mongodb start ok, ready for collecting metrics.", Logtype: "event"})
 
 	defTags = m.Tags
 

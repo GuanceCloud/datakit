@@ -81,6 +81,7 @@ func (i *Input) Collect() error {
 func (i *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("hostdir input started")
+	io.FeedEventLog(&io.Reporter{Message: "hostdir start ok, ready for collecting metrics.", Logtype: "event"})
 	i.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, i.Interval.Duration)
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()

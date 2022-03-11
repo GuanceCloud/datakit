@@ -56,9 +56,9 @@ func (m *InfluxdbMemstatsM) Info() *inputs.MeasurementInfo {
 			"gc_sys":          nFIFloatBytes("The bytes of memory in garbage collection metadata."),
 			"other_sys":       nFIFloatBytes("The number of bytes of memory used other than heap_sys, stacks_sys, mspan_sys, mcache_sys, buckhash_sys, and gc_sys."),
 			"next_gc":         nFIFloatUnknown("The target heap size of the next garbage collection cycle."),
-			"last_gc":         nFIFloatNs("Time the last garbage collection finished, as nanoseconds since 1970 (the UNIX epoch)."),
-			"pause_total_ns":  nFIFloatNs("The total time garbage collection cycles are paused in nanoseconds."),
-			"pause_ns":        nFIFloatNs("The time garbage collection cycles are paused in nanoseconds."),
+			"last_gc":         nFIFloatTimestampNs("Time the last garbage collection finished, as nanoseconds since 1970 (the UNIX epoch)."),
+			"pause_total_ns":  nFIFloatDurationNs("The total time garbage collection cycles are paused in nanoseconds."),
+			"pause_ns":        nFIFloatDurationNs("The time garbage collection cycles are paused in nanoseconds."),
 			"num_gc":          nFIFloatUnknown("The number of completed garbage collection cycles."),
 			"num_forced_gc":   nFIFloatUnknown("The number of GC cycles that were forced by the application calling the GC function."),
 			"gc_cpu_fraction": nFIFloatUnknown("The fraction of CPU time used by the garbage collection cycle."),
@@ -92,7 +92,7 @@ func (m *InfluxdbRuntimeM) Info() *inputs.MeasurementInfo {
 			"mallocs":        nFIFloatUnknown("The total number of heap objects allocated."),
 			"num_gc":         nFIFloatUnknown("The number of completed garbage collection cycles."),
 			"num_goroutine":  nFIFloatUnknown("The total number of Go routines."),
-			"pause_total_ns": nFIFloatNs("The total time garbage collection cycles are paused in nanoseconds."),
+			"pause_total_ns": nFIFloatDurationNs("The total time garbage collection cycles are paused in nanoseconds."),
 			"sys":            nFIFloatBytes("The cumulative bytes allocated for heap objects."),
 			"total_alloc":    nFIFloatBytes("The cumulative bytes allocated for heap objects."),
 		},
@@ -116,7 +116,7 @@ func (m *InfluxdbQueryExecutorM) Info() *inputs.MeasurementInfo {
 			"queries_active":    nFIFloatUnknown("The number of active queries currently being handled."),
 			"queries_executed":  nFIFloatUnknown("The number of queries executed (started)."),
 			"queries_finished":  nFIFloatUnknown("The number of queries that have finished executing."),
-			"query_duration_ns": nFIFloatNs("The duration (wall time), in nanoseconds, of every query executed. "),
+			"query_duration_ns": nFIFloatDurationNs("The duration (wall time), in nanoseconds, of every query executed. "),
 			"recovered_panics":  nFIFloatUnknown("The number of panics recovered by the Query Executor."),
 		},
 	}
@@ -200,7 +200,7 @@ func (m *InfluxdbTsm1EngineM) Info() *inputs.MeasurementInfo {
 			"wal_path":         &inputs.TagInfo{Desc: "wal path"},
 		},
 		Fields: map[string]interface{}{
-			"cache_compaction_duration": nFIFloatNs("The duration (wall time), in nanoseconds, spent in cache compactions."),
+			"cache_compaction_duration": nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent in cache compactions."),
 			"cache_compaction_err":      nFIFloatUnknown("The number of cache compactions that have failed due to errors."),
 			"cache_compactions":         nFIFloatUnknown("The total number of cache compactions that have ever run."),
 			"cache_compactions_active":  nFIFloatUnknown("The number of cache compactions that are currently running."),
@@ -211,25 +211,25 @@ func (m *InfluxdbTsm1EngineM) Info() *inputs.MeasurementInfo {
 			"tsm_full_compactions":         nFIFloatUnknown("The total number of TSM full compactions that have ever run."),
 			"tsm_full_compactions_active":  nFIFloatUnknown("The number of TSM full compactions currently running."),
 
-			"tsm_level1_compaction_duration": nFIFloatNs("The duration (wall time), in nanoseconds, spent in TSM level 1 compactions."),
+			"tsm_level1_compaction_duration": nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent in TSM level 1 compactions."),
 			"tsm_level1_compaction_err":      nFIFloatUnknown("The total number of TSM level 1 compactions that have failed due to errors."),
 			"tsm_level1_compaction_queue":    nFIFloatUnknown("The current number of pending TSM level 1 compactions."),
 			"tsm_level1_compactions":         nFIFloatUnknown("The total number of TSM level 1 compactions that have ever run."),
 			"tsm_level1_compactions_active":  nFIFloatUnknown("The number of TSM level 1 compactions that are currently running."),
 
-			"tsm_level2_compaction_duration": nFIFloatNs("The duration (wall time), in nanoseconds, spent in TSM level 2 compactions."),
+			"tsm_level2_compaction_duration": nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent in TSM level 2 compactions."),
 			"tsm_level2_compaction_err":      nFIFloatUnknown("The number of TSM level 2 compactions that have failed due to errors."),
 			"tsm_level2_compaction_queue":    nFIFloatUnknown("The current number of pending TSM level 2 compactions."),
 			"tsm_level2_compactions":         nFIFloatUnknown("The total number of TSM level 2 compactions that have ever run."),
 			"tsm_level2_compactions_active":  nFIFloatUnknown("The number of TSM level 2 compactions that are currently running."),
 
-			"tsm_level3_compaction_duration": nFIFloatNs("The duration (wall time), in nanoseconds, spent in TSM level 3 compactions."),
+			"tsm_level3_compaction_duration": nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent in TSM level 3 compactions."),
 			"tsm_level3_compaction_err":      nFIFloatUnknown("The number of TSM level 3 compactions that have failed due to errors."),
 			"tsm_level3_compaction_queue":    nFIFloatUnknown("The current number of pending TSM level 3 compactions."),
 			"tsm_level3_compactions":         nFIFloatUnknown("The total number of TSM level 3 compactions that have ever run."),
 			"tsm_level3_compactions_active":  nFIFloatUnknown("The number of TSM level 3 compactions that are currently running."),
 
-			"tsm_optimize_compaction_duration": nFIFloatNs("The duration (wall time), in nanoseconds, spent during TSM optimize compactions."),
+			"tsm_optimize_compaction_duration": nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent during TSM optimize compactions."),
 			"tsm_optimize_compaction_err":      nFIFloatUnknown("The total number of TSM optimize compactions that have failed due to errors."),
 			"tsm_optimize_compaction_queue":    nFIFloatUnknown("The current number of pending TSM optimize compactions."),
 			"tsm_optimize_compactions":         nFIFloatUnknown("The total number of TSM optimize compactions that have ever run."),
@@ -259,8 +259,8 @@ func (m *InfluxdbTsm1CacheM) Info() *inputs.MeasurementInfo {
 			"wal_path":         &inputs.TagInfo{Desc: "wal path"},
 		},
 		Fields: map[string]interface{}{
-			"wal_compaction_time_ms": nFIFloatMs("The duration, in milliseconds, that the commit lock is held while compacting snapshots."),
-			"cache_age_ms":           nFIFloatMs("The duration, in milliseconds, since the cache was last snapshotted at sample time."),
+			"wal_compaction_time_ms": nFIFloatDurationMs("The duration, in milliseconds, that the commit lock is held while compacting snapshots."),
+			"cache_age_ms":           nFIFloatDurationMs("The duration, in milliseconds, since the cache was last snapshotted at sample time."),
 			"cached_bytes":           nFIFloatBytes("The total number of bytes that have been written into snapshots."),
 			"disk_bytes":             nFIFloatBytes("The size, in bytes, of on-disk snapshots."),
 			"mem_bytes":              nFIFloatBytes("The size, in bytes, of in-memory cache."),
@@ -413,7 +413,7 @@ func (m *InfluxdbHttpdM) Info() *inputs.MeasurementInfo {
 			"auth_fail":                  nFIFloatUnknown("The number of HTTP requests that were aborted due to authentication being required, but not supplied or incorrect."),
 			"client_error":               nFIFloatUnknown("The number of HTTP responses due to client errors, with a 4XX HTTP status code."),
 			"flux_query_req":             nFIFloatUnknown("The number of Flux query requests served."),
-			"flux_query_req_duration_ns": nFIFloatNs("The duration (wall-time), in nanoseconds, spent executing Flux query requests."),
+			"flux_query_req_duration_ns": nFIFloatDurationNs("The duration (wall-time), in nanoseconds, spent executing Flux query requests."),
 			"ping_req":                   nFIFloatUnknown("The number of times InfluxDB HTTP server served the /ping HTTP endpoint."),
 			"points_written_dropped":     nFIFloatUnknown("The number of points dropped by the storage engine."),
 			"points_written_fail":        nFIFloatUnknown("The number of points accepted by the HTTP /write endpoint, but unable to be persisted."),
@@ -421,19 +421,19 @@ func (m *InfluxdbHttpdM) Info() *inputs.MeasurementInfo {
 			"prom_read_req":              nFIFloatUnknown("The number of read requests to the Prometheus /read endpoint."),
 			"prom_write_req":             nFIFloatUnknown("The number of write requests to the Prometheus /write endpoint."),
 			"query_req":                  nFIFloatUnknown("The number of query requests."),
-			"query_req_duration_ns":      nFIFloatNs("The total query request duration, in nanosecond (ns)."),
+			"query_req_duration_ns":      nFIFloatDurationNs("The total query request duration, in nanosecond (ns)."),
 			"query_resp_bytes":           nFIFloatBytes("The total number of bytes returned in query responses."),
 			"recovered_panics":           nFIFloatUnknown("The total number of panics recovered by the HTTP handler."),
 			"req":                        nFIFloatUnknown("The total number of HTTP requests served."),
 			"req_active":                 nFIFloatUnknown("The number of currently active requests."),
-			"req_duration_ns":            nFIFloatNs("The duration (wall time), in nanoseconds, spent inside HTTP requests."),
+			"req_duration_ns":            nFIFloatDurationNs("The duration (wall time), in nanoseconds, spent inside HTTP requests."),
 			"server_error":               nFIFloatUnknown("The number of HTTP responses due to server errors."),
 			"status_req":                 nFIFloatUnknown("The number of status requests served using the HTTP /status endpoint."),
 			"values_written_ok":          nFIFloatUnknown("The number of values (fields) successfully accepted and persisted by the HTTP /write endpoint."),
 			"write_req":                  nFIFloatUnknown("The number of write requests served using the HTTP /write endpoint."),
 			"write_req_active":           nFIFloatUnknown("The number of currently active write requests."),
 			"write_req_bytes":            nFIFloatBytes("The total number of bytes of line protocol data received by write requests, using the HTTP /write endpoint."),
-			"write_req_duration_ns":      nFIFloatNs("The duration (wall time), in nanoseconds, of write requests served using the /write HTTP endpoint."),
+			"write_req_duration_ns":      nFIFloatDurationNs("The duration (wall time), in nanoseconds, of write requests served using the /write HTTP endpoint."),
 		},
 	}
 }
@@ -456,7 +456,7 @@ func nFIFloatBytes(desc string) *inputs.FieldInfo {
 	}
 }
 
-func nFIFloatNs(desc string) *inputs.FieldInfo {
+func nFIFloatDurationNs(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
@@ -465,11 +465,20 @@ func nFIFloatNs(desc string) *inputs.FieldInfo {
 	}
 }
 
-func nFIFloatMs(desc string) *inputs.FieldInfo {
+func nFIFloatDurationMs(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.DurationMS,
+		Desc:     desc,
+	}
+}
+
+func nFIFloatTimestampNs(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		DataType: inputs.Float,
+		Type:     inputs.Gauge,
+		Unit:     inputs.TimestampNS,
 		Desc:     desc,
 	}
 }

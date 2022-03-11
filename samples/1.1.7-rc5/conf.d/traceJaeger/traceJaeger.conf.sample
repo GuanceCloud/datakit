@@ -1,8 +1,0 @@
-
-[inputs.traceJaeger]
-#	path = "/api/traces"
-#	udp_agent = "127.0.0.1:6832"
-	[inputs.traceJaeger.tags]
-#		tag1 = "val1"
-#		tag2 = "val2"
-#		tag3 = "val3"

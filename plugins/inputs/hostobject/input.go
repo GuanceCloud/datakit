@@ -31,7 +31,7 @@ type Input struct {
 
 	Interval                 *datakit.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore *datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
-	IOTimeout                *datakit.Duration `toml:"io_timeout,omitempty"`
+	DeprecatedIOTimeout      *datakit.Duration `toml:"io_timeout,omitempty"`
 
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
@@ -63,6 +63,7 @@ const (
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(InputName)
+	io.FeedEventLog(&io.Reporter{Message: "hostobject start ok, ready for collecting metrics.", Logtype: "event"})
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
@@ -291,7 +292,6 @@ func DefaultHostObject() *Input {
 	return &Input{
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
 		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
-		IOTimeout:                &datakit.Duration{Duration: 10 * time.Second},
 		IgnoreFS: []string{
 			"autofs",
 			"tmpfs",

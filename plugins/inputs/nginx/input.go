@@ -141,6 +141,7 @@ func (n *Input) RunPipeline() {
 func (n *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("nginx start")
+	io.FeedEventLog(&io.Reporter{Message: "nginx start ok, ready for collecting metrics.", Logtype: "event"})
 
 	tick := time.NewTicker(n.Interval.Duration)
 	defer tick.Stop()

@@ -86,11 +86,13 @@ func (p *prom) gauge() {
 		p.getValue(m, m.GetGauge())
 	}
 }
+
 func (p *prom) untyped() {
 	for _, m := range p.metrics {
 		p.getValue(m, m.GetUntyped())
 	}
 }
+
 func (p *prom) counter() {
 	for _, m := range p.metrics {
 		p.getValue(m, m.GetCounter())
@@ -149,7 +151,6 @@ func (p *prom) getCountAndSum(m *dto.Metric, c countAndSum) {
 		return
 	}
 	p.pts = append(p.pts, pt)
-
 }
 
 func (p *prom) newPoint(tags map[string]string, fields map[string]interface{}, ts int64) (*ifxcli.Point, error) {
@@ -182,7 +183,7 @@ func labelToTags(label []*dto.LabelPair) map[string]string {
 	if len(label) == 0 {
 		return nil
 	}
-	var tags = make(map[string]string, len(label))
+	tags := make(map[string]string, len(label))
 	for _, lab := range label {
 		tags[lab.GetName()] = lab.GetValue()
 	}

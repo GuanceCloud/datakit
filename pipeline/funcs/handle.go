@@ -132,7 +132,7 @@ func GeoIPHandle(ip string) (map[string]string, error) {
 
 	res["city"] = record.City
 	res["province"] = record.Region
-	res["country"] = record.Country_short
+	res["country"] = record.Country
 	res["isp"] = ip2isp.SearchIsp(ip)
 
 	return res, nil

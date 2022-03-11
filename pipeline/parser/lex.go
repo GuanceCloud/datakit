@@ -56,15 +56,15 @@ var (
 		"if":         IF,
 		"elif":       ELIF,
 		"else":       ELSE,
-		"and":        AND,
 		"false":      FALSE,
 		"identifier": IDENTIFIER,
 		"nil":        NIL,
 		"null":       NULL,
-		"or":         OR,
 		"re":         RE,
 		"true":       TRUE,
 		"jp":         JP,
+		// "or":         OR,
+		// "and":        AND,
 	}
 
 	ItemTypeStr = map[ItemType]string{

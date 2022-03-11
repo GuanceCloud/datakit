@@ -20,21 +20,74 @@ import (
 )
 
 var (
-	datakitHost = ""
-
 	disableNil  = false
 	echoExplain = false
 	history     []string
 	MaxHistory  = 5000
 
-	dqlcli *http.Client
-
 	defaultJSONIndent = "  "
+	temporaryToken    = "" // 临时token，不允许跨工作空间 所以只能赋值一次
 )
 
 const (
 	dqlraw = "/v1/query/raw"
 )
+
+type dqlCmd struct {
+	json     bool
+	autoJSON bool
+	verbose  bool
+
+	csv           string
+	forceWriteCSV bool
+
+	dqlString string
+	token     string
+	host      string
+	log       string
+
+	dqlcli *http.Client
+}
+
+func runDQLFlags() error {
+	dc := &dqlCmd{
+		json:          *flagDQLJSON,
+		autoJSON:      *flagDQLAutoJSON,
+		dqlString:     *flagDQLString,
+		token:         *flagDQLToken,
+		csv:           *flagDQLCSV,
+		forceWriteCSV: *flagDQLForce,
+		host:          *flagDQLDataKitHost,
+		verbose:       *flagDQLVerbose,
+		log:           *flagDQLLogPath,
+	}
+
+	if err := dc.prepare(); err != nil {
+		return fmt.Errorf("dc.prepare: %w", err)
+	}
+
+	dc.run()
+	return nil
+}
+
+//nolint:unparam
+func (dc *dqlCmd) prepare() error {
+	// use localhost token configured in <datakit-install-path>/conf.d/datakit.conf
+	if dc.token == "" {
+		dc.token = config.GetToken()
+	}
+
+	// query local datakit(NOTE: it must be running at the time)
+	if dc.host == "" {
+		dc.host = config.Cfg.HTTPAPI.Listen
+	}
+
+	dc.dqlcli = &http.Client{}
+	setCmdRootLog(dc.log)
+
+	// TODO: we should ping the datakit here.
+	return nil
+}
 
 type dqlResp struct {
 	ErrorCode string         `json:"error_code"`
@@ -42,23 +95,25 @@ type dqlResp struct {
 	Content   []*queryResult `json:"content"`
 }
 
-func dql(host string) {
-	datakitHost = host
+func (dc *dqlCmd) run() {
+	if dc.dqlString != "" {
+		dc.runSingleDQL(dc.dqlString)
+		return
+	}
 
+	// run DQL interactively
 	c, _ := newCompleter()
 	suggestions = append(suggestions, dqlSuggestions...)
 
 	loadHistory()
 
 	p := prompt.New(
-		runDQL,
+		dc.runDQL,
 		c.Complete,
 		prompt.OptionTitle("DQL: query DQL in DataKit"),
 		prompt.OptionPrefix("dql > "),
 		prompt.OptionHistory(history),
 	)
-
-	dqlcli = &http.Client{}
 
 	p.Run()
 }
@@ -118,7 +173,7 @@ func updateHistoryOnExit() {
 	dumpHistory()
 }
 
-func runDQL(txt string) {
+func (dc *dqlCmd) runDQL(txt string) {
 	s := strings.Join(strings.Fields(strings.TrimSpace(txt)), " ")
 	if s == "" {
 		return
@@ -158,56 +213,55 @@ func runDQL(txt string) {
 			lines = append(lines, s)
 		}
 
-		resp, err := doDQL(strings.Join(lines, "\n"))
+		resp, err := dc.doDQL(strings.Join(lines, "\n"))
 		if err == nil {
-			show(resp)
+			dc.show(resp)
 		}
 	}
 }
 
 // runSingleDQL Perform a single DQL query statement.
-func runSingleDQL(s string) {
-	if FlagCSV != "" {
-		if err := prepareCsv(); err != nil {
+func (dc *dqlCmd) runSingleDQL(s string) {
+	if dc.csv != "" {
+		if err := dc.prepareCsv(); err != nil {
 			errorf("prepareCsv: %s", err)
 			return
 		}
 	}
 
-	resp, err := doDQL(s)
+	resp, err := dc.doDQL(s)
 	if err != nil {
 		return
 	}
 
-	if FlagCSV != "" {
+	if dc.csv != "" {
 		if len(resp) > 1 {
 			errorf("CSV export only support single DQL.\n")
 			return
 		}
 
-		if err := writeToCsv(resp[0].Series, FlagCSV); err != nil {
+		if err := writeToCsv(resp[0].Series, dc.csv); err != nil {
 			errorf("writeToCsv:%s", err)
 			return
 		}
 	}
 
-	if (FlagCSV != "" && FlagVVV) || FlagCSV == "" {
-		show(resp)
+	if (dc.csv != "" && dc.verbose) || dc.csv == "" {
+		dc.show(resp)
 	}
 }
 
-// prepareCsv Judging whether the file exists, create a directory if there is no existence.
-func prepareCsv() error {
-	f, err := os.Stat(FlagCSV)
+func (dc *dqlCmd) prepareCsv() error {
+	f, err := os.Stat(dc.csv)
 	if err == nil {
 		if f.IsDir() {
 			return fmt.Errorf("the specified path is a directory")
 		}
 
-		if !FlagForce {
-			return fmt.Errorf("file %s exists", FlagCSV)
+		if !dc.forceWriteCSV {
+			return fmt.Errorf("file %s exists", dc.csv)
 		}
-	} else if err = os.MkdirAll(filepath.Dir(FlagCSV), os.ModePerm); err != nil {
+	} else if err = os.MkdirAll(filepath.Dir(dc.csv), os.ModePerm); err != nil {
 		return err
 	}
 	return nil
@@ -277,10 +331,10 @@ func writeToCsv(series []*models.Row, csvPath string) error {
 	return nil
 }
 
-func doDQL(s string) ([]*queryResult, error) {
+func (dc *dqlCmd) doDQL(s string) ([]*queryResult, error) {
 	q := &dkhttp.QueryRaw{
 		EchoExplain: echoExplain,
-		Token:       config.GetToken(),
+		Token:       dc.token,
 		Queries: []*dkhttp.SingleQuery{
 			{
 				Query: s,
@@ -288,8 +342,12 @@ func doDQL(s string) ([]*queryResult, error) {
 		},
 	}
 
-	if FlagToken != "" {
-		q.Token = FlagToken
+	if dc.token != "" {
+		q.Token = dc.token
+	}
+
+	if temporaryToken != "" && s != "show_workspaces()" {
+		q.Token = temporaryToken
 	}
 
 	j, err := json.Marshal(q)
@@ -300,18 +358,19 @@ func doDQL(s string) ([]*queryResult, error) {
 
 	l.Debugf("dql request: %s", string(j))
 
+	if strings.HasPrefix(s, "use") {
+		switchToken(s)
+		return nil, fmt.Errorf("err not nil") // only switch token
+	}
+
 	req, err := http.NewRequest("POST",
-		fmt.Sprintf("http://%s%s", datakitHost, dqlraw), bytes.NewBuffer(j))
+		fmt.Sprintf("http://%s%s", dc.host, dqlraw), bytes.NewBuffer(j))
 	if err != nil {
 		errorf("http.NewRequest: %s\n", err.Error())
 		return nil, err
 	}
 
-	if dqlcli == nil {
-		dqlcli = &http.Client{}
-	}
-
-	resp, err := dqlcli.Do(req)
+	resp, err := dc.dqlcli.Do(req)
 	if err != nil {
 		errorf("httpcli.Do: %s\n", err.Error())
 		return nil, err
@@ -353,6 +412,10 @@ func doDQL(s string) ([]*queryResult, error) {
 	}
 	content, _ := json.Marshal(r.Content)
 	l.Debugf("json content:%s", string(content))
+
+	if s == "show_workspaces()" {
+		cacheWorkerSpace(r.Content)
+	}
 	return r.Content, nil
 }
 
@@ -362,22 +425,22 @@ type queryResult struct {
 	Cost     string        `json:"cost,omitempty"`
 }
 
-func show(content []*queryResult) {
+func (dc *dqlCmd) show(content []*queryResult) {
 	if content == nil {
 		errorf("Empty result\n")
 		return
 	}
 	for _, c := range content {
 		l.Debugf("connent len: %d", len(content))
-		doShow(c)
+		dc.doShow(c)
 	}
 }
 
-func doShow(c *queryResult) {
+func (dc *dqlCmd) doShow(c *queryResult) {
 	rows := 0
 
 	switch {
-	case FlagJSON:
+	case dc.json:
 		j, err := json.MarshalIndent(c, "", defaultJSONIndent)
 		if err != nil {
 			errorf("%s\n", err.Error())
@@ -390,7 +453,7 @@ func doShow(c *queryResult) {
 
 		output("%s\n", j)
 	default:
-		rows = prettyShow(c)
+		rows = dc.prettyShow(c)
 	}
 
 	if c.RawQuery != "" {
@@ -489,7 +552,7 @@ func tableShow(resp *queryResult) int {
 	return nrows
 }
 
-func prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
+func (dc *dqlCmd) prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
 	for colIdx := range s.Columns {
 		if disableNil && val[colIdx] == nil {
 			continue
@@ -540,7 +603,7 @@ func prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
 
 		case string:
 			valFmt = "'%s'\n"
-			if FlagAutoJSON {
+			if dc.autoJSON {
 				dst := &bytes.Buffer{}
 				if err := json.Indent(dst, []byte(v), "", defaultJSONIndent); err == nil {
 					val[colIdx] = dst.String()
@@ -559,7 +622,7 @@ func prettyShowRow(s *models.Row, val []interface{}, fmtStr string) {
 	}
 }
 
-func prettyShow(resp *queryResult) int {
+func (dc *dqlCmd) prettyShow(resp *queryResult) int {
 	nrows := 0
 
 	if len(resp.Series) == 0 {
@@ -600,8 +663,11 @@ func prettyShow(resp *queryResult) int {
 			for _, val := range s.Values {
 				output("-----------------[ r%d.%s.s%d ]-----------------\n", nrows+1, s.Name, si+1)
 				nrows++
-				prettyShowRow(s, val, fmtStr)
+				dc.prettyShowRow(s, val, fmtStr)
 			}
+		}
+		if s.Name == "show_workspaces" {
+			infof("do dql to change workSpace 'use tkn_xxxxxxxxxx' \n")
 		}
 	}
 
@@ -695,6 +761,11 @@ var (
 
 		{Text: "show_network_source()", Description: "show eBPF network source"},
 		{Text: "show_network_field()", Description: "show eBPF network fields"},
+		{Text: "show_workspaces()", Description: "Show all default and readonly workspaces"},
+		{Text: "use", Description: "use other workspace,as :'use tkn_xxxxxx' "},
+
+		{Text: "show_workspaces()", Description: "Show all default and readonly workspaces"},
+		{Text: "use", Description: "use other workspace,as :'use tkn_xxxxxx' "},
 
 		{Text: "avg()", Description: ""},
 		{Text: "bottom()", Description: ""},

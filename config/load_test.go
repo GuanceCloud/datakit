@@ -39,15 +39,6 @@ func initGitRepos() {
 	Cfg.GitRepos.Repos = append(Cfg.GitRepos.Repos, repos...)
 }
 
-// go test -v -timeout 30s -run ^TestGetGitReposAllPipelinePath$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
-func TestGetGitReposAllPipelinePath(t *testing.T) {
-	initGitRepos()
-
-	ss := GetGitReposAllPipelinePath()
-	t.Log(ss)
-	t.Logf("len = %d", len(ss))
-}
-
 // go test -v -timeout 30s -run ^TestGetPipelinePath$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
 func TestGetPipelinePath(t *testing.T) {
 	initGitRepos()

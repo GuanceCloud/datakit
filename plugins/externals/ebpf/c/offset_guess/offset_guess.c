@@ -101,7 +101,7 @@ static __always_inline int read_conn_info(struct sock *sk, struct offset_guess *
         status->meta = CONN_L3_MASK; // unknown
     }
 
-    if ((status->conn_type && CONN_L3_MASK) == CONN_L3_IPv4)
+    if ((status->conn_type & CONN_L3_MASK) == CONN_L3_IPv4)
     {
         // src ip
         bpf_probe_read(status->daddr + 3, sizeof(__be32), (__u8 *)sk + status->offset_sk_daddr);

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 )
 
@@ -36,34 +35,32 @@ const (
 const (
 	UnknownUnit = "-"
 
-	SizeByte  = "Byte"
-	SizeIByte = "Byte" // deprecated
-
-	SizeMiB = "MB"
+	SizeByte = "B"
+	SizeMiB  = "MB"
 
 	NCount = "count"
 
 	// time units.
-	DurationNS     = "nsec"
-	DurationUS     = "usec"
-	DurationMS     = "msec"
-	DurationSecond = "second"
-	DurationMinute = "minute"
-	DurationHour   = "hour"
-	DurationDay    = "day"
+	DurationNS     = "ns"
+	DurationUS     = "μs"
+	DurationMS     = "ms"
+	DurationSecond = "s"
+	DurationMinute = "min"
+	DurationHour   = "h"
+	DurationDay    = "d"
 
-	Percent = "%"
+	// timestamp units.
+	TimestampNS  = "nsec"
+	TimestampUS  = "usec"
+	TimestampMS  = "msec"
+	TimestampSec = "sec"
+
+	Percent = "percent"
 
 	// TODO: add more...
-	BytesPerSec    = "B/s"
-	RequestsPerSec = "reqs/s"
-	Celsius        = "°C"
-
-	Peta = "P" // 10^15
-	Tera = "T" // 10^12
-	Giga = "G" // 10^9
-	Mega = "M" // 10^6
-	Kilo = "k" // 10^3
+	BytesPerSec    = "B/S"
+	RequestsPerSec = "reqps"
+	Celsius        = "C"
 )
 
 type Measurement interface {
@@ -203,14 +200,6 @@ func (e ReporterMeasurement) LineProto() (*io.Point, error) {
 
 func (e ReporterMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{}
-}
-
-func FeedReporter(reporter *io.Reporter) {
-	measurement := getReporterMeasurement(reporter)
-	err := FeedMeasurement("datakit", datakit.Logging, []Measurement{measurement}, nil)
-	if err != nil {
-		l.Errorf("send datakit logging error: %s", err.Error())
-	}
 }
 
 func getReporterMeasurement(reporter *io.Reporter) ReporterMeasurement {

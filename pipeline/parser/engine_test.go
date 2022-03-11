@@ -46,6 +46,7 @@ func TestContrast(t *testing.T) {
 			fail:     true,
 		},
 		{
+			name:     "flaot==string",
 			x:        float64(10.0),
 			operator: "==",
 			y:        "hello",
@@ -137,6 +138,7 @@ func TestContrast(t *testing.T) {
 			expect:   false,
 		},
 		{
+			name:     "string<=int",
 			x:        "ABCD",
 			operator: "<=",
 			y:        int64(10),
@@ -161,10 +163,11 @@ func TestContrast(t *testing.T) {
 			expect:   false,
 		},
 		{
+			name:     "bool<=bool",
 			x:        true,
 			operator: "<=",
 			y:        false,
-			expect:   false,
+			fail:     true,
 		},
 		{
 			x:        nil,
