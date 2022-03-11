@@ -16,6 +16,8 @@
 
 ### DataKit 配置
 
+需要开启 logfwdserver，详见[文档](logfwdserver.md)。以下是抄录。
+
 进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
 
 ``` toml

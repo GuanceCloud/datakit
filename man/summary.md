@@ -80,6 +80,7 @@
     - [容器](container)
     - [Kubernetes 扩展指标采集](kubernetes-x)
     - [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
+    - [通过 Sidecar 方式采集 Pod 日志](logfwd)
 
   - [Java]()
 
@@ -103,7 +104,17 @@
       - [Java 示例](ddtrace-java)
       - [Python 示例](ddtrace-python)
     - [SkyWalking](skywalking)
+
+    - [Opentelemetry](opentelemetry)
+
+      - [Golang 示例](opentelemetry-go)
+      - [Java 示例](opentelemetry-java)
+
     - [Jaeger](jaeger)
+    - [Zipkin](zipkin)
+
+    - [Datakit Tracing Struct](datakit-tracing-struct)
+    - [Datakit Tracing](datakit-tracing)
 
     - [Datakit Tracing Struct](datakit-tracing-struct)
     - [Datakit Tracing](datakit-tracing)
@@ -117,7 +128,6 @@
     - [日志](logging)
     - [第三方日志接入](logstreaming)
     - [Socket 日志接入最佳实践](logging_socket)
-    - [通过 Sidecar 方式采集 Pod 日志](logfwd)
     - [DataKit 整体日志采集介绍](datakit-logging)
 
   - [Windows 相关]()

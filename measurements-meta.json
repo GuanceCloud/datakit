@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "version": "1.2.8-1095-g24c2c81c86",
   "release_date": "2022-03-11 04:57:50",
+=======
+  "version": "1.2.8-test1",
+  "release_date": "2022-03-04 08:27:52",
+>>>>>>> master
   "doc": [
     "本文档主要用来描述 DataKit 所采集到的各种指标集数据",
     "-----------------------------",
@@ -5551,7 +5556,11 @@
         "pod_name": {
           "Desc": "pod 名称（容器由 k8s 创建时存在）"
         },
+<<<<<<< HEAD
         "pod_namespace": {
+=======
+        "pod_namesapce": {
+>>>>>>> master
           "Desc": "pod 命名空间（容器由 k8s 创建时存在）"
         },
         "state": {
@@ -18575,6 +18584,7 @@
         "dst_ip_type": {
           "Desc": "目标 IP 类型 (other/private/multicast)"
         },
+<<<<<<< HEAD
         "dst_k8s_namespace": {
           "Desc": "目标 IP 所在 k8s 的 namespace"
         },
@@ -18584,6 +18594,8 @@
         "dst_k8s_service_name": {
           "Desc": "目标 IP 所属 service, 如果是 dst_ip 是 cluster(service) ip 则 dst_k8s_pod_name 值为 `N/A`"
         },
+=======
+>>>>>>> master
         "dst_port": {
           "Desc": "目标端口"
         },
@@ -18605,6 +18617,7 @@
         "src_ip_type": {
           "Desc": "源 IP 类型 (other/private/multicast)"
         },
+<<<<<<< HEAD
         "src_k8s_namespace": {
           "Desc": "源 IP 所在 k8s 的 namespace"
         },
@@ -18620,6 +18633,11 @@
         "sub_source": {
           "Desc": "用于 netflow 的部分特定连接分类，如 Kubernetes 流量的值为 K8s"
         },
+=======
+        "src_port": {
+          "Desc": "源端口, 临时端口(32768 ~ 60999)聚合后的值为 `*`"
+        },
+>>>>>>> master
         "transport": {
           "Desc": "传输协议 (udp/tcp)"
         }
@@ -23473,7 +23491,11 @@
         "pod_name": {
           "Desc": "pod 名称（容器由 k8s 创建时存在）"
         },
+<<<<<<< HEAD
         "pod_namespace": {
+=======
+        "pod_namesapce": {
+>>>>>>> master
           "Desc": "pod 命名空间（容器由 k8s 创建时存在）"
         },
         "state": {
