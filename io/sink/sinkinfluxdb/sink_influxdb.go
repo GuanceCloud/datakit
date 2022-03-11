@@ -223,10 +223,6 @@ func (s *SinkInfluxDB) writeInfluxDB(pts []sinkcommon.ISinkPoint) error {
 	return nil
 }
 
-func (s *SinkInfluxDB) Metrics() map[string]interface{} {
-	return nil
-}
-
 func (s *SinkInfluxDB) GetID() string {
 	return s.ID
 }

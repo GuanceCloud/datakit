@@ -16,7 +16,6 @@ type ISink interface {
 	GetID() string
 	LoadConfig(mConf map[string]interface{}) error
 	Write(pts []ISinkPoint) error
-	Metrics() map[string]interface{}
 }
 
 //----------------------------------------------------------------------
