@@ -28,21 +28,22 @@ type IcmpSuccess struct {
 }
 
 type IcmpTask struct {
-	Host            string            `json:"host"`
-	PacketCount     int               `json:"packet_count"`
-	Timeout         string            `json:"timeout"`
-	SuccessWhen     []*IcmpSuccess    `json:"success_when"`
-	ExternalID      string            `json:"external_id"`
-	Name            string            `json:"name"`
-	AK              string            `json:"access_key"`
-	PostURL         string            `json:"post_url"`
-	CurStatus       string            `json:"status"`
-	Frequency       string            `json:"frequency"`
-	Region          string            `json:"region"`
-	OwnerExternalID string            `json:"owner_external_id"`
-	Tags            map[string]string `json:"tags,omitempty"`
-	Labels          []string          `json:"labels,omitempty"`
-	UpdateTime      int64             `json:"update_time,omitempty"`
+	Host             string            `json:"host"`
+	PacketCount      int               `json:"packet_count"`
+	Timeout          string            `json:"timeout"`
+	SuccessWhen      []*IcmpSuccess    `json:"success_when"`
+	SuccessWhenLogic string            `json:"success_when_logic"`
+	ExternalID       string            `json:"external_id"`
+	Name             string            `json:"name"`
+	AK               string            `json:"access_key"`
+	PostURL          string            `json:"post_url"`
+	CurStatus        string            `json:"status"`
+	Frequency        string            `json:"frequency"`
+	Region           string            `json:"region"`
+	OwnerExternalID  string            `json:"owner_external_id"`
+	Tags             map[string]string `json:"tags,omitempty"`
+	Labels           []string          `json:"labels,omitempty"`
+	UpdateTime       int64             `json:"update_time,omitempty"`
 
 	packetLossPercent float64
 	avgRoundTripTime  float64 // ms
@@ -114,18 +115,22 @@ func (t *IcmpTask) Check() error {
 	return t.Init()
 }
 
-func (t *IcmpTask) CheckResult() (reasons []string) {
+func (t *IcmpTask) CheckResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
 		if chk.respTime > 0 && t.avgRoundTripTime > float64(chk.respTime.Milliseconds()) {
 			reasons = append(reasons,
 				fmt.Sprintf("ICMP average round-trip time (%v ms) larger than %v", t.avgRoundTripTime, chk.respTime))
+		} else if chk.respTime > 0 {
+			succFlag = true
 		}
 
 		// check packet loss
 		if chk.PacketLossPercent > 0 && t.packetLossPercent > chk.PacketLossPercent {
 			reasons = append(reasons,
 				fmt.Sprintf("ICMP packet loss %v, larger than %v", t.packetLossPercent, chk.PacketLossPercent))
+		} else if chk.PacketLossPercent > 0 {
+			succFlag = true
 		}
 	}
 
@@ -153,21 +158,32 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 
 	message := map[string]interface{}{}
 
-	reasons := t.CheckResult()
+	reasons, succFlag := t.CheckResult()
 	if t.reqError != "" {
 		reasons = append(reasons, t.reqError)
 	}
 
-	if len(reasons) != 0 {
-		message[`fail_reason`] = strings.Join(reasons, `;`)
-		fields[`fail_reason`] = strings.Join(reasons, `;`)
-	} else {
-		message["average_round_trip_time_in_millis"] = t.avgRoundTripTime
-	}
+	switch t.SuccessWhenLogic {
+	case "or":
+		if succFlag && t.reqError == "" {
+			tags["status"] = "OK"
+			fields["success"] = int64(1)
+		} else {
+			message[`fail_reason`] = strings.Join(reasons, `;`)
+			fields[`fail_reason`] = strings.Join(reasons, `;`)
+		}
+	default:
+		if len(reasons) != 0 {
+			message[`fail_reason`] = strings.Join(reasons, `;`)
+			fields[`fail_reason`] = strings.Join(reasons, `;`)
+		} else {
+			message["average_round_trip_time_in_millis"] = t.avgRoundTripTime
+		}
 
-	if t.reqError == "" && len(reasons) == 0 {
-		tags["status"] = "OK"
-		fields["success"] = int64(1)
+		if t.reqError == "" && len(reasons) == 0 {
+			tags["status"] = "OK"
+			fields["success"] = int64(1)
+		}
 	}
 
 	data, err := json.Marshal(message)

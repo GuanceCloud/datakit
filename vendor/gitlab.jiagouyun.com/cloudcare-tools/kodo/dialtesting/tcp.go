@@ -17,21 +17,22 @@ type TcpSuccess struct {
 }
 
 type TcpTask struct {
-	Host            string            `json:"host"`
-	Port            string            `json:"port"`
-	Timeout         string            `json:"timeout"`
-	SuccessWhen     []*TcpSuccess     `json:"success_when"`
-	ExternalID      string            `json:"external_id"`
-	Name            string            `json:"name"`
-	AK              string            `json:"access_key"`
-	PostURL         string            `json:"post_url"`
-	CurStatus       string            `json:"status"`
-	Frequency       string            `json:"frequency"`
-	Region          string            `json:"region"`
-	OwnerExternalID string            `json:"owner_external_id"`
-	Tags            map[string]string `json:"tags,omitempty"`
-	Labels          []string          `json:"labels,omitempty"`
-	UpdateTime      int64             `json:"update_time,omitempty"`
+	Host             string            `json:"host"`
+	Port             string            `json:"port"`
+	Timeout          string            `json:"timeout"`
+	SuccessWhen      []*TcpSuccess     `json:"success_when"`
+	SuccessWhenLogic string            `json:"success_when_logic"`
+	ExternalID       string            `json:"external_id"`
+	Name             string            `json:"name"`
+	AK               string            `json:"access_key"`
+	PostURL          string            `json:"post_url"`
+	CurStatus        string            `json:"status"`
+	Frequency        string            `json:"frequency"`
+	Region           string            `json:"region"`
+	OwnerExternalID  string            `json:"owner_external_id"`
+	Tags             map[string]string `json:"tags,omitempty"`
+	Labels           []string          `json:"labels,omitempty"`
+	UpdateTime       int64             `json:"update_time,omitempty"`
 
 	tcpAddr  string
 	reqCost  time.Duration
@@ -101,12 +102,14 @@ func (t *TcpTask) Check() error {
 	return t.Init()
 }
 
-func (t *TcpTask) CheckResult() (reasons []string) {
+func (t *TcpTask) CheckResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
 		if t.reqCost > chk.respTime && chk.respTime > 0 {
 			reasons = append(reasons,
 				fmt.Sprintf("HTTP response time(%v) larger than %v", t.reqCost, chk.respTime))
+		} else if chk.respTime > 0 {
+			succFlag = true
 		}
 	}
 
@@ -134,21 +137,32 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 
 	message := map[string]interface{}{}
 
-	reasons := t.CheckResult()
+	reasons, succFlag := t.CheckResult()
 	if t.reqError != "" {
 		reasons = append(reasons, t.reqError)
 	}
 
-	if len(reasons) != 0 {
-		message[`fail_reason`] = strings.Join(reasons, `;`)
-		fields[`fail_reason`] = strings.Join(reasons, `;`)
-	} else {
-		message["response_time_in_micros"] = responseTime
-	}
+	switch t.SuccessWhenLogic {
+	case "or":
+		if succFlag && t.reqError == "" {
+			tags["status"] = "OK"
+			fields["success"] = int64(1)
+		} else {
+			message[`fail_reason`] = strings.Join(reasons, `;`)
+			fields[`fail_reason`] = strings.Join(reasons, `;`)
+		}
+	default:
+		if len(reasons) != 0 {
+			message[`fail_reason`] = strings.Join(reasons, `;`)
+			fields[`fail_reason`] = strings.Join(reasons, `;`)
+		} else {
+			message["response_time_in_micros"] = responseTime
+		}
 
-	if t.reqError == "" && len(reasons) == 0 {
-		tags["status"] = "OK"
-		fields["success"] = int64(1)
+		if t.reqError == "" && len(reasons) == 0 {
+			tags["status"] = "OK"
+			fields["success"] = int64(1)
+		}
 	}
 
 	data, err := json.Marshal(message)
