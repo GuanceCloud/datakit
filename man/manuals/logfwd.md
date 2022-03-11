@@ -17,10 +17,14 @@
 ### DataKit 配置
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 需要开启 logfwdserver，详见[文档](logfwdserver.md)。以下是抄录。
 =======
 需要开启 logfwdserver，详见[文档](logfwdserver)。以下是抄录。
 >>>>>>> hotfix-daily
+=======
+需要开启 logfwdserver，详见[文档](logfwdserver)。以下是抄录。
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 
 进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
 

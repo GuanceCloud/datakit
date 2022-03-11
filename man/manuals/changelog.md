@@ -15,7 +15,10 @@
 - eBPF 采集器[支持 Kubernetes 字段关联](ebpf#35c97cc9)(#511)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 ### Breaking Changes
 
 - 本次对 Tracing 数据采集做了较大的调整，涉及几个方面的不兼容：
@@ -23,7 +26,10 @@
   - [DDtrace](ddtrace) 原有 conf 中配置的 `ignore_resources` 字段需改成 `close_resource`，且字段类型由原来的数组（`[...]`）形式改成了字典数组（`map[string][...]`）形式（可参照 [conf.sample](ddtrace#69995abe) 来配置）
   - DDTrace 原数据中采集的 [tag `type` 字段改成 `source_type`](ddtrace#01b88adb)
 
+<<<<<<< HEAD
 >>>>>>> hotfix-daily
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 ---
 
 ## 1.2.8(2022/03/04)
@@ -193,6 +199,7 @@
   - 调整 Git 模式下文件夹[存放策略]()(#509)
 - 推行新的版本号机制(#484)
 <<<<<<< HEAD
+<<<<<<< HEAD
   - 新的版本号形式为 1.2.3，此处 `1` 为 master 版本号，`2` 为 minor 版本号，`3` 为 mini 版本号
   - 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
   - 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
@@ -202,6 +209,8 @@
     - Linux/Mac: `DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"`
     - Windows: `$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;`
 =======
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 	- 新的版本号形式为 1.2.3，此处 `1` 为 master 版本号，`2` 为 minor 版本号，`3` 为 mini 版本号
 	- 以 minor 版本号的奇偶性来判定是稳定版（偶数）还是非稳定版（奇数）
 	- 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
@@ -223,7 +232,10 @@ DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```powershell
 $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
+<<<<<<< HEAD
 >>>>>>> hotfix-daily
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 
 ---
 

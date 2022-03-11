@@ -2,12 +2,14 @@
 
   - [服务安装和管理](datakit-service-how-to)
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 
   - [采集器配置](datakit-conf-how-to)
 
-    - [Kubernetes 环境下的配置](k8s-config-how-to)
-
   - [通过 DQL 查询数据](datakit-dql-how-to)
+<<<<<<< HEAD
   - [调试 Pipeline](datakit-pl-how-to)
 =======
 
@@ -15,6 +17,8 @@
 
   - [通过 DQL 查询数据](datakit-dql-how-to)
 >>>>>>> hotfix-daily
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
   - [各种其它工具使用](datakit-tools-how-to)
 
     - [查看 DataKit Monitor](datakit-monitor)
@@ -77,6 +81,7 @@
   - [网络拨测](dialtesting)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
       - [通过本地 JSON 定义拨测任务](dialtesting_json)
 
   - [eBPF]()
@@ -90,6 +95,8 @@
     - [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
     - [通过 Sidecar 方式采集 Pod 日志](logfwd)
 =======
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
     - [通过本地 JSON 定义拨测任务](dialtesting_json)
 
   - [eBPF]()
@@ -106,7 +113,10 @@
 
     - [通过 Sidecar 方式采集 Pod 日志](logfwd)
     - [Kubernetes 环境下的 DataKit 配置](k8s-config-how-to)
+<<<<<<< HEAD
 >>>>>>> hotfix-daily
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 
   - [Java]()
 
@@ -133,9 +143,12 @@
 
     - [Opentelemetry](opentelemetry)
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> hotfix-daily
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
       - [Golang 示例](opentelemetry-go)
       - [Java 示例](opentelemetry-java)
 
@@ -145,11 +158,14 @@
     - [Datakit Tracing Struct](datakit-tracing-struct)
     - [Datakit Tracing](datakit-tracing)
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     - [Datakit Tracing Struct](datakit-tracing-struct)
     - [Datakit Tracing](datakit-tracing)
 =======
 >>>>>>> hotfix-daily
+=======
+>>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 
   - [用户访问监测（RUM）]()
 
