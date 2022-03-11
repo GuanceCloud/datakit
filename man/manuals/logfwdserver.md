@@ -26,12 +26,4 @@ logfwdserver 会开启 websocket 功能，和 logfwd 配套使用，负责接收
 
 配置好后，重启 DataKit 即可。
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy.md)。
-=======
 > 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy)。
->>>>>>> hotfix-daily
-=======
-> 注：如果 DataKit 是以 daemonset 方式部署，此段配置需要添加到 `ConfigMap` 并通过 `volumeMounts` 挂载，详见 DataKit daemonset 安装[文档](datakit-daemonset-deploy)。
->>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1

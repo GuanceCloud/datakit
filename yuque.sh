@@ -46,18 +46,6 @@ else
 fi
 
 LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit \
-<<<<<<< HEAD
-<<<<<<< HEAD
-  --ignore demo,logfwdserver \
-  --export-manuals .docs \
-  --man-version "${man_version}" \
-  --TODO "-" &&
-  waque upload .docs/*.md -c "${waque_yml}" &&
-  printf "${GREEN}----------------------${CLR}\n" &&
-  printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml}
-=======
-=======
->>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
 	--ignore demo \
 	--cmd-log stdout \
 	--export-manuals .docs \
@@ -66,7 +54,3 @@ LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit \
 	waque upload .docs/*.md -c "${waque_yml}" && \
 	printf "${GREEN}----------------------${CLR}\n" && \
 	printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml}
-<<<<<<< HEAD
->>>>>>> hotfix-daily
-=======
->>>>>>> e31b30938dd665c29c41119d34552ed3a5fddfc1
