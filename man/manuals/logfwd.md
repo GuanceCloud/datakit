@@ -276,3 +276,10 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
     PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
 1850829 root      20   0  715416  17500   8964 R  42.1   0.1   0:10.44 logfwd
 ```
+
+## 延伸阅读
+
+- [DataKit 整体日志采集介绍](datakit-logging)
+- [Socket 日志接入最佳实践](logging_socket)
+- [Kubernetes 中指定 Pod 的日志采集配置](container#2a6149d7)
+- [第三方日志接入](logstreaming)
