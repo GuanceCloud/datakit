@@ -15,18 +15,25 @@ func TestSampler(t *testing.T) {
 		origin = append(origin, dktrace)
 	}
 
-	sampler := &Sampler{
-		Priority:           PriorityAuto,
-		SamplingRateGlobal: 0.15,
-	}
-	var sampled DatakitTraces
-	for i := range origin {
-		if t, _ := sampler.Sample(origin[i]); t != nil {
-			sampled = append(sampled, t)
-		}
-	}
+	sampler := &Sampler{}
+	sampler.UpdateArgs(PriorityAuto, 0.15)
 
-	fmt.Printf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wg.Done()
+
+			var sampled DatakitTraces
+			for i := range origin {
+				if t, _ := sampler.Sample(origin[i]); t != nil {
+					sampled = append(sampled, t)
+				}
+			}
+			fmt.Printf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
+		}()
+	}
+	wg.Wait()
 }
 
 func TestCloseResource(t *testing.T) {

@@ -2,6 +2,7 @@ package trace
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,11 +30,20 @@ func TestAfterGather(t *testing.T) {
 	sampler.UpdateArgs(PriorityAuto, 0.33)
 	afterGather.AppendFilter(sampler.Sample)
 
-	for i := 0; i < 100; i++ {
-		trace := randDatakitTraceByService(t, 10, testutils.RandWithinStrings(_services), testutils.RandWithinStrings(_resources), "")
-		parentialize(trace)
-		afterGather.Run("test_after_gather", trace, false)
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < 100; i++ {
+				trace := randDatakitTraceByService(t, 10, testutils.RandWithinStrings(_services), testutils.RandWithinStrings(_resources), "")
+				parentialize(trace)
+				afterGather.Run("test_after_gather", trace, false)
+			}
+		}()
 	}
+	wg.Wait()
 }
 
 func TestBuildPoint(t *testing.T) {

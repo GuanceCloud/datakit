@@ -118,20 +118,16 @@ func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 }
 
 type KeepRareResource struct {
-	sync.Mutex
 	Open       bool
 	Duration   time.Duration
 	once       sync.Once
-	presentMap map[string]time.Time
+	presentMap sync.Map
 }
 
 func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) {
 	if !kprres.Open {
 		return dktrace, false
 	}
-	kprres.once.Do(func() {
-		kprres.presentMap = make(map[string]time.Time)
-	})
 
 	var skip bool
 	for i := range dktrace {
@@ -140,16 +136,13 @@ func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) 
 			if len(sed) == 0 {
 				break
 			}
-			var (
-				checksum  = hashcode.GenStringsHash(sed)
-				lastCheck time.Time
-				ok        bool
-			)
-			if lastCheck, ok = kprres.presentMap[checksum]; !ok || time.Since(lastCheck) >= kprres.Duration {
+
+			checksum := hashcode.GenStringsHash(sed)
+			if v, ok := kprres.presentMap.Load(checksum); !ok || time.Since(v.(time.Time)) >= kprres.Duration {
 				log.Debugf("got rare trace from service: %s resource: %s send by %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 				skip = true
 			}
-			kprres.setPresentTime(checksum)
+			kprres.presentMap.Store(checksum, time.Now())
 			break
 		}
 	}
@@ -158,21 +151,7 @@ func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) 
 }
 
 func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
-	kprres.Lock()
-	defer kprres.Unlock()
-
 	kprres.Open = open
 	kprres.Duration = span
-	if kprres.Open {
-		kprres.presentMap = make(map[string]time.Time)
-	} else {
-		kprres.presentMap = nil
-	}
-}
-
-func (kprres *KeepRareResource) setPresentTime(checksum string) {
-	kprres.Lock()
-	defer kprres.Unlock()
-
-	kprres.presentMap[checksum] = time.Now()
+	kprres.presentMap = sync.Map{}
 }
