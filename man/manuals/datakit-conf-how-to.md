@@ -157,7 +157,9 @@ DataKit 安装完成后，默认会开启一批采集器，这些采集器一般
 sudo datakit service -R
 ```
 
-### HTTP 绑定端口
+### HTTP 设定
+
+#### HTTP 端口绑定
 
 出于安全考虑，DataKit 的 HTTP 服务默认绑定在 `localhost:9529` 上，如果希望从外部访问 DataKit API，需编辑 `conf.d/datakit.conf` 中的 `listen` 字段，这样就能从其它主机上请求 DataKit 接口了：
 
@@ -172,6 +174,17 @@ sudo datakit service -R
 - [远程查看 DataKit 文档](http://localhost:9529/man)
 - [RUM 采集](rum)
 - 其它诸如 [APM](ddtrace)/[安全巡检](sec-checker) 等，看具体的部署情况，可能也需要修改 `listen` 配置
+
+#### HTTP API 限流
+
+为保证 DataKit 能较为平稳的在服务器上运行，对于其一些打数据的接口，提供了简单的限流功能（默认不开启限流）：
+
+```toml
+[http_api]
+  request_rate_limit = 1000.0 # 每秒只能处理 1000 个请求
+```
+
+该设定影响所有的[数据上传接口](apis#f53903a9)、[HTTP 远程日志上报](logstreaming) 以及一系列 Tracing 采集器，对于被限流的 API 请求，客户端将收到 429 的 HTTP Code。
 
 ### 全局标签（tag）的开启
 

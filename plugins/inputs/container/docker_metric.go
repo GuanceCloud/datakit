@@ -53,7 +53,7 @@ func getContainerTags(container *types.Container) tagsType {
 		tags["pod_name"] = container.Labels[containerLableForPodName]
 	}
 	if container.Labels[containerLableForPodNamespace] != "" {
-		tags["pod_namesapce"] = container.Labels[containerLableForPodNamespace]
+		tags["pod_namespace"] = container.Labels[containerLableForPodNamespace]
 	}
 
 	return tags
@@ -64,6 +64,7 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 
 	podname := container.Labels[containerLableForPodName]
 	podnamespace := container.Labels[containerLableForPodNamespace]
+	podContainerName := container.Labels[containerLableForPodContainerName]
 
 	if k8sClient == nil || podname == "" {
 		return tags
@@ -75,7 +76,7 @@ func getContainerInfo(container *types.Container, k8sClient k8sClientX) tagsType
 		return tags
 	}
 
-	if image := meta.containerImage(); image != "" {
+	if image := meta.containerImage(podContainerName); image != "" {
 		// 如果能找到 pod image，则使用它
 		imageName, imageShortName, imageTag := ParseImage(image)
 
@@ -205,7 +206,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"state":            inputs.NewTagInfo(`运行状态，running`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namesapce":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"pod_namespace":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
 			"deployment":       inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 		},
 		Fields: map[string]interface{}{
