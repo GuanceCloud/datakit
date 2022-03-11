@@ -153,5 +153,7 @@ func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) 
 func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	kprres.Open = open
 	kprres.Duration = span
-	kprres.presentMap = sync.Map{}
+	if !open {
+		kprres.presentMap = sync.Map{}
+	}
 }
