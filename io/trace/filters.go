@@ -71,6 +71,7 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 }
 
 type CloseResource struct {
+	sync.Mutex
 	IgnoreResources map[string][]*regexp.Regexp
 }
 
@@ -99,6 +100,9 @@ func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 }
 
 func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
+	cres.Lock()
+	defer cres.Unlock()
+
 	if len(ignResList) == 0 {
 		cres.IgnoreResources = nil
 	} else {
@@ -114,6 +118,7 @@ func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 }
 
 type KeepRareResource struct {
+	sync.Mutex
 	Open       bool
 	Duration   time.Duration
 	once       sync.Once
@@ -144,7 +149,7 @@ func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) 
 				log.Debugf("got rare trace from service: %s resource: %s send by %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 				skip = true
 			}
-			kprres.presentMap[checksum] = time.Now()
+			kprres.setPresentTime(checksum)
 			break
 		}
 	}
@@ -153,6 +158,9 @@ func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) 
 }
 
 func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
+	kprres.Lock()
+	defer kprres.Unlock()
+
 	kprres.Open = open
 	kprres.Duration = span
 	if kprres.Open {
@@ -160,4 +168,11 @@ func (kprres *KeepRareResource) UpdateStatus(open bool, span time.Duration) {
 	} else {
 		kprres.presentMap = nil
 	}
+}
+
+func (kprres *KeepRareResource) setPresentTime(checksum string) {
+	kprres.Lock()
+	defer kprres.Unlock()
+
+	kprres.presentMap[checksum] = time.Now()
 }
