@@ -12,7 +12,7 @@
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
 - 采集 Kubernetes 数据需要 DataKit 以 Kubernetes daemonset 方式运行。
-- 采集 Kubernetes Pod 指标数据，需要 Kubernetes 安装 Metrics-Server 组件，[链接](https://github.com/kubernetes-sigs/metrics-server#installation)。
+- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
 
 ## 配置
 
@@ -28,8 +28,8 @@
 
 配置文件中的 `container_include_metric / container_exclude_metric` 是针对指标数据，`container_include_log / container_exclude_log` 是针对日志数据。
 
-- `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效。
-- glob 规则是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元，[glob wiki](https://en.wikipedia.org/wiki/Glob_(programming))
+- `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效
+- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming))是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
 
 例如，配置如下：
 
@@ -230,3 +230,8 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 {{end}}
 
 {{ end }}
+
+## 延伸阅读
+
+- [eBPF 采集器：支持容器环境下的流量采集](ebpf)
+- [Pipeline：文本数据处理](pipeline)

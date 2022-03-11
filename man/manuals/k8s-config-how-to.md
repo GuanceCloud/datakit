@@ -101,3 +101,8 @@ Git 方式在主机模式和 K8s 模式下均支持，它本质上是一种 conf
 ## 总结
 
 至此，DataKit 上的几种配置方式都做了基本介绍，具体采集器是否支持特定的配置方式，还需要参考采集器文档。
+
+## 延伸阅读
+
+- [DataKit 以及各种采集器如何](datakit-conf-how-to) 
+- [Daemonset 安装 DataKit](datakit-daemonset-deploy)

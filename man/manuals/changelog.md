@@ -2,6 +2,27 @@
 
 # DataKit 版本历史
 
+## 1.2.9(2022/03/10)
+
+本次发布属于迭代发布，更新内容如下：
+
+- DataKit 9529 HTTP 服务添加 [API 限流措施](datakit-conf-how-to#e35bf313)(#637)
+- 统一各种 Tracing 数据的[采样率设置](datakit-tracing#64df2902)(#631)
+- 发布 [DataKit 整体日志采集介绍](datakit-logging)
+- 支持 [OpenTelemetry 数据接入](opentelemetry)(#609)
+- 支持[禁用 Pod 内部部分镜像的日志](container#2a6149d7)(#586)
+- 进程对象采集[增加监听端口列表](host_processes#a30fc2c1-1)(#562)
+- eBPF 采集器[支持 Kubernetes 字段关联](ebpf#35c97cc9)(#511)
+
+### Breaking Changes
+
+- 本次对 Tracing 数据采集做了较大的调整，涉及几个方面的不兼容：
+
+  - [DDtrace](ddtrace) 原有 conf 中配置的 `ignore_resources` 字段需改成 `close_resource`，且字段类型由原来的数组（`[...]`）形式改成了字典数组（`map[string][...]`）形式（可参照 [conf.sample](ddtrace#69995abe) 来配置）
+  - DDTrace 原数据中采集的 [tag `type` 字段改成 `source_type`](ddtrace#01b88adb)
+
+---
+
 ## 1.2.8(2022/03/04)
 
 本次发布属于 hotfix 修复，内容如下：
@@ -171,9 +192,22 @@
 	- 同一个 minor 版本号上，会有多个不同的 mini 版本号，主要用于问题修复以及功能调整
 	- 新功能预计会发布在非稳定版上，待新功能稳定后，会发布新的稳定版本。如 1.3.x 新功能稳定后，会发布 1.4.0 稳定版，以合并 1.3.x 上的新功能
 	- 非稳定版不支持直接升级，比如，不能升级到 1.3.x 这样的版本，只能直接安装非稳定版
-	- **老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
-		- Linux/Mac: `DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"`
-		- Windows: `$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;`
+
+### Breaking Changes
+
+**老版本的 DataKit 通过 `datakit --version` 已经无法推送新升级命令**，直接使用如下命令：
+
+- Linux/Mac:
+
+```shell
+DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+- Windows
+
+```powershell
+$env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
 
 ---
 
