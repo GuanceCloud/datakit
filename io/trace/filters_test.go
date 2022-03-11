@@ -2,7 +2,7 @@ package trace
 
 import (
 	"fmt"
-	"regexp"
+	"sync"
 	"testing"
 	"time"
 )
@@ -41,18 +41,27 @@ func TestCloseResource(t *testing.T) {
 		func(trace DatakitTrace) bool { return trace != nil },
 	}
 
-	closer := &CloseResource{
-		IgnoreResources: map[string][]*regexp.Regexp{"game": {regexp.MustCompile(".*333")}},
-	}
-	for i := range testcases {
-		parentialize(testcases[i])
+	closer := &CloseResource{}
+	closer.UpdateIgnResList(map[string][]string{"game": {".*333"}})
 
-		trace, _ := closer.Close(testcases[i])
-		if !expected[i](trace) {
-			t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
-			t.FailNow()
-		}
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wg.Done()
+
+			for i := range testcases {
+				parentialize(testcases[i])
+
+				trace, _ := closer.Close(testcases[i])
+				if !expected[i](trace) {
+					t.Errorf("close resource %s failed trace:%v", testcases[i][0].Resource, trace)
+					t.FailNow()
+				}
+			}
+		}()
 	}
+	wg.Wait()
 }
 
 func TestKeepRareResource(t *testing.T) {
@@ -63,24 +72,31 @@ func TestKeepRareResource(t *testing.T) {
 		traces = append(traces, trace)
 	}
 
-	keep := &KeepRareResource{
-		Open:     true,
-		Duration: 10 * time.Millisecond,
+	keep := &KeepRareResource{}
+	keep.UpdateStatus(true, 10*time.Millisecond)
+
+	wg := sync.WaitGroup{}
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wg.Done()
+
+			var kept DatakitTraces
+			for i := range traces {
+				time.Sleep(5 * time.Millisecond)
+				if t, skip := keep.Keep(traces[i]); skip {
+					kept = append(kept, t)
+				}
+			}
+			if len(kept) >= len(traces) {
+				t.Errorf("wrong length kept send: %d kept: %d", len(traces), len(kept))
+				t.FailNow()
+			}
+		}()
 	}
+	wg.Wait()
 
 	var kept DatakitTraces
-	for i := range traces {
-		time.Sleep(5 * time.Millisecond)
-		if t, skip := keep.Keep(traces[i]); skip {
-			kept = append(kept, t)
-		}
-	}
-	if len(kept) >= len(traces) {
-		t.Errorf("wrong length kept send: %d kept: %d", len(traces), len(kept))
-		t.FailNow()
-	}
-
-	kept = kept[:0]
 	for i := range traces {
 		time.Sleep(15 * time.Millisecond)
 		if t, skip := keep.Keep(traces[i]); skip {
