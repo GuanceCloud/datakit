@@ -120,7 +120,6 @@ func (cres *CloseResource) UpdateIgnResList(ignResList map[string][]string) {
 type KeepRareResource struct {
 	Open       bool
 	Duration   time.Duration
-	once       sync.Once
 	presentMap sync.Map
 }
 
