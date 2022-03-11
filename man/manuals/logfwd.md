@@ -288,3 +288,4 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 - [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to)
 - [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy)
 - [在 DataKit 上部署 `logfwdserver`](logfwdserver)
+- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 

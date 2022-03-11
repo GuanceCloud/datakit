@@ -238,3 +238,4 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 - [eBPF 采集器：支持容器环境下的流量采集](ebpf)
 - [Pipeline：文本数据处理](pipeline)
+- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 

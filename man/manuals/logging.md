@@ -284,3 +284,4 @@ datakit 也会在处理不及造成日志堆积之后 缓存一定量日志到�
 - [Pipeline 调试](datakit-pl-how-to)
 - [Pipeline 性能测试和对比](logging-pipeline-bench)
 - [`logfwd`: 容器内部日志采集](logfwd)
+- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 

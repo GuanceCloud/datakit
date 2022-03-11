@@ -349,6 +349,16 @@ datakit 根目录
 
 2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。
 
+## 正确使用正则表达式来配置
+
+由于 DataKit 绝大部分使用 Golang 开发，故涉及配置部分中所使用的正则通配，也是使用 Golang 自身的正则实现。由于不同语言的正则体系有一些差异，导致难以一次性正确的将配置写好。
+
+这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/)。如下图所示：
+
+![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/debug-golang-regexp.png)
+
+另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
+
 ## 延伸阅读
 
 - [Kubernetes 环境下的 DataKit 配置](k8s-config-how-to)
