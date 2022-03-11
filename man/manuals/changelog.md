@@ -18,8 +18,8 @@
 
 - 本次对 Tracing 数据采集做了较大的调整，涉及几个方面的不兼容：
 
-  1. [DDtrace](ddtrace) 原有 conf 中配置的 `ignore_resources` 字段需改成 `close_resource`，且字段类型由原来的数组（`[...]`）形式改成了字典数组（`map[string][...]`）形式（可参照 *conf.sample* 来配置）
-  2. DDTrace 原数据中采集的 [tag `type` 字段改成 `source_type`](ddtrace#01b88adb)
+  - [DDtrace](ddtrace) 原有 conf 中配置的 `ignore_resources` 字段需改成 `close_resource`，且字段类型由原来的数组（`[...]`）形式改成了字典数组（`map[string][...]`）形式（可参照 [conf.sample](ddtrace#69995abe) 来配置）
+  - DDTrace 原数据中采集的 [tag `type` 字段改成 `source_type`](ddtrace#01b88adb)
 
 ---
 
