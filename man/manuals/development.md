@@ -327,7 +327,7 @@ func digitVal(ch rune) int {
 }
 ```
 
-> `nolint` 规则参见[这里](https://golangci-lint.run/usage/false-positives/)
+> 何时使用 `nolint`，参见[这里](https://golangci-lint.run/usage/false-positives/)
 
 但我们不建议频繁加上 `//nolint:xxx,yyy` 来掩耳盗铃，如下几种情况可用 lint：
 
@@ -438,3 +438,8 @@ datakit --export-manuals /path/to/doc --man-version $man_version --TODO "-" --ig
 ```shell
 datakit --ignore demo,tailf --export-integration /path/to/integration/git/repo
 ```
+
+## 延伸阅读
+
+- [DataKit Monitor 查看器](datakit-monitor)
+- [DataKit 整体架构介绍](datakit-arch)

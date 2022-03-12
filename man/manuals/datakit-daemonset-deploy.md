@@ -80,3 +80,7 @@ DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有
 > 注意：
 >  `ENV_ENABLE_INPUTS` 已被弃用（但仍有效），建议使用 `ENV_DEFAULT_ENABLED_INPUTS`。如果俩个环境变量同时指定，则==只有后者生效== 。
 >  `ENV_LOG` 如果配置成 `stdout`，则不要将 `ENV_LOG_LEVEL` 设置成 `debug`，否则可能循环产生日志，产生大量日志数据。
+
+## 延伸阅读
+
+- [DataKit 选举](election)
