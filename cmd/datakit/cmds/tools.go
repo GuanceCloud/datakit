@@ -14,23 +14,23 @@ import (
 
 // nolint:unparam
 // There may be some error returned here.
-func runDebugFlags() error {
-	if *FlagDebugWorkDir != "" {
-		datakit.SetWorkDir(*FlagDebugWorkDir)
+func runToolFlags() error {
+	if *FlagToolWorkDir != "" {
+		datakit.SetWorkDir(*FlagToolWorkDir)
 		return nil
 	}
 
-	setCmdRootLog(*flagDebugLogPath)
+	setCmdRootLog(*flagToolLogPath)
 	switch {
-	case *flagDebugDefaultMainConfig:
+	case *flagToolDefaultMainConfig:
 
 		defconf := config.DefaultConfig()
 		fmt.Println(defconf.String())
 		os.Exit(0)
 
-	case *flagDebugCloudInfo != "":
+	case *flagToolCloudInfo != "":
 		tryLoadMainCfg()
-		info, err := showCloudInfo(*flagDebugCloudInfo)
+		info, err := showCloudInfo(*flagToolCloudInfo)
 		if err != nil {
 			errorf("[E] Get cloud info failed: %s\n", err.Error())
 			os.Exit(-1)
@@ -48,9 +48,9 @@ func runDebugFlags() error {
 
 		os.Exit(0)
 
-	case *flagDebugIPInfo != "":
+	case *flagToolIPInfo != "":
 		tryLoadMainCfg()
-		x, err := ipInfo(*flagDebugIPInfo)
+		x, err := ipInfo(*flagToolIPInfo)
 		if err != nil {
 			errorf("[E] get IP info failed: %s\n", err.Error())
 		} else {
@@ -61,7 +61,7 @@ func runDebugFlags() error {
 
 		os.Exit(0)
 
-	case *flagDebugWorkspaceInfo:
+	case *flagToolWorkspaceInfo:
 		tryLoadMainCfg()
 		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
 		body, err := doWorkspace(requrl)
@@ -71,7 +71,7 @@ func runDebugFlags() error {
 		outputWorkspaceInfo(body)
 		os.Exit(0)
 
-	case *flagDebugCheckConfig:
+	case *flagToolCheckConfig:
 		confdir := FlagConfigDir
 		if confdir == "" {
 			tryLoadMainCfg()
@@ -83,9 +83,9 @@ func runDebugFlags() error {
 		}
 		os.Exit(0)
 
-	case *flagDebugDumpSamples != "":
+	case *flagToolDumpSamples != "":
 		tryLoadMainCfg()
-		fpath := *flagDebugDumpSamples
+		fpath := *flagToolDumpSamples
 
 		if err := os.MkdirAll(fpath, datakit.ConfPerm); err != nil {
 			panic(err)
@@ -100,7 +100,7 @@ func runDebugFlags() error {
 		}
 		os.Exit(0)
 
-	case *flagDebugLoadLog:
+	case *flagToolLoadLog:
 		infof("Upload log start...\n")
 		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
 			errorf("[E] upload log failed : %s\n", err.Error())
@@ -109,7 +109,7 @@ func runDebugFlags() error {
 		infof("Upload ok.\n")
 		os.Exit(0)
 
-	case *flagDebugCheckSample:
+	case *flagToolCheckSample:
 		if err := checkSample(); err != nil {
 			os.Exit(-1)
 		}

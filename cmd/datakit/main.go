@@ -71,7 +71,7 @@ func main() {
 		go cgroup.Run()
 
 		// debugging running, not start as service
-		if cmds.FlagWorkDir != "" /* Deprecated */ || *cmds.FlagDebugWorkDir != "" {
+		if cmds.FlagWorkDir != "" /* Deprecated */ || *cmds.FlagToolWorkDir != "" {
 			run()
 		} else {
 			service.Entry = run
