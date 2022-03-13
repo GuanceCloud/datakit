@@ -9,7 +9,7 @@ type nsqTopicMeasurement struct{}
 
 func (*nsqTopicMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
-//nolint
+//nolint:lll
 func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "nsq_topics",
@@ -34,7 +34,7 @@ type nsqNodesMeasurement struct{}
 
 func (*nsqNodesMeasurement) LineProto() (*io.Point, error) { return nil, nil }
 
-//nolint
+//nolint:lll
 func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "nsq_nodes",

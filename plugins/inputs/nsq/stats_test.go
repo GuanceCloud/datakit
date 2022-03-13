@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//nolint
+//nolint:lll
 func TestStatsPoint(t *testing.T) {
 	pointTime := time.Unix(0, 1630911069947935363)
 

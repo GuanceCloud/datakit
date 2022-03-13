@@ -67,7 +67,7 @@ func checkUpdate(curverStr string, acceptRC bool) int {
 	if ver != nil && version.IsNewVersion(ver, curver, acceptRC) {
 		l.Infof("New online version available: %s, commit %s (release at %s)",
 			ver.VersionString, ver.Commit, ver.ReleaseDate)
-		return 42 // nolint
+		return 42
 	} else {
 		if acceptRC {
 			l.Infof("Up to date(%s)", curver.VersionString)

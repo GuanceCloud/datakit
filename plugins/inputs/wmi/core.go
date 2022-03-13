@@ -31,7 +31,7 @@ var (
 const SFalse = 0x00000001
 
 // QueryNamespace invokes Query with the given namespace on the local machine.
-func QueryNamespace(query string, dst interface{}, namespace string) error { //nolint
+func QueryNamespace(query string, dst interface{}, namespace string) error {
 	return Query(query, dst, nil, namespace)
 }
 

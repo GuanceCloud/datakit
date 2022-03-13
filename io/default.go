@@ -123,10 +123,8 @@ func Start() error {
 	if defaultIO.EnableCache {
 		if err := cache.Initialize(datakit.CacheDir, nil); err != nil {
 			log.Warn("initialized cache: %s, ignored", err)
-		} else { //nolint
-			if err := cache.CreateBucketIfNotExists(cacheBucket); err != nil {
-				log.Warn("create bucket: %s", err)
-			}
+		} else if err := cache.CreateBucketIfNotExists(cacheBucket); err != nil {
+			log.Warn("create bucket: %s", err)
 		}
 	}
 

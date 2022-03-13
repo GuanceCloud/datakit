@@ -763,11 +763,10 @@ func (e *ConditionalExpr) Check() error {
 	return nil
 }
 
-// nolint
 // contrast 数值比较
 // 支持类型 int64, float64, json.Number, booler, string, nil  支持符号 < <= == != >= >
 // 如果类型不一致，一定是 false，比如 int64 和 float64 比较
-// 如果是 json.Number 类型，会先取其 float64 值，再进行 < <= > >= 比较
+// 如果是 json.Number 类型，会先取其 float64 值，再进行 < <= > >= 比较.
 func contrast(left interface{}, op string, right interface{}) (b bool, err error) {
 	var (
 		float   []float64
@@ -777,7 +776,7 @@ func contrast(left interface{}, op string, right interface{}) (b bool, err error
 			left, op, right, reflect.TypeOf(left), reflect.TypeOf(right))
 	)
 
-	// all value compared to nil is acceptable:
+	// All value compared to nil is acceptable:
 	//   if 10 == nil
 	//   if "abc" == nil
 	//   ...
@@ -919,6 +918,5 @@ func contrast(left interface{}, op string, right interface{}) (b bool, err error
 		return
 	}
 
-	err = fmt.Errorf("the operator is not available for this type, %s", typeErr.Error())
-	return
+	return b, fmt.Errorf("the operator is not available for this type, %w", typeErr)
 }

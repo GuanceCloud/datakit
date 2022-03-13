@@ -578,7 +578,7 @@ func (dc *dqlCmd) prettyShowRow(s *models.Row, val []interface{}, fmtStr string)
 				}
 
 				// convert ms to second
-				val[colIdx] = time.Unix(i/1000, 0) //nolint
+				val[colIdx] = time.Unix(i/1000, 0)
 			}
 		}
 
