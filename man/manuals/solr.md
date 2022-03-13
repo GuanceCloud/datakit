@@ -56,3 +56,12 @@ DataKit 使用 Solr Metrics API 采集指标数据，支持 Solr 7.0 及以上�
     # 填入绝对路径
     files = ["/path/to/demo.log"] 
 ```
+
+切割日志示例：
+
+```
+2013-10-01 12:33:08.319 INFO (org.apache.solr.core.SolrCore) [collection1] webapp=/solr path=/terms params={timestamp=1380610985478&limit=10&terms.fl=name&q=:&wt=velocity&v.template=suggest &terms.sort=count&terms.prefix=:} status=0 QTime=1069
+```
+
+切割后字段：
+

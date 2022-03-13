@@ -94,6 +94,12 @@ $ $tomcat_dir/bin/startup.sh
 
 * Access Log
 
+日志示例
+
+```
+0:0:0:0:0:0:0:1 - admin [24/Feb/2015:15:57:10 +0530] "GET /manager/images/tomcat.gif HTTP/1.1" 200 2066
+```
+
 |字段名|字段值|说明|
 |---|---|---|
 |time|time|日志产生的时间|
@@ -107,6 +113,12 @@ $ $tomcat_dir/bin/startup.sh
 |bytes|bytes|HTTP 响应 body 的字节数|
 
 * Cataline / Host-manager / Localhost / Manager Log
+
+日志示例
+
+```
+06-Sep-2021 22:33:30.513 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Xmx256m
+```
 
 |字段名|字段值|说明|
 |---|---|---|
