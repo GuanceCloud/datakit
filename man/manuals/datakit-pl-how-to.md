@@ -10,10 +10,12 @@ Pipeline 编写较为麻烦，为此，DataKit 中内置了简单的调试工具
 
 ## 调试 grok 和 pipeline
 
-指定 pipeline 脚本名称（`--pl`，pipeline 脚本必须放在 `<DataKit 安装目录>/pipeline` 目录下），输入一段文本（`--txt`）即可判断提取是否成功
+指定 pipeline 脚本名称，输入一段文本即可判断提取是否成功
+
+> Pipeline 脚本必须放在 *<DataKit 安装目录>/pipeline* 目录下。
 
 ```shell
-datakit --pl your_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+datakit pipeline your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # 表示切割成功
 {
 	"code"   : "io/io.go: 458",       # 对应代码位置
@@ -24,17 +26,21 @@ Extracted data(cost: 421.705µs): # 表示切割成功
 }
 
 # 提取失败示例
-datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
+datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
 No data extracted from pipeline
 ```
 
 > 如果调试文本比较复杂，可以将它们写入一个文件（sample.log），用如下方式调试：
 
 ```shell
-datakit --pl your_pipeline.p --txt "$(< sample.log)"
+datakit pipeline your_pipeline.p -F sample.log
 ```
 
-由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
+更多 Pipeline 调试命令，参见 `datakit help pipeline`。
+
+### Grok 通配搜索
+
+由于 Grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
 datakit --grokq

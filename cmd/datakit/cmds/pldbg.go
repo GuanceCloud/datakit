@@ -15,6 +15,7 @@ import (
 
 func runPLFlags() error {
 	var txt string
+
 	if *flagPLTxtFile != "" {
 		txtBytes, err := ioutil.ReadFile(*flagPLTxtFile)
 		if err != nil {
