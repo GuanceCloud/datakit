@@ -1,6 +1,6 @@
-//nolint
 package cmds
 
+//nolint
 const (
 	TelegrafConfTemplate = `# Telegraf Configuration
 #

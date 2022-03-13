@@ -1,3 +1,4 @@
+// Package cmds used to define various tools used daily
 package cmds
 
 import (

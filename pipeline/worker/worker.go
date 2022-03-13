@@ -101,7 +101,11 @@ func (wkr *plWorker) run(task *Task) []*io.Point {
 	defer func() {
 		if err := recover(); err != nil {
 			l.Errorf("panic err = %v  lasterr=%v", err, wkr.lastErr)
-			wkr.lastErr = err.(error) //nolint
+			switch e := err.(type) {
+			case error:
+				wkr.lastErr = e
+			default: // pass
+			}
 			wkr.lastErrTS = time.Now()
 		}
 	}()
