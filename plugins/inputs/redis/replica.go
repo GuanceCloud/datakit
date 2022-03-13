@@ -1,6 +1,6 @@
-//nolint:unused
 package redis
 
+//nolint:unused
 import (
 	"bufio"
 	"context"

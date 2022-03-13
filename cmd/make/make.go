@@ -1,5 +1,3 @@
-// tool to build datakit
-
 package main
 
 import (

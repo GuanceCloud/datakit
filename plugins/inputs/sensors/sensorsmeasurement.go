@@ -1,4 +1,3 @@
-//nolint:lll
 package sensors
 
 import (
@@ -19,6 +18,7 @@ func (m *sensorsMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *sensorsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sensors",

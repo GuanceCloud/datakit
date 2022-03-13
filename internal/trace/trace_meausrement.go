@@ -1,4 +1,3 @@
-//nolint:lll
 package trace
 
 import (
@@ -21,6 +20,7 @@ func (t *TraceMeasurement) LineProto() (*io.Point, error) {
 	return data, err
 }
 
+//nolint:lll
 func (t *TraceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "",

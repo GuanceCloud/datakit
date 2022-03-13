@@ -1,4 +1,3 @@
-//nolint:lll
 package iis
 
 import (
@@ -29,6 +28,7 @@ func (m *IISAppPoolWas) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *IISAppPoolWas) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameAppPoolWas,
@@ -51,6 +51,7 @@ func (m *IISWebService) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *IISWebService) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameWebService,

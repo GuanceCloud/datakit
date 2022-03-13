@@ -1,6 +1,6 @@
-//nolint:lll
 package iis
 
+//nolint:lll
 const (
 	sampleConfig = `
 [[inputs.iis]]

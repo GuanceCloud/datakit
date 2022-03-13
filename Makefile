@@ -56,9 +56,9 @@ GOLINT_VERSION_VALIDATION_ERR_MSG = golangci-lint version($(GOLINT_VERSION)) is 
 #####################
 
 define GIT_INFO
-//nolint
 package git
 
+//nolint
 const (
 	BuildAt  string = "$(DATE)"
 	Version  string = "$(VERSION)"

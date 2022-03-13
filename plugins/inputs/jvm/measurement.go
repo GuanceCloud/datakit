@@ -1,4 +1,3 @@
-//nolint:lll
 package jvm
 
 import (
@@ -55,6 +54,7 @@ func (j *JavaRuntimeMemt) LineProto() (*io.Point, error) {
 	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_runtime",
@@ -71,6 +71,7 @@ func (j *JavaMemoryMemt) LineProto() (*io.Point, error) {
 	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_memory",
@@ -98,6 +99,7 @@ func (j *JavaGcMemt) LineProto() (*io.Point, error) {
 	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *JavaGcMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_garbage_collector",
@@ -125,6 +127,7 @@ func (j *JavaThreadMemt) LineProto() (*io.Point, error) {
 	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *JavaThreadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_threading",
@@ -145,6 +148,7 @@ func (j *JavaClassLoadMemt) LineProto() (*io.Point, error) {
 	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_class_loading",
@@ -164,6 +168,7 @@ func (j *JavaMemoryPoolMemt) LineProto() (*io.Point, error) {
 	return io.MakePoint(j.name, j.tags, j.fields, j.ts)
 }
 
+//nolint:lll
 func (j *JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "java_memory_pool",

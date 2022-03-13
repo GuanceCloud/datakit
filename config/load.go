@@ -1,5 +1,3 @@
-// Loading datakit configures
-
 package config
 
 import (

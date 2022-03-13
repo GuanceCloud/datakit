@@ -1,4 +1,3 @@
-//nolint:lll
 package kafka
 
 import (
@@ -78,6 +77,7 @@ type KafkaConnectMment struct {
 
 // TODO: add more desc & units
 //    refer to https://github.com/DataDog/integrations-core/blob/master/confluent_platform/metadata.csv
+//nolint:lll
 var connectFields = map[string]interface{}{
 	"commit_id":                            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
 	"start_time_ms":                        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: ""},
@@ -165,6 +165,7 @@ func (j *KafkaConnectMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var producerFields = map[string]interface{}{
 	"io_wait_ratio":                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"io_waittime_total":                         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationNS, Desc: ""},
@@ -244,6 +245,7 @@ func (j *KafkaProducerMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var consumerFields = map[string]interface{}{
 	"count":                                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"bytes_consumed_rate":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
@@ -332,6 +334,7 @@ func (j *KafkaConsumerMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var logFields = map[string]interface{}{
 	"OfflineLogDirectoryCount":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"cleaner_recopy_percent":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
@@ -358,6 +361,7 @@ func (j *KafkaLogMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var networkFields = map[string]interface{}{
 	"NetworkProcessorAvgIdlePercent":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"ExpiredConnectionsKilledCount":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
@@ -383,6 +387,7 @@ func (j *KafkaNetworkMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var requestHandlerFields = map[string]interface{}{
 	"RequestHandlerAvgIdlePercent.RateUnit":          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.String, Desc: ""},
 	"RequestHandlerAvgIdlePercent.EventType":         &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.String, Desc: ""},
@@ -409,6 +414,7 @@ func (j *KafkaRequestHandlerMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var zooKeeperFields = map[string]interface{}{
 	"ZooKeeperRequestLatencyMs.Mean":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
 	"ZooKeeperRequestLatencyMs.98thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
@@ -443,6 +449,7 @@ func (j *KafkaMeasurement) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var controllerFields = map[string]interface{}{
 	"AutoLeaderBalanceRateAndTimeMs.50thPercentile":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"AutoLeaderBalanceRateAndTimeMs.75thPercentile":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
@@ -821,6 +828,7 @@ var replicationTags = map[string]interface{}{
 	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 }
 
+//nolint:lll
 var replicationFields = map[string]interface{}{
 	"FailedIsrUpdatesPerSec.Count":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"FailedIsrUpdatesPerSec.EventType":         &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
@@ -871,6 +879,7 @@ var purgatoryTags = map[string]interface{}{
 	"jolokia_agent_url": inputs.TagInfo{Desc: "jolokia agent url path"},
 }
 
+//nolint:lll
 var purgatoryFields = map[string]interface{}{
 	"AlterAcls.NumDelayedOperations": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"AlterAcls.PurgatorySize":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
@@ -913,6 +922,7 @@ func (j *KafkaRequestMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var requestFields = map[string]interface{}{
 	"LocalTimeMs.50thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
 	"LocalTimeMs.75thPercentile":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: ""},
@@ -1027,6 +1037,7 @@ func (j *KafkaTopicsMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var topicsFields = map[string]interface{}{
 	"BytesInPerSec.Count":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"BytesInPerSec.EventType":         &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
@@ -1189,6 +1200,7 @@ func (j *KafkaTopicMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var topicFields = map[string]interface{}{
 	"BytesInPerSec.Count":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: ""},
 	"BytesInPerSec.EventType":         &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.UnknownUnit, Desc: ""},
@@ -1248,6 +1260,7 @@ func (j *KafkaPartitionMment) LineProto() (*io.Point, error) {
 	return io.NewPoint(j.name, j.tags, j.fields, &io.PointOption{Category: datakit.Metric, Time: j.ts})
 }
 
+//nolint:lll
 var partitionFields = map[string]interface{}{
 	"LogEndOffset":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
 	"LogStartOffset":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: ""},
