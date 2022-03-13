@@ -22,6 +22,10 @@ func runToolFlags() error {
 
 	setCmdRootLog(*flagToolLogPath)
 	switch {
+	case *flagToolGrokQ:
+		grokq()
+		os.Exit(0)
+
 	case *flagToolDefaultMainConfig:
 
 		defconf := config.DefaultConfig()

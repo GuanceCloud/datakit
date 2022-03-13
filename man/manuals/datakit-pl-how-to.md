@@ -15,7 +15,7 @@ Pipeline 编写较为麻烦，为此，DataKit 中内置了简单的调试工具
 > Pipeline 脚本必须放在 *<DataKit 安装目录>/pipeline* 目录下。
 
 ```shell
-datakit pipeline your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ datakit pipeline your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # 表示切割成功
 {
 	"code"   : "io/io.go: 458",       # 对应代码位置
@@ -23,17 +23,23 @@ Extracted data(cost: 421.705µs): # 表示切割成功
 	"module" : "io",                  # 对应代码模块
 	"msg"    : "post cost 6.87021ms", # 纯日志内容
 	"time"   : 1610358231887000000    # 日志时间(Unix 纳秒时间戳)
+	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
+```
 
-# 提取失败示例
-datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
-No data extracted from pipeline
+提取失败示例（只有 `message` 留下了，说明其它字段并未提取出来）：
+
+```shell
+$ datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
+{
+	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
+}
 ```
 
 > 如果调试文本比较复杂，可以将它们写入一个文件（sample.log），用如下方式调试：
 
 ```shell
-datakit pipeline your_pipeline.p -F sample.log
+$ datakit pipeline your_pipeline.p -F sample.log
 ```
 
 更多 Pipeline 调试命令，参见 `datakit help pipeline`。
@@ -43,7 +49,7 @@ datakit pipeline your_pipeline.p -F sample.log
 由于 Grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
-datakit --grokq
+datakit tool --grokq
 grokq > Mon Jan 25 19:41:17 CST 2021   # 此处输入你希望匹配的文本
         2 %{DATESTAMP_OTHER: ?}        # 工具会给出对应对的建议，越靠前匹配月精确（权重也越大）。前面的数字表明权重。
         0 %{GREEDYDATA: ?}
@@ -94,7 +100,7 @@ drop_origin_data()
 将上述多行日志存为 *multi-line.log*，调试一下：
 
 ```shell
-datakit --pl test.p --txt "$(<multi-line.log)"
+$ datakit --pl test.p --txt "$(<multi-line.log)"
 ```
 
 得到如下切割结果：
@@ -170,7 +176,7 @@ Extracted data(cost: 421.705µs):
 - DataKit 全局 Tag，如 `host`。当然，这个全局 Tag 用户也能自行配置
 - 日志采集器默认会增加 `source/service` 这两个 Tag，在 Pipeline 中也不宜出现这两个字段切割
 
-一旦 Pipeline 切割出来的字段中带有上述任何一个 Tag key（大小写敏感），都会导致如下数据报错，故建议在 Pipeline 切割中，绕开这些字段命名。
+一旦 Pipeline 切割出来的字段中带有上述任何一个 Tag key（大小写敏感），都会导致如下数据报错，故建议在 Pipeline 切割中，绕开这些字段命名，或者用 [`set_tag`](pipeline#6e8c5285) 将指定切出来的 field 显式定义为 tag。
 
 ```shell
 # 该错误在 DataKit monitor 中能看到
@@ -211,10 +217,47 @@ json(_, `@timestamp`, "time")
 命令如下：
 
 ```shell
-datakit --pl test.p --txt "..."
+$ datakit pipeline test.p -T "..."
 [E] get pipeline failed: stat /usr/local/datakit/pipeline/test.p: no such file or directory
 ```
 
 ---
 
 A: 调试用的 Pipeline 脚本，需将其放置到 *<DataKit 安装目录>/pipeline* 目录下。
+
+### 如何在一个 Pipeline 中切割多种不同格式的日志？
+
+在日常的日志中，因为业务的不同，日志会呈现出多种形态，此时，需写多个 Grok 切割，为提高 Grok 的运行效率，==可根据日志出现的频率高低，优先匹配出现频率更高的那个 Grok==，这样，大概率日志在前面几个 Grok 中就匹配上了，避免了无效的匹配。
+
+> 在日志切割中，Grok 匹配是性能开销最大的部分，故避免重复的 Grok 匹配，能极大的提高 Grok 的切割性能。
+
+```python
+grok(_, "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} ...")
+if client_ip != nil {
+	# 证明此时上面的 grok 已经匹配上了，那么就按照该日志来继续后续处理
+	...
+} else {
+	# 这里说明是不同的日志来了，上面的 grok 没有匹配上当前的日志
+	grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg} ...")
+
+	if status != nil {
+		# 此处可再检查上面的 grok 是否匹配上...
+	} else {
+		# 未识别的日志，或者，在此可再加一个 grok 来处理，如此层层递进
+	}
+}
+```
+
+### 如何丢弃字段切割
+
+在某些情况下，我们需要的只是日志==中间的几个字段==，但不好跳过前面的部分，比如 
+
+```
+200 356 1 0 44 30032 other messages
+```
+
+其中，我们只需要 `44` 这个值，它可能代码响应延迟，那么可以这样切割（即 Grok 中不附带 `:some_field` 这个部分）：
+
+```python
+grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
+```

@@ -32,7 +32,7 @@ func runPLFlags() error {
 	}
 
 	if txt == "" {
-		return fmt.Errorf("empty txt")
+		return fmt.Errorf("no testing string")
 	}
 
 	if strings.HasSuffix(txt, "\n") {

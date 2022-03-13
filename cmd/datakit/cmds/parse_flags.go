@@ -81,7 +81,6 @@ var (
 	flagPLTxtFile     = fsPL.StringP("file", "F", "", "text file path for the pipeline or grok(json or raw text)")
 	flagPLTable       = fsPL.Bool("tab", false, "output result in table format")
 	flagPLDate        = fsPL.Bool("date", false, "append date display(according to local timezone) on timestamp")
-	flagPLGrokQ       = fsPL.BoolP("grokq", "G", false, "query groks interactively")
 	fsPLUsage         = func() {
 		fmt.Printf("usage: datakit pipeline [pipeline-script-name.p] [options]\n\n")
 		fmt.Printf("Pipeline used to debug exists pipeline script.\n\n")
@@ -166,7 +165,9 @@ var (
 	flagToolLoadLog           = fsTool.Bool("upload-log", false, "upload log")
 	flagToolDefaultMainConfig = fsTool.Bool("default-main-conf", false, "print default datakit.conf")
 	flagToolCheckSample       = fsTool.Bool("check-sample", false, "check all inputs config sample, to ensure all sample are valid TOML")
-	fsToolUsage               = func() {
+	flagToolGrokQ             = fsTool.Bool("grokq", false, "query groks interactively")
+
+	fsToolUsage = func() {
 		fmt.Printf("usage: datakit tool [options]\n\n")
 		fmt.Printf("Various tools for debugging/checking during DataKit daily usage\n\n")
 		fmt.Println(fsTool.FlagUsagesWrapped(0))
@@ -292,13 +293,8 @@ func doParseAndRunFlags() {
 			setCmdRootLog(*flagPLLogPath)
 			tryLoadMainCfg()
 
-			if *flagPLGrokQ {
-				grokq()
-				os.Exit(0)
-			}
-
-			if len(os.Args) <= 2 {
-				errorf("Missing pipeline name and testing text.\n")
+			if len(os.Args) <= 3 {
+				errorf("[E] missing pipeline name and/or testing text.\n")
 				fsPLUsage()
 				os.Exit(-1)
 			}
@@ -307,13 +303,13 @@ func doParseAndRunFlags() {
 
 			// NOTE: args[2] must be the pipeline source name
 			if err := fsPL.Parse(os.Args[3:]); err != nil {
-				errorf("Parse: %s\n", err)
+				errorf("[E] Parse: %s\n", err)
 				fsPLUsage()
 				os.Exit(-1)
 			}
 
 			if err := runPLFlags(); err != nil {
-				errorf("%s\n", err)
+				errorf("[E] %s\n", err)
 				os.Exit(-1)
 			}
 
@@ -321,7 +317,7 @@ func doParseAndRunFlags() {
 
 		case fsVersionName:
 			if err := fsVersion.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
+				errorf("[E] parse: %s\n", err)
 				fsVersionUsage()
 				os.Exit(-1)
 			}
@@ -330,7 +326,7 @@ func doParseAndRunFlags() {
 			tryLoadMainCfg()
 
 			if err := runVersionFlags(); err != nil {
-				errorf("%s\n", err)
+				errorf("[E] %s\n", err)
 				os.Exit(-1)
 			}
 
