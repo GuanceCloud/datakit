@@ -81,8 +81,8 @@ var (
 	flagPLTxtFile     = fsPL.StringP("file", "F", "", "text file path for the pipeline or grok(json or raw text)")
 	flagPLTable       = fsPL.Bool("tab", false, "output result in table format")
 	flagPLDate        = fsPL.Bool("date", false, "append date display(according to local timezone) on timestamp")
-	// flagPLGrokQ       = fsPL.BoolP("grokq", "G", false, "query groks interactively").
-	fsPLUsage = func() {
+	flagPLGrokQ       = fsPL.BoolP("grokq", "G", false, "query groks interactively")
+	fsPLUsage         = func() {
 		fmt.Printf("usage: datakit pipeline [pipeline-script-name.p] [options]\n\n")
 		fmt.Printf("Pipeline used to debug exists pipeline script.\n\n")
 		fmt.Println(fsPL.FlagUsagesWrapped(0))
@@ -288,6 +288,21 @@ func doParseAndRunFlags() {
 			os.Exit(0)
 
 		case fsPLName:
+
+			setCmdRootLog(*flagPLLogPath)
+			tryLoadMainCfg()
+
+			if *flagPLGrokQ {
+				grokq()
+				os.Exit(0)
+			}
+
+			if len(os.Args) <= 2 {
+				errorf("Missing pipeline name and testing text.\n")
+				fsPLUsage()
+				os.Exit(-1)
+			}
+
 			debugPipelineName = os.Args[2]
 
 			// NOTE: args[2] must be the pipeline source name
@@ -296,9 +311,6 @@ func doParseAndRunFlags() {
 				fsPLUsage()
 				os.Exit(-1)
 			}
-
-			setCmdRootLog(*flagPLLogPath)
-			tryLoadMainCfg()
 
 			if err := runPLFlags(); err != nil {
 				errorf("%s\n", err)
