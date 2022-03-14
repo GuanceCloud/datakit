@@ -172,7 +172,9 @@ func generatePipelineScripts() error {
 		"jenkins.p": {
 			`2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins`,
 		},
-		"kafka.p": {},
+		"kafka.p": {
+			`[2020-07-07 15:04:29,333] DEBUG Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 (io.confluent.connect.s3.storage.S3OutputStream:286)`,
+		},
 		"mongodb.p": {
 			`{"t":{"$date":"2021-06-03T09:12:19.977+00:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"WTCheckpointThread","msg":"WiredTiger message","attr":{"message":"[1622711539:977142][1:0x7f1b9f159700], WT_SESSION.checkpoint: [WT_VERB_CHECKPOINT_PROGRESS] saving checkpoint snapshot min: 653, snapshot max: 653 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0)"}}`,
 		},
@@ -200,11 +202,16 @@ SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5`,
 		"redis.p": {
 			`122:M 14 May 2019 19:11:40.164 * Background saving terminated with success`,
 		},
-		"solr.p": {},
+		"solr.p": {
+			`2013-10-01 12:33:08.319 INFO (org.apache.solr.core.SolrCore) [collection1] webapp.reporter`,
+		},
 		"sqlserver.p": {
 			`2021-05-28 10:46:07.78 spid10s     0 transactions rolled back in database 'msdb' (4:0). This is an informational message only. No user action is required`,
 		},
-		"tomcat.p": {},
+		"tomcat.p": {
+			`0:0:0:0:0:0:0:1 - admin [24/Feb/2015:15:57:10 +0530] "GET /manager/images/tomcat.gif HTTP/1.1" 200 2066`,
+			`06-Sep-2021 22:33:30.513 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Xmx256m`,
+		},
 	}
 	// Encode log examples with base64.
 	for _, examples := range logExamples {
