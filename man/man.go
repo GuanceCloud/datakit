@@ -25,7 +25,8 @@ var (
 		"apis":                     "man/manuals/apis.md",
 		"changelog":                "man/manuals/changelog.md",
 		"datakit-arch":             "man/manuals/datakit-arch.md",
-		"datakit-sink":             "man/manuals/datakit-sink.md",
+		"datakit-sink-guide":       "man/manuals/datakit-sink-guide.md",
+		"datakit-sink-dev":         "man/manuals/datakit-sink-dev.md",
 		"datakit-batch-deploy":     "man/manuals/datakit-batch-deploy.md",
 		"datakit-daemonset-deploy": "man/manuals/datakit-daemonset-deploy.md",
 

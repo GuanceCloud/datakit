@@ -2,6 +2,8 @@
 package sinkcommon
 
 import (
+	"time"
+
 	client "github.com/influxdata/influxdb1-client/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
@@ -10,6 +12,14 @@ import (
 
 type ISinkPoint interface {
 	ToPoint() *client.Point
+	ToJSON() (*JSONPoint, error)
+}
+
+type JSONPoint struct {
+	Measurement string                 `json:"measurement"`
+	Tags        map[string]string      `json:"tags,omitempty"`
+	Fields      map[string]interface{} `json:"fields"`
+	Time        time.Time              `json:"time,omitempty"`
 }
 
 type ISink interface {
