@@ -16,15 +16,15 @@ GLOB_PATTERN = "**/*.go"
 COPYRIGHT_HEADER = """
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the MIT License.
-// This product includes software developed at TODO (https://www.datakit.tools/).
-// Copyright TODO
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
 """.strip()
 
 COPYRIGHT_REGEX = [
     r'^// Unless explicitly stated otherwise all files in this repository are licensed$',
     r'^// under the MIT License\.$',
-    r'^// This product includes software developed at TODO \(https://www\.datakit\.tools/\)\.$',
-    r'^// Copyright TODO$',
+    r'^// This product includes software developed at Guance Cloud \(https://www\.guance\.com/\)\.$',
+    r'^// Copyright 20[1-3][0-9]-([Pp]resent|20[1-3][0-9]) Guance, (Inc|Inmetrics)\.$',
 ]
 
 # These path patterns are excluded from checks
@@ -36,6 +36,7 @@ PATH_EXCLUSION_REGEX = [
     '/internal/win_utils/pdh',
     '/internal/msgpack',
     '/.git/',
+    '/git/',
 ]
 
 # These header matchers skip enforcement of the rules if found in the first
