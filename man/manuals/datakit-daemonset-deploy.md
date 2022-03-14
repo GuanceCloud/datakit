@@ -10,7 +10,7 @@
 
 ## 安装步骤 
 
-先下载[datakit.yaml](https://static.guance.com/datakit/datakit.yaml) ,在该配置中，需做如下配置：
+先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml) ,在该配置中，需做如下配置：
 
 - kubernetes：用来采集 Kubernetes 中心指标，需要填写 kubernetes 中心采集地址
 
