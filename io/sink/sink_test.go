@@ -165,7 +165,7 @@ func TestAggregationCategorys(t *testing.T) {
 					"database":   "db0",
 					"user_agent": "go_test_client",
 					"timeout":    "6s",
-					"categories": []string{"M"},
+					"categories": []interface{}{"M"},
 				},
 			},
 		},
@@ -173,26 +173,26 @@ func TestAggregationCategorys(t *testing.T) {
 			name: "categories_empty",
 			in: []map[string]interface{}{
 				{
-					"categories": []string{},
+					"categories": []interface{}{},
 				},
 			},
 			expectError: fmt.Errorf("invalid categories: empty"),
 		},
 		{
-			name: "categories_not_[]string",
+			name: "categories_not_[]interface{}",
 			in: []map[string]interface{}{
 				{
 					"categories": "",
 				},
 			},
-			expectError: fmt.Errorf("invalid categories: not []string"),
+			expectError: fmt.Errorf("invalid categories: not []interface{}: %#v", ""),
 		},
 		{
 			name: "invalid_id",
 			in: []map[string]interface{}{
 				{
 					"id":         123,
-					"categories": []string{"M"},
+					"categories": []interface{}{"M"},
 				},
 			},
 			expectError: fmt.Errorf("invalid id: not string"),
@@ -223,7 +223,7 @@ func TestAggregationCategorys(t *testing.T) {
 					"database":   "db0",
 					"user_agent": "go_test_client",
 					"timeout":    "6s",
-					"categories": []string{"M1"},
+					"categories": []interface{}{"M1"},
 				},
 			},
 			expectError: fmt.Errorf("unrecognized category"),
