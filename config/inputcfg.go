@@ -403,3 +403,72 @@ func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[s
 	}
 	return
 }
+
+func ReloadInputConfig() error {
+	confRootPath := GetConfRootPaths()
+
+	var confTables []map[string]*ast.Table
+
+	for _, v := range confRootPath {
+		m := LoadInputsConfigEx(v)
+		if len(m) != 0 {
+			confTables = append(confTables, m)
+		}
+	}
+
+	return ReloadInputTables(confTables)
+}
+
+func ReloadInputTables(confTables []map[string]*ast.Table) error {
+	defer func() {
+		if GitHasEnabled() {
+			// #501 issue
+			for _, name := range Cfg.DefaultEnabledInputs {
+				if c, ok := inputs.Inputs[name]; ok {
+					i := c()
+					sample := i.SampleConfig()
+					tpl, err := parseCfgBytes([]byte(sample))
+					if err != nil {
+						l.Errorf("parseCfgBytes failed: %s", err.Error())
+						continue
+					}
+					res := getCheckInputCfgResult(tpl)
+					if !res.Runnable() {
+						l.Errorf("getCheckInputCfgResult failed: input_cfg_invalid")
+						continue
+					}
+					for _, i := range res.AvailableInputs {
+						inputs.AddInput(name, i)
+					}
+				}
+			} // if
+		} // if GitHasEnabled()
+	}()
+
+	if len(confTables) == 0 {
+		return nil
+	}
+
+	inputs.Init()
+
+	// reset inputs(for reloading)
+	l.Debug("reset inputs")
+	inputs.ResetInputs()
+
+	for _, v := range confTables {
+		for name, creator := range inputs.Inputs {
+			if !datakit.Enabled(name) {
+				l.Debugf("ignore unchecked input %s", name)
+				continue
+			}
+
+			doLoadInputConf(name, creator, v)
+		}
+	}
+
+	if !DisableSelfInput {
+		inputs.AddSelf()
+	}
+
+	return nil
+}
