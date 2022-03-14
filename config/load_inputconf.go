@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
@@ -12,7 +11,6 @@ import (
 )
 
 func doLoadConf(confData string, creators map[string]inputs.Creator) (map[string][]inputs.Input, error) {
-
 	ret := map[string][]inputs.Input{}
 
 	var res map[string]interface{}
@@ -22,14 +20,22 @@ func doLoadConf(confData string, creators map[string]inputs.Creator) (map[string
 		return nil, err
 	}
 
-	for k, v := range res {
+	//	对现有的 conf 而言，无非如下格式：
+	//	  [inputs.xxx]
+	//	或者
+	//	  [[inputs.xxx]]
+	//	不管怎么解析，第一层是一个 map[string]interface{}，这里的 string 就是 inputs
+	//	第二层，就是具体的 inputs 名称，但它本质上也是一个 map[string]interface{}，这里的 string 就是上面的 xxx
+	//	第三层，就是具体的采集器了，它可以是数组形式的，也可以是非数组形式的
+
+	for k, v := range res { // 第一层
 		if k != "inputs" {
 			l.Warnf("ingore none input conf: %s, ignored", k)
 			continue
 		}
 
 		switch x := v.(type) {
-		case map[string]interface{}:
+		case map[string]interface{}: // 第二层
 			for inputName, b := range x {
 
 				c, ok := creators[inputName]
@@ -38,7 +44,7 @@ func doLoadConf(confData string, creators map[string]inputs.Creator) (map[string
 					continue
 				}
 
-				switch y := b.(type) {
+				switch y := b.(type) { // 第三层
 				case []map[string]interface{}: // it's a inputs array: [[inputs.xxx]]
 					for _, input := range y {
 
@@ -59,9 +65,12 @@ func doLoadConf(confData string, creators map[string]inputs.Creator) (map[string
 					}
 
 				default:
-					return nil, fmt.Errorf("unexpect input conf")
+					l.Warnf("unexpect input conf, got type %s, ignored", reflect.TypeOf(b).String())
 				}
 			}
+
+		default:
+			l.Warnf("ignore %s, got type %s", k, reflect.TypeOf(v).String())
 		}
 	}
 
