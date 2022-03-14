@@ -4,6 +4,7 @@ package sinkinfluxdb
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
@@ -77,16 +78,6 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 		s.addr = addrNew
 	}
 
-	if precision, err := dkstring.GetMapAssertString("precision", mConf); err != nil {
-		return err
-	} else {
-		precisionNew, err := dkstring.CheckNotEmpty(precision, "precision")
-		if err != nil {
-			return err
-		}
-		s.precision = precisionNew
-	}
-
 	if database, err := dkstring.GetMapAssertString("database", mConf); err != nil {
 		return err
 	} else {
@@ -95,6 +86,12 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 			return err
 		}
 		s.database = databaseNew
+	}
+
+	if precision, err := dkstring.GetMapAssertString("precision", mConf); err != nil {
+		return err
+	} else {
+		s.precision = precision
 	}
 
 	if username, err := dkstring.GetMapAssertString("username", mConf); err != nil {
@@ -165,6 +162,8 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 		s.cliType = clientTypeHTTP
 	case "udp":
 		s.cliType = clientTypeUDP
+		tmpAddr := strings.Replace(s.addr, "udp://", "", -1)
+		s.addr = tmpAddr
 	default:
 		return fmt.Errorf("invalid addr")
 	}

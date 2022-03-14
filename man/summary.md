@@ -23,6 +23,7 @@
 - [DataKit 选举支持](election)
 - [DataKit API](apis)
 - [DataKit 整体架构简介](datakit-arch)
+- [DataKit Sink 简介](datakit-sink)
 - [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
   - [调试 Pipeline](datakit-pl-how-to)
