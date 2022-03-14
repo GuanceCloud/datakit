@@ -22,7 +22,7 @@
 {{.InputSample}}
 ```
 
-_对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置_
+> 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
 
 ### 根据 image 过滤容器
 
@@ -40,6 +40,8 @@ _对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂
   ## 忽略所有容器
   container_exclude_metric = ["image:*"]
 ```
+
+> ==[Daemonset 方式部署](datakit-daemonset-deploy)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to#ebf019c2) 来配置这些镜像的开关==
 
 假设有 3 个容器，image 分别是：
 
@@ -239,3 +241,4 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 - [eBPF 采集器：支持容器环境下的流量采集](ebpf)
 - [Pipeline：文本数据处理](pipeline)
 - [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 
+- [Kubernetes 下 DataKit 的几种配置方式](k8s-config-how-to)
