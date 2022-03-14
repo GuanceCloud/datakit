@@ -162,7 +162,7 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 		s.cliType = clientTypeHTTP
 	case "udp":
 		s.cliType = clientTypeUDP
-		tmpAddr := strings.Replace(s.addr, "udp://", "", -1)
+		tmpAddr := strings.ReplaceAll(s.addr, "udp://", "")
 		s.addr = tmpAddr
 	default:
 		return fmt.Errorf("invalid addr")
