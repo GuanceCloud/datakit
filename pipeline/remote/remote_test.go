@@ -4,13 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"path/filepath"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
+
+//------------------------------------------------------------------------------
+
+// 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
+func checkDevHost() bool {
+	if envs := os.Getenv("LOCAL_UNIT_TEST"); envs == "" {
+		return false
+	}
+	return true
+}
 
 //------------------------------------------------------------------------------
 
@@ -153,6 +162,14 @@ func (*pipelineRemoteMockerTest) FeedLastError(inputName string, err string) {}
 
 func (*pipelineRemoteMockerTest) GetNamespacePipelineFiles(namespace string) ([]string, error) {
 	return nil, errGetNamespacePipelineFiles
+}
+
+func (*pipelineRemoteMockerTest) ReadTarToMap(srcFile string) (map[string]string, error) {
+	return nil, nil
+}
+
+func (*pipelineRemoteMockerTest) WriteTarFromMap(data map[string]string, dest string) error {
+	return nil
 }
 
 //------------------------------------------------------------------------------
@@ -330,17 +347,12 @@ func TestDumpFiles(t *testing.T) {
 		failedReadDir   error
 		failedWriteFile error
 		expectError     error
-		expect          []string
 	}{
 		{
 			name: "normal",
 			files: map[string]string{
 				"123.p": "text123",
 				"456.p": "text456",
-			},
-			expect: []string{
-				filepath.Join(datakit.InstallDir, "pipeline_remote/123.p"),
-				filepath.Join(datakit.InstallDir, "pipeline_remote/456.p"),
 			},
 		},
 		{
@@ -364,20 +376,8 @@ func TestDumpFiles(t *testing.T) {
 			errWriteFile = tc.failedWriteFile
 			errReadDir = tc.failedReadDir
 
-			arr, err := dumpFiles(tc.files, &pipelineRemoteMockerTest{})
+			err := dumpFiles(tc.files, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "dumpFiles found error: %v", err)
-
-			// cannot compare []string directly because of golang map random sort.
-			assert.Equal(t, len(tc.expect), len(arr), "dumpFiles length not equal!")
-			mV := make(map[string]struct{})
-			for _, v1 := range arr {
-				mV[v1] = struct{}{}
-			}
-			for _, v := range tc.expect {
-				if _, ok := mV[v]; !ok {
-					assert.Fail(t, fmt.Sprintf("dumpFiles not found: %s", v))
-				}
-			}
 		})
 	}
 }
