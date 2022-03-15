@@ -15,9 +15,19 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
+var sinkName = "dataway"
+
 func MockWrite(category string, pts []sinkcommon.ISinkPoint) error {
 	fmt.Println("write points", category, pts)
 
+	return nil
+}
+
+func MockMetricWrite(category string, pts []sinkcommon.ISinkPoint) error {
+	FeedMetric(&SinkMetric{
+		Name:      sinkName,
+		IsSuccess: true,
+	})
 	return nil
 }
 
@@ -75,6 +85,25 @@ func TestSender(t *testing.T) {
 			sender.Stop()
 			sender.Wait()
 		})
+	})
+
+	t.Run("update sink metric", func(t *testing.T) {
+		sender, err := NewSender(&Option{Write: MockMetricWrite})
+		assert.NoError(t, err)
+
+		err = sender.Write("metric", WrapPoint([]*influxdb.Point{p}))
+		sender.Wait()
+		assert.NoError(t, err)
+
+		time.Sleep(1 * time.Second)
+		stat := GetStat()
+		fmt.Println(stat)
+		sinkMetric, ok := stat[sinkName]
+		if !ok {
+			t.Fatalf("should feed %s ", sinkName)
+		}
+		assert.True(t, ok)
+		assert.EqualValues(t, 1, sinkMetric.Count)
 	})
 
 	t.Run("exit when receive global exit", func(t *testing.T) {

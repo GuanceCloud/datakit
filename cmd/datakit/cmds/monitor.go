@@ -38,7 +38,7 @@ var (
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
-	senderStatCols   = strings.Split(`Sink,Uptime,Count,Failed,Pts,Raw Bytes,Sent Bytes,2xx,4xx,5xx`, ",")
+	senderStatCols   = strings.Split(`Sink,Uptime,Count,Failed,Pts,Raw Bytes,Bytes,2xx,4xx,5xx,Timeout`, ",")
 )
 
 func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
@@ -442,6 +442,9 @@ func (m *monitorAPP) renderSenderTable(ds *dkhttp.DatakitStats, colArr []string)
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
 		table.SetCell(row, 9, tview.NewTableCell(func() string {
 			return humanize.SI(float64(stat.Status5XX), "")
+		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
+		table.SetCell(row, 10, tview.NewTableCell(func() string {
+			return humanize.SI(float64(stat.TimeoutCount), "")
 		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter))
 
 		row++

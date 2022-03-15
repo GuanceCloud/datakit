@@ -71,6 +71,12 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 		dc.fails++
 		log.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
 
+		urlError, ok := err.(*url.Error)
+
+		if ok && urlError.Timeout() {
+			statusCode = -1 // timeout
+		}
+
 		return statusCode, err
 	}
 	span.SetTag("status", resp.Status)
