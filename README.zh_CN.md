@@ -55,7 +55,32 @@ DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L ht
 $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
+- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
+
 更多关于安装的文档，参见[这里](https://www.yuque.com/dataflux/datakit/datakit-install)。
+
+### 安装非稳定版
+
+同时我们也发布了 DataKit 的[非稳定版](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d)，可通过如下方式安装：
+
+- Linux & Mac
+
+```bash
+DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/rc/install.sh)"
+```
+
+- Windows
+
+```powershell
+$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/rc/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+
+- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
+
+```
+# 我们须替换上文中的 yaml 地址
+wget https://static.guance.com/datakit/rc/datakit.yaml
+```
 
 ## 源码编译
 

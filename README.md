@@ -58,7 +58,32 @@ DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L ht
 $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
+- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
+
 For more documentations about DataKit installation, see [here](https://www.yuque.com/dataflux/datakit/datakit-install).
+
+### Install unstable release
+
+We also released the [unstable DataKit](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d), we can install via
+
+- Linux & Mac
+
+```bash
+DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>" bash -c "$(curl -L https://static.guance.com/datakit/rc/install.sh)"
+```
+
+- Windows
+
+```powershell
+$env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/rc/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+
+- [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
+
+```
+# We should use the unstable version yaml
+wget https://static.guance.com/datakit/rc/datakit.yaml
+```
 
 ## Build From Source
 
