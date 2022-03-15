@@ -1,13 +1,9 @@
 before_script:
-  - (flock -x 200) 200>/var/lock/.datakit-ci.lock
   - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - source ~/.ossenv
-
-after_script:
-  - flock -u 200 # drop the lock
 
 variables:
   PROJECT: "datakit"
