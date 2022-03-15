@@ -16,10 +16,10 @@ type ISinkPoint interface {
 }
 
 type JSONPoint struct {
-	Measurement string                 `json:"measurement"`
-	Tags        map[string]string      `json:"tags,omitempty"`
-	Fields      map[string]interface{} `json:"fields"`
-	Time        time.Time              `json:"time,omitempty"`
+	Measurement string                 `json:"measurement"`    // measurement name of the point.
+	Tags        map[string]string      `json:"tags,omitempty"` // tags associated with the point.
+	Fields      map[string]interface{} `json:"fields"`         // the fields for the point.
+	Time        time.Time              `json:"time,omitempty"` // timestamp for the point.
 }
 
 type ISink interface {

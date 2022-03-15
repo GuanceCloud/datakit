@@ -16,6 +16,20 @@ Sink 是一个强大的存储写入模块，只需要几步简单配置，就能
 
 <b>以上参数都是是必须参数</b>。
 
+`categories` 中各字符串对应的上报指标集如下:
+
+| `categories` 字符串 | 指标集 |
+|  ----  | ----  |
+| `M`  |  `Metric` |
+| `N`  |  `Network` |
+| `K`  |  `KeyEvent` |
+| `O`  |  `Object` |
+| `CO`  | `CustomObject` |
+| `L`  |  `Logging` |
+| `T`  |  `Tracing` |
+| `R`  |  `RUM` |
+| `S`  |  `Security` |
+
 # 如何使用
 
 只需要以下简单三步:

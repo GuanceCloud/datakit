@@ -36,6 +36,9 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 
 func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
   // 写入数据
+  // 这里你可能要熟悉下 ISinkPoint 这个 interface，里面有两个方法 ToPoint 和 ToJSON 供使用。
+  //   ToPoint 返回的是 influxdb 的 point;
+  //   ToJSON 返回的是结构体，如果不想使用 influxdb 的东西可以使用这个。
   ...
 }
 ```
