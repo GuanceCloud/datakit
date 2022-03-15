@@ -1,4 +1,4 @@
-# DataKit Sink 简介
+# DataKit Sink 使用文档
 
 Sink 是一个强大的存储写入模块，只需要几步简单配置，就能够支持用户写入不同的后端存储。
 
@@ -15,6 +15,20 @@ Sink 是一个强大的存储写入模块，只需要几步简单配置，就能
 - `categories`: 汇报数据的类型。如 `["M", "N", "K", "O", "CO", "L", "T", "R", "S"]`。
 
 <b>以上参数都是是必须参数</b>。
+
+`categories` 中各字符串对应的上报指标集如下:
+
+| `categories` 字符串 | 指标集 |
+|  ----  | ----  |
+| `M`  |  `Metric` |
+| `N`  |  `Network` |
+| `K`  |  `KeyEvent` |
+| `O`  |  `Object` |
+| `CO`  | `CustomObject` |
+| `L`  |  `Logging` |
+| `T`  |  `Tracing` |
+| `R`  |  `RUM` |
+| `S`  |  `Security` |
 
 # 如何使用
 
@@ -62,18 +76,18 @@ Sink 是一个强大的存储写入模块，只需要几步简单配置，就能
 
 influxdb 的 sink 实例目前支持以下参数:
 
-- id(必须): 实例编号，<b>唯一</b>。
-- addr(必须): HTTP addr should be of the form "http://host:port" or "http://[ipv6-host%zone]:port". UDP addr should be of the form "udp://host:port" or "udp://[ipv6-host%zone]:port".
-- database(必须): Database is the database to write points to.
-- precision: Precision is the write precision of the points, defaults to "ns".
-- username: Username is the influxdb username, optional.
-- password: Password is the influxdb password, optional.
-- timeout: Timeout for influxdb writes, defaults to no timeout.
-- user_agent: UserAgent is the http User Agent, defaults to "InfluxDBClient".
-- retention_policy: RetentionPolicy is the retention policy of the points.
-- write_consistency: Write consistency is the number of servers required to confirm write.
-- write_encoding: WriteEncoding specifies the encoding of write request
-- payload_size(UDP 协议专用): PayloadSize is the maximum size of a UDP client message, optional. Tune this based on your network. Defaults to 512.
+- `id`(必须): 实例编号，<b>唯一</b>。
+- `addr`(必须): HTTP addr should be of the form `http://host:port` or `http://[ipv6-host%zone]:port`. UDP addr should be of the form `udp://host:port` or `udp://[ipv6-host%zone]:port`.
+- `database`(必须): Database is the database to write points to.
+- `precision`: Precision is the write precision of the points, defaults to "ns".
+- `username`: Username is the influxdb username, optional.
+- `password`: Password is the influxdb password, optional.
+- `timeout`: Timeout for influxdb writes, defaults to no timeout.
+- `user_agent`: UserAgent is the http User Agent, defaults to "InfluxDBClient".
+- `retention_policy`: RetentionPolicy is the retention policy of the points.
+- `write_consistency`: Write consistency is the number of servers required to confirm write.
+- `write_encoding`: WriteEncoding specifies the encoding of write request
+- `payload_size`(UDP 协议专用): PayloadSize is the maximum size of a UDP client message, optional. Tune this based on your network. Defaults to 512.
 
 ### 第三步: 重启 datakit
 

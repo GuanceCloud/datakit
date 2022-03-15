@@ -21,3 +21,16 @@ var _ sinkcommon.ISinkPoint = new(Point)
 func (p *Point) ToPoint() *influxdb.Point {
 	return p.Point
 }
+
+func (p *Point) ToJSON() (*sinkcommon.JSONPoint, error) {
+	fields, err := p.Point.Fields()
+	if err != nil {
+		return nil, err
+	}
+	return &sinkcommon.JSONPoint{
+		Measurement: p.ToPoint().Name(),
+		Tags:        p.Point.Tags(),
+		Fields:      fields,
+		Time:        p.Point.Time(),
+	}, nil
+}

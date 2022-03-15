@@ -43,7 +43,7 @@ func TestSender(t *testing.T) {
 	err = sender.Wait()
 	assert.NoError(t, err)
 
-	assert.True(t, sender.Stat.SuccessCount > 0)
+	assert.True(t, len(sender.Stat) > 0)
 
 	t.Run("cache data when failed", func(t *testing.T) {
 		sender, err := NewSender(&Option{Cache: true, CacheDir: testDir, FlushCacheInterval: time.Second, Write: MockWriteFailed})

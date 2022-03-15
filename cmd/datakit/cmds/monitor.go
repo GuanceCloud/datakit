@@ -616,7 +616,6 @@ func (m *monitorAPP) render() {
 		}
 
 		m.renderSenderTable(m.ds, senderStatCols)
-
 	}
 
 	m.renderExitPrompt()

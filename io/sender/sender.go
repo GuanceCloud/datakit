@@ -24,6 +24,10 @@ type Point struct {
 	*influxdb.Point
 }
 
+func (p *Point) ToJSON() (*sinkcommon.JSONPoint, error) {
+	return nil, nil
+}
+
 var _ sinkcommon.ISinkPoint = new(Point)
 
 var lock sync.Mutex
