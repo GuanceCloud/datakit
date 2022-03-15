@@ -571,6 +571,14 @@ func (c *Config) LoadEnvs() error {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
+		if x, err := strconv.ParseFloat(v, 10); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)
+		} else {
+			c.HTTPAPI.RequestRateLimit = float64(x)
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_NAMESPACE"); v != "" {
 		c.Namespace = v
 	}
