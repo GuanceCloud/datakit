@@ -69,20 +69,15 @@ func (d *dockerInput) watchingContainerLog(ctx context.Context, container *types
 
 	logconf := func() *containerLogConfig {
 		if datakit.Docker && tags["pod_name"] != "" {
-			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["pod_namesapce"])
+			return getContainerLogConfigForK8s(d.k8sClient, tags["pod_name"], tags["pod_namespace"])
 		}
 		return getContainerLogConfigForDocker(container.Labels)
 	}()
 
 	if logconf != nil {
-		l.Debugf("use contaier logconfig %#v, container_name:%s", logconf, tags["container_name"])
-		if logconf.Disable {
-			l.Debugf("disable contaier log, container_name:%s pod_name:%s", tags["container_name"], tags["pod_name"])
-			return nil
-		}
-
 		logconf.tags = tags
 		logconf.containerID = container.ID
+		l.Debugf("use container logconfig:%#v, containerName:%s", logconf, tags["container_name"])
 	} else {
 		logconf = &containerLogConfig{
 			Source:      getContainerLogSource(tags["image_short_name"]),
@@ -185,11 +180,12 @@ func (d *dockerInput) tailMultiplexed(ctx context.Context, src io.ReadCloser, lo
 }
 
 type containerLogConfig struct {
-	Disable   bool   `json:"disable"`
-	Source    string `json:"source"`
-	Pipeline  string `json:"pipeline"`
-	Service   string `json:"service"`
-	Multiline string `json:"multiline_match"`
+	Disable    bool     `json:"disable"`
+	Source     string   `json:"source"`
+	Pipeline   string   `json:"pipeline"`
+	Service    string   `json:"service"`
+	Multiline  string   `json:"multiline_match"`
+	OnlyImages []string `json:"only_images"`
 
 	containerID string
 	tags        map[string]string
@@ -224,9 +220,10 @@ func (c *containerLogConfig) checking() error {
 }
 
 const (
-	containerLableForPodName      = "io.kubernetes.pod.name"
-	containerLableForPodNamespace = "io.kubernetes.pod.namespace"
-	containerLogConfigKey         = "datakit/logs"
+	containerLableForPodName          = "io.kubernetes.pod.name"
+	containerLableForPodNamespace     = "io.kubernetes.pod.namespace"
+	containerLableForPodContainerName = "io.kubernetes.container.name"
+	containerLogConfigKey             = "datakit/logs"
 )
 
 func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
@@ -277,7 +274,6 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 
 	logconf.tags["service"] = logconf.Service
 	logconf.tags["stream"] = stream
-	logconf.tags["service"] = logconf.Service
 
 	containerName := logconf.tags["container_name"]
 
@@ -289,9 +285,10 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 
 	newTask := func() *worker.Task {
 		return &worker.Task{
-			TaskName:   "containerlog/" + logconf.Source,
-			Source:     logconf.Source,
-			ScriptName: logconf.Pipeline,
+			TaskName:      "containerlog/" + logconf.Source,
+			Source:        logconf.Source,
+			ScriptName:    logconf.Pipeline,
+			MaxMessageLen: d.cfg.maxLoggingLength,
 		}
 	}
 
@@ -305,17 +302,17 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		case <-ctx.Done():
 			return nil
 		case <-timeout.C:
-			if line := mult.Flush(); len(line) != 0 {
+			if text := mult.Flush(); len(text) != 0 {
 				task := newTask()
 				task.Data = []worker.TaskData{
 					&taskData{
 						tags: logconf.tags,
-						log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
+						log:  removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes),
 					},
 				}
 				task.TS = time.Now()
 				if err := worker.FeedPipelineTaskBlock(task); err != nil {
-					l.Errorf("failed to feed log, containerName: %s, err: %w", containerName, err)
+					l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
 				}
 			}
 		default:
@@ -351,7 +348,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
+					log:  removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes),
 				},
 			)
 		}
@@ -365,7 +362,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		task.TS = time.Now()
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
-			l.Errorf("failed to feed log, containerName: %s, err: %w", containerName, err)
+			l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
 		}
 	}
 }
@@ -386,7 +383,7 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 			"container_type": inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
 			"stream":         inputs.NewTagInfo(`数据流方式，stdout/stderr/tty`),
 			"pod_name":       inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
-			"pod_namesapce":  inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
+			"pod_namespace":  inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
 			"deployment":     inputs.NewTagInfo(`deployment 名称（容器由 k8s 创建时存在）`),
 			"service":        inputs.NewTagInfo(`服务名称`),
 		},
@@ -399,11 +396,11 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 
 type taskData struct {
 	tags map[string]string
-	log  string
+	log  []byte
 }
 
 func (t *taskData) GetContent() string {
-	return t.log
+	return string(t.log)
 }
 
 func (t *taskData) Handler(r *worker.Result) error {

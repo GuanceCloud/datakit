@@ -252,18 +252,8 @@ func (pe *PythonDInput) start() error {
 
 //------------------------------------------------------------------------------
 
-type mockFolderList interface {
-	GetFolderList(root string, deep int) (folders, files []string, err error)
-}
-
-type folderListMocker struct{}
-
-func (*folderListMocker) GetFolderList(root string, deep int) (folders, files []string, err error) {
-	return path.GetFolderList(root, deep)
-}
-
-func getPyModules(root string, mlist mockFolderList) []string {
-	_, files, err := mlist.GetFolderList(root, 2)
+func getPyModules(root string, ipd IPythond) []string {
+	_, files, err := ipd.GetFolderList(root, 2)
 	if err != nil {
 		l.Error(err)
 		return nil
@@ -301,21 +291,11 @@ func getFilteredPyModules(files []string, root string) []string {
 
 //------------------------------------------------------------------------------
 
-type mockPath interface {
-	IsDir(path string) bool
-}
-
-type pathMocker struct{}
-
-func (*pathMocker) IsDir(ph string) bool {
-	return path.IsDir(ph)
-}
-
 // https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/509
-func searchPythondDir(dirName string, enabledRepos []string, mp mockPath) string {
+func searchPythondDir(dirName string, enabledRepos []string, ipd IPythond) string {
 	for _, v := range enabledRepos {
 		destPath := filepath.Join(datakit.GitReposDir, v, datakit.GitRepoSubDirNamePythond, dirName)
-		if mp.IsDir(destPath) {
+		if ipd.IsDir(destPath) {
 			return destPath
 		}
 	}
@@ -324,42 +304,54 @@ func searchPythondDir(dirName string, enabledRepos []string, mp mockPath) string
 
 //------------------------------------------------------------------------------
 
-type mockPathEx interface {
+type IPythond interface {
 	IsDir(path string) bool
 	FileExist(filename string) bool
+	GetFolderList(root string, deep int) (folders, files []string, err error)
+	GitHasEnabled() bool
 }
 
-type pathMockExer struct{}
+type pythondImpl struct{}
 
-func (*pathMockExer) IsDir(ph string) bool {
+func (*pythondImpl) IsDir(ph string) bool {
 	return path.IsDir(ph)
 }
 
-func (*pathMockExer) FileExist(ph string) bool {
+func (*pythondImpl) FileExist(ph string) bool {
 	return datakit.FileExist(ph)
 }
 
+func (*pythondImpl) GetFolderList(root string, deep int) (folders, files []string, err error) {
+	return path.GetFolderList(root, deep)
+}
+
+func (*pythondImpl) GitHasEnabled() bool {
+	return config.GitHasEnabled()
+}
+
+//------------------------------------------------------------------------------
+
 // Splicing Python related module information.
-func getScriptNameRoot(dirs []string, mp mockPath, mpEx mockPathEx, mlist mockFolderList) (scriptName, scriptRoot string, err error) {
+func getScriptNameRoot(dirs []string, ipd IPythond) (scriptName, scriptRoot string, err error) {
 	var pyModules, modulesRoot []string
 	for _, v := range dirs {
 		var pythonPath string
-		if config.GitHasEnabled() {
+		if ipd.GitHasEnabled() {
 			// enabled git
 			if filepath.IsAbs(v) {
 				pythonPath = v
 			} else {
-				pythonPath = searchPythondDir(v, []string{datakit.GitReposRepoName}, mp)
+				pythonPath = searchPythondDir(v, []string{datakit.GitReposRepoName}, ipd)
 			}
 		} else {
 			// not enabled git
 			pythonPath = filepath.Join(datakit.PythonDDir, v)
 		}
 
-		if mpEx.IsDir(pythonPath) {
-			pyModules = append(pyModules, getPyModules(pythonPath, mlist)...)
+		if ipd.IsDir(pythonPath) {
+			pyModules = append(pyModules, getPyModules(pythonPath, ipd)...)
 			modulesRoot = append(modulesRoot, pythonPath)
-		} else if mpEx.FileExist(pythonPath) {
+		} else if ipd.FileExist(pythonPath) {
 			pyModules = append(pyModules, path.GetPureNameFromExt(pythonPath))
 		}
 	}
@@ -397,7 +389,7 @@ func (pe *PythonDInput) Run() {
 	}
 
 	var err error
-	if pe.scriptName, pe.scriptRoot, err = getScriptNameRoot(pe.Dirs, &pathMocker{}, &pathMockExer{}, &folderListMocker{}); err != nil {
+	if pe.scriptName, pe.scriptRoot, err = getScriptNameRoot(pe.Dirs, &pythondImpl{}); err != nil {
 		l.Error(err)
 		return
 	}

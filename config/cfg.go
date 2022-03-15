@@ -32,8 +32,7 @@ import (
 
 var (
 	Cfg = DefaultConfig()
-
-	l = logger.DefaultSLogger("config")
+	l   = logger.DefaultSLogger("config")
 )
 
 func SetLog() {
@@ -93,15 +92,7 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		BlackList: []*inputHostList{
-			{Hosts: []string{}, Inputs: []string{}},
-		},
-		WhiteList: []*inputHostList{
-			{Hosts: []string{}, Inputs: []string{}},
-		},
 		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
-
-		Tracer: &tracer.Tracer{TraceEnabled: false},
 
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
@@ -174,7 +165,8 @@ type Config struct {
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 
-	UUID string `toml:"-"`
+	UUID    string `toml:"-"`
+	RunMode int    `toml:"-"`
 
 	Name      string `toml:"name,omitempty"`
 	Hostname  string `toml:"-"`
@@ -183,9 +175,14 @@ type Config struct {
 	// http config: TODO: merge into APIConfig
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
 	HTTPListenDeprecated string `toml:"http_listen,omitempty"`
+
 	IntervalDeprecated   string `toml:"interval,omitempty"`
 	OutputFileDeprecated string `toml:"output_file,omitempty"`
 	UUIDDeprecated       string `toml:"uuid,omitempty"` // deprecated
+
+	// pprof
+	EnablePProf bool   `toml:"enable_pprof"`
+	PProfListen string `toml:"pprof_listen"`
 
 	// DCA config
 	DCAConfig *dkhttp.DCAConfig `toml:"dca"`
@@ -212,7 +209,6 @@ type Config struct {
 	Environments map[string]string `toml:"environments"`
 	Cgroup       *Cgroup           `toml:"cgroup"`
 
-	EnablePProf              bool `toml:"enable_pprof,omitempty"`
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
 
@@ -226,8 +222,6 @@ type Config struct {
 	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
 
 	GitRepos *GitRepost `toml:"git_repos"`
-
-	RunMode int `toml:"run_mode,omitempty"`
 }
 
 func (c *Config) String() string {
@@ -641,6 +635,10 @@ func (c *Config) LoadEnvs() error {
 
 	if v := datakit.GetEnv("ENV_ENABLE_PPROF"); v != "" {
 		c.EnablePProf = true
+	}
+
+	if v := datakit.GetEnv("ENV_PPROF_LISTEN"); v != "" {
+		c.PProfListen = v
 	}
 
 	if v := datakit.GetEnv("ENV_DISABLE_PROTECT_MODE"); v != "" {

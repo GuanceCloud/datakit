@@ -36,6 +36,7 @@ type dockerInputConfig struct {
 
 	excludePauseContainer  bool
 	removeLoggingAnsiCodes bool
+	maxLoggingLength       int
 
 	containerIncludeMetric []string
 	containerExcludeMetric []string
@@ -73,7 +74,7 @@ func (d *dockerInput) stop() {
 }
 
 func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +116,7 @@ func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
 }
 
 func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +156,7 @@ func (d *dockerInput) gatherObject() ([]inputs.Measurement, error) {
 }
 
 func (d *dockerInput) watchNewContainerLogs() error {
-	cList, err := d.getContaierList()
+	cList, err := d.getContainerList()
 	if err != nil {
 		return err
 	}
@@ -165,7 +166,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 			continue
 		}
 
-		l.Infof("add container log, name: %s image: %s", getContainerName(container.Names), container.Image)
+		l.Infof("add container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
 		ctx, cancel := context.WithCancel(context.Background())
 		d.addToContainerList(container.ID, cancel)
 
@@ -173,7 +174,7 @@ func (d *dockerInput) watchNewContainerLogs() error {
 		go func(container *types.Container) {
 			defer func() {
 				d.removeFromContainerList(container.ID)
-				l.Debugf("remove container log, name: %s image: %s", getContainerName(container.Names), container.Image)
+				l.Debugf("remove container log, containerName: %s image: %s", getContainerName(container.Names), container.Image)
 			}()
 
 			if err := d.watchingContainerLog(ctx, container); err != nil {
@@ -187,8 +188,10 @@ func (d *dockerInput) watchNewContainerLogs() error {
 	return nil
 }
 
+type podAnnotationStateType int
+
 const (
-	podAnnotationNil = iota + 1
+	podAnnotationNil podAnnotationStateType = iota + 1
 	podAnnotationEnable
 	podAnnotationDisable
 )
@@ -201,37 +204,31 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	image := container.Image
 
 	// TODO
-	// 每次获取到容器列表，都要进行以下所有 resist 考查，特别是获取其 k8s Annotation 的配置，需要进行访问和查找
+	// 每次获取到容器列表，都要进行以下审核，特别是获取其 k8s Annotation 的配置，需要进行访问和查找
 	// 这消耗很大，且没有意义
 	// 可以使用 container ID 进行缓存，维持一份名单，通过名单再决定是否进行考查
 
 	podAnnotationState := podAnnotationNil
 
 	func() {
-		if d.k8sClient == nil || container.Labels["pod_name"] == "" {
+		podName := container.Labels[containerLableForPodName]
+		if d.k8sClient == nil || podName == "" {
 			return
 		}
-		meta, err := queryPodMetaData(d.k8sClient, container.Labels["pod_name"], container.Labels["pod_namesapce"])
+		podNamespace := container.Labels[containerLableForPodNamespace]
+
+		meta, err := queryPodMetaData(d.k8sClient, podName, podNamespace)
 		if err != nil {
 			return
 		}
-		image = meta.containerImage()
-
-		logconf, err := getContainerLogConfig(meta.Annotations)
-		if err != nil || logconf == nil {
-			return
+		if containerImage := meta.containerImage(container.Labels[containerLableForPodContainerName]); containerImage != "" {
+			image = containerImage
 		}
-
-		if logconf.Disable {
-			podAnnotationState = podAnnotationDisable
-		} else {
-			podAnnotationState = podAnnotationEnable
-		}
+		podAnnotationState = getPodAnnotationState(container, meta)
 	}()
 
 	switch podAnnotationState {
 	case podAnnotationDisable:
-		l.Debugf("ignore containerlog because of annotation disable, name: %s, shortImage: %s", getContainerName(container.Names), image)
 		return false
 	case podAnnotationEnable:
 		return true
@@ -240,19 +237,55 @@ func (d *dockerInput) shouldPullContainerLog(container *types.Container) bool {
 	}
 
 	if d.ignoreContainer(container) {
-		l.Debugf("ignore containerlog because of pause status, name: %s, shortImage: %s", getContainerName(container.Names), image)
+		l.Debugf("ignore containerlog because of pause status, containerName:%s, shortImage:%s", getContainerName(container.Names), image)
 		return false
 	}
 
 	if d.ignoreImageForLogging(image) {
-		l.Debugf("ignore containerlog because of image filter, name: %s, shortImage: %s", getContainerName(container.Names), image)
+		l.Debugf("ignore containerlog because of image filter, containerName:%s, shortImage:%s", getContainerName(container.Names), image)
 		return false
 	}
 
 	return true
 }
 
-func (d *dockerInput) getContaierList() ([]types.Container, error) {
+func getPodAnnotationState(container *types.Container, meta *podMeta) podAnnotationStateType {
+	if meta == nil {
+		return podAnnotationNil
+	}
+
+	logconf, err := getContainerLogConfig(meta.Annotations)
+	if err != nil || logconf == nil {
+		return podAnnotationNil
+	}
+
+	if logconf.Disable {
+		l.Debugf("ignore containerlog because of annotation disable, podName:%s, containerName:%s",
+			container.Labels[containerLableForPodName], getContainerName(container.Names))
+		return podAnnotationDisable
+	}
+
+	if len(logconf.OnlyImages) == 0 {
+		return podAnnotationEnable
+	}
+
+	f, err := filter.NewIncludeExcludeFilter(splitRules(logconf.OnlyImages), nil)
+	if err != nil {
+		l.Warnf("failed to new filter of only_images, err:%w", err)
+		return podAnnotationEnable
+	}
+
+	podContainerName := container.Labels[containerLableForPodContainerName]
+	image := meta.containerImage(podContainerName)
+	if image != "" && f.Match(image) {
+		l.Debugf("match pod only_images, name:%s, image: %s", podContainerName, image)
+		return podAnnotationEnable
+	}
+	l.Debugf("ignore pod container, name:%s, image: %s", podContainerName, image)
+	return podAnnotationDisable
+}
+
+func (d *dockerInput) getContainerList() ([]types.Container, error) {
 	cList, err := d.client.ContainerList(context.Background(), dockerContainerListOption)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container list: %w", err)
@@ -338,14 +371,14 @@ func getImageOfPodContainer(container *types.Container, k8sClient k8sClientX) (i
 	if k8sClient == nil {
 		return
 	}
-	if container.Labels["pod_name"] == "" {
+	if container.Labels[containerLableForPodName] == "" {
 		return
 	}
 
-	meta, err := queryPodMetaData(k8sClient, container.Labels["pod_name"], container.Labels["pod_namesapce"])
+	meta, err := queryPodMetaData(k8sClient, container.Labels[containerLableForPodName], container.Labels[containerLableForPodNamespace])
 	if err != nil {
 		return
 	}
-	image = meta.containerImage()
+	image = meta.containerImage(container.Labels[containerLableForPodContainerName])
 	return
 }

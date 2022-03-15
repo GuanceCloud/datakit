@@ -70,7 +70,7 @@ func LoadCfg(c *Config, mcp string) error {
 		return err
 	}
 
-	l.Infof("main cfg: \n%s", c.String())
+	l.Infof("loaded main cfg: \n%s", c.String())
 
 	// clear all samples before loading
 	removeSamples()

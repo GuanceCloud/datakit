@@ -42,12 +42,14 @@ func exportDeployment(items []v1.Deployment, extraTags tagsType) k8sResourceStat
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 
-		obj.fields["age"] = int64(time.Since(item.CreationTimestamp.Time).Seconds())
-		obj.fields["up_dated"] = item.Status.UpdatedReplicas
-		obj.fields["ready"] = item.Status.ReadyReplicas
-		obj.fields["available"] = item.Status.AvailableReplicas
-		obj.fields["unavailable"] = item.Status.UnavailableReplicas
-		obj.fields["strategy"] = fmt.Sprintf("%v", item.Spec.Strategy.Type)
+		obj.fields = map[string]interface{}{
+			"age":         int64(time.Since(item.CreationTimestamp.Time).Seconds()),
+			"up_dated":    item.Status.UpdatedReplicas,
+			"ready":       item.Status.ReadyReplicas,
+			"available":   item.Status.AvailableReplicas,
+			"unavailable": item.Status.UnavailableReplicas,
+			"strategy":    fmt.Sprintf("%v", item.Spec.Strategy.Type),
+		}
 
 		if item.Spec.Strategy.RollingUpdate != nil && item.Spec.Strategy.RollingUpdate.MaxSurge != nil {
 			obj.fields["max_surge"] = item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()

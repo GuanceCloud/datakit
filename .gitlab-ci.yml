@@ -36,17 +36,17 @@ release-stable:
     - make clean
     - make lint
     - make all_test
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.7 # update the version on each release
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.10 # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples
-    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.7
+    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.10
   tags:
     - cloudcare-ft
 
 release-unstable:
   stage: deploy
   only:
-    - unstable # 专用分支来发布 unstable 版本
+    - github-unstable # 专用分支来发布 unstable 版本
   script:
     - make clean
     - make lint

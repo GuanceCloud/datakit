@@ -339,6 +339,7 @@ func TestGetConfig(t *testing.T) {
 	if err != nil {
 		l.Fatal(err)
 	}
+	defer os.RemoveAll(confDir) //nolint: errcheck
 	datakit.ConfdDir = confDir
 	f, err := ioutil.TempFile(confDir, "new-conf*.conf")
 	assert.NoError(t, err)

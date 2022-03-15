@@ -10,11 +10,9 @@
 
 ## 安装步骤 
 
-先下载[datakit.yaml](https://static.guance.com/datakit/datakit.yaml) ,在该配置中，需做如下配置：
+先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)，其中开启了很多[默认采集器](datakit-conf-how-to#764ffbc2)，无需配置。
 
-- kubernetes：用来采集 Kubernetes 中心指标，需要填写 kubernetes 中心采集地址
-
-其它主机相关的采集器都是[默认开启的](datakit-conf-how-to#764ffbc2)，无需额外配置。
+> 如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to#ebf019c2) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档（[容器采集器示例](container#5cf8fecf)）。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，==通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) 来配置采集器总是生效的==
 
 ### 修改配置
 
@@ -31,13 +29,24 @@
 kubectl apply -f datakit.yaml
 ```
 
-### 查看运行状态：
+### 查看运行状态
 
 安装完后，会创建一个 datakit 的 DaemonSet 部署：
 
 ```shell
 kubectl get pod -n datakit
 ```
+
+### Kubernetes 污点容忍度配置
+
+DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有污点），如果 Kubernetes 中某些 node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 datakit.yaml，调整其中的污点容忍度：
+
+```yaml
+      tolerations:
+      - operator: Exists    <--- 修改这里的污点容忍度
+```
+
+具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration)。
 
 ### DataKit 中其它环境变量设置
 
@@ -67,5 +76,10 @@ kubectl get pod -n datakit
 | ENV_CLOUD_PROVIDER          | 无                         | 否       | 支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)                                            |
 
 > 注意：
->  `ENV_ENABLE_INPUTS` 已被弃用（但仍有效），建议使用 `ENV_DEFAULT_ENABLED_INPUTS`。如果俩个环境变量同时指定，则**只有后者生效**。
+>  `ENV_ENABLE_INPUTS` 已被弃用（但仍有效），建议使用 `ENV_DEFAULT_ENABLED_INPUTS`。如果俩个环境变量同时指定，则==只有后者生效== 。
 >  `ENV_LOG` 如果配置成 `stdout`，则不要将 `ENV_LOG_LEVEL` 设置成 `debug`，否则可能循环产生日志，产生大量日志数据。
+
+## 延伸阅读
+
+- [DataKit 选举](election)
+- [DataKit 的几种配置方式](k8s-config-how-to)

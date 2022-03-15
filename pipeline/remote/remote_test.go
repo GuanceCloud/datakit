@@ -9,27 +9,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 //------------------------------------------------------------------------------
 
 var (
-	writeFileData *FileDataStruct
-	readFileData  []byte
-	isFileExist   bool
-	readDirResult []fs.FileInfo
+	writeFileData          *FileDataStruct
+	readFileData           []byte
+	isFileExist            bool
+	readDirResult          []fs.FileInfo
+	pullPipelineUpdateTime int64
 
-	errGeneral      = fmt.Errorf("test_specific_error")
-	errMarshal      error
-	errUnMarshal    error
-	errReadFile     error
-	errWriteFile    error
-	errReadDir      error
-	errPullPipeline error
+	errGeneral                   = fmt.Errorf("test_specific_error")
+	errMarshal                   error
+	errUnMarshal                 error
+	errReadFile                  error
+	errWriteFile                 error
+	errReadDir                   error
+	errPullPipeline              error
+	errRemove                    error
+	errGetNamespacePipelineFiles error
 )
 
 func resetVars() {
@@ -37,6 +42,7 @@ func resetVars() {
 	readFileData = []byte{}
 	isFileExist = false
 	readDirResult = []fs.FileInfo{}
+	pullPipelineUpdateTime = 0
 
 	errMarshal = nil
 	errUnMarshal = nil
@@ -44,6 +50,34 @@ func resetVars() {
 	errWriteFile = nil
 	errReadDir = nil
 	errPullPipeline = nil
+	errRemove = nil
+	errGetNamespacePipelineFiles = nil
+}
+
+type fileInfoStruct struct{}
+
+func (fileInfoStruct) Name() string {
+	return "useless"
+}
+
+func (fileInfoStruct) Size() int64 {
+	return 0
+}
+
+func (fileInfoStruct) Mode() fs.FileMode {
+	return 0
+}
+
+func (fileInfoStruct) ModTime() time.Time {
+	return time.Time{}
+}
+
+func (fileInfoStruct) IsDir() bool {
+	return false
+}
+
+func (fileInfoStruct) Sys() interface{} {
+	return nil
 }
 
 type pipelineRemoteMockerTest struct{}
@@ -109,18 +143,28 @@ func (*pipelineRemoteMockerTest) PullPipeline(ts int64) (mFiles map[string]strin
 	return map[string]string{
 		"123.p": "text123",
 		"456.p": "text456",
-	}, 1644318398, nil
+	}, pullPipelineUpdateTime, nil
 }
 
 func (*pipelineRemoteMockerTest) GetTickerDurationAndBreak() (time.Duration, bool) {
 	return time.Second, true
 }
 
+func (*pipelineRemoteMockerTest) Remove(name string) error {
+	return errRemove
+}
+
+func (*pipelineRemoteMockerTest) FeedLastError(inputName string, err string) {}
+
+func (*pipelineRemoteMockerTest) GetNamespacePipelineFiles(namespace string) ([]string, error) {
+	return nil, errGetNamespacePipelineFiles
+}
+
 //------------------------------------------------------------------------------
 
 // go test -v -timeout 30s -run ^TestPullMain$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
 func TestPullMain(t *testing.T) {
-	const dwURL = "https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90"
+	const dwURL = "https://openway.guance.com?token=tkn_123"
 	const configPath = "/usr/local/datakit/pipeline_remote/.config_fake"
 
 	cases := []struct {
@@ -135,13 +179,19 @@ func TestPullMain(t *testing.T) {
 	}{
 		{
 			name:          "normal",
-			urls:          []string{"https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90"},
+			urls:          []string{"https://openway.guance.com?token=tkn_123"},
 			pathConfig:    configPath,
 			siteURL:       dwURL,
-			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90","UpdateTime":1644318398}`),
+			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
 		},
 		{
 			name: "urls_zero",
+		},
+		{
+			name:           "do_pull_failed",
+			urls:           []string{"https://openway.guance.com?token=tkn_123"},
+			fileExist:      true,
+			failedReadFile: errGeneral,
 		},
 	}
 
@@ -159,26 +209,29 @@ func TestPullMain(t *testing.T) {
 
 // go test -v -timeout 30s -run ^TestDoPull$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
 func TestDoPull(t *testing.T) {
-	const dwURL = "https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90"
+	const dwURL = "https://openway.guance.com?token=tkn_123"
 	const configPath = "/usr/local/datakit/pipeline_remote/.config_fake"
 
 	cases := []struct {
-		name               string
-		fileExist          bool
-		pathConfig         string
-		siteURL            string
-		configContent      []byte
-		failedMarshal      error
-		failedReadFile     error
-		failedReadDir      error
-		failedPullPipeline error
-		expectError        error
+		name                       string
+		fileExist                  bool
+		pathConfig                 string
+		siteURL                    string
+		configContent              []byte
+		testPullPipelineUpdateTime int64
+		testReadDirResult          []fs.FileInfo
+		failedMarshal              error
+		failedReadFile             error
+		failedReadDir              error
+		failedPullPipeline         error
+		failedRemove               error
+		expectError                error
 	}{
 		{
 			name:          "update",
 			pathConfig:    configPath,
 			siteURL:       dwURL,
-			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90","UpdateTime":1644318398}`),
+			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
 		},
 		{
 			name:           "getPipelineRemoteConfig_fail",
@@ -196,28 +249,64 @@ func TestDoPull(t *testing.T) {
 			fileExist:     true,
 			pathConfig:    configPath,
 			siteURL:       dwURL,
-			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90","UpdateTime":1644318398}`),
+			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
 		},
 		{
-			name:          "dumpfile_fail",
-			pathConfig:    configPath,
-			siteURL:       dwURL,
-			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90","UpdateTime":1644318398}`),
-			failedReadDir: errGeneral,
-			expectError:   errGeneral,
+			name:                       "dumpfile_fail",
+			pathConfig:                 configPath,
+			siteURL:                    dwURL,
+			configContent:              []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			testPullPipelineUpdateTime: 123,
+			failedReadDir:              errGeneral,
+			expectError:                errGeneral,
 		},
 		{
-			name:          "updatePipelineRemoteConfig_fail",
-			pathConfig:    configPath,
-			siteURL:       dwURL,
-			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90","UpdateTime":1644318398}`),
-			failedMarshal: errGeneral,
-			expectError:   errGeneral,
+			name:                       "updatePipelineRemoteConfig_fail",
+			pathConfig:                 configPath,
+			siteURL:                    dwURL,
+			configContent:              []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			testPullPipelineUpdateTime: 123,
+			failedMarshal:              errGeneral,
+			expectError:                errGeneral,
+		},
+		{
+			name:                       "updatePipelineRemoteConfig_pass",
+			pathConfig:                 configPath,
+			siteURL:                    dwURL,
+			configContent:              []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			testPullPipelineUpdateTime: 123,
+		},
+		{
+			name:                       "deleteAll_nil",
+			pathConfig:                 configPath,
+			siteURL:                    dwURL,
+			configContent:              []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			testPullPipelineUpdateTime: 1,
+		},
+		{
+			name:                       "deleteAll_error",
+			pathConfig:                 configPath,
+			siteURL:                    dwURL,
+			configContent:              []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			testPullPipelineUpdateTime: 1,
+			failedReadDir:              errGeneral,
+			expectError:                errGeneral,
+		},
+		{
+			name:                       "removeLocalRemote_continue",
+			pathConfig:                 configPath,
+			siteURL:                    dwURL,
+			configContent:              []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			testPullPipelineUpdateTime: 1,
+			testReadDirResult:          []fs.FileInfo{&fileInfoStruct{}},
+			failedRemove:               errGeneral,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			fmt.Printf("TestDoPull: tc.name = %s\n", tc.name)
+
 			resetVars()
 			readFileData = tc.configContent
 			isFileExist = tc.fileExist
@@ -225,6 +314,11 @@ func TestDoPull(t *testing.T) {
 			errReadFile = tc.failedReadFile
 			errReadDir = tc.failedReadDir
 			errPullPipeline = tc.failedPullPipeline
+			pullPipelineUpdateTime = tc.testPullPipelineUpdateTime
+			if len(tc.testReadDirResult) > 0 {
+				readDirResult = tc.testReadDirResult
+			}
+			errRemove = tc.failedRemove
 
 			err := doPull(tc.pathConfig, tc.siteURL, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "doPull found error: %v", err)
@@ -250,8 +344,8 @@ func TestDumpFiles(t *testing.T) {
 				"456.p": "text456",
 			},
 			expect: []string{
-				"/usr/local/datakit/pipeline_remote/123.p",
-				"/usr/local/datakit/pipeline_remote/456.p",
+				filepath.Join(datakit.InstallDir, "pipeline_remote/123.p"),
+				filepath.Join(datakit.InstallDir, "pipeline_remote/456.p"),
 			},
 		},
 		{
@@ -286,7 +380,7 @@ func TestDumpFiles(t *testing.T) {
 			}
 			for _, v := range tc.expect {
 				if _, ok := mV[v]; !ok {
-					assert.Fail(t, "dumpFiles not found: %s", v)
+					assert.Fail(t, fmt.Sprintf("dumpFiles not found: %s", v))
 				}
 			}
 		})
@@ -295,26 +389,29 @@ func TestDumpFiles(t *testing.T) {
 
 // go test -v -timeout 30s -run ^TestGetPipelineRemoteConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
 func TestGetPipelineRemoteConfig(t *testing.T) {
-	const dwURL = "https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90"
+	const dwURL = "https://openway.guance.com?token=tkn_123"
 	const configPath = "/usr/local/datakit/pipeline_remote/.config_fake"
 
 	cases := []struct {
-		name            string
-		fileExist       bool
-		pathConfig      string
-		siteURL         string
-		configContent   []byte
-		failedUnMarshal error
-		failedReadFile  error
-		expectError     error
-		expect          int64
+		name                            string
+		fileExist                       bool
+		pathConfig                      string
+		siteURL                         string
+		configContent                   []byte
+		failedUnMarshal                 error
+		failedReadFile                  error
+		failedRemove                    error
+		failedGetNamespacePipelineFiles error
+		failedReadDir                   error
+		expectError                     error
+		expect                          int64
 	}{
 		{
 			name:          "normal",
 			fileExist:     true,
 			pathConfig:    configPath,
 			siteURL:       dwURL,
-			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90","UpdateTime":1644318398}`),
+			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
 			expect:        1644318398,
 		},
 		{
@@ -340,17 +437,40 @@ func TestGetPipelineRemoteConfig(t *testing.T) {
 			fileExist:     true,
 			pathConfig:    configPath,
 			siteURL:       dwURL,
-			configContent: []byte(`{"SiteURL":"http://127.0.0.1:9528?token=tkn_3659483096cf4cbabef3e244a917fa90","UpdateTime":1644318398}`),
+			configContent: []byte(`{"SiteURL":"http://127.0.0.1:9528?token=tkn_123","UpdateTime":1644318398}`),
+		},
+		{
+			name:                            "GetNamespacePipelineFiles_failed",
+			fileExist:                       true,
+			pathConfig:                      configPath,
+			siteURL:                         dwURL,
+			configContent:                   []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			failedGetNamespacePipelineFiles: errGeneral,
+			expect:                          1644318398,
+		},
+		{
+			name:          "remove_error",
+			fileExist:     true,
+			pathConfig:    configPath,
+			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			failedRemove:  errGeneral,
+			failedReadDir: errGeneral,
+			expect:        0,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			isFirst = true // variable from package remote
+
 			resetVars()
 			readFileData = tc.configContent
 			isFileExist = tc.fileExist
 			errUnMarshal = tc.failedUnMarshal
 			errReadFile = tc.failedReadFile
+			errRemove = tc.failedRemove
+			errGetNamespacePipelineFiles = tc.failedGetNamespacePipelineFiles
+			errReadDir = tc.failedReadDir
 
 			n, err := getPipelineRemoteConfig(tc.pathConfig, tc.siteURL, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "getPipelineRemoteConfig found error: %v", err)
@@ -361,7 +481,7 @@ func TestGetPipelineRemoteConfig(t *testing.T) {
 
 // go test -v -timeout 30s -run ^TestUpdatePipelineRemoteConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
 func TestUpdatePipelineRemoteConfig(t *testing.T) {
-	const dwURL = "https://openway.guance.com?token=tkn_3659483096cf4cbabef3e244a917fa90"
+	const dwURL = "https://openway.guance.com?token=tkn_123"
 	const configPath = "/usr/local/datakit/pipeline_remote/.config_fake"
 	const ts = 1644820678
 

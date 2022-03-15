@@ -220,7 +220,9 @@ func (std *SocketTaskData) Handler(result *worker.Result) error {
 	// result.SetSource(std.source)
 	if std.Tag != nil && len(std.Tag) != 0 {
 		for k, v := range std.Tag {
-			result.SetTag(k, v)
+			if _, err := result.GetTag(k); err != nil {
+				result.SetTag(k, v)
+			}
 		}
 	}
 	return nil

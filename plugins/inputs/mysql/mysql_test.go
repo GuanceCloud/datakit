@@ -23,7 +23,7 @@ func checkDevHost() bool {
 }
 
 const (
-	testMysqlHost     = "47.98.119.69"
+	testMysqlHost     = "10.200.7.21"
 	testMysqlPort     = 3306
 	testMysqlPassword = "12345@"
 )

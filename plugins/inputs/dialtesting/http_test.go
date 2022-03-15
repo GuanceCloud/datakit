@@ -29,11 +29,13 @@ var httpCases = []struct {
 	t         *dt.HTTPTask
 	fail      bool
 	reasonCnt int
+	succFlag  bool
 }{
 	{
 		name:      "test dial with certificate",
 		fail:      false,
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
@@ -61,6 +63,7 @@ var httpCases = []struct {
 		fail:      true,
 		name:      "invalid certificate",
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
@@ -90,6 +93,7 @@ var httpCases = []struct {
 		name:      "test dial with proxy",
 		fail:      false,
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "POST",
@@ -117,6 +121,7 @@ var httpCases = []struct {
 		name:      "test dial with invalid body type",
 		fail:      true,
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "POST",
@@ -142,6 +147,7 @@ var httpCases = []struct {
 	{
 		name:      "test dial with body",
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "POST",
@@ -168,6 +174,7 @@ var httpCases = []struct {
 	{
 		name:      "test dial with headers",
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
@@ -196,6 +203,7 @@ var httpCases = []struct {
 	{
 		name:      "test dial with auth",
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
@@ -224,6 +232,7 @@ var httpCases = []struct {
 	{
 		name:      "test dial with cookie",
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
@@ -254,6 +263,7 @@ var httpCases = []struct {
 	{
 		name:      "test dial for redirect",
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
@@ -277,6 +287,7 @@ var httpCases = []struct {
 	{
 		name:      "redirect disabled",
 		reasonCnt: 0,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
@@ -315,6 +326,7 @@ var httpCases = []struct {
 	{
 		name:      "test dial with response headers",
 		reasonCnt: 2,
+		succFlag:  true,
 		t: &dt.HTTPTask{
 			ExternalID: cliutils.XID("dtst_"),
 			Method:     "GET",
@@ -322,6 +334,45 @@ var httpCases = []struct {
 			Name:       "_test_header_checking",
 			Region:     "hangzhou",
 			Frequency:  "1s",
+			SuccessWhen: []*dt.HTTPSuccess{
+				{
+					Header: map[string][]*dt.SuccessOption{
+						"Cache-Control": {
+							{MatchRegex: `max-ag=\d`}, // expect fail: max-age
+						},
+						"Server": {
+							{Is: `Apache`}, // expect fail
+						},
+
+						"Date": {
+							{Contains: "GMT"}, // ok: Date always use GMT
+						},
+						"NotExistHeader1": {
+							{NotMatchRegex: `.+`}, // ok
+						},
+						"NotExistHeader2": {
+							{IsNot: `abc`}, // ok
+						},
+						"NotExistHeader3": {
+							{NotContains: `def`}, // ok
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		name:      "test dial with response headers or",
+		reasonCnt: 2,
+		succFlag:  true,
+		t: &dt.HTTPTask{
+			ExternalID:       cliutils.XID("dtst_"),
+			Method:           "GET",
+			URL:              "http://localhost:54321/_test_header_checking",
+			Name:             "_test_header_checking",
+			Region:           "hangzhou",
+			Frequency:        "1s",
+			SuccessWhenLogic: "or",
 			SuccessWhen: []*dt.HTTPSuccess{
 				{
 					Header: map[string][]*dt.SuccessOption{
@@ -403,8 +454,9 @@ func TestDialHTTP(t *testing.T) {
 			t.Logf("tags: %+#v", tags)
 			t.Logf("fields: %+#v", fields)
 
-			reasons := c.t.CheckResult()
+			reasons, flag := c.t.CheckResult()
 			tu.Equals(t, len(reasons), c.reasonCnt)
+			tu.Equals(t, flag, c.succFlag)
 
 			if len(reasons) > 0 {
 				t.Logf("case %s reasons:\n\t%s",

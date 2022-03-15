@@ -60,19 +60,19 @@ func applyHTTPRoute(router *gin.Engine) {
 
 		switch method {
 		case http.MethodPost:
-			router.POST(path, handler)
+			router.POST(path, ginWraper(reqLimiter), handler)
 		case http.MethodGet:
-			router.GET(path, handler)
+			router.GET(path, ginWraper(reqLimiter), handler)
 		case http.MethodHead:
-			router.HEAD(path, handler)
+			router.HEAD(path, ginWraper(reqLimiter), handler)
 		case http.MethodPut:
-			router.PUT(path, handler)
+			router.PUT(path, ginWraper(reqLimiter), handler)
 		case http.MethodPatch:
-			router.PATCH(path, handler)
+			router.PATCH(path, ginWraper(reqLimiter), handler)
 		case http.MethodDelete:
-			router.DELETE(path, handler)
+			router.DELETE(path, ginWraper(reqLimiter), handler)
 		case http.MethodOptions:
-			router.OPTIONS(path, handler)
+			router.OPTIONS(path, ginWraper(reqLimiter), handler)
 		}
 	}
 }

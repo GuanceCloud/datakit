@@ -103,6 +103,7 @@ func (m *ProcessObject) Info() *inputs.MeasurementInfo {
 			"host":         inputs.NewTagInfo("主机名"),
 			"state":        inputs.NewTagInfo("进程状态，暂不支持 windows"),
 			"process_name": inputs.NewTagInfo("进程名"),
+			"listen_ports": inputs.NewTagInfo("进程正在监听的端口"),
 		},
 	}
 }

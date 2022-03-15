@@ -58,8 +58,9 @@ func (p AnnotationType) String() string {
 		return "DOUBLE"
 	case AnnotationType_STRING:
 		return "STRING"
+	default:
+		return "<UNSET>"
 	}
-	return "<UNSET>"
 }
 
 func AnnotationTypeFromString(s string) (AnnotationType, error) {
@@ -78,8 +79,9 @@ func AnnotationTypeFromString(s string) (AnnotationType, error) {
 		return AnnotationType_DOUBLE, nil
 	case "STRING":
 		return AnnotationType_STRING, nil
+	default:
+		return AnnotationType(0), fmt.Errorf("not a valid AnnotationType string")
 	}
-	return AnnotationType(0), fmt.Errorf("not a valid AnnotationType string")
 }
 
 func AnnotationTypePtr(v AnnotationType) *AnnotationType { return &v }

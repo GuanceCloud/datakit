@@ -28,10 +28,6 @@ var (
 
 type completer struct{}
 
-func SetLog() {
-	l = logger.SLogger("cmds")
-}
-
 func newCompleter() (*completer, error) {
 	return &completer{}, nil
 }
@@ -78,8 +74,7 @@ func setCmdRootLog(rl string) {
 	}
 
 	if err := logger.InitRoot(lopt); err != nil {
-		l.Error(err)
-		return
+		panic(err)
 	}
 
 	// setup config module logger, redirect to @rl

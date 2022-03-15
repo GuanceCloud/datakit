@@ -17,10 +17,24 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
+// nolint:unparam
+// There may be some error returned here.
 func runDebugFlags() error {
-	if *flagDebugCloudInfo != "" {
+	if *FlagDebugWorkDir != "" {
+		datakit.SetWorkDir(*FlagDebugWorkDir)
+		return nil
+	}
+
+	setCmdRootLog(*flagDebugLogPath)
+	switch {
+	case *flagDebugDefaultMainConfig:
+
+		defconf := config.DefaultConfig()
+		fmt.Println(defconf.String())
+		os.Exit(0)
+
+	case *flagDebugCloudInfo != "":
 		tryLoadMainCfg()
-		setCmdRootLog(*flagDebugCmdLog)
 		info, err := showCloudInfo(*flagDebugCloudInfo)
 		if err != nil {
 			errorf("[E] Get cloud info failed: %s\n", err.Error())
@@ -38,10 +52,9 @@ func runDebugFlags() error {
 		}
 
 		os.Exit(0)
-	}
-	if *flagDebugIPInfo != "" {
+
+	case *flagDebugIPInfo != "":
 		tryLoadMainCfg()
-		setCmdRootLog(*flagDebugCmdLog)
 		x, err := ipInfo(*flagDebugIPInfo)
 		if err != nil {
 			errorf("[E] get IP info failed: %s\n", err.Error())
@@ -52,11 +65,9 @@ func runDebugFlags() error {
 		}
 
 		os.Exit(0)
-	}
 
-	if *flagDebugWorkspaceInfo {
+	case *flagDebugWorkspaceInfo:
 		tryLoadMainCfg()
-		setCmdRootLog(*flagDebugCmdLog)
 		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
 		body, err := doWorkspace(requrl)
 		if err != nil {
@@ -64,23 +75,20 @@ func runDebugFlags() error {
 		}
 		outputWorkspaceInfo(body)
 		os.Exit(0)
-	}
 
-	if *flagDebugCheckConfig {
+	case *flagDebugCheckConfig:
 		confdir := FlagConfigDir
 		if confdir == "" {
 			tryLoadMainCfg()
 			confdir = datakit.ConfdDir
 		}
 
-		setCmdRootLog(*flagDebugCmdLog)
 		if err := checkConfig(confdir, ""); err != nil {
 			os.Exit(-1)
 		}
 		os.Exit(0)
-	}
 
-	if *flagDebugDumpSamples != "" {
+	case *flagDebugDumpSamples != "":
 		tryLoadMainCfg()
 		fpath := *flagDebugDumpSamples
 
@@ -96,9 +104,8 @@ func runDebugFlags() error {
 			}
 		}
 		os.Exit(0)
-	}
 
-	if *flagDebugLoadLog {
+	case *flagDebugLoadLog:
 		infof("Upload log start...\n")
 		if err := uploadLog(config.Cfg.DataWay.URLs); err != nil {
 			errorf("[E] upload log failed : %s\n", err.Error())
@@ -106,7 +113,13 @@ func runDebugFlags() error {
 		}
 		infof("Upload ok.\n")
 		os.Exit(0)
+
+	case *flagDebugCheckSample:
+		if err := checkSample(); err != nil {
+			os.Exit(-1)
+		}
+		os.Exit(0)
 	}
 
-	return fmt.Errorf("no action specified")
+	return nil
 }

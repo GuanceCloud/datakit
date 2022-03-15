@@ -41,11 +41,20 @@ var (
 	flagBuildISP        = flag.Bool("build-isp", false, "generate ISP data")
 	flagDownloadSamples = flag.Bool("download-samples", false, "download samples from OSS to samples/")
 	flagDumpSamples     = flag.Bool("dump-samples", false, "download and dump local samples to OSS")
+	flagUnitTest        = flag.Bool("ut", false, "test all DataKit code")
 
 	l = logger.DefaultSLogger("make")
 )
 
 func applyFlags() {
+	if *flagUnitTest {
+		if err := build.UnitTestDataKit(); err != nil {
+			l.Errorf("build.UnitTestDataKit: %s", err)
+			os.Exit(-1)
+		}
+		os.Exit(0)
+	}
+
 	if *flagBuildISP {
 		curDir, _ := os.Getwd()
 

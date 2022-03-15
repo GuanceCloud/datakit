@@ -199,7 +199,7 @@ func LoadDefaultDotPScript2Store() {
 
 func ReloadAllDefaultDotPScript2Store() {
 	plPath := filepath.Join(datakit.InstallDir, "pipeline")
-	cleanAllScriptWithNS(DefaultScriptNS)
+	CleanAllScriptWithNS(DefaultScriptNS)
 	loadDotPScript2StoreWithNS(DefaultScriptNS, nil, plPath)
 }
 
@@ -208,7 +208,7 @@ func LoadGitReposDotPScript2Store(filePath []string) {
 }
 
 func ReloadAllGitReposDotPScript2Store(filePath []string) {
-	cleanAllScriptWithNS(GitRepoScriptNS)
+	CleanAllScriptWithNS(GitRepoScriptNS)
 	loadDotPScript2StoreWithNS(GitRepoScriptNS, filePath, "")
 }
 
@@ -217,7 +217,7 @@ func LoadRemoteDotPScript2Store(filePath []string) {
 }
 
 func ReloadAllRemoteDotPScript2Store(filePath []string) {
-	cleanAllScriptWithNS(RemoteScriptNS)
+	CleanAllScriptWithNS(RemoteScriptNS)
 	loadDotPScript2StoreWithNS(RemoteScriptNS, filePath, "")
 }
 
@@ -231,6 +231,6 @@ func loadDotPScript2StoreWithNS(ns string, filePath []string, dirPath string) {
 	}
 }
 
-func cleanAllScriptWithNS(ns string) {
+func CleanAllScriptWithNS(ns string) {
 	scriptCentorStore.cleanAllScriptWithNS(ns)
 }

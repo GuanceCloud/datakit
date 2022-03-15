@@ -3,7 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package process collect host processes metrics/objectss
+// Package process collect host processes metrics/objects
 package process
 
 import (
@@ -286,6 +286,7 @@ func (p *Input) WriteObject() {
 			"state":        state,
 			"name":         fmt.Sprintf("%s_%d", config.Cfg.Hostname, ps.Pid),
 			"process_name": name,
+			"listen_ports": getListeningPorts(ps),
 		}
 		for k, v := range p.Tags {
 			tags[k] = v
@@ -426,6 +427,24 @@ func (p *Input) WriteMetric() {
 		io.FeedLastError(inputName, p.lastErr.Error())
 		p.lastErr = nil
 	}
+}
+
+// getListeningPorts returns ports given process is listening
+// in format "[aaa,bbb,ccc]" or "[]" when error occurs.
+func getListeningPorts(proc *pr.Process) string {
+	connections, err := proc.Connections()
+	if err != nil {
+		name, _ := proc.Name()
+		l.Warnf("fail to get ports process %s is listening: %v", name, err)
+		return "[]"
+	}
+	var listening []string
+	for _, c := range connections {
+		if c.Status == "LISTEN" {
+			listening = append(listening, strconv.FormatInt(int64(c.Laddr.Port), 10))
+		}
+	}
+	return "[" + strings.Join(listening, ",") + "]"
 }
 
 func init() { //nolint:gochecknoinits

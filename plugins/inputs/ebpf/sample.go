@@ -11,16 +11,27 @@ const configSample = `
   daemon = true
   name = 'ebpf'
   cmd = "/usr/local/datakit/externals/datakit-ebpf"
-  args = ["--datakit-apiserver", "0.0.0.0:9529"]
+  args = [
+    "--datakit-apiserver", "0.0.0.0:9529",
+  ]
   envs = []
 
+  ## automatically takes effect when running DataKit in 
+  ## Kubernetes daemonset mode
+  ##
+  # kubernetes_url = "https://kubernetes.default:443"
+  # bearer_token = "/run/secrets/kubernetes.io/serviceaccount/token"
+  # or # bearer_token_string = "<your-token-string>"
+  
   ## all supported plugins:
-  ## - "ebpf-net":
+  ## - "ebpf-net"  :
   ##     contains L4-network, dns collection
-  ## - "ebpf-bash":
+  ## - "ebpf-bash" :
   ##     log bash
   ##
-  enabled_plugins = ["ebpf-net"]
+  enabled_plugins = [
+    "ebpf-net",
+  ]
 
   [inputs.ebpf.tags]
     # some_tag = "some_value"

@@ -142,7 +142,7 @@ type Tailer struct {
 
 func NewTailer(filePatterns []string, opt *Option, ignorePatterns ...[]string) (*Tailer, error) {
 	if len(filePatterns) == 0 {
-		return nil, fmt.Errorf("filePatterns is empty")
+		return nil, fmt.Errorf("filePatterns cannot be empty")
 	}
 
 	t := Tailer{

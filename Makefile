@@ -204,7 +204,11 @@ gofmt:
 vet:
 	@go vet ./...
 
+ut: deps
+	@GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut
+
 # all testing
+
 all_test: deps
 	@truncate -s 0 test.output
 	@echo "#####################" | tee -a test.output
@@ -220,13 +224,13 @@ all_test: deps
 			i=`expr $$i + 1`; \
 		else \
 			echo "######################"; \
-		fi \
+			fi \
 	done; \
 	if [ $$i -gt 0 ]; then \
-			printf "\033[31m %d case failed.\n\033[0m" $$i; \
-			exit 1; \
+		printf "\033[31m %d case failed.\n\033[0m" $$i; \
+		exit 1; \
 	else \
-			printf "\033[32m all testinig passed.\n\033[0m"; \
+		printf "\033[32m all testinig passed.\n\033[0m"; \
 	fi
 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
@@ -263,6 +267,15 @@ copyright_check:
 
 copyright_check_auto_fix:
 	@python3 copyright.py --fix
+
+check_man:
+	grep --color=always -nrP "[a-zA-Z0-9][\p{Han}]|[\p{Han}][a-zA-Z0-9]" man > bad-doc.log
+	if [ $$? != 0 ]; then \
+		echo "check manuals ok"; \
+	else \
+		cat bad-doc.log; \
+		rm -rf bad-doc.log; \
+	fi
 
 clean:
 	@rm -rf build/*

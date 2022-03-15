@@ -18,6 +18,28 @@ import (
 )
 
 var (
+
+	//
+	// doc related flags.
+	//
+	fsDocName  = "doc"
+	fsDoc      = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
+	fsDocUsage = func() {
+		fmt.Printf("usage: datakit doc [options]\n\n")
+		fmt.Printf("Doc used to manage all documents related to DataKit. Available options:\n\n")
+		fmt.Println(fsDoc.FlagUsagesWrapped(0))
+	}
+
+	// TODO: this flags not used, comment them to disable lint errors.
+	// flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
+	// flagDocExportDocs              = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
+	// flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)").
+	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file")
+	// flagDocIgnore         = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem").
+	flagDocLogPath = fsDoc.String("log", commonLogFlag(), "command line log path")
+	// flagDocTODO                    = fsDoc.String("TODO", "TODO", "set TODO placeholder")
+	// flagDocVersion = fsDoc.String("version", datakit.Version, "specify version string in document's header").
+
 	//
 	// DQL related flags.
 	//
@@ -136,18 +158,19 @@ var (
 	//
 	// debug related flags.
 	//
-
-	fsDebugName            = "debug"
-	fsDebug                = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
-	flagDebugLogPath       = fsDebug.String("log", commonLogFlag(), "command line log path")
-	flagDebugCloudInfo     = fsDebug.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
-	flagDebugIPInfo        = fsDebug.String("ipinfo", "", "show IP geo info")
-	flagDebugWorkspaceInfo = fsDebug.Bool("workspace-info", false, "show workspace info")
-	flagDebugCheckConfig   = fsDebug.Bool("check-config", false, "check inputs configure and main configure")
-	flagDebugCmdLog        = fsDebug.String("cmd-log", "/dev/null", "command line log path")
-	flagDebugDumpSamples   = fsDebug.String("dump-samples", "", "dump all inputs samples")
-	flagDebugLoadLog       = fsDebug.Bool("upload-log", false, "upload log")
-	fsDebugUsage           = func() {
+	fsDebugName                = "debug"
+	fsDebug                    = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
+	FlagDebugWorkDir           = fsDebug.String("workdir", "", "set workdir of datakit")
+	flagDebugLogPath           = fsDebug.String("log", commonLogFlag(), "command line log path")
+	flagDebugCloudInfo         = fsDebug.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flagDebugIPInfo            = fsDebug.String("ipinfo", "", "show IP geo info")
+	flagDebugWorkspaceInfo     = fsDebug.Bool("workspace-info", false, "show workspace info")
+	flagDebugCheckConfig       = fsDebug.Bool("check-config", false, "check inputs configure and main configure")
+	flagDebugDumpSamples       = fsDebug.String("dump-samples", "", "dump all inputs samples")
+	flagDebugLoadLog           = fsDebug.Bool("upload-log", false, "upload log")
+	flagDebugDefaultMainConfig = fsDebug.Bool("default-main-conf", false, "print default datakit.conf")
+	flagDebugCheckSample       = fsDebug.Bool("check-sample", false, "check all inputs config sample, to ensure all sample are valid TOML")
+	fsDebugUsage               = func() {
 		fmt.Printf("usage: datakit debug [options]\n\n")
 		fmt.Printf("Various tools for debugging\n\n")
 		fmt.Println(fsDebug.FlagUsagesWrapped(0))
@@ -169,6 +192,7 @@ func printHelp() {
 
 	fmt.Fprintf(os.Stderr, "The commands are:\n\n")
 
+	fmt.Fprintf(os.Stderr, "\tdoc        manage all documents for DataKit\n")
 	fmt.Fprintf(os.Stderr, "\tdql        query DQL for various usage\n")
 	fmt.Fprintf(os.Stderr, "\trun        select DataKit running mode(defaul running as service)\n")
 	fmt.Fprintf(os.Stderr, "\tpipeline   debug pipeline\n")
@@ -189,6 +213,9 @@ func runHelpFlags() {
 		printHelp()
 	case 3: // need help for various commands
 		switch os.Args[2] {
+		case fsDocName:
+			fsDocUsage()
+
 		case fsPLName:
 			fsPLUsage()
 
@@ -232,13 +259,28 @@ func doParseAndRunFlags() {
 		}
 
 		switch os.Args[1] {
+		case fsDocName:
+			setCmdRootLog(*flagDocLogPath)
+			if err := fsDoc.Parse(os.Args[2:]); err != nil {
+				errorf("Parse: %s\n", err)
+				fsDocUsage()
+				os.Exit(-1)
+			}
+
+			if err := runDocFlags(); err != nil {
+				errorf("%s\n", err)
+				os.Exit(-1)
+			}
+			os.Exit(0)
+
 		case fsDQLName:
-			setCmdRootLog(*flagDQLLogPath)
 			if err := fsDQL.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)
 				fsDQLUsage()
 				os.Exit(-1)
 			}
+
+			setCmdRootLog(*flagDQLLogPath)
 
 			tryLoadMainCfg()
 
@@ -250,8 +292,6 @@ func doParseAndRunFlags() {
 			os.Exit(0)
 
 		case fsPLName:
-			setCmdRootLog(*flagPLLogPath)
-
 			debugPipelineName = os.Args[2]
 
 			// NOTE: args[2] must be the pipeline source name
@@ -261,6 +301,7 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
+			setCmdRootLog(*flagPLLogPath)
 			tryLoadMainCfg()
 
 			if err := runPLFlags(); err != nil {
@@ -271,13 +312,13 @@ func doParseAndRunFlags() {
 			os.Exit(0)
 
 		case fsVersionName:
-			setCmdRootLog(*flagVersionLogPath)
 			if err := fsVersion.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)
 				fsVersionUsage()
 				os.Exit(-1)
 			}
 
+			setCmdRootLog(*flagVersionLogPath)
 			tryLoadMainCfg()
 
 			if err := runVersionFlags(); err != nil {
@@ -288,13 +329,13 @@ func doParseAndRunFlags() {
 			os.Exit(0)
 
 		case fsServiceName:
-			setCmdRootLog(*flagServiceLogPath)
 			if err := fsService.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)
 				fsServiceUsage()
 				os.Exit(-1)
 			}
 
+			setCmdRootLog(*flagServiceLogPath)
 			if err := runServiceFlags(); err != nil {
 				errorf("%s\n", err)
 				os.Exit(-1)
@@ -303,13 +344,13 @@ func doParseAndRunFlags() {
 			os.Exit(0)
 
 		case fsMonitorName:
-			setCmdRootLog(*flagMonitorLogPath)
 			if err := fsMonitor.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)
 				fsMonitorUsage()
 				os.Exit(-1)
 			}
 
+			setCmdRootLog(*flagMonitorLogPath)
 			if err := runMonitorFlags(); err != nil {
 				errorf("%s\n", err)
 				os.Exit(-1)
@@ -318,14 +359,13 @@ func doParseAndRunFlags() {
 			os.Exit(0)
 
 		case fsInstallName:
-			// TODO
-			setCmdRootLog(*flagInstallLogPath)
 			if err := fsInstall.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)
 				fsInstallUsage()
 				os.Exit(-1)
 			}
 
+			setCmdRootLog(*flagInstallLogPath)
 			if err := installPlugins(); err != nil {
 				errorf("%s\n", err)
 				os.Exit(-1)
@@ -333,7 +373,6 @@ func doParseAndRunFlags() {
 			os.Exit(0)
 
 		case fsDebugName:
-			setCmdRootLog(*flagDebugLogPath)
 			if err := fsDebug.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)
 				fsDebugUsage()
@@ -346,7 +385,7 @@ func doParseAndRunFlags() {
 				os.Exit(-1)
 			}
 
-			os.Exit(0)
+			// NOTE: Do not exit here, you should exit in sub-debug command if need
 
 		default:
 			errorf("unknown command `%s'\n", os.Args[1])

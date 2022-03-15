@@ -35,19 +35,23 @@ func exportService(items []v1.Service, extraTags tagsType) k8sResourceStats {
 
 	for _, item := range items {
 		obj := newService()
-		obj.tags["name"] = fmt.Sprintf("%v", item.UID)
-		obj.tags["service_name"] = item.Name
-		obj.tags["type"] = fmt.Sprintf("%v", item.Spec.Type)
+		obj.tags = map[string]string{
+			"name":         fmt.Sprintf("%v", item.UID),
+			"service_name": item.Name,
+			"type":         fmt.Sprintf("%v", item.Spec.Type),
+		}
 
 		obj.tags.addValueIfNotEmpty("cluster_name", item.ClusterName)
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 
-		obj.fields["age"] = int64(time.Since(item.CreationTimestamp.Time).Seconds())
-		obj.fields["cluster_ip"] = item.Spec.ClusterIP
-		obj.fields["external_name"] = item.Spec.ExternalName
-		obj.fields["external_traffic_policy"] = fmt.Sprintf("%v", item.Spec.ExternalTrafficPolicy)
-		obj.fields["session_affinity"] = fmt.Sprintf("%v", item.Spec.SessionAffinity)
+		obj.fields = map[string]interface{}{
+			"age":                     int64(time.Since(item.CreationTimestamp.Time).Seconds()),
+			"cluster_ip":              item.Spec.ClusterIP,
+			"external_name":           item.Spec.ExternalName,
+			"external_traffic_policy": fmt.Sprintf("%v", item.Spec.ExternalTrafficPolicy),
+			"session_affinity":        fmt.Sprintf("%v", item.Spec.SessionAffinity),
+		}
 
 		// obj.fields.addSlice("selectors", item.Spec.Selector)
 		// obj.fields.addSlice("load_balancer_ingress", item.Status.LoadBalancer)
