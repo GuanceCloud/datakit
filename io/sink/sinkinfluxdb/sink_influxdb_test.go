@@ -78,6 +78,14 @@ func (p *testPoint) ToPoint() *client.Point {
 	return p.Point
 }
 
+func (p *testPoint) String() string {
+	return ""
+}
+
+func (p *testPoint) ToJSON() (*sinkcommon.JSONPoint, error) {
+	return nil, nil
+}
+
 func getTestPoints(t *testing.T, sampleSize int, seed int64) []*testPoint {
 	t.Helper()
 
