@@ -62,6 +62,8 @@ var (
 		"sec-checker":              "man/manuals/sec-checker.md",
 		"telegraf":                 "man/manuals/telegraf.md",
 		"why-no-data":              "man/manuals/why-no-data.md",
+		"opentelemetry-go":         "man/manuals/opentelemetry-go.md",
+		"opentelemetry-java":       "man/manuals/opentelemetry-java.md",
 	}
 	l = logger.DefaultSLogger("man")
 )

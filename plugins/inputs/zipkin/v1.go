@@ -361,7 +361,7 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 
 		sourceTags := make(map[string]string)
 		for _, tag := range span.BinaryAnnotations {
-			sourceTags[tag.Key] = string(tag.Value)
+			sourceTags[tag.Key] = tag.Value
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
