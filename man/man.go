@@ -4,6 +4,7 @@ package man
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	// nolint:typecheck
 	"strings"
@@ -116,12 +117,21 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 			ReleaseDate: git.BuildAt,
 			CSS:         css,
 		}
+
 		// Add pipeline functions doc.
 		if name == "pipeline" {
 			sb := strings.Builder{}
-			for _, v := range funcs.PipelineFunctionDocs {
-				sb.WriteString(v.Doc)
+			names := []string{}
+			for k := range funcs.PipelineFunctionDocs {
+				// order by name
+				names = append(names, k)
 			}
+			sort.Strings(names)
+
+			for _, name := range names {
+				sb.WriteString(funcs.PipelineFunctionDocs[name].Doc)
+			}
+
 			p.PipelineFuncs = sb.String()
 		}
 	} else {

@@ -7,7 +7,7 @@
   - [通过 DQL 查询数据](datakit-dql-how-to)
   - [各种其它工具使用](datakit-tools-how-to)
 
-    - [查看 DataKit Monitor](datakit-monitor)
+  - [查看 DataKit Monitor](datakit-monitor)
 
 - [DataKit 版本历史](changelog)
 
@@ -19,16 +19,17 @@
   - [批量部署](datakit-batch-deploy)
   - [DataKit 更新](datakit-update)
 
-- [DataKit 代理](proxy)
-- [DataKit 选举支持](election)
+  - [DataKit 代理](proxy)
+  - [DataKit 选举支持](election)
+  - [DCA 客户端(beta)](dca)
+
 - [DataKit API](apis)
-- [DataKit 整体架构简介](datakit-arch)
-- [DataKit Sink 简介](datakit-sink)
-- [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
   - [调试 Pipeline](datakit-pl-how-to)
+
 - [如何排查无数据问题](why-no-data)
 - [DataKit 开发手册](development)
+  - [DataKit 整体架构简介](datakit-arch)
 
 - [采集器]()
 
@@ -77,9 +78,9 @@
 
     - [数据采集]()
 
-			- [容器](container)
-			- [Kubernetes 扩展指标采集](kubernetes-x)
-			- [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
+      - [容器](container)
+      - [Kubernetes 扩展指标采集](kubernetes-x)
+      - [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
 
     - [通过 Sidecar 方式采集 Pod 日志](logfwd)
     - [Kubernetes 环境下的 DataKit 配置](k8s-config-how-to)

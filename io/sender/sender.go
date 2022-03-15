@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
@@ -26,6 +26,8 @@ type Point struct {
 
 var _ sinkcommon.ISinkPoint = new(Point)
 
+var lock sync.Mutex
+
 func (p *Point) ToPoint() *influxdb.Point {
 	return p.Point
 }
@@ -35,6 +37,12 @@ func WrapPoint(pts []*influxdb.Point) (x []sinkcommon.ISinkPoint) {
 		x = append(x, &Point{pt})
 	}
 	return
+}
+
+type writeInfo struct {
+	cost    time.Duration
+	ptsLen  int64
+	isCache bool
 }
 
 var (
@@ -52,17 +60,26 @@ type Option struct {
 	Write              WriteFunc
 }
 
-type senderStat struct {
-	FailCount    int64
-	SuccessCount int64
+type Stat struct {
+	FailCount             int64
+	FailPercent           float64
+	SuccessCount          int64
+	TotalCost             time.Duration
+	AvgCollectCost        time.Duration
+	MaxCollectCost        time.Duration
+	SuccessPointsCount    int64
+	CachedPointsCount     int64
+	CachedSentPointsCount int64
 }
 
 type Sender struct {
-	Stat   senderStat
+	Stat   map[string]*Stat
 	opt    *Option
 	write  WriteFunc
 	group  *goroutine.Group
 	stopCh chan interface{}
+
+	lock sync.Mutex
 }
 
 // Write receive input data and then call worker to save the data.
@@ -78,6 +95,47 @@ func (s *Sender) Write(category string, pts []sinkcommon.ISinkPoint) error {
 	return nil
 }
 
+func (s *Sender) updateStat(category string, info *writeInfo, isSuccess bool) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	stat, ok := s.Stat[category]
+
+	if !ok {
+		s.Stat[category] = &Stat{}
+		stat = s.Stat[category]
+	}
+
+	if info == nil {
+		info = &writeInfo{}
+	}
+
+	if isSuccess {
+		if info.isCache {
+			stat.CachedSentPointsCount += info.ptsLen
+		} else {
+			stat.SuccessCount += 1
+			if info.cost > 0 {
+				stat.TotalCost += info.cost
+				stat.AvgCollectCost = stat.TotalCost / time.Duration(stat.SuccessCount)
+				if info.cost > stat.MaxCollectCost {
+					stat.MaxCollectCost = info.cost
+				}
+			}
+
+			stat.SuccessPointsCount += info.ptsLen
+		}
+	} else {
+		if info.isCache {
+			stat.CachedPointsCount += info.ptsLen
+		} else {
+			stat.FailCount += 1
+		}
+	}
+
+	stat.FailPercent = float64(stat.FailCount) * 100 / float64(stat.SuccessCount+stat.FailCount)
+}
+
 // worker create a groutine to run write job.
 func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 	if s.group == nil {
@@ -85,8 +143,10 @@ func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 	}
 
 	s.group.Go(func(ctx context.Context) error {
+		start := time.Now()
 		if err := s.write(category, pts); err != nil {
-			atomic.AddInt64(&s.Stat.FailCount, 1)
+			s.updateStat(category, nil, false)
+
 			l.Error("sink write error: ", err)
 
 			if s.opt.ErrorCallback != nil {
@@ -97,11 +157,13 @@ func (s *Sender) worker(category string, pts []sinkcommon.ISinkPoint) error {
 				err := s.cache(category, pts)
 				if err == nil {
 					l.Debugf("sink write cached: %s(%d)", category, len(pts))
+					s.updateStat(category, &writeInfo{isCache: true, ptsLen: int64(len(pts))}, false)
 				}
 			}
 		} else {
+			cost := time.Since(start)
 			l.Debugf("sink write ok: %s(%d)", category, len(pts))
-			atomic.AddInt64(&s.Stat.SuccessCount, 1)
+			s.updateStat(category, &writeInfo{cost: cost, ptsLen: int64(len(pts))}, true)
 		}
 
 		return nil
@@ -168,6 +230,8 @@ func (s *Sender) init(opt *Option) error {
 	} else {
 		s.write = sink.Write
 	}
+
+	s.Stat = map[string]*Stat{}
 
 	if s.write == nil {
 		return fmt.Errorf("sender init error: write method is required")
@@ -258,6 +322,7 @@ func (s *Sender) flushCache() {
 			l.Warnf("cache sink write error: %s", err.Error())
 		} else {
 			toCleanKeys = append(toCleanKeys, k)
+			s.updateStat(d.Category, &writeInfo{isCache: true, ptsLen: int64(len(points))}, true)
 		}
 
 		return err
@@ -293,4 +358,95 @@ func NewSender(opt *Option) (*Sender, error) {
 	}
 	err := s.init(opt)
 	return s, err
+}
+
+type Metric struct {
+	Sink   string
+	Uptime time.Duration
+	Count,
+	Pts,
+	RawBytes,
+	Bytes,
+	Failed,
+	Status2XX,
+	Status4XX,
+	Status5XX uint64
+
+	startTime time.Time
+}
+
+type SinkMetric struct {
+	Name      string
+	StartTime time.Time
+	Pts,
+	RawBytes,
+	Bytes uint64
+	StatusCode int
+	IsSuccess  bool
+	IsOnlyStat bool
+}
+
+var sinkMetric = make(map[string]*Metric)
+
+var metric = make(chan *SinkMetric, 32)
+
+var g = datakit.G("sender")
+
+func init() {
+	g.Go(func(ctx context.Context) error {
+		for {
+			select {
+			case m := <-metric:
+				updateSinkStat(m)
+			case <-datakit.Exit.Wait():
+				return nil
+			}
+		}
+	})
+}
+
+func FeedMetric(m *SinkMetric) {
+	select {
+	case metric <- m:
+	default: // nonblock
+	}
+}
+
+func updateSinkStat(m *SinkMetric) {
+	lock.Lock()
+	defer lock.Unlock()
+	stat, ok := sinkMetric[m.Name]
+	if !ok {
+		sinkMetric[m.Name] = &Metric{}
+		stat = sinkMetric[m.Name]
+	}
+
+	stat.startTime = m.StartTime
+	stat.Uptime = time.Since(m.StartTime)
+
+	stat.Bytes += m.Bytes
+	stat.RawBytes += m.RawBytes
+	stat.Count += 1
+	stat.Pts += m.Pts
+
+	switch m.StatusCode / 100 {
+	case 2:
+		stat.Status2XX++
+	case 4:
+		stat.Status4XX++
+	case 5:
+		stat.Status5XX++
+	}
+
+	if !m.IsSuccess {
+		stat.Failed++
+	}
+}
+
+func GetStat() map[string]*Metric {
+	for _, stat := range sinkMetric {
+		stat.Uptime = time.Since(stat.startTime)
+	}
+
+	return sinkMetric
 }
