@@ -106,6 +106,12 @@ func DefaultConfig() *Config {
 				},
 			},
 		},
+
+		Sinks: &Sinker{
+			Sink: []map[string]interface{}{
+				{},
+			},
+		},
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
@@ -157,6 +163,10 @@ type GitRepost struct {
 	Repos        []*GitRepository `toml:"repo"`
 }
 
+type Sinker struct {
+	Sink []map[string]interface{} `toml:"sink"`
+}
+
 type Config struct {
 	DefaultEnabledInputs []string  `toml:"default_enabled_inputs,omitempty"`
 	InstallDate          time.Time `toml:"install_date,omitempty"`
@@ -200,6 +210,7 @@ type Config struct {
 	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
 	IOConf  *IOConfig           `toml:"io"`
 	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
+	Sinks   *Sinker             `toml:"sinks"`
 	Logging *LoggerCfg          `toml:"logging"`
 
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
@@ -562,6 +573,14 @@ func (c *Config) LoadEnvs() error {
 			case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
 				c.IOConf.DynamicCacheDumpThreshold = value
 			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
+		if x, err := strconv.ParseFloat(v, 10); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)
+		} else {
+			c.HTTPAPI.RequestRateLimit = float64(x)
 		}
 	}
 

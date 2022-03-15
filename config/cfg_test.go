@@ -7,6 +7,7 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -177,10 +178,12 @@ func TestDefaultToml(t *testing.T) {
 
 func TestLoadEnv(t *testing.T) {
 	cases := []struct {
+		name   string
 		envs   map[string]string
 		expect *Config
 	}{
 		{
+			name: "normal",
 			envs: map[string]string{
 				"ENV_GLOBAL_TAGS":            "a=b,c=d",
 				"ENV_LOG_LEVEL":              "debug",
@@ -194,6 +197,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
 				"ENV_ENABLE_ELECTION":        "1",
 				"ENV_DISABLE_404PAGE":        "on",
+				"ENV_REQUEST_RATE_LIMIT":     "1234",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -204,6 +208,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
 				cfg.HTTPAPI.Listen = "localhost:9559"
 				cfg.HTTPAPI.Disable404Page = true
+				cfg.HTTPAPI.RequestRateLimit = 1234.0
 
 				cfg.Logging.Level = "debug"
 
@@ -218,6 +223,30 @@ func TestLoadEnv(t *testing.T) {
 				return cfg
 			}(),
 		},
+		{
+			name: "test-ENV_REQUEST_RATE_LIMIT",
+			envs: map[string]string{
+				"ENV_REQUEST_RATE_LIMIT": "1234.0",
+			},
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.HTTPAPI.RequestRateLimit = 1234.0
+				return cfg
+			}(),
+		},
+
+		{
+			name: "bad-ENV_REQUEST_RATE_LIMIT",
+			envs: map[string]string{
+				"ENV_REQUEST_RATE_LIMIT": "0.1234.0",
+			},
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.HTTPAPI.RequestRateLimit = 0
+				return cfg
+			}(),
+		},
+
 		{
 			envs: map[string]string{
 				"ENV_ENABLE_INPUTS": "cpu,mem,disk",
@@ -242,23 +271,23 @@ func TestLoadEnv(t *testing.T) {
 		},
 	}
 
-	for idx, tc := range cases {
-		t.Logf("case %d ...", idx)
-
-		c := DefaultConfig()
-		os.Clearenv()
-		for k, v := range tc.envs {
-			if err := os.Setenv(k, v); err != nil {
-				t.Fatal(err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := DefaultConfig()
+			os.Clearenv()
+			for k, v := range tc.envs {
+				if err := os.Setenv(k, v); err != nil {
+					t.Fatal(err)
+				}
 			}
-		}
-		if err := c.LoadEnvs(); err != nil {
-			t.Error(err)
-		}
+			if err := c.LoadEnvs(); err != nil {
+				t.Error(err)
+			}
 
-		a := tc.expect.String()
-		b := c.String()
-		tu.Equals(t, a, b)
+			a := tc.expect.String()
+			b := c.String()
+			tu.Equals(t, a, b)
+		})
 	}
 }
 
@@ -355,4 +384,86 @@ hostname = "should-not-set"`,
 			t.Error(err)
 		}
 	}
+}
+
+// go test -v -timeout 30s -run ^TestWriteConfigFile$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
+/*
+[sinks]
+
+  [[sinks.sink]]
+    addr = "http://1.1.1.1:8086"
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db0"
+    id = "influxdb_1"
+    precision = "ns"
+    target = "influxdb"
+    timeout = "6s"
+    user_agent = "go_test_client"
+    write_encoding = ""
+
+  [[sinks.sink]]
+    addr = "http://1.1.1.1:8087"
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db0"
+    id = "influxdb_bak"
+    precision = "ns"
+    target = "influxdb"
+    timeout = "6s"
+    user_agent = "go_test_client"
+    write_encoding = ""
+
+  [[sinks.sink]]
+    addr = "http://1.1.1.1:8086"
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db0"
+    id = "influxdb_test_will_not_working"
+    precision = "ns"
+    target = "example only, will not working"
+    timeout = "6s"
+    user_agent = "go_test_client"
+    write_encoding = ""
+
+[sinks]
+
+  [[sinks.sink]]
+*/
+func TestWriteConfigFile(t *testing.T) {
+	c := DefaultConfig()
+	c.Sinks = &Sinker{
+		Sink: []map[string]interface{}{
+			{
+				"id":             "influxdb_1",
+				"target":         "influxdb",
+				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+				"addr":           "http://1.1.1.1:8086",
+				"precision":      "ns",
+				"database":       "db0",
+				"user_agent":     "go_test_client",
+				"timeout":        "6s",
+				"write_encoding": "",
+			},
+			{
+				"id":             "influxdb_bak",
+				"target":         "influxdb",
+				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+				"addr":           "http://1.1.1.1:8087",
+				"precision":      "ns",
+				"database":       "db0",
+				"user_agent":     "go_test_client",
+				"timeout":        "6s",
+				"write_encoding": "",
+			},
+		},
+	}
+	// c.Sinks = &Sinker{
+	// 	Sink: []map[string]interface{}{
+	// 		{},
+	// 	},
+	// }
+
+	mcdata, err := datakit.TomlMarshal(c)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(mcdata))
 }

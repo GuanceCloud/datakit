@@ -10,9 +10,8 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cache"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink"
 )
 
 var (
@@ -111,7 +110,7 @@ func ConfigDefaultIO(opts ...IOOption) {
 	}
 }
 
-func Start() error {
+func Start(sincfg []map[string]interface{}) error {
 	log = logger.SLogger("io")
 
 	log.Debugf("default io config: %v", defaultIO)
@@ -123,17 +122,15 @@ func Start() error {
 	defaultIO.cache = map[string][]*Point{}
 	defaultIO.dynamicCache = map[string][]*Point{}
 
-	defaultIO.StartIO(true)
-
-	if defaultIO.EnableCache {
-		if err := cache.Initialize(datakit.CacheDir, nil); err != nil {
-			log.Warn("initialized cache: %s, ignored", err)
-		} else if err := cache.CreateBucketIfNotExists(cacheBucket); err != nil {
-			log.Warn("create bucket: %s", err)
-		}
+	if err := sink.Init(sincfg, defaultIO.dw.Write); err != nil {
+		log.Error("InitSink failed: %v", err)
+		return err
 	}
 
+	defaultIO.StartIO(true)
 	log.Debugf("io: %+#v", defaultIO)
+
+	log.Debug("sink.Init succeeded")
 
 	return nil
 }
@@ -158,7 +155,8 @@ func ChanStat() string {
 
 	l2 := len(defaultIO.in2)
 	c2 := cap(defaultIO.in2)
-	return fmt.Sprintf("inputCh: %d/%d, highFreqInputCh: %d/%d", l, c, l2, c2)
+
+	return fmt.Sprintf(`inputCh: %d/%d, highFreqInputCh: %d/%d`, l, c, l2, c2)
 }
 
 func DroppedTotal() int64 {

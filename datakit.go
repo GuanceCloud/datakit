@@ -79,6 +79,17 @@ const (
 	DatawayDisableURL = "dev_null"
 	ModeNormal        = 1
 	ModeDev           = 2
+
+	SinkTargetExample        = "example only, will not working"
+	SinkCategoryMetric       = "M"
+	SinkCategoryNetwork      = "N"
+	SinkCategoryKeyEvent     = "K"
+	SinkCategoryObject       = "O"
+	SinkCategoryCustomObject = "CO"
+	SinkCategoryLogging      = "L"
+	SinkCategoryTracing      = "T"
+	SinkCategoryRUM          = "R"
+	SinkCategorySecurity     = "S"
 )
 
 var (
