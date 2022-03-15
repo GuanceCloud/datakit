@@ -61,16 +61,16 @@ func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
 
 	row++
 	table.SetCell(row, 0,
-		tview.NewTableCell("Memory").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		tview.NewTableCell("Mem").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
 		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.HeapAlloc)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
 	table.SetCell(row, 0,
-		tview.NewTableCell("Stack").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		tview.NewTableCell("SysMem").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
-		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.StackInuse)).
+		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.Sys)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
