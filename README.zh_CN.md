@@ -61,7 +61,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 ### 安装非稳定版
 
-同时我们也发布了 DataKit 的非稳定版，可通过如下方式安装：
+同时我们也发布了 DataKit 的[非稳定版](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d)，可通过如下方式安装：
 
 - Linux & Mac
 

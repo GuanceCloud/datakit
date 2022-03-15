@@ -64,7 +64,7 @@ For more documentations about DataKit installation, see [here](https://www.yuque
 
 ### Install unstable release
 
-We also release DataKit with unstable versions, we can install via
+We also released the [unstable DataKit](https://www.yuque.com/dataflux/datakit/changelog#5a0afc9d), we can install via
 
 - Linux & Mac
 
@@ -82,7 +82,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 ```
 # We should use the unstable version yaml
-https://static.guance.com/datakit/rc/datakit.yaml
+wget https://static.guance.com/datakit/rc/datakit.yaml
 ```
 
 ## Build From Source
