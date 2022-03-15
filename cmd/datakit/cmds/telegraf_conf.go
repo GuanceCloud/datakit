@@ -1,6 +1,11 @@
-//nolint
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package cmds
 
+//nolint:lll
 const (
 	TelegrafConfTemplate = `# Telegraf Configuration
 #
@@ -4389,19 +4394,19 @@ const (
 #   # [inputs.logstash.headers]
 #   #   "X-Special-Header" = "Special-Value"
 
-# # Read metrics from local Lustre service on OST, MDS
+# # Read metrics from local Luster service on OST, MDS
 # [[inputs.lustre2]]
-#   ## An array of /proc globs to search for Lustre stats
-#   ## If not specified, the default will work on Lustre 2.5.x
+#   ## An array of /proc globs to search for Luster stats
+#   ## If not specified, the default will work on Luster 2.5.x
 #   ##
 #   # ost_procfiles = [
-#   #   "/proc/fs/lustre/obdfilter/*/stats",
-#   #   "/proc/fs/lustre/osd-ldiskfs/*/stats",
-#   #   "/proc/fs/lustre/obdfilter/*/job_stats",
+#   #   "/proc/fs/luster/obdfilter/*/stats",
+#   #   "/proc/fs/luster/osd-ldiskfs/*/stats",
+#   #   "/proc/fs/luster/obdfilter/*/job_stats",
 #   # ]
 #   # mds_procfiles = [
-#   #   "/proc/fs/lustre/mdt/*/md_stats",
-#   #   "/proc/fs/lustre/mdt/*/job_stats",
+#   #   "/proc/fs/luster/mdt/*/md_stats",
+#   #   "/proc/fs/luster/mdt/*/job_stats",
 #   # ]
 
 

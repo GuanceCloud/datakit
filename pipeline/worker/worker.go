@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package worker open task ch to receive and execute tasks
 package worker
 
@@ -101,7 +106,11 @@ func (wkr *plWorker) run(task *Task) []*io.Point {
 	defer func() {
 		if err := recover(); err != nil {
 			l.Errorf("panic err = %v  lasterr=%v", err, wkr.lastErr)
-			wkr.lastErr = err.(error) //nolint
+			switch e := err.(type) {
+			case error:
+				wkr.lastErr = e
+			default: // pass
+			}
 			wkr.lastErrTS = time.Now()
 		}
 	}()
