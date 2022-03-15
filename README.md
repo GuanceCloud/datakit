@@ -80,7 +80,7 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<YOUR-TOKEN>";Set-ExecutionPol
 
 - [Kubernetes DaemonSet](https://www.yuque.com/dataflux/datakit/datakit-daemonset-deploy)
 
-```
+```bash
 # We should use the unstable version yaml
 wget https://static.guance.com/datakit/rc/datakit.yaml
 ```
