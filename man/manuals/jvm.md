@@ -204,3 +204,9 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 {{$m.FieldsMarkdownTable}}
 
 {{ end }}
+
+## 延伸阅读
+
+- [DDTrace Java 示例](ddtrace-java)
+- [SkyWalking](skywalking)
+- [Opentelemetry Java 示例](opentelemetry-java)

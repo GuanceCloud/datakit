@@ -172,10 +172,12 @@ func TestDefaultToml(t *testing.T) {
 
 func TestLoadEnv(t *testing.T) {
 	cases := []struct {
+		name   string
 		envs   map[string]string
 		expect *Config
 	}{
 		{
+			name: "normal",
 			envs: map[string]string{
 				"ENV_GLOBAL_TAGS":            "a=b,c=d",
 				"ENV_LOG_LEVEL":              "debug",
@@ -189,6 +191,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
 				"ENV_ENABLE_ELECTION":        "1",
 				"ENV_DISABLE_404PAGE":        "on",
+				"ENV_REQUEST_RATE_LIMIT":     "1234",
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
@@ -199,6 +202,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"
 				cfg.HTTPAPI.Listen = "localhost:9559"
 				cfg.HTTPAPI.Disable404Page = true
+				cfg.HTTPAPI.RequestRateLimit = 1234.0
 
 				cfg.Logging.Level = "debug"
 
@@ -213,6 +217,30 @@ func TestLoadEnv(t *testing.T) {
 				return cfg
 			}(),
 		},
+		{
+			name: "test-ENV_REQUEST_RATE_LIMIT",
+			envs: map[string]string{
+				"ENV_REQUEST_RATE_LIMIT": "1234.0",
+			},
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.HTTPAPI.RequestRateLimit = 1234.0
+				return cfg
+			}(),
+		},
+
+		{
+			name: "bad-ENV_REQUEST_RATE_LIMIT",
+			envs: map[string]string{
+				"ENV_REQUEST_RATE_LIMIT": "0.1234.0",
+			},
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.HTTPAPI.RequestRateLimit = 0
+				return cfg
+			}(),
+		},
+
 		{
 			envs: map[string]string{
 				"ENV_ENABLE_INPUTS": "cpu,mem,disk",
@@ -237,23 +265,23 @@ func TestLoadEnv(t *testing.T) {
 		},
 	}
 
-	for idx, tc := range cases {
-		t.Logf("case %d ...", idx)
-
-		c := DefaultConfig()
-		os.Clearenv()
-		for k, v := range tc.envs {
-			if err := os.Setenv(k, v); err != nil {
-				t.Fatal(err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := DefaultConfig()
+			os.Clearenv()
+			for k, v := range tc.envs {
+				if err := os.Setenv(k, v); err != nil {
+					t.Fatal(err)
+				}
 			}
-		}
-		if err := c.LoadEnvs(); err != nil {
-			t.Error(err)
-		}
+			if err := c.LoadEnvs(); err != nil {
+				t.Error(err)
+			}
 
-		a := tc.expect.String()
-		b := c.String()
-		tu.Equals(t, a, b)
+			a := tc.expect.String()
+			b := c.String()
+			tu.Equals(t, a, b)
+		})
 	}
 }
 

@@ -18,32 +18,32 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
-const (
-	name = "logfwd"
-
-	envPodNameKey      = "LOGFWD_POD_NAME"
-	envPodNamespaceKey = "LOGFWD_POD_NAMESPACE"
-
-	envLogConfigKey = "LOGFWD_ANNOTATION_DATAKIT_LOG_CONFIGS"
-	envFwdConfigKey = "LOGFWD_JSON_CONFIG"
-
-	envWsHostKey = "LOGFWD_DATAKIT_HOST"
-	envWsPortKey = "LOGFWD_DATAKIT_PORT"
-)
+const name = "logfwd"
 
 var (
-	argConfigJSON = flag.String("json-config", "", "logfwd json-config")
+	argJSONConfig = flag.String("json-config", "", "logfwd json-config")
 	argConfig     = flag.String("config", "", "logfwd config file")
-	l             = logger.DefaultSLogger(name)
+
+	podName                  = os.Getenv("LOGFWD_POD_NAME")
+	podNamespace             = os.Getenv("LOGFWD_POD_NAMESPACE")
+	wsHost                   = os.Getenv("LOGFWD_DATAKIT_HOST")
+	wsPort                   = os.Getenv("LOGFWD_DATAKIT_PORT")
+	envMainJSONConfig        = os.Getenv("LOGFWD_JSON_CONFIG")
+	envAnnotationDataKitLogs = os.Getenv("LOGFWD_ANNOTATION_DATAKIT_LOGS")
+
+	l = logger.DefaultSLogger(name)
 )
 
 func main() {
 	quitChannel := make(chan struct{})
-
 	flag.Parse()
-	l = logger.SLogger(name)
 
-	cfg, err := getFwdConfig()
+	optflags := (logger.OPT_DEFAULT | logger.OPT_STDOUT)
+	if err := logger.InitRoot(&logger.Option{Level: logger.INFO, Flags: optflags}); err != nil {
+		l.Warnf("failed to set root log, err: %w", err)
+	}
+
+	cfg, err := getConfig()
 	if err != nil {
 		l.Error(err)
 		l.Info("exit")
@@ -55,14 +55,16 @@ func main() {
 	<-quitChannel
 }
 
-func getFwdConfig() (*fwdConfig, error) {
+func getConfig() (*config, error) {
 	cfg := func() string {
-		if c := os.Getenv(envFwdConfigKey); c != "" {
-			return c
+		if envMainJSONConfig != "" {
+			return envMainJSONConfig
 		}
-		if *argConfigJSON != "" {
-			return *argConfigJSON
+
+		if *argJSONConfig != "" {
+			return *argJSONConfig
 		}
+
 		if *argConfig != "" {
 			b, err := ioutil.ReadFile(*argConfig)
 			if err != nil {
@@ -71,6 +73,7 @@ func getFwdConfig() (*fwdConfig, error) {
 			}
 			return string(b)
 		}
+
 		return ""
 	}()
 
@@ -78,18 +81,18 @@ func getFwdConfig() (*fwdConfig, error) {
 		return nil, fmt.Errorf("not found fwd config")
 	}
 
-	return parseFwdConfig(cfg)
+	return parseConfig(cfg)
 }
 
-func startLog(cfg *fwdConfig, stop <-chan struct{}) {
+func startLog(cfg *config, stop <-chan struct{}) {
 	u := url.URL{Scheme: "ws", Host: cfg.DataKitAddr, Path: "/logfwd"}
 
 	var wg sync.WaitGroup
 
-	for _, c := range cfg.LogConfigs {
+	for _, c := range cfg.Loggings {
 		wg.Add(1)
 
-		go func(lc *logConfig) {
+		go func(lg *logging) {
 			defer wg.Done()
 
 			wscli := newWsclient(&u)
@@ -102,7 +105,7 @@ func startLog(cfg *fwdConfig, stop <-chan struct{}) {
 				}
 			}()
 
-			startTailing(lc, forwardFunc(lc, wscli.writeMessage), stop)
+			startTailing(lg, forwardFunc(lg, wscli.writeMessage), stop)
 		}(c)
 	}
 
@@ -111,17 +114,16 @@ func startLog(cfg *fwdConfig, stop <-chan struct{}) {
 
 type writeMessage func([]byte) error
 
-func forwardFunc(lc *logConfig, fn writeMessage) tailer.ForwardFunc {
+func forwardFunc(lg *logging, fn writeMessage) tailer.ForwardFunc {
 	return func(filename, text string) error {
 		msg := message{
 			Type:     "1",
-			Source:   lc.Source,
-			Pipeline: lc.Pipeline,
-			TagsStr:  lc.TagsStr,
+			Source:   lg.Source,
+			Pipeline: lg.Pipeline,
+			Tags:     lg.Tags,
 			Log:      text,
 		}
-		_ = msg.appendToTagsStr("filename", filename)
-
+		msg.addTags("filename", filename)
 		data, err := msg.json()
 		if err != nil {
 			return err
@@ -135,18 +137,18 @@ func forwardFunc(lc *logConfig, fn writeMessage) tailer.ForwardFunc {
 	}
 }
 
-func startTailing(lc *logConfig, fn tailer.ForwardFunc, stop <-chan struct{}) {
+func startTailing(lg *logging, fn tailer.ForwardFunc, stop <-chan struct{}) {
 	opt := &tailer.Option{
-		Source:                lc.Source,
-		Pipeline:              lc.Pipeline,
-		CharacterEncoding:     lc.CharacterEncoding,
-		MultilineMatch:        lc.MultilineMatch,
-		RemoveAnsiEscapeCodes: lc.RemoveAnsiEscapeCodes,
+		Source:                lg.Source,
+		Pipeline:              lg.Pipeline,
+		CharacterEncoding:     lg.CharacterEncoding,
+		MultilineMatch:        lg.MultilineMatch,
+		RemoveAnsiEscapeCodes: lg.RemoveAnsiEscapeCodes,
 		ForwardFunc:           fn,
 		DisableSendEvent:      true,
 	}
 
-	tailer, err := tailer.NewTailer(lc.LogFiles, opt, lc.Ignore)
+	tailer, err := tailer.NewTailer(lg.LogFiles, opt, lg.Ignore)
 	if err != nil {
 		l.Error(err)
 		return
@@ -158,22 +160,21 @@ func startTailing(lc *logConfig, fn tailer.ForwardFunc, stop <-chan struct{}) {
 	tailer.Close()
 }
 
-type fwdConfig struct {
-	DataKitAddr string `json:"datakit_addr"`
-	LogPath     string `json:"log_path,omitempty"`
-	LogLevel    string `json:"log_level,omitempty"`
+// main config
 
-	LogConfigs logConfigs `json:"loggings"`
+type config struct {
+	DataKitAddr string   `json:"datakit_addr"`
+	Loggings    loggings `json:"loggings"`
 }
 
-func parseFwdConfig(configStr string) (*fwdConfig, error) {
-	if configStr == "" {
-		return nil, fmt.Errorf("invalid fwd config")
+func parseConfig(s string) (*config, error) {
+	if s == "" {
+		return nil, fmt.Errorf("invalid logfwd config")
 	}
 
-	var configs []*fwdConfig
+	var configs []*config
 
-	if err := json.Unmarshal([]byte(configStr), &configs); err != nil {
+	if err := json.Unmarshal([]byte(s), &configs); err != nil {
 		return nil, err
 	}
 
@@ -186,103 +187,91 @@ func parseFwdConfig(configStr string) (*fwdConfig, error) {
 		return nil, fmt.Errorf("unreachable, invalid config pointer")
 	}
 
-	if os.Getenv(envWsHostKey) != "" && os.Getenv(envWsPortKey) != "" {
-		addr := fmt.Sprintf("%s:%s", os.Getenv(envWsHostKey), os.Getenv(envWsPortKey))
-		cfg.DataKitAddr = addr
-		l.Infof("use env host and port, datakit address '%s'", addr)
+	if wsHost != "" && wsPort != "" {
+		cfg.DataKitAddr = fmt.Sprintf("%s:%s", wsHost, wsPort)
 	}
 
-	envLogConfigs := getEnvLogConfigs(envLogConfigKey)
-	for _, lc := range cfg.LogConfigs {
-		lc.setup()
-		lc.merge(envLogConfigs)
+	var annotationLoggings loggings
+	if envAnnotationDataKitLogs != "" {
+		_ = json.Unmarshal([]byte(envAnnotationDataKitLogs), &annotationLoggings)
+	}
+	for _, logging := range cfg.Loggings {
+		logging.merge(annotationLoggings)
+		logging.setup()
 	}
 
 	return cfg, nil
 }
 
-type logConfigs []*logConfig
+// logging config
 
-func getEnvLogConfigs(env string) logConfigs {
-	s := os.Getenv(env)
-	if s == "" {
-		return nil
-	}
-	var c logConfigs
-	if err := json.Unmarshal([]byte(s), &c); err != nil {
-		// l.Error(err)
-		return nil
-	}
-	return c
+type loggings []*logging
+
+type logging struct {
+	LogFiles              []string          `json:"logfiles"`
+	Ignore                []string          `json:"ignore"`
+	Source                string            `json:"source"`
+	Service               string            `json:"service"`
+	Pipeline              string            `json:"pipeline"`
+	CharacterEncoding     string            `json:"character_encoding"`
+	MultilineMatch        string            `json:"multiline_match"`
+	RemoveAnsiEscapeCodes bool              `json:"remove_ansi_escape_codes"`
+	Tags                  map[string]string `json:"tags"`
 }
 
-// logConfig
-
-type logConfig struct {
-	LogFiles              []string `json:"logfiles"`
-	Ignore                []string `json:"ignore"`
-	Source                string   `json:"source"`
-	Service               string   `json:"service"`
-	Pipeline              string   `json:"pipeline"`
-	CharacterEncoding     string   `json:"character_encoding"`
-	MultilineMatch        string   `json:"multiline_match"`
-	RemoveAnsiEscapeCodes bool     `json:"remove_ansi_escape_codes"`
-	TagsStr               string   `json:"tags_str"`
-}
-
-func (lc *logConfig) merge(cfgs logConfigs) {
-	for _, c := range cfgs {
-		if lc.Source != c.Source {
-			continue
-		}
-		lc.Service = c.Service
-		lc.Pipeline = c.Pipeline
-		lc.MultilineMatch = c.MultilineMatch
-	}
-}
-
-func (lc *logConfig) setup() {
-	if lc.Source == "" {
-		lc.Source = "default"
-	}
-	if lc.Service == "" {
-		lc.Service = lc.Source
-	}
-
-	lc.appendToTagsStr("service", lc.Service)
-	if podName := os.Getenv(envPodNameKey); podName != "" {
-		lc.appendToTagsStr("pod_name", podName)
-	}
-	if podNamespace := os.Getenv(envPodNamespaceKey); podNamespace != "" {
-		lc.appendToTagsStr("pod_namespace", podNamespace)
-	}
-}
-
-func (lc *logConfig) appendToTagsStr(key, value string) {
-	if len(lc.TagsStr) == 0 {
-		lc.TagsStr = fmt.Sprintf("%s=%s", key, value)
+func (lg *logging) merge(cfgs loggings) {
+	if len(cfgs) == 0 {
 		return
 	}
-	lc.TagsStr = fmt.Sprintf("%s=%s,", key, value) + lc.TagsStr
+	for _, c := range cfgs {
+		if lg.Source != c.Source {
+			continue
+		}
+		lg.Service = c.Service
+		lg.Pipeline = c.Pipeline
+		lg.MultilineMatch = c.MultilineMatch
+	}
+}
+
+func (lg *logging) setup() {
+	if lg.Source == "" {
+		lg.Source = "default"
+	}
+	if lg.Service == "" {
+		lg.Service = lg.Source
+	}
+
+	lg.addTags("service", lg.Service)
+	if podName != "" {
+		lg.addTags("pod_name", podName)
+	}
+	if podNamespace != "" {
+		lg.addTags("pod_namespace", podNamespace)
+	}
+}
+
+func (lg *logging) addTags(key, value string) {
+	if lg.Tags == nil {
+		lg.Tags = make(map[string]string)
+	}
+	lg.Tags[key] = value
 }
 
 // message
 
 type message struct {
-	Type     string `json:"type"`
-	Source   string `json:"source"`
-	Pipeline string `json:"pipeline,omitempty"`
-	TagsStr  string `json:"tags_str,omitempty"`
-	Log      string `json:"log"`
+	Type     string            `json:"type"`
+	Source   string            `json:"source"`
+	Pipeline string            `json:"pipeline,omitempty"`
+	Tags     map[string]string `json:"tags,omitempty"`
+	Log      string            `json:"log"`
 }
 
-func (m *message) appendToTagsStr(key, value string) string {
-	if len(m.TagsStr) == 0 {
-		m.TagsStr = fmt.Sprintf("%s=%s", key, value)
-	} else {
-		m.TagsStr = fmt.Sprintf("%s=%s,", key, value) + m.TagsStr
+func (m *message) addTags(key, value string) {
+	if m.Tags == nil {
+		m.Tags = make(map[string]string)
 	}
-	return m.TagsStr
+	m.Tags[key] = value
 }
 
 func (m *message) json() ([]byte, error) {
@@ -340,11 +329,8 @@ func (w *wsclient) tryConnectWebsocketSrv() {
 }
 
 func (w *wsclient) writeMessage(data []byte) error {
-	select {
-	case w.dataCh <- data:
-		// nil
-	default:
-		return fmt.Errorf("failed to write channel")
-	}
+	// abstraction
+	w.dataCh <- data
+	// fmt.Errorf("failed to write channel")
 	return nil
 }
