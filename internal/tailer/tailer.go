@@ -79,6 +79,8 @@ type Option struct {
 	ForwardFunc ForwardFunc
 	// 关闭发送 event
 	DisableSendEvent bool
+	//
+	IgnoreDeadLog time.Duration
 }
 
 func (opt *Option) init() error {
@@ -199,6 +201,10 @@ func (t *Tailer) scan() {
 
 	for _, filename := range filelist {
 		if t.fileInFileList(filename) {
+			continue
+		}
+		if t.opt.IgnoreDeadLog > 0 && !FileIsActive(filename, t.opt.IgnoreDeadLog) {
+			t.closeFromFileList(filename)
 			continue
 		}
 		t.wg.Add(1)
