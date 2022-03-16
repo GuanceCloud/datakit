@@ -247,7 +247,7 @@ func (x *apiWriteMock) geoInfo(ip string) map[string]string {
 func TestAPIWrite(t *testing.T) {
 	router := gin.New()
 	router.Use(uhttp.RequestLoggerMiddleware)
-	router.POST("/v1/write/:category", wrap(apiWrite, &apiWriteMock{t: t}))
+	router.POST("/v1/write/:category", rawHTTPWraper(nil, apiWrite, &apiWriteMock{t: t}))
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()

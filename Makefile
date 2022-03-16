@@ -127,6 +127,8 @@ testing: deps
 
 testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
+	# we also publish testing image to public image repo
+	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
 
 production: deps # stable release
 	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -261,6 +263,15 @@ plparser_disable_line:
 prepare:
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
+
+check_man:
+	grep --color=always -nrP "[a-zA-Z0-9][\p{Han}]|[\p{Han}][a-zA-Z0-9]" man > bad-doc.log
+	if [ $$? != 0 ]; then \
+		echo "check manuals ok"; \
+	else \
+		cat bad-doc.log; \
+		rm -rf bad-doc.log; \
+	fi
 
 clean:
 	@rm -rf build/*

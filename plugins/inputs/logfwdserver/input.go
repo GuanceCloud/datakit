@@ -106,7 +106,7 @@ func (ipt *Input) setup() bool {
 			}
 		}
 		if tags["pod_name"] != "" {
-			name += fmt.Sprintf("(%s)", tags["pod_name"])
+			name += fmt.Sprintf("(podname:%s)", tags["pod_name"])
 		}
 		task := &worker.Task{
 			TaskName:   name,

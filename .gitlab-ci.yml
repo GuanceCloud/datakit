@@ -36,10 +36,10 @@ release-stable:
     - make clean
     - make lint
     - make all_test
-    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.8 # update the version on each release
+    - make production GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.10 # update the version on each release
     - make check_production_conf_compatible
     - make pub_conf_samples
-    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.8
+    - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.10
   tags:
     - cloudcare-ft
 

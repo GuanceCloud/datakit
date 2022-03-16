@@ -139,6 +139,15 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 	var err error
 
 	for {
+		err = doPull(pathConfig, urls[0], ipr)
+		if err != nil {
+			ipr.FeedLastError(datakit.DatakitInputName, err.Error())
+		}
+
+		if isReturn {
+			return nil
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
@@ -146,15 +155,6 @@ func pullMain(urls []string, ipr IPipelineRemote) error {
 
 		case <-tick.C:
 			l.Debug("triggered")
-
-			err = doPull(pathConfig, urls[0], ipr)
-			if err != nil {
-				ipr.FeedLastError(datakit.DatakitInputName, err.Error())
-			}
-
-			if isReturn {
-				return nil
-			}
 		} // select
 	} // for
 }
@@ -270,7 +270,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		}
 		return 0, nil // need update when token has changed
 	} else if isFirst {
-		isFirst = true
+		isFirst = false
 
 		pls, err := ipr.GetNamespacePipelineFiles(datakit.StrPipelineRemote)
 		if err != nil {
