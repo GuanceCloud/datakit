@@ -16,7 +16,12 @@ var (
 	symbolic = regexp.MustCompile(`\W`)
 )
 
-type Grok struct{}
+type Grok struct {
+	GlobalDenormalizedPatterns map[string]string
+
+	DenormalizedPatterns map[string]string
+	CompliedGrokRe       map[string]*GrokRegexp
+}
 
 func DenormalizePattern(pattern string, denormalized ...map[string]string) (string, error) {
 	for _, values := range normal.FindAllStringSubmatch(pattern, -1) {

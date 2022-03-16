@@ -7,7 +7,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func StrfmtChecking(node parser.Node) error {
+func StrfmtChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 2 {
 		return fmt.Errorf("func `%s' expects more than 2 args", funcExpr.Name)
@@ -28,7 +28,7 @@ func StrfmtChecking(node parser.Node) error {
 	return nil
 }
 
-func Strfmt(ng *parser.Engine, node parser.Node) error {
+func Strfmt(ng *parser.EngineData, node parser.Node) error {
 	outdata := make([]interface{}, 0)
 
 	funcExpr := fexpr(node)

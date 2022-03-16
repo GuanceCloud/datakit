@@ -16,6 +16,7 @@ import (
 	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
@@ -255,7 +256,7 @@ func (std *HTTPTaskData) GetContentByte() [][]byte {
 	return nil
 }
 
-func (std *HTTPTaskData) Callback(task *worker.Task, result []*worker.Result) error {
+func (std *HTTPTaskData) Callback(task *worker.Task, result []*pipeline.Result) error {
 	if len(result) != len(std.point) {
 		return fmt.Errorf("result count is less than input")
 	}

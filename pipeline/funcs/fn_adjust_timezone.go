@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func AdjustTimezoneChecking(node parser.Node) error {
+func AdjustTimezoneChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
@@ -22,7 +22,7 @@ func AdjustTimezoneChecking(node parser.Node) error {
 	return nil
 }
 
-func AdjustTimezone(ng *parser.Engine, node parser.Node) error {
+func AdjustTimezone(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)

@@ -52,8 +52,10 @@ func TestJSON(t *testing.T) {
 			err = runner.Run(tc.data)
 			tu.Equals(t, nil, err)
 
-			r, err := runner.GetContentStr(tc.key)
-			tu.Equals(t, nil, err)
+			ret := runner.Result()
+
+			r, ok := ret.Fields[tc.key]
+			tu.Equals(t, true, ok)
 			tu.Equals(t, tc.expected, r)
 
 			t.Logf("[%d] PASS", idx)

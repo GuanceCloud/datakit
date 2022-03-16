@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func ReplaceChecking(node parser.Node) error {
+func ReplaceChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 
 	if len(funcExpr.Param) != 3 {
@@ -38,7 +38,7 @@ func ReplaceChecking(node parser.Node) error {
 	return nil
 }
 
-func Replace(ng *parser.Engine, node parser.Node) error {
+func Replace(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 
 	if len(funcExpr.Param) != 3 {

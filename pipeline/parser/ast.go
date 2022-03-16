@@ -20,7 +20,6 @@ type KwArgs map[string]Node
 
 type FuncStmt struct {
 	Name    string
-	RunOk   bool
 	Param   []Node
 	KwParam KwArgs
 }

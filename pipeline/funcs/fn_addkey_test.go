@@ -107,8 +107,9 @@ add_key(add_new_key, nil)
 			}
 
 			if err := runner.Run(tc.in); err == nil {
-				t.Log(runner.Result())
-				v, _ := runner.GetContent("add_new_key")
+				ret := runner.Result()
+				t.Log(ret)
+				v := ret.Fields["add_new_key"]
 				tu.Equals(t, tc.expect, v)
 				t.Logf("[%d] PASS", idx)
 			} else {

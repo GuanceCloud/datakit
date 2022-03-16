@@ -11,14 +11,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 // internal/tailer/logs.go.
 const (
 	taskChMaxL = 2048
-
-	// ES value can be at most 32766 bytes long.
-	maxFieldsLength = 32766
 
 	// 不使用高频IO.
 	disableHighFreqIODdata = false
@@ -44,7 +42,7 @@ type plWorker struct {
 	isRunning  bool
 	lastErr    error
 	lastErrTS  time.Time
-	engines    map[string]*ScriptInfo
+	engines    map[string]*scriptstore.ScriptInfo
 }
 
 func (wkr *plWorker) Run(ctx context.Context) error {
@@ -68,7 +66,7 @@ func (wkr *plWorker) Run(ctx context.Context) error {
 		case <-ticker.C:
 			needDelete := []string{}
 			for name, v := range wkr.engines {
-				if ngUpdated, err := scriptCentorStore.checkAndUpdate(v); err == nil {
+				if ngUpdated, err := scriptstore.QueryScript(name, v); err == nil {
 					wkr.engines[name] = ngUpdated
 				} else {
 					// err != nil,查询失败, script store 无法找到相关内容
@@ -111,7 +109,7 @@ func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {
 	var err error
 	scriptInf, ok := wkr.engines[ppScriptName]
 	if !ok {
-		scriptInf, err = scriptCentorStore.queryScriptAndNewNg(ppScriptName)
+		scriptInf, err = scriptstore.QueryScript(ppScriptName, nil)
 		if err != nil {
 			wkr.lastErr = err
 			wkr.lastErrTS = time.Now()
@@ -119,10 +117,10 @@ func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {
 			return nil
 		} else {
 			wkr.engines[ppScriptName] = scriptInf
-			return scriptInf.ng
+			return scriptInf.Engine()
 		}
 	}
-	return scriptInf.ng
+	return scriptInf.Engine()
 }
 
 type workerManager struct {
@@ -141,7 +139,7 @@ func (manager *workerManager) appendPPWorker() error {
 	wkr := &plWorker{
 		wkrID:    len(manager.workers),
 		createTS: time.Now(),
-		engines:  make(map[string]*ScriptInfo),
+		engines:  make(map[string]*scriptstore.ScriptInfo),
 	}
 
 	g.Go(wkr.Run)
@@ -171,7 +169,7 @@ func InitManager(count int) {
 	l = logger.SLogger("pipeline-worker")
 
 	if wkrManager != nil {
-		LoadDefaultDotPScript2Store()
+		scriptstore.LoadDefaultDotPScript2Store()
 		return
 	}
 
@@ -179,7 +177,7 @@ func InitManager(count int) {
 		workers: make(map[int]*plWorker),
 	}
 
-	LoadDefaultDotPScript2Store()
+	scriptstore.InitStore()
 
 	if count <= 0 {
 		count = MaxWorkerCount

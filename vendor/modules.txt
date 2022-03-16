@@ -839,7 +839,7 @@ github.com/uber/jaeger-client-go/thrift
 github.com/uber/jaeger-client-go/thrift-gen/agent
 github.com/uber/jaeger-client-go/thrift-gen/jaeger
 github.com/uber/jaeger-client-go/thrift-gen/zipkincore
-# github.com/ubwbu/grok v1.0.3
+# github.com/ubwbu/grok v1.0.6
 ## explicit
 github.com/ubwbu/grok
 # github.com/ugorji/go/codec v1.2.6

@@ -15,6 +15,7 @@ import (
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -122,7 +123,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 	return getReturnResult(start, res, reqDebug, &benchmarkResult), nil
 }
 
-func getReturnResult(start time.Time, res []*worker.Result,
+func getReturnResult(start time.Time, res []*pipeline.Result,
 	reqDebug *pipelineDebugRequest,
 	benchmarkResult *testing.BenchmarkResult) *pipelineDebugResponse {
 	var returnres pipelineDebugResponse

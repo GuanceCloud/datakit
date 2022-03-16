@@ -82,10 +82,10 @@ func TestSetTag(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			t.Log(runner.Result())
-			v, _ := runner.GetContent(tc.outtag)
+			ret := runner.Result()
+			t.Log(ret)
+			v := ret.Tags[tc.outtag]
 			assert.Equal(t, tc.expect, v)
-			assert.Equal(t, true, runner.IsTag(tc.outtag))
 			t.Logf("[%d] PASS", idx)
 		})
 	}

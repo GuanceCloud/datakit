@@ -43,11 +43,12 @@ func TestDrop(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			t.Log(runner.Result())
-			if runner.Result().Dropped {
+			ret := runner.Result()
+			t.Log(ret)
+			if ret.Dropped {
 				return
 			}
-			v, _ := runner.GetContent(tc.outkey)
+			v := ret.Fields[tc.outkey]
 			tu.Equals(t, tc.expect, v)
 			t.Logf("[%d] PASS", idx)
 		})

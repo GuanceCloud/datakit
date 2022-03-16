@@ -38,8 +38,9 @@ drop_key(client_ip)
 				t.Error(err)
 				return
 			}
-			t.Log(runner.Result())
-			if v, err := runner.GetContentStr(tc.key); err == nil || v != "" {
+			ret := runner.Result()
+			t.Log(ret)
+			if v, ok := ret.Fields[tc.key]; ok {
 				t.Errorf("[%d] failed: key `%s` value `%v`", idx, tc.key, v)
 			} else {
 				t.Logf("[%d] PASS", idx)

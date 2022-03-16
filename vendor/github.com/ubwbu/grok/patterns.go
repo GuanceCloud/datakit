@@ -24,7 +24,9 @@ func (g *GrokRegexp) Run(content interface{}) (map[string]string, error) {
 			return nil, fmt.Errorf("no match")
 		}
 		for i, name := range g.Re.SubexpNames() {
-			result[name] = string(match[i])
+			if name != "" {
+				result[name] = string(match[i])
+			}
 		}
 	case string:
 		match := g.Re.FindStringSubmatch(v)
@@ -32,7 +34,9 @@ func (g *GrokRegexp) Run(content interface{}) (map[string]string, error) {
 			return nil, fmt.Errorf("no match")
 		}
 		for i, name := range g.Re.SubexpNames() {
-			result[name] = match[i]
+			if name != "" {
+				result[name] = match[i]
+			}
 		}
 	}
 	return result, nil

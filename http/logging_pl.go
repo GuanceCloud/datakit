@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	plw "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -52,7 +53,7 @@ func (std *logTaskData) GetContentStr() []string {
 	return cntStr
 }
 
-func (std *logTaskData) Callback(task *plw.Task, result []*plw.Result) error {
+func (std *logTaskData) Callback(task *plw.Task, result []*pipeline.Result) error {
 	result = plw.ResultUtilsLoggingProcessor(task, result, nil, nil)
 	if len(result) != len(std.point) {
 		return fmt.Errorf("result count is less than input")

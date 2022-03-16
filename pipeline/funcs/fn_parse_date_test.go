@@ -246,8 +246,9 @@ parse_date(key="time", y=year, m=month, d=day, h=hour, M=min, s=sec, zone=tz)
 					t.Error(err)
 				}
 			} else {
-				t.Log(runner.Result())
-				v, _ := runner.GetContent(tc.outKey)
+				ret := runner.Result()
+				t.Log(ret)
+				v := ret.Fields[tc.outKey]
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}

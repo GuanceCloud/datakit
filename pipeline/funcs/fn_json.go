@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func JSONChecking(node parser.Node) error {
+func JSONChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 3 {
 		return fmt.Errorf("func %s expected 2 or 3 args", funcExpr.Name)
@@ -40,7 +40,7 @@ func JSONChecking(node parser.Node) error {
 	return nil
 }
 
-func JSON(ng *parser.Engine, node parser.Node) error {
+func JSON(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 
 	var key, old parser.Node

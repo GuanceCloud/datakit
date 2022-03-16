@@ -3,7 +3,7 @@ package pipeline
 
 import (
 	"bufio"
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,16 +13,16 @@ import (
 	// it will use this embedded information in time/tzdata.
 	_ "time/tzdata"
 
-	influxm "github.com/influxdata/influxdb1-client/models"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ip2isp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/ipdb/iploc"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
 var ipdbInstance ipdb.IPdb // get ip location and isp
@@ -51,120 +51,36 @@ type PipelineCfg struct {
 	RemotePullInterval string            `toml:"remote_pull_interval"`
 }
 
+func NewPipeline(srciptname string) (*Pipeline, error) {
+	script, err := scriptstore.QueryScript(srciptname, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &Pipeline{
+		scriptInfo: script,
+	}, nil
+}
+
 type Pipeline struct {
-	engine  *parser.Engine
-	output  *worker.Result // 这是一个map指针，不需要make初始化
-	lastErr error
+	scriptInfo *scriptstore.ScriptInfo
 }
 
-func NewPipelineByScriptPath(scriptFullPath string, debug bool) (*Pipeline, error) {
-	data, err := ioutil.ReadFile(filepath.Clean(scriptFullPath))
-	if err != nil {
+func (p *Pipeline) Run(data string) (*Result, error) {
+	if p.scriptInfo.Engine() == nil {
+		return nil, fmt.Errorf("pipeline engine not initialized")
+	}
+
+	if result, err := RunPlStr(data, "", 0, p.scriptInfo.Engine()); err != nil {
 		return nil, err
+	} else {
+		return result, nil
 	}
-	return NewPipeline(string(data), debug)
 }
 
-func NewPipeline(script string, debug bool) (*Pipeline, error) {
-	ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, debug)
-	if err != nil {
-		return nil, err
-	}
-	p := &Pipeline{
-		engine: ng,
-	}
-
-	return p, nil
-}
-
-func NewPipelineFromFile(filename string, debug bool) (*Pipeline, error) {
-	b, err := ioutil.ReadFile(filename) //nolint:gosec
-	if err != nil {
-		return nil, err
-	}
-	return NewPipeline(string(b), debug)
-}
-
-// RunPoint line protocol point to pipeline JSON.
-func (p *Pipeline) RunPoint(point influxm.Point) *Pipeline {
-	defer func() {
-		r := recover()
-		if r != nil {
-			p.lastErr = fmt.Errorf("%v", r)
-		}
-	}()
-
-	m := map[string]interface{}{"measurement": string(point.Name())}
-
-	if tags := point.Tags(); len(tags) > 0 {
-		m["tags"] = map[string]string{}
-		for _, tag := range tags {
-			m["tags"].(map[string]string)[string(tag.Key)] = string(tag.Value)
-		}
-	}
-
-	fields, err := point.Fields()
-	if err != nil {
-		p.lastErr = err
-		return p
-	}
-
-	for k, v := range fields {
-		m[k] = v
-	}
-
-	m["time"] = point.UnixNano()
-
-	j, err := json.Marshal(m)
-	if err != nil {
-		p.lastErr = err
-		return p
-	}
-
-	return p.Run(string(j))
-}
-
-func (p *Pipeline) Run(data string) *Pipeline {
-	// reset
-	p.output = nil
-	p.lastErr = nil
-
-	var f rtpanic.RecoverCallback
-
-	f = func(trace []byte, _ error) {
-		defer rtpanic.Recover(f, nil)
-
-		if trace != nil {
-			l.Error("panic: %s", string(trace))
-			p.lastErr = fmt.Errorf("%s", trace)
-			return
-		}
-
-		if p.engine == nil {
-			p.lastErr = fmt.Errorf("pipeline engine not initialized")
-			l.Error(p.lastErr)
-			return
-		}
-
-		if result, err := worker.RunPlStr(data, "", 0, p.engine); err != nil {
-			p.lastErr = fmt.Errorf("pipeline run error: %w", err)
-			l.Error(p.lastErr)
-			return
-		} else {
-			p.output = result
-		}
-	}
-
-	f(nil, nil)
-	return p
-}
-
-func (p *Pipeline) Result() (*worker.Result, error) {
-	return p.output, p.lastErr
-}
-
-func (p *Pipeline) LastError() error {
-	return p.lastErr
+func (p *Pipeline) UpdateScriptInfo() error {
+	var err error = nil
+	p.scriptInfo, err = scriptstore.QueryScript(p.scriptInfo.Name(), p.scriptInfo)
+	return err
 }
 
 func Init(pipelineCfg *PipelineCfg) error {
@@ -251,4 +167,70 @@ func readPatternsFromDir(path string) (map[string]string, error) {
 	}
 
 	return patterns, nil
+}
+
+func RunPlStr(cntStr, source string, maxMessageLen int, ng *parser.Engine) (*Result, error) {
+	result := &Result{
+		Output: nil,
+	}
+	if ng != nil {
+		if err := ng.Run(cntStr); err != nil {
+			l.Debug(err)
+			result.Err = err.Error()
+		}
+		result.Output = ng.Result()
+	} else {
+		result.Output = &parser.Output{
+			Cost: map[string]string{},
+			Tags: map[string]string{},
+			Fields: map[string]interface{}{
+				PipelineMessageField: cntStr,
+			},
+		}
+	}
+	result.preprocessing(source, maxMessageLen)
+	return result, nil
+}
+
+func RunPlByte(cntByte []byte, encode string, source string, maxMessageLen int, ng *parser.Engine) (*Result, error) {
+	cntStr, err := DecodeContent(cntByte, encode)
+	if err != nil {
+		return nil, err
+	}
+	return RunPlStr(cntStr, source, maxMessageLen, ng)
+}
+
+func DecodeContent(content []byte, encode string) (string, error) {
+	var err error
+	if encode != "" {
+		encode = strings.ToLower(encode)
+	}
+	switch encode {
+	case "gbk", "gb18030":
+		content, err = GbToUtf8(content, encode)
+		if err != nil {
+			return "", err
+		}
+	case "utf8", "utf-8":
+	default:
+	}
+	return string(content), nil
+}
+
+// GbToUtf8 Gb to UTF-8.
+// http/api_pipeline.go.
+func GbToUtf8(s []byte, encoding string) ([]byte, error) {
+	var t transform.Transformer
+	switch encoding {
+	case "gbk":
+		t = simplifiedchinese.GBK.NewDecoder()
+	case "gb18030":
+		t = simplifiedchinese.GB18030.NewDecoder()
+	}
+	reader := transform.NewReader(bytes.NewReader(s), t)
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		return nil, e
+	}
+	return d, nil
 }

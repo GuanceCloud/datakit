@@ -111,10 +111,11 @@ func TestUserAgent(t *testing.T) {
 					t.Error(err)
 				}
 			} else {
-				t.Log(runner.Result())
+				ret := runner.Result()
+				t.Log(ret)
 				fieldsToCompare := make(map[string]interface{})
 				for k := range tc.expected {
-					fieldsToCompare[k], _ = runner.GetContent(k)
+					fieldsToCompare[k] = ret.Fields[k]
 				}
 				tu.Equals(t, tc.expected, fieldsToCompare)
 				t.Logf("[%d] PASS", idx)

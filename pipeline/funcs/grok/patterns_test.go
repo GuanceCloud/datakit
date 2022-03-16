@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ubwbu/grok"
+	vgrok "github.com/vjeantet/grok"
 )
 
 func TestParsePattern(t *testing.T) {
@@ -23,12 +24,19 @@ func TestParsePattern(t *testing.T) {
 }
 
 func BenchmarkParse(b *testing.B) {
-	pattern := grok.CopyDefalutPatterns()
-
 	for i := 0; i < b.N; i++ {
-		if v, err := grok.DenormalizePatternsFromMap(pattern); err != nil {
+		if v, err := grok.DenormalizePatternsFromMap(grok.CopyDefalutPatterns()); err != nil {
 			b.Log(v)
 			b.Error(err)
+		}
+	}
+}
+
+func BenchmarkParseVgrok(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		if g, err := vgrok.NewWithConfig(&vgrok.Config{NamedCapturesOnly: true}); err != nil {
+			b.Error(err)
+			b.Error(g)
 		}
 	}
 }

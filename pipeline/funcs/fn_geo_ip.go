@@ -24,7 +24,7 @@ func InitIPdb(instance ipdb.IPdb) {
 	ipdbInstance = instance
 }
 
-func GeoIPChecking(node parser.Node) error {
+func GeoIPChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func `%s' expected 1 args", funcExpr.Name)
@@ -39,7 +39,7 @@ func GeoIPChecking(node parser.Node) error {
 	return nil
 }
 
-func GeoIP(ng *parser.Engine, node parser.Node) error {
+func GeoIP(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func `%s' expected 1 args", funcExpr.Name)

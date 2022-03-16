@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func DefaultTimeWithFmtChecking(node parser.Node) error {
+func DefaultTimeWithFmtChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 2 {
 		return fmt.Errorf("func %s expected more than 2 args", funcExpr.Name)
@@ -40,7 +40,7 @@ func DefaultTimeWithFmtChecking(node parser.Node) error {
 	return nil
 }
 
-func DefaultTimeWithFmt(ng *parser.Engine, node parser.Node) error {
+func DefaultTimeWithFmt(ng *parser.EngineData, node parser.Node) error {
 	var err error
 	var goTimeFmt string
 	var tz string

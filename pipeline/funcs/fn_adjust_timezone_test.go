@@ -185,11 +185,11 @@ func TestAdjustTimezone(t *testing.T) {
 		},
 		{
 			name: "3 postgresql log datetime, 2006-01-02 15:04:05.000 UTC",
-			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(-8*time.Hour).Format("2006-01-02 15:04:05.000 UTC")),
+			in:   fmt.Sprintf(`{"time":"%s"}`, tn.UTC().Add(9*time.Hour).Format("2006-01-02 15:04:05.000 UTC")),
 			pl: `
 			json(_, time)
-			default_time(time, "America/Los_Angeles")
-		`, // utc -0800
+			default_time(time, "Asia/Tokyo")
+		`, // utc +0900
 			outkey: "time",
 			expect: tn.UnixNano() / 1000000 * 1000000,
 			fail:   false,
@@ -217,25 +217,6 @@ func TestAdjustTimezone(t *testing.T) {
 			expect: tn.UnixNano() / 1000000 * 1000000,
 			fail:   false,
 		},
-		// {
-		// 	name: "10 Dec 2021 03:49:20.937",
-		// 	in: `
-		// 	{
-		// 		"time":"10 Dec 2021 03:49:20.937",
-		// 		"second":2,
-		// 		"third":"abc",
-		// 		"forth":true
-		// 	}
-		// 	`,
-		// 	pl: `
-		// 	json(_, time)
-		// 	default_time(time)
-		// 	adjust_timezone(time)
-		// `,
-		// 	outkey: "time",
-		// 	expect: int64(1639108160937000000),
-		// 	fail:   false,
-		// },
 	}
 
 	for idx, tc := range cases {
@@ -249,15 +230,13 @@ func TestAdjustTimezone(t *testing.T) {
 				}
 				return
 			}
-
 			err = runner.Run(tc.in)
 			tu.Equals(t, nil, err)
-			t.Log(runner.Result())
-
-			v, err := runner.GetContent(tc.outkey)
+			ret := runner.Result()
+			t.Log(ret)
+			v := ret.Fields[tc.outkey]
 			tu.Equals(t, nil, err)
 			tu.Equals(t, tc.expect, v)
-
 			t.Logf("[%d] PASS", idx)
 		})
 	}

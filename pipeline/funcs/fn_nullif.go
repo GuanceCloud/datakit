@@ -7,7 +7,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func NullIfChecking(node parser.Node) error {
+func NullIfChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -23,7 +23,7 @@ func NullIfChecking(node parser.Node) error {
 	return nil
 }
 
-func NullIf(ng *parser.Engine, node parser.Node) error {
+func NullIf(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)

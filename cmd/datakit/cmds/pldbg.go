@@ -11,6 +11,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 func runPLFlags() error {
@@ -50,19 +51,20 @@ func pipelineDebugger(plname, txt string) error {
 	if err != nil {
 		return fmt.Errorf("get pipeline failed: %w", err)
 	}
-	pl, err := pipeline.NewPipelineFromFile(plPath, true)
+	scriptstore.LoadDotPScript2StoreWithNS(scriptstore.DefaultScriptNS, []string{plPath}, "")
+	pl, err := pipeline.NewPipeline(plname)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}
 
 	start := time.Now()
-	res, err := pl.Run(txt).Result()
+	res, err := pl.Run(txt)
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}
 	cost := time.Since(start)
 
-	if res == nil || (len(res.Output.Data) == 0 && len(res.Output.Tags) == 0) {
+	if res == nil || (len(res.Output.Fields) == 0 && len(res.Output.Tags) == 0) {
 		errorf("[E] No data extracted from pipeline\n")
 		return nil
 	}

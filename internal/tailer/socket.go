@@ -11,6 +11,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -211,7 +212,7 @@ func (std *SocketTaskData) GetContent() string {
 	return std.Log
 }
 
-func (std *SocketTaskData) Handler(result *worker.Result) error {
+func (std *SocketTaskData) Handler(result *pipeline.Result) error {
 	// result.SetSource(std.source)
 	if std.Tag != nil && len(std.Tag) != 0 {
 		for k, v := range std.Tag {

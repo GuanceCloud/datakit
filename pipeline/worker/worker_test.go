@@ -10,8 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 type tagfield struct {
@@ -48,7 +50,7 @@ func (d *taskData) ContentEncode() string {
 	return d.encode
 }
 
-func (d *taskData) Callback(task *Task, result []*Result) error {
+func (d *taskData) Callback(task *Task, result []*pipeline.Result) error {
 	pts := []*io.Point{}
 	result = ResultUtilsLoggingProcessor(task, result, d.tags, d.fields)
 	ts := task.TS
@@ -57,45 +59,13 @@ func (d *taskData) Callback(task *Task, result []*Result) error {
 	}
 	result = ResultUtilsAutoFillTime(result, ts)
 	for _, r := range result {
-		pt, err := r.MakePointIgnoreDropped(task.Source, 0, "")
-		l.Error(err)
-		if pt != nil {
+		if pt, err := r.MakePointIgnoreDropped(task.Source, 0, ""); err != nil {
+			l.Error(err)
+		} else if pt != nil {
 			pts = append(pts, pt)
 		}
 	}
 	return d.callback(pts)
-}
-
-func TestPlScriptStore(t *testing.T) {
-	store := &dotPScriptStore{
-		scripts: map[string]map[string]*ScriptInfo{},
-	}
-
-	err := store.appendScript(DefaultScriptNS, "abc.p", "default(time)", true)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = store.appendScript(GitRepoScriptNS, "abc.p", "default(time)", true)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = store.appendScript(RemoteScriptNS, "abc.p", "default(time)", true)
-	if err != nil {
-		t.Error(err)
-	}
-
-	for _, ns := range plScriptNSSearchOrder {
-		sInfo, err := store.queryScript("abc.p")
-		if err != nil {
-			t.Error(err)
-		}
-		if sInfo.ns != ns {
-			t.Error(sInfo.ns, ns)
-		}
-		store.cleanAllScriptWithNS(ns)
-	}
 }
 
 func TestRunAsTask(t *testing.T) {
@@ -216,34 +186,34 @@ func TestNewEmptyNg(t *testing.T) {
 	}
 	in := "aaa"
 	_ = ng.Run(in)
-	v, _ := ng.GetContent("message")
+	v, _ := ng.Data.GetContent("message")
 	if v != in {
 		t.Error(v)
 	}
 }
 
 func TestAddStatus(t *testing.T) {
-	v := &Result{
+	v := &pipeline.Result{
 		Output: &parser.Output{
 			Tags: map[string]string{},
-			Data: map[string]interface{}{
+			Fields: map[string]interface{}{
 				"status": "WARN",
 			},
 		},
 	}
 	PPAddSatus(v, false)
-	assert.Equal(t, "warning", v.Output.Data["status"])
+	assert.Equal(t, "warning", v.Output.Fields["status"])
 
-	v = &Result{
+	v = &pipeline.Result{
 		Output: &parser.Output{
 			Tags: map[string]string{},
-			Data: map[string]interface{}{
+			Fields: map[string]interface{}{
 				"status": "ERROR",
 			},
 		},
 	}
 	PPAddSatus(v, true)
-	assert.Equal(t, v.Output.Data, map[string]interface{}{"status": "ERROR"})
+	assert.Equal(t, v.Output.Fields, map[string]interface{}{"status": "ERROR"})
 }
 
 func TestIgnoreStatus(t *testing.T) {
@@ -272,7 +242,8 @@ func TestWorker(t *testing.T) {
 	set_tag(bb, "aa0")
 	default_time(time)
 	`), os.FileMode(0o755))
-	loadDotPScript2StoreWithNS(DefaultScriptNS, []string{"/tmp/nginx-time.p"}, "")
+	scriptstore.LoadDotPScript2StoreWithNS(scriptstore.DefaultScriptNS,
+		[]string{"/tmp/nginx-time.p"}, "")
 	_ = os.Remove("/tmp/nginx-time.p")
 
 	// 测试 panic 触发
@@ -454,7 +425,7 @@ func TestWorker(t *testing.T) {
 
 	for k, v := range cases {
 		if k == 2 {
-			_ = scriptCentorStore.appendScript(GitRepoScriptNS, "nginx-time.p", `
+			_ = scriptstore.AppendScript(scriptstore.GitRepoScriptNS, "nginx-time.p", `
 			json(_, time)
 			json(_, status)
 			default_time(time)`, true)
@@ -484,6 +455,71 @@ func TestWorker(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 	if !(errors.Is(err, ErrTaskChClosed) || err == nil) {
 		t.Error(err)
+	}
+}
+
+func TestGrokStack(t *testing.T) {
+	pl := `
+	add_pattern("aa", "\\d{2}")
+	grok(_, "%{aa:aa}")
+	if false {
+	
+	} else {
+		add_pattern("bb", "[a-z]{3}")
+		if aa == "11" {
+			add_pattern("cc", "end1")
+			grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")
+		} elif aa == "22" {
+			grok(_, "%{aa:aa},%{bb:bb},%{INT:cc}")
+		} elif aa == "33" {
+			add_pattern("bb", "[\\d]{5}")	# 此处覆盖 bb 失败
+			add_pattern("cc", "end3")
+			grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")	
+		}
+	}
+	`
+
+	cases := []string{
+		"11,abc,end1",
+		"22,abc,end1",
+		"33,abc,end3",
+	}
+
+	result := []parser.Output{
+		{
+			Fields: map[string]interface{}{
+				"aa":      "11",
+				"bb":      "abc",
+				"cc":      "end1",
+				"message": "11,abc,end1",
+			},
+		},
+		{
+			Fields: map[string]interface{}{
+				"aa":      "22",
+				"message": "22,abc,end1",
+			},
+		},
+		{
+			Fields: map[string]interface{}{
+				"aa":      "33",
+				"bb":      "abc",
+				"cc":      "end3",
+				"message": "33,abc,end3",
+			},
+		},
+	}
+
+	ng, err := parser.NewEngine(pl, funcs.FuncsMap, funcs.FuncsCheckMap, false)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for k, v := range cases {
+		ng.Run(v)
+		ret := ng.Result()
+		t.Log("case", k)
+		assert.Equal(t, result[k].Fields, ret.Fields)
 	}
 }
 

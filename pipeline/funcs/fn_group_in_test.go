@@ -64,12 +64,12 @@ func TestGroupIn(t *testing.T) {
 
 			err = runner.Run(tc.in)
 			tu.Equals(t, nil, err)
-			t.Log(runner.Result())
 
-			v, err := runner.GetContent(tc.outkey)
-			tu.Equals(t, nil, err)
+			ret := runner.Result()
+			t.Log(ret)
+			v, ok := ret.Fields[tc.outkey]
+			tu.Equals(t, true, ok)
 			tu.Equals(t, tc.expected, v)
-
 			t.Logf("[%d] PASS", idx)
 		})
 	}

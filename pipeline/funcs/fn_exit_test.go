@@ -47,7 +47,9 @@ func TestExit(t *testing.T) {
 			if runner.Result().Dropped {
 				return
 			}
-			v, _ := runner.GetContent(tc.outkey)
+			ret := runner.Result()
+			t.Log(ret)
+			v := ret.Fields[tc.outkey]
 			tu.Equals(t, tc.expect, v)
 			t.Logf("[%d] PASS", idx)
 		})
