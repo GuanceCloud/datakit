@@ -121,7 +121,7 @@ func (ipt *Input) Run() {
 	}
 
 	var ignoreDuration time.Duration
-	if dur, err := timex.ParseDuration(ipt.IgnoreDeadLog); err != nil {
+	if dur, err := timex.ParseDuration(ipt.IgnoreDeadLog); err == nil {
 		ignoreDuration = dur
 	}
 
