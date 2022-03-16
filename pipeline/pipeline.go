@@ -65,12 +65,24 @@ type Pipeline struct {
 	scriptInfo *scriptstore.ScriptInfo
 }
 
-func (p *Pipeline) Run(data string) (*Result, error) {
+func (p *Pipeline) Run(data string, source string) (*Result, error) {
 	if p.scriptInfo.Engine() == nil {
 		return nil, fmt.Errorf("pipeline engine not initialized")
 	}
 
-	if result, err := RunPlStr(data, "", 0, p.scriptInfo.Engine()); err != nil {
+	if result, err := RunPlStr(data, source, 0, p.scriptInfo.Engine()); err != nil {
+		return nil, err
+	} else {
+		return result, nil
+	}
+}
+
+func (p *Pipeline) RunByte(data []byte, encode string, source string) (*Result, error) {
+	if p.scriptInfo.Engine() == nil {
+		return nil, fmt.Errorf("pipeline engine not initialized")
+	}
+
+	if result, err := RunPlByte(data, encode, source, 0, p.scriptInfo.Engine()); err != nil {
 		return nil, err
 	} else {
 		return result, nil
@@ -78,9 +90,11 @@ func (p *Pipeline) Run(data string) (*Result, error) {
 }
 
 func (p *Pipeline) UpdateScriptInfo() error {
-	var err error = nil
-	p.scriptInfo, err = scriptstore.QueryScript(p.scriptInfo.Name(), p.scriptInfo)
-	return err
+	var err error
+	if p.scriptInfo, err = scriptstore.QueryScript(p.scriptInfo.Name(), p.scriptInfo); err != nil {
+		return err
+	}
+	return nil
 }
 
 func Init(pipelineCfg *PipelineCfg) error {
@@ -95,6 +109,8 @@ func Init(pipelineCfg *PipelineCfg) error {
 	if err := loadPatterns(); err != nil {
 		return err
 	}
+
+	scriptstore.InitStore()
 
 	return nil
 }

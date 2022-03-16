@@ -158,7 +158,7 @@ func (ng *Engine) Run(input string) error {
 	ng.stmts.Run(ng)
 	if src, err := ng.Data.GetContentStr("source"); err == nil {
 		ng.Data.output.DataMeasurement = src
-		ng.Data.DeleteContent("source")
+		_ = ng.Data.DeleteContent("source")
 	}
 	if ng.debugMode {
 		ng.Data.output.Cost["script-total"] = time.Since(ng.ts).String()

@@ -155,7 +155,7 @@ func (store *DotPScriptStore) appendScriptFromFilePath(ns string, fp string, cov
 	if v, err := os.ReadFile(fp); err == nil {
 		_, sName := filepath.Split(fp)
 		if err := store.appendScript(ns, sName, string(v), cover); err != nil {
-			return fmt.Errorf("script name: %s, path: %s, err: %v", sName, fp, err)
+			return fmt.Errorf("script name: %s, path: %s, err: %w", sName, fp, err)
 		}
 	} else {
 		return err

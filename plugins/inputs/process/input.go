@@ -333,7 +333,7 @@ func (p *Input) WriteObject() {
 		if p.Pipeline != "" {
 			pipe, err := pipeline.NewPipeline(p.Pipeline)
 			if err == nil {
-				pipeMap, err := pipe.Run(string(m))
+				pipeMap, err := pipe.Run(string(m), "")
 				if err == nil && pipeMap != nil {
 					for k, v := range pipeMap.GetFields() {
 						fields[k] = v

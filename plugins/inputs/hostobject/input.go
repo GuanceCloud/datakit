@@ -251,7 +251,7 @@ func (ipt *Input) doCollect() error {
 	}
 
 	if ipt.p != nil {
-		if result, err := ipt.p.Run(string(messageData)); err == nil &&
+		if result, err := ipt.p.Run(string(messageData), ""); err == nil &&
 			result != nil && !result.IsDropped() {
 			for k, v := range result.GetFields() {
 				ipt.collectData.fields[k] = v

@@ -516,7 +516,7 @@ func pipelineTest(pipelineFile string, text string) (string, error) {
 		return "", err
 	}
 
-	res, err := pl.Run(text)
+	res, err := pl.Run(text, "")
 	if err != nil {
 		return "", err
 	}

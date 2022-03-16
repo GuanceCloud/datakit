@@ -161,6 +161,8 @@ var MaxWorkerCount = func() int {
 	n *= 2 // or n += n / 2
 	if n <= 0 {
 		n = 8
+	} else if n >= 32 {
+		n = 32
 	}
 	return n
 }()
@@ -176,8 +178,6 @@ func InitManager(count int) {
 	wkrManager = &workerManager{
 		workers: make(map[int]*plWorker),
 	}
-
-	scriptstore.InitStore()
 
 	if count <= 0 {
 		count = MaxWorkerCount

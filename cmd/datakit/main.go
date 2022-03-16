@@ -23,7 +23,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
 	plRemote "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote"
-	plworker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/pythond"
@@ -187,8 +186,6 @@ func doRun() error {
 	if err := io.Start(); err != nil {
 		return err
 	}
-
-	plworker.InitManager(-1)
 
 	if config.Cfg.EnableElection {
 		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)

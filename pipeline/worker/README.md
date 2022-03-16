@@ -1,25 +1,46 @@
 # pipeline worker 使用说明
 
-## pl-worker task 相关接口、结构体、函数
+pipeline worker 模块提供 pipeline script 的存储和更新管理，以及数据的异步处理
+
+可通过函数 `FeedPipelineTask(task *Task)` 和 `FeedPipelineTaskBlock(task *Task)` 发送 task 到创建的 pipeline worker 上, 后者发送 task 时将阻塞到 task channal 就绪
+
+## `struct Task`
 
 ```go
-/*
-Source:
-    单个pipeline worker 任务, Source 字段不可为空，
-    否则将导致构造的行协议的 measurement name 为空； 
 
-ScriptName:
-    pl 脚本的名，可以是任意字符串，对于 pl-worker 预加载的 pl 脚本为文件名:
-      1. 对于存在于 datakit 安装目录下的 pipeline 目录
-        或由 git 管理的指定目录下的 pl 脚本，
-        pl-worker/ gitrepo 将会调用函数 LoadAllDotPScriptForWkr 进行加载，
-        此时仅需填写如 "nginx.p"， "mysql.p" 等;
-      2. 对于未被预加载，但是通过调用 ScriptRegister 注册的 pl 脚本，
-         需要填写注册时使用的 pl 脚本的名
-      3. 此参数为空时，自动根据 Source + ".p" 进行寻找
+type Task struct {
+    TaskName string
 
-TS:
-    pl 任务创建时间
-*/
+    Source     string // measurement name
+    ScriptName string // 为空则根据 source 匹配对应的脚本
+
+    Opt *TaskOpt
+
+    Data TaskData
+
+    TS time.Time
+
+    MaxMessageLen int
+
+    // 保留字段
+    Namespace string
+}
+
+type TaskData interface {
+    ContentType() string // TaskDataString or TaskDataByte
+
+    // 根据 content type 决定调用哪一方法
+    
+    GetContentStr() []string
+
+    GetContentByte() [][]byte
+    ContentEncode() string
+
+    // 当 worker 对任务所有的 content 执行 pl script 结束时调用此
+    // 需要自行 feed io； 
+    // 可在实现接口时用 channal 取回 task ptr 和 []*pipeline.Result，
+    // 但如有此需求可以考虑使用 new 一个 Pipeline 实例来执行 pl script 
+    Callback(*Task, []*pipeline.Result) error
+}
 
 ```

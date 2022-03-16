@@ -11,7 +11,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 func runPLFlags() error {
@@ -46,19 +45,13 @@ func pipelineDebugger(plname, txt string) error {
 	if err := pipeline.Init(config.Cfg.Pipeline); err != nil {
 		return err
 	}
-
-	plPath, err := config.GetPipelinePath(plname)
-	if err != nil {
-		return fmt.Errorf("get pipeline failed: %w", err)
-	}
-	scriptstore.LoadDotPScript2StoreWithNS(scriptstore.DefaultScriptNS, []string{plPath}, "")
 	pl, err := pipeline.NewPipeline(plname)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}
 
 	start := time.Now()
-	res, err := pl.Run(txt)
+	res, err := pl.Run(txt, "")
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}
