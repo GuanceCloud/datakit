@@ -43,7 +43,10 @@ type ClientStat struct {
 
 	DroppedPointsTotal int64
 	DroppedPoints      int64
-	ElectedDuration    int64 // 选举任期
+
+	// 选举
+	Incumbency       int64
+	ElectedNamespace string
 }
 
 func setMax(prev, cur int64) int64 {
@@ -95,14 +98,15 @@ func (s *ClientStat) Update() {
 		s.CPUUsage = u
 	}
 
-	s.Incumbency = s.getElectedDuration()
+	du, ns := s.getElectedInfo()
+	s.Incumbency = du
+	s.ElectedNamespace = ns
+
 	s.DroppedPoints = io.DroppedTotal() - s.DroppedPointsTotal
 	s.DroppedPointsTotal = io.DroppedTotal()
 }
 
-var (
-	measurementName = "datakit"
-)
+var measurementName = "datakit"
 
 func (s *ClientStat) ToMetric() *io.Point {
 	s.Uptime = int64(time.Since(StartTime) / time.Second)
@@ -115,6 +119,7 @@ func (s *ClientStat) ToMetric() *io.Point {
 		"os_version_detail": s.OSDetail,
 		"arch":              s.Arch,
 		"host":              s.HostName,
+		"namespace":         s.ElectedNamespace,
 	}
 
 	if s.Proxy != "" {
@@ -143,7 +148,9 @@ func (s *ClientStat) ToMetric() *io.Point {
 
 		"dropped_points_total": s.DroppedPointsTotal,
 		"dropped_points":       s.DroppedPoints,
-		"incumbency":           s.Incumbency,
+
+		"incumbency": s.Incumbency, // deprecated, used elected
+		"elected":    s.Incumbency,
 	}
 
 	pt, err := io.MakePoint(measurementName, tags, fields)
@@ -154,15 +161,15 @@ func (s *ClientStat) ToMetric() *io.Point {
 	return pt
 }
 
-func (s *ClientStat) getElectedDuration() int64 {
+func (s *ClientStat) getElectedInfo() (int64, string) {
 	if !config.Cfg.EnableElection {
-		return 0
+		return 0, ""
 	}
 
-	elected, _ := election.Elected()
+	elected, ns := election.Elected()
 	if elected == "success" {
-		return int64(time.Since(election.GetElectedTime()) / time.Second)
+		return int64(time.Since(election.GetElectedTime()) / time.Second), ns
 	} else {
-		return 0
+		return 0, ""
 	}
 }
