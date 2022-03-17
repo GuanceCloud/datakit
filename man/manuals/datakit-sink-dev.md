@@ -6,7 +6,7 @@
 
 ## 如何阅读本文
 
-1. 读者应该具备 Sink 的基础知识。比方说什么是 Sink, 最好要有使用过 Sink 的经验。关于 Sink 的介绍文档可以阅读 [这篇文章](https://mei.shang.xian)。
+1. 读者应该具备 Sink 的基础知识。比方说什么是 Sink, 最好要有使用过 Sink 的经验。关于 Sink 的介绍文档可以阅读 [这篇文章](datakit-sink-guide)。
 2. 读者需要具备一定的 Go 语言基础。一些常见开发问题见 [这里](https://www.yuque.com/dataflux/datakit/development)。
 3. 本文行文尽量做到极致简洁。以 influxdb 的 Sink 实现为具体例子, 旨在帮助大家更好的理解 Sink 的开发流程, 尽量做到以实际应用为主。
 
