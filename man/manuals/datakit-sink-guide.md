@@ -24,7 +24,7 @@ Sink 是一个强大的存储写入模块。只需要几步简单配置, 就能�
 
 ## 什么是 Sink 实例
 
-Sink 实例即 Sink 模块实例化的一个对象。举个例子:
+Sink 实例即 Sink 模块实例化的一个对象。举两个例子:
 - 我们将 datakit 采集到的数据写入到自建的 influxdb 集群中, 那么 influxdb 就是一个 "Sink 实例";
 - 我们将 datakit 采集到的数据写入到自建的 elasticsearch 集群中, 那么 elasticsearch 就是一个 "Sink 实例"。
 
