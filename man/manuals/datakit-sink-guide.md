@@ -2,7 +2,7 @@
 
 ## 导言
 
-本文将讲述什么是 datakit 的 Sink 模块(以下简称 Sink 模块、Sink)、以及如何使用 Sink 模块。适合于想了解 Sink 功能和有意愿使用 Sink 的同学。
+本文将讲述什么是 DataKit 的 Sink 模块(以下简称 Sink 模块、Sink)、以及如何使用 Sink 模块。适合于想了解 Sink 功能和有意愿使用 Sink 的同学。
 
 ## 如何阅读本文
 
@@ -16,17 +16,17 @@
 
 ## 什么是 Sink
 
-Sink 是一个强大的存储写入模块。只需要几步简单配置, 就能够支持用户将 datakit 采集到的数据写入到不同的后端存储。
+Sink 是一个强大的存储写入模块。只需要几步简单配置, 就能够支持用户将 DataKit 采集到的数据写入到不同的后端存储。
 
 ### 什么情况下可以使用 Sink
 
-在以前, datakit 采集到的数据是往 [观测云](https://console.guance.com/) 汇报的。近来为了响应部分用户把数据存储在本地的诉求, 特地开发了 Sink 功能。
+在以前, DataKit 采集到的数据是往 [观测云](https://console.guance.com/) 汇报的。近来为了响应部分用户把数据存储在本地的诉求, 特地开发了 Sink 功能。
 
 ## 什么是 Sink 实例
 
 Sink 实例即 Sink 模块实例化的一个对象。举两个例子:
-- 我们将 datakit 采集到的数据写入到自建的 influxdb 中, 那么 influxdb 就是一个 "Sink 实例";
-- 我们将 datakit 采集到的数据写入到自建的 elasticsearch 集群中, 那么 elasticsearch 就是一个 "Sink 实例"。
+- 我们将 DataKit 采集到的数据写入到自建的 influxdb 中, 那么 influxdb 就是一个 "Sink 实例";
+- 我们将 DataKit 采集到的数据写入到自建的 elasticsearch 集群中, 那么 elasticsearch 就是一个 "Sink 实例"。
 
 ### 目前支持的 Sink 实例
 
@@ -48,7 +48,7 @@ Sink 实例即 Sink 模块实例化的一个对象。举两个例子:
 
 >后端存储支持配置多个相同实例(比方说, 2 个 influxdb, 1 个生产, 1 个备份), 只需要将实例编号即 `id` 配置成不同的就行(比方说, `influxdb_1`, `influxdb_2`)。<b>实例编号不可重复</b>。
 
-- 第三步: 重启 datakit。
+- 第三步: 重启 DataKit。
 
 `$ sudo datakit --restart`
 
@@ -119,6 +119,6 @@ influxdb 的 sink 实例目前支持以下参数:
 - `write_encoding`: WriteEncoding specifies the encoding of write request
 - `payload_size`(UDP 协议专用): PayloadSize is the maximum size of a UDP client message, optional. Tune this based on your network. Defaults to 512.
 
-#### 第三步: 重启 datakit
+#### 第三步: 重启 DataKit
 
 `$ sudo datakit --restart`
