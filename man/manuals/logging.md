@@ -323,7 +323,7 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 
 ## 延伸阅读
 
-- [DataKit 整体日志采集介绍](datakit-logging)
+- [DataKit 日志采集综述](datakit-logging)
 - [Pipeline: 文本数据处理](pipeline)
 - [Pipeline 调试](datakit-pl-how-to)
 - [Pipeline 性能测试和对比](logging-pipeline-bench)
