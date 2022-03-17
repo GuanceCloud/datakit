@@ -40,6 +40,7 @@ case $branch_name in
 
 	"github-mirror") echo "release to github"
 		git push github github-mirror
+		git push github github-mirror --tags
 		;;
 
 	*) echo "[E] unsupported branch '$branch_name' for release, exited"

@@ -22,21 +22,31 @@ var (
 	l         = logger.DefaultSLogger(inputName)
 )
 
-type SelfInfo struct {
+type Input struct {
 	stat *ClientStat
 
 	semStop *cliutils.Sem // start stop signal
 }
 
-func (*SelfInfo) Catalog() string {
+func (*Input) Catalog() string {
 	return inputName
 }
 
-func (*SelfInfo) SampleConfig() string {
+func (*Input) SampleConfig() string {
 	return ``
 }
 
-func (si *SelfInfo) Run() {
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&datakitMeasurement{},
+	}
+}
+
+func (si *Input) Run() {
 	tick := time.NewTicker(time.Second * 10)
 	defer tick.Stop()
 
@@ -44,6 +54,15 @@ func (si *SelfInfo) Run() {
 	l.Info("self input started...")
 
 	for {
+		start := time.Now()
+
+		si.stat.Update()
+		cost := time.Since(start)
+		pt := si.stat.ToMetric()
+		_ = io.Feed(inputName, datakit.Metric, []*io.Point{pt}, &io.Option{
+			CollectCost: cost,
+		})
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("self exit")
@@ -54,14 +73,11 @@ func (si *SelfInfo) Run() {
 			return
 
 		case <-tick.C:
-			si.stat.Update()
-			pt := si.stat.ToMetric()
-			_ = io.Feed(inputName, datakit.Metric, []*io.Point{pt}, nil)
 		}
 	}
 }
 
-func (si *SelfInfo) Terminate() {
+func (si *Input) Terminate() {
 	if si.semStop != nil {
 		si.semStop.Close()
 	}
@@ -70,7 +86,7 @@ func (si *SelfInfo) Terminate() {
 func init() { //nolint:gochecknoinits
 	StartTime = time.Now()
 	inputs.Add(inputName, func() inputs.Input {
-		return &SelfInfo{
+		return &Input{
 			stat: &ClientStat{
 				OS:       runtime.GOOS,
 				OSDetail: OSDetail(),

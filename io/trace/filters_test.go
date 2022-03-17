@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -29,7 +30,7 @@ func TestSampler(t *testing.T) {
 					sampled = append(sampled, t)
 				}
 			}
-			t.Logf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
+			fmt.Printf("origin traces count: %d sampled traces count: %d\n", len(origin), len(sampled))
 		}()
 	}
 	wg.Wait()

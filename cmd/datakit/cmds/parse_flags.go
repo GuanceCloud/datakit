@@ -156,7 +156,6 @@ var (
 	//
 	fsDebugName                = "debug"
 	fsDebug                    = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
-	FlagDebugWorkDir           = fsDebug.String("workdir", "", "set workdir of datakit")
 	flagDebugLogPath           = fsDebug.String("log", commonLogFlag(), "command line log path")
 	flagDebugCloudInfo         = fsDebug.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
 	flagDebugIPInfo            = fsDebug.String("ipinfo", "", "show IP geo info")
@@ -374,6 +373,8 @@ func doParseAndRunFlags() {
 				fsDebugUsage()
 				os.Exit(-1)
 			}
+
+			setCmdRootLog(*flagDebugLogPath)
 
 			err := runDebugFlags()
 			if err != nil {
