@@ -2,7 +2,7 @@
 
 ## 导言
 
-本文将讲述如何开发 DataKit 的 Sink 模块(以下简称 Sink 模块、Sink)。适合于想开发 Sink 模块、或者想深入了解 Sink 模块原理的同学。
+本文将讲述如何开发 DataKit 的 Sink 模块(以下简称 Sink 模块、Sink)的新实例。适合于想开发 Sink 新实例、或者想深入了解 Sink 模块原理的同学。
 
 ## 如何阅读本文
 
@@ -12,7 +12,7 @@
 
 以下是正文。难度: 4 星(5 星最难)。
 
-## 如何自定义 Sink 实例
+## 如何开发 Sink 实例
 
 目前官方只实现了部分实例, 如果想要其它的, 可以自己写代码实现(用 Go 语言), 非常简单, 大致分为以下几步(为了让大家更能形象理解, 我以 `influxdb` 举例):
 
@@ -72,24 +72,7 @@ func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
 ...
 ```
 
-## 开发注意事项
+## 注意事项
 
-无论哪种 Sink 实例, 都必须支持以下参数:
-
-- `id`: 实例编号。如 `influxdb_1`。
-- `target`: sink 实例目标, 即要写入的存储是什么。如 `influxdb`。具体支持哪些见本文档中上面的 `目前支持的 Sink 实例` 节。
-- `categories`: 汇报数据的类型。如 `["M", "N", "K", "O", "CO", "L", "T", "R", "S"]`。
-
-`categories` 中各字符串对应的上报指标集如下:
-
-| `categories` 字符串 | 指标集 |
-|  ----  | ----  |
-| `M`  |  `Metric` |
-| `N`  |  `Network` |
-| `K`  |  `KeyEvent` |
-| `O`  |  `Object` |
-| `CO`  | `CustomObject` |
-| `L`  |  `Logging` |
-| `T`  |  `Tracing` |
-| `R`  |  `RUM` |
-| `S`  |  `Security` |
+1. 新实例需要自定义一个 `createID`，即这个实例的 "标识"，如 `influxdb`、`elasticsearch` 等，这个是不能和现有的 `createID` 重复的。在配置里面的 `target` 对应的就是这个 `createID`。
+2. 新实例的结构体里面需要有一个 `ID` 字符串变量，用来保存这个实例的编号。这个编号是为了区分同一个实例配置了多个。只要编号不同开启多个我们是支持。
