@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -229,16 +234,6 @@ type apiWriteMock struct {
 func (x *apiWriteMock) sendToPipLine(t *plw.Task) error {
 	x.t.Helper()
 	x.t.Log("under mock impl: sendToPipLine")
-
-	for _, td := range t.Data {
-		r := plw.NewResult()
-		if err := td.Handler(r); err != nil {
-			x.t.Error(err)
-		} else {
-			x.t.Logf("result: %v", r)
-		}
-	}
-
 	return nil
 }
 

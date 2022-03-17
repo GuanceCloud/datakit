@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -8,7 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func ReplaceChecking(node parser.Node) error {
+func ReplaceChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 
 	if len(funcExpr.Param) != 3 {
@@ -38,7 +43,7 @@ func ReplaceChecking(node parser.Node) error {
 	return nil
 }
 
-func Replace(ng *parser.Engine, node parser.Node) error {
+func Replace(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 
 	if len(funcExpr.Param) != 3 {

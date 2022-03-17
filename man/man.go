@@ -1,9 +1,15 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package man manages all datakit documents
 package man
 
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	// nolint:typecheck
 	"strings"
@@ -25,6 +31,8 @@ var (
 		"apis":                     "man/manuals/apis.md",
 		"changelog":                "man/manuals/changelog.md",
 		"datakit-arch":             "man/manuals/datakit-arch.md",
+		"datakit-sink-guide":       "man/manuals/datakit-sink-guide.md",
+		"datakit-sink-dev":         "man/manuals/datakit-sink-dev.md",
 		"datakit-batch-deploy":     "man/manuals/datakit-batch-deploy.md",
 		"datakit-conf-how-to":      "man/manuals/datakit-conf-how-to.md",
 		"datakit-daemonset-deploy": "man/manuals/datakit-daemonset-deploy.md",
@@ -115,12 +123,21 @@ func BuildMarkdownManual(name string, opt *Option) ([]byte, error) {
 			ReleaseDate: git.BuildAt,
 			CSS:         css,
 		}
+
 		// Add pipeline functions doc.
 		if name == "pipeline" {
 			sb := strings.Builder{}
-			for _, v := range funcs.PipelineFunctionDocs {
-				sb.WriteString(v.Doc)
+			names := []string{}
+			for k := range funcs.PipelineFunctionDocs {
+				// order by name
+				names = append(names, k)
 			}
+			sort.Strings(names)
+
+			for _, name := range names {
+				sb.WriteString(funcs.PipelineFunctionDocs[name].Doc)
+			}
+
 			p.PipelineFuncs = sb.String()
 		}
 	} else {

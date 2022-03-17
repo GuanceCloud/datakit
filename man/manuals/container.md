@@ -12,24 +12,24 @@
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
 - 采集 Kubernetes 数据需要 DataKit 以 Kubernetes daemonset 方式运行。
-- 采集 Kubernetes Pod 指标数据，需要 Kubernetes 安装 Metrics-Server 组件，[链接](https://github.com/kubernetes-sigs/metrics-server#installation)。
+- 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
 
 ## 配置
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```toml
-{{.InputSample}} 
+{{.InputSample}}
 ```
 
-*对象数据采集间隔是5分钟，指标数据采集间隔是20秒，暂不支持配置*
+> 对象数据采集间隔是 5 分钟，指标数据采集间隔是 20 秒，暂不支持配置
 
 ### 根据 image 过滤容器
 
 配置文件中的 `container_include_metric / container_exclude_metric` 是针对指标数据，`container_include_log / container_exclude_log` 是针对日志数据。
 
-- `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效。
-- glob 规则是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元，[glob wiki](https://en.wikipedia.org/wiki/Glob_(programming))
+- `container_include` 和 `container_exclude` 必须以 `image` 开头，格式为 `"image:<glob规则>"`，表示 glob 规则是针对容器 image 生效
+- [Glob 规则](https://en.wikipedia.org/wiki/Glob_(programming))是一种轻量级的正则表达式，支持 `*` `?` 等基本匹配单元
 
 例如，配置如下：
 
@@ -41,7 +41,9 @@
   container_exclude_metric = ["image:*"]
 ```
 
-假设有3个容器，image 分别是：
+> ==[Daemonset 方式部署](datakit-daemonset-deploy)时，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to#ebf019c2) 来配置这些镜像的开关==
+
+假设有 3 个容器，image 分别是：
 
 ```
 容器A：hello/hello-http:latest
@@ -49,7 +51,7 @@
 容器C：registry.jiagouyun.com/datakit/datakit:1.2.0
 ```
 
-使用以上 `include / exclude` 配置，将会只采集 `容器A` 指标数据，因为它的 image 能够匹配 `hello*`。另外2个容器不会采集指标，因为它们的 image 匹配 `*`。
+使用以上 `include / exclude` 配置，将会只采集 `容器A` 指标数据，因为它的 image 能够匹配 `hello*`。另外 2 个容器不会采集指标，因为它们的 image 匹配 `*`。
 
 补充，如何查看容器 image。
 
@@ -70,7 +72,7 @@ echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
 支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
 
 | 环境变量名                                             | 对应的配置参数项                    | 参数示例                                                     |
-| :---                                                   | ---                                 | ---                                                          |
+| :----------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
 | `ENV_INPUT_CONTIANER_EXCLUDE_PAUSE_CONTAINER`          | `exclude_pause_container`           | `true`/`false`                                               |
 | `ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES` | `logging_remove_ansi_escape_codes ` | `true`/`false`                                               |
 | `ENV_INPUT_CONTAINER_TAGS`                             | `tags`                              | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
@@ -164,7 +166,7 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
-``` toml
+```toml
  [inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
@@ -178,9 +180,10 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 {{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -198,9 +201,10 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 {{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -218,9 +222,10 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 {{if eq $m.Type "logging"}}
 
 ### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
@@ -230,3 +235,10 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 {{end}}
 
 {{ end }}
+
+## 延伸阅读
+
+- [eBPF 采集器：支持容器环境下的流量采集](ebpf)
+- [Pipeline：文本数据处理](pipeline)
+- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 
+- [Kubernetes 下 DataKit 的几种配置方式](k8s-config-how-to)

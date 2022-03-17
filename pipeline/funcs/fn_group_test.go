@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -71,9 +76,11 @@ func TestGroup(t *testing.T) {
 
 			err = runner.Run(tc.in)
 			tu.Equals(t, nil, err)
-			t.Log(runner.Result())
 
-			v, _ := runner.GetContent(tc.outkey)
+			ret := runner.Result()
+			t.Log(ret)
+
+			v := ret.Fields[tc.outkey]
 			// tu.Equals(t, nil, err)
 			tu.Equals(t, tc.expected, v)
 

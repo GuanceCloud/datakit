@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package datakit defined all datakit's global settings
 package datakit
 
@@ -74,6 +79,17 @@ const (
 	DatawayDisableURL = "dev_null"
 	ModeNormal        = 1
 	ModeDev           = 2
+
+	SinkTargetExample        = "example only, will not working"
+	SinkCategoryMetric       = "M"
+	SinkCategoryNetwork      = "N"
+	SinkCategoryKeyEvent     = "K"
+	SinkCategoryObject       = "O"
+	SinkCategoryCustomObject = "CO"
+	SinkCategoryLogging      = "L"
+	SinkCategoryTracing      = "T"
+	SinkCategoryRUM          = "R"
+	SinkCategorySecurity     = "S"
 )
 
 var (

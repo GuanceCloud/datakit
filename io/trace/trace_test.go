@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package trace
 
 import (
@@ -160,6 +165,7 @@ func parentialize(trace DatakitTrace) {
 	}
 
 	trace[0].ParentID = "0"
+	trace[0].SpanType = SPAN_TYPE_ENTRY
 	for i := range trace[1:] {
 		trace[i+1].TraceID = trace[0].TraceID
 		trace[i+1].ParentID = trace[i].SpanID

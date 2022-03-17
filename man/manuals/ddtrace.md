@@ -68,16 +68,16 @@ tail -f /var/log/datakit/gin.log
 
 ### 基本环境变量
 
-- DD_TRACE_ENABLED: 开启 global tracer (部分语言平台支持)
-- DD_AGENT_HOST: ddtrace agent host address
-- DD_TRACE_AGENT_PORT: ddtrace agent host port
-- DD_SERVICE: service name
-- DD_TRACE_SAMPLE_RATE: set sampling rate
-- DD_VERSION: application version (optional)
-- DD_TRACE_STARTUP_LOGS: ddtrace logger
-- DD_TRACE_DEBUG: ddtrace debug mode
-- DD_ENV: application env values
-- DD_TAGS: application
+- `DD_TRACE_ENABLED`: Enable global tracer (部分语言平台支持)
+- `DD_AGENT_HOST`: DDtrace agent host address
+- `DD_TRACE_AGENT_PORT`: DDtrace agent host port
+- `DD_SERVICE`: Service name
+- `DD_TRACE_SAMPLE_RATE`: Set sampling rate
+- `DD_VERSION`: Application version (optional)
+- `DD_TRACE_STARTUP_LOGS`: DDtrace logger
+- `DD_TRACE_DEBUG`: DDtrace debug mode
+- `DD_ENV`: Application env values
+- `DD_TAGS`: Application
 
 除了在应用初始化时设置项目名，环境名以及版本号外，还可通过如下两种方式设置：
 
@@ -141,3 +141,9 @@ customer_tags = [
 {{end}}
 
 {{ end }}
+
+## 延伸阅读
+
+- [DataKit Tracing 字段定义](datakit-tracing-struct)
+- [DataKit 通用 Tracing 数据采集说明](datakit-tracing)
+- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 

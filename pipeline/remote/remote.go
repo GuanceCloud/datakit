@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package remote contains pipeline remote pulling source code
 package remote
 
@@ -16,7 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 const (
@@ -192,7 +197,7 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 			return err
 		}
 
-		worker.ReloadAllRemoteDotPScript2Store(files)
+		scriptstore.ReloadAllRemoteDotPScript2Store(files)
 
 		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 		if err != nil {
@@ -223,7 +228,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
-	worker.CleanAllScriptWithNS(worker.RemoteScriptNS)
+	scriptstore.CleanAllScriptWithNS(scriptstore.RemoteScriptNS)
 	return nil
 }
 
@@ -276,7 +281,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		if err != nil {
 			l.Errorf("GetNamespacePipelineFiles failed: %v", err)
 		} else {
-			worker.ReloadAllRemoteDotPScript2Store(pls)
+			scriptstore.ReloadAllRemoteDotPScript2Store(pls)
 		}
 	} // isFirst
 	return cf.UpdateTime, nil

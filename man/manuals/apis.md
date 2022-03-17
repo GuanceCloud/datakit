@@ -457,3 +457,9 @@ HTTP Code: 40x
 - Field Value 不超过 32K(32x1024) 字节
 
 关于特殊标记，目前通过 HTTP 接口打进来的数据，均无法标记（比如允许 Tag 个数大于 256 个），而 DataKit 自身的采集器，在某些特殊情况下，可能需要绕过这些限制（比如日志采集中，field 的长度可以放开）。
+
+## 延伸阅读
+
+- [API 访问设置](datakit-conf-how-to#9f30b8aa)
+- [API 限流配置](datakit-conf-how-to#e35bf313)
+- [API 安全控制](rum#b896ec48)

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 //go:build linux
 // +build linux
 
@@ -112,11 +117,10 @@ func (ipt *Input) setup() bool {
 			TaskName:   name,
 			Source:     msg.Source,
 			ScriptName: msg.Pipeline,
-			Data: []worker.TaskData{
-				&taskData{
-					tags: tags,
-					log:  msg.Log,
-				},
+			Data: &worker.TaskDataTemplate{
+				ContentDataType: worker.ContentString,
+				Tags:            tags,
+				ContentStr:      []string{msg.Log},
 			},
 			TS: time.Now(),
 		}
@@ -174,24 +178,6 @@ type message struct {
 	Pipeline string            `json:"pipeline"`
 	Tags     map[string]string `json:"tags"`
 	Log      string            `json:"log"`
-}
-
-type taskData struct {
-	tags map[string]string
-	log  string
-}
-
-func (t *taskData) GetContent() string {
-	return t.log
-}
-
-func (t *taskData) Handler(r *worker.Result) error {
-	for k, v := range t.tags {
-		if _, err := r.GetTag(k); err != nil {
-			r.SetTag(k, v)
-		}
-	}
-	return nil
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil }

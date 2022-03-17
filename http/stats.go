@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package http
 
 import (
@@ -21,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sender"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/man"
 	plWorker "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -33,9 +39,10 @@ type enabledInput struct {
 }
 
 type runtimeInfo struct {
-	Goroutines   int    `json:"goroutines"`
-	HeapAlloc    uint64 `json:"heap_alloc"`
-	StackInuse   uint64 `json:"stack_inuse"`
+	Goroutines int    `json:"goroutines"`
+	HeapAlloc  uint64 `json:"heap_alloc"`
+	Sys        uint64 `json:"total_sys"`
+
 	GCPauseTotal uint64 `json:"gc_pause_total"`
 	GCNum        uint32 `json:"gc_num"`
 }
@@ -44,9 +51,10 @@ func getRuntimeInfo() *runtimeInfo {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	return &runtimeInfo{
-		Goroutines:   runtime.NumGoroutine(),
-		HeapAlloc:    m.HeapAlloc,
-		StackInuse:   m.StackInuse,
+		Goroutines: runtime.NumGoroutine(),
+		HeapAlloc:  m.HeapAlloc,
+		Sys:        m.Sys,
+
 		GCPauseTotal: m.PauseTotalNs,
 		GCNum:        m.NumGC,
 	}
@@ -74,6 +82,7 @@ type DatakitStats struct {
 	CSS          string `json:"-"`
 
 	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
+	SenderStat  map[string]*sender.Metric `json:"sender_stat"`
 	IoStats     io.IoStat                 `json:"io_stats"`
 	HTTPMetrics map[string]*apiStat       `json:"http_metrics"`
 
@@ -297,6 +306,7 @@ func GetStats() (*DatakitStats, error) {
 		Elected:        elected,
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
+		SenderStat:     sender.GetStat(),
 		HostName:       datakit.DatakitHostName,
 		EnabledInputs:  map[string]*enabledInput{},
 		HTTPMetrics:    getMetrics(),

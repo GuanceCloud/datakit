@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -7,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func AddkeyChecking(node parser.Node) error {
+func AddkeyChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expected 1 args", funcExpr.Name)
@@ -23,7 +28,7 @@ func AddkeyChecking(node parser.Node) error {
 	return nil
 }
 
-func Addkey(ng *parser.Engine, node parser.Node) error {
+func Addkey(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if funcExpr == nil {
 		return fmt.Errorf("unreachable")

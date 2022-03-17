@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package dataway
 
 import (
@@ -130,7 +135,7 @@ func TestSend(t *testing.T) {
 			continue
 		}
 
-		err := dw.Send(tc.category, []byte("abc123"), tc.gz)
+		_, err := dw.Send(tc.category, []byte("abc123"), tc.gz)
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
@@ -376,7 +381,7 @@ func runTestDatawayConnections(t *testing.T, nreq int) {
 	t.Logf("dw: %+#v", dw)
 
 	for {
-		if err := dw.Send("/v1/write/metric", []byte("abc123"), false); err != nil {
+		if _, err := dw.Send("/v1/write/metric", []byte("abc123"), false); err != nil {
 			t.Fatal(err)
 		}
 

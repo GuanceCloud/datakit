@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package hostobject collect host object.
 package hostobject
 
@@ -251,12 +256,12 @@ func (ipt *Input) doCollect() error {
 	}
 
 	if ipt.p != nil {
-		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil &&
-			result != nil && !result.Dropped {
-			for k, v := range result.Data {
+		if result, err := ipt.p.Run(string(messageData), ""); err == nil &&
+			result != nil && !result.IsDropped() {
+			for k, v := range result.GetFields() {
 				ipt.collectData.fields[k] = v
 			}
-			for k, v := range result.Tags {
+			for k, v := range result.GetTags() {
 				ipt.collectData.tags[k] = v
 			}
 			// ipt.collectData.tags

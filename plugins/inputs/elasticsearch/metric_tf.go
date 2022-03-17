@@ -1,11 +1,15 @@
-//nolint:lll
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package elasticsearch
 
 import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
-//
+//nolint:lll
 var elasticsearchMeasurementFields = map[string]interface{}{
 	"active_shards_percent_as_number": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "active shards percent"},
 	"active_primary_shards":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "active primary shards"},
@@ -14,6 +18,7 @@ var elasticsearchMeasurementFields = map[string]interface{}{
 }
 
 // nodeStats.
+//nolint:lll
 var nodeStatsTags = map[string]interface{}{
 	"cluster_name":                     inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
 	"node_attribute_ml.enabled":        inputs.NewTagInfo("Set to true (default) to enable machine learning APIs on the node."),
@@ -25,6 +30,7 @@ var nodeStatsTags = map[string]interface{}{
 	"node_name":                        inputs.NewTagInfo("Human-readable identifier for the node."),
 }
 
+//nolint:lll
 var nodeStatsFields = map[string]interface{}{
 	"transport_rx_size_in_bytes":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Size of RX packets received by the node during internal cluster communication."},
 	"transport_tx_size_in_bytes":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Size of TX packets sent by the node during internal cluster communication."},
@@ -81,6 +87,7 @@ var clusterStatsTags = map[string]interface{}{
 	"status":       inputs.NewTagInfo("Health status of the cluster, based on the state of its primary and replica shards."),
 }
 
+//nolint:lll
 var clusterStatsFields = map[string]interface{}{
 	"nodes_process_open_file_descriptors_avg": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Average number of concurrently open file descriptors. Returns -1 if not supported."},
 }
@@ -90,6 +97,7 @@ var clusterHealthTags = map[string]interface{}{
 	"name": inputs.NewTagInfo("Name of the cluster."),
 }
 
+//nolint:lll
 var clusterHealthFields = map[string]interface{}{
 	"active_primary_shards":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active primary shards in the cluster."},
 	"active_shards":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active shards in the cluster."},
@@ -108,6 +116,7 @@ var clusterHealthIndicesTags = map[string]interface{}{
 	"index": inputs.NewTagInfo("Name of the index."),
 }
 
+//nolint:lll
 var clusterHealthIndicesFields = map[string]interface{}{
 	"active_primary_shards": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active primary shards in the cluster."},
 	"active_shards":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active shards in the cluster."},
@@ -122,6 +131,7 @@ var clusterHealthIndicesFields = map[string]interface{}{
 
 // indicesStatsShardsTotal
 // NOTE: no tags.
+//nolint:lll
 var indicesStatsShardsTotalFields = map[string]interface{}{
 	"failed":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of failed indexing operations"},
 	"successful": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of successful operations"},
@@ -129,11 +139,13 @@ var indicesStatsShardsTotalFields = map[string]interface{}{
 }
 
 // indicesStats.
+//nolint:lll
 var indicesStatsTags = map[string]interface{}{
 	"cluster_name": inputs.NewTagInfo("Name of the cluster, based on the Cluster name setting setting."),
 	"index_name":   inputs.NewTagInfo("Name of the index. The name '_all' target all data streams and indices in a cluster."),
 }
 
+//nolint:lll
 var indicesStatsFields = map[string]interface{}{
 	"total_indexing_index_current":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of indexing operations currently running."},
 	"total_get_missing_total":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of failed get operations."},
@@ -164,6 +176,7 @@ var indicesStatsShardsTags = map[string]interface{}{
 	"type":       inputs.NewTagInfo("Type of the shard."),
 }
 
+//nolint:lll
 var indicesStatsShardsFields = map[string]interface{}{
 	"commit_generation":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The commit generation"},
 	"commit_num_docs":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of docs"},

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package gitrepo ...
 package gitrepo
 
@@ -22,7 +27,7 @@ import (
 	httpd "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 	ssh2 "golang.org/x/crypto/ssh"
 )
@@ -297,7 +302,7 @@ func reloadCore(ctx context.Context) (int, error) {
 				if err != nil {
 					l.Infof("GetNamespacePipelineFiles failed: %v", err)
 				} else {
-					worker.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
+					scriptstore.ReloadAllGitReposDotPScript2Store(allGitReposPipelines)
 				}
 
 			case 4:

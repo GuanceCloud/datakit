@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -253,7 +258,7 @@ if invalid_status_code != nil {
 
 			if err := runner.Run(tc.in); err == nil {
 				// t.Log(runner.Result())
-				v, _ := runner.GetContent("add_new_key")
+				v := runner.Result().Fields["add_new_key"]
 				tu.Equals(t, tc.expect, v)
 				t.Logf("[%d] PASS", idx)
 			} else {
