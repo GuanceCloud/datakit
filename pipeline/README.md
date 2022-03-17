@@ -54,6 +54,7 @@ p := NewPipeline(scriptName)
 - 文本处理
 ```
 // 支持 []byte string 两种数据类型
+// Run() RunByte() 非线程安全
 
 ret, err := p.Run("abc", source)
 
@@ -75,7 +76,7 @@ ret, err := p.RunByte([]byte("abc"), encode, source)
 - 检测脚本变更并更新 Pipeline 实例
 ```
 // 该函数可以通过 scriptstore 模块检测相应的脚本是否发生了更新，并更新该 Pipeline 实例
-// 需要注意的是，该操作并非线程安全，即调用此函数是时不可执行 Run 和 RunByte 方法。
+// 需要注意的是，该操作并非线程安全，即调用此函数时不可执行 Run 和 RunByte 方法。
 err := p.UpdateScriptInfo()
 ```
 
