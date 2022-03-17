@@ -124,11 +124,11 @@
     - [RUM](rum)
 
   - [日志]()
-
-    - [日志](logging)
-    - [第三方日志接入](logstreaming)
-    - [Socket 日志接入最佳实践](logging_socket)
     - [DataKit 整体日志采集介绍](datakit-logging)
+    - [数据采集]()
+      - [文件日志](logging)
+      - [第三方（logstreaming）日志接入](logstreaming)
+    	  - [Socket 日志接入示例](logging_socket)
 
   - [Windows 相关]()
 
