@@ -15,12 +15,6 @@ import (
 // nolint:unparam
 // There may be some error returned here.
 func runDebugFlags() error {
-	if *FlagDebugWorkDir != "" {
-		datakit.SetWorkDir(*FlagDebugWorkDir)
-		return nil
-	}
-
-	setCmdRootLog(*flagDebugLogPath)
 	switch {
 	case *flagDebugDefaultMainConfig:
 
