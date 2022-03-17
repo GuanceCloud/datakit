@@ -196,8 +196,8 @@ class CopyrightLinter:
     def _is_build_header(line):
         return line.startswith("// +build ") or line.startswith("//+build ") or line.startswith("//go:build ")
 
-    def _is_package_comment(line):
-        return line.startswith("// Package ")
+    def _is_package_comment_or_nolint(line):
+        return line.startswith("// Package ") or line.startswith("//nolint")
 
     def _fix_file_header(self, filepath, dry_run=True):
         header = CopyrightLinter._get_header(filepath)
@@ -208,7 +208,7 @@ class CopyrightLinter:
 
         # If the file starts with a comment and it's not a build comment,
         # there is likely a manual fix to the header needed
-        if header[0].startswith("//") and not CopyrightLinter._is_build_header(header[0]) and not CopyrightLinter._is_package_comment(header[0]):
+        if header[0].startswith("//") and not CopyrightLinter._is_build_header(header[0]) and not CopyrightLinter._is_package_comment_or_nolint(header[0]):
             return False
 
         if dry_run:
