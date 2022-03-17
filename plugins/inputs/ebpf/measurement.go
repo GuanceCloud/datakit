@@ -106,7 +106,7 @@ func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 			"path":         newFString("请求路径"),
 			"status_code":  newFInfInt("http 状态码，404之类会转换为400", inputs.UnknownUnit),
 			"method":       newFString("GET/POST/..."),
-			"latency_tmp":  newFInfInt("ttfb", inputs.UnknownUnit),
+			"latency":      newFInfInt("ttfb", inputs.UnknownUnit),
 			"http_version": newFString("1.1 / 1.0 ..."),
 		},
 	}
