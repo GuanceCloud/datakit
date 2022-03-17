@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package demo explains `what should you do' when adding new inputs into datakit.
 // Except that, we still adding some new testsing features to this input, such as
 // election/cgroup and so on.

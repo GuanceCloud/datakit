@@ -1,4 +1,8 @@
-//nolint:lll
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package sensors
 
 import (
@@ -19,6 +23,7 @@ func (m *sensorsMeasurement) LineProto() (*io.Point, error) {
 	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
 }
 
+//nolint:lll
 func (m *sensorsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sensors",
