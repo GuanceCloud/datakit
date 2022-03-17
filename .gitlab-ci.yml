@@ -46,7 +46,7 @@ release-stable:
 release-unstable:
   stage: deploy
   only:
-    - github-unstable # 专用分支来发布 unstable 版本
+    - unstable # 专用分支来发布 unstable 版本
   script:
     - make clean
     - make lint
