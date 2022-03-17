@@ -6,10 +6,9 @@
 
 # {{.InputName}}
 
-
-日志采集器支持两种模式:
-- 从磁盘读取 ：采集文件尾部数据（类似命令行 `tail -f`），上报到观测云。
-- socket端口获取：可通过tcp/udp 将文件发送到datakit
+本文档主要介绍本地磁盘日志采集和 Socket 日志采集：
+- 磁盘日志采集 ：采集文件尾部数据（类似命令行 `tail -f`）
+- Socket 端口获取：通过 TCP/UDP 方式将日志发送给 DataKit 
 
 ## 配置
 
@@ -81,7 +80,7 @@
 将 conf 中 `logfiles` 注释掉，并配置 `sockets`。以 log4j2 为例:
 
 ``` xml
- <!--socket配置日志传输到本机9540端口，protocol默认tcp-->
+ <!-- socket 配置日志传输到本机 9540 端口，protocol 默认 tcp -->
  <Socket name="name1" host="localHost" port="9540" charset="utf8">
      <!-- 输出格式  序列布局-->
      <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
@@ -145,18 +144,20 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 - `time`：即日志的产生时间，如果没有提取 `time` 字段或解析此字段失败，默认使用系统当前时间
 - `status`：日志的等级，如果没有提取出 `status` 字段，则默认将 `stauts` 置为 `info`
 
-有效的 `status` 字段值（不区分大小写）：
+#### 可用日志等级
 
-| status 有效字段值                | 对应值     |
-| :---                             | ---        |
-| `a`, `alert`                     | `alert`    |
-| `c`, `critical`                  | `critical` |
-| `e`, `error`                     | `error`    |
-| `w`, `warning`                   | `warning`  |
-| `n`, `notice`                    | `notice`   |
-| `i`, `info`                      | `info`     |
-| `d`, `debug`, `trace`, `verbose` | `debug`    |
-| `o`, `s`, `OK`                   | `OK`       |
+有效的 `status` 字段值如下（不区分大小写）：
+
+| 简写                  | 有效字段值            | 最终显示值 |
+| :----                 | ------------          | ----       |
+| `a`                   | `alert`               | `alert`    |
+| `c`                   | `critical`            | `critical` |
+| `e`                   | `error`               | `error`    |
+| `w`                   | `warning`             | `warning`  |
+| `n`                   | `notice`              | `notice`   |
+| `i`                   | `info`                | `info`     |
+| `d`                   | `debug/trace/verbose` | `debug`    |
+| `o` 或 `s`（success） | `OK`                  | `OK`       |
 
 示例：假定文本数据如下：
 
@@ -326,5 +327,6 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 - [Pipeline: 文本数据处理](pipeline)
 - [Pipeline 调试](datakit-pl-how-to)
 - [Pipeline 性能测试和对比](logging-pipeline-bench)
-- [`logfwd`: 容器内部日志采集](logfwd)
+- [容器采日志采集](container#224e2ccd)
+  - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd)
 - [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 
