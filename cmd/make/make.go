@@ -122,7 +122,7 @@ func applyFlags() {
 
 	build.DownloadAddr = *flagDownloadAddr
 	if !vi.IsStable() {
-		build.DownloadAddr = path.Join(*flagDownloadAddr, "rc")
+		build.DownloadAddr = path.Join(*flagDownloadAddr, "community")
 
 		l.Debugf("under unstable version %s, reset download address to %s",
 			build.ReleaseVersion, build.DownloadAddr)
