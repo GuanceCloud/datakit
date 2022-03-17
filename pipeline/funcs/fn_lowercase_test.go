@@ -87,9 +87,10 @@ lowercase(age)
 
 			err = runner.Run(tc.in)
 			tu.Equals(t, nil, err)
-			t.Log(runner.Result())
 
-			v, _ := runner.GetContent(tc.outkey)
+			ret := runner.Result()
+			t.Log(ret)
+			v := ret.Fields[tc.outkey]
 			// tu.Equals(t, nil, err)
 			tu.Equals(t, tc.expected, v)
 

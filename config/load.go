@@ -21,7 +21,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -239,11 +240,15 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 				if err != nil {
 					return nil, err
 				}
-				pl, err := pipeline.NewPipelineByScriptPath(pFullPath, false)
+				b, err := ioutil.ReadFile(pFullPath) //nolint:gosec
+				if err != nil {
+					return nil, err
+				}
+				ng, err := parser.NewEngine(string(b), funcs.FuncsMap, funcs.FuncsCheckMap, false)
 				if err != nil {
 					return vv, err
 				}
-				if pl == nil {
+				if ng == nil {
 					return vv, fmt.Errorf("pipeline_file_error")
 				}
 			}

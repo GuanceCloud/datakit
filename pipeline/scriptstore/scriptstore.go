@@ -3,7 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package worker
+// Package scriptstore used to store pipeline script
+package scriptstore
 
 import (
 	"fmt"
@@ -12,10 +13,13 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
+
+var l = logger.DefaultSLogger("pipeline-scriptstore")
 
 const (
 	DefaultScriptNS = "default"  // 内置 pl script， 优先级最低
@@ -29,7 +33,7 @@ var plScriptNSSearchOrder = [3]string{
 	DefaultScriptNS,
 }
 
-var scriptCentorStore = &dotPScriptStore{
+var scriptCentorStore = &DotPScriptStore{
 	scripts: map[string]map[string]*ScriptInfo{
 		RemoteScriptNS:  {},
 		GitRepoScriptNS: {},
@@ -37,70 +41,59 @@ var scriptCentorStore = &dotPScriptStore{
 	},
 }
 
-type dotPScriptStore struct {
+type DotPScriptStore struct {
 	sync.RWMutex
 	scripts map[string](map[string]*ScriptInfo)
 }
 
-func (store *dotPScriptStore) cleanAllScriptWithNS(ns string) {
+func (store *DotPScriptStore) cleanAllScriptWithNS(ns string) {
 	store.Lock()
 	defer store.Unlock()
 	store.scripts[ns] = make(map[string]*ScriptInfo)
 }
 
-// func queryScript will return a copy of scriptInfo, but without ng.
-func (store *dotPScriptStore) queryScript(name string) (*ScriptInfo, error) {
+// func queryScript will return a copy of scriptInfo .
+func (store *DotPScriptStore) queryScript(name string, oldInfo *ScriptInfo) (*ScriptInfo, error) {
 	store.RLock()
 	defer store.RUnlock()
-	if store.scripts != nil {
-		for _, ns := range plScriptNSSearchOrder {
-			if len(store.scripts[ns]) == 0 {
-				continue
+
+	if store.scripts == nil {
+		return nil, fmt.Errorf("not found")
+	}
+
+	for _, ns := range plScriptNSSearchOrder {
+		if len(store.scripts[ns]) == 0 {
+			continue
+		}
+		if vPtr, ok := store.scripts[ns][name]; ok {
+			if oldInfo != nil {
+				if vPtr.name != oldInfo.name {
+					return nil, fmt.Errorf("name %s != %s", vPtr.name, oldInfo.name)
+				}
+				if vPtr.updateTS == oldInfo.updateTS && vPtr.ns == oldInfo.ns {
+					return oldInfo, nil
+				}
 			}
-			if vPtr, ok := store.scripts[ns][name]; ok {
-				return &ScriptInfo{
-					ns:       vPtr.ns,
-					name:     vPtr.name,
-					script:   vPtr.script,
-					updateTS: vPtr.updateTS,
-				}, nil
-			}
+			return &ScriptInfo{
+				ns:       vPtr.ns,
+				ng:       vPtr.ng.Copy(),
+				name:     vPtr.name,
+				script:   vPtr.script,
+				updateTS: vPtr.updateTS,
+			}, nil
 		}
 	}
+
 	return nil, fmt.Errorf("not found")
 }
 
-func (store *dotPScriptStore) queryScriptAndNewNg(name string) (*ScriptInfo, error) {
-	inf, err := store.queryScript(name)
-	if err != nil {
-		return nil, err
-	}
-	inf.ng, err = parser.NewEngine(inf.script, funcs.FuncsMap, funcs.FuncsCheckMap, false)
-	if err != nil {
-		return nil, err
-	}
-	return inf, nil
+// QueryScript the first parameter is the script name, the second parameter can be nil.
+// you can use this function to get the script information stored in the script store.
+func QueryScript(name string, needUpdate *ScriptInfo) (*ScriptInfo, error) {
+	return scriptCentorStore.queryScript(name, needUpdate)
 }
 
-func (store *dotPScriptStore) checkAndUpdate(info *ScriptInfo) (*ScriptInfo, error) {
-	s, err := store.queryScript(info.name)
-	if err != nil { // not found
-		return nil, err
-	}
-	if s.updateTS == info.updateTS && s.ns == info.ns {
-		return info, nil
-	} else { // not equal, update ng, script, updateTS, ns, name
-		info.ns = s.ns
-		info.name = s.name
-		info.script = s.script
-		info.updateTS = s.updateTS
-		info.ng, _ = parser.NewEngine(s.script,
-			funcs.FuncsMap, funcs.FuncsCheckMap, false)
-		return info, nil
-	}
-}
-
-func (store *dotPScriptStore) appendScript(ns string, name string, script string, cover bool) error {
+func (store *DotPScriptStore) appendScript(ns string, name string, script string, cover bool) error {
 	store.Lock()
 	defer store.Unlock()
 
@@ -121,25 +114,27 @@ func (store *dotPScriptStore) appendScript(ns string, name string, script string
 			return nil
 		}
 
-		node, err := parser.ParsePipeline(script)
+		ng, err := parser.NewEngine(script, funcs.FuncsMap, funcs.FuncsCheckMap, false)
 		if err != nil {
 			return err
 		}
-		_, ok := node.(parser.Stmts)
-		if !ok {
-			return fmt.Errorf("invalid AST, should not been here")
-		}
+
 		store.scripts[ns][name] = &ScriptInfo{
 			script:   script,
 			name:     name,
 			ns:       ns,
+			ng:       ng,
 			updateTS: time.Now().UnixNano(),
 		}
 		return nil
 	}
 }
 
-func (store *dotPScriptStore) appendScriptFromDirPath(ns string, dirPath string, cover bool) {
+func AppendScript(ns string, name string, script string, cover bool) error {
+	return scriptCentorStore.appendScript(ns, name, script, cover)
+}
+
+func (store *DotPScriptStore) appendScriptFromDirPath(ns string, dirPath string, cover bool) {
 	dirPath = filepath.Clean(dirPath)
 	if dirEntry, err := os.ReadDir(dirPath); err != nil {
 		l.Error(err)
@@ -153,21 +148,24 @@ func (store *dotPScriptStore) appendScriptFromDirPath(ns string, dirPath string,
 				continue
 			}
 			sPath := filepath.Join(dirPath, sName)
-			store.appendScriptFromFilePath(ns, sPath, cover)
+			if err := store.appendScriptFromFilePath(ns, sPath, cover); err != nil {
+				l.Error(err)
+			}
 		}
 	}
 }
 
-func (store *dotPScriptStore) appendScriptFromFilePath(ns string, fp string, cover bool) {
+func (store *DotPScriptStore) appendScriptFromFilePath(ns string, fp string, cover bool) error {
 	fp = filepath.Clean(fp)
 	if v, err := os.ReadFile(fp); err == nil {
 		_, sName := filepath.Split(fp)
 		if err := store.appendScript(ns, sName, string(v), cover); err != nil {
-			l.Errorf("script name: %s, path: %s, err: %v", sName, fp, err)
+			return fmt.Errorf("script name: %s, path: %s, err: %w", sName, fp, err)
 		}
 	} else {
-		l.Error(err)
+		return err
 	}
+	return nil
 }
 
 type ScriptInfo struct {
@@ -187,44 +185,55 @@ func (s *ScriptInfo) NameSpace() string {
 	return s.ns
 }
 
+func (s *ScriptInfo) Engine() *parser.Engine {
+	return s.ng
+}
+
 // Script return pipeline script content.
 func (s *ScriptInfo) Script() string {
 	return s.script
 }
 
+func InitStore() {
+	l = logger.SLogger("pipeline-scriptstore")
+	LoadDefaultDotPScript2Store()
+}
+
 func LoadDefaultDotPScript2Store() {
 	plPath := filepath.Join(datakit.InstallDir, "pipeline")
-	loadDotPScript2StoreWithNS(DefaultScriptNS, nil, plPath)
+	LoadDotPScript2StoreWithNS(DefaultScriptNS, nil, plPath)
 }
 
 func ReloadAllDefaultDotPScript2Store() {
 	plPath := filepath.Join(datakit.InstallDir, "pipeline")
 	CleanAllScriptWithNS(DefaultScriptNS)
-	loadDotPScript2StoreWithNS(DefaultScriptNS, nil, plPath)
+	LoadDotPScript2StoreWithNS(DefaultScriptNS, nil, plPath)
 }
 
 func LoadGitReposDotPScript2Store(filePath []string) {
-	loadDotPScript2StoreWithNS(GitRepoScriptNS, filePath, "")
+	LoadDotPScript2StoreWithNS(GitRepoScriptNS, filePath, "")
 }
 
 func ReloadAllGitReposDotPScript2Store(filePath []string) {
 	CleanAllScriptWithNS(GitRepoScriptNS)
-	loadDotPScript2StoreWithNS(GitRepoScriptNS, filePath, "")
+	LoadDotPScript2StoreWithNS(GitRepoScriptNS, filePath, "")
 }
 
 func LoadRemoteDotPScript2Store(filePath []string) {
-	loadDotPScript2StoreWithNS(RemoteScriptNS, filePath, "")
+	LoadDotPScript2StoreWithNS(RemoteScriptNS, filePath, "")
 }
 
 func ReloadAllRemoteDotPScript2Store(filePath []string) {
 	CleanAllScriptWithNS(RemoteScriptNS)
-	loadDotPScript2StoreWithNS(RemoteScriptNS, filePath, "")
+	LoadDotPScript2StoreWithNS(RemoteScriptNS, filePath, "")
 }
 
-// func LoadAllPlScript2StoreWithNS will clean current layer data and then add new script.
-func loadDotPScript2StoreWithNS(ns string, filePath []string, dirPath string) {
+// LoadDotPScript2StoreWithNS will clean current layer data and then add new script.
+func LoadDotPScript2StoreWithNS(ns string, filePath []string, dirPath string) {
 	for _, v := range filePath {
-		scriptCentorStore.appendScriptFromFilePath(ns, v, true)
+		if err := scriptCentorStore.appendScriptFromFilePath(ns, v, true); err != nil {
+			l.Error(err)
+		}
 	}
 	if dirPath != "" {
 		scriptCentorStore.appendScriptFromDirPath(ns, dirPath, true)

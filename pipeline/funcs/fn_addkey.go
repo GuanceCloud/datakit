@@ -12,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func AddkeyChecking(node parser.Node) error {
+func AddkeyChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expected 1 args", funcExpr.Name)
@@ -28,7 +28,7 @@ func AddkeyChecking(node parser.Node) error {
 	return nil
 }
 
-func Addkey(ng *parser.Engine, node parser.Node) error {
+func Addkey(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if funcExpr == nil {
 		return fmt.Errorf("unreachable")

@@ -36,29 +36,29 @@ func (smp *Sampler) Sample(dktrace DatakitTrace) (DatakitTrace, bool) {
 		smp.ratio = int(smp.SamplingRateGlobal * 100)
 	})
 
-	for i := range dktrace {
-		if IsRootSpan(dktrace[i]) {
-			switch smp.Priority {
-			case PriorityAuto:
-				if smp.SamplingRateGlobal >= 1 {
-					return dktrace, false
-				}
-				if int(UnifyToInt64ID(dktrace[i].TraceID)%100) < smp.ratio {
-					return dktrace, false
-				} else {
-					log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d%%",
-						dktrace[i].Service, dktrace[i].Resource, dktrace[i].TraceID, dktrace[i].SpanID, smp.ratio)
+	if len(dktrace) == 0 {
+		return dktrace, true
+	}
 
-					return nil, true
-				}
-			case PriorityReject:
-				return nil, true
-			case PriorityKeep:
-				return dktrace, true
-			default:
-				log.Debug("unrecognized trace proority")
-			}
+	switch smp.Priority {
+	case PriorityAuto:
+		if smp.SamplingRateGlobal >= 1 {
+			return dktrace, false
 		}
+		if int(UnifyToInt64ID(dktrace[0].TraceID)%100) < smp.ratio {
+			return dktrace, false
+		} else {
+			log.Debugf("drop service: %s resource: %s trace_id: %s span_id: %s according to sampling ratio: %d%%",
+				dktrace[0].Service, dktrace[0].Resource, dktrace[0].TraceID, dktrace[0].SpanID, smp.ratio)
+
+			return nil, true
+		}
+	case PriorityReject:
+		return nil, true
+	case PriorityKeep:
+		return dktrace, true
+	default:
+		log.Debug("unrecognized trace proority")
 	}
 
 	return dktrace, false
@@ -86,7 +86,7 @@ func (cres *CloseResource) Close(dktrace DatakitTrace) (DatakitTrace, bool) {
 	}
 
 	for i := range dktrace {
-		if IsRootSpan(dktrace[i]) {
+		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
 			for service, resList := range cres.IgnoreResources {
 				if dktrace[i].Service == service {
 					for j := range resList {
@@ -135,7 +135,7 @@ func (kprres *KeepRareResource) Keep(dktrace DatakitTrace) (DatakitTrace, bool) 
 
 	var skip bool
 	for i := range dktrace {
-		if IsRootSpan(dktrace[i]) {
+		if dktrace[i].SpanType == SPAN_TYPE_ENTRY {
 			sed := fmt.Sprintf("%s%s%s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Source)
 			if len(sed) == 0 {
 				break

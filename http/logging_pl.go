@@ -6,9 +6,11 @@
 package http
 
 import (
+	"fmt"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	plw "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
@@ -16,57 +18,80 @@ type logTaskData struct {
 	source   string
 	version  string
 	category string
-	point    *io.Point
+	point    []*io.Point
 }
 
-func (std *logTaskData) GetContent() string {
-	fields, err := std.point.Fields()
-	if err != nil {
-		return ""
-	}
-	if len(fields) > 0 {
-		if msg, ok := fields["message"]; ok {
-			switch msg := msg.(type) {
-			case string:
-				return msg
-			default:
-				return ""
-			}
-		}
-	}
+func (std *logTaskData) ContentType() string {
+	return plw.ContentString
+}
+
+func (std *logTaskData) ContentEncode() string {
 	return ""
 }
 
-func (std *logTaskData) Handler(result *plw.Result) error {
-	tags := std.point.Tags()
-	for k, v := range tags {
-		result.SetTag(k, v)
-	}
-	fields, err := std.point.Fields()
-	if err == nil {
-		for k, i := range fields {
-			result.SetField(k, i)
-		}
+func (std *logTaskData) GetContentByte() [][]byte {
+	return nil
+}
 
-		// no time exist in pipeline output, use origin line proto time
-		if _, err := result.GetField("time"); err != nil {
-			result.SetTime(std.point.Time())
+func (std *logTaskData) GetContentStr() []string {
+	cntStr := []string{}
+	for _, pt := range std.point {
+		fields, err := pt.Fields()
+		if err != nil {
+			cntStr = append(cntStr, "")
+			continue
 		}
-	} else {
-		l.Warnf("get fields err=%v", err)
+		if len(fields) > 0 {
+			if msg, ok := fields["message"]; ok {
+				switch msg := msg.(type) {
+				case string:
+					cntStr = append(cntStr, msg)
+					continue
+				default:
+					cntStr = append(cntStr, "")
+					continue
+				}
+			}
+		}
+		cntStr = append(cntStr, "")
 	}
-	return err
+	return cntStr
+}
+
+func (std *logTaskData) Callback(task *plw.Task, result []*pipeline.Result) error {
+	result = plw.ResultUtilsLoggingProcessor(task, result, nil, nil)
+	if len(result) != len(std.point) {
+		return fmt.Errorf("result count is less than input")
+	}
+	for idx, pt := range std.point {
+		tags := pt.Tags()
+		for k, v := range tags {
+			result[idx].SetTag(k, v)
+		}
+		fields, err := pt.Fields()
+		if err == nil {
+			for k, i := range fields {
+				result[idx].SetField(k, i)
+			}
+
+			// no time exist in pipeline output, use origin line proto time
+			if _, err := result[idx].GetTime(); err != nil {
+				result[idx].SetTime(pt.Time())
+			}
+		} else {
+			l.Warnf("get fields err=%v", err)
+		}
+	}
+
+	return plw.ResultUtilsFeedIO(task, result)
 }
 
 func buildLogPLTask(input, source, version, category string, pts []*io.Point) *plw.Task {
-	var td []plw.TaskData
-	for _, pt := range pts {
-		td = append(td, &logTaskData{
-			source:   source,
-			version:  version,
-			category: category,
-			point:    pt,
-		})
+	td := logTaskData{
+		source:   source,
+		version:  version,
+		category: category,
+		point:    pts,
 	}
 
 	return &plw.Task{
@@ -79,6 +104,6 @@ func buildLogPLTask(input, source, version, category string, pts []*io.Point) *p
 		// ScriptName: not set here, pipeline will detect @source.p as the default pipline
 
 		TS:   time.Now(),
-		Data: td,
+		Data: &td,
 	}
 }

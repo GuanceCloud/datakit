@@ -97,8 +97,9 @@ uppercase(a.forth)
 					t.Error(err)
 				}
 			} else {
-				t.Log(runner.Result())
-				v, _ := runner.GetContent(tc.outKey)
+				ret := runner.Result()
+				t.Log(ret)
+				v := ret.Fields[tc.outKey]
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}

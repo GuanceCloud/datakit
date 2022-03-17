@@ -12,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func GroupInChecking(node parser.Node) error {
+func GroupInChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {
 		return fmt.Errorf("func %s expected 3 or 4 args", funcExpr.Name)
@@ -36,7 +36,7 @@ func GroupInChecking(node parser.Node) error {
 	return nil
 }
 
-func GroupIn(ng *parser.Engine, node parser.Node) error {
+func GroupIn(ng *parser.EngineData, node parser.Node) error {
 	setdata := make([]interface{}, 0)
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {

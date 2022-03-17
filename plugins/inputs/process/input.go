@@ -336,19 +336,14 @@ func (p *Input) WriteObject() {
 		}
 
 		if p.Pipeline != "" {
-			plPath, err := config.GetPipelinePath(p.Pipeline)
-			if err != nil {
-				l.Errorf("[error] process get pipeline err:%s", err.Error())
-				continue
-			}
-			pipe, err := pipeline.NewPipelineByScriptPath(plPath, false)
+			pipe, err := pipeline.NewPipeline(p.Pipeline)
 			if err == nil {
-				pipeMap, err := pipe.Run(string(m)).Result()
+				pipeMap, err := pipe.Run(string(m), "")
 				if err == nil && pipeMap != nil {
-					for k, v := range pipeMap.Data {
+					for k, v := range pipeMap.GetFields() {
 						fields[k] = v
 					}
-					for k, v := range pipeMap.Tags {
+					for k, v := range pipeMap.GetTags() {
 						tags[k] = v
 					}
 				} else {

@@ -7,15 +7,8 @@ package worker
 
 import (
 	"strings"
-)
 
-const (
-	// pipeline关键字段.
-	PipelineTimeField     = "time"
-	PipelineMessageField  = "message"
-	PipelineStatusField   = "status"
-	PipelineMSource       = "source"
-	DefaultPipelineStatus = "info"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 var statusMap = map[string]string{
@@ -41,9 +34,9 @@ var statusMap = map[string]string{
 	"ok":       "OK",
 }
 
-func PPAddSatus(result *Result, disable bool) string {
+func PPAddSatus(result *pipeline.Result, disable bool) string {
 	if disable {
-		if v, err := result.GetField(PipelineStatusField); err == nil {
+		if v, err := result.GetField(pipeline.PipelineStatusField); err == nil {
 			if v, ok := v.(string); ok {
 				return v
 			}
@@ -52,16 +45,16 @@ func PPAddSatus(result *Result, disable bool) string {
 		}
 	}
 
-	if v, err := result.GetField(PipelineStatusField); err == nil {
+	if v, err := result.GetField(pipeline.PipelineStatusField); err == nil {
 		if v, ok := v.(string); ok {
 			if s, ok := statusMap[strings.ToLower(v)]; ok {
-				result.SetField(PipelineStatusField, s)
+				result.SetField(pipeline.PipelineStatusField, s)
 				return s
 			}
 		}
 	}
-	result.SetField(PipelineStatusField, DefaultPipelineStatus)
-	return DefaultPipelineStatus
+	result.SetField(pipeline.PipelineStatusField, pipeline.DefaultPipelineStatus)
+	return pipeline.DefaultPipelineStatus
 }
 
 // PPIgnoreStatus 过滤指定status.

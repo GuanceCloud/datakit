@@ -15,8 +15,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/funcs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 type tagfield struct {
@@ -28,40 +30,47 @@ type tagfield struct {
 }
 
 type taskData struct {
-	tags map[string]string
-	log  string
+	tags        map[string]string
+	fields      map[string]interface{}
+	content     []string
+	contentByte [][]byte
+	callback    func(r []*io.Point) error
+	encode      string
+	dataType    string
 }
 
-func TestPlScriptStore(t *testing.T) {
-	store := &dotPScriptStore{
-		scripts: map[string]map[string]*ScriptInfo{},
-	}
+func (d *taskData) GetContentStr() []string {
+	return d.content
+}
 
-	err := store.appendScript(DefaultScriptNS, "abc.p", "default(time)", true)
-	if err != nil {
-		t.Error(err)
-	}
+func (d *taskData) GetContentByte() [][]byte {
+	return d.contentByte
+}
 
-	err = store.appendScript(GitRepoScriptNS, "abc.p", "default(time)", true)
-	if err != nil {
-		t.Error(err)
-	}
+func (d *taskData) ContentType() string {
+	return d.dataType
+}
 
-	err = store.appendScript(RemoteScriptNS, "abc.p", "default(time)", true)
-	if err != nil {
-		t.Error(err)
-	}
+func (d *taskData) ContentEncode() string {
+	return d.encode
+}
 
-	for _, ns := range plScriptNSSearchOrder {
-		sInfo, err := store.queryScript("abc.p")
-		if err != nil {
-			t.Error(err)
+func (d *taskData) Callback(task *Task, result []*pipeline.Result) error {
+	pts := []*io.Point{}
+	result = ResultUtilsLoggingProcessor(task, result, d.tags, d.fields)
+	ts := task.TS
+	if ts.IsZero() {
+		ts = time.Now()
+	}
+	result = ResultUtilsAutoFillTime(result, ts)
+	for _, r := range result {
+		if pt, err := r.MakePointIgnoreDropped(task.Source, 0, ""); err != nil {
+			l.Error(err)
+		} else if pt != nil {
+			pts = append(pts, pt)
 		}
-		if sInfo.ns != ns {
-			t.Error(sInfo.ns, ns)
-		}
-		store.cleanAllScriptWithNS(ns)
 	}
+	return d.callback(pts)
 }
 
 func TestRunAsTask(t *testing.T) {
@@ -81,9 +90,11 @@ func TestRunAsTask(t *testing.T) {
 			json(_, time)
 			set_tag(bb, "aa0")
 			default_time(time)
+			json(_, source)
+			set_tag(source)
 			`,
 			content: []string{
-				`{"time":"02/Dec/2021:11:55:34 +0800"}`,
+				`{"time":"02/Dec/2021:11:55:34 +0800", "source": "bb"}`,
 				`{"time":"02/Dec/2021:11:55:35 +0800"}`,
 				`{"time":"02/Dec/2021:11:55:36 +0800"}`,
 			},
@@ -93,14 +104,14 @@ func TestRunAsTask(t *testing.T) {
 	result := [][]tagfield{
 		{
 			{
-				measurement: "aa",
+				measurement: "bb",
 				dropped:     false,
 				tags: map[string]string{
 					"bb":      "aa0",
 					"service": "aa",
 				},
 				fields: map[string]interface{}{
-					"message": `{"time":"02/Dec/2021:11:55:34 +0800"}`,
+					"message": `{"time":"02/Dec/2021:11:55:34 +0800", "source": "bb"}`,
 					"status":  "info",
 				},
 				ts: time.Unix(1638417334, 0),
@@ -148,7 +159,7 @@ func TestRunAsTask(t *testing.T) {
 		default:
 		}
 
-		r := RunAsPlTask(data.category, data.measurement, data.service, data.content, ng)
+		r := RunAsPlTask(data.category, data.measurement, data.service, ContentString, data.content, nil, "", ng)
 		if len(result[index]) != len(r) {
 			t.Error("length not equal")
 		}
@@ -180,34 +191,34 @@ func TestNewEmptyNg(t *testing.T) {
 	}
 	in := "aaa"
 	_ = ng.Run(in)
-	v, _ := ng.GetContent("message")
+	v, _ := ng.Data.GetContent("message")
 	if v != in {
 		t.Error(v)
 	}
 }
 
 func TestAddStatus(t *testing.T) {
-	v := &Result{
-		output: &parser.Output{
+	v := &pipeline.Result{
+		Output: &parser.Output{
 			Tags: map[string]string{},
-			Data: map[string]interface{}{
+			Fields: map[string]interface{}{
 				"status": "WARN",
 			},
 		},
 	}
 	PPAddSatus(v, false)
-	assert.Equal(t, "warning", v.output.Data["status"])
+	assert.Equal(t, "warning", v.Output.Fields["status"])
 
-	v = &Result{
-		output: &parser.Output{
+	v = &pipeline.Result{
+		Output: &parser.Output{
 			Tags: map[string]string{},
-			Data: map[string]interface{}{
+			Fields: map[string]interface{}{
 				"status": "ERROR",
 			},
 		},
 	}
 	PPAddSatus(v, true)
-	assert.Equal(t, v.output.Data, map[string]interface{}{"status": "ERROR"})
+	assert.Equal(t, v.Output.Fields, map[string]interface{}{"status": "ERROR"})
 }
 
 func TestIgnoreStatus(t *testing.T) {
@@ -216,112 +227,98 @@ func TestIgnoreStatus(t *testing.T) {
 	}
 }
 
-func (t *taskData) GetContent() string {
-	return t.log
-}
-
-func (t *taskData) Handler(r *Result) error {
-	for k, v := range t.tags {
-		if _, err := r.GetTag(k); err != nil {
-			r.SetTag(k, v)
-		}
-	}
-	return nil
-}
-
 func TestWorker(t *testing.T) {
 	ts := time.Now()
 	ptCh := make(chan []*io.Point)
-	idCh := make(chan int)
 	// set feed func for test
-	getResult := func() ([]*io.Point, int) {
-		return <-ptCh, <-idCh
-	}
-	workerFeedFuncDebug = func(taskName string, points []*io.Point, id int) error {
-		ptCh <- points
-		idCh <- id
+	feedResult := func(pts []*io.Point) error {
+		ptCh <- pts
 		return nil
+	}
+	getResult := func() []*io.Point {
+		return <-ptCh
 	}
 
 	checkUpdateDebug = time.Second
 	// init manager
 	InitManager(1)
-	wkrManager.setDebug(true)
 	_ = os.WriteFile("/tmp/nginx-time.p", []byte(`
 	json(_, time)
 	set_tag(bb, "aa0")
 	default_time(time)
 	`), os.FileMode(0o755))
-	loadDotPScript2StoreWithNS(DefaultScriptNS, []string{"/tmp/nginx-time.p"}, "")
+	scriptstore.LoadDotPScript2StoreWithNS(scriptstore.DefaultScriptNS,
+		[]string{"/tmp/nginx-time.p"}, "")
 	_ = os.Remove("/tmp/nginx-time.p")
+
+	// 测试 panic 触发
+	FeedPipelineTask(&Task{})
+
 	cases := []*Task{
 		{
 			TaskName: "nginx-test-log1",
 			Source:   "nginx123",
 
 			Opt: &TaskOpt{IgnoreStatus: []string{"warn"}},
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"time":"02/Dec/2021:11:55:34 +0800"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
 				},
+				content:  []string{`{"time":"02/Dec/2021:11:55:34 +0800"}`},
+				callback: feedResult,
 			},
+
 			TS: ts,
 		},
 		{
 			ScriptName: "nginx-time.p",
 			TaskName:   "nginx-test-log2",
 			Source:     "nginx-time",
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-						"bb": "aa0",
-					},
-					log: `{"time":"02/Dec/2021:11:55:34 +0800"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
+					"bb": "aa0",
 				},
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-						"bb": "aa0",
-					},
-					log: `{"time":"02/Dec/2021:11:55:35 +0800"}`,
+				content: []string{
+					`{"time":"02/Dec/2021:11:55:34 +0800"}`,
+					`{"time":"02/Dec/2021:11:55:35 +0800"}`,
 				},
+				callback: feedResult,
 			},
 			TS: ts,
 		},
 		{ // index == 2， 变更脚本
 			TaskName: "nginx-test-log3",
 			Source:   "nginx-time",
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"time":"02/Dec/2021:11:55:34 +0800", "status":"DEBUG"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
 				},
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"time":"02/Dec/2021:11:55:35 +0800", "status":"DEBUG"}`,
+				content: []string{
+					`{"time":"02/Dec/2021:11:55:34 +0800", "status":"DEBUG"}`,
+					`{"time":"02/Dec/2021:11:55:35 +0800", "status":"DEBUG"}`,
 				},
+				callback: feedResult,
 			},
 			TS: ts,
 		},
 		{
 			TaskName: "nginx-test-log4",
 			Source:   "nginx-time",
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"time":"02/Dec/2021:11:55:11 +0800", "status":"DEBUG"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
 				},
+				content: []string{
+					`{"time":"02/Dec/2021:11:55:11 +0800", "status":"DEBUG"}`,
+				},
+				callback: feedResult,
 			},
+
 			Opt: &TaskOpt{
 				IgnoreStatus: []string{"debug"},
 			},
@@ -332,23 +329,21 @@ func TestWorker(t *testing.T) {
 		{
 			TaskName: "time sub",
 			Source:   "xxxxxx",
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"timex":"02/Dec/2021:11:55:34 +0800"}`,
+			Data: &taskData{
+				dataType: ContentString,
+				tags: map[string]string{
+					"tk": "aaa",
 				},
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `{"timex":"02/Dec/2021:11:55:35 +0800"}`,
+				content: []string{
+					`{"timex":"02/Dec/2021:11:55:34 +0800"}`,
+					`{"timex":"02/Dec/2021:11:55:35 +0800"}`,
 				},
+				callback: feedResult,
 			},
 			TS: ts,
 		},
 	}
+
 	expected := []([]tagfield){
 		[]tagfield{
 			{
@@ -435,16 +430,16 @@ func TestWorker(t *testing.T) {
 
 	for k, v := range cases {
 		if k == 2 {
-			_ = scriptCentorStore.appendScript(GitRepoScriptNS, "nginx-time.p", `
+			_ = scriptstore.AppendScript(scriptstore.GitRepoScriptNS, "nginx-time.p", `
 			json(_, time)
 			json(_, status)
 			default_time(time)`, true)
 			time.Sleep(time.Second + time.Millisecond*10)
 		}
 		_ = FeedPipelineTask(v)
-		pts, id := getResult()
+		pts := getResult()
 		expectedItem := expected[k]
-		t.Logf("case %d, wkr id %d", k, id)
+		t.Logf("case %d", k)
 		t.Log(expectedItem)
 		t.Log(pts)
 		if len(pts) != len(expectedItem) {
@@ -459,6 +454,7 @@ func TestWorker(t *testing.T) {
 				fmt.Sprintf("index: %d %d", k, k2))
 		}
 	}
+
 	datakit.Exit.Close()
 	err := FeedPipelineTask(&Task{})
 	time.Sleep(time.Millisecond * 100)
@@ -467,15 +463,74 @@ func TestWorker(t *testing.T) {
 	}
 }
 
-func BenchmarkPpWorker_Run(b *testing.B) {
-	workerFeedFuncDebug = func(taskName string, points []*io.Point, id int) error {
-		b.Log(points)
-		return nil
+func TestGrokStack(t *testing.T) {
+	pl := `
+	add_pattern("aa", "\\d{2}")
+	grok(_, "%{aa:aa}")
+	if false {
+	
+	} else {
+		add_pattern("bb", "[a-z]{3}")
+		if aa == "11" {
+			add_pattern("cc", "end1")
+			grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")
+		} elif aa == "22" {
+			grok(_, "%{aa:aa},%{bb:bb},%{INT:cc}")
+		} elif aa == "33" {
+			add_pattern("bb", "[\\d]{5}")	# 此处覆盖 bb 失败
+			add_pattern("cc", "end3")
+			grok(_, "%{aa:aa},%{bb:bb},%{cc:cc}")	
+		}
+	}
+	`
+
+	cases := []string{
+		"11,abc,end1",
+		"22,abc,end1",
+		"33,abc,end3",
 	}
 
+	result := []parser.Output{
+		{
+			Fields: map[string]interface{}{
+				"aa":      "11",
+				"bb":      "abc",
+				"cc":      "end1",
+				"message": "11,abc,end1",
+			},
+		},
+		{
+			Fields: map[string]interface{}{
+				"aa":      "22",
+				"message": "22,abc,end1",
+			},
+		},
+		{
+			Fields: map[string]interface{}{
+				"aa":      "33",
+				"bb":      "abc",
+				"cc":      "end3",
+				"message": "33,abc,end3",
+			},
+		},
+	}
+
+	ng, err := parser.NewEngine(pl, funcs.FuncsMap, funcs.FuncsCheckMap, false)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for k, v := range cases {
+		ng.Run(v)
+		ret := ng.Result()
+		t.Log("case", k)
+		assert.Equal(t, result[k].Fields, ret.Fields)
+	}
+}
+
+func BenchmarkPpWorker_Run(b *testing.B) {
 	// init manager
 	InitManager(-1)
-	wkrManager.setDebug(true)
 
 	ts := time.Now()
 
@@ -484,14 +539,16 @@ func BenchmarkPpWorker_Run(b *testing.B) {
 			TaskName: "nginx-test-log",
 			Source:   "nginx",
 			Opt:      &TaskOpt{IgnoreStatus: []string{"warn"}},
-			Data: []TaskData{
-				&taskData{
-					tags: map[string]string{
-						"tk": "aaa",
-					},
-					log: `127.0.0.1 - - [16/Dec/2021:17:25:29 +0800] "GET / HTTP/1.1" 404 162 "-" "Wget/1.20.3 (linux-gnu)"`,
+			Data: &taskData{
+				tags: map[string]string{
+					"tk": "aaa",
 				},
+				content: []string{
+					`127.0.0.1 - - [16/Dec/2021:17:25:29 +0800] "GET / HTTP/1.1" 404 162 "-" "Wget/1.20.3 (linux-gnu)"`,
+				},
+				callback: func(r []*io.Point) error { return nil },
 			},
+
 			TS: time.Now(),
 		})
 		if err != nil {

@@ -256,12 +256,12 @@ func (ipt *Input) doCollect() error {
 	}
 
 	if ipt.p != nil {
-		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil &&
-			result != nil && !result.Dropped {
-			for k, v := range result.Data {
+		if result, err := ipt.p.Run(string(messageData), ""); err == nil &&
+			result != nil && !result.IsDropped() {
+			for k, v := range result.GetFields() {
 				ipt.collectData.fields[k] = v
 			}
-			for k, v := range result.Tags {
+			for k, v := range result.GetTags() {
 				ipt.collectData.tags[k] = v
 			}
 			// ipt.collectData.tags

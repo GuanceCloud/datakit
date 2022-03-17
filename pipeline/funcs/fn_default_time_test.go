@@ -1084,8 +1084,9 @@ func TestDefaultTime(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			t.Log(runner.Result())
-			v, _ := runner.GetContent(tc.outkey)
+			ret := runner.Result()
+			t.Log(ret)
+			v := ret.Fields[tc.outkey]
 			tu.Equals(t, tc.expect, v)
 			t.Logf("[%d] PASS", idx)
 		})

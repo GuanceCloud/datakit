@@ -13,7 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func LowercaseChecking(node parser.Node) error {
+func LowercaseChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func %s expected 1 args", funcExpr.Name)
@@ -28,7 +28,7 @@ func LowercaseChecking(node parser.Node) error {
 	return nil
 }
 
-func Lowercase(ng *parser.Engine, node parser.Node) error {
+func Lowercase(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func %s expected 1 args", funcExpr.Name)

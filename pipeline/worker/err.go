@@ -11,6 +11,8 @@ var ErrTaskChClosed = errors.New("pipeline task channal is closed")
 
 var ErrTaskChNotReady = errors.New("pipeline task channal is not ready")
 
-var ErrScriptExists = errors.New("the current pipeline script exists")
-
 var ErrTaskBusy = errors.New("task busy")
+
+var ErrContentType = errors.New("only supports []byte and string type data")
+
+var ErrResultDropped = errors.New("result dropped")

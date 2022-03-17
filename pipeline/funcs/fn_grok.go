@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/ubwbu/grok"
 	vgrok "github.com/vjeantet/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
@@ -21,7 +22,12 @@ func CreateGrok(pattern map[string]string) (*vgrok.Grok, error) {
 	})
 }
 
-func GrokChecking(node parser.Node) error {
+func GrokChecking(ng *parser.EngineData, node parser.Node) error {
+	g := ng.GetGrok()
+	if g == nil {
+		return fmt.Errorf("no grok obj")
+	}
+
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)
@@ -34,27 +40,48 @@ func GrokChecking(node parser.Node) error {
 			reflect.TypeOf(funcExpr.Param[0]).String())
 	}
 
-	switch funcExpr.Param[1].(type) {
+	var pattern string
+	switch v := funcExpr.Param[1].(type) {
 	case *parser.StringLiteral:
+		pattern = v.Val
 	default:
 		return fmt.Errorf("expect StringLiteral, got %s",
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
+
+	var re *grok.GrokRegexp
+	var err error
+	if ng.StackDeep() > 0 {
+		deP := []map[string]string{}
+		deP = append(deP, g.GlobalDenormalizedPatterns, g.DenormalizedPatterns)
+		deP = append(deP, ng.PatternStack()...)
+		re, err = grok.CompilePattern(pattern, deP...)
+		if err != nil {
+			return err
+		}
+	} else {
+		re, err = grok.CompilePattern(pattern, g.GlobalDenormalizedPatterns, g.DenormalizedPatterns)
+		if err != nil {
+			return err
+		}
+	}
+	if re == nil {
+		return fmt.Errorf("compile pattern `%s` failed", pattern)
+	}
+	if _, ok := g.CompliedGrokRe[pattern]; !ok {
+		g.CompliedGrokRe[pattern] = make(map[string]*grok.GrokRegexp)
+	}
+	g.CompliedGrokRe[pattern][ng.PatternIndex()] = re
+
 	return nil
 }
 
-func Grok(ng *parser.Engine, node parser.Node) error {
+func Grok(ng *parser.EngineData, node parser.Node) error {
 	g := ng.GetGrok()
-	var err error
-
 	if g == nil {
-		g, err = CreateGrok(ng.GetPatterns())
-		if err != nil {
-			l.Warn(err)
-			return nil
-		}
-		ng.SetGrok(g)
+		return fmt.Errorf("no grok obj")
 	}
+	var err error
 
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
@@ -79,13 +106,19 @@ func Grok(ng *parser.Engine, node parser.Node) error {
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
+	grokRe, ok := g.CompliedGrokRe[pattern][ng.PatternIndex()]
+	// 此处在 pl script 编译时进行优化，提前进行 pattern 的编译
+	if !ok {
+		return fmt.Errorf("can not complie grok")
+	}
+
 	val, err := ng.GetContentStr(key)
 	if err != nil {
 		l.Warn(err)
 		return nil
 	}
 
-	m, err := g.Parse(pattern, val)
+	m, err := grokRe.Run(val)
 	if err != nil {
 		l.Warn(err)
 		return nil

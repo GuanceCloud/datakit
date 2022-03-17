@@ -12,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func DropkeyChecking(node parser.Node) error {
+func DropkeyChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func %s expected 1 args", funcExpr.Name)
@@ -27,7 +27,7 @@ func DropkeyChecking(node parser.Node) error {
 	return nil
 }
 
-func Dropkey(ng *parser.Engine, node parser.Node) error {
+func Dropkey(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func %s expected 1 args", funcExpr.Name)

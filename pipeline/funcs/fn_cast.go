@@ -12,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func CastChecking(node parser.Node) error {
+func CastChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)
@@ -32,7 +32,7 @@ func CastChecking(node parser.Node) error {
 	return nil
 }
 
-func Cast(ng *parser.Engine, node parser.Node) error {
+func Cast(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
@@ -35,7 +36,7 @@ func TestResult_checkFieldValLen(t *testing.T) {
 					Error:   "",
 					Cost:    nil,
 					Tags:    nil,
-					Data: map[string]interface{}{
+					Fields: map[string]interface{}{
 						"msg":         "0123456789",
 						"message":     "0123456789",
 						"other_field": "0123456789",
@@ -50,15 +51,14 @@ func TestResult_checkFieldValLen(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &Result{
-				output:      tt.fields.output,
-				measurement: tt.fields.measurement,
-				ts:          tt.fields.ts,
-				err:         tt.fields.err,
+			r := &pipeline.Result{
+				Output: tt.fields.output,
+				TS:     tt.fields.ts,
+				Err:    tt.fields.err,
 			}
-			r.checkFieldValLen(tt.args.messageLen)
+			r.CheckFieldValLen(tt.args.messageLen)
 
-			for key := range r.output.Data {
+			for key := range r.Output.Fields {
 				if i, err := r.GetField(key); err == nil {
 					if mass, isString := i.(string); isString {
 						if len(mass) > tt.args.messageLen {

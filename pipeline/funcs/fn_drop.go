@@ -7,11 +7,11 @@ package funcs
 
 import "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 
-func DropChecking(node parser.Node) error {
+func DropChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Drop(ng *parser.Engine, node parser.Node) error {
-	ng.MarkDrop()
+func Drop(ngData *parser.EngineData, node parser.Node) error {
+	ngData.MarkDrop()
 	return nil
 }

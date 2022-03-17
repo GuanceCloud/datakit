@@ -12,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func UserAgentChecking(node parser.Node) error {
+func UserAgentChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func `%s' expects 1 args", funcExpr.Name)
@@ -26,7 +26,7 @@ func UserAgentChecking(node parser.Node) error {
 	return nil
 }
 
-func UserAgent(ng *parser.Engine, node parser.Node) error {
+func UserAgent(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func `%s' expects 1 args", funcExpr.Name)
