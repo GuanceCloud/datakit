@@ -47,6 +47,7 @@
     - [System](system)
     - [主机目录](hostdir)
     - [SSH](ssh)
+    - [DataKit 自身指标](self)
 
   - [数据库（中间件）]()
 
