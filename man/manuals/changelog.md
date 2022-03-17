@@ -14,7 +14,7 @@
 
 - DataKit 9529 HTTP 服务添加 [API 限流措施](datakit-conf-how-to#e35bf313)(#637)
 - 统一各种 Tracing 数据的[采样率设置](datakit-tracing#64df2902)(#631)
-- 发布 [DataKit 整体日志采集介绍](datakit-logging)
+- 发布 [DataKit 日志采集综述](datakit-logging)
 - 支持 [OpenTelemetry 数据接入](opentelemetry)(#609)
 - 支持[禁用 Pod 内部部分镜像的日志](container#2a6149d7)(#586)
 - 进程对象采集[增加监听端口列表](host_processes#a30fc2c1-1)(#562)

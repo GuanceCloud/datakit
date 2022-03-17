@@ -76,15 +76,13 @@
     - [eBPF](ebpf)
 
   - [云原生]()
-
+    - [Kubernetes 环境下的 DataKit 配置综述](k8s-config-how-to)
     - [数据采集]()
 
       - [容器](container)
+        - [通过 Sidecar 方式采集 Pod 日志](logfwd)
       - [Kubernetes 扩展指标采集](kubernetes-x)
-      - [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
-
-    - [通过 Sidecar 方式采集 Pod 日志](logfwd)
-    - [Kubernetes 环境下的 DataKit 配置](k8s-config-how-to)
+      - [Prometheus Exportor 指标采集](kubernetes-prom)
 
   - [Java]()
 
@@ -124,11 +122,11 @@
     - [RUM](rum)
 
   - [日志]()
-    - [DataKit 整体日志采集介绍](datakit-logging)
+    - [DataKit 日志采集综述](datakit-logging)
     - [数据采集]()
       - [文件日志](logging)
+        - [Socket 日志接入示例](logging_socket)
       - [第三方（logstreaming）日志接入](logstreaming)
-    	  - [Socket 日志接入示例](logging_socket)
 
   - [Windows 相关]()
 
