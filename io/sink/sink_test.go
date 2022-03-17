@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 // go test -v -timeout 30s -run ^TestCheckSinksConfig$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink
@@ -218,6 +219,15 @@ func TestAggregationCategorys(t *testing.T) {
 			expectError: fmt.Errorf("invalid categories: not found"),
 		},
 		{
+			name: "invalid_icategories_not_string",
+			in: []map[string]interface{}{
+				{
+					"categories": []interface{}{123},
+				},
+			},
+			expectError: fmt.Errorf("invalid categories: not string"),
+		},
+		{
 			name: "unrecognized category",
 			in: []map[string]interface{}{
 				{
@@ -237,6 +247,10 @@ func TestAggregationCategorys(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			if len(sinkcommon.SinkImpls) == 0 {
+				TestBuildSinkImpls(t)
+			}
+
 			err := aggregationCategorys(tc.in)
 			assert.Equal(t, tc.expectError, err)
 		})
