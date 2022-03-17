@@ -1,4 +1,7 @@
-// tool to build datakit
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
 
 package main
 
@@ -119,7 +122,7 @@ func applyFlags() {
 
 	build.DownloadAddr = *flagDownloadAddr
 	if !vi.IsStable() {
-		build.DownloadAddr = path.Join(*flagDownloadAddr, "rc")
+		build.DownloadAddr = path.Join(*flagDownloadAddr, "community")
 
 		l.Debugf("under unstable version %s, reset download address to %s",
 			build.ReleaseVersion, build.DownloadAddr)

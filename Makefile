@@ -17,7 +17,6 @@ TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com
 # 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
 LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
 
-
 PUB_DIR = dist
 BUILD_DIR = dist
 
@@ -56,9 +55,10 @@ GOLINT_VERSION_VALIDATION_ERR_MSG = golangci-lint version($(GOLINT_VERSION)) is 
 #####################
 
 define GIT_INFO
-//nolint
+// Package git used to define basic git info abount current version.
 package git
 
+//nolint
 const (
 	BuildAt  string = "$(DATE)"
 	Version  string = "$(VERSION)"
@@ -263,6 +263,12 @@ plparser_disable_line:
 prepare:
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
+
+copyright_check:
+	@python3 copyright.py --dry-run
+
+copyright_check_auto_fix:
+	@python3 copyright.py --fix
 
 check_man:
 	grep --color=always -nrP "[a-zA-Z0-9][\p{Han}]|[\p{Han}][a-zA-Z0-9]" man > bad-doc.log
