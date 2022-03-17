@@ -74,7 +74,7 @@ DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有
 | ENV_LOG                    | */var/log/datakit/log*     | 否       | 如果改成 `stdout`，日志将不写文件，而是终端输出                                                                                                     |
 | ENV_LOG_LEVEL              | info                       | 否       | 可选值 `info/debug`                                                                                                                                 |
 | ENV_NAMESPACE              | 无                         | 否       | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。 |
-| ENV_REQUEST_RATE_LIMIT     | 无(整数)                   | 否       | 限制 9529 [API 每秒请求数](datakit-conf-how-to#e35bf313)                                                                                            |
+| ENV_REQUEST_RATE_LIMIT     | 无(float)                  | 否       | 限制 9529 [API 每秒请求数](datakit-conf-how-to#e35bf313)                                                                                            |
 | ENV_RUM_ORIGIN_IP_HEADER   | `X-Forwarded-For`          | 否       | RUM 专用                                                                                                                                            |
 
 > 注意：
