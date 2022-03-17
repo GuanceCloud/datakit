@@ -20,6 +20,32 @@ import (
 	pb "google.golang.org/protobuf/proto"
 )
 
+type Metric struct {
+	Sink   string
+	Uptime time.Duration
+	Count,
+	Pts,
+	RawBytes,
+	Bytes,
+	Failed,
+	Status2XX,
+	Status4XX,
+	TimeoutCount,
+	Status5XX uint64
+
+	startTime time.Time
+}
+
+type SinkMetric struct {
+	Name      string
+	StartTime time.Time
+	Pts,
+	RawBytes,
+	Bytes uint64
+	StatusCode int
+	IsSuccess  bool
+}
+
 type Point struct {
 	*influxdb.Point
 }
@@ -29,8 +55,6 @@ func (p *Point) ToJSON() (*sinkcommon.JSONPoint, error) {
 }
 
 var _ sinkcommon.ISinkPoint = new(Point)
-
-var lock sync.Mutex
 
 func (p *Point) ToPoint() *influxdb.Point {
 	return p.Point
@@ -52,6 +76,12 @@ type writeInfo struct {
 var (
 	cacheBucket = "io_upload_metric"
 	l           = logger.DefaultSLogger("sender")
+	once        sync.Once
+	lock        sync.Mutex
+	sinkMetric  = make(map[string]*Metric)
+	g           = datakit.G("sender")
+
+	metric = make(chan *SinkMetric, 32)
 )
 
 type WriteFunc func(string, []sinkcommon.ISinkPoint) error
@@ -357,47 +387,23 @@ func (s *Sender) Stop() error {
 // NewSender init sender with sinker instance and custom opt.
 func NewSender(opt *Option) (*Sender, error) {
 	l = logger.SLogger("sender")
+
+	// init metric once
+	once.Do(func() {
+		Init()
+	})
+
 	s := &Sender{
 		group: datakit.G("sender"),
 	}
 	err := s.init(opt)
+
 	return s, err
 }
 
-type Metric struct {
-	Sink   string
-	Uptime time.Duration
-	Count,
-	Pts,
-	RawBytes,
-	Bytes,
-	Failed,
-	Status2XX,
-	Status4XX,
-	Status5XX uint64
-
-	startTime time.Time
-}
-
-type SinkMetric struct {
-	Name      string
-	StartTime time.Time
-	Pts,
-	RawBytes,
-	Bytes uint64
-	StatusCode int
-	IsSuccess  bool
-	IsOnlyStat bool
-}
-
-var sinkMetric = make(map[string]*Metric)
-
-var metric = make(chan *SinkMetric, 32)
-
-var g = datakit.G("sender")
-
-func init() {
+func Init() {
 	g.Go(func(ctx context.Context) error {
+		l.Debugf("init sender metric")
 		for {
 			select {
 			case m := <-metric:
@@ -419,6 +425,7 @@ func FeedMetric(m *SinkMetric) {
 func updateSinkStat(m *SinkMetric) {
 	lock.Lock()
 	defer lock.Unlock()
+
 	stat, ok := sinkMetric[m.Name]
 	if !ok {
 		sinkMetric[m.Name] = &Metric{}
@@ -432,14 +439,17 @@ func updateSinkStat(m *SinkMetric) {
 	stat.RawBytes += m.RawBytes
 	stat.Count += 1
 	stat.Pts += m.Pts
-
-	switch m.StatusCode / 100 {
-	case 2:
-		stat.Status2XX++
-	case 4:
-		stat.Status4XX++
-	case 5:
-		stat.Status5XX++
+	if m.StatusCode == -1 { // timeout
+		stat.TimeoutCount++
+	} else {
+		switch m.StatusCode / 100 {
+		case 2:
+			stat.Status2XX++
+		case 4:
+			stat.Status4XX++
+		case 5:
+			stat.Status5XX++
+		}
 	}
 
 	if !m.IsSuccess {
@@ -448,6 +458,8 @@ func updateSinkStat(m *SinkMetric) {
 }
 
 func GetStat() map[string]*Metric {
+	lock.Lock()
+	defer lock.Unlock()
 	for _, stat := range sinkMetric {
 		stat.Uptime = time.Since(stat.startTime)
 	}

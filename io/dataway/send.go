@@ -8,6 +8,7 @@ package dataway
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -75,6 +76,12 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 	if resp, err = dc.dw.sendReq(req); err != nil {
 		dc.fails++
 		log.Errorf("request url %s failed(proxy: %s): %s", requrl, dc.proxy, err)
+
+		var urlError *url.Error
+
+		if errors.As(err, &urlError) && urlError.Timeout() {
+			statusCode = -1 // timeout
+		}
 
 		return statusCode, err
 	}

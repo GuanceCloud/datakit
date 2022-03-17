@@ -39,9 +39,10 @@ type enabledInput struct {
 }
 
 type runtimeInfo struct {
-	Goroutines   int    `json:"goroutines"`
-	HeapAlloc    uint64 `json:"heap_alloc"`
-	StackInuse   uint64 `json:"stack_inuse"`
+	Goroutines int    `json:"goroutines"`
+	HeapAlloc  uint64 `json:"heap_alloc"`
+	Sys        uint64 `json:"total_sys"`
+
 	GCPauseTotal uint64 `json:"gc_pause_total"`
 	GCNum        uint32 `json:"gc_num"`
 }
@@ -50,9 +51,10 @@ func getRuntimeInfo() *runtimeInfo {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	return &runtimeInfo{
-		Goroutines:   runtime.NumGoroutine(),
-		HeapAlloc:    m.HeapAlloc,
-		StackInuse:   m.StackInuse,
+		Goroutines: runtime.NumGoroutine(),
+		HeapAlloc:  m.HeapAlloc,
+		Sys:        m.Sys,
+
 		GCPauseTotal: m.PauseTotalNs,
 		GCNum:        m.NumGC,
 	}

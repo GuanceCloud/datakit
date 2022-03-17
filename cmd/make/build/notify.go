@@ -42,6 +42,8 @@ var (
 		`windows/amd64`: `$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
 		`windows/386`:   `$env:DK_UPGRADE=\"1\"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://{{.DownloadAddr}}/install-{{.Version}}.ps1 -destination .install.ps1; powershell .install.ps1;`,
 	}
+
+	k8sDaemonsetTemplete = "wget https://{{.DownloadAddr}}/datakit.yaml"
 )
 
 var (
@@ -175,6 +177,14 @@ func NotifyPubDone() {
 				x = append(x, "\n")
 				x = append(x, upgradeNotifyTemplate[arch])
 			}
+
+			// under testing release, add k8s daemonset yaml
+			if ReleaseType == ReleaseTesting {
+				x = append(x, "--------------------------")
+				x = append(x, "Kubernetes DaemonSet 安装")
+				x = append(x, k8sDaemonsetTemplete)
+			}
+
 			return x
 		}()
 
