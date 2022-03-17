@@ -384,6 +384,7 @@ var deprecatedInputs = map[string]string{
 	"docker_containers": "docker",
 	"traceSkywalking":   "skywalking",
 	"traceJaeger":       "jaeger",
+	"traceZipkin":       "zipkin",
 }
 
 func checkDepercatedInputs(tbl *ast.Table, entries map[string]string) (res map[string]string) {

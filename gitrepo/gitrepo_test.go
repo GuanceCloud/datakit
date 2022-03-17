@@ -2,17 +2,37 @@ package gitrepo
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
+// 检查是不是开发机，如果不是开发机，则直接退出。开发机上需要定义 LOCAL_UNIT_TEST 环境变量。
+func checkDevHost() bool {
+	if envs := os.Getenv("LOCAL_UNIT_TEST"); envs == "" {
+		return false
+	}
+	return true
+}
+
+//------------------------------------------------------------------------------
+
 // go test -v -timeout 30s -run ^TestGetGitClonePathFromGitURL$ gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo
 func TestGetGitClonePathFromGitURL(t *testing.T) {
+	originInstallDir := datakit.InstallDir
+	originGitReposDir := datakit.GitReposDir
+
+	datakit.InstallDir = "/usr/local/datakit"
+	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
+
 	cases := []struct {
 		name          string
 		gitURL        string
@@ -57,6 +77,9 @@ func TestGetGitClonePathFromGitURL(t *testing.T) {
 			tu.Equals(t, tc.expect, repoName)
 		})
 	}
+
+	datakit.InstallDir = originInstallDir
+	datakit.GitReposDir = originGitReposDir
 }
 
 // go test -v -timeout 30s -run ^TestIsUserNamePasswordAuth$ gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo
@@ -109,6 +132,12 @@ func TestIsUserNamePasswordAuth(t *testing.T) {
 
 // go test -v -timeout 30s -run ^TestGetUserNamePasswordFromGitURL$ gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo
 func TestGetUserNamePasswordFromGitURL(t *testing.T) {
+	originInstallDir := datakit.InstallDir
+	originGitReposDir := datakit.GitReposDir
+
+	datakit.InstallDir = "/usr/local/datakit"
+	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
+
 	cases := []struct {
 		name          string
 		gitURL        string
@@ -173,10 +202,23 @@ func TestGetUserNamePasswordFromGitURL(t *testing.T) {
 			tu.Equals(t, tc.expect, mVal)
 		})
 	}
+
+	datakit.InstallDir = originInstallDir
+	datakit.GitReposDir = originGitReposDir
 }
 
 // go test -v -timeout 30s -run ^TestReloadCore$ gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo
 func TestReloadCore(t *testing.T) {
+	if !checkDevHost() {
+		return
+	}
+
+	originInstallDir := datakit.InstallDir
+	originGitReposDir := datakit.GitReposDir
+
+	datakit.InstallDir = "/usr/local/datakit"
+	datakit.GitReposDir = filepath.Join(datakit.InstallDir, datakit.StrGitRepos)
+
 	const successRound = 6
 
 	cases := []struct {
@@ -196,11 +238,8 @@ func TestReloadCore(t *testing.T) {
 
 		{
 			name:          "timeout",
-			timeout:       time.Millisecond,
+			timeout:       time.Nanosecond,
 			shouldBeError: true,
-			expect: map[string]int{
-				"round": 1,
-			},
 		},
 	}
 
@@ -217,9 +256,16 @@ func TestReloadCore(t *testing.T) {
 			mVal := map[string]int{
 				"round": round,
 			}
-			tu.Equals(t, tc.expect, mVal)
+			if tc.name == "timeout" {
+				assert.Less(t, round, successRound)
+			} else {
+				tu.Equals(t, tc.expect, mVal)
+			}
 		})
 	}
+
+	datakit.InstallDir = originInstallDir
+	datakit.GitReposDir = originGitReposDir
 }
 
 // go test -v -timeout 30s -run ^TestGetAuthMethod$ gitlab.jiagouyun.com/cloudcare-tools/datakit/gitrepo

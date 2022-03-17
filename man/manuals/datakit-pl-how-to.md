@@ -125,7 +125,9 @@ default_time(time)       # 将 time 字段作为输出数据的时间戳
 drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
 ```
 
-这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下（**注意，用户自定义 pattern 如果需要全局生效，必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下**）:
+这里引用了几个用户自定义的 pattern，如 `_dklog_date`、`_dklog_level`。我们将这些规则存放 `<datakit安装目录>/pipeline/pattern` 下。
+
+> 注意，用户自定义 pattern 如果需要==全局生效==（即在其它 Pipeline 脚本中应用），必须放置在 `<DataKit安装目录/pipeline/pattern/>` 目录下）:
 
 ```Shell
 $ cat pipeline/pattern/datakit
@@ -156,18 +158,33 @@ Extracted data(cost: 421.705µs):
 
 ### Pipeline 字段命名注意事项
 
-由于[行协议约束](apis#f54b954f)，在切割出来的字段中（在行协议中，它们都是 Field），不宜有任何 tag 字段，这些 Tag 包含如下几类：
+在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis#2fc2526a)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
 
-- 各个具体采集器中，用户自行配置增加的 Tag，如 `[inputs.nginx.tags]` 下可增加各种 Tag
-- DataKit 全局 Tag，如 `host`。当然，这个全局 Tag 用户也能自行配置
-- 日志采集器默认会增加 `source/service` 这两个 Tag，在 Pipeline 中也不宜出现这两个字段切割
+- DataKit 中的[全局 Tag](datakit-conf-how-to#97a53d96)
+- 日志采集器中[自定义的 Tag](logging#6d5774b2)
 
-一旦 Pipeline 切割出来的字段中带有上述任何一个 Tag key（大小写敏感），都会导致如下数据报错，故建议在 Pipeline 切割中，绕开这些字段命名。
+另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
+
+| 字段名    | 类型          | 说明                                  |
+| ---       | ----          | ----                                  |
+| `source`  | string(tag)   | 日志来源                              |
+| `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
+| `status`  | string(tag)   | 日志对应的[等级](logging#fe2d3282)    |
+| `message` | string(field) | 原始日志                              |
+| `time`    | int           | 日志对应的时间戳                      |
+
+> 当然我们可以通过[特定的 Pipeline 函数](pipeline#6e8c5285)覆盖上面这些 tag 的值。
+
+一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
 
 ```shell
 # 该错误在 DataKit monitor 中能看到
 same key xxx in tag and field
 ```
+
+<!--
+#### 数据类型冲突
+TODO -->
 
 ## FAQ
 

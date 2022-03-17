@@ -253,12 +253,14 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	m.tags["direction"] = connDirection2Str(v.Stats.Direction)
 
 	if k8sNetInfo != nil {
-		_, srcPodName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"], k.Sport, m.tags["transport"])
+		srcK8sFlag := false
+		dstK8sFlag := false
+		_, srcPoName, srcSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["src_ip"], k.Sport, m.tags["transport"])
 		if err == nil {
-			m.tags["sub_source"] = "K8s"
-			m.tags["src_k8s_ns"] = ns
-			m.tags["src_k8s_pod"] = srcPodName
-			m.tags["src_k8s_svc"] = srcSvcName
+			srcK8sFlag = true
+			m.tags["src_k8s_namespace"] = ns
+			m.tags["src_k8s_pod_name"] = srcPoName
+			m.tags["src_k8s_service_name"] = srcSvcName
 			if svcP == k.Sport {
 				m.tags["direction"] = "incoming"
 			}
@@ -266,10 +268,10 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 
 		_, dstPodName, dstSvcName, ns, svcP, err := k8sNetInfo.QueryPodInfo(m.tags["dst_ip"], k.Dport, m.tags["transport"])
 		if err == nil {
-			m.tags["sub_source"] = "K8s"
-			m.tags["dst_k8s_ns"] = ns
-			m.tags["dst_k8s_pod"] = dstPodName
-			m.tags["dst_k8s_svc"] = dstSvcName
+			dstK8sFlag = true
+			m.tags["dst_k8s_namespace"] = ns
+			m.tags["dst_k8s_pod_name"] = dstPodName
+			m.tags["dst_k8s_service_name"] = dstSvcName
 			if svcP == k.Dport {
 				m.tags["direction"] = "outgoing"
 			}
@@ -277,13 +279,27 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 		} else {
 			dstSvcName, ns, err := k8sNetInfo.QuerySvcInfo(m.tags["dst_ip"])
 			if err == nil {
-				m.tags["sub_source"] = "K8s"
-				m.tags["dst_k8s_ns"] = ns
-				m.tags["dst_k8s_pod"] = "N/A"
-				m.tags["dst_k8s_svc"] = dstSvcName
+				dstK8sFlag = true
+				m.tags["dst_k8s_namespace"] = ns
+				m.tags["dst_k8s_pod_name"] = "N/A"
+				m.tags["dst_k8s_service_name"] = dstSvcName
+				m.tags["direction"] = "outgoing"
 			}
 		}
 
+		if srcK8sFlag || dstK8sFlag {
+			m.tags["sub_source"] = "K8s"
+			if !srcK8sFlag {
+				m.tags["src_k8s_namespace"] = "N/A"
+				m.tags["src_k8s_pod_name"] = "N/A"
+				m.tags["src_k8s_service_name"] = "N/A"
+			}
+			if !dstK8sFlag {
+				m.tags["dst_k8s_namespace"] = "N/A"
+				m.tags["dst_k8s_pod_name"] = "N/A"
+				m.tags["dst_k8s_service_name"] = "N/A"
+			}
+		}
 	}
 
 	if ConnProtocolIsTCP(k.Meta) {

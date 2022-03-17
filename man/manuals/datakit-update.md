@@ -18,20 +18,23 @@ DataKit 支持手动更新和自动更新两种方式。
 
 直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
 
+> - 如果 [DataKit < 1.2.7](changelog#dbbe856a)，此处只能用 `datakit --version`
+> - 如果 DataKit < 1.2.0，请[直接使用更新命令](changelog#d73823de-2)
+
 ```shell
 # Linux/Mac
 $ datakit version
 
-       Version: 1.1.6-rc0
-        Commit: d1f4604d
-        Branch: dk-api
- Build At(UTC): 2021-05-11 11:07:06
-Golang Version: go version go1.15.8 darwin/amd64
+       Version: 1.2.8
+        Commit: e9ccdfbae4
+        Branch: testing
+ Build At(UTC): 2022-03-11 11:07:06
+Golang Version: go version go1.16.4 linux/amd64
       Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
 ReleasedInputs: all
 ---------------------------------------------------
 
-Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
+Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
 
 Upgrade:
     DK_UPGRADE=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
@@ -40,28 +43,33 @@ Upgrade:
 
 $ datakit.exe version
 
-       Version: 1.1.6-rc0
-        Commit: d1f4604d
-        Branch: dk-api
- Build At(UTC): 2021-05-11 11:07:06
-Golang Version: go version go1.15.8 darwin/amd64
-      Uploader: xxxxxxxxxxxxx/xxxxxxx/yyyyyyy
+       Version: 1.2.8
+        Commit: e9ccdfbae4
+        Branch: testing
+ Build At(UTC): 2022-03-11 11:07:36
+Golang Version: go version go1.16.4 linux/amd64
+      Uploader: xxxxxxxxxxxxx/xxxxxxx/xxxxxxx
 ReleasedInputs: all
 ---------------------------------------------------
 
-Online version available: 1.1.8-rc1.1, commit 658339b6eb (release at 2021-08-13 05:52:17)
+Online version available: 1.2.9, commit 9f5ac898be (release at 2022-03-10 12:03:12)
 
 Upgrade:
     $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
-> 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
+如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
+
+- Linux
 
 ```shell
 # Linux/Mac
 HTTPS_PROXY=http://10.100.64.198:9530 DK_UPGRADE=1 ...
+```
 
-# Windows
+- Windows
+
+```powershell
 $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
 ```
 

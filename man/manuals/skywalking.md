@@ -6,19 +6,18 @@
 
 # {{.InputName}}
 
-## 下载 SkyWalking
+Datakit 内嵌的 SkyWalking Agent 用于接收，运算，分析 Skywalking Tracing 协议数据。
 
-注意：APM v8.8.3 目前存在不兼容问题无法使用。目前已支持 v8.5.0 v8.6.0 v8.7.0
+## SkyWalking 文档
 
-- skywlking-java-apm [官方下载](https://skywalking.apache.org/downloads/)
+> APM v8.8.3 目前存在不兼容问题无法使用。目前已支持 v8.5.0 v8.6.0 v8.7.0
 
-## 在 Java 应用中添加 skywalking 支持
+- [Quickstart](https://skywalking.apache.org/docs/skywalking-showcase/latest/readme/)
+- [Docs](https://skywalking.apache.org/docs/)
+- [Clients Download](https://skywalking.apache.org/downloads/)
+- [Souce Code](https://github.com/apache/skywalking)
 
-```shell
-java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
-```
-
-## 配置 SkyWalking
+## 配置 SkyWalking Client
 
 打开文件 /path_to_skywalking_agent/config/agent.config 进行配置
 
@@ -29,10 +28,16 @@ agent.service_name=${SW_AGENT_NAME:your-service-name}
 collector.backend_service=${SW_AGENT_COLLECTOR_BACKEND_SERVICES:<datakit-ip:skywalking-agent-port>}
 ```
 
-## 配置
+## 配置 SkyWaking Agent
 
 进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
 ```toml
 {{.InputSample}}
+```
+
+## 启动 Java Client
+
+```command
+java -javaagent:/path/to/skywalking/agent -jar /path/to/your/service.jar
 ```

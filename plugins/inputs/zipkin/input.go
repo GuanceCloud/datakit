@@ -2,129 +2,143 @@
 package zipkin
 
 import (
+	"time"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var (
-	inputName = "traceZipkin"
-	//nolint:lll
-	traceZipkinConfigSample = `
-[[inputs.traceZipkin]]
-  #	pathV1 = "/api/v1/spans"
-  #	pathV2 = "/api/v2/spans"
+	_ inputs.InputV2   = &Input{}
+	_ inputs.HTTPInput = &Input{}
+)
 
-  ## Tracing data sample config, [rate] and [scope] together determine how many trace sample data
-  ## will be send to DataFlux workspace.
-  ## Sub item in sample_configs list with first priority.
-  # [[inputs.traceZipkin.sample_configs]]
-    ## Sample rate, how many tracing data will be sampled
-    # rate = 10
-    ## Sample scope, the range to be covered in once sample action.
-    # scope = 100
-    ## Ignore tags list, keys appear in this list is transparent to sample function which means every trace carrying this tag will bypass sample function.
-    # ignore_tags_list = []
-    ## Sample target, program will search this [key, value] tag pairs to match a assgined sample config set in root span.
-    # [inputs.traceZipkin.sample_configs.target]
-    # env = "prod"
+const (
+	inputName    = "zipkin"
+	sampleConfig = `
+[[inputs.zipkin]]
+  pathV1 = "/api/v1/spans"
+  pathV2 = "/api/v2/spans"
 
-  ## Sub item in sample_configs list with second priority.
-  # [[inputs.traceZipkin.sample_configs]]
-    ## Sample rate, how many tracing data will be sampled.
-    # rate = 100
-    ## Sample scope, the range to be covered in once sample action.
-    # scope = 1000
-    ## Ignore tags list, keys appear in this list is transparent to sample function which means every trace carrying this tag will bypass sample function.
-    # ignore_tags_list = []
-    ## Sample target, program will search this [key, value] tag pairs to match a assgined sample config set in root span.
-    # [inputs.traceZipkin.sample_configs.target]
-    # env = "dev"
+  ## customer_tags is a list of keys contains keys set by client code like span.SetTag(key, value)
+  ## that want to send to data center. Those keys set by client code will take precedence over
+  ## keys in [inputs.zipkin.tags]. DOT(.) IN KEY WILL BE REPLACED BY DASH(_) WHEN SENDING.
+  # customer_tags = ["key1", "key2", ...]
 
-    ## ...
+  ## Keep rare tracing resources list switch.
+  ## If some resources are rare enough(not presend in 1 hour), those resource will always send
+  ## to data center and do not consider samplers and filters.
+  # keep_rare_resource = false
 
-  ## Sub item in sample_configs list with last priority.
-  # [[inputs.traceZipkin.sample_configs]]
-    ## Sample rate, how many tracing data will be sampled.
-    # rate = 10
-    ## Sample scope, the range to be covered in once sample action.
-    # scope = 100
-    ## Ignore tags list, keys appear in this list is transparent to sample function which means every trace carrying this tag will bypass sample function.
-    # ignore_tags_list = []
-    ## Sample target, program will search this [key, value] tag pairs to match a assgined sample config set in root span.
-    ## As general, the last item in sample_configs list without [tag, value] pair will be used as default sample rule
-    ## only if all above rules mismatched.
-    # [inputs.traceZipkin.sample_configs.target]
+  ## Ignore tracing resources map like service:[resources...].
+  ## The service name is the full service name in current application.
+  ## The resource list is regular expressions uses to block resource names.
+  # [inputs.zipkin.close_resource]
+    # service1 = ["resource1", "resource2", ...]
+    # service2 = ["resource1", "resource2", ...]
+    # ...
 
-  # [inputs.traceZipkin.tags]
-    # tag1 = "tag1"
-    # tag2 = "tag2"
+  ## Sampler config uses to set global sampling strategy.
+  ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
+  ##   -1: always reject any tracing data send to datakit
+  ##    0: accept tracing data and calculate with sampling_rate
+  ##    1: always send to data center and do not consider sampling_rate
+  ## sampling_rate used to set global sampling rate
+  # [inputs.zipkin.sampler]
+    # priority = 0
+    # sampling_rate = 1.0
+
+  # [inputs.zipkin.tags]
+    # key1 = "value1"
+    # key2 = "value2"
     # ...
 `
-	zipkinTags map[string]string
-	log        = logger.DefaultSLogger(inputName)
 )
 
 var (
-	defaultZipkinPathV1  = "/api/v1/spans"
-	defaultZipkinPathV2  = "/api/v2/spans"
-	sampleConfs          []*trace.TraceSampleConfig
-	zpkThriftV1Filters   []zipkinThriftV1SpansFilter
-	zpkJSONV1Filters     []zipkinJSONV1SpansFilter
-	zpkProtoBufV2Filters []zipkinProtoBufV2SpansFilter
-	zpkJSONV2Filters     []zipkinJSONV2SpansFilter
+	log                                        = logger.DefaultSLogger(inputName)
+	apiv1Path                                  = "/api/v1/spans"
+	apiv2Path                                  = "/api/v2/spans"
+	afterGather                                = itrace.NewAfterGather()
+	afterGatherRun   itrace.AfterGatherHandler = afterGather
+	keepRareResource *itrace.KeepRareResource
+	closeResource    *itrace.CloseResource
+	defSampler       *itrace.Sampler
+	customerKeys     []string
+	tags             map[string]string
 )
 
 type Input struct {
-	PathV1           string                     `toml:"pathV1"`
-	PathV2           string                     `toml:"pathV2"`
-	TraceSampleConfs []*trace.TraceSampleConfig `toml:"sample_configs"`
-	Tags             map[string]string          `toml:"tags"`
+	PathV1           string              `toml:"pathV1"`
+	PathV2           string              `toml:"pathV2"`
+	CustomerTags     []string            `toml:"customer_tags"`
+	KeepRareResource bool                `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string `toml:"close_resource"`
+	Sampler          *itrace.Sampler     `toml:"sampler"`
+	Tags             map[string]string   `toml:"tags"`
 }
 
 func (*Input) Catalog() string {
 	return inputName
 }
 
-func (*Input) SampleConfig() string {
-	return traceZipkinConfigSample
+func (*Input) AvailableArchs() []string {
+	return datakit.AllArch
 }
 
-func (t *Input) Run() {
+func (*Input) SampleConfig() string {
+	return sampleConfig
+}
+
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}}
+}
+
+func (ipt *Input) Run() {
 	log = logger.SLogger(inputName)
 	log.Infof("%s input started...", inputName)
 
-	if t.Tags != nil {
-		zipkinTags = t.Tags
+	// add calculators
+	// afterGather.AppendCalculator(itrace.StatTracingInfo)
+
+	// add filters: the order append in AfterGather is important!!!
+	// add close resource filter
+	if len(ipt.CloseResource) != 0 {
+		closeResource = &itrace.CloseResource{}
+		closeResource.UpdateIgnResList(ipt.CloseResource)
+		afterGather.AppendFilter(closeResource.Close)
+	}
+	// add rare resource keeper
+	if ipt.KeepRareResource {
+		keepRareResource = &itrace.KeepRareResource{}
+		keepRareResource.UpdateStatus(ipt.KeepRareResource, time.Hour)
+		afterGather.AppendFilter(keepRareResource.Keep)
+	}
+	// add sampler
+	if ipt.Sampler != nil {
+		defSampler = ipt.Sampler
+		afterGather.AppendFilter(defSampler.Sample)
 	}
 
-	sampleConfs = t.TraceSampleConfs
-	for k, v := range sampleConfs {
-		if v.Rate <= 0 || v.Scope < v.Rate {
-			v.Rate = 100
-			v.Scope = 100
-			log.Warnf("%s input tracing sample config [%d] invalid, reset to default.", inputName, k)
-		}
-	}
-	if len(sampleConfs) != 0 {
-		zpkThriftV1Filters = append(zpkThriftV1Filters, zpkThriftV1Sample)
-		zpkJSONV1Filters = append(zpkJSONV1Filters, zpkJSONV1Sample)
-		zpkProtoBufV2Filters = append(zpkProtoBufV2Filters, zpkProtoBufV2Sample)
-		zpkJSONV2Filters = append(zpkJSONV2Filters, zpkJSONV2Sample)
-	}
+	customerKeys = ipt.CustomerTags
+	tags = ipt.Tags
 }
 
-func (t *Input) RegHTTPHandler() {
-	if t.PathV1 == "" {
-		t.PathV1 = defaultZipkinPathV1
-	}
-	http.RegHTTPHandler("POST", t.PathV1, ZipkinTraceHandleV1)
+func (ipt *Input) RegHTTPHandler() {
+	// itrace.StartTracingStatistic()
 
-	if t.PathV2 == "" {
-		t.PathV2 = defaultZipkinPathV2
+	if ipt.PathV1 == "" {
+		ipt.PathV1 = apiv1Path
 	}
-	http.RegHTTPHandler("POST", t.PathV2, ZipkinTraceHandleV2)
+	http.RegHTTPHandler("POST", ipt.PathV1, handleZipkinTraceV1)
+
+	if ipt.PathV2 == "" {
+		ipt.PathV2 = apiv2Path
+	}
+	http.RegHTTPHandler("POST", ipt.PathV2, handleZipkinTraceV2)
 }
 
 func init() { //nolint:gochecknoinits
