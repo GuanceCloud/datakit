@@ -74,3 +74,4 @@ measurements-meta.json
 pipeline-docs.json
 internal-pipelines.json
 __debug_bin
+*.pdf
