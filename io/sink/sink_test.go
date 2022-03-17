@@ -218,6 +218,15 @@ func TestAggregationCategorys(t *testing.T) {
 			expectError: fmt.Errorf("invalid categories: not found"),
 		},
 		{
+			name: "invalid_icategories_not_string",
+			in: []map[string]interface{}{
+				{
+					"categories": []interface{}{123},
+				},
+			},
+			expectError: fmt.Errorf("invalid categories: not string"),
+		},
+		{
 			name: "unrecognized category",
 			in: []map[string]interface{}{
 				{
