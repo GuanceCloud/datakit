@@ -7,7 +7,7 @@
 本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
 
 - 修复 Tracing 采集器资源过滤（`close_resource`）的算法问题，将过滤机制下放到 Entry Span 级别，而非之前的 Root Span
-- 修复[日志采集器](logging)文件句柄泄露问题(#658)，同时新增配置（`ignore_dead_log`），以忽略不再更新（删除）的文件文件
+- 修复[日志采集器](logging)文件句柄泄露问题(#658)，同时新增配置（`ignore_dead_log`），以忽略不再更新（删除）的文件
 - 新增[DataKit 自身指标文档](self)
 - DaemonSet 安装时
   - [支持安装 IPDB](datakit-tools-how-to#11f01544)(#659)
