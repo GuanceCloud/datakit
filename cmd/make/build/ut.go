@@ -63,16 +63,18 @@ func UnitTestDataKit() error {
 
 		case strings.HasPrefix(coverageLine, "ok"):
 			coverage := perc.FindString(coverageLine)
+			if len(coverage) != 0 {
+				f, err := strconv.ParseFloat(coverage[0:len(coverage)-1], 64)
+				if err != nil {
+					fmt.Printf("[E] invalid coverage: %s: %s\n", coverage, err)
+					continue
+				}
 
-			f, err := strconv.ParseFloat(coverage[0:len(coverage)-1], 64)
-			if err != nil {
-				fmt.Printf("[E] invalid coverage: %s: %s\n", coverage, err)
-				continue
+				passedPkgs[f] = append(passedPkgs[f], p)
+				coverTotal += f
+			} else {
+				fmt.Printf("[W] test ok, but no coverage: %s\n", p)
 			}
-
-			passedPkgs[f] = append(passedPkgs[f], p)
-			coverTotal += f
-
 		default:
 			// pass
 		}

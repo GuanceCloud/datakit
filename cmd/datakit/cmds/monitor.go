@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//nolint:lll
 package cmds
 
 import (
@@ -418,7 +419,9 @@ func (m *monitorAPP) renderSenderTable(ds *dkhttp.DatakitStats, colArr []string)
 
 	// set table header
 	for idx := range colArr {
-		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).SetMaxWidth(*flagMonitorMaxTableWidth).SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
+		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).
+			SetMaxWidth(*flagMonitorMaxTableWidth).
+			SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
 	}
 
 	sinkNames := []string{}
