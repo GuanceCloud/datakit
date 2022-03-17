@@ -24,13 +24,17 @@
   - [DCA 客户端(beta)](dca)
 
 - [DataKit API](apis)
-
+- [DataKit 整体架构简介](datakit-arch)
+- [DataKit Sink 使用文档](datakit-sink-guide)
+- [DCA 客户端(beta)](dca)
 - [文本数据处理（Pipeline）](pipeline)
   - [调试 Pipeline](datakit-pl-how-to)
 
 - [如何排查无数据问题](why-no-data)
 - [DataKit 开发手册](development)
   - [DataKit 整体架构简介](datakit-arch)
+
+    - [DataKit Sink 开发文档](datakit-sink-dev)
 
 - [采集器]()
 

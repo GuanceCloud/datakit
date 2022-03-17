@@ -7,6 +7,7 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -383,4 +384,86 @@ hostname = "should-not-set"`,
 			t.Error(err)
 		}
 	}
+}
+
+// go test -v -timeout 30s -run ^TestWriteConfigFile$ gitlab.jiagouyun.com/cloudcare-tools/datakit/config
+/*
+[sinks]
+
+  [[sinks.sink]]
+    addr = "http://1.1.1.1:8086"
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db0"
+    id = "influxdb_1"
+    precision = "ns"
+    target = "influxdb"
+    timeout = "6s"
+    user_agent = "go_test_client"
+    write_encoding = ""
+
+  [[sinks.sink]]
+    addr = "http://1.1.1.1:8087"
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db0"
+    id = "influxdb_bak"
+    precision = "ns"
+    target = "influxdb"
+    timeout = "6s"
+    user_agent = "go_test_client"
+    write_encoding = ""
+
+  [[sinks.sink]]
+    addr = "http://1.1.1.1:8086"
+    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
+    database = "db0"
+    id = "influxdb_test_will_not_working"
+    precision = "ns"
+    target = "example only, will not working"
+    timeout = "6s"
+    user_agent = "go_test_client"
+    write_encoding = ""
+
+[sinks]
+
+  [[sinks.sink]]
+*/
+func TestWriteConfigFile(t *testing.T) {
+	c := DefaultConfig()
+	c.Sinks = &Sinker{
+		Sink: []map[string]interface{}{
+			{
+				"id":             "influxdb_1",
+				"target":         "influxdb",
+				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+				"addr":           "http://1.1.1.1:8086",
+				"precision":      "ns",
+				"database":       "db0",
+				"user_agent":     "go_test_client",
+				"timeout":        "6s",
+				"write_encoding": "",
+			},
+			{
+				"id":             "influxdb_bak",
+				"target":         "influxdb",
+				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+				"addr":           "http://1.1.1.1:8087",
+				"precision":      "ns",
+				"database":       "db0",
+				"user_agent":     "go_test_client",
+				"timeout":        "6s",
+				"write_encoding": "",
+			},
+		},
+	}
+	// c.Sinks = &Sinker{
+	// 	Sink: []map[string]interface{}{
+	// 		{},
+	// 	},
+	// }
+
+	mcdata, err := datakit.TomlMarshal(c)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(mcdata))
 }
