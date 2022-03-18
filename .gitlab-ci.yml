@@ -25,7 +25,6 @@ release-testing:
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH # do not set VERSION here, use git version
     - make check_testing_conf_compatible
     - make testing_image
-    - make pub_testing_charts
   tags:
     - cloudcare-ft
 
