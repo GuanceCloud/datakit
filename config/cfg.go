@@ -77,7 +77,7 @@ func DefaultConfig() *Config {
 			WhiteList: []string{},
 		},
 		Pipeline: &pipeline.PipelineCfg{
-			IPdbType:           "iploc",
+			IPdbType:           "-",
 			RemotePullInterval: "1m",
 		},
 		Logging: &LoggerCfg{
@@ -557,6 +557,23 @@ func (c *Config) LoadEnvs() error {
 			case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
 				c.IOConf.DynamicCacheDumpThreshold = value
 			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
+		switch v {
+		case "iploc":
+			c.Pipeline.IPdbType = v
+		default:
+			l.Warnf("unknown IPDB type: %s, ignored", v)
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT"); v != "" {
+		if x, err := strconv.ParseFloat(v, 64); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)
+		} else {
+			c.HTTPAPI.RequestRateLimit = x
 		}
 	}
 

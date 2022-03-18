@@ -35,7 +35,7 @@ DataKit 安装完成后，默认会开启一批采集器，这些采集器一般
 | [`net`](net)                       | 采集主机网络流量情况                           |
 | [`host_processes`](host_processes) | 采集主机上常驻（存活 10min 以上）进程列表      |
 | [`hostobject`](hostobject)         | 采集主机基础信息（如操作系统信息、硬件信息等） |
-| [`container`](container)           | 采集主机上可能的容器对象以及容器日志           |
+| [`container`](container)           | 采集主机上可能的容器或 Kubernetes 数据         |
 
 ## 采集器配置文件
 
@@ -348,6 +348,16 @@ datakit 根目录
 1. 按 *datakit.conf* 中配置的 *git_repos* 次序（它是一个数组，可配置多个 Git 仓库），逐个查找指定文件名，若找到，返回第一个。比如查找 *my-nginx.p*，如果在第一个仓库目录的 *pipeline* 下找到，则以该找到的为准，**即使第二个仓库中也有同名的 *my-nginx.p*，也不会选择它**。
 
 2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。
+
+## 正确使用正则表达式来配置
+
+由于 DataKit 绝大部分使用 Golang 开发，故涉及配置部分中所使用的正则通配，也是使用 Golang 自身的正则实现。由于不同语言的正则体系有一些差异，导致难以一次性正确的将配置写好。
+
+这里推荐一个[在线工具来调试我们的正则通配](https://regex101.com/)。如下图所示：
+
+![](https://zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/images/datakit/debug-golang-regexp.png)
+
+另外，由于 DataKit 中的配置均使用 Toml，故建议大家使用 `'''这里是一个具体的正则表达式'''` 的方式来填写正则（即正则俩边分别用三个英文单引号），这样可以避免一些复杂的转义。
 
 ## 延伸阅读
 
