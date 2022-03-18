@@ -2,12 +2,16 @@
 
   - [服务安装和管理](datakit-service-how-to)
 
-  - [采集器配置](datakit-conf-how-to)
+  - [如何配置 DataKit]()
 
-  - [通过 DQL 查询数据](datakit-dql-how-to)
-  - [各种其它工具使用](datakit-tools-how-to)
+    - [DataKit 主配置](datakit-conf)
+    - [采集器配置](datakit-input-conf)
 
-  - [查看 DataKit Monitor](datakit-monitor)
+  - [DataKit 日常使用]()
+
+    - [通过 DQL 查询数据](datakit-dql-how-to)
+    - [查看 DataKit Monitor](datakit-monitor)
+    - [各种其它工具使用](datakit-tools-how-to)
 
 - [DataKit 版本历史](changelog)
 
