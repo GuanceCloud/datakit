@@ -21,6 +21,36 @@
 source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 ```
 
+入库数据如下：
+
+Tags
+
+- TAG_CONTAINER_HOST
+- TAG_ENDPOINT
+- TAG_ENV
+- TAG_HTTP_CODE
+- TAG_HTTP_METHOD
+- TAG_OPERATION
+- TAG_PROJECT
+- TAG_SERVICE
+- TAG_SOURCE_TYPE
+- TAG_SPAN_STATUS
+- TAG_SPAN_TYPE
+- TAG_VERSION
+
+Fields
+
+- FIELD_DURATION 微秒
+- FIELD_MSG
+- FIELD_PARENTID
+- FIELD_PID
+- FIELD_PRIORITY
+- FIELD_RESOURCE
+- FIELD_SAMPLE_RATE_GLOBAL
+- FIELD_SPANID
+- FIELD_START 微妙
+- FIELD_TRACEID
+
 > 以下简称 dkproto
 
 ### Datakit Tracing Span Structure
