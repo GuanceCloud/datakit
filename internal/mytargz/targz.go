@@ -19,15 +19,15 @@ func WriteTarFromMap(data map[string]string, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer tarFile.Close()
+	defer tarFile.Close() //nolint:errcheck,gosec
 	gw := gzip.NewWriter(tarFile)
-	defer gw.Close()
+	defer gw.Close() //nolint:errcheck
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
+	defer tw.Close() //nolint:errcheck
 	for name, content := range data {
 		hdr := &tar.Header{
 			Name: name,
-			Mode: 0600,
+			Mode: 0o600,
 			Size: int64(len(content)),
 		}
 		if err := tw.WriteHeader(hdr); err != nil {
@@ -41,25 +41,25 @@ func WriteTarFromMap(data map[string]string, dest string) error {
 }
 
 func ReadTarToMap(srcFile string) (map[string]string, error) {
-	mRet := make(map[string]string, 0)
+	mRet := make(map[string]string)
 
-	tarFile, err := os.Open(srcFile)
+	tarFile, err := os.Open(srcFile) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
-	defer tarFile.Close()
+	defer tarFile.Close() //nolint:errcheck,gosec
 
 	gz, err := gzip.NewReader(tarFile)
 	if err != nil {
 		return nil, err
 	}
-	defer gz.Close()
+	defer gz.Close() //nolint:errcheck
 
 	tr := tar.NewReader(gz)
 	// untar each segment
 	for {
 		hdr, err := tr.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -73,7 +73,7 @@ func ReadTarToMap(srcFile string) (map[string]string, error) {
 		}
 
 		var buf bytes.Buffer
-		if _, err := io.Copy(&buf, tr); err != nil {
+		if _, err := io.Copy(&buf, tr); err != nil { //nolint:gosec
 			return nil, err
 		}
 
@@ -148,7 +148,7 @@ func CreateTarGz(files []string, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck,gosec
 	// Create the archive and write the output to the "f" Writer
 	return createArchive(files, f)
 }
@@ -159,9 +159,9 @@ func createArchive(files []string, buf io.Writer) error {
 	// write to the gzip writer which in turn will write to
 	// the "buf" writer
 	gw := gzip.NewWriter(buf)
-	defer gw.Close()
+	defer gw.Close() //nolint:errcheck
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
+	defer tw.Close() //nolint:errcheck
 
 	// Iterate over files and add them to the tar archive
 	for _, file := range files {
@@ -176,11 +176,11 @@ func createArchive(files []string, buf io.Writer) error {
 
 func addToArchive(tw *tar.Writer, filename string) error {
 	// Open the file which will be written into the archive
-	file, err := os.Open(filename)
+	file, err := os.Open(filename) //nolint:gosec
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck,gosec
 
 	// Get FileInfo about our file providing file size, mode, etc.
 	info, err := file.Stat()
