@@ -103,6 +103,11 @@ define build_docker_image
 	@sudo docker buildx build --platform $(1) -t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push
 endef
 
+define build_k8s_charts
+	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
+	@helm helm push ${TEMP\#\#*/}-$(VERSION).tgz datakit-prod-chart
+endef
+
 define check_golint_version
 	@case $(GOLINT_VERSION) in \
 	$(SUPPORTED_GOLINT_VERSION)) \
@@ -137,6 +142,9 @@ production: deps # stable release
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
 
+production_charts:
+	$(call build_k8s_charts)
+
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
 	$(call pub,production,$(PRODUCTION_DOWNLOAD_ADDR),$(MAC_ARCHS))
@@ -153,12 +161,19 @@ pub_testing_win_img:
 	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(VERSION)
 
 # not used
+pub_testing_charts:
+	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
+	@helm helm push ${TEMP\#\#*/}-$TAG.tgz datakit-test-chart
+
+# not used
 pub_release_win_img:
 	# release to pub hub
 	@mkdir -p embed/windows-amd64
 	@wget --quiet -O - "https://$(PRODUCTION_DOWNLOAD_ADDR)/iploc/iploc.tar.gz" | tar -xz -C .
 	@sudo docker build -t pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
 	@sudo docker push pubrepo.jiagouyun.com/datakit/datakit-win:$(VERSION)
+
+
 
 # Config samples should only be published by production release,
 # because config samples in multiple testing releases may not be compatible to each other.
@@ -185,7 +200,7 @@ endef
 
 define do_lint
 	truncate -s 0 lint.err
-	golangci-lint --version 
+	golangci-lint --version
 	GOARCH=$(1) GOOS=$(2) golangci-lint run --fix --allow-parallel-runners
 endef
 
