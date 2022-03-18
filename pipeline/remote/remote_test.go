@@ -39,6 +39,8 @@ var (
 	errPullPipeline              error
 	errRemove                    error
 	errGetNamespacePipelineFiles error
+	errReadTarToMap              error
+	errWriteTarFromMap           error
 )
 
 func resetVars() {
@@ -56,6 +58,8 @@ func resetVars() {
 	errPullPipeline = nil
 	errRemove = nil
 	errGetNamespacePipelineFiles = nil
+	errReadTarToMap = nil
+	errWriteTarFromMap = nil
 }
 
 type fileInfoStruct struct{}
@@ -165,11 +169,11 @@ func (*pipelineRemoteMockerTest) GetNamespacePipelineFiles(namespace string) ([]
 }
 
 func (*pipelineRemoteMockerTest) ReadTarToMap(srcFile string) (map[string]string, error) {
-	return nil, nil
+	return nil, errReadTarToMap
 }
 
 func (*pipelineRemoteMockerTest) WriteTarFromMap(data map[string]string, dest string) error {
-	return nil
+	return errWriteTarFromMap
 }
 
 //------------------------------------------------------------------------------
@@ -341,12 +345,12 @@ func TestDoPull(t *testing.T) {
 // go test -v -timeout 30s -run ^TestDumpFiles$ gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/remote
 func TestDumpFiles(t *testing.T) {
 	cases := []struct {
-		name            string
-		files           map[string]string
-		readDir         []fs.FileInfo
-		failedReadDir   error
-		failedWriteFile error
-		expectError     error
+		name                  string
+		files                 map[string]string
+		readDir               []fs.FileInfo
+		failedReadDir         error
+		failedWriteTarFromMap error
+		expectError           error
 	}{
 		{
 			name: "normal",
@@ -361,20 +365,21 @@ func TestDumpFiles(t *testing.T) {
 			expectError:   errGeneral,
 		},
 		{
-			name:            "write_file_fail",
-			failedWriteFile: errGeneral,
+			name:                  "WriteTarFromMap_fail",
+			failedWriteTarFromMap: errGeneral,
 			files: map[string]string{
 				"123.p": "text123",
 				"456.p": "text456",
 			},
+			expectError: errGeneral,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			resetVars()
-			errWriteFile = tc.failedWriteFile
 			errReadDir = tc.failedReadDir
+			errWriteTarFromMap = tc.failedWriteTarFromMap
 
 			err := dumpFiles(tc.files, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "dumpFiles found error: %v", err)
@@ -388,18 +393,18 @@ func TestGetPipelineRemoteConfig(t *testing.T) {
 	const configPath = "/usr/local/datakit/pipeline_remote/.config_fake"
 
 	cases := []struct {
-		name                            string
-		fileExist                       bool
-		pathConfig                      string
-		siteURL                         string
-		configContent                   []byte
-		failedUnMarshal                 error
-		failedReadFile                  error
-		failedRemove                    error
-		failedGetNamespacePipelineFiles error
-		failedReadDir                   error
-		expectError                     error
-		expect                          int64
+		name               string
+		fileExist          bool
+		pathConfig         string
+		siteURL            string
+		configContent      []byte
+		failedUnMarshal    error
+		failedReadFile     error
+		failedRemove       error
+		failedReadDir      error
+		failedReadTarToMap error
+		expectError        error
+		expect             int64
 	}{
 		{
 			name:          "normal",
@@ -435,13 +440,13 @@ func TestGetPipelineRemoteConfig(t *testing.T) {
 			configContent: []byte(`{"SiteURL":"http://127.0.0.1:9528?token=tkn_123","UpdateTime":1644318398}`),
 		},
 		{
-			name:                            "GetNamespacePipelineFiles_failed",
-			fileExist:                       true,
-			pathConfig:                      configPath,
-			siteURL:                         dwURL,
-			configContent:                   []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
-			failedGetNamespacePipelineFiles: errGeneral,
-			expect:                          1644318398,
+			name:               "ReadTarToMap_failed",
+			fileExist:          true,
+			pathConfig:         configPath,
+			siteURL:            dwURL,
+			configContent:      []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
+			failedReadTarToMap: errGeneral,
+			expect:             1644318398,
 		},
 		{
 			name:          "remove_error",
@@ -464,8 +469,8 @@ func TestGetPipelineRemoteConfig(t *testing.T) {
 			errUnMarshal = tc.failedUnMarshal
 			errReadFile = tc.failedReadFile
 			errRemove = tc.failedRemove
-			errGetNamespacePipelineFiles = tc.failedGetNamespacePipelineFiles
 			errReadDir = tc.failedReadDir
+			errReadTarToMap = tc.failedReadTarToMap
 
 			n, err := getPipelineRemoteConfig(tc.pathConfig, tc.siteURL, &pipelineRemoteMockerTest{})
 			assert.Equal(t, tc.expectError, err, "getPipelineRemoteConfig found error: %v", err)
