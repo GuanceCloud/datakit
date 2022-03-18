@@ -40,9 +40,18 @@ var (
 	rumMetricAppID = "app_id"
 )
 
-func geoTags(srcip string) map[string]string {
+func geoTags(srcip string) (tags map[string]string) {
+	// default set to be unknown
+	tags = map[string]string{
+		"city":     "unknown",
+		"province": "unknown",
+		"country":  "unknown",
+		"isp":      "unknown",
+		"ip":       "unknown",
+	}
+
 	if srcip == "" {
-		return nil
+		return
 	}
 
 	ipInfo, err := funcs.Geo(srcip)
@@ -51,7 +60,7 @@ func geoTags(srcip string) map[string]string {
 
 	if err != nil {
 		l.Warnf("geo failed: %s, ignored", err)
-		return nil
+		return
 	}
 
 	switch ipInfo.Country { // #issue 354
@@ -66,13 +75,24 @@ func geoTags(srcip string) map[string]string {
 		ipInfo.Region = "Hong Kong"
 	}
 
-	// 无脑填充 geo 数据
-	tags := map[string]string{
-		"city":     ipInfo.City,
-		"province": ipInfo.Region,
-		"country":  ipInfo.Country,
-		"isp":      ip2isp.SearchIsp(srcip),
-		"ip":       srcip,
+	if len(ipInfo.City) > 0 {
+		tags["city"] = ipInfo.City
+	}
+
+	if len(ipInfo.Region) > 0 {
+		tags["province"] = ipInfo.Region
+	}
+
+	if len(ipInfo.Country) > 0 {
+		tags["country"] = ipInfo.Country
+	}
+
+	if len(srcip) > 0 {
+		tags["ip"] = srcip
+	}
+
+	if isp := ip2isp.SearchIsp(srcip); len(isp) > 0 {
+		tags["isp"] = isp
 	}
 
 	return tags
