@@ -25,7 +25,6 @@ release-testing:
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH # do not set VERSION here, use git version
     - make check_testing_conf_compatible
     - make testing_image
-    - make pub_testing_charts
   tags:
     - cloudcare-ft
 
@@ -41,7 +40,6 @@ release-stable:
     - make check_production_conf_compatible
     - make pub_conf_samples
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.10
-    - make production_charts GIT_BRANCH=$CI_COMMIT_BRANCH VERSION=1.2.10
   tags:
     - cloudcare-ft
 

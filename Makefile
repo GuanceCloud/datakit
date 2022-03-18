@@ -104,8 +104,9 @@ define build_docker_image
 endef
 
 define build_k8s_charts
-	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
-	@helm helm push ${TEMP\#\#*/}-$(VERSION).tgz datakit-prod-chart
+	@helm repo ls
+	@helm package charts/datakit --version $(VERSION) --app-version $(VERSION)
+	@helm push datakit-$(VERSION).tgz $(1)
 endef
 
 define check_golint_version
@@ -134,6 +135,7 @@ testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
 	# we also publish testing image to public image repo
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
+	$(call build_k8s_charts, 'datakit-test-chart')
 
 production: deps # stable release
 	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -141,6 +143,7 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
+	$(call build_k8s_charts, 'datakit-prod-chart')
 
 production_charts:
 	$(call build_k8s_charts)
@@ -160,10 +163,6 @@ pub_testing_win_img:
 	@sudo docker build -t registry.jiagouyun.com/datakit/datakit-win:$(VERSION) -f ./Dockerfile_win .
 	@sudo docker push registry.jiagouyun.com/datakit/datakit-win:$(VERSION)
 
-# not used
-pub_testing_charts:
-	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
-	@helm helm push ${TEMP\#\#*/}-$TAG.tgz datakit-test-chart
 
 # not used
 pub_release_win_img:
