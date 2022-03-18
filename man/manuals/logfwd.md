@@ -281,10 +281,11 @@ MiB Swap:   2048.0 total,      0.0 free,   2048.0 used.   8793.3 avail Mem
 
 ## 延伸阅读
 
-- [DataKit 整体日志采集介绍](datakit-logging)
+- [DataKit 日志采集综述](datakit-logging)
 - [Socket 日志接入最佳实践](logging_socket)
 - [Kubernetes 中指定 Pod 的日志采集配置](container#2a6149d7)
 - [第三方日志接入](logstreaming)
 - [Kubernetes 环境下 DataKit 配置方式介绍](k8s-config-how-to)
 - [以 DaemonSet 形式安装 DataKit](datakit-daemonset-deploy)
 - [在 DataKit 上部署 `logfwdserver`](logfwdserver)
+- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 

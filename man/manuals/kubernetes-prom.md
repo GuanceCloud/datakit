@@ -106,3 +106,7 @@ kubectl apply -f deployment.yaml
 ```
 
 至此，Annotation 已经添加完成。DataKit 稍后会读取到 Pod 的 Annotation，并采集 `url` 上暴露出来的指标。
+
+## 延伸阅读
+
+- [Prometheus Exportor 数据采集](prom)
