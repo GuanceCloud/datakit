@@ -22,7 +22,7 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
 ​	Once you've added this Helm repository as per the repository-level [README](../../README.md#installing) then you can install the chart as follows:
 
  ```shell
- helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>"
+ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
  ```
 
 ​	The command deploys DataKit on the Kubernetes cluster in the default configuration.
@@ -34,7 +34,8 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
   
     ```
     helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
-    --set git_repos.git_url="http://username:password@github.com/path/to/repository.git"
+    --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
+    --create-namespace 
     ```
   
   - git key
@@ -42,7 +43,8 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
     ```
     helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
     --set git_repos.git_url="git@github.com:path/to/repository.git" \
-    --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa"
+    --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
+    --create-namespace 
     ```
   
     
