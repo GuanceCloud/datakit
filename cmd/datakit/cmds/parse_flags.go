@@ -179,8 +179,14 @@ func commonLogFlag() string {
 	return "/dev/null"
 }
 
+//nolint:lll
+const datakitIntro = `DataKit is an open source, integrated data collection agent, which provides full
+platform (Linux/Windows/macOS) support and has comprehensive data collection capability,
+covering various scenarios such as host, container, middleware, tracing, logging and
+ecurity inspection.`
+
 func printHelp() {
-	fmt.Fprintf(os.Stderr, "DataKit is a collect client.\n")
+	fmt.Fprintf(os.Stderr, "%s\n", datakitIntro)
 	fmt.Fprintf(os.Stderr, "\nUsage:\n\n")
 
 	fmt.Fprintf(os.Stderr, "\tdatakit <command> [arguments]\n\n")
@@ -236,7 +242,7 @@ func runHelpFlags() {
 			fsDebugUsage()
 
 		default: // add more
-			fmt.Fprintf(os.Stderr, "flag provided but not defined: %s", os.Args[2])
+			errorf("[E] flag provided but not defined: `%s'\n\n", os.Args[2])
 			printHelp()
 			os.Exit(-1)
 		}
