@@ -67,7 +67,7 @@ func (p *Input) Run() {
 	if p.ProcessName != nil {
 		re := strings.Join(p.ProcessName, "|")
 		if regexp.MustCompile(re) == nil {
-			l.Error("[error] regexp err")
+			l.Error("regexp err")
 			return
 		}
 		p.re = re
@@ -159,7 +159,7 @@ func (p *Input) ReadEnv(envs map[string]string) {
 func (p *Input) getProcesses() (processList []*pr.Process) {
 	pses, err := pr.Processes()
 	if err != nil {
-		l.Errorf("[error] get process err:%s", err.Error())
+		l.Errorf("get process err: %s", err.Error())
 		p.lastErr = err
 		return
 	}
