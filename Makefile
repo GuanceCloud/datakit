@@ -15,8 +15,7 @@ TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com
 # export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
 # export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
 # 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
-# LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
-LOCAL_DOWNLOAD_ADDR=abc
+LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
 
 
 PUB_DIR = dist
@@ -128,6 +127,8 @@ testing: deps
 
 testing_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'registry.jiagouyun.com')
+	# we also publish testing image to public image repo
+	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
 
 production: deps # stable release
 	$(call build, production, $(DEFAULT_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
@@ -205,7 +206,11 @@ gofmt:
 vet:
 	@go vet ./...
 
+ut: deps
+	@GO111MODULE=off CGO_ENABLED=1 go run cmd/make/make.go -ut
+
 # all testing
+
 all_test: deps
 	@truncate -s 0 test.output
 	@echo "#####################" | tee -a test.output
@@ -221,13 +226,13 @@ all_test: deps
 			i=`expr $$i + 1`; \
 		else \
 			echo "######################"; \
-		fi \
+			fi \
 	done; \
 	if [ $$i -gt 0 ]; then \
-			printf "\033[31m %d case failed.\n\033[0m" $$i; \
-			exit 1; \
+		printf "\033[31m %d case failed.\n\033[0m" $$i; \
+		exit 1; \
 	else \
-			printf "\033[32m all testinig passed.\n\033[0m"; \
+		printf "\033[32m all testinig passed.\n\033[0m"; \
 	fi
 
 test_deps: prepare man gofmt lfparser_disable_line plparser_disable_line vet
@@ -258,6 +263,15 @@ plparser_disable_line:
 prepare:
 	@mkdir -p git
 	@echo "$$GIT_INFO" > git/git.go
+
+check_man:
+	grep --color=always -nrP "[a-zA-Z0-9][\p{Han}]|[\p{Han}][a-zA-Z0-9]" man > bad-doc.log
+	if [ $$? != 0 ]; then \
+		echo "check manuals ok"; \
+	else \
+		cat bad-doc.log; \
+		rm -rf bad-doc.log; \
+	fi
 
 clean:
 	@rm -rf build/*

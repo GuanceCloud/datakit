@@ -47,6 +47,13 @@ func main() {
 	cmds.ReleaseVersion = ReleaseVersion
 	cmds.InputsReleaseType = InputsReleaseType
 
+	var workdir string
+	// Debugging running, not start as service
+	if v := datakit.GetEnv("DK_DEBUG_WORKDIR"); v != "" {
+		datakit.SetWorkDir(v)
+		workdir = v
+	}
+
 	cmds.ParseFlags()
 	applyFlags()
 
@@ -57,6 +64,7 @@ func main() {
 
 	tryLoadConfig()
 
+	// start up global tracer
 	tracer.Start()
 	defer tracer.Stop()
 
@@ -67,14 +75,17 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
+		// Auto enable cgroup limit under host running
 		go cgroup.Run()
-		service.Entry = run
-		if cmds.FlagWorkDir != "" { // debugging running, not start as service
-			run()
-		} else if err := service.StartService(); err != nil {
-			l.Errorf("start service failed: %s", err.Error())
 
-			return
+		if workdir != "" {
+			run()
+		} else { // running as System service
+			service.Entry = run
+			if err := service.StartService(); err != nil {
+				l.Errorf("start service failed: %s", err.Error())
+				return
+			}
 		}
 	}
 
@@ -83,10 +94,6 @@ func main() {
 
 func applyFlags() {
 	inputs.TODO = cmds.FlagTODO
-
-	if cmds.FlagWorkDir != "" {
-		datakit.SetWorkDir(cmds.FlagWorkDir)
-	}
 
 	if cmds.FlagDocker /* Deprecated */ || *cmds.FlagRunInContainer {
 		datakit.Docker = true
@@ -143,6 +150,7 @@ exit:
 func tryLoadConfig() {
 	config.MoveDeprecatedCfg()
 
+	l.Infof("load config from %s...", datakit.MainConfPath)
 	for {
 		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
 			l.Errorf("load config failed: %s", err)
@@ -227,8 +235,9 @@ func startDKHttp() {
 		GinRotate:      config.Cfg.Logging.Rotate,
 		GinReleaseMode: strings.ToLower(config.Cfg.Logging.Level) != "debug",
 
-		DataWay: config.Cfg.DataWay,
-		PProf:   config.Cfg.EnablePProf,
+		DataWay:     config.Cfg.DataWay,
+		PProf:       config.Cfg.EnablePProf,
+		PProfListen: config.Cfg.PProfListen,
 	})
 
 	time.Sleep(time.Second) // wait http server ok

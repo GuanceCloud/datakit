@@ -8,6 +8,7 @@
 
 DataKit 提供了相对完善的基本可观测信息输出，通过查看 DataKit 的 monitor 输出，我们能清晰的知道当前 DataKit 的运行情况。
 
+<a name="how-to-show-monitor"></a>
 ## 查看 Monitor
 
 执行如下命令即可获取本机 DataKit 的运行情况。
@@ -20,9 +21,9 @@ datakit monitor
 
 DataKit 基本 Monitor 页面信息如下图所示：
 
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor.png)
+![基础Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor.png) 
 
-该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K 来浏览）
+该图中的元素可以通过鼠标或键盘操作。被鼠标选中的块会以双边框突出显示（如上图左上角的 `Basic Info` 块所示），另外，还能通过鼠标滚轮或者键盘上下方向键（或者 vim 的 J/K）来浏览。
 
 上图中的每个 UI 块的信息分别是：
 
@@ -59,7 +60,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 如果运行 Monitor 时，指定了 verbose 选项（`-V`），则会额外输出更多信息，如下图所示：
 
-![](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-verbose.png)
+![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-monitor-gif.gif) 
 
 - `Enabled Inputs` 展示开启的采集器列表，其中
 

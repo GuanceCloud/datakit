@@ -37,9 +37,10 @@ var (
 	inputsStatsCols  = strings.Split(`Input,Category,Freq,Avg Pts,Total Feed,Total Pts,1st Feed,Last Feed,Avg Cost,Max Cost,Error(date)`, ",")
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
+	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
 )
 
-func (m *monitorAPP) renderGolangRuntime(ds *dkhttp.DatakitStats) {
+func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
 	table := m.golangRuntime
 	row := 0
 
@@ -60,16 +61,16 @@ func (m *monitorAPP) renderGolangRuntime(ds *dkhttp.DatakitStats) {
 
 	row++
 	table.SetCell(row, 0,
-		tview.NewTableCell("Memory").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		tview.NewTableCell("Mem").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
 		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.HeapAlloc)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
 	table.SetCell(row, 0,
-		tview.NewTableCell("Stack").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		tview.NewTableCell("SysMem").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
-		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.StackInuse)).
+		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.Sys)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
@@ -179,6 +180,55 @@ func (m *monitorAPP) renderEnabledInputTable(ds *dkhttp.DatakitStats, colArr []s
 	}
 }
 
+func (m *monitorAPP) renderHTTPStatTable(ds *dkhttp.DatakitStats, colArr []string) {
+	table := m.httpServerStatTable
+	if m.anyError != nil {
+		return
+	}
+
+	// set table header
+	for idx := range colArr {
+		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).
+			SetMaxWidth(*flagMonitorMaxTableWidth).
+			SetTextColor(tcell.ColorGreen).
+			SetAlign(tview.AlignRight))
+	}
+
+	row := 1
+
+	// sort goroutines(by name)
+	apis := []string{}
+	for k := range ds.HTTPMetrics {
+		apis = append(apis, k)
+	}
+
+	sort.Strings(apis)
+
+	for _, x := range apis {
+		v := ds.HTTPMetrics[x]
+
+		table.SetCell(row, 0, tview.NewTableCell(x).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 1, tview.NewTableCell(humanize.SI(float64(v.TotalCount), "")).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 2, tview.NewTableCell(fmt.Sprintf("%s(%.2f)", humanize.SI(float64(v.Limited), ""), v.LimitedPercent)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 3, tview.NewTableCell(v.MaxLatency.String()).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 4, tview.NewTableCell(v.AvgLatency.String()).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 5, tview.NewTableCell(humanize.SI(float64(v.Status2xx), "")).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 6, tview.NewTableCell(humanize.SI(float64(v.Status3xx), "")).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 7, tview.NewTableCell(humanize.SI(float64(v.Status4xx), "")).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 8, tview.NewTableCell(humanize.SI(float64(v.Status5xx), "")).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+
+		row++
+	}
+}
+
 func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []string) {
 	table := m.goroutineStatTable
 
@@ -188,7 +238,10 @@ func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []stri
 
 	// set table header
 	for idx := range colArr {
-		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).SetMaxWidth(*flagMonitorMaxTableWidth).SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
+		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).
+			SetMaxWidth(*flagMonitorMaxTableWidth).
+			SetTextColor(tcell.ColorGreen).
+			SetAlign(tview.AlignRight))
 	}
 
 	row := 1
@@ -315,7 +368,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 					return "-"
 				}
 				return fmt.Sprintf("%s(%s)", v.LastErr, humanize.RelTime(v.LastErrTS, now, "ago", ""))
-			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight)
+			}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignCenter)
 
 		if v.LastErr != "" {
 			lastErrCell.SetClickedFunc(func() bool {
@@ -334,13 +387,14 @@ type monitorAPP struct {
 	app *tview.Application
 
 	// UI elements
-	basicInfoTable     *tview.Table
-	golangRuntime      *tview.Table
-	inputsStatTable    *tview.Table
-	enabledInputTable  *tview.Table
-	goroutineStatTable *tview.Table
-	exitPrompt         *tview.TextView
-	lastErrText        *tview.TextView
+	basicInfoTable      *tview.Table
+	golangRuntime       *tview.Table
+	inputsStatTable     *tview.Table
+	enabledInputTable   *tview.Table
+	goroutineStatTable  *tview.Table
+	httpServerStatTable *tview.Table
+	exitPrompt          *tview.TextView
+	lastErrText         *tview.TextView
 
 	flex *tview.Flex
 
@@ -380,12 +434,14 @@ func (m *monitorAPP) setupFlex() {
 	if *flagMonitorVerbose { // with -V, we show more stats info
 		m.flex.SetDirection(tview.FlexRow).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(m.basicInfoTable, 0, 10, false).
-				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
-			AddItem(m.inputsStatTable, 0, 14, false).
+									AddItem(m.basicInfoTable, 0, 10, false).               // basic info
+									AddItem(m.golangRuntime, 0, 10, false), 0, 10, false). // golang runtime stats
+			AddItem(m.inputsStatTable, 0, 14, false). // all inputs running stats
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(m.enabledInputTable, 0, 10, false).
-				AddItem(m.goroutineStatTable, 0, 10, false), 0, 10, false).
+				AddItem(m.enabledInputTable, 0, 10, false).   // inputs config stats
+				AddItem(m.goroutineStatTable, 0, 10, false).  // goroutine group stats
+				AddItem(m.httpServerStatTable, 0, 10, false), // 9529 HTTP server stats
+				0, 10, false).
 			AddItem(m.exitPrompt, 0, 1, false)
 	} else {
 		m.flex.SetDirection(tview.FlexRow).
@@ -417,7 +473,11 @@ func (m *monitorAPP) setup() {
 	m.goroutineStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.goroutineStatTable.SetBorder(true).SetTitle("Goroutine Groups").SetTitleAlign(tview.AlignLeft)
 
-	// buttom prompt
+	// 9592 http stats
+	m.httpServerStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	m.httpServerStatTable.SetBorder(true).SetTitle("HTTP APIs").SetTitleAlign(tview.AlignLeft)
+
+	// bottom prompt
 	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
 
 	m.flex = tview.NewFlex()
@@ -463,16 +523,26 @@ func (m *monitorAPP) render() {
 	if *flagMonitorVerbose {
 		m.enabledInputTable.Clear()
 		m.goroutineStatTable.Clear()
+
+		// HTTPMetrics maybe nil(request timeout), so keep original table
+		if m.ds.HTTPMetrics != nil {
+			m.httpServerStatTable.Clear()
+		}
 	}
 	m.exitPrompt.Clear()
 
 	m.renderBasicInfoTable(m.ds)
-	m.renderGolangRuntime(m.ds)
+	m.renderGolangRuntimeTable(m.ds)
 	m.renderInputsStatTable(m.ds, inputsStatsCols)
 	if *flagMonitorVerbose {
 		m.renderEnabledInputTable(m.ds, enabledInputCols)
 		m.renderGoroutineTable(m.ds, goroutineCols)
+
+		if m.ds.HTTPMetrics != nil {
+			m.renderHTTPStatTable(m.ds, httpAPIStatCols)
+		}
 	}
+
 	m.renderExitPrompt()
 }
 

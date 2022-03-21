@@ -37,10 +37,12 @@ func exportJob(items []v1.Job, extraTags tagsType) k8sResourceStats {
 		obj.tags.addValueIfNotEmpty("namespace", defaultNamespace(item.Namespace))
 		obj.tags.append(extraTags)
 
-		obj.fields["age"] = int64(time.Since(item.CreationTimestamp.Time).Seconds())
-		obj.fields["active"] = item.Status.Active
-		obj.fields["succeeded"] = item.Status.Succeeded
-		obj.fields["failed"] = item.Status.Failed
+		obj.fields = map[string]interface{}{
+			"age":       int64(time.Since(item.CreationTimestamp.Time).Seconds()),
+			"active":    item.Status.Active,
+			"succeeded": item.Status.Succeeded,
+			"failed":    item.Status.Failed,
+		}
 
 		// 因为原数据类型（例如 item.Spec.Parallelism）就是 int32，所以此处也用 int32
 		if item.Spec.Parallelism != nil {

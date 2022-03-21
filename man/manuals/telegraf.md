@@ -67,7 +67,7 @@ sudo apt-get update && sudo apt-get install telegraf
 # 更多其它配置 ...
 ```
 
-如果 [DataKit API 位置有调整](datakit-conf-how-to#f2d2b6db)，需调整如下配置，将 `url` 设置到 DataKit API 真实的地址即可：
+如果 [DataKit API 位置有调整](datakit-conf#db159fbc)，需调整如下配置，将 `url` 设置到 DataKit API 真实的地址即可：
 
 ```toml
 [[outputs.http]]

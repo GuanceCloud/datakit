@@ -175,11 +175,12 @@ func (d *dockerInput) tailMultiplexed(ctx context.Context, src io.ReadCloser, lo
 }
 
 type containerLogConfig struct {
-	Disable   bool   `json:"disable"`
-	Source    string `json:"source"`
-	Pipeline  string `json:"pipeline"`
-	Service   string `json:"service"`
-	Multiline string `json:"multiline_match"`
+	Disable    bool     `json:"disable"`
+	Source     string   `json:"source"`
+	Pipeline   string   `json:"pipeline"`
+	Service    string   `json:"service"`
+	Multiline  string   `json:"multiline_match"`
+	OnlyImages []string `json:"only_images"`
 
 	containerID string
 	tags        map[string]string
@@ -214,9 +215,10 @@ func (c *containerLogConfig) checking() error {
 }
 
 const (
-	containerLableForPodName      = "io.kubernetes.pod.name"
-	containerLableForPodNamespace = "io.kubernetes.pod.namespace"
-	containerLogConfigKey         = "datakit/logs"
+	containerLableForPodName          = "io.kubernetes.pod.name"
+	containerLableForPodNamespace     = "io.kubernetes.pod.namespace"
+	containerLableForPodContainerName = "io.kubernetes.container.name"
+	containerLogConfigKey             = "datakit/logs"
 )
 
 func getContainerLogConfig(m map[string]string) (*containerLogConfig, error) {
@@ -295,12 +297,12 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		case <-ctx.Done():
 			return nil
 		case <-timeout.C:
-			if line := mult.Flush(); len(line) != 0 {
+			if text := mult.Flush(); len(text) != 0 {
 				task := newTask()
 				task.Data = []worker.TaskData{
 					&taskData{
 						tags: logconf.tags,
-						log:  string(removeAnsiEscapeCodes(line, d.cfg.removeLoggingAnsiCodes)),
+						log:  removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes),
 					},
 				}
 				task.TS = time.Now()
@@ -333,15 +335,15 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 				continue
 			}
 
-			text := mult.ProcessLineString(string(line))
-			if text == "" {
+			text := mult.ProcessLine(line)
+			if len(text) == 0 {
 				continue
 			}
 
 			workerData = append(workerData,
 				&taskData{
 					tags: logconf.tags,
-					log:  string(removeAnsiEscapeCodes([]byte(text), d.cfg.removeLoggingAnsiCodes)),
+					log:  removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes),
 				},
 			)
 		}
@@ -389,11 +391,11 @@ func (c *containerLog) Info() *inputs.MeasurementInfo {
 
 type taskData struct {
 	tags map[string]string
-	log  string
+	log  []byte
 }
 
 func (t *taskData) GetContent() string {
-	return t.log
+	return string(t.log)
 }
 
 func (t *taskData) Handler(r *worker.Result) error {

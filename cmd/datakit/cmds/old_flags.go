@@ -33,7 +33,6 @@ var (
 	FlagTestInput string
 
 	FlagDefConf bool
-	FlagWorkDir string
 
 	FlagDisableTFMono, FlagMan bool
 	FlagIgnore,
@@ -90,7 +89,6 @@ func initOldStyleFlags() { //nolint:gochecknoinits
 	pflag.BoolVar(&FlagShowTestingVersions, "show-testing-version", false, "show testing versions on -version flag")
 	pflag.StringVar(&FlagUpdateLogFile, "update-log", "", "update history log file")
 
-	pflag.StringVar(&FlagWorkDir, "workdir", "", "set datakit work dir")
 	pflag.BoolVar(&FlagDefConf, "default-main-conf", false, "get datakit default main configure")
 
 	// debug grok
@@ -418,11 +416,11 @@ func runOldStyleCmds() {
 
 	if FlagExportManuals != "" {
 		setCmdRootLog(FlagCmdLogPath)
-		if err := exportMan(FlagExportManuals,
-			FlagIgnore,
-			FlagManVersion,
-			FlagDisableTFMono); err != nil {
-			l.Error(err)
+		if err := exportMan(FlagExportManuals, FlagIgnore,
+			FlagManVersion, FlagDisableTFMono); err != nil {
+			l.Errorf("exportMan: %s", err)
+		} else {
+			l.Infof("exportMan ok")
 		}
 		os.Exit(0)
 	}

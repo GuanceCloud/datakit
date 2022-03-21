@@ -63,7 +63,7 @@ sudo bash -c "cat mongod.cert.pem mongod.key.pem >>mongod.pem"
 
 合并后配置 /etc/mongod.config 文件中的 TLS 子项
 
-```config
+```yaml
 # TLS config
 net:
   tls:
@@ -98,7 +98,7 @@ sudo openssl req -x509 -newkey rsa:<bits> -days <days> -keyout <mongo.key.pem> -
 
 复制 mongo.cert.pem 文件到 MongoDB 服务端然后配置 /etc/mongod.config 文件中的 TLS 子项
 
-```config
+```yaml
 # Tls config
 net:
   tls:
