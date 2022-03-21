@@ -10,11 +10,51 @@
 
 ## 安装步骤 
 
+- [helm安装](###helm安装)
+
+- [普通yaml安装](###普通yaml安装)
+
+### helm安装
+
+#### 前提条件
+
+* Kubernetes >= 1.14
+* Helm >= 2.17.0
+
+#### 添加DataKit helm 仓库
+
+```shell 
+helm add repo dataflux  https://registry.jiagouyun.com/chartrepo/datakit
+```
+
+#### helm 安装Datakit
+
+注意更换dataway_url
+
+```shell
+helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+```
+
+#### 查看部署状态
+
+```shell
+helm -n datakit list
+```
+
+#### 卸载
+
+```shell script
+helm uninstall my-datakit -n datakit
+```
+
+
+### 普通yaml安装
+
 先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)，其中开启了很多[默认采集器](datakit-input-conf#764ffbc2)，无需配置。
 
 > 如果要修改这些采集器的默认配置，可通过 [Configmap 方式挂载单独的 conf](k8s-config-how-to#ebf019c2) 来配置。部分采集器可以直接通过环境变量的方式来调整，具体参见具体采集器的文档（[容器采集器示例](container#5cf8fecf)）。总而言之，不管是默认开启的采集器，还是其它采集器，在 DaemonSet 方式部署 DataKit 时，==通过 [Configmap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) 来配置采集器总是生效的==
 
-### 修改配置
+#### 修改配置
 
 修改 `datakit.yaml` 中的 dataway 配置
 
@@ -23,13 +63,13 @@
 		value: https://openway.guance.com?token=<your-token> # 此处填上 dataway 真实地址
 ```
 
-### 安装 yaml
+#### 安装 yaml
 
 ```shell
 kubectl apply -f datakit.yaml
 ```
 
-### 查看运行状态
+#### 查看运行状态
 
 安装完后，会创建一个 datakit 的 DaemonSet 部署：
 
@@ -37,7 +77,7 @@ kubectl apply -f datakit.yaml
 kubectl get pod -n datakit
 ```
 
-### Kubernetes 污点容忍度配置
+#### Kubernetes 污点容忍度配置
 
 DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有污点），如果 Kubernetes 中某些 node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 datakit.yaml，调整其中的污点容忍度：
 
@@ -48,7 +88,7 @@ DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有
 
 具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration)。
 
-### DataKit 中其它环境变量设置
+## DataKit 中其它环境变量设置
 
 在 DaemonSet 模式中，DataKit 支持多个环境变量配置，如下表所示：
 
