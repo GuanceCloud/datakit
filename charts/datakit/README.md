@@ -22,6 +22,8 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
 ​	Once you've added this Helm repository as per the repository-level [README](../../README.md#installing) then you can install the chart as follows:
 
  ```shell
+ helm add repo dataflux  https://registry.jiagouyun.com/chartrepo/datakit
+ 
  helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
  ```
 
@@ -33,6 +35,8 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
   - git passwd
   
     ```
+    helm add repo dataflux  https://registry.jiagouyun.com/chartrepo/datakit
+    
     helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
     --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
     --create-namespace 
@@ -41,12 +45,14 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
   - git key
   
     ```
+    helm add repo dataflux  https://registry.jiagouyun.com/chartrepo/datakit
+    
     helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
     --set git_repos.git_url="git@github.com:path/to/repository.git" \
     --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
     --create-namespace 
     ```
-  
+    
     
 
 ## Uninstalling

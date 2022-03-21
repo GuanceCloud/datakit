@@ -104,14 +104,9 @@ define build_docker_image
 endef
 
 define build_k8s_charts
-<<<<<<< HEAD
 	@helm repo ls
 	@helm package charts/datakit --version $(VERSION) --app-version $(VERSION)
 	@helm push datakit-$(VERSION).tgz $(1)
-=======
-	@helm package ${CHART_PATH%/*} --version $(VERSION) --app-version $(VERSION)
-	@helm helm push ${TEMP\#\#*/}-$(VERSION).tgz datakit-prod-chart
->>>>>>> dev
 endef
 
 define check_golint_version
