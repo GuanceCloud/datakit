@@ -187,6 +187,7 @@ func InitIPdb(pipelineCfg *PipelineCfg) (ipdb.IPdb, error) {
 	if pipelineCfg == nil {
 		pipelineCfg = pipelineDefaultCfg
 	}
+
 	if instance, ok := pipelineIPDbmap[pipelineCfg.IPdbType]; ok {
 		ipdbInstance = instance
 		ipdbInstance.Init(datakit.DataDir, pipelineCfg.IPdbAttr)

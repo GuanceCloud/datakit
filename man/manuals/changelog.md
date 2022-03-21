@@ -2,6 +2,19 @@
 
 # DataKit 版本历史
 
+## 1.2.11(2022/03/17)
+
+本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
+
+- 修复 Tracing 采集器资源过滤（`close_resource`）的算法问题，将过滤机制下放到 Entry Span 级别，而非之前的 Root Span
+- 修复[日志采集器](logging)文件句柄泄露问题(#658)，同时新增配置（`ignore_dead_log`），以忽略不再更新（删除）的文件
+- 新增[DataKit 自身指标文档](self)
+- DaemonSet 安装时
+  - [支持安装 IPDB](datakit-tools-how-to#11f01544)(#659)
+  - 支持[设定 HTTP 限流（ENV_REQUEST_RATE_LIMIT）](datakit-daemonset-deploy#00c8a780)(#654)
+
+---
+
 ## 1.2.10(2022/03/11)
 
 修复 Tracing 相关采集器可能的奔溃问题
@@ -12,9 +25,9 @@
 
 本次发布属于迭代发布，更新内容如下：
 
-- DataKit 9529 HTTP 服务添加 [API 限流措施](datakit-conf-how-to#e35bf313)(#637)
+- DataKit 9529 HTTP 服务添加 [API 限流措施](datakit-conf#39e48d64)(#637)
 - 统一各种 Tracing 数据的[采样率设置](datakit-tracing#64df2902)(#631)
-- 发布 [DataKit 整体日志采集介绍](datakit-logging)
+- 发布 [DataKit 日志采集综述](datakit-logging)
 - 支持 [OpenTelemetry 数据接入](opentelemetry)(#609)
 - 支持[禁用 Pod 内部部分镜像的日志](container#2a6149d7)(#586)
 - 进程对象采集[增加监听端口列表](host_processes#a30fc2c1-1)(#562)
@@ -242,7 +255,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 - 其它：
   - DataKit 支持自身事件上报（以日志形式）(#463)
   - [ElasticSearch](elasticsearch) 采集器指标集下增加 `indices_lifecycle_error_count` 指标（注意： 采集该指标，需在 ES [增加 `ilm` 角色](elasticsearch#852abae7)）
-  - DataKit 安装完成后自动增加 [cgroup 限制](datakit-conf-how-to#9e364a84)
+  - DataKit 安装完成后自动增加 [cgroup 限制](datakit-conf#4e7ff8f3)
   - 部分跟中心对接的接口升级到了 v2 版本，故对接**非 SAAS 节点**的 DataKit，如果升级到当前版本，其对应的 DataWay 以及 Kodo 也需要升级，否则部分接口会报告 404 错误
 
 ### Breaking Changes
@@ -296,9 +309,9 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 ## 1.1.9-rc5(2021/11/23)
 
 - 增加 [pythond(alpha)](pythond) ，便于用 Python3 编写自定义采集器(#367)
-<!-- - 支持 source map 文件处理，便于 RUM 采集器收集 JavaScript 调用栈信息(#266) -->
+<!-- - 支持 source map 文件处理，便于 RUM 采集器收集 JavaScript 调用栈信息(#267) -->
 - [SkyWalking V3](skywalking) 已支持到 8.5.0/8.6.0/8.7.0 三个版本(#385)
-- DataKit 初步支持[磁盘数据缓存(alpha)](datakit-conf-how-to#9dc84d15)(#420)
+- DataKit 初步支持[磁盘数据缓存(alpha)](datakit-conf#caa0869c)(#420)
 - DataKit 支持选举状态上报(#427)
 - DataKit 支持 scheck 状态上报(#428)
 - 调整 DataKit 使用入门文档，新的分类更便于找到具体文档
@@ -328,7 +341,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 
 ## 1.1.9-rc4(2021/11/09)
 
-- 支持[通过 Git 来管理](datakit-conf-how-to#5dd2079e) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
+- 支持[通过 Git 来管理](datakit-conf#90362fd0) 各种采集器配置（`datakit.conf` 除外）以及 Pipeline(#366)
 - 支持[全离线安装](datakit-offline-install#7f3c40b6)(#421)
 <!--
 - eBPF-network
@@ -595,7 +608,7 @@ $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Mo
 - 支持从 `ENV_HOSTNAME` 获取主机名，以应付原始主机名不可用的问题
 - 支持 tag 级别的 [Trace](ddtrace) 过滤
 - [容器采集器](container)支持采集容器内进程对象
-- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit-conf-how-to#9e364a84)（仅 Linux 支持）
+- 支持通过 [cgroup 控制 DataKit CPU 占用](datakit-conf#4e7ff8f3)（仅 Linux 支持）
 - 新增 [IIS 采集器](iis)
 
 ### Bug 修复

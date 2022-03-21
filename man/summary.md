@@ -2,12 +2,16 @@
 
   - [服务安装和管理](datakit-service-how-to)
 
-  - [采集器配置](datakit-conf-how-to)
+  - [如何配置 DataKit]()
 
-  - [通过 DQL 查询数据](datakit-dql-how-to)
-  - [各种其它工具使用](datakit-tools-how-to)
+    - [DataKit 主配置](datakit-conf)
+    - [采集器配置](datakit-input-conf)
 
-  - [查看 DataKit Monitor](datakit-monitor)
+  - [DataKit 日常使用]()
+
+    - [通过 DQL 查询数据](datakit-dql-how-to)
+    - [查看 DataKit Monitor](datakit-monitor)
+    - [各种其它工具使用](datakit-tools-how-to)
 
 - [DataKit 版本历史](changelog)
 
@@ -47,6 +51,7 @@
     - [System](system)
     - [主机目录](hostdir)
     - [SSH](ssh)
+    - [DataKit 自身指标](self)
 
   - [数据库（中间件）]()
 
@@ -76,15 +81,13 @@
     - [eBPF](ebpf)
 
   - [云原生]()
-
+    - [Kubernetes 环境下的 DataKit 配置综述](k8s-config-how-to)
     - [数据采集]()
 
       - [容器](container)
+        - [通过 Sidecar 方式采集 Pod 日志](logfwd)
       - [Kubernetes 扩展指标采集](kubernetes-x)
-      - [Kubernetes 集群中自定义 Exporter 指标采集](kubernetes-prom)
-
-    - [通过 Sidecar 方式采集 Pod 日志](logfwd)
-    - [Kubernetes 环境下的 DataKit 配置](k8s-config-how-to)
+      - [Prometheus Exportor 指标采集](kubernetes-prom)
 
   - [Java]()
 
@@ -103,32 +106,34 @@
 
   - [应用性能监测（APM）]()
 
-    - [DDTrace](ddtrace)
-      - [Golang 示例](ddtrace-golang)
-      - [Java 示例](ddtrace-java)
-      - [Python 示例](ddtrace-python)
-    - [SkyWalking](skywalking)
+    - [Datakit Tracing 综述](datakit-tracing)
+      - [Datakit Tracing 数据结构](datakit-tracing-struct)
+		- [各种 Tracing 接入]()
 
-    - [Opentelemetry](opentelemetry)
-      - [Golang 示例](opentelemetry-go)
-      - [Java 示例](opentelemetry-java)
+      - [DDTrace](ddtrace)
+        - [Golang 示例](ddtrace-golang)
+        - [Java 示例](ddtrace-java)
+        - [Python 示例](ddtrace-python)
 
-    - [Jaeger](jaeger)
-    - [Zipkin](zipkin)
+      - [SkyWalking](skywalking)
 
-    - [Datakit Tracing Struct](datakit-tracing-struct)
-    - [Datakit Tracing](datakit-tracing)
+      - [Opentelemetry](opentelemetry)
+        - [Golang 示例](opentelemetry-go)
+        - [Java 示例](opentelemetry-java)
+
+      - [Jaeger](jaeger)
+      - [Zipkin](zipkin)
 
   - [用户访问监测（RUM）]()
 
     - [RUM](rum)
 
   - [日志]()
-
-    - [日志](logging)
-    - [第三方日志接入](logstreaming)
-    - [Socket 日志接入最佳实践](logging_socket)
-    - [DataKit 整体日志采集介绍](datakit-logging)
+    - [DataKit 日志采集综述](datakit-logging)
+    - [数据采集]()
+      - [文件日志](logging)
+        - [Socket 日志接入示例](logging_socket)
+      - [第三方（logstreaming）日志接入](logstreaming)
 
   - [Windows 相关]()
 

@@ -242,6 +242,30 @@ func TestLoadEnv(t *testing.T) {
 		},
 
 		{
+			name: "test-ENV_IPDB",
+			envs: map[string]string{
+				"ENV_IPDB": "iploc",
+			},
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Pipeline.IPdbType = "iploc"
+				return cfg
+			}(),
+		},
+
+		{
+			name: "test-unknown-ENV_IPDB",
+			envs: map[string]string{
+				"ENV_IPDB": "unknown-ipdb",
+			},
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Pipeline.IPdbType = "-"
+				return cfg
+			}(),
+		},
+
+		{
 			envs: map[string]string{
 				"ENV_ENABLE_INPUTS": "cpu,mem,disk",
 			},
