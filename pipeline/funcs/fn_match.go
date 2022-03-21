@@ -30,7 +30,7 @@ func MatchChecking(node parser.Node) error {
 	return nil
 }
 
-func Match(ng *parser.Engine, node parser.Node) bool {
+func Match(ng *parser.Engine, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	var cont string
 	var err error
@@ -42,7 +42,7 @@ func Match(ng *parser.Engine, node parser.Node) bool {
 	case *parser.AttrExpr, *parser.Identifier, *parser.StringLiteral:
 		words = v
 	default:
-		l.Debug("expect AttrExpr or Identifier, got %s",
+		l.Debug("expect AttrExpr or Identifier or StringLiteral, got %s",
 			reflect.TypeOf(funcExpr.Param[0]).String())
 		return false
 	}
@@ -72,9 +72,9 @@ func Match(ng *parser.Engine, node parser.Node) bool {
 		return false
 	}
 	if res {
-		return true
+		return "true"
 	} else {
-		return false
+		return "false"
 	}
 }
 

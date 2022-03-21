@@ -39,6 +39,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"cover()":              &coverMarkdown,
 	"replace()":            &replaceMarkdown,
 	"duration_precision()": &durationPrecisionMarkdown,
+	"match":                &matchMarkdown,
 }
 
 //nolint:lll
@@ -1090,6 +1091,35 @@ var (
 			"# {",
 			`#   "message": "{\"ts\":12345}",`,
 			`#   "ts": 12345000000`,
+			"# }",
+			"```",
+			"",
+		}, "\n"),
+		Deprecated: false,
+	}
+	matchMarkdown = PLDoc{
+		Doc: strings.Join([]string{
+			"### `match()`",
+			"",
+			"函数原型：`match(words,pattern)`",
+			"",
+			"函数说明：看words是否符合pattern正则出来的",
+			"",
+			"```python",
+			`# in << {"str_a": "2", "str_b": "3"}`,
+			`if match("peech", "p([a-z]+)ch") {`,
+			`json(_, str_a)`,
+			`if str_a == "2"{`,
+			`drop()`,
+			`exit()`,
+			`}`,
+			`json(_, str_b)`,
+			`}`,
+			"",
+			"# Extracted data(drop: false, cost: 33.279µs):",
+			"# {",
+			`#   "message": "{\"str_a\": \"2\", \"str_b\": \"3\"}",`,
+			`#   "str_a": "2"`,
 			"# }",
 			"```",
 			"",

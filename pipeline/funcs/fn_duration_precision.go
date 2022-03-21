@@ -12,7 +12,7 @@ func DurationPrecisionChecking(node parser.Node) error {
 	return nil
 }
 
-func DurationPrecision(ng *parser.Engine, node parser.Node) error {
+func DurationPrecision(ng *parser.Engine, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 3 {
 		return fmt.Errorf("func `%s' expected 3 args", funcExpr.Name)

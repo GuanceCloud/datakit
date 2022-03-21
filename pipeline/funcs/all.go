@@ -43,6 +43,7 @@ var FuncsMap = map[string]parser.FuncCallback{
 	"replace":               Replace,
 	"duration_precision":    DurationPrecision,
 	"match":                 Match,
+	"decode":                Decode,
 	// disable
 	"json_all": JSONAll,
 	"expr":     Expr,
@@ -79,6 +80,7 @@ var FuncsCheckMap = map[string]parser.FuncCallbackCheck{
 	"replace":               ReplaceChecking,
 	"duration_precision":    DurationPrecisionChecking,
 	"match":                 MatchChecking,
+	"decode":                DecodeChecking,
 	// disable
 	"json_all": JSONAllChecking,
 	"expr":     ExprChecking,

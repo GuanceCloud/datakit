@@ -38,7 +38,6 @@ type IfExpr struct {
 	Stmts     Stmts
 }
 
-
 type FuncConditionalExpr struct {
 	RHS Node
 	Op  ItemType
