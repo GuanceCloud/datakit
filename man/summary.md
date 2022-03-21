@@ -30,7 +30,7 @@
 - [DataKit API](apis)
 
 - [文本数据处理（Pipeline）](pipeline)
-  - [调试 Pipeline](datakit-pl-how-to)
+  - [如何编写 Pipeline 脚本](datakit-pl-how-to)
 
 - [如何排查无数据问题](why-no-data)
 - [DataKit 开发手册](development)

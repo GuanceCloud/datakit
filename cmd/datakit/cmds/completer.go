@@ -1,8 +1,19 @@
 package cmds
 
+import (
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
+)
+
 // generate auto completer command/options for DataKit
 
-const completerShell = `
+var (
+	completerShell = []byte(`
 # DataKit completion                             -*- shell-script -*-
 
 # We should copy this script to /etc/bash_completion.d/datakit for unbuntu
@@ -58,4 +69,38 @@ _datakit()
 } &&
 complete -F _datakit datakit ddk
 
-# ex: filetype=sh`
+# ex: filetype=sh`)
+
+	bashCompletionDirs = []string{
+		"/etc/bash_completion.d",
+	}
+)
+
+func setupCompleterScripts() {
+	if runtime.GOOS != datakit.OSLinux { // only Linux support completion now
+		return
+	}
+
+	cmd := exec.Command("/bin/bash", "-c", "complete")
+	if err := cmd.Run(); err != nil {
+		warnf("run completer failed: %s, skip\n", err)
+		return
+	}
+
+	for _, dir := range bashCompletionDirs {
+		if fi, err := os.Stat(dir); err != nil {
+			warnf("/etc/bash_completion.d not found: %s, skip\n", err)
+			continue
+		} else {
+			if !fi.IsDir() {
+				warnf("invalid /etc/bash_completion.d(not directory), skip\n")
+				continue
+			}
+
+			if err := ioutil.WriteFile(filepath.Join(dir, "datakit"), completerShell, os.ModePerm); err != nil {
+				errorf("ioutil.WriteFile: %s\n", err)
+				return
+			}
+		}
+	}
+}

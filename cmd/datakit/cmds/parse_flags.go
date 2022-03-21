@@ -81,8 +81,7 @@ var (
 	flagPLTxtFile     = fsPL.StringP("file", "F", "", "text file path for the pipeline or grok(json or raw text)")
 	flagPLTable       = fsPL.Bool("tab", false, "output result in table format")
 	flagPLDate        = fsPL.Bool("date", false, "append date display(according to local timezone) on timestamp")
-	// flagPLGrokQ       = fsPL.BoolP("grokq", "G", false, "query groks interactively").
-	fsPLUsage = func() {
+	fsPLUsage         = func() {
 		fmt.Printf("usage: datakit pipeline [pipeline-script-name.p] [options]\n\n")
 		fmt.Printf("Pipeline used to debug exists pipeline script.\n\n")
 		fmt.Println(fsPL.FlagUsagesWrapped(0))
@@ -152,23 +151,26 @@ var (
 	}
 
 	//
-	// debug related flags.
+	// tools related flags.
 	//
-	fsDebugName                = "debug"
-	fsDebug                    = pflag.NewFlagSet(fsDebugName, pflag.ContinueOnError)
-	flagDebugLogPath           = fsDebug.String("log", commonLogFlag(), "command line log path")
-	flagDebugCloudInfo         = fsDebug.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
-	flagDebugIPInfo            = fsDebug.String("ipinfo", "", "show IP geo info")
-	flagDebugWorkspaceInfo     = fsDebug.Bool("workspace-info", false, "show workspace info")
-	flagDebugCheckConfig       = fsDebug.Bool("check-config", false, "check inputs configure and main configure")
-	flagDebugDumpSamples       = fsDebug.String("dump-samples", "", "dump all inputs samples")
-	flagDebugLoadLog           = fsDebug.Bool("upload-log", false, "upload log")
-	flagDebugDefaultMainConfig = fsDebug.Bool("default-main-conf", false, "print default datakit.conf")
-	flagDebugCheckSample       = fsDebug.Bool("check-sample", false, "check all inputs config sample, to ensure all sample are valid TOML")
-	fsDebugUsage               = func() {
-		fmt.Printf("usage: datakit debug [options]\n\n")
-		fmt.Printf("Various tools for debugging\n\n")
-		fmt.Println(fsDebug.FlagUsagesWrapped(0))
+	fsToolName                = "tool"
+	fsTool                    = pflag.NewFlagSet(fsToolName, pflag.ContinueOnError)
+	flagToolLogPath           = fsTool.String("log", commonLogFlag(), "command line log path")
+	flagToolCloudInfo         = fsTool.String("show-cloud-info", "", "show current host's cloud info(aliyun/tencent/aws)")
+	flagToolIPInfo            = fsTool.String("ipinfo", "", "show IP geo info")
+	flagToolWorkspaceInfo     = fsTool.Bool("workspace-info", false, "show workspace info")
+	flagToolCheckConfig       = fsTool.Bool("check-config", false, "check inputs configure and main configure")
+	flagToolDumpSamples       = fsTool.String("dump-samples", "", "dump all inputs samples")
+	flagToolLoadLog           = fsTool.Bool("upload-log", false, "upload log")
+	flagToolDefaultMainConfig = fsTool.Bool("default-main-conf", false, "print default datakit.conf")
+	flagToolCheckSample       = fsTool.Bool("check-sample", false, "check all inputs config sample, to ensure all sample are valid TOML")
+	flagToolGrokQ             = fsTool.Bool("grokq", false, "query groks interactively")
+	flagSetupCompleterScripts = fsTool.Bool("setup-completer-script", false, "auto generate auto completion script(Linux only)")
+
+	fsToolUsage = func() {
+		fmt.Printf("usage: datakit tool [options]\n\n")
+		fmt.Printf("Various tools for debugging/checking during DataKit daily usage\n\n")
+		fmt.Println(fsTool.FlagUsagesWrapped(0))
 	}
 )
 
@@ -200,7 +202,7 @@ func printHelp() {
 	fmt.Fprintf(os.Stderr, "\tservice    manage datakit service\n")
 	fmt.Fprintf(os.Stderr, "\tmonitor    show datakit running statistics\n")
 	fmt.Fprintf(os.Stderr, "\tinstall    install DataKit related packages and plugins\n")
-	fmt.Fprintf(os.Stderr, "\tdebug      methods of all debug datakits\n")
+	fmt.Fprintf(os.Stderr, "\ttool       methods of all tools within DataKit\n")
 
 	// TODO: add more commands...
 
@@ -238,8 +240,8 @@ func runHelpFlags() {
 		case fsInstallName:
 			fsInstallUsage()
 
-		case fsDebugName:
-			fsDebugUsage()
+		case fsToolName:
+			fsToolUsage()
 
 		default: // add more
 			errorf("[E] flag provided but not defined: `%s'\n\n", os.Args[2])
@@ -293,20 +295,27 @@ func doParseAndRunFlags() {
 			os.Exit(0)
 
 		case fsPLName:
-			debugPipelineName = os.Args[2]
-
-			// NOTE: args[2] must be the pipeline source name
-			if err := fsPL.Parse(os.Args[3:]); err != nil {
-				errorf("Parse: %s\n", err)
-				fsPLUsage()
-				os.Exit(-1)
-			}
 
 			setCmdRootLog(*flagPLLogPath)
 			tryLoadMainCfg()
 
+			if len(os.Args) <= 3 {
+				errorf("[E] missing pipeline name and/or testing text.\n")
+				fsPLUsage()
+				os.Exit(-1)
+			}
+
+			debugPipelineName = os.Args[2]
+
+			// NOTE: args[2] must be the pipeline source name
+			if err := fsPL.Parse(os.Args[3:]); err != nil {
+				errorf("[E] Parse: %s\n", err)
+				fsPLUsage()
+				os.Exit(-1)
+			}
+
 			if err := runPLFlags(); err != nil {
-				errorf("%s\n", err)
+				errorf("[E] %s\n", err)
 				os.Exit(-1)
 			}
 
@@ -314,7 +323,7 @@ func doParseAndRunFlags() {
 
 		case fsVersionName:
 			if err := fsVersion.Parse(os.Args[2:]); err != nil {
-				errorf("Parse: %s\n", err)
+				errorf("[E] parse: %s\n", err)
 				fsVersionUsage()
 				os.Exit(-1)
 			}
@@ -323,7 +332,7 @@ func doParseAndRunFlags() {
 			tryLoadMainCfg()
 
 			if err := runVersionFlags(); err != nil {
-				errorf("%s\n", err)
+				errorf("[E] %s\n", err)
 				os.Exit(-1)
 			}
 
@@ -373,22 +382,21 @@ func doParseAndRunFlags() {
 			}
 			os.Exit(0)
 
-		case fsDebugName:
-			if err := fsDebug.Parse(os.Args[2:]); err != nil {
+		case fsToolName:
+			if err := fsTool.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)
-				fsDebugUsage()
+				fsToolUsage()
 				os.Exit(-1)
 			}
 
-			setCmdRootLog(*flagDebugLogPath)
-
-			err := runDebugFlags()
+			setCmdRootLog(*flagToolLogPath)
+			err := runToolFlags()
 			if err != nil {
 				errorf("%s\n", err)
 				os.Exit(-1)
 			}
 
-			// NOTE: Do not exit here, you should exit in sub-debug command if need
+			// NOTE: Do not exit here, you should exit in sub-tool's command if need
 
 		default:
 			errorf("unknown command `%s'\n", os.Args[1])

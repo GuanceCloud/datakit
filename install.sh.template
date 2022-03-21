@@ -368,3 +368,6 @@ else
 			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer
+
+# install completion
+sudo_cmd datakit tool --setup-completer-script

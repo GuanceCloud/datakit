@@ -15,6 +15,7 @@ import (
 
 func runPLFlags() error {
 	var txt string
+
 	if *flagPLTxtFile != "" {
 		txtBytes, err := ioutil.ReadFile(*flagPLTxtFile)
 		if err != nil {
@@ -31,7 +32,7 @@ func runPLFlags() error {
 	}
 
 	if txt == "" {
-		return fmt.Errorf("empty txt")
+		return fmt.Errorf("no testing string")
 	}
 
 	if strings.HasSuffix(txt, "\n") {
