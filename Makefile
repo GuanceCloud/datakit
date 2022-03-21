@@ -105,8 +105,11 @@ endef
 
 define build_k8s_charts
 	@helm repo ls
-	@helm package charts/datakit --version $(VERSION) --app-version $(VERSION)
-	@helm push datakit-$(VERSION).tgz $(1)
+	@echo `echo $(VERSION) | cut -d'-' -f1`
+	@sed "s,{{tag}},$(VERSION),g" charts/values.yaml > charts/datakit/values.yaml
+	@helm package charts/datakit --version `echo $(VERSION) | cut -d'-' -f1` --app-version `echo $(VERSION) | cut -d'-' -f1`
+	@helm push datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz $(1)
+	@rm -f datakit-`echo $(VERSION) | cut -d'-' -f1`.tgz
 endef
 
 define check_golint_version
@@ -144,12 +147,6 @@ production: deps # stable release
 production_image:
 	$(call build_docker_image, $(DOCKER_IMAGE_ARCHS), 'pubrepo.jiagouyun.com')
 	$(call build_k8s_charts, 'datakit-prod-chart')
-
-production_charts:
-	$(call build_k8s_charts)
-
-production_charts:
-	$(call build_k8s_charts)
 
 production_mac: deps
 	$(call build, production, $(MAC_ARCHS), $(PRODUCTION_DOWNLOAD_ADDR))
