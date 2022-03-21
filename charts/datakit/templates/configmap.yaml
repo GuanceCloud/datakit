@@ -1,0 +1,16 @@
+---
+{{- if .Values.git_repos.enable }}
+{{- if not (eq .Values.git_repos.git_key_path "-") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: id-rsa
+  # namespace: {{ .Values.namespace }}
+data:
+  id-rsa: |- {{- if (eq "-" .Values.git_repos.git_key_path) }}
+  {{ .Files.Get "id_rsa" | nindent 4 }}
+  {{- else }}
+  {{ .Values.git_repos.git_key_path | nindent 4}}
+  {{- end }}
+{{- end }}
+{{- end }}
