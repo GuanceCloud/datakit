@@ -333,4 +333,4 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 - [Pipeline 性能测试和对比](logging-pipeline-bench)
 - [容器采日志采集](container#224e2ccd)
   - [通过 Sidecar(logfwd) 采集容器内部日志](logfwd)
-- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 
+- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 

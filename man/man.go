@@ -23,11 +23,17 @@ var (
 	OtherDocs = map[string]interface{}{
 		// value not used, just document the markdown relative path
 		// all manuals under man/manuals/
-		"apis":                     "man/manuals/apis.md",
-		"changelog":                "man/manuals/changelog.md",
-		"datakit-arch":             "man/manuals/datakit-arch.md",
-		"datakit-batch-deploy":     "man/manuals/datakit-batch-deploy.md",
-		"datakit-conf-how-to":      "man/manuals/datakit-conf-how-to.md",
+		"apis":                 "man/manuals/apis.md",
+		"changelog":            "man/manuals/changelog.md",
+		"datakit-arch":         "man/manuals/datakit-arch.md",
+		"datakit-batch-deploy": "man/manuals/datakit-batch-deploy.md",
+
+		// deprecated
+		"datakit-conf-how-to": "man/manuals/datakit-conf-how-to.md",
+
+		"datakit-conf":       "man/manuals/datakit-conf.md",
+		"datakit-input-conf": "man/manuals/datakit-input-conf.md",
+
 		"datakit-daemonset-deploy": "man/manuals/datakit-daemonset-deploy.md",
 		"datakit-dql-how-to":       "man/manuals/datakit-dql-how-to.md",
 		"datakit-how-to":           "man/manuals/datakit-how-to.md", // deprecated

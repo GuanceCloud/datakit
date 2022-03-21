@@ -17,7 +17,7 @@
 | `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                         |
 | `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
 | `input`              | string | false    | `datakit` | 数据源名称                                                                                                                 |
-| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag                                                                                    |
+| `ignore_global_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag                                                                                    |
 | `version`            | string | false    | 无        | 当前采集器的版本号                                                                                                         |
 | `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
 
@@ -460,6 +460,6 @@ HTTP Code: 40x
 
 ## 延伸阅读
 
-- [API 访问设置](datakit-conf-how-to#9f30b8aa)
-- [API 限流配置](datakit-conf-how-to#e35bf313)
+- [API 访问设置](datakit-conf#db159fbc)
+- [API 限流配置](datakit-conf#39e48d64)
 - [API 安全控制](rum#b896ec48)
