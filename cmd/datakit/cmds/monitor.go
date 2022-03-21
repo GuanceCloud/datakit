@@ -61,6 +61,13 @@ func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
 
 	row++
 	table.SetCell(row, 0,
+		tview.NewTableCell("CPU(%)").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(fmt.Sprintf("%f", ds.GolangRuntime.CPUUsage*100)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0,
 		tview.NewTableCell("Mem").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
 		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.HeapAlloc)).
@@ -373,7 +380,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 
 		if v.LastErr != "" {
 			lastErrCell.SetClickedFunc(func() bool {
-				m.setupLastErr(v.LastErr)
+				m.setupLastErr(fmt.Sprintf("%s(%s)", v.LastErr, humanize.RelTime(v.LastErrTS, now, "ago", "")))
 				return true
 			})
 		}
@@ -418,7 +425,7 @@ func (m *monitorAPP) setupLastErr(lastErr string) {
 	m.lastErrText = tview.NewTextView().SetWordWrap(true).SetDynamicColors(true)
 
 	m.lastErrText.SetBorder(true)
-	fmt.Fprintf(m.lastErrText, "[red]%s \n\n[green]Click ESC or Enter to close this message.", lastErr)
+	fmt.Fprintf(m.lastErrText, "[red]%s \n\n[green]ESC/Enter to close the message", lastErr)
 
 	m.flex.AddItem(m.lastErrText, 0, 5, false)
 
