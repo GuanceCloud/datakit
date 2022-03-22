@@ -57,7 +57,7 @@ func TestLimitWrap(t *testing.T) {
 		case <-tick.C:
 			round++
 			rate := float64(passed) / float64(round)
-			tu.Assert(t, rate < float64(limit), "expect %f < %f", rate, limit)
+			tu.Assert(t, rate < limit, "expect %f < %f", rate, limit)
 
 			t.Logf("rate: %f, passed: %d, limited: %d, total: %d", rate, passed, limited, total)
 		default:
