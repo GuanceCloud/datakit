@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
@@ -747,9 +748,13 @@ func TestCollectFromFile(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	defer os.Remove(f.Name())
-	f.WriteString(mockBody)
-	f.Sync()
+	defer os.Remove(f.Name()) //nolint:errcheck,gosec
+	if _, err := f.WriteString(mockBody); err != nil {
+		t.Errorf("fail to write mock body to temporary file: %v", err)
+	}
+	if err := f.Sync(); err != nil {
+		t.Errorf("fail to flush data to disk: %v", err)
+	}
 	option := Option{
 		URLs: []string{f.Name()},
 	}
@@ -760,4 +765,17 @@ func TestCollectFromFile(t *testing.T) {
 	if _, err := p.CollectFromFile(f.Name()); err != nil {
 		t.Errorf(err.Error())
 	}
+}
+
+func TestGetTimestampS(t *testing.T) {
+	var (
+		ts        int64 = 1647959040488
+		startTime       = time.Unix(1600000000, 0)
+	)
+	m1 := dto.Metric{
+		TimestampMs: &ts,
+	}
+	m2 := dto.Metric{}
+	tu.Equals(t, int64(1647959040000000000), getTimestampS(&m1, startTime).UnixNano())
+	tu.Equals(t, int64(1600000000000000000), getTimestampS(&m2, startTime).UnixNano())
 }

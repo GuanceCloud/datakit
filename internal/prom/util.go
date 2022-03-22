@@ -61,7 +61,7 @@ func (p *Prom) validMetricName(name string) bool {
 // getNames prioritizes naming rules as follows:
 // 1. Check if any measurement rule is matched.
 // 2. Check if measurement name is configured.
-// 3. Check if measurement/field name can be split by first '_' met.
+// 3. Check if measurement/field name can be split by the first '_' met.
 // 4. If no term above matches, set both measurement name and field name to name.
 func (p *Prom) getNames(name string) (measurementName string, fieldName string) {
 	measurementName, fieldName = p.doGetNames(name)
@@ -162,7 +162,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 		return nil, err
 	}
 
-	timestamp := time.Now()
+	startTime := time.Now()
 
 	filteredMetricFamilies := p.filterMetricFamilies(metricFamilies)
 
@@ -180,14 +180,9 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 				fields := map[string]interface{}{
 					fieldName: v,
 				}
-
 				tags := p.getTags(m.GetLabel())
 
-				if m.GetTimestampMs() != 0 {
-					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
-				}
-
-				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
+				pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
 				if err != nil {
 					lastErr = err
 				} else {
@@ -204,11 +199,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 
 				tags := p.getTags(m.GetLabel())
 
-				if m.GetTimestampMs() != 0 {
-					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
-				}
-
-				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
+				pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
 				if err != nil {
 					lastErr = err
 				} else {
@@ -223,7 +214,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					tags := p.getTags(m.GetLabel())
 					tags["quantile"] = fmt.Sprint(q.GetQuantile())
 
-					pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
+					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
 					if err != nil {
 						lastErr = err
 					} else {
@@ -241,11 +232,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 
 				tags := p.getTags(m.GetLabel())
 
-				if m.GetTimestampMs() != 0 {
-					timestamp = time.Unix(m.GetTimestampMs()/1000, 0)
-				}
-
-				pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
+				pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
 				if err != nil {
 					lastErr = err
 				} else {
@@ -259,7 +246,7 @@ func (p *Prom) Text2Metrics(in io.Reader) (pts []*iod.Point, lastErr error) {
 					tags := p.getTags(m.GetLabel())
 					tags["le"] = fmt.Sprint(b.GetUpperBound())
 
-					pt, err := iod.MakePoint(measurementName, tags, fields, timestamp)
+					pt, err := iod.MakePoint(measurementName, tags, fields, getTimestampS(m, startTime))
 					if err != nil {
 						lastErr = err
 					} else {
@@ -285,4 +272,11 @@ func getValue(m *dto.Metric, metricType dto.MetricType) float64 {
 		// Shouldn't get here.
 		return 0
 	}
+}
+
+func getTimestampS(m *dto.Metric, startTime time.Time) time.Time {
+	if m.GetTimestampMs() != 0 {
+		return time.Unix(m.GetTimestampMs()/1000, 0)
+	}
+	return startTime
 }
