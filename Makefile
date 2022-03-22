@@ -101,6 +101,10 @@ endef
 define build_docker_image
 	@sudo docker buildx build --platform $(1) -t $(2)/datakit/datakit:$(VERSION) . --push
 	@sudo docker buildx build --platform $(1) -t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push
+	@sudo docker buildx build --platform $(1) -t $(2)/dataflux/datakit:$(VERSION) . --push
+	@sudo docker buildx build --platform $(1) -t $(2)/dataflux/logfwd:$(VERSION) -f Dockerfile_logfwd . --push
+	@sudo docker buildx build --platform $(1) -t $(2)/dataflux-prev/datakit:$(VERSION) . --push
+	@sudo docker buildx build --platform $(1) -t $(2)/dataflux-prev/logfwd:$(VERSION) -f Dockerfile_logfwd . --push
 endef
 
 define check_golint_version
