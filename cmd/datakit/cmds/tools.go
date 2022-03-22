@@ -20,6 +20,10 @@ func runToolFlags() error {
 		setupCompleterScripts()
 		os.Exit(0)
 
+	case *flagCompleterScripts:
+		showCompletionScripts()
+		os.Exit(0)
+
 	case *flagToolGrokQ:
 		grokq()
 		os.Exit(0)
@@ -118,5 +122,5 @@ func runToolFlags() error {
 		os.Exit(0)
 	}
 
-	return nil
+	return fmt.Errorf("unknown tool: %s", os.Args[2])
 }

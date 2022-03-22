@@ -166,6 +166,7 @@ var (
 	flagToolCheckSample       = fsTool.Bool("check-sample", false, "check all inputs config sample, to ensure all sample are valid TOML")
 	flagToolGrokQ             = fsTool.Bool("grokq", false, "query groks interactively")
 	flagSetupCompleterScripts = fsTool.Bool("setup-completer-script", false, "auto generate auto completion script(Linux only)")
+	flagCompleterScripts      = fsTool.Bool("completer-script", false, "show completion script(Linux only)")
 
 	fsToolUsage = func() {
 		fmt.Printf("usage: datakit tool [options]\n\n")
@@ -385,6 +386,11 @@ func doParseAndRunFlags() {
 		case fsToolName:
 			if err := fsTool.Parse(os.Args[2:]); err != nil {
 				errorf("Parse: %s\n", err)
+				fsToolUsage()
+				os.Exit(-1)
+			}
+
+			if len(os.Args) < 3 {
 				fsToolUsage()
 				os.Exit(-1)
 			}

@@ -1,6 +1,7 @@
 package cmds
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -50,9 +51,10 @@ _datakit()
 				COMPREPLY=( $(compgen -W '--log --ipdb --log --scheck --telegraf' -- "${cur_word}") )
 				;;
 
-			tool | debug)
+			tool)
 				COMPREPLY=( $(compgen -W '--check-config --check-sample --default-main-conf --dump-samples
-				--ipinfo --log --show-cloud-info --upload-log --workspace-info' -- "${cur_word}") )
+				--ipinfo --log --show-cloud-info --upload-log --workspace-info --setup-completer-script
+				--completer-script' -- "${cur_word}") )
 				;;
 
 			help)
@@ -72,7 +74,7 @@ complete -F _datakit datakit ddk
 # ex: filetype=sh`)
 
 	bashCompletionDirs = []string{
-		"/etc/bash_completion.d",
+		"/usr/share/bash-completion/completions",
 	}
 )
 
@@ -93,7 +95,7 @@ func setupCompleterScripts() {
 			continue
 		} else {
 			if !fi.IsDir() {
-				warnf("invalid /etc/bash_completion.d(not directory), skip\n")
+				warnf("invalid %s(not directory), skip\n", dir)
 				continue
 			}
 
@@ -103,4 +105,8 @@ func setupCompleterScripts() {
 			}
 		}
 	}
+}
+
+func showCompletionScripts() {
+	fmt.Println(string(completerShell))
 }

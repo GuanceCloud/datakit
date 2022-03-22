@@ -370,4 +370,4 @@ fi
 rm -rf $installer
 
 # install completion
-sudo_cmd datakit tool --setup-completer-script
+$sudo_cmd datakit tool --setup-completer-script
