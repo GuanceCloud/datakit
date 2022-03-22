@@ -146,4 +146,4 @@ customer_tags = [
 
 - [DataKit Tracing 字段定义](datakit-tracing-struct)
 - [DataKit 通用 Tracing 数据采集说明](datakit-tracing)
-- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 
+- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 
