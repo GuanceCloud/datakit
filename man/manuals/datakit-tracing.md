@@ -66,7 +66,7 @@ Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters �
 
 ## About Datakit Span Struct In Production
 
-关于 Datkit 如何使用[DatakitSpan](datakit-tracing-struct)数据结构的业务解释
+关于 Datakit 如何使用[DatakitSpan](datakit-tracing-struct)数据结构的业务解释
 
 - 多个 Datakit Span 数据被放在 Datakit Trace 组成一条 Tracing 数据上传到数据中心并保证所有 Span 有且只有一个 TraceID。
 - 生产环境下(多服务，多 Datakit 部署)一条完整的 Trace 数据是被分批次上传到数据中心的并不是按照调用先后顺序上传到数据中心。
