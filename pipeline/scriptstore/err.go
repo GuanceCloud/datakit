@@ -3,8 +3,8 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-package parser
+package scriptstore
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
+import "errors"
 
-var DenormalizedGlobalPatterns map[string]string = grok.CopyDenormalizedDefalutPatterns()
+var ErrScriptExists = errors.New("the current pipeline script exists")

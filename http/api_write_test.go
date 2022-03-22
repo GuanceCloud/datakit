@@ -230,14 +230,19 @@ func (x *apiWriteMock) sendToPipLine(t *plw.Task) error {
 	x.t.Helper()
 	x.t.Log("under mock impl: sendToPipLine")
 
-	for _, td := range t.Data {
-		r := plw.NewResult()
-		if err := td.Handler(r); err != nil {
-			x.t.Error(err)
-		} else {
-			x.t.Logf("result: %v", r)
-		}
+	dLen := 0
+	cntType := plw.TaskDataContentType(t.Data)
+	switch cntType {
+	case plw.ContentByte:
+		dLen = len(plw.TaskDataGetContentByte(t.Data))
+	case plw.ContentString:
+		dLen = len(plw.TaskDataGetContentStr(t.Data))
+	default:
+		x.t.Fatalf("unknown content type %s", cntType)
 	}
+	x.t.Log(dLen)
+
+	// 执行 Callback 将 feed 导致计算 dataway client count 时 panic
 
 	return nil
 }

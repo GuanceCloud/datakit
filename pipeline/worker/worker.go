@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package worker open task ch to receive and execute tasks
 package worker
 
@@ -10,16 +15,13 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 // internal/tailer/logs.go.
 const (
 	taskChMaxL = 2048
-
-	// ES value can be at most 32766 bytes long.
-	maxFieldsLength = 32766
 
 	// 不使用高频IO.
 	disableHighFreqIODdata = false
@@ -29,10 +31,6 @@ var (
 	l = logger.DefaultSLogger("pipeline-worker")
 
 	wkrManager *workerManager
-
-	workerFeedFuncDebug = func(taskName string, points []*io.Point, id int) error {
-		return nil
-	}
 
 	checkUpdateDebug = time.Duration(0)
 
@@ -49,7 +47,7 @@ type plWorker struct {
 	isRunning  bool
 	lastErr    error
 	lastErrTS  time.Time
-	engines    map[string]*ScriptInfo
+	engines    map[string]*scriptstore.ScriptInfo
 }
 
 func (wkr *plWorker) Run(ctx context.Context) error {
@@ -67,20 +65,13 @@ func (wkr *plWorker) Run(ctx context.Context) error {
 		select {
 		case task := <-taskCh:
 			taskNumIncrease()
-			if task == nil || len(task.Data) == 0 {
-				continue
-			}
-			points := wkr.run(task)
-
-			if wkrManager.debug {
-				_ = workerFeedFuncDebug(task.TaskName, points, wkr.wkrID)
-			} else {
-				_ = wkr.feed(task, points)
+			if err := wkr.run(task); err != nil {
+				l.Error(err)
 			}
 		case <-ticker.C:
 			needDelete := []string{}
 			for name, v := range wkr.engines {
-				if ngUpdated, err := scriptCentorStore.checkAndUpdate(v); err == nil {
+				if ngUpdated, err := scriptstore.QueryScript(name, v); err == nil {
 					wkr.engines[name] = ngUpdated
 				} else {
 					// err != nil,查询失败, script store 无法找到相关内容
@@ -97,43 +88,29 @@ func (wkr *plWorker) Run(ctx context.Context) error {
 	}
 }
 
-func (wkr *plWorker) run(task *Task) []*io.Point {
+func (wkr *plWorker) run(task *Task) error {
 	defer func() {
 		if err := recover(); err != nil {
 			l.Errorf("panic err = %v  lasterr=%v", err, wkr.lastErr)
-			wkr.lastErr = err.(error) //nolint
+			switch e := err.(type) {
+			case error:
+				wkr.lastErr = e
+			default: // pass
+			}
 			wkr.lastErrTS = time.Now()
 		}
 	}()
-	if task == nil || len(task.Data) == 0 {
+
+	if task == nil {
 		return nil
 	}
 
 	ng := wkr.getNg(task.GetScriptName())
-	result := RunPlTask(task, ng)
 
-	points := []*io.Point{}
-	for _, result := range result {
-		if result.output.Dropped {
-			continue
-		}
+	result, _ := RunPlTask(task, ng)
 
-		if pt, err := io.NewPoint(result.measurement, result.output.Tags, result.output.Data,
-			&io.PointOption{
-				Time:              result.ts,
-				Category:          datakit.Logging,
-				DisableGlobalTags: false,
-				Strict:            true,
-				MaxFieldValueLen:  task.MaxMessageLen,
-			}); err != nil {
-			wkr.lastErr = err
-			wkr.lastErrTS = time.Now()
-		} else {
-			points = append(points, pt)
-		}
-	}
-
-	return points
+	// 此处可能导致 panic，需要 recover
+	return task.Data.Callback(task, result)
 }
 
 func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {
@@ -141,7 +118,7 @@ func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {
 	var err error
 	scriptInf, ok := wkr.engines[ppScriptName]
 	if !ok {
-		scriptInf, err = scriptCentorStore.queryScriptAndNewNg(ppScriptName)
+		scriptInf, err = scriptstore.QueryScript(ppScriptName, nil)
 		if err != nil {
 			wkr.lastErr = err
 			wkr.lastErrTS = time.Now()
@@ -149,39 +126,15 @@ func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {
 			return nil
 		} else {
 			wkr.engines[ppScriptName] = scriptInf
-			return scriptInf.ng
+			return scriptInf.Engine()
 		}
 	}
-	return scriptInf.ng
-}
-
-func (wkr *plWorker) feed(task *Task, points []*io.Point) error {
-	if len(points) == 0 {
-		return nil
-	}
-	category := datakit.Logging
-	version := ""
-
-	if task.Opt != nil {
-		if task.Opt.Category != "" {
-			category = task.Opt.Category
-		}
-		if task.Opt.Version != "" {
-			version = task.Opt.Version
-		}
-	}
-
-	return io.Feed(task.TaskName, category, points,
-		&io.Option{
-			HighFreq: disableHighFreqIODdata,
-			Version:  version,
-		})
+	return scriptInf.Engine()
 }
 
 type workerManager struct {
 	sync.Mutex
 	workers map[int]*plWorker
-	debug   bool
 }
 
 // 如果超出 worker 数量上限将返回 error.
@@ -195,10 +148,11 @@ func (manager *workerManager) appendPPWorker() error {
 	wkr := &plWorker{
 		wkrID:    len(manager.workers),
 		createTS: time.Now(),
-		engines:  make(map[string]*ScriptInfo),
+		engines:  make(map[string]*scriptstore.ScriptInfo),
 	}
 
 	g.Go(wkr.Run)
+
 	manager.workers[wkr.wkrID] = wkr
 	return nil
 }
@@ -211,15 +165,13 @@ func (manager *workerManager) stopManager() {
 	}
 }
 
-func (manager *workerManager) setDebug(yn bool) {
-	manager.debug = yn
-}
-
 var MaxWorkerCount = func() int {
 	n := runtime.NumCPU()
 	n *= 2 // or n += n / 2
 	if n <= 0 {
 		n = 8
+	} else if n >= 32 {
+		n = 32
 	}
 	return n
 }()
@@ -228,15 +180,13 @@ func InitManager(count int) {
 	l = logger.SLogger("pipeline-worker")
 
 	if wkrManager != nil {
-		LoadDefaultDotPScript2Store()
+		scriptstore.LoadDefaultDotPScript2Store()
 		return
 	}
 
 	wkrManager = &workerManager{
 		workers: make(map[int]*plWorker),
 	}
-
-	LoadDefaultDotPScript2Store()
 
 	if count <= 0 {
 		count = MaxWorkerCount

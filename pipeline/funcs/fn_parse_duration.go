@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -8,7 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func ParseDurationChecking(node parser.Node) error {
+func ParseDurationChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		l.Warn("parse_duration(): invalid param")
@@ -28,7 +33,7 @@ func ParseDurationChecking(node parser.Node) error {
 	return nil
 }
 
-func ParseDuration(ng *parser.Engine, node parser.Node) error {
+func ParseDuration(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		l.Warn("parse_duration(): invalid param")
