@@ -99,15 +99,21 @@ define pub
 endef
 
 define build_docker_image
-	@sudo docker buildx build --platform $(1) \
-		-t $(2)/datakit/datakit:$(VERSION) \
-		-t $(2)/dataflux/datakit:$(VERSION) \
-		-t $(2)/dataflux-prev/datakit:$(VERSION) . --push
-	@sudo docker buildx build --platform $(1) \
-		-t $(2)/datakit/logfwd:$(VERSION) \
-		-t $(2)/dataflux/logfwd:$(VERSION) \
-		-t $(2)/dataflux-prev/logfwd:$(VERSION) -f Dockerfile_logfwd . --push
-
+	@if [ $(1) = "registry.jiagouyun.com" ]; then \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/datakit:$(VERSION) . --push ; \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push ; \
+	else \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/datakit:$(VERSION) \
+			-t $(2)/dataflux/datakit:$(VERSION) \
+			-t $(2)/dataflux-prev/datakit:$(VERSION) . --push; \
+		sudo docker buildx build --platform $(1) \
+			-t $(2)/datakit/logfwd:$(VERSION) \
+			-t $(2)/dataflux/logfwd:$(VERSION) \
+			-t $(2)/dataflux-prev/logfwd:$(VERSION) -f Dockerfile_logfwd . --push; \
+	fi
 endef
 
 define check_golint_version
