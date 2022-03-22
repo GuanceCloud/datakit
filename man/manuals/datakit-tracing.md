@@ -56,9 +56,19 @@ keep_rare_resource = false
 Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters 和 Samplers：
 
 <!-- - Tracing Statistics: 统计 Tracing 链路上的业务状态，例如：访问耗时，错误率等。 -->
+
 - Filters:
   - keep_rare_resource: 当系统监测到某些链路在一小时之内没有发送任何 Tracing 数据那么将被认定为稀有并被透穿到 Data Center。
   - close_resource: 按照正则规则关闭某些 Service 下的一个或多个 Resource。
 - Samplers: 基于概率的 Tracing 数据采样。多服务环境下采样率必须配置一致才能达到采样效果，
   - 例一：A-Service(0.3) --> B-Service(0.3) --> C-Service(0.3) 配置正确，最终采样率为 30%。
   - 例二：A-Service(0.1) --> B-Service(0.3) --> C-Service(0.1) 配置错误，链路不能正常工作。
+
+## About Datakit Span Struct
+
+关于 Datkit 如何使用[DatakitSpan](datakit-tracing-struct)数据结构的业务解释
+
+- 多个 Datakit Span 数据被放在 Datakit Trace 组成一条 Tracing 数据上传到数据中心并保证所有 Span 有且只有一个 TraceID。
+- 生产环境下(多服务，多 Datakit 部署)一条完整的 Trace 数据是被分批次上传到数据中心的并不是按照调用先后顺序上传到数据中心。
+- parent_id = 0 为 root span
+- span_type = entry 为当前 resource 的调用者即当前 service 上的第一个 span
