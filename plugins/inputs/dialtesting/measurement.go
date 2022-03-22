@@ -208,3 +208,57 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 		},
 	}
 }
+
+type websocketMeasurement struct {
+	name   string
+	tags   map[string]string
+	fields map[string]interface{}
+	ts     time.Time
+}
+
+func (m *websocketMeasurement) LineProto() (*io.Point, error) {
+	return io.MakePoint(m.name, m.tags, m.fields, m.ts)
+}
+
+//nolint:lll
+func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "websocket_dial_testing",
+		Tags: map[string]interface{}{
+			"name":     &inputs.TagInfo{Desc: "示例 拨测名称,百度测试"},
+			"url":      &inputs.TagInfo{Desc: "示例 ws://www.abc.com"},
+			"country":  &inputs.TagInfo{Desc: "示例 中国"},
+			"province": &inputs.TagInfo{Desc: "示例 浙江"},
+			"city":     &inputs.TagInfo{Desc: "示例 杭州"},
+			"internal": &inputs.TagInfo{Desc: "示例 true（国内 true /海外 false）"},
+			"isp":      &inputs.TagInfo{Desc: "示例 电信/移动/联通"},
+			"status":   &inputs.TagInfo{Desc: "示例 OK/FAIL 两种状态 "},
+		},
+		Fields: map[string]interface{}{
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "包括响应时间(response_time_in_micros)/错误原因(fail_reason)",
+			},
+			"fail_reason": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "拨测失败原因",
+			},
+			"response_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "TCP 连接时间, 单位",
+			},
+			"success": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "只有 1/-1 两种状态, 1 表示成功, -1 表示失败",
+			},
+		},
+	}
+}

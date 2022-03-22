@@ -11,9 +11,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 )
 
+type TcpResponseTime struct {
+	IsContainDNS bool   `json:"is_contain_dns"`
+	Target       string `json:"target"`
+
+	targetTime time.Duration
+}
+
 type TcpSuccess struct {
-	ResponseTime string `json:"response_time,omitempty"`
-	respTime     time.Duration
+	ResponseTime []*TcpResponseTime `json:"response_time,omitempty"`
 }
 
 type TcpTask struct {
@@ -34,11 +40,11 @@ type TcpTask struct {
 	Labels           []string          `json:"labels,omitempty"`
 	UpdateTime       int64             `json:"update_time,omitempty"`
 
-	tcpAddr  string
-	reqCost  time.Duration
-	reqError string
-	timeout  time.Duration
-	ticker   *time.Ticker
+	reqCost    time.Duration
+	reqDnsCost time.Duration
+	reqError   string
+	timeout    time.Duration
+	ticker     *time.Ticker
 }
 
 func (t *TcpTask) Init() error {
@@ -62,8 +68,6 @@ func (t *TcpTask) Init() error {
 	}
 	t.ticker = time.NewTicker(du)
 
-	t.tcpAddr = net.JoinHostPort(t.Host, t.Port)
-
 	if strings.ToLower(t.CurStatus) == StatusStop {
 		return nil
 	}
@@ -73,12 +77,14 @@ func (t *TcpTask) Init() error {
 	}
 
 	for _, checker := range t.SuccessWhen {
-		if checker.ResponseTime != "" {
-			du, err := time.ParseDuration(checker.ResponseTime)
-			if err != nil {
-				return err
+		if checker.ResponseTime != nil {
+			for _, v := range checker.ResponseTime {
+				du, err := time.ParseDuration(v.Target)
+				if err != nil {
+					return err
+				}
+				v.targetTime = du
 			}
-			checker.respTime = du
 		}
 
 	}
@@ -105,11 +111,21 @@ func (t *TcpTask) Check() error {
 func (t *TcpTask) CheckResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
-		if t.reqCost > chk.respTime && chk.respTime > 0 {
-			reasons = append(reasons,
-				fmt.Sprintf("HTTP response time(%v) larger than %v", t.reqCost, chk.respTime))
-		} else if chk.respTime > 0 {
-			succFlag = true
+		if chk.ResponseTime != nil {
+			for _, v := range chk.ResponseTime {
+				reqCost := t.reqCost
+
+				if v.IsContainDNS {
+					reqCost += t.reqDnsCost
+				}
+
+				if reqCost > v.targetTime && v.targetTime > 0 {
+					reasons = append(reasons,
+						fmt.Sprintf("TCP response time(%v) larger than %v", reqCost, v.targetTime))
+				} else if v.targetTime > 0 {
+					succFlag = true
+				}
+			}
 		}
 	}
 
@@ -124,11 +140,13 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		"status":    "FAIL",
 	}
 
-	responseTime := int64(t.reqCost) / 1000 // us
+	responseTime := int64(t.reqCost) / 1000                     // us
+	responseTimeWithDNS := int64(t.reqCost+t.reqDnsCost) / 1000 // us
 
 	fields = map[string]interface{}{
-		"response_time": responseTime,
-		"success":       int64(-1),
+		"response_time":          responseTime,
+		"response_time_with_dns": responseTimeWithDNS,
+		"success":                int64(-1),
 	}
 
 	for k, v := range t.Tags {
@@ -194,15 +212,37 @@ func (t *TcpTask) Run() error {
 	var d net.Dialer
 	ctx, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()
+
+	hostIP := net.ParseIP(t.Host)
+
+	if hostIP == nil { // host name
+		start := time.Now()
+		if ips, err := net.LookupIP(t.Host); err != nil {
+			t.reqError = err.Error()
+			return err
+		} else {
+			if len(ips) == 0 {
+				err := fmt.Errorf("invalid host: %s, found no ip record", t.Host)
+				t.reqError = err.Error()
+				return err
+			} else {
+				t.reqDnsCost = time.Since(start)
+				hostIP = ips[0] // TODO: support mutiple ip for one host
+			}
+		}
+	}
+
+	tcpIPAddr := net.JoinHostPort(hostIP.String(), t.Port)
+
 	start := time.Now()
-	conn, err := d.DialContext(ctx, "tcp", t.tcpAddr)
+	conn, err := d.DialContext(ctx, "tcp", tcpIPAddr)
 
 	if err != nil {
 		t.reqError = err.Error()
 		return err
 	}
 
-	defer conn.Close()
+	conn.Close()
 
 	t.reqCost = time.Since(start)
 

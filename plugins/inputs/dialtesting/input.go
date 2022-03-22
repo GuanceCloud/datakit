@@ -100,6 +100,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&httpMeasurement{},
 		&tcpMeasurement{},
 		&icmpMeasurement{},
+		&websocketMeasurement{},
 	}
 }
 
@@ -228,6 +229,8 @@ func (d *Input) newTaskRun(t dt.Task) (*dialer, error) {
 		// TODO
 	case dt.ClassTCP:
 		// TODO
+	case dt.ClassWebsocket:
+		// TODO
 	case dt.ClassICMP:
 		// TODO
 	case dt.ClassOther:
@@ -353,6 +356,8 @@ func (d *Input) dispatchTasks(j []byte) error {
 				continue
 			case dt.ClassTCP:
 				t = &dt.TcpTask{}
+			case dt.ClassWebsocket:
+				t = &dt.WebsocketTask{}
 			case dt.ClassICMP:
 				t = &dt.IcmpTask{}
 			case dt.ClassOther:
