@@ -70,5 +70,5 @@ Datakit Tracing Backend 包括几个部分 Tracing <!--Statistics,--> Filters �
 
 - 多个 Datakit Span 数据被放在 Datakit Trace 组成一条 Tracing 数据上传到数据中心并保证所有 Span 有且只有一个 TraceID。
 - 生产环境下(多服务，多 Datakit 部署)一条完整的 Trace 数据是被分批次上传到数据中心的并不是按照调用先后顺序上传到数据中心。
-- parent_id = 0 为 root span
-- span_type = entry 为当前 resource 的调用者即当前 service 上的第一个 span
+- parent_id = 0 为 root span。
+- span_type = entry 为 service 上的首个 resource 的调用者即当前 service 上的第一个 span。
