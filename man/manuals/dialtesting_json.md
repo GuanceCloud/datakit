@@ -35,7 +35,20 @@
 
 ### 配置拨测任务
 
-目前拨测任务只支持 HTTP 服务（即 API 拨测），下面是一个拨测的 JSON 示例（拨测百度页面）：
+目前拨测任务支持 HTTP, TCP, ICMP, WEBSOCKET 服务（即 API 拨测），JSON 格式如下：
+
+```json
+{
+  "<拨测类型>": [
+    {拨测任务1},
+    {拨测任务2},
+       ...
+    {拨测任务n},
+  ]
+}
+```
+
+下面是一个具体的拨测示例：
 
 ```json
 {
@@ -47,7 +60,7 @@
       "post_url": "https://<your-dataway-host>?token=<your-token>",
       "status": "OK",
       "frequency": "10s",
-      "success_when": "and",
+      "success_when_logic": "and",
       "success_when": [
         {
           "response_time": "1000ms",
@@ -73,7 +86,25 @@
       },
       "update_time": 1645065786362746
     }
-  ]
+  ],
+  "TCP": [
+      {
+        "name": "tcp-test",
+        "access_key": "9Y7J52SatFJCWzREr8JQ",
+        "host": "www.baidu.com",
+        "port": "80",
+        "status": "OK",
+        "frequency": "10s",
+        "success_when_logic": "or",
+        "success_when": [
+            {"response_time": {
+                "is_contain_dns": true,
+                "target": "10ms"
+            }}
+        ],
+        "update_time": 1641440314550918
+      }
+    ],
 }
 ```
 
@@ -83,13 +114,15 @@
 
 ### 拨测任务字段定义
 
-主要的字段定义如下：
+拨测任务字段包括「公共字段」和具体拨测任务的「额外字段」。
+
+#### 公共字段
+
+拨测任务公共字段定义如下：
 
 | 字段              | 类型   | 是否必须 | 说明                                    |
 | :---              | ---    | ---      | ---                                     |
 | `name`            | string | Y        | 拨测服务名称                            |
-| `method`          | string | Y        | HTTP 请求方法                           |
-| `url`             | string | Y        | 完整的 HTTP 请求地址                    |
 | `status`          | string | Y        | 拨测服务状态，如 "OK"/"stop"            |
 | `frequency`       | string | Y        | 拨测频率                                |
 | `success_when_logic`    | string | N        | success_when条件之间的逻辑关系，如"and"/"or",默认为"and"  |
@@ -97,7 +130,17 @@
 | `advance_options` | object | N        | 详见下文                                |
 | `post_url`        | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
 
-由于目前只支持 HTTP 拨测，故总体的 JSON 结构如下：
+#### HTTP 拨测
+
+**额外字段**
+
+| 字段              | 类型   | 是否必须 | 说明                                    |
+| :---              | ---    | ---      | ---                                     |
+| `method`          | string | Y        | HTTP 请求方法                           |
+| `url`             | string | Y        | 完整的 HTTP 请求地址                    |
+
+
+总体的 JSON 结构如下：
 
 ```
 {
@@ -286,7 +329,7 @@
         "password": "fawaikuangtu"
       },
     "headers": {
-      "X-Prison-Breaker": "张三"
+      "X-Prison-Breaker": "张三",
       "X-Prison-Break-Password": "fawaikuangtu"
     },
     "follow_redirect": false
@@ -306,7 +349,7 @@
 ```json
 "advance_options": {
   "request_body": {
-    "body_type": "text/html"
+    "body_type": "text/html",
     "body": "填写好请求体，此处注意各种复杂的转义"
   }
 }
@@ -416,6 +459,305 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
         "X-proxy-header": "my-proxy-foobar"
       }
     }
+  },
+}
+```
+
+#### TCP 拨测
+
+##### 额外字段
+
+| 字段              | 类型   | 是否必须 | 说明                                    |
+| :---              | ---    | ---      | ---                                     |
+| `host`          | string | Y        | TCP 主机地址                           |
+| `port`             | string | Y        | TCP 端口                    |
+| `timeout`             | string | N        | TCP 连接超时时间                    |
+
+完整 JSON 结构如下:
+
+```
+{
+	"TCP": [
+		{
+      "name": "tcp-test",
+      "host": "www.baidu.com",
+      "port": "80",
+      "timeout": "10ms",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time":[ 
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ]
+        }
+      ]
+		}
+	]
+}
+```
+
+##### `success_when` 定义
+
+- TCP 响应时间判断 (`response_time`)
+
+| 字段              | 类型   | 是否必须 | 说明                                                       |
+| :---              | ---    | ---      | ---                                                        |
+| `target`          | string | Y        | 判定响应时间是否小于该值                     |
+| `is_contain_dns`  | bool | N        | 指明响应时间是否包含 DNS 解析时间                     |
+
+
+```json
+"success_when": [
+  {
+    "response_time": [
+      {
+        "is_contain_dns": true,
+        "target": "10ms"
+      }
+    ]
+  }
+]
+```
+
+
+#### ICMP 拨测
+
+##### 额外字段
+
+| 字段              | 类型   | 是否必须 | 说明                                    |
+| :---              | ---    | ---      | ---                                     |
+| `host`            | string | Y        | 主机地址                           |
+| `packet_count`    | int |   N         | 发送 ICMP 包的次数  
+| `timeout`             | string | N    | 连接超时时间
+
+完整 JSON 结构如下:
+
+```
+{
+	"ICMP": [
+		{
+      "name": "icmp-test",
+      "host": "www.baidu.com",
+      "timeout": "10ms",
+      "packet_count": 3,
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": "20ms",
+          "packet_loss_percent": 50
+        }
+      ]
+		}
+	]
+}
+```
+
+##### `success_when` 定义
+
+- ICMP 平均丢包率 (`packet_loss_percent`)
+
+填写具体的值，如果 ICMP 平均丢包率小于该值，则判定拨测成功。
+
+```json
+"success_when": [
+  {
+    "packet_loss_percent": 20
+  }
+]
+```
+
+- ICMP 平均响应时间 (`response_time`)
+
+填写具体的时间，如果 ICMP 平均响应时间小于该值，则判定拨测成功.
+
+```json
+"success_when": [
+  {
+    "response_time": "30ms"
+  }
+]
+```
+
+#### WEBSOCKET 拨测
+
+##### 额外字段
+
+| 字段              | 类型   | 是否必须 | 说明                                    |
+| :---              | ---    | ---      | ---                                     |
+| `url`          | string | Y        | Websocket 连接地址，如 ws://locaohost:8080  |
+| `message`       | string | Y        | Websocket 连接成功后发送的消息                |
+
+完整 JSON 结构如下:
+
+```
+{
+	"WEBSOCKET": [
+		{
+      "name": "websocket-test",
+      "url": "ws://localhost:8080",
+      "message": "hello",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": [
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ],
+          "response_message": [
+            {
+              "is": "hello1"
+            }
+          ],
+          "header": {
+            "status": [
+              {
+                "is": "ok"
+              }
+            ]
+          }
+        }
+      ],
+      "advance_options": {
+        "request_options": {
+          "timeout": "10s",
+          "headers": {
+            "x-token": "aaaaaaa",
+            "x-header": "111111"
+          }
+        },
+        "auth": {
+          "username": "admin",
+          "password": "123456"
+        }
+      }
+		}
+	]
+}
+```
+
+##### `success_when` 定义
+
+- 响应时间判断 (`response_time`)
+
+| 字段              | 类型   | 是否必须 | 说明                                                       |
+| :---              | ---    | ---      | ---                                                        |
+| `target`          | string | Y        | 判定响应时间是否小于该值                     |
+| `is_contain_dns`  | bool | N        | 指明响应时间是否包含 DNS 解析时间               |
+
+
+```json
+"success_when": [
+  {
+    "response_time": [
+      {
+        "is_contain_dns": true,
+        "target": "10ms"
+      }
+    ]
+  }
+]
+```
+
+- 返回消息判定（`response_message`）
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `is`              | string | N        | 返回的 message 是否等于该指定字段                   |
+| `is_not`          | string | N        | 返回的 message 是否不等于该指定字段                 |
+| `match_regex`     | string | N        | 返回的 message 是否含有该匹配正则表达式的子字符串   |
+| `not_match_regex` | string | N        | 返回的 message 是否不含有该匹配正则表达式的子字符串 |
+| `contains`        | string | N        | 返回的 message 是否含有该指定的子字符串             |
+| `not_contains`    | string | N        | 返回的 message 是否不含有该指定的子字符串           |
+
+如：
+
+```json
+"success_when": [
+  {
+    "response_message": [
+      {
+        "is": "reply",
+      }
+    ]
+  }
+]
+```
+
+- 请求返回 Header 判断（`header`）
+
+| 字段              | 类型   | 是否必须 | 说明                                                       |
+| :---              | ---    | ---      | ---                                                        |
+| `is`              | string | N        | 返回的 header 指定字段是否等于该指定值                     |
+| `is_not`          | string | N        | 返回的 header 指定字段是否不等于该指定值                   |
+| `match_regex`     | string | N        | 返回的 header 指定字段是否含有该匹配正则表达式的子字符串   |
+| `not_match_regex` | string | N        | 返回的 header 指定字段是否不含有该匹配正则表达式的子字符串 |
+| `contains`        | string | N        | 返回的 header 指定字段是否含有该指定的子字符串             |
+| `not_contains`    | string | N        | 返回的 header 指定字段是否不含有该指定的子字符串           |
+
+如：
+
+```json
+"success_when": [
+  {
+    "header": {
+       "Status": [
+         {
+           "is": "ok"
+         }
+       ]
+    }
+  }
+]
+```
+
+##### `advance_options` 定义
+
+- 请求选项 (`request_options`)
+
+| 字段              | 类型              | 是否必须 | 说明                       |
+| :---              | ---               | ---      | ---                        |
+| `timeout` | string              | N        | 连接超时时间         |
+| `headers` | map[string]string | N        |  请求时指定一组 Header |
+
+```json
+"advance_options": {
+  "request_options": {
+    "timeout": "30ms",
+    "headers": {
+      "X-Token": "xxxxxxxxxx"
+    }
+  },
+}
+```
+
+- 认证信息 (`auth`)
+
+支持普通的用户名和密码认证(Basic access authentication)。
+
+| 字段       | 类型   | 是否必须 | 说明       |
+| :---       | ---    | ---      | ---        |
+| `username` | string | Y        | 用户名     |
+| `password` | string | Y        | 用户名密码 |
+
+```json
+"advance_options": {
+  "auth": {
+    "username": "admin",
+    "password": "123456"
   },
 }
 ```
