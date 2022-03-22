@@ -99,12 +99,14 @@ define pub
 endef
 
 define build_docker_image
-	@if [ $(1) = "registry.jiagouyun.com" ]; then \
+	@if [ $(2) = "registry.jiagouyun.com" ]; then \
+		echo 'publish to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) . --push ; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/logfwd:$(VERSION) -f Dockerfile_logfwd . --push ; \
 	else \
+		echo 'publish to $(2)...'; \
 		sudo docker buildx build --platform $(1) \
 			-t $(2)/datakit/datakit:$(VERSION) \
 			-t $(2)/dataflux/datakit:$(VERSION) \
