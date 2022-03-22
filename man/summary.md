@@ -2,12 +2,16 @@
 
   - [服务安装和管理](datakit-service-how-to)
 
-  - [采集器配置](datakit-conf-how-to)
+  - [如何配置 DataKit]()
 
-  - [通过 DQL 查询数据](datakit-dql-how-to)
-  - [各种其它工具使用](datakit-tools-how-to)
+    - [DataKit 主配置](datakit-conf)
+    - [采集器配置](datakit-input-conf)
 
-  - [查看 DataKit Monitor](datakit-monitor)
+  - [DataKit 日常使用]()
+
+    - [通过 DQL 查询数据](datakit-dql-how-to)
+    - [查看 DataKit Monitor](datakit-monitor)
+    - [各种其它工具使用](datakit-tools-how-to)
 
 - [DataKit 版本历史](changelog)
 
@@ -102,21 +106,23 @@
 
   - [应用性能监测（APM）]()
 
-    - [DDTrace](ddtrace)
-      - [Golang 示例](ddtrace-golang)
-      - [Java 示例](ddtrace-java)
-      - [Python 示例](ddtrace-python)
-    - [SkyWalking](skywalking)
+    - [Datakit Tracing 综述](datakit-tracing)
+      - [Datakit Tracing 数据结构](datakit-tracing-struct)
+		- [各种 Tracing 接入]()
 
-    - [Opentelemetry](opentelemetry)
-      - [Golang 示例](opentelemetry-go)
-      - [Java 示例](opentelemetry-java)
+      - [DDTrace](ddtrace)
+        - [Golang 示例](ddtrace-golang)
+        - [Java 示例](ddtrace-java)
+        - [Python 示例](ddtrace-python)
 
-    - [Jaeger](jaeger)
-    - [Zipkin](zipkin)
+      - [SkyWalking](skywalking)
 
-    - [Datakit Tracing Struct](datakit-tracing-struct)
-    - [Datakit Tracing](datakit-tracing)
+      - [Opentelemetry](opentelemetry)
+        - [Golang 示例](opentelemetry-go)
+        - [Java 示例](opentelemetry-java)
+
+      - [Jaeger](jaeger)
+      - [Zipkin](zipkin)
 
   - [用户访问监测（RUM）]()
 

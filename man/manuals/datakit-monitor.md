@@ -60,7 +60,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 如果运行 Monitor 时，指定了 verbose 选项（`-V`），则会额外输出更多信息，如下图所示：
 
-![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/monitor-verbose.png) 
+![完整Monitor信息展示](https://zhuyun-static-files-production.oss-cn-hangzhou.aliyuncs.com/images/datakit/dk-monitor-gif.gif) 
 
 - `Enabled Inputs` 展示开启的采集器列表，其中
 

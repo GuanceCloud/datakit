@@ -16,7 +16,7 @@ rm -rf .docs
 mkdir -p .docs
 cp man/summary.md .docs/
 
-latest_tag=$(git tag -l | sort -nr | head -n 1)
+latest_tag=$(git tag --sort=-creatordate | head -n 1)
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 
 man_version=$1

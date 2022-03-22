@@ -4,6 +4,11 @@
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
+> 本文档已经被废弃，其内容被分割到如下两个文档：
+> 
+> - [DataKit 主配置](datakit-conf)
+> - [采集器配置](datakit-input-conf)
+
 # 配置文件
 
 DataKit 的配置均使用 [Toml 文件](https://toml.io/cn)。在 DataKit 中，配置文件分为两类，其一是 DataKit 主配置，一般情况下，无需修改；另一种为具体的采集器配置，在日常使用过程中，我们可能经常需要对其进行修改。
