@@ -26,24 +26,24 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 		return nil, err
 	}
 
-	return &containerdInput{client: cli, cfg: cfg}
+	return &containerdInput{client: cli, cfg: cfg}, nil
 }
 
 func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 	var res []inputs.Measurement
 	cList, err := c.client.Containers(context.Background())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, container := range cList {
-		info, err := container.Info()
+		info, err := container.Info(context.TODO())
 		if err != nil {
 			continue
 		}
-		obj := containerdObject{time: time.New()}
+		obj := &containerdObject{time: time.Now()}
 
-		imageName, imageShortName, imageTag := ParseImage(image)
+		imageName, imageShortName, imageTag := ParseImage(info.Image)
 		obj.tags = map[string]string{
 			"name":             info.ID,
 			"container_id":     info.ID,
@@ -96,9 +96,9 @@ func (c *containerdObject) Info() *inputs.MeasurementInfo {
 			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
 			"pod_namespace":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),
-			Fields: map[string]interface{}{
-				"age": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: `该容器创建时长，单位秒`},
-			},
+		},
+		Fields: map[string]interface{}{
+			"age": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: `该容器创建时长，单位秒`},
 		},
 	}
 }

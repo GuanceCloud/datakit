@@ -232,7 +232,7 @@ func (i *Input) gatherDockerContainerObject() error {
 
 func (i *Input) gatherContainerdObject() error {
 	if i.containerdInput == nil {
-		return
+		return nil
 	}
 	start := time.Now()
 
@@ -336,7 +336,7 @@ func (i *Input) setup() bool {
 
 		i.containerdInput, err = newContainerdInput(&containerdInputConfig{
 			endpoint:  containerdEndpoint,
-			extraTags: tags,
+			extraTags: i.Tags,
 		})
 		if err != nil {
 			l.Errorf("create containerd input err: %w, skip", err)
