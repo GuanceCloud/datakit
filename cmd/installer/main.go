@@ -80,6 +80,7 @@ var (
 
 	flagInstallOnly,
 	flagCgroupEnabled,
+	envEnableExperimental,
 	flagDatakitHTTPPort int
 
 	flagLimitCPUMax float64
@@ -136,6 +137,8 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&flagInfo, "info", false, "show installer info")
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
+	flag.IntVar(&envEnableExperimental, "env_enable_experimental", 0, "")
+
 }
 
 func downloadFiles(to string) error {
@@ -756,7 +759,11 @@ func checkUpgradeVersion(s string) error {
 	}
 
 	if !v.IsStable() {
-		return fmt.Errorf("not stable version, only stable version allowed to upgrade")
+		if envEnableExperimental == 1 {
+			l.Info("upgrade version is unstable")
+		} else {
+			return fmt.Errorf("upgrade to %s is not stable version, use env: <$DK_ENABLE_EXPEIMENTAL=1> to upgrade", DataKitVersion)
+		}
 	}
 	return nil
 }
