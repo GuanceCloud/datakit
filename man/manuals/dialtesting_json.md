@@ -35,7 +35,7 @@
 
 ### 配置拨测任务
 
-目前拨测任务支持 HTTP, TCP, ICMP, WEBSOCKET 服务（即 API 拨测），JSON 格式如下：
+目前拨测任务支持四种拨测类型，即 HTTP, TCP, ICMP, WEBSOCKET 服务，JSON 格式如下：
 
 ```json
 {
@@ -90,7 +90,6 @@
   "TCP": [
       {
         "name": "tcp-test",
-        "access_key": "9Y7J52SatFJCWzREr8JQ",
         "host": "www.baidu.com",
         "port": "80",
         "status": "OK",
