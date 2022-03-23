@@ -15,6 +15,7 @@ func gatherDockerContainerObject(client dockerClientX, k8sClient k8sClientX, con
 	m := &containerObject{}
 	m.tags = getContainerInfo(container, k8sClient)
 	m.tags["name"] = container.ID
+	m.tags["namespace"] = "moby"
 	m.tags["status"] = container.Status
 
 	if hostname, err := getContainerHostname(client, container.ID); err == nil {
@@ -105,6 +106,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
+			"namespace":        inputs.NewTagInfo(`该容器所在的命名空间`),
 			"status":           inputs.NewTagInfo("容器状态，例如 `Up 5 hours`"),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),

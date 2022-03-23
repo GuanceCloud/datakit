@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/namespaces"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
@@ -29,41 +30,56 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 	return &containerdInput{client: cli, cfg: cfg}, nil
 }
 
+func (c *containerdInput) stop() {
+	c.client.Close()
+}
+
 func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 	var res []inputs.Measurement
-	cList, err := c.client.Containers(context.Background())
+
+	nsList, err := c.client.NamespaceService().List(context.TODO())
 	if err != nil {
 		return nil, err
 	}
 
-	for _, container := range cList {
-		info, err := container.Info(context.TODO())
+	for _, ns := range nsList {
+		ctx := namespaces.WithNamespace(context.Background(), ns)
+		cList, err := c.client.Containers(ctx)
 		if err != nil {
+			l.Warn("failed to collect containers in containerd, namespace: %s, skip", ns)
 			continue
 		}
-		obj := &containerdObject{time: time.Now()}
 
-		imageName, imageShortName, imageTag := ParseImage(info.Image)
-		obj.tags = map[string]string{
-			"name":             info.ID,
-			"container_id":     info.ID,
-			"image":            info.Image,
-			"image_name":       imageName,
-			"image_short_name": imageShortName,
-			"image_tag":        imageTag,
-			"runtime":          info.Runtime.Name,
-			"container_type":   "containerd",
-		}
-		obj.fields = map[string]interface{}{
-			"age": time.Since(info.CreatedAt) / 1e3,
-		}
+		for _, container := range cList {
+			info, err := container.Info(context.TODO())
+			if err != nil {
+				continue
+			}
+			obj := &containerdObject{time: time.Now()}
 
-		obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
-		obj.tags.addValueIfNotEmpty("pod_namespace", info.Labels[containerLableForPodNamespace])
-		for k, v := range c.cfg.extraTags {
-			obj.tags[k] = v
+			imageName, imageShortName, imageTag := ParseImage(info.Image)
+			obj.tags = map[string]string{
+				"name":             info.ID,
+				"namespace":        ns,
+				"container_id":     info.ID,
+				"image":            info.Image,
+				"image_name":       imageName,
+				"image_short_name": imageShortName,
+				"image_tag":        imageTag,
+				"runtime":          info.Runtime.Name,
+				"container_type":   "containerd",
+			}
+			obj.fields = map[string]interface{}{
+				"age": time.Since(info.CreatedAt) / 1e3,
+			}
+
+			obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
+			obj.tags.addValueIfNotEmpty("pod_namespace", info.Labels[containerLableForPodNamespace])
+			for k, v := range c.cfg.extraTags {
+				obj.tags[k] = v
+			}
+			res = append(res, obj)
 		}
-		res = append(res, obj)
 	}
 
 	return res, nil
@@ -88,6 +104,7 @@ func (c *containerdObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
 			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
+			"namespace":        inputs.NewTagInfo(`该容器所在的命名空间`),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),

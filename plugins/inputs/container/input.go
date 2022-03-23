@@ -115,7 +115,7 @@ func (i *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			i.dockerInput.stop()
+			i.stop()
 			l.Info("container exit success")
 			return
 
@@ -134,6 +134,15 @@ func (i *Input) Run() {
 		case i.pause = <-i.chPause:
 			globalPause.set(i.pause)
 		}
+	}
+}
+
+func (i *Input) stop() {
+	if i.dockerInput != nil {
+		i.dockerInput.stop()
+	}
+	if i.containerdInput != nil {
+		i.containerdInput.stop()
 	}
 }
 

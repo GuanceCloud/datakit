@@ -54,6 +54,10 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 	}
 	d.client = client
 
+	if !d.pingOK() {
+		return nil, fmt.Errorf("Cannot connect to the Docker daemon at unix:///var/run/docker.sock.")
+	}
+
 	if err := d.createMetricFilters(cfg.containerIncludeMetric, cfg.containerExcludeMetric); err != nil {
 		return nil, err
 	}
@@ -66,6 +70,17 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 
 func (d *dockerInput) stop() {
 	d.cancelTails()
+}
+
+func (d *dockerInput) pingOK() bool {
+	ping, err := d.client.Ping(context.TODO())
+	if err != nil {
+		return false
+	}
+	if ping.APIVersion == "" || ping.OSType == "" {
+		return false
+	}
+	return true
 }
 
 func (d *dockerInput) gatherMetric() ([]inputs.Measurement, error) {
