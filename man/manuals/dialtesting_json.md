@@ -592,7 +592,7 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 
 | 字段              | 类型   | 是否必须 | 说明                                    |
 | :---              | ---    | ---      | ---                                     |
-| `url`          | string | Y        | Websocket 连接地址，如 ws://locaohost:8080  |
+| `url`          | string | Y        | Websocket 连接地址，如 ws://localhost:8080  |
 | `message`       | string | Y        | Websocket 连接成功后发送的消息                |
 
 完整 JSON 结构如下:
