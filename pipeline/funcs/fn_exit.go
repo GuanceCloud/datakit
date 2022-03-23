@@ -11,6 +11,6 @@ func ExitChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Exit(ng *parser.EngineData, node parser.Node) error {
+func Exit(ng *parser.EngineData, node parser.Node) interface{} {
 	return nil
 }

@@ -36,7 +36,7 @@ func GroupInChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func GroupIn(ng *parser.EngineData, node parser.Node) error {
+func GroupIn(ng *parser.EngineData, node parser.Node) interface{} {
 	setdata := make([]interface{}, 0)
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 3 || len(funcExpr.Param) > 4 {

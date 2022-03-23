@@ -43,7 +43,7 @@ func ReplaceChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Replace(ng *parser.EngineData, node parser.Node) error {
+func Replace(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 
 	if len(funcExpr.Param) != 3 {

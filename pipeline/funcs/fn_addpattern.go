@@ -60,6 +60,6 @@ func AddPatternChecking(ngData *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func AddPattern(ngData *parser.EngineData, node parser.Node) error {
+func AddPattern(ng *parser.Engine, node parser.Node) interface{} {
 	return nil
 }

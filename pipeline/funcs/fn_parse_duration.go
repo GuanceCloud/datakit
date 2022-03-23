@@ -33,7 +33,7 @@ func ParseDurationChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func ParseDuration(ng *parser.EngineData, node parser.Node) error {
+func ParseDuration(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		l.Warn("parse_duration(): invalid param")

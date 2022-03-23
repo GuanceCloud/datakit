@@ -67,7 +67,7 @@ func GrokChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Grok(ng *parser.EngineData, node parser.Node) error {
+func Grok(ng *parser.EngineData, node parser.Node) interface{} {
 	g := ng.GetGrok()
 	if g == nil {
 		return fmt.Errorf("no grok obj")

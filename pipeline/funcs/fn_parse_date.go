@@ -38,7 +38,7 @@ func ParseDateChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func ParseDate(ngData *parser.EngineData, node parser.Node) error {
+func ParseDate(ngData *parser.EngineData, node parser.Node) interface{} {
 	funcExpr, ok := node.(*parser.FuncStmt)
 	if !ok {
 		return fmt.Errorf("expect function expr")

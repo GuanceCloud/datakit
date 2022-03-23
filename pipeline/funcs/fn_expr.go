@@ -12,7 +12,7 @@ func ExprChecking(_ *parser.EngineData, _ parser.Node) error {
 	return nil
 }
 
-func Expr(_ *parser.EngineData, _ parser.Node) error {
+func Expr(_ *parser.EngineData, _ parser.Node) interface{} {
 	l.Warnf("warning: expr() is disabled")
 	return nil
 }

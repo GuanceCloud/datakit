@@ -25,7 +25,7 @@ const (
 )
 
 type (
-	FuncCallback      func(*EngineData, Node) error
+	FuncCallback      func(*EngineData, Node) interface{}
 	FuncCallbackCheck func(*EngineData, Node) error
 )
 
@@ -585,6 +585,13 @@ func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 		left = v.Value()
 	case *NilLiteral:
 		left = v.Value()
+	case *FuncStmt:
+		switch ret := v.Run(ng).(type) {
+		case error:
+			return false
+		default:
+			left = ret
+		}
 	default:
 		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.LHS)
 		return false
@@ -667,18 +674,21 @@ func (e *AssignmentStmt) Run(ng *Engine) {
 	}
 }
 
-func (e *FuncStmt) Run(ng *Engine) {
-	if ng.lastErr != nil {
-		return
-	}
+func (e *FuncStmt) Run(ng *Engine) interface{} {
 
 	fn := ng.callbacks[e.Name]
 	if fn == nil {
 		ng.lastErr = fmt.Errorf("unsupported func: `%v'", e.Name)
-		return
+		return ng.lastErr
 	}
-	if err := fn(ng.Data, e); err != nil {
-		ng.lastErr = fmt.Errorf("Run func %v: %w", e.Name, err)
+	switch ret := fn(ng.Data, e).(type) {
+	case error:
+		ng.lastErr = fmt.Errorf("Run func %v: %w", e.Name, ret)
+		return ret
+	case nil:
+		return nil
+	default:
+		return ret
 	}
 }
 
@@ -806,7 +816,7 @@ func (e *IfExpr) Check(ng *Engine) error {
 	case *BoolLiteral:
 		// nil
 	case *ConditionalExpr:
-		if err := v.Check(); err != nil {
+		if err := v.Check(ng); err != nil {
 			return err
 		}
 	default:
@@ -819,8 +829,8 @@ func (e *IfExpr) Check(ng *Engine) error {
 // Check ConditionalExpr
 //   left node only support Identifier
 //   right node support NumberLiteral/StringLiteral/BoolLiteral
-func (e *ConditionalExpr) Check() error {
-	switch e.LHS.(type) {
+func (e *ConditionalExpr) Check(ng *Engine) error {
+	switch v := e.LHS.(type) {
 	case *Identifier:
 	case *ParenExpr:
 	case *ConditionalExpr:
@@ -828,6 +838,10 @@ func (e *ConditionalExpr) Check() error {
 	case *NumberLiteral:
 	case *BoolLiteral:
 	case *NilLiteral:
+	case *FuncStmt:
+		if err := v.Check(ng); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf(`unsupported type %s, from: %s`,
 			reflect.TypeOf(e.LHS), e.LHS)
@@ -880,7 +894,6 @@ func contrast(left interface{}, op string, right interface{}) (b bool, err error
 		b = !reflect.DeepEqual(left, right)
 		return
 	}
-
 	switch x := left.(type) {
 	case json.Number:
 		xnum, _err := x.Float64()
