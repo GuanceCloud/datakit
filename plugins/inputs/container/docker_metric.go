@@ -196,7 +196,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 		Type: "metric",
 		Desc: "容器指标数据，只采集正在运行的容器",
 		Tags: map[string]interface{}{
-			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
+			"container_id":     inputs.NewTagInfo(`容器 ID`),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),

@@ -79,6 +79,12 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				"age": time.Since(info.CreatedAt).Milliseconds() / 1e3,
 			}
 
+			if containerName := info.Labels[containerLableForPodContainerName]; containerName != "" {
+				obj.tags["container_name"] = containerName
+			} else {
+				obj.tags["container_name"] = "unknown"
+			}
+
 			obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
 			obj.tags.addValueIfNotEmpty("pod_namespace", info.Labels[containerLableForPodNamespace])
 			for k, v := range c.cfg.extraTags {
@@ -108,7 +114,8 @@ func (c *containerdObject) Info() *inputs.MeasurementInfo {
 		Desc: "containerd 容器对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
-			"container_id":     inputs.NewTagInfo(`容器 ID（该字段默认被删除）`),
+			"container_name":   inputs.NewTagInfo(`容器名称`),
+			"container_id":     inputs.NewTagInfo(`容器 ID`),
 			"name":             inputs.NewTagInfo(`对象数据的指定 ID`),
 			"namespace":        inputs.NewTagInfo(`该容器所在的命名空间`),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
