@@ -55,7 +55,7 @@ func newDockerInput(cfg *dockerInputConfig) (*dockerInput, error) {
 	d.client = client
 
 	if !d.pingOK() {
-		return nil, fmt.Errorf("Cannot connect to the Docker daemon at unix:///var/run/docker.sock.")
+		return nil, fmt.Errorf("Cannot connect to the Docker daemon at unix:///var/run/docker.sock")
 	}
 
 	if err := d.createMetricFilters(cfg.containerIncludeMetric, cfg.containerExcludeMetric); err != nil {
