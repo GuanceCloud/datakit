@@ -104,6 +104,36 @@ datakit --pl test.p --txt "$(<multi-line.log)"
 }
 ```
 
+### Pipeline 字段命名注意事项
+
+在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis#2fc2526a)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
+
+- DataKit 中的[全局 Tag](datakit-conf#53181faf)
+- 日志采集器中[自定义的 Tag](logging#6d5774b2)
+
+另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
+
+| 字段名    | 类型          | 说明                                  |
+| ---       | ----          | ----                                  |
+| `source`  | string(tag)   | 日志来源                              |
+| `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
+| `status`  | string(tag)   | 日志对应的[等级](logging#fe2d3282)    |
+| `message` | string(field) | 原始日志                              |
+| `time`    | int           | 日志对应的时间戳                      |
+
+> 当然我们可以通过[特定的 Pipeline 函数](pipeline#6e8c5285)覆盖上面这些 tag 的值。
+
+一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
+
+```shell
+# 该错误在 DataKit monitor 中能看到
+same key xxx in tag and field
+```
+
+<!--
+#### 数据类型冲突
+TODO -->
+
 ### 完整 Pipeline 示例
 
 这里以 DataKit 自身的日志切割为例。DataKit 自身的日志形式如下：
@@ -156,36 +186,6 @@ Extracted data(cost: 421.705µs):
 }
 ```
 
-### Pipeline 字段命名注意事项
-
-在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis#2fc2526a)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
-
-- DataKit 中的[全局 Tag](datakit-conf#53181faf)
-- 日志采集器中[自定义的 Tag](logging#6d5774b2)
-
-另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
-
-| 字段名    | 类型          | 说明                                  |
-| ---       | ----          | ----                                  |
-| `source`  | string(tag)   | 日志来源                              |
-| `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
-| `status`  | string(tag)   | 日志对应的[等级](logging#fe2d3282)    |
-| `message` | string(field) | 原始日志                              |
-| `time`    | int           | 日志对应的时间戳                      |
-
-> 当然我们可以通过[特定的 Pipeline 函数](pipeline#6e8c5285)覆盖上面这些 tag 的值。
-
-一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
-
-```shell
-# 该错误在 DataKit monitor 中能看到
-same key xxx in tag and field
-```
-
-<!--
-#### 数据类型冲突
-TODO -->
-
 ## FAQ
 
 ### Pipeline 调试时，为什么变量无法引用？
@@ -227,3 +227,27 @@ datakit --pl test.p --txt "..."
 ---
 
 A: 调试用的 Pipeline 脚本，需将其放置到 *<DataKit 安装目录>/pipeline* 目录下。
+
+### `add_pattern()` 转义问题
+
+大家在使用 `add_pattern()` 添加局部模式时，容易陷入转义问题，比如如下这个 pattern（用来通配文件路径以及文件名）：
+
+```
+(/?[\w_%!$@:.,-]?/?)(\S+)?
+```
+
+如果我们将其放到全局 pattern 目录下（即 *pipeline/pattern* 目录），可这么写：
+
+```
+# my-test
+source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
+```
+
+如果使用 `add_pattern()`，就需写成这样： 
+
+```python
+# my-test.p
+add_pattern('source_file', '(/?[\\w_%!$@:.,-]?/?)(\\S+)?')
+```
+
+即这里面反斜杠需要转义。

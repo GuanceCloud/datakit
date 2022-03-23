@@ -39,7 +39,6 @@
 - [采集器]()
 
   - [主机]()
-
     - [主机对象](hostobject)
     - [进程](host_processes)
     - [CPU](cpu)
@@ -53,8 +52,40 @@
     - [SSH](ssh)
     - [DataKit 自身指标](self)
 
-  - [数据库（中间件）]()
+  - [云原生]()
+    - [Kubernetes 环境下的 DataKit 配置综述](k8s-config-how-to)
+    - [数据采集]()
+      - [容器](container)
+        - [通过 Sidecar 方式采集 Pod 日志](logfwd)
+      - [Kubernetes 扩展指标采集](kubernetes-x)
+      - [Prometheus Exportor 指标采集](kubernetes-prom)
 
+  - [应用性能监测（APM）]()
+    - [Datakit Tracing 综述](datakit-tracing)
+      - [Datakit Tracing 数据结构](datakit-tracing-struct)
+		- [各种 Tracing 接入]()
+      - [DDTrace](ddtrace)
+        - [Golang 示例](ddtrace-golang)
+        - [Java 示例](ddtrace-java)
+        - [Python 示例](ddtrace-python)
+      - [SkyWalking](skywalking)
+      - [Opentelemetry](opentelemetry)
+        - [Golang 示例](opentelemetry-go)
+        - [Java 示例](opentelemetry-java)
+      - [Jaeger](jaeger)
+      - [Zipkin](zipkin)
+
+  - [日志]()
+    - [DataKit 日志采集综述](datakit-logging)
+    - [数据采集]()
+      - [文件日志](logging)
+        - [Socket 日志接入示例](logging_socket)
+      - [第三方（logstreaming）日志接入](logstreaming)
+
+  - [用户访问监测（RUM）]()
+    - [RUM](rum)
+
+  - [数据库（中间件）]()
     - [ClickHouse](clickhousev1)
     - [MySQL](mysql)
     - [Oracle](oracle)
@@ -71,79 +102,30 @@
     - [Solr](solr)
     - [Flink](flinkv1)
 
-
   - [网络拨测](dialtesting)
-
     - [通过本地 JSON 定义拨测任务](dialtesting_json)
 
   - [eBPF]()
-
     - [eBPF](ebpf)
 
-  - [云原生]()
-    - [Kubernetes 环境下的 DataKit 配置综述](k8s-config-how-to)
-    - [数据采集]()
-
-      - [容器](container)
-        - [通过 Sidecar 方式采集 Pod 日志](logfwd)
-      - [Kubernetes 扩展指标采集](kubernetes-x)
-      - [Prometheus Exportor 指标采集](kubernetes-prom)
-
   - [Java]()
-
     - [JVM](jvm)
     - [Tomcat](tomcat)
 
   - [Web 服务器]()
-
     - [Nginx](nginx)
     - [Apache](apache)
 
   - [硬件]()
-
     - [硬件温度 Sensors](sensors)
     - [磁盘 S.M.A.R.T](smart)
 
-  - [应用性能监测（APM）]()
-
-    - [Datakit Tracing 综述](datakit-tracing)
-      - [Datakit Tracing 数据结构](datakit-tracing-struct)
-		- [各种 Tracing 接入]()
-
-      - [DDTrace](ddtrace)
-        - [Golang 示例](ddtrace-golang)
-        - [Java 示例](ddtrace-java)
-        - [Python 示例](ddtrace-python)
-
-      - [SkyWalking](skywalking)
-
-      - [Opentelemetry](opentelemetry)
-        - [Golang 示例](opentelemetry-go)
-        - [Java 示例](opentelemetry-java)
-
-      - [Jaeger](jaeger)
-      - [Zipkin](zipkin)
-
-  - [用户访问监测（RUM）]()
-
-    - [RUM](rum)
-
-  - [日志]()
-    - [DataKit 日志采集综述](datakit-logging)
-    - [数据采集]()
-      - [文件日志](logging)
-        - [Socket 日志接入示例](logging_socket)
-      - [第三方（logstreaming）日志接入](logstreaming)
-
   - [Windows 相关]()
-
     - [Windows 事件](windows_event)
     - [IIS](iis)
 
   - [其它数据接入]()
-
     - [Prometheus 数据接入]()
-
       - [Prometheus Exportor 数据采集](prom)
       - [Prometheus Remote Write 支持](prom_remote_write)
 
