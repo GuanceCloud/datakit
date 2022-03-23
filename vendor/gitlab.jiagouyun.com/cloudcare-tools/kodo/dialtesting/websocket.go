@@ -168,12 +168,14 @@ func (t *WebsocketTask) CheckResult() (reasons []string, succFlag bool) {
 		}
 
 		// check header
-		for k, vs := range chk.Header {
-			for _, v := range vs {
-				if err := v.check(t.resp.Header.Get(k), fmt.Sprintf("Websocket header `%s'", k)); err != nil {
-					reasons = append(reasons, err.Error())
-				} else {
-					succFlag = true
+		if t.resp != nil {
+			for k, vs := range chk.Header {
+				for _, v := range vs {
+					if err := v.check(t.resp.Header.Get(k), fmt.Sprintf("Websocket header `%s'", k)); err != nil {
+						reasons = append(reasons, err.Error())
+					} else {
+						succFlag = true
+					}
 				}
 			}
 		}
