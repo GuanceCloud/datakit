@@ -75,7 +75,8 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				"container_type":   "containerd",
 			}
 			obj.fields = map[string]interface{}{
-				"age": time.Since(info.CreatedAt) / 1e3,
+				// 毫秒除以1000得秒数，不使用Second()因为它返回浮点
+				"age": time.Since(info.CreatedAt).Milliseconds() / 1e3,
 			}
 
 			obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
