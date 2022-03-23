@@ -35,6 +35,7 @@ type Input struct {
 
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
+	OnlyPhysicalDevice         bool     `toml:"only_physical_device"`
 	IgnoreFS                   []string `toml:"ignore_fs"`
 
 	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
@@ -98,8 +99,7 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-// ReadEnv , support envs：
-//   ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES: booler
+// ReadEnv used to read ENVs while running under DaemonSet
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES"]; ok {
 		b, err := strconv.ParseBool(enable)
@@ -108,6 +108,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		} else {
 			ipt.EnableNetVirtualInterfaces = b
 		}
+	}
+
+	if _, ok := envs["ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE"]; ok {
+		l.Info("setup OnlyPhysicalDevice...")
+		ipt.OnlyPhysicalDevice = true
+	}
+
+	if x, ok := envs["ENV_INPUT_HOSTOBJECT_IGNORE_FILE_SYSTEM"]; ok {
+		l.Infof("setup IgnoreFS to %s...", x)
+		ipt.IgnoreFS = strings.Split(x, ",")
 	}
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/505

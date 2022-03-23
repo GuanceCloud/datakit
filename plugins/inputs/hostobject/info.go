@@ -237,19 +237,20 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 	return infos
 }
 
-func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk bool) []*DiskInfo {
-	ps, err := diskutil.Partitions(true)
+func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) []*DiskInfo {
+	ps, err := diskutil.Partitions(!onlyPhysicalDevice)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
 		return nil
 	}
 	var infos []*DiskInfo
 
-	fstypeExcludeSet, _ := DiskIgnoreFs(ignoreFs)
-
+goon:
 	for _, p := range ps {
-		if _, ok := fstypeExcludeSet[p.Fstype]; ok {
-			continue
+		for _, fs := range ignoreFs {
+			if fs == p.Fstype { // ignore the partition
+				goto goon
+			}
 		}
 
 		info := &DiskInfo{
@@ -347,7 +348,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		load5:      getLoad5(),
 		Mem:        getMemInfo(),
 		Net:        getNetInfo(ipt.EnableNetVirtualInterfaces),
-		Disk:       getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk),
+		Disk:       getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice),
 		Conntrack:  conntrackutil.GetConntrackInfo(),
 		FileFd:     fileFd,
 		Election:   getElectionInfo(),

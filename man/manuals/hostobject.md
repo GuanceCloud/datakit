@@ -29,6 +29,8 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 | `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | `true`/`false`                                               |
 | `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | `true`/`false`                                               |
 | `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`            | `only_physical_device`            | 任意给一个字符串值即可 |
+| `ENV_INPUT_HOSTOBJECT_IGNORE_FILE_SYSTEM`            | `ignore_fs`            | 英文逗号分隔的文件系统类型列表，当前默认列表为 `tmpfs,devtmpfs,devfs,iso9660,overlay,autofs,squashfs,aufs`|
 | `ENV_CLOUD_PROVIDER`                                 | `tags`                          | `aliyun`/`aws`/`tencent`/`hwcloud`/`azure`              |
 
 ## 开启云同步
