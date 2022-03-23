@@ -138,7 +138,6 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&flagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&flagDownloadOnly, "download-only", false, "only download install packages")
 	flag.IntVar(&envEnableExperimental, "env_enable_experimental", 0, "")
-
 }
 
 func downloadFiles(to string) error {

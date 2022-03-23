@@ -98,12 +98,12 @@ func TestExportTrace_Export(t *testing.T) {
 					}
 				}
 			}
-			if datakitSpan.Resource != "test-tracer" {
-				t.Errorf("span.resource is %s  and real name is test-tracer", datakitSpan.Resource)
+			if datakitSpan.Resource != "AlwaysSample" {
+				t.Errorf("span.resource is %s  and real name is AlwaysSample", datakitSpan.Resource)
 			}
 
 			if datakitSpan.Operation != "AlwaysSample" {
-				t.Errorf("span.Operation is %s  and real name is AlwaysSample", datakitSpan.Resource)
+				t.Errorf("span.Operation is %s  and real name is AlwaysSample", datakitSpan.Operation)
 			}
 			bts, _ := json.MarshalIndent(datakitSpan, "    ", "  ")
 			t.Logf("json span = \n %s", string(bts))

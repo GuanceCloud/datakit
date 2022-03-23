@@ -108,7 +108,7 @@ func MockRoSpans(t *testing.T) (roSpans []sdktrace.ReadOnlySpan, want []DKtrace.
 			ParentID:           "0",
 			SpanID:             "0000000000000002",
 			Service:            "global.ServerName",
-			Resource:           "test-server",
+			Resource:           "span_name",
 			Operation:          "span_name",
 			Source:             "opentelemetry",
 			SpanType:           "entry",
