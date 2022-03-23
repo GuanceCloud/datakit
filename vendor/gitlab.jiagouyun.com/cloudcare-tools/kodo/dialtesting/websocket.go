@@ -196,6 +196,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 	fields = map[string]interface{}{
 		"response_time":          responseTime,
 		"response_time_with_dns": responseTimeWithDNS,
+		"response_message":       t.responseMessage,
 		"success":                int64(-1),
 	}
 

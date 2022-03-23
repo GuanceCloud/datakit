@@ -127,6 +127,12 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationUS,
 				Desc:     "TCP 连接时间, 单位",
 			},
+			"response_time_with_dns": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "连接时间（含DNS解析）, 单位",
+			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -247,11 +253,23 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "拨测失败原因",
 			},
+			"response_message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "拨测返回的消息",
+			},
 			"response_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "TCP 连接时间, 单位",
+				Desc:     "连接时间, 单位",
+			},
+			"response_time_with_dns": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "连接时间（含DNS解析）, 单位",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
