@@ -31,7 +31,9 @@ func newContainerdInput(cfg *containerdInputConfig) (*containerdInput, error) {
 }
 
 func (c *containerdInput) stop() {
-	c.client.Close()
+	if err := c.client.Close(); err != nil {
+		l.Errorf("closed contianerd, err: %w", err)
+	}
 }
 
 func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
