@@ -199,6 +199,9 @@ func (i *Input) collectMetric() {
 }
 
 func (i *Input) gatherDockerContainerMetric() error {
+	if i.dockerInput == nil {
+		return nil
+	}
 	start := time.Now()
 
 	res, err := i.dockerInput.gatherMetric()
@@ -215,6 +218,9 @@ func (i *Input) gatherDockerContainerMetric() error {
 }
 
 func (i *Input) gatherDockerContainerObject() error {
+	if i.dockerInput == nil {
+		return nil
+	}
 	start := time.Now()
 
 	res, err := i.dockerInput.gatherObject()
@@ -283,6 +289,9 @@ func (i *Input) gatherK8sPodMetrics() error {
 }
 
 func (i *Input) watchNewDockerContainerLogs() error {
+	if i.dockerInput == nil {
+		return nil
+	}
 	return i.dockerInput.watchNewContainerLogs()
 }
 

@@ -76,14 +76,13 @@ type containerdObject struct {
 }
 
 func (c *containerdObject) LineProto() (*io.Point, error) {
-	return io.NewPoint(containerdName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+	// 此处使用 docker_containers 不合适
+	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
 }
-
-const containerdName = "containerd"
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: containerdName,
+		Name: dockerContainerName,
 		Desc: "containerd 容器对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{

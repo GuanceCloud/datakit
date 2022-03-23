@@ -13,7 +13,7 @@ const (
 	catelog   = "container"
 
 	dockerEndpoint     = "unix:///var/run/docker.sock"
-	containerdEndpoint = "unix:///var/run/containerd/containerd.sock"
+	containerdEndpoint = "/var/run/containerd/containerd.sock"
 
 	timeoutDuration = time.Second * 5
 )
