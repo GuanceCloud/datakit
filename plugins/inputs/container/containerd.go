@@ -44,6 +44,8 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 		return nil, err
 	}
 
+	l.Debugf("containerd namespaces: %v", nsList)
+
 	for _, ns := range nsList {
 		ctx := namespaces.WithNamespace(context.Background(), ns)
 		cList, err := c.client.Containers(ctx)
