@@ -21,7 +21,7 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20210910012206-68626162910d // indirect
 	github.com/chromedp/chromedp v0.7.4 // indirect
 	github.com/containerd/cgroups v1.0.1
-	github.com/containerd/containerd v1.5.5 // indirect
+	github.com/containerd/containerd v1.5.5
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v20.10.8+incompatible

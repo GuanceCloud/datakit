@@ -48,8 +48,9 @@ type Input struct {
 
 	semStop *cliutils.Sem // start stop signal
 
-	dockerInput *dockerInput
-	k8sInput    *kubernetesInput
+	dockerInput     *dockerInput
+	containerdInput *containerdInput
+	k8sInput        *kubernetesInput
 
 	chPause chan bool
 	pause   bool
@@ -142,6 +143,10 @@ func (i *Input) collectObject() {
 		l.Errorf("failed to collect container object: %w", err)
 	}
 
+	if err := i.gatherContainerdObject(); err != nil {
+		l.Errorf("failed to collect containerd object: %w", err)
+	}
+
 	if !datakit.Docker {
 		return
 	}
@@ -222,6 +227,25 @@ func (i *Input) gatherDockerContainerObject() error {
 	}
 
 	return inputs.FeedMeasurement("container-object", datakit.Object, res,
+		&io.Option{CollectCost: time.Since(start)})
+}
+
+func (i *Input) gatherContainerdObject() error {
+	if i.containerdInput == nil {
+		return
+	}
+	start := time.Now()
+
+	res, err := i.containerdInput.gatherObject()
+	if err != nil {
+		return err
+	}
+	if len(res) == 0 {
+		l.Debugf("containerd object: no point")
+		return nil
+	}
+
+	return inputs.FeedMeasurement("containerd-object", datakit.Object, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
 
@@ -308,6 +332,14 @@ func (i *Input) setup() bool {
 				continue
 			}
 			i.dockerInput.k8sClient = i.k8sInput.client
+		}
+
+		i.containerdInput, err = newContainerdInput(&containerdInputConfig{
+			endpoint:  containerdEndpoint,
+			extraTags: tags,
+		})
+		if err != nil {
+			l.Errorf("create containerd input err: %w, skip", err)
 		}
 
 		break
