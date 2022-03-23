@@ -675,19 +675,19 @@ func (e *AssignmentStmt) Run(ng *Engine) {
 }
 
 func (e *FuncStmt) Run(ng *Engine) interface{} {
-	fn := ng.callbacks[e.Name]
-	if fn == nil {
+	if fn := ng.callbacks[e.Name]; fn == nil {
 		ng.lastErr = fmt.Errorf("unsupported func: `%v'", e.Name)
 		return ng.lastErr
-	}
-	switch ret := fn(ng.Data, e).(type) {
-	case error:
-		ng.lastErr = fmt.Errorf("Run func %v: %w", e.Name, ret)
-		return ret
-	case nil:
-		return nil
-	default:
-		return ret
+	} else {
+		switch ret := fn(ng.Data, e).(type) {
+		case error:
+			ng.lastErr = fmt.Errorf("Run func %v: %w", e.Name, ret)
+			return ret
+		case nil:
+			return nil
+		default:
+			return ret
+		}
 	}
 }
 

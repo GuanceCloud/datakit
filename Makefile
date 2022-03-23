@@ -1,4 +1,4 @@
-.PHONY: default testing local man
+.PHONY: default testing local deps prepare man gofmt lfparser_disable_line plparser_disable_line
 
 default: local
 
