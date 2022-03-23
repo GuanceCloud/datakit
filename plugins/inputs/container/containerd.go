@@ -55,8 +55,9 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 		}
 
 		for _, container := range cList {
-			info, err := container.Info(context.TODO())
+			info, err := container.Info(ctx)
 			if err != nil {
+				l.Warn("failed to get containerd info, err: %w, skip", err)
 				continue
 			}
 			obj := &containerdObject{time: time.Now()}
