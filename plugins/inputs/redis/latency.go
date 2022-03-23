@@ -78,7 +78,6 @@ func (i *Input) ParseLatencyData(list string) ([]inputs.Measurement, error) {
 
 	// redis没有最新延迟事件
 	if len(part) != 2 {
-		l.Info("have no delayed event")
 		return nil, nil
 	}
 	// "command 1640151523 324 1000"
@@ -89,7 +88,6 @@ func (i *Input) ParseLatencyData(list string) ([]inputs.Measurement, error) {
 
 	// 长度不足4
 	if len(finalPart) != 4 {
-		l.Info("have no delayed event")
 		return nil, nil
 	}
 
