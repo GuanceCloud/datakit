@@ -26,6 +26,15 @@ func ParseDateChecking(ng *parser.EngineData, node parser.Node) error {
 				reflect.TypeOf(p).String())
 		}
 	}
+
+	if funcExpr.KwParam == nil {
+		funcExpr.KwParam = make(map[string]parser.Node)
+		for _, p := range funcExpr.Param {
+			if st, ok := p.(*parser.AssignmentStmt); ok {
+				funcExpr.KwParam[st.LHS.String()] = st.RHS
+			}
+		}
+	}
 	return nil
 }
 
@@ -40,15 +49,6 @@ func ParseDate(ngData *parser.EngineData, node parser.Node) error {
 	var mm time.Month
 	var key string
 	var zone *time.Location
-
-	if funcExpr.KwParam == nil {
-		funcExpr.KwParam = make(map[string]parser.Node)
-		for _, p := range funcExpr.Param {
-			if st, ok := p.(*parser.AssignmentStmt); ok {
-				funcExpr.KwParam[st.LHS.String()] = st.RHS
-			}
-		}
-	}
 
 	if x, err := parser.GetFuncStrArg(ngData, funcExpr, 0, "key"); err != nil {
 		return err

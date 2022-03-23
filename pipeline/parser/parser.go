@@ -274,6 +274,7 @@ func (p *parser) newFuncStmt(fname string, args []Node) (*FuncStmt, error) {
 		Name: strings.ToLower(fname),
 	}
 
+	// TODO: key-value param support
 	for _, arg := range args {
 		switch v := arg.(type) {
 		/*

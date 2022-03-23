@@ -77,12 +77,13 @@ func NewPipelineFromFile(path string) (*Pipeline, error) {
 		return nil, err
 	}
 	return &Pipeline{
-		scriptInfo: sc,
+		DisableUpdate: true,
+		scriptInfo:    sc,
 	}, nil
 }
 
 type Pipeline struct {
-	disableUpdate bool
+	DisableUpdate bool
 	scriptInfo    *scriptstore.ScriptInfo
 }
 
@@ -112,7 +113,7 @@ func (p *Pipeline) RunByte(data []byte, encode string, source string) (*Result, 
 
 func (p *Pipeline) UpdateScriptInfo() error {
 	var err error
-	if p.disableUpdate {
+	if p.DisableUpdate {
 		return fmt.Errorf("current pipeline update disabled")
 	}
 	if p.scriptInfo, err = scriptstore.QueryScript(p.scriptInfo.Name(), p.scriptInfo); err != nil {
