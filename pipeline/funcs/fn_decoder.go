@@ -3,16 +3,15 @@ package funcs
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/unicode"
-	"reflect"
 )
 
-var (
-	errUnknownCharacterEncoding = errors.New("unknown character encoding")
-)
+var errUnknownCharacterEncoding = errors.New("unknown character encoding")
 
 type Decoder struct {
 	decoder *encoding.Decoder
@@ -39,7 +38,7 @@ func NewDecoder(enc string) (*Decoder, error) {
 	return &Decoder{decoder: decoder}, nil
 }
 
-func Decode(ng *parser.Engine, node parser.Node) interface{} {
+func Decode(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 
 	var text, codeType parser.Node
@@ -89,7 +88,7 @@ func Decode(ng *parser.Engine, node parser.Node) interface{} {
 	return nil
 }
 
-func DecodeChecking(node parser.Node) error {
+func DecodeChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 2 {
 		return fmt.Errorf("func %s expected 2", funcExpr.Name)

@@ -8,7 +8,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func MatchChecking(node parser.Node) error {
+func MatchChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 2 || len(funcExpr.Param) > 2 {
 		return fmt.Errorf("func %s expected 2", funcExpr.Name)
@@ -30,7 +30,7 @@ func MatchChecking(node parser.Node) error {
 	return nil
 }
 
-func Match(ng *parser.Engine, node parser.Node) interface{} {
+func Match(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	var cont string
 	var err error

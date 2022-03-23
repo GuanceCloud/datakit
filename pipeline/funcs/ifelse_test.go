@@ -271,6 +271,7 @@ if match(_, "p([a-z]+)ch")  {
 				if tc.fail {
 					t.Logf("[%d]expect error: %s", idx, err)
 				} else {
+					t.Log(tc.pl)
 					t.Errorf("[%d] failed: %s", idx, err)
 				}
 				return
