@@ -309,8 +309,6 @@ func (i *Input) watchingK8sEventLog() {
 }
 
 func (i *Input) setup() bool {
-	var err error
-
 	for {
 		select {
 		case <-datakit.Exit.Wait():
@@ -322,7 +320,7 @@ func (i *Input) setup() bool {
 
 		time.Sleep(time.Second)
 
-		i.dockerInput, err = newDockerInput(&dockerInputConfig{
+		if d, err := newDockerInput(&dockerInputConfig{
 			endpoint:               i.Endpoint,
 			excludePauseContainer:  i.ExcludePauseContainer,
 			removeLoggingAnsiCodes: i.LoggingRemoveAnsiEscapeCodes,
@@ -332,32 +330,36 @@ func (i *Input) setup() bool {
 			containerIncludeLog:    i.ContainerIncludeLog,
 			containerExcludeLog:    i.ContainerExcludeLog,
 			extraTags:              i.Tags,
-		})
-		if err != nil {
-			l.Errorf("create docker input err: %w", err)
-			continue
+		}); err != nil {
+			l.Errorf("create docker input err: %w, skip", err)
+		} else {
+			i.dockerInput = d
 		}
 
 		if datakit.Docker {
-			i.k8sInput, err = newKubernetesInput(&kubernetesInputConfig{
+			if k, err := newKubernetesInput(&kubernetesInputConfig{
 				url:               i.K8sURL,
 				bearerToken:       i.K8sBearerToken,
 				bearerTokenString: i.K8sBearerTokenString,
 				extraTags:         i.Tags,
-			})
-			if err != nil {
+			}); err != nil {
 				l.Errorf("create k8s input err: %w", err)
 				continue
+			} else {
+				i.k8sInput = k
+				if i.dockerInput != nil {
+					i.dockerInput.k8sClient = i.k8sInput.client
+				}
 			}
-			i.dockerInput.k8sClient = i.k8sInput.client
 		}
 
-		i.containerdInput, err = newContainerdInput(&containerdInputConfig{
+		if c, err := newContainerdInput(&containerdInputConfig{
 			endpoint:  containerdEndpoint,
 			extraTags: i.Tags,
-		})
-		if err != nil {
-			l.Errorf("create containerd input err: %w, skip", err)
+		}); err != nil {
+			l.Warnf("create containerd input err: %w, skip", err)
+		} else {
+			i.containerdInput = c
 		}
 
 		break
