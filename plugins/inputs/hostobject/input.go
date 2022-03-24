@@ -66,14 +66,21 @@ func (ipt *Input) Run() {
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
-	n := 0
 	defer tick.Stop()
 
 	l.Debugf("starting %s(interval: %v)...", InputName, ipt.Interval)
 
-	ipt.singleCollect(n) // 1st shot on datakit startup
-
 	for {
+		l.Debugf("start collecting...")
+		start := time.Now()
+		if err := ipt.doCollect(); err != nil {
+			io.FeedLastError(InputName, err.Error())
+		} else if err := inputs.FeedMeasurement(InputName,
+			datakit.Object, []inputs.Measurement{ipt.collectData},
+			&io.Option{CollectCost: time.Since(start)}); err != nil {
+			io.FeedLastError(InputName, err.Error())
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Infof("%s exit on sem", InputName)
@@ -84,9 +91,6 @@ func (ipt *Input) Run() {
 			return
 
 		case <-tick.C:
-			l.Debugf("start %d collecting...", n)
-			ipt.singleCollect(n)
-			n++
 		}
 	}
 }
@@ -144,20 +148,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.Tags["cloud_provider"] = cloudProvider
 		}
 	} // ENV_CLOUD_PROVIDER
-}
-
-func (ipt *Input) singleCollect(n int) {
-	l.Debugf("start %d collecting...", n)
-
-	start := time.Now()
-	if err := ipt.doCollect(); err != nil {
-		io.FeedLastError(InputName, err.Error())
-	} else if err := inputs.FeedMeasurement(InputName,
-		datakit.Object,
-		[]inputs.Measurement{ipt.collectData},
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		io.FeedLastError(InputName, err.Error())
-	}
 }
 
 type hostMeasurement struct {
@@ -285,6 +275,7 @@ func DefaultHostObject() *Input {
 	return &Input{
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
 		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
+		IgnoreZeroBytesDisk:      true,
 		IgnoreFS: []string{
 			"autofs",
 			"tmpfs",

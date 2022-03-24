@@ -238,6 +238,7 @@ func getNetInfo(enableVIfaces bool) []*NetInfo {
 }
 
 func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool) []*DiskInfo {
+	l.Debugf("get partitions(physical: %v)...", onlyPhysicalDevice)
 	ps, err := diskutil.Partitions(!onlyPhysicalDevice)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
@@ -245,12 +246,18 @@ func getDiskInfo(ignoreFs []string, ignoreZeroBytesDisk, onlyPhysicalDevice bool
 	}
 	var infos []*DiskInfo
 
-goon:
-	for _, p := range ps {
+	excluded := func(x string) bool {
 		for _, fs := range ignoreFs {
-			if fs == p.Fstype { // ignore the partition
-				goto goon
+			if fs == x { // ignore the partition
+				return true
 			}
+		}
+		return false
+	}
+
+	for _, p := range ps {
+		if excluded(p.Fstype) {
+			continue
 		}
 
 		info := &DiskInfo{
@@ -268,6 +275,7 @@ goon:
 			info.Total = usage.Total
 		}
 
+		l.Debugf("get disk %+#v", info)
 		infos = append(infos, info)
 	}
 
@@ -341,17 +349,44 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 		l.Warnf("filefdutil.GetFileFdInfo(): %s, ignored", err.Error())
 	}
 
+	l.Debugf("get host meta...")
+	hostMeta := getHostMeta()
+
+	l.Debugf("get CPU info...")
+	cpuInfo := getCPUInfo()
+
+	l.Debugf("get CPU percent...")
+	cpuPercent := getCPUPercent()
+
+	l.Debugf("get load5...")
+	load5 := getLoad5()
+
+	l.Debugf("get mem info...")
+	mem := getMemInfo()
+
+	l.Debugf("get net info...")
+	net := getNetInfo(ipt.EnableNetVirtualInterfaces)
+
+	l.Debugf("get disk info...")
+	disk := getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice)
+
+	l.Debugf("get conntrack info...")
+	conntrack := conntrackutil.GetConntrackInfo()
+
+	l.Debugf("get election info...")
+	election := getElectionInfo()
+
 	msg.Host = &HostInfo{
-		HostMeta:   getHostMeta(),
-		CPU:        getCPUInfo(),
-		cpuPercent: getCPUPercent(),
-		load5:      getLoad5(),
-		Mem:        getMemInfo(),
-		Net:        getNetInfo(ipt.EnableNetVirtualInterfaces),
-		Disk:       getDiskInfo(ipt.IgnoreFS, ipt.IgnoreZeroBytesDisk, ipt.OnlyPhysicalDevice),
-		Conntrack:  conntrackutil.GetConntrackInfo(),
+		HostMeta:   hostMeta,
+		CPU:        cpuInfo,
+		cpuPercent: cpuPercent,
+		load5:      load5,
+		Mem:        mem,
+		Net:        net,
+		Disk:       disk,
+		Conntrack:  conntrack,
 		FileFd:     fileFd,
-		Election:   getElectionInfo(),
+		Election:   election,
 	}
 
 	// sync cloud extra fields
