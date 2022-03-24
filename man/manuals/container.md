@@ -149,11 +149,14 @@ spec:
 
 详见[Kubernetes-prom](kubernetes-prom)
 
-### 支持 containerd（试用版）
+### 支持 containerd
 
-containerd 默认开启，通过连接 `/var/run/containerd/containerd.sock` 实现对 containerd 容器的对象采集（默认忽略 `pause` 容器），支持全部 namespace，详细对象字段见后文。
+目前 Containerd 只有部分采集功能支持：
 
-containerd 容器日志，推荐使用 [logfwd](logfwd) 进行采集。
+- 容器对象：支持
+- 容器/Pod 日志：推荐使用 [logfwd](logfwd) 进行采集。
+- 容器指标：**暂不支持**
+- Kubernetes 其它采集均不受影响
 
 ## 指标集
 
