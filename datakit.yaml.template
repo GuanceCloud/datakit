@@ -167,6 +167,9 @@ spec:
         - mountPath: /var/run/docker.sock
           name: docker-socket
           readOnly: true
+        - mountPath: /var/run/containerd/containerd.sock
+          name: containerd-socket
+          readOnly: true
         - mountPath: /host/proc
           name: proc
           readOnly: true
@@ -195,6 +198,9 @@ spec:
       - hostPath:
           path: /var/run/docker.sock
         name: docker-socket
+      - hostPath:
+          path: /var/run/containerd/containerd.sock
+        name: containerd-socket
       - hostPath:
           path: /proc
           type: ""
