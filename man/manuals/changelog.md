@@ -17,6 +17,7 @@
 1. Pipeline 支持调试数据上传至 OSS(#650)
 1. DataKit HTTP API 上均会[带上 DataKit 版本号信息](apis#be896a47)
 1. [网络拨测](dialtesting)增加 TCP/UDP/ICMP/Websocket 几种协议支持(#519)
+1. 修复[主机对象采集器](hostobject)字段超长问题(#669)
 1. Pipeline
   - 新增 [decode()](pipeline#837c4e09) 函数(#559)，这样可以避免在日志采集器中去配置编码，可以在 Pipeline 中实现编码转换
   - 修复 Pipeline 导入 pattern 文件可能失败的问题(#666)
