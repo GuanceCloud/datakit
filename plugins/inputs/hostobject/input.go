@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -26,8 +25,9 @@ type Input struct {
 	Class string `toml:"class,omitempty"`       // deprecated
 	Desc  string `toml:"description,omitempty"` // deprecated
 
-	Pipeline string            `toml:"pipeline,omitempty"`
-	Tags     map[string]string `toml:"tags,omitempty"`
+	PipelineDeprecated string `toml:"pipeline,omitempty"`
+
+	Tags map[string]string `toml:"tags,omitempty"`
 
 	Interval                 *datakit.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore *datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
@@ -39,8 +39,6 @@ type Input struct {
 	IgnoreFS                   []string `toml:"ignore_fs"`
 
 	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
-
-	p *pipeline.Pipeline
 
 	collectData *hostMeasurement
 
@@ -99,7 +97,7 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-// ReadEnv used to read ENVs while running under DaemonSet
+// ReadEnv used to read ENVs while running under DaemonSet.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES"]; ok {
 		b, err := strconv.ParseBool(enable)
@@ -258,21 +256,6 @@ func (ipt *Input) doCollect() error {
 
 		// 用户 tag 无脑添加 tag(可能覆盖已有 tag)
 		ipt.collectData.tags[k] = v
-	}
-
-	if ipt.p != nil {
-		if result, err := ipt.p.Run(string(messageData)).Result(); err == nil &&
-			result != nil && !result.Dropped {
-			for k, v := range result.Data {
-				ipt.collectData.fields[k] = v
-			}
-			for k, v := range result.Tags {
-				ipt.collectData.tags[k] = v
-			}
-			// ipt.collectData.tags
-		} else {
-			l.Debug("pipeline error: %s, ignored", err)
-		}
 	}
 
 	return nil
