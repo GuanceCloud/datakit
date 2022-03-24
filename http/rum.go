@@ -47,7 +47,7 @@ func geoTags(srcip string) (tags map[string]string) {
 		"province": "unknown",
 		"country":  "unknown",
 		"isp":      "unknown",
-		"ip":       "unknown",
+		"ip":       srcip,
 	}
 
 	if srcip == "" {
