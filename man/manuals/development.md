@@ -304,7 +304,7 @@ make pub_production_mac VERSION=<the-new-version>
 ./yuque.sh <the-new-version>
 ```
 
-如果不指定版本，会以最近的一个 tag 名称作为版本号，但这个 tag 可能因为排序原因，并准确（比如 1.2.9 明显小于 1.2.10），最好还是指定版本号。
+如果不指定版本，会以最新的一个 tag 名称作为版本号。
 
 > 注意，如果是线上代码发布，最好保证跟**线上 DataKit 当前的稳定版版本号**保持一致，不然会导致用户困扰。
 

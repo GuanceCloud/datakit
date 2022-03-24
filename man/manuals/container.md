@@ -11,7 +11,7 @@
 ## 前置条件
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
-- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset)。
+- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy)。
 - 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
 
 ## 配置
