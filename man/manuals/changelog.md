@@ -21,7 +21,6 @@
   - 新增 [decode()](pipeline#837c4e09) 函数(#559)，这样可以避免在日志采集器中去配置编码，可以在 Pipeline 中实现编码转换
   - 修复 Pipeline 导入 pattern 文件可能失败的问题(#666)
   - [add_pattern()](pipeline#89bd3d4e) 增加作用域管理
-  - `if/else` 语句增加[函数返回值 `true/false` 判断](pipeline#1ea7e5aa)(#651)
 
 ---
 
