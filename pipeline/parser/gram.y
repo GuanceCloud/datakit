@@ -116,7 +116,7 @@ stmt	: function_stmt
 
 
 /* expression */
-expr	: array_elem | regex | paren_expr | conditional_expr | attr_expr | function_stmt; // computation_expr
+expr	: array_elem | regex | paren_expr | conditional_expr | attr_expr ; // computation_expr
 
 
 ifelse_stmt	: IF if_expr
@@ -221,8 +221,6 @@ conditional_expr	: expr GTE expr
 				{ $$ = yylex.(*parser).newConditionalExpr($1, $3, $2) }
 			| expr EQEQ expr
 				{ $$ = yylex.(*parser).newConditionalExpr($1, $3, $2) }
-			| expr
-				{$$ = yylex.(*parser).newConditionalExpr($1, &StringLiteral{Val: "true"},Item{Val: "==",Typ: EQEQ})}
 			;
 
 /*

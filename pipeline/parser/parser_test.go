@@ -392,39 +392,39 @@ func TestParser(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "if-else-expr",
-			in:   `if match(_,"./*")=="11" { g1(arg) g2(arg) } else { h(arg) }`,
-			expected: Stmts{
-				&IfelseStmt{
-					IfList: IfList{
-						&IfExpr{
-							Condition: &ConditionalExpr{
-								Op:  EQEQ,
-								LHS: &Identifier{Name: "match(_, './*')"},
-								RHS: &StringLiteral{Val: "11"},
-							},
-							Stmts: Stmts{
-								&FuncStmt{
-									Name:  "g1",
-									Param: []Node{&Identifier{Name: "arg"}},
-								},
-								&FuncStmt{
-									Name:  "g2",
-									Param: []Node{&Identifier{Name: "arg"}},
-								},
-							},
-						},
-					},
-					Else: Stmts{
-						&FuncStmt{
-							Name:  "h",
-							Param: []Node{&Identifier{Name: "arg"}},
-						},
-					},
-				},
-			},
-		},
+		// {
+		// 	name: "if-else-expr",
+		// 	in:   `if match(_,"./*")=="11" { g1(arg) g2(arg) } else { h(arg) }`,
+		// 	expected: Stmts{
+		// 		&IfelseStmt{
+		// 			IfList: IfList{
+		// 				&IfExpr{
+		// 					Condition: &ConditionalExpr{
+		// 						Op:  EQEQ,
+		// 						LHS: &Identifier{Name: "match(_, './*')"},
+		// 						RHS: &StringLiteral{Val: "11"},
+		// 					},
+		// 					Stmts: Stmts{
+		// 						&FuncStmt{
+		// 							Name:  "g1",
+		// 							Param: []Node{&Identifier{Name: "arg"}},
+		// 						},
+		// 						&FuncStmt{
+		// 							Name:  "g2",
+		// 							Param: []Node{&Identifier{Name: "arg"}},
+		// 						},
+		// 					},
+		// 				},
+		// 			},
+		// 			Else: Stmts{
+		// 				&FuncStmt{
+		// 					Name:  "h",
+		// 					Param: []Node{&Identifier{Name: "arg"}},
+		// 				},
+		// 			},
+		// 		},
+		// 	},
+		// },
 
 		{
 			name: "if-else-expr-newline",
