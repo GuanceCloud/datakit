@@ -40,7 +40,7 @@ func DefaultTimeWithFmtChecking(node parser.Node) error {
 	return nil
 }
 
-func DefaultTimeWithFmt(ng *parser.Engine, node parser.Node) error {
+func DefaultTimeWithFmt(ng *parser.Engine, node parser.Node) interface{} {
 	var err error
 	var goTimeFmt string
 	var tz string

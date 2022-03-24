@@ -50,7 +50,7 @@ func DzChecking(node parser.Node) error {
 	return nil
 }
 
-func Dz(ng *parser.Engine, node parser.Node) error {
+func Dz(ng *parser.Engine, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expects 2 args", funcExpr.Name)
