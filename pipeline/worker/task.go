@@ -30,7 +30,7 @@ type Task interface {
 	ContentType() string // TaskDataString or TaskDataByte
 	ContentEncode() string
 
-	GetContent() interface{} // []string or  [][]byte
+	GetContent() interface{} // []string or [][]byte
 
 	// feed 给 pipeline 时 pl worker 会调用此方法
 	Callback([]*pipeline.Result) error
