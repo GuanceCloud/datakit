@@ -23,7 +23,7 @@ func LowercaseChecking(node parser.Node) error {
 	return nil
 }
 
-func Lowercase(ng *parser.Engine, node parser.Node) error {
+func Lowercase(ng *parser.Engine, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func %s expected 1 args", funcExpr.Name)

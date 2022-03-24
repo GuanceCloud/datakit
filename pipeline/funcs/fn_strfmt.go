@@ -28,7 +28,7 @@ func StrfmtChecking(node parser.Node) error {
 	return nil
 }
 
-func Strfmt(ng *parser.Engine, node parser.Node) error {
+func Strfmt(ng *parser.Engine, node parser.Node) interface{} {
 	outdata := make([]interface{}, 0)
 
 	funcExpr := fexpr(node)

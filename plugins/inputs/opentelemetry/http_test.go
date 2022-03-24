@@ -121,7 +121,7 @@ func Test_otlpHTTPCollector_apiOtlpTrace(t *testing.T) {
 					}
 				}
 			}
-			if datakitSpan.Resource != "test-tracer" {
+			if datakitSpan.Resource != "AlwaysSample" {
 				t.Errorf("span.resource is %s  and real name is test-tracer", datakitSpan.Resource)
 			}
 

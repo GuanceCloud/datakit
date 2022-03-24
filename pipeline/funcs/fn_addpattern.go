@@ -29,7 +29,7 @@ func AddPatternChecking(node parser.Node) error {
 	return nil
 }
 
-func AddPattern(ng *parser.Engine, node parser.Node) error {
+func AddPattern(ng *parser.Engine, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if funcExpr.RunOk {
 		return nil
