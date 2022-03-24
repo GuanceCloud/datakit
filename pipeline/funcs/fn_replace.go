@@ -38,7 +38,7 @@ func ReplaceChecking(node parser.Node) error {
 	return nil
 }
 
-func Replace(ng *parser.Engine, node parser.Node) error {
+func Replace(ng *parser.Engine, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 
 	if len(funcExpr.Param) != 3 {

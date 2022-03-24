@@ -38,7 +38,7 @@ func GrokChecking(node parser.Node) error {
 	return nil
 }
 
-func Grok(ng *parser.Engine, node parser.Node) error {
+func Grok(ng *parser.Engine, node parser.Node) interface{} {
 	g := ng.GetGrok()
 	var err error
 
