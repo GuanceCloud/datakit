@@ -226,17 +226,27 @@ type apiWriteMock struct {
 	t *testing.T
 }
 
-func (x *apiWriteMock) sendToPipLine(t *plw.Task) error {
+func (x *apiWriteMock) sendToPipLine(t plw.Task) error {
 	x.t.Helper()
 	x.t.Log("under mock impl: sendToPipLine")
 
 	dLen := 0
-	cntType := plw.TaskDataContentType(t.Data)
+	cntType := plw.TaskDataContentType(t)
 	switch cntType {
 	case plw.ContentByte:
-		dLen = len(plw.TaskDataGetContentByte(t.Data))
+		d, err := plw.TaskDataGetContentByte(t)
+		if err != nil {
+			x.t.Fatal(err)
+		} else {
+			dLen = len(d)
+		}
 	case plw.ContentString:
-		dLen = len(plw.TaskDataGetContentStr(t.Data))
+		d, err := plw.TaskDataGetContentStr(t)
+		if err != nil {
+			x.t.Fatal(err)
+		} else {
+			dLen = len(d)
+		}
 	default:
 		x.t.Fatalf("unknown content type %s", cntType)
 	}

@@ -37,7 +37,7 @@ var (
 	g = datakit.G("pipeline_worker")
 
 	stopCh = make(chan struct{})
-	taskCh = make(chan *Task, taskChMaxL)
+	taskCh = make(chan Task, taskChMaxL)
 )
 
 type plWorker struct {
@@ -88,7 +88,7 @@ func (wkr *plWorker) Run(ctx context.Context) error {
 	}
 }
 
-func (wkr *plWorker) run(task *Task) error {
+func (wkr *plWorker) run(task Task) error {
 	defer func() {
 		if err := recover(); err != nil {
 			l.Errorf("panic err = %v  lasterr=%v", err, wkr.lastErr)
@@ -101,16 +101,12 @@ func (wkr *plWorker) run(task *Task) error {
 		}
 	}()
 
-	if task == nil {
-		return nil
-	}
-
 	ng := wkr.getNg(task.GetScriptName())
 
-	result, _ := RunPlTask(task, ng)
-
+	result, err := RunPlTask(task, ng)
+	l.Debug(err)
 	// 此处可能导致 panic，需要 recover
-	return task.Data.Callback(task, result)
+	return task.Callback(result)
 }
 
 func (wkr *plWorker) getNg(ppScriptName string) *parser.Engine {

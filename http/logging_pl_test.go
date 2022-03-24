@@ -5,11 +5,10 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
 func TestLogDataCallback(t *testing.T) {
-	task := &worker.Task{}
+	task := &logTask{}
 	pt, err := io.MakePoint(
 		"abc",
 		map[string]string{
@@ -24,14 +23,10 @@ func TestLogDataCallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data := &logTaskData{
-		point: []*io.Point{pt},
-	}
-
-	task.Data = data
+	task.point = []*io.Point{pt}
 
 	r := []*pipeline.Result{pipeline.NewResult()}
-	if _, _, err := data.callback(task, r); err != nil {
+	if _, err := task.callback(r); err != nil {
 		t.Error(err)
 	} else {
 		t.Logf("result: %v", r)

@@ -134,11 +134,7 @@ func (t *Single) forwardMessage() {
 		}
 
 		lines = b.split()
-		pending := &worker.TaskDataTemplate{
-			ContentDataType: worker.ContentString,
-			ContentStr:      []string{},
-			Tags:            t.tags,
-		}
+		pending := []string{}
 		for _, line := range lines {
 			if line == "" {
 				continue
@@ -163,9 +159,9 @@ func (t *Single) forwardMessage() {
 				continue
 			}
 			logstr := removeAnsiEscapeCodes(text, t.opt.RemoveAnsiEscapeCodes)
-			pending.ContentStr = append(pending.ContentStr, logstr)
+			pending = append(pending, logstr)
 		}
-		if len(pending.ContentStr) > 0 {
+		if len(pending) > 0 {
 			t.sendToPipeline(pending)
 		}
 	}
@@ -177,13 +173,7 @@ func (t *Single) send(text string) {
 		return
 	}
 
-	t.sendToPipeline(
-		&worker.TaskDataTemplate{
-			ContentDataType: worker.ContentString,
-			ContentStr:      []string{text},
-			Tags:            t.tags,
-		},
-	)
+	t.sendToPipeline([]string{text})
 }
 
 func (t *Single) sendToForwardCallback(text string) {
@@ -193,18 +183,18 @@ func (t *Single) sendToForwardCallback(text string) {
 	}
 }
 
-func (t *Single) sendToPipeline(pending *worker.TaskDataTemplate) {
-	task := &worker.Task{
-		TaskName:   "logging/" + t.opt.Pipeline,
-		ScriptName: t.opt.Pipeline,
-		Source:     t.opt.Source,
-		Data:       pending,
-		Opt: &worker.TaskOpt{
-			IgnoreStatus:          t.opt.IgnoreStatus,
-			DisableAddStatusField: t.opt.DisableAddStatusField,
-		},
-		TS:            time.Now(),
-		MaxMessageLen: maxFieldsLength,
+func (t *Single) sendToPipeline(pending []string) {
+	task := &worker.TaskTemplate{
+		TaskName:              "logging/" + t.opt.Pipeline,
+		ScriptName:            t.opt.Pipeline,
+		Source:                t.opt.Source,
+		ContentDataType:       worker.ContentString,
+		Content:               pending,
+		IgnoreStatus:          t.opt.IgnoreStatus,
+		DisableAddStatusField: t.opt.DisableAddStatusField,
+		TS:                    time.Now(),
+		MaxMessageLen:         maxFieldsLength,
+		Tags:                  t.tags,
 	}
 
 	err := worker.FeedPipelineTaskBlock(task)

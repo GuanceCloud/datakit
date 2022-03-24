@@ -283,12 +283,15 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		return err
 	}
 
-	newTask := func() *worker.Task {
-		return &worker.Task{
-			TaskName:      "containerlog/" + logconf.Source,
-			Source:        logconf.Source,
-			ScriptName:    logconf.Pipeline,
-			MaxMessageLen: d.cfg.maxLoggingLength,
+	newTask := func() *worker.TaskTemplate {
+		return &worker.TaskTemplate{
+			TaskName:        "containerlog/" + logconf.Source,
+			Source:          logconf.Source,
+			ScriptName:      logconf.Pipeline,
+			MaxMessageLen:   d.cfg.maxLoggingLength,
+			Tags:            logconf.tags,
+			ContentDataType: worker.ContentString,
+			TS:              time.Now(),
 		}
 	}
 
@@ -304,12 +307,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 		case <-timeout.C:
 			if text := mult.Flush(); len(text) != 0 {
 				task := newTask()
-				task.Data = &worker.TaskDataTemplate{
-					Tags:            logconf.tags,
-					ContentDataType: worker.ContentString,
-					ContentStr:      []string{string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes))},
-				}
-				task.TS = time.Now()
+				task.Content = []string{string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes))}
 				if err := worker.FeedPipelineTaskBlock(task); err != nil {
 					l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)
 				}
@@ -332,11 +330,7 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 			continue
 		}
 
-		workerData := &worker.TaskDataTemplate{
-			ContentDataType: worker.ContentString,
-			ContentStr:      []string{},
-			Tags:            logconf.tags,
-		}
+		content := []string{}
 
 		for _, line := range lines {
 			if len(line) == 0 {
@@ -348,18 +342,17 @@ func (d *dockerInput) tailStream(ctx context.Context, reader io.ReadCloser, stre
 				continue
 			}
 
-			workerData.ContentStr = append(workerData.ContentStr,
+			content = append(content,
 				string(removeAnsiEscapeCodes(text, d.cfg.removeLoggingAnsiCodes)),
 			)
 		}
 
-		if len(workerData.ContentStr) == 0 {
+		if len(content) == 0 {
 			continue
 		}
 
 		task := newTask()
-		task.Data = workerData
-		task.TS = time.Now()
+		task.Content = content
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
 			l.Errorf("failed to feed log, containerName:%s, err:%w", containerName, err)

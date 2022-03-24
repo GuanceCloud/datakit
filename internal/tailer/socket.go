@@ -225,29 +225,25 @@ func (std *SocketTaskData) Handler(result *pipeline.Result) error {
 }
 
 func (sl *socketLogger) sendToPipeline(pending []string) {
-	taskDates := &worker.TaskDataTemplate{
-		ContentDataType: worker.ContentString,
-		ContentStr:      []string{},
-		Tags:            sl.tags,
-	}
+	taskCnt := []string{}
 	for _, data := range pending {
 		if data != "" {
-			taskDates.ContentStr = append(taskDates.ContentStr, data)
+			taskCnt = append(taskCnt, data)
 		}
 	}
-	if len(taskDates.ContentStr) != 0 {
-		task := &worker.Task{
-			TaskName:   "socklogging/" + sl.opt.InputName,
-			ScriptName: sl.opt.Pipeline,
-			Source:     sl.opt.Source,
-			Data:       taskDates,
-			Opt: &worker.TaskOpt{
-				Category:              datakit.Logging,
-				IgnoreStatus:          sl.opt.IgnoreStatus,
-				DisableAddStatusField: sl.opt.DisableAddStatusField,
-			},
-			TS:            time.Now(),
-			MaxMessageLen: maxFieldsLength,
+	if len(taskCnt) != 0 {
+		task := &worker.TaskTemplate{
+			TaskName:              "socklogging/" + sl.opt.InputName,
+			ContentDataType:       worker.ContentString,
+			Tags:                  sl.tags,
+			ScriptName:            sl.opt.Pipeline,
+			Source:                sl.opt.Source,
+			Content:               taskCnt,
+			Category:              datakit.Logging,
+			IgnoreStatus:          sl.opt.IgnoreStatus,
+			DisableAddStatusField: sl.opt.DisableAddStatusField,
+			TS:                    time.Now(),
+			MaxMessageLen:         maxFieldsLength,
 		}
 		// 阻塞型channel
 		_ = worker.FeedPipelineTaskBlock(task)

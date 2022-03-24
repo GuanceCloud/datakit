@@ -113,16 +113,15 @@ func (ipt *Input) setup() bool {
 		if tags["pod_name"] != "" {
 			name += fmt.Sprintf("(podname:%s)", tags["pod_name"])
 		}
-		task := &worker.Task{
+		task := &worker.TaskTemplate{
 			TaskName:   name,
 			Source:     msg.Source,
 			ScriptName: msg.Pipeline,
-			Data: &worker.TaskDataTemplate{
-				ContentDataType: worker.ContentString,
-				Tags:            tags,
-				ContentStr:      []string{msg.Log},
-			},
-			TS: time.Now(),
+
+			ContentDataType: worker.ContentString,
+			Tags:            tags,
+			Content:         []string{msg.Log},
+			TS:              time.Now(),
 		}
 
 		if err := worker.FeedPipelineTaskBlock(task); err != nil {
