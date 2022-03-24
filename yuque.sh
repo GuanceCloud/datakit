@@ -45,12 +45,14 @@ else
   os="linux"
 fi
 
-LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit \
+LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
+	--export-docs .docs \
 	--ignore demo \
-	--cmd-log stdout \
-	--export-manuals .docs \
-	--man-version "${man_version}" \
-	--TODO "-" && \
+	--log stdout \
+	--export-docs .docs \
+	--version "${man_version}" \
+	--TODO "-" && exit 0;
+
 	waque upload .docs/*.md -c "${waque_yml}" && \
 	printf "${GREEN}----------------------${CLR}\n" && \
 	printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml}

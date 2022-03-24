@@ -3,16 +3,15 @@ package funcs
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/unicode"
-	"reflect"
 )
 
-var (
-	errUnknownCharacterEncoding = errors.New("unknown character encoding")
-)
+var errUnknownCharacterEncoding = errors.New("unknown character encoding")
 
 type Decoder struct {
 	decoder *encoding.Decoder

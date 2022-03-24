@@ -1,8 +1,9 @@
 package funcs
 
 import (
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"testing"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 type funcCase struct {

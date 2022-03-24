@@ -628,7 +628,6 @@ func (e *AssignmentStmt) Run(ng *Engine) {
 }
 
 func (e *FuncStmt) Run(ng *Engine) interface{} {
-
 	fn := ng.callbacks[e.Name]
 	if fn == nil {
 		ng.lastErr = fmt.Errorf("unsupported func: `%v'", e.Name)
