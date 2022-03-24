@@ -60,9 +60,13 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				l.Warn("failed to get containerd info, err: %w, skip", err)
 				continue
 			}
-			obj := &containerdObject{time: time.Now()}
 
 			imageName, imageShortName, imageTag := ParseImage(info.Image)
+			if imageShortName == "pause" {
+				continue
+			}
+
+			obj := &containerdObject{time: time.Now()}
 			obj.tags = map[string]string{
 				"name":             info.ID,
 				"namespace":        ns,
@@ -87,9 +91,8 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 
 			obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
 			obj.tags.addValueIfNotEmpty("pod_namespace", info.Labels[containerLableForPodNamespace])
-			for k, v := range c.cfg.extraTags {
-				obj.tags[k] = v
-			}
+			obj.tags.append(c.cfg.extraTags)
+
 			res = append(res, obj)
 		}
 	}
@@ -103,14 +106,16 @@ type containerdObject struct {
 	time   time.Time
 }
 
+const containerdName = "containerd"
+
 func (c *containerdObject) LineProto() (*io.Point, error) {
 	// 此处使用 docker_containers 不合适
-	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
+	return io.NewPoint(containerdName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: dockerContainerName,
+		Name: containerdName,
 		Desc: "containerd 容器对象数据",
 		Type: "object",
 		Tags: map[string]interface{}{
@@ -130,4 +135,9 @@ func (c *containerdObject) Info() *inputs.MeasurementInfo {
 			"age": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: `该容器创建时长，单位秒`},
 		},
 	}
+}
+
+//nolint:gochecknoinits
+func init() {
+	registerMeasurement(&containerdObject{})
 }
