@@ -61,6 +61,13 @@ func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
 
 	row++
 	table.SetCell(row, 0,
+		tview.NewTableCell("CPU(%)").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1,
+		tview.NewTableCell(fmt.Sprintf("%f", ds.GolangRuntime.CPUUsage*100)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0,
 		tview.NewTableCell("Mem").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
 		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.HeapAlloc)).
@@ -136,10 +143,6 @@ func (m *monitorAPP) renderBasicInfoTable(ds *dkhttp.DatakitStats) {
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("From").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(m.url).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
-
-	row++
-	table.SetCell(row, 0, tview.NewTableCell("Monitor Time").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-	table.SetCell(row, 1, tview.NewTableCell(time.Since(m.start).String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 }
 
 func (m *monitorAPP) renderEnabledInputTable(ds *dkhttp.DatakitStats, colArr []string) {
@@ -269,7 +272,12 @@ func (m *monitorAPP) renderGoroutineTable(ds *dkhttp.DatakitStats, colArr []stri
 }
 
 func (m *monitorAPP) renderExitPrompt() {
-	fmt.Fprintf(m.exitPrompt, "[green]Refreshed at %s. Double press ctrl+c to exit monitor.", *flagMonitorRefreshInterval)
+	fmt.Fprintf(m.exitPrompt, "[green]Refresh: %s. monitor: %s | Double ctrl+c to exit.",
+		*flagMonitorRefreshInterval, time.Since(m.start).String())
+}
+
+func (m *monitorAPP) renderAnyError() {
+	fmt.Fprintf(m.anyErrorPrompt, "[red]%s", m.anyError)
 }
 
 func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []string) {
@@ -372,7 +380,7 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 
 		if v.LastErr != "" {
 			lastErrCell.SetClickedFunc(func() bool {
-				m.setupLastErr(v.LastErr)
+				m.setupLastErr(fmt.Sprintf("%s(%s)", v.LastErr, humanize.RelTime(v.LastErrTS, now, "ago", "")))
 				return true
 			})
 		}
@@ -394,6 +402,7 @@ type monitorAPP struct {
 	goroutineStatTable  *tview.Table
 	httpServerStatTable *tview.Table
 	exitPrompt          *tview.TextView
+	anyErrorPrompt      *tview.TextView
 	lastErrText         *tview.TextView
 
 	flex *tview.Flex
@@ -416,7 +425,7 @@ func (m *monitorAPP) setupLastErr(lastErr string) {
 	m.lastErrText = tview.NewTextView().SetWordWrap(true).SetDynamicColors(true)
 
 	m.lastErrText.SetBorder(true)
-	fmt.Fprintf(m.lastErrText, "[red]%s \n\n[green]Click ESC or Enter to close this message.", lastErr)
+	fmt.Fprintf(m.lastErrText, "[red]%s \n\n[green]ESC/Enter to close the message", lastErr)
 
 	m.flex.AddItem(m.lastErrText, 0, 5, false)
 
@@ -442,6 +451,7 @@ func (m *monitorAPP) setupFlex() {
 				AddItem(m.goroutineStatTable, 0, 10, false).  // goroutine group stats
 				AddItem(m.httpServerStatTable, 0, 10, false), // 9529 HTTP server stats
 				0, 10, false).
+			AddItem(m.anyErrorPrompt, 0, 1, false).
 			AddItem(m.exitPrompt, 0, 1, false)
 	} else {
 		m.flex.SetDirection(tview.FlexRow).
@@ -449,6 +459,7 @@ func (m *monitorAPP) setupFlex() {
 				AddItem(m.basicInfoTable, 0, 10, false).
 				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
 			AddItem(m.inputsStatTable, 0, 14, false).
+			AddItem(m.anyErrorPrompt, 0, 1, false).
 			AddItem(m.exitPrompt, 0, 1, false)
 	}
 }
@@ -479,6 +490,8 @@ func (m *monitorAPP) setup() {
 
 	// bottom prompt
 	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
+	// error prompt
+	m.anyErrorPrompt = tview.NewTextView().SetDynamicColors(true)
 
 	m.flex = tview.NewFlex()
 	m.setupFlex()
@@ -500,7 +513,6 @@ func (m *monitorAPP) setup() {
 
 			m.render()
 			m.app = m.app.Draw()
-
 			<-tick.C // wait
 		}
 	}()
@@ -515,6 +527,12 @@ func (m *monitorAPP) run() error {
 }
 
 func (m *monitorAPP) render() {
+	m.anyErrorPrompt.Clear()
+	if m.anyError != nil {
+		m.renderAnyError()
+		goto end
+	}
+
 	m.basicInfoTable.Clear()
 	m.golangRuntime.Clear()
 
@@ -523,13 +541,8 @@ func (m *monitorAPP) render() {
 	if *flagMonitorVerbose {
 		m.enabledInputTable.Clear()
 		m.goroutineStatTable.Clear()
-
-		// HTTPMetrics maybe nil(request timeout), so keep original table
-		if m.ds.HTTPMetrics != nil {
-			m.httpServerStatTable.Clear()
-		}
+		m.httpServerStatTable.Clear()
 	}
-	m.exitPrompt.Clear()
 
 	m.renderBasicInfoTable(m.ds)
 	m.renderGolangRuntimeTable(m.ds)
@@ -543,6 +556,8 @@ func (m *monitorAPP) render() {
 		}
 	}
 
+end:
+	m.exitPrompt.Clear()
 	m.renderExitPrompt()
 }
 

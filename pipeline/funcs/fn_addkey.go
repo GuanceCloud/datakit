@@ -23,7 +23,7 @@ func AddkeyChecking(node parser.Node) error {
 	return nil
 }
 
-func Addkey(ng *parser.Engine, node parser.Node) error {
+func Addkey(ng *parser.Engine, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if funcExpr == nil {
 		return fmt.Errorf("unreachable")

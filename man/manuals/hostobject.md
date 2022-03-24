@@ -24,12 +24,14 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 支持以环境变量的方式修改配置参数（只在 DataKit 以 K8s daemonset 方式运行时生效，主机部署的 DataKit 不支持此功能）：
 
-| 环境变量名                                           | 对应的配置参数项                | 参数示例                                                     |
-| :---                                                 | ---                             | ---                                                          |
-| `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | `true`/`false`                                               |
-| `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | `true`/`false`                                               |
-| `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
-| `ENV_CLOUD_PROVIDER`                                 | `tags`                          | `aliyun`/`aws`/`tencent`/`hwcloud`/`azure`              |
+| 环境变量名                                           | 对应的配置参数项                | 参数说明 | 参数示例                                                     |
+| :---                                                 | ---                             | ---| ---                                                          |
+| `ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES` | `enable_net_virtual_interfaces` | 允许采集虚拟网卡| `true`/`false`                                               |
+| `ENV_INPUT_HOSTOBJECT_ENABLE_ZERO_BYTES_DISK`        | `ignore_zero_bytes_disk`        | 忽略大小为 0 的磁盘 | `true`/`false`                                               |
+| `ENV_INPUT_HOSTOBJECT_TAGS`                          | `tags`                          | 增加额外标签| `tag1=value1,tag2=value2` 如果配置文件中有同名 tag，会覆盖它 |
+| `ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE`          | `only_physical_device`          | 忽略非物理磁盘（如网盘、NFS 等，只采集本机硬盘/CD ROM/USB 磁盘等） | 任意给一个字符串值即可 |
+| `ENV_INPUT_HOSTOBJECT_IGNORE_FILE_SYSTEM`            | `ignore_fs`                     | 忽略的文件系统类型列表 | 英文逗号分隔的文件系统类型列表，当前默认列表为 `tmpfs,devtmpfs,devfs,iso9660,overlay,autofs,squashfs,aufs`|
+| `ENV_CLOUD_PROVIDER`                                 | `tags`                          | 指定云服务商 | `aliyun/aws/tencent/hwcloud/azure`              |
 
 ## 开启云同步
 

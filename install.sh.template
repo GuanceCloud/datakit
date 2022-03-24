@@ -232,6 +232,11 @@ if [ -n "$DK_PROXY_TYPE" ]; then
 	fi
 fi
 
+env_enable_experimental=0
+if [ -n "$DK_ENABLE_EXPEIMENTAL" ]; then
+  env_enable_experimental=$DK_ENABLE_EXPEIMENTAL
+fi
+
 env_hostname=
 if [ -n "$DK_HOSTNAME" ]; then
   env_hostname=$DK_HOSTNAME
@@ -335,7 +340,7 @@ if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
 	printf "${BLU}\n* Upgrading DataKit...${CLR}\n"
     $sudo_cmd $installer  \
-		--upgrade --proxy="${proxy}" | $sudo_cmd tee ${install_log}
+		--upgrade --proxy="${proxy}" --env_enable_experimental=${env_enable_experimental} | $sudo_cmd tee ${install_log}
 else
 	printf "${BLU}\n* Installing DataKit...${CLR}\n"
 		$sudo_cmd $installer                         \
@@ -368,3 +373,6 @@ else
 			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer
+
+# install completion
+$sudo_cmd datakit tool --setup-completer-script

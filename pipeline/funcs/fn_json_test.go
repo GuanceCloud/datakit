@@ -6,14 +6,6 @@ import (
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
-type funcCase struct {
-	name     string
-	data     string
-	script   string
-	expected interface{}
-	key      string
-}
-
 func TestJSON(t *testing.T) {
 	testCase := []*funcCase{
 		{

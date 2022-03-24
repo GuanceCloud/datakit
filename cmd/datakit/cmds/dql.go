@@ -734,35 +734,48 @@ var (
 		{Text: "R::", Description: "RUM namespace"},
 		{Text: "S::", Description: "Security namespace"},
 
+		// ------------
 		// functions
+		// ------------
+
+		// metric
 		{Text: "show_measurement()", Description: "show all metric names"},
-		{Text: "show_field_key()", Description: "show metric fields"},
-		{Text: "show_tag_key()", Description: "show metric tags"},
-		{Text: "show_tag_value(keyin=[])", Description: "show metric tag values"},
+		{Text: "show_field_key(from=['measurement-name'])", Description: "show metric fields"},
+		{Text: "show_tag_key(from=['measurement-name'])", Description: "show metric tags"},
+		{Text: "show_tag_value(from=['measurement-name'], keyin=['tag1', re('.*')])", Description: "show metric tag values"},
 
+		// object & custom object
 		{Text: "show_object_class()", Description: "show object classes"},
-		{Text: "show_object_field()", Description: "show object fields"},
+		{Text: "show_object_field('class-name')", Description: "show object fields"},
+		{Text: "show_object_label(class='', names=[''])", Description: "show object fields"},
+		{Text: "show_cobject_class()", Description: "show object classes"},
+		{Text: "show_cobject_field('class-name')", Description: "show object fields"},
+		{Text: "show_cobject_label(class='', names=[''])", Description: "show object fields"},
 
+		// logging
 		{Text: "show_logging_source()", Description: "show logging sources"},
-		{Text: "show_logging_field()", Description: "show logging fields"},
+		{Text: "show_logging_field('source')", Description: "show logging fields of specified source"},
 
+		// event
 		{Text: "show_event_source()", Description: "show event sources"},
-		{Text: "show_event_field()", Description: "show event fields"},
+		{Text: "show_event_field('source')", Description: "show event fields"},
 
-		{Text: "show_tracing_service()", Description: "show tracing services"},
-		{Text: "show_tracing_field()", Description: "show tracing fields"},
+		// tracing
+		{Text: "show_tracing_source()", Description: "show tracing services"},
+		{Text: "show_tracing_field('source')", Description: "show tracing fields of specified source"},
 
+		// RUM
 		{Text: "show_rum_type()", Description: "show RUM types"},
-		{Text: "show_rum_field(rum-type-value)", Description: "show RUM type fields"},
+		{Text: "show_rum_field('source')", Description: "show RUM fields of specified source"},
 
+		// scheck
 		{Text: "show_security_source()", Description: "show security categories, same as show_security_category()"},
 		{Text: "show_security_category()", Description: "show security categories"},
 		{Text: "show_security_field()", Description: "show security fields"},
 
+		// eBPF network
 		{Text: "show_network_source()", Description: "show eBPF network source"},
-		{Text: "show_network_field()", Description: "show eBPF network fields"},
-		{Text: "show_workspaces()", Description: "Show all default and readonly workspaces"},
-		{Text: "use", Description: "use other workspace,as :'use tkn_xxxxxx' "},
+		{Text: "show_network_field('source')", Description: "show eBPF network fields of specified source"},
 
 		{Text: "show_workspaces()", Description: "Show all default and readonly workspaces"},
 		{Text: "use", Description: "use other workspace,as :'use tkn_xxxxxx' "},

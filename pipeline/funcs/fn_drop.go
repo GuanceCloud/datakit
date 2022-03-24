@@ -6,7 +6,7 @@ func DropChecking(node parser.Node) error {
 	return nil
 }
 
-func Drop(ng *parser.Engine, node parser.Node) error {
+func Drop(ng *parser.Engine, node parser.Node) interface{} {
 	ng.MarkDrop()
 	return nil
 }
