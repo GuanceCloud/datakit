@@ -585,13 +585,13 @@ func (e *ConditionalExpr) Run(ng *Engine) (pass bool) {
 		left = v.Value()
 	case *NilLiteral:
 		left = v.Value()
-	case *FuncStmt:
-		switch ret := v.Run(ng).(type) {
-		case error:
-			return false
-		default:
-			left = ret
-		}
+	// case *FuncStmt:
+	// 	switch ret := v.Run(ng).(type) {
+	// 	case error:
+	// 		return false
+	// 	default:
+	// 		left = ret
+	// 	}
 	default:
 		ng.lastErr = fmt.Errorf("unsupported ConditionalExpr type %s, from: %s", reflect.TypeOf(v), e.LHS)
 		return false
@@ -829,7 +829,7 @@ func (e *IfExpr) Check(ng *Engine) error {
 //   left node only support Identifier
 //   right node support NumberLiteral/StringLiteral/BoolLiteral
 func (e *ConditionalExpr) Check(ng *Engine) error {
-	switch v := e.LHS.(type) {
+	switch e.LHS.(type) {
 	case *Identifier:
 	case *ParenExpr:
 	case *ConditionalExpr:
@@ -837,10 +837,10 @@ func (e *ConditionalExpr) Check(ng *Engine) error {
 	case *NumberLiteral:
 	case *BoolLiteral:
 	case *NilLiteral:
-	case *FuncStmt:
-		if err := v.Check(ng); err != nil {
-			return err
-		}
+	// case *FuncStmt:
+	// 	if err := v.Check(ng); err != nil {
+	// 		return err
+	// 	}
 	default:
 		return fmt.Errorf(`unsupported type %s, from: %s`,
 			reflect.TypeOf(e.LHS), e.LHS)
