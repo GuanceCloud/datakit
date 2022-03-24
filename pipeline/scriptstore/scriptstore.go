@@ -123,6 +123,12 @@ func (store *DotPScriptStore) appendScript(ns string, name string, script string
 	}
 }
 
+func (store *DotPScriptStore) appendScriptFromString(ns, name, content string, cover bool) {
+	if err := store.appendScript(ns, name, content, cover); err != nil {
+		l.Errorf("script name: %s, err: %v, ns: %s, content: %s", name, err, ns, content)
+	}
+}
+
 func AppendScript(ns string, name string, script string, cover bool) error {
 	return scriptCentorStore.appendScript(ns, name, script, cover)
 }
@@ -234,6 +240,13 @@ func LoadRemoteDotPScript2Store(filePath []string) {
 func ReloadAllRemoteDotPScript2Store(filePath []string) {
 	CleanAllScriptWithNS(RemoteScriptNS)
 	LoadDotPScript2StoreWithNS(RemoteScriptNS, filePath, "")
+}
+
+func ReloadAllRemoteDotPScript2StoreFromMap(m map[string]string) {
+	CleanAllScriptWithNS(RemoteScriptNS)
+	for name, content := range m {
+		scriptCentorStore.appendScriptFromString(RemoteScriptNS, name, content, true)
+	}
 }
 
 // LoadDotPScript2StoreWithNS will clean current layer data and then add new script.

@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
@@ -26,8 +25,9 @@ type Input struct {
 	Class string `toml:"class,omitempty"`       // deprecated
 	Desc  string `toml:"description,omitempty"` // deprecated
 
-	Pipeline string            `toml:"pipeline,omitempty"`
-	Tags     map[string]string `toml:"tags,omitempty"`
+	PipelineDeprecated string `toml:"pipeline,omitempty"`
+
+	Tags map[string]string `toml:"tags,omitempty"`
 
 	Interval                 *datakit.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore *datakit.Duration `toml:"ignore_inputs_errors_before,omitempty"`
@@ -35,11 +35,10 @@ type Input struct {
 
 	EnableNetVirtualInterfaces bool     `toml:"enable_net_virtual_interfaces"`
 	IgnoreZeroBytesDisk        bool     `toml:"ignore_zero_bytes_disk"`
+	OnlyPhysicalDevice         bool     `toml:"only_physical_device"`
 	IgnoreFS                   []string `toml:"ignore_fs"`
 
 	CloudInfo map[string]string `toml:"cloud_info,omitempty"`
-
-	p *pipeline.Pipeline
 
 	collectData *hostMeasurement
 
@@ -67,14 +66,21 @@ func (ipt *Input) Run() {
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
-	n := 0
 	defer tick.Stop()
 
 	l.Debugf("starting %s(interval: %v)...", InputName, ipt.Interval)
 
-	ipt.singleCollect(n) // 1st shot on datakit startup
-
 	for {
+		l.Debugf("start collecting...")
+		start := time.Now()
+		if err := ipt.doCollect(); err != nil {
+			io.FeedLastError(InputName, err.Error())
+		} else if err := inputs.FeedMeasurement(InputName,
+			datakit.Object, []inputs.Measurement{ipt.collectData},
+			&io.Option{CollectCost: time.Since(start)}); err != nil {
+			io.FeedLastError(InputName, err.Error())
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Infof("%s exit on sem", InputName)
@@ -85,9 +91,6 @@ func (ipt *Input) Run() {
 			return
 
 		case <-tick.C:
-			l.Debugf("start %d collecting...", n)
-			ipt.singleCollect(n)
-			n++
 		}
 	}
 }
@@ -98,8 +101,7 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-// ReadEnv , support envs：
-//   ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES: booler
+// ReadEnv used to read ENVs while running under DaemonSet.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if enable, ok := envs["ENV_INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES"]; ok {
 		b, err := strconv.ParseBool(enable)
@@ -108,6 +110,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		} else {
 			ipt.EnableNetVirtualInterfaces = b
 		}
+	}
+
+	if _, ok := envs["ENV_INPUT_HOSTOBJECT_ONLY_PHYSICAL_DEVICE"]; ok {
+		l.Info("setup OnlyPhysicalDevice...")
+		ipt.OnlyPhysicalDevice = true
+	}
+
+	if x, ok := envs["ENV_INPUT_HOSTOBJECT_IGNORE_FILE_SYSTEM"]; ok {
+		l.Infof("setup IgnoreFS to %s...", x)
+		ipt.IgnoreFS = strings.Split(x, ",")
 	}
 
 	// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/505
@@ -136,20 +148,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.Tags["cloud_provider"] = cloudProvider
 		}
 	} // ENV_CLOUD_PROVIDER
-}
-
-func (ipt *Input) singleCollect(n int) {
-	l.Debugf("start %d collecting...", n)
-
-	start := time.Now()
-	if err := ipt.doCollect(); err != nil {
-		io.FeedLastError(InputName, err.Error())
-	} else if err := inputs.FeedMeasurement(InputName,
-		datakit.Object,
-		[]inputs.Measurement{ipt.collectData},
-		&io.Option{CollectCost: time.Since(start)}); err != nil {
-		io.FeedLastError(InputName, err.Error())
-	}
 }
 
 type hostMeasurement struct {
@@ -250,21 +248,6 @@ func (ipt *Input) doCollect() error {
 		ipt.collectData.tags[k] = v
 	}
 
-	if ipt.p != nil {
-		if result, err := ipt.p.Run(string(messageData), hostObjMeasurementName); err == nil &&
-			result != nil && !result.IsDropped() {
-			for k, v := range result.GetFields() {
-				ipt.collectData.fields[k] = v
-			}
-			for k, v := range result.GetTags() {
-				ipt.collectData.tags[k] = v
-			}
-			// ipt.collectData.tags
-		} else {
-			l.Debug("pipeline error: %s, ignored", err)
-		}
-	}
-
 	return nil
 }
 
@@ -292,6 +275,7 @@ func DefaultHostObject() *Input {
 	return &Input{
 		Interval:                 &datakit.Duration{Duration: 5 * time.Minute},
 		IgnoreInputsErrorsBefore: &datakit.Duration{Duration: 30 * time.Second},
+		IgnoreZeroBytesDisk:      true,
 		IgnoreFS: []string{
 			"autofs",
 			"tmpfs",

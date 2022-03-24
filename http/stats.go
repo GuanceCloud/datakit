@@ -18,6 +18,7 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/election"
@@ -33,9 +34,10 @@ type enabledInput struct {
 }
 
 type runtimeInfo struct {
-	Goroutines int    `json:"goroutines"`
-	HeapAlloc  uint64 `json:"heap_alloc"`
-	Sys        uint64 `json:"total_sys"`
+	Goroutines int     `json:"goroutines"`
+	HeapAlloc  uint64  `json:"heap_alloc"`
+	Sys        uint64  `json:"total_sys"`
+	CPUUsage   float64 `json:"cpu_usage"`
 
 	GCPauseTotal uint64 `json:"gc_pause_total"`
 	GCNum        uint32 `json:"gc_num"`
@@ -44,10 +46,19 @@ type runtimeInfo struct {
 func getRuntimeInfo() *runtimeInfo {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
+
+	var usage float64
+	if u, err := cgroup.GetCPUPercent(0); err != nil {
+		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
+	} else {
+		usage = u
+	}
+
 	return &runtimeInfo{
 		Goroutines: runtime.NumGoroutine(),
 		HeapAlloc:  m.HeapAlloc,
 		Sys:        m.Sys,
+		CPUUsage:   usage,
 
 		GCPauseTotal: m.PauseTotalNs,
 		GCNum:        m.NumGC,

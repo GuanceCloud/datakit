@@ -46,38 +46,42 @@
   # ...
 ```
 
+### 指标
+
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
 {{ end }}
 
-## 对象
+### 对象
 
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "object"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
+
 {{$m.Desc}}
 
--  标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
