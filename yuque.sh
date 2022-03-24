@@ -51,8 +51,6 @@ LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
 	--log stdout \
 	--export-docs .docs \
 	--version "${man_version}" \
-	--TODO "-" && exit 0;
-
-	waque upload .docs/*.md -c "${waque_yml}" && \
+	--TODO "-" && waque upload .docs/*.md -c "${waque_yml}" && \
 	printf "${GREEN}----------------------${CLR}\n" && \
 	printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml}
