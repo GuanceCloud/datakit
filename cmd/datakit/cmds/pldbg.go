@@ -46,7 +46,11 @@ func pipelineDebugger(plname, txt string) error {
 		return err
 	}
 
-	pl, err := pipeline.NewPipeline(plname)
+	plPath, err := config.GetPipelinePath(plname)
+	if err != nil {
+		return fmt.Errorf("get pipeline failed: %w", err)
+	}
+	pl, err := pipeline.NewPipelineFromFile(plPath)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}
