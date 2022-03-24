@@ -91,11 +91,11 @@ func (s *ClientStat) Update() {
 	s.MaxHeapObjects = setMax(s.MaxHeapObjects, s.HeapObjects)
 	s.MinHeapObjects = setMin(s.MinHeapObjects, s.HeapObjects)
 
-	if u, err := cgroup.GetCPUPercent(3 * time.Second); err != nil {
+	if u, err := cgroup.GetCPUPercent(0); err != nil {
 		l.Warnf("get CPU usage failed: %s, ignored", err.Error())
 		s.CPUUsage = 0.0
 	} else {
-		s.CPUUsage = u
+		s.CPUUsage = u * 100
 	}
 
 	du, ns := s.getElectedInfo()

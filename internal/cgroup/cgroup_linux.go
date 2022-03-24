@@ -7,7 +7,6 @@ import (
 
 	"github.com/containerd/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 )
 
 // 1 second.
@@ -19,10 +18,9 @@ const (
 )
 
 //nolint:cyclop
-func start() {
-	// config.Cfg.Cgroup 是百分比
-	high := config.Cfg.Cgroup.CPUMax * float64(runtime.NumCPU()) / 100 //nolint:gomnd
-	low := config.Cfg.Cgroup.CPUMin * float64(runtime.NumCPU()) / 100  //nolint:gomnd
+func start(c *Cgroup) {
+	high := c.CPUMax * float64(runtime.NumCPU()) / 100 //nolint:gomnd
+	low := c.CPUMin * float64(runtime.NumCPU()) / 100  //nolint:gomnd
 
 	quotaHigh := int64(float64(period) * high)
 	quotaLow := int64(float64(period) * low)

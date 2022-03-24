@@ -8,6 +8,17 @@
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 
+## API 综述
+
+DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
+
+### 通过 API 获取远端 DataKit 版本号
+
+有两种方式可获取版本号：
+
+- 请求 DataKit ping 接口： `curl http://ip:9529/v1/ping`
+- 在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本
+
 ## `/v1/write/:category`
 
 本 API 用于给 DataKit 上报各类数据（`category`），参数说明如下：
@@ -147,7 +158,7 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 
 ## `/v1/ping`
 
-检测目标地址是否有 DataKit 运行
+检测目标地址是否有 DataKit 运行，可获取 DataKit 启动时间以及版本信息。
 
 ### 示例
 

@@ -232,11 +232,7 @@ func ReloadCheckPipelineCfg(iputs []inputs.Input) (*tailer.Option, error) {
 				if vv.Pipeline == "" {
 					continue
 				}
-				pFullPath, err := GetPipelinePath(vv.Pipeline)
-				if err != nil {
-					return nil, err
-				}
-				pl, err := pipeline.NewPipelineByScriptPath(pFullPath, false)
+				pl, err := pipeline.NewPipeline(vv.Pipeline)
 				if err != nil {
 					return vv, err
 				}

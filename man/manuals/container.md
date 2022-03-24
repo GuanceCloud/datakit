@@ -149,6 +149,15 @@ spec:
 
 详见[Kubernetes-prom](kubernetes-prom)
 
+### 支持 containerd
+
+目前 Containerd 只有部分采集功能支持：
+
+- 容器对象：支持
+- 容器/Pod 日志：推荐使用 [logfwd](logfwd) 进行采集。
+- 容器指标：**暂不支持**
+- Kubernetes 其它采集均不受影响
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：

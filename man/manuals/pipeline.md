@@ -230,7 +230,6 @@ if status == 200 {
 } elif stauts > 500 {
 	add_key(level, "FATAL")
 }
-
 ```
 
 ## Pipeline 脚本存放目录
