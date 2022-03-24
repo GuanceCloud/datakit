@@ -7,7 +7,7 @@
 本次发布属于迭代发布，更新内容如下：
 
 1. 增加 [DataKit 命令行补全](datakit-tools-how-to#9e4e5d5f)功能(#76)
-1. 允许 DataKit [升级到非稳定版](datakit-update#f5532011)(#639)
+1. 允许 DataKit [升级到非稳定版](datakit-update#42d8b0e4)(#639)
 1. 调整 Remote Pipeline 的在 DataKit 本地的存储，避免不同文件系统差异导致的文件名大小写问题(#649)
 1. (Alpha)初步支持 [Kubernetes/Containerd 架构的数据采集](container#b3edf30c)(#402)
 1. 修复 Redis 采集器的不合理报错(#671) 
@@ -20,15 +20,8 @@
 	- 新增 [decode()](pipeline#837c4e09) 函数(#559)，这样可以避免在日志采集器中去配置编码，可以在 Pipeline 中实现编码转换
 	- 修复 Pipeline 导入 pattern 文件可能失败的问题(#666)
 	- [add_pattern()](pipeline#89bd3d4e) 增加作用域管理
-  - `if/else` 语句增加函数返回值 `true/false` 判断(#651)，如：
+  - `if/else` 语句增加[函数返回值 `true/false` 判断](pipeline#1ea7e5aa)(#651)
 
-```python
-if match(abc, re(".*")) {
-	# do something
-} else {
-	# do other things 
-}
-``` 
 ---
 
 ## 1.2.11(2022/03/17)

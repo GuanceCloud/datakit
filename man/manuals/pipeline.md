@@ -213,6 +213,13 @@ add_key(name, "张三")
 if name == "法外狂徒" {
 	# 这是不可能的，不要污蔑我
 }
+
+# 支持函数返回值判断
+if match(abc, re(".*")) {
+	# do something
+} else {
+	# do other things 
+}
 ```
 
 和大多数编程/脚本语言相同，根据 `if/elif` 的条件是否成立，来决定其执行顺序。
@@ -230,7 +237,6 @@ if status == 200 {
 } elif stauts > 500 {
 	add_key(level, "FATAL")
 }
-
 ```
 
 ## Pipeline 脚本存放目录
