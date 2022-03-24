@@ -70,8 +70,12 @@ func pipelineDebugger(plname, txt string) error {
 	result := map[string]interface{}{}
 	maxWidth := 0
 
-	if *flagPLDate {
-		result["time"] = time.Unix(0, res.Output.DataTS)
+	if plTime, err := res.GetTime(); err == nil {
+		if *flagPLDate {
+			result["time"] = plTime
+		} else {
+			result["time"] = plTime.UnixNano()
+		}
 	}
 
 	for k, v := range res.Output.Fields {
