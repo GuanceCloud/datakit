@@ -7,6 +7,31 @@
 本次发布属于迭代发布，更新内容如下：
 
 1. 增加 [DataKit 命令行补全](datakit-tools-how-to#9e4e5d5f)功能(#76)
+1. 允许 DataKit [升级到非稳定版](datakit-update#f5532011)(#639)
+1. 调整 Remote Pip[eline 的在 DataKit 本地的存储，避免不同文件系统差异导致的文件名大小写问题(#649)
+1. (Alpha)初步支持 Kubernetes/Containerd 架构的数据采集]()(#402)
+1. 修复 Redis 采集器的不合理报错(#671) 
+1. OpenTelemetry 采集器字段微调(#672)
+1. 修复 [DataKit 自身采集器](self) CPU 计算错误(#664)
+1. 修复 RUM 采集器因 IPDB 缺失导致的 IP 关联字段缺失问题(#652)
+1. Pipeline
+
+  - `if/else` 语句增加函数返回值 `true/false` 判断(#651)，如
+
+	```python
+	if match(abc, re(".*")) {
+		# do something
+	} else {
+    # do other things 
+	}
+	```
+
+	- 新增 [decode()](pipeline#837c4e09) 函数(#559)，这样可以避免在日志采集器中去配置编码，可以在 Pipeline 中实现编码转换
+	- 修复 Pipeline 导入 pattern 文件可能失败的问题(#666)
+	- [add_pattern()](pipeline#89bd3d4e) 增加作用域管理
+
+1. Pipeline 支持调试数据上传至 OSS(#650)
+1. DataKit HTTP API 上均会[带上 DataKit 版本号信息](apis#be896a47)
 
 ---
 
