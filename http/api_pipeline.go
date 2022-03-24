@@ -15,7 +15,8 @@ import (
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/multiline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -80,7 +81,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		return nil, uhttp.Error(ErrInvalidPipeline, err.Error())
 	}
 
-	ng, err := worker.ParsePlScript(string(decodePipeline))
+	scriptInfo, err := scriptstore.NewScriptInfo(reqDebug.Source+".p", string(decodePipeline), "api_pipeline")
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrCompiledFailed, err.Error())
@@ -101,7 +102,19 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 
 	// STEP 3: pipeline processing
 	start := time.Now()
-	res := worker.RunAsPlTask(reqDebug.Category, reqDebug.Source, reqDebug.Service, dataLines, ng)
+	res := []*pipeline.Result{}
+	for _, line := range dataLines {
+		r, _ := pipeline.RunPlStr(line, reqDebug.Source, 0, scriptInfo.Engine())
+		if r != nil {
+			if svc, err := r.GetTag("service"); err != nil {
+				if reqDebug.Service == "" {
+					svc = reqDebug.Source
+				}
+				r.SetTag("service", svc)
+			}
+			res = append(res, r)
+		}
+	}
 
 	// STEP 4 (optional): benchmark
 	var benchmarkResult testing.BenchmarkResult
@@ -109,7 +122,9 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 		benchmarkResult = testing.Benchmark(func(b *testing.B) {
 			b.Helper()
 			for n := 0; n < b.N; n++ {
-				worker.RunAsPlTask(reqDebug.Category, reqDebug.Source, reqDebug.Service, []string{dataLines[0]}, ng)
+				for _, line := range dataLines {
+					_, _ = pipeline.RunPlStr(line, reqDebug.Source, 0, scriptInfo.Engine())
+				}
 			}
 		})
 	}
@@ -120,7 +135,7 @@ func apiDebugPipelineHandler(w http.ResponseWriter, req *http.Request, whatever 
 	return getReturnResult(start, res, reqDebug, &benchmarkResult), nil
 }
 
-func getReturnResult(start time.Time, res []*worker.Result,
+func getReturnResult(start time.Time, res []*pipeline.Result,
 	reqDebug *pipelineDebugRequest,
 	benchmarkResult *testing.BenchmarkResult) *pipelineDebugResponse {
 	var returnres pipelineDebugResponse

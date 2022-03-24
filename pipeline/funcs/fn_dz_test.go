@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -128,8 +133,9 @@ func TestDz(t *testing.T) {
 					t.Error(err)
 				}
 			} else {
-				t.Log(runner.Result())
-				v, _ := runner.GetContent(tc.outKey)
+				ret := runner.Result()
+				t.Log(ret)
+				v := ret.Fields[tc.outKey]
 				tu.Equals(t, tc.expected, v)
 				t.Logf("[%d] PASS", idx)
 			}

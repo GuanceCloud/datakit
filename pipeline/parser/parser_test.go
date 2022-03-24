@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package parser
 
 import (
@@ -387,6 +392,39 @@ func TestParser(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "if-else-expr",
+			in:   `if match(_,"./*")=="11" { g1(arg) g2(arg) } else { h(arg) }`,
+			expected: Stmts{
+				&IfelseStmt{
+					IfList: IfList{
+						&IfExpr{
+							Condition: &ConditionalExpr{
+								Op:  EQEQ,
+								LHS: &Identifier{Name: "match(_, './*')"},
+								RHS: &StringLiteral{Val: "11"},
+							},
+							Stmts: Stmts{
+								&FuncStmt{
+									Name:  "g1",
+									Param: []Node{&Identifier{Name: "arg"}},
+								},
+								&FuncStmt{
+									Name:  "g2",
+									Param: []Node{&Identifier{Name: "arg"}},
+								},
+							},
+						},
+					},
+					Else: Stmts{
+						&FuncStmt{
+							Name:  "h",
+							Param: []Node{&Identifier{Name: "arg"}},
+						},
+					},
+				},
+			},
+		},
 
 		{
 			name: "if-else-expr-newline",
@@ -680,6 +718,20 @@ func TestParser(t *testing.T) {
 								Attr: &Identifier{Name: "z"},
 							},
 						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "simple attr syntax",
+			in:   `match(_,"p([a-z]+)ch")`,
+			expected: Stmts{
+				&FuncStmt{
+					Name: "match",
+					Param: []Node{
+						&Identifier{Name: "_"},
+						&StringLiteral{Val: "p([a-z]+)ch"},
 					},
 				},
 			},
