@@ -15,6 +15,7 @@
 *.rpm
 *.tar.gz
 *.yaml
+!datakit.yaml
 *.zip
 **build/
 ag.sh

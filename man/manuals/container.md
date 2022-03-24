@@ -149,6 +149,12 @@ spec:
 
 详见[Kubernetes-prom](kubernetes-prom)
 
+### 支持 containerd（试用版）
+
+containerd 默认开启，通过连接 `/var/run/containerd/containerd.sock` 实现对 containerd 容器的对象采集（默认忽略 `pause` 容器），支持全部 namespace，详细对象字段见后文。
+
+containerd 容器日志，推荐使用 [logfwd](logfwd) 进行采集。
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
