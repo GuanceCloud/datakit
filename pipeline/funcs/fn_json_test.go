@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -44,8 +49,10 @@ func TestJSON(t *testing.T) {
 			err = runner.Run(tc.data)
 			tu.Equals(t, nil, err)
 
-			r, err := runner.GetContentStr(tc.key)
-			tu.Equals(t, nil, err)
+			ret := runner.Result()
+
+			r, ok := ret.Fields[tc.key]
+			tu.Equals(t, true, ok)
 			tu.Equals(t, tc.expected, r)
 
 			t.Logf("[%d] PASS", idx)

@@ -44,18 +44,40 @@
 用法：
 - 加载函数处理脚本
 ```
-p := NewPipeline(script)  //script为string类型
+// scriptName 为存放于 datakit 安装目录下的 pipeline 目录下的脚本的文件名 (xxx.p)
+// 或由 gitrepos，remote 加载的脚本的脚本名 (xxx.p)
+// pipeline script 由 pipeline 的 scriptstore 模块统一管理, 在 datakit 启动后将加载指定目录，
+// 如 datakit 安装目录下的 pipeline, remote, gitrepos 下的 pipeline 脚本
+p := NewPipeline(scriptName)
 ```
-传入函数处理表达式脚本文件或脚本字符串, 注意在编写函数表示式时，通过分号分割，支持多行
 
 - 文本处理
 ```
-p.Run(data) //data为string类型
+// 支持 []byte string 两种数据类型
+// Run() RunByte() 非线程安全
+
+ret, err := p.Run("abc", source)
+
+// encode 值可为 "gbk", "gb18030", "utf-8", 其他值均按 utf-8 编码处理
+ret, err := p.RunByte([]byte("abc"), encode, source)
+
+// ret 的数据结构为，建议通过 Result 结构体提供的一系列方法进行操作
+/*
+	type Result struct {
+		Output *parser.Output
+
+		TS time.Time
+
+		Err string
+	}
+*/
 ```
 
-- 获取结果
+- 检测脚本变更并更新 Pipeline 实例
 ```
-p.Result()  //返回类型为(map[string]interface{}, error)
+// 该函数可以通过 scriptstore 模块检测相应的脚本是否发生了更新，并更新该 Pipeline 实例
+// 需要注意的是，该操作并非线程安全，即调用此函数时不可执行 Run 和 RunByte 方法。
+err := p.UpdateScriptInfo()
 ```
 
 ## 脚本函数

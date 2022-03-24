@@ -1,8 +1,9 @@
 package funcs
 
 import (
-	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"testing"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 type funcCase struct {
@@ -30,7 +31,7 @@ func TestDecode(t *testing.T) {
 			err = runner.Run(tc.data)
 			tu.Equals(t, nil, err)
 
-			r, err := runner.GetContentStr(tc.key)
+			r, err := runner.Data.GetContentStr(tc.key)
 			res, _ := decode.decoder.String(tc.data)
 			tu.Equals(t, nil, err)
 			tu.Equals(t, res, r)

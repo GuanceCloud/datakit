@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -7,7 +12,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func StrfmtChecking(node parser.Node) error {
+func StrfmtChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) < 2 {
 		return fmt.Errorf("func `%s' expects more than 2 args", funcExpr.Name)
@@ -28,7 +33,7 @@ func StrfmtChecking(node parser.Node) error {
 	return nil
 }
 
-func Strfmt(ng *parser.Engine, node parser.Node) interface{} {
+func Strfmt(ng *parser.EngineData, node parser.Node) interface{} {
 	outdata := make([]interface{}, 0)
 
 	funcExpr := fexpr(node)

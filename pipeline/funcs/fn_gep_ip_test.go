@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -127,12 +132,11 @@ func TestGeoIpFunc(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		t.Log(runner.Result())
-
+		ret := runner.Result()
+		t.Log(ret)
 		for k, v := range tt.expected {
-			r, err := runner.GetContentStr(k)
-			tu.Ok(t, err)
-
+			r, ok := ret.Fields[k]
+			tu.Assert(t, ok == true, "!ok")
 			tu.Assert(t, r == v, "%s != %s, output: %+#v", r, v)
 		}
 	}

@@ -4,44 +4,18 @@ import (
 	"fmt"
 	"reflect"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/grok"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func AddPatternChecking(node parser.Node) error {
+func AddPatternChecking(ngData *parser.EngineData, node parser.Node) error {
+	g := ngData.GetGrok()
+
 	funcExpr := fexpr(node)
-	if len(funcExpr.Param) != 2 {
-		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)
-	}
-	switch funcExpr.Param[0].(type) {
-	case *parser.StringLiteral:
-	default:
-		return fmt.Errorf("expect StringLiteral, got %s",
-			reflect.TypeOf(funcExpr.Param[0]).String())
-	}
-
-	switch funcExpr.Param[1].(type) {
-	case *parser.StringLiteral:
-	default:
-		return fmt.Errorf("expect StringLiteral, got %s",
-			reflect.TypeOf(funcExpr.Param[1]).String())
-	}
-
-	return nil
-}
-
-func AddPattern(ng *parser.Engine, node parser.Node) interface{} {
-	funcExpr := fexpr(node)
-	if funcExpr.RunOk {
-		return nil
-	}
 
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expected 2 args", funcExpr.Name)
 	}
-
-	defer func() {
-		funcExpr.RunOk = true
-	}()
 
 	var name, pattern string
 	switch v := funcExpr.Param[0].(type) {
@@ -60,7 +34,32 @@ func AddPattern(ng *parser.Engine, node parser.Node) interface{} {
 			reflect.TypeOf(funcExpr.Param[1]).String())
 	}
 
-	_ = ng.SetPatterns(map[string]string{name: pattern})
+	deep := ngData.StackDeep()
+	pStack := ngData.PatternStack()
+	if _, ok := g.DenormalizedPatterns[name]; ok && deep == 0 {
+		return nil
+		// return fmt.Errorf("pattern %s redefine", name)
+	}
+	dePatterns := []map[string]string{}
+	dePatterns = append(dePatterns, g.GlobalDenormalizedPatterns, g.DenormalizedPatterns)
+	dePatterns = append(dePatterns, pStack...)
 
+	de, err := grok.DenormalizePattern(pattern, dePatterns...)
+	if err != nil {
+		return err
+	}
+	if deep < 0 {
+		return fmt.Errorf("stack deep %d", deep)
+	}
+	if deep == 0 {
+		g.DenormalizedPatterns[name] = de
+	} else {
+		pStack[deep-1][name] = de
+	}
+
+	return nil
+}
+
+func AddPattern(ng *parser.EngineData, node parser.Node) interface{} {
 	return nil
 }

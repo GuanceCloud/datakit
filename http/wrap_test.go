@@ -11,7 +11,7 @@ import (
 )
 
 func TestLimitWrap(t *testing.T) {
-	limit := 1000.0
+	var limit float64 = 1000.0
 	reqLimiter = setupLimiter(limit)
 
 	r := gin.New()
