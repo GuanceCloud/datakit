@@ -412,17 +412,6 @@ hostname = "should-not-set"`,
     user_agent = "go_test_client"
     write_encoding = ""
 
-  [[sinks.sink]]
-    addr = "http://1.1.1.1:8086"
-    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
-    database = "db0"
-    id = "influxdb_test_will_not_working"
-    precision = "ns"
-    target = "example only, will not working"
-    timeout = "6s"
-    user_agent = "go_test_client"
-    write_encoding = ""
-
 [sinks]
 
   [[sinks.sink]]

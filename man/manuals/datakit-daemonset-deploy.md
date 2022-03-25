@@ -74,7 +74,16 @@ DataKit 默认会在 Kubernetes 集群的所有 node 上部署（即忽略所有
 | ENV_LOG_LEVEL              | `info`                     | 否       | 可选值 `info/debug`                                                                                                                                 |
 | ENV_NAMESPACE              | 无                         | 否       | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。 |
 | ENV_REQUEST_RATE_LIMIT     | 无(整数)                   | 否       | 限制 9529 [API 每秒请求数](datakit-conf-how-to#e35bf313)                                                                                            |
-| ENV_RUM_ORIGIN_IP_HEADER   | `X-Forwarded-For`          | 否       | RUM 专用                                                                                                                                            |
+| ENV_RUM_ORIGIN_IP_HEADER   | `X-Forwarded-For`          | 否       | RUM 专用 |
+| ENV_SINK_M  | 无 | 否 | 安装时指定 Metric 的 sink。      |
+| ENV_SINK_N  | 无 | 否 | 安装时指定 Network 的 sink。     |
+| ENV_SINK_K  | 无 | 否 | 安装时指定 KeyEvent 的 sink。    |
+| ENV_SINK_O  | 无 | 否 | 安装时指定 Object 的 sink。      |
+| ENV_SINK_CO | 无 | 否 | 安装时指定 CustomObject 的 sink。|
+| ENV_SINK_L  | 无 | 否 | 安装时指定 Logging 的 sink。     |
+| ENV_SINK_T  | 无 | 否 | 安装时指定 Tracing 的 sink。     |
+| ENV_SINK_R  | 无 | 否 | 安装时指定 RUM 的 sink。         |
+| ENV_SINK_S  | 无 | 否 | 安装时指定 Security 的 sink。    |
 
 > 注意：
 >  `ENV_ENABLE_INPUTS` 已被弃用（但仍有效），建议使用 `ENV_DEFAULT_ENABLED_INPUTS`。如果俩个环境变量同时指定，则==只有后者生效== 。

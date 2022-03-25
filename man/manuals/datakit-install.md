@@ -96,6 +96,15 @@ $env:DK_DATAWAY="https://openway.guance.com?token=<TOKEN>"; Set-ExecutionPolicy 
 - `DK_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
 - `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件, 而是终端输出
 - `DK_INSTALL_IPDB`: 安装时指定IP库(当前仅支持`iploc`)
+- `DK_SINK_M`:  安装时指定 Metric 的 sink。
+- `DK_SINK_N`:  安装时指定 Network 的 sink。
+- `DK_SINK_K`:  安装时指定 KeyEvent 的 sink。
+- `DK_SINK_O`:  安装时指定 Object 的 sink。
+- `DK_SINK_CO`: 安装时指定 CustomObject 的 sink。
+- `DK_SINK_L`:  安装时指定 Logging 的 sink。
+- `DK_SINK_T`:  安装时指定 Tracing 的 sink。
+- `DK_SINK_R`:  安装时指定 RUM 的 sink。
+- `DK_SINK_S`:  安装时指定 Security 的 sink。
 
 如果需要增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 

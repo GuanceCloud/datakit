@@ -1,6 +1,6 @@
 # DataKit Sink 开发文档
 
-## 导言
+## 编者按
 
 本文将讲述如何开发 DataKit 的 Sink 模块(以下简称 Sink 模块、Sink)的新实例。适合于想开发 Sink 新实例、或者想深入了解 Sink 模块原理的同学。
 

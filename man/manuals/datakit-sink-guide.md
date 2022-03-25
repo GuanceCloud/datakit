@@ -1,6 +1,6 @@
 # DataKit Sink 使用文档
 
-## 导言
+## 编者按
 
 本文将讲述什么是 DataKit 的 Sink 模块(以下简称 Sink 模块、Sink)、以及如何使用 Sink 模块。适合于想了解 Sink 功能和有意愿使用 Sink 的同学。
 

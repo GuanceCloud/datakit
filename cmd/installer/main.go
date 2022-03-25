@@ -81,7 +81,16 @@ var (
 	flagIpdb,
 	flagGinLog,
 	flagEnableElection,
-	flagDisable404Page string
+	flagDisable404Page,
+	flagSinkMetric,
+	flagSinkNetwork,
+	flagSinkKeyEvent,
+	flagSinkObject,
+	flagSinkCustomObject,
+	flagSinkLogging,
+	flagSinkTracing,
+	flagSinkRUM,
+	flagSinkSecurity string
 
 	flagInstallOnly,
 	flagCgroupEnabled,
@@ -130,6 +139,17 @@ func init() { //nolint:gochecknoinits
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
+
+	// sink parameters
+	flag.StringVar(&flagSinkMetric, "sink-metric", "", "sink for Metric")
+	flag.StringVar(&flagSinkNetwork, "sink-network", "", "sink for Network")
+	flag.StringVar(&flagSinkKeyEvent, "sink-event", "", "sink for Event")
+	flag.StringVar(&flagSinkObject, "sink-object", "", "sink for Object")
+	flag.StringVar(&flagSinkCustomObject, "sink-custom-object", "", "sink for CustomObject")
+	flag.StringVar(&flagSinkLogging, "sink-logging", "", "sink for Logging")
+	flag.StringVar(&flagSinkTracing, "sink-tracing", "", "sink for Tracing")
+	flag.StringVar(&flagSinkRUM, "sink-rum", "", "sink for RUM")
+	flag.StringVar(&flagSinkSecurity, "sink-security", "", "sink for Security")
 
 	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Croup CPU max usage")
 	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Croup CPU min usage")
