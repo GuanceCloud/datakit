@@ -1,56 +1,52 @@
-- [DataKit 使用入门]()
-
+- [DataKit 使用]()
   - [服务安装和管理](datakit-service-how-to)
-
   - [如何配置 DataKit]()
-
     - [DataKit 主配置](datakit-conf)
     - [采集器配置](datakit-input-conf)
-
   - [DataKit 日常使用]()
-
     - [通过 DQL 查询数据](datakit-dql-how-to)
     - [查看 DataKit Monitor](datakit-monitor)
     - [各种其它工具使用](datakit-tools-how-to)
+    - [如何排查无数据问题](why-no-data)
 
 - [DataKit 版本历史](changelog)
 
 - [DataKit 安装]()
-
   - [宿主机安装](datakit-install)
+    - [离线部署](datakit-offline-install)
+    - [批量部署](datakit-batch-deploy)
+    - [DataKit 更新](datakit-update)
   - [DaemonSet 安装](datakit-daemonset-deploy)
-  - [离线部署](datakit-offline-install)
-  - [批量部署](datakit-batch-deploy)
-  - [DataKit 更新](datakit-update)
-
   - [DataKit 代理](proxy)
   - [DataKit 选举支持](election)
   - [DCA 客户端(beta)](dca)
 
-- [DataKit API](apis)
-
 - [文本数据处理（Pipeline）](pipeline)
   - [调试 Pipeline](datakit-pl-how-to)
 
-- [如何排查无数据问题](why-no-data)
-- [DataKit 开发手册](development)
-  - [DataKit 整体架构简介](datakit-arch)
+- [DataKit 开发]()
+  - [DataKit 开发手册](development)
+		- [DataKit 整体架构简介](datakit-arch)
+  - [DataKit API](apis)
 
 - [采集器]()
-
   - [主机]()
-    - [主机对象](hostobject)
-    - [进程](host_processes)
-    - [CPU](cpu)
-    - [Disk](disk)
-    - [DiskIO](diskio)
-    - [内存](mem)
-    - [Swap](swap)
-    - [Net](net)
-    - [System](system)
-    - [主机目录](hostdir)
-    - [SSH](ssh)
     - [DataKit 自身指标](self)
+    - [主机进程](host_processes)
+    - [主机对象](hostobject)
+		- [主机指标]()
+      - [CPU](cpu)
+      - [Disk](disk)
+      - [DiskIO](diskio)
+      - [内存](mem)
+      - [Swap](swap)
+      - [Net](net)
+      - [System](system)
+      - [主机目录](hostdir)
+      - [SSH](ssh)
+      - [Windows 相关]()
+        - [Windows 事件](windows_event)
+        - [IIS](iis)
 
   - [云原生]()
     - [Kubernetes 环境下的 DataKit 配置综述](k8s-config-how-to)
@@ -116,13 +112,6 @@
     - [Nginx](nginx)
     - [Apache](apache)
 
-  - [硬件]()
-    - [硬件温度 Sensors](sensors)
-    - [磁盘 S.M.A.R.T](smart)
-
-  - [Windows 相关]()
-    - [Windows 事件](windows_event)
-    - [IIS](iis)
 
   - [其它数据接入]()
     - [Prometheus 数据接入]()
@@ -141,3 +130,5 @@
     - [etcd](etcd)
     - [Consul](consul)
     - [CoreDNS](coredns)
+    - [硬件温度 Sensors](sensors)
+    - [磁盘 S.M.A.R.T](smart)
