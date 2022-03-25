@@ -13,6 +13,7 @@ import (
 	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
@@ -229,6 +230,10 @@ func (s *SinkInfluxDB) writeInfluxDB(pts []sinkcommon.ISinkPoint) error {
 
 func (s *SinkInfluxDB) GetID() string {
 	return s.ID
+}
+
+func (s *SinkInfluxDB) Categories() []string {
+	return []string{datakit.SinkCategoryMetric}
 }
 
 func init() { //nolint:gochecknoinits

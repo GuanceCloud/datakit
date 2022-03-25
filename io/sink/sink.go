@@ -121,6 +121,20 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 				if err != nil {
 					return err
 				}
+
+				// check whether support the category
+				found := false
+				supportCategories := impl.Categories()
+				for _, scs := range supportCategories {
+					if category == scs {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+
 				if id == impl.GetID() {
 					newCategory, err := getMapCategory(category)
 					if err != nil {
