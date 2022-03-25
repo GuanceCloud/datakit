@@ -63,7 +63,7 @@ func Init(sincfg []map[string]interface{}, defCall func(string, []sinkcommon.ISi
 
 			l.Debugf("SinkImpls = %#v", sinkcommon.SinkImpls)
 
-			if err := aggregationCategorys(sincfg); err != nil {
+			if err := polymerizeCategorys(sincfg); err != nil {
 				return err
 			}
 
@@ -89,7 +89,7 @@ var (
 	defaultCallPtr  func(string, []sinkcommon.ISinkPoint) error
 )
 
-func aggregationCategorys(sincfg []map[string]interface{}) error {
+func polymerizeCategorys(sincfg []map[string]interface{}) error {
 	for _, v := range sincfg {
 		if len(v) == 0 {
 			continue // empty
