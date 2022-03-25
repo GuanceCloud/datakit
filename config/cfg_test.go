@@ -394,7 +394,6 @@ hostname = "should-not-set"`,
     addr = "http://1.1.1.1:8086"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
     database = "db0"
-    id = "influxdb_1"
     precision = "ns"
     target = "influxdb"
     timeout = "6s"
@@ -405,12 +404,12 @@ hostname = "should-not-set"`,
     addr = "http://1.1.1.1:8087"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
     database = "db0"
-    id = "influxdb_bak"
     precision = "ns"
     target = "influxdb"
     timeout = "6s"
     user_agent = "go_test_client"
     write_encoding = ""
+
 
 [sinks]
 
@@ -421,7 +420,6 @@ func TestWriteConfigFile(t *testing.T) {
 	c.Sinks = &Sinker{
 		Sink: []map[string]interface{}{
 			{
-				"id":             "influxdb_1",
 				"target":         "influxdb",
 				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
 				"addr":           "http://1.1.1.1:8086",
@@ -432,7 +430,6 @@ func TestWriteConfigFile(t *testing.T) {
 				"write_encoding": "",
 			},
 			{
-				"id":             "influxdb_bak",
 				"target":         "influxdb",
 				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
 				"addr":           "http://1.1.1.1:8087",

@@ -64,14 +64,10 @@ func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
 }
 
 func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
-	if id, err := dkstring.GetMapAssertString("id", mConf); err != nil {
+	if id, err := dkstring.GetMapMD5String(mConf); err != nil {
 		return err
 	} else {
-		idNew, err := dkstring.CheckNotEmpty(id, "id")
-		if err != nil {
-			return err
-		}
-		s.ID = idNew
+		s.ID = id
 	}
 
 	if addr, err := dkstring.GetMapAssertString("addr", mConf); err != nil {
