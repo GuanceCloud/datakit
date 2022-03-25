@@ -117,7 +117,7 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 
 		for category := range mCategory {
 			for _, impl := range sinkcommon.SinkImpls {
-				id, err := dkstring.GetMapAssertString("id", v)
+				id, err := dkstring.GetMapMD5String(v)
 				if err != nil {
 					return err
 				}
@@ -219,11 +219,11 @@ func checkSinkConfig(sincfg []map[string]interface{}) error {
 		if len(v) == 0 {
 			continue // empty
 		}
-		id, err := dkstring.GetMapAssertString("id", v)
+		id, err := dkstring.GetMapMD5String(v)
 		if err != nil {
 			return err
 		}
-		if _, err := dkstring.CheckNotEmpty(id, "id"); err != nil {
+		if _, err := dkstring.CheckNotEmpty(id, "sink md5sum"); err != nil {
 			return err
 		}
 		if _, ok := mSinkID[id]; ok {

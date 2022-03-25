@@ -46,7 +46,6 @@ func TestAll(t *testing.T) {
 		{
 			name: "required",
 			in: map[string]interface{}{
-				"id":        "influxdb_1",
 				"addr":      "http://10.200.7.21:8086",
 				"precision": "ns",
 				"database":  "db0",
