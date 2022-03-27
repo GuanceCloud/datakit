@@ -20,7 +20,14 @@
 
 ```yaml
 	- name: ENV_DATAWAY
-		value: https://openway.guance.com?token=<your-token> # 此处填上 dataway 真实地址
+		value: https://openway.guance.com?token=<your-token> # 此处填上 DataWay 真实地址
+```
+
+如果选择的是其它节点，此处更改对应的 DataWay 地址即可，如 AWS 节点：
+
+```yaml
+	- name: ENV_DATAWAY
+		value: https://aws-openway.guance.com?token=<your-token> 
 ```
 
 ### 安装 yaml
