@@ -12,8 +12,30 @@ func TestTOMLParse(t *testing.T) {
 		name string
 		data []byte
 	}{
+
 		{
-			name: `multiple-comments-in-arry`,
+			name: `mixed-array-type`,
+			data: []byte(
+				`a = [
+				"xyz",
+				123
+				]`,
+			),
+		},
+
+		{
+			name: `multiple-comments-in-string-arry`,
+			data: []byte(
+				`a = [
+				# abc
+				# def
+				"xyz"
+				]`,
+			),
+		},
+
+		{
+			name: `multiple-comments-in-int-arry`,
 			data: []byte(
 				`a = [
 				"xyz"
