@@ -58,24 +58,21 @@ Upgrade:
     $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
-## datakit 的稳定（stable）和非稳定版（alpha）
+## DataKit 的稳定（stable）和非稳定版（alpha）
 
-datakit 自版本 1.2.0 之后推出稳定版本和非稳定版本，稳定版是指已上线且功能完善的版本，非稳定版本是指正在开发或者功能尚未完善的版本。具体在版本号上的表现是，稳定版：1.2.x, 1.4.x, 1.6.x ... ，非稳定版：1.3.x, 1.5.x ... 稳定版和非稳定版使用奇偶数区分。当非稳定版本达到上线标准会合并到稳定版。
+任何版本要升级到非稳定版，都需要额外添加环境变量 `DK_ENABLE_EXPEIMENTAL` 
 
-在进行版本升级时，稳定版升级的命令没有变化，但是任何版本想要升级到非稳定版，都需要额外添加环境变量 `DK_ENABLE_EXPEIMENTAL` 
+- Linux/Mac：
 
-非稳定版环境变量使用说明：
-
-linux:
-``` shell script
+``` shell
 DK_UPGRADE=1 DK_ENABLE_EXPEIMENTAL=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
 ```
 
-windows powerShell
-``` powershell
+- Windows
+
+```powershell
 $env:DK_UPGRADE="1";$env:DK_ENABLE_EXPEIMENTAL="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
-
 
 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
 

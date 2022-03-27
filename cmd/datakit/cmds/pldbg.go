@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -51,19 +50,19 @@ func pipelineDebugger(plname, txt string) error {
 	if err != nil {
 		return fmt.Errorf("get pipeline failed: %w", err)
 	}
-	pl, err := pipeline.NewPipelineFromFile(plPath, true)
+	pl, err := pipeline.NewPipelineFromFile(plPath)
 	if err != nil {
 		return fmt.Errorf("new pipeline failed: %w", err)
 	}
 
 	start := time.Now()
-	res, err := pl.Run(txt).Result()
+	res, err := pl.Run(txt, "")
 	if err != nil {
 		return fmt.Errorf("run pipeline failed: %w", err)
 	}
 	cost := time.Since(start)
 
-	if res == nil || (len(res.Data) == 0 && len(res.Tags) == 0) {
+	if res == nil || (len(res.Output.Fields) == 0 && len(res.Output.Tags) == 0) {
 		errorf("[E] No data extracted from pipeline\n")
 		return nil
 	}
@@ -71,34 +70,30 @@ func pipelineDebugger(plname, txt string) error {
 	result := map[string]interface{}{}
 	maxWidth := 0
 
-	for k, v := range res.Data {
-		if len(k) > maxWidth {
-			maxWidth = len(k)
-		}
-
-		switch k {
-		case "time":
-			switch x := v.(type) {
-			case int64:
-				if *flagPLDate {
-					date := time.Unix(0, x)
-					result[k] = fmt.Sprintf("%d(%s)", x, date.String())
-				} else {
-					result[k] = v
-				}
-			default:
-				warnf("`time' should be int64, but got %s\n", reflect.TypeOf(v).String())
-			}
-		default:
-			result[k] = v
+	if plTime, err := res.GetTime(); err == nil {
+		if *flagPLDate {
+			result["time"] = plTime
+		} else {
+			result["time"] = plTime.UnixNano()
 		}
 	}
 
-	for k, v := range res.Tags {
+	for k, v := range res.Output.Fields {
+		if len(k) > maxWidth {
+			maxWidth = len(k)
+		}
+		result[k] = v
+	}
+
+	for k, v := range res.Output.Tags {
 		result[k+"#"] = v
 		if len(k)+1 > maxWidth {
 			maxWidth = len(k) + 1
 		}
+	}
+
+	if res.Output.DataMeasurement != "" {
+		result["source#"] = res.Output.DataMeasurement
 	}
 
 	if *flagPLTable {
@@ -121,7 +116,8 @@ func pipelineDebugger(plname, txt string) error {
 	}
 
 	infof("---------------\n")
-	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n", len(res.Data), len(res.Tags), res.Dropped, cost)
+	infof("Extracted %d fields, %d tags; drop: %v, cost: %v\n",
+		len(res.Output.Fields), len(res.Output.Tags), res.Output.Dropped, cost)
 
 	return nil
 }

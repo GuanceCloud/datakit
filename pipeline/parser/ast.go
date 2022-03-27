@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package parser
 
 import (
@@ -20,7 +25,6 @@ type KwArgs map[string]Node
 
 type FuncStmt struct {
 	Name    string
-	RunOk   bool
 	Param   []Node
 	KwParam KwArgs
 }
@@ -36,12 +40,6 @@ type IfList []*IfExpr
 type IfExpr struct {
 	Condition Node
 	Stmts     Stmts
-}
-
-type FuncConditionalExpr struct {
-	RHS Node
-	Op  ItemType
-	LHS FuncStmt
 }
 
 type ConditionalExpr struct {

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package funcs
 
 import (
@@ -8,7 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func ParseDateChecking(node parser.Node) error {
+func ParseDateChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr, ok := node.(*parser.FuncStmt)
 	if !ok {
 		return fmt.Errorf("expect function expr")
@@ -21,10 +26,19 @@ func ParseDateChecking(node parser.Node) error {
 				reflect.TypeOf(p).String())
 		}
 	}
+
+	if funcExpr.KwParam == nil {
+		funcExpr.KwParam = make(map[string]parser.Node)
+		for _, p := range funcExpr.Param {
+			if st, ok := p.(*parser.AssignmentStmt); ok {
+				funcExpr.KwParam[st.LHS.String()] = st.RHS
+			}
+		}
+	}
 	return nil
 }
 
-func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
+func ParseDate(ngData *parser.EngineData, node parser.Node) interface{} {
 	funcExpr, ok := node.(*parser.FuncStmt)
 	if !ok {
 		return fmt.Errorf("expect function expr")
@@ -36,23 +50,14 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 	var key string
 	var zone *time.Location
 
-	if funcExpr.KwParam == nil {
-		funcExpr.KwParam = make(map[string]parser.Node)
-		for _, p := range funcExpr.Param {
-			if st, ok := p.(*parser.AssignmentStmt); ok {
-				funcExpr.KwParam[st.LHS.String()] = st.RHS
-			}
-		}
-	}
-
-	if x, err := ng.GetFuncStrArg(funcExpr, 0, "key"); err != nil {
+	if x, err := parser.GetFuncStrArg(ngData, funcExpr, 0, "key"); err != nil {
 		return err
 	} else {
 		key = x
 	}
 
 	// year
-	if x, err := ng.GetFuncIntArg(funcExpr, 1, "y"); err != nil {
+	if x, err := parser.GetFuncIntArg(ngData, funcExpr, 1, "y"); err != nil {
 		return err
 	} else {
 		yy, err = fixYear(now, x)
@@ -62,7 +67,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 	}
 
 	// month
-	if x, err := ng.GetFuncStrArg(funcExpr, 2, "m"); err != nil {
+	if x, err := parser.GetFuncStrArg(ngData, funcExpr, 2, "m"); err != nil {
 		return err
 	} else {
 		mm, err = fixMonth(now, x)
@@ -72,7 +77,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 	}
 
 	// check day
-	if x, err := ng.GetFuncIntArg(funcExpr, 3, "d"); err != nil {
+	if x, err := parser.GetFuncIntArg(ngData, funcExpr, 3, "d"); err != nil {
 		return err
 	} else {
 		dd, err = fixDay(now, x)
@@ -82,7 +87,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 	}
 
 	// check hour
-	if x, err := ng.GetFuncIntArg(funcExpr, 4, "h"); err != nil {
+	if x, err := parser.GetFuncIntArg(ngData, funcExpr, 4, "h"); err != nil {
 		return err
 	} else {
 		hh, err = fixHour(now, x)
@@ -92,7 +97,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 	}
 
 	// check minute
-	if x, err := ng.GetFuncIntArg(funcExpr, 5, "M"); err != nil {
+	if x, err := parser.GetFuncIntArg(ngData, funcExpr, 5, "M"); err != nil {
 		return err
 	} else {
 		mi, err = fixMinute(now, x)
@@ -102,7 +107,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 	}
 
 	// check second
-	if x, err := ng.GetFuncIntArg(funcExpr, 6, "s"); err != nil {
+	if x, err := parser.GetFuncIntArg(ngData, funcExpr, 6, "s"); err != nil {
 		return err
 	} else {
 		ss, err = fixSecond(x)
@@ -111,7 +116,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 		}
 	}
 
-	if x, err := ng.GetFuncIntArg(funcExpr, 7, "ms"); err != nil {
+	if x, err := parser.GetFuncIntArg(ngData, funcExpr, 7, "ms"); err != nil {
 		return err
 	} else {
 		ms = int(x)
@@ -120,7 +125,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 		}
 	}
 
-	if x, err := ng.GetFuncIntArg(funcExpr, 8, "us"); err != nil {
+	if x, err := parser.GetFuncIntArg(ngData, funcExpr, 8, "us"); err != nil {
 		return err
 	} else {
 		us = int(x)
@@ -129,7 +134,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 		}
 	}
 
-	if x, err := ng.GetFuncIntArg(funcExpr, 9, "ns"); err != nil {
+	if x, err := parser.GetFuncIntArg(ngData, funcExpr, 9, "ns"); err != nil {
 		return err
 	} else {
 		ns = int(x)
@@ -138,7 +143,7 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 		}
 	}
 
-	if x, err := ng.GetFuncStrArg(funcExpr, 10, "zone"); err != nil {
+	if x, err := parser.GetFuncStrArg(ngData, funcExpr, 10, "zone"); err != nil {
 		return err
 	} else {
 		if x == "" {
@@ -152,6 +157,6 @@ func ParseDate(ng *parser.Engine, node parser.Node) interface{} {
 	}
 
 	t := time.Date(yy, mm, dd, hh, mi, ss, ms*1000*1000+us*1000+ns, zone)
-	ng.SetKey(key, t.UnixNano())
+	ngData.SetKey(key, t.UnixNano())
 	return nil
 }

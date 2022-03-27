@@ -21,7 +21,7 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20210910012206-68626162910d // indirect
 	github.com/chromedp/chromedp v0.7.4 // indirect
 	github.com/containerd/cgroups v1.0.1
-	github.com/containerd/containerd v1.5.5 // indirect
+	github.com/containerd/containerd v1.5.5
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v20.10.8+incompatible
@@ -33,6 +33,7 @@ require (
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-ole/go-ole v1.2.5
+	github.com/go-ping/ping v0.0.0-20211130115550-779d1e919534
 	github.com/go-playground/validator/v10 v10.6.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible
@@ -88,7 +89,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220303071313-73cbbd097512
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220309104034-6ac47050305d
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220323121056-56382c84a401
 	go.etcd.io/bbolt v1.3.5
 	go.opentelemetry.io/otel v1.4.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.27.0

@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 // Package remote contains pipeline remote pulling source code
 package remote
 
@@ -17,7 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/mytargz"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/scriptstore"
 )
 
 const (
@@ -204,7 +209,7 @@ func doPull(pathConfig, siteURL string, ipr IPipelineRemote) error {
 
 		l.Debug("dumpFiles succeeded")
 
-		worker.ReloadAllRemoteDotPScript2StoreFromMap(mFiles)
+		scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mFiles)
 
 		err = updatePipelineRemoteConfig(pathConfig, siteURL, updateTime, ipr)
 		if err != nil {
@@ -235,7 +240,7 @@ func removeLocalRemote(ipr IPipelineRemote) error {
 			}
 		}
 	}
-	worker.CleanAllScriptWithNS(worker.RemoteScriptNS)
+	scriptstore.CleanAllScriptWithNS(scriptstore.RemoteScriptNS)
 	return nil
 }
 
@@ -280,7 +285,7 @@ func getPipelineRemoteConfig(pathConfig, siteURL string, ipr IPipelineRemote) (i
 		if err != nil {
 			l.Errorf("ReadTarToMap failed: %v", err)
 		} else {
-			worker.ReloadAllRemoteDotPScript2StoreFromMap(mContent)
+			scriptstore.ReloadAllRemoteDotPScript2StoreFromMap(mContent)
 		}
 	} // isFirst
 	return cf.UpdateTime, nil

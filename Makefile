@@ -1,4 +1,4 @@
-.PHONY: default testing local man
+.PHONY: default testing local deps prepare man plparser_disable_line
 
 default: local
 
