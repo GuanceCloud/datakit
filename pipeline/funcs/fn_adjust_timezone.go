@@ -22,7 +22,7 @@ func AdjustTimezoneChecking(node parser.Node) error {
 	return nil
 }
 
-func AdjustTimezone(ng *parser.Engine, node parser.Node) error {
+func AdjustTimezone(ng *parser.Engine, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func `%s' expected 2 args", funcExpr.Name)

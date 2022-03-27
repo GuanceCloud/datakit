@@ -76,7 +76,7 @@ func main() {
 		run()
 	} else {
 		// Auto enable cgroup limit under host running
-		go cgroup.Run()
+		go cgroup.Run(config.Cfg.Cgroup)
 
 		if workdir != "" {
 			run()

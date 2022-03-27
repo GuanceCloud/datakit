@@ -6,6 +6,6 @@ func DropOriginDataChecking(node parser.Node) error {
 	return nil
 }
 
-func DropOriginData(ng *parser.Engine, node parser.Node) error {
+func DropOriginData(ng *parser.Engine, node parser.Node) interface{} {
 	return ng.DeleteContent("message")
 }

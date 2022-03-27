@@ -22,7 +22,7 @@
   - [DCA 客户端(beta)](dca)
 
 - [文本数据处理（Pipeline）](pipeline)
-  - [调试 Pipeline](datakit-pl-how-to)
+  - [如何编写 Pipeline 脚本](datakit-pl-how-to)
 
 - [DataKit 开发]()
   - [DataKit 开发手册](development)
