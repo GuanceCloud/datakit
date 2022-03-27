@@ -32,8 +32,8 @@
 - [采集器]()
   - [主机]()
     - [DataKit 自身指标](self)
-    - [主机进程](host_processes)
     - [主机对象](hostobject)
+    - [进程](host_processes)
 		- [主机指标]()
       - [CPU](cpu)
       - [Disk](disk)
@@ -81,7 +81,7 @@
   - [用户访问监测（RUM）]()
     - [RUM](rum)
 
-  - [数据库（中间件）]()
+  - [中间件]()
     - [ClickHouse](clickhousev1)
     - [MySQL](mysql)
     - [Oracle](oracle)
@@ -97,6 +97,12 @@
     - [RabbitMQ](rabbitmq)
     - [Solr](solr)
     - [Flink](flinkv1)
+    - [Web 服务器]()
+      - [Nginx](nginx)
+      - [Apache](apache)
+    - [Java]()
+	    - [JVM](jvm)
+	    - [Tomcat](tomcat)
 
   - [网络拨测](dialtesting)
     - [通过本地 JSON 定义拨测任务](dialtesting_json)
@@ -104,16 +110,7 @@
   - [eBPF]()
     - [eBPF](ebpf)
 
-  - [Java]()
-    - [JVM](jvm)
-    - [Tomcat](tomcat)
-
-  - [Web 服务器]()
-    - [Nginx](nginx)
-    - [Apache](apache)
-
-
-  - [其它数据接入]()
+  - [第三方数据接入]()
     - [Prometheus 数据接入]()
       - [Prometheus Exportor 数据采集](prom)
       - [Prometheus Remote Write 支持](prom_remote_write)
@@ -124,7 +121,7 @@
     - [Scheck 接入](sec-checker)
     - [用 Python 开发自定义采集器](pythond)
 
-  - [其它]()
+  - [其它采集器]()
     - [Jenkins](jenkins)
     - [Gitlab](gitlab)
     - [etcd](etcd)
