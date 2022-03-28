@@ -134,6 +134,8 @@ func (ipt *Input) Run() {
 	// afterGather.AppendCalculator(itrace.StatTracingInfo)
 
 	// add filters: the order append in AfterGather is important!!!
+	// add error status penetration
+	afterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add close resource filter
 	if len(ipt.CloseResource) != 0 {
 		closeResource = &itrace.CloseResource{}
