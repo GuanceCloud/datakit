@@ -17,6 +17,8 @@ func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
 	for i := range dktrace {
 		switch dktrace[i].Status {
 		case STATUS_ERR, STATUS_CRITICAL:
+			log.Debugf("penetrate tracing %s:%s with status %s", dktrace[i].Service, dktrace[i].Resource, dktrace[i].Status)
+
 			return dktrace, true
 		}
 	}
