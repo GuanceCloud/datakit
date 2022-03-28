@@ -8,7 +8,32 @@ import (
 )
 
 func TestPenetrateError(t *testing.T) {
+	testcases := make(DatakitTraces, 100)
+	for i := 0; i < 100; i++ {
+		testcases[i] = randDatakitTrace(t, 10)
+	}
 
+	var afterErrPenetrate DatakitTraces
+	for i := range testcases {
+		if t, ok := PenetrateErrorTracing(testcases[i]); ok {
+			afterErrPenetrate = append(afterErrPenetrate, t)
+		}
+	}
+
+	for i := range afterErrPenetrate {
+		iserr := false
+		for j := range afterErrPenetrate[i] {
+			switch afterErrPenetrate[i][j].Status {
+			case STATUS_ERR, STATUS_CRITICAL:
+				iserr = true
+				break
+			}
+		}
+		if !iserr {
+			t.Error("error status not found")
+			t.FailNow()
+		}
+	}
 }
 
 func TestCloseResource(t *testing.T) {
