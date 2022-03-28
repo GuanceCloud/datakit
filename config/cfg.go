@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -690,6 +691,54 @@ func (c *Config) LoadEnvs() error {
 		} // GitRepost
 	}
 
+	if err := c.getSinkConfig(); err != nil {
+		l.Fatalf("getSinkConfig failed: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *Config) getSinkConfig() error {
+	sinkMetric := datakit.GetEnv("ENV_SINK_M")
+	sinkNetwork := datakit.GetEnv("ENV_SINK_N")
+	sinkKeyEvent := datakit.GetEnv("ENV_SINK_K")
+	sinkObject := datakit.GetEnv("ENV_SINK_O")
+	sinkCustomObject := datakit.GetEnv("ENV_SINK_CO")
+	sinkLogging := datakit.GetEnv("ENV_SINK_L")
+	sinkTracing := datakit.GetEnv("ENV_SINK_T")
+	sinkRUM := datakit.GetEnv("ENV_SINK_R")
+	sinkSecurity := datakit.GetEnv("ENV_SINK_S")
+
+	categoryShorts := []string{
+		datakit.SinkCategoryMetric,
+		datakit.SinkCategoryNetwork,
+		datakit.SinkCategoryKeyEvent,
+		datakit.SinkCategoryObject,
+		datakit.SinkCategoryCustomObject,
+		datakit.SinkCategoryLogging,
+		datakit.SinkCategoryTracing,
+		datakit.SinkCategoryRUM,
+		datakit.SinkCategorySecurity,
+	}
+
+	args := []string{
+		sinkMetric,
+		sinkNetwork,
+		sinkKeyEvent,
+		sinkObject,
+		sinkCustomObject,
+		sinkLogging,
+		sinkTracing,
+		sinkRUM,
+		sinkSecurity,
+	}
+
+	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
+	if err != nil {
+		return err
+	}
+	c.Sinks.Sink = sinks
 	return nil
 }
 
