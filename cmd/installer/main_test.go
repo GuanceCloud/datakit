@@ -8,7 +8,9 @@ package main
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 func TestCheckUpgradeVersion(t *testing.T) {
@@ -74,6 +76,155 @@ func TestCheckUpgradeVersion(t *testing.T) {
 			} else {
 				tu.Ok(t, err)
 			}
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^TestParseSinkSingle$ gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer
+func TestParseSinkSingle(t *testing.T) {
+	cases := []struct {
+		name        string
+		in          string
+		out         map[string]string
+		expectError error
+	}{
+		{
+			name: "normal",
+			in:   "influxdb://1.1.1.1:8086?protocol=http&database=db0&timeout=15s",
+			out: map[string]string{
+				"target":   "influxdb",
+				"protocol": "http",
+				"host":     "1.1.1.1:8086",
+				"database": "db0",
+				"timeout":  "15s",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mVal, err := parseSinkSingle(tc.in)
+			assert.Equal(t, tc.expectError, err)
+			assert.Equal(t, tc.out, mVal)
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^TestPolymerizeSinkCategory$ gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer
+func TestPolymerizeSinkCategory(t *testing.T) {
+	cases := []struct {
+		name          string
+		categoryShort string
+		arg           string
+		sinks         []map[string]interface{}
+		expectError   error
+		expectSinks   []map[string]interface{}
+	}{
+		{
+			name:          "normal",
+			categoryShort: datakit.SinkCategoryMetric,
+			arg:           "influxdb://1.1.1.1:8086?protocol=http&database=db0&timeout=15s",
+			expectSinks: []map[string]interface{}{
+				{
+					"database":   "db0",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"target":     "influxdb",
+					"timeout":    "15s",
+					"categories": []string{"M"},
+				},
+			},
+		},
+		{
+			name:          "append_new_all",
+			categoryShort: datakit.SinkCategoryLogging,
+			arg:           "influxdb://1.1.1.1:8087?protocol=http&database=db1&timeout=15s",
+			sinks: []map[string]interface{}{
+				{
+					"database":   "db0",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"target":     "influxdb",
+					"timeout":    "15s",
+					"categories": []string{"M"},
+				},
+			},
+			expectSinks: []map[string]interface{}{
+				{
+					"database":   "db0",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"target":     "influxdb",
+					"timeout":    "15s",
+					"categories": []string{"M"},
+				},
+				{
+					"database":   "db1",
+					"host":       "1.1.1.1:8087",
+					"protocol":   "http",
+					"target":     "influxdb",
+					"timeout":    "15s",
+					"categories": []string{"L"},
+				},
+			},
+		},
+		{
+			name:          "append_new_category",
+			categoryShort: datakit.SinkCategoryLogging,
+			arg:           "influxdb://1.1.1.1:8086?protocol=http&database=db0&timeout=15s",
+			sinks: []map[string]interface{}{
+				{
+					"database":   "db0",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"target":     "influxdb",
+					"timeout":    "15s",
+					"categories": []string{"M"},
+				},
+			},
+			expectSinks: []map[string]interface{}{
+				{
+					"database":   "db0",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"target":     "influxdb",
+					"timeout":    "15s",
+					"categories": []string{"M", "L"},
+				},
+			},
+		},
+		{
+			name:          "repeat",
+			categoryShort: datakit.SinkCategoryMetric,
+			arg:           "influxdb://1.1.1.1:8086?protocol=http&database=db0&timeout=15s",
+			sinks: []map[string]interface{}{
+				{
+					"database":   "db0",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"target":     "influxdb",
+					"timeout":    "15s",
+					"categories": []string{"M"},
+				},
+			},
+			expectSinks: []map[string]interface{}{
+				{
+					"database":   "db0",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"target":     "influxdb",
+					"timeout":    "15s",
+					"categories": []string{"M"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := polymerizeSinkCategory(tc.categoryShort, tc.arg, &(tc.sinks))
+			assert.Equal(t, tc.expectError, err)
+			assert.Equal(t, tc.expectSinks, tc.sinks)
 		})
 	}
 }

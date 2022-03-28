@@ -251,7 +251,7 @@ func TestAggregationCategorys(t *testing.T) {
 				TestBuildSinkImpls(t)
 			}
 
-			err := aggregationCategorys(tc.in)
+			err := polymerizeCategorys(tc.in)
 			assert.Equal(t, tc.expectError, err)
 		})
 	}
