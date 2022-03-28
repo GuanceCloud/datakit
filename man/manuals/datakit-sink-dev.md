@@ -63,16 +63,16 @@ func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
 [sinks]
 
   [[sinks.sink]]
-    id = "influxdb_1" # 实例编号
-    target = "influxdb"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
-    addr = "http://172.16.239.130:8086"
+    target = "influxdb"
+    host = "10.200.7.21:8086"
+    protocol = "http"
     database = "db0"
-    timeout = "10s"
+    precision = "ns"
+    timeout = "15s"
 ...
 ```
 
 ## 注意事项
 
 1. 新实例需要自定义一个 `createID`，即这个实例的 "标识"，如 `influxdb`、`elasticsearch` 等，这个是不能和现有的 `createID` 重复的。在配置里面的 `target` 对应的就是这个 `createID`。
-2. 新实例的结构体里面需要有一个 `ID` 字符串变量，用来保存这个实例的编号。这个编号是为了区分同一个实例配置了多个。只要编号不同开启多个我们是支持。

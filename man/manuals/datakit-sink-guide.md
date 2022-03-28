@@ -46,7 +46,7 @@ Sink 实例即 Sink 模块实例化的一个对象。举两个例子:
 
 在 `datakit.conf` 配置中增加 sink 实例的相关参数;
 
->后端存储支持配置多个相同实例(比方说, 2 个 influxdb, 1 个生产, 1 个备份), 只需要将实例编号即 `id` 配置成不同的就行(比方说, `influxdb_1`, `influxdb_2`)。<b>实例编号不可重复</b>。
+>后端存储支持配置多个相同实例(比方说, 2 个 influxdb, 1 个生产, 1 个备份)。
 
 - 第三步: 重启 DataKit。
 
@@ -58,9 +58,8 @@ Sink 实例即 Sink 模块实例化的一个对象。举两个例子:
 
 无论哪种 Sink 实例, 都必须支持以下参数:
 
-- `id`: 实例编号。如 `influxdb_1`。
-- `target`: sink 实例目标, 即要写入的存储是什么。如 `influxdb`。具体支持哪些见本文档中上面的 `目前支持的 Sink 实例` 节。
 - `categories`: 汇报数据的类型。如 `["M", "N", "K", "O", "CO", "L", "T", "R", "S"]`。
+- `target`: sink 实例目标, 即要写入的存储是什么。如 `influxdb`。具体支持哪些见本文档中上面的 `目前支持的 Sink 实例` 节。
 
 `categories` 中各字符串对应的上报指标集如下:
 
@@ -95,19 +94,20 @@ Sink 实例即 Sink 模块实例化的一个对象。举两个例子:
 [sinks]
 
   [[sinks.sink]]
-    id = "influxdb_1"
-    target = "influxdb"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
-    addr = "http://172.16.239.130:8086"
-    database = "db0"
-    timeout = "10s"
+    target = "influxdb"
+    host = "10.200.7.21:8087"
+    protocol = "http"
+    database = "db1"
+    precision = "ns"
+    timeout = "15s"
 ...
 ```
 
 influxdb 的 sink 实例目前支持以下参数:
 
-- `id`(必须): 实例编号, <b>唯一</b>。
-- `addr`(必须): HTTP addr should be of the form `http://host:port` or `http://[ipv6-host%zone]:port`. UDP addr should be of the form `udp://host:port` or `udp://[ipv6-host%zone]:port`.
+- `host`(必须): HTTP/UDP host should be of the form `host:port` or `[ipv6-host%zone]:port`.
+- `protocol`(必须): `http` or `udp`.
 - `database`(必须): Database is the database to write points to.
 - `precision`: Precision is the write precision of the points, defaults to "ns".
 - `username`: Username is the influxdb username, optional.
