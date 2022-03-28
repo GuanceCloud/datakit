@@ -57,11 +57,11 @@ func handleDDTraceWithVersion(v string) http.HandlerFunc {
 
 		switch v {
 		case v1, v2, v3:
-			io.WriteString(resp, "OK\n")
+			io.WriteString(resp, "OK\n") // nolint: errcheck,gosec
 		default:
 			resp.Header().Set("Content-Type", "application/json")
 			resp.Header().Set(headerRatesPayloadVersion, req.Header.Get(headerRatesPayloadVersion))
-			resp.Write([]byte("{}"))
+			resp.Write([]byte("{}")) // nolint: errcheck,gosec
 		}
 	}
 }
