@@ -11,7 +11,7 @@ import (
 )
 
 func GetSinkFromEnvs(categoryShorts, args []string) ([]map[string]interface{}, error) {
-	sinks := []map[string]interface{}{}
+	sinks := []map[string]interface{}{{}}
 
 	if len(categoryShorts) != len(args) || len(categoryShorts) == 0 {
 		return nil, fmt.Errorf("programming error")
