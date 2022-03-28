@@ -30,9 +30,10 @@ type JSONPoint struct {
 
 type ISink interface {
 	GetID() string
+	GetCreatorID() string
+	Categories() []string
 	LoadConfig(mConf map[string]interface{}) error
 	Write(pts []ISinkPoint) error
-	Categories() []string
 }
 
 //----------------------------------------------------------------------

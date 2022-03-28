@@ -132,6 +132,7 @@ func polymerizeCategorys(sincfg []map[string]interface{}) error {
 					}
 				}
 				if !found {
+					l.Warnf("%s not support category: %s", impl.GetCreatorID(), category)
 					continue
 				}
 

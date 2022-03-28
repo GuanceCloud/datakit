@@ -238,6 +238,10 @@ func (s *SinkInfluxDB) GetID() string {
 	return s.ID
 }
 
+func (s *SinkInfluxDB) GetCreatorID() string {
+	return creatorID
+}
+
 func (s *SinkInfluxDB) Categories() []string {
 	return []string{datakit.SinkCategoryMetric}
 }
