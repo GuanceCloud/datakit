@@ -1,7 +1,7 @@
 package dkstring
 
 import (
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec
 	"encoding/hex"
 	"sort"
 )

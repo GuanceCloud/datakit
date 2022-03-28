@@ -78,7 +78,7 @@ func polymerizeSinkCategory(categoryShort, arg string, sinks *[]map[string]inter
 
 					categoriesArray, ok := categoriesInterface.([]string)
 					if !ok {
-						return fmt.Errorf("categories not []string: %s, %s", reflect.TypeOf(categoriesInterface).Name(), reflect.TypeOf(categoriesInterface).String())
+						return fmt.Errorf("categories not []string: %s, %s", reflect.TypeOf(categoriesInterface).Name(), reflect.TypeOf(categoriesInterface).String()) //nolint:lll
 					}
 
 					foundCategory := false
