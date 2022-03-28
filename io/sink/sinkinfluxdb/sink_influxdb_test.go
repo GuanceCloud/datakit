@@ -50,6 +50,7 @@ func TestAll(t *testing.T) {
 				"protocol":  "http",
 				"precision": "ns",
 				"database":  "db0",
+				"timeout":   "6s",
 			},
 		},
 	}
