@@ -540,7 +540,7 @@ func installNewDatakit(svc service.Service) {
 
 	// parse sink
 	if err := parseSinkArgs(mc); err != nil {
-		mc.Sinks.Sink = []map[string]interface{}{{}} // clear
+		mc.Sinks.Sink = []map[string]interface{}{} // clear
 		l.Fatalf("parseSinkArgs failed: %s", err.Error())
 	}
 
