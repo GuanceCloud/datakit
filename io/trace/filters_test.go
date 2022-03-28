@@ -22,11 +22,12 @@ func TestPenetrateError(t *testing.T) {
 
 	for i := range afterErrPenetrate {
 		iserr := false
+	FOUND_ERR:
 		for j := range afterErrPenetrate[i] {
 			switch afterErrPenetrate[i][j].Status {
 			case STATUS_ERR, STATUS_CRITICAL:
 				iserr = true
-				break
+				break FOUND_ERR
 			}
 		}
 		if !iserr {
