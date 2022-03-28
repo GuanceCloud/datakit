@@ -170,7 +170,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		return fmt.Errorf("invalid category `%s'", category)
 	}
 
-	log.Debugf("io feed %s", name)
+	log.Debugf("io feed %s|%s", name, category)
 
 	select {
 	case ch <- &iodata{

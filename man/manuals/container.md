@@ -11,7 +11,7 @@
 ## 前置条件
 
 - 目前 container 会默认连接 Docker 服务，需安装 Docker v17.04 及以上版本。
-- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset)。
+- 采集 Kubernetes 数据需要 DataKit 以 [DaemonSet 方式部署](datakit-daemonset-deploy)。
 - 采集 Kubernetes Pod 指标数据，[需要 Kubernetes 安装 Metrics-Server 组件](https://github.com/kubernetes-sigs/metrics-server#installation)。
 
 ## 配置
@@ -149,6 +149,15 @@ spec:
 
 详见[Kubernetes-prom](kubernetes-prom)
 
+### 支持 containerd
+
+目前 Containerd 只有部分采集功能支持：
+
+- 容器对象：支持
+- 容器/Pod 日志：推荐使用 [logfwd](logfwd) 进行采集。
+- 容器指标：**暂不支持**
+- Kubernetes 其它采集均不受影响
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -174,7 +183,7 @@ spec:
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- 指标列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -195,7 +204,7 @@ spec:
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- 指标列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -251,6 +260,6 @@ ok      gitlab.jiagouyun.com/cloudcare-tools/test       1.056s
 
 - [eBPF 采集器：支持容器环境下的流量采集](ebpf)
 - [Pipeline：文本数据处理](pipeline)
-- [正确使用正则表达式来配置](datakit-conf-how-to#fe110086) 
+- [正确使用正则表达式来配置](datakit-input-conf#9da8bc26) 
 - [Kubernetes 下 DataKit 的几种配置方式](k8s-config-how-to)
 - [DataKit 日志采集综述](datakit-logging)

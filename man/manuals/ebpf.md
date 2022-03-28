@@ -47,6 +47,10 @@ setenforce 0
 
 配置好后，重启 DataKit 即可。
 
+### Kubernetes 安装
+
+参照通用的 [ConfigMap 安装示例](datakit-daemonset-deploy#fb919c14)。
+
 ## 指标集
 
 以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：

@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	dkhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cgroup"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
@@ -77,7 +78,7 @@ func DefaultConfig() *Config {
 			WhiteList: []string{},
 		},
 		Pipeline: &pipeline.PipelineCfg{
-			IPdbType:           "iploc",
+			IPdbType:           "-",
 			RemotePullInterval: "1m",
 		},
 		Logging: &LoggerCfg{
@@ -87,7 +88,7 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		Cgroup: &Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
+		Cgroup: &cgroup.Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
 
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
@@ -110,12 +111,6 @@ func DefaultConfig() *Config {
 	}
 
 	return c
-}
-
-type Cgroup struct {
-	Enable bool    `toml:"enable"`
-	CPUMax float64 `toml:"cpu_max"`
-	CPUMin float64 `toml:"cpu_min"`
 }
 
 type IOConfig struct {
@@ -202,7 +197,7 @@ type Config struct {
 
 	GlobalTags   map[string]string `toml:"global_tags"`
 	Environments map[string]string `toml:"environments"`
-	Cgroup       *Cgroup           `toml:"cgroup"`
+	Cgroup       *cgroup.Cgroup    `toml:"cgroup"`
 
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
@@ -557,6 +552,15 @@ func (c *Config) LoadEnvs() error {
 			case "ENV_DYNAMIC_CACHE_DUMP_THRESHOLD":
 				c.IOConf.DynamicCacheDumpThreshold = value
 			}
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_IPDB"); v != "" {
+		switch v {
+		case "iploc":
+			c.Pipeline.IPdbType = v
+		default:
+			l.Warnf("unknown IPDB type: %s, ignored", v)
 		}
 	}
 

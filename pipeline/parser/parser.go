@@ -1,3 +1,8 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
 package parser
 
 import (
@@ -269,6 +274,7 @@ func (p *parser) newFuncStmt(fname string, args []Node) (*FuncStmt, error) {
 		Name: strings.ToLower(fname),
 	}
 
+	// TODO: key-value param support
 	for _, arg := range args {
 		switch v := arg.(type) {
 		/*

@@ -16,7 +16,7 @@ rm -rf .docs
 mkdir -p .docs
 cp man/summary.md .docs/
 
-latest_tag=$(git tag -l | sort -nr | head -n 1)
+latest_tag=$(git tag --sort=-creatordate | head -n 1)
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 
 man_version=$1
@@ -45,12 +45,12 @@ else
   os="linux"
 fi
 
-LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit \
+LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
+	--export-docs .docs \
 	--ignore demo \
-	--cmd-log stdout \
-	--export-manuals .docs \
-	--man-version "${man_version}" \
-	--TODO "-" && \
-	waque upload .docs/*.md -c "${waque_yml}" && \
+	--log stdout \
+	--export-docs .docs \
+	--version "${man_version}" \
+	--TODO "-" && waque upload .docs/*.md -c "${waque_yml}" && \
 	printf "${GREEN}----------------------${CLR}\n" && \
 	printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml}

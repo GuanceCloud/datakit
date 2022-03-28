@@ -8,6 +8,17 @@
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 
+## API 综述
+
+DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
+
+### 通过 API 获取远端 DataKit 版本号
+
+有两种方式可获取版本号：
+
+- 请求 DataKit ping 接口： `curl http://ip:9529/v1/ping`
+- 在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本
+
 ## `/v1/write/:category`
 
 本 API 用于给 DataKit 上报各类数据（`category`），参数说明如下：
@@ -17,7 +28,7 @@
 | `category`           | string | true     | 无        | 目前支持 `metric/logging/rum/object/custom_object`                                                                         |
 | `precision`          | string | false    | `n`       | 数据精度(支持 `n/u/ms/s/m/h`)                                                                                              |
 | `input`              | string | false    | `datakit` | 数据源名称                                                                                                                 |
-| `ignore_global_tags` | string | false    | 无        | 任意给值即认为忽略 DataKit 上的全局 tag                                                                                    |
+| `ignore_global_tags` | string | false    | 无        | 给任意值（如 `true`）即认为忽略 DataKit 上的全局 tag                                                                                    |
 | `version`            | string | false    | 无        | 当前采集器的版本号                                                                                                         |
 | `source`             | string | false    | 无        | 仅仅针对 logging 支持指定该字段（即 `category` 为 `logging`）。如果不指定 `source`，则上传的日志数据不会执行 Pipeline 切割 |
 
@@ -147,7 +158,7 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 
 ## `/v1/ping`
 
-检测目标地址是否有 DataKit 运行
+检测目标地址是否有 DataKit 运行，可获取 DataKit 启动时间以及版本信息。
 
 ### 示例
 
@@ -460,6 +471,6 @@ HTTP Code: 40x
 
 ## 延伸阅读
 
-- [API 访问设置](datakit-conf-how-to#9f30b8aa)
-- [API 限流配置](datakit-conf-how-to#e35bf313)
+- [API 访问设置](datakit-conf#db159fbc)
+- [API 限流配置](datakit-conf#39e48d64)
 - [API 安全控制](rum#b896ec48)
