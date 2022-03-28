@@ -97,6 +97,7 @@ X-Precision: {{xprecision}}
 POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 
 {
+  "class":"HTTP",
   "task":{
     "advance_options":{
 
@@ -120,3 +121,92 @@ POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
     "url":"https://www.baidu.com"
   }
 }
+
+###
+POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
+
+{
+  "class":"TCP",
+  "task":{
+      "name": "tcp-test",
+      "host": "www.baidu.com",
+      "port": "80",
+      "timeout": "1000ms",
+      //"post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "or",
+      "success_when": [
+        {
+          "response_time":[ 
+            {
+              "is_contain_dns": false,
+              "target": "50ms"
+            }
+          ]
+        }
+      ]
+		}
+}
+
+###
+POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
+
+{
+  "class":"WEBSOCKET",
+  "task":{
+      "name": "websocket-test",
+      "url": "ws://localhost:8080",
+      "message": "hello",
+      //"post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": [
+            {
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ],
+          "response_message": [
+            {
+              "is": "hello1"
+            }
+          ],
+          "header": {
+            "status": [
+              {
+                "is": "ok"
+              }
+            ]
+          }
+        }
+      ]
+		}
+}
+
+###
+POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
+
+{
+  "class":"ICMP",
+  "task":{
+      "name": "icmp-test",
+      "host": "www.baidu.com",
+      "timeout": "10ms",
+      "packet_count": 3,
+     // "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "10s",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": "20ms",
+          "packet_loss_percent": 60
+        }
+      ]
+		}
+}
+

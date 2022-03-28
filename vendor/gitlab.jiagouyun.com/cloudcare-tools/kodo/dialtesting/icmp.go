@@ -55,6 +55,45 @@ type IcmpTask struct {
 	ticker            *time.Ticker
 }
 
+func (t *IcmpTask) InitDebug() error {
+	if len(t.Timeout) == 0 {
+		t.timeout = PING_TIMEOUT
+	} else {
+		if timeout, err := time.ParseDuration(t.Timeout); err != nil {
+			return err
+		} else {
+			t.timeout = timeout
+		}
+	}
+
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	if len(t.SuccessWhen) == 0 {
+		return fmt.Errorf(`no any check rule`)
+	}
+
+	if t.PacketCount <= 0 {
+		t.PacketCount = 3
+	}
+
+	for _, checker := range t.SuccessWhen {
+		if checker.ResponseTime != "" {
+			du, err := time.ParseDuration(checker.ResponseTime)
+			if err != nil {
+				return err
+			}
+			checker.respTime = du
+		}
+
+	}
+
+	t.originBytes = make([]byte, 2000)
+
+	return nil
+}
+
 func (t *IcmpTask) Init() error {
 	if len(t.Timeout) == 0 {
 		t.timeout = PING_TIMEOUT

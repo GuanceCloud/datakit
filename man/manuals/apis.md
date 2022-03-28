@@ -455,6 +455,47 @@ HTTP Code: 40x
 }
 ```
 
+## `/v1/dialtesting/debug` | `POST`
+
+提供远程调试 dialtesting 的功能。
+
+### 示例 
+
+```
+POST /v1/dialtesting/debug
+Content-Type: application/json
+
+{
+  "class": "HTTP",
+  "task": {}, # http,tcp,icmp,websocket
+}
+```
+
+正常返回:
+
+```
+HTTP/1.1 200 OK
+
+{
+    "content": {
+        "cost": "2.3ms",
+        "status": "success",//  success/fail
+        "error_msg": "",
+    }
+}
+```
+
+错误返回:
+
+```
+HTTP Code: 40x
+
+{
+    "error_code": "datakit.invalidClass",
+    "message": "invalid class"
+}
+```
+
 ## DataKit 数据结构约束
 
 为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），如无特殊标记，DataKit 将拒绝处理违反如下限定的数据。

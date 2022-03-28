@@ -47,6 +47,42 @@ type TcpTask struct {
 	ticker     *time.Ticker
 }
 
+func (t *TcpTask) InitDebug() error {
+
+	if len(t.Timeout) == 0 {
+		t.timeout = 10 * time.Second
+	} else {
+		if timeout, err := time.ParseDuration(t.Timeout); err != nil {
+			return err
+		} else {
+			t.timeout = timeout
+		}
+	}
+
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	if len(t.SuccessWhen) == 0 {
+		return fmt.Errorf(`no any check rule`)
+	}
+
+	for _, checker := range t.SuccessWhen {
+		if checker.ResponseTime != nil {
+			for _, v := range checker.ResponseTime {
+				du, err := time.ParseDuration(v.Target)
+				if err != nil {
+					return err
+				}
+				v.targetTime = du
+			}
+		}
+
+	}
+
+	return nil
+}
+
 func (t *TcpTask) Init() error {
 
 	if len(t.Timeout) == 0 {

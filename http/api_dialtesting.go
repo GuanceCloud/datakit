@@ -2,8 +2,10 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	uhttp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/http"
@@ -11,7 +13,8 @@ import (
 )
 
 type dialtestingDebugRequest struct {
-	Task *dt.HTTPTask
+	Task  interface{} `json:"task"`
+	Class string      `json:"class"`
 }
 
 type dialtestingDebugResponse struct {
@@ -28,23 +31,47 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
+	var t dt.Task
 
-	if reqDebug.Task.CurStatus == "stop" {
+	switch reqDebug.Class {
+	case dt.ClassHTTP:
+		t = &dt.HTTPTask{}
+	case dt.ClassTCP:
+		t = &dt.TcpTask{}
+	case dt.ClassWebsocket:
+		t = &dt.WebsocketTask{}
+	case dt.ClassICMP:
+		t = &dt.IcmpTask{}
+	default:
+		l.Errorf("unknown task type: %s", reqDebug.Class)
+		return nil, uhttp.Error(ErrInvalidRequest, fmt.Sprintf("unknown task type:%s", reqDebug.Class))
+	}
+
+	bys, err := json.Marshal(reqDebug.Task)
+	if err != nil {
+		l.Errorf(`json.Marshal: %s`, err.Error())
+		return nil, err
+	}
+
+	if err := json.Unmarshal(bys, &t); err != nil {
+		l.Errorf(`json.Unmarshal: %s`, err.Error())
+		return nil, err
+	}
+	if strings.ToLower(t.Status()) == dt.StatusStop {
 		return nil, uhttp.Error(ErrInvalidRequest, "the task status is stop")
 	}
 
-	//------------------------------------------------------------------
 	// -- dialtesting debug procedure start --
-	if err := defDialtestingMock.debugInit(reqDebug.Task); err != nil {
+	if err := defDialtestingMock.debugInit(t); err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
-	if err := defDialtestingMock.debugRun(reqDebug.Task); err != nil {
+	if err := defDialtestingMock.debugRun(t); err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 
-	_, fields := defDialtestingMock.getResults(reqDebug.Task)
+	_, fields := defDialtestingMock.getResults(t)
 
 	failReason, ok := fields["fail_reason"].(string)
 	status := "success"

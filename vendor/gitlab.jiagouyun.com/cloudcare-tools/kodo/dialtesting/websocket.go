@@ -73,6 +73,49 @@ type WebsocketTask struct {
 	ticker          *time.Ticker
 }
 
+func (t *WebsocketTask) InitDebug() error {
+	t.timeout = 30 * time.Second
+	if t.AdvanceOptions != nil {
+		if t.AdvanceOptions.RequestOptions != nil && len(t.AdvanceOptions.RequestOptions.Timeout) > 0 {
+			if timeout, err := time.ParseDuration(t.AdvanceOptions.RequestOptions.Timeout); err != nil {
+				return err
+			} else {
+				t.timeout = timeout
+			}
+		}
+	}
+
+	if strings.ToLower(t.CurStatus) == StatusStop {
+		return nil
+	}
+
+	if len(t.SuccessWhen) == 0 {
+		return fmt.Errorf(`no any check rule`)
+	}
+
+	for _, checker := range t.SuccessWhen {
+		if checker.ResponseTime != nil {
+			for _, v := range checker.ResponseTime {
+				du, err := time.ParseDuration(v.Target)
+				if err != nil {
+					return err
+				}
+				v.targetTime = du
+			}
+		}
+
+	}
+
+	if parsedURL, err := url.Parse(t.URL); err != nil {
+		return err
+	} else {
+		t.parsedURL = parsedURL
+		t.hostname = parsedURL.Hostname()
+	}
+
+	return nil
+}
+
 func (t *WebsocketTask) Init() error {
 	t.timeout = 30 * time.Second
 	if t.AdvanceOptions != nil {
