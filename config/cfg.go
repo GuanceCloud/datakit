@@ -109,7 +109,7 @@ func DefaultConfig() *Config {
 		},
 
 		Sinks: &Sinker{
-			Sink: []map[string]interface{}{},
+			Sink: []map[string]interface{}{{}},
 		},
 	}
 

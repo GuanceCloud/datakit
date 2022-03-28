@@ -11,7 +11,7 @@ import (
 )
 
 func GetSinkFromEnvs(categoryShorts, args []string) ([]map[string]interface{}, error) {
-	sinks := []map[string]interface{}{}
+	sinks := []map[string]interface{}{{}} // default from config.DefaultConfig
 
 	if len(categoryShorts) != len(args) || len(categoryShorts) == 0 {
 		return nil, fmt.Errorf("programming error")
@@ -31,6 +31,11 @@ const sepSinks = "||"
 func polymerizeSinkCategory(categoryShort, arg string, sinks *[]map[string]interface{}) error {
 	if len(arg) == 0 {
 		return nil
+	}
+
+	// reset if needed
+	if len(*sinks) == 0 || len((*sinks)[0]) == 0 {
+		(*sinks) = []map[string]interface{}{} // caution: not default []map[string]interface{}{{}}
 	}
 
 	// arg: influxdb://1.1.1.1:8086?database=db0&timeout=15s||influxdb://1.1.1.1:8087?database=db0&timeout=15s
