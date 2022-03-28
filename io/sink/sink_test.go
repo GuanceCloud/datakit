@@ -24,9 +24,33 @@ func TestCheckSinksConfig(t *testing.T) {
 		{
 			name: "id_unique",
 			in: []map[string]interface{}{
-				{"id": "abc"},
-				{"id": "bcd"},
-				{"id": "efg"},
+				{
+					"target":     "influxdb",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
+				},
+				{
+					"target":     "influxdb",
+					"host":       "1.1.1.1:8087",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
+				},
+				{
+					"target":     "influxdb",
+					"host":       "1.1.1.1:8088",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
+				},
 			},
 		},
 		{
@@ -36,40 +60,28 @@ func TestCheckSinksConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "id_empty_1",
-			in: []map[string]interface{}{
-				{"id": " "},
-			},
-			expectError: fmt.Errorf("%s could not be empty", "id"),
-		},
-		{
-			name: "id_empty_2",
-			in: []map[string]interface{}{
-				{"id": ""},
-			},
-			expectError: fmt.Errorf("%s could not be empty", "id"),
-		},
-		{
-			name: "id_empty_3",
-			in: []map[string]interface{}{
-				{"id": "  "},
-			},
-			expectError: fmt.Errorf("%s could not be empty", "id"),
-		},
-		{
 			name: "id_repeat",
 			in: []map[string]interface{}{
-				{"id": "abc"},
-				{"id": "abc"},
+				{
+					"target":     "influxdb",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
+				},
+				{
+					"target":     "influxdb",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
+				},
 			},
 			expectError: fmt.Errorf("invalid sink config: id not unique"),
-		},
-		{
-			name: "id_digit",
-			in: []map[string]interface{}{
-				{"id": 123},
-			},
-			expectError: fmt.Errorf("invalid id: not string"),
 		},
 	}
 
@@ -92,9 +104,9 @@ func TestBuildSinkImpls(t *testing.T) {
 			name: "normal",
 			in: []map[string]interface{}{
 				{
-					"id":         "influxdb_1",
 					"target":     "influxdb",
-					"addr":       "http://1.1.1.1:8086",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
 					"precision":  "ns",
 					"database":   "db0",
 					"user_agent": "go_test_client",
@@ -134,15 +146,6 @@ func TestBuildSinkImpls(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "id_empty",
-			in: []map[string]interface{}{
-				{
-					"target": "influxdb",
-				},
-			},
-			expectError: fmt.Errorf("%s could not be empty", "id"),
-		},
 	}
 
 	for _, tc := range cases {
@@ -164,9 +167,9 @@ func TestAggregationCategorys(t *testing.T) {
 			name: "normal",
 			in: []map[string]interface{}{
 				{
-					"id":         "influxdb_1",
 					"target":     "influxdb",
-					"addr":       "http://1.1.1.1:8086",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
 					"precision":  "ns",
 					"database":   "db0",
 					"user_agent": "go_test_client",
@@ -194,16 +197,6 @@ func TestAggregationCategorys(t *testing.T) {
 			expectError: fmt.Errorf("invalid categories: not []interface{}: %#v", ""),
 		},
 		{
-			name: "invalid_id",
-			in: []map[string]interface{}{
-				{
-					"id":         123,
-					"categories": []interface{}{"M"},
-				},
-			},
-			expectError: fmt.Errorf("invalid id: not string"),
-		},
-		{
 			name: "empty",
 			in: []map[string]interface{}{
 				{},
@@ -213,7 +206,13 @@ func TestAggregationCategorys(t *testing.T) {
 			name: "no_categories",
 			in: []map[string]interface{}{
 				{
-					"id": 123,
+					"target":     "influxdb",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"user_agent": "go_test_client",
+					"timeout":    "6s",
 				},
 			},
 			expectError: fmt.Errorf("invalid categories: not found"),
@@ -231,9 +230,9 @@ func TestAggregationCategorys(t *testing.T) {
 			name: "unrecognized category",
 			in: []map[string]interface{}{
 				{
-					"id":         "influxdb_1",
 					"target":     "influxdb",
-					"addr":       "http://1.1.1.1:8086",
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
 					"precision":  "ns",
 					"database":   "db0",
 					"user_agent": "go_test_client",
@@ -241,7 +240,6 @@ func TestAggregationCategorys(t *testing.T) {
 					"categories": []interface{}{"M1"},
 				},
 			},
-			expectError: fmt.Errorf("unrecognized category"),
 		},
 	}
 

@@ -46,7 +46,8 @@ func TestAll(t *testing.T) {
 		{
 			name: "required",
 			in: map[string]interface{}{
-				"addr":      "http://10.200.7.21:8086",
+				"host":      "10.200.7.21:8086",
+				"protocol":  "http",
 				"precision": "ns",
 				"database":  "db0",
 			},

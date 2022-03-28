@@ -70,14 +70,24 @@ func (s *SinkInfluxDB) LoadConfig(mConf map[string]interface{}) error {
 		s.ID = id
 	}
 
-	if addr, err := dkstring.GetMapAssertString("addr", mConf); err != nil {
+	if host, err := dkstring.GetMapAssertString("host", mConf); err != nil {
 		return err
 	} else {
-		addrNew, err := dkstring.CheckNotEmpty(addr, "addr")
+		hostNew, err := dkstring.CheckNotEmpty(host, "host")
 		if err != nil {
 			return err
 		}
-		s.addr = addrNew
+
+		if protocol, err := dkstring.GetMapAssertString("protocol", mConf); err != nil {
+			return err
+		} else {
+			protocolNew, err := dkstring.CheckNotEmpty(protocol, "protocol")
+			if err != nil {
+				return err
+			}
+
+			s.addr = fmt.Sprintf("%s://%s", protocolNew, hostNew)
+		}
 	}
 
 	if database, err := dkstring.GetMapAssertString("database", mConf); err != nil {
