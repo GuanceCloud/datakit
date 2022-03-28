@@ -110,8 +110,8 @@ func (ipt *Input) RegHTTPHandler() {
 		switch endpoint {
 		case v1, v2, v3, v4, v5:
 			isReg = true
-			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTrace)
-			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTrace)
+			dkhttp.RegHTTPHandler(http.MethodPost, endpoint, handleDDTraceWithVersion(endpoint))
+			dkhttp.RegHTTPHandler(http.MethodPut, endpoint, handleDDTraceWithVersion(endpoint))
 			log.Infof("pattern %s registered", endpoint)
 		default:
 			log.Errorf("unrecognized ddtrace agent endpoint")
