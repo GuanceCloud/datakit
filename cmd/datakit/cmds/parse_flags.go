@@ -18,23 +18,22 @@ var (
 	//
 	// doc related flags.
 	//
-	fsDocName  = "doc"
-	fsDoc      = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
-	fsDocUsage = func() {
+	fsDocName = "doc"
+	fsDoc     = pflag.NewFlagSet(fsDocName, pflag.ContinueOnError)
+	// TODO: this flags not used, comment them to disable lint errors.
+	flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
+	// flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)").
+	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file")
+	flagDocExportDocs = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
+	flagDocIgnore     = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
+	flagDocLogPath    = fsDoc.String("log", commonLogFlag(), "command line log path")
+	flagDocTODO       = fsDoc.String("TODO", "TODO", "set TODO placeholder")
+	flagDocVersion    = fsDoc.String("version", datakit.Version, "specify version string in document's header")
+	fsDocUsage        = func() {
 		fmt.Printf("usage: datakit doc [options]\n\n")
 		fmt.Printf("Doc used to manage all documents related to DataKit. Available options:\n\n")
 		fmt.Println(fsDoc.FlagUsagesWrapped(0))
 	}
-
-	// TODO: this flags not used, comment them to disable lint errors.
-	// flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
-	// flagDocExportDocs              = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
-	// flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)").
-	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file")
-	// flagDocIgnore         = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem").
-	flagDocLogPath = fsDoc.String("log", commonLogFlag(), "command line log path")
-	// flagDocTODO                    = fsDoc.String("TODO", "TODO", "set TODO placeholder")
-	// flagDocVersion = fsDoc.String("version", datakit.Version, "specify version string in document's header").
 
 	//
 	// DQL related flags.

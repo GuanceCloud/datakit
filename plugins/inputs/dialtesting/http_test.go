@@ -3,6 +3,8 @@ package dialtesting
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -675,4 +677,50 @@ func addTestingRoutes(t *testing.T, r *gin.Engine, https bool) {
 			c.Data(http.StatusOK, ``, nil)
 		})
 	}
+}
+
+func TestDemo(t *testing.T) {
+	// path := "http://daily-dflux-dial.cloudcare.cn/v1/task/push/icmp"
+	path := "http://daily-dflux-dial.cloudcare.cn/v1/task/pull?region_id=reg_c91ak9ruiaqdg9kd6800"
+
+	// data := `{"regions":{"reg_c91ak9ruiaqdg9kd6800": true},"task":{"external_id":"dial_fc5d60e60acf468e9504357097874f32","name":"icmp-test","host":"www.baidu.com","timeout":"60ms","packet_count":3,"enable_traceroute":true,"post_url":"","status":"OK","frequency":"10s","success_when_logic":"and","success_when":[{"response_time":"20ms","packet_loss_percent":50,"hops":[{"op":"eq","target":20}]}]}}`
+	data := ``
+
+	body := bytes.NewReader([]byte(data))
+
+	req, err := http.NewRequest("GET", path, body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	ak := "EtDPT0yiXoo8kgEJLwbr"
+	sk := "NOzMvAtpgmWL3bQC8K4qnd9pdyemti2CRNR4e6zb"
+	// ak := "oFE3EMtv9NLK7GSSDm41"
+	// sk := "DqDmRM1oaqDs7BZeEDaqPyT69ky53P49M3XOep0m"
+
+	bodymd5 := fmt.Sprintf("%x", md5.Sum([]byte(data))) //nolint:gosec
+	req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+	req.Header.Set("Content-MD5", bodymd5)
+	req.Header.Set("Connection", "close")
+	req.Header.Set("Content-Type", "application/json")
+	signReq(req, ak, sk)
+
+	cli := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+			TLSHandshakeTimeout: 30 * time.Second,
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+		},
+	}
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	resBody, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(resBody), err)
 }

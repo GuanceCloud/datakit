@@ -63,3 +63,35 @@ func (s *SuccessOption) check(val, prompt string) error {
 	}
 	return nil
 }
+
+type ValueSuccess struct {
+	Op     string  `json:"op,omitempty"`
+	Target float64 `json:"target,omitempty"`
+}
+
+func (v *ValueSuccess) check(val float64) error {
+	switch v.Op {
+	case "eq":
+		if val != v.Target {
+			return fmt.Errorf("%v is not equal to target %v", val, v.Target)
+		}
+	case "lt":
+		if val >= v.Target {
+			return fmt.Errorf("%v is greater equal than target %v", val, v.Target)
+		}
+	case "leq":
+		if val > v.Target {
+			return fmt.Errorf("%v is greater than target %v", val, v.Target)
+		}
+	case "gt":
+		if val <= v.Target {
+			return fmt.Errorf("%v is less than target %v", val, v.Target)
+		}
+	case "geq":
+		if val < v.Target {
+			return fmt.Errorf("%v is less equal than target %v", val, v.Target)
+		}
+	}
+
+	return nil
+}

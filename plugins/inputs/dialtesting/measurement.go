@@ -115,6 +115,12 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.UnknownUnit,
 				Desc:     "包括响应时间(response_time_in_micros)/错误原因(fail_reason)",
 			},
+			"traceroute": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "路由跟踪数据文本(JSON格式)",
+			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
@@ -180,6 +186,12 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "拨测失败原因",
+			},
+			"traceroute": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.UnknownUnit,
+				Desc:     "路由跟踪数据文本(JSON格式)",
 			},
 			"average_round_trip_time_in_millis": &inputs.FieldInfo{
 				DataType: inputs.Float,
