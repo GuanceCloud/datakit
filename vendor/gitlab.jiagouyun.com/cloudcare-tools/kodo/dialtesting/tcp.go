@@ -20,12 +20,15 @@ type TcpResponseTime struct {
 
 type TcpSuccess struct {
 	ResponseTime []*TcpResponseTime `json:"response_time,omitempty"`
+	Hops         []*ValueSuccess    `json:"hops,omitempty"`
 }
 
 type TcpTask struct {
 	Host             string            `json:"host"`
 	Port             string            `json:"port"`
 	Timeout          string            `json:"timeout"`
+	EnableTraceroute bool              `json:"enable_traceroute"`
+	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
 	SuccessWhen      []*TcpSuccess     `json:"success_when"`
 	SuccessWhenLogic string            `json:"success_when_logic"`
 	ExternalID       string            `json:"external_id"`
@@ -45,6 +48,7 @@ type TcpTask struct {
 	reqError   string
 	timeout    time.Duration
 	ticker     *time.Ticker
+	traceroute []*Route
 }
 
 func (t *TcpTask) Init() error {
@@ -89,6 +93,14 @@ func (t *TcpTask) Init() error {
 
 	}
 
+	if t.TracerouteConfig == nil {
+		t.TracerouteConfig = &TracerouteOption{
+			Hops:    60,
+			Timeout: 10 * time.Second,
+			Retry:   3,
+		}
+	}
+
 	return nil
 }
 
@@ -127,6 +139,24 @@ func (t *TcpTask) CheckResult() (reasons []string, succFlag bool) {
 				}
 			}
 		}
+
+		// check traceroute
+		if t.EnableTraceroute {
+			hops := float64(len(t.traceroute))
+
+			if hops == 0 {
+				reasons = append(reasons, "traceroute failed with no hops")
+			} else {
+				for _, v := range chk.Hops {
+					if err := v.check(hops); err != nil {
+						reasons = append(reasons, fmt.Sprintf("traceroute hops check failed: %s", err.Error()))
+					} else {
+						succFlag = true
+					}
+				}
+			}
+
+		}
 	}
 
 	return
@@ -147,6 +177,15 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		"response_time":          responseTime,
 		"response_time_with_dns": responseTimeWithDNS,
 		"success":                int64(-1),
+	}
+
+	if t.EnableTraceroute {
+		tracerouteData, err := json.Marshal(t.traceroute)
+		if err == nil && len(tracerouteData) > 0 {
+			fields["traceroute"] = string(tracerouteData)
+		} else {
+			fields["traceroute"] = "[]"
+		}
 	}
 
 	for k, v := range t.Tags {
@@ -204,6 +243,7 @@ func (t *TcpTask) MetricName() string {
 func (t *TcpTask) Clear() {
 	t.reqCost = 0
 	t.reqError = ""
+	t.traceroute = nil
 }
 
 func (t *TcpTask) Run() error {
@@ -245,6 +285,16 @@ func (t *TcpTask) Run() error {
 	conn.Close()
 
 	t.reqCost = time.Since(start)
+
+	if t.EnableTraceroute {
+		routes, err := TracerouteIP(hostIP.String(), t.TracerouteConfig)
+		if err != nil {
+			t.reqError = err.Error()
+			return err
+		} else {
+			t.traceroute = routes
+		}
+	}
 
 	return nil
 }

@@ -3,6 +3,7 @@ package dialtesting
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -22,8 +23,9 @@ type ICMP struct {
 }
 
 type IcmpSuccess struct {
-	PacketLossPercent float64 `json:"packet_loss_percent,omitempty"`
-	ResponseTime      string  `json:"response_time,omitempty"`
+	PacketLossPercent float64         `json:"packet_loss_percent,omitempty"`
+	ResponseTime      string          `json:"response_time,omitempty"`
+	Hops              []*ValueSuccess `json:"hops,omitempty"`
 	respTime          time.Duration
 }
 
@@ -31,6 +33,8 @@ type IcmpTask struct {
 	Host             string            `json:"host"`
 	PacketCount      int               `json:"packet_count"`
 	Timeout          string            `json:"timeout"`
+	EnableTraceroute bool              `json:"enable_traceroute"`
+	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
 	SuccessWhen      []*IcmpSuccess    `json:"success_when"`
 	SuccessWhenLogic string            `json:"success_when_logic"`
 	ExternalID       string            `json:"external_id"`
@@ -53,6 +57,7 @@ type IcmpTask struct {
 	reqError          string
 	timeout           time.Duration
 	ticker            *time.Ticker
+	traceroute        []*Route
 }
 
 func (t *IcmpTask) Init() error {
@@ -100,6 +105,14 @@ func (t *IcmpTask) Init() error {
 
 	t.originBytes = make([]byte, 2000)
 
+	if t.TracerouteConfig == nil {
+		t.TracerouteConfig = &TracerouteOption{
+			Hops:    60,
+			Timeout: 10 * time.Second,
+			Retry:   3,
+		}
+	}
+
 	return nil
 }
 
@@ -132,6 +145,23 @@ func (t *IcmpTask) CheckResult() (reasons []string, succFlag bool) {
 		} else if chk.PacketLossPercent > 0 {
 			succFlag = true
 		}
+
+		// check traceroute
+		if t.EnableTraceroute {
+			hops := float64(len(t.traceroute))
+			if hops == 0 {
+				reasons = append(reasons, "traceroute failed with no hops")
+			} else {
+				for _, v := range chk.Hops {
+					if err := v.check(hops); err != nil {
+						reasons = append(reasons, fmt.Sprintf("traceroute hops check failed: %s", err.Error()))
+					} else {
+						succFlag = true
+					}
+				}
+			}
+		}
+
 	}
 
 	return
@@ -154,6 +184,15 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 
 	for k, v := range t.Tags {
 		tags[k] = v
+	}
+
+	if t.EnableTraceroute {
+		tracerouteData, err := json.Marshal(t.traceroute)
+		if err == nil && len(tracerouteData) > 0 {
+			fields["traceroute"] = string(tracerouteData)
+		} else {
+			fields["traceroute"] = "[]"
+		}
 	}
 
 	message := map[string]interface{}{}
@@ -216,6 +255,7 @@ func (t *IcmpTask) Clear() {
 
 	t.packetLossPercent = 100
 	t.reqError = ""
+	t.traceroute = nil
 }
 
 func (t *IcmpTask) Run() error {
@@ -249,6 +289,31 @@ func (t *IcmpTask) Run() error {
 	if err := pinger.Run(); err != nil {
 		t.reqError = err.Error()
 		return err
+	}
+
+	if t.EnableTraceroute {
+		hostIP := net.ParseIP(t.Host)
+		if hostIP == nil {
+			if ips, err := net.LookupIP(t.Host); err != nil {
+				t.reqError = err.Error()
+				return err
+			} else {
+				if len(ips) == 0 {
+					err := fmt.Errorf("invalid host: %s, found no ip record", t.Host)
+					t.reqError = err.Error()
+					return err
+				} else {
+					hostIP = ips[0]
+				}
+			}
+		}
+		routes, err := TracerouteIP(hostIP.String(), t.TracerouteConfig)
+		if err != nil {
+			t.reqError = err.Error()
+			return err
+		} else {
+			t.traceroute = routes
+		}
 	}
 
 	return nil
