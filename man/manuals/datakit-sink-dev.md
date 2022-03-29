@@ -20,9 +20,7 @@
 
 - 第二步: 在上面的包下新建一个源文件 `sink_influxdb.go`, 新建一个常量 `creatorID`, 不能与其它包里面的 `creatorID` 重名; 实现 `ISink` 的 `interface`, 具体是实现以下几个函数:
 
-- `GetID() string`: 返回实例编号。
-- `GetCreatorID() string`: 返回 creatorID。
-- `Categories() []string`: 返回支持的类型的简写。比方说 `Metrics` 返回的是 `M`。
+- `GetInfo() *SinkInfo`: 返回 sink 实例的相关信息。目前有 `ID`(实例内部标识, 程序内部根据配置生成, 供内部使用, 配置中唯一) 、`CreateID`(实例创建标识, 代码中唯一)和支持的类型的简写(比方说 `Metrics` 返回的是 `M`)。
 - `LoadConfig(mConf map[string]interface{}) error`: 加载外部配置到内部。
 - `Write(pts []ISinkPoint) error`: 写入数据。
 
@@ -36,8 +34,8 @@ type SinkInfluxDB struct {
   ...
 }
 
-func (s *SinkInfluxDB) GetID() string {
-  // 返回实例编号
+func (s *SinkInfluxDB) GetInfo() *SinkInfo {
+  // 返回 sink 实例的相关信息
   ...
 }
 

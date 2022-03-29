@@ -234,16 +234,12 @@ func (s *SinkInfluxDB) writeInfluxDB(pts []sinkcommon.ISinkPoint) error {
 	return nil
 }
 
-func (s *SinkInfluxDB) GetID() string {
-	return s.ID
-}
-
-func (s *SinkInfluxDB) GetCreatorID() string {
-	return creatorID
-}
-
-func (s *SinkInfluxDB) Categories() []string {
-	return []string{datakit.SinkCategoryMetric}
+func (s *SinkInfluxDB) GetInfo() *sinkcommon.SinkInfo {
+	return &sinkcommon.SinkInfo{
+		ID:         s.ID,
+		CreateID:   creatorID,
+		Categories: []string{datakit.SinkCategoryMetric},
+	}
 }
 
 func init() { //nolint:gochecknoinits

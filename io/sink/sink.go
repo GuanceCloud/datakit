@@ -124,7 +124,7 @@ func polymerizeCategorys(sincfg []map[string]interface{}) error {
 
 				// check whether support the category
 				found := false
-				supportCategories := impl.Categories()
+				supportCategories := impl.GetInfo().Categories
 				for _, scs := range supportCategories {
 					if category == scs {
 						found = true
@@ -132,11 +132,11 @@ func polymerizeCategorys(sincfg []map[string]interface{}) error {
 					}
 				}
 				if !found {
-					l.Warnf("%s not support category: %s", impl.GetCreatorID(), category)
+					l.Warnf("%s not support category: %s", impl.GetInfo().CreateID, category)
 					continue
 				}
 
-				if id == impl.GetID() {
+				if id == impl.GetInfo().ID {
 					newCategory, err := getMapCategory(category)
 					if err != nil {
 						return err
