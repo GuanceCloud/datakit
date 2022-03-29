@@ -33,7 +33,7 @@ var (
 )
 
 type SinkInfluxDB struct {
-	ID string // required. sink config identity, unique.
+	ID string // sink config identity, unique, automatically generated.
 
 	addr      string // required. eg. http://172.16.239.130:8086
 	precision string // required.
