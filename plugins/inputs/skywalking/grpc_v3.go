@@ -92,7 +92,7 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		if span.ParentSpanId < 0 {
 			dkspan.ParentID = "0"
 		}
-		if len(span.Refs) > 0 {
+		if span.SpanType == skyimpl.SpanType_Entry && len(span.Refs) > 0 {
 			dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
 		}
 
