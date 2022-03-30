@@ -89,7 +89,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220303071313-73cbbd097512
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220330014241-ba57d4854c5a
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220330030519-c0d8b2dd21ef
 	go.etcd.io/bbolt v1.3.5
 	go.opentelemetry.io/otel v1.4.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.27.0

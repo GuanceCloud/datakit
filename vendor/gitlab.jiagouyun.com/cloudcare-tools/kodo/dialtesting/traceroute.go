@@ -205,6 +205,7 @@ func (t *Traceroute) startTrace(ip net.IP) error {
 			Failed:  failed,
 			Loss:    loss,
 			MinCost: minCost,
+			AvgCost: time.Duration(mean(responseTimes)),
 			MaxCost: maxCost,
 			StdCost: time.Duration(std(responseTimes)),
 			Items:   routeItems,
@@ -448,6 +449,11 @@ func TracerouteIP(ip string, opt *TracerouteOption) (routes []*Route, err error)
 func mean(v []float64) float64 {
 	var res float64 = 0
 	var n int = len(v)
+
+	if n == 0 {
+		return 0
+	}
+
 	for i := 0; i < n; i++ {
 		res += v[i]
 	}
