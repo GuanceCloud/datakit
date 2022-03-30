@@ -466,8 +466,21 @@ POST /v1/dialtesting/debug
 Content-Type: application/json
 
 {
-  "class": "HTTP",
-  "task": {}, # http,tcp,icmp,websocket
+    "class":"HTTP",//"HTTP","TCP","ICMP","WEBSOCKET"
+    "task": {
+        "name":"",
+        "method":"",
+        "url":"",
+        "post_url":"",
+        "cur_status":"",
+        "frequency":"",
+        "enable_traceroute":true,//true代表勾选，tcp，icmp才有用
+        "success_when_logic":"",
+        "SuccessWhen":[]*HTTPSuccess ,
+        "tags":map[string]string ,
+        "labels":[]string,
+        "advance_options":*HTTPAdvanceOption,
+    }
 }
 ```
 
@@ -479,8 +492,9 @@ HTTP/1.1 200 OK
 {
     "content": {
         "cost": "2.3ms",
-        "status": "success",//  success/fail
+        "status": "success",//  success/fail/timeout
         "error_msg": "",
+        "traceroute":[{"total":3,"failed":0,"loss":0,"avg_cost":0,"min_cost":2,"max_cost":3,"std_cost":33,"items":[{"ip":"127.0.0.1","response_time":33}]}],
     }
 }
 ```
