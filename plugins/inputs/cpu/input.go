@@ -3,8 +3,12 @@ package cpu
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"time"
+
+	"github.com/shirou/gopsutil/load"
+	"go.uber.org/atomic"
 
 	"github.com/shirou/gopsutil/cpu"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -37,6 +41,7 @@ type Input struct {
 
 	PerCPU            bool `toml:"percpu"`
 	EnableTemperature bool `toml:"enable_temperature"`
+	EnableLoad5s      bool `toml:"enable_load5s"`
 
 	Interval datakit.Duration
 	Tags     map[string]string
@@ -45,6 +50,8 @@ type Input struct {
 	collectCacheLast1Ptr *cpuMeasurement
 
 	lastStats map[string]cpu.TimesStat
+	load5s    atomic.Int32
+	lastLoad1 float64
 	ps        CPUStatInfo
 
 	semStop *cliutils.Sem // start stop signal
@@ -132,6 +139,10 @@ func (ipt *Input) Collect() error {
 			"usage_total":      cpuUsage.Total,
 		}
 
+		if ipt.EnableLoad5s {
+			fields["load5s"] = ipt.getLoad5s()
+		}
+
 		if len(coreTemp) > 0 && cts.CPU == "cpu-total" {
 			if v, ok := coreTemp[cts.CPU]; ok {
 				fields["core_temperature"] = v
@@ -147,12 +158,20 @@ func (ipt *Input) Collect() error {
 	return nil
 }
 
+func (ipt *Input) getLoad5s() int {
+	return int(ipt.load5s.Load())
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Infof("cpu input started")
 	io.FeedEventLog(&io.Reporter{Message: "cpu start ok, ready for collecting metrics.", Logtype: "event"})
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
+
+	if ipt.EnableLoad5s {
+		go ipt.calLoad5s()
+	}
 
 	if err := ipt.Collect(); err != nil { // gather lastSats
 		l.Errorf("Collect: %s", err.Error())
@@ -186,6 +205,38 @@ func (ipt *Input) Run() {
 
 		case <-ipt.semStop.Wait():
 			l.Info("cpu input return")
+			return
+		}
+	}
+}
+
+// calLoad5s gets average load information every five seconds,
+// calculates load5s and store it in Input.
+func (ipt *Input) calLoad5s() {
+	tick := time.NewTicker(5 * time.Second)
+	for {
+		select {
+		case <-tick.C:
+			var load5s int32
+			avg, err := load.Avg()
+			if err != nil {
+				l.Warnf("fail to get load average: %v", err)
+				ipt.lastLoad1 = 0
+				continue
+			}
+			if ipt.lastLoad1 == 0 || avg.Load1 == 0 {
+				load5s = int32(avg.Load1)
+			} else {
+				load5s = int32(math.Round((2048*(2048*avg.Load1-10) - 1024 -
+					1884*2048*ipt.lastLoad1) / 164 / 2048))
+			}
+			ipt.lastLoad1 = avg.Load1
+			ipt.load5s.Store(load5s)
+		case <-datakit.Exit.Wait():
+			l.Infof("load5s calculator exited")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("load5s calculator returned")
 			return
 		}
 	}
