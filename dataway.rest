@@ -128,25 +128,31 @@ POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 {
   "class":"TCP",
   "task":{
-      "name": "tcp-test",
+      "name": "tcp_test",
       "host": "www.baidu.com",
       "port": "80",
-      "timeout": "1000ms",
-      //"post_url": "https://<your-dataway-host>?token=<your-token>",
-      "status": "OK",
-      "frequency": "10s",
-      "success_when_logic": "or",
+      "enable_traceroute": true,
+      "timeout": "20ms",
+      "region": "reg_c7b5kmodh47a55mu9nq0",
       "success_when": [
         {
           "response_time":[ 
             {
-              "is_contain_dns": false,
-              "target": "50ms"
+              "is_contain_dns": true,
+              "target": "10ms"
+            }
+          ],
+          "hops": [
+            {
+              "op": "leq",
+              "target": 30
             }
           ]
         }
-      ]
-		}
+      ],
+      "status": "OK",
+      "frequency": "1m"
+    }
 }
 
 ###
@@ -197,6 +203,7 @@ POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
       "host": "www.baidu.com",
       "timeout": "10ms",
       "packet_count": 3,
+      "enable_traceroute":true,
      // "post_url": "https://<your-dataway-host>?token=<your-token>",
       "status": "OK",
       "frequency": "10s",

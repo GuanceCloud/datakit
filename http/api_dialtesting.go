@@ -21,17 +21,23 @@ type dialtestingDebugResponse struct {
 	Cost         string `json:"cost"`
 	ErrorMessage string `json:"error_msg"`
 	Status       string `json:"status"`
+	Traceroute   string `json:"traceroute"`
 }
 
 func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
-	tid := req.Header.Get(uhttp.XTraceId)
-	start := time.Now()
+	var (
+		tid        = req.Header.Get(uhttp.XTraceId)
+		start      = time.Now()
+		t          dt.Task
+		traceroute string
+		status     = "success"
+	)
+
 	reqDebug, err := getAPIDebugDialtestingRequest(req)
 	if err != nil {
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
-	var t dt.Task
 
 	switch reqDebug.Class {
 	case dt.ClassHTTP:
@@ -74,14 +80,30 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	_, fields := defDialtestingMock.getResults(t)
 
 	failReason, ok := fields["fail_reason"].(string)
-	status := "success"
 	if ok {
 		status = "fail"
 	}
+	if reqDebug.Class == dt.ClassTCP || reqDebug.Class == dt.ClassICMP {
+		traceroute, _ = fields["traceroute"].(string)
+	}
+	if reqDebug.Class == dt.ClassTCP {
+		responseTime, _ := fields["response_time"].(int64)
+		if responseTime == 0 {
+			status = "timeout"
+		}
+	}
+	if reqDebug.Class == dt.ClassICMP {
+		lossPercent, _ := fields["packet_loss_percent"].(float64)
+		if lossPercent == 100 {
+			status = "timeout"
+		}
+	}
+
 	return &dialtestingDebugResponse{
 		Cost:         time.Since(start).String(),
 		ErrorMessage: failReason,
 		Status:       status,
+		Traceroute:   traceroute,
 	}, nil
 }
 
