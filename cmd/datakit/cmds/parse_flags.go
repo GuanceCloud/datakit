@@ -23,7 +23,7 @@ var (
 	// TODO: this flags not used, comment them to disable lint errors.
 	flagDocDisableTagFieldMonoFont = fsDoc.Bool("disable-tf-mono", false, "use normal font on tag/field, make it more readable under terminal")
 	// flagDocExportIntegration       = fsDoc.String("export-integration", "", "export all integration documents(to another git repository)").
-	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file")
+	// flagDocExportMetaInfo = fsDoc.String("export-metainfo", "", "output metainfo to specified file").
 	flagDocExportDocs = fsDoc.String("export-docs", "", "export all inputs and related docs to specified path")
 	flagDocIgnore     = fsDoc.String("ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flagDocLogPath    = fsDoc.String("log", commonLogFlag(), "command line log path")

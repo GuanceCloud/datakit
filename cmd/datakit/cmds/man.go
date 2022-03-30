@@ -17,8 +17,7 @@ import (
 
 func runDocFlags() error {
 	inputs.TODO = *flagDocTODO
-	exportMan(*flagDocExportDocs, *flagDocIgnore, *flagDocVersion, *flagDocDisableTagFieldMonoFont)
-	return nil
+	return exportMan(*flagDocExportDocs, *flagDocIgnore, *flagDocVersion, *flagDocDisableTagFieldMonoFont)
 }
 
 func cmdMan() {
