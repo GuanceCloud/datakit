@@ -275,11 +275,10 @@ func (t *TcpTask) Run() error {
 
 	if err != nil {
 		t.reqError = err.Error()
+	} else {
+		t.reqCost = time.Since(start)
+		conn.Close()
 	}
-
-	conn.Close()
-
-	t.reqCost = time.Since(start)
 
 	if t.EnableTraceroute {
 		routes, err := TracerouteIP(hostIP.String(), t.TracerouteConfig)
