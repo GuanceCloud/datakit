@@ -17,7 +17,7 @@ import (
 )
 
 // max config
-const MAX_TIMEOUT = 30 * time.Second
+const MAX_TIMEOUT = 10 * time.Second
 const MAX_HOPS = 60
 const MAX_RETRY = 3
 
@@ -25,7 +25,9 @@ const MAX_RETRY = 3
 type TracerouteOption struct {
 	Hops    int
 	Retry   int
-	Timeout time.Duration
+	Timeout string
+
+	timeout time.Duration
 }
 
 // response for sent packet, may be failed response when timeout
@@ -92,7 +94,7 @@ func (t *Traceroute) init() {
 	}
 
 	if t.Timeout <= 0 {
-		t.Timeout = 10 * time.Second
+		t.Timeout = 1 * time.Second
 	} else if t.Timeout > MAX_TIMEOUT {
 		t.Timeout = MAX_TIMEOUT
 	}
@@ -307,8 +309,13 @@ func (t *Traceroute) listenICMP() error {
 		}
 
 		buf := make([]byte, 1500)
+		deadLine := time.Now().Add(time.Second)
 
-		conn.SetDeadline(time.Now().Add(10 * time.Second))
+		if t.Timeout > 0 && t.Timeout < 10*time.Second { // max 10s
+			deadLine = time.Now().Add(t.Timeout)
+		}
+
+		conn.SetDeadline(deadLine)
 
 		n, from, _ := conn.ReadFromIP(buf)
 
@@ -405,11 +412,18 @@ func (t *Traceroute) sendICMP(ip net.IP, ttl int) error {
 }
 
 func TracerouteIP(ip string, opt *TracerouteOption) (routes []*Route, err error) {
+	defaultTimeout := 30 * time.Millisecond
 	if opt == nil {
 		opt = &TracerouteOption{
 			Hops:    30,
-			Retry:   3,
-			Timeout: 10 * time.Second,
+			Retry:   2,
+			timeout: defaultTimeout,
+		}
+	} else {
+		if timeout, err := time.ParseDuration(opt.Timeout); err != nil {
+			opt.timeout = defaultTimeout
+		} else {
+			opt.timeout = timeout
 		}
 	}
 
@@ -417,7 +431,7 @@ func TracerouteIP(ip string, opt *TracerouteOption) (routes []*Route, err error)
 		Host:    ip,
 		Hops:    opt.Hops,
 		Retry:   opt.Retry,
-		Timeout: opt.Timeout,
+		Timeout: opt.timeout,
 	}
 
 	err = traceroute.Run()
