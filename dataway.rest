@@ -97,7 +97,7 @@ X-Precision: {{xprecision}}
 POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 
 {
-  "class":"HTTP",
+  "task_type":"HTTP",
   "task":{
     "advance_options":{
 
@@ -126,7 +126,7 @@ POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 
 {
-  "class":"TCP",
+  "task_type":"TCP",
   "task":{
       "name": "tcp_test",
       "host": "www.baidu.com",
@@ -159,7 +159,7 @@ POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 
 {
-  "class":"WEBSOCKET",
+  "task_type":"WEBSOCKET",
   "task":{
       "name": "websocket-test",
       "url": "ws://localhost:8080",
@@ -197,7 +197,7 @@ POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 POST http://127.0.0.1:9529/v1/dialtesting/debug HTTP/1.1
 
 {
-  "class":"ICMP",
+  "task_type":"ICMP",
   "task":{
       "name": "icmp-test",
       "host": "www.baidu.com",

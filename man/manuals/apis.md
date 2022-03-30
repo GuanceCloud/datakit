@@ -466,7 +466,7 @@ POST /v1/dialtesting/debug
 Content-Type: application/json
 
 {
-    "class":"HTTP",//"HTTP","TCP","ICMP","WEBSOCKET"
+    "task_type":"http",//"http","tcp","icmp","websocket"
     "task": {
         "name":"",
         "method":"",

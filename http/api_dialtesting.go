@@ -13,8 +13,8 @@ import (
 )
 
 type dialtestingDebugRequest struct {
-	Task  interface{} `json:"task"`
-	Class string      `json:"class"`
+	Task     interface{} `json:"task"`
+	TaskType string      `json:"task_type"`
 }
 
 type dialtestingDebugResponse struct {
@@ -39,7 +39,8 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 
-	switch reqDebug.Class {
+	taskType := strings.ToUpper(reqDebug.TaskType)
+	switch taskType {
 	case dt.ClassHTTP:
 		t = &dt.HTTPTask{}
 	case dt.ClassTCP:
@@ -49,8 +50,8 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	case dt.ClassICMP:
 		t = &dt.IcmpTask{}
 	default:
-		l.Errorf("unknown task type: %s", reqDebug.Class)
-		return nil, uhttp.Error(ErrInvalidRequest, fmt.Sprintf("unknown task type:%s", reqDebug.Class))
+		l.Errorf("unknown task type: %s", taskType)
+		return nil, uhttp.Error(ErrInvalidRequest, fmt.Sprintf("unknown task type:%s", taskType))
 	}
 
 	bys, err := json.Marshal(reqDebug.Task)
@@ -83,16 +84,16 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	if ok {
 		status = "fail"
 	}
-	if reqDebug.Class == dt.ClassTCP || reqDebug.Class == dt.ClassICMP {
+	if taskType == dt.ClassTCP || taskType == dt.ClassICMP {
 		traceroute, _ = fields["traceroute"].(string)
 	}
-	if reqDebug.Class == dt.ClassTCP {
+	if taskType == dt.ClassTCP {
 		responseTime, _ := fields["response_time"].(int64)
 		if responseTime == 0 {
 			status = "timeout"
 		}
 	}
-	if reqDebug.Class == dt.ClassICMP {
+	if taskType == dt.ClassICMP {
 		lossPercent, _ := fields["packet_loss_percent"].(float64)
 		if lossPercent == 100 {
 			status = "timeout"
