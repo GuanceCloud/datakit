@@ -48,27 +48,27 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 	}{
 		{
 			name: "test dial task para wrong",
-			body: []byte(`{"class":9,"dd":"dd"}`),
+			body: []byte(`{"task_type":9,"dd":"dd"}`),
 			t: &dialtestingDebugRequest{
-				Class: "HTTP",
-				Task:  &dt.HTTPTask{},
+				TaskType: "HTTP",
+				Task:     &dt.HTTPTask{},
 			},
 			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
 		},
 		{
 			name: "test dial task para wrong1",
-			body: []byte(`{"class":"dd","dd":"dd"}`),
+			body: []byte(`{"task_type":"dd","dd":"dd"}`),
 			t: &dialtestingDebugRequest{
-				Class: "dd",
-				Task:  &dt.HTTPTask{},
+				TaskType: "dd",
+				Task:     &dt.HTTPTask{},
 			},
-			errExpect: uhttp.Error(ErrInvalidRequest, "unknown task type:dd"),
+			errExpect: uhttp.Error(ErrInvalidRequest, "unknown task type:DD"),
 		},
 		{
 			name: "test dial invalid request1",
 			t: &dialtestingDebugRequest{
-				Class: "HTTP",
-				Task:  &dt.HTTPTask{},
+				TaskType: "HTTP",
+				Task:     &dt.HTTPTask{},
 			},
 			errInit:   uhttp.Error(ErrInvalidRequest, "ddd"),
 			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
@@ -76,8 +76,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		{
 			name: "test dial invalid request2",
 			t: &dialtestingDebugRequest{
-				Class: "HTTP",
-				Task:  &dt.HTTPTask{},
+				TaskType: "HTTP",
+				Task:     &dt.HTTPTask{},
 			},
 			errRun:    uhttp.Error(ErrInvalidRequest, "ddd"),
 			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
@@ -85,7 +85,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		{
 			name: "test dial status stop",
 			t: &dialtestingDebugRequest{
-				Class: "HTTP",
+				TaskType: "HTTP",
 				Task: &dt.HTTPTask{
 					CurStatus: "stop",
 				},
@@ -95,8 +95,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		{
 			name: "test dial success1",
 			t: &dialtestingDebugRequest{
-				Class: "HTTP",
-				Task:  &dt.HTTPTask{},
+				TaskType: "HTTP",
+				Task:     &dt.HTTPTask{},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
@@ -104,8 +104,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		{
 			name: "test dial success2",
 			t: &dialtestingDebugRequest{
-				Class: "HTTP",
-				Task:  &dt.HTTPTask{},
+				TaskType: "HTTP",
+				Task:     &dt.HTTPTask{},
 			},
 			debugFields: map[string]interface{}{
 				"fail_reason": "",
@@ -115,8 +115,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		{
 			name: "test dial success3",
 			t: &dialtestingDebugRequest{
-				Class: "TCP",
-				Task:  &dt.TcpTask{},
+				TaskType: "TCP",
+				Task:     &dt.TcpTask{},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "timeout"},
@@ -124,8 +124,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		{
 			name: "test dial success4",
 			t: &dialtestingDebugRequest{
-				Class: "ICMP",
-				Task:  &dt.IcmpTask{},
+				TaskType: "ICMP",
+				Task:     &dt.IcmpTask{},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
@@ -133,8 +133,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		{
 			name: "test dial success5",
 			t: &dialtestingDebugRequest{
-				Class: "WEBSOCKET",
-				Task:  &dt.WebsocketTask{},
+				TaskType: "WEBSOCKET",
+				Task:     &dt.WebsocketTask{},
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
