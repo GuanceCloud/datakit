@@ -124,7 +124,7 @@ traceroute 是「路由跟踪」数据的 JSON 文本，整个数据是一个数
 | `std_cost` | number | 耗时标准差(ns) |
 | `items` | Item 的 Array | 每次探测信息([详见](#Item)) |
 
-#### Item
+### Item
 
 | 字段              | 类型   |  说明                                    |
 | :---              | ---    |  ---                                     |
