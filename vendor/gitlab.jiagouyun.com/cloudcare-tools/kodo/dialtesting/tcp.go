@@ -129,14 +129,6 @@ func (t *TcpTask) Init() error {
 
 	}
 
-	if t.TracerouteConfig == nil {
-		t.TracerouteConfig = &TracerouteOption{
-			Hops:    60,
-			Timeout: 10 * time.Second,
-			Retry:   3,
-		}
-	}
-
 	return nil
 }
 
@@ -216,11 +208,15 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 	}
 
 	if t.EnableTraceroute {
-		tracerouteData, err := json.Marshal(t.traceroute)
-		if err == nil && len(tracerouteData) > 0 {
-			fields["traceroute"] = string(tracerouteData)
-		} else {
+		if t.traceroute == nil {
 			fields["traceroute"] = "[]"
+		} else {
+			tracerouteData, err := json.Marshal(t.traceroute)
+			if err == nil && len(tracerouteData) > 0 {
+				fields["traceroute"] = string(tracerouteData)
+			} else {
+				fields["traceroute"] = "[]"
+			}
 		}
 	}
 
@@ -315,18 +311,15 @@ func (t *TcpTask) Run() error {
 
 	if err != nil {
 		t.reqError = err.Error()
-		return err
+	} else {
+		t.reqCost = time.Since(start)
+		conn.Close()
 	}
-
-	conn.Close()
-
-	t.reqCost = time.Since(start)
 
 	if t.EnableTraceroute {
 		routes, err := TracerouteIP(hostIP.String(), t.TracerouteConfig)
 		if err != nil {
 			t.reqError = err.Error()
-			return err
 		} else {
 			t.traceroute = routes
 		}

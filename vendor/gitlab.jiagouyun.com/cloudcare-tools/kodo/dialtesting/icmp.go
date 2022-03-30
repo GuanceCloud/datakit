@@ -144,14 +144,6 @@ func (t *IcmpTask) Init() error {
 
 	t.originBytes = make([]byte, 2000)
 
-	if t.TracerouteConfig == nil {
-		t.TracerouteConfig = &TracerouteOption{
-			Hops:    60,
-			Timeout: 10 * time.Second,
-			Retry:   3,
-		}
-	}
-
 	return nil
 }
 
@@ -226,11 +218,15 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 	}
 
 	if t.EnableTraceroute {
-		tracerouteData, err := json.Marshal(t.traceroute)
-		if err == nil && len(tracerouteData) > 0 {
-			fields["traceroute"] = string(tracerouteData)
-		} else {
+		if t.traceroute == nil {
 			fields["traceroute"] = "[]"
+		} else {
+			tracerouteData, err := json.Marshal(t.traceroute)
+			if err == nil && len(tracerouteData) > 0 {
+				fields["traceroute"] = string(tracerouteData)
+			} else {
+				fields["traceroute"] = "[]"
+			}
 		}
 	}
 
@@ -327,7 +323,6 @@ func (t *IcmpTask) Run() error {
 
 	if err := pinger.Run(); err != nil {
 		t.reqError = err.Error()
-		return err
 	}
 
 	if t.EnableTraceroute {
@@ -349,7 +344,6 @@ func (t *IcmpTask) Run() error {
 		routes, err := TracerouteIP(hostIP.String(), t.TracerouteConfig)
 		if err != nil {
 			t.reqError = err.Error()
-			return err
 		} else {
 			t.traceroute = routes
 		}
