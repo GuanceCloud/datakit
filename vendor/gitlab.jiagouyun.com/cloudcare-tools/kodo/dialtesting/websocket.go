@@ -336,6 +336,7 @@ func (t *WebsocketTask) Run() error {
 
 	if err != nil {
 		t.reqError = err.Error()
+		t.reqDnsCost = 0
 		return err
 	}
 

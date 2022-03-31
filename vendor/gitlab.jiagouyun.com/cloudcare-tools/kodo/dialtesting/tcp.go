@@ -311,6 +311,7 @@ func (t *TcpTask) Run() error {
 
 	if err != nil {
 		t.reqError = err.Error()
+		t.reqDnsCost = 0
 	} else {
 		t.reqCost = time.Since(start)
 		conn.Close()
