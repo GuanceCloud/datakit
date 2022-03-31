@@ -53,8 +53,18 @@ func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
 }
 ```
 
-> 大体上可以参照 `influxdb` 的代码实现, 还是非常简单的。一切以简单为首要设计原则, 写的复杂了你自己也不愿维护。欢迎大家向 github 社区提交代码, 大家一起来维护。
+最后，在 `io/sink/sink.go` 中引入新增的 sink:
 
+```go
+package sink
+
+import (
+  ...
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
+)
+```
+
+> 大体上可以参照 `influxdb` 的代码实现, 还是非常简单的。一切以简单为首要设计原则, 写的复杂了你自己也不愿维护。欢迎大家向 github 社区提交代码, 大家一起来维护。
 
 - 第三步: 在 `datakit.conf` 里面增加配置, `target` 写上自定义的实例名, 即 `creatorID`, 唯一。比如:
 
