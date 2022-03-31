@@ -55,7 +55,8 @@ const (
 	ObjectLabel       = "/v1/object/labels" // object label
 	LogUpload         = "/v1/log"
 	PipelinePull      = "/v1/pipeline/pull"
-	LogFilter         = "/v2/logfilter/pull"
+	LogFilter         = "/v2/logfilter/pull" // deprecated
+	DatakitPull       = "/v1/datakit/pull"
 	ListDataWay       = "/v2/list/dataway"
 	DatakitInputName  = "self"
 

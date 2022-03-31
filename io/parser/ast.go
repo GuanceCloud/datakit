@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -642,6 +644,7 @@ type Expr interface {
 
 type Regex struct {
 	Regex string `json:"regex,omitempty"`
+	Re    *regexp.Regexp
 }
 
 func (e *Regex) MarshalJSON() ([]byte, error) {
@@ -672,10 +675,24 @@ type BinaryExpr struct { // impl Expr & Node
 func (e *BinaryExpr) Type() ValueType     { return "" }  // TODO
 func (e *BinaryExpr) Pos() *PositionRange { return nil } // TODO
 func (e *BinaryExpr) String() string {
-	return fmt.Sprintf("%s %s %s",
-		e.LHS.String(),
-		e.Op.String(),
-		e.RHS.String())
+	switch e.Op {
+	case CONTAIN, NOT_CONTAIN:
+		var originNodeList NodeList
+		for _, elem := range e.RHS.(NodeList) {
+			switch x := elem.(type) {
+			case *Regex:
+				originNodeList = append(originNodeList, &StringLiteral{Val: x.Regex})
+			default:
+				log.Errorf("RHS expect *Regex, got %s(%s)", reflect.TypeOf(elem), elem.String())
+			}
+		}
+		return fmt.Sprintf("%s %s %s", e.LHS.String(), e.Op.String(), originNodeList.String())
+	default:
+		return fmt.Sprintf("%s %s %s",
+			e.LHS.String(),
+			e.Op.String(),
+			e.RHS.String())
+	}
 }
 
 func (e *BinaryExpr) DQLExpr() {} // not used
@@ -834,18 +851,18 @@ func (d *DeleteFunc) Pos() *PositionRange {
 }
 
 type Evaluable interface {
-	Eval(source string, tags map[string]string, fields map[string]interface{}) bool
+	Eval(tags map[string]string, fields map[string]interface{}) bool
 }
 
 type WhereCondition struct {
 	conditions []Node
 }
 
-func (x *WhereCondition) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
+func (x *WhereCondition) Eval(tags map[string]string, fields map[string]interface{}) bool {
 	for _, c := range x.conditions {
 		switch expr := c.(type) {
 		case *BinaryExpr:
-			if !expr.Eval(source, tags, fields) {
+			if !expr.Eval(tags, fields) {
 				return false
 			}
 
@@ -887,13 +904,12 @@ func (x WhereConditions) String() string {
 	return strings.Join(arr, "; ")
 }
 
-func (x WhereConditions) Eval(source string,
-	tags map[string]string,
+func (x WhereConditions) Eval(tags map[string]string,
 	fields map[string]interface{}) bool {
 	for _, item := range x {
 		switch c := item.(type) {
 		case *WhereCondition:
-			if c.Eval(source, tags, fields) {
+			if c.Eval(tags, fields) {
 				return true
 			}
 

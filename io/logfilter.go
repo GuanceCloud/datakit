@@ -55,7 +55,10 @@ func (ipt *logFilter) filter(pts []*Point) []*Point {
 			continue
 		}
 
-		if !ipt.conds.Eval(pt.Name(), pt.Tags(), fields) {
+		tags := pt.Tags()
+		tags["source"] = pt.Name()
+
+		if !ipt.conds.Eval(pt.Tags(), fields) {
 			after = append(after, pt)
 		}
 	}
@@ -100,6 +103,7 @@ func (ipt *logFilter) refreshRules() (int, error) {
 			log.Error(err)
 		}
 	}()
+
 	body, err := defLogFilterMock.getLogFilter()
 	if err != nil {
 		return defIntervalDefault, err

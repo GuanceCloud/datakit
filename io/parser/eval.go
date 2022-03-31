@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-func (p *ParenExpr) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
+func (p *ParenExpr) Eval(tags map[string]string, fields map[string]interface{}) bool {
 	if p.Param == nil {
 		return false
 	}
 
 	switch expr := p.Param.(type) {
 	case Evaluable:
-		return expr.Eval(source, tags, fields)
+		return expr.Eval(tags, fields)
 	default:
 		log.Errorf("ParenExpr's Param should be Evaluable")
 	}
@@ -22,7 +22,7 @@ func (p *ParenExpr) Eval(source string, tags map[string]string, fields map[strin
 	return false
 }
 
-func (e *BinaryExpr) Eval(source string, tags map[string]string, fields map[string]interface{}) bool {
+func (e *BinaryExpr) Eval(tags map[string]string, fields map[string]interface{}) bool {
 	switch e.Op {
 	case AND:
 		for _, expr := range []Node{e.LHS, e.RHS} {
@@ -34,7 +34,7 @@ func (e *BinaryExpr) Eval(source string, tags map[string]string, fields map[stri
 			}
 		}
 
-		return e.LHS.(Evaluable).Eval(source, tags, fields) && e.RHS.(Evaluable).Eval(source, tags, fields)
+		return e.LHS.(Evaluable).Eval(tags, fields) && e.RHS.(Evaluable).Eval(tags, fields)
 
 	case OR: // LHS/RHS should be BinaryExpr
 
@@ -47,22 +47,22 @@ func (e *BinaryExpr) Eval(source string, tags map[string]string, fields map[stri
 			}
 		}
 
-		return e.LHS.(Evaluable).Eval(source, tags, fields) || e.RHS.(Evaluable).Eval(source, tags, fields)
+		return e.LHS.(Evaluable).Eval(tags, fields) || e.RHS.(Evaluable).Eval(tags, fields)
 
 	default:
-		return e.doEval(source, tags, fields)
+		return e.doEval(tags, fields)
 	}
 }
 
-func (e *BinaryExpr) doEval(source string, tags map[string]string, fields map[string]interface{}) bool {
+func (e *BinaryExpr) doEval(tags map[string]string, fields map[string]interface{}) bool {
 	switch e.Op {
-	case GTE, GT, LT, LTE, NEQ, EQ, IN, NOTIN:
+	case GTE, GT, LT, LTE, NEQ, EQ, IN, NOT_IN, CONTAIN, NOT_CONTAIN:
 	default:
 		log.Errorf("unsupported OP %s", e.Op.String())
 		return false
 	}
 
-	return e.singleEval(source, tags, fields)
+	return e.singleEval(tags, fields)
 }
 
 const float64EqualityThreshold = 1e-9
@@ -111,20 +111,19 @@ func toInt64(i interface{}) int64 {
 }
 
 func binEval(op ItemType, lhs, rhs interface{}) bool {
-	tl := reflect.TypeOf(lhs).String()
-	tr := reflect.TypeOf(rhs).String()
-
 	if _, ok := rhs.(*Regex); !ok {
+		tl := reflect.TypeOf(lhs).String()
+		tr := reflect.TypeOf(rhs).String()
 		switch op {
-		case IN, NOTIN: // XXX: in expr should convert into multiple equal expr(EQ)
-			log.Warnf("IN/NOTIN operator should not been here")
-			return false
-
-		case GTE, GT, LT, LTE, NEQ, EQ: // type conflict detecting on comparison expr
+		case GTE, GT, LT, LTE, EQ, NEQ: // type conflict detecting on comparison expr
 			if tl != tr {
-				log.Warnf("type conflict %+#v <> %+#v", lhs, rhs)
+				log.Warnf("type conflict %+#v(%s) <> %+#v(%s)", lhs, reflect.TypeOf(lhs), rhs, reflect.TypeOf(rhs))
 				return false
 			}
+
+		default:
+			log.Warnf("op %s should not been here", op.String())
+			return false
 		}
 	}
 
@@ -137,6 +136,7 @@ func binEval(op ItemType, lhs, rhs interface{}) bool {
 			} else {
 				return almostEqual(lv, f)
 			}
+
 		default: // NOTE: interface{} EQ/NEQ, see: https://stackoverflow.com/a/34246225/342348
 			switch reg := rhs.(type) {
 			case *Regex:
@@ -150,6 +150,12 @@ func binEval(op ItemType, lhs, rhs interface{}) bool {
 				return lhs == rhs
 			}
 		}
+
+	case CONTAIN:
+		return rhs.(*Regex).Re.MatchString(lhs.(string))
+
+	case NOT_CONTAIN:
+		return !rhs.(*Regex).Re.MatchString(lhs.(string))
 
 	case NEQ:
 		return lhs != rhs
@@ -234,7 +240,7 @@ func cmpfloat(op ItemType, l, r float64) bool {
 	return false
 }
 
-func (e *BinaryExpr) singleEval(source string, tags map[string]string, fields map[string]interface{}) bool {
+func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interface{}) bool {
 	if e.LHS == nil || e.RHS == nil {
 		log.Warn("LHS or RHS nil, should not been here")
 		return false
@@ -280,72 +286,74 @@ func (e *BinaryExpr) singleEval(source string, tags map[string]string, fields ma
 	// first: fetch left-handle-symbol and OP on right-handle-symbol
 	switch lhs := e.LHS.(type) {
 	case *Identifier:
-
 		name := lhs.Name
 
 		switch e.Op {
-		case IN:
-			for _, item := range arr {
-				if name == "source" {
-					if binEval(EQ, source, item) {
-						return true
-					}
-				} else { // for any tags/fields
-					if v, ok := tags[name]; ok {
-						if binEval(EQ, v, item) {
-							return true
-						}
-					}
-
-					if v, ok := fields[name]; ok {
-						if binEval(EQ, v, item) {
-							return true
-						}
-					}
-				}
-			}
-			return false
-
-		case NOTIN:
-			// XXX: if x in @arr, then return false
-			for _, item := range arr {
-				if name == "source" {
-					if binEval(EQ, source, item) {
-						return false
-					}
-				} else { // for any tags/fields
-					if v, ok := tags[name]; ok {
-						if binEval(EQ, v, item) {
-							return false
-						}
-					}
-
-					if v, ok := fields[name]; ok {
-						if binEval(EQ, v, item) {
-							return false
-						}
-					}
-				}
-			}
-			return true
-
-		case GTE, GT, LT, LTE, NEQ, EQ:
-
-			if name == "source" {
-				if binEval(e.Op, source, lit) {
-					return true
-				}
-			} else {
+		case CONTAIN, NOT_CONTAIN:
+			for _, item := range e.RHS.(NodeList) {
 				if v, ok := tags[name]; ok {
-					if binEval(e.Op, v, lit) {
+					if binEval(e.Op, v, item) {
 						return true
 					}
 				}
 
 				if v, ok := fields[name]; ok {
-					if binEval(e.Op, v, lit) {
+					switch x := v.(type) {
+					case string:
+						if binEval(e.Op, x, item) {
+							return true
+						}
+					default:
+						continue
+					}
+				}
+			}
+			return false
+
+		case IN:
+			for _, item := range arr {
+				if v, ok := tags[name]; ok {
+					if binEval(EQ, v, item) {
 						return true
 					}
+				}
+
+				if v, ok := fields[name]; ok {
+					if binEval(EQ, v, item) {
+						return true
+					}
+				}
+			}
+			return false
+
+		case NOT_IN:
+			for _, item := range arr {
+				if v, ok := tags[name]; ok {
+					if binEval(EQ, v, item) {
+						return false
+					}
+				}
+
+				if v, ok := fields[name]; ok {
+					if binEval(EQ, v, item) {
+						return false
+					}
+				}
+			}
+
+			return true
+
+		case GTE, GT, LT, LTE, NEQ, EQ:
+
+			if v, ok := tags[name]; ok {
+				if binEval(e.Op, v, lit) {
+					return true
+				}
+			}
+
+			if v, ok := fields[name]; ok {
+				if binEval(e.Op, v, lit) {
+					return true
 				}
 			}
 		}

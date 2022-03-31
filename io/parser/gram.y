@@ -35,8 +35,10 @@ import (
 // keywords
 %token keywordsStart
 %token <item>
-AS ASC AUTO BY DESC TRUE FALSE FILTER
-IDENTIFIER IN NOTIN AND LINK LIMIT SLIMIT
+AS ASC AUTO BY
+CONTAIN NOT_CONTAIN
+DESC TRUE FALSE FILTER
+IDENTIFIER IN NOT_IN AND LINK LIMIT SLIMIT
 OR NIL NULL OFFSET SOFFSET
 ORDER RE INT FLOAT POINT TIMEZONE WITH
 %token keywordsEnd
@@ -382,7 +384,19 @@ binary_expr: expr ADD expr
 						 bexpr.ReturnBool = true
 						 $$ = bexpr
 					 }
-					 | columnref NOTIN LEFT_BRACKET array_list RIGHT_BRACKET
+					 | columnref NOT_IN LEFT_BRACKET array_list RIGHT_BRACKET
+					 {
+						 bexpr := yylex.(*parser).newBinExpr($1, $4, $2)
+						 bexpr.ReturnBool = true
+						 $$ = bexpr
+					 }
+					 | columnref CONTAIN LEFT_BRACKET array_list RIGHT_BRACKET
+					 {
+						 bexpr := yylex.(*parser).newBinExpr($1, $4, $2)
+						 bexpr.ReturnBool = true
+						 $$ = bexpr
+					 }
+					 | columnref NOT_CONTAIN LEFT_BRACKET array_list RIGHT_BRACKET
 					 {
 						 bexpr := yylex.(*parser).newBinExpr($1, $4, $2)
 						 bexpr.ReturnBool = true
@@ -424,11 +438,11 @@ number_literal: NUMBER
 
 regex: RE LEFT_PAREN string_literal RIGHT_PAREN
 		 {
-		   $$ = &Regex{Regex: $3.(*StringLiteral).Val}
+		   $$ = yylex.(*parser).newRegex($3.(*StringLiteral).Val)
 		 }
 		 | RE LEFT_PAREN QUOTED_STRING RIGHT_PAREN
 		 {
-		   $$ = &Regex{Regex: yylex.(*parser).unquoteString($3.Val)}
+		   $$ = yylex.(*parser).newRegex(yylex.(*parser).unquoteString($3.Val))
 		 }
 		 ;
 

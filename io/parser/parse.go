@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -25,6 +27,7 @@ type parser struct {
 	parseResult interface{}
 	lastClosing Pos
 	errs        ParseErrors
+	warns       ParseErrors
 
 	inject    ItemType
 	injecting bool
@@ -58,6 +61,7 @@ func newParser(input string) *parser {
 	// reset parser fields
 	p.injecting = false
 	p.errs = nil
+	p.warns = nil
 	p.parseResult = nil
 	p.lex = Lexer{
 		input: input,
@@ -112,8 +116,20 @@ func (p *parser) addParseErr(pr *PositionRange, err error) {
 	})
 }
 
+func (p *parser) addParseWarn(pr *PositionRange, err error) {
+	p.warns = append(p.warns, ParseError{
+		Pos:   pr,
+		Err:   err,
+		Query: p.lex.input,
+	})
+}
+
 func (p *parser) addParseErrf(pr *PositionRange, format string, args ...interface{}) {
 	p.addParseErr(pr, fmt.Errorf(format, args...))
+}
+
+func (p *parser) addParseWarnf(pr *PositionRange, format string, args ...interface{}) {
+	p.addParseWarn(pr, fmt.Errorf(format, args...))
 }
 
 // impl Lex interface.
@@ -201,6 +217,28 @@ func (p *parser) number(v string) *NumberLiteral {
 	return nl
 }
 
+func doNewRegex(s string) (*Regex, error) {
+	re, err := regexp.Compile(s)
+	if err != nil {
+		return nil, err
+	}
+	return &Regex{
+		Regex: s,
+		Re:    re,
+	}, nil
+}
+
+func (p *parser) newRegex(s string) *Regex {
+	// FIXME: if compile failed, should we addParseErrf?
+	if x, err := doNewRegex(s); err != nil {
+		p.addParseWarnf(p.yyParser.lval.item.PositionRange(),
+			"invalid regex: %s: %s, ignored", err.Error(), s)
+		return nil
+	} else {
+		return x
+	}
+}
+
 func (p *parser) newBinExpr(l, r Node, op Item) *BinaryExpr {
 	switch op.Typ {
 	case DIV, MOD:
@@ -212,13 +250,33 @@ func (p *parser) newBinExpr(l, r Node, op Item) *BinaryExpr {
 				return nil
 			}
 		}
+
+	case CONTAIN, NOT_CONTAIN: // convert rhs into regex list
+		switch nl := r.(type) {
+		case NodeList:
+			// convert elems in @n into Regex node, used in CONTAIN/NOTCONTAIN
+			var regexArr NodeList
+			for _, elem := range nl {
+				switch x := elem.(type) {
+				case *StringLiteral:
+					if re := p.newRegex(x.Val); re != nil {
+						regexArr = append(regexArr, re)
+					}
+
+				default:
+					p.addParseErrf(p.yyParser.lval.item.PositionRange(),
+						"invalid element type in CONTAIN/NOT_CONTAIN list: %s", reflect.TypeOf(elem).String())
+				}
+			}
+			return &BinaryExpr{LHS: l, RHS: regexArr, Op: op.Typ}
+
+		default:
+			p.addParseErrf(p.yyParser.lval.item.PositionRange(),
+				"invalid type in CONTAIN/NOT_CONTAIN list: %s(%s)", reflect.TypeOf(l).String(), l.String())
+		}
 	}
 
-	return &BinaryExpr{
-		RHS: r,
-		LHS: l,
-		Op:  op.Typ,
-	}
+	return &BinaryExpr{RHS: r, LHS: l, Op: op.Typ}
 }
 
 func (p *parser) newFunc(fname string, args []Node) *FuncExpr {
