@@ -94,12 +94,14 @@ func (t *IcmpTask) InitDebug() error {
 	}
 
 	for _, checker := range t.SuccessWhen {
-		if checker.ResponseTime != "" {
-			du, err := time.ParseDuration(checker.ResponseTime)
-			if err != nil {
-				return err
+		if checker.ResponseTime != nil {
+			for _, resp := range checker.ResponseTime {
+				du, err := time.ParseDuration(resp.Target)
+				if err != nil {
+					return err
+				}
+				resp.target = float64(du.Nanoseconds() / 1e6) // ms
 			}
-			checker.respTime = du
 		}
 
 	}
