@@ -229,7 +229,6 @@ func doNewRegex(s string) (*Regex, error) {
 }
 
 func (p *parser) newRegex(s string) *Regex {
-	// FIXME: if compile failed, should we addParseErrf?
 	if x, err := doNewRegex(s); err != nil {
 		p.addParseWarnf(p.yyParser.lval.item.PositionRange(),
 			"invalid regex: %s: %s, ignored", err.Error(), s)

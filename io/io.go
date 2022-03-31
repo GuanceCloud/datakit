@@ -154,16 +154,15 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.KeyEvent:
 	case datakit.Object:
 	case datakit.CustomObject:
-	case datakit.Logging:
+	case datakit.Logging, datakit.Tracing:
 		if x.dw.ClientsCount() == 1 {
 			if !DisableLogFilter {
-				pts = defLogfilter.filter(pts)
+				pts = filterPts(category, pts)
 			}
 		} else {
 			// TODO: add multiple dataway config support
 			log.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
 		}
-	case datakit.Tracing:
 	case datakit.Security:
 	case datakit.RUM:
 	default:

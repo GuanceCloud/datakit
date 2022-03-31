@@ -17,7 +17,7 @@ func (dw *dwMock) Pull() ([]byte, error) {
 	filters := map[string][]string{
 		"logging": {
 			`{ source = "test1" and ( f1 in ["1", "2", "3"] )}`,
-			//`{ source = "test2" and ( f1 in ["1", "2", "3"] )}`,
+			`{ source = "test2" and ( f1 in ["1", "2", "3"] )}`,
 		},
 
 		"tracing": {

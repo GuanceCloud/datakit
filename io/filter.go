@@ -1,6 +1,8 @@
 package io
 
 import (
+
+	// nolint:gosec
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
@@ -8,10 +10,16 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
-	"gitlab.jiagouyun.com/cloudcare-tools/kodo/rtpanic"
 )
+
+var defaultFilter = &filter{
+	conditions: map[string]parser.WhereConditions{},
+	dw:         &datawayImpl{},
+	RWMutex:    sync.RWMutex{},
+}
 
 type IDataway interface {
 	Pull() ([]byte, error)
@@ -49,8 +57,8 @@ func (f *filter) pull() {
 		return
 	}
 
-	bodymd5 := fmt.Sprintf("%x", md5.Sum(body))
-	if bodymd5 != f.md5 { // try update conditions
+	bodymd5 := fmt.Sprintf("%x", md5.Sum(body)) //nolint:gosec
+	if bodymd5 != f.md5 {                       // try update conditions
 		f.RWMutex.Lock()
 		defer f.RWMutex.Unlock()
 
@@ -128,13 +136,15 @@ func (f *filter) filter(category string, pts []*Point) []*Point {
 	}
 }
 
+func filterPts(category string, pts []*Point) []*Point {
+	return defaultFilter.filter(category, pts)
+}
+
 func StartPull() {
 	var f rtpanic.RecoverCallback
 
 	tick := time.NewTicker(time.Second * time.Duration(defIntervalDefault))
 	defer tick.Stop()
-
-	filter := filter{}
 
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
@@ -143,7 +153,7 @@ func StartPull() {
 		}
 
 		for {
-			filter.pull()
+			defaultFilter.pull()
 
 			select {
 			case <-tick.C:

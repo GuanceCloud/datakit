@@ -416,5 +416,5 @@ func TestEval(t *testing.T) {
 }
 
 func BenchmarkRegexp(b *testing.B) {
-	//cliutils.CreateRandomString()
+	// cliutils.CreateRandomString()
 }
