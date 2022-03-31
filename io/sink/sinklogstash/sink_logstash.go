@@ -87,7 +87,7 @@ func (s *SinkLogstash) LoadConfig(mConf map[string]interface{}) error {
 	if writeType, err := dkstring.GetMapAssertString("write_type", mConf); err != nil {
 		return err
 	} else {
-		writeTypeNew, err := dkstring.CheckNotEmpty(writeType, "host")
+		writeTypeNew, err := dkstring.CheckNotEmpty(writeType, "write_type")
 		if err != nil {
 			return err
 		}
