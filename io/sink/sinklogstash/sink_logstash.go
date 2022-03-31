@@ -98,37 +98,39 @@ func (s *SinkLogstash) GetInfo() *sinkcommon.SinkInfo {
 }
 
 func (s *SinkLogstash) writeLogstash(pts []sinkcommon.ISinkPoint) error {
+	var jps []*sinkcommon.JSONPoint
 	for _, v := range pts {
 		jp, err := v.ToJSON()
 		if err != nil {
 			return err
 		}
+		jps = append(jps, jp)
+	}
 
-		jsn, err := json.Marshal(jp)
-		if err != nil {
-			return err
-		}
+	jsn, err := json.Marshal(jps)
+	if err != nil {
+		return err
+	}
 
-		client := &http.Client{
-			Timeout: s.timeout,
-		}
+	client := &http.Client{
+		Timeout: s.timeout,
+	}
 
-		req, err := http.NewRequest(http.MethodPut, s.addr, bytes.NewBuffer(jsn))
-		if err != nil {
-			return err
-		}
+	req, err := http.NewRequest(http.MethodPut, s.addr, bytes.NewBuffer(jsn))
+	if err != nil {
+		return err
+	}
 
-		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
-		resp, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close() //nolint:errcheck
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck
 
-		if resp.StatusCode < 200 || resp.StatusCode >= 400 {
-			return fmt.Errorf("invalid status code: %d", resp.StatusCode)
-		}
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		return fmt.Errorf("invalid status code: %d", resp.StatusCode)
 	}
 
 	return nil

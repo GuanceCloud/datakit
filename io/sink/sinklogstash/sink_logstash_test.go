@@ -31,6 +31,7 @@ type Log struct {
 	Message Message   `json:"message"`
 }
 
+// go test -v -timeout 30s -run ^TestAll$ gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinklogstash
 func TestAll(t *testing.T) {
 	if !checkDevHost() {
 		return
