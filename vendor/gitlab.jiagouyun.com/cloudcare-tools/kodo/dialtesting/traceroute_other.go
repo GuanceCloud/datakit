@@ -333,7 +333,7 @@ func (t *Traceroute) sendICMP(ip net.IP, ttl int) error {
 
 	buf = append(buf, p...)
 
-	conn, err := net.ListenIP("ip4:ip", nil)
+	conn, err := net.ListenIP("ip4:icmp", nil)
 
 	if err != nil {
 		return err
