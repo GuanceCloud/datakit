@@ -584,12 +584,29 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
       "success_when_logic": "and",
       "success_when": [
         {
-          "response_time": "20ms",
-          "packet_loss_percent": 50,
+          "response_time": [
+            {
+              "func": "avg",
+              "op": "leq",
+              "target": "50ms"
+            }
+          ],
+          "packet_loss_percent": [
+            {
+              "op": "leq",
+              "target": 20
+            }
+          ],
           "hops": [
             {
               "op": "eq",
               "target": 20
+            }
+          ],
+          "packets": [
+            {
+              "op": "geq",
+              "target": 1
             }
           ]
         }
@@ -601,26 +618,48 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 
 ##### `success_when` 定义
 
-- ICMP 平均丢包率 (`packet_loss_percent`)
+- ICMP 丢包率 (`packet_loss_percent`)
 
-填写具体的值，如果 ICMP 平均丢包率小于该值，则判定拨测成功。
+填写具体的值，为一个数组对象，每个对象参数如下：
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `op`              | string | Y        | 比较关系，可取值 `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
+| `target`          | float | Y        | 判定值                 |
 
 ```json
 "success_when": [
   {
-    "packet_loss_percent": 20
+    "packet_loss_percent": [
+      {
+        "op": "leq",
+        "target": 20
+      }
+    ]
   }
 ]
 ```
 
-- ICMP 平均响应时间 (`response_time`)
+- ICMP 响应时间 (`response_time`)
 
-填写具体的时间，如果 ICMP 平均响应时间小于该值，则判定拨测成功。
+填写具体的时间，为一个数组对象，每个对象参数如下：
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `func`            | string | Y        | 统计类型，可取值 `avg,min,max,std`|
+| `op`              | string | Y        | 比较关系，可取值 `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
+| `target`          | string | Y        | 判定值                 |
 
 ```json
 "success_when": [
   {
-    "response_time": "30ms"
+     "response_time": [
+        {
+          "func": "avg",
+          "op": "leq",
+          "target": "50ms"
+        }
+      ],
   }
 ]
 ```
@@ -639,6 +678,29 @@ openssl req -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes -out example.crt -k
 "success_when": [
   {
     "hops": [
+      {
+        "op": "eq",
+        "target": 20
+      }
+    ]
+  }
+]
+```
+
+- 抓包数 (`packets`)
+
+`packets` 为一个数组对象，每个对象参数如下：
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `op`              | string | Y        | 比较关系，可取值 `eq(=),lt(<),leq(<=),gt(>),geq(>=)`|
+| `target`          | float | Y        | 判定值                 |
+
+
+```json
+"success_when": [
+  {
+    "packets": [
       {
         "op": "eq",
         "target": 20
