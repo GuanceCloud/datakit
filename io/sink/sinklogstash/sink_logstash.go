@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -16,6 +18,9 @@ import (
 const (
 	creatorID      = "logstash"
 	defaultTimeout = 10 * time.Second
+
+	writeTypeJSON  = 0
+	writeTypePlain = 1
 )
 
 var (
@@ -24,8 +29,11 @@ var (
 )
 
 type SinkLogstash struct {
-	ID      string        // sink config identity, unique, automatically generated.
-	addr    string        // required. eg. http://172.16.239.130:8080
+	ID string // sink config identity, unique, automatically generated.
+
+	addr      string // required. eg. http://172.16.239.130:8080
+	writeType int    // required. json or plain
+
 	timeout time.Duration // option.
 }
 
@@ -76,6 +84,24 @@ func (s *SinkLogstash) LoadConfig(mConf map[string]interface{}) error {
 		}
 	}
 
+	if writeType, err := dkstring.GetMapAssertString("write_type", mConf); err != nil {
+		return err
+	} else {
+		writeTypeNew, err := dkstring.CheckNotEmpty(writeType, "host")
+		if err != nil {
+			return err
+		}
+
+		switch writeTypeNew {
+		case "json":
+			s.writeType = writeTypeJSON
+		case "plain":
+			s.writeType = writeTypePlain
+		default:
+			return fmt.Errorf("not support write type: %s", writeTypeNew)
+		}
+	}
+
 	initSucceeded = true
 	sinkcommon.AddImpl(s)
 	return nil
@@ -98,18 +124,43 @@ func (s *SinkLogstash) GetInfo() *sinkcommon.SinkInfo {
 }
 
 func (s *SinkLogstash) writeLogstash(pts []sinkcommon.ISinkPoint) error {
-	var jps []*sinkcommon.JSONPoint
-	for _, v := range pts {
-		jp, err := v.ToJSON()
+	var jsn []byte
+	var err error
+
+	switch s.writeType {
+	case writeTypeJSON:
+		var jps []*sinkcommon.JSONPoint
+		for _, v := range pts {
+			jp, err := v.ToJSON()
+			if err != nil {
+				return err
+			}
+			jps = append(jps, jp)
+		}
+
+		jsn, err = json.Marshal(jps)
 		if err != nil {
 			return err
 		}
-		jps = append(jps, jp)
-	}
+	case writeTypePlain:
+		var msgs []string
+		for _, v := range pts {
+			fields, err := v.ToPoint().Fields()
+			if err != nil {
+				return err
+			}
 
-	jsn, err := json.Marshal(jps)
-	if err != nil {
-		return err
+			msg, ok := fields["message"]
+			if !ok {
+				return fmt.Errorf("not found plain message")
+			}
+			mmsg, ok := msg.(string)
+			if !ok {
+				return fmt.Errorf("not string: %s, %s", reflect.TypeOf(msg).Name(), reflect.TypeOf(msg).String())
+			}
+			msgs = append(msgs, mmsg)
+		}
+		jsn = []byte(strings.Join(msgs, "\n"))
 	}
 
 	client := &http.Client{
@@ -121,7 +172,12 @@ func (s *SinkLogstash) writeLogstash(pts []sinkcommon.ISinkPoint) error {
 		return err
 	}
 
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	switch s.writeType {
+	case writeTypeJSON:
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	case writeTypePlain:
+	default:
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
