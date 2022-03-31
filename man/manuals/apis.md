@@ -492,7 +492,7 @@ HTTP/1.1 200 OK
 {
     "content": {
         "cost": "2.3ms",
-        "status": "success",//  success/fail/timeout
+        "status": "success",//  success/fail
         "error_msg": "",
         "traceroute":[{"total":3,"failed":0,"loss":0,"avg_cost":0,"min_cost":2,"max_cost":3,"std_cost":33,"items":[{"ip":"127.0.0.1","response_time":33}]}],
     }
