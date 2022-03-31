@@ -119,7 +119,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 				Task:     &dt.TcpTask{},
 			},
 			errInit:   nil,
-			expectRes: map[string]interface{}{"Status": "timeout"},
+			expectRes: map[string]interface{}{"Status": "success"},
 		},
 		{
 			name: "test dial success4",

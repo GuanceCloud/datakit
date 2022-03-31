@@ -87,18 +87,6 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	if taskType == dt.ClassTCP || taskType == dt.ClassICMP {
 		traceroute, _ = fields["traceroute"].(string)
 	}
-	if taskType == dt.ClassTCP {
-		responseTime, _ := fields["response_time"].(int64)
-		if responseTime == 0 {
-			status = "timeout"
-		}
-	}
-	if taskType == dt.ClassICMP {
-		lossPercent, _ := fields["packet_loss_percent"].(float64)
-		if lossPercent == 100 {
-			status = "timeout"
-		}
-	}
 
 	return &dialtestingDebugResponse{
 		Cost:         time.Since(start).String(),
