@@ -124,6 +124,7 @@ func (s *SinkLogstash) writeLogstash(pts []sinkcommon.ISinkPoint) error {
 		if err != nil {
 			return err
 		}
+		defer resp.Body.Close() //nolint:errcheck
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 			return fmt.Errorf("invalid status code: %d", resp.StatusCode)
