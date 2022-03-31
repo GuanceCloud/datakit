@@ -1696,6 +1696,12 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220330101443-f8c147c5b6d3 h1:
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220330101443-f8c147c5b6d3/go.mod h1:Qm5Z7yCOPh0g13nFP3J9mMrgD4/TVVAZ0Ge5tQC2oRY=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220331093012-bc946e15b765 h1:4CdHG+JO+3mIljlPweRF55RK3UeM5RR8VmwiyYugCYY=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220331093012-bc946e15b765/go.mod h1:Qm5Z7yCOPh0g13nFP3J9mMrgD4/TVVAZ0Ge5tQC2oRY=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220331102854-48abad4e38ef h1:OqnRCCuaxCWTO5w9tIhD/kyP1fJ49FWcSYzOonorhlY=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220331102854-48abad4e38ef/go.mod h1:Qm5Z7yCOPh0g13nFP3J9mMrgD4/TVVAZ0Ge5tQC2oRY=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220331110001-1acdc7c2fe15 h1:hKhD57mU+inQbinXj6RDc9S+qQcYuvu3ua9yaBN9UzE=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220331110001-1acdc7c2fe15/go.mod h1:Qm5Z7yCOPh0g13nFP3J9mMrgD4/TVVAZ0Ge5tQC2oRY=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220331113813-0e2563f0bcc7 h1:wawrws/hRM/XhjonCnprBWas8kPd9woQITyMbmfhk1Q=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220331113813-0e2563f0bcc7/go.mod h1:Qm5Z7yCOPh0g13nFP3J9mMrgD4/TVVAZ0Ge5tQC2oRY=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5 h1:XAzx9gjCb0Rxj7EoqcClPD1d5ZBxZJk0jbuoPHenBt0=

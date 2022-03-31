@@ -22,11 +22,19 @@ type ICMP struct {
 	SequenceNum uint16
 }
 
+type ResponseTimeSucess struct {
+	Func   string `json:"func,omitempty"`
+	Op     string `json:"op,omitempty"`
+	Target string `json:"target,omitempty"`
+
+	target float64
+}
+
 type IcmpSuccess struct {
-	PacketLossPercent float64         `json:"packet_loss_percent,omitempty"`
-	ResponseTime      string          `json:"response_time,omitempty"`
-	Hops              []*ValueSuccess `json:"hops,omitempty"`
-	respTime          time.Duration
+	PacketLossPercent []*ValueSuccess       `json:"packet_loss_percent,omitempty"`
+	ResponseTime      []*ResponseTimeSucess `json:"response_time,omitempty"`
+	Hops              []*ValueSuccess       `json:"hops,omitempty"`
+	Packets           []*ValueSuccess       `json:"packets,omitempty"`
 }
 
 type IcmpTask struct {
@@ -53,8 +61,10 @@ type IcmpTask struct {
 	avgRoundTripTime  float64 // ms
 	minRoundTripTime  float64
 	maxRoundTripTime  float64
+	stdRoundTripTime  float64
 	originBytes       []byte
 	reqError          string
+	sentPacket        int
 	timeout           time.Duration
 	ticker            *time.Ticker
 	traceroute        []*Route
@@ -93,12 +103,14 @@ func (t *IcmpTask) Init() error {
 	}
 
 	for _, checker := range t.SuccessWhen {
-		if checker.ResponseTime != "" {
-			du, err := time.ParseDuration(checker.ResponseTime)
-			if err != nil {
-				return err
+		if checker.ResponseTime != nil {
+			for _, resp := range checker.ResponseTime {
+				du, err := time.ParseDuration(resp.Target)
+				if err != nil {
+					return err
+				}
+				resp.target = float64(du.Nanoseconds() / 1e6) // ms
 			}
-			checker.respTime = du
 		}
 
 	}
@@ -123,19 +135,51 @@ func (t *IcmpTask) Check() error {
 func (t *IcmpTask) CheckResult() (reasons []string, succFlag bool) {
 	for _, chk := range t.SuccessWhen {
 		// check response time
-		if chk.respTime > 0 && t.avgRoundTripTime > float64(chk.respTime.Milliseconds()) {
-			reasons = append(reasons,
-				fmt.Sprintf("ICMP average round-trip time (%v ms) larger than %v", t.avgRoundTripTime, chk.respTime))
-		} else if chk.respTime > 0 {
-			succFlag = true
+		for _, v := range chk.ResponseTime {
+			vs := &ValueSuccess{
+				Op:     v.Op,
+				Target: v.target,
+			}
+
+			checkVal := float64(0)
+
+			switch v.Func {
+			case "avg":
+				checkVal = t.avgRoundTripTime
+			case "min":
+				checkVal = t.minRoundTripTime
+			case "max":
+				checkVal = t.maxRoundTripTime
+			case "std":
+				checkVal = t.stdRoundTripTime
+			}
+			if checkVal > 0 {
+				if err := vs.check(checkVal); err != nil {
+					reasons = append(reasons,
+						fmt.Sprintf("ICMP round-trip(%s) check failed: %s", v.Func, err.Error()))
+				} else {
+					succFlag = true
+				}
+			}
 		}
 
 		// check packet loss
-		if chk.PacketLossPercent > 0 && t.packetLossPercent > chk.PacketLossPercent {
-			reasons = append(reasons,
-				fmt.Sprintf("ICMP packet loss %v, larger than %v", t.packetLossPercent, chk.PacketLossPercent))
-		} else if chk.PacketLossPercent > 0 {
-			succFlag = true
+		for _, v := range chk.PacketLossPercent {
+			if err := v.check(t.packetLossPercent); err != nil {
+				reasons = append(reasons, fmt.Sprintf("packet_loss_percent check failed: %s", err.Error()))
+			} else {
+				succFlag = true
+			}
+		}
+
+		// check packets
+		packets := float64(int((100 - t.packetLossPercent) * float64(t.sentPacket) / 100))
+		for _, v := range chk.Packets {
+			if err := v.check(packets); err != nil {
+				reasons = append(reasons, fmt.Sprintf("packets received check failed: %s", err.Error()))
+			} else {
+				succFlag = true
+			}
 		}
 
 		// check traceroute
@@ -244,10 +288,10 @@ func (t *IcmpTask) Clear() {
 		t.timeout = PING_TIMEOUT
 	}
 
-	timeout := float64(t.timeout.Milliseconds())
-	t.avgRoundTripTime = timeout
-	t.minRoundTripTime = timeout
-	t.maxRoundTripTime = timeout
+	t.avgRoundTripTime = 0
+	t.minRoundTripTime = 0
+	t.maxRoundTripTime = 0
+	t.stdRoundTripTime = 0
 
 	t.packetLossPercent = 100
 	t.reqError = ""
@@ -270,6 +314,8 @@ func (t *IcmpTask) Run() error {
 		pinger.Count = 3
 	}
 
+	t.sentPacket = pinger.Count
+
 	pinger.Timeout = t.timeout
 
 	pinger.OnFinish = func(stats *ping.Statistics) {
@@ -278,6 +324,7 @@ func (t *IcmpTask) Run() error {
 			t.minRoundTripTime = t.round(float64(stats.MinRtt.Nanoseconds())/1e6, 3)
 			t.avgRoundTripTime = t.round(float64(stats.AvgRtt.Nanoseconds())/1e6, 3)
 			t.maxRoundTripTime = t.round(float64(stats.MaxRtt.Nanoseconds())/1e6, 3)
+			t.stdRoundTripTime = t.round(float64(stats.StdDevRtt.Nanoseconds())/1e6, 3)
 		}
 
 	}
