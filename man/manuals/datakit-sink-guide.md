@@ -112,12 +112,49 @@ influxdb 的 sink 实例目前支持以下参数:
 - `precision`: Precision is the write precision of the points, defaults to "ns".
 - `username`: Username is the influxdb username, optional.
 - `password`: Password is the influxdb password, optional.
-- `timeout`: Timeout for influxdb writes, defaults to no timeout.
+- `timeout`: Timeout for influxdb writes, defaults to 10 seconds.
 - `user_agent`: UserAgent is the http User Agent, defaults to "InfluxDBClient".
 - `retention_policy`: RetentionPolicy is the retention policy of the points.
 - `write_consistency`: Write consistency is the number of servers required to confirm write.
 - `write_encoding`: WriteEncoding specifies the encoding of write request
 - `payload_size`(UDP 协议专用): PayloadSize is the maximum size of a UDP client message, optional. Tune this based on your network. Defaults to 512.
+
+#### 第三步: 重启 DataKit
+
+`$ sudo datakit --restart`
+
+### logstash sink 使用教程
+
+#### 第一步: 搭建后端存储
+
+自己搭建一个 logstash 的环境。
+
+#### 第二步: 增加配置
+
+在 `datakit.conf` 中增加以下片段:
+
+```conf
+...
+[sinks]
+
+  [[sinks.sink]]
+    categories = ["L"]
+    host = "1.1.1.1:8080"
+    protocol = "http"
+    request_path = "/index/type/id"
+    target = "logstash"
+    timeout = "5s"
+    write_type="json"
+...
+```
+
+influxdb 的 sink 实例目前支持以下参数:
+
+- `host`(必须): HTTP host should be of the form `host:port` or `[ipv6-host%zone]:port`.
+- `protocol`(必须): `http` or `https`.
+- `write_type`(必须): 写入的源数据的格式类型: `json` 或者 `plain`。
+- `request_path`: 请求 URL 的路径.
+- `timeout`: Timeout for influxdb writes, defaults to 10 seconds.
 
 #### 第三步: 重启 DataKit
 
