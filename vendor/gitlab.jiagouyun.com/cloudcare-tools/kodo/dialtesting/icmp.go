@@ -324,6 +324,8 @@ func (t *IcmpTask) Run() error {
 
 	pinger.Timeout = time.Duration(pinger.Count) * pinger.Interval
 
+	pinger.SetPrivileged(true)
+
 	if err := pinger.Run(); err != nil {
 		t.reqError = err.Error()
 	} else {
