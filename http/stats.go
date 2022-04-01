@@ -90,8 +90,10 @@ type DatakitStats struct {
 	IoStats     io.IoStat                 `json:"io_stats"`
 	HTTPMetrics map[string]*apiStat       `json:"http_metrics"`
 
-	WithinDocker bool `json:"docker"`
-	AutoUpdate   bool `json:"auto_update"`
+	WithinDocker bool            `json:"docker"`
+	AutoUpdate   bool            `json:"auto_update"`
+	FilterStats  *io.FilterStats `json:"filter_stats"`
+
 	// markdown options
 	DisableMonofont bool `json:"-"`
 }
@@ -314,6 +316,7 @@ func GetStats() (*DatakitStats, error) {
 		EnabledInputs:  map[string]*enabledInput{},
 		HTTPMetrics:    getMetrics(),
 		GolangRuntime:  getRuntimeInfo(),
+		FilterStats:    io.GetFilterStats(),
 	}
 
 	var err error

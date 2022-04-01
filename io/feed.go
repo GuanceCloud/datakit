@@ -5,11 +5,8 @@ import (
 	"time"
 
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
-
-var l = logger.DefaultSLogger("event")
 
 // NamedFeed Deprecated.
 func NamedFeed(data []byte, category, name string) error {

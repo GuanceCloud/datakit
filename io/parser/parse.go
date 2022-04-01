@@ -12,13 +12,18 @@ import (
 	"sync"
 
 	"github.com/prometheus/prometheus/util/strutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
 
-var parserPool = sync.Pool{
-	New: func() interface{} {
-		return &parser{}
-	},
-}
+var (
+	parserPool = sync.Pool{
+		New: func() interface{} {
+			return &parser{}
+		},
+	}
+
+	log = logger.DefaultSLogger("filter-parser")
+)
 
 type parser struct {
 	lex      Lexer
@@ -345,4 +350,8 @@ func (p *parser) newWhereConditions(conditions []Node) *WhereCondition {
 	return &WhereCondition{
 		conditions: conditions,
 	}
+}
+
+func Init() {
+	log = logger.SLogger("filter-parser")
 }

@@ -38,7 +38,23 @@ var (
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
+	filterRuleCols   = strings.Split("Category,Total,Filtered,Cost/Pts,Rules", ",")
 )
+
+func number(i interface{}) string {
+	switch x := i.(type) {
+	case int:
+		return humanize.SI(float64(x), "")
+	case uint:
+		return humanize.SI(float64(x), "")
+	case int64:
+		return humanize.SI(float64(x), "")
+	case uint64:
+		return humanize.SI(float64(x), "")
+	default:
+		return ""
+	}
+}
 
 func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
 	table := m.golangRuntime
@@ -70,14 +86,14 @@ func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
 	table.SetCell(row, 0,
 		tview.NewTableCell("Mem").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
-		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.HeapAlloc)).
+		tview.NewTableCell(number(ds.GolangRuntime.HeapAlloc)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
 	table.SetCell(row, 0,
 		tview.NewTableCell("SysMem").SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1,
-		tview.NewTableCell(humanize.IBytes(ds.GolangRuntime.Sys)).
+		tview.NewTableCell(number(ds.GolangRuntime.Sys)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
@@ -93,6 +109,65 @@ func (m *monitorAPP) renderGolangRuntimeTable(ds *dkhttp.DatakitStats) {
 	table.SetCell(row, 1,
 		tview.NewTableCell(fmt.Sprintf("%d", ds.GolangRuntime.GCNum)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft))
+}
+
+func (m *monitorAPP) renderFilterStatsTable(ds *dkhttp.DatakitStats) {
+	table := m.filterStatsTable
+	row := 0
+	if m.anyError != nil { // some error occurred, we just gone
+		return
+	}
+
+	fs := ds.FilterStats
+	now := time.Now()
+
+	table.SetCell(row, 0, tview.NewTableCell("Pulled").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(number(fs.PullCount)).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0, tview.NewTableCell("Rules From").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(fs.RuleSource).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0, tview.NewTableCell("Pull Interval").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(time.Duration(fs.PullInterval).String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0, tview.NewTableCell("Pull Failed").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(number(fs.PullFailed)).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0, tview.NewTableCell("Pull Cost.Avg").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(time.Duration(fs.PullCostAvg).String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0, tview.NewTableCell("Pull Cost.Max").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(time.Duration(fs.PullCostMax).String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0, tview.NewTableCell("Last Updated").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(humanize.RelTime(fs.LastUpdate, now, "ago", "")).
+		SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
+	table.SetCell(row, 0, tview.NewTableCell("Last Pull.Err").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+
+	lastErrCell := tview.NewTableCell(
+		func() string {
+			if fs.LastErr == "" {
+				return "-"
+			}
+			return fmt.Sprintf("%s(%s)", fs.LastErr, humanize.RelTime(fs.LastErrTime, now, "ago", ""))
+		}()).SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignLeft)
+
+	if fs.LastErr != "" {
+		lastErrCell.SetClickedFunc(func() bool {
+			m.setupLastErr(fmt.Sprintf("%s(%s)", fs.LastErr, humanize.RelTime(fs.LastErrTime, now, "ago", "")))
+			return true
+		})
+	}
+
+	table.SetCell(row, 1, lastErrCell)
 }
 
 func (m *monitorAPP) renderBasicInfoTable(ds *dkhttp.DatakitStats) {
@@ -183,6 +258,51 @@ func (m *monitorAPP) renderEnabledInputTable(ds *dkhttp.DatakitStats, colArr []s
 	}
 }
 
+func (m *monitorAPP) renderFilterRulesStatsTable(ds *dkhttp.DatakitStats, colArr []string) {
+	table := m.filterRulesStatsTable
+	if m.anyError != nil {
+		return
+	}
+
+	// set table header
+	for idx := range colArr {
+		table.SetCell(0, idx, tview.NewTableCell(colArr[idx]).
+			SetMaxWidth(*flagMonitorMaxTableWidth).
+			SetTextColor(tcell.ColorGreen).
+			SetAlign(tview.AlignRight))
+	}
+	row := 1
+
+	rs := ds.FilterStats.RuleStats
+
+	keys := []string{}
+	for k := range rs {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, x := range keys {
+		v := rs[x]
+		col := 0
+		table.SetCell(row, col, tview.NewTableCell(categoryMap[x]).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignCenter))
+		col++
+		table.SetCell(row, col, tview.NewTableCell(number(v.Total)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		col++
+		table.SetCell(row, col, tview.NewTableCell(number(v.Filtered)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		col++
+		table.SetCell(row, col, tview.NewTableCell(time.Duration(v.CostPerPoint).String()).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		col++
+		table.SetCell(row, col, tview.NewTableCell(number(v.Conditions)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+
+		row++
+	}
+}
+
 func (m *monitorAPP) renderHTTPStatTable(ds *dkhttp.DatakitStats, colArr []string) {
 	table := m.httpServerStatTable
 	if m.anyError != nil {
@@ -211,21 +331,21 @@ func (m *monitorAPP) renderHTTPStatTable(ds *dkhttp.DatakitStats, colArr []strin
 		v := ds.HTTPMetrics[x]
 
 		table.SetCell(row, 0, tview.NewTableCell(x).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 1, tview.NewTableCell(humanize.SI(float64(v.TotalCount), "")).
+		table.SetCell(row, 1, tview.NewTableCell(number(v.TotalCount)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 2, tview.NewTableCell(fmt.Sprintf("%s(%.2f)", humanize.SI(float64(v.Limited), ""), v.LimitedPercent)).
+		table.SetCell(row, 2, tview.NewTableCell(fmt.Sprintf("%s(%.2f)", number(v.Limited), v.LimitedPercent)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 3, tview.NewTableCell(v.MaxLatency.String()).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 4, tview.NewTableCell(v.AvgLatency.String()).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 5, tview.NewTableCell(humanize.SI(float64(v.Status2xx), "")).
+		table.SetCell(row, 5, tview.NewTableCell(number(v.Status2xx)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 6, tview.NewTableCell(humanize.SI(float64(v.Status3xx), "")).
+		table.SetCell(row, 6, tview.NewTableCell(number(v.Status3xx)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 7, tview.NewTableCell(humanize.SI(float64(v.Status4xx), "")).
+		table.SetCell(row, 7, tview.NewTableCell(number(v.Status4xx)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
-		table.SetCell(row, 8, tview.NewTableCell(humanize.SI(float64(v.Status5xx), "")).
+		table.SetCell(row, 8, tview.NewTableCell(number(v.Status5xx)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 
 		row++
@@ -350,10 +470,10 @@ func (m *monitorAPP) renderInputsStatTable(ds *dkhttp.DatakitStats, colArr []str
 			tview.NewTableCell(fmt.Sprintf("%d", v.AvgSize)).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 4,
-			tview.NewTableCell(humanize.SI(float64(v.Count), "")).
+			tview.NewTableCell(number(v.Count)).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 5,
-			tview.NewTableCell(humanize.SI(float64(v.Total), "")).
+			tview.NewTableCell(number(v.Total)).
 				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		table.SetCell(row, 6, tview.NewTableCell(func() string {
 			return humanize.RelTime(v.First, now, "ago", "")
@@ -401,9 +521,13 @@ type monitorAPP struct {
 	enabledInputTable   *tview.Table
 	goroutineStatTable  *tview.Table
 	httpServerStatTable *tview.Table
-	exitPrompt          *tview.TextView
-	anyErrorPrompt      *tview.TextView
-	lastErrText         *tview.TextView
+
+	filterStatsTable      *tview.Table
+	filterRulesStatsTable *tview.Table
+
+	exitPrompt     *tview.TextView
+	anyErrorPrompt *tview.TextView
+	lastErrText    *tview.TextView
 
 	flex *tview.Flex
 
@@ -443,13 +567,17 @@ func (m *monitorAPP) setupFlex() {
 	if *flagMonitorVerbose { // with -V, we show more stats info
 		m.flex.SetDirection(tview.FlexRow).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-									AddItem(m.basicInfoTable, 0, 10, false).               // basic info
-									AddItem(m.golangRuntime, 0, 10, false), 0, 10, false). // golang runtime stats
-			AddItem(m.inputsStatTable, 0, 14, false). // all inputs running stats
-			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(m.enabledInputTable, 0, 10, false).   // inputs config stats
-				AddItem(m.goroutineStatTable, 0, 10, false).  // goroutine group stats
-				AddItem(m.httpServerStatTable, 0, 10, false), // 9529 HTTP server stats
+										AddItem(m.basicInfoTable, 0, 10, false).               // basic info
+										AddItem(m.golangRuntime, 0, 10, false), 0, 10, false). // golang runtime stats
+			AddItem(m.inputsStatTable, 0, 14, false).               // all inputs running stats
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // input config/goroutine/9529 http stats
+										AddItem(m.enabledInputTable, 0, 10, false).   // inputs config stats
+										AddItem(m.goroutineStatTable, 0, 10, false).  // goroutine group stats
+										AddItem(m.httpServerStatTable, 0, 10, false), // 9529 HTTP server stats
+										0, 10, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // filter related stats
+										AddItem(m.filterStatsTable, 0, 10, false).      // filter stats
+										AddItem(m.filterRulesStatsTable, 0, 10, false), // filter rules stats
 				0, 10, false).
 			AddItem(m.anyErrorPrompt, 0, 1, false).
 			AddItem(m.exitPrompt, 0, 1, false)
@@ -487,6 +615,12 @@ func (m *monitorAPP) setup() {
 	// 9592 http stats
 	m.httpServerStatTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
 	m.httpServerStatTable.SetBorder(true).SetTitle("HTTP APIs").SetTitleAlign(tview.AlignLeft)
+
+	// filter stats
+	m.filterStatsTable = tview.NewTable().SetSelectable(true, false).SetBorders(false)
+	m.filterStatsTable.SetBorder(true).SetTitle("Filter").SetTitleAlign(tview.AlignLeft)
+	m.filterRulesStatsTable = tview.NewTable().SetSelectable(true, false).SetBorders(false).SetSeparator(tview.Borders.Vertical)
+	m.filterRulesStatsTable.SetBorder(true).SetTitle("Filter Rules").SetTitleAlign(tview.AlignLeft)
 
 	// bottom prompt
 	m.exitPrompt = tview.NewTextView().SetDynamicColors(true)
@@ -542,6 +676,8 @@ func (m *monitorAPP) render() {
 		m.enabledInputTable.Clear()
 		m.goroutineStatTable.Clear()
 		m.httpServerStatTable.Clear()
+		m.filterStatsTable.Clear()
+		m.filterRulesStatsTable.Clear()
 	}
 
 	m.renderBasicInfoTable(m.ds)
@@ -553,6 +689,13 @@ func (m *monitorAPP) render() {
 
 		if m.ds.HTTPMetrics != nil {
 			m.renderHTTPStatTable(m.ds, httpAPIStatCols)
+		}
+
+		if m.ds.FilterStats != nil {
+			m.renderFilterStatsTable(m.ds)
+			m.renderFilterRulesStatsTable(m.ds, filterRuleCols)
+		} else {
+			l.Debugf("ds: %+#v")
 		}
 	}
 

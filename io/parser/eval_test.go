@@ -34,7 +34,13 @@ func TestExprConditions(t *testing.T) {
 		},
 
 		{
-			in:     "{ source = re('.*') and (abc contain ['a.*'])}",
+			in:     "{ abc contain ['a.*']}",
+			fields: map[string]interface{}{"abc": "abc123"},
+			pass:   true,
+		},
+
+		{
+			in:     "{ source = re(`.*`) and (abc contain ['a.*'])}",
 			fields: map[string]interface{}{"abc": "abc123"},
 			tags:   map[string]string{"source": "12345"},
 			pass:   true,
@@ -111,7 +117,6 @@ func TestExprConditions(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
 			conditions := GetConds(tc.in)
-			tu.Assert(t, conditions != nil, "conditions should not nil")
 
 			tu.Equals(t, tc.pass, conditions.Eval(tc.tags, tc.fields))
 

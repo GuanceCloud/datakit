@@ -6,11 +6,7 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
-
-var log = logger.DefaultSLogger("logfilter-parser")
 
 type Item struct {
 	Typ ItemType

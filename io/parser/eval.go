@@ -271,6 +271,8 @@ func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interf
 				} else {
 					arr = append(arr, x.Float)
 				}
+			case *Regex:
+				arr = append(arr, x)
 			default:
 				log.Warnf("unsupported node list with type `%s'", reflect.TypeOf(elem).String())
 			}
