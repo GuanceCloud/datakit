@@ -7,11 +7,10 @@ package funcs
 
 import (
 	"fmt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 	"reflect"
 	"unicode"
 	"unicode/utf8"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
 func SqlCoverChecking(ng *parser.EngineData, node parser.Node) error {
