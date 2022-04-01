@@ -78,7 +78,6 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 
 		dkspan := &itrace.DatakitSpan{
 			TraceID:   segment.TraceId,
-			ParentID:  "0",
 			SpanID:    fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId),
 			Service:   segment.Service,
 			Resource:  span.OperationName,
@@ -89,9 +88,11 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 			Duration:  (span.EndTime - span.StartTime) * int64(time.Millisecond),
 		}
 
-		if span.SpanType == skyimpl.SpanType_Entry {
+		if span.ParentSpanId < 0 {
 			if len(span.Refs) > 0 {
 				dkspan.ParentID = fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId)
+			} else {
+				dkspan.ParentID = "0"
 			}
 		} else {
 			dkspan.ParentID = fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId)

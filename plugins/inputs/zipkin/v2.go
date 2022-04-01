@@ -153,6 +153,10 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			Tags:      tags,
 		}
 
+		if isRootSpan(dkspan.ParentID) {
+			dkspan.ParentID = "0"
+		}
+
 		if span.TraceID.High != 0 {
 			dkspan.TraceID = fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low)
 		} else {
