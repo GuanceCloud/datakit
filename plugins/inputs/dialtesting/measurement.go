@@ -205,6 +205,12 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationMS,
 				Desc:     "最小往返时间(RTT)",
 			},
+			"std_round_trip_time_in_millis": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "往返时间(RTT)标准差",
+			},
 			"max_round_trip_time_in_millis": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
@@ -216,6 +222,18 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationMS,
 				Desc:     "丢包率",
+			},
+			"packets_received": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "接受的数据包",
+			},
+			"packets_sent": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "发送的数据包",
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,

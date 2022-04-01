@@ -64,7 +64,8 @@ type IcmpTask struct {
 	stdRoundTripTime  float64
 	originBytes       []byte
 	reqError          string
-	sentPacket        int
+	sentPackets       int
+	recvPackets       int
 	timeout           time.Duration
 	ticker            *time.Ticker
 	traceroute        []*Route
@@ -213,10 +214,9 @@ func (t *IcmpTask) CheckResult() (reasons []string, succFlag bool) {
 			}
 		}
 
-		// check packets
-		packets := float64(int((100 - t.packetLossPercent) * float64(t.sentPacket) / 100))
+		// check packets received
 		for _, v := range chk.Packets {
-			if err := v.check(packets); err != nil {
+			if err := v.check(float64(t.recvPackets)); err != nil {
 				reasons = append(reasons, fmt.Sprintf("packets received check failed: %s", err.Error()))
 			} else {
 				succFlag = true
@@ -254,8 +254,11 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 	fields = map[string]interface{}{
 		"average_round_trip_time_in_millis": t.avgRoundTripTime,
 		"min_round_trip_time_in_millis":     t.minRoundTripTime,
+		"std_round_trip_time_in_millis":     t.stdRoundTripTime,
 		"max_round_trip_time_in_millis":     t.maxRoundTripTime,
 		"packet_loss_percent":               t.packetLossPercent,
+		"packets_sent":                      t.sentPackets,
+		"packets_received":                  t.recvPackets,
 		"success":                           int64(-1),
 	}
 
@@ -334,6 +337,9 @@ func (t *IcmpTask) Clear() {
 	t.maxRoundTripTime = 0
 	t.stdRoundTripTime = 0
 
+	t.recvPackets = 0
+	t.sentPackets = 0
+
 	t.packetLossPercent = 100
 	t.reqError = ""
 	t.traceroute = nil
@@ -355,23 +361,22 @@ func (t *IcmpTask) Run() error {
 		pinger.Count = 3
 	}
 
-	t.sentPacket = pinger.Count
+	pinger.Interval = 1 * time.Second
 
-	pinger.Timeout = t.timeout
-
-	pinger.OnFinish = func(stats *ping.Statistics) {
-		if stats.PacketLoss != 100 {
-			t.packetLossPercent = stats.PacketLoss
-			t.minRoundTripTime = t.round(float64(stats.MinRtt.Nanoseconds())/1e6, 3)
-			t.avgRoundTripTime = t.round(float64(stats.AvgRtt.Nanoseconds())/1e6, 3)
-			t.maxRoundTripTime = t.round(float64(stats.MaxRtt.Nanoseconds())/1e6, 3)
-			t.stdRoundTripTime = t.round(float64(stats.StdDevRtt.Nanoseconds())/1e6, 3)
-		}
-
-	}
+	pinger.Timeout = time.Duration(pinger.Count) * pinger.Interval
 
 	if err := pinger.Run(); err != nil {
 		t.reqError = err.Error()
+	} else {
+		stats := pinger.Statistics()
+
+		t.packetLossPercent = stats.PacketLoss
+		t.sentPackets = stats.PacketsSent
+		t.recvPackets = stats.PacketsRecv
+		t.minRoundTripTime = t.round(float64(stats.MinRtt.Nanoseconds())/1e6, 3)
+		t.avgRoundTripTime = t.round(float64(stats.AvgRtt.Nanoseconds())/1e6, 3)
+		t.maxRoundTripTime = t.round(float64(stats.MaxRtt.Nanoseconds())/1e6, 3)
+		t.stdRoundTripTime = t.round(float64(stats.StdDevRtt.Nanoseconds())/1e6, 3)
 	}
 
 	if t.EnableTraceroute {
