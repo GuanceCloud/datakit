@@ -18,10 +18,11 @@ type dialtestingDebugRequest struct {
 }
 
 type dialtestingDebugResponse struct {
-	Cost         string `json:"cost"`
-	ErrorMessage string `json:"error_msg"`
-	Status       string `json:"status"`
-	Traceroute   string `json:"traceroute"`
+	Cost         string                 `json:"cost"`
+	ErrorMessage string                 `json:"error_msg"`
+	Status       string                 `json:"status"`
+	Traceroute   string                 `json:"traceroute"`
+	Fields       map[string]interface{} `json:"fields"`
 }
 
 func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatever ...interface{}) (interface{}, error) {
@@ -93,6 +94,7 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		ErrorMessage: failReason,
 		Status:       status,
 		Traceroute:   traceroute,
+		Fields:       fields,
 	}, nil
 }
 
