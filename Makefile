@@ -15,7 +15,8 @@ TESTING_DOWNLOAD_ADDR = zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com
 # export LOCAL_OSS_HOST='oss-cn-hangzhou.aliyuncs.com' # 一般都是这个地址
 # export LOCAL_OSS_ADDR='<your-oss-bucket>.oss-cn-hangzhou.aliyuncs.com/datakit'
 # 如果只是编译，LOCAL_OSS_ADDR 这个环境变量可以随便给个值
-LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
+#LOCAL_DOWNLOAD_ADDR=${LOCAL_OSS_ADDR}
+LOCAL_DOWNLOAD_ADDR=abc
 
 
 PUB_DIR = dist

@@ -14,7 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func DzChecking(ng *parser.EngineData, node parser.Node) error {
+func SqlCoverChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expects 2 args", funcExpr.Name)
@@ -47,7 +47,7 @@ func DzChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func Dz(ng *parser.EngineData, node parser.Node) interface{} {
+func SqlCover(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expects 2 args", funcExpr.Name)
@@ -84,22 +84,7 @@ func Dz(ng *parser.EngineData, node parser.Node) interface{} {
 		}
 	}
 
-	cont1, err := ng.GetContent(key)
-
-	var cont string
-
-	if err != nil {
-		l.Debugf("key `%v' not exist, ignored", key)
-		return nil //nolint:nilerr
-	}
-
-	switch v := cont1.(type) {
-	case string:
-		cont = v
-	default:
-		return nil
-	}
-
+	cont, err := ng.GetContentStr(key)
 	if err != nil {
 		l.Debugf("key `%v' not exist, ignored", key)
 		return nil //nolint:nilerr
