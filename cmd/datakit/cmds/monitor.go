@@ -38,7 +38,7 @@ var (
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
-	filterRuleCols   = strings.Split("Category,Total,Filtered,Cost/Pts,Rules", ",")
+	filterRuleCols   = strings.Split("Category,Total,Filtered,Cost,Cost/Pts,Rules", ",")
 )
 
 func number(i interface{}) string {
@@ -291,6 +291,9 @@ func (m *monitorAPP) renderFilterRulesStatsTable(ds *dkhttp.DatakitStats, colArr
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		col++
 		table.SetCell(row, col, tview.NewTableCell(number(v.Filtered)).
+			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		col++
+		table.SetCell(row, col, tview.NewTableCell(time.Duration(v.Cost).String()).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		col++
 		table.SetCell(row, col, tview.NewTableCell(time.Duration(v.CostPerPoint).String()).
@@ -569,24 +572,27 @@ func (m *monitorAPP) setupFlex() {
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
 										AddItem(m.basicInfoTable, 0, 10, false).               // basic info
 										AddItem(m.golangRuntime, 0, 10, false), 0, 10, false). // golang runtime stats
-			AddItem(m.inputsStatTable, 0, 14, false).               // all inputs running stats
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // all inputs running stats
+										AddItem(m.enabledInputTable, 0, 2, false). // inputs config stats
+										AddItem(m.inputsStatTable, 0, 8, false), 0, 15, false).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // input config/goroutine/9529 http stats
-										AddItem(m.enabledInputTable, 0, 10, false).   // inputs config stats
 										AddItem(m.goroutineStatTable, 0, 10, false).  // goroutine group stats
 										AddItem(m.httpServerStatTable, 0, 10, false), // 9529 HTTP server stats
 										0, 10, false).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // filter related stats
-										AddItem(m.filterStatsTable, 0, 10, false).      // filter stats
-										AddItem(m.filterRulesStatsTable, 0, 10, false), // filter rules stats
+										AddItem(m.filterStatsTable, 0, 2, false).      // filter stats
+										AddItem(m.filterRulesStatsTable, 0, 8, false), // filter rules stats
 				0, 10, false).
 			AddItem(m.anyErrorPrompt, 0, 1, false).
 			AddItem(m.exitPrompt, 0, 1, false)
 	} else {
 		m.flex.SetDirection(tview.FlexRow).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-				AddItem(m.basicInfoTable, 0, 10, false).
-				AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
-			AddItem(m.inputsStatTable, 0, 14, false).
+										AddItem(m.basicInfoTable, 0, 10, false).
+										AddItem(m.golangRuntime, 0, 10, false), 0, 10, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexColumn). // all inputs running stats
+										AddItem(m.enabledInputTable, 0, 3, false). // inputs config stats
+										AddItem(m.inputsStatTable, 0, 7, false), 0, 15, false).
 			AddItem(m.anyErrorPrompt, 0, 1, false).
 			AddItem(m.exitPrompt, 0, 1, false)
 	}
@@ -671,9 +677,9 @@ func (m *monitorAPP) render() {
 	m.golangRuntime.Clear()
 
 	m.inputsStatTable.Clear()
+	m.enabledInputTable.Clear()
 
 	if *flagMonitorVerbose {
-		m.enabledInputTable.Clear()
 		m.goroutineStatTable.Clear()
 		m.httpServerStatTable.Clear()
 		m.filterStatsTable.Clear()
@@ -682,9 +688,9 @@ func (m *monitorAPP) render() {
 
 	m.renderBasicInfoTable(m.ds)
 	m.renderGolangRuntimeTable(m.ds)
+	m.renderEnabledInputTable(m.ds, enabledInputCols)
 	m.renderInputsStatTable(m.ds, inputsStatsCols)
 	if *flagMonitorVerbose {
-		m.renderEnabledInputTable(m.ds, enabledInputCols)
 		m.renderGoroutineTable(m.ds, goroutineCols)
 
 		if m.ds.HTTPMetrics != nil {

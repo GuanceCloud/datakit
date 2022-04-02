@@ -18,19 +18,29 @@ import (
 
 var l = logger.DefaultSLogger("filter")
 
-var defaultFilter = &filter{
-	conditions:   map[string]parser.WhereConditions{},
-	dw:           &datawayImpl{},
-	RWMutex:      sync.RWMutex{},
-	metricCh:     make(chan *filterMetric, 32),
-	qch:          make(chan *qstats),
-	pullInterval: time.Second * 10,
+func newFilter(dw IDataway) *filter {
+	pullInterval := time.Second * 10
 
-	// stats key is category + service/source
-	stats: &FilterStats{
-		RuleStats: map[string]*ruleStat{},
-	},
+	return &filter{
+		conditions: map[string]parser.WhereConditions{},
+		dw:         dw,
+
+		RWMutex: sync.RWMutex{},
+
+		metricCh: make(chan *filterMetric, 32),
+		qch:      make(chan *qstats),
+
+		tick:         time.NewTicker(pullInterval),
+		pullInterval: pullInterval,
+
+		// stats key is category + service/source
+		stats: &FilterStats{
+			RuleStats: map[string]*ruleStat{},
+		},
+	}
 }
+
+var defaultFilter = newFilter(&datawayImpl{})
 
 type IDataway interface {
 	Pull() ([]byte, error)
@@ -57,6 +67,7 @@ type filter struct {
 	metricCh     chan *filterMetric
 	qch          chan *qstats
 	pullInterval time.Duration
+	tick         *time.Ticker
 	stats        *FilterStats
 }
 
@@ -107,9 +118,10 @@ func (f *filter) pull() {
 		f.RWMutex.Lock()
 		defer f.RWMutex.Unlock()
 
-		if fp.PullInterval > 0 {
+		if fp.PullInterval > 0 && f.pullInterval != fp.PullInterval {
 			f.pullInterval = fp.PullInterval
 			f.stats.PullInterval = fp.PullInterval
+			f.tick.Reset(f.pullInterval)
 		}
 
 		f.md5 = bodymd5
@@ -144,7 +156,7 @@ func (f *filter) filterLogging(cond parser.WhereConditions, pts []*Point) []*Poi
 
 func (f *filter) filterMetric(cond parser.WhereConditions, pts []*Point) []*Point {
 	if cond == nil {
-		l.Debugf("no condition filter")
+		l.Debugf("no condition filter for metric")
 		return pts
 	}
 
@@ -154,6 +166,7 @@ func (f *filter) filterMetric(cond parser.WhereConditions, pts []*Point) []*Poin
 		tags := pt.Tags()
 		fields, err := pt.Fields()
 		if err != nil {
+			l.Errorf("pt.Fields: %s, ignored", err.Error())
 			continue // filter it!
 		}
 
@@ -167,9 +180,35 @@ func (f *filter) filterMetric(cond parser.WhereConditions, pts []*Point) []*Poin
 	return after
 }
 
+func (f *filter) filterObject(cond parser.WhereConditions, pts []*Point) []*Point {
+	if cond == nil {
+		l.Debugf("no condition filter for object")
+		return pts
+	}
+
+	var after []*Point
+
+	for _, pt := range pts {
+		tags := pt.Tags()
+		fields, err := pt.Fields()
+		if err != nil {
+			l.Errorf("pt.Fields: %s, ignored", err.Error())
+			continue // filter it!
+		}
+
+		tags["class"] = pt.Name() // set measurement name as tag `class'
+
+		if !filtered(cond, tags, fields) {
+			after = append(after, pt)
+		}
+	}
+
+	return after
+}
+
 func (f *filter) filterTracing(cond parser.WhereConditions, pts []*Point) []*Point {
 	if cond == nil {
-		l.Debugf("no condition filter")
+		l.Debugf("no condition filter for tracing")
 		return pts
 	}
 
@@ -194,20 +233,28 @@ func filtered(conds parser.WhereConditions, tags map[string]string, fields map[s
 	return conds.Eval(tags, fields)
 }
 
-func (f *filter) filter(category string, pts []*Point) ([]*Point, int) {
+func (f *filter) doFilter(category string, pts []*Point) ([]*Point, int) {
 	switch category {
 	case datakit.Logging:
 		f.RWMutex.RLock()
 		defer f.RWMutex.RUnlock()
 		return f.filterLogging(f.conditions["logging"], pts), len(f.conditions["logging"])
+
 	case datakit.Tracing:
 		f.RWMutex.RLock()
 		defer f.RWMutex.RUnlock()
 		return f.filterTracing(f.conditions["tracing"], pts), len(f.conditions["tracing"])
+
 	case datakit.Metric:
 		f.RWMutex.RLock()
 		defer f.RWMutex.RUnlock()
 		return f.filterMetric(f.conditions["metric"], pts), len(f.conditions["metric"])
+
+	case datakit.Object:
+		f.RWMutex.RLock()
+		defer f.RWMutex.RUnlock()
+		return f.filterObject(f.conditions["object"], pts), len(f.conditions["object"])
+
 	default: // TODO: not implemented
 		l.Warn("unsupport category: %s", category)
 		return pts, 0
@@ -216,21 +263,23 @@ func (f *filter) filter(category string, pts []*Point) ([]*Point, int) {
 
 func filterPts(category string, pts []*Point) []*Point {
 	start := time.Now()
-	after, condCount := defaultFilter.filter(category, pts)
+	after, condCount := defaultFilter.doFilter(category, pts)
 	cost := time.Since(start)
 
 	l.Debugf("%s/pts: %d, after: %d", category, len(pts), len(after))
 
 	// report metrics
-	select {
-	case defaultFilter.metricCh <- &filterMetric{
+	fm := &filterMetric{
 		key:        category,
 		points:     len(pts),
 		filtered:   len(pts) - len(after),
 		cost:       cost,
 		conditions: condCount,
-	}:
+	}
+	select {
+	case defaultFilter.metricCh <- fm:
 	default: // unblocking
+		l.Warnf("feed filter metrics failed, ignored: %+#v", fm)
 	}
 
 	return after
@@ -320,19 +369,48 @@ func copyStats(x *FilterStats) *FilterStats {
 	return y
 }
 
-func StartFilter() {
-	var f rtpanic.RecoverCallback
+func (f *filter) start() {
+	ruleStats := defaultFilter.stats.RuleStats
+	// first pull: get filter condition ASAP
+	defaultFilter.pull()
+	defer defaultFilter.tick.Stop()
 
+	for {
+		select {
+		case <-defaultFilter.tick.C:
+			defaultFilter.pull()
+
+		case m := <-defaultFilter.metricCh:
+			v, ok := ruleStats[m.key]
+			if !ok {
+				v = &ruleStat{}
+				ruleStats[m.key] = v
+			}
+			v.Total += int64(m.points)
+			v.Filtered += int64(m.filtered)
+			v.Cost += m.cost
+			v.CostPerPoint = v.Cost / time.Duration(v.Total)
+			v.Conditions = m.conditions
+
+		case q := <-defaultFilter.qch:
+			select {
+			case <-q.ch:
+			case q.ch <- copyStats(defaultFilter.stats):
+			default: // unblocking
+			}
+
+		case <-datakit.Exit.Wait():
+			log.Info("log filter exits")
+			return
+		}
+	}
+}
+
+func StartFilter() {
 	l = logger.SLogger("filter")
 	parser.Init()
 
-	ruleStats := defaultFilter.stats.RuleStats
-
-	// first pull: get filter condition ASAP
-	defaultFilter.pull()
-
-	tick := time.NewTicker(defaultFilter.pullInterval)
-	defer tick.Stop()
+	var f rtpanic.RecoverCallback
 
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
@@ -340,34 +418,7 @@ func StartFilter() {
 			l.Warnf("filter panic: %s: %s", err, string(trace))
 		}
 
-		for {
-			select {
-			case <-tick.C:
-				defaultFilter.pull()
-			case m := <-defaultFilter.metricCh:
-				v, ok := ruleStats[m.key]
-				if !ok {
-					v = &ruleStat{}
-					ruleStats[m.key] = v
-				}
-				v.Total += int64(m.points)
-				v.Filtered += int64(m.filtered)
-				v.Cost += m.cost
-				v.CostPerPoint = v.Cost / time.Duration(v.Total)
-				v.Conditions = m.conditions
-
-			case q := <-defaultFilter.qch:
-				select {
-				case <-q.ch:
-				case q.ch <- copyStats(defaultFilter.stats):
-				default: // unblocking
-				}
-
-			case <-datakit.Exit.Wait():
-				log.Info("log filter exits")
-				return
-			}
-		}
+		defaultFilter.start()
 	}
 
 	f(nil, nil)

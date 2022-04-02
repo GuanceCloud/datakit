@@ -8,10 +8,11 @@ import (
 	lp "gitlab.jiagouyun.com/cloudcare-tools/cliutils/lineproto"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/parser"
 )
 
-type dwMock struct{}
+type dwMock struct {
+	pullCount int
+}
 
 func (dw *dwMock) Pull() ([]byte, error) {
 	filters := map[string][]string{
@@ -26,14 +27,13 @@ func (dw *dwMock) Pull() ([]byte, error) {
 		},
 	}
 
-	return json.Marshal(&filterPull{Filters: filters, PullInterval: time.Second * 10})
+	dw.pullCount++
+
+	return json.Marshal(&filterPull{Filters: filters, PullInterval: time.Duration(dw.pullCount) * time.Millisecond})
 }
 
 func TestFilter(t *testing.T) {
-	f := filter{
-		conditions: map[string]parser.WhereConditions{},
-		dw:         &dwMock{},
-	}
+	f := newFilter(&dwMock{})
 
 	cases := []struct {
 		name      string
@@ -72,8 +72,23 @@ test1,service=test1 f1="1",f2=2i,f3=3 125`,
 				return
 			}
 
-			after := f.filter(tc.category, WrapPoint(pts))
+			after, _ := f.doFilter(tc.category, WrapPoint(pts))
 			tu.Assert(t, len(after) == tc.expectPts, "expect %d pts, got %d", tc.expectPts, len(after))
 		})
 	}
+}
+
+func TestPull(t *testing.T) {
+	f := newFilter(&dwMock{})
+
+	round := 3
+	for i := 0; i < round; i++ {
+		f.pull()
+		// test if reset tick ok
+		select {
+		case <-f.tick.C:
+		}
+	}
+
+	tu.Assert(t, f.pullInterval == time.Millisecond*time.Duration(round), "expect %ds, got %s", round, f.pullInterval)
 }

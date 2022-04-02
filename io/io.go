@@ -138,10 +138,12 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.MetricDeprecated:
 	case datakit.Network:
 	case datakit.KeyEvent:
-	case datakit.Object:
 	case datakit.CustomObject:
 
-	case datakit.Logging, datakit.Tracing, datakit.Metric:
+	case datakit.Logging,
+		datakit.Tracing,
+		datakit.Metric,
+		datakit.Object:
 		pts = filterPts(category, pts)
 
 	case datakit.Security:
@@ -204,7 +206,6 @@ func (x *IO) updateStats(d *iodata) {
 
 	if !ok {
 		stat = &InputsStat{
-			Total: int64(len(d.pts)),
 			First: now,
 		}
 		x.inputstats[d.name] = stat
