@@ -549,7 +549,7 @@ func (d *Input) pullHTTPTask(reqURL *url.URL, sinceUs int64) ([]byte, int, error
 // ENV_INPUT_DIALTESTING_AK: string
 // ENV_INPUT_DIALTESTING_SK: string
 // ENV_INPUT_DIALTESTING_REGION_ID: string
-// ENV_INPUT_DIALTESTING_SERVER: string
+// ENV_INPUT_DIALTESTING_SERVER: string.
 func (d *Input) ReadEnv(envs map[string]string) {
 	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
 		d.AK = ak

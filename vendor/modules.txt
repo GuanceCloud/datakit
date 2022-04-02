@@ -871,7 +871,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220402084342-5c2d8257f1d9
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220402091124-89dabc438a71
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.etcd.io/bbolt v1.3.5

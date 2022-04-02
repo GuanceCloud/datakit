@@ -219,12 +219,14 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 	}
 
 	if t.EnableTraceroute {
+		fields["hops"] = 0
 		if t.traceroute == nil {
 			fields["traceroute"] = "[]"
 		} else {
 			tracerouteData, err := json.Marshal(t.traceroute)
 			if err == nil && len(tracerouteData) > 0 {
 				fields["traceroute"] = string(tracerouteData)
+				fields["hops"] = len(t.traceroute)
 			} else {
 				fields["traceroute"] = "[]"
 			}
