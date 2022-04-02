@@ -82,20 +82,22 @@ func (f *filter) pull() {
 
 	f.stats.PullCount++
 
+	if len(defaultIO.conf.Filters) != 0 {
+		f.stats.RuleSource = "datakit.conf"
+	} else {
+		f.stats.RuleSource = "remote"
+	}
+
 	body, err := f.dw.Pull()
 	if err != nil {
-		l.Error("dataway Pull: %s", err)
+		l.Errorf("dataway Pull: %s", err)
 		f.stats.PullFailed++
 		f.stats.LastErr = err.Error()
 		f.stats.LastErrTime = time.Now()
 		return
 	}
 
-	if len(defaultIO.conf.Filters) != 0 {
-		f.stats.RuleSource = "datakit.conf"
-	} else {
-		f.stats.RuleSource = "remote"
-	}
+	l.Debugf("filter condition body: %s", string(body))
 
 	cost := time.Since(start)
 	f.stats.PullCost += cost
@@ -104,16 +106,16 @@ func (f *filter) pull() {
 		f.stats.PullCostMax = cost
 	}
 
-	var fp filterPull
-	if err := json.Unmarshal(body, &fp); err != nil {
-		l.Error("json.Unmarshal: %s", err)
-		f.stats.LastErr = err.Error()
-		f.stats.LastErrTime = time.Now()
-		return
-	}
-
 	bodymd5 := fmt.Sprintf("%x", md5.Sum(body)) //nolint:gosec
 	if bodymd5 != f.md5 {                       // try update conditions
+		var fp filterPull
+		if err := json.Unmarshal(body, &fp); err != nil {
+			l.Error("json.Unmarshal: %s", err)
+			f.stats.LastErr = err.Error()
+			f.stats.LastErrTime = time.Now()
+			return
+		}
+
 		f.stats.LastUpdate = start
 		f.RWMutex.Lock()
 		defer f.RWMutex.Unlock()
