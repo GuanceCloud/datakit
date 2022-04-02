@@ -45,7 +45,8 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"url_decode()":         &URLDecodeMarkdown,
 	"user_agent()":         &userAgentMarkdown,
 	// "match":                &matchMarkdown,
-	"decode": &decodeMarkdown,
+	"decode":    &decodeMarkdown,
+	"sql_cover": &sqlCoverMarkdown,
 }
 
 //nolint:lll

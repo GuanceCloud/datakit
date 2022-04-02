@@ -8,7 +8,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible // indirect
 	github.com/DataDog/ebpf v0.0.0-20210419131141-ea64821c9793
 	github.com/DataDog/gopsutil v0.0.0-20210826200402-bbfc5b0ae6e9 // indirect
-	github.com/DataDog/obfuscate v1.0.0 // indirect
+	github.com/DataDog/obfuscate v1.0.0
 	github.com/DataDog/sketches-go v1.3.0 // indirect
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/Microsoft/go-winio v0.5.2 // indirect
