@@ -89,7 +89,7 @@ go_bindata: bindata
 		 "$(BIN_PATH)/offset_guess.o" "$(BIN_PATH)/netflow.o" "$(BIN_PATH)/httpflow.o" "$(BIN_PATH)/bash_history.o"
 
 buildexec:
-	go build -tags="ebpf" -o $(OUT_PATH) $(SRC_PATH)/datakit-ebpf.go
+	go build -tags="ebpf" -ldflags "-w -s" -o $(OUT_PATH) $(SRC_PATH)/datakit-ebpf.go 
 
 clean:
 	rm -r $(OUT_PATH)

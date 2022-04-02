@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -369,6 +370,17 @@ func upgradeDatakit(svc service.Service) error {
 	for _, dir := range []string{datakit.DataDir, datakit.ConfdDir} {
 		if err := os.MkdirAll(dir, datakit.ConfPerm); err != nil {
 			return err
+		}
+	}
+
+	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
+			// nolint:gosec
+			cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+			if msg, err := cmd.CombinedOutput(); err != nil {
+				l.Errorf("upgradde external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+				return err
+			}
 		}
 	}
 

@@ -35,12 +35,17 @@ var (
 	// injected during building: -X.
 	InputsReleaseType = ""
 	ReleaseVersion    = ""
+	DownloadAddr      = ""
 )
 
 func main() {
 	datakit.Version = ReleaseVersion
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
+	}
+
+	if DownloadAddr != "" {
+		datakit.DownloadAddr = DownloadAddr
 	}
 
 	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
