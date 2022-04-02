@@ -7,9 +7,10 @@ package funcs
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/DataDog/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
-	"reflect"
 )
 
 func SqlCoverChecking(ng *parser.EngineData, node parser.Node) error {
@@ -52,7 +53,6 @@ func SqlCover(ng *parser.EngineData, node parser.Node) interface{} {
 	Type := "sql"
 
 	v, err := obfuscatedResource(o, Type, cont)
-
 	if err != nil {
 		l.Warn(err)
 		return nil
