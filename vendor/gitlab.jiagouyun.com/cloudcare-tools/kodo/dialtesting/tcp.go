@@ -82,6 +82,11 @@ func (t *TcpTask) InitDebug() error {
 			}
 		}
 
+		// if [checker.Hops] is not nil, set traceroute to be true
+		if checker.Hops != nil {
+			t.EnableTraceroute = true
+		}
+
 	}
 
 	return nil
@@ -125,6 +130,11 @@ func (t *TcpTask) Init() error {
 				}
 				v.targetTime = du
 			}
+		}
+
+		// if [checker.Hops] is not nil, set traceroute to be true
+		if checker.Hops != nil {
+			t.EnableTraceroute = true
 		}
 
 	}
@@ -196,6 +206,7 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		"dest_host": t.Host,
 		"dest_port": t.Port,
 		"status":    "FAIL",
+		"proto":     "tcp",
 	}
 
 	responseTime := int64(t.reqCost) / 1000                     // us

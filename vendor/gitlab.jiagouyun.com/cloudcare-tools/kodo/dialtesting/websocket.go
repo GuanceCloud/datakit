@@ -2,6 +2,7 @@ package dialtesting
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -233,6 +234,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 		"name":   t.Name,
 		"url":    t.URL,
 		"status": "FAIL",
+		"proto":  "websocket",
 	}
 
 	responseTime := int64(t.reqCost+t.reqDnsCost) / 1000        // us
@@ -331,7 +333,13 @@ func (t *WebsocketTask) Run() error {
 
 	t.parsedURL.Host = net.JoinHostPort(hostIP.String(), t.parsedURL.Port())
 
+	//ingore tls verify
+	if t.parsedURL.Scheme == "wss" {
+		websocket.DefaultDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
 	start := time.Now()
+
 	c, resp, err := websocket.DefaultDialer.DialContext(ctx, t.parsedURL.String(), header)
 
 	if err != nil {

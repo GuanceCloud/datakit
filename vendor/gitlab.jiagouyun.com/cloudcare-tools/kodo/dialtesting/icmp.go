@@ -105,6 +105,11 @@ func (t *IcmpTask) InitDebug() error {
 			}
 		}
 
+		// if [checker.Hops] is not nil, set traceroute to be true
+		if checker.Hops != nil {
+			t.EnableTraceroute = true
+		}
+
 	}
 
 	t.originBytes = make([]byte, 2000)
@@ -153,6 +158,11 @@ func (t *IcmpTask) Init() error {
 				}
 				resp.target = float64(du.Nanoseconds() / 1e6) // ms
 			}
+		}
+
+		// if [checker.Hops] is not nil, set traceroute to be true
+		if checker.Hops != nil {
+			t.EnableTraceroute = true
 		}
 
 	}
@@ -249,6 +259,7 @@ func (t *IcmpTask) GetResults() (tags map[string]string, fields map[string]inter
 		"name":      t.Name,
 		"dest_host": t.Host,
 		"status":    "FAIL",
+		"proto":     "icmp",
 	}
 
 	fields = map[string]interface{}{

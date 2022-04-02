@@ -21,7 +21,6 @@ type Task interface {
 	ID() string
 	Status() string
 	Run() error
-	InitDebug() error
 	Init() error
 	CheckResult() ([]string, bool)
 	Class() string
