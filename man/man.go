@@ -36,6 +36,7 @@ var (
 
 		"datakit-daemonset-deploy": "man/manuals/datakit-daemonset-deploy.md",
 		"datakit-dql-how-to":       "man/manuals/datakit-dql-how-to.md",
+		"datakit-filter":           "man/manuals/datakit-filter.md",
 		"datakit-how-to":           "man/manuals/datakit-how-to.md", // deprecated
 		"datakit-install":          "man/manuals/datakit-install.md",
 		"datakit-logging":          "man/manuals/datakit-logging.md",
@@ -45,8 +46,8 @@ var (
 		"datakit-pl-how-to":        "man/manuals/datakit-pl-how-to.md",
 		"datakit-service-how-to":   "man/manuals/datakit-service-how-to.md",
 		"datakit-tools-how-to":     "man/manuals/datakit-tools-how-to.md",
-		"datakit-tracing-struct":   "man/manuals/datakit-tracing-struct.md",
 		"datakit-tracing":          "man/manuals/datakit-tracing.md",
+		"datakit-tracing-struct":   "man/manuals/datakit-tracing-struct.md",
 		"datakit-update":           "man/manuals/datakit-update.md",
 		"datatypes":                "man/manuals/datatypes.md",
 		"dataway":                  "man/manuals/dataway.md",
@@ -61,16 +62,16 @@ var (
 		"kubernetes-prom":          "man/manuals/kubernetes-prom.md",
 		"kubernetes-x":             "man/manuals/kubernetes-x.md",
 		"logfwd":                   "man/manuals/logfwd.md",
-		"logging_socket":           "man/manuals/logging_socket.md",
 		"logging-pipeline-bench":   "man/manuals/logging-pipeline-bench.md",
+		"logging_socket":           "man/manuals/logging_socket.md",
+		"opentelemetry-go":         "man/manuals/opentelemetry-go.md",
+		"opentelemetry-java":       "man/manuals/opentelemetry-java.md",
 		"pipeline":                 "man/manuals/pipeline.md",
 		"prometheus":               "man/manuals/prometheus.md",
 		"rum":                      "man/manuals/rum.md",
 		"sec-checker":              "man/manuals/sec-checker.md",
 		"telegraf":                 "man/manuals/telegraf.md",
 		"why-no-data":              "man/manuals/why-no-data.md",
-		"opentelemetry-go":         "man/manuals/opentelemetry-go.md",
-		"opentelemetry-java":       "man/manuals/opentelemetry-java.md",
 	}
 	l = logger.DefaultSLogger("man")
 )
