@@ -82,7 +82,7 @@ sudo datakit --start                                            # 重启 datakit
 - 执行如下命令检查采集器情况：
 
 ```shell
-sudo datakit debug --check-config # 检查采集器配置文件是否正常
+sudo datakit tool --check-config # 检查采集器配置文件是否正常
 datakit -M --vvv            # 检查所有采集器的运行情况
 ```
 
@@ -200,7 +200,7 @@ DataKit 新功能发布，大家最好做全套测试，包括安装、升级等
 1. 生成默认 datakit.conf 配置文件。以 Linux 为例，执行
 
 ```shell
-./dist/datakit-linux-amd64/datakit debug --default-main-conf > ~/datakit/conf.d/datakit.conf
+./dist/datakit-linux-amd64/datakit tool --default-main-conf > ~/datakit/conf.d/datakit.conf
 ```
 
 1. 修改上面生成的 datakit.conf：
@@ -304,7 +304,7 @@ make pub_production_mac VERSION=<the-new-version>
 ./yuque.sh <the-new-version>
 ```
 
-如果不指定版本，会以最近的一个 tag 名称作为版本号，但这个 tag 可能因为排序原因，并准确（比如 1.2.9 明显小于 1.2.10），最好还是指定版本号。
+如果不指定版本，会以最新的一个 tag 名称作为版本号。
 
 > 注意，如果是线上代码发布，最好保证跟**线上 DataKit 当前的稳定版版本号**保持一致，不然会导致用户困扰。
 

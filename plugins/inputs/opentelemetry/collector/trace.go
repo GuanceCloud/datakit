@@ -30,7 +30,7 @@ func (s *SpansStorage) mkDKTrace(rss []*tracepb.ResourceSpans) []DKtrace.Datakit
 					ParentID:           ParentID,
 					SpanID:             spanID,
 					Service:            dt.getAttributeVal(otelResourceServiceKey),
-					Resource:           librarySpans.InstrumentationLibrary.Name,
+					Resource:           span.Name,
 					Operation:          span.Name,
 					Source:             inputName,
 					SpanType:           DKtrace.FindSpanTypeStrSpanID(spanID, ParentID, spanIDs, parentIDs),

@@ -10,10 +10,12 @@ Pipeline 编写较为麻烦，为此，DataKit 中内置了简单的调试工具
 
 ## 调试 grok 和 pipeline
 
-指定 pipeline 脚本名称（`--pl`，pipeline 脚本必须放在 `<DataKit 安装目录>/pipeline` 目录下），输入一段文本（`--txt`）即可判断提取是否成功
+指定 pipeline 脚本名称，输入一段文本即可判断提取是否成功
+
+> Pipeline 脚本必须放在 *<DataKit 安装目录>/pipeline* 目录下。
 
 ```shell
-datakit --pl your_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
+$ datakit pipeline your_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.go:458  post cost 6.87021ms'
 Extracted data(cost: 421.705µs): # 表示切割成功
 {
 	"code"   : "io/io.go: 458",       # 对应代码位置
@@ -21,23 +23,33 @@ Extracted data(cost: 421.705µs): # 表示切割成功
 	"module" : "io",                  # 对应代码模块
 	"msg"    : "post cost 6.87021ms", # 纯日志内容
 	"time"   : 1610358231887000000    # 日志时间(Unix 纳秒时间戳)
+	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
 }
+```
 
-# 提取失败示例
-datakit --pl other_pipeline.p --txt '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
-No data extracted from pipeline
+提取失败示例（只有 `message` 留下了，说明其它字段并未提取出来）：
+
+```shell
+$ datakit pipeline other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms'
+{
+	"message": "2021-01-11T17:43:51.887+0800  DEBUG io  io/io.g o:458  post cost 6.87021ms"
+}
 ```
 
 > 如果调试文本比较复杂，可以将它们写入一个文件（sample.log），用如下方式调试：
 
 ```shell
-datakit --pl your_pipeline.p --txt "$(< sample.log)"
+$ datakit pipeline your_pipeline.p -F sample.log
 ```
 
-由于 grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
+更多 Pipeline 调试命令，参见 `datakit help pipeline`。
+
+### Grok 通配搜索
+
+由于 Grok pattern 数量繁多，人工匹配较为麻烦。DataKit 提供了交互式的命令行工具 `grokq`（grok query）：
 
 ```Shell
-datakit --grokq
+datakit tool --grokq
 grokq > Mon Jan 25 19:41:17 CST 2021   # 此处输入你希望匹配的文本
         2 %{DATESTAMP_OTHER: ?}        # 工具会给出对应对的建议，越靠前匹配月精确（权重也越大）。前面的数字表明权重。
         0 %{GREEDYDATA: ?}
@@ -88,7 +100,7 @@ drop_origin_data()
 将上述多行日志存为 *multi-line.log*，调试一下：
 
 ```shell
-datakit --pl test.p --txt "$(<multi-line.log)"
+$ datakit --pl test.p --txt "$(<multi-line.log)"
 ```
 
 得到如下切割结果：
@@ -103,6 +115,36 @@ datakit --pl test.p --txt "$(<multi-line.log)"
   "thread_name": "scheduling-1"
 }
 ```
+
+### Pipeline 字段命名注意事项
+
+在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis#2fc2526a)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
+
+- DataKit 中的[全局 Tag](datakit-conf#53181faf)
+- 日志采集器中[自定义的 Tag](logging#6d5774b2)
+
+另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
+
+| 字段名    | 类型          | 说明                                  |
+| ---       | ----          | ----                                  |
+| `source`  | string(tag)   | 日志来源                              |
+| `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
+| `status`  | string(tag)   | 日志对应的[等级](logging#fe2d3282)    |
+| `message` | string(field) | 原始日志                              |
+| `time`    | int           | 日志对应的时间戳                      |
+
+> 当然我们可以通过[特定的 Pipeline 函数](pipeline#6e8c5285)覆盖上面这些 tag 的值。
+
+一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
+
+```shell
+# 该错误在 DataKit monitor 中能看到
+same key xxx in tag and field
+```
+
+<!--
+#### 数据类型冲突
+TODO -->
 
 ### 完整 Pipeline 示例
 
@@ -156,36 +198,6 @@ Extracted data(cost: 421.705µs):
 }
 ```
 
-### Pipeline 字段命名注意事项
-
-在所有 Pipeline 切割出来的字段中，它们都是指标（field）而不是标签（tag）。由于[行协议约束](apis#2fc2526a)，我们不应该切割出任何跟 tag 同名的字段。这些 Tag 包含如下几类：
-
-- DataKit 中的[全局 Tag](datakit-conf#53181faf)
-- 日志采集器中[自定义的 Tag](logging#6d5774b2)
-
-另外，所有采集上来的日志，均存在如下多个保留字段。==我们不应该去覆盖这些字段==，否则可能导致数据在查看器页面显示不正常。
-
-| 字段名    | 类型          | 说明                                  |
-| ---       | ----          | ----                                  |
-| `source`  | string(tag)   | 日志来源                              |
-| `service` | string(tag)   | 日志对应的服务，默认跟 `service` 一样 |
-| `status`  | string(tag)   | 日志对应的[等级](logging#fe2d3282)    |
-| `message` | string(field) | 原始日志                              |
-| `time`    | int           | 日志对应的时间戳                      |
-
-> 当然我们可以通过[特定的 Pipeline 函数](pipeline#6e8c5285)覆盖上面这些 tag 的值。
-
-一旦 Pipeline 切割出来的字段跟已有 Tag 重名（大小写敏感），都会导致如下数据报错。故建议在 Pipeline 切割中，绕开这些字段命名。
-
-```shell
-# 该错误在 DataKit monitor 中能看到
-same key xxx in tag and field
-```
-
-<!--
-#### 数据类型冲突
-TODO -->
-
 ## FAQ
 
 ### Pipeline 调试时，为什么变量无法引用？
@@ -220,10 +232,71 @@ json(_, `@timestamp`, "time")
 命令如下：
 
 ```shell
-datakit --pl test.p --txt "..."
+$ datakit pipeline test.p -T "..."
 [E] get pipeline failed: stat /usr/local/datakit/pipeline/test.p: no such file or directory
 ```
 
 ---
 
 A: 调试用的 Pipeline 脚本，需将其放置到 *<DataKit 安装目录>/pipeline* 目录下。
+
+### 如何在一个 Pipeline 中切割多种不同格式的日志？
+
+在日常的日志中，因为业务的不同，日志会呈现出多种形态，此时，需写多个 Grok 切割，为提高 Grok 的运行效率，==可根据日志出现的频率高低，优先匹配出现频率更高的那个 Grok==，这样，大概率日志在前面几个 Grok 中就匹配上了，避免了无效的匹配。
+
+> 在日志切割中，Grok 匹配是性能开销最大的部分，故避免重复的 Grok 匹配，能极大的提高 Grok 的切割性能。
+
+```python
+grok(_, "%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} ...")
+if client_ip != nil {
+	# 证明此时上面的 grok 已经匹配上了，那么就按照该日志来继续后续处理
+	...
+} else {
+	# 这里说明是不同的日志来了，上面的 grok 没有匹配上当前的日志
+	grok(_, "%{date2:time} \\[%{LOGLEVEL:status}\\] %{GREEDYDATA:msg} ...")
+
+	if status != nil {
+		# 此处可再检查上面的 grok 是否匹配上...
+	} else {
+		# 未识别的日志，或者，在此可再加一个 grok 来处理，如此层层递进
+	}
+}
+```
+
+### 如何丢弃字段切割
+
+在某些情况下，我们需要的只是日志==中间的几个字段==，但不好跳过前面的部分，比如 
+
+```
+200 356 1 0 44 30032 other messages
+```
+
+其中，我们只需要 `44` 这个值，它可能代码响应延迟，那么可以这样切割（即 Grok 中不附带 `:some_field` 这个部分）：
+
+```python
+grok(_, "%{INT} %{INT} %{INT} %{INT:response_time} %{GREEDYDATA}")
+```
+
+### `add_pattern()` 转义问题
+
+大家在使用 `add_pattern()` 添加局部模式时，容易陷入转义问题，比如如下这个 pattern（用来通配文件路径以及文件名）：
+
+```
+(/?[\w_%!$@:.,-]?/?)(\S+)?
+```
+
+如果我们将其放到全局 pattern 目录下（即 *pipeline/pattern* 目录），可这么写：
+
+```
+# my-test
+source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
+```
+
+如果使用 `add_pattern()`，就需写成这样： 
+
+```python
+# my-test.p
+add_pattern('source_file', '(/?[\\w_%!$@:.,-]?/?)(\\S+)?')
+```
+
+即这里面反斜杠需要转义。
