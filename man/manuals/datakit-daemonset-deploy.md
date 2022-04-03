@@ -163,11 +163,13 @@ data:
 			   ...
 ```
 
-#### DataKit 中其它环境变量设置
+## DataKit 中其它环境变量设置
 
 > 注意： ENV_LOG 如果配置成 `stdout`，则不要将 ENV_LOG_LEVEL 设置成 `debug`，否则可能循环产生日志，产生大量日志数据。
 
-在 DaemonSet 模式中，DataKit 支持多个环境变量配置，datakit.yaml 中其大概格式为
+在 DaemonSet 模式中，DataKit 支持多个环境变量配置
+
+- datakit.yaml 中其大概格式为
 
 ```yaml
 spec:
@@ -179,9 +181,21 @@ spec:
       value: YYY
 ```
 
+- helm values.yaml 中其大概格式为
+
+  ```yaml
+  extraEnvs: 
+    - name: "ENV_XXX"
+      value: "YYY"
+    - name: "ENV_OTHER_XXX"
+      value: "YYY"    
+  ```
+
+  
+
 DataKit 支持的环境变量如下各表所示。
 
-#### 最常用环境变量
+### 最常用环境变量
 
 | 环境变量名称               | 默认值 | 必须   | 说明                                                                                 |
 | ---------:                 | ---:   | ------ | ----                                                                                 |
@@ -190,7 +204,7 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_ENABLE_INPUTS          | 无     | 否     | ==已弃用==，同 ENV_DEFAULT_ENABLED_INPUTS                                            |
 | ENV_GLOBAL_TAGS            | 无     | 否     | 全局 tag，多个 tag 之间以英文逗号分割，如 `tag1=val,tag2=val2`                       |
 
-#### 日志配置相关环境变量
+### 日志配置相关环境变量
 
 | 环境变量名称  | 默认值                     | 必须   | 说明                                            |
 | ---------:    | ---:                       | ------ | ----                                            |
@@ -198,14 +212,14 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_LOG       | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，日志将不写文件，而是终端输出 |
 | ENV_LOG_LEVEL | info                       | 否     | 可选值 `info/debug`                             |
 
-#### 选举相关环境变量
+### 选举相关环境变量
 
 | 环境变量名称        | 默认值     | 必须   | 说明                                                                                                                                                |
 | ---------:          | ---:       | ------ | ----                                                                                                                                                |
 | ENV_ENABLE_ELECTION | 默认不开启 | 否     | 开启[选举](election)，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可                                                                    |
 | ENV_NAMESPACE       | 无         | 否     | DataKit 所在的命名空间，默认为空表示不区分命名空间，接收任意非空字符串，如 `dk-namespace-example`。如果开启了选举，可以通过此环境变量指定工作空间。 |
 
-#### HTTP/API 相关环境变量
+### HTTP/API 相关环境变量
 
 | 环境变量名称             | 默认值            | 必须   | 说明                                                 |
 | ---------:               | ---:              | ------ | ----                                                 |
@@ -214,7 +228,7 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_REQUEST_RATE_LIMIT   | 无(float)         | 否     | 限制 9529 [API 每秒请求数](datakit-conf#39e48d64)    |
 | ENV_RUM_ORIGIN_IP_HEADER | `X-Forwarded-For` | 否     | RUM 专用                                             |
 
-#### Git 配置相关环境变量
+### Git 配置相关环境变量
 
 | 环境变量名称     | 默认值 | 必须   | 说明                                                                                                   |
 | ---------:       | ---:   | ------ | ----                                                                                                   |
@@ -224,7 +238,7 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_GIT_KEY_PW   | 无     | 否     | 本地 PrivateKey 的使用密码。（如 `passwd`）                                                            |
 | ENV_GIT_URL      | 无     | 否     | 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`） |
 
-#### 其它杂项
+### 其它杂项
 
 | 环境变量名称       | 默认值         | 必须   | 说明                                                       |
 | ---------:         | ---:           | ------ | ----                                                       |
@@ -234,7 +248,7 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_HOSTNAME       | 无             | 否     | 默认为本地主机名，可安装时指定，如， `dk-your-hostname`    |
 | ENV_IPDB           | 无（string）   | 否     | 指定 IP 信息库类型，目前只支持 `iploc`                     |
 
-#### 各个采集器专用环境变量
+### 各个采集器专用环境变量
 
 部分采集器支持外部注入环境变量，以调整采集器自身的默认配置。具体参见各个具体的采集器文档。
 
