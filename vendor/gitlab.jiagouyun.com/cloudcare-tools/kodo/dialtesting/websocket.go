@@ -244,6 +244,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 		"response_time":          responseTime,
 		"response_time_with_dns": responseTimeWithDNS,
 		"response_message":       t.responseMessage,
+		"sent_message":           t.Message,
 		"success":                int64(-1),
 	}
 
