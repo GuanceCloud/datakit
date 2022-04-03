@@ -108,7 +108,7 @@ func (dc *endPoint) send(category string, data []byte, gz bool) error {
 func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %s, proxy: %s, dwcli: %p, timeout: %s(%s)",
 		req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport,
-		dw.HTTPTimeout(dw.TimeoutDuration.String()))
+		dw.HTTPTimeout, dw.TimeoutDuration.String())
 
 	return dw.httpCli.Do(req)
 }
