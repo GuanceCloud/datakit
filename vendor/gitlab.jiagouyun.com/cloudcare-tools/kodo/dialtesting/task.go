@@ -7,10 +7,12 @@ import (
 const (
 	StatusStop = "stop"
 
-	ClassHTTP     = "HTTP"
-	ClassTCP      = "TCP"
-	ClassDNS      = "DNS"
-	ClassHeadless = "BROWSER"
+	ClassHTTP      = "HTTP"
+	ClassTCP       = "TCP"
+	ClassWebsocket = "WEBSOCKET"
+	ClassICMP      = "ICMP"
+	ClassDNS       = "DNS"
+	ClassHeadless  = "BROWSER"
 
 	ClassOther = "OTHER"
 )

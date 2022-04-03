@@ -58,6 +58,22 @@ Upgrade:
     $env:DK_UPGRADE="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
 ```
 
+## DataKit 的稳定（stable）和非稳定版（alpha）
+
+任何版本要升级到非稳定版，都需要额外添加环境变量 `DK_ENABLE_EXPEIMENTAL` 
+
+- Linux/Mac：
+
+``` shell
+DK_UPGRADE=1 DK_ENABLE_EXPEIMENTAL=1 bash -c "$(curl -L https://static.guance.com/datakit/install.sh)"
+```
+
+- Windows
+
+```powershell
+$env:DK_UPGRADE="1";$env:DK_ENABLE_EXPEIMENTAL="1"; Set-ExecutionPolicy Bypass -scope Process -Force; Import-Module bitstransfer; start-bitstransfer -source https://static.guance.com/datakit/install.ps1 -destination .install.ps1; powershell .install.ps1;
+```
+
 如果当前 DataKit 处于被代理模式，自动更新的提示命令中，会自动加上代理设置：
 
 - Linux

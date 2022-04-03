@@ -8,6 +8,17 @@
 
 本文档主要描述 DataKit 开放出来 HTTP API 接口。
 
+## API 综述
+
+DataKit 目前只支持 HTTP 接口，主要涉及数据写入，数据查询。
+
+### 通过 API 获取远端 DataKit 版本号
+
+有两种方式可获取版本号：
+
+- 请求 DataKit ping 接口： `curl http://ip:9529/v1/ping`
+- 在下述每个 API 请求的返回 Header 中，通过 `X-DataKit` 可获知当前请求的 DataKit 版本
+
 ## `/v1/write/:category`
 
 本 API 用于给 DataKit 上报各类数据（`category`），参数说明如下：
@@ -147,7 +158,7 @@ slb,name=zzz,tag2=b f1=1i,f2=1.2,f3="abc",message="xxx" 1620723870000000000
 
 ## `/v1/ping`
 
-检测目标地址是否有 DataKit 运行
+检测目标地址是否有 DataKit 运行，可获取 DataKit 启动时间以及版本信息。
 
 ### 示例
 
@@ -446,15 +457,15 @@ HTTP Code: 40x
 
 ## DataKit 数据结构约束
 
-为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），如无特殊标记，DataKit 将拒绝处理违反如下限定的数据。
+为规范观测云中的数据，现对 DataKit 采集的数据，做如下约束（不管是行协议还是 JSON 形式的数据），如无特殊标记，DataKit 将拒绝处理违反如下任一规则的数据。
 
-- tags 和 fields 中的 key 不允许重名
-- tags 内部或 fields 内部不允许出现同名 key
-- Tag 个数不超过 256 个
-- Field 个数不超过 1024 个
-- Tag/Field Key 长度不超过 256 字节
-- Tag Value 长度不超过 1024 字节
-- Field Value 不超过 32K(32x1024) 字节
+1. Tag 和 Field 之间的 key 不允许重名，即同一个 key 不能在 Tag 和 Field 中同时出现
+1. Tag 或 Field 内部不允许出现同名 key，即同一个 key 不能在 Tag/Field 中出现多次
+1. Tag 个数不超过 256 个
+1. Field 个数不超过 1024 个
+1. Tag/Field Key 长度不超过 256 字节
+1. Tag Value 长度不超过 1024 字节
+1. Field Value 不超过 32K(32x1024) 字节
 
 关于特殊标记，目前通过 HTTP 接口打进来的数据，均无法标记（比如允许 Tag 个数大于 256 个），而 DataKit 自身的采集器，在某些特殊情况下，可能需要绕过这些限制（比如日志采集中，field 的长度可以放开）。
 
