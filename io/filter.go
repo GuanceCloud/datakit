@@ -127,6 +127,11 @@ func (f *filter) pull() {
 		}
 
 		f.md5 = bodymd5
+		if len(fp.Filters) == 0 {
+			f.conditions = map[string]parser.WhereConditions{}
+			return
+		}
+
 		for k, v := range fp.Filters {
 			f.conditions[k] = parser.GetConds(strings.Join(v, ";"))
 		}
