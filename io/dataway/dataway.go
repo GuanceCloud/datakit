@@ -232,6 +232,7 @@ func (dw *DataWayCfg) initHTTP() error {
 	}
 
 	dw.httpCli = ihttp.Cli(cliopts)
+	dw.httpCli.Timeout = dw.TimeoutDuration // set HTTP request timeout
 	log.Debugf("httpCli: %p", dw.httpCli.Transport)
 
 	return nil
