@@ -4,10 +4,12 @@
 
 
 image:
-  repository: pubrepo.jiagouyun.com/datakit/datakit
+  repository: pubrepo.guance.com/datakit/datakit
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
+
+# https://www.yuque.com/dataflux/datakit/datakit-install#f9858758
 
 dataway_url: https://openway.guance.com?token=<your-token>
 
@@ -15,7 +17,7 @@ global_tags: host=__datakit_hostname,host_ip=__datakit_ip
 
 default_enabled_inputs: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
 
-enabled_election: true
+enabled_election: enable
 
 log: stdout
 
@@ -38,7 +40,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 
-podAnnotations: 
+podAnnotations:
   datakit/logs: |
     [{"disable": true}]
 
@@ -50,3 +52,27 @@ service:
   type: ClusterIP
   port: 9529
 
+
+dkconfig: []
+#  - path: "/usr/local/datakit/conf.d/db/mysql.conf"
+#    name: mysql.conf
+#    value: |
+#      # {"version": "1.1.9-rc7.1", "desc": "do NOT edit this line"}
+#      [[inputs.mysql]]
+#        host = "192.168.0.3"
+#        user = "root"
+#        pass = "S6QgMvrer2!8xvMD"
+#        port = 3306
+#        interval = "10s"
+#        innodb = true
+#        tables = []
+#        users = []
+#        [inputs.mysql.dbm_metric]
+#          enabled = true
+#        ## 监控采样配置
+#        [inputs.mysql.dbm_sample]
+#          enabled = true
+#        [inputs.mysql.tags]
+#          # some_tag = "some_value"
+#          # more_tag = "some_other_value"
+#

@@ -57,7 +57,7 @@ Create the name of the service account to use
 {{/* {{- if .Values.serviceAccount.create }}
 */}}
 {{- default (include "datakit.fullname" .)  }}
-{{/* 
+{{/*
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

@@ -14,3 +14,19 @@ data:
   {{- end }}
 {{- end }}
 {{- end }}
+
+
+---
+{{- if .Values.dkconfig }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datakit-conf
+  # namespace: {{ .Values.namespace }}
+data:
+  {{- range $index, $vaule := .Values.dkconfig }}
+  {{- with $vaule }}
+  {{ .name }}: |- {{ .value | nindent 4  }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
