@@ -427,7 +427,7 @@ func TestDatawayTimeout(t *testing.T) {
 	ch := make(chan interface{})
 	go func() {
 		rBody := strings.NewReader("aaaaaaaaaaaaa")
-		_, err := dw.UploadLog(rBody, "host")
+		_, err := dw.UploadLog(rBody, "host") //nolint:bodyclose
 		tu.NotOk(t, err, "expect err here")
 
 		close(ch)
