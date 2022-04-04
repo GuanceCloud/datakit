@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
@@ -407,6 +408,39 @@ func TestUploadLog(t *testing.T) {
 	respBody, err := ioutil.ReadAll(resp.Body)
 	tu.Ok(t, err)
 	tu.Assert(t, string(respBody) == "OK", "assert failed")
+}
+
+func TestDatawayTimeout(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Second * 3) // timeout
+		fmt.Fprint(w, "OK")
+	}))
+	defer ts.Close()
+
+	dw := &DataWayCfg{URLs: []string{ts.URL}, HTTPTimeout: "1s"}
+	if err := dw.Apply(); err != nil {
+		t.Errorf("Apply: %s", err.Error())
+	}
+
+	t.Logf("http client timeout: %s", dw.httpCli.Timeout)
+
+	ch := make(chan interface{})
+	go func() {
+		rBody := strings.NewReader("aaaaaaaaaaaaa")
+		_, err := dw.UploadLog(rBody, "host") //nolint:bodyclose
+		tu.NotOk(t, err, "expect err here")
+
+		close(ch)
+	}()
+
+	tick := time.NewTicker(time.Second * 2)
+	defer tick.Stop()
+	select {
+	case <-ch:
+		t.Logf("timeout ok")
+	case <-tick.C:
+		tu.Assert(t, false, "timeout not ok")
+	}
 }
 
 func TestCheckToken(t *testing.T) {
