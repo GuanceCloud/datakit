@@ -31,7 +31,7 @@ const (
     ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
     interval = "10s"
 
-	enable_ci_visibility = false
+    enable_ci_visibility = false
 
     [inputs.gitlab.tags]
     # some_tag = "some_value"
