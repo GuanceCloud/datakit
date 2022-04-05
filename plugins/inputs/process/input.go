@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/host"
+	"github.com/shirou/gopsutil/v3/cpu"
 	pr "github.com/shirou/gopsutil/v3/process"
 	"github.com/tweekmonster/luser"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
@@ -29,6 +30,12 @@ var (
 	maxMetricInterval                = time.Minute
 	_                 inputs.ReadEnv = (*Input)(nil)
 )
+
+type proccpu struct {
+	createTime int64
+	cputime    *cpu.TimesStat
+	ts         time.Time
+}
 
 type Input struct {
 	ProcessName    []string          `toml:"process_name,omitempty"`
@@ -85,12 +92,16 @@ func (p *Input) Run() {
 				maxMetricInterval,
 				p.MetricInterval.Duration)
 
+			lastProc := p.getProcessMap()
+			time.Sleep(time.Second * 2)
 			tick := time.NewTicker(p.MetricInterval.Duration)
 			defer tick.Stop()
 			for {
-				p.WriteMetric()
+				p.WriteMetric(lastProc)
 				select {
 				case <-tick.C:
+					lastProc = p.getProcessMap()
+
 				case <-datakit.Exit.Wait():
 					l.Info("process write metric exit")
 					return
@@ -103,10 +114,14 @@ func (p *Input) Run() {
 		}()
 	}
 
+	lastProc := p.getProcessMap()
+	time.Sleep(time.Second * 2)
+
 	for {
-		p.WriteObject()
+		p.WriteObject(lastProc)
 		select {
 		case <-tick.C:
+			lastProc = p.getProcessMap()
 		case <-datakit.Exit.Wait():
 			l.Info("process write object exit")
 			return
@@ -195,6 +210,50 @@ func (p *Input) getProcesses() (processList []*pr.Process) {
 	return processList
 }
 
+func (p *Input) getProcessMap() map[int32]proccpu {
+	procMap := map[int32]proccpu{}
+	pses, err := pr.Processes()
+	ctime := time.Now()
+	if err != nil {
+		l.Errorf("get process err: %s", err.Error())
+		p.lastErr = err
+		return procMap
+	}
+
+	for _, ps := range pses {
+		name, err := ps.Name()
+		if err != nil {
+			l.Errorf("ps.Name: %s", err)
+			continue
+		}
+
+		cputime, err := ps.Times()
+		if err != nil {
+			l.Errorf("ps.Times: %s", err)
+			continue
+		}
+
+		ok, err := regexp.Match(p.re, []byte(name))
+		if err != nil {
+			l.Errorf("regexp.Match: %s", err)
+			continue
+		}
+
+		t := getStartTime(ps)
+
+		if !ok {
+			continue
+		}
+
+		procMap[ps.Pid] = proccpu{
+			createTime: t,
+			cputime:    cputime,
+			ts:         ctime,
+		}
+	}
+	return procMap
+}
+
 func getUser(ps *pr.Process) string {
 	username, err := ps.Username()
 	if err != nil {
@@ -218,13 +277,13 @@ func getStartTime(ps *pr.Process) int64 {
 	if err != nil {
 		l.Warnf("get start time err:%s", err.Error())
 		if bootTime, err := host.BootTime(); err != nil {
-			return int64(bootTime)
+			return int64(bootTime) * 1000
 		}
 	}
 	return start
 }
 
-func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, message map[string]interface{}) {
+func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, state, name string, fields, message map[string]interface{}) {
 	fields = map[string]interface{}{}
 	message = map[string]interface{}{}
 	name, err := ps.Name()
@@ -256,17 +315,33 @@ func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, mes
 	} else {
 		fields["mem_used_percent"] = memPercent
 	}
+
+	crtTime := getStartTime(ps)
+	created := time.Unix(0, crtTime*int64(time.Millisecond))
 	cpu, err := ps.Times()
 	if err != nil {
 		l.Warnf("process:%s,pid:%d get cpu err:%s", name, ps.Pid, err.Error())
-	} else {
-		message["cpu"] = cpu
-	}
-	cpuPercent, err := ps.CPUPercent()
-	if err != nil {
 		l.Warnf("process:%s,pid:%d get cpupercent err:%s", name, ps.Pid, err.Error())
 	} else {
-		fields["cpu_usage"] = cpuPercent
+		totalTime := time.Since(created).Seconds()
+		message["cpu"] = cpu
+		fields["cpu_usage"] = 100 * (cpu.User + cpu.System) / totalTime
+	}
+
+	if lastP, ok := lastProcess[ps.Pid]; ok {
+		if lastP.createTime == crtTime {
+			usage := 100 * (cpu.User + cpu.System - lastP.cputime.User - lastP.cputime.System) / time.Since(lastP.ts).Seconds()
+			if usage < 0 {
+				usage = 0
+			}
+			fields["cpu_usage_top"] = usage
+		} else {
+			fields["cpu_usage_top"] = 0
+			l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
+		}
+	} else {
+		fields["cpu_usage_top"] = 0
+		l.Debug("cpu_usage_top: pid %d", ps.Pid)
 	}
 
 	Threads, err := ps.NumThreads()
@@ -288,12 +363,12 @@ func (p *Input) Parse(ps *pr.Process) (username, state, name string, fields, mes
 	return username, state, name, fields, message
 }
 
-func (p *Input) WriteObject() {
+func (p *Input) WriteObject(lastProc map[int32]proccpu) {
 	t := time.Now().UTC()
 	var collectCache []inputs.Measurement
 
 	for _, ps := range p.getProcesses() {
-		username, state, name, fields, message := p.Parse(ps)
+		username, state, name, fields, message := p.Parse(ps, lastProc)
 		tags := map[string]string{
 			"username":     username,
 			"state":        state,
@@ -375,7 +450,7 @@ func (p *Input) WriteObject() {
 	}
 }
 
-func (p *Input) WriteMetric() {
+func (p *Input) WriteMetric(lastProc map[int32]proccpu) {
 	t := time.Now().UTC()
 	var collectCache []inputs.Measurement
 	for _, ps := range p.getProcesses() {
@@ -383,7 +458,7 @@ func (p *Input) WriteMetric() {
 		if err != nil || cmd == "" {
 			continue
 		}
-		username, _, name, fields, _ := p.Parse(ps)
+		username, _, name, fields, _ := p.Parse(ps, lastProc)
 		tags := map[string]string{
 			"username":     username,
 			"pid":          fmt.Sprintf("%d", ps.Pid),
