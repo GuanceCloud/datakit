@@ -103,6 +103,8 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 ```toml
 [cgroup]
+	path = "/datakit" # cgroup 限制目录，如 /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
+
   # 允许 CPU 最大使用率（百分制）
   cpu_max = 20.0
 
