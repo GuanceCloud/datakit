@@ -22,7 +22,7 @@ current_branch=$(git rev-parse --abbrev-ref HEAD)
 man_version=$1
 
 if [ -z $man_version ]; then
-  printf "${YELLOW}[E] manual version missing, use current tag %s as version${CLR}\n" $latest_tag
+  printf "${YELLOW}[W] manual version missing, use current tag %s as version${CLR}\n" $latest_tag
   man_version="${latest_tag}"
 fi
 
@@ -51,6 +51,15 @@ LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
 	--log stdout \
 	--export-docs .docs \
 	--version "${man_version}" \
-	--TODO "-" && waque upload .docs/*.md -c "${waque_yml}" && \
-	printf "${GREEN}----------------------${CLR}\n" && \
-	printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml}
+	--TODO "-"
+
+while true
+do
+	if waque upload .docs/*.md -c "${waque_yml}"; then
+		printf "${GREEN}----------------------${CLR}\n";
+		printf "${GREEN}[I] upload manuals ok (using %s).${CLR}\n" ${waque_yml};
+		break
+	fi
+	printf "try again...\n"
+	sleep 1
+done

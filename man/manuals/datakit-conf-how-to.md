@@ -263,8 +263,6 @@ gin.log 也会按照同样的方式自动切割。
 
   # 允许 CPU 最使用率（百分制）
   cpu_min = 5.0
-
-	mem_max_mb = 4096 # 默认允许 4GB 内存(memory + swap)占用
 ```
 
 配置好后，重启 DataKit 即可。
