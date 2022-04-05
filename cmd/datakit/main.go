@@ -75,8 +75,8 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
-		// Auto enable cgroup limit under host running
-		go cgroup.Run(config.Cfg.Cgroup)
+		// Auto enable cgroup limit under host running(debug mode and service mode)
+		cgroup.Run(config.Cfg.Cgroup)
 
 		if workdir != "" {
 			run()

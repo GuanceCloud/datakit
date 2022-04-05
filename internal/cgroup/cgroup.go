@@ -2,18 +2,36 @@
 package cgroup
 
 import (
+	"context"
 	"time"
 
+	"github.com/containerd/cgroups"
 	"github.com/shirou/gopsutil/cpu"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
 var l = logger.DefaultSLogger("cgroup")
 
 type Cgroup struct {
-	Enable bool    `toml:"enable"`
-	CPUMax float64 `toml:"cpu_max"`
-	CPUMin float64 `toml:"cpu_min"`
+	Enable bool `toml:"enable"`
+
+	Path      string  `toml:"path"`
+	CPUMax    float64 `toml:"cpu_max"`
+	CPUMin    float64 `toml:"cpu_min"`
+	cpuHigh   float64
+	cpuLow    float64
+	quotaHigh int64
+	quotaLow  int64
+	waitNum   int
+	level     string
+
+	MemMax     int64 `toml:"mem_max_mb"`
+	memMaxSwap int64
+
+	DisableOOM bool `toml:"disable_oom"`
+
+	control cgroups.Cgroup
 }
 
 func Run(c *Cgroup) {
@@ -34,7 +52,12 @@ func Run(c *Cgroup) {
 		return
 	}
 
-	start(c)
+	g := datakit.G("cgroup")
+
+	g.Go(func(ctx context.Context) error {
+		start(c)
+		return nil
+	})
 }
 
 func GetCPUPercent(interval time.Duration) (float64, error) {

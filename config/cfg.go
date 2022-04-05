@@ -88,7 +88,13 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		Cgroup: &cgroup.Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
+		Cgroup: &cgroup.Cgroup{
+			Path:   "/datakit",
+			Enable: true,
+			CPUMax: 20.0,
+			CPUMin: 5.0,
+			MemMax: 1024, // MB
+		},
 
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
