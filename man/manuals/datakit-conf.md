@@ -97,8 +97,9 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 由于 DataKit 上处理的数据量无法估计，如果不对 DataKit 消耗的资源做物理限制，将有可能消耗所在节点大量资源。这里我们可以借助 cgroup 来限制。
 
-> 目前 cgroup 限制只在[宿主机安装](datakit-install)的时候会默认开启，[DaemonSet 安装可使用专用方案]()
-> 目前 cgourp 只支持 CPU 使用率控制，且支持 Linux 操作系统。
+> 注意：
+> - 目前 cgroup 限制只在[宿主机安装](datakit-install)的时候会默认开启，[DaemonSet 安装可使用专用方案]()
+> - 目前 cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且支持 Linux 操作系统。
 
 ```toml
 [cgroup]

@@ -45,6 +45,8 @@ else
   os="linux"
 fi
 
+make
+
 LOGGER_PATH=nul dist/datakit-${os}-amd64/datakit doc \
 	--export-docs .docs \
 	--ignore demo \
