@@ -24,7 +24,7 @@ type CgroupOptions struct {
 	CPUMax     float64 `toml:"cpu_max"`
 	CPUMin     float64 `toml:"cpu_min"`
 	MemMax     int64   `toml:"mem_max_mb"`
-	DisableOOM bool    `toml:"disable_oom"`
+	DisableOOM bool    `toml:"disable_oom,omitempty"`
 }
 
 type Cgroup struct {

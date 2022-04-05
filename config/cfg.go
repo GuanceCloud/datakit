@@ -93,7 +93,7 @@ func DefaultConfig() *Config {
 			Enable: true,
 			CPUMax: 20.0,
 			CPUMin: 5.0,
-			MemMax: 1024, // MB
+			MemMax: 4096, // MB
 		},
 
 		GitRepos: &GitRepost{

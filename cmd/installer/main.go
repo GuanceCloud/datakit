@@ -84,6 +84,7 @@ var (
 	flagDatakitHTTPPort int
 
 	flagLimitCPUMax float64
+	flagLimitMemMax int64
 	flagLimitCPUMin float64
 )
 
@@ -127,8 +128,9 @@ func init() { //nolint:gochecknoinits
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
 
-	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Croup CPU max usage")
-	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Croup CPU min usage")
+	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Cgroup CPU max usage")
+	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Cgroup CPU min usage")
+	flag.Int64Var(&flagLimitMemory, "limit-mem", 4096, "Cgroup memory limit")
 
 	flag.IntVar(&flagCgroupEnabled, "cgroup-enabled", 0, "enable Cgroup under Linux")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
@@ -441,6 +443,10 @@ func installNewDatakit(svc service.Service) {
 
 		if mc.Cgroup.CPUMax < mc.Cgroup.CPUMin {
 			l.Fatalf("invalid CGroup CPU limit, max should larger than min")
+		}
+
+		if flagLimitMemory > 0 {
+			mc.Cgroup.MemMax = flagLimitMemMax
 		}
 	}
 

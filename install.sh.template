@@ -252,6 +252,11 @@ if [ -n "$DK_LIMIT_CPUMIN" ]; then
   limit_cpumin=$DK_LIMIT_CPUMIN
 fi
 
+limit_memmax=4096
+if [ -n "$DK_LIMIT_MEMMAX" ]; then
+  limit_memmax=$DK_LIMIT_MEMMAX
+fi
+
 cgroup_enabled=0
 if [ -n "$DK_CGROUP_ENABLED" ]; then
   cgroup_enabled=1
@@ -363,13 +368,14 @@ else
 			--git-pull-interval="${git_pull_interval}" \
 			--limit-cpumax="${limit_cpumax}"           \
 			--limit-cpumin="${limit_cpumin}"           \
+			--limit-memmax="${limit_memmax}"           \
 			--cgroup-enabled="${cgroup_enabled}"       \
 			--enable-election="${enable_election}"     \
 			--rum-origin-ip-header="${rum_origin_ip_header}" \
 			--disable-404page="${disable_404page}"           \
 			--log-level="${log_level}"                       \
 			--log="${log}"                                   \
-			--ipdb-type="${ipdb_type}"												\
+			--ipdb-type="${ipdb_type}"                       \
 			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer
