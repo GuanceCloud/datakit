@@ -85,6 +85,7 @@ type DatakitStats struct {
 	IOChanStat   string `json:"io_chan_stats"`
 	PLWorkerStat string `json:"pl_wroker_stats"`
 	Elected      string `json:"elected"`
+	Cgroup       string `json:"cgroup"`
 	CSS          string `json:"-"`
 
 	InputsStats map[string]*io.InputsStat `json:"inputs_status"`
@@ -297,7 +298,7 @@ func (x *DatakitStats) GoroutineStatTable() string {
 
 func GetStats() (*DatakitStats, error) {
 	now := time.Now()
-	elected, _ := election.Elected()
+	elected, ns := election.Elected()
 	stats := &DatakitStats{
 		Version:        datakit.Version,
 		BuildAt:        git.BuildAt,
@@ -308,7 +309,8 @@ func GetStats() (*DatakitStats, error) {
 		IOChanStat:     io.ChanStat(),
 		IoStats:        io.GetIoStats(),
 		PLWorkerStat:   plWorker.ShowPLWkrStats().String(),
-		Elected:        elected,
+		Elected:        fmt.Sprintf("%s/%s", elected, ns),
+		Cgroup:         cgroup.Info(),
 		AutoUpdate:     datakit.AutoUpdate,
 		GoroutineStats: goroutine.GetStat(),
 		HostName:       datakit.DatakitHostName,

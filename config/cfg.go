@@ -88,7 +88,7 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		Cgroup: &cgroup.Cgroup{
+		Cgroup: &cgroup.CgroupOptions{
 			Path:   "/datakit",
 			Enable: true,
 			CPUMax: 20.0,
@@ -201,9 +201,9 @@ type Config struct {
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalTags   map[string]string `toml:"global_tags"`
-	Environments map[string]string `toml:"environments"`
-	Cgroup       *cgroup.Cgroup    `toml:"cgroup"`
+	GlobalTags   map[string]string     `toml:"global_tags"`
+	Environments map[string]string     `toml:"environments"`
+	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
 
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`

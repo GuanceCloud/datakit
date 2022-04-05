@@ -3,6 +3,8 @@ package cgroup
 
 import (
 	"context"
+	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/containerd/cgroups"
@@ -11,14 +13,23 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
 
-var l = logger.DefaultSLogger("cgroup")
+var (
+	cg *Cgroup
+	l  = logger.DefaultSLogger("cgroup")
+)
+
+type CgroupOptions struct {
+	Enable     bool    `toml:"enable"`
+	Path       string  `toml:"path"`
+	CPUMax     float64 `toml:"cpu_max"`
+	CPUMin     float64 `toml:"cpu_min"`
+	MemMax     int64   `toml:"mem_max_mb"`
+	DisableOOM bool    `toml:"disable_oom"`
+}
 
 type Cgroup struct {
-	Enable bool `toml:"enable"`
+	opt *CgroupOptions
 
-	Path      string  `toml:"path"`
-	CPUMax    float64 `toml:"cpu_max"`
-	CPUMin    float64 `toml:"cpu_min"`
 	cpuHigh   float64
 	cpuLow    float64
 	quotaHigh int64
@@ -26,20 +37,19 @@ type Cgroup struct {
 	waitNum   int
 	level     string
 
-	MemMax     int64 `toml:"mem_max_mb"`
-	memMaxSwap int64
-
-	DisableOOM bool `toml:"disable_oom"`
+	err error
 
 	control cgroups.Cgroup
 }
 
-func Run(c *Cgroup) {
+func Run(c *CgroupOptions) {
 	l = logger.SLogger("cgroup")
 
 	if c == nil || !c.Enable {
 		return
 	}
+
+	cg = &Cgroup{opt: c}
 
 	if !(0 < c.CPUMax && c.CPUMax < 100) ||
 		!(0 < c.CPUMin && c.CPUMin < 100) {
@@ -55,9 +65,36 @@ func Run(c *Cgroup) {
 	g := datakit.G("cgroup")
 
 	g.Go(func(ctx context.Context) error {
-		start(c)
+		cg.start()
 		return nil
 	})
+}
+
+func (c *Cgroup) String() string {
+	if !c.opt.Enable {
+		return "-"
+	}
+
+	return fmt.Sprintf("path: %s, mem: %dMB, cpu: [%.2f:%.2f]",
+		c.opt.Path, c.opt.MemMax/MB, c.opt.CPUMin, c.opt.CPUMax)
+}
+
+func Info() string {
+	if cg == nil {
+		return "not ready"
+	}
+
+	switch runtime.GOOS {
+	case "linux":
+		if cg.err != nil {
+			return cg.err.Error()
+		} else {
+			return cg.String()
+		}
+
+	default:
+		return "-"
+	}
 }
 
 func GetCPUPercent(interval time.Duration) (float64, error) {

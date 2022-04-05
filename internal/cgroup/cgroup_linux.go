@@ -23,29 +23,21 @@ const (
 var period = uint64(1000000) //nolint:gomnd
 
 func (c *Cgroup) cpuSetup() {
-	c.cpuHigh = c.CPUMax * float64(runtime.NumCPU()) / 100 //nolint:gomnd
-	c.cpuLow = c.CPUMin * float64(runtime.NumCPU()) / 100  //nolint:gomnd
+	c.cpuHigh = c.opt.CPUMax * float64(runtime.NumCPU()) / 100 //nolint:gomnd
+	c.cpuLow = c.opt.CPUMin * float64(runtime.NumCPU()) / 100  //nolint:gomnd
 
 	c.quotaHigh = int64(float64(period) * c.cpuHigh)
 	c.quotaLow = int64(float64(period) * c.cpuLow)
 }
 
 func (c *Cgroup) memSetup() {
-	if c.MemMax <= 0 {
-		c.MemMax = defaultMemLimit
+	if c.opt.MemMax <= 0 {
+		c.opt.MemMax = defaultMemLimit
 		l.Infof("reset Memory limit to %d(%s)",
 			defaultMemLimit, humanize.IBytes(uint64(defaultMemLimit)))
 	}
 
-	c.MemMax = c.MemMax * MB
-	c.memMaxSwap = c.MemMax
-
-	// or by using RegisterMemoryEvent
-	//event := cgroups.OOMEvent()
-	//efd, err := c.control.RegisterMemoryEvent(event)
-	//if err != nil {
-	//	l.Errorf("control.OOMEvent: %s, ignored", err)
-	//}
+	c.opt.MemMax = c.opt.MemMax * MB
 }
 
 func (c *Cgroup) setup() error {
@@ -55,12 +47,11 @@ func (c *Cgroup) setup() error {
 			Quota:  &c.quotaLow,
 		},
 		Memory: &specs.LinuxMemory{
-			Limit:            &c.MemMax,
-			Swap:             &c.memMaxSwap,
-			DisableOOMKiller: &c.DisableOOM,
+			Swap:             &c.opt.MemMax,
+			DisableOOMKiller: &c.opt.DisableOOM,
 		},
 	}
-	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(c.Path), r)
+	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(c.opt.Path), r)
 	if err != nil {
 		l.Errorf("cgroups.New(%+#v): %s", r, err)
 		return err
@@ -87,7 +78,7 @@ func (c *Cgroup) stop() {
 	}
 }
 
-func (c *Cgroup) checkCPU() {
+func (c *Cgroup) refreshCPULimit() {
 	percpu, err := GetCPUPercent(0) //nolint:gomnd
 	if err != nil {
 		l.Warnf("GetCPUPercent: %s, ignored", err)
@@ -122,17 +113,12 @@ func (c *Cgroup) checkCPU() {
 		runtime.NumCPU(),
 		float64(c.quotaLow)/float64(period)*100.0,
 		float64(c.quotaHigh)/float64(period)*100.0,
-		c.MemMax/MB) //nolint:gomnd
+		c.opt.MemMax/MB) //nolint:gomnd
 
 	r := &specs.LinuxResources{
 		CPU: &specs.LinuxCPU{
 			Period: &period,
 			Quota:  &q,
-		},
-		Memory: &specs.LinuxMemory{
-			Limit:            &c.MemMax,
-			Swap:             &c.memMaxSwap,
-			DisableOOMKiller: &c.DisableOOM,
 		},
 	}
 
@@ -146,11 +132,12 @@ func (c *Cgroup) checkCPU() {
 		float64(q)/float64(period)*100.0) //nolint:gomnd
 }
 
-func start(c *Cgroup) {
+func (c *Cgroup) start() {
 	c.cpuSetup()
 	c.memSetup()
 
 	if err := c.setup(); err != nil {
+		c.err = err
 		return
 	}
 
@@ -158,7 +145,7 @@ func start(c *Cgroup) {
 
 	tick := time.NewTicker(time.Second * 3)
 	for {
-		c.checkCPU()
+		c.refreshCPULimit()
 		select {
 		case <-tick.C:
 			c.show()
