@@ -78,7 +78,7 @@ complete -F _datakit datakit ddk
 
 	bashCompletionDirs = []string{
 		"/usr/share/bash-completion/completions",
-		"/etc/bash-completion.d",
+		"/etc/bash_completion.d",
 	}
 )
 
