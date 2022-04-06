@@ -428,6 +428,8 @@ func TestPipelineTagsAndFields(t *testing.T) {
 		"pipeline_url":   "http://192.168.64.1:3005/gitlab-org/gitlab-test/pipelines/31",
 		"commit_sha":     "bcbb5ec396a2c0f828686f14fac9b80b780504f2",
 		"repository_url": "http://192.168.64.1:3005/gitlab-org/gitlab-test.git",
+		"commit_message": "test\n",
+		"ref":            "master",
 	}
 	tu.Equals(t, expectedTags, tags)
 	tu.Equals(t, expectedFields, fields)
