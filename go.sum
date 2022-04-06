@@ -1648,6 +1648,8 @@ github.com/zenazn/goji v1.0.1/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxt
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220117082011-b2dea10607f0/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220303071313-73cbbd097512 h1:l7Xvh06NWIpkvcZSntI1VvvYianEjKpUBevqPNczt0o=
 gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220303071313-73cbbd097512/go.mod h1:Ymaz+VCCFtF6KwTWZyyetHKVEvo1BIuoNQhJOwEOgWQ=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220331024026-678324178a3c h1:3S7adKgnzojlFMZs9o+kiRhAgnAmJTecuy0PdeRFdUA=
+gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220331024026-678324178a3c/go.mod h1:77exhafyG6wz+L+tveHFGgm7anbtRGpxCox4bLg+qzw=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220309104034-6ac47050305d h1:FPfRNMteOSsBKSO6FfL1KETrlKRvBcBZgrW+TuQzrU8=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220309104034-6ac47050305d/go.mod h1:nspXsQ1j97Ci9BOajqeGmzI5Aw+pFd3BCWkQixg/afo=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220311032930-281000969d58 h1:L/wcNR1Fi2dqSOZPer3T9HT3EP5gznb347Emx4WGWgo=
@@ -1716,6 +1718,8 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220402091124-89dabc438a71 h1:
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220402091124-89dabc438a71/go.mod h1:Qm5Z7yCOPh0g13nFP3J9mMrgD4/TVVAZ0Ge5tQC2oRY=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220403071638-81c08d53ead0 h1:BB2e6M/E8PgY/wEddRH/o/mZLEBm/yyupXVYShpEceY=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220403071638-81c08d53ead0/go.mod h1:Qm5Z7yCOPh0g13nFP3J9mMrgD4/TVVAZ0Ge5tQC2oRY=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220406030545-b093b8a28275 h1:DaNkYnDRVvyuzaOyZud4jjcYSKwhlGoANhwxYFWYl9o=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220406030545-b093b8a28275/go.mod h1:F2wVIB5YMTXGS3mXb6br54zqMLo8E5ZGlGm+SqXPT48=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5 h1:XAzx9gjCb0Rxj7EoqcClPD1d5ZBxZJk0jbuoPHenBt0=

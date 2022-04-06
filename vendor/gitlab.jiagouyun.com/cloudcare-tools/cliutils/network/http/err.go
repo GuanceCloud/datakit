@@ -22,7 +22,7 @@ type HttpError struct {
 	HttpCode int    `json:"-"`
 }
 
-type bodyResp struct {
+type BodyResp struct {
 	*HttpError
 	Message string      `json:"message,omitempty"`
 	Content interface{} `json:"content,omitempty"`
@@ -64,7 +64,7 @@ func (he *HttpError) HttpBodyPretty(c *gin.Context, body interface{}) {
 		return
 	}
 
-	resp := &bodyResp{
+	resp := &BodyResp{
 		HttpError: he,
 		Content:   body,
 	}
@@ -78,6 +78,33 @@ func (he *HttpError) HttpBodyPretty(c *gin.Context, body interface{}) {
 	c.Data(he.HttpCode, `application/json`, j)
 }
 
+func (he *HttpError) WriteBody(c *gin.Context, obj interface{}) {
+	if obj == nil {
+		c.Status(he.HttpCode)
+		return
+	}
+
+	var bodyBytes []byte
+	var contentType string
+	var err error
+
+	switch x := obj.(type) {
+	case []byte:
+		bodyBytes = x
+	default:
+		contentType = `application/json`
+
+		bodyBytes, err = json.Marshal(obj)
+		if err != nil {
+			undefinedErr(err).httpResp(c, "%s: %+#v", "json.Marshal() failed", obj)
+			return
+		}
+	}
+
+	c.Data(he.HttpCode, contentType, bodyBytes)
+}
+
+// HttpBody Deprecated, use WriteBody
 func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 	if body == nil {
 		c.Status(he.HttpCode)
@@ -92,7 +119,7 @@ func (he *HttpError) HttpBody(c *gin.Context, body interface{}) {
 	case []byte:
 		bodyBytes = x
 	default:
-		resp := &bodyResp{
+		resp := &BodyResp{
 			HttpError: he,
 			Content:   body,
 		}
@@ -137,7 +164,7 @@ func HttpErrf(c *gin.Context, err error, format string, args ...interface{}) {
 }
 
 func (he *HttpError) httpResp(c *gin.Context, format string, args ...interface{}) {
-	resp := &bodyResp{
+	resp := &BodyResp{
 		HttpError: he,
 	}
 
