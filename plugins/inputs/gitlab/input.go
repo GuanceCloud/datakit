@@ -9,23 +9,29 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
+	dhttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/http"
+	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
+	iod "gitlab.jiagouyun.com/cloudcare-tools/datakit/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs"
 )
 
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	inputName = "gitlab"
-	catalog   = "gitlab"
-
-	sampleCfg = `
+	inputName         = "gitlab"
+	catalog           = "gitlab"
+	pipelineHook      = "Pipeline Hook"
+	jobHook           = "Job Hook"
+	gitlabEventHeader = "X-Gitlab-Event"
+	sampleCfg         = `
 [[inputs.gitlab]]
     ## param type: string - default: http://127.0.0.1:80/-/metrics
     prometheus_url = "http://127.0.0.1:80/-/metrics"
 
     ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
     interval = "10s"
+
+    enable_ci_visibility = true
 
     [inputs.gitlab.tags]
     # some_tag = "some_value"
@@ -42,9 +48,10 @@ func init() { //nolint:gochecknoinits
 }
 
 type Input struct {
-	URL      string            `toml:"prometheus_url"`
-	Interval string            `toml:"interval"`
-	Tags     map[string]string `toml:"tags"`
+	URL                string            `toml:"prometheus_url"`
+	Interval           string            `toml:"interval"`
+	Tags               map[string]string `toml:"tags"`
+	EnableCIVisibility bool              `toml:"enable_ci_visibility"`
 
 	httpClient *http.Client
 	duration   time.Duration
@@ -53,6 +60,13 @@ type Input struct {
 	pauseCh chan bool
 
 	semStop *cliutils.Sem // start stop signal
+}
+
+func (ipt *Input) RegHTTPHandler() {
+	if ipt.EnableCIVisibility {
+		l.Infof("start listening gitlab webhooks")
+		dhttp.RegHTTPHandler("POST", "/v1/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
+	}
 }
 
 var maxPauseCh = inputs.ElectionPauseChannelLength
@@ -145,12 +159,12 @@ func (ipt *Input) gather() {
 		return
 	}
 
-	if err := io.Feed(inputName, datakit.Metric, pts, &io.Option{CollectCost: time.Since(start)}); err != nil {
+	if err := iod.Feed(inputName, datakit.Metric, pts, &iod.Option{CollectCost: time.Since(start)}); err != nil {
 		l.Error(err)
 	}
 }
 
-func (ipt *Input) gatherMetrics() ([]*io.Point, error) {
+func (ipt *Input) gatherMetrics() ([]*iod.Point, error) {
 	resp, err := ipt.httpClient.Get(ipt.URL)
 	if err != nil {
 		return nil, err
@@ -162,7 +176,7 @@ func (ipt *Input) gatherMetrics() ([]*io.Point, error) {
 		return nil, err
 	}
 
-	var points []*io.Point
+	var points []*iod.Point
 
 	for _, m := range metrics {
 		measurement := inputName
@@ -179,7 +193,7 @@ func (ipt *Input) gatherMetrics() ([]*io.Point, error) {
 			m.tags[k] = v
 		}
 
-		point, err := io.MakePoint(measurement, m.tags, m.fields)
+		point, err := iod.MakePoint(measurement, m.tags, m.fields)
 		if err != nil {
 			l.Warn(err)
 			continue
