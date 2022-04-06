@@ -114,7 +114,7 @@ mkdir /root/go
 - 设置如下环境变量
 
 ```
-export GOPROXY=https://goproxy.io
+export GO111MODULE=on
 # Set the GOPROXY environment variable
 export GOPRIVATE=gitlab.jiagouyun.com/*
 
