@@ -31,7 +31,7 @@ const (
     ## param type: string - optional: time units are "ms", "s", "m", "h" - default: 10s
     interval = "10s"
 
-    enable_ci_visibility = false
+    enable_ci_visibility = true
 
     [inputs.gitlab.tags]
     # some_tag = "some_value"
@@ -65,7 +65,7 @@ type Input struct {
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.EnableCIVisibility {
 		l.Infof("start listening gitlab webhooks")
-		dhttp.RegHTTPHandler("POST", "/v1/write/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
+		dhttp.RegHTTPHandler("POST", "/v1/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
 }
 
