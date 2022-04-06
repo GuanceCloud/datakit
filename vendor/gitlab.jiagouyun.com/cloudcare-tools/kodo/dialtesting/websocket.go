@@ -119,6 +119,8 @@ func (t *WebsocketTask) InitDebug() error {
 			}
 			parsedURL.Host = net.JoinHostPort(parsedURL.Host, port)
 		}
+		t.parsedURL = parsedURL
+		t.hostname = parsedURL.Hostname()
 	}
 
 	return nil
