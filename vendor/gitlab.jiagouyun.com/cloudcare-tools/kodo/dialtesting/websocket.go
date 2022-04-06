@@ -110,8 +110,15 @@ func (t *WebsocketTask) InitDebug() error {
 	if parsedURL, err := url.Parse(t.URL); err != nil {
 		return err
 	} else {
-		t.parsedURL = parsedURL
-		t.hostname = parsedURL.Hostname()
+		if parsedURL.Port() == "" {
+			port := ""
+			if parsedURL.Scheme == "wss" {
+				port = "443"
+			} else if parsedURL.Scheme == "ws" {
+				port = "80"
+			}
+			parsedURL.Host = net.JoinHostPort(parsedURL.Host, port)
+		}
 	}
 
 	return nil
