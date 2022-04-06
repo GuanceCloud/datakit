@@ -126,11 +126,9 @@ func (f *filter) pull() {
 		}
 
 		f.md5 = bodymd5
-		if len(fp.Filters) == 0 {
-			f.conditions = map[string]parser.WhereConditions{}
-			return
-		}
-
+		// clear old conditions: we update all conditions if any changed(new/delete
+		// conditons or update old conditions)
+		f.conditions = map[string]parser.WhereConditions{}
 		for k, v := range fp.Filters {
 			for _, condition := range v {
 				f.conditions[k] = append(f.conditions[k], parser.GetConds(condition)...)
