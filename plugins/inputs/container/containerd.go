@@ -126,8 +126,10 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				l.Warn(err)
 				continue
 			} else {
-				obj.fields["mem_usage"] = mem.usageBytes
-				obj.fields["mem_limit"] = mem.availableBytes
+				if mem.limitBytes != 0 {
+					obj.fields["mem_usage"] = float64(mem.worksetBytes) / float64(mem.limitBytes)
+				}
+				obj.fields["mem_limit"] = mem.limitBytes
 			}
 
 			func() {
@@ -186,7 +188,7 @@ func (c *cpuContainerUsage) calculatePercent(currentUsage *cpuContainerUsage) fl
 		return 0
 	}
 	return float64(currentUsage.usageCoreNanoSeconds-c.usageCoreNanoSeconds) /
-		float64(nanoSeconds) * float64(time.Second/time.Nanosecond)
+		float64(nanoSeconds) * 100
 }
 
 func cpuContainerStats(stats interface{}, currentTimestamp time.Time) (*cpuContainerUsage, error) {
@@ -214,8 +216,8 @@ func cpuContainerStats(stats interface{}, currentTimestamp time.Time) (*cpuConta
 }
 
 type memContainerUsage struct {
-	availableBytes int
-	usageBytes     int
+	limitBytes   int
+	worksetBytes int
 }
 
 func memoryContainerStats(stats interface{}) (*memContainerUsage, error) {
@@ -224,16 +226,16 @@ func memoryContainerStats(stats interface{}) (*memContainerUsage, error) {
 		if metrics.Memory != nil && metrics.Memory.Usage != nil {
 			workingSetBytes := getWorkingSet(metrics.Memory)
 			return &memContainerUsage{
-				availableBytes: int(getAvailableBytes(metrics.Memory, workingSetBytes)),
-				usageBytes:     int(metrics.Memory.Usage.Usage),
+				worksetBytes: int(getAvailableBytes(metrics.Memory, workingSetBytes)),
+				limitBytes:   int(metrics.Memory.HierarchicalMemoryLimit),
 			}, nil
 		}
 	case *v2.Metrics:
 		if metrics.Memory != nil {
 			workingSetBytes := getWorkingSetV2(metrics.Memory)
 			return &memContainerUsage{
-				availableBytes: int(getAvailableBytesV2(metrics.Memory, workingSetBytes)),
-				usageBytes:     int(metrics.Memory.Usage),
+				worksetBytes: int(getAvailableBytesV2(metrics.Memory, workingSetBytes)),
+				limitBytes:   int(metrics.Memory.UsageLimit),
 			}, nil
 		}
 	default:
