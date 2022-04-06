@@ -478,6 +478,9 @@ func getPipelineEventTags(pl PipelineEventPayload) map[string]string {
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Ref != nil {
 		tags["ref"] = *pl.ObjectAttributes.Ref
 	}
+	if pl.Commit != nil && pl.Commit.Message != nil {
+		tags["commit_message"] = *pl.Commit.Message
+	}
 	return tags
 }
 
