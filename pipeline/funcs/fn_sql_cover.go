@@ -13,7 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func SqlCoverChecking(ng *parser.EngineData, node parser.Node) error {
+func SQLCoverChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
 		return fmt.Errorf("func %s expects 1 args", funcExpr.Name)
@@ -28,7 +28,7 @@ func SqlCoverChecking(ng *parser.EngineData, node parser.Node) error {
 	return nil
 }
 
-func SqlCover(ng *parser.EngineData, node parser.Node) interface{} {
+func SQLCover(ng *parser.EngineData, node parser.Node) interface{} {
 	o := obfuscate.NewObfuscator(&obfuscate.Config{})
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 1 {
@@ -67,6 +67,9 @@ func SqlCover(ng *parser.EngineData, node parser.Node) interface{} {
 }
 
 func obfuscatedResource(o *obfuscate.Obfuscator, typ, resource string) (string, error) {
+	if typ != "sql" {
+		return resource, nil
+	}
 	oq, err := o.ObfuscateSQLString(resource)
 	if err != nil {
 		l.Error("Error obfuscating stats group resource %q: %v", resource, err)
