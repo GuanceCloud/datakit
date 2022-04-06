@@ -73,10 +73,8 @@ func Cover(ng *parser.EngineData, node parser.Node) interface{} {
 
 	if v, ok := set[1].(*parser.NumberLiteral); !ok {
 		return fmt.Errorf("range value `%v' is not expected", set)
-	} else {
-		if v.IsInt {
-			end = int(v.Int)
-		}
+	} else if v.IsInt {
+		end = int(v.Int)
 	}
 
 	cont1, err := ng.GetContent(key)
