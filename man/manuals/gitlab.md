@@ -52,11 +52,9 @@ GitLab 需要开启 promtheus 数据采集功能，开启方式如下（以英�
 
 通过配置 Gitlab Webhook，可以实现 Gitlab CI 可视化。开启步骤如下：
 
-1. 在配置文件中，若配置项 `enable_ci_visibility = false`，则需配置 `enable_ci_visibility = true`，重启 Datakit，让 Datakit
-   在 http://Datakit_IP:PORT/v1/gitlab 监听 Gitlab Webhook 发送的 event；
-2. 在 Gitlab 转到 `Settings` > `Webhooks` 中，将 URL 配置为 http://Datakit_IP:PORT/v1/gitlab，Trigger配置 Job events 和 Pipeline
+1. 在 Gitlab 转到 `Settings` > `Webhooks` 中，将 URL 配置为 http://Datakit_IP:PORT/v1/gitlab，Trigger配置 Job events 和 Pipeline
    events 两项，点击 Add webhook 确认添加；
-3. 可点击 Test 按钮测试 Webhook 配置是否正确。正确配置后，Datakit 可以顺利采集到 Gitlab 的 CI 信息。
+2. 可点击 Test 按钮测试 Webhook 配置是否正确。正确配置后，Datakit 可以顺利采集到 Gitlab 的 CI 信息。
 
 注意：如果将 Gitlab 数据打到本地网络的 Datakit，需要对 Gitlab 进行额外的配置，见 [allow requests to the local network](https://docs.gitlab.com/ee/security/webhooks.html) 。
 
