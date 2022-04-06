@@ -101,7 +101,7 @@ func (t *IcmpTask) InitDebug() error {
 				if err != nil {
 					return err
 				}
-				resp.target = float64(du.Nanoseconds() / 1e6) // ms
+				resp.target = float64(du.Nanoseconds()) / 1e6 // ms
 			}
 		}
 
