@@ -171,8 +171,8 @@ func (c *containerdObject) LineProto() (*io.Point, error) {
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
-	// use containerObject.Info()
-	return nil
+	// return nil
+	return &inputs.MeasurementInfo{}
 }
 
 type cpuContainerUsage struct {
