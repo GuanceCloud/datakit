@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkm3db"
 )
 
 //----------------------------------------------------------------------
