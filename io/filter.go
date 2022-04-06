@@ -6,7 +6,6 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -133,7 +132,9 @@ func (f *filter) pull() {
 		}
 
 		for k, v := range fp.Filters {
-			f.conditions[k] = parser.GetConds(strings.Join(v, ";"))
+			for _, condition := range v {
+				f.conditions[k] = append(f.conditions[k], parser.GetConds(condition)...)
+			}
 		}
 	}
 }
