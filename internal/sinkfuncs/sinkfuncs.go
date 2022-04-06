@@ -19,7 +19,7 @@ func GetSinkFromEnvs(categoryShorts, args []string) ([]map[string]interface{}, e
 	sinks := []map[string]interface{}{{}} // default from config.DefaultConfig
 
 	if len(categoryShorts) != len(args) || len(categoryShorts) == 0 {
-		return nil, fmt.Errorf("programming error")
+		return nil, fmt.Errorf("unmatched category length(%d <> %d)", len(categoryShorts), len(args))
 	}
 
 	for k, v := range categoryShorts {
