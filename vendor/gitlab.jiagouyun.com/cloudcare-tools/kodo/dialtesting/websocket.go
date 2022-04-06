@@ -105,6 +105,16 @@ func (t *WebsocketTask) InitDebug() error {
 			}
 		}
 
+		for _, vs := range checker.Header {
+			for _, v := range vs {
+				err := genReg(v)
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+
 	}
 
 	if parsedURL, err := url.Parse(t.URL); err != nil {
@@ -166,6 +176,15 @@ func (t *WebsocketTask) Init() error {
 			}
 		}
 
+		for _, vs := range checker.Header {
+			for _, v := range vs {
+				err := genReg(v)
+				if err != nil {
+					return err
+				}
+
+			}
+		}
 	}
 
 	if parsedURL, err := url.Parse(t.URL); err != nil {
@@ -298,6 +317,10 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 			tags["status"] = "OK"
 			fields["success"] = int64(1)
 		}
+	}
+
+	if v, ok := fields[`fail_reason`]; ok && len(v.(string)) != 0 && t.resp != nil {
+		message[`response_header`] = t.resp.Header
 	}
 
 	data, err := json.Marshal(message)

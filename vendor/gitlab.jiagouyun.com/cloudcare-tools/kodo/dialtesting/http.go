@@ -618,20 +618,27 @@ func (t *HTTPTask) Init() error {
 
 	// TLS opotions
 	if opt != nil && opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
+		if opt.Certificate.IgnoreServerCertificateError {
+			t.cli.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError,
+				},
+			}
+		} else {
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
 
-		cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
-		if err != nil {
-			return err
-		}
+			cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
+			if err != nil {
+				return err
+			}
 
-		t.cli.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:            caCertPool,
-				Certificates:       []tls.Certificate{cert},
-				InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError,
-			},
+			t.cli.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:      caCertPool,
+					Certificates: []tls.Certificate{cert},
+				},
+			}
 		}
 	}
 
