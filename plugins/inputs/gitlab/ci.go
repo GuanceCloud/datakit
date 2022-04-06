@@ -475,6 +475,9 @@ func getPipelineEventTags(pl PipelineEventPayload) map[string]string {
 	if pl.Project != nil && pl.Project.Name != nil {
 		tags["resource"] = *pl.Project.Name
 	}
+	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Ref != nil {
+		tags["ref"] = *pl.ObjectAttributes.Ref
+	}
 	return tags
 }
 
