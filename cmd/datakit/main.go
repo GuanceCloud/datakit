@@ -188,8 +188,12 @@ func initPythonCore() error {
 }
 
 func doRun() error {
-	if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
-		os.Exit(-1)
+	for {
+		if err := io.Start(config.Cfg.Sinks.Sink); err != nil {
+			time.Sleep(time.Second)
+		} else {
+			break
+		}
 	}
 
 	if config.Cfg.EnableElection {
