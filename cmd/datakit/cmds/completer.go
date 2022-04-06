@@ -38,7 +38,6 @@ _datakit()
 				COMPREPLY=( $(compgen -W '--date -F,--file --log --tab -T,--txt' -- "${cur_word}") )
 				;;
 
-
 			monitor)
 				COMPREPLY=( $(compgen -W '-I,--input --log -W,--max-table-width -R,--refresh --to -V,--verbose' -- "${cur_word}") )
 				;;
@@ -51,6 +50,10 @@ _datakit()
 				COMPREPLY=( $(compgen -W '--log --ipdb --log --scheck --telegraf' -- "${cur_word}") )
 				;;
 
+			version)
+				COMPREPLY=( $(compgen -W '--log -T,--testing --upgrade-info-off' -- "${cur_word}") )
+				;;
+
 			tool)
 				COMPREPLY=( $(compgen -W '--check-config --check-sample --default-main-conf --dump-samples
 				--ipinfo --log --show-cloud-info --upload-log --workspace-info --setup-completer-script
@@ -58,15 +61,15 @@ _datakit()
 				;;
 
 			help)
-				COMPREPLY=( $(compgen -W 'dql run pipeline service monitor install tool'  -- "${cur_word}") )
+				COMPREPLY=( $(compgen -W 'dql run pipeline service monitor install version tool'  -- "${cur_word}") )
 				;;
 
 			*)
-				COMPREPLY=( $(compgen -W 'dql run pipeline service monitor install tool help' -- "${cur_word}") )
+				COMPREPLY=( $(compgen -W 'dql run pipeline service monitor install version tool help' -- "${cur_word}") )
 				;;
 			esac
 	else # command not selected
-		COMPREPLY=( $(compgen -W 'dql run pipeline service monitor install tool help' -- "${cur_word}") )
+		COMPREPLY=( $(compgen -W 'dql run pipeline service monitor install version tool help' -- "${cur_word}") )
 	fi
 } &&
 complete -F _datakit datakit ddk
@@ -75,6 +78,7 @@ complete -F _datakit datakit ddk
 
 	bashCompletionDirs = []string{
 		"/usr/share/bash-completion/completions",
+		"/etc/bash_completion.d",
 	}
 )
 
@@ -91,7 +95,7 @@ func setupCompleterScripts() {
 
 	for _, dir := range bashCompletionDirs {
 		if fi, err := os.Stat(dir); err != nil {
-			warnf("/etc/bash_completion.d not found: %s, skip\n", err)
+			warnf("%s not found: %s, skip\n", dir, err)
 			continue
 		} else {
 			if !fi.IsDir() {
