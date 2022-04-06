@@ -179,3 +179,7 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 		smp.ratio = int(smp.SamplingRateGlobal * 100)
 	}
 }
+
+func FilterByPipline(dktrace DatakitTrace) (DatakitTrace, bool) {
+	return nil, false
+}
