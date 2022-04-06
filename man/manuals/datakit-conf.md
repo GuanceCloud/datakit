@@ -218,7 +218,15 @@ datakit 根目录
 
 ### 设置打开的文件描述符的最大值
 
-可以通过配置 ulimit 项设置 Datakit 的最大可打开文件数。ulimit 默认配置为 64000。
+可以在 Datakit 主配置文件中配置 ulimit 项，以设置 Datakit 的最大可打开文件数，如下：
+
+```toml
+ulimit = 64000
+```
+
+ulimit 默认配置为 64000。
+
+
 
 ## 延伸阅读
 
