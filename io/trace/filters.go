@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
 )
 
 func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
@@ -180,6 +181,42 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	}
 }
 
-func FilterByPipline(dktrace DatakitTrace) (DatakitTrace, bool) {
+type TracePiplineTask struct {
+	source string
+}
+
+func (tpt *TracePiplineTask) GetSource() string {
+
+}
+
+func (tpt *TracePiplineTask) GetScriptName() string {
+
+}
+
+func (tpt *TracePiplineTask) GetMaxMessageLen() int {
+
+}
+
+func (tpt *TracePiplineTask) ContentType() string {
+
+}
+
+func (tpt *TracePiplineTask) ContentEncode() string {
+
+}
+
+func (tpt *TracePiplineTask) GetContent() interface{} {
+
+}
+
+func (tpt *TracePiplineTask) GetMeta() TraceMetricsSetter {
+
+}
+
+func (tpt *TracePiplineTask) Callback([]*pipeline.Result) error {
+
+}
+
+func (tpt *TracePiplineTask) RunPipline(dktrace DatakitTrace) (DatakitTrace, bool) {
 	return nil, false
 }
