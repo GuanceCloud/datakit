@@ -60,6 +60,34 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 		}
 
 		for _, container := range cList {
+			task, err := container.Task(ctx, nil)
+			if err != nil {
+				l.Warn("failed to create containerd task, err: %w, skip", err)
+				continue
+			}
+
+			metric, err := task.Metrics(ctx)
+			if err != nil {
+				l.Warn("failed to get containerd metrics, err: %w, skip", err)
+				continue
+			}
+			metricsData, err := typeurl.UnmarshalAny(metric.Data)
+			if err != nil {
+				l.Warn("failed to unmarshal containerd metrics, err: %w, skip", err)
+				continue
+			}
+
+			oldCPU, err := cpuContainerStats(metricsData, time.Now())
+			if err != nil {
+				l.Warn(err)
+				continue
+			}
+
+			if oldCPU.usageCoreNanoSeconds == 0 {
+				// not running
+				continue
+			}
+
 			info, err := container.Info(ctx)
 			if err != nil {
 				l.Warn("failed to get containerd info, err: %w, skip", err)
@@ -98,38 +126,16 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 			obj.tags.addValueIfNotEmpty("pod_namespace", info.Labels[containerLableForPodNamespace])
 			obj.tags.append(c.cfg.extraTags)
 
-			task, err := container.Task(ctx, nil)
-			if err != nil {
-				l.Warn("failed to create containerd task, err: %w, skip", err)
-				continue
-			}
-
-			metric, err := task.Metrics(ctx)
-			if err != nil {
-				l.Warn("failed to get containerd metrics, err: %w, skip", err)
-				continue
-			}
-			metricsData, err := typeurl.UnmarshalAny(metric.Data)
-			if err != nil {
-				l.Warn("failed to unmarshal containerd metrics, err: %w, skip", err)
-				continue
-			}
-
-			oldCPU, err := cpuContainerStats(metricsData, time.Now())
-			if err != nil {
-				l.Warn(err)
-				continue
-			}
-
 			mem, err := memoryContainerStats(metricsData)
 			if err != nil {
 				l.Warn(err)
 				continue
 			} else {
-				if mem.limitBytes != 0 {
-					obj.fields["mem_usage"] = float64(mem.worksetBytes) / float64(mem.limitBytes)
-				}
+				obj.fields["mem_usage"] = mem.worksetBytes
 				obj.fields["mem_limit"] = mem.limitBytes
+				if mem.limitBytes != 0 {
+					obj.fields["mem_used_percent"] = float64(mem.worksetBytes) / float64(mem.limitBytes)
+				}
 			}
 
 			func() {
