@@ -423,8 +423,13 @@ func getJobEventTags(j JobEventPayload) map[string]string {
 	if j.User != nil && j.User.Email != nil {
 		tags["user_email"] = *j.User.Email
 	}
-	if j.Commit != nil && j.Commit.SHA != nil {
-		tags["build_commit_sha"] = *j.Commit.SHA
+	if j.Commit != nil {
+		if j.Commit.SHA != nil {
+			tags["build_commit_sha"] = *j.Commit.SHA
+		}
+		if j.Commit.Message != nil {
+			tags["build_commit_message"] = *j.Commit.Message
+		}
 	}
 	if j.Repository != nil && j.Repository.Name != nil {
 		tags["build_repo_name"] = *j.Repository.Name

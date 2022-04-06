@@ -453,6 +453,7 @@ func TestJobTagsAndFields(t *testing.T) {
 		"build_stage":          "test",
 		"build_failure_reason": "script_failure",
 		"build_commit_sha":     "2293ada6b400935a1378653304eaf6221e0fdb8f",
+		"build_commit_message": "test\n",
 	}
 	expectedFields := map[string]interface{}{
 		"runner_id":   int64(380987),
