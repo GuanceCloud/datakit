@@ -55,6 +55,24 @@ func TestSqlCover(t *testing.T) {
 			expected: "SELECT ( ? )",
 			fail:     false,
 		},
+		{
+			name: "normal",
+			pl:   `sql_cover(_)`,
+			in: `select abc from def where x > 3 and y < 5
+						SELECT ( ? )`,
+			outKey:   "_",
+			expected: `select abc from def where x > ? and y < ? SELECT ( ? )`,
+			fail:     false,
+		},
+		{
+			name: "normal",
+			pl:   `sql_cover(_)`,
+			in: `#test
+select abc from def where x > 3 and y < 5`,
+			outKey:   "_",
+			expected: `select abc from def where x > ? and y < ?`,
+			fail:     false,
+		},
 	}
 
 	for idx, tc := range cases {

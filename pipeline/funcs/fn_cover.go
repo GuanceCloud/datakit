@@ -14,7 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/parser"
 )
 
-func DzChecking(ng *parser.EngineData, node parser.Node) error {
+func CoverChecking(ng *parser.EngineData, node parser.Node) error {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expects 2 args", funcExpr.Name)
@@ -33,21 +33,16 @@ func DzChecking(ng *parser.EngineData, node parser.Node) error {
 		return fmt.Errorf("param between range value `%v' is not expected", set)
 	}
 
-	if v, ok := set[0].(*parser.NumberLiteral); !ok {
+	if _, ok := set[0].(*parser.NumberLiteral); !ok {
 		return fmt.Errorf("range value `%v' is not expected", set)
-	} else if v.IsInt {
 	}
-
-	if v, ok := set[1].(*parser.NumberLiteral); !ok {
+	if _, ok := set[1].(*parser.NumberLiteral); !ok {
 		return fmt.Errorf("range value `%v' is not expected", set)
-	} else {
-		if v.IsInt {
-		}
 	}
 	return nil
 }
 
-func Dz(ng *parser.EngineData, node parser.Node) interface{} {
+func Cover(ng *parser.EngineData, node parser.Node) interface{} {
 	funcExpr := fexpr(node)
 	if len(funcExpr.Param) != 2 {
 		return fmt.Errorf("func %s expects 2 args", funcExpr.Name)
@@ -120,8 +115,8 @@ func Dz(ng *parser.EngineData, node parser.Node) interface{} {
 
 	// unreasonable subscript
 	if start > end {
-		l.Debugf("function cover second arg unreasonable")
-		return fmt.Errorf("function cover second arg unreasonable")
+		l.Debugf("invalid cover range")
+		return fmt.Errorf("invalid cover range")
 	}
 
 	arrCont := []rune(cont)
