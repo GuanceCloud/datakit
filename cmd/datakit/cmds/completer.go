@@ -78,6 +78,7 @@ complete -F _datakit datakit ddk
 
 	bashCompletionDirs = []string{
 		"/usr/share/bash-completion/completions",
+		"/etc/bash-completion.d",
 	}
 )
 
@@ -94,7 +95,7 @@ func setupCompleterScripts() {
 
 	for _, dir := range bashCompletionDirs {
 		if fi, err := os.Stat(dir); err != nil {
-			warnf("/etc/bash_completion.d not found: %s, skip\n", err)
+			warnf("%s not found: %s, skip\n", dir, err)
 			continue
 		} else {
 			if !fi.IsDir() {
