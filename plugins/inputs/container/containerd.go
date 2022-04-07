@@ -136,7 +136,7 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				obj.fields["mem_usage"] = mem.worksetBytes
 				obj.fields["mem_limit"] = mem.limitBytes
 				if mem.limitBytes != 0 {
-					obj.fields["mem_used_percent"] = float64(mem.worksetBytes) / float64(mem.limitBytes)
+					obj.fields["mem_used_percent"] = float64(mem.worksetBytes) / float64(mem.limitBytes) * 100
 				}
 			}
 
@@ -234,14 +234,14 @@ func memoryContainerStats(stats interface{}) (*memContainerUsage, error) {
 		if metrics.Memory != nil && metrics.Memory.Usage != nil {
 			return &memContainerUsage{
 				worksetBytes: int(getWorkingSet(metrics.Memory)),
-				limitBytes:   int(metrics.Memory.Usage.Limit),
+				limitBytes:   int(getLimit(metrics.Memory)),
 			}, nil
 		}
 	case *v2.Metrics:
 		if metrics.Memory != nil {
 			return &memContainerUsage{
 				worksetBytes: int(getWorkingSetV2(metrics.Memory)),
-				limitBytes:   int(metrics.Memory.UsageLimit),
+				limitBytes:   int(getLimitV2(metrics.Memory)),
 			}, nil
 		}
 	default:
@@ -274,6 +274,27 @@ func getWorkingSetV2(memory *v2.MemoryStat) uint64 {
 		workingSet = memory.Usage - memory.InactiveFile
 	}
 	return workingSet
+}
+
+//nolint
+func isMemoryUnlimited(v uint64) bool {
+	// Size after which we consider memory to be "unlimited". This is not
+	// MaxInt64 due to rounding by the kernel.
+	// TODO: k8s or cadvisor should export this https://github.com/google/cadvisor/blob/2b6fbacac7598e0140b5bc8428e3bdd7d86cf5b9/metrics/prometheus.go#L1969-L1971
+	const maxMemorySize = uint64(1 << 62)
+
+	return v > maxMemorySize
+}
+
+func getLimit(memory *v1.MemoryStat) uint64 {
+	if isMemoryUnlimited(memory.Usage.Limit) {
+		return memory.HierarchicalMemoryLimit
+	}
+	return memory.Usage.Limit
+}
+
+func getLimitV2(memory *v2.MemoryStat) uint64 {
+	return memory.UsageLimit
 }
 
 //nolint:gochecknoinits
