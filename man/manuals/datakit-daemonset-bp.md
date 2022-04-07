@@ -66,8 +66,11 @@ helm pull dataflux/datakit --untar
 #### 修改 values.yaml 配置
 
 修改 datakit/values.yaml 
+
 注意 yaml 格式，dataway_url 和 dkconfig 都要改
-<font color=#FF0000 > values.yaml 可以用于下次升级使用 </font
+
+<font color=#FF0000 > values.yaml 可以用于下次升级使用 </font>
+
 
 ```yaml
 dataway_url: https://openway.guance.com?token=<your-token>
@@ -148,7 +151,7 @@ helm install my-datakit dataflux/datakit -f values.yaml -n datakit  --create-nam
 
 ```shell
 helm repo update 
-helm upgrade my-datakit . -n datakit  -f values.yaml --set image.tag=1.2.11
+helm upgrade my-datakit . -n datakit  -f values.yaml
 
 Release "datakit" has been upgraded. Happy Helming!
 NAME: datakit
@@ -297,7 +300,7 @@ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://o
 
 ### yaml 启用 git 管理配置
 
-yaml 配置复杂，建议使用 [Helm 部署](###Helm 启用 git 管理配置)。
+yaml 配置复杂，建议使用 [Helm 部署](###Helm 启用 git 管理配置)
 
 先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)
 
