@@ -377,10 +377,10 @@ func getJobEventFields(j JobEventPayload) map[string]interface{} {
 		fields["build_id"] = *j.BuildID
 	}
 	if j.BuildStartedAt != nil {
-		fields["build_started_at"] = *j.BuildStartedAt
+		fields["build_started_at"] = j.BuildStartedAt.Unix()
 	}
 	if j.BuildFinishedAt != nil {
-		fields["build_finished_at"] = *j.BuildFinishedAt
+		fields["build_finished_at"] = j.BuildFinishedAt.Unix()
 	}
 	if j.BuildDuration != nil {
 		fields["build_duration"] = *j.BuildDuration
@@ -393,6 +393,9 @@ func getJobEventFields(j JobEventPayload) map[string]interface{} {
 	}
 	if j.Runner != nil && j.Runner.ID != nil {
 		fields["runner_id"] = *j.Runner.ID
+	}
+	if j.Commit != nil && j.Commit.Message != nil {
+		fields["build_commit_message"] = *j.Commit.Message
 	}
 	return fields
 }
@@ -423,13 +426,8 @@ func getJobEventTags(j JobEventPayload) map[string]string {
 	if j.User != nil && j.User.Email != nil {
 		tags["user_email"] = *j.User.Email
 	}
-	if j.Commit != nil {
-		if j.Commit.SHA != nil {
-			tags["build_commit_sha"] = *j.Commit.SHA
-		}
-		if j.Commit.Message != nil {
-			tags["build_commit_message"] = *j.Commit.Message
-		}
+	if j.Commit != nil && j.Commit.SHA != nil {
+		tags["build_commit_sha"] = *j.Commit.SHA
 	}
 	if j.Repository != nil && j.Repository.Name != nil {
 		tags["build_repo_name"] = *j.Repository.Name
@@ -444,6 +442,9 @@ func getPipelineEventFields(pl PipelineEventPayload) map[string]interface{} {
 	}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Duration != nil {
 		fields["duration"] = *pl.ObjectAttributes.Duration
+	}
+	if pl.Commit != nil && pl.Commit.Message != nil {
+		fields["commit_message"] = *pl.Commit.Message
 	}
 	return fields
 }
@@ -482,9 +483,6 @@ func getPipelineEventTags(pl PipelineEventPayload) map[string]string {
 	}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Ref != nil {
 		tags["ref"] = *pl.ObjectAttributes.Ref
-	}
-	if pl.Commit != nil && pl.Commit.Message != nil {
-		tags["commit_message"] = *pl.Commit.Message
 	}
 	return tags
 }
