@@ -169,13 +169,12 @@ func (t *IcmpTask) CheckResult() (reasons []string, succFlag bool) {
 			case "std":
 				checkVal = t.stdRoundTripTime
 			}
-			if checkVal > 0 {
-				if err := vs.check(checkVal); err != nil {
-					reasons = append(reasons,
-						fmt.Sprintf("ICMP round-trip(%s) check failed: %s", v.Func, err.Error()))
-				} else {
-					succFlag = true
-				}
+
+			if err := vs.check(checkVal); err != nil {
+				reasons = append(reasons,
+					fmt.Sprintf("ICMP round-trip(%s) check failed: %s", v.Func, err.Error()))
+			} else {
+				succFlag = true
 			}
 		}
 
