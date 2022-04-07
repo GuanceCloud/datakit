@@ -15,9 +15,23 @@ const (
 	H               = "high"
 	L               = "low"
 	defaultMemLimit = 1024 // 1GB
-	MB              = 1024 * 1024
 	cgroupName      = "datakit"
 )
+
+type Cgroup struct {
+	opt *CgroupOptions
+
+	cpuHigh   float64
+	cpuLow    float64
+	quotaHigh int64
+	quotaLow  int64
+	waitNum   int
+	level     string
+
+	err error
+
+	control cgroups.Cgroup
+}
 
 // 1 second.
 var period = uint64(1000000) //nolint:gomnd

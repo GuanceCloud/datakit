@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/shirou/gopsutil/cpu"
 	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -18,6 +17,10 @@ var (
 	l  = logger.DefaultSLogger("cgroup")
 )
 
+const (
+	MB = 1024 * 1024
+)
+
 type CgroupOptions struct {
 	Enable     bool    `toml:"enable"`
 	Path       string  `toml:"path"`
@@ -25,21 +28,6 @@ type CgroupOptions struct {
 	CPUMin     float64 `toml:"cpu_min"`
 	MemMax     int64   `toml:"mem_max_mb"`
 	DisableOOM bool    `toml:"disable_oom,omitempty"`
-}
-
-type Cgroup struct {
-	opt *CgroupOptions
-
-	cpuHigh   float64
-	cpuLow    float64
-	quotaHigh int64
-	quotaLow  int64
-	waitNum   int
-	level     string
-
-	err error
-
-	control cgroups.Cgroup
 }
 
 func Run(c *CgroupOptions) {
