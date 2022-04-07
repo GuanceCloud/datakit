@@ -216,6 +216,18 @@ datakit 根目录
 
 2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。
 
+### 设置打开的文件描述符的最大值
+
+Linux 环境下，可以在 Datakit 主配置文件中配置 ulimit 项，以设置 Datakit 的最大可打开文件数，如下：
+
+```toml
+ulimit = 64000
+```
+
+ulimit 默认配置为 64000。
+
+
+
 ## 延伸阅读
 
 - [DataKit 宿主机安装](datakit-install)
