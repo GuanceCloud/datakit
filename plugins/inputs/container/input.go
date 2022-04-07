@@ -153,7 +153,7 @@ func (i *Input) stop() {
 func (i *Input) collectObject() {
 	l.Debug("collect object in func")
 	if err := i.gatherDockerContainerObject(); err != nil {
-		l.Errorf("failed to collect container object: %w", err)
+		l.Errorf("failed to collect docker container object: %w", err)
 	}
 
 	if err := i.gatherContainerdObject(); err != nil {
@@ -183,7 +183,11 @@ func (i *Input) collectObject() {
 func (i *Input) collectMetric() {
 	l.Debug("collect mertric in func")
 	if err := i.gatherDockerContainerMetric(); err != nil {
-		l.Errorf("failed to collect container metric: %w", err)
+		l.Errorf("failed to collect docker container metric: %w", err)
+	}
+
+	if err := i.gatherContainerdMetric(); err != nil {
+		l.Errorf("failed to collect containerd metric: %w", err)
 	}
 
 	if err := i.watchNewDockerContainerLogs(); err != nil {
@@ -246,6 +250,25 @@ func (i *Input) gatherDockerContainerObject() error {
 	}
 
 	return inputs.FeedMeasurement("container-object", datakit.Object, res,
+		&io.Option{CollectCost: time.Since(start)})
+}
+
+func (i *Input) gatherContainerdMetric() error {
+	if i.containerdInput == nil {
+		return nil
+	}
+	start := time.Now()
+
+	res, err := i.containerdInput.gatherMetric()
+	if err != nil {
+		return err
+	}
+	if len(res) == 0 {
+		l.Debugf("containerd metric: no point")
+		return nil
+	}
+
+	return inputs.FeedMeasurement("containerd-metric", datakit.Metric, res,
 		&io.Option{CollectCost: time.Since(start)})
 }
 

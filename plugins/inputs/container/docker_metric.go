@@ -42,6 +42,7 @@ func getContainerTags(container *types.Container) tagsType {
 	tags["image_tag"] = imageTag
 	tags["container_name"] = getContainerName(container.Names)
 	tags["container_id"] = container.ID
+	tags["namespace"] = "moby"
 
 	if !containerIsFromKubernetes(getContainerName(container.Names)) {
 		tags["container_type"] = "docker"
@@ -199,6 +200,7 @@ func (c *containerMetric) Info() *inputs.MeasurementInfo {
 			"container_id":     inputs.NewTagInfo(`容器 ID`),
 			"container_name":   inputs.NewTagInfo(`容器名称`),
 			"docker_image":     inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0` （Depercated, use image）"),
+			"namespace":        inputs.NewTagInfo(`该容器所在的命名空间`),
 			"image":            inputs.NewTagInfo("镜像全称，例如 `nginx.org/nginx:1.21.0`"),
 			"image_name":       inputs.NewTagInfo("镜像名称，例如 `nginx.org/nginx`"),
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),

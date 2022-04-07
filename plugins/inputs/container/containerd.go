@@ -10,6 +10,7 @@ import (
 	v1 "github.com/containerd/cgroups/stats/v1"
 	v2 "github.com/containerd/cgroups/v2/stats"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/typeurl"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
@@ -42,6 +43,33 @@ func (c *containerdInput) stop() {
 	}
 }
 
+func (c *containerdInput) gatherMetric() ([]inputs.Measurement, error) {
+	obj, err := c.gatherObject()
+	if err != nil {
+		return nil, err
+	}
+
+	var res []inputs.Measurement
+
+	for _, o := range obj {
+		r, ok := o.(*containerdObject)
+		if !ok {
+			continue
+		}
+
+		// metric 不需要这两个字段
+		delete(r.tags, "name")
+		delete(r.fields, "message")
+
+		res = append(res, &containerdMetric{
+			tags:   r.tags,
+			fields: r.fields,
+			time:   r.time,
+		})
+	}
+	return res, nil
+}
+
 func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 	var res []inputs.Measurement
 
@@ -61,72 +89,31 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 		}
 
 		for _, container := range cList {
-			task, err := container.Task(ctx, nil)
-			if err != nil {
-				l.Warn("failed to create containerd task, err: %w, skip", err)
-				continue
-			}
-
-			metric, err := task.Metrics(ctx)
-			if err != nil {
-				l.Warn("failed to get containerd metrics, err: %w, skip", err)
-				continue
-			}
-			metricsData, err := typeurl.UnmarshalAny(metric.Data)
-			if err != nil {
-				l.Warn("failed to unmarshal containerd metrics, err: %w, skip", err)
-				continue
-			}
-
-			oldCPU, err := cpuContainerStats(metricsData, time.Now())
-			if err != nil {
-				l.Warn(err)
-				continue
-			}
-
-			if oldCPU.usageCoreNanoSeconds == 0 {
-				// not running
-				continue
-			}
-
 			info, err := container.Info(ctx)
 			if err != nil {
 				l.Warn("failed to get containerd info, err: %w, skip", err)
 				continue
 			}
-
-			imageName, imageShortName, imageTag := ParseImage(info.Image)
-			// ex: pause@sha256
-			if strings.HasPrefix(imageShortName, "pause") {
+			if isPauseContainerd(&info) {
 				continue
 			}
-
-			obj := &containerdObject{time: time.Now()}
-			obj.tags = map[string]string{
-				"name":             info.ID,
-				"namespace":        ns,
-				"container_id":     info.ID,
-				"image":            info.Image,
-				"image_name":       imageName,
-				"image_short_name": imageShortName,
-				"image_tag":        imageTag,
-				"runtime":          info.Runtime.Name,
-				"container_type":   "containerd",
-			}
-			obj.fields = map[string]interface{}{
-				// 毫秒除以1000得秒数，不使用Second()因为它返回浮点
-				"age": time.Since(info.CreatedAt).Milliseconds() / 1e3,
-			}
-
-			if containerName := info.Labels[containerLableForPodContainerName]; containerName != "" {
-				obj.tags["container_name"] = containerName
-			} else {
-				obj.tags["container_name"] = "unknown"
-			}
-
-			obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
-			obj.tags.addValueIfNotEmpty("pod_namespace", info.Labels[containerLableForPodNamespace])
+			obj := newContainerdObject(&info)
+			obj.tags["namespace"] = ns
 			obj.tags.append(c.cfg.extraTags)
+
+			metricsData, err := getContainerdMetricsData(ctx, container)
+			if err != nil {
+				l.Warn("failed to get containerd metrics, err: %w, skip", err)
+				continue
+			}
+			oldCPU, err := cpuContainerStats(metricsData, time.Now())
+			if err != nil {
+				l.Warn(err)
+				continue
+			}
+			if !oldCPU.isRunning() {
+				continue
+			}
 
 			mem, err := memoryContainerStats(metricsData)
 			if err != nil {
@@ -140,33 +127,45 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 				}
 			}
 
-			func() {
-				//nolint:gosec
-				time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
-				metric2, err := task.Metrics(ctx)
-				if err != nil {
-					l.Warn("failed to get containerd metrics, err: %w, skip", err)
-					return
-				}
-				metricsData2, err := typeurl.UnmarshalAny(metric2.Data)
-				if err != nil {
-					l.Warn("failed to unmarshal containerd metrics, err: %w, skip", err)
-					return
-				}
-				newCPU, err := cpuContainerStats(metricsData2, time.Now())
-				if err != nil {
-					l.Warn(err)
-					return
-				}
-				obj.fields["cpu_usage"] = oldCPU.calculatePercent(newCPU)
-			}()
-			obj.fields.mergeToMessage(obj.tags)
+			//nolint:gosec
+			time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+			metricsData2, err := getContainerdMetricsData(ctx, container)
+			if err != nil {
+				l.Warn("failed to get containerd metrics, err: %w, skip", err)
+				continue
+			}
+			newCPU, err := cpuContainerStats(metricsData2, time.Now())
+			if err != nil {
+				l.Warn(err)
+				continue
+			}
+			obj.fields["cpu_usage"] = oldCPU.calculatePercent(newCPU)
 
+			obj.fields.mergeToMessage(obj.tags)
 			res = append(res, obj)
 		}
 	}
 
 	return res, nil
+}
+
+func getContainerdMetricsData(ctx context.Context, container containerd.Container) (interface{}, error) {
+	task, err := container.Task(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	metric, err := task.Metrics(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := typeurl.UnmarshalAny(metric.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 type containerdObject struct {
@@ -176,18 +175,69 @@ type containerdObject struct {
 }
 
 func (c *containerdObject) LineProto() (*io.Point, error) {
-	// 此处使用 docker_containers 不合适
 	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Object})
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
-	// return nil
-	return &inputs.MeasurementInfo{}
+	return nil
+}
+
+func newContainerdObject(info *containers.Container) *containerdObject {
+	imageName, imageShortName, imageTag := ParseImage(info.Image)
+	obj := &containerdObject{time: time.Now()}
+	obj.tags = map[string]string{
+		"name":             info.ID,
+		"container_id":     info.ID,
+		"image":            info.Image,
+		"image_name":       imageName,
+		"image_short_name": imageShortName,
+		"image_tag":        imageTag,
+		"runtime":          info.Runtime.Name,
+		"container_type":   "containerd",
+	}
+	obj.fields = map[string]interface{}{
+		// 毫秒除以1000得秒数，不使用Second()因为它返回浮点
+		"age": time.Since(info.CreatedAt).Milliseconds() / 1e3,
+	}
+
+	if containerName := info.Labels[containerLableForPodContainerName]; containerName != "" {
+		obj.tags["container_name"] = containerName
+	} else {
+		obj.tags["container_name"] = "unknown"
+	}
+
+	obj.tags.addValueIfNotEmpty("pod_name", info.Labels[containerLableForPodName])
+	obj.tags.addValueIfNotEmpty("pod_namespace", info.Labels[containerLableForPodNamespace])
+	return obj
+}
+
+func isPauseContainerd(info *containers.Container) bool {
+	_, imageShortName, _ := ParseImage(info.Image)
+	// ex: pause@sha256
+	return strings.HasPrefix(imageShortName, "pause")
+}
+
+type containerdMetric struct {
+	tags   tagsType
+	fields fieldsType
+	time   time.Time
+}
+
+func (c *containerdMetric) LineProto() (*io.Point, error) {
+	return io.NewPoint(dockerContainerName, c.tags, c.fields, &io.PointOption{Time: c.time, Category: datakit.Metric})
+}
+
+func (c *containerdMetric) Info() *inputs.MeasurementInfo {
+	return nil
 }
 
 type cpuContainerUsage struct {
 	usageCoreNanoSeconds int
 	timestamp            time.Time
+}
+
+func (c *cpuContainerUsage) isRunning() bool {
+	return c.usageCoreNanoSeconds != 0
 }
 
 func (c *cpuContainerUsage) calculatePercent(currentUsage *cpuContainerUsage) float64 {
