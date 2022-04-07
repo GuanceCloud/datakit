@@ -215,5 +215,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&gitlabMeasurement{},
 		&gitlabBaseMeasurement{},
 		&gitlabHTTPMeasurement{},
+		&gitlabPipelineMeasurement{},
+		&gitlabJobMeasurement{},
 	}
 }
