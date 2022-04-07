@@ -201,6 +201,11 @@ if [ -n "$DK_INSTALL_IPDB" ]; then
 	ipdb_type=$DK_INSTALL_IPDB
 fi
 
+install_externals=""
+if [ -n "$DK_INSTALL_EXTERNALS" ]; then
+	install_externals=$DK_INSTALL_EXTERNALS
+fi
+
 if [ -n "$HTTP_PROXY" ]; then
 	proxy=$HTTP_PROXY
 fi
@@ -356,6 +361,7 @@ else
 			--dca-enable="${dca_enable}"               \
 			--dca-listen="${dca_listen}"               \
 			--dca-white-list="${dca_white_list}"       \
+			--install-externals="${install_externals}" \
 			--git-url="${git_url}"                     \
 			--git-key-path="${git_key_path}"           \
 			--git-key-pw="${git_key_pw}"               \

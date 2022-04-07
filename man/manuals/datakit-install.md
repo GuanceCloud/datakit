@@ -114,6 +114,8 @@ NAME1="value1" NAME2="value2"
 - `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认`0.0.0.0:9531`）
 - `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
 
+### 外部采集器相关
+- `DK_INSTALL_EXTERNALS`: 可用于安装如 datakit-ebpf 等未与 DataKit 一起打包的外部采集器
 ### Git 配置相关
 
 - `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
