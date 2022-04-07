@@ -48,10 +48,11 @@ type DataWayCfg struct {
 	URLs      []string `toml:"urls"`
 	endPoints []*endPoint
 
-	DeprecatedURL    string `toml:"url,omitempty"`
-	HTTPTimeout      string `toml:"timeout"`
-	HTTPProxy        string `toml:"http_proxy"`
-	Hostname         string `toml:"-"`
+	DeprecatedURL string `toml:"url,omitempty"`
+	HTTPTimeout   string `toml:"timeout"`
+	HTTPProxy     string `toml:"http_proxy"`
+	Hostname      string `toml:"-"`
+
 	DeprecatedHost   string `toml:"host,omitempty"`
 	DeprecatedScheme string `toml:"scheme,omitempty"`
 	DeprecatedToken  string `toml:"token,omitempty"`
@@ -231,6 +232,7 @@ func (dw *DataWayCfg) initHTTP() error {
 	}
 
 	dw.httpCli = ihttp.Cli(cliopts)
+	dw.httpCli.Timeout = dw.TimeoutDuration // set HTTP request timeout
 	log.Debugf("httpCli: %p", dw.httpCli.Transport)
 
 	return nil

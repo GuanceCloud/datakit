@@ -18,6 +18,8 @@ func TestAfterGather(t *testing.T) {
 	afterGather := NewAfterGather()
 	afterGather.AppendCalculator(StatTracingInfo)
 
+	afterGather.AppendFilter(PenetrateErrorTracing)
+
 	closer := &CloseResource{}
 	closer.UpdateIgnResList(map[string][]string{_services[0]: _resources})
 	afterGather.AppendFilter(closer.Close)
