@@ -57,8 +57,9 @@ func (c *containerdInput) gatherMetric() ([]inputs.Measurement, error) {
 			continue
 		}
 
-		// metric 不需要这两个字段
+		// metric 不需要这三个字段
 		delete(r.tags, "name")
+		delete(r.fields, "age")
 		delete(r.fields, "message")
 
 		res = append(res, &containerdMetric{
