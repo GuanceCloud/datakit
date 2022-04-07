@@ -1732,6 +1732,8 @@ gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220406090601-4f79eb7de813 h1:
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220406090601-4f79eb7de813/go.mod h1:F2wVIB5YMTXGS3mXb6br54zqMLo8E5ZGlGm+SqXPT48=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220406111648-4d2f2a97726b h1:If7g2sfW2lYU09sBKYoYY3OAgR64Rd/SNOO/t9B8zuw=
 gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220406111648-4d2f2a97726b/go.mod h1:F2wVIB5YMTXGS3mXb6br54zqMLo8E5ZGlGm+SqXPT48=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220407015921-b7f1dc62159c h1:UHgpBJfTy1vsAWc87uhhJmhZu8Aiqg2SbpOBxqLV6LY=
+gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220407015921-b7f1dc62159c/go.mod h1:F2wVIB5YMTXGS3mXb6br54zqMLo8E5ZGlGm+SqXPT48=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5 h1:XAzx9gjCb0Rxj7EoqcClPD1d5ZBxZJk0jbuoPHenBt0=

@@ -53,6 +53,10 @@ type TcpTask struct {
 
 func (t *TcpTask) InitDebug() error {
 
+	return t.init(true)
+}
+
+func (t *TcpTask) init(debug bool) error {
 	if len(t.Timeout) == 0 {
 		t.timeout = 10 * time.Second
 	} else {
@@ -61,6 +65,17 @@ func (t *TcpTask) InitDebug() error {
 		} else {
 			t.timeout = timeout
 		}
+	}
+
+	if !debug {
+		du, err := time.ParseDuration(t.Frequency)
+		if err != nil {
+			return err
+		}
+		if t.ticker != nil {
+			t.ticker.Stop()
+		}
+		t.ticker = time.NewTicker(du)
 	}
 
 	if strings.ToLower(t.CurStatus) == StatusStop {
@@ -94,52 +109,7 @@ func (t *TcpTask) InitDebug() error {
 
 func (t *TcpTask) Init() error {
 
-	if len(t.Timeout) == 0 {
-		t.timeout = 10 * time.Second
-	} else {
-		if timeout, err := time.ParseDuration(t.Timeout); err != nil {
-			return err
-		} else {
-			t.timeout = timeout
-		}
-	}
-
-	du, err := time.ParseDuration(t.Frequency)
-	if err != nil {
-		return err
-	}
-	if t.ticker != nil {
-		t.ticker.Stop()
-	}
-	t.ticker = time.NewTicker(du)
-
-	if strings.ToLower(t.CurStatus) == StatusStop {
-		return nil
-	}
-
-	if len(t.SuccessWhen) == 0 {
-		return fmt.Errorf(`no any check rule`)
-	}
-
-	for _, checker := range t.SuccessWhen {
-		if checker.ResponseTime != nil {
-			for _, v := range checker.ResponseTime {
-				du, err := time.ParseDuration(v.Target)
-				if err != nil {
-					return err
-				}
-				v.targetTime = du
-			}
-		}
-
-		// if [checker.Hops] is not nil, set traceroute to be true
-		if checker.Hops != nil {
-			t.EnableTraceroute = true
-		}
-
-	}
-
-	return nil
+	return t.init(false)
 }
 
 func (t *TcpTask) Check() error {

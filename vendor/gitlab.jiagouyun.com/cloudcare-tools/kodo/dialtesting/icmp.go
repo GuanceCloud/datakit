@@ -72,52 +72,14 @@ type IcmpTask struct {
 }
 
 func (t *IcmpTask) InitDebug() error {
-	if len(t.Timeout) == 0 {
-		t.timeout = PING_TIMEOUT
-	} else {
-		if timeout, err := time.ParseDuration(t.Timeout); err != nil {
-			return err
-		} else {
-			t.timeout = timeout
-		}
-	}
-
-	if strings.ToLower(t.CurStatus) == StatusStop {
-		return nil
-	}
-
-	if len(t.SuccessWhen) == 0 {
-		return fmt.Errorf(`no any check rule`)
-	}
-
-	if t.PacketCount <= 0 {
-		t.PacketCount = 3
-	}
-
-	for _, checker := range t.SuccessWhen {
-		if checker.ResponseTime != nil {
-			for _, resp := range checker.ResponseTime {
-				du, err := time.ParseDuration(resp.Target)
-				if err != nil {
-					return err
-				}
-				resp.target = float64(du.Nanoseconds()) / 1e6 // ms
-			}
-		}
-
-		// if [checker.Hops] is not nil, set traceroute to be true
-		if checker.Hops != nil {
-			t.EnableTraceroute = true
-		}
-
-	}
-
-	t.originBytes = make([]byte, 2000)
-
-	return nil
+	return t.init(true)
 }
 
 func (t *IcmpTask) Init() error {
+	return t.init(false)
+}
+
+func (t *IcmpTask) init(debug bool) error {
 	if len(t.Timeout) == 0 {
 		t.timeout = PING_TIMEOUT
 	} else {
@@ -128,14 +90,16 @@ func (t *IcmpTask) Init() error {
 		}
 	}
 
-	du, err := time.ParseDuration(t.Frequency)
-	if err != nil {
-		return err
+	if !debug {
+		du, err := time.ParseDuration(t.Frequency)
+		if err != nil {
+			return err
+		}
+		if t.ticker != nil {
+			t.ticker.Stop()
+		}
+		t.ticker = time.NewTicker(du)
 	}
-	if t.ticker != nil {
-		t.ticker.Stop()
-	}
-	t.ticker = time.NewTicker(du)
 
 	if strings.ToLower(t.CurStatus) == StatusStop {
 		return nil

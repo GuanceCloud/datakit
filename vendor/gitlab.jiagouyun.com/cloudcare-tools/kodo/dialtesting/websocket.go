@@ -74,7 +74,7 @@ type WebsocketTask struct {
 	ticker          *time.Ticker
 }
 
-func (t *WebsocketTask) InitDebug() error {
+func (t *WebsocketTask) init(debug bool) error {
 	t.timeout = 30 * time.Second
 	if t.AdvanceOptions != nil {
 		if t.AdvanceOptions.RequestOptions != nil && len(t.AdvanceOptions.RequestOptions.Timeout) > 0 {
@@ -84,6 +84,17 @@ func (t *WebsocketTask) InitDebug() error {
 				t.timeout = timeout
 			}
 		}
+	}
+
+	if !debug {
+		du, err := time.ParseDuration(t.Frequency)
+		if err != nil {
+			return err
+		}
+		if t.ticker != nil {
+			t.ticker.Stop()
+		}
+		t.ticker = time.NewTicker(du)
 	}
 
 	if strings.ToLower(t.CurStatus) == StatusStop {
@@ -115,6 +126,13 @@ func (t *WebsocketTask) InitDebug() error {
 			}
 		}
 
+		for _, v := range checker.ResponseMessage {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+
+		}
 	}
 
 	if parsedURL, err := url.Parse(t.URL); err != nil {
@@ -136,74 +154,12 @@ func (t *WebsocketTask) InitDebug() error {
 	return nil
 }
 
+func (t *WebsocketTask) InitDebug() error {
+	return t.init(true)
+}
+
 func (t *WebsocketTask) Init() error {
-	t.timeout = 30 * time.Second
-	if t.AdvanceOptions != nil {
-		if t.AdvanceOptions.RequestOptions != nil && len(t.AdvanceOptions.RequestOptions.Timeout) > 0 {
-			if timeout, err := time.ParseDuration(t.AdvanceOptions.RequestOptions.Timeout); err != nil {
-				return err
-			} else {
-				t.timeout = timeout
-			}
-		}
-	}
-
-	du, err := time.ParseDuration(t.Frequency)
-	if err != nil {
-		return err
-	}
-	if t.ticker != nil {
-		t.ticker.Stop()
-	}
-	t.ticker = time.NewTicker(du)
-
-	if strings.ToLower(t.CurStatus) == StatusStop {
-		return nil
-	}
-
-	if len(t.SuccessWhen) == 0 {
-		return fmt.Errorf(`no any check rule`)
-	}
-
-	for _, checker := range t.SuccessWhen {
-		if checker.ResponseTime != nil {
-			for _, v := range checker.ResponseTime {
-				du, err := time.ParseDuration(v.Target)
-				if err != nil {
-					return err
-				}
-				v.targetTime = du
-			}
-		}
-
-		for _, vs := range checker.Header {
-			for _, v := range vs {
-				err := genReg(v)
-				if err != nil {
-					return err
-				}
-
-			}
-		}
-	}
-
-	if parsedURL, err := url.Parse(t.URL); err != nil {
-		return err
-	} else {
-		if parsedURL.Port() == "" {
-			port := ""
-			if parsedURL.Scheme == "wss" {
-				port = "443"
-			} else if parsedURL.Scheme == "ws" {
-				port = "80"
-			}
-			parsedURL.Host = net.JoinHostPort(parsedURL.Host, port)
-		}
-		t.parsedURL = parsedURL
-		t.hostname = parsedURL.Hostname()
-	}
-
-	return nil
+	return t.init(false)
 }
 
 func (t *WebsocketTask) Check() error {
