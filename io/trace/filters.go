@@ -8,8 +8,11 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
+
+func NonFilter(dktrace DatakitTrace) (DatakitTrace, bool) {
+	return dktrace, false
+}
 
 func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
 	if len(dktrace) == 0 {
@@ -182,82 +185,43 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	}
 }
 
-var _ worker.Task = &DkTracePiplineTask{}
-
-type DkTracePiplineTask struct {
-	pipFileName string
-	DatakitTrace
-}
-
-func (pt *DkTracePiplineTask) GetSource() string {
-	if len(pt.DatakitTrace) != 0 {
-		return pt.DatakitTrace[0].Source
-	} else {
-		return ""
-	}
-}
-
-func (pt *DkTracePiplineTask) GetScriptName() string {
-	return pt.pipFileName
-}
-
-func (pt *DkTracePiplineTask) GetMaxMessageLen() int {
-	return 0
-}
-
-func (pt *DkTracePiplineTask) ContentType() string {
-	return worker.ContentString
-}
-
-func (pt *DkTracePiplineTask) ContentEncode() string {
-	return ""
-}
-
-func (pt *DkTracePiplineTask) GetContent() interface{} {
-	var content []string
-	for i := range pt.DatakitTrace {
-		content = append(content, pt.DatakitTrace[i].Content)
+func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc {
+	if len(piplines) == 0 {
+		return NonFilter
 	}
 
-	return content
-}
-
-func (pt *DkTracePiplineTask) Callback(rslt []*pipeline.Result) error {
-	if len(pt.DatakitTrace) != len(rslt) {
-		return fmt.Errorf("result count is less than input")
-	}
-
-	for i := range rslt {
-		if len(rslt[i].Err) != 0 {
-			log.Debugf("encounter error when traversing pipline results", rslt[i].Err)
+	var (
+		pips = make(map[string]*pipeline.Pipeline)
+		err  error
+	)
+	for k := range piplines {
+		if pips[k], err = pipeline.NewPipeline(piplines[k]); err != nil {
+			log.Debugf("create pipeline %s failed: %s", k, err)
 			continue
 		}
-
-		for k, v := range rslt[i].Output.Tags {
-			pt.DatakitTrace[i].Tags[k] = v
-		}
-		for k, v := range rslt[i].Output.Fields {
-			pt.DatakitTrace[i].Metrics[k] = v
-		}
+	}
+	if len(pips) == 0 {
+		return NonFilter
 	}
 
-	return nil
-}
-
-func PiplineFilterWrapper(piplines map[string]string) FilterFunc {
 	return func(dktrace DatakitTrace) (DatakitTrace, bool) {
 		if len(dktrace) == 0 {
 			return dktrace, true
 		}
 
-		for k, v := range piplines {
-			if k == dktrace[0].Service {
-				task := &DkTracePiplineTask{
-					pipFileName:  v,
-					DatakitTrace: dktrace,
-				}
-				if err := worker.FeedPipelineTaskBlock(task); err != nil {
-					log.Debugf("run pipline error: %s", err)
+		for s, p := range pips {
+			for i := range dktrace {
+				if dktrace[i].Service == s {
+					if rslt, err := p.Run(dktrace[i].Content, source); err != nil {
+						log.Debugf("run pipeline %s.p failed: %s", s, err.Error())
+					} else {
+						for k, v := range rslt.Output.Tags {
+							dktrace[i].Tags[k] = v
+						}
+						for k, v := range rslt.Output.Fields {
+							dktrace[i].Metrics[k] = v
+						}
+					}
 				}
 			}
 		}

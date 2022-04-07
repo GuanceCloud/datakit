@@ -164,7 +164,7 @@ func (ipt *Input) Run() {
 	}
 	// add piplines
 	if len(ipt.Pipelines) != 0 {
-		afterGather.AppendFilter(itrace.PiplineFilterWrapper(ipt.Pipelines))
+		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
 	}
 
 	customerKeys = ipt.CustomerTags
