@@ -179,7 +179,7 @@ func (c *containerdObject) LineProto() (*io.Point, error) {
 }
 
 func (c *containerdObject) Info() *inputs.MeasurementInfo {
-	return nil
+	return &inputs.MeasurementInfo{}
 }
 
 func newContainerdObject(info *containers.Container) *containerdObject {
@@ -228,7 +228,7 @@ func (c *containerdMetric) LineProto() (*io.Point, error) {
 }
 
 func (c *containerdMetric) Info() *inputs.MeasurementInfo {
-	return nil
+	return &inputs.MeasurementInfo{}
 }
 
 type cpuContainerUsage struct {
