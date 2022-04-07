@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	v1 "github.com/containerd/cgroups/stats/v1"
@@ -95,7 +96,8 @@ func (c *containerdInput) gatherObject() ([]inputs.Measurement, error) {
 			}
 
 			imageName, imageShortName, imageTag := ParseImage(info.Image)
-			if imageShortName == "pause" {
+			// ex: pause@sha256
+			if strings.HasPrefix(imageShortName, "pause") {
 				continue
 			}
 
@@ -230,17 +232,15 @@ func memoryContainerStats(stats interface{}) (*memContainerUsage, error) {
 	switch metrics := stats.(type) {
 	case *v1.Metrics:
 		if metrics.Memory != nil && metrics.Memory.Usage != nil {
-			workingSetBytes := getWorkingSet(metrics.Memory)
 			return &memContainerUsage{
-				worksetBytes: int(getAvailableBytes(metrics.Memory, workingSetBytes)),
-				limitBytes:   int(metrics.Memory.HierarchicalMemoryLimit),
+				worksetBytes: int(getWorkingSet(metrics.Memory)),
+				limitBytes:   int(metrics.Memory.Usage.Limit),
 			}, nil
 		}
 	case *v2.Metrics:
 		if metrics.Memory != nil {
-			workingSetBytes := getWorkingSetV2(metrics.Memory)
 			return &memContainerUsage{
-				worksetBytes: int(getAvailableBytesV2(metrics.Memory, workingSetBytes)),
+				worksetBytes: int(getWorkingSetV2(metrics.Memory)),
 				limitBytes:   int(metrics.Memory.UsageLimit),
 			}, nil
 		}
@@ -274,33 +274,6 @@ func getWorkingSetV2(memory *v2.MemoryStat) uint64 {
 		workingSet = memory.Usage - memory.InactiveFile
 	}
 	return workingSet
-}
-
-//nolint
-func isMemoryUnlimited(v uint64) bool {
-	// Size after which we consider memory to be "unlimited". This is not
-	// MaxInt64 due to rounding by the kernel.
-	// TODO: k8s or cadvisor should export this https://github.com/google/cadvisor/blob/2b6fbacac7598e0140b5bc8428e3bdd7d86cf5b9/metrics/prometheus.go#L1969-L1971
-	const maxMemorySize = uint64(1 << 62)
-
-	return v > maxMemorySize
-}
-
-// https://github.com/kubernetes/kubernetes/blob/b47f8263e18c7b13dba33fba23187e5e0477cdbd/pkg/kubelet/stats/helper.go#L68-L71
-func getAvailableBytes(memory *v1.MemoryStat, workingSetBytes uint64) uint64 {
-	// memory limit - working set bytes
-	if !isMemoryUnlimited(memory.Usage.Limit) {
-		return memory.Usage.Limit - workingSetBytes
-	}
-	return 0
-}
-
-func getAvailableBytesV2(memory *v2.MemoryStat, workingSetBytes uint64) uint64 {
-	// memory limit (memory.max) for cgroupv2 - working set bytes
-	if !isMemoryUnlimited(memory.UsageLimit) {
-		return memory.UsageLimit - workingSetBytes
-	}
-	return 0
 }
 
 //nolint:gochecknoinits
