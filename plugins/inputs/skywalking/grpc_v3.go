@@ -122,9 +122,9 @@ func segobjToDkTrace(segment *skyimpl.SegmentObject) itrace.DatakitTrace {
 		}
 		dkspan.Tags = itrace.MergeInToCustomerTags(customerKeys, tags, sourceTags)
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {

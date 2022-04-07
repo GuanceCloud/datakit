@@ -8,6 +8,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hashcode"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/pipeline/worker"
 )
 
 func PenetrateErrorTracing(dktrace DatakitTrace) (DatakitTrace, bool) {
@@ -181,42 +182,73 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 	}
 }
 
-type TracePiplineTask struct {
-	source string
+var _ worker.Task = &DkTracePiplineTask{}
+
+type DkTracePiplineTask struct {
+	DatakitTrace
 }
 
-func (tpt *TracePiplineTask) GetSource() string {
-
+func (pt *DkTracePiplineTask) GetSource() string {
+	if len(pt.DatakitTrace) != 0 {
+		return pt.DatakitTrace[0].Source
+	} else {
+		return ""
+	}
 }
 
-func (tpt *TracePiplineTask) GetScriptName() string {
-
+func (pt *DkTracePiplineTask) GetScriptName() string {
+	if len(pt.DatakitTrace) != 0 {
+		return pt.DatakitTrace[0].Source + ".p"
+	} else {
+		return ""
+	}
 }
 
-func (tpt *TracePiplineTask) GetMaxMessageLen() int {
-
+func (pt *DkTracePiplineTask) GetMaxMessageLen() int {
+	return 0
 }
 
-func (tpt *TracePiplineTask) ContentType() string {
-
+func (pt *DkTracePiplineTask) ContentType() string {
+	return worker.ContentString
 }
 
-func (tpt *TracePiplineTask) ContentEncode() string {
-
+func (pt *DkTracePiplineTask) ContentEncode() string {
+	return ""
 }
 
-func (tpt *TracePiplineTask) GetContent() interface{} {
+func (pt *DkTracePiplineTask) GetContent() interface{} {
+	var content []string
+	for i := range pt.DatakitTrace {
+		content = append(content, pt.DatakitTrace[i].Content)
+	}
 
+	return content
 }
 
-func (tpt *TracePiplineTask) GetMeta() TraceMetricsSetter {
+func (pt *DkTracePiplineTask) Callback(rslt []*pipeline.Result) error {
+	if len(pt.DatakitTrace) != len(rslt) {
+		return fmt.Errorf("result count is less than input")
+	}
 
+	for i := range rslt {
+		if len(rslt[i].Err) != 0 {
+			log.Debugf("encounter error when traversing pipline results", rslt[i].Err)
+			continue
+		}
+
+		for k, v := range rslt[i].Output.Tags {
+			pt.DatakitTrace[i].Tags[k] = v
+		}
+		for k, v := range rslt[i].Output.Fields {
+			pt.DatakitTrace[i].Metrics[k] = v
+		}
+	}
+
+	return nil
 }
 
-func (tpt *TracePiplineTask) Callback([]*pipeline.Result) error {
+func PiplineFilterWrapper(piplines map[string]string) FilterFunc {
+	return func(dktrace DatakitTrace) (DatakitTrace, bool) {
 
-}
-
-func (tpt *TracePiplineTask) RunPipline(dktrace DatakitTrace) (DatakitTrace, bool) {
-	return nil, false
+	}
 }

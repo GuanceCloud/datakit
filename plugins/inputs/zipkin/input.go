@@ -43,9 +43,9 @@ const (
 
   ## Sampler config uses to set global sampling strategy.
   ## priority uses to set tracing data propagation level, the valid values are -1, 0, 1
-  ##   -1: always reject any tracing data send to datakit
-  ##    0: accept tracing data and calculate with sampling_rate
-  ##    1: always send to data center and do not consider sampling_rate
+  ##  -1: always reject any tracing data send to datakit
+  ##   0: accept tracing data and calculate with sampling_rate
+  ##   1: always send to data center and do not consider sampling_rate
   ## sampling_rate used to set global sampling rate
   # [inputs.zipkin.sampler]
     # priority = 0
@@ -66,7 +66,7 @@ var (
 	afterGatherRun   itrace.AfterGatherHandler = afterGather
 	keepRareResource *itrace.KeepRareResource
 	closeResource    *itrace.CloseResource
-	defSampler       *itrace.Sampler
+	sampler          *itrace.Sampler
 	customerKeys     []string
 	tags             map[string]string
 )
@@ -121,8 +121,8 @@ func (ipt *Input) Run() {
 	}
 	// add sampler
 	if ipt.Sampler != nil {
-		defSampler = ipt.Sampler
-		afterGather.AppendFilter(defSampler.Sample)
+		sampler = ipt.Sampler
+		afterGather.AppendFilter(sampler.Sample)
 	}
 
 	customerKeys = ipt.CustomerTags

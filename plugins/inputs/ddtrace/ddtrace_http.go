@@ -211,9 +211,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			dkspan.Priority = itrace.PriorityReject
 		}
 
-		if dkspan.ParentID == "0" && defSampler != nil {
-			dkspan.Priority = defSampler.Priority
-			dkspan.SamplingRateGlobal = defSampler.SamplingRateGlobal
+		if dkspan.ParentID == "0" && sampler != nil {
+			dkspan.Priority = sampler.Priority
+			dkspan.SamplingRateGlobal = sampler.SamplingRateGlobal
 		}
 
 		if buf, err := json.Marshal(span); err != nil {
