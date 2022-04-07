@@ -185,6 +185,7 @@ func (smp *Sampler) UpdateArgs(priority int, samplingRateGlobal float64) {
 var _ worker.Task = &DkTracePiplineTask{}
 
 type DkTracePiplineTask struct {
+	pipFileName string
 	DatakitTrace
 }
 
@@ -197,11 +198,7 @@ func (pt *DkTracePiplineTask) GetSource() string {
 }
 
 func (pt *DkTracePiplineTask) GetScriptName() string {
-	if len(pt.DatakitTrace) != 0 {
-		return pt.DatakitTrace[0].Source + ".p"
-	} else {
-		return ""
-	}
+	return pt.pipFileName
 }
 
 func (pt *DkTracePiplineTask) GetMaxMessageLen() int {
@@ -249,6 +246,22 @@ func (pt *DkTracePiplineTask) Callback(rslt []*pipeline.Result) error {
 
 func PiplineFilterWrapper(piplines map[string]string) FilterFunc {
 	return func(dktrace DatakitTrace) (DatakitTrace, bool) {
+		if len(dktrace) == 0 {
+			return dktrace, true
+		}
 
+		for k, v := range piplines {
+			if k == dktrace[0].Service {
+				task := &DkTracePiplineTask{
+					pipFileName:  v,
+					DatakitTrace: dktrace,
+				}
+				if err := worker.FeedPipelineTaskBlock(task); err != nil {
+					log.Debugf("run pipline error: %s", err)
+				}
+			}
+		}
+
+		return dktrace, false
 	}
 }

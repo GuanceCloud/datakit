@@ -57,6 +57,7 @@ const (
 
   # Piplines uses to manipulate message and meta data. If this item configed right then ddtrace will run
   # the scripts written in pipline configures file against the data present in span message.
+  # The string on the left side of the equal sign must be identical to the service name that you try to handle.
   # [inputs.ddtrace.pipelines]
     # service1 = "service1.p"
     # service2 = "service2.p"
@@ -78,7 +79,6 @@ var (
 	keepRareResource   *itrace.KeepRareResource
 	closeResource      *itrace.CloseResource
 	sampler            *itrace.Sampler
-	piplines           map[string]string
 	customerKeys       []string
 	tags               map[string]string
 )
