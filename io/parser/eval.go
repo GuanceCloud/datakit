@@ -56,7 +56,7 @@ func (e *BinaryExpr) Eval(tags map[string]string, fields map[string]interface{})
 
 func (e *BinaryExpr) doEval(tags map[string]string, fields map[string]interface{}) bool {
 	switch e.Op {
-	case GTE, GT, LT, LTE, NEQ, EQ, IN, NOT_IN, CONTAIN, NOT_CONTAIN:
+	case GTE, GT, LT, LTE, NEQ, EQ, IN, NOT_IN, MATCH, NOT_MATCH:
 	default:
 		log.Errorf("unsupported OP %s", e.Op.String())
 		return false
@@ -151,10 +151,10 @@ func binEval(op ItemType, lhs, rhs interface{}) bool {
 			}
 		}
 
-	case CONTAIN:
+	case MATCH:
 		return rhs.(*Regex).Re.MatchString(lhs.(string))
 
-	case NOT_CONTAIN:
+	case NOT_MATCH:
 		return !rhs.(*Regex).Re.MatchString(lhs.(string))
 
 	case NEQ:
@@ -291,7 +291,7 @@ func (e *BinaryExpr) singleEval(tags map[string]string, fields map[string]interf
 		name := lhs.Name
 
 		switch e.Op {
-		case CONTAIN, NOT_CONTAIN:
+		case MATCH, NOT_MATCH:
 			for _, item := range e.RHS.(NodeList) {
 				if v, ok := tags[name]; ok {
 					if binEval(e.Op, v, item) {

@@ -22,8 +22,8 @@ func (dw *dwMock) Pull() ([]byte, error) {
 		},
 
 		"tracing": {
-			`{ service = "test1" and ( f1 in ["1", "2", "3"] or t1 contain [ 'abc.*'])}`,
-			`{ service = re("test2") and ( f1 in ["1", "2", "3"] or t1 contain [ 'def.*'])}`,
+			`{ service = "test1" and ( f1 in ["1", "2", "3"] or t1 match [ 'abc.*'])}`,
+			`{ service = re("test2") and ( f1 in ["1", "2", "3"] or t1 match [ 'def.*'])}`,
 		},
 	}
 
@@ -85,9 +85,7 @@ func TestPull(t *testing.T) {
 	for i := 0; i < round; i++ {
 		f.pull()
 		// test if reset tick ok
-		select {
-		case <-f.tick.C:
-		}
+		<-f.tick.C
 	}
 
 	tu.Assert(t, f.pullInterval == time.Millisecond*time.Duration(round), "expect %ds, got %s", round, f.pullInterval)

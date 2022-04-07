@@ -130,7 +130,7 @@ func (m *monitorAPP) renderFilterStatsTable(ds *dkhttp.DatakitStats) {
 
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("Pull Interval").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-	table.SetCell(row, 1, tview.NewTableCell(time.Duration(fs.PullInterval).String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+	table.SetCell(row, 1, tview.NewTableCell(fs.PullInterval.String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("Pull Failed").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
@@ -138,11 +138,11 @@ func (m *monitorAPP) renderFilterStatsTable(ds *dkhttp.DatakitStats) {
 
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("Pull Cost.Avg").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-	table.SetCell(row, 1, tview.NewTableCell(time.Duration(fs.PullCostAvg).String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+	table.SetCell(row, 1, tview.NewTableCell(fs.PullCostAvg.String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("Pull Cost.Max").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
-	table.SetCell(row, 1, tview.NewTableCell(time.Duration(fs.PullCostMax).String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+	table.SetCell(row, 1, tview.NewTableCell(fs.PullCostMax.String()).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
 	table.SetCell(row, 0, tview.NewTableCell("Last Updated").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
@@ -293,10 +293,10 @@ func (m *monitorAPP) renderFilterRulesStatsTable(ds *dkhttp.DatakitStats, colArr
 		table.SetCell(row, col, tview.NewTableCell(number(v.Filtered)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		col++
-		table.SetCell(row, col, tview.NewTableCell(time.Duration(v.Cost).String()).
+		table.SetCell(row, col, tview.NewTableCell(v.Cost.String()).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		col++
-		table.SetCell(row, col, tview.NewTableCell(time.Duration(v.CostPerPoint).String()).
+		table.SetCell(row, col, tview.NewTableCell(v.CostPerPoint.String()).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		col++
 		table.SetCell(row, col, tview.NewTableCell(number(v.Conditions)).

@@ -14,12 +14,12 @@ func TestParse(t *testing.T) {
 		fail     bool
 	}{
 		{
-			in: "{ t1 contain ['g(-z]+ng wrong regex']} # invalid regex",
+			in: "{ t1 match ['g(-z]+ng wrong regex']} # invalid regex",
 			expected: WhereConditions{
 				&WhereCondition{
 					conditions: []Node{
 						&BinaryExpr{
-							Op:  CONTAIN,
+							Op:  MATCH,
 							LHS: &Identifier{Name: "t1"},
 							RHS: NodeList{},
 						},
@@ -48,8 +48,8 @@ func TestParse(t *testing.T) {
 		{
 			in: `{ service = re(".*") AND (
 			f1 in ["1", "2", "3"] OR
-			t1 contain [ 'def.*' ] OR
-			t2 notcontain [ 'def.*' ]
+			t1 match [ 'def.*' ] OR
+			t2 notmatch [ 'def.*' ]
 		)}`,
 			expected: WhereConditions{
 				&WhereCondition{
@@ -73,7 +73,7 @@ func TestParse(t *testing.T) {
 										},
 
 										RHS: &BinaryExpr{
-											Op:  CONTAIN,
+											Op:  MATCH,
 											LHS: &Identifier{Name: "t1"},
 											RHS: NodeList{
 												&Regex{Regex: "def.*"},
@@ -82,7 +82,7 @@ func TestParse(t *testing.T) {
 									},
 
 									RHS: &BinaryExpr{
-										Op:  NOT_CONTAIN,
+										Op:  NOT_MATCH,
 										LHS: &Identifier{Name: "t2"},
 										RHS: NodeList{
 											&Regex{Regex: "def.*"},

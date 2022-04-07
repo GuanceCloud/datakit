@@ -255,7 +255,7 @@ func (p *parser) newBinExpr(l, r Node, op Item) *BinaryExpr {
 			}
 		}
 
-	case CONTAIN, NOT_CONTAIN: // convert rhs into regex list
+	case MATCH, NOT_MATCH: // convert rhs into regex list
 		switch nl := r.(type) {
 		case NodeList:
 			// convert elems in @n into Regex node, used in CONTAIN/NOTCONTAIN

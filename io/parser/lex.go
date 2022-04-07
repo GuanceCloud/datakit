@@ -65,8 +65,8 @@ var (
 		"by":   BY,
 		"desc": DESC,
 
-		"contain":    CONTAIN,
-		"notcontain": NOT_CONTAIN,
+		"match":    MATCH,
+		"notmatch": NOT_MATCH,
 
 		"false":      FALSE,
 		"filter":     FILTER,

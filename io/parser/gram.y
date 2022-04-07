@@ -36,7 +36,7 @@ import (
 %token keywordsStart
 %token <item>
 AS ASC AUTO BY
-CONTAIN NOT_CONTAIN
+MATCH NOT_MATCH
 DESC TRUE FALSE FILTER
 IDENTIFIER IN NOT_IN AND LINK LIMIT SLIMIT
 OR NIL NULL OFFSET SOFFSET
@@ -390,13 +390,13 @@ binary_expr: expr ADD expr
 						 bexpr.ReturnBool = true
 						 $$ = bexpr
 					 }
-					 | columnref CONTAIN LEFT_BRACKET array_list RIGHT_BRACKET
+					 | columnref MATCH LEFT_BRACKET array_list RIGHT_BRACKET
 					 {
 						 bexpr := yylex.(*parser).newBinExpr($1, $4, $2)
 						 bexpr.ReturnBool = true
 						 $$ = bexpr
 					 }
-					 | columnref NOT_CONTAIN LEFT_BRACKET array_list RIGHT_BRACKET
+					 | columnref NOT_MATCH LEFT_BRACKET array_list RIGHT_BRACKET
 					 {
 						 bexpr := yylex.(*parser).newBinExpr($1, $4, $2)
 						 bexpr.ReturnBool = true

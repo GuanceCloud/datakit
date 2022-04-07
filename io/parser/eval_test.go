@@ -16,38 +16,38 @@ func TestExprConditions(t *testing.T) {
 	}{
 
 		{
-			in:     "{ abc notcontain []}",
+			in:     "{ abc notmatch []}",
 			fields: map[string]interface{}{"abc": "abc123"},
 			pass:   false,
 		},
 
 		{
-			in:     "{ abc contain ['g(-z]+ng wrong regex']} # invalid regexp",
+			in:     "{ abc match ['g(-z]+ng wrong regex']} # invalid regexp",
 			fields: map[string]interface{}{"abc": "abc123"},
 			pass:   false,
 		},
 
 		{
-			in:     "{ abc contain ['a.*']}",
+			in:     "{ abc match ['a.*']}",
 			fields: map[string]interface{}{"abc": "abc123"},
 			pass:   true,
 		},
 
 		{
-			in:     "{ abc contain ['a.*']}",
+			in:     "{ abc match ['a.*']}",
 			fields: map[string]interface{}{"abc": "abc123"},
 			pass:   true,
 		},
 
 		{
-			in:     "{ source = re(`.*`) and (abc contain ['a.*'])}",
+			in:     "{ source = re(`.*`) and (abc match ['a.*'])}",
 			fields: map[string]interface{}{"abc": "abc123"},
 			tags:   map[string]string{"source": "12345"},
 			pass:   true,
 		},
 
 		{
-			in:     "{ abc notcontain ['a.*'] or xyz contain ['.*']}",
+			in:     "{ abc notmatch ['a.*'] or xyz match ['.*']}",
 			fields: map[string]interface{}{"abc": "abc123"},
 			tags:   map[string]string{"xyz": "def"},
 			pass:   true,

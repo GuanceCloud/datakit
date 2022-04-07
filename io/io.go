@@ -48,7 +48,7 @@ type IOConfig struct {
 	OutputFile                string              `toml:"output_file"`
 	OutputFileInputs          []string            `toml:"output_file_inputs"`
 	EnableCache               bool                `toml:"enable_cache"`
-	Filters                   map[string][]string `filters`
+	Filters                   map[string][]string `toml:"filters"`
 }
 
 type Option struct {
@@ -152,7 +152,7 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 		return fmt.Errorf("invalid category `%s'", category)
 	}
 
-	// Maybe all points been filterd, but we still send the feeding into io.
+	// Maybe all points been filtered, but we still send the feeding into io.
 	// We can still see some inputs/data are sending to io in monitor. Do not
 	// optimize the feeding, or we see nothing on monitor about these filtered
 	// points.

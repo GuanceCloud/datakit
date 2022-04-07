@@ -676,7 +676,7 @@ func (e *BinaryExpr) Type() ValueType     { return "" }  // TODO
 func (e *BinaryExpr) Pos() *PositionRange { return nil } // TODO
 func (e *BinaryExpr) String() string {
 	switch e.Op {
-	case CONTAIN, NOT_CONTAIN:
+	case MATCH, NOT_MATCH:
 		var originNodeList NodeList
 		for _, elem := range e.RHS.(NodeList) {
 			switch x := elem.(type) {
