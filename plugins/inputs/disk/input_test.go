@@ -1,8 +1,11 @@
 package disk
 
 import (
+	"math"
 	"testing"
 	"time"
+
+	tu "gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil"
 )
 
 func TestCollect(t *testing.T) {
@@ -40,4 +43,10 @@ func TestCollect(t *testing.T) {
 	if len(tmap) != 1 {
 		t.Error("Need to clear collectCache.")
 	}
+}
+
+func TestWrapUint64(t *testing.T) {
+	tu.Assert(t, wrapUint64(math.MaxInt64+1) == -1, "")
+	tu.Assert(t, wrapUint64(math.MaxInt64-1) == math.MaxInt64-1, "")
+	tu.Assert(t, wrapUint64(1023) == 1023, "")
 }
