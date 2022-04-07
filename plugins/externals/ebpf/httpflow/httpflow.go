@@ -191,16 +191,14 @@ func (tracer *HTTPFlowTracer) feedHandler(ctx context.Context) {
 			}
 			ms := make([]inputs.Measurement, 0)
 			for _, httpFinReq := range cache {
+				if !ConnNotNeedToFilter(httpFinReq.ConnInfo) {
+					continue
+				}
 				m := conv2M(httpFinReq, tracer.gTags)
 				if m == nil {
 					continue
 				}
 				ms = append(ms, m)
-				// if f, err := m.LineProto(); err != nil {
-				// 	l.Error(err)
-				// } else {
-				// 	l.Warn(f.String())
-				// }
 			}
 			cache = []*HTTPReqFinishedInfo{}
 			if len(ms) == 0 {
@@ -256,8 +254,22 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 
 	isV6 := !dknetflow.ConnAddrIsIPv4(httpFinReq.ConnInfo.Meta)
 	if isV6 {
+		if httpFinReq.ConnInfo.Saddr[0] == 0 && httpFinReq.ConnInfo.Saddr[1] == 0 &&
+			httpFinReq.ConnInfo.Saddr[2] == 0xffff0000 {
+			m.tags["src_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Saddr[3])
+		} else {
+			m.tags["src_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Saddr)
+		}
+		if httpFinReq.ConnInfo.Daddr[0] == 0 && httpFinReq.ConnInfo.Daddr[1] == 0 &&
+			httpFinReq.ConnInfo.Daddr[2] == 0xffff0000 {
+			m.tags["dst_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Daddr[3])
+		} else {
+			m.tags["dst_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Daddr)
+		}
 		m.tags["family"] = "IPv6"
 	} else {
+		m.tags["src_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Saddr[3])
+		m.tags["dst_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Daddr[3])
 		m.tags["family"] = "IPv4"
 	}
 	m.tags["src_ip"] = dknetflow.U32BEToIP(httpFinReq.ConnInfo.Saddr, isV6).String()
@@ -273,7 +285,7 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 
 	m.fields = map[string]interface{}{
 		"path":         path,
-		"status_code":  ParseHTTPCode(httpFinReq.HTTPStats.resp_code),
+		"status_code":  int(httpFinReq.HTTPStats.resp_code),
 		"latency":      int64(httpFinReq.HTTPStats.resp_ts - httpFinReq.HTTPStats.req_ts),
 		"method":       HTTPMethodInt(int(httpFinReq.HTTPStats.req_method)),
 		"http_version": ParseHTTPVersion(httpFinReq.HTTPStats.http_version),

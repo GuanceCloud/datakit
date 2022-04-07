@@ -112,7 +112,7 @@ func connDirection2Str(direction uint8) string {
 	}
 }
 
-func connIPv4Type(addr uint32) string {
+func ConnIPv4Type(addr uint32) string {
 	ip := U32BEToIPv4Array(addr)
 
 	if (ip[0] == 10) ||
@@ -132,7 +132,7 @@ func connIPv4Type(addr uint32) string {
 	return "other"
 }
 
-func connIPv6Type(addr [4]uint32) string {
+func ConnIPv6Type(addr [4]uint32) string {
 	ip := U32BEToIPv6Array(addr)
 
 	if (ip[0]|ip[1]|ip[2]|ip[3]|ip[4]|ip[5]|ip[6]) == 0 &&

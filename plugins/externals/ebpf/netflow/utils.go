@@ -210,12 +210,20 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 
 	isV6 := false
 	if ConnAddrIsIPv4(k.Meta) {
-		m.tags["src_ip_type"] = connIPv4Type(k.Saddr[3])
-		m.tags["dst_ip_type"] = connIPv4Type(k.Daddr[3])
+		m.tags["src_ip_type"] = ConnIPv4Type(k.Saddr[3])
+		m.tags["dst_ip_type"] = ConnIPv4Type(k.Daddr[3])
 		m.tags["family"] = "IPv4"
 	} else {
-		m.tags["src_ip_type"] = connIPv6Type(k.Saddr)
-		m.tags["dst_ip_type"] = connIPv6Type(k.Daddr)
+		if k.Saddr[0] == 0 && k.Saddr[1] == 0 && k.Saddr[2] == 0xffff0000 {
+			m.tags["src_ip_type"] = ConnIPv4Type(k.Saddr[3])
+		} else {
+			m.tags["src_ip_type"] = ConnIPv6Type(k.Saddr)
+		}
+		if k.Daddr[0] == 0 && k.Daddr[1] == 0 && k.Daddr[2] == 0xffff0000 {
+			m.tags["dst_ip_type"] = ConnIPv4Type(k.Daddr[3])
+		} else {
+			m.tags["dst_ip_type"] = ConnIPv6Type(k.Daddr)
+		}
 		m.tags["family"] = "IPv6"
 		isV6 = true
 	}
@@ -368,18 +376,16 @@ func ConnNotNeedToFilter(conn ConnectionInfo, connStats ConnFullStats) bool {
 		return false
 	}
 	if ConnAddrIsIPv4(conn.Meta) { // IPv4
-		saddr := U32BEToIPv4Array(conn.Saddr[3])
-		daddr := U32BEToIPv4Array(conn.Daddr[3])
-		if saddr == daddr {
-			return false
-		}
-		if saddr[0] == 127 && daddr[0] == 127 { // 127.0.0.0/8
+		if (conn.Saddr[3]&0xff) == 127 && (conn.Daddr[3]&0xff) == 127 {
 			return false
 		}
 	} else { // IPv6
-		saddr := U32BEToIPv6Array(conn.Saddr)
-		daddr := U32BEToIPv6Array(conn.Daddr)
-		if saddr == daddr { // 同地址，包含 loopback ::1/128
+		if conn.Saddr[2] == 0xffff0000 && conn.Daddr[2] == 0xffff0000 {
+			if (conn.Saddr[3]&0xff) == 127 && (conn.Daddr[3]&0xff) == 127 {
+				return false
+			}
+		} else if (conn.Saddr[0]|conn.Saddr[1]|conn.Saddr[2]) == 0 && conn.Saddr[3] == 1 &&
+			(conn.Daddr[0]|conn.Daddr[1]|conn.Daddr[2]) == 0 && conn.Daddr[3] == 1 {
 			return false
 		}
 	}

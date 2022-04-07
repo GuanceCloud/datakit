@@ -33,22 +33,6 @@ func TestFindURI(t *testing.T) {
 	}
 }
 
-func TestHTTPCode(t *testing.T) {
-	cases := []uint32{
-		201,
-		300,
-		299,
-	}
-	result := []int{
-		200, 300, 200,
-	}
-	for k, v := range cases {
-		if ParseHTTPCode(v) != result[k] {
-			t.Error(ParseHTTPCode(v), " ", result[k])
-		}
-	}
-}
-
 func TestHTTPVersion(t *testing.T) {
 	cases := []uint32{
 		1<<16 + 0,
@@ -61,7 +45,7 @@ func TestHTTPVersion(t *testing.T) {
 	}
 	for k, v := range cases {
 		if ParseHTTPVersion(v) != result[k] {
-			t.Error(ParseHTTPCode(v), " ", result[k])
+			t.Error(v, " ", result[k])
 		}
 	}
 }

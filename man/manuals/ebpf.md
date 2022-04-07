@@ -10,13 +10,15 @@ eBPF 采集器，采集主机网络 TCP、UDP 连接信息，Bash 执行日志�
 
   * `ebpf-net`:
     * 数据类别: Network
-    * 由 netflow 和 dnsflow 构成，分别用于采集主机 TCP/UDP 连接统计信息和主机 DNS 解析信息；
+    * 由 netflow、httpflow 和 dnsflow 构成，分别用于采集主机 TCP/UDP 连接统计信息和主机 DNS 解析信息；
 
   * `ebpf-bash`:
     * 数据类别: Logging
     * 采集 Bash 的执行日志，包含 Bash 进程号、用户名、执行的命令和时间等;
 
-## 前置条
+## 前置条件
+
+使用安装脚本安装时需执行 datakit install --datakit-ebpf 安装此外部采集器
 
 ### Linux 内核版本要求
 

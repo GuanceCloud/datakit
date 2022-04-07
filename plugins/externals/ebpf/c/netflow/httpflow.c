@@ -50,7 +50,6 @@ int socket__http_filter(struct __sk_buff *skb)
         return DROPPACKET;
     }
 
-    // 会出现两份一样的数据，本机同时是客户端和服务端
     // TODO 判断本机是客户端还是服务端
     if (l7http.req_status == HTTP_REQ_REQ)
     { // request
