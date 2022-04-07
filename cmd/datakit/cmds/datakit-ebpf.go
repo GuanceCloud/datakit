@@ -17,12 +17,13 @@ func InstallDatakitEbpf() error {
 		return fmt.Errorf("datakit-ebpf only supports linux/amd64")
 	}
 
-	infof("Start downloading datakit-ebpf...\n")
+	infof("install datakit-ebpf...\n")
 	dl.CurDownloading = "datakit-ebpf"
 	cli := getcli()
 
 	if err := dl.Download(cli, url, filepath.Join(datakit.InstallDir, "externals"), false, false); err != nil {
 		return err
 	}
+	infof("install success")
 	return nil
 }

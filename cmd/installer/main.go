@@ -389,10 +389,11 @@ func upgradeDatakit(svc service.Service) error {
 		}
 	}
 	if updateEBPF {
+		l.Info("upgrade datakit-ebpf...")
 		// nolint:gosec
 		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
-			l.Errorf("upgradde external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+			l.Errorf("upgrade external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
 		}
 	}
 
@@ -559,6 +560,7 @@ func installNewDatakit(svc service.Service) {
 		}
 	}
 	if updateEBPF {
+		l.Info("install datakit-ebpf...")
 		// nolint:gosec
 		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
 		if msg, err := cmd.CombinedOutput(); err != nil {
