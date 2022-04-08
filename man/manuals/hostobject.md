@@ -41,8 +41,8 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 ```toml
 [inputs.hostobject.tags]
-	# 此处目前支持 aliyun/tencent/aws/hwcloud/azure 几种
-	cloud_provider = "aliyun"
+  # 此处目前支持 aliyun/tencent/aws/hwcloud/azure 几种
+  cloud_provider = "aliyun"
 ```
 
 ## 指标集
@@ -96,20 +96,20 @@ hostobject 用于收集主机基本信息，如硬件型号、基础资源消耗
 
 ```json
 {
-	"host": {
-		"meta": ...,
-		"cpu": ...,
-		"mem": ...,
-		"net": ...,
-		"disk": ...,
-		"conntrack": ...,
-		"filefd": ...,
-        "election": ...,
-		},
+  "host": {
+    "meta": ...,
+    "cpu": ...,
+    "mem": ...,
+    "net": ...,
+    "disk": ...,
+    "conntrack": ...,
+    "filefd": ...,
+    "election": ...,
+  },
 
-	"collectors": [ # 各个采集器的运行情况
-		...
-	]
+  "collectors": [ # 各个采集器的运行情况
+    ...
+  ]
 }
 ```
 

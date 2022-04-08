@@ -105,3 +105,21 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 开启日志采集以后，默认会产生日志来源（`source`）为 `kafka` 的日志。
 
 >注意：必须将 DataKit 安装在 Kafka 所在主机才能采集 Kafka 日志
+
+切割日志示例：
+
+```
+[2020-07-07 15:04:29,333] DEBUG Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 (io.confluent.connect.s3.storage.S3OutputStream:286)
+```
+
+切割后的字段列表如下：
+
+
+
+| 字段名 | 字段值                                                 |
+| ------ | ------------------------------------------------------ |
+| msg    | Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 |
+| name   | io.confluent.connect.s3.storage.S3OutputStream:286     |
+| status | DEBUG                                                  |
+| time   | 1594105469333000000                                    |
+

@@ -78,6 +78,10 @@ func (m *cpuMeasurement) Info() *inputs.MeasurementInfo {
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Celsius,
 				Desc: "CPU core temperature. This is collected by default. Only collect the average temperature of all cores.",
 			},
+			"load5s": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.UnknownUnit,
+				Desc: "CPU average load in 5 seconds.",
+			},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "主机名"},

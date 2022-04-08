@@ -6,14 +6,18 @@ import (
 )
 
 type (
-	gitlabMeasurement     struct{}
-	gitlabBaseMeasurement struct{}
-	gitlabHTTPMeasurement struct{}
+	gitlabMeasurement         struct{}
+	gitlabBaseMeasurement     struct{}
+	gitlabHTTPMeasurement     struct{}
+	gitlabPipelineMeasurement struct{}
+	gitlabJobMeasurement      struct{}
 )
 
-func (*gitlabMeasurement) LineProto() (*io.Point, error)     { return nil, nil }
-func (*gitlabBaseMeasurement) LineProto() (*io.Point, error) { return nil, nil }
-func (*gitlabHTTPMeasurement) LineProto() (*io.Point, error) { return nil, nil }
+func (g *gitlabPipelineMeasurement) LineProto() (*io.Point, error) { return nil, nil }
+func (g *gitlabJobMeasurement) LineProto() (*io.Point, error)      { return nil, nil }
+func (*gitlabMeasurement) LineProto() (*io.Point, error)           { return nil, nil }
+func (*gitlabBaseMeasurement) LineProto() (*io.Point, error)       { return nil, nil }
+func (*gitlabHTTPMeasurement) LineProto() (*io.Point, error)       { return nil, nil }
 
 //nolint:lll
 func (*gitlabMeasurement) Info() *inputs.MeasurementInfo {
@@ -80,6 +84,62 @@ func (*gitlabHTTPMeasurement) Info() *inputs.MeasurementInfo {
 			"http_request_duration_seconds_count": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "The counter for request duration"},
 			"http_request_duration_seconds_sum":   &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "The sum for request duration"},
 			"http_health_requests_total":          &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "Number of health requests"},
+		},
+	}
+}
+
+//nolint:lll
+func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "gitlab_pipeline",
+		Desc: "Gitlab Pipeline Event 相关指标",
+		Fields: map[string]interface{}{
+			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "pipeline id"},
+			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "pipeline 持续时长（秒）"},
+			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "最近一次 commit 的 message"},
+		},
+		Tags: map[string]interface{}{
+			"object_kind":    inputs.NewTagInfo("Event 类型，此处为 Pipeline"),
+			"ci_status":      inputs.NewTagInfo("CI 状态"),
+			"pipeline_name":  inputs.NewTagInfo("pipeline 名称"),
+			"pipeline_url":   inputs.NewTagInfo("pipeline 的 URL"),
+			"commit_sha":     inputs.NewTagInfo("触发 pipeline 的最近一次 commit 的哈希值"),
+			"author_email":   inputs.NewTagInfo("作者邮箱"),
+			"repository_url": inputs.NewTagInfo("仓库 URL"),
+			"source":         inputs.NewTagInfo("pipeline 触发的来源"),
+			"operation_name": inputs.NewTagInfo("操作名称"),
+			"resource":       inputs.NewTagInfo("项目名"),
+			"ref":            inputs.NewTagInfo("设计分支"),
+		},
+	}
+}
+
+//nolint:lll
+func (g *gitlabJobMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "gitlab_job",
+		Desc: "Gitlab Job Event 相关指标",
+		Fields: map[string]interface{}{
+			"build_id":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "build id"},
+			"build_started_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "build 开始的秒时间戳"},
+			"build_finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampSec, Desc: "build 结束的秒时间戳"},
+			"build_duration":       &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "build 持续时长（秒）"},
+			"pipeline_id":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "build 对应的 pipeline id"},
+			"project_id":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "build 对应的项目 id"},
+			"runner_id":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "build 对应的 runner id"},
+			"build_commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build 最近一次 commit 的 message"},
+		},
+		Tags: map[string]interface{}{
+			"object_kind":          inputs.NewTagInfo("Event 类型，此处为 Job"),
+			"sha":                  inputs.NewTagInfo("build 对应的 commit 的哈希值"),
+			"build_name":           inputs.NewTagInfo("build 的名称"),
+			"build_stage":          inputs.NewTagInfo("build 的阶段"),
+			"build_status":         inputs.NewTagInfo("build 的状态"),
+			"project_name":         inputs.NewTagInfo("项目名"),
+			"build_failure_reason": inputs.NewTagInfo("build 失败的原因"),
+			"user_email":           inputs.NewTagInfo("作者邮箱"),
+			"build_commit_sha":     inputs.NewTagInfo("build 对应的 commit 的哈希值"),
+			"build_repo_name":      inputs.NewTagInfo("build 对应的仓库名"),
 		},
 	}
 }
