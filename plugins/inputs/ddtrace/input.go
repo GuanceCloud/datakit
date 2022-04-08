@@ -55,8 +55,8 @@ const (
     # priority = 0
     # sampling_rate = 1.0
 
-  # Piplines uses to manipulate message and meta data. If this item configed right then ddtrace will run
-  # the scripts written in pipline configures file against the data present in span message.
+  # Piplines uses to manipulate message and meta data. If this item configured right then ddtrace will run
+  # the scripts written in pipline config file against the data present in span message.
   # The string on the left side of the equal sign must be identical to the service name that you try to handle.
   # [inputs.ddtrace.pipelines]
     # service1 = "service1.p"
