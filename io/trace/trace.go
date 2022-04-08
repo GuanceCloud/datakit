@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -41,6 +42,7 @@ const (
 	SPAN_SERVICE_CUSTOM = "custom"
 	SPAN_SERVICE_DB     = "db"
 	SPAN_SERVICE_WEB    = "web"
+	SPAN_SERVICE_UNKNOW = "unknow"
 
 	// line protocol tags.
 	TAG_CONTAINER_HOST = "container_host"
@@ -251,4 +253,8 @@ func ParseTracingRequest(req *http.Request) (contentType string, body io.ReadClo
 	}
 
 	return
+}
+
+func UnknowServiceName(dkspan *DatakitSpan) string {
+	return fmt.Sprintf("unknow-service-%s", dkspan.Source)
 }

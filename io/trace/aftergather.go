@@ -113,6 +113,10 @@ func BuildPointsBatch(dktrace DatakitTrace, strict bool) []*dkio.Point {
 
 // BuildPoint builds point from DatakitSpan.
 func BuildPoint(dkspan *DatakitSpan, strict bool) (*dkio.Point, error) {
+	if dkspan.Service == "" {
+		dkspan.Service = UnknowServiceName(dkspan)
+	}
+
 	tags := map[string]string{
 		TAG_CONTAINER_HOST: dkspan.ContainerHost,
 		TAG_ENDPOINT:       dkspan.EndPoint,
