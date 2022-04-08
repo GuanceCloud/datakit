@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -61,6 +62,7 @@ var (
 	flagDatakitHTTPListen,
 	flagNamespace,
 	flagInstallLog,
+	flagInstallExternals,
 	flagDCAListen,
 	flagDCAWhiteList,
 	flagGitURL,
@@ -109,6 +111,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&flagInstallLog, "install-log", "", "install log")
 	flag.StringVar(&flagHostName, "env_hostname", "", "host name")
 	flag.StringVar(&flagIpdb, "ipdb-type", "", "ipdb type")
+	flag.StringVar(&flagInstallExternals, "install-externals", "", "install some external inputs")
 	flag.StringVar(&flagCloudProvider,
 		"cloud-provider", "", "specify cloud provider(accept aliyun/tencent/aws)")
 	flag.StringVar(&flagGitURL, "git-url", "", "git repo url")
@@ -372,6 +375,28 @@ func upgradeDatakit(svc service.Service) error {
 		}
 	}
 
+	installExternals := map[string]struct{}{}
+	for _, v := range strings.Split(flagInstallExternals, ",") {
+		installExternals[v] = struct{}{}
+	}
+	updateEBPF := false
+	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
+			updateEBPF = true
+		}
+		if _, ok := installExternals["datakit-ebpf"]; ok {
+			updateEBPF = true
+		}
+	}
+	if updateEBPF {
+		l.Info("upgrade datakit-ebpf...")
+		// nolint:gosec
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		if msg, err := cmd.CombinedOutput(); err != nil {
+			l.Errorf("upgrade external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+		}
+	}
+
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("install datakit service: %s, ignored", err.Error())
 	}
@@ -519,6 +544,28 @@ func installNewDatakit(svc service.Service) {
 	// build datakit main config
 	if err := mc.InitCfg(datakit.MainConfPath); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
+	}
+
+	installExternals := map[string]struct{}{}
+	for _, v := range strings.Split(flagInstallExternals, ",") {
+		installExternals[v] = struct{}{}
+	}
+	updateEBPF := false
+	if runtime.GOOS == datakit.OSLinux && runtime.GOARCH == "amd64" {
+		if _, err := os.Stat(filepath.Join(datakit.InstallDir, "externals", "datakit-ebpf")); err == nil {
+			updateEBPF = true
+		}
+		if _, ok := installExternals["datakit-ebpf"]; ok {
+			updateEBPF = true
+		}
+	}
+	if updateEBPF {
+		l.Info("install datakit-ebpf...")
+		// nolint:gosec
+		cmd := exec.Command(filepath.Join(datakit.InstallDir, "datakit"), "install", "--datakit-ebpf")
+		if msg, err := cmd.CombinedOutput(); err != nil {
+			l.Errorf("upgradde external input %s failed: %s msg: %s", "datakit-ebpf", err.Error(), msg)
+		}
 	}
 
 	l.Infof("installing service %s...", dkservice.ServiceName)

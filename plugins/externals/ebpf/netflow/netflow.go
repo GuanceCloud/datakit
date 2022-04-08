@@ -84,6 +84,7 @@ func (tracer *NetFlowTracer) ClosedEventHandler(cpu int, data []byte,
 			RttVar:           uint32(eventC.conn_tcp_stats.rtt_var),
 		},
 	}
+	SrcIPPortRecorder.InsertAndUpdate(event.Info.Saddr)
 	if IPPortFilterIn(&event.Info) {
 		tracer.closedEventCh <- &event
 	}
@@ -150,6 +151,8 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 					Meta:  uint32(connInfoC.meta),
 				}
 
+				SrcIPPortRecorder.InsertAndUpdate(connInfo.Saddr)
+
 				if !IPPortFilterIn(&connInfo) {
 					continue
 				}
@@ -168,7 +171,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 					TotalClosed:      0,
 					TotalEstablished: 0,
 				}
-				if connProtocolIsTCP(connInfo.Meta) {
+				if ConnProtocolIsTCP(connInfo.Meta) {
 					pid := connInfoC.pid
 					connInfoC.pid = _Ctype_uint(0)
 					if err := tcpStatsMap.Lookup(

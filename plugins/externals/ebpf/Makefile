@@ -58,7 +58,13 @@ BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ \
 
 all: go_bindata buildexec
 
-netflow.o:
+httpflow.o: 
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(SRC_PATH)/c/netflow/httpflow.c \
+		-o - | llc -march=bpf -filetype=obj -o $(BIN_PATH)/httpflow.o
+
+netflow.o: httpflow.o
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(SRC_PATH)/c/netflow/netflow.c \
@@ -80,10 +86,10 @@ bindata: offset_guess.o netflow.o bash_history.o
 
 go_bindata: bindata
 	go-bindata -pkg ebpf -prefix "$(BIN_PATH)/" -o "$(SRC_PATH)/c/bindata_linux_$(GO_ARCH).go" \
-		 "$(BIN_PATH)/offset_guess.o" "$(BIN_PATH)/netflow.o" "$(BIN_PATH)/bash_history.o"
+		 "$(BIN_PATH)/offset_guess.o" "$(BIN_PATH)/netflow.o" "$(BIN_PATH)/httpflow.o" "$(BIN_PATH)/bash_history.o"
 
 buildexec:
-	go build -tags="ebpf" -o $(OUT_PATH) $(SRC_PATH)/datakit-ebpf.go
+	go build -tags="ebpf" -ldflags "-w -s" -o $(OUT_PATH) $(SRC_PATH)/datakit-ebpf.go 
 
 clean:
 	rm -r $(OUT_PATH)
