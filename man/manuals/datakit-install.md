@@ -114,6 +114,8 @@ NAME1="value1" NAME2="value2"
 - `DK_DCA_LISTEN`：支持安装阶段自定义配置 DCA 服务的监听地址和端口（默认`0.0.0.0:9531`）
 - `DK_DCA_WHITE_LIST`: 支持安装阶段设置访问 DCA 服务白名单，多个白名单以 `,` 分割 (如：`192.168.0.1/24,10.10.0.1/24`)
 
+### 外部采集器相关
+- `DK_INSTALL_EXTERNALS`: 可用于安装如 datakit-ebpf 等未与 DataKit 一起打包的外部采集器
 ### Git 配置相关
 
 - `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
@@ -124,9 +126,12 @@ NAME1="value1" NAME2="value2"
 
 ### cgroup 配置相关
 
-- `DK_CGROUP_ENABLED`:Linux系统下开启Cgroup功能。（如`false`，默认为true，仅Linux平台支持）
-- `DK_LIMIT_CPUMAX`:Linux系统下支持CPU的最大功率,默认30.0。（仅Linux平台支持）
-- `DK_LIMIT_CPUMIN`:Linux系统下支持CPU的最小功率,默认5.0。（仅Linux平台支持）
+以下安装选项仅 Linux 平台支持：
+
+- `DK_CGROUP_DISABLED`：Linux 系统下关闭 Cgroup 功能（默认开启）
+- `DK_LIMIT_CPUMAX`：Linux 系统下支持 CPU 的最大功率，默认 30.0
+- `DK_LIMIT_CPUMIN`：Linux 系统下支持 CPU 的最小功率，默认 5.0
+- `DK_LIMIT_MEMMAX`：Linux 系统下限制内存（含 swap）最大用量，默认 4096（4GB）
 
 ### 其它安装选项
 

@@ -342,7 +342,7 @@ var jobJson = `
   "build_stage": "test",
   "build_status": "created",
   "build_created_at": "2021-02-23T02:41:37.886Z",
-  "build_started_at": null,
+  "build_started_at": "2021-02-23T02:41:37.886Z",
   "build_finished_at": null,
   "build_duration": null,
   "build_allow_failure": false,
@@ -414,8 +414,9 @@ func TestPipelineTagsAndFields(t *testing.T) {
 	tags := getPipelineEventTags(ppl)
 	fields := getPipelineEventFields(ppl)
 	expectedFields := map[string]interface{}{
-		"duration":    int64(63),
-		"pipeline_id": int64(31),
+		"duration":       int64(63),
+		"pipeline_id":    int64(31),
+		"commit_message": "test\n",
 	}
 	expectedTags := map[string]string{
 		"ci_status":      "success",
@@ -428,7 +429,6 @@ func TestPipelineTagsAndFields(t *testing.T) {
 		"pipeline_url":   "http://192.168.64.1:3005/gitlab-org/gitlab-test/pipelines/31",
 		"commit_sha":     "bcbb5ec396a2c0f828686f14fac9b80b780504f2",
 		"repository_url": "http://192.168.64.1:3005/gitlab-org/gitlab-test.git",
-		"commit_message": "test\n",
 		"ref":            "master",
 	}
 	tu.Equals(t, expectedTags, tags)
@@ -453,13 +453,14 @@ func TestJobTagsAndFields(t *testing.T) {
 		"build_stage":          "test",
 		"build_failure_reason": "script_failure",
 		"build_commit_sha":     "2293ada6b400935a1378653304eaf6221e0fdb8f",
-		"build_commit_message": "test\n",
 	}
 	expectedFields := map[string]interface{}{
-		"runner_id":   int64(380987),
-		"build_id":    int64(1977),
-		"pipeline_id": int64(2366),
-		"project_id":  int64(380),
+		"runner_id":            int64(380987),
+		"build_id":             int64(1977),
+		"pipeline_id":          int64(2366),
+		"project_id":           int64(380),
+		"build_started_at":     int64(1614048097),
+		"build_commit_message": "test\n",
 	}
 	tu.Equals(t, expectedTags, tags)
 	tu.Equals(t, expectedFields, fields)

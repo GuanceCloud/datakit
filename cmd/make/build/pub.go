@@ -32,15 +32,17 @@ type versionDesc struct {
 	Go       string `json:"go"`
 }
 
-func tarFiles(goos, goarch string) {
-	gz := filepath.Join(PubDir, ReleaseType, fmt.Sprintf("%s-%s-%s-%s.tar.gz",
-		AppName, goos, goarch, ReleaseVersion))
+func tarFiles(pubPath, buildPath, appName, goos, goarch string) (string, string) {
+	gz := fmt.Sprintf("%s-%s-%s-%s.tar.gz",
+		appName, goos, goarch, ReleaseVersion)
+	gzPath := filepath.Join(pubPath, ReleaseType, gz)
+
 	args := []string{
 		`czf`,
-		gz,
+		gzPath,
 		`-C`,
-		// the whole buildDir/datakit-<goos>-<goarch> dir
-		filepath.Join(BuildDir, fmt.Sprintf("%s-%s-%s", AppName, goos, goarch)), `.`,
+		// the whole basePath/appName-<goos>-<goarch> dir
+		filepath.Join(buildPath, fmt.Sprintf("%s-%s-%s", appName, goos, goarch)), `.`,
 	}
 
 	cmd := exec.Command("tar", args...) //nolint:gosec
@@ -48,10 +50,11 @@ func tarFiles(goos, goarch string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	l.Debugf("tar %s...", gz)
+	l.Debugf("tar %s...", gzPath)
 	if err := cmd.Run(); err != nil {
 		l.Fatal(err)
 	}
+	return gz, gzPath
 }
 
 func generateInstallScript() error {
@@ -346,9 +349,28 @@ func PubDatakit() error {
 		}
 		goos, goarch := parts[0], parts[1]
 
-		tarFiles(parts[0], parts[1])
+		gzName, gzPath := tarFiles(PubDir, BuildDir, AppName, parts[0], parts[1])
+		// gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, ReleaseVersion)
+		basics[gzName] = gzPath
 
-		gzName := fmt.Sprintf("%s-%s-%s.tar.gz", AppName, goos+"-"+goarch, ReleaseVersion)
+		for _, appName := range StandaloneApps {
+			buildPath := filepath.Join(BuildDir, "standalone")
+			switch appName {
+			case "datakit-ebpf":
+				if parts[0] != runtime.GOOS {
+					continue
+				}
+				if parts[0] != "linux" {
+					continue
+				}
+				if parts[1] != runtime.GOARCH {
+					continue
+				}
+			default:
+			}
+			gz, gzP := tarFiles(PubDir, buildPath, appName, parts[0], parts[1])
+			basics[gz] = gzP
+		}
 
 		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
 		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
@@ -357,7 +379,7 @@ func PubDatakit() error {
 			installerExeWithVer = fmt.Sprintf("installer-%s-%s-%s.exe", goos, goarch, ReleaseVersion)
 		}
 
-		basics[gzName] = path.Join(PubDir, ReleaseType, gzName)
+		basics[gzName] = gzPath
 		basics[installerExe] = path.Join(PubDir, ReleaseType, installerExe)
 		basics[installerExeWithVer] = path.Join(PubDir, ReleaseType, installerExe)
 	}

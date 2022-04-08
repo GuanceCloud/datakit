@@ -1,5 +1,5 @@
 - [DataKit 使用]()
-  - [服务安装和管理](datakit-service-how-to)
+  - [DataKit 服务管理](datakit-service-how-to)
   - [如何配置 DataKit]()
     - [DataKit 主配置](datakit-conf)
     - [采集器配置](datakit-input-conf)
@@ -50,7 +50,7 @@
 
   - [云原生]()
     - [Kubernetes 环境下的 DataKit 配置综述](k8s-config-how-to)
-    - [DataKit DaemonSet 配置管理最佳实践](datakit-daemonset-bp)
+    - [DaemonSet 配置管理最佳实践](datakit-daemonset-bp)
     - [数据采集]()
       - [容器](container)
         - [通过 Sidecar 方式采集 Pod 日志](logfwd)
