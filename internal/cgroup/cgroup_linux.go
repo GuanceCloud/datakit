@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
-	"github.com/dustin/go-humanize"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit"
 )
@@ -45,12 +44,6 @@ func (c *Cgroup) cpuSetup() {
 }
 
 func (c *Cgroup) memSetup() {
-	if c.opt.MemMax <= 0 {
-		c.opt.MemMax = defaultMemLimit
-		l.Infof("reset Memory limit to %d(%s)",
-			defaultMemLimit, humanize.IBytes(uint64(defaultMemLimit)))
-	}
-
 	c.opt.MemMax = c.opt.MemMax * MB
 }
 
@@ -63,10 +56,16 @@ func (c *Cgroup) setup() error {
 			Period: &period,
 			Quota:  &c.quotaLow,
 		},
-		Memory: &specs.LinuxMemory{
+	}
+
+	if c.opt.MemMax > 0 {
+		r.Memory = &specs.LinuxMemory{
+			Limit:            &c.opt.MemMax,
 			Swap:             &c.opt.MemMax,
 			DisableOOMKiller: &c.opt.DisableOOM,
-		},
+		}
+	} else {
+		l.Infof("memory limit not set")
 	}
 
 	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(c.opt.Path), r)

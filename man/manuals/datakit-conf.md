@@ -111,7 +111,9 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
   # 允许 CPU 最使用率（百分制）
   cpu_min = 5.0
 
-	mem_max_mb = 4096 # 默认允许 4GB 内存(memory + swap)占用
+  # 默认允许 4GB 内存(memory + swap)占用
+	# 如果置为 0 或负数，则不启用内存限制
+	mem_max_mb = 4096 
 ```
 
 ### 启用磁盘缓存（Alpha）
