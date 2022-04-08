@@ -4,8 +4,8 @@
 - 文档发布日期：{{.ReleaseDate}}
 - 操作系统支持：全平台
 
+# DataKit DaemonSet 部署最佳实践
 
-## 背景介绍
 由于 [Datakit DaemonSet](datakit-daemonset-deploy) 配置管理非常复杂，此篇文章将介绍配置管理最佳实践。
 本篇将描述2种不同部署的方式的配置方法:
 
