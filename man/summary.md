@@ -50,6 +50,7 @@
 
   - [云原生]()
     - [Kubernetes 环境下的 DataKit 配置综述](k8s-config-how-to)
+    - [DataKit DaemonSet 配置管理最佳实践](datakit-daemonset-bp)
     - [数据采集]()
       - [容器](container)
         - [通过 Sidecar 方式采集 Pod 日志](logfwd)
