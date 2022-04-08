@@ -23,6 +23,7 @@ require (
 	github.com/chromedp/chromedp v0.7.4 // indirect
 	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/containerd v1.5.5
+	github.com/containerd/typeurl v1.0.2
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/didip/tollbooth/v6 v6.1.2
