@@ -285,26 +285,30 @@ func unique(strSlice []string) []string {
 	return list
 }
 
+func newDefaultInput() *Input {
+	ipt := &Input{
+		Interval: datakit.Duration{Duration: time.Second * 10},
+		IgnoreFS: []string{
+			"autofs",
+			"tmpfs",
+			"devtmpfs",
+			"devfs",
+			"iso9660",
+			"overlay",
+			"aufs",
+			"squashfs",
+		},
+		semStop: cliutils.NewSem(),
+		Tags:    make(map[string]string),
+	}
+
+	x := &PSDisk{ipt: ipt}
+	ipt.diskStats = x
+	return ipt
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		ipt := &Input{
-			Interval: datakit.Duration{Duration: time.Second * 10},
-			IgnoreFS: []string{
-				"autofs",
-				"tmpfs",
-				"devtmpfs",
-				"devfs",
-				"iso9660",
-				"overlay",
-				"aufs",
-				"squashfs",
-			},
-			semStop: cliutils.NewSem(),
-			Tags:    make(map[string]string),
-		}
-
-		x := &PSDisk{ipt: ipt}
-		ipt.diskStats = x
-		return ipt
+		return newDefaultInput()
 	})
 }

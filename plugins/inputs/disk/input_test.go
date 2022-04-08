@@ -9,18 +9,19 @@ import (
 )
 
 func TestCollect(t *testing.T) {
-	i := &Input{
-		MountPoints: []string{},
-		IgnoreFS: []string{
-			"tmpfs", "devtmpfs",
-			"devfs", "iso9660",
-			"overlay", "aufs", "squashfs",
-		},
-		Tags: map[string]string{
-			"tag1": "a",
-		},
-		diskStats: &PSDisk{},
-	}
+	//i := &Input{
+	//	MountPoints: []string{},
+	//	IgnoreFS: []string{
+	//		"tmpfs", "devtmpfs",
+	//		"devfs", "iso9660",
+	//		"overlay", "aufs", "squashfs",
+	//	},
+	//	Tags: map[string]string{
+	//		"tag1": "a",
+	//	},
+	//	diskStats: &PSDisk{},
+	//}
+	i := newDefaultInput()
 	for x := 0; x < 5; x++ {
 		if err := i.Collect(); err != nil {
 			t.Error(err)
