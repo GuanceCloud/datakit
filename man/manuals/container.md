@@ -183,7 +183,7 @@ spec:
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- 指标列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -204,7 +204,7 @@ spec:
 
 {{$m.TagsMarkdownTable}}
 
-- 字段列表
+- 指标列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

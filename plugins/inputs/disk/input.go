@@ -3,6 +3,7 @@ package disk
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -80,15 +81,27 @@ func (m *diskMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"inodes_total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Total inodes",
+				Desc: "Total inodes(**DEPRECATED: use inodes_total_mb instead**)",
+			},
+			"inodes_total_mb": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc: "Total inodes(in MB)",
 			},
 			"inodes_free": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Free inodes",
+				Desc: "Free inodes(**DEPRECATED: use inodes_free_mb instead**)",
+			},
+			"inodes_free_mb": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc: "Free inodes(in MB)",
+			},
+			"inodes_used_mb": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc: "Used inodes(in MB)",
 			},
 			"inodes_used": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "Used inodes",
+				Desc: "Used inodes(**DEPRECATED: use inodes_used_mb instead**)",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -172,18 +185,30 @@ func (ipt *Input) Collect() error {
 				(float64(du.Used) + float64(du.Free)) * 100
 		}
 		fields := map[string]interface{}{
-			"total":        du.Total,
-			"free":         du.Free,
-			"used":         du.Used,
-			"used_percent": usedPercent,
-			"inodes_total": du.InodesTotal,
-			"inodes_free":  du.InodesFree,
-			"inodes_used":  du.InodesUsed,
+			"total":           du.Total,
+			"free":            du.Free,
+			"used":            du.Used,
+			"used_percent":    usedPercent,
+			"inodes_total_mb": du.InodesTotal / (1024 * 1024),
+			"inodes_free_mb":  du.InodesFree / (1024 * 1024),
+			"inodes_used_mb":  du.InodesUsed / (1024 * 1024),
+
+			// Deprecated
+			"inodes_total": wrapUint64(du.InodesTotal),
+			"inodes_free":  wrapUint64(du.InodesFree),
+			"inodes_used":  wrapUint64(du.InodesUsed),
 		}
 		ipt.appendMeasurement(metricName, tags, fields, ts)
 	}
 
 	return nil
+}
+
+func wrapUint64(x uint64) int64 {
+	if x > uint64(math.MaxInt64) {
+		return -1
+	}
+	return int64(x)
 }
 
 func (ipt *Input) Run() {

@@ -26,10 +26,8 @@ type Task interface {
 	GetSource() string
 	GetScriptName() string // 待调用的 pipeline 脚本
 	GetMaxMessageLen() int
-
 	ContentType() string // TaskDataString or TaskDataByte
 	ContentEncode() string
-
 	GetContent() interface{} // []string or [][]byte
 
 	// feed 给 pipeline 时 pl worker 会调用此方法
