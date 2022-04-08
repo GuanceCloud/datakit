@@ -30,7 +30,7 @@
 #### 添加DataKit helm 仓库
 
 ```shell 
-helm add repo dataflux  https://pubrepo.guance.com/chartrepo/datakit
+helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 helm repo update 
 ```
 

@@ -39,7 +39,7 @@ Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.i
 #### 添加 Helm 仓库
 
 ```shell
-helm add repo dataflux  https://pubrepo.guance.com/chartrepo/datakit
+helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 ```
 
 
@@ -276,7 +276,7 @@ kubectl get pods -n datakit
 
 需要修改 dataway_url，git_repos.git_url
 ```shell
-helm add repo dataflux  https://pubrepo.guance.com/chartrepo/datakit
+helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 
 helm repo update 
 
@@ -289,7 +289,7 @@ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://o
 
 需要修改 dataway_url，git_repos.git_url，git_repos.git_key_path(绝对路径)
 ```shell
-helm add repo dataflux  https://pubrepo.guance.com/chartrepo/datakit
+helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 helm repo update 
 helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="git@github.com:path/to/repository.git" \
