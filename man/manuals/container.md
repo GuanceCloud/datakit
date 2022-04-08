@@ -160,7 +160,7 @@ spec:
 如果 containerd.sock 路径不是默认的 `/var/run/containerd/containerd.sock`，需要指定新的 `containerd.sock` 路径：
 
 - 主机部署：修改 container.conf 的 `containerd_address` 配置项
-- 以 Kubernetes daemonset 运行 DataKit：更改 datakit.yaml 的 volumes `container-socket`，将新路径 mount 到 DataKit daemonset 中，同时配置环境变量 `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`，值为新路径。
+- 以 Kubernetes daemonset 运行 DataKit：更改 datakit.yaml 的 volumes `containerd-socket`，将新路径 mount 到 DataKit daemonset 中，同时配置环境变量 `ENV_INPUT_CONTAINER_CONTAINERD_ADDRESS`，值为新路径。
 
 ## 指标集
 
