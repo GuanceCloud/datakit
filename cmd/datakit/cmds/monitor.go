@@ -38,7 +38,7 @@ var (
 	enabledInputCols = strings.Split(`Input,Instaces,Crashed`, ",")
 	goroutineCols    = strings.Split(`Name,Done,Running,Total Cost,Min Cost,Max Cost,Failed`, ",")
 	httpAPIStatCols  = strings.Split(`API,Total,Limited(%),Max Latency,Avg Latency,2xx,3xx,4xx,5xx`, ",")
-	filterRuleCols   = strings.Split("Category,Total,Filtered,Cost,Cost/Pts,Rules", ",")
+	filterRuleCols   = strings.Split("Category,Total,Filtered(%),Cost,Cost/Pts,Rules", ",")
 )
 
 func number(i interface{}) string {
@@ -290,7 +290,8 @@ func (m *monitorAPP) renderFilterRulesStatsTable(ds *dkhttp.DatakitStats, colArr
 		table.SetCell(row, col, tview.NewTableCell(number(v.Total)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		col++
-		table.SetCell(row, col, tview.NewTableCell(number(v.Filtered)).
+		table.SetCell(row, col, tview.NewTableCell(
+			fmt.Sprintf("%s(%.2f)", number(v.Filtered), 100.0*float64(v.Filtered)/float64(v.Total))).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		col++
 		table.SetCell(row, col, tview.NewTableCell(v.Cost.String()).
