@@ -108,6 +108,8 @@ func DefaultConfig() *Config {
 				},
 			},
 		},
+
+		Ulimit: 64000,
 	}
 
 	// windows 下，日志继续跟 datakit 放在一起
@@ -218,6 +220,8 @@ type Config struct {
 	Tracer *tracer.Tracer `toml:"tracer,omitempty"`
 
 	GitRepos *GitRepost `toml:"git_repos"`
+
+	Ulimit uint64 `toml:"ulimit"`
 }
 
 func (c *Config) String() string {
@@ -417,6 +421,20 @@ func (c *Config) ApplyMainConfig() error {
 	c.setLogging()
 
 	l = logger.SLogger("config")
+
+	// Set up ulimit.
+	if runtime.GOOS == `linux` {
+		if err := setUlimit(c.Ulimit); err != nil {
+			return fmt.Errorf("fail to set ulimit to %d: %w", c.Ulimit, err)
+		} else {
+			soft, hard, err := getUlimit()
+			if err != nil {
+				l.Warnf("fail to get ulimit: %v", err)
+			} else {
+				l.Infof("ulimit set to softLimit = %d, hardLimit = %d", soft, hard)
+			}
+		}
+	}
 
 	if c.EnableUncheckedInputs {
 		datakit.EnableUncheckInputs = true
@@ -683,6 +701,15 @@ func (c *Config) LoadEnvs() error {
 				}, // GitRepository
 			}, // Repos
 		} // GitRepost
+	}
+
+	if v := datakit.GetEnv("ENV_ULIMIT"); v != "" {
+		u, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			l.Warnf("invalid ulimit input through ENV_ULIMIT: %v", err)
+		} else {
+			c.Ulimit = u
+		}
 	}
 
 	return nil

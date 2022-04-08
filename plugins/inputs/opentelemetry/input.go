@@ -134,6 +134,8 @@ func (i *Input) Run() {
 	l = logger.SLogger("otlp-log")
 	storage := collector.NewSpansStorage()
 	// add filters: the order append in AfterGather is important!!!
+	// add error status penetration
+	storage.AfterGather.AppendFilter(itrace.PenetrateErrorTracing)
 	// add close resource filter
 	if len(i.CloseResource) != 0 {
 		closeResource := &itrace.CloseResource{}
