@@ -95,24 +95,37 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 ### cgroup 限制 
 
-由于 DataKit 上处理的数据量无法估计，如果不对 DataKit 消耗的资源做物理限制，将有可能消耗所在节点大量资源。这里我们可以借助 cgroup 来限制。
-
-> 目前 cgroup 限制只在[宿主机安装](datakit-install)的时候会默认开启，[DaemonSet 安装可使用专用方案]()
-> 目前 cgourp 只支持 CPU 使用率控制，且支持 Linux 操作系统。
+由于 DataKit 上处理的数据量无法估计，如果不对 DataKit 消耗的资源做物理限制，将有可能消耗所在节点大量资源。这里我们可以借助 cgroup 来限制，在 *datakit.conf* 中有如下配置：
 
 ```toml
 [cgroup]
+	path = "/datakit" # cgroup 限制目录，如 /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
+
   # 允许 CPU 最大使用率（百分制）
   cpu_max = 20.0
 
   # 允许 CPU 最使用率（百分制）
   cpu_min = 5.0
+
+  # 默认允许 4GB 内存(memory + swap)占用
+	# 如果置为 0 或负数，则不启用内存限制
+	mem_max_mb = 4096 
 ```
 
-#### CPU 使用率说明
+如果 DataKit 超出内存限制后，会被操作系统强制杀掉，通过命令可以看到如下结果，此时需要[手动启动服务](datakit-service-how-to#147762ed)：
 
-此处 CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，==在 top 命令上将显示为 160% 左右==。`cpu_min` 同理。
+```shell
+$ systemctl status datakit 
+● datakit.service - Collects data and upload it to DataFlux.
+     Loaded: loaded (/etc/systemd/system/datakit.service; enabled; vendor preset: enabled)
+     Active: activating (auto-restart) (Result: signal) since Fri 2022-02-30 16:39:25 CST; 1min 40s ago
+    Process: 3474282 ExecStart=/usr/local/datakit/datakit (code=killed, signal=KILL)
+   Main PID: 3474282 (code=killed, signal=KILL)
+```
 
+> 注意：
+> - 目前 cgroup 限制只在[宿主机安装](datakit-install)的时候会默认开启<!--，[DaemonSet 安装可使用专用方案]() -->
+> - 目前 cgourp 只支持 CPU 使用率和内存使用量（mem+swap）控制，且支持 Linux 操作系统。
 
 ### 启用磁盘缓存（Alpha）
 
@@ -226,7 +239,30 @@ ulimit = 64000
 
 ulimit 默认配置为 64000。
 
+## FAQ
 
+### cgroup 设置失败
+
+有时候启用 cgroup 会失败，在 [DataKit Monitor](datakit-monitor) 的 `Basic Info` 中会报告类似如下错误：
+
+```
+write /sys/fs/cgroup/memory/datakit/memory.limit_in_bytes: invalid argument
+```
+
+此时需手动删除已有 cgroup 规则库，然后再[重启 DataKit 服务](datakit-service-how-to#147762ed)。
+
+```shell
+sudo cgdelete memory:/datakit
+```
+
+> `cgdelete` 可能需额外安装工具包：
+> 
+> - Ubuntu: `apt-get install libcgroup-tools`
+> - CentOS: `yum install libcgroup-tools`
+
+### cgroup CPU 使用率说明
+
+CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，==在 top 命令上将显示为 160% 左右==。`cpu_min` 同理。
 
 ## 延伸阅读
 

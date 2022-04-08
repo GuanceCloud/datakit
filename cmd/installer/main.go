@@ -81,11 +81,12 @@ var (
 	flagDisable404Page string
 
 	flagInstallOnly,
-	flagCgroupEnabled,
+	flagCgroupDisabled,
 	envEnableExperimental,
 	flagDatakitHTTPPort int
 
 	flagLimitCPUMax float64
+	flagLimitMemMax int64
 	flagLimitCPUMin float64
 )
 
@@ -130,10 +131,11 @@ func init() { //nolint:gochecknoinits
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
 
-	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Croup CPU max usage")
-	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Croup CPU min usage")
+	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Cgroup CPU max usage")
+	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Cgroup CPU min usage")
+	flag.Int64Var(&flagLimitMemMax, "limit-mem", 4096, "Cgroup memory limit")
 
-	flag.IntVar(&flagCgroupEnabled, "cgroup-enabled", 0, "enable Cgroup under Linux")
+	flag.IntVar(&flagCgroupDisabled, "cgroup-disabled", 0, "enable disable cgroup(Linux) limits for CPU and memory")
 	flag.IntVar(&flagDatakitHTTPPort, "port", 9529, "datakit HTTP port")
 	flag.IntVar(&flagInstallOnly, "install-only", 0, "install only, not start")
 
@@ -452,7 +454,7 @@ func installNewDatakit(svc service.Service) {
 	}
 
 	// Only linux support cgroup.
-	if flagCgroupEnabled == 1 && runtime.GOOS == datakit.OSLinux {
+	if flagCgroupDisabled != 1 && runtime.GOOS == datakit.OSLinux {
 		l.Infof("Croups enabled under Linux")
 		mc.Cgroup.Enable = true
 
@@ -466,6 +468,13 @@ func installNewDatakit(svc service.Service) {
 
 		if mc.Cgroup.CPUMax < mc.Cgroup.CPUMin {
 			l.Fatalf("invalid CGroup CPU limit, max should larger than min")
+		}
+
+		if flagLimitMemMax > 0 {
+			l.Infof("cgroup set max memory to %dMB", flagLimitMemMax)
+			mc.Cgroup.MemMax = flagLimitMemMax
+		} else {
+			l.Infof("cgroup max memory not set")
 		}
 	}
 
@@ -614,10 +623,14 @@ func writeDefInputToMainCfg(mc *config.Config) {
 
 	mc.EnableDefaultsInputs(flagEnableInputs)
 
-	if err := injectCloudProvider(flagCloudProvider); err != nil {
-		l.Fatalf("failed to inject cloud-provider: %s", err.Error())
+	if flagCloudProvider != "" {
+		if err := injectCloudProvider(flagCloudProvider); err != nil {
+			l.Fatalf("failed to inject cloud-provider: %s", err.Error())
+		} else {
+			l.Infof("set cloud provider to %s ok", flagCloudProvider)
+		}
 	} else {
-		l.Infof("set cloud provider to %s ok", flagCloudProvider)
+		l.Infof("cloud provider not set")
 	}
 
 	l.Debugf("main config:\n%s", mc.String())

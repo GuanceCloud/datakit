@@ -126,9 +126,12 @@ NAME1="value1" NAME2="value2"
 
 ### cgroup 配置相关
 
-- `DK_CGROUP_ENABLED`:Linux系统下开启Cgroup功能。（如`false`，默认为true，仅Linux平台支持）
-- `DK_LIMIT_CPUMAX`:Linux系统下支持CPU的最大功率,默认30.0。（仅Linux平台支持）
-- `DK_LIMIT_CPUMIN`:Linux系统下支持CPU的最小功率,默认5.0。（仅Linux平台支持）
+以下安装选项仅 Linux 平台支持：
+
+- `DK_CGROUP_DISABLED`：Linux 系统下关闭 Cgroup 功能（默认开启）
+- `DK_LIMIT_CPUMAX`：Linux 系统下支持 CPU 的最大功率，默认 30.0
+- `DK_LIMIT_CPUMIN`：Linux 系统下支持 CPU 的最小功率，默认 5.0
+- `DK_LIMIT_MEMMAX`：Linux 系统下限制内存（含 swap）最大用量，默认 4096（4GB）
 
 ### 其它安装选项
 

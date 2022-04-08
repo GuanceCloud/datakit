@@ -249,7 +249,7 @@ gin.log 也会按照同样的方式自动切割。
 
 ### DataKit 限制运行资源
 
-通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），仅支持 Linux 操作系统。
+通过 cgourp 限制 DataKit 运行资源（例如 CPU 使用率等），==仅支持 Linux 操作系统==。
 
 进入 DataKit 安装目录下的 `conf.d` 目录，修改 `datakit.conf` 配置文件，将 `enable` 设置为 `true`，示例如下：
 

@@ -72,14 +72,15 @@ func (g *Group) do(f func(ctx context.Context) error) {
 	run = func() {
 		defer func() {
 			endTime = time.Now()
+			r := recover()
 
-			if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
 				isPanicRetry := true
-				buf := make([]byte, 1024) //nolint:gomnd
+				buf := make([]byte, 4096) //nolint:gomnd
 				buf = buf[:runtime.Stack(buf, false)]
 
 				if g.panicCb != nil {
-					isPanicRetry = g.panicCb(buf)
+					isPanicRetry = g.panicCb(append([]byte(fmt.Sprintf("%s\n", err.Error())), buf...))
 				}
 
 				if isPanicRetry && panicTimes > 0 {
