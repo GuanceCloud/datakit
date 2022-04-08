@@ -1,7 +1,11 @@
-#ifndef __UTILS_H
-#define __UTILS_H
+#ifndef __NETFLOW_UTILS_H
+#define __NETFLOW_UTILS_H
+
 #include <linux/types.h>
 #include <asm-generic/errno-base.h>
+#include <linux/tcp.h>
+
+#include "bpf_helpers.h"
 #include "conn_stats.h"
 #include "bpfmap.h"
 #include "load_const.h"
@@ -185,14 +189,13 @@ static __always_inline __u32 read_netns(void *sk)
     struct net *netptr = NULL;
     // read the memory address of a net instance from *sknet,
     // possible_net_t has only one field: struct net *
-    __u64  offset_sk_net = load_offset_sk_net();
+    __u64 offset_sk_net = load_offset_sk_net();
     __u64 offset_ns_common_inum = load_offset_ns_common_inum();
     bpf_probe_read(&netptr, sizeof(netptr), (__u8 *)sk + offset_sk_net);
 
     bpf_probe_read(&inum, sizeof(inum), (__u8 *)netptr + offset_ns_common_inum);
     return inum;
 }
-
 
 // param direction: connetction direction, automatic judgment | incoming | outgoing | unknown
 // param count_typpe: packet count type, 1: init, 2:increment
@@ -347,9 +350,7 @@ static __always_inline void send_conn_closed_event(struct pt_regs *ctx, struct c
 
 static __always_inline void swap_u16(__u16 *v)
 {
-    __u16 tmpv = *v & 0xFF;
-    *v >>= 8;
-    *v |= tmpv << 8;
+    *v = __builtin_bswap16(*v);
 }
 
 // network byte order (big-endian), u8 -> u32.
@@ -481,5 +482,4 @@ static __always_inline int read_tcp_rtt(struct sock *sk, struct connection_tcp_s
     return 0;
 }
 
-
-#endif // !__UTILS_H
+#endif // !__NETFLOW_UTILS_H

@@ -1,5 +1,5 @@
 - [DataKit 使用]()
-  - [服务安装和管理](datakit-service-how-to)
+  - [DataKit 服务管理](datakit-service-how-to)
   - [如何配置 DataKit]()
     - [DataKit 主配置](datakit-conf)
     - [采集器配置](datakit-input-conf)

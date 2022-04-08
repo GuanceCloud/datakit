@@ -88,7 +88,13 @@ func DefaultConfig() *Config {
 			GinLog: filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
-		Cgroup: &cgroup.Cgroup{Enable: true, CPUMax: 20.0, CPUMin: 5.0},
+		Cgroup: &cgroup.CgroupOptions{
+			Path:   "/datakit",
+			Enable: true,
+			CPUMax: 20.0,
+			CPUMin: 5.0,
+			MemMax: 4096, // MB
+		},
 
 		GitRepos: &GitRepost{
 			PullInterval: "1m",
@@ -197,9 +203,9 @@ type Config struct {
 	LogRotateDeprecated    int   `toml:"log_rotate,omitzero"`
 	IOCacheCountDeprecated int64 `toml:"io_cache_count,omitzero"`
 
-	GlobalTags   map[string]string `toml:"global_tags"`
-	Environments map[string]string `toml:"environments"`
-	Cgroup       *cgroup.Cgroup    `toml:"cgroup"`
+	GlobalTags   map[string]string     `toml:"global_tags"`
+	Environments map[string]string     `toml:"environments"`
+	Cgroup       *cgroup.CgroupOptions `toml:"cgroup"`
 
 	Disable404PageDeprecated bool `toml:"disable_404page,omitempty"`
 	ProtectMode              bool `toml:"protect_mode"`
@@ -513,10 +519,11 @@ func (c *Config) setHostname() error {
 		l.Errorf("get hostname failed: %s", err.Error())
 		return err
 	}
-	l.Infof("here is hostname:%s", c.Hostname)
+
 	c.Hostname = hn
+
+	l.Infof("hostname: %s", c.Hostname)
 	datakit.DatakitHostName = c.Hostname
-	l.Infof("set hostname to %s", hn)
 	return nil
 }
 

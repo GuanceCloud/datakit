@@ -35,12 +35,17 @@ var (
 	// injected during building: -X.
 	InputsReleaseType = ""
 	ReleaseVersion    = ""
+	DownloadAddr      = ""
 )
 
 func main() {
 	datakit.Version = ReleaseVersion
 	if ReleaseVersion != "" {
 		datakit.Version = ReleaseVersion
+	}
+
+	if DownloadAddr != "" {
+		datakit.DownloadAddr = DownloadAddr
 	}
 
 	datakit.EnableUncheckInputs = (InputsReleaseType == "all")
@@ -75,8 +80,8 @@ func main() {
 		// start the entry under docker.
 		run()
 	} else {
-		// Auto enable cgroup limit under host running
-		go cgroup.Run(config.Cfg.Cgroup)
+		// Auto enable cgroup limit under host running(debug mode and service mode)
+		cgroup.Run(config.Cfg.Cgroup)
 
 		if workdir != "" {
 			run()

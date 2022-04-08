@@ -20,12 +20,15 @@ type TcpResponseTime struct {
 
 type TcpSuccess struct {
 	ResponseTime []*TcpResponseTime `json:"response_time,omitempty"`
+	Hops         []*ValueSuccess    `json:"hops,omitempty"`
 }
 
 type TcpTask struct {
 	Host             string            `json:"host"`
 	Port             string            `json:"port"`
 	Timeout          string            `json:"timeout"`
+	EnableTraceroute bool              `json:"enable_traceroute"`
+	TracerouteConfig *TracerouteOption `json:"traceroute_config"`
 	SuccessWhen      []*TcpSuccess     `json:"success_when"`
 	SuccessWhenLogic string            `json:"success_when_logic"`
 	ExternalID       string            `json:"external_id"`
@@ -45,10 +48,15 @@ type TcpTask struct {
 	reqError   string
 	timeout    time.Duration
 	ticker     *time.Ticker
+	traceroute []*Route
 }
 
-func (t *TcpTask) Init() error {
+func (t *TcpTask) InitDebug() error {
 
+	return t.init(true)
+}
+
+func (t *TcpTask) init(debug bool) error {
 	if len(t.Timeout) == 0 {
 		t.timeout = 10 * time.Second
 	} else {
@@ -59,14 +67,16 @@ func (t *TcpTask) Init() error {
 		}
 	}
 
-	du, err := time.ParseDuration(t.Frequency)
-	if err != nil {
-		return err
+	if !debug {
+		du, err := time.ParseDuration(t.Frequency)
+		if err != nil {
+			return err
+		}
+		if t.ticker != nil {
+			t.ticker.Stop()
+		}
+		t.ticker = time.NewTicker(du)
 	}
-	if t.ticker != nil {
-		t.ticker.Stop()
-	}
-	t.ticker = time.NewTicker(du)
 
 	if strings.ToLower(t.CurStatus) == StatusStop {
 		return nil
@@ -87,9 +97,19 @@ func (t *TcpTask) Init() error {
 			}
 		}
 
+		// if [checker.Hops] is not nil, set traceroute to be true
+		if checker.Hops != nil {
+			t.EnableTraceroute = true
+		}
+
 	}
 
 	return nil
+}
+
+func (t *TcpTask) Init() error {
+
+	return t.init(false)
 }
 
 func (t *TcpTask) Check() error {
@@ -127,6 +147,24 @@ func (t *TcpTask) CheckResult() (reasons []string, succFlag bool) {
 				}
 			}
 		}
+
+		// check traceroute
+		if t.EnableTraceroute {
+			hops := float64(len(t.traceroute))
+
+			if hops == 0 {
+				reasons = append(reasons, "traceroute failed with no hops")
+			} else {
+				for _, v := range chk.Hops {
+					if err := v.check(hops); err != nil {
+						reasons = append(reasons, fmt.Sprintf("traceroute hops check failed: %s", err.Error()))
+					} else {
+						succFlag = true
+					}
+				}
+			}
+
+		}
 	}
 
 	return
@@ -138,6 +176,7 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		"dest_host": t.Host,
 		"dest_port": t.Port,
 		"status":    "FAIL",
+		"proto":     "tcp",
 	}
 
 	responseTime := int64(t.reqCost) / 1000                     // us
@@ -147,6 +186,21 @@ func (t *TcpTask) GetResults() (tags map[string]string, fields map[string]interf
 		"response_time":          responseTime,
 		"response_time_with_dns": responseTimeWithDNS,
 		"success":                int64(-1),
+	}
+
+	if t.EnableTraceroute {
+		fields["hops"] = 0
+		if t.traceroute == nil {
+			fields["traceroute"] = "[]"
+		} else {
+			tracerouteData, err := json.Marshal(t.traceroute)
+			if err == nil && len(tracerouteData) > 0 {
+				fields["traceroute"] = string(tracerouteData)
+				fields["hops"] = len(t.traceroute)
+			} else {
+				fields["traceroute"] = "[]"
+			}
+		}
 	}
 
 	for k, v := range t.Tags {
@@ -204,6 +258,7 @@ func (t *TcpTask) MetricName() string {
 func (t *TcpTask) Clear() {
 	t.reqCost = 0
 	t.reqError = ""
+	t.traceroute = nil
 }
 
 func (t *TcpTask) Run() error {
@@ -239,12 +294,20 @@ func (t *TcpTask) Run() error {
 
 	if err != nil {
 		t.reqError = err.Error()
-		return err
+		t.reqDnsCost = 0
+	} else {
+		t.reqCost = time.Since(start)
+		conn.Close()
 	}
 
-	conn.Close()
-
-	t.reqCost = time.Since(start)
+	if t.EnableTraceroute {
+		routes, err := TracerouteIP(hostIP.String(), t.TracerouteConfig)
+		if err != nil {
+			t.reqError = err.Error()
+		} else {
+			t.traceroute = routes
+		}
+	}
 
 	return nil
 }
