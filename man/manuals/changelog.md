@@ -21,7 +21,7 @@
 - Pipeline [脱敏函数](pipeline#52a4c41c)有更新，新增 [SQL 脱敏函数](pipeline#711d6fe4)(#670)
 - 进程对象和时序指标[新增 `cpu_usage_top` 字段](host_processes#a30fc2c1-1)，以跟 `top` 命令的结果对应(#621)
 - eBPF 增加 [HTTP 协议采集](ebpf#905896c5)(#563)
-- 主机安装时，eBPF 采集器默认不再会安装（减少二进制分发体积），如需安装，[需用特定的安装指令](datakit-install#c52862ce)(#605)
+- 主机安装时，eBPF 采集器默认不再会安装（减少二进制分发体积），如需安装[需用特定的安装指令](ebpf#852abae7)(#605)
   - DaemonSet 安装不受影响
 - 其它 Bug 修复（#688/#681/#679）
 
