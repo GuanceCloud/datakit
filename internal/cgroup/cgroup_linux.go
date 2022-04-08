@@ -55,6 +55,9 @@ func (c *Cgroup) memSetup() {
 }
 
 func (c *Cgroup) setup() error {
+	c.cpuSetup()
+	c.memSetup()
+
 	r := &specs.LinuxResources{
 		CPU: &specs.LinuxCPU{
 			Period: &period,
@@ -65,6 +68,7 @@ func (c *Cgroup) setup() error {
 			DisableOOMKiller: &c.opt.DisableOOM,
 		},
 	}
+
 	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(c.opt.Path), r)
 	if err != nil {
 		l.Errorf("cgroups.New(%+#v): %s", r, err)
@@ -147,9 +151,6 @@ func (c *Cgroup) refreshCPULimit() {
 }
 
 func (c *Cgroup) start() {
-	c.cpuSetup()
-	c.memSetup()
-
 	if err := c.setup(); err != nil {
 		c.err = err
 		return

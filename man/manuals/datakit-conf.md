@@ -114,11 +114,6 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 	mem_max_mb = 4096 # 默认允许 4GB 内存(memory + swap)占用
 ```
 
-#### CPU 使用率说明
-
-此处 CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，==在 top 命令上将显示为 160% 左右==。`cpu_min` 同理。
-
-
 ### 启用磁盘缓存（Alpha）
 
 在 DataKit 日常运行中，有简单的缓存机制，如果发送 DataWay 失败，会缓存大概 1000 个数据点。一旦超出这个点数，就会丢弃掉。
@@ -220,6 +215,31 @@ datakit 根目录
 1. 按 *datakit.conf* 中配置的 *git_repos* 次序（它是一个数组，可配置多个 Git 仓库），逐个查找指定文件名，若找到，返回第一个。比如查找 *my-nginx.p*，如果在第一个仓库目录的 *pipeline* 下找到，则以该找到的为准，**即使第二个仓库中也有同名的 *my-nginx.p*，也不会选择它**。
 
 2. 在 *git_repos* 中找不到的情况下，则去 *<Datakit 安装目录>/pipeline* 目录查找 Pipeline 脚本，或者去 *<Datakit 安装目录>/python.d* 目录查找 Python 脚本。
+
+## FAQ
+
+### cgroup 设置失败
+
+有时候启用 cgroup 会失败，在 [DataKit Monitor](datakit-monitor) 的 `Basic Info` 中会报告类似如下错误：
+
+```
+write /sys/fs/cgroup/memory/datakit/memory.limit_in_bytes: invalid argument
+```
+
+此时需手动删除已有 cgroup 规则库，然后再重启 DataKit 服务。
+
+```shell
+sudo cgdelete memory:/datakit
+```
+
+> `cgdelete` 可能需额外安装工具包：
+> 
+> - Ubuntu: `apt-get install libcgroup-tools`
+> - CentOS: `yum install libcgroup-tools`
+
+### cgroup CPU 使用率说明
+
+CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，==在 top 命令上将显示为 160% 左右==。`cpu_min` 同理。
 
 ## 延伸阅读
 
