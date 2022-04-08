@@ -238,7 +238,7 @@ ulimit 默认配置为 64000。
 write /sys/fs/cgroup/memory/datakit/memory.limit_in_bytes: invalid argument
 ```
 
-此时需手动删除已有 cgroup 规则库，然后再重启 DataKit 服务。
+此时需手动删除已有 cgroup 规则库，然后再[重启 DataKit 服务](datakit-service-how-to#147762ed)。
 
 ```shell
 sudo cgdelete memory:/datakit
