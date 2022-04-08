@@ -494,8 +494,10 @@ func getPoints(req *http.Request) ([]*iod.Point, error) {
 	}
 	var tags map[string]string
 	var fields map[string]interface{}
+	var measurementName string
 	switch req.Header.Get(gitlabEventHeader) {
 	case pipelineHook:
+		measurementName = "gitlab_pipeline"
 		var pl PipelineEventPayload
 		if err := json.Unmarshal(data, &pl); err != nil {
 			return nil, err
@@ -504,6 +506,7 @@ func getPoints(req *http.Request) ([]*iod.Point, error) {
 		fields = getPipelineEventFields(pl)
 
 	case jobHook:
+		measurementName = "gitlab_job"
 		var j JobEventPayload
 		if err := json.Unmarshal(data, &j); err != nil {
 			return nil, err
@@ -513,7 +516,7 @@ func getPoints(req *http.Request) ([]*iod.Point, error) {
 	default:
 		return nil, fmt.Errorf("unrecognized event payload: %v", req.Header.Get(gitlabEventHeader))
 	}
-	pt, err := iod.NewPoint(inputName, tags, fields)
+	pt, err := iod.NewPoint(measurementName, tags, fields)
 	if err != nil {
 		return nil, err
 	}

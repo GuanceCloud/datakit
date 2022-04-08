@@ -91,7 +91,7 @@ func (*gitlabHTTPMeasurement) Info() *inputs.MeasurementInfo {
 //nolint:lll
 func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "gitlab",
+		Name: "gitlab_pipeline",
 		Desc: "Gitlab Pipeline Event 相关指标",
 		Fields: map[string]interface{}{
 			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "pipeline id"},
@@ -117,7 +117,7 @@ func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 //nolint:lll
 func (g *gitlabJobMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "gitlab",
+		Name: "gitlab_job",
 		Desc: "Gitlab Job Event 相关指标",
 		Fields: map[string]interface{}{
 			"build_id":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "build id"},
