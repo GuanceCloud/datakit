@@ -146,9 +146,6 @@ func (kinfo *K8sNetInfo) QueryPodInfo(ip string, port uint32, protocol string) (
 	kinfo.RLock()
 	defer kinfo.RUnlock()
 
-	if port == 0 || port > 65535 {
-		return false, "", "", "", 0, fmt.Errorf("no match pod")
-	}
 	pP := Port{
 		Port: port,
 	}
