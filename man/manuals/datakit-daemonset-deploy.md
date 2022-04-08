@@ -10,15 +10,13 @@
 
 ## 安装步骤 
 
-- [helm安装](###helm安装)
+- [Helm 安装](#324285d6)
 
-- [普通yaml安装](###普通yaml安装)
-
-
-
-### helm安装
+- [普通 yaml 安装](#da75ffbf)
 
 
+
+### Helm 安装
 
 #### 前提条件
 
@@ -27,23 +25,23 @@
 
 
 
-#### 添加DataKit helm 仓库
+#### 添加 DataKit Helm 仓库
 
 ```shell 
-helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
-helm repo update 
+$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$helm repo update 
 ```
 
 
 
-#### helm 安装Datakit
+#### Helm 安装 Datakit
 
 
 
-注意更换dataway_url
+注意更换 dataway_url
 
 ```shell
-helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
+$helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
 ```
 
 
@@ -51,29 +49,29 @@ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://o
 #### 查看部署状态
 
 ```shell
-helm -n datakit list
+$helm -n datakit list
 ```
 
 
 
 #### 升级
 
-```
-helm repo update 
-helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" 
+```shell
+$helm repo update 
+$helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" 
 ```
 
 
 
 #### 卸载
 
-```shell script
-helm uninstall my-datakit -n datakit
+```shell
+$helm uninstall my-datakit -n datakit
 ```
 
 
 
-### 普通yaml安装
+### 普通 yaml 安装
 
 先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)，其中开启了很多[默认采集器](datakit-input-conf#764ffbc2)，无需配置。
 
@@ -114,6 +112,7 @@ kubectl apply -f datakit.yaml
 ```shell
 kubectl get pod -n datakit
 ```
+
 
 
 #### Kubernetes 污点容忍度配置
@@ -181,7 +180,7 @@ spec:
       value: YYY
 ```
 
-- helm values.yaml 中其大概格式为
+- Helm values.yaml 中其大概格式为
 
   ```yaml
   extraEnvs: 

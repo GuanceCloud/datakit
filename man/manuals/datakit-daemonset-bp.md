@@ -6,12 +6,14 @@
 
 # DataKit DaemonSet 部署最佳实践
 
-由于 [Datakit DaemonSet](datakit-daemonset-deploy) 配置管理非常复杂，此篇文章将介绍配置管理最佳实践。
-本篇将描述2种不同部署的方式的配置方法:
+## 背景介绍
+由于 [Datakit DaemonSet](datakit-daemonset-deploy) 配置管理非常复杂，此篇文章将介绍配置管理最佳实践。本篇将以配置 MySQL 和 Java Pipeline 为演示案例。
 
-- ComfigMap 管理配置
+本篇将描述以下2种不同的管理方法:
 
-- 启用 git 管理配置
+- [ComfigMap 管理配置](#c28055b2)
+
+- [启用 git 管理配置](#02801a95)
 
   
 
@@ -19,12 +21,13 @@
 
 Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.io/zh/docs/concepts/configuration/configmap/) 来注入。ComfigMap 注入灵活，但不易管理。
 
-可以分为：
+ComfigMap 注入，可以分为以下2种：
 
-- Helm 安装注入
-- yaml 安装注入
+- [Helm 安装注入](#74ceef30)
 
-以下是 MySQL 和 Java Pipeline 的注入示例
+- [yaml 安装注入](#2c302a4c)
+
+  
 
 ### Helm 安装注入
 
@@ -39,7 +42,7 @@ Datakit 部分采集器的开启，可以通过 [ConfigMap](https://kubernetes.i
 #### 添加 Helm 仓库
 
 ```shell
-helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 ```
 
 
@@ -47,7 +50,7 @@ helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 #### 查看 DataKit 版本
 
 ```shell
-helm search repo datakit
+$helm search repo datakit
 NAME                	CHART VERSION	APP VERSION	DESCRIPTION
 dataflux/datakit	1.2.10       	1.2.10     	Chart for the DaemonSet datakit
 ```
@@ -57,19 +60,17 @@ dataflux/datakit	1.2.10       	1.2.10     	Chart for the DaemonSet datakit
 #### 下载 Helm 包
 
 ```shell
-helm repo update 
-helm pull dataflux/datakit --untar
+$helm repo update 
+$helm pull dataflux/datakit --untar
 ```
 
 
 
 #### 修改 values.yaml 配置
 
-修改 datakit/values.yaml 
+修改 `datakit/values.yaml` 的 `dataway_url` 和 `dkconfig`数组。 `dataway_url` 为 dataway 地址， `dkconfig.path` 为挂载路径， `dkconfig.name` 为配置名称， ` dkconfig.value` 为配置内容。
 
-注意 yaml 格式，dataway_url 和 dkconfig 都要改
-
-<font color=#FF0000 > values.yaml 可以用于下次升级使用 </font>
+注：`values.yaml` 可以用于下次升级使用
 
 
 ```yaml
@@ -142,16 +143,16 @@ dkconfig:
 安装
 
 ```shell
-cd datakit
-helm repo update 
-helm install my-datakit dataflux/datakit -f values.yaml -n datakit  --create-namespace 
+$cd datakit # 此目录为 helm pull 的目录
+$helm repo update 
+$helm install my-datakit dataflux/datakit -f values.yaml -n datakit  --create-namespace 
 ```
 
 升级
 
 ```shell
-helm repo update 
-helm upgrade my-datakit . -n datakit  -f values.yaml
+$helm repo update 
+$helm upgrade my-datakit . -n datakit  -f values.yaml
 
 Release "datakit" has been upgraded. Happy Helming!
 NAME: datakit
@@ -173,21 +174,22 @@ NOTES:
 #### 查看是否部署成功
 
 ```shell
-helm list -n datakit
+$helm list -n datakit
 
-kubectl get pods -n datakit
+$kubectl get pods -n datakit
 ```
+
 
 
 ### yaml 安装注入 
 
-可参考 [DaemonSet 安装](datakit-daemonset-deploy####ConfigMap 设置)
+可参考 [DaemonSet ConfigMap 设置](datakit-daemonset-deploy#fb919c14)
 
 
 
 ## 启用 git 管理配置
 
-​	由于 ComfigMap 注入灵活，但不易管理特性，我们可以采用 git 仓库来管理我们的配置。启用 [git 管理](datakit-conf###使用 Git 管理 DataKit 配置) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改ComfigMap，也不需要重启DataKit，更重要的是有修改记录，可回滚配置。
+​	由于 ComfigMap 注入灵活，但不易管理特性，我们可以采用 git 仓库来管理我们的配置。启用 [git 管理](datakit-conf#90362fd0) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ComfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
 
 ### 前提条件
 
@@ -219,7 +221,7 @@ kubectl get pods -n datakit
 
   `conf.d/java.p`
 
-  ```
+  ```shell
   json(_, recorder, 'recorder')
   if recorder == "gunicorn" {
   	drop_key(func_name)
@@ -268,30 +270,30 @@ kubectl get pods -n datakit
 
 ### Helm 启用 git 管理配置
 
-​	使用Helm 启用 git 管理配置，一个命令就能完成安装和配置，*简单高效*。
+使用 Helm 启用 git 管理配置，一个命令就能完成安装和配置，简单高效。
 
 注意：启用 git 管理配置，则 ComfigMap 将失效，default_enabled_inputs 不会影响
 
-- 使用密码管理 git
+#### 使用密码管理 git
 
 需要修改 dataway_url，git_repos.git_url
 ```shell
-helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 
-helm repo update 
+$helm repo update 
 
-helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
+$helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
 --create-namespace 
 ```
 
-- 使用 git key 管理 git
+#### 使用 git key 管理 git
 
 需要修改 dataway_url，git_repos.git_url，git_repos.git_key_path(绝对路径)
 ```shell
-helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
-helm repo update 
-helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
+$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
+$helm repo update 
+$helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="git@github.com:path/to/repository.git" \
 --set-file git_repos.git_key_path="/Users/buleleaf/.ssh/id_rsa" \
 --create-namespace 
@@ -300,11 +302,13 @@ helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://o
 
 ### yaml 启用 git 管理配置
 
-yaml 配置复杂，建议使用 [Helm 部署](###Helm 启用 git 管理配置)
+yaml 配置复杂，建议使用 [Helm 部署](#daa40de1)
 
 先下载 [datakit.yaml](https://static.guance.com/datakit/datakit.yaml)
 
-- 使用密码管理 git
+#### 使用密码管理 git
+
+##### 修改配置
 
 修改 datakit.yaml，添加 env
 ```shell
@@ -316,9 +320,20 @@ yaml 配置复杂，建议使用 [Helm 部署](###Helm 启用 git 管理配置)
           value: "1m"
 ```
 
-- 使用 git key 管理 git
+##### 安装 yaml
 
-添加 ComfigMap
+```shell
+kubectl apply -f datakit.yaml
+```
+
+
+
+#### 使用 git key 管理 git
+
+##### 修改配置
+
+- 添加 ComfigMap
+
 ```shell
 apiVersion: v1
 data:
@@ -350,7 +365,8 @@ metadata:
   name: id-rsa
   namespace: datakit
 ```
-添加 env
+- 添加 env
+
 ```shell
         - name: DK_GIT_URL
           value: "git@github.com:path/to/repository.git"
@@ -361,7 +377,8 @@ metadata:
         - name: DK_GIT_INTERVAL
           value: "1m"
 ```
-添加 volume
+- 添加 volume
+
 ```shell
         volumeMounts:
         - mountPath: /usr/local/datakit/id_rsa
@@ -373,14 +390,20 @@ metadata:
         name: id-rsa
 ```
 
+##### 安装 yaml
+
+```shell
+kubectl apply -f datakit.yaml
+```
+
 
 
 ### 验证是否部署成功
 
 登录容器查看 `/usr/local/datakit/gitrepos` 目录是否同步成功
 
-```
-kubectl exec -ti datakit-xxxx bash
-ls gitrepos
+```shell
+$kubectl exec -ti datakit-xxxx bash
+$ls gitrepos
 ```
 
