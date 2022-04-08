@@ -11,10 +11,9 @@ import (
 )
 
 const (
-	H               = "high"
-	L               = "low"
-	defaultMemLimit = 1024 // 1GB
-	cgroupName      = "datakit"
+	H          = "high"
+	L          = "low"
+	cgroupName = "datakit"
 )
 
 type Cgroup struct {
@@ -44,7 +43,7 @@ func (c *Cgroup) cpuSetup() {
 }
 
 func (c *Cgroup) memSetup() {
-	c.opt.MemMax = c.opt.MemMax * MB
+	c.opt.MemMax *= MB
 }
 
 func (c *Cgroup) setup() error {

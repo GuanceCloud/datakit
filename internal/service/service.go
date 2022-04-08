@@ -19,7 +19,7 @@ var (
 
 	Entry func()
 
-	// not used
+	// not used.
 	ServiceOption = map[string]interface{}{}
 
 	StopCh     = make(chan interface{})
