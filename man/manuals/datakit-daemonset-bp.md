@@ -199,7 +199,7 @@ $kubectl get pods -n datakit
 
   `conf.d/mysql.conf`
 
-  ```toml
+ ```toml
   [[inputs.mysql]]
     host = "xxx.xxx.xxx.xxx"
     user = "xxxx"
@@ -217,11 +217,11 @@ $kubectl get pods -n datakit
   [inputs.mysql.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
-  ```
+ ```
 
   `conf.d/java.p`
 
-  ```shell
+ ```shell
   json(_, recorder, 'recorder')
   if recorder == "gunicorn" {
   	drop_key(func_name)
@@ -253,7 +253,7 @@ $kubectl get pods -n datakit
   group_in(level, ["error", "panic", "dpanic", "fatal"], "error", status)
   group_in(level, ["info", "debug"], "info", status)
   group_in(level, ["warn", "warning"], "warning", status)
-  ```
+ ```
 
   
 
@@ -272,7 +272,7 @@ $kubectl get pods -n datakit
 
 使用 Helm 启用 git 管理配置，一个命令就能完成安装和配置，简单高效。
 
-注意：启用 git 管理配置，则 ComfigMap 将失效，default_enabled_inputs 不会影响
+注意：如果启用 git 管理配置，则 ComfigMap 将失效，default_enabled_inputs 将不会受影响
 
 #### 使用密码管理 git
 
