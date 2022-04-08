@@ -290,9 +290,16 @@ func (m *monitorAPP) renderFilterRulesStatsTable(ds *dkhttp.DatakitStats, colArr
 		table.SetCell(row, col, tview.NewTableCell(number(v.Total)).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
 		col++
-		table.SetCell(row, col, tview.NewTableCell(
-			fmt.Sprintf("%s(%.2f)", number(v.Filtered), 100.0*float64(v.Filtered)/float64(v.Total))).
-			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+
+		if v.Total == 0 {
+			table.SetCell(row, col, tview.NewTableCell("-").
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		} else {
+			table.SetCell(row, col, tview.NewTableCell(
+				fmt.Sprintf("%s(%.2f)", number(v.Filtered), 100.0*float64(v.Filtered)/float64(v.Total))).
+				SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
+		}
+
 		col++
 		table.SetCell(row, col, tview.NewTableCell(v.Cost.String()).
 			SetMaxWidth(*flagMonitorMaxTableWidth).SetAlign(tview.AlignRight))
