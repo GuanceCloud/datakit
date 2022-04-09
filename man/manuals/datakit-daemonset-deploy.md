@@ -80,7 +80,7 @@ $ helm uninstall my-datakit -n datakit
 #### 安装 yaml
 
 ```shell
-kubectl apply -f datakit.yaml
+$ kubectl apply -f datakit.yaml
 ``` 
 
 #### 查看运行状态
@@ -88,7 +88,7 @@ kubectl apply -f datakit.yaml
 安装完后，会创建一个 datakit 的 DaemonSet 部署：
 
 ```shell
-kubectl get pod -n datakit
+$ kubectl get pod -n datakit
 ``` 
 
 #### Kubernetes 污点容忍度配置
@@ -155,13 +155,13 @@ spec:
 
 - Helm values.yaml 中其大概格式为
 
-  ```yaml
+```yaml
   extraEnvs: 
     - name: "ENV_XXX"
       value: "YYY"
     - name: "ENV_OTHER_XXX"
       value: "YYY"    
-  ```
+```
 
 DataKit 支持的环境变量如下各表所示。
 
