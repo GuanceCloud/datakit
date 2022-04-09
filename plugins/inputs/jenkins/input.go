@@ -24,6 +24,14 @@ func (*Input) Catalog() string {
 	return inputName
 }
 
+func (n *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		"jenkins": {
+			"Jenkins log": `2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins`,
+		},
+	}
+}
+
 func (*Input) PipelineConfig() map[string]string {
 	pipelineMap := map[string]string{
 		"jenkins": pipelineCfg,

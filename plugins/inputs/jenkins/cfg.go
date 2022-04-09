@@ -84,12 +84,6 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
-func (n *Input) LogExample() map[string]string {
-	return map[string]string{
-		"Jenkins log": `2021-05-18 03:08:58.053+0000 [id=32]	INFO	jenkins.InitReactorRunner$1#onAttained: Started all plugins`,
-	}
-}
-
 func newCountFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Int,

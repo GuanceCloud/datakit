@@ -136,18 +136,21 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
-func (m *Input) LogExample() map[string]string {
-	return map[string]string{
-		"MongoDB log": `{"t":{"$date":"2021-06-03T09:12:19.977+00:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"WTCheckpointThread","msg":"WiredTiger message","attr":{"message":"[1622711539:977142][1:0x7f1b9f159700], WT_SESSION.checkpoint: [WT_VERB_CHECKPOINT_PROGRESS] saving checkpoint snapshot min: 653, snapshot max: 653 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0)"}}`,
-	}
-}
-
 func (*Input) Catalog() string { return catalogName }
 
 func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) PipelineConfig() map[string]string {
 	return map[string]string{inputName: pipelineConfig}
+}
+
+//nolint:lll
+func (m *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"MongoDB log": `{"t":{"$date":"2021-06-03T09:12:19.977+00:00"},"s":"I",  "c":"STORAGE",  "id":22430,   "ctx":"WTCheckpointThread","msg":"WiredTiger message","attr":{"message":"[1622711539:977142][1:0x7f1b9f159700], WT_SESSION.checkpoint: [WT_VERB_CHECKPOINT_PROGRESS] saving checkpoint snapshot min: 653, snapshot max: 653 snapshot count: 0, oldest timestamp: (0, 0) , meta checkpoint timestamp: (0, 0)"}}`,
+		},
+	}
 }
 
 func (m *Input) GetPipeline() []*tailer.Option {

@@ -97,6 +97,17 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+//nolint:lll
+func (n *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		"nginx": {
+			"Nginx error log1": `2021/04/21 09:24:04 [alert] 7#7: *168 write() to "/var/log/nginx/access.log" failed (28: No space left on device) while logging request, client: 120.204.196.129, server: localhost, request: "GET / HTTP/1.1", host: "47.98.103.73"`,
+			"Nginx error log2": `2021/04/29 16:24:38 [emerg] 50102#0: unexpected ";" in /usr/local/etc/nginx/nginx.conf:23`,
+			"Nginx access log": `127.0.0.1 - - [24/Mar/2021:13:54:19 +0800] "GET /basic_status HTTP/1.1" 200 97 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Safari/537.36"`,
+		},
+	}
+}
+
 func (n *Input) GetPipeline() []*tailer.Option {
 	return []*tailer.Option{
 		{

@@ -97,12 +97,6 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
-func (n *Input) LogExample() map[string]string {
-	return map[string]string{
-		"RabbitMQ log": `2021-05-26 14:20:06.105 [warning] <0.12897.46> rabbitmqctl node_health_check and its HTTP API counterpart are DEPRECATED. See https://www.rabbitmq.com/monitoring.html#health-checks for replacement options.`,
-	}
-}
-
 type rabbitmqlog struct {
 	Files             []string `toml:"files"`
 	Pipeline          string   `toml:"pipeline"`

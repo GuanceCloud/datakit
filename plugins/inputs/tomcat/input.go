@@ -36,13 +36,6 @@ type Input struct {
 	tail *tailer.Tailer
 }
 
-func (i *Input) LogExample() map[string]string {
-	return map[string]string{
-		"Tomcat access log":   `0:0:0:0:0:0:0:1 - admin [24/Feb/2015:15:57:10 +0530] "GET /manager/images/tomcat.gif HTTP/1.1" 200 2066`,
-		"Tomcat Catalina log": `06-Sep-2021 22:33:30.513 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Xmx256m`,
-	}
-}
-
 func (*Input) Catalog() string {
 	return inputName
 }
@@ -70,6 +63,16 @@ func (*Input) PipelineConfig() map[string]string {
 		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+//nolint:lll
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Tomcat access log":   `0:0:0:0:0:0:0:1 - admin [24/Feb/2015:15:57:10 +0530] "GET /manager/images/tomcat.gif HTTP/1.1" 200 2066`,
+			"Tomcat Catalina log": `06-Sep-2021 22:33:30.513 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Xmx256m`,
+		},
+	}
 }
 
 func (i *Input) GetPipeline() []*tailer.Option {

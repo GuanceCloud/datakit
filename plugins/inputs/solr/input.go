@@ -94,12 +94,6 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
-func (i *Input) LogExample() map[string]string {
-	return map[string]string{
-		"Solr log": `2013-10-01 12:33:08.319 INFO (org.apache.solr.core.SolrCore) [collection1] webapp.reporter`,
-	}
-}
-
 func (i *Input) appendM(m inputs.Measurement) {
 	i.m.Lock()
 	i.collectCache = append(i.collectCache, m)
@@ -157,6 +151,14 @@ func (*Input) PipelineConfig() map[string]string {
 		inputName: pipelineCfg,
 	}
 	return pipelineMap
+}
+
+func (i *Input) LogExamples() map[string]map[string]string {
+	return map[string]map[string]string{
+		inputName: {
+			"Solr log": `2013-10-01 12:33:08.319 INFO (org.apache.solr.core.SolrCore) [collection1] webapp.reporter`,
+		},
+	}
 }
 
 func (i *Input) GetPipeline() []*tailer.Option {

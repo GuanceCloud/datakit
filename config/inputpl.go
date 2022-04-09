@@ -18,12 +18,17 @@ const (
 `
 )
 
+type PipelineDemo struct {
+	Pipeline string            `json:"pipeline"`
+	Examples map[string]string `json:"examples"`
+}
+
 func initPluginPipeline() error {
 	if err := pipeline.Init(Cfg.Pipeline); err != nil {
 		return err
 	}
 
-	scriptMap, err := GetScriptMap(true)
+	scriptMap, err := GetScriptMap()
 	if err != nil {
 		l.Errorf(err.Error())
 		return err
@@ -39,7 +44,7 @@ func initPluginPipeline() error {
 	return nil
 }
 
-func GetScriptMap(addPipelineWarning bool) (map[string]string, error) {
+func GetScriptMap() (map[string]string, error) {
 	scriptMap := map[string]string{}
 	for _, c := range inputs.Inputs {
 		if v, ok := c().(inputs.PipelineInput); ok {
@@ -53,13 +58,36 @@ func GetScriptMap(addPipelineWarning bool) (map[string]string, error) {
 				if _, has := scriptMap[name]; has {
 					return nil, fmt.Errorf("duplicated pipeline script name: %s", name)
 				}
-				if addPipelineWarning {
-					scriptMap[name] = pipelineWarning + script
-				} else {
-					scriptMap[name] = script
-				}
+				scriptMap[name] = pipelineWarning + script
 			}
 		}
 	}
 	return scriptMap, nil
+}
+
+func GetPipelineDemoMap() (map[string]PipelineDemo, error) {
+	demoMap := map[string]PipelineDemo{}
+	for _, c := range inputs.Inputs {
+		if v, ok := c().(inputs.PipelineInput); ok {
+			for n, script := range v.PipelineConfig() {
+				var d PipelineDemo
+				// Ignore empty pipeline script.
+				if script == "" {
+					continue
+				}
+				name := n + ".p"
+				if _, has := demoMap[name]; has {
+					return nil, fmt.Errorf("duplicated pipeline script name: %s", name)
+				}
+				d.Pipeline = script
+				if exampler, ok := c().(inputs.LogExampler); ok {
+					if examples, has := exampler.LogExamples()[n]; has {
+						d.Examples = examples
+					}
+				}
+				demoMap[name] = d
+			}
+		}
+	}
+	return demoMap, nil
 }
