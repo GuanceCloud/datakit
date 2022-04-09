@@ -2,8 +2,31 @@
 
 # DataKit 版本历史
 
-- 完善日志黑名单功能，新增 CONTAIN/NOTCONTAIN 判定规则(#665)
-  - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单]()
+## 1.2.13(2022/04/08)
+
+本次发布属于迭代发布，更新内容如下：
+
+- 增加宿主机运行时的[内存限制](datakit-conf#4e7ff8f3)(#641)
+	- 安装阶段即支持[内存限制配置](datakit-install#03be369a)
+- CPU 采集器增加 [load5s 指标](cpu#13e60209)(#606)
+- 完善 datakit.yaml 示例(#678)
+- 支持主机安装时通过 [cgroup 限制内存](datakit-conf#4e7ff8f3)使用(#641)
+- 完善日志黑名单功能，新增 contain/notcontain 判定规则(#665)
+  - 支持在 datakit.conf 中[配置日志/对象/Tracing/时序指标这几类黑名单](datakit-filter#045b45e3)
+- 进一步完善 [containerd 下的容器采集](container)(#402)
+- 调整 monitor 布局，增加黑名单过滤情况展示(#634)
+- DaemonSet 安装增加 [Helm 支持](datakit-daemonset-deploy)(#653)
+  - 新增 [DaemonSet 安装最佳实践](datakit-daemonset-bp)(#673)
+- 完善 [Gitlab 采集器](gitlab)(#661)
+- 增加 [ulimit 配置项](datakit-conf#8f9f4364)用于配置文件打开数限制(#667)
+- Pipeline [脱敏函数](pipeline#52a4c41c)有更新，新增 [SQL 脱敏函数](pipeline#711d6fe4)(#670)
+- 进程对象和时序指标[新增 `cpu_usage_top` 字段](host_processes#a30fc2c1-1)，以跟 `top` 命令的结果对应(#621)
+- eBPF 增加 [HTTP 协议采集](ebpf#905896c5)(#563)
+- 主机安装时，eBPF 采集器默认不再会安装（减少二进制分发体积），如需安装[需用特定的安装指令](ebpf#852abae7)(#605)
+  - DaemonSet 安装不受影响
+- 其它 Bug 修复（#688/#681/#679/#680）
+
+---
 
 ## 1.2.12(2022/03/24)
 

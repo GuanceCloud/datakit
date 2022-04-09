@@ -2,6 +2,7 @@ package dialtesting
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -73,7 +74,7 @@ type WebsocketTask struct {
 	ticker          *time.Ticker
 }
 
-func (t *WebsocketTask) Init() error {
+func (t *WebsocketTask) init(debug bool) error {
 	t.timeout = 30 * time.Second
 	if t.AdvanceOptions != nil {
 		if t.AdvanceOptions.RequestOptions != nil && len(t.AdvanceOptions.RequestOptions.Timeout) > 0 {
@@ -85,14 +86,16 @@ func (t *WebsocketTask) Init() error {
 		}
 	}
 
-	du, err := time.ParseDuration(t.Frequency)
-	if err != nil {
-		return err
+	if !debug {
+		du, err := time.ParseDuration(t.Frequency)
+		if err != nil {
+			return err
+		}
+		if t.ticker != nil {
+			t.ticker.Stop()
+		}
+		t.ticker = time.NewTicker(du)
 	}
-	if t.ticker != nil {
-		t.ticker.Stop()
-	}
-	t.ticker = time.NewTicker(du)
 
 	if strings.ToLower(t.CurStatus) == StatusStop {
 		return nil
@@ -113,16 +116,50 @@ func (t *WebsocketTask) Init() error {
 			}
 		}
 
+		for _, vs := range checker.Header {
+			for _, v := range vs {
+				err := genReg(v)
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+
+		for _, v := range checker.ResponseMessage {
+			err := genReg(v)
+			if err != nil {
+				return err
+			}
+
+		}
 	}
 
 	if parsedURL, err := url.Parse(t.URL); err != nil {
 		return err
 	} else {
+		if parsedURL.Port() == "" {
+			port := ""
+			if parsedURL.Scheme == "wss" {
+				port = "443"
+			} else if parsedURL.Scheme == "ws" {
+				port = "80"
+			}
+			parsedURL.Host = net.JoinHostPort(parsedURL.Host, port)
+		}
 		t.parsedURL = parsedURL
 		t.hostname = parsedURL.Hostname()
 	}
 
 	return nil
+}
+
+func (t *WebsocketTask) InitDebug() error {
+	return t.init(true)
+}
+
+func (t *WebsocketTask) Init() error {
+	return t.init(false)
 }
 
 func (t *WebsocketTask) Check() error {
@@ -190,6 +227,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 		"name":   t.Name,
 		"url":    t.URL,
 		"status": "FAIL",
+		"proto":  "websocket",
 	}
 
 	responseTime := int64(t.reqCost+t.reqDnsCost) / 1000        // us
@@ -199,6 +237,7 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 		"response_time":          responseTime,
 		"response_time_with_dns": responseTimeWithDNS,
 		"response_message":       t.responseMessage,
+		"sent_message":           t.Message,
 		"success":                int64(-1),
 	}
 
@@ -234,6 +273,10 @@ func (t *WebsocketTask) GetResults() (tags map[string]string, fields map[string]
 			tags["status"] = "OK"
 			fields["success"] = int64(1)
 		}
+	}
+
+	if v, ok := fields[`fail_reason`]; ok && len(v.(string)) != 0 && t.resp != nil {
+		message[`response_header`] = t.resp.Header
 	}
 
 	data, err := json.Marshal(message)
@@ -288,11 +331,18 @@ func (t *WebsocketTask) Run() error {
 
 	t.parsedURL.Host = net.JoinHostPort(hostIP.String(), t.parsedURL.Port())
 
+	//ingore tls verify
+	if t.parsedURL.Scheme == "wss" {
+		websocket.DefaultDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
 	start := time.Now()
+
 	c, resp, err := websocket.DefaultDialer.DialContext(ctx, t.parsedURL.String(), header)
 
 	if err != nil {
 		t.reqError = err.Error()
+		t.reqDnsCost = 0
 		return err
 	}
 

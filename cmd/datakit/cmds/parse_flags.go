@@ -137,13 +137,14 @@ var (
 	//
 	// install related flags.
 	//
-	fsInstallName       = "install"
-	fsInstall           = pflag.NewFlagSet(fsInstallName, pflag.ContinueOnError)
-	flagInstallLogPath  = fsInstall.String("log", commonLogFlag(), "command line log path")
-	flagInstallTelegraf = fsInstall.Bool("telegraf", false, "install Telegraf")
-	flagInstallScheck   = fsInstall.Bool("scheck", false, "install SCheck")
-	flagInstallIPDB     = fsInstall.String("ipdb", "", "install IP database(currently only iploc available)")
-	fsInstallUsage      = func() {
+	fsInstallName          = "install"
+	fsInstall              = pflag.NewFlagSet(fsInstallName, pflag.ContinueOnError)
+	flagInstallLogPath     = fsInstall.String("log", commonLogFlag(), "command line log path")
+	flagInstallTelegraf    = fsInstall.Bool("telegraf", false, "install Telegraf")
+	flagInstallScheck      = fsInstall.Bool("scheck", false, "install SCheck")
+	flagInstallDatakitEbpf = fsInstall.Bool("datakit-ebpf", false, "install datakit-ebpf")
+	flagInstallIPDB        = fsInstall.String("ipdb", "", "install IP database(currently only iploc available)")
+	fsInstallUsage         = func() {
 		fmt.Printf("usage: datakit install [options]\n\n")
 		fmt.Printf("Install used to install DataKit related packages and plugins\n\n")
 		fmt.Println(fsInstall.FlagUsagesWrapped(0))

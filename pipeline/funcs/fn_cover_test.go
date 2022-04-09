@@ -16,7 +16,7 @@ func TestDz(t *testing.T) {
 		name     string
 		outKey   string
 		pl, in   string
-		expected string
+		expected interface{}
 		fail     bool
 	}{
 		{
@@ -56,35 +56,8 @@ func TestDz(t *testing.T) {
 		},
 
 		{
-			name:     "normal",
-			pl:       `json(_, str) cover(str, [0, 3])`,
-			in:       `{"str": "13838130517"}`,
-			outKey:   "str",
-			expected: "***38130517",
-			fail:     false,
-		},
-
-		{
-			name:     "normal",
-			pl:       `json(_, str) cover(str, [2, 2])`,
-			in:       `{"str": "刘少波"}`,
-			outKey:   "str",
-			expected: "刘＊波",
-			fail:     false,
-		},
-
-		{
 			name:     "odd range",
 			pl:       `json(_, str) cover(str, [1, 100])`,
-			in:       `{"str": "刘少波"}`,
-			outKey:   "str",
-			expected: "＊＊＊",
-			fail:     false,
-		},
-
-		{
-			name:     "odd range",
-			pl:       `json(_, str) cover(str, [-1, 3])`,
 			in:       `{"str": "刘少波"}`,
 			outKey:   "str",
 			expected: "＊＊＊",
@@ -110,6 +83,36 @@ func TestDz(t *testing.T) {
 			pl:   `json(_, str) cover(str, ["刘", "波"])`,
 			in:   `{"str": "刘少波"}`,
 			fail: true,
+		},
+
+		{
+			name: "normal",
+			pl:   `json(_, str) cover(str, [1, 2])`,
+			in:   `{"str": 123456}`,
+			fail: true,
+		},
+
+		{
+			name: "normal",
+			pl:   `json(_, str) cover(str, [-1, -2])`,
+			in:   `{"str": 123456}`,
+			fail: true,
+		},
+
+		{
+			name: "normal",
+			pl:   `json(_, str) cover(str, [-1, -2])`,
+			in:   `{"str": 123456}`,
+			fail: true,
+		},
+
+		{
+			name:     "normal",
+			pl:       `json(_, str)  cast(str,"int") cover(str, [-2, 10000])`,
+			in:       `{"str": 123456}`,
+			outKey:   "str",
+			expected: int64(123456),
+			fail:     false,
 		},
 	}
 

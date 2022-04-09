@@ -200,6 +200,10 @@ func (m *monitorAPP) renderBasicInfoTable(ds *dkhttp.DatakitStats) {
 	table.SetCell(row, 1, tview.NewTableCell(ds.Uptime).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 
 	row++
+	table.SetCell(row, 0, tview.NewTableCell("CGroup").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
+	table.SetCell(row, 1, tview.NewTableCell(ds.Cgroup).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
+
+	row++
 	table.SetCell(row, 0, tview.NewTableCell("OS/Arch").SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignRight))
 	table.SetCell(row, 1, tview.NewTableCell(ds.OSArch).SetMaxWidth(MaxTableWidth).SetAlign(tview.AlignLeft))
 
