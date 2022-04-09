@@ -9,9 +9,9 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
 
 ## Requirements
 
-* Kubernetes >= 1.14
+- Kubernetes 1.14+
 
-* Helm >= 2.17.0
+- Helm 3.0+
 
   
 
