@@ -9,9 +9,9 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
 
 ## Requirements
 
-* Kubernetes >= 1.14
+- Kubernetes 1.14+
 
-* Helm >= 2.17.0
+- Helm 3.0+
 
   
 
@@ -22,7 +22,7 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
 ​	Once you've added this Helm repository as per the repository-level [README](../../README.md#installing) then you can install the chart as follows:
 
  ```shell
- helm repo add dataflux https://pubrepo.guance.com/chartrepo/datakit
+ helm repo add dataflux https://pubrepo.guance.com/chartrepo/dataflux-chart
  
  helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" --create-namespace 
  ```
@@ -35,7 +35,7 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
   - git passwd
   
     ```
-    helm repo add dataflux https://pubrepo.guance.com/chartrepo/datakit
+    helm repo add dataflux https://pubrepo.guance.com/chartrepo/dataflux-chart
     
     helm install my-datakit dataflux/datakit -n datakit --set git_repos.enable=true  --set dataway_url="https://openway.guance.com?token=<your-token>" \
     --set git_repos.git_url="http://username:password@github.com/path/to/repository.git" \
@@ -45,7 +45,7 @@ This Helm chart installs [Datakit](https://github.com/GuanceCloud/datakit) with 
   - git key
   
     ```
-    helm repo add dataflux https://pubrepo.guance.com/chartrepo/datakit
+    helm repo add dataflux https://pubrepo.guance.com/chartrepo/dataflux-chart
     
     helm install my-datakit dataflux/datakit -n datakit --set git_repos.enable=true  --set dataway_url="https://openway.guance.com?token=<your-token>"  \
     --set git_repos.git_url="git@github.com:path/to/repository.git" \
