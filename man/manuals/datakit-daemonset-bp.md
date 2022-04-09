@@ -42,7 +42,7 @@ ComfigMap 注入，可以分为以下2种：
 #### 添加 Helm 仓库
 
 ```shell
-$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/dataflux-chart
+$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 ```
 
 
@@ -278,7 +278,7 @@ $kubectl get pods -n datakit
 
 需要修改 dataway_url，git_repos.git_url
 ```shell
-$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/dataflux-chart
+$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 
 $helm repo update 
 
@@ -291,7 +291,7 @@ $helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://
 
 需要修改 dataway_url，git_repos.git_url，git_repos.git_key_path(绝对路径)
 ```shell
-$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/dataflux-chart
+$helm repo add dataflux  https://pubrepo.guance.com/chartrepo/datakit
 $helm repo update 
 $helm install my-datakit dataflux/datakit -n datakit --set dataway_url="https://openway.guance.com?token=<your-token>" \
 --set git_repos.git_url="git@github.com:path/to/repository.git" \
