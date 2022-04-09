@@ -170,6 +170,10 @@ $ kubectl get pods -n datakit
 
 由于 ComfigMap 注入灵活，但不易管理特性，我们可以采用 Git 仓库来管理我们的配置。启用 [Git 管理](datakit-conf#90362fd0) ，DataKit 会定时 pull 远程仓库的配置，既不需要频繁修改 ComfigMap，也不需要重启 DataKit，更重要的是有修改记录，可回滚配置。
 
+> 注意：
+> - 如果启用 Git 管理配置，则 ComfigMap 将失效
+> - 由于会[自动启动一些采集器](datakit-input-conf#764ffbc2)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
+
 ### 前提条件
 
 - 已经准备 Git 仓库
@@ -177,7 +181,9 @@ $ kubectl get pods -n datakit
 
 以 MySQL 采集器 mysql.conf 和 Java 日志的 Pipeline 脚本（java.p）为例
 
-Git 仓库目录结构为
+> 参见 [Git 仓库中目录结构约束](datakit-conf#2639613a)
+
+Git 仓库目录结构为：
 
 ```
 path/to/local/git/repo
@@ -191,10 +197,6 @@ path/to/local/git/repo
 ### Helm 启用 Git 管理配置
 
 使用 Helm 启用 Git 管理配置，一个命令就能完成安装和配置，简单高效。
-
-> 注意：
-> - 如果启用 Git 管理配置，则 ComfigMap 将失效
-> - 由于会[自动启动一些采集器](datakit-input-conf#764ffbc2)，故在 Git 仓库中，不要再放置这些自启动的采集器配置，不然会导致这些数据的多份采集
 
 #### 使用密码管理 Git
 
@@ -338,3 +340,9 @@ $ kubectl apply -f datakit.yaml
 $ kubectl exec -ti datakit-xxxx bash
 $ ls gitrepos
 ```
+
+## 更多阅读
+
+- [DataKit 采集器配置](datakit-input-conf)
+- [DataKit 主配置](datakit-conf)
+- [DataKit Daemonset 部署](datakit-daemonset-deploy)
