@@ -89,6 +89,7 @@ NAME1="value1" NAME2="value2"
 - `DK_DATAWAY`：指定 DataWay 地址，目前 DataKit 安装命令已经默认带上
 - `DK_GLOBAL_TAGS`：支持安装阶段填写全局 tag，格式范例：`project=abc,owner=张三`（多个 tag 之间以英文逗号分隔）
 - `DK_DEF_INPUTS`：默认开启的采集器名称列表，格式范例：`cpu,mem,disk`
+  - 由于[默认会开启很多采集器](datakit-input-conf#764ffbc2)，这个环境变量用于调整这个默认的采集器列表，比如，可以选择只开启 cpu,mem,disk 三个采集的话，传入 DK_DEF_INPUTS="cpu,mem,disk" 即可
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(`aliyun/aws/tencent/hwcloud/azure`)
 
 ### DataKit 自身日志相关
