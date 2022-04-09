@@ -33,9 +33,9 @@ ComfigMap 注入，可以分为以下2种：
 
 #### 前提条件
 
-- Kubernetes >= 1.14 
+- Kubernetes 1.14+
 
-- Helm >= 2.17.0 
+- Helm 3.0+
 
   
 
