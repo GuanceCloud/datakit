@@ -6,11 +6,7 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 )
-
-var log = logger.DefaultSLogger("logfilter-parser")
 
 type Item struct {
 	Typ ItemType
@@ -62,32 +58,38 @@ const (
 var (
 	keywords = map[string]ItemType{
 		// Keywords.
-		"and":        AND,
-		"as":         AS,
-		"asc":        ASC,
-		"auto":       AUTO,
-		"by":         BY,
-		"desc":       DESC,
+		"and":  AND,
+		"as":   AS,
+		"asc":  ASC,
+		"auto": AUTO,
+		"by":   BY,
+		"desc": DESC,
+
+		"match":    MATCH,
+		"notmatch": NOT_MATCH,
+
 		"false":      FALSE,
 		"filter":     FILTER,
 		"identifier": IDENTIFIER,
-		"in":         IN,
-		"notin":      NOTIN,
-		"limit":      LIMIT,
-		"link":       LINK,
-		"nil":        NIL,
-		"null":       NULL,
-		"offset":     OFFSET,
-		"with":       WITH,
-		"or":         OR,
-		"order":      ORDER,
-		"re":         RE,
-		"int":        INT,
-		"float":      FLOAT,
-		"slimit":     SLIMIT,
-		"soffset":    SOFFSET,
-		"true":       TRUE,
-		"tz":         TIMEZONE,
+
+		"in":    IN,
+		"notin": NOT_IN,
+
+		"limit":   LIMIT,
+		"link":    LINK,
+		"nil":     NIL,
+		"null":    NULL,
+		"offset":  OFFSET,
+		"with":    WITH,
+		"or":      OR,
+		"order":   ORDER,
+		"re":      RE,
+		"int":     INT,
+		"float":   FLOAT,
+		"slimit":  SLIMIT,
+		"soffset": SOFFSET,
+		"true":    TRUE,
+		"tz":      TIMEZONE,
 	}
 
 	ItemTypeStr = map[ItemType]string{
