@@ -78,6 +78,12 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
+func (i *Input) LogExample() map[string]string {
+	return map[string]string{
+		"Redis log": `122:M 14 May 2019 19:11:40.164 * Background saving terminated with success`,
+	}
+}
+
 func (i *Input) initCfg() error {
 	var err error
 	i.timeoutDuration, err = time.ParseDuration(i.Timeout)

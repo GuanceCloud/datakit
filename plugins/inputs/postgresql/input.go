@@ -127,6 +127,12 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
+func (ipt *Input) LogExample() map[string]string {
+	return map[string]string{
+		"PostgreSQL log": `2021-05-31 15:23:45.110 CST [74305] test [pgAdmin 4 - DB:postgres] postgres [127.0.0.1] 60b48f01.12241 LOG: statement: 		SELECT psd.*, 2^31 - age(datfrozenxid) as wraparound, pg_database_size(psd.datname) as pg_database_size 		FROM pg_stat_database psd 		JOIN pg_database pd ON psd.datname = pd.datname 		WHERE psd.datname not ilike 'template%' AND psd.datname not ilike 'rdsadmin' 		AND psd.datname not ilike 'azure_maintenance' AND psd.datname not ilike 'postgres'`,
+	}
+}
+
 type postgresqllog struct {
 	Files             []string `toml:"files"`
 	Pipeline          string   `toml:"pipeline"`

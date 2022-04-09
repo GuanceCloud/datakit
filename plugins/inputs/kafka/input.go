@@ -24,6 +24,12 @@ type Input struct {
 	tail *tailer.Tailer
 }
 
+func (i *Input) LogExample() map[string]string {
+	return map[string]string{
+		"Kafka log": `[2020-07-07 15:04:29,333] DEBUG Progress event: HTTP_REQUEST_COMPLETED_EVENT, bytes: 0 (io.confluent.connect.s3.storage.S3OutputStream:286)`,
+	}
+}
+
 type kafkalog struct {
 	Files             []string `toml:"files"`
 	Pipeline          string   `toml:"pipeline"`

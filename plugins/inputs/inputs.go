@@ -113,7 +113,7 @@ type InputOnceRunnable interface {
 }
 
 type LogExampler interface {
-	LogExample() string
+	LogExample() map[string]string
 }
 
 type Creator func() Input

@@ -138,6 +138,19 @@ type Input struct {
 	lastErrors []string
 }
 
+func (i *Input) LogExample() map[string]string {
+	return map[string]string{
+		"MySQL log": `2017-12-29T12:33:33.095243Z         2 Query     SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE CREATE_OPTIONS LIKE '%partitioned%';`,
+		"MySQL slow log": `# Time: 2019-11-27T10:43:13.460744Z
+# User@Host: root[root] @ localhost [1.2.3.4]  Id:    35
+# Query_time: 0.214922  Lock_time: 0.000184 Rows_sent: 248832  Rows_examined: 72
+# Thread_id: 55   Killed: 0  Errno: 0
+# Bytes_sent: 123456   Bytes_received: 0
+SET timestamp=1574851393;
+SELECT * FROM fruit f1, fruit f2, fruit f3, fruit f4, fruit f5`,
+	}
+}
+
 func (i *Input) getDsnString() string {
 	cfg := mysql.Config{
 		AllowNativePasswords: true,

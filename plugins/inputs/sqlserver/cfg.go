@@ -75,6 +75,12 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 }
 
+func (n *Input) LogExample() map[string]string {
+	return map[string]string{
+		"SQLServer log": `2021-05-28 10:46:07.78 spid10s     0 transactions rolled back in database 'msdb' (4:0). This is an informational message only. No user action is required`,
+	}
+}
+
 type sqlserverlog struct {
 	Files             []string `toml:"files"`
 	Pipeline          string   `toml:"pipeline"`
