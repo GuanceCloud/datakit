@@ -215,11 +215,17 @@ func PiplineFilterWrapper(source string, piplines map[string]string) FilterFunc 
 					if rslt, err := p.Run(dktrace[i].Content, source); err != nil {
 						log.Debugf("run pipeline %s.p failed: %s", s, err.Error())
 					} else {
-						for k, v := range rslt.Output.Tags {
-							dktrace[i].Tags[k] = v
+						if len(rslt.Output.Tags) > 0 {
+							dktrace[i].Tags = make(map[string]string)
+							for k, v := range rslt.Output.Tags {
+								dktrace[i].Tags[k] = v
+							}
 						}
-						for k, v := range rslt.Output.Fields {
-							dktrace[i].Metrics[k] = v
+						if len(rslt.Output.Fields) > 0 {
+							dktrace[i].Metrics = make(map[string]interface{})
+							for k, v := range rslt.Output.Fields {
+								dktrace[i].Metrics[k] = v
+							}
 						}
 					}
 				}
