@@ -55,7 +55,7 @@
   character_encoding = ""
   
   ## 无论从文件读取还是从socket中读取的日志, 默认的单行最大长度为 32k
-  ## 如果您的日志单行有超过32K的情况， 请配置 maximum_length 为可能的最大长度
+  ## 如果您的日志单行有超过32K的情况，请配置 maximum_length 为可能的最大长度
   ## 但是 maximum_length 最大可以配置成32M
   # maximum_length = 32766
 
@@ -69,7 +69,6 @@
   remove_ansi_escape_codes = false
   
   ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
-  ## 如果文件已经被打开，在此 10m 期间不会被物理删除
   ## 时间单位支持 "ms", "s", "m", "h"
   ignore_dead_log = "10m"
 
@@ -79,6 +78,8 @@
   # more_tag = "some_other_value"
   # ...
 ```
+
+> 关于 `ignore_dead_log` 的说明：如果文件已经在采集，但 10min 内没有新日志写入的话，DataKit 会关闭该文件的采集。在这期间（10min），该文件**不能**被物理删除（如 `rm` 之后，该文件只是标记删除，DataKit 关闭该文件后，该文件才会真正被删除）。
 
 ### socket 采集日志
 

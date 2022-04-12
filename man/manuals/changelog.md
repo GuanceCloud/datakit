@@ -2,6 +2,20 @@
 
 # DataKit 版本历史
 
+## 1.2.14(2022/04/12)
+
+本次发布属于 hotfix 发布，同时包含部分小的修改和调整：
+
+- 修复日志采集器的 monitor 展示问题以及部分出错日志等级调整(#706)
+- 修复拨测采集器内存泄露问题(#702)
+- 修复主机进程采集器奔溃问题(#700)
+- 日志采集器采集选项 `ignore_dead_log = '10m'` 默认开启(#698)
+- 优化 Git 管理的配置同步逻辑(#696)
+- eBPF 修复 netflow 中错误的 ip 协议字段(#694)
+- 丰富 Gitlab 采集器字段
+
+---
+
 ## 1.2.13(2022/04/08)
 
 本次发布属于迭代发布，更新内容如下：
@@ -239,7 +253,7 @@
   - 优化磁盘采集，默认不会再采集无效磁盘（比如总大小为 0 的一些磁盘）(#505)
 - [日志采集器](logging) 支持接收 TCP/UDP 日志流(#503)
 - [Prom 采集器](prom) 支持多 URL 采集(#506)
-- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBFP 数据采集(507)
+- 新增 [eBPF](ebpf) 采集器，它集成了 L4-network/DNS/Bash 等 eBPF 数据采集(507)
 - [ElasticSearch 采集器](elasticsearch) 增加 [Open Distro](https://opendistro.github.io/for-elasticsearch/) 分支的 ElasticSearch 支持(#510)
 
 ### Bug 修复
