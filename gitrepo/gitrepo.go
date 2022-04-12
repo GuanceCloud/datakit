@@ -67,23 +67,27 @@ func pullMain(cg *config.GitRepost) error {
 	defer tick.Stop()
 
 	for {
+		// git start pull immediately
+		l.Debug("triggered")
+		for _, v := range cg.Repos {
+			if !v.Enable {
+				continue
+			}
+			if err = doRun(v); err != nil {
+				tip := fmt.Sprintf("[gitrepo] failed: %v", err)
+				l.Error(tip)
+				io.SelfError(tip)
+			}
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("exit")
 			return nil
 
 		case <-tick.C:
-			l.Debug("triggered")
-			for _, v := range cg.Repos {
-				if !v.Enable {
-					continue
-				}
-				if err = doRun(v); err != nil {
-					tip := fmt.Sprintf("[gitrepo] failed: %v", err)
-					l.Error(tip)
-					io.SelfError(tip)
-				}
-			}
+			// empty here
+
 		} // select
 	} // for
 }
