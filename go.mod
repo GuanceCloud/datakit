@@ -79,6 +79,7 @@ require (
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/shirou/gopsutil v3.21.8+incompatible
 	github.com/shirou/gopsutil/v3 v3.20.12
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cast v1.4.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
@@ -93,7 +94,7 @@ require (
 	github.com/vjeantet/grok v1.0.0
 	github.com/whilp/git-urls v1.0.0
 	gitlab.jiagouyun.com/cloudcare-tools/cliutils v0.0.0-20220331024026-678324178a3c
-	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220407071133-e60bc17ebf19
+	gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220411164255-3e7ed8a7518c
 	go.etcd.io/bbolt v1.3.5
 	go.opentelemetry.io/otel v1.4.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.27.0

@@ -823,6 +823,7 @@ github.com/shirou/gopsutil/v3/process
 # github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 github.com/shirou/w32
 # github.com/sirupsen/logrus v1.8.1
+## explicit
 github.com/sirupsen/logrus
 # github.com/spf13/cast v1.4.1
 ## explicit
@@ -886,7 +887,7 @@ gitlab.jiagouyun.com/cloudcare-tools/cliutils/network/ws
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/system/rtpanic
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/testutil
 gitlab.jiagouyun.com/cloudcare-tools/cliutils/tracer
-# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220407071133-e60bc17ebf19
+# gitlab.jiagouyun.com/cloudcare-tools/kodo v0.0.0-20220411164255-3e7ed8a7518c
 ## explicit
 gitlab.jiagouyun.com/cloudcare-tools/kodo/dialtesting
 # go.etcd.io/bbolt v1.3.5
