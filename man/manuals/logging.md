@@ -68,9 +68,10 @@
   ## 是否删除 ANSI 转义码，例如标准输出的文本颜色等
   remove_ansi_escape_codes = false
   
-  ## 忽略不活跃的文件，例如文件最后一次修改是 2 个小时之前，距今超出 1h，则会忽略此文件
+  ## 忽略不活跃的文件，例如文件最后一次修改是 20 分钟之前，距今超出 10m，则会忽略此文件
+  ## 如果文件已经被打开，在此 10m 期间不会被物理删除
   ## 时间单位支持 "ms", "s", "m", "h"
-  # ignore_dead_log = "1h"
+  ignore_dead_log = "10m"
 
   # 自定义 tags
   [inputs.logging.tags]
