@@ -413,7 +413,7 @@ else
 			--ipdb-type="${ipdb_type}"						 \
 			--sink-metric="${sink_metric}"                   \
 			--sink-network="${sink_network}"                 \
-			--sink-event="${sink_event}"                     \
+			--sink-keyevent="${sink_keyevent}"               \
 			--sink-object="${sink_object}"                   \
 			--sink-custom-object="${sink_custom_object}"     \
 			--sink-logging="${sink_logging}"                 \
