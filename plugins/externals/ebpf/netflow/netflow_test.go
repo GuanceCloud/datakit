@@ -340,7 +340,7 @@ func TestConvConn2M(t *testing.T) {
 					"dst_ip_type": "other",
 					"transport":   "tcp",
 					"direction":   "incoming",
-					"family":      "IPv6",
+					"family":      "IPv4",
 				},
 				fields: map[string]interface{}{
 					"bytes_written":   int64(1),

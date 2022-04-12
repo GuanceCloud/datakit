@@ -185,7 +185,7 @@ func (t *Single) sendToForwardCallback(text string) {
 
 func (t *Single) sendToPipeline(pending []string) {
 	task := &worker.TaskTemplate{
-		TaskName:              "logging/" + t.opt.Pipeline,
+		TaskName:              "logging/" + t.opt.Source,
 		ScriptName:            t.opt.Pipeline,
 		Source:                t.opt.Source,
 		ContentDataType:       worker.ContentString,
