@@ -64,7 +64,7 @@ const (
 
   ## if file is inactive, it is ignored
   ## time units are "ms", "s", "m", "h"
-  ignore_dead_log = "1h"
+  ignore_dead_log = "10m"
 
   [inputs.logging.tags]
   # some_tag = "some_value"
