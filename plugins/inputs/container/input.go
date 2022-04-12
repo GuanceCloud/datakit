@@ -384,13 +384,16 @@ func (i *Input) setup() bool {
 			}
 		}
 
-		if c, err := newContainerdInput(&containerdInputConfig{
-			endpoint:  i.ContainerdAddress,
-			extraTags: i.Tags,
-		}); err != nil {
-			l.Warnf("create containerd input err: %w, skip", err)
-		} else {
-			i.containerdInput = c
+		// docker 和 containerd 互斥
+		if i.dockerInput == nil {
+			if c, err := newContainerdInput(&containerdInputConfig{
+				endpoint:  i.ContainerdAddress,
+				extraTags: i.Tags,
+			}); err != nil {
+				l.Warnf("create containerd input err: %w, skip", err)
+			} else {
+				i.containerdInput = c
+			}
 		}
 
 		break
