@@ -253,19 +253,19 @@ func conv2M(httpFinReq *HTTPReqFinishedInfo, tags map[string]string) *measuremen
 	m.tags["direction"] = direction
 
 	isV6 := !dknetflow.ConnAddrIsIPv4(httpFinReq.ConnInfo.Meta)
+
+	if httpFinReq.ConnInfo.Saddr[0] == 0 && httpFinReq.ConnInfo.Saddr[1] == 0 &&
+		httpFinReq.ConnInfo.Daddr[0] == 0 && httpFinReq.ConnInfo.Daddr[1] == 0 {
+		if httpFinReq.ConnInfo.Saddr[2] == 0xffff0000 && httpFinReq.ConnInfo.Daddr[2] == 0xffff0000 {
+			isV6 = false
+		} else if httpFinReq.ConnInfo.Saddr[2] == 0 && httpFinReq.ConnInfo.Daddr[2] == 0 &&
+			httpFinReq.ConnInfo.Saddr[3] > 1 && httpFinReq.ConnInfo.Daddr[3] > 1 {
+			isV6 = false
+		}
+	}
 	if isV6 {
-		if httpFinReq.ConnInfo.Saddr[0] == 0 && httpFinReq.ConnInfo.Saddr[1] == 0 &&
-			httpFinReq.ConnInfo.Saddr[2] == 0xffff0000 {
-			m.tags["src_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Saddr[3])
-		} else {
-			m.tags["src_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Saddr)
-		}
-		if httpFinReq.ConnInfo.Daddr[0] == 0 && httpFinReq.ConnInfo.Daddr[1] == 0 &&
-			httpFinReq.ConnInfo.Daddr[2] == 0xffff0000 {
-			m.tags["dst_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Daddr[3])
-		} else {
-			m.tags["dst_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Daddr)
-		}
+		m.tags["src_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Saddr)
+		m.tags["dst_ip_type"] = dknetflow.ConnIPv6Type(httpFinReq.ConnInfo.Daddr)
 		m.tags["family"] = "IPv6"
 	} else {
 		m.tags["src_ip_type"] = dknetflow.ConnIPv4Type(httpFinReq.ConnInfo.Saddr[3])
