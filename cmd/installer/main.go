@@ -281,7 +281,7 @@ Data           : %s
 
 	l.Info("stoping datakit...")
 	if err = service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
+		l.Fatalf("stop service failed %s\nPlease see https://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e to fix the issue.", err.Error())
 	}
 
 	applyFlags()
@@ -316,7 +316,7 @@ Data           : %s
 	} else {
 		l.Infof("starting service %s...", dkservice.ServiceName)
 		if err = service.Control(svc, "start"); err != nil {
-			l.Warnf("star service: %s, ignored", err.Error())
+			l.Fatal("star service failed: %s\nPlease see https://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e to fix the issue.", err.Error())
 		}
 	}
 
@@ -347,7 +347,7 @@ func promptReferences() {
 
 func upgradeDatakit(svc service.Service) error {
 	if err := service.Control(svc, "stop"); err != nil {
-		l.Warnf("stop service: %s, ignored", err.Error())
+		l.Fatalf("stop service failed %s\nPlease see https://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e to fix the issue.", err.Error())
 	}
 
 	mc := config.Cfg
@@ -400,7 +400,7 @@ func upgradeDatakit(svc service.Service) error {
 	}
 
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install datakit service: %s, ignored", err.Error())
+		l.Fatalf("install service failed %s\nPlease see https://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e to fix the issue.", err.Error())
 	}
 
 	return nil
@@ -408,7 +408,7 @@ func upgradeDatakit(svc service.Service) error {
 
 func installNewDatakit(svc service.Service) {
 	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Warnf("uninstall service: %s, ignored", err.Error())
+		l.Fatalf("uninstall service failed %s\nPlease see https://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e to fix the issue.", err.Error())
 	}
 
 	mc := config.Cfg
@@ -579,7 +579,7 @@ func installNewDatakit(svc service.Service) {
 
 	l.Infof("installing service %s...", dkservice.ServiceName)
 	if err := service.Control(svc, "install"); err != nil {
-		l.Warnf("install service: %s, ignored", err.Error())
+		l.Fatalf("install service failed %s\nPlease see https://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e to fix the issue.", err.Error())
 	}
 }
 
@@ -796,7 +796,7 @@ func mvOldDatakit(svc service.Service) {
 	}
 
 	if err := service.Control(svc, "uninstall"); err != nil {
-		l.Warnf("uninstall service datakit failed: %s, ignored", err.Error())
+		l.Fatalf("uninstall service failed %s\nPlease see https://www.yuque.com/dataflux/datakit/datakit-service-how-to#3533cc5e to fix the issue.", err.Error())
 	}
 
 	if err := os.Rename(olddir, datakit.InstallDir); err != nil {
