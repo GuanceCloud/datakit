@@ -106,7 +106,7 @@ spec:
 
 - 黑名单（Filter）
 
-[Filter 是一组过滤器](datakit-monitor)，它接收一组结构化数据，通过一定的逻辑判断，决定数据是否丢弃。Filter 是中心下发（DataKit 主动拉取）的一组逻辑运算规则，其形式大概如下：
+[Filter 是一组过滤器](datakit-filter)，它接收一组结构化数据，通过一定的逻辑判断，决定数据是否丢弃。Filter 是中心下发（DataKit 主动拉取）的一组逻辑运算规则，其形式大概如下：
 
 ```
 { source = 'datakit' AND bar IN [ 1, 2, 3] }

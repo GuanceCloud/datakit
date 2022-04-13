@@ -34,7 +34,8 @@ DataKit 基本 Monitor 页面信息如下图所示：
 - `Runtime Info` 用来展示 DataKit 的基本运行消耗（主要是内存以及 Goroutine 有关），其中：
 
 	- `Goroutines`：当前正在运行的 Goroutine 个数
-	- `Memory`：DataKit 进程当前实际消耗的内存字节数（*不含外部运行的采集器*）
+	- `Mem`：DataKit 进程当前实际消耗的内存字节数（*不含外部运行的采集器*）
+	- `System`：DataKit 进程当前消耗的虚拟内存（*不含外部运行的采集器*）
 	- `Stack`：当前栈中消耗的内存字节数
 	- `GC Paused`：自 DataKit 启动以来，GC（垃圾回收）所消耗的时间
 	- `GC Count`：自 DataKit 启动以来，GC 次数
