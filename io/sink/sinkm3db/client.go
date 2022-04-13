@@ -1,24 +1,4 @@
-// Copyright (c) 2019 Uber Technologies, Inc.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
-package promremote
+package sinkm3db
 
 import (
 	"bytes"
@@ -34,21 +14,6 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
-const (
-	// DefaultRemoteWrite is the default Prom remote write endpoint in m3coordinator.
-	DefaultRemoteWrite = "http://localhost:7201/api/v1/prom/remote/write"
-
-	defaulHTTPClientTimeout = 30 * time.Second
-	defaultUserAgent        = "promremote-go/1.0.0"
-)
-
-// DefaultConfig represents the default configuration used to construct a client.
-var DefaultConfig = Config{
-	WriteURL:          DefaultRemoteWrite,
-	HTTPClientTimeout: defaulHTTPClientTimeout,
-	UserAgent:         defaultUserAgent,
-}
-
 // Label is a metric label.
 type Label struct {
 	Name  string
@@ -61,31 +26,10 @@ type TimeSeries struct {
 	Datapoint Datapoint
 }
 
-// TSList is a slice of TimeSeries.
-type TSList []TimeSeries
-
 // A Datapoint is a single data value reported at a given time.
 type Datapoint struct {
 	Timestamp time.Time
 	Value     float64
-}
-
-// Client is used to write timeseries data to a Prom remote write endpoint
-// such as the one in m3coordinator.
-type Client interface {
-	// WriteProto writes the Prom proto WriteRequest to the specified endpoint.
-	WriteProto(
-		ctx context.Context,
-		req *prompb.WriteRequest,
-		opts WriteOptions,
-	) (WriteResult, WriteError)
-
-	// WriteTimeSeries converts the []TimeSeries to Protobuf then writes it to the specified endpoint.
-	WriteTimeSeries(
-		ctx context.Context,
-		ts TSList,
-		opts WriteOptions,
-	) (WriteResult, WriteError)
 }
 
 // WriteOptions specifies additional write options.
@@ -126,7 +70,7 @@ type ConfigOption func(*Config)
 
 // NewConfig creates a new Config struct based on options passed to the function.
 func NewConfig(opts ...ConfigOption) Config {
-	cfg := DefaultConfig
+	cfg := Config{}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -164,13 +108,6 @@ func HTTPClientTimeoutOption(httpClientTimeout time.Duration) ConfigOption {
 	}
 }
 
-// HTTPClientOption sets the HTTP client that is set for the client.
-func HTTPClientOption(httpClient *http.Client) ConfigOption {
-	return func(c *Config) {
-		c.HTTPClient = httpClient
-	}
-}
-
 // UserAgent sets the `User-Agent` header in the request.
 func UserAgent(userAgent string) ConfigOption {
 	return func(c *Config) {
@@ -185,7 +122,7 @@ type client struct {
 }
 
 // NewClient creates a new remote write coordinator client.
-func NewClient(c Config) (Client, error) {
+func NewClient(c Config) (*client, error) {
 	if err := c.validate(); err != nil {
 		return nil, err
 	}
@@ -202,14 +139,6 @@ func NewClient(c Config) (Client, error) {
 		writeURL:   c.WriteURL,
 		httpClient: httpClient,
 	}, nil
-}
-
-func (c *client) WriteTimeSeries(
-	ctx context.Context,
-	seriesList TSList,
-	opts WriteOptions,
-) (WriteResult, WriteError) {
-	return c.WriteProto(ctx, seriesList.toPromWriteRequest(), opts)
 }
 
 func (c *client) WriteProto(
@@ -267,29 +196,6 @@ func (c *client) WriteProto(
 	}
 
 	return result, nil
-}
-
-// toPromWriteRequest converts a list of timeseries to a Prometheus proto write request.
-func (t TSList) toPromWriteRequest() *prompb.WriteRequest {
-	promTS := make([]prompb.TimeSeries, len(t))
-
-	for i, ts := range t {
-		labels := make([]prompb.Label, len(ts.Labels))
-		for j, label := range ts.Labels {
-			labels[j] = prompb.Label{Name: label.Name, Value: label.Value}
-		}
-
-		sample := []prompb.Sample{prompb.Sample{
-			// Timestamp is int milliseconds for remote write.
-			Timestamp: ts.Datapoint.Timestamp.UnixNano() / int64(time.Millisecond),
-			Value:     ts.Datapoint.Value,
-		}}
-		promTS[i] = prompb.TimeSeries{Labels: labels, Samples: sample}
-	}
-
-	return &prompb.WriteRequest{
-		Timeseries: promTS,
-	}
 }
 
 type writeError struct {

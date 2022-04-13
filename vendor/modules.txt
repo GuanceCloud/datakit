@@ -481,8 +481,6 @@ github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/empty
-github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
 # github.com/golang/snappy v0.0.4
@@ -555,15 +553,6 @@ github.com/jbenet/go-context/io
 # github.com/jessevdk/go-flags v1.5.0
 ## explicit
 github.com/jessevdk/go-flags
-# github.com/jhump/protoreflect v1.12.0
-## explicit
-github.com/jhump/protoreflect/codec
-github.com/jhump/protoreflect/desc
-github.com/jhump/protoreflect/desc/internal
-github.com/jhump/protoreflect/desc/sourceinfo
-github.com/jhump/protoreflect/dynamic
-github.com/jhump/protoreflect/internal
-github.com/jhump/protoreflect/internal/codec
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
 # github.com/josharian/native v0.0.0-20200817173448-b6b71def0850
@@ -1037,9 +1026,7 @@ google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
-google.golang.org/protobuf/types/known/emptypb
 google.golang.org/protobuf/types/known/fieldmaskpb
-google.golang.org/protobuf/types/known/structpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18

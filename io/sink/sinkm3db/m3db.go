@@ -8,32 +8,43 @@ package sinkm3db
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"time"
 
-	"github.com/m3db/prometheus_remote_client_golang/promremote"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/prompb"
+	"gitlab.jiagouyun.com/cloudcare-tools/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 )
 
 const (
 	creatorID = "m3db"
+
+	// DefaultRemoteWrite is the default Prom remote write endpoint in m3coordinator.
+	DefaultRemoteWrite = "http://127.0.0.1:7201/api/v1/prom/remote/write"
+
+	defaulHTTPClientTimeout = 30 * time.Second
+	defaultUserAgent        = "promremote-go/1.0.0"
+)
+
+var (
+	l = logger.DefaultSLogger("m3db")
 )
 
 type SinkM3db struct {
-	ID            string
+	id            string
 	promRemoteURL string
 
-	client promremote.Client
+	client *client
 }
 
 func (s *SinkM3db) GetID() string {
-	return s.ID
+	return s.id
 }
 
 func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
+	l = logger.SLogger("m3db")
+
 	if id, err := dkstring.GetMapAssertString("id", mConf); err != nil {
 		return err
 	} else {
@@ -41,7 +52,7 @@ func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 		if err != nil {
 			return err
 		}
-		s.ID = idNew
+		s.id = idNew
 	}
 
 	if addr, err := dkstring.GetMapAssertString("addr", mConf); err != nil {
@@ -56,263 +67,134 @@ func (s *SinkM3db) LoadConfig(mConf map[string]interface{}) error {
 	// 其他字段
 
 	// 初始化 prom client
-	cfg := promremote.NewConfig(
-		promremote.WriteURLOption("PROM_WRITE_URL"),
-		promremote.HTTPClientTimeoutOption(60*time.Second),
+	cfg := NewConfig(
+		WriteURLOption(s.promRemoteURL),
+		HTTPClientTimeoutOption(defaulHTTPClientTimeout),
+		UserAgent(defaultUserAgent),
 	)
-	client, err := promremote.NewClient(cfg)
+	if err := cfg.validate(); err != nil {
+		l.Errorf("config err = %v", err)
+		return err
+	}
+	client, err := NewClient(cfg)
 	if err != nil {
-		log.Fatal(fmt.Errorf("unable to construct client: %v", err))
+		l.Errorf("unable to construct client: %v", err)
+		return err
 	}
 	s.client = client
+	l.Infof("init m3db client ok")
+	sinkcommon.AddImpl(s)
 	return nil
 }
 
 func (s *SinkM3db) Write(pts []sinkcommon.ISinkPoint) error {
 	var ctx = context.Background()
-	var writeOpts promremote.WriteOptions
+	var writeOpts WriteOptions
 	ts := pointToPromData(pts)
+	prompbReq := toPromWriteRequest(ts)
 	if len(ts) > 0 {
-		result, err := s.client.WriteTimeSeries(ctx, ts, writeOpts)
+		result, err := s.client.WriteProto(ctx, prompbReq, writeOpts)
 		if err != nil {
-			log.Fatal(err)
+			l.Errorf("write err=%v", err)
+			return err
 		}
-		fmt.Printf("Status code: %d\n", result.StatusCode)
+		l.Debugf("Status code: %d", result.StatusCode) // 此处使用 debug 级别日志，方便查询问题
+	} else {
+		l.Debugf("from points to make PromWriteRequest data, len is 0")
 	}
 	return nil
 }
 
-func pointToPromData(pts []sinkcommon.ISinkPoint) []promremote.TimeSeries {
-	ms := make([]promremote.TimeSeries, 0)
+func pointToPromData(pts []sinkcommon.ISinkPoint) []*TimeSeries {
+	tslist := make([]*TimeSeries, 0)
 	for _, pt := range pts {
 		jsonPrint, err := pt.ToJSON()
 		if err != nil {
+			l.Errorf("to json is err=%v", err)
 			continue
 		}
 		for key, val := range jsonPrint.Fields {
-			res := getSeries(jsonPrint.Tags, key, val, jsonPrint.Time)
-			ms = append(ms, res...)
+			res := makeSeries(jsonPrint.Tags, key, val, jsonPrint.Time)
+			tslist = append(tslist, res...)
 		}
 		// todo 其他数据
 	}
-	return ms
+	return tslist
 }
 
-func getSeries(tags map[string]string, key string, i interface{}, dataTime time.Time) []promremote.TimeSeries {
-	labels := make([]promremote.Label, 0)
+func makeSeries(tags map[string]string, key string, i interface{}, dataTime time.Time) []*TimeSeries {
+	labels := make([]Label, 0)
 	for key, val := range tags {
-		labels = append(labels, promremote.Label{
+		labels = append(labels, Label{
 			Name:  key,
 			Value: val,
 		})
 	}
-	labels = append(labels, promremote.Label{Name: model.MetricNameLabel, Value: key})
+	labels = append(labels, Label{Name: model.MetricNameLabel, Value: key})
 	switch i.(type) {
 	case int, int32, int64:
 		if val, ok := i.(int64); ok { // todo test
-			return []promremote.TimeSeries{{Labels: labels, Datapoint: promremote.Datapoint{
+			return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
 				Timestamp: dataTime,
 				Value:     float64(val),
 			}}}
 		}
 	case uint32, uint64:
 		val := i.(uint64)
-		return []promremote.TimeSeries{{Labels: labels, Datapoint: promremote.Datapoint{
+		return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
 			Timestamp: dataTime,
 			Value:     float64(val),
 		}}}
 	case float32, float64:
 		val := i.(float64)
-		return []promremote.TimeSeries{{Labels: labels, Datapoint: promremote.Datapoint{
+		return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
 			Timestamp: dataTime,
 			Value:     float64(val),
 		}}}
 	case map[string]interface{}:
 		maps := i.(map[string]interface{})
-		ts := make([]promremote.TimeSeries, 0)
+		ts := make([]*TimeSeries, 0)
 		for keyi, i2 := range maps {
-			res := getSeries(tags, keyi, i2, dataTime)
+			res := makeSeries(tags, keyi, i2, dataTime)
 			if len(res) > 0 {
 				ts = append(ts, res[0])
 			}
 		}
 		return ts
 	case []interface{}: // todo 有没有 数组形式？
+		l.Infof("other metric data")
 	default:
+		l.Infof("default metric data")
 	}
-	return []promremote.TimeSeries{}
+	return []*TimeSeries{}
+}
+
+// toPromWriteRequest converts a list of timeseries to a Prometheus proto write request.
+func toPromWriteRequest(promts []*TimeSeries) *prompb.WriteRequest {
+	promPbTS := make([]*prompb.TimeSeries, len(promts))
+	for i, ts := range promts {
+		labels := make([]*prompb.Label, len(ts.Labels))
+		for j, label := range ts.Labels {
+			labels[j] = &prompb.Label{Name: label.Name, Value: label.Value}
+		}
+
+		sample := []prompb.Sample{
+			{
+				// Timestamp is int milliseconds for remote write.
+				Timestamp: ts.Datapoint.Timestamp.UnixNano() / int64(time.Millisecond),
+				Value:     ts.Datapoint.Value,
+			},
+		}
+		promPbTS[i] = &prompb.TimeSeries{Labels: labels, Samples: sample}
+	}
+
+	return &prompb.WriteRequest{
+		Timeseries: promPbTS,
+	}
 }
 
 func init() { //nolint:gochecknoinits
 	sinkcommon.AddCreator(creatorID, func() sinkcommon.ISink {
-		return &SinkM3db{}
+		return &SinkM3db{id: creatorID}
 	})
 }
-
-/*
-
-const (
-	namespace = "default"
-)
-
-var (
-	namespaceID = ident.StringID(namespace)
-)
-
-type config struct {
-	Client client.Configuration `yaml:"m3db_client"`
-}
-
-var configFile = flag.String("f", "", "configuration file")
-
-func main() {
-	flag.Parse()
-	if *configFile == "" {
-		flag.Usage()
-		return
-	}
-
-	cfgBytes, err := ioutil.ReadFile(*configFile)
-	if err != nil {
-		log.Fatalf("unable to read config file: %s, err: %v", *configFile, err)
-	}
-
-	cfg := &config{}
-	if err := yaml.UnmarshalStrict(cfgBytes, cfg); err != nil {
-		log.Fatalf("unable to parse YAML: %v", err)
-	}
-
-	// TODO(rartoul): Provide guidelines on reducing memory usage by tuning pooling options.
-	client, err := cfg.Client.NewClient(client.ConfigurationParameters{})
-	if err != nil {
-		log.Fatalf("unable to create new M3DB client: %v", err)
-	}
-
-	session, err := client.DefaultSession()
-	if err != nil {
-		log.Fatalf("unable to create new M3DB session: %v", err)
-	}
-	defer session.Close()
-
-	schemaConfig, ok := cfg.Client.Proto.SchemaRegistry[namespace]
-	if !ok {
-		log.Fatalf("schema path for namespace: %s not found", namespace)
-	}
-
-	// NB(rartoul): Using dynamic / reflection based library for marshaling and unmarshaling protobuf
-	// messages for simplicity, use generated message-specific bindings in production.
-	schema, err := proto.ParseProtoSchema(schemaConfig.SchemaFilePath, schemaConfig.MessageName)
-	if err != nil {
-		log.Fatalf("could not parse proto schema: %v", err)
-	}
-
-	runUntaggedExample(session, schema)
-	runTaggedExample(session, schema)
-	// TODO(rartoul): Add an aggregations query example.
-}
-
-// runUntaggedExample demonstrates how to write "untagged" (unindexed) data into M3DB with a given
-// protobuf schema and then read it back out again.
-func runUntaggedExample(session client.Session, schema *desc.MessageDescriptor) {
-	log.Printf("------ run untagged example ------")
-	var (
-		untaggedSeriesID = ident.StringID("untagged_seriesID")
-		m                = newTestValue(schema)
-	)
-	marshaled, err := m.Marshal()
-	if err != nil {
-		log.Fatalf("error marshaling protobuf message: %v", err)
-	}
-
-	// Write an untagged series ID. Pass 0 for value since it is ignored.
-	if err := session.Write(namespaceID, untaggedSeriesID, xtime.Now(), 0, xtime.Nanosecond, marshaled); err != nil {
-		log.Fatalf("unable to write untagged series: %v", err)
-	}
-
-	// Fetch data for the untagged seriesID written within the last minute.
-	seriesIter, err := session.Fetch(namespaceID, untaggedSeriesID, xtime.Now().Add(-time.Minute), xtime.Now())
-	if err != nil {
-		log.Fatalf("error fetching data for untagged series: %v", err)
-	}
-	for seriesIter.Next() {
-		m = dynamic.NewMessage(schema)
-		dp, _, marshaledProto := seriesIter.Current()
-		if err := m.Unmarshal(marshaledProto); err != nil {
-			log.Fatalf("error unmarshaling protobuf message: %v", err)
-		}
-		log.Printf("%s: %s", dp.TimestampNanos.String(), m.String())
-	}
-	if err := seriesIter.Err(); err != nil {
-		log.Fatalf("error in series iterator: %v", err)
-	}
-}
-
-// runTaggedExample demonstrates how to write "tagged" (indexed) data into M3DB with a given protobuf
-// schema and then read it back out again by either:
-//
-//   1. Querying for a specific time series by its ID directly
-//   2. TODO(rartoul): Querying for a set of time series using an inverted index query
-func runTaggedExample(session client.Session, schema *desc.MessageDescriptor) {
-	log.Printf("------ run tagged example ------")
-	var (
-		seriesID = ident.StringID("vehicle_id_1")
-		tags     = []ident.Tag{
-			{Name: ident.StringID("type"), Value: ident.StringID("sedan")},
-			{Name: ident.StringID("city"), Value: ident.StringID("san_francisco")},
-		}
-		tagsIter = ident.NewTagsIterator(ident.NewTags(tags...))
-		m        = newTestValue(schema)
-	)
-	marshaled, err := m.Marshal()
-	if err != nil {
-		log.Fatalf("error marshaling protobuf message: %v", err)
-	}
-
-	// Write a tagged series ID. Pass 0 for value since it is ignored.
-	if err := session.WriteTagged(namespaceID, seriesID, tagsIter, xtime.Now(), 0, xtime.Nanosecond, marshaled); err != nil {
-		log.Fatalf("error writing series %s, err: %v", seriesID.String(), err)
-	}
-
-	// Fetch data for the tagged seriesID using a direct ID lookup (only data written within the last minute).
-	seriesIter, err := session.Fetch(namespaceID, seriesID, xtime.Now().Add(-time.Minute), xtime.Now())
-	if err != nil {
-		log.Fatalf("error fetching data for untagged series: %v", err)
-	}
-	for seriesIter.Next() {
-		m = dynamic.NewMessage(schema)
-		dp, _, marshaledProto := seriesIter.Current()
-		if err := m.Unmarshal(marshaledProto); err != nil {
-			log.Fatalf("error unamrshaling protobuf message: %v", err)
-		}
-		log.Printf("%s: %s", dp.TimestampNanos.String(), m.String())
-	}
-	if err := seriesIter.Err(); err != nil {
-		log.Fatalf("error in series iterator: %v", err)
-	}
-
-	// TODO(rartoul): Show an example of how to execute a FetchTagged() call with an index query.
-}
-
-var (
-	testValueLock  sync.Mutex
-	testValueCount = 1
-)
-
-func newTestValue(schema *desc.MessageDescriptor) *dynamic.Message {
-	testValueLock.Lock()
-	defer testValueLock.Unlock()
-
-	m := dynamic.NewMessage(schema)
-	m.SetFieldByName("latitude", float64(testValueCount))
-	m.SetFieldByName("longitude", float64(testValueCount))
-	m.SetFieldByName("fuel_percent", 0.75)
-	m.SetFieldByName("status", "active")
-
-	testValueCount++
-
-	return m
-}
-
-*/
-
-//

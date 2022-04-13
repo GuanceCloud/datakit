@@ -264,11 +264,17 @@ func (s *Sender) init(opt *Option) error {
 		s.group = datakit.G("sender")
 	}
 
-	if s.opt.Write != nil {
-		s.write = s.opt.Write
-	} else {
-		s.write = sink.Write
-	}
+	/*	// old code
+		if s.opt.Write != nil {
+			l.Infof("io use dataway")
+			s.write = s.opt.Write
+		} else {
+			l.Infof("io use sink.Write")
+			s.write = sink.Write
+		}
+	*/
+
+	s.write = sink.Write
 
 	s.Stat = map[string]*Stat{}
 

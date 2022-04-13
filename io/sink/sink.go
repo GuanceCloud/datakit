@@ -27,6 +27,7 @@ func Write(category string, pts []sinkcommon.ISinkPoint) error {
 	}
 
 	if impls, ok := sinkcommon.SinkCategoryMap[category]; ok {
+		l.Infof("sink call")
 		var errKeep error
 		for _, v := range impls {
 			if err := v.Write(pts); err != nil {
@@ -35,6 +36,7 @@ func Write(category string, pts []sinkcommon.ISinkPoint) error {
 		}
 		return errKeep
 	} else if defaultCallPtr != nil {
+		l.Infof("defaultCallPtr")
 		return defaultCallPtr(category, pts)
 	}
 
@@ -180,6 +182,7 @@ func buildSinkImpls(sincfg []map[string]interface{}) error {
 			continue // ignore example
 		}
 		if ins := getSinkInstanceFromTarget(target); ins != nil {
+			l.Infof("load config id=%s", ins.GetID())
 			if err := ins.LoadConfig(v); err != nil {
 				return err
 			}

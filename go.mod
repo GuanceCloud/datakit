@@ -56,12 +56,10 @@ require (
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/ip2location/ip2location-go v8.3.0+incompatible
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/jhump/protoreflect v1.12.0
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kardianos/service v1.0.0
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/lib/pq v1.10.2
-	github.com/m3db/prometheus_remote_client_golang v0.4.4
 	github.com/mdlayher/netlink v1.4.1 // indirect
 	github.com/mssola/user_agent v0.5.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
