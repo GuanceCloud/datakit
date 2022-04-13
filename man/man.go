@@ -39,6 +39,7 @@ var (
 		"datakit-dql-how-to":       "man/manuals/datakit-dql-how-to.md",
 		"datakit-filter":           "man/manuals/datakit-filter.md",
 		"datakit-how-to":           "man/manuals/datakit-how-to.md", // deprecated
+		"datakit-logging-how":      "man/manuals/datakit-logging-how.md",
 		"datakit-install":          "man/manuals/datakit-install.md",
 		"datakit-logging":          "man/manuals/datakit-logging.md",
 		"datakit-monitor":          "man/manuals/datakit-monitor.md",
