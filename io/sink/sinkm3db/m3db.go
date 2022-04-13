@@ -8,6 +8,7 @@ package sinkm3db
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"github.com/prometheus/common/model"
@@ -18,11 +19,7 @@ import (
 )
 
 const (
-	creatorID = "m3db"
-
-	// DefaultRemoteWrite is the default Prom remote write endpoint in m3coordinator.
-	DefaultRemoteWrite = "http://127.0.0.1:7201/api/v1/prom/remote/write"
-
+	creatorID               = "m3db"
 	defaulHTTPClientTimeout = 30 * time.Second
 	defaultUserAgent        = "promremote-go/1.0.0"
 )
@@ -123,6 +120,12 @@ func pointToPromData(pts []sinkcommon.ISinkPoint) []*TimeSeries {
 }
 
 func makeSeries(tags map[string]string, key string, i interface{}, dataTime time.Time) []*TimeSeries {
+	defer func() {
+		if err := recover(); err != nil {
+			l.Infof("invalid data type")
+		}
+	}()
+
 	labels := make([]Label, 0)
 	for key, val := range tags {
 		labels = append(labels, Label{
@@ -151,19 +154,47 @@ func makeSeries(tags map[string]string, key string, i interface{}, dataTime time
 			Timestamp: dataTime,
 			Value:     float64(val),
 		}}}
-	case map[string]interface{}:
-		maps := i.(map[string]interface{})
-		ts := make([]*TimeSeries, 0)
-		for keyi, i2 := range maps {
-			res := makeSeries(tags, keyi, i2, dataTime)
-			if len(res) > 0 {
-				ts = append(ts, res[0])
-			}
-		}
-		return ts
-	case []interface{}: // todo 有没有 数组形式？
-		l.Infof("other metric data")
 	default:
+		// 不能使用 map[]interface{} 去接收 map[string]int 或者 map[string]int64 等类型。
+		// 也不能使用 []interface{} 去接收数组 []int []int64 等。
+		// 这里使用反射 只处理 map 和 array/slice 类型。
+		ts := make([]*TimeSeries, 0)
+		v := reflect.ValueOf(i)
+
+		// map
+		if v.Kind() == reflect.Map {
+			// v = v.Elem()
+			iter := v.MapRange()
+			for iter.Next() {
+				k := iter.Key()
+				if k.Kind() != reflect.String {
+					return []*TimeSeries{}
+				}
+				key := k.String()
+
+				v := iter.Value()
+				var val interface{}
+				val = v.Interface()
+
+				res := makeSeries(tags, key, val, dataTime)
+				if len(res) > 0 {
+					ts = append(ts, res[0])
+				}
+			}
+			return ts
+		}
+
+		// array
+		if v.Kind() == reflect.Array || v.Kind() == reflect.Slice {
+			for i := 0; i < v.Len(); i++ {
+				val := v.Index(i).Interface()
+				res := makeSeries(tags, key, val, dataTime)
+				if len(res) > 0 {
+					ts = append(ts, res[0])
+				}
+			}
+			return ts
+		}
 		l.Infof("default metric data")
 	}
 	return []*TimeSeries{}
