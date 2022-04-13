@@ -79,7 +79,7 @@ type IO struct {
 	OutputFileInput           []string
 	EnableCache               bool
 
-	dw *dataway.DataWayCfg
+	dw dataway.DataWay
 
 	in        chan *iodata
 	in2       chan *iodata // high-freq chan
@@ -159,13 +159,13 @@ func (x *IO) DoFeed(pts []*Point, category, name string, opt *Option) error {
 	case datakit.Object:
 	case datakit.CustomObject:
 	case datakit.Logging:
-		if x.dw.ClientsCount() == 1 {
+		if x.dw != nil && x.dw.IsLogFilter() {
 			if !DisableLogFilter {
 				pts = defLogfilter.filter(pts)
 			}
 		} else {
 			// TODO: add multiple dataway config support
-			log.Infof("multiple dataway config %d for log filter not support yet", x.dw.ClientsCount())
+			log.Debugf("dataway config for log filter not support yet")
 		}
 	case datakit.Tracing:
 	case datakit.Security:
@@ -340,7 +340,6 @@ func (x *IO) StartIO(recoverable bool) {
 		&sender.Option{
 			Cache:              x.EnableCache,
 			FlushCacheInterval: x.FlushInterval,
-			Write:              x.dw.Write,
 			ErrorCallback: func(err error) {
 				addReporter(Reporter{Status: "error", Message: err.Error()})
 			},
@@ -371,6 +370,41 @@ func (x *IO) StartIO(recoverable bool) {
 		defer datawaylistTick.Stop()
 
 		for {
+			if x.dw != nil {
+				select {
+				case <-heartBeatTick.C:
+					log.Debugf("### enter heartBeat")
+					if !DisableHeartbeat {
+						heartBeatInterval, err := x.dw.HeartBeat()
+						if err != nil {
+							log.Warnf("dw.HeartBeat: %s, ignored", err.Error())
+						}
+						if heartBeatInterval != heartBeatIntervalDefault {
+							heartBeatTick.Reset(time.Second * time.Duration(heartBeatInterval))
+							heartBeatIntervalDefault = heartBeatInterval
+						}
+					}
+
+				case <-datawaylistTick.C:
+					log.Debugf("### enter dataway list")
+					if !DisableDatawayList {
+						var dws []string
+						var err error
+						var datawayListInterval int
+						dws, datawayListInterval, err = x.dw.DatawayList()
+						if err != nil {
+							log.Warnf("DatawayList(): %s, ignored", err)
+						}
+						dataway.AvailableDataways = dws
+						if datawayListInterval != datawayListIntervalDefault {
+							datawaylistTick.Reset(time.Second * time.Duration(datawayListInterval))
+							datawayListIntervalDefault = datawayListInterval
+						}
+					}
+				default:
+				}
+			}
+
 			select {
 			case d := <-x.in:
 				x.cacheData(d, true)
@@ -380,36 +414,6 @@ func (x *IO) StartIO(recoverable bool) {
 
 			case <-highFreqRecvTicker.C:
 				x.cleanHighFreqIOData()
-
-			case <-heartBeatTick.C:
-				log.Debugf("### enter heartBeat")
-				if !DisableHeartbeat {
-					heartBeatInterval, err := x.dw.HeartBeat()
-					if err != nil {
-						log.Warnf("dw.HeartBeat: %s, ignored", err.Error())
-					}
-					if heartBeatInterval != heartBeatIntervalDefault {
-						heartBeatTick.Reset(time.Second * time.Duration(heartBeatInterval))
-						heartBeatIntervalDefault = heartBeatInterval
-					}
-				}
-
-			case <-datawaylistTick.C:
-				log.Debugf("### enter dataway list")
-				if !DisableDatawayList {
-					var dws []string
-					var err error
-					var datawayListInterval int
-					dws, datawayListInterval, err = x.dw.DatawayList()
-					if err != nil {
-						log.Warnf("DatawayList(): %s, ignored", err)
-					}
-					dataway.AvailableDataways = dws
-					if datawayListInterval != datawayListIntervalDefault {
-						datawaylistTick.Reset(time.Second * time.Duration(datawayListInterval))
-						datawayListIntervalDefault = datawayListInterval
-					}
-				}
 
 			case <-tick.C:
 				x.flushAll()

@@ -20,9 +20,10 @@ import (
 )
 
 func TestDataWayAPIs(t *testing.T) {
-	dw := DataWayCfg{URLs: []string{"https://abc.com?token=tkn_abc"}}
+	dwCfg := DataWayCfg{URLs: []string{"https://abc.com?token=tkn_abc"}}
 
-	if err := dw.Apply(); err != nil {
+	dw := &DataWayDefault{}
+	if err := dw.Init(&dwCfg); err != nil {
 		t.Fatal(err)
 	}
 
@@ -49,8 +50,9 @@ func TestHeartBeat(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		dw := &DataWayCfg{URLs: tc.urls, ontest: true}
-		err := dw.Apply()
+		dwCfg := &DataWayCfg{URLs: tc.urls}
+		dw := &DataWayDefault{ontest: true}
+		err := dw.Init(dwCfg)
 		tu.Equals(t, nil, err)
 
 		_, err = dw.HeartBeat()
@@ -82,8 +84,9 @@ func TestListDataWay(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		dw := &DataWayCfg{URLs: tc.urls, ontest: true}
-		err := dw.Apply()
+		dwCfg := &DataWayCfg{URLs: tc.urls}
+		dw := &DataWayDefault{ontest: true}
+		err := dw.Init(dwCfg)
 		tu.Equals(t, nil, err)
 
 		dws, _, err := dw.DatawayList()
@@ -129,8 +132,9 @@ func TestSend(t *testing.T) {
 	for idx, tc := range cases {
 		t.Logf("===== case %d ======", idx)
 
-		dw := &DataWayCfg{URLs: tc.urls}
-		if err := dw.Apply(); err != nil {
+		dwCfg := &DataWayCfg{URLs: tc.urls}
+		dw := &DataWayDefault{ontest: true}
+		if err := dw.Init(dwCfg); err != nil {
 			t.Errorf("Apply: %s", err.Error())
 			continue
 		}
@@ -163,8 +167,9 @@ func TestElectionHeartBeatURL(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		dw := DataWayCfg{URLs: tc.urls}
-		err := dw.Apply()
+		dwCfg := &DataWayCfg{URLs: tc.urls}
+		dw := &DataWayDefault{}
+		err := dw.Init(dwCfg)
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
@@ -201,8 +206,9 @@ func TestElectionURL(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		dw := DataWayCfg{URLs: tc.urls}
-		err := dw.Apply()
+		dwCfg := &DataWayCfg{URLs: tc.urls}
+		dw := &DataWayDefault{}
+		err := dw.Init(dwCfg)
 		if tc.fail {
 			tu.NotOk(t, err, "")
 		} else {
@@ -247,8 +253,9 @@ func TestGetToken(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		dw := DataWayCfg{URLs: tc.urls}
-		err := dw.Apply()
+		dwCfg := &DataWayCfg{URLs: tc.urls}
+		dw := &DataWayDefault{}
+		err := dw.Init(dwCfg)
 		if tc.fail {
 			tu.NotOk(t, err, "")
 			continue
@@ -256,7 +263,7 @@ func TestGetToken(t *testing.T) {
 			tu.Ok(t, err)
 		}
 
-		tkns := dw.GetToken()
+		tkns := dw.GetTokens()
 		for idx, x := range tkns {
 			tu.Equals(t, tc.expect[idx], x)
 		}
@@ -315,14 +322,16 @@ func TestSetupDataway(t *testing.T) {
 	for i, tc := range cases {
 		t.Logf("case %d...", i)
 
-		dw := DataWayCfg{
+		dwCfg := &DataWayCfg{
 			DeprecatedURL: tc.url,
 			URLs:          tc.urls,
 			HTTPProxy:     tc.proxy,
 			Proxy:         tc.proxy != "",
 		}
 
-		err := dw.Apply()
+		dw := &DataWayDefault{}
+		err := dw.Init(dwCfg)
+
 		if tc.fail {
 			tu.NotOk(t, err, "")
 			continue
@@ -373,8 +382,9 @@ func runTestDatawayConnections(t *testing.T, nreq int) {
 	ts.Start()
 	defer ts.Close()
 
-	dw := &DataWayCfg{URLs: []string{ts.URL}}
-	if err := dw.Apply(); err != nil {
+	dwCfg := &DataWayCfg{URLs: []string{ts.URL}}
+	dw := &DataWayDefault{}
+	if err := dw.Init(dwCfg); err != nil {
 		t.Fatal(err)
 	}
 
@@ -401,8 +411,9 @@ func TestUploadLog(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	dw := &DataWayCfg{URLs: []string{ts.URL}}
-	if err := dw.Apply(); err != nil {
+	dwCfg := &DataWayCfg{URLs: []string{ts.URL}}
+	dw := &DataWayDefault{}
+	if err := dw.Init(dwCfg); err != nil {
 		t.Errorf("Apply: %s", err.Error())
 	}
 	rBody := strings.NewReader("aaaaaaaaaaaaa")
@@ -426,7 +437,7 @@ func TestCheckToken(t *testing.T) {
 		{valid: false, token: "token_xxxxxxxxx"},
 		{valid: false, token: "tkn_xxxxxxxxx"},
 	}
-	dw := DataWayCfg{}
+	dw := DataWayDefault{}
 
 	for _, info := range cases {
 		err := dw.CheckToken(info.token)

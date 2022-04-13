@@ -76,13 +76,6 @@ if ($x -ne $null) {
 	Write-COutput green ("* set dataway to $dataway" )
 }
 
-if ($dataway -eq $null) {
-	if ($upgrade -eq $null) {
-		Write-COutput red "[ERROR] Dataway not set on 'DK_DATAWAY'"
-		Exit
-	}
-}
-
 $http_listen = "localhost"
 $x = [Environment]::GetEnvironmentVariable("DK_HTTP_LISTEN") 
 if ($x -ne $null) {

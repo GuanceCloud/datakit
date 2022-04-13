@@ -41,6 +41,10 @@ type Metric struct {
 	startTime time.Time
 }
 
+type Writer interface {
+	Write(string, []sinkcommon.ISinkPoint) error
+}
+
 type SinkMetric struct {
 	Name      string
 	StartTime time.Time

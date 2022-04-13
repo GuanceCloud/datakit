@@ -411,14 +411,12 @@ func installNewDatakit(svc service.Service) {
 	mc := config.Cfg
 
 	// prepare dataway info and check token format
-	mc.DataWay = getDataWayCfg()
-	tokens := mc.DataWay.GetToken()
-	if len(tokens) == 0 {
-		l.Fatalf("dataway token should not be empty")
-	}
-
-	if err := mc.DataWay.CheckToken(tokens[0]); err != nil {
-		l.Fatal(err)
+	if len(flagDataway) != 0 {
+		var err error
+		mc.DataWay, err = getDataWay()
+		if err != nil {
+			l.Fatal(err)
+		}
 	}
 
 	if flagOTA {
@@ -703,8 +701,8 @@ func preEnableHostobjectInput(cloud string) []byte {
 }
 
 func upgradeMainConfig(c *config.Config) *config.Config {
-	if c.DataWay != nil {
-		c.DataWay.DeprecatedURL = ""
+	if c.DataWayCfg != nil {
+		c.DataWayCfg.DeprecatedURL = ""
 	}
 
 	// XXX: 无脑更改日志位置
@@ -763,8 +761,8 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 		c.IntervalDeprecated = ""
 	}
 
-	if c.DataWay != nil {
-		c.DataWay.HTTPProxy = flagProxy
+	if c.DataWayCfg != nil {
+		c.DataWayCfg.HTTPProxy = flagProxy
 	}
 
 	c.InstallVer = DataKitVersion
@@ -773,24 +771,35 @@ func upgradeMainConfig(c *config.Config) *config.Config {
 	return c
 }
 
-func getDataWayCfg() *dataway.DataWayCfg {
-	dw := &dataway.DataWayCfg{}
-
+func getDataWay() (dataway.DataWay, error) {
+	var dwCfg *dataway.DataWayCfg
 	if flagDataway != "" {
-		dw.URLs = strings.Split(flagDataway, ",")
-		if err := dw.Apply(); err != nil {
-			l.Fatal(err)
-		}
+		dwCfg = &dataway.DataWayCfg{}
+		dwCfg.URLs = strings.Split(flagDataway, ",")
 
 		if flagProxy != "" {
 			l.Debugf("set proxy to %s", flagProxy)
-			dw.HTTPProxy = flagProxy
+			dwCfg.HTTPProxy = flagProxy
+		}
+
+		dw := &dataway.DataWayDefault{}
+		if err := dw.Init(dwCfg); err != nil {
+			return nil, err
+		} else {
+			tokens := dw.GetTokens()
+			if len(tokens) == 0 {
+				return nil, fmt.Errorf("dataway token should not be empty")
+			}
+
+			if err := dw.CheckToken(tokens[0]); err != nil {
+				return nil, err
+			}
+			config.Cfg.DataWayCfg = dwCfg
+			return dw, nil
 		}
 	} else {
-		l.Fatal("should not been here")
+		return nil, fmt.Errorf("dataway is not set")
 	}
-
-	return dw
 }
 
 func mvOldDatakit(svc service.Service) {

@@ -196,15 +196,19 @@ func doRun() error {
 		}
 	}
 
-	if config.Cfg.EnableElection {
-		election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
-	}
+	if config.Cfg.DataWay != nil {
+		if config.Cfg.EnableElection {
+			election.Start(config.Cfg.Namespace, config.Cfg.Hostname, config.Cfg.DataWay)
+		}
 
-	if len(config.Cfg.DataWay.URLs) == 1 {
-		// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
-		plRemote.StartPipelineRemote(config.Cfg.DataWay.URLs)
+		if len(config.Cfg.DataWayCfg.URLs) == 1 {
+			// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
+			plRemote.StartPipelineRemote(config.Cfg.DataWayCfg.URLs)
+		} else {
+			io.FeedLastError(datakit.DatakitInputName, "dataway empty or multi, not run pipeline remote")
+		}
 	} else {
-		io.FeedLastError(datakit.DatakitInputName, "dataway empty or multi, not run pipeline remote")
+		l.Warn("Ignore election or piple remote because dataway is not set")
 	}
 
 	if err := initPythonCore(); err != nil {

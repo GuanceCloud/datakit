@@ -161,8 +161,9 @@ var versionInfos = map[string]string{
 }
 
 func getUpgradeCommand(dlurl string) string {
-	proxy := config.Cfg.DataWay.HTTPProxy
 	var upgradeCmd string
+
+	proxy := config.Cfg.DataWayCfg.HTTPProxy
 
 	switch runtime.GOOS {
 	case datakit.OSWindows:

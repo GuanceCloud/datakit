@@ -133,14 +133,6 @@ if [ -n "$DK_UPGRADE" ]; then
 	upgrade=$DK_UPGRADE
 fi
 
-if [ ! "$dataway" ]; then # check dataway on new install
-	if [ ! "$upgrade" ]; then
-		# shellcheck disable=SC2059
-		printf "${RED}[E] DataWay not set in DK_DATAWAY.${CLR}\n"
-		exit 1;
-	fi
-fi
-
 def_inputs=
 if [ -n "$DK_DEF_INPUTS" ]; then
 	# shellcheck disable=SC2034

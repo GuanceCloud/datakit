@@ -46,7 +46,7 @@ var (
 
 	uptime = time.Now()
 
-	dw        *dataway.DataWayCfg
+	dw        dataway.DataWay
 	extraTags = map[string]string{}
 	apiConfig = &APIConfig{}
 	dcaConfig *DCAConfig
@@ -78,7 +78,7 @@ type Option struct {
 	GinLog    string
 	GinRotate int
 	APIConfig *APIConfig
-	DataWay   *dataway.DataWayCfg
+	DataWay   dataway.DataWay
 	DCAConfig *DCAConfig
 
 	GinReleaseMode bool
@@ -127,13 +127,17 @@ func Start(o *Option) {
 		return nil
 	})
 
-	// DCA server
+	// DCA server require dataway
 	if dcaConfig.Enable {
-		g.Go(func(ctx context.Context) error {
-			dcaHTTPStart()
-			l.Info("DCA http goroutine exit")
-			return nil
-		})
+		if dw == nil {
+			l.Warn("Ignore to start DCA server because dataway is not set!")
+		} else {
+			g.Go(func(ctx context.Context) error {
+				dcaHTTPStart()
+				l.Info("DCA http goroutine exit")
+				return nil
+			})
+		}
 	}
 
 	// start pprof if enabled
@@ -425,7 +429,10 @@ func portInUse(addr string) bool {
 }
 
 func checkToken(r *http.Request) error {
-	localTokens := dw.GetToken()
+	if dw == nil {
+		return ErrInvalidToken
+	}
+	localTokens := dw.GetTokens()
 	if len(localTokens) == 0 {
 		return ErrInvalidToken
 	}

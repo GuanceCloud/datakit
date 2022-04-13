@@ -262,7 +262,7 @@ func (fc *FileCollector) handFail() {
 }
 
 func (fc *FileCollector) getRemotePath(name string) string {
-	token := config.Cfg.DataWay.GetToken()
+	token := config.Cfg.DataWay.GetTokens()
 	hostName := config.Cfg.Hostname
 	name = strings.ReplaceAll(name, "/", "_")
 	name = strings.ReplaceAll(name, "\\", "_")

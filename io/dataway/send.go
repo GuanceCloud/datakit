@@ -125,13 +125,13 @@ func (dc *endPoint) send(category string, data []byte, gz bool) (int, error) {
 	return statusCode, err
 }
 
-func (dw *DataWayCfg) sendReq(req *http.Request) (*http.Response, error) {
+func (dw *DataWayDefault) sendReq(req *http.Request) (*http.Response, error) {
 	log.Debugf("send request %s, proxy: %s, dwcli: %p", req.URL.String(), dw.HTTPProxy, dw.httpCli.Transport)
 
 	return dw.httpCli.Do(req)
 }
 
-func (dw *DataWayCfg) Send(category string, data []byte, gz bool) (statusCode int, err error) {
+func (dw *DataWayDefault) Send(category string, data []byte, gz bool) (statusCode int, err error) {
 	for i, ep := range dw.endPoints {
 		log.Debugf("send to %dth dataway, fails: %d/%d", i, ep.fails, dw.MaxFails)
 		// 判断 fails
@@ -158,7 +158,7 @@ func (dw *DataWayCfg) Send(category string, data []byte, gz bool) (statusCode in
 	return
 }
 
-func (dw *DataWayCfg) Write(category string, pts []sinkcommon.ISinkPoint) error {
+func (dw *DataWayDefault) Write(category string, pts []sinkcommon.ISinkPoint) error {
 	if len(pts) == 0 {
 		return nil
 	}
@@ -214,7 +214,7 @@ type body struct {
 	rawBufBytes int64
 }
 
-func (dw *DataWayCfg) buildBody(pts []sinkcommon.ISinkPoint, isGzip bool) ([]*body, error) {
+func (dw *DataWayDefault) buildBody(pts []sinkcommon.ISinkPoint, isGzip bool) ([]*body, error) {
 	lines := bytes.Buffer{}
 	var (
 		gz = func(lines []byte) (*body, error) {
