@@ -47,6 +47,16 @@ const (
     # priority = 0
     # sampling_rate = 1.0
 
+  # Piplines use to manipulate message and meta data. If this item configured right then
+  # the current input procedure will run the scripts wrote in pipline config file against the data
+  # present in span message.
+  # The string on the left side of the equal sign must be identical to the service name that
+  # you try to handle.
+  # [inputs.ddtrace.pipelines]
+    # service1 = "service1.p"
+    # service2 = "service2.p"
+    # ...
+
   # [inputs.skywalking.tags]
     # key1 = "value1"
     # key2 = "value2"
@@ -74,6 +84,7 @@ type Input struct {
 	KeepRareResource bool                `toml:"keep_rare_resource"`
 	CloseResource    map[string][]string `toml:"close_resource"`
 	Sampler          *itrace.Sampler     `toml:"sampler"`
+	Pipelines        map[string]string   `toml:"pipelines"`
 	Tags             map[string]string   `toml:"tags"`
 }
 
@@ -123,6 +134,10 @@ func (ipt *Input) Run() {
 	if ipt.Sampler != nil {
 		sampler = ipt.Sampler
 		afterGather.AppendFilter(sampler.Sample)
+	}
+	// add piplines
+	if len(ipt.Pipelines) != 0 {
+		afterGather.AppendFilter(itrace.PiplineFilterWrapper(inputName, ipt.Pipelines))
 	}
 
 	customerKeys = ipt.CustomerTags
