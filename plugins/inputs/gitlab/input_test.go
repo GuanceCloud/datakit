@@ -421,17 +421,17 @@ func TestPipelineTagsAndFields(t *testing.T) {
 		"finished_at":    int64(1471015589),
 	}
 	expectedTags := map[string]string{
-		"ci_status":      "success",
-		"pipeline_name":  "gitlab-org/gitlab-test",
-		"author_email":   "user@gitlab.com",
-		"source":         "merge_request_event",
-		"operation_name": "pipeline",
-		"resource":       "Gitlab Test",
-		"object_kind":    "pipeline",
-		"pipeline_url":   "http://192.168.64.1:3005/gitlab-org/gitlab-test/pipelines/31",
-		"commit_sha":     "bcbb5ec396a2c0f828686f14fac9b80b780504f2",
-		"repository_url": "http://192.168.64.1:3005/gitlab-org/gitlab-test.git",
-		"ref":            "master",
+		"ci_status":       "success",
+		"pipeline_name":   "gitlab-org/gitlab-test",
+		"author_email":    "user@gitlab.com",
+		"pipeline_source": "merge_request_event",
+		"operation_name":  "pipeline",
+		"resource":        "Gitlab Test",
+		"object_kind":     "pipeline",
+		"pipeline_url":    "http://192.168.64.1:3005/gitlab-org/gitlab-test/pipelines/31",
+		"commit_sha":      "bcbb5ec396a2c0f828686f14fac9b80b780504f2",
+		"repository_url":  "http://192.168.64.1:3005/gitlab-org/gitlab-test.git",
+		"ref":             "master",
 	}
 	tu.Equals(t, expectedTags, tags)
 	tu.Equals(t, expectedFields, fields)

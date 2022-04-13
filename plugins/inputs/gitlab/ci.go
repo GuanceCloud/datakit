@@ -481,7 +481,7 @@ func getPipelineEventTags(pl PipelineEventPayload) map[string]string {
 		tags["repository_url"] = *pl.Project.GitHTTPURL
 	}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Source != nil {
-		tags["source"] = *pl.ObjectAttributes.Source
+		tags["pipeline_source"] = *pl.ObjectAttributes.Source
 	}
 	if pl.ObjectKind != nil {
 		tags["operation_name"] = *pl.ObjectKind
@@ -548,7 +548,7 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if err := iod.Feed(inputName, datakit.Metric, pts, &iod.Option{}); err != nil {
+	if err := iod.Feed(inputName, datakit.Logging, pts, &iod.Option{}); err != nil {
 		iod.FeedLastError(inputName, err.Error())
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
