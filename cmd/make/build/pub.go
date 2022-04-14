@@ -152,7 +152,6 @@ func generatePipelineDoc() error {
 	return nil
 }
 
-//nolint:lll
 func generatePipelineScripts() error {
 	encoding := base64.StdEncoding
 	demoMap, err := config.GetPipelineDemoMap()
