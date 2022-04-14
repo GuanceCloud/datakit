@@ -208,24 +208,24 @@ func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
 	m.tags["status"] = "info"
 	m.tags["pid"] = fmt.Sprint(k.Pid)
 
-	isV6 := false
-	if ConnAddrIsIPv4(k.Meta) {
+	isV6 := !ConnAddrIsIPv4(k.Meta)
+	if k.Saddr[0] == 0 && k.Saddr[1] == 0 && k.Daddr[0] == 0 && k.Daddr[1] == 0 {
+		if k.Saddr[2] == 0xffff0000 && k.Daddr[2] == 0xffff0000 {
+			isV6 = false
+		} else if k.Saddr[2] == 0 && k.Daddr[2] == 0 && k.Saddr[3] > 1 && k.Daddr[3] > 1 {
+			isV6 = false
+		}
+	}
+
+	if !isV6 {
 		m.tags["src_ip_type"] = ConnIPv4Type(k.Saddr[3])
 		m.tags["dst_ip_type"] = ConnIPv4Type(k.Daddr[3])
 		m.tags["family"] = "IPv4"
 	} else {
-		if k.Saddr[0] == 0 && k.Saddr[1] == 0 && k.Saddr[2] == 0xffff0000 {
-			m.tags["src_ip_type"] = ConnIPv4Type(k.Saddr[3])
-		} else {
-			m.tags["src_ip_type"] = ConnIPv6Type(k.Saddr)
-		}
-		if k.Daddr[0] == 0 && k.Daddr[1] == 0 && k.Daddr[2] == 0xffff0000 {
-			m.tags["dst_ip_type"] = ConnIPv4Type(k.Daddr[3])
-		} else {
-			m.tags["dst_ip_type"] = ConnIPv6Type(k.Daddr)
-		}
+		m.tags["src_ip_type"] = ConnIPv6Type(k.Saddr)
+
+		m.tags["dst_ip_type"] = ConnIPv6Type(k.Daddr)
 		m.tags["family"] = "IPv6"
-		isV6 = true
 	}
 
 	m.tags["src_ip"] = U32BEToIP(k.Saddr, isV6).String()

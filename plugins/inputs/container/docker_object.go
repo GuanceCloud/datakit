@@ -115,7 +115,7 @@ func (c *containerObject) Info() *inputs.MeasurementInfo {
 			"image_short_name": inputs.NewTagInfo("镜像名称精简版，例如 `nginx`"),
 			"image_tag":        inputs.NewTagInfo("镜像tag，例如 `1.21.0`"),
 			"container_host":   inputs.NewTagInfo(`容器内部的主机名（containerd 缺少此字段）`),
-			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker`),
+			"container_type":   inputs.NewTagInfo(`容器类型，表明该容器由谁创建，kubernetes/docker/containerd`),
 			"state":            inputs.NewTagInfo(`运行状态，running/exited/removed（containerd 缺少此字段）`),
 			"pod_name":         inputs.NewTagInfo(`pod 名称（容器由 k8s 创建时存在）`),
 			"pod_namespace":    inputs.NewTagInfo(`pod 命名空间（容器由 k8s 创建时存在）`),

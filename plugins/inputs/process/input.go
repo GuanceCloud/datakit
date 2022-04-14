@@ -98,10 +98,9 @@ func (p *Input) Run() {
 			defer tick.Stop()
 			for {
 				p.WriteMetric(lastProc)
+				lastProc = p.getProcessMap()
 				select {
 				case <-tick.C:
-					lastProc = p.getProcessMap()
-
 				case <-datakit.Exit.Wait():
 					l.Info("process write metric exit")
 					return
@@ -116,12 +115,11 @@ func (p *Input) Run() {
 
 	lastProc := p.getProcessMap()
 	time.Sleep(time.Second * 2)
-
 	for {
 		p.WriteObject(lastProc)
+		lastProc = p.getProcessMap()
 		select {
 		case <-tick.C:
-			lastProc = p.getProcessMap()
 		case <-datakit.Exit.Wait():
 			l.Info("process write object exit")
 			return
@@ -329,16 +327,19 @@ func (p *Input) Parse(ps *pr.Process, lastProcess map[int32]proccpu) (username, 
 	}
 
 	if lastP, ok := lastProcess[ps.Pid]; ok {
+		var usage float64
 		if lastP.createTime == crtTime {
-			usage := 100 * (cpu.User + cpu.System - lastP.cputime.User - lastP.cputime.System) / time.Since(lastP.ts).Seconds()
-			if usage < 0 {
-				usage = 0
+			sec := time.Since(lastP.ts).Seconds()
+			if sec > 0 {
+				usage = 100 * (cpu.User + cpu.System - lastP.cputime.User - lastP.cputime.System) / sec
 			}
-			fields["cpu_usage_top"] = usage
 		} else {
-			fields["cpu_usage_top"] = 0
 			l.Debug("cpu_usage_top: lastP %d %d", lastP.createTime, crtTime)
 		}
+		if usage < 0 {
+			usage = 0
+		}
+		fields["cpu_usage_top"] = usage
 	} else {
 		fields["cpu_usage_top"] = 0
 		l.Debug("cpu_usage_top: pid %d", ps.Pid)

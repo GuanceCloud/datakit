@@ -268,3 +268,4 @@ CPU 使用率是百分比制（==最大值 100.0==），以一个 8 核心的 CP
 
 - [DataKit 宿主机安装](datakit-install)
 - [DataKit DaemonSet 安装](datakit-daemonset-install)
+- [DataKit 行协议过滤器](datakit-filter)

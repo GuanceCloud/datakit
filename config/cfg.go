@@ -47,7 +47,7 @@ func DefaultConfig() *Config {
 			"ENV_HOSTNAME": "", // not set
 		}, // default nothing
 
-		IOConf: &IOConfig{
+		IOConf: &dkio.IOConfig{
 			FeedChanSize:              1024,
 			HighFreqFeedChanSize:      2048,
 			MaxCacheCount:             1024,
@@ -57,6 +57,7 @@ func DefaultConfig() *Config {
 			FlushInterval:             "10s",
 			OutputFileInputs:          []string{},
 			EnableCache:               false,
+			Filters:                   map[string][]string{},
 		},
 
 		DataWay: &dataway.DataWayCfg{
@@ -121,19 +122,6 @@ func DefaultConfig() *Config {
 	return c
 }
 
-type IOConfig struct {
-	FeedChanSize              int      `toml:"feed_chan_size"`
-	HighFreqFeedChanSize      int      `toml:"high_frequency_feed_chan_size"`
-	MaxCacheCount             int64    `toml:"max_cache_count"`
-	CacheDumpThreshold        int64    `toml:"cache_dump_threshold"`
-	MaxDynamicCacheCount      int64    `toml:"max_dynamic_cache_count"`
-	DynamicCacheDumpThreshold int64    `toml:"dynamic_cache_dump_threshold"`
-	FlushInterval             string   `toml:"flush_interval"`
-	OutputFile                string   `toml:"output_file"`
-	OutputFileInputs          []string `toml:"output_file_inputs"`
-	EnableCache               bool     `toml:"enable_cache"`
-}
-
 type LoggerCfg struct {
 	Log          string `toml:"log"`
 	GinLog       string `toml:"gin_log"`
@@ -196,7 +184,7 @@ type Config struct {
 	InstallVer string `toml:"install_version,omitempty"`
 
 	HTTPAPI *dkhttp.APIConfig   `toml:"http_api"`
-	IOConf  *IOConfig           `toml:"io"`
+	IOConf  *dkio.IOConfig      `toml:"io"`
 	DataWay *dataway.DataWayCfg `toml:"dataway,omitempty"`
 	Logging *LoggerCfg          `toml:"logging"`
 
@@ -460,17 +448,9 @@ func (c *Config) ApplyMainConfig() error {
 		if c.IOConf.OutputFile == "" && c.OutputFileDeprecated != "" {
 			c.IOConf.OutputFile = c.OutputFileDeprecated
 		}
-		dkio.ConfigDefaultIO(dkio.SetFeedChanSize(c.IOConf.FeedChanSize),
-			dkio.SetHighFreqFeedChanSize(c.IOConf.HighFreqFeedChanSize),
-			dkio.SetMaxCacheCount(c.IOConf.MaxCacheCount),
-			dkio.SetCacheDumpThreshold(c.IOConf.CacheDumpThreshold),
-			dkio.SetMaxDynamicCacheCount(c.IOConf.MaxDynamicCacheCount),
-			dkio.SetDynamicCacheDumpThreshold(c.IOConf.DynamicCacheDumpThreshold),
-			dkio.SetFlushInterval(c.IOConf.FlushInterval),
-			dkio.SetOutputFile(c.IOConf.OutputFile),
-			dkio.SetOutputFileInput(c.IOConf.OutputFileInputs),
-			dkio.SetEnableCache(c.IOConf.EnableCache),
-			dkio.SetDataway(c.DataWay))
+
+		dkio.ConfigDefaultIO(c.IOConf)
+		dkio.SetDataway(c.DataWay)
 	}
 
 	if err := c.setupGlobalTags(); err != nil {
@@ -551,7 +531,7 @@ func (c *Config) EnableDefaultsInputs(inputlist string) {
 
 func (c *Config) LoadEnvs() error {
 	if c.IOConf == nil {
-		c.IOConf = &IOConfig{}
+		c.IOConf = &dkio.IOConfig{}
 	}
 
 	for _, envkey := range []string{

@@ -27,6 +27,7 @@
 - [DataKit 开发]()
   - [DataKit 开发手册](development)
 		- [DataKit 整体架构简介](datakit-arch)
+	- [行协议过滤器](datakit-filter)
   - [DataKit API](apis)
 
 - [采集器]()
@@ -74,6 +75,7 @@
 
   - [日志]()
     - [DataKit 日志采集综述](datakit-logging)
+    - [DataKit 日志处理综述](datakit-logging-how)
     - [数据采集]()
       - [文件日志](logging)
         - [Socket 日志接入示例](logging_socket)

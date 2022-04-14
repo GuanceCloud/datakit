@@ -64,7 +64,7 @@ type Input struct {
 
 func (ipt *Input) RegHTTPHandler() {
 	if ipt.EnableCIVisibility {
-		l.Infof("start listening gitlab webhooks")
+		l.Infof("start listening to gitlab webhooks")
 		dhttp.RegHTTPHandler("POST", "/v1/gitlab", ihttp.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
 }
@@ -79,6 +79,8 @@ func newInput() *Input {
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 
 		semStop: cliutils.NewSem(),
+
+		EnableCIVisibility: true,
 	}
 }
 
