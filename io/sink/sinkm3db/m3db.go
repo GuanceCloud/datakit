@@ -143,17 +143,19 @@ func makeSeries(tags map[string]string, key string, i interface{}, dataTime time
 			}}}
 		}
 	case uint32, uint64:
-		val := i.(uint64)
-		return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
-			Timestamp: dataTime,
-			Value:     float64(val),
-		}}}
+		if val, ok := i.(uint64); ok {
+			return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
+				Timestamp: dataTime,
+				Value:     float64(val),
+			}}}
+		}
 	case float32, float64:
-		val := i.(float64)
-		return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
-			Timestamp: dataTime,
-			Value:     float64(val),
-		}}}
+		if val, ok := i.(float64); ok {
+			return []*TimeSeries{{Labels: labels, Datapoint: Datapoint{
+				Timestamp: dataTime,
+				Value:     val,
+			}}}
+		}
 	default:
 		// 不能使用 map[]interface{} 去接收 map[string]int 或者 map[string]int64 等类型。
 		// 也不能使用 []interface{} 去接收数组 []int []int64 等。
@@ -171,11 +173,8 @@ func makeSeries(tags map[string]string, key string, i interface{}, dataTime time
 					return []*TimeSeries{}
 				}
 				key := k.String()
-
 				v := iter.Value()
-				var val interface{}
-				val = v.Interface()
-
+				val := v.Interface()
 				res := makeSeries(tags, key, val, dataTime)
 				if len(res) > 0 {
 					ts = append(ts, res[0])

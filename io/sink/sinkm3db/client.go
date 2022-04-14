@@ -14,9 +14,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/prometheus/prometheus/prompb"
+	"google.golang.org/protobuf/proto"
 )
 
 // Label is a metric label.
@@ -31,7 +31,7 @@ type TimeSeries struct {
 	Datapoint Datapoint
 }
 
-// A Datapoint is a single data value reported at a given time.
+// Datapoint is a single data value reported at a given time.
 type Datapoint struct {
 	Timestamp time.Time
 	Value     float64
@@ -154,7 +154,7 @@ func (c *client) WriteProto(
 	var result WriteResult
 	data, err := proto.Marshal(promWR)
 	if err != nil {
-		return result, writeError{err: fmt.Errorf("unable to marshal protobuf: %v", err)}
+		return result, writeError{err: fmt.Errorf("unable to marshal protobuf: %w", err)}
 	}
 
 	encoded := snappy.Encode(nil, data)
@@ -182,7 +182,7 @@ func (c *client) WriteProto(
 
 	result.StatusCode = resp.StatusCode
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if result.StatusCode/100 != 2 {
 		writeErr := writeError{
@@ -192,11 +192,11 @@ func (c *client) WriteProto(
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			writeErr.err = fmt.Errorf("%v, body_read_error=%s", writeErr.err, err)
+			writeErr.err = fmt.Errorf("%w, body_read_error=%s", writeErr.err, err)
 			return result, writeErr
 		}
 
-		writeErr.err = fmt.Errorf("%v, body=%s", writeErr.err, body)
+		writeErr.err = fmt.Errorf("%w, body=%s", writeErr.err, body)
 		return result, writeErr
 	}
 
