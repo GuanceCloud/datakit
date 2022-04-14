@@ -182,6 +182,13 @@ DataKit 支持的环境变量如下各表所示。
 | ENV_LOG       | */var/log/datakit/log*     | 否     | 如果改成 `stdout`，日志将不写文件，而是终端输出 |
 | ENV_LOG_LEVEL | info                       | 否     | 可选值 `info/debug`                             |
 
+###  DataKit pprof 相关
+
+| 环境变量名称  | 默认值                     | 必须   | 说明                                            |
+| ---------:    | ---:                       | ------ | ----                                            |
+| ENV_ENABLE_PPROF   | false | 否     | 是否开启 `pprof` |
+| ENV_PPROF_LISTEN       | 无     | 否     | `pprof`服务监听地址 |
+
 ### 选举相关环境变量
 
 | 环境变量名称        | 默认值     | 必须   | 说明                                                                                                                                                |
