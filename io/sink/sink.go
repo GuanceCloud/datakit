@@ -38,7 +38,7 @@ func Write(category string, pts []sinkcommon.ISinkPoint) error {
 		return defaultCallPtr(category, pts)
 	}
 
-	return nil
+	return &sinkcommon.SinkUnsupportError{}
 }
 
 func Init(sincfg []map[string]interface{}, defCall func(string, []sinkcommon.ISinkPoint) error) error {

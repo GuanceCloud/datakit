@@ -402,7 +402,16 @@ else
 			--disable-404page="${disable_404page}"           \
 			--log-level="${log_level}"                       \
 			--log="${log}"                                   \
-			--ipdb-type="${ipdb_type}"												\
+			--ipdb-type="${ipdb_type}"						 \
+			--sink-metric="${sink_metric}"                   \
+			--sink-network="${sink_network}"                 \
+			--sink-keyevent="${sink_keyevent}"               \
+			--sink-object="${sink_object}"                   \
+			--sink-custom-object="${sink_custom_object}"     \
+			--sink-logging="${sink_logging}"                 \
+			--sink-tracing="${sink_tracing}"                 \
+			--sink-rum="${sink_rum}"                         \
+			--sink-security="${sink_security}"               \
 			--gin-log="${gin_log}" | $sudo_cmd tee ${install_log}
 fi
 rm -rf $installer

@@ -5,7 +5,11 @@ Logstash 仅支持写入 Logging 种类的数据。
 
 ## 第一步: 搭建后端存储
 
-自己搭建一个 Logstash 的环境, 并开启 [HTTP 模块](https://www.elastic.co/cn/blog/introducing-logstash-input-http-plugin):
+自己搭建一个 Logstash 的环境, 需要开启 [HTTP 模块](https://www.elastic.co/cn/blog/introducing-logstash-input-http-plugin), 开启的方法也非常简单, 直接在 Logstash 的 pipeline 文件中配置即可。
+
+### 新建 Logstash 的 pipeline 文件
+
+新建一个 Logstash 的 pipeline 文件 `pipeline-http.conf`, 如下所示:
 
 ```conf
 input {
@@ -20,6 +24,28 @@ output {
         hosts => [ "localhost:9200"] # 我这里配置的是往 elasticsearch 写入数据
     }
 }
+```
+
+这个文件可以任意放, 我这里放在 `/opt/elastic/logstash` 下, 即全路径是 `/opt/elastic/logstash/pipeline-http.conf`。
+
+### 配置 Logstash 使用上面的 pipeline 文件
+
+有两种方式: 配置文件方式和命令行方式。选其一即可。
+
+#### 配置文件方式
+
+在配置文件 `logstash/config/logstash.yml` 中增加一行:
+
+```yml
+path.config: /opt/elastic/logstash/pipeline-http.conf
+```
+
+#### 命令行方式
+
+在命令行中指定 pipeline 文件:
+
+```shell
+$ logstash/bin/logstash -f /opt/elastic/logstash/pipeline-http.conf
 ```
 
 ## 第二步: 增加配置

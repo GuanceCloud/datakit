@@ -144,7 +144,7 @@ func init() { //nolint:gochecknoinits
 	// sink parameters
 	flag.StringVar(&flagSinkMetric, "sink-metric", "", "sink for Metric")
 	flag.StringVar(&flagSinkNetwork, "sink-network", "", "sink for Network")
-	flag.StringVar(&flagSinkKeyEvent, "sink-event", "", "sink for Event")
+	flag.StringVar(&flagSinkKeyEvent, "sink-keyevent", "", "sink for Key Event")
 	flag.StringVar(&flagSinkObject, "sink-object", "", "sink for Object")
 	flag.StringVar(&flagSinkCustomObject, "sink-custom-object", "", "sink for CustomObject")
 	flag.StringVar(&flagSinkLogging, "sink-logging", "", "sink for Logging")
