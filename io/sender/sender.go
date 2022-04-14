@@ -263,16 +263,13 @@ func (s *Sender) init(opt *Option) error {
 	if s.group == nil {
 		s.group = datakit.G("sender")
 	}
-
-	/*	// old code
-		if s.opt.Write != nil {
-			l.Infof("io use dataway")
-			s.write = s.opt.Write
-		} else {
-			l.Infof("io use sink.Write")
-			s.write = sink.Write
-		}
-	*/
+	if s.opt.Write != nil {
+		l.Infof("io use dataway")
+		s.write = s.opt.Write
+	} else {
+		l.Infof("io use sink.Write")
+		s.write = sink.Write
+	}
 
 	s.write = sink.Write
 
