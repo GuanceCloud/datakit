@@ -28,6 +28,7 @@ import (
 	dl "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	ihttp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/http"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sinkfuncs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/dataway"
 )
@@ -81,7 +82,16 @@ var (
 	flagIpdb,
 	flagGinLog,
 	flagEnableElection,
-	flagDisable404Page string
+	flagDisable404Page,
+	flagSinkMetric,
+	flagSinkNetwork,
+	flagSinkKeyEvent,
+	flagSinkObject,
+	flagSinkCustomObject,
+	flagSinkLogging,
+	flagSinkTracing,
+	flagSinkRUM,
+	flagSinkSecurity string
 
 	flagInstallOnly,
 	flagCgroupEnabled,
@@ -130,6 +140,17 @@ func init() { //nolint:gochecknoinits
 		fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz",
 			runtime.GOOS, runtime.GOARCH, DataKitVersion),
 		`local path of install files`)
+
+	// sink parameters
+	flag.StringVar(&flagSinkMetric, "sink-metric", "", "sink for Metric")
+	flag.StringVar(&flagSinkNetwork, "sink-network", "", "sink for Network")
+	flag.StringVar(&flagSinkKeyEvent, "sink-keyevent", "", "sink for Key Event")
+	flag.StringVar(&flagSinkObject, "sink-object", "", "sink for Object")
+	flag.StringVar(&flagSinkCustomObject, "sink-custom-object", "", "sink for CustomObject")
+	flag.StringVar(&flagSinkLogging, "sink-logging", "", "sink for Logging")
+	flag.StringVar(&flagSinkTracing, "sink-tracing", "", "sink for Tracing")
+	flag.StringVar(&flagSinkRUM, "sink-rum", "", "sink for RUM")
+	flag.StringVar(&flagSinkSecurity, "sink-security", "", "sink for Security")
 
 	flag.Float64Var(&flagLimitCPUMax, "limit-cpumax", 30.0, "Croup CPU max usage")
 	flag.Float64Var(&flagLimitCPUMin, "limit-cpumin", 5.0, "Croup CPU min usage")
@@ -517,6 +538,12 @@ func installNewDatakit(svc service.Service) {
 		mc.GinLogDeprecated = flagGinLog
 	}
 
+	// parse sink
+	if err := parseSinkArgs(mc); err != nil {
+		mc.Sinks.Sink = []map[string]interface{}{{}} // clear
+		l.Fatalf("parseSinkArgs failed: %s", err.Error())
+	}
+
 	writeDefInputToMainCfg(mc)
 
 	// build datakit main config
@@ -528,6 +555,48 @@ func installNewDatakit(svc service.Service) {
 	if err := service.Control(svc, "install"); err != nil {
 		l.Warnf("install service: %s, ignored", err.Error())
 	}
+}
+
+func parseSinkArgs(mc *config.Config) error {
+	if mc == nil {
+		return fmt.Errorf("invalid main config")
+	}
+
+	if mc.Sinks == nil {
+		return fmt.Errorf("invalid main config sinks")
+	}
+
+	categoryShorts := []string{
+		datakit.SinkCategoryMetric,
+		datakit.SinkCategoryNetwork,
+		datakit.SinkCategoryKeyEvent,
+		datakit.SinkCategoryObject,
+		datakit.SinkCategoryCustomObject,
+		datakit.SinkCategoryLogging,
+		datakit.SinkCategoryTracing,
+		datakit.SinkCategoryRUM,
+		datakit.SinkCategorySecurity,
+	}
+
+	args := []string{
+		flagSinkMetric,
+		flagSinkNetwork,
+		flagSinkKeyEvent,
+		flagSinkObject,
+		flagSinkCustomObject,
+		flagSinkLogging,
+		flagSinkTracing,
+		flagSinkRUM,
+		flagSinkSecurity,
+	}
+
+	sinks, err := sinkfuncs.GetSinkFromEnvs(categoryShorts, args)
+	if err != nil {
+		return err
+	}
+
+	mc.Sinks.Sink = sinks
+	return nil
 }
 
 var (

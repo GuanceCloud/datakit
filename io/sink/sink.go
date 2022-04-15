@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkcommon"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinklogstash"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkm3db"
 )
 
@@ -64,7 +65,7 @@ func Init(sincfg []map[string]interface{}, defCall func(string, []sinkcommon.ISi
 
 			l.Debugf("SinkImpls = %#v", sinkcommon.SinkImpls)
 
-			if err := aggregationCategorys(sincfg); err != nil {
+			if err := polymerizeCategorys(sincfg); err != nil {
 				return err
 			}
 
@@ -90,7 +91,7 @@ var (
 	defaultCallPtr  func(string, []sinkcommon.ISinkPoint) error
 )
 
-func aggregationCategorys(sincfg []map[string]interface{}) error {
+func polymerizeCategorys(sincfg []map[string]interface{}) error {
 	for _, v := range sincfg {
 		if len(v) == 0 {
 			continue // empty
@@ -118,11 +119,26 @@ func aggregationCategorys(sincfg []map[string]interface{}) error {
 
 		for category := range mCategory {
 			for _, impl := range sinkcommon.SinkImpls {
-				id, err := dkstring.GetMapAssertString("id", v)
+				id, err := dkstring.GetMapMD5String(v)
 				if err != nil {
 					return err
 				}
-				if id == impl.GetID() {
+
+				// check whether support the category
+				found := false
+				supportCategories := impl.GetInfo().Categories
+				for _, scs := range supportCategories {
+					if category == scs {
+						found = true
+						break
+					}
+				}
+				if !found {
+					l.Warnf("%s not support category: %s", impl.GetInfo().CreateID, category)
+					continue
+				}
+
+				if id == impl.GetInfo().ID {
 					newCategory, err := getMapCategory(category)
 					if err != nil {
 						return err
@@ -206,11 +222,11 @@ func checkSinkConfig(sincfg []map[string]interface{}) error {
 		if len(v) == 0 {
 			continue // empty
 		}
-		id, err := dkstring.GetMapAssertString("id", v)
+		id, err := dkstring.GetMapMD5String(v)
 		if err != nil {
 			return err
 		}
-		if _, err := dkstring.CheckNotEmpty(id, "id"); err != nil {
+		if _, err := dkstring.CheckNotEmpty(id, "sink md5sum"); err != nil {
 			return err
 		}
 		if _, ok := mSinkID[id]; ok {

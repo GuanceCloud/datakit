@@ -271,8 +271,6 @@ func (s *Sender) init(opt *Option) error {
 		s.write = sink.Write
 	}
 
-	s.write = sink.Write
-
 	s.Stat = map[string]*Stat{}
 
 	if s.write == nil {

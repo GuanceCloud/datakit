@@ -391,37 +391,22 @@ hostname = "should-not-set"`,
 [sinks]
 
   [[sinks.sink]]
-    addr = "http://1.1.1.1:8086"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
     database = "db0"
-    id = "influxdb_1"
+    host = "1.1.1.1:8086"
     precision = "ns"
+    protocol = "http"
     target = "influxdb"
     timeout = "6s"
-    user_agent = "go_test_client"
-    write_encoding = ""
 
   [[sinks.sink]]
-    addr = "http://1.1.1.1:8087"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
-    database = "db0"
-    id = "influxdb_bak"
+    database = "db1"
+    host = "1.1.1.1:8087"
     precision = "ns"
+    protocol = "http"
     target = "influxdb"
     timeout = "6s"
-    user_agent = "go_test_client"
-    write_encoding = ""
-
-  [[sinks.sink]]
-    addr = "http://1.1.1.1:8086"
-    categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
-    database = "db0"
-    id = "influxdb_test_will_not_working"
-    precision = "ns"
-    target = "example only, will not working"
-    timeout = "6s"
-    user_agent = "go_test_client"
-    write_encoding = ""
 
 [sinks]
 
@@ -429,41 +414,50 @@ hostname = "should-not-set"`,
 */
 func TestWriteConfigFile(t *testing.T) {
 	c := DefaultConfig()
-	c.Sinks = &Sinker{
-		Sink: []map[string]interface{}{
-			{
-				"id":             "influxdb_1",
-				"target":         "influxdb",
-				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-				"addr":           "http://1.1.1.1:8086",
-				"precision":      "ns",
-				"database":       "db0",
-				"user_agent":     "go_test_client",
-				"timeout":        "6s",
-				"write_encoding": "",
+
+	cases := []struct {
+		name string
+		in   []map[string]interface{}
+	}{
+		{
+			name: "has_data",
+			in: []map[string]interface{}{
+				{
+					"target":     "influxdb",
+					"categories": []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
+					"host":       "1.1.1.1:8086",
+					"protocol":   "http",
+					"precision":  "ns",
+					"database":   "db0",
+					"timeout":    "5s",
+				},
+				{
+					"target":       "logstash",
+					"categories":   []string{"L"},
+					"host":         "1.1.1.1:8080",
+					"protocol":     "http",
+					"request_path": "/twitter/tweet/1",
+					"timeout":      "5s",
+				},
 			},
-			{
-				"id":             "influxdb_bak",
-				"target":         "influxdb",
-				"categories":     []string{"M", "N", "K", "O", "CO", "L", "T", "R", "S"},
-				"addr":           "http://1.1.1.1:8087",
-				"precision":      "ns",
-				"database":       "db0",
-				"user_agent":     "go_test_client",
-				"timeout":        "6s",
-				"write_encoding": "",
+		},
+		{
+			name: "no_data",
+			in: []map[string]interface{}{
+				{},
 			},
 		},
 	}
-	// c.Sinks = &Sinker{
-	// 	Sink: []map[string]interface{}{
-	// 		{},
-	// 	},
-	// }
 
-	mcdata, err := datakit.TomlMarshal(c)
-	if err != nil {
-		panic(err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c.Sinks.Sink = tc.in
+			mcdata, err := datakit.TomlMarshal(c)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("=====================================================")
+			fmt.Println(string(mcdata))
+		})
 	}
-	fmt.Println(string(mcdata))
 }

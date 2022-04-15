@@ -28,8 +28,14 @@ type JSONPoint struct {
 	Time        time.Time              `json:"time,omitempty"` // timestamp for the point.
 }
 
+type SinkInfo struct {
+	ID         string
+	CreateID   string
+	Categories []string
+}
+
 type ISink interface {
-	GetID() string
+	GetInfo() *SinkInfo
 	LoadConfig(mConf map[string]interface{}) error
 	Write(pts []ISinkPoint) error
 }

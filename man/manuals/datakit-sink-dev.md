@@ -1,6 +1,6 @@
 # DataKit Sink 开发文档
 
-## 导言
+## 编者按
 
 本文将讲述如何开发 DataKit 的 Sink 模块(以下简称 Sink 模块、Sink)的新实例。适合于想开发 Sink 新实例、或者想深入了解 Sink 模块原理的同学。
 
@@ -20,9 +20,9 @@
 
 - 第二步: 在上面的包下新建一个源文件 `sink_influxdb.go`, 新建一个常量 `creatorID`, 不能与其它包里面的 `creatorID` 重名; 实现 `ISink` 的 `interface`, 具体是实现以下几个函数:
 
-- `GetID() string`: 返回实例编号
-- `LoadConfig(mConf map[string]interface{}) error`: 加载外部配置到内部
-- `Write(pts []ISinkPoint) error`: 写入数据
+- `GetInfo() *SinkInfo`: 返回 sink 实例的相关信息。目前有 `ID`(实例内部标识, 程序内部根据配置生成, 供内部使用, 配置中唯一) 、`CreateID`(实例创建标识, 代码中唯一)和支持的类型的简写(比方说 `Metrics` 返回的是 `M`)。
+- `LoadConfig(mConf map[string]interface{}) error`: 加载外部配置到内部。
+- `Write(pts []ISinkPoint) error`: 写入数据。
 
 大致代码如下:
 
@@ -34,8 +34,8 @@ type SinkInfluxDB struct {
   ...
 }
 
-func (s *SinkInfluxDB) GetID() string {
-  // 返回实例编号
+func (s *SinkInfluxDB) GetInfo() *SinkInfo {
+  // 返回 sink 实例的相关信息
   ...
 }
 
@@ -53,8 +53,18 @@ func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
 }
 ```
 
-> 大体上可以参照 `influxdb` 的代码实现, 还是非常简单的。一切以简单为首要设计原则, 写的复杂了你自己也不愿维护。欢迎大家向 github 社区提交代码, 大家一起来维护。
+最后，在 `io/sink/sink.go` 中引入新增的 sink:
 
+```go
+package sink
+
+import (
+  ...
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/io/sink/sinkinfluxdb"
+)
+```
+
+> 大体上可以参照 `influxdb` 的代码实现, 还是非常简单的。一切以简单为首要设计原则, 写的复杂了你自己也不愿维护。欢迎大家向 github 社区提交代码, 大家一起来维护。
 
 - 第三步: 在 `datakit.conf` 里面增加配置, `target` 写上自定义的实例名, 即 `creatorID`, 唯一。比如:
 
@@ -63,16 +73,16 @@ func (s *SinkInfluxDB) Write(pts []sinkcommon.ISinkPoint) error {
 [sinks]
 
   [[sinks.sink]]
-    id = "influxdb_1" # 实例编号
-    target = "influxdb"
     categories = ["M", "N", "K", "O", "CO", "L", "T", "R", "S"]
-    addr = "http://172.16.239.130:8086"
+    target = "influxdb"
+    host = "10.200.7.21:8086"
+    protocol = "http"
     database = "db0"
-    timeout = "10s"
+    precision = "ns"
+    timeout = "15s"
 ...
 ```
 
 ## 注意事项
 
 1. 新实例需要自定义一个 `createID`，即这个实例的 "标识"，如 `influxdb`、`elasticsearch` 等，这个是不能和现有的 `createID` 重复的。在配置里面的 `target` 对应的就是这个 `createID`。
-2. 新实例的结构体里面需要有一个 `ID` 字符串变量，用来保存这个实例的编号。这个编号是为了区分同一个实例配置了多个。只要编号不同开启多个我们是支持。

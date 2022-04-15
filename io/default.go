@@ -123,7 +123,7 @@ func Start(sincfg []map[string]interface{}) error {
 	defaultIO.dynamicCache = map[string][]*Point{}
 
 	if err := sink.Init(sincfg, defaultIO.dw.Write); err != nil {
-		log.Error("InitSink failed: %v", err)
+		log.Errorf("InitSink failed: %v", err)
 		return err
 	}
 
