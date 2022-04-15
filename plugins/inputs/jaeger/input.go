@@ -56,11 +56,11 @@ const (
     # priority = 0
     # sampling_rate = 1.0
 
-  # Piplines use to manipulate message and meta data. If this item configured right then
-  # the current input procedure will run the scripts wrote in pipline config file against the data
-  # present in span message.
-  # The string on the left side of the equal sign must be identical to the service name that
-  # you try to handle.
+  ## Piplines use to manipulate message and meta data. If this item configured right then
+  ## the current input procedure will run the scripts wrote in pipline config file against the data
+  ## present in span message.
+  ## The string on the left side of the equal sign must be identical to the service name that
+  ## you try to handle.
   # [inputs.ddtrace.pipelines]
     # service1 = "service1.p"
     # service2 = "service2.p"
